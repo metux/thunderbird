@@ -1474,6 +1474,7 @@ pref("javascript.options.jit.full_debug_checks", false);
 // memory, but makes things like Function.prototype.toSource()
 // fail.
 pref("javascript.options.discardSystemSource", false);
+pref("javascript.options.showInConsole",    true);
 
 // Many of the the following preferences tune the SpiderMonkey GC, if you
 // change the defaults here please also consider changing them in
@@ -1481,6 +1482,10 @@ pref("javascript.options.discardSystemSource", false);
 
 // JSGC_MAX_MALLOC_BYTES
 // How much malloc memory can be allocated before triggering a GC, in MB.
+// This preference limits the memory usage of javascript.
+// If you want to change these values for your device,
+// please find Bug 417052 comment 17 and Bug 456721
+// Comment 32 and Bug 613551.
 pref("javascript.options.mem.high_water_mark", 128);
 
 // JSGC_MAX_BYTES
