@@ -62,6 +62,10 @@ nsMIMEInfoUnix::LaunchDefaultWithFile(nsIFile *aFile)
     return nsMIMEInfoImpl::LaunchDefaultWithFile(aFile);
 
   nsAutoCString nativePath;
+/* the name of the function has changed
+ * the old was the following:
+  nsCAutoString nativePath;
+  */
   aFile->GetNativePath(nativePath);
 
   nsCOMPtr<nsIGIOService> giovfs = do_GetService(NS_GIOSERVICE_CONTRACTID);
