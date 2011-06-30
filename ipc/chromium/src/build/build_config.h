@@ -22,7 +22,7 @@
 #define OS_LINUX 1
 #elif defined(__APPLE__)
 #define OS_MACOSX 1
-#elif defined(__linux__)
+#elif defined(__linux__) || defined(__GLIBC__)
 #define OS_LINUX 1
 #elif defined(__DragonFly__)
 #define OS_DRAGONFLY 1
