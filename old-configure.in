@@ -1863,7 +1863,7 @@ if test -z "$BZ2_DIR" -o "$BZ2_DIR" = no; then
     MOZ_SYSTEM_BZ2=
 else
     AC_CHECK_LIB(bz2, BZ2_bzread, [MOZ_SYSTEM_BZ2=1 MOZ_BZ2_LIBS="-lbz2"],
-    [MOZ_SYSTEM_BZ2= MOZ_BZ2_CFLAGS= MOZ_BZ2_LIBS=])
+    [AC_MSG_ERROR([You have run configure with --with-system-bz2, but there is no libbz2 around!])])
 fi
 CFLAGS=$_SAVE_CFLAGS
 LDFLAGS=$_SAVE_LDFLAGS
