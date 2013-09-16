@@ -154,6 +154,9 @@ ReadDependentCB(pathstr_t aDependentLib)
   // We do this unconditionally because of data in bug 771745
   ReadAheadLib(aDependentLib);
 #endif
+  char lib[MAXPATHLEN];
+  if (realpath(aDependentLib, lib))
+      aDependentLib = lib;
   LibHandleType libHandle = GetLibHandle(aDependentLib);
   if (libHandle) {
     AppendDependentLib(libHandle);
