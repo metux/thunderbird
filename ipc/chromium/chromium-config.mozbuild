@@ -67,5 +67,10 @@ else:
             'OS_BSD': 1,
         })
 
+    elif CONFIG['OS_ARCH'] == 'GNU':
+        DEFINES.update({
+            'OS_HURD': 1,
+        })
+
     else:
         DEFINES['OS_LINUX'] = 1

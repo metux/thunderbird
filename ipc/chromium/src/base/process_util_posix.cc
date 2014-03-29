@@ -127,7 +127,7 @@ void CloseSuperfluousFds(const base::InjectiveMultimap& saved_mapping) {
 #if defined(ANDROID)
   static const rlim_t kSystemDefaultMaxFds = 1024;
   static const char kFDDir[] = "/proc/self/fd";
-#elif defined(OS_LINUX) || defined(OS_SOLARIS)
+#elif defined(OS_LINUX) || defined(OS_SOLARIS) || defined(OS_HURD)
   static const rlim_t kSystemDefaultMaxFds = 8192;
   static const char kFDDir[] = "/proc/self/fd";
 #elif defined(OS_MACOSX)
