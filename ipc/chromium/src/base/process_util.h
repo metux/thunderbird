@@ -19,7 +19,7 @@
 #ifndef STDOUT_FILENO
 #define STDOUT_FILENO 1
 #endif
-#elif defined(OS_LINUX) || defined(__GLIBC__)
+#elif defined(OS_LINUX) || defined(__GLIBC__) || defined(OS_HURD)
 #include <dirent.h>
 #include <limits.h>
 #include <sys/types.h>

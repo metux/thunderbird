@@ -37,6 +37,9 @@
 #elif defined(_WIN32)
 #define OS_WIN 1
 #define TOOLKIT_VIEWS 1
+#elif defined(__GNU__)
+#define OS_HURD 1
+#define TOOLKIT_GTK
 #elif defined(__DragonFly__)
 #define OS_DRAGONFLY 1
 #define TOOLKIT_GTK
@@ -70,7 +73,8 @@
 // For access to standard POSIXish features, use OS_POSIX instead of a
 // more specific macro.
 #if defined(OS_MACOSX) || defined(OS_LINUX) || defined(OS_BSD) ||	\
-    defined(OS_SOLARIS) || defined(OS_ANDROID) || defined(OS_NACL)
+    defined(OS_SOLARIS) || defined(OS_ANDROID) || defined(OS_NACL) ||   \
+    defined(OS_HURD)
 #define OS_POSIX 1
 #endif
 
