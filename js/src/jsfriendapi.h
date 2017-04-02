@@ -594,7 +594,7 @@ public:
     uint32_t          slotInfo;
 
     static const uint32_t FIXED_SLOTS_SHIFT = 27;
-};
+} __attribute__ ((aligned(4)));
 
 /**
  * This layout is shared by all native objects. For non-native objects, the

@@ -676,6 +676,9 @@ def split_triplet(triplet, allow_unknown=False):
     elif cpu == 'sh4':
         canonical_cpu = 'sh4'
         endianness = 'little'
+    elif cpu in ('m68k'):
+        canonical_cpu = 'm68k'
+        endianness = 'big'
     elif allow_unknown:
         canonical_cpu = cpu
         endianness = 'unknown'

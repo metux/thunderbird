@@ -46,6 +46,7 @@ CPU_bitness = {
     'arm': 32,
     'hppa': 32,
     'ia64': 64,
+    'm68k': 32,
     'mips32': 32,
     'mips64': 64,
     'ppc': 32,
@@ -89,6 +90,7 @@ CPU_preprocessor_checks = OrderedDict((
     ('mips64', '__mips64'),
     ('mips32', '__mips__'),
     ('sh4', '__sh__'),
+    ('m68k', '__m68k__'),
 ))
 
 assert sorted(CPU_preprocessor_checks.keys()) == sorted(CPU.POSSIBLE_VALUES)

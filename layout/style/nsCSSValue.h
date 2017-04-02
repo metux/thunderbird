@@ -1055,7 +1055,7 @@ protected:
     mozilla::SharedFontList* MOZ_OWNING_REF mFontFamilyList;
     mozilla::css::ComplexColorValue* MOZ_OWNING_REF mComplexColor;
   } mValue;
-};
+} __attribute__ ((aligned(4)));
 
 struct nsCSSValue::Array final {
 

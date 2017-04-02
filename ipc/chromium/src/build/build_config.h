@@ -80,6 +80,9 @@
 #define ARCH_CPU_ARMEL 1
 #define ARCH_CPU_32_BITS 1
 #define WCHAR_T_IS_UNSIGNED 1
+#elif defined(__m68k__)
+#define ARCH_CPU_M68K 1
+#define ARCH_CPU_32_BITS 1
 #elif defined(__powerpc64__)
 #define ARCH_CPU_PPC64 1
 #define ARCH_CPU_64_BITS 1
