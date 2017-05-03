@@ -7,14 +7,8 @@ mailnews/base/test/unit/test_compactColumnSave.js
 # don't filter out the following JS file, it's needed later while building
 #mozilla/testing/marionette/atoms/atoms.js
 mozilla/addon-sdk/source/examples/actor-repl/data/codemirror-compressed.js
-mozilla/browser/components/pocket/panels/js/vendor/jquery-2.1.1.min.js
-mozilla/browser/components/pocket/panels/js/vendor/jquery.tokeninput.min.js
 mozilla/browser/components/translation/cld2/cld-worker.js
-mozilla/build/mobile/sutagent/android/network-libs/commons-net-2.0-javadoc.jar
-mozilla/build/mobile/sutagent/android/network-libs/commons-net-2.0-sources.jar
-mozilla/build/mobile/sutagent/android/network-libs/commons-net-2.0.jar
-mozilla/build/mobile/sutagent/android/network-libs/commons-net-ftp-2.0.jar
-mozilla/build/mobile/sutagent/android/network-libs/jmdns.jar
+mozilla/browser/extensions/pocket/content/panels/js/vendor/jquery*.js
 mozilla/build/pgo/blueprint/valid.png
 mozilla/devtools/client/shared/test
 # don't filter out the following JS files, they needed later while building
@@ -69,22 +63,22 @@ mozilla/other-licenses/nsis/Contrib/ServicesHelper/ServicesHelper.rc
 mozilla/other-licenses/nsis/nsisui.exe
 mozilla/other-licenses/nsis/Plugins
 mozilla/parser/xml/test
+mozilla/python/altgraph/doc/_build/html/_static/jquery.js
+mozilla/python/altgraph/doc/_build/html/_static/underscore.js
+mozilla/python/macholib/doc/_build/html/_static/jquery.js
+mozilla/python/macholib/doc/_build/html/_static/underscore.js
 mozilla/python/mock-1.0.0/html/_static/jquery.js
 mozilla/python/mock-1.0.0/html/_static/underscore.js
 mozilla/python/mock-1.0.0/html/searchindex.js
 mozilla/python/psutil/build
 mozilla/python/psutil/psutil/*.so
-mozilla/testing/marionette/client/marionette/runner/mixins/browsermob-proxy-py/docs/_build/html/_static/jquery.js
-mozilla/testing/marionette/client/marionette/runner/mixins/browsermob-proxy-py/docs/_build/html/_static/underscore.js
-mozilla/testing/marionette/client/marionette/runner/mixins/resources/htmlreport/jquery.js
 mozilla/testing/mochitest/MochiKit/packed.js
 mozilla/testing/mozbase/mozrunner/mozrunner/resources/metrotestharness.exe
 mozilla/testing/talos/talos/scripts/jszip.min.js
-mozilla/testing/talos/talos/startup_test/media/tools/MediaUtils
-mozilla/testing/talos/talos/startup_test/media/tools/PESQ
 mozilla/testing/talos/talos/startup_test/sessionrestore/profile/sessionstore.js
 mozilla/testing/talos/talos/tests/dromaeo/lib/ext-base.js
 mozilla/testing/talos/talos/tests/dromaeo/lib/ext-core.js
+mozilla/third_party/rust/libz-sys/src/zlib-1.2.8/contrib/dotzlib/DotZLib.chm
 mozilla/toolkit/components/maintenanceservice/maintenanceservice.rc
 mozilla/toolkit/components/maintenanceservice/resource.h
 mozilla/toolkit/crashreporter/client/crashreporter.rc
