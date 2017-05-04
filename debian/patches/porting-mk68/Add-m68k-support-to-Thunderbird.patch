@@ -44,8 +44,6 @@ Additional changes:
   least 4 bytes alignment
 ---
  mozilla/ipc/chromium/src/build/build_config.h                   | 3 +++
- mozilla/js/public/Class.h                                       | 4 ++--
- mozilla/js/src/gc/Heap.h                                        | 2 +-
  mozilla/js/src/jit/AtomicOperations.h                           | 2 ++
  mozilla/js/src/jsfriendapi.h                                    | 2 +-
  mozilla/layout/style/nsCSSValue.h                               | 2 +-
@@ -55,13 +53,13 @@ Additional changes:
  mozilla/mfbt/tests/TestPoisonArea.cpp                           | 3 +++
  mozilla/xpcom/reflect/xptcall/md/unix/xptcinvoke_linux_m68k.cpp | 3 ++-
  mozilla/xpcom/reflect/xptcall/md/unix/xptcstubs_linux_m68k.cpp  | 2 +-
- 12 files changed, 30 insertions(+), 9 deletions(-)
+ 10 files changed, 27 insertions(+), 6 deletions(-)
 
 diff --git a/mozilla/ipc/chromium/src/build/build_config.h b/mozilla/ipc/chromium/src/build/build_config.h
-index 7468874..3ce8966 100644
+index 342bd56..6ac0918 100644
 --- a/mozilla/ipc/chromium/src/build/build_config.h
 +++ b/mozilla/ipc/chromium/src/build/build_config.h
-@@ -76,6 +76,9 @@
+@@ -78,6 +78,9 @@
  #define ARCH_CPU_ARMEL 1
  #define ARCH_CPU_32_BITS 1
  #define WCHAR_T_IS_UNSIGNED 1
@@ -71,46 +69,11 @@ index 7468874..3ce8966 100644
  #elif defined(__powerpc64__)
  #define ARCH_CPU_PPC64 1
  #define ARCH_CPU_64_BITS 1
-diff --git a/mozilla/js/public/Class.h b/mozilla/js/public/Class.h
-index 47180fd..e8381c2 100644
---- a/mozilla/js/public/Class.h
-+++ b/mozilla/js/public/Class.h
-@@ -657,7 +657,7 @@ struct JSClass {
-     JS_CLASS_MEMBERS(JSFinalizeOp);
- 
-     void*               reserved[23];
--};
-+} __attribute__ ((aligned(4)));
- 
- #define JSCLASS_HAS_PRIVATE             (1<<0)  // objects have private slot
- #define JSCLASS_DELAY_METADATA_CALLBACK (1<<1)  // class's initialization code
-@@ -793,7 +793,7 @@ struct Class
-     }
- 
-     static size_t offsetOfFlags() { return offsetof(Class, flags); }
--};
-+} __attribute__ ((aligned(4)));
- 
- static_assert(offsetof(JSClass, name) == offsetof(Class, name),
-               "Class and JSClass must be consistent");
-diff --git a/mozilla/js/src/gc/Heap.h b/mozilla/js/src/gc/Heap.h
-index 783da19..ac9de39 100644
---- a/mozilla/js/src/gc/Heap.h
-+++ b/mozilla/js/src/gc/Heap.h
-@@ -251,7 +251,7 @@ struct Cell
-   protected:
-     inline uintptr_t address() const;
-     inline Chunk* chunk() const;
--};
-+} __attribute__ ((aligned(4)));
- 
- // A GC TenuredCell gets behaviors that are valid for things in the Tenured
- // heap, such as access to the arena header and mark bits.
 diff --git a/mozilla/js/src/jit/AtomicOperations.h b/mozilla/js/src/jit/AtomicOperations.h
-index 5c20ee8..efb2db7 100644
+index 078be67..e12cb86 100644
 --- a/mozilla/js/src/jit/AtomicOperations.h
 +++ b/mozilla/js/src/jit/AtomicOperations.h
-@@ -300,6 +300,8 @@ AtomicOperations::isLockfree(int32_t size)
+@@ -326,6 +326,8 @@ AtomicOperations::isLockfree(int32_t size)
  # include "jit/arm64/AtomicOperations-arm64.h"
  #elif defined(__hppa__)
  # include "jit/none/AtomicOperations-ppc.h"
@@ -118,12 +81,12 @@ index 5c20ee8..efb2db7 100644
 +# include "jit/none/AtomicOperations-ppc.h"
  #elif defined(JS_CODEGEN_MIPS32) || defined(JS_CODEGEN_MIPS64)
  # include "jit/mips-shared/AtomicOperations-mips-shared.h"
- #elif defined(__ppc64__) || defined(__PPC64_)       \
+ #elif defined(__ppc__) || defined(__PPC__)
 diff --git a/mozilla/js/src/jsfriendapi.h b/mozilla/js/src/jsfriendapi.h
-index 53518d3..73d4481 100644
+index d6463d3..d7ead8f 100644
 --- a/mozilla/js/src/jsfriendapi.h
 +++ b/mozilla/js/src/jsfriendapi.h
-@@ -559,7 +559,7 @@ public:
+@@ -571,7 +571,7 @@ public:
      uint32_t          slotInfo;
  
      static const uint32_t FIXED_SLOTS_SHIFT = 27;
@@ -133,12 +96,12 @@ index 53518d3..73d4481 100644
  /**
   * This layout is shared by all native objects. For non-native objects, the
 diff --git a/mozilla/layout/style/nsCSSValue.h b/mozilla/layout/style/nsCSSValue.h
-index 1d912fa..0d5b2f2 100644
+index 1721cc8..7531fe8 100644
 --- a/mozilla/layout/style/nsCSSValue.h
 +++ b/mozilla/layout/style/nsCSSValue.h
-@@ -784,7 +784,7 @@ protected:
-     nsCSSValueFloatColor* MOZ_OWNING_REF mFloatColor;
+@@ -1032,7 +1032,7 @@ protected:
      mozilla::css::FontFamilyListRefCnt* MOZ_OWNING_REF mFontFamilyList;
+     mozilla::css::ComplexColorValue* MOZ_OWNING_REF mComplexColor;
    } mValue;
 -};
 +} __attribute__ ((aligned(4)));
@@ -146,7 +109,7 @@ index 1d912fa..0d5b2f2 100644
  struct nsCSSValue::Array final {
  
 diff --git a/mozilla/media/webrtc/trunk/build/build_config.h b/mozilla/media/webrtc/trunk/build/build_config.h
-index b2ffb41..1cc010d 100644
+index dcb3d47..bbd0b22 100644
 --- a/mozilla/media/webrtc/trunk/build/build_config.h
 +++ b/mozilla/media/webrtc/trunk/build/build_config.h
 @@ -123,6 +123,11 @@
@@ -201,7 +164,7 @@ index f1fa9c5..41b463a 100644
  
  struct A { char dummy; explicit A(int) {} };
 diff --git a/mozilla/mfbt/tests/TestPoisonArea.cpp b/mozilla/mfbt/tests/TestPoisonArea.cpp
-index 43a2f51..b572374 100644
+index 6f1b61e..9360ac9 100644
 --- a/mozilla/mfbt/tests/TestPoisonArea.cpp
 +++ b/mozilla/mfbt/tests/TestPoisonArea.cpp
 @@ -133,6 +133,9 @@

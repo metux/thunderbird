@@ -1,46 +1,113 @@
-From: Mike Hommey <glandium@debian.org>
-Date: Fri, 30 Apr 2010 11:03:50 +0200
-Subject: Add xptcall support for SH4 processors
+From: John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
+Date: Thu, 18 May 2017 19:08:05 +0200
+Subject: Add sh4 support to Thunderbird
 
-Closes: #573400
-https://bugzilla.mozilla.org/show_bug.cgi?id=382214
+Cherry-picked and adapted patches from Firefox upstream:
+- b179235c38eb631286f9e2fd4a7b23361dbab6d2
+Bug 1329194 - js:jit: Use PowerPC atomic operations on SH.
+- ba58645c87ed7e08b16adc3b40f0c6e3b6a2e140
+Bug 1329194 - mfbt:tests: Define RETURN_INSTR for SH in TestPoisonArea.
+- 942df3d3a4a1db3d182e97c54fb1705c50128470
+Bug 1329194 - ipc:chromium: Add platform defines for SH.
+- 85ae466ed90b3a0cac396aed24722ce4d0febb31
+Bug 1329194 - media:webrtc: Add platform defines for SH.
+- 5a74d13630a969473f72a143f37728f5bb87f552
+Bug 1329194 - mozbuild: Add SH4 as target architecture.
+- (not committed upstream yet)
+Bug 382214 - xpcom: Add xptcall support for Linux/SH
+- (not committed upstream yet)
+Bug 382214 - xpcom: Make SH xpctcall inline assembly position-independent
+
+Closes: #859508
 ---
- mozilla/xpcom/reflect/xptcall/md/unix/Makefile.in  |  12 +
- .../xptcall/src/md/unix/xptcinvoke_linux_sh.cpp    | 203 +++++++++++++++
- .../xptcall/src/md/unix/xptcstubs_linux_sh.cpp     | 271 +++++++++++++++++++++
- 3 files changed, 486 insertions(+)
- create mode 100644 mozilla/xpcom/reflect/xptcall/src/md/unix/xptcinvoke_linux_sh.cpp
- create mode 100644 mozilla/xpcom/reflect/xptcall/src/md/unix/xptcstubs_linux_sh.cpp
+ mozilla/ipc/chromium/src/build/build_config.h      |   3 +
+ mozilla/js/src/jit/AtomicOperations.h              |   2 +
+ mozilla/media/webrtc/trunk/build/build_config.h    |   3 +
+ mozilla/mfbt/tests/TestPoisonArea.cpp              |   3 +
+ mozilla/xpcom/reflect/xptcall/md/unix/moz.build    |   5 +
+ .../xptcall/md/unix/xptcinvoke_linux_sh.cpp        | 210 +++++++++++++++++
+ .../reflect/xptcall/md/unix/xptcstubs_linux_sh.cpp | 262 +++++++++++++++++++++
+ 7 files changed, 488 insertions(+)
+ create mode 100644 mozilla/xpcom/reflect/xptcall/md/unix/xptcinvoke_linux_sh.cpp
+ create mode 100644 mozilla/xpcom/reflect/xptcall/md/unix/xptcstubs_linux_sh.cpp
 
-diff --git a/mozilla/xpcom/reflect/xptcall/md/unix/Makefile.in b/mozilla/xpcom/reflect/xptcall/md/unix/Makefile.in
-index e4cdc38..521ddff 100644
---- a/mozilla/xpcom/reflect/xptcall/md/unix/Makefile.in
-+++ b/mozilla/xpcom/reflect/xptcall/md/unix/Makefile.in
-@@ -42,6 +42,18 @@ ifeq ($(OS_ARCH),AIX)
- CXXFLAGS 	:=  $(filter-out $(MOZ_OPTIMIZE_FLAGS), $(CXXFLAGS))
- endif
+diff --git a/mozilla/ipc/chromium/src/build/build_config.h b/mozilla/ipc/chromium/src/build/build_config.h
+index 6ac0918..53ad98e 100644
+--- a/mozilla/ipc/chromium/src/build/build_config.h
++++ b/mozilla/ipc/chromium/src/build/build_config.h
+@@ -111,6 +111,9 @@
+ #elif defined(__s390__)
+ #define ARCH_CPU_S390 1
+ #define ARCH_CPU_32_BITS 1
++#elif defined(__sh__)
++#define ARCH_CPU_SH 1
++#define ARCH_CPU_32_BITS 1
+ #elif defined(__alpha__)
+ #define ARCH_CPU_ALPHA 1
+ #define ARCH_CPU_64_BITS 1
+diff --git a/mozilla/js/src/jit/AtomicOperations.h b/mozilla/js/src/jit/AtomicOperations.h
+index e12cb86..90b42c5 100644
+--- a/mozilla/js/src/jit/AtomicOperations.h
++++ b/mozilla/js/src/jit/AtomicOperations.h
+@@ -332,6 +332,8 @@ AtomicOperations::isLockfree(int32_t size)
+ # include "jit/mips-shared/AtomicOperations-mips-shared.h"
+ #elif defined(__ppc__) || defined(__PPC__)
+ # include "jit/none/AtomicOperations-ppc.h"
++#elif defined(__sh__)
++# include "jit/none/AtomicOperations-ppc.h"
+ #elif defined(__sparc__)
+ # include "jit/none/AtomicOperations-sparc.h"
+ #elif defined(JS_CODEGEN_NONE)
+diff --git a/mozilla/media/webrtc/trunk/build/build_config.h b/mozilla/media/webrtc/trunk/build/build_config.h
+index bbd0b22..e10707d 100644
+--- a/mozilla/media/webrtc/trunk/build/build_config.h
++++ b/mozilla/media/webrtc/trunk/build/build_config.h
+@@ -162,6 +162,9 @@
+ #elif defined(__s390__)
+ #define ARCH_CPU_S390 1
+ #define ARCH_CPU_32_BITS 1
++#elif defined(__sh__)
++#define ARCH_CPU_SH 1
++#define ARCH_CPU_32_BITS 1
+ #elif defined(__alpha__)
+ #define ARCH_CPU_ALPHA 1
+ #define ARCH_CPU_64_BITS 1
+diff --git a/mozilla/mfbt/tests/TestPoisonArea.cpp b/mozilla/mfbt/tests/TestPoisonArea.cpp
+index 9360ac9..1876b6e 100644
+--- a/mozilla/mfbt/tests/TestPoisonArea.cpp
++++ b/mozilla/mfbt/tests/TestPoisonArea.cpp
+@@ -157,6 +157,9 @@
+ #elif defined __s390__
+ #define RETURN_INSTR 0x07fe0000 /* br %r14 */
  
-+############
-+# SuperH
-+############
-+#
-+#
-+# Currently, tested on sh4 and sh4a (non sh4al and sh4al-dsp..)
-+ifeq ($(OS_ARCH),Linux)
-+ifneq (,$(filter sh4 sh4a,$(OS_TEST)))
-+CPPSRCS		:= xptcinvoke_linux_sh.cpp xptcstubs_linux_sh.cpp
-+endif
-+endif
++#elif defined __sh__
++#define RETURN_INSTR 0x0b000b00 /* rts; rts */
 +
- include $(topsrcdir)/config/rules.mk
+ #elif defined __aarch64__
+ #define RETURN_INSTR 0xd65f03c0 /* ret */
  
- ifeq ($(OS_ARCH),Linux)
-diff --git a/mozilla/xpcom/reflect/xptcall/src/md/unix/xptcinvoke_linux_sh.cpp b/mozilla/xpcom/reflect/xptcall/src/md/unix/xptcinvoke_linux_sh.cpp
+diff --git a/mozilla/xpcom/reflect/xptcall/md/unix/moz.build b/mozilla/xpcom/reflect/xptcall/md/unix/moz.build
+index 1d182bb..067a6ad 100644
+--- a/mozilla/xpcom/reflect/xptcall/md/unix/moz.build
++++ b/mozilla/xpcom/reflect/xptcall/md/unix/moz.build
+@@ -316,6 +316,11 @@ if CONFIG['OS_ARCH'] == 'Linux':
+             '-fomit-frame-pointer',
+             '-mbackchain',
+         ]
++    elif CONFIG['OS_TEST'] in ('sh4', 'sh4a'):
++        SOURCES += [
++            'xptcinvoke_linux_sh.cpp',
++            'xptcstubs_linux_sh.cpp',
++        ]
+ 
+ FINAL_LIBRARY = 'xul'
+ 
+diff --git a/mozilla/xpcom/reflect/xptcall/md/unix/xptcinvoke_linux_sh.cpp b/mozilla/xpcom/reflect/xptcall/md/unix/xptcinvoke_linux_sh.cpp
 new file mode 100644
-index 0000000..ca4807d
+index 0000000..6462551
 --- /dev/null
-+++ b/mozilla/xpcom/reflect/xptcall/src/md/unix/xptcinvoke_linux_sh.cpp
-@@ -0,0 +1,203 @@
++++ b/mozilla/xpcom/reflect/xptcall/md/unix/xptcinvoke_linux_sh.cpp
+@@ -0,0 +1,210 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
 + *
 + * ***** BEGIN LICENSE BLOCK *****
@@ -82,6 +149,13 @@ index 0000000..ca4807d
 + * onto the stack. Change to take this into account.
 + *
 + * ***** END LICENSE BLOCK ***** */
++
++/* Recommended reference guides are:
++ *
++ * + SH-4 CPU Core Architecture - http://www.st.com/resource/en/user_manual/cd00147165.pdf
++ * + SH-4 Software Manual - https://documentation.renesas.com/eng/products/mpumcu/rej09b0318_sh_4sm.pdf
++ *
++ */
 +
 +#include "xptcprivate.h"
 +
@@ -199,8 +273,8 @@ index 0000000..ca4807d
 +    */
 +	".section .text\n"
 +	".balign 4\n"
-+	".global NS_InvokeByIndex_P\n"
-+	"NS_InvokeByIndex_P:\n"
++	".global NS_InvokeByIndex\n"
++	"NS_InvokeByIndex:\n"
 +	"mov.l r14, @-r15 \n\t" // Push frame
 +	"sts.l pr, @-r15 \n\t"	// Push link
 +	"mov.l r8, @-r15 \n\t"	// Save
@@ -211,9 +285,10 @@ index 0000000..ca4807d
 +	"mov 	r2, r8  \n\t" 	// Save stack drop
 +	"add	#48, r2 \n\t"	// Space for 4 longs, 8 floats
 +	"sub	r2, r15 \n\t"	// Drop stack
-+	"mov.l 	1f, r1 \n\t"	// Get address of copy_to_stack_function
-+	"jsr  	@r1 \n\t"
-+	  "mov.l   r15, @-r15 \n\t"	//  Params will be dumped here
++	"mov.l 	1f, r1 \n\t"	// Get relative address of copy_to_stack_function
++	"bsrf  	r1 \n\t"
++	"mov.l   r15, @-r15 \n\t"	//  Params will be dumped here
++	"0:\n\t"
 +	"add	#4, r15 \n\t"	// Pop stack ptr param. r0 contains method address
 +
 +	/* Now everything is laid out nicely in the stack.  We just have to
@@ -234,22 +309,21 @@ index 0000000..ca4807d
 +	"fmov.s	@r15+, fr8 \n\t"
 +	"fmov.s	@r15+, fr11 \n\t"
 +	"jsr	@r0 \n\t" // Invoke method
-+	  "fmov.s	@r15+, fr10 \n\t"
++	"fmov.s	@r15+, fr10 \n\t"
 +	"add  r8, r15\n\t"		// Pop stack back
 +	"mov.l @r15+, r8\n\t" // Restore r8
 +	"lds.l @r15+, pr\n\t"
 +	"rts\n\t"
-+	  "mov.l @r15+, r14\n\t"
++	"mov.l @r15+, r14\n\t"
 +	".balign 4\n\t"
-+	"1: .long copy_to_stack \n\t"
++	"1: .long copy_to_stack - 0b \n\t"
 +   );
-+
-diff --git a/mozilla/xpcom/reflect/xptcall/src/md/unix/xptcstubs_linux_sh.cpp b/mozilla/xpcom/reflect/xptcall/src/md/unix/xptcstubs_linux_sh.cpp
+diff --git a/mozilla/xpcom/reflect/xptcall/md/unix/xptcstubs_linux_sh.cpp b/mozilla/xpcom/reflect/xptcall/md/unix/xptcstubs_linux_sh.cpp
 new file mode 100644
-index 0000000..cf9fcea
+index 0000000..b40482d
 --- /dev/null
-+++ b/mozilla/xpcom/reflect/xptcall/src/md/unix/xptcstubs_linux_sh.cpp
-@@ -0,0 +1,271 @@
++++ b/mozilla/xpcom/reflect/xptcall/md/unix/xptcstubs_linux_sh.cpp
+@@ -0,0 +1,262 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
 +/* ***** BEGIN LICENSE BLOCK *****
 + * Version: MPL 1.1/GPL 2.0/LGPL 2.1
@@ -290,6 +364,13 @@ index 0000000..cf9fcea
 + * like all the other ports rather than the python script.
 + *
 + * ***** END LICENSE BLOCK ***** */
++
++/* Recommended reference guides are:
++ *
++ * + SH-4 CPU Core Architecture - http://www.st.com/resource/en/user_manual/cd00147165.pdf
++ * + SH-4 Software Manual - https://documentation.renesas.com/eng/products/mpumcu/rej09b0318_sh_4sm.pdf
++ *
++ */
 +
 +#include "xptcprivate.h"
 +#include "xptiprivate.h"
@@ -410,7 +491,6 @@ index 0000000..cf9fcea
 +__asm__ (
 +	".text\n"
 +	".little\n"
-+	".section	.rodata\n"
 +
 +	".globl SharedStub\n"
 +	".type  SharedStub, @function\n"
@@ -442,8 +522,9 @@ index 0000000..cf9fcea
 +	"mov	   r1, r6\n"	/* r6 = PrepareAndDispatch data param			*/
 +
 +	"mov.l  1f, r1\n"
-+	"jsr	   @r1\n"		/* Note, following instruction is executed first*/
++	"bsrf	   r1\n"		/* Note, following instruction is executed first*/
 +	  "mov	   r2, r5\n"		/* r5 = PrepareAndDispatch methodIndex param	*/
++	"0:\n"
 +
 +	"mov		r14,r15\n"
 +	"lds.l	@r15+,pr\n"
@@ -452,7 +533,7 @@ index 0000000..cf9fcea
 +	  "nop\n"
 +	".align 2\n"
 +	"1:\n"
-+	".long  PrepareAndDispatch\n"
++	".long  PrepareAndDispatch - 0b\n"
 +	);
 +
 +#define STUB_ENTRY(n) 						\
@@ -476,44 +557,28 @@ index 0000000..cf9fcea
 +	".endif\n\t" 						\
 +	"mov.l 	1f, r1 \n"					\
 +	".if "#n" < 128 \n"					\
-+	"jmp @r1 \n"						\
++	"braf r1 \n"						\
 +	"  mov #"#n",r2 \n"					\
 +	".elseif "#n" < 256 \n"					\
 +	"mov #"#n", r2 \n"					\
-+	"jmp @r1 \n"						\
++	"braf r1 \n"						\
 +	"  extu.b r2, r2 \n"					\
 +	".else \n"						\
 +	"mov #"#n" & 0xff,r2 \n"				\
 +	"extu.b	r2, r2 \n"					\
 +	"mov #"#n">>8, r3 \n"					\
 +	"shll8	r3 \n"						\
-+	"jmp @r1 \n"						\
++	"braf r1 \n"						\
 +	"  or r3, r2 \n"					\
 +	".endif \n"						\
-+	".if "#n" % 20 == 0\n"					\
++	"0: \n"							\
 +	".align 2\n"						\
 +	"1:\n"							\
-+	".long SharedStub\n"					\
-+	".endif\n"						\
++	".long SharedStub - 0b\n"				\
 +	);
 +
 +
-+/* Due to the fact that the SH4 can only load forward labels, we have
-+ * to use sentinel_entry to output the last label. A better solution
-+ * would be to introduce a STUB_LAST macro in the defs.in file, but
-+ * this will do for now
-+ */
-+
 +#define SENTINEL_ENTRY(n) 		\
-+__asm__( 				\
-+".if "#n" == 0  \n"			\
-+	".text \n"			\
-+	".align 2\n"			\
-+	"1:\n"				\
-+	".long SharedStub\n"		\
-+".endif\n"				\
-+); 					\
-+					\
 +nsresult nsXPTCStubBase::Sentinel##n()  \
 +{ \
 +	NS_ASSERTION(0,"nsXPTCStubBase::Sentinel called"); \

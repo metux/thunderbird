@@ -8,7 +8,7 @@ Closes: #601331
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/icedove-l10n/sl/chrome/sl/locale/sl/communicator/utilityOverlay.dtd b/icedove-l10n/sl/chrome/sl/locale/sl/communicator/utilityOverlay.dtd
-index 70f3b9e..4ea1d03 100644
+index de7a6a0..cc80353 100644
 --- a/icedove-l10n/sl/chrome/sl/locale/sl/communicator/utilityOverlay.dtd
 +++ b/icedove-l10n/sl/chrome/sl/locale/sl/communicator/utilityOverlay.dtd
 @@ -10,7 +10,7 @@

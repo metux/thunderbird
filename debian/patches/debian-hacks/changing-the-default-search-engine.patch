@@ -5,12 +5,11 @@ Subject: changing the default search engine
 ---
  mail/locales/en-US/chrome/messenger-region/region.properties |  8 ++++----
  mail/locales/en-US/searchplugins/duckduckgo.xml              | 11 +++++++++++
- mail/locales/en-US/searchplugins/list.txt                    |  2 ++
- 3 files changed, 17 insertions(+), 4 deletions(-)
+ 2 files changed, 15 insertions(+), 4 deletions(-)
  create mode 100644 mail/locales/en-US/searchplugins/duckduckgo.xml
 
 diff --git a/mail/locales/en-US/chrome/messenger-region/region.properties b/mail/locales/en-US/chrome/messenger-region/region.properties
-index fcc870d..1b03963 100644
+index c691e29..f5dbfdd 100644
 --- a/mail/locales/en-US/chrome/messenger-region/region.properties
 +++ b/mail/locales/en-US/chrome/messenger-region/region.properties
 @@ -3,12 +3,12 @@
@@ -47,17 +46,3 @@ index 0000000..e814524
 +</Url>
 +<SearchForm>https://duckduckgo.com/</SearchForm>
 +</SearchPlugin>
-diff --git a/mail/locales/en-US/searchplugins/list.txt b/mail/locales/en-US/searchplugins/list.txt
-index 96866db..2d89377 100644
---- a/mail/locales/en-US/searchplugins/list.txt
-+++ b/mail/locales/en-US/searchplugins/list.txt
-@@ -1,7 +1,9 @@
- amazondotcom
- aol-web-search
- bing
-+duckduckgo
- eBay
-+google
- twitter
- wikipedia
- yahoo

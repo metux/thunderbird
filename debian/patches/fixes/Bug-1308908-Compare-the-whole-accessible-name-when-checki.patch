@@ -1,0 +1,40 @@
+From: Colomban Wendling <cwendling@hypra.fr>
+Date: Thu, 18 May 2017 18:36:30 +0200
+Subject: Bug 1308908 - Compare the whole accessible name when checking
+ equality. r=tbsaunde
+
+Origin: https://hg.mozilla.org/mozilla-central/rev/13d5c32e4a61
+Bug-Debian: https://bugs.debian.org/826325
+Bug: https://bugzilla.mozilla.org/show_bug.cgi?id=1308908
+Applied-Upstream: 54.0a1
+
+Use strcmp() instead of strncmp() when comparing the AtkObject name
+before changing it. 9133117f410c06ad7fa25323a168bc97200043b9 changed
+from Equals() to strncmp() to prevent issues related to embedded NUL
+bytes, but the change lead to only checking if the AtkObject name has
+the new value as prefix. Instead, use strcmp() to check the whole
+C strings, but still stopping at the first NUL byte in the new name.
+
+strcmp() has to be safe here, as NS_ConvertUTF16toUTF8::get() has to
+return a NUL-terminated string or the code would crash a few lines
+below when calling strdup() on it.
+
+Closes: #826325
+---
+ mozilla/accessible/atk/AccessibleWrap.cpp | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/mozilla/accessible/atk/AccessibleWrap.cpp b/mozilla/accessible/atk/AccessibleWrap.cpp
+index 497775c..cd0f299 100644
+--- a/mozilla/accessible/atk/AccessibleWrap.cpp
++++ b/mozilla/accessible/atk/AccessibleWrap.cpp
+@@ -613,8 +613,7 @@ static void
+ MaybeFireNameChange(AtkObject* aAtkObj, const nsString& aNewName)
+ {
+   NS_ConvertUTF16toUTF8 newNameUTF8(aNewName);
+-  if (aAtkObj->name &&
+-      !strncmp(aAtkObj->name, newNameUTF8.get(), newNameUTF8.Length()))
++  if (aAtkObj->name && !strcmp(aAtkObj->name, newNameUTF8.get()))
+     return;
+ 
+   // Below we duplicate the functionality of atk_object_set_name(),

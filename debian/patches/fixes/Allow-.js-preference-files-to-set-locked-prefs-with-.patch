@@ -8,7 +8,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=440908
  1 file changed, 1 insertion(+)
 
 diff --git a/mozilla/modules/libpref/prefread.cpp b/mozilla/modules/libpref/prefread.cpp
-index 6c4d339..a8b20bb 100644
+index 605dcaa..e650d9f 100644
 --- a/mozilla/modules/libpref/prefread.cpp
 +++ b/mozilla/modules/libpref/prefread.cpp
 @@ -43,6 +43,7 @@ enum {

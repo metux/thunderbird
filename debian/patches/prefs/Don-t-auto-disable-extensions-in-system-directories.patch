@@ -7,10 +7,10 @@ Subject: Don't auto-disable extensions in system directories
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/mail/app/profile/all-thunderbird.js b/mail/app/profile/all-thunderbird.js
-index ac240c6..8cf3dc2 100644
+index 890d46a..58bdc94 100644
 --- a/mail/app/profile/all-thunderbird.js
 +++ b/mail/app/profile/all-thunderbird.js
-@@ -172,7 +172,7 @@ pref("extensions.hotfix.certs.2.sha1Fingerprint", "39:E7:2B:7A:5B:CF:37:78:F9:5D
+@@ -151,7 +151,7 @@ pref("extensions.hotfix.certs.2.sha1Fingerprint", "39:E7:2B:7A:5B:CF:37:78:F9:5D
  // Disable add-ons installed into the shared user and shared system areas by
  // default. This does not include the application directory. See the SCOPE
  // constants in AddonManager.jsm for values to use here

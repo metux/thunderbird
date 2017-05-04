@@ -8,10 +8,10 @@ Thanks: Pino Toscano <pino@debian.org>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/mozilla/ipc/chromium/src/build/build_config.h b/mozilla/ipc/chromium/src/build/build_config.h
-index 3385341..509cf33 100644
+index 9f02876..5920e42 100644
 --- a/mozilla/ipc/chromium/src/build/build_config.h
 +++ b/mozilla/ipc/chromium/src/build/build_config.h
-@@ -20,7 +20,7 @@
+@@ -22,7 +22,7 @@
  #define OS_LINUX 1
  #elif defined(__APPLE__)
  #define OS_MACOSX 1

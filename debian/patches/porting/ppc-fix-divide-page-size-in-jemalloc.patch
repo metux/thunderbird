@@ -8,15 +8,15 @@ Closes: #780404
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/mozilla/memory/mozjemalloc/jemalloc.c b/mozilla/memory/mozjemalloc/jemalloc.c
-index 0f875ce..b2e0f10 100644
+index 00e54dc..804a883 100644
 --- a/mozilla/memory/mozjemalloc/jemalloc.c
 +++ b/mozilla/memory/mozjemalloc/jemalloc.c
-@@ -1089,7 +1089,7 @@ static const bool config_recycle = false;
+@@ -1096,7 +1096,7 @@ static const bool config_recycle = false;
   * controlling the malloc behavior are defined as compile-time constants
   * for best performance and cannot be altered at runtime.
   */
--#if !defined(__ia64__) && !defined(__sparc__) && !defined(__mips__)
-+#if !defined(__ia64__) && !defined(__sparc__) && !defined(__mips__) && !defined(__powerpc__)
+-#if !defined(__ia64__) && !defined(__sparc__) && !defined(__mips__) && !defined(__aarch64__)
++#if !defined(__ia64__) && !defined(__sparc__) && !defined(__mips__) && !defined(__aarch64__) && !defined(__powerpc__)
  #define MALLOC_STATIC_SIZES 1
  #endif
  

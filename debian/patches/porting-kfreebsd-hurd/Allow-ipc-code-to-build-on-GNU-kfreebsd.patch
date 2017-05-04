@@ -8,10 +8,10 @@ Subject: Allow ipc code to build on GNU/kfreebsd
  2 files changed, 6 insertions(+), 2 deletions(-)
 
 diff --git a/mozilla/ipc/chromium/src/base/platform_thread_posix.cc b/mozilla/ipc/chromium/src/base/platform_thread_posix.cc
-index be25069..98ec20f 100644
+index 6c97833..ad55ae7 100644
 --- a/mozilla/ipc/chromium/src/base/platform_thread_posix.cc
 +++ b/mozilla/ipc/chromium/src/base/platform_thread_posix.cc
-@@ -49,7 +49,11 @@ PlatformThreadId PlatformThread::CurrentId() {
+@@ -51,7 +51,11 @@ PlatformThreadId PlatformThread::CurrentId() {
  #ifdef MOZ_WIDGET_GONK
    return (intptr_t) (pthread_self());
  #else
@@ -25,10 +25,10 @@ index be25069..98ec20f 100644
  #elif defined(OS_OPENBSD) || defined(__GLIBC__)
    return (intptr_t) (pthread_self());
 diff --git a/mozilla/ipc/chromium/src/build/build_config.h b/mozilla/ipc/chromium/src/build/build_config.h
-index dcec00d..3385341 100644
+index 390fa77..9f02876 100644
 --- a/mozilla/ipc/chromium/src/build/build_config.h
 +++ b/mozilla/ipc/chromium/src/build/build_config.h
-@@ -20,7 +20,7 @@
+@@ -22,7 +22,7 @@
  #define OS_LINUX 1
  #elif defined(__APPLE__)
  #define OS_MACOSX 1

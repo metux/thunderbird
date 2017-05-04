@@ -9,10 +9,10 @@ Mozilla-Bug: https://bugzilla.mozilla.org/show_bug.cgi?id=1325495
  2 files changed, 12 insertions(+)
 
 diff --git a/mozilla/js/src/jit/AtomicOperations.h b/mozilla/js/src/jit/AtomicOperations.h
-index 8606a18..7767e60 100644
+index 42aee72..85cd3e7 100644
 --- a/mozilla/js/src/jit/AtomicOperations.h
 +++ b/mozilla/js/src/jit/AtomicOperations.h
-@@ -298,6 +298,8 @@ AtomicOperations::isLockfree(int32_t size)
+@@ -324,6 +324,8 @@ AtomicOperations::isLockfree(int32_t size)
  # include "jit/arm/AtomicOperations-arm.h"
  #elif defined(JS_CODEGEN_ARM64)
  # include "jit/arm64/AtomicOperations-arm64.h"
@@ -20,7 +20,7 @@ index 8606a18..7767e60 100644
 +# include "jit/none/AtomicOperations-ppc.h"
  #elif defined(JS_CODEGEN_MIPS32) || defined(JS_CODEGEN_MIPS64)
  # include "jit/mips-shared/AtomicOperations-mips-shared.h"
- #elif defined(__ppc64__) || defined(__PPC64_)       \
+ #elif defined(__ppc__) || defined(__PPC__)
 diff --git a/mozilla/xpcom/reflect/xptcall/md/unix/xptcstubs_pa32.cpp b/mozilla/xpcom/reflect/xptcall/md/unix/xptcstubs_pa32.cpp
 index 7353709..e988283 100644
 --- a/mozilla/xpcom/reflect/xptcall/md/unix/xptcstubs_pa32.cpp

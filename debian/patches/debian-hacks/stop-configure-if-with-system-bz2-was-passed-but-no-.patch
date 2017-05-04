@@ -4,19 +4,19 @@ Subject: stop configure if '--with-system-bz2' was passed,
  but no libbz2 is around
 
 ---
- mozilla/configure.in | 2 +-
+ mozilla/old-configure.in | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/mozilla/configure.in b/mozilla/configure.in
-index b261764..743c923 100644
---- a/mozilla/configure.in
-+++ b/mozilla/configure.in
-@@ -3550,7 +3550,7 @@ if test -z "$BZ2_DIR" -o "$BZ2_DIR" = no; then
-     MOZ_NATIVE_BZ2=
+diff --git a/mozilla/old-configure.in b/mozilla/old-configure.in
+index 54045d2..1b4252e 100644
+--- a/mozilla/old-configure.in
++++ b/mozilla/old-configure.in
+@@ -2204,7 +2204,7 @@ if test -z "$BZ2_DIR" -o "$BZ2_DIR" = no; then
+     MOZ_SYSTEM_BZ2=
  else
-     AC_CHECK_LIB(bz2, BZ2_bzread, [MOZ_NATIVE_BZ2=1 MOZ_BZ2_LIBS="-lbz2"],
--    [MOZ_NATIVE_BZ2= MOZ_BZ2_CFLAGS= MOZ_BZ2_LIBS=])
-+                 [AC_MSG_ERROR([You have run configure with --with-system-bz2, but there is no libbz2 around])])
+     AC_CHECK_LIB(bz2, BZ2_bzread, [MOZ_SYSTEM_BZ2=1 MOZ_BZ2_LIBS="-lbz2"],
+-    [MOZ_SYSTEM_BZ2= MOZ_BZ2_CFLAGS= MOZ_BZ2_LIBS=])
++    [AC_MSG_ERROR([You have run configure with --with-system-bz2, but there is no libbz2 around!])])
  fi
  CFLAGS=$_SAVE_CFLAGS
  LDFLAGS=$_SAVE_LDFLAGS

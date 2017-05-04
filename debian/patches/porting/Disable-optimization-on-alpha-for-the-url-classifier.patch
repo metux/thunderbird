@@ -4,17 +4,19 @@ Subject: Disable optimization on alpha for the url-classifier component
 
 The use of this component leads to crashes when built with optimizations.
 ---
- mozilla/toolkit/components/feeds/Makefile.in | 8 ++++++++
- 1 file changed, 8 insertions(+)
+ mozilla/b2g/Makefile.in | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
 
-diff --git a/mozilla/toolkit/components/feeds/Makefile.in b/mozilla/toolkit/components/feeds/Makefile.in
-index 4567907..43ef729 100644
---- a/mozilla/toolkit/components/feeds/Makefile.in
-+++ b/mozilla/toolkit/components/feeds/Makefile.in
-@@ -6,3 +6,11 @@
- include $(topsrcdir)/config/rules.mk
+diff --git a/mozilla/b2g/Makefile.in b/mozilla/b2g/Makefile.in
+index 9b3e1e0..1dfdd4a 100644
+--- a/mozilla/b2g/Makefile.in
++++ b/mozilla/b2g/Makefile.in
+@@ -4,3 +4,13 @@
  
- ABS_SRCDIR := $(abspath $(srcdir))
+ include $(topsrcdir)/config/rules.mk
+ include $(topsrcdir)/testing/testsuite-targets.mk
++
++ABS_SRCDIR := $(abspath $(srcdir))
 +
 +CXXFLAGS += \
 +  $(SQLITE_CFLAGS) \

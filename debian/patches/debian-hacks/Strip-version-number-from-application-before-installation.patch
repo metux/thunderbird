@@ -1,15 +1,15 @@
 From: =?utf-8?q?Guido_G=C3=BCnther?= <agx@sigxcpu.org>
 Date: Sat, 24 Nov 2012 11:39:58 +0100
-Subject: Strip version number
+Subject: Strip version number from application before installation
 
-Strip icedove's version number from the installation directories so we
-have a fixed location for extensions that build against it.
+Strip thunderbird's version number from the installation directories so
+we have a fixed location for extensions that build against it.
 ---
  mozilla/config/baseconfig.mk | 8 ++++----
  1 file changed, 4 insertions(+), 4 deletions(-)
 
 diff --git a/mozilla/config/baseconfig.mk b/mozilla/config/baseconfig.mk
-index 86920aa..bf083d1 100644
+index 47a12b1..2facdd2 100644
 --- a/mozilla/config/baseconfig.mk
 +++ b/mozilla/config/baseconfig.mk
 @@ -2,10 +2,10 @@

@@ -4,7 +4,6 @@ Subject: adding missed HURD adoptions
 
 Based on https://lists.alioth.debian.org/pipermail/pkg-mozilla-maintainers/2016-April/027634.html
 ---
- mozilla/configure                                        |  2 +-
  mozilla/ipc/chromium/src/base/file_util_posix.cc         |  2 +-
  mozilla/ipc/chromium/src/base/platform_thread.h          |  2 +-
  mozilla/ipc/chromium/src/base/platform_thread_posix.cc   |  2 +-
@@ -16,26 +15,13 @@ Based on https://lists.alioth.debian.org/pipermail/pkg-mozilla-maintainers/2016-
  mozilla/media/webrtc/trunk/build/build_config.h          |  6 +++++-
  .../testing/gtest/include/gtest/internal/gtest-port.h    |  6 ++++--
  mozilla/security/sandbox/chromium/build/build_config.h   |  4 +++-
- 12 files changed, 40 insertions(+), 12 deletions(-)
+ 11 files changed, 39 insertions(+), 11 deletions(-)
 
-diff --git a/mozilla/configure b/mozilla/configure
-index c27acdd..c9392dd 100755
---- a/mozilla/configure
-+++ b/mozilla/configure
-@@ -30331,7 +30331,7 @@ if test -n "$USE_ICU"; then
-                     MOZ_ICU_DBG_SUFFIX=d
-                 fi
-                 ;;
--            Darwin|Linux|DragonFly|FreeBSD|NetBSD|OpenBSD|GNU/kFreeBSD|SunOS|Android)
-+            Darwin|Linux|DragonFly|FreeBSD|NetBSD|OpenBSD|GNU/kFreeBSD|SunOS|Android|GNU)
-                 ICU_LIB_NAMES="icui18n icuuc icudata"
-                 ;;
-             *)
 diff --git a/mozilla/ipc/chromium/src/base/file_util_posix.cc b/mozilla/ipc/chromium/src/base/file_util_posix.cc
-index b716a5d..fbb4e58 100644
+index d648974..a408640 100644
 --- a/mozilla/ipc/chromium/src/base/file_util_posix.cc
 +++ b/mozilla/ipc/chromium/src/base/file_util_posix.cc
-@@ -277,7 +277,7 @@ bool GetTempDir(FilePath* path) {
+@@ -279,7 +279,7 @@ bool GetTempDir(FilePath* path) {
  }
  
  bool GetShmemTempDir(FilePath* path) {
@@ -45,10 +31,10 @@ index b716a5d..fbb4e58 100644
    return true;
  #else
 diff --git a/mozilla/ipc/chromium/src/base/platform_thread.h b/mozilla/ipc/chromium/src/base/platform_thread.h
-index ed09afd..a6aca8f 100644
+index 727a13a..c122a1c 100644
 --- a/mozilla/ipc/chromium/src/base/platform_thread.h
 +++ b/mozilla/ipc/chromium/src/base/platform_thread.h
-@@ -22,7 +22,7 @@ typedef void* PlatformThreadHandle;  // HANDLE
+@@ -24,7 +24,7 @@ typedef void* PlatformThreadHandle;  // HANDLE
  #elif defined(OS_POSIX)
  #include <pthread.h>
  typedef pthread_t PlatformThreadHandle;
@@ -58,10 +44,10 @@ index ed09afd..a6aca8f 100644
  typedef pid_t PlatformThreadId;
  #elif defined(OS_BSD)
 diff --git a/mozilla/ipc/chromium/src/base/platform_thread_posix.cc b/mozilla/ipc/chromium/src/base/platform_thread_posix.cc
-index b4e105b..cf723dd 100644
+index 29d1e21..6843dfd 100644
 --- a/mozilla/ipc/chromium/src/base/platform_thread_posix.cc
 +++ b/mozilla/ipc/chromium/src/base/platform_thread_posix.cc
-@@ -58,7 +58,7 @@ PlatformThreadId PlatformThread::CurrentId() {
+@@ -60,7 +60,7 @@ PlatformThreadId PlatformThread::CurrentId() {
     return getpid();
  #endif
  #endif
@@ -71,10 +57,10 @@ index b4e105b..cf723dd 100644
  #elif defined(OS_NETBSD)
    return _lwp_self();
 diff --git a/mozilla/ipc/chromium/src/base/port.h b/mozilla/ipc/chromium/src/base/port.h
-index 573f5f0..7ce76f4 100644
+index d206d25..13a90bf 100644
 --- a/mozilla/ipc/chromium/src/base/port.h
 +++ b/mozilla/ipc/chromium/src/base/port.h
-@@ -56,7 +56,7 @@ namespace base {
+@@ -58,7 +58,7 @@ namespace base {
  // Define an OS-neutral wrapper for shared library entry points
  #if defined(OS_WIN)
  #define API_CALL __stdcall
@@ -84,10 +70,10 @@ index 573f5f0..7ce76f4 100644
  #endif
  
 diff --git a/mozilla/ipc/chromium/src/base/process_util.h b/mozilla/ipc/chromium/src/base/process_util.h
-index a8ce304..300262e 100644
+index 4df1f29..cda1c15 100644
 --- a/mozilla/ipc/chromium/src/base/process_util.h
 +++ b/mozilla/ipc/chromium/src/base/process_util.h
-@@ -17,7 +17,7 @@
+@@ -19,7 +19,7 @@
  #ifndef STDOUT_FILENO
  #define STDOUT_FILENO 1
  #endif
@@ -97,10 +83,10 @@ index a8ce304..300262e 100644
  #include <limits.h>
  #include <sys/types.h>
 diff --git a/mozilla/ipc/chromium/src/base/process_util_posix.cc b/mozilla/ipc/chromium/src/base/process_util_posix.cc
-index 28c96dd..bca66a6 100644
+index 666a120..3bf627b 100644
 --- a/mozilla/ipc/chromium/src/base/process_util_posix.cc
 +++ b/mozilla/ipc/chromium/src/base/process_util_posix.cc
-@@ -127,6 +127,10 @@ void CloseSuperfluousFds(const base::InjectiveMultimap& saved_mapping) {
+@@ -128,6 +128,10 @@ void CloseSuperfluousFds(const base::InjectiveMultimap& saved_mapping) {
    static const rlim_t kSystemDefaultMaxFds = 1024;
    // at least /dev/fd will exist
    static const char kFDDir[] = "/dev/fd";
@@ -111,7 +97,7 @@ index 28c96dd..bca66a6 100644
  #endif
  
    // Get the maximum number of FDs possible.
-@@ -210,7 +214,7 @@ void CloseSuperfluousFds(const base::InjectiveMultimap& saved_mapping) {
+@@ -211,7 +215,7 @@ void CloseSuperfluousFds(const base::InjectiveMultimap& saved_mapping) {
  void SetAllFDsToCloseOnExec() {
  #if defined(OS_LINUX)
    const char fd_dir[] = "/proc/self/fd";
@@ -121,10 +107,10 @@ index 28c96dd..bca66a6 100644
  #endif
    ScopedDIR dir_closer(opendir(fd_dir));
 diff --git a/mozilla/media/webrtc/signaling/signaling.gyp b/mozilla/media/webrtc/signaling/signaling.gyp
-index d39daf0..cb76175 100644
+index ee19411..0c69066 100644
 --- a/mozilla/media/webrtc/signaling/signaling.gyp
 +++ b/mozilla/media/webrtc/signaling/signaling.gyp
-@@ -368,6 +368,22 @@
+@@ -367,6 +367,22 @@
            'cflags_mozilla': [
            ],
          }],
@@ -216,7 +202,7 @@ index 3a595f4..d429e6a 100644
  # include <vector>  // NOLINT
  #endif
 diff --git a/mozilla/security/sandbox/chromium/build/build_config.h b/mozilla/security/sandbox/chromium/build/build_config.h
-index b07660d..e3519ef 100644
+index d8c3db6..806b432 100644
 --- a/mozilla/security/sandbox/chromium/build/build_config.h
 +++ b/mozilla/security/sandbox/chromium/build/build_config.h
 @@ -46,6 +46,8 @@
