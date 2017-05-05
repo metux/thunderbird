@@ -103,7 +103,7 @@ override_dh_auto_build:
 	# build lightning-l10n
 	mkdir -p $(LIGHTNING_L10N_BUILDDIR)
 	cd $(CURDIR)/iceowl-l10n; \
-	for dir in ?? ??-*; do \
+	for dir in ?? ??? ??-*; do \
 		cd $${dir}; \
 		zip -q -X -r ../../$(LIGHTNING_L10N_BUILDDIR)/$${dir}.jar locale; \
 		cd -; \
