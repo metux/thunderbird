@@ -2687,6 +2687,22 @@ Description: Arabic language package for lightning
  .
  This package contains the localization of lightning in Arabian.
 
+Package: lightning-l10n-ast
+Architecture: all
+Section: localization
+Depends:
+ lightning (<< ${source:Version}.1~),
+ lightning (>= ${source:Version}),
+ ${misc:Depends},
+Provides:
+ iceowl-l10n-ast,
+Description: Asturian language package for lightning
+ Lightning is a Mozilla based calendar extension for Icedove.
+ It's goal is to integrate a Calendar and Task application using the XUL
+ user interface language.
+ .
+ This package contains the localization of lightning in Asturian.
+
 Package: lightning-l10n-be
 Architecture: all
 Section: localization
@@ -3895,6 +3911,21 @@ Description: Arabic language package for iceowl-extension - Transitional package
  .
  This is a transitional package that contains the localization of
  iceowl-extension in Arabian. It can be safely removed.
+
+Package: iceowl-l10n-ast
+Architecture: all
+Section: oldlibs
+Priority: extra
+Depends:
+ lightning-l10n-ast (>= ${binary:Version}),
+ ${misc:Depends},
+Description: Asturian language package for iceowl-extension - Transitional package
+ The iceowl-extension is a Mozilla based calendar extension for Icedove.
+ It's goal is to integrate a Calendar and Task application using the XUL
+ user interface language.
+ .
+ This is a transitional package that contains the localization of
+ iceowl-extension in Asturian. It can be safely removed.
 
 Package: iceowl-l10n-be
 Architecture: all
