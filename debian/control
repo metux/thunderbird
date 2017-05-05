@@ -366,6 +366,7 @@ Depends:
  thunderbird-l10n-is (>= ${binary:Version}),
  thunderbird-l10n-it (>= ${binary:Version}),
  thunderbird-l10n-ja (>= ${binary:Version}),
+ thunderbird-l10n-kab (>= ${binary:Version}),
  thunderbird-l10n-ko (>= ${binary:Version}),
  thunderbird-l10n-lt (>= ${binary:Version}),
  thunderbird-l10n-nb-no (>= ${binary:Version}),
@@ -1122,6 +1123,23 @@ Description: Japanese language package for Thunderbird
  the XUL user interface language.
  .
  This package contains the localization of Thunderbird in Japanese.
+
+Package: thunderbird-l10n-kab
+Architecture: all
+Section: localization
+Depends:
+ thunderbird (<< ${source:Version}.1~),
+ thunderbird (>= ${source:Version}),
+ ${misc:Depends},
+Homepage: https://wiki.mozilla.org/L10n:Teams:kab
+Provides:
+ icedove-l10n-kab,
+Description: Kabyle language package for Thunderbird
+ Thunderbird is an mail client suitable for free distribution. The goal of
+ Thunderbird is to produce a cross platform stand-alone mail application using
+ the XUL user interface language.
+ .
+ This package contains the localization of Thunderbird in Kabyle.
 
 Package: thunderbird-l10n-ko
 Architecture: all
@@ -2222,6 +2240,23 @@ Description: Japanese language package for Icedove - Transitional package
  .
  This is a transitional package. It can be safely removed.
 
+Package: icedove-l10n-kab
+Architecture: all
+Section: oldlibs
+Priority: extra
+Depends:
+ thunderbird-l10n-kab (>= ${binary:Version}),
+ ${misc:Depends},
+Homepage: https://wiki.mozilla.org/L10n:Teams:kab
+Description: Kabyle language package for Icedove - Transitional package
+ Icedove is an unbranded Thunderbird mail client suitable for free distribution.
+ The goal of Thunderbird is to produce a cross platform stand-alone mail
+ application using the XUL user interface language.
+ .
+ This package contains the localization of Icedove in Kabyle.
+ .
+ This is a transitional package. It can be safely removed.
+
 Package: icedove-l10n-ko
 Architecture: all
 Section: oldlibs
@@ -3315,6 +3350,22 @@ Description: Japanese language package for lightning
  .
  This package contains the localization of lightning in Japanese.
 
+Package: lightning-l10n-kab
+Architecture: all
+Section: localization
+Depends:
+ lightning (<< ${source:Version}.1~),
+ lightning (>= ${source:Version}),
+ ${misc:Depends},
+Provides:
+ iceowl-l10n-kab,
+Description: Kabyle language package for lightning
+ Lightning is a Mozilla based calendar extension for Icedove.
+ It's goal is to integrate a Calendar and Task application using the XUL
+ user interface language.
+ .
+ This package contains the localization of lightning in Kabyle.
+
 Package: lightning-l10n-ko
 Architecture: all
 Section: localization
@@ -4324,6 +4375,21 @@ Description: Korean language package for iceowl-extension - Transitional package
  .
  This is a transitional package that contains the localization of
  iceowl-extension in Korean. It can be safely removed.
+
+Package: iceowl-l10n-kab
+Architecture: all
+Section: oldlibs
+Priority: extra
+Depends:
+ lightning-l10n-kab (>= ${binary:Version}),
+ ${misc:Depends},
+Description: Kabyle language package for iceowl-extension - Transitional package
+ The iceowl-extension is a Mozilla based calendar extension for Icedove.
+ It's goal is to integrate a Calendar and Task application using the XUL
+ user interface language.
+ .
+ This is a transitional package that contains the localization of
+ iceowl-extension in Kabyle. It can be safely removed.
 
 Package: iceowl-l10n-lt
 Architecture: all
