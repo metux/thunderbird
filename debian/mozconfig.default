@@ -18,9 +18,9 @@
 # use/use not packaged software instead of preshipped
 ac_add_options --with-system-jpeg
 ac_add_options --with-system-bz2
-ac_add_options --with-system-icu
-ac_add_options --with-system-nspr
-ac_add_options --with-system-nss
+#ac_add_options --with-system-icu      # Debian version to old in unstable
+#ac_add_options --with-system-nspr     # Debian version to old in unstable
+#ac_add_options --with-system-nss      # Debian version to old in unstable
 ac_add_options --with-system-zlib
 
 # other packaged software
@@ -47,7 +47,7 @@ ac_add_options --enable-startup-notification
 ac_add_options --enable-system-cairo
 ac_add_options --enable-system-ffi
 ac_add_options --enable-system-hunspell
-ac_add_options --enable-system-sqlite
+#ac_add_options --enable-system-sqlite # Debian version to old in unstable
 
 # Debian specific things
 PARALLEL_BUILD=$(echo $DEB_BUILD_OPTIONS | sed -e '/parallel=/!s/.*/1/;s/.*parallel=\([0-9]\+\).*/\1/g')
