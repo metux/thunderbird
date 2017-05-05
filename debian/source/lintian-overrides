@@ -6,10 +6,6 @@ source: source-is-missing mozilla/*/tests/*
 source: source-is-missing mozilla/*/test/*
 source: source-is-missing mozilla/devtools/*
 
-# all are under BSD-3 license some long lines
-source: source-is-missing mozilla/browser/extensions/loop/chrome/content/shared/*
-source: source-is-missing mozilla/browser/extensions/loop/chrome/content/preferences/*
-
 # TexZilla isn't packaged yet too
 source: source-is-missing editor/ui/texzilla/content/TeXZilla.js *
 
@@ -18,9 +14,11 @@ source: source-is-missing mozilla/layout/reftests/svg/nesting-invalid-01.js *
 
 # files are under MPL-2 license with some long lines
 source: source-is-missing mozilla/addon-sdk/source/lib/dev/volcan.js *
+source: source-is-missing mail/components/compose/content/cloudAttachmentLinkManager.js *
+source: source-is-missing mozilla/js/src/devtools/rootAnalysis/annotations.js *
 
 # files under Apache-2 license with some long lines
-source: source-is-missing mozilla/services/common/moz-kinto-client.js *
+source: source-is-missing mozilla/services/common/*.js *
 
 # files under GPL-2+ license with some long lines
 source: source-is-missing mozilla/js/src/octane/*
