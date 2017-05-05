@@ -359,6 +359,7 @@ Depends:
  thunderbird-l10n-gl (>= ${binary:Version}),
  thunderbird-l10n-he (>= ${binary:Version}),
  thunderbird-l10n-hr (>= ${binary:Version}),
+ thunderbird-l10n-hsb (>= ${binary:Version}),
  thunderbird-l10n-hu (>= ${binary:Version}),
  thunderbird-l10n-hy-am (>= ${binary:Version}),
  thunderbird-l10n-id (>= ${binary:Version}),
@@ -968,6 +969,25 @@ Description: Croatian language package for Thunderbird
  the XUL user interface language.
  .
  This package contains the localization of Thunderbird in Croatian.
+
+Package: thunderbird-l10n-hsb
+Architecture: all
+Section: localization
+Depends:
+ thunderbird (<< ${source:Version}.1~),
+ thunderbird (>= ${source:Version}),
+ ${misc:Depends},
+Homepage: https://wiki.mozilla.org/L10n:Teams:hsb
+Recommends:
+ aspell-hsb,
+Provides:
+ icedove-l10n-hsb,
+Description: Upper Sorbian language package for Thunderbird
+ Thunderbird is an mail client suitable for free distribution. The goal of
+ Thunderbird is to produce a cross platform stand-alone mail application using
+ the XUL user interface language.
+ .
+ This package contains the localization of Thunderbird in Upper Sorbian.
 
 Package: thunderbird-l10n-hu
 Architecture: all
@@ -2083,6 +2103,23 @@ Description: Croatian language package for Icedove - Transitional package
  .
  This is a transitional package. It can be safely removed.
 
+Package: icedove-l10n-hsb
+Architecture: all
+Section: oldlibs
+Priority: extra
+Depends:
+ thunderbird-l10n-hsb (>= ${binary:Version}),
+ ${misc:Depends},
+Homepage: https://wiki.mozilla.org/L10n:Teams:hsb
+Description: Upper Sorbian language package for Icedove - Transitional package
+ Icedove is an unbranded Thunderbird mail client suitable for free distribution.
+ The goal of Thunderbird is to produce a cross platform stand-alone mail
+ application using the XUL user interface language.
+ .
+ This package contains the localization of Icedove in Upper Sorbian.
+ .
+ This is a transitional package. It can be safely removed.
+
 Package: icedove-l10n-hu
 Architecture: all
 Section: oldlibs
@@ -3132,6 +3169,24 @@ Description: Croatian language package for lightning
  .
  This package contains the localization of lightning in Croatian.
 
+Package: lightning-l10n-hsb
+Architecture: all
+Section: localization
+Depends:
+ lightning (<< ${source:Version}.1~),
+ lightning (>= ${source:Version}),
+ ${misc:Depends},
+Recommends:
+ aspell-hsb,
+Provides:
+ iceowl-l10n-hsb,
+Description: Upper Sorbian language package for lightning
+ Lightning is a Mozilla based calendar extension for Icedove.
+ It's goal is to integrate a Calendar and Task application using the XUL
+ user interface language.
+ .
+ This package contains the localization of lightning in Upper Sorbian.
+
 Package: lightning-l10n-hu
 Architecture: all
 Section: localization
@@ -4149,6 +4204,21 @@ Description: Croatian language package for iceowl-extension - Transitional packa
  .
  This is a transitional package that contains the localization of
  iceowl-extension in Croatian. It can be safely removed.
+
+Package: iceowl-l10n-hsb
+Architecture: all
+Section: oldlibs
+Priority: extra
+Depends:
+ lightning-l10n-hsb (>= ${binary:Version}),
+ ${misc:Depends},
+Description: Upper Sorbian language package for iceowl-extension - Transitional package
+ The iceowl-extension is a Mozilla based calendar extension for Icedove.
+ It's goal is to integrate a Calendar and Task application using the XUL
+ user interface language.
+ .
+ This is a transitional package that contains the localization of
+ iceowl-extension in Upper Sorbian. It can be safely removed.
 
 Package: iceowl-l10n-hu
 Architecture: all
