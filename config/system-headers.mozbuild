@@ -363,6 +363,7 @@ system_headers = [
     'jar-ds.h',
     'jarfile.h',
     'jar.h',
+    'json/json.h',
     'JavaControl.h',
     'JavaEmbedding/JavaControl.h',
     'JavaVM/jni.h',
