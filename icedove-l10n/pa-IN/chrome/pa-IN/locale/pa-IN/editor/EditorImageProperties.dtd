@@ -97,3 +97,5 @@
 <!ENTITY imageDimensionsTab.label "ਮਾਪ">
 <!ENTITY imageAppearanceTab.label "ਸ਼ਕਲ">
 <!ENTITY imageLinkTab.label "ਲਿੰਕ">
+
+<!ENTITY locationEditField.shortenedDataURI "Shortened data URI (copy will place the full URI onto the clipboard)">

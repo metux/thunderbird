@@ -244,9 +244,8 @@ FolderDisplayWidget.prototype = {
    * @return the focused pane
    */
   get focusedPane() {
-    let panes = [document.getElementById(id) for (id of [
-      "threadTree", "folderTree", "messagepanebox"
-    ])];
+    let panes = ["threadTree", "folderTree", "messagepanebox"].map(id =>
+        document.getElementById(id));
 
     let currentNode = top.document.activeElement;
 
@@ -596,7 +595,7 @@ FolderDisplayWidget.prototype = {
 
     // if we are still here, use the defaults and helper functions
     let state = {};
-    for (let [, colId] in Iterator(this.DEFAULT_COLUMNS)) {
+    for (let colId of this.DEFAULT_COLUMNS) {
       let shouldShowColumn = true;
       if (colId in this.COLUMN_DEFAULT_TESTERS) {
         // This is potentially going to be used by extensions; avoid them
@@ -2723,7 +2722,7 @@ FakeTreeBoxObject.prototype = {
  *  throw an exception, etc.
  */
 function FTBO_stubOutAttributes(aObj, aAttribNames) {
-  for (let [, attrName] in Iterator(aAttribNames)) {
+  for (let attrName of aAttribNames) {
     let myAttrName = attrName;
     aObj.__defineGetter__(attrName,
       function() {
@@ -2742,7 +2741,7 @@ function FTBO_stubOutAttributes(aObj, aAttribNames) {
   }
 }
 function FTBO_stubOutMethods(aObj, aMethodNames) {
-  for (let [, methodName] in Iterator(aMethodNames)) {
+  for (let methodName of aMethodNames) {
     let myMethodName = methodName;
     aObj[myMethodName] = function() {
       let msg = "Call to stubbed method " + myMethodName;

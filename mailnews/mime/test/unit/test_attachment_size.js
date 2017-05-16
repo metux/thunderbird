@@ -178,6 +178,22 @@ var messages = [
   { bodyPart: attachedMessage1,
     size: get_message_size(attachedMessage1),
   },
+  // an external http link attachment (as constructed for feed enclosures) - no 'size' parm.
+  { attachments: [{ body: 'This MIME attachment is stored separately from the message.',
+                    contentType: 'application/unknown; name="somefile"',
+                    extraHeaders: {
+                      'X-Mozilla-External-Attachment-URL': 'http://myblog.com/somefile',
+                    },
+                    disposition: 'attachment; filename="somefile"' }],
+    size: -1 },
+  // an external http link attachment (as constructed for feed enclosures) - file with 'size' parm.
+  { attachments: [{ body: 'This MIME attachment is stored separately from the message.',
+                    contentType: 'audio/mpeg; name="file.mp3"; size=123456789',
+                    extraHeaders: {
+                      'X-Mozilla-External-Attachment-URL': 'https://myblog.com/file.mp3',
+                    },
+                    disposition: 'attachment; name="file.mp3"' }],
+    size: 123456789 },
 ];
 
 
@@ -242,7 +258,7 @@ var msgWindow = Cc["@mozilla.org/messenger/msgwindow;1"]
                   .createInstance(Ci.nsIMsgWindow);
 msgWindow.msgHeaderSink = gMessageHeaderSink;
 
-function test_message_attachments(info) {
+function* test_message_attachments(info) {
   let synMsg = gMessageGenerator.makeMessage(info);
   let synSet = new SyntheticMessageSet([synMsg]);
   yield add_sets_to_folder(gInbox, [synSet]);

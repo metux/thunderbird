@@ -4,12 +4,12 @@ locale branding ca ca/locale/ca/branding/
 locale chat ca ca/locale/ca/chat/
 locale communicator ca ca/locale/ca/communicator/
 locale cookie ca ca/locale/ca/cookie/
+locale devtools ca ca/locale/ca/devtools/client/
 locale devtools-shared ca ca/locale/ca/devtools/shared/
 locale editor ca ca/locale/ca/editor/
 locale formautofill ca ca/locale/ca/formautofill/
 locale global ca ca/locale/ca/global/
 locale global-platform ca ca/locale/ca/global-platform/
-locale global-region ca ca/locale/ca/global-region/
 locale messenger ca ca/locale/ca/messenger/
 locale messenger-mapi ca ca/locale/ca/messenger-mapi/
 locale messenger-newsblog ca ca/locale/ca/messenger-newsblog/

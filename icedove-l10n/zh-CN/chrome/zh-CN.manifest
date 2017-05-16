@@ -4,12 +4,12 @@ locale branding zh-CN zh-CN/locale/zh-CN/branding/
 locale chat zh-CN zh-CN/locale/zh-CN/chat/
 locale communicator zh-CN zh-CN/locale/zh-CN/communicator/
 locale cookie zh-CN zh-CN/locale/zh-CN/cookie/
+locale devtools zh-CN zh-CN/locale/zh-CN/devtools/client/
 locale devtools-shared zh-CN zh-CN/locale/zh-CN/devtools/shared/
 locale editor zh-CN zh-CN/locale/zh-CN/editor/
 locale formautofill zh-CN zh-CN/locale/zh-CN/formautofill/
 locale global zh-CN zh-CN/locale/zh-CN/global/
 locale global-platform zh-CN zh-CN/locale/zh-CN/global-platform/
-locale global-region zh-CN zh-CN/locale/zh-CN/global-region/
 locale messenger zh-CN zh-CN/locale/zh-CN/messenger/
 locale messenger-mapi zh-CN zh-CN/locale/zh-CN/messenger-mapi/
 locale messenger-newsblog zh-CN zh-CN/locale/zh-CN/messenger-newsblog/

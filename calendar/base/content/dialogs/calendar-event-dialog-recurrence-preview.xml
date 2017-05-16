@@ -10,7 +10,7 @@
   <binding id="recurrence-preview" extends="xul:box">
     <resources>
       <stylesheet src="chrome://calendar/content/widgets/calendar-widget-bindings.css"/>
-    </resources>               
+    </resources>
     <content>
       <xul:box flex="1" style="overflow: hidden;">
         <xul:grid flex="1" anonid="mainbox">
@@ -31,16 +31,12 @@
     </content>
 
     <implementation>
-
       <field name="mRecurrenceInfo">null</field>
       <field name="mResizeHandler">null</field>
       <field name="mDateTime">null</field>
 
       <constructor><![CDATA[
-        var self = this;
-        this.mResizeHandler = function recurrence_preview_resizeHandler() {
-            self.onResize();
-        };
+        this.mResizeHandler = this.onResize.bind(this);
         window.addEventListener("resize", this.mResizeHandler, true);
       ]]></constructor>
 
@@ -50,7 +46,8 @@
 
       <property name="dateTime">
         <setter><![CDATA[
-            return this.mDateTime = val.clone();
+            this.mDateTime = val.clone();
+            return this.mDateTime;
         ]]></setter>
         <getter><![CDATA[
             if (this.mDateTime == null) {
@@ -61,46 +58,43 @@
       </property>
       <method name="onResize">
         <body><![CDATA[
-          var mainbox =
-              document.getAnonymousElementByAttribute(
-                  this, "anonid", "mainbox");
-          var minimonth =
+          let minimonth =
               document.getAnonymousElementByAttribute(
                   this, "anonid", "minimonth");
 
-          var row =
+          let row =
               document.getAnonymousElementByAttribute(
                   this, "anonid", "row");
-          var rows = row.parentNode;
+          let rows = row.parentNode;
 
-          var contentWidth = minimonth.boxObject.width;
-          var containerWidth =
+          let contentWidth = minimonth.boxObject.width;
+          let containerWidth =
               document.getAnonymousNodes(this)[0]
                   .boxObject.width;
 
           // Now find out how much elements can be displayed.
           // this is a simple division which always yields a positive integer value.
-          var numHorizontal =
+          let numHorizontal =
               (containerWidth -
                   (containerWidth % contentWidth)) /
                       contentWidth;
 
-          var contentHeight = minimonth.boxObject.height;
-          var containerHeight =
+          let contentHeight = minimonth.boxObject.height;
+          let containerHeight =
               document.getAnonymousNodes(this)[0]
                   .boxObject.height;
 
           // Now find out how much elements can be displayed.
           // this is a simple division which always yields a positive integer value.
-          var numVertical =
+          let numVertical =
               (containerHeight -
                   (containerHeight % contentHeight)) /
                       contentHeight;
           numVertical = Math.max(1, numVertical);
 
           // Count the number of existing rows
-          var numRows = 0;
-          var rowIterator = row;
+          let numRows = 0;
+          let rowIterator = row;
           while (rowIterator) {
               numRows++;
               rowIterator = rowIterator.nextSibling;
@@ -108,22 +102,22 @@
 
           // Adjust rows
           while (numRows < numVertical) {
-              var newNode = row.cloneNode(true);
+              let newNode = row.cloneNode(true);
               rows.appendChild(newNode);
               numRows++;
           }
           while (numRows > numVertical) {
               rows.firstChild.remove();
-              numRows--
+              numRows--;
           }
 
           // Adjust columns in the grid
-          var column =
+          let column =
               document.getAnonymousElementByAttribute(
                   this, "anonid", "column");
-          var columns = column.parentNode;
+          let columns = column.parentNode;
           while ((columns.childNodes.length - 1) < numHorizontal) {
-              var newColumn = column.cloneNode(false);
+              let newColumn = column.cloneNode(false);
               columns.insertBefore(newColumn, column.nextSibling);
           }
           while ((columns.childNodes.length - 1) > numHorizontal) {
@@ -134,9 +128,9 @@
           row = document.getAnonymousElementByAttribute(
                    this, "anonid", "row");
           while (row) {
-              var firstChild = row.firstChild;
+              let firstChild = row.firstChild;
               while ((row.childNodes.length - 1) < numHorizontal) {
-                  var newNode = firstChild.cloneNode(true);
+                  let newNode = firstChild.cloneNode(true);
                   firstChild.parentNode.insertBefore(newNode, firstChild);
               }
               while ((row.childNodes.length - 1) > numHorizontal) {
@@ -152,15 +146,15 @@
 
       <method name="updateContent">
         <body><![CDATA[
-          var dt = cal.dateTimeToJsDate(this.dateTime);
-          var row = document.getAnonymousElementByAttribute(
+          let date = cal.dateTimeToJsDate(this.dateTime);
+          let row = document.getAnonymousElementByAttribute(
                         this, "anonid", "row");
           while (row) {
-              var numChilds = row.childNodes.length - 1;
-              for (var i = 0; i < numChilds; i++) {
-                  var minimonth = row.childNodes[i];
-                  minimonth.showMonth(dt);
-                  dt.setMonth(dt.getMonth() + 1);
+              let numChilds = row.childNodes.length - 1;
+              for (let i = 0; i < numChilds; i++) {
+                  let minimonth = row.childNodes[i];
+                  minimonth.showMonth(date);
+                  date.setMonth(date.getMonth() + 1);
               }
               row = row.nextSibling;
           }
@@ -171,75 +165,72 @@
         <parameter name="aRecurrenceInfo"/>
         <body><![CDATA[
           this.mRecurrenceInfo = aRecurrenceInfo;
-          var start = this.dateTime.clone();
+          let start = this.dateTime.clone();
           start.day = 1;
           start.hour = 0;
           start.minute = 0;
           start.second = 0;
-          var end = start.clone();
+          let end = start.clone();
           end.month++;
-                      
+
           // the 'minimonth' controls are arranged in a
           // grid, sorted by rows first -> iterate the rows that may exist.
-          var row = document.getAnonymousElementByAttribute(this, "anonid", "row");
+          let row = document.getAnonymousElementByAttribute(this, "anonid", "row");
           while (row) {
-          
               // now iterater all the child nodes of this row
               // in order to visit each minimonth in turn.
-              var numChilds = row.childNodes.length - 1;
-              for (var i = 0; i < numChilds; i++) {
-              
+              let numChilds = row.childNodes.length - 1;
+              for (let i = 0; i < numChilds; i++) {
                   // we now have one of the minimonth controls while 'start'
                   // and 'end' are set to the interval this minimonth shows.
-                  var minimonth = row.childNodes[i];
+                  let minimonth = row.childNodes[i];
                   minimonth.showMonth(cal.dateTimeToJsDate(start));
                   if (aRecurrenceInfo) {
-                      
                       // retrieve an array of dates that represents all occurrences
                       // that fall into this time interval [start,end[.
                       // note: the following loop assumes that this array conains
                       // dates that are strictly monotonically increasing.
                       // should getOccurrenceDates() not enforce this assumption we
                       // need to fall back to some different algorithm.
-                      var dates = aRecurrenceInfo.getOccurrenceDates(start, end, 0, {});
-                      
+                      let dates = aRecurrenceInfo.getOccurrenceDates(start, end, 0, {});
+
                       // now run throgh all days of this month and set the
                       // 'busy' attribute with respect to the occurrence array.
-                      var index = 0;
-                      var occurrence = null;
+                      let index = 0;
+                      let occurrence = null;
                       if (index < dates.length) {
                           occurrence =
                               dates[index++]
                                   .getInTimezone(start.timezone);
                       }
-                      var current = start.clone();
+                      let current = start.clone();
                       while (current.compare(end) < 0) {
-                        let box = minimonth.getBoxForDate(current);
-                        if (box) {
-                            if (occurrence &&
-                                occurrence.day == current.day &&
-                                occurrence.month == current.month &&
-                                occurrence.year == current.year) {
-                                box.setAttribute("busy", 1);
-                                if (index < dates.length) {
-                                    occurrence =
-                                        dates[index++]
-                                            .getInTimezone(start.timezone);
-                                    // take into account that the very next occurrence
-                                    // can happen at the same day as the previous one.
-                                    if (occurrence.day == current.day &&
-                                        occurrence.month == current.month &&
-                                        occurrence.year == current.year) {
-                                        continue;
-                                    }
-                                } else {
-                                    occurrence = null;
-                                }
-                            } else {
-                                box.removeAttribute("busy");
-                            }
-                        }
-                        current.day++;
+                          let box = minimonth.getBoxForDate(current);
+                          if (box) {
+                              if (occurrence &&
+                                  occurrence.day == current.day &&
+                                  occurrence.month == current.month &&
+                                  occurrence.year == current.year) {
+                                  box.setAttribute("busy", 1);
+                                  if (index < dates.length) {
+                                      occurrence =
+                                          dates[index++]
+                                              .getInTimezone(start.timezone);
+                                      // take into account that the very next occurrence
+                                      // can happen at the same day as the previous one.
+                                      if (occurrence.day == current.day &&
+                                          occurrence.month == current.month &&
+                                          occurrence.year == current.year) {
+                                          continue;
+                                      }
+                                  } else {
+                                      occurrence = null;
+                                  }
+                              } else {
+                                  box.removeAttribute("busy");
+                              }
+                          }
+                          current.day++;
                       }
                   }
                   start.month++;

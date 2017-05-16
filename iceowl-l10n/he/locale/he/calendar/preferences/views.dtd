@@ -36,5 +36,5 @@
 <!ENTITY pref.numberofweeks.5 "חמישה שבועות">
 <!ENTITY pref.numberofweeks.6 "שישה שבועות">
 
-<!ENTITY pref.calendar.view-minimonth.showweeknumber.accesskey "w">
+<!ENTITY pref.calendar.view-minimonth.showweeknumber.accesskey "n">
 <!ENTITY pref.calendar.view-minimonth.showweeknumber.label "Show week number in views and minimonth">

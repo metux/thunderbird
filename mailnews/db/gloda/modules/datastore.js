@@ -335,7 +335,7 @@ QueryFromQueryCallback.prototype = {
             else {
               this.collection.deferredCount++;
               let query = new nounDef.queryClass();
-              query.id.apply(query, [id for (id in notFound)]);
+              query.id.apply(query, Object.keys(notFound));
 
               this.collection.masterCollection.subCollections[nounDef.id] =
                 GlodaDatastore.queryFromQuery(query, QueryFromQueryResolver,
@@ -357,7 +357,7 @@ QueryFromQueryCallback.prototype = {
             let query = new nounDef.queryClass();
             // we want to constrain using the parent column
             let queryConstrainer = query[nounDef.parentColumnAttr.boundName];
-            queryConstrainer.apply(query, [pid for (pid in inverseReferences)]);
+            queryConstrainer.apply(query, Object.keys(inverseReferences));
             this.collection.masterCollection.subCollections[nounDef.id] =
               GlodaDatastore.queryFromQuery(query, QueryFromQueryResolver,
                 this.collection,
@@ -1630,19 +1630,23 @@ var GlodaDatastore = {
       try {
         return aStatement.executeStep();
       }
-      // SQLITE_BUSY becomes NS_ERROR_FAILURE
-      catch (e if e.result == 0x80004005) {
-        tries++;
-        // we really need to delay here, somehow.  unfortunately, we can't
-        //  allow event processing to happen, and most of the things we could
-        //  do to delay ourselves result in event processing happening.  (Use
-        //  of a timer, a synchronous dispatch, etc.)
-        // in theory, nsIThreadEventFilter could allow us to stop other events
-        //  that aren't our timer from happening, but it seems slightly
-        //  dangerous and 'notxpcom' suggests it ain't happening anyways...
-        // so, let's just be dumb and hope that the underlying file I/O going
-        //  on makes us more likely to yield to the other thread so it can
-        //  finish what it is doing...
+      catch (e) {
+        // SQLITE_BUSY becomes NS_ERROR_FAILURE
+        if (e.result == 0x80004005) {
+          tries++;
+          // we really need to delay here, somehow.  unfortunately, we can't
+          //  allow event processing to happen, and most of the things we could
+          //  do to delay ourselves result in event processing happening.  (Use
+          //  of a timer, a synchronous dispatch, etc.)
+          // in theory, nsIThreadEventFilter could allow us to stop other events
+          //  that aren't our timer from happening, but it seems slightly
+          //  dangerous and 'notxpcom' suggests it ain't happening anyways...
+          // so, let's just be dumb and hope that the underlying file I/O going
+          //  on makes us more likely to yield to the other thread so it can
+          //  finish what it is doing...
+        } else {
+          throw e;
+        }
       }
     }
     this._log.error("Synchronous step gave up after " + tries + " tries.");
@@ -3160,8 +3164,8 @@ var GlodaDatastore = {
   },
 
   _convertToDBValuesAndGroupByAttributeID:
-    function gloda_ds__convertToDBValuesAndGroupByAttributeID(aAttrDef,
-                                                              aValues) {
+    function* gloda_ds__convertToDBValuesAndGroupByAttributeID(aAttrDef,
+                                                               aValues) {
     let objectNounDef = aAttrDef.objectNounDef;
     if (!objectNounDef.usesParameter) {
       let dbValues = [];
@@ -3227,7 +3231,7 @@ var GlodaDatastore = {
   },
 
   _convertRangesToDBStringsAndGroupByAttributeID:
-    function gloda_ds__convertRangesToDBStringsAndGroupByAttributeID(aAttrDef,
+    function* gloda_ds__convertRangesToDBStringsAndGroupByAttributeID(aAttrDef,
       aValues, aValueColumnName) {
     let objectNounDef = aAttrDef.objectNounDef;
     if (!objectNounDef.usesParameter) {

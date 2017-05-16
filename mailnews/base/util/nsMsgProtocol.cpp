@@ -48,7 +48,7 @@ using namespace mozilla;
 NS_IMPL_ISUPPORTS(nsMsgProtocol, nsIChannel, nsIStreamListener,
   nsIRequestObserver, nsIRequest, nsITransportEventSink)
 
-static char16_t *FormatStringWithHostNameByID(int32_t stringID, nsIMsgMailNewsUrl *msgUri);
+static char16_t *FormatStringWithHostNameByName(const char16_t* stringName, nsIMsgMailNewsUrl *msgUri);
 
 
 nsMsgProtocol::nsMsgProtocol(nsIURI * aURL)
@@ -78,6 +78,10 @@ nsresult nsMsgProtocol::InitFromURI(nsIURI *aUrl)
     mailUrl->GetStatusFeedback(getter_AddRefs(statusFeedback));
     mProgressEventSink = do_QueryInterface(statusFeedback);
   }
+
+  // Reset channel data in case the object is reused and initialised again.
+  mCharset.Truncate();
+
   return NS_OK;
 }
 
@@ -255,10 +259,10 @@ nsresult nsMsgProtocol::CloseSocket()
   if (m_request) {
     rv = m_request->Cancel(NS_BINDING_ABORTED);
   }
-  m_request = 0;
+  m_request = nullptr;
   if (m_transport) {
     m_transport->Close(NS_BINDING_ABORTED);
-    m_transport = 0;
+    m_transport = nullptr;
   }
 
   return rv;
@@ -351,34 +355,34 @@ NS_IMETHODIMP nsMsgProtocol::OnStopRequest(nsIRequest *request, nsISupports *ctx
     if (!m_channelContext && NS_FAILED(aStatus) &&
         (aStatus != NS_BINDING_ABORTED))
     {
-      int32_t errorID;
+      const char16_t* errorString = nullptr;
       switch (aStatus)
       {
           case NS_ERROR_UNKNOWN_HOST:
           case NS_ERROR_UNKNOWN_PROXY_HOST:
-             errorID = UNKNOWN_HOST_ERROR;
+             errorString = u"unknownHostError";
              break;
           case NS_ERROR_CONNECTION_REFUSED:
           case NS_ERROR_PROXY_CONNECTION_REFUSED:
-             errorID = CONNECTION_REFUSED_ERROR;
+             errorString = u"connectionRefusedError";
              break;
           case NS_ERROR_NET_TIMEOUT:
-             errorID = NET_TIMEOUT_ERROR;
+             errorString = u"netTimeoutError";
              break;
           default:
-             errorID = UNKNOWN_ERROR;
+             // Leave the string as nullptr.
              break;
       }
 
-      NS_ASSERTION(errorID != UNKNOWN_ERROR, "unknown error, but don't alert user.");
-      if (errorID != UNKNOWN_ERROR)
+      NS_ASSERTION(errorString, "unknown error, but don't alert user.");
+      if (errorString)
       {
         nsString errorMsg;
-        errorMsg.Adopt(FormatStringWithHostNameByID(errorID, msgUrl));
+        errorMsg.Adopt(FormatStringWithHostNameByName(errorString, msgUrl));
         if (errorMsg.IsEmpty())
         {
           errorMsg.Assign(NS_LITERAL_STRING("[StringID "));
-          errorMsg.AppendInt(errorID);
+          errorMsg.Append(errorString);
           errorMsg.AppendLiteral("?]");
         }
 
@@ -392,8 +396,8 @@ NS_IMETHODIMP nsMsgProtocol::OnStopRequest(nsIRequest *request, nsISupports *ctx
   } // if we have a mailnews url.
 
   // Drop notification callbacks to prevent cycles.
-  mCallbacks = 0;
-  mProgressEventSink = 0;
+  mCallbacks = nullptr;
+  mProgressEventSink = nullptr;
   // Call CloseSocket(), in case we got here because the server dropped the
   // connection while reading, and we never get a chance to get back into
   // the protocol state machine via OnDataAvailable.
@@ -571,32 +575,32 @@ NS_IMETHODIMP nsMsgProtocol::GetContentType(nsACString &aContentType)
   // us to optimize the case where the message url actual refers to
   // a part in the message that has a content type that is not message/rfc822
 
-  if (m_ContentType.IsEmpty())
+  if (mContentType.IsEmpty())
     aContentType.AssignLiteral("message/rfc822");
   else
-    aContentType = m_ContentType;
+    aContentType = mContentType;
   return NS_OK;
 }
 
 NS_IMETHODIMP nsMsgProtocol::SetContentType(const nsACString &aContentType)
 {
   nsAutoCString charset;
-  nsresult rv = NS_ParseResponseContentType(aContentType, m_ContentType, charset);
-  if (NS_FAILED(rv) || m_ContentType.IsEmpty())
-    m_ContentType.AssignLiteral(UNKNOWN_CONTENT_TYPE);
+  nsresult rv = NS_ParseResponseContentType(aContentType, mContentType, charset);
+  if (NS_FAILED(rv) || mContentType.IsEmpty())
+    mContentType.AssignLiteral(UNKNOWN_CONTENT_TYPE);
   return rv;
 }
 
 NS_IMETHODIMP nsMsgProtocol::GetContentCharset(nsACString &aContentCharset)
 {
-  aContentCharset.Truncate();
+  aContentCharset.Assign(mCharset);
   return NS_OK;
 }
 
 NS_IMETHODIMP nsMsgProtocol::SetContentCharset(const nsACString &aContentCharset)
 {
-  NS_WARNING("nsMsgProtocol::SetContentCharset() not implemented");
-  return NS_ERROR_NOT_IMPLEMENTED;
+  mCharset.Assign(aContentCharset);
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -1012,7 +1016,7 @@ public:
     //
     // nsIOutputStreamCallback implementation ...
     //
-    NS_IMETHODIMP OnOutputStreamReady(nsIAsyncOutputStream *aOutStream)
+    NS_IMETHODIMP OnOutputStreamReady(nsIAsyncOutputStream *aOutStream) override
     {
         NS_ASSERTION(mInStream, "not initialized");
 
@@ -1044,7 +1048,7 @@ public:
 
         if (avail)
         {
-          rv = aOutStream->WriteFrom(mInStream, std::min(avail, uint64_t(4096)), &bytesWritten);
+          rv = aOutStream->WriteFrom(mInStream, std::min(avail, uint64_t(FILE_IO_BUFFER_SIZE)), &bytesWritten);
           // if were full at the time, the input stream may be backed up and we need to read any remains from the last ODA call
           // before we'll get more ODA calls
           if (protInst->mSuspendedRead)
@@ -1420,11 +1424,13 @@ nsresult nsMsgAsyncWriteProtocol::SetupTransportState()
     NS_ENSURE_SUCCESS(rv, rv);
 
     nsIAsyncInputStream *inputStream = nullptr;
-    pipe->GetInputStream(&inputStream);
+    // This always succeeds because the pipe is initialized above.
+    MOZ_ALWAYS_SUCCEEDS(pipe->GetInputStream(&inputStream));
     mInStream = dont_AddRef(static_cast<nsIInputStream *>(inputStream));
 
     nsIAsyncOutputStream *outputStream = nullptr;
-    pipe->GetOutputStream(&outputStream);
+    // This always succeeds because the pipe is initialized above.
+    MOZ_ALWAYS_SUCCEEDS(pipe->GetOutputStream(&outputStream));
     m_outputStream = dont_AddRef(static_cast<nsIOutputStream *>(outputStream));
 
     mProviderThread = do_GetCurrentThread();
@@ -1503,7 +1509,7 @@ nsresult nsMsgAsyncWriteProtocol::SendData(const char * dataBuffer, bool aSuppre
   return mAsyncOutStream->AsyncWait(mProvider, 0, 0, mProviderThread);
 }
 
-char16_t *FormatStringWithHostNameByID(int32_t stringID, nsIMsgMailNewsUrl *msgUri)
+char16_t *FormatStringWithHostNameByName(const char16_t* stringName, nsIMsgMailNewsUrl *msgUri)
 {
   if (!msgUri)
     return nullptr;
@@ -1529,7 +1535,7 @@ char16_t *FormatStringWithHostNameByID(int32_t stringID, nsIMsgMailNewsUrl *msgU
 
   NS_ConvertASCIItoUTF16 hostStr(hostName);
   const char16_t *params[] = { hostStr.get() };
-  rv = sBundle->FormatStringFromID(stringID, params, 1, &ptrv);
+  rv = sBundle->FormatStringFromName(stringName, params, 1, &ptrv);
   NS_ENSURE_SUCCESS(rv, nullptr);
 
   return ptrv;

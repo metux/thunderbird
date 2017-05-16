@@ -160,9 +160,10 @@ nsAddbookProtocolHandler::NewChannel2(nsIURI *aURI,
       rv = pipe->Init(false, false, 0, 0);
       NS_ENSURE_SUCCESS(rv, rv);
 
-      pipe->GetInputStream(getter_AddRefs(pipeIn));
-      pipe->GetOutputStream(getter_AddRefs(pipeOut));
-      
+      // These always succeed because the pipe is initialized above.
+      MOZ_ALWAYS_SUCCEEDS(pipe->GetInputStream(getter_AddRefs(pipeIn)));
+      MOZ_ALWAYS_SUCCEEDS(pipe->GetOutputStream(getter_AddRefs(pipeOut)));
+
       pipeOut->Close();
       if (aLoadInfo) {
         return NS_NewInputStreamChannelInternal(_retval,
@@ -279,7 +280,7 @@ nsAddbookProtocolHandler::BuildDirectoryXML(nsIAbDirectory *aDirectory,
     rv = stringBundleService->CreateBundle("chrome://messenger/locale/addressbook/addressBook.properties", getter_AddRefs(bundle));
     if (NS_SUCCEEDED(rv)) {
       nsString addrBook;
-      rv = bundle->GetStringFromName(MOZ_UTF16("addressBook"), getter_Copies(addrBook));
+      rv = bundle->GetStringFromName(u"addressBook", getter_Copies(addrBook));
       if (NS_SUCCEEDED(rv)) {
         aOutput.AppendLiteral("<title xmlns=\"http://www.w3.org/1999/xhtml\">");
         aOutput.Append(addrBook);

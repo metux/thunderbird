@@ -16,8 +16,8 @@ function run_test() {
     ok(event.hasPropertyParameter("X-FOO", "X-BAR"));
 
     // Test setters
-    throws(function() {
-      event.setPropertyParameter("X-UNKNOWN", "UNKNOWN", "VALUE");
+    throws(() => {
+        event.setPropertyParameter("X-UNKNOWN", "UNKNOWN", "VALUE");
     }, /Property X-UNKNOWN not set/);
 
     // More setters
@@ -26,8 +26,8 @@ function run_test() {
     notEqual(event.icalString.match(/^X-FOO;X-BAR=FNORD:QUUX$/m), null);
 
     // Enumerator
-    throws(function() {
-      event.getParameterEnumerator("X-UNKNOWN");
+    throws(() => {
+        event.getParameterEnumerator("X-UNKNOWN");
     }, /Property X-UNKNOWN not set/);
 
     // More enumerator

@@ -1,3 +1,7 @@
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+
 <!--LOCALIZATION NOTE messengercompose.dtd Main UI for message composition -->
 <!ENTITY msgComposeWindow.title "ලිපි ලිවීම: (විෂයය යොදා නැත)">
 
@@ -135,8 +139,8 @@
 <!ENTITY returnReceiptMenu.accesskey "t">
 <!ENTITY dsnMenu.label "බෙදාහැරීමේ තත්ත්ව නිවේදනය">
 <!ENTITY dsnMenu.accesskey "N">
-<!ENTITY outputFormatMenu.label "හැඩගැසුම්">
-<!ENTITY outputFormatMenu.accesskey "F">
+<!ENTITY deliveryFormatMenu.label "Delivery Format">
+<!ENTITY deliveryFormatMenu.accesskey "F">
 <!ENTITY autoFormatCmd.label "ස්ව-හැඳුනුම">
 <!ENTITY autoFormatCmd.accesskey "A">
 <!ENTITY plainTextFormatCmd.label "සාමාන්‍ය පාඨ පමණක්">
@@ -296,8 +300,6 @@
 
 <!-- Identity popup customize menuitem -->
 <!ENTITY customizeFromAddress.label "Customize From Address…">
-<!ENTITY deliveryFormatMenu.accesskey "F">
-<!ENTITY deliveryFormatMenu.label "Delivery Format">
 <!ENTITY findBarCmd.accesskey "F">
 <!ENTITY findBarCmd.key "F">
 <!ENTITY findBarCmd.label "Find…">

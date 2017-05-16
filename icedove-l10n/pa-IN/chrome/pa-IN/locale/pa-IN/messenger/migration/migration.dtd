@@ -30,3 +30,4 @@
 
 <!ENTITY importFromSeamonkey3.accesskey "S">
 <!ENTITY importFromSeamonkey3.label     "SeaMonkey 2 or later">
+<!ENTITY importSourceNotFound.label     "No application to import data from found.">

@@ -21,7 +21,7 @@
 <!ENTITY quickMode.label             "Pokaži povzetek članka namesto nalaganja spletne strani">
 <!ENTITY quickMode.accesskey         "P">
 
-<!ENTITY autotagEnable.label         "Samodejno ustvari oznake iz imen &lt;kategorij&gt; vira">
+<!ENTITY autotagEnable.label         "Samodejno ustvari oznake iz imen &lt;category&gt; vira">
 <!ENTITY autotagEnable.accesskey     "S">
 <!ENTITY autotagUsePrefix.label      "Oznakam dodaj predpono:">
 <!ENTITY autotagUsePrefix.accesskey  "O">
@@ -29,8 +29,8 @@
 
 <!ENTITY button.addFeed.label        "Dodaj">
 <!ENTITY button.addFeed.accesskey    "a">
-<!ENTITY button.editFeed.label       "Posodobi">
-<!ENTITY button.editFeed.accesskey   "P">
+<!ENTITY button.updateFeed.label     "Posodobi">
+<!ENTITY button.updateFeed.accesskey "P">
 <!ENTITY button.removeFeed.label     "Odstrani">
 <!ENTITY button.removeFeed.accesskey "r">
 <!ENTITY button.importOPML.label     "Uvozi">

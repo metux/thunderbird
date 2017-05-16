@@ -2,22 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/* Begin: Summary Dialog - this should be moved to
-                           calendar/base/themes/common/dialogs/calendar-event-dialog.css
-                           or a separate file for the summary dialog */
-#calendar-summary-dialog,
-#calendar-event-summary-dialog,
-#calendar-task-summary-dialog {
-    min-width: 35em;
-}
-
-#calendar-summary-dialog #item-description,
-#calendar-event-summary-dialog #item-description,
-#calendar-task-summary-dialog #item-description {
-    min-height: 54px;
-}
-/* End: Summary Dialog */
-
 /* this is for attendee and organizer decoration in summary and event dialog */
 
 #item-attendees-box {
@@ -34,16 +18,16 @@
 }
 
 .item-attendees-cell {
-    padding: 3px 0px;
+    padding: 2px;
 }
 
-#calendar-event-dialog .item-attendees-cell {
+#calendar-event-dialog-inner .item-attendees-cell {
     -moz-user-focus: normal;
     margin-bottom: 1px;
     margin-inline-end: 1px;
 }
 
-#calendar-event-dialog .item-attendees-cell:focus {
+#calendar-event-dialog-inner .item-attendees-cell:focus {
     background-color: Highlight;
     color: Highlighttext;
 }
@@ -123,7 +107,7 @@
 
 .status-icon {
     margin: 0 3px;
-    list-style-image: url(chrome://calendar/skin/calendar-event-dialog-attendees.png);
+    list-style-image: url(chrome://calendar-common/skin/calendar-event-dialog-attendees.png);
     -moz-image-region: rect(0px 48px 14px 36px);
 }
 
@@ -161,7 +145,7 @@
 
 .role-icon {
     margin: 0 3px;
-    list-style-image: url(chrome://calendar/skin/calendar-event-dialog-attendees.png);
+    list-style-image: url(chrome://calendar-common/skin/calendar-event-dialog-attendees.png);
     -moz-image-region: rect(0px 159px 16px 138px);
 }
 
@@ -233,13 +217,13 @@
        (-moz-windows-default-theme) and (-moz-os-version: windows-win7),
        (-moz-windows-default-theme) and (-moz-os-version: windows-win8),
        (-moz-windows-default-theme) and (-moz-os-version: windows-win10) {
-    #calendar-event-dialog .item-attendees-cell {
+    #calendar-event-dialog-inner .item-attendees-cell {
         background-repeat: no-repeat;
         background-size: 100% 100%;
         --attendees-currentColor: rgb(125, 162, 206);
     }
 
-    #calendar-event-dialog .item-attendees-cell:focus {
+    #calendar-event-dialog-inner .item-attendees-cell:focus {
         color: -moz-FieldText;
         background-color: transparent;
         -moz-border-top-colors: var(--attendees-focusBorder);
@@ -268,7 +252,7 @@
 
 @media (-moz-windows-default-theme) and (-moz-os-version: windows-win8),
        (-moz-windows-default-theme) and (-moz-os-version: windows-win10) {
-    #calendar-event-dialog .item-attendees-cell {
+    #calendar-event-dialog-inner .item-attendees-cell {
         padding: 1px;
         border: 1px solid transparent;
         --attendees-focusColor: rgb(123, 195, 255);

@@ -18,7 +18,7 @@
 #    clean
 #    distclean
 #
-# See http://developer.mozilla.org/en/Build_Documentation for 
+# See http://developer.mozilla.org/en/Build_Documentation for
 # more information.
 #
 # Options:
@@ -50,23 +50,9 @@ endif
 ifndef TOPSRCDIR
 ifeq (,$(wildcard client.mk))
 TOPSRCDIR := $(patsubst %/,%,$(dir $(MAKEFILE_LIST)))
-MOZ_OBJDIR = .
 else
 TOPSRCDIR := $(CWD)
 endif
-endif
-
-# try to find autoconf 2.13 - discard errors from 'which'
-# MacOS X 10.4 sends "no autoconf*" errors to stdout, discard those via grep
-AUTOCONF ?= $(shell which autoconf-2.13 autoconf2.13 autoconf213 2>/dev/null | grep -v '^no autoconf' | head -1)
-
-# See if the autoconf package was installed through fink
-ifeq (,$(strip $(AUTOCONF)))
-AUTOCONF = $(shell which fink >/dev/null 2>&1 && echo `which fink`/../../lib/autoconf2.13/bin/autoconf)
-endif
-
-ifeq (,$(strip $(AUTOCONF)))
-AUTOCONF=$(error Could not find autoconf 2.13)
 endif
 
 SH := /bin/sh
@@ -115,6 +101,8 @@ endef
 MOZCONFIG_CONTENT := $(subst ||,$(CR),$(subst || ,$(CR),$(shell MOZ_PGO=$(MOZ_PGO) $(TOPSRCDIR)/$(MOZCONFIG_LOADER) $(TOPSRCDIR) | sed 's/$$/||/')))
 $(eval $(MOZCONFIG_CONTENT))
 
+export FOUND_MOZCONFIG
+
 # As '||' was used as a newline separator, it means it's not occurring in
 # lines themselves. It can thus safely be used to replaces normal spaces,
 # to then replace newlines with normal spaces. This allows to get a list
@@ -123,6 +111,10 @@ MOZCONFIG_OUT_LINES := $(subst $(CR), ,$(subst $(NULL) $(NULL),||,$(MOZCONFIG_CO
 # Filter-out comments from those lines.
 START_COMMENT = \#
 MOZCONFIG_OUT_FILTERED := $(filter-out $(START_COMMENT)%,$(MOZCONFIG_OUT_LINES))
+
+ifdef MOZ_PGO
+export MOZ_PGO
+endif
 
 # Automatically add -jN to make flags if not defined. N defaults to number of cores.
 ifeq (,$(findstring -j,$(MOZ_MAKE_FLAGS)))
@@ -171,6 +163,9 @@ CONFIGURES := $(TOPSRCDIR)/configure
 CONFIGURES += $(TOPSRCDIR)/mozilla/configure
 CONFIGURES += $(TOPSRCDIR)/mozilla/js/src/configure
 
+# Make targets that are going to be passed to the real build system
+OBJDIR_TARGETS = install export libs clean realclean distclean maybe_clobber_profiledbuild upload sdk installer package package-compare stage-package source-package l10n-check automation/build
+
 #######################################################################
 # Rules
 
@@ -198,6 +193,9 @@ ifdef WANT_MOZCONFIG_MK
 MOZCONFIG_MK_LINES := $(filter export||%,$(MOZCONFIG_OUT_LINES))
 $(OBJDIR)/.mozconfig.mk: $(FOUND_MOZCONFIG) $(call mkdir_deps,$(OBJDIR))
 	$(if $(MOZCONFIG_MK_LINES),( $(foreach line,$(MOZCONFIG_MK_LINES), echo "$(subst ||, ,$(line))";) )) > $@
+ifdef MOZ_CURRENT_PROJECT
+	echo export MOZ_CURRENT_PROJECT=$(MOZ_CURRENT_PROJECT) >> $@
+endif
 
 # Include that makefile so that it is created. This should not actually change
 # the environment since MOZCONFIG_CONTENT, which MOZCONFIG_OUT_LINES derives
@@ -221,7 +219,7 @@ else
 
 
 # Print out any options loaded from mozconfig.
-all build clean depend distclean export libs install realclean::
+all build clean distclean export libs install realclean::
 ifneq (,$(strip $(MOZCONFIG_OUT_FILTERED)))
 	$(info Adding client.mk options from $(FOUND_MOZCONFIG):)
 	$(foreach line,$(MOZCONFIG_OUT_FILTERED),$(info $(NULL) $(NULL) $(NULL) $(NULL) $(subst ||, ,$(line))))
@@ -229,8 +227,6 @@ endif
 
 # Windows equivalents
 build_all: build
-build_all_dep: alldep
-build_all_depend: alldep
 clobber clobber_all: clean
 
 # Do everything from scratch
@@ -266,7 +262,7 @@ profiledbuild::
 ifdef MOZ_UNIFY_BDATE
 ifndef MOZ_BUILD_DATE
 ifdef MOZ_BUILD_PROJECTS
-MOZ_BUILD_DATE = $(shell $(PYTHON) $(TOPSRCDIR)/mozilla/toolkit/xre/make-platformini.py --print-buildid)
+MOZ_BUILD_DATE = $(shell $(PYTHON) $(TOPSRCDIR)/mozilla/build/variables.py buildid_header | awk '{print $$3}')
 export MOZ_BUILD_DATE
 endif
 endif
@@ -275,7 +271,7 @@ endif
 #####################################################
 # Preflight, before building any project
 
-build alldep preflight_all::
+build preflight_all::
 ifeq (,$(MOZ_CURRENT_PROJECT)$(if $(MOZ_PREFLIGHT_ALL),,1))
 # Don't run preflight_all for individual projects in multi-project builds
 # (when MOZ_CURRENT_PROJECT is set.)
@@ -299,7 +295,7 @@ endif
 # loop through them.
 
 ifeq (,$(MOZ_CURRENT_PROJECT)$(if $(MOZ_BUILD_PROJECTS),,1))
-configure depend build install export libs clean realclean distclean alldep preflight postflight maybe_clobber_profiledbuild upload sdk::
+configure build preflight postflight $(OBJDIR_TARGETS)::
 	set -e; \
 	for app in $(MOZ_BUILD_PROJECTS); do \
 	  $(MAKE) -f $(TOPSRCDIR)/client.mk $@ MOZ_CURRENT_PROJECT=$$app; \
@@ -320,13 +316,16 @@ CONFIG_CACHE  = $(wildcard $(OBJDIR)/config.cache)
 EXTRA_CONFIG_DEPS := \
 	$(TOPSRCDIR)/aclocal.m4 \
 	$(TOPSRCDIR)/mozilla/aclocal.m4 \
+	$(TOPSRCDIR)/mozilla/old-configure.in \
 	$(wildcard $(TOPSRCDIR)/mozilla/build/autoconf/*.m4) \
 	$(TOPSRCDIR)/mozilla/js/src/aclocal.m4 \
+	$(TOPSRCDIR)/mozilla/js/src/old-configure.in \
 	$(NULL)
 
 $(CONFIGURES): %: %.in $(EXTRA_CONFIG_DEPS)
-	@echo Generating $@ using autoconf
-	cd $(@D); $(AUTOCONF)
+	@echo Generating $@
+	sed '1,/^divert/d' $< > $@
+	chmod +x $@
 
 CONFIG_STATUS_DEPS := \
 	$(wildcard $(CONFIGURES)) \
@@ -381,15 +380,9 @@ endif
 
 
 ####################################
-# Depend
-
-depend:: $(OBJDIR)/Makefile $(OBJDIR)/config.status
-	$(MOZ_MAKE) export && $(MOZ_MAKE) depend
-
-####################################
 # Preflight
 
-build alldep preflight::
+build preflight::
 ifdef MOZ_PREFLIGHT
 	set -e; \
 	for mkfile in $(MOZ_PREFLIGHT); do \
@@ -401,19 +394,19 @@ endif
 # Build it
 
 build::  $(OBJDIR)/Makefile $(OBJDIR)/config.status
-	$(MOZ_MAKE)
+	+$(MOZ_MAKE)
 
 ####################################
 # Other targets
 
 # Pass these target onto the real build system
-install export libs clean realclean distclean alldep maybe_clobber_profiledbuild upload sdk:: $(OBJDIR)/Makefile $(OBJDIR)/config.status
-	$(MOZ_MAKE) $@
+$(OBJDIR_TARGETS):: $(OBJDIR)/Makefile $(OBJDIR)/config.status
+	+$(MOZ_MAKE) $@
 
 ####################################
 # Postflight
 
-build alldep postflight::
+build postflight::
 ifdef MOZ_POSTFLIGHT
 	set -e; \
 	for mkfile in $(MOZ_POSTFLIGHT); do \
@@ -427,7 +420,7 @@ endif # RAN_CLIENT_PY
 ####################################
 # Postflight, after building all projects
 
-build alldep postflight_all::
+build postflight_all::
 ifeq (,$(MOZ_CURRENT_PROJECT)$(if $(MOZ_POSTFLIGHT_ALL),,1))
 # Don't run postflight_all for individual projects in multi-project builds
 # (when MOZ_CURRENT_PROJECT is set.)
@@ -472,4 +465,4 @@ run_client_py:
 # in parallel.
 .NOTPARALLEL:
 
-.PHONY: checkout co real_checkout depend build profiledbuild maybe_clobber_profiledbuild export libs alldep install clean realclean distclean cleansrcdir pull_all build_all clobber clobber_all pull_and_build_all everything configure preflight_all preflight postflight postflight_all
+.PHONY: checkout co real_checkout build profiledbuild cleansrcdir pull_all build_all clobber clobber_all pull_and_build_all everything configure preflight_all preflight postflight postflight_all $(OBJDIR_TARGETS)

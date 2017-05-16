@@ -27,9 +27,6 @@
       <preference id="dom.disable_window_status_change"
                   name="dom.disable_window_status_change"
                   type="bool" inverted="true"/>
-      <preference id="dom.disable_image_src_set"
-                  name="dom.disable_image_src_set"
-                  type="bool" inverted="true"/>
       <preference id="dom.event.contextmenu.enabled"
                   name="dom.event.contextmenu.enabled"
                   type="bool"/>
@@ -73,9 +70,6 @@
         <listitem type="checkbox" id="allowWindowStatusChange"
                   label="&allowWindowStatusChange.label;"
                   preference="dom.disable_window_status_change"/>
-        <listitem type="checkbox" id="allowImageSrcChange"
-                  label="&allowWindowImageSrcChange.label;"
-                  preference="dom.disable_image_src_set"/>
         <listitem type="checkbox" id="allowContextmenuDisable"
                   label="&allowContextmenuDisable.label;"
                   preference="dom.event.contextmenu.enabled"/>
@@ -83,7 +77,7 @@
     </groupbox>
 
     <!-- REMOVE #ifndef once EME are ready for prime time, meta bug 1015800 -->
-#ifndef RELEASE_BUILD
+#ifndef RELEASE_OR_BETA
     <groupbox id="drmPreferences">
       <caption label="&enableDrmMedia.label;"/>
       <checkbox id="emeForSuite"
@@ -117,6 +111,6 @@
                 accesskey="&warnPluginsRequired.accesskey;"
                 preference="plugins.hide_infobar_for_missing_plugin"/>
     </groupbox>
-    
+
   </prefpane>
 </overlay>

@@ -21,3 +21,8 @@
 <!ENTITY ListNickName.accesskey         "A">
 <!ENTITY ListDescription.accesskey      "e">
 
+
+
+
+<!-- Title -->
+<!ENTITY mailListWindowAdd.title        "New Mailing List">

@@ -23,8 +23,8 @@
 <!ENTITY biffStart.label "Yeni iletileri her ">
 <!ENTITY biffStart.accesskey "h">
 <!ENTITY biffEnd.label "dakikada bir kontrol et">
-
-
+<!ENTITY useIdleNotifications.label "Yeni ileti geldiğinde anında sunucu bildirimlerine izin ver">
+<!ENTITY useIdleNotifications.accesskey "Y">
 <!ENTITY connectionSecurity.label "Bağlantı güvenliği: ">
 <!ENTITY connectionSecurity.accesskey "ü">
 <!ENTITY connectionSecurityType-0.label "Hiçbiri">
@@ -90,6 +90,3 @@
 <!ENTITY storeType.accesskey "d">
 <!ENTITY mboxStore2.label "Klasör başına dosya (mbox)">
 <!ENTITY maildirStore.label "Her ileti için bir dosya (maildir)">
-
-<!ENTITY useIdleNotifications.accesskey "w">
-<!ENTITY useIdleNotifications.label "Allow immediate server notifications when new messages arrive">

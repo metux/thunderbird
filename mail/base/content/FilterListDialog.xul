@@ -4,7 +4,6 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
 <?xml-stylesheet href="chrome://messenger/skin/filterDialog.css" type="text/css"?>
-<?xml-stylesheet href="chrome://messenger/skin/messenger.css" type="text/css"?>
  <?xml-stylesheet href="chrome://messenger/skin/folderMenus.css" type="text/css"?>
 
 <!DOCTYPE window [
@@ -87,9 +86,19 @@
 
         <vbox>
           <button id="newButton"
+                  type="menu-button"
                   label="&newButton.label;"
                   accesskey="&newButton.accesskey;"
-                  oncommand="onNewFilter(null);"/>
+                  oncommand="onNewFilter();">
+            <menupopup>
+              <menuitem label="&newButton.label;"
+                        accesskey="&newButton.accesskey;"/>
+              <menuitem id="copyToNewButton"
+                        label="&newButton.popupCopy.label;"
+                        accesskey="&newButton.popupCopy.accesskey;"
+                        oncommand="onCopyToNewFilter(); event.stopPropagation();"/>
+            </menupopup>
+          </button>
           <button id="editButton" label="&editButton.label;"
                   accesskey="&editButton.accesskey;"
                   oncommand="onEditFilter();"/>

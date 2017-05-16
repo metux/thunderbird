@@ -69,7 +69,7 @@ function setupModule(module) {
 
   // Don't create paragraphs in the test.
   // The test fails if it encounters paragraphs <p> instead of breaks <br>.
-  Services.prefs.setBoolPref("editor.CR_creates_new_p", false);
+  Services.prefs.setBoolPref("mail.compose.default_to_paragraph", false);
 }
 
 function teardownModule(module) {
@@ -77,7 +77,7 @@ function teardownModule(module) {
   ah.gMockFilePickReg.unregister();
   Services.prefs.setCharPref(kDefaultSigKey, gOldSigPref);
   Services.prefs.setBoolPref(kHtmlPrefKey, gOldHtmlPref);
-  Services.prefs.clearUserPref("editor.CR_creates_new_p");
+  Services.prefs.clearUserPref("mail.compose.default_to_paragraph");
 }
 
 function setupTest() {
@@ -595,6 +595,9 @@ function subtest_adding_filelinks_to_plaintext_reply_below(aText, aWithSig) {
     // If no text was entered, just grab the last br's previous sibling - that
     // will be the span.
     span = br.previousSibling;
+    // Sometimes we need to skip one more linebreak.
+    if (span.localName != "span")
+      span = span.previousSibling;
   }
 
   assert_equals(span.localName, "span",

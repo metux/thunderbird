@@ -255,8 +255,8 @@ NS_IMETHODIMP nsMsgThread::AddChild(nsIMsgDBHdr *child, nsIMsgDBHdr *inReplyTo, 
     child->SetThreadParent(parentKey);
     parentKeyNeedsSetting = false;
   }
-  // check if this header is a parent of one of the messages in this thread
 
+  // check if this header is a parent of one of the messages in this thread
   bool hdrMoved = false;
   nsCOMPtr <nsIMsgDBHdr> curHdr;
   uint32_t moveIndex = 0;
@@ -278,7 +278,7 @@ NS_IMETHODIMP nsMsgThread::AddChild(nsIMsgDBHdr *child, nsIMsgDBHdr *inReplyTo, 
   {
     for (childIndex = 0; childIndex < numChildren; childIndex++)
     {
-      nsMsgKey msgKey;
+      nsMsgKey msgKey = nsMsgKey_None;
 
       rv = GetChildHdrAt(childIndex, getter_AddRefs(curHdr));
       if (NS_SUCCEEDED(rv) && curHdr)
@@ -314,6 +314,7 @@ NS_IMETHODIMP nsMsgThread::AddChild(nsIMsgDBHdr *child, nsIMsgDBHdr *inReplyTo, 
             }
           }
           curHdr->SetThreadParent(newHdrKey);
+          // TODO: what should be msgKey if hdrMoved was true above?
           if (msgKey == newHdrKey)
             parentKeyNeedsSetting = false;
 
@@ -967,10 +968,10 @@ nsresult nsMsgThread::ChangeChildCount(int32_t delta)
   uint32_t childCount = 0;
   m_mdbDB->RowCellColumnToUInt32(m_metaRow, m_mdbDB->m_threadChildrenColumnToken, childCount);
 
-  NS_WARN_IF_FALSE(childCount != 0 || delta > 0, "child count gone negative");
+  NS_WARNING_ASSERTION(childCount != 0 || delta > 0, "child count gone negative");
   childCount += delta;
 
-  NS_WARN_IF_FALSE((int32_t) childCount >= 0, "child count gone to 0 or below");
+  NS_WARNING_ASSERTION((int32_t) childCount >= 0, "child count gone to 0 or below");
   if ((int32_t) childCount < 0)	// force child count to >= 0
     childCount = 0;
 

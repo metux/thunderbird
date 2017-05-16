@@ -20,6 +20,7 @@ var FeedCache =
     let index = this.normalizeHost(aUrl);
     if (index in this.mFeeds)
       return this.mFeeds[index];
+
     return null;
   },
 
@@ -111,13 +112,10 @@ Feed.prototype =
     // Before we do anything, make sure the url is an http url.  This is just
     // a sanity check so we don't try opening mailto urls, imap urls, etc. that
     // the user may have tried to subscribe to as an rss feed.
-    let uri = Cc["@mozilla.org/network/standard-url;1"].
-              createInstance(Ci.nsIURI);
-    uri.spec = this.url;
-    if (!FeedUtils.isValidScheme(uri))
+    if (!FeedUtils.isValidScheme(this.url))
     {
        // Simulate an invalid feed error.
-      FeedUtils.log.info("Feed.download: invalid protocol for - " + uri.spec);
+      FeedUtils.log.info("Feed.download: invalid protocol for - " + this.url);
       this.onParseError(this);
       return;
     }
@@ -174,7 +172,7 @@ Feed.prototype =
   onDownloaded: function(aEvent)
   {
     let request = aEvent.target;
-    let isHttp = /^http(s?)/.test(request.channel.originalURI.scheme);
+    let isHttp = request.channel.originalURI.scheme.startsWith("http");
     let url = request.channel.originalURI.spec;
     if (isHttp && (request.status < 200 || request.status >= 300))
     {
@@ -220,15 +218,27 @@ Feed.prototype =
     let feed = FeedCache.getFeed(url);
     if (feed.downloadCallback) 
     {
+      // Generic network or 'not found' error initially.
       let error = FeedUtils.kNewsBlogRequestFailure;
-      try
-      {
-        if (request.status == 304)
-          // If the http status code is 304, the feed has not been modified
-          // since we last downloaded it and does not need to be parsed.
-          error = FeedUtils.kNewsBlogNoNewItems;
+
+      if (request.status == 304) {
+        // If the http status code is 304, the feed has not been modified
+        // since we last downloaded it and does not need to be parsed.
+        error = FeedUtils.kNewsBlogNoNewItems;
       }
-      catch (ex) {}
+      else {
+        let [errType, errName] = FeedUtils.createTCPErrorFromFailedXHR(request);
+        FeedUtils.log.info("Feed.onDownloaded: request errType:errName:statusCode - " +
+                           errType + ":" + errName + ":" + request.status);
+        if (errType == "SecurityCertificate")
+          // This is the code for nsINSSErrorsService.ERROR_CLASS_BAD_CERT
+          // overrideable security certificate errors.
+          error = FeedUtils.kNewsBlogBadCertError;
+
+        if (request.status == 401 || request.status == 403)
+          // Unauthorized or Forbidden.
+          error = FeedUtils.kNewsBlogNoAuthError;
+      }
 
       feed.downloadCallback.downloaded(feed, error);
     }
@@ -305,6 +315,7 @@ Feed.prototype =
                                     true);
     if (lastModified)
       lastModified = lastModified.QueryInterface(Ci.nsIRDFLiteral).Value;
+
     return lastModified;
   },
 
@@ -574,15 +585,20 @@ Feed.prototype =
   {
     // Now that we are done parsing the feed, remove the feed from the cache.
     FeedCache.removeFeed(aFeed.url);
-    aFeed.removeInvalidItems(false);
 
-    if (aCode == FeedUtils.kNewsBlogSuccess && aFeed.mLastModified)
-      aFeed.lastModified = aFeed.mLastModified;
+    if (aFeed.parseItems)
+    {
+      // Do this only if we're in parse/store mode.
+      aFeed.removeInvalidItems(false);
 
-    // Flush any feed item changes to disk.
-    let ds = FeedUtils.getItemsDS(aFeed.server);
-    ds.Flush();
-    FeedUtils.log.debug("Feed.cleanupParsingState: items stored - " + this.itemsStored);
+      if (aCode == FeedUtils.kNewsBlogSuccess && aFeed.mLastModified)
+        aFeed.lastModified = aFeed.mLastModified;
+
+      // Flush any feed item changes to disk.
+      let ds = FeedUtils.getItemsDS(aFeed.server);
+      ds.Flush();
+      FeedUtils.log.debug("Feed.cleanupParsingState: items stored - " + this.itemsStored);
+    }
 
     // Force the xml http request to go away.  This helps reduce some nasty
     // assertions on shut down.
@@ -602,4 +618,3 @@ Feed.prototype =
     this.storeNextItem();
   }
 };
-

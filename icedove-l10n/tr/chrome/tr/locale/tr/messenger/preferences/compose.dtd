@@ -64,5 +64,5 @@
 <!ENTITY attachmentReminderOptions.label       "Anahtar kelimeler…">
 <!ENTITY attachmentReminderOptions.accesskey   "A">
 
-<!ENTITY enterKeyCreatesNewParagraph.accesskey "p">
-<!ENTITY enterKeyCreatesNewParagraph.label    "When using paragraph format, the enter key creates a new paragraph">
+<!ENTITY defaultToParagraph.accesskey         "P">
+<!ENTITY defaultToParagraph.label             "Use Paragraph format instead of Body Text by default">

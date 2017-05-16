@@ -26,6 +26,7 @@
 #include "nsMsgUtils.h"
 #include "mozilla/Services.h"
 #include <algorithm>
+#include "nsProxyRelease.h"
 
 nsMsgMailNewsUrl::nsMsgMailNewsUrl()
 {
@@ -33,7 +34,6 @@ nsMsgMailNewsUrl::nsMsgMailNewsUrl()
   m_errorMessage = nullptr;
   m_runningUrl = false;
   m_updatingFolder = false;
-  m_addContentToCache = false;
   m_msgIsInLocalCache = false;
   m_suppressErrorMsgs = false;
   mMaxProgress = -1;
@@ -52,9 +52,25 @@ nsMsgMailNewsUrl::nsMsgMailNewsUrl()
 nsMsgMailNewsUrl::~nsMsgMailNewsUrl()
 {
   PR_FREEIF(m_errorMessage);
+
+  // In IMAP this URL is created and destroyed on the imap thread,
+  // so we must ensure that releases of XPCOM objects (which might be
+  // implemented by non-threadsafe JS components) are released on the
+  // main thread.
+  NS_ReleaseOnMainThread(m_baseURL.forget());
+  NS_ReleaseOnMainThread(mMimeHeaders.forget());
+  NS_ReleaseOnMainThread(m_searchSession.forget());
+  NS_ReleaseOnMainThread(mMsgHeaderSink.forget());
+
+  nsTObserverArray<nsCOMPtr<nsIUrlListener>>::ForwardIterator iter(mUrlListeners);
+  while (iter.HasMore()) {
+    nsCOMPtr<nsIUrlListener> listener = iter.GetNext();
+    if (listener)
+      NS_ReleaseOnMainThread(listener.forget());
+  }
 }
   
-NS_IMPL_ISUPPORTS(nsMsgMailNewsUrl, nsIMsgMailNewsUrl, nsIURL, nsIURI)
+NS_IMPL_ISUPPORTS(nsMsgMailNewsUrl, nsIMsgMailNewsUrl, nsIURL, nsIURIWithQuery, nsIURI)
 
 ////////////////////////////////////////////////////////////////////////////////////
 // Begin nsIMsgMailNewsUrl specific support
@@ -135,7 +151,8 @@ NS_IMETHODIMP nsMsgMailNewsUrl::GetServer(nsIMsgIncomingServer ** aIncomingServe
   nsCOMPtr<nsIURL> url = do_CreateInstance(NS_STANDARDURL_CONTRACTID, &rv);
   if (NS_FAILED(rv)) return rv;
 
-  m_baseURL->GetSpec(urlstr);
+  rv = m_baseURL->GetSpec(urlstr);
+  NS_ENSURE_SUCCESS(rv, rv);
   rv = url->SetSpec(urlstr);
   if (NS_FAILED(rv)) return rv;
   rv = GetScheme(scheme);
@@ -259,19 +276,6 @@ NS_IMETHODIMP nsMsgMailNewsUrl::GetUpdatingFolder(bool *aResult)
 NS_IMETHODIMP nsMsgMailNewsUrl::SetUpdatingFolder(bool updatingFolder)
 {
   m_updatingFolder = updatingFolder;
-  return NS_OK;
-}
-
-NS_IMETHODIMP nsMsgMailNewsUrl::GetAddToMemoryCache(bool *aAddToCache)
-{
-  NS_ENSURE_ARG(aAddToCache); 
-  *aAddToCache = m_addContentToCache;
-  return NS_OK;
-}
-
-NS_IMETHODIMP nsMsgMailNewsUrl::SetAddToMemoryCache(bool aAddToCache)
-{
-  m_addContentToCache = aAddToCache;
   return NS_OK;
 }
 
@@ -422,6 +426,11 @@ NS_IMETHODIMP nsMsgMailNewsUrl::SetHostPort(const nsACString &aHostPort)
   return m_baseURL->SetHostPort(aHostPort);
 }
 
+NS_IMETHODIMP nsMsgMailNewsUrl::SetHostAndPort(const nsACString &aHostPort)
+{
+  return m_baseURL->SetHostAndPort(aHostPort);
+}
+
 NS_IMETHODIMP nsMsgMailNewsUrl::GetHost(nsACString &aHost)
 {
   return m_baseURL->GetHost(aHost);
@@ -501,20 +510,6 @@ NS_IMETHODIMP nsMsgMailNewsUrl::EqualsExceptRef(nsIURI *other, bool *result)
 }
 
 NS_IMETHODIMP
-nsMsgMailNewsUrl::CloneIgnoringRef(nsIURI** result)
-{
-  nsCOMPtr<nsIURI> clone;
-  nsresult rv = Clone(getter_AddRefs(clone));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  rv = clone->SetRef(EmptyCString());
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  clone.forget(result);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 nsMsgMailNewsUrl::GetSpecIgnoringRef(nsACString &result)
 {
   return m_baseURL->GetSpecIgnoringRef(result);
@@ -531,7 +526,9 @@ NS_IMETHODIMP nsMsgMailNewsUrl::SchemeIs(const char *aScheme, bool *_retval)
   return m_baseURL->SchemeIs(aScheme, _retval);
 }
 
-NS_IMETHODIMP nsMsgMailNewsUrl::Clone(nsIURI **_retval)
+NS_IMETHODIMP
+nsMsgMailNewsUrl::CloneInternal(uint32_t aRefHandlingMode,
+                                const nsACString& newRef, nsIURI** _retval)
 {
   nsresult rv;
   nsAutoCString urlSpec;
@@ -552,8 +549,33 @@ NS_IMETHODIMP nsMsgMailNewsUrl::Clone(nsIURI **_retval)
     msgMailNewsUrl->SetMsgWindow(msgWindow);
   }
 
+  if (aRefHandlingMode == nsIMsgMailNewsUrl::REPLACE_REF) {
+    rv = (*_retval)->SetRef(newRef);
+    NS_ENSURE_SUCCESS(rv, rv);
+  } else if (aRefHandlingMode == nsIMsgMailNewsUrl::IGNORE_REF) {
+    rv = (*_retval)->SetRef(EmptyCString());
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
   return rv;
-} 
+}
+
+NS_IMETHODIMP nsMsgMailNewsUrl::Clone(nsIURI **_retval)
+{
+  return CloneInternal(nsIMsgMailNewsUrl::HONOR_REF, EmptyCString(), _retval);
+}
+
+NS_IMETHODIMP
+nsMsgMailNewsUrl::CloneIgnoringRef(nsIURI** _retval)
+{
+  return CloneInternal(nsIMsgMailNewsUrl::IGNORE_REF, EmptyCString(), _retval);
+}
+
+NS_IMETHODIMP
+nsMsgMailNewsUrl::CloneWithNewRef(const nsACString& newRef, nsIURI** _retval)
+{
+  return CloneInternal(nsIMsgMailNewsUrl::REPLACE_REF, newRef, _retval);
+}
 
 NS_IMETHODIMP nsMsgMailNewsUrl::Resolve(const nsACString &relativePath, nsACString &result) 
 {
@@ -682,13 +704,13 @@ NS_IMETHODIMP nsMsgMailNewsUrl::GetRelativeSpec(nsIURI *uri2, nsACString &result
   return m_baseURL->GetRelativeSpec(uri2, result);
 }
 
-NS_IMETHODIMP nsMsgMailNewsUrl::SetMemCacheEntry(nsICacheEntryDescriptor *memCacheEntry)
+NS_IMETHODIMP nsMsgMailNewsUrl::SetMemCacheEntry(nsICacheEntry *memCacheEntry)
 {
   m_memCacheEntry = memCacheEntry;
   return NS_OK;
 }
 
-NS_IMETHODIMP nsMsgMailNewsUrl:: GetMemCacheEntry(nsICacheEntryDescriptor **memCacheEntry)
+NS_IMETHODIMP nsMsgMailNewsUrl::GetMemCacheEntry(nsICacheEntry **memCacheEntry)
 {
   NS_ENSURE_ARG(memCacheEntry);
   nsresult rv = NS_OK;
@@ -707,34 +729,6 @@ NS_IMETHODIMP nsMsgMailNewsUrl:: GetMemCacheEntry(nsICacheEntryDescriptor **memC
   return rv;
 }
 
-NS_IMETHODIMP nsMsgMailNewsUrl::SetImageCacheSession(nsICacheSession *imageCacheSession)
-{
-  m_imageCacheSession = imageCacheSession;
-  return NS_OK;
-}
-
-NS_IMETHODIMP nsMsgMailNewsUrl::GetImageCacheSession(nsICacheSession **imageCacheSession)
-{
-  NS_ENSURE_ARG(imageCacheSession);
-
-  NS_IF_ADDREF(*imageCacheSession = m_imageCacheSession);
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP nsMsgMailNewsUrl::CacheCacheEntry(nsICacheEntryDescriptor *cacheEntry)
-{
-  m_cachedMemCacheEntries.AppendObject(cacheEntry);
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP nsMsgMailNewsUrl::RemoveCacheEntry(nsICacheEntryDescriptor *cacheEntry)
-{
-  m_cachedMemCacheEntries.RemoveObject(cacheEntry);
-  return NS_OK;
-}
-
 NS_IMETHODIMP nsMsgMailNewsUrl::GetMimeHeaders(nsIMimeHeaders * *mimeHeaders)
 {
     NS_ENSURE_ARG_POINTER(mimeHeaders);
@@ -748,7 +742,15 @@ NS_IMETHODIMP nsMsgMailNewsUrl::SetMimeHeaders(nsIMimeHeaders *mimeHeaders)
     return NS_OK;
 }
 
-#define SAVE_BUF_SIZE 8192
+NS_IMETHODIMP nsMsgMailNewsUrl::LoadURI(nsIDocShell* docShell,
+                                        nsIDocShellLoadInfo* loadInfo,
+                                        uint32_t aLoadFlags)
+{
+  NS_ENSURE_ARG_POINTER(docShell);
+  return docShell->LoadURI(this, loadInfo, aLoadFlags, false);
+}
+
+#define SAVE_BUF_SIZE FILE_IO_BUFFER_SIZE
 class nsMsgSaveAsListener : public nsIStreamListener
 {
 public:

@@ -27,6 +27,8 @@
 !define MinSupportedVer "Microsoft Windows XP SP2"
 #endif
 
+!define MinSupportedCPU "SSE2"
+
 # File details shared by both the installer and uninstaller
 VIProductVersion "1.0.0.0"
 VIAddVersionKey "ProductName"     "${BrandShortName}"

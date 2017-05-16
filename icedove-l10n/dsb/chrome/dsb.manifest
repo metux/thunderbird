@@ -4,12 +4,12 @@ locale branding dsb dsb/locale/dsb/branding/
 locale chat dsb dsb/locale/dsb/chat/
 locale communicator dsb dsb/locale/dsb/communicator/
 locale cookie dsb dsb/locale/dsb/cookie/
+locale devtools dsb dsb/locale/dsb/devtools/client/
 locale devtools-shared dsb dsb/locale/dsb/devtools/shared/
 locale editor dsb dsb/locale/dsb/editor/
 locale formautofill dsb dsb/locale/dsb/formautofill/
 locale global dsb dsb/locale/dsb/global/
 locale global-platform dsb dsb/locale/dsb/global-platform/
-locale global-region dsb dsb/locale/dsb/global-region/
 locale messenger dsb dsb/locale/dsb/messenger/
 locale messenger-mapi dsb dsb/locale/dsb/messenger-mapi/
 locale messenger-newsblog dsb dsb/locale/dsb/messenger-newsblog/

@@ -25,6 +25,8 @@ function RestoreSelectionWithoutContentLoad(tree)
     view.selection = realSelection;
     // replay any calls to adjustSelection, this handles suppression.
     transientSelection.replayAdjustSelectionLog(realSelection);
+    // Avoid possible cycle leaks.
+    gRightMouseButtonSavedSelection.view = null;
     gRightMouseButtonSavedSelection = null;
 
     if (tree)
@@ -77,6 +79,9 @@ function fillMailContextMenu(event)
   goUpdateCommand('cmd_print');
 
   updateCheckedStateForIgnoreAndWatchThreadCmds();
+
+  // Hide "Edit Draft Message" menus if we're not in a draft folder.
+  updateHiddenStateForEditDraftMsgCmd();
 
   gContextMenu = new nsContextMenu(event.target, event.shiftKey);
   return gContextMenu.shouldDisplay;

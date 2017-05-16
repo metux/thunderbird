@@ -76,3 +76,5 @@
 <!ENTITY imageDimensionsTab.label  "Mitat">
 <!ENTITY imageAppearanceTab.label  "Ulkoasu">
 <!ENTITY imageLinkTab.label  "Linkki">
+
+<!ENTITY locationEditField.shortenedDataURI "Shortened data URI (copy will place the full URI onto the clipboard)">

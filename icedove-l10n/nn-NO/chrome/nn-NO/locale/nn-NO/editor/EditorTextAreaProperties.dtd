@@ -13,13 +13,13 @@
 <!ENTITY TextAreaCols.label "Kolonner:">
 <!ENTITY TextAreaCols.accessKey "K">
 <!ENTITY TextAreaReadOnly.label "Berre lesetilgjenge">
-<!ENTITY TextAreaReadOnly.accessKey "K">
+<!ENTITY TextAreaReadOnly.accessKey "O">
 <!ENTITY TextAreaDisabled.label "Avslegen">
 <!ENTITY TextAreaDisabled.accessKey "A">
 <!ENTITY TextAreaTabIndex.label "Tabulatorindeks:">
 <!ENTITY TextAreaTabIndex.accessKey "i">
 <!ENTITY TextAreaAccessKey.label "Snøggtast:">
-<!ENTITY TextAreaAccessKey.accessKey "H">
+<!ENTITY TextAreaAccessKey.accessKey "S">
 <!ENTITY InitialText.label "Opphavleg tekst:">
 <!ENTITY InitialText.accessKey "O">
 

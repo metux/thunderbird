@@ -13,6 +13,7 @@
 <!ENTITY locationEditField.label "Irudiaren kokalekua:">
 <!ENTITY locationEditField.accessKey "k">
 <!ENTITY locationEditField.tooltip "Idatzi irudiaren fitxategi-izena edo kokalekua">
+
 <!ENTITY title.label "Argibidea:">
 <!ENTITY title.accessKey "A">
 <!ENTITY title.tooltip "Html 'title' atributua erakutsiko da argibide bezala">
@@ -32,7 +33,7 @@
 <!ENTITY actualSizeRadio.tooltip "Itzuli irudiaren uneko tamainara">
 <!ENTITY customSizeRadio.label "Tamaina pertsonalizatua">
 <!ENTITY customSizeRadio.accessKey "s">
-<!ENTITY customSizeRadio.tooltip "Aldatu irudiaren tamaina orrialdean bistaratu bezala">
+<!ENTITY customSizeRadio.tooltip "Aldatu irudiaren tamaina orrian bistaratu bezala">
 <!ENTITY heightEditField.label "Altuera:">
 <!ENTITY heightEditField.accessKey "t">
 <!ENTITY widthEditField.label "Zabalera:">
@@ -76,3 +77,5 @@
 <!ENTITY imageDimensionsTab.label "Neurriak">
 <!ENTITY imageAppearanceTab.label "Itxura">
 <!ENTITY imageLinkTab.label "Lotura">
+
+<!ENTITY locationEditField.shortenedDataURI "Shortened data URI (copy will place the full URI onto the clipboard)">

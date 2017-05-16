@@ -46,7 +46,6 @@
 #include "nsCOMPtr.h"
 #include "nsIImapIncomingServer.h"
 #include "nsIMsgWindow.h"
-#include "nsICacheListener.h"
 #include "nsIImapHeaderXferInfo.h"
 #include "nsMsgLineBuffer.h"
 #include "nsIAsyncInputStream.h"
@@ -56,6 +55,7 @@
 #include "nsIMsgAsyncPrompter.h"
 #include "mozilla/ReentrantMonitor.h"
 #include "nsSyncRunnableHelpers.h"
+#include "nsICacheEntryOpenCallback.h"
 
 class nsIMAPMessagePartIDArray;
 class nsIMsgIncomingServer;
@@ -373,7 +373,7 @@ private:
   RefPtr<ImapProtocolSinkProxy>   m_imapProtocolSink;
 
   // helper function to setup imap sink interface proxies
-  void SetupSinkProxy();
+  nsresult SetupSinkProxy();
   // End thread support stuff
 
   bool GetDeleteIsMoveToTrash();
@@ -562,7 +562,7 @@ private:
   nsresult GetMsgWindow(nsIMsgWindow ** aMsgWindow);
   // End Process AuthenticatedState Url helper methods
 
-  virtual char const *GetType() {return "imap";}
+  virtual char const *GetType() override {return "imap";}
 
   // Quota support
   void GetQuotaDataIfSupported(const char *aBoxName);
@@ -682,10 +682,10 @@ private:
 //
 // Threading concern: This class lives entirely in the UI thread.
 
-class nsICacheEntryDescriptor;
+class nsICacheEntry;
 
 class nsImapMockChannel : public nsIImapMockChannel
-                        , public nsICacheListener
+                        , public nsICacheEntryOpenCallback
                         , public nsITransportEventSink
                         , public nsSupportsWeakReference
 {
@@ -696,11 +696,12 @@ public:
   NS_DECL_NSIIMAPMOCKCHANNEL
   NS_DECL_NSICHANNEL
   NS_DECL_NSIREQUEST
-  NS_DECL_NSICACHELISTENER
+  NS_DECL_NSICACHEENTRYOPENCALLBACK
   NS_DECL_NSITRANSPORTEVENTSINK
 
   nsImapMockChannel();
   static nsresult Create (const nsIID& iid, void **result);
+  nsresult RunOnStopRequestFailure();
 
 protected:
   virtual ~nsImapMockChannel();
@@ -718,8 +719,9 @@ protected:
   nsCOMPtr<nsISupports> mOwner;
   nsCOMPtr<nsISupports> mSecurityInfo;
   nsCOMPtr<nsIRequest> mCacheRequest; // the request associated with a read from the cache
-  nsCString m_ContentType;
-  nsWeakPtr   m_protocol;
+  nsCString mContentType;
+  nsCString mCharset;
+  nsWeakPtr mProtocol;
 
   bool mChannelClosed;
   bool mReadingFromCache;
@@ -730,7 +732,7 @@ protected:
   nsresult OpenCacheEntry(); // makes a request to the cache service for a cache entry for a url
   bool ReadFromLocalCache(); // attempts to read the url out of our local (offline) cache....
   nsresult ReadFromImapConnection(); // creates a new imap connection to read the url
-  nsresult ReadFromMemCache(nsICacheEntryDescriptor *entry); // attempts to read the url out of our memory cache
+  nsresult ReadFromMemCache(nsICacheEntry *entry); // attempts to read the url out of our memory cache
   nsresult NotifyStartEndReadFromCache(bool start);
 
   // we end up daisy chaining multiple nsIStreamListeners into the load process.

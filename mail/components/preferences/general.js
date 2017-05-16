@@ -106,18 +106,21 @@ var gGeneralPane = {
 
   previewSound: function ()
   {
-    let sound = Components.classes["@mozilla.org/sound;1"].createInstance(Components.interfaces.nsISound);
+    let sound = Components.classes["@mozilla.org/sound;1"]
+                          .createInstance(Components.interfaces.nsISound);
 
-    var soundLocation;
-    soundLocation = document.getElementById('soundType').value == 1 ?
-                    document.getElementById('soundUrlLocation').value : "";
+    let soundLocation;
+    // soundType radio-group isn't used for macOS so it is not in the XUL file
+    // for the platform.
+    soundLocation = (AppConstants.platform == "macosx" ||
+                     document.getElementById('soundType').value == 1) ?
+                       document.getElementById('soundUrlLocation').value : "";
 
     if (!soundLocation.includes("file://")) {
-      if (Services.appinfo.OS == "Darwin") // OS X
-        sound.beep();
-      else
-        sound.playEventSound(Components.interfaces.nsISound.EVENT_NEW_MAIL_RECEIVED);
+      // User has not set any custom sound file to be played
+      sound.playEventSound(Components.interfaces.nsISound.EVENT_NEW_MAIL_RECEIVED);
     } else {
+      // User has set a custom audio file to be played along the alert.
       sound.play(Services.io.newURI(soundLocation, null, null));
     }
   },
@@ -139,9 +142,9 @@ var gGeneralPane = {
     // On Mac, allow AIFF and CAF files too
     var bundlePrefs = document.getElementById("bundlePreferences");
     var soundFilesText = bundlePrefs.getString("soundFilesDescription");
-    if (Application.platformIsMac)
-      fp.appendFilter(soundFilesText, "*.wav; *.aif; *.aiff; *.caf");
-    else if (Application.platformIsLinux)
+    if (AppConstants.platform == "macosx")
+      fp.appendFilter(soundFilesText, "*.wav; *.aif; *.aiff; *.caf; *.mp3");
+    else if (AppConstants.platform == "linux")
       fp.appendFilter(soundFilesText, "*.wav; *.ogg");
     else
       fp.appendFilter(soundFilesText, "*.wav");
@@ -158,13 +161,32 @@ var gGeneralPane = {
 
   updatePlaySound: function()
   {
-    // update the sound type radio buttons based on the state of the play sound checkbox
+    // Update the sound type radio buttons based on the state of the
+    // play sound checkbox.
     var soundsDisabled = !document.getElementById('newMailNotification').checked;
-    var soundTypeEl = document.getElementById('soundType');
     var soundUrlLocation = document.getElementById('soundUrlLocation').value;
-    soundTypeEl.disabled = soundsDisabled;
-    document.getElementById('browseForSound').disabled = soundsDisabled || soundTypeEl.value != 1;
-    document.getElementById('playSound').disabled = soundsDisabled || (!soundUrlLocation && soundTypeEl.value != 0);
+
+    // The UI is different on OS X as the user can only choose between letting
+    // the system play a default sound or setting a custom one. Therefore,
+    // "soundTypeEl" does not exist on OS X.
+    if (AppConstants.platform != "macosx") {
+      var soundTypeEl = document.getElementById('soundType');
+      soundTypeEl.disabled = soundsDisabled;
+      document.getElementById('browseForSound').disabled =
+        soundsDisabled || soundTypeEl.value != 1;
+      document.getElementById('playSound').disabled =
+        soundsDisabled || (!soundUrlLocation && soundTypeEl.value != 0);
+    } else {
+      // On OS X, if there is no selected custom sound then default one will
+      // be played. We keep consistency by disabling the "Play sound" checkbox
+      // if the user hasn't selected a custom sound file yet.
+      document.getElementById('newMailNotification').disabled = !soundUrlLocation;
+      document.getElementById('playSound').disabled = !soundUrlLocation;
+      // The sound type radiogroup is hidden, but we have to keep the
+      // play_sound.type pref set appropriately.
+      document.getElementById("mail.biff.play_sound.type").value =
+        (!soundsDisabled && soundUrlLocation) ? 1 : 0;
+    }
   },
 
   updateStartPage: function()

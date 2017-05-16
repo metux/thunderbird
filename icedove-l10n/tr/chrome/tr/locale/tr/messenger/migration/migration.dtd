@@ -7,6 +7,7 @@
 
 <!ENTITY importFromWin.label            "Seçenekler'i, Hesap Ayarları'nı, Adres Defteri'ni, Süzgeçler'i ve diğer verileri buradan içe aktar:">
 <!ENTITY importFromNonWin.label         "Tercihler'i, Hesap Ayarları'nı, Adres Defteri'ni, Süzgeçler'i ve diğer verileri buradan içe aktar: ">
+<!ENTITY importSourceNotFound.label     "Verilerin aktarılabileceği bir uygulama bulunamadı.">
 
 <!ENTITY importFromNothing.label        "İçe bir şey aktarma">
 <!ENTITY importFromNothing.accesskey    "ç">
@@ -16,8 +17,6 @@
 <!ENTITY importFromOExpress.accesskey   "u">
 <!ENTITY importFromOutlook.label        "Outlook">
 <!ENTITY importFromOutlook.accesskey    "O">
-<!ENTITY importFromEudora.label         "Eudora">
-<!ENTITY importFromEudora.accesskey     "E">
 
 <!ENTITY importSource.title             "Ayarları ve Posta Dizinlerini İçe Aktar">
 <!ENTITY importItems.title              "İçe Aktarılacak Ögeler">

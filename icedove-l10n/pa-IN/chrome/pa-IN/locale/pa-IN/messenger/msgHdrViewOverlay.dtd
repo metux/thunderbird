@@ -133,6 +133,7 @@
 <!ENTITY CopyMessageId.accesskey "C">
 <!ENTITY OpenBrowserWithMsgId.accesskey "B">
 <!ENTITY OpenMessageForMsgId.accesskey "O">
+<!ENTITY author.label "Author">
 <!ENTITY bccField4.label "Bcc">
 <!ENTITY ccField4.label "Cc">
 <!ENTITY dateField4.label "Date">
@@ -141,6 +142,8 @@
 <!ENTITY hdrFollowupButton1.label "Followup">
 <!ENTITY hdrFollowupButton1.tooltip "Post a followup to this newsgroup">
 <!ENTITY hdrMenuForwardButton.label "Forward As">
+<!ENTITY hdrOpenConversationButton1.label "Conversation">
+<!ENTITY hdrOpenConversationButton1.tooltip "Show conversation of this message">
 <!ENTITY hdrReplyButton2.tooltip "Reply to the sender of this message">
 <!ENTITY inReplyToField4.label "In reply to">
 <!ENTITY messageIdField4.label "Message ID">

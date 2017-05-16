@@ -18,18 +18,15 @@ DEFAULTS = {
     # URL of the default hg repository to clone for ChatZilla.
     'CHATZILLA_REPO': 'https://hg.mozilla.org/chatzilla/',
     # The stable revision to use
-    'CHATZILLA_REV':  'SEA2_42_RELBRANCH',
+      'CHATZILLA_REV':  'SEA2_48_RELBRANCH',
 
     # URL of the default hg repository to clone for DOM Inspector.
     'INSPECTOR_REPO': 'https://hg.mozilla.org/dom-inspector/',
     # The stable revision to use
-      'INSPECTOR_REV':  'DOMI_2_0_16_GECKO_45',
+      'INSPECTOR_REV':  'DOMI_2_0_17',
 
     # URL of the default hg repository to clone for Mozilla.
-    'MOZILLA_REPO': 'https://hg.mozilla.org/releases/mozilla-esr45/',
-
-    # Branch to use from the Mozilla repository.
-    'MOZILLA_REV': 'THUNDERBIRD_45_VERBRANCH',
+    'MOZILLA_REPO': 'https://hg.mozilla.org/releases/mozilla-esr52/',
 }
 
 REPO_SHORT_NAMES = {
@@ -387,7 +384,7 @@ def do_hg_pull(dir, repository, hg, rev, hgtool=None, hgtool1=None):
 
     if options.tinderbox_print and dir != '.':
         got_rev = check_call_output([hg, 'parent', '-R', fulldir,
-                                     '--template={node|short}'])
+                                     '--template={node}'])
 
         url = check_call_output([hg, 'paths', 'default', '-R', fulldir]).rstrip().rstrip('/')
         repo_name = url.split('/')[-1]

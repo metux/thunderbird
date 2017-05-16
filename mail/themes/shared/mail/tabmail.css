@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-@import url("chrome://messenger/skin/sharedPlatform.css");
-
 #tabs-toolbar {
   --tabHeight: 31px;
   --tabCurveWidth: 30px;
@@ -60,8 +58,8 @@
 }
 
 .tab-content {
-  -moz-padding-end: 9px;
-  -moz-padding-start: 9px;
+  padding-inline-end: 9px;
+  padding-inline-start: 9px;
 }
 
 .tab-throbber,
@@ -78,29 +76,29 @@
 
 .tab-throbber,
 .tab-icon-image {
-  -moz-margin-end: 6px;
+  margin-inline-end: 6px;
 }
 
 .tab-label {
-  -moz-margin-end: 0;
-  -moz-margin-start: 0;
+  margin-inline-end: 0;
+  margin-inline-start: 0;
 }
 
 .tab-content > .tab-close-button {
-  -moz-margin-start: 4px;
-  -moz-margin-end: -2px;
+  margin-inline-start: 4px;
+  margin-inline-end: -2px;
   padding: 0;
 }
 
 .tab-background {
   /* overlap the tab curves */
-  -moz-margin-end: var(--tabCurveHalfWidthNegative);
-  -moz-margin-start: var(--tabCurveHalfWidthNegative);
+  margin-inline-end: var(--tabCurveHalfWidthNegative);
+  margin-inline-start: var(--tabCurveHalfWidthNegative);
 }
 
 .tabmail-arrowscrollbox > scrollbox {
-  -moz-padding-end: var(--tabCurveHalfWidth);
-  -moz-padding-start: var(--tabCurveHalfWidth);
+  padding-inline-end: var(--tabCurveHalfWidth);
+  padding-inline-start: var(--tabCurveHalfWidth);
 }
 
 .tab-background-start[selected=true]::after,
@@ -133,7 +131,7 @@
 .tab-background-start[selected=true]::after,
 .tab-background-end[selected=true]::after {
   /* position ::after on top of its parent */
-  -moz-margin-start: var(--tabCurveWidthNegative);
+  margin-inline-start: var(--tabCurveWidthNegative);
   background-size: 100% 100%;
   content: '';
   display: -moz-box;
@@ -200,6 +198,30 @@
   background-color: transparent;
 }
 
+@media (min-resolution: 1.1dppx) {
+  #tabs-toolbar {
+    --tabBackgroundImage: url(chrome://messenger/skin/tabs/background-start@2x.png),
+                          url(chrome://messenger/skin/tabs/background-middle@2x.png),
+                          url(chrome://messenger/skin/tabs/background-end@2x.png);
+  }
+
+  .tab-background-middle[selected=true] {
+    background-image: url(chrome://messenger/skin/tabs/active-middle@2x.png),
+                      var(--fgTabTexture),
+                      none;
+  }
+
+  .tab-background-start[selected=true]:-moz-locale-dir(ltr)::after,
+  .tab-background-end[selected=true]:-moz-locale-dir(rtl)::after {
+    background-image: url(chrome://messenger/skin/tabs/stroke-start@2x.png);
+  }
+
+  .tab-background-end[selected=true]:-moz-locale-dir(ltr)::after,
+  .tab-background-start[selected=true]:-moz-locale-dir(rtl)::after {
+    background-image: url(chrome://messenger/skin/tabs/stroke-end@2x.png);
+  }
+}
+
 /* End selected tab */
 
 /* new tab button border and gradient on hover */
@@ -224,12 +246,10 @@
 
 /* Tab separators */
 .tabmail-tab::before {
-  width: 1px;
+  margin-top: 5px;
+  margin-bottom: 4px;
   margin-inline-start: -1px;
-  background-image: linear-gradient(transparent 5px,
-                                    currentColor 5px,
-                                    currentColor calc(100% - 4px),
-                                    transparent calc(100% - 4px));
+  border-left: 1px solid currentColor;
   opacity: 0;
   content: '';
   display: -moz-box;
@@ -259,13 +279,13 @@
 }
 
 .tabmail-arrowscrollbox > .arrowscrollbox-overflow-start-indicator:not([collapsed]) {
-  -moz-margin-start: -2px;
-  -moz-margin-end: -12px;
+  margin-inline-start: -2px;
+  margin-inline-end: -12px;
 }
 
 .tabmail-arrowscrollbox > .arrowscrollbox-overflow-end-indicator:not([collapsed]) {
-  -moz-margin-start: -12px;
-  -moz-margin-end: -2px;
+  margin-inline-start: -12px;
+  margin-inline-end: -2px;
 }
 
 .tabmail-arrowscrollbox > .arrowscrollbox-overflow-start-indicator[collapsed],

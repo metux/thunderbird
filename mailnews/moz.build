@@ -17,6 +17,7 @@ DIRS += [
     'import/text/src',
     'import/vcard/src',
     'intl',
+    'jsaccount',
     'local/public',
     'local/src',
     'mime',
@@ -25,12 +26,11 @@ DIRS += [
 
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
     DIRS += [
-        'import/eudora/src',
         'import/applemail/src',
     ]
 
 if CONFIG['OS_ARCH'] == 'WINNT':
-    DIRS += ['import/eudora/src']
+    DIRS += [ 'import/becky/src' ]
 
     if CONFIG['MOZ_MAPI_SUPPORT']:
         DIRS += ['import/outlook/src']
@@ -74,6 +74,7 @@ TESTING_JS_MODULES.mailnews += [
     'test/resources/localAccountUtils.js',
     'test/resources/mailTestUtils.js',
     'test/resources/MockFactory.js',
+    'test/resources/NetworkTestUtils.jsm',
     'test/resources/PromiseTestUtils.jsm',
 ]
 

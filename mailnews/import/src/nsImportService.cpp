@@ -33,7 +33,6 @@
 #include "nsComponentManagerUtils.h"
 #include "nsIMutableArray.h"
 #include "nsIArray.h"
-#include "nsISupportsArray.h"
 #include "nsIMsgSend.h"
 #include "nsMsgUtils.h"
 
@@ -283,7 +282,7 @@ NS_IMETHODIMP nsImportService::GetModuleDescription(const char *filter, int32_t 
   return NS_ERROR_FAILURE;
 }
 
-class nsProxySendRunnable : public nsRunnable
+class nsProxySendRunnable : public mozilla::Runnable
 {
 public:
   nsProxySendRunnable(nsIMsgIdentity *aIdentity,
@@ -329,25 +328,10 @@ NS_IMETHODIMP nsProxySendRunnable::Run()
   nsCOMPtr<nsIMsgSend> msgSend = do_CreateInstance(NS_MSGSEND_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsISupportsArray> supportsArray;
-  NS_NewISupportsArray(getter_AddRefs(supportsArray));
-
-  if (m_embeddedAttachments) {
-    nsCOMPtr<nsISimpleEnumerator> enumerator;
-    m_embeddedAttachments->Enumerate(getter_AddRefs(enumerator));
-
-    bool hasMore;
-    while (NS_SUCCEEDED(enumerator->HasMoreElements(&hasMore)) && hasMore) {
-      nsCOMPtr<nsISupports> item;
-      enumerator->GetNext(getter_AddRefs(item));
-      supportsArray->AppendElement(item);
-    }
-  }
-
   return msgSend->CreateRFC822Message(m_identity, m_compFields,
                                       m_bodyType.get(), m_body,
                                       m_isDraft, m_loadedAttachments,
-                                      supportsArray,
+                                      m_embeddedAttachments,
                                       m_listener);
 }
 

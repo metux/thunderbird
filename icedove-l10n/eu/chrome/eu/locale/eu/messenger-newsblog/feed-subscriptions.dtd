@@ -18,7 +18,7 @@
 <!ENTITY feedFolder.label            "Gorde artikuluak hemen:">
 <!ENTITY feedFolder.accesskey        "G">
 
-<!ENTITY quickMode.label             "Erakutsi artikuluaren laburpena web orrialdea kargatu ordez">
+<!ENTITY quickMode.label             "Erakutsi artikuluaren laburpena web orria kargatu ordez">
 <!ENTITY quickMode.accesskey         "E">
 
 <!ENTITY autotagEnable.label         "Sortu etiketak automatikoki &lt;kategorien&gt; izenetatik">
@@ -29,8 +29,8 @@
 
 <!ENTITY button.addFeed.label        "Gehitu">
 <!ENTITY button.addFeed.accesskey    "G">
-<!ENTITY button.editFeed.label       "Editatu">
-<!ENTITY button.editFeed.accesskey   "E">
+<!ENTITY button.updateFeed.label     "Editatu">
+<!ENTITY button.updateFeed.accesskey "E">
 <!ENTITY button.removeFeed.label     "Ezabatu">
 <!ENTITY button.removeFeed.accesskey "z">
 <!ENTITY button.importOPML.label     "Inportatu">

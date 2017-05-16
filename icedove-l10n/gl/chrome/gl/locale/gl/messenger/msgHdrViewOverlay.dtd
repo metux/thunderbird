@@ -108,12 +108,15 @@
 <!ENTITY OpenBrowserWithMsgId.label "Abrir navegador co ID da mensaxe">
 <!ENTITY OpenBrowserWithMsgId.accesskey "e">
 
+<!ENTITY author.label "Author">
 <!ENTITY bccField4.label "Bcc">
 <!ENTITY ccField4.label "Cc">
 <!ENTITY dateField4.label "Date">
 <!ENTITY followupToField4.label "Followup to">
 <!ENTITY fromField4.label "From">
 <!ENTITY hdrMenuForwardButton.label "Forward As">
+<!ENTITY hdrOpenConversationButton1.label "Conversation">
+<!ENTITY hdrOpenConversationButton1.tooltip "Show conversation of this message">
 <!ENTITY inReplyToField4.label "In reply to">
 <!ENTITY messageIdField4.label "Message ID">
 <!ENTITY newsgroupsField4.label "Newsgroups">

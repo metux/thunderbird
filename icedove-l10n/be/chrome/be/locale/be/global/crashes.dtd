@@ -8,3 +8,11 @@
 <!ENTITY noReports.label "Няма пададзеных справаздачаў.">
 <!ENTITY noConfig.label "Гэтае прыстасаванне не наладжана адлюстроўваць справаздачы пра крах. Перавага <code>breakpad.reportURL</code> мусіць быць усталявана.">
 <!ENTITY clearAllReports.label "Выдаліць усе справаздачы">
+
+
+
+<!ENTITY crashReports.title         "Crash Reports">
+<!ENTITY crashesSubmitted.label     "Submitted Crash Reports">
+<!ENTITY crashesUnsubmitted.label   "Unsubmitted Crash Reports">
+<!ENTITY dateCrashed.heading        "Date Crashed">
+<!ENTITY dateSubmitted.heading      "Date Submitted">

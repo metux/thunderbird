@@ -4,7 +4,8 @@
 
 <!ENTITY aboutTelemetry.pageTitle "Dados da telemetria">
 
-<!ENTITY aboutTelemetry.changeDataChoices "  Alterar">
+<!ENTITY aboutTelemetry.changeDataChoices "
+  Alterar">
 
 <!ENTITY aboutTelemetry.uploadEnabled "  O envio de dados FHR está <span>ativo</span>.">
 
@@ -20,6 +21,16 @@
 
 <!ENTITY aboutTelemetry.showArchivedPingData "Dados de ping arquivados">
 
+<!ENTITY aboutTelemetry.pingDataDisplay "Exibição de dados de ping:">
+
+<!ENTITY aboutTelemetry.structured "
+Estruturado
+">
+
+<!ENTITY aboutTelemetry.raw "
+Raw JSON
+">
+
 <!ENTITY aboutTelemetry.showSubsessionData "Mostrar dados da subseção">
 
 <!ENTITY aboutTelemetry.choosePing "Escolha o ping:">
@@ -27,6 +38,8 @@
 <!ENTITY aboutTelemetry.showNewerPing "&lt;&lt; Ping recente">
 
 <!ENTITY aboutTelemetry.showOlderPing "Ping antigo &gt;&gt;">
+
+<!ENTITY aboutTelemetry.rawPingData "Dados brutos do ping…">
 
 <!ENTITY aboutTelemetry.archiveWeekHeader "Semana">
 
@@ -44,17 +57,26 @@
 
 <!ENTITY aboutTelemetry.threadHangStatsSection "  Congelamentos de threads">
 
+<!ENTITY aboutTelemetry.scalarsSection "
+  Escalares">
+
+<!ENTITY aboutTelemetry.keyedScalarsSection "
+  Keyed Scalars
+">
+
 <!ENTITY aboutTelemetry.histogramsSection "  Histogramas">
 
 <!ENTITY aboutTelemetry.keyedHistogramsSection "  Histogramas nomeados">
 
 <!ENTITY aboutTelemetry.simpleMeasurementsSection "  Medições simples">
 
-<!ENTITY aboutTelemetry.addonDetailsSection "  Detalhes do complemento">
+<!ENTITY aboutTelemetry.addonDetailsSection "
+  Detalhes da extensão">
 
 <!ENTITY aboutTelemetry.lateWritesSection "  Escritas atrasadas">
 
-<!ENTITY aboutTelemetry.systemInfoSection "  Informações do sistema">
+<!ENTITY aboutTelemetry.sessionInfoSection "
+  Informações da sessão">
 
 <!ENTITY aboutTelemetry.addonHistogramsSection "  Histogramas coletados por extensões">
 
@@ -66,19 +88,13 @@
 
 <!ENTITY aboutTelemetry.fetchSymbols "  Carregar nomes das funções para pilha dos congelamentos">
 
-<!ENTITY aboutTelemetry.hideSymbols "  Exibir sem processamento dados dos congelamentos">
+<!ENTITY aboutTelemetry.hideSymbols "
+  Mostrar dados brutos do congelamento">
 
 <!ENTITY aboutTelemetry.filterText "  Filtrar (strings ou /regexp/)">
 
-
 <!ENTITY aboutTelemetry.payloadChoiceHeader "
-  Payload
-">
+  Carga útil">
 
-<!ENTITY aboutTelemetry.rawPingData "
-Raw ping data ...
-">
-
-<!ENTITY aboutTelemetry.sessionInfoSection "
-  Session Information
-">
+<!ENTITY aboutTelemetry.rawPayload "
+  Carga útil bruta">

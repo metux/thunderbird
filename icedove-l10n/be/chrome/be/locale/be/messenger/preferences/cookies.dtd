@@ -24,3 +24,5 @@
 <!ENTITY filter.accesskey "П">
 <!ENTITY button.close.label "Закрыць">
 <!ENTITY button.close.accesskey "З">
+
+<!ENTITY props.container.label             "Container:">

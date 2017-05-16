@@ -36,3 +36,7 @@
 
 <!ENTITY enableCloudFileAccountOffer.label "Pilveteenuste kasutamist pakutakse suuremate failide puhul kui">
 <!ENTITY enableCloudFileAccountOffer.mb    "MiB">
+
+<!ENTITY addCloudFileAccount1.accesskey   "A">
+
+<!ENTITY addCloudFileAccount1.label       "Add…">

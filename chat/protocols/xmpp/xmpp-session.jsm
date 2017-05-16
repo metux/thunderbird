@@ -6,6 +6,8 @@ this.EXPORTED_SYMBOLS = ["XMPPSession", "XMPPDefaultResource"];
 
 var {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 
+Cu.import("resource:///modules/DNS.jsm");
+Cu.import("resource:///modules/imServices.jsm");
 Cu.import("resource:///modules/imXPCOMUtils.jsm");
 Cu.import("resource:///modules/socket.jsm");
 Cu.import("resource:///modules/xmpp-xml.jsm");
@@ -19,7 +21,7 @@ XPCOMUtils.defineLazyGetter(this, "_", () =>
 XPCOMUtils.defineLazyGetter(this, "_defaultResource", () =>
   l10nHelper("chrome://branding/locale/brand.properties")("brandShortName")
 );
-__defineGetter__("XMPPDefaultResource", () => _defaultResource);
+this.__defineGetter__("XMPPDefaultResource", () => _defaultResource);
 
 function XMPPSession(aHost, aPort, aSecurity, aJID, aPassword, aAccount) {
   this._host = aHost;
@@ -41,21 +43,48 @@ function XMPPSession(aHost, aPort, aSecurity, aJID, aPassword, aAccount) {
   this._domain = aJID.domain;
   this._password = aPassword;
   this._account = aAccount;
-
-  this._resource = aJID.resource || XMPPDefaultResource;
+  this._resource = aJID.resource;
   this._handlers = new Map();
-
   this._account.reportConnecting();
-  try {
+
+  // The User has specified a certain server or port, so we should not do
+  // DNS SRV lookup or the preference of disabling DNS SRV part and use
+  // normal connect is set.
+  // RFC 6120 (Section 3.2.3): When Not to Use SRV.
+  if (Services.prefs.getBoolPref("chat.dns.srv.disable") ||
+      (this._account.prefs.prefHasUserValue("server") ||
+       this._account.prefs.prefHasUserValue("port"))) {
     this.connect(this._host, this._port, this._security);
-  } catch (e) {
-    Cu.reportError(e);
-    // We can't use _networkError because this._account._connection
-    // isn't set until we return from the XMPPSession constructor.
-    this._account.reportDisconnecting(Ci.prplIAccount.ERROR_NETWORK_ERROR,
-                                      _("connection.error.failedToCreateASocket"));
-    this._account.reportDisconnected();
+    return;
   }
+
+  // RFC 6120 (Section 3.2.1): SRV lookup.
+  this._account.reportConnecting(_("connection.srvLookup"));
+  DNS.srv("_xmpp-client._tcp." + this._host).then(
+    aResult => this._handleSrvQuery(aResult)
+  ).catch(aError => {
+    if (aError === this.SRV_ERROR_XMPP_NOT_SUPPORTED) {
+      this.LOG("SRV: XMPP is not supported on this domain.");
+
+      // RFC 6120 (Section 3.2.1) and RFC 2782 (Usage rules): Abort as the
+      // service is decidedly not available at this domain.
+      this._account.reportDisconnecting(Ci.prplIAccount.ERROR_OTHER_ERROR,
+                                        _("connection.error.XMPPNotSupported"));
+      this._account.reportDisconnected();
+      return;
+    }
+    else if (aError === this.SRV_ERROR_LOOKUP_FAILED) {
+      // An error happened during SRV lookup (e.g. user is offline,
+      // network error, DNS name does not exist, etc.).
+      this.WARN("Error during SRV: Lookup failed.");
+    }
+    else
+      this.ERROR("Error during SRV lookup:", aError);
+
+    // Since we don't receive a response to SRV query, we SHOULD attempt the
+    // fallback process (use normal connect without SRV lookup).
+    this.connect(this._host, this._port, this._security);
+  });
 }
 
 XMPPSession.prototype = {
@@ -63,6 +92,10 @@ XMPPSession.prototype = {
   __proto__: Socket,
   connectTimeout: 60,
   readWriteTimeout: 300,
+
+  // Contains the remaining SRV records if we failed to connect the current one.
+  _srvRecords: [],
+
   sendPing: function() {
     this.sendStanza(Stanza.iq("get", null, null,
                               Stanza.node("ping", Stanza.NS.ping)),
@@ -96,6 +129,51 @@ XMPPSession.prototype = {
   _security: null,
   _encrypted: false,
 
+  // DNS SRV errors in XMPP.
+  SRV_ERROR_LOOKUP_FAILED: -1,
+  SRV_ERROR_XMPP_NOT_SUPPORTED: -2,
+
+  // Handles result of DNS SRV query and saves sorted results if it's OK in _srvRecords,
+  // otherwise throws error.
+  _handleSrvQuery: function(aResult) {
+    if (typeof aResult == "number" && aResult == -1)
+      throw this.SRV_ERROR_LOOKUP_FAILED;
+
+    this.LOG("SRV lookup: " + JSON.stringify(aResult));
+    if (aResult.length == 0) {
+      // RFC 6120 (Section 3.2.1) and RFC 2782 (Usage rules): No SRV records,
+      // try to login with the given domain name.
+      this.connect(this._host, this._port, this._security);
+      return;
+    }
+    else if (aResult.length == 1 && aResult[0].host == ".")
+      throw this.SRV_ERROR_XMPP_NOT_SUPPORTED;
+
+    // Sort results: Lower priority is more preferred and higher weight is
+    // more preferred in equal priorities.
+    aResult.sort(function(a, b) {
+      return a.prio - b.prio || b.weight - a.weight;
+    });
+
+    this._srvRecords = aResult;
+    this._connectNextRecord();
+  },
+
+  _connectNextRecord: function() {
+    if (!this._srvRecords.length) {
+      this.ERROR("_connectNextRecord is called and there are no more records " +
+                 "to connect.");
+      return;
+    }
+
+    let record = this._srvRecords.shift();
+
+    // RFC 3920 (Section 5.1): Certificates MUST be checked against the
+    // hostname as provided by the initiating entity (e.g. user).
+    this.connect(this._domain, this._port, this._security, null, record.host,
+                 record.port);
+  },
+
   /* Disconnect from the server */
   disconnect: function() {
     if (this.onXmppStanza == this.stanzaListeners.accountListening)
@@ -111,6 +189,13 @@ XMPPSession.prototype = {
 
   /* Report errors to the account */
   onError: function(aError, aException) {
+    // If we're trying to connect to SRV entries, then keep trying until a
+    // successful connection occurs or we run out of SRV entries to try.
+    if (!!this._srvRecords.length) {
+      this._connectNextRecord();
+      return;
+    }
+
     this._account.onError(aError, aException);
   },
 
@@ -180,15 +265,29 @@ XMPPSession.prototype = {
     this.sendStanza(s);
   },
 
+  // If aResource is null, it will request to bind a server-generated
+  // resourcepart, otherwise request to bind a client-submitted resourcepart.
+  _requestBind: function(aResource) {
+    let resourceNode =
+      aResource ? Stanza.node("resource", null, null, aResource) : null;
+    this.sendStanza(Stanza.iq("set", null, null,
+                              Stanza.node("bind", Stanza.NS.bind, null,
+                                          resourceNode)));
+  },
+
   /* Socket events */
   /* The connection is established */
   onConnection: function() {
-    if (this._security.indexOf("ssl") != -1) {
+    if (this._security.includes("ssl")) {
       this.onXmppStanza = this.stanzaListeners.startAuth;
       this._encrypted = true;
     }
     else
       this.onXmppStanza = this.stanzaListeners.initStream;
+
+    // Clear SRV results since we have connected.
+    this._srvRecords = [];
+
     this._account.reportConnecting(_("connection.initializingStream"));
     this.startStream();
   },
@@ -249,7 +348,7 @@ XMPPSession.prototype = {
       }
 
       let starttls = aStanza.getElement(["starttls"]);
-      if (starttls && this._security.indexOf("starttls") != -1) {
+      if (starttls && this._security.includes("starttls")) {
         this._account.reportConnecting(_("connection.initializingEncryption"));
         this.sendStanza(Stanza.node("starttls", Stanza.NS.tls));
         this.onXmppStanza = this.stanzaListeners.startTLS;
@@ -307,7 +406,7 @@ XMPPSession.prototype = {
       let selectedMech = "";
       let canUsePlain = false;
       mechs = mechs.getChildren("mechanism");
-      for each (let m in mechs) {
+      for (let m of mechs) {
         let mech = m.innerText;
         if (mech == "PLAIN" && !this._encrypted) {
           // If PLAIN is proposed over an unencrypted connection,
@@ -335,9 +434,9 @@ XMPPSession.prototype = {
                      _("connection.error.noCompatibleAuthMec"));
         return;
       }
-      let authMec = new authMechanisms[selectedMech](this._jid.node,
-                                                     this._password,
-                                                     this._domain);
+      let authMec = authMechanisms[selectedMech](this._jid.node,
+                                                 this._password,
+                                                 this._domain);
       this._password = null;
 
       this._account.reportConnecting(_("connection.authenticating"));
@@ -347,17 +446,12 @@ XMPPSession.prototype = {
     authDialog: function(aAuthMec, aStanza) {
       if (aStanza && aStanza.localName == "failure") {
         let errorMsg = "authenticationFailure";
-        if (aStanza.getElement(["not-authorized"]))
+        if (aStanza.getElement(["not-authorized"]) ||
+            aStanza.getElement(["bad-auth"])) {
           errorMsg = "notAuthorized";
+        }
         this.onError(Ci.prplIAccount.ERROR_AUTHENTICATION_FAILED,
                      _("connection.error." + errorMsg));
-        return;
-      }
-
-      // OpenFire sometimes sends us a success stanza before the end
-      // of the DIGEST-MD5 exchange... See bug 787046.
-      if (aStanza && aStanza.localName == "success") {
-        this.stanzaListeners.authResult.call(this, aStanza);
         return;
       }
 
@@ -371,20 +465,12 @@ XMPPSession.prototype = {
         return;
       }
 
-      if (result.send)
-        this.send(result.send.getXML(), result.log);
-      if (result.done)
-        this.onXmppStanza = this.stanzaListeners.authResult;
-    },
-    authResult: function(aStanza) {
-      if (aStanza.localName != "success") {
-        this.onError(Ci.prplIAccount.ERROR_AUTHENTICATION_FAILED,
-                     _("connection.error.notAuthorized"));
-        return;
+      if (result.value && result.value.send)
+        this.send(result.value.send.getXML(), result.value.log);
+      if (result.done) {
+        this.startStream();
+        this.onXmppStanza = this.stanzaListeners.startBind;
       }
-
-      this.startStream();
-      this.onXmppStanza = this.stanzaListeners.startBind;
     },
     startBind: function(aStanza) {
       if (!aStanza.getElement(["bind"])) {
@@ -394,13 +480,39 @@ XMPPSession.prototype = {
       }
 
       this._account.reportConnecting(_("connection.gettingResource"));
-      this.sendStanza(Stanza.iq("set", null, null,
-                                Stanza.node("bind", Stanza.NS.bind, null,
-                                            Stanza.node("resource", null, null,
-                                                        this._resource))));
+      this._requestBind(this._resource);
       this.onXmppStanza = this.stanzaListeners.bindResult;
     },
     bindResult: function(aStanza) {
+      if (aStanza.attributes["type"] == "error") {
+        let error = this._account.parseError(aStanza);
+        let message;
+        switch (error.condition) {
+          case "resource-constraint":
+            // RFC 6120 (7.6.2.1): Resource Constraint.
+            // The account has reached a limit on the number of simultaneous
+            // connected resources allowed.
+            message = "connection.error.failedMaxResourceLimit";
+            break;
+          case "bad-request":
+            // RFC 6120 (7.7.2.1): Bad Request.
+            // The provided resourcepart cannot be processed by the server.
+            message = "connection.error.failedResourceNotValid";
+            break;
+          case "conflict":
+            // RFC 6120 (7.7.2.2): Conflict.
+            // The provided resourcepart is already in use and the server
+            // disallowed the resource binding attempt.
+            this._requestBind();
+            return;
+          default:
+            this.WARN(`Unhandled bind result error ${error.condition}.`);
+            message = "connection.error.failedToGetAResource";
+        }
+        this._networkError(_(message));
+        return;
+      }
+
       let jid = aStanza.getElement(["bind", "jid"]);
       if (!jid) {
         this._networkError(_("connection.error.failedToGetAResource"));
@@ -409,6 +521,7 @@ XMPPSession.prototype = {
       jid = jid.innerText;
       this.DEBUG("jid = " + jid);
       this._jid = this._account._parseJID(jid);
+      this._resource = this._jid.resource;
       this.startSession();
     },
     legacyAuth: function(aStanza) {
@@ -456,12 +569,21 @@ XMPPSession.prototype = {
 
       let query = aStanza.getElement(["query"]);
       let values = {};
-      for each (let c in query.children)
+      for (let c of query.children)
         values[c.qName] = c.innerText;
 
       if (!("username" in values) || !("resource" in values)) {
         this._networkError(_("connection.error.incorrectResponse"));
         return;
+      }
+
+
+      // If the resource is empty, we will fallback to XMPPDefaultResource
+      // (set to brandShortName) as resource is REQUIRED.
+      if (!this._resource) {
+        this._resource = XMPPDefaultResource;
+        this._jid =
+          this._setJID(this._jid.domain, this._jid.node, this._resource);
       }
 
       let children = [
@@ -486,7 +608,7 @@ XMPPSession.prototype = {
         let hash = ch.finish(false);
         let toHexString =
           charCode => ("0" + charCode.toString(16)).slice(-2);
-        let digest = [toHexString(hash.charCodeAt(i)) for (i in hash)].join("");
+        let digest = Object.keys(hash).map(i => toHexString(hash.charCodeAt(i))).join("");
 
         children.push(Stanza.node("digest", null, null, digest));
         logString =

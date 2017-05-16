@@ -19,7 +19,7 @@
 #include "nsIURL.h"
 #include "nsILoadGroup.h"
 #include "nsIMsgSearchSession.h"
-#include "nsICacheEntryDescriptor.h"
+#include "nsICacheEntry.h"
 #include "nsICacheSession.h"
 #include "nsIMimeMiscStatus.h"
 #include "nsWeakReference.h"
@@ -44,6 +44,7 @@ public:
     NS_DECL_THREADSAFE_ISUPPORTS
     NS_DECL_NSIMSGMAILNEWSURL
     NS_DECL_NSIURI
+    NS_DECL_NSIURIWITHQUERY
     NS_DECL_NSIURL
 
 protected:
@@ -55,15 +56,12 @@ protected:
   nsWeakPtr m_loadGroupWeak;
   nsCOMPtr<nsIMimeHeaders> mMimeHeaders;
   nsCOMPtr<nsIMsgSearchSession> m_searchSession;
-  nsCOMPtr<nsICacheEntryDescriptor> m_memCacheEntry;
-  nsCOMPtr<nsICacheSession> m_imageCacheSession;
-  nsCOMArray<nsICacheEntryDescriptor> m_cachedMemCacheEntries;
+  nsCOMPtr<nsICacheEntry> m_memCacheEntry;
   nsCOMPtr<nsIMsgHeaderSink> mMsgHeaderSink;
   char *m_errorMessage;
   int64_t mMaxProgress;
   bool m_runningUrl;
   bool m_updatingFolder;
-  bool m_addContentToCache;
   bool m_msgIsInLocalCache;
   bool m_suppressErrorMsgs;
 

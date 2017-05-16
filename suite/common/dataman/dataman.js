@@ -67,6 +67,12 @@ var gDataman = {
 
     gTabs.initialize();
     gDomains.initialize();
+
+    if ("arguments" in window &&
+        window.arguments.length >= 1 &&
+        window.arguments[0]) {
+      this.loadView(window.arguments[0])
+    }
   },
 
   shutdown: function dataman_shutdown() {
@@ -132,10 +138,7 @@ var gDataman = {
         gPerms.reactToChange(aSubject, aData);
         break;
       case "passwordmgr-storage-changed":
-        if (/^hostSaving/.test(aData))
-          gPerms.reactToChange(aSubject, aData);
-        else
-          gPasswords.reactToChange(aSubject, aData);
+        gPasswords.reactToChange(aSubject, aData);
         break;
       case "satchel-storage-changed":
         gFormdata.reactToChange(aSubject, aData);
@@ -265,16 +268,18 @@ var gDomains = {
       this.tree.view.selection.select(0);
 
     let loaderInstance;
+
     function nextStep() {
       loaderInstance.next();
     }
+
     function loader() {
       // Add domains for all cookies we find.
       gDataman.debugMsg("Add cookies to domain list: " + Date.now()/1000);
       gDomains.ignoreUpdate = true;
       gCookies.loadList();
-      for (let i = 0; i < gCookies.cookies.length; i++)
-        gDomains.addDomainOrFlag(gCookies.cookies[i].rawHost, "hasCookies");
+      for (let cookie of gCookies.cookies)
+        gDomains.addDomainOrFlag(cookie.rawHost, "hasCookies");
       gDomains.ignoreUpdate = false;
       gDomains.search(gDomains.searchfield.value);
       yield setTimeout(nextStep, 0);
@@ -285,18 +290,14 @@ var gDomains = {
       let enumerator = Services.perms.enumerator;
       while (enumerator.hasMoreElements()) {
         let nextPermission = enumerator.getNext().QueryInterface(Components.interfaces.nsIPermission);
-        gDomains.addDomainOrFlag(nextPermission.principal.URI.host.replace(/^\./, ""), "hasPermissions");
-      }
-      gDomains.ignoreUpdate = false;
-      gDomains.search(gDomains.searchfield.value);
-      yield setTimeout(nextStep, 0);
 
-      // Add domains for password rejects to permissions.
-      gDataman.debugMsg("Add pwd reject permissions to domain list: " + Date.now()/1000);
-      gDomains.ignoreUpdate = true;
-      let rejectHosts = Services.logins.getAllDisabledHosts();
-      for (let i = 0; i < rejectHosts.length; i++)
-        gDomains.addDomainOrFlag(rejectHosts[i], "hasPermissions");
+        if (!gDomains.commonScheme(nextPermission.principal.URI.scheme)) {
+          gDomains.addDomainOrFlag("*", "hasPermissions");
+        }
+        else {
+          gDomains.addDomainOrFlag(nextPermission.principal.URI.host.replace(/^\./, ""), "hasPermissions");
+        }
+      }
       gDomains.ignoreUpdate = false;
       gDomains.search(gDomains.searchfield.value);
       yield setTimeout(nextStep, 0);
@@ -306,8 +307,11 @@ var gDomains = {
       gDomains.ignoreUpdate = true;
       try {
         var statement = Services.contentPrefs.DBConnection.createStatement("SELECT groups.name AS host FROM groups");
-        while (statement.executeStep())
-          gDomains.addDomainOrFlag(statement.row["host"], "hasPreferences");
+        while (statement.executeStep()) {
+          gDataman.debugMsg("Found pref: " + statement.row["host"]);
+          let prefHost = gDomains.getDomainFromHostWithCheck(statement.row["host"]);
+          gDomains.addDomainOrFlag(prefHost, "hasPreferences");
+        }
       }
       finally {
         statement.reset();
@@ -320,8 +324,8 @@ var gDomains = {
       gDataman.debugMsg("Add passwords to domain list: " + Date.now()/1000);
       gDomains.ignoreUpdate = true;
       gPasswords.loadList();
-      for (let i = 0; i < gPasswords.allSignons.length; i++) {
-        gDomains.addDomainOrFlag(gPasswords.allSignons[i].hostname, "hasPasswords");
+      for (let pSignon of gPasswords.allSignons) {
+        gDomains.addDomainOrFlag(pSignon.hostname, "hasPasswords");
       }
       gDomains.ignoreUpdate = false;
       gDomains.search(gDomains.searchfield.value);
@@ -333,8 +337,8 @@ var gDomains = {
       Services.obs.notifyObservers(window, "domstorage-flush-timer", "");
       yield setTimeout(nextStep, 0);
       gStorage.loadList();
-      for (let i = 0; i < gStorage.storages.length; i++) {
-        gDomains.addDomainOrFlag(gStorage.storages[i].rawHost, "hasStorage");
+      for (let sStorage of gStorage.storages) {
+        gDomains.addDomainOrFlag(sStorage.rawHost, "hasStorage");
       }
       gDomains.search(gDomains.searchfield.value);
       // As we don't get notified of storage changes properly, reload on timer.
@@ -368,9 +372,9 @@ var gDomains = {
     function loader() {
       if (gDataman.viewToLoad.length) {
         if (gDataman.viewToLoad[0] == "" && gDataman.viewToLoad.length > 1) {
-          gDataman.debugMsg("Select a specific data type");
           let sType = gDataman.viewToLoad[1].substr(0,1).toUpperCase() +
                       gDataman.viewToLoad[1].substr(1);
+          gDataman.debugMsg("Select a specific data type: " + sType);
           gDomains.selectfield.value = sType;
           gDomains.selectType(sType);
           yield setTimeout(nextStep, 0);
@@ -392,10 +396,21 @@ var gDomains = {
           gDomains.selectfield.value = "all";
           gDomains.selectType("all");
           let host = gDataman.viewToLoad[0];
+
           // Might have a host:port case, fake a scheme when none present.
           if (!/:\//.test(host))
             host = "foo://" + host;
-          let viewdomain = gDomains.getDomainFromHost(host);
+
+          gDataman.debugMsg("host: " + host);
+
+          let viewdomain = "*";
+
+          // avoid error message in log for the generic entry
+          if (host != "foo://*")
+             viewdomain = gDomains.getDomainFromHost(host);
+
+          gDataman.debugMsg("viewDomain: " + viewdomain);
+
           let selectIdx = 0; // tree index to be selected
           for (let i = 0; i < gDomains.displayedDomains.length; i++) {
             if (gDomains.displayedDomains[i].title == viewdomain) {
@@ -403,6 +418,7 @@ var gDomains = {
               break;
             }
           }
+
           let permAdd = (gDataman.viewToLoad[1] &&
                          gDataman.viewToLoad[1] == "permissions" &&
                          gDataman.viewToLoad[2] &&
@@ -412,6 +428,7 @@ var gDomains = {
                !gDomains.domainObjects[viewdomain].hasPermissions)) {
             selectIdx = 0; // Force * domain as we have a perm panel there.
           }
+
           if (gDomains.tree.currentIndex != selectIdx) {
             gDomains.tree.view.selection.select(selectIdx);
             gDomains.tree.treeBoxObject.ensureRowIsVisible(selectIdx);
@@ -451,6 +468,17 @@ var gDomains = {
 
   _getObjID: function domain__getObjID(aIdx) {
     return gDomains.displayedDomains[aIdx].title;
+  },
+
+  getDomainFromHostWithCheck: function domain_getDomainFromHostWithCheck(aHost)  {
+    let host = gDomains.getDomainFromHost(aHost).trim();
+    // Host couldn't be found and 2 static references for internal pages and data.
+    if (host.trim().length == 0 ||
+        aHost.startsWith("about:") ||
+        aHost.startsWith("jar:"))
+      return '*';
+
+    return host;
   },
 
   getDomainFromHost: function domain_getDomainFromHost(aHostname) {
@@ -494,23 +522,54 @@ var gDomains = {
         domain = Services.eTLD.getBaseDomainFromHost(hostName);
       }
       catch (e) {
-        gDataman.debugError("Error while trying to get domain from host name: " + hostName);
-        gDataman.debugError(e);
+        gDataman.debugMsg("Unable to get domain from host name: " + hostName);
         domain = hostName;
       }
       this.xlcache[aHostname] = domain;
       gDataman.debugMsg("cached: " + aHostname + " -> " + this.xlcache[aHostname]);
-    }
+    } // end hostname not cached
     return this.xlcache[aHostname];
+  },
+
+  // Used for checking if * global data domain should be used.
+  commonScheme: function domain_commonScheme(aScheme) {
+    // case intensitive search for domain schemes
+    return /^(https?|ftp|gopher)/i.test(aScheme);
   },
 
   hostMatchesSelected: function domain_hostMatchesSelected(aHostname) {
     return this.getDomainFromHost(aHostname) == this.selectedDomain.title;
   },
 
+  hostMatchesSelectedURI: function domain_hostMatchesSelectedURI(aURI) {
+    // default to * global data domain.
+    let mScheme = "*";
+
+    // First, try to get the scheme.
+    try {
+      mScheme = aURI.scheme;
+    }
+    catch (e) {
+      gDataman.debugError("Invalid permission found: " + aUri);
+    }
+
+    // See if his is a scheme which does not go into the global data domain.
+    if (!this.commonScheme(mScheme)) {
+      return ("*") == this.selectedDomain.title;
+    }
+
+    rawHost = aURI.host.replace(/^\./, "");
+    return this.getDomainFromHost(rawHost) == this.selectedDomain.title;
+  },
+
   addDomainOrFlag: function domain_addDomainOrFlag(aHostname, aFlag) {
+    let domain;
     // For existing domains, add flags, for others, add them to the object.
-    let domain = this.getDomainFromHost(aHostname);
+    if (aHostname == "*")
+      domain = aHostname;
+    else
+      domain = this.getDomainFromHost(aHostname);
+
     if (!this.domainObjects[domain]) {
       this.domainObjects[domain] = {title: domain};
       if (/xn--/.test(domain))
@@ -581,8 +640,8 @@ var gDomains = {
       this.domainObjects[domain][aFlag] = false;
     }
     // Then, set it again on all domains in the new list.
-    for (let i = 0; i < aDomainList.length; i++) {
-      this.addDomainOrFlag(aDomainList[i], aFlag);
+    for (let domain of aDomainList) {
+      this.addDomainOrFlag(domain, aFlag);
     }
     // Now, purge all empty domains.
     for (let domain in this.domainObjects) {
@@ -893,13 +952,14 @@ var gCookies = {
   },
 
   _makeCookieObject: function cookies__makeCookieObject(aCookie) {
-      return {name: aCookie.name,
+      return {host: aCookie.host,
+              name: aCookie.name,
+              path: aCookie.path,
+              originAttributes: aCookie.originAttributes,
               value: aCookie.value,
               isDomain: aCookie.isDomain,
-              host: aCookie.host,
               rawHost: aCookie.rawHost,
               displayHost: gLocSvc.idn.convertToDisplayIDN(aCookie.rawHost, {}),
-              path: aCookie.path,
               isSecure: aCookie.isSecure,
               isSession: aCookie.isSession,
               isHttpOnly: aCookie.isHttpOnly,
@@ -971,8 +1031,8 @@ var gCookies = {
   _clearCookieInfo: function cookies__clearCookieInfo() {
     var fields = ["cookieInfoName", "cookieInfoValue", "cookieInfoHost",
                   "cookieInfoPath", "cookieInfoSendType", "cookieInfoExpires"];
-    for (let i = 0; i < fields.length; i++) {
-      this[fields[i]].value = "";
+    for (let field of fields) {
+      this[field].value = "";
     }
     this.cookieInfoHostLabel.value = this.cookieInfoHostLabel.getAttribute("value_host");
   },
@@ -1065,7 +1125,7 @@ var gCookies = {
       this.displayedCookies.splice(selections[i], 1);
       this.tree.treeBoxObject.rowCountChanged(selections[i], -1);
       Services.cookies.remove(delCookie.host, delCookie.name, delCookie.path,
-                              this.blockOnRemove.checked);
+                              this.blockOnRemove.checked, delCookie.originAttributes);
     }
     if (!this.displayedCookies.length)
       gDomains.removeDomainOrFlag(gDomains.selectedDomain.title, "hasCookies");
@@ -1096,8 +1156,8 @@ var gCookies = {
       }
       this.loadList();
       var domainList = [];
-      for (let i = 0; i < this.cookies.length; i++) {
-        let domain = gDomains.getDomainFromHost(this.cookies[i].rawHost);
+      for (let cookie of this.cookies) {
+        let domain = gDomains.getDomainFromHost(cookie.rawHost);
         if (domainList.indexOf(domain) == -1)
           domainList.push(domain);
       }
@@ -1217,6 +1277,7 @@ var gCookies = {
 // :::::::::::::::::::: permissions panel ::::::::::::::::::::
 var gPerms = {
   list: null,
+  listPermission: [],
 
   initialize: function permissions_initialize() {
     gDataman.debugMsg("Initializing permissions panel");
@@ -1227,36 +1288,24 @@ var gPerms = {
     this.addButton = document.getElementById("permAddButton");
 
     let enumerator = Services.perms.enumerator;
+
     while (enumerator.hasMoreElements()) {
       let nextPermission = enumerator.getNext();
       nextPermission = nextPermission.QueryInterface(Components.interfaces.nsIPermission);
-      let rawHost = nextPermission.principal.URI.host.replace(/^\./, "");
-      if (gDomains.hostMatchesSelected(rawHost)) {
+
+      if (gDomains.hostMatchesSelectedURI(nextPermission.principal.URI)) {
         let permElem = document.createElement("richlistitem");
         permElem.setAttribute("type", nextPermission.type);
-        permElem.setAttribute("host", nextPermission.principal.URI.host);
-        permElem.setAttribute("rawHost", rawHost);
-        permElem.setAttribute("displayHost",
-                              gLocSvc.idn.convertToDisplayIDN(rawHost, {}));
+        permElem.setAttribute("host", nextPermission.principal.origin);
+        permElem.setAttribute("displayHost", nextPermission.principal.origin);
         permElem.setAttribute("capability", nextPermission.capability);
         permElem.setAttribute("class", "permission");
+        gDataman.debugMsg("Adding Origin: " + nextPermission.principal.origin);
         this.list.appendChild(permElem);
-      }
-    }
-    // Visually treat password rejects like permissions.
-    let rejectHosts = Services.logins.getAllDisabledHosts();
-    for (let i = 0; i < rejectHosts.length; i++) {
-      if (gDomains.hostMatchesSelected(rejectHosts[i])) {
-        let permElem = document.createElement("richlistitem");
-        let rawHost = gDomains.getDomainFromHost(rejectHosts[i]);
-        permElem.setAttribute("type", "password");
-        permElem.setAttribute("host", rejectHosts[i]);
-        permElem.setAttribute("rawHost", rawHost);
-        permElem.setAttribute("displayHost",
-                              gLocSvc.idn.convertToDisplayIDN(rawHost, {}));
-        permElem.setAttribute("capability", Services.perms.DENY_ACTION);
-        permElem.setAttribute("class", "permission");
-        this.list.appendChild(permElem);
+        this.listPermission.push({id: nextPermission.length,
+                                  origin: nextPermission.principal.origin,
+                                  principal: nextPermission.principal,
+                                  type: nextPermission.type});
       }
     }
     this.list.disabled = !this.list.itemCount;
@@ -1271,47 +1320,176 @@ var gPerms = {
       this.list.lastChild.remove();
 
     this.addSelBox.hidden = true;
+    this.listPermission.length = 0;
+  },
+
+  // Find an item in the permissionsList by origin and type.
+  getPrincipalListItem: function permissions_getPrincipalListItem(aOrigin, aType) {
+
+    gDataman.debugMsg("Getting list item: " + aOrigin + " " + aType);
+
+    for (let elem of this.listPermission) {
+
+      gDataman.debugMsg("elem: " + elem.type);
+
+      // check if this is the one
+      if (elem.type == aType &&
+          elem.origin == aOrigin) {
+        gDataman.debugMsg("Found Element " + elem.origin);
+        return elem;
+      }
+    }
+    return null;
+  },
+
+  // Directly remove a permission.
+  // This function is called when the user checks the 'Use Default' button on the permissions panel.
+  // The item will be removed and the default permissions for the origin will be in place afterwards.
+  // This function will only handle the deletion. The remove will trigger an Observer message.
+  // Because the permission might be removed outside of this panel the code in there needs to clean
+  // up the panel and lists.
+  removeItem: function permissions_removeItem(aOrigin, aType) {
+
+    gDataman.debugMsg("Removing an Item: " + aOrigin + " " + aType);
+
+    let permElem = this.getPrincipalListItem(aOrigin, aType);
+
+    // This happens when we add a new permission.
+    if (permElem == null) {
+      gDataman.debugMsg("Unable to find an Item: " + aOrigin + " " + aType);
+      return;
+    }
+
+    gDataman.debugMsg("Found Element " + permElem.origin);
+
+    // It might be a new element. In this case the principal is null and we do not need to do
+    // anything here. We can not remove the list entry because it might be a new permission the
+    // user wants to change.
+    if (permElem.principal != null) {
+      // Delete the permission. We will deactivate the list item in the subsequent observer message.
+      try {
+        gDataman.debugMsg("Removing permission");
+        Services.perms.removeFromPrincipal(permElem.principal, permElem.type);
+      }
+      catch (e) {
+        gDataman.debugError("Permission could not be removed " +
+                            permElem.principal.origin + " " +
+                            permElem.principal.type
+                           );
+      }
+    }
+  },
+
+  // Directly change a permission.
+  // This function is called when the user changes the value of a permission on the permissions panel.
+  // This function will only handle the update. The update will trigger an Observer message.
+  // Because the permission might be changed outside of this panel the code in there needs to handle
+  // further generic changes.
+  updateItem: function permissions_updateItem(aOrigin, aType, aValue) {
+
+    gDataman.debugMsg("Updating an Item: " + aOrigin + " " + aType + " " + aValue);
+
+    let permElem = this.getPrincipalListItem(aOrigin, aType);
+
+    if (permElem == null) {
+      gDataman.debugMsg("Unable to find an Item: " + aOrigin + " " + aType);
+      return;
+    }
+
+    // If this is a completely new permission we do not have a principal yet.
+    // This happens when we add a new item. We need to create a new permission
+    // from scratch.
+    // Maybe use
+    // principal = Services.scriptSecurityManager.createCodebasePrincipal(uri, {})
+    // but this might be undocumented?
+    if (permElem.principal == null)
+    {
+      // This can currently fail for some schemes like 'file://'.
+      // Maybe fix it later if needed.
+      try {
+        let uri = Services.io.newURI(new URL(aOrigin), null, null);
+        Services.perms.add(uri, aType, aValue);
+      }
+      catch (e) {
+        gDataman.debugError("New Permission could not be added " +
+                            permElem.origin + " " +
+                            permElem.type
+                           );
+        }
+
+    } else {
+      Services.perms.addFromPrincipal(permElem.principal, permElem.type, aValue);
+    }
   },
 
   // Most functions of permissions are in the XBL items!
-
   addButtonClick: function permissions_addButtonClick() {
+
     gDataman.debugMsg("Add permissions button clicked!");
-    // this.addSelBox, this.addHost, this.addType, this.addButton
+
     if (this.addSelBox.hidden) {
       // Show addition box, disable button.
       this.addButton.disabled = true;
       this.addType.removeAllItems(); // Make sure list is clean.
       let permTypes = ["allowXULXBL", "cookie", "geo", "image", "indexedDB",
-                       "install", "object", "offline-app", "password",
+                       "install", "login-saving", "object", "offline-app",
                        "plugins", "popup", "script", "sts/use", "sts/subd",
                        "stylesheet", "trackingprotection"];
-      for (let i = 0; i < permTypes.length; i++) {
-        let typeDesc = permTypes[i];
+
+      // Look for a translation.
+      for (let permType of permTypes) {
+        let typeDesc = permType;
         try {
-          typeDesc = gDataman.bundle.getString("perm." + permTypes[i] + ".label");
+          typeDesc = gDataman.bundle.getString("perm." + permType + ".label");
         }
         catch (e) {
         }
-        let menuitem = this.addType.appendItem(typeDesc, permTypes[i]);
+        let menuitem = this.addType.appendItem(typeDesc, permType);
       }
       this.addType.setAttribute("label",
                                 gDataman.bundle.getString("perm.type.default"));
       this.addHost.value =
-          gDomains.selectedDomain.title == "*" ? "" : gDomains.selectedDomain.title;
+          gDomains.selectedDomain.title == "*" ? "" : ("http://www." + gDomains.selectedDomain.title);
       this.addSelBox.hidden = false;
     }
     else {
+      // Let the backend do the validation of the input field.
+      let nOrigin = "";
+
+      try {
+        nOrigin = new URL(this.addHost.value).origin;
+      } catch (e) {
+        // Show an error if URL is invalid.
+        window.alert(gDataman.bundle.getString("perm.validation.invalidurl"));
+        return;
+      }
+
+      // Url could be validated but User did probably enter half valid nonsense
+      // because the origin is undefined.
+      if ((nOrigin == null) || (nOrigin == "")) {
+        window.alert(gDataman.bundle.getString("perm.validation.invalidurl"));
+        return;
+      }
+
+      gDataman.debugMsg("New origin: " + nOrigin);
+
       // Add entry to list, hide addition box.
       let permElem = document.createElement("richlistitem");
       permElem.setAttribute("type", this.addType.value);
-      permElem.setAttribute("host", this.addHost.value);
-      permElem.setAttribute("rawHost", this.addHost.value.replace(/^\./, ""));
+      permElem.setAttribute("host", nOrigin);
+      permElem.setAttribute("displayHost", nOrigin);
       permElem.setAttribute("capability", this.getDefault(this.addType.value));
       permElem.setAttribute("class", "permission");
       this.list.appendChild(permElem);
       this.list.disabled = false;
       permElem.useDefault(true);
+      // Add a new entry to the permissions list.
+      // We do not have a principal yet so we use only the origin as identification.
+      this.listPermission.push({id: this.listPermission.length + 1,
+                                origin: nOrigin,
+                                principal: null,
+                                type: this.addType.value});
+
       this.addSelBox.hidden = true;
       this.addType.removeAllItems();
     }
@@ -1351,8 +1529,6 @@ var gPerms = {
         if (Services.prefs.getBoolPref("browser.offline-apps.notify"))
           return Services.perms.DENY_ACTION;
         return Services.perms.UNKNOWN_ACTION;
-      case "password":
-        return Services.perms.ALLOW_ACTION;
       case "plugins":
         if (Services.prefs.getBoolPref("plugins.click_to_play"))
           return Services.perms.UNKNOWN_ACTION;
@@ -1364,8 +1540,12 @@ var gPerms = {
       case "trackingprotection":
         return Services.perms.DENY_ACTION;
     }
+
+    // We are not done yet.
+    // This should only be called for new permission types which have not been
+    // added to the Data Manager yet.
     try {
-      // Look for an nsContentBlocker permission
+      // Look for an nsContentBlocker permission.
       switch (Services.prefs.getIntPref("permissions.default." + aType)) {
         case 3:
           return NOFOREIGN;
@@ -1380,166 +1560,142 @@ var gPerms = {
   },
 
   reactToChange: function permissions_reactToChange(aSubject, aData) {
-    if (/^hostSaving/.test(aData)) {
-      // aData: hostSavingEnabled, hostSavingDisabled
-      aSubject.QueryInterface(Components.interfaces.nsISupportsString);
-      let domain = gDomains.getDomainFromHost(aSubject.data);
-      // Does change affect possibly loaded Preferences pane?
-      let affectsLoaded = this.list && this.list.childElementCount &&
-                          gDomains.hostMatchesSelected(aSubject.data);
-      let permElem = null;
-      if (affectsLoaded) {
-        for (let i = 0; i < this.list.children.length; i++) {
-          let elem = this.list.children[i];
-          if (elem.getAttribute("host") == aSubject.data &&
-              elem.getAttribute("type") == "password")
-            permElem = elem;
-        }
-      }
-      if (aData == "hostSavingEnabled") {
-        if (affectsLoaded) {
-          permElem.setCapability(Services.perms.ALLOW_ACTION, true);
-        }
-        else {
-          // Only remove if domain is not shown, note that this may leave an empty domain.
-          let haveDomainPerms = false;
-          let enumerator = Services.perms.enumerator;
-          while (enumerator.hasMoreElements()) {
-            let nextPermission = enumerator.getNext();
-            nextPermission = nextPermission.QueryInterface(Components.interfaces.nsIPermission);
-            if (domain == gDomains.getDomainFromHost(nextPermission.principal.URI.host.replace(/^\./, "")))
-              haveDomainPerms = true;
-          }
-          let rejectHosts = Services.logins.getAllDisabledHosts();
-          for (let i = 0; i < rejectHosts.length; i++) {
-            if (domain == gDomains.getDomainFromHost(rejectHosts[i]))
-              haveDomainPerms = true;
-          }
-          if (!haveDomainPerms)
-            gDomains.removeDomainOrFlag(domain, "hasPermissions");
-        }
-      }
-      else if (aData == "hostSavingDisabled") {
-        if (affectsLoaded) {
-          if (permElem) {
-            permElem.setCapability(Services.perms.DENY_ACTION, true);
-          }
-          else {
-            permElem = document.createElement("richlistitem");
-            permElem.setAttribute("type", "password");
-            permElem.setAttribute("host", aSubject.data);
-            permElem.setAttribute("rawHost", domain);
-            permElem.setAttribute("capability", 2);
-            permElem.setAttribute("class", "permission");
-            permElem.setAttribute("orient", "vertical");
-            this.list.appendChild(permElem);
-          }
-        }
-        gDomains.addDomainOrFlag(aSubject.data, "hasPermissions");
-      }
+
+    // aData: added, changed, deleted, cleared
+    // aSubject: the subject which is the permission to be changed
+    // See http://mxr.mozilla.org/mozilla-central/source/netwerk/base/public/nsIPermissionManager.idl
+    if (aData == "cleared") {
+      gDataman.debugMsg("something has been cleared but why in permission?");
+      gDomains.resetFlagToDomains("hasPermissions", domainList);
+      return;
+    }
+
+    gDataman.debugMsg("react to change: " + aSubject.principal.origin + " " + aData);
+
+    aSubject.QueryInterface(Components.interfaces.nsIPermission);
+
+    let rawHost;
+    let domain;
+
+    if (!gDomains.commonScheme(aSubject.principal.URI.scheme)) {
+      rawHost = "*";
+      domain = "*";
     }
     else {
-      // aData: added, changed, deleted, cleared
-      // See http://mxr.mozilla.org/mozilla-central/source/netwerk/base/public/nsIPermissionManager.idl
-      if (aData == "cleared") {
-        let domainList = [];
-        // Blocked passwords still belong in the list.
-        let rejectHosts = Services.logins.getAllDisabledHosts();
-        for (let i = 0; i < rejectHosts.length; i++) {
-          let dom = gDomains.getDomainFromHost(rejectHosts[i]);
-          if (domainList.indexOf(dom) == -1)
-            domainList.push(dom);
-        }
-        gDomains.resetFlagToDomains("hasPermissions", domainList);
-        return;
-      }
-      aSubject.QueryInterface(Components.interfaces.nsIPermission);
-      let rawHost = aSubject.principal.URI.host.replace(/^\./, "");
-      let domain = gDomains.getDomainFromHost(rawHost);
-      // Does change affect possibly loaded Preferences pane?
-      let affectsLoaded = this.list && this.list.childElementCount &&
-                          gDomains.hostMatchesSelected(rawHost);
-      let permElem = null;
-      if (affectsLoaded) {
-        for (let i = 0; i < this.list.children.length; i++) {
-          let elem = this.list.children[i];
-          if (elem.getAttribute("host") == aSubject.host &&
-              elem.getAttribute("type") == aSubject.type)
-            permElem = elem;
-        }
-      }
-      if (aData == "deleted") {
-        if (affectsLoaded) {
-          permElem.useDefault(true, true);
-        }
-        else {
-          // Only remove if domain is not shown, note that this may leave an empty domain.
-          let haveDomainPerms = false;
-          let enumerator = Services.perms.enumerator;
-          while (enumerator.hasMoreElements()) {
-            let nextPermission = enumerator.getNext();
-            nextPermission = nextPermission.QueryInterface(Components.interfaces.nsIPermission);
-            if (domain == gDomains.getDomainFromHost(nextPermission.principal.URI.host.replace(/^\./, "")))
-              haveDomainPerms = true;
-          }
-          let rejectHosts = Services.logins.getAllDisabledHosts();
-          for (let i = 0; i < rejectHosts.length; i++) {
-            if (domain == gDomains.getDomainFromHost(rejectHosts[i]))
-              haveDomainPerms = true;
-          }
-          if (!haveDomainPerms)
-            gDomains.removeDomainOrFlag(domain, "hasPermissions");
-        }
-      }
-      else if (aData == "changed" && affectsLoaded) {
-        permElem.setCapability(aSubject.capability, true);
-      }
-      else if (aData == "added") {
-        if (affectsLoaded) {
-          if (permElem) {
-            permElem.useDefault(false, true);
-            permElem.setCapability(aSubject.capability, true);
-          }
-          else {
-            permElem = document.createElement("richlistitem");
-            permElem.setAttribute("type", aSubject.type);
-            permElem.setAttribute("host", aSubject.host);
-            permElem.setAttribute("rawHost", rawHost);
-            permElem.setAttribute("capability", aSubject.capability);
-            permElem.setAttribute("class", "permission");
-            permElem.setAttribute("orient", "vertical");
-            this.list.appendChild(permElem);
-          }
-        }
-        gDomains.addDomainOrFlag(rawHost, "hasPermissions");
+      rawHost = aSubject.principal.URI.host.replace(/^\./, "");
+      domain = gDomains.getDomainFromHost(rawHost);
+    }
+
+    // Does change affect possibly loaded Preferences pane?
+    let affectsLoaded = this.list && this.list.childElementCount &&
+                        gDomains.hostMatchesSelectedURI(aSubject.principal.URI);
+
+    let permElem = null;
+
+    if (affectsLoaded) {
+      for (let lChild of this.list.children) {
+        gDataman.debugMsg("checking type: " + lChild.getAttribute("class") + " " +
+                          lChild.getAttribute("type") + " " + aSubject.type);
+
+        // Check type and host (origin) first.
+        if (lChild.getAttribute("type") == aSubject.type &&
+            lChild.getAttribute("host") == aSubject.principal.origin)
+          permElem = lChild;
       }
     }
+
+    if (aData == "deleted") {
+      if (affectsLoaded) {
+        permElem.useDefault(true, true);
+      }
+      else {
+        // Only remove if domain is not shown, note that this may leave an empty domain.
+        let haveDomainPerms = false;
+        let enumerator = Services.perms.enumerator;
+        while (enumerator.hasMoreElements()) {
+          let nextPermission = enumerator.getNext();
+          nextPermission = nextPermission.QueryInterface(Components.interfaces.nsIPermission);
+
+          let dDomain;
+
+          if (!gDomains.commonScheme(nextPermission.principal.URI.scheme)) {
+            dDomain = "*";
+          }
+          else {
+            dDomain = gDomains.getDomainFromHost(nextPermission.principal.URI.host.replace(/^\./, ""));
+          }
+
+          if (domain == dDomain) {
+            haveDomainPerms = true;
+            break;
+          }
+        }
+        if (!haveDomainPerms)
+          gDomains.removeDomainOrFlag(domain, "hasPermissions");
+      }
+    }
+    else if (aData == "changed" && affectsLoaded) {
+      permElem.setCapability(aSubject.capability, true);
+    }
+    else if (aData == "added") {
+      if (affectsLoaded) {
+        if (permElem) {
+          // Check if them permission list contains the principal.
+          // If not adding it to the permissions list.
+          // This might be the case for newly created items.
+          let permElem2 = this.getPrincipalListItem(aSubject.principal.origin, aSubject.type);
+
+          if (permElem2 != null &&
+              permElem2.principal == null) {
+             permElem2.principal = aSubject.principal;
+          }
+
+          permElem.useDefault(false, true);
+          permElem.setCapability(aSubject.capability, true);
+        }
+        else {
+          gDataman.debugMsg("Adding completely new item: " + aSubject.principal.origin + " " + aSubject.type);
+          permElem = document.createElement("richlistitem");
+          permElem.setAttribute("type", aSubject.type);
+          permElem.setAttribute("host", aSubject.principal.origin);
+          permElem.setAttribute("displayHost", aSubject.principal.origin);
+          permElem.setAttribute("capability", aSubject.capability);
+          permElem.setAttribute("class", "permission");
+          permElem.setAttribute("orient", "vertical");
+          this.list.appendChild(permElem);
+
+          // add an entry to the permissions list
+          this.listPermission.push({id: this.listPermission.length + 1,
+                                    origin: aSubject.principal.origin,
+                                    principal: aSubject.principal,
+                                    type: aSubject.type});
+        }
+      }
+      gDomains.addDomainOrFlag(rawHost, "hasPermissions");
+    }
+
     this.list.disabled = !this.list.itemCount;
   },
 
+  // This function is a called when you check that all permissions for the given domain should be
+  // deleted (forget).
   forget: function permissions_forget() {
     let delPerms = [];
     let enumerator = Services.perms.enumerator;
     while (enumerator.hasMoreElements()) {
       let nextPermission = enumerator.getNext();
       nextPermission = nextPermission.QueryInterface(Components.interfaces.nsIPermission);
-      let host = nextPermission.principal.URI.host;
-      if (gDomains.hostMatchesSelected(host.replace(/^\./, ""))) {
-      delPerms.push({principal: nextPermission.principal, type: nextPermission.type});
+
+      if (gDomains.hostMatchesSelectedURI(nextPermission.principal.URI)) {
+        delPerms.push({principal: nextPermission.principal, type: nextPermission.type});
       }
     }
+
     // Loop backwards so later indexes in the list don't change.
     for (let i = delPerms.length - 1; i >= 0; i--) {
       Services.perms.removeFromPrincipal(delPerms[i].principal, delPerms[i].type);
     }
-    // Also remove all password rejects.
-    let rejectHosts = Services.logins.getAllDisabledHosts();
-    // Loop backwards so later indexes in the list don't change.
-    for (let i = rejectHosts.length - 1; i >= 0; i--) {
-      if (gDomains.hostMatchesSelected(rejectHosts[i])) {
-        Services.logins.setLoginSavingEnabled(rejectHosts[i], true);
-      }
-    }
+
     gDomains.removeDomainOrFlag(gDomains.selectedDomain.title, "hasPermissions");
   },
 };
@@ -1561,6 +1717,7 @@ var gPrefs = {
     this.tree.treeBoxObject.beginUpdateBatch();
     // Get all groups (hosts) that match the domain.
     let domain = gDomains.selectedDomain.title;
+
     if (domain == "*") {
       let enumerator = Services.contentPrefs.getPrefs(null, null).enumerator;
       while (enumerator.hasMoreElements()) {
@@ -1568,19 +1725,12 @@ var gPrefs = {
         this.prefs.push({host: null, name: pref.name, value: pref.value});
       }
     }
-    else {
-      try {
-        let sql = "SELECT groups.name AS host FROM groups " +
-                  "WHERE host = :hostName OR host = :hostIDNName OR " +
-                         "host LIKE :hostMatch OR host LIKE :hostIDNMatch " +
-                  "ESCAPE '/'";
-        var statement = Services.contentPrefs.DBConnection.createStatement(sql);
-        let idnDomain = gLocSvc.idn.convertToDisplayIDN(domain, {});
-        statement.params.hostName = domain;
-        statement.params.hostIDNName = idnDomain;
-        statement.params.hostMatch = "%." + statement.escapeStringForLIKE(domain, "/");
-        statement.params.hostIDNMatch = "%." + statement.escapeStringForLIKE(idnDomain, "/");
-        while (statement.executeStep()) {
+
+    try {
+      var statement = Services.contentPrefs.DBConnection.createStatement("SELECT groups.name AS host FROM groups");
+
+      while (statement.executeStep()) {
+        if (gDomains.hostMatchesSelected(gDomains.getDomainFromHostWithCheck(statement.row["host"]))) {
           // Now, get all prefs for that host.
           let enumerator =  Services.contentPrefs.getPrefs(statement.row["host"], null).enumerator;
           while (enumerator.hasMoreElements()) {
@@ -1592,10 +1742,11 @@ var gPrefs = {
           }
         }
       }
-      finally {
-        statement.reset();
-      }
     }
+    finally {
+      statement.reset();
+    }
+
     this.sort(null, false, false);
     this.tree.treeBoxObject.endUpdateBatch();
   },
@@ -1728,18 +1879,21 @@ var gPrefs = {
 
   reactToChange: function prefs_reactToChange(aSubject, aData) {
     // aData: prefSet, prefRemoved
-
+    gDataman.debugMsg("Observed pref change for: " + aSubject.host);
     // Do "surgical" updates.
-    let domain = gDomains.getDomainFromHost(aSubject.host);
+    let domain = gDomains.getDomainFromHostWithCheck(aSubject.host);
+    gDataman.debugMsg("domain: " + domain);
     // Does change affect possibly loaded Preferences pane?
     let affectsLoaded = this.prefs.length &&
-                        gDomains.hostMatchesSelected(aSubject.host);
+                        (domain == gDomains.selectedDomain.title);
+
     let idx = -1, domainPrefs = 0;
     if (affectsLoaded) {
+      gDataman.debugMsg("affects loaded");
       for (let i = 0; i < this.prefs.length; i++) {
         let cpref = this.prefs[i];
         if (cpref && cpref.host == aSubject.host && cpref.name == aSubject.name) {
-          idx = this.prefs[i];
+          idx = i;
           break;
         }
       }
@@ -1753,33 +1907,36 @@ var gPrefs = {
         if (enumerator.hasMoreElements())
           domainPrefs++;
       }
-      else {
-        try {
-          let sql = "SELECT groups.name AS host FROM groups WHERE host = :hostName OR host LIKE :hostMatch ESCAPE '/'";
-          var statement = Services.contentPrefs.DBConnection.createStatement(sql);
-          statement.params.hostName = domain;
-          statement.params.hostMatch = "%." + statement.escapeStringForLIKE(domain, "/");
-          while (statement.executeStep()) {
+
+      try {
+        let sql = "SELECT groups.name AS host FROM groups";
+        var statement = Services.contentPrefs.DBConnection.createStatement(sql);
+
+        while (statement.executeStep()) {
+          if (gDomains.hostMatchesSelected(gDomains.getDomainFromHostWithCheck(statement.row["host"]))) {
             // Now, get all prefs for that host.
             let enumerator = Services.contentPrefs.getPrefs(statement.row["host"], null).enumerator;
             if (enumerator.hasMoreElements())
               domainPrefs++;
           }
         }
-        finally {
-          statement.reset();
-        }
       }
+      finally {
+        statement.reset();
+      }
+
       if (!domainPrefs)
         gDomains.removeDomainOrFlag(domain, "hasPreferences");
     }
     if (aData == "prefSet")
         aSubject.displayHost = gLocSvc.idn.convertToDisplayIDN(aSubject.host, {});
+
+    // Affects loaded domain and is an existing pref.
     if (idx >= 0) {
       if (aData == "prefSet") {
         this.prefs[idx] = aSubject;
         if (affectsLoaded)
-          this.tree.treeBoxObject.invalidateRow(disp_idx);
+          this.tree.treeBoxObject.invalidateRow(idx);
       }
       else if (aData == "prefRemoved") {
         this.prefs.splice(idx, 1);
@@ -1791,14 +1948,16 @@ var gPrefs = {
       }
     }
     else if (aData == "prefSet") {
+      // Affects loaded domain but is not an existing pref.
       // Pref set, no prev index known - either new or existing pref domain.
       if (affectsLoaded) {
         this.prefs.push(aSubject);
         this.tree.treeBoxObject.rowCountChanged(this.prefs.length - 1, 1);
         this.sort(null, true, false);
       }
+      // Not the loaded domain but it now has a preference.
       else {
-        gDomains.addDomainOrFlag(aSubject.host, "hasPreferences");
+        gDomains.addDomainOrFlag(domain, "hasPreferences");
       }
     }
   },
@@ -1815,12 +1974,12 @@ var gPrefs = {
           delPrefs.push({host: null, name: pref.name, value: pref.value});
         }
       }
-      else {
-        let sql = "SELECT groups.name AS host FROM groups WHERE host = :hostName OR host LIKE :hostMatch ESCAPE '/'";
-        var statement = Services.contentPrefs.DBConnection.createStatement(sql);
-        statement.params.hostName = domain;
-        statement.params.hostMatch = "%." + statement.escapeStringForLIKE(domain, "/");
-        while (statement.executeStep()) {
+
+      let sql = "SELECT groups.name AS host FROM groups";
+      var statement = Services.contentPrefs.DBConnection.createStatement(sql);
+
+      while (statement.executeStep()) {
+        if (gDomains.hostMatchesSelected(gDomains.getDomainFromHostWithCheck(statement.row["host"]))) {
           // Now, get all prefs for that host.
           let enumerator =  Services.contentPrefs.getPrefs(statement.row["host"], null).enumerator;
           while (enumerator.hasMoreElements()) {
@@ -2078,7 +2237,7 @@ var gPasswords = {
     // Copy selected signon's password to clipboard.
     let row = this.tree.currentIndex;
     let password = gPasswords.displayedSignons[row].password;
-    gLocSvc.clipboard.copyString(password, document);
+    gLocSvc.clipboard.copyString(password);
   },
 
   copyPassword: function passwords_copyPassword() {
@@ -2100,6 +2259,12 @@ var gPasswords = {
   },
 
   reactToChange: function passwords_reactToChange(aSubject, aData) {
+
+     // Not interested in legacy hostsaving changes here.
+     // They will be handled in perm-changed.
+     if (/^hostSaving/.test(aData))
+       return;
+
     // aData: addLogin, modifyLogin, removeLogin, removeAllLogins
     if (aData == "removeAllLogins") {
       // Go for re-parsing the whole thing.
@@ -2111,8 +2276,8 @@ var gPasswords = {
       }
       this.loadList();
       let domainList = [];
-      for (let i = 0; i < this.allSignons.length; i++) {
-        let domain = gDomains.getDomainFromHost(this.allSignons[i].hostname);
+      for (let lSignon of this.allSignons) {
+        let domain = gDomains.getDomainFromHost(lSignon.hostname);
         if (domainList.indexOf(domain) == -1)
           domainList.push(domain);
       }
@@ -2274,14 +2439,14 @@ var gStorage = {
     // Load appCache entries.
     let groups = gLocSvc.appcache.getGroups();
     gDataman.debugMsg("Loading " + groups.length + " appcache entries");
-    for (let i = 0; i < groups.length; i++) {
-      let uri = Services.io.newURI(groups[i], null, null);
-      let cache = gLocSvc.appcache.getActiveCache(groups[i]);
+    for (let lGroup of groups) {
+      let uri = Services.io.newURI(lGroup, null, null);
+      let cache = gLocSvc.appcache.getActiveCache(lGroup);
       this.storages.push({host: uri.host,
                           rawHost: uri.host,
                           type: "appCache",
                           size: cache.usage,
-                          groupID: groups[i]});
+                          groupID: lGroup});
     }
 
     // Load DOM storage entries, unfortunately need to go to the DB. :(
@@ -2343,7 +2508,12 @@ var gStorage = {
           this.storages.push({host: host,
                               rawHost: rawHost,
                               type: type,
-                              size: gLocSvc.domstoremgr.getUsage(rawHost),
+                              // FIXME if you want getUsage no longer exists
+                              // But I think it's not worth it. Seems the only way
+                              // to do this is to get all the key names and values
+                              // and add the string lengths together
+                              // size: gLocSvc.domstoremgr.getUsage(rawHost),
+                              size: 0,
                               origHost: origHost,
                               keys: [domstorelist[i].key]});
         }
@@ -2541,8 +2711,8 @@ var gStorage = {
     }
     this.loadList();
     var domainList = [];
-    for (let i = 0; i < this.storages.length; i++) {
-      let domain = gDomains.getDomainFromHost(this.storages[i].rawHost);
+    for (let lStorage of this.storages) {
+      let domain = gDomains.getDomainFromHost(lStorage.rawHost);
       if (domainList.indexOf(domain) == -1)
         domainList.push(domain);
     }
@@ -2566,17 +2736,18 @@ var gStorage = {
     //        --- for appCache and indexedDB, no change notifications are known!
     //        --- because of that, we don't do anything here and instead use
     //            reloadList periodically
-    let type;
-    if (aSubject instanceof Components.interfaces.nsIDOMStorageEvent) {
-      type = "localStorage";
-      // session storage also comes here, but currently not supported
-      // aData: null, all data in aSubject
-      // see https://developer.mozilla.org/en/DOM/Event/StorageEvent
+    // session storage also comes here, but currently not supported
+    // aData: null, all data in aSubject
+    // see https://developer.mozilla.org/en/DOM/Event/StorageEvent
+    switch (aData) {
+      case "localStorage":
+      case "sessionStorage":
+        break;
+      default:
+        Components.utils.reportError("Observed an unrecognized storage change of type " + aData);
     }
-    else {
-      Components.utils.reportError("Observed an unrecognized storage change of type " + aData);
-    }
-    gDataman.debugMsg("Found storage event for: " + type);
+
+    gDataman.debugMsg("Found storage event for: " + aData);
   },
 
   forget: function storage_forget() {

@@ -16,20 +16,20 @@
 <!ENTITY pasteAsQuotationCmd.label "Prilepi kot navedek">
 <!ENTITY pasteAsQuotationCmd.accesskey "d">
 <!ENTITY pasteAsQuotationCmd.key "o">
-<!ENTITY findBarCmd.label "Najdi ...">
-<!ENTITY findReplaceCmd.label "Najdi in zamenjaj ...">
+<!ENTITY findBarCmd.label "Najdi …">
+<!ENTITY findReplaceCmd.label "Najdi in zamenjaj …">
 <!ENTITY enableInlineSpellChecker.label "Preveri črkovanje med pisanjem">
 <!ENTITY enableInlineSpellChecker.accesskey "r">
-<!ENTITY checkSpellingCmd2.label "Preveri črkovanje ...">
+<!ENTITY checkSpellingCmd2.label "Preveri črkovanje …">
 <!ENTITY checkSpellingCmd2.accesskey "P">
 <!ENTITY checkSpellingCmd2.key "p">
 
 <!-- Insert menu items -->
 <!ENTITY insertMenu.label "Vstavi">
 <!ENTITY insertMenu.accesskey "V">
-<!ENTITY insertLinkCmd.label "Povezavo …">
-<!ENTITY insertLinkCmd.accesskey "P">
-<!ENTITY insertLinkCmd.key "L">
+<!ENTITY insertLinkCmd2.label "Povezavo …">
+<!ENTITY insertLinkCmd2.accesskey "P">
+<!ENTITY insertLinkCmd2.key "K">
 <!ENTITY insertAnchorCmd.label "Sidro z imenom …">
 <!ENTITY insertAnchorCmd.accesskey "d">
 <!ENTITY insertImageCmd.label "Sliko …">
@@ -40,7 +40,7 @@
 <!ENTITY insertTableCmd.accesskey "T">
 <!ENTITY insertHTMLCmd.label "HTML …">
 <!ENTITY insertHTMLCmd.accesskey "H">
-<!ENTITY insertMathCmd.label "Matematični izraz ...">
+<!ENTITY insertMathCmd.label "Matematični izraz …">
 <!ENTITY insertMathCmd.accesskey "M">
 <!ENTITY insertCharsCmd.label "Znake in simbole …">
 <!ENTITY insertCharsCmd.accesskey "Z">
@@ -145,7 +145,7 @@
 
 <!ENTITY paragraphMenu.label "Odstavek">
 <!ENTITY paragraphMenu.accesskey "d">
-<!ENTITY paragraphParagraphCmd.label "Odstavek">  
+<!ENTITY paragraphParagraphCmd.label "Odstavek">
 <!ENTITY paragraphParagraphCmd.accesskey "O">
 <!ENTITY heading1Cmd.label "Naslov 1">
 <!ENTITY heading1Cmd.accesskey "1">
@@ -177,7 +177,7 @@
 <!ENTITY listTermCmd.accesskey "z">
 <!ENTITY listDefinitionCmd.label "Določilo">
 <!ENTITY listDefinitionCmd.accesskey "D">
-<!ENTITY listPropsCmd.label "Lastnosti seznama ...">
+<!ENTITY listPropsCmd.label "Lastnosti seznama …">
 <!ENTITY listPropsCmd.accesskey "L">
 
 <!ENTITY ParagraphSelect.tooltip "Izberite obliko odstavka">
@@ -268,7 +268,7 @@
 <!ENTITY tableDeleteMenu.label "Izbriši">
 <!ENTITY tableDeleteMenu.accesskey "b">
 
-<!-- text for "Join Cells" is in editor.properties 
+<!-- text for "Join Cells" is in editor.properties
      ("JoinSelectedCells" and "JoinCellToRight")
      the access key must exist in both of those strings
      But value must be set here for accesskey to draw properly
@@ -342,5 +342,5 @@
 <!ENTITY updateTOC.accesskey      "P">
 <!ENTITY removeTOC.label          "Odstrani">
 <!ENTITY removeTOC.accesskey      "O">
-<!ENTITY tocMenu.label            "Kazalo vsebine ...">
+<!ENTITY tocMenu.label            "Kazalo vsebine …">
 <!ENTITY tocMenu.accesskey        "K">

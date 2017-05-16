@@ -10,9 +10,6 @@
 <!ENTITY update.checkForUpdatesButton.accesskey   "S">
 <!ENTITY update.updateButton.label2               "Genstart &brandShortName; for at opdatere">
 <!ENTITY update.updateButton.accesskey            "G">
-<!ENTITY update.applyButtonBillboard.label        "Installer opdatering…">
-<!ENTITY update.applyButtonBillboard.accesskey    "I">
-
 
 <!-- LOCALIZATION NOTE (warningDesc.version): This is a warning about the experimental nature of Nightly and Aurora builds. It is only shown in those versions. -->
 <!ENTITY warningDesc.version        "&brandShortName; er en eksperimentel udgave og kan være ustabil.">
@@ -28,7 +25,7 @@
 <!ENTITY community.exp.creditsLink  "globalt fællesskab">
 <!ENTITY community.exp.end          ", der arbejder sammen om at holde internettet åbent, offentligt og tilgængeligt for alle.">
 
-<!ENTITY community.start2           "&brandShortName;  er udviklet af ">
+<!ENTITY community.start2           "&brandShortName; er udviklet af ">
 <!-- LOCALIZATION NOTE (community.mozillaLink): This is a link title that links to http://www.mozilla.org/. -->
 <!ENTITY community.mozillaLink      "&vendorShortName;">
 <!ENTITY community.middle2          ", et ">
@@ -43,6 +40,8 @@
 <!-- LOCALIZATION NOTE (helpus.getInvolvedLink): This is a link title that links to http://www.mozilla.org/contribute/. -->
 <!ENTITY helpus.getInvolvedLink     "vær med!">
 <!ENTITY helpus.end                 "">
+
+<!ENTITY releaseNotes.link          "Udgivelsesnoter">
 
 <!-- LOCALIZATION NOTE (bottomLinks.license): This is a link title that links to about:license. -->
 <!ENTITY bottomLinks.license        "Licensinformation">

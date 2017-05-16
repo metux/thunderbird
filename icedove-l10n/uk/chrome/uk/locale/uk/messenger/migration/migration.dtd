@@ -7,6 +7,7 @@
 
 <!ENTITY importFromWin.label            "Імпорт налаштувань, параметрів облікового запису, адресної книги, фільтрів та інших даних із:">
 <!ENTITY importFromNonWin.label         "Імпорт налаштувань, параметрів облікового запису, адресної книги, фільтрів та інших даних із:">
+<!ENTITY importSourceNotFound.label     "Не знайдено програми для імпорту даних.">
 
 <!ENTITY importFromNothing.label        "Не імпортувати нічого">
 <!ENTITY importFromNothing.accesskey    "н">
@@ -16,15 +17,13 @@
 <!ENTITY importFromOExpress.accesskey   "u">
 <!ENTITY importFromOutlook.label        "Outlook">
 <!ENTITY importFromOutlook.accesskey    "O">
-<!ENTITY importFromEudora.label         "Eudora">
-<!ENTITY importFromEudora.accesskey     "E">
 
-<!ENTITY importSource.title             "Імпортувати налаштування і дані з">
+<!ENTITY importSource.title             "Імпорт налаштувань і даних з">
 <!ENTITY importItems.title              "Об’єкти для імпорту">
 <!ENTITY importItems.label              "Виберіть об’єкти для імпорту:">
 
 <!ENTITY migrating.title                "Імпортую…">
-<!ENTITY migrating.label                "Наступні об’єкти імпортуються зараз…">
+<!ENTITY migrating.label                "Зараз триває імпорт наступних об'єктів…">
 
 <!ENTITY selectProfile.title            "Вибір профілю">
 <!ENTITY selectProfile.label            "Імпорт може бути здійснений з наступних профілів:">

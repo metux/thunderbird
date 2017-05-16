@@ -10,6 +10,16 @@
 @import url("chrome://messenger/content/messenger.css");
 @import url("chrome://messenger/skin/shared/messenger.css");
 
+:root {
+  --toolbarHighlight: rgba(255, 255, 255, 0.4);
+  --fgTabTexture: linear-gradient(transparent, transparent 2px, var(--toolbarHighlight) 2px, var(--toolbarHighlight));
+  --fgTabBackgroundColor: -moz-dialog;
+  --fgTabTextureLWT: var(--fgTabTexture);
+
+  /* Aero-only variables */
+  --customToolbarColor: hsl(210, 75%, 92%);
+}
+
 toolbox:-moz-lwtheme {
   border-top-width: 0;
 }
@@ -59,8 +69,8 @@ toolbox[labelalign="end"] .toolbarbutton-1[type="menu-button"]
 .toolbarbutton-menubutton-button {
   padding-top: 5px;
   padding-bottom: 6px;
-  -moz-padding-start: 4px;
-  -moz-padding-end: 5px;
+  padding-inline-start: 4px;
+  padding-inline-end: 5px;
 }
 
 .toolbarbutton-1:hover:active:not([disabled]),
@@ -69,8 +79,8 @@ toolbox[labelalign="end"] .toolbarbutton-1[type="menu-button"]
 .toolbarbutton-menubutton-button[open="true"] {
   padding-top: 6px;
   padding-bottom: 5px;
-  -moz-padding-start: 5px;
-  -moz-padding-end: 4px;
+  padding-inline-start: 5px;
+  padding-inline-end: 4px;
 }
 
 .toolbarbutton-1[checked="true"] {
@@ -110,7 +120,7 @@ toolbox[labelalign="end"] > toolbar[mode="full"] .toolbarbutton-1[type="menu"] {
 /* Has to be !important to overrule toolkit's dropmarker.css for the
    dropmarker[disabled="true"] case. */
 .toolbarbutton-menu-dropmarker {
-  -moz-padding-start: 3px !important;
+  padding-inline-start: 3px !important;
 }
 
 toolbar[mode="full"] .toolbarbutton-1 {
@@ -153,7 +163,7 @@ treechildren::-moz-tree-cell-text {
 
 @media not all and (-moz-windows-default-theme) {
   treechildren::-moz-tree-cell-text {
-    -moz-padding-start: 4px !important;
+    padding-inline-start: 4px !important;
   }
 }
 
@@ -171,19 +181,41 @@ notification[type="critical"] .messageCloseButton {
   }
 }
 
+/* Give menupopup[type="folder"] a menu look */
+menupopup[type="folder"] {
+  -moz-appearance: menupopup;
+  background-color: menu;
+}
+
+menupopup[type="folder"] menu[_moz-menuactive="true"],
+menupopup[type="folder"] menuitem[_moz-menuactive="true"] {
+  color: -moz-MenuHoverText;
+  background-color: -moz-MenuHover;
+}
+
+menupopup[type="folder"] > menu,
+menupopup[type="folder"] > menuitem {
+  -moz-appearance: menuitem !important;
+  padding-right: 0;
+  padding-left: 0;
+}
+
 menulist.folderMenuItem > .menulist-label-box > .menulist-label {
-  -moz-margin-start: 2px !important;
+  margin-inline-start: 2px !important;
+}
+
+button[type="menu-button"] {
+  margin: 1px 5px 2px 5px;
 }
 
 button[type="menu-button"] > button {
   margin: -3px;
-  -moz-margin-end: 0;
+  margin-inline-end: 0;
 }
 
-@media not all and (-moz-windows-default-theme) {
+@media (-moz-windows-default-theme: 0) {
   button[type="menu-button"] > button {
     margin: -2px;
-    -moz-margin-end: 0;
   }
 }
 
@@ -199,12 +231,12 @@ button[type="menu-button"] > button {
   .toolbarbutton-1[checked="true"] {
     padding-top: 6px !important;
     padding-bottom: 5px !important;
-    -moz-padding-start: 5px !important;
-    -moz-padding-end: 4px !important;
+    padding-inline-start: 5px !important;
+    padding-inline-end: 4px !important;
   }
 
   treechildren::-moz-tree-cell-text {
-    -moz-padding-start: 5px;
+    padding-inline-start: 5px;
   }
 
   menulist.folderMenuItem menu:not(.folderMenuItem) {
@@ -222,6 +254,7 @@ button[type="menu-button"] > button {
   :root {
     --toolbarbutton-hover-background: rgba(0, 0, 0, .1);
     --toolbarbutton-hover-bordercolor: rgba(0, 0, 0, .1);
+    --toolbarbutton-header-bordercolor: rgba(0, 0, 0, .1);
     --toolbarbutton-hover-boxshadow: none;
 
     --toolbarbutton-active-background: rgba(0, 0, 0, .15);
@@ -238,6 +271,7 @@ button[type="menu-button"] > button {
   #compose-toolbox > toolbar[brighttext] {
     --toolbarbutton-hover-background: rgba(255, 255, 255, .25);
     --toolbarbutton-hover-bordercolor: rgba(255, 255, 255, .5);
+    --toolbarbutton-header-bordercolor: rgba(255, 255, 255, .25);
 
     --toolbarbutton-active-background: rgba(255, 255, 255, .4);
     --toolbarbutton-active-bordercolor: rgba(255, 255, 255, .7);
@@ -251,6 +285,7 @@ button[type="menu-button"] > button {
   #compose-toolbox > toolbar:-moz-lwtheme {
     --toolbarbutton-hover-background: rgba(255, 255, 255, .25);
     --toolbarbutton-hover-bordercolor: rgba(0, 0, 0, .2);
+    --toolbarbutton-header-bordercolor: rgba(0, 0, 0, .2);
 
     --toolbarbutton-active-background: rgba(70%, 70%, 70%, .25);
     --toolbarbutton-active-bordercolor: rgba(0, 0, 0, .3);
@@ -334,6 +369,24 @@ button[type="menu-button"] > button {
   toolbar[brighttext] .toolbarbutton-1 .toolbarbutton-menu-dropmarker,
   toolbar[brighttext] .toolbarbutton-1 > .toolbarbutton-menubutton-dropmarker {
     list-style-image: url("chrome://messenger/skin/icons/toolbarbutton-arrow-inverted.png");
+  }
+
+  @media (min-resolution: 1.1dppx) {
+    .toolbarbutton-1 .toolbarbutton-menu-dropmarker > .dropmarker-icon,
+    .toolbarbutton-1 > .toolbarbutton-menubutton-dropmarker > .dropmarker-icon {
+      width: 9px;
+      height: 7px;
+    }
+
+    .toolbarbutton-1 .toolbarbutton-menu-dropmarker,
+    .toolbarbutton-1 > .toolbarbutton-menubutton-dropmarker {
+      list-style-image: url("chrome://messenger/skin/icons/toolbarbutton-arrow@2x.png");
+    }
+
+    toolbar[brighttext] .toolbarbutton-1 .toolbarbutton-menu-dropmarker,
+    toolbar[brighttext] .toolbarbutton-1 > .toolbarbutton-menubutton-dropmarker {
+      list-style-image: url("chrome://messenger/skin/icons/toolbarbutton-arrow-inverted@2x.png");
+    }
   }
 
   @media (-moz-windows-default-theme) {
@@ -435,7 +488,7 @@ button[type="menu-button"] > button {
     }
   }
 
-  .noIconPopup > menuseparator {
+  menulist > menupopup:not([type="folder"]) > menuseparator {
     -moz-appearance: none;
     margin-top: 3px;
     margin-bottom: 3px;
@@ -450,6 +503,7 @@ button[type="menu-button"] > button {
   :root {
     --toolbarbutton-hover-background: linear-gradient(hsla(0, 0%, 100%, .6), hsla(0, 0%, 100%, .1));
     --toolbarbutton-hover-bordercolor: hsla(210, 54%, 20%, .15) hsla(210, 54%, 20%, .2) hsla(210, 54%, 20%, .25);
+    --toolbarbutton-header-bordercolor: hsla(210, 54%, 20%, .15) hsla(210, 54%, 20%, .2) hsla(210, 54%, 20%, .25);
     --toolbarbutton-hover-boxshadow: 0 1px hsla(0, 0%, 100%, .3) inset,
                                      0 1px hsla(210, 54%, 20%, .03),
                                      0 0 2px hsla(210, 54%, 20%, .1);
@@ -506,6 +560,13 @@ button[type="menu-button"] > button {
   .toolbarbutton-1:not([disabled="true"]):-moz-any(:hover,[open="true"]) >
   .toolbarbutton-menubutton-dropmarker {
     border-inline-start-color: hsla(210, 54%, 20%, .35);
+  }
+}
+
+@media (-moz-os-version: windows-win8),
+       (-moz-os-version: windows-win10) {
+  :root:not(:-moz-lwtheme) {
+    --fgTabTexture: linear-gradient(transparent, transparent)
   }
 }
 

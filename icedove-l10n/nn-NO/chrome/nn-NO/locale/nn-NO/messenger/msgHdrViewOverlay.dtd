@@ -5,6 +5,7 @@
 <!ENTITY toField4.label "Til">
 <!ENTITY fromField4.label "Frå">
 <!ENTITY senderField4.label "Avsendar">
+
 <!ENTITY organizationField4.label "Organisasjon">
 <!ENTITY replyToField4.label "Svar til">
 
@@ -13,7 +14,7 @@
 <!ENTITY bccField4.label "Blindkopi">
 <!ENTITY newsgroupsField4.label "Gruppe">
 <!ENTITY followupToField4.label "Oppfølging">
-<!ENTITY tagsHdr4.label "Merkelappar">
+<!ENTITY tagsHdr4.label "Merkelapp-stikkord">
 <!ENTITY dateField4.label "Dato">
 <!ENTITY userAgentField4.label "Program">
 <!ENTITY referencesField4.label "Referansar">
@@ -23,6 +24,8 @@
 
 <!ENTITY hdrArchiveButton1.label "Arkiver">
 <!ENTITY hdrArchiveButton1.tooltip "Arkiver denne meldinga">
+
+
 <!ENTITY hdrSmartReplyButton1.label "Smart svar">
 <!ENTITY hdrReplyButton1.label "Svar">
 <!ENTITY hdrReplyButton2.tooltip "Svar til avsendaren av denne meldinga">
@@ -57,42 +60,42 @@
 <!ENTITY otherActionsOpenInNewWindow1.accesskey "n">
 <!ENTITY otherActionsOpenInNewTab1.label "Opna i ny fane">
 <!ENTITY otherActionsOpenInNewTab1.accesskey "e">
-<!ENTITY markAsReadMenuItem1.label "Merk som lest">
+<!ENTITY markAsReadMenuItem1.label "Marker som lesen">
 <!ENTITY markAsReadMenuItem1.accesskey "M">
-<!ENTITY markAsUnreadMenuItem1.label "Merk som ulesen">
+<!ENTITY markAsUnreadMenuItem1.label "Marker som ulesen">
 <!ENTITY markAsUnreadMenuItem1.accesskey "M">
-<!ENTITY saveAsMenuItem1.label "Lagra som …">
+<!ENTITY saveAsMenuItem1.label "Lagra som…">
 <!ENTITY saveAsMenuItem1.accesskey "s">
 <!ENTITY viewSourceMenuItem1.label "Vis kjeldekode">
 <!ENTITY viewSourceMenuItem1.accesskey "V">
 <!ENTITY otherActionsPrint1.label "Skriv ut …">
 <!ENTITY otherActionsPrint1.accesskey "S">
-
 <!-- Attachment bar context menu items -->
+
 <!ENTITY startExpandedCmd.label    "Vis vedleggspanelet initielt">
 <!ENTITY startExpandedCmd.accesskey    "V">
-
 <!-- Attachment context menu items -->
+
 <!ENTITY openAttachmentCmd.label    "Opna">
 <!ENTITY openAttachmentCmd.accesskey    "O">
-<!ENTITY saveAsAttachmentCmd.label    "Lagra som …">
+<!ENTITY saveAsAttachmentCmd.label    "Lagra som…">
 <!ENTITY saveAsAttachmentCmd.accesskey    "s">
 <!ENTITY detachAttachmentCmd.label    "Splitt …">
-<!ENTITY detachAttachmentCmd.accesskey    "T">
+<!ENTITY detachAttachmentCmd.accesskey    "t">
 <!ENTITY deleteAttachmentCmd.label    "Slett">
-<!ENTITY deleteAttachmentCmd.accesskey    "L">
+<!ENTITY deleteAttachmentCmd.accesskey    "l">
 <!ENTITY openAllAttachmentsCmd.label    "Opna alle …">
 <!ENTITY openAllAttachmentsCmd.accesskey    "O">
 <!ENTITY saveAllAttachmentsCmd.label    "Lagra alle …">
 <!ENTITY saveAllAttachmentsCmd.accesskey    "L">
 <!ENTITY detachAllAttachmentsCmd.label    "Splitt alle …">
 <!ENTITY detachAllAttachmentsCmd.accesskey    "S">
-<!ENTITY deleteAllAttachmentsCmd.label    "Slett alle …">
+<!ENTITY deleteAllAttachmentsCmd.label    "Slett alle…">
 <!ENTITY deleteAllAttachmentsCmd.accesskey    "e">
 
 <!ENTITY openAttachment.tooltip "Opna vedlagde fil">
-
 <!-- Attachment toolbar items -->
+
 <!ENTITY saveAttachmentButton1.label       "Lagra">
 <!ENTITY saveAttachmentButton1.tooltip     "Lagra vedlagde fil">
 <!ENTITY saveAllAttachmentsButton1.label   "Lagra alle">
@@ -107,3 +110,7 @@
 <!ENTITY OpenMessageForMsgId.accesskey "n">
 <!ENTITY OpenBrowserWithMsgId.label "Opna nettlesar med meldings-ID">
 <!ENTITY OpenBrowserWithMsgId.accesskey "e">
+
+<!ENTITY author.label "Author">
+<!ENTITY hdrOpenConversationButton1.label "Conversation">
+<!ENTITY hdrOpenConversationButton1.tooltip "Show conversation of this message">

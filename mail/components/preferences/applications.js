@@ -1,9 +1,7 @@
-/*
-# -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-# This Source Code Form is subject to the terms of the Mozilla Public
-# License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at http://mozilla.org/MPL/2.0/.
- */
+/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 //****************************************************************************//
 // Constants & Enumeration Values
@@ -21,18 +19,6 @@ var PREF_HIDE_PLUGINS_WITHOUT_EXTENSIONS =
 // identifying the "use plugin" action, so we use this constant instead.
 var kActionUsePlugin = 5;
 
-/*
-#ifdef MOZ_WIDGET_GTK
-*/
-var ICON_URL_APP      = "moz-icon://dummy.exe?size=16";
-/*
-#else
-*/
-var ICON_URL_APP      = "chrome://messenger/skin/preferences/application.png";
-/*
-#endif
-*/
-
 // For CSS. Can be one of "ask", "save", "plugin" or "feed". If absent, the icon URL
 // was set by us to a custom handler icon and CSS should not try to override it.
 var APP_ICON_ATTR_NAME = "appHandlerIcon";
@@ -46,32 +32,27 @@ Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 // Utilities
 
 function getDisplayNameForFile(aFile) {
-/*
-#ifdef XP_WIN
-*/
-  if (aFile instanceof Components.interfaces.nsILocalFileWin) {
-    try {
-      return aFile.getVersionInfoField("FileDescription");
-    }
-    catch(ex) {
-      // fall through to the file name
-    }
-  }
-/*
-#endif
-#ifdef XP_MACOSX
-*/
-  if (aFile instanceof Components.interfaces.nsILocalFileMac) {
-    try {
-      return aFile.bundleDisplayName;
-    }
-    catch(ex) {
-      // fall through to the file name
+  if (AppConstants.platform == "win") {
+    if (aFile instanceof Components.interfaces.nsILocalFileWin) {
+      try {
+        return aFile.getVersionInfoField("FileDescription");
+      }
+      catch(ex) {
+        // fall through to the file name
+      }
     }
   }
-/*
-#endif
-*/
+  else if (AppConstants.platform == "macosx") {
+    if (aFile instanceof Components.interfaces.nsILocalFileMac) {
+      try {
+        return aFile.bundleDisplayName;
+      }
+      catch(ex) {
+        // fall through to the file name
+      }
+    }
+  }
+
   return aFile.leafName;
 }
 
@@ -550,7 +531,7 @@ var gCloudFileTab = {
     if (this._list.itemCount > 0)
       this._list.selectedIndex = 0;
 
-    window.addEventListener("unload", this, false);
+    window.addEventListener("unload", this, {capture: false, once: true});
     CommandUpdate_CloudFile();
 
     this.updateThreshold();
@@ -561,7 +542,6 @@ var gCloudFileTab = {
   destroy: function CFT_destroy() {
     // Remove any controllers or observers here.
     top.controllers.removeController(gCloudFileController);
-    window.removeEventListener("unload", this, false);
   },
 
   makeRichListItemForAccount: function CFT_makeRichListItemForAccount(aAccount) {
@@ -620,7 +600,7 @@ var gCloudFileTab = {
 
     accounts.sort(sortAccounts);
 
-    for (let [, account] in Iterator(accounts)) {
+    for (let account of accounts) {
       let rli = this.makeRichListItemForAccount(account);
       this._list.appendChild(rli);
       if (!(account.accountKey in this._accountCache))
@@ -737,9 +717,6 @@ var gCloudFileTab = {
     // When the iframe loads, populate it with the provider.
     this._settings.contentWindow.addEventListener("load",
       function loadProvider() {
-        iframe.contentWindow.removeEventListener("load",
-                                                 loadProvider,
-                                                 false);
         try {
           iframe.contentWindow
                 .wrappedJSObject
@@ -747,22 +724,18 @@ var gCloudFileTab = {
         } catch(e) {
           Components.utils.reportError(e);
         }
-      }, false);
+      }, {capture: false, once: true});
 
     // When the iframe (or any subcontent) fires the DOMContentLoaded event,
     // attach the _onClickLink handler to any anchor elements that we can find.
     this._settings.contentWindow.addEventListener("DOMContentLoaded",
       function addClickListeners(e) {
-        iframe.contentWindow.removeEventListener("DOMContentLoaded",
-                                                 addClickListeners,
-                                                 false);
-
         let doc = e.originalTarget;
         let links = doc.getElementsByTagName("a");
 
-        for (let [, link] in Iterator(links))
+        for (let link of links)
           link.addEventListener("click", gCloudFileTab._onClickLink);
-      }, false);
+      }, {capture: false, once: true});
 
     CommandUpdate_CloudFile();
   },
@@ -905,7 +878,7 @@ var gApplicationsPane = {
     Services.prefs.addObserver(PREF_HIDE_PLUGINS_WITHOUT_EXTENSIONS, this, false);
 
     // Listen for window unload so we can remove our preference observers.
-    window.addEventListener("unload", this, false);
+    window.addEventListener("unload", this, {capture: false, once: true});
 
     // Figure out how we should be sorting the list.  We persist sort settings
     // across sessions, so we can't assume the default sort column/direction.
@@ -939,7 +912,6 @@ var gApplicationsPane = {
   },
 
   destroy: function() {
-    window.removeEventListener("unload", this, false);
     Services.prefs.removeObserver(PREF_SHOW_PLUGINS_IN_LIST, this);
     Services.prefs.removeObserver(PREF_HIDE_PLUGINS_WITHOUT_EXTENSIONS, this);
   },
@@ -1296,21 +1268,19 @@ var gApplicationsPane = {
   },
 
   _isValidHandlerExecutable: function(aExecutable) {
-    return aExecutable &&
-           aExecutable.exists() &&
-           aExecutable.isExecutable() &&
+    let isExecutable = aExecutable &&
+                       aExecutable.exists() &&
+                       aExecutable.isExecutable();
 // XXXben - we need to compare this with the running instance executable
 //          just don't know how to do that via script...
 // XXXmano TBD: can probably add this to nsIShellService
-#ifdef XP_WIN
-#expand    aExecutable.leafName != "__MOZ_APP_NAME__.exe";
-#else
-#ifdef XP_MACOSX
-#expand    aExecutable.leafName != "__MOZ_MACBUNDLE_NAME__";
-#else
-#expand    aExecutable.leafName != "__MOZ_APP_NAME__-bin";
-#endif
-#endif
+    if (AppConstants.platform == "win")
+      return isExecutable && (aExecutable.leafName != (AppConstants.MOZ_APP_NAME + ".exe"));
+
+    if (AppConstants.platform == "macosx")
+      return isExecutable && (aExecutable.leafName != AppConstants.MOZ_MACBUNDLE_NAME);
+
+    return isExecutable && (aExecutable.leafName != (AppConstants.MOZ_APP_NAME + "-bin"));
   },
 
   /**
@@ -1416,14 +1386,18 @@ var gApplicationsPane = {
     }
 
     // Create a menu item for selecting a local application.
-#ifdef XP_WIN
-    // On Windows, selecting an application to open another application
-    // would be meaningless so we special case executables.
-    var executableType = Components.classes["@mozilla.org/mime;1"]
-                                   .getService(Components.interfaces.nsIMIMEService)
-                                   .getTypeFromExtension("exe");
-    if (handlerInfo.type != executableType)
-#endif
+    let createItem = true;
+    if (AppConstants.platform == "win") {
+      // On Windows, selecting an application to open another application
+      // would be meaningless so we special case executables.
+      var executableType = Components.classes["@mozilla.org/mime;1"]
+                                     .getService(Components.interfaces.nsIMIMEService)
+                                     .getTypeFromExtension("exe");
+      if (handlerInfo.type == executableType)
+        createItem = false;
+    }
+
+    if (createItem)
     {
       let menuItem = document.createElement("menuitem");
       menuItem.setAttribute("oncommand", "gApplicationsPane.chooseApp(event)");
@@ -1650,7 +1624,7 @@ var gApplicationsPane = {
 
     var handlerApp;
 
-#ifdef XP_WIN
+    if (AppConstants.platform == "win") {
     var params = {};
     var handlerInfo = this._handledTypes[this._list.selectedItem.type];
 
@@ -1678,7 +1652,7 @@ var gApplicationsPane = {
       // Add the app to the type's list of possible handlers.
       handlerInfo.addPossibleApplicationHandler(handlerApp);
     }
-#else
+    } else {
     var fp = Components.classes["@mozilla.org/filepicker;1"].createInstance(Components.interfaces.nsIFilePicker);
     var winTitle = this._prefsBundle.getString("fpTitleChooseApp");
     fp.init(window, winTitle, Components.interfaces.nsIFilePicker.modeOpen);
@@ -1697,7 +1671,7 @@ var gApplicationsPane = {
       let handlerInfo = this._handledTypes[this._list.selectedItem.type];
       handlerInfo.addPossibleApplicationHandler(handlerApp);
     }
-#endif
+    }
 
     // Rebuild the actions menu whether the user picked an app or canceled.
     // If they picked an app, we want to add the app to the menu and select it.

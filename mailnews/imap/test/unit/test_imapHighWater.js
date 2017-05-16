@@ -68,7 +68,7 @@ function run_test()
   actually_run_test();
 }
 
-function setupFolders() {
+function* setupFolders() {
   // make 10 messges
   let messageGenerator = new MessageGenerator();
   let scenarioFactory = new MessageScenarioFactory(messageGenerator);
@@ -92,7 +92,7 @@ function setupFolders() {
   yield true;
 }
 
-function doMoves() {
+function* doMoves() {
   // update folders to download headers.
   gIMAPInbox.updateFolderWithListener(null, UrlListener);
   yield false;
@@ -104,7 +104,7 @@ function doMoves() {
   let headers1 = Cc["@mozilla.org/array;1"]
                    .createInstance(Ci.nsIMutableArray);
   let msgEnumerator = gIMAPInbox.msgDatabase.EnumerateMessages();
-  for (i = 0; i < 5 && msgEnumerator.hasMoreElements(); i++)
+  for (let i = 0; i < 5 && msgEnumerator.hasMoreElements(); i++)
   {
     let header = msgEnumerator.getNext();
     if (header instanceof Components.interfaces.nsIMsgDBHdr)
@@ -124,7 +124,7 @@ function doMoves() {
   headers1 = Cc["@mozilla.org/array;1"]
                 .createInstance(Ci.nsIMutableArray);
   msgEnumerator = gIMAPInbox.msgDatabase.EnumerateMessages();
-  for (i = 0; i < 5 && msgEnumerator.hasMoreElements(); i++)
+  for (let i = 0; i < 5 && msgEnumerator.hasMoreElements(); i++)
   {
     let header = msgEnumerator.getNext();
     if (header instanceof Components.interfaces.nsIMsgDBHdr)
@@ -185,7 +185,7 @@ function actually_run_test() {
   async_run_tests(tests);
 }
 
-function endTest()
+function* endTest()
 {
   Services.io.offline = true;
   gServer.performTest("LOGOUT");

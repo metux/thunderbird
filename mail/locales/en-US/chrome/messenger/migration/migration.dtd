@@ -7,6 +7,7 @@
 
 <!ENTITY importFromWin.label            "Import Options, Account Settings, Address Book, Filters and other data from:">
 <!ENTITY importFromNonWin.label         "Import Preferences, Account Settings, Address Book, Filters, and other data from:">
+<!ENTITY importSourceNotFound.label     "No application to import data from found.">
 
 <!ENTITY importFromNothing.label        "Don't import anything">
 <!ENTITY importFromNothing.accesskey    "D">
@@ -16,8 +17,6 @@
 <!ENTITY importFromOExpress.accesskey   "u">
 <!ENTITY importFromOutlook.label        "Outlook">
 <!ENTITY importFromOutlook.accesskey    "O">
-<!ENTITY importFromEudora.label         "Eudora">
-<!ENTITY importFromEudora.accesskey     "E">
 
 <!ENTITY importSource.title             "Import Settings and Mail Folders">
 <!ENTITY importItems.title              "Items to Import">

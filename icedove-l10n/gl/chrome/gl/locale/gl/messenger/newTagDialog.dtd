@@ -6,3 +6,8 @@
 <!ENTITY newTagDialog.title      "Crear nova etiqueta">
 <!ENTITY name.label              "Nome da etiqueta:">
 <!ENTITY name.accesskey          "e">
+
+
+
+<!-- New Tag Dialog -->
+<!ENTITY newTagDialog1.title     "New Tag">

@@ -4,12 +4,12 @@ locale branding cy cy/locale/cy/branding/
 locale chat cy cy/locale/cy/chat/
 locale communicator cy cy/locale/cy/communicator/
 locale cookie cy cy/locale/cy/cookie/
+locale devtools cy cy/locale/cy/devtools/client/
 locale devtools-shared cy cy/locale/cy/devtools/shared/
 locale editor cy cy/locale/cy/editor/
 locale formautofill cy cy/locale/cy/formautofill/
 locale global cy cy/locale/cy/global/
 locale global-platform cy cy/locale/cy/global-platform/
-locale global-region cy cy/locale/cy/global-region/
 locale messenger cy cy/locale/cy/messenger/
 locale messenger-mapi cy cy/locale/cy/messenger-mapi/
 locale messenger-newsblog cy cy/locale/cy/messenger-newsblog/

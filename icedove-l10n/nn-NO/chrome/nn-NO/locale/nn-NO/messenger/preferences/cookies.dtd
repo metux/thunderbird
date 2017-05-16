@@ -9,7 +9,7 @@
 <!ENTITY cookiedomain.label                "Nettstad">
 <!ENTITY button.removecookie.label         "Slett infokapsel">
 <!ENTITY button.removecookie.accesskey     "S">
-<!ENTITY button.removeallcookies.label     "Slett alle infokapslane">
+<!ENTITY button.removeallcookies.label     "Slett alle infokapslar">
 <!ENTITY button.removeallcookies.accesskey "a">
 
 <!ENTITY props.name.label                  "Namn:">
@@ -18,6 +18,7 @@
 <!ENTITY props.path.label                  "Plassering:">
 <!ENTITY props.secure.label                "Send For:">
 <!ENTITY props.expires.label               "Går ut:">
+<!ENTITY props.container.label             "Konteinar:">
 
 <!ENTITY window.title                      "Infokapslar">
 <!ENTITY windowClose.key                   "w">

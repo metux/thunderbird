@@ -13,6 +13,7 @@
 <!ENTITY locationEditField.label "Ofbyldingslokaasje:">
 <!ENTITY locationEditField.accessKey "f">
 <!ENTITY locationEditField.tooltip "Typ de bestânsnamme of -lokaasje fan de ôfbylding">
+<!ENTITY locationEditField.shortenedDataURI "Ynkoarte URI-gegevens (kopiearjen sil de folsleine URI op it klamboerd sette)">
 <!ENTITY title.label "Arktip:">
 <!ENTITY title.accessKey "t">
 <!ENTITY title.tooltip "It HTML-attribút ‘title’ dat ferskynt as sweefjende tip">
@@ -26,8 +27,8 @@
 
 <!-- These controls are in the Dimensions tab panel -->
 <!-- actualSize.label should be same as actualSizeRadio.label + ":" -->
-<!ENTITY actualSize.label "Wurklike ôfmjittingen:">
-<!ENTITY actualSizeRadio.label "Wurklike ôfmjittingen">
+<!ENTITY actualSize.label "Werklike ôfmjittingen:">
+<!ENTITY actualSizeRadio.label "Werklike ôfmjittingen">
 <!ENTITY actualSizeRadio.accessKey "W">
 <!ENTITY actualSizeRadio.tooltip "De ôfbylding werombringe oant syn orzjinele ôfmjittingen">
 <!ENTITY customSizeRadio.label "Oanpaste ôfmjittingen">
@@ -51,12 +52,12 @@
 <!ENTITY bottomPopup.value "Underoan">
 <!ENTITY topPopup.value "Boppe-oan">
 <!ENTITY centerPopup.value "Yn it midden">
-<!ENTITY wrapRightPopup.value "Rjochts útlynje">
-<!ENTITY wrapLeftPopup.value "Links útlynje">
+<!ENTITY wrapRightPopup.value "Rjochts rjochtsje">
+<!ENTITY wrapLeftPopup.value "Lofts rjochtsje">
 
 <!-- These controls are in the Spacing Box -->
 <!ENTITY spacingBox.label "Marzjes">
-<!ENTITY leftRightEditField.label "Links en rjochts">
+<!ENTITY leftRightEditField.label "Lofts en rjochts">
 <!ENTITY leftRightEditField.accessKey "s">
 <!ENTITY topBottomEditField.label "Boppe en ûnder:">
 <!ENTITY topBottomEditField.accessKey "o">

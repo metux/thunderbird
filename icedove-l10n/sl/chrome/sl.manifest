@@ -4,12 +4,12 @@ locale branding sl sl/locale/sl/branding/
 locale chat sl sl/locale/sl/chat/
 locale communicator sl sl/locale/sl/communicator/
 locale cookie sl sl/locale/sl/cookie/
+locale devtools sl sl/locale/sl/devtools/client/
 locale devtools-shared sl sl/locale/sl/devtools/shared/
 locale editor sl sl/locale/sl/editor/
 locale formautofill sl sl/locale/sl/formautofill/
 locale global sl sl/locale/sl/global/
 locale global-platform sl sl/locale/sl/global-platform/
-locale global-region sl sl/locale/sl/global-region/
 locale messenger sl sl/locale/sl/messenger/
 locale messenger-mapi sl sl/locale/sl/messenger-mapi/
 locale messenger-newsblog sl sl/locale/sl/messenger-newsblog/

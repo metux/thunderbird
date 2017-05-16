@@ -44,3 +44,5 @@
 <!ENTITY templatesFolderOn.accesskey "m">
 <!ENTITY templateInOtherFolder.label "Khác:">
 <!ENTITY templateInOtherFolder.accesskey "c">
+
+<!ENTITY keepDrafts2.label "Keep draft messages in:">

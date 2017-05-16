@@ -26,12 +26,12 @@ var taskEdit = {
      * Set the currently observed calendar, removing listeners to any old
      * calendar set and adding listeners to the new one.
      */
-    set observedCalendar(v) {
+    set observedCalendar(aCalendar) {
         if (this.mObservedCalendar) {
             this.mObservedCalendar.removeObserver(this.calendarObserver);
         }
 
-        this.mObservedCalendar = v;
+        this.mObservedCalendar = aCalendar;
 
         if (this.mObservedCalendar) {
             this.mObservedCalendar.addObserver(this.calendarObserver);
@@ -47,7 +47,7 @@ var taskEdit = {
      * @param aDisable  A boolean if the target should be disabled.
      * @param aValue    The value that should be set on the target.
      */
-    setupTaskField: function tE_setupTaskField(aTarget, aDisable, aValue) {
+    setupTaskField: function(aTarget, aDisable, aValue) {
         aTarget.value = aValue;
         setElementValue(aTarget, aDisable && "true", "readonly");
         setElementValue(aTarget, aDisable && "true", "aria-disabled");
@@ -58,28 +58,28 @@ var taskEdit = {
      *
      * @param aEvent    The DOM focus event
      */
-    onFocus: function tE_onFocus(aEvent) {
-        var edit = aEvent.target;
+    onFocus: function(aEvent) {
+        let edit = aEvent.target;
         if (edit.localName == "input") {
             // For some reason, we only receive an onfocus event for the textbox
             // when debugging with venkman.
             edit = edit.parentNode.parentNode;
         }
 
-        var calendar = getSelectedCalendar();
+        let calendar = getSelectedCalendar();
         edit.showsInstructions = true;
 
         if (calendar.getProperty("capabilities.tasks.supported") === false) {
             taskEdit.setupTaskField(edit,
                                     true,
                                     calGetString("calendar", "taskEditInstructionsCapability"));
-        } else if (!isCalendarWritable(calendar)) {
+        } else if (isCalendarWritable(calendar)) {
+            edit.showsInstructions = false;
+            taskEdit.setupTaskField(edit, false, edit.savedValue || "");
+        } else {
             taskEdit.setupTaskField(edit,
                                     true,
                                     calGetString("calendar", "taskEditInstructionsReadonly"));
-        } else {
-            edit.showsInstructions = false;
-            taskEdit.setupTaskField(edit, false, edit.savedValue || "");
         }
     },
 
@@ -88,7 +88,7 @@ var taskEdit = {
      *
      * @param aEvent    The DOM blur event
      */
-    onBlur: function tE_onBlur(aEvent) {
+    onBlur: function(aEvent) {
         let edit = aEvent.target;
         if (edit.localName == "input") {
             // For some reason, we only receive the blur event for the input
@@ -103,21 +103,21 @@ var taskEdit = {
             return;
         }
 
-        if (calendar.getProperty("capabilities.tasks.supported") === false){
+        if (calendar.getProperty("capabilities.tasks.supported") === false) {
             taskEdit.setupTaskField(edit,
                                     true,
                                     calGetString("calendar", "taskEditInstructionsCapability"));
-        } else if (!isCalendarWritable(calendar)) {
-            taskEdit.setupTaskField(edit,
-                                    true,
-                                    calGetString("calendar", "taskEditInstructionsReadonly"));
-        } else {
+        } else if (isCalendarWritable(calendar)) {
             if (!edit.showsInstructions) {
                 edit.savedValue = edit.value || "";
             }
             taskEdit.setupTaskField(edit,
                                     false,
                                     calGetString("calendar", "taskEditInstructions"));
+        } else {
+            taskEdit.setupTaskField(edit,
+                                    true,
+                                    calGetString("calendar", "taskEditInstructionsReadonly"));
         }
         edit.showsInstructions = true;
     },
@@ -127,7 +127,7 @@ var taskEdit = {
      *
      * @param aEvent    The DOM keypress event
      */
-    onKeyPress: function tE_onKeyPress(aEvent) {
+    onKeyPress: function(aEvent) {
         if (aEvent.keyCode == Components.interfaces.nsIDOMKeyEvent.DOM_VK_RETURN) {
             let edit = aEvent.target;
             if (edit.value && edit.value.length > 0) {
@@ -136,7 +136,7 @@ var taskEdit = {
                 item.title = edit.value;
 
                 edit.value = "";
-                doTransaction('add', item, item.calendar, null, null);
+                doTransaction("add", item, item.calendar, null, null);
             }
         }
     },
@@ -145,11 +145,11 @@ var taskEdit = {
      * Window load function to set up all quick-add textboxes. The texbox must
      * have the class "task-edit-field".
      */
-    onLoad: function tE_onLoad(aEvent) {
+    onLoad: function(aEvent) {
         window.removeEventListener("load", taskEdit.onLoad, false);
         // TODO use getElementsByClassName
-        var taskEditFields = document.getElementsByAttribute("class", "task-edit-field");
-        for (var i = 0; i < taskEditFields.length; i++) {
+        let taskEditFields = document.getElementsByAttribute("class", "task-edit-field");
+        for (let i = 0; i < taskEditFields.length; i++) {
             taskEdit.onBlur({ target: taskEditFields[i] });
         }
 
@@ -160,7 +160,7 @@ var taskEdit = {
     /**
      * Window load function to clean up all quick-add fields.
      */
-    onUnload: function tE_onUnload() {
+    onUnload: function() {
         getCompositeCalendar().removeObserver(taskEdit.compositeObserver);
         taskEdit.observedCalendar = null;
     },
@@ -183,10 +183,7 @@ var taskEdit = {
         onDeleteItem: function(aDeletedItem) {},
         onError: function(aCalendar, aErrNo, aMessage) {},
 
-        onPropertyChanged: function tE_calObs_onPropertyChanged(aCalendar,
-                                                         aName,
-                                                         aValue,
-                                                         aOldValue) {
+        onPropertyChanged: function(aCalendar, aName, aValue, aOldValue) {
             if (aCalendar.id != getSelectedCalendar().id) {
                 // Optimization: if the given calendar isn't the default calendar,
                 // then we don't need to change any readonly/disabled states.
@@ -194,16 +191,17 @@ var taskEdit = {
             }
             switch (aName) {
                 case "readOnly":
-                case "disabled":
-                    var taskEditFields = document.getElementsByAttribute("class", "task-edit-field");
-                    for (var i = 0; i < taskEditFields.length; i++) {
+                case "disabled": {
+                    let taskEditFields = document.getElementsByAttribute("class", "task-edit-field");
+                    for (let i = 0; i < taskEditFields.length; i++) {
                         taskEdit.onBlur({ target: taskEditFields[i] });
                     }
+                    break;
+                }
             }
         },
 
-        onPropertyDeleting: function tE_calObs_onPropertyDeleting(aCalendar,
-                                                           aName) {
+        onPropertyDeleting: function(aCalendar, aName) {
             // Since the old value is not used directly in onPropertyChanged,
             // but should not be the same as the value, set it to a different
             // value.
@@ -236,11 +234,11 @@ var taskEdit = {
         onPropertyDeleting: function(aCalendar, aName) {},
 
         // calICompositeObserver:
-        onCalendarAdded: function onCalendarAdded(aCalendar) {},
-        onCalendarRemoved: function onCalendarRemoved(aCalendar) {},
-        onDefaultCalendarChanged: function tE_compObs_onDefaultCalendarChanged(aNewDefault) {
-            var taskEditFields = document.getElementsByAttribute("class", "task-edit-field");
-            for (var i = 0; i < taskEditFields.length; i++) {
+        onCalendarAdded: function(aCalendar) {},
+        onCalendarRemoved: function(aCalendar) {},
+        onDefaultCalendarChanged: function(aNewDefault) {
+            let taskEditFields = document.getElementsByAttribute("class", "task-edit-field");
+            for (let i = 0; i < taskEditFields.length; i++) {
                 taskEdit.onBlur({ target: taskEditFields[i] });
             }
             taskEdit.observedCalendar = aNewDefault;

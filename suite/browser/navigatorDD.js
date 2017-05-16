@@ -54,7 +54,7 @@ function BeginDragLink(aEvent, aHref, aTitle)
   var dt = aEvent.dataTransfer;
   dt.setData("text/x-moz-url", aHref + "\n" + aTitle);
   dt.setData("text/uri-list", aHref);
-  dt.setData("text/html", "<a href=\"" + htmlEscape(aHref) + 
+  dt.setData("text/html", "<a href=\"" + htmlEscape(aHref) +
                           "\">" + htmlEscape(aTitle) + "</a>");
   dt.setData("text/plain", aHref);
 }
@@ -137,9 +137,10 @@ var goButtonObserver = {
   onDrop: function (aEvent)
   {
     var url = Services.droppedLinkHandler.dropLink(aEvent, {});
-    promiseShortcutOrURI(url).then(([url, postData]) => {
-      if (url)
-        loadURI(url, null, postData, false);
+
+    getShortcutOrURIAndPostData(url).then(data => {
+      if (data.url)
+        loadURI(data.url, null, data.postData, false);
     });
   }
 };

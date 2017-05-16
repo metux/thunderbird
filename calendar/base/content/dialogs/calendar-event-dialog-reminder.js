@@ -2,12 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/* exported onLoad, onReminderSelected, updateReminder, onNewReminder,
+ *          onRemoveReminder, onAccept, onCancel
+ */
+
 Components.utils.import("resource://calendar/modules/calUtils.jsm");
 Components.utils.import("resource://calendar/modules/calIteratorUtils.jsm");
 Components.utils.import("resource://gre/modules/PluralForm.jsm");
 Components.utils.import("resource://gre/modules/Preferences.jsm");
 
-var allowedActionsMap = {}; 
+var allowedActionsMap = {};
 
 /**
  * Sets up the reminder dialog.
@@ -38,18 +42,18 @@ function onLoad() {
 
     // Set up the action map
     let supportedActions = calendar.getProperty("capabilities.alarms.actionValues") ||
-                           ["DISPLAY" /* TODO email support, "EMAIL" */];
-    for each (let action in supportedActions) {
+                           ["DISPLAY"]; // TODO email support, "EMAIL"
+    for (let action of supportedActions) {
         allowedActionsMap[action] = true;
     }
 
     // Hide all actions that are not supported by this provider
     let firstAvailableItem;
     let actionNodes = document.getElementById("reminder-actions-menupopup").childNodes;
-    for each (let actionNode in Array.slice(actionNodes)) {
-        let shouldHide = (!(actionNode.value in allowedActionsMap) ||
-                          (actionNode.hasAttribute("provider") &&
-                           actionNode.getAttribute("provider") != calendar.type));
+    for (let actionNode of actionNodes) {
+        let shouldHide = !(actionNode.value in allowedActionsMap) ||
+                         (actionNode.hasAttribute("provider") &&
+                          actionNode.getAttribute("provider") != calendar.type);
         setElementValue(actionNode, shouldHide && "true", "hidden");
         if (!firstAvailableItem && !shouldHide) {
             firstAvailableItem = actionNode;
@@ -98,7 +102,7 @@ function loadReminders() {
         // setting the selected index in a load handler makes the selection
         // break for the set item, therefore we need a setTimeout.
         setupMaxReminders();
-        setTimeout(function() { listbox.selectedIndex = 0; }, 0);
+        setTimeout(() => { listbox.selectedIndex = 0; }, 0);
     } else {
         // Make sure the fields are disabled if we have no alarms
         setupRadioEnabledState(true);
@@ -163,10 +167,10 @@ function setupMaxReminders() {
     // If we hit the maximum number of reminders, show the error box and
     // disable the new button.
     setElementValue("reminder-new-button", cond && "true", "disabled");
-    
+
     if (!setupMaxReminders.notification) {
         let notification = createXULElement("notification");
-        let localeErrorString = 
+        let localeErrorString =
             calGetString("calendar-alarms",
                          getItemBundleStringName("reminderErrorMaxCountReached"),
                          [maxReminders]);
@@ -184,9 +188,12 @@ function setupMaxReminders() {
     } else {
         try {
             notificationbox.removeNotification(setupMaxReminders.notification);
-        } catch (e if e.code == e.NOT_FOUND_ERR) {
-            // Its ok to swallow this, if the notification element hasn't been
-            // added then the call will throw a DOM NOT_FOUND_ERR.
+        } catch (e) {
+            // It's only ok to swallow this if the notification element hasn't been
+            // added. Then the call will throw a DOM NOT_FOUND_ERR.
+            if (e.code != e.NOT_FOUND_ERR) {
+                throw e;
+            }
         }
     }
 }
@@ -244,7 +251,7 @@ function onReminderSelected() {
             // Date
             absDate.value = cal.dateTimeToJsDate(reminder.alarmDate || cal.getDefaultStartDate());
         } else {
-            relationType.value =  "relative";
+            relationType.value = "relative";
 
             // Unit and length
             let alarmlen = Math.abs(reminder.offset.inSeconds / 60);
@@ -311,7 +318,6 @@ function updateReminder(event) {
     // Action
     reminder.action = action;
 
-    let relationType;
     if (relationItem.value == "relative") {
         if (origin == "START") {
             reminder.related = Components.interfaces.calIAlarm.ALARM_RELATED_START;
@@ -377,7 +383,7 @@ function onNewReminder() {
     if ("DISPLAY" in allowedActionsMap) {
         reminder.action = "DISPLAY";
     } else {
-        let calendar = window.arguments[0].calendar
+        let calendar = window.arguments[0].calendar;
         let actions = calendar.getProperty("capabilities.alarms.actionValues") || [];
         reminder.action = actions[0];
     }
@@ -402,8 +408,8 @@ function onNewReminder() {
 function onRemoveReminder() {
     let listbox = document.getElementById("reminder-listbox");
     let listitem = listbox.selectedItem;
-    let newSelection = (listitem ? listitem.nextSibling ||
-                                   listitem.previousSibling : null);
+    let newSelection = listitem ? listitem.nextSibling || listitem.previousSibling
+                                 : null;
 
     listbox.clearSelection();
     listitem.remove();
@@ -422,8 +428,7 @@ function onRemoveReminder() {
  */
 function onAccept() {
     let listbox = document.getElementById("reminder-listbox");
-    let reminders = [ node.reminder 
-                      for each (node in Array.slice(listbox.childNodes)) ];
+    let reminders = Array.from(listbox.childNodes).map(node => node.reminder);
     if (window.arguments[0].onOk) {
         window.arguments[0].onOk(reminders);
     }

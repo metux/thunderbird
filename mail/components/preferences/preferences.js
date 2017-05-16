@@ -3,6 +3,7 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 Components.utils.import("resource://gre/modules/Services.jsm");
+Components.utils.import("resource://gre/modules/AppConstants.jsm");
 Components.utils.import("resource:///modules/mailServices.js");
 
 window.addEventListener("load", function () {
@@ -56,9 +57,8 @@ function selectPaneAndTab(prefWindow, aPaneID, aTabID, aSubdialogID) {
     if (prefWindow.currentPane.id != prefPane.id) {
       if (aTabID && !prefPane.loaded) {
         prefPane.addEventListener("paneload", function showTabOnLoad() {
-          prefPane.removeEventListener("paneload", showTabOnLoad);
           showTab(prefPane, aTabID);
-        });
+        }, {once: true});
         tabOnEvent = true;
       }
       prefWindow.showPane(prefPane);

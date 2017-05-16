@@ -40,3 +40,5 @@
 <!ENTITY templatesFolderOn.accesskey "У">
 <!ENTITY templateInOtherFolder.label "Іншай:">
 <!ENTITY templateInOtherFolder.accesskey "ш">
+
+<!ENTITY keepDrafts2.label "Keep draft messages in:">

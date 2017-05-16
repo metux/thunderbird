@@ -1,17 +1,17 @@
 <!-- This Source Code Form is subject to the terms of the Mozilla Public
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
-
 <!-- extracted from am-server-top.xul -->
+
 
 <!ENTITY messageStorage.label "Meldingslagring">
 <!ENTITY securitySettings.label "Sikkerhetsinnstillinger">
 <!ENTITY serverSettings.label "Serverinnstillinger">
 <!ENTITY serverType.label "Servertype:">
 <!ENTITY serverName.label "Servernavn:">
-<!ENTITY serverName.accesskey "j">
+<!ENTITY serverName.accesskey "S">
 <!ENTITY userName.label "Brukernavn:">
-<!ENTITY userName.accesskey "N">
+<!ENTITY userName.accesskey "n">
 <!ENTITY port.label "Port:">
 <!ENTITY port.accesskey "P">
 <!ENTITY serverPortDefault.label "Std:">
@@ -23,6 +23,8 @@
 <!ENTITY biffStart.label "Se etter nye meldinger hvert">
 <!ENTITY biffStart.accesskey "e">
 <!ENTITY biffEnd.label "minutt">
+<!ENTITY useIdleNotifications.label "Tillat umiddelbare servervarsler når nye meldinger mottas">
+<!ENTITY useIdleNotifications.accesskey "T">
 <!ENTITY connectionSecurity.label "Tilkoblingssikkerhet:">
 <!ENTITY connectionSecurity.accesskey "o">
 <!ENTITY connectionSecurityType-0.label "Ingen">
@@ -62,7 +64,7 @@
    of messages between them
 -->
 <!ENTITY maxMessagesStart.label "Spør meg før nedlasting av mer enn">
-<!ENTITY maxMessagesStart.accesskey "M">
+<!ENTITY maxMessagesStart.accesskey "m">
 <!-- LOCALIZATION NOTE (maxMessagesEnd.label) : see note for maxMessagesStart.label -->
 <!ENTITY maxMessagesEnd.label "meldinger">
 <!ENTITY alwaysAuthenticate.label "Alltid spør etter autentisering ved tilkobling til denne serveren">
@@ -74,7 +76,7 @@
 <!ENTITY abbreviateOff.label "forkortede navn (for eksempel «n.p.m.mail-news»)">
 <!ENTITY advancedButton.label "Avansert …">
 <!ENTITY advancedButton.accesskey "A">
-<!ENTITY serverDefaultCharset.label "Standard tegnkoding:">
+<!ENTITY serverDefaultCharset2.label "Standard tekstkoding:">
 <!ENTITY localPath.label "Lokal mappe:">
 <!ENTITY localFolderPicker.label "Velg lokal mappe:">
 <!ENTITY browseFolder.label "Bla gjennom …">
@@ -86,10 +88,5 @@
 <!ENTITY accountSettingsDesc.label "Dette er en spesiell konto.  Ingen identiteter er tilknyttet den.">
 <!ENTITY storeType.label "Meldingslagertype:">
 <!ENTITY storeType.accesskey "t">
-<!ENTITY mboxStore.label "En stor fil (mbox)">
+<!ENTITY mboxStore2.label "Fil per mappe (mbox)">
 <!ENTITY maildirStore.label "En fil per melding (maildir)">
-
-<!ENTITY mboxStore2.label "File per folder (mbox)">
-<!ENTITY serverDefaultCharset2.label "Default Text Encoding:">
-<!ENTITY useIdleNotifications.accesskey "w">
-<!ENTITY useIdleNotifications.label "Allow immediate server notifications when new messages arrive">

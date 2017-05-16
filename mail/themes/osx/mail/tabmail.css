@@ -38,7 +38,7 @@
 }
 
 .tab-throbber {
-  list-style-image: url("chrome://messenger/skin/icons/loading.png") !important;
+  list-style-image: url("chrome://global/skin/icons/loading.png") !important;
   -moz-image-region: auto !important;
 }
 
@@ -59,13 +59,7 @@
     url(tabs/background-start.png);
 }
 
-@media (min-resolution: 2dppx) {
-  #tabs-toolbar {
-    --tabBackgroundImage: url(chrome://messenger/skin/tabs/background-start@2x.png),
-                          url(chrome://messenger/skin/tabs/background-middle@2x.png),
-                          url(chrome://messenger/skin/tabs/background-end@2x.png);
-  }
-
+@media (min-resolution: 1.1dppx) {
   /* image preloading hack */
   .tabmail-tabs::before {
     background-image:
@@ -79,24 +73,8 @@
       url(tabs/background-start@2x.png);
   }
 
-  .tab-background-middle[selected=true] {
-    background-image: url(tabs/active-middle@2x.png),
-                      var(--fgTabTexture),
-                      none;
-  }
-
-  .tab-background-start[selected=true]:-moz-locale-dir(ltr)::after,
-  .tab-background-end[selected=true]:-moz-locale-dir(rtl)::after {
-    background-image: url(tabs/stroke-start@2x.png);
-  }
-
-  .tab-background-end[selected=true]:-moz-locale-dir(ltr)::after,
-  .tab-background-start[selected=true]:-moz-locale-dir(rtl)::after {
-    background-image: url(tabs/stroke-end@2x.png);
-  }
-
   .tab-throbber {
-    list-style-image: url("chrome://messenger/skin/icons/loading@2x.png") !important;
+    list-style-image: url("chrome://global/skin/icons/loading@2x.png") !important;
   }
 
   .tabmail-tab[type="glodaSearch"] {
@@ -149,7 +127,7 @@
     background-image: url(tabs/stroke-end-yosemite-inactive.png);
   }
 
-  @media (min-resolution: 2dppx) {
+  @media (min-resolution: 1.1dppx) {
     /* image preloading hack */
     .tabmail-tabs::before {
       background-image:
@@ -231,7 +209,7 @@ tabmail > tabbox > tabpanels {
 .tab-drop-indicator {
   list-style-image: url(tabs/dragIndicator.png);
   margin-bottom: -3px;
-  -moz-padding-start: 26px;
+  padding-inline-start: 26px;
 }
 
 /* Tabstrip close button */
@@ -239,7 +217,7 @@ tabmail > tabbox > tabpanels {
 .tabs-closebutton {
   -moz-box-align: stretch;
   margin-top: 1px;
-  -moz-padding-end: 4px;
+  padding-inline-end: 4px;
   border: none;
 }
 
@@ -252,7 +230,7 @@ tabmail > tabbox > tabpanels {
  */
 
 .tab-close-button > .toolbarbutton-icon {
-  -moz-margin-end: 0px !important;
+  margin-inline-end: 0px !important;
 }
 
 .tab-close-button {
@@ -267,7 +245,7 @@ tabmail > tabbox > tabpanels {
   -moz-image-region: rect(0, 64px, 16px, 48px);
 }
 
-@media (min-resolution: 2dppx) {
+@media (min-resolution: 1.1dppx) {
   #tabs-toolbar[brighttext] .tabs-closebutton:not([selected=true]):not(:hover),
   #tabs-toolbar[brighttext] .tab-close-button.close-icon:not([selected=true]):not(:hover) {
     -moz-image-region: rect(0, 128px, 32px, 96px);
@@ -310,7 +288,7 @@ tabmail > tabbox > tabpanels {
   background-image: none !important;
 }
 
-@media (min-resolution: 2dppx) {
+@media (min-resolution: 1.1dppx) {
   .tabmail-arrowscrollbox > .scrollbutton-up,
   .tabmail-arrowscrollbox > .scrollbutton-down-stack > .scrollbutton-down {
     list-style-image: url(tabs/arrow@2x.png);
@@ -374,7 +352,7 @@ tabmail > tabbox > tabpanels {
 }
 
 .tabs-alltabs-button > .toolbarbutton-icon {
-  -moz-margin-end: 2px;
+  margin-inline-end: 2px;
 }
 
 .tabs-alltabs-box-animate {
@@ -397,11 +375,11 @@ tabmail > tabbox > tabpanels {
 }
 
 .alltabs-item[busy] {
-  list-style-image: url("chrome://messenger/skin/icons/loading.png") !important;
+  list-style-image: url("chrome://global/skin/icons/loading.png") !important;
   -moz-image-region: auto !important;
 }
 
-@media (min-resolution: 2dppx) {
+@media (min-resolution: 1.1dppx) {
   .tabs-alltabs-button {
     list-style-image: url(chrome://messenger/skin/tabs/alltabs-box-bkgnd-icon@2x.png);
     -moz-image-region: rect(0, 32px, 32px, 0);
@@ -417,7 +395,7 @@ tabmail > tabbox > tabpanels {
   }
 
   alltabs-item[busy] {
-    list-style-image: url("chrome://messenger/skin/icons/loading@2x.png") !important;
+    list-style-image: url("chrome://global/skin/icons/loading@2x.png") !important;
   }
 }
 

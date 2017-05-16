@@ -18,10 +18,10 @@
 <!ENTITY chooseFolderMac.label        "Chọn…">
 <!ENTITY chooseFolderMac.accesskey    "C">
 
-<!ENTITY addCloudFileAccount.accesskey    "A">
 <!ENTITY addCloudFileAccount.description  "Add a new Filelink storage service">
+<!ENTITY addCloudFileAccount1.accesskey   "A">
 
-<!ENTITY addCloudFileAccount.label        "Add">
+<!ENTITY addCloudFileAccount1.label       "Add…">
 
 <!ENTITY attachments.incoming.label   "Incoming">
 <!ENTITY attachments.outgoing.label   "Outgoing">

@@ -3,10 +3,11 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
 
-<!ENTITY migrationWizard.title          "Importeerassistent">
+<!ENTITY migrationWizard.title          "Importeerwizard">
 
 <!ENTITY importFromWin.label            "Opties, accountinstellingen, adresboek, filters en andere gegevens importeren uit:">
 <!ENTITY importFromNonWin.label         "Voorkeuren, accountinstellingen, adresboek en andere gegevens importeren uit:">
+<!ENTITY importSourceNotFound.label     "Er is geen toepassing gevonden om gegevens uit te importeren.">
 
 <!ENTITY importFromNothing.label        "Niets importeren">
 <!ENTITY importFromNothing.accesskey    "t">
@@ -16,8 +17,6 @@
 <!ENTITY importFromOExpress.accesskey   "u">
 <!ENTITY importFromOutlook.label        "Outlook">
 <!ENTITY importFromOutlook.accesskey    "O">
-<!ENTITY importFromEudora.label         "Eudora">
-<!ENTITY importFromEudora.accesskey     "E">
 
 <!ENTITY importSource.title             "Instellingen en e-mailmappen importeren">
 <!ENTITY importItems.title              "Te importeren items">

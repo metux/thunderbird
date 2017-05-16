@@ -516,7 +516,7 @@ var BookmarksEventHandler = {
     document.getElementById("Browser:BookmarkAllTabs")
             .setAttribute("disabled", !browser || browser.tabs.length == 1);
   },
-  
+
   fillInBHTooltip: function BEH_fillInBHTooltip(aDocument, aEvent) {
     var node;
     var cropped = false;
@@ -874,7 +874,7 @@ var BookmarksMenu = {
       let unsortedBookmarksElt =
         document.getElementById(aPrefix + "unsortedBookmarksFolderMenu");
       unsortedBookmarksElt.label =
-        PlacesUtils.getString("UnsortedBookmarksFolderTitle");
+        PlacesUtils.getString("OtherBookmarksFolderTitle");
     }
   },
 };

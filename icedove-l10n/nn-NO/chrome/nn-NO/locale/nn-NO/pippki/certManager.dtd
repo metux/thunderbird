@@ -39,10 +39,6 @@
 <!ENTITY certmgr.editcert.trustssl            "Dette sertifikatet kan identifisera nettsider.">
 <!ENTITY certmgr.editcert.trustemail          "Dette sertifikatet kan identifisera e-postbrukarar.">
 <!ENTITY certmgr.editcert.trustobjsign        "Dette sertifikatet kan identifisera programutviklarar.">
-<!ENTITY certmgr.editemailcert.title          "Rediger tiltru">
-<!ENTITY certmgr.editemailcert.edittrust      "Rediger tiltru:">
-<!ENTITY certmgr.editemailcert.dotrust        "Stol på sertifikatet.">
-<!ENTITY certmgr.editemailcert.donttrust      "Ikkje stol på sertifikatet.">
 
 <!ENTITY certmgr.deletecert.title             "Slett sertifikat">
 
@@ -61,16 +57,14 @@
 <!ENTITY certmgr.view2.accesskey              "V">
 <!ENTITY certmgr.edit3.label                  "Rediger tiltru …">
 <!ENTITY certmgr.edit3.accesskey              "R">
-<!ENTITY certmgr.editca.label                 "Rediger CA tiltru">
-<!ENTITY certmgr.editca.accesskey             "e">
 <!ENTITY certmgr.export.label                 "Eksporter …">
 <!ENTITY certmgr.export.accesskey             "k">
-<!ENTITY certmgr.delete2.label                "Slett …">
+<!ENTITY certmgr.delete2.label                "Slett…">
 <!ENTITY certmgr.delete2.accesskey            "S">
-<!ENTITY certmgr.delete_builtin.label         "Slett/opphev tiltru …">
+<!ENTITY certmgr.delete_builtin.label         "Slett/opphev tiltru…">
 <!ENTITY certmgr.delete_builtin.accesskey     "e">
 <!ENTITY certmgr.backup2.label                "Tryggingskopiar …">
-<!ENTITY certmgr.backup2.accesskey            "R">
+<!ENTITY certmgr.backup2.accesskey            "r">
 <!ENTITY certmgr.backupall2.label             "Tryggingskopier alt …">
 <!ENTITY certmgr.backupall2.accesskey         "s">
 <!ENTITY certmgr.restore2.label               "Importer …">

@@ -26,7 +26,12 @@
 <!ENTITY signingCert.message "Az alábbi tanúsítvány használata az Ön által küldött levelek aláírásához:">
 
 <!ENTITY certificates.label "Tanúsítványok">
-<!ENTITY manageCerts.label "Tanúsítványok megjelenítése">
-<!ENTITY manageCerts.accesskey "n">
+<!ENTITY manageCerts2.label "Tanúsítványok kezelése">
+<!ENTITY manageCerts2.accesskey "T">
 <!ENTITY manageDevices.label "Adatvédelmi eszközök">
 <!ENTITY manageDevices.accesskey "A">
+<!-- Strings for the cert picker dialog -->
+
+<!ENTITY certPicker.title "Válassza ki a tanúsítványt">
+<!ENTITY certPicker.info  "Tanúsítvány:">
+<!ENTITY certPicker.detailsLabel "A kijelölt tanúsítvány részletei:">

@@ -34,4 +34,6 @@
 <!ENTITY cmd.close.commandKey "w">
 <!ENTITY button.close.label "Зачыніць">
 
+<!ENTITY button.updateFeed.accesskey "U">
+<!ENTITY button.updateFeed.label     "Update">
 <!ENTITY learnMore.label             "Learn more about Feeds">

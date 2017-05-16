@@ -5,11 +5,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://gre/modules/Services.jsm");
 // Ensure the activity modules are loaded for this window.
 Components.utils.import("resource:///modules/activity/activityModules.js");
 Components.utils.import("resource:///modules/ABQueryUtils.jsm");
 Components.utils.import("resource:///modules/mailServices.js");
+Components.utils.import("resource://gre/modules/PluralForm.jsm");
+Components.utils.import("resource://gre/modules/Services.jsm");
 
 var nsIAbListener = Components.interfaces.nsIAbListener;
 var kPrefMailAddrBookLastNameFirst = "mail.addr_book.lastnamefirst";
@@ -333,33 +334,25 @@ function AbPrintCardInternal(doPrintPreview, msgType)
   if (!numSelected)
     return;
 
-  var uri = GetSelectedDirectory();
-  if (!uri)
-    return;
+  let statusFeedback;
+  statusFeedback = Components.classes["@mozilla.org/messenger/statusfeedback;1"].createInstance();
+  statusFeedback = statusFeedback.QueryInterface(Components.interfaces.nsIMsgStatusFeedback);
 
-   var statusFeedback;
-   statusFeedback = Components.classes["@mozilla.org/messenger/statusfeedback;1"].createInstance();
-   statusFeedback = statusFeedback.QueryInterface(Components.interfaces.nsIMsgStatusFeedback);
+  let selectionArray = [];
 
-   var selectionArray = new Array(numSelected);
-
-   var totalCard = 0;
-
-   for (var i = 0; i < numSelected; i++)
-   {
-     var card = selectedItems[i];
-     var printCardUrl = CreatePrintCardUrl(card);
-     if (printCardUrl)
-     {
-        selectionArray[totalCard++] = printCardUrl;
-     }
+  for (let i = 0; i < numSelected; i++) {
+    let card = selectedItems[i];
+    let printCardUrl = CreatePrintCardUrl(card);
+    if (printCardUrl) {
+      selectionArray.push(printCardUrl);
+    }
   }
 
   printEngineWindow = window.openDialog("chrome://messenger/content/msgPrintEngine.xul",
                                          "",
                                          "chrome,dialog=no,all",
-                                          totalCard, selectionArray, statusFeedback,
-                                          doPrintPreview, msgType);
+                                         selectionArray.length, selectionArray,
+                                         statusFeedback, doPrintPreview, msgType);
 
   return;
 }
@@ -381,7 +374,7 @@ function CreatePrintCardUrl(card)
 
 function AbPrintAddressBookInternal(doPrintPreview, msgType)
 {
-  var uri = GetSelectedDirectory();
+  let uri = getSelectedDirectoryURI();
   if (!uri)
     return;
 
@@ -419,14 +412,14 @@ function AbPrintPreviewAddressBook()
  * Export the currently selected addressbook.
  */
 function AbExportSelection() {
-  let selectedABURI = GetSelectedDirectory();
-  if (!selectedABURI)
+  let selectedDirURI = getSelectedDirectoryURI();
+  if (!selectedDirURI)
     return;
 
- if (selectedABURI == (kAllDirectoryRoot + "?"))
+ if (selectedDirURI == (kAllDirectoryRoot + "?"))
    return AbExportAll();
 
- return AbExport(selectedABURI);
+ return AbExport(selectedDirURI);
 }
 
 /**
@@ -447,15 +440,15 @@ function AbExportAll()
 /**
  * Export the specified addressbook to a file.
  *
- * @param aSelectedABURI  The URI if the addressbook to export.
+ * @param aSelectedDirURI  The URI of the addressbook to export.
  */
-function AbExport(aSelectedABURI)
+function AbExport(aSelectedDirURI)
 {
-  if (!aSelectedABURI)
+  if (!aSelectedDirURI)
     return;
 
   try {
-    let directory = GetDirectoryFromURI(aSelectedABURI);
+    let directory = GetDirectoryFromURI(aSelectedDirURI);
     MailServices.ab.exportAddressBook(window, directory);
   }
   catch (ex) {
@@ -484,25 +477,23 @@ function SetStatusText(total)
     gStatusText = document.getElementById('statusText');
 
   try {
-    var statusText;
+    let statusText;
 
-    var searchInput = document.getElementById("peopleSearchInput");
+    let searchInput = document.getElementById("peopleSearchInput");
     if (searchInput && searchInput.value) {
-      if (total == 0)
+      if (total == 0) {
         statusText = gAddressBookBundle.getString("noMatchFound");
-      else
-      {
-        if (total == 1)
-          statusText = gAddressBookBundle.getString("matchFound");
-        else
-          statusText = gAddressBookBundle.getFormattedString("matchesFound", [total]);
+      } else {
+        statusText = PluralForm
+          .get(total, gAddressBookBundle.getString("matchesFound1"))
+          .replace("#1", total);
       }
     }
     else
       statusText =
         gAddressBookBundle.getFormattedString(
           "totalContactStatus",
-          [GetDirectoryFromURI(GetSelectedDirectory()).dirName, total]);
+          [getSelectedDirectory().dirName, total]);
 
     gStatusText.setAttribute("label", statusText);
   }
@@ -524,8 +515,9 @@ function AbResultsPaneDoubleClick(card)
 
 function onAdvancedAbSearch()
 {
-  var selectedABURI = GetSelectedDirectory();
-  if (!selectedABURI) return;
+  let selectedDirURI = getSelectedDirectoryURI();
+  if (!selectedDirURI)
+    return;
 
   let existingSearchWindow = Services.wm.getMostRecentWindow("mailnews:absearch");
   if (existingSearchWindow)
@@ -533,7 +525,7 @@ function onAdvancedAbSearch()
   else
     window.openDialog("chrome://messenger/content/ABSearchDialog.xul", "",
                       "chrome,resizable,status,centerscreen,dialog=no",
-                      {directory: selectedABURI});
+                      {directory: selectedDirURI});
 }
 
 function onEnterInSearchBar()
@@ -545,7 +537,7 @@ function onEnterInSearchBar()
     gQueryURIFormat = getModelQuery("mail.addr_book.quicksearchquery.format");
   }
 
-  var searchURI = GetSelectedDirectory();
+  let searchURI = getSelectedDirectoryURI();
   if (!searchURI) return;
 
   /*
@@ -553,7 +545,7 @@ function onEnterInSearchBar()
    already has a query, like
    moz-abldapdirectory://nsdirectory.netscape.com:389/ou=People,dc=netscape,dc=com?(or(Department,=,Applications))
   */
-  var searchInput = document.getElementById("peopleSearchInput");
+  let searchInput = document.getElementById("peopleSearchInput");
   // Use helper method to split up search query to multi-word search
   // query against multiple fields.
   if (searchInput) {

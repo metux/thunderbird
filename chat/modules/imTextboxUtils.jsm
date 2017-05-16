@@ -47,17 +47,17 @@ var MessageFormat = {
       "browser.display.foreground_color",
       "browser.display.use_system_colors"
     ];
-    for each (let name in this._observedPrefs)
+    for (let name of this._observedPrefs)
       Services.prefs.addObserver(name, this, false);
   },
   unregisterObservers: function mf_unregisterObservers() {
-    for each (let name in this._observedPrefs)
+    for (let name of this._observedPrefs)
       Services.prefs.removeObserver(name, this);
     this._observedPrefs = [];
   },
   observe: function(aSubject, aTopic, aMsg) {
     this.getValues();
-    for each (let textbox in this._textboxes)
+    for (let textbox of this._textboxes)
       this.styleTextbox(textbox);
   },
   _getColor: function mf__getColor() {
@@ -89,7 +89,7 @@ var MessageFormat = {
   },
   _textboxes: [],
   registerTextbox: function mf_registerTextbox(aTextbox) {
-    if (this._textboxes.indexOf(aTextbox) == -1)
+    if (!this._textboxes.includes(aTextbox))
       this._textboxes.push(aTextbox);
 
     if (this._textboxes.length == 1)
@@ -144,7 +144,7 @@ var TextboxSpellChecker = {
 
   _textboxes: [],
   registerTextbox: function tsc_registerTextbox(aTextbox) {
-    if (this._textboxes.indexOf(aTextbox) == -1)
+    if (!this._textboxes.includes(aTextbox))
       this._textboxes.push(aTextbox);
 
     if (this._textboxes.length == 1) {
@@ -164,7 +164,7 @@ var TextboxSpellChecker = {
   },
   observe: function tsc_observe(aSubject, aTopic, aMsg) {
     this.getValue();
-    for each (let textbox in this._textboxes)
+    for (let textbox of this._textboxes)
       this.applyValue(textbox);
   }
 };

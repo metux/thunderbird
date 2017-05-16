@@ -130,7 +130,6 @@
 #include "nsIDOMWindow.h"
 #include "nsIMsgComposeSecure.h"
 #include "nsAutoPtr.h"
-#include "nsISupportsArray.h"
 #include "nsMsgAttachmentData.h"
 #include "nsIMsgFilterService.h"
 #include "nsIMsgOperationListener.h"
@@ -138,7 +137,6 @@
 //
 // Some necessary defines...
 //
-#define TEN_K                 10240
 #define MIME_BUFFER_SIZE      4096 // must be greater than 1000
                                    // SMTP (RFC821) limit
 // Maximum number of bytes we allow in a line before we force
@@ -255,7 +253,7 @@ public:
   nsresult    ProcessMultipartRelated(int32_t *aMailboxCount, int32_t *aNewsCount);
   nsresult    GetEmbeddedObjectInfo(nsIDOMNode *node, nsMsgAttachmentData *attachment, bool *acceptObject);
   uint32_t    GetMultipartRelatedCount(bool forceToBeCalculated = false);
-  nsCOMPtr<nsISupportsArray> mEmbeddedObjectList; // it's initialized when calling GetMultipartRelatedCount
+  nsCOMPtr<nsIArray> mEmbeddedObjectList; // it's initialized when calling GetMultipartRelatedCount
 
   // Body processing
   nsresult    SnarfAndCopyBody(const nsACString &attachment1_body,
@@ -288,7 +286,7 @@ public:
   nsString mSavedToFolderName; // Name of folder we're saving to, used when
                                // displaying error on save.
   // These are needed for callbacks to the FE...
-  nsCOMPtr<nsPIDOMWindow>         mParentWindow;
+  nsCOMPtr<nsPIDOMWindowOuter>    mParentWindow;
   nsCOMPtr<nsIMsgProgress>        mSendProgress;
   nsCOMPtr<nsIMsgSendListener>    mListener;
   nsCOMPtr<nsIMsgStatusFeedback>  mStatusFeedback;

@@ -23,14 +23,14 @@ var ltnImipBar = {
     /**
      * Thunderbird Message listener interface, hide the bar before we begin
      */
-    onStartHeaders: function onImipStartHeaders() {
-      ltnImipBar.resetBar();
+    onStartHeaders: function() {
+        ltnImipBar.resetBar();
     },
 
     /**
      * Thunderbird Message listener interface
      */
-    onEndHeaders: function onImipEndHeaders() {
+    onEndHeaders: function() {
 
     },
 
@@ -38,7 +38,7 @@ var ltnImipBar = {
      * Load Handler called to initialize the imip bar
      * NOTE: This function is called without a valid this-context!
      */
-    load: function ltnImipOnLoad() {
+    load: function() {
         // Add a listener to gMessageListeners defined in msgHdrViewOverlay.js
         gMessageListeners.push(ltnImipBar);
 
@@ -46,7 +46,7 @@ var ltnImipBar = {
         // message header pane. Otherwise, the imip bar will still be shown when
         // changing folders.
         ltnImipBar.tbHideMessageHeaderPane = HideMessageHeaderPane;
-        HideMessageHeaderPane = function ltnHideMessageHeaderPane() {
+        HideMessageHeaderPane = function() {
             ltnImipBar.resetBar();
             ltnImipBar.tbHideMessageHeaderPane.apply(null, arguments);
         };
@@ -59,7 +59,7 @@ var ltnImipBar = {
      * Unload handler to clean up after the imip bar
      * NOTE: This function is called without a valid this-context!
      */
-    unload: function ltnImipOnUnload() {
+    unload: function() {
         removeEventListener("messagepane-loaded", ltnImipBar.load, true);
         removeEventListener("messagepane-unloaded", ltnImipBar.unload, true);
 
@@ -67,7 +67,7 @@ var ltnImipBar = {
         Services.obs.removeObserver(ltnImipBar, "onItipItemCreation");
     },
 
-    observe: function ltnImipBar_observe(subject, topic, state) {
+    observe: function(subject, topic, state) {
         if (topic == "onItipItemCreation") {
             let itipItem = null;
             let msgOverlay = null;
@@ -94,7 +94,7 @@ var ltnImipBar = {
 
             let imipBar = document.getElementById("imip-bar");
             imipBar.setAttribute("collapsed", "false");
-            imipBar.setAttribute("label",  cal.itip.getMethodText(itipItem.receivedMethod));
+            imipBar.setAttribute("label", cal.itip.getMethodText(itipItem.receivedMethod));
 
             ltnImipBar.msgOverlay = msgOverlay;
 
@@ -105,7 +105,7 @@ var ltnImipBar = {
     /**
      * Hide the imip bar and reset the itip item.
      */
-    resetBar: function ltnResetImipBar() {
+    resetBar: function() {
         document.getElementById("imip-bar").collapsed = true;
         ltnImipBar.resetButtons();
 
@@ -117,7 +117,7 @@ var ltnImipBar = {
     /**
      * Resets all buttons and its menuitems, all buttons are hidden thereafter
      */
-    resetButtons: function ltnResetImipButtons() {
+    resetButtons: function() {
         let buttons = ltnImipBar.getButtons();
         buttons.forEach(hideElement);
         buttons.forEach(aButton => ltnImipBar.getMenuItems(aButton).forEach(showElement));
@@ -126,16 +126,10 @@ var ltnImipBar = {
     /**
      * Provides a list of all available buttons
      */
-    getButtons: function ltnGetButtons() {
-        let buttons = [];
-        let nl = document.getElementById("imip-view-toolbar")
-                         .getElementsByTagName("toolbarbutton");
-        if (nl != null && nl.length > 0) {
-            for (let button of nl) {
-                buttons.push(button);
-            }
-        }
-        return buttons;
+    getButtons: function() {
+        let toolbarbuttons = document.getElementById("imip-view-toolbar")
+                                     .getElementsByTagName("toolbarbutton");
+        return Array.from(toolbarbuttons);
     },
 
     /**
@@ -143,7 +137,7 @@ var ltnImipBar = {
      *
      * @param aButton        button node
      */
-    getMenuItems: function ltnGetMenuItems(aButton) {
+    getMenuItems: function(aButton) {
         let items = [];
         let mitems = aButton.getElementsByTagName("menuitem");
         if (mitems != null && mitems.length > 0) {
@@ -159,7 +153,7 @@ var ltnImipBar = {
      * to avoid dropdowns which are empty or only replicating the default button action
      * Should be called once the buttons are set up
      */
-    conformButtonType: function ltnConformButtonType() {
+    conformButtonType: function() {
         // check only needed on visible and not simple buttons
         let buttons = ltnImipBar.getButtons()
                                 .filter(aElement => aElement.hasAttribute("type") && !aElement.hidden);
@@ -176,8 +170,8 @@ var ltnImipBar = {
                      items[0].hasAttribute("oncommand") &&
                      button.getAttribute("oncommand")
                            .endsWith(items[0].getAttribute("oncommand")))) {
-                   // convert to simple button
-                   button.removeAttribute("type");
+                    // convert to simple button
+                    button.removeAttribute("type");
                 }
             }
         }
@@ -193,8 +187,8 @@ var ltnImipBar = {
      * @param foundItems    An array of items found while searching for the item
      *                      in subscribed calendars
      */
-    setupOptions: function setupOptions(itipItem, rc, actionFunc, foundItems) {
-        let imipBar =  document.getElementById("imip-bar");
+    setupOptions: function(itipItem, rc, actionFunc, foundItems) {
+        let imipBar = document.getElementById("imip-bar");
         let data = cal.itip.getOptionsText(itipItem, rc, actionFunc, foundItems);
 
         if (Components.isSuccessCode(rc)) {
@@ -211,19 +205,19 @@ var ltnImipBar = {
                 return false;
             }
             let author = aMsgHdr.mime2DecodedAuthor;
-            let isSentFolder = aMsgHdr.folder.flags &
+            let isSentFolder = aMsgHdr.folder && aMsgHdr.folder.flags &
                                Components.interfaces.nsMsgFolderFlags.SentMail;
             if (author && isSentFolder) {
-                let am = MailServices.accounts;
-                for (let identity in fixIterator(am.allIdentities,
+                let accounts = MailServices.accounts;
+                for (let identity in fixIterator(accounts.allIdentities,
                                                  Components.interfaces.nsIMsgIdentity)) {
-                    if (author.includes(identity.email) && !identity.fccReplyFollowParent) {
+                    if (author.includes(identity.email) && !identity.fccReplyFollowsParent) {
                         return true;
                     }
                 }
             }
             return false;
-        }
+        };
 
         // We override the bar label for sent out invitations and in case the event does not exist
         // anymore, we also clear the buttons if any to avoid e.g. accept/decline buttons
@@ -231,8 +225,11 @@ var ltnImipBar = {
             if (ltnImipBar.foundItems && ltnImipBar.foundItems[0]) {
                 data.label = ltn.getString("lightning", "imipBarSentText");
             } else {
-                data = {label: ltn.getString("lightning", "imipBarSentButRemovedText"),
-                        buttons: [], hideMenuItems: []};
+                data = {
+                    label: ltn.getString("lightning", "imipBarSentButRemovedText"),
+                    buttons: [],
+                    hideMenuItems: []
+                };
             }
         }
 
@@ -251,7 +248,7 @@ var ltnImipBar = {
     /**
      * Displays changes in case of invitation updates in invitation overlay
      */
-    displayModifications: function () {
+    displayModifications: function() {
         if (!ltnImipBar.msgOverlay || !msgWindow || !ltnImipBar.foundItems ||
             !ltnImipBar.foundItems[0] || !ltnImipBar.itipItem) {
             return;
@@ -261,7 +258,7 @@ var ltnImipBar = {
         let diff = cal.itip.compare(ltnImipBar.itipItem.getItemList({})[0], ltnImipBar.foundItems[0]);
         // displaying chnages is only needed if that is enabled, an item already exists and there are
         // differences
-        if (diff != 0 && Preferences.get('calendar.itip.displayInvitationChanges', false)) {
+        if (diff != 0 && Preferences.get("calendar.itip.displayInvitationChanges", false)) {
             let foundOverlay = ltn.invitation.createInvitationOverlay(ltnImipBar.foundItems[0],
                                                                       ltnImipBar.itipItem);
             let serializedOverlay = cal.xml.serializeDOM(foundOverlay);
@@ -277,31 +274,67 @@ var ltnImipBar = {
                                                                      organizerId);
             }
         }
-        msgWindow.displayHTMLInMessagePane('', msgOverlay, false);
+        msgWindow.displayHTMLInMessagePane("", msgOverlay, false);
     },
 
-    executeAction: function ltnExecAction(partStat, extendResponse) {
-
+    executeAction: function(partStat, extendResponse) {
         function _execAction(aActionFunc, aItipItem, aWindow, aPartStat) {
             if (cal.itip.promptCalendar(aActionFunc.method, aItipItem, aWindow)) {
+                let isDeclineCounter = aPartStat == "X-DECLINECOUNTER";
                 // filter out fake partstats
                 if (aPartStat.startsWith("X-")) {
-                    partstat = "";
+                    partStat = "";
                 }
                 // hide the buttons now, to disable pressing them twice...
-                if(aPartStat == partStat) {
+                if (aPartStat == partStat) {
                     ltnImipBar.resetButtons();
                 }
 
                 let opListener = {
                     QueryInterface: XPCOMUtils.generateQI([Components.interfaces.calIOperationListener]),
-                    onOperationComplete: function ltnItipActionListener_onOperationComplete(aCalendar,
-                                                                                            aStatus,
-                                                                                            aOperationType,
-                                                                                            aId,
-                                                                                            aDetail) {
+                    onOperationComplete: function(aCalendar, aStatus, aOperationType, aId, aDetail) {
+                        if (Components.isSuccessCode(aStatus) && isDeclineCounter) {
+                            // TODO: move the DECLINECOUNTER stuff to actionFunc
+                            aItipItem.getItemList({}).forEach(aItem => {
+                                // we can rely on the received itipItem to reply at this stage
+                                // already, the checks have been done in cal.itip.processFoundItems
+                                // when setting up the respective aActionFunc
+                                let attendees = cal.getAttendeesBySender(
+                                    aItem.getAttendees({}),
+                                    aItipItem.sender
+                                );
+                                let status = true;
+                                if (attendees.length == 1 && ltnImipBar.foundItems &&
+                                    ltnImipBar.foundItems.length) {
+                                    // we must return a message with the same sequence number as the
+                                    // counterproposal - to make it easy, we simply use the received
+                                    // item and just remove a comment, if any
+                                    try {
+                                        let item = aItem.clone();
+                                        item.calendar = ltnImipBar.foundItems[0].calendar;
+                                        item.deleteProperty("COMMENT");
+                                        // once we have full support to deal with for multiple items
+                                        // in a received invitation message, we should send this
+                                        // from outside outside of the forEach context
+                                        status = cal.itip.sendDeclineCounterMessage(
+                                            item,
+                                            "DECLINECOUNTER",
+                                            attendees,
+                                            { value: false }
+                                        );
+                                    } catch (e) {
+                                        cal.ERROR(e);
+                                        status = false;
+                                    }
+                                } else {
+                                    status = false;
+                                }
+                                if (!status) {
+                                    cal.ERROR("Failed to send DECLINECOUNTER reply!");
+                                }
+                            });
+                        }
                         // For now, we just state the status for the user something very simple
-                        let imipBar = document.getElementById("imip-bar");
                         let label = cal.itip.getCompleteText(aStatus, aOperationType);
                         imipBar.setAttribute("label", label);
 
@@ -309,12 +342,7 @@ var ltnImipBar = {
                             showError(label);
                         }
                     },
-                    onGetResult: function ltnItipActionListener_onGetResult(aCalendar,
-                                                                            aStatus,
-                                                                            aItemType,
-                                                                            aDetail,
-                                                                            aCount,
-                                                                            aItems) {
+                    onGetResult: function(aCalendar, aStatus, aItemType, aDetail, aCount, aItems) {
                     }
                 };
 
@@ -328,19 +356,70 @@ var ltnImipBar = {
             return false;
         }
 
+        let imipBar = document.getElementById("imip-bar");
         if (partStat == null) {
-            partStat = '';
+            partStat = "";
         }
-        if (partStat == "X-SHOWDETAILS") {
+        if (partStat == "X-SHOWDETAILS" || partStat == "X-RESCHEDULE") {
+            let counterProposal;
             let items = ltnImipBar.foundItems;
             if (items && items.length) {
                 let item = items[0].isMutable ? items[0] : items[0].clone();
-                modifyEventWithDialog(item);
+
+                if (partStat == "X-RESCHEDULE") {
+                    // TODO most of the following should be moved to the actionFunc defined in
+                    // calItipUtils
+                    let proposedItem = ltnImipBar.itipItem.getItemList({})[0];
+                    let proposedRID = proposedItem.getProperty("RECURRENCE-ID");
+                    if (proposedRID) {
+                        // if this is a counterproposal for a specific occurrence, we use
+                        // that to compare with
+                        item = item.recurrenceInfo.getOccurrenceFor(proposedRID).clone();
+                    }
+                    let parsedProposal = ltn.invitation.parseCounter(proposedItem, item);
+                    let potentialProposers = cal.getAttendeesBySender(
+                        proposedItem.getAttendees({}),
+                        ltnImipBar.itipItem.sender
+                    );
+                    let proposingAttendee = potentialProposers.length == 1 ?
+                                            potentialProposers[0] : null;
+                    if (proposingAttendee &&
+                        ["OK", "OUTDATED", "NOTLATESTUPDATE"].includes(parsedProposal.result.type)) {
+                        counterProposal = {
+                            attendee: proposingAttendee,
+                            proposal: parsedProposal.differences,
+                            oldVersion: parsedProposal.result == "OLDVERSION" ||
+                                        parsedProposal.result == "NOTLATESTUPDATE",
+                            onReschedule: () => {
+                                imipBar.setAttribute(
+                                    "label",
+                                    ltn.getString("lightning", "imipBarCounterPreviousVersionText")
+                                );
+                                // TODO: should we hide the buttons in this case, too?
+                            }
+                        };
+                    } else {
+                        imipBar.setAttribute(
+                            "label",
+                            ltn.getString("lightning", "imipBarCounterErrorText")
+                        );
+                        ltnImipBar.resetButtons();
+                        if (proposingAttendee) {
+                            cal.LOG(parsedProposal.result.descr);
+                        } else {
+                            cal.LOG("Failed to identify the sending attendee of the counterproposal.");
+                        }
+
+                        return false;
+                    }
+                }
+                // if this a rescheduling operation, we suppress the occurrence prompt here
+                modifyEventWithDialog(item, null, partStat != "X-RESCHEDULE", null, counterProposal);
             }
         } else {
             if (extendResponse) {
                 // Open an extended response dialog to enable the user to add a comment, make a
-                // counter proposal, delegate the event or interact in another way.
+                // counterproposal, delegate the event or interact in another way.
                 // Instead of a dialog, this might be implemented as a separate container inside the
                 // imip-overlay as proposed in bug 458578
                 //
@@ -362,20 +441,19 @@ var ltnImipBar = {
 
             if (partStat == "X-SAVECOPY") {
                 // we create and adopt copies of the respective events
-                let items = ltnImipBar.itipItem.getItemList({}).map(cal.getPublishLikeItemCopy.bind(cal));
-                if (items.length > 0) {
+                let saveitems = ltnImipBar.itipItem.getItemList({}).map(cal.getPublishLikeItemCopy.bind(cal));
+                if (saveitems.length > 0) {
+                    let methods = { receivedMethod: "PUBLISH", responseMethod: "PUBLISH" };
                     let newItipItem = cal.itip.getModifiedItipItem(ltnImipBar.itipItem,
-                                                                   items,
-                                                                   {receivedMethod: "PUBLISH",
-                                                                    responseMethod: "PUBLISH"});
+                                                                   saveitems, methods);
                     // control to avoid processing _execAction on later user changes on the item
                     let isFirstProcessing = true;
                     // setup callback and trigger re-processing
-                    let storeCopy = function storeCopy(aItipItem, aRc, aActionFunc, aFoundItems) {
+                    let storeCopy = function(aItipItem, aRc, aActionFunc, aFoundItems) {
                         if (isFirstProcessing && aActionFunc && Components.isSuccessCode(aRc)) {
                             _execAction(aActionFunc, aItipItem, window, partStat);
                         }
-                    }
+                    };
                     cal.itip.processItipItem(newItipItem, storeCopy);
                     isFirstProcessing = false;
                 }

@@ -30,6 +30,7 @@ Cu.import("resource://gre/modules/Services.jsm");
 
 var FILE_LOAD_PATHS = [
   "../resources",
+  "../../resources",
   "../../../../mailnews/test/resources",
   "../../../../mail/base/test/unit/resources",
   "../../../../mailnews/test/fakeserver"
@@ -69,9 +70,6 @@ var EXPORT_VIA_GETTER_SETTER = {
   // that setting them reflects across scopes.
   mc: true,
 };
-
-var Application = Cc["@mozilla.org/steel/application;1"]
-                    .getService(Ci.steelIApplication);
 
 /** The controller for the main 3-pane window. */
 var mc;
@@ -327,7 +325,7 @@ function teardownImporter(customTeardown) {
       windowHelper.plan_for_new_window("mail:3pane");
       Services.ww.openWindow(null,
           "chrome://messenger/content/", "",
-          "all,chrome,dialog=no,status,toolbar", args);
+          "all,chrome,dialog=no,status,toolbar", null);
       mc = windowHelper.wait_for_new_window("mail:3pane");
     }
     else {
@@ -402,6 +400,31 @@ function create_virtual_folder() {
   return folder;
 }
 
+/**
+ * Get special folder having a folder flag under Local Folders.
+ *
+ * @param aFolderFlag  Folder flag of the required folder.
+ * @param aCreate      Create the folder if it does not exist yet.
+ */
+function get_special_folder(aFolderFlag, aCreate = false) {
+  let folderNames = new Map([[ Ci.nsMsgFolderFlags.Drafts, "Drafts" ],
+                             [ Ci.nsMsgFolderFlags.Templates, "Templates" ],
+                             [ Ci.nsMsgFolderFlags.Queue, "Outbox" ]
+                            ]);
+
+  let folder = MailServices.accounts
+                           .localFoldersServer
+                           .rootFolder
+                           .getFolderWithFlags(aFolderFlag);
+
+  if (!folder && aCreate) {
+    folder = create_folder(folderNames.get(aFolderFlag), [aFolderFlag]);
+  }
+  if (!folder)
+    throw new Error("Special folder not found");
+
+  return folder;
+}
 
 /**
  * Create a thread with the specified number of messages in it.
@@ -868,10 +891,14 @@ function select_none(aController) {
   }
   try {
     utils.waitFor(noMessageChecker);
-  } catch (e if e instanceof utils.TimeoutError) {
-    mark_failure(["Timeout waiting for displayedMessage to become null.",
-                  "Current value: ",
-                  aController.messageDisplay.displayedMessage]);
+  } catch (e) {
+    if (e instanceof utils.TimeoutError) {
+      mark_failure(["Timeout waiting for displayedMessage to become null.",
+                    "Current value: ",
+                    aController.messageDisplay.displayedMessage]);
+    } else {
+      throw e;
+    }
   }
   wait_for_blank_content_pane(aController);
 }
@@ -889,9 +916,9 @@ function _normalize_view_index(aViewIndex, aController) {
     aController = mc;
   // SyntheticMessageSet special-case
   if (typeof(aViewIndex) != "number") {
-    let msgHdrIter = aViewIndex.msgHdrs;
-    let msgHdr = msgHdrIter.next();
-    msgHdrIter.close();
+    let msgHdrIter = aViewIndex.msgHdrs();
+    let msgHdr = msgHdrIter.next().value;
+    msgHdrIter.return();
     // do not expand
     aViewIndex = aController.dbView.findIndexOfMsgHdr(msgHdr, false);
   }
@@ -1641,9 +1668,13 @@ function wait_for_blank_content_pane(aController) {
   };
   try {
     utils.waitFor(isBlankChecker);
-  } catch (e if e instanceof utils.TimeoutError) {
-    mark_failure(["Timeout waiting for blank content pane.  Current location:",
-                  aController.window.content.location.href]);
+  } catch (e) {
+    if (e instanceof utils.TimeoutError) {
+      mark_failure(["Timeout waiting for blank content pane.  Current location:",
+                    aController.window.content.location.href]);
+    } else {
+      throw e;
+    }
   }
 
   // the above may return immediately, meaning the event queue might not get a
@@ -1679,8 +1710,12 @@ var FolderListener = {
     let self = this;
     try {
       utils.waitFor(() => self.sawEvents);
-    } catch (e if e instanceof utils.TimeoutError) {
-      mark_failure(["Timeout waiting for events:", this.watchingFor]);
+    } catch (e) {
+      if (e instanceof utils.TimeoutError) {
+        mark_failure(["Timeout waiting for events:", this.watchingFor]);
+      } else {
+        throw e;
+      }
     }
   },
 
@@ -1880,7 +1915,7 @@ function _process_row_message_arguments() {
     }
     // SyntheticMessageSet
     else if (arg.synMessages) {
-      for (let msgHdr of arg.msgHdrs) {
+      for (let msgHdr of arg.msgHdrs()) {
         let viewIndex = troller.dbView.findIndexOfMsgHdr(msgHdr, false);
         if (viewIndex == nsMsgViewIndex_None)
           throw_and_dump_view_state(
@@ -2091,8 +2126,8 @@ function _verify_summarized_message_set(aSummarizedKeys, aSelectedMessages) {
   let summarizedKeys = aSummarizedKeys.slice();
   summarizedKeys.sort();
   // We use the same key-generation as in multimessageview.js.
-  let selectedKeys = [msgHdr.messageKey + msgHdr.folder.URI
-                      for (msgHdr of aSelectedMessages)];
+  let selectedKeys = aSelectedMessages.map(msgHdr =>
+                      msgHdr.messageKey + msgHdr.folder.URI);
   selectedKeys.sort();
 
   // Stringified versions should now be equal...
@@ -2122,7 +2157,7 @@ function assert_messages_summarized(aController, aSelectedMessages) {
     aSelectedMessages = aController.folderDisplay.selectedMessages;
   // if it's a synthetic message set, we want the headers...
   if (aSelectedMessages.synMessages)
-    aSelectedMessages = Array.from(aSelectedMessages.msgHdrs);
+    aSelectedMessages = Array.from(aSelectedMessages.msgHdrs());
 
   let summaryFrame = aController.window.gSummaryFrameManager.iframe;
   let summary = summaryFrame.contentWindow.gMessageSummary;
@@ -2796,9 +2831,11 @@ var SyntheticPartMultiMixed;
 var SyntheticPartMultiRelated;
 
 /**
- * Load a file in its own 'module'.
+ * Load a file in its own 'module' based on the effective location of the staged copy of
+ * test-folder-helpers.js - if you get an error in this function, probably an appropriate releative
+ * path in FILE_LOAD_PATHS is missing for your setup.
  *
- * @param aPath A path relative to the comm-central source path.
+ * @param aPath A path relative to the comm-central source path (can be just a file name)
  *
  * @return An object that serves as the global scope for the loaded file.
  */

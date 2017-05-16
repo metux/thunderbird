@@ -30,7 +30,9 @@ function onInit(aPageId, aServerId)
   if (serverType == "imap")
     setupImapDeleteUI(aServerId);
 
+  // TLS Cert (External) and OAuth2 are only supported on IMAP.
   document.getElementById("authMethod-oauth2").hidden = (serverType != "imap");
+  document.getElementById("authMethod-external").hidden = (serverType != "imap");
 
   // "STARTTLS, if available" is vulnerable to MITM attacks so we shouldn't
   // allow users to choose it anymore. Hide the option unless the user already
@@ -278,7 +280,7 @@ function setupFixedUI()
 function BrowseForNewsrc()
 {
   const nsIFilePicker = Components.interfaces.nsIFilePicker;
-  const nsILocalFile = Components.interfaces.nsILocalFile;
+  const nsIFile = Components.interfaces.nsIFile;
 
   var newsrcTextBox = document.getElementById("nntp.newsrcFilePath");
   var fp = Components.classes["@mozilla.org/filepicker;1"].createInstance(nsIFilePicker);
@@ -289,10 +291,10 @@ function BrowseForNewsrc()
   var currentNewsrcFile;
   try {
     currentNewsrcFile = Components.classes["@mozilla.org/file/local;1"]
-                                  .createInstance(nsILocalFile);
+                                  .createInstance(nsIFile);
     currentNewsrcFile.initWithPath(newsrcTextBox.value);
   } catch (e) {
-    dump("Failed to create nsILocalFile instance for the current newsrc file.\n");
+    dump("Failed to create nsIFile instance for the current newsrc file.\n");
   }
 
   if (currentNewsrcFile) {

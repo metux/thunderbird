@@ -30,3 +30,5 @@
 <!ENTITY button.close.label                "Pechar">
 <!ENTITY button.close.accesskey            "P">
 
+
+<!ENTITY props.container.label             "Container:">

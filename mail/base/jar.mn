@@ -37,7 +37,7 @@ messenger.jar:
 *   content/messenger/msgMail3PaneWindow.js         (content/msgMail3PaneWindow.js)
     content/messenger/mail3PaneWindowCommands.js    (content/mail3PaneWindowCommands.js)
     content/messenger/mailCommands.js               (content/mailCommands.js)
-*   content/messenger/mailCore.js                   (content/mailCore.js)
+    content/messenger/mailCore.js                   (content/mailCore.js)
     content/messenger/customizeToolbarOverlay.xul   (content/customizeToolbarOverlay.xul)
     content/messenger/mailTabs.js                   (content/mailTabs.js)
     content/messenger/commandglue.js                (content/commandglue.js)
@@ -47,13 +47,14 @@ messenger.jar:
     content/messenger/ABSearchDialog.js             (content/ABSearchDialog.js)
     content/messenger/FilterListDialog.xul          (content/FilterListDialog.xul)
     content/messenger/FilterListDialog.js           (content/FilterListDialog.js)
-*   content/messenger/plugins.js                    (content/plugins.js)
+    content/messenger/plugins.js                    (content/plugins.js)
     content/messenger/specialTabs.js                (content/specialTabs.js)
     content/messenger/specialTabs.xul               (content/specialTabs.xul)
     content/messenger/subscribe.xul                 (content/subscribe.xul)
     content/messenger/subscribe.js                  (content/subscribe.js)
+    content/messenger/aboutDialog-appUpdater.js     (content/aboutDialog-appUpdater.js)
 *   content/messenger/aboutDialog.xul               (content/aboutDialog.xul)
-*   content/messenger/aboutDialog.js                (content/aboutDialog.js)
+    content/messenger/aboutDialog.js                (content/aboutDialog.js)
 *   content/messenger/aboutRights.xhtml             (content/aboutRights.xhtml)
 *   content/messenger/systemIntegrationDialog.xul   (content/systemIntegrationDialog.xul)
     content/messenger/systemIntegrationDialog.js    (content/systemIntegrationDialog.js)
@@ -112,7 +113,7 @@ messenger.jar:
     content/messenger/sanitizeDialog.js             (content/sanitizeDialog.js)
 *   content/messenger/toolbarIconColor.js           (content/toolbarIconColor.js)
 # the following files are mail-specific overrides
-*+  content/messenger/license.html                  (/mozilla/toolkit/content/license.html)
+*   content/messenger/license.html                  (/mozilla/toolkit/content/license.html)
 % override chrome://global/content/license.html chrome://messenger/content/license.html
 
 comm.jar:

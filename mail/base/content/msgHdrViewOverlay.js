@@ -566,6 +566,12 @@ var messageHeaderSink = {
           delete currentHeaderData["reply-to"];
       }
 
+      let expandedfromLabel = document.getElementById("expandedfromLabel");
+      if (gFolderDisplay.selectedMessageIsFeed)
+        expandedfromLabel.value = expandedfromLabel.getAttribute("valueAuthor");
+      else
+        expandedfromLabel.value = expandedfromLabel.getAttribute("valueFrom");
+
       this.onEndHeaders();
     },
 
@@ -637,9 +643,19 @@ var messageHeaderSink = {
         return;
 
       let last = currentAttachments[currentAttachments.length - 1];
-      if (field == "X-Mozilla-PartSize" && !last.isExternalAttachment &&
+      if (field == "X-Mozilla-PartSize" && !last.url.startsWith("file") &&
           !last.isDeleted) {
         let size = parseInt(value);
+
+        if (last.isExternalAttachment && last.url.startsWith("http")) {
+          // Check if an external link attachment's reported size is sane.
+          // A size of < 2 isn't sensical so ignore such placeholder values.
+          // Don't accept a size with any non numerics. Also cap the number.
+          if (isNaN(size) || size.toString().length != value.length || size < 2)
+            size = -1;
+          if (size > Number.MAX_SAFE_INTEGER)
+            size = Number.MAX_SAFE_INTEGER;
+        }
 
         // libmime returns -1 if it never managed to figure out the size.
         if (size != -1)
@@ -700,17 +716,6 @@ var messageHeaderSink = {
             if (attachment.partID && partID == attachment.partID) {
               img.src = attachment.url;
               break;
-            }
-            else {
-              // GlodaUtils.PART_RE fails to extract a partID for urls with
-              // an embedded ?, at least. So, check the filename too. Frontend
-              // feed parsing ensures no duplicate urls in enclosures.
-              let name = decodeURI(img.src.split("&filename=")[1]);
-              name = name ? name.split("&")[0] : null;
-              if (name == attachment.name) {
-                img.src = attachment.url;
-                break;
-              }
             }
           }
 
@@ -1410,7 +1415,7 @@ function UpdateExtraAddressProcessing(aAddressData, aDocumentNode, aAction,
     }
     else if (aItem instanceof nsIAbCard) {
       // If we don't have a card, does this new one match?
-      if (!aDocumentNode.cardDetails.card &&
+      if (aDocumentNode.cardDetails && !aDocumentNode.cardDetails.card &&
           aItem.hasEmailAddress(aAddressData.emailAddress)) {
         // Just in case we have a bogus parent directory.
         if (aParentDir instanceof nsIAbDirectory) {
@@ -1425,7 +1430,7 @@ function UpdateExtraAddressProcessing(aAddressData, aDocumentNode, aAction,
     break;
   case nsIAbListener.directoryItemRemoved:
     // Unfortunately we don't necessarily get the same card object back.
-    if (aAddressData &&
+    if (aAddressData && aDocumentNode.cardDetails &&
         aDocumentNode.cardDetails.card &&
         aDocumentNode.cardDetails.book == aParentDir &&
         aItem.hasEmailAddress(aAddressData.emailAddress)) {
@@ -1468,7 +1473,7 @@ function setupEmailAddressPopup(emailAddressNode)
   emailAddressNode.setAttribute("selected", "true");
   emailAddressPlaceHolder.setAttribute("label", emailAddress);
 
-  if (emailAddressNode.cardDetails.card) {
+  if (emailAddressNode.cardDetails && emailAddressNode.cardDetails.card) {
     document.getElementById("addToAddressBookItem").setAttribute("hidden", true);
     if (!emailAddressNode.cardDetails.book.readOnly) {
       document.getElementById("editContactItem").removeAttribute("hidden");
@@ -1802,12 +1807,21 @@ function AttachmentInfo(contentType, url, name, uri,
   this.uri = uri;
   this.isExternalAttachment = isExternalAttachment;
   this.size = size;
+  let match;
 
-  let match = GlodaUtils.PART_RE.exec(url);
-  this.partID = match && match[1];
   // Remove [?&]part= from remote urls, after getting the partID.
-  if (url.startsWith("http") || url.startsWith("file"))
-    url = url.replace(new RegExp("[?&]part=" + this.partID + "$"), "");
+  // Remote urls, unlike non external mail part urls, may also contain query
+  // strings starting with ?; PART_RE does not handle this.
+  if (url.startsWith("http") || url.startsWith("file")) {
+    match = url.match(/[?&]part=[^&]+$/);
+    match = match && match[0];
+    this.partID = match && match.split("part=")[1];
+    url = url.replace(match, "");
+  }
+  else {
+    match = GlodaUtils.PART_RE.exec(url);
+    this.partID = match && match[1];
+  }
 
   this.url = url;
 }
@@ -1915,9 +1929,12 @@ AttachmentInfo.prototype = {
 
       try {
         chunk = inputStream.readBytes(1);
-      } catch (ex if ex.result == Components.results
-                                            .NS_BASE_STREAM_WOULD_BLOCK) {
-        bytesAvailable = 1;
+      } catch (ex) {
+        if (ex.result == Components.results.NS_BASE_STREAM_WOULD_BLOCK) {
+          bytesAvailable = 1;
+        } else {
+          throw ex;
+        }
       }
       if (chunk)
         bytesAvailable = chunk.length;
@@ -1977,6 +1994,8 @@ function onShowAttachmentItemContextMenu()
   let saveMenu       = document.getElementById("context-saveAttachment");
   let detachMenu     = document.getElementById("context-detachAttachment");
   let deleteMenu     = document.getElementById("context-deleteAttachment");
+  let copyUrlMenuSep = document.getElementById("context-menu-copyurl-separator");
+  let copyUrlMenu    = document.getElementById("context-copyAttachmentUrl");
 
   // If we opened the context menu from the attachment info area (the paperclip,
   // "1 attachment" label, filename, or file size, just grab the first (and
@@ -2002,11 +2021,15 @@ function onShowAttachmentItemContextMenu()
   });
   var canDetachSelected = CanDetachAttachments() && !allSelectedDetached &&
                           !allSelectedDeleted;
+  let allSelectedHttp = selectedAttachments.every(function(attachment) {
+    return attachment.url.startsWith("http");
+  });
 
   openMenu.disabled = allSelectedDeleted;
   saveMenu.disabled = allSelectedDeleted;
   detachMenu.disabled = !canDetachSelected;
   deleteMenu.disabled = !canDetachSelected;
+  copyUrlMenuSep.hidden = copyUrlMenu.hidden = !allSelectedHttp;
 }
 
 /**
@@ -2686,6 +2709,13 @@ function HandleMultipleAttachments(attachments, action)
         else
           setTimeout(actionFunction, 100, attachments[i]);
       }
+      return;
+    case "copyUrl":
+      // Copy external http url(s) to clipboard. The menuitem is hidden unless
+      // all selected attachment urls are http.
+      let clipboard = Components.classes["@mozilla.org/widget/clipboardhelper;1"]
+                                .getService(Components.interfaces.nsIClipboardHelper);
+      clipboard.copyString(attachmentUrlArray.join("\n"));
       return;
     default:
       throw new Error("unknown HandleMultipleAttachments action: " + action);

@@ -27,9 +27,9 @@
 
 <!ENTITY insertMenu.label "Insereix">
 <!ENTITY insertMenu.accesskey "I">
-<!ENTITY insertLinkCmd.label "Enllaç…">
-<!ENTITY insertLinkCmd.accesskey "l">
-<!ENTITY insertLinkCmd.key "L">
+<!ENTITY insertLinkCmd2.label "Enllaç…">
+<!ENTITY insertLinkCmd2.accesskey "l">
+<!ENTITY insertLinkCmd2.key "K">
 <!ENTITY insertAnchorCmd.label "Àncora amb nom…">
 <!ENTITY insertAnchorCmd.accesskey "a">
 <!ENTITY insertImageCmd.label "Imatge…">
@@ -84,18 +84,18 @@
 
 <!ENTITY fontSizeMenu.label "Mida">
 <!ENTITY fontSizeMenu.accesskey "M">
-
-
-
-
-
-
-
-
-
-
-
-
+<!ENTITY size-tinyCmd.label "Molt petita">
+<!ENTITY size-tinyCmd.accesskey "o">
+<!ENTITY size-smallCmd.label "Petita">
+<!ENTITY size-smallCmd.accesskey "P">
+<!ENTITY size-mediumCmd.label "Mitjana">
+<!ENTITY size-mediumCmd.accesskey "i">
+<!ENTITY size-largeCmd.label "Grossa">
+<!ENTITY size-largeCmd.accesskey "G">
+<!ENTITY size-extraLargeCmd.label "Molt grossa">
+<!ENTITY size-extraLargeCmd.accesskey "l">
+<!ENTITY size-hugeCmd.label "Enorme">
+<!ENTITY size-hugeCmd.accesskey "E">
 <!-- Font Style SubMenu -->
 
 <!ENTITY fontStyleMenu.label "Estil del text">
@@ -147,7 +147,7 @@
 
 <!ENTITY paragraphMenu.label "Paràgraf">
 <!ENTITY paragraphMenu.accesskey "P">
-<!ENTITY paragraphParagraphCmd.label "Paràgraf">  
+<!ENTITY paragraphParagraphCmd.label "Paràgraf">
 <!ENTITY paragraphParagraphCmd.accesskey "P">
 <!ENTITY heading1Cmd.label "Encapçalament 1">
 <!ENTITY heading1Cmd.accesskey "1">
@@ -269,7 +269,7 @@
 <!-- Delete SubMenu -->
 <!ENTITY tableDeleteMenu.label "Suprimeix">
 <!ENTITY tableDeleteMenu.accesskey "u">
-<!-- text for "Join Cells" is in editor.properties 
+<!-- text for "Join Cells" is in editor.properties
      ("JoinSelectedCells" and "JoinCellToRight")
      the access key must exist in both of those strings
      But value must be set here for accesskey to draw properly
@@ -311,6 +311,8 @@
 <!ENTITY throbber.tooltip "Vés a la pàgina inicial de &vendorShortName;">
 <!ENTITY HighlightColorButton.tooltip "Trieu el color del ressaltat del text">
 <!-- Editor toolbar -->
+
+<!ENTITY absoluteFontSizeToolbarCmd.tooltip "Defineix la mida del tipus de lletra">
 <!ENTITY decreaseFontSizeToolbarCmd.tooltip "Mida de lletra més petita">
 <!ENTITY increaseFontSizeToolbarCmd.tooltip "Mida de lletra més gran">
 <!ENTITY boldToolbarCmd.tooltip "Negreta">
@@ -344,19 +346,3 @@
 <!ENTITY removeTOC.accesskey      "S">
 <!ENTITY tocMenu.label            "Taula de continguts…">
 <!ENTITY tocMenu.accesskey        "u">
-
-
-<!-- Editor toolbar -->
-<!ENTITY absoluteFontSizeToolbarCmd.tooltip "Set font size">
-<!ENTITY size-extraLargeCmd.accesskey "x">
-<!ENTITY size-extraLargeCmd.label "Extra Large">
-<!ENTITY size-hugeCmd.accesskey "H">
-<!ENTITY size-hugeCmd.label "Huge">
-<!ENTITY size-largeCmd.accesskey "L">
-<!ENTITY size-largeCmd.label "Large">
-<!ENTITY size-mediumCmd.accesskey "M">
-<!ENTITY size-mediumCmd.label "Medium">
-<!ENTITY size-smallCmd.accesskey "S">
-<!ENTITY size-smallCmd.label "Small">
-<!ENTITY size-tinyCmd.accesskey "T">
-<!ENTITY size-tinyCmd.label "Tiny">

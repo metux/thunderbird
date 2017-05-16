@@ -19,7 +19,7 @@
       <method name="addCalendarItem">
         <parameter name="aItem"/>
         <body><![CDATA[
-          var newNode = createXULElement("calendar-invitations-richlistitem");
+          let newNode = createXULElement("calendar-invitations-richlistitem");
           this.appendChild(newNode);
           newNode.setAttribute("anonid", "invitations-listitem");
           newNode.calendarItem = aItem;
@@ -69,6 +69,19 @@
       <field name="mInitialParticipationStatus">null</field>
       <field name="mParticipationStatus">null</field>
 
+      <property name="mStrings">
+        <getter>
+          return {
+              alldayEvent: "&calendar.invitations.list.alldayevent.text;",
+              recurrentEvent: "&calendar.invitations.list.recurrentevent.text;",
+              location: "&calendar.invitations.list.location.text;",
+              organizer: "&calendar.invitations.list.organizer.text;",
+              attendee: "&calendar.invitations.list.attendee.text;",
+              none: "&calendar.invitations.list.none.text;"
+          };
+        </getter>
+      </property>
+
       <!-- properties -->
       <property name="calendarItem">
         <getter><![CDATA[
@@ -96,7 +109,7 @@
         ]]></getter>
         <setter><![CDATA[
           this.mParticipationStatus = val;
-          var icon = document.getAnonymousElementByAttribute(
+          let icon = document.getAnonymousElementByAttribute(
               this, "anonid", "icon");
           icon.setAttribute("status", val);
           return val;
@@ -112,79 +125,72 @@
       <!-- methods -->
       <method name="setCalendarItem">
         <parameter name="aItem"/>
-        <body>
-          var alldayEventText = "&calendar.invitations.list.alldayevent.text;";
-          var recurrentEventText = "&calendar.invitations.list.recurrentevent.text;";
-          var locationText = "&calendar.invitations.list.location.text;";
-          var organizerText = "&calendar.invitations.list.organizer.text;";
-          var attendeeText = "&calendar.invitations.list.attendee.text;";
-          var noneText = "&calendar.invitations.list.none.text;";
-          <![CDATA[
-            this.mCalendarItem = aItem;
-            this.mInitialParticipationStatus =
-                this.getCalendarItemParticipationStatus(aItem);
-            this.participationStatus = this.mInitialParticipationStatus;
+        <body><![CDATA[
+          this.mCalendarItem = aItem;
+          this.mInitialParticipationStatus =
+              this.getCalendarItemParticipationStatus(aItem);
+          this.participationStatus = this.mInitialParticipationStatus;
 
-            var titleLabel = document.getAnonymousElementByAttribute(
-                this, "anonid", "title");
-            titleLabel.setAttribute("value", aItem.title);
+          let titleLabel = document.getAnonymousElementByAttribute(
+              this, "anonid", "title");
+          titleLabel.setAttribute("value", aItem.title);
 
-            var dateLabel = document.getAnonymousElementByAttribute(
-                this, "anonid", "date");
-            var dateString = this.mDateFormatter.formatItemInterval(aItem);
-            if (aItem.startDate.isDate) {
-                dateString += ", " + alldayEventText;
-            }
-            dateLabel.setAttribute("value", dateString);
+          let dateLabel = document.getAnonymousElementByAttribute(
+              this, "anonid", "date");
+          let dateString = this.mDateFormatter.formatItemInterval(aItem);
+          if (aItem.startDate.isDate) {
+              dateString += ", " + this.mStrings.alldayEvent;
+          }
+          dateLabel.setAttribute("value", dateString);
 
-            var recurrenceLabel = document.getAnonymousElementByAttribute(
-                this, "anonid", "recurrence");
-            if (aItem.recurrenceInfo) {
-                recurrenceLabel.setAttribute("value", recurrentEventText);
-            } else {
-                recurrenceLabel.setAttribute("hidden", "true");
-                var spacer = document.getAnonymousElementByAttribute(
-                    this, "anonid", "spacer");
-                spacer.removeAttribute("hidden");
-            }
+          let recurrenceLabel = document.getAnonymousElementByAttribute(
+              this, "anonid", "recurrence");
+          if (aItem.recurrenceInfo) {
+              recurrenceLabel.setAttribute("value", this.mStrings.recurrentEvent);
+          } else {
+              recurrenceLabel.setAttribute("hidden", "true");
+              let spacer = document.getAnonymousElementByAttribute(
+                  this, "anonid", "spacer");
+              spacer.removeAttribute("hidden");
+          }
 
-            var locationLabel = document.getAnonymousElementByAttribute(
-                this, "anonid", "location");
-            var locationString = locationText;
-            var locationProperty = aItem.getProperty("LOCATION");
-            if (locationProperty && locationProperty.length > 0) {
-                locationString += locationProperty;
-            } else {
-                locationString += noneText;
-            }
-            locationLabel.setAttribute("value", locationString);
+          let locationLabel = document.getAnonymousElementByAttribute(
+              this, "anonid", "location");
+          let locationString = this.mStrings.location;
+          let locationProperty = aItem.getProperty("LOCATION");
+          if (locationProperty && locationProperty.length > 0) {
+              locationString += locationProperty;
+          } else {
+              locationString += this.mStrings.none;
+          }
+          locationLabel.setAttribute("value", locationString);
 
-            var organizerLabel = document.getAnonymousElementByAttribute(
-                this, "anonid", "organizer");
-            var organizerString = organizerText;
-            var org = aItem.organizer;
-            if (org) {
-                if (org.commonName && org.commonName.length > 0) {
-                    organizerString += org.commonName;
-                } else if (org.id) {
-                    organizerString += org.id.replace(/^mailto:/i, "");
-                }
-            }
-            organizerLabel.setAttribute("value", organizerString);
+          let organizerLabel = document.getAnonymousElementByAttribute(
+              this, "anonid", "organizer");
+          let organizerString = this.mStrings.organizer;
+          let org = aItem.organizer;
+          if (org) {
+              if (org.commonName && org.commonName.length > 0) {
+                  organizerString += org.commonName;
+              } else if (org.id) {
+                  organizerString += org.id.replace(/^mailto:/i, "");
+              }
+          }
+          organizerLabel.setAttribute("value", organizerString);
 
-            let attendeeLabel = document.getAnonymousElementByAttribute(
-                this, "anonid", "attendee");
-            let attendeeString = attendeeText;
-            let att = cal.getInvitedAttendee(aItem);
-            if (att) {
-                if (att.commonName && att.commonName.length > 0) {
-                    attendeeString += att.commonName;
-                } else if (att.id) {
-                    attendeeString += att.id.replace(/^mailto:/i, "");
-                }
-            }
-            attendeeLabel.setAttribute("value", attendeeString);
-            this.setAttribute("itemId", aItem.hashId);
+          let attendeeLabel = document.getAnonymousElementByAttribute(
+              this, "anonid", "attendee");
+          let attendeeString = this.mStrings.attendee;
+          let att = cal.getInvitedAttendee(aItem);
+          if (att) {
+              if (att.commonName && att.commonName.length > 0) {
+                  attendeeString += att.commonName;
+              } else if (att.id) {
+                  attendeeString += att.id.replace(/^mailto:/i, "");
+              }
+          }
+          attendeeLabel.setAttribute("value", attendeeString);
+          this.setAttribute("itemId", aItem.hashId);
           ]]>
         </body>
       </method>
@@ -203,9 +209,9 @@
         <body><![CDATA[
           let calendar = cal.wrapInstance(aItem.calendar, Components.interfaces.calISchedulingSupport);
           if (calendar) {
-              var att = calendar.getInvitedAttendee(aItem);
+              let att = calendar.getInvitedAttendee(aItem);
               if (att) {
-                  var att_ = att.clone();
+                  let att_ = att.clone();
                   att_.participationStatus = aStatus;
 
                   // Update attendee

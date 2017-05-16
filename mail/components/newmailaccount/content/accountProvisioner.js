@@ -269,7 +269,7 @@ var EmailAccountProvisioner = {
     // initial enabled/disabled state of the search button.
     EmailAccountProvisioner.onSearchInputOrProvidersChanged();
 
-    document.getElementById("window").style.height = window.innerHeight - 1;
+    document.getElementById("window").style.height = (window.innerHeight - 1) + "px";
 
     document.querySelector("button.existing").addEventListener("click", function() {
       EmailAccountProvisioner.saveName();
@@ -583,7 +583,7 @@ var EmailAccountProvisioner = {
     let required = ["id", "label", "paid", "languages", "api", "tos_url",
                     "privacy_url"];
 
-    for (let [index, aField] in Iterator(required)) {
+    for (let aField of required) {
       let fieldExists = (aField in provider);
       result &= fieldExists;
 

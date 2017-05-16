@@ -4,7 +4,8 @@
 <!-- LOCALIZATION NOTE (identityDialog.style): This value should be roughly
      equal to the value of accountManager.size entity minus the value
      of accountTree.width entity. -->
-<!ENTITY identityTitle.label "Kimlik ayarları">
+
+<!ENTITY identityDialog.style "min-width: 75ch;">
 <!ENTITY identityListDesc.label "Bu kimlik için ayarları yapılandır:">
 
 <!ENTITY settingsTab.label       "Ayarlar">
@@ -13,7 +14,10 @@
 
 
 
-<!-- LOCALIZATION NOTE (identityDialog.style): This value should be roughly
-     equal to the value of accountManager.size entity minus the value
-     of accountTree.width entity. -->
-<!ENTITY identityDialog.style "min-width: 75ch;">
+
+
+<!ENTITY identityAlias.accesskey "b">
+<!ENTITY identityAlias.label     "Identity Label:">
+<!ENTITY privateData.label       "Private Data">
+
+<!ENTITY publicData.label        "Public Data">

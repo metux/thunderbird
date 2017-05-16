@@ -4,7 +4,6 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
 <?xml-stylesheet href="chrome://global/skin/global.css" type="text/css"?>
-<?xul-overlay href="chrome://global/content/dialogOverlay.xul"?>
 
 <!-- DTD File with all strings specific to the file -->
 <!DOCTYPE dialog
@@ -21,13 +20,14 @@
         ondialogaccept="return doOK();">
   <script type="application/javascript" src="chrome://calendar/content/preferences/editCategory.js"/>
 
-  <!-- dialog-box: from dialogOverlay.xul -->
   <vbox id="dialog-box">
-    <hbox align="center">
-      <label value="&pref.categories.name.label;" control="categoryName"/>
-      <textbox id="categoryName" onchange="categoryNameChanged()" oninput="delay(500, categoryNameChanged)"/>
-    </hbox>
-    <hbox id="row2">
+    <label value="&pref.categories.name.label;"
+           control="categoryName"/>
+    <textbox id="categoryName"
+             flex="1"
+             onchange="categoryNameChanged()"
+             oninput="delay(500, categoryNameChanged)"/>
+    <hbox id="colorSelectRow">
       <checkbox id="useColor"
                 label="&pref.categories.usecolor.label;"
                 oncommand="toggleColor(); categoryNameChanged()"/>

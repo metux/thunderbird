@@ -78,6 +78,9 @@ pref("calendar.itip.displayInvitationChanges", true);
 //whether for delegated invitations a delegatee's replies will be send also to delegator(s)
 pref("calendar.itip.notifyDelegatorOnReply", true);
 
+// whether to prefix the subject field for email invitation invites or updates.
+pref("calendar.itip.useInvitationSubjectPrefixes", true);
+
 // whether CalDAV (experimental) scheduling is enabled or not.
 pref("calendar.caldav.sched.enabled", false);
 
@@ -143,9 +146,18 @@ pref("calendar.network.multirealm", false);
 // Disable use of system colors in minimonth and calendar views
 pref("calendar.view.useSystemColors", false);
 
+// Disable hiding the label on todayPane button
+pref("calendar.view.showTodayPaneStatusLabel", true);
+
 // Maximum number of iterations allowed when searching for the next matching
 // occurrence of a repeating item in calFilter
 pref("calendar.filter.maxiterations", 50);
+
+// Edit events and tasks in a tab rather than a window.
+pref("calendar.item.editInTab", false);
+
+// Edit events and tasks in the new (HTML-based) UI for tabs and windows
+pref("calendar.item.useNewItemUI", false);
 
 // Backend to use. false: libical, true: ical.js
 #ifdef NIGHTLY_BUILD

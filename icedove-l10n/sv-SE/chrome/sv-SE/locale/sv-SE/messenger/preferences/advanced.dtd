@@ -59,13 +59,11 @@
 <!ENTITY updateCheck.accesskey           "S">
 <!ENTITY updateManual.label              "Sök aldrig efter uppdateringar (rekommenderas inte: säkerhetsrisk)">
 <!ENTITY updateManual.accesskey          "a">
-<!ENTITY updateAutoAddonWarn.label       "Varna mig om detta kommer att inaktivera någon av mina tillägg">
-<!ENTITY updateAutoAddonWarn.accesskey   "V">
 <!ENTITY updateHistory.label             "Visa uppdateringshistorik">
 <!ENTITY updateHistory.accesskey         "h">
 
-<!ENTITY useService.label               "Använd en bakgrundstjänst för att installera uppdateringar">
-<!ENTITY useService.accesskey           "b">
+<!ENTITY useService.label                "Använd en bakgrundstjänst för att installera uppdateringar">
+<!ENTITY useService.accesskey            "b">
 
 <!-- Networking and Disk Space -->
 <!ENTITY showSettings.label            "Inställningar…">
@@ -103,7 +101,7 @@
 <!ENTITY enableOCSP.label                "Använd OCSP-mekanism för att bekräfta giltigheten på certifikaten">
 <!ENTITY enableOCSP.accesskey            "o">
 
-<!ENTITY viewCertificates.label         "Visa certifikat">
-<!ENTITY viewCertificates.accesskey     "c">
-<!ENTITY viewSecurityDevices.label      "Säkerhetsenheter">
-<!ENTITY viewSecurityDevices.accesskey  "k">
+<!ENTITY manageCertificates.label "Hantera certifikat">
+<!ENTITY manageCertificates.accesskey "H">
+<!ENTITY viewSecurityDevices.label "Säkerhetsenheter">
+<!ENTITY viewSecurityDevices.accesskey "k">

@@ -59,7 +59,7 @@
      include unread messages.
      -->
 <!ENTITY quickFilterBar.unread.tooltip
-         "Toan allinnich net lêzen berjochten.">
+         "Allinnich net lêzen berjochten toane">
 
 <!-- LOCALIZATION NOTE (quickFilterBar.starred.label):
      The label for the filter button that causes us to filter results to only
@@ -73,7 +73,7 @@
      include messages that have been starred/flagged.
      -->
 <!ENTITY quickFilterBar.starred.tooltip
-         "Toan allinnich berjochten mei stjer.">
+         "Allinnich berjochten mei stjer toane">
 
 <!-- LOCALIZATION NOTE (quickFilterBar.inaddrbook.label):
      The label for the filter button that causes us to filter results to only
@@ -89,7 +89,7 @@
      books.
      -->
 <!ENTITY quickFilterBar.inaddrbook.tooltip
-         "Toan allinnich berjochten fan minsken yn jo adresboek.">
+         "Allinnich berjochten fan minsken yn jo adresboek toane">
 
 <!-- LOCALIZATION NOTE (quickFilterBar.tags.label):
      The label for the filter button that causes us to filter results to only
@@ -103,7 +103,7 @@
      include messages with at least one tag on them.
      -->
 <!ENTITY quickFilterBar.tags.tooltip
-         "Toan allinnich berjochten mei labels.">
+         "Allinnich berjochten mei labels toane">
 
 <!-- LOCALIZATION NOTE (quickFilterBar.attachment.label):
      The label for the filter button that causes us to filter results to only
@@ -117,7 +117,7 @@
      include messages with attachments.
      -->
 <!ENTITY quickFilterBar.attachment.tooltip
-         "Toan allinnich berjochten mei bylagen.">
+         "Allinnich berjochten mei bylagen toane">
 
 <!-- LOCALIZATION NOTE (quickFilterBar.resultsLabel.some.formatString):
      This is used to populate the results box; it either displays the
@@ -150,7 +150,7 @@
 <!ENTITY quickFilterBar.resultsLabel.minWidth
          "100">
 
-<!-- LOCALIZATION NOTE (quickFilterBar.textbox.emptyText.base):
+<!-- LOCALIZATION NOTE (quickFilterBar.textbox.emptyText.base1):
      This is the base of the empty text for the text search box.  We replace
      #1 with the contents of the appropriate
      quickFilterBar.textbox.emptyText.keyLabel.* value for the platform.
@@ -168,9 +168,8 @@
 
 <!-- LOCALIZATION NOTE (quickFilterBar.textbox.emptyText.keyLabel.nonmac):
      The description of the key-binding to get into the box on windows and
-     linux (which use the control key).  We use the keybinding for cmd_find
-     used by the find-in-message mechanism, so that's the letter to indicate
-     if you don't use 'f' for your localization.
+     linux (which use the control key).  This should match the value of
+     quickFilterBar.show.key above.
      -->
 <!ENTITY quickFilterBar.textbox.emptyText.keyLabel2.nonmac
          "&lt;Ctrl+Shift+K&gt;">
@@ -185,7 +184,7 @@
 <!-- LOCALIZATION NOTE (quickFilterBar.booleanMode.tooltip):
      Tooltip of the Any of / All of tagging mode selector.
      -->
-<!ENTITY quickFilterBar.booleanMode.tooltip "Label filtermoadus">
+<!ENTITY quickFilterBar.booleanMode.tooltip "Label filtermodus">
 
 <!-- LOCALIZATION NOTE (quickFilterBar.booleanModeAny.label):
      Tooltip of the Any of / All of tagging mode selector.
@@ -260,7 +259,7 @@
      body for the string.
      -->
 <!ENTITY quickFilterBar.textFilter.body.label
-         "Kearn">
+         "Berjochttekst">
 
 <!-- LOCALIZATION NOTE (quickFilterBar.glodaUpsell.continueSearch):
      The first line of the panel popup that tells the user we found no matches

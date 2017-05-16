@@ -1,18 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- This Source Code Form is subject to the terms of the Mozilla Public
    - License, v. 2.0. If a copy of the MPL was not distributed with this
-   - file, You can obtain one at http://mozilla.org/MPL/2.0/.
--->
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
 <!-- Note that this file depends on helper functions in calUtils.js-->
 
 <!DOCTYPE bindings SYSTEM "chrome://global/locale/global.dtd" >
 
 <bindings id="calendar-month-view-bindings"
-  xmlns="http://www.mozilla.org/xbl"
-  xmlns:html="http://www.w3.org/1999/xhtml"
-  xmlns:xul="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
-  xmlns:xbl="http://www.mozilla.org/xbl">
+          xmlns="http://www.mozilla.org/xbl"
+          xmlns:html="http://www.w3.org/1999/xhtml"
+          xmlns:xul="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+          xmlns:xbl="http://www.mozilla.org/xbl">
 
   <binding id="calendar-month-day-box-item" extends="chrome://calendar/content/calendar-view-core.xml#calendar-editable-item">
     <content mousethrough="never" tooltip="itemTooltip">
@@ -74,41 +73,39 @@
     <implementation>
       <property name="occurrence">
         <getter><![CDATA[
-            return this.mOccurrence;
+          return this.mOccurrence;
         ]]></getter>
         <setter><![CDATA[
           ASSERT(!this.mOccurrence, "Code changes needed to set the occurrence twice", true);
           this.mOccurrence = val;
           if (cal.isEvent(val)) {
-            if (!val.startDate.isDate) {
-              var label = document.getAnonymousElementByAttribute(this,"anonid","item-label");
-              var df = Components.classes["@mozilla.org/calendar/datetime-formatter;1"].
-                       getService(Components.interfaces.calIDateTimeFormatter);
-              var timezone = this.calendarView ? this.calendarView.mTimezone :
-                             calendarDefaultTimezone();
-              var parentDate = ensureDateTime(this.parentBox.date);
-              var startTime = val.startDate.getInTimezone(timezone);
-              var endTime = val.endDate.getInTimezone(timezone);
-              var nextDay = parentDate.clone();
-              nextDay.day++;
-              var comp = endTime.compare(nextDay);
-              if(startTime.compare( parentDate) == -1 ) {
-                if (comp == 1)  {
-                  label.value = "↔";
-                } else if (comp == 0) {
-                  label.value = "↤";
-                } else {
-                  label.value = "⇥ " + df.formatTime(endTime);
-                }
-              } else {
-                if (comp == 1) {
-                  label.value = "⇤ " + df.formatTime(startTime);
-                } else {
-                  label.value = df.formatTime(startTime);
-                }
+              if (!val.startDate.isDate) {
+                  let label = document.getAnonymousElementByAttribute(this, "anonid", "item-label");
+                  let formatter = Components.classes["@mozilla.org/calendar/datetime-formatter;1"]
+                                            .getService(Components.interfaces.calIDateTimeFormatter);
+                  let timezone = this.calendarView ? this.calendarView.mTimezone
+                                                   : calendarDefaultTimezone();
+                  let parentDate = ensureDateTime(this.parentBox.date);
+                  let startTime = val.startDate.getInTimezone(timezone);
+                  let endTime = val.endDate.getInTimezone(timezone);
+                  let nextDay = parentDate.clone();
+                  nextDay.day++;
+                  let comp = endTime.compare(nextDay);
+                  if (startTime.compare(parentDate) == -1) {
+                      if (comp == 1) {
+                          label.value = "↔";
+                      } else if (comp == 0) {
+                          label.value = "↤";
+                      } else {
+                          label.value = "⇥ " + formatter.formatTime(endTime);
+                      }
+                  } else if (comp == 1) {
+                      label.value = "⇤ " + formatter.formatTime(startTime);
+                  } else {
+                      label.value = formatter.formatTime(startTime);
+                  }
+                  label.setAttribute("time", "true");
               }
-              label.setAttribute("time", "true");
-            }
           }
 
           this.setEditableLabel();
@@ -151,18 +148,19 @@
 
       <property name="selected">
         <getter><![CDATA[
-          var sel = this.getAttribute("selected");
+          let sel = this.getAttribute("selected");
           if (sel && sel == "true") {
-            return true;
+              return true;
           }
 
           return false;
         ]]></getter>
         <setter><![CDATA[
-          if (val)
-            this.setAttribute("selected", "true");
-          else
-            this.removeAttribute("selected");
+          if (val) {
+              this.setAttribute("selected", "true");
+          } else {
+              this.removeAttribute("selected");
+          }
           return val;
         ]]></setter>
       </property>
@@ -177,17 +175,17 @@
         ]]></getter>
         <setter><![CDATA[
           if (this.mShowMonthLabel == val) {
-            return val;
+              return val;
           }
           this.mShowMonthLabel = val;
 
           if (!this.mDate) {
-            return val;
+              return val;
           }
           if (val) {
-            this.setAttribute("value", getDateFormatter().formatDateWithoutYear(this.mDate));
+              this.setAttribute("value", getDateFormatter().formatDateWithoutYear(this.mDate));
           } else {
-            this.setAttribute("value", this.mDate.day);
+              this.setAttribute("value", this.mDate.day);
           }
           return val;
         ]]></setter>
@@ -197,7 +195,7 @@
         <parameter name="aDate"/>
         <body><![CDATA[
           if (!aDate) {
-            throw Components.results.NS_ERROR_NULL_POINTER;
+              throw Components.results.NS_ERROR_NULL_POINTER;
           }
 
           // Remove all the old events
@@ -205,7 +203,7 @@
           removeChildren(this);
 
           if (this.mDate && this.mDate.compare(aDate) == 0) {
-            return;
+              return;
           }
 
           this.mDate = aDate;
@@ -218,10 +216,10 @@
           this.setAttribute("day", aDate.day);
 
           if (this.mShowMonthLabel) {
-             let monthName = calGetString("dateFormat", "month." + (aDate.month+1) + ".Mmm");
-             this.setAttribute("value", aDate.day + " " + monthName);
+              let monthName = calGetString("dateFormat", "month." + (aDate.month + 1) + ".Mmm");
+              this.setAttribute("value", aDate.day + " " + monthName);
           } else {
-             this.setAttribute("value", aDate.day);
+              this.setAttribute("value", aDate.day);
           }
         ]]></body>
       </method>
@@ -230,7 +228,7 @@
         <parameter name="aItem"/>
         <body><![CDATA[
           if (aItem.hashId in this.mItemHash) {
-            this.deleteItem(aItem);
+              this.deleteItem(aItem);
           }
 
           let box = createXULElement("calendar-month-day-box-item");
@@ -256,7 +254,7 @@
         <parameter name="aItem"/>
         <body><![CDATA[
           if (aItem.hashId in this.mItemHash) {
-            this.mItemHash[aItem.hashId].selected = true;
+              this.mItemHash[aItem.hashId].selected = true;
           }
         ]]></body>
       </method>
@@ -265,7 +263,7 @@
         <parameter name="aItem"/>
         <body><![CDATA[
           if (aItem.hashId in this.mItemHash) {
-            this.mItemHash[aItem.hashId].selected = false;
+              this.mItemHash[aItem.hashId].selected = false;
           }
         ]]></body>
       </method>
@@ -274,9 +272,9 @@
         <parameter name="aItem"/>
         <body><![CDATA[
           if (aItem.hashId in this.mItemHash) {
-            let node =  this.mItemHash[aItem.hashId];
-            node.remove();
-            delete this.mItemHash[aItem.hashId];
+              let node = this.mItemHash[aItem.hashId];
+              node.remove();
+              delete this.mItemHash[aItem.hashId];
           }
         ]]></body>
       </method>
@@ -305,14 +303,14 @@
           return cal.moveItem(aItem, dayboxDate);
         ]]></body>
       </method>
-
     </implementation>
 
     <handlers>
       <handler event="mousedown"><![CDATA[
         event.stopPropagation();
-        if (this.mDate)
-          this.calendarView.selectedDay = this.mDate;
+        if (this.mDate) {
+            this.calendarView.selectedDay = this.mDate;
+        }
       ]]></handler>
       <handler event="dblclick"><![CDATA[
         event.stopPropagation();
@@ -320,7 +318,7 @@
       ]]></handler>
       <handler event="click" button="0"><![CDATA[
         if (!(event.ctrlKey || event.metaKey)) {
-          this.calendarView.setSelectedItems(0, []);
+            this.calendarView.setSelectedItems(0, []);
         }
       ]]></handler>
       <handler event="wheel"><![CDATA[
@@ -412,28 +410,25 @@
     </content>
 
     <implementation implements="calICalendarView">
-
-      <!-- constructor -->
       <constructor><![CDATA[
-          Components.utils.import("resource://gre/modules/Preferences.jsm");
-          Components.utils.import("resource://calendar/modules/calViewUtils.jsm");
+        Components.utils.import("resource://gre/modules/Preferences.jsm");
+        Components.utils.import("resource://calendar/modules/calViewUtils.jsm");
 
-          // Set the preference for the default start of the week
-          this.weekStartOffset = Preferences.get("calendar.week.start", 0);
+        // Set the preference for the default start of the week
+        this.weekStartOffset = Preferences.get("calendar.week.start", 0);
 
-          for (var i = 0; i < 7; i++) {
-              let hdr = createXULElement("calendar-day-label");
-              this.labeldaybox.appendChild(hdr);
-              hdr.weekDay = (i + this.mWeekStartOffset) % 7;
-              hdr.shortWeekNames = false;
-          }
+        for (let i = 0; i < 7; i++) {
+            let hdr = createXULElement("calendar-day-label");
+            this.labeldaybox.appendChild(hdr);
+            hdr.weekDay = (i + this.mWeekStartOffset) % 7;
+            hdr.shortWeekNames = false;
+        }
 
-          // Set the preference for displaying the week number
-          this.mShowWeekNumber = Preferences.get('calendar.view-minimonth.showWeekNumber', true);
+        // Set the preference for displaying the week number
+        this.mShowWeekNumber = Preferences.get("calendar.view-minimonth.showWeekNumber", true);
       ]]></constructor>
 
       <!-- fields -->
-
       <field name="mDateBoxes">null</field>
       <field name="mSelectedDayBox">null</field>
 
@@ -448,14 +443,12 @@
         <parameter name="aAttr"/>
         <parameter name="aVal"/>
         <body><![CDATA[
-          var needsrelayout = false;
-          if (aAttr == "context" || aAttr == "item-context")
-              needsrelayout = true;
+          let needsrelayout = (aAttr == "context" || aAttr == "item-context");
+          let ret = XULElement.prototype.setAttribute.call(this, aAttr, aVal);
 
-          var ret = XULElement.prototype.setAttribute.call (this, aAttr, aVal);
-
-          if (needsrelayout)
+          if (needsrelayout) {
               this.relayout();
+          }
 
           return ret;
         ]]></body>
@@ -500,42 +493,38 @@
         <parameter name="aTopic"/>
         <parameter name="aPreference"/>
         <body><![CDATA[
-           aSubject.QueryInterface(Components.interfaces.nsIPrefBranch);
+          aSubject.QueryInterface(Components.interfaces.nsIPrefBranch);
 
-           switch (aPreference) {
-               case "calendar.previousweeks.inview":
-                   this.updateDaysOffPrefs();
-                   this.refreshView();
-                   break;
+          switch (aPreference) {
+              case "calendar.previousweeks.inview":
+                  this.updateDaysOffPrefs();
+                  this.refreshView();
+                  break;
 
-               case "calendar.week.start":
-                   this.weekStartOffset = aSubject.getIntPref(aPreference);
-                   // Refresh the view so the settings take effect
-                   this.refreshView();
-                   break;
+              case "calendar.week.start":
+                  this.weekStartOffset = aSubject.getIntPref(aPreference);
+                  // Refresh the view so the settings take effect
+                  this.refreshView();
+                  break;
 
-               case "calendar.weeks.inview":
-                   this.weeksInView = aSubject.getIntPref(aPreference);
-                   break;
+              case "calendar.weeks.inview":
+                  this.weeksInView = aSubject.getIntPref(aPreference);
+                  break;
 
-               case "calendar.previousweeks.inview":
-                   this.refreshView();
-                   break;
+              case "calendar.view-minimonth.showWeekNumber":
+                  this.mShowWeekNumber = aSubject.getBoolPref(aPreference);
+                  if (this.mShowWeekNumber) {
+                      this.refreshView();
+                  } else {
+                      this.hideWeekNumbers();
+                  }
+                  break;
 
-               case "calendar.view-minimonth.showWeekNumber":
-                   this.mShowWeekNumber = aSubject.getBoolPref(aPreference);
-                   if (this.mShowWeekNumber) {
-                       this.refreshView();
-                   } else {
-                       this.hideWeekNumbers();
-                   }
-                   break;
-
-               default:
-                   this.handleCommonPreference(aSubject, aTopic, aPreference);
-                   break;
-           }
-           return;
+              default:
+                  this.handleCommonPreference(aSubject, aTopic, aPreference);
+                  break;
+          }
+          return;
         ]]></body>
       </method>
 
@@ -553,9 +542,9 @@
         <parameter name="aSuppressEvent"/>
         <body><![CDATA[
           if (this.mSelectedItems.length) {
-              for each (var item in this.mSelectedItems) {
+              for (let item of this.mSelectedItems) {
                   let oldboxes = this.findDayBoxesForItem(item);
-                  for each (let oldbox in oldboxes) {
+                  for (let oldbox of oldboxes) {
                       oldbox.unselectItem(item);
                   }
               }
@@ -564,9 +553,9 @@
           this.mSelectedItems = aItems || [];
 
           if (this.mSelectedItems.length) {
-              for each (var item in this.mSelectedItems) {
+              for (let item of this.mSelectedItems) {
                   let newboxes = this.findDayBoxesForItem(item);
-                  for each (let newbox in newboxes) {
+                  for (let newbox of newboxes) {
                       newbox.selectItem(item);
                   }
               }
@@ -585,24 +574,26 @@
 
       <property name="selectedDay">
         <getter><![CDATA[
-          if (this.mSelectedDayBox)
-            return this.mSelectedDayBox.date.clone();
+          if (this.mSelectedDayBox) {
+              return this.mSelectedDayBox.date.clone();
+          }
 
           return null;
         ]]></getter>
         <setter><![CDATA[
-          if (this.mSelectedDayBox)
-            this.mSelectedDayBox.selected = false;
+          if (this.mSelectedDayBox) {
+              this.mSelectedDayBox.selected = false;
+          }
 
-          var realVal = val;
+          let realVal = val;
           if (!realVal.isDate) {
-            realVal = val.clone();
-            realVal.isDate = true;
+              realVal = val.clone();
+              realVal.isDate = true;
           }
           let box = this.findDayBoxForDate(realVal);
           if (box) {
-            box.selected = true;
-            this.mSelectedDayBox = box;
+              box.selected = true;
+              this.mSelectedDayBox = box;
           }
           this.fireEvent("dayselect", realVal);
           return val;
@@ -686,7 +677,6 @@
               this.mViewEnd.compare(viewEnd) != 0 ||
               this.mViewStart.compare(viewStart) != 0 ||
               this.mToggleStatus != toggleStatus) {
-
               this.refresh();
           }
 
@@ -697,8 +687,8 @@
         <parameter name="aCount"/>
         <body><![CDATA[
           if (!this.mStartDate || !this.mEndDate) {
-            aCount.value = 0;
-            return [];
+              aCount.value = 0;
+              return [];
           }
 
           let results = [];
@@ -706,8 +696,8 @@
           curDate.isDate = true;
 
           while (curDate.compare(this.mEndDate) <= 0) {
-            results.push(curDate.clone());
-            curDate.day += 1;
+              results.push(curDate.clone());
+              curDate.day += 1;
           }
           aCount.value = results.length;
           return results;
@@ -723,8 +713,8 @@
         ]]></getter>
         <setter><![CDATA[
           if (this.mShowDaysOutsideMonth != val) {
-            this.mShowDaysOutsideMonth = val;
-            this.refresh();
+              this.mShowDaysOutsideMonth = val;
+              this.refresh();
           }
           return val;
         ]]></setter>
@@ -742,141 +732,141 @@
         <body><![CDATA[
           // Adjust headers based on the starting day of the week, if necessary
           if (this.labeldaybox.firstChild.weekDay != this.weekStartOffset) {
-            for (let i = 0; i < this.labeldaybox.childNodes.length; i++) {
-              this.labeldaybox.childNodes[i].weekDay = (i + this.weekStartOffset) % 7;
-            }
+              for (let i = 0; i < this.labeldaybox.childNodes.length; i++) {
+                  this.labeldaybox.childNodes[i].weekDay = (i + this.weekStartOffset) % 7;
+              }
           }
 
           if (this.mSelectedItems.length) {
-            this.mSelectedItems = [];
+              this.mSelectedItems = [];
           }
 
           if (!this.mStartDate || !this.mEndDate) {
-            throw Components.results.NS_ERROR_FAILURE;
+              throw Components.results.NS_ERROR_FAILURE;
           }
 
           // Days that are not in the main month on display are displayed with
           // a gray background.  Unless the month actually starts on a Sunday,
           // this means that mStartDate.month is 1 month less than the main month
-          var mainMonth = this.mStartDate.month;
+          let mainMonth = this.mStartDate.month;
           if (this.mStartDate.day != 1) {
-            mainMonth++;
-            mainMonth = mainMonth % 12;
+              mainMonth++;
+              mainMonth = mainMonth % 12;
           }
 
-          var dateBoxes = [];
-          var today = this.today();
+          let dateBoxes = [];
+          let today = this.today();
 
           // This gets set to true, telling us to collapse the rest of the rows
-          var finished = false;
-          var dateList = this.getDateList({})
+          let finished = false;
+          let dateList = this.getDateList({});
 
           // This allows to find the first column of dayboxes where to set the
           // week labels taking into account whether days-off are displayed or not.
           let weekLabelColumnPos = -1;
 
-          var rows = this.monthgridrows.childNodes;
+          let rows = this.monthgridrows.childNodes;
 
-          // Iterate through each monthgridrow and set up the day-boxes that 
+          // Iterate through each monthgridrow and set up the day-boxes that
           // are its child nodes.  Remember, childNodes is not a normal array,
-          // so don't use the in operator if you don't want extra properties 
+          // so don't use the in operator if you don't want extra properties
           // coming out.
-          for (var i = 0; i < rows.length; i++) {
-            var row = rows[i];
-            // If we've already assigned all of the day-boxes that we need, just 
-            // collapse the rest of the rows, otherwise expand them if needed.
-            if (finished) {
-              row.setAttribute("collapsed", true);
-              continue;
-            } else {
-              row.removeAttribute("collapsed");
-            }
-            for (var j = 0; j < row.childNodes.length; j++) {
-              var daybox = row.childNodes[j];
-              var dt = dateList[dateBoxes.length];
-
-              // Remove the attribute "relation" for all the column headers.
-              // Consider only the first row index otherwise it will be
-              // removed again afterwards the correct setting.
-              if (i == 0) {
-                  this.labeldaybox.childNodes[j].removeAttribute("relation");
-              }
-
-              daybox.setAttribute("context", this.getAttribute("context"));
-              daybox.setAttribute("item-context", this.getAttribute("item-context") || this.getAttribute("context"));
-
-              // Set the box-class depending on if this box displays a day in
-              // the month being currently shown or not.
-              var boxClass;
-              if (this.showFullMonth) {
-                  boxClass = "calendar-month-day-box-" +
-                             (mainMonth == dt.month ? "current-month" : "other-month");
+          for (let i = 0; i < rows.length; i++) {
+              let row = rows[i];
+              // If we've already assigned all of the day-boxes that we need, just
+              // collapse the rest of the rows, otherwise expand them if needed.
+              if (finished) {
+                  row.setAttribute("collapsed", true);
+                  continue;
               } else {
-                  boxClass = "calendar-month-day-box-current-month";
+                  row.removeAttribute("collapsed");
               }
-              if (this.mDaysOffArray.some(dayOffNum => dayOffNum == dt.weekday)) {
-                boxClass = "calendar-month-day-box-day-off " + boxClass;
-              }
+              for (let j = 0; j < row.childNodes.length; j++) {
+                  let daybox = row.childNodes[j];
+                  let date = dateList[dateBoxes.length];
 
-              // Set up date relations
-              switch (dt.compare(today)) {
-                  case -1:
-                      daybox.setAttribute("relation", "past");
-                      break;
-                  case 0:
-                      daybox.setAttribute("relation", "today");
-                      this.labeldaybox.childNodes[j].setAttribute("relation", "today");
-                      break;
-                  case 1:
-                      daybox.setAttribute("relation", "future");
-                      break;
-              }
-
-              // Set up label with the week number in the first day of the row.
-              if (this.mShowWeekNumber) {
-                let weekLabel = document.getAnonymousElementByAttribute(daybox, "anonid", "week-label");
-                if (weekLabelColumnPos < 0) {
-                  let isDayOff = this.mDaysOffArray.includes((j + this.mWeekStartOffset) % 7);
-                  if (this.mDisplayDaysOff || !isDayOff) {
-                    weekLabelColumnPos = j;
+                  // Remove the attribute "relation" for all the column headers.
+                  // Consider only the first row index otherwise it will be
+                  // removed again afterwards the correct setting.
+                  if (i == 0) {
+                      this.labeldaybox.childNodes[j].removeAttribute("relation");
                   }
-                }
-                // Build and set the label.
-                if (j == weekLabelColumnPos) {
-                  weekLabel.removeAttribute("hidden");
-                  let weekNumber = cal.getWeekInfoService().getWeekTitle(dt);
-                  let weekString = cal.calGetString("calendar", "abbreviationOfWeek", [weekNumber]);
-                  weekLabel.value = weekString;
-                } else {
-                  weekLabel.hidden = true;
-                }
-              }
 
-              daybox.setAttribute("class", boxClass);
+                  daybox.setAttribute("context", this.getAttribute("context"));
+                  daybox.setAttribute("item-context", this.getAttribute("item-context") || this.getAttribute("context"));
 
-              daybox.setDate(dt);
-              if (dt.day == 1 || dt.day == dt.endOfMonth.day) {
-                daybox.showMonthLabel = true;
-              } else {
-                daybox.showMonthLabel = false;
-              }
-              daybox.calendarView = this;
-              daybox.date = dt;
-              dateBoxes.push(daybox);
+                  // Set the box-class depending on if this box displays a day in
+                  // the month being currently shown or not.
+                  let boxClass;
+                  if (this.showFullMonth) {
+                      boxClass = "calendar-month-day-box-" +
+                                 (mainMonth == date.month ? "current-month" : "other-month");
+                  } else {
+                      boxClass = "calendar-month-day-box-current-month";
+                  }
+                  if (this.mDaysOffArray.some(dayOffNum => dayOffNum == date.weekday)) {
+                      boxClass = "calendar-month-day-box-day-off " + boxClass;
+                  }
 
-              // If we've now assigned all of our dates, set this to true so we
-              // know we can just collapse the rest of the rows.
-              if (dateBoxes.length == dateList.length) {
-                finished = true;
+                  // Set up date relations
+                  switch (date.compare(today)) {
+                      case -1:
+                          daybox.setAttribute("relation", "past");
+                          break;
+                      case 0:
+                          daybox.setAttribute("relation", "today");
+                          this.labeldaybox.childNodes[j].setAttribute("relation", "today");
+                          break;
+                      case 1:
+                          daybox.setAttribute("relation", "future");
+                          break;
+                  }
+
+                  // Set up label with the week number in the first day of the row.
+                  if (this.mShowWeekNumber) {
+                      let weekLabel = document.getAnonymousElementByAttribute(daybox, "anonid", "week-label");
+                      if (weekLabelColumnPos < 0) {
+                          let isDayOff = this.mDaysOffArray.includes((j + this.mWeekStartOffset) % 7);
+                          if (this.mDisplayDaysOff || !isDayOff) {
+                              weekLabelColumnPos = j;
+                          }
+                      }
+                      // Build and set the label.
+                      if (j == weekLabelColumnPos) {
+                          weekLabel.removeAttribute("hidden");
+                          let weekNumber = cal.getWeekInfoService().getWeekTitle(date);
+                          let weekString = cal.calGetString("calendar", "abbreviationOfWeek", [weekNumber]);
+                          weekLabel.value = weekString;
+                      } else {
+                          weekLabel.hidden = true;
+                      }
+                  }
+
+                  daybox.setAttribute("class", boxClass);
+
+                  daybox.setDate(date);
+                  if (date.day == 1 || date.day == date.endOfMonth.day) {
+                      daybox.showMonthLabel = true;
+                  } else {
+                      daybox.showMonthLabel = false;
+                  }
+                  daybox.calendarView = this;
+                  daybox.date = date;
+                  dateBoxes.push(daybox);
+
+                  // If we've now assigned all of our dates, set this to true so we
+                  // know we can just collapse the rest of the rows.
+                  if (dateBoxes.length == dateList.length) {
+                      finished = true;
+                  }
               }
-            }
           }
 
           // If we're not showing a full month, then add a few extra labels to
           // help the user orient themselves in the view.
           if (!this.mShowFullMonth) {
-            dateBoxes[0].showMonthLabel = true;
-            dateBoxes[dateBoxes.length - 1].showMonthLabel = true;
+              dateBoxes[0].showMonthLabel = true;
+              dateBoxes[dateBoxes.length - 1].showMonthLabel = true;
           }
 
           // Store these, so that we can access them later
@@ -912,25 +902,25 @@
         <body><![CDATA[
           let rows = this.monthgridrows.childNodes;
           for (let i = 0; i < rows.length; i++) {
-            let row = rows[i];
-            for (let j = 0; j < row.childNodes.length; j++) {
-              let daybox = row.childNodes[j];
-              let weekLabel = document.getAnonymousElementByAttribute(daybox, "anonid", "week-label");
-              weekLabel.hidden = true;
-            }
+              let row = rows[i];
+              for (let j = 0; j < row.childNodes.length; j++) {
+                  let daybox = row.childNodes[j];
+                  let weekLabel = document.getAnonymousElementByAttribute(daybox, "anonid", "week-label");
+                  weekLabel.hidden = true;
+              }
           }
         ]]></body>
       </method>
 
       <method name="hideDaysOff">
         <body><![CDATA[
-          var columns = document.getAnonymousElementByAttribute(this, "anonid", "monthgridcolumns").childNodes;
+          let columns = document.getAnonymousElementByAttribute(this, "anonid", "monthgridcolumns").childNodes;
           let headerkids = document.getAnonymousElementByAttribute(this, "anonid", "labeldaybox").childNodes;
-          for (var i in columns) {
-            var dayForColumn = (Number(i) + this.mWeekStartOffset) % 7;
-            var dayOff = this.mDaysOffArray.includes(dayForColumn);
-            columns[i].collapsed = dayOff && !this.mDisplayDaysOff;
-            headerkids[i].collapsed = dayOff && !this.mDisplayDaysOff;
+          for (let i = 0; i < columns.length; i++) {
+              let dayForColumn = (i + this.mWeekStartOffset) % 7;
+              let dayOff = this.mDaysOffArray.includes(dayForColumn);
+              columns[i].collapsed = dayOff && !this.mDisplayDaysOff;
+              headerkids[i].collapsed = dayOff && !this.mDisplayDaysOff;
           }
         ]]></body>
       </method>
@@ -938,9 +928,13 @@
       <method name="findDayBoxForDate">
         <parameter name="aDate"/>
         <body><![CDATA[
-          for each (let box in this.mDateBoxes) {
-            if (box.mDate.compare(aDate) == 0)
-              return box;
+          if (!this.mDateBoxes) {
+              return null;
+          }
+          for (let box of this.mDateBoxes) {
+              if (box.mDate.compare(aDate) == 0) {
+                  return box;
+              }
           }
           return null;
         ]]></body>
@@ -949,9 +943,9 @@
       <method name="findDayBoxesForItem">
         <parameter name="aItem"/>
         <body><![CDATA[
-          var targetDate = null;
-          var finishDate = null;
-          var boxes = new Array();
+          let targetDate = null;
+          let finishDate = null;
+          let boxes = [];
 
           // All our boxes are in default tz, so we need these times in them too.
           if (cal.isEvent(aItem)) {
@@ -965,22 +959,23 @@
               }
           }
 
-          if (!targetDate)
-            return boxes;
+          if (!targetDate) {
+              return boxes;
+          }
 
           if (!finishDate) {
-            let maybeBox = this.findDayBoxForDate(targetDate);
-            if (maybeBox) {
-              boxes.push(maybeBox);
-            }
-            return boxes;
+              let maybeBox = this.findDayBoxForDate(targetDate);
+              if (maybeBox) {
+                  boxes.push(maybeBox);
+              }
+              return boxes;
           }
 
           if (!targetDate.isDate) {
-            // Reset the time to 00:00, so that we really get all the boxes
-            targetDate.hour = 0;
-            targetDate.minute = 0;
-            targetDate.second = 0;
+              // Reset the time to 00:00, so that we really get all the boxes
+              targetDate.hour = 0;
+              targetDate.minute = 0;
+              targetDate.second = 0;
           }
 
           if (targetDate.compare(finishDate) == 0) {
@@ -993,13 +988,13 @@
           }
 
           while (targetDate.compare(finishDate) == -1) {
-            let box = this.findDayBoxForDate(targetDate);
+              let box = this.findDayBoxForDate(targetDate);
 
-            // This might not exist, if the event spans the view start or end
-            if (box) {
-                boxes.push(box);
-            }
-            targetDate.day += 1;
+              // This might not exist, if the event spans the view start or end
+              if (box) {
+                  boxes.push(box);
+              }
+              targetDate.day += 1;
           }
 
           return boxes;
@@ -1011,11 +1006,12 @@
         <body><![CDATA[
           let boxes = this.findDayBoxesForItem(aItem);
 
-          if (!boxes.length)
-            return;
+          if (!boxes.length) {
+              return;
+          }
 
-          for each (let box in boxes) {
-            box.addItem(aItem);
+          for (let box of boxes) {
+              box.addItem(aItem);
           }
         ]]></body>
       </method>
@@ -1025,17 +1021,18 @@
         <body><![CDATA[
           let boxes = this.findDayBoxesForItem(aItem);
 
-          if (!boxes.length)
-            return;
+          if (!boxes.length) {
+              return;
+          }
 
           function isNotItem(a) {
               return (a.hashId != aItem.hashId);
           }
-          var oldLength = this.mSelectedItems.length;
+          let oldLength = this.mSelectedItems.length;
           this.mSelectedItems = this.mSelectedItems.filter(isNotItem);
 
-          for each (let box in boxes) {
-            box.deleteItem(aItem);
+          for (let box of boxes) {
+              box.deleteItem(aItem);
           }
 
           // If a deleted event was selected, we need to announce that the
@@ -1049,13 +1046,17 @@
       <method name="deleteItemsFromCalendar">
         <parameter name="aCalendar"/>
         <body><![CDATA[
-          for each (let box in this.mDateBoxes) {
-            for each (let node in box.mItemHash) {
-              let item = node.item;
-              if (item.calendar.id == aCalendar.id) {
-                box.deleteItem(item);
+          if (!this.mDateBoxes) {
+              return;
+          }
+          for (let box of this.mDateBoxes) {
+              for (let id in box.mItemHash) {
+                  let node = box.mItemHash[id];
+                  let item = node.item;
+                  if (item.calendar.id == aCalendar.id) {
+                      box.deleteItem(item);
+                  }
               }
-            }
           }
         ]]></body>
       </method>
@@ -1064,37 +1065,37 @@
         <parameter name="aAlarmItem"/>
         <parameter name="aStop"/>
         <body><![CDATA[
-          var showIndicator = Preferences.get("calendar.alarms.indicator.show", true);
-          var totaltime = Preferences.get("calendar.alarms.indicator.totaltime", 3600);
+          let showIndicator = Preferences.get("calendar.alarms.indicator.show", true);
+          let totaltime = Preferences.get("calendar.alarms.indicator.totaltime", 3600);
 
           if (!aStop && (!showIndicator || totaltime < 1)) {
-            // No need to animate if the indicator should not be shown.
-            return;
+              // No need to animate if the indicator should not be shown.
+              return;
           }
 
           // Make sure the flashing attribute is set or reset on all visible
           // boxes.
           let boxes = this.findDayBoxesForItem(aAlarmItem);
-          for each (var box in boxes) {
-            for each (var itemData in box.mItemHash) {
-              if (itemData.item.hasSameIds(aAlarmItem)) {
-                if (aStop) {
-                  itemData.removeAttribute("flashing");
-                } else {
-                  itemData.setAttribute("flashing", "true");
-                }
+          for (let box of boxes) {
+              for (let id in box.mItemHash) {
+                  let itemData = box.mItemHash[id];
+                  if (itemData.item.hasSameIds(aAlarmItem)) {
+                      if (aStop) {
+                          itemData.removeAttribute("flashing");
+                      } else {
+                          itemData.setAttribute("flashing", "true");
+                      }
+                  }
               }
-            }
           }
 
-          if (!aStop) {
-            // Set up a timer to stop the flashing after the total time.
-            var this_ = this;
-            this.mFlashingEvents[aAlarmItem.hashId] = aAlarmItem;
-            setTimeout(function() { this_.flashAlarm(aAlarmItem, true) }, totaltime);
+          if (aStop) {
+              // We are done flashing, prevent newly created event boxes from flashing.
+              delete this.mFlashingEvents[aAlarmItem.hashId];
           } else {
-            // We are done flashing, prevent newly created event boxes from flashing.
-            delete this.mFlashingEvents[aAlarmItem.hashId];
+              // Set up a timer to stop the flashing after the total time.
+              this.mFlashingEvents[aAlarmItem.hashId] = aAlarmItem;
+              setTimeout(() => this.flashAlarm(aAlarmItem, true), totaltime);
           }
         ]]></body>
       </method>
@@ -1103,7 +1104,7 @@
     <handlers>
       <handler event="wheel"><![CDATA[
         const pixelThreshold = 150;
-        let scrollEnabled = Preferences.get('calendar.view.mousescroll', true);
+        let scrollEnabled = Preferences.get("calendar.view.mousescroll", true);
         if (!event.ctrlKey && !event.shiftKey &&
             !event.altKey && !event.metaKey && scrollEnabled) {
             // In the month view, the only thing that can be scrolled
@@ -1117,7 +1118,7 @@
                 }
             } else if (event.deltaMode == event.DOM_DELTA_PIXEL) {
                 this.mPixelScrollDelta += event.deltaY;
-                if (this.mPixelScrollDelta > pixelThreshold){
+                if (this.mPixelScrollDelta > pixelThreshold) {
                     deltaView = 1;
                     this.mPixelScrollDelta = 0;
                 } else if (this.mPixelScrollDelta < -pixelThreshold) {
@@ -1132,6 +1133,5 @@
         }
       ]]></handler>
     </handlers>
-
   </binding>
 </bindings>

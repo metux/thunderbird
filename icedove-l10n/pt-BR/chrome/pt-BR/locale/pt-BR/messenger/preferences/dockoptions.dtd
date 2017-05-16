@@ -13,5 +13,4 @@
 <!ENTITY showAllUnreadMessagesCount.accesskey  "t">
 <!ENTITY dockIconBadge.label                   "Badge do ícone">
 <!ENTITY dockIconShow.label                    "Badge do ícone com:">
-
-<!ENTITY directNotificationSettings.label      "You can disable the badge on the Notification pane of System Preferences.">
+<!ENTITY directNotificationSettings.label      "Você pode desativar o emblema no painel de Notificação das Preferências do Sistema.">

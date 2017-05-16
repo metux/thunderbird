@@ -24,7 +24,6 @@ class nsSiteWindow;
 
 class nsContentTreeOwner final : public nsIDocShellTreeOwner,
                                  public nsIBaseWindow,
-                                 public nsIBaseWindowESR45,
                                  public nsIInterfaceRequestor,
                                  public nsIWebBrowserChrome3,
                                  public nsIWindowProvider
@@ -36,7 +35,6 @@ public:
    NS_DECL_ISUPPORTS
 
    NS_DECL_NSIBASEWINDOW
-   NS_DECL_NSIBASEWINDOWESR45
    NS_DECL_NSIDOCSHELLTREEOWNER
    NS_DECL_NSIINTERFACEREQUESTOR
    NS_DECL_NSIWEBBROWSERCHROME

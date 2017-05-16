@@ -11,10 +11,16 @@
 @import url("chrome://messenger/skin/shared/messenger.css");
 
 :root {
+  --fgTabTexture: linear-gradient(transparent 2px, hsl(0, 0%, 99%) 2px, hsl(0, 0%, 93%));
+  --toolbarColorLWT: rgba(253, 253, 253, 0.45);
+  --fgTabTextureLWT: linear-gradient(transparent 2px, rgba(254, 254, 254, .72) 2px, var(--toolbarColorLWT));
+  --fgTabBackgroundColor: transparent;
+
   --toolbarbutton-hover-background: hsla(0, 0%, 100%, .1)
                                     linear-gradient(hsla(0, 0%, 100%, .3),
                                     hsla(0, 0%, 100%, .1)) padding-box;
   --toolbarbutton-hover-bordercolor: hsla(0, 0%, 0%, .2);
+  --toolbarbutton-header-bordercolor: hsla(0, 0%, 0%, .2);
   --toolbarbutton-hover-boxshadow: 0 1px 0 hsla(0, 0%, 100%, .5),
                                    0 1px 0 hsla(0, 0%, 100%, .5) inset;
 
@@ -31,12 +37,14 @@
 }
 
 #titlebar {
-  -moz-binding: url("chrome://global/content/bindings/general.xml#windowdragbox");
   height: 22px;
-  -moz-window-dragging: drag;
 }
 
 @media (-moz-mac-yosemite-theme) {
+  :root:-moz-window-inactive {
+    --fgTabTexture: linear-gradient(transparent 2px, hsl(0, 0%, 99%) 2px, hsl(0, 0%, 97%));
+  }
+
   #tabmail {
     border-top: solid 1px rgba(0, 0, 0, 0.2);
     border-bottom: solid 1px rgba(0, 0, 0, 0.2);
@@ -190,7 +198,7 @@ toolbox[labelalign="end"] toolbarpaletteitem
 
 toolbox[labelalign="end"] .toolbarbutton-1 .toolbarbutton-text {
   /* !important for overriding toolbarbutton.css */
-  -moz-margin-start: 2px !important;
+  margin-inline-start: 2px !important;
 }
 
 toolbox[labelalign="end"] > toolbar[mode="full"] deck .toolbarbutton-text {
@@ -218,15 +226,9 @@ toolbar:not([mode="icons"]) .toolbarbutton-1 > .toolbarbutton-menubutton-button 
 }
 
 .toolbarbutton-1[disabled="true"] .toolbarbutton-text,
-.toolbarbutton-1[disabled="true"] .toolbarbutton-icon,
 .toolbarbutton-1[type="menu-button"] > .toolbarbutton-menubutton-button[disabled="true"]
   > .toolbarbutton-icon {
   opacity: .4;
-}
-
-.toolbarbutton-1 > .toolbarbutton-menu-dropmarker,
-.toolbarbutton-1 > .toolbarbutton-menubutton-dropmarker {
-  list-style-image: url(chrome://messenger/skin/icons/toolbarbutton-dropmarker.png) !important;
 }
 
 /* Separator between menu and split type buttons */
@@ -245,37 +247,45 @@ toolbar:not([mode="icons"]) .toolbarbutton-1 > .toolbarbutton-menubutton-button 
   box-shadow: 0 0 0 1px hsla(0, 0%, 100%, .2);
 }
 
-@media (-moz-mac-lion-theme) {
-  .toolbarbutton-1[disabled="true"] > .toolbarbutton-icon,
-  .toolbarbutton-1[type="menu-button"]
-    > .toolbarbutton-menubutton-button[disabled="true"] > .toolbarbutton-icon,
-  .toolbarbutton-1[disabled="true"] > .toolbarbutton-menu-dropmarker,
-  .toolbarbutton-1[disabled="true"] > .toolbarbutton-menubutton-dropmarker
-    > .dropmarker-icon,
-  .toolbarbutton-1:not(:hover):-moz-window-inactive .toolbarbutton-icon,
-  .toolbarbutton-1:not(:hover):-moz-window-inactive
-    > .toolbarbutton-menu-dropmarker,
-  .toolbarbutton-1:not(:hover):-moz-window-inactive
-    > .toolbarbutton-menubutton-dropmarker > .dropmarker-icon {
-    opacity: .5;
-  }
+.toolbarbutton-1[disabled="true"] > .toolbarbutton-icon,
+.toolbarbutton-1[type="menu-button"]
+  > .toolbarbutton-menubutton-button[disabled="true"] > .toolbarbutton-icon,
+.toolbarbutton-1[disabled="true"] > .toolbarbutton-menu-dropmarker,
+.toolbarbutton-1[disabled="true"] > .toolbarbutton-menubutton-dropmarker
+  > .dropmarker-icon,
+.toolbarbutton-1:not(:hover):-moz-window-inactive .toolbarbutton-icon,
+.toolbarbutton-1:not(:hover):-moz-window-inactive
+  > .toolbarbutton-menu-dropmarker,
+.toolbarbutton-1:not(:hover):-moz-window-inactive
+  > .toolbarbutton-menubutton-dropmarker > .dropmarker-icon {
+  opacity: .5;
+}
 
-  .toolbarbutton-1:-moz-window-inactive[disabled="true"] > .toolbarbutton-icon,
-  .toolbarbutton-1:-moz-window-inactive[type="menu-button"]
-    > .toolbarbutton-menubutton-button[disabled="true"] > .toolbarbutton-icon {
-    opacity: .25;
-  }
+.toolbarbutton-1:-moz-window-inactive[disabled="true"] > .toolbarbutton-icon,
+.toolbarbutton-1:-moz-window-inactive[type="menu-button"]
+  > .toolbarbutton-menubutton-button[disabled="true"] > .toolbarbutton-icon {
+  opacity: .25;
+}
 
-  .toolbarbutton-1 > .toolbarbutton-menu-dropmarker,
-  .toolbarbutton-1 > .toolbarbutton-menubutton-dropmarker {
-    list-style-image: url(chrome://messenger/skin/icons/toolbarbutton-dropmarker-lion.png) !important;
-  }
+.toolbarbutton-1 > .toolbarbutton-menu-dropmarker,
+.toolbarbutton-1 > .toolbarbutton-menubutton-dropmarker {
+  list-style-image: url(chrome://messenger/skin/icons/toolbarbutton-arrow.png);
+}
+
+toolbar[brighttext] .toolbarbutton-1 .toolbarbutton-menu-dropmarker,
+toolbar[brighttext] .toolbarbutton-1 > .toolbarbutton-menubutton-dropmarker {
+  list-style-image: url("chrome://messenger/skin/icons/toolbarbutton-arrow-inverted.png");
 }
 
 @media (min-resolution: 2dppx) {
   .toolbarbutton-1 > .toolbarbutton-menu-dropmarker,
   .toolbarbutton-1 > .toolbarbutton-menubutton-dropmarker {
-    list-style-image: url(chrome://messenger/skin/icons/toolbarbutton-dropmarker-lion@2x.png) !important;
+    list-style-image: url(chrome://messenger/skin/icons/toolbarbutton-arrow@2x.png);
+  }
+
+  toolbar[brighttext] .toolbarbutton-1 .toolbarbutton-menu-dropmarker,
+  toolbar[brighttext] .toolbarbutton-1 > .toolbarbutton-menubutton-dropmarker {
+    list-style-image: url("chrome://messenger/skin/icons/toolbarbutton-arrow-inverted@2x.png");
   }
 
   .toolbarbutton-menu-dropmarker > .dropmarker-icon,
@@ -287,6 +297,7 @@ toolbar:not([mode="icons"]) .toolbarbutton-1 > .toolbarbutton-menubutton-button 
 
 .toolbarbutton-1 > .toolbarbutton-menu-dropmarker {
   margin-inline-end: 1px;
+  padding-inline-start: 4px;
 }
 
 .toolbarbutton-1 > .toolbarbutton-menubutton-dropmarker {
@@ -311,7 +322,7 @@ toolbar[mode="icons"] .toolbarbutton-1 > menupopup {
 
 @media (min-resolution: 2dppx) {
   #throbber-box[busy="true"] {
-    list-style-image: url("chrome://messenger/skin/icons/loading@2x.png");
+    list-style-image: url("chrome://global/skin/icons/loading@2x.png");
   }
 
   #throbber-box > image {
@@ -327,7 +338,7 @@ toolbar[mode="icons"] .toolbarbutton-1 > menupopup {
 /* ::::: online/offline icons ::::: */
 
 #offline-status {
-  -moz-padding-start: 3px;
+  padding-inline-start: 3px;
 }
 
 @media (min-resolution: 2dppx) {
@@ -376,7 +387,7 @@ tabmail > tabbox {
 }
 
 treechildren::-moz-tree-cell-text {
-  -moz-padding-start: 2px;
+  padding-inline-start: 2px;
 }
 
 /* ::::: Notifications ::::: */
@@ -446,7 +457,7 @@ notification[type="critical"] .messageCloseButton:not(:hover) {
 
 #messengerWindow:not([tabsintitlebar]) #titlebar-buttonbox-container {
   margin-top: 3px;
-  -moz-margin-start: 7px;
+  margin-inline-start: 7px;
 }
 
 #messengerWindow[tabsintitlebar="true"] #titlebar-buttonbox-container,
@@ -474,36 +485,24 @@ notification[type="critical"] .messageCloseButton:not(:hover) {
   visibility: collapse;
 }
 
-/* NB: these would be -moz-margin-start/end if it wasn't for the fact that OS X
+/* NB: these would be margin-inline-start/end if it wasn't for the fact that OS X
  * doesn't reverse the order of the items in the titlebar in RTL mode. */
 #messengerWindow[tabsintitlebar="true"] .titlebar-placeholder[type="caption-buttons"],
 #messengerWindow[tabsintitlebar="true"] #titlebar-buttonbox {
   margin-left: 7px;
 }
 
-@media (-moz-mac-lion-theme) {
-  #messengerWindow[tabsintitlebar="true"] .titlebar-placeholder[type="fullscreen-button"] {
-    margin-right: 7px;
-  }
+#messengerWindow[tabsintitlebar="true"] .titlebar-placeholder[type="fullscreen-button"] {
+  margin-right: 7px;
+}
 
-  #titlebar-fullscreen-button {
-    -moz-appearance: -moz-mac-fullscreen-button;
-    margin-right: 7px;
-  }
+#titlebar-fullscreen-button {
+  -moz-appearance: -moz-mac-fullscreen-button;
+  margin-right: 7px;
 }
 
 #titlebar-buttonbox {
   -moz-appearance: -moz-window-button-box;
-}
-
-/* Because these buttons don't move, they should always be aligned the same,
- * left and right were deprecated, so we have to do work to get it to mean that: */
-#titlebar-buttonbox-container:-moz-locale-dir(ltr) {
-  -moz-box-align: start;
-}
-
-#titlebar-buttonbox-container:-moz-locale-dir(rtl) {
-  -moz-box-align: end;
 }
 
 /* Fullscreen and caption buttons don't move with RTL on OS X so override the automatic ordering. */
@@ -526,13 +525,17 @@ notification[type="critical"] .messageCloseButton:not(:hover) {
   display: none;
 }
 
+button[type="menu-button"] {
+  margin: 5px 6px 3px;
+}
+
 button[type="menu-button"] > button {
   margin-top: -1px;
   margin-bottom: -3px;
-  -moz-margin-start: -7px;
-  -moz-margin-end: 0;
+  margin-inline-start: -7px;
+  margin-inline-end: 0;
 }
 
 button[type="menu-button"] > dropmarker {
-  -moz-margin-end: -2px;
+  margin-inline-end: -2px;
 }

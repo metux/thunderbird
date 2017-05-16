@@ -2,62 +2,74 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY aboutTelemetry.pageTitle "Telemetry Data">
+<!ENTITY aboutTelemetry.pageTitle "Подаци телеметрије">
 
 <!ENTITY aboutTelemetry.changeDataChoices "
-  Change
+  Промени
 ">
 
 <!ENTITY aboutTelemetry.uploadEnabled "
-  FHR data upload is <span>enabled</span>.
+  FHR отпремање података је <span>омогућено</span>.
 ">
 
 <!ENTITY aboutTelemetry.uploadDisabled "
-  FHR data upload is <span>disabled</span>.
+  FHR отпремање података је <span>онемогућено</span>.
 ">
 
 <!ENTITY aboutTelemetry.extendedRecordingEnabled "
-  Extended Telemetry recording is <span>enabled</span>.
+  Проширено снимање телеметрије је <span>омогућено</span>.
 ">
 
 <!ENTITY aboutTelemetry.extendedRecordingDisabled "
-  Extended Telemetry recording is <span>disabled</span>.
+  Проширено снимање телеметрије је <span>онемогућено</span>.
 ">
 
 <!ENTITY aboutTelemetry.pingDataSource "
-Ping data source:
+Ping извор података:
 ">
 
 <!ENTITY aboutTelemetry.showCurrentPingData "
-Current ping data
+Тренутни ping подаци
 ">
 
 <!ENTITY aboutTelemetry.showArchivedPingData "
-Archived ping data
+Архивирани ping подаци
+">
+
+<!ENTITY aboutTelemetry.pingDataDisplay "
+Приказ Ping података:
+">
+
+<!ENTITY aboutTelemetry.structured "
+Структурирано
+">
+
+<!ENTITY aboutTelemetry.raw "
+Необрађен JSON
 ">
 
 <!ENTITY aboutTelemetry.showSubsessionData "
-Show subsession data
+Прикажи податке сесије
 ">
 
 <!ENTITY aboutTelemetry.choosePing "
-Choose ping:
+Изабери ping:
 ">
 
 <!ENTITY aboutTelemetry.showNewerPing "
-&lt;&lt; Newer ping
+&lt;&lt; Новији ping
 ">
 
 <!ENTITY aboutTelemetry.showOlderPing "
-Older ping &gt;&gt;
+Старији ping &gt;&gt;
 ">
 
 <!ENTITY aboutTelemetry.rawPingData "
-Raw ping data ...
+Необрађени ping подаци…
 ">
 
 <!ENTITY aboutTelemetry.archiveWeekHeader "
-Week
+Седмица
 ">
 
 <!ENTITY aboutTelemetry.archivePingHeader "
@@ -65,81 +77,91 @@ Ping
 ">
 
 <!ENTITY aboutTelemetry.generalDataSection "
-  General Data
+  Општи подаци
 ">
 
 <!ENTITY aboutTelemetry.environmentDataSection "
-  Environment Data
+  Подаци о окружењу
 ">
 
 <!ENTITY aboutTelemetry.telemetryLogSection "
-  Telemetry Log
+  Дневник телеметрије
 ">
 
 <!ENTITY aboutTelemetry.slowSqlSection "
-  Slow SQL Statements
+  Прикажи SQL упите
 ">
 
 <!ENTITY aboutTelemetry.chromeHangsSection "
-  Browser Hangs
+  Прегледач прекида везу
 ">
 
 <!ENTITY aboutTelemetry.threadHangStatsSection "
-  Thread Hangs
+  Нит губи везу
 ">
 
+<!ENTITY aboutTelemetry.scalarsSection "
+  Скалари
+">
+
+<!ENTITY aboutTelemetry.keyedScalarsSection "Кључни скалари">
+
 <!ENTITY aboutTelemetry.histogramsSection "
-  Histograms
+  Хистограми
 ">
 
 <!ENTITY aboutTelemetry.keyedHistogramsSection "
-  Keyed Histograms
+  Кључни хистограми
 ">
 
 <!ENTITY aboutTelemetry.simpleMeasurementsSection "
-  Simple Measurements
+  Једноставна мерења
 ">
 
 <!ENTITY aboutTelemetry.addonDetailsSection "
-  Add-on Details
+  Детаљи о додатку
 ">
 
 <!ENTITY aboutTelemetry.lateWritesSection "
-  Late Writes
+  Касна писања
 ">
 
 <!ENTITY aboutTelemetry.sessionInfoSection "
-  Session Information
+  Информације о сесији
 ">
 
 <!ENTITY aboutTelemetry.addonHistogramsSection "
-  Histograms Collected by Add-ons
+  Хистограми додатака
 ">
 
 <!ENTITY aboutTelemetry.toggle "
-  Click to toggle section
+  Кликните да промените стање секције
 ">
 
 <!ENTITY aboutTelemetry.emptySection "
-  (No data collected)
+  (Подаци нису прикупљени)
 ">
 
 <!ENTITY aboutTelemetry.fullSqlWarning "
-  NOTE: Slow SQL debugging is enabled. Full SQL strings may be displayed below but they will not be submitted to Telemetry.
+  Напона: Споро SQL решавање је укључено. SQL стрингови ће можда бити приказани испод али не могу бити послати телеметрији.
 ">
 
 <!ENTITY aboutTelemetry.fetchSymbols "
-  Fetch function names for hang stacks
+  Fetch функција имена губи везу
 ">
 
 <!ENTITY aboutTelemetry.hideSymbols "
-  Show raw data from hangs
+  Прикажи податке из изгубљених веза
 ">
 
 <!ENTITY aboutTelemetry.filterText "
-  Filter (strings or /regexp/)
+  Филтрирај (стрингови или /regexp/)
 ">
 
 <!ENTITY aboutTelemetry.payloadChoiceHeader "
   Payload
+">
+
+<!ENTITY aboutTelemetry.rawPayload "
+  Необрађен Payload
 ">

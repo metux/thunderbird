@@ -3,19 +3,19 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
 <!-- Window title -->
-<!ENTITY windowTitle.label "Insert Math">
+<!ENTITY windowTitle.label "Убаци математички израз">
 
-<!ENTITY sourceEditField.label "Enter LaTeX source code:">
+<!ENTITY sourceEditField.label "Унеси LaTeX изворни код:">
 
-<!ENTITY options.label "Options">
-<!ENTITY optionInline.label "Inline mode">
-<!ENTITY optionInline.accesskey "N">
-<!ENTITY optionDisplay.label "Display mode">
-<!ENTITY optionDisplay.accesskey "D">
-<!ENTITY optionLTR.label "Left-to-right direction">
-<!ENTITY optionLTR.accesskey "L">
-<!ENTITY optionRTL.label "Right-to-left direction">
-<!ENTITY optionRTL.accesskey "R">
+<!ENTITY options.label "Опције">
+<!ENTITY optionInline.label "Угнежђени режим">
+<!ENTITY optionInline.accesskey "н">
+<!ENTITY optionDisplay.label "Режим приказа">
+<!ENTITY optionDisplay.accesskey "п">
+<!ENTITY optionLTR.label "Правац слева надесно">
+<!ENTITY optionLTR.accesskey "л">
+<!ENTITY optionRTL.label "Правац здесна налево">
+<!ENTITY optionRTL.accesskey "з">
 
-<!ENTITY insertButton.label "Insert">
-<!ENTITY insertButton.accesskey "I">
+<!ENTITY insertButton.label "Убаци">
+<!ENTITY insertButton.accesskey "У">

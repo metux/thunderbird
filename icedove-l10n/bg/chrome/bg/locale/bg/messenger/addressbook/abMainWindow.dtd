@@ -5,6 +5,7 @@
 <!ENTITY addressbookWindow.title                        "Адресник">
 <!ENTITY blankResultsPaneMessage.label                  "Този адресник показва контакти само след търсене">
 <!ENTITY localResultsOnlyMessage.label                  "Контакти от отдалечени адресници ще се покажат след като ги потърсите">
+
 <!-- File Menu -->
 <!ENTITY fileMenu.label                                 "Файл">
 <!ENTITY fileMenu.accesskey                             "Ф">
@@ -28,7 +29,7 @@
 <!ENTITY closeCmd.label                                 "Затваряне">
 <!ENTITY closeCmd.key                                   "W">
 <!ENTITY closeCmd.accesskey                             "З">
-<!ENTITY printSetupCmd.label                            "Конфигуриране на страница…">
+<!ENTITY printSetupCmd.label                            "Настройки на отпечатване…">
 <!ENTITY printSetupCmd.accesskey                        "К">
 <!ENTITY printPreviewContactCmd.label                   "Преглед за отпечатване на визитка">
 <!ENTITY printPreviewContactCmd.accesskey               "в">
@@ -39,8 +40,8 @@
 <!ENTITY printContactCmd.key                            "P">
 <!ENTITY printAddressBook.label                         "Отпечатване на адресника…">
 <!ENTITY printAddressBook.accesskey                     "д">
-<!-- Edit Menu -->
 
+<!-- Edit Menu -->
 <!ENTITY editMenu.label                                 "Редактиране">
 <!ENTITY editMenu.accesskey                             "Р">
 <!ENTITY undoCmd.label                                  "Отмяна">
@@ -75,11 +76,11 @@
 <!-- LOCALIZATION NOTE (hideSwapFnLnUI) : DONT_TRANSLATE -->
 <!-- Swap FN/LN UI  Set to "false" to show swap fn/ln UI -->
 <!ENTITY hideSwapFnLnUI "true">
-<!ENTITY propertiesCmd2.label                           "Свойства">
-<!ENTITY propertiesCmd2.accesskey                       "й">
+<!ENTITY propertiesMenu.label                           "Свойства">
+<!ENTITY propertiesMenu.accesskey                       "в">
 <!ENTITY propertiesCmd.key                              "i">
-<!-- View Menu -->
 
+<!-- View Menu -->
 <!ENTITY viewMenu.label                                 "Изглед">
 <!ENTITY viewMenu.accesskey                             "г">
 <!ENTITY viewToolbarsMenu.label                         "Ленти с инструменти">
@@ -110,8 +111,8 @@ because displayed names don't have the comma in between. -->
 <!ENTITY displayNameCmd.accesskey                       "и">
 <!ENTITY sortMenu.label                                 "Подреждане по">
 <!ENTITY sortMenu.accesskey                             "П">
-<!-- Tools Menu -->
 
+<!-- Tools Menu -->
 <!ENTITY tasksMenu.label                                "Инструменти">
 <!ENTITY tasksMenu.accesskey                            "И">
 <!ENTITY messengerCmd.label                             "Поща и дискусионни групи">
@@ -127,14 +128,12 @@ because displayed names don't have the comma in between. -->
 <!ENTITY preferencesCmd2.accesskey                      "Н">
 <!ENTITY preferencesCmdUnix.label                       "Настройки">
 <!ENTITY preferencesCmdUnix.accesskey                   "Н">
-<!-- Address Book Toolbar and Context Menus -->
 
+<!-- Address Book Toolbar and Context Menus -->
 <!ENTITY newContactButton.label                         "Нова визитка">
 <!ENTITY newContactButton.accesskey                     "в">
 <!ENTITY newlistButton.label                            "Нов списък">
 <!ENTITY newlistButton.accesskey                        "Н">
-<!ENTITY editButton2.label                              "Свойства">
-<!ENTITY editButton2.accesskey                          "й">
 <!ENTITY newmsgButton.label                             "Писане на писмо">
 <!ENTITY newmsgButton.accesskey                         "П">
 <!ENTITY newIM.label                                    "Бързо съобщение">
@@ -143,26 +142,25 @@ because displayed names don't have the comma in between. -->
 <!ENTITY printButton.accesskey                          "ч">
 <!ENTITY deleteButton2.label                            "Изтриване">
 <!ENTITY deleteButton2.accesskey                        "з">
-<!-- Address Book Toolbar Tooltips -->
 
+<!-- Address Book Toolbar Tooltips -->
 <!ENTITY newContactButton.tooltip                       "Създава нова визитка в адресника">
 <!ENTITY newlistButton.tooltip                          "Създава нов списък">
-<!ENTITY editButton2.tooltip                            "Редактиране на избраната позиция">
 <!ENTITY newmsgButton.tooltip                           "Изпращане на писмо">
 <!ENTITY newIM.tooltip                                  "Изпращане на бързо съобщение или покана за разговор">
 <!ENTITY deleteButton2.tooltip                          "Изтриване на избраната позиция">
+
 <!-- Dir Tree header -->
-
 <!ENTITY dirTreeHeader.label                            "Адресници">
-<!-- Search Bar -->
 
+<!-- Search Bar -->
 <!ENTITY SearchNameOrEmail.label                        "Име или адрес">
 <!ENTITY SearchNameOrEmail.accesskey                    "И">
 <!ENTITY advancedButton.tooltip                         "Разширено търсене на адрес">
 <!ENTITY quickSearchCmd.key                             "k">
 <!ENTITY searchItem.title "Бързо търсене">
-<!-- Results Pane -->
 
+<!-- Results Pane -->
 <!ENTITY Addrbook.label                                 "Адресник">
 <!ENTITY Addrbook.accesskey                             "А">
 <!ENTITY GeneratedName.label                            "Име">
@@ -175,7 +173,7 @@ because displayed names don't have the comma in between. -->
 <!ENTITY Company.accesskey                              "г">
 <!ENTITY NickName.label                                 "Псевдоним">
 <!ENTITY NickName.accesskey                             "П">
-<!ENTITY SecondEmail.label                              "Допълнителна е-поща">
+<!ENTITY SecondEmail.label                              "Допълнителен ел. адрес">
 <!ENTITY SecondEmail.accesskey                          "Д">
 <!ENTITY Department.label                               "Отдел">
 <!ENTITY Department.accesskey                           "О">
@@ -197,9 +195,9 @@ because displayed names don't have the comma in between. -->
 <!ENTITY sortDescending.accesskey                       "Н">
 <!ENTITY _PhoneticName.label                            "Фонетично име">
 <!ENTITY _PhoneticName.accesskey                        "Ф">
+
 <!-- Card Summary Pane -->
 <!-- Box Headings -->
-
 <!ENTITY contact.heading                                "Контакт">
 <!ENTITY home.heading                                   "Домашен">
 <!ENTITY other.heading                                  "Други">
@@ -211,14 +209,34 @@ because displayed names don't have the comma in between. -->
 <!ENTITY addresses.heading                              "Адреси">
 <!-- For Map It! -->
 <!ENTITY mapItButton.label                              "Карта">
-<!ENTITY mapIt.tooltip                                  "Изобразяване на географска карта на мястото от Интернет">
+<!ENTITY mapIt.tooltip                                  "Показване на адрес от страница върху картата">
+
 <!-- Status Bar -->
-
 <!ENTITY statusText.label                               "">
-<!--  Mac OS X Window Menu -->
 
+<!--  Mac OS X Window Menu -->
 <!ENTITY windowMenu.label                               "Прозорец">
 <!ENTITY minimizeWindow.label                           "Минимизиране">
 <!ENTITY minimizeWindow.key                             "m">
 <!ENTITY bringAllToFront.label                          "Извежда всичко на преден план">
 <!ENTITY zoomWindow.label                               "Лупа">
+
+<!ENTITY abPropertiesContext.accesskey                  "i">
+<!ENTITY abPropertiesContext.label                      "Properties">
+<!ENTITY abPropertiesMenu.accesskey                     "i">
+<!ENTITY abPropertiesMenu.label                         "Address Book Properties">
+<!ENTITY contactPropertiesMenu.accesskey                "i">
+<!ENTITY contactPropertiesMenu.label                    "Contact Properties">
+<!ENTITY editAbPropertiesButton.tooltip                 "Edit the properties of the selected address book">
+<!ENTITY editContactContext.accesskey                   "E">
+<!ENTITY editContactContext.label                       "Edit Contact">
+<!ENTITY editContactPropertiesButton.tooltip            "Edit the selected contact">
+<!ENTITY editMailingListContext.accesskey               "E">
+<!ENTITY editMailingListContext.label                   "Edit List">
+<!ENTITY editMailingListPropertiesButton.tooltip        "Edit the selected mailing list">
+<!ENTITY editPropertiesButton.label                     "Edit">
+<!ENTITY editPropertiesButton.tooltip                   "Edit the selected item">
+<!ENTITY mailingListPropertiesMenu.accesskey            "i">
+<!ENTITY mailingListPropertiesMenu.label                "Mailing List Properties">
+<!ENTITY propertiesContext.accesskey                    "i">
+<!ENTITY propertiesContext.label                        "Properties">

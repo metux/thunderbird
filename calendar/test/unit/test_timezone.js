@@ -3,9 +3,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 function run_test() {
-    var f = cal.createEvent();
+    do_test_pending();
+    cal.getTimezoneService().startup({
+        onResult: function() {
+            really_run_test();
+            do_test_finished();
+        }
+    });
+}
 
-    var str =
+function really_run_test() {
+    let event = cal.createEvent();
+
+    let str =
          ["BEGIN:VCALENDAR",
           "PRODID:-//RDU Software//NONSGML HandCal//EN",
           "VERSION:2.0",
@@ -39,9 +49,10 @@ function run_test() {
           "DTEND;TZID=America/New_York:19980312T093000",
           "LOCATION:1CP Conference Room 4350",
           "END:VEVENT",
-          "END:VCALENDAR",].join("\r\n");
+          "END:VCALENDAR",
+          ""].join("\r\n");
 
-    var strTz =
+    let strTz =
          ["BEGIN:VTIMEZONE",
           "TZID:America/New_York",
           "BEGIN:STANDARD",
@@ -56,17 +67,17 @@ function run_test() {
           "TZOFFSETTO:-0400",
           "TZNAME:EDT",
           "END:DAYLIGHT",
-          "END:VTIMEZONE",].join("\r\n");
+          "END:VTIMEZONE",
+          ""].join("\r\n");
 
     let tzs = cal.getTimezoneService();
 
-    f.icalString = str;
+    event.icalString = str;
 
-    let g = f.startDate;
-    let h = f.endDate;
+    let startDate = event.startDate;
+    let endDate = event.endDate;
 
-    g.timezone = tzs.getTimezone(g.timezone.tzid);
-    h.timezone = tzs.getTimezone(h.timezone.tzid);
-    notEqual(strTz,g.timezone.toString());
+    startDate.timezone = tzs.getTimezone(startDate.timezone.tzid);
+    endDate.timezone = tzs.getTimezone(endDate.timezone.tzid);
+    notEqual(strTz, startDate.timezone.toString());
 }
-

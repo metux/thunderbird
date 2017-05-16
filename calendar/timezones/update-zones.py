@@ -10,10 +10,14 @@ This script allows updating Lightning's zones.json.
 You can also have the latest tzdata downloaded automatically:
   python update-zones.py --vzic /path/to/tzurl/vzic
 
+IMPORTANT: Make sure your local copy of zones.json is in sync with Hg before running this script.
+Otherwise manual corrections will get dropped when pushing the update.
+
 """
 
 import argparse, ftplib, json, os, os.path, re, shutil, subprocess, sys, tarfile, tempfile
 from collections import OrderedDict
+
 
 class TimezoneUpdater(object):
     """ Timezone updater class, use the run method to do everything automatically"""
@@ -25,8 +29,8 @@ class TimezoneUpdater(object):
     def download_tzdata(self):
         """Download the latest tzdata from ftp.iana.org"""
         tzdata_download_path = tempfile.mktemp(".tar.gz", prefix="zones")
-        sys.stderr.write("Downloading tzdata-latest.tar.gz from" \
-                         " ftp.iana.org to %s\n""" % tzdata_download_path)
+        sys.stderr.write("Downloading tzdata-latest.tar.gz from"
+                         " ftp.iana.org to %s\n" % tzdata_download_path)
         ftp = ftplib.FTP("ftp.iana.org")
         ftp.login()
         ftp.retrbinary("RETR /tz/tzdata-latest.tar.gz", open(tzdata_download_path, "wb").write)
@@ -195,6 +199,7 @@ class TimezoneUpdater(object):
 
     def run(self, zones_json_file, tzprops_file, vzic_path):
         """Run the timezone updater, with a zones.json file and the path to vzic"""
+
         need_download_tzdata = self.tzdata_path is None
         if need_download_tzdata:
             self.download_tzdata()
@@ -217,7 +222,7 @@ class TimezoneUpdater(object):
         newzones = self.read_dir(self.zoneinfo_path,
                                  lambda fn: self.read_ics(fn, lat_long_data))
 
-        newaliases = self.link_removed_zones(zonesjson['zones'], newzones, links)
+        newaliases = self.link_removed_zones(zonesjson["zones"], newzones, links)
         zonesjson["aliases"].update(newaliases)
 
         self.update_timezones_properties(tzprops_file, version, newzones, zonesjson["aliases"])
@@ -227,9 +232,12 @@ class TimezoneUpdater(object):
         if need_download_tzdata:
             shutil.rmtree(self.tzdata_path)
 
+
 def parse_args():
     """Gather arguments from the command-line."""
-    parser = argparse.ArgumentParser(description="Create timezone info JSON file from tzdata files")
+    parser = argparse.ArgumentParser(
+        description="Create timezone info JSON file from tzdata files"
+    )
     parser.add_argument("-v", "--vzic", dest="vzic_path", required=True,
                         help="""Path to the `vzic` executable. This must be
                         downloaded from https://code.google.com/p/tzurl/ and
@@ -240,6 +248,54 @@ def parse_args():
                         will be downloaded from ftp.iana.org.""")
     return parser.parse_args()
 
+
+def create_test_data(zones_file):
+    """Creating test data."""
+
+    previous_file = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                 "..", "test", "unit", "data", "previous.json")
+
+    previous_version = "no previous version"
+    current_version = "no current version"
+    if (os.path.isfile(zones_file) and os.access(zones_file, os.R_OK)):
+        with open(zones_file, "r") as rzf:
+            current_data = json.load(rzf)
+            current_version = current_data["version"]
+            current_zones = current_data["zones"]
+            current_aliases = current_data["aliases"]
+    if (os.path.isfile(previous_file) and os.access(previous_file, os.R_OK)):
+        with open(previous_file, "r") as rpf:
+            previous_data = json.load(rpf)
+            previous_version = previous_data["version"]
+
+    if (current_version == "no current version"):
+        """Test data creation not possible - currently no zones.json file available."""
+
+    elif (current_version != previous_version):
+        """Extracting data from zones.json"""
+
+        test_aliases = current_aliases.keys()
+        test_zones = current_zones.keys()
+
+        test_data = OrderedDict()
+        test_data["version"] = current_version
+        test_data["aliases"] = sorted(test_aliases)
+        test_data["zones"] = sorted(test_zones)
+
+        """Writing test data"""
+        with open(previous_file, "w") as wpf:
+            json.dump(test_data, wpf, indent=2, separators=(",", ": "))
+            wpf.write("\n")
+
+        """Please run calendar xpshell test 'test_timezone_definition.js' to check the updated
+        timezone definition for any glitches."""
+
+    else:
+        # This may happen if the script is executed multiple times without new tzdata available
+        """Skipping test data creation.
+        Test data are already available for the current version of zones.json"""
+
+
 def main():
     """Run the timezone updater from command-line args"""
     args = parse_args()
@@ -247,6 +303,10 @@ def main():
     tzprops_file = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                 "..", "locales", "en-US", "chrome", "calendar",
                                 "timezones.properties")
+
+    # A test data update must occur before the zones.json file gets updated to have meaningful data
+    create_test_data(json_file)
+
     zoneinfo_path = tempfile.mkdtemp(prefix="zones")
     zoneinfo_pure_path = tempfile.mkdtemp(prefix="zones")
 

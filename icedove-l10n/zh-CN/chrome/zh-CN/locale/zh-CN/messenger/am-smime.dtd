@@ -26,7 +26,12 @@
 <!ENTITY signingCert.message "使用如下证书对您发送的消息进行数字签名：">
 
 <!ENTITY certificates.label "证书">
-<!ENTITY manageCerts.label "查看证书">
-<!ENTITY manageCerts.accesskey "V">
+<!ENTITY manageCerts2.label "管理证书">
+<!ENTITY manageCerts2.accesskey "M">
 <!ENTITY manageDevices.label "安全设备">
 <!ENTITY manageDevices.accesskey "y">
+
+<!-- Strings for the cert picker dialog -->
+<!ENTITY certPicker.title "选择证书">
+<!ENTITY certPicker.info  "证书：">
+<!ENTITY certPicker.detailsLabel "选定证书的详细信息：">

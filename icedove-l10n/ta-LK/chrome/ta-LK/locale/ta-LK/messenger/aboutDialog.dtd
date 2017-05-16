@@ -53,14 +53,14 @@ Entities below were automatically added by compare-locales,
 <!ENTITY helpus.middle              " or ">
 
 <!ENTITY helpus.start               "Want to help? ">
-<!ENTITY update.applyButtonBillboard.accesskey    "A">
-<!ENTITY update.applyButtonBillboard.label        "Apply Update…">
+
+<!ENTITY releaseNotes.link          "Release notes">
 
 <!ENTITY update.applying            "Applying update…">
 <!ENTITY update.checkForUpdatesButton.accesskey   "C">
 
 
-<!-- LOCALIZATION NOTE (update.checkForUpdatesButton.*, update.updateButton.*, update.applyButtonBillboard.*):
+<!-- LOCALIZATION NOTE (update.checkForUpdatesButton.*, update.updateButton.*):
 # Only one button is present at a time.
 # The button when displayed is located directly under the Thunderbird version in
 # the about dialog.

@@ -5,6 +5,7 @@
 <!ENTITY toField4.label "Către">
 <!ENTITY fromField4.label "De la">
 <!ENTITY senderField4.label "Expeditor">
+
 <!ENTITY organizationField4.label "Organizația">
 <!ENTITY replyToField4.label "Răspuns la">
 
@@ -23,6 +24,8 @@
 
 <!ENTITY hdrArchiveButton1.label "Arhivează">
 <!ENTITY hdrArchiveButton1.tooltip "Arhivează acest mesaj">
+
+
 <!ENTITY hdrSmartReplyButton1.label "Răspuns rapid">
 <!ENTITY hdrReplyButton1.label "Răspunde">
 <!ENTITY hdrReplyButton2.tooltip "Răspunde expeditorului acestui mesaj">
@@ -54,9 +57,9 @@
 <!ENTITY otherActionsOpenConversation1.label "Deschide în conversație">
 <!ENTITY otherActionsOpenConversation1.accesskey "c">
 <!ENTITY otherActionsOpenInNewWindow1.label "Deschide într-o fereastră nouă">
-<!ENTITY otherActionsOpenInNewWindow1.accesskey "D">
-<!ENTITY otherActionsOpenInNewTab1.label "Deschide în filă nouă">
-<!ENTITY otherActionsOpenInNewTab1.accesskey "D">
+<!ENTITY otherActionsOpenInNewWindow1.accesskey "W">
+<!ENTITY otherActionsOpenInNewTab1.label "Deschide într-o filă nouă">
+<!ENTITY otherActionsOpenInNewTab1.accesskey "t">
 <!ENTITY markAsReadMenuItem1.label "Marchează ca citit">
 <!ENTITY markAsReadMenuItem1.accesskey "r">
 <!ENTITY markAsUnreadMenuItem1.label "Marchează ca necitit">
@@ -107,3 +110,7 @@
 <!ENTITY OpenMessageForMsgId.accesskey "h">
 <!ENTITY OpenBrowserWithMsgId.label "Deschide browserul cu Message-ID">
 <!ENTITY OpenBrowserWithMsgId.accesskey "b">
+
+<!ENTITY author.label "Author">
+<!ENTITY hdrOpenConversationButton1.label "Conversation">
+<!ENTITY hdrOpenConversationButton1.tooltip "Show conversation of this message">

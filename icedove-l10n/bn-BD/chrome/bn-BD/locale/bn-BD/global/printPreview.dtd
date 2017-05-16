@@ -70,3 +70,8 @@
 <!ENTITY endarrow.tooltip     "শেষ পৃষ্ঠা">
 <!ENTITY nextarrow.tooltip    "পরবর্তী পৃষ্ঠা">
 <!ENTITY previousarrow.tooltip "পূর্ববর্তী পৃষ্ঠা">
+
+<!ENTITY simplifyPage.accesskey "i">
+<!ENTITY simplifyPage.disabled.tooltip "This page cannot be automatically simplified">
+<!ENTITY simplifyPage.enabled.tooltip  "Change layout for easier reading">
+<!ENTITY simplifyPage.label   "Simplify Page">

@@ -37,6 +37,13 @@
 </ul>
 ">
 
+<!ENTITY fileAccessDenied.title "Tiedoston käyttö estettiin">
+<!ENTITY fileAccessDenied.longDesc "
+<ul>
+  <li>Tiedosto on voitu poistaa tai siirtää, tai ehkä siihen ei ole käyttöoikeutta.</li>
+</ul>
+">
+
 <!ENTITY generic.title "Verkkopyyntöä ei kyetä toteuttamaan">
 <!ENTITY generic.longDesc "
 <p>&brandShortName; ei kykene lataamaan sivua jostain syystä.</p>
@@ -46,7 +53,7 @@
 <!ENTITY malformedURI.longDesc "
 <ul>
   <li>Verkko-osoitteet ovat yleensä muotoa
-    <strong>http://www.esimerkki.com/</strong></li>
+    <strong>http://www.example.com/</strong></li>
   <li>Tarkista, että olet käyttänyt kauttaviivoja (siis
     <strong>/</strong>-merkkiä).</li>
 </ul>
@@ -157,28 +164,11 @@
 </ul>
 ">
 
-<!ENTITY malwareBlocked.title "Epäilty hyökkäyssivusto!">
-<!ENTITY malwareBlocked.longDesc "
-<p>Hyökkäyssivustot yrittävät asentaa tietokoneellesi ohjelmia, jotka keräävät henkilötietoja, käyttävät tietokonettasi toisiin tietokoneisiin kohdistuviin hyökkäyksiin tai muuten vahingoittavat tietokonettasi.</p>
-<p>Sivuston omistajat, joiden sivusto on virheellisesti ilmoitettu hyökkäyssivustoksi, voivat <a href='http://www.stopbadware.org/home/reviewinfo' >anoa sivuston tilan tarkistamista</a>.</p>
-">
-
-<!ENTITY unwantedBlocked.title "Epäilty ei-haluttuja sovelluksia jakeleva sivusto!">
-<!ENTITY unwantedBlocked.longDesc "
-<p>Sivustot, jotka jakelevat ei haluttuja sovelluksia yrittävät asentaa tietokoneellesi sovelluksia, jotka ovat petollisia tai vaikuttavat järjestelmään odottamattomalla tavalla.</p>
-">
-
-<!ENTITY phishingBlocked.title "Epäilty huijaussivusto!">
-<!ENTITY phishingBlocked.longDesc "
-<p>Henkilötietojen kirjoittaminen tälle sivulle voi johtaa identiteettivarkauteen tai johonkin muuhun petokseen.</p>
-<p>Tämän tyyppiset verkkohuijaukset ovat osa phishing- tai khalastushuijauksia, joissa sivuilla tai sähköposteilla yritetään jäljitellä mahdollisesti luottamiesi toimijoiden viestintää.</p>
-">
-
 <!ENTITY cspBlocked.title "Sisällön tietosuojakäytännön estämä">
 <!ENTITY cspBlocked.longDesc "<p>&brandShortName; esti tämän sivun latautumisen tässä yhteydessä, koska sivun sisällön tietosuojakäytäntö kieltää sen.</p>">
 
-<!ENTITY corruptedContentError.title "Sisältö vioittunut virhe">
-<!ENTITY corruptedContentError.longDesc "<p>Avattavaa sivua ei voida näyttää, koska tiedonsiirrossa tapahtui virhe.</p><ul><li>Ilmoitathan ongelmasta sivuston omistajalle.</li></ul>">
+<!ENTITY corruptedContentErrorv2.title "Sisältö vioittunut -virhe">
+<!ENTITY corruptedContentErrorv2.longDesc "<p>Avattavaa sivua ei voida näyttää, koska tiedonsiirrossa tapahtui virhe.</p><ul><li>Ilmoitathan ongelmasta sivuston omistajalle.</li></ul>">
 
 <!ENTITY securityOverride.linkText "Tai lisää poikkeussääntö…">
 <!ENTITY securityOverride.getMeOutOfHereButton "Siirry pois sivulta">
@@ -190,7 +180,7 @@ button is included here (instead of netError.xhtml) because it exposes
 functionality specific to thunderbird. -->
 
 <!ENTITY securityOverride.warningContent "
-<p>Älä lisää poikkeussääntöä jos et ole aivan varma käyttämäsi Internet-yhteyden turvallisuudesta, tai jos et ole aikaisemmin nähnyt vastaavaa varoitusta tälle palvelimelle.</p>
+<p>Älä lisää poikkeussääntöä, jos et ole aivan varma käyttämäsi Internet-yhteyden turvallisuudesta tai jos et ole aikaisemmin nähnyt vastaavaa varoitusta tälle palvelimelle.</p>
 
 <button id='getMeOutOfHereButton'>&securityOverride.getMeOutOfHereButton;</button>
 <button id='exceptionDialogButton'>&securityOverride.exceptionButtonLabel;</button>
@@ -199,7 +189,7 @@ functionality specific to thunderbird. -->
 <!ENTITY remoteXUL.title "XUL-koodia etänä">
 <!ENTITY remoteXUL.longDesc "<p><ul><li>Ilmoitathan ongelmasta sivuston omistajalle.</li></ul></p>">
 
-<!ENTITY forbiddenBlocked.longDesc "<p>&brandShortName; prevented this page from loading because it is configured to block it.</p>
-">
-
-<!ENTITY forbiddenBlocked.title "Forbidden Site">
+<!ENTITY inadequateSecurityError.title "Yhteys ei ole suojattu">
+<!-- LOCALIZATION NOTE (inadequateSecurityError.longDesc) - Do not translate
+     "NS_ERROR_NET_INADEQUATE_SECURITY". -->
+<!ENTITY inadequateSecurityError.longDesc "<p><span class='hostname'></span> käyttää suojaustekniikkaa, joka on vanhentunut ja haavoittuvainen hyökkäyksille. Hyökkääjä voisi helposti lukea tietoja, joiden luulit olevan suojattuja. Sivuston ylläpitäjän täytyy korjata tämä ongelma ennen kuin voit käydä sivustolla.</p><p>Virhekoodi: NS_ERROR_NET_INADEQUATE_SECURITY</p>">

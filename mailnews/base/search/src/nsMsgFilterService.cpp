@@ -46,6 +46,7 @@
 #include "nsAutoPtr.h"
 #include "nsIMsgFilter.h"
 #include "nsIMsgOperationListener.h"
+#include "mozilla/Attributes.h"
 
 #define BREAK_IF_FAILURE(_rv, _text) if (NS_FAILED(_rv)) { \
   NS_WARNING(_text); \
@@ -361,7 +362,8 @@ nsresult nsMsgFilterAfterTheFact::OnEndExecution()
     (void)m_callback->OnStopOperation(mFinalResult);
 
   nsresult rv = mFinalResult;
-  MOZ_ASSERT(mNeedsRelease, "OnEndExecution called a second time");
+  // OnEndExecution() can be called a second time when a rule execution fails
+  // and the user is prompted whether he wants to continue.
   if (mNeedsRelease)
   {
     Release(); // release ourselves.
@@ -414,7 +416,7 @@ nsresult nsMsgFilterAfterTheFact::RunNextFilter()
     return NS_OK; // OnSearchDone will continue
   }
   m_curFilter = nullptr;
-  NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "Search failed");
+  NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "Search failed");
   return AdvanceToNextFolder();
 }
 
@@ -607,7 +609,7 @@ nsresult nsMsgFilterAfterTheFact::ApplyFilter()
         //   would not have run if move succeeded.
         m_nextAction = numActions;
         // Fall through to the copy case.
-
+        MOZ_FALLTHROUGH;
       case nsMsgFilterAction::CopyToFolder:
       {
         nsCString uri;
@@ -788,7 +790,14 @@ nsresult nsMsgFilterAfterTheFact::ApplyFilter()
             m_searchHitHdrs->QueryElementAt(msgIndex, NS_GET_IID(nsIMsgDBHdr), getter_AddRefs(msgHdr));
             CONTINUE_IF_FALSE(msgHdr, "Could not get msgHdr");
             rv = compService->ReplyWithTemplate(msgHdr, replyTemplateUri.get(), m_msgWindow, server);
-            CONTINUE_IF_FAILURE(rv, "ReplyWithtemplate failed");
+            if (NS_FAILED(rv)) {
+              if (rv == NS_ERROR_ABORT) {
+                m_curFilter->LogRuleHitFail(filterAction, msgHdr, rv, "Sending reply aborted");
+              } else {
+                m_curFilter->LogRuleHitFail(filterAction, msgHdr, rv, "Error sending reply");
+              }
+            }
+            CONTINUE_IF_FAILURE(rv, "ReplyWithTemplate failed");
           }
         }
         break;
@@ -1086,7 +1095,7 @@ nsresult nsMsgApplyFiltersToMessages::RunNextFilter()
     }
   }
   m_curFilter = nullptr;
-  NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "Failed to run filters");
+  NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "Failed to run filters");
   // We expect the failure is already recorded through one of the macro
   // expressions, that will have console logging added to them.
   // So an additional console warning is not needed here.
@@ -1180,7 +1189,7 @@ bool nsMsgFilterAfterTheFact::ContinueExecutionPrompt()
   {
     filterName.get()
   };
-  nsresult rv = bundle->FormatStringFromName(MOZ_UTF16("continueFilterExecution"),
+  nsresult rv = bundle->FormatStringFromName(u"continueFilterExecution",
                                              formatStrings, 1, getter_Copies(confirmText));
   if (NS_FAILED(rv))
     return false;

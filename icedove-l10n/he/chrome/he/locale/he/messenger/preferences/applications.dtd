@@ -23,11 +23,13 @@
 <!ENTITY chooseFolderMac.accesskey    "ב">
 
 
+<!ENTITY removeCloudFileAccount.label     "הסרה">
 
-<!ENTITY addCloudFileAccount.accesskey    "A">
+
 <!ENTITY addCloudFileAccount.description  "Add a new Filelink storage service">
+<!ENTITY addCloudFileAccount1.accesskey   "A">
 
-<!ENTITY addCloudFileAccount.label        "Add">
+<!ENTITY addCloudFileAccount1.label       "Add…">
 
 <!ENTITY attachments.incoming.label   "Incoming">
 <!ENTITY attachments.outgoing.label   "Outgoing">
@@ -38,4 +40,3 @@
 <!ENTITY enableCloudFileAccountOffer.label "Offer to share for files larger than">
 <!ENTITY enableCloudFileAccountOffer.mb "MB">
 <!ENTITY removeCloudFileAccount.accesskey "R">
-<!ENTITY removeCloudFileAccount.label     "Remove">

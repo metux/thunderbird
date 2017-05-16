@@ -4,7 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsIFile.h"
-#include "nsIDOMWindow.h"
+#include "mozIDOMWindow.h"
 #include "nsIProfileMigrator.h"
 #include "nsIPrefService.h"
 #include "nsIServiceManager.h"
@@ -32,7 +32,7 @@ NS_IMPL_ISUPPORTS(nsProfileMigrator, nsIProfileMigrator)
 #define MIGRATION_WIZARD_FE_FEATURES "chrome,dialog,modal,centerscreen"
 
 NS_IMETHODIMP
-nsProfileMigrator::Migrate(nsIProfileStartup* aStartup, const nsACString& aKey)
+nsProfileMigrator::Migrate(nsIProfileStartup* aStartup, const nsACString& aKey, const nsACString& aProfileName)
 {
   nsAutoCString key;
   nsCOMPtr<nsIMailProfileMigrator> mailMigrator;
@@ -53,7 +53,7 @@ nsProfileMigrator::Migrate(nsIProfileStartup* aStartup, const nsACString& aKey)
   params->AppendElement(mailMigrator, false);
   params->AppendElement(aStartup, false);
 
-  nsCOMPtr<nsIDOMWindow> migrateWizard;
+  nsCOMPtr<mozIDOMWindowProxy> migrateWizard;
   return ww->OpenWindow(nullptr,
                         MIGRATION_WIZARD_FE_URL,
                         "_blank",
@@ -113,7 +113,6 @@ nsProfileMigrator::GetDefaultMailMigratorKey(nsACString& aKey, nsCOMPtr<nsIMailP
     "seamonkey",
     "oexpress",
     "outlook",
-    "eudora",
     ""
   };
   for (uint32_t i = 0; sources[i][0]; ++i)

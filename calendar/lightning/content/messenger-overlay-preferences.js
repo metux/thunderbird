@@ -2,24 +2,26 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/* exported gLightningPane */
+
 var gLightningPane = {
     mInitialized: false,
 
-    init: function lnPaneInit() {
-        var preference = document.getElementById("calendar.preferences.lightning.selectedTabIndex");
+    init: function() {
+        let preference = document.getElementById("calendar.preferences.lightning.selectedTabIndex");
         if (preference.value) {
-            var ltnPrefs = document.getElementById("calPreferencesTabbox");
+            let ltnPrefs = document.getElementById("calPreferencesTabbox");
             ltnPrefs.selectedIndex = preference.value;
         }
         this.mInitialized = true;
     },
 
-    tabSelectionChanged: function lnPaneTabSelectionChanged() {
+    tabSelectionChanged: function() {
         if (!this.mInitialized) {
             return;
         }
-        var ltnPrefs = document.getElementById("calPreferencesTabbox");
-        var preference = document.getElementById("calendar.preferences.lightning.selectedTabIndex");
+        let ltnPrefs = document.getElementById("calPreferencesTabbox");
+        let preference = document.getElementById("calendar.preferences.lightning.selectedTabIndex");
         preference.valueFromPreferences = ltnPrefs.selectedIndex;
     }
 };

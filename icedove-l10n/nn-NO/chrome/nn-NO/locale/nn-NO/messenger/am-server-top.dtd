@@ -1,8 +1,8 @@
 <!-- This Source Code Form is subject to the terms of the Mozilla Public
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
-
 <!-- extracted from am-server-top.xul -->
+
 
 <!ENTITY messageStorage.label "Meldingslagring">
 <!ENTITY securitySettings.label "Tryggingsinnstillingar">
@@ -20,13 +20,15 @@
                 biffStart.label "every"
                 biffEnd.label   "minutes for new messages Check"
 -->
-<!ENTITY biffStart.label "Sjå etter nye meldingar kvart">
+<!ENTITY biffStart.label "Sjå etter nye meldingar kvart ">
 <!ENTITY biffStart.accesskey "r">
 <!ENTITY biffEnd.label "minutt">
+<!ENTITY useIdleNotifications.label "Tillat umiddelbare tenarvarsel når nye meldingar vert mottekne">
+<!ENTITY useIdleNotifications.accesskey "T">
 <!ENTITY connectionSecurity.label "Tilkoplingstryggleik:">
 <!ENTITY connectionSecurity.accesskey "T">
 <!ENTITY connectionSecurityType-0.label "Ingen">
-<!ENTITY connectionSecurityType-1.label "STARTTLS, om tilgjengeleg">
+<!ENTITY connectionSecurityType-1.label "STARTTLS, dersom tilgjengeleg">
 <!ENTITY connectionSecurityType-2.label "STARTTLS">
 <!ENTITY connectionSecurityType-3.label "SSL/TLS">
 <!ENTITY authMethod.label "Autentiseringsmetode:">
@@ -46,7 +48,7 @@
 <!ENTITY deleteMessagePrefix.label "Når eg slettar ei melding:">
 <!ENTITY modelMoveToTrash.label "Flytt henne til denne mappa:">
 <!ENTITY modelMoveToTrash.accesskey "h">
-<!ENTITY modelMarkDeleted.label "Merk som sletta">
+<!ENTITY modelMarkDeleted.label "Marker som sletta">
 <!ENTITY modelMarkDeleted.accesskey "k">
 <!ENTITY modelDeleteImmediately.label "Slett med ein gong">
 <!ENTITY modelDeleteImmediately.accesskey "n">
@@ -72,9 +74,9 @@
 <!ENTITY abbreviate.label "Vis namn i mappelista med">
 <!ENTITY abbreviateOn.label "fulle namn (til dømes «netscape.public.mozilla.mail-news»)">
 <!ENTITY abbreviateOff.label "forkorta namn (til dømes «n.p.m.mail-news»)">
-<!ENTITY advancedButton.label "Avansert …">
+<!ENTITY advancedButton.label "Avansert…">
 <!ENTITY advancedButton.accesskey "A">
-<!ENTITY serverDefaultCharset.label "Standard teiknkoding:">
+<!ENTITY serverDefaultCharset2.label "Standard tekstkoding:">
 <!ENTITY localPath.label "Lokal mappe:">
 <!ENTITY localFolderPicker.label "Vel lokal mappe:">
 <!ENTITY browseFolder.label "Bla gjennom …">
@@ -86,10 +88,5 @@
 <!ENTITY accountSettingsDesc.label "Dette er ein spesiell konto. Ingen identitetar er knytte til han.">
 <!ENTITY storeType.label "Meldingslagertype:">
 <!ENTITY storeType.accesskey "t">
-<!ENTITY mboxStore.label "Ei stor fil (mbox)">
+<!ENTITY mboxStore2.label "Fil per mappe (mbox)">
 <!ENTITY maildirStore.label "Ei fil per melding (maildir)">
-
-<!ENTITY mboxStore2.label "File per folder (mbox)">
-<!ENTITY serverDefaultCharset2.label "Default Text Encoding:">
-<!ENTITY useIdleNotifications.accesskey "w">
-<!ENTITY useIdleNotifications.label "Allow immediate server notifications when new messages arrive">

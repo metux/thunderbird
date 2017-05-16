@@ -8,14 +8,7 @@ Components.utils.import("resource://calendar/modules/calUtils.jsm");
 Components.utils.import("resource://calendar/modules/calXMLUtils.jsm");
 
 function run_test() {
-    do_get_profile();
-    do_test_pending();
-    cal.getCalendarManager().startup({onResult: function() {
-        cal.getTimezoneService().startup({onResult: function() {
-            do_test_finished();
-            run_next_test();
-        }});
-    }});
+    do_calendar_startup(run_next_test);
 }
 
 add_task(function* test_setDefaultValues_events() {
@@ -49,9 +42,9 @@ add_task(function* test_setDefaultValues_events() {
     equal(item.getAlarms({}).length, 0);
 
     let mockCalendar = {
-      getProperty: function() {
-        return ["SHOUT"];
-      }
+        getProperty: function() {
+            return ["SHOUT"];
+        }
     };
 
     Preferences.set("calendar.alarms.onforevents", 1);
@@ -69,7 +62,6 @@ add_task(function* test_setDefaultValues_events() {
     Preferences.reset("calendar.alarms.onforevents");
     Preferences.reset("calendar.alarms.eventalarmunit");
     Preferences.reset("calendar.alarms.eventalarmlen");
-
 });
 
 add_task(function* test_setDefaultValues_tasks() {
@@ -77,8 +69,8 @@ add_task(function* test_setDefaultValues_tasks() {
     let calnow = cal.now;
     let nowDate = cal.createDateTime("20150815T120000");
     cal.now = function() {
-      return nowDate;
-    }
+        return nowDate;
+    };
 
     Preferences.set("calendar.alarms.onfortodos", 1);
     Preferences.set("calendar.alarms.todoalarmunit", "hours");
@@ -110,9 +102,9 @@ add_task(function* test_setDefaultValues_tasks() {
     equal(item.getAlarms({}).length, 0);
 
     let mockCalendar = {
-      getProperty: function() {
-        return ["SHOUT"];
-      }
+        getProperty: function() {
+            return ["SHOUT"];
+        }
     };
 
     Preferences.set("calendar.alarms.onfortodos", 1);
@@ -140,7 +132,7 @@ add_task(function* test_calculateAlarmDate() {
 
     let calculateAlarmDate = cal.alarms.calculateAlarmDate.bind(cal.alarms, item);
 
-    alarm = cal.createAlarm();
+    let alarm = cal.createAlarm();
     alarm.related = alarm.ALARM_RELATED_ABSOLUTE;
     alarm.alarmDate = cal.createDateTime("20150815T110000");
     equal(calculateAlarmDate(alarm).icalString, "20150815T110000");
@@ -227,7 +219,7 @@ add_task(function* test_addReminderImages() {
     let box = doc.documentElement.firstChild;
 
     let actions = ["DISPLAY"];
-    reminders = createReminders(actions);
+    let reminders = createReminders(actions);
     cal.alarms.addReminderImages(box, reminders);
     checkReminder(box, actions, "first addition");
 

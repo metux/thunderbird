@@ -14,6 +14,8 @@
 
 <!ENTITY pref.weekstarts.label "Filloje javën me:">
 <!ENTITY pref.weekstarts.accesskey "f">
+<!ENTITY pref.calendar.view-minimonth.showweeknumber.label "Shfaq numra javësh në pamje dhe minimuaj">
+<!ENTITY pref.calendar.view-minimonth.showweeknumber.accesskey "a">
 <!ENTITY pref.daysoff.label "Përfshi këto ditë në javën e punës:">
 
 <!ENTITY pref.calendar.view.daystart.label "Dita fillon më:">
@@ -35,6 +37,3 @@
 <!ENTITY pref.numberofweeks.4 "4 javë">
 <!ENTITY pref.numberofweeks.5 "5 javë">
 <!ENTITY pref.numberofweeks.6 "6 javë">
-
-<!ENTITY pref.calendar.view-minimonth.showweeknumber.accesskey "w">
-<!ENTITY pref.calendar.view-minimonth.showweeknumber.label "Show week number in views and minimonth">

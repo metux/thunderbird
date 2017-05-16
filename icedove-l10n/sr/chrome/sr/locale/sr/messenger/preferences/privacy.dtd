@@ -3,36 +3,36 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
 <!-- Mail Content -->
-<!ENTITY captionMailContent.label "Mail Content">
+<!ENTITY captionMailContent.label "Садржај поште">
 
-<!ENTITY acceptRemoteContent.label "Allow remote content in messages">
-<!ENTITY acceptRemoteContent.accesskey "m">
-<!ENTITY remoteContentExceptions.label "Exceptions…">
-<!ENTITY remoteContentExceptions.accesskey "x">
-<!ENTITY acceptRemoteContentInfo.label "Learn more about the privacy issues of remote content">
+<!ENTITY acceptRemoteContent.label "Дозволи удаљени садржај у порукама">
+<!ENTITY acceptRemoteContent.accesskey "д">
+<!ENTITY remoteContentExceptions.label "Изузеци…">
+<!ENTITY remoteContentExceptions.accesskey "з">
+<!ENTITY acceptRemoteContentInfo.label "Сазнајте више о проблемима приватности код удаљеног садржаја">
 
 <!-- Web Content -->
-<!ENTITY captionWebContent.label "Web Content">
+<!ENTITY captionWebContent.label "Веб садржај">
 
-<!ENTITY keepHistory.label "Remember websites and links I've visited">
-<!ENTITY keepHistory.accesskey "R">
-<!ENTITY acceptCookies.label "Accept cookies from sites">
-<!ENTITY acceptCookies.accesskey "A">
-<!ENTITY acceptThirdParty.pre.label "Accept third-party cookies:">
-<!ENTITY acceptThirdParty.pre.accesskey "c">
-<!ENTITY acceptThirdParty.always.label "Always">
-<!ENTITY acceptThirdParty.never.label "Never">
-<!ENTITY acceptThirdParty.visited.label "From visited">
-<!ENTITY keepUntil.label "Keep until:">
-<!ENTITY keepUntil.accesskey "K">
-<!ENTITY expire.label "they expire">
-<!ENTITY close.label "I close &brandShortName;">
-<!ENTITY askEachTime.label "ask me every time">
-<!ENTITY cookieExceptions.label "Exceptions…">
-<!ENTITY cookieExceptions.accesskey "E">
-<!ENTITY showCookies.label "Show Cookies…">
-<!ENTITY showCookies.accesskey "S">
+<!ENTITY keepHistory.label "Памти веб странице и везе које сам посетио">
+<!ENTITY keepHistory.accesskey "м">
+<!ENTITY acceptCookies.label "Прихватај колачиће са страница">
+<!ENTITY acceptCookies.accesskey "х">
+<!ENTITY acceptThirdParty.pre.label "Прихватај колачиће трећих странки:">
+<!ENTITY acceptThirdParty.pre.accesskey "л">
+<!ENTITY acceptThirdParty.always.label "Увек">
+<!ENTITY acceptThirdParty.never.label "Никада">
+<!ENTITY acceptThirdParty.visited.label "Са посећених">
+<!ENTITY keepUntil.label "Чувај док:">
+<!ENTITY keepUntil.accesskey "в">
+<!ENTITY expire.label "они не истекну">
+<!ENTITY close.label "Док не затворим &brandShortName;">
+<!ENTITY askEachTime.label "питај ме сваки пут">
+<!ENTITY cookieExceptions.label "Изузеци…">
+<!ENTITY cookieExceptions.accesskey "И">
+<!ENTITY showCookies.label "Прикажи колачиће…">
+<!ENTITY showCookies.accesskey "р">
 
-<!ENTITY dntTrackingNotOkay.label2 "Tell sites that I do not want to be tracked">
-<!ENTITY dntTrackingNotOkay.accesskey "n">
-<!ENTITY doNotTrackInfo.label "Learn more about Do Not Track">
+<!ENTITY dntTrackingNotOkay.label2 "Реци веб страницама да не желим да ме прате">
+<!ENTITY dntTrackingNotOkay.accesskey "ц">
+<!ENTITY doNotTrackInfo.label "Сазнајте више о Не желим да ме прате">

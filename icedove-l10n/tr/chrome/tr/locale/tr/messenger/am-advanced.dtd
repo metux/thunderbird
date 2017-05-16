@@ -19,12 +19,10 @@
 <!ENTITY smtpListSetDefault.label "Varsayılan olarak ata">
 <!ENTITY smtpListSetDefault.accesskey "V">
 
+<!ENTITY serverDetails.label "Seçilen sunucunun ayrıntıları:">
 <!ENTITY serverDescription.label "Açıklama: ">
 <!ENTITY serverName.label "Sunucu adı: ">
 <!ENTITY serverPort.label "Port: ">
 <!ENTITY userName.label   "Kullanıcı adı: ">
 <!ENTITY connectionSecurity.label "Bağlantı güvenliği: ">
 <!ENTITY authMethod.label   "Yetkilendirme yöntemi: ">
-
-
-<!ENTITY serverDetails.label "Details of selected server:">

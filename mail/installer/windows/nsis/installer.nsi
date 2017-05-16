@@ -34,6 +34,7 @@ RequestExecutionLevel user
 Var TmpVal
 Var InstallType
 Var AddStartMenuSC
+Var AddTaskbarSC
 Var AddQuickLaunchSC
 Var AddDesktopSC
 Var InstallMaintenanceService
@@ -383,9 +384,11 @@ Section "-Application" APP_IDX
 
     ; If we are writing to HKLM and create either the desktop or start menu
     ; shortcuts set IconsVisible to 1 otherwise to 0.
+    ; Taskbar shortcuts imply having a start menu shortcut.
     StrCpy $0 "Software\Clients\Mail\${ClientsRegName}\InstallInfo"
     ${If} $AddDesktopSC == 1
     ${OrIf} $AddStartMenuSC == 1
+    ${OrIf} $AddTaskbarSC == 1
       WriteRegDWORD HKLM "$0" "IconsVisible" 1
     ${Else}
       WriteRegDWORD HKLM "$0" "IconsVisible" 0
@@ -393,10 +396,10 @@ Section "-Application" APP_IDX
   ${EndIf}
 
 !ifdef MOZ_MAINTENANCE_SERVICE
-  ; If the maintenance service page was displayed then a value was already 
-  ; explicitly selected for installing the maintenance service and 
+  ; If the maintenance service page was displayed then a value was already
+  ; explicitly selected for installing the maintenance service and
   ; and so InstallMaintenanceService will already be 0 or 1.
-  ; If the maintenance service page was not displayed then 
+  ; If the maintenance service page was not displayed then
   ; InstallMaintenanceService will be equal to "".
   ${If} $InstallMaintenanceService == ""
     Call IsUserAdmin
@@ -416,7 +419,7 @@ Section "-Application" APP_IDX
 
   ${If} $InstallMaintenanceService == "1"
     ; The user wants to install the maintenance service, so execute
-    ; the pre-packaged maintenance service installer. 
+    ; the pre-packaged maintenance service installer.
     ; This option can only be turned on if the user is an admin so there
     ; is no need to use ExecShell w/ verb runas to enforce elevated.
     nsExec::Exec "$\"$INSTDIR\maintenanceservice_installer.exe$\""
@@ -487,6 +490,13 @@ Section "-Application" APP_IDX
     ${EndIf}
   ${EndIf}
 
+  ; Update lastwritetime of the Start Menu shortcut to clear the tile cache.
+  ${If} ${AtLeastWin8}
+  ${AndIf} ${FileExists} "$SMPROGRAMS\${BrandFullName}.lnk"
+    FileOpen $0 "$SMPROGRAMS\${BrandFullName}.lnk" a
+    FileClose $0
+  ${EndIf}
+
   ${If} $AddDesktopSC == 1
     CreateShortCut "$DESKTOP\${BrandFullName}.lnk" "$INSTDIR\${FileMainEXE}"
     ${If} ${FileExists} "$DESKTOP\${BrandFullName}.lnk"
@@ -555,9 +565,6 @@ Section "-InstallEndCleanup"
 
   ; Adds a pinned Task Bar shortcut (see MigrateTaskBarShortcut for details).
   ${MigrateTaskBarShortcut}
-
-  ${GetShortcutsLogPath} $0
-  WriteIniStr "$0" "TASKBAR" "Migrated" "true"
 
   ; Refresh desktop icons
   System::Call "shell32::SHChangeNotify(i 0x08000000, i 0, i 0, i 0)"
@@ -993,7 +1000,71 @@ Function .onInit
   StrCpy $LANGUAGE 0
   ${SetBrandNameVars} "$EXEDIR\core\distribution\setup.ini"
 
-  ${InstallOnInitCommon} "$(WARN_MIN_SUPPORTED_OS_MSG)"
+  ; Don't install on systems that don't support SSE2. The parameter value of
+  ; 10 is for PF_XMMI64_INSTRUCTIONS_AVAILABLE which will check whether the
+  ; SSE2 instruction set is available.
+  System::Call "kernel32::IsProcessorFeaturePresent(i 10)i .R7"
+
+!ifdef HAVE_64BIT_BUILD
+  ; Restrict x64 builds from being installed on x86 and pre Win7
+  ${Unless} ${RunningX64}
+  ${OrUnless} ${AtLeastWin7}
+    ${If} "$R7" == "0"
+      strCpy $R7 "$(WARN_MIN_SUPPORTED_OSVER_CPU_MSG)"
+    ${Else}
+      strCpy $R7 "$(WARN_MIN_SUPPORTED_OSVER_MSG)"
+    ${EndIf}
+    MessageBox MB_OKCANCEL|MB_ICONSTOP "$R7" IDCANCEL +2
+    ExecShell "open" "${URLSystemRequirements}"
+    Quit
+  ${EndUnless}
+
+  SetRegView 64
+!else
+  StrCpy $R8 "0"
+  ${If} ${AtMostWin2000}
+    StrCpy $R8 "1"
+  ${EndIf}
+
+  ${If} ${IsWinXP}
+  ${AndIf} ${AtMostServicePack} 1
+    StrCpy $R8 "1"
+  ${EndIf}
+
+  ${If} $R8 == "1"
+    ; XXX-rstrong - some systems failed the AtLeastWin2000 test that we
+    ; used to use for an unknown reason and likely fail the AtMostWin2000
+    ; and possibly the IsWinXP test as well. To work around this also
+    ; check if the Windows NT registry Key exists and if it does if the
+    ; first char in CurrentVersion is equal to 3 (Windows NT 3.5 and
+    ; 3.5.1), 4 (Windows NT 4), or 5 (Windows 2000 and Windows XP).
+    StrCpy $R8 ""
+    ClearErrors
+    ReadRegStr $R8 HKLM "SOFTWARE\Microsoft\Windows NT\CurrentVersion" "CurrentVersion"
+    StrCpy $R8 "$R8" 1
+    ${If} ${Errors}
+    ${OrIf} "$R8" == "3"
+    ${OrIf} "$R8" == "4"
+    ${OrIf} "$R8" == "5"
+      ${If} "$R7" == "0"
+        strCpy $R7 "$(WARN_MIN_SUPPORTED_OSVER_CPU_MSG)"
+      ${Else}
+        strCpy $R7 "$(WARN_MIN_SUPPORTED_OSVER_MSG)"
+      ${EndIf}
+      MessageBox MB_OKCANCEL|MB_ICONSTOP "$R7" IDCANCEL +2
+      ExecShell "open" "${URLSystemRequirements}"
+      Quit
+    ${EndIf}
+  ${EndUnless}
+!endif
+
+  ${If} "$R7" == "0"
+    MessageBox MB_OKCANCEL|MB_ICONSTOP "$(WARN_MIN_SUPPORTED_CPU_MSG)" IDCANCEL +2
+    ExecShell "open" "${URLSystemRequirements}"
+    Quit
+  ${EndIf}
+
+  ${InstallOnInitCommon} "$(WARN_MIN_SUPPORTED_OSVER_CPU_MSG)"
 
   !insertmacro InitInstallOptionsFile "options.ini"
   !insertmacro InitInstallOptionsFile "shortcuts.ini"

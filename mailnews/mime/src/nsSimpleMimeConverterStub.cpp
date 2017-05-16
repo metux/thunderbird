@@ -123,9 +123,12 @@ Initialize(MimeObject *obj)
     if (NS_FAILED(rv))
         return -1;
 
+    nsAutoCString contentType; // lowercase
+    ToLowerCase(nsDependentCString(obj->content_type), contentType);
+
     nsCString value;
     rv = catman->GetCategoryEntry(NS_SIMPLEMIMECONVERTERS_CATEGORY,
-                                  obj->content_type, getter_Copies(value));
+                                  contentType.get(), getter_Copies(value));
     if (NS_FAILED(rv) || value.IsEmpty())
         return -1;
 
@@ -165,14 +168,14 @@ public:
 
     NS_DECL_ISUPPORTS
 
-    NS_IMETHOD GetContentType(char **contentType)
+    NS_IMETHOD GetContentType(char **contentType) override
     {
         *contentType = ToNewCString(mContentType);
         return *contentType ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
     }
     NS_IMETHOD CreateContentTypeHandlerClass(const char *contentType,
                                              contentTypeHandlerInitStruct *initString,
-                                             MimeObjectClass **objClass);
+                                             MimeObjectClass **objClass) override;
 private:
     virtual ~nsSimpleMimeConverterStub() { }
     nsCString mContentType;

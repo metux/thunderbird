@@ -36,3 +36,6 @@
 <!ENTITY helpButton.accesskey "Д">
 <!ENTITY closeCmd.key "W">
 <!ENTITY searchBox.emptyText "Пошук сітаў па назве…">
+
+<!ENTITY newButton.popupCopy.accesskey "C">
+<!ENTITY newButton.popupCopy.label "Copy…">

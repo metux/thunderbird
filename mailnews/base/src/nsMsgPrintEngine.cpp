@@ -16,6 +16,7 @@
 #include "nsIURI.h"
 
 #include "nsPIDOMWindow.h"
+#include "mozIDOMWindow.h"
 #include "nsIContentViewer.h"
 #include "nsIMsgMessageService.h"
 #include "nsMsgUtils.h"
@@ -77,7 +78,7 @@ nsMsgPrintEngine::OnStateChange(nsIWebProgress* aWebProgress,
     if (progressStateFlags & nsIWebProgressListener::STATE_START) {
       // Tell the user we are loading...
       nsString msg;
-      GetString(MOZ_UTF16("LoadingMessageToPrint"), msg);
+      GetString(u"LoadingMessageToPrint", msg);
       SetStatusMessage(msg);
     }
 
@@ -92,7 +93,7 @@ nsMsgPrintEngine::OnStateChange(nsIWebProgress* aWebProgress,
         // The mail msg doc is the last one to receive the STATE_STOP notification
         nsCOMPtr<nsISupports> container;
         docLoader->GetContainer(getter_AddRefs(container));
-        nsCOMPtr<nsIDOMWindow> domWindow(do_GetInterface(container));
+        nsCOMPtr<mozIDOMWindowProxy> domWindow(do_GetInterface(container));
         if (domWindow.get() != mMsgDOMWin.get()) {
           return NS_OK;
         }
@@ -120,7 +121,7 @@ nsMsgPrintEngine::OnStateChange(nsIWebProgress* aWebProgress,
 
           // Tell the user the message is loaded...
           nsString msg;
-          GetString(MOZ_UTF16("MessageLoaded"), msg);
+          GetString(u"MessageLoaded", msg);
           SetStatusMessage(msg);
 
           NS_ASSERTION(mDocShell,"can't print, there is no docshell");
@@ -160,7 +161,9 @@ nsMsgPrintEngine::OnStateChange(nsIWebProgress* aWebProgress,
       } 
       else 
       {
-        mWindow->Close();
+        if (mWindow) {
+          nsPIDOMWindowOuter::From(mWindow)->Close();
+        }
       }
     }
   }
@@ -210,29 +213,31 @@ nsMsgPrintEngine::OnSecurityChange(nsIWebProgress *aWebProgress,
 }
 
 NS_IMETHODIMP    
-nsMsgPrintEngine::SetWindow(nsIDOMWindow *aWin)
+nsMsgPrintEngine::SetWindow(mozIDOMWindowProxy *aWin)
 {
-	if (!aWin)
+  if (!aWin)
   {
     // It isn't an error to pass in null for aWin, in fact it means we are shutting
     // down and we should start cleaning things up...
-		return NS_OK;
+    return NS_OK;
   }
 
-  mWindow = do_QueryInterface(aWin);
-  NS_ENSURE_TRUE(mWindow, NS_ERROR_FAILURE);
+  mWindow = aWin;
 
-  mWindow->GetDocShell()->SetAppType(nsIDocShell::APP_TYPE_MAIL);
+  NS_ENSURE_TRUE(mWindow, NS_ERROR_FAILURE);
+  nsCOMPtr<nsPIDOMWindowOuter> window = nsPIDOMWindowOuter::From(mWindow);
+
+  window->GetDocShell()->SetAppType(nsIDocShell::APP_TYPE_MAIL);
 
   nsCOMPtr<nsIDocShellTreeItem> docShellAsItem =
-    do_QueryInterface(mWindow->GetDocShell());
+    do_QueryInterface(window->GetDocShell());
   NS_ENSURE_TRUE(docShellAsItem, NS_ERROR_FAILURE);
 
   nsCOMPtr<nsIDocShellTreeItem> rootAsItem;
   docShellAsItem->GetSameTypeRootTreeItem(getter_AddRefs(rootAsItem));
 
   nsCOMPtr<nsIDocShellTreeItem> childItem;
-  rootAsItem->FindChildWithName(MOZ_UTF16("content"), true,
+  rootAsItem->FindChildWithName(NS_LITERAL_STRING("content"), true,
 				false, nullptr, nullptr,
 				getter_AddRefs(childItem));
 
@@ -244,8 +249,8 @@ nsMsgPrintEngine::SetWindow(nsIDOMWindow *aWin)
   return NS_OK;
 }
 
-/* void setParentWindow (in nsIDOMWindow ptr); */
-NS_IMETHODIMP nsMsgPrintEngine::SetParentWindow(nsIDOMWindow *ptr)
+/* void setParentWindow (in mozIDOMWindowProxy ptr); */
+NS_IMETHODIMP nsMsgPrintEngine::SetParentWindow(mozIDOMWindowProxy *ptr)
 {
   mParentWindow = ptr;
   return NS_OK;
@@ -259,8 +264,9 @@ nsMsgPrintEngine::ShowWindow(bool aShow)
 
   NS_ENSURE_TRUE(mWindow, NS_ERROR_NOT_INITIALIZED);
 
+  nsCOMPtr<nsPIDOMWindowOuter> window = nsPIDOMWindowOuter::From(mWindow);
   nsCOMPtr <nsIDocShellTreeItem> treeItem =
-    do_QueryInterface(mWindow->GetDocShell(), &rv);
+    do_QueryInterface(window->GetDocShell(), &rv);
   NS_ENSURE_SUCCESS(rv,rv);
 
   nsCOMPtr <nsIDocShellTreeOwner> treeOwner;
@@ -305,7 +311,7 @@ nsMsgPrintEngine::StartPrintOperation(nsIPrintSettings* aPS)
   mPrintSettings = aPS;
 
   // Load the about:blank on the tail end...
-  nsresult rv = AddPrintURI(MOZ_UTF16("about:blank")); 
+  nsresult rv = AddPrintURI(u"about:blank"); 
   if (NS_FAILED(rv)) return rv; 
   return StartNextPrintOperation();
 }
@@ -350,7 +356,7 @@ nsMsgPrintEngine::ShowProgressDialog(bool aIsForPrinting, bool& aDoNotify)
     }
     if (mPrintPromptService) 
     {
-      nsCOMPtr<nsIDOMWindow> domWin(do_QueryInterface(mParentWindow));
+      nsCOMPtr<mozIDOMWindowProxy> domWin(do_QueryInterface(mParentWindow));
       if (!domWin) 
       {
         domWin = mWindow;
@@ -371,9 +377,9 @@ nsMsgPrintEngine::ShowProgressDialog(bool aIsForPrinting, bool& aDoNotify)
           NS_ADDREF(wpl);
           nsString msg;
           if (mIsDoingPrintPreview) {
-            GetString(MOZ_UTF16("LoadingMailMsgForPrintPreview"), msg);
+            GetString(u"LoadingMailMsgForPrintPreview", msg);
           } else {
-            GetString(MOZ_UTF16("LoadingMailMsgForPrint"), msg);
+            GetString(u"LoadingMailMsgForPrint", msg);
           }
           if (!msg.IsEmpty()) 
             mPrintProgressParams->SetDocTitle(msg.get());
@@ -400,11 +406,12 @@ nsMsgPrintEngine::StartNextPrintOperation()
   if (mCurrentlyPrintingURI >= (int32_t)mURIArray.Length())
   {
     // This is the end...dum, dum, dum....my only friend...the end
-    mWindow->Close();
+    NS_ENSURE_TRUE(mWindow, NS_ERROR_FAILURE);
+    nsPIDOMWindowOuter::From(mWindow)->Close();
 
     // Tell the user we are done...
     nsString msg;
-    GetString(MOZ_UTF16("PrintingComplete"), msg);
+    GetString(u"PrintingComplete", msg);
     SetStatusMessage(msg);
     return NS_OK;
   }
@@ -452,7 +459,7 @@ nsMsgPrintEngine::FireThatLoadOperationStartup(const nsString& uri)
 nsresult
 nsMsgPrintEngine::FireThatLoadOperation(const nsString& uri)
 {
-  nsresult rv;
+  nsresult rv = NS_ERROR_FAILURE;
   
   nsCString uriCStr;
   LossyCopyUTF16toASCII(uri, uriCStr);
@@ -592,7 +599,7 @@ nsMsgPrintEngine::PrintMsgWindow()
       // for mail, it can review the salt.  for addrbook, it's a data:// url, which
       // means nothing to the end user.
       // needs to be " " and not "" or nullptr, otherwise, we'll still print the url
-      mPrintSettings->SetDocURL(MOZ_UTF16(" "));
+      mPrintSettings->SetDocURL(u" ");
 
       nsresult rv = NS_ERROR_FAILURE;
       if (mIsDoingPrintPreview) 
@@ -622,7 +629,9 @@ nsMsgPrintEngine::PrintMsgWindow()
         } 
         else 
         {
-          mWindow->Close();
+          if (mWindow) {
+            nsPIDOMWindowOuter::From(mWindow)->Close();
+          }
         }
       }
       else
@@ -641,7 +650,7 @@ nsMsgPrintEngine::PrintMsgWindow()
 //---------------------------------------------------------------
 
 //---------------------------------------------------------------
-class nsPrintMsgWindowEvent : public nsRunnable
+class nsPrintMsgWindowEvent : public mozilla::Runnable
 {
 public:
   nsPrintMsgWindowEvent(nsMsgPrintEngine *mpe)
@@ -660,7 +669,7 @@ private:
 };
 
 //-----------------------------------------------------------
-class nsStartNextPrintOpEvent : public nsRunnable
+class nsStartNextPrintOpEvent : public mozilla::Runnable
 {
 public:
   nsStartNextPrintOpEvent(nsMsgPrintEngine *mpe)

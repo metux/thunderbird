@@ -74,7 +74,16 @@ function ImageStartup()
 function InitImage()
 {
   // Set the controls to the image's attributes
-  gDialog.srcInput.value = globalElement.getAttribute("src");
+  var src = globalElement.getAttribute("src");
+
+  // For image insertion the 'src' attribute is null.
+  if (src) {
+    // Shorten data URIs for display.
+    if (shortenImageData(src, gDialog.srcInput)) {
+      gDialog.srcInput.removeAttribute("tooltiptext");
+      gDialog.srcInput.setAttribute("tooltip", "shortenedDataURI");
+    }
+  }
 
   // Set "Relativize" checkbox according to current URL state
   SetRelativeCheckbox();
@@ -278,6 +287,10 @@ function LoadPreviewImage()
   var imageSrc = TrimString(gDialog.srcInput.value);
   if (!imageSrc)
     return;
+  if (isImageDataShortened(imageSrc))
+  {
+    imageSrc = restoredImageData(gDialog.srcInput);
+  }
 
   try {
     // Remove the image URL from image cache so it loads fresh
@@ -458,16 +471,24 @@ function ValidateImage()
 
   // We must convert to "file:///" or "http://" format else image doesn't load!
   let src = gDialog.srcInput.value.trim();
-  var checkbox = document.getElementById("MakeRelativeCheckbox");
-  try
-  {
-    if (checkbox && !checkbox.checked)
-    {
-      src = Services.uriFixup.createFixupURI(src, Components.interfaces.nsIURIFixup.FIXUP_FLAG_NONE).spec;
-    }
-  } catch (e) { }
 
-  globalElement.setAttribute("src", src);
+  if (isImageDataShortened(src))
+  {
+    src = restoredImageData(gDialog.srcInput);
+  }
+  else
+  {
+    var checkbox = document.getElementById("MakeRelativeCheckbox");
+    try
+    {
+      if (checkbox && !checkbox.checked)
+      {
+        src = Services.uriFixup.createFixupURI(src, Components.interfaces.nsIURIFixup.FIXUP_FLAG_NONE).spec;
+      }
+    } catch (e) { }
+
+    globalElement.setAttribute("src", src);
+  }
 
   let title = gDialog.titleInput.value.trim();
   if (title)

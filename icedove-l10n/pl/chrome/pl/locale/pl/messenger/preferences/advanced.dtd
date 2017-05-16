@@ -10,7 +10,7 @@
 
 <!ENTITY enableGlodaSearch.label "Indeksowanie wiadomości i wyszukiwanie">
 <!ENTITY enableGlodaSearch.accesskey "n">
-<!ENTITY allowHWAccel.label "Korzystaj z akceleracji sprzętowej, jeśli jest dostępna">
+<!ENTITY allowHWAccel.label "Korzystaj ze sprzętowego przyspieszania, jeśli jest dostępne">
 <!ENTITY allowHWAccel.accesskey "K">
 <!ENTITY storeType.label "Sposób przechowywania wiadomości:">
 <!ENTITY storeType.accesskey "S">
@@ -54,8 +54,6 @@
 <!ENTITY updateCheck.accesskey "S">
 <!ENTITY updateManual.label "Nie sprawdzaj dostępności aktualizacji (niezalecane: zagrożenie bezpieczeństwa)">
 <!ENTITY updateManual.accesskey "N">
-<!ENTITY updateAutoAddonWarn.label "Ostrzeż, jeśli spowoduje to wyłączenie któregoś z dodatków">
-<!ENTITY updateAutoAddonWarn.accesskey "O">
 <!ENTITY updateHistory.label "Wyświetl historię aktualizacji">
 <!ENTITY updateHistory.accesskey "W">
 <!ENTITY useService.label "Używaj usługi instalowania aktualizacji działającej w tle">
@@ -89,7 +87,7 @@
 <!ENTITY enableOCSP.label "Wyślij zapytanie do serwerów OCSP, aby potwierdzić aktualność certyfikatów">
 <!ENTITY enableOCSP.accesskey "e">
 
-<!ENTITY viewCertificates.label "Wyświetl certyfikaty">
-<!ENTITY viewCertificates.accesskey "W">
+<!ENTITY manageCertificates.label "Zarządzaj certyfikatami">
+<!ENTITY manageCertificates.accesskey "Z">
 <!ENTITY viewSecurityDevices.label "Urządzenia zabezpieczające">
 <!ENTITY viewSecurityDevices.accesskey "U">

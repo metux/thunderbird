@@ -6,3 +6,8 @@
 <!ENTITY newTagDialog.title "Uue sildi loomine">
 <!ENTITY name.label         "Sildi nimi:">
 <!ENTITY name.accesskey     "S">
+
+
+
+<!-- New Tag Dialog -->
+<!ENTITY newTagDialog1.title     "New Tag">

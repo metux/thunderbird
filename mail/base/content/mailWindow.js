@@ -53,6 +53,94 @@ function OnMailWindowUnload()
             .removeListener(window.MsgStatusFeedback);
 }
 
+
+/**
+ * When copying/dragging, convert imap/mailbox URLs of images into data URLs so
+ * that the images can be accessed in a paste elsewhere.
+ */
+function onCopyOrDragStart(e) {
+  let sourceDoc = getBrowser().contentDocument;
+  if (e.target.ownerDocument != sourceDoc) {
+    return; // We're only interested if this is in the message content.
+  }
+
+  let imgMap = new Map(); // Mapping img.src -> dataURL.
+
+  // For copy, the data of what is to be copied is not accessible at this point.
+  // Figure out what images are a) part of the selection and b) visible in
+  // the current document. If their source isn't http or data already, convert
+  // them to data URLs.
+
+  let selection = sourceDoc.getSelection();
+  let draggedImg = selection.isCollapsed ? e.target : null;
+  for (let img of sourceDoc.images) {
+    if (/^(https?|data):/.test(img.src)) {
+      continue;
+    }
+
+    if (img.naturalWidth == 0) { // Broken/inaccessible image then...
+      continue;
+    }
+
+    if (!draggedImg && !selection.containsNode(img, true)) {
+      continue;
+    }
+
+    let style = window.getComputedStyle(img);
+    if (style.display == "none" || style.visibility == "hidden") {
+      continue;
+    }
+
+    // Do not convert if the image is specifically flagged to not snarf.
+    if (img.getAttribute("moz-do-not-send") == "true") {
+      continue;
+    }
+
+    // We don't need to wait for the image to load. If it isn't already loaded
+    // in the source document, we wouldn't want it anyway.
+    let canvas = sourceDoc.createElement("canvas");
+    canvas.width = img.width;
+    canvas.height = img.height;
+    canvas.getContext("2d").drawImage(img, 0, 0, img.width, img.height);
+
+    let type = /\.jpe?g$/i.test(img.src) ? "image/jpg" : "image/png";
+    imgMap.set(img.src, canvas.toDataURL(type));
+  }
+
+  if (imgMap.size == 0) {
+    // Nothing that needs converting!
+    return;
+  }
+
+  let clonedSelection = draggedImg ? draggedImg.cloneNode(false) :
+    selection.getRangeAt(0).cloneContents();
+  let div = sourceDoc.createElement("div");
+  div.appendChild(clonedSelection);
+
+  let images = div.querySelectorAll("img");
+  for (let img of images) {
+    if (!imgMap.has(img.src)) {
+      continue;
+    }
+    img.src = imgMap.get(img.src);
+  }
+
+  let html = div.innerHTML;
+  let parserUtils = Components.classes["@mozilla.org/parserutils;1"]
+                      .getService(Components.interfaces.nsIParserUtils);
+  let plain = parserUtils.convertToPlainText(html,
+    Components.interfaces.nsIDocumentEncoder.OutputForPlainTextClipboardCopy, 0);
+  if ("clipboardData" in e) { // copy
+    e.clipboardData.setData("text/html", html);
+    e.clipboardData.setData("text/plain", plain);
+    e.preventDefault();
+  }
+  else if ("dataTransfer" in e) { // drag
+    e.dataTransfer.setData("text/html", html);
+    e.dataTransfer.setData("text/plain", plain);
+  }
+}
+
 function CreateMailWindowGlobals()
 {
   // get the messenger instance
@@ -108,6 +196,9 @@ function InitMsgWindow()
   msgWindow.rootDocShell.appType = Components.interfaces.nsIDocShell.APP_TYPE_MAIL;
   // Ensure we don't load xul error pages into the main window
   msgWindow.rootDocShell.useErrorPages = false;
+
+  document.addEventListener("copy", onCopyOrDragStart, true);
+  document.addEventListener("dragstart", onCopyOrDragStart, true);
 }
 
 // We're going to implement our status feedback for the mail window in JS now.
@@ -425,8 +516,7 @@ nsMsgWindowCommands.prototype =
 function loadStartPage(aForce)
 {
   // If the preference isn't enabled, then don't load anything.
-  if (!aForce &&
-      !Application.prefs.getValue("mailnews.start_page.enabled", false))
+  if (!aForce && !Services.prefs.getBoolPref("mailnews.start_page.enabled"))
     return;
 
   gMessageNotificationBar.clearMsgNotifications();
@@ -552,12 +642,11 @@ function nsBrowserAccess() { }
 nsBrowserAccess.prototype = {
   QueryInterface: XPCOMUtils.generateQI([Components.interfaces.nsIBrowserDOMWindow]),
 
-  openURI: function (aURI, aOpener, aWhere, aContext) {
+  openURI: function (aURI, aOpener, aWhere, aFlags) {
     const nsIBrowserDOMWindow = Components.interfaces.nsIBrowserDOMWindow;
-    let isExternal = aContext == nsIBrowserDOMWindow.OPEN_EXTERNAL;
-
+    let isExternal = !!(aFlags & nsIBrowserDOMWindow.OPEN_EXTERNAL);
     if (isExternal && aURI && aURI.schemeIs("chrome")) {
-      Application.console.log("use -chrome command-line option to load external chrome urls\n");
+      Services.console.logStringMessage("use -chrome command-line option to load external chrome urls\n");
       return null;
     }
 
@@ -567,7 +656,7 @@ nsBrowserAccess.prototype = {
       Components.interfaces.nsIWebNavigation.LOAD_FLAGS_NONE;
 
     if (aWhere != nsIBrowserDOMWindow.OPEN_NEWTAB)
-      Application.console.log("Opening a URI in something other than a new tab is not supported, opening in new tab instead");
+      Services.console.logStringMessage("Opening a URI in something other than a new tab is not supported, opening in new tab instead");
 
     let win, needToFocusWin;
 
@@ -584,7 +673,7 @@ nsBrowserAccess.prototype = {
       throw("Couldn't get a suitable window for openURI");
 
     let loadInBackground =
-      Application.prefs.getValue("browser.tabs.loadDivertedInBackground", false);
+      Services.prefs.getBoolPref("browser.tabs.loadDivertedInBackground");
 
     let tabmail = win.document.getElementById("tabmail");
     let clickHandler = null;
@@ -601,9 +690,10 @@ nsBrowserAccess.prototype = {
                       .getInterface(Components.interfaces.nsIDOMWindow);
     try {
       if (aURI) {
+        let referrer = null;
         if (aOpener) {
           let location = aOpener.location;
-          let referrer = Services.io.newURI(location, null, null);
+          referrer = Services.io.newURI(location, null, null);
         }
         newWindow.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
                  .getInterface(Components.interfaces.nsIWebNavigation)

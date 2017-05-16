@@ -6,6 +6,7 @@
 <!ENTITY blankResultsPaneMessage.label                  "Bu adres defterinde kişiler sadece bir aramanın ardından gösterilir">
 <!ENTITY localResultsOnlyMessage.label                  "Uzaktaki adres defterindeki kişiler siz arama yapana kadar gösterilmez">
 <!-- File Menu -->
+
 <!ENTITY fileMenu.label                                 "Dosya">
 <!ENTITY fileMenu.accesskey                             "D">
 <!ENTITY newMenu.label                                  "Yeni">
@@ -75,9 +76,15 @@
 <!-- LOCALIZATION NOTE (hideSwapFnLnUI) : DONT_TRANSLATE -->
 <!-- Swap FN/LN UI  Set to "false" to show swap fn/ln UI -->
 <!ENTITY hideSwapFnLnUI "true">
-<!ENTITY propertiesCmd2.label                           "Özellikler">
-<!ENTITY propertiesCmd2.accesskey                       "z">
+<!ENTITY propertiesMenu.label                           "Özellikler">
+<!ENTITY propertiesMenu.accesskey                       "z">
 <!ENTITY propertiesCmd.key                              "i">
+
+
+
+
+
+
 <!-- View Menu -->
 
 <!ENTITY viewMenu.label                                 "Görünüm">
@@ -133,21 +140,31 @@ because displayed names don't have the comma in between. -->
 <!ENTITY newContactButton.accesskey                     "k">
 <!ENTITY newlistButton.label                            "Yeni Liste">
 <!ENTITY newlistButton.accesskey                        "Y">
-<!ENTITY editButton2.label                              "Özellikler">
-<!ENTITY editButton2.accesskey                          "r">
+
+
+
+
+
+
+
+
+
 <!ENTITY newmsgButton.label                             "Yaz">
 <!ENTITY newmsgButton.accesskey                         "Y">
 <!ENTITY newIM.label                                    "Anlık İleti">
 <!ENTITY newIM.accesskey                                "n">
-
-
+<!ENTITY printButton.label                              "Yazdır…">
+<!ENTITY printButton.accesskey                          "Y">
 <!ENTITY deleteButton2.label                            "Sil">
 <!ENTITY deleteButton2.accesskey                        "S">
 <!-- Address Book Toolbar Tooltips -->
 
 <!ENTITY newContactButton.tooltip                       "Yeni adres defteri kişisi oluştur">
 <!ENTITY newlistButton.tooltip                          "Yeni bir liste oluştur">
-<!ENTITY editButton2.tooltip                            "Seçili ögeyi düzenle">
+<!ENTITY editPropertiesButton.tooltip                   "Seçili ögeyi düzenle">
+
+
+
 <!ENTITY newmsgButton.tooltip                           "E-posta iletisi gönder">
 <!ENTITY newIM.tooltip                                  "Anlık ileti gönder veya sohbet et">
 <!ENTITY deleteButton2.tooltip                          "Seçilmiş ögeyi sil">
@@ -156,8 +173,8 @@ because displayed names don't have the comma in between. -->
 <!ENTITY dirTreeHeader.label                            "Adres Defterleri">
 <!-- Search Bar -->
 
-<!ENTITY SearchNameOrEmail.label                        "İsim veya E-Posta">
-<!ENTITY SearchNameOrEmail.accesskey                    "s">
+<!ENTITY SearchNameOrEmail.label                        "Ad veya e-posta">
+<!ENTITY SearchNameOrEmail.accesskey                    "A">
 <!ENTITY advancedButton.tooltip                         "Gelişmiş adres arama">
 <!ENTITY quickSearchCmd.key                             "k">
 <!ENTITY searchItem.title "Hızlı Arama">
@@ -167,7 +184,7 @@ because displayed names don't have the comma in between. -->
 <!ENTITY Addrbook.accesskey                             "A">
 <!ENTITY GeneratedName.label                            "Ad">
 <!ENTITY GeneratedName.accesskey                        "d">
-<!ENTITY PrimaryEmail.label                             "E-Posta">
+<!ENTITY PrimaryEmail.label                             "E-posta">
 <!ENTITY PrimaryEmail.accesskey                         "E">
 <!ENTITY ChatName.label                                 "Sohbet Adı">
 <!ENTITY ChatName.accesskey                             "S">
@@ -175,7 +192,7 @@ because displayed names don't have the comma in between. -->
 <!ENTITY Company.accesskey                              "u">
 <!ENTITY NickName.label                                 "Takma Ad">
 <!ENTITY NickName.accesskey                             "T">
-<!ENTITY SecondEmail.label                              "Ek E-Posta">
+<!ENTITY SecondEmail.label                              "Ek e-posta">
 <!ENTITY SecondEmail.accesskey                          "k">
 <!ENTITY Department.label                               "Bölüm">
 <!ENTITY Department.accesskey                           "m">
@@ -223,5 +240,21 @@ because displayed names don't have the comma in between. -->
 <!ENTITY bringAllToFront.label                          "Tümünü Öne Al">
 <!ENTITY zoomWindow.label                               "Yakınlaş">
 
-<!ENTITY printButton.accesskey                          "r">
-<!ENTITY printButton.label                              "Print…">
+<!ENTITY abPropertiesContext.accesskey                  "i">
+<!ENTITY abPropertiesContext.label                      "Properties">
+<!ENTITY abPropertiesMenu.accesskey                     "i">
+<!ENTITY abPropertiesMenu.label                         "Address Book Properties">
+<!ENTITY contactPropertiesMenu.accesskey                "i">
+<!ENTITY contactPropertiesMenu.label                    "Contact Properties">
+<!ENTITY editAbPropertiesButton.tooltip                 "Edit the properties of the selected address book">
+<!ENTITY editContactContext.accesskey                   "E">
+<!ENTITY editContactContext.label                       "Edit Contact">
+<!ENTITY editContactPropertiesButton.tooltip            "Edit the selected contact">
+<!ENTITY editMailingListContext.accesskey               "E">
+<!ENTITY editMailingListContext.label                   "Edit List">
+<!ENTITY editMailingListPropertiesButton.tooltip        "Edit the selected mailing list">
+<!ENTITY editPropertiesButton.label                     "Edit">
+<!ENTITY mailingListPropertiesMenu.accesskey            "i">
+<!ENTITY mailingListPropertiesMenu.label                "Mailing List Properties">
+<!ENTITY propertiesContext.accesskey                    "i">
+<!ENTITY propertiesContext.label                        "Properties">

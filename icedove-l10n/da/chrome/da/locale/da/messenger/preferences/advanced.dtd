@@ -4,7 +4,7 @@
 
 <!ENTITY itemGeneral.label "Generelt">
 <!ENTITY dataChoicesTab.label    "Datadeling">
-<!ENTITY itemUpdate.label "Opdater">
+<!ENTITY itemUpdate.label "Opdateringer">
 <!ENTITY itemNetworking.label    "Netværk &amp; diskplads">
 <!ENTITY itemCertificates.label  "Certifikater">
 
@@ -48,7 +48,7 @@
 
 <!ENTITY crashReporterSection.label      "Fejlrapportering">
 <!ENTITY crashReporterDesc.label         "&brandShortName; sender fejlrapporter til &vendorShortName; for at gøre dit mailprogram mere stabilt og sikkert">
-<!ENTITY enableCrashReporter.label       "Aktiver fejlrapporter">
+<!ENTITY enableCrashReporter.label       "Aktiver fejlrapportering">
 <!ENTITY enableCrashReporter.accesskey   "k">
 <!ENTITY crashReporterLearnMore.label    "Læs mere">
 
@@ -60,18 +60,16 @@
 <!ENTITY updateCheck.accesskey           "S">
 <!ENTITY updateManual.label              "Søg aldrig efter opdateringer (frarådes, sikkerhedsrisiko)">
 <!ENTITY updateManual.accesskey          "ø">
-<!ENTITY updateAutoAddonWarn.label       "Advar mig, hvis dette vil deaktivere nogle af mine tilføjelser">
-<!ENTITY updateAutoAddonWarn.accesskey   "A">
 <!ENTITY updateHistory.label             "Vis opdateringshistorik">
 <!ENTITY updateHistory.accesskey         "V">
 
-<!ENTITY useService.label                "Installér opdateringer i baggrunden">
+<!ENTITY useService.label                "Brug en baggrundsservice til at installere opdateringer">
 <!ENTITY useService.accesskey            "b">
 
 <!-- Networking and Disk Space -->
 <!ENTITY showSettings.label            "Indstillinger…">
 <!ENTITY showSettings.accesskey        "I">
-<!ENTITY proxiesConfigure.label        "Definer hvordan &brandShortName; forbinder til internettet">
+<!ENTITY proxiesConfigure.label        "Konfigurer hvordan &brandShortName; forbinder til internettet">
 <!ENTITY connectionsInfo.caption       "Forbindelse">
 <!ENTITY offlineInfo.caption           "Offline">
 <!ENTITY offlineInfo.label             "Rediger offline-indstillinger">
@@ -104,7 +102,7 @@
 <!ENTITY enableOCSP.label                "Send forespørgsel til OCSP responder-servere for at bekræfte certifikaters aktuelle gyldighed">
 <!ENTITY enableOCSP.accesskey            "e">
 
-<!ENTITY viewCertificates.label         "Vis certifikater">
-<!ENTITY viewCertificates.accesskey     "c">
+<!ENTITY manageCertificates.label "Håndter certifikater">
+<!ENTITY manageCertificates.accesskey "c">
 <!ENTITY viewSecurityDevices.label      "Sikkerhedsmoduler">
 <!ENTITY viewSecurityDevices.accesskey  "S">

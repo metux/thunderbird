@@ -10,8 +10,10 @@
 <?xml-stylesheet href="chrome://messenger-newsblog/skin/feed-subscriptions.css" type="text/css"?>
 
 <!DOCTYPE window [
-<!ENTITY % feedDTD SYSTEM "chrome://messenger-newsblog/locale/feed-subscriptions.dtd">
-  %feedDTD;
+  <!ENTITY % feedDTD SYSTEM "chrome://messenger-newsblog/locale/feed-subscriptions.dtd">
+    %feedDTD;
+  <!ENTITY % certDTD SYSTEM "chrome://pippki/locale/certManager.dtd">
+    %certDTD;
 ]>
 
 <window id="subscriptionsDialog"
@@ -27,6 +29,8 @@
         onkeypress="FeedSubscriptions.onKeyPress(event);"
         onmousedown="FeedSubscriptions.onMouseDown(event);">
 
+  <script type="application/javascript"
+          src="chrome://messenger/content/specialTabs.js"/>
   <script type="application/javascript"
           src="chrome://messenger-newsblog/content/feed-subscriptions.js"/>
 
@@ -96,7 +100,7 @@
                        control="locationValue"
                        value="&feedLocation.label;"/>
               </hbox>
-              <hbox align="center">
+              <hbox>
                 <textbox id="locationValue"
                          flex="1"
                          class="uri-element"
@@ -104,12 +108,14 @@
                          clickSelectsAll="true"
                          onfocus="FeedSubscriptions.setSummaryFocus();"
                          onblur="FeedSubscriptions.setSummaryFocus();"/>
-                <label id="locationValidate"
-                       collapsed="true"
-                       class="text-link"
-                       crop="end"
-                       value="&locationValidate.label;"
-                       onclick="FeedSubscriptions.checkValidation(event);"/>
+                <hbox align="center">
+                  <label id="locationValidate"
+                         collapsed="true"
+                         class="text-link"
+                         crop="end"
+                         value="&locationValidate.label;"
+                         onclick="FeedSubscriptions.checkValidation(event);"/>
+                </hbox>
               </hbox>
             </row>
             <row>
@@ -130,7 +136,7 @@
                              mode="feeds"
                              showFileHereLabel="true"
                              showAccountsFileHere="true"
-                             oncommand="FeedSubscriptions.setNewFolder(event.target._folder)"/>
+                             oncommand="FeedSubscriptions.setNewFolder(event)"/>
                 </menulist>
                 <textbox id="selectFolderValue"
                          flex="1"
@@ -176,6 +182,11 @@
              crop="end"
              value="&validateText.label;"
              onclick="FeedSubscriptions.checkValidation(event);"/>
+      <button id="addCertException"
+              collapsed="true"
+              label="&certmgr.addException.label;"
+              accesskey="&certmgr.addException.accesskey;"
+              oncommand="FeedSubscriptions.addCertExceptionDialog();"/>
       <progressmeter id="progressMeter"
                      collapsed="true"
                      mode="determined"
@@ -191,8 +202,8 @@
 
         <button id="editFeed"
                 disabled="true"
-                label="&button.editFeed.label;"
-                accesskey="&button.editFeed.accesskey;"
+                label="&button.updateFeed.label;"
+                accesskey="&button.updateFeed.accesskey;"
                 oncommand="FeedSubscriptions.editFeed();"/>
 
         <button id="removeFeed"

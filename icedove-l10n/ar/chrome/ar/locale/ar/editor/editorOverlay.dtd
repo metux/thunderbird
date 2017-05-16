@@ -27,9 +27,9 @@
 
 <!ENTITY insertMenu.label "أدرج">
 <!ENTITY insertMenu.accesskey "د">
-<!ENTITY insertLinkCmd.label "رابط…">
-<!ENTITY insertLinkCmd.accesskey "ر">
-<!ENTITY insertLinkCmd.key "l">
+<!ENTITY insertLinkCmd2.label "رابط…">
+<!ENTITY insertLinkCmd2.accesskey "ر">
+<!ENTITY insertLinkCmd2.key "K">
 <!ENTITY insertAnchorCmd.label "مربط مسمّى…">
 <!ENTITY insertAnchorCmd.accesskey "ر">
 <!ENTITY insertImageCmd.label "صورة…">
@@ -84,18 +84,18 @@
 
 <!ENTITY fontSizeMenu.label "الحجم">
 <!ENTITY fontSizeMenu.accesskey "ج">
-
-
-
-
-
-
-
-
-
-
-
-
+<!ENTITY size-tinyCmd.label "ضئيل">
+<!ENTITY size-tinyCmd.accesskey "ض">
+<!ENTITY size-smallCmd.label "صغير">
+<!ENTITY size-smallCmd.accesskey "ص">
+<!ENTITY size-mediumCmd.label "متوسط">
+<!ENTITY size-mediumCmd.accesskey "م">
+<!ENTITY size-largeCmd.label "كبير">
+<!ENTITY size-largeCmd.accesskey "ك">
+<!ENTITY size-extraLargeCmd.label "كبير جدا">
+<!ENTITY size-extraLargeCmd.accesskey "د">
+<!ENTITY size-hugeCmd.label "ضخم">
+<!ENTITY size-hugeCmd.accesskey "ض">
 <!-- Font Style SubMenu -->
 
 <!ENTITY fontStyleMenu.label "طراز النص">
@@ -147,7 +147,7 @@
 
 <!ENTITY paragraphMenu.label "فقرة">
 <!ENTITY paragraphMenu.accesskey "ة">
-<!ENTITY paragraphParagraphCmd.label "فقرة">  
+<!ENTITY paragraphParagraphCmd.label "فقرة">
 <!ENTITY paragraphParagraphCmd.accesskey "ف">
 <!ENTITY heading1Cmd.label "رأس 1">
 <!ENTITY heading1Cmd.accesskey "1">
@@ -269,7 +269,7 @@
 <!-- Delete SubMenu -->
 <!ENTITY tableDeleteMenu.label "احذف">
 <!ENTITY tableDeleteMenu.accesskey "ح">
-<!-- text for "Join Cells" is in editor.properties 
+<!-- text for "Join Cells" is in editor.properties
      ("JoinSelectedCells" and "JoinCellToRight")
      the access key must exist in both of those strings
      But value must be set here for accesskey to draw properly
@@ -311,6 +311,8 @@
 <!ENTITY throbber.tooltip "اذهب إلي صفحة &vendorShortName; الرئيسية">
 <!ENTITY HighlightColorButton.tooltip "اختر لون إبراز النص">
 <!-- Editor toolbar -->
+
+<!ENTITY absoluteFontSizeToolbarCmd.tooltip "حدد حجم الخط">
 <!ENTITY decreaseFontSizeToolbarCmd.tooltip "خط أصغر">
 <!ENTITY increaseFontSizeToolbarCmd.tooltip "خط أكبر">
 <!ENTITY boldToolbarCmd.tooltip "عريض">
@@ -344,19 +346,3 @@
 <!ENTITY removeTOC.accesskey      "ز">
 <!ENTITY tocMenu.label            "جدول المحتويات…">
 <!ENTITY tocMenu.accesskey        "ج">
-
-
-<!-- Editor toolbar -->
-<!ENTITY absoluteFontSizeToolbarCmd.tooltip "Set font size">
-<!ENTITY size-extraLargeCmd.accesskey "x">
-<!ENTITY size-extraLargeCmd.label "Extra Large">
-<!ENTITY size-hugeCmd.accesskey "H">
-<!ENTITY size-hugeCmd.label "Huge">
-<!ENTITY size-largeCmd.accesskey "L">
-<!ENTITY size-largeCmd.label "Large">
-<!ENTITY size-mediumCmd.accesskey "M">
-<!ENTITY size-mediumCmd.label "Medium">
-<!ENTITY size-smallCmd.accesskey "S">
-<!ENTITY size-smallCmd.label "Small">
-<!ENTITY size-tinyCmd.accesskey "T">
-<!ENTITY size-tinyCmd.label "Tiny">

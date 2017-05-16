@@ -81,6 +81,11 @@
             label="&deleteAttachmentCmd.label;"
             accesskey="&deleteAttachmentCmd.accesskey;"
             oncommand="HandleMultipleAttachments(this.parentNode.attachments, 'delete');"/>
+  <menuseparator id="context-menu-copyurl-separator"/>
+  <menuitem id="context-copyAttachmentUrl"
+            label="&copyLinkCmd.label;"
+            accesskey="&copyLinkCmd.accesskey;"
+            oncommand="HandleMultipleAttachments(this.parentNode.attachments, 'copyUrl');"/>
 </menupopup>
 
 <menupopup id="attachmentListContext" onpopupshowing="goUpdateAttachmentCommands();">
@@ -238,6 +243,12 @@
                              class="toolbarbutton-1 msgHeaderView-button hdrTrashButton"
                              oncommand="goDoCommand(event.shiftKey ? 'button_shiftDelete' :
                                                     'button_delete');RestoreFocusAfterHdrButton();"/>
+              <toolbarbutton id="hdrOpenConversationButton"
+                             label="&hdrOpenConversationButton1.label;"
+                             tooltiptext="&hdrOpenConversationButton1.tooltip;"
+                             observes="button_showconversation"
+                             class="toolbarbutton-1 msgHeaderView-button hdrConversationButton"
+                             oncommand="gConversationOpener.openConversationForMessages(gFolderDisplay.selectedMessages);RestoreFocusAfterHdrButton();"/>
               <toolbarbutton id="hdrReplyToSenderButton" label="&hdrReplyButton1.label;"
                              tooltiptext="&hdrReplyButton2.tooltip;"
                              oncommand="MsgReplySender(event);RestoreFocusAfterHdrButton();"
@@ -428,7 +439,9 @@
             <rows id="expandedHeaderRows">
               <row id="expandedfromRow">
                 <label id="expandedfromLabel" class="headerName"
-                       value="&fromField4.label;" control="expandedfromBox"/>
+                       value="&fromField4.label;"
+                       valueFrom="&fromField4.label;" valueAuthor="&author.label;"
+                       control="expandedfromBox"/>
                 <mail-multi-emailHeaderField id="expandedfromBox" flex="1"/>
               </row>
             </rows>

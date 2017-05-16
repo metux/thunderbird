@@ -7,31 +7,26 @@
   -->
 
 
-<!ENTITY pref.categories.add.title "Ouzhpennañ ur rummad">
-
-
-
-
-
+<!ENTITY pref.categories.edit.title "Embann ar rummad">
+<!ENTITY pref.categories.editButton.label "Embann...">
+<!ENTITY pref.categories.editButton.accesskey "b">
 <!ENTITY pref.categories.removeButton.label "Lemel">
 <!ENTITY pref.categories.removeButton.accesskey "L">
+<!ENTITY pref.categories.name.label "Anv">
+<!ENTITY pref.categories.color.label "Liv">
+<!ENTITY pref.categories.usecolor.label "Arverañ al liv">
+<!ENTITY pref.categories.none.label "(tra ebet)">
+<!ENTITY pref.categories.overwrite "Ur rummad a zo gant an anv-mañ endeo. \n Fellout a ra deoc'h flastrañ anezhañ?">
+<!ENTITY pref.categories.overwrite.title "Diwallit: un eilad eo an anv">
+<!ENTITY pref.categories.noBlankCategories "Ret eo deoc'h enankañ un anv rummad.">
 
 
 
+<!-- WARNING! This file contains UTF-8 encoded characters!
+   - If this ==> … <== doesn't look like an ellipsis (three dots in a row),
+   - your editor isn't using UTF-8 encoding and may munge up the document!
+  -->
 
-
-
-
-
-<!ENTITY pref.categories.addButton.accesskey "A">
-<!ENTITY pref.categories.addButton.label "Add…">
-<!ENTITY pref.categories.color.label "Color">
-<!ENTITY pref.categories.edit.title "Edit Category">
-<!ENTITY pref.categories.editButton.accesskey "E">
-<!ENTITY pref.categories.editButton.label "Edit…">
-<!ENTITY pref.categories.name.label "Name">
-<!ENTITY pref.categories.noBlankCategories "You must enter a category name.">
-<!ENTITY pref.categories.none.label "(none)">
-<!ENTITY pref.categories.overwrite "A category already exists with that name. \n Do you want to overwrite it?">
-<!ENTITY pref.categories.overwrite.title "Warning: Duplicate name">
-<!ENTITY pref.categories.usecolor.label "Use Color">
+<!ENTITY pref.categories.new.title "New Category">
+<!ENTITY pref.categories.newButton.accesskey "N">
+<!ENTITY pref.categories.newButton.label "New…">

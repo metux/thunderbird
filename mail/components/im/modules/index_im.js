@@ -115,7 +115,7 @@ GlodaIMConversation.prototype = {
 // FIXME
 var WidgetProvider = {
   providerName: "widget",
-  process: function () {
+  process: function*() {
     //XXX What is this supposed to do?
     yield Gloda.kWorkDone;
   }
@@ -615,7 +615,7 @@ var GlodaIMIndexer = {
     return rv;
   }),
 
-  _worker_indexIMConversation: function(aJob, aCallbackHandle) {
+  _worker_indexIMConversation: function*(aJob, aCallbackHandle) {
     let glodaConv = {};
     let existingGlodaConv = aJob.conversation.glodaConv;
     if (existingGlodaConv &&
@@ -639,10 +639,12 @@ var GlodaIMIndexer = {
     yield Gloda.kWorkDone;
   },
 
-  _worker_logsFolderSweep: function(aJob) {
+  _worker_logsFolderSweep: function*(aJob) {
     let dir = FileUtils.getFile("ProfD", ["logs"]);
-    if (!dir.exists() || !dir.isDirectory())
-      return;
+    if (!dir.exists() || !dir.isDirectory()) {
+      // If the folder does not exist, then we are done.
+      yield GlodaIndexer.kWorkDone;
+    }
 
     // Sweep the logs directory for log files, adding any new entries to the
     // _knownFiles tree as we traverse.
@@ -679,9 +681,11 @@ var GlodaIMIndexer = {
         }
       }
     }
+
+    yield GlodaIndexer.kWorkDone;
   },
 
-  _worker_convFolderSweep: function(aJob, aCallbackHandle) {
+  _worker_convFolderSweep: function*(aJob, aCallbackHandle) {
     let folder = aJob.folder;
 
     let sessions = folder.directoryEntries;

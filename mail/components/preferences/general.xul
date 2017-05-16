@@ -23,7 +23,9 @@
       <preference id="mailnews.reuse_message_window" name="mailnews.reuse_message_window" type="bool"/>
       <preference id="mailnews.start_page.enabled" name="mailnews.start_page.enabled" type="bool"/>
       <preference id="mailnews.start_page.url" name="mailnews.start_page.url" type="string"/>
+#ifndef XP_MACOSX
       <preference id="mail.biff.show_alert" name="mail.biff.show_alert" type="bool"/>
+#endif
       <preference id="mail.biff.show_tray_icon" name="mail.biff.show_tray_icon" type="bool" />
       <preference id="mail.biff.play_sound" name="mail.biff.play_sound" type="bool"/>
       <preference id="mail.biff.play_sound.type" name="mail.biff.play_sound.type" type="int"/>
@@ -64,19 +66,16 @@
 
     <groupbox>
       <caption label="&newMessagesArrive.label;"/>
-      <hbox align="center">
 #ifdef XP_MACOSX
+      <hbox align="center">
         <description flex="1">&changeDockIconOptions.label;</description>
         <button id="dockOptions" label="&dockOptions.label;"
                 accesskey="&dockOptions.accesskey;"
                 oncommand="gGeneralPane.configureDockOptions();"/>
       </hbox>
-      <hbox>
-        <checkbox id="newMailNotificationAlert"
-                  label="&showAnimatedAlert.label;"
-                  preference="mail.biff.show_alert"
-                  accesskey="&showAnimatedAlert.accesskey;"/>
+      <description class="bold">&notificationAlertSettings2.label;</description>
 #else
+      <hbox align="center">
         <checkbox id="newMailNotificationAlert"
                   label="&showAnimatedAlert.label;"
                   accesskey="&showAnimatedAlert.accesskey;"
@@ -93,15 +92,23 @@
 #endif
                   preference="mail.biff.show_tray_icon"
                   accesskey="&showTrayIcon.accesskey;"/>
-#endif
       </hbox>
+#endif
+
       <hbox align="center">
+#ifndef XP_MACOSX
         <checkbox id="newMailNotification" accesskey="&playSound1.accesskey;"
                   preference="mail.biff.play_sound" label="&playSound.label;"
+#else
+        <checkbox id="newMailNotification" accesskey="&playSoundMac.accesskey;"
+                  preference="mail.biff.play_sound" label="&playSoundMac.label;"
+#endif
                   oncommand="gGeneralPane.updatePlaySound();"/>
         <spacer flex="1"/>
         <button id="playSound" label="&play.label;" accesskey="&play.accesskey;" oncommand="gGeneralPane.previewSound();"/>
       </hbox>
+
+#ifndef XP_MACOSX
       <radiogroup id="soundType"
                   class="indent"
                   preference="mail.biff.play_sound.type"
@@ -111,13 +118,8 @@
         <hbox>
           <radio id="system"
                  value="0"
-#ifdef XP_MACOSX
-                 label="&systemsoundMac.label;"
-                 accesskey="&systemsoundMac.accesskey;"/>
-#else
                  label="&systemsound.label;"
                  accesskey="&systemsound.accesskey;"/>
-#endif
           <spacer flex="1"/>
         </hbox>
         <hbox>
@@ -127,22 +129,23 @@
                  accesskey="&customsound.accesskey;"/>
           <spacer flex="1"/>
         </hbox>
-        <hbox>
-          <filefield id="soundUrlLocation"
-                     class="indent"
-                     preference="mail.biff.play_sound.url"
-                     preference-editable="true"
-                     onsyncfrompreference="return gGeneralPane.readSoundLocation();"
-                     aria-labelledby="custom"
-                     flex="1"/>
-          <button id="browseForSound"
-                  label="&browse.label;"
-                  accesskey="&browse.accesskey;"
-                  oncommand="gGeneralPane.browseForSoundFile();">
-            <observes element="soundUrlLocation" attribute="disabled"/>
-          </button>
-        </hbox>
       </radiogroup>
+#endif
+      <hbox>
+        <filefield id="soundUrlLocation"
+                   class="indent"
+                   preference="mail.biff.play_sound.url"
+                   preference-editable="true"
+                   onsyncfrompreference="return gGeneralPane.readSoundLocation();"
+                   aria-labelledby="custom"
+                   flex="1"/>
+        <button id="browseForSound"
+                label="&browse.label;"
+                accesskey="&browse.accesskey;"
+                oncommand="gGeneralPane.browseForSoundFile();">
+          <observes element="soundUrlLocation" attribute="disabled"/>
+        </button>
+      </hbox>
     </groupbox>
   </prefpane>
 </overlay>

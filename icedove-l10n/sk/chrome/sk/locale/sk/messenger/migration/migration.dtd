@@ -2,10 +2,12 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
+
 <!ENTITY migrationWizard.title          "Sprievodca importom">
 
 <!ENTITY importFromWin.label            "Importovať nastavenia programu, nastavenia účtov, adresáre, filtre a iné informácie z:">
 <!ENTITY importFromNonWin.label         "Importovať nastavenia programu, nastavenia účtov, adresáre, filtre a iné informácie z:">
+<!ENTITY importSourceNotFound.label     "Nenašla sa žiadna aplikácia, z ktorej by sa dali importovať údaje.">
 
 <!ENTITY importFromNothing.label        "Nič neimportovať">
 <!ENTITY importFromNothing.accesskey    "r">
@@ -15,8 +17,6 @@
 <!ENTITY importFromOExpress.accesskey   "u">
 <!ENTITY importFromOutlook.label        "Outlook">
 <!ENTITY importFromOutlook.accesskey    "O">
-<!ENTITY importFromEudora.label         "Eudora">
-<!ENTITY importFromEudora.accesskey     "E">
 
 <!ENTITY importSource.title             "Import nastavení a priečinkov pošty">
 <!ENTITY importItems.title              "Importované položky">

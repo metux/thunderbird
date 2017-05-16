@@ -41,8 +41,18 @@ function getURL()
   return url;
 }
 
+ /**
+  * Check whether this warning page should be overridable or whether
+  * the "ignore warning" button should be hidden.
+  */
+ function getOverride()
+ {
+   var url = document.documentURI;
+   return /&o=1&/.test(url);
+ }
+
 /**
- * Attempt to get the hostname via document.location.  Fail back
+ * Attempt to get the hostname via document.location. Fail back
  * to getURL so that we always return something meaningful.
  */
 function getHostString()
@@ -54,47 +64,54 @@ function getHostString()
   }
 }
 
+function deleteElement(element) {
+  var el = document.getElementById(element);
+  if (el)
+    el.remove();
+}
+
 function initPage()
 {
   // Handoff to the appropriate initializer, based on error code
+  var error = "";
   switch (getErrorCode()) {
     case "malwareBlocked":
-      initPage_malware();
+      error = "malware";
       break;
-    case "phishingBlocked":
-      initPage_phishing();
+    case "deceptiveBlocked":
+      error = "phishing";
       break;
+    case "unwantedBlocked":
+      error = "unwanted";
+      break;
+    default:
+      return;
   }
-}
 
-/**
- * Initialize custom strings and functionality for blocked malware case
- */
-function initPage_malware()
-{
-  // Remove phishing strings
-  document.getElementById("errorTitleText_phishing").remove();
-  document.getElementById("errorShortDescText_phishing").remove();
-  document.getElementById("errorLongDescText_phishing").remove();
+  if (error != "malware") {
+    deleteElement("errorTitleText_malware");
+    deleteElement("errorShortDescText_malware");
+    deleteElement("errorLongDescText_malware");
+  }
 
-  // Set sitename
-  document.getElementById("malware_sitename").textContent = getHostString();
-  document.title = document.getElementById("errorTitleText_malware")
-                           .textContent;
-}
+  if (error != "phishing") {
+    deleteElement("errorTitleText_phishing");
+    deleteElement("errorShortDescText_phishing");
+    deleteElement("errorLongDescText_phishing");
+  }
 
-/**
- * Initialize custom strings and functionality for blocked phishing case
- */
-function initPage_phishing()
-{
-  // Remove malware strings
-  document.getElementById("errorTitleText_malware").remove();
-  document.getElementById("errorShortDescText_malware").remove();
-  document.getElementById("errorLongDescText_malware").remove();
+  if (error != "unwanted") {
+    deleteElement("errorTitleText_unwanted");
+    deleteElement("errorShortDescText_unwanted");
+    deleteElement("errorLongDescText_unwanted");
+  }
 
   // Set sitename
-  document.getElementById("phishing_sitename").textContent = getHostString();
-  document.title = document.getElementById("errorTitleText_phishing")
-                           .textContent;
+  document.getElementById(error + "_sitename").textContent = getHostString();
+  document.title = document.getElementById("errorTitleText_" + error)
+                           .innerHTML;
+
+  if (!getOverride())
+    deleteElement("ignoreWarningButton");
 }
+

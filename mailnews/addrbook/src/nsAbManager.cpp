@@ -16,7 +16,7 @@
 #include "plstr.h"
 #include "prmem.h"
 #include "nsIServiceManager.h"
-#include "nsIDOMWindow.h"
+#include "mozIDOMWindow.h"
 #include "nsIFilePicker.h"
 #include "plbase64.h"
 #include "nsIWindowWatcher.h"
@@ -73,18 +73,18 @@ const ExportAttributesTableStruct EXPORT_ATTRIBUTES_TABLE[] = {
   {kPriEmailProperty, 2104},
   {k2ndEmailProperty, 2105},
   {kScreenNameProperty, 2136},
-  {kPreferMailFormatProperty},
-  {kLastModifiedDateProperty},
+  {kPreferMailFormatProperty, 0},
+  {kLastModifiedDateProperty, 0},
   {kWorkPhoneProperty, 2106},
-  {kWorkPhoneTypeProperty},
+  {kWorkPhoneTypeProperty, 0},
   {kHomePhoneProperty, 2107},
-  {kHomePhoneTypeProperty},
+  {kHomePhoneTypeProperty, 0},
   {kFaxProperty, 2108},
-  {kFaxTypeProperty},
+  {kFaxTypeProperty, 0},
   {kPagerProperty, 2109},
-  {kPagerTypeProperty},
+  {kPagerTypeProperty, 0},
   {kCellularProperty, 2110},
-  {kCellularTypeProperty},
+  {kCellularTypeProperty, 0},
   {kHomeAddressProperty, 2111},
   {kHomeAddress2Property, 2112},
   {kHomeCityProperty, 2113},
@@ -110,11 +110,11 @@ const ExportAttributesTableStruct EXPORT_ATTRIBUTES_TABLE[] = {
   {kCustom3Property, 2133},
   {kCustom4Property, 2134},
   {kNotesProperty, 2135},
-  {kAnniversaryYearProperty},
-  {kAnniversaryMonthProperty},
-  {kAnniversaryDayProperty},
-  {kSpouseNameProperty},
-  {kFamilyNameProperty},
+  {kAnniversaryYearProperty, 0},
+  {kAnniversaryMonthProperty, 0},
+  {kAnniversaryDayProperty, 0},
+  {kSpouseNameProperty, 0},
+  {kFamilyNameProperty, 0},
 };
 
 //
@@ -530,7 +530,7 @@ enum ADDRESSBOOK_EXPORT_FILE_TYPE
  LDIF_EXPORT_TYPE     = 5,
 };
 
-NS_IMETHODIMP nsAbManager::ExportAddressBook(nsIDOMWindow *aParentWin, nsIAbDirectory *aDirectory)
+NS_IMETHODIMP nsAbManager::ExportAddressBook(mozIDOMWindowProxy *aParentWin, nsIAbDirectory *aDirectory)
 {
   NS_ENSURE_ARG_POINTER(aParentWin);
 
@@ -547,46 +547,46 @@ NS_IMETHODIMP nsAbManager::ExportAddressBook(nsIDOMWindow *aParentWin, nsIAbDire
 
   nsString dirName;
   aDirectory->GetDirName(dirName);
+  const char16_t *formatStrings[] = { dirName.get() };
 
   nsString title;
-  rv = bundle->GetStringFromName(MOZ_UTF16("ExportAddressBookTitle"), getter_Copies(title));
+  rv = bundle->FormatStringFromName(u"ExportAddressBookNameTitle", formatStrings,
+                                    ArrayLength(formatStrings), getter_Copies(title));
   NS_ENSURE_SUCCESS(rv, rv);
-
-  // This is not properly localized but a proper version is already in trunk.
-  title.AppendLiteral(" - ");
-  title.Append(dirName);
 
   rv = filePicker->Init(aParentWin, title, nsIFilePicker::modeSave);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  filePicker->SetDefaultString(dirName);
+
   nsString filterString;
 
   // CSV: System charset and UTF-8.
-  rv = bundle->GetStringFromName(MOZ_UTF16("CSVFilesSysCharset"), getter_Copies(filterString));
+  rv = bundle->GetStringFromName(u"CSVFilesSysCharset", getter_Copies(filterString));
   NS_ENSURE_SUCCESS(rv, rv);
   rv = filePicker->AppendFilter(filterString, NS_LITERAL_STRING("*.csv"));
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = bundle->GetStringFromName(MOZ_UTF16("CSVFilesUTF8"), getter_Copies(filterString));
+  rv = bundle->GetStringFromName(u"CSVFilesUTF8", getter_Copies(filterString));
   NS_ENSURE_SUCCESS(rv, rv);
   rv = filePicker->AppendFilter(filterString, NS_LITERAL_STRING("*.csv"));
   NS_ENSURE_SUCCESS(rv, rv);
 
   // Tab separated: System charset and UTF-8.
-  rv = bundle->GetStringFromName(MOZ_UTF16("TABFilesSysCharset"), getter_Copies(filterString));
+  rv = bundle->GetStringFromName(u"TABFilesSysCharset", getter_Copies(filterString));
   NS_ENSURE_SUCCESS(rv, rv);
   rv = filePicker->AppendFilter(filterString, NS_LITERAL_STRING("*.tab; *.txt"));
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = bundle->GetStringFromName(MOZ_UTF16("TABFilesUTF8"), getter_Copies(filterString));
+  rv = bundle->GetStringFromName(u"TABFilesUTF8", getter_Copies(filterString));
   NS_ENSURE_SUCCESS(rv, rv);
   rv = filePicker->AppendFilter(filterString, NS_LITERAL_STRING("*.tab; *.txt"));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = bundle->GetStringFromName(MOZ_UTF16("VCFFiles"), getter_Copies(filterString));
+  rv = bundle->GetStringFromName(u"VCFFiles", getter_Copies(filterString));
   NS_ENSURE_SUCCESS(rv, rv);
   rv = filePicker->AppendFilter(filterString, NS_LITERAL_STRING("*.vcf"));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = bundle->GetStringFromName(MOZ_UTF16("LDIFFiles"), getter_Copies(filterString));
+  rv = bundle->GetStringFromName(u"LDIFFiles", getter_Copies(filterString));
   NS_ENSURE_SUCCESS(rv, rv);
   rv = filePicker->AppendFilter(filterString, NS_LITERAL_STRING("*.ldi; *.ldif"));
   NS_ENSURE_SUCCESS(rv, rv);
@@ -1391,9 +1391,12 @@ nsAbManager::Handle(nsICommandLine* aCmdLine)
   nsCOMPtr<nsIWindowWatcher> wwatch (do_GetService(NS_WINDOWWATCHER_CONTRACTID));
   NS_ENSURE_TRUE(wwatch, NS_ERROR_FAILURE);
 
-  nsCOMPtr<nsIDOMWindow> opened;
-  wwatch->OpenWindow(nullptr, "chrome://messenger/content/addressbook/addressbook.xul",
-                     "_blank", "chrome,extrachrome,menubar,resizable,scrollbars,status,toolbar", nullptr, getter_AddRefs(opened));
+  nsCOMPtr<mozIDOMWindowProxy> opened;
+  wwatch->OpenWindow(nullptr,
+                     "chrome://messenger/content/addressbook/addressbook.xul",
+                     "_blank",
+                     "chrome,extrachrome,menubar,resizable,scrollbars,status,toolbar",
+                     nullptr, getter_AddRefs(opened));
   aCmdLine->SetPreventDefault(true);
   return NS_OK;
 }

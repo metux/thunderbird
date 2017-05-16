@@ -4,12 +4,12 @@ locale branding ast ast/locale/ast/branding/
 locale chat ast ast/locale/ast/chat/
 locale communicator ast ast/locale/ast/communicator/
 locale cookie ast ast/locale/ast/cookie/
+locale devtools ast ast/locale/ast/devtools/client/
 locale devtools-shared ast ast/locale/ast/devtools/shared/
 locale editor ast ast/locale/ast/editor/
 locale formautofill ast ast/locale/ast/formautofill/
 locale global ast ast/locale/ast/global/
 locale global-platform ast ast/locale/ast/global-platform/
-locale global-region ast ast/locale/ast/global-region/
 locale messenger ast ast/locale/ast/messenger/
 locale messenger-mapi ast ast/locale/ast/messenger-mapi/
 locale messenger-newsblog ast ast/locale/ast/messenger-newsblog/

@@ -56,3 +56,5 @@
 <!ENTITY imageDimensionsTab.label "Вымярэнні">
 <!ENTITY imageAppearanceTab.label "Выгляд">
 <!ENTITY imageLinkTab.label "Спасылка">
+
+<!ENTITY locationEditField.shortenedDataURI "Shortened data URI (copy will place the full URI onto the clipboard)">

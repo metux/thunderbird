@@ -19,7 +19,7 @@
 <!ENTITY calendar.events.filter.all.label "Wszystkie wydarzenia">
 <!ENTITY calendar.events.filter.today.label "Dzisiejsze wydarzenia">
 <!ENTITY calendar.events.filter.future.label "Wszystkie przyszłe wydarzenia">
-<!ENTITY calendar.events.filter.current.label "Aktualnie wybrany dzień">
+<!ENTITY calendar.events.filter.current.label "Obecnie wybrany dzień">
 <!ENTITY calendar.events.filter.currentview.label "Widoczne wydarzenia">
 <!ENTITY calendar.events.filter.next7Days.label "Wydarzenia w przeciągu następnych 7 dni">
 <!ENTITY calendar.events.filter.next14Days.label "Wydarzenia w przeciągu następnych 14 dni">
@@ -147,7 +147,7 @@
 <!ENTITY calendar.task.complete.button.tooltip  "Oznacz wybrane zadania jako ukończone">
 <!ENTITY calendar.task.priority.button.tooltip  "Zmień priorytet">
 
-<!ENTITY calendar.task.text-filter.textbox.emptytext.base            "Filtruj zadania… #1">
+<!ENTITY calendar.task.text-filter.textbox.emptytext.base1 "Filtruj zadania #1">
 <!ENTITY calendar.task.text-filter.textbox.emptytext.keylabel.nonmac "&lt;Ctrl+Shift+K&gt;">
 <!ENTITY calendar.task.text-filter.textbox.emptytext.keylabel.mac    "&lt;&#x21E7;&#x2318;K&gt;">
 
@@ -328,7 +328,7 @@ dialog. -->
 <!ENTITY calendar.publish.publish.button      "Opublikuj">
 <!ENTITY calendar.publish.close.button      "Zamknij">
 
-<!ENTITY calendar.publish.example.url.description   "Przykład: http://www.mojserwer.pl/kalendarz.ics">
+<!ENTITY calendar.publish.example.url.description "Przykład: http://www.example.com/kalendarz.ics">
 
 <!-- Select Calendar Dialog -->
 <!ENTITY calendar.select.dialog.title    "Wybierz kalendarz">
@@ -360,6 +360,3 @@ dialog. -->
 <!ENTITY calendar.extract.task.button "Dodaj jako zadanie">
 <!ENTITY calendar.extract.event.button.tooltip "Wyodrębnij informacje o wydarzeniu z wiadomości i dodaj je do kalendarza">
 <!ENTITY calendar.extract.task.button.tooltip "Wyodrębnij informacje o zadaniu z wiadomości i dodaj je do kalendarza">
-
-
-<!ENTITY calendar.task.text-filter.textbox.emptytext.base1           "Filter tasks #1">

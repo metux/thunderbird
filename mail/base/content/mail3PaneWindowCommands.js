@@ -134,12 +134,14 @@ var DefaultController =
       case "cmd_forwardInline":
       case "cmd_forwardAttachment":
       case "cmd_editAsNew":
+      case "cmd_editDraftMsg":
       case "cmd_createFilterFromMenu":
       case "cmd_delete":
       case "cmd_cancel":
       case "cmd_deleteFolder":
       case "button_delete":
       case "button_junk":
+      case "button_showconversation":
       case "cmd_shiftDelete":
       case "button_shiftDelete":
       case "button_nextMsg":
@@ -307,6 +309,7 @@ var DefaultController =
                gFolderDisplay.selectedMessage.folder &&
                gFolderDisplay.selectedMessage.folder.server.canHaveFilters;
       case "cmd_openConversation":
+      case "button_showconversation":
         return gFolderDisplay.selectedCount == 1 &&
                gConversationOpener.isSelectedMessageIndexed();
       case "cmd_saveAsFile":
@@ -328,6 +331,7 @@ var DefaultController =
       case "cmd_forwardInline":
       case "cmd_forwardAttachment":
       case "cmd_editAsNew":
+      case "cmd_editDraftMsg":
       case "cmd_openMessage":
       case "button_print":
       case "cmd_print":
@@ -642,7 +646,10 @@ var DefaultController =
         MsgForwardAsAttachment(null);
         break;
       case "cmd_editAsNew":
-        MsgEditMessageAsNew();
+        MsgEditMessageAsNew(null);
+        break;
+      case "cmd_editDraftMsg":
+        MsgEditDraftMessage(null);
         break;
       case "cmd_createFilterFromMenu":
         MsgCreateFilter();
@@ -799,6 +806,7 @@ var DefaultController =
         MsgOpenSelectedMessages();
         return;
       case "cmd_openConversation":
+      case "button_showconversation":
         gConversationOpener.openConversationForMessages(gFolderDisplay.selectedMessages);
         return;
       case "cmd_printSetup":

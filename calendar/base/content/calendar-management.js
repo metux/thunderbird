@@ -2,6 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/* exported promptDeleteCalendar, loadCalendarManager, unloadCalendarManager,
+ *         updateSortOrderPref, calendarListTooltipShowing,
+ *         calendarListSetupContextMenu, ensureCalendarVisible, toggleCalendarVisible,
+ *         showAllCalendars, showOnlyCalendar, openCalendarSubscriptionsDialog,
+ *         calendarOfflineManager
+ */
+
 Components.utils.import("resource://calendar/modules/calUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -88,9 +95,7 @@ function loadCalendarManager() {
 
     // Create the home calendar if no calendar exists.
     let calendars = cal.getCalendarManager().getCalendars({});
-    if (!calendars.length) {
-        initHomeCalendar();
-    } else {
+    if (calendars.length) {
         // migration code to make sure calendars, which do not support caching have cache enabled
         // required to further clean up on top of bug 1182264
         for (let calendar of calendars) {
@@ -99,6 +104,8 @@ function loadCalendarManager() {
                 calendar.deleteProperty("cache.enabled");
             }
         }
+    } else {
+        initHomeCalendar();
     }
 }
 
@@ -165,7 +172,7 @@ function calendarListTooltipShowing(event) {
     let tooltipText = false;
     if (calendar) {
         let currentStatus = calendar.getProperty("currentStatus");
-        if (!Components.isSuccessCode(currentStatus)){
+        if (!Components.isSuccessCode(currentStatus)) {
             tooltipText = calGetString("calendar", "tooltipCalendarDisabled", [calendar.name]);
         } else if (calendar.readOnly) {
             tooltipText = calGetString("calendar", "tooltipCalendarReadOnly", [calendar.name]);
@@ -194,7 +201,7 @@ function calendarListSetupContextMenu(event) {
         // itself. In that case we won't have a client point even for
         // opening the context menu. The "target" element should then be the
         // selected calendar.
-        row.value =  treeNode.tree.currentIndex;
+        row.value = treeNode.tree.currentIndex;
         col.value = treeNode.getColumn("calendarname-treecol");
         calendar = treeNode.getCalendar(row.value);
     } else {
@@ -261,7 +268,7 @@ function calendarListSetupContextMenu(event) {
  * @param aDeleteId     The id of the menuitem to delete the calendar
  */
 function setupDeleteMenuitem(aDeleteId, aCalendar) {
-    let calendar = (aCalendar === undefined ?  getSelectedCalendar() : aCalendar);
+    let calendar = (aCalendar === undefined ? getSelectedCalendar() : aCalendar);
     let modes = new Set(calendar ? calendar.getProperty("capabilities.removeModes") || ["unsubscribe"] : []);
 
     let type = "remove";
@@ -283,8 +290,14 @@ function setupDeleteMenuitem(aDeleteId, aCalendar) {
  * @param aCalendar   The calendar to make visible.
  */
 function ensureCalendarVisible(aCalendar) {
-    // We use the main window's calendar list to ensure that the calendar is visible
-    document.getElementById("calendar-list-tree-widget").ensureCalendarVisible(aCalendar);
+    // We use the main window's calendar list to ensure that the calendar is visible.
+    // If the main window has been closed this function may still be called,
+    // like when an event/task window is still open and the user clicks 'save',
+    // thus we have the extra checks.
+    let list = document.getElementById("calendar-list-tree-widget");
+    if (list && list.ensureCalendarVisible) {
+        list.ensureCalendarVisible(aCalendar);
+    }
 }
 
 /**
@@ -341,7 +354,7 @@ var compositeObserver = {
                                            Components.interfaces.calICompositeObserver]),
 
     onStartBatch: function() {},
-    onEndBatch: function () {},
+    onEndBatch: function() {},
     onAddItem: function() {},
     onModifyItem: function() {},
     onDeleteItem: function() {},
@@ -354,19 +367,19 @@ var compositeObserver = {
         document.commandDispatcher.updateCommands("calendar_commands");
     },
 
-    onCalendarAdded: function cO_onCalendarAdded(aCalendar) {
+    onCalendarAdded: function(aCalendar) {
         // Update the calendar commands for number of remote calendars and for
         // more than one calendar
         document.commandDispatcher.updateCommands("calendar_commands");
     },
 
-    onCalendarRemoved: function cO_onCalendarRemoved(aCalendar) {
+    onCalendarRemoved: function(aCalendar) {
         // Update commands to disallow deleting the last calendar and only
         // allowing reload remote calendars when there are remote calendars.
         document.commandDispatcher.updateCommands("calendar_commands");
     },
 
-    onDefaultCalendarChanged: function cO_onDefaultCalendarChanged(aNewCalendar) {
+    onDefaultCalendarChanged: function(aNewCalendar) {
         // A new default calendar may mean that the new calendar has different
         // ACLs. Make sure the commands are updated.
         calendarUpdateNewItemsCommand();
@@ -393,7 +406,7 @@ function openCalendarSubscriptionsDialog() {
 var calendarOfflineManager = {
     QueryInterface: XPCOMUtils.generateQI([Components.interfaces.nsIObserver]),
 
-    init: function cOM_init() {
+    init: function() {
         if (this.initialized) {
             throw Components.results.NS_ERROR_ALREADY_INITIALIZED;
         }
@@ -403,7 +416,7 @@ var calendarOfflineManager = {
         this.initialized = true;
     },
 
-    uninit: function cOM_uninit() {
+    uninit: function() {
         if (!this.initialized) {
             throw Components.results.NS_ERROR_NOT_INITIALIZED;
         }
@@ -411,12 +424,11 @@ var calendarOfflineManager = {
         this.initialized = false;
     },
 
-    isOnline: function cOM_isOnline() {
-        return (!Services.io.offline);
-
+    isOnline: function() {
+        return !Services.io.offline;
     },
 
-    updateOfflineUI: function cOM_updateOfflineUI(aIsOffline) {
+    updateOfflineUI: function(aIsOffline) {
         // Refresh the current view
         currentView().goToDay(currentView().selectedDay);
 
@@ -424,7 +436,7 @@ var calendarOfflineManager = {
         document.commandDispatcher.updateCommands("calendar_commands");
     },
 
-    observe: function cOM_observe(aSubject, aTopic, aState) {
+    observe: function(aSubject, aTopic, aState) {
         if (aTopic == "network:offline-status-changed") {
             this.updateOfflineUI(aState == "offline");
         }

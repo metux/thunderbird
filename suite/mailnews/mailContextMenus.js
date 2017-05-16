@@ -99,12 +99,18 @@ function InThreadPane(aTarget)
  * @param aTarget the target of the popup event
  * @return true always
  */
-function FillMailContextMenu(aTarget)
+function FillMailContextMenu(aTarget, aEvent)
 {
   var inThreadPane = InThreadPane(aTarget);
-  gContextMenu = new nsContextMenu(aTarget, getBrowser());
+  gContextMenu = new nsContextMenu(aTarget);
+
   // Need to call nsContextMenu's initItems to hide what is not used.
   gContextMenu.initItems();
+
+  // Initialize gContextMenuContentData.
+  if (aEvent)
+    gContextMenu.initContentData(aEvent);
+
   var numSelected = GetNumSelectedMessages();
   var oneOrMore = (numSelected > 0);
   var single = (numSelected == 1);
@@ -352,7 +358,7 @@ function SetupNewMenuItem(folder, numSelected, isServer, serverType, specialFold
 function ShowMenuItem(id, showItem)
 {
   var item = document.getElementById(id);
-  if(item && item.hidden != "true") 
+  if(item && item.hidden != "true")
     item.hidden = !showItem;
 }
 
@@ -717,5 +723,5 @@ function CopyString(aString)
 {
   Components.classes["@mozilla.org/widget/clipboardhelper;1"]
             .getService(Components.interfaces.nsIClipboardHelper)
-            .copyString(aString, document);
+            .copyString(aString);
 }

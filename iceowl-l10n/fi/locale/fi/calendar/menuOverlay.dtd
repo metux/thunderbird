@@ -20,6 +20,15 @@
 
 <!ENTITY calendar.deletecalendar.label          "Poista valittu kalenteri…">
 <!ENTITY calendar.deletecalendar.accesskey      "P">
+<!ENTITY calendar.unsubscribecalendar.label     "Peruuta valitun kalenterin tilaus…">
+<!ENTITY calendar.unsubscribecalendar.accesskey "v">
+
+<!-- LOCALIZATION NOTE (calendar.removecalendar.label): Removing the calendar
+      is the general action of removing it, while deleting means to clear the
+      data and unsubscribing means just taking it out of the calendar list. -->
+<!ENTITY calendar.removecalendar.label          "Poista valittu kalenteri…">
+<!ENTITY calendar.removecalendar.accesskey      "P">
+
 
 <!ENTITY calendar.menu.customize.label          "Muokkaa…">
 <!ENTITY calendar.menu.customize.accesskey      "M">
@@ -39,12 +48,4 @@
 <!ENTITY calendar.properties.label              "Kalenterin ominaisuudet…">
 <!ENTITY calendar.properties.accesskey          "K">
 
-<!ENTITY calendar.removecalendar.accesskey      "R">
-
-<!-- LOCALIZATION NOTE (calendar.removecalendar.label): Removing the calendar
-      is the general action of removing it, while deleting means to clear the
-      data and unsubscribing means just taking it out of the calendar list. -->
-<!ENTITY calendar.removecalendar.label          "Remove Selected Calendar…">
-<!ENTITY calendar.unsubscribecalendar.accesskey "U">
-<!ENTITY calendar.unsubscribecalendar.label     "Unsubscribe Selected Calendar…">
 <!ENTITY showUnifinderCmd.tooltip               "Toggle the find events pane">

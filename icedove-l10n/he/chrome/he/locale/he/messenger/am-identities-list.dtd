@@ -2,20 +2,15 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY identitiesListDesc.label "תמיכה בזהויות מרובות">
+<!ENTITY identitiesListManageDesc.label "ניהול הזהויות עבור חשבון זה. יעשה שימוש בזהות הראשונה כבררת מחדל.">
 <!ENTITY identitiesListAdd.label  "הוספה…">
 <!ENTITY identitiesListAdd.accesskey  "ה">
 <!ENTITY identitiesListEdit.label "עריכה…">
 <!ENTITY identitiesListEdit.accesskey "ע">
+<!ENTITY identitiesListDefault.label "הגדרה כבררת מחדל">
 <!ENTITY identitiesListDelete.label "מחיקה">
 <!ENTITY identitiesListDelete.accesskey "מ">
-
-
+<!ENTITY identitiesListClose.label "סגירה">
 
 <!ENTITY identitiesListClose.accesskey "C">
-<!ENTITY identitiesListClose.label "Close">
 <!ENTITY identitiesListDefault.accesskey "S">
-<!ENTITY identitiesListDefault.label "Set Default">
-
-
-<!ENTITY identitiesListManageDesc.label "Manage the identities for this account. The first identity is used by default.">

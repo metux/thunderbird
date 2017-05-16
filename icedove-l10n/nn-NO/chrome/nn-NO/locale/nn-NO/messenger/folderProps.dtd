@@ -5,17 +5,17 @@
 <!ENTITY folderProps.windowtitle.label           "Eigenskapar">
 
 <!ENTITY generalInfo.label                       "Generell informasjon">
-<!ENTITY folderCharsetFallback.label             "Reserve-teiknkoding:">
-<!ENTITY folderCharsetFallback.accesskey         "R">
-<!ENTITY folderCharsetEnforce.label              "Bruk standardar for alle meldinger i mappa (teiknkodinga i enkeltmeldingar og auto-detekterte teiknodingar vert ignorerte)">
-<!ENTITY folderCharsetEnforce.accesskey          "B">
+<!ENTITY folderCharsetFallback2.label            "Reserveteiknkoding:">
+<!ENTITY folderCharsetFallback2.accesskey        "R">
+<!ENTITY folderCharsetEnforce2.label             "Bruk koding på alle meldingar i mappa (individuelle innstillingar for koding av meldingstekst og auto-oppdaging vert ignorert)">
+<!ENTITY folderCharsetEnforce2.accesskey         "B">
 <!ENTITY folderRebuildSummaryFileTip2.label      "Bygg opp oppsummeringsfil på nytt">
 <!ENTITY folderRebuildSummaryFile2.label         "Reparer mappe">
 <!ENTITY folderRebuildSummaryFile2.accesskey     "R">
 <!ENTITY folderRebuildSummaryFile.explanation    "Av og til kan oppsummeringsfila (.msf) verte skada, og meldingar kan sjå ut til å forsvinne, eller sletta meldingar kan bli vist. Å reparere mappa kan rette opp desse problema.">
 <!ENTITY folderIncludeInGlobalSearch.label       "Inkluder meldingar i denne mappa i globalt søkjeresultat">
 <!ENTITY folderIncludeInGlobalSearch.accesskey   "n">
-     
+
 <!ENTITY retention.label "Ivaretaking av meldingar">
 <!ENTITY retentionUseAccount.label  "Bruk innstillingane for kontoen">
 <!ENTITY retentionUseAccount.accesskey "r">
@@ -30,8 +30,6 @@
 <!ENTITY retentionKeepAll.accesskey "I">
 <!ENTITY retentionKeepRecent.label "Slett alle unntatt dei aller siste">
 <!ENTITY retentionKeepRecent.accesskey "S">
-<!-- LOCALIZATION NOTE: Unhide with .keepUnreadOnly { display: -moz-box; } -->
-<!ENTITY retentionKeepUnreadHidden.label "Alltid slett lesne meldingar (opphevar alders-innstillingar)">
 <!ENTITY retentionApplyToFlagged.label "Ta alltid vare på meldingar merkte med stjerne">
 <!ENTITY retentionApplyToFlagged.accesskey "d">
 
@@ -71,8 +69,3 @@
 <!ENTITY sizeOnDisk.label                        "Diskplass:">
 <!-- LOCALIZATION NOTE: When the size can't be determined, this string is displayed as the size -->
 <!ENTITY sizeUnknown.label                       "ukjend">
-
-<!ENTITY folderCharsetEnforce2.accesskey         "A">
-<!ENTITY folderCharsetEnforce2.label             "Apply encoding to all messages in the folder (individual message text encoding settings and auto-detection will be ignored)">
-<!ENTITY folderCharsetFallback2.accesskey        "E">
-<!ENTITY folderCharsetFallback2.label            "Fallback Text Encoding:">

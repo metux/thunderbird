@@ -14,8 +14,8 @@
 <!ENTITY pref.calendar.alarms.sound.useDefault.accessKey "P">
 <!ENTITY pref.calendar.alarms.sound.browse.label "Shfletoni…">
 <!ENTITY pref.calendar.alarms.sound.browse.accessKey "f">
-<!ENTITY pref.calendar.alarms.sound.preview.label "Paraparje">
-<!ENTITY pref.calendar.alarms.sound.preview.accessKey "a">
+<!ENTITY pref.calendar.alarms.sound.play.label "Luaje">
+<!ENTITY pref.calendar.alarms.sound.play.accessKey "L">
 <!ENTITY pref.showalarmbox "Shfaq një kuti alarmi">
 <!ENTITY pref.calendar.alarms.showAlarmBox.accessKey "k">
 <!ENTITY pref.missedalarms "Shfaq alarme të humbur">
@@ -34,6 +34,3 @@
 
 <!ENTITY pref.defaultsnoozelength.label "Kohëzgjatje Parazgjedhje Dremitjeje:" >
 <!ENTITY pref.defaultsnoozelength.accesskey "K">
-
-<!ENTITY pref.calendar.alarms.sound.play.accessKey "P">
-<!ENTITY pref.calendar.alarms.sound.play.label "Play">

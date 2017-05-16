@@ -54,7 +54,7 @@
 <!ENTITY loaddevice.filename.accesskey          "f">
 <!ENTITY loaddevice.browse.accesskey            "B">
 
-<!-- LOCALIZATION NOTE (devmgr.style): This is CSS style for Device Manager
+<!-- LOCALIZATION NOTE (devmgr.style2): This is CSS style for Device Manager
      window size. Don't translate "width" nor "height". Adjust the numbers
      to make window contents fit. -->
-<!ENTITY devmgr.style                           "width: 52em; height: 32em;">
+<!ENTITY devmgr.style2                          "width: 67em; height: 32em;">

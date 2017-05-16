@@ -1238,7 +1238,7 @@ nsMsgNewsFolder::GetAuthenticationCredentials(nsIMsgWindow *aMsgWindow,
     {
       // Format the prompt text strings
       nsString promptTitle, promptText;
-      bundle->GetStringFromName(MOZ_UTF16("enterUserPassTitle"),
+      bundle->GetStringFromName(u"enterUserPassTitle",
         getter_Copies(promptTitle));
 
       nsString serverName;
@@ -1260,11 +1260,11 @@ nsMsgNewsFolder::GetAuthenticationCredentials(nsIMsgWindow *aMsgWindow,
       params[1] = serverName.get();
       if (singleSignon)
         bundle->FormatStringFromName(
-          MOZ_UTF16("enterUserPassServer"),
+          u"enterUserPassServer",
           &params[1], 1, getter_Copies(promptText));
       else
         bundle->FormatStringFromName(
-          MOZ_UTF16("enterUserPassGroup"),
+          u"enterUserPassGroup",
           params, 2, getter_Copies(promptText));
 
       // Fill the signon url for the dialog
@@ -1625,9 +1625,8 @@ NS_IMETHODIMP nsMsgNewsFolder::DownloadAllForOffline(nsIUrlListener *listener, n
       }
     }
   }
-  DownloadNewsArticlesToOfflineStore *downloadState = new DownloadNewsArticlesToOfflineStore(msgWindow, mDatabase, this);
-  if (!downloadState)
-    return NS_ERROR_OUT_OF_MEMORY;
+  RefPtr<DownloadNewsArticlesToOfflineStore> downloadState =
+    new DownloadNewsArticlesToOfflineStore(msgWindow, mDatabase, this);
   m_downloadingMultipleMessages = true;
   rv = downloadState->DownloadArticles(msgWindow, this, &srcKeyArray);
   (void) RefreshSizeOnDisk();
@@ -1653,9 +1652,8 @@ NS_IMETHODIMP nsMsgNewsFolder::DownloadMessagesForOffline(nsIArray *messages, ns
     if (NS_SUCCEEDED(rv))
       srcKeyArray.AppendElement(key);
   }
-  DownloadNewsArticlesToOfflineStore *downloadState = new DownloadNewsArticlesToOfflineStore(window, mDatabase, this);
-  if (!downloadState)
-    return NS_ERROR_OUT_OF_MEMORY;
+  RefPtr<DownloadNewsArticlesToOfflineStore> downloadState =
+    new DownloadNewsArticlesToOfflineStore(window, mDatabase, this);
   m_downloadingMultipleMessages = true;
 
   rv = downloadState->DownloadArticles(window, this, &srcKeyArray);
@@ -1705,8 +1703,8 @@ NS_IMETHODIMP nsMsgNewsFolder::NotifyDownloadedLine(const char *line, nsMsgKey k
 NS_IMETHODIMP nsMsgNewsFolder::NotifyFinishedDownloadinghdrs()
 {
   bool wasCached = !!mDatabase;
-  ChangeNumPendingTotalMessages(-GetNumPendingTotalMessages());
-  ChangeNumPendingUnread(-GetNumPendingUnread());
+  ChangeNumPendingTotalMessages(-mNumPendingTotalMessages);
+  ChangeNumPendingUnread(-mNumPendingUnreadMessages);
   bool filtersRun;
   // run the bayesian spam filters, if enabled.
   CallFilterPlugins(nullptr, &filtersRun);

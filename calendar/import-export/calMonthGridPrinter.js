@@ -31,7 +31,7 @@ calMonthPrinter.prototype = {
 
     get name() { return cal.calGetString("calendar", "monthPrinterName"); },
 
-    formatToHtml: function monthPrint_format(aStream, aStart, aEnd, aCount, aItems, aTitle) {
+    formatToHtml: function(aStream, aStart, aEnd, aCount, aItems, aTitle) {
         let document = cal.xml.parseFile("chrome://calendar-common/skin/printing/calMonthGridPrinter.html");
         let defaultTimezone = cal.calendarDefaultTimezone();
 
@@ -50,13 +50,12 @@ calMonthPrinter.prototype = {
             // Now set up all the months we need to
             for (let current = startDate.clone();
                  weekInfoService.getEndOfWeek(current.endOfMonth).compare(endDate) < 0;
-                 current.month += 1)
-            {
+                 current.month += 1) {
                 this.setupMonth(document, current, dayTable);
             }
         }
 
-        for each (let item in aItems) {
+        for (let item of aItems) {
             let itemStartDate = item[cal.calGetStartDateProp(item)] || item[cal.calGetEndDateProp(item)];
             let itemEndDate = item[cal.calGetEndDateProp(item)] || item[cal.calGetStartDateProp(item)];
 
@@ -104,11 +103,11 @@ calMonthPrinter.prototype = {
         let html = cal.xml.serializeDOM(document);
         let convStream = Components.classes["@mozilla.org/intl/converter-output-stream;1"]
                                    .createInstance(Components.interfaces.nsIConverterOutputStream);
-        convStream.init(aStream, 'UTF-8', 0, 0x0000);
+        convStream.init(aStream, "UTF-8", 0, 0x0000);
         convStream.writeString(html);
     },
 
-    normalizeStartDate: function monthPrint_normalizeStartDate(aStart) {
+    normalizeStartDate: function(aStart) {
         // Make sure the start date is really a date.
         let startDate = aStart.clone();
         startDate.isDate = true;
@@ -126,7 +125,7 @@ calMonthPrinter.prototype = {
         return startDate;
     },
 
-    normalizeEndDate: function monthPrint_normalizeEndDate(aEnd) {
+    normalizeEndDate: function(aEnd) {
         // Copy end date, which is exclusive. For our calculations, we will
         // only be handling dates and the formatToHtml() code is much cleaner with
         // the range being inclusive.
@@ -145,7 +144,7 @@ calMonthPrinter.prototype = {
         return endDate;
     },
 
-    setupMonth: function monthPrint_setupMonth(document, startOfMonth, dayTable) {
+    setupMonth: function(document, startOfMonth, dayTable) {
         let monthTemplate = document.getElementById("month-template");
         let monthContainer = document.getElementById("month-container");
 
@@ -180,15 +179,13 @@ calMonthPrinter.prototype = {
 
         // Now insert the month into the page container, sorting by date (and therefore by month)
         function compareDates(a, b) {
-            if (!a || !b) return -1;
-            let res = a.compare(b);
-            return res;
+            return !a || !b ? -1 : a.compare(b);
         }
 
         cal.binaryInsertNode(monthContainer, currentMonth, currentMonth.item, compareDates);
     },
 
-    setupWeek: function monthPrint_setupWeek(document, weekContainer, startOfWeek, mainMonth, dayTable) {
+    setupWeek: function(document, weekContainer, startOfWeek, mainMonth, dayTable) {
         const weekdayMap = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
         let weekTemplate = document.getElementById("week-template");
 
@@ -200,7 +197,7 @@ calMonthPrinter.prototype = {
         let currentDate = startOfWeek.clone();
         for (let i = 1; i <= 7; i++) {
             let dayNumber = currentWeek.querySelector(".day" + i + "-number");
-            let dayContainer =  currentWeek.querySelector(".day" + i + "-container");
+            let dayContainer = currentWeek.querySelector(".day" + i + "-container");
             let dayBox = currentWeek.querySelector(".day" + i + "-box");
             let dateKey = cal.print.getDateKey(currentDate);
             dayNumber.textContent = currentDate.day;

@@ -274,6 +274,11 @@ NS_IMETHODIMP nsMsgSendReport::DisplayReport(nsIPrompt *prompt, bool showErrorOn
   //Do we have an explanation of the error? if no, try to build one...
   if (currMessage.IsEmpty())
   {
+#ifdef __GNUC__
+// Temporary workaroung until bug 783526 is fixed.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wswitch"
+#endif
     switch (currError)
     {
       case NS_BINDING_ABORTED:
@@ -290,6 +295,9 @@ NS_IMETHODIMP nsMsgSendReport::DisplayReport(nsIPrompt *prompt, bool showErrorOn
         nsMsgGetMessageByName(errorString, currMessage);
         break;
     }
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
   }
 
   if (mDeliveryMode == nsIMsgCompDeliverMode::Now || mDeliveryMode == nsIMsgCompDeliverMode::SendUnsent)
@@ -302,36 +310,36 @@ NS_IMETHODIMP nsMsgSendReport::DisplayReport(nsIPrompt *prompt, bool showErrorOn
       return NS_OK;
     }
 
-    bundle->GetStringFromName(MOZ_UTF16("sendMessageErrorTitle"),
+    bundle->GetStringFromName(u"sendMessageErrorTitle",
                               getter_Copies(dialogTitle));
 
-    const char16_t* preStrName = MOZ_UTF16("sendFailed");
+    const char16_t* preStrName = u"sendFailed";
     bool askToGoBackToCompose = false;
     switch (mCurrentProcess)
     {
       case process_BuildMessage :
-        preStrName = MOZ_UTF16("sendFailed");
+        preStrName = u"sendFailed";
         askToGoBackToCompose = false;
         break;
       case process_NNTP :
-        preStrName = MOZ_UTF16("sendFailed");
+        preStrName = u"sendFailed";
         askToGoBackToCompose = false;
         break;
       case process_SMTP :
         bool nntpProceeded;
         mProcessReport[process_NNTP]->GetProceeded(&nntpProceeded);
         if (nntpProceeded)
-          preStrName = MOZ_UTF16("sendFailedButNntpOk");
+          preStrName = u"sendFailedButNntpOk";
         else
-          preStrName = MOZ_UTF16("sendFailed");
+          preStrName = u"sendFailed";
         askToGoBackToCompose = false;
         break;
       case process_Copy:
-        preStrName = MOZ_UTF16("failedCopyOperation");
+        preStrName = u"failedCopyOperation";
         askToGoBackToCompose = (mDeliveryMode == nsIMsgCompDeliverMode::Now);
         break;
       case process_FCC:
-        preStrName = MOZ_UTF16("failedCopyOperation");
+        preStrName = u"failedCopyOperation";
         askToGoBackToCompose = (mDeliveryMode == nsIMsgCompDeliverMode::Now);
         break;
     }
@@ -341,7 +349,7 @@ NS_IMETHODIMP nsMsgSendReport::DisplayReport(nsIPrompt *prompt, bool showErrorOn
     if (!askToGoBackToCompose && currMessage.IsEmpty())
     {
       //we don't have an error description but we can put a generic explanation
-      bundle->GetStringFromName(MOZ_UTF16("genericFailureExplanation"),
+      bundle->GetStringFromName(u"genericFailureExplanation",
                                 getter_Copies(currMessage));
     }
 
@@ -360,7 +368,7 @@ NS_IMETHODIMP nsMsgSendReport::DisplayReport(nsIPrompt *prompt, bool showErrorOn
     {
       bool oopsGiveMeBackTheComposeWindow = true;
       nsString text1;
-      bundle->GetStringFromName(MOZ_UTF16("returnToComposeWindowQuestion"),
+      bundle->GetStringFromName(u"returnToComposeWindowQuestion",
                                 getter_Copies(text1));
       if (!dialogMessage.IsEmpty())
         dialogMessage.AppendLiteral("\n");
@@ -380,25 +388,25 @@ NS_IMETHODIMP nsMsgSendReport::DisplayReport(nsIPrompt *prompt, bool showErrorOn
     switch (mDeliveryMode)
     {
       case nsIMsgCompDeliverMode::Later:
-        title = MOZ_UTF16("sendLaterErrorTitle");
-        messageName = MOZ_UTF16("unableToSendLater");
+        title = u"sendLaterErrorTitle";
+        messageName = u"unableToSendLater";
         break;
 
       case nsIMsgCompDeliverMode::AutoSaveAsDraft:
       case nsIMsgCompDeliverMode::SaveAsDraft:
-        title = MOZ_UTF16("saveDraftErrorTitle");
-        messageName = MOZ_UTF16("unableToSaveDraft");
+        title = u"saveDraftErrorTitle";
+        messageName = u"unableToSaveDraft";
         break;
 
       case nsIMsgCompDeliverMode::SaveAsTemplate:
-        title = MOZ_UTF16("saveTemplateErrorTitle");
-        messageName = MOZ_UTF16("unableToSaveTemplate");
+        title = u"saveTemplateErrorTitle";
+        messageName = u"unableToSaveTemplate";
         break;
 
       default:
         /* This should never happen! */
-        title = MOZ_UTF16("sendMessageErrorTitle");
-        messageName = MOZ_UTF16("sendFailed");
+        title = u"sendMessageErrorTitle";
+        messageName = u"sendFailed";
         break;
     }
 
@@ -410,7 +418,7 @@ NS_IMETHODIMP nsMsgSendReport::DisplayReport(nsIPrompt *prompt, bool showErrorOn
     if (currMessage.IsEmpty())
     {
       //we don't have an error description but we can put a generic explanation
-      bundle->GetStringFromName(MOZ_UTF16("genericFailureExplanation"),
+      bundle->GetStringFromName(u"genericFailureExplanation",
                                 getter_Copies(currMessage));
     }
 

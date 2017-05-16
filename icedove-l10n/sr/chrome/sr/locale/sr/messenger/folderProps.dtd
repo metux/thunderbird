@@ -1,88 +1,50 @@
-<!-- ***** BEGIN LICENSE BLOCK *****
-   - Version: MPL 1.1/GPL 2.0/LGPL 2.1
-   -
-   - The contents of this file are subject to the Mozilla Public License Version
-   - 1.1 (the "License"); you may not use this file except in compliance with
-   - the License. You may obtain a copy of the License at
-   - http://www.mozilla.org/MPL/
-   -
-   - Software distributed under the License is distributed on an "AS IS" basis,
-   - WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
-   - for the specific language governing rights and limitations under the
-   - License.
-   -
-   - The Original Code is Mozilla Communicator.
-   -
-   - The Initial Developer of the Original Code is
-   - Netscape Communications Corp.
-   - Portions created by the Initial Developer are Copyright (C) 2000
-   - the Initial Developer. All Rights Reserved.
-   -
-   - Contributor(s):
-   -   David Bienvenu <bienvenu@netscape.com>
-   -   Mohan Bhamidipati <mohanb@netscape.com>
-   -   Lorenzo Colitti   <lorenzo@colitti.com>
-   -   Stefan Borggraefe <Stefan.Borggraefe@gmx.de>
-   -
-   - Alternatively, the contents of this file may be used under the terms of
-   - either of the GNU General Public License Version 2 or later (the "GPL"),
-   - or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
-   - in which case the provisions of the GPL or the LGPL are applicable instead
-   - of those above. If you wish to allow use of your version of this file only
-   - under the terms of either the GPL or the LGPL, and not to allow others to
-   - use your version of this file under the terms of the MPL, indicate your
-   - decision by deleting the provisions above and replace them with the notice
-   - and other provisions required by the GPL or the LGPL. If you do not delete
-   - the provisions above, a recipient may use your version of this file under
-   - the terms of any one of the MPL, the GPL or the LGPL.
-   -
-   - ***** END LICENSE BLOCK ***** -->
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY folderProps.windowtitle.label           "Поставке">
+<!ENTITY folderProps.windowtitle.label           "Својства">
 
 <!ENTITY generalInfo.label                       "Општи подаци">
-<!ENTITY folderCharsetTab.label                  "Подразумевано кодирање знакова">
-<!ENTITY folderCharsetTab.accesskey              "з">
-<!ENTITY folderCharsetOverride.label             "Примени изворна подешавања на све поруке у директоријуму (појединачна подешавања кодне странице и аутоматска детекција биће занемарени)">
-<!ENTITY folderCharsetOverride.accesskey         "П">
-<!ENTITY folderRebuildSummaryFileTip2.label      "Поновна изградња индекса сажетака">
-<!ENTITY folderRebuildSummaryFile2.label         "Директоијум за оправке">
-<!ENTITY folderRebuildSummaryFile2.accesskey     "Д">
-<!ENTITY folderRebuildSummaryFile.explanation    "Понекад се индексна датотека (.msf) оштети, па поруке изгледају као да нису присутне или се обрисане поруке поново појављују.  Оправка директоријума је можда да поправи ове проблеме.">
-<!ENTITY folderIncludeInGlobalSearch.label       "Укључи поруке из овог директоријума у резултате глобалне претраге">
-<!ENTITY folderIncludeInGlobalSearch.accesskey   "У">
-     
-<!ENTITY retention.label "Полиса чувања порука">
-<!ENTITY retentionUseAccount.label  "Користи моја подешавања налога">
+<!ENTITY folderCharsetFallback2.label            "Одступно кодирање текста:">
+<!ENTITY folderCharsetFallback2.accesskey        "е">
+<!ENTITY folderCharsetEnforce2.label             "Примени кодирање на све поруке у фасцикли (појединачна подешавања текста порука и самопрепознавање ће бити занемарено)">
+<!ENTITY folderCharsetEnforce2.accesskey         "П">
+<!ENTITY folderRebuildSummaryFileTip2.label      "Изгради садржај резиме датотеке">
+<!ENTITY folderRebuildSummaryFile2.label         "Поправи фасциклу">
+<!ENTITY folderRebuildSummaryFile2.accesskey     "р">
+<!ENTITY folderRebuildSummaryFile.explanation    "Понекад се датотека са садржајем фасцикле (.msf) оштети и онда поруке могу изгледати као да су нестале или се обрисане поруке појаве. Поправка фасцикле може оправити ове грешке.">
+<!ENTITY folderIncludeInGlobalSearch.label       "Укључи поруке у овој фасцикли у резултате глобалне претраге">
+<!ENTITY folderIncludeInGlobalSearch.accesskey   "г">
+
+<!ENTITY retention.label "Политика задржавања">
+<!ENTITY retentionUseAccount.label  "Користи подешавања мог налога">
 <!ENTITY retentionUseAccount.accesskey "К">
-<!ENTITY daysOld.label "дана старе">
-<!ENTITY message.label "поруке">
-<!ENTITY retentionCleanup.label "Како бисте уштедели простор на диску, старе поруке се могу трајно уклонити.">
-<!ENTITY retentionCleanupImap.label "Да бисте вратили простор на диску, старе поруке се могу трајно уклонити, што обухвата и локалне умношке и оригинале на удаљеном рачунару.">
-<!ENTITY retentionCleanupPop.label "Да бисте вратили простор на диску, старе поруке се могу трајно уклонити, укључујући оригинале на удаљеном рачунару.">
-<!ENTITY retentionDeleteMsg.label "Уклони поруке више од">
-<!ENTITY retentionDeleteMsg.accesskey "У">
-<!ENTITY retentionKeepAll.label "Не уклањај ниједну поруку">
-<!ENTITY retentionKeepAll.accesskey "ј">
-<!ENTITY retentionKeepRecent.label "Уклоните све осим најновијих">
-<!ENTITY retentionKeepRecent.accesskey "l">
-<!-- LOCALIZATION NOTE: Unhide with .keepUnreadOnly { display: -moz-box; } -->
-<!ENTITY retentionKeepUnreadHidden.label "Увек уклони прочитане поруке (преиначује подешавања старости порука)">
-<!ENTITY retentionApplyToFlagged.label "Увек чувај поруке са звездом">
-<!ENTITY retentionApplyToFlagged.accesskey "ч">
+<!ENTITY daysOld.label "дана старо">
+<!ENTITY message.label "порука">
+<!ENTITY retentionCleanup.label "Да би се ослободио простор на диску, старе поруке се могу трајно обрисати.">
+<!ENTITY retentionCleanupImap.label "Да би се ослободио простор на диску, старе поруке се могу трајно обрисати, као и локалне копије и изворне поруке на удаљеном серверу.">
+<!ENTITY retentionCleanupPop.label "Да би се ослободио простор на диску, старе поруке се могу трајно обрисати, укључујући и изворне поруке на удаљеном серверу.">
+<!ENTITY retentionDeleteMsg.label "Обриши поруке више од">
+<!ENTITY retentionDeleteMsg.accesskey "б">
+<!ENTITY retentionKeepAll.label "Не бриши било шта од порука">
+<!ENTITY retentionKeepAll.accesskey "а">
+<!ENTITY retentionKeepRecent.label "Обриши све осим најновијих">
+<!ENTITY retentionKeepRecent.accesskey "р">
+<!ENTITY retentionApplyToFlagged.label "Увек чувај поруке са звездицом">
+<!ENTITY retentionApplyToFlagged.accesskey "е">
 
 <!ENTITY folderSynchronizationTab.label          "Усклађивање">
-<!ENTITY folderCheckForNewMessages2.label         "Када стигну нове поруке за овај налог, увек провери овај директоријум">
-<!ENTITY folderCheckForNewMessages2.accesskey     "К">
+<!ENTITY folderCheckForNewMessages2.label         "Приликов добијања нових порука на овом налогу, увек провери ову фасциклу">
+<!ENTITY folderCheckForNewMessages2.accesskey     "ј">
 
-<!ENTITY offlineFolder.check.label               "Изабери овај директоријум за рад ван мреже">
-<!ENTITY offlineFolder.check.accesskey           "И">
-<!ENTITY offlineFolder.button.label              "Прими одмах">
+<!ENTITY offlineFolder.check.label               "Изабери ову фасциклу за употребу ван мреже">
+<!ENTITY offlineFolder.check.accesskey           "з">
+<!ENTITY offlineFolder.button.label              "Преузми сада">
 <!ENTITY offlineFolder.button.accesskey          "П">
 
-<!ENTITY selectofflineNewsgroup.check.label      "Изабери ову групу за рад ван мреже">
-<!ENTITY selectofflineNewsgroup.check.accesskey  "г">
-<!ENTITY offlineNewsgroup.button.label           "Прими одмах">
+<!ENTITY selectofflineNewsgroup.check.label      "Изабери ову новинску групу за употребу ван мреже">
+<!ENTITY selectofflineNewsgroup.check.accesskey  "о">
+<!ENTITY offlineNewsgroup.button.label           "Преузми сада">
 <!ENTITY offlineNewsgroup.button.accesskey       "П">
 
 <!ENTITY folderProps.name.label                  "Име:">
@@ -93,23 +55,17 @@
 <!ENTITY folderSharingTab.label                  "Дељење">
 <!ENTITY privileges.button.label                 "Овлашћења…">
 <!ENTITY privileges.button.accesskey             "О">
-<!ENTITY permissionsDesc.label                   "Имате следећа права приступа:">
-<!ENTITY folderType.label                        "Врста директоријума:">
+<!ENTITY permissionsDesc.label                   "Имате следећа овлашћења:">
+<!ENTITY folderType.label                        "Врста фасцикле:">
 
 <!ENTITY folderQuotaTab.label                    "Квота">
-<!ENTITY folderQuotaRoot.label                   "Корена квота:">
-<!ENTITY folderQuotaUsage.label                  "Употреба:">
-<!ENTITY folderQuotaStatus.label                 "Статус:">
+<!ENTITY folderQuotaRoot.label                   "Квота највишег нивоа:">
+<!ENTITY folderQuotaUsage.label                  "Искоришћеност:">
+<!ENTITY folderQuotaStatus.label                 "Стање:">
 
-
-<!ENTITY folderCharsetEnforce2.accesskey         "A">
-<!ENTITY folderCharsetEnforce2.label             "Apply encoding to all messages in the folder (individual message text encoding settings and auto-detection will be ignored)">
-<!ENTITY folderCharsetFallback2.accesskey        "E">
-<!ENTITY folderCharsetFallback2.label            "Fallback Text Encoding:">
-
-<!ENTITY numberOfMessages.label                  "Number of messages:">
+<!ENTITY numberOfMessages.label                  "Број порука:">
 <!-- LOCALIZATION NOTE: When the number of messages can't be determined, this string is displayed as the number -->
-<!ENTITY numberUnknown.label                     "unknown">
-<!ENTITY sizeOnDisk.label                        "Size on disk:">
+<!ENTITY numberUnknown.label                     "непознато">
+<!ENTITY sizeOnDisk.label                        "Величина на диску:">
 <!-- LOCALIZATION NOTE: When the size can't be determined, this string is displayed as the size -->
-<!ENTITY sizeUnknown.label                       "unknown">
+<!ENTITY sizeUnknown.label                       "непозната">

@@ -36,3 +36,6 @@
 <!ENTITY helpButton.accesskey "H">
 <!ENTITY closeCmd.key "W"> 
 <!ENTITY searchBox.emptyText "Search filters by name…">
+
+<!ENTITY newButton.popupCopy.accesskey "C">
+<!ENTITY newButton.popupCopy.label "Copy…">

@@ -1,8 +1,8 @@
 <!-- This Source Code Form is subject to the terms of the Mozilla Public
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
-<!-- Window title -->
 
+<!-- Window title -->
 <!ENTITY windowTitle.label "Verificar ortografia">
 
 <!ENTITY misspelledWord.label "Palavra errada:">
@@ -28,14 +28,11 @@
 <!ENTITY addToUserDictionaryButton.accessKey "A">
 <!ENTITY editUserDictionaryButton.label "Editar…">
 <!ENTITY editUserDictionaryButton.accessKey "E">
-<!ENTITY recheckButton.label "Reiniciar">
-<!ENTITY recheckButton.accessKey "R">
+<!ENTITY recheckButton2.label "Verifique novamente o texto">
+<!ENTITY recheckButton2.accessKey "T">
 <!ENTITY closeButton.label "Fechar">
 <!ENTITY closeButton.accessKey "F">
 <!ENTITY sendButton.label "Enviar">
 <!ENTITY sendButton.accessKey "n">
 <!ENTITY languagePopup.label "Idioma:">
 <!ENTITY languagePopup.accessKey "m">
-
-<!ENTITY recheckButton2.accessKey "T">
-<!ENTITY recheckButton2.label "Recheck Text">

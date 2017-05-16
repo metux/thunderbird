@@ -5,6 +5,7 @@
 <!ENTITY toField4.label "Ում">
 <!ENTITY fromField4.label "Ումից">
 <!ENTITY senderField4.label "Ուղարկողը">
+<!ENTITY author.label "Հեղինակ">
 <!ENTITY organizationField4.label "Կազմակերպություն">
 <!ENTITY replyToField4.label "Պատասխանել">
 
@@ -23,6 +24,8 @@
 
 <!ENTITY hdrArchiveButton1.label "Արխիվ">
 <!ENTITY hdrArchiveButton1.tooltip "Արխիվացնել նամակը">
+<!ENTITY hdrOpenConversationButton1.label "Զրույց">
+
 <!ENTITY hdrSmartReplyButton1.label "Խելացի պատ.">
 <!ENTITY hdrReplyButton1.label "Պատասխանել">
 <!ENTITY hdrReplyButton2.tooltip "Պատասխանել նամակի հեղինակին">
@@ -61,7 +64,7 @@
 <!ENTITY markAsReadMenuItem1.accesskey "Ն">
 <!ENTITY markAsUnreadMenuItem1.label "Նշել որպես չընթերցված">
 <!ENTITY markAsUnreadMenuItem1.accesskey "Ն">
-<!ENTITY saveAsMenuItem1.label "Պահել որպես...">
+<!ENTITY saveAsMenuItem1.label "Պահպանել որպես...">
 <!ENTITY saveAsMenuItem1.accesskey "Պ">
 <!ENTITY viewSourceMenuItem1.label "Նայել աղբյուրը">
 <!ENTITY viewSourceMenuItem1.accesskey "Ն">
@@ -75,7 +78,7 @@
 
 <!ENTITY openAttachmentCmd.label    "Բացել">
 <!ENTITY openAttachmentCmd.accesskey    "O">
-<!ENTITY saveAsAttachmentCmd.label    "Պահել որպես…">
+<!ENTITY saveAsAttachmentCmd.label    "Պահպանել որպես…">
 <!ENTITY saveAsAttachmentCmd.accesskey    "Պ">
 <!ENTITY detachAttachmentCmd.label    "Ապակցել...">
 <!ENTITY detachAttachmentCmd.accesskey    "Ա">
@@ -83,7 +86,7 @@
 <!ENTITY deleteAttachmentCmd.accesskey    "e">
 <!ENTITY openAllAttachmentsCmd.label    "Բացել բոլորը...">
 <!ENTITY openAllAttachmentsCmd.accesskey    "O">
-<!ENTITY saveAllAttachmentsCmd.label    "Պահել բոլորը...">
+<!ENTITY saveAllAttachmentsCmd.label    "Պահպանել բոլորը...">
 <!ENTITY saveAllAttachmentsCmd.accesskey    "Պ">
 <!ENTITY detachAllAttachmentsCmd.label    "Ապակցել բոլորը...">
 <!ENTITY detachAllAttachmentsCmd.accesskey    "Ա">
@@ -93,10 +96,10 @@
 <!ENTITY openAttachment.tooltip "Բացել կցված ֆայլը">
 <!-- Attachment toolbar items -->
 
-<!ENTITY saveAttachmentButton1.label       "Պահել">
-<!ENTITY saveAttachmentButton1.tooltip     "Պահել կցված ֆայլը">
-<!ENTITY saveAllAttachmentsButton1.label   "Պահել բոլորը">
-<!ENTITY saveAllAttachmentsButton1.tooltip "Պահել բոլոր կցված ֆայլերը">
+<!ENTITY saveAttachmentButton1.label       "Պահպանել">
+<!ENTITY saveAttachmentButton1.tooltip     "Պահպանել կցված ֆայլը">
+<!ENTITY saveAllAttachmentsButton1.label   "Պահպանել բոլորը">
+<!ENTITY saveAllAttachmentsButton1.tooltip "Պահպանել բոլոր կցված ֆայլերը">
 
 <!ENTITY copyLinkCmd.label        "Պատճենել հղման հասցեն">
 <!ENTITY copyLinkCmd.accesskey    "Պ">
@@ -107,3 +110,5 @@
 <!ENTITY OpenMessageForMsgId.accesskey "Բ">
 <!ENTITY OpenBrowserWithMsgId.label "Բացել դիտարկիչը՝ նամակի ID-ով">
 <!ENTITY OpenBrowserWithMsgId.accesskey "Բ">
+
+<!ENTITY hdrOpenConversationButton1.tooltip "Show conversation of this message">

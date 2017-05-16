@@ -116,6 +116,11 @@ NS_IMETHODIMP nsAddbookUrl::SetHostPort(const nsACString &aHostPort)
 	return m_baseURL->SetHostPort(aHostPort);
 }
 
+NS_IMETHODIMP nsAddbookUrl::SetHostAndPort(const nsACString &aHostPort)
+{
+	return m_baseURL->SetHostAndPort(aHostPort);
+}
+
 NS_IMETHODIMP nsAddbookUrl::GetHost(nsACString &aHost)
 {
 	return m_baseURL->GetHost(aHost);
@@ -183,7 +188,9 @@ NS_IMETHODIMP nsAddbookUrl::Equals(nsIURI *other, bool *_retval)
   return m_baseURL->Equals(other, _retval);
 }
 
-NS_IMETHODIMP nsAddbookUrl::Clone(nsIURI **_retval)
+nsresult
+nsAddbookUrl::CloneInternal(RefHandlingEnum aRefHandlingMode,
+                            const nsACString& newRef, nsIURI** _retval)
 {
   NS_ENSURE_ARG_POINTER(_retval);
 
@@ -192,12 +199,36 @@ NS_IMETHODIMP nsAddbookUrl::Clone(nsIURI **_retval)
   if (!clone)
     return NS_ERROR_OUT_OF_MEMORY;
 
-  nsresult rv = m_baseURL->Clone(getter_AddRefs(clone->m_baseURL));
+  nsresult rv;
+  if (aRefHandlingMode == eHonorRef) {
+    rv = m_baseURL->Clone(getter_AddRefs(clone->m_baseURL));
+  } else if (aRefHandlingMode == eReplaceRef) {
+    rv = m_baseURL->CloneWithNewRef(newRef, getter_AddRefs(clone->m_baseURL));
+  } else {
+    rv = m_baseURL->CloneIgnoringRef(getter_AddRefs(clone->m_baseURL));
+  }
   NS_ENSURE_SUCCESS(rv, rv);
   clone->ParseUrl();
   clone.forget(_retval);
   return NS_OK;
-}	
+}
+
+NS_IMETHODIMP nsAddbookUrl::Clone(nsIURI **_retval)
+{
+  return CloneInternal(eHonorRef, EmptyCString(), _retval);
+}
+
+NS_IMETHODIMP
+nsAddbookUrl::CloneIgnoringRef(nsIURI** _retval)
+{
+  return CloneInternal(eIgnoreRef, EmptyCString(), _retval);
+}
+
+NS_IMETHODIMP
+nsAddbookUrl::CloneWithNewRef(const nsACString& newRef, nsIURI** _retval)
+{
+  return CloneInternal(eReplaceRef, newRef, _retval);
+}
 
 NS_IMETHODIMP nsAddbookUrl::Resolve(const nsACString &relativePath, nsACString &result) 
 {
@@ -226,23 +257,6 @@ NS_IMETHODIMP nsAddbookUrl::EqualsExceptRef(nsIURI *other, bool *_retval)
     return other->EqualsExceptRef(m_baseURL, _retval);
 
   return m_baseURL->EqualsExceptRef(other, _retval);
-}
-
-NS_IMETHODIMP
-nsAddbookUrl::CloneIgnoringRef(nsIURI** _retval)
-{
-  NS_ENSURE_ARG_POINTER(_retval);
-
-  RefPtr<nsAddbookUrl> clone = new nsAddbookUrl();
-
-  if (!clone)
-    return NS_ERROR_OUT_OF_MEMORY;
-
-  nsresult rv = m_baseURL->CloneIgnoringRef(getter_AddRefs(clone->m_baseURL));
-  NS_ENSURE_SUCCESS(rv, rv);
-  clone->ParseUrl();
-  clone.forget(_retval);
-  return NS_OK;
 }
 
 NS_IMETHODIMP

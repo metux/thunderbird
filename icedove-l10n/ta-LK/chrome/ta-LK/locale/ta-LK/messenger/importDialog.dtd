@@ -81,4 +81,5 @@ LOCALIZATION NOTE : Do not translate any of the occurances of the word
 <!ENTITY acctName.label           "Name:">
 <!ENTITY importFeeds.accesskey    "d">
 <!ENTITY importFeeds.label        "Feed Subscriptions">
+<!ENTITY noModulesFound.label     "No application or file to import data from was found.">
 <!ENTITY selectDescriptionB.label "Please select an existing account or create a new account:">

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-this.EXPORTED_SYMBOLS = ["Stanza", "XMPPParser"];
+this.EXPORTED_SYMBOLS = ["Stanza", "XMPPParser", "SupportedFeatures"];
 
 var {classes: Cc, interfaces: Ci, results: Cr, utils: Cu} = Components;
 
@@ -47,6 +47,7 @@ var NS = {
   muc_user                  : "http://jabber.org/protocol/muc#user",
   muc_owner                 : "http://jabber.org/protocol/muc#owner",
   muc_admin                 : "http://jabber.org/protocol/muc#admin",
+  muc_rooms                 : "http://jabber.org/protocol/muc#rooms",
   conference                : "jabber:x:conference",
   muc                       : "http://jabber.org/protocol/muc",
   register                  : "jabber:iq:register",
@@ -59,6 +60,7 @@ var NS = {
   vcard                     : "vcard-temp",
   vcard_update              : "vcard-temp:x:update",
   ping                      : "urn:xmpp:ping",
+  carbons                   : "urn:xmpp:carbons:2",
 
   geoloc                    : "http://jabber.org/protocol/geoloc",
   geoloc_notify             : "http://jabber.org/protocol/geoloc+notify",
@@ -67,6 +69,7 @@ var NS = {
   nick                      : "http://jabber.org/protocol/nick",
   nick_notify               : "http://jabber.org/protocol/nick+notify",
   activity                  : "http://jabber.org/protocol/activity",
+  rsm                       : "http://jabber.org/protocol/rsm",
   last                      : "jabber:iq:last",
   version                   : "jabber:iq:version",
   avatar_data               : "urn:xmpp:avatar:data",
@@ -89,6 +92,19 @@ var TOP_LEVEL_ELEMENTS = {
   "challenge"           : "urn:ietf:params:xml:ns:xmpp-sasl",
   "error"               : "urn:ietf:params:xml:ns:xmpp-streams"
 };
+
+// Features that we support in XMPP.
+// Don't forget to add your new features here.
+var SupportedFeatures = [
+  NS.chatstates,
+  NS.conference,
+  NS.disco_info,
+  NS.last,
+  NS.muc,
+  NS.ping,
+  NS.vcard,
+  NS.version
+];
 
 /* Stanza Builder */
 var Stanza = {
@@ -124,21 +140,15 @@ var Stanza = {
 
   /* Create a XML node */
   node: function(aName, aNs, aAttr, aData) {
-    let n = new XMLNode(null, aNs, aName, aName, null);
-
-    if (aAttr) {
-      for (let at in aAttr)
-        n.attributes[at] = aAttr[at];
-    }
-
+    let node = new XMLNode(null, aNs, aName, aName, aAttr);
     if (aData) {
       if (!Array.isArray(aData))
         aData = [aData];
       for (let child of aData)
-        n[typeof(child) == "string" ? "addText" : "addChild"](child);
+        node[typeof(child) == "string" ? "addText" : "addChild"](child);
     }
 
-    return n;
+    return node;
   }
 };
 
@@ -169,10 +179,17 @@ TextNode.prototype = {
 };
 
 /* XML node */
+/* https://www.w3.org/TR/2008/REC-xml-20081126 */
 /* aUri is the namespace. */
+/* aLocalName must have value, otherwise throws. */
+/* aAttr can be instance of nsISAXAttributes or object */
 /* Example: <f:a xmlns:f='g' d='1'> is parsed to
    uri/namespace='g', localName='a', qName='f:a', attributes={d='1'} */
-function XMLNode(aParentNode, aUri, aLocalName, aQName, aAttr) {
+function XMLNode(aParentNode, aUri, aLocalName, aQName = aLocalName,
+                 aAttr = {}) {
+  if (!aLocalName)
+    throw "aLocalName must have value";
+
   this._parentNode = aParentNode; // Used only for parsing
   this.uri = aUri;
   this.localName = aLocalName;
@@ -180,9 +197,16 @@ function XMLNode(aParentNode, aUri, aLocalName, aQName, aAttr) {
   this.attributes = {};
   this.children = [];
 
-  if (aAttr) {
+  if (aAttr instanceof Ci.nsISAXAttributes) {
     for (let i = 0; i < aAttr.length; ++i)
       this.attributes[aAttr.getQName(i)] = aAttr.getValue(i);
+  }
+  else {
+    for (let attributeName in aAttr) {
+      // Each attribute specification has a name and a value.
+      if (aAttr[attributeName])
+        this.attributes[attributeName] = aAttr[attributeName];
+    }
   }
 }
 XMLNode.prototype = {
@@ -235,7 +259,7 @@ XMLNode.prototype = {
     let c = this.getChildren(aQuery[0]);
     let nq = aQuery.slice(1);
     let res = [];
-    for each (let child in c) {
+    for (let child of c) {
       let n = child.getElements(nq);
       res = res.concat(n);
     }
@@ -248,12 +272,12 @@ XMLNode.prototype = {
     return this.children.filter((c) => (c.type != "text" && c.localName == aName));
   },
 
-  /* Test if the node is a stanza */
+  // Test if the node is a stanza and its namespace is valid.
   isXmppStanza: function() {
     if (!TOP_LEVEL_ELEMENTS.hasOwnProperty(this.qName))
       return false;
     let ns = TOP_LEVEL_ELEMENTS[this.qName];
-    return ns == this.uri || (Array.isArray(ns) && ns.indexOf(this.uri) != -1);
+    return ns == this.uri || (Array.isArray(ns) && ns.includes(this.uri));
   },
 
   /* Returns indented XML */
@@ -261,7 +285,7 @@ XMLNode.prototype = {
     let s =
       aIndent + "<" + this.qName + this._getXmlns() + this._getAttributeText();
     let content = "";
-    for each (let child in this.children)
+    for (let child of this.children)
       content += child.convertToString(aIndent + " ");
     return s + (content ? ">\n" + content + aIndent + "</" + this.qName : "/") + ">\n";
   },
@@ -392,13 +416,21 @@ XMPPParser.prototype = {
       return;
     }
 
-    if (this._node.isXmppStanza()) {
-      this._logReceivedData(this._node.convertToString());
-      try {
-        this._listener.onXmppStanza(this._node);
-      } catch (e) {
-        Cu.reportError(e);
-        dump(e + "\n");
+    // RFC 6120 (8): XML Stanzas.
+    // Checks if the node is the root and it's valid.
+    if (!this._node._parentNode) {
+      if (this._node.isXmppStanza()) {
+        this._logReceivedData(this._node.convertToString());
+        try {
+          this._listener.onXmppStanza(this._node);
+        } catch (e) {
+          Cu.reportError(e);
+          dump(e + "\n");
+        }
+      }
+      else {
+        this._listener.onXMLError("parsing-node",
+                                  "Root node " + aLocalName + " is not valid.");
       }
     }
 

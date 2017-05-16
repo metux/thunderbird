@@ -45,6 +45,7 @@
 #include "nsCRT.h"
 #include "mozilla/Services.h"
 #include "mozilla/Logging.h"
+#include "mozilla/Attributes.h"
 
 using namespace mozilla;
 
@@ -860,19 +861,19 @@ NS_IMETHODIMP nsPop3Protocol::OnPromptStart(bool *aResult)
       }
     }
     mLocalBundle->FormatStringFromName(
-      MOZ_UTF16("pop3PreviouslyEnteredPasswordIsInvalidPrompt"),
+      u"pop3PreviouslyEnteredPasswordIsInvalidPrompt",
       passwordParams, 2, getter_Copies(passwordPrompt));
   }
   else
     // Otherwise this is the first time we've asked about the server's
     // password so show a first time prompt.
     mLocalBundle->FormatStringFromName(
-      MOZ_UTF16("pop3EnterPasswordPrompt"),
+      u"pop3EnterPasswordPrompt",
       passwordParams, 2, getter_Copies(passwordPrompt));
 
   nsString passwordTitle;
   mLocalBundle->GetStringFromName(
-    MOZ_UTF16("pop3EnterPasswordPromptTitle"),
+    u"pop3EnterPasswordPromptTitle",
     getter_Copies(passwordTitle));
 
   // Now go and get the password.
@@ -1268,7 +1269,7 @@ nsPop3Protocol::Error(const char* err_code,
     const char16_t *titleParams[] = { accountName.get() };
     nsString dialogTitle;
     mLocalBundle->FormatStringFromName(
-      MOZ_UTF16("pop3ErrorDialogTitle"),
+      u"pop3ErrorDialogTitle",
       titleParams, 1, getter_Copies(dialogTitle));
     nsCOMPtr<nsIMsgMailNewsUrl> mailnewsUrl = do_QueryInterface(m_url, &rv);
     // we handle "pop3TmpDownloadError" earlier...
@@ -1306,7 +1307,7 @@ nsPop3Protocol::Error(const char* err_code,
                   CopyASCIItoUTF16(hostName, hostStr);
                   const char16_t *params[] = { hostStr.get() };
                   mLocalBundle->FormatStringFromName(
-                    MOZ_UTF16("pop3ServerSaid"),
+                    u"pop3ServerSaid",
                     params, 1, getter_Copies(serverSaidPrefix));
                 }
 
@@ -1629,6 +1630,7 @@ void nsPop3Protocol::InitPrefAuthMethods(int32_t authMethodPrefValue)
       MOZ_LOG(POP3LOGMODULE, LogLevel::Error,
               (POP3LOG("POP: bad pref authMethod = %d\n"), authMethodPrefValue));
       // fall to any
+      MOZ_FALLTHROUGH;
     case nsMsgAuthMethod::anything:
       m_prefAuthMethods = POP3_HAS_AUTH_USER |
           POP3_HAS_AUTH_LOGIN | POP3_HAS_AUTH_PLAIN |
@@ -1791,6 +1793,7 @@ int32_t nsPop3Protocol::ProcessAuth()
         break;
       case POP3_HAS_AUTH_CRAM_MD5:
         MOZ_LOG(POP3LOGMODULE, LogLevel::Debug, (POP3LOG("POP CRAM")));
+        MOZ_FALLTHROUGH;
       case POP3_HAS_AUTH_PLAIN:
       case POP3_HAS_AUTH_USER:
         MOZ_LOG(POP3LOGMODULE, LogLevel::Debug, (POP3LOG("POP username")));
@@ -3453,7 +3456,7 @@ nsPop3Protocol::TopResponse(nsIInputStream* inputStream, uint32_t length)
 
     nsString statusTemplate;
     mLocalBundle->GetStringFromName(
-      MOZ_UTF16("pop3ServerDoesNotSupportTopCommand"),
+      u"pop3ServerDoesNotSupportTopCommand",
       getter_Copies(statusTemplate));
     if (!statusTemplate.IsEmpty())
     {
@@ -3831,7 +3834,7 @@ nsresult nsPop3Protocol::ProcessProtocolState(nsIURI * url, nsIInputStream * aIn
       break;
 
     case POP3_AUTH_GSSAPI_FIRST:
-      UpdateStatus(MOZ_UTF16("hostContact"));
+      UpdateStatus(u"hostContact");
       status = AuthGSSAPIResponse(true);
       break;
 
@@ -3849,7 +3852,7 @@ nsresult nsPop3Protocol::ProcessProtocolState(nsIURI * url, nsIInputStream * aIn
       break;
 
     case POP3_FINISH_OBTAIN_PASSWORD_BEFORE_USERNAME:
-      UpdateStatus(MOZ_UTF16("hostContact"));
+      UpdateStatus(u"hostContact");
       status = SendUsername();
       break;
 
@@ -3957,7 +3960,7 @@ nsresult nsPop3Protocol::ProcessProtocolState(nsIURI * url, nsIInputStream * aIn
 
           if (m_totalDownloadSize <= 0)
           {
-            UpdateStatus(MOZ_UTF16("noNewMessages"));
+            UpdateStatus(u"noNewMessages");
             /* There are no new messages.  */
           }
           else

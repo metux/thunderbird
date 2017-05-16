@@ -26,12 +26,6 @@
 #include "nsWeakReference.h"
 
 class nsIMsgWindow;
-
-#define UNKNOWN_ERROR             101
-#define UNKNOWN_HOST_ERROR        102
-#define CONNECTION_REFUSED_ERROR  103
-#define NET_TIMEOUT_ERROR         104
-
 class nsIPrompt;
 class nsIMsgMailNewsUrl;
 class nsMsgFilePostHelper;
@@ -154,7 +148,8 @@ protected:
   nsCOMPtr<nsIProgressEventSink> mProgressEventSink;
   nsCOMPtr<nsIInterfaceRequestor> mCallbacks;
   nsCOMPtr<nsISupports>       mOwner;
-  nsCString                   m_ContentType;
+  nsCString                   mContentType;
+  nsCString                   mCharset;
   int64_t                     mContentLength;
   nsCOMPtr<nsILoadInfo>       m_loadInfo;
 

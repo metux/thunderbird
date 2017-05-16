@@ -4,6 +4,8 @@
 
 <!ENTITY dialog.title                 "Sendeinnstillinger">
 <!ENTITY sendMail.title               "Tekstformat">
+<!ENTITY autoDowngrade.label          "Send meldinger som ren tekst hvis mulig">
+<!ENTITY autoDowngrade.accesskey      "S">
 <!ENTITY sendMaildesc.label           "Ved sending av meldinger i HTML-format, og en eller flere mottakere er oppført som å ikke kunne motta HTML:">
 <!ENTITY askMe.label                  "Spør meg hva som skal gjøres">
 <!ENTITY askMe.accesskey              "p">
@@ -33,6 +35,3 @@
 <!ENTITY add.htmldomain               "HTML domenenavn:">
 <!ENTITY add.plaintexttitle           "Legg til tekst-domenenavn">
 <!ENTITY add.plaintextdomain          "Tekst-domenenavn:">
-
-<!ENTITY autoDowngrade.accesskey      "t">
-<!ENTITY autoDowngrade.label          "Send messages as plain text if possible">

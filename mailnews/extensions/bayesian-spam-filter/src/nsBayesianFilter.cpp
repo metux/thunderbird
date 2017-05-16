@@ -44,6 +44,7 @@ using namespace mozilla;
 #include <prmem.h>
 #include "nsIMsgTraitService.h"
 #include "mozilla/Services.h"
+#include "mozilla/Attributes.h"
 #include <cstdlib> // for std::abs(int/long)
 #include <cmath> // for std::abs(float/double)
 
@@ -137,7 +138,8 @@ static const PLDHashTableOps gTokenTableOps = {
     PLDHashTable::HashStringKey,
     PLDHashTable::MatchStringKey,
     PLDHashTable::MoveEntryStub,
-    PLDHashTable::ClearEntryStub
+    PLDHashTable::ClearEntryStub,
+    nullptr
 };
 
 TokenHash::TokenHash(uint32_t aEntrySize)
@@ -224,7 +226,8 @@ Tokenizer::Tokenizer() :
   mBodyDelimiters(kBayesianFilterTokenDelimiters),
   mHeaderDelimiters(kBayesianFilterTokenDelimiters),
   mCustomHeaderTokenization(false),
-  mMaxLengthForToken(kMaxLengthForToken)
+  mMaxLengthForToken(kMaxLengthForToken),
+  mIframeToDiv(false)
 {
   nsresult rv;
   nsCOMPtr<nsIPrefService> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID, &rv);
@@ -544,6 +547,7 @@ void Tokenizer::tokenizeHeaders(nsIUTF8StringEnumerator * aHeaderNames, nsIUTF8S
         if (Substring(headerName, 0, 9).Equals("x-mozilla"))
           break;
         // fall through
+        MOZ_FALLTHROUGH;
     case 'u':
         addTokenForHeader(headerName.get(), headerValue);
         break;
@@ -1313,9 +1317,10 @@ nsresult nsBayesianFilter::tokenizeMessage(const char* aMessageURI, nsIMsgWindow
     NS_ENSURE_SUCCESS(rv, rv);
 
     aAnalyzer->setSource(aMessageURI);
+    nsCOMPtr<nsIURI> dummyNull;
     return msgService->StreamMessage(aMessageURI, aAnalyzer->mTokenListener,
                                      aMsgWindow, nullptr, true /* convert data */,
-                                     NS_LITERAL_CSTRING("filter"), false, nullptr);
+                                     NS_LITERAL_CSTRING("filter"), false, getter_AddRefs(dummyNull));
 }
 
 // a TraitAnalysis is the per-token representation of the statistical
@@ -1402,20 +1407,20 @@ void nsBayesianFilter::classifyMessage(
     uint32_t traitCount = aProTraits.Length();
 
     // pro message counts per trait index
-    nsAutoTArray<uint32_t, kTraitAutoCapacity> numProMessages;
+    AutoTArray<uint32_t, kTraitAutoCapacity> numProMessages;
     // anti message counts per trait index
-    nsAutoTArray<uint32_t, kTraitAutoCapacity> numAntiMessages;
+    AutoTArray<uint32_t, kTraitAutoCapacity> numAntiMessages;
     // array of pro aliases per trait index
-    nsAutoTArray<uint32_t*, kTraitAutoCapacity > proAliasArrays;
+    AutoTArray<uint32_t*, kTraitAutoCapacity > proAliasArrays;
     // number of pro aliases per trait index
-    nsAutoTArray<uint32_t, kTraitAutoCapacity > proAliasesLengths;    
+    AutoTArray<uint32_t, kTraitAutoCapacity > proAliasesLengths;    
     // array of anti aliases per trait index
-    nsAutoTArray<uint32_t*, kTraitAutoCapacity> antiAliasArrays;
+    AutoTArray<uint32_t*, kTraitAutoCapacity> antiAliasArrays;
     // number of anti aliases per trait index
-    nsAutoTArray<uint32_t, kTraitAutoCapacity > antiAliasesLengths;    
+    AutoTArray<uint32_t, kTraitAutoCapacity > antiAliasesLengths;    
     // construct the outgoing listener arrays
-    nsAutoTArray<uint32_t, kTraitAutoCapacity> traits;
-    nsAutoTArray<uint32_t, kTraitAutoCapacity> percents;
+    AutoTArray<uint32_t, kTraitAutoCapacity> traits;
+    AutoTArray<uint32_t, kTraitAutoCapacity> percents;
     if (traitCount > kTraitAutoCapacity)
     {
       traits.SetCapacity(traitCount);
@@ -1534,7 +1539,7 @@ void nsBayesianFilter::classifyMessage(
 
     for (uint32_t traitIndex = 0; traitIndex < traitCount; traitIndex++)
     {
-      nsAutoTArray<TraitAnalysis, 1024> traitAnalyses;
+      AutoTArray<TraitAnalysis, 1024> traitAnalyses;
       // copy valid tokens into an array to sort
       for (uint32_t tokenIndex = 0; tokenIndex < tokenCount; tokenIndex++)
       {
@@ -1721,8 +1726,8 @@ void nsBayesianFilter::classifyMessage(
   const char* messageURI,
   nsIJunkMailClassificationListener* aJunkListener)
 {
-  nsAutoTArray<uint32_t, 1> proTraits;
-  nsAutoTArray<uint32_t, 1> antiTraits;
+  AutoTArray<uint32_t, 1> proTraits;
+  AutoTArray<uint32_t, 1> antiTraits;
   proTraits.AppendElement(kJunkTrait);
   antiTraits.AppendElement(kGoodTrait);
   classifyMessage(tokens, messageURI, proTraits, antiTraits,
@@ -1865,8 +1870,8 @@ NS_IMETHODIMP nsBayesianFilter::ClassifyTraitsInMessages(
   nsIMsgWindow *aMsgWindow,
   nsIJunkMailClassificationListener *aJunkListener)
 {
-  nsAutoTArray<uint32_t, kTraitAutoCapacity> proTraits;
-  nsAutoTArray<uint32_t, kTraitAutoCapacity> antiTraits;
+  AutoTArray<uint32_t, kTraitAutoCapacity> proTraits;
+  AutoTArray<uint32_t, kTraitAutoCapacity> antiTraits;
   if (aTraitCount > kTraitAutoCapacity)
   {
     proTraits.SetCapacity(aTraitCount);
@@ -1927,8 +1932,8 @@ NS_IMETHODIMP nsBayesianFilter::SetMsgTraitClassification(
     nsIMsgWindow *aMsgWindow,
     nsIJunkMailClassificationListener *aJunkListener)
 {
-  nsAutoTArray<uint32_t, kTraitAutoCapacity> oldTraits;
-  nsAutoTArray<uint32_t, kTraitAutoCapacity> newTraits;
+  AutoTArray<uint32_t, kTraitAutoCapacity> oldTraits;
+  AutoTArray<uint32_t, kTraitAutoCapacity> newTraits;
   if (aOldCount > kTraitAutoCapacity)
     oldTraits.SetCapacity(aOldCount);
   if (aNewCount > kTraitAutoCapacity)
@@ -2014,8 +2019,8 @@ void nsBayesianFilter::observeMessage(
     if (aTraitListener)
     {
       // construct the outgoing listener arrays
-      nsAutoTArray<uint32_t, kTraitAutoCapacity> traits;
-      nsAutoTArray<uint32_t, kTraitAutoCapacity> percents;
+      AutoTArray<uint32_t, kTraitAutoCapacity> traits;
+      AutoTArray<uint32_t, kTraitAutoCapacity> percents;
       uint32_t newLength = newClassifications.Length();
       if (newLength > kTraitAutoCapacity)
       {
@@ -2056,8 +2061,8 @@ NS_IMETHODIMP nsBayesianFilter::SetMessageClassification(
     nsIMsgWindow *aMsgWindow,
     nsIJunkMailClassificationListener *aListener)
 {
-  nsAutoTArray<uint32_t, 1> oldClassifications;
-  nsAutoTArray<uint32_t, 1> newClassifications;
+  AutoTArray<uint32_t, 1> oldClassifications;
+  AutoTArray<uint32_t, 1> newClassifications;
 
   // convert between classifications and trait
   if (aOldClassification == nsIJunkMailPlugin::JUNK)
@@ -2089,8 +2094,8 @@ NS_IMETHODIMP nsBayesianFilter::DetailMessage(const char *aMsgURI,
     uint32_t aProTrait, uint32_t aAntiTrait,
     nsIMsgTraitDetailListener *aDetailListener, nsIMsgWindow *aMsgWindow)
 {
-  nsAutoTArray<uint32_t, 1> proTraits;
-  nsAutoTArray<uint32_t, 1> antiTraits;
+  AutoTArray<uint32_t, 1> proTraits;
+  AutoTArray<uint32_t, 1> antiTraits;
   proTraits.AppendElement(aProTrait);
   antiTraits.AppendElement(aAntiTrait);
 
@@ -2492,7 +2497,7 @@ void CorpusStore::readTrainingData()
 
   // FIXME:  should make sure that the tokenizers are empty.
   char cookie[4];
-  uint32_t goodMessageCount, junkMessageCount;
+  uint32_t goodMessageCount = 0, junkMessageCount = 0;
   if (!((fread(cookie, sizeof(cookie), 1, stream) == 1) &&
         (memcmp(cookie, kMagicCookie, sizeof(cookie)) == 0) &&
         (readUInt32(stream, &goodMessageCount) == 1) &&

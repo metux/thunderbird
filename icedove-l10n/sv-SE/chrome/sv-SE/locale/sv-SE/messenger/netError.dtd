@@ -38,6 +38,13 @@
 </ul>
 ">
 
+<!ENTITY fileAccessDenied.title "Åtkomst till filen nekades">
+<!ENTITY fileAccessDenied.longDesc "
+<ul>
+  <li>Den kan ha tagits bort, flyttats eller filrättigheter kan förhindra tillgång.</li>
+</ul>
+">
+
 <!ENTITY generic.title "Hoppsan!">
 <!ENTITY generic.longDesc "
 <p>&brandShortName; kan av någon anledning inte visa sidan.</p>
@@ -157,32 +164,11 @@
 </ul>
 ">
 
-<!ENTITY malwareBlocked.title "Misstänkt skadlig webbplats!">
-<!ENTITY malwareBlocked.longDesc "
-<p>Skadliga webbplatser försöker installera program för att stjäla privata uppgifter, använda din dator för att angripa andras, eller för att skada ditt system.</p>
-<p>Ägare till webbplatser som anser att deras webbplats felaktigt har rapporterats som skadlig kan <a href='http://www.stopbadware.org/home/reviewinfo'>begära en omprövning</a>.</p>
-">
-
-<!ENTITY unwantedBlocked.title "Misstänkt webbplats med oönskad programvara!">
-<!ENTITY unwantedBlocked.longDesc "
-<p>Oönskade programsidor försöker installera programvara som kan vara vilseledande och påverka ditt system på oväntade sätt.</p>
-">
-
-<!ENTITY phishingBlocked.title "Misstänkt webbförfalskning!">
-<!ENTITY phishingBlocked.longDesc "
-<p>Personliga uppgifter som lämnas på den där sidan kan resultera i identitetsstöld eller annat bedrägeri.</p>
-<p>Den här typen av webbförfalskningar används i något som kallas nätfiske där falska webbsidor och e-postmeddelanden används för att imitera källor du kanske litar på.</p>
-">
-
-<!ENTITY forbiddenBlocked.title "Förbjuden webbplats">
-<!ENTITY forbiddenBlocked.longDesc "<p>&brandShortName; förhindrade den här sidan från laddning eftersom den är konfigurerad för att blockera den.</p>
-">
-
 <!ENTITY cspBlocked.title "Blockerad av säkerhetspolicyn för innehåll">
 <!ENTITY cspBlocked.longDesc "<p>&brandShortName; förhindrade den här sidan från att laddas på detta sätt eftersom sidan har en säkerhetspolicy för innehåll som inte tillåter detta.</p>">
 
-<!ENTITY corruptedContentError.title "Skadat innehåll">
-<!ENTITY corruptedContentError.longDesc "<p>Innehållet du försöker se kan inte visas på grund av att ett fel i dataöverföringen upptäcktes.</p><ul><li>Kontakta ägarna för att informera dem om detta problem.</li></ul>">
+<!ENTITY corruptedContentErrorv2.title "Skadat innehållsfel">
+<!ENTITY corruptedContentErrorv2.longDesc "<p>Sidan du försöker visa kan inte visas eftersom ett fel i dataöverföringen upptäcktes.</p><ul><li>Kontakta webbplatsens ägare för att informera dem om detta problem.</li></ul>">
 
 <!ENTITY securityOverride.linkText "Eller så kan du lägga till ett undantag…">
 <!ENTITY securityOverride.getMeOutOfHereButton "Ta mig härifrån!">
@@ -202,3 +188,8 @@ functionality specific to thunderbird. -->
 
 <!ENTITY remoteXUL.title "Extern XUL">
 <!ENTITY remoteXUL.longDesc "<p><ul><li>Kontakta ägaren av webbplatsen för att informera dem om detta problem.</li></ul></p>">
+
+<!ENTITY inadequateSecurityError.title "Din anslutning är inte säker">
+<!-- LOCALIZATION NOTE (inadequateSecurityError.longDesc) - Do not translate
+     "NS_ERROR_NET_INADEQUATE_SECURITY". -->
+<!ENTITY inadequateSecurityError.longDesc "<p><span class='hostname'></span> använder en säkerhetsteknologi som är föråldrad och sårbar för angrepp. En angripare kan lätt avslöja information som du tänkt ska vara säker. Webbplatsens administratör måste rätta till servern innan du kan besöka webbplatsen.</p><p>Felkod: NS_ERROR_NET_INADEQUATE_SECURITY</p>">

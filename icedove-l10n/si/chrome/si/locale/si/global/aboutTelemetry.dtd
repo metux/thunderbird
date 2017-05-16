@@ -2,144 +2,136 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY aboutTelemetry.pageTitle "Telemetry Data">
+<!ENTITY aboutTelemetry.pageTitle "දූරමිතික දත්ත">
 
 <!ENTITY aboutTelemetry.changeDataChoices "
-  Change
+  වෙනස් කරන්න
 ">
 
 <!ENTITY aboutTelemetry.uploadEnabled "
-  FHR data upload is <span>enabled</span>.
+  FHR දත්ත අපගත කිරීම <span>සක්‍රීයයි</span>.
 ">
 
 <!ENTITY aboutTelemetry.uploadDisabled "
-  FHR data upload is <span>disabled</span>.
+  FHR දත්ත අපගත කිරීම <span>අක්‍රීයයි</span>.
 ">
 
 <!ENTITY aboutTelemetry.extendedRecordingEnabled "
-  Extended Telemetry recording is <span>enabled</span>.
+  දිගුකළ දූරමිති වාර්ථාකරණය <span>සක්‍රීයයි</span>.
 ">
 
 <!ENTITY aboutTelemetry.extendedRecordingDisabled "
-  Extended Telemetry recording is <span>disabled</span>.
+  දිගුකළ දූරමිති වාර්ථාකරණය <span>අක්‍රීයයි</span>.
 ">
 
 <!ENTITY aboutTelemetry.pingDataSource "
-Ping data source:
+පින්ග් දත්ත මූලය:
 ">
 
 <!ENTITY aboutTelemetry.showCurrentPingData "
-Current ping data
+වත්මන් පින්ග් දත්ත
 ">
 
 <!ENTITY aboutTelemetry.showArchivedPingData "
-Archived ping data
+සංරක්ශිත පින්ග් දත්ත
+">
+
+<!ENTITY aboutTelemetry.pingDataDisplay "
+පින්ග් දත්ත දර්ශනය:
+">
+
+<!ENTITY aboutTelemetry.structured "
+විවෘහගත
+">
+
+<!ENTITY aboutTelemetry.raw "
+දළ JSON
 ">
 
 <!ENTITY aboutTelemetry.showSubsessionData "
-Show subsession data
+අනුවාර දත්ත පෙන්වන්න
 ">
 
 <!ENTITY aboutTelemetry.choosePing "
-Choose ping:
+පින්ග් තෝරන්න:
 ">
 
 <!ENTITY aboutTelemetry.showNewerPing "
-&lt;&lt; Newer ping
+&lt;&lt; නව පින්ග්
 ">
 
 <!ENTITY aboutTelemetry.showOlderPing "
-Older ping &gt;&gt;
+වෙනත් පින්ග් &gt;&gt;
 ">
 
 <!ENTITY aboutTelemetry.rawPingData "
-Raw ping data ...
+දළ පින්ග් දත්ත…
 ">
 
 <!ENTITY aboutTelemetry.archiveWeekHeader "
-Week
+සතිය
 ">
 
 <!ENTITY aboutTelemetry.archivePingHeader "
-Ping
+පින්ග්
 ">
 
-<!ENTITY aboutTelemetry.generalDataSection "
-  General Data
-">
+<!ENTITY aboutTelemetry.generalDataSection "    සාමාන්‍ය දත්ත">
 
 <!ENTITY aboutTelemetry.environmentDataSection "
-  Environment Data
+  පාරිසරික දත්ත
 ">
 
 <!ENTITY aboutTelemetry.telemetryLogSection "
-  Telemetry Log
+  දූරමිතික වාර්ථාව
 ">
 
-<!ENTITY aboutTelemetry.slowSqlSection "
-  Slow SQL Statements
-">
+<!ENTITY aboutTelemetry.slowSqlSection "    SQL ප්‍රකාශ පෙන්වන්න">
 
-<!ENTITY aboutTelemetry.chromeHangsSection "
-  Browser Hangs
-">
+<!ENTITY aboutTelemetry.chromeHangsSection "    ගවේශකය විසන්ධි විය">
 
-<!ENTITY aboutTelemetry.threadHangStatsSection "
-  Thread Hangs
-">
+<!ENTITY aboutTelemetry.threadHangStatsSection "    පෙළ විසන්ධි විය">
 
-<!ENTITY aboutTelemetry.histogramsSection "
-  Histograms
-">
+<!ENTITY aboutTelemetry.histogramsSection "    හිස්ටොග්‍රෑම්">
 
-<!ENTITY aboutTelemetry.keyedHistogramsSection "
-  Keyed Histograms
-">
+<!ENTITY aboutTelemetry.keyedHistogramsSection "    යතුරුකළ ජාලරේඛය">
 
-<!ENTITY aboutTelemetry.simpleMeasurementsSection "
-  Simple Measurements
-">
+<!ENTITY aboutTelemetry.simpleMeasurementsSection "  සරල මිනුම්">
 
-<!ENTITY aboutTelemetry.addonDetailsSection "
-  Add-on Details
-">
+<!ENTITY aboutTelemetry.addonDetailsSection "  ඇඩෝන තොරතුරු">
 
-<!ENTITY aboutTelemetry.lateWritesSection "
-  Late Writes
-">
+<!ENTITY aboutTelemetry.lateWritesSection "  පසු ලිවීම්">
 
 <!ENTITY aboutTelemetry.sessionInfoSection "
-  Session Information
+  වාර තොරතුරු
 ">
 
-<!ENTITY aboutTelemetry.addonHistogramsSection "
-  Histograms Collected by Add-ons
-">
+<!ENTITY aboutTelemetry.addonHistogramsSection "  ඇඩෝන මගින් එක්කළ හිස්ටොග්‍රෑම">
 
-<!ENTITY aboutTelemetry.toggle "
-  Click to toggle section
-">
+<!ENTITY aboutTelemetry.toggle "  කොටස අතර මාරුවීමට ක්ලික් කරන්න">
 
-<!ENTITY aboutTelemetry.emptySection "
-  (No data collected)
-">
+<!ENTITY aboutTelemetry.emptySection "  (කිසිඳු දත්තයක් එක්කර නොමැත)">
 
-<!ENTITY aboutTelemetry.fullSqlWarning "
-  NOTE: Slow SQL debugging is enabled. Full SQL strings may be displayed below but they will not be submitted to Telemetry.
-">
+<!ENTITY aboutTelemetry.fullSqlWarning "    NOTE: මන්දගාමි SQL නිරාකරණය සක්‍රීයයි. සම්පූර්ණ SQL යෙදීම් පහතින් දැක්වෙනු ඇති නමුත් ඒවා දූරමිතියට පළ නොකෙරේ.">
 
-<!ENTITY aboutTelemetry.fetchSymbols "
-  Fetch function names for hang stacks
-">
+<!ENTITY aboutTelemetry.fetchSymbols "    විසන්ධි ගොඩවල් සඳහා ක්‍රියාකාරී නාම ලබන්න">
 
-<!ENTITY aboutTelemetry.hideSymbols "
-  Show raw data from hangs
-">
+<!ENTITY aboutTelemetry.hideSymbols "    විසන්ධි වෙතින් අමු දත්ත පෙන්වන්න">
 
-<!ENTITY aboutTelemetry.filterText "
-  Filter (strings or /regexp/)
-">
+<!ENTITY aboutTelemetry.filterText "    පෙරහන (යෙදුම් හෝ /regexp/)">
 
 <!ENTITY aboutTelemetry.payloadChoiceHeader "
-  Payload
+  ධාරිතාව
+">
+
+<!ENTITY aboutTelemetry.rawPayload "
+  දළ ධාරිතාව
+">
+
+<!ENTITY aboutTelemetry.keyedScalarsSection "
+  Keyed Scalars
+">
+
+<!ENTITY aboutTelemetry.scalarsSection "
+  Scalars
 ">

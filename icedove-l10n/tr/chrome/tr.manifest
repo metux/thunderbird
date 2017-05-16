@@ -4,12 +4,12 @@ locale branding tr tr/locale/tr/branding/
 locale chat tr tr/locale/tr/chat/
 locale communicator tr tr/locale/tr/communicator/
 locale cookie tr tr/locale/tr/cookie/
+locale devtools tr tr/locale/tr/devtools/client/
 locale devtools-shared tr tr/locale/tr/devtools/shared/
 locale editor tr tr/locale/tr/editor/
 locale formautofill tr tr/locale/tr/formautofill/
 locale global tr tr/locale/tr/global/
 locale global-platform tr tr/locale/tr/global-platform/
-locale global-region tr tr/locale/tr/global-region/
 locale messenger tr tr/locale/tr/messenger/
 locale messenger-mapi tr tr/locale/tr/messenger-mapi/
 locale messenger-newsblog tr tr/locale/tr/messenger-newsblog/

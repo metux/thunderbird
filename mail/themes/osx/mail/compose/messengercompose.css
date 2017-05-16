@@ -61,52 +61,52 @@ toolbar[nowindowdrag="true"] {
 
 @media not all and (-moz-mac-yosemite-theme) {
   #button-send {
-    list-style-image: url("chrome://messenger/skin/messengercompose/compose-toolbar.svg#send");
+    list-style-image: url("chrome://messenger/skin/messengercompose/compose-toolbar-osxlion.svg#send");
   }
 
   #button-contacts {
-    list-style-image: url("chrome://messenger/skin/messengercompose/compose-toolbar.svg#contacts");
+    list-style-image: url("chrome://messenger/skin/messengercompose/compose-toolbar-osxlion.svg#contacts");
     -moz-image-region: auto !important;
   }
 
   #spellingButton {
-    list-style-image: url("chrome://messenger/skin/messengercompose/compose-toolbar.svg#spelling");
+    list-style-image: url("chrome://messenger/skin/messengercompose/compose-toolbar-osxlion.svg#spelling");
   }
 
   #button-attach {
-    list-style-image: url("chrome://messenger/skin/messengercompose/compose-toolbar.svg#attach");
+    list-style-image: url("chrome://messenger/skin/messengercompose/compose-toolbar-osxlion.svg#attach");
   }
 
   #button-security {
-    list-style-image: url("chrome://messenger/skin/messengercompose/compose-toolbar.svg#security");
+    list-style-image: url("chrome://messenger/skin/messengercompose/compose-toolbar-osxlion.svg#security");
   }
 
   #button-save {
-    list-style-image: url("chrome://messenger/skin/messengercompose/compose-toolbar.svg#save");
+    list-style-image: url("chrome://messenger/skin/messengercompose/compose-toolbar-osxlion.svg#save");
   }
 
   #quoteButton {
-    list-style-image: url("chrome://messenger/skin/messengercompose/compose-toolbar.svg#quote");
+    list-style-image: url("chrome://messenger/skin/messengercompose/compose-toolbar-osxlion.svg#quote");
   }
 
   #cut-button {
-    list-style-image: url("chrome://messenger/skin/messengercompose/compose-toolbar.svg#cut");
+    list-style-image: url("chrome://messenger/skin/messengercompose/compose-toolbar-osxlion.svg#cut");
   }
 
   #copy-button {
-    list-style-image: url("chrome://messenger/skin/messengercompose/compose-toolbar.svg#copy");
+    list-style-image: url("chrome://messenger/skin/messengercompose/compose-toolbar-osxlion.svg#copy");
   }
 
   #paste-button {
-    list-style-image: url("chrome://messenger/skin/messengercompose/compose-toolbar.svg#paste");
+    list-style-image: url("chrome://messenger/skin/messengercompose/compose-toolbar-osxlion.svg#paste");
   }
 
   #button-print {
-    list-style-image: url("chrome://messenger/skin/messengercompose/compose-toolbar.svg#print");
+    list-style-image: url("chrome://messenger/skin/messengercompose/compose-toolbar-osxlion.svg#print");
   }
 
   #attachmentNotificationBox > notification .messageImage {
-    background-image: url("chrome://messenger/skin/messengercompose/compose-toolbar.svg#attach");
+    background-image: url("chrome://messenger/skin/messengercompose/compose-toolbar-osxlion.svg#attach");
   }
 }
 
@@ -307,21 +307,34 @@ toolbar[brighttext] #button-print {
 }
 
 #attachmentReminderText {
-  -moz-margin-start: 0px;
+  margin-inline-start: 0px;
   cursor: pointer;
 }
 
 #attachmentKeywords {
   font-weight: bold;
-  -moz-margin-start: 0px;
+  margin-inline-start: 0px;
   text-decoration: underline;
   cursor: pointer;
+}
+
+.notification-button[type="menu-button"] {
+  padding-top: 0;
+}
+
+.notification-button[type="menu-button"] > button {
+  -moz-appearance: none;
+  margin-bottom: -1px;
+  margin-inline-start: -3px;
+  margin-inline-end: 3px;
+  padding-inline-end: 5px;
+  border-inline-end: 1px solid #9b9b9b;
 }
 
 /* XXX I should really have a selector rule here to select just .listcell-icon objects underneath the attachmentList listbox */
 
 .listcell-icon {
-  -moz-margin-start: 2px;
+  margin-inline-start: 2px;
   margin-top: 2px;
 }
 
@@ -363,32 +376,32 @@ toolbar[brighttext] #button-print {
 treechildren::-moz-tree-cell-text(default-match) {
   margin-top: 2px;
   margin-bottom: 2px;
-  -moz-margin-start: 15px;
-  -moz-margin-end: -3px;
+  margin-inline-start: 15px;
+  margin-inline-end: -3px;
   border: none;
 }
 
 treechildren::-moz-tree-image(local-abook) {
   margin-top: 2px;
   margin-bottom: 2px;
-  -moz-margin-start: 4px;
-  -moz-margin-end: -1px;
+  margin-inline-start: 4px;
+  margin-inline-end: -1px;
   list-style-image: url("chrome://messenger/skin/addressbook/icons/addrbook.png");
 }
 
 treechildren::-moz-tree-image(remote-abook) {
   margin-top: 2px;
   margin-bottom: 2px;
-  -moz-margin-start: 2px;
-  -moz-margin-end: -3px;
+  margin-inline-start: 2px;
+  margin-inline-end: -3px;
   list-style-image: url("chrome://messenger/skin/addressbook/icons/remote-addrbook.png");
 }
 
 treechildren::-moz-tree-image(remote-err) {
   margin-top: 2px;
   margin-bottom: 2px;
-  -moz-margin-start: 2px;
-  -moz-margin-end: -3px;
+  margin-inline-start: 2px;
+  margin-inline-end: -3px;
   list-style-image: url("chrome://messenger/skin/addressbook/icons/remote-addrbook-error.png");
 }
 
@@ -411,8 +424,8 @@ treechildren::-moz-tree-image(remote-err) {
 treechildren::-moz-tree-image(subscribed-news) {
   margin-top: 2px;
   margin-bottom: 2px;
-  -moz-margin-start: 2px;
-  -moz-margin-end: -3px;
+  margin-inline-start: 2px;
+  margin-inline-end: -3px;
   list-style-image: url("chrome://messenger/skin/icons/folder-pane.png");
   -moz-image-region: rect(0 160px 16px 144px);
 }
@@ -519,6 +532,10 @@ treechildren::-moz-tree-image(subscribed-news) {
   margin-right: 3px;
 }
 
+#FontFaceSelect {
+  max-width: 35ch;
+}
+
 #FormatToolbar toolbarseparator {
   background-image: none;
 }
@@ -541,12 +558,12 @@ toolbarbutton.formatting-button {
 #ColorButtons {
   margin-top: 0px;
   margin-bottom: 0px;
-  -moz-margin-start: 3px;
-  -moz-margin-end: 5px;
+  margin-inline-start: 3px;
+  margin-inline-end: 5px;
 }
 
 #AlignPopupButton, #InsertPopupButton, #smileButtonMenu {
- -moz-margin-end: 9px;
+ margin-inline-end: 9px;
 }
 
 #AbsoluteFontSizeButton:-moz-locale-dir(rtl),
@@ -569,27 +586,26 @@ toolbarbutton.formatting-button {
   border-bottom-right-radius: 0;
 }
 
-toolbarbutton.formatting-button > .toolbarbutton-menu-dropmarker,
-toolbarbutton.formatting-button > .toolbarbutton-menubutton-dropmarker {
-  list-style-image: url(chrome://messenger/skin/icons/toolbarbutton-dropmarker.png);
+toolbarbutton.formatting-button[disabled="true"] > .toolbarbutton-menu-dropmarker,
+toolbarbutton.formatting-button[disabled="true"] > .toolbarbutton-menubutton-dropmarker
+  > .dropmarker-icon,
+toolbarbutton.formatting-button:not(:hover):-moz-window-inactive > .toolbarbutton-icon,
+toolbarbutton.formatting-button:not(:hover):-moz-window-inactive
+  > .toolbarbutton-menu-dropmarker,
+toolbarbutton.formatting-button:not(:hover):-moz-window-inactive
+  > .toolbarbutton-menubutton-dropmarker > .dropmarker-icon {
+  opacity: .5;
 }
 
-@media (-moz-mac-lion-theme) {
-  toolbarbutton.formatting-button[disabled="true"] > .toolbarbutton-menu-dropmarker,
-  toolbarbutton.formatting-button[disabled="true"] > .toolbarbutton-menubutton-dropmarker
-    > .dropmarker-icon,
-  toolbarbutton.formatting-button:not(:hover):-moz-window-inactive > .toolbarbutton-icon,
-  toolbarbutton.formatting-button:not(:hover):-moz-window-inactive > .toolbarbutton-icon,
-  toolbarbutton.formatting-button:not(:hover):-moz-window-inactive
-    > .toolbarbutton-menu-dropmarker,
-  toolbarbutton.formatting-button:not(:hover):-moz-window-inactive
-    > .toolbarbutton-menubutton-dropmarker > .dropmarker-icon {
-    opacity: .5;
-  }
+toolbarbutton.formatting-button > .toolbarbutton-menu-dropmarker,
+toolbarbutton.formatting-button > .toolbarbutton-menubutton-dropmarker {
+  list-style-image: url(chrome://messenger/skin/icons/toolbarbutton-arrow.png);
+}
 
+@media (min-resolution: 2dppx) {
   toolbarbutton.formatting-button > .toolbarbutton-menu-dropmarker,
   toolbarbutton.formatting-button > .toolbarbutton-menubutton-dropmarker {
-    list-style-image: url(chrome://messenger/skin/icons/toolbarbutton-dropmarker-lion.png);
+    list-style-image: url(chrome://messenger/skin/icons/toolbarbutton-arrow@2x.png) !important;
   }
 }
 
@@ -1197,8 +1213,8 @@ toolbarbutton.formatting-button > .toolbarbutton-menubutton-dropmarker {
 #TextColorButton {
   margin-top: 2px;
   margin-bottom: 9px;
-  -moz-margin-start: 2px;
-  -moz-margin-end: 9px;
+  margin-inline-start: 2px;
+  margin-inline-end: 9px;
 }
 
 #TextColorButton[color="mixed"] {
@@ -1209,8 +1225,8 @@ toolbarbutton.formatting-button > .toolbarbutton-menubutton-dropmarker {
 #BackgroundColorButton {
   margin-top: 9px;
   margin-bottom: 2px;
-  -moz-margin-start: 9px;
-  -moz-margin-end: 2px;
+  margin-inline-start: 9px;
+  margin-inline-end: 2px;
 }
 
 #HighlightColorButton {
@@ -1280,8 +1296,7 @@ toolbarbutton.formatting-button > .toolbarbutton-menubutton-dropmarker {
 }
 
 #sidebar-box {
-  -moz-appearance: -moz-mac-vibrancy-light;
-  background-color: #E2E7ED
+  -moz-appearance: -moz-mac-source-list;
 }
 
 #sidebar-splitter {
@@ -1311,5 +1326,5 @@ toolbarbutton.formatting-button > .toolbarbutton-menubutton-dropmarker {
 
 #titlebar-buttonbox-container {
   margin-top: 3px;
-  -moz-margin-start: 7px;
+  margin-inline-start: 7px;
 }

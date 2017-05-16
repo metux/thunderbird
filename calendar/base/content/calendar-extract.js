@@ -7,9 +7,9 @@ Components.utils.import("resource://calendar/modules/calUtils.jsm");
 Components.utils.import("resource://gre/modules/Preferences.jsm");
 
 var calendarExtract = {
-    onShowLocaleMenu: function onShowLocaleMenu(target) {
+    onShowLocaleMenu: function(target) {
         let localeList = document.getElementById(target.id);
-        let langs = new Array();
+        let langs = [];
         let chrome = Components.classes["@mozilla.org/chrome/chrome-registry;1"]
                                .getService(Components.interfaces.nsIXULChromeRegistry);
         chrome.QueryInterface(Components.interfaces.nsIToolkitChromeRegistry);
@@ -22,7 +22,9 @@ var calendarExtract = {
 
             try {
                 langName = cal.calGetString("languageNames", langName, null, "global");
-            } catch (ex) {}
+            } catch (ex) {
+                // If no language name is found that is ok, keep the technical term
+            }
 
             let label = cal.calGetString("calendar", "extractUsing", [langName]);
             if (localeParts[3] != "") {
@@ -36,24 +38,20 @@ var calendarExtract = {
         let pref = "calendar.patterns.last.used.languages";
         let lastUsedLangs = Preferences.get(pref, "");
 
-        function createLanguageComptor(lastUsedLangs) {
-            return function compare(a, b) {
-                let idx_a = lastUsedLangs.indexOf(a[1]);
-                let idx_b = lastUsedLangs.indexOf(b[1]);
+        langs.sort((a, b) => {
+            let idx_a = lastUsedLangs.indexOf(a[1]);
+            let idx_b = lastUsedLangs.indexOf(b[1]);
 
-                if (idx_a == -1 && idx_b == -1) {
-                    return a[0].localeCompare(b[0]);
-                } else if (idx_a != -1 && idx_b != -1) {
-                    return idx_a - idx_b;
-                } else if (idx_a != -1) {
-                    return -1;
-                } else {
-                    return 1;
-                }
+            if (idx_a == -1 && idx_b == -1) {
+                return a[0].localeCompare(b[0]);
+            } else if (idx_a != -1 && idx_b != -1) {
+                return idx_a - idx_b;
+            } else if (idx_a == -1) {
+                return 1;
+            } else {
+                return -1;
             }
-        }
-
-        langs.sort(createLanguageComptor(lastUsedLangs));
+        });
         removeChildren(localeList);
 
         for (let lang of langs) {
@@ -61,13 +59,13 @@ var calendarExtract = {
         }
     },
 
-    extractWithLocale: function extractWithLocale(event, isEvent) {
+    extractWithLocale: function(event, isEvent) {
         event.stopPropagation();
         let locale = event.target.value;
         this.extractFromEmail(isEvent, true, locale);
     },
 
-    extractFromEmail: function extractFromEmail(isEvent, fixedLang, fixedLocale) {
+    extractFromEmail: function(isEvent, fixedLang, fixedLocale) {
         // TODO would be nice to handle multiple selected messages,
         // though old conversion functionality didn't
         let message = gFolderDisplay.selectedMessage;
@@ -88,7 +86,7 @@ var calendarExtract = {
                                                   true,
                                                   { });
         cal.LOG("[calExtract] Original email content: \n" + title + "\r\n" + content);
-        let date = new Date(message.date/1000);
+        let date = new Date(message.date / 1000);
         let time = (new Date()).getTime();
 
         let locale = Preferences.get("general.useragent.locale", "en-US");
@@ -115,7 +113,10 @@ var calendarExtract = {
                 sel = document.getElementById("multimessage")
                               .contentDocument.querySelector(".iframe-container iframe")
                               .contentDocument.getSelection();
-            } catch (ex) {}
+            } catch (ex) {
+                // If Thunderbird Conversations is not installed that is fine,
+                // we will just have a null selection.
+            }
         }
         let collected = extractor.extract(title, content, date, sel);
 
@@ -177,7 +178,7 @@ var calendarExtract = {
                 if (endGuess.year != null) {
                     dueDate.setYear(endGuess.year);
                 }
-                if (endGuess.month  != null) {
+                if (endGuess.month != null) {
                     dueDate.setMonth(endGuess.month - 1);
                 }
                 if (endGuess.day != null) {
@@ -208,7 +209,7 @@ var calendarExtract = {
         cal.LOG("[calExtract] Total time spent for conversion (including loading of dictionaries): " + timeSpent + "ms");
     },
 
-    addListeners: function addListeners() {
+    addListeners: function() {
         if (window.top.document.location == "chrome://messenger/content/messenger.xul") {
             // covers initial load and folder change
             let folderTree = document.getElementById("folderTree");
@@ -225,7 +226,7 @@ var calendarExtract = {
         }
     },
 
-    setState: function setState() {
+    setState: function() {
         let eventButton = document.getElementById("extractEventButton");
         let taskButton = document.getElementById("extractTaskButton");
         let hdrEventButton = document.getElementById("hdrExtractEventButton");
@@ -235,7 +236,6 @@ var calendarExtract = {
         let contextMenuTask = document.getElementById("mailContext-calendar-convert-task-menuitem");
         let eventDisabled = (gFolderDisplay.selectedCount == 0);
         let taskDisabled = (gFolderDisplay.selectedCount == 0);
-        let contextDisabled = false;
         let contextEventDisabled = false;
         let contextTaskDisabled = false;
         let newEvent = document.getElementById("calendar_new_event_command");
@@ -251,14 +251,18 @@ var calendarExtract = {
             contextTaskDisabled = true;
         }
 
-        if (eventButton)
+        if (eventButton) {
             eventButton.disabled = eventDisabled;
-        if (taskButton)
+        }
+        if (taskButton) {
             taskButton.disabled = taskDisabled;
-        if (hdrEventButton)
+        }
+        if (hdrEventButton) {
             hdrEventButton.disabled = eventDisabled;
-        if (hdrTaskButton)
+        }
+        if (hdrTaskButton) {
             hdrTaskButton.disabled = taskDisabled;
+        }
 
         contextMenuEvent.disabled = contextEventDisabled;
         contextMenuTask.disabled = contextTaskDisabled;

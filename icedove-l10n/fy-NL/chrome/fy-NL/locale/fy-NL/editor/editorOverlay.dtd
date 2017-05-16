@@ -27,9 +27,9 @@
 <!-- Insert menu items -->
 <!ENTITY insertMenu.label "Ynfoegje">
 <!ENTITY insertMenu.accesskey "Y">
-<!ENTITY insertLinkCmd.label "Keppeling…">
-<!ENTITY insertLinkCmd.accesskey "K">
-<!ENTITY insertLinkCmd.key "l">
+<!ENTITY insertLinkCmd2.label "Keppeling…">
+<!ENTITY insertLinkCmd2.accesskey "K">
+<!ENTITY insertLinkCmd2.key "K">
 <!ENTITY insertAnchorCmd.label "Ankerferwizing…">
 <!ENTITY insertAnchorCmd.accesskey "n">
 <!ENTITY insertImageCmd.label "Ofbylding…">
@@ -180,7 +180,7 @@
 <!ENTITY listPropsCmd.label "Listeigenskippen…">
 <!ENTITY listPropsCmd.accesskey "L">
 
-<!ENTITY ParagraphSelect.tooltip "Alineaopmaak kieze">
+<!ENTITY ParagraphSelect.tooltip "In alineaopmaak kieze">
 <!-- Shared in Paragraph, and Toolbar menulist -->
 <!ENTITY bodyTextCmd.label "Tekst">
 <!ENTITY bodyTextCmd.accesskey "T">
@@ -191,15 +191,15 @@
 <!-- Align menu items -->
 <!ENTITY alignMenu.label "Utlynje">
 <!ENTITY alignMenu.accesskey "U">
-<!ENTITY alignLeft.label "Links">
+<!ENTITY alignLeft.label "Lofts">
 <!ENTITY alignLeft.accesskey "L">
-<!ENTITY alignLeft.tooltip "Links útlynje">
-<!ENTITY alignCenter.label "Midden">
-<!ENTITY alignCenter.accesskey "M">
+<!ENTITY alignLeft.tooltip "Lofts rjochtsje">
+<!ENTITY alignCenter.label "Sintrearre">
+<!ENTITY alignCenter.accesskey "S">
 <!ENTITY alignCenter.tooltip "Sintrearje">
 <!ENTITY alignRight.label "Rjochts">
 <!ENTITY alignRight.accesskey "R">
-<!ENTITY alignRight.tooltip "Rjochts útlynje">
+<!ENTITY alignRight.tooltip "Rjochts rjochtsje">
 <!ENTITY alignJustify.label "Utfolje">
 <!ENTITY alignJustify.accesskey "U">
 <!ENTITY alignJustify.tooltip "Utfolje">
@@ -268,7 +268,7 @@
 <!ENTITY tableDeleteMenu.label "Fuortsmite">
 <!ENTITY tableDeleteMenu.accesskey "F">
 
-<!-- text for "Join Cells" is in editor.properties 
+<!-- text for "Join Cells" is in editor.properties
      ("JoinSelectedCells" and "JoinCellToRight")
      the access key must exist in both of those strings
      But value must be set here for accesskey to draw properly
@@ -291,7 +291,7 @@
 <!ENTITY printToolbarCmd.label "Ofdrukke">
 <!ENTITY printToolbarCmd.tooltip "Dizze side ôfdrukke">
 <!ENTITY findToolbarCmd.label "Sykje">
-<!ENTITY findToolbarCmd.tooltip "Tekst sykje yn side">
+<!ENTITY findToolbarCmd.tooltip "Tekst sykje op side">
 <!ENTITY spellToolbarCmd.label "Stavering">
 <!ENTITY spellToolbarCmd.tooltip "Stavering fan seleksje of hiele side kontrolearje">
 <!ENTITY imageToolbarCmd.label "Ofbylding">
@@ -302,7 +302,7 @@
 <!ENTITY tableToolbarCmd.tooltip "Nije tabel ynfoegje of eigenskippen fan selektearre tabel oanpasse">
 <!ENTITY linkToolbarCmd.label "Keppeling">
 <!ENTITY linkToolbarCmd.tooltip "Nije keppeling ynfoegje of eigenskippen fan selektearre keppeling oanpasse">
-<!ENTITY anchorToolbarCmd.label "Anker">
+<!ENTITY anchorToolbarCmd.label "Ankerferwizing">
 <!ENTITY anchorToolbarCmd.tooltip "Nije ankerferwizing ynfoegje of eigenskippen fan selektearre ankerferwizing oanpasse">
 <!ENTITY TextColorButton.tooltip "Tekstkleur kieze">
 <!ENTITY BackgroundColorButton.tooltip "Eftergrûnkleur kieze">
@@ -322,10 +322,10 @@
 <!ENTITY indentToolbarCmd.tooltip "Ynspringen fergrutsje">
 <!ENTITY AlignPopupButton.tooltip "Tekstútlyning kieze">
 <!ENTITY InsertPopupButton.tooltip "In keppeling, ankerferwizing, ôfbylding, horizontale line of tabel ynfoegje">
-<!ENTITY alignLeftButton.tooltip "Tekst by de linkermarzje útlynje">
-<!ENTITY alignCenterButton.tooltip "Tekst útlynje yn it midden">
-<!ENTITY alignRightButton.tooltip "Tekst by de rjochtermarzje útlynje">
-<!ENTITY alignJustifyButton.tooltip "Tekst by de linker- en rjochtermarzje útlynje">
+<!ENTITY alignLeftButton.tooltip "Tekst by de loftermarzje rjochtsje">
+<!ENTITY alignCenterButton.tooltip "Tekst sintrearre rjochtsje">
+<!ENTITY alignRightButton.tooltip "Tekst by de rjochtermarzje rjochtsje">
+<!ENTITY alignJustifyButton.tooltip "Tekst by de lofter- en rjochtermarzje rjochtsje">
 
 <!-- Structure Toolbar Context Menu items -->
 <!ENTITY structSelect.label         "Selektearje">

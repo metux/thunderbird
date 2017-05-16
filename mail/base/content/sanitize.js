@@ -4,8 +4,7 @@
 
 Components.utils.import("resource://gre/modules/PlacesUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
-var Application = Components.classes["@mozilla.org/steel/application;1"]
-                            .getService(Components.interfaces.steelIApplication);
+Components.utils.import("resource://gre/modules/AppConstants.jsm");
 
 function Sanitizer() {}
 Sanitizer.prototype = {
@@ -82,8 +81,10 @@ Sanitizer.prototype = {
         try {
           // Cache doesn't consult timespan, nor does it have the
           // facility for timespan-based eviction.  Wipe it.
-          Services.cache.evictEntries(Ci.nsICache.STORE_ANYWHERE);
-        } catch(er) {}
+          let cache = Components.classes["@mozilla.org/netwerk/cache-storage-service;1"]
+                                .getService(Ci.nsICacheStorageService);
+          cache.clear();
+        } catch (ex) {}
 
       },
 
@@ -104,7 +105,8 @@ Sanitizer.prototype = {
 
             if (cookie.creationTime > this.range[0])
               // This cookie was created after our cutoff, clear it
-              Services.cookies.remove(cookie.host, cookie.name, cookie.path, false);
+              Services.cookies.remove(cookie.host, cookie.name, cookie.path,
+                                      cookie.originAttributes, false);
           }
         }
         else {
@@ -162,7 +164,7 @@ Sanitizer.prototype = {
         if (this.range)
           PlacesUtils.history.removeVisitsByTimeframe(this.range[0], this.range[1]);
         else
-          PlacesUtils.history.removeAllPages();
+          PlacesUtils.history.clear();
 
         try {
           var os = Components.classes["@mozilla.org/observer-service;1"]
@@ -247,11 +249,11 @@ Sanitizer.__defineGetter__("prefs", function()
 // Shows sanitization UI
 Sanitizer.showUI = function(aParentWindow)
 {
-Services.ww.openWindow(Application.platformIsMac ? null : aParentWindow,
-"chrome://messenger/content/sanitize.xul",
-                "Sanitize",
-                "chrome,titlebar,dialog,centerscreen,modal",
-                null);
+  Services.ww.openWindow(AppConstants.platform == "macosx" ? null : aParentWindow,
+                         "chrome://messenger/content/sanitize.xul",
+                         "Sanitize",
+                         "chrome,titlebar,dialog,centerscreen,modal",
+                         null);
 };
 
 /**

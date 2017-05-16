@@ -7,6 +7,7 @@
 
 <!ENTITY importFromWin.label            "Ion-phortaich roghainnean, roghainnean cunntais, leabhar nan seòlaidh, criathragan is dàta eile o:">
 <!ENTITY importFromNonWin.label         "Ion-phortaich roghainnean, roghainnean cunntais, leabhar nan seòlaidh, criathragan is dàta eile o:">
+<!ENTITY importSourceNotFound.label     "Cha deach aplacaid a lorg as urrainn dhuinn dàta ion-phortadh uaithe.">
 
 <!ENTITY importFromNothing.label        "Na ion-phortaich rud sam bith">
 <!ENTITY importFromNothing.accesskey    "d">
@@ -16,8 +17,6 @@
 <!ENTITY importFromOExpress.accesskey   "u">
 <!ENTITY importFromOutlook.label        "Outlook">
 <!ENTITY importFromOutlook.accesskey    "O">
-<!ENTITY importFromEudora.label         "Eudora">
-<!ENTITY importFromEudora.accesskey     "E">
 
 <!ENTITY importSource.title             "Ion-phortaich na roghainnean is pasgain puist">
 <!ENTITY importItems.title              "Rudan ri an ion-phortadh">

@@ -3,7 +3,7 @@
 * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 function Startup()
-{ 
+{
   var urlbarHistButton = document.getElementById("ClearUrlBarHistoryButton");
   var lastUrlPref = document.getElementById("general.open_location.last_url");
   var locBarPref = document.getElementById("browser.urlbar.historyEnabled");
@@ -35,7 +35,7 @@ function Startup()
 function prefClearGlobalHistory()
 {
   Components.utils.import("resource://gre/modules/PlacesUtils.jsm");
-  PlacesUtils.history.removeAllPages();
+  PlacesUtils.history.clear();
 }
 
 function prefClearUrlbarHistory(aButton)

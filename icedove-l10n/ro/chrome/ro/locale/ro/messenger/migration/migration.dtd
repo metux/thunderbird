@@ -8,6 +8,7 @@
 <!ENTITY importFromWin.label            "Opțiuni de import, setări de cont, agende de contacte, filtre și alte date din:">
 <!ENTITY importFromNonWin.label         "Importă preferințele, setările contului, agenda de contacte, filtrele și alte date din:">
 
+
 <!ENTITY importFromNothing.label        "Nu importa nimic">
 <!ENTITY importFromNothing.accesskey    "u">
 <!ENTITY importFromSeamonkey3.label     "SeaMonkey 2 sau mai recent">
@@ -16,8 +17,6 @@
 <!ENTITY importFromOExpress.accesskey   "u">
 <!ENTITY importFromOutlook.label        "Outlook">
 <!ENTITY importFromOutlook.accesskey    "O">
-<!ENTITY importFromEudora.label         "Eudora">
-<!ENTITY importFromEudora.accesskey     "E">
 
 <!ENTITY importSource.title             "Importă setări și dosare de mesaje din">
 <!ENTITY importItems.title              "Elemente de importat">
@@ -31,3 +30,5 @@
 
 <!ENTITY done.title                     "Import încheiat">
 <!ENTITY done.label                     "Următoarele elemente au fost importate cu succes:">
+
+<!ENTITY importSourceNotFound.label     "No application to import data from found.">

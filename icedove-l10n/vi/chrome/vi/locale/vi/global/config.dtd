@@ -80,6 +80,7 @@
 <!ENTITY boolean.label "Luận lí">
 <!ENTITY boolean.accesskey "L">
 
+<!ENTITY aboutWarningButton2.label "I accept the risk!">
 <!ENTITY focusSearch.key "r">
 <!ENTITY focusSearch2.key "f">
 <!ENTITY searchPrefs.accesskey "r">

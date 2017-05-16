@@ -8,7 +8,7 @@
   -->
 
 <!ENTITY pref.calendar.view.allview.caption "Algemien">
-<!ENTITY pref.calendar.view.dayandweekviews.caption "Dei- en wykoersjoggen">
+<!ENTITY pref.calendar.view.dayandweekviews.caption "Dei- en wykoersichten">
 <!ENTITY pref.calendar.view.multiweekview.caption "Oersjoch mear wiken">
 <!ENTITY pref.calendar.view.workweek.caption "Wurkwike">
 
@@ -22,9 +22,9 @@
 <!ENTITY pref.calendar.view.daystart.accesskey "b">
 <!ENTITY pref.calendar.view.dayend.label "Dei einiget om:">
 <!ENTITY pref.calendar.view.dayend.accesskey "i">
-<!ENTITY pref.calendar.view.visiblehours.label "Toan:">
+<!ENTITY pref.calendar.view.visiblehours.label "Toane:">
 <!ENTITY pref.calendar.view.visiblehours.accesskey "n">
-<!ENTITY pref.calendar.view.visiblehoursend.label "oeren per oersjoch">
+<!ENTITY pref.calendar.view.visiblehoursend.label "oeren it oersjoch">
 
 <!ENTITY pref.numberofweeks.label "Standert oantal wiken (foargeande wiken mei belutsen):">
 <!ENTITY pref.numberofweeks.accesskey "S">

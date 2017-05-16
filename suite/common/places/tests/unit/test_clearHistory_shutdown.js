@@ -128,7 +128,7 @@ function run_test_continue()
 
 function getDistinctNotifications() {
   let ar = EXPECTED_NOTIFICATIONS.concat(UNEXPECTED_NOTIFICATIONS);
-  return [ar[i] for (i in ar) if (ar.slice(0, i).indexOf(ar[i]) == -1)];
+  return [...new Set(ar)];
 }
 
 function storeCache(aURL, aContent) {
@@ -137,7 +137,7 @@ function storeCache(aURL, aContent) {
   let session = cache.createSession("FTP", Ci.nsICache.STORE_ANYWHERE,
                                     Ci.nsICache.STREAM_BASED);
 
-  
+
   var storeCacheListener = {
     onCacheEntryAvailable: function (entry, access, status) {
       do_check_eq(status, Cr.NS_OK);

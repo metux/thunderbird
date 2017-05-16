@@ -2,10 +2,10 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY cutCmd.label "Recortar">
+<!ENTITY cutCmd.label "Cortar">
 <!ENTITY cutCmd.accesskey "t">
 <!ENTITY copyCmd.label "Copiar">
-<!ENTITY copyCmd.accesskey "C">
+<!ENTITY copyCmd.accesskey "c">
 <!ENTITY pasteCmd.label "Colar">
 <!ENTITY pasteCmd.accesskey "o">
 <!ENTITY undoCmd.label "Desfazer">
@@ -27,12 +27,11 @@
 
 <!ENTITY searchTextBox.clear.label "Limpar">
 
-<!ENTITY fillLoginMenu.accesskey      "F">
-
-<!ENTITY fillLoginMenu.label          "Fill Login">
-<!ENTITY fillPasswordMenu.accesskey   "F">
-<!ENTITY fillPasswordMenu.label       "Fill Password">
-<!ENTITY fillUsernameMenu.accesskey   "F">
-<!ENTITY fillUsernameMenu.label       "Fill Username">
-<!ENTITY noLoginSuggestions.label     "(No Login Suggestions)">
-<!ENTITY viewSavedLogins.label        "View Saved Logins">
+<!ENTITY fillLoginMenu.label          "Preencher login">
+<!ENTITY fillLoginMenu.accesskey      "P">
+<!ENTITY fillPasswordMenu.label       "Preencher senha">
+<!ENTITY fillPasswordMenu.accesskey   "P">
+<!ENTITY fillUsernameMenu.label       "Preencher nome de usuário">
+<!ENTITY fillUsernameMenu.accesskey   "P">
+<!ENTITY noLoginSuggestions.label     "(Nenhuma sugestão de contas de acesso)">
+<!ENTITY viewSavedLogins.label        "Ver contas de acesso salvas">

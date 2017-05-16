@@ -1,39 +1,6 @@
-<!-- ***** BEGIN LICENSE BLOCK *****
- Version: MPL 1.1/GPL 2.0/LGPL 2.1
-
- The contents of this file are subject to the Mozilla Public License Version
- 1.1 (the "License"); you may not use this file except in compliance with
- the License. You may obtain a copy of the License at
- http://www.mozilla.org/MPL/
-
- Software distributed under the License is distributed on an "AS IS" basis,
- WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- for the specific language governing rights and limitations under the
- License.
-
- The Original Code is Mozilla Communicator client code, released
- March 31, 1998.
-
- The Initial Developer of the Original Code is
- Netscape Communications Corporation.
- Portions created by the Initial Developer are Copyright (C) 1998-1999
- the Initial Developer. All Rights Reserved.
-
- Contributor(s):
-
- Alternatively, the contents of this file may be used under the terms of
- either the GNU General Public License Version 2 or later (the "GPL"), or
- the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- in which case the provisions of the GPL or the LGPL are applicable instead
- of those above. If you wish to allow use of your version of this file only
- under the terms of either the GPL or the LGPL, and not to allow others to
- use your version of this file under the terms of the MPL, indicate your
- decision by deleting the provisions above and replace them with the notice
- and other provisions required by the GPL or the LGPL. If you do not delete
- the provisions above, a recipient may use your version of this file under
- the terms of any one of the MPL, the GPL or the LGPL.
-
- ***** END LICENSE BLOCK ***** -->
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
 <!ENTITY Contact.tab                     "Контакт">
 <!ENTITY Contact.accesskey               "К">
@@ -60,45 +27,36 @@
 <!ENTITY NameField1.accesskey           "И">
 <!ENTITY NameField2.label               "Презиме:">
 <!ENTITY NameField2.accesskey           "П">
-<!ENTITY PhoneticField1.label           "Изговор:">
-<!ENTITY PhoneticField2.label           "Изговор:">
-<!ENTITY DisplayName.label              "Приказано:">
-<!ENTITY DisplayName.accesskey          "П">
-<!ENTITY preferDisplayName.label        "Увек приказуј екранско име изнад заглавља поруке">
-<!ENTITY preferDisplayName.accesskey    "У">
+<!ENTITY PhoneticField1.label           "Фонетски:">
+<!ENTITY PhoneticField2.label           "Фонетски:">
+<!ENTITY DisplayName.label              "Приказ:">
+<!ENTITY DisplayName.accesskey          "з">
+<!ENTITY preferDisplayName.label        "Увек користи вредност приказа уместо заглавља поруке">
+<!ENTITY preferDisplayName.accesskey    "в">
 <!ENTITY NickName.label                 "Надимак:">
 <!ENTITY NickName.accesskey             "Н">
 
-<!ENTITY PrimaryEmail.label             "Ел. адреса:">
+<!ENTITY PrimaryEmail.label             "Е-пошта:">
 <!ENTITY PrimaryEmail.accesskey         "Е">
-<!ENTITY SecondEmail.label              "Додатна ел. адреса:">
-<!ENTITY SecondEmail.accesskey          "Д">
+<!ENTITY SecondEmail.label              "Додатна е-пошта:">
+<!ENTITY SecondEmail.accesskey          "а">
 <!ENTITY PreferMailFormat.label         "Жели да прима поруке форматиране као:">
-<!ENTITY PreferMailFormat.accesskey     "Ж">
-<!ENTITY PlainText.label                "Обичан текст">
-<!ENTITY HTML.label                     "ХТМЛ">
+<!ENTITY PreferMailFormat.accesskey     "ф">
+<!ENTITY PlainText.label                "Чист текст">
+<!ENTITY HTML.label                     "HTML">
 <!ENTITY Unknown.label                  "Непознато">
-<!ENTITY ScreenName.label               "Екранско име:">
-<!ENTITY ScreenName.accesskey           "Е">
-
-<!ENTITY allowRemoteContent1.label      "Дозволи удаљени садржај.">
-<!ENTITY allowRemoteContent1.accesskey  "r">
-<!ENTITY allowRemoteContent1.tooltip    "У ХТМЛ порукама је могуће
-уградити садржај са удаљених извора. Отварање такве поруке ће отворити
-и везу ка том спољном извору. Ово може омогућити праћење да ли се
-порука чита. Потврђивањем овог поља омогућиће те такав спољни уграђени
-садржај у ХТМЛ порукама са овог контакта.">
+<!ENTITY chatName.label                 "Име ћаскања:">
 
 <!ENTITY WorkPhone.label                "Посао:">
-<!ENTITY WorkPhone.accesskey            "с">
+<!ENTITY WorkPhone.accesskey            "о">
 <!ENTITY HomePhone.label                "Кућа:">
-<!ENTITY HomePhone.accesskey            "К">
+<!ENTITY HomePhone.accesskey            "у">
 <!ENTITY FaxNumber.label                "Факс:">
-<!ENTITY FaxNumber.accesskey            "Ф">
+<!ENTITY FaxNumber.accesskey            "к">
 <!ENTITY PagerNumber.label              "Пејџер:">
-<!ENTITY PagerNumber.accesskey          "П">
+<!ENTITY PagerNumber.accesskey          "ј">
 <!ENTITY CellularNumber.label           "Мобилни:">
-<!ENTITY CellularNumber.accesskey       "М">
+<!ENTITY CellularNumber.accesskey       "б">
 
 <!ENTITY Home.tab                       "Приватни">
 <!ENTITY Home.accesskey                 "П">
@@ -106,49 +64,49 @@
 <!ENTITY HomeAddress.accesskey          "д">
 <!ENTITY HomeAddress2.label             "">
 <!ENTITY HomeAddress2.accesskey         "">
-<!ENTITY HomeCity.label                 "Место:">
-<!ENTITY HomeCity.accesskey             "М">
-<!ENTITY HomeState.label                "Област/покрајина:">
-<!ENTITY HomeState.accesskey            "О">
-<!ENTITY HomeZipCode.label              "Поштански број:">
-<!ENTITY HomeZipCode.accesskey          "ш">
+<!ENTITY HomeCity.label                 "Град:">
+<!ENTITY HomeCity.accesskey             "д">
+<!ENTITY HomeState.label                "Држава/покрајина:">
+<!ENTITY HomeState.accesskey            "Д">
+<!ENTITY HomeZipCode.label              "ЗИП/поштански број:">
+<!ENTITY HomeZipCode.accesskey          "З">
 <!ENTITY HomeCountry.label              "Држава:">
-<!ENTITY HomeCountry.accesskey          "ж">
-<!ENTITY HomeWebPage.label              "Веб страна:">
-<!ENTITY HomeWebPage.accesskey          "В">
+<!ENTITY HomeCountry.accesskey          "а">
+<!ENTITY HomeWebPage.label              "Веб страница:">
+<!ENTITY HomeWebPage.accesskey          "е">
 <!ENTITY Birthday.label                 "Рођендан:">
 <!ENTITY Birthday.accesskey             "Р">
 <!ENTITY In.label                       "">
 <!ENTITY Year.placeholder               "Година">
 <!ENTITY Or.value                       "или">
-<!ENTITY Age.placeholder                "Број година">
+<!ENTITY Age.placeholder                "Старост">
 <!ENTITY YearsOld.label                 "">
 
 <!ENTITY Work.tab                       "Посао">
-<!ENTITY Work.accesskey                 "о">
+<!ENTITY Work.accesskey                 "П">
 <!ENTITY JobTitle.label                 "Титула:">
-<!ENTITY JobTitle.accesskey             "Т">
+<!ENTITY JobTitle.accesskey             "и">
 <!ENTITY Department.label               "Одељење:">
-<!ENTITY Department.accesskey           "љ">
-<!ENTITY Company.label                  "Огранизација:">
-<!ENTITY Company.accesskey              "О">
+<!ENTITY Department.accesskey           "е">
+<!ENTITY Company.label                  "Организација:">
+<!ENTITY Company.accesskey              "н">
 <!ENTITY WorkAddress.label              "Адреса:">
-<!ENTITY WorkAddress.accesskey          "А">
+<!ENTITY WorkAddress.accesskey          "д">
 <!ENTITY WorkAddress2.label             "">
 <!ENTITY WorkAddress2.accesskey         "">
-<!ENTITY WorkCity.label                 "Место:">
-<!ENTITY WorkCity.accesskey             "т">
-<!ENTITY WorkState.label                "Област/Покрајина:">
-<!ENTITY WorkState.accesskey            "к">
-<!ENTITY WorkZipCode.label              "Поштански број:">
-<!ENTITY WorkZipCode.accesskey          "с">
+<!ENTITY WorkCity.label                 "Град:">
+<!ENTITY WorkCity.accesskey             "а">
+<!ENTITY WorkState.label                "Држава/покрајина:">
+<!ENTITY WorkState.accesskey            "в">
+<!ENTITY WorkZipCode.label              "ЗИП/поштански број:">
+<!ENTITY WorkZipCode.accesskey          "З">
 <!ENTITY WorkCountry.label              "Држава:">
-<!ENTITY WorkCountry.accesskey          "в">
-<!ENTITY WorkWebPage.label              "Веб страна:">
-<!ENTITY WorkWebPage.accesskey          "б">
+<!ENTITY WorkCountry.accesskey          "р">
+<!ENTITY WorkWebPage.label              "Веб страница:">
+<!ENTITY WorkWebPage.accesskey          "е">
 
-<!ENTITY Other.tab                      "Остало">
-<!ENTITY Other.accesskey                "т">
+<!ENTITY Other.tab                      "Друго">
+<!ENTITY Other.accesskey                "г">
 <!ENTITY Custom1.label                  "Произвољно 1:">
 <!ENTITY Custom1.accesskey              "1">
 <!ENTITY Custom2.label                  "Произвољно 2:">
@@ -160,42 +118,39 @@
 <!ENTITY Notes.label                    "Белешке:">
 <!ENTITY Notes.accesskey                "Б">
 
-<!ENTITY Photo.tab                      "Слика">
-<!ENTITY Photo.accesskey                "o">
-<!ENTITY PhotoDesc.label                "Одабери једну од следећих:">
-<!ENTITY GenericPhoto.label             "Општа слика">
-<!ENTITY GenericPhoto.accesskey         "G">
-<!ENTITY DefaultPhoto.label             "Изворни">
-<!ENTITY PhotoFile.label                "На овом рачунару">
-<!ENTITY PhotoFile.accesskey            "n">
-<!ENTITY BrowsePhoto.label              "Прегледај">
-<!ENTITY BrowsePhoto.accesskey          "r">
-<!ENTITY PhotoURL.label                 "На вебу">
-<!ENTITY PhotoURL.accesskey             "b">
-<!ENTITY PhotoURL.placeholder           "Убаци или унеси веб адресу слике">
-<!ENTITY UpdatePhoto.label              "Освежи">
-<!ENTITY UpdatePhoto.accesskey          "в">
-
-
-<!ENTITY AIM.accesskey                  "r">
-<!ENTITY AIM.label                      "AIM:">
-<!ENTITY Chat.accesskey                 "a">
-
-<!ENTITY Chat.tab                       "Chat">
-<!ENTITY Gtalk.accesskey                "G">
+<!ENTITY Chat.tab                       "Ћаскање">
+<!ENTITY Chat.accesskey                 "а">
 <!ENTITY Gtalk.label                    "Google Talk:">
-<!ENTITY ICQ.accesskey                  "I">
-<!ENTITY ICQ.label                      "ICQ:">
-<!ENTITY IRC.accesskey                  "R">
-<!ENTITY IRC.label                      "IRC Nick:">
-<!ENTITY MSN.accesskey                  "M">
-<!ENTITY MSN.label                      "MSN:">
-<!ENTITY QQ.accesskey                   "Q">
-<!ENTITY QQ.label                       "QQ:">
-<!ENTITY Skype.accesskey                "S">
-<!ENTITY Skype.label                    "Skype:">
-<!ENTITY XMPP.accesskey                 "J">
-<!ENTITY XMPP.label                     "Jabber ID:">
-<!ENTITY Yahoo.accesskey                "Y">
+<!ENTITY Gtalk.accesskey                "G">
+<!ENTITY AIM.label                      "AIM:">
+<!ENTITY AIM.accesskey                  "r">
 <!ENTITY Yahoo.label                    "Yahoo!:">
-<!ENTITY chatName.label                 "Chat Name:">
+<!ENTITY Yahoo.accesskey                "Y">
+<!ENTITY Skype.label                    "Skype:">
+<!ENTITY Skype.accesskey                "S">
+<!ENTITY QQ.label                       "QQ:">
+<!ENTITY QQ.accesskey                   "Q">
+<!ENTITY MSN.label                      "MSN:">
+<!ENTITY MSN.accesskey                  "M">
+<!ENTITY ICQ.label                      "ICQ:">
+<!ENTITY ICQ.accesskey                  "I">
+<!ENTITY XMPP.label                     "Jabber ИБ:">
+<!ENTITY XMPP.accesskey                 "J">
+<!ENTITY IRC.label                      "IRC надимак:">
+<!ENTITY IRC.accesskey                  "R">
+
+<!ENTITY Photo.tab                      "Фотографија">
+<!ENTITY Photo.accesskey                "о">
+<!ENTITY PhotoDesc.label                "Изаберите једно од наведеног:">
+<!ENTITY GenericPhoto.label             "Општа слика">
+<!ENTITY GenericPhoto.accesskey         "О">
+<!ENTITY DefaultPhoto.label             "Подразумевано">
+<!ENTITY PhotoFile.label                "На овом рачунару">
+<!ENTITY PhotoFile.accesskey            "н">
+<!ENTITY BrowsePhoto.label              "Прегледај">
+<!ENTITY BrowsePhoto.accesskey          "р">
+<!ENTITY PhotoURL.label                 "На вебу">
+<!ENTITY PhotoURL.accesskey             "б">
+<!ENTITY PhotoURL.placeholder           "Налепите или укуцајте веб адресу неке фотографије">
+<!ENTITY UpdatePhoto.label              "Ажурирај">
+<!ENTITY UpdatePhoto.accesskey          "у">

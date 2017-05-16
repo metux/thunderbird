@@ -3,3 +3,5 @@
 <!ENTITY  vendorShortName       "Mozilla">
 <!ENTITY  trademarkInfo.part1   "Mozilla Thunderbird và biểu trưng Thunderbird
                                  là thương hiệu của Quỹ Mozilla.">
+
+<!ENTITY  brandShorterName      "Thunderbird">

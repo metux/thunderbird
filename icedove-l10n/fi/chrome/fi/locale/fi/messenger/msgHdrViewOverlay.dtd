@@ -107,3 +107,7 @@
 <!ENTITY OpenMessageForMsgId.accesskey "A">
 <!ENTITY OpenBrowserWithMsgId.label "Avaa selaimeen viestitunnuksella">
 <!ENTITY OpenBrowserWithMsgId.accesskey "s">
+
+<!ENTITY author.label "Author">
+<!ENTITY hdrOpenConversationButton1.label "Conversation">
+<!ENTITY hdrOpenConversationButton1.tooltip "Show conversation of this message">

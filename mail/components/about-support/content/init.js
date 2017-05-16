@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+"use strict";
+
 var Cc = Components.classes;
 var Ci = Components.interfaces;
 
@@ -33,8 +35,8 @@ window.onload = function () {
   let supportUrl = Services.urlFormatter.formatURLPref("app.support.baseURL");
 
   // Update the application basics section.
-  document.getElementById("application-box").textContent = Application.name;
-  document.getElementById("version-box").textContent = Application.version;
+  document.getElementById("application-box").textContent = Services.appinfo.name;
+  document.getElementById("version-box").textContent = Services.appinfo.version;
   document.getElementById("useragent-box").textContent = navigator.userAgent;
   document.getElementById("supportLink").href = supportUrl;
   let currProfD = Services.dirsvc.get("ProfD", Ci.nsIFile);

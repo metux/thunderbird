@@ -20,7 +20,7 @@
 
 .statusMessageToolbarItem {
   height: 22px;
-  -moz-margin-start: -3px;
+  margin-inline-start: -3px;
   margin-bottom: 2px;
   padding-bottom: 3px;
 }
@@ -76,12 +76,7 @@
 
 /* Adaptation of #folderPaneBox/#folderPaneTree from osx/mail/mailWindow1.css */
 #listPaneBox {
-  -moz-appearance: -moz-mac-vibrancy-light;
-  background-color: #DEE4EA !important;
-}
-
-#listPaneBox:-moz-window-inactive {
-  background-color: #E8E8E8 !important;
+  -moz-appearance: -moz-mac-source-list;
 }
 
 #listPaneBox > * {
@@ -96,15 +91,15 @@
 
 @media not all and (-moz-mac-yosemite-theme) {
   #button-add-buddy {
-    list-style-image: url("chrome://messenger/skin/icons/chat-toolbar.svg#add");
+    list-style-image: url("chrome://messenger/skin/icons/chat-toolbar-osxlion.svg#add");
   }
 
   #button-join-chat {
-    list-style-image: url("chrome://messenger/skin/icons/chat-toolbar.svg#join");
+    list-style-image: url("chrome://messenger/skin/icons/chat-toolbar-osxlion.svg#join");
   }
 
   #button-chat-accounts {
-    list-style-image: url("chrome://messenger/skin/icons/chat-toolbar.svg#accounts");
+    list-style-image: url("chrome://messenger/skin/icons/chat-toolbar-osxlion.svg#accounts");
   }
 }
 
@@ -220,37 +215,19 @@ richlistitem[state="disconnected"] .accountStateIcon {
   }
 }
 
-:-moz-any(imconv, imcontact, imgroup)[selected] {
-  background: linear-gradient(#5ea3df 6%, #73b8ea 6%, #6cafe5 7%,
-                              #3984d2 95%, #3577c2 100%);
-  color: HighlightText;
-}
-
-:-moz-any(imconv, imcontact, imgroup)[selected]:-moz-system-metric(mac-graphite-theme) {
-  background: linear-gradient(#7b8b9e 6%, #93a3b4 6%, #8fa0b1 7%,
-                              #587088 95%, #536b84 100%);
-}
-
-:-moz-any(imconv, imcontact, imgroup)[selected]:-moz-window-inactive {
-  background: linear-gradient(#bbc5d7 6%, #c3cbe0 6%, #bdc6dd 7%,
-                              #9ca9c6 95%, #939fba 100%);
+@media not all and (-moz-mac-yosemite-theme) {
+  :-moz-any(imconv, imcontact, imgroup)[selected] {
+    -moz-appearance: -moz-mac-active-source-list-selection;
+  }
 }
 
 @media (-moz-mac-yosemite-theme) {
-  :-moz-any(imconv, imcontact, imgroup) treechildren::-moz-tree-cell-text {
+  :-moz-any(imconv, imcontact, imgroup) {
     font-family: 'Helvetica Neue';
   }
 
-  :-moz-any(imconv, imcontact, imgroup) treechildren::-moz-tree-cell-text(selected, focus),
-  :-moz-any(imconv, imcontact, imgroup) treechildren::-moz-tree-cell-text(selected),
   :-moz-any(imconv, imcontact, imgroup)[selected] {
-    color: black;
-  }
-
-  :-moz-any(imconv, imcontact, imgroup)[selected],
-  :-moz-any(imconv, imcontact, imgroup)[selected]:-moz-system-metric(mac-graphite-theme),
-  :-moz-any(imconv, imcontact, imgroup)[selected]:-moz-window-inactive {
-    background: rgba(0, 0, 0, .1);
+    -moz-appearance: -moz-mac-source-list-selection;
   }
 }
 
@@ -292,7 +269,7 @@ richlistitem[state="disconnected"] .accountStateIcon {
 @media not all and (-moz-mac-yosemite-theme) {
   .tabmail-tab[type="chat"],
   .alltabs-item[type="chat"] {
-    list-style-image: url("chrome://messenger/skin/icons/mail-toolbar.svg#chat");
+    list-style-image: url("chrome://messenger/skin/icons/mail-toolbar-osxlion.svg#chat");
   }
 }
 
@@ -307,7 +284,7 @@ richlistitem[state="disconnected"] .accountStateIcon {
   width: 18px;
   height: 18px;
   margin-top: 0;
-  -moz-margin-end: 5px;
+  margin-inline-end: 5px;
   margin-bottom: -1px;
-  -moz-margin-start: -1px;
+  margin-inline-start: -1px;
 }

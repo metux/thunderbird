@@ -3,6 +3,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/* exported initLocationPage, initCustomizePage, onSelectProvider,
+ *          onInitialAdvance, doCreateCalendar, setCanRewindFalse
+ */
+
 Components.utils.import("resource://calendar/modules/calUtils.jsm");
 
 var gCalendar;
@@ -11,7 +15,7 @@ var errorConstants = {
     SUCCESS: 0,
     INVALID_URI: 1,
     ALREADY_EXISTS: 2
-}
+};
 
 var l10nStrings = {};
 l10nStrings[errorConstants.SUCCESS] = "";
@@ -34,7 +38,7 @@ function initCustomizePage() {
 
     let suppressAlarmsRow = document.getElementById("customize-suppressAlarms-row");
     suppressAlarmsRow.hidden =
-        (gCalendar && gCalendar.getProperty("capabilities.alarms.popup.supported") === false);
+        gCalendar && gCalendar.getProperty("capabilities.alarms.popup.supported") === false;
     document.getElementById("calendar-color").value = "#A8C2E1";
 }
 
@@ -75,7 +79,9 @@ function onSelectProvider(type) {
     try {
         tempCal = Components.classes["@mozilla.org/calendar/calendar;1?type=" + type]
                             .createInstance(Components.interfaces.calICalendar);
-    } catch (e) {}
+    } catch (e) {
+        // keep tempCal undefined if the calendar can not be created
+    }
 
     if (tempCal && tempCal.getProperty("cache.always")) {
         cache.oldValue = cache.checked;
@@ -96,23 +102,24 @@ function onSelectProvider(type) {
  */
 function checkRequired() {
     let canAdvance = true;
-    let curPage = document.getElementById('calendar-wizard').currentPage;
+    let curPage = document.getElementById("calendar-wizard").currentPage;
     if (curPage) {
-        let eList = curPage.getElementsByAttribute('required', 'true');
+        let eList = curPage.getElementsByAttribute("required", "true");
         for (let i = 0; i < eList.length && canAdvance; ++i) {
             canAdvance = (eList[i].value != "");
         }
 
         let notificationbox = document.getElementById("location-notifications");
         if (canAdvance && document.getElementById("calendar-uri").value &&
-                curPage.pageid == "locationPage") {
-            let [reason,] = parseUri(document.getElementById("calendar-uri").value);
+            curPage.pageid == "locationPage") {
+            // eslint-disable-next-line array-bracket-spacing
+            let [reason, ] = parseUri(document.getElementById("calendar-uri").value);
             canAdvance = (reason == errorConstants.SUCCESS);
             setNotification(reason);
         } else {
             notificationbox.removeAllNotifications();
         }
-        document.getElementById('calendar-wizard').canAdvance = canAdvance;
+        document.getElementById("calendar-wizard").canAdvance = canAdvance;
     }
 }
 
@@ -121,13 +128,13 @@ function checkRequired() {
  * wizard page
  */
 function onInitialAdvance() {
-    let type = document.getElementById('calendar-type').selectedItem.value;
-    let page = document.getElementsByAttribute('pageid', 'initialPage')[0];
-    if (type == 'local') {
+    let type = document.getElementById("calendar-type").selectedItem.value;
+    let page = document.getElementsByAttribute("pageid", "initialPage")[0];
+    if (type == "local") {
         prepareCreateCalendar();
-        page.next = 'customizePage';
+        page.next = "customizePage";
     } else {
-        page.next = 'locationPage';
+        page.next = "locationPage";
     }
 }
 
@@ -141,12 +148,12 @@ function prepareCreateCalendar() {
     let provider;
     let url;
     let reason;
-    let type = document.getElementById('calendar-type').selectedItem.value;
-    if (type == 'local') {
-        provider = 'storage';
-        [reason, url] = parseUri('moz-storage-calendar://');
+    let type = document.getElementById("calendar-type").selectedItem.value;
+    if (type == "local") {
+        provider = "storage";
+        [reason, url] = parseUri("moz-storage-calendar://");
     } else {
-        provider = document.getElementById('calendar-format').selectedItem.value;
+        provider = document.getElementById("calendar-format").selectedItem.value;
         [reason, url] = parseUri(document.getElementById("calendar-uri").value);
     }
 
@@ -172,14 +179,14 @@ function doCreateCalendar() {
     let cal_color = document.getElementById("calendar-color").value;
 
     gCalendar.name = cal_name;
-    gCalendar.setProperty('color', cal_color);
+    gCalendar.setProperty("color", cal_color);
     if (!gCalendar.getProperty("cache.always")) {
-        gCalendar.setProperty("cache.enabled", gCalendar.getProperty("cache.supported") !== false ?
-                                               document.getElementById("cache").checked : false);
+        gCalendar.setProperty("cache.enabled", gCalendar.getProperty("cache.supported") === false
+                                               ? false : document.getElementById("cache").checked);
     }
 
     if (!document.getElementById("fire-alarms").checked) {
-        gCalendar.setProperty('suppressAlarms', true);
+        gCalendar.setProperty("suppressAlarms", true);
     }
 
     cal.getCalendarManager().registerCalendar(gCalendar);
@@ -192,8 +199,9 @@ function doCreateCalendar() {
 function initNameFromURI() {
     let path = document.getElementById("calendar-uri").value;
     let nameField = document.getElementById("calendar-name");
-    if (!path || nameField.value)
+    if (!path || nameField.value) {
         return;
+    }
 
     let fullPathRegex = new RegExp("([^/:]+)[.]ics$");
     let captures = path.match(fullPathRegex);
@@ -206,9 +214,9 @@ function initNameFromURI() {
  * Parses the given uri value to check if it is valid and there is not already
  * a calendar with this uri.
  *
- * @param aUri          The string to parse as an uri.
- * @return [error,uri]  |error| is the error code from errorConstants, |uri| the
- *                        parsed nsIURI, or null on error.
+ * @param aUri              The string to parse as an uri.
+ * @return [error, uri]     |error| is the error code from errorConstants,
+ *                          |uri| the parsed nsIURI, or null on error.
  */
 function parseUri(aUri) {
     let uri;
@@ -221,8 +229,8 @@ function parseUri(aUri) {
 
     let calManager = cal.getCalendarManager();
     let cals = calManager.getCalendars({});
-    let type = document.getElementById('calendar-type').selectedItem.value;
-    if (type != 'local' && cals.some(c => c.uri.spec == uri.spec)) {
+    let type = document.getElementById("calendar-type").selectedItem.value;
+    if (type != "local" && cals.some(calendar => calendar.uri.spec == uri.spec)) {
         // If the calendar is not local, we check if there is already a calendar
         // with the same uri spec. Storage calendars all have the same uri, so
         // we have to specialcase them.
@@ -237,5 +245,5 @@ function parseUri(aUri) {
  * undo.
  */
 function setCanRewindFalse() {
-   document.getElementById('calendar-wizard').canRewind = false;
+    document.getElementById("calendar-wizard").canRewind = false;
 }

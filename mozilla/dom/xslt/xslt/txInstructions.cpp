@@ -37,16 +37,7 @@ txApplyDefaultElementTemplate::execute(txExecutionState& aEs)
 }
 
 nsresult
-txApplyImportsEnd::execute(txExecutionState& aEs)
-{
-    aEs.popTemplateRule();
-    aEs.popParamMap();
-    
-    return NS_OK;
-}
-
-nsresult
-txApplyImportsStart::execute(txExecutionState& aEs)
+txApplyImports::execute(txExecutionState& aEs)
 {
     txExecutionState::TemplateRule* rule = aEs.getCurrentTemplateRule();
     // The frame is set to null when there is no current template rule, or
@@ -68,7 +59,12 @@ txApplyImportsStart::execute(txExecutionState& aEs)
 
     aEs.pushTemplateRule(frame, mode, rule->mParams);
 
-    return aEs.runTemplate(templ);
+    rv = aEs.runTemplate(templ);
+
+    aEs.popTemplateRule();
+    aEs.popParamMap();
+
+    return rv;
 }
 
 txApplyTemplates::txApplyTemplates(const txExpandedName& aMode)
@@ -114,7 +110,7 @@ txAttribute::execute(txExecutionState& aEs)
     nsCOMPtr<nsIAtom> prefix;
     uint32_t lnameStart = 0;
     if (colon) {
-        prefix = do_GetAtom(Substring(name.get(), colon));
+        prefix = NS_Atomize(Substring(name.get(), colon));
         lnameStart = colon - name.get() + 1;
     }
 
@@ -474,7 +470,7 @@ txLoopNodeSet::execute(txExecutionState& aEs)
     txNodeSetContext* context =
         static_cast<txNodeSetContext*>(aEs.getEvalContext());
     if (!context->hasNext()) {
-        delete aEs.popEvalContext();
+        aEs.popAndDeleteEvalContext();
 
         return NS_OK;
     }
@@ -830,7 +826,7 @@ txStartElement::execute(txExecutionState& aEs)
     const char16_t* colon;
     if (XMLUtils::isValidQName(name, &colon)) {
         if (colon) {
-            prefix = do_GetAtom(Substring(name.get(), colon));
+            prefix = NS_Atomize(Substring(name.get(), colon));
             lnameStart = colon - name.get() + 1;
         }
 

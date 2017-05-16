@@ -19,6 +19,7 @@
 <!ENTITY playSound1.accesskey             "d">
 <!ENTITY showAnimatedAlert.label          "Show an alert">
 <!ENTITY showAnimatedAlert.accesskey      "S">
+<!ENTITY notificationAlertSettings.label  "Alerts can be disabled on the Notification pane of System Preferences.">
 <!ENTITY customizeMailAlert.label         "Customise…">
 <!ENTITY customizeMailAlert.accesskey     "C">
 
@@ -37,3 +38,7 @@
 <!ENTITY browse.accesskey                 "B">
 
 <!ENTITY defaultSearchEngine.label        "Default Search Engine">
+
+<!ENTITY notificationAlertSettings2.label "Alerts and the default sound can be disabled on the Notification pane of System Preferences.">
+<!ENTITY playSoundMac.accesskey           "d">
+<!ENTITY playSoundMac.label               "Play the following sound file:">

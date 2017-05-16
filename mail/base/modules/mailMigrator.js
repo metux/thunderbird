@@ -20,6 +20,9 @@ Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource:///modules/mailServices.js");
 Cu.import("resource:///modules/IOUtils.js");
 
+XPCOMUtils.defineLazyModuleGetter(this, "LoginHelper",
+                                  "resource://gre/modules/LoginHelper.jsm");
+
 var MailMigrator = {
   /**
    * Switch the given fonts to the given encodings, but only if the current fonts
@@ -99,7 +102,7 @@ var MailMigrator = {
   _migrateUI: function() {
     // The code for this was ported from
     // mozilla/browser/components/nsBrowserGlue.js
-    const UI_VERSION = 11;
+    const UI_VERSION = 15;
     const MESSENGER_DOCURL = "chrome://messenger/content/messenger.xul";
     const UI_VERSION_PREF = "mail.ui-rdf.version";
     let currentUIVersion = 0;
@@ -301,6 +304,79 @@ var MailMigrator = {
           group.data = "x-western";
           Services.prefs.setComplexValue("font.language.group",
                                          Ci.nsIPrefLocalizedString, group);
+        }
+      }
+
+      // The obsolete files signons.txt, signons2.txt and signons3.txt got
+      // removed from the profile directory.
+      if (currentUIVersion < 12) {
+        LoginHelper.removeLegacySignonFiles();
+      }
+
+      // Untangled starting in Paragraph mode from Enter key preference
+      if (currentUIVersion < 13) {
+        Services.prefs.setBoolPref("mail.compose.default_to_paragraph",
+          Services.prefs.getBoolPref("editor.CR_creates_new_p"));
+        Services.prefs.clearUserPref("editor.CR_creates_new_p");
+      }
+
+      // Migrate remote content exceptions for email addresses which are
+      // encoded as chrome URIs.
+      if (currentUIVersion < 14) {
+        let permissionsDB =
+          Services.dirsvc.get("ProfD",Components.interfaces.nsILocalFile);
+        permissionsDB.append("permissions.sqlite");
+        let db = Services.storage.openDatabase(permissionsDB);
+
+        try {
+          let statement = db.createStatement(
+            "select origin,permission from moz_perms where " +
+            // Avoid 'like' here which needs to be escaped.
+            "substr(origin, 1, 28)='chrome://messenger/content/?';");
+          try {
+            while (statement.executeStep()) {
+              let origin = statement.getUTF8String(0);
+              let permission = statement.getInt32(1);
+              Services.perms.remove(
+                Services.io.newURI(origin), "image");
+              origin = origin.replace("chrome://messenger/content/?",
+                                      "chrome://messenger/content/");
+              Services.perms.add(
+                Services.io.newURI(origin), "image", permission);
+            }
+          } finally {
+            statement.finalize();
+          }
+
+          // Sadly we still need to clear the database manually. Experiments
+          // showed that the permissions manager deleted only one record.
+          db.beginTransactionAs(Components.interfaces.mozIStorageConnection
+                                                     .TRANSACTION_EXCLUSIVE);
+          try {
+            db.executeSimpleSQL("delete from moz_perms where " +
+              "substr(origin, 1, 28)='chrome://messenger/content/?';");
+            db.commitTransaction();
+          } catch (ex) {
+            db.rollbackTransaction();
+            throw ex;
+          }
+        } finally {
+          db.close();
+        }
+      }
+
+      // Changed notification sound behaviour on OS X.
+      if (currentUIVersion < 15) {
+        Cu.import("resource://gre/modules/AppConstants.jsm");
+        if (AppConstants.platform == "macosx") {
+          // For people updating from versions < 52 who had "Play system sound"
+          // selected for notifications. As TB no longer plays system sounds,
+          // uncheck the pref to match the new behaviour.
+          const soundPref = "mail.biff.play_sound";
+          if (Services.prefs.getBoolPref(soundPref) &&
+              Services.prefs.getIntPref(soundPref + ".type") == 0) {
+            Services.prefs.setBoolPref(soundPref, false);
+          }
         }
       }
 

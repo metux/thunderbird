@@ -4,12 +4,12 @@ locale branding pa-IN pa-IN/locale/pa-IN/branding/
 locale chat pa-IN pa-IN/locale/pa-IN/chat/
 locale communicator pa-IN pa-IN/locale/pa-IN/communicator/
 locale cookie pa-IN pa-IN/locale/pa-IN/cookie/
+locale devtools pa-IN pa-IN/locale/pa-IN/devtools/client/
 locale devtools-shared pa-IN pa-IN/locale/pa-IN/devtools/shared/
 locale editor pa-IN pa-IN/locale/pa-IN/editor/
 locale formautofill pa-IN pa-IN/locale/pa-IN/formautofill/
 locale global pa-IN pa-IN/locale/pa-IN/global/
 locale global-platform pa-IN pa-IN/locale/pa-IN/global-platform/
-locale global-region pa-IN pa-IN/locale/pa-IN/global-region/
 locale messenger pa-IN pa-IN/locale/pa-IN/messenger/
 locale messenger-mapi pa-IN pa-IN/locale/pa-IN/messenger-mapi/
 locale messenger-newsblog pa-IN pa-IN/locale/pa-IN/messenger-newsblog/

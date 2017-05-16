@@ -28,6 +28,8 @@
 <!ENTITY helpButton.accesskey "H">
 <!ENTITY closeCmd.key "W"> 
 
+<!ENTITY newButton.popupCopy.accesskey "C">
+<!ENTITY newButton.popupCopy.label "Copy…">
 <!ENTITY reorderBottomButton "Move to Bottom">
 <!ENTITY reorderBottomButton.accessKey "B">
 <!ENTITY reorderBottomButton.toolTip "Rearrange filter so it executes after all others">

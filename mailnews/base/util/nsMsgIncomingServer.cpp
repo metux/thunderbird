@@ -14,6 +14,7 @@
 #include "nsStringGlue.h"
 #include "nsISupportsPrimitives.h"
 
+#include "nsIMsgBiffManager.h"
 #include "nsMsgBaseCID.h"
 #include "nsMsgDBCID.h"
 #include "nsIMsgFolder.h"
@@ -52,7 +53,7 @@
 #define PORT_NOT_SET -1
 
 nsMsgIncomingServer::nsMsgIncomingServer():
-    m_rootFolder(0),
+    m_rootFolder(nullptr),
     m_downloadedHdrs(50),
     m_numMsgsDownloaded(0),
     m_biffState(nsIMsgFolder::nsMsgBiffState_Unknown),
@@ -60,7 +61,7 @@ nsMsgIncomingServer::nsMsgIncomingServer():
     m_canHaveFilters(true),
     m_displayStartupPage(true),
     mPerformingBiff(false)
-{ 
+{
 }
 
 nsMsgIncomingServer::~nsMsgIncomingServer()
@@ -905,12 +906,15 @@ nsMsgIncomingServer::GetLocalPath(nsIFile **aLocalPath)
   nsCOMPtr<nsIFile> localPath;
   rv = protocolInfo->GetDefaultLocalPath(getter_AddRefs(localPath));
   NS_ENSURE_SUCCESS(rv, rv);
-  localPath->Create(nsIFile::DIRECTORY_TYPE, 0755);
+  rv = localPath->Create(nsIFile::DIRECTORY_TYPE, 0755);
+  if (rv == NS_ERROR_FILE_ALREADY_EXISTS)
+    rv = NS_OK;
+  NS_ENSURE_SUCCESS(rv, rv);
 
   nsCString hostname;
   rv = GetHostName(hostname);
   NS_ENSURE_SUCCESS(rv, rv);
-  
+
   // set the leaf name to "dummy", and then call MakeUnique with a suggested leaf name
   rv = localPath->AppendNative(hostname);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -962,7 +966,10 @@ NS_IMETHODIMP
 nsMsgIncomingServer::SetLocalPath(nsIFile *aLocalPath)
 {
   NS_ENSURE_ARG_POINTER(aLocalPath);
-  aLocalPath->Create(nsIFile::DIRECTORY_TYPE, 0755);
+  nsresult rv = aLocalPath->Create(nsIFile::DIRECTORY_TYPE, 0755);
+  if (rv == NS_ERROR_FILE_ALREADY_EXISTS)
+    rv = NS_OK;
+  NS_ENSURE_SUCCESS(rv, rv);
   return SetFileValue("directory-rel", "directory", aLocalPath);
 }
 
@@ -970,6 +977,13 @@ NS_IMETHODIMP
 nsMsgIncomingServer::GetLocalStoreType(nsACString& aResult)
 {
   NS_NOTYETIMPLEMENTED("nsMsgIncomingServer superclass not implementing GetLocalStoreType!");
+  return NS_ERROR_UNEXPECTED;
+}
+
+NS_IMETHODIMP
+nsMsgIncomingServer::GetLocalDatabaseType(nsACString& aResult)
+{
+  NS_NOTYETIMPLEMENTED("nsMsgIncomingServer superclass not implementing GetLocalDatabaseType!");
   return NS_ERROR_UNEXPECTED;
 }
 
@@ -1016,11 +1030,7 @@ NS_IMETHODIMP
 nsMsgIncomingServer::RemoveFiles()
 {
   // IMPORTANT, see bug #77652
-  // don't turn this code on yet.  we don't inform the user that
-  // we are going to be deleting the directory, and they might have
-  // tweaked their localPath pref for this server to point to
-  // somewhere they didn't want deleted.
-  // until we tell them, we shouldn't do the delete.
+  // TODO: Decide what to do for deferred accounts.
   nsCString deferredToAccount;
   GetCharValue("deferred_to_account", deferredToAccount);
   bool isDeferredTo = true;
@@ -1300,7 +1310,7 @@ nsMsgIncomingServer::GetRealHostName(nsACString& aResult)
   nsresult rv;
   rv = GetCharValue("realhostname", aResult);
   NS_ENSURE_SUCCESS(rv, rv);
-  
+
   if (aResult.IsEmpty())
     return GetHostName(aResult);
 
@@ -1374,6 +1384,19 @@ nsMsgIncomingServer::SetDoBiff(bool aDoBiff)
   if (!mPrefBranch)
     return NS_ERROR_NOT_INITIALIZED;
 
+  // Update biffManager immediately, no restart required. Adding/removing
+  // existing/non-existing server is handled without error checking.
+  nsresult rv;
+  nsCOMPtr<nsIMsgBiffManager> biffService =
+    do_GetService(NS_MSGBIFFMANAGER_CONTRACTID, &rv);
+  if (NS_SUCCEEDED(rv) && biffService)
+  {
+    if (aDoBiff)
+      (void) biffService->AddServerBiff(this);
+    else
+      (void) biffService->RemoveServerBiff(this);
+  }
+
   return mPrefBranch->SetBoolPref(BIFF_PREF_NAME, aDoBiff);
 }
 
@@ -1445,7 +1468,6 @@ NS_IMETHODIMP nsMsgIncomingServer::GetRetentionSettings(nsIMsgRetentionSettings 
   nsMsgRetainByPreference retainByPreference;
   int32_t daysToKeepHdrs = 0;
   int32_t numHeadersToKeep = 0;
-  bool keepUnreadMessagesOnly = false;
   int32_t daysToKeepBodies = 0;
   bool cleanupBodiesByDays = false;
   bool applyToFlaggedMessages = false;
@@ -1456,8 +1478,6 @@ NS_IMETHODIMP nsMsgIncomingServer::GetRetentionSettings(nsIMsgRetentionSettings 
      do_CreateInstance(NS_MSG_RETENTIONSETTINGS_CONTRACTID);
   if (retentionSettings)
   {
-    rv = GetBoolValue("keepUnreadOnly", &keepUnreadMessagesOnly);
-    NS_ENSURE_SUCCESS(rv, rv);
     rv = GetIntValue("retainBy", (int32_t*) &retainByPreference);
     NS_ENSURE_SUCCESS(rv, rv);
     rv = GetIntValue("numHdrsToKeep", &numHeadersToKeep);
@@ -1472,7 +1492,6 @@ NS_IMETHODIMP nsMsgIncomingServer::GetRetentionSettings(nsIMsgRetentionSettings 
     NS_ENSURE_SUCCESS(rv, rv);
     retentionSettings->SetRetainByPreference(retainByPreference);
     retentionSettings->SetNumHeadersToKeep((uint32_t) numHeadersToKeep);
-    retentionSettings->SetKeepUnreadMessagesOnly(keepUnreadMessagesOnly);
     retentionSettings->SetDaysToKeepBodies(daysToKeepBodies);
     retentionSettings->SetDaysToKeepHdrs(daysToKeepHdrs);
     retentionSettings->SetCleanupBodiesByDays(cleanupBodiesByDays);
@@ -1489,20 +1508,16 @@ NS_IMETHODIMP nsMsgIncomingServer::SetRetentionSettings(nsIMsgRetentionSettings 
   nsMsgRetainByPreference retainByPreference;
   uint32_t daysToKeepHdrs = 0;
   uint32_t numHeadersToKeep = 0;
-  bool keepUnreadMessagesOnly = false;
   uint32_t daysToKeepBodies = 0;
   bool cleanupBodiesByDays = false;
   bool applyToFlaggedMessages = false;
   settings->GetRetainByPreference(&retainByPreference);
   settings->GetNumHeadersToKeep(&numHeadersToKeep);
-  settings->GetKeepUnreadMessagesOnly(&keepUnreadMessagesOnly);
   settings->GetDaysToKeepBodies(&daysToKeepBodies);
   settings->GetDaysToKeepHdrs(&daysToKeepHdrs);
   settings->GetCleanupBodiesByDays(&cleanupBodiesByDays);
   settings->GetApplyToFlaggedMessages(&applyToFlaggedMessages);
-  nsresult rv = SetBoolValue("keepUnreadOnly", keepUnreadMessagesOnly);
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = SetIntValue("retainBy", retainByPreference);
+  nsresult rv = SetIntValue("retainBy", retainByPreference);
   NS_ENSURE_SUCCESS(rv, rv);
   rv = SetIntValue("numHdrsToKeep", numHeadersToKeep);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -1620,8 +1635,8 @@ NS_IMETHODIMP nsMsgIncomingServer::DisplayOfflineMsg(nsIMsgWindow *aMsgWindow)
   {
     nsString errorMsgTitle;
     nsString errorMsgBody;
-    bundle->GetStringFromName(MOZ_UTF16("nocachedbodybody2"), getter_Copies(errorMsgBody));
-    bundle->GetStringFromName(MOZ_UTF16("nocachedbodytitle"), getter_Copies(errorMsgTitle));
+    bundle->GetStringFromName(u"nocachedbodybody2", getter_Copies(errorMsgBody));
+    bundle->GetStringFromName(u"nocachedbodytitle", getter_Copies(errorMsgTitle));
     aMsgWindow->DisplayHTMLInMessagePane(errorMsgTitle, errorMsgBody, true);
   }
 

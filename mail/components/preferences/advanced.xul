@@ -97,8 +97,6 @@
 type="bool"/>
       <preference id="app.update.auto" name="app.update.auto"
 type="bool"/>
-      <preference id="app.update.mode" name="app.update.mode"
-type="int"/>
       <preference id="app.update.disable_button.showUpdateHistory"
                   name="app.update.disable_button.showUpdateHistory"
                   type="bool"/>
@@ -307,6 +305,12 @@ type="int"/>
           <groupbox>
             <caption label="&Diskspace;"/>
             <hbox align="center">
+              <label id="actualDiskCacheSize" flex="1"/>
+              <button id="clearCacheButton" icon="clear"
+                      label="&clearCacheNow.label;" accesskey="&clearCacheNow.accesskey;"
+                      oncommand="gAdvancedPane.clearCache();"/>
+            </hbox>
+            <hbox align="center">
               <label id="useCacheBefore" control="cacheSize"
                      accesskey="&useCacheBefore.accesskey;" value="&useCacheBefore.label;"/>
               <textbox id="cacheSize" type="number" size="4" max="1024"
@@ -315,9 +319,6 @@ type="int"/>
                        onsynctopreference="return gAdvancedPane.writeCacheSize();"
                        aria-labelledby="useCacheBefore cacheSize useCacheAfter"/>
               <label id="useCacheAfter" flex="1">&useCacheAfter.label;</label>
-              <button id="clearCacheButton" icon="clear"
-                      label="&clearCacheNow.label;" accesskey="&clearCacheNow.accesskey;"
-                      oncommand="gAdvancedPane.clearCache();"/>
             </hbox>
             <hbox align="center">
                 <checkbox id="offlineCompactFolder"
@@ -345,14 +346,6 @@ type="int"/>
               <radio value="auto"
                      label="&updateAuto.label;"
                      accesskey="&updateAuto.accesskey;"/>
-              <hbox class="indent">
-                <checkbox id="warnIncompatible"
-                          label="&updateAutoAddonWarn.label;"
-                          accesskey="&updateAutoAddonWarn.accesskey;"
-                          preference="app.update.mode"
-                          onsyncfrompreference="return gAdvancedPane.addonWarnSyncFrom();"
-                          onsynctopreference="return gAdvancedPane.addonWarnSyncTo();"/>
-              </hbox>
               <hbox>
                 <radio value="checkOnly"
                        label="&updateCheck.label;"
@@ -420,9 +413,9 @@ type="int"/>
             <separator/>
 
           <hbox>
-            <button id="viewCertificatesButton"
-                    label="&viewCertificates.label;"
-                    accesskey="&viewCertificates.accesskey;"
+            <button id="manageCertificatesButton"
+                    label="&manageCertificates.label;"
+                    accesskey="&manageCertificates.accesskey;"
                     oncommand="gAdvancedPane.showCertificates();"
                     preference="security.disable_button.openCertManager"/>
             <button id="viewSecurityDevicesButton"

@@ -4,6 +4,7 @@
 
 Components.utils.import("resource:///modules/ABQueryUtils.jsm");
 Components.utils.import("resource:///modules/mailServices.js");
+Components.utils.import("resource://gre/modules/PluralForm.jsm");
 
 var searchSessionContractID = "@mozilla.org/messenger/searchSession;1";
 var gSearchSession;
@@ -27,19 +28,16 @@ var gSearchAbViewListener = {
   onSelectionChanged: function() {
     UpdateCardView();
   },
-  onCountChanged: function(total) {
-    var statusText;
-    switch (total) {
-      case 0:
-        statusText = gAddressBookBundle.getString("noMatchFound");
-        break;
-      case 1:
-        statusText = gAddressBookBundle.getString("matchFound");
-        break;
-      default:
-        statusText = gAddressBookBundle.getFormattedString("matchesFound", [total]);
-        break;
+  onCountChanged: function(aTotal) {
+    let statusText;
+    if (aTotal == 0) {
+      statusText = gAddressBookBundle.getString("noMatchFound");
+    } else {
+      statusText = PluralForm
+        .get(aTotal, gAddressBookBundle.getString("matchesFound1"))
+        .replace("#1", aTotal);
     }
+
     gStatusText.setAttribute("label", statusText);
   }
 };
@@ -89,11 +87,11 @@ function initializeSearchWindowWidgets()
   hideMatchAllItem();
 }
 
-function onSearchStop() 
+function onSearchStop()
 {
 }
 
-function onAbSearchReset(event) 
+function onAbSearchReset(event)
 {
   gPropertiesButton.setAttribute("disabled","true");
   gComposeButton.setAttribute("disabled","true");
@@ -104,7 +102,7 @@ function onAbSearchReset(event)
   gStatusText.setAttribute("label", "");
 }
 
-function SelectDirectory(aURI) 
+function SelectDirectory(aURI)
 {
   var selectedAB = aURI;
 
@@ -127,13 +125,13 @@ function GetScopeForDirectoryURI(aURI)
   if (directory.isRemote) {
     if (booleanAnd)
       return nsMsgSearchScope.LDAPAnd;
-    else 
+    else
       return nsMsgSearchScope.LDAP;
   }
   else {
     if (booleanAnd)
       return nsMsgSearchScope.LocalABAnd;
-    else 
+    else
       return nsMsgSearchScope.LocalAB;
   }
 }
@@ -143,8 +141,8 @@ function onEnterInSearchTerm()
   // on enter
   // if not searching, start the search
   // if searching, stop and then start again
-  if (gSearchStopButton.getAttribute("label") == gSearchBundle.getString("labelForSearchButton")) { 
-     onSearch(); 
+  if (gSearchStopButton.getAttribute("label") == gSearchBundle.getString("labelForSearchButton")) {
+     onSearch();
   }
   else {
      onSearchStop();
@@ -161,7 +159,7 @@ function onSearch()
     gSearchSession.clearScopes();
 
     var currentAbURI = document.getElementById('abPopup').getAttribute('value');
- 
+
     gSearchSession.addDirectoryScopeTerm(GetScopeForDirectoryURI(currentAbURI));
     saveSearchTerms(gSearchSession.searchTerms, gSearchSession);
 
@@ -174,7 +172,7 @@ function onSearch()
 
       // get the "and" / "or" value from the first term
       if (i == 0) {
-       if (searchTerm.booleanAnd) 
+       if (searchTerm.booleanAnd)
          searchUri += "and";
        else
          searchUri += "or";
@@ -196,7 +194,7 @@ function onSearch()
          attrs = ["PrimaryEmail"];
          break;
        case nsMsgSearchAttrib.PhoneNumber:
-         attrs = ["HomePhone","WorkPhone","FaxNumber","PagerNumber","CellularNumber"]; 
+         attrs = ["HomePhone","WorkPhone","FaxNumber","PagerNumber","CellularNumber"];
          break;
        case nsMsgSearchAttrib.Organization:
          attrs = ["Company"];
@@ -327,7 +325,7 @@ function UpdateCardView()
 
   gComposeButton.removeAttribute("disabled");
 
-  if (numSelected == 1) 
+  if (numSelected == 1)
     gPropertiesButton.removeAttribute("disabled");
   else
     gPropertiesButton.setAttribute("disabled","true");

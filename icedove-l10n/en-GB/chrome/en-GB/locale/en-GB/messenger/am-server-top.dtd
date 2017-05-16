@@ -23,6 +23,8 @@
 <!ENTITY biffStart.label "Check for new messages every ">
 <!ENTITY biffStart.accesskey "k">
 <!ENTITY biffEnd.label "minutes">
+<!ENTITY useIdleNotifications.label "Allow immediate server notifications when new messages arrive">
+<!ENTITY useIdleNotifications.accesskey "w">
 <!ENTITY connectionSecurity.label "Connection security:">
 <!ENTITY connectionSecurity.accesskey "u">
 <!ENTITY connectionSecurityType-0.label "None">
@@ -88,6 +90,3 @@
 <!ENTITY storeType.accesskey "T">
 <!ENTITY mboxStore2.label "File per folder (mbox)">
 <!ENTITY maildirStore.label "File per message (maildir)">
-
-<!ENTITY useIdleNotifications.accesskey "w">
-<!ENTITY useIdleNotifications.label "Allow immediate server notifications when new messages arrive">

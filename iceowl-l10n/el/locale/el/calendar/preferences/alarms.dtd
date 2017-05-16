@@ -7,30 +7,30 @@
    - your editor isn't using UTF-8 encoding and may munge up the document!
   -->
 
-<!ENTITY pref.alarmgoesoff.label "When a Reminder is Due:">
-<!ENTITY pref.playasound "Play a sound">
-<!ENTITY pref.calendar.alarms.playsound.accessKey "s">
-<!ENTITY pref.calendar.alarms.sound.useDefault.label "Use default sound">
-<!ENTITY pref.calendar.alarms.sound.useDefault.accessKey "d">
-<!ENTITY pref.calendar.alarms.sound.browse.label "Browse…">
-<!ENTITY pref.calendar.alarms.sound.browse.accessKey "B">
-<!ENTITY pref.calendar.alarms.sound.play.label "Play">
-<!ENTITY pref.calendar.alarms.sound.play.accessKey "P">
-<!ENTITY pref.showalarmbox "Show the reminder dialog">
-<!ENTITY pref.calendar.alarms.showAlarmBox.accessKey "x">
-<!ENTITY pref.missedalarms "Show missed reminders">
-<!ENTITY pref.calendar.alarms.missedAlarms.accessKey "m">
-<!ENTITY pref.calendar.alarms.defaults.label "Reminder Defaults">
-<!ENTITY pref.defalarm4events.label "Default reminder setting for events:">
-<!ENTITY pref.defalarm4events.accesskey "e">
-<!ENTITY pref.defalarm4todos.label "Default reminder setting for tasks:">
-<!ENTITY pref.defalarm4todos.accesskey "a">
-<!ENTITY pref.alarm.on "On">
-<!ENTITY pref.alarm.off "Off">
-<!ENTITY pref.defalarmlen4events.label "Default time a reminder is set before an event:">
-<!ENTITY pref.defalarmlen4events.accesskey "u">
-<!ENTITY pref.defalarmlen4todos.label "Default time a reminder is set before a task:">
-<!ENTITY pref.defalarmlen4todos.accesskey "o">
+<!ENTITY pref.alarmgoesoff.label "Όταν εκπνέει ο χρόνος της υπενθύμισης:">
+<!ENTITY pref.playasound "Αναπαραγωγή ήχου">
+<!ENTITY pref.calendar.alarms.playsound.accessKey "χ">
+<!ENTITY pref.calendar.alarms.sound.useDefault.label "Χρήση προεπιλεγμένου ήχου">
+<!ENTITY pref.calendar.alarms.sound.useDefault.accessKey "λ">
+<!ENTITY pref.calendar.alarms.sound.browse.label "Εξερεύνηση…">
+<!ENTITY pref.calendar.alarms.sound.browse.accessKey "ξ">
+<!ENTITY pref.calendar.alarms.sound.play.label "Αναπαραγωγή">
+<!ENTITY pref.calendar.alarms.sound.play.accessKey "π">
+<!ENTITY pref.showalarmbox "Εμφάνιση του παραθύρου διαλόγου υπενθύμισης">
+<!ENTITY pref.calendar.alarms.showAlarmBox.accessKey "θ">
+<!ENTITY pref.missedalarms "Εμφάνιση υπενθυμίσεων που σας διέφυγαν">
+<!ENTITY pref.calendar.alarms.missedAlarms.accessKey "φ">
+<!ENTITY pref.calendar.alarms.defaults.label "Προεπιλογές υπενθύμισης">
+<!ENTITY pref.defalarm4events.label "Να μπαίνει εκ προεπιλογής υπενθύμιση για συμβάντα:">
+<!ENTITY pref.defalarm4events.accesskey "σ">
+<!ENTITY pref.defalarm4todos.label "Να μπαίνει εκ προεπιλογής υπενθύμιση για εργασίες:">
+<!ENTITY pref.defalarm4todos.accesskey "ε">
+<!ENTITY pref.alarm.on "Ναι">
+<!ENTITY pref.alarm.off "Όχι">
+<!ENTITY pref.defalarmlen4events.label "Προεπιλεγμένος χρόνος που να ορίζεται η υπενθύμιση πριν από συμβάν:">
+<!ENTITY pref.defalarmlen4events.accesskey "υ">
+<!ENTITY pref.defalarmlen4todos.label "Προεπιλεγμένος χρόνος που να ορίζεται η υπενθύμιση πριν από εργασία:">
+<!ENTITY pref.defalarmlen4todos.accesskey "ρ">
 
-<!ENTITY pref.defaultsnoozelength.label "Default Snooze Length:" >
-<!ENTITY pref.defaultsnoozelength.accesskey "S">
+<!ENTITY pref.defaultsnoozelength.label "Προεπιλεγμένη διάρκεια αναστολής υπενθύμισης:" >
+<!ENTITY pref.defaultsnoozelength.accesskey "δ">

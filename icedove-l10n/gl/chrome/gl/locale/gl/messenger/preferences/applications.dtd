@@ -36,3 +36,7 @@
 
 <!ENTITY enableCloudFileAccountOffer.label "Ofrecer para compartir ficheiros de máis de">
 <!ENTITY enableCloudFileAccountOffer.mb "MB">
+
+<!ENTITY addCloudFileAccount1.accesskey   "A">
+
+<!ENTITY addCloudFileAccount1.label       "Add…">

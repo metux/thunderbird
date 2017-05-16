@@ -36,6 +36,7 @@ public:
     // overriding nsMsgIncomingServer methods
   NS_IMETHOD SetKey(const nsACString& aKey) override;  // override nsMsgIncomingServer's implementation...
   NS_IMETHOD GetLocalStoreType(nsACString& type) override;
+  NS_IMETHOD GetLocalDatabaseType(nsACString& type) override;
 
   NS_DECL_NSIIMAPINCOMINGSERVER
   NS_DECL_NSIIMAPSERVERSINK
@@ -71,7 +72,7 @@ public:
   NS_IMETHOD GetMsgFolderFromURI(nsIMsgFolder *aFolderResource,
                                  const nsACString& aURI,
                                  nsIMsgFolder **aFolder) override;
-  NS_IMETHOD SetSocketType(int32_t aSocketType);
+  NS_IMETHOD SetSocketType(int32_t aSocketType) override;
   NS_IMETHOD VerifyLogon(nsIUrlListener *aUrlListener, nsIMsgWindow *aMsgWindow,
                          nsIURI **aURL) override;
 

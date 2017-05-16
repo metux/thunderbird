@@ -24,3 +24,5 @@
 <!ENTITY selectProfile.label "Наступныя профілі даступны для імпарту з:">
 <!ENTITY done.title "Імпарт здзейснены">
 <!ENTITY done.label "Наступныя адзінкі паспяхова імпартаваны:">
+
+<!ENTITY importSourceNotFound.label     "No application to import data from found.">

@@ -15,7 +15,6 @@ CuImport("resource://gre/modules/PromiseUtils.jsm", this);
 CuImport("resource://gre/modules/Task.jsm", this);
 
 CuImport("resource://calendar/modules/calUtils.jsm", this);
-CuImport("resource://calendar/modules/calIteratorUtils.jsm", this);
 CuImport("resource://calendar/modules/calProviderUtils.jsm", this);
 
 var cIE = Components.interfaces.calIErrors;
@@ -371,8 +370,7 @@ function EventToJSON(aItem, aOfflineStorage, aIsImport) {
         };
 
         let needsOrganizer = true;
-        let attendees = aItem.getAttendees({});
-        let attendeeData = [ createAttendee(a) for each (a in attendees) ];
+        let attendeeData = aItem.getAttendees({}).map(createAttendee);
 
         if (aItem.organizer) {
             itemData.organizer = createAttendee(aItem.organizer);
@@ -587,7 +585,9 @@ function setupRecurrence(aItem, aRecurrence, aTimezone) {
     }
 
     let hasRecurringRules = false;
-    for (let prop in cal.ical.propertyIterator(rootComp)) {
+    for (let prop = rootComp.getFirstProperty("ANY");
+         prop;
+         prop = rootComp.getNextProperty("ANY")) {
        switch (prop.propertyName) {
             case "RDATE":
             case "EXDATE":
@@ -1104,6 +1104,13 @@ ItemSaver.prototype = {
      *                    calendar.
      */
     processException: function(exc, item) {
+        if (item.status == "CANCELLED") {
+            // Cancelled master items don't have the full amount of
+            // information, specifically no recurrence info. Since they are
+            // cancelled anyway, we can just ignore processing this exception.
+            return Promise.resolve();
+        }
+
         exc.parentItem = item;
         if (exc.status == "CANCELLED") {
             // Canceled means the occurrence is an EXDATE.
@@ -1293,11 +1300,15 @@ function checkResolveConflict(aOperation, aCalendar, aItem) {
             aOperation.addRequestHeader("If-Match", "*");
             try {
                 throw new Task.Result(yield aCalendar.session.asyncItemRequest(aOperation));
-            } catch (e if e.result == calGoogleRequest.RESOURCE_GONE &&
-                          aOperation.type == aOperation.DELETE) {
-                // The item was deleted on the server and locally, we don't need to
-                // notify the user about this.
-                throw new Task.Result(null);
+            } catch (e) {
+                if (e.result == calGoogleRequest.RESOURCE_GONE &&
+                    aOperation.type == aOperation.DELETE) {
+                    // The item was deleted on the server and locally, we don't need to
+                    // notify the user about this.
+                    throw new Task.Result(null);
+                } else {
+                    throw e;
+                }
             }
         } else {
             // The user has decided to throw away changes, use our existing

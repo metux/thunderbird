@@ -4,15 +4,13 @@
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
+/* exported loadEventsFromFile, exportEntireCalendar */
+
 // File constants copied from file-utils.js
-var MODE_RDONLY   = 0x01;
-var MODE_WRONLY   = 0x02;
-var MODE_RDWR     = 0x04;
-var MODE_CREATE   = 0x08;
-var MODE_APPEND   = 0x10;
+var MODE_RDONLY = 0x01;
+var MODE_WRONLY = 0x02;
+var MODE_CREATE = 0x08;
 var MODE_TRUNCATE = 0x20;
-var MODE_SYNC     = 0x40;
-var MODE_EXCL     = 0x80;
 
 /**
  * Shows a file dialog, reads the selected file(s) and tries to parse events from it.
@@ -23,24 +21,24 @@ var MODE_EXCL     = 0x80;
 function loadEventsFromFile(aCalendar) {
     const nsIFilePicker = Components.interfaces.nsIFilePicker;
 
-    let fp = Components.classes["@mozilla.org/filepicker;1"]
-                       .createInstance(nsIFilePicker);
-    fp.init(window,
-            calGetString("calendar", "filepickerTitleImport"),
-            nsIFilePicker.modeOpen);
-    fp.defaultExtension = "ics";
+    let picker = Components.classes["@mozilla.org/filepicker;1"]
+                           .createInstance(nsIFilePicker);
+    picker.init(window,
+                calGetString("calendar", "filepickerTitleImport"),
+                nsIFilePicker.modeOpen);
+    picker.defaultExtension = "ics";
 
     // Get a list of importers
-    let contractids = new Array();
+    let contractids = [];
     let catman = Components.classes["@mozilla.org/categorymanager;1"]
                            .getService(Components.interfaces.nsICategoryManager);
-    let catenum = catman.enumerateCategory('cal-importers');
+    let catenum = catman.enumerateCategory("cal-importers");
     let currentListLength = 0;
     let defaultCIDIndex = 0;
     while (catenum.hasMoreElements()) {
         let entry = catenum.getNext();
         entry = entry.QueryInterface(Components.interfaces.nsISupportsCString);
-        let contractid = catman.getCategoryEntry('cal-importers', entry);
+        let contractid = catman.getCategoryEntry("cal-importers", entry);
         let importer;
         try {
             importer = Components.classes[contractid]
@@ -50,10 +48,10 @@ function loadEventsFromFile(aCalendar) {
             continue;
         }
         let types = importer.getFileTypes({});
-        for each (let type in types) {
-            fp.appendFilter(type.description, type.extensionFilter);
-            if (type.extensionFilter=="*." + fp.defaultExtension) {
-                fp.filterIndex = currentListLength;
+        for (let type of types) {
+            picker.appendFilter(type.description, type.extensionFilter);
+            if (type.extensionFilter == "*." + picker.defaultExtension) {
+                picker.filterIndex = currentListLength;
                 defaultCIDIndex = currentListLength;
             }
             contractids.push(contractid);
@@ -61,49 +59,47 @@ function loadEventsFromFile(aCalendar) {
         }
     }
 
-    let rv = fp.show();
+    let rv = picker.show();
 
     if (rv != nsIFilePicker.returnCancel &&
-        fp.file && fp.file.path && fp.file.path.length > 0) {
-
-        let filterIndex = fp.filterIndex;
-        if (fp.filterIndex < 0 || fp.filterIndex > contractids.length) {
+        picker.file && picker.file.path && picker.file.path.length > 0) {
+        let filterIndex = picker.filterIndex;
+        if (picker.filterIndex < 0 || picker.filterIndex > contractids.length) {
             // For some reason the wrong filter was selected, assume default extension
             filterIndex = defaultCIDIndex;
         }
 
-        let filePath = fp.file.path;
+        let filePath = picker.file.path;
         let importer = Components.classes[contractids[filterIndex]]
                                  .getService(Components.interfaces.calIImporter);
 
         const nsIFileInputStream = Components.interfaces.nsIFileInputStream;
-        const nsIScriptableInputStream = Components.interfaces.nsIScriptableInputStream;
 
         let inputStream = Components.classes["@mozilla.org/network/file-input-stream;1"]
                                     .createInstance(nsIFileInputStream);
         let items = [];
-        let exc;
+        let exception;
 
         try {
-            inputStream.init( fp.file, MODE_RDONLY, parseInt("0444", 8), {});
+            inputStream.init(picker.file, MODE_RDONLY, parseInt("0444", 8), {});
             items = importer.importFromStream(inputStream, {});
-        } catch(ex) {
-            exc = ex;
+        } catch (ex) {
+            exception = ex;
             switch (ex.result) {
                 case Components.interfaces.calIErrors.INVALID_TIMEZONE:
                     showError(cal.calGetString("calendar", "timezoneError", [filePath]));
                     break;
                 default:
-                    showError(cal.calGetString("calendar", "unableToRead") + filePath + "\n"+ ex);
+                    showError(cal.calGetString("calendar", "unableToRead") + filePath + "\n" + ex);
             }
         } finally {
             inputStream.close();
         }
 
-        if (!items.length && !exc) {
+        if (!items.length && !exception) {
             // the ics did not contain any events, so there's no need to proceed. But we should
-            // notify the user about it at least in the log, if we haven't before.
-            cal.LOG("Failed to import from " + filePath + ". There are no importable items in this file.");
+            // notify the user about it, if we haven't before.
+            showError(cal.calGetString("calendar", "noItemsInCalendarFile", [filePath]));
             return;
         }
 
@@ -124,8 +120,8 @@ function loadEventsFromFile(aCalendar) {
             putItemsIntoCal(calendars[0], items, filePath);
         } else {
             // Ask what calendar to import into
-            let args = new Object();
-            args.onOk = function putItems(aCal) { putItemsIntoCal(aCal, items, filePath); };
+            let args = {};
+            args.onOk = (aCal) => { putItemsIntoCal(aCal, items, filePath); };
             args.calendars = calendars;
             args.promptText = calGetString("calendar", "importPrompt");
             openDialog("chrome://calendar/content/chooseCalendarDialog.xul",
@@ -153,16 +149,16 @@ function putItemsIntoCal(destCal, aItems, aFilePath) {
     // This listener is needed to find out when the last addItem really
     // finished. Using a counter to find the last item (which might not
     // be the last item added)
-    var count = 0;
-    var failedCount = 0;
-    var duplicateCount = 0;
+    let count = 0;
+    let failedCount = 0;
+    let duplicateCount = 0;
     // Used to store the last error. Only the last error, because we don't
     // wan't to bomb the user with thousands of error messages in case
     // something went really wrong.
     // (example of something very wrong: importing the same file twice.
     //  quite easy to trigger, so we really should do this)
-    var lastError;
-    var listener = {
+    let lastError;
+    let listener = {
         QueryInterface: XPCOMUtils.generateQI([Components.interfaces.calIOperationListener]),
         onOperationComplete: function(aCalendar, aStatus, aOperationType, aId, aDetail) {
             count++;
@@ -184,20 +180,20 @@ function putItemsIntoCal(destCal, aItems, aFilePath) {
                 }
             }
         }
-    }
+    };
 
-    for each (let item in aItems) {
+    for (let item of aItems) {
         // XXX prompt when finding a duplicate.
         try {
             destCal.addItem(item, listener);
-        } catch(e) {
+        } catch (e) {
             failedCount++;
             lastError = e;
             // Call the listener's operationComplete, to increase the
             // counter and not miss failed items. Otherwise, endBatch might
             // never be called.
             listener.onOperationComplete(null, null, null, null, null);
-            Components.utils.reportError("Import error: "+e);
+            Components.utils.reportError("Import error: " + e);
         }
     }
 
@@ -220,34 +216,34 @@ function saveEventsToFile(calendarEventArray, aDefaultFileName) {
     // Show the 'Save As' dialog and ask for a filename to save to
     const nsIFilePicker = Components.interfaces.nsIFilePicker;
 
-    let fp = Components.classes["@mozilla.org/filepicker;1"]
+    let picker = Components.classes["@mozilla.org/filepicker;1"]
                        .createInstance(nsIFilePicker);
 
-    fp.init(window,
-            calGetString("calendar", "filepickerTitleExport"),
-            nsIFilePicker.modeSave);
+    picker.init(window,
+                calGetString("calendar", "filepickerTitleExport"),
+                nsIFilePicker.modeSave);
 
     if (aDefaultFileName && aDefaultFileName.length && aDefaultFileName.length > 0) {
-        fp.defaultString = aDefaultFileName;
+        picker.defaultString = aDefaultFileName;
     } else if (calendarEventArray.length == 1 && calendarEventArray[0].title) {
-        fp.defaultString = calendarEventArray[0].title;
+        picker.defaultString = calendarEventArray[0].title;
     } else {
-        fp.defaultString = calGetString("calendar", "defaultFileName");
+        picker.defaultString = calGetString("calendar", "defaultFileName");
     }
 
-    fp.defaultExtension = "ics";
+    picker.defaultExtension = "ics";
 
     // Get a list of exporters
-    let contractids = new Array();
+    let contractids = [];
     let catman = Components.classes["@mozilla.org/categorymanager;1"]
                            .getService(Components.interfaces.nsICategoryManager);
-    let catenum = catman.enumerateCategory('cal-exporters');
+    let catenum = catman.enumerateCategory("cal-exporters");
     let currentListLength = 0;
     let defaultCIDIndex = 0;
     while (catenum.hasMoreElements()) {
         let entry = catenum.getNext();
         entry = entry.QueryInterface(Components.interfaces.nsISupportsCString);
-        let contractid = catman.getCategoryEntry('cal-exporters', entry);
+        let contractid = catman.getCategoryEntry("cal-exporters", entry);
         let exporter;
         try {
             exporter = Components.classes[contractid]
@@ -257,10 +253,10 @@ function saveEventsToFile(calendarEventArray, aDefaultFileName) {
             continue;
         }
         let types = exporter.getFileTypes({});
-        for each (let type in types) {
-            fp.appendFilter(type.description, type.extensionFilter);
-            if (type.extensionFilter=="*." + fp.defaultExtension) {
-                fp.filterIndex = currentListLength;
+        for (let type of types) {
+            picker.appendFilter(type.description, type.extensionFilter);
+            if (type.extensionFilter == "*." + picker.defaultExtension) {
+                picker.filterIndex = currentListLength;
                 defaultCIDIndex = currentListLength;
             }
             contractids.push(contractid);
@@ -268,18 +264,12 @@ function saveEventsToFile(calendarEventArray, aDefaultFileName) {
         }
     }
 
-    let rv = fp.show();
+    let rv = picker.show();
 
     // Now find out as what to save, convert the events and save to file.
-    if (rv != nsIFilePicker.returnCancel &&
-        fp.file && fp.file.path.length > 0) {
-        const UTF8 = "UTF-8";
-        let aDataStream;
-        let extension;
-        let charset;
-
-        let filterIndex = fp.filterIndex;
-        if (fp.filterIndex < 0 || fp.filterIndex > contractids.length) {
+    if (rv != nsIFilePicker.returnCancel && picker.file && picker.file.path.length > 0) {
+        let filterIndex = picker.filterIndex;
+        if (picker.filterIndex < 0 || picker.filterIndex > contractids.length) {
             // For some reason the wrong filter was selected, assume default extension
             filterIndex = defaultCIDIndex;
         }
@@ -287,9 +277,9 @@ function saveEventsToFile(calendarEventArray, aDefaultFileName) {
         let exporter = Components.classes[contractids[filterIndex]]
                                  .getService(Components.interfaces.calIExporter);
 
-        let filePath = fp.file.path;
+        let filePath = picker.file.path;
         if (!filePath.includes(".")) {
-            filePath += "."+exporter.getFileTypes({})[0].defaultExtension;
+            filePath += "." + exporter.getFileTypes({})[0].defaultExtension;
         }
 
         const nsILocalFile = Components.interfaces.nsILocalFile;
@@ -315,7 +305,7 @@ function saveEventsToFile(calendarEventArray, aDefaultFileName) {
                                     calendarEventArray,
                                     null);
             outputStream.close();
-        } catch(ex) {
+        } catch (ex) {
             showError(calGetString("calendar", "unableToWrite") + filePath);
         }
     }
@@ -328,29 +318,29 @@ function saveEventsToFile(calendarEventArray, aDefaultFileName) {
  * @param aCalendar     (optional) A specific calendar to export
  */
 function exportEntireCalendar(aCalendar) {
-    var itemArray = [];
-    var getListener = {
+    let itemArray = [];
+    let getListener = {
         QueryInterface: XPCOMUtils.generateQI([Components.interfaces.calIOperationListener]),
-        onOperationComplete: function(aCalendar, aStatus, aOperationType, aId, aDetail)
-        {
-            saveEventsToFile(itemArray, aCalendar.name);
+        onOperationComplete: function(aOpCalendar, aStatus, aOperationType, aId, aDetail) {
+            saveEventsToFile(itemArray, aOpCalendar.name);
         },
-        onGetResult: function(aCalendar, aStatus, aItemType, aDetail, aCount, aItems)
-        {
-            for each (let item in aItems) {
+        onGetResult: function(aOpCalendar, aStatus, aItemType, aDetail, aCount, aItems) {
+            for (let item of aItems) {
                 itemArray.push(item);
             }
         }
     };
 
-    function getItemsFromCal(aCal) {
+    let getItemsFromCal = function(aCal) {
         aCal.getItems(Components.interfaces.calICalendar.ITEM_FILTER_ALL_ITEMS,
                       0, null, null, getListener);
-    }
+    };
 
-    if (!aCalendar) {
-        var count = new Object();
-        var calendars = getCalendarManager().getCalendars(count);
+    if (aCalendar) {
+        getItemsFromCal(aCalendar);
+    } else {
+        let count = {};
+        let calendars = getCalendarManager().getCalendars(count);
 
         if (count.value == 1) {
             // There's only one calendar, so it's silly to ask what calendar
@@ -358,13 +348,11 @@ function exportEntireCalendar(aCalendar) {
             getItemsFromCal(calendars[0]);
         } else {
             // Ask what calendar to import into
-            var args = new Object();
+            let args = {};
             args.onOk = getItemsFromCal;
             args.promptText = calGetString("calendar", "exportPrompt");
             openDialog("chrome://calendar/content/chooseCalendarDialog.xul",
                        "_blank", "chrome,titlebar,modal,resizable", args);
         }
-    } else {
-        getItemsFromCal(aCalendar);
     }
 }

@@ -1,39 +1,6 @@
- <!-- ***** BEGIN LICENSE BLOCK *****
-   - Version: MPL 1.1/GPL 2.0/LGPL 2.1
-   -
-   - The contents of this file are subject to the Mozilla Public License Version
-   - 1.1 (the "License"); you may not use this file except in compliance with
-   - the License. You may obtain a copy of the License at
-   - http://www.mozilla.org/MPL/
-   -
-   - Software distributed under the License is distributed on an "AS IS" basis,
-   - WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
-   - for the specific language governing rights and limitations under the
-   - License.
-   -
-   - The Original Code is OEone Calendar Code, released October 31st, 2001.
-   -
-   - The Initial Developer of the Original Code is
-   - OEone Corporation.
-   - Portions created by the Initial Developer are Copyright (C) 2001
-   - the Initial Developer. All Rights Reserved.
-   -
-   - Contributor(s):
-   -   Cédric Corazza <cedric.corazza@wanadoo.fr>
-   -
-   - Alternatively, the contents of this file may be used under the terms of
-   - either the GNU General Public License Version 2 or later (the "GPL"), or
-   - the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
-   - in which case the provisions of the GPL or the LGPL are applicable instead
-   - of those above. If you wish to allow use of your version of this file only
-   - under the terms of either the GPL or the LGPL, and not to allow others to
-   - use your version of this file under the terms of the MPL, indicate your
-   - decision by deleting the provisions above and replace them with the notice
-   - and other provisions required by the LGPL or the GPL. If you do not delete
-   - the provisions above, a recipient may use your version of this file under
-   - the terms of any one of the MPL, the GPL or the LGPL.
-   -
-   - ***** END LICENSE BLOCK ***** -->
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
 <!ENTITY event.title.label                  "අයිතමය සැකසීම" >
 
@@ -376,6 +343,20 @@
 <!ENTITY read.only.documents.label       "ලේඛන">
 <!ENTITY read.only.link.label            "අදාල සබැඳුම">
 
+<!ENTITY counter.button.original.accesskey                "r">
+<!ENTITY counter.button.original.label                    "Apply original data">
+<!ENTITY counter.button.original.tooltip2                 "The fields will be set to the values from the original event, before the counterproposal was made">
+<!ENTITY counter.button.proposal.accesskey                "p">
+
+<!-- Counter box -->
+<!-- LOCALIZATON NOTE(counter.button.*)
+   - This is only visible in the UI if you have received a counterproposal before and are going to
+   - reschedule the event from the imipbar in the email view. Clicking on the buttons will only
+   - populate the form fields in the dialog, there's no other immediate action on clicking like with
+   - the imip bar. Rescheduling will happen after clicking on save&close as usual. This screenshot
+   - illustrates how it might look like: https://bugzilla.mozilla.org/attachment.cgi?id=8810121 -->
+<!ENTITY counter.button.proposal.label                    "Apply proposal">
+<!ENTITY counter.button.proposal.tooltip2                 "Event fields will be filled in using the values from the counterproposal, only saving with or without additional changes will notify all attendees accordingly">
 <!ENTITY event.attachments.menubutton.accesskey           "A">
 <!ENTITY event.attachments.menubutton.label               "Attach">
 <!ENTITY event.attachments.url.accesskey                  "W">
@@ -386,15 +367,19 @@
 <!ENTITY event.attendee.usertype.resource       "Resource">
 <!ENTITY event.attendee.usertype.room           "Room">
 <!ENTITY event.attendee.usertype.unknown        "Unknown">
-<!ENTITY event.attendees.notify.accesskey           "f">
+<!ENTITY event.attendees.disallowcounter.accesskey   "a">
+<!ENTITY event.attendees.disallowcounter.label       "Disallow counter">
+<!ENTITY event.attendees.disallowcounter.tooltip     "Indicates that you will not accept counterproposals">
+<!ENTITY event.attendees.notify.accesskey            "f">
 
-<!-- LOCALIZATON NOTE(event.attendees.notify.label,event.attendees.notifyundisclosed.label)
-   - These two labels are displayed side by side in the event dialog, make sure
+<!-- LOCALIZATON NOTE(event.attendees.notify.label,event.attendees.notifyundisclosed.label,
+     event.attendees.disallowcounter.label)
+   - These three labels are displayed side by side in the event dialog, make sure
    - they still fit in. -->
-<!ENTITY event.attendees.notify.label               "Notify attendees">
-<!ENTITY event.attendees.notifyundisclosed.accesskey  "x">
-<!ENTITY event.attendees.notifyundisclosed.label    "Separate invitation per attendee">
-<!ENTITY event.attendees.notifyundisclosed.tooltip  "This option sends one invitation email per attendee. Each invitation only contains the recipient attendee so that other attendee identities are not disclosed.">
+<!ENTITY event.attendees.notify.label                "Notify attendees">
+<!ENTITY event.attendees.notifyundisclosed.accesskey "x">
+<!ENTITY event.attendees.notifyundisclosed.label     "Separate invitation per attendee">
+<!ENTITY event.attendees.notifyundisclosed.tooltip   "This option sends one invitation email per attendee. Each invitation only contains the recipient attendee so that other attendee identities are not disclosed.">
 <!ENTITY event.categories.textbox.label                   "Add a new category" >
 <!ENTITY event.dialog.close.key                   "W">
 <!ENTITY event.dialog.copy.key                    "C">
@@ -435,9 +420,23 @@
 <!ENTITY  event.menu.item.print.accesskey                 "P">
 <!ENTITY  event.menu.item.print.label                     "Print">
 <!ENTITY  event.menu.item.save.accesskey                  "S">
+
+<!-- LOCALIZATION NOTE
+   - event.menu.item.save.accesskey is used for the "Save" menu item
+   - when editing events/tasks in a dialog window.
+   - event.menu.item.save.tab.accesskey is used for the "Save" menu item
+   - when editing events/tasks in a tab. -->
 <!ENTITY  event.menu.item.save.label                      "Save">
+<!ENTITY  event.menu.item.save.tab.accesskey              "a">
 <!ENTITY  event.menu.item.saveandclose.accesskey          "l">
+
+<!-- LOCALIZATION NOTE
+    - event.menu.item.saveandclose.accesskey is used for "Save and Close"
+    - menu item when editing events/tasks in a dialog window.
+    - event.menu.item.saveandclose.tab.accesskey is used for "Save and Close"
+    - when editing events/tasks in a tab. -->
 <!ENTITY  event.menu.item.saveandclose.label              "Save and Close">
+<!ENTITY  event.menu.item.saveandclose.tab.accesskey      "z">
 <!ENTITY  event.menu.options.timezone2.accesskey              "z">
 <!ENTITY  event.menu.options.timezone2.label                  "Show Timezones">
 <!ENTITY event.recurrence.pattern.yearly.day.label           "day" >
@@ -458,7 +457,12 @@
 <!ENTITY  event.toolbar.priority.tooltip                  "Change Priority">
 <!ENTITY  event.toolbar.privacy.tooltip                   "Change Privacy">
 
-<!ENTITY  event.toolbar.save.tooltip                      "Save and Close">
+<!-- Toolbar -->
+<!ENTITY  event.toolbar.save.label2                       "Save">
+
+<!ENTITY  event.toolbar.save.tooltip2                     "Save">
+<!ENTITY  event.toolbar.saveandclose.label                "Save and Close">
+<!ENTITY  event.toolbar.saveandclose.tooltip              "Save and Close">
 <!ENTITY  event.toolbar.status.tooltip                    "Change Status">
 <!ENTITY event.until.accesskey                            "B">
 <!ENTITY event.until.label                                "Until:">
@@ -468,6 +472,7 @@
 <!ENTITY newevent.eventStatus.none.label          "Not specified" >
 <!ENTITY newevent.todoStatus.cancelled.label      "Canceled" >
 <!ENTITY newevent.todoStatus.none.label           "Not specified" >
+<!ENTITY read.only.attachments.label     "Attachments:">
 <!ENTITY read.only.event.end.label       "End Date:">
 <!ENTITY read.only.event.start.label     "Start Date:">
 <!ENTITY read.only.task.due.label        "Due Date:">

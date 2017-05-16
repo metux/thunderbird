@@ -41,7 +41,7 @@
 ///////////////////////////////////////////////////////////////////////////
 #ifdef XP_MACOSX
 
-#define AD_WORKING_BUFF_SIZE                  8192
+#define AD_WORKING_BUFF_SIZE FILE_IO_BUFFER_SIZE
 
 extern void         MacGetFileType(nsIFile *fs, bool *useDefault, char **type, char **encoding);
 
@@ -173,7 +173,10 @@ NS_IMETHODIMP nsMsgAttachmentHandler::GetUri(nsACString& aUri)
       turl = m_uri;
   }
   else
-    mURL->GetSpec(turl);
+  {
+    nsresult rv = mURL->GetSpec(turl);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
   aUri.Assign(turl);
   return NS_OK;
 }
@@ -369,12 +372,14 @@ nsMsgAttachmentHandler::PickEncoding(const char *charset, nsIMsgSend *mime_deliv
   if (pPrefBranch)
     pPrefBranch->GetBoolPref ("mail.file_attach_binary", &forceB64);
 
-  if (!mMainBody && (forceB64 || mime_type_requires_b64_p (m_type.get()) ||
-    m_have_cr + m_have_lf + m_have_crlf != 1))
+  // If the content-type is "image/" or something else known to be binary or
+  // several flavors of newlines are present, use base64 unless we're attaching
+  // a message (so that we don't get confused by newline conversions).
+  if (!mMainBody &&
+      (forceB64 || mime_type_requires_b64_p(m_type.get()) ||
+                   m_have_cr + m_have_lf + m_have_crlf != 1) &&
+      !m_type.LowerCaseEqualsLiteral(MESSAGE_RFC822))
   {
-    // If the content-type is "image/" or something else known to be binary
-    // or several flavors of newlines are present, always use base64
-    // (so that we don't get confused by newline conversions.)
     needsB64 = true;
   }
   else
@@ -739,7 +744,8 @@ nsMsgAttachmentHandler::SnarfAttachment(nsMsgCompFields *compFields)
   }
 
   nsCString sourceURISpec;
-  mURL->GetSpec(sourceURISpec);
+  rv = mURL->GetSpec(sourceURISpec);
+  NS_ENSURE_SUCCESS(rv, rv);
 #ifdef XP_MACOSX
   if (!m_bogus_attachment && StringBeginsWith(sourceURISpec, NS_LITERAL_CSTRING("file://")))
   {
@@ -917,16 +923,7 @@ nsMsgAttachmentHandler::ConvertToAppleEncoding(const nsCString &aFileURI,
       return NS_ERROR_OUT_OF_MEMORY;
     }
 
-    int32_t     bSize = AD_WORKING_BUFF_SIZE;
-
-    char  *working_buff = nullptr;
-    while (!working_buff && (bSize >= 512))
-    {
-      working_buff = (char *)PR_CALLOC(bSize);
-      if (!working_buff)
-        bSize /= 2;
-    }
-
+    char *working_buff = (char *) PR_Malloc(AD_WORKING_BUFF_SIZE);
     if (!working_buff)
     {
       PR_FREEIF(separator);
@@ -935,7 +932,7 @@ nsMsgAttachmentHandler::ConvertToAppleEncoding(const nsCString &aFileURI,
     }
 
     obj->buff = working_buff;
-    obj->s_buff = bSize;
+    obj->s_buff = AD_WORKING_BUFF_SIZE;
 
     //
     //  Setup all the need information on the apple double encoder.
@@ -948,7 +945,7 @@ nsMsgAttachmentHandler::ConvertToAppleEncoding(const nsCString &aFileURI,
     m_size = 0;
     while (status == noErr)
     {
-      status = ap_encode_next(&(obj->ap_encode_obj), obj->buff, bSize, &count);
+      status = ap_encode_next(&(obj->ap_encode_obj), obj->buff, obj->s_buff, &count);
       if (status == noErr || status == errDone)
       {
         //
@@ -975,8 +972,8 @@ nsMsgAttachmentHandler::ConvertToAppleEncoding(const nsCString &aFileURI,
     NS_ENSURE_SUCCESS(rv,rv);
 
     nsCString newURLSpec;
+    rv = fileURI->GetSpec(newURLSpec);
     NS_ENSURE_SUCCESS(rv, rv);
-    fileURI->GetSpec(newURLSpec);
 
     if (newURLSpec.IsEmpty())
     {
@@ -1130,6 +1127,10 @@ nsMsgAttachmentHandler::UrlExit(nsresult status, const char16_t* aMsg)
   if (mimeDeliveryStatus == NS_ERROR_ABORT)
     status = NS_ERROR_ABORT;
 
+  // If the attachment is empty, let's call that a failure.
+  if (!m_size)
+    status = NS_ERROR_FAILURE;
+
   if (NS_FAILED(status) && status != NS_ERROR_ABORT && NS_SUCCEEDED(mimeDeliveryStatus))
   {
     // At this point, we should probably ask a question to the user
@@ -1165,10 +1166,10 @@ nsMsgAttachmentHandler::UrlExit(nsresult status, const char16_t* aMsg)
     NS_ConvertUTF8toUTF16 UTF16params(params);
     const char16_t* formatParams[] = { UTF16params.get() };
     if (mode == nsIMsgSend::nsMsgSaveAsDraft || mode == nsIMsgSend::nsMsgSaveAsTemplate)
-      bundle->FormatStringFromName(MOZ_UTF16("failureOnObjectEmbeddingWhileSaving"),
+      bundle->FormatStringFromName(u"failureOnObjectEmbeddingWhileSaving",
                                    formatParams, 1, getter_Copies(msg));
     else
-      bundle->FormatStringFromName(MOZ_UTF16("failureOnObjectEmbeddingWhileSending"),
+      bundle->FormatStringFromName(u"failureOnObjectEmbeddingWhileSending",
                                    formatParams, 1, getter_Copies(msg));
 
     nsCOMPtr<nsIPrompt> aPrompt;
@@ -1221,7 +1222,8 @@ nsMsgAttachmentHandler::UrlExit(nsresult status, const char16_t* aMsg)
           mTmpFile->Remove(false);
 
         nsCOMPtr<nsIOutputStream> outputStream;
-        nsresult rv = NS_NewLocalFileOutputStream(getter_AddRefs(outputStream), mTmpFile,  PR_WRONLY | PR_CREATE_FILE, 00600);
+        nsresult rv = MsgNewBufferedFileOutputStream(getter_AddRefs(outputStream), mTmpFile,
+                                                     PR_WRONLY | PR_CREATE_FILE, 00600);
 
         if (NS_SUCCEEDED(rv))
         {

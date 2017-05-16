@@ -16,6 +16,19 @@
   background-image: linear-gradient(rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0) 19px);
 }
 
+.today-pane-cycler {
+  list-style-image: url("chrome://calendar-common/skin/today-pane-cycler.svg#normal");
+}
+
+.today-pane-cycler:-moz-lwtheme-brighttext {
+  list-style-image: url("chrome://calendar-common/skin/today-pane-cycler.svg#inverted");
+}
+
+.today-pane-cycler[dir="prev"]:-moz-locale-dir(ltr) > .toolbarbutton-icon,
+.today-pane-cycler[dir="next"]:-moz-locale-dir(rtl) > .toolbarbutton-icon {
+  transform: scaleX(-1);
+}
+
 .today-subpane {
   border-color: ThreeDShadow;
 }
@@ -63,12 +76,16 @@
 }
 
 .today-closebutton > .toolbarbutton-icon {
-  -moz-margin-end: 0px; /* override toolkit's default value */
+  margin-inline-end: 0px; /* override toolkit's default value */
 }
 
 @media (-moz-os-version: windows-xp) {
   #today-pane-panel {
     border-left: 1px solid ThreeDShadow;
+  }
+
+  .today-pane-cycler {
+    padding-inline-end: 0;
   }
 
   #todaypane-new-event-button {
@@ -83,6 +100,11 @@
 @media not all and (-moz-os-version: windows-xp) {
   #today-none-box {
     border-top: 1px solid ThreeDShadow;
+  }
+
+  .today-pane-cycler {
+    padding-inline-start: 5px;
+    padding-inline-end: 5px;
   }
 
   #todaypane-new-event-button {
@@ -122,13 +144,13 @@
 @media all and (-moz-windows-compositor) {
   @media not all and (-moz-os-version: windows-win10) {
     #messengerWindow[sizemode=normal] #today-pane-panel {
-      -moz-border-end: 1px solid rgba(10%, 10%, 10%, .4);
+      border-inline-end: 1px solid rgba(10%, 10%, 10%, .4);
       border-bottom: 1px solid rgba(10%, 10%, 10%, .4);
       background-clip: padding-box;
     }
   }
 
-  #today-pane-panel .folderview-cycler {
+  .today-pane-cycler {
     margin-top: -1px;
   }
 }

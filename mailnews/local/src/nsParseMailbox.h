@@ -24,6 +24,7 @@
 #include "nsAutoPtr.h"
 #include "nsStringGlue.h"
 #include "nsIMsgFilterList.h"
+#include "nsIMsgFilter.h"
 #include "nsIMsgFilterHitNotify.h"
 #include "nsIMsgFolderNotificationService.h"
 #include "nsTArray.h"
@@ -153,7 +154,7 @@ public:
   virtual void  AbortNewHeader();
 
   // for nsMsgLineBuffer
-  virtual nsresult HandleLine(const char *line, uint32_t line_length);
+  virtual nsresult HandleLine(const char *line, uint32_t line_length) override;
 
   void  UpdateDBFolderInfo();
   void  UpdateDBFolderInfo(nsIMsgDatabase *mailDB);
@@ -262,7 +263,9 @@ protected:
   // these need to be arrays in case we have multiple reply/forward filters.
   nsTArray<nsCString> m_forwardTo;
   nsTArray<nsCString> m_replyTemplateUri;
-  nsCOMPtr <nsIMsgDBHdr> m_msgToForwardOrReply;
+  nsCOMPtr<nsIMsgDBHdr> m_msgToForwardOrReply;
+  nsCOMPtr<nsIMsgFilter> m_filter;
+  nsCOMPtr<nsIMsgRuleAction> m_ruleAction;
 };
 
 #endif

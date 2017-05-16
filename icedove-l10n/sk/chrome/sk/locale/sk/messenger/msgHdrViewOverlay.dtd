@@ -5,6 +5,7 @@
 <!ENTITY toField4.label "Komu">
 <!ENTITY fromField4.label "Od">
 <!ENTITY senderField4.label "Odosielateľ">
+<!ENTITY author.label "Autor">
 <!ENTITY organizationField4.label "Organizácia">
 <!ENTITY replyToField4.label "Odpoveď na">
 
@@ -23,6 +24,8 @@
 
 <!ENTITY hdrArchiveButton1.label "Archivovať">
 <!ENTITY hdrArchiveButton1.tooltip "Archivovať túto správu">
+<!ENTITY hdrOpenConversationButton1.label "Konverzácia">
+<!ENTITY hdrOpenConversationButton1.tooltip "Zobraziť konverzáciu k vybranej správe">
 <!ENTITY hdrSmartReplyButton1.label "Zoskupené tlačidlo Odpovedať">
 <!ENTITY hdrReplyButton1.label "Odpovedať">
 <!ENTITY hdrReplyButton2.tooltip "Odpovedať odosielateľovi tejto správy">
@@ -73,22 +76,22 @@
 <!ENTITY startExpandedCmd.accesskey    "Z">
 
 <!-- Attachment context menu items -->
-<!ENTITY openAttachmentCmd.label "Otvoriť">
-<!ENTITY openAttachmentCmd.accesskey "O">
-<!ENTITY saveAsAttachmentCmd.label "Uložiť ako…">
-<!ENTITY saveAsAttachmentCmd.accesskey "a">
-<!ENTITY detachAttachmentCmd.label "Vyčleniť…">
+<!ENTITY openAttachmentCmd.label    "Otvoriť">
+<!ENTITY openAttachmentCmd.accesskey    "O">
+<!ENTITY saveAsAttachmentCmd.label    "Uložiť ako…">
+<!ENTITY saveAsAttachmentCmd.accesskey    "a">
+<!ENTITY detachAttachmentCmd.label    "Vyčleniť…">
 <!ENTITY detachAttachmentCmd.accesskey    "e">
-<!ENTITY deleteAttachmentCmd.label "Odstrániť">
+<!ENTITY deleteAttachmentCmd.label    "Odstrániť">
 <!ENTITY deleteAttachmentCmd.accesskey    "s">
 <!ENTITY openAllAttachmentsCmd.label    "Otvoriť všetky prílohy…">
 <!ENTITY openAllAttachmentsCmd.accesskey    "O">
-<!ENTITY saveAllAttachmentsCmd.label "Uložiť všetky prílohy…">
-<!ENTITY saveAllAttachmentsCmd.accesskey "U">
-<!ENTITY detachAllAttachmentsCmd.label "Vyčleniť všetky prílohy…">
-<!ENTITY detachAllAttachmentsCmd.accesskey "V">
-<!ENTITY deleteAllAttachmentsCmd.label "Odstrániť všetky prílohy…">
-<!ENTITY deleteAllAttachmentsCmd.accesskey "d">
+<!ENTITY saveAllAttachmentsCmd.label    "Uložiť všetky prílohy…">
+<!ENTITY saveAllAttachmentsCmd.accesskey    "U">
+<!ENTITY detachAllAttachmentsCmd.label    "Vyčleniť všetky prílohy…">
+<!ENTITY detachAllAttachmentsCmd.accesskey    "V">
+<!ENTITY deleteAllAttachmentsCmd.label    "Odstrániť všetky prílohy…">
+<!ENTITY deleteAllAttachmentsCmd.accesskey    "d">
 
 <!ENTITY openAttachment.tooltip "Otvoriť priložený súbor">
 
@@ -98,8 +101,8 @@
 <!ENTITY saveAllAttachmentsButton1.label   "Uložiť všetko">
 <!ENTITY saveAllAttachmentsButton1.tooltip "Uložiť všetky priložené súbory">
 
-<!ENTITY copyLinkCmd.label "Kopírovať adresu odkazu">
-<!ENTITY copyLinkCmd.accesskey "K">
+<!ENTITY copyLinkCmd.label        "Kopírovať adresu odkazu">
+<!ENTITY copyLinkCmd.accesskey    "K">
 
 <!ENTITY CopyMessageId.label "Kopírovať ID správy">
 <!ENTITY CopyMessageId.accesskey "K">

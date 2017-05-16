@@ -348,10 +348,14 @@ nsresult mime_generate_headers(nsIMsgCompFields *fields,
     draftInfo.AppendLiteral("uuencode=0");
     draftInfo.AppendLiteral("; ");
     APPEND_BOOL(AttachmentReminder, "attachmentreminder");
+    draftInfo.AppendLiteral("; ");
+    int32_t deliveryFormat;
+    fields->GetDeliveryFormat(&deliveryFormat);
+    draftInfo.AppendLiteral("deliveryformat=");
+    draftInfo.AppendInt(deliveryFormat);
 
     finalHeaders->SetRawHeader(HEADER_X_MOZILLA_DRAFT_INFO, draftInfo, nullptr);
   }
-
 
   nsCOMPtr<nsIHttpProtocolHandler> pHTTPHandler = do_GetService(NS_NETWORK_PROTOCOL_CONTRACTID_PREFIX "http", &rv);
   if (NS_SUCCEEDED(rv) && pHTTPHandler)
@@ -433,7 +437,7 @@ nsresult mime_generate_headers(nsIMsgCompFields *fields,
           if (NS_SUCCEEDED(rv))
           {
             nsString undisclosedRecipients;
-            rv = composeStringBundle->GetStringFromName(MOZ_UTF16("undisclosedRecipients"),
+            rv = composeStringBundle->GetStringFromName(u"undisclosedRecipients",
                                                         getter_Copies(undisclosedRecipients));
             if (NS_SUCCEEDED(rv) && !undisclosedRecipients.IsEmpty())
             {
@@ -1399,7 +1403,9 @@ msg_pick_real_name (nsMsgAttachmentHandler *attachment, const char16_t *proposed
   else //Let's extract the name from the URL
   {
     nsCString url;
-    attachment->mURL->GetSpec(url);
+    nsresult rv = attachment->mURL->GetSpec(url);
+    if (NS_FAILED(rv))
+      return;
 
     s = url.get();
     s2 = PL_strchr (s, ':');

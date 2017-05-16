@@ -234,6 +234,9 @@ var FolderNotificationHelper = {
     else if (eventType == "DeleteOrMoveMsgFailed") {
       this._notifyHelper(aFolder, "_deleteFailed");
     }
+    else if (eventType == "RenameCompleted") {
+      this._notifyHelper(aFolder, "_renameCompleted");
+    }
 
   },
 
@@ -1261,6 +1264,16 @@ DBViewWrapper.prototype = {
     this.listener.onMessageRemovalFailed();
   },
 
+  _forceOpen: function DBViewWrapper__forceOpen(aFolder) {
+    this.displayedFolder = null;
+    this.open(aFolder);
+  },
+
+  _renameCompleted: function DBViewWrapper__renameCompleted(aFolder) {
+    if (aFolder == this.displayedFolder)
+      this._forceOpen(aFolder);
+  },
+
   /**
    * If the displayed folder had its total message count or total unread message
    *  count change, notify the listener.  (Note: only for the display folder;
@@ -2035,7 +2048,7 @@ DBViewWrapper.prototype = {
       return this._syntheticView.getMsgHdrForMessageID(aMessageId);
     if (!this._underlyingFolders)
       return null;
-    for (let [, folder] in Iterator(this._underlyingFolders)) {
+    for (let folder of this._underlyingFolders) {
       let msgHdr = folder.msgDatabase.getMsgHdrForMessageID(aMessageId);
       if (msgHdr)
         return msgHdr;

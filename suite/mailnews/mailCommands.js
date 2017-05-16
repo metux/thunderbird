@@ -24,7 +24,7 @@ function GetNewMessages(selectedFolders, server)
 
 /**
  * Get the identity that most likely is the best one to use, given the hint.
- * @param identities nsISupportsArray<nsIMsgIdentity> of identities
+ * @param identities nsIArray<nsIMsgIdentity> of identities
  * @param optionalHint string containing comma separated mailboxes
  */
 function getBestIdentity(identities, optionalHint)
@@ -497,15 +497,15 @@ function deleteAllInFolder(commandName)
   var iter = folder.subFolders;
   while (iter.hasMoreElements())
     folder.propagateDelete(iter.getNext(), true, msgWindow);
-  
+
   var children = Components.classes["@mozilla.org/array;1"]
                   .createInstance(Components.interfaces.nsIMutableArray);
-                  
+
   // Delete messages.
   iter = folder.messages;
   while (iter.hasMoreElements()) {
     children.appendElement(iter.getNext(), false);
   }
-  folder.deleteMessages(children, msgWindow, true, false, null, false); 
+  folder.deleteMessages(children, msgWindow, true, false, null, false);
   children.clear();
 }

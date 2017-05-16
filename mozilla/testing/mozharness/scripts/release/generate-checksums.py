@@ -119,7 +119,7 @@ class ChecksumsGenerator(BaseScript, VirtualenvMixin, SigningMixin, VCSMixin, Bu
         # These defaults are set here rather in the config because default
         # lists cannot be completely overidden, only appended to.
         if not self.config.get("formats"):
-            self.config["formats"] = ["sha512"]
+            self.config["formats"] = ["sha512", "sha256"]
 
         if not self.config.get("includes"):
             self.config["includes"] = [
@@ -130,6 +130,7 @@ class ChecksumsGenerator(BaseScript, VirtualenvMixin, SigningMixin, VCSMixin, Bu
                 r"^.*\.mar$",
                 r"^.*Setup.*\.exe$",
                 r"^.*\.xpi$",
+                r"^.*fennec.*\.apk$",
             ]
 
     def _get_bucket_name(self):
@@ -229,7 +230,8 @@ class ChecksumsGenerator(BaseScript, VirtualenvMixin, SigningMixin, VCSMixin, Bu
         tools_dir = path.join(dirs["abs_work_dir"], "tools")
         self.vcs_checkout(
             repo=self.config["tools_repo"],
-            vcs="hgtool",
+            branch="default",
+            vcs="hg",
             dest=tools_dir,
         )
 

@@ -164,6 +164,9 @@
 <!ENTITY recentFolders.accesskey "L">
 <!ENTITY compactVersion.label "Kompakte Ansicht">
 <!ENTITY compactVersion.accesskey "K">
+<!ENTITY folderPaneBar.label "Konten-/Ordneransicht">
+<!ENTITY folderPaneBar.accesskey "K">
+<!ENTITY folderModeSelector.label "Ordneransichten">
 
 <!-- Sort Menu -->
 <!ENTITY sortMenu.label "Sortieren nach">
@@ -192,8 +195,8 @@
 <!ENTITY sortByFromCmd.accesskey "V">
 <!ENTITY sortByRecipientCmd.label "Empfänger">
 <!ENTITY sortByRecipientCmd.accesskey "E">
-<!ENTITY sortByCorrespondentCmd.label "Gegenseite">
-<!ENTITY sortByCorrespondentCmd.accesskey "G">
+<!ENTITY sortByCorrespondentCmd.label "Beteiligte">
+<!ENTITY sortByCorrespondentCmd.accesskey "g">
 <!ENTITY sortByUnreadCmd.label "Gelesen / Ungelesen">
 <!ENTITY sortByUnreadCmd.accesskey "l">
 <!ENTITY sortByOrderReceivedCmd.label "Eingangsreihenfolge">
@@ -350,7 +353,7 @@
 <!ENTITY replyToListMsgCmd.accesskey  "L">
 <!ENTITY replyToListMsgCmd.key  "l">
 <!ENTITY forwardMsgCmd.label "Weiterleiten">
-<!ENTITY forwardMsgCmd.accesskey "W">
+<!ENTITY forwardMsgCmd.accesskey "">
 <!ENTITY forwardMsgCmd.key	"l">
 <!ENTITY forwardAsMenu.label "Weiterleiten als">
 <!ENTITY forwardAsMenu.accesskey "e">
@@ -361,6 +364,8 @@
 <!ENTITY editAsNewMsgCmd.label "Als neu bearbeiten">
 <!ENTITY editAsNewMsgCmd.accesskey "b">
 <!ENTITY editAsNewMsgCmd.key "e">
+<!ENTITY editDraftMsgCmd.label "Entwurf bearbeiten">
+<!ENTITY editDraftMsgCmd.accesskey "w">
 <!ENTITY createFilter.label "Filter aus Nachricht erstellen…">
 <!ENTITY createFilter.accesskey "F">
 <!ENTITY moveMsgToMenu.label "Verschieben in">
@@ -479,18 +484,40 @@
 <!ENTITY deleteJunk.accesskey "u">
 <!ENTITY importCmd.label "Importieren…">
 <!ENTITY importCmd.accesskey "m">
-<!ENTITY errorConsoleCmd.label "Fehlerkonsole">
-<!ENTITY errorConsoleCmd.accesskey "h">
-<!ENTITY errorConsoleCmd.commandkey "j">
 <!ENTITY clearRecentHistory.label "Neueste Chronik löschen…">
 <!ENTITY clearRecentHistory.accesskey "r">
 <!ENTITY accountManagerCmd2.label "Konten-Einstellungen">
 <!ENTITY accountManagerCmd2.accesskey "K">
-<!-- LOCALIZATION NOTE (accountManagerCmdUnix2.accesskey): belongs to accountManagerCmd2.label,
-        which is placed under the Edit menu on Unix systems -->
+<!-- LOCALIZATION NOTE (accountManagerCmdUnix.accesskey):
+     Belongs to accountManagerCmd.label, which is placed under the Edit menu
+     on Unix systems
+  -->
 <!ENTITY accountManagerCmdUnix2.accesskey "o">
-<!ENTITY allowRemoteDebugging.label "Externes Debugging erlauben">
-<!ENTITY allowRemoteDebugging.accesskey "x">
+
+<!-- Developer Tools Submenu -->
+<!ENTITY devtoolsMenu.label "Entwickler-Werkzeuge">
+<!ENTITY devtoolsMenu.accesskey "W">
+<!ENTITY devToolboxCmd.label "Entwickler-Werkzeugkasten">
+<!ENTITY devToolboxCmd.accesskey "W">
+<!ENTITY devToolboxCmd.commandkey "i">
+<!ENTITY addonDebugCmd.label "Addon-Debugger">
+<!ENTITY addonDebugCmd.accesskey "A">
+<!ENTITY tabsDebugCmd.label "Inhaltsframe-Debugger">
+<!ENTITY tabsDebugCmd.accesskey "n">
+<!ENTITY errorConsoleCmd.label "Fehlerkonsole">
+<!ENTITY errorConsoleCmd.accesskey "F">
+<!ENTITY errorConsoleCmd.commandkey "j">
+<!ENTITY scratchpadCmd.label "JavaScript-Umgebung">
+<!ENTITY scratchpadCmd.accesskey "J">
+
+<!--LOCALIZATION NOTE (scratchpadCmd.keycode):
+    This should be a key code constant as per
+    https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/keyCode#Constants_for_keyCode_value
+    (but without the DOM_ prefix) -->
+<!ENTITY scratchpadCmd.keycode "VK_F4">
+<!--LOCALIZATION NOTE (scratchpadCmd.keytext):
+    This should be the text printed on the key defined in the previous string. -->
+<!ENTITY scratchpadCmd.keytext "F4">
 
 <!-- Mail Toolbar -->
 <!ENTITY getMsgButton1.label "Abrufen">
@@ -501,6 +528,7 @@
 <!ENTITY forwardButton.label "Weiterleiten">
 <!ENTITY fileButton.label "Ablegen">
 <!ENTITY archiveButton.label "Archivieren">
+<!ENTITY openConversationButton.label "Themenbaum">
 <!ENTITY nextButton.label "Nächste">
 <!ENTITY nextButtonToolbarItem.label "Nächste ungelesene">
 <!ENTITY nextMsgButton.label "Nächste">
@@ -543,6 +571,7 @@
 <!ENTITY forwardAsAttachment.tooltip "Ausgewählte Nachricht als Anhang weiterleiten">
 <!ENTITY fileButton.tooltip "Gewählte Nachricht(en) ablegen">
 <!ENTITY archiveButton.tooltip "Gewählte Nachricht(en) archivieren">
+<!ENTITY openConversationButton.tooltip "Themenbaum der Nachricht anzeigen">
 <!ENTITY nextButton.tooltip "Gehe zur nächsten ungelesenen Nachricht">
 <!ENTITY nextMsgButton.tooltip "Gehe zur nächsten Nachricht">
 <!ENTITY previousButton.tooltip "Gehe zur vorherigen ungelesenen Nachricht">
@@ -660,7 +689,7 @@
 <!ENTITY threadColumn.label "Thema">
 <!ENTITY fromColumn.label "Von">
 <!ENTITY recipientColumn.label "Empfänger">
-<!ENTITY correspondentColumn.label "Gegenseite">
+<!ENTITY correspondentColumn.label "Beteiligte">
 <!ENTITY subjectColumn.label "Betreff">
 <!ENTITY dateColumn.label "Datum">
 <!ENTITY priorityColumn.label "Priorität">
@@ -683,7 +712,7 @@
 <!ENTITY threadColumn2.tooltip "Themenbäume anzeigen">
 <!ENTITY fromColumn2.tooltip "Nach Von sortieren">
 <!ENTITY recipientColumn2.tooltip "Nach Empfänger sortieren">
-<!ENTITY correspondentColumn2.tooltip "Nach Gegenseite sortieren">
+<!ENTITY correspondentColumn2.tooltip "Nach Beteiligten sortieren">
 <!ENTITY subjectColumn2.tooltip "Nach Betreff sortieren">
 <!ENTITY dateColumn2.tooltip "Nach Datum sortieren">
 <!ENTITY priorityColumn2.tooltip "Nach Priorität sortieren">
@@ -716,8 +745,9 @@
 <!ENTITY contextOpenContainingFolder.accesskey "h">
 <!ENTITY contextEditMsgAsNew.label "Als neu bearbeiten">
 <!ENTITY contextEditMsgAsNew.accesskey "b">
+<!ENTITY contextEditDraftMsg.label "Entwurf bearbeiten">
 <!ENTITY contextArchive.label "Archivieren">
-<!ENTITY contextArchive.accesskey "c">
+<!ENTITY contextArchive.accesskey "">
 <!ENTITY contextReplySender.label "Antworten nur an Absender">
 <!ENTITY contextReplySender.accesskey "A">
 <!ENTITY contextReplyNewsgroup2.label "Antworten an Newsgruppe">
@@ -743,9 +773,15 @@
 <!ENTITY contextCopyMsgMenu.label "Kopieren in">
 <!ENTITY contextCopyMsgMenu.accesskey "K">
 <!ENTITY contextKillThreadMenu.label "Thema ignorieren">
+<!ENTITY contextKillSubthreadMenu.accesskey "g">
 <!ENTITY contextKillThreadMenu.accesskey "i">
 <!ENTITY contextKillSubthreadMenu.label "Unterthema ignorieren">
 <!ENTITY contextWatchThreadMenu.label "Thema beobachten">
+<!--LOCALIZATION NOTE (contextWatchThreadMenu.accesskey):
+   In the en-US locale we ran out of access keys, so there is an empty access key for
+   Watch Thread. Localizers can pick a suitable key
+  -->
+<!ENTITY contextWatchThreadMenu.accesskey "c">
 <!ENTITY contextSaveAs.label "Speichern unter…">
 <!ENTITY contextSaveAs.accesskey "S">
 <!ENTITY contextPrint.label "Drucken…">

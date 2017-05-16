@@ -5,3 +5,11 @@
 <!ENTITY noConfig.label             "Chương trình này không thể hiển thị các báo cáo lỗi. Tùy chỉnh <code>breakpad.reportURL</code> phải được thiết lập.">
 <!ENTITY clearAllReports.label      "Xóa Toàn bộ Báo cáo">
 
+
+
+
+<!ENTITY crashReports.title         "Crash Reports">
+<!ENTITY crashesSubmitted.label     "Submitted Crash Reports">
+<!ENTITY crashesUnsubmitted.label   "Unsubmitted Crash Reports">
+<!ENTITY dateCrashed.heading        "Date Crashed">
+<!ENTITY dateSubmitted.heading      "Date Submitted">

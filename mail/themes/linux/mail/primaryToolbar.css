@@ -145,6 +145,10 @@
   list-style-image: url("chrome://messenger/skin/icons/mail-toolbar.svg#filter");
 }
 
+#button-showconversation {
+  list-style-image: url("chrome://messenger/skin/icons/mail-toolbar.svg#conversation");
+}
+
 .button-appmenu {
   list-style-image: url("chrome://messenger/skin/icons/mail-toolbar.svg#appButton");
   min-width: 35px !important;
@@ -248,6 +252,10 @@ toolbar[brighttext] #qfb-show-filter-bar {
   list-style-image: url("chrome://messenger/skin/icons/mail-toolbar.svg#filter-inverted");
 }
 
+toolbar[brighttext] #button-showconversation {
+  list-style-image: url("chrome://messenger/skin/icons/mail-toolbar.svg#conversation-inverted");
+}
+
 toolbar[brighttext] .button-appmenu {
   list-style-image: url("chrome://messenger/skin/icons/mail-toolbar.svg#appButton-inverted");
 }
@@ -265,6 +273,21 @@ toolbar[mode="text"] .button-appmenu .toolbarbutton-icon {
   display: -moz-box;
 }
 
+#folderPane-toolbar #locationFolders,
+#folderPane-toolbar > #folder-location-container,
+#folderPane-toolbar > #folderpane-mode-selector {
+  -moz-box-flex: 1;
+}
+
+#folderPane-toolbar > .toolbarbutton-1,
+#folderPane-toolbar > toolbaritem > menulist {
+  margin: 0;
+}
+
+#folderPane-toolbar > :-moz-any(*) + :-moz-any(*) {
+  margin-inline-start: 2px;
+}
+
 #palette-box #qfb-show-filter-bar {
   list-style-image: url("chrome://messenger/skin/icons/mail-toolbar.svg#filter") !important;
 }
@@ -273,6 +296,7 @@ toolbar[mode="text"] .button-appmenu .toolbarbutton-icon {
    in the Customize Toolbar dialog. */
 #palette-box #locationFolders,
 #palette-box #folder-location-container,
+#palette-box #folderpane-mode-selector,
 #palette-box #viewPicker {
   -moz-box-flex: 1;
 }
@@ -291,23 +315,19 @@ toolbar[mode="text"] .button-appmenu .toolbarbutton-icon {
 }
 
 .msgNotificaton-smallText {
-  -moz-padding-start: 10px;
+  padding-inline-start: 10px;
   font-size: 90%;
-}
-
-#mdnBarImage {
-  list-style-image: url("moz-icon://stock/gtk-dialog-question?size=toolbar");
 }
 
 /* AppMenu styling */
 
 .splitmenu-menuitem {
-  -moz-margin-end: 1px;
+  margin-inline-end: 1px;
   -moz-image-region: auto;
 }
 
 #appmenuSecondaryPane {
-  -moz-border-start: 1px solid ThreeDShadow;
+  border-inline-start: 1px solid ThreeDShadow;
 }
 
 .appmenuPane-spacer {
@@ -343,5 +363,5 @@ toolbar[mode="text"] .button-appmenu .toolbarbutton-icon {
 }
 
 #appmenu_addons {
-  list-style-image: url("chrome://mozapps/skin/extensions/extensionGeneric-16.png");
+  list-style-image: url("chrome://messenger/skin/icons/extensionGeneric.svg");
 }

@@ -38,6 +38,7 @@
 #include "nsEmbedStream.h"
 #include "nsIWidgetListener.h"
 
+#include "mozilla/BasePrincipal.h"
 #include "nsTArray.h"
 #include "nsWeakPtr.h"
 
@@ -76,7 +77,6 @@ class nsWebBrowser final : public nsIWebBrowser,
                            public nsIWebBrowserSetup,
                            public nsIDocShellTreeItem,
                            public nsIBaseWindow,
-                           public nsIBaseWindowESR45,
                            public nsIScrollable,
                            public nsITextScroll,
                            public nsIInterfaceRequestor,
@@ -95,7 +95,6 @@ public:
   NS_DECL_ISUPPORTS
 
   NS_DECL_NSIBASEWINDOW
-  NS_DECL_NSIBASEWINDOWESR45
   NS_DECL_NSIDOCSHELLTREEITEM
   NS_DECL_NSIINTERFACEREQUESTOR
   NS_DECL_NSISCROLLABLE
@@ -116,7 +115,6 @@ protected:
   // XXXbz why are these NS_IMETHOD?  They're not interface methods!
   NS_IMETHOD SetDocShell(nsIDocShell* aDocShell);
   NS_IMETHOD EnsureDocShellTreeOwner();
-  NS_IMETHOD GetPrimaryContentWindow(nsIDOMWindow** aDomWindow);
   NS_IMETHOD BindListener(nsISupports* aListener, const nsIID& aIID);
   NS_IMETHOD UnBindListener(nsISupports* aListener, const nsIID& aIID);
   NS_IMETHOD EnableGlobalHistory(bool aEnable);
@@ -135,6 +133,7 @@ protected:
   nsCOMPtr<nsIWebNavigation> mDocShellAsNav;
   nsCOMPtr<nsIScrollable> mDocShellAsScrollable;
   nsCOMPtr<nsITextScroll> mDocShellAsTextScroll;
+  mozilla::DocShellOriginAttributes mOriginAttributes;
 
   nsCOMPtr<nsIWidget> mInternalWidget;
   nsCOMPtr<nsIWindowWatcher> mWWatch;

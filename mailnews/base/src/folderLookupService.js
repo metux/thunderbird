@@ -12,6 +12,7 @@
 
 var Cc = Components.classes;
 var Ci = Components.interfaces;
+var Cr = Components.results;
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
@@ -34,9 +35,9 @@ function isValidFolder(folder) {
 var gCreated = false;
 
 function folderLookupService() {
-  this._map = new Map();
   if (gCreated)
     throw Cr.NS_ERROR_ALREADY_INITIALIZED;
+  this._map = new Map();
   gCreated = true;
 }
 folderLookupService.prototype = {
@@ -56,11 +57,13 @@ folderLookupService.prototype = {
       } catch (e) {
         // The object was deleted, so it's not valid
       }
-      if (!valid) {
-        // Don't keep around invalid folders.
-        this._map.delete(aUrl);
-        folder = null;
-      }
+
+      if (valid)
+        return folder;
+
+      // Don't keep around invalid folders.
+      this._map.delete(aUrl);
+      folder = null;
     }
 
     // If we get here, then the folder was not in our map. It could be that the

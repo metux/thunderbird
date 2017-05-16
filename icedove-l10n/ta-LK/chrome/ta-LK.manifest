@@ -4,12 +4,12 @@ locale branding ta-LK ta-LK/locale/ta-LK/branding/
 locale chat ta-LK ta-LK/locale/ta-LK/chat/
 locale communicator ta-LK ta-LK/locale/ta-LK/communicator/
 locale cookie ta-LK ta-LK/locale/ta-LK/cookie/
+locale devtools ta-LK ta-LK/locale/ta-LK/devtools/client/
 locale devtools-shared ta-LK ta-LK/locale/ta-LK/devtools/shared/
 locale editor ta-LK ta-LK/locale/ta-LK/editor/
 locale formautofill ta-LK ta-LK/locale/ta-LK/formautofill/
 locale global ta-LK ta-LK/locale/ta-LK/global/
 locale global-platform ta-LK ta-LK/locale/ta-LK/global-platform/
-locale global-region ta-LK ta-LK/locale/ta-LK/global-region/
 locale messenger ta-LK ta-LK/locale/ta-LK/messenger/
 locale messenger-mapi ta-LK ta-LK/locale/ta-LK/messenger-mapi/
 locale messenger-newsblog ta-LK ta-LK/locale/ta-LK/messenger-newsblog/

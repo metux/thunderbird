@@ -20,7 +20,7 @@
 #include "nsMsgBaseCID.h"
 #include "nsImapUtils.h"
 #include "nsIMAPNamespace.h"
-#include "nsICacheEntryDescriptor.h"
+#include "nsICacheEntry.h"
 #include "nsIMsgFolder.h"
 #include "nsIDocShell.h"
 #include "nsIInterfaceRequestor.h"
@@ -865,7 +865,7 @@ NS_IMETHODIMP nsImapUrl::AllocateServerPath(const char * canonicalPath, char onl
   if (!result)
     return NS_ERROR_OUT_OF_MEMORY;
 
-  register unsigned char* dst = (unsigned char *) result;
+  unsigned char* dst = (unsigned char *) result;
   src = sourcePath;
   for (i = 0; i < len; i++)
   {
@@ -887,8 +887,8 @@ NS_IMETHODIMP nsImapUrl::AllocateServerPath(const char * canonicalPath, char onl
 
 /* static */ nsresult nsImapUrl::UnescapeSlashes(char *sourcePath)
 {
-    register char *src = sourcePath;
-    register char *dst = sourcePath;
+    char *src = sourcePath;
+    char *dst = sourcePath;
 
     while (*src)
     {
@@ -1043,7 +1043,7 @@ NS_IMETHODIMP nsImapUrl::SetAllowContentChange(bool allowContentChange)
 NS_IMETHODIMP nsImapUrl::SetContentModified(nsImapContentModifiedType contentModified)
 {
   m_contentModified = contentModified;
-  nsCOMPtr<nsICacheEntryDescriptor>  cacheEntry;
+  nsCOMPtr<nsICacheEntry> cacheEntry;
   nsresult res = GetMemCacheEntry(getter_AddRefs(cacheEntry));
   if (NS_SUCCEEDED(res) && cacheEntry)
   {
@@ -1149,7 +1149,7 @@ nsImapUrl::GetMsgFile(nsIFile** aFile)
 NS_IMETHODIMP nsImapUrl::GetMockChannel(nsIImapMockChannel ** aChannel)
 {
   NS_ENSURE_ARG_POINTER(aChannel);
-  NS_WARN_IF_FALSE(NS_IsMainThread(), "should only access mock channel on ui thread");
+  NS_WARNING_ASSERTION(NS_IsMainThread(), "should only access mock channel on ui thread");
   *aChannel = nullptr;
   nsCOMPtr<nsIImapMockChannel> channel(do_QueryReferent(m_channelWeakPtr));
   channel.swap(*aChannel);
@@ -1158,7 +1158,7 @@ NS_IMETHODIMP nsImapUrl::GetMockChannel(nsIImapMockChannel ** aChannel)
 
 NS_IMETHODIMP nsImapUrl::SetMockChannel(nsIImapMockChannel * aChannel)
 {
-  NS_WARN_IF_FALSE(NS_IsMainThread(), "should only access mock channel on ui thread");
+  NS_WARNING_ASSERTION(NS_IsMainThread(), "should only access mock channel on ui thread");
   m_channelWeakPtr = do_GetWeakReference(aChannel);
   return NS_OK;
 }
@@ -1170,9 +1170,12 @@ NS_IMETHODIMP nsImapUrl::GetAllowContentChange(bool *result)
   return NS_OK;
 }
 
-NS_IMETHODIMP nsImapUrl::Clone(nsIURI **_retval)
+NS_IMETHODIMP nsImapUrl::CloneInternal(uint32_t aRefHandlingMode,
+                                       const nsACString& newRef,
+                                       nsIURI** _retval)
 {
-  nsresult rv = nsMsgMailNewsUrl::Clone(_retval);
+  nsresult rv =
+    nsMsgMailNewsUrl::CloneInternal(aRefHandlingMode, newRef, _retval);
   NS_ENSURE_SUCCESS(rv, rv);
   // also clone the mURI member, because GetUri below won't work if
   // mURI isn't set due to escaping issues.
@@ -1181,7 +1184,6 @@ NS_IMETHODIMP nsImapUrl::Clone(nsIURI **_retval)
     clonedUrl->SetUri(mURI.get());
   return rv;
 }
-
 
 NS_IMETHODIMP nsImapUrl::SetUri(const char * aURI)
 {

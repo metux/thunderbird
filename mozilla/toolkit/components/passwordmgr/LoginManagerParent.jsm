@@ -13,12 +13,10 @@ Cu.import("resource://gre/modules/Task.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "UserAutoCompleteResult",
                                   "resource://gre/modules/LoginManagerContent.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "AutoCompleteE10S",
-                                  "resource://gre/modules/AutoCompleteE10S.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "AutoCompletePopup",
+                                  "resource://gre/modules/AutoCompletePopup.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "DeferredTask",
                                   "resource://gre/modules/DeferredTask.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "LoginDoorhangers",
-                                  "resource://gre/modules/LoginDoorhangers.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "LoginHelper",
                                   "resource://gre/modules/LoginHelper.jsm");
 
@@ -27,105 +25,7 @@ XPCOMUtils.defineLazyGetter(this, "log", () => {
   return logger.log.bind(logger);
 });
 
-this.EXPORTED_SYMBOLS = [ "LoginManagerParent", "PasswordsMetricsProvider" ];
-
-#ifndef ANDROID
-#ifdef MOZ_SERVICES_HEALTHREPORT
-XPCOMUtils.defineLazyModuleGetter(this, "Metrics",
-                                  "resource://gre/modules/Metrics.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "Task",
-                                  "resource://gre/modules/Task.jsm");
-
-function recordFHRDailyCounter(aField) {
-    let reporter = Cc["@mozilla.org/datareporting/service;1"]
-                      .getService()
-                      .wrappedJSObject
-                      .healthReporter;
-    // This can happen if the FHR component of the data reporting service is
-    // disabled. This is controlled by a pref that most will never use.
-    if (!reporter) {
-      return;
-    }
-      reporter.onInit().then(() => reporter.getProvider("org.mozilla.passwordmgr")
-        .recordDailyCounter(aField));
-  }
-
-this.PasswordsMetricsProvider = function() {
-  Metrics.Provider.call(this);
-};
-
-PasswordsMetricsProvider.prototype = Object.freeze({
-  __proto__: Metrics.Provider.prototype,
-
-  name: "org.mozilla.passwordmgr",
-
-  measurementTypes: [
-    PasswordsMeasurement1,
-    PasswordsMeasurement2,
-  ],
-
-  collectDailyData: function () {
-    return this.storage.enqueueTransaction(this._recordDailyPasswordData.bind(this));
-  },
-
-  _recordDailyPasswordData: function *() {
-    let m = this.getMeasurement(PasswordsMeasurement2.prototype.name,
-                                PasswordsMeasurement2.prototype.version);
-    let enabled = Services.prefs.getBoolPref("signon.rememberSignons");
-    yield m.setDailyLastNumeric("enabled", enabled ? 1 : 0);
-
-    let loginsCount = Services.logins.countLogins("", "", "");
-    yield m.setDailyLastNumeric("numSavedPasswords", loginsCount);
-
-  },
-
-  recordDailyCounter: function(aField) {
-    let m = this.getMeasurement(PasswordsMeasurement2.prototype.name,
-                                PasswordsMeasurement2.prototype.version);
-    if (this.storage.hasFieldFromMeasurement(m.id, aField,
-                                             Metrics.Storage.FIELD_DAILY_COUNTER)) {
-      let fieldID = this.storage.fieldIDFromMeasurement(m.id, aField, Metrics.Storage.FIELD_DAILY_COUNTER);
-      return this.enqueueStorageOperation(() => m.incrementDailyCounter(aField));
-    }
-
-    // Otherwise, we first need to create the field.
-    return this.enqueueStorageOperation (() => this.storage.registerField(m.id, aField, 
-      Metrics.Storage.FIELD_DAILY_COUNTER).then(() => m.incrementDailyCounter(aField)));
-  },
-});
-
-function PasswordsMeasurement1() {
-  Metrics.Measurement.call(this);
-}
-
-PasswordsMeasurement1.prototype = Object.freeze({
-  __proto__: Metrics.Measurement.prototype,
-  name: "passwordmgr",
-  version: 1,
-  fields: {
-    enabled: {type: Metrics.Storage.FIELD_DAILY_LAST_NUMERIC},
-    numSavedPasswords: {type: Metrics.Storage.FIELD_DAILY_LAST_NUMERIC},
-  },
-});
-
-function PasswordsMeasurement2() {
-  Metrics.Measurement.call(this);
-}
-PasswordsMeasurement2.prototype = Object.freeze({
-  __proto__: Metrics.Measurement.prototype,
-  name: "passwordmgr",
-  version: 2,
-  fields: {
-    enabled: {type: Metrics.Storage.FIELD_DAILY_LAST_NUMERIC},
-    numSavedPasswords: {type: Metrics.Storage.FIELD_DAILY_LAST_NUMERIC},
-    numSuccessfulFills: {type: Metrics.Storage.FIELD_DAILY_COUNTER},
-    numNewSavedPasswordsInSession: {type: Metrics.Storage.FIELD_DAILY_COUNTER},
-    numTotalLoginsEncountered: {type: Metrics.Storage.FIELD_DAILY_COUNTER},
-  },
-});
-
-#endif
-#endif
+this.EXPORTED_SYMBOLS = [ "LoginManagerParent" ];
 
 var LoginManagerParent = {
   /**
@@ -145,10 +45,8 @@ var LoginManagerParent = {
     mm.addMessageListener("RemoteLogins:findRecipes", this);
     mm.addMessageListener("RemoteLogins:onFormSubmit", this);
     mm.addMessageListener("RemoteLogins:autoCompleteLogins", this);
-    mm.addMessageListener("RemoteLogins:updateLoginFormPresence", this);
-    mm.addMessageListener("LoginStats:LoginEncountered", this);
-    mm.addMessageListener("LoginStats:LoginFillSuccessful", this);
-    Services.obs.addObserver(this, "LoginStats:NewSavedPassword", false);
+    mm.addMessageListener("RemoteLogins:removeLogin", this);
+    mm.addMessageListener("RemoteLogins:insecureLoginFormPresent", this);
 
     XPCOMUtils.defineLazyGetter(this, "recipeParentPromise", () => {
       const { LoginRecipesParent } = Cu.import("resource://gre/modules/LoginRecipes.jsm", {});
@@ -157,18 +55,6 @@ var LoginManagerParent = {
       });
       return this._recipeManager.initializationPromise;
     });
-
-  },
-
-  observe: function (aSubject, aTopic, aData) {
-#ifndef ANDROID
-#ifdef MOZ_SERVICES_HEALTHREPORT
-    if (aTopic == "LoginStats:NewSavedPassword") {
-      recordFHRDailyCounter("numNewSavedPasswordsInSession");
-
-    }
-#endif
-#endif
   },
 
   receiveMessage: function (msg) {
@@ -196,13 +82,13 @@ var LoginManagerParent = {
                           data.usernameField,
                           data.newPasswordField,
                           data.oldPasswordField,
-                          msg.objects.openerWin,
+                          msg.objects.openerTopWindow,
                           msg.target);
         break;
       }
 
-      case "RemoteLogins:updateLoginFormPresence": {
-        this.updateLoginFormPresence(msg.target, data);
+      case "RemoteLogins:insecureLoginFormPresent": {
+        this.setHasInsecureLoginForms(msg.target, data.hasInsecureLoginForms);
         break;
       }
 
@@ -211,24 +97,14 @@ var LoginManagerParent = {
         break;
       }
 
-      case "LoginStats:LoginFillSuccessful": {
-#ifndef ANDROID
-#ifdef MOZ_SERVICES_HEALTHREPORT
-        recordFHRDailyCounter("numSuccessfulFills");
-#endif
-#endif
-        break;
-      }
-
-      case "LoginStats:LoginEncountered": {
-#ifndef ANDROID
-#ifdef MOZ_SERVICES_HEALTHREPORT
-        recordFHRDailyCounter("numTotalLoginsEncountered");
-#endif
-#endif
+      case "RemoteLogins:removeLogin": {
+        let login = LoginHelper.vanillaObjectToLogin(data.login);
+        AutoCompletePopup.removeLogin(login);
         break;
       }
     }
+
+    return undefined;
   },
 
   /**
@@ -250,7 +126,7 @@ var LoginManagerParent = {
 
     // Convert the array of nsILoginInfo to vanilla JS objects since nsILoginInfo
     // doesn't support structured cloning.
-    let jsLogins = JSON.parse(JSON.stringify([login]));
+    let jsLogins = [LoginHelper.loginToVanillaObject(login)];
 
     let objects = inputElement ? {inputElement} : null;
     browser.messageManager.sendAsyncMessage("RemoteLogins:fillForm", {
@@ -278,21 +154,6 @@ var LoginManagerParent = {
     }
 
     if (!showMasterPassword && !Services.logins.isLoggedIn) {
-      try {
-        target.sendAsyncMessage("RemoteLogins:loginsFound", {
-          requestId: requestId,
-          logins: [],
-          recipes,
-        });
-      } catch (e) {
-        log("error sending message to target", e);
-      }
-      return;
-    }
-
-    let allLoginsCount = Services.logins.countLogins(formOrigin, "", null);
-    // If there are no logins for this site, bail out now.
-    if (!allLoginsCount) {
       try {
         target.sendAsyncMessage("RemoteLogins:loginsFound", {
           requestId: requestId,
@@ -343,33 +204,33 @@ var LoginManagerParent = {
       return;
     }
 
-    var logins = Services.logins.findLogins({}, formOrigin, actionOrigin, null);
+    let logins = LoginHelper.searchLoginsWithObject({
+      formSubmitURL: actionOrigin,
+      hostname: formOrigin,
+      schemeUpgrades: LoginHelper.schemeUpgrades,
+    });
+    let resolveBy = [
+      "scheme",
+      "timePasswordChanged",
+    ];
+    logins = LoginHelper.dedupeLogins(logins, ["username"], resolveBy, formOrigin);
+    log("sendLoginDataToChild:", logins.length, "deduped logins");
     // Convert the array of nsILoginInfo to vanilla JS objects since nsILoginInfo
     // doesn't support structured cloning.
-    var jsLogins = JSON.parse(JSON.stringify(logins));
+    var jsLogins = LoginHelper.loginsToVanillaObjects(logins);
     target.sendAsyncMessage("RemoteLogins:loginsFound", {
       requestId: requestId,
       logins: jsLogins,
       recipes,
     });
-
-    const PWMGR_FORM_ACTION_EFFECT =  Services.telemetry.getHistogramById("PWMGR_FORM_ACTION_EFFECT");
-    if (logins.length == 0) {
-      PWMGR_FORM_ACTION_EFFECT.add(2);
-    } else if (logins.length == allLoginsCount) {
-      PWMGR_FORM_ACTION_EFFECT.add(0);
-    } else {
-      // logins.length < allLoginsCount
-      PWMGR_FORM_ACTION_EFFECT.add(1);
-    }
   }),
 
   doAutocompleteSearch: function({ formOrigin, actionOrigin,
                                    searchString, previousResult,
-                                   rect, requestId, remote }, target) {
+                                   rect, requestId, isSecure, isPasswordField,
+                                   remote }, target) {
     // Note: previousResult is a regular object, not an
     // nsIAutoCompleteResult.
-    var result;
 
     let searchStringLower = searchString.toLowerCase();
     let logins;
@@ -379,19 +240,32 @@ var LoginManagerParent = {
 
       // We have a list of results for a shorter search string, so just
       // filter them further based on the new search string.
-      logins = previousResult.logins;
+      logins = LoginHelper.vanillaObjectsToLogins(previousResult.logins);
     } else {
       log("Creating new autocomplete search result.");
 
       // Grab the logins from the database.
-      logins = Services.logins.findLogins({}, formOrigin, actionOrigin, null);
+      logins = LoginHelper.searchLoginsWithObject({
+        formSubmitURL: actionOrigin,
+        hostname: formOrigin,
+        schemeUpgrades: LoginHelper.schemeUpgrades,
+      });
+      let resolveBy = [
+        "scheme",
+        "timePasswordChanged",
+      ];
+      logins = LoginHelper.dedupeLogins(logins, ["username"], resolveBy, formOrigin);
     }
 
     let matchingLogins = logins.filter(function(fullMatch) {
       let match = fullMatch.username;
 
       // Remove results that are too short, or have different prefix.
-      // Also don't offer empty usernames as possible results.
+      // Also don't offer empty usernames as possible results except
+      // for password field.
+      if (isPasswordField) {
+        return true;
+      }
       return match && match.toLowerCase().startsWith(searchStringLower);
     });
 
@@ -401,13 +275,13 @@ var LoginManagerParent = {
     // for showing the autocomplete popup (via the regular
     // nsAutoCompleteController).
     if (remote) {
-      result = new UserAutoCompleteResult(searchString, matchingLogins);
-      AutoCompleteE10S.showPopupWithResults(target.ownerDocument.defaultView, rect, result);
+      let results = new UserAutoCompleteResult(searchString, matchingLogins, {isSecure});
+      AutoCompletePopup.showPopupWithResults({ browser: target.ownerDocument.defaultView, rect, results });
     }
 
     // Convert the array of nsILoginInfo to vanilla JS objects since nsILoginInfo
     // doesn't support structured cloning.
-    var jsLogins = JSON.parse(JSON.stringify(matchingLogins));
+    var jsLogins = LoginHelper.loginsToVanillaObjects(matchingLogins);
     target.messageManager.sendAsyncMessage("RemoteLogins:loginsAutoCompleted", {
       requestId: requestId,
       logins: jsLogins,
@@ -416,21 +290,14 @@ var LoginManagerParent = {
 
   onFormSubmit: function(hostname, formSubmitURL,
                          usernameField, newPasswordField,
-                         oldPasswordField, opener,
+                         oldPasswordField, openerTopWindow,
                          target) {
     function getPrompter() {
       var prompterSvc = Cc["@mozilla.org/login-manager/prompter;1"].
                         createInstance(Ci.nsILoginManagerPrompter);
-      // XXX For E10S, we don't want to use the browser's contentWindow
-      // because it's in another process, so we use our chrome window as
-      // the window parent (the content process is responsible for
-      // making sure that its window is not in private browsing mode).
-      // In the same-process case, we can simply use the content window.
-      prompterSvc.init(target.isRemoteBrowser ?
-                          target.ownerDocument.defaultView :
-                          target.contentWindow);
-      if (target.isRemoteBrowser)
-        prompterSvc.setE10sData(target, opener);
+      prompterSvc.init(target.ownerDocument.defaultView);
+      prompterSvc.browser = target;
+      prompterSvc.opener = openerTopWindow;
       return prompterSvc;
     }
 
@@ -456,7 +323,20 @@ var LoginManagerParent = {
                    (usernameField ? usernameField.name  : ""),
                    newPasswordField.name);
 
-    let logins = Services.logins.findLogins({}, hostname, formSubmitURL, null);
+    let logins = LoginHelper.searchLoginsWithObject({
+      formSubmitURL,
+      hostname,
+      schemeUpgrades: LoginHelper.schemeUpgrades,
+    });
+
+    // Dedupe so the length checks below still make sense with scheme upgrades.
+    // Below here we have one login per hostPort + action + username with the
+    // matching scheme being preferred.
+    let resolveBy = [
+      "scheme",
+      "timePasswordChanged",
+    ];
+    logins = LoginHelper.dedupeLogins(logins, ["username"], resolveBy, hostname);
 
     // If we didn't find a username field, but seem to be changing a
     // password, allow the user to select from a list of applicable
@@ -479,6 +359,10 @@ var LoginManagerParent = {
 
         prompter.promptToChangePassword(oldLogin, formLogin);
       } else {
+        // Note: It's possible that that we already have the correct u+p saved
+        // but since we don't have the username, we don't know if the user is
+        // changing a second account to the new password so we ask anyways.
+
         prompter.promptToChangePasswordWithUsernames(
                             logins, logins.length, formLogin);
       }
@@ -489,8 +373,8 @@ var LoginManagerParent = {
 
     var existingLogin = null;
     // Look for an existing login that matches the form login.
-    for (var i = 0; i < logins.length; i++) {
-      var same, login = logins[i];
+    for (let login of logins) {
+      let same;
 
       // If one login has a username but the other doesn't, ignore
       // the username when comparing and only match if they have the
@@ -499,14 +383,23 @@ var LoginManagerParent = {
       if (!login.username && formLogin.username) {
         var restoreMe = formLogin.username;
         formLogin.username = "";
-        same = formLogin.matches(login, false);
+        same = LoginHelper.doLoginsMatch(formLogin, login, {
+          ignorePassword: false,
+          ignoreSchemes: LoginHelper.schemeUpgrades,
+        });
         formLogin.username = restoreMe;
       } else if (!formLogin.username && login.username) {
         formLogin.username = login.username;
-        same = formLogin.matches(login, false);
+        same = LoginHelper.doLoginsMatch(formLogin, login, {
+          ignorePassword: false,
+          ignoreSchemes: LoginHelper.schemeUpgrades,
+        });
         formLogin.username = ""; // we know it's always blank.
       } else {
-        same = formLogin.matches(login, true);
+        same = LoginHelper.doLoginsMatch(formLogin, login, {
+          ignorePassword: true,
+          ignoreSchemes: LoginHelper.schemeUpgrades,
+        });
       }
 
       if (same) {
@@ -580,78 +473,18 @@ var LoginManagerParent = {
   },
 
   /**
-   * Called to indicate whether a login form on the currently loaded page is
-   * present or not. This is one of the factors used to control the visibility
-   * of the password fill doorhanger.
+   * Called to indicate whether an insecure password field is present so
+   * insecure password UI can know when to show.
    */
-  updateLoginFormPresence(browser, { loginFormOrigin, loginFormPresent,
-                                     hasInsecureLoginForms }) {
-    const ANCHOR_DELAY_MS = 200;
-
+  setHasInsecureLoginForms(browser, hasInsecureLoginForms) {
     let state = this.stateForBrowser(browser);
 
     // Update the data to use to the latest known values. Since messages are
     // processed in order, this will always be the latest version to use.
-    state.loginFormOrigin = loginFormOrigin;
-    state.loginFormPresent = loginFormPresent;
     state.hasInsecureLoginForms = hasInsecureLoginForms;
 
     // Report the insecure login form state immediately.
     browser.dispatchEvent(new browser.ownerDocument.defaultView
                                  .CustomEvent("InsecureLoginFormsStateChange"));
-
-    // Apply the data to the currently displayed login fill icon later.
-    if (!state.anchorDeferredTask) {
-      state.anchorDeferredTask = new DeferredTask(
-        () => this.updateLoginAnchor(browser),
-        ANCHOR_DELAY_MS
-      );
-    }
-    state.anchorDeferredTask.arm();
   },
-  updateLoginAnchor: Task.async(function* (browser) {
-    // Copy the state to use for this execution of the task. These will not
-    // change during this execution of the asynchronous function, but in case a
-    // change happens in the state, the function will be retriggered.
-    let { loginFormOrigin, loginFormPresent } = this.stateForBrowser(browser);
-
-    yield Services.logins.initializationPromise;
-
-    // Check if there are form logins for the site, ignoring formSubmitURL.
-    let hasLogins = loginFormOrigin &&
-                    Services.logins.countLogins(loginFormOrigin, "", null) > 0;
-
-    // Once this preference is removed, this version of the fill doorhanger
-    // should be enabled for Desktop only, and not for Android or B2G.
-    if (!Services.prefs.getBoolPref("signon.ui.experimental")) {
-      return;
-    }
-
-    let showLoginAnchor = loginFormPresent || hasLogins;
-
-    let fillDoorhanger = LoginDoorhangers.FillDoorhanger.find({ browser });
-    if (fillDoorhanger) {
-      if (!showLoginAnchor) {
-        fillDoorhanger.remove();
-        return;
-      }
-      // We should only update the state of the doorhanger while it is hidden.
-      yield fillDoorhanger.promiseHidden;
-      fillDoorhanger.loginFormPresent = loginFormPresent;
-      fillDoorhanger.loginFormOrigin = loginFormOrigin;
-      fillDoorhanger.filterString = hasLogins ? loginFormOrigin : "";
-      fillDoorhanger.detailLogin = null;
-      fillDoorhanger.autoDetailLogin = true;
-      return;
-    }
-    if (showLoginAnchor) {
-      fillDoorhanger = new LoginDoorhangers.FillDoorhanger({
-        browser,
-        loginFormPresent,
-        loginFormOrigin,
-        filterString: hasLogins ? loginFormOrigin : "",
-        autoDetailLogin: true,
-      });
-    }
-  }),
 };

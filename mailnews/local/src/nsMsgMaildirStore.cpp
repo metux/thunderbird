@@ -316,6 +316,7 @@ NS_IMETHODIMP nsMsgMaildirStore::SetSummaryFileValid(nsIMsgFolder *aFolder,
   NS_ENSURE_ARG_POINTER(aDB);
   nsCOMPtr<nsIDBFolderInfo> dbFolderInfo;
   aDB->GetDBFolderInfo(getter_AddRefs(dbFolderInfo));
+  NS_ENSURE_STATE(dbFolderInfo);
   return dbFolderInfo->SetBooleanProperty("maildirValid", aValid);
 }
 
@@ -622,7 +623,8 @@ nsMsgMaildirStore::GetNewMsgOutputStream(nsIMsgFolder *aFolder,
   newName.AppendInt(static_cast<int64_t>(PR_Now()));
   newFile->AppendNative(newName);
   // CreateUnique, in case we get more than one message per millisecond :-)
-  newFile->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0600);
+  rv = newFile->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0600);
+  NS_ENSURE_SUCCESS(rv, rv);
   newFile->GetNativeLeafName(newName);
   // save the file name in the message header - otherwise no way to retrieve it
   (*aNewMsgHdr)->SetStringProperty("storeToken", newName.get());
@@ -723,7 +725,8 @@ nsMsgMaildirStore::FinishNewMessage(nsIOutputStream *aOutputStream,
   existingPath->Exists(&exists);
 
   if (exists) {
-    existingPath->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0600);
+    rv = existingPath->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0600);
+    NS_ENSURE_SUCCESS(rv, rv);
     existingPath->GetNativeLeafName(fileName);
     aNewHdr->SetStringProperty("storeToken", fileName.get());
   }
@@ -787,8 +790,8 @@ nsMsgMaildirStore::MoveNewlyDownloadedMessage(nsIMsgDBHdr *aHdr,
 
   nsCOMPtr<nsIMsgDatabase> destMailDB;
   rv = aDestFolder->GetMsgDatabase(getter_AddRefs(destMailDB));
-  NS_WARN_IF_FALSE(destMailDB && NS_SUCCEEDED(rv),
-                   "failed to open mail db moving message");
+  NS_WARNING_ASSERTION(destMailDB && NS_SUCCEEDED(rv),
+                       "failed to open mail db moving message");
 
   nsCOMPtr<nsIMsgDBHdr> newHdr;
   if (destMailDB)
@@ -806,7 +809,8 @@ nsMsgMaildirStore::MoveNewlyDownloadedMessage(nsIMsgDBHdr *aHdr,
   existingPath->Exists(&exists);
 
   if (exists) {
-    existingPath->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0600);
+    rv = existingPath->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0600);
+    NS_ENSURE_SUCCESS(rv, rv);
     existingPath->GetNativeLeafName(fileName);
     newHdr->SetStringProperty("storeToken", fileName.get());
   }
@@ -1189,9 +1193,8 @@ nsresult MaildirStoreParser::ParseNextMessage(nsIFile *aFile)
   rv = NS_NewLocalFileInputStream(getter_AddRefs(inputStream), aFile);
   if (NS_SUCCEEDED(rv) && inputStream)
   {
-    int32_t inputBufferSize = 10240;
     nsMsgLineStreamBuffer *inputStreamBuffer =
-      new nsMsgLineStreamBuffer(inputBufferSize, true, false);
+      new nsMsgLineStreamBuffer(FILE_IO_BUFFER_SIZE, true, false);
     int64_t fileSize;
     aFile->GetFileSize(&fileSize);
     msgParser->SetNewMsgHdr(newMsgHdr);
@@ -1252,6 +1255,8 @@ void MaildirStoreParser::TimerCallback(nsITimer *aTimer, void *aClosure)
         parser->m_listener->OnStopRunningUrl(url, NS_OK);
       }
     }
+    // Parsing complete and timer cancelled, so we release the parser object.
+    delete parser;
     return;
   }
   nsCOMPtr<nsISupports> aSupport;

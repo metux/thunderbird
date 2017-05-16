@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/* exported prepareCalendarToDoUnifinder, finishCalendarToDoUnifinder */
+
 /**
  * Called when the window is loaded to set up the unifinder-todo.
  */
@@ -24,7 +26,7 @@ function updateCalendarToDoUnifinder(aFilter) {
     let oldFilter = document.getElementById("unifinder-todo-filter-broadcaster").getAttribute("value");
     let filter = oldFilter;
 
-    // This function acts as an event listener, in which case we get the Event as the 
+    // This function acts as an event listener, in which case we get the Event as the
     // parameter instead of a filter.
     if (aFilter && !(aFilter instanceof Event)) {
         filter = aFilter;

@@ -26,7 +26,12 @@
 <!ENTITY signingCert.message "Utilitzeu aquest certificat per signar digitalment els missatges que envieu:">
 
 <!ENTITY certificates.label "Certificats">
-<!ENTITY manageCerts.label "Visualitza els certificats">
-<!ENTITY manageCerts.accesskey "t">
+<!ENTITY manageCerts2.label "Gestiona els certificats">
+<!ENTITY manageCerts2.accesskey "G">
 <!ENTITY manageDevices.label "Dispositius de seguretat">
 <!ENTITY manageDevices.accesskey "s">
+<!-- Strings for the cert picker dialog -->
+
+<!ENTITY certPicker.title "Seleccioneu un certificat">
+<!ENTITY certPicker.info  "Certificat:">
+<!ENTITY certPicker.detailsLabel "Detalls del certificat seleccionat:">

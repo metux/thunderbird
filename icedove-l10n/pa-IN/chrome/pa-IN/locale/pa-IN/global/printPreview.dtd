@@ -71,3 +71,8 @@
 <!ENTITY endarrow.tooltip     "ਆਖਰੀ ਪੇਜ਼">
 <!ENTITY nextarrow.tooltip    "ਪੇਜ਼ ਅੱਗੇ">
 <!ENTITY previousarrow.tooltip "ਪੇਜ਼ ਪਿੱਛੇ">
+
+<!ENTITY simplifyPage.accesskey "i">
+<!ENTITY simplifyPage.disabled.tooltip "This page cannot be automatically simplified">
+<!ENTITY simplifyPage.enabled.tooltip  "Change layout for easier reading">
+<!ENTITY simplifyPage.label   "Simplify Page">

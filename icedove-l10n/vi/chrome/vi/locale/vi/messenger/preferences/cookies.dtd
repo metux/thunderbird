@@ -26,3 +26,5 @@
 <!ENTITY button.close.label                "Đóng">
 <!ENTITY button.close.accesskey            "g">
 
+
+<!ENTITY props.container.label             "Container:">

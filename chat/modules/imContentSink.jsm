@@ -47,6 +47,7 @@ var kAllowedMozClasses =
   aClassName => aClassName == "moz-txt-underscore" ||
                 aClassName == "moz-txt-tag" ||
                 aClassName == "ib-person";
+var kAllowedAnchorClasses = aClassName => aClassName == "ib-person";
 
 /* Tags whose content should be fully removed, and reported in the Error Console. */
 var kForbiddenTags = {
@@ -61,7 +62,8 @@ var kStrictMode = {
   tags: {
     'a': {
       'title': true,
-      'href': kAllowedURLs
+      'href': kAllowedURLs,
+      'class': kAllowedAnchorClasses
     },
     'br': true,
     'p': true
@@ -80,7 +82,8 @@ var kStandardMode = {
     'div': true,
     'a': {
       'title': true,
-      'href': kAllowedURLs
+      'href': kAllowedURLs,
+      'class': kAllowedAnchorClasses
     },
     'em': true,
     'strong': true,
@@ -117,7 +120,8 @@ var kPermissiveMode = {
     'div': true,
     'a': {
       'title': true,
-      'href': kAllowedURLs
+      'href': kAllowedURLs,
+      'class': kAllowedAnchorClasses
     },
     'font': {
       'face': true,
@@ -247,7 +251,7 @@ function cleanupNode(aNode, aRules, aTextModifiers)
     let node = aNode.childNodes[i];
     if (node instanceof Components.interfaces.nsIDOMHTMLElement) {
       // check if node allowed
-      let nodeName = node.localName.toLowerCase();
+      let nodeName = node.localName;
       if (!(nodeName in aRules.tags)) {
         if (nodeName in kForbiddenTags) {
           Components.utils.reportError("removing a " + nodeName +
@@ -316,7 +320,7 @@ function cleanupNode(aNode, aRules, aTextModifiers)
       // are created, the next text modifier functions have more nodes
       // to process.
       let textNodeCount = 1;
-      for each (let modifier in aTextModifiers)
+      for (let modifier of aTextModifiers)
         for (let n = 0; n < textNodeCount; ++n) {
           let textNode = aNode.childNodes[i + n];
 

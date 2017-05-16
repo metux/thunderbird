@@ -26,7 +26,12 @@
 <!ENTITY signingCert.message "Особистий сертифікат для підпису:">
 
 <!ENTITY certificates.label "Сертифікати">
-<!ENTITY manageCerts.label "Перегляд сертифікатів">
-<!ENTITY manageCerts.accesskey "П">
+<!ENTITY manageCerts2.label "Керування сертифікатами">
+<!ENTITY manageCerts2.accesskey "К">
 <!ENTITY manageDevices.label "Керувати пристроями">
 <!ENTITY manageDevices.accesskey "К">
+
+<!-- Strings for the cert picker dialog -->
+<!ENTITY certPicker.title "Обрати сертифікат">
+<!ENTITY certPicker.info  "Сертифікат:">
+<!ENTITY certPicker.detailsLabel "Подробиці про вибраний сертифікат:">

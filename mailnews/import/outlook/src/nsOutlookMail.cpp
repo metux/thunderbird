@@ -641,15 +641,15 @@ nsresult nsOutlookMail::CreateList(const char16_t * pName,
 
   LPENTRYID    lpEid;
   ULONG        cbEid;
-  int32_t        idx;
-  LPMESSAGE        lpMsg;
-  nsCString        type;
-  LPSPropValue    pVal;
-  nsString        subject;
-  uint32_t total;
+  ULONG        idx;
+  LPMESSAGE    lpMsg;
+  nsCString    type;
+  LPSPropValue pVal;
+  nsString     subject;
+  ULONG        total;
 
-  total=sa->cValues;
-  for (idx = 0; idx < sa->cValues; idx++)
+  total = sa->cValues;
+  for (idx = 0; idx < total; idx++)
   {
     lpEid= (LPENTRYID) sa->lpbin[idx].lpb;
     cbEid = sa->lpbin[idx].cb;
@@ -680,7 +680,6 @@ nsresult nsOutlookMail::CreateList(const char16_t * pName,
         pDb->InitCardFromRow(userCard,newRow);
 
         //add card to db
-        bool bl=false;
         pDb->FindRowByCard(userCard,getter_AddRefs(oldRow));
         if (oldRow)
           newRow = oldRow;
@@ -699,7 +698,7 @@ nsresult nsOutlookMail::CreateList(const char16_t * pName,
   rv = pDb->AddCardRowToDB(newListRow);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = pDb->SetListAddressTotal(newListRow, total);
+  rv = pDb->SetListAddressTotal(newListRow, (uint32_t)total);
   rv = pDb->AddListDirNode(newListRow);
   return rv;
 }

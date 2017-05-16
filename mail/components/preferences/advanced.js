@@ -1,7 +1,11 @@
-# -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 4 -*-
-# This Source Code Form is subject to the terms of the Mozilla Public
-# License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+// Load DownloadUtils module for convertByteUnits
+Components.utils.import("resource://gre/modules/DownloadUtils.jsm");
+Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 var gAdvancedPane = {
   mPane: null,
@@ -22,9 +26,8 @@ var gAdvancedPane = {
       if (preference.value)
         document.getElementById("advancedPrefs").selectedIndex = preference.value;
     }
-#ifdef MOZ_UPDATER
-    this.updateReadPrefs();
-#endif
+    if (AppConstants.MOZ_UPDATER)
+      this.updateReadPrefs();
 
     // Default store type initialization.
     let storeTypeElement = document.getElementById("storeTypeMenulist");
@@ -33,10 +36,10 @@ var gAdvancedPane = {
     let targetItem = storeTypeElement.getElementsByAttribute("value", defaultStoreID);
     storeTypeElement.selectedItem = targetItem[0];
 
-#ifdef MOZ_CRASHREPORTER
-    this.initSubmitCrashes();
-#endif
+    if (AppConstants.MOZ_CRASHREPORTER)
+      this.initSubmitCrashes();
     this.initTelemetry();
+    this.updateActualCacheSize();
 
     // Search integration -- check whether we should hide or disable integration
     let hideSearchUI = false;
@@ -65,7 +68,6 @@ var gAdvancedPane = {
       document.getElementById("searchintegration.enable").disabled = true;
     }
 
-#ifdef HAVE_SHELL_SERVICE
     // If the shell service is not working, disable the "Check now" button
     // and "perform check at startup" checkbox.
     try {
@@ -73,12 +75,15 @@ var gAdvancedPane = {
                                .getService(Components.interfaces.nsIShellService);
       this.mShellServiceWorking = true;
     } catch (ex) {
-      document.getElementById("alwaysCheckDefault").disabled = true;
-      document.getElementById("alwaysCheckDefault").checked = false;
-      document.getElementById("checkDefaultButton").disabled = true;
+      // The elements may not exist if HAVE_SHELL_SERVICE is off.
+      if (document.getElementById("alwaysCheckDefault")) {
+        document.getElementById("alwaysCheckDefault").disabled = true;
+        document.getElementById("alwaysCheckDefault").checked = false;
+      }
+      if (document.getElementById("checkDefaultButton"))
+        document.getElementById("checkDefaultButton").disabled = true;
       this.mShellServiceWorking = false;
     }
-#endif
 
     if (this._loadInContent) {
       gSubDialog.init();
@@ -96,7 +101,6 @@ var gAdvancedPane = {
     }
   },
 
-#ifdef HAVE_SHELL_SERVICE
   /**
    * Checks whether Thunderbird is currently registered with the operating
    * system as the default app for mail, rss and news.  If Thunderbird is not
@@ -119,7 +123,6 @@ var gAdvancedPane = {
                         "modal,centerscreen,chrome,resizable=no", "calledFromPrefs");
     }
   },
-#endif
 
   showConfigEdit: function()
   {
@@ -149,6 +152,40 @@ var gAdvancedPane = {
    * - the size of the browser cache in KB
    */
 
+  // Retrieves the amount of space currently used by disk cache
+  updateActualCacheSize: function()
+  {
+    let actualSizeLabel = document.getElementById("actualDiskCacheSize");
+    let prefStrBundle = document.getElementById("bundlePreferences");
+
+    // Needs to root the observer since cache service keeps only a weak reference.
+    this.observer = {
+      onNetworkCacheDiskConsumption: function(consumption) {
+        let size = DownloadUtils.convertByteUnits(consumption);
+        // The XBL binding for the string bundle may have been destroyed if
+        // the page was closed before this callback was executed.
+        if (!prefStrBundle.getFormattedString) {
+          return;
+        }
+        actualSizeLabel.value = prefStrBundle.getFormattedString("actualDiskCacheSize", size);
+      },
+
+      QueryInterface: XPCOMUtils.generateQI([
+        Components.interfaces.nsICacheStorageConsumptionObserver,
+        Components.interfaces.nsISupportsWeakReference
+      ])
+    };
+
+    actualSizeLabel.value = prefStrBundle.getString("actualDiskCacheSizeCalculated");
+
+    try {
+      let cacheService =
+        Components.classes["@mozilla.org/netwerk/cache-storage-service;1"]
+                  .getService(Components.interfaces.nsICacheStorageService);
+      cacheService.asyncGetDiskConsumption(this.observer);
+    } catch (e) {}
+  },
+
   /**
    * Converts the cache size from units of KB to units of MB and returns that
    * value.
@@ -176,8 +213,11 @@ var gAdvancedPane = {
   clearCache: function ()
   {
     try {
-      Services.cache.evictEntries(Components.interfaces.nsICache.STORE_ANYWHERE);
-    } catch(ex) {}
+      let cache = Components.classes["@mozilla.org/netwerk/cache-storage-service;1"]
+                            .getService(Components.interfaces.nsICacheStorageService);
+      cache.clear();
+    } catch (ex) {}
+    this.updateActualCacheSize();
   },
 
   updateButtons: function (aButtonID, aPreferenceID)
@@ -189,17 +229,15 @@ var gAdvancedPane = {
     return undefined;
   },
 
-#ifdef MOZ_UPDATER
 /**
- * Selects the item of the radiogroup, and sets the warnIncompatible checkbox
- * based on the pref values and locked states.
+ * Selects the item of the radiogroup based on the pref values and locked
+ * states.
  *
  * UI state matrix for update preference conditions
  *
  * UI Components:                              Preferences
  * Radiogroup                                  i   = app.update.enabled
- * Warn before disabling extensions checkbox   ii  = app.update.auto
- *                                             iii = app.update.mode
+ *                                             ii  = app.update.auto
  *
  * Disabled states:
  * Element           pref  value  locked  disabled
@@ -207,15 +245,6 @@ var gAdvancedPane = {
  *                   i     t/f    *t*     *true*
  *                   ii    t/f    f       false
  *                   ii    t/f    *t*     *true*
- *                   iii   0/1/2  t/f     false
- * warnIncompatible  i     t      f       false
- *                   i     t      *t*     *true*
- *                   i     *f*    t/f     *true*
- *                   ii    t      f       false
- *                   ii    t      *t*     *true*
- *                   ii    *f*    t/f     *true*
- *                   iii   0/1/2  f       false
- *                   iii   0/1/2  *t*     *true*
  */
 updateReadPrefs: function ()
 {
@@ -239,36 +268,27 @@ updateReadPrefs: function ()
   // A locked pref is sufficient to disable the radiogroup.
   radiogroup.disabled = !canCheck || enabledPref.locked || autoPref.locked;
 
-  var modePref = document.getElementById("app.update.mode");
-  var warnIncompatible = document.getElementById("warnIncompatible");
-
-  // the warnIncompatible checkbox value is set by readAddonWarn
-  warnIncompatible.disabled = radiogroup.disabled || modePref.locked ||
-                              !enabledPref.value || !autoPref.value;
-
-#ifdef MOZ_MAINTENANCE_SERVICE
-  // Check to see if the maintenance service is installed.
-  // If it is don't show the preference at all.
-  var installed;
-  try {
-    let wrk = Components.classes["@mozilla.org/windows-registry-key;1"]
-              .createInstance(Components.interfaces.nsIWindowsRegKey);
-    wrk.open(wrk.ROOT_KEY_LOCAL_MACHINE,
-             "SOFTWARE\\Mozilla\\MaintenanceService",
-             wrk.ACCESS_READ | wrk.WOW64_64);
-    installed = wrk.readIntValue("Installed");
-    wrk.close();
-  } catch(e) {
+  if (AppConstants.MOZ_MAINTENANCE_SERVICE) {
+    // Check to see if the maintenance service is installed.
+    // If it is don't show the preference at all.
+    let installed;
+    try {
+      let wrk = Components.classes["@mozilla.org/windows-registry-key;1"]
+                          .createInstance(Components.interfaces.nsIWindowsRegKey);
+      wrk.open(wrk.ROOT_KEY_LOCAL_MACHINE,
+               "SOFTWARE\\Mozilla\\MaintenanceService",
+               wrk.ACCESS_READ | wrk.WOW64_64);
+      installed = wrk.readIntValue("Installed");
+      wrk.close();
+    } catch(e) { }
+    if (installed != 1) {
+      document.getElementById("useService").hidden = true;
+    }
   }
-  if (installed != 1) {
-    document.getElementById("useService").hidden = true;
-  }
-#endif
 },
 
 /**
- * Sets the pref values based on the selected item of the radiogroup,
- * and sets the disabled state of the warnIncompatible checkbox accordingly.
+ * Sets the pref values based on the selected item of the radiogroup.
  */
 updateWritePrefs: function ()
 {
@@ -288,38 +308,7 @@ updateWritePrefs: function ()
       enabledPref.value = false;
       autoPref.value = false;
   }
-
-  var warnIncompatible = document.getElementById("warnIncompatible");
-  var modePref = document.getElementById("app.update.mode");
-  warnIncompatible.disabled = enabledPref.locked || !enabledPref.value ||
-                              autoPref.locked || !autoPref.value ||
-                              modePref.locked;
 },
-
-  /**
-   * app.update.mode is a three state integer preference, and we have to
-   * express all three values in a single checkbox:
-   * "Warn me if this will disable extensions or themes"
-   * Preference Value         Checkbox State    Meaning
-   * 0                        Unchecked         Do not warn
-   * 1                        Checked           Warn if there are incompatibilities
-   * 2                        Checked           Warn if there are incompatibilities,
-   *                                            or the update is major.
-   */
-  _modePreference: -1,
-  addonWarnSyncFrom: function ()
-  {
-    var preference = document.getElementById("app.update.mode");
-    var warn = preference.value != 0;
-    gAdvancedPane._modePreference = warn ? preference.value : 1;
-    return warn;
-  },
-
-  addonWarnSyncTo: function ()
-  {
-    var warnIncompatible = document.getElementById("warnIncompatible");
-    return !warnIncompatible.checked ? 0 : gAdvancedPane._modePreference;
-  },
 
   showUpdates: function ()
   {
@@ -327,7 +316,6 @@ updateWritePrefs: function ()
                              .createInstance(Components.interfaces.nsIUpdatePrompt);
     prompter.showUpdateHistory(window);
   },
-#endif
 
   updateCompactOptions: function(aCompactEnabled)
   {
@@ -444,9 +432,8 @@ updateWritePrefs: function ()
    */
   updateHardwareAcceleration: function(aVal)
   {
-#ifdef XP_WIN
-    Services.prefs.setBoolPref("gfx.direct2d.disabled", !aVal);
-#endif
+    if (AppConstants.platforms == "win")
+      Services.prefs.setBoolPref("gfx.direct2d.disabled", !aVal);
   },
 
   // DATA CHOICES TAB
@@ -515,8 +502,7 @@ updateWritePrefs: function ()
    */
   initTelemetry: function ()
   {
-#ifdef MOZ_TELEMETRY_REPORTING
-    this._setupLearnMoreLink("toolkit.telemetry.infoURL", "telemetryLearnMore");
-#endif
+    if (AppConstants.MOZ_TELEMETRY_REPORTING)
+      this._setupLearnMoreLink("toolkit.telemetry.infoURL", "telemetryLearnMore");
   },
 };

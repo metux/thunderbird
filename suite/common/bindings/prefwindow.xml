@@ -377,8 +377,13 @@
             }
           }
           this.setPaneTitle(aPane);
-          if (this.scrollHeight > window.innerHeight)
-            window.innerHeight = this.scrollHeight;
+          if (this.getAttribute("overflow") != "auto")
+          {
+            if (this.scrollHeight > window.innerHeight)
+              window.innerHeight = this.scrollHeight;
+            if (this.scrollWidth > window.innerWidth)
+              window.innerWidth = this.scrollWidth;
+          }
         ]]>
         </body>
       </method>
@@ -391,7 +396,7 @@
         <![CDATA[
           const wm = Components.classes['@mozilla.org/appshell/window-mediator;1']
                                .getService(Components.interfaces.nsIWindowMediator);
-          const iterator = wm.getEnumerator("mozilla:help");
+          const iterator = wm.getEnumerator("suite:help");
           var topWindow = null;
           var aWindow;
 

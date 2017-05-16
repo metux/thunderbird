@@ -1,3 +1,7 @@
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+
 <!ENTITY  typeColumn.label            "Tipe Isi">
 <!ENTITY  typeColumn.accesskey        "T">
 
@@ -21,8 +25,7 @@
 <!ENTITY attachments.incoming.label   "Masuk">
 <!ENTITY attachments.outgoing.label   "Keluar">
 
-<!ENTITY addCloudFileAccount.label        "Tambah">
-<!ENTITY addCloudFileAccount.accesskey    "T">
+
 <!ENTITY addCloudFileAccount.description  "Tambakan layanan penyimpanan Filelink">
 <!ENTITY removeCloudFileAccount.label     "Hapus">
 <!ENTITY removeCloudFileAccount.accesskey "H">
@@ -32,3 +35,7 @@
 
 <!ENTITY enableCloudFileAccountOffer.label "Menawarkan untuk berbagi berkas dengan ukuran lebih dari">
 <!ENTITY enableCloudFileAccountOffer.mb "MB">
+
+<!ENTITY addCloudFileAccount1.accesskey   "A">
+
+<!ENTITY addCloudFileAccount1.label       "Add…">

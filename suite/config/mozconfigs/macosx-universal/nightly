@@ -7,21 +7,22 @@ if test -e "$topsrcdir/suite/config/version.txt"; then
   unset CXX
 fi
 
+# Make sure Lightning is also unified, this needs to happen before including
+# the universal mozconfig because Lightning's univeral.mk needs to run first.
+mk_add_options MOZ_POSTFLIGHT_ALL+=calendar/lightning/build/universal.mk
+
 . $topsrcdir/build/macosx/universal/mozconfig
 
 ac_add_options --enable-application=suite
 ac_add_options --enable-update-channel=${MOZ_UPDATE_CHANNEL}
-ac_add_options --enable-update-packaging
-ac_add_options --enable-tests
 ac_add_options --disable-install-strip
 ac_add_options --enable-profiling
-
-export CFLAGS="-gdwarf-2"
-export CXXFLAGS="-gdwarf-2"
-
-# For NSS symbols
-export MOZ_DEBUG_SYMBOLS=1
-ac_add_options --enable-debug-symbols="-gdwarf-2"
+ac_add_options --enable-calendar
 
 # Needed to enable breakpad in application.ini
 export MOZILLA_OFFICIAL=1
+
+# Disable checking that add-ons are signed by the trusted root
+MOZ_ADDON_SIGNING=0
+# Disable enforcing that add-ons are signed by the trusted root
+MOZ_REQUIRE_SIGNING=0

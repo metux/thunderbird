@@ -12,6 +12,7 @@
 #include "nsIMsgSearchNotify.h"
 #include "nsMsgXFViewThread.h"
 #include "nsCOMArray.h"
+#include "mozilla/UniquePtr.h"
 
 class nsMsgSearchDBView : public nsMsgGroupView, public nsIMsgCopyServiceListener, public nsIMsgSearchNotify
 {
@@ -25,25 +26,25 @@ public:
   NS_DECL_NSIMSGSEARCHNOTIFY
   NS_DECL_NSIMSGCOPYSERVICELISTENER
 
-  NS_IMETHOD SetSearchSession(nsIMsgSearchSession *aSearchSession);
+  NS_IMETHOD SetSearchSession(nsIMsgSearchSession *aSearchSession) override;
 
-  virtual const char * GetViewName(void) {return "SearchView"; }
+  virtual const char *GetViewName(void) override { return "SearchView"; }
   NS_IMETHOD Open(nsIMsgFolder *folder, nsMsgViewSortTypeValue sortType, nsMsgViewSortOrderValue sortOrder, 
         nsMsgViewFlagsTypeValue viewFlags, int32_t *pCount) override;
   NS_IMETHOD CloneDBView(nsIMessenger *aMessengerInstance, nsIMsgWindow *aMsgWindow,
-                         nsIMsgDBViewCommandUpdater *aCmdUpdater, nsIMsgDBView **_retval);
+                         nsIMsgDBViewCommandUpdater *aCmdUpdater, nsIMsgDBView **_retval) override;
   NS_IMETHOD CopyDBView(nsMsgDBView *aNewMsgDBView, nsIMessenger *aMessengerInstance, 
                         nsIMsgWindow *aMsgWindow, nsIMsgDBViewCommandUpdater *aCmdUpdater) override;
   NS_IMETHOD Close() override;
   NS_IMETHOD GetViewType(nsMsgViewTypeValue *aViewType) override;
-  NS_IMETHOD Sort(nsMsgViewSortTypeValue sortType, 
-                  nsMsgViewSortOrderValue sortOrder);
+  NS_IMETHOD Sort(nsMsgViewSortTypeValue sortType,
+                  nsMsgViewSortOrderValue sortOrder) override;
   NS_IMETHOD GetCommandStatus(nsMsgViewCommandTypeValue command,
-                              bool *selectable_p, 
-                              nsMsgViewCommandCheckStateValue *selected_p);
-  NS_IMETHOD DoCommand(nsMsgViewCommandTypeValue command);
-  NS_IMETHOD DoCommandWithFolder(nsMsgViewCommandTypeValue command, nsIMsgFolder *destFolder);
-  NS_IMETHOD GetHdrForFirstSelectedMessage(nsIMsgDBHdr **hdr);
+                              bool *selectable_p,
+                              nsMsgViewCommandCheckStateValue *selected_p) override;
+  NS_IMETHOD DoCommand(nsMsgViewCommandTypeValue command) override;
+  NS_IMETHOD DoCommandWithFolder(nsMsgViewCommandTypeValue command, nsIMsgFolder *destFolder) override;
+  NS_IMETHOD GetHdrForFirstSelectedMessage(nsIMsgDBHdr **hdr) override;
   NS_IMETHOD OpenWithHdrs(nsISimpleEnumerator *aHeaders, 
                           nsMsgViewSortTypeValue aSortType,
                           nsMsgViewSortOrderValue aSortOrder, 
@@ -53,12 +54,12 @@ public:
                           int32_t aFlags, nsIDBChangeListener *aInstigator) override;
   NS_IMETHOD OnHdrFlagsChanged(nsIMsgDBHdr *aHdrChanged, uint32_t aOldFlags,
                                uint32_t aNewFlags, nsIDBChangeListener *aInstigator) override;
-  NS_IMETHOD GetNumMsgsInView(int32_t *aNumMsgs);
+  NS_IMETHOD GetNumMsgsInView(int32_t *aNumMsgs) override;
   // override to get location
   NS_IMETHOD GetCellText(int32_t aRow, nsITreeColumn* aCol, nsAString& aValue) override;
   virtual nsresult GetMsgHdrForViewIndex(nsMsgViewIndex index, nsIMsgDBHdr **msgHdr) override;
   virtual nsresult OnNewHeader(nsIMsgDBHdr *newHdr, nsMsgKey parentKey, bool ensureListed) override;
-  NS_IMETHOD GetFolderForViewIndex(nsMsgViewIndex index, nsIMsgFolder **folder);
+  NS_IMETHOD GetFolderForViewIndex(nsMsgViewIndex index, nsIMsgFolder **folder) override;
 
   NS_IMETHOD OnAnnouncerGoingAway(nsIDBChangeAnnouncer *instigator) override;
 
@@ -90,7 +91,11 @@ protected:
                                  bool allowDummy=false) override;
   nsresult GetFoldersAndHdrsForSelection(nsMsgViewIndex *indices, int32_t numIndices);
   nsresult GroupSearchResultsByFolder();
-  nsresult PartitionSelectionByFolder(nsMsgViewIndex *indices, int32_t numIndices, nsTArray<uint32_t> **indexArrays, int32_t *numArrays);
+  nsresult PartitionSelectionByFolder(nsMsgViewIndex *indices,
+                                      int32_t numIndices,
+                                      mozilla::UniquePtr<nsTArray<uint32_t>[]> &indexArrays,
+                                      int32_t *numArrays);
+
   virtual nsresult ApplyCommandToIndicesWithFolder(nsMsgViewCommandTypeValue command, nsMsgViewIndex* indices,
                     int32_t numIndices, nsIMsgFolder *destFolder) override;
   void MoveThreadAt(nsMsgViewIndex threadIndex);
@@ -126,12 +131,6 @@ protected:
   nsInterfaceHashtable <nsCStringHashKey, nsIMsgDBHdr> m_hdrsTable;
   uint32_t m_totalMessagesInView;
 
-  PR_STATIC_CALLBACK(PLDHashOperator) ThreadTableCloner(const nsACString &aKey, 
-                                                        nsIMsgThread* aThread, 
-                                                        void* aArg);
-  PR_STATIC_CALLBACK(PLDHashOperator) MsgHdrTableCloner(const nsACString &aKey, 
-                                                        nsIMsgDBHdr* aMsgHdr, 
-                                                        void* aArg);
   virtual nsMsgGroupThread *CreateGroupThread(nsIMsgDatabase *db) override;
   nsresult GetXFThreadFromMsgHdr(nsIMsgDBHdr *msgHdr, nsIMsgThread **pThread,
                                  bool *foundByMessageId = nullptr);

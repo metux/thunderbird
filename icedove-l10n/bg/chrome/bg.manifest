@@ -4,12 +4,12 @@ locale branding bg bg/locale/bg/branding/
 locale chat bg bg/locale/bg/chat/
 locale communicator bg bg/locale/bg/communicator/
 locale cookie bg bg/locale/bg/cookie/
+locale devtools bg bg/locale/bg/devtools/client/
 locale devtools-shared bg bg/locale/bg/devtools/shared/
 locale editor bg bg/locale/bg/editor/
 locale formautofill bg bg/locale/bg/formautofill/
 locale global bg bg/locale/bg/global/
 locale global-platform bg bg/locale/bg/global-platform/
-locale global-region bg bg/locale/bg/global-region/
 locale messenger bg bg/locale/bg/messenger/
 locale messenger-mapi bg bg/locale/bg/messenger-mapi/
 locale messenger-newsblog bg bg/locale/bg/messenger-newsblog/

@@ -8,6 +8,7 @@
 #include "IMMHandler.h"
 #include "mozilla/Preferences.h"
 #include "nsWindowDefs.h"
+#include "WinTextEventDispatcherListener.h"
 
 #ifdef NS_ENABLE_TSF
 #include "TSFTextStore.h"
@@ -89,6 +90,7 @@ IMEHandler::Terminate()
 #endif // #ifdef NS_ENABLE_TSF
 
   IMMHandler::Terminate();
+  WinTextEventDispatcherListener::Shutdown();
 }
 
 // static
@@ -237,7 +239,7 @@ IMEHandler::NotifyIME(nsWindow* aWindow,
         IMMHandler::OnSelectionChange(aWindow, aIMENotification, isIMMActive);
         return rv;
       }
-      case NOTIFY_IME_OF_COMPOSITION_UPDATE:
+      case NOTIFY_IME_OF_COMPOSITION_EVENT_HANDLED:
         // If IMM IME is active, we need to notify IMMHandler of updating
         // composition change.  It will adjust candidate window position or
         // composition window position.
@@ -300,7 +302,7 @@ IMEHandler::NotifyIME(nsWindow* aWindow,
       IMMHandler::CancelComposition(aWindow);
       return NS_OK;
     case NOTIFY_IME_OF_POSITION_CHANGE:
-    case NOTIFY_IME_OF_COMPOSITION_UPDATE:
+    case NOTIFY_IME_OF_COMPOSITION_EVENT_HANDLED:
       IMMHandler::OnUpdateComposition(aWindow);
       return NS_OK;
     case NOTIFY_IME_OF_SELECTION_CHANGE:
@@ -357,6 +359,13 @@ IMEHandler::GetUpdatePreference()
 #endif //NS_ENABLE_TSF
 
   return IMMHandler::GetIMEUpdatePreference();
+}
+
+// static
+TextEventDispatcherListener*
+IMEHandler::GetNativeTextEventDispatcherListener()
+{
+  return WinTextEventDispatcherListener::GetInstance();
 }
 
 // static
@@ -606,7 +615,7 @@ IMEHandler::MaybeShowOnScreenKeyboard()
       !IsWin8OrLater() ||
       !Preferences::GetBool(kOskEnabled, true) ||
       GetOnScreenKeyboardWindow() ||
-      IMEHandler::IsKeyboardPresentOnSlate()) {
+      !IMEHandler::NeedOnScreenKeyboard()) {
     return;
   }
 
@@ -653,24 +662,31 @@ IMEHandler::WStringStartsWithCaseInsensitive(const std::wstring& aHaystack,
                 lowerCaseNeedle.c_str()) == lowerCaseHaystack.c_str();
 }
 
-// Returns true if a physical keyboard is detected on Windows 8 and up.
-// Uses the Setup APIs to enumerate the attached keyboards and returns true
-// if the keyboard count is 1 or more. While this will work in most cases
-// it won't work if there are devices which expose keyboard interfaces which
-// are attached to the machine.
-// Based on IsKeyboardPresentOnSlate() in Chromium's base/win/win_util.cc.
+// Returns false if a physical keyboard is detected on Windows 8 and up,
+// or there is some other reason why an onscreen keyboard is not necessary.
+// Returns true if no keyboard is found and this device looks like it needs
+// an on-screen keyboard for text input.
 // static
 bool
-IMEHandler::IsKeyboardPresentOnSlate()
+IMEHandler::NeedOnScreenKeyboard()
 {
   // This function is only supported for Windows 8 and up.
   if (!IsWin8OrLater()) {
     Preferences::SetString(kOskDebugReason, L"IKPOS: Requires Win8+.");
-    return true;
+    return false;
   }
 
   if (!Preferences::GetBool(kOskDetectPhysicalKeyboard, true)) {
     Preferences::SetString(kOskDebugReason, L"IKPOS: Detection disabled.");
+    return true;
+  }
+
+  // If the last focus cause was not user-initiated (ie a result of code
+  // setting focus to an element) then don't auto-show a keyboard. This
+  // avoids cases where the keyboard would pop up "just" because e.g. a
+  // web page chooses to focus a search field on the page, even when that
+  // really isn't what the user is trying to do at that moment.
+  if (!InputContextAction::IsUserAction(sLastContextActionCause)) {
     return false;
   }
 
@@ -679,51 +695,24 @@ IMEHandler::IsKeyboardPresentOnSlate()
         != NID_INTEGRATED_TOUCH) {
     Preferences::SetString(kOskDebugReason,
                            L"IKPOS: Touch screen not found.");
-    return true;
+    return false;
   }
 
   // If the device is docked, the user is treating the device as a PC.
   if (::GetSystemMetrics(SM_SYSTEMDOCKED) != 0) {
     Preferences::SetString(kOskDebugReason, L"IKPOS: System docked.");
-    return true;
+    return false;
   }
 
   // To determine whether a keyboard is present on the device, we do the
   // following:-
-  // 1. Check whether the device supports auto rotation. If it does then
-  //    it possibly supports flipping from laptop to slate mode. If it
-  //    does not support auto rotation, then we assume it is a desktop
-  //    or a normal laptop and assume that there is a keyboard.
+  // 1. If the platform role is that of a mobile or slate device, check the
+  //    system metric SM_CONVERTIBLESLATEMODE to see if it is being used
+  //    in slate mode. If it is, also check that the last input was a touch.
+  //    If all of this is true, then we should show the on-screen keyboard.
 
-  // 2. If the device supports auto rotation, then we get its platform role
-  //    and check the system metric SM_CONVERTIBLESLATEMODE to see if it is
-  //    being used in slate mode. If yes then we return false here to ensure
-  //    that the OSK is displayed.
-
-  // 3. If step 1 and 2 fail then we check attached keyboards and return true
-  //    if we find ACPI\*, HID\VID* or bluetooth keyboards.
-
-  typedef BOOL (WINAPI* GetAutoRotationState)(PAR_STATE state);
-  GetAutoRotationState get_rotation_state =
-    reinterpret_cast<GetAutoRotationState>(::GetProcAddress(
-      ::GetModuleHandleW(L"user32.dll"), "GetAutoRotationState"));
-
-  if (get_rotation_state) {
-    AR_STATE auto_rotation_state = AR_ENABLED;
-    get_rotation_state(&auto_rotation_state);
-    // If there is no auto rotation sensor or rotation is not supported in
-    // the current configuration, then we can assume that this is a desktop
-    // or a traditional laptop.
-    if (auto_rotation_state & AR_NOSENSOR) {
-      Preferences::SetString(kOskDebugReason,
-                             L"IKPOS: Rotation sensor not found.");
-      return true;
-    } else if (auto_rotation_state & AR_NOT_SUPPORTED) {
-      Preferences::SetString(kOskDebugReason,
-                             L"IKPOS: Auto-rotation not supported.");
-      return true;
-    }
-  }
+  // 2. If step 1 didn't determine we should show the keyboard, we check if
+  //    this device has keyboards attached to it.
 
   // Check if the device is being used as a laptop or a tablet. This can be
   // checked by first checking the role of the device and then the
@@ -742,28 +731,28 @@ IMEHandler::IsKeyboardPresentOnSlate()
     }
   }
 
-  // If this is not a mobile or slate (tablet) device, we don't need to
-  // do anything here.
-  if (sPowerPlatformRole != PlatformRoleMobile &&
-      sPowerPlatformRole != PlatformRoleSlate) {
-    Preferences::SetString(kOskDebugReason, L"IKPOS: PlatformRole is neither Mobile nor Slate.");
+  // If this a mobile or slate (tablet) device, check if it is in slate mode.
+  // If the last input was touch, ignore whether or not a keyboard is present.
+  if ((sPowerPlatformRole == PlatformRoleMobile ||
+       sPowerPlatformRole == PlatformRoleSlate) &&
+      ::GetSystemMetrics(SM_CONVERTIBLESLATEMODE) == 0 &&
+      sLastContextActionCause == InputContextAction::CAUSE_TOUCH) {
+    Preferences::SetString(kOskDebugReason, L"IKPOS: Mobile/Slate Platform role, in slate mode with touch event.");
     return true;
   }
 
-  // Likewise, if the tablet/mobile isn't in "slate" mode, we should bail:
-  if (::GetSystemMetrics(SM_CONVERTIBLESLATEMODE) != 0) {
-    Preferences::SetString(kOskDebugReason, L"IKPOS: ConvertibleSlateMode is non-zero");
-    return true;
-  }
+  return !IMEHandler::IsKeyboardPresentOnSlate();
+}
 
-  // Before we check for a keyboard, we should check if the last input was touch,
-  // in which case we ignore whether or not a keyboard is present:
-  if (sLastContextActionCause == InputContextAction::CAUSE_TOUCH) {
-    Preferences::SetString(kOskDebugReason,
-      L"IKPOS: Used touch to focus control, ignoring keyboard presence");
-    return false;
-  }
-
+// Uses the Setup APIs to enumerate the attached keyboards and returns true
+// if the keyboard count is 1 or more. While this will work in most cases
+// it won't work if there are devices which expose keyboard interfaces which
+// are attached to the machine.
+// Based on IsKeyboardPresentOnSlate() in Chromium's base/win/win_util.cc.
+// static
+bool
+IMEHandler::IsKeyboardPresentOnSlate()
+{
   const GUID KEYBOARD_CLASS_GUID =
     { 0x4D36E96B, 0xE325,  0x11CE,
       { 0xBF, 0xC1, 0x08, 0x00, 0x2B, 0xE1, 0x03, 0x18 } };
@@ -979,10 +968,32 @@ IMEHandler::GetOnScreenKeyboardWindow()
 {
   const wchar_t kOSKClassName[] = L"IPTip_Main_Window";
   HWND osk = ::FindWindowW(kOSKClassName, nullptr);
-  if (::IsWindow(osk) && ::IsWindowEnabled(osk)) {
+  if (::IsWindow(osk) && ::IsWindowEnabled(osk) && ::IsWindowVisible(osk)) {
     return osk;
   }
   return nullptr;
+}
+
+// static
+void
+IMEHandler::SetCandidateWindow(nsWindow* aWindow, CANDIDATEFORM* aForm)
+{
+  if (!sPluginHasFocus) {
+    return;
+  }
+
+  IMMHandler::SetCandidateWindow(aWindow, aForm);
+}
+
+// static
+void
+IMEHandler::DefaultProcOfPluginEvent(nsWindow* aWindow,
+                                     const NPEvent* aPluginEvent)
+{
+  if (!sPluginHasFocus) {
+    return;
+  }
+  IMMHandler::DefaultProcOfPluginEvent(aWindow, aPluginEvent);
 }
 
 } // namespace widget

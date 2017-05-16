@@ -46,7 +46,9 @@
 <!ENTITY showCurrentView.label                  "Uneko ikuspegia">
 <!ENTITY showCurrentView.accesskey              "U">
 
-<!ENTITY calendar.properties.label              "Egutegiaren propietateak…">
-<!ENTITY calendar.properties.accesskey          "E">
 
+
+<!ENTITY calendar.properties.accesskey          "a">
+
+<!ENTITY calendar.properties.label              "Calendar Properties…">
 <!ENTITY showUnifinderCmd.tooltip               "Toggle the find events pane">

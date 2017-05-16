@@ -5,6 +5,7 @@
 <!ENTITY toField4.label "Til">
 <!ENTITY fromField4.label "Fra">
 <!ENTITY senderField4.label "Avsender">
+
 <!ENTITY organizationField4.label "Organisasjon">
 <!ENTITY replyToField4.label "Svar til">
 
@@ -23,6 +24,8 @@
 
 <!ENTITY hdrArchiveButton1.label "Arkiver">
 <!ENTITY hdrArchiveButton1.tooltip "Arkiver denne meldingen">
+
+
 <!ENTITY hdrSmartReplyButton1.label "Smart svar">
 <!ENTITY hdrReplyButton1.label "Svar">
 <!ENTITY hdrReplyButton2.tooltip "Svar til avsenderen av denne meldingen">
@@ -67,12 +70,12 @@
 <!ENTITY viewSourceMenuItem1.accesskey "V">
 <!ENTITY otherActionsPrint1.label "Skriv ut …">
 <!ENTITY otherActionsPrint1.accesskey "u">
-
 <!-- Attachment bar context menu items -->
+
 <!ENTITY startExpandedCmd.label    "Vis vedleggspanelet initielt">
 <!ENTITY startExpandedCmd.accesskey    "V">
-
 <!-- Attachment context menu items -->
+
 <!ENTITY openAttachmentCmd.label    "Åpne">
 <!ENTITY openAttachmentCmd.accesskey    "Å">
 <!ENTITY saveAsAttachmentCmd.label    "Lagre som …">
@@ -86,13 +89,13 @@
 <!ENTITY saveAllAttachmentsCmd.label    "Lagre alle …">
 <!ENTITY saveAllAttachmentsCmd.accesskey    "L">
 <!ENTITY detachAllAttachmentsCmd.label    "Fraskill alle …">
-<!ENTITY detachAllAttachmentsCmd.accesskey    "S">
+<!ENTITY detachAllAttachmentsCmd.accesskey    "s">
 <!ENTITY deleteAllAttachmentsCmd.label    "Slett alle …">
 <!ENTITY deleteAllAttachmentsCmd.accesskey    "e">
 
 <!ENTITY openAttachment.tooltip "Åpne vedlagt fil">
-
 <!-- Attachment toolbar items -->
+
 <!ENTITY saveAttachmentButton1.label       "Lagre">
 <!ENTITY saveAttachmentButton1.tooltip     "Lagre vedlagte fil">
 <!ENTITY saveAllAttachmentsButton1.label   "Lagre alle">
@@ -107,3 +110,7 @@
 <!ENTITY OpenMessageForMsgId.accesskey "n">
 <!ENTITY OpenBrowserWithMsgId.label "Åpne nettleser med meldingsid">
 <!ENTITY OpenBrowserWithMsgId.accesskey "e">
+
+<!ENTITY author.label "Author">
+<!ENTITY hdrOpenConversationButton1.label "Conversation">
+<!ENTITY hdrOpenConversationButton1.tooltip "Show conversation of this message">

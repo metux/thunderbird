@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/* exported loadCalendarPrintDialog, printAndClose, onDatePick */
+
 Components.utils.import("resource://calendar/modules/calUtils.jsm");
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
@@ -70,9 +72,9 @@ function loadCalendarPrintDialog() {
  */
 function getPrintSettings(receiverFunc) {
     let tempTitle = document.getElementById("title-field").value;
-    let settings = new Object();
+    let settings = {};
     let requiresFetch = true;
-    settings.title = (tempTitle || calGetString("calendar", "Untitled"));
+    settings.title = tempTitle || calGetString("calendar", "Untitled");
     settings.layoutCId = document.getElementById("layout-field").value;
     settings.start = null;
     settings.end = null;
@@ -81,51 +83,59 @@ function getPrintSettings(receiverFunc) {
     settings.printTasks = document.getElementById("tasks").checked;
     settings.printCompletedTasks = document.getElementById("completed-tasks").checked;
     settings.printTasksWithNoDueDate = document.getElementById("tasks-with-no-due-date").checked;
-    var theView = getCalendarView();
+    let theView = getCalendarView();
     switch (document.getElementById("view-field").selectedItem.value) {
-    case 'currentView':
-    case '': //just in case
-        settings.start = theView.startDay.clone();
-        settings.end = theView.endDay.clone();
-        settings.end.day += 1;
-        settings.start.isDate = false;
-        settings.end.isDate = false;
-        break;
-    case 'selected': {
-        let selectedItems = theView.getSelectedItems({});
-        settings.eventList = selectedItems.filter(function(item) {
-            if (cal.isEvent(item) && !settings.printEvents) return false;
-            if (cal.isToDo(item) && !settings.printTasks) return false;
-            return true;
-        });
-
-        // If tasks should be printed, also include selected tasks from the
-        // opening window.
-        if (settings.printTasks) {
-            let selectedTasks = window.opener.getSelectedTasks();
-            for each (var task in selectedTasks) {
-                settings.eventList.push(task);
-            }
+        case "currentView":
+        case "": { // just in case
+            settings.start = theView.startDay.clone();
+            settings.end = theView.endDay.clone();
+            settings.end.day += 1;
+            settings.start.isDate = false;
+            settings.end.isDate = false;
+            break;
         }
+        case "selected": {
+            let selectedItems = theView.getSelectedItems({});
+            settings.eventList = selectedItems.filter((item) => {
+                if (cal.isEvent(item) && !settings.printEvents) {
+                    return false;
+                }
+                if (cal.isToDo(item) && !settings.printTasks) {
+                    return false;
+                }
+                return true;
+            });
 
-        // We've set the event list above, no need to fetch items below.
-        requiresFetch = false;
-        break;
-    }
-    case 'custom':
-        // We return the time from the timepickers using the selected
-        // timezone, as not doing so in timezones with a positive offset
-        // from UTC may cause the printout to include the wrong days.
-        let currentTimezone = cal.calendarDefaultTimezone();
-        settings.start = cal.jsDateToDateTime(document.getElementById("start-date-picker").value);
-        settings.start = settings.start.getInTimezone(currentTimezone);
-        settings.end = cal.jsDateToDateTime(document.getElementById("end-date-picker").value);
-        settings.end = settings.end.getInTimezone(currentTimezone);
-        settings.end = settings.end.clone();
-        settings.end.day += 1;
-        break ;
-    default:
-        dump("Error : no case in printDialog.js::printCalendar()");
+            // If tasks should be printed, also include selected tasks from the
+            // opening window.
+            if (settings.printTasks) {
+                let selectedTasks = window.opener.getSelectedTasks();
+                for (let task of selectedTasks) {
+                    settings.eventList.push(task);
+                }
+            }
+
+            // We've set the event list above, no need to fetch items below.
+            requiresFetch = false;
+            break;
+        }
+        case "custom": {
+            // We return the time from the timepickers using the selected
+            // timezone, as not doing so in timezones with a positive offset
+            // from UTC may cause the printout to include the wrong days.
+            let currentTimezone = cal.calendarDefaultTimezone();
+            settings.start = cal.jsDateToDateTime(document.getElementById("start-date-picker").value);
+            settings.start = settings.start.getInTimezone(currentTimezone);
+            settings.end = cal.jsDateToDateTime(document.getElementById("end-date-picker").value);
+            settings.end = settings.end.getInTimezone(currentTimezone);
+            settings.end = settings.end.clone();
+            settings.end.day += 1;
+            break;
+        }
+        default: {
+            dump("Error : no case in printDialog.js::printCalendar()");
+            break;
+        }
     }
 
     // Some filters above might have filled the events list themselves. If not,
@@ -133,18 +143,16 @@ function getPrintSettings(receiverFunc) {
     if (requiresFetch) {
         let listener = {
             QueryInterface: XPCOMUtils.generateQI([Components.interfaces.calIOperationListener]),
-            onOperationComplete:
-            function onOperationComplete(aCalendar, aStatus, aOperationType, aId, aDateTime) {
+            onOperationComplete: function(aCalendar, aStatus, aOperationType, aId, aDateTime) {
                 receiverFunc(settings);
             },
-            onGetResult:
-            function onGetResult(aCalendar, aStatus, aItemType, aDetail, aCount, aItems) {
+            onGetResult: function(aCalendar, aStatus, aItemType, aDetail, aCount, aItems) {
                 settings.eventList = settings.eventList.concat(aItems);
                 if (!settings.printTasksWithNoDueDate) {
                     eventWithDueDate = [];
-                    for each (var item in settings.eventList) {
+                    for (let item of settings.eventList) {
                         if (item.dueDate || item.endDate) {
-                            eventWithDueDate.push(item)
+                            eventWithDueDate.push(item);
                         }
                     }
                     settings.eventList = eventWithDueDate;
@@ -193,50 +201,50 @@ function getFilter(settings) {
  * dialog UI element has changed, since we'll want to refresh the preview.
  */
 function refreshHtml(finishFunc) {
-    getPrintSettings(function getSettingsResponse(settings) {
-            document.title = calGetString("calendar", "PrintPreviewWindowTitle", [settings.title]);
+    getPrintSettings((settings) => {
+        document.title = calGetString("calendar", "PrintPreviewWindowTitle", [settings.title]);
 
-            let printformatter = Components.classes[settings.layoutCId]
-                                           .createInstance(Components.interfaces.calIPrintFormatter);
-            let html = "";
+        let printformatter = Components.classes[settings.layoutCId]
+                                       .createInstance(Components.interfaces.calIPrintFormatter);
+        let html = "";
+        try {
+            let pipe = Components.classes["@mozilla.org/pipe;1"]
+                                 .createInstance(Components.interfaces.nsIPipe);
+            const PR_UINT32_MAX = 4294967295; // signals "infinite-length"
+            pipe.init(true, true, 0, PR_UINT32_MAX, null);
+            printformatter.formatToHtml(pipe.outputStream,
+                                        settings.start,
+                                        settings.end,
+                                        settings.eventList.length,
+                                        settings.eventList,
+                                        settings.title);
+            pipe.outputStream.close();
+            // convert byte-array to UTF-8 string:
+            let convStream = Components.classes["@mozilla.org/intl/converter-input-stream;1"]
+                                       .createInstance(Components.interfaces.nsIConverterInputStream);
+            convStream.init(pipe.inputStream, "UTF-8", 0,
+                            Components.interfaces.nsIConverterInputStream.DEFAULT_REPLACEMENT_CHARACTER);
             try {
-                let pipe = Components.classes["@mozilla.org/pipe;1"]
-                                     .createInstance(Components.interfaces.nsIPipe);
-                const PR_UINT32_MAX = 4294967295; // signals "infinite-length"
-                pipe.init(true, true, 0, PR_UINT32_MAX, null);
-                printformatter.formatToHtml(pipe.outputStream,
-                                            settings.start,
-                                            settings.end,
-                                            settings.eventList.length,
-                                            settings.eventList,
-                                            settings.title);
-                pipe.outputStream.close();
-                // convert byte-array to UTF-8 string:
-                let convStream = Components.classes["@mozilla.org/intl/converter-input-stream;1"]
-                                           .createInstance(Components.interfaces.nsIConverterInputStream);
-                convStream.init(pipe.inputStream, "UTF-8", 0,
-                                Components.interfaces.nsIConverterInputStream.DEFAULT_REPLACEMENT_CHARACTER);
-                try {
-                    let portion = {};
-                    while (convStream.readString(-1, portion)) {
-                        html += portion.value;
-                    }
-                } finally {
-                    convStream.close();
+                let portion = {};
+                while (convStream.readString(-1, portion)) {
+                    html += portion.value;
                 }
-            } catch (e) {
-                Components.utils.reportError("Calendar print dialog:refreshHtml: " + e);
+            } finally {
+                convStream.close();
             }
-
-            let iframeDoc = document.getElementById("content").contentDocument;
-            iframeDoc.documentElement.innerHTML = html;
-            iframeDoc.title = settings.title;
-
-            if (finishFunc) {
-                finishFunc();
-            }
+        } catch (e) {
+            Components.utils.reportError("Calendar print dialog:refreshHtml: " + e);
         }
-    );
+
+        let iframeDoc = document.getElementById("content").contentDocument;
+        iframeDoc.documentElement.innerHTML = html;
+        iframeDoc.title = settings.title;
+
+        if (finishFunc) {
+            finishFunc();
+        }
+    }
+);
 }
 
 /**
@@ -244,8 +252,7 @@ function refreshHtml(finishFunc) {
  * sure printing works without issues
  */
 var closeOnComplete = {
-    onStateChange: function onStateChange(aProgress, aRequest, aStateFlags, aStatus) {
-
+    onStateChange: function(aProgress, aRequest, aStateFlags, aStatus) {
         if (aStateFlags & Components.interfaces.nsIWebProgressListener.STATE_STOP) {
             // The request is complete, close the window.
             document.documentElement.cancelDialog();
@@ -262,31 +269,33 @@ var closeOnComplete = {
  * Prints the document and then closes the window
  */
 function printAndClose() {
-    refreshHtml(
-        function finish() {
-            var webBrowserPrint = PrintUtils.getWebBrowserPrint();
-            var printSettings = PrintUtils.getPrintSettings();
+    refreshHtml(() => {
+        let webBrowserPrint = PrintUtils.getWebBrowserPrint();
+        let printSettings = PrintUtils.getPrintSettings();
 
-            // Evicts "about:blank" header
-            printSettings.docURL = " ";
+        // Evicts "about:blank" header
+        printSettings.docURL = " ";
 
-            // Start the printing, this is just what PrintUtils does, but we
-            // apply our own settings.
-            try {
-                webBrowserPrint.print(printSettings, closeOnComplete);
-                if (gPrintSettingsAreGlobal && gSavePrintSettings) {
-                    var PSSVC = Components.classes["@mozilla.org/gfx/printsettings-service;1"]
-                                          .getService(Components.interfaces.nsIPrintSettingsService);
-                    PSSVC.savePrintSettingsToPrefs(printSettings, true,
-                                                        printSettings.kInitSaveAll);
-                    PSSVC.savePrintSettingsToPrefs(printSettings, false,
-                                                   printSettings.kInitSavePrinterName);
-                }
-            } catch (e if e.result == Components.results.NS_ERROR_ABORT) {
-                // Pressing cancel is expressed as an NS_ERROR_ABORT return value,
-                // causing an exception to be thrown which we catch here.
+        // Start the printing, this is just what PrintUtils does, but we
+        // apply our own settings.
+        try {
+            webBrowserPrint.print(printSettings, closeOnComplete);
+            if (gPrintSettingsAreGlobal && gSavePrintSettings) {
+                let PSSVC = Components.classes["@mozilla.org/gfx/printsettings-service;1"]
+                                      .getService(Components.interfaces.nsIPrintSettingsService);
+                PSSVC.savePrintSettingsToPrefs(printSettings, true,
+                                                    printSettings.kInitSaveAll);
+                PSSVC.savePrintSettingsToPrefs(printSettings, false,
+                                               printSettings.kInitSavePrinterName);
             }
-        });
+        } catch (e) {
+            // Pressing cancel is expressed as an NS_ERROR_ABORT return value,
+            // causing an exception to be thrown which we catch here.
+            if (e.result != Components.results.NS_ERROR_ABORT) {
+                throw e;
+            }
+        }
+    });
     return false; // leave open
 }
 

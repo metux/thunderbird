@@ -11,10 +11,10 @@
 <!ENTITY menu_securitySign.accesskey "o">
 
 <!ENTITY menu_securityStatus.label "Beveiligingsinfo bekijken">
-<!ENTITY menu_securityStatus.accesskey "i">
+<!ENTITY menu_securityStatus.accesskey "b">
 
 <!ENTITY securityButton.label "Beveiliging">
 <!ENTITY securityButton.tooltip "Beveiligingsinstellingen bekijken of wijzigen">
 
 <!ENTITY menu_viewSecurityStatus.label "Berichtbeveiligingsinfo">
-<!ENTITY menu_viewSecurityStatus.accesskey "i">
+<!ENTITY menu_viewSecurityStatus.accesskey "f">

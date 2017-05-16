@@ -1,8 +1,13 @@
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+
 
 <!ENTITY migrationWizard.title          "Penuntun Impor">
 
 <!ENTITY importFromWin.label            "Impor Pengaturan, Pengaturan Akun, Buku Alamat, Filter, dan data Lainnya dari:">
 <!ENTITY importFromNonWin.label         "Impor Pengaturan, Pengaturan Akun, Buku Alamat, Filter, dan data Lainnya dari:">
+
 
 <!ENTITY importFromNothing.label        "Jangan impor apa pun">
 <!ENTITY importFromNothing.accesskey    "J">
@@ -12,8 +17,6 @@
 <!ENTITY importFromOExpress.accesskey   "u">
 <!ENTITY importFromOutlook.label        "Outlook">
 <!ENTITY importFromOutlook.accesskey    "O">
-<!ENTITY importFromEudora.label         "Eudora">
-<!ENTITY importFromEudora.accesskey     "E">
 
 <!ENTITY importSource.title             "Impor Pengaturan dan Folder Email">
 <!ENTITY importItems.title              "Item untuk Diimpor">
@@ -27,3 +30,5 @@
 
 <!ENTITY done.title                     "Proses Impor Selesai">
 <!ENTITY done.label                     "Item berikut sukses diimpor:">
+
+<!ENTITY importSourceNotFound.label     "No application to import data from found.">

@@ -36,3 +36,7 @@
 
 <!ENTITY enableCloudFileAccountOffer.label "Proponer da cundivider per datotecas pli grondas che">
 <!ENTITY enableCloudFileAccountOffer.mb "MB">
+
+<!ENTITY addCloudFileAccount1.accesskey   "A">
+
+<!ENTITY addCloudFileAccount1.label       "Add…">

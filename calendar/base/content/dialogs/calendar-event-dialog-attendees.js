@@ -2,6 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/* exported onLoad, onAccept, onCancel, zoomWithButtons, updateStartTime,
+ *          endWidget, updateEndTime, editStartTimezone, editEndTimezone,
+ *          changeAllDay, onNextSlot, onPreviousSlot
+ */
+
 Components.utils.import("resource://calendar/modules/calUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
 Components.utils.import("resource://gre/modules/Preferences.jsm");
@@ -38,10 +43,10 @@ function onLoad() {
     window.addEventListener("wheel", onMouseScroll, true);
     window.addEventListener("DOMMouseScroll", onMouseScroll, true);
 
-    var args = window.arguments[0];
-    var startTime = args.startTime;
-    var endTime = args.endTime;
-    var calendar = args.calendar;
+    let args = window.arguments[0];
+    let startTime = args.startTime;
+    let endTime = args.endTime;
+    let calendar = args.calendar;
 
     gDisplayTimezone = args.displayTimezone;
 
@@ -54,7 +59,7 @@ function onLoad() {
 
     // Make sure zoom factor is set up correctly (from persisted value)
     setZoomFactor(zoom.value);
-    if(gZoomFactor == 100) {
+    if (gZoomFactor == 100) {
         // if zoom factor was not changed, make sure it is applied at least once
         applyCurrentZoomFactor();
     }
@@ -87,26 +92,24 @@ function onLoad() {
     // we need to enforce several layout constraints which can't be modelled
     // with plain xul and css, at least as far as i know.
     const kStylesheet = "chrome://calendar/skin/calendar-event-dialog.css";
-    for each (var stylesheet in document.styleSheets) {
+    for (let stylesheet of document.styleSheets) {
         if (stylesheet.href == kStylesheet) {
             // make the dummy-spacer #1 [top] the same height as the timebar
-            var timebar = document.getElementById("timebar");
-            stylesheet.insertRule(
-                ".attendee-spacer-top { height: "
-                    + timebar.boxObject.height+"px; }", 0);
+            let timebar = document.getElementById("timebar");
+            stylesheet.insertRule(".attendee-spacer-top { height: " +
+                                  timebar.boxObject.height + "px; }", 0);
             // make the dummy-spacer #2 [bottom] the same height as the scrollbar
-            var scrollbar = document.getElementById("horizontal-scrollbar");
-            stylesheet.insertRule(
-                ".attendee-spacer-bottom { height: "
-                    + scrollbar.boxObject.height+"px; }", 0);
+            let scrollbar = document.getElementById("horizontal-scrollbar");
+            stylesheet.insertRule(".attendee-spacer-bottom { height: " +
+                                  scrollbar.boxObject.height + "px; }", 0);
             break;
         }
     }
 
     // attach an observer to get notified of changes
     // that are relevant to this dialog.
-    var prefObserver = {
-        observe: function aD_observe(aSubject, aTopic, aPrefName) {
+    let prefObserver = {
+        observe: function(aSubject, aTopic, aPrefName) {
             switch (aPrefName) {
                 case "calendar.view.daystarthour":
                 case "calendar.view.dayendhour":
@@ -115,13 +118,11 @@ function onLoad() {
                     break;
             }
         }
-    }
+    };
     Services.prefs.addObserver("calendar.", prefObserver, false);
-    window.addEventListener("unload",
-        function() {
-            Services.prefs.removeObserver("calendar.", prefObserver);
-        },
-        false);
+    window.addEventListener("unload", () => {
+        Services.prefs.removeObserver("calendar.", prefObserver);
+    }, false);
 
     opener.setCursor("auto");
     self.focus();
@@ -134,7 +135,7 @@ function onLoad() {
  * @return      Returns true, if the dialog should be closed.
  */
 function onAccept() {
-    var attendees = document.getElementById("attendees-list");
+    let attendees = document.getElementById("attendees-list");
     window.arguments[0].onOk(
         attendees.attendees,
         attendees.organizer,
@@ -177,7 +178,7 @@ function zoomWithButtons(aZoomOut) {
  */
 function loadDateTime(aStartDate, aEndDate) {
     gDuration = aEndDate.subtractDate(aStartDate);
-    var kDefaultTimezone = calendarDefaultTimezone();
+    let kDefaultTimezone = calendarDefaultTimezone();
     gStartTimezone = aStartDate.timezone;
     gEndTimezone = aEndDate.timezone;
     gStartDate = aStartDate.getInTimezone(kDefaultTimezone);
@@ -194,21 +195,21 @@ function propagateDateTime() {
     updateDateTime();
 
     // Tell the timebar about the new start/enddate
-    var timebar = document.getElementById("timebar");
+    let timebar = document.getElementById("timebar");
     timebar.startDate = gStartDate;
     timebar.endDate = gEndDate;
     timebar.refresh();
 
     // Tell the selection-bar about the new start/enddate
-    var selectionbar = document.getElementById("selection-bar");
+    let selectionbar = document.getElementById("selection-bar");
     selectionbar.startDate = gStartDate;
     selectionbar.endDate = gEndDate;
     selectionbar.update();
 
     // Tell the freebusy grid about the new start/enddate
-    var grid = document.getElementById("freebusy-grid");
+    let grid = document.getElementById("freebusy-grid");
 
-    var refresh = (grid.startDate == null) ||
+    let refresh = (grid.startDate == null) ||
                   (grid.startDate.compare(gStartDate) != 0) ||
                   (grid.endDate == null) ||
                   (grid.endDate.compare(gEndDate) != 0);
@@ -219,9 +220,9 @@ function propagateDateTime() {
     }
 
     // Expand to 24hrs if the new range is outside of the default range.
-    var kDefaultTimezone = calendarDefaultTimezone();
-    var startTime = gStartDate.getInTimezone(kDefaultTimezone);
-    var endTime = gEndDate.getInTimezone(kDefaultTimezone);
+    let kDefaultTimezone = calendarDefaultTimezone();
+    let startTime = gStartDate.getInTimezone(kDefaultTimezone);
+    let endTime = gEndDate.getInTimezone(kDefaultTimezone);
     if ((startTime.hour < gStartHour) ||
         (startTime.hour >= gEndHour) ||
         (endTime.hour >= gEndHour) ||
@@ -241,8 +242,8 @@ function updateDateTime() {
     // is *not* checked, otherwise keep the specific timezone
     // and display the labels in order to modify the timezone.
     if (gDisplayTimezone) {
-        var startTime = gStartDate.getInTimezone(gStartTimezone);
-        var endTime = gEndDate.getInTimezone(gEndTimezone);
+        let startTime = gStartDate.getInTimezone(gStartTimezone);
+        let endTime = gEndDate.getInTimezone(gEndTimezone);
 
         if (startTime.isDate) {
             document.getElementById("all-day")
@@ -269,10 +270,10 @@ function updateDateTime() {
         document.getElementById("event-starttime").value = cal.dateTimeToJsDate(startTime);
         document.getElementById("event-endtime").value = cal.dateTimeToJsDate(endTime);
     } else {
-        var kDefaultTimezone = calendarDefaultTimezone();
+        let kDefaultTimezone = calendarDefaultTimezone();
 
-        var startTime = gStartDate.getInTimezone(kDefaultTimezone);
-        var endTime = gEndDate.getInTimezone(kDefaultTimezone);
+        let startTime = gStartDate.getInTimezone(kDefaultTimezone);
+        let endTime = gEndDate.getInTimezone(kDefaultTimezone);
 
         if (startTime.isDate) {
             document.getElementById("all-day")
@@ -302,35 +303,35 @@ function updateTimezone() {
     gIgnoreUpdate = true;
 
     if (gDisplayTimezone) {
-        var startTimezone = gStartTimezone;
-        var endTimezone = gEndTimezone;
-        var equalTimezones = false;
+        let startTimezone = gStartTimezone;
+        let endTimezone = gEndTimezone;
+        let equalTimezones = false;
         if (startTimezone && endTimezone &&
             (compareObjects(startTimezone, endTimezone) || endTimezone.isUTC)) {
             equalTimezones = true;
         }
 
-        var tzStart = document.getElementById("timezone-starttime");
-        var tzEnd = document.getElementById("timezone-endtime");
-        if (startTimezone != null) {
-            tzStart.removeAttribute('collapsed');
+        let tzStart = document.getElementById("timezone-starttime");
+        let tzEnd = document.getElementById("timezone-endtime");
+        if (startTimezone) {
+            tzStart.removeAttribute("collapsed");
             tzStart.value = startTimezone.displayName || startTimezone.tzid;
         } else {
-            tzStart.setAttribute('collapsed', 'true');
+            tzStart.setAttribute("collapsed", "true");
         }
 
         // we never display the second timezone if both are equal
         if (endTimezone != null && !equalTimezones) {
-            tzEnd.removeAttribute('collapsed');
+            tzEnd.removeAttribute("collapsed");
             tzEnd.value = endTimezone.displayName || endTimezone.tzid;
         } else {
-            tzEnd.setAttribute('collapsed', 'true');
+            tzEnd.setAttribute("collapsed", "true");
         }
     } else {
         document.getElementById("timezone-starttime")
-            .setAttribute('collapsed', 'true');
+            .setAttribute("collapsed", "true");
         document.getElementById("timezone-endtime")
-            .setAttribute('collapsed', 'true');
+            .setAttribute("collapsed", "true");
     }
 
     gIgnoreUpdate = false;
@@ -345,17 +346,15 @@ function updateStartTime() {
     }
 
     let startWidgetId = "event-starttime";
-    let endWidgetId = "event-endtime";
 
     let startWidget = document.getElementById(startWidgetId);
-    let endWidget = document.getElementById(endWidgetId);
 
     // jsDate is always in OS timezone, thus we create a calIDateTime
     // object from the jsDate representation and simply set the new
     // timezone instead of converting.
     let timezone = gDisplayTimezone ? gStartTimezone : calendarDefaultTimezone();
     let start = cal.jsDateToDateTime(startWidget.value, timezone);
-                                    
+
     gStartDate = start.clone();
     start.addDuration(gDuration);
     gEndDate = start.getInTimezone(gEndTimezone);
@@ -378,20 +377,20 @@ function updateEndTime() {
         return;
     }
 
-    var startWidgetId = "event-starttime";
-    var endWidgetId = "event-endtime";
+    let startWidgetId = "event-starttime";
+    let endWidgetId = "event-endtime";
 
-    var startWidget = document.getElementById(startWidgetId);
-    var endWidget = document.getElementById(endWidgetId);
+    let startWidget = document.getElementById(startWidgetId);
+    let endWidget = document.getElementById(endWidgetId);
 
-    var saveStartTime = gStartDate;
-    var saveEndTime = gEndDate;
-    var kDefaultTimezone = calendarDefaultTimezone();
+    let saveStartTime = gStartDate;
+    let saveEndTime = gEndDate;
+    let kDefaultTimezone = calendarDefaultTimezone();
 
     gStartDate = cal.jsDateToDateTime(startWidget.value,
                                   gDisplayTimezone ? gStartTimezone : calendarDefaultTimezone());
 
-    var timezone = gEndTimezone;
+    let timezone = gEndTimezone;
     if (timezone.isUTC &&
         gStartDate &&
         !compareObjects(gStartTimezone, gEndTimezone)) {
@@ -400,8 +399,8 @@ function updateEndTime() {
     gEndDate = cal.jsDateToDateTime(endWidget.value,
                                     gDisplayTimezone ? timezone : kDefaultTimezone);
 
-    var allDayElement = document.getElementById("all-day");
-    var allDay = allDayElement.getAttribute("checked") == "true";
+    let allDayElement = document.getElementById("all-day");
+    let allDay = allDayElement.getAttribute("checked") == "true";
     if (allDay) {
         gStartDate.isDate = true;
         gEndDate.isDate = true;
@@ -409,7 +408,7 @@ function updateEndTime() {
 
     // Calculate the new duration of start/end-time.
     // don't allow for negative durations.
-    var warning = false;
+    let warning = false;
     if (gEndDate.compare(gStartDate) >= 0) {
         gDuration = gEndDate.subtractDate(gStartDate);
     } else {
@@ -421,12 +420,12 @@ function updateEndTime() {
     propagateDateTime();
 
     if (warning) {
-        var callback = function() {
+        let callback = function() {
             Services.prompt.alert(
                 null,
                 document.title,
                 calGetString("calendar", "warningEndBeforeStart"));
-        }
+        };
         setTimeout(callback, 1);
     }
 }
@@ -436,17 +435,17 @@ function updateEndTime() {
  * opened modally.
  */
 function editStartTimezone() {
-    var tzStart = document.getElementById("timezone-starttime");
+    let tzStart = document.getElementById("timezone-starttime");
     if (tzStart.hasAttribute("disabled")) {
         return;
     }
 
-    var self = this;
-    var args = new Object();
+    let self = this;
+    let args = {};
     args.calendar = window.arguments[0].calendar;
     args.time = gStartDate.getInTimezone(gStartTimezone);
     args.onOk = function(datetime) {
-        var equalTimezones = false;
+        let equalTimezones = false;
         if (gStartTimezone && gEndTimezone &&
             compareObjects(gStartTimezone, gEndTimezone)) {
             equalTimezones = true;
@@ -471,13 +470,13 @@ function editStartTimezone() {
  * opened modally.
  */
 function editEndTimezone() {
-    var tzStart = document.getElementById("timezone-endtime");
+    let tzStart = document.getElementById("timezone-endtime");
     if (tzStart.hasAttribute("disabled")) {
         return;
     }
 
-    var self = this;
-    var args = new Object();
+    let self = this;
+    let args = {};
     args.calendar = window.arguments[0].calendar;
     args.time = gEndTime.getInTimezone(gEndTimezone);
     args.onOk = function(datetime) {
@@ -508,13 +507,13 @@ function updateAllDay() {
         return;
     }
 
-    var allDayElement = document.getElementById("all-day");
-    var allDay  = (allDayElement.getAttribute("checked") == "true");
-    var startpicker = document.getElementById("event-starttime");
-    var endpicker = document.getElementById("event-endtime");
+    let allDayElement = document.getElementById("all-day");
+    let allDay = (allDayElement.getAttribute("checked") == "true");
+    let startpicker = document.getElementById("event-starttime");
+    let endpicker = document.getElementById("event-endtime");
 
-    var tzStart = document.getElementById("timezone-starttime");
-    var tzEnd = document.getElementById("timezone-endtime");
+    let tzStart = document.getElementById("timezone-starttime");
+    let tzEnd = document.getElementById("timezone-endtime");
 
     // Disable the timezone links if 'allday' is checked OR the
     // calendar of this item is read-only. In any other case we
@@ -544,8 +543,8 @@ function updateAllDay() {
  * XXX Function names are all very similar here. This needs some consistency!
  */
 function changeAllDay() {
-    var allDayElement = document.getElementById("all-day");
-    var allDay = (allDayElement.getAttribute("checked") == "true");
+    let allDayElement = document.getElementById("all-day");
+    let allDay = (allDayElement.getAttribute("checked") == "true");
 
     gStartDate = gStartDate.clone();
     gEndDate = gEndDate.clone();
@@ -558,7 +557,7 @@ function changeAllDay() {
     // After propagating the modified times we enforce some constraints
     // on the zoom-factor. In case this events is now said to be all-day,
     // we automatically enforce a 25% zoom-factor and disable the control.
-    var zoom = document.getElementById("zoom-menulist");
+    let zoom = document.getElementById("zoom-menulist");
     let zoomOut = document.getElementById("zoom-out-button");
     let zoomIn = document.getElementById("zoom-in-button");
     if (allDay) {
@@ -584,24 +583,24 @@ function onResize() {
         return;
     }
 
-    var grid = document.getElementById("freebusy-grid");
-    var gridScrollbar = document.getElementById("horizontal-scrollbar");
+    let grid = document.getElementById("freebusy-grid");
+    let gridScrollbar = document.getElementById("horizontal-scrollbar");
     grid.fitDummyRows();
-    var ratio = grid.boxObject.width / grid.documentSize;
-    var maxpos = gridScrollbar.getAttribute("maxpos");
-    var inc = maxpos * ratio / (1 - ratio);
-    gridScrollbar.setAttribute("pageincrement", inc);
+    let gridRatio = grid.boxObject.width / grid.documentSize;
+    let gridMaxpos = gridScrollbar.getAttribute("maxpos");
+    let gridInc = gridMaxpos * gridRatio / (1 - gridRatio);
+    gridScrollbar.setAttribute("pageincrement", gridInc);
 
-    var attendees = document.getElementById("attendees-list");
-    var attendeesScrollbar = document.getElementById("vertical-scrollbar");
-    var box = document.getElementById("vertical-scrollbar-box");
+    let attendees = document.getElementById("attendees-list");
+    let attendeesScrollbar = document.getElementById("vertical-scrollbar");
+    let box = document.getElementById("vertical-scrollbar-box");
     attendees.fitDummyRows();
-    var ratio = attendees.boxObject.height / attendees.documentSize;
-    if (ratio < 1) {
+    let attRatio = attendees.boxObject.height / attendees.documentSize;
+    let attMaxpos = attendeesScrollbar.getAttribute("maxpos");
+    if (attRatio < 1) {
         box.removeAttribute("collapsed");
-        var maxpos = attendeesScrollbar.getAttribute("maxpos");
-        var inc = maxpos * ratio / (1 - ratio);
-        attendeesScrollbar.setAttribute("pageincrement", inc);
+        let attInc = attMaxpos * attRatio / (1 - attRatio);
+        attendeesScrollbar.setAttribute("pageincrement", attInc);
     } else {
         box.setAttribute("collapsed", "true");
     }
@@ -614,7 +613,6 @@ function onResize() {
  */
 function onChangeCalendar(calendar) {
     let args = window.arguments[0];
-    let organizer = args.organizer;
 
     // set 'mIsReadOnly' if the calendar is read-only
     if (calendar && calendar.readOnly) {
@@ -631,9 +629,9 @@ function onChangeCalendar(calendar) {
 
     if (gIsReadOnly || gIsInvitation) {
         document.getElementById("next-slot")
-            .setAttribute('disabled', 'true');
+            .setAttribute("disabled", "true");
         document.getElementById("previous-slot")
-            .setAttribute('disabled', 'true');
+            .setAttribute("disabled", "true");
     }
 
     let freebusy = document.getElementById("freebusy-grid");
@@ -644,11 +642,11 @@ function onChangeCalendar(calendar) {
  * Updates the slot buttons.
  */
 function updateButtons() {
-    var previousButton = document.getElementById("previous-slot");
+    let previousButton = document.getElementById("previous-slot");
     if (gUndoStack.length > 0) {
-        previousButton.removeAttribute('disabled');
+        previousButton.removeAttribute("disabled");
     } else {
-        previousButton.setAttribute('disabled', 'true');
+        previousButton.setAttribute("disabled", "true");
     }
 }
 
@@ -657,23 +655,23 @@ function updateButtons() {
  */
 function onNextSlot() {
     // Store the current setting in the undo-stack.
-    var currentSlot = {};
+    let currentSlot = {};
     currentSlot.startTime = gStartDate;
     currentSlot.endTime = gEndDate;
     gUndoStack.push(currentSlot);
 
     // Ask the grid for the next possible timeslot.
-    var grid = document.getElementById("freebusy-grid");
-    var duration = gEndDate.subtractDate(gStartDate);
-    var start = grid.nextSlot();
-    var end = start.clone();
+    let grid = document.getElementById("freebusy-grid");
+    let duration = gEndDate.subtractDate(gStartDate);
+    let start = grid.nextSlot();
+    let end = start.clone();
     end.addDuration(duration);
     if (start.isDate) {
         end.day++;
     }
     gStartDate = start.clone();
     gEndDate = end.clone();
-    var endDate = gEndDate.clone();
+    let endDate = gEndDate.clone();
 
     // Check if an all-day event has been passed in (to adapt endDate).
     if (gStartDate.isDate) {
@@ -695,7 +693,7 @@ function onNextSlot() {
  * Handler function called to advance to the previous slot.
  */
 function onPreviousSlot() {
-    var previousSlot = gUndoStack.pop();
+    let previousSlot = gUndoStack.pop();
     if (!previousSlot) {
         return;
     }
@@ -704,11 +702,10 @@ function onPreviousSlot() {
     // on a different day, we also need to update the
     // complete freebusy informations and appropriate
     // underlying arrays holding the information.
-    var refresh = previousSlot.startTime.day != gStartDate.day;
+    let refresh = previousSlot.startTime.day != gStartDate.day;
 
     gStartDate = previousSlot.startTime.clone();
     gEndDate = previousSlot.endTime.clone();
-    var endDate = gEndDate.clone();
 
     propagateDateTime();
 
@@ -718,7 +715,7 @@ function onPreviousSlot() {
     updateButtons();
 
     if (refresh) {
-        var grid = document.getElementById("freebusy-grid");
+        let grid = document.getElementById("freebusy-grid");
         grid.forceRefresh();
     }
 }
@@ -728,16 +725,16 @@ function onPreviousSlot() {
  * visible.
  */
 function scrollToCurrentTime() {
-    var timebar = document.getElementById("timebar");
-    var ratio = (gStartDate.hour - gStartHour - 1) * timebar.step;
+    let timebar = document.getElementById("timebar");
+    let ratio = (gStartDate.hour - gStartHour - 1) * timebar.step;
     if (ratio <= 0.0) {
         ratio = 0.0;
     }
     if (ratio >= 1.0) {
         ratio = 1.0;
     }
-    var scrollbar = document.getElementById("horizontal-scrollbar");
-    var maxpos = scrollbar.getAttribute("maxpos");
+    let scrollbar = document.getElementById("horizontal-scrollbar");
+    let maxpos = scrollbar.getAttribute("maxpos");
     scrollbar.setAttribute("curpos", ratio * maxpos);
 }
 
@@ -749,7 +746,7 @@ function scrollToCurrentTime() {
  * @return              aValue (for chaining)
  */
 function setZoomFactor(aValue) {
-    // Correct zoom factor, if needed 
+    // Correct zoom factor, if needed
     aValue = parseInt(aValue, 10) || 100;
 
     if (gZoomFactor == aValue) {
@@ -765,11 +762,11 @@ function setZoomFactor(aValue) {
  * applies the current zoom factor for the time grid
  */
 function applyCurrentZoomFactor() {
-    var timebar = document.getElementById("timebar");
+    let timebar = document.getElementById("timebar");
     timebar.zoomFactor = gZoomFactor;
-    var selectionbar = document.getElementById("selection-bar");
+    let selectionbar = document.getElementById("selection-bar");
     selectionbar.zoomFactor = gZoomFactor;
-    var grid = document.getElementById("freebusy-grid");
+    let grid = document.getElementById("freebusy-grid");
     grid.zoomFactor = gZoomFactor;
 
     // Calling onResize() will update the scrollbars and everything else
@@ -777,11 +774,11 @@ function applyCurrentZoomFactor() {
     // this after the changes have actually been made...
     onResize();
 
-    var scrollbar = document.getElementById("horizontal-scrollbar");
+    let scrollbar = document.getElementById("horizontal-scrollbar");
     if (scrollbar.hasAttribute("maxpos")) {
-        var curpos = scrollbar.getAttribute("curpos");
-        var maxpos = scrollbar.getAttribute("maxpos");
-        var ratio = curpos / maxpos;
+        let curpos = scrollbar.getAttribute("curpos");
+        let maxpos = scrollbar.getAttribute("maxpos");
+        let ratio = curpos / maxpos;
         timebar.scroll = ratio;
         grid.scroll = ratio;
         selectionbar.ratio = ratio;
@@ -796,16 +793,16 @@ function applyCurrentZoomFactor() {
  */
 function setForce24Hours(aValue) {
     if (gForce24Hours == aValue) {
-      return aValue;
+        return aValue;
     }
 
     gForce24Hours = aValue;
     initTimeRange();
-    var timebar = document.getElementById("timebar");
+    let timebar = document.getElementById("timebar");
     timebar.force24Hours = gForce24Hours;
-    var selectionbar = document.getElementById("selection-bar");
+    let selectionbar = document.getElementById("selection-bar");
     selectionbar.force24Hours = gForce24Hours;
-    var grid = document.getElementById("freebusy-grid");
+    let grid = document.getElementById("freebusy-grid");
     grid.force24Hours = gForce24Hours;
 
     // Calling onResize() will update the scrollbars and everything else
@@ -813,13 +810,13 @@ function setForce24Hours(aValue) {
     // this after the changes have actually been made...
     onResize();
 
-    var scrollbar = document.getElementById("horizontal-scrollbar");
+    let scrollbar = document.getElementById("horizontal-scrollbar");
     if (!scrollbar.hasAttribute("maxpos")) {
         return aValue;
     }
-    var curpos = scrollbar.getAttribute("curpos");
-    var maxpos = scrollbar.getAttribute("maxpos");
-    var ratio = curpos / maxpos;
+    let curpos = scrollbar.getAttribute("curpos");
+    let maxpos = scrollbar.getAttribute("maxpos");
+    let ratio = curpos / maxpos;
     timebar.scroll = ratio;
     grid.scroll = ratio;
     selectionbar.ratio = ratio;
@@ -861,9 +858,9 @@ function onModify(event) {
  * @param event     The DOM event caused by the row change.
  */
 function onRowChange(event) {
-    var scrollbar = document.getElementById("vertical-scrollbar");
-    var attendees = document.getElementById("attendees-list");
-    var maxpos = scrollbar.getAttribute("maxpos");
+    let scrollbar = document.getElementById("vertical-scrollbar");
+    let attendees = document.getElementById("attendees-list");
+    let maxpos = scrollbar.getAttribute("maxpos");
     scrollbar.setAttribute(
         "curpos",
         event.details / attendees.mMaxAttendees * maxpos);
@@ -886,48 +883,48 @@ function onMouseScroll(event) {
  */
 function onAttrModified(event) {
     if (event.attrName == "width") {
-        var selectionbar = document.getElementById("selection-bar");
+        let selectionbar = document.getElementById("selection-bar");
         selectionbar.setWidth(selectionbar.boxObject.width);
         return;
     }
 
     // Synchronize grid and attendee list
-    var target = event.originalTarget;
+    let target = event.originalTarget;
     if (target.hasAttribute("anonid") &&
         target.getAttribute("anonid") == "input" &&
         event.attrName == "focused") {
-        var attendees = document.getElementById("attendees-list");
+        let attendees = document.getElementById("attendees-list");
         if (event.newValue == "true") {
             let grid = document.getElementById("freebusy-grid");
             if (grid.firstVisibleRow != attendees.firstVisibleRow) {
                 grid.firstVisibleRow = attendees.firstVisibleRow;
             }
         }
-        if (!target.lastListCheckedValue
-            || target.lastListCheckedValue != target.value) {
+        if (!target.lastListCheckedValue ||
+            target.lastListCheckedValue != target.value) {
             attendees.resolvePotentialList(target);
             target.lastListCheckedValue = target.value;
         }
     }
 
     if (event.originalTarget.localName == "scrollbar") {
-        var scrollbar = event.originalTarget;
+        let scrollbar = event.originalTarget;
         if (scrollbar.hasAttribute("maxpos")) {
             if (scrollbar.getAttribute("id") == "vertical-scrollbar") {
-                var attendees = document.getElementById("attendees-list");
-                var grid = document.getElementById("freebusy-grid");
+                let attendees = document.getElementById("attendees-list");
+                let grid = document.getElementById("freebusy-grid");
                 if (event.attrName == "curpos") {
-                    var maxpos = scrollbar.getAttribute("maxpos");
+                    let maxpos = scrollbar.getAttribute("maxpos");
                     attendees.ratio = event.newValue / maxpos;
                 }
                 grid.firstVisibleRow = attendees.firstVisibleRow;
             } else if (scrollbar.getAttribute("id") == "horizontal-scrollbar") {
                 if (event.attrName == "curpos") {
-                    var maxpos = scrollbar.getAttribute("maxpos");
-                    var ratio = event.newValue/maxpos;
-                    var timebar = document.getElementById("timebar");
-                    var grid = document.getElementById("freebusy-grid");
-                    var selectionbar = document.getElementById("selection-bar");
+                    let maxpos = scrollbar.getAttribute("maxpos");
+                    let ratio = event.newValue / maxpos;
+                    let timebar = document.getElementById("timebar");
+                    let grid = document.getElementById("freebusy-grid");
+                    let selectionbar = document.getElementById("selection-bar");
                     timebar.scroll = ratio;
                     grid.scroll = ratio;
                     selectionbar.ratio = ratio;
@@ -957,8 +954,8 @@ function onTimebar(event) {
  *                    properties.
  */
 function onTimeChange(event) {
-    var start = event.startDate.getInTimezone(gStartTimezone);
-    var end = event.endDate.getInTimezone(gEndTimezone);
+    let start = event.startDate.getInTimezone(gStartTimezone);
+    let end = event.endDate.getInTimezone(gEndTimezone);
 
     loadDateTime(start, end);
 
@@ -966,15 +963,15 @@ function onTimeChange(event) {
     updateDateTime();
 
     // tell the timebar about the new start/enddate
-    var timebar = document.getElementById("timebar");
+    let timebar = document.getElementById("timebar");
     timebar.startDate = gStartDate;
     timebar.endDate = gEndDate;
     timebar.refresh();
 
     // tell the freebusy grid about the new start/enddate
-    var grid = document.getElementById("freebusy-grid");
+    let grid = document.getElementById("freebusy-grid");
 
-    var refresh = (grid.startDate == null) ||
+    let refresh = (grid.startDate == null) ||
                   (grid.startDate.compare(gStartDate) != 0) ||
                   (grid.endDate == null) ||
                   (grid.endDate.compare(gEndDate) != 0);
@@ -995,7 +992,7 @@ function calFreeBusyListener(aFbElement, aBinding) {
 }
 
 calFreeBusyListener.prototype = {
-    onResult: function cFBL_onResult(aRequest, aEntries) {
+    onResult: function(aRequest, aEntries) {
         if (aRequest && !aRequest.isPending) {
             // Find request in list of pending requests and remove from queue:
             this.mBinding.mPendingRequests = this.mBinding.mPendingRequests.filter(aOp => aRequest.id != aOp.id);

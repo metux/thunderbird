@@ -27,25 +27,25 @@ calHtmlExporter.prototype = {
         interfaces: calHtmlExporterInterfaces
     }),
 
-    getFileTypes: function getFileTypes(aCount) {
+    getFileTypes: function(aCount) {
         aCount.value = 1;
-        let wildmat = '*.html; *.htm';
-        let label = cal.calGetString("calendar", 'filterHtml', [wildmat]);
+        let wildmat = "*.html; *.htm";
+        let label = cal.calGetString("calendar", "filterHtml", [wildmat]);
         return [{
             QueryInterface: XPCOMUtils.generateQI([Components.interfaces.calIFileType]),
-            defaultExtension: 'html',
+            defaultExtension: "html",
             extensionFilter: wildmat,
             description: label
         }];
     },
 
-    exportToStream: function html_exportToStream(aStream, aCount, aItems, aTitle) {
+    exportToStream: function(aStream, aCount, aItems, aTitle) {
         let document = cal.xml.parseFile("chrome://calendar-common/skin/printing/calHtmlExport.html");
         let itemContainer = document.getElementById("item-container");
         document.getElementById("title").textContent = aTitle || cal.calGetString("calendar", "HTMLTitle");
 
         // Sort aItems
-        aItems.sort(function(a, b) {
+        aItems.sort((a, b) => {
             let start_a = a[cal.calGetStartDateProp(a)];
             if (!start_a) {
                 return -1;
@@ -57,7 +57,7 @@ calHtmlExporter.prototype = {
             return start_a.compare(start_b);
         });
 
-        for each (let item in aItems) {
+        for (let item of aItems) {
             let itemNode = document.getElementById("item-template").cloneNode(true);
             itemNode.removeAttribute("id");
 
@@ -84,7 +84,7 @@ calHtmlExporter.prototype = {
 
                 let startNode = itemNode.querySelector(".dtstart");
                 let dateString = cal.getDateFormatter().formatItemInterval(item);
-                startNode.setAttribute("title", (startDate ? startDate.icalString : "none"));
+                startNode.setAttribute("title", startDate ? startDate.icalString : "none");
                 startNode.textContent = dateString;
             } else {
                 let row = itemNode.querySelector(".intervalrow");
@@ -109,7 +109,7 @@ calHtmlExporter.prototype = {
         // Convert the javascript string to an array of bytes, using the utf8 encoder
         let convStream = Components.classes["@mozilla.org/intl/converter-output-stream;1"]
                                    .createInstance(Components.interfaces.nsIConverterOutputStream);
-        convStream.init(aStream, 'UTF-8', 0, 0x0000);
+        convStream.init(aStream, "UTF-8", 0, 0x0000);
         convStream.writeString(cal.xml.serializeDOM(document));
     }
 };

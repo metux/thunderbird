@@ -29,14 +29,7 @@ function setupModule(module) {
   for (let req of MODULE_REQUIRES) {
     collector.getModule(req).installInto(module);
   }
-  let rootFolder = MailServices.accounts.localFoldersServer.rootFolder;
-  if (!rootFolder.containsChildNamed("Drafts")) {
-     create_folder("Drafts", [Ci.nsMsgFolderFlags.Drafts]);
-  }
-  draftsFolder = rootFolder.getChildNamed("Drafts");
-  if (!draftsFolder) {
-    throw new Error("draftsFolder not found");
-  }
+  draftsFolder = get_special_folder(Ci.nsMsgFolderFlags.Drafts, true);
 }
 
 /**
@@ -85,10 +78,16 @@ function test_basic_multipart_related() {
   compWin.type(compWin.eid("msgSubject"), "multipart/related");
   compWin.type(compWin.eid("content-frame"), "Here is a prologue.\n");
 
+  const fname = "./tb-logo.png";
+  let file = os.getFileForPath(os.abspath(fname, os.getFileForPath(__file__)));
+  let fileHandler = Services.io.getProtocolHandler("file")
+    .QueryInterface(Ci.nsIFileProtocolHandler);
+  let fileURL = fileHandler.getURLSpecFromFile(file);
+
   // Add a simple image to our dialog
   plan_for_modal_dialog("imageDlg", function (dialog) {
     // Insert the url of the image.
-    dialog.type(null, "chrome://global/skin/arrow/arrow-dn.gif");
+    dialog.type(null, fileURL);
     dialog.type(dialog.eid("altTextInput"), "Alt text");
     dialog.sleep(0);
 
@@ -109,18 +108,13 @@ function test_basic_multipart_related() {
   let {headers, text} = getMsgHeaders(draftMsg, true);
   assert_equals(headers.get("").contentType.type, "multipart/related");
   assert_equals(headers.get("1").contentType.type, "text/html");
-  assert_equals(headers.get("2").contentType.type, "image/gif");
+  assert_equals(headers.get("2").contentType.type, "image/png");
   assert_equals(headers.get("2").get("Content-Transfer-Encoding"), "base64");
   assert_equals(headers.get("2").getRawHeader("Content-Disposition")[0],
-    "inline; filename=\"arrow-dn.gif\"");
+    "inline; filename=\"tb-logo.png\"");
   let cid = headers.get("2").getRawHeader("Content-ID")[0].slice(1, -1);
   if (!text.get("1").includes("src=\"cid:" + cid + '"')) {
     throw new Error("Expected HTML to refer to cid " + cid);
   }
   press_delete(mc); // Delete message
-}
-
-function teardownModule(module) {
-  MailServices.accounts.localFoldersServer.rootFolder
-              .propagateDelete(draftsFolder, true, null);
 }

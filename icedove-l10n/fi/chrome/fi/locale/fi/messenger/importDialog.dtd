@@ -48,3 +48,5 @@ LOCALIZATION NOTE : Do not translate any of the occurrences of the word
 
 <!ENTITY title.label               "Otsikko">
 <!ENTITY processing.label          "Tuodaan…">
+
+<!ENTITY noModulesFound.label     "No application or file to import data from was found.">

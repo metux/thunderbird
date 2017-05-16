@@ -130,6 +130,9 @@
 <!ENTITY enableTelemetry.accesskey       "T">
 <!ENTITY enableTelemetry.label           "Enable Telemetry">
 <!ENTITY maildirStore.label            "File per message (maildir)">
+<!ENTITY manageCertificates.accesskey "M">
+
+<!ENTITY manageCertificates.label "Manage Certificates">
 <!ENTITY mboxStore2.label              "File per folder (mbox)">
 <!ENTITY offlineCompactFolders.accesskey "a">
 <!ENTITY offlineCompactFolders.label     "Compact all folders when it will save over">
@@ -148,8 +151,6 @@
 <!ENTITY updateApp.label                 "&brandShortName; updates:">
 <!ENTITY updateAuto.accesskey            "A">
 <!ENTITY updateAuto.label                "Automatically install updates (recommended: improved security)">
-<!ENTITY updateAutoAddonWarn.accesskey   "W">
-<!ENTITY updateAutoAddonWarn.label       "Warn me if this will disable any of my add-ons">
 <!ENTITY updateCheck.accesskey           "C">
 <!ENTITY updateCheck.label               "Check for updates, but let me choose whether to install them">
 <!ENTITY updateHistory.accesskey         "p">

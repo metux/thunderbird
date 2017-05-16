@@ -37,6 +37,10 @@ Cu.import("resource:///modules/gloda/indexer.js");
 
 Cu.import("resource:///modules/gloda/mimemsg.js");
 
+XPCOMUtils.defineLazyServiceGetter(this, "atomService",
+                                   "@mozilla.org/atom-service;1",
+                                   "nsIAtomService");
+
 // Components.results does not have mailnews error codes!
 var NS_MSG_ERROR_FOLDER_SUMMARY_OUT_OF_DATE = 0x80550005;
 
@@ -94,7 +98,7 @@ var NOT_YET_REPORTED_PROCESSING_FLAGS =
   nsMsgProcessingFlags.ClassifyJunk;
 
 // for list comprehension fun
-function range(begin, end) {
+function* range(begin, end) {
   for (let i = begin; i < end; ++i) {
     yield i;
   }
@@ -621,13 +625,17 @@ var GlodaMsgIndexer = {
       // (note that although internally NS_MSG_ERROR_FOLDER_SUMMARY_MISSING
       //  might get flung around, it won't make it out to us, and will instead
       //  be permuted into an NS_ERROR_NOT_INITIALIZED.)
-      catch (e if ((e.result == Cr.NS_ERROR_NOT_INITIALIZED) ||
-                   (e.result == NS_MSG_ERROR_FOLDER_SUMMARY_OUT_OF_DATE))) {
-        // this means that we need to pend on the update; the listener for
-        //  FolderLoaded events will call _indexerCompletePendingFolderEntry.
-        this._log.debug("Pending on folder load...");
-        this._pendingFolderEntry = this._indexingFolder;
-        return this.kWorkAsync;
+      catch (e) {
+        if ((e.result == Cr.NS_ERROR_NOT_INITIALIZED) ||
+            (e.result == NS_MSG_ERROR_FOLDER_SUMMARY_OUT_OF_DATE)) {
+          // this means that we need to pend on the update; the listener for
+          //  FolderLoaded events will call _indexerCompletePendingFolderEntry.
+          this._log.debug("Pending on folder load...");
+          this._pendingFolderEntry = this._indexingFolder;
+          return this.kWorkAsync;
+        } else {
+          throw e;
+        }
       }
       // we get an nsIMsgDatabase out of this (unsurprisingly) which
       //  explicitly inherits from nsIDBChangeAnnouncer, which has the
@@ -985,7 +993,7 @@ var GlodaMsgIndexer = {
    *  we do so to avoid getting 'trapped' in a folder with a high rate of
    *  changes.
    */
-  _worker_indexingSweep: function gloda_worker_indexingSweep(aJob) {
+  _worker_indexingSweep: function* gloda_worker_indexingSweep(aJob) {
     if (!aJob.mappedFolders) {
       // Walk the folders and make sure all the folders we would want to index
       //  are mapped.  Build up a list of GlodaFolders as we go, so that we can
@@ -1124,7 +1132,7 @@ var GlodaMsgIndexer = {
    *  hot at that point.
    */
   _worker_folderCompactionPass:
-      function gloda_worker_folderCompactionPass(aJob, aCallbackHandle) {
+      function* gloda_worker_folderCompactionPass(aJob, aCallbackHandle) {
     yield this._indexerEnterFolder(aJob.id);
 
     // It's conceivable that with a folder sweep we might end up trying to
@@ -1173,11 +1181,15 @@ var GlodaMsgIndexer = {
           else
             keepIterHeader = false;
         }
-        catch (ex if ex instanceof StopIteration) {
-          headerIter = null;
-          msgHdr = null;
-          // do the loop check again
-          continue;
+        catch (ex) {
+          if (ex instanceof StopIteration) {
+            headerIter = null;
+            msgHdr = null;
+            // do the loop check again
+            continue;
+          } else {
+            throw ex;
+          }
         }
       }
 
@@ -1321,7 +1333,7 @@ var GlodaMsgIndexer = {
    * Index the contents of a folder.
    */
   _worker_folderIndex:
-      function gloda_worker_folderIndex(aJob, aCallbackHandle) {
+      function* gloda_worker_folderIndex(aJob, aCallbackHandle) {
     let logDebug = this._log.level <= Log4Moz.Level.Debug;
     yield this._indexerEnterFolder(aJob.id);
 
@@ -1498,7 +1510,7 @@ var GlodaMsgIndexer = {
    *  event-notification hints.
    */
   _worker_messageIndex:
-      function gloda_worker_messageIndex(aJob, aCallbackHandle) {
+      function* gloda_worker_messageIndex(aJob, aCallbackHandle) {
     // if we are already in the correct folder, our "get in the folder" clause
     //  will not execute, so we need to make sure this value is accurate in
     //  that case.  (and we want to avoid multiple checks...)
@@ -1634,7 +1646,7 @@ var GlodaMsgIndexer = {
   /**
    * Process pending deletes...
    */
-  _worker_processDeletes: function gloda_worker_processDeletes(aJob,
+  _worker_processDeletes: function* gloda_worker_processDeletes(aJob,
       aCallbackHandle) {
 
     // Count the number of messages we will eventually process.  People freak
@@ -1679,7 +1691,7 @@ var GlodaMsgIndexer = {
     yield this.kWorkDone;
   },
 
-  _worker_fixMissingContacts: function(aJob, aCallbackHandle) {
+  _worker_fixMissingContacts: function*(aJob, aCallbackHandle) {
     let identityContactInfos = [], fixedContacts = {};
 
     // -- asynchronously get a list of all identities without contacts
@@ -1881,9 +1893,10 @@ var GlodaMsgIndexer = {
     this._log.info("Queueing all accounts for indexing.");
 
     GlodaDatastore._beginTransaction();
-    let sideEffects = [this.indexAccount(account) for
-                       (account in fixIterator(MailServices.accounts.accounts,
-                                               Ci.nsIMsgAccount))];
+    for (let account in fixIterator(MailServices.accounts.accounts,
+                                    Ci.nsIMsgAccount)) {
+      this.indexAccount(account);
+    }
     GlodaDatastore._commitTransaction();
   },
 
@@ -2760,15 +2773,29 @@ var GlodaMsgIndexer = {
 
     _init: function gloda_indexer_fl_init(aIndexer) {
       this.indexer = aIndexer;
-      let atomService = Cc["@mozilla.org/atom-service;1"].
-                        getService(Ci.nsIAtomService);
-      this._kFolderLoadedAtom = atomService.getAtom("FolderLoaded");
-      // we explicitly know about these things rather than bothering with some
-      //  form of registration scheme because these aren't going to change much.
-      this._kKeywordsAtom = atomService.getAtom("Keywords");
-      this._kStatusAtom = atomService.getAtom("Status");
-      this._kFlaggedAtom = atomService.getAtom("Flagged");
-      this._kFolderFlagAtom = atomService.getAtom("FolderFlag");
+    },
+
+    // We explicitly know about these things rather than bothering with some
+    // form of registration scheme because these aren't going to change much.
+    get _kFolderLoadedAtom() {
+      delete this._kFolderLoadedAtom;
+      return this._kFolderLoadedAtom = atomService.getAtom("FolderLoaded");
+    },
+    get _kKeywordsAtom() {
+      delete this._kKeywordsAtom;
+      return this._kKeywordsAtom = atomService.getAtom("Keywords");
+    },
+    get _kStatusAtom() {
+      delete this._kStatusAtom;
+      return this._kStatusAtom = atomService.getAtom("Status");
+    },
+    get _kFlaggedAtom() {
+      delete this._kFlaggedAtom;
+      return this._kFlaggedAtom = atomService.getAtom("Flagged");
+    },
+    get _kFolderFlagAtom() {
+      delete this._kFolderFlagAtom;
+      return this._kFolderFlagAtom = atomService.getAtom("FolderFlag");
     },
 
     OnItemAdded: function gloda_indexer_OnItemAdded(aParentItem, aItem) {
@@ -2954,7 +2981,7 @@ var GlodaMsgIndexer = {
    * @pre aMsgHdr.folder == this._indexingFolder
    * @pre aMsgHdr.folder.msgDatabase == this._indexingDatabase
    */
-  _indexMessage: function gloda_indexMessage(aMsgHdr, aCallbackHandle) {
+  _indexMessage: function* gloda_indexMessage(aMsgHdr, aCallbackHandle) {
     let logDebug = this._log.level <= Log4Moz.Level.Debug;
     if (logDebug)
       this._log.debug("*** Indexing message: " + aMsgHdr.messageKey + " : " +
@@ -3221,8 +3248,8 @@ var GlodaMsgIndexer = {
    *
    * @TODO: implement deletion of attributes that reference (deleted) messages
    */
-  _deleteMessage: function gloda_index_deleteMessage(aMessage,
-                                                     aCallbackHandle) {
+  _deleteMessage: function* gloda_index_deleteMessage(aMessage,
+                                                      aCallbackHandle) {
     let logDebug = this._log.level <= Log4Moz.Level.Debug;
     if (logDebug)
       this._log.debug("*** Deleting message: " + aMessage);

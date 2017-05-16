@@ -44,3 +44,5 @@
 <!ENTITY templatesFolderOn.accesskey "m">
 <!ENTITY templateInOtherFolder.label "অন্যান্য: (e)">
 <!ENTITY templateInOtherFolder.accesskey "e">
+
+<!ENTITY keepDrafts2.label "Keep draft messages in:">

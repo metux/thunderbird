@@ -49,3 +49,5 @@
 <!ENTITY keepDrafts.label "ਸੁਨੇਹਾ ਡਰਾਫਟ ਵਿੱਚ ਰੱਖੋ:">
 <!ENTITY keepArchives.label "ਸੁਨੇਹਾ ਅਕਾਇਵ ਵਿੱਚ ਰੱਖੋ:">
 
+
+<!ENTITY keepDrafts2.label "Keep draft messages in:">

@@ -1152,8 +1152,9 @@ var gEditorOutputProgressListener =
         }
       }
 
-      // STATE_IS_NETWORK signals end of publishing
-      if (aStateFlags & nsIWebProgressListener.STATE_IS_NETWORK)
+      // STATE_IS_NETWORK signals end of publishing, as does the gPersistObj.currentState
+      if (aStateFlags & nsIWebProgressListener.STATE_IS_NETWORK
+          && gPersistObj.currentState == nsIWebBrowserPersist.PERSIST_STATE_FINISHED)
       {
         if (GetScheme(gPublishData.publishUrl) == "file")
         {

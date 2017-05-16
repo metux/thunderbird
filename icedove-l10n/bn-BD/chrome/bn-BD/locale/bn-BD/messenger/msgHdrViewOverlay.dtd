@@ -149,6 +149,7 @@
 <!ENTITY CopyMessageId.accesskey "C">
 <!ENTITY OpenBrowserWithMsgId.accesskey "B">
 <!ENTITY OpenMessageForMsgId.accesskey "O">
+<!ENTITY author.label "Author">
 <!ENTITY bccField4.label "Bcc">
 <!ENTITY ccField4.label "Cc">
 <!ENTITY dateField4.label "Date">
@@ -164,6 +165,8 @@
 <!ENTITY hdrJunkButton1.label "Junk">
 <!ENTITY hdrJunkButton1.tooltip "Mark this message as junk">
 <!ENTITY hdrMenuForwardButton.label "Forward As">
+<!ENTITY hdrOpenConversationButton1.label "Conversation">
+<!ENTITY hdrOpenConversationButton1.tooltip "Show conversation of this message">
 <!ENTITY hdrReplyAllButton1.label "Reply All">
 <!ENTITY hdrReplyAllButton1.tooltip "Reply to sender and all recipients">
 <!ENTITY hdrReplyButton1.label "Reply">

@@ -2,6 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/* exported switchToView, getSelectedDay, scheduleMidnightUpdate,
+ *          updateStyleSheetForViews, observeViewDaySelect, toggleOrientation,
+ *          toggleWorkdaysOnly, toggleTasksInView, toggleShowCompletedInView,
+ *          goToDate, getLastCalendarView, deleteSelectedEvents,
+ *          editSelectedEvents, selectAllEvents
+ */
+
 Components.utils.import("resource://calendar/modules/calUtils.jsm");
 Components.utils.import("resource://calendar/modules/calAlarmUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
@@ -26,14 +33,13 @@ var calendarViewController = {
      * Creates a new event
      * @see calICalendarViewController
      */
-    createNewEvent: function (aCalendar, aStartTime, aEndTime, aForceAllday) {
-
+    createNewEvent: function(aCalendar, aStartTime, aEndTime, aForceAllday) {
         // if we're given both times, skip the dialog
         if (aStartTime && aEndTime && !aStartTime.isDate && !aEndTime.isDate) {
             let item = cal.createEvent();
             setDefaultItemValues(item, aCalendar, aStartTime, aEndTime);
             item.title = calGetString("calendar", "newEvent");
-            doTransaction('add', item, item.calendar, null, null);
+            doTransaction("add", item, item.calendar, null, null);
         } else {
             createEventWithDialog(aCalendar, aStartTime, null, null, null, aForceAllday);
         }
@@ -43,7 +49,7 @@ var calendarViewController = {
      * Modifies the given occurrence
      * @see calICalendarViewController
      */
-    modifyOccurrence: function (aOccurrence, aNewStartTime, aNewEndTime, aNewTitle) {
+    modifyOccurrence: function(aOccurrence, aNewStartTime, aNewEndTime, aNewTitle) {
         // if modifying this item directly (e.g. just dragged to new time),
         // then do so; otherwise pop up the dialog
         if (aNewStartTime || aNewEndTime || aNewTitle) {
@@ -78,7 +84,7 @@ var calendarViewController = {
                 }
             }
 
-            doTransaction('modify', instance, instance.calendar, aOccurrence, null);
+            doTransaction("modify", instance, instance.calendar, aOccurrence, null);
         } else {
             modifyEventWithDialog(aOccurrence, null, true);
         }
@@ -88,17 +94,17 @@ var calendarViewController = {
      * Deletes the given occurrences
      * @see calICalendarViewController
      */
-    deleteOccurrences: function (aCount,
-                                 aOccurrences,
-                                 aUseParentItems,
-                                 aDoNotConfirm) {
+    deleteOccurrences: function(aCount,
+                                aOccurrences,
+                                aUseParentItems,
+                                aDoNotConfirm) {
         startBatchTransaction();
-        var recurringItems = {};
+        let recurringItems = {};
 
-        function getSavedItem(aItemToDelete) {
+        let getSavedItem = function(aItemToDelete) {
             // Get the parent item, saving it in our recurringItems object for
             // later use.
-            var hashVal = aItemToDelete.parentItem.hashId;
+            let hashVal = aItemToDelete.parentItem.hashId;
             if (!recurringItems[hashVal]) {
                 recurringItems[hashVal] = {
                     oldItem: aItemToDelete.parentItem,
@@ -106,7 +112,7 @@ var calendarViewController = {
                 };
             }
             return recurringItems[hashVal];
-        }
+        };
 
         // Make sure we are modifying a copy of aOccurrences, otherwise we will
         // run into race conditions when the view's doDeleteItem removes the
@@ -114,9 +120,9 @@ var calendarViewController = {
         // it, filter out any items that have readonly calendars, so that
         // checking for one total item below also works out if all but one item
         // are readonly.
-        var occurrences = aOccurrences.filter(function(item) { return isCalendarWritable(item.calendar); });
+        let occurrences = aOccurrences.filter(item => isCalendarWritable(item.calendar));
 
-        for each (var itemToDelete in occurrences) {
+        for (let itemToDelete of occurrences) {
             if (aUseParentItems) {
                 // Usually happens when ctrl-click is used. In that case we
                 // don't need to ask the user if he wants to delete an
@@ -126,32 +132,35 @@ var calendarViewController = {
                 // Only give the user the selection if only one occurrence is
                 // selected. Otherwise he will get a dialog for each occurrence
                 // he deletes.
-                var [itemToDelete, hasFutureItem, response] = promptOccurrenceModification(itemToDelete, false, "delete");
+                let [targetItem, , response] = promptOccurrenceModification(itemToDelete, false, "delete");
                 if (!response) {
                     // The user canceled the dialog, bail out
                     break;
                 }
+
+                itemToDelete = targetItem;
             }
 
             // Now some dirty work: Make sure more than one occurrence can be
             // deleted by saving the recurring items and removing occurrences as
             // they come in. If this is not an occurrence, we can go ahead and
             // delete the whole item.
-            if (itemToDelete.parentItem.hashId != itemToDelete.hashId) {
-                var savedItem = getSavedItem(itemToDelete);
+            if (itemToDelete.parentItem.hashId == itemToDelete.hashId) {
+                doTransaction("delete", itemToDelete, itemToDelete.calendar, null, null);
+            } else {
+                let savedItem = getSavedItem(itemToDelete);
                 savedItem.newItem.recurrenceInfo
                          .removeOccurrenceAt(itemToDelete.recurrenceId);
                 // Dont start the transaction yet. Do so later, in case the
                 // parent item gets modified more than once.
-            } else {
-                doTransaction('delete', itemToDelete, itemToDelete.calendar, null, null);
             }
         }
 
         // Now handle recurring events. This makes sure that all occurrences
         // that have been passed are deleted.
-        for each (var ritem in recurringItems) {
-            doTransaction('modify',
+        for (let hashVal in recurringItems) {
+            let ritem = recurringItems[hashVal];
+            doTransaction("modify",
                           ritem.newItem,
                           ritem.newItem.calendar,
                           ritem.oldItem,
@@ -168,16 +177,16 @@ var calendarViewController = {
  * @param aViewType     The type of view to select.
  */
 function switchToView(aViewType) {
-    var viewDeck = getViewDeck();
-    var selectedDay;
-    var currentSelection = [];
+    let viewDeck = getViewDeck();
+    let selectedDay;
+    let currentSelection = [];
 
     // Set up the view commands
-    var views = viewDeck.childNodes;
-    for (var i = 0; i < views.length; i++) {
+    let views = viewDeck.childNodes;
+    for (let i = 0; i < views.length; i++) {
         let view = views[i];
-        var commandId = "calendar_" + view.id + "_command";
-        var command = document.getElementById(commandId);
+        let commandId = "calendar_" + view.id + "_command";
+        let command = document.getElementById(commandId);
         if (view.id == aViewType + "-view") {
             command.setAttribute("checked", "true");
         } else {
@@ -209,9 +218,9 @@ function switchToView(aViewType) {
      "calendar-go-menu-next",
      "calendar-go-menu-previous",
      "appmenu_calendar-go-menu-next",
-     "appmenu_calendar-go-menu-previous"].forEach(function(x) {
-            setupViewNode(x, "label");
-            setupViewNode(x, "accesskey")
+     "appmenu_calendar-go-menu-previous"].forEach((x) => {
+         setupViewNode(x, "label");
+         setupViewNode(x, "accesskey");
      });
 
     // Set up the labels for the view navigation
@@ -292,49 +301,48 @@ var gMidnightTimer;
  * @param aRefreshCallback      A callback to be called at midnight.
  */
 function scheduleMidnightUpdate(aRefreshCallback) {
-    var jsNow = new Date();
-    var tomorrow = new Date(jsNow.getFullYear(), jsNow.getMonth(), jsNow.getDate() + 1);
-    var msUntilTomorrow = tomorrow.getTime() - jsNow.getTime();
+    let jsNow = new Date();
+    let tomorrow = new Date(jsNow.getFullYear(), jsNow.getMonth(), jsNow.getDate() + 1);
+    let msUntilTomorrow = tomorrow.getTime() - jsNow.getTime();
 
     // Is an nsITimer/callback extreme overkill here? Yes, but it's necessary to
     // workaround bug 291386.  If we don't, we stand a decent chance of getting
     // stuck in an infinite loop.
-    var udCallback = {
+    let udCallback = {
         notify: function(timer) {
             aRefreshCallback();
         }
     };
 
-    if (!gMidnightTimer) {
+    if (gMidnightTimer) {
+        gMidnightTimer.cancel();
+    } else {
         // Observer for wake after sleep/hibernate/standby to create new timers and refresh UI
-        var wakeObserver = {
-           observe: function(aSubject, aTopic, aData) {
-               if (aTopic == "wake_notification") {
-                   // postpone refresh for another couple of seconds to get netwerk ready:
-                   if (this.mTimer) {
-                       this.mTimer.cancel();
-                   } else {
-                       this.mTimer = Components.classes["@mozilla.org/timer;1"]
-                                               .createInstance(Components.interfaces.nsITimer);
-                   }
-                   this.mTimer.initWithCallback(udCallback, 10 * 1000,
-                                                Components.interfaces.nsITimer.TYPE_ONE_SHOT);
-               }
-           }
+        let wakeObserver = {
+            observe: function(aSubject, aTopic, aData) {
+                if (aTopic == "wake_notification") {
+                    // postpone refresh for another couple of seconds to get netwerk ready:
+                    if (this.mTimer) {
+                        this.mTimer.cancel();
+                    } else {
+                        this.mTimer = Components.classes["@mozilla.org/timer;1"]
+                                                .createInstance(Components.interfaces.nsITimer);
+                    }
+                    this.mTimer.initWithCallback(udCallback, 10 * 1000,
+                                                 Components.interfaces.nsITimer.TYPE_ONE_SHOT);
+                }
+            }
         };
 
         // Add observer
         Services.obs.addObserver(wakeObserver, "wake_notification", false);
 
         // Remove observer on unload
-        window.addEventListener("unload",
-                                function() {
-                                    Services.obs.removeObserver(wakeObserver, "wake_notification");
-                                }, false);
+        window.addEventListener("unload", () => {
+            Services.obs.removeObserver(wakeObserver, "wake_notification");
+        }, false);
         gMidnightTimer = Components.classes["@mozilla.org/timer;1"]
                                    .createInstance(Components.interfaces.nsITimer);
-    } else {
-        gMidnightTimer.cancel();
     }
     gMidnightTimer.initWithCallback(udCallback, msUntilTomorrow, gMidnightTimer.TYPE_ONE_SHOT);
 }
@@ -345,16 +353,16 @@ function scheduleMidnightUpdate(aRefreshCallback) {
  * @return      The view stylesheet object.
  */
 function getViewStyleSheet() {
-  if (!getViewStyleSheet.sheet) {
-      const cssUri = "chrome://calendar/content/calendar-view-bindings.css";
-      for each (let sheet in document.styleSheets) {
-          if (sheet.href == cssUri) {
-              getViewStyleSheet.sheet = sheet;
-              break;
-          }
-      }
-  }
-  return getViewStyleSheet.sheet;
+    if (!getViewStyleSheet.sheet) {
+        const cssUri = "chrome://calendar/content/calendar-view-bindings.css";
+        for (let sheet of document.styleSheets) {
+            if (sheet.href == cssUri) {
+                getViewStyleSheet.sheet = sheet;
+                break;
+            }
+        }
+    }
+    return getViewStyleSheet.sheet;
 }
 
 /**
@@ -396,38 +404,38 @@ var categoryPrefBranch;
 var categoryManagement = {
     QueryInterface: XPCOMUtils.generateQI([Components.interfaces.nsIObserver]),
 
-    initCategories: function cM_initCategories() {
-      categoryPrefBranch = Services.prefs.getBranch("calendar.category.color.");
-      let categories = categoryPrefBranch.getChildList("");
+    initCategories: function() {
+        categoryPrefBranch = Services.prefs.getBranch("calendar.category.color.");
+        let categories = categoryPrefBranch.getChildList("");
 
-      // Fix illegally formatted category prefs.
-      for (let i in categories) {
-          let category = categories[i];
-          if (category.search(/[^_0-9a-z-]/) != -1) {
-              let categoryFix = formatStringForCSSRule(category);
-              if (!categoryPrefBranch.prefHasUserValue(categoryFix)) {
-                  let color = categoryPrefBranch.getCharPref(category);
-                  categoryPrefBranch.setCharPref(categoryFix, color);
-                  categoryPrefBranch.clearUserPref(category); // not usable
-                  categories[i] = categoryFix;  // replace illegal name
-              } else {
-                  categories.splice(i, 1); // remove illegal name
-              }
-          }
-      }
+        // Fix illegally formatted category prefs.
+        for (let i in categories) {
+            let category = categories[i];
+            if (category.search(/[^_0-9a-z-]/) != -1) {
+                let categoryFix = formatStringForCSSRule(category);
+                if (categoryPrefBranch.prefHasUserValue(categoryFix)) {
+                    categories.splice(i, 1); // remove illegal name
+                } else {
+                    let color = categoryPrefBranch.getCharPref(category);
+                    categoryPrefBranch.setCharPref(categoryFix, color);
+                    categoryPrefBranch.clearUserPref(category); // not usable
+                    categories[i] = categoryFix;  // replace illegal name
+                }
+            }
+        }
 
-      // Add color information to the stylesheets.
-      categories.forEach(categoryManagement.updateStyleSheetForCategory,
-                         categoryManagement);
-      categoryPrefBranch.addObserver("", categoryManagement, false);
+        // Add color information to the stylesheets.
+        categories.forEach(categoryManagement.updateStyleSheetForCategory,
+                           categoryManagement);
+        categoryPrefBranch.addObserver("", categoryManagement, false);
     },
 
-    cleanupCategories: function cM_cleanupCategories() {
-      categoryPrefBranch = Services.prefs.getBranch("calendar.category.color.");
-      categoryPrefBranch.removeObserver("", categoryManagement);
+    cleanupCategories: function() {
+        categoryPrefBranch = Services.prefs.getBranch("calendar.category.color.");
+        categoryPrefBranch.removeObserver("", categoryManagement);
     },
 
-    observe: function cM_observe(aSubject, aTopic, aPrefName) {
+    observe: function(aSubject, aTopic, aPrefName) {
         this.updateStyleSheetForCategory(aPrefName);
         // TODO Currently, the only way to find out if categories are removed is
         // to initially grab the calendar.categories.names preference and then
@@ -438,7 +446,7 @@ var categoryManagement = {
 
     categoryStyleCache: {},
 
-    updateStyleSheetForCategory: function cM_updateStyleSheetForCategory(aCatName) {
+    updateStyleSheetForCategory: function(aCatName) {
         if (!(aCatName in this.categoryStyleCache)) {
             // We haven't created a rule for this category yet, do so now.
             let sheet = getViewStyleSheet();
@@ -461,22 +469,22 @@ var categoryManagement = {
  *
  */
 function observeViewDaySelect(event) {
-    var date = event.detail;
-    var jsDate = new Date(date.year, date.month, date.day);
+    let date = event.detail;
+    let jsDate = new Date(date.year, date.month, date.day);
 
     // for the month and multiweek view find the main month,
     // which is the month with the most visible days in the view;
     // note, that the main date is the first day of the main month
-    var jsMainDate;
+    let jsMainDate;
     if (!event.originalTarget.supportsDisjointDates) {
-        var mainDate = null;
-        var maxVisibleDays = 0;
-        var startDay = currentView().startDay;
-        var endDay = currentView().endDay;
-        var firstMonth = startDay.startOfMonth;
-        var lastMonth = endDay.startOfMonth;
-        for (var month = firstMonth.clone(); month.compare(lastMonth) <= 0; month.month += 1) {
-            var visibleDays = 0;
+        let mainDate = null;
+        let maxVisibleDays = 0;
+        let startDay = currentView().startDay;
+        let endDay = currentView().endDay;
+        let firstMonth = startDay.startOfMonth;
+        let lastMonth = endDay.startOfMonth;
+        for (let month = firstMonth.clone(); month.compare(lastMonth) <= 0; month.month += 1) {
+            let visibleDays = 0;
             if (month.compare(firstMonth) == 0) {
                 visibleDays = startDay.endOfMonth.day - startDay.day + 1;
             } else if (month.compare(lastMonth) == 0) {
@@ -510,12 +518,12 @@ function getMinimonth() {
  * Update the view orientation based on the checked state of the command
  */
 function toggleOrientation() {
-    var cmd = document.getElementById("calendar_toggle_orientation_command");
-    var newValue = (cmd.getAttribute("checked") == "true" ? "false" : "true");
+    let cmd = document.getElementById("calendar_toggle_orientation_command");
+    let newValue = (cmd.getAttribute("checked") == "true" ? "false" : "true");
     cmd.setAttribute("checked", newValue);
 
-    var deck = getViewDeck();
-    for each (var view in deck.childNodes) {
+    let deck = getViewDeck();
+    for (let view of deck.childNodes) {
         view.rotated = (newValue == "true");
     }
 
@@ -529,12 +537,12 @@ function toggleOrientation() {
  * should happen automatically.
  */
 function toggleWorkdaysOnly() {
-    var cmd = document.getElementById("calendar_toggle_workdays_only_command");
-    var newValue = (cmd.getAttribute("checked") == "true" ? "false" : "true");
+    let cmd = document.getElementById("calendar_toggle_workdays_only_command");
+    let newValue = (cmd.getAttribute("checked") == "true" ? "false" : "true");
     cmd.setAttribute("checked", newValue);
 
-    var deck = getViewDeck();
-    for each (var view in deck.childNodes) {
+    let deck = getViewDeck();
+    for (let view of deck.childNodes) {
         view.workdaysOnly = (newValue == "true");
     }
 
@@ -546,12 +554,12 @@ function toggleWorkdaysOnly() {
  * Toggle the tasks in view checkbox and refresh the current view
  */
 function toggleTasksInView() {
-    var cmd = document.getElementById("calendar_toggle_tasks_in_view_command");
-    var newValue = (cmd.getAttribute("checked") == "true" ? "false" : "true");
+    let cmd = document.getElementById("calendar_toggle_tasks_in_view_command");
+    let newValue = (cmd.getAttribute("checked") == "true" ? "false" : "true");
     cmd.setAttribute("checked", newValue);
 
-    var deck = getViewDeck();
-    for each (var view in deck.childNodes) {
+    let deck = getViewDeck();
+    for (let view of deck.childNodes) {
         view.tasksInView = (newValue == "true");
     }
 
@@ -563,12 +571,12 @@ function toggleTasksInView() {
  * Toggle the show completed in view checkbox and refresh the current view
  */
 function toggleShowCompletedInView() {
-    var cmd = document.getElementById("calendar_toggle_show_completed_in_view_command");
-    var newValue = (cmd.getAttribute("checked") == "true" ? "false" : "true");
+    let cmd = document.getElementById("calendar_toggle_show_completed_in_view_command");
+    let newValue = (cmd.getAttribute("checked") == "true" ? "false" : "true");
     cmd.setAttribute("checked", newValue);
 
-    var deck = getViewDeck();
-    for each (var view in deck.childNodes) {
+    let deck = getViewDeck();
+    for (let view of deck.childNodes) {
         view.showCompleted = (newValue == "true");
     }
 
@@ -593,9 +601,9 @@ function goToDate(aDate) {
  * @return          The last calendar view.
  */
 function getLastCalendarView() {
-    var deck = getViewDeck();
+    let deck = getViewDeck();
     if (deck.selectedIndex > -1) {
-        var viewNode = deck.childNodes[deck.selectedIndex];
+        let viewNode = deck.childNodes[deck.selectedIndex];
         return viewNode.id.replace(/-view/, "");
     }
 
@@ -607,7 +615,7 @@ function getLastCalendarView() {
  * Deletes items currently selected in the view and clears selection.
  */
 function deleteSelectedEvents() {
-    var selectedItems = currentView().getSelectedItems({});
+    let selectedItems = currentView().getSelectedItems({});
     calendarViewController.deleteOccurrences(selectedItems.length,
                                              selectedItems,
                                              false,
@@ -620,7 +628,7 @@ function deleteSelectedEvents() {
  * Edit the items currently selected in the view with the event dialog.
  */
 function editSelectedEvents() {
-    var selectedItems = currentView().getSelectedItems({});
+    let selectedItems = currentView().getSelectedItems({});
     if (selectedItems && selectedItems.length >= 1) {
         modifyEventWithDialog(selectedItems[0], null, true);
     }
@@ -630,24 +638,21 @@ function editSelectedEvents() {
  * Select all events from all calendars. Use with care.
  */
 function selectAllEvents() {
-    var items = [];
-    var listener = {
+    let items = [];
+    let listener = {
         QueryInterface: XPCOMUtils.generateQI([Components.interfaces.calIOperationListener]),
-        onOperationComplete: function selectAll_ooc(aCalendar, aStatus,
-                                                    aOperationType, aId,
-                                                    aDetail) {
+        onOperationComplete: function(aCalendar, aStatus, aOperationType, aId, aDetail) {
             currentView().setSelectedItems(items.length, items, false);
         },
-        onGetResult: function selectAll_ogr(aCalendar, aStatus, aItemType,
-                                            aDetail, aCount, aItems) {
-            for each (var item in aItems) {
+        onGetResult: function(aCalendar, aStatus, aItemType, aDetail, aCount, aItems) {
+            for (let item of aItems) {
                 items.push(item);
             }
         }
     };
 
-    var composite = getCompositeCalendar();
-    var filter = composite.ITEM_FILTER_CLASS_OCCURRENCES;
+    let composite = getCompositeCalendar();
+    let filter = composite.ITEM_FILTER_CLASS_OCCURRENCES;
 
     if (currentView().tasksInView) {
         filter |= composite.ITEM_FILTER_TYPE_ALL;
@@ -661,7 +666,7 @@ function selectAllEvents() {
     }
 
     // Need to move one day out to get all events
-    var end = currentView().endDay.clone();
+    let end = currentView().endDay.clone();
     end.day += 1;
 
     composite.getItems(filter, 0, currentView().startDay, end, listener);
@@ -669,7 +674,7 @@ function selectAllEvents() {
 
 var cal = cal || {};
 cal.navigationBar = {
-    setDateRange: function setDateRange(aStartDate, aEndDate) {
+    setDateRange: function(aStartDate, aEndDate) {
         let docTitle = "";
         if (aStartDate) {
             let intervalLabel = document.getElementById("intervalDescription");
@@ -706,8 +711,7 @@ cal.navigationBar = {
 var timeIndicator = {
     timer: null,
     start: function(aInterval, aThis) {
-        timeIndicator.timer = setInterval(function() {aThis.updateTimeIndicatorPosition(false);},
-                                          aInterval * 1000);
+        timeIndicator.timer = setInterval(() => aThis.updateTimeIndicatorPosition(false), aInterval * 1000);
     },
     cancel: function() {
         if (timeIndicator.timer) {
@@ -716,4 +720,4 @@ var timeIndicator = {
         }
     },
     lastView: null
-}
+};

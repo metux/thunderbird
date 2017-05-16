@@ -4,12 +4,12 @@ locale branding ar ar/locale/ar/branding/
 locale chat ar ar/locale/ar/chat/
 locale communicator ar ar/locale/ar/communicator/
 locale cookie ar ar/locale/ar/cookie/
+locale devtools ar ar/locale/ar/devtools/client/
 locale devtools-shared ar ar/locale/ar/devtools/shared/
 locale editor ar ar/locale/ar/editor/
 locale formautofill ar ar/locale/ar/formautofill/
 locale global ar ar/locale/ar/global/
 locale global-platform ar ar/locale/ar/global-platform/
-locale global-region ar ar/locale/ar/global-region/
 locale messenger ar ar/locale/ar/messenger/
 locale messenger-mapi ar ar/locale/ar/messenger-mapi/
 locale messenger-newsblog ar ar/locale/ar/messenger-newsblog/

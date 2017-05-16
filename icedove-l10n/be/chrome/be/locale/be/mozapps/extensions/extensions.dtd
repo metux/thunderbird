@@ -169,7 +169,8 @@
 <!ENTITY experiment.info.changetelemetry "Наладжванні тэлеметрыі">
 <!ENTITY experiment.info.changetelemetry.accesskey "т">
 
-<!ENTITY cmd.debugAddon.accesskey             "B">
+<!ENTITY debugAddons.accesskey                "B">
+<!ENTITY debugAddons.label                    "Debug Add-ons">
 <!ENTITY disabledUnsigned.description.end " or ask the developer to get them verified.">
 <!ENTITY disabledUnsigned.description.findAddonsLink "find replacements">
 <!-- LOCALIZATION NOTE (disabledUnsigned.description.start, disabledUnsigned.description.findAddonsLink, disabledUnsigned.description.end):
@@ -185,6 +186,9 @@
 
 <!ENTITY disabledUnsigned.heading "Some add-ons have been disabled">
 <!ENTITY disabledUnsigned.learnMore "Learn more about our efforts to help keep you safe online.">
+
+<!ENTITY pluginDeprecation.description "Missing something? Some plugins are no longer supported by &brandShortName;.">
+<!ENTITY pluginDeprecation.learnMore "Learn More.">
 <!ENTITY search.buttonlabel                   "Search">
 
 <!ENTITY setting.learnmore "Learn More…">

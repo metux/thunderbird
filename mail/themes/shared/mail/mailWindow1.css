@@ -25,6 +25,12 @@
   text-align: right;
 }
 
+#folderUnreadCol:-moz-locale-dir(rtl),
+#folderTotalCol:-moz-locale-dir(rtl),
+#folderSizeCol:-moz-locale-dir(rtl) {
+  text-align: left;
+}
+
 #folderNameCol [sortDirection="ascending"],
 #folderNameCol [sortDirection="descending"] {
   list-style-image: none;
@@ -60,19 +66,39 @@ treechildren::-moz-tree-image(unreadButtonColHeader, dummy) {
 /* ..... junkStatus column ..... */
 
 .junkStatusHeader {
-  -moz-padding-end: 3px;
+  padding-inline-end: 3px;
 }
 
 /* ..... subject column ..... */
 
 treechildren::-moz-tree-cell-text(subjectCol) {
-  -moz-padding-start: 0;
+  padding-inline-start: 0;
+}
+
+/* ..... correspondent column ..... */
+
+treechildren::-moz-tree-image(correspondentCol) {
+  list-style-image: url("chrome://messenger/skin/icons/correspondents.svg#right");
+}
+
+#threadTree:-moz-locale-dir(ltr) > treechildren::-moz-tree-image(correspondentCol, outgoing) {
+  list-style-image: url("chrome://messenger/skin/icons/correspondents.svg#right-show");
+}
+
+#threadTree:-moz-locale-dir(rtl) > treechildren::-moz-tree-image(correspondentCol, outgoing) {
+  list-style-image: url("chrome://messenger/skin/icons/correspondents.svg#left-show");
 }
 
 #sizeCol,
 #unreadCol,
 #totalCol {
   text-align: right;
+}
+
+#sizeCol:-moz-locale-dir(rtl),
+#unreadCol:-moz-locale-dir(rtl),
+#totalCol:-moz-locale-dir(rtl) {
+  text-align: left;
 }
 
 /* ..... message pane adjustments ..... */

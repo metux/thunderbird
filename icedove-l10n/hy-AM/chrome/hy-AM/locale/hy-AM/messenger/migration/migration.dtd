@@ -8,6 +8,7 @@
 <!ENTITY importFromWin.label            "Ներմուծել Ընտրանքները, Փոստարկղի կարգավորումները, Հասցեագիրքը, Զտիչներ և այլ տվյալներ.">
 <!ENTITY importFromNonWin.label         "Ներմուծել Կարգավորումները, Փոստարկղի կարգավորումները, Հասցեագիրքը, Զտիչներ և այլ տվյալներ.">
 
+
 <!ENTITY importFromNothing.label        "Չներմուծել ոչինչ">
 <!ENTITY importFromNothing.accesskey    "Չ">
 <!ENTITY importFromSeamonkey3.label     "SeaMonkey 2 կամ ավելի նոր">
@@ -16,8 +17,6 @@
 <!ENTITY importFromOExpress.accesskey   "u">
 <!ENTITY importFromOutlook.label        "Outlook">
 <!ENTITY importFromOutlook.accesskey    "O">
-<!ENTITY importFromEudora.label         "Eudora">
-<!ENTITY importFromEudora.accesskey     "E">
 
 <!ENTITY importSource.title             "Ներմուծել կարգավորումները և նամակի թղթապանակները">
 <!ENTITY importItems.title              "Ներմուծել՝">
@@ -31,3 +30,5 @@
 
 <!ENTITY done.title                     "Ներմուծումն ավարտվեց">
 <!ENTITY done.label                     "Հետևյալները հաջողությամբ ներմուծվել են.">
+
+<!ENTITY importSourceNotFound.label     "No application to import data from found.">

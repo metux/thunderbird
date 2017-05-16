@@ -7,6 +7,8 @@ Components.utils.import("resource://calendar/modules/calItipUtils.jsm");
 Components.utils.import("resource://gre/modules/Preferences.jsm");
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
+/* exported getInvitationsManager */
+
 /**
  * This object contains functions to take care of manipulating requests.
  */
@@ -19,17 +21,18 @@ var gInvitationsRequestManager = {
      * @param calendar    The calendar to add for.
      * @param op          The operation to add
      */
-    addRequestStatus: function IRM_addRequestStatus(calendar, op) {
-        if (op) {
-            this.mRequestStatusList[calendar.id] = op;
+    addRequestStatus: function(calendar, operation) {
+        if (operation) {
+            this.mRequestStatusList[calendar.id] = operation;
         }
     },
 
     /**
      * Cancel all pending requests
      */
-    cancelPendingRequests: function IRM_cancelPendingRequests() {
-        for each (var request in this.mRequestStatusList) {
+    cancelPendingRequests: function() {
+        for (let id in this.mRequestStatusList) {
+            let request = this.mRequestStatusList[id];
             if (request && request.isPending) {
                 request.cancel(null);
             }
@@ -60,15 +63,14 @@ function getInvitationsManager() {
  * @constructor
  */
 function InvitationsManager() {
-    this.mItemList = new Array();
+    this.mItemList = [];
     this.mStartDate = null;
     this.mJobsPending = 0;
     this.mTimer = null;
 
-    var self = this;
-    window.addEventListener("unload", function() {
+    window.addEventListener("unload", () => {
         // Unload handlers get removed automatically
-        self.cancelInvitationsUpdate();
+        this.cancelInvitationsUpdate();
     }, false);
 }
 
@@ -84,25 +86,23 @@ InvitationsManager.prototype = {
      * @param firstDelay          The timeout before the operation should start.
      * @param operationListener   The calIGenericOperationListener to notify.
      */
-    scheduleInvitationsUpdate: function IM_scheduleInvitationsUpdate(firstDelay,
-                                                                     operationListener) {
+    scheduleInvitationsUpdate: function(firstDelay, operationListener) {
         this.cancelInvitationsUpdate();
 
-        var self = this;
-        this.mTimer = setTimeout(function startInvitationsTimer() {
+        this.mTimer = setTimeout(() => {
             if (Preferences.get("calendar.invitations.autorefresh.enabled", true)) {
-                self.mTimer = setInterval(function repeatingInvitationsTimer() {
-                    self.getInvitations(operationListener);
-                    }, Preferences.get("calendar.invitations.autorefresh.timeout", 3) * 60000);
+                this.mTimer = setInterval(() => {
+                    this.getInvitations(operationListener);
+                }, Preferences.get("calendar.invitations.autorefresh.timeout", 3) * 60000);
             }
-            self.getInvitations(operationListener);
+            this.getInvitations(operationListener);
         }, firstDelay);
     },
 
     /**
      * Cancel pending any pending invitations update.
      */
-    cancelInvitationsUpdate: function IM_cancelInvitationsUpdate() {
+    cancelInvitationsUpdate: function() {
         clearTimeout(this.mTimer);
     },
 
@@ -114,9 +114,8 @@ InvitationsManager.prototype = {
      * @param operationListener2    (optinal) The second operation listener to
      *                                notify.
      */
-    getInvitations: function IM_getInvitations(operationListener1,
-                                               operationListener2) {
-        var listeners = [];
+    getInvitations: function(operationListener1, operationListener2) {
+        let listeners = [];
         if (operationListener1) {
             listeners.push(operationListener1);
         }
@@ -128,9 +127,9 @@ InvitationsManager.prototype = {
         this.updateStartDate();
         this.deleteAllItems();
 
-        var cals = getCalendarManager().getCalendars({});
+        let cals = getCalendarManager().getCalendars({});
 
-        var opListener = {
+        let opListener = {
             QueryInterface: XPCOMUtils.generateQI([Components.interfaces.calIOperationListener]),
             mCount: cals.length,
             mRequestManager: gInvitationsRequestManager,
@@ -144,11 +143,10 @@ InvitationsManager.prototype = {
                                           aId,
                                           aDetail) {
                 if (--this.mCount == 0) {
-                    this.mInvitationsManager.mItemList.sort(
-                        function (a, b) {
-                            return a.startDate.compare(b.startDate);
-                        });
-                    for each (var listener in listeners) {
+                    this.mInvitationsManager.mItemList.sort((a, b) => {
+                        return a.startDate.compare(b.startDate);
+                    });
+                    for (let listener of listeners) {
                         try {
                             if (this.mInvitationsManager.mItemList.length) {
                                 // Only call if there are actually items
@@ -178,11 +176,11 @@ InvitationsManager.prototype = {
                                   aCount,
                                   aItems) {
                 if (Components.isSuccessCode(aStatus)) {
-                    for each (var item in aItems) {
+                    for (let item of aItems) {
                         // we need to retrieve by occurrence to properly filter exceptions,
                         // should be fixed with bug 416975
                         item = item.parentItem;
-                        var hid = item.hashId;
+                        let hid = item.hashId;
                         if (!this.mHandledItems[hid]) {
                             this.mHandledItems[hid] = true;
                             this.mInvitationsManager.addItem(item);
@@ -192,7 +190,7 @@ InvitationsManager.prototype = {
             }
         };
 
-        for each (var calendar in cals) {
+        for (let calendar of cals) {
             if (!isCalendarWritable(calendar) || calendar.getProperty("disabled")) {
                 opListener.onOperationComplete();
                 continue;
@@ -207,17 +205,17 @@ InvitationsManager.prototype = {
 
             try {
                 calendar = calendar.QueryInterface(Components.interfaces.calICalendar);
-                var endDate = this.mStartDate.clone();
+                let endDate = this.mStartDate.clone();
                 endDate.year += 1;
-                var op = calendar.getItems(Components.interfaces.calICalendar.ITEM_FILTER_REQUEST_NEEDS_ACTION |
-                                           Components.interfaces.calICalendar.ITEM_FILTER_TYPE_ALL |
-                                           // we need to retrieve by occurrence to properly filter exceptions,
-                                           // should be fixed with bug 416975
-                                           Components.interfaces.calICalendar.ITEM_FILTER_CLASS_OCCURRENCES,
-                                           0, this.mStartDate,
-                                           endDate /* we currently cannot pass null here, because of bug 416975 */,
-                                           opListener);
-                gInvitationsRequestManager.addRequestStatus(calendar, op);
+                let operation = calendar.getItems(Components.interfaces.calICalendar.ITEM_FILTER_REQUEST_NEEDS_ACTION |
+                                                  Components.interfaces.calICalendar.ITEM_FILTER_TYPE_ALL |
+                                                  // we need to retrieve by occurrence to properly filter exceptions,
+                                                  // should be fixed with bug 416975
+                                                  Components.interfaces.calICalendar.ITEM_FILTER_CLASS_OCCURRENCES,
+                                                  0, this.mStartDate,
+                                                  endDate /* we currently cannot pass null here, because of bug 416975 */,
+                                                  opListener);
+                gInvitationsRequestManager.addRequestStatus(calendar, operation);
             } catch (exc) {
                 opListener.onOperationComplete();
                 ERROR(exc);
@@ -237,11 +235,10 @@ InvitationsManager.prototype = {
      * @param finishedCallBack          A callback function to call when the
      *                                    dialog has completed.
      */
-    openInvitationsDialog: function IM_openInvitationsDialog(onLoadOpListener,
-                                                             finishedCallBack) {
-        var args = new Object();
+    openInvitationsDialog: function(onLoadOpListener, finishedCallBack) {
+        let args = {};
         args.onLoadOperationListener = onLoadOpListener;
-        args.queue = new Array();
+        args.queue = [];
         args.finishedCallBack = finishedCallBack;
         args.requestManager = gInvitationsRequestManager;
         args.invitationsManager = this;
@@ -264,8 +261,7 @@ InvitationsManager.prototype = {
      * @param jobQueueFinishedCallBack      A callback function called when
      *                                        job has finished.
      */
-    processJobQueue: function IM_processJobQueue(queue,
-                                                 jobQueueFinishedCallBack) {
+    processJobQueue: function(queue, jobQueueFinishedCallBack) {
         // TODO: undo/redo
         function operationListener(mgr, queueCallback, oldItem_) {
             this.mInvitationsManager = mgr;
@@ -274,11 +270,11 @@ InvitationsManager.prototype = {
         }
         operationListener.prototype = {
             QueryInterface: XPCOMUtils.generateQI([Components.interfaces.calIOperationListener]),
-            onOperationComplete: function (aCalendar,
-                                           aStatus,
-                                           aOperationType,
-                                           aId,
-                                           aDetail) {
+            onOperationComplete: function(aCalendar,
+                                          aStatus,
+                                          aOperationType,
+                                          aId,
+                                          aDetail) {
                 if (Components.isSuccessCode(aStatus) &&
                     aOperationType == Components.interfaces.calIOperationListener.MODIFY) {
                     cal.itip.checkAndSend(aOperationType, aDetail, this.mOldItem);
@@ -303,12 +299,12 @@ InvitationsManager.prototype = {
         };
 
         this.mJobsPending = 0;
-        for (var i = 0; i < queue.length; i++) {
-            var job = queue[i];
-            var oldItem = job.oldItem;
-            var newItem = job.newItem;
+        for (let i = 0; i < queue.length; i++) {
+            let job = queue[i];
+            let oldItem = job.oldItem;
+            let newItem = job.newItem;
             switch (job.action) {
-                case 'modify':
+                case "modify":
                     this.mJobsPending++;
                     newItem.calendar.modifyItem(newItem,
                                                 oldItem,
@@ -330,12 +326,9 @@ InvitationsManager.prototype = {
      * @param item      The item to look for.
      * @return          A boolean value indicating if the item was found.
      */
-    hasItem: function IM_hasItem(item) {
-        var hid = item.hashId;
-        return this.mItemList.some(
-            function someFunc(item_) {
-                return hid == item_.hashId;
-            });
+    hasItem: function(item) {
+        let hid = item.hashId;
+        return this.mItemList.some(item_ => hid == item_.hashId);
     },
 
     /**
@@ -344,13 +337,13 @@ InvitationsManager.prototype = {
      *
      * @param item      The item to add.
      */
-    addItem: function IM_addItem(item) {
-        var recInfo = item.recurrenceInfo;
+    addItem: function(item) {
+        let recInfo = item.recurrenceInfo;
         if (recInfo && !cal.isOpenInvitation(item)) {
             // scan exceptions:
-            var ids = recInfo.getExceptionIds({});
-            for each (var id in ids) {
-                var ex = recInfo.getExceptionFor(id);
+            let ids = recInfo.getExceptionIds({});
+            for (let id of ids) {
+                let ex = recInfo.getExceptionFor(id);
                 if (ex && this.validateItem(ex) && !this.hasItem(ex)) {
                     this.mItemList.push(ex);
                 }
@@ -366,19 +359,16 @@ InvitationsManager.prototype = {
      *
      * @param item      The item to remove.
      */
-    deleteItem: function IM_deleteItem(item) {
-        var id = item.id;
-        this.mItemList.filter(
-            function filterFunc(item_) {
-                return id != item_.id;
-            });
+    deleteItem: function(item) {
+        let id = item.id;
+        this.mItemList.filter(item_ => id != item_.id);
     },
 
     /**
      * Remove all items from the internal item list
      * XXXdbo       Please document these correctly.
      */
-    deleteAllItems: function IM_deleteAllItems() {
+    deleteAllItems: function() {
         this.mItemList = [];
     },
 
@@ -388,8 +378,8 @@ InvitationsManager.prototype = {
      *
      * @return      Potential start date.
      */
-    getStartDate: function IM_getStartDate() {
-        var date = now();
+    getStartDate: function() {
+        let date = now();
         date.second = 0;
         date.minute = 0;
         date.hour = 0;
@@ -401,14 +391,14 @@ InvitationsManager.prototype = {
      * from this.getStartDate(), unless the previously existing start date is
      * the same or after what getStartDate() returned.
      */
-    updateStartDate: function IM_updateStartDate() {
-        if (!this.mStartDate) {
-            this.mStartDate = this.getStartDate();
-        } else {
-            var startDate = this.getStartDate();
+    updateStartDate: function() {
+        if (this.mStartDate) {
+            let startDate = this.getStartDate();
             if (startDate.compare(this.mStartDate) > 0) {
                 this.mStartDate = startDate;
             }
+        } else {
+            this.mStartDate = this.getStartDate();
         }
     },
 
@@ -420,12 +410,12 @@ InvitationsManager.prototype = {
      * @param item      The item to check
      * @return          A boolean indicating if the item is a valid invitation.
      */
-    validateItem: function IM_validateItem(item) {
+    validateItem: function(item) {
         if (item.calendar instanceof Components.interfaces.calISchedulingSupport &&
             !item.calendar.isInvitation(item)) {
             return false; // exclude if organizer has invited himself
         }
-        var start = item[calGetStartDateProp(item)] || item[calGetEndDateProp(item)];
+        let start = item[calGetStartDateProp(item)] || item[calGetEndDateProp(item)];
         return (cal.isOpenInvitation(item) &&
                 start.compare(this.mStartDate) >= 0);
     }

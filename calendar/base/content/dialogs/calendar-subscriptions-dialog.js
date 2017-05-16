@@ -2,6 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/* exported onLoad, onUnload, onKeyPress, onTextBoxKeyPress, onAccept,
+ *          onCancel, onSubscribe, onUnsubscribe
+ */
+
 /**
  * Cancels any pending search operations.
  */
@@ -32,7 +36,7 @@ function onUnload() {
  * (Cancels the search when pressing escape)
  */
 function onKeyPress(event) {
-    switch(event.keyCode) {
+    switch (event.keyCode) {
         case 27: /* ESC */
             if (gCurrentSearchOperation) {
                 cancelPendingSearchOperation();
@@ -49,7 +53,7 @@ function onKeyPress(event) {
  * (Starts the search when hitting enter)
  */
 function onTextBoxKeyPress(event) {
-    switch(event.keyCode) {
+    switch (event.keyCode) {
         case 13: /* RET */
             onSearch();
             event.stopPropagation();
@@ -64,13 +68,13 @@ function onTextBoxKeyPress(event) {
  * @return      Returns true if the window should be closed
  */
 function onAccept() {
-    var richListBox = document.getElementById("subscriptions-listbox");
-    var rowCount = richListBox.getRowCount();
-    for (var i = 0; i < rowCount; i++) {
-        var richListItem = richListBox.getItemAtIndex(i);
-        var checked = richListItem.checked;
+    let richListBox = document.getElementById("subscriptions-listbox");
+    let rowCount = richListBox.getRowCount();
+    for (let i = 0; i < rowCount; i++) {
+        let richListItem = richListBox.getItemAtIndex(i);
+        let checked = richListItem.checked;
         if (checked != richListItem.subscribed) {
-            var calendar = richListItem.calendar;
+            let calendar = richListItem.calendar;
             if (checked) {
                 getCalendarManager().registerCalendar(calendar);
             } else {
@@ -93,24 +97,23 @@ function onCancel() {
 function onSearch() {
     cancelPendingSearchOperation();
 
-    var richListBox = document.getElementById("subscriptions-listbox");
+    let richListBox = document.getElementById("subscriptions-listbox");
     richListBox.clear();
 
-    var registeredCals = {};
-    for each (var calendar in getCalendarManager().getCalendars({})) {
+    let registeredCals = {};
+    for (let calendar of getCalendarManager().getCalendars({})) {
         registeredCals[calendar.id] = true;
     }
 
-    var opListener = {
-        onResult: function search_onResult(op, result) {
-            var richListBox = document.getElementById("subscriptions-listbox");
+    let opListener = {
+        onResult: function(operation, result) {
             if (result) {
-                for each (var calendar in result) {
+                for (let calendar of result) {
                     richListBox.addCalendar(calendar, registeredCals[calendar.id]);
                 }
             }
-            if (!op.isPending) {
-                var statusDeck = document.getElementById("status-deck");
+            if (!operation.isPending) {
+                let statusDeck = document.getElementById("status-deck");
                 if (richListBox.getRowCount() > 0) {
                     statusDeck.selectedIndex = 0;
                 } else {
@@ -120,9 +123,9 @@ function onSearch() {
         }
     };
 
-    var op = getCalendarSearchService().searchForCalendars(document.getElementById("search-textbox").value,
+    let operation = getCalendarSearchService().searchForCalendars(document.getElementById("search-textbox").value,
                                                            0 /* hints */, 50, opListener);
-    if (op && op.isPending) {
+    if (operation && operation.isPending) {
         gCurrentSearchOperation = op;
         document.getElementById("status-deck").selectedIndex = 1;
     }
@@ -133,7 +136,7 @@ function onSearch() {
  * actual subscribe happens when the window is closed.
  */
 function onSubscribe() {
-    var item = document.getElementById("subscriptions-listbox").selectedItem;
+    let item = document.getElementById("subscriptions-listbox").selectedItem;
     if (item && !item.disabled) {
         item.checked = true;
     }
@@ -144,7 +147,7 @@ function onSubscribe() {
  * actual subscribe happens when the window is closed.
  */
 function onUnsubscribe() {
-    var item = document.getElementById("subscriptions-listbox").selectedItem;
+    let item = document.getElementById("subscriptions-listbox").selectedItem;
     if (item && !item.disabled) {
         item.checked = false;
     }

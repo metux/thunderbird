@@ -23,58 +23,58 @@ calIcsSerializer.prototype = {
         interfaces: calIcsSerializerInterfaces,
     }),
 
-    addItems: function is_addItems(aItems, aCount) {
+    addItems: function(aItems, aCount) {
         if (aCount > 0) {
             this.mItems = this.mItems.concat(aItems);
         }
     },
 
-    addProperty: function is_addProperty(aProperty) {
-       this.mProperties.push(aProperty);
+    addProperty: function(aProperty) {
+        this.mProperties.push(aProperty);
     },
 
-    addComponent: function is_addComponent(aComponent) {
-       this.mComponents.push(aComponent);
+    addComponent: function(aComponent) {
+        this.mComponents.push(aComponent);
     },
 
-    serializeToString: function is_serializeToString() {
+    serializeToString: function() {
         let calComp = this.getIcalComponent();
         return calComp.serializeToICS();
     },
 
-    serializeToInputStream: function is_serializeToStream(aStream) {
+    serializeToInputStream: function(aStream) {
         let calComp = this.getIcalComponent();
         return calComp.serializeToICSStream();
     },
 
-    serializeToStream: function is_serializeToStream(aStream) {
+    serializeToStream: function(aStream) {
         let str = this.serializeToString();
 
         // Convert the javascript string to an array of bytes, using the
         // UTF8 encoder
         let convStream = Components.classes["@mozilla.org/intl/converter-output-stream;1"]
                                    .createInstance(Components.interfaces.nsIConverterOutputStream);
-        convStream.init(aStream, 'UTF-8', 0, 0x0000);
+        convStream.init(aStream, "UTF-8", 0, 0x0000);
 
         convStream.writeString(str);
         convStream.close();
     },
 
-    getIcalComponent: function is_getIcalComponent() {
+    getIcalComponent: function() {
         let calComp = getIcsService().createIcalComponent("VCALENDAR");
         calSetProdidVersion(calComp);
 
         // xxx todo: think about that the below code doesn't clone the properties/components,
         //           thus ownership is moved to returned VCALENDAR...
 
-        for each (let prop in this.mProperties) {
+        for (let prop of this.mProperties) {
             calComp.addProperty(prop);
         }
-        for each (let comp in this.mComponents) {
+        for (let comp of this.mComponents) {
             calComp.addSubcomponent(comp);
         }
 
-        for (let item in cal.itemIterator(this.mItems)) {
+        for (let item of cal.itemIterator(this.mItems)) {
             calComp.addSubcomponent(item.icalComponent);
         }
 

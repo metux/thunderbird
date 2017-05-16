@@ -54,3 +54,14 @@
 <!ENTITY pref.categories.overwrite "ਇਸ ਨਾਂ ਨਾਲ ਇੱਕ ਕੈਟਾਗਰੀ ਪਹਿਲਾਂ ਹੀ ਮੌਜੂਦ ਹੈ। \n ਕੀ ਤੁਸੀਂ ਉੱਤੇ ਹੀ ਲਿਖਣਾ ਚਾਹੁੰਦੇ ਹੋ?">
 <!ENTITY pref.categories.overwrite.title "ਸਾਵਧਾਨ: ਡੁਪਲੀਕੇਟ ਨਾਂ">
 <!ENTITY pref.categories.noBlankCategories "ਤੁਹਾਨੂੰ ਇੱਕ ਕੈਟਾਗਰੀ ਨਾਂ ਦੇਣਾ ਪਵੇਗਾ।">
+
+
+
+<!-- WARNING! This file contains UTF-8 encoded characters!
+   - If this ==> … <== doesn't look like an ellipsis (three dots in a row),
+   - your editor isn't using UTF-8 encoding and may munge up the document!
+  -->
+
+<!ENTITY pref.categories.new.title "New Category">
+<!ENTITY pref.categories.newButton.accesskey "N">
+<!ENTITY pref.categories.newButton.label "New…">

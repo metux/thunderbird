@@ -4,12 +4,12 @@ locale branding si si/locale/si/branding/
 locale chat si si/locale/si/chat/
 locale communicator si si/locale/si/communicator/
 locale cookie si si/locale/si/cookie/
+locale devtools si si/locale/si/devtools/client/
 locale devtools-shared si si/locale/si/devtools/shared/
 locale editor si si/locale/si/editor/
 locale formautofill si si/locale/si/formautofill/
 locale global si si/locale/si/global/
 locale global-platform si si/locale/si/global-platform/
-locale global-region si si/locale/si/global-region/
 locale messenger si si/locale/si/messenger/
 locale messenger-mapi si si/locale/si/messenger-mapi/
 locale messenger-newsblog si si/locale/si/messenger-newsblog/

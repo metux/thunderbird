@@ -87,3 +87,8 @@
 <!ENTITY todaypane.showTodayPane.label "Mussar la trav Oz">
 <!ENTITY todaypane.showTodayPane.accesskey "o">
 <!ENTITY todaypane.statusButton.label "Trav Oz">
+
+<!ENTITY lightning.imipbar.btnDeclineCounter.label                          "Decline">
+<!ENTITY lightning.imipbar.btnDeclineCounter.tooltiptext                    "Decline the counter proposal">
+<!ENTITY lightning.imipbar.btnReschedule.label                              "Reschedule">
+<!ENTITY lightning.imipbar.btnReschedule.tooltiptext                        "Reschedule the event">

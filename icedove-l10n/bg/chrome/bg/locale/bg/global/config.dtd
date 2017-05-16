@@ -3,30 +3,30 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
 <!ENTITY window.title "about:config">
+
 <!-- about:config warning page -->
 <!-- LOCALIZATION NOTE: aboutWarningTitle.label should be attention grabbing and playful -->
-
 <!ENTITY aboutWarningTitle.label "Това ще отмени всякакви гаранции за стабилност!">
-<!ENTITY aboutWarningText.label "Промяната на тези настройки за напреднали може да се отрази пагубно върху стабилността, безопасността и производителността на приложението. Продължете само ако сте сигурни какво правите.">
-<!ENTITY aboutWarningButton.label "Обещавам да внимавам!">
+<!ENTITY aboutWarningText.label "Промяната на някои от тези разширени настройки може да се отрази пагубно върху стабилността, безопасността и производителността на приложението. Продължете, само ако сте сигурни какво правите.">
+<!ENTITY aboutWarningButton2.label "Приемам риска!">
 <!ENTITY aboutWarningCheckbox.label "Показване на предупреждението и следващия път">
 
 <!ENTITY searchPrefs.label "Търсене:">
 <!ENTITY searchPrefs.accesskey "с">
 <!ENTITY focusSearch.key "r">
 <!ENTITY focusSearch2.key "f">
-<!-- Columns -->
 
-<!ENTITY prefColumn.label "Референтна стойност">
+<!-- Columns -->
+<!ENTITY prefColumn.label "Име на настройката">
 <!ENTITY lockColumn.label "Състояние">
 <!ENTITY typeColumn.label "Вид">
 <!ENTITY valueColumn.label "Стойност">
-<!-- Tooltips -->
 
+<!-- Tooltips -->
 <!ENTITY prefColumnHeader.tooltip "Натиснете за сортиране"> 
 <!ENTITY columnChooser.tooltip "Изберете колоните, които да се показват"> 
-<!-- Context Menu -->
 
+<!-- Context Menu -->
 <!ENTITY copyPref.key "C">
 <!ENTITY copyPref.label "Копиране">
 <!ENTITY copyPref.accesskey "К">
@@ -38,7 +38,7 @@
 <!ENTITY modify.accesskey "м">
 <!ENTITY toggle.label "Превключване">
 <!ENTITY toggle.accesskey "П">
-<!ENTITY reset.label "Нулиране на промените">
+<!ENTITY reset.label "Нулиране">
 <!ENTITY reset.accesskey "Н">
 <!ENTITY new.label "Нов">
 <!ENTITY new.accesskey "в">
