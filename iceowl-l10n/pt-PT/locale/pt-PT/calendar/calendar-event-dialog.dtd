@@ -28,15 +28,19 @@
 <!-- The following entity is for New Task dialog only -->
 
 <!ENTITY newtodo.percentcomplete.label      "&#037; concluído">
-<!-- LOCALIZATON NOTE(event.attendees.notify.label,event.attendees.notifyundisclosed.label)
-   - These two labels are displayed side by side in the event dialog, make sure
+<!-- LOCALIZATON NOTE(event.attendees.notify.label,event.attendees.notifyundisclosed.label,
+     event.attendees.disallowcounter.label)
+   - These three labels are displayed side by side in the event dialog, make sure
    - they still fit in. -->
 
-<!ENTITY event.attendees.notify.label               "Notificar participantes">
-<!ENTITY event.attendees.notify.accesskey           "f">
-<!ENTITY event.attendees.notifyundisclosed.label    "Separar convite por convidado">
-<!ENTITY event.attendees.notifyundisclosed.accesskey  "x">
-<!ENTITY event.attendees.notifyundisclosed.tooltip  "Esta opção envia um convite por correio por pessoa. Cada convite apenas contém o destinatário do convite pelo que outros convidados não serão identificados.">
+<!ENTITY event.attendees.notify.label                "Notificar participantes">
+<!ENTITY event.attendees.notify.accesskey            "f">
+<!ENTITY event.attendees.notifyundisclosed.label     "Separar convite por participante">
+<!ENTITY event.attendees.notifyundisclosed.accesskey "x">
+<!ENTITY event.attendees.notifyundisclosed.tooltip   "Esta opção envia um convite de email por pessoa. Cada convite apenas contém um destinatário pelo que outros convidados não serão identificados.">
+<!ENTITY event.attendees.disallowcounter.label       "Desativar contra-proposta">
+<!ENTITY event.attendees.disallowcounter.accesskey   "a">
+<!ENTITY event.attendees.disallowcounter.tooltip     "Indica que você não aceitará contra-propostas">
 <!-- Keyboard Shortcuts -->
 
 <!ENTITY event.dialog.new.event.key2              "I">
@@ -66,14 +70,29 @@
 <!ENTITY  event.menu.item.new.contact.accesskey           "C">
 <!ENTITY  event.menu.item.close.label                     "Fechar">
 <!ENTITY  event.menu.item.close.accesskey                 "F">
+<!-- LOCALIZATION NOTE
+   - event.menu.item.save.accesskey is used for the "Save" menu item
+   - when editing events/tasks in a dialog window.
+   - event.menu.item.save.tab.accesskey is used for the "Save" menu item
+   - when editing events/tasks in a tab. -->
+
 <!ENTITY  event.menu.item.save.label                      "Guardar">
 <!ENTITY  event.menu.item.save.accesskey                  "G">
+<!ENTITY  event.menu.item.save.tab.accesskey              "a">
+<!-- LOCALIZATION NOTE
+    - event.menu.item.saveandclose.accesskey is used for "Save and Close"
+    - menu item when editing events/tasks in a dialog window.
+    - event.menu.item.saveandclose.tab.accesskey is used for "Save and Close"
+    - when editing events/tasks in a tab. -->
+
 <!ENTITY  event.menu.item.saveandclose.label              "Guardar e fechar">
 <!ENTITY  event.menu.item.saveandclose.accesskey          "f">
+<!ENTITY  event.menu.item.saveandclose.tab.accesskey      "z">
+
 <!ENTITY  event.menu.item.delete.label                    "Apagar…">
 <!ENTITY  event.menu.item.delete.accesskey                "A">
 <!ENTITY  event.menu.item.page.setup.label                "Configurar página">
-<!ENTITY  event.menu.item.page.setup.accesskey            "C">
+<!ENTITY  event.menu.item.page.setup.accesskey            "u">
 <!ENTITY  event.menu.item.print.label                     "Imprimir">
 <!ENTITY  event.menu.item.print.accesskey                 "I">
 
@@ -95,10 +114,10 @@
 <!ENTITY  event.menu.view.label                           "Ver">
 <!ENTITY  event.menu.view.accesskey                       "V">
 <!ENTITY  event.menu.view.toolbars.label                  "Barras de ferramentas">
-<!ENTITY  event.menu.view.toolbars.accesskey              "f">
+<!ENTITY  event.menu.view.toolbars.accesskey              "t">
 <!ENTITY  event.menu.view.toolbars.event.label            "Barra de eventos">
 <!ENTITY  event.menu.view.toolbars.event.accesskey        "e">
-<!ENTITY  event.menu.view.toolbars.customize.label        "Personalizar">
+<!ENTITY  event.menu.view.toolbars.customize.label        "Personalizar…">
 <!ENTITY  event.menu.view.toolbars.customize.accesskey    "P">
 <!ENTITY  event.menu.view.showlink.label                  "Mostrar ligações relacionadas">
 <!ENTITY  event.menu.view.showlink.accesskey              "r">
@@ -136,9 +155,9 @@
 
 <!ENTITY event.invite.attendees.label                     "Convidar participantes…">
 <!ENTITY event.invite.attendees.accesskey                 "i">
-<!ENTITY event.email.attendees.label                      "Criar mensagem para todos participantes…">
+<!ENTITY event.email.attendees.label                      "Criar e-mail para todos participantes…">
 <!ENTITY event.email.attendees.accesskey                  "a">
-<!ENTITY event.email.tentative.attendees.label            "Criar mensagem para os participantes indecisos…">
+<!ENTITY event.email.tentative.attendees.label            "Criar e-mail para os participantes indecisos…">
 <!ENTITY event.email.tentative.attendees.accesskey        "m">
 <!ENTITY event.remove.attendees.label2                    "Remover todos os participantes...">
 <!ENTITY event.remove.attendees.accesskey                 "r">
@@ -146,12 +165,14 @@
 <!ENTITY event.remove.attendee.accesskey                  "e">
 <!-- Toolbar -->
 
-<!ENTITY  event.toolbar.save.label                        "Guardar e fechar">
+<!ENTITY  event.toolbar.save.label2                       "Guardar">
+<!ENTITY  event.toolbar.saveandclose.label                "Guardar e fechar">
 <!ENTITY  event.toolbar.delete.label                      "Apagar">
 <!ENTITY  event.toolbar.attendees.label                   "Convidar participantes">
 <!ENTITY  event.toolbar.privacy.label                     "Privacidade">
 
-<!ENTITY  event.toolbar.save.tooltip                      "Guardar e fechar">
+<!ENTITY  event.toolbar.save.tooltip2                     "Guardar">
+<!ENTITY  event.toolbar.saveandclose.tooltip              "Guardar e fechar">
 <!ENTITY  event.toolbar.delete.tooltip                    "Apagar">
 <!ENTITY  event.toolbar.attendees.tooltip                 "Convidar participantes">
 <!ENTITY  event.toolbar.attachments.tooltip               "Adicionar anexos">
@@ -159,6 +180,20 @@
 <!ENTITY  event.toolbar.priority.tooltip                  "Alterar prioridade">
 <!ENTITY  event.toolbar.status.tooltip                    "Alterar estado">
 <!ENTITY  event.toolbar.freebusy.tooltip                  "Alterar hora de ocupado/livre">
+<!-- Counter box -->
+<!-- LOCALIZATON NOTE(counter.button.*)
+   - This is only visible in the UI if you have received a counterproposal before and are going to
+   - reschedule the event from the imipbar in the email view. Clicking on the buttons will only
+   - populate the form fields in the dialog, there's no other immediate action on clicking like with
+   - the imip bar. Rescheduling will happen after clicking on save&close as usual. This screenshot
+   - illustrates how it might look like: https://bugzilla.mozilla.org/attachment.cgi?id=8810121 -->
+
+<!ENTITY counter.button.proposal.label                    "Aplicar proposta">
+<!ENTITY counter.button.proposal.accesskey                "p">
+<!ENTITY counter.button.proposal.tooltip2                 "Os campos do evento serão preenchidos com os valores da contra-proposta. A penas a gravação com ou sem alterações adicionais notificarão os participante envolvidos.">
+<!ENTITY counter.button.original.label                    "Aplicar dados originais">
+<!ENTITY counter.button.original.accesskey                "r">
+<!ENTITY counter.button.original.tooltip2                 "Os campos serão preenchidos com os valores do evento original, antes da contra-proposta ter sido efetuada.">
 <!-- Main page -->
 
 <!ENTITY event.title.textbox.label                        "Título:" >
@@ -167,7 +202,7 @@
 <!ENTITY event.location.accesskey                         "L">
 <!ENTITY event.categories.label                           "Categoria:">
 <!ENTITY event.categories.accesskey                       "i">
-<!ENTITY event.categories.textbox.label                   "Adicionar nova categoria" >
+<!ENTITY event.categories.textbox.label                   "Adicionar uma categoria" >
 <!ENTITY event.calendar.label                             "Calendário:" >
 <!ENTITY event.calendar.accesskey                         "C">
 <!ENTITY event.attendees.label                            "Participantes:" >
@@ -204,8 +239,8 @@
 <!ENTITY event.attachments.popup.open.accesskey           "A" >
 <!ENTITY event.attachments.popup.removeAll.label          "Remover tudo" >
 <!ENTITY event.attachments.popup.removeAll.accesskey      "t" >
-<!ENTITY event.attachments.popup.attachPage.label         "Anexar pá&amp;gina web…" >
-<!ENTITY event.attachments.popup.attachPage.accesskey     "w" >
+<!ENTITY event.attachments.popup.attachPage.label         "Anexar página web…" >
+<!ENTITY event.attachments.popup.attachPage.accesskey     "g" >
 <!ENTITY event.url.label                                  "Ligação relacionada:" >
 <!ENTITY event.priority2.label                            "Prioridade:">
 
@@ -230,10 +265,10 @@
 
 <!ENTITY recurrence.title.label                         "Editar recorrência">
 
-<!ENTITY event.repeat.does.not.repeat.label             "Não repete">
+<!ENTITY event.repeat.does.not.repeat.label             "Sem repetição">
 <!ENTITY event.repeat.daily.label                       "Diariamente">
 <!ENTITY event.repeat.weekly.label                      "Semanalmente">
-<!ENTITY event.repeat.every.weekday.label               "Todos os dias da semana">
+<!ENTITY event.repeat.every.weekday.label               "Todos os dias úteis">
 <!ENTITY event.repeat.bi.weekly.label                   "Bissemanalmente">
 <!ENTITY event.repeat.monthly.label                     "Mensalmente">
 <!ENTITY event.repeat.yearly.label                      "Anualmente">
@@ -262,7 +297,7 @@
 <!ENTITY event.recurrence.monthly.third.label           "Terceiro">
 <!ENTITY event.recurrence.monthly.fourth.label          "Quarto">
 <!ENTITY event.recurrence.monthly.fifth.label           "Quinto">
-<!ENTITY event.recurrence.monthly.last.label            "Último ">
+<!ENTITY event.recurrence.monthly.last.label            "Último">
 <!ENTITY event.recurrence.pattern.monthly.week.1.label  "domingo" >
 <!ENTITY event.recurrence.pattern.monthly.week.2.label  "segunda" >
 <!ENTITY event.recurrence.pattern.monthly.week.3.label  "terça" >
@@ -346,8 +381,8 @@
 <!ENTITY event.freebusy.legend.busy_tentative   "Tentativa" >
 <!ENTITY event.freebusy.legend.busy_unavailable "Fora do escritório" >
 <!ENTITY event.freebusy.legend.unknown          "Sem informação" >
-<!ENTITY event.attendee.role.required           "Requer presença">
-<!ENTITY event.attendee.role.optional           "Presença facultativa">
+<!ENTITY event.attendee.role.required           "Requer participante">
+<!ENTITY event.attendee.role.optional           "Participante facultativo">
 <!ENTITY event.attendee.role.chair              "Presidente">
 <!ENTITY event.attendee.role.nonparticipant     "Não participante">
 <!ENTITY event.attendee.usertype.individual     "Individual">
@@ -377,6 +412,7 @@
 <!ENTITY read.only.tentative.label       "Posso estar">
 <!ENTITY read.only.needs.action.label    "Confirmo mais tarde">
 <!ENTITY read.only.reminder.label        "Lembrete:">
+<!ENTITY read.only.attachments.label     "Anexos:">
 <!ENTITY read.only.attendees.label       "Participantes">
 <!ENTITY read.only.description.label     "Descrição">
 <!ENTITY read.only.link.label            "Ligação relacionada">

@@ -186,8 +186,7 @@ const gSourceTextObserver =
   }
 };
 
-// This should be called by all editor users when they close their window
-//  or other similar "done with editor" actions, like recycling a Mail Composer window.
+// This should be called by all editor users when they close their window.
 function EditorCleanup()
 {
   SwitchInsertCharToAnotherEditorOrClose();
@@ -480,26 +479,6 @@ function EditorSharedStartup()
   gColorObj.LastTextColor = "";
   gColorObj.LastBackgroundColor = "";
   gColorObj.LastHighlightColor = "";
-}
-
-// This method is only called by Message composer when recycling a compose window
-function EditorResetFontAndColorAttributes()
-{
-  try {  
-    var editor = GetCurrentEditor();
-    editor.rebuildDocumentFromSource("");
-    // Because the selection is now collapsed, the following line
-    // clears the typing state to discontinue all inline styles
-    editor.removeAllInlineProperties();
-    document.getElementById("cmd_fontFace").setAttribute("state", "");
-    ClearUsedFonts();
-    gColorObj.LastTextColor = "";
-    gColorObj.LastBackgroundColor = "";
-    gColorObj.LastHighlightColor = "";
-    document.getElementById("cmd_fontColor").setAttribute("state", "");
-    document.getElementById("cmd_backgroundColor").setAttribute("state", "");
-    UpdateDefaultColors();
-  } catch (e) {}
 }
 
 function SafeSetAttribute(nodeID, attributeName, attributeValue)
@@ -1088,7 +1067,7 @@ function initLocalFontFaceMenu(menuPopup)
  * Creates a menuitem element for the font faces menulist. Returns the menuitem
  * but does not add it automatically to the menupopup.
  *
- * @param aFontLabel  Label to be displayed for the item
+ * @param aFontLabel  Label to be displayed for the item.
  * @param aFontName   The font face value to be used for the item.
  *                    Will be used in <font face="value"> in the edited document.
  * @param aMenuPopup  The menupopup for which this menuitem is created.
@@ -1099,6 +1078,7 @@ function createFontFaceMenuitem(aFontLabel, aFontName, aMenuPopup)
   itemNode.setAttribute("label", aFontLabel);
   itemNode.setAttribute("value", aFontName);
   itemNode.setAttribute("value_parsed", aFontName.toLowerCase().replace(/, /g, ","));
+  itemNode.setAttribute("tooltiptext", aFontLabel);
   if (aMenuPopup.getAttribute("useRadios") == "true") {
     itemNode.setAttribute("type", "radio");
     itemNode.setAttribute("observes", "cmd_renderedHTMLEnabler");
@@ -1612,15 +1592,8 @@ function EditorDblClick(event)
     // Only bring up properties if clicked on an element or selected link
     var element;
     try {
-      if (gEditorDisplayMode == kDisplayModeAllTags)
-        element = event.explicitOriginalTarget.QueryInterface(
+      element = event.explicitOriginalTarget.QueryInterface(
                     Components.interfaces.nsIDOMElement);
-      else
-        element = event.rangeParent.childNodes[event.rangeOffset];
-
-      // Don't fire for <br>, it counts as double-clicking text.
-      if (element.nodeName.toLowerCase() == 'br')
-        element = null;
     } catch (e) {}
 
      //  We use "href" instead of "a" to not be fooled by named anchor
@@ -1629,7 +1602,12 @@ function EditorDblClick(event)
         element = GetCurrentEditor().getSelectedElement("href");
       } catch (e) {}
 
-    if (element)
+    // Don't fire for body/p and other block elements.
+    // It's common that people try to double-click
+    // to select a word, but the click hits an empty area.
+    if (element &&
+        !["body","p","h1","h2","h3","h4","h5","h6","blockquote","div","pre"]
+         .includes(element.nodeName.toLowerCase()))
     {
       goDoCommand("cmd_objectProperties");  
       event.preventDefault();
@@ -1650,9 +1628,8 @@ function EditorClick(event)
       // be a textnode (bug 193689)
       var element = event.explicitOriginalTarget.QueryInterface(
                         Components.interfaces.nsIDOMElement);
-      var name = element.localName.toLowerCase();
-      if (name != "body" && name != "table" &&
-          name != "td" && name != "th" && name != "caption" && name != "tr")
+      var name = element.localName;
+      if (!["body", "caption", "table", "td", "th", "tr"].includes(name))
       {          
         GetCurrentEditor().selectElement(event.explicitOriginalTarget);
         event.preventDefault();
@@ -2337,14 +2314,8 @@ function EditorSetDefaultPrefsAndDoctype()
     // hitting other 8-bit char in other meta tags
     // grab charset pref and make it the default charset
     var element;
-    var prefCharsetString = 0;
-    try
-    {
-      prefCharsetString = Services.prefs.getComplexValue("intl.charset.default",
-                                                         Components.interfaces.nsIPrefLocalizedString).data;
-    }
-    catch (ex) {}
-    if ( prefCharsetString && prefCharsetString != 0)
+    var prefCharsetString = Services.prefs.getCharPref("intl.charset.fallback.override");
+    if (prefCharsetString)
       editor.documentCharacterSet = prefCharsetString;
 
     // let's start by assuming we have an author in case we don't have the pref

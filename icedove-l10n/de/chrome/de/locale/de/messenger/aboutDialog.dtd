@@ -13,8 +13,6 @@
 <!ENTITY update.checkForUpdatesButton.accesskey   "N">
 <!ENTITY update.updateButton.label2               "Zum Abschließen des Updates &brandShortName; neu starten">
 <!ENTITY update.updateButton.accesskey            "Z">
-<!ENTITY update.applyButtonBillboard.label        "Update anwenden…">
-<!ENTITY update.applyButtonBillboard.accesskey    "U">
 
 
 <!-- LOCALIZATION NOTE (warningDesc.version): This is a warning about the experimental nature of Nightly and Aurora builds. It is only shown in those versions. -->
@@ -46,6 +44,8 @@
 <!-- LOCALIZATION NOTE (helpus.getInvolvedLink): This is a link title that links to http://www.mozilla.org/contribute/. -->
 <!ENTITY helpus.getInvolvedLink     "machen Sie mit!">
 <!ENTITY helpus.end                 "">
+
+<!ENTITY releaseNotes.link          "Neue Funktionen und Änderungen">
 
 <!-- LOCALIZATION NOTE (bottomLinks.license): This is a link title that links to about:license. -->
 <!ENTITY bottomLinks.license        "Informationen zur Lizenzierung">

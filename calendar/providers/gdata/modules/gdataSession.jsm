@@ -129,8 +129,7 @@ calGoogleSession.prototype = {
     setupOAuth: function setupOAuth() {
         let sessionId = this.mId;
         let authDescr = getProviderString("requestWindowDescription", sessionId);
-        let authTitle = cal.calGetString("commonDialogs", "EnterUserPasswordFor",
-                                         [sessionId], "global");
+        let authTitle = getProviderString("requestWindowTitle", sessionId);
 
         // Set up a new OAuth2 instance for logging in.
         this.oauth = new OAuth2(OAUTH_BASE_URI, OAUTH_SCOPE, OAUTH_CLIENT_ID, OAUTH_CLIENT_SECRET);
@@ -152,9 +151,13 @@ calGoogleSession.prototype = {
                 if (!this.mRefreshToken) {
                     let pass = { value: null };
                     try {
-                        cal.auth.passwordManagerGet(sessionId, pass, sessionId, pwMgrId);
-                    } catch (e if e.result == Components.results.NS_ERROR_ABORT) {
+                        let origin = "oauth:" + sessionId;
+                        cal.auth.passwordManagerGet(sessionId, pass, origin, pwMgrId);
+                    } catch (e) {
                         // User might have cancelled the master password prompt, thats ok
+                        if (e.result != Components.results.NS_ERROR_ABORT) {
+                            throw e;
+                        }
                     }
                     this.mRefreshToken = pass.value;
                 }
@@ -162,13 +165,17 @@ calGoogleSession.prototype = {
             },
             set: function setRefreshToken(val) {
                 try {
-                    if (!val) {
-                        cal.auth.passwordManagerRemove(sessionId, sessionId, pwMgrId);
+                    let origin = "oauth:" + sessionId;
+                    if (val) {
+                        cal.auth.passwordManagerSave(sessionId, val, origin, pwMgrId);
                     } else {
-                        cal.auth.passwordManagerSave(sessionId, val, sessionId, pwMgrId);
+                        cal.auth.passwordManagerRemove(sessionId, origin, pwMgrId);
                     }
-                } catch (e if e.result == Components.results.NS_ERROR_ABORT) {
+                } catch (e) {
                     // User might have cancelled the master password prompt, thats ok
+                    if (e.result != Components.results.NS_ERROR_ABORT) {
+                        throw e;
+                    }
                 }
                 return (this.mRefreshToken = val);
             },
@@ -501,20 +508,21 @@ calGoogleSession.prototype = {
     }
 };
 
-// Before you spend time trying to find out what this means, please note
-// that doing so and using the information WILL cause Google to revoke
-// this extension's privileges, which means not one Lightning user will
-// be able to connect to Google Calendar using Lightning. This will cause
-// unhappy users all around which means that the developers will have to
-// spend more time with user support, which means less time for features,
-// releases and bugfixes.  For a paid developer this would actually mean
-// financial harm.
+// Before you spend time trying to find out what this means, please note that
+// doing so and using the information WILL cause Google to revoke this
+// extension's privileges, which means not one Lightning user will be able to
+// connect to Google Calendar using Lightning. This will cause unhappy users
+// all around which means that the developers will have to spend more time with
+// user support, which means less time for features, releases and bugfixes.
+// For a paid developer this would actually mean financial harm.
+//
 // Do you really want all of this to be your fault? Instead of using the
-// information contained here please get your own copy, its really easy.
-this["\x65\x76\x61\x6C"]([String["\x66\x72\x6F\x6D\x43\x68\x61\x72\x43\x6F"+
-"\x64\x65"](("wbs!!!PBVUI`CBTF`VSJ>#iuuqt;00bddpvout/hpphmf/dpn0p0#<wbs!!!"+
-"PBVUI`TDPQF>#iuuqt;00xxx/hpphmfbqjt/dpn0bvui0dbmfoebs!iuuqt;00xxx/hpphmfb"+
-"qjt/dpn0bvui0ubtlt#<wbs!!!PBVUI`DMJFOU`JE>#758881386533.o8m3pwsucmb9kh3ru"+
-"qd4cpw2opkdukrq/bqqt/hpphmfvtfsdpoufou/dpn#<wbs!!!PBVUI`DMJFOU`TFDSFU>#f1"+
-"Un{fzChWpEMPSUB8TsDFJV#<")["\x63\x68\x61\x72\x43\x6F\x64\x65\x41\x74"](i)-1)
-for(i in (function(){let x=303; while (x--) yield x})())].reverse().join(""));
+// information contained here please get your own copy, it's really easy.
+this["\x65\x76\x61\x6C"](this["\x41\x72\x72\x61\x79"]["\x70\x72\x6F\x74\x6F\x74"+
+"\x79\x70\x65"]["\x6D\x61\x70"]["\x63\x61\x6C\x6C"]("wbs!PBVUI`CBTF`VSJ>#iuuqt;"+
+"00bddpvout/hpphmf/dpn0p0#<wbs!PBVUI`TDPQF>#iuuqt;00xxx/hpphmfbqjt/dpn0bvui0dbm"+
+"foebs!iuuqt;00xxx/hpphmfbqjt/dpn0bvui0ubtlt#<wbs!PBVUI`DMJFOU`JE>#758881386533"+
+".wdee9561upftkbljuiq91b1fhj23e9db/bqqt/hpphmfvtfsdpoufou/dpn#<wbs!PBVUI`DMJFOU"+
+"`TFDSFU>#VQ{2c982Djy:2WbhLtUOlWJ{#<",function(_){return this["\x53\x74\x72\x69"+
+"\x6E\x67"]["\x66\x72\x6F\x6D\x43\x68\x61\x72\x43\x6F\x64\x65"](_["\x63\x68\x61"+
+"\x72\x43\x6F\x64\x65\x41\x74"](0)-1)},this)["\x6A\x6F\x69\x6E"](""));

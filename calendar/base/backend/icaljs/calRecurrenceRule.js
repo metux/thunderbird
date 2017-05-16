@@ -66,8 +66,8 @@ calRecurrenceRule.prototype = {
 
         let iter = this.innerObject.iterator(aStartTime);
 
-        for (let next = iter.next(); next ; next = iter.next()) {
-            let dtNext  = next.clone();
+        for (let next = iter.next(); next; next = iter.next()) {
+            let dtNext = next.clone();
             dtNext.isDate = false;
 
             if (dtNext.compare(rangeStart) < 0) {
@@ -103,9 +103,11 @@ calRecurrenceRule.prototype = {
         prop.setValue(this.innerObject);
         return new calIcalProperty(prop);
     },
-    set icalProperty(val) { unwrapSetter(ICAL.Property, val, function(val) {
-        this.innerObject = val.getFirstValue();
-    }, this); },
+    set icalProperty(rawval) {
+        unwrapSetter(ICAL.Property, rawval, function(val) {
+            this.innerObject = val.getFirstValue();
+        }, this);
+    },
 
     get type() { return this.innerObject.freq; },
     set type(val) { this.innerObject.freq = val; },
@@ -128,14 +130,16 @@ calRecurrenceRule.prototype = {
             return null;
         }
     },
-    set untilDate(val) { unwrapSetter(ICAL.Time, val, function(val) {
-        if (val.timezone != ICAL.Timezone.utcTimezone &&
-            val.timezone != ICAL.Timezone.localTimezone) {
-            val = val.convertToZone(ICAL.Timezone.utcTimezone);
-        }
+    set untilDate(rawval) {
+        unwrapSetter(ICAL.Time, rawval, function(val) {
+            if (val.timezone != ICAL.Timezone.utcTimezone &&
+                val.timezone != ICAL.Timezone.localTimezone) {
+                val = val.convertToZone(ICAL.Timezone.utcTimezone);
+            }
 
-        this.innerObject.until = val;
-    }, this); },
+            this.innerObject.until = val;
+        }, this);
+    },
 
     get isByCount() { return this.innerObject.isByCount(); },
 
@@ -157,14 +161,16 @@ calRecurrenceRule.prototype = {
                     // match[2] is the week number for this value.
                     values[i] += 8 * match[2];
                 }
-                if (match[1] == '-') {
+                if (match[1] == "-") {
                     // Week numbers are counted back from the end of the period.
                     values[i] *= -1;
                 }
             }
         }
 
-        if (aCount) aCount.value = values.length;
+        if (aCount) {
+            aCount.value = values.length;
+        }
         return values;
     },
 

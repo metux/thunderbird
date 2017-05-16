@@ -32,7 +32,7 @@
 #include "nsMsgI18N.h"
 #include "nsIImapMockChannel.h"
 // for the memory cache...
-#include "nsICacheEntryDescriptor.h"
+#include "nsICacheEntry.h"
 #include "nsImapUrl.h"
 #include "nsIMsgProtocolInfo.h"
 #include "nsIMsgMailSession.h"
@@ -180,6 +180,12 @@ nsImapIncomingServer::GetConstructedPrettyName(nsAString& retval)
 
 
 NS_IMETHODIMP nsImapIncomingServer::GetLocalStoreType(nsACString& type)
+{
+  type.AssignLiteral("imap");
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsImapIncomingServer::GetLocalDatabaseType(nsACString& type)
 {
   type.AssignLiteral("imap");
   return NS_OK;
@@ -444,7 +450,7 @@ nsImapIncomingServer::GetImapConnectionAndLoadUrl(nsIImapUrl* aImapUrl,
     // *** jt - in case of the time out situation or the connection gets
     // terminated by some unforseen problems let's give it a second chance
     // to run the url
-    if (NS_FAILED(rv))
+    if (NS_FAILED(rv) && rv != NS_ERROR_ILLEGAL_VALUE)
     {
       NS_ASSERTION(false, "shouldn't get an error loading url");
       rv = aProtocol->LoadImapUrl(mailnewsurl, aConsumer);
@@ -642,10 +648,10 @@ nsresult nsImapIncomingServer::DoomUrlIfChannelHasError(nsIImapUrl *aImapUrl, bo
 
         if (aMailNewsUrl)
         {
-          nsCOMPtr<nsICacheEntryDescriptor>  cacheEntry;
+          nsCOMPtr<nsICacheEntry> cacheEntry;
           res = aMailNewsUrl->GetMemCacheEntry(getter_AddRefs(cacheEntry));
           if (NS_SUCCEEDED(res) && cacheEntry)
-            cacheEntry->Doom();
+            cacheEntry->AsyncDoom(nullptr);
           // we're aborting this url - tell listeners
           aMailNewsUrl->SetUrlState(false, NS_MSG_ERROR_URL_ABORTED);
         }
@@ -1851,7 +1857,7 @@ nsImapIncomingServer::FEAlert(const nsAString& aAlertString,
       const char16_t *params[] = { hostName.get(), tempString.get() };
 
       rv = m_stringBundle->FormatStringFromName(
-        MOZ_UTF16("imapServerAlert"),
+        u"imapServerAlert",
         params, 2, getter_Copies(message));
       if (NS_SUCCEEDED(rv))
         return AlertUser(message, aUrl);
@@ -2192,7 +2198,7 @@ nsImapIncomingServer::PromptPassword(nsIMsgWindow *aMsgWindow,
 
   nsString passwordText;
   rv = m_stringBundle->FormatStringFromName(
-    MOZ_UTF16("imapEnterServerPasswordPrompt"),
+    u"imapEnterServerPasswordPrompt",
     formatStrings, 2, getter_Copies(passwordText));
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -3321,4 +3327,46 @@ NS_IMETHODIMP
 nsImapIncomingServer::GetLoginUsername(nsACString &aLoginUsername)
 {
   return GetRealUsername(aLoginUsername);
+}
+
+NS_IMETHODIMP
+nsImapIncomingServer::GetOriginalUsername(nsACString &aUsername)
+{
+  return GetUsername(aUsername);
+}
+
+NS_IMETHODIMP
+nsImapIncomingServer::GetServerKey(nsACString &aServerKey)
+{
+  return GetKey(aServerKey);
+}
+
+NS_IMETHODIMP
+nsImapIncomingServer::GetServerPassword(nsACString &aPassword)
+{
+  return GetPassword(aPassword);
+}
+
+NS_IMETHODIMP
+nsImapIncomingServer::RemoveServerConnection(nsIImapProtocol* aProtocol)
+{
+  return RemoveConnection(aProtocol);
+}
+
+NS_IMETHODIMP
+nsImapIncomingServer::GetServerShuttingDown(bool* aShuttingDown)
+{
+  return GetShuttingDown(aShuttingDown);
+}
+
+NS_IMETHODIMP
+nsImapIncomingServer::ResetServerConnection(const nsACString& aFolderName)
+{
+  return ResetConnection(aFolderName);
+}
+
+NS_IMETHODIMP
+nsImapIncomingServer::SetServerDoingLsub(bool aDoingLsub)
+{
+  return SetDoingLsub(aDoingLsub);
 }

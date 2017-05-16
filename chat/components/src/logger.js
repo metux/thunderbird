@@ -508,7 +508,7 @@ function Log(aEntries) {
   // Sort our list of entries for this day in increasing order.
   aEntries.sort((aLeft, aRight) => aLeft.time - aRight.time);
 
-  this._entryPaths = [entry.path for (entry of aEntries)];
+  this._entryPaths = aEntries.map(entry => entry.path);
   // Calculate the timestamp for the first entry down to the day.
   let timestamp = new Date(aEntries[0].time);
   timestamp.setHours(0);
@@ -809,6 +809,31 @@ Logger.prototype = {
     // If there was an error, this will return an EmptyEnumerator.
     return this._getEnumerator(entries, aGroupByDay);
   }),
+
+  getLogFolderPathForAccount: function(aAccount) {
+    return getLogFolderPathForAccount(aAccount);
+  },
+
+  deleteLogFolderForAccount: function(aAccount) {
+    if (!aAccount.disconnecting && !aAccount.disconnected)
+      throw new Error("Account must be disconnected first before deleting logs.");
+
+    if (aAccount.disconnecting)
+      Cu.reportError("Account is still disconnecting while we attempt to remove logs.");
+
+    let logPath = this.getLogFolderPathForAccount(aAccount);
+    // Find all operations on files inside the log folder.
+    let pendingPromises = [];
+    function checkLogFiles(promiseOperation, filePath) {
+      if (filePath.startsWith(logPath))
+        pendingPromises.push(promiseOperation);
+    }
+    gFilePromises.forEach(checkLogFiles);
+    // After all operations finish, remove the whole log folder.
+    return Promise.all(pendingPromises)
+                  .then(values => { OS.File.removeDir(logPath, { ignoreAbsent: true }); })
+                  .catch(aError => Cu.reportError("Failed to remove log folders:\n" + aError));
+  },
 
   forEach: Task.async(function* (aCallback) {
     let getAllSubdirs = Task.async(function* (aPaths, aErrorMsg) {

@@ -55,3 +55,14 @@
 <!ENTITY pref.categories.overwrite "இந்தப் பெயருடன் ஒரு வகை ஏற்கனவே உள்ளது. \n அதனை மேலெழுத வேண்டுமா?">
 <!ENTITY pref.categories.overwrite.title "எச்சரிக்கை: படியெடுத்தல் பெயர்">
 <!ENTITY pref.categories.noBlankCategories "நீங்கள் கட்டாயமாக ஒரு வகையின் பெயரை உள்ளிட வேண்டும்.">
+
+
+
+<!-- WARNING! This file contains UTF-8 encoded characters!
+   - If this ==> … <== doesn't look like an ellipsis (three dots in a row),
+   - your editor isn't using UTF-8 encoding and may munge up the document!
+  -->
+
+<!ENTITY pref.categories.new.title "New Category">
+<!ENTITY pref.categories.newButton.accesskey "N">
+<!ENTITY pref.categories.newButton.label "New…">

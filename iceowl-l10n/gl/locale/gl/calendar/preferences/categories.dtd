@@ -22,3 +22,14 @@
 <!ENTITY pref.categories.overwrite "Xa existe unha categoría con ese nome. \n Desexa sobrescribila?">
 <!ENTITY pref.categories.overwrite.title "Aviso: nome duplicado">
 <!ENTITY pref.categories.noBlankCategories "Escriba un nome para a categoría.">
+
+
+
+<!-- WARNING! This file contains UTF-8 encoded characters!
+   - If this ==> … <== doesn't look like an ellipsis (three dots in a row),
+   - your editor isn't using UTF-8 encoding and may munge up the document!
+  -->
+
+<!ENTITY pref.categories.new.title "New Category">
+<!ENTITY pref.categories.newButton.accesskey "N">
+<!ENTITY pref.categories.newButton.label "New…">

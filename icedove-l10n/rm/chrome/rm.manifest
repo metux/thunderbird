@@ -4,12 +4,12 @@ locale branding rm rm/locale/rm/branding/
 locale chat rm rm/locale/rm/chat/
 locale communicator rm rm/locale/rm/communicator/
 locale cookie rm rm/locale/rm/cookie/
+locale devtools rm rm/locale/rm/devtools/client/
 locale devtools-shared rm rm/locale/rm/devtools/shared/
 locale editor rm rm/locale/rm/editor/
 locale formautofill rm rm/locale/rm/formautofill/
 locale global rm rm/locale/rm/global/
 locale global-platform rm rm/locale/rm/global-platform/
-locale global-region rm rm/locale/rm/global-region/
 locale messenger rm rm/locale/rm/messenger/
 locale messenger-mapi rm rm/locale/rm/messenger-mapi/
 locale messenger-newsblog rm rm/locale/rm/messenger-newsblog/

@@ -45,3 +45,5 @@
 <!ENTITY done.title                     "היבוא הושלם">
 <!ENTITY done.label                     "הפריטים הבאים יובאו בהצלחה:">
 
+
+<!ENTITY importSourceNotFound.label     "No application to import data from found.">

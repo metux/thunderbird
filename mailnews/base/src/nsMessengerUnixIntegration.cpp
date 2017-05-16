@@ -19,7 +19,7 @@
 #include "nsIDirectoryService.h"
 #include "nsIWindowWatcher.h"
 #include "nsIWindowMediator.h"
-#include "nsIDOMWindow.h"
+#include "mozIDOMWindow.h"
 #include "nsPIDOMWindow.h"
 #include "nsIDocShell.h"
 #include "nsIBaseWindow.h"
@@ -82,10 +82,12 @@ static void openMailWindow(const nsACString& aFolderUri)
         windowCommands->SelectFolder(aFolderUri);
     }
 
-    nsCOMPtr<nsIDOMWindow> domWindow;
+    nsCOMPtr<mozIDOMWindowProxy> domWindow;
     topMostMsgWindow->GetDomWindow(getter_AddRefs(domWindow));
-    nsCOMPtr<nsPIDOMWindow> privateWindow(do_QueryInterface(domWindow));
-    privateWindow->Focus();
+    if (domWindow) {
+      nsCOMPtr<nsPIDOMWindowOuter> privateWindow = nsPIDOMWindowOuter::From(domWindow);
+      privateWindow->Focus();
+    }
   }
   else
   {
@@ -174,8 +176,8 @@ nsMessengerUnixIntegration::BuildNotificationTitle(nsIMsgFolder *aFolder, nsIStr
   };
 
   aBundle->FormatStringFromName(numNewMessages == 1 ?
-                                  MOZ_UTF16("newMailNotification_message") :
-                                  MOZ_UTF16("newMailNotification_messages"),
+                                  u"newMailNotification_message" :
+                                  u"newMailNotification_messages",
                                 formatStrings, 2, getter_Copies(aTitle));
   return true;
 }
@@ -293,7 +295,7 @@ nsMessengerUnixIntegration::BuildNotificationBody(nsIMsgDBHdr *aHdr,
     {
       subject.get(), author.get()
     };
-    aBundle->FormatStringFromName(MOZ_UTF16("newMailNotification_messagetitle"),
+    aBundle->FormatStringFromName(u"newMailNotification_messagetitle",
         formatStrings, 2, getter_Copies(msgTitle));
     alertBody.Append(msgTitle);
   }
@@ -347,6 +349,7 @@ nsresult nsMessengerUnixIntegration::ShowAlertMessage(const nsAString& aAlertTit
                                                 EmptyString(),
                                                 EmptyString(),
                                                 nullptr,
+                                                false,
                                                 false);
       if (NS_SUCCEEDED(rv))
         return rv;
@@ -399,7 +402,7 @@ nsresult nsMessengerUnixIntegration::ShowNewAlertNotification(bool aUserInitiate
   argsArray->AppendElement(scriptableUserInitiated, false);
 
   nsCOMPtr<nsIWindowWatcher> wwatch(do_GetService(NS_WINDOWWATCHER_CONTRACTID));
-  nsCOMPtr<nsIDOMWindow> newWindow;
+  nsCOMPtr<mozIDOMWindowProxy> newWindow;
 
   mAlertInProgress = true;
   rv = wwatch->OpenWindow(0, ALERT_CHROME_URL, "_blank",

@@ -39,3 +39,6 @@
 
 
 
+
+<!ENTITY newButton.popupCopy.accesskey "C">
+<!ENTITY newButton.popupCopy.label "Copy…">

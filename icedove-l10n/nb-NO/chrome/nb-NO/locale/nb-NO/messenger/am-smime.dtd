@@ -26,7 +26,16 @@
 <!ENTITY signingCert.message "Bruk dette sertifikatet for å digitalt signere meldinger du sender:">
 
 <!ENTITY certificates.label "Sertifikater">
-<!ENTITY manageCerts.label "Vis sertifikater">
-<!ENTITY manageCerts.accesskey "r">
+<!ENTITY manageCerts2.label "Behandle sertifikater">
+<!ENTITY manageCerts2.accesskey "B">
 <!ENTITY manageDevices.label "Sikkerhetsenheter">
 <!ENTITY manageDevices.accesskey "S">
+<!-- Strings for the cert picker dialog -->
+
+
+
+<!ENTITY certPicker.detailsLabel "Details of selected certificate:">
+<!ENTITY certPicker.info  "Certificate:">
+
+<!-- Strings for the cert picker dialog -->
+<!ENTITY certPicker.title "Select Certificate">

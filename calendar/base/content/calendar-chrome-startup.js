@@ -6,6 +6,8 @@ Components.utils.import("resource://gre/modules/iteratorUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
 Components.utils.import("resource://gre/modules/Preferences.jsm");
 
+/* exported commonInitCalendar, commonFinishCalendar */
+
 /**
  * Common initialization steps for calendar chrome windows.
  */
@@ -86,7 +88,7 @@ function commonFinishCalendar() {
  * XXX this has nothing to do with startup, needs to go somewhere else.
  */
 function onCalendarViewResize(aEvent) {
-    let event = document.createEvent('Events');
+    let event = document.createEvent("Events");
     event.initEvent(currentView().type + "viewresized", true, false);
     document.getElementById("calendarviewBroadcaster").dispatchEvent(event);
 }
@@ -122,35 +124,34 @@ var calendarWindowPrefs = {
      *
      * @see nsIObserver
      */
-    observe: function (aSubject, aTopic, aData) {
+    observe: function(aSubject, aTopic, aData) {
         if (aTopic == "nsPref:changed") {
             switch (aData) {
                 case "calendar.view.useSystemColors": {
                     let attributeValue = Preferences.get("calendar.view.useSystemColors", false) && "true";
                     for (let win in fixIterator(Services.ww.getWindowEnumerator())) {
-                        setElementValue(win.document.documentElement, attributeValue , "systemcolors");
+                        setElementValue(win.document.documentElement, attributeValue, "systemcolors");
                     }
                     break;
                 }
             }
         } else if (aTopic == "domwindowopened") {
             let win = aSubject.QueryInterface(Components.interfaces.nsIDOMWindow);
-            win.addEventListener("load", function() {
+            win.addEventListener("load", () => {
                 let attributeValue = Preferences.get("calendar.view.useSystemColors", false) && "true";
-                setElementValue(win.document.documentElement, attributeValue , "systemcolors");
+                setElementValue(win.document.documentElement, attributeValue, "systemcolors");
             }, false);
         }
     }
-}
+};
 
 /**
  * Migrate calendar UI. This function is called at each startup and can be used
  * to change UI items that require js code intervention
  */
 function migrateCalendarUI() {
-    const UI_VERSION = 1;
+    const UI_VERSION = 3;
     let currentUIVersion = Preferences.get("calendar.ui.version");
-
     if (currentUIVersion >= UI_VERSION) {
         return;
     }
@@ -162,7 +163,55 @@ function migrateCalendarUI() {
             let taskbar = document.getElementById("task-toolbar2");
             taskbar.insertItem("task-appmenu-button");
         }
+        if (currentUIVersion < 2) {
+            // If the user has customized the event/task window dialog toolbar,
+            // we copy that custom set of toolbar items to the event/task tab
+            // toolbar and add the app menu button and a spring for alignment.
+            let xulStore = Components.classes["@mozilla.org/xul/xulstore;1"]
+                                     .getService(Components.interfaces.nsIXULStore);
+            let uri = "chrome://calendar/content/calendar-event-dialog.xul";
 
+            if (xulStore.hasValue(uri, "event-toolbar", "currentset")) {
+                let windowSet = xulStore.getValue(uri, "event-toolbar", "currentset");
+                let items = "calendar-item-appmenu-button";
+                if (!windowSet.includes("spring")) {
+                    items = "spring," + items;
+                }
+                let previousSet = windowSet == "__empty" ? "" : windowSet + ",";
+                let tabSet = previousSet + items;
+                let tabBar = document.getElementById("event-tab-toolbar");
+
+                tabBar.currentSet = tabSet;
+                // For some reason we also have to do the following,
+                // presumably because the toolbar has already been
+                // loaded into the DOM so the toolbar's currentset
+                // attribute does not yet match the new currentSet.
+                tabBar.setAttribute("currentset", tabSet);
+            }
+        }
+        if (currentUIVersion < 3) {
+            // Rename toolbar button id "button-save" to
+            // "button-saveandclose" in customized toolbars
+            let xulStore = Components.classes["@mozilla.org/xul/xulstore;1"]
+                                     .getService(Components.interfaces.nsIXULStore);
+            let windowUri = "chrome://calendar/content/calendar-event-dialog.xul";
+            let tabUri = "chrome://messenger/content/messenger.xul";
+
+            if (xulStore.hasValue(windowUri, "event-toolbar", "currentset")) {
+                let windowSet = xulStore.getValue(windowUri, "event-toolbar", "currentset");
+                let newSet = windowSet.replace("button-save", "button-saveandclose");
+                xulStore.setValue(windowUri, "event-toolbar", "currentset", newSet);
+            }
+            if (xulStore.hasValue(tabUri, "event-tab-toolbar", "currentset")) {
+                let tabSet = xulStore.getValue(tabUri, "event-tab-toolbar", "currentset");
+                let newSet = tabSet.replace("button-save", "button-saveandclose");
+                xulStore.setValue(tabUri, "event-tab-toolbar", "currentset", newSet);
+
+                let tabBar = document.getElementById("event-tab-toolbar");
+                tabBar.currentSet = newSet;
+                tabBar.setAttribute("currentset", newSet);
+            }
+        }
         Preferences.set("calendar.ui.version", UI_VERSION);
     } catch (e) {
         cal.ERROR("Error upgrading UI from " + currentUIVersion + " to " +

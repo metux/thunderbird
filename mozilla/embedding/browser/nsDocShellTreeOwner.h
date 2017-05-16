@@ -8,7 +8,6 @@
 #define nsDocShellTreeOwner_h__
 
 // Helper Classes
-#include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
 #include "nsString.h"
 
@@ -59,7 +58,6 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsICDocShellTreeOwner, NS_ICDOCSHELLTREEOWNER_IID)
 
 class nsDocShellTreeOwner final : public nsIDocShellTreeOwner,
                                   public nsIBaseWindow,
-                                  public nsIBaseWindowESR45,
                                   public nsIInterfaceRequestor,
                                   public nsIWebProgressListener,
                                   public nsIDOMEventListener,
@@ -73,7 +71,6 @@ public:
   NS_DECL_ISUPPORTS
 
   NS_DECL_NSIBASEWINDOW
-  NS_DECL_NSIBASEWINDOWESR45
   NS_DECL_NSIDOCSHELLTREEOWNER
   NS_DECL_NSIDOMEVENTLISTENER
   NS_DECL_NSIINTERFACEREQUESTOR
@@ -103,6 +100,8 @@ protected:
   void AddToWatcher();
   void RemoveFromWatcher();
 
+  void EnsureContentTreeOwner();
+
   // These helper functions return the correct instances of the requested
   // interfaces.  If the object passed to SetWebBrowserChrome() implements
   // nsISupportsWeakReference, then these functions call QueryReferent on
@@ -129,6 +128,8 @@ protected:
   // and the DOM.
   RefPtr<ChromeTooltipListener> mChromeTooltipListener;
   RefPtr<ChromeContextMenuListener> mChromeContextMenuListener;
+
+  RefPtr<nsDocShellTreeOwner> mContentTreeOwner;
 
   nsCOMPtr<nsIPrompt> mPrompter;
   nsCOMPtr<nsIAuthPrompt> mAuthPrompter;
@@ -169,7 +170,8 @@ private:
   NS_IMETHOD RemoveTooltipListener();
 
   NS_IMETHOD ShowTooltip(int32_t aInXCoords, int32_t aInYCoords,
-                         const nsAString& aInTipText);
+                         const nsAString& aInTipText,
+                         const nsAString& aDirText);
   NS_IMETHOD HideTooltip();
 
   nsWebBrowser* mWebBrowser;

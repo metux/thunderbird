@@ -27,9 +27,8 @@
 <!-- Insert menu items -->
 <!ENTITY insertMenu.label "Lisää">
 <!ENTITY insertMenu.accesskey "L">
-<!ENTITY insertLinkCmd.label "Linkki…">
-<!ENTITY insertLinkCmd.accesskey "L">
-<!ENTITY insertLinkCmd.key "L">
+<!ENTITY insertLinkCmd2.label "Lähetä linkki…">
+<!ENTITY insertLinkCmd2.accesskey "L">
 <!ENTITY insertAnchorCmd.label "Nimetty ankkuri…">
 <!ENTITY insertAnchorCmd.accesskey "N">
 <!ENTITY insertImageCmd.label "Kuva…">
@@ -78,24 +77,22 @@
 <!ENTITY increaseFontSize.label "Suurempi">
 <!ENTITY increaseFontSize.accesskey "S">
 <!ENTITY incrementFontSize.key "+">
-<!ENTITY incrementFontSize.key2 "?"> <!-- + is above this key on many keyboards -->
+<!ENTITY incrementFontSize.key2 "?"> <!-- > is above this key on many keyboards -->
 
 <!ENTITY fontSizeMenu.label "Koko">
 <!ENTITY fontSizeMenu.accesskey "o">
-<!ENTITY size-xx-smallCmd.label "Erittäin pieni">
-<!ENTITY size-xx-smallCmd.accesskey "E">
-<!ENTITY size-x-smallCmd.label "Hyvin pieni">
-<!ENTITY size-x-smallCmd.accesskey "H">
+<!ENTITY size-tinyCmd.label "Pienin">
+<!ENTITY size-tinyCmd.accesskey "P">
 <!ENTITY size-smallCmd.label "Pieni">
 <!ENTITY size-smallCmd.accesskey "n">
 <!ENTITY size-mediumCmd.label "Keskikokoinen">
 <!ENTITY size-mediumCmd.accesskey "K">
 <!ENTITY size-largeCmd.label "Suuri">
 <!ENTITY size-largeCmd.accesskey "u">
-<!ENTITY size-x-largeCmd.label "Hyvin suuri">
-<!ENTITY size-x-largeCmd.accesskey "v">
-<!ENTITY size-xx-largeCmd.label "Erittäin suuri">
-<!ENTITY size-xx-largeCmd.accesskey "r">
+<!ENTITY size-extraLargeCmd.label "Suurempi">
+<!ENTITY size-extraLargeCmd.accesskey "u">
+<!ENTITY size-hugeCmd.label "Suurin">
+<!ENTITY size-hugeCmd.accesskey "r">
 
 <!-- Font Style SubMenu -->
 <!ENTITY fontStyleMenu.label "Tekstin tyyli">
@@ -147,7 +144,7 @@
 
 <!ENTITY paragraphMenu.label "Kappale">
 <!ENTITY paragraphMenu.accesskey "a">
-<!ENTITY paragraphParagraphCmd.label "Kappale">  
+<!ENTITY paragraphParagraphCmd.label "Kappale">
 <!ENTITY paragraphParagraphCmd.accesskey "K">
 <!ENTITY heading1Cmd.label "Otsikko 1">
 <!ENTITY heading1Cmd.accesskey "1">
@@ -270,7 +267,7 @@
 <!ENTITY tableDeleteMenu.label "Poista">
 <!ENTITY tableDeleteMenu.accesskey "o">
 
-<!-- text for "Join Cells" is in editor.properties 
+<!-- text for "Join Cells" is in editor.properties
      ("JoinSelectedCells" and "JoinCellToRight")
      the access key must exist in both of those strings
      But value must be set here for accesskey to draw properly
@@ -312,6 +309,7 @@
 <!ENTITY HighlightColorButton.tooltip "Valitse tekstin korostusväri">
 
 <!-- Editor toolbar -->
+<!ENTITY absoluteFontSizeToolbarCmd.tooltip "Muuta kirjasinkokoa">
 <!ENTITY decreaseFontSizeToolbarCmd.tooltip "Pienempi kirjasinkoko">
 <!ENTITY increaseFontSizeToolbarCmd.tooltip "Suurempi kirjasinkoko">
 <!ENTITY boldToolbarCmd.tooltip "Lihavoi">
@@ -346,12 +344,4 @@
 <!ENTITY tocMenu.label            "Sisällysluettelo…">
 <!ENTITY tocMenu.accesskey        "S">
 
-
-<!-- Editor toolbar -->
-<!ENTITY absoluteFontSizeToolbarCmd.tooltip "Set font size">
-<!ENTITY size-extraLargeCmd.accesskey "x">
-<!ENTITY size-extraLargeCmd.label "Extra Large">
-<!ENTITY size-hugeCmd.accesskey "H">
-<!ENTITY size-hugeCmd.label "Huge">
-<!ENTITY size-tinyCmd.accesskey "T">
-<!ENTITY size-tinyCmd.label "Tiny">
+<!ENTITY insertLinkCmd2.key "K">

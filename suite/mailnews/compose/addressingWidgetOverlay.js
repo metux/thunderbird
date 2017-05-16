@@ -117,7 +117,10 @@ function Recipients2CompFields(msgCompFields)
           case "addr_reply" :
             try {
               let headerParser = MailServices.headerParser;
-              recipient = [headerParser.makeMimeAddress(fullValue.name, fullValue.email) for (fullValue of headerParser.makeFromDisplayAddress(fieldValue, {}))].join(", ");
+              recipient =
+                headerParser.makeFromDisplayAddress(fieldValue, {}).map(fullValue =>
+                  headerParser.makeMimeAddress(fullValue.name, fullValue.email))
+              .join(", ");
             } catch (ex) {recipient = fieldValue;}
             break;
         }
@@ -133,7 +136,7 @@ function Recipients2CompFields(msgCompFields)
           case "addr_other":
             let headerName = awGetPopupElement(i).selectedItem.getAttribute("label");
             headerName = headerName.substring(0, headerName.indexOf(':'));
-            msgCompFields.setHeader(headerName, fieldValue);
+            msgCompFields.setRawHeader(headerName, fieldValue, null);
             break;
         }
       }
@@ -205,7 +208,8 @@ function CompFields2Recipients(msgCompFields)
 
     // CompFields2Recipients is called whenever a user replies or edits an existing message.
     // We want to add all of the recipients for this message to the ignore list for spell check
-    addRecipientsToIgnoreList((gCurrentIdentity ? gCurrentIdentity.identityName + ', ' : '') + msgTo + ', ' + msgCC + ', ' + msgBCC);
+    let currentAddress = gCurrentIdentity ? gCurrentIdentity.fullAddress : "";
+    addRecipientsToIgnoreList([currentAddress,msgTo,msgCC,msgBCC].filter(adr => adr).join(", "));
   }
 }
 
@@ -368,17 +372,6 @@ function awTestRowSequence()
     dump("#ERROR: listitems.length(" + listitems.length + ") < top.MAX_RECIPIENTS(" + top.MAX_RECIPIENTS + ")\n");
 
   return false;
-}
-
-function awResetAllRows()
-{
-  var maxRecipients = top.MAX_RECIPIENTS;
-
-  for (var row = 1; row <= maxRecipients ; row ++)
-  {
-    awGetInputElement(row).value = "";
-    awGetPopupElement(row).selectedIndex = 0;
-  }
 }
 
 function awCleanupRows()

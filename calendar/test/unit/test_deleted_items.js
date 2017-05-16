@@ -5,35 +5,26 @@
 Components.utils.import("resource://gre/modules/Promise.jsm");
 
 function run_test() {
-    do_get_profile();
-    // Initialize the floating timezone without actually starting the service.
-    cal.getTimezoneService().floating;
-    let delmgr = Components.classes["@mozilla.org/calendar/deleted-items-manager;1"]
-                           .getService(Components.interfaces.calIDeletedItems);
-    delmgr.observe(null, "profile-after-change", null);
-
-    cal.getCalendarManager().startup({ onResult: function() {
-        run_next_test();
-    }});
+    do_calendar_startup(run_next_test);
 }
 
 function check_delmgr_call(aFunc) {
     const mISSC = Components.interfaces.mozIStorageStatementCallback;
     let delmgr = Components.classes["@mozilla.org/calendar/deleted-items-manager;1"]
                            .getService(Components.interfaces.calIDeletedItems);
-    return new Promise(function(resolve, reject) {
+    return new Promise((resolve, reject) => {
         delmgr.wrappedJSObject.completedNotifier.handleCompletion = (aReason) => {
             if (aReason == mISSC.REASON_FINISHED) {
                 resolve();
             } else {
                 reject(aReason);
-            };
+            }
         };
         aFunc();
     });
 }
 
-add_task(function test_deleted_items() {
+add_task(function* test_deleted_items() {
     let calmgr = cal.getCalendarManager();
     let delmgr = Components.classes["@mozilla.org/calendar/deleted-items-manager;1"]
                            .getService(Components.interfaces.calIDeletedItems);
@@ -60,12 +51,12 @@ add_task(function test_deleted_items() {
 
     // We need to stop time so we have something to compare with.
     let referenceDate = cal.createDateTime("20120726T112045"); referenceDate.timezone = cal.calendarDefaultTimezone();
-    let futureDate = cal.createDateTime("20380101T000000");  futureDate.timezone = cal.calendarDefaultTimezone();
+    let futureDate = cal.createDateTime("20380101T000000"); futureDate.timezone = cal.calendarDefaultTimezone();
     let useFutureDate = false;
     let oldNowFunction = cal.now;
-    cal.now = function test_specific_now() {
+    cal.now = function() {
         return (useFutureDate ? futureDate : referenceDate).clone();
-    }
+    };
 
     // Deleting an item should trigger it being marked for deletion.
     yield check_delmgr_call(() => memory.deleteItem(item, null));

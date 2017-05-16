@@ -71,3 +71,8 @@
 <!ENTITY reuseExpRadio1.accesskey         "e">
 <!ENTITY closeMsgOnMoveOrDelete.label     "Serrar la fanestra da messadis/il tab sch'il messadi vegn spustà u stizzà">
 <!ENTITY closeMsgOnMoveOrDelete.accesskey "S">
+
+<!ENTITY editTagButton1.accesskey  "E">
+<!ENTITY editTagButton1.label      "Edit…">
+<!ENTITY newTagButton.accesskey    "N">
+<!ENTITY newTagButton.label        "New…">

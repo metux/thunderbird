@@ -1,51 +1,13 @@
-<!-- ***** BEGIN LICENSE BLOCK *****
-   - Version: MPL 1.1/GPL 2.0/LGPL 2.1
-   -
-   - The contents of this file are subject to the Mozilla Public License Version
-   - 1.1 (the "License"); you may not use this file except in compliance with
-   - the License. You may obtain a copy of the License at
-   - http://www.mozilla.org/MPL/
-   -
-   - Software distributed under the License is distributed on an "AS IS" basis,
-   - WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
-   - for the specific language governing rights and limitations under the
-   - License.
-   -
-   - The Original Code is Mozilla Communicator client code, released
-   - March 31, 1998.
-   -
-   - The Initial Developer of the Original Code is
-   - Netscape Communications Corporation.
-   - Portions created by the Initial Developer are Copyright (C) 1999-2000
-   - the Initial Developer. All Rights Reserved.
-   -
-   - Contributor(s):
-   -   Sammy Ford
-   -   Blake Ross
-   -   Ryan Cassin (rcassin@supernova.org)
-   -   Daniel Glazman (glazman@netscape.com)
-   -   Stephen Donner (technutz@netscape.net)
-   -
-   - Alternatively, the contents of this file may be used under the terms of
-   - either of the GNU General Public License Version 2 or later (the "GPL"),
-   - or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
-   - in which case the provisions of the GPL or the LGPL are applicable instead
-   - of those above. If you wish to allow use of your version of this file only
-   - under the terms of either the GPL or the LGPL, and not to allow others to
-   - use your version of this file under the terms of the MPL, indicate your
-   - decision by deleting the provisions above and replace them with the notice
-   - and other provisions required by the GPL or the LGPL. If you do not delete
-   - the provisions above, a recipient may use your version of this file under
-   - the terms of any one of the MPL, the GPL or the LGPL.
-   -
-   - ***** END LICENSE BLOCK ***** -->
-
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 <!-- Attn: Localization - some of the menus in this dialog directly affect mail also. -->
-
 <!-- File menu items -->
-<!ENTITY saveCmd.key "s">
 
+
+<!ENTITY saveCmd.key "s">
 <!-- Edit menu items -->
+
 <!ENTITY pasteNoFormatting.label "Tempel tanpa Format">
 <!ENTITY pasteNoFormatting.accesskey "o">
 <!ENTITY pasteNoFormatting.key "V">
@@ -54,19 +16,20 @@
 <!ENTITY pasteAsQuotationCmd.label "Tempel sebagai Kutipan">
 <!ENTITY pasteAsQuotationCmd.accesskey "K">
 <!ENTITY pasteAsQuotationCmd.key "o">
-<!ENTITY findCmd.label "Cari dan Ganti…">
+<!ENTITY findBarCmd.label "Cari…">
+<!ENTITY findReplaceCmd.label "Cari dan Ganti…">
 <!ENTITY enableInlineSpellChecker.label "Periksa Ejaan saat Mengetik">
 <!ENTITY enableInlineSpellChecker.accesskey "e">
 <!ENTITY checkSpellingCmd2.label "Periksa Ejaan">
 <!ENTITY checkSpellingCmd2.accesskey "e">
 <!ENTITY checkSpellingCmd2.key "k">
-
 <!-- Insert menu items -->
+
 <!ENTITY insertMenu.label "Sisipkan">
 <!ENTITY insertMenu.accesskey "i">
-<!ENTITY insertLinkCmd.label "Tautan…">
-<!ENTITY insertLinkCmd.accesskey "T">
-<!ENTITY insertLinkCmd.key "l">
+<!ENTITY insertLinkCmd2.label "Tautan…">
+<!ENTITY insertLinkCmd2.accesskey "T">
+
 <!ENTITY insertAnchorCmd.label "Penanda Bernama…">
 <!ENTITY insertAnchorCmd.accesskey "a">
 <!ENTITY insertImageCmd.label "Gambar…">
@@ -77,19 +40,20 @@
 <!ENTITY insertTableCmd.accesskey "T">
 <!ENTITY insertHTMLCmd.label "HTML…">
 <!ENTITY insertHTMLCmd.accesskey "H">
+<!ENTITY insertMathCmd.label "Matematika…">
+<!ENTITY insertMathCmd.accesskey "M">
 <!ENTITY insertCharsCmd.label "Karakter dan Simbol…">
 <!ENTITY insertCharsCmd.accesskey "K">
 <!ENTITY insertBreakAllCmd.label "Pindah Baris di Bawah Gambar">
 <!ENTITY insertBreakAllCmd.accesskey "i">
-
 <!-- Used just in context popup. -->
+
 <!ENTITY createLinkCmd.label "Buat Tautan…">
 <!ENTITY createLinkCmd.accesskey "t">
 <!ENTITY editLinkCmd.label "Sunting Tautan di Composer">
 <!ENTITY editLinkCmd.accesskey "S">
-<!-- (Toplevel Edit menu uses utilityOverlay) -->
-
 <!-- Font Face SubMenu -->
+
 <!ENTITY FontFaceSelect.tooltip "Pilih Huruf">
 <!ENTITY fontfaceMenu.label "Font">
 <!ENTITY fontfaceMenu.accesskey "F">
@@ -104,35 +68,36 @@
 <!ENTITY fontTimes.accesskey "T">
 <!ENTITY fontCourier.label "Courier">
 <!ENTITY fontCourier.accesskey "C">
-
 <!-- Font Size SubMenu -->
+
 <!ENTITY FontSizeSelect.tooltip "Pilih ukuran huruf">
 <!ENTITY decreaseFontSize.label "Lebih Kecil">
 <!ENTITY decreaseFontSize.accesskey "K">
-<!ENTITY decreaseFontSize.key "-">
+<!ENTITY decrementFontSize.key "&lt;">
+<!-- < is above this key on many keyboards -->
+<!ENTITY decrementFontSize.key2 ","> 
 <!ENTITY increaseFontSize.label "Lebih Besar">
 <!ENTITY increaseFontSize.accesskey "b">
-<!ENTITY increaseFontSize.key "+">
-<!ENTITY increaseFontSize.key2 "="> <!-- + is above this key on many keyboards -->
+<!ENTITY incrementFontSize.key "&gt;">
+<!-- > is above this key on many keyboards -->
+<!ENTITY incrementFontSize.key2 "."> 
 
 <!ENTITY fontSizeMenu.label "Ukuran">
 <!ENTITY fontSizeMenu.accesskey "U">
-<!ENTITY size-xx-smallCmd.label "xx-small">
-<!ENTITY size-xx-smallCmd.accesskey "a">
-<!ENTITY size-x-smallCmd.label "x-small">
-<!ENTITY size-x-smallCmd.accesskey "m">
-<!ENTITY size-smallCmd.label "small">
-<!ENTITY size-smallCmd.accesskey "s">
-<!ENTITY size-mediumCmd.label "medium">
-<!ENTITY size-mediumCmd.accesskey "d">
-<!ENTITY size-largeCmd.label "large">
-<!ENTITY size-largeCmd.accesskey "l">
-<!ENTITY size-x-largeCmd.label "x-large">
-<!ENTITY size-x-largeCmd.accesskey "x">
-<!ENTITY size-xx-largeCmd.label "xx-large">
-<!ENTITY size-xx-largeCmd.accesskey "e">
+
+
+
+
+
+
+
+
+
+
+
 
 <!-- Font Style SubMenu -->
+
 <!ENTITY fontStyleMenu.label "Gaya Teks">
 <!ENTITY fontStyleMenu.accesskey "s">
 <!ENTITY styleBoldCmd.label "Tebal">
@@ -175,14 +140,14 @@
 <!ENTITY tableOrCellColor.accesskey "B">
 
 <!ENTITY formatRemoveStyles.key "y">
-<!ENTITY formatRemoveLinks.key "k">
+
 <!ENTITY formatRemoveNamedAnchors.label "Hapus Penanda Bernama">
 <!ENTITY formatRemoveNamedAnchors.accesskey "H">
 <!ENTITY formatRemoveNamedAnchors2.key "R">
 
 <!ENTITY paragraphMenu.label "Paragraf">
 <!ENTITY paragraphMenu.accesskey "P">
-<!ENTITY paragraphParagraphCmd.label "Paragraf">  
+<!ENTITY paragraphParagraphCmd.label "Paragraf">
 <!ENTITY paragraphParagraphCmd.accesskey "P">
 <!ENTITY heading1Cmd.label "Penajuk Tingkat 1">
 <!ENTITY heading1Cmd.accesskey "1">
@@ -200,8 +165,8 @@
 <!ENTITY paragraphAddressCmd.accesskey "A">
 <!ENTITY paragraphPreformatCmd.label "Preformat">
 <!ENTITY paragraphPreformatCmd.accesskey "f">
-
 <!-- List menu items -->
+
 <!ENTITY formatlistMenu.label "Daftar">
 <!ENTITY formatlistMenu.accesskey "D">
 <!ENTITY noneCmd.label "Tidak ada">
@@ -224,8 +189,8 @@
 <!-- isn't used in menu now, but may be added in future -->
 <!ENTITY advancedPropertiesCmd.label "Properti Canggih">
 <!ENTITY advancedPropertiesCmd.accesskey "C">
-
 <!-- Align menu items -->
+
 <!ENTITY alignMenu.label "Rata">
 <!ENTITY alignMenu.accesskey "a">
 <!ENTITY alignLeft.label "Kiri">
@@ -240,8 +205,8 @@
 <!ENTITY alignJustify.label "Kiri-Kanan">
 <!ENTITY alignJustify.accesskey "n">
 <!ENTITY alignJustify.tooltip "Rata Kiri-Kanan">
-
 <!-- Layer toolbar items -->
+
 <!ENTITY layer.tooltip "Layer">
 <!ENTITY layerSendToBack.tooltip "Pindahkan ke Belakang">
 <!ENTITY layerBringToFront.tooltip "Pindahkan ke Depan">
@@ -255,12 +220,12 @@
 
 <!ENTITY colorsAndBackground.label "Warna dan Latar Belakang Laman…">
 <!ENTITY colorsAndBackground.accesskey "W">
-
 <!-- Table Menu -->
+
 <!ENTITY tableMenu.label "Tabel">
 <!ENTITY tableMenu.accesskey "b">
-
 <!-- Select Submenu -->
+
 <!ENTITY tableSelectMenu.label "Pilih">
 <!ENTITY tableSelectMenu.accesskey "P">
 
@@ -270,8 +235,8 @@
 <!ENTITY tableInsertMenu2.accesskey "S">
 <!ENTITY tableDeleteMenu2.label "Hapus Tabel">
 <!ENTITY tableDeleteMenu2.accesskey "H">
-
 <!-- Insert SubMenu -->
+
 <!ENTITY tableInsertMenu.label "Sisip">
 <!ENTITY tableInsertMenu.accesskey "i">
 <!ENTITY tableTable.label "Tabel">
@@ -304,12 +269,12 @@
 <!-- Delete SubMenu -->
 <!ENTITY tableDeleteMenu.label "Hapus">
 <!ENTITY tableDeleteMenu.accesskey "H">
-
-<!-- text for "Join Cells" is in editor.properties 
+<!-- text for "Join Cells" is in editor.properties
      ("JoinSelectedCells" and "JoinCellToRight")
      the access key must exist in both of those strings
      But value must be set here for accesskey to draw properly
 -->
+
 <!ENTITY tableJoinCells.label "j">
 <!ENTITY tableJoinCells.accesskey "j">
 <!ENTITY tableSplitCell.label "Pisahkan Sel">
@@ -318,8 +283,8 @@
 <!ENTITY convertToTable.accesskey "o">
 <!ENTITY tableProperties.label "Properti Tabel…">
 <!ENTITY tableProperties.accesskey "o">
-
 <!-- Toolbar-only items -->
+
 <!ENTITY menuBar.tooltip "Bilah Menu">
 <!ENTITY formatToolbar.tooltip "Bilah Format">
 <!ENTITY cutToolbarCmd.tooltip "Potong">
@@ -345,7 +310,6 @@
 <!ENTITY BackgroundColorButton.tooltip "Pilih warna untuk latar belakang">
 <!ENTITY throbber.tooltip "Buka laman untuk &vendorShortName;">
 <!ENTITY HighlightColorButton.tooltip "Pilih warna penyorot teks">
-
 <!-- Editor toolbar -->
 <!ENTITY decreaseFontSizeToolbarCmd.tooltip "Ukuran huruf lebih kecil">
 <!ENTITY increaseFontSizeToolbarCmd.tooltip "Ukuran huruf lebih besar">
@@ -362,16 +326,16 @@
 <!ENTITY alignCenterButton.tooltip "Buat teks rata tengah">
 <!ENTITY alignRightButton.tooltip "Buat teks rata kanan pada margin kanan">
 <!ENTITY alignJustifyButton.tooltip "Buat teks rata pada margin kiri dan kanan">
-
 <!-- Structure Toolbar Context Menu items -->
+
 <!ENTITY structSelect.label         "Pilih">
 <!ENTITY structSelect.accesskey     "P">
 <!ENTITY structRemoveTag.label      "Hapus tag">
 <!ENTITY structRemoveTag.accesskey  "H">
 <!ENTITY structChangeTag.label      "Ubah tag">
 <!ENTITY structChangeTag.accesskey  "U">
-
 <!-- TOC manipulation -->
+
 <!ENTITY insertTOC.label          "Sisipkan">
 <!ENTITY insertTOC.accesskey      "S">
 <!ENTITY updateTOC.label          "Perbarui">
@@ -384,18 +348,17 @@
 
 <!-- Editor toolbar -->
 <!ENTITY absoluteFontSizeToolbarCmd.tooltip "Set font size">
-<!ENTITY decrementFontSize.key "&lt;">
-<!ENTITY decrementFontSize.key2 ","> <!-- < is above this key on many keyboards -->
-<!ENTITY findBarCmd.label "Find…">
-<!ENTITY findReplaceCmd.label "Find and Replace…">
-<!ENTITY incrementFontSize.key "&gt;">
-<!ENTITY incrementFontSize.key2 "."> <!-- > is above this key on many keyboards -->
-
-<!ENTITY insertMathCmd.accesskey "M">
-<!ENTITY insertMathCmd.label "Math…">
+<!ENTITY formatRemoveLinks.key "K">
+<!ENTITY insertLinkCmd2.key "K">
 <!ENTITY size-extraLargeCmd.accesskey "x">
 <!ENTITY size-extraLargeCmd.label "Extra Large">
 <!ENTITY size-hugeCmd.accesskey "H">
 <!ENTITY size-hugeCmd.label "Huge">
+<!ENTITY size-largeCmd.accesskey "L">
+<!ENTITY size-largeCmd.label "Large">
+<!ENTITY size-mediumCmd.accesskey "M">
+<!ENTITY size-mediumCmd.label "Medium">
+<!ENTITY size-smallCmd.accesskey "S">
+<!ENTITY size-smallCmd.label "Small">
 <!ENTITY size-tinyCmd.accesskey "T">
 <!ENTITY size-tinyCmd.label "Tiny">

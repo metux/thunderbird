@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+"use strict";
+
 function populateAccessibilitySection() {
   var active;
   try {
@@ -16,7 +18,7 @@ function populateAccessibilitySection() {
   document.getElementById("a11y-activated").textContent = active ? "1" : "0";
 
   var forceDisabled = 0;
-  forceDisabled = Application.prefs.get("accessibility.force_disabled").value;
+  forceDisabled = Services.prefs.getIntPref("accessibility.force_disabled");
 
   document.getElementById("a11y-force-disabled").textContent
     = (forceDisabled == -1) ? "never" :

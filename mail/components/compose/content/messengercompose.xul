@@ -47,7 +47,6 @@
 <stringbundleset id="stringbundleset">
   <stringbundle id="bundle_composeMsgs" src="chrome://messenger/locale/messengercompose/composeMsgs.properties"/>
   <stringbundle id="bundle_messenger"   src="chrome://messenger/locale/messenger.properties"/>
-  <stringbundle id="languageBundle"     src="chrome://global/locale/languageNames.properties"/>
   <stringbundle id="brandBundle"        src="chrome://branding/locale/brand.properties"/>
 </stringbundleset>
 
@@ -175,6 +174,8 @@
   <command id="cmd_customizeFromAddress" oncommand="MakeFromFieldEditable();"
            checked="false" label="&customizeFromAddress.label;"/>
 </commandset>
+
+  <command id="cmd_doNotRemindForAttachments" oncommand="disableAttachmentReminder();"/>
 
 <broadcasterset id="composeBroadcasters">
   <broadcaster id="args" value="editorType=default"/>
@@ -414,6 +415,10 @@
             command="cmd_CustomizeComposeToolbar"
             label="&customizeToolbar.label;"
             accesskey="&customizeToolbar.accesskey;"/>
+</menupopup>
+
+<menupopup id="blockedContentOptions" value=""
+           onpopupshowing="onBlockedContentOptionsShowing(event);">
 </menupopup>
 
 #ifdef XP_MACOSX
@@ -665,7 +670,7 @@
           </menu>
           <menu id="outputFormatMenu" label="&deliveryFormatMenu.label;" accesskey="&deliveryFormatMenu.accesskey;" oncommand="OutputFormatMenuSelect(event.target)">
             <menupopup id="outputFormatMenuPopup">
-              <menuitem type="radio" name="output_format" label="&autoFormatCmd.label;" accesskey="&autoFormatCmd.accesskey;" id="format_auto" checked="true"/>
+              <menuitem type="radio" name="output_format" label="&autoFormatCmd.label;" accesskey="&autoFormatCmd.accesskey;" id="format_auto"/>
               <menuitem type="radio" name="output_format" label="&plainTextFormatCmd.label;" accesskey="&plainTextFormatCmd.accesskey;" id="format_plain"/>
               <menuitem type="radio" name="output_format" label="&htmlFormatCmd.label;" accesskey="&htmlFormatCmd.accesskey;" id="format_html"/>
               <menuitem type="radio" name="output_format" label="&bothFormatCmd.label;" accesskey="&bothFormatCmd.accesskey;" id="format_both"/>
@@ -866,7 +871,7 @@
       <label value="&priorityButton.label;" control="priorityMenu-button"/>
       <menulist id="priorityMenu-button" value="Normal" oncommand="PriorityMenuSelect(event.target);">
         <menupopup id="priorityMenu-buttonPopup">
-          <menuitem name="priority" label="&highestPriorityCmd.label;" value="Highest"  id="list_priotity_highest"/>
+          <menuitem name="priority" label="&highestPriorityCmd.label;" value="Highest"  id="list_priority_highest"/>
           <menuitem name="priority" label="&highPriorityCmd.label;"    value="High"     id="list_priority_high"/>
           <menuitem name="priority" label="&normalPriorityCmd.label;"  value="Normal"   id="list_priority_normal"/>
           <menuitem name="priority" label="&lowPriorityCmd.label;"     value="Low"      id="list_priority_low"/>
@@ -922,8 +927,7 @@
             <menulist id="msgIdentity" type="description" flex="1"
                       disableautoselect="true" onkeypress="fromKeyPress(event);"
                       oncommand="LoadIdentity(false);" disableonsend="true">
-              <menupopup id="msgIdentityPopup"
-                         class="noIconPopup"/>
+              <menupopup id="msgIdentityPopup"/>
             </menulist>
           </hbox>
           <listbox id="addressingWidget" flex="1" seltype="multiple" rows="1"

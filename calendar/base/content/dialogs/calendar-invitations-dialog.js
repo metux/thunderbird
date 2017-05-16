@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/* exported onLoad, onUnload, onAccept, onCancel */
+
 Components.utils.import("resource://calendar/modules/calUtils.jsm");
 Components.utils.import("resource://calendar/modules/calAlarmUtils.jsm");
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -11,47 +13,38 @@ Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
  * invitations from the invitations manager.
  */
 function onLoad() {
-    var operationListener = {
+    let operationListener = {
         QueryInterface: XPCOMUtils.generateQI([Components.interfaces.calIOperationListener]),
-        onOperationComplete: function oL_onOperationComplete(aCalendar,
-                                                             aStatus,
-                                                             aOperationType,
-                                                             aId,
-                                                             aDetail) {
-            var updatingBox = document.getElementById("updating-box");
+        onOperationComplete: function(aCalendar, aStatus, aOperationType, aId, aDetail) {
+            let updatingBox = document.getElementById("updating-box");
             updatingBox.setAttribute("hidden", "true");
-            var richListBox = document.getElementById("invitations-listbox");
+            let richListBox = document.getElementById("invitations-listbox");
             if (richListBox.getRowCount() > 0) {
                 richListBox.selectedIndex = 0;
             } else {
-                var noInvitationsBox =
+                let noInvitationsBox =
                     document.getElementById("noinvitations-box");
                 noInvitationsBox.removeAttribute("hidden");
             }
         },
-        onGetResult: function oL_onGetResult(aCalendar,
-                                             aStatus,
-                                             aItemType,
-                                             aDetail,
-                                             aCount,
-                                             aItems) {
+        onGetResult: function(aCalendar, aStatus, aItemType, aDetail, aCount, aItems) {
             if (!Components.isSuccessCode(aStatus)) {
                 return;
             }
             document.title = invitationsText + " (" + aCount + ")";
-            var updatingBox = document.getElementById("updating-box");
+            let updatingBox = document.getElementById("updating-box");
             updatingBox.setAttribute("hidden", "true");
-            var richListBox = document.getElementById("invitations-listbox");
-            for each (var item in aItems) {
+            let richListBox = document.getElementById("invitations-listbox");
+            for (let item of aItems) {
                 richListBox.addCalendarItem(item);
             }
         }
     };
 
-    var updatingBox = document.getElementById("updating-box");
+    let updatingBox = document.getElementById("updating-box");
     updatingBox.removeAttribute("hidden");
 
-    var args = window.arguments[0];
+    let args = window.arguments[0];
     args.invitationsManager.getInvitations(operationListener,
                                            args.onLoadOperationListener);
 
@@ -62,7 +55,7 @@ function onLoad() {
  * Cleans up the invitations dialog, cancels pending requests.
  */
 function onUnload() {
-    var args = window.arguments[0];
+    let args = window.arguments[0];
     args.requestManager.cancelPendingRequests();
 }
 
@@ -72,7 +65,7 @@ function onUnload() {
  * @return      Returns true if the window should be closed
  */
 function onAccept() {
-    var args = window.arguments[0];
+    let args = window.arguments[0];
     fillJobQueue(args.queue);
     args.invitationsManager.processJobQueue(args.queue, args.finishedCallBack);
     return true;
@@ -82,7 +75,7 @@ function onAccept() {
  * Handler function to be called when the cancel button is pressed.
  */
 function onCancel() {
-    var args = window.arguments[0];
+    let args = window.arguments[0];
     if (args.finishedCallBack) {
         args.finishedCallBack();
     }
@@ -95,16 +88,16 @@ function onCancel() {
  * @param queue     The queue to fill.
  */
 function fillJobQueue(queue) {
-    var richListBox = document.getElementById("invitations-listbox");
-    var rowCount = richListBox.getRowCount();
-    for (var i = 0; i < rowCount; i++) {
-        var richListItem = richListBox.getItemAtIndex(i);
-        var newStatus = richListItem.participationStatus;
-        var oldStatus = richListItem.initialParticipationStatus;
+    let richListBox = document.getElementById("invitations-listbox");
+    let rowCount = richListBox.getRowCount();
+    for (let i = 0; i < rowCount; i++) {
+        let richListItem = richListBox.getItemAtIndex(i);
+        let newStatus = richListItem.participationStatus;
+        let oldStatus = richListItem.initialParticipationStatus;
         if (newStatus != oldStatus) {
-            var actionString = "modify";
-            var oldCalendarItem = richListItem.calendarItem;
-            var newCalendarItem = oldCalendarItem.clone();
+            let actionString = "modify";
+            let oldCalendarItem = richListItem.calendarItem;
+            let newCalendarItem = oldCalendarItem.clone();
 
             // set default alarm on unresponded items that have not been declined:
             if (!newCalendarItem.getAlarms({}).length &&
@@ -115,7 +108,7 @@ function fillJobQueue(queue) {
 
             richListItem.setCalendarItemParticipationStatus(newCalendarItem,
                 newStatus);
-            var job = {
+            let job = {
                 action: actionString,
                 oldItem: oldCalendarItem,
                 newItem: newCalendarItem

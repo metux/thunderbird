@@ -17,6 +17,12 @@ Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 var gContextMenuContentData = null;
 
+XPCOMUtils.defineLazyGetter(this, "InlineSpellCheckerUI", function() {
+  let tmp = {};
+  Components.utils.import("resource://gre/modules/InlineSpellChecker.jsm", tmp);
+  return new tmp.InlineSpellChecker();
+});
+
 XPCOMUtils.defineLazyGetter(this, "PageMenuParent", function() {
   let tmp = {};
   Components.utils.import("resource://gre/modules/PageMenu.jsm", tmp);
@@ -213,6 +219,11 @@ nsContextMenu.prototype = {
 
     this.showItem("context-viewsource", showView);
     this.showItem("context-viewinfo", showView);
+
+    var showInspect = "gDevTools" in window &&
+                      Services.prefs.getBoolPref("devtools.inspector.enabled");
+    this.showItem("inspect-separator", showInspect);
+    this.showItem("context-inspect", showInspect);
 
     this.showItem("context-sep-properties",
                   !(this.inDirList || this.isContentSelected || this.onTextInput ||
@@ -473,8 +484,35 @@ nsContextMenu.prototype = {
     this.showItem("context-media-sep-commands", onMedia);
   },
 
+  inspectNode: function() {
+    let tmp = {};
+    Components.utils.import("resource://devtools/shared/Loader.jsm", tmp);
+    let gBrowser = this.browser.ownerDocument.defaultView.gBrowser;
+    let tt = tmp.devtools.TargetFactory.forTab(gBrowser.selectedTab);
+    return gDevTools.showToolbox(tt, "inspector").then(toolbox => {
+      let inspector = toolbox.getCurrentPanel();
+      // new-node-front tells us when the node has been selected, whether the
+      // browser is remote or not.
+      let onNewNode = inspector.selection.once("new-node-front");
+
+      this.browser.messageManager.sendAsyncMessage("debug:inspect", {}, {node: this.target});
+      inspector.walker.findInspectingNode().then(nodeFront => {
+        inspector.selection.setNodeFront(nodeFront, "browser-context-menu");
+      });
+
+      return onNewNode.then(() => {
+        // Now that the node has been selected, wait until the inspector is
+        // fully updated.
+        return inspector.once("inspector-updated");
+      });
+    });
+  },
+
   // Set various context menu attributes based on the state of the world.
   setTarget: function(aNode, aRangeParent, aRangeOffset) {
+    // Currently "isRemote" is always false.
+    //this.isRemote = gContextMenuContentData && gContextMenuContentData.isRemote;
+
     const xulNS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 
     // Initialize contextual info.
@@ -917,7 +955,7 @@ nsContextMenu.prototype = {
     saveImageURL(canvas.toDataURL("image/jpeg", ""), name, "SaveImageTitle",
                                   true, true,
                                   this.target.ownerDocument.documentURIObject,
-                                  this.target.ownerDocument);
+                                  null, null, null, (gPrivate ? true : false));
   },
 
   // Full screen video playback
@@ -1084,13 +1122,19 @@ nsContextMenu.prototype = {
   // Save URL of clicked-on image, video, or audio.
   saveMedia: function() {
     var doc = this.target.ownerDocument;
+    let referrerURI = doc.documentURIObject;
+
     if (this.onCanvas)
       // Bypass cache, since it's a data: URL.
       saveImageURL(this.target.toDataURL(), "canvas.png", "SaveImageTitle",
-                   true, true, null, doc);
-    else if (this.onImage)
-      saveImageURL(this.mediaURL, null, "SaveImageTitle", false, true,
-                   doc.documentURIObject, doc);
+                   true, false, referrerURI, null, null, null,
+                   (gPrivate ? true : false));
+    else if (this.onImage) {
+      saveImageURL(this.mediaURL, null, "SaveImageTitle", false,
+                   false, referrerURI, null, gContextMenuContentData.contentType,
+                   gContextMenuContentData.contentDisposition,
+                   (gPrivate ? true : false));
+    }
     else if (this.onVideo || this.onAudio) {
       var dialogTitle = this.onVideo ? "SaveVideoTitle" : "SaveAudioTitle";
       this.saveHelper(this.mediaURL, null, dialogTitle, false, doc);
@@ -1127,7 +1171,7 @@ nsContextMenu.prototype = {
   copyEmail: function() {
     var clipboard = this.getService("@mozilla.org/widget/clipboardhelper;1",
                                     Components.interfaces.nsIClipboardHelper);
-    clipboard.copyString(this.getEmail(), this.target.ownerDocument);
+    clipboard.copyString(this.getEmail());
   },
 
   bookmarkThisPage : function() {
@@ -1467,7 +1511,7 @@ nsContextMenu.prototype = {
   copyMediaLocation: function() {
     var clipboard = Components.classes["@mozilla.org/widget/clipboardhelper;1"]
                     .getService(Components.interfaces.nsIClipboardHelper);
-    clipboard.copyString(this.mediaURL, this.target.ownerDocument);
+    clipboard.copyString(this.mediaURL);
   },
 
   get imageURL() {

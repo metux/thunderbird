@@ -79,8 +79,9 @@
                    class="menulist-menupopup"
                    type="folder"
                    flex="1"
+                   mode="notDeferred"
                    showFileHereLabel="true"
-                   oncommand="gFolderTreeView.selectFolder(event.target._folder);"/>
+                   oncommand="gFolderTreeView.selectFolder(event.target._folder, true);"/>
       </menulist>
     </toolbaritem>
     <toolbaritem id="mailviews-container"
@@ -93,7 +94,6 @@
              accesskey="&viewPicker.accesskey;"/>
       <menulist id="viewPicker" oncommand="ViewChangeByMenuitem(event.target);">
         <menupopup id="viewPickerPopup"
-                   class="noIconPopup"
                    onpopupshowing="RefreshViewPopup(this);">
           <menuitem id="viewPickerAll" value="0"
                     label="&viewAll.label;"

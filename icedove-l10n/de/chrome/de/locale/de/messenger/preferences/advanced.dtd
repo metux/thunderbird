@@ -59,8 +59,6 @@
 <!ENTITY updateCheck.accesskey           "N">
 <!ENTITY updateManual.label              "Nicht nach Updates suchen (nicht empfohlen: Sicherheitsrisiko)">
 <!ENTITY updateManual.accesskey          "d">
-<!ENTITY updateAutoAddonWarn.label       "Warnen, falls dadurch Add-ons deaktiviert werden">
-<!ENTITY updateAutoAddonWarn.accesskey   "W">
 <!ENTITY updateHistory.label             "Update-Chronik anzeigen">
 <!ENTITY updateHistory.accesskey         "C">
 
@@ -103,7 +101,7 @@
 <!ENTITY enableOCSP.label                "Aktuelle Gültigkeit von Zertifikaten durch Anfrage bei OCSP-Server bestätigen lassen">
 <!ENTITY enableOCSP.accesskey            "G">
 
-<!ENTITY viewCertificates.label         "Zertifikate">
-<!ENTITY viewCertificates.accesskey     "Z">
-<!ENTITY viewSecurityDevices.label      "Kryptographie-Module">
+<!ENTITY manageCertificates.label "Zertifikate verwalten">
+<!ENTITY manageCertificates.accesskey "Z">
+<!ENTITY viewSecurityDevices.label      "Kryptographie-Module verwalten…">
 <!ENTITY viewSecurityDevices.accesskey  "K">

@@ -2,6 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/* exported onDismissAllAlarms, setupWindow, finishWindow, addWidgetFor,
+ *         removeWidgetFor, onSelectAlarm, ensureCalendarVisible
+ */
+
 Components.utils.import("resource://gre/modules/PluralForm.jsm");
 Components.utils.import("resource://calendar/modules/calUtils.jsm");
 Components.utils.import("resource://gre/modules/Preferences.jsm");
@@ -27,9 +31,11 @@ function getAlarmService() {
  */
 function onSnoozeAlarm(event) {
     // reschedule alarm:
-    let duration = cal.createDuration();
-    duration.minutes = event.detail;
-    duration.normalize();
+    let duration = getDuration(event.detail);
+    if (aboveSnoozeLimit(duration)) {
+        // we prevent snoozing too far if the alarm wouldn't be displayed
+        return;
+    }
     getAlarmService().snoozeAlarm(event.target.item, event.target.alarm, duration);
 }
 
@@ -52,7 +58,7 @@ function onDismissAllAlarms() {
     let parentItems = {};
 
     // Make a copy of the child nodes as they get modified live
-    for each (let node in Array.slice(alarmRichlist.childNodes)) {
+    for (let node of alarmRichlist.childNodes) {
         // Check if the node is a valid alarm and is still part of DOM
         if (node.parentNode && node.item && node.alarm &&
             !(node.item.parentItem.hashId in parentItems)) {
@@ -93,7 +99,7 @@ function setupWindow() {
     let current = new Date();
 
     let timeout = (60 - current.getSeconds()) * 1000;
-    gRelativeDateUpdateTimer = setTimeout(function wait_until_next_minute() {
+    gRelativeDateUpdateTimer = setTimeout(() => {
         updateRelativeDates();
         gRelativeDateUpdateTimer = setInterval(updateRelativeDates, 60 * 1000);
     }, timeout);
@@ -140,7 +146,7 @@ function onFocusWindow() {
  */
 function updateRelativeDates() {
     let alarmRichlist = document.getElementById("alarm-richlist");
-    for each (let node in Array.slice(alarmRichlist.childNodes)) {
+    for (let node of alarmRichlist.childNodes) {
         if (node.item && node.alarm) {
             node.updateRelativeDateLabel();
         }
@@ -153,15 +159,17 @@ function updateRelativeDates() {
  * @param aDurationMinutes    The duration in minutes
  */
 function snoozeAllItems(aDurationMinutes) {
-    let duration = cal.createDuration();
-    duration.minutes = aDurationMinutes;
-    duration.normalize();
+    let duration = getDuration(aDurationMinutes);
+    if (aboveSnoozeLimit(duration)) {
+        // we prevent snoozing too far if the alarm wouldn't be displayed
+        return;
+    }
 
     let alarmRichlist = document.getElementById("alarm-richlist");
     let parentItems = {};
 
     // Make a copy of the child nodes as they get modified live
-    for each (let node in Array.slice(alarmRichlist.childNodes)) {
+    for (let node of alarmRichlist.childNodes) {
         // Check if the node is a valid alarm and is still part of DOM
         if (node.parentNode && node.item && node.alarm &&
             !(node.item.parentItem.hashId in parentItems)) {
@@ -170,6 +178,49 @@ function snoozeAllItems(aDurationMinutes) {
             getAlarmService().snoozeAlarm(node.item, node.alarm, duration);
         }
     }
+}
+
+/**
+ * Receive a calIDuration object for a given number of minutes
+ *
+ * @param  {long}           aMinutes     The number of minutes
+ * @return {calIDuration}
+ */
+function getDuration(aMinutes) {
+    const MINUTESINWEEK = 7 * 24 * 60;
+
+    // converting to weeks if any is required to avoid an integer overflow of duration.minutes as
+    // this is of type short
+    let weeks = Math.floor(aMinutes / MINUTESINWEEK);
+    aMinutes -= weeks * MINUTESINWEEK;
+
+    let duration = cal.createDuration();
+    duration.minutes = aMinutes;
+    duration.weeks = weeks;
+    duration.normalize();
+    return duration;
+}
+
+/**
+ * Check whether the snooze period exceeds the current limitation of the AlarmService and prompt
+ * the user with a message if so
+ * @param   {calIDuration}   aDuration   The duration to snooze
+ * @returns {Boolean}
+ */
+function aboveSnoozeLimit(aDuration) {
+    const LIMIT = Components.interfaces.calIAlarmService.MAX_SNOOZE_MONTHS;
+
+    let currentTime = cal.now().getInTimezone(cal.UTC());
+    let limitTime = currentTime.clone();
+    limitTime.month += LIMIT;
+
+    let durationUntilLimit = limitTime.subtractDate(currentTime);
+    if (aDuration.compare(durationUntilLimit) > 0) {
+        let msg = PluralForm.get(LIMIT, cal.calGetString("calendar", "alarmSnoozeLimitExceeded"));
+        showError(msg.replace("#1", LIMIT));
+        return true;
+    }
+    return false;
 }
 
 /**
@@ -194,8 +245,9 @@ function setupTitle() {
  *                              0 - otherwise
  */
 function widgetAlarmComptor(aItem, aWidgetItem) {
-
-    if (aItem == null || aWidgetItem == null) return -1;
+    if (aItem == null || aWidgetItem == null) {
+        return -1;
+    }
 
     // Get the dates to compare
     let aDate = aItem[calGetStartDateProp(aItem)];
@@ -253,7 +305,6 @@ function removeWidgetFor(aItem, aAlarm) {
         let widget = nodes[i];
         if (widget.item && widget.item.hashId == hashId &&
             widget.alarm && widget.alarm.icalString == aAlarm.icalString) {
-
             if (widget.selected) {
                 // Advance selection if needed
                 widget.control.selectedItem = widget.previousSibling ||
@@ -293,7 +344,7 @@ function closeIfEmpty() {
  * @param event         The DOM event from the click action
  */
 function onSelectAlarm(event) {
-    let richList = document.getElementById("alarm-richlist")
+    let richList = document.getElementById("alarm-richlist");
     if (richList == event.target) {
         richList.ensureElementIsVisible(richList.getSelectedItem(0));
         richList.userSelectedWidget = true;

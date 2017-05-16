@@ -36,6 +36,7 @@
 #include <algorithm>
 #include "nsIOutputStream.h"
 #include "nsIInputStream.h"
+#include "nsPrintfCString.h"
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -497,12 +498,12 @@ nsFolderCompactState::FinishCompact()
   m_folder->ForceDBClosed();
 
   nsCOMPtr<nsIFile> cloneFile;
-  int64_t fileSize;
+  int64_t fileSize = 0;
   rv = m_file->Clone(getter_AddRefs(cloneFile));
   if (NS_SUCCEEDED(rv))
     rv = cloneFile->GetFileSize(&fileSize);
   bool tempFileRightSize = ((uint64_t)fileSize == m_totalMsgSize);
-  NS_WARN_IF_FALSE(tempFileRightSize, "temp file not of expected size in compact");
+  NS_WARNING_ASSERTION(tempFileRightSize, "temp file not of expected size in compact");
 
   bool folderRenameSucceeded = false;
   bool msfRenameSucceeded = false;
@@ -522,14 +523,14 @@ nsFolderCompactState::FinishCompact()
     if (NS_SUCCEEDED(rv))
       rv = oldSummaryFile->MoveToNative((nsIFile*) nullptr, tempSummaryFileName);
 
-    NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "error moving compacted folder's db out of the way");
+    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "error moving compacted folder's db out of the way");
     if (NS_SUCCEEDED(rv))
     {
       // Now we've successfully moved the summary file out the way, try moving
       // the newly compacted message file over the old one.
       rv = m_file->MoveToNative((nsIFile *) nullptr, folderName);
       folderRenameSucceeded = NS_SUCCEEDED(rv);
-      NS_WARN_IF_FALSE(folderRenameSucceeded, "error renaming compacted folder");
+      NS_WARNING_ASSERTION(folderRenameSucceeded, "error renaming compacted folder");
       if (folderRenameSucceeded)
       {
         // That worked, so land the new summary file in the right place.
@@ -540,7 +541,7 @@ nsFolderCompactState::FinishCompact()
           rv = renamedCompactedSummaryFile->MoveToNative((nsIFile *) nullptr, dbName);
           msfRenameSucceeded = NS_SUCCEEDED(rv);
         }
-        NS_WARN_IF_FALSE(msfRenameSucceeded, "error renaming compacted folder's db");
+        NS_WARNING_ASSERTION(msfRenameSucceeded, "error renaming compacted folder's db");
       }
 
       if (!msfRenameSucceeded)
@@ -558,9 +559,9 @@ nsFolderCompactState::FinishCompact()
       tempSummaryFile->Remove(false);
   }
 
-  NS_WARN_IF_FALSE(msfRenameSucceeded, "compact failed");
+  NS_WARNING_ASSERTION(msfRenameSucceeded, "compact failed");
   nsresult rvReleaseFolderLock = ReleaseFolderLock();
-  NS_WARN_IF_FALSE(NS_SUCCEEDED(rvReleaseFolderLock),"folder lock not released successfully");
+  NS_WARNING_ASSERTION(NS_SUCCEEDED(rvReleaseFolderLock),"folder lock not released successfully");
   rv = NS_FAILED(rv) ? rv : rvReleaseFolderLock;
 
   // Cleanup of nstmp-named compacted files if failure
@@ -630,8 +631,8 @@ GetBaseStringBundle(nsIStringBundle **aBundle)
 
 void nsFolderCompactState::CompactCompleted(nsresult exitCode)
 {
-  NS_WARN_IF_FALSE(NS_SUCCEEDED(exitCode),
-                   "nsFolderCompactState::CompactCompleted failed");
+  NS_WARNING_ASSERTION(NS_SUCCEEDED(exitCode),
+                       "nsFolderCompactState::CompactCompleted failed");
   if (m_listener)
     m_listener->OnStopRunningUrl(nullptr, exitCode);
   ShowDoneStatus();
@@ -661,7 +662,7 @@ void nsFolderCompactState::ShowDoneStatus()
     nsAutoString expungedAmount;
     FormatFileSize(m_totalExpungedBytes, true, expungedAmount);
     const char16_t* params[] = { expungedAmount.get() };
-    rv = bundle->FormatStringFromName(MOZ_UTF16("compactingDone"),
+    rv = bundle->FormatStringFromName(u"compactingDone",
                                       params, 1, getter_Copies(statusString));
 
     if (!statusString.IsEmpty() && NS_SUCCEEDED(rv))
@@ -1032,8 +1033,9 @@ nsresult nsOfflineStoreCompactState::CopyNextMessage(bool &done)
     m_startOfMsg = true;
     nsCOMPtr<nsISupports> thisSupports;
     QueryInterface(NS_GET_IID(nsISupports), getter_AddRefs(thisSupports));
+    nsCOMPtr<nsIURI> dummyNull;
     rv = m_messageService->StreamMessage(m_messageUri.get(), thisSupports, m_window, nullptr,
-                                    false, EmptyCString(), true, nullptr);
+                                    false, EmptyCString(), true, getter_AddRefs(dummyNull));
     // if copy fails, we clear the offline flag on the source message.
     if (NS_FAILED(rv))
     {
@@ -1074,6 +1076,14 @@ nsOfflineStoreCompactState::OnStopRequest(nsIRequest *request, nsISupports *ctxt
   if (NS_FAILED(rv)) goto done;
   rv = GetMessage(getter_AddRefs(msgHdr));
   if (NS_FAILED(rv)) goto done;
+
+  // This is however an unexpected condition, so let's print a warning.
+  if (rv == NS_MSG_ERROR_MSG_NOT_OFFLINE) {
+    nsAutoCString spec;
+    uri->GetSpec(spec);
+    nsPrintfCString msg("Message expectedly not available offline: %s", spec.get());
+    NS_WARNING(msg.get());
+  }
 
   if (msgHdr)
   {

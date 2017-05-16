@@ -2,6 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/* exported getElementValue, setBooleanAttribute, showElement, hideElement,
+ *          uncollapseElement, collapseElement, disableElementWithLock,
+ *          enableElementWithLock, uncheckChildNodes, removeChildren,
+ *          appendCalendarItems, setAttributeToChildren, checkRadioControl,
+ *          processEnableCheckbox, updateListboxDeleteButton,
+ *          updateUnitLabelPlural, updateMenuLabelsPlural, menuListSelectItem,
+ *          getOptimalMinimumWidth, getOptimalMinimumHeight,
+ *          getOtherOrientation, updateSelectedLabel, setupAttendanceMenu
+ */
 
 Components.utils.import("resource://calendar/modules/calUtils.jsm");
 Components.utils.import("resource://gre/modules/Preferences.jsm");
@@ -19,10 +28,9 @@ Components.utils.import("resource://gre/modules/PluralForm.jsm");
  */
 function setElementValue(aElement, aNewValue, aPropertyName) {
     cal.ASSERT(aElement, "aElement");
-    var undefined;
 
     if (aNewValue !== undefined) {
-        if (typeof(aElement) == "string") {
+        if (typeof aElement == "string") {
             aElement = document.getElementById(aElement);
             cal.ASSERT(aElement, "aElement");
         }
@@ -47,8 +55,8 @@ function setElementValue(aElement, aNewValue, aPropertyName) {
         } else {
             aElement.value = aNewValue;
         }
-     }
- }
+    }
+}
 
 /**
  * Helper function for getting data from the form,
@@ -62,7 +70,7 @@ function setElementValue(aElement, aNewValue, aPropertyName) {
  *
  */
 function getElementValue(aElement, aPropertyName) {
-    if (typeof(aElement) == "string") {
+    if (typeof aElement == "string") {
         aElement = document.getElementById(aElement);
     }
     return aElement[aPropertyName || "value"];
@@ -78,7 +86,7 @@ function getElementValue(aElement, aPropertyName) {
  * @return                Returns aValue (for chaining)
  */
 function setBooleanAttribute(aXulElement, aAttribute, aValue) {
-    setElementValue(aXulElement, (aValue ? "true" : false), aAttribute);
+    setElementValue(aXulElement, aValue ? "true" : false, aAttribute);
     return aValue;
 }
 
@@ -147,19 +155,18 @@ function disableElement(aElement) {
  * @param elementId     The element ID of the element to disable.
  * @param lockId        The ID of the lock to set.
  */
-function disableElementWithLock(elementId,lockId) {
-
+function disableElementWithLock(elementId, lockId) {
     // unconditionally disable the element.
     disableElement(elementId);
 
     // remember that this element has been locked with
     // the key passed as argument. we keep a primitive
     // form of ref-count in the attribute 'lock'.
-    var element = document.getElementById(elementId);
+    let element = document.getElementById(elementId);
     if (element) {
         if (!element.hasAttribute(lockId)) {
             element.setAttribute(lockId, "true");
-            var n = parseInt(element.getAttribute("lock") || 0);
+            let n = parseInt(element.getAttribute("lock") || 0, 10);
             element.setAttribute("lock", n + 1);
         }
     }
@@ -175,8 +182,7 @@ function disableElementWithLock(elementId,lockId) {
  * @param lockId        The ID of the lock to set.
  */
 function enableElementWithLock(elementId, lockId) {
-
-    var element = document.getElementById(elementId);
+    let element = document.getElementById(elementId);
     if (!element) {
         dump("unable to find " + elementId + "\n");
         return;
@@ -184,7 +190,7 @@ function enableElementWithLock(elementId, lockId) {
 
     if (element.hasAttribute(lockId)) {
         element.removeAttribute(lockId);
-        var n = parseInt(element.getAttribute("lock") || 0) - 1;
+        let n = parseInt(element.getAttribute("lock") || 0, 10) - 1;
         if (n > 0) {
             element.setAttribute("lock", n);
         } else {
@@ -203,10 +209,10 @@ function enableElementWithLock(elementId, lockId) {
  *                    child elements
  */
 function uncheckChildNodes(aEvent) {
-    var liveList = aEvent.target.getElementsByAttribute("checked", "true");
-    for (var i = liveList.length - 1; i >= 0; i-- ) {
-        var commandName = liveList.item(i).getAttribute("command");
-        var command = document.getElementById(commandName);
+    let liveList = aEvent.target.getElementsByAttribute("checked", "true");
+    for (let i = liveList.length - 1; i >= 0; i--) {
+        let commandName = liveList.item(i).getAttribute("command");
+        let command = document.getElementById(commandName);
         if (command) {
             command.setAttribute("checked", "false");
         }
@@ -219,7 +225,7 @@ function uncheckChildNodes(aEvent) {
  * @param aElement  The Node (or its id) to remove children from
  */
 function removeChildren(aElement) {
-    if (typeof(aElement) == "string") {
+    if (typeof aElement == "string") {
         aElement = document.getElementById(aElement);
     }
 
@@ -242,12 +248,12 @@ function sortCalendarArray(calendars) {
         sortOrder[sortOrderPref[i]] = i;
     }
     function sortFunc(cal1, cal2) {
-        let i1 = sortOrder[cal1.id] || -1;
-        let i2 = sortOrder[cal2.id] || -1;
-        if (i1 < i2) {
+        let orderIdx1 = sortOrder[cal1.id] || -1;
+        let orderIdx2 = sortOrder[cal2.id] || -1;
+        if (orderIdx1 < orderIdx2) {
             return -1;
         }
-        if (i1 > i2) {
+        if (orderIdx1 > orderIdx2) {
             return 1;
         }
         return 0;
@@ -256,7 +262,7 @@ function sortCalendarArray(calendars) {
 
     // check and repair pref:
     let sortOrderString = Preferences.get("calendar.list.sortOrder", "");
-    let wantedOrderString = ret.map(function(c) { return c.id; }).join(" ");
+    let wantedOrderString = ret.map(calendar => calendar.id).join(" ");
     if (wantedOrderString != sortOrderString) {
         Preferences.set("calendar.list.sortOrder", wantedOrderString);
     }
@@ -317,8 +323,9 @@ function appendCalendarItems(aItem, aCalendarMenuParent, aCalendarToUse, aOnComm
  * @return            The newly created menuitem
  */
 function addMenuItem(aParent, aLabel, aValue, aCommand) {
+    let item = null;
     if (aParent.localName == "menupopup") {
-        var item = createXULElement("menuitem");
+        item = createXULElement("menuitem");
         item.setAttribute("label", aLabel);
         if (aValue) {
             item.setAttribute("value", aValue);
@@ -327,8 +334,7 @@ function addMenuItem(aParent, aLabel, aValue, aCommand) {
             item.command = aCommand;
         }
         aParent.appendChild(item);
-    }
-    else if (aParent.localName == "menulist") {
+    } else if (aParent.localName == "menulist") {
         item = aParent.appendItem(aLabel, aValue);
     }
     return item;
@@ -348,12 +354,12 @@ function addMenuItem(aParent, aLabel, aValue, aCommand) {
  *                            'aFilterValue' set.
  */
 function setAttributeToChildren(aParent, aAttribute, aValue, aFilterAttribute, aFilterValue) {
-    for (var i = 0; i < aParent.childNodes.length; i++) {
-        var element = aParent.childNodes[i];
+    for (let i = 0; i < aParent.childNodes.length; i++) {
+        let element = aParent.childNodes[i];
         if (aFilterAttribute == null) {
             setElementValue(element, aValue, aAttribute);
         } else if (element.hasAttribute(aFilterAttribute)) {
-            var compValue = element.getAttribute(aFilterAttribute);
+            let compValue = element.getAttribute(aFilterAttribute);
             if (compValue === aFilterValue) {
                 setElementValue(element, aValue, aAttribute);
             }
@@ -371,18 +377,17 @@ function setAttributeToChildren(aParent, aAttribute, aValue, aFilterAttribute, a
  *                  given value could be checked.
  */
 function checkRadioControl(aParent, aValue) {
-    for (var i = 0; i < aParent.childNodes.length; i++) {
-        var element = aParent.childNodes[i];
+    for (let i = 0; i < aParent.childNodes.length; i++) {
+        let element = aParent.childNodes[i];
         if (element.hasAttribute("value")) {
-            var compValue = element.getAttribute("value");
+            let compValue = element.getAttribute("value");
             if (compValue == aValue) {
                 if (element.localName == "menuitem") {
                     if (element.getAttribute("type") == "radio") {
                         element.setAttribute("checked", "true");
                         return true;
                     }
-                }
-                else if (element.localName == "radio") {
+                } else if (element.localName == "radio") {
                     element.radioGroup.selectedItem = element;
                     return true;
                 }
@@ -399,7 +404,7 @@ function checkRadioControl(aParent, aValue) {
  * @param elementId     The element to change the disabled state on.
  */
 function processEnableCheckbox(checkboxId, elementId) {
-    var checked = document.getElementById(checkboxId).checked;
+    let checked = document.getElementById(checkboxId).checked;
     setElementValue(elementId, !checked && "true", "disabled");
 }
 
@@ -412,7 +417,7 @@ function processEnableCheckbox(checkboxId, elementId) {
  * @param buttonId      The element to change the disabled state on.
  */
 function updateListboxDeleteButton(listboxId, buttonId) {
-    var rowCount = document.getElementById(listboxId).getRowCount();
+    let rowCount = document.getElementById(listboxId).getRowCount();
     setElementValue(buttonId, rowCount < 1 && "true", "disabled");
 }
 
@@ -426,10 +431,12 @@ function updateListboxDeleteButton(listboxId, buttonId) {
  * @return                A string containg the pluralized version of the unit
  */
 function unitPluralForm(aLength, aUnit, aIncludeLength=true) {
-    let unitProp = {"minutes": "unitMinutes",
-                    "hours": "unitHours",
-                    "days": "unitDays",
-                    "weeks": "unitWeeks"}[aUnit] || "unitMinutes";
+    let unitProp = {
+        minutes: "unitMinutes",
+        hours: "unitHours",
+        days: "unitDays",
+        weeks: "unitWeeks"
+    }[aUnit] || "unitMinutes";
 
     return PluralForm.get(aLength, cal.calGetString("calendar", unitProp))
                      .replace("#1", aIncludeLength ? aLength : "").trim();
@@ -443,7 +450,7 @@ function unitPluralForm(aLength, aUnit, aIncludeLength=true) {
  * @param aUnit              The unit to use for the label.
  */
 function updateUnitLabelPlural(aLengthFieldId, aLabelId, aUnit) {
-    let label  = document.getElementById(aLabelId);
+    let label = document.getElementById(aLabelId);
     let length = Number(document.getElementById(aLengthFieldId).value);
 
     label.value = unitPluralForm(length, aUnit, false);
@@ -456,7 +463,7 @@ function updateUnitLabelPlural(aLengthFieldId, aLabelId, aUnit) {
  * @param aMenuId           The menu to update labels in.
  */
 function updateMenuLabelsPlural(aLengthFieldId, aMenuId) {
-    let menu  = document.getElementById(aMenuId);
+    let menu = document.getElementById(aMenuId);
     let length = Number(document.getElementById(aLengthFieldId).value);
 
     // update the menu items
@@ -481,12 +488,12 @@ function updateMenuLabelsPlural(aLengthFieldId, aMenuId) {
  * @throws              String error if value not found.
  */
 function menuListSelectItem(menuListId, value) {
-    var menuList = document.getElementById(menuListId);
-    var index = menuListIndexOf(menuList, value);
-    if (index != -1) {
-        menuList.selectedIndex = index;
+    let menuList = document.getElementById(menuListId);
+    let index = menuListIndexOf(menuList, value);
+    if (index == -1) {
+        throw "menuListSelectItem: No such Element: " + value;
     } else {
-        throw "menuListSelectItem: No such Element: "+value;
+        menuList.selectedIndex = index;
     }
 }
 
@@ -498,10 +505,10 @@ function menuListSelectItem(menuListId, value) {
  * @return              The child index of the node that matches, or -1.
  */
 function menuListIndexOf(menuList, value) {
-    var items = menuList.menupopup.childNodes;
-    var index = -1;
-    for (var i = 0; i < items.length; i++) {
-        var element = items[i];
+    let items = menuList.menupopup.childNodes;
+    let index = -1;
+    for (let i = 0; i < items.length; i++) {
+        let element = items[i];
         if (element.nodeName == "menuitem") {
             index++;
         }
@@ -515,11 +522,11 @@ function menuListIndexOf(menuList, value) {
 /**
  * Creates the given element in the XUL namespace.
  *
- * @param el    The local name of the element to create.
- * @return      The XUL element requested.
+ * @param elem      The local name of the element to create.
+ * @return          The XUL element requested.
  */
-function createXULElement(el) {
-    return document.createElementNS("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul", el);
+function createXULElement(elem) {
+    return document.createElementNS("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul", elem);
 }
 
 /**
@@ -533,9 +540,9 @@ function createXULElement(el) {
  * @return              An integer value denoting the optimal minimum width
  */
 function getSummarizedStyleValues(aXULElement, aStyleProps) {
-    var retValue = 0;
-    var cssStyleDeclares = document.defaultView.getComputedStyle(aXULElement, null);
-    for each (var prop in aStyleProps) {
+    let retValue = 0;
+    let cssStyleDeclares = document.defaultView.getComputedStyle(aXULElement, null);
+    for (let prop of aStyleProps) {
         retValue += parseInt(cssStyleDeclares.getPropertyValue(prop), 10);
     }
     return retValue;
@@ -568,8 +575,8 @@ function getOptimalMinimumWidth(aXULElement) {
 function getOptimalMinimumHeight(aXULElement) {
     // the following line of code presumes that the line-height is set to "normal"
     // which is supposed to be a "reasonable distance" between the lines
-    var firstEntity = parseInt(1.35 * getSummarizedStyleValues(aXULElement, ["font-size"]), 10);
-    var secondEntity = getSummarizedStyleValues(aXULElement,
+    let firstEntity = parseInt(1.35 * getSummarizedStyleValues(aXULElement, ["font-size"]), 10);
+    let secondEntity = getSummarizedStyleValues(aXULElement,
                                                 ["padding-bottom", "padding-top",
                                                 "margin-bottom", "margin-top",
                                                 "border-bottom-width", "border-top-width"]);
@@ -584,7 +591,7 @@ function getOptimalMinimumHeight(aXULElement) {
  * @return                The opposite orientation value.
  */
 function getOtherOrientation(aOrientation) {
-     return (aOrientation == "horizontal" ? "vertical" : "horizontal");
+    return (aOrientation == "horizontal" ? "vertical" : "horizontal");
 }
 
 /**
@@ -594,10 +601,10 @@ function getOtherOrientation(aOrientation) {
  * @param aElement  The element to update, or its id as a string
  */
 function updateSelectedLabel(aElement) {
-    if (typeof(aElement) == "string") {
+    if (typeof aElement == "string") {
         aElement = document.getElementById(aElement);
     }
-    var selectedIndex = aElement.selectedIndex;
+    let selectedIndex = aElement.selectedIndex;
     aElement.selectedIndex = -1;
     aElement.selectedIndex = selectedIndex;
 }

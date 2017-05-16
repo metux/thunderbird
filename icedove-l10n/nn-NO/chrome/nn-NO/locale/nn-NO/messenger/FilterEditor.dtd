@@ -20,7 +20,7 @@
 <!ENTITY contextIncomingMail.label "Hentar ny e-post::">
 <!ENTITY contextIncomingMail.accesskey "H">
 <!ENTITY contextManual.label "Manuell filtrering">
-<!ENTITY contextManual.accesskey "R">
+<!ENTITY contextManual.accesskey "r">
 <!ENTITY contextBeforeCls.label "Filtrer før søppelpost-klassifisering">
 <!ENTITY contextAfterCls.label "Filtrer etter søppelpost-klassifisering">
 <!ENTITY contextOutgoing.label "Etter sending">
@@ -33,14 +33,14 @@
 
 <!ENTITY filterActionOrderWarning.label "Merk: Filterhandlingar vert køyrd i ei anna rekkjefølgje">
 <!ENTITY filterActionOrder.label "Sjå utføringsrekkjefølgje">
-
 <!-- New Style Filter Rule Actions -->
+
 <!ENTITY moveMessage.label "Flytt melding til">
 <!ENTITY copyMessage.label "Kopier melding til">
 <!ENTITY forwardTo.label "Vidaresend melding til">
 <!ENTITY replyWithTemplate.label "Svar med mal">
-<!ENTITY markMessageRead.label "Merk som lesen">
-<!ENTITY markMessageUnread.label "Merk som ulesen">
+<!ENTITY markMessageRead.label "Marker som lesen">
+<!ENTITY markMessageUnread.label "Marker som ulesen">
 <!ENTITY markMessageStarred.label "Merk med stjerne">
 <!ENTITY setPriority.label "Sett prioritet til">
 <!ENTITY addTag.label "Merk melding">
@@ -55,11 +55,12 @@
 
 <!ENTITY addAction.tooltip "Legg til ei ny handling">
 <!ENTITY removeAction.tooltip "Fjern denne handlinga">
-
 <!-- LOCALIZATION NOTE
-  The values below are used to control the widths of the filter action widgets.
-  Change the values only when the localized strings in the popup menus
-  are truncated in the widgets.
- -->
+     The values below are used to control the widths of the filter action widgets.
+     Change the values only when the localized strings in the popup menus
+     are truncated in the widgets.
+  -->
+<!-- Flex Attribute: https://developer.mozilla.org/docs/XUL/Attribute/flex -->
+
 <!ENTITY filterActionTypeFlexValue "1">
 <!ENTITY filterActionTargetFlexValue "4">

@@ -28,16 +28,16 @@
 <!-- labels -->
 
 <!ENTITY displayTagsText.label     "Mezuak sailkatu eta lehentasunak zehazteko erabil daitezke etiketak.">
-<!ENTITY addTagButton.label        "Gehitu">
-<!ENTITY addTagButton.accesskey    "G">
-<!ENTITY editTagButton.label       "Editatu">
-<!ENTITY editTagButton.accesskey   "E">
+
+
+
+
 <!ENTITY removeTagButton.label     "Ezabatu">
 <!ENTITY removeTagButton.accesskey "z">
 <!-- Fonts and Colors -->
 
 <!ENTITY fontsAndColors1.label   "Letra-tipoak eta koloreak">
-<!ENTITY defaultFont.label       "Lehenetsitako letra-tipoa:">
+<!ENTITY defaultFont.label       "Letra-tipo lehenetsia:">
 <!ENTITY defaultFont.accesskey   "L">
 <!ENTITY defaultSize.label       "Tamaina:">
 <!ENTITY defaultSize.accesskey   "T">
@@ -72,4 +72,8 @@
 <!ENTITY closeMsgOnMoveOrDelete.label     "Itxi mezu-leihoa/fitxa lekuz aldatzean edo ezabatzean">
 <!ENTITY closeMsgOnMoveOrDelete.accesskey "I">
 
+<!ENTITY editTagButton1.accesskey  "E">
+<!ENTITY editTagButton1.label      "Edit…">
 <!ENTITY itemAdvanced.label               "Advanced">
+<!ENTITY newTagButton.accesskey    "N">
+<!ENTITY newTagButton.label        "New…">

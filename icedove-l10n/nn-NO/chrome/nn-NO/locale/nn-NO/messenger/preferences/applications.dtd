@@ -19,14 +19,13 @@
 <!ENTITY alwaysAsk.accesskey          "A">
 <!ENTITY chooseFolderWin.label        "Bla gjennom …">
 <!ENTITY chooseFolderWin.accesskey    "B">
-<!ENTITY chooseFolderMac.label        "Vel …">
+<!ENTITY chooseFolderMac.label        "Vel…">
 <!ENTITY chooseFolderMac.accesskey    "V">
 
 <!ENTITY attachments.incoming.label   "Inn">
 <!ENTITY attachments.outgoing.label   "Ut">
 
-<!ENTITY addCloudFileAccount.label        "Legg til">
-<!ENTITY addCloudFileAccount.accesskey    "L">
+
 <!ENTITY addCloudFileAccount.description  "Legg til ei Filelink-lagringsteneste">
 <!ENTITY removeCloudFileAccount.label     "Fjern">
 <!ENTITY removeCloudFileAccount.accesskey "F">
@@ -36,3 +35,7 @@
 
 <!ENTITY enableCloudFileAccountOffer.label "Tilby å dele for filer større enn ">
 <!ENTITY enableCloudFileAccountOffer.mb " MB">
+
+<!ENTITY addCloudFileAccount1.accesskey   "A">
+
+<!ENTITY addCloudFileAccount1.label       "Add…">

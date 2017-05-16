@@ -24,7 +24,7 @@
 <!ENTITY contextBeforeCls.label "Filtra abans de comprovar si és correu brossa">
 <!ENTITY contextAfterCls.label "Filtra després de comprovar si és correu brossa">
 <!ENTITY contextOutgoing.label "Després d'enviar">
-<!ENTITY contextOutgoing.accesskey "S">
+<!ENTITY contextOutgoing.accesskey "e">
 <!ENTITY contextArchive.label "Arxivament">
 <!ENTITY contextArchive.accesskey "A">
 
@@ -56,10 +56,11 @@
 <!ENTITY addAction.tooltip "Afegeix una acció nova">
 <!ENTITY removeAction.tooltip "Suprimeix aquesta acció">
 <!-- LOCALIZATION NOTE
-  The values below are used to control the widths of the filter action widgets.
-  Change the values only when the localized strings in the popup menus
-  are truncated in the widgets.
- -->
+     The values below are used to control the widths of the filter action widgets.
+     Change the values only when the localized strings in the popup menus
+     are truncated in the widgets.
+  -->
+<!-- Flex Attribute: https://developer.mozilla.org/docs/XUL/Attribute/flex -->
 
 <!ENTITY filterActionTypeFlexValue "1">
 <!ENTITY filterActionTargetFlexValue "4">

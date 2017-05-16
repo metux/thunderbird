@@ -2,7 +2,7 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY itemGeneral.label                   "Powškny">
+<!ENTITY itemGeneral.label                   "Powšykne">
 <!ENTITY itemAutoComplete.label              "Adresěrowanje">
 <!ENTITY itemSpellCheck.label                "Pšawopis">
 
@@ -26,8 +26,8 @@
 <!ENTITY bgColor.accesskey                    "z">
 <!ENTITY restoreHTMLDefaults.label            "Standardy wótnowiś">
 <!ENTITY restoreHTMLDefaults.accesskey        "S">
-<!ENTITY enterKeyCreatesNewParagraph.label    "Gaž wótstawkowy format se wužywa, tasta Enter napórajo nowy wótstawk">
-<!ENTITY enterKeyCreatesNewParagraph.accesskey "w">
+<!ENTITY defaultToParagraph.label             "Pó standarźe wótstawkowy format město wopśimjeśowego teksta wužywaś">
+<!ENTITY defaultToParagraph.accesskey         "P">
 
 <!ENTITY spellCheck.label                     "Pšawopis do słanja kontrolěrowaś">
 <!ENTITY spellCheck.accesskey                 "P">

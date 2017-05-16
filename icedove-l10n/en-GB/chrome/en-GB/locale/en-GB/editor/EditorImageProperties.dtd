@@ -76,3 +76,5 @@
 <!ENTITY imageDimensionsTab.label "Dimensions">
 <!ENTITY imageAppearanceTab.label "Appearance">
 <!ENTITY imageLinkTab.label "Link">
+
+<!ENTITY locationEditField.shortenedDataURI "Shortened data URI (copy will place the full URI onto the clipboard)">

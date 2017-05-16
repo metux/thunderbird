@@ -12,7 +12,7 @@ function calICALJSTimezone(innerObject) {
 }
 
 var calTimezoneInterfaces = [Components.interfaces.calITimezone];
-var calTimezoneClassID =  Components.ID("{6702eb17-a968-4b43-b562-0d0c5f8e9eb5}");
+var calTimezoneClassID = Components.ID("{6702eb17-a968-4b43-b562-0d0c5f8e9eb5}");
 calICALJSTimezone.prototype = {
     QueryInterface: XPCOMUtils.generateQI(calTimezoneInterfaces),
     classID: calTimezoneClassID,
@@ -49,7 +49,7 @@ calICALJSTimezone.prototype = {
         } catch (e) {
             // Just use the TZID if the string is mising.
         }
-        this.__defineGetter__("displayName", function() {
+        this.__defineGetter__("displayName", () => {
             return displayName;
         });
         return displayName;
@@ -77,15 +77,15 @@ calLibicalTimezone.prototype = {
         interfaces: calTimezoneInterfaces
     }),
 
-    toString: function calLibicalTimezone_toString() {
+    toString: function() {
         return (this.icalComponent ? this.icalComponent.toString() : this.tzid);
     },
 
     get isUTC() { return this.mUTC; },
 
     get icalComponent() {
-        var comp = this.mComponent;
-        if (comp && (typeof(comp) == "string")) {
+        let comp = this.mComponent;
+        if (comp && (typeof comp == "string")) {
             this.mComponent = cal.getIcsService().parseICS("BEGIN:VCALENDAR\r\n" + comp + "\r\nEND:VCALENDAR\r\n", null)
                                                  .getFirstSubcomponent("VTIMEZONE");
         }

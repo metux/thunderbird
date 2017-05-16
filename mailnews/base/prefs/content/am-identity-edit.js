@@ -14,6 +14,7 @@ function onLoadIdentityProperties()
   // extract the account
   gIdentity = window.arguments[0].identity;
   gAccount = window.arguments[0].account;
+  let prefBundle = document.getElementById("bundle_prefs");
 
   // Make the dialog the same height and 90% of the width of the main Account
   // manager page when the Account manager is not maximized.
@@ -24,6 +25,14 @@ function onLoadIdentityProperties()
       accountDialog.getElementById("accountManager").clientWidth * 0.9 + "px";
     document.getElementById("identityDialog").style.height =
       accountDialog.getElementById("accountManager").clientHeight + "px";
+  }
+
+  if (gIdentity) {
+    let listName = gIdentity.identityName;
+    document.title = prefBundle
+                     .getFormattedString("identityDialogTitleEdit", [listName]);
+  } else {
+    document.title = prefBundle.getString("identityDialogTitleAdd");
   }
 
   loadSMTPServerList();
@@ -60,6 +69,11 @@ function initIdentityValues(identity)
     document.getElementById('identity.attachVCard').checked = identity.attachVCard;
     document.getElementById('identity.escapedVCard').value = identity.escapedVCard;
     initSmtpServer(identity.smtpServerKey);
+
+    // This field does not exist for the default identity shown in the am-main.xul pane.
+    let idLabel = document.getElementById("identity.label");
+    if (idLabel)
+      idLabel.value = identity.label;
   }
   else
   {
@@ -178,6 +192,9 @@ function saveIdentitySettings(identity)
 {
   if (identity)
   {
+    let idLabel = document.getElementById('identity.label');
+    if (idLabel)
+      identity.label = idLabel.value;
     identity.fullName = document.getElementById('identity.fullName').value;
     identity.email = document.getElementById('identity.email').value;
     identity.replyTo = document.getElementById('identity.replyTo').value;
@@ -197,7 +214,7 @@ function saveIdentitySettings(identity)
     {
       // convert signature path back into a nsIFile
       var sfile = Components.classes["@mozilla.org/file/local;1"]
-                  .createInstance(Components.interfaces.nsILocalFile);
+                  .createInstance(Components.interfaces.nsIFile);
       sfile.initWithPath(attachSignaturePath);
       if (sfile.exists())
         identity.signature = sfile;
@@ -255,7 +272,7 @@ function selectFile()
   fp.appendFilters(nsIFilePicker.filterAll);
 
   // Get current signature folder, if there is one.
-  // We can set that to be the initial folder so that users 
+  // We can set that to be the initial folder so that users
   // can maintain their signatures better.
   var sigFolder = GetSigFolder();
   if (sigFolder)
@@ -271,18 +288,18 @@ function selectFile()
 function GetSigFolder()
 {
   var sigFolder = null;
-  try 
+  try
   {
     var account = parent.getCurrentAccount();
     var identity = account.defaultIdentity;
     var signatureFile = identity.signature;
 
-    if (signatureFile) 
+    if (signatureFile)
     {
-      signatureFile = signatureFile.QueryInterface( Components.interfaces.nsILocalFile );
+      signatureFile = signatureFile.QueryInterface(Components.interfaces.nsIFile);
       sigFolder = signatureFile.parent;
 
-      if (!sigFolder.exists()) 
+      if (!sigFolder.exists())
           sigFolder = null;
     }
   }

@@ -15,7 +15,7 @@
 
 <!ENTITY saveTo.label                 "Salvează fișierele în">
 <!ENTITY saveTo.accesskey             "S">
-<!ENTITY alwaysAsk.label              "Întreabă-mă întotdeauna unde să fie salvate fișierele">
+<!ENTITY alwaysAsk.label              "Întreabă-mă întotdeauna unde să se salveze fișierele">
 <!ENTITY alwaysAsk.accesskey          "a">
 <!ENTITY chooseFolderWin.label        "Răsfoiește…">
 <!ENTITY chooseFolderWin.accesskey    "f">
@@ -25,8 +25,7 @@
 <!ENTITY attachments.incoming.label   "Primire">
 <!ENTITY attachments.outgoing.label   "Expediere">
 
-<!ENTITY addCloudFileAccount.label        "Adăugare">
-<!ENTITY addCloudFileAccount.accesskey    "A">
+
 <!ENTITY addCloudFileAccount.description  "Adaugă un serviciu nou de stocare Filelink">
 <!ENTITY removeCloudFileAccount.label     "Ștergere">
 <!ENTITY removeCloudFileAccount.accesskey "r">
@@ -36,3 +35,7 @@
 
 <!ENTITY enableCloudFileAccountOffer.label "Oferă partajarea fișierelor mai mari decât">
 <!ENTITY enableCloudFileAccountOffer.mb "MB">
+
+<!ENTITY addCloudFileAccount1.accesskey   "A">
+
+<!ENTITY addCloudFileAccount1.label       "Add…">

@@ -5,6 +5,7 @@
 <!ENTITY toField4.label "Nori">
 <!ENTITY fromField4.label "Nork">
 <!ENTITY senderField4.label "Bidaltzailea">
+
 <!ENTITY organizationField4.label "Erakundea">
 <!ENTITY replyToField4.label "Erantzun honi">
 
@@ -23,6 +24,8 @@
 
 <!ENTITY hdrArchiveButton1.label "Artxibatu">
 <!ENTITY hdrArchiveButton1.tooltip "Artxibatu mezu hau">
+
+
 <!ENTITY hdrSmartReplyButton1.label "Erantzun bizkorra">
 <!ENTITY hdrReplyButton1.label "Erantzun">
 <!ENTITY hdrReplyButton2.tooltip "Erantzun mezu honen bidaltzaileari">
@@ -107,3 +110,7 @@
 <!ENTITY OpenMessageForMsgId.accesskey "I">
 <!ENTITY OpenBrowserWithMsgId.label "Ireki nabigatzailea mezu-ID honekin">
 <!ENTITY OpenBrowserWithMsgId.accesskey "b">
+
+<!ENTITY author.label "Author">
+<!ENTITY hdrOpenConversationButton1.label "Conversation">
+<!ENTITY hdrOpenConversationButton1.tooltip "Show conversation of this message">

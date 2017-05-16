@@ -46,7 +46,7 @@ var GlodaABIndexer = {
     ];
   },
 
-  _worker_index_card: function(aJob, aCallbackHandle) {
+  _worker_index_card: function*(aJob, aCallbackHandle) {
     let card = aJob.id;
 
     if (card.primaryEmail) {
@@ -254,7 +254,7 @@ var GlodaABAttrs = {
     }
   },
 
-  process: function(aContact, aRawReps, aIsNew, aCallbackHandle) {
+  process: function*(aContact, aRawReps, aIsNew, aCallbackHandle) {
     let card = aRawReps.card;
     if (aContact.NOUN_ID != Gloda.NOUN_CONTACT) {
       this._log.warn("Somehow got a non-contact: " + aContact);

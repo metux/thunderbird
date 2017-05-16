@@ -50,8 +50,6 @@
 <!ENTITY updateCheck.accesskey "C">
 <!ENTITY updateManual.label "Non cercare aggiornamenti (non consigliato: rischi per la sicurezza)">
 <!ENTITY updateManual.accesskey "N">
-<!ENTITY updateAutoAddonWarn.label "Avvisa se verranno disattivati dei componenti aggiuntivi">
-<!ENTITY updateAutoAddonWarn.accesskey "A">
 <!ENTITY updateHistory.label "Mostra cronologia aggiornamenti">
 <!ENTITY updateHistory.accesskey "S">
 <!ENTITY useService.label "Utilizza un servizio di sistema per installare gli aggiornamenti">
@@ -65,7 +63,7 @@
 <!ENTITY showOffline.label "Non in linea…">
 <!ENTITY showOffline.accesskey "N">
 <!ENTITY Diskspace "Spazio su disco">
-<!ENTITY offlineCompactFolders.label "Compatta le cartelle se serve a risparmare spazio">
+<!ENTITY offlineCompactFolders.label "Compatta le cartelle se serve a risparmiare spazio">
 <!ENTITY offlineCompactFolders.accesskey "a">
 <!ENTITY offlineCompactFoldersMB.label "Mb in totale">
 <!ENTITY useCacheBefore.label "Utilizza al massimo">
@@ -80,7 +78,7 @@
 <!ENTITY certs.ask.accesskey "C">
 <!ENTITY enableOCSP.label "Interrogare i risponditori OCSP per confermare l'attuale validità dei certificati">
 <!ENTITY enableOCSP.accesskey "e">
-<!ENTITY viewCertificates.label "Mostra certificati">
-<!ENTITY viewCertificates.accesskey "M">
+<!ENTITY manageCertificates.label "Gestisci certificati">
+<!ENTITY manageCertificates.accesskey "G">
 <!ENTITY viewSecurityDevices.label "Dispositivi di sicurezza">
 <!ENTITY viewSecurityDevices.accesskey "D">

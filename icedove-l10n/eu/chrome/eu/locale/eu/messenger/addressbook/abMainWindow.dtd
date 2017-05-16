@@ -6,6 +6,7 @@
 <!ENTITY blankResultsPaneMessage.label                  "Helbide-liburu honek kontaktuak bilaketa baten ondoren bakarrik erakusten ditu">
 <!ENTITY localResultsOnlyMessage.label                  "Urruneko helbide-liburuetako kontaktuak ez dira erakusten zuk bilatu arte">
 <!-- File Menu -->
+
 <!ENTITY fileMenu.label                                 "Fitxategia">
 <!ENTITY fileMenu.accesskey                             "F">
 <!ENTITY newMenu.label                                  "Berria">
@@ -75,9 +76,15 @@
 <!-- LOCALIZATION NOTE (hideSwapFnLnUI) : DONT_TRANSLATE -->
 <!-- Swap FN/LN UI  Set to "false" to show swap fn/ln UI -->
 <!ENTITY hideSwapFnLnUI "true">
-<!ENTITY propertiesCmd2.label                           "Propietateak">
-<!ENTITY propertiesCmd2.accesskey                       "P">
+
+
 <!ENTITY propertiesCmd.key                              "i">
+
+
+
+
+
+
 <!-- View Menu -->
 
 <!ENTITY viewMenu.label                                 "Ikusi">
@@ -133,8 +140,15 @@ because displayed names don't have the comma in between. -->
 <!ENTITY newContactButton.accesskey                     "K">
 <!ENTITY newlistButton.label                            "Zerrenda berria">
 <!ENTITY newlistButton.accesskey                        "Z">
-<!ENTITY editButton2.label                              "Propietateak">
-<!ENTITY editButton2.accesskey                          "P">
+
+
+
+
+
+
+
+
+
 <!ENTITY newmsgButton.label                             "Idatzi">
 <!ENTITY newmsgButton.accesskey                         "I">
 <!ENTITY newIM.label                                    "Berehalako mezua">
@@ -147,7 +161,10 @@ because displayed names don't have the comma in between. -->
 
 <!ENTITY newContactButton.tooltip                       "Sortu kontaktu berria helbide-liburuan">
 <!ENTITY newlistButton.tooltip                          "Sortu zerrenda berria">
-<!ENTITY editButton2.tooltip                            "Editatu hautatutako elementua">
+<!ENTITY editPropertiesButton.tooltip                   "Editatu hautatutako elementua">
+
+
+
 <!ENTITY newmsgButton.tooltip                           "Bidali posta-mezua">
 <!ENTITY newIM.tooltip                                  "Bidali berehalako mezua edo hasi berriketa">
 <!ENTITY deleteButton2.tooltip                          "Ezabatu hautatutako elementua">
@@ -223,5 +240,25 @@ because displayed names don't have the comma in between. -->
 <!ENTITY bringAllToFront.label                          "Ekarri denak aurrera">
 <!ENTITY zoomWindow.label                               "Zooma">
 
+<!ENTITY abPropertiesContext.accesskey                  "i">
+<!ENTITY abPropertiesContext.label                      "Properties">
+<!ENTITY abPropertiesMenu.accesskey                     "i">
+<!ENTITY abPropertiesMenu.label                         "Address Book Properties">
+<!ENTITY contactPropertiesMenu.accesskey                "i">
+<!ENTITY contactPropertiesMenu.label                    "Contact Properties">
+<!ENTITY editAbPropertiesButton.tooltip                 "Edit the properties of the selected address book">
+<!ENTITY editContactContext.accesskey                   "E">
+<!ENTITY editContactContext.label                       "Edit Contact">
+<!ENTITY editContactPropertiesButton.tooltip            "Edit the selected contact">
+<!ENTITY editMailingListContext.accesskey               "E">
+<!ENTITY editMailingListContext.label                   "Edit List">
+<!ENTITY editMailingListPropertiesButton.tooltip        "Edit the selected mailing list">
+<!ENTITY editPropertiesButton.label                     "Edit">
+<!ENTITY mailingListPropertiesMenu.accesskey            "i">
+<!ENTITY mailingListPropertiesMenu.label                "Mailing List Properties">
 <!ENTITY printButton.accesskey                          "r">
 <!ENTITY printButton.label                              "Print…">
+<!ENTITY propertiesContext.accesskey                    "i">
+<!ENTITY propertiesContext.label                        "Properties">
+<!ENTITY propertiesMenu.accesskey                       "i">
+<!ENTITY propertiesMenu.label                           "Properties">

@@ -26,7 +26,7 @@ calDateTime.prototype = {
     }),
 
     isMutable: true,
-    makeImmutable: function () { this.isMutable = false; },
+    makeImmutable: function() { this.isMutable = false; },
     clone: function() { return new calDateTime(this.innerObject.clone()); },
 
     isValid: true,
@@ -54,16 +54,23 @@ calDateTime.prototype = {
     set second(val) { this.innerObject.second = val; },
 
     get timezone() { return new calICALJSTimezone(this.innerObject.zone); },
-    set timezone(val) { unwrapSetter(ICAL.Timezone, val, function(val) {
-        return this.innerObject.zone = val;
-    }, this); },
+    set timezone(rawval) {
+        unwrapSetter(ICAL.Timezone, rawval, function(val) {
+            this.innerObject.zone = val;
+            return val;
+        }, this);
+    },
 
-    resetTo: function (yr,mo,dy,hr,mi,sc,tz) {
+    resetTo: function(year, month, day, hour, minute, second, timezone) {
         this.innerObject.fromData({
-            year: yr, month: mo + 1, day: dy,
-            hour: hr, minute: mi, second: sc,
+            year: year,
+            month: month + 1,
+            day: day,
+            hour: hour,
+            minute: minute,
+            second: second,
         });
-        this.timezone = tz;
+        this.timezone = timezone;
     },
 
     reset: function() { this.innerObject.reset(); },
@@ -120,9 +127,9 @@ calDateTime.prototype = {
     set icalString(val) {
         let jcalString;
         if (val.length > 10) {
-           jcalString = ICAL.design.value["date-time"].fromICAL(val);
+            jcalString = ICAL.design.icalendar.value["date-time"].fromICAL(val);
         } else {
-           jcalString = ICAL.design.value.date.fromICAL(val);
+            jcalString = ICAL.design.icalendar.value.date.fromICAL(val);
         }
         this.innerObject = ICAL.Time.fromString(jcalString);
     }

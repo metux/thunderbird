@@ -1,3 +1,7 @@
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+
 
 <!-- LOCALIZATION NOTE (alwaysCheckDefault.height):
   There's some sort of bug which makes wrapping checkboxes not properly reflow,
@@ -24,6 +28,10 @@
 <!ENTITY customizeMailAlert.label         "රිසිකරණය...">
 <!ENTITY customizeMailAlert.accesskey     "C">
 
+<!ENTITY showTrayIcon.label               "Show a tray icon">
+<!ENTITY showTrayIcon.accesskey           "t">
+
+
 <!ENTITY play.label                       "වාදනය කරන්න">
 <!ENTITY play.accesskey                   "P">
 <!ENTITY systemsound.label                "නව ලිපි සඳහා පෙරනිමි පද්ධති නාදය">
@@ -42,6 +50,6 @@
 <!ENTITY defaultSearchEngine.label        "Default Search Engine">
 <!ENTITY dockOptions.accesskey            "n">
 <!ENTITY dockOptions.label                "App Icon Options…">
-<!ENTITY showTrayIcon.accesskey           "t">
-
-<!ENTITY showTrayIcon.label               "Show a tray icon">
+<!ENTITY notificationAlertSettings2.label "Alerts and the default sound can be disabled on the Notification pane of System Preferences.">
+<!ENTITY playSoundMac.accesskey           "d">
+<!ENTITY playSoundMac.label               "Play the following sound file:">

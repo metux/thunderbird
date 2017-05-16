@@ -2,14 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+
 function run_test() {
-    do_test_pending();
-    cal.getTimezoneService().startup({
-        onResult: function() {
-            really_run_test();
-            do_test_finished();
-        }
-    });
+    do_calendar_startup(really_run_test);
 }
 
 function really_run_test() {
@@ -25,6 +21,8 @@ function really_run_test() {
 
 function test_aclmanager() {
     let mockCalendar = {
+        QueryInterface: XPCOMUtils.generateQI([Components.interfaces.calICalendar]),
+
         get superCalendar() { return this; },
         get aclManager() { return this; },
 
@@ -37,52 +35,52 @@ function test_aclmanager() {
     };
 
     let itemEntry = {
+        QueryInterface: XPCOMUtils.generateQI([Components.interfaces.calIItemACLEntry]),
         userCanModify: true,
         userCanRespond: false,
         userCanViewAll: true,
         userCanViewDateAndTime: false,
     };
 
-    let e = cal.createEvent();
-    e.id = "withentry";
-    e.calendar = mockCalendar;
+    let event = cal.createEvent();
+    event.id = "withentry";
+    event.calendar = mockCalendar;
 
-    equal(e.aclEntry.userCanModify, itemEntry.userCanModify);
-    equal(e.aclEntry.userCanRespond, itemEntry.userCanRespond);
-    equal(e.aclEntry.userCanViewAll, itemEntry.userCanViewAll);
-    equal(e.aclEntry.userCanViewDateAndTime, itemEntry.userCanViewDateAndTime);
+    equal(event.aclEntry.userCanModify, itemEntry.userCanModify);
+    equal(event.aclEntry.userCanRespond, itemEntry.userCanRespond);
+    equal(event.aclEntry.userCanViewAll, itemEntry.userCanViewAll);
+    equal(event.aclEntry.userCanViewDateAndTime, itemEntry.userCanViewDateAndTime);
 
-    let pe = cal.createEvent();
-    pe.id = "parententry";
-    pe.calendar = mockCalendar;
-    pe.parentItem = e;
+    let parentEntry = cal.createEvent();
+    parentEntry.id = "parententry";
+    parentEntry.calendar = mockCalendar;
+    parentEntry.parentItem = event;
 
-    equal(pe.aclEntry.userCanModify, itemEntry.userCanModify);
-    equal(pe.aclEntry.userCanRespond, itemEntry.userCanRespond);
-    equal(pe.aclEntry.userCanViewAll, itemEntry.userCanViewAll);
-    equal(pe.aclEntry.userCanViewDateAndTime, itemEntry.userCanViewDateAndTime);
+    equal(parentEntry.aclEntry.userCanModify, itemEntry.userCanModify);
+    equal(parentEntry.aclEntry.userCanRespond, itemEntry.userCanRespond);
+    equal(parentEntry.aclEntry.userCanViewAll, itemEntry.userCanViewAll);
+    equal(parentEntry.aclEntry.userCanViewDateAndTime, itemEntry.userCanViewDateAndTime);
 
-    e = cal.createEvent();
-    e.id = "noentry";
-    e.calendar = mockCalendar;
-    equal(e.aclEntry, null);
-
+    event = cal.createEvent();
+    event.id = "noentry";
+    event.calendar = mockCalendar;
+    equal(event.aclEntry, null);
 }
 
 function test_calendar() {
-
-    let e = cal.createEvent();
-    let pe = cal.createEvent();
+    let event = cal.createEvent();
+    let parentEntry = cal.createEvent();
 
     let mockCalendar = {
+        QueryInterface: XPCOMUtils.generateQI([Components.interfaces.calICalendar]),
         id: "one"
     };
 
-    pe.calendar = mockCalendar;
-    e.parentItem = pe;
+    parentEntry.calendar = mockCalendar;
+    event.parentItem = parentEntry;
 
-    notEqual(e.calendar, null);
-    equal(e.calendar.id, "one");
+    notEqual(event.calendar, null);
+    equal(event.calendar.id, "one");
 }
 
 function test_attachment() {
@@ -108,7 +106,6 @@ function test_attachment() {
 }
 
 function test_attendee() {
-
     let e = cal.createEvent();
     equal(e.getAttendeeById("unknown"), null);
     equal(e.getAttendees({}).length, 0);
@@ -142,7 +139,6 @@ function test_attendee() {
 }
 
 function test_categories() {
-
     let e = cal.createEvent();
 
     equal(e.getCategories({}).length, 0);
@@ -190,76 +186,74 @@ function test_alarm() {
 }
 
 function test_immutable() {
+    let event = cal.createEvent();
 
-    let e = cal.createEvent();
-
-    let dt = cal.createDateTime();
-    dt.timezone = cal.getTimezoneService().getTimezone("Europe/Berlin");
-    e.alarmLastAck = dt;
+    let date = cal.createDateTime();
+    date.timezone = cal.getTimezoneService().getTimezone("Europe/Berlin");
+    event.alarmLastAck = date;
 
     let org = cal.createAttendee();
     org.id = "one";
-    e.organizer = org;
+    event.organizer = org;
 
     let alarm = cal.createAlarm();
     alarm.action = "DISPLAY";
     alarm.description = "foo";
     alarm.related = alarm.ALARM_RELATED_START;
     alarm.offset = cal.createDuration("PT1S");
-    e.addAlarm(alarm);
+    event.addAlarm(alarm);
 
-    e.setProperty("X-NAME", "X-VALUE");
-    e.setPropertyParameter("X-NAME", "X-PARAM", "X-PARAMVAL");
+    event.setProperty("X-NAME", "X-VALUE");
+    event.setPropertyParameter("X-NAME", "X-PARAM", "X-PARAMVAL");
 
-    e.setCategories(3, ["a", "b", "c"]);
+    event.setCategories(3, ["a", "b", "c"]);
 
-    equal(e.alarmLastAck.timezone.tzid, cal.UTC().tzid);
+    equal(event.alarmLastAck.timezone.tzid, cal.UTC().tzid);
 
-    e.makeImmutable();
+    event.makeImmutable();
 
     // call again, should not throw
-    e.makeImmutable();
+    event.makeImmutable();
 
-    ok(!e.alarmLastAck.isMutable);
+    ok(!event.alarmLastAck.isMutable);
     ok(!org.isMutable);
     ok(!alarm.isMutable);
 
-    throws(function() {
-        e.alarmLastAck = cal.createDateTime();
+    throws(() => {
+        event.alarmLastAck = cal.createDateTime();
     }, /Can not modify immutable data container/);
-    throws(function() {
-        e.calendar = null;
+    throws(() => {
+        event.calendar = null;
     }, /Can not modify immutable data container/);
-    throws(function() {
-        e.parentItem = null;
+    throws(() => {
+        event.parentItem = null;
     }, /Can not modify immutable data container/);
-    throws(function() {
-        e.setCategories(3, ["d", "e", "f"]);
+    throws(() => {
+        event.setCategories(3, ["d", "e", "f"]);
     }, /Can not modify immutable data container/);
 
-    let e2 = e.clone();
-    e2.organizer.id = "two";
+    let event2 = event.clone();
+    event2.organizer.id = "two";
 
     equal(org.id, "one");
-    equal(e2.organizer.id, "two");
+    equal(event2.organizer.id, "two");
 
-    equal(e2.getProperty("X-NAME"), "X-VALUE");
-    equal(e2.getPropertyParameter("X-NAME", "X-PARAM"), "X-PARAMVAL");
+    equal(event2.getProperty("X-NAME"), "X-VALUE");
+    equal(event2.getPropertyParameter("X-NAME", "X-PARAM"), "X-PARAMVAL");
 
-    e2.setPropertyParameter("X-NAME", "X-PARAM", null);
-    equal(e2.getPropertyParameter("X-NAME", "X-PARAM"), null);
+    event2.setPropertyParameter("X-NAME", "X-PARAM", null);
+    equal(event2.getPropertyParameter("X-NAME", "X-PARAM"), null);
 
     // TODO more clone checks
 }
 
 function test_lastack() {
-
     let e = cal.createEvent();
 
     e.alarmLastAck = cal.createDateTime("20120101T010101");
 
     // Our items don't support this yet
-    //equal(e.getProperty("X-MOZ-LASTACK"), "20120101T010101");
+    //  equal(e.getProperty("X-MOZ-LASTACK"), "20120101T010101");
 
     let comp = e.icalComponent;
     let prop = comp.getFirstProperty("X-MOZ-LASTACK");

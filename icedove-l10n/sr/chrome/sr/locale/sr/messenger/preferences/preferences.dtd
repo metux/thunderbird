@@ -1,21 +1,23 @@
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+
 <!ENTITY  prefWindow.titleWin     "Опције">
-<!ENTITY  prefWindow.titleGNOME   "Поставке за &brandShortName;">
-<!ENTITY  prefWindow.styleWindows "width: 44em; min-height: 38.5em;">
-<!ENTITY  prefWindow.styleMac     "width: 54em;">
-<!ENTITY  prefWindow.styleGNOME   "width: 42em; min-height: 38em;">
+<!ENTITY  prefWindow.titleGNOME   "&brandShortName; поставке">
+<!ENTITY  prefWindow.titleMAC     "Поставке">
+<!ENTITY  prefWindow.styleWindows "width: 48em; min-height: 38.5em;">
+<!ENTITY  prefWindow.styleMac     "width: 52em;">
+<!ENTITY  prefWindow.styleGNOME   "width: 47em; min-height: 38em;">
 
 <!ENTITY paneGeneral.title        "Опште">
 <!ENTITY paneDisplay.title        "Приказ">
 <!ENTITY paneComposition.title    "Састављање">
+<!ENTITY paneChat.title           "Ћаскање">
 <!ENTITY paneAttachments.title    "Прилози">
+<!ENTITY panePrivacy.title        "Приватност">
 <!ENTITY paneSecurity.title       "Безбедност">
 <!ENTITY paneAdvanced.title       "Напредно">
+<!ENTITY paneAccount.title        "Налози">
 
-
-<!ENTITY okButton.accesskey       "O">
-
-<!ENTITY okButton.title           "OK">
-<!ENTITY paneAccount.title        "Accounts">
-<!ENTITY paneChat.title           "Chat">
-<!ENTITY panePrivacy.title        "Privacy">
-<!ENTITY  prefWindow.titleMAC     "Preferences">
+<!ENTITY okButton.title           "У реду">
+<!ENTITY okButton.accesskey       "У">

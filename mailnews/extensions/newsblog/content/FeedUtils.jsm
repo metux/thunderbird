@@ -96,10 +96,14 @@ var FeedUtils = {
   // Generic networking failure when trying to download the feed.
   kNewsBlogRequestFailure: 2,
   kNewsBlogFeedIsBusy: 3,
-  // There are no new articles for this feed
+  // For 304 Not Modified; There are no new articles for this feed.
   kNewsBlogNoNewItems: 4,
   kNewsBlogCancel: 5,
   kNewsBlogFileError: 6,
+  // Invalid certificate, for overridable user exception errors.
+  kNewsBlogBadCertError: 7,
+  // For 401 Unauthorized or 403 Forbidden.
+  kNewsBlogNoAuthError: 8,
 
   CANCEL_REQUESTED: false,
   AUTOTAG: "~AUTOTAG",
@@ -236,8 +240,8 @@ var FeedUtils = {
 
     aFolder.ListDescendants(allFolders);
 
-    function feeder() {
-      let folder;
+    let folder;
+    function* feeder() {
       let numFolders = allFolders.length;
       for (let i = 0; i < numFolders; i++) {
         folder = allFolders.queryElementAt(i, Ci.nsIMsgFolder);
@@ -278,22 +282,18 @@ var FeedUtils = {
 
           Services.tm.mainThread.dispatch(function() {
             try {
-              getFeed.next();
-            }
-            catch (ex) {
-              if (ex instanceof StopIteration)
-              {
+              let done = getFeed.next().done;
+              if (done) {
                 // Finished with all feeds in base folder and its subfolders.
                 FeedUtils.log.debug("downloadFeed: Finished with folder - " +
                                     aFolder.name);
                 folder = null;
                 allFolders = null;
               }
-              else
-              {
-                FeedUtils.log.error("downloadFeed: error - " + ex);
-                FeedUtils.progressNotifier.downloaded({name: folder.name}, 0);
-              }
+            }
+            catch (ex) {
+              FeedUtils.log.error("downloadFeed: error - " + ex);
+              FeedUtils.progressNotifier.downloaded({name: folder.name}, 0);
             }
           }, Ci.nsIThread.DISPATCH_NORMAL);
 
@@ -304,22 +304,18 @@ var FeedUtils = {
 
     let getFeed = feeder();
     try {
-      getFeed.next();
-    }
-    catch (ex) {
-      if (ex instanceof StopIteration)
-      {
+      let done = getFeed.next().done;
+      if (done) {
         // Nothing to do.
         FeedUtils.log.debug("downloadFeed: Nothing to do in folder - " +
                             aFolder.name);
         folder = null;
         allFolders = null;
       }
-      else
-      {
-        FeedUtils.log.error("downloadFeed: error - " + ex);
-        FeedUtils.progressNotifier.downloaded({name: aFolder.name}, 0);
-      }
+    }
+    catch (ex) {
+      FeedUtils.log.error("downloadFeed: error - " + ex);
+      FeedUtils.progressNotifier.downloaded({name: aFolder.name}, 0);
     }
   },
 
@@ -432,7 +428,7 @@ var FeedUtils = {
     ds.Flush();
 
     // Update folderpane.
-    this.setFolderPaneProperty(aFeed.folder, "_favicon", null);
+    this.setFolderPaneProperty(aFeed.folder, "favicon", null, "row");
   },
 
 /**
@@ -467,7 +463,7 @@ var FeedUtils = {
     itemds.Flush();
 
     // Update folderpane.
-    this.setFolderPaneProperty(aParentFolder, "_favicon", null);
+    this.setFolderPaneProperty(aParentFolder, "favicon", null, "row");
 
     feed = null;
   },
@@ -588,33 +584,29 @@ var FeedUtils = {
   },
 
 /**
- * Update a folderpane ftvItem property.
+ * Update a folderpane cached property.
  *
  * @param  nsIMsgFolder aFolder   - folder
- * @param  string aProperty       - ftvItem property
+ * @param  string aProperty       - property
  * @param  string aValue          - value
+ * @param  string aInvalidate     - "row" = folder's row.
+ *                                  "all" = all rows.
  */
-  setFolderPaneProperty: function(aFolder, aProperty, aValue) {
+  setFolderPaneProperty: function(aFolder, aProperty, aValue, aInvalidate) {
     let win = Services.wm.getMostRecentWindow("mail:3pane");
-    if (!aFolder || !win)
+    if (!aFolder || !aProperty || !win || !("gFolderTreeView" in win))
       return;
 
-    if ("gFolderTreeView" in win) {
-      let row = win.gFolderTreeView.getIndexOfFolder(aFolder);
-      let rowItem = win.gFolderTreeView.getFTVItemForIndex(row);
-      if (rowItem == null)
-        return;
+    win.gFolderTreeView.setFolderCacheProperty(aFolder, aProperty, aValue);
 
-      rowItem[aProperty] = aValue;
+    if (aInvalidate == "all") {
+      win.gFolderTreeView._tree.invalidate();
+    }
+    if (aInvalidate == "row") {
+      let row = win.gFolderTreeView.getIndexOfFolder(aFolder);
       win.gFolderTreeView._tree.invalidateRow(row);
     }
   },
-
-  get mFaviconService() {
-    delete this.mFaviconService;
-    return this.mFaviconService = Cc["@mozilla.org/browser/favicon-service;1"]
-                                    .getService(Ci.nsIFaviconService);
- },
 
 /**
  * Get the favicon for a feed folder subscription url (first one) or a feed
@@ -624,30 +616,55 @@ var FeedUtils = {
  * @param  nsIMsgFolder aFolder - the feed folder or null if aUrl
  * @param  string aUrl          - a url (feed, message, other) or null if aFolder
  * @param  string aIconUrl      - the icon url if already determined, else null
- * @param  nsIDOMWindow aWindow - null or caller's window if aCallback needed
+ * @param  nsIDOMWindow aWindow - null if requesting url without setting it
  * @param  function aCallback   - null or callback
  * @return string               - the favicon url or empty string
  */
   getFavicon: function(aFolder, aUrl, aIconUrl, aWindow, aCallback) {
-    if (!Services.prefs.getBoolPref("browser.chrome.site_icons") ||
-        !Services.prefs.getBoolPref("browser.chrome.favicons") ||
-         (aCallback && !aWindow))
+    // On any error, cache an empty string to show the default favicon, and
+    // don't try anymore in this session.
+    let useDefaultFavicon = (() => {
+      if (aCallback)
+        aCallback("");
       return "";
+    });
 
-    if (aIconUrl)
+    if (!Services.prefs.getBoolPref("browser.chrome.site_icons") ||
+        !Services.prefs.getBoolPref("browser.chrome.favicons"))
+      return useDefaultFavicon();
+
+    if (aIconUrl != null)
       return aIconUrl;
+
+    let onLoadSuccess = (aEvent => {
+      let iconUri = Services.io.newURI(aEvent.target.src, null, null);
+      aWindow.specialTabs.mFaviconService.setAndFetchFaviconForPage(
+        uri, iconUri, false,
+        aWindow.specialTabs.mFaviconService.FAVICON_LOAD_NON_PRIVATE,
+        null, Services.scriptSecurityManager.getSystemPrincipal());
+
+      if (aCallback)
+        aCallback(iconUri.spec);
+    });
+
+    let onLoadError = (aEvent => {
+      useDefaultFavicon();
+      let url = aEvent.target.src;
+      aWindow.specialTabs.getFaviconFromPage(url, aCallback);
+    });
 
     let url = aUrl;
     if (!url)
     {
-      // Get the proposed iconUrl from the folder's first subscribed feed's <link>.
+      // Get the proposed iconUrl from the folder's first subscribed feed's
+      // <link>.
       if (!aFolder)
-        return "";
+        return useDefaultFavicon();
 
       let feedUrls = this.getFeedUrlsInFolder(aFolder);
       url = feedUrls ? feedUrls[0] : null;
       if (!url)
-        return "";
+        return useDefaultFavicon();
     }
 
     if (aFolder)
@@ -666,104 +683,19 @@ var FeedUtils = {
       iconUri = Services.io.newURI(uri.prePath + "/favicon.ico", null, null);
     }
     catch (ex) {
-      return "";
+      return useDefaultFavicon();
     }
 
-    if (!iconUri || !this.isValidScheme(iconUri))
-      return "";
+    if (!aWindow)
+      return iconUri.spec;
 
-    try {
-      // Valid urls with an icon image gecko cannot render will cause a throw.
-      FeedUtils.mFaviconService.setAndFetchFaviconForPage(
-        uri, iconUri, false, FeedUtils.mFaviconService.FAVICON_LOAD_NON_PRIVATE,
-        null, Services.scriptSecurityManager.getSystemPrincipal());
-    }
-    catch (ex) {}
-
-    if (aWindow) {
-      // Unfortunately, setAndFetchFaviconForPage() does not invoke its
-      // callback (Bug 740457).  So we have to do it this way. Try to resolve
-      // quickly at first, since most fails will do so and it's better ux to
-      // populate the icon fast; resolve slow responders on a second check.
-      aWindow.setTimeout(function() {
-        if (FeedUtils.mFaviconService.isFailedFavicon(iconUri)) {
-          let uri = Services.io.newURI(iconUri.prePath, null, null);
-          FeedUtils.getFaviconFromPage(uri.prePath, aCallback, null);
-        }
-        else {
-          // Check slow loaders again.
-          aWindow.setTimeout(function() {
-            if (FeedUtils.mFaviconService.isFailedFavicon(iconUri)) {
-              let uri = Services.io.newURI(iconUri.prePath, null, null);
-              FeedUtils.getFaviconFromPage(uri.prePath, aCallback, null);
-            }
-          }, 6000);
-        }
-      }, 2000);
-    }
+    aWindow.specialTabs.loadFaviconImageNode(onLoadSuccess, onLoadError,
+                                             iconUri.spec);
+    // Cache the favicon url initially.
+    if (aCallback)
+      aCallback(iconUri.spec);
 
     return iconUri.spec;
-  },
-
-/**
- * Get the favicon by parsing for <link rel=""> with "icon" from the page's dom.
- * @param  string aUrl        - a url from whose homepage to get a favicon
- * @param  function aCallback - callback
- * @param  aArg               - caller's argument or null
- */
-  getFaviconFromPage: function(aUrl, aCallback, aArg) {
-    let onDownload = function(aEvent) {
-      let request = aEvent.target;
-      responseDomain = request.channel.URI.prePath;
-      let dom = request.response;
-      if (request.status != 200 || !(dom instanceof Ci.nsIDOMHTMLDocument) ||
-          !dom.head) {
-        onDownloadError();
-        return;
-      }
-
-      let iconUri;
-      let linkNode = dom.head.querySelector('link[rel="shortcut icon"],' +
-                                            'link[rel="icon"]');
-      let href = linkNode ? linkNode.href : null;
-      try {
-        iconUri = Services.io.newURI(href, null, null);
-
-        if (!iconUri || !FeedUtils.isValidScheme(iconUri) ||
-            !FeedUtils.isValidScheme(uri) ||
-            FeedUtils.mFaviconService.isFailedFavicon(iconUri)) {
-          onDownloadError();
-          return;
-        }
-
-        FeedUtils.mFaviconService.setAndFetchFaviconForPage(
-          uri, iconUri, false, FeedUtils.mFaviconService.FAVICON_LOAD_NON_PRIVATE,
-          null, Services.scriptSecurityManager.getSystemPrincipal());
-        if (aCallback)
-          aCallback(iconUri.spec, responseDomain, aArg);
-      }
-      catch (ex) {
-        onDownloadError();
-      }
-    }
-
-    let onDownloadError = function() {
-      if (aCallback)
-        aCallback(null, responseDomain, aArg);
-    }
-
-    if (!aUrl)
-      onDownloadError();
-
-    let uri = Services.io.newURI(aUrl, null, null);
-    let responseDomain;
-    let request = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"]
-                    .createInstance(Ci.nsIXMLHttpRequest);
-    request.open("GET", aUrl, true);
-    request.responseType = "document";
-    request.onload = onDownload;
-    request.onerror = onDownloadError;
-    request.send(null);
   },
 
 /**
@@ -1243,6 +1175,127 @@ var FeedUtils = {
     return validUri ? uri : null;
   },
 
+  /**
+   * Returns security/certificate/network error details for an XMLHTTPRequest.
+   *
+   * @param  XMLHTTPRequest xhr - The xhr request.
+   * @return array [string errType, string errName] (null if not determined).
+   */
+  createTCPErrorFromFailedXHR: function(xhr) {
+    let status = xhr.channel.QueryInterface(Ci.nsIRequest).status;
+
+    let errType = null;
+    let errName = null;
+    if ((status & 0xff0000) === 0x5a0000) {
+      // Security module.
+      const nsINSSErrorsService = Ci.nsINSSErrorsService;
+      let nssErrorsService = Cc["@mozilla.org/nss_errors_service;1"]
+                               .getService(nsINSSErrorsService);
+      let errorClass;
+
+      // getErrorClass()) will throw a generic NS_ERROR_FAILURE if the error
+      // code is somehow not in the set of covered errors.
+      try {
+        errorClass = nssErrorsService.getErrorClass(status);
+      }
+      catch (ex) {
+        // Catch security protocol exception.
+        errorClass = "SecurityProtocol";
+      }
+
+      if (errorClass == nsINSSErrorsService.ERROR_CLASS_BAD_CERT) {
+        errType = "SecurityCertificate";
+      }
+      else {
+        errType = "SecurityProtocol";
+      }
+
+      // NSS_SEC errors (happen below the base value because of negative vals).
+      if ((status & 0xffff) < Math.abs(nsINSSErrorsService.NSS_SEC_ERROR_BASE)) {
+        // The bases are actually negative, so in our positive numeric space,
+        // we need to subtract the base off our value.
+        let nssErr = Math.abs(nsINSSErrorsService.NSS_SEC_ERROR_BASE) - (status & 0xffff);
+
+        switch (nssErr) {
+          case 11: // SEC_ERROR_EXPIRED_CERTIFICATE, sec(11)
+            errName = "SecurityExpiredCertificateError";
+            break;
+          case 12: // SEC_ERROR_REVOKED_CERTIFICATE, sec(12)
+            errName = "SecurityRevokedCertificateError";
+            break;
+
+          // Per bsmith, we will be unable to tell these errors apart very soon,
+          // so it makes sense to just folder them all together already.
+          case 13: // SEC_ERROR_UNKNOWN_ISSUER, sec(13)
+          case 20: // SEC_ERROR_UNTRUSTED_ISSUER, sec(20)
+          case 21: // SEC_ERROR_UNTRUSTED_CERT, sec(21)
+          case 36: // SEC_ERROR_CA_CERT_INVALID, sec(36)
+            errName = "SecurityUntrustedCertificateIssuerError";
+            break;
+          case 90: // SEC_ERROR_INADEQUATE_KEY_USAGE, sec(90)
+            errName = "SecurityInadequateKeyUsageError";
+            break;
+          case 176: // SEC_ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED, sec(176)
+            errName = "SecurityCertificateSignatureAlgorithmDisabledError";
+            break;
+          default:
+            errName = "SecurityError";
+            break;
+        }
+      }
+      else {
+        // Calculating the difference.
+        let sslErr = Math.abs(nsINSSErrorsService.NSS_SSL_ERROR_BASE) - (status & 0xffff);
+
+        switch (sslErr) {
+          case 3: // SSL_ERROR_NO_CERTIFICATE, ssl(3)
+            errName = "SecurityNoCertificateError";
+            break;
+          case 4: // SSL_ERROR_BAD_CERTIFICATE, ssl(4)
+            errName = "SecurityBadCertificateError";
+            break;
+          case 8: // SSL_ERROR_UNSUPPORTED_CERTIFICATE_TYPE, ssl(8)
+            errName = "SecurityUnsupportedCertificateTypeError";
+            break;
+          case 9: // SSL_ERROR_UNSUPPORTED_VERSION, ssl(9)
+            errName = "SecurityUnsupportedTLSVersionError";
+            break;
+          case 12: // SSL_ERROR_BAD_CERT_DOMAIN, ssl(12)
+            errName = "SecurityCertificateDomainMismatchError";
+            break;
+          default:
+            errName = "SecurityError";
+            break;
+        }
+      }
+    }
+    else {
+      errType = "Network";
+      switch (status) {
+        // Connect to host:port failed.
+        case 0x804B000C: // NS_ERROR_CONNECTION_REFUSED, network(13)
+          errName = "ConnectionRefusedError";
+          break;
+        // network timeout error.
+        case 0x804B000E: // NS_ERROR_NET_TIMEOUT, network(14)
+          errName = "NetworkTimeoutError";
+          break;
+        // Hostname lookup failed.
+        case 0x804B001E: // NS_ERROR_UNKNOWN_HOST, network(30)
+          errName = "DomainNotFoundError";
+          break;
+        case 0x804B0047: // NS_ERROR_NET_INTERRUPT, network(71)
+          errName = "NetworkInterruptError";
+          break;
+        default:
+          errName = "NetworkError";
+          break;
+      }
+    }
+
+    return [errType, errName];
+  },
+
 /**
  * Returns if a uri/url is valid to subscribe.
  *
@@ -1440,6 +1493,15 @@ var FeedUtils = {
         case FeedUtils.kNewsBlogFileError:
           message = FeedUtils.strings.GetStringFromName(
                       "subscribe-errorOpeningFile");
+          break;
+        case FeedUtils.kNewsBlogBadCertError:
+          let host = Services.io.newURI(feed.url, null, null).host;
+          message = FeedUtils.strings.formatStringFromName(
+                      "newsblog-badCertError", [host], 1);
+          break;
+        case FeedUtils.kNewsBlogNoAuthError:
+          message = FeedUtils.strings.formatStringFromName(
+                      "newsblog-noAuthError", [feed.url], 1);
           break;
       }
       if (message)

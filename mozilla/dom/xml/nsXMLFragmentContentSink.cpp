@@ -28,7 +28,6 @@
 #include "mozilla/css/Loader.h"
 #include "mozilla/dom/DocumentFragment.h"
 #include "mozilla/dom/ProcessingInstruction.h"
-#include "mozilla/unused.h"
 
 using namespace mozilla::dom;
 
@@ -168,9 +167,6 @@ nsXMLFragmentContentSink::WillBuildModel(nsDTDMode aDTDMode)
 NS_IMETHODIMP 
 nsXMLFragmentContentSink::DidBuildModel(bool aTerminated)
 {
-  RefPtr<nsParserBase> kungFuDeathGrip(mParser);
-  Unused << kungFuDeathGrip;
-
   // Drop our reference to the parser to get rid of a circular
   // reference.
   mParser = nullptr;

@@ -53,6 +53,8 @@
 <!ENTITY helpus.middle              " or ">
 
 <!ENTITY helpus.start               "Want to help? ">
+
+<!ENTITY releaseNotes.link          "Release notes">
 <!-- LOCALIZATION NOTE (update.otherInstanceHandlingUpdates): try to make the localized text short -->
 <!ENTITY update.otherInstanceHandlingUpdates "&brandShortName; is being updated by another instance">
 <!ENTITY update.updateButton.label2               "Restart &brandShortName; to Update">

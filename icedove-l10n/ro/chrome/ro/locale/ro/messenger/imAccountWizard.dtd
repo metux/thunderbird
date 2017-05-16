@@ -22,11 +22,11 @@
 <!ENTITY accountAdvanced.newMailNotification.label   "Anunță-mă la un e-mail nou">
 <!ENTITY accountAliasGroupbox.caption "Alias local">
 <!ENTITY accountAliasField.label      "Alias:">
-<!ENTITY accountAliasInfo.label       "Acesta va apărea numai în conversațiile dumneavoastră atunci când vorbiți, contactele externe nu îl vor vedea.">
+<!ENTITY accountAliasInfo.label       "Acesta va apărea numai în conversațiile tale atunci când vorbești, contactele de la distanță nu îl vor vedea.">
 <!ENTITY accountProxySettings.caption "Setări proxy">
 <!ENTITY accountProxySettings.change.label     "Schimbă…">
 <!ENTITY accountProxySettings.change.accessKey "S">
 
 <!ENTITY accountSummaryTitle.label   "Rezumatul">
-<!ENTITY accountSummaryInfo.label    "Mai jos puteți vedea un rezumat al informației introduse. Vă rugăm să o verificați înainte de a crea contul.">
+<!ENTITY accountSummaryInfo.label    "Mai jos puteți vedea un rezumat al informațiilor introduse. Vă rugăm să o verificați înainte de a crea contul.">
 <!ENTITY accountSummary.connectNow.label "Conectează acest cont acum.">

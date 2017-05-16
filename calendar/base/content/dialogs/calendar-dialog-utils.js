@@ -2,6 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/* exported gInTab, gMainWindow, gTabmail, intializeTabOrWindowVariables,
+ *          dispose, setDialogId, loadReminders, saveReminder,
+ *          commonUpdateReminder, updateLink, rearrangeAttendees
+ */
+
 Components.utils.import("resource://gre/modules/PluralForm.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
 Components.utils.import("resource://gre/modules/iteratorUtils.jsm");
@@ -10,12 +15,31 @@ Components.utils.import("resource://calendar/modules/calAlarmUtils.jsm");
 Components.utils.import("resource://calendar/modules/calIteratorUtils.jsm");
 Components.utils.import("resource://calendar/modules/calRecurrenceUtils.jsm");
 
+// Variables related to whether we are in a tab or a window dialog.
+var gInTab = false;
+var gMainWindow = null;
+var gTabmail = null;
+
+/**
+ * Initialize variables for tab vs window.
+ */
+function intializeTabOrWindowVariables() {
+    let args = window.arguments[0];
+    gInTab = args.inTab;
+    if (gInTab) {
+        gTabmail = parent.document.getElementById("tabmail");
+        gMainWindow = parent;
+    } else {
+        gMainWindow = parent.opener;
+    }
+}
+
 /**
  * Dispose of controlling operations of this event dialog. Uses
  * window.arguments[0].job.dispose()
  */
 function dispose() {
-    var args = window.arguments[0];
+    let args = window.arguments[0];
     if (args.job && args.job.dispose) {
         args.job.dispose();
     }
@@ -83,7 +107,7 @@ function applyPersitedProperties(aDialog) {
 function createReminderFromMenuitem(aMenuitem) {
     let reminder = aMenuitem.reminder || cal.createAlarm();
     // clone immutable reminders if necessary to set default values
-    let isImmutable = reminder.isMutable ? false : true;
+    let isImmutable = !reminder.isMutable;
     if (isImmutable) {
         reminder = reminder.clone();
     }
@@ -97,7 +121,7 @@ function createReminderFromMenuitem(aMenuitem) {
     reminder.action = getDefaultAlarmType();
     // make reminder immutable in case it was before
     if (isImmutable) {
-        reminder.makeImmutable;
+        reminder.makeImmutable();
     }
     return reminder;
 }
@@ -109,16 +133,15 @@ function createReminderFromMenuitem(aMenuitem) {
  * custom menuitem and call updateReminder().
  */
 function editReminder() {
-    let customItem =  document.getElementById("reminder-custom-menuitem");
+    let customItem = document.getElementById("reminder-custom-menuitem");
     let args = {};
     args.reminders = customItem.reminders;
     args.item = window.calendarItem;
-    args.timezone = (window.gStartTimezone ||
-                     window.gEndTimezone ||
-                     calendarDefaultTimezone());
+    args.timezone = window.gStartTimezone ||
+                    window.gEndTimezone ||
+                    calendarDefaultTimezone();
 
     args.calendar = getCurrentCalendar();
-    let savedWindow = window;
 
     // While these are "just" callbacks, the dialog is opened modally, so aside
     // from whats needed to set up the reminders, nothing else needs to be done.
@@ -154,7 +177,7 @@ function updateReminderDetails() {
     let calendar = getCurrentCalendar();
     let actionValues = calendar.getProperty("capabilities.alarms.actionValues") || ["DISPLAY"];
     let actionMap = {};
-    for each (var action in actionValues) {
+    for (let action of actionValues) {
         actionMap[action] = true;
     }
 
@@ -181,16 +204,16 @@ function updateReminderDetails() {
     } else {
         hideElement(reminderMultipleLabel);
         hideElement(reminderSingleLabel);
-        if (reminderList.value != "none") {
-            // This is one of the predefined dropdown items. We should show a single
-            // icon in the icons box to tell the user what kind of alarm this will
-            // be.
+        if (reminderList.value == "none") {
+            // No reminder selected means show no icons.
+            removeChildren(iconBox);
+        } else {
+            // This is one of the predefined dropdown items. We should show a
+            // single icon in the icons box to tell the user what kind of alarm
+            // this will be.
             let mockAlarm = cal.createAlarm();
             mockAlarm.action = getDefaultAlarmType();
             cal.alarms.addReminderImages(iconBox, [mockAlarm]);
-        } else {
-            // No reminder selected means show no icons.
-            removeChildren(iconBox);
         }
     }
 }
@@ -217,12 +240,12 @@ function matchCustomReminderToMenuitem(reminder) {
         }
 
         let unitMap = {
-          days: 86400,
-          hours: 3600,
-          minutes: 60
+            days: 86400,
+            hours: 3600,
+            minutes: 60
         };
 
-        for each (let menuitem in Array.slice(reminderPopup.childNodes)) {
+        for (let menuitem of reminderPopup.childNodes) {
             if (menuitem.localName == "menuitem" &&
                 menuitem.hasAttribute("length") &&
                 menuitem.getAttribute("origin") == origin &&
@@ -245,12 +268,11 @@ function matchCustomReminderToMenuitem(reminder) {
 /**
  * Load an item's reminders into the dialog
  *
- * @param reminders     An array of calIAlarms to load. 
+ * @param reminders     An array of calIAlarms to load.
  */
 function loadReminders(reminders) {
     // select 'no reminder' by default
     let reminderList = document.getElementById("item-alarm");
-    let reminderPopup = reminderList.firstChild;
     let customItem = document.getElementById("reminder-custom-menuitem");
     reminderList.selectedIndex = 0;
     gLastAlarmSelection = 0;
@@ -265,7 +287,7 @@ function loadReminders(reminders) {
         // If more than one alarm is selected, or we didn't find a matching item
         // above, then select the "custom" item and attach the item's reminders to
         // it.
-        reminderList.value = 'custom';
+        reminderList.value = "custom";
         customItem.reminders = reminders;
     }
 
@@ -282,7 +304,7 @@ function saveReminder(item) {
     // We want to compare the old alarms with the new ones. If these are not
     // the same, then clear the snooze/dismiss times
     let oldAlarmMap = {};
-    for each (let alarm in item.getAlarms({})) {
+    for (let alarm of item.getAlarms({})) {
         oldAlarmMap[alarm.icalString] = true;
     }
 
@@ -290,7 +312,7 @@ function saveReminder(item) {
     item.clearAlarms();
 
     let reminderList = document.getElementById("item-alarm");
-    if (reminderList.value != 'none') {
+    if (reminderList.value != "none") {
         let menuitem = reminderList.selectedItem;
         let reminders;
 
@@ -310,7 +332,7 @@ function saveReminder(item) {
         let alarmCaps = item.calendar.getProperty("capabilities.alarms.actionValues") ||
                         ["DISPLAY"];
         let alarmActions = {};
-        for each (let action in alarmCaps) {
+        for (let action of alarmCaps) {
             alarmActions[action] = true;
         }
 
@@ -320,7 +342,7 @@ function saveReminder(item) {
     }
 
     // Compare alarms to see if something changed.
-    for each (let alarm in item.getAlarms({})) {
+    for (let alarm of item.getAlarms({})) {
         let ics = alarm.icalString;
         if (ics in oldAlarmMap) {
             // The new alarm is also in the old set, remember this
@@ -330,22 +352,22 @@ function saveReminder(item) {
             // differ and we can break out.
             oldAlarmMap[ics] = true;
             break;
-       }
+        }
     }
 
     // If the alarms differ, clear the snooze/dismiss properties
     if (Object.keys(oldAlarmMap).length > 0) {
         let cmp = "X-MOZ-SNOOZE-TIME";
-        let cmpLength = cmp.length;
 
         // Recurring item alarms potentially have more snooze props, remove them
         // all.
         let propIterator = fixIterator(item.propertyEnumerator, Components.interfaces.nsIProperty);
-        let propsToDelete = [
-            prop.name
-            for (prop in propIterator)
-            if (prop.name.substr(0, cmpLength) == cmp)
-        ];
+        let propsToDelete = [];
+        for (let prop in propIterator) {
+            if (prop.name.startsWith(cmp)) {
+                propsToDelete.push(prop.name);
+            }
+        }
 
         item.alarmLastAck = null;
         propsToDelete.forEach(item.deleteProperty, item);
@@ -375,9 +397,9 @@ function getDefaultAlarmType() {
  */
 function getCurrentCalendar() {
     let calendarNode = document.getElementById("item-calendar");
-    return (calendarNode && calendarNode.selectedItem ?
-                calendarNode.selectedItem.calendar :
-                window.calendarItem.calendar);
+    return (calendarNode && calendarNode.selectedItem
+                                ? calendarNode.selectedItem.calendar
+                                : window.calendarItem.calendar);
 }
 
 /**
@@ -392,7 +414,7 @@ function commonUpdateReminder(aSuppressDialogs) {
     // dialog in order to allow the user to specify the details.
     // the result will be placed in the 'reminder-custom-menuitem' tag.
     let reminderList = document.getElementById("item-alarm");
-    if (reminderList.value == 'custom') {
+    if (reminderList.value == "custom") {
         // Clear the reminder icons first, this will make sure that while the
         // dialog is open the default reminder image is not shown which may
         // confuse users.
@@ -405,7 +427,7 @@ function commonUpdateReminder(aSuppressDialogs) {
             editReminder();
         }
 
-        if (reminderList.value == 'custom') {
+        if (reminderList.value == "custom") {
             // Only do this if the 'custom' item is still selected. If the edit
             // reminder dialog was canceled then the previously selected
             // menuitem is selected, which may not be the custom menuitem.
@@ -441,7 +463,7 @@ function commonUpdateReminder(aSuppressDialogs) {
         enableElementWithLock("todo-has-entrydate", "reminder-lock");
 
         let menuitem = reminderList.selectedItem;
-        if (menuitem.value != 'none') {
+        if (menuitem.value != "none") {
             // In case a reminder is selected, retrieve the array of alarms from
             // it, or create one from the currently selected menuitem.
             let reminders = menuitem.reminders || [createReminderFromMenuitem(menuitem)];
@@ -475,25 +497,26 @@ function commonUpdateReminder(aSuppressDialogs) {
             }
         }
     }
-
     updateReminderDetails();
 }
 
 /**
- * Updates the related link on the dialog
+ * Updates the related link on the dialog. Currently only used by the
+ * read-only summary dialog.
  */
 function updateLink() {
-    var itemUrlString = window.calendarItem.getProperty("URL") || "";
-    var linkCommand = document.getElementById("cmd_toggle_link");
-
     function hideOrShow(aBool) {
         setElementValue("event-grid-link-row", !aBool && "true", "hidden");
-        var separator = document.getElementById("event-grid-link-separator");
+        let separator = document.getElementById("event-grid-link-separator");
         if (separator) {
             // The separator is not there in the summary dialog
             setElementValue("event-grid-link-separator", !aBool && "true", "hidden");
         }
     }
+
+    let itemUrlString = window.calendarItem.getProperty("URL") || "";
+    let linkCommand = document.getElementById("cmd_toggle_link");
+
 
     if (linkCommand) {
         // Disable if there is no url
@@ -508,7 +531,7 @@ function updateLink() {
         // should be hidden
         hideOrShow(false);
     } else {
-        var handler, uri;
+        let handler, uri;
         try {
             uri = makeURL(itemUrlString);
             handler = Services.io.getProtocolHandler(uri.scheme);
@@ -521,13 +544,12 @@ function updateLink() {
         // Only show if its either an internal protcol handler, or its external
         // and there is an external app for the scheme
         handler = cal.wrapInstance(handler, Components.interfaces.nsIExternalProtocolHandler);
-        hideOrShow(!handler||
-                   handler.externalAppExistsForScheme(uri.scheme));
+        hideOrShow(!handler || handler.externalAppExistsForScheme(uri.scheme));
 
-        setTimeout(function() {
-          // HACK the url-link doesn't crop when setting the value in onLoad
-          setElementValue("url-link", itemUrlString);
-          setElementValue("url-link", itemUrlString, "href");
+        setTimeout(() => {
+            // HACK the url-link doesn't crop when setting the value in onLoad
+            setElementValue("url-link", itemUrlString);
+            setElementValue("url-link", itemUrlString, "href");
         }, 0);
     }
 }
@@ -536,11 +558,10 @@ function updateLink() {
  * setup attendees in event and summary dialog
  */
 function setupAttendees() {
-
     let attBox = document.getElementById("item-attendees-box");
     let attBoxRows = attBox.getElementsByClassName("item-attendees-row");
-    if (window.attendees && window.attendees.length > 0) {
 
+    if (window.attendees && window.attendees.length > 0) {
         // cloning of the template nodes
         let selector = "#item-attendees-box-template .item-attendees-row";
         let clonedRow = document.querySelector(selector).cloneNode(false);
@@ -555,7 +576,7 @@ function setupAttendees() {
             inRow = determineAttendeesInRow();
             window.attendeesInRow = inRow;
         } else {
-            while(attBoxRows.length > 0) {
+            while (attBoxRows.length > 0) {
                 attBox.removeChild(attBoxRows[0]);
             }
         }
@@ -580,24 +601,24 @@ function setupAttendees() {
 
                 let label = (attendee.commonName && attendee.commonName.length)
                             ? attendee.commonName : attendee.toString();
-                let ut = attendee.userType || "INDIVIDUAL";
+                let userType = attendee.userType || "INDIVIDUAL";
                 let role = attendee.role || "REQ-PARTICIPANT";
-                let ps = attendee.participationStatus || "NEEDS-ACTION";
+                let partstat = attendee.participationStatus || "NEEDS-ACTION";
 
-                icon.setAttribute("partstat", ps);
-                icon.setAttribute("usertype", ut);
+                icon.setAttribute("partstat", partstat);
+                icon.setAttribute("usertype", userType);
                 icon.setAttribute("role", role);
                 cell.setAttribute("attendeeid", attendee.id);
                 cell.removeAttribute("hidden");
 
-                let utString = cal.calGetString("calendar", "dialog.tooltip.attendeeUserType2." + ut,
-                                                [attendee.toString()]);
+                let userTypeString = cal.calGetString("calendar", "dialog.tooltip.attendeeUserType2." + userType,
+                                                      [attendee.toString()]);
                 let roleString = cal.calGetString("calendar", "dialog.tooltip.attendeeRole2." + role,
-                                                  [utString]);
-                let psString = cal.calGetString("calendar", "dialog.tooltip.attendeePartStat2." + ps,
-                                                [label]);
+                                                  [userTypeString]);
+                let partstatString = cal.calGetString("calendar", "dialog.tooltip.attendeePartStat2." + partstat,
+                                                      [label]);
                 let tooltip = cal.calGetString("calendar", "dialog.tooltip.attendee.combined",
-                                               [roleString, psString]);
+                                               [roleString, partstatString]);
 
                 let del = cal.resolveDelegation(attendee, window.attendees);
                 if (del.delegators != "") {
@@ -641,7 +662,7 @@ function setupAttendees() {
             window.maxLabelWidth = maxWidth;
         }
     } else {
-        while(attBoxRows.length > 0) {
+        while (attBoxRows.length > 0) {
             attBox.removeChild(attBoxRows[0]);
         }
     }

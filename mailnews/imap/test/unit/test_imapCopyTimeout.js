@@ -50,19 +50,19 @@ var tests = [
 ]
 
 var gTargetFolder;
-function createTargetFolder()
+function* createTargetFolder()
 {
   IMAPPump.daemon.copySleep = 5000;
   IMAPPump.incomingServer.rootFolder.createSubfolder("targetFolder", null);
-  yield false; 
+  yield false;
   gTargetFolder = IMAPPump.incomingServer.rootFolder.getChildNamed("targetFolder");
   do_check_true(gTargetFolder instanceof Ci.nsIMsgImapMailFolder);
   gTargetFolder.updateFolderWithListener(null, asyncUrlListener);
   yield false;
-}  
+}
 
 // load and update a message in the imap fake server
-function loadImapMessage()
+function* loadImapMessage()
 {
   let messages = [];
   let gMessageGenerator = new MessageGenerator();
@@ -73,7 +73,7 @@ function loadImapMessage()
                        btoa(messages[0].toMessageString()),
                        null, null);
   let imapInbox = IMAPPump.daemon.getMailbox("INBOX");
-  gMessage = new imapMessage(msgURI.spec, imapInbox.uidnext++, []);
+  var gMessage = new imapMessage(msgURI.spec, imapInbox.uidnext++, []);
   IMAPPump.mailbox.addMessage(gMessage);
   IMAPPump.inbox.updateFolder(null);
   yield false;
@@ -85,7 +85,7 @@ function loadImapMessage()
 }
 
 // move the message to a diffent folder
-function moveMessageToTargetFolder()
+function* moveMessageToTargetFolder()
 {
   let msgHdr = mailTestUtils.firstMsgHdr(IMAPPump.inbox);
 
@@ -100,7 +100,7 @@ function moveMessageToTargetFolder()
   yield false;
 }
 
-function waitForOfflinePlayback()
+function* waitForOfflinePlayback()
 {
   // just wait for the alert about timed out connection.
   yield false;
@@ -109,7 +109,7 @@ function waitForOfflinePlayback()
   yield false;
 }
 
-function updateTargetFolder()
+function* updateTargetFolder()
 {
   gTargetFolder.updateFolderWithListener(null, asyncUrlListener);
   yield false;
@@ -132,7 +132,7 @@ function endTest()
 
 // listeners
 
-mfnListener =
+var mfnListener =
 {
   folderAdded: function folderAdded(aFolder)
   {

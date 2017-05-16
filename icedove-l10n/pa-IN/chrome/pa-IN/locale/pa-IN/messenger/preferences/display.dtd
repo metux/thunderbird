@@ -54,6 +54,8 @@
 <!ENTITY colorButton.accesskey   "C">
 <!ENTITY colorButton.label       "Colors…">
 <!ENTITY display.caption                  "Display">
+<!ENTITY editTagButton1.accesskey  "E">
+<!ENTITY editTagButton1.label      "Edit…">
 
 <!-- Fonts and Colors -->
 <!ENTITY fontsAndColors1.label   "Fonts &amp; Colors">
@@ -65,6 +67,8 @@
 <!ENTITY markAsReadDelay.label            "After displaying for">
 <!ENTITY markAsReadNoDelay.accesskey      "o">
 <!ENTITY markAsReadNoDelay.label          "Immediately on display">
+<!ENTITY newTagButton.accesskey    "N">
+<!ENTITY newTagButton.label        "New…">
 <!ENTITY openMsgIn.label                  "Open messages in:">
 <!ENTITY openMsgInNewTab.accesskey        "t">
 <!ENTITY openMsgInNewTab.label            "A new tab">

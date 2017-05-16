@@ -17,11 +17,8 @@
 <!ENTITY cmd.open.accesskey                        "A">
 <!ENTITY cmd.removeFromHistory.label               "Remover do histórico">
 <!ENTITY cmd.removeFromHistory.accesskey           "e">
-<!ENTITY cmd.clearDownloads.label                  "Limpar Downloads">
-<!ENTITY cmd.clearDownloads.accesskey              "D">
-
-<!ENTITY cmd.clearList.accesskey                   "C">
-<!ENTITY cmd.clearList.label                       "Clear List">
-<!ENTITY cmd.clearList.tooltip                     "Remove all entries from the list of saved files, except ongoing downloads.">
-<!ENTITY cmd.searchDownloads.key                   "F">
-<!ENTITY cmd.searchDownloads.label                 "Search…">
+<!ENTITY cmd.clearList.label                       "Limpar lista">
+<!ENTITY cmd.clearList.accesskey                   "L">
+<!ENTITY cmd.clearList.tooltip                     "Remova todas as entradas da lista de arquivos salvos, exceto downloads em andamento.">
+<!ENTITY cmd.searchDownloads.label                 "Pesquisar…">
+<!ENTITY cmd.searchDownloads.key                   "a">

@@ -47,14 +47,14 @@ function run_test() {
     storageCal.adoptItem(item, null);
     let retrievedItem;
     storageCal.getItem("c1a6cfe7-7fbb-4bfb-a00d-861e07c649a5", {
-        onGetResult: function onGetResult(cal, stat, type, detail, count, items) {
+        onGetResult: function(cal, stat, type, detail, count, items) {
             retrievedItem = items[0];
         },
         onOperationComplete: function() {}
     });
 
     // There should still be one alarm, one relation and one attachment
-    equal(item.getAlarms({}).length, 1);
-    equal(item.getRelations({}).length, 1);
-    equal(item.getAttachments({}).length, 1);
+    equal(retrievedItem.getAlarms({}).length, 1);
+    equal(retrievedItem.getRelations({}).length, 1);
+    equal(retrievedItem.getAttachments({}).length, 1);
 }

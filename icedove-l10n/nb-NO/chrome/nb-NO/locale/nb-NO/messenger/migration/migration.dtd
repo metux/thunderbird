@@ -8,6 +8,7 @@
 <!ENTITY importFromWin.label            "Importer innstillinger, kontoinnstillinger, adressebøker, filtre og annen data fra:">
 <!ENTITY importFromNonWin.label         "Importer innstillinger, kontoinnstillinger, adressebøker, filtre og annen data fra:">
 
+
 <!ENTITY importFromNothing.label        "Ikke importer noe">
 <!ENTITY importFromNothing.accesskey    "I">
 <!ENTITY importFromSeamonkey3.label     "SeaMonkey 2 eller nyere">
@@ -16,8 +17,6 @@
 <!ENTITY importFromOExpress.accesskey   "u">
 <!ENTITY importFromOutlook.label        "Outlook">
 <!ENTITY importFromOutlook.accesskey    "O">
-<!ENTITY importFromEudora.label         "Eudora">
-<!ENTITY importFromEudora.accesskey     "E">
 
 <!ENTITY importSource.title             "Importer innstillinger og e-postmapper fra">
 <!ENTITY importItems.title              "Elementer som skal importeres">
@@ -31,3 +30,5 @@
 
 <!ENTITY done.title                     "Importering fullført">
 <!ENTITY done.label                     "Følgende elementer er importert:">
+
+<!ENTITY importSourceNotFound.label     "No application to import data from found.">

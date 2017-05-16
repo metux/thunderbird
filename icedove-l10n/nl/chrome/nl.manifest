@@ -4,12 +4,12 @@ locale branding nl nl/locale/nl/branding/
 locale chat nl nl/locale/nl/chat/
 locale communicator nl nl/locale/nl/communicator/
 locale cookie nl nl/locale/nl/cookie/
+locale devtools nl nl/locale/nl/devtools/client/
 locale devtools-shared nl nl/locale/nl/devtools/shared/
 locale editor nl nl/locale/nl/editor/
 locale formautofill nl nl/locale/nl/formautofill/
 locale global nl nl/locale/nl/global/
 locale global-platform nl nl/locale/nl/global-platform/
-locale global-region nl nl/locale/nl/global-region/
 locale messenger nl nl/locale/nl/messenger/
 locale messenger-mapi nl nl/locale/nl/messenger-mapi/
 locale messenger-newsblog nl nl/locale/nl/messenger-newsblog/

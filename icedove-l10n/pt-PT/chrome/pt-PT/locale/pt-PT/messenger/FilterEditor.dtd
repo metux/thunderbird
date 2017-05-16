@@ -25,7 +25,7 @@
 <!ENTITY contextAfterCls.label "Filtrar depois da classificação de lixo eletrónico">
 <!ENTITY contextOutgoing.label "Após enviar">
 <!ENTITY contextOutgoing.accesskey "s">
-<!ENTITY contextArchive.label "A arquivar">
+<!ENTITY contextArchive.label "Ao arquivar">
 <!ENTITY contextArchive.accesskey "A">
 
 <!ENTITY filterActionDesc.label "Efetuar estas ações:">
@@ -56,10 +56,11 @@
 <!ENTITY addAction.tooltip "Adicionar uma nova ação">
 <!ENTITY removeAction.tooltip "Remover esta ação">
 <!-- LOCALIZATION NOTE
-  The values below are used to control the widths of the filter action widgets.
-  Change the values only when the localized strings in the popup menus
-  are truncated in the widgets.
- -->
+     The values below are used to control the widths of the filter action widgets.
+     Change the values only when the localized strings in the popup menus
+     are truncated in the widgets.
+  -->
+<!-- Flex Attribute: https://developer.mozilla.org/docs/XUL/Attribute/flex -->
 
 <!ENTITY filterActionTypeFlexValue "1">
 <!ENTITY filterActionTargetFlexValue "4">

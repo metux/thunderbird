@@ -25,7 +25,7 @@
 <!ENTITY useSmoothScrolling.accesskey  "u">
 
 <!ENTITY systemIntegration.label       "Sistemaren integrazioa">
-<!ENTITY alwaysCheckDefault.label      "Egiaztatu beti &brandShortName; lehenetsitako posta-bezeroa dela abiaraztean">
+<!ENTITY alwaysCheckDefault.label      "Egiaztatu beti &brandShortName; posta-bezero lehenetsia dela abiaraztean">
 <!ENTITY alwaysCheckDefault.accesskey  "g">
 <!ENTITY searchIntegration.label       "Baimendu &searchIntegration.engineName;(r)i mezuak bilatzea">
 <!ENTITY searchIntegration.accesskey   "B">
@@ -59,8 +59,6 @@
 <!ENTITY updateCheck.accesskey           "E">
 <!ENTITY updateManual.label              "Ez egiaztatu inoiz eguneraketarik dagoen (ez gomendatua: segurtasun arriskua)">
 <!ENTITY updateManual.accesskey          "n">
-<!ENTITY updateAutoAddonWarn.label       "Abisatu nire gehigarriak desgaituko baditu">
-<!ENTITY updateAutoAddonWarn.accesskey   "A">
 <!ENTITY updateHistory.label             "Erakutsi eguneraketen historia">
 <!ENTITY updateHistory.accesskey         "n">
 
@@ -103,9 +101,11 @@
 <!ENTITY enableOCSP.label                "Galdetu OCSP erantzule-zerbitzariei ziurtagiriak baliozkoak diren egiaztatzeko">
 <!ENTITY enableOCSP.accesskey            "G">
 
-<!ENTITY viewCertificates.label         "Ikusi ziurtagiriak">
-<!ENTITY viewCertificates.accesskey     "a">
-<!ENTITY viewSecurityDevices.label      "Segurtasun-gailuak">
-<!ENTITY viewSecurityDevices.accesskey  "u">
 
+<!ENTITY viewSecurityDevices.label "Segurtasun-gailuak">
+<!ENTITY viewSecurityDevices.accesskey "u">
+
+<!ENTITY manageCertificates.accesskey "M">
+
+<!ENTITY manageCertificates.label "Manage Certificates">
 <!ENTITY mboxStore2.label              "File per folder (mbox)">

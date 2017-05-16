@@ -2,6 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/* exported onLoad, onAccept, onCancel, updatePartStat, browseDocument,
+ *          sendMailToOrganizer
+ */
+
 Components.utils.import("resource://calendar/modules/calUtils.jsm");
 Components.utils.import("resource://calendar/modules/calItipUtils.jsm");
 Components.utils.import("resource://calendar/modules/calAlarmUtils.jsm");
@@ -12,10 +16,9 @@ Components.utils.import("resource://calendar/modules/calRecurrenceUtils.jsm");
  * item received in the window arguments.
  */
 function onLoad() {
-    var args = window.arguments[0];
-    var item = args.calendarEvent;
+    let args = window.arguments[0];
+    let item = args.calendarEvent;
     item = item.clone(); // use an own copy of the passed item
-    var calendar = item.calendar;
     window.calendarItem = item;
 
     // the calling entity provides us with an object that is responsible
@@ -25,22 +28,17 @@ function onLoad() {
     // entity needs to immediately terminate the pending modification. in this
     // case we serialize the item and close the window.
     if (args.job) {
-
-        // keep this context...
-        var self = this;
-
         // store the 'finalize'-functor in the provided job-object.
-        args.job.finalize = function finalize() {
-
+        args.job.finalize = () => {
             // store any pending modifications...
-            self.onAccept();
+            this.onAccept();
 
-            let item = window.calendarItem;
+            let calendarItem = window.calendarItem;
 
             // ...and close the window.
             window.close();
 
-            return item;
+            return calendarItem;
         };
     }
 
@@ -53,14 +51,14 @@ function onLoad() {
 
     window.attendees = item.getAttendees({});
 
-    calendar = cal.wrapInstance(item.calendar, Components.interfaces.calISchedulingSupport);
-    window.readOnly = !(isCalendarWritable(calendar)
-                        && (userCanModifyItem(item)
-                            || (calendar
-                                && item.calendar.isInvitation(item)
-                                && userCanRespondToInvitation(item))));
+    let calendar = cal.wrapInstance(item.calendar, Components.interfaces.calISchedulingSupport);
+    window.readOnly = !(isCalendarWritable(calendar) &&
+                        (userCanModifyItem(item) ||
+                         (calendar &&
+                          item.calendar.isInvitation(item) &&
+                          userCanRespondToInvitation(item))));
     if (!window.readOnly && calendar) {
-        var attendee = calendar.getInvitedAttendee(item);
+        let attendee = calendar.getInvitedAttendee(item);
         if (attendee) {
             // if this is an unresponded invitation, preset our default alarm values:
             if (!item.getAlarms({}).length &&
@@ -92,9 +90,9 @@ function onLoad() {
 
     // show reminder if this item is *not* readonly.
     // this case happens for example if this is an invitation.
-    var calendar = window.arguments[0].calendarEvent.calendar;
-    var supportsReminders =
-        (calendar.getProperty("capabilities.alarms.oninvitations.supported") !== false);
+    let argCalendar = window.arguments[0].calendarEvent.calendar;
+    let supportsReminders =
+        (argCalendar.getProperty("capabilities.alarms.oninvitations.supported") !== false);
     if (!window.readOnly && supportsReminders) {
         document.getElementById("reminder-row").removeAttribute("hidden");
         loadReminders(window.calendarItem.getAlarms({}));
@@ -105,19 +103,19 @@ function onLoad() {
     updateAttendees();
     updateLink();
 
-    var location = item.getProperty("LOCATION");
+    let location = item.getProperty("LOCATION");
     if (location && location.length) {
         document.getElementById("location-row").removeAttribute("hidden");
         document.getElementById("item-location").value = location;
     }
 
-    var categories = item.getCategories({});
+    let categories = item.getCategories({});
     if (categories.length > 0) {
         document.getElementById("category-row").removeAttribute("hidden");
         document.getElementById("item-category").value = categories.join(", "); // TODO l10n-unfriendly
     }
 
-    var organizer = item.organizer;
+    let organizer = item.organizer;
     if (organizer && organizer.id) {
         document.getElementById("organizer-row").removeAttribute("hidden");
         let cell = document.getElementsByClassName("item-organizer-cell")[0];
@@ -125,30 +123,30 @@ function onLoad() {
         let icon = cell.getElementsByTagName("img")[0];
 
         let role = organizer.role || "REQ-PARTICIPANT";
-        let ut = organizer.userType || "INDIVIDUAL";
-        let ps = organizer.participationStatus || "NEEDS-ACTION";
+        let userType = organizer.userType || "INDIVIDUAL";
+        let partstat = organizer.participationStatus || "NEEDS-ACTION";
         let orgName = (organizer.commonName && organizer.commonName.length)
-                      ? organizer.commonName : organizer.toString();
-        let utString = cal.calGetString("calendar", "dialog.tooltip.attendeeUserType2." + ut,
-                                        [organizer.toString()]);
+                       ? organizer.commonName : organizer.toString();
+        let userTypeString = cal.calGetString("calendar", "dialog.tooltip.attendeeUserType2." + userType,
+                                              [organizer.toString()]);
         let roleString = cal.calGetString("calendar", "dialog.tooltip.attendeeRole2." + role,
-                                          [utString]);
-        let psString = cal.calGetString("calendar", "dialog.tooltip.attendeePartStat2." + ps,
-                                       [orgName]);
-        let tt = cal.calGetString("calendar", "dialog.tooltip.attendee.combined",
-                                  [roleString, psString]);
+                                          [userTypeString]);
+        let partstatString = cal.calGetString("calendar", "dialog.tooltip.attendeePartStat2." + partstat,
+                                             [orgName]);
+        let tooltip = cal.calGetString("calendar", "dialog.tooltip.attendee.combined",
+                                       [roleString, partstatString]);
 
         text.setAttribute("value", orgName);
-        cell.setAttribute("tooltiptext", tt);
-        icon.setAttribute("partstat", ps);
-        icon.setAttribute("usertype", ut);
+        cell.setAttribute("tooltiptext", tooltip);
+        icon.setAttribute("partstat", partstat);
+        icon.setAttribute("usertype", userType);
         icon.setAttribute("role", role);
     }
 
-    var status = item.getProperty("STATUS");
+    let status = item.getProperty("STATUS");
     if (status && status.length) {
-        var statusRow = document.getElementById("status-row");
-        for (var i = 0; i < statusRow.childNodes.length; i++) {
+        let statusRow = document.getElementById("status-row");
+        for (let i = 0; i < statusRow.childNodes.length; i++) {
             if (statusRow.childNodes[i].getAttribute("status") == status) {
                 statusRow.removeAttribute("hidden");
                 if (status == "CANCELLED" && cal.isToDo(item)) {
@@ -163,11 +161,11 @@ function onLoad() {
     }
 
     if (item.hasProperty("DESCRIPTION")) {
-        var description = item.getProperty("DESCRIPTION");
+        let description = item.getProperty("DESCRIPTION");
         if (description && description.length) {
             document.getElementById("item-description-box")
                 .removeAttribute("hidden");
-            var textbox = document.getElementById("item-description");
+            let textbox = document.getElementById("item-description");
             textbox.value = description;
             textbox.inputField.readOnly = true;
         }
@@ -175,6 +173,33 @@ function onLoad() {
 
     document.title = item.title;
 
+    let attachments = item.getAttachments({});
+    if (attachments.length) {
+        // we only want to display uri type attachments and no ones received inline with the
+        // invitation message (having a CID: prefix results in about:blank) here
+        let attCounter = 0;
+        attachments.forEach(aAttachment => {
+            if (aAttachment.uri && aAttachment.uri.spec != "about:blank") {
+                let attachment = document.getElementById("attachment-template").cloneNode(true);
+                attachment.removeAttribute("id");
+                attachment.removeAttribute("hidden");
+
+                let label = attachment.getElementsByTagName("label")[0];
+                label.setAttribute("value", aAttachment.uri.spec);
+                label.setAttribute("hashid", aAttachment.hashId);
+
+                let icon = attachment.getElementsByTagName("image")[0];
+                let iconSrc = aAttachment.uri.spec.length ? aAttachment.uri.spec : "dummy.html";
+                icon.setAttribute("src", "moz-icon://" + iconSrc);
+
+                document.getElementById("item-attachment-cell").appendChild(attachment);
+                attCounter++;
+            }
+        });
+        if (attCounter > 0) {
+            document.getElementById("attachments-row").removeAttribute("hidden");
+        }
+    }
     // If this item is read only we remove the 'cancel' button as users
     // can't modify anything, thus we go ahead with an 'ok' button only.
     if (window.readOnly) {
@@ -195,10 +220,10 @@ function onAccept() {
     if (window.readOnly) {
         return true;
     }
-    var args = window.arguments[0];
-    var oldItem = args.calendarEvent;
-    var newItem = window.calendarItem;
-    var calendar = newItem.calendar;
+    let args = window.arguments[0];
+    let oldItem = args.calendarEvent;
+    let newItem = window.calendarItem;
+    let calendar = newItem.calendar;
     saveReminder(newItem);
     args.onOk(newItem, calendar, oldItem);
     window.calendarItem = newItem;
@@ -220,10 +245,10 @@ function onCancel() {
 function updateInvitationStatus() {
     if (!window.readOnly) {
         if (window.attendee) {
-            var invitationRow =
+            let invitationRow =
                 document.getElementById("invitation-row");
             invitationRow.removeAttribute("hidden");
-            var statusElement =
+            let statusElement =
                 document.getElementById("item-participation");
             statusElement.value = window.attendee.participationStatus;
         }
@@ -235,20 +260,20 @@ function updateInvitationStatus() {
  * user's invitation status from the value chosen in the dialog.
  */
 function updatePartStat() {
-  var statusElement = document.getElementById("item-participation");
-  if (window.attendee) {
-      let item = window.arguments[0];
-      let aclEntry = item.calendar.aclEntry;
-      if (aclEntry) {
-          let userAddresses = aclEntry.getUserAddresses({});
-          if (userAddresses.length > 0
-              && !cal.attendeeMatchesAddresses(window.attendee, userAddresses)) {
-              window.attendee.setProperty("SENT-BY", "mailto:" + userAddresses[0]);
-          }
-      }
+    let statusElement = document.getElementById("item-participation");
+    if (window.attendee) {
+        let item = window.arguments[0];
+        let aclEntry = item.calendar.aclEntry;
+        if (aclEntry) {
+            let userAddresses = aclEntry.getUserAddresses({});
+            if (userAddresses.length > 0 &&
+                !cal.attendeeMatchesAddresses(window.attendee, userAddresses)) {
+                window.attendee.setProperty("SENT-BY", "mailto:" + userAddresses[0]);
+            }
+        }
 
-      window.attendee.participationStatus = statusElement.value;
-  }
+        window.attendee.participationStatus = statusElement.value;
+    }
 }
 
 /**
@@ -256,8 +281,8 @@ function updatePartStat() {
  * recurrence)
  */
 function updateRepeatDetails() {
-    var args = window.arguments[0];
-    var item = args.calendarEvent;
+    let args = window.arguments[0];
+    let item = args.calendarEvent;
 
     // step to the parent (in order to show the
     // recurrence info which is stored at the parent).
@@ -266,7 +291,7 @@ function updateRepeatDetails() {
     // retrieve a valid recurrence rule from the currently
     // set recurrence info. bail out if there's more
     // than a single rule or something other than a rule.
-    var recurrenceInfo = item.recurrenceInfo;
+    let recurrenceInfo = item.recurrenceInfo;
     if (!recurrenceInfo) {
         return;
     }
@@ -277,16 +302,16 @@ function updateRepeatDetails() {
     // create a details string, we simply don't show anything.
     // this could happen if the repeat rule is something exotic
     // we don't have any strings prepared for.
-    var repeatDetails = document.getElementById("repeat-details");
+    let repeatDetails = document.getElementById("repeat-details");
     repeatDetails.setAttribute("collapsed", "true");
 
     // Try to create a descriptive string from the rule(s).
-    var kDefaultTimezone = calendarDefaultTimezone();
-    var startDate =  item.startDate || item.entryDate;
-    var endDate = item.endDate || item.dueDate;
+    let kDefaultTimezone = calendarDefaultTimezone();
+    let startDate = item.startDate || item.entryDate;
+    let endDate = item.endDate || item.dueDate;
     startDate = startDate ? startDate.getInTimezone(kDefaultTimezone) : null;
     endDate = endDate ? endDate.getInTimezone(kDefaultTimezone) : null;
-    var detailsString = recurrenceRule2String(recurrenceInfo, startDate,
+    let detailsString = recurrenceRule2String(recurrenceInfo, startDate,
                                               endDate, startDate.isDate);
 
     if (!detailsString) {
@@ -294,15 +319,15 @@ function updateRepeatDetails() {
     }
 
     // Now display the string...
-    var lines = detailsString.split("\n");
+    let lines = detailsString.split("\n");
     repeatDetails.removeAttribute("collapsed");
     while (repeatDetails.childNodes.length > lines.length) {
         repeatDetails.lastChild.remove();
     }
-    var numChilds = repeatDetails.childNodes.length;
-    for (var i = 0; i < lines.length; i++) {
+    let numChilds = repeatDetails.childNodes.length;
+    for (let i = 0; i < lines.length; i++) {
         if (i >= numChilds) {
-            var newNode = repeatDetails.firstChild
+            let newNode = repeatDetails.firstChild
                                        .cloneNode(true);
             repeatDetails.appendChild(newNode);
         }
@@ -336,9 +361,9 @@ function updateReminder() {
  * XXX This function is broken, should be fixed in bug 471967
  */
 function browseDocument() {
-    var args = window.arguments[0];
-    var item = args.calendarEvent;
-    var url = item.getProperty("URL")
+    let args = window.arguments[0];
+    let item = args.calendarEvent;
+    let url = item.getProperty("URL");
     launchBrowser(url);
 }
 
@@ -354,4 +379,24 @@ function sendMailToOrganizer() {
     let emailSubject = cal.calGetString("calendar-event-dialog", "emailSubjectReply", [item.title]);
     let identity = item.calendar.getProperty("imip.identity");
     sendMailTo(email, emailSubject, null, identity);
+}
+
+/**
+ * Opens an attachment
+ *
+ * @param {AUTF8String}  aAttachmentId   The hashId of the attachment to open
+ */
+function openAttachment(aAttachmentId) {
+    if (!aAttachmentId) {
+        return;
+    }
+    let args = window.arguments[0];
+    let item = args.calendarEvent;
+    let attachments = item.getAttachments({})
+                          .filter(aAttachment => aAttachment.hashId == aAttachmentId);
+    if (attachments.length && attachments[0].uri && attachments[0].uri.spec != "about:blank") {
+        let externalLoader = Components.classes["@mozilla.org/uriloader/external-protocol-service;1"]
+                                       .getService(Components.interfaces.nsIExternalProtocolService);
+        externalLoader.loadUrl(attachments[0].uri);
+    }
 }

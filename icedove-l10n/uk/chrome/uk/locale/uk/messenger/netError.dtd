@@ -37,6 +37,13 @@
 </ul>
 ">
 
+<!ENTITY fileAccessDenied.title "Доступ до файлу було заборонено">
+<!ENTITY fileAccessDenied.longDesc "
+<ul>
+  <li>Він міг бути вилучений, переміщений, або дозволи файлу забороняють доступ.</li>
+</ul>
+">
+
 <!ENTITY generic.title "Ой.">
 <!ENTITY generic.longDesc "
 <p>&brandShortName; з якоїсь причини не може завантажити цю сторінку.</p>
@@ -157,31 +164,11 @@
 </ul>
 ">
 
-<!ENTITY malwareBlocked.title "Сайт підозрюється у атаці!">
-<!ENTITY malwareBlocked.longDesc "
-<p>Зловмисні сайти намагаються встановити програми, що крадуть конфіденційну інформацію, використовують ваш комп’ютер для подальших атак чи ушкоджують вашу систему.</p>
-<p>Власники веб-сайтів, які вважають, що їхній сайт назвали зловмисним без підстав, можуть <a href='http://www.stopbadware.org/home/reviewinfo' >вимагати  перегляду</a>.</p>
-">
-
-<!ENTITY unwantedBlocked.title "Сайт підозрюється в розміщенні небажаного програмного забезпечення!">
-<!ENTITY unwantedBlocked.longDesc "
-<p>Сторінки такого типу намагаються встановити програмне забезпечення, яке може вас ввести в оману та призвести до непередбачуваних змін у системі.</p>
-">
-
-<!ENTITY phishingBlocked.title "Сайт підозрюється у шахрайстві!">
-<!ENTITY phishingBlocked.longDesc "
-<p>Надання будь-якої особистої інформації цій сторінці може призвести до крадіжки ваших особистих даних чи інших афер.</p>
-<p>Ошуканство за допомогою підробленого сайту чи емейлу також називають фішингом. Шахраї намагаються видурити у вас інформацію імітуючи джерела, яким ви, можливо, довіряєте.</p>
-">
-
-<!ENTITY forbiddenBlocked.title "Заборонений сайт">
-<!ENTITY forbiddenBlocked.longDesc "<p>&brandShortName; не дозволив завантаження цієї сторінки, тому що він налаштований на її блокування.</p>">
-
 <!ENTITY cspBlocked.title "Блоковано політикою безпеки вмісту">
 <!ENTITY cspBlocked.longDesc "<p>&brandShortName; не дозволив цій сторінці завантажитись цим чином, бо вона має політику безпеки вмісту котра це забороняє.</p>">
 
-<!ENTITY corruptedContentError.title "Пошкоджений вміст">
-<!ENTITY corruptedContentError.longDesc "<p>Вміст, котрий ви намагаєтесь переглянути, не може бути показаний — у передачі даних помічена помилка.</p><ul><li>Будь ласка, повідомте власникам вмісту про цю проблему.</li></ul>">
+<!ENTITY corruptedContentErrorv2.title "Помилка зіпсованого вмісту">
+<!ENTITY corruptedContentErrorv2.longDesc "<p>Сторінка, яку ви намагаєтесь переглянути, не може бути показана через те, що в передачі даних виявлено помилку.</p><ul><li>Будь ласка, зв'яжіться з власниками веб-сайту та повідомте їх про цю проблему.</li></ul>">
 
 <!ENTITY securityOverride.linkText "Або ви можете зробити виняток…">
 <!ENTITY securityOverride.getMeOutOfHereButton "Заберіть мене звідси">
@@ -201,3 +188,8 @@ functionality specific to thunderbird. -->
 
 <!ENTITY remoteXUL.title "Віддалений XUL">
 <!ENTITY remoteXUL.longDesc "<p><ul><li>Будь ласка, зв’яжіться з власниками сайта та поінформуйте їх про цю проблему.</li></ul></p>">
+
+<!ENTITY inadequateSecurityError.title "Ваше з'єднання незахищене">
+<!-- LOCALIZATION NOTE (inadequateSecurityError.longDesc) - Do not translate
+     "NS_ERROR_NET_INADEQUATE_SECURITY". -->
+<!ENTITY inadequateSecurityError.longDesc "<p><span class='hostname'></span> використовує технологію безпеки, яка є застарілою і вразливою до атак. Нападник може з легкістю розкрити інформацію, яка, на вашу думку, знаходиться в безпеці. Перед тим, як ви зможете відвідати сайт, його адміністратор повинен виправити це на сервері.</p><p>Код помилки: NS_ERROR_NET_INADEQUATE_SECURITY</p>">

@@ -1,15 +1,23 @@
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+
 <!-- extracted from AccountManager.xul -->
 
 <!ENTITY accountManagerTitle.label "Подешавања налога">
 
-<!ENTITY accountActionsButton.label "Дејства над налозима">
-<!ENTITY accountActionsButton.accesskey "Д">
-<!ENTITY addMailAccountButton.label "Додај налог…">
-<!ENTITY addMailAccountButton.accesskey "н">
+<!ENTITY accountActionsButton.label "Подешавања налога">
+<!ENTITY accountActionsButton.accesskey "А">
+<!ENTITY addMailAccountButton.label "Додај поштански налог…">
+<!ENTITY addMailAccountButton.accesskey "А">
+<!ENTITY addIMAccountButton.label "Додај налог за ћаскање…">
+<!ENTITY addIMAccountButton.accesskey "с">
+<!ENTITY addFeedAccountButton.label "Додај налог за довод…">
+<!ENTITY addFeedAccountButton.accesskey "д">
 <!ENTITY addOtherAccountButton.label "Додај други налог…">
-<!ENTITY addOtherAccountButton.accesskey "р">
-<!ENTITY setDefaultButton.label "Означи као подразумеван">
-<!ENTITY setDefaultButton.accesskey "п">
+<!ENTITY addOtherAccountButton.accesskey "о">
+<!ENTITY setDefaultButton.label "Постави као подразумевано">
+<!ENTITY setDefaultButton.accesskey "д">
 <!ENTITY removeButton.label "Уклони налог">
 <!ENTITY removeButton.accesskey "У">
 
@@ -24,9 +32,3 @@
      this window for en-US. -->
 <!ENTITY accountManager.size "width: 105ch; height: 55em;">
 <!ENTITY accountTree.width "width: 31ch;">
-
-
-<!ENTITY addFeedAccountButton.accesskey "F">
-<!ENTITY addFeedAccountButton.label "Add Feed Account…">
-<!ENTITY addIMAccountButton.accesskey "C">
-<!ENTITY addIMAccountButton.label "Add Chat Account…">

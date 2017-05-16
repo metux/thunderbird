@@ -4,6 +4,7 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
 <?xml-stylesheet href="chrome://messenger/skin/accountManage.css" type="text/css"?>
+<?xml-stylesheet href="chrome://messenger-newsblog/skin/feed-subscriptions.css" type="text/css"?>
 
 <!DOCTYPE page [
 <!ENTITY %         newsblogDTD SYSTEM "chrome://messenger-newsblog/locale/am-newsblog.dtd" >
@@ -32,10 +33,11 @@
   <script type="application/javascript"
           src="chrome://messenger/content/am-prefs.js"/>
 
+  <vbox flex="1" style="overflow: auto;">
 
-  <dialogheader id="am-newsblog-title" defaultTitle="&accountTitle.label;"/>
+    <dialogheader id="am-newsblog-title" defaultTitle="&accountTitle.label;"/>
 
-  <description class="secDesc">&accountSettingsDesc.label;</description>
+    <description class="secDesc">&accountSettingsDesc.label;</description>
 
     <hbox align="center">
       <label value="&accountName.label;"
@@ -128,7 +130,7 @@
                    wsm_persist="true"
                    flex="1"
                    id="server.localPath"
-                   datatype="nsILocalFile"
+                   datatype="nsIFile"
                    prefstring="mail.server.%serverkey%.directory"
                    class="uri-element"/>
           <button id="browseForLocalFolder"
@@ -149,4 +151,5 @@
               accesskey="&manageSubscriptions.accesskey;"
               oncommand="openSubscriptionsDialog(gServer.rootFolder);"/>
     </hbox>
+  </vbox>
 </page>

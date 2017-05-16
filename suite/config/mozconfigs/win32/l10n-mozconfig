@@ -3,18 +3,22 @@
 ac_add_options --enable-application=suite
 ac_add_options --with-l10n-base=../../l10n
 ac_add_options --enable-update-channel=${MOZ_UPDATE_CHANNEL}
-ac_add_options --enable-update-packaging
 ac_add_options --enable-jemalloc
+ac_add_options --enable-require-all-d3dc-versions
 
-# Windows 8 SDK is required for gamepad support
-# 1006630
-ac_add_options --disable-gamepad
-
-# For NSS symbols
-export MOZ_DEBUG_SYMBOLS=1
+# Build lightning locales
+ac_add_options --enable-calendar
 
 # Needed to enable breakpad in application.ini
 export MOZILLA_OFFICIAL=1
 
-# To enable MSVC 2010 building
-. $topsrcdir/build/win32/mozconfig.vs2010
+# Disable checking that add-ons are signed by the trusted root
+MOZ_ADDON_SIGNING=0
+# Disable enforcing that add-ons are signed by the trusted root
+MOZ_REQUIRE_SIGNING=0
+
+. $topsrcdir/build/win32/mozconfig.vs-latest
+
+# Set up mapi includes (must be done after visual studio setup)
+export INCLUDE=$INCLUDE:/c/Office\ 2010\ Developer\ Resources/Outlook\ 2010\ MAPI\ Headers
+mk_export_correct_style INCLUDE

@@ -67,10 +67,10 @@ nsSubscribeDataSource::Init()
                                   getter_AddRefs(kNC_ServerType));
     NS_ENSURE_SUCCESS(rv,rv);
 
-    rv = mRDFService->GetLiteral(MOZ_UTF16("true"), getter_AddRefs(kTrueLiteral));
+    rv = mRDFService->GetLiteral(u"true", getter_AddRefs(kTrueLiteral));
     NS_ENSURE_SUCCESS(rv,rv);
 
-    rv = mRDFService->GetLiteral(MOZ_UTF16("false"), getter_AddRefs(kFalseLiteral));
+    rv = mRDFService->GetLiteral(u"false", getter_AddRefs(kFalseLiteral));
     NS_ENSURE_SUCCESS(rv,rv);
 	return NS_OK;
 }
@@ -600,10 +600,10 @@ nsSubscribeDataSource::GetAllCmds(nsIRDFResource* source,
 }
 
 NS_IMETHODIMP
-nsSubscribeDataSource::IsCommandEnabled(nsISupportsArray/*<nsIRDFResource>*/* aSources,
-                                       nsIRDFResource*   aCommand,
-                                       nsISupportsArray/*<nsIRDFResource>*/* aArguments,
-                                       bool* aResult)
+nsSubscribeDataSource::IsCommandEnabled(nsISupports/*nsISupportsArray<nsIRDFResource>*/* aSources,
+                                        nsIRDFResource*   aCommand,
+                                        nsISupports/*nsISupportsArray<nsIRDFResource>*/* aArguments,
+                                        bool* aResult)
 {
 	return(NS_ERROR_NOT_IMPLEMENTED);
 }
@@ -611,9 +611,9 @@ nsSubscribeDataSource::IsCommandEnabled(nsISupportsArray/*<nsIRDFResource>*/* aS
 
 
 NS_IMETHODIMP
-nsSubscribeDataSource::DoCommand(nsISupportsArray/*<nsIRDFResource>*/* aSources,
-                                nsIRDFResource*   aCommand,
-                                nsISupportsArray/*<nsIRDFResource>*/* aArguments)
+nsSubscribeDataSource::DoCommand(nsISupports/*nsISupportsArray<nsIRDFResource>*/* aSources,
+                                 nsIRDFResource*   aCommand,
+                                 nsISupports/*nsISupportsArray<nsIRDFResource>*/* aArguments)
 {
 	return(NS_ERROR_NOT_IMPLEMENTED);
 }

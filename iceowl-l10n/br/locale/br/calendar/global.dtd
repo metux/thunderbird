@@ -48,7 +48,5 @@
 <!ENTITY onemonthforward.tooltip "Ur miz war-raok" >
 <!ENTITY showToday.tooltip "Mont da Hiziv">
 <!ENTITY onedayforward.tooltip "Un devezh war-raok">
-
-<!ENTITY showselectedday.tooltip "Diskouez degouezhioù an devezh diuzet">
-
-<!ENTITY onedaybackward.tooltip "One Day Backward">
+<!ENTITY onedaybackward.tooltip "Un devezh kent">
+<!ENTITY showselectedday.tooltip "Diskouez darvoudoù an devezh diuzet">

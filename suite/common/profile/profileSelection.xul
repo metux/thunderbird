@@ -14,8 +14,6 @@
 %brandDTD;
 <!ENTITY % profileDTD SYSTEM "chrome://communicator/locale/profile/profileSelection.dtd">
 %profileDTD;
-<!ENTITY % mozappsDTD SYSTEM "chrome://mozapps/locale/profile/profileSelection.dtd">
-%mozappsDTD;
 ]>
 
 <dialog id="profileWindow"
@@ -34,8 +32,6 @@
         ondialogextra2="SwitchProfileManagerMode();"
         onload="StartUp();">
 
-  <stringbundle id="bundle_mozapps"
-                src="chrome://mozapps/locale/profile/profileSelection.properties"/>
   <stringbundle id="bundle_profile"
                 src="chrome://communicator/locale/profile/profileSelection.properties"/>
   <stringbundle id="bundle_brand"
@@ -81,7 +77,7 @@
         <treechildren tooltip="treetip"
                       ondblclick="HandleClickEvent(event);"/>
       </tree>
-      <checkbox id="offlineState" label="&offlineState.label;" accesskey="&offlineState.accesskey;" hidden="true"/> 
+      <checkbox id="offlineState" label="&offlineState.label;" accesskey="&offlineState.accesskey;" hidden="true"/>
       <checkbox id="autoSelect" label="&autoSelect.label;" accesskey="&autoSelect.accesskey;"/>
     </vbox>
   </hbox>

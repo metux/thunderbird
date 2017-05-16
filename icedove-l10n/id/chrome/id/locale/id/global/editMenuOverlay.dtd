@@ -1,8 +1,12 @@
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+
 <!ENTITY editMenu.label            "Ubah">
 <!ENTITY editMenu.accesskey        "U">
-<!ENTITY undoCmd.label             "Batal">
+<!ENTITY undoCmd.label             "Urungkan">
 <!ENTITY undoCmd.key               "Z">
-<!ENTITY undoCmd.accesskey         "B">
+<!ENTITY undoCmd.accesskey         "g">
 <!ENTITY redoCmd.label             "Ulangi">
 <!ENTITY redoCmd.key               "Y">
 <!ENTITY redoCmd.accesskey         "U">

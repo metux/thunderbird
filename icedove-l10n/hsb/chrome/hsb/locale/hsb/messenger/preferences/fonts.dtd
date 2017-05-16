@@ -47,7 +47,7 @@
 <!ENTITY  font.langGroup.khmer                    "Khmer">
 <!ENTITY  font.langGroup.malayalam                "Malajalam">
 <!ENTITY  font.langGroup.math                     "Matematika">
-<!ENTITY  font.langGroup.oriya                    "Orija">
+<!ENTITY  font.langGroup.odia                     "Odišćina">
 <!ENTITY  font.langGroup.telugu                   "Telugu">
 <!ENTITY  font.langGroup.kannada                  "Kannada">
 <!ENTITY  font.langGroup.sinhala                  "Singaleziske">
@@ -76,5 +76,5 @@
 
 <!ENTITY viewDefaultCharsetList.label     "Dochadźacy póst:">
 <!ENTITY viewDefaultCharsetList.accesskey  "D">
-<!ENTITY replyInDefaultCharset3.label     "Jeli móžno, standardne tekstowe kodowanje we wotmołwach wužiwać">
+<!ENTITY replyInDefaultCharset3.label     "Je-li móžno, standardne tekstowe kodowanje we wotmołwach wužiwać">
 <!ENTITY replyInDefaultCharset3.accesskey "J">

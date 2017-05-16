@@ -40,7 +40,7 @@
 
 <!-- Data Choices -->
 <!ENTITY telemetrySection.label          "Telemetrija">
-<!ENTITY telemetryDesc.label             "Deli zmogljivost, uporabo, strojno opremo in podatke o prilagoditvi vašega e-poštnega odjemalca s/z &vendorShortName;, da nam pomaga narediti &brandShortName; boljšega">
+<!ENTITY telemetryDesc.label             "Pošilja podatke o učinkovitosti, uporabi, strojni opremi in prilagoditvah vašega e-poštnega odjemalca organizaciji &vendorShortName;, da lahko izboljša &brandShortName;">
 <!ENTITY enableTelemetry.label           "Omogoči telemetrijo">
 <!ENTITY enableTelemetry.accesskey       "e">
 <!ENTITY telemetryLearnMore.label        "Več o tem">
@@ -52,19 +52,17 @@
 <!ENTITY crashReporterLearnMore.label    "Več o tem">
 
 <!-- Update -->
-<!ENTITY updateApp.label                 "Posodobitve za &brandShortName;:">
-<!ENTITY updateAuto.label                "Samodejno namesti posodobitve (priporočeno: izboljšana varnost)">
+<!ENTITY updateApp.label                 "Posodobitve &brandShortName;a:">
+<!ENTITY updateAuto.label                "Samodejno nameščaj posodobitve (priporočeno za večjo varnost)">
 <!ENTITY updateAuto.accesskey            "S">
-<!ENTITY updateCheck.label               "Preveri za posodobitve, toda naj sam izberem ali naj se namestijo">
+<!ENTITY updateCheck.label               "Preverjaj posodobitve, vendar mi prepusti odločitev o nameščanju">
 <!ENTITY updateCheck.accesskey           "P">
-<!ENTITY updateManual.label              "Nikoli ne preveri za posodobitve (ni priporočljivo: varnostno tveganje)">
+<!ENTITY updateManual.label              "Nikoli ne preverjaj posodobitev (ni priporočeno zaradi varnosti)">
 <!ENTITY updateManual.accesskey          "N">
-<!ENTITY updateAutoAddonWarn.label       "Opozori me, če bo to onemogočilo razširitve in teme">
-<!ENTITY updateAutoAddonWarn.accesskey   "O">
 <!ENTITY updateHistory.label             "Pokaži zgodovino posodobitev">
 <!ENTITY updateHistory.accesskey         "o">
 
-<!ENTITY useService.label                "Za nameščanje posodobitev uporabljaj storitev v ozadju">
+<!ENTITY useService.label                "Uporabi storitev za nameščanje posodobitev v ozadju">
 <!ENTITY useService.accesskey            "Z">
 
 <!-- Networking and Disk Space -->
@@ -103,7 +101,7 @@
 <!ENTITY enableOCSP.label                "Poizvej po odzivnih strežnikih OCSP za potrditev trenutne veljavnosti potrdil">
 <!ENTITY enableOCSP.accesskey            "P">
 
-<!ENTITY viewCertificates.label         "Pokaži potrdila">
-<!ENTITY viewCertificates.accesskey     "o">
-<!ENTITY viewSecurityDevices.label      "Varnostne naprave">
-<!ENTITY viewSecurityDevices.accesskey  "V">
+<!ENTITY manageCertificates.label "Upravljaj z digitalnimi potrdili">
+<!ENTITY manageCertificates.accesskey "U">
+<!ENTITY viewSecurityDevices.label "Varnostne naprave">
+<!ENTITY viewSecurityDevices.accesskey "V">

@@ -1,3 +1,7 @@
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+
 <!ENTITY titledefault.label    "&brandFullName;">
 <!ENTITY titleSeparator.label " - ">
 
@@ -240,32 +244,6 @@
 <!ENTITY viewAttachmentsInlineCmd.label "ඇමුණුම් ලිපිය තුළම පෙන්වන්න">
 <!ENTITY viewAttachmentsInlineCmd.accesskey "A">
 
-<!-- LOCALIZATION NOTE :
-fullZoomEnlargeCmd.commandkey3, fullZoomReduceCmd.commandkey2 and
-fullZoomResetCmd.commandkey2 are alternative acceleration keys for zoom.
-If shift key is needed with your locale popular keyboard for them,
-you can use these alternative items. Otherwise, their values should be empty.  -->
-
-<!ENTITY fullZoomEnlargeCmd.label       "විශාල කරන්න">
-<!ENTITY fullZoomEnlargeCmd.accesskey   "I">
-<!ENTITY fullZoomEnlargeCmd.commandkey  "+">
-<!ENTITY fullZoomEnlargeCmd.commandkey2 "="> <!-- + is above this key on many keyboards -->
-<!ENTITY fullZoomEnlargeCmd.commandkey3 "">
-
-<!ENTITY fullZoomReduceCmd.label        "කුඩා කරන්න">
-<!ENTITY fullZoomReduceCmd.accesskey    "O">
-<!ENTITY fullZoomReduceCmd.commandkey   "-">
-<!ENTITY fullZoomReduceCmd.commandkey2  "">
-
-<!ENTITY fullZoomResetCmd.label         "සාමාන්‍ය ආකාරයට">
-<!ENTITY fullZoomResetCmd.accesskey     "R">
-<!ENTITY fullZoomResetCmd.commandkey    "0">
-<!ENTITY fullZoomResetCmd.commandkey2   "">
-
-<!ENTITY fullZoomToggleCmd.label        "පාඨ පමණක් විශාල කරන්න">
-<!ENTITY fullZoomToggleCmd.accesskey    "T">
-<!ENTITY fullZoom.label                 "විශාලන">
-<!ENTITY fullZoom.accesskey             "Z">
 
 <!ENTITY pageSourceCmd.label "ලිපියේ මූලය">
 <!ENTITY pageSourceCmd.accesskey "o">
@@ -326,7 +304,7 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY goBackCmd.commandKey "[">
 <!ENTITY goChatCmd.label "චැට්">
 <!ENTITY goChatCmd.accesskey "c">
-<!ENTITY goChatCmd.commandKey "C">
+<!ENTITY goChatCmd.key "I">
 <!ENTITY prevStarredMsgCmd.label "තරුයෙදූ ලිපියට">
 <!ENTITY prevStarredMsgCmd.accesskey "S">
 <!ENTITY startPageCmd.label "ආරම්භක පිටුවට">
@@ -430,12 +408,12 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY openConversationCmd.label "සංවාදය තුළ විවෘත කරන්න">
 <!ENTITY openConversationCmd.accesskey "s">
 <!ENTITY openConversationCmd.key "o">
-<!ENTITY openFeedMessage.label "පෝෂත ලිපිය විවෘත කරන්න">
-<!ENTITY openFeedMessage.accesskey "O">
-<!ENTITY openFeedWebPageInWindow.label "වෙබ් පිටුව නව කවුළුවක">
-<!ENTITY openFeedWebPageInWindow.accesskey "W">
-<!ENTITY openFeedSummaryInWindow.label "සාරාංශය නව කවුළුවක">
-<!ENTITY openFeedSummaryInWindow.accesskey "S">
+<!ENTITY openFeedMessage1.label "When Opening Feed Messages">
+<!ENTITY openFeedMessage1.accesskey "O">
+<!ENTITY openFeedWebPage.label "Open as Web Page">
+<!ENTITY openFeedWebPage.accesskey "W">
+<!ENTITY openFeedSummary.label "Open as Summary">
+<!ENTITY openFeedSummary.accesskey "S">
 <!ENTITY openFeedWebPageInMP.label "Toggle Web Page and Summary in Message Pane">
 <!ENTITY openFeedWebPageInMP.accesskey "T">
 
@@ -549,7 +527,7 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY addressBookButton.tooltip "ලිපින පොතට යොමුවීමට">
 <!ENTITY tagButton.tooltip "ටැග් ලිපි">
 <!ENTITY compactButton.tooltip "තෝරාගත් ෆෝල්ඩරයෙන් මැකූ ලිපි ඉවත් කිරීමට">
-<!ENTITY appmenuButton.tooltip "යෙදවුම් මෙනුව පෙන්වයි">
+<!ENTITY appmenuButton1.tooltip "Display the &brandShortName; Menu">
 
 <!-- AppMenu Popup -->
 <!ENTITY appmenuNewMsgCmd.label "නව ලිපියක්">
@@ -557,6 +535,8 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY appmenuEditMenu.label "සැකසුම්">
 <!ENTITY appmenuQFBMenu.label "ක්ෂණික පෙරහන් තීරුව">
 <!ENTITY appmenuToolbarLayout.label "මෙවලම්තීරු සැකසුම…">
+<!ENTITY appmenuSelectThread.label "Select Thread">
+<!ENTITY appmenuSelectFlagged.label "Select Starred Messages">
 
 <!-- Tags Menu Popup -->
 <!ENTITY addNewTag.label "නව ටැගයක්…">
@@ -709,7 +689,7 @@ you can use these alternative items. Otherwise, their values should be empty.  -
    the "columnPicker.applyToFolder.label" and
    "columnPicker.applyToFolderAndChildren.label" options.  This item indicates
    a desire to apply the currently displayed set of columns to some other
-   folder(s).  The sub-menu items indicate whether we want to apply it to just
+   folder.  The sub-menu items indicate whether we want to apply it to just
    a folder or also its children.
   -->
 <!ENTITY columnPicker.applyTo.label "මේවාට තීරු ආදේශ කරන්න…">
@@ -900,14 +880,13 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY accountColumn2.tooltip "Sort by account">
 <!ENTITY accountManagerCmd2.accesskey "S">
 <!ENTITY accountManagerCmd2.label "Account Settings">
-<!-- LOCALIZATION NOTE (accountManagerCmdUnix2.accesskey): belongs to accountManagerCmd2.label,
-        which is placed under the Edit menu on Unix systems -->
+<!-- LOCALIZATION NOTE (accountManagerCmdUnix.accesskey):
+     Belongs to accountManagerCmd.label, which is placed under the Edit menu
+     on Unix systems
+  -->
 <!ENTITY accountManagerCmdUnix2.accesskey "A">
-<!ENTITY allowRemoteDebugging.accesskey "g">
-<!ENTITY allowRemoteDebugging.label "Allow Remote Debugging">
-<!ENTITY appmenuButton1.tooltip "Display the &brandShortName; Menu">
-<!ENTITY appmenuSelectFlagged.label "Select Starred Messages">
-<!ENTITY appmenuSelectThread.label "Select Thread">
+<!ENTITY addonDebugCmd.accesskey "A">
+<!ENTITY addonDebugCmd.label "Add-on Debugger">
 <!ENTITY attachmentColumn2.tooltip "Sort by attachments">
 <!ENTITY buttonMenuForwardAsAttachment.label "Forward As Attachment">
 
@@ -918,6 +897,7 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY columnChooser2.tooltip "Select columns to display">
 <!ENTITY compactVersion.accesskey "C">
 <!ENTITY compactVersion.label "Compact View">
+<!ENTITY contextEditDraftMsg.label "Edit Draft Message">
 <!ENTITY contextEditMsgAsNew.accesskey "E">
 <!ENTITY contextEditMsgAsNew.label "Edit As New Message">
 <!ENTITY contextForwardAsAttachmentItem.accesskey "A">
@@ -926,6 +906,7 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY contextForwardAsInline.label "Inline">
 <!ENTITY contextForwardAsMenu.accesskey "o">
 <!ENTITY contextForwardAsMenu.label "Forward As">
+<!ENTITY contextKillSubthreadMenu.accesskey "b">
 <!ENTITY contextKillSubthreadMenu.label "Ignore Subthread">
 <!ENTITY contextKillThreadMenu.accesskey "I">
 <!ENTITY contextKillThreadMenu.label "Ignore Thread">
@@ -933,16 +914,30 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY contextMultiForwardAsAttachment.label "Forward as Attachments">
 <!ENTITY contextOpenContainingFolder.accesskey "n">
 <!ENTITY contextOpenContainingFolder.label "Open Message in Containing Folder">
+<!-- LOCALIZATION NOTE (contextWatchThreadMenu.accesskey):
+     In the en-US locale we ran out of access keys, so there is an empty access key for
+     Watch Thread. Localizers can pick a suitable key
+  -->
+<!ENTITY contextWatchThreadMenu.accesskey "">
 <!ENTITY contextWatchThreadMenu.label "Watch Thread">
 <!ENTITY correspondentColumn.label "Correspondents">
 <!ENTITY correspondentColumn2.tooltip "Sort by correspondents">
 <!ENTITY dateColumn2.tooltip "Sort by date">
+<!ENTITY devToolboxCmd.accesskey "T">
+<!ENTITY devToolboxCmd.commandkey "i">
+<!ENTITY devToolboxCmd.label "Developer Toolbox">
+<!ENTITY devtoolsMenu.accesskey "e">
+
+<!-- Developer Tools Submenu -->
+<!ENTITY devtoolsMenu.label "Developer Tools">
 
 <!-- Mac OS X Dock Icon pop-up menu -->
 <!ENTITY dockOptions.label              "App Icon Options…">
 <!ENTITY editAsNewMsgCmd.accesskey "E">
 <!ENTITY editAsNewMsgCmd.key "e">
 <!ENTITY editAsNewMsgCmd.label "Edit As New Message">
+<!ENTITY editDraftMsgCmd.accesskey "D">
+<!ENTITY editDraftMsgCmd.label "Edit Draft Message">
 <!ENTITY editRemoteContentSettings.accesskey "E">
 <!ENTITY editRemoteContentSettings.label "Edit remote content options…">
 <!ENTITY editRemoteContentSettingsUnix.accesskey "E">
@@ -955,9 +950,12 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY folderContextProperties2.label "Properties">
 <!ENTITY folderContextSettings2.accesskey "e">
 <!ENTITY folderContextSettings2.label "Settings">
+<!ENTITY folderModeSelector.label "Folder Views">
 
 <!-- Folder Pane -->
 <!ENTITY folderNameColumn.label "Name">
+<!ENTITY folderPaneBar.accesskey "F">
+<!ENTITY folderPaneBar.label "Folder Pane Toolbar">
 <!ENTITY folderPropsCmd2.label "Properties">
 <!ENTITY folderPropsFolderCmd2.label "Folder Properties">
 <!ENTITY folderPropsNewsgroupCmd2.label "Newsgroup Properties">
@@ -969,7 +967,6 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 
 <!-- Mail Toolbar -->
 <!ENTITY getMsgButton1.label "Get Messages">
-<!ENTITY goChatCmd.key "I">
 <!ENTITY idColumn2.tooltip "Sort by order received">
 <!ENTITY junkStatusColumn2.tooltip "Sort by junk status">
 <!ENTITY locationColumn2.tooltip "Sort by location">
@@ -977,12 +974,8 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY newFeedAccountCmd.label "Feed Account…">
 <!ENTITY openAttachmentListCmd.accesskey "h">
 <!ENTITY openAttachmentListCmd.label "Attachments">
-<!ENTITY openFeedMessage1.accesskey "O">
-<!ENTITY openFeedMessage1.label "When Opening Feed Messages">
-<!ENTITY openFeedSummary.accesskey "S">
-<!ENTITY openFeedSummary.label "Open as Summary">
-<!ENTITY openFeedWebPage.accesskey "W">
-<!ENTITY openFeedWebPage.label "Open as Web Page">
+<!ENTITY openConversationButton.label "Conversation">
+<!ENTITY openConversationButton.tooltip "Show conversation of selected message">
 <!ENTITY phishingOptionIgnore.accesskey "n">
 
 <!-- Phishing Button Popup -->
@@ -1002,15 +995,26 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 
 <!-- Remote Content Button Popup -->
 <!ENTITY remoteContentOptionsAllowForMsg.label "Show remote content in this message">
+<!ENTITY scratchpadCmd.accesskey "S">
+
+<!--LOCALIZATION NOTE (scratchpadCmd.keycode):
+    This should be a key code constant as per
+    https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/keyCode#Constants_for_keyCode_value
+    (but without the DOM_ prefix) -->
+<!ENTITY scratchpadCmd.keycode "VK_F4">
+<!--LOCALIZATION NOTE (scratchpadCmd.keytext):
+    This should be the text printed on the key defined in the previous string. -->
+<!ENTITY scratchpadCmd.keytext "F4">
+<!ENTITY scratchpadCmd.label "Scratchpad">
 <!-- LOCALIZATION NOTE (search.label.base1):
-     This is the base of the empty text for the global search box.  We replace
+      This is the base of the empty text for the global search box. We replace
      #1 with the contents of the appropriate search.keyLabel.* value for the
      platform.
      The goal is to convey to the user that typing in the box will allow them
      to search for messages globally and that there is a hotkey they can press
-     to get to the box faster.  If the global indexer is disabled, the search
+     to get to the box faster. If the global indexer is disabled, the search
      box will be collapsed and the user will never see this message.
-     -->
+  -->
 <!ENTITY search.label.base1 "Search #1">
 <!ENTITY settingsOfflineCmd2.accesskey "e">
 <!ENTITY settingsOfflineCmd2.label "Offline Settings">
@@ -1022,6 +1026,8 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY starredColumn2.tooltip "Sort by star">
 <!ENTITY statusColumn2.tooltip "Sort by status">
 <!ENTITY subjectColumn2.tooltip "Sort by subject">
+<!ENTITY tabsDebugCmd.accesskey "C">
+<!ENTITY tabsDebugCmd.label "Content Frame Debugger">
 <!ENTITY tagsColumn2.tooltip "Sort by tags">
 <!ENTITY threadColumn2.tooltip "Display message threads">
 <!ENTITY totalColumn2.tooltip "Total number of messages in thread">

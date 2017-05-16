@@ -4,7 +4,7 @@
 
 <!-- Subscription Dialog -->
 <!ENTITY feedSubscriptions.label     "Підписки на стрічки">
-<!ENTITY learnMore.label             "Learn more about Feeds">
+<!ENTITY learnMore.label             "Докладніше про інформаційні канали">
 
 <!ENTITY feedTitle.label             "Заголовок:">
 <!ENTITY feedTitle.accesskey         "З">
@@ -12,8 +12,8 @@
 <!ENTITY feedLocation.label          "URL стрічки:">
 <!ENTITY feedLocation.accesskey      "U">
 <!ENTITY feedLocation.placeholder    "Введіть дійсну адресу стрічки, котру треба додати">
-<!ENTITY locationValidate.label      "Validate">
-<!ENTITY validateText.label          "Check validation and retrieve a valid url.">
+<!ENTITY locationValidate.label      "Підтвердження">
+<!ENTITY validateText.label          "Перевірте підтвердження і отримайте дійсний URL.">
 
 <!ENTITY feedFolder.label            "Зберігати статті в:">
 <!ENTITY feedFolder.accesskey        "з">
@@ -21,16 +21,16 @@
 <!ENTITY quickMode.label             "Показувати короткий опис статті замість завантаження веб-сторінки">
 <!ENTITY quickMode.accesskey         "к">
 
-<!ENTITY autotagEnable.label         "Automatically create tags from feed &lt;category&gt; names">
-<!ENTITY autotagEnable.accesskey     "c">
+<!ENTITY autotagEnable.label         "Автоматично створювати мітки за назвами &lt;категорій&gt; стрічки новин">
+<!ENTITY autotagEnable.accesskey     "в">
 <!ENTITY autotagUsePrefix.label      "Prefix tags with:">
 <!ENTITY autotagUsePrefix.accesskey  "P">
-<!ENTITY autoTagPrefix.placeholder   "Enter a tag prefix">
+<!ENTITY autoTagPrefix.placeholder   "Введіть префікс мітки">
 
 <!ENTITY button.addFeed.label        "Додати">
 <!ENTITY button.addFeed.accesskey    "Д">
-<!ENTITY button.editFeed.label       "Змінити">
-<!ENTITY button.editFeed.accesskey   "З">
+<!ENTITY button.updateFeed.label     "Оновити">
+<!ENTITY button.updateFeed.accesskey "О">
 <!ENTITY button.removeFeed.label     "Вилучити">
 <!ENTITY button.removeFeed.accesskey "В">
 <!ENTITY button.importOPML.label     "Імпорт">
@@ -40,4 +40,4 @@
 <!ENTITY button.exportOPML.tooltip   "Експортувати стрічки з структурою тек; Ctrl+клаць чи Ctrl+Enter щоб експортувати стрічки як список">
 
 <!ENTITY cmd.close.commandKey        "w">
-<!ENTITY button.close.label          "Close">
+<!ENTITY button.close.label          "Закрити">

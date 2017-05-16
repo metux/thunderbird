@@ -87,3 +87,8 @@
 <!ENTITY todaypane.showTodayPane.label "Näytä tänään-ruutu">
 <!ENTITY todaypane.showTodayPane.accesskey "N">
 <!ENTITY todaypane.statusButton.label "Tänään-ruutu">
+
+<!ENTITY lightning.imipbar.btnDeclineCounter.label                          "Decline">
+<!ENTITY lightning.imipbar.btnDeclineCounter.tooltiptext                    "Decline the counter proposal">
+<!ENTITY lightning.imipbar.btnReschedule.label                              "Reschedule">
+<!ENTITY lightning.imipbar.btnReschedule.tooltiptext                        "Reschedule the event">

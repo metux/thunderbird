@@ -10,7 +10,7 @@
      the same access key (though the two access keys can also be different).
      -->
 <!ENTITY cmd.show.label                            "Deschide dosarul conținător">
-<!ENTITY cmd.show.accesskey                        "d">
+<!ENTITY cmd.show.accesskey                        "F">
 <!ENTITY cmd.showMac.label                         "Arată în Finder">
 <!ENTITY cmd.showMac.accesskey                     "F">
 <!ENTITY cmd.open.label                            "Deschide">
@@ -19,8 +19,6 @@
 <!ENTITY cmd.removeFromHistory.accesskey           "E">
 <!ENTITY cmd.clearList.label                       "Curăță lista">
 <!ENTITY cmd.clearList.accesskey                   "u">
-
+<!ENTITY cmd.clearList.tooltip                     "Elimină toate elementele din lista fișierelor salvate, cu excepția descărcărilor în desfășurare.">
 <!ENTITY cmd.searchDownloads.label                 "Caută…">
 <!ENTITY cmd.searchDownloads.key                   "F">
-
-<!ENTITY cmd.clearList.tooltip                     "Remove all entries from the list of saved files, except ongoing downloads.">

@@ -28,3 +28,5 @@
 <!ENTITY error.noSource2 "Не знойдзены відэя, фармат якіх або тым MIME якіх падтрымліваюцца.">
 <!ENTITY error.generic "Прайграванне відэя аборвана праз невядомую памылку.">
 <!ENTITY scrubberScale.nameFormat "Мінула #1 з #2">
+
+<!ENTITY closedCaption.off "Off">

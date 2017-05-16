@@ -3,6 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 function run_test() {
+    do_calendar_startup(really_run_test);
+}
+
+function really_run_test() {
     // Check that Bug 343792 doesn't regress:
     // Freeze (hang) on RRULE which has INTERVAL=0
 
@@ -50,7 +54,7 @@ function run_test() {
 
     let event = createEventFromIcalString(icalString);
     let start = createDate(2009, 4, 1);
-    let end   = createDate(2009, 4, 30);
+    let end = createDate(2009, 4, 30);
 
     // the following call caused a never ending loop:
     let occurrenceDates = event.recurrenceInfo.getOccurrenceDates(start, end, 0, {});

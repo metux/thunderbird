@@ -13,6 +13,7 @@
 <!ENTITY locationEditField.label "Նկարի տեղադրությունը.">
 <!ENTITY locationEditField.accessKey "տ">
 <!ENTITY locationEditField.tooltip "Նշեք նկարի ֆայլի անունը կամ տեղադրությունը">
+
 <!ENTITY title.label "Հուշում.">
 <!ENTITY title.accessKey "Հ">
 <!ENTITY title.tooltip "Html 'title' հատկությունը, որը ցուցադրվում է հուշման մեջ">
@@ -76,3 +77,5 @@
 <!ENTITY imageDimensionsTab.label "Չափերը">
 <!ENTITY imageAppearanceTab.label "Տեսք">
 <!ENTITY imageLinkTab.label "Հղում">
+
+<!ENTITY locationEditField.shortenedDataURI "Shortened data URI (copy will place the full URI onto the clipboard)">

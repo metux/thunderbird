@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/* exported onLoad, onAccept, onCancel */
+
 Components.utils.import("resource://calendar/modules/calUtils.jsm");
 
 /**
@@ -9,16 +11,16 @@ Components.utils.import("resource://calendar/modules/calUtils.jsm");
  * dialog controls from the window's dates.
  */
 function onLoad() {
-    var args = window.arguments[0];
+    let args = window.arguments[0];
     window.time = args.time;
     window.onAcceptCallback = args.onOk;
 
-    var tzProvider = (args.calendar.getProperty("timezones.provider") ||
-                      cal.getTimezoneService());
+    let tzProvider = args.calendar.getProperty("timezones.provider") ||
+                     cal.getTimezoneService();
     window.tzProvider = tzProvider;
 
-    var menulist = document.getElementById("timezone-menulist");
-    var tzMenuPopup = document.getElementById("timezone-menupopup");
+    let menulist = document.getElementById("timezone-menulist");
+    let tzMenuPopup = document.getElementById("timezone-menupopup");
 
     // floating and UTC (if supported) at the top:
     if (args.calendar.getProperty("capabilities.timezones.floating.supported") !== false) {
@@ -28,25 +30,25 @@ function onLoad() {
         addMenuItem(tzMenuPopup, UTC().displayName, UTC().tzid);
     }
 
-    var enumerator = tzProvider.timezoneIds;
-    var tzids = {};
-    var displayNames = [];
+    let enumerator = tzProvider.timezoneIds;
+    let tzids = {};
+    let displayNames = [];
     while (enumerator.hasMore()) {
-        var tz = tzProvider.getTimezone(enumerator.getNext());
-        if (tz && !tz.isFloating && !tz.isUTC) {
-            var displayName = tz.displayName;
+        let timezone = tzProvider.getTimezone(enumerator.getNext());
+        if (timezone && !timezone.isFloating && !timezone.isUTC) {
+            let displayName = timezone.displayName;
             displayNames.push(displayName);
-            tzids[displayName] = tz.tzid;
+            tzids[displayName] = timezone.tzid;
         }
     }
     // the display names need to be sorted
     displayNames.sort(String.localeCompare);
-    for (var i = 0; i < displayNames.length; ++i) {
-        var displayName = displayNames[i];
+    for (let i = 0; i < displayNames.length; ++i) {
+        let displayName = displayNames[i];
         addMenuItem(tzMenuPopup, displayName, tzids[displayName]);
     }
 
-    var index = findTimezone(window.time.timezone);
+    let index = findTimezone(window.time.timezone);
     if (index < 0) {
         index = findTimezone(calendarDefaultTimezone());
         if (index < 0) {
@@ -54,7 +56,7 @@ function onLoad() {
         }
     }
 
-    var menulist = document.getElementById("timezone-menulist");
+    menulist = document.getElementById("timezone-menulist");
     menulist.selectedIndex = index;
 
     updateTimezone();
@@ -69,11 +71,11 @@ function onLoad() {
  * @return              The index of the childnode below "timezone-menulist"
  */
 function findTimezone(timezone) {
-    var tzid = timezone.tzid;
-    var menulist = document.getElementById("timezone-menulist");
-    var numChilds = menulist.childNodes[0].childNodes.length;
-    for (var i=0; i<numChilds; i++) {
-        var menuitem = menulist.childNodes[0].childNodes[i];
+    let tzid = timezone.tzid;
+    let menulist = document.getElementById("timezone-menulist");
+    let numChilds = menulist.childNodes[0].childNodes.length;
+    for (let i = 0; i < numChilds; i++) {
+        let menuitem = menulist.childNodes[0].childNodes[i];
         if (menuitem.getAttribute("value") == tzid) {
             return i;
         }
@@ -88,7 +90,7 @@ function findTimezone(timezone) {
 function updateTimezone() {
     let menulist = document.getElementById("timezone-menulist");
     let menuitem = menulist.selectedItem;
-    let tz = window.tzProvider.getTimezone(menuitem.getAttribute("value"));
+    let timezone = window.tzProvider.getTimezone(menuitem.getAttribute("value"));
 
     // convert the date/time to the currently selected timezone
     // and display the result in the appropriate control.
@@ -96,16 +98,16 @@ function updateTimezone() {
     // to set the timezone to 'floating' in order to avoid the
     // automatic conversion back into the OS timezone.
     let datetime = document.getElementById("timezone-time");
-    let time = window.time.getInTimezone(tz);
+    let time = window.time.getInTimezone(timezone);
     time.timezone = cal.floating();
     datetime.value = cal.dateTimeToJsDate(time);
 
     // don't highlight any timezone in the map by default
     let standardTZOffset = "none";
-    if (tz.isUTC) {
+    if (timezone.isUTC) {
         standardTZOffset = "+0000";
-    } else if (!tz.isFloating) {
-        let standard = tz.icalComponent.getFirstSubcomponent("STANDARD");
+    } else if (!timezone.isFloating) {
+        let standard = timezone.icalComponent.getFirstSubcomponent("STANDARD");
         // any reason why valueAsIcalString is used instead of plain value? xxx todo: ask mickey
         standardTZOffset = standard.getFirstProperty("TZOFFSETTO").valueAsIcalString;
     }
@@ -119,11 +121,11 @@ function updateTimezone() {
  * @return      Returns true if the window should be closed
  */
 function onAccept() {
-    var menulist = document.getElementById("timezone-menulist");
-    var menuitem = menulist.selectedItem;
-    var timezone = menuitem.getAttribute("value");
-    var tz = window.tzProvider.getTimezone(timezone);
-    var datetime = window.time.getInTimezone(tz);
+    let menulist = document.getElementById("timezone-menulist");
+    let menuitem = menulist.selectedItem;
+    let timezoneString = menuitem.getAttribute("value");
+    let timezone = window.tzProvider.getTimezone(timezoneString);
+    let datetime = window.time.getInTimezone(timezone);
     window.onAcceptCallback(datetime);
     return true;
 }

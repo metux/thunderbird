@@ -21,12 +21,8 @@
 <!ENTITY allow.accesskey              "P">
 <!ENTITY windowClose.key              "W">
 
-<!ENTITY button.close.label           "Fechar">
-<!ENTITY button.close.accesskey       "F">
-
-
+<!ENTITY button.cancel.label          "Cancelar">
 <!ENTITY button.cancel.accesskey      "C">
-
-<!ENTITY button.cancel.label          "Cancel">
+<!ENTITY button.ok.label              "Salvar alterações">
 <!ENTITY button.ok.accesskey          "S">
-<!ENTITY button.ok.label              "Save Changes">
+

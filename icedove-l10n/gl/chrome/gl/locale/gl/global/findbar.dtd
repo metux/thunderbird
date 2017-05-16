@@ -22,6 +22,9 @@
 <!ENTITY caseSensitive.accesskey "c">
 <!ENTITY caseSensitive.label "Match Case">
 <!ENTITY caseSensitive.tooltiptext "Search with case sensitivity">
-<!ENTITY highlightAll.accesskey "a">
+<!ENTITY entireWord.accesskey "w">
+<!ENTITY entireWord.label "Whole Words">
+<!ENTITY entireWord.tooltiptext "Search whole words only">
+<!ENTITY highlightAll.accesskey "l">
 <!ENTITY highlightAll.label "Highlight All">
 <!ENTITY highlightAll.tooltiptext "Highlight all occurrences of the phrase">

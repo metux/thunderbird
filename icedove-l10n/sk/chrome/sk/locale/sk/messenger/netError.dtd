@@ -20,8 +20,8 @@
 <!ENTITY dnsNotFound.longDesc "
 <ul>
   <li>Skontrolujte, či ste nezadali napr.
-    <strong>ww</strong>.priklad.com namiesto
-    <strong>www</strong>.priklad.com</li>
+    <strong>ww</strong>.example.com namiesto
+    <strong>www</strong>.example.com</li>
   <li>Ak sa nedá načítať žiadna stránka, skontrolujte pripojenie počítača k sieti.</li>
   <li>Ak sú počítač alebo sieť chránené bránou firewall alebo serverom proxy, uistite sa, že &brandShortName; má povolený prístup k webu.</li>
 </ul>
@@ -35,6 +35,13 @@
 </ul>
 ">
 
+<!ENTITY fileAccessDenied.title "Prístup k súboru bol zamietnutý">
+<!ENTITY fileAccessDenied.longDesc "
+<ul>
+  <li>Mohol byť odstránený, premiestnený alebo vám v prístupe bránia jeho oprávnenia.</li>
+</ul>
+">
+
 <!ENTITY generic.title "Problém.">
 <!ENTITY generic.longDesc "
 <p>&brandShortName; nedokáže z nejakého dôvodu načítať stránku.</p>
@@ -44,8 +51,9 @@
 <!ENTITY malformedURI.longDesc "
 <ul>
   <li>Webové adresy sú zvyčajne zadávané v tvare
-    <strong>http://www.priklad.com/</strong></li>
-  <li>Skontrolujte, či používate správne lomky (t.j. <strong>/</strong>). </li>
+    <strong>http://www.example.com/</strong></li>
+  <li>Skontrolujte, či používate správne lomky (t.j. 
+    <strong>/</strong>). </li>
 </ul>
 ">
 
@@ -145,31 +153,11 @@
 </ul>
 ">
 
-<!ENTITY malwareBlocked.title "Podozrivá škodlivá stránka!">
-<!ENTITY malwareBlocked.longDesc "
-<p>Škodlivé stránky sa pokúšajú nainštalovať programy, ktoré kradnú súkromné údaje, používajú počítač na útoky na iné počítače alebo poškodzujú systém.</p>
-<p>Vlastníci stránok, ktorí si myslia, že ich stránky boli označené ako škodlivé neprávom, môžu <a href='http://www.stopbadware.org/home/reviewinfo' >požiadať o prehodnotenie</a>.</p>
-">
-
-<!ENTITY unwantedBlocked.title "Podozrivá stránka s nevyžiadaným softvérom!">
-<!ENTITY unwantedBlocked.longDesc "
-<p>Stránky s nevyžiadaným softvérom sa pokúšajú inštalovať softér, ktorý môže byť klamlivý a môže ovplyvňovať rôznymi spôsobmi celý systém.</p>
-">
-
-<!ENTITY phishingBlocked.title "Podozrivá stránka!">
-<!ENTITY phishingBlocked.longDesc "
-<p>Ak na tejto stránke zadáte nejaké osobné údaje, môžu byť použité na krádež identity alebo inak zneužité.</p>
-<p>Tieto typy falošných stránok sa používajú na podvody, pri ktorých sa kombináciou webovej stránky a e-mailových správ napodobňujú dôveryhodné zdroje.</p>
-">
-
-<!ENTITY forbiddenBlocked.title "Zakázaná stránka">
-<!ENTITY forbiddenBlocked.longDesc "<p>Aplikácia &brandShortName; zabránila v načítaní tejto stránky, pretože je nastavené jej blokovanie.</p>">
-
 <!ENTITY cspBlocked.title "Blokované kvôli zásadám ochrany obsahu">
 <!ENTITY cspBlocked.longDesc "<p>Program &brandShortName; nepovolil načítanie stránky týmto spôsobom, pretože stránka obsahuje zásady ochrany obsahu, ktoré takéto načítanie neumožňujú.</p>">
 
-<!ENTITY corruptedContentError.title "Poškodený obsah">
-<!ENTITY corruptedContentError.longDesc "<p>Tento obsah nemohol byť zobrazený kvôli chybe pri prenose údajov.</p><ul><li>Kontaktuje poskytovateľa obsahu a informujte ho o tomto probléme.</li></ul>">
+<!ENTITY corruptedContentErrorv2.title "Poškodený obsah">
+<!ENTITY corruptedContentErrorv2.longDesc "<p>Požadovanú stránku nemožno zobraziť, pretože pri prenose údajov došlo k chybe.</p><ul><li>Kontaktujte prosím vlastníkov webového servera a informujte ich o tomto probléme.</li></ul>">
 
 <!ENTITY securityOverride.linkText "Alebo môžete pridať výnimku…">
 <!ENTITY securityOverride.getMeOutOfHereButton "Rýchlo odtiaľto preč!">
@@ -189,3 +177,8 @@ functionality specific to thunderbird. -->
 
 <!ENTITY remoteXUL.title "Vzdialené XUL">
 <!ENTITY remoteXUL.longDesc "<p><ul><li>Kontaktujte správcu webovej stránky a informujte ho o tomto probléme.</li></ul></p>">
+
+<!ENTITY inadequateSecurityError.title "Vaše pripojenie nie je zabezpečené">
+<!-- LOCALIZATION NOTE (inadequateSecurityError.longDesc) - Do not translate
+     "NS_ERROR_NET_INADEQUATE_SECURITY". -->
+<!ENTITY inadequateSecurityError.longDesc "<p><span class='hostname'></span> využíva technológiu zabezpečenia, ktorá je zastaraná a zraniteľná voči útokom. Útočník by mohol jednoducho odhaliť informácie, o ktorých ste si mysleli, že sú v bezpečí. Správca webovej stránky ju bude musieť pred jej ďalšou návštevou opraviť.</p><p>Kód chyby: NS_ERROR_NET_INADEQUATE_SECURITY</p>">

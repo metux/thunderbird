@@ -1,3 +1,7 @@
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+
 <!ENTITY itemGeneral.label       "සාමාන්‍ය">
 <!ENTITY itemDisplay.label       "කියවීම සහ පෙන්වීම">
 <!ENTITY itemUpdate.label        "යාවත්කාලීන">
@@ -22,7 +26,6 @@
 <!ENTITY searchIntegration.accesskey   "S">
 <!ENTITY alwaysCheckDefault.label       "සෑමවිටම ආරම්භයේදී, තණ්ඩබර්ඩ් පෙරනිමි වි.තැ. යෙදුමදැයි (default mail client) පරීක්ෂා කරන්න">
 <!ENTITY alwaysCheckDefault.accesskey  "l">
-<!ENTITY checkNow.accesskey            "N">
 <!ENTITY showCondensedAddresses.label  "මගේ ලිපින පොතේ අඩංගු අයගේ පෙන්වන නම පමණක් ප්‍රදර්ශණය කරන්න">
 <!ENTITY showCondensedAddresses.accesskey "p">
 
@@ -60,7 +63,8 @@
 <!ENTITY enableAppUpdate.accesskey      "h">
 <!ENTITY enableAddonsUpdate.label       "ස්ථාපනය කළ එක්-කිරීම්">
 <!ENTITY enableAddonsUpdate.accesskey   "t">
-<!ENTITY checkNow.label                 "දැන් පරීක්ෂා කරන්න...">
+<!ENTITY checkDefaultsNow.label        "දැන් පරීක්ෂා කරන්න…">
+<!ENTITY checkDefaultsNow.accesskey    "N">
 <!ENTITY whenUpdatesFound.label         "&brandShortName; සඳහා යාවත්කාලීන කිරීම් හමු වූ විට,">
 <!ENTITY modeAskMe.label                "මට කිරීමට අවශ්‍ය කුමක්ද යන්න විමසන්න">
 <!ENTITY modeAskMe.accesskey            "k">
@@ -116,8 +120,6 @@
 
 <!ENTITY allowHWAccel.accesskey        "h">
 <!ENTITY allowHWAccel.label            "Use hardware acceleration when available">
-<!ENTITY checkDefaultsNow.accesskey    "N">
-<!ENTITY checkDefaultsNow.label        "Check Now…">
 <!ENTITY crashReporterDesc.label         "&brandShortName; submits crash reports to help &vendorShortName; make your e-mail client more stable and secure">
 <!ENTITY crashReporterLearnMore.label    "Learn More">
 
@@ -130,6 +132,9 @@
 <!ENTITY enableTelemetry.accesskey       "T">
 <!ENTITY enableTelemetry.label           "Enable Telemetry">
 <!ENTITY maildirStore.label            "File per message (maildir)">
+<!ENTITY manageCertificates.accesskey "M">
+
+<!ENTITY manageCertificates.label "Manage Certificates">
 <!ENTITY mboxStore2.label              "File per folder (mbox)">
 <!ENTITY storeType.accesskey           "T">
 <!ENTITY storeType.label               "Message Store Type for new accounts:">
@@ -143,8 +148,6 @@
 <!ENTITY updateApp.label                 "&brandShortName; updates:">
 <!ENTITY updateAuto.accesskey            "A">
 <!ENTITY updateAuto.label                "Automatically install updates (recommended: improved security)">
-<!ENTITY updateAutoAddonWarn.accesskey   "W">
-<!ENTITY updateAutoAddonWarn.label       "Warn me if this will disable any of my add-ons">
 <!ENTITY updateCheck.accesskey           "C">
 <!ENTITY updateCheck.label               "Check for updates, but let me choose whether to install them">
 <!ENTITY updateHistory.accesskey         "p">

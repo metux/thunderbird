@@ -26,7 +26,12 @@
 <!ENTITY signingCert.message "استخدم هذه الشهادة لتوقيع الرسائل التي ترسلها رقميًا:">
 
 <!ENTITY certificates.label "الشّهادات">
-<!ENTITY manageCerts.label "اعرض الشهادات">
-<!ENTITY manageCerts.accesskey "ع">
+<!ENTITY manageCerts2.label "أدِر الشّهادات">
+<!ENTITY manageCerts2.accesskey "ش">
 <!ENTITY manageDevices.label "أجهزة الأمن">
 <!ENTITY manageDevices.accesskey "ج">
+<!-- Strings for the cert picker dialog -->
+
+<!ENTITY certPicker.title "اختر شهادة">
+<!ENTITY certPicker.info  "الشهادة:">
+<!ENTITY certPicker.detailsLabel "تفاصيل الشّهادة المختارة:">

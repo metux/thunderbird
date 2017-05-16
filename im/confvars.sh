@@ -8,11 +8,9 @@ MOZ_APP_NAME=instantbird
 MOZ_APP_STATIC_INI=1
 MOZ_XUL_APP=1
 MOZ_ENABLE_LIBXUL=1
-MOZ_CHROME_FILE_FORMAT=omni
 MOZ_DISABLE_EXPORT_JS=1
 MOZ_UPDATER=1
 MOZ_MATHML=
-MOZ_MEDIA_NAVIGATOR=1
 MOZ_BINARY_EXTENSIONS=1
 
 MOZ_APP_VERSION_TXT=${_topsrcdir}/$MOZ_BUILD_APP/config/version.txt
@@ -24,6 +22,6 @@ MOZ_OFFICIAL_BRANDING_DIRECTORY=other-licenses/branding/instantbird
 MOZ_APP_ID={33cb9019-c295-46dd-be21-8c4936574bee}
 # Enable generational GC on desktop.
 JSGC_GENERATIONAL=1
-if test "$OS_TARGET" = "WINNT"; then
-  NSS_EXTRA_SYMBOLS_FILE=../../../../chat/nss-purple.def
-fi
+NSS_EXTRA_SYMBOLS_FILE=../../../../chat/nss-purple.symbols
+
+MOZ_DEVTOOLS=all

@@ -302,7 +302,7 @@ getAtomAttr(txStylesheetAttr* aAttributes,
         return rv;
     }
 
-    *aAtom = NS_NewAtom(attr->mValue).take();
+    *aAtom = NS_Atomize(attr->mValue).take();
     NS_ENSURE_TRUE(*aAtom, NS_ERROR_OUT_OF_MEMORY);
 
     return NS_OK;
@@ -1312,8 +1312,7 @@ txFnText(const nsAString& aStr, txStylesheetCompilerState& aState)
 /*
   xsl:apply-imports
 
-  txApplyImportsStart
-  txApplyImportsEnd
+  txApplyImports
 */
 static nsresult
 txFnStartApplyImports(int32_t aNamespaceID,
@@ -1325,11 +1324,7 @@ txFnStartApplyImports(int32_t aNamespaceID,
 {
     nsresult rv = NS_OK;
 
-    nsAutoPtr<txInstruction> instr(new txApplyImportsStart);
-    rv = aState.addInstruction(Move(instr));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    instr = new txApplyImportsEnd;
+    nsAutoPtr<txInstruction> instr(new txApplyImports);
     rv = aState.addInstruction(Move(instr));
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -2859,7 +2854,7 @@ txHandlerTable::init(const txElementHandler* aHandlers, uint32_t aCount)
 
     uint32_t i;
     for (i = 0; i < aCount; ++i) {
-        nsCOMPtr<nsIAtom> nameAtom = do_GetAtom(aHandlers->mLocalName);
+        nsCOMPtr<nsIAtom> nameAtom = NS_Atomize(aHandlers->mLocalName);
         txExpandedName name(aHandlers->mNamespaceID, nameAtom);
         rv = mHandlers.add(name, aHandlers);
         NS_ENSURE_SUCCESS(rv, rv);

@@ -1,42 +1,43 @@
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+
 <!-- Subscription Dialog -->
-<!ENTITY feedSubscriptions.label "Претплате на доводе вести">
-<!ENTITY subscriptionDesc.label "Примедба: Уклањање или промена директоријума за довод неће утицати на претходно примљене чланке.">
-<!ENTITY feedTitle.label "Титула:">
-<!ENTITY location.label  "Место:">
+<!ENTITY feedSubscriptions.label     "Претплате на доводе">
+<!ENTITY learnMore.label             "Сазнајте више о доводима">
 
-<!ENTITY button.addFeed.label       "Додај">
-<!ENTITY button.addFeed.accesskey   "Д">
-<!ENTITY button.editFeed.label      "Уреди">
-<!ENTITY button.editFeed.accesskey  "У">
-<!ENTITY button.removeFeed.label "Уклони">
-<!ENTITY button.removeFeed.accesskey   "У">
-<!ENTITY button.importOPML.label "Увоз">
-<!ENTITY button.importOPML.accesskey   "У">
-<!ENTITY button.exportOPML.label "Извоз">
-<!ENTITY button.exportOPML.accesskey   "И">
+<!ENTITY feedTitle.label             "Наслов:">
+<!ENTITY feedTitle.accesskey         "Н">
 
-<!ENTITY cmd.close.commandKey             "w">
-
-
-<!ENTITY autoTagPrefix.placeholder   "Enter a tag prefix">
-<!ENTITY autotagEnable.accesskey     "c">
-
-<!ENTITY autotagEnable.label         "Automatically create tags from feed &lt;category&gt; names">
-<!ENTITY autotagUsePrefix.accesskey  "P">
-<!ENTITY autotagUsePrefix.label      "Prefix tags with:">
-<!ENTITY button.close.label          "Close">
-<!ENTITY button.exportOPML.tooltip   "Export Feeds with folder structure; ctrl click or ctrl enter to export Feeds as a list">
-<!ENTITY feedFolder.accesskey        "S">
-
-<!ENTITY feedFolder.label            "Store Articles in:">
+<!ENTITY feedLocation.label          "URL довода:">
 <!ENTITY feedLocation.accesskey      "U">
+<!ENTITY feedLocation.placeholder    "Унесите исправну адресу довода да бисте додали">
+<!ENTITY locationValidate.label      "Провери исправност">
+<!ENTITY validateText.label          "Провери исправност и добави исправан урл.">
 
-<!ENTITY feedLocation.label          "Feed URL:">
-<!ENTITY feedLocation.placeholder    "Enter a valid feed url to Add">
-<!ENTITY feedTitle.accesskey         "T">
-<!ENTITY learnMore.label             "Learn more about Feeds">
-<!ENTITY locationValidate.label      "Validate">
-<!ENTITY quickMode.accesskey         "h">
+<!ENTITY feedFolder.label            "Складишти чланке у:">
+<!ENTITY feedFolder.accesskey        "С">
 
-<!ENTITY quickMode.label             "Show the article summary instead of loading the web page">
-<!ENTITY validateText.label          "Check validation and retrieve a valid url.">
+<!ENTITY quickMode.label             "Прикажи резиме чланка уместо учитавања веб странице">
+<!ENTITY quickMode.accesskey         "р">
+
+<!ENTITY autotagEnable.label         "Аутоматски направи ознаке из имена &lt;категорија&gt; унутар довода">
+<!ENTITY autotagEnable.accesskey     "к">
+<!ENTITY autotagUsePrefix.label      "Префиксуј ознаке са:">
+<!ENTITY autotagUsePrefix.accesskey  "П">
+<!ENTITY autoTagPrefix.placeholder   "Унесите префикс ознаке">
+
+<!ENTITY button.addFeed.label        "Додај">
+<!ENTITY button.addFeed.accesskey    "Д">
+<!ENTITY button.updateFeed.label     "Ажурирај">
+<!ENTITY button.updateFeed.accesskey "j">
+<!ENTITY button.removeFeed.label     "Уклони">
+<!ENTITY button.removeFeed.accesskey "У">
+<!ENTITY button.importOPML.label     "Увези">
+<!ENTITY button.importOPML.accesskey "и">
+<!ENTITY button.exportOPML.label     "Извези">
+<!ENTITY button.exportOPML.accesskey "з">
+<!ENTITY button.exportOPML.tooltip   "Извези доводе задржавајући структуру фасцикле. Кликните док држите ctrl тастер или притисните ctrl+enter да бисте извезли доводе као списак">
+
+<!ENTITY cmd.close.commandKey        "w">
+<!ENTITY button.close.label          "Затвори">

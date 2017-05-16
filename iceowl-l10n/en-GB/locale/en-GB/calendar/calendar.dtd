@@ -149,7 +149,7 @@
 <!ENTITY calendar.task.complete.button.tooltip  "Mark selected tasks completed">
 <!ENTITY calendar.task.priority.button.tooltip  "Change the priority">
 
-<!ENTITY calendar.task.text-filter.textbox.emptytext.base            "Filter tasks… #1">
+<!ENTITY calendar.task.text-filter.textbox.emptytext.base1           "Filter tasks #1">
 <!ENTITY calendar.task.text-filter.textbox.emptytext.keylabel.nonmac "&lt;Ctrl+Shift+K&gt;">
 <!ENTITY calendar.task.text-filter.textbox.emptytext.keylabel.mac    "&lt;&#x21E7;&#x2318;K&gt;">
 
@@ -236,7 +236,7 @@
 <!ENTITY calendar.context.deleteserver2.accesskey      "D">
 
 <!-- LOCALIZATION NOTE (calendar.context.removeserver.label): Removing the
-           calendar is the general action of removing it, while deleting means to
+      calendar is the general action of removing it, while deleting means to
       clear the data and unsubscribing means just taking it out of the calendar
       list. -->
 <!ENTITY calendar.context.removeserver.label           "Remove Calendar…">
@@ -252,9 +252,13 @@
 <!ENTITY calendar.context.properties.label             "Properties">
 <!ENTITY calendar.context.properties.accesskey         "P">
 
-<!-- LOCALIZATION NOTE (calendar.context.togglevisible.accesskey)
+<!-- LOCALIZATION NOTE (calendar.context.showcalendar.accesskey)
      This is the access key used for the showCalendar string -->
-<!ENTITY calendar.context.togglevisible.accesskey      "H">
+<!ENTITY calendar.context.showcalendar.accesskey      "h">
+
+<!-- LOCALIZATION NOTE (calendar.context.hidecalendar.accesskey)
+     This is the access key used for the hideCalendar string -->
+<!ENTITY calendar.context.hidecalendar.accesskey      "H">
 
 <!-- LOCALIZATION NOTE (calendar.context.showonly.accesskey)
      This is the access key used for the showOnlyCalendar string -->
@@ -368,14 +372,3 @@
 <!ENTITY calendar.extract.task.button          "Add as task">
 <!ENTITY calendar.extract.event.button.tooltip "Extract calendaring information from the message and add it to your calendar as an event">
 <!ENTITY calendar.extract.task.button.tooltip  "Extract calendaring information from the message and add it to your calendar as a task">
-
-
-<!-- LOCALIZATION NOTE (calendar.context.hidecalendar.accesskey)
-     This is the access key used for the hideCalendar string -->
-<!ENTITY calendar.context.hidecalendar.accesskey      "H">
-
-<!-- LOCALIZATION NOTE (calendar.context.showcalendar.accesskey)
-     This is the access key used for the showCalendar string -->
-<!ENTITY calendar.context.showcalendar.accesskey      "h">
-
-<!ENTITY calendar.task.text-filter.textbox.emptytext.base1           "Filter tasks #1">

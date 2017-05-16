@@ -4,12 +4,12 @@ locale branding nb-NO nb-NO/locale/nb-NO/branding/
 locale chat nb-NO nb-NO/locale/nb-NO/chat/
 locale communicator nb-NO nb-NO/locale/nb-NO/communicator/
 locale cookie nb-NO nb-NO/locale/nb-NO/cookie/
+locale devtools nb-NO nb-NO/locale/nb-NO/devtools/client/
 locale devtools-shared nb-NO nb-NO/locale/nb-NO/devtools/shared/
 locale editor nb-NO nb-NO/locale/nb-NO/editor/
 locale formautofill nb-NO nb-NO/locale/nb-NO/formautofill/
 locale global nb-NO nb-NO/locale/nb-NO/global/
 locale global-platform nb-NO nb-NO/locale/nb-NO/global-platform/
-locale global-region nb-NO nb-NO/locale/nb-NO/global-region/
 locale messenger nb-NO nb-NO/locale/nb-NO/messenger/
 locale messenger-mapi nb-NO nb-NO/locale/nb-NO/messenger-mapi/
 locale messenger-newsblog nb-NO nb-NO/locale/nb-NO/messenger-newsblog/

@@ -184,7 +184,7 @@ var PlacesUIUtils = {
         aData.children.forEach(function(aChild) {
           transactions.push(
             new PlacesTagURITransaction(PlacesUtils._uri(aChild.uri),
-                                        [aData.title])          
+                                        [aData.title])
           );
         });
       }
@@ -1069,7 +1069,7 @@ var PlacesUIUtils = {
           concreteId: PlacesUtils.bookmarksMenuFolderId },
       "UnfiledBookmarks":
         { title: null,
-          concreteTitle: PlacesUtils.getString("UnsortedBookmarksFolderTitle"),
+          concreteTitle: PlacesUtils.getString("OtherBookmarksFolderTitle"),
           concreteId: PlacesUtils.unfiledBookmarksFolderId },
     };
     // All queries but PlacesRoot.

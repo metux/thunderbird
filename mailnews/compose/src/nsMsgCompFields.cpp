@@ -3,6 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "nsMsgCompose.h"
 #include "nsMsgCompFields.h"
 #include "nsMsgI18N.h"
 #include "nsMsgCompUtils.h"
@@ -36,8 +37,8 @@ static HeaderInfo kHeaders[] = {
   { "To", true },
   { "Cc", true },
   { "Bcc", true },
-  { nullptr, false },
-  { nullptr, false },
+  { nullptr, false }, // FCC
+  { nullptr, false }, // FCC2
   { "Newsgroups", true },
   { "Followup-To", true },
   { "Subject", false },
@@ -45,10 +46,12 @@ static HeaderInfo kHeaders[] = {
   { "References", true },
   { "X-Mozilla-News-Host", false },
   { "X-Priority", false },
-  { nullptr, false },
+  { nullptr, false }, // CHARACTER_SET
   { "Message-Id", true },
   { "X-Template", true },
-  { nullptr, false }
+  { nullptr, false }, // DRAFT_ID
+  { "Content-Language", true },
+  { nullptr, false } // CREATOR IDENTITY KEY
 };
 
 static_assert(MOZ_ARRAY_LENGTH(kHeaders) ==
@@ -73,6 +76,7 @@ nsMsgCompFields::nsMsgCompFields()
   m_forceMsgEncoding = false;
   m_needToCheckCharset = true;
   m_attachmentReminder = false;
+  m_deliveryFormat = nsIMsgCompSendFormat::AskUser;
 
   // Get the default charset from pref, use this as a mail charset.
   nsString charset;
@@ -248,6 +252,18 @@ NS_IMETHODIMP nsMsgCompFields::GetHasRecipients(bool *_retval)
   return NS_OK;
 }
 
+NS_IMETHODIMP nsMsgCompFields::SetCreatorIdentityKey(const char *value)
+{
+  return SetAsciiHeader(MSG_CREATOR_IDENTITY_KEY_ID, value);
+}
+
+NS_IMETHODIMP nsMsgCompFields::GetCreatorIdentityKey(char **_retval)
+{
+  NS_ENSURE_ARG_POINTER(_retval);
+  *_retval = strdup(GetAsciiHeader(MSG_CREATOR_IDENTITY_KEY_ID));
+  return *_retval ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
+}
+
 NS_IMETHODIMP nsMsgCompFields::SetSubject(const nsAString &value)
 {
   return SetUnicodeHeader(MSG_SUBJECT_HEADER_ID, value);
@@ -403,6 +419,41 @@ NS_IMETHODIMP nsMsgCompFields::SetAttachmentReminder(bool value)
 {
   m_attachmentReminder = value;
   return NS_OK;
+}
+
+NS_IMETHODIMP nsMsgCompFields::SetDeliveryFormat(int32_t value)
+{
+  switch (value) {
+    case nsIMsgCompSendFormat::AskUser:
+    case nsIMsgCompSendFormat::PlainText:
+    case nsIMsgCompSendFormat::HTML:
+    case nsIMsgCompSendFormat::Both:
+      m_deliveryFormat = value;
+      break;
+    default:
+      m_deliveryFormat = nsIMsgCompSendFormat::AskUser;
+  }
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsMsgCompFields::GetDeliveryFormat(int32_t *_retval)
+{
+  NS_ENSURE_ARG_POINTER(_retval);
+  *_retval = m_deliveryFormat;
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsMsgCompFields::SetContentLanguage(const char *value)
+{
+  return SetAsciiHeader(MSG_CONTENT_LANGUAGE_ID, value);
+}
+
+NS_IMETHODIMP nsMsgCompFields::GetContentLanguage(char **_retval)
+{
+  NS_ENSURE_ARG_POINTER(_retval);
+  *_retval = strdup(GetAsciiHeader(MSG_CONTENT_LANGUAGE_ID));
+  return *_retval ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
 }
 
 NS_IMETHODIMP nsMsgCompFields::SetForcePlainText(bool value)

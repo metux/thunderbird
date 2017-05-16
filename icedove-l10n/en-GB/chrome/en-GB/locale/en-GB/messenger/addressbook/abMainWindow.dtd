@@ -139,6 +139,8 @@ because displayed names don't have the comma in between. -->
 <!ENTITY newmsgButton.accesskey                         "W">
 <!ENTITY newIM.label                                    "Instant Message">
 <!ENTITY newIM.accesskey                                "I">
+<!ENTITY printButton.label                              "Print…">
+<!ENTITY printButton.accesskey                          "r">
 <!ENTITY deleteButton2.label                            "Delete">
 <!ENTITY deleteButton2.accesskey                        "D">
 
@@ -221,5 +223,24 @@ because displayed names don't have the comma in between. -->
 <!ENTITY bringAllToFront.label "Bring All to Front">
 <!ENTITY zoomWindow.label "Zoom">
 
-<!ENTITY printButton.accesskey                          "r">
-<!ENTITY printButton.label                              "Print…">
+<!ENTITY abPropertiesContext.accesskey                  "i">
+<!ENTITY abPropertiesContext.label                      "Properties">
+<!ENTITY abPropertiesMenu.accesskey                     "i">
+<!ENTITY abPropertiesMenu.label                         "Address Book Properties">
+<!ENTITY contactPropertiesMenu.accesskey                "i">
+<!ENTITY contactPropertiesMenu.label                    "Contact Properties">
+<!ENTITY editAbPropertiesButton.tooltip                 "Edit the properties of the selected address book">
+<!ENTITY editContactContext.accesskey                   "E">
+<!ENTITY editContactContext.label                       "Edit Contact">
+<!ENTITY editContactPropertiesButton.tooltip            "Edit the selected contact">
+<!ENTITY editMailingListContext.accesskey               "E">
+<!ENTITY editMailingListContext.label                   "Edit List">
+<!ENTITY editMailingListPropertiesButton.tooltip        "Edit the selected mailing list">
+<!ENTITY editPropertiesButton.label                     "Edit">
+<!ENTITY editPropertiesButton.tooltip                   "Edit the selected item">
+<!ENTITY mailingListPropertiesMenu.accesskey            "i">
+<!ENTITY mailingListPropertiesMenu.label                "Mailing List Properties">
+<!ENTITY propertiesContext.accesskey                    "i">
+<!ENTITY propertiesContext.label                        "Properties">
+<!ENTITY propertiesMenu.accesskey                       "i">
+<!ENTITY propertiesMenu.label                           "Properties">

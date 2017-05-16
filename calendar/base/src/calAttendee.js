@@ -32,12 +32,12 @@ calAttendee.prototype = {
         }
     },
 
-    makeImmutable : function() {
+    makeImmutable: function() {
         this.mImmutable = true;
     },
 
     clone: function() {
-        var a = new calAttendee();
+        let a = new calAttendee();
 
         if (this.mIsOrganizer) {
             a.isOrganizer = true;
@@ -45,11 +45,11 @@ calAttendee.prototype = {
 
         const allProps = ["id", "commonName", "rsvp", "role",
                           "participationStatus", "userType"];
-        for each (let prop in allProps) {
+        for (let prop of allProps) {
             a[prop] = this[prop];
         }
 
-        for each (let [key, value] in this.mProperties) {
+        for (let [key, value] of this.mProperties) {
             a.setProperty(key, value);
         }
 
@@ -58,24 +58,25 @@ calAttendee.prototype = {
     // XXX enforce legal values for our properties;
 
     icalAttendeePropMap: [
-    { cal: "rsvp",                ics: "RSVP" },
-    { cal: "commonName",          ics: "CN" },
-    { cal: "participationStatus", ics: "PARTSTAT" },
-    { cal: "userType",            ics: "CUTYPE" },
-    { cal: "role",                ics: "ROLE" } ],
+        { cal: "rsvp", ics: "RSVP" },
+        { cal: "commonName", ics: "CN" },
+        { cal: "participationStatus", ics: "PARTSTAT" },
+        { cal: "userType", ics: "CUTYPE" },
+        { cal: "role", ics: "ROLE" }
+    ],
 
     mIsOrganizer: false,
     get isOrganizer() { return this.mIsOrganizer; },
     set isOrganizer(bool) { this.mIsOrganizer = bool; },
 
     // icalatt is a calIcalProperty of type attendee
-    set icalProperty (icalatt) {
+    set icalProperty(icalatt) {
         this.modify();
         this.id = icalatt.valueAsIcalString;
         this.mIsOrganizer = (icalatt.propertyName == "ORGANIZER");
 
         let promotedProps = { };
-        for each (let prop in this.icalAttendeePropMap) {
+        for (let prop of this.icalAttendeePropMap) {
             this[prop.cal] = icalatt.getParameter(prop.ics);
             // Don't copy these to the property bag.
             promotedProps[prop.ics] = true;
@@ -85,7 +86,7 @@ calAttendee.prototype = {
         // from the ical property.
         this.mProperties = new calPropertyBag();
 
-        for each (let [name, value] in cal.ical.paramIterator(icalatt)) {
+        for (let [name, value] of cal.ical.paramIterator(icalatt)) {
             if (!promotedProps[name]) {
                 this.setProperty(name, value);
             }
@@ -93,37 +94,45 @@ calAttendee.prototype = {
     },
 
     get icalProperty() {
-        var icssvc = cal.getIcsService();
-        var icalatt;
-        if (!this.mIsOrganizer) {
-            icalatt = icssvc.createIcalProperty("ATTENDEE");
-        } else {
+        let icssvc = cal.getIcsService();
+        let icalatt;
+        if (this.mIsOrganizer) {
             icalatt = icssvc.createIcalProperty("ORGANIZER");
+        } else {
+            icalatt = icssvc.createIcalProperty("ATTENDEE");
         }
 
         if (!this.id) {
             throw Components.results.NS_ERROR_NOT_INITIALIZED;
         }
         icalatt.valueAsIcalString = this.id;
-        for (var i = 0; i < this.icalAttendeePropMap.length; i++) {
-            var prop = this.icalAttendeePropMap[i];
+        for (let i = 0; i < this.icalAttendeePropMap.length; i++) {
+            let prop = this.icalAttendeePropMap[i];
             if (this[prop.cal]) {
                 try {
                     icalatt.setParameter(prop.ics, this[prop.cal]);
-                } catch (e if e.result == Components.results.NS_ERROR_ILLEGAL_VALUE) {
-                    // Illegal values should be ignored, but we could log them if
-                    // the user has enabled logging.
-                    cal.LOG("Warning: Invalid attendee parameter value " + prop.ics + "=" + this[prop.cal]);
+                } catch (e) {
+                    if (e.result == Components.results.NS_ERROR_ILLEGAL_VALUE) {
+                        // Illegal values should be ignored, but we could log them if
+                        // the user has enabled logging.
+                        cal.LOG("Warning: Invalid attendee parameter value " + prop.ics + "=" + this[prop.cal]);
+                    } else {
+                        throw e;
+                    }
                 }
             }
         }
-        for each (let [key, value] in this.mProperties) {
+        for (let [key, value] of this.mProperties) {
             try {
                 icalatt.setParameter(key, value);
-            } catch (e if e.result == Components.results.NS_ERROR_ILLEGAL_VALUE) {
-                // Illegal values should be ignored, but we could log them if
-                // the user has enabled logging.
-                cal.LOG("Warning: Invalid attendee parameter value " + key + "=" + value);
+            } catch (e) {
+                if (e.result == Components.results.NS_ERROR_ILLEGAL_VALUE) {
+                    // Illegal values should be ignored, but we could log them if
+                    // the user has enabled logging.
+                    cal.LOG("Warning: Invalid attendee parameter value " + key + "=" + value);
+                } else {
+                    throw e;
+                }
             }
         }
         return icalatt;
@@ -145,10 +154,10 @@ calAttendee.prototype = {
     get propertyEnumerator() { return this.mProperties.enumerator; },
 
     // The has/get/set/deleteProperty methods are case-insensitive.
-    getProperty: function (aName) {
+    getProperty: function(aName) {
         return this.mProperties.getProperty(aName.toUpperCase());
     },
-    setProperty: function (aName, aValue) {
+    setProperty: function(aName, aValue) {
         this.modify();
         if (aValue || !isNaN(parseInt(aValue, 10))) {
             this.mProperties.setProperty(aName.toUpperCase(), aValue);
@@ -156,11 +165,12 @@ calAttendee.prototype = {
             this.mProperties.deleteProperty(aName.toUpperCase());
         }
     },
-    deleteProperty: function (aName) {
+    deleteProperty: function(aName) {
         this.modify();
         this.mProperties.deleteProperty(aName.toUpperCase());
     },
 
+    mId: null,
     get id() {
         return this.mId;
     },
@@ -171,7 +181,7 @@ calAttendee.prototype = {
         return (this.mId = (aId ? cal.prependMailTo(aId) : null));
     },
 
-    toString: function calAttendee_toString() {
+    toString: function() {
         const emailRE = new RegExp("^mailto:", "i");
         let stringRep = (this.id || "").replace(emailRE, "");
         let commonName = this.commonName;

@@ -4,12 +4,12 @@ locale branding eu eu/locale/eu/branding/
 locale chat eu eu/locale/eu/chat/
 locale communicator eu eu/locale/eu/communicator/
 locale cookie eu eu/locale/eu/cookie/
+locale devtools eu eu/locale/eu/devtools/client/
 locale devtools-shared eu eu/locale/eu/devtools/shared/
 locale editor eu eu/locale/eu/editor/
 locale formautofill eu eu/locale/eu/formautofill/
 locale global eu eu/locale/eu/global/
 locale global-platform eu eu/locale/eu/global-platform/
-locale global-region eu eu/locale/eu/global-region/
 locale messenger eu eu/locale/eu/messenger/
 locale messenger-mapi eu eu/locale/eu/messenger-mapi/
 locale messenger-newsblog eu eu/locale/eu/messenger-newsblog/

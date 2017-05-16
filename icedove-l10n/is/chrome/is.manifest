@@ -4,12 +4,12 @@ locale branding is is/locale/is/branding/
 locale chat is is/locale/is/chat/
 locale communicator is is/locale/is/communicator/
 locale cookie is is/locale/is/cookie/
+locale devtools is is/locale/is/devtools/client/
 locale devtools-shared is is/locale/is/devtools/shared/
 locale editor is is/locale/is/editor/
 locale formautofill is is/locale/is/formautofill/
 locale global is is/locale/is/global/
 locale global-platform is is/locale/is/global-platform/
-locale global-region is is/locale/is/global-region/
 locale messenger is is/locale/is/messenger/
 locale messenger-mapi is is/locale/is/messenger-mapi/
 locale messenger-newsblog is is/locale/is/messenger-newsblog/

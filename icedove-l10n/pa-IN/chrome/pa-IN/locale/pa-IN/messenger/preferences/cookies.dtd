@@ -26,3 +26,5 @@
 <!ENTITY button.close.label                "ਬੰਦ ਕਰੋ">
 <!ENTITY button.close.accesskey            "C">
 
+
+<!ENTITY props.container.label             "Container:">

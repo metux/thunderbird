@@ -877,11 +877,13 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY accountColumn2.tooltip "Sort by account">
 <!ENTITY accountManagerCmd2.accesskey "S">
 <!ENTITY accountManagerCmd2.label "Account Settings">
-<!-- LOCALIZATION NOTE (accountManagerCmdUnix2.accesskey): belongs to accountManagerCmd2.label,
-        which is placed under the Edit menu on Unix systems -->
+<!-- LOCALIZATION NOTE (accountManagerCmdUnix.accesskey):
+     Belongs to accountManagerCmd.label, which is placed under the Edit menu
+     on Unix systems
+  -->
 <!ENTITY accountManagerCmdUnix2.accesskey "A">
-<!ENTITY allowRemoteDebugging.accesskey "g">
-<!ENTITY allowRemoteDebugging.label "Allow Remote Debugging">
+<!ENTITY addonDebugCmd.accesskey "A">
+<!ENTITY addonDebugCmd.label "Add-on Debugger">
 <!ENTITY appmenuButton.label "AppMenu">
 <!ENTITY appmenuButton1.tooltip "Display the &brandShortName; Menu">
 <!ENTITY appmenuEditMenu.label "Edit">
@@ -906,6 +908,7 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY columnChooser2.tooltip "Select columns to display">
 <!ENTITY compactVersion.accesskey "C">
 <!ENTITY compactVersion.label "Compact View">
+<!ENTITY contextEditDraftMsg.label "Edit Draft Message">
 <!ENTITY contextEditMsgAsNew.accesskey "E">
 <!ENTITY contextEditMsgAsNew.label "Edit As New Message">
 <!ENTITY contextForwardAsAttachmentItem.accesskey "A">
@@ -914,6 +917,7 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY contextForwardAsInline.label "Inline">
 <!ENTITY contextForwardAsMenu.accesskey "o">
 <!ENTITY contextForwardAsMenu.label "Forward As">
+<!ENTITY contextKillSubthreadMenu.accesskey "b">
 <!ENTITY contextKillSubthreadMenu.label "Ignore Subthread">
 <!ENTITY contextKillThreadMenu.accesskey "I">
 <!ENTITY contextKillThreadMenu.label "Ignore Thread">
@@ -923,16 +927,30 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY contextOpenContainingFolder.label "Open Message in Containing Folder">
 <!ENTITY contextReplyNewsgroup2.accesskey "u">
 <!ENTITY contextReplyNewsgroup2.label "Followup to Newsgroup">
+<!-- LOCALIZATION NOTE (contextWatchThreadMenu.accesskey):
+     In the en-US locale we ran out of access keys, so there is an empty access key for
+     Watch Thread. Localizers can pick a suitable key
+  -->
+<!ENTITY contextWatchThreadMenu.accesskey "">
 <!ENTITY contextWatchThreadMenu.label "Watch Thread">
 <!ENTITY correspondentColumn.label "Correspondents">
 <!ENTITY correspondentColumn2.tooltip "Sort by correspondents">
 <!ENTITY dateColumn2.tooltip "Sort by date">
+<!ENTITY devToolboxCmd.accesskey "T">
+<!ENTITY devToolboxCmd.commandkey "i">
+<!ENTITY devToolboxCmd.label "Developer Toolbox">
+<!ENTITY devtoolsMenu.accesskey "e">
+
+<!-- Developer Tools Submenu -->
+<!ENTITY devtoolsMenu.label "Developer Tools">
 
 <!-- Mac OS X Dock Icon pop-up menu -->
 <!ENTITY dockOptions.label              "App Icon Options…">
 <!ENTITY editAsNewMsgCmd.accesskey "E">
 <!ENTITY editAsNewMsgCmd.key "e">
 <!ENTITY editAsNewMsgCmd.label "Edit As New Message">
+<!ENTITY editDraftMsgCmd.accesskey "D">
+<!ENTITY editDraftMsgCmd.label "Edit Draft Message">
 <!ENTITY editRemoteContentSettings.accesskey "E">
 <!ENTITY editRemoteContentSettings.label "Edit remote content options…">
 <!ENTITY editRemoteContentSettingsUnix.accesskey "E">
@@ -948,9 +966,12 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY folderContextSearchForMessages.label "Search Messages…">
 <!ENTITY folderContextSettings2.accesskey "e">
 <!ENTITY folderContextSettings2.label "Settings">
+<!ENTITY folderModeSelector.label "Folder Views">
 
 <!-- Folder Pane -->
 <!ENTITY folderNameColumn.label "Name">
+<!ENTITY folderPaneBar.accesskey "F">
+<!ENTITY folderPaneBar.label "Folder Pane Toolbar">
 <!ENTITY folderPropsCmd2.label "Properties">
 <!ENTITY folderPropsFolderCmd2.label "Folder Properties">
 <!ENTITY folderPropsNewsgroupCmd2.label "Newsgroup Properties">
@@ -994,6 +1015,8 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY nextMsgButton.tooltip "Move to the next message">
 <!ENTITY openAttachmentListCmd.accesskey "h">
 <!ENTITY openAttachmentListCmd.label "Attachments">
+<!ENTITY openConversationButton.label "Conversation">
+<!ENTITY openConversationButton.tooltip "Show conversation of selected message">
 <!ENTITY openFeedMessage1.accesskey "O">
 <!ENTITY openFeedMessage1.label "When Opening Feed Messages">
 <!ENTITY openFeedSummary.accesskey "S">
@@ -1022,29 +1045,40 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 
 <!-- Remote Content Button Popup -->
 <!ENTITY remoteContentOptionsAllowForMsg.label "Show remote content in this message">
-<!ENTITY replyNewsgroupCmd2.accesskey  "u">
+<!ENTITY replyNewsgroupCmd2.accesskey "u">
 <!ENTITY replyNewsgroupCmd2.label "Followup to Newsgroup">
+<!ENTITY scratchpadCmd.accesskey "S">
+
+<!--LOCALIZATION NOTE (scratchpadCmd.keycode):
+    This should be a key code constant as per
+    https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/keyCode#Constants_for_keyCode_value
+    (but without the DOM_ prefix) -->
+<!ENTITY scratchpadCmd.keycode "VK_F4">
+<!--LOCALIZATION NOTE (scratchpadCmd.keytext):
+    This should be the text printed on the key defined in the previous string. -->
+<!ENTITY scratchpadCmd.keytext "F4">
+<!ENTITY scratchpadCmd.label "Scratchpad">
 <!-- LOCALIZATION NOTE (search.keyLabel.mac):
      The description of the key-binding to get into the global search box on mac
-     systems.  We use the key defined in the quickSearchCmd.key entity defined
+     systems. We use the key defined in the quickSearchCmd.key entity defined
      above, the letter should match it.
-     -->
+  -->
 <!ENTITY search.keyLabel.mac "&lt;&#x2318;K&gt;">
 <!-- LOCALIZATION NOTE (search.keyLabel.nonmac):
      The description of the key-binding to get into the global search box on
-     windows and linux (which use the control key).  We use the key defined in
+     windows and linux (which use the control key). We use the key defined in
      the quickSearchCmd.key entity defined above, the letter should match it.
-     -->
+  -->
 <!ENTITY search.keyLabel.nonmac "&lt;Ctrl+K&gt;">
 <!-- LOCALIZATION NOTE (search.label.base1):
-     This is the base of the empty text for the global search box.  We replace
+      This is the base of the empty text for the global search box. We replace
      #1 with the contents of the appropriate search.keyLabel.* value for the
      platform.
      The goal is to convey to the user that typing in the box will allow them
      to search for messages globally and that there is a hotkey they can press
-     to get to the box faster.  If the global indexer is disabled, the search
+     to get to the box faster. If the global indexer is disabled, the search
      box will be collapsed and the user will never see this message.
-     -->
+  -->
 <!ENTITY search.label.base1 "Search #1">
 <!ENTITY settingsOfflineCmd2.accesskey "e">
 <!ENTITY settingsOfflineCmd2.label "Offline Settings">
@@ -1058,6 +1092,8 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY starredColumn2.tooltip "Sort by star">
 <!ENTITY statusColumn2.tooltip "Sort by status">
 <!ENTITY subjectColumn2.tooltip "Sort by subject">
+<!ENTITY tabsDebugCmd.accesskey "C">
+<!ENTITY tabsDebugCmd.label "Content Frame Debugger">
 <!ENTITY tagsColumn2.tooltip "Sort by tags">
 <!ENTITY threadColumn2.tooltip "Display message threads">
 <!ENTITY totalColumn2.tooltip "Total number of messages in thread">

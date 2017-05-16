@@ -10,6 +10,19 @@ Components.utils.import("resource:///modules/mailServices.js");
 Components.utils.import("resource:///modules/MailUtils.js");
 Components.utils.import("resource://gre/modules/Services.jsm");
 Components.utils.import("resource://gre/modules/PluralForm.jsm");
+Components.utils.import("resource://gre/modules/AppConstants.jsm");
+Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "BrowserToolboxProcess", "resource://devtools/client/framework/ToolboxProcess.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "ScratchpadManager","resource://devtools/client/scratchpad/scratchpad-manager.jsm");
+Object.defineProperty(this, "HUDService", {
+  get: function HUDService_getter() {
+    let devtools = Components.utils.import("resource://devtools/shared/Loader.jsm", {}).devtools;
+    return devtools.require("devtools/client/webconsole/hudservice");
+  },
+  configurable: true,
+  enumerable: true
+});
 
 var ADDR_DB_LARGE_COMMIT       = 1;
 
@@ -276,6 +289,9 @@ function view_init()
 
 function InitViewLayoutStyleMenu(event)
 {
+  // Prevent submenus from unnecessarily triggering onViewToolbarsPopupShowing
+  // via bubbling of events.
+  event.stopImmediatePropagation();
   var paneConfig = Services.prefs.getIntPref("mail.pane_config.dynamic");
   var layoutStyleMenuitem = event.target.childNodes[paneConfig];
   if (layoutStyleMenuitem)
@@ -476,6 +492,9 @@ function InitMessageMenu()
   // not in a folder.
   document.getElementById("tagMenu").disabled = !messageStoredInternally;
 
+  // Hide "Edit Draft Message" menus if we're not in a draft folder.
+  updateHiddenStateForEditDraftMsgCmd();
+
   // Initialize the Open Message menuitem
   var winType = document.documentElement.getAttribute('windowtype');
   if (winType == "mail:3pane")
@@ -534,6 +553,9 @@ function InitAppMessageMenu()
   // not in a folder.
   document.getElementById("appmenu_tagMenu").disabled = !messageStoredInternally;
 
+  // Hide "Edit Draft Message" menus if we're not in a draft folder.
+  updateHiddenStateForEditDraftMsgCmd();
+
   // Initialize the Open Message menuitem
   let winType = document.documentElement.getAttribute('windowtype');
   if (winType == "mail:3pane")
@@ -553,6 +575,20 @@ function InitAppMessageMenu()
   // Disable mark menu when we're not in a folder.
   document.getElementById("appmenu_markMenu").disabled = gMessageDisplay.isDummy;
   document.commandDispatcher.updateCommands('create-menu-message');
+}
+
+/**
+ * Hides the "Edit Draft Message" menuitems for messages which are not in a draft folder.
+ */
+function updateHiddenStateForEditDraftMsgCmd()
+{
+  let msg = gFolderDisplay.selectedMessage;
+  let folder = gFolderDisplay.displayedFolder;
+  let inDraftFolder = (msg && msg.folder &&  // Need to check folder since messages
+                                             // opened from file have none.
+                       msg.folder.isSpecialFolder(nsMsgFolderFlags.Drafts, true)) ||
+                      (folder && folder.getFlag(nsMsgFolderFlags.Drafts));
+  document.getElementById("cmd_editDraftMsg").setAttribute("hidden", !inDraftFolder);
 }
 
 /**
@@ -1924,9 +1960,14 @@ function MsgForwardAsInline(event)
   composeMsgByType(Components.interfaces.nsIMsgCompType.ForwardInline, event);
 }
 
-function MsgEditMessageAsNew()
+function MsgEditMessageAsNew(aEvent)
 {
-  composeMsgByType(Components.interfaces.nsIMsgCompType.Template);
+  composeMsgByType(Components.interfaces.nsIMsgCompType.Template, aEvent);
+}
+
+function MsgEditDraftMessage(aEvent)
+{
+  composeMsgByType(Components.interfaces.nsIMsgCompType.Draft, aEvent);
 }
 
 function MsgComposeDraftMessage()
@@ -2994,9 +3035,9 @@ var gMessageNotificationBar =
     let remoteContentMsg = this.stringBundle.getFormattedString("remoteContentBarMessage",
                                                                 [brandName]);
 
-    let buttonLabel = this.stringBundle.getString(Application.platformIsWindows ?
+    let buttonLabel = this.stringBundle.getString((AppConstants.platform == "win") ?
       "remoteContentPrefLabel" : "remoteContentPrefLabelUnix");
-    let buttonAccesskey = this.stringBundle.getString(Application.platformIsWindows ?
+    let buttonAccesskey = this.stringBundle.getString((AppConstants.platform == "win") ?
       "remoteContentPrefAccesskey" : "remoteContentPrefAccesskeyUnix");
 
     let buttons = [{
@@ -3031,9 +3072,9 @@ var gMessageNotificationBar =
   {
     let phishingMsgNote = this.stringBundle.getString("phishingBarMessage");
 
-    let buttonLabel = this.stringBundle.getString(Application.platformIsWindows ?
+    let buttonLabel = this.stringBundle.getString((AppConstants.platform == "win") ?
       "phishingBarPrefLabel" : "phishingBarPrefLabelUnix");
-    let buttonAccesskey = this.stringBundle.getString(Application.platformIsWindows ?
+    let buttonAccesskey = this.stringBundle.getString((AppConstants.platform == "win") ?
       "phishingBarPrefAccesskey" : "phishingBarPrefAccesskeyUnix");
 
     let buttons = [
@@ -3159,7 +3200,7 @@ function onRemoteContentOptionsShowing(aEvent) {
   if (adrCount > 0) {
     let authorEmailAddress = addresses.value[0];
     let authorEmailAddressURI = Services.io.newURI(
-      "chrome://messenger/content/?email=" + authorEmailAddress, null, null);
+      "chrome://messenger/content/email=" + authorEmailAddress, null, null);
     let mailPrincipal = Services.scriptSecurityManager
       .createCodebasePrincipal(authorEmailAddressURI, {});
     origins.push(mailPrincipal.origin);
@@ -3182,11 +3223,11 @@ function onRemoteContentOptionsShowing(aEvent) {
     let menuitem = document.createElement("menuitem");
     menuitem.setAttribute("label",
       messengerBundle.getFormattedString("remoteAllowResource",
-        [origin.replace("chrome://messenger/content/?email=", "")]));
+        [origin.replace("chrome://messenger/content/email=", "")]));
     menuitem.setAttribute("value", origin);
     menuitem.setAttribute("class", "allow-remote-uri");
     menuitem.setAttribute("oncommand", "allowRemoteContentForURI(this.value);");
-    if (origin.startsWith("chrome://messenger/content/?email="))
+    if (origin.startsWith("chrome://messenger/content/email="))
       aEvent.target.appendChild(menuitem);
     else
       aEvent.target.insertBefore(menuitem, urlSepar);
@@ -3223,7 +3264,7 @@ function allowRemoteContentForURI(aUriSpec, aReload = true) {
 function allowRemoteContentForAll(aListNode) {
   let uriNodes = aListNode.querySelectorAll(".allow-remote-uri");
   for (let uriNode of uriNodes) {
-    if (!uriNode.value.startsWith("chrome://messenger/content/?email="))
+    if (!uriNode.value.startsWith("chrome://messenger/content/email="))
       allowRemoteContentForURI(uriNode.value, false);
   }
   ReloadMessage();
@@ -3318,9 +3359,32 @@ function OnMsgParsed(aUrl)
   let msgURI = selectedMessageUris ? selectedMessageUris[0] : null;
   Services.obs.notifyObservers(msgWindow.msgHeaderSink, "MsgMsgDisplayed", msgURI);
 
-  // Scale any overflowing images, exclude http content.
   let browser = getMessagePaneBrowser();
   let doc = browser && browser.contentDocument ? browser.contentDocument : null;
+
+  // Rewrite any anchor elements' href attribute to reflect that the loaded
+  // document is a mailnews url. This will cause docShell to scroll to the
+  // element in the document rather than opening the link externally.
+  let links = doc && doc.links ? doc.links : [];
+  for (let linkNode of links)
+  {
+    if (!linkNode.hash)
+      continue;
+
+    // We have a ref fragment which may reference a node in this document.
+    // Check if the href url matches the document baseURL.
+    if (makeURI(linkNode.href).specIgnoringRef != makeURI(linkNode.baseURI).specIgnoringRef)
+      continue;
+
+    // Finally, if the document url is a message url, and the anchor href is
+    // http, it needs to be adjusted so docShell finds the node.
+    let messageURI = makeURI(linkNode.ownerDocument.URL);
+    if (messageURI instanceof Components.interfaces.nsIMsgMailNewsUrl &&
+        linkNode.href.startsWith("http"))
+      linkNode.href = messageURI.specIgnoringRef + linkNode.hash;
+  }
+
+  // Scale any overflowing images, exclude http content.
   let imgs = doc && !doc.URL.startsWith("http") ? doc.images : [];
   for (let img of imgs)
   {

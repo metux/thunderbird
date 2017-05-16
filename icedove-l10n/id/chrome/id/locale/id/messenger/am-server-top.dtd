@@ -1,4 +1,8 @@
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 <!-- extracted from am-server-top.xul -->
+
 
 <!ENTITY messageStorage.label "Penyimpanan Pesan">
 <!ENTITY securitySettings.label "Pengaturan Keamanan">
@@ -19,6 +23,8 @@
 <!ENTITY biffStart.label "Periksa pesan baru setiap ">
 <!ENTITY biffStart.accesskey "P">
 <!ENTITY biffEnd.label "menit">
+
+
 <!ENTITY connectionSecurity.label "Keamanan sambungan:">
 <!ENTITY connectionSecurity.accesskey "u">
 <!ENTITY connectionSecurityType-0.label "Tidak ada">
@@ -64,22 +70,26 @@
 <!ENTITY alwaysAuthenticate.label "Selalu kirimkan permintaan autentikasi ketika tersambung dengan server ini">
 <!ENTITY alwaysAuthenticate.accesskey "S">
 <!ENTITY newsrcFilePath.label "berkas newsrc:">
-<!ENTITY localPath.label "Direktori lokal:">
+<!ENTITY newsrcPicker.label "Pilih Berkas newsrc">
 <!ENTITY abbreviate.label "Tampilkan nama newsgroup pada panel Folder Email sebagai:">
 <!ENTITY abbreviateOn.label "Nama lengkap (Contohnya 'netscape.public.mozilla.mail-news')">
 <!ENTITY abbreviateOff.label "Singkatan (Contohnya, 'n.p.m.mail-news')">
 <!ENTITY advancedButton.label "Khusus…">
 <!ENTITY advancedButton.accesskey "K">
-<!ENTITY serverDefaultCharset.label "Pengodean Karakter Default:">
+
+<!ENTITY localPath.label "Direktori lokal:">
 <!ENTITY localFolderPicker.label "Pilih Direktori Lokal">
 <!ENTITY browseFolder.label "Telusuri…">
 <!ENTITY browseFolder.accesskey "T">
-<!ENTITY newsrcPicker.label "Pilih Berkas newsrc">
 <!ENTITY browseNewsrc.label "Telusuri…">
 <!ENTITY browseNewsrc.accesskey "T">
 
 <!ENTITY accountTitle.label "Setelan Akun">
 <!ENTITY accountSettingsDesc.label "Akun berikut merupakan akun khusus. Tidak ada identitas yang terkait dengan akun ini.">
+
+
+
+
 
 <!ENTITY maildirStore.label "File per message (maildir)">
 <!ENTITY mboxStore2.label "File per folder (mbox)">

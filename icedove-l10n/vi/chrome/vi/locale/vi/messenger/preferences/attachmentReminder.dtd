@@ -6,3 +6,8 @@
 <!ENTITY editKeywordButton.accesskey      "C">
 <!ENTITY removeKeywordButton.label        "Xóa">
 <!ENTITY removeKeywordButton.accesskey    "X">
+
+<!ENTITY editKeywordButton1.accesskey     "E">
+<!ENTITY editKeywordButton1.label         "Edit…">
+<!ENTITY newKeywordButton.accesskey       "N">
+<!ENTITY newKeywordButton.label           "New…">

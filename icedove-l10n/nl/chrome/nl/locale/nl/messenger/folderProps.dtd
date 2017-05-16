@@ -21,19 +21,17 @@
 <!ENTITY retentionUseAccount.accesskey "M">
 <!ENTITY daysOld.label "dagen">
 <!ENTITY message.label "">
-<!ENTITY retentionCleanup.label "Om schijfruimte vrij te maken kunnen oude berichten permanent worden verwijderd.">
-<!ENTITY retentionCleanupImap.label "Om schijfruimte vrij te maken kunnen oude berichten permanent worden verwijderd, zowel de lokale als de orginele versies op de server.">
-<!ENTITY retentionCleanupPop.label "Om schijfruimte vrij te maken kunnen oude berichten permanent worden verwijderd, inclusief de orginele op de server.">
+<!ENTITY retentionCleanup.label "Om schijfruimte vrij te maken, kunnen oude berichten permanent worden verwijderd.">
+<!ENTITY retentionCleanupImap.label "Om schijfruimte vrij te maken, kunnen oude berichten permanent worden verwijderd, zowel de lokale als de originele versies op de server.">
+<!ENTITY retentionCleanupPop.label "Om schijfruimte vrij te maken, kunnen oude berichten permanent worden verwijderd, inclusief de originele op de server.">
 <!ENTITY retentionDeleteMsg.label "Berichten verwijderen die ouder zijn dan">
 <!ENTITY retentionDeleteMsg.accesskey "o">
 <!ENTITY retentionKeepAll.label "Geen berichten verwijderen">
 <!ENTITY retentionKeepAll.accesskey "n">
 <!ENTITY retentionKeepRecent.label "Alle berichten verwijderen, behalve de meest recente">
 <!ENTITY retentionKeepRecent.accesskey "a">
-<!-- LOCALIZATION NOTE: Unhide with .keepUnreadOnly { display: -moz-box; } -->
-<!ENTITY retentionKeepUnreadHidden.label "Gelezen berichten altijd verwijderen (leeftijdsinstellingen negeren)">
 <!ENTITY retentionApplyToFlagged.label "Berichten met ster altijd bewaren">
-<!ENTITY retentionApplyToFlagged.accesskey "e">
+<!ENTITY retentionApplyToFlagged.accesskey "s">
 
 <!ENTITY folderSynchronizationTab.label          "Synchronisatie">
 <!ENTITY folderCheckForNewMessages2.label         "Bij het ophalen van nieuwe berichten voor deze account, altijd deze map controleren">
@@ -55,13 +53,13 @@
 <!ENTITY folderProps.location.accesskey          "L">
 
 <!ENTITY folderSharingTab.label                  "Delen">
-<!ENTITY privileges.button.label                 "Privileges…">
-<!ENTITY privileges.button.accesskey             "P">
+<!ENTITY privileges.button.label                 "Bevoegdheden…">
+<!ENTITY privileges.button.accesskey             "B">
 <!ENTITY permissionsDesc.label                   "U hebt de volgende rechten:">
 <!ENTITY folderType.label                        "Maptype:">
 
 <!ENTITY folderQuotaTab.label                    "Quotum">
-<!ENTITY folderQuotaRoot.label                   "Quotum root:">
+<!ENTITY folderQuotaRoot.label                   "Quotumhoofdmap:">
 <!ENTITY folderQuotaUsage.label                  "Gebruik:">
 <!ENTITY folderQuotaStatus.label                 "Status:">
 

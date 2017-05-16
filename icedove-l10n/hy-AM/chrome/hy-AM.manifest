@@ -4,12 +4,12 @@ locale branding hy-AM hy-AM/locale/hy-AM/branding/
 locale chat hy-AM hy-AM/locale/hy-AM/chat/
 locale communicator hy-AM hy-AM/locale/hy-AM/communicator/
 locale cookie hy-AM hy-AM/locale/hy-AM/cookie/
+locale devtools hy-AM hy-AM/locale/hy-AM/devtools/client/
 locale devtools-shared hy-AM hy-AM/locale/hy-AM/devtools/shared/
 locale editor hy-AM hy-AM/locale/hy-AM/editor/
 locale formautofill hy-AM hy-AM/locale/hy-AM/formautofill/
 locale global hy-AM hy-AM/locale/hy-AM/global/
 locale global-platform hy-AM hy-AM/locale/hy-AM/global-platform/
-locale global-region hy-AM hy-AM/locale/hy-AM/global-region/
 locale messenger hy-AM hy-AM/locale/hy-AM/messenger/
 locale messenger-mapi hy-AM hy-AM/locale/hy-AM/messenger-mapi/
 locale messenger-newsblog hy-AM hy-AM/locale/hy-AM/messenger-newsblog/

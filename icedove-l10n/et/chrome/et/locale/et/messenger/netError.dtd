@@ -37,6 +37,13 @@
 </ul>
 ">
 
+<!ENTITY fileAccessDenied.title                "Ligipääs failile keelati">
+<!ENTITY fileAccessDenied.longDesc             "
+<ul>
+  <li>Fail võib olla kustutatud, mujale liigutatud või on sellele seatud ligipääsu piiravad õigused.</li>
+</ul>
+">
+
 <!ENTITY generic.title                         "Ups.">
 <!ENTITY generic.longDesc                      "
 <p>&brandShortName;il pole mingil põhjusel selle lehe laadimine võimalik.</p>
@@ -157,32 +164,11 @@ ja sa võid hiljem uuesti proovida.</li>
 </ul>
 ">
 
-<!ENTITY malwareBlocked.title                  "Ründava veebilehe kahtlus!">
-<!ENTITY malwareBlocked.longDesc               "
-<p>Ründavad lehed üritavad paigaldada privaatandmeid varastavaid rakendusi, kasutavad sinu arvutit teiste ründamiseks või kahjustavad sinu arvutit.</p>
-<p>Veebilehe omanikud, kes usuvad, et nende leht on raporteeritud  ilma põhjuseta, võivad <a href='http://www.stopbadware.org/home/reviewinfo' >nõuda teistkordset ülevaatust</a>.</p>
-">
-
-<!ENTITY unwantedBlocked.title                 "Soovimatu tarkvara levitamise kahtlus!">
-<!ENTITY unwantedBlocked.longDesc              "
-<p>Soovimatut tarkvara levitavad veebilehed üritavad paigaldada tarkvara, mis võib olla petlik ja mõjutada süsteemi ootamatul viisil.</p>
-">
-
-<!ENTITY phishingBlocked.title                 "Veebivõltsingu kahtlus!">
-<!ENTITY phishingBlocked.longDesc              "
-<p>Sellistele lehtedele andmete sisestamine võib kaasa tuua identiteedivarguse või muu pettuse.</p>
-<p>Seda tüüpi veebivõltsinguid kasutatakse pettustes, mis on tuntud ka kui veebikelmused, kus pettust sisaldavad lehed või e-kirjad jäljendavad allikaid, mida sa võid usaldada.</p>
-">
-
-<!ENTITY forbiddenBlocked.title                "Keelatud sait">
-<!ENTITY forbiddenBlocked.longDesc             "<p>&brandShortName; keeldus seda lehte laadimast, sest leht on brauseri häälestuse poolt blokitud.</p>
-">
-
 <!ENTITY cspBlocked.title                      "Blokitud sisu kaitsva turvareegliga">
 <!ENTITY cspBlocked.longDesc                   "<p>&brandShortName; keeldus lehe laadimisest sellisel moel, sest lehe sisu kaitsvate turvareeglite kohaselt on see keelatud.</p>">
 
-<!ENTITY corruptedContentError.title           "Vigane sisu">
-<!ENTITY corruptedContentError.longDesc        "<p>Andmete edastamisel esinenud vea tõttu pole soovitud lehte võimalik kuvada.</p><ul><li>Palun võta ühendust veebilehe omanikega, et teavitada neid sellest probleemist.</li></ul>">
+<!ENTITY corruptedContentErrorv2.title         "Vigane sisu">
+<!ENTITY corruptedContentErrorv2.longDesc      "<p>Andmete edastamisel esinenud vea tõttu pole soovitud lehte võimalik kuvada.</p><ul><li>Palun võta ühendust veebilehe omanikega, et teavitada neid sellest probleemist.</li></ul>">
 
 <!ENTITY securityOverride.linkText             "Või võid ka lisada erandi...">
 <!ENTITY securityOverride.getMeOutOfHereButton "Aita mind siit välja!">
@@ -202,3 +188,8 @@ functionality specific to thunderbird. -->
 
 <!ENTITY remoteXUL.title "Remote XUL">
 <!ENTITY remoteXUL.longDesc "<p><ul><li>Palun võta ühendust veebilehe omanikega, et teavitada neid sellest probleemist.</li></ul></p>">
+
+<!ENTITY inadequateSecurityError.title         "Ühendus pole turvaline">
+<!-- LOCALIZATION NOTE (inadequateSecurityError.longDesc) - Do not translate
+     "NS_ERROR_NET_INADEQUATE_SECURITY". -->
+<!ENTITY inadequateSecurityError.longDesc      "<p><span class='hostname'></span> kasutab turvalisuse tehnoloogiaid, mis on aegunud ja avatud rünnakutele. Ründaja võib suurema vaevata pääseda ligi teabele, mis sinu arvates on kaitstud. Saidi külastamiseks peab saidi administraator selle serveri kõigepealt ära parandama.</p><p>Veakood: NS_ERROR_NET_INADEQUATE_SECURITY</p>">

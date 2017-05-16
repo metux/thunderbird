@@ -4,12 +4,12 @@ locale branding ro ro/locale/ro/branding/
 locale chat ro ro/locale/ro/chat/
 locale communicator ro ro/locale/ro/communicator/
 locale cookie ro ro/locale/ro/cookie/
+locale devtools ro ro/locale/ro/devtools/client/
 locale devtools-shared ro ro/locale/ro/devtools/shared/
 locale editor ro ro/locale/ro/editor/
 locale formautofill ro ro/locale/ro/formautofill/
 locale global ro ro/locale/ro/global/
 locale global-platform ro ro/locale/ro/global-platform/
-locale global-region ro ro/locale/ro/global-region/
 locale messenger ro ro/locale/ro/messenger/
 locale messenger-mapi ro ro/locale/ro/messenger-mapi/
 locale messenger-newsblog ro ro/locale/ro/messenger-newsblog/

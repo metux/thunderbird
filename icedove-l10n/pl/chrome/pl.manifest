@@ -4,12 +4,12 @@ locale branding pl pl/locale/pl/branding/
 locale chat pl pl/locale/pl/chat/
 locale communicator pl pl/locale/pl/communicator/
 locale cookie pl pl/locale/pl/cookie/
+locale devtools pl pl/locale/pl/devtools/client/
 locale devtools-shared pl pl/locale/pl/devtools/shared/
 locale editor pl pl/locale/pl/editor/
 locale formautofill pl pl/locale/pl/formautofill/
 locale global pl pl/locale/pl/global/
 locale global-platform pl pl/locale/pl/global-platform/
-locale global-region pl pl/locale/pl/global-region/
 locale messenger pl pl/locale/pl/messenger/
 locale messenger-mapi pl pl/locale/pl/messenger-mapi/
 locale messenger-newsblog pl pl/locale/pl/messenger-newsblog/

@@ -10,8 +10,6 @@
 <!ENTITY update.checkForUpdatesButton.accesskey   "C">
 <!ENTITY update.updateButton.label2               "Herstart &brandShortName; om bij te werken">
 <!ENTITY update.updateButton.accesskey            "H">
-<!ENTITY update.applyButtonBillboard.label        "Update toepassen…">
-<!ENTITY update.applyButtonBillboard.accesskey    "t">
 
 
 <!-- LOCALIZATION NOTE (warningDesc.version): This is a warning about the experimental nature of Nightly and Aurora builds. It is only shown in those versions. -->
@@ -43,6 +41,8 @@
 <!-- LOCALIZATION NOTE (helpus.getInvolvedLink): This is a link title that links to http://www.mozilla.org/contribute/. -->
 <!ENTITY helpus.getInvolvedLink     "doe mee!">
 <!ENTITY helpus.end                 "">
+
+<!ENTITY releaseNotes.link          "Uitgaveopmerkingen">
 
 <!-- LOCALIZATION NOTE (bottomLinks.license): This is a link title that links to about:license. -->
 <!ENTITY bottomLinks.license        "Licentie-informatie">

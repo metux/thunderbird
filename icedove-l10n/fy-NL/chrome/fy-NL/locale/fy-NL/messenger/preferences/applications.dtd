@@ -2,16 +2,16 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY  typeColumn.label        "Ynhâldtype">
-<!ENTITY  typeColumn.accesskey    "t">
+<!ENTITY  typeColumn.label            "Ynhâldtype">
+<!ENTITY  typeColumn.accesskey        "t">
 
-<!ENTITY  actionColumn2.label      "Aksje">
-<!ENTITY  actionColumn2.accesskey  "A">
+<!ENTITY  actionColumn2.label         "Aksje">
+<!ENTITY  actionColumn2.accesskey     "A">
 
-<!ENTITY  focusSearch1.key        "f">
-<!ENTITY  focusSearch2.key        "k">
+<!ENTITY  focusSearch1.key            "f">
+<!ENTITY  focusSearch2.key            "k">
 
-<!ENTITY  filter.placeholder        "Sykje:">
+<!ENTITY  filter.placeholder          "Sykje:">
 
 <!ENTITY saveTo.label                 "Bewarje bestannen yn">
 <!ENTITY saveTo.accesskey             "w">
@@ -19,14 +19,14 @@
 <!ENTITY alwaysAsk.accesskey          "M">
 <!ENTITY chooseFolderWin.label        "Blêdzje…">
 <!ENTITY chooseFolderWin.accesskey    "B">
-<!ENTITY chooseFolderMac.label        "Kies…">
+<!ENTITY chooseFolderMac.label        "Kieze…">
 <!ENTITY chooseFolderMac.accesskey    "K">
 
 <!ENTITY attachments.incoming.label   "Ynkommend">
 <!ENTITY attachments.outgoing.label   "Utgeand">
 
-<!ENTITY addCloudFileAccount.label        "Tafoegje">
-<!ENTITY addCloudFileAccount.accesskey    "T">
+<!ENTITY addCloudFileAccount1.label       "Tafoegje…">
+<!ENTITY addCloudFileAccount1.accesskey   "T">
 <!ENTITY addCloudFileAccount.description  "In nije Filelink bewartsjinst tafoegje">
 <!ENTITY removeCloudFileAccount.label     "Fuortsmite">
 <!ENTITY removeCloudFileAccount.accesskey "F">
@@ -34,5 +34,5 @@
 <!ENTITY authRequired.button.label        "Autorisearje">
 <!ENTITY authRequired.button.accesskey    "u">
 
-<!ENTITY enableCloudFileAccountOffer.label "Biedet dielen oan by bestannen grutter as">
+<!ENTITY enableCloudFileAccountOffer.label "Biedt dielen oan by bestannen grutter as">
 <!ENTITY enableCloudFileAccountOffer.mb "MB">

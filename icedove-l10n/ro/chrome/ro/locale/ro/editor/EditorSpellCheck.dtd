@@ -28,14 +28,11 @@
 <!ENTITY addToUserDictionaryButton.accessKey "d">
 <!ENTITY editUserDictionaryButton.label "Editează…">
 <!ENTITY editUserDictionaryButton.accessKey "E">
-
-
+<!ENTITY recheckButton2.label "Verifică din nou textul">
+<!ENTITY recheckButton2.accessKey "t">
 <!ENTITY closeButton.label "Închide">
 <!ENTITY closeButton.accessKey "h">
 <!ENTITY sendButton.label "Trimite">
 <!ENTITY sendButton.accessKey "m">
 <!ENTITY languagePopup.label "Limbă:">
 <!ENTITY languagePopup.accessKey "L">
-
-<!ENTITY recheckButton2.accessKey "T">
-<!ENTITY recheckButton2.label "Recheck Text">

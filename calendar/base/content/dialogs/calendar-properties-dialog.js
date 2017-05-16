@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/* exported onLoad, onAcceptDialog, unsubscribeCalendar */
+
 Components.utils.import("resource://calendar/modules/calUtils.jsm");
 Components.utils.import("resource://gre/modules/PluralForm.jsm");
 
@@ -17,7 +19,7 @@ var gCalendar;
  */
 function onLoad() {
     gCalendar = window.arguments[0].calendar;
-    let calColor = gCalendar.getProperty('color');
+    let calColor = gCalendar.getProperty("color");
 
     document.getElementById("calendar-name").value = gCalendar.name;
     document.getElementById("calendar-color").value = calColor || "#A8C2E1";
@@ -30,17 +32,17 @@ function onLoad() {
     // Set up the cache field
     let cacheBox = document.getElementById("cache");
     let canCache = (gCalendar.getProperty("cache.supported") !== false);
-    let alwaysCache = (gCalendar.getProperty("cache.always"))
+    let alwaysCache = gCalendar.getProperty("cache.always");
     if (!canCache || alwaysCache) {
         cacheBox.setAttribute("disable-capability", "true");
         cacheBox.hidden = true;
         cacheBox.disabled = true;
     }
-    cacheBox.checked = (alwaysCache || (canCache && gCalendar.getProperty("cache.enabled")));
+    cacheBox.checked = alwaysCache || (canCache && gCalendar.getProperty("cache.enabled"));
 
     // Set up the show alarms row and checkbox
     let suppressAlarmsRow = document.getElementById("calendar-suppressAlarms-row");
-    let suppressAlarms = gCalendar.getProperty('suppressAlarms');
+    let suppressAlarms = gCalendar.getProperty("suppressAlarms");
     document.getElementById("fire-alarms").checked = !suppressAlarms;
 
     suppressAlarmsRow.hidden =
@@ -91,7 +93,7 @@ function onAcceptDialog() {
     }
 
     // Save cache options
-    let alwaysCache = (gCalendar.getProperty("cache.always"))
+    let alwaysCache = gCalendar.getProperty("cache.always");
     if (!alwaysCache) {
         gCalendar.setProperty("cache.enabled", document.getElementById("cache").checked);
     }
@@ -122,7 +124,7 @@ function setupEnabledCheckbox() {
  * shown unless the provider for the calendar is missing (i.e force-disabled)
  */
 function unsubscribeCalendar() {
-    let calmgr =  cal.getCalendarManager();
+    let calmgr = cal.getCalendarManager();
 
     calmgr.unregisterCalendar(gCalendar);
     window.close();
@@ -144,12 +146,14 @@ function initRefreshInterval() {
 
     if (gCalendar.canRefresh) {
         let refreshInterval = gCalendar.getProperty("refreshInterval");
-        if (refreshInterval === null) refreshInterval = 30;
+        if (refreshInterval === null) {
+            refreshInterval = 30;
+        }
 
         let foundValue = false;
         let separator = document.getElementById("calendar-refreshInterval-manual-separator");
         let menulist = document.getElementById("calendar-refreshInterval-menulist");
-        for each (let min in [1, 5, 15, 30, 60]) {
+        for (let min of [1, 5, 15, 30, 60]) {
             let menuitem = createMenuItem(min);
 
             separator.parentNode.insertBefore(menuitem, separator);
@@ -165,10 +169,10 @@ function initRefreshInterval() {
         }
 
         if (!foundValue) {
-          // Special menuitem in case the user changed the value in the config editor.
-          let menuitem = createMenuItem(refreshInterval);
-          separator.parentNode.insertBefore(menuitem, separator.nextSibling);
-          menulist.selectedItem = menuitem;
+            // Special menuitem in case the user changed the value in the config editor.
+            let menuitem = createMenuItem(refreshInterval);
+            separator.parentNode.insertBefore(menuitem, separator.nextSibling);
+            menulist.selectedItem = menuitem;
         }
     }
 }

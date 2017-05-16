@@ -9,7 +9,7 @@
 <!ENTITY encryptionChoiceLabel.label "Nastajenje standardnego šifrěrowanja pśi słanju powěsćow:">
 <!ENTITY neverEncrypt.label "Nigdy (žedno šifrěrowanje wužywaś)">
 <!ENTITY neverEncrypt.accesskey "N">
-<!ENTITY alwaysEncryptMessage.label "Trěbny (njemóžno powěsć słaś, snaźkuli wšykne dostawarje maju certifikaty)">
+<!ENTITY alwaysEncryptMessage.label "Trěbny (njejo móžno powěsć słaś, snaźkuli wšykne dostawarje maju certifikaty)">
 <!ENTITY alwaysEncryptMessage.accesskey "T">
 <!ENTITY encryptionCert.message "Toś ten certifikata wužywaś, aby se powěsći, kótarež su se pśipósłali, šifrěrowali a dešifrěrowali:">
 <!ENTITY digitalSign.certificate.button "Wubraś…">
@@ -26,7 +26,12 @@
 <!ENTITY signingCert.message "Toś ten certifikat wužywaś, aby powěsći, kótarež sćelośo, digitalnje pódpisało:">
 
 <!ENTITY certificates.label "Certifikaty">
-<!ENTITY manageCerts.label "Certifikaty se woglědaś">
-<!ENTITY manageCerts.accesskey "C">
+<!ENTITY manageCerts2.label "Certifikaty zastojaś">
+<!ENTITY manageCerts2.accesskey "C">
 <!ENTITY manageDevices.label "Wěstotne rědy">
 <!ENTITY manageDevices.accesskey "s">
+<!-- Strings for the cert picker dialog -->
+
+<!ENTITY certPicker.title "Certifikat wubraś">
+<!ENTITY certPicker.info  "Certifikat:">
+<!ENTITY certPicker.detailsLabel "Drobnostki wubranego certifikata:">

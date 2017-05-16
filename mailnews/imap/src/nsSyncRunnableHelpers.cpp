@@ -56,7 +56,7 @@ struct RefType<const nsIID&>
   typedef const nsIID& type;
 };
 
-class SyncRunnableBase : public nsRunnable
+class SyncRunnableBase : public mozilla::Runnable
 {
 public:
   nsresult Result() {
@@ -369,6 +369,7 @@ NS_SYNCRUNNABLEMETHOD2(ImapProtocolSink, GetUrlWindow, nsIMsgMailNewsUrl *,
                        nsIMsgWindow **)
 
 NS_SYNCRUNNABLEMETHOD0(ImapProtocolSink, CloseStreams)
+NS_SYNCRUNNABLEMETHOD0(ImapProtocolSink, SetupMainThreadProxies)
 
 NS_SYNCRUNNABLEATTRIBUTE(ImapMailFolderSink, FolderNeedsACLListed, bool)
 NS_SYNCRUNNABLEATTRIBUTE(ImapMailFolderSink, FolderNeedsSubscribing, bool)
@@ -412,7 +413,6 @@ NS_SYNCRUNNABLEMETHOD4(ImapMessageSink, NotifyMessageFlags, uint32_t, const nsAC
 NS_SYNCRUNNABLEMETHOD3(ImapMessageSink, NotifyMessageDeleted, const char *, bool, const char *)
 NS_SYNCRUNNABLEMETHOD2(ImapMessageSink, GetMessageSizeFromDB, const char *, uint32_t *)
 NS_SYNCRUNNABLEMETHOD2(ImapMessageSink, SetContentModified, nsIImapUrl *, nsImapContentModifiedType)
-NS_SYNCRUNNABLEMETHOD1(ImapMessageSink, SetImageCacheSessionForUrl, nsIMsgMailNewsUrl *)
 NS_SYNCRUNNABLEMETHOD4(ImapMessageSink, GetCurMoveCopyMessageInfo, nsIImapUrl *, PRTime *, nsACString &, uint32_t *)
 
 NS_SYNCRUNNABLEMETHOD4(ImapServerSink, PossibleImapMailbox, const nsACString &, char, int32_t, bool *)
@@ -448,6 +448,14 @@ NS_SYNCRUNNABLEMETHOD1(ImapServerSink, GetShowAttachmentsInline, bool *)
 NS_SYNCRUNNABLEMETHOD3(ImapServerSink, CramMD5Hash, const char *, const char *, char **)
 NS_SYNCRUNNABLEMETHOD1(ImapServerSink, GetLoginUsername, nsACString &)
 NS_SYNCRUNNABLEMETHOD1(ImapServerSink, UpdateTrySTARTTLSPref, bool)
+NS_SYNCRUNNABLEMETHOD1(ImapServerSink, GetOriginalUsername, nsACString &)
+NS_SYNCRUNNABLEMETHOD1(ImapServerSink, GetServerKey, nsACString &)
+NS_SYNCRUNNABLEMETHOD1(ImapServerSink, GetServerPassword, nsACString &)
+NS_SYNCRUNNABLEMETHOD1(ImapServerSink, RemoveServerConnection, nsIImapProtocol *)
+NS_SYNCRUNNABLEMETHOD1(ImapServerSink, GetServerShuttingDown, bool *)
+NS_SYNCRUNNABLEMETHOD1(ImapServerSink, ResetServerConnection, const nsACString &)
+NS_SYNCRUNNABLEMETHOD1(ImapServerSink, SetServerDoingLsub, bool)
+
 
 namespace mozilla {
 namespace mailnews {
@@ -464,9 +472,7 @@ OAuth2ThreadHelper::~OAuth2ThreadHelper()
 {
   if (mOAuth2Support)
   {
-    nsCOMPtr<nsIThread> mainThread;
-    NS_GetMainThread(getter_AddRefs(mainThread));
-    NS_ProxyRelease(mainThread, mOAuth2Support);
+    NS_ReleaseOnMainThread(mOAuth2Support.forget());
   }
 }
 
@@ -495,7 +501,7 @@ bool OAuth2ThreadHelper::SupportsOAuth2()
   else
   {
     nsCOMPtr<nsIRunnable> runInit =
-      NS_NewRunnableMethod(this, &OAuth2ThreadHelper::Init);
+      NewRunnableMethod(this, &OAuth2ThreadHelper::Init);
     NS_DispatchToMainThread(runInit);
     mMonitor.Wait();
   }
@@ -518,7 +524,7 @@ void OAuth2ThreadHelper::GetXOAuth2String(nsACString &base64Str)
     return;
 
   nsCOMPtr<nsIRunnable> runInit =
-    NS_NewRunnableMethod(this, &OAuth2ThreadHelper::Connect);
+    NewRunnableMethod(this, &OAuth2ThreadHelper::Connect);
   NS_DispatchToMainThread(runInit);
   mMonitor.Wait();
 

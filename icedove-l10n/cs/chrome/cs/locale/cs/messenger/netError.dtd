@@ -20,8 +20,8 @@
 <!ENTITY dnsNotFound.longDesc "
 <ul>
   <li>Zkontrolujte, zda je adresa napsána správně a neobsahuje chyby jako
-    <strong>ww</strong>.server.cz místo
-    <strong>www</strong>.server.cz</li>
+    <strong>ww</strong>.example.com místo
+    <strong>www</strong>.example.com</li>
   <li>Pokud se vám nezobrazují ani ostatní stránky, zkontrolujte síťové připojení svého
     počítače.</li>
   <li>Pokud je váš počítač chráněn firewallem nebo proxy serverem, zkontrolujte, zda má
@@ -37,6 +37,11 @@
 </ul>
 ">
 
+<!ENTITY fileAccessDenied.title "Přístup k souboru byl odepřen">
+<!ENTITY fileAccessDenied.longDesc "<ul>
+  <li>Možná byl smazán, přesunut nebo jeho oprávnění zabraňují přístupu.</li>
+</ul>">
+
 <!ENTITY generic.title "Nepodařilo se dokončit požadavek">
 <!ENTITY generic.longDesc "
 <p>&brandShortName; nemůže tuto stránku načíst.</p>
@@ -46,7 +51,7 @@
 <!ENTITY malformedURI.longDesc "
 <ul>
   <li>Adresa webové stránky má zpravidla tvar
-    <strong>http://www.server.cz/</strong></li>
+    <strong>http://www.example.com/</strong></li>
   <li>Zkontrolujte, zda používáte správná lomítka (tj.
     <strong>/</strong>).</li>
 </ul>
@@ -56,7 +61,7 @@
 <!ENTITY netInterrupt.longDesc "&sharedLongDesc;">
 
 <!ENTITY notCached.title "Platnost dokumentu vypršela">
-<!ENTITY notCached.longDesc "<p>Požadovaný dokument již není dostupný v mezipaměti.</p><ul><li>Z důvodů bezpečnosti &brandShortName; automaticky nestahuje důvěrné dokumenty.</li><li>Pro opětovné stažení dokumentu z webového serveru klepněte na tlačítko „Zkusit znovu“.</li></ul>">
+<!ENTITY notCached.longDesc "<p>Požadovaný dokument již není dostupný v mezipaměti.</p><ul><li>Z bezpečnostních důvodů &brandShortName; automaticky nestahuje důvěrné dokumenty.</li><li>Pro opětovné stažení dokumentu z webového serveru klepněte na tlačítko „Zkusit znovu“.</li></ul>">
 
 <!ENTITY netOffline.title "Režim offline">
 <!ENTITY netOffline.longDesc2 "
@@ -65,17 +70,17 @@
 </ul>
 ">
 
-<!ENTITY contentEncodingError.title "Chyba kódování obsahu">
+<!ENTITY contentEncodingError.title "Chyba znakové sady obsahu">
 <!ENTITY contentEncodingError.longDesc "
 <ul>
-  <li>Kontaktujte prosím vlastníka webového serveru a informujte ho o tomto problému.</li>
+  <li>Kontaktujte prosím vlastníky webového serveru a informujte je o tomto problému.</li>
 </ul>
 ">
 
 <!ENTITY unsafeContentType.title "Nebezpečný typ souboru">
 <!ENTITY unsafeContentType.longDesc "
 <ul>
-  <li>Kontaktujte prosím vlastníka stránky a informujte ho o tomto problému.</li>
+  <li>Kontaktujte prosím vlastníky webového serveru a informujte je o tomto problému.</li>
 </ul>
 ">
 
@@ -128,7 +133,12 @@ Personal Security Manager.</li>
 ">
 
 <!ENTITY nssFailure2.title "Chyba zabezpečeného spojení">
-<!ENTITY nssFailure2.longDesc2 "<p>Požadovanou stránku nelze zobrazit, protože nelze ověřit autenticitu přijatých dat.</p><ul><li>Kontaktujte prosím vlastníka webového serveru a informujte ho o tomto problému.</li></ul>">
+<!ENTITY nssFailure2.longDesc2 "
+<ul>
+  <li>Požadovanou stránku nelze zobrazit, protože nelze ověřit autenticitu přijatých dat.</li>
+  <li>Kontaktujte prosím vlastníky webového serveru a informujte je o tomto problému.</li>
+</ul>
+">
 
 <!ENTITY nssBadCert.title "Chyba zabezpečeného spojení">
 <!ENTITY nssBadCert.longDesc2 "
@@ -151,36 +161,15 @@ za chvíli.</li>
 </ul>
 ">
 
-<!ENTITY malwareBlocked.title "Podezřelá útočná stránka!">
-<!ENTITY malwareBlocked.longDesc "
-<p>Útočné stránky se pokouší nainstalovat programy, které kradou vaše důvěrná data, používají váš počítač k dalším útokům, nebo jakkoliv poničí váš systém.</p>
-<p>Vlastníci webových stránek, kteří jsou přesvědčení, že jejich stránky byly nahlášeny omylem jako útočné, mohou <a href='http://www.stopbadware.org/home/reviewinfo' >požádat o kontrolu</a>.</p>
-">
-
-<!ENTITY unwantedBlocked.title "Podezdřelá nevyžádaná stránka se software!">
-<!ENTITY unwantedBlocked.longDesc "
-<p>Nežádoucí stránka se software se pokouší nainstalovat software, který může být klamavý a ovlivnit váš systém neočekávanými způsoby.</p>
-">
-
-<!ENTITY phishingBlocked.title "Podezřelá podvodná stránka!">
-<!ENTITY phishingBlocked.longDesc "
-<p>Vložení osobních informací na takovéto stránce může skočit krádeží identity nebo jiným podvodem.</p>
-<p>Tyto podvodné stránky nazývané též útoky typu phishing se snaží zpravidla napodobit webové stránky nebo e-maily ze zdrojů, kterým věříte.</p>
-">
-
-<!ENTITY forbiddenBlocked.title "Zakázaná stránka">
-<!ENTITY forbiddenBlocked.longDesc "<p>Aplikace &brandShortName; zabránila v načtení této stránky, protože je nastaveno její blokování.</p>
-">
-
 <!ENTITY cspBlocked.title "Zablokováno dle bezpečnostních pravidel obsahu">
-<!ENTITY cspBlocked.longDesc "<p>Aplikace &brandShortName; zabránila v nahrání této stránky, neboť tato stránka má bezpečnostní pravidla, která takovýto způsob nahrání zakazují.</p>">
+<!ENTITY cspBlocked.longDesc "<p>Aplikace &brandShortName; zabránila v nahrání této stránky, protože tato stránka má bezpečnostní pravidla, která takovýto způsob nahrání zakazují.</p>">
 
-<!ENTITY corruptedContentError.title "Chyba v obsahu stránky">
-<!ENTITY corruptedContentError.longDesc "<p>Stránka, kterou se snažíte načíst, nemůže být zobrazena, jelikož v přenesená data jsou chybná.</p><ul><li>Kontaktujte prosím vlastníka stránky a informujte ho o tomto problému.</li></ul>">
+<!ENTITY corruptedContentErrorv2.title "Chyba v obsahu stránky">
+<!ENTITY corruptedContentErrorv2.longDesc "<p>Požadovanou stránku nelze zobrazit, protože při přenosu dat došlo k chybě.</p><ul><li>Kontaktujte prosím vlastníky webového serveru a informujte je o tomto problému.</li></ul>">
 
 <!ENTITY securityOverride.linkText "Nebo můžete přidat výjimku…">
-<!ENTITY securityOverride.getMeOutOfHereButton "Rychle odsud pryč">
-<!ENTITY securityOverride.exceptionButtonLabel "Přidat výjimku">
+<!ENTITY securityOverride.getMeOutOfHereButton "Rychle odsud pryč!">
+<!ENTITY securityOverride.exceptionButtonLabel "Přidat výjimku…">
 
 <!-- LOCALIZATION NOTE (securityOverride.warningContent) - Do not translate the
 contents of the <button> tags. It uses strings already defined above. The
@@ -195,4 +184,9 @@ functionality specific to thunderbird. -->
 ">
 
 <!ENTITY remoteXUL.title "Vzdálené XUL">
-<!ENTITY remoteXUL.longDesc "<p><ul><li>Kontaktujte prosím vlastníka stránky a informujte ho o tomto problému.</li></ul></p>">
+<!ENTITY remoteXUL.longDesc "<p><ul><li>Kontaktujte prosím vlastníky webového serveru a informujte je o tomto problému.</li></ul></p>">
+
+<!ENTITY inadequateSecurityError.title "Vaše připojení není zabezpečené">
+<!-- LOCALIZATION NOTE (inadequateSecurityError.longDesc) - Do not translate
+     "NS_ERROR_NET_INADEQUATE_SECURITY". -->
+<!ENTITY inadequateSecurityError.longDesc "<p><span class='hostname'></span> používá technologii která je zastaralá a náchylná k útoku. Útočník může snadno získat informace, které si myslíte, že jsou zabezpečené. Administrátor serveru musí server opravit předtím, než budete moci stránku navštívit.</p><p>Kód chyby: NS_ERROR_NET_INADEQUATE_SECURITY</p>">

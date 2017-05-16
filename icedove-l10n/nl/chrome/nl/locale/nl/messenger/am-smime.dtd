@@ -22,11 +22,16 @@
 <!ENTITY encryption.certificate_clear.accesskey "i">
 <!ENTITY signingGroupTitle.label "Digitaal ondertekenen">
 <!ENTITY signMessage.label "Berichten (standaard) digitaal ondertekenen">
-<!ENTITY signMessage.accesskey "A">
+<!ENTITY signMessage.accesskey "a">
 <!ENTITY signingCert.message "Dit certificaat gebruiken om berichten die u verzendt digitaal te ondertekenen:">
 
 <!ENTITY certificates.label "Certificaten">
-<!ENTITY manageCerts.label "Certificaten bekijken">
-<!ENTITY manageCerts.accesskey "C">
+<!ENTITY manageCerts2.label "Certificaten beheren">
+<!ENTITY manageCerts2.accesskey "C">
 <!ENTITY manageDevices.label "Beveiligingsapparaten">
 <!ENTITY manageDevices.accesskey "B">
+
+<!-- Strings for the cert picker dialog -->
+<!ENTITY certPicker.title "Certificaat selecteren">
+<!ENTITY certPicker.info  "Certificaat:">
+<!ENTITY certPicker.detailsLabel "Details van geselecteerde certificaat:">

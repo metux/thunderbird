@@ -59,8 +59,6 @@
 <!ENTITY updateCheck.accesskey           "c">
 <!ENTITY updateManual.label              "Ženje aktualizacije njepytać (njeporuča so: wěstotne riziko)">
 <!ENTITY updateManual.accesskey          "n">
-<!ENTITY updateAutoAddonWarn.label       "Warnować, jeli to jedyn z přidatkow znjemóžni">
-<!ENTITY updateAutoAddonWarn.accesskey   "W">
 <!ENTITY updateHistory.label             "Historiju aktualizacijow pokazać">
 <!ENTITY updateHistory.accesskey         "H">
 
@@ -103,7 +101,7 @@
 <!ENTITY enableOCSP.label                "Pola wotmołwnych serwerow OCSP so naprašować, zo by so aktualna płaćiwosć certifikatow wobkrućiło">
 <!ENTITY enableOCSP.accesskey            "P">
 
-<!ENTITY viewCertificates.label         "Certifikaty zwobraznić">
-<!ENTITY viewCertificates.accesskey     "C">
-<!ENTITY viewSecurityDevices.label      "Wěstotne graty">
-<!ENTITY viewSecurityDevices.accesskey  "s">
+<!ENTITY manageCertificates.label "Certifikaty rjadować">
+<!ENTITY manageCertificates.accesskey "C">
+<!ENTITY viewSecurityDevices.label "Wěstotne graty">
+<!ENTITY viewSecurityDevices.accesskey "s">

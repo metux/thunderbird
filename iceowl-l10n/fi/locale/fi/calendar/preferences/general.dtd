@@ -13,6 +13,10 @@
 <!ENTITY pref.dateformat.long "Pitkä" >
 <!ENTITY pref.dateformat.short "Lyhyt"  >
 
+<!ENTITY pref.timezones.caption "Aikavyöhyke">
+<!ENTITY pref.timezones.label "Valitse lähin kaupunki aikavyöhykkeelläsi:">
+<!ENTITY pref.timezones.accesskey "k">
+
 <!ENTITY pref.defaults.label "Oletusarvot uusille merkinnöille">
 <!ENTITY pref.events.label "Tapahtumat">
 <!ENTITY pref.tasks.label "Tehtävät">
@@ -29,15 +33,15 @@
 <!ENTITY pref.default_task_offset_start.label "Suhteessa alkuun">
 <!ENTITY pref.default_task_offset_next_hour.label "Suhteessa seuraavaan tasatuntiin">
 
+<!ENTITY pref.calendar.todaypane.agenda.caption "Tänään-ruutu">
+<!ENTITY pref.soondays.label "Tulevat-luettelo näyttää seuraavat:">
+<!ENTITY pref.soondays.accesskey "u">
+
 <!ENTITY pref.accessibility.label "Esteettömyys" >
 <!ENTITY pref.systemcolors.label "Optimoi värit esteettömyyttä varten" >
 <!ENTITY pref.systemcolors.accesskey "v">
 
+<!ENTITY pref.eventsandtasks.label "Tapahtumat ja tehtävät" >
+<!ENTITY pref.editInTab.label "Muokkaa tapahtumia ja tehtäviä välilehdessä ikkunan sijaan." >
 
-<!ENTITY pref.calendar.todaypane.agenda.caption "Today Pane">
-<!ENTITY pref.soondays.accesskey "u">
-<!ENTITY pref.soondays.label "The upcoming section shows:">
-<!ENTITY pref.timezones.accesskey "S">
-
-<!ENTITY pref.timezones.caption "Timezone">
-<!ENTITY pref.timezones.label "Select the closest city in your timezone:">
+<!ENTITY pref.editInTab.accesskey "t">

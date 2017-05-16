@@ -72,7 +72,8 @@
           radioGroup.disabled = aChecked;
           if (aChecked) {
             if (!aUIUpdateOnly)
-              Services.perms.remove(this.host, this.type);
+              gPerms.removeItem(this.host, this.type);
+
             this.capability = gPerms.getDefault(this.type);
           }
           this._updateRadio();
@@ -89,8 +90,7 @@
           if (radio && !radio.selected)
             radio.radioGroup.selectedItem = radio;
           if (!aUIUpdateOnly)
-            Services.perms.add(Services.io.newURI("http://" + this.host, null, null),
-                               this.type, aValue);
+            gPerms.updateItem(this.host, this.type, aValue);
         ]]></body>
       </method>
 
@@ -242,4 +242,4 @@
     </content>
   </binding>
 
-</bindings>
+  </bindings>

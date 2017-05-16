@@ -4,12 +4,12 @@ locale branding cs cs/locale/cs/branding/
 locale chat cs cs/locale/cs/chat/
 locale communicator cs cs/locale/cs/communicator/
 locale cookie cs cs/locale/cs/cookie/
+locale devtools cs cs/locale/cs/devtools/client/
 locale devtools-shared cs cs/locale/cs/devtools/shared/
 locale editor cs cs/locale/cs/editor/
 locale formautofill cs cs/locale/cs/formautofill/
 locale global cs cs/locale/cs/global/
 locale global-platform cs cs/locale/cs/global-platform/
-locale global-region cs cs/locale/cs/global-region/
 locale messenger cs cs/locale/cs/messenger/
 locale messenger-mapi cs cs/locale/cs/messenger-mapi/
 locale messenger-newsblog cs cs/locale/cs/messenger-newsblog/

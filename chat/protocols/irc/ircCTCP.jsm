@@ -21,7 +21,7 @@ Cu.import("resource:///modules/ircUtils.jsm");
 //   <command> " " <parameter>
 // The high level dequote is to unescape \001 in the message content.
 function CTCPMessage(aMessage, aRawCTCPMessage) {
-  let message = aMessage;
+  let message = Object.assign({}, aMessage);
   message.ctcp = {};
   message.ctcp.rawMessage = aRawCTCPMessage;
 
@@ -93,7 +93,7 @@ function ctcpHandleMessage(aMessage) {
   }
 
   // Loop over each raw CTCP message.
-  for each (let message in ctcpMessages) {
+  for (let message of ctcpMessages) {
     if (!ircHandlers.handleCTCPMessage(this, message)) {
       this.WARN("Unhandled CTCP message: " + message.ctcp.rawMessage +
                 "\nin IRC message: " + message.rawMessage);

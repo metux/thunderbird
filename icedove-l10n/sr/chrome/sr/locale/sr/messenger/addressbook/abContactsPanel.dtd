@@ -1,25 +1,43 @@
-<!ENTITY addressbookPicker.label            "Адресар:">
-<!ENTITY addressbookPicker.accesskey        "А">
-<!ENTITY searchInput.label                  "Тражи:">
-<!ENTITY searchInput.accesskey              "ж">
-<!ENTITY SearchNameOrEmail.label            "Име или ел. адресу">
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY deleteAddrBookCard.label           "Уклони">
-<!ENTITY addrBookCardProperties.label       "Поставке">
-<!ENTITY addtoToFieldMenu.label             "Додај у поље Прима">
-<!ENTITY addtoCcFieldMenu.label             "Додај у поље Коп">
-<!ENTITY addtoBccFieldMenu.label            "Додај у поље сКоп">
+<!ENTITY propertiesMenu.label               "Својства">
+<!ENTITY propertiesMenu.accesskey           "ј">
+<!ENTITY propertiesCmd.key                  "i">
+<!ENTITY abPropertiesMenu.label             "Својства именика">
+<!ENTITY abPropertiesMenu.accesskey         "и">
+<!ENTITY contactPropertiesMenu.label        "Својства контакта">
+<!ENTITY contactPropertiesMenu.accesskey    "ј">
+<!ENTITY mailingListPropertiesMenu.label    "Својства дописне листе">
+<!ENTITY mailingListPropertiesMenu.accesskey "и">
 
-<!ENTITY toButton.label                     "Додај примаоце:">
+<!ENTITY addressbookPicker.label            "Именик:">
+<!ENTITY addressbookPicker.accesskey        "к">
+<!ENTITY searchContacts.label               "Претражи контакте:">
+<!ENTITY searchContacts.accesskey           "н">
+<!ENTITY SearchNameOrEmail.label            "Име или е-адреса">
+
+<!ENTITY addtoToFieldMenu.label             "Додај у поље">
+<!ENTITY addtoToFieldMenu.accesskey         "а">
+<!ENTITY addtoCcFieldMenu.label             "Додај у Коп поље">
+<!ENTITY addtoCcFieldMenu.accesskey         "К">
+<!ENTITY addtoBccFieldMenu.label            "Додај у сКоп поље">
+<!ENTITY addtoBccFieldMenu.accesskey        "с">
+<!ENTITY deleteAddrBookCard.label           "Обриши">
+<!ENTITY deleteAddrBookCard.accesskey       "О">
+<!ENTITY propertiesContext.label            "Својства">
+<!ENTITY propertiesContext.accesskey        "ј">
+<!ENTITY abPropertiesContext.label          "Својства">
+<!ENTITY abPropertiesContext.accesskey      "ј">
+<!ENTITY editContactContext.label           "Уреди контакт">
+<!ENTITY editContactContext.accesskey       "У">
+<!ENTITY editMailingListContext.label       "Уреди списак">
+<!ENTITY editMailingListContext.accesskey   "е">
+
+<!ENTITY toButton.label                     "Додај у За:">
 <!ENTITY toButton.accesskey                 "Д">
-<!ENTITY ccButton.label                     "Додај копије:">
-<!ENTITY ccButton.accesskey                 "к">
-<!ENTITY bccButton.label                    "Додај бКоп:">
-<!ENTITY bccButton.accesskey                "б">
-
-
-<!ENTITY addrBookCardProperties.accesskey   "P">
-<!ENTITY addtoBccFieldMenu.accesskey        "B">
-<!ENTITY addtoCcFieldMenu.accesskey         "C">
-<!ENTITY addtoToFieldMenu.accesskey         "A">
-<!ENTITY deleteAddrBookCard.accesskey       "D">
+<!ENTITY ccButton.label                     "Додај у Коп:">
+<!ENTITY ccButton.accesskey                 "К">
+<!ENTITY bccButton.label                    "Додај у сКоп:">
+<!ENTITY bccButton.accesskey                "с">

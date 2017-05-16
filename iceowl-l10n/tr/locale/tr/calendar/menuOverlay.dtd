@@ -46,5 +46,8 @@
 <!ENTITY showCurrentView.label                  "Güncel görünüm">
 <!ENTITY showCurrentView.accesskey              "G">
 
-<!ENTITY calendar.properties.label              "Takvim özellikleri…">
-<!ENTITY calendar.properties.accesskey          "k">
+
+
+<!ENTITY calendar.properties.accesskey          "a">
+
+<!ENTITY calendar.properties.label              "Calendar Properties…">

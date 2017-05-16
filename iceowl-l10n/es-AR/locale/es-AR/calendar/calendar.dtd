@@ -149,7 +149,7 @@
 <!ENTITY calendar.task.complete.button.tooltip  "Marcar tareas seleccionadas como completas">
 <!ENTITY calendar.task.priority.button.tooltip  "Cambiar la prioridad">
 
-<!ENTITY calendar.task.text-filter.textbox.emptytext.base            "Filtrar tareas… #1">
+<!ENTITY calendar.task.text-filter.textbox.emptytext.base1           "Filtrar tareas #1">
 <!ENTITY calendar.task.text-filter.textbox.emptytext.keylabel.nonmac "&lt;Ctrl+May+K&gt;">
 <!ENTITY calendar.task.text-filter.textbox.emptytext.keylabel.mac    "&lt;&#x21E7;&#x2318;K&gt;">
 
@@ -372,6 +372,3 @@
 <!ENTITY calendar.extract.task.button          "Agregar como tarea">
 <!ENTITY calendar.extract.event.button.tooltip "Extraer información de calendario desde el mensaje y agregarlo como un evento">
 <!ENTITY calendar.extract.task.button.tooltip  "Extraer información de calendario desde el mensaje y agregarlo como una tarea">
-
-
-<!ENTITY calendar.task.text-filter.textbox.emptytext.base1           "Filter tasks #1">

@@ -36,3 +36,7 @@
 
 <!ENTITY enableCloudFileAccountOffer.label "Ehdota palvelua yli">
 <!ENTITY enableCloudFileAccountOffer.mb "Mt:n tiedostoille">
+
+<!ENTITY addCloudFileAccount1.accesskey   "A">
+
+<!ENTITY addCloudFileAccount1.label       "Add…">

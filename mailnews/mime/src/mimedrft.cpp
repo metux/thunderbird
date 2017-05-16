@@ -143,9 +143,8 @@ mime_dump_attachments ( nsMsgAttachmentData *attachData )
 
     if ( tmp->m_url )
     {
-      nsAutoCString spec;
-      tmp->m_url->GetSpec(spec);
-      printf("URL               : %s\n", spec.get());
+      ;
+      printf("URL               : %s\n", tmp->m_url->GetSpecOrDefault().get());
     }
 
     printf("Desired Type      : %s\n", tmp->m_desiredType.get());
@@ -1115,6 +1114,7 @@ mime_parse_stream_complete (nsMIMESession *stream)
   char *foll = 0;
   char *priority = 0;
   char *draftInfo = 0;
+  char *contentLanguage = 0;
   char *identityKey = 0;
 
   bool forward_inline = false;
@@ -1241,6 +1241,11 @@ mime_parse_stream_complete (nsMIMESession *stream)
       mdd->mailcharset,
       getter_AddRefs(fields));
 
+    contentLanguage = MimeHeaders_get(mdd->headers, HEADER_CONTENT_LANGUAGE, false, false);
+    if (contentLanguage) {
+      fields->SetContentLanguage(contentLanguage);
+    }
+
     draftInfo = MimeHeaders_get(mdd->headers, HEADER_X_MOZILLA_DRAFT_INFO, false, false);
 
     // Keep the same message id when editing a draft unless we're
@@ -1289,7 +1294,13 @@ mime_parse_stream_complete (nsMIMESession *stream)
       else
         fields->SetAttachmentReminder(false);
       PR_FREEIF(parm);
-
+      parm = MimeHeaders_get_parameter(draftInfo, "deliveryformat", NULL, NULL);
+      if (parm) {
+        int32_t deliveryFormat = nsIMsgCompSendFormat::AskUser;
+        sscanf(parm, "%d", &deliveryFormat);
+        fields->SetDeliveryFormat(deliveryFormat);
+      }
+      PR_FREEIF(parm);
     }
 
   // identity to prefer when opening the message in the compose window?
@@ -1304,8 +1315,10 @@ mime_parse_stream_complete (nsMIMESession *stream)
             nsCOMPtr< nsIMsgIdentity > overrulingIdentity;
             rv = accountManager->GetIdentity( nsDependentCString(identityKey), getter_AddRefs( overrulingIdentity ) );
 
-            if ( NS_SUCCEEDED(rv) && overrulingIdentity )
+            if (NS_SUCCEEDED(rv) && overrulingIdentity) {
                 mdd->identity = overrulingIdentity;
+                fields->SetCreatorIdentityKey(identityKey);
+            }
         }
     }
 
@@ -1758,6 +1771,8 @@ mime_decompose_file_init_fn ( void *stream_closure, MimeHeaders *headers )
   if (newAttachment->m_description.IsEmpty() && workURLSpec)
     newAttachment->m_description = workURLSpec;
 
+  PR_FREEIF(workURLSpec);     // resource leak otherwise
+
   newAttachment->m_cloudPartInfo.Adopt(MimeHeaders_get(headers,
                                        HEADER_X_MOZILLA_CLOUD_PART,
                                        false, false));
@@ -1823,7 +1838,6 @@ mime_decompose_file_init_fn ( void *stream_closure, MimeHeaders *headers )
                      fileURL.get(), nullptr);
   }
 
-  PR_FREEIF(workURLSpec);
   if (!tmpFile)
     return MIME_OUT_OF_MEMORY;
 

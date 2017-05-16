@@ -144,7 +144,7 @@
 
 <!ENTITY returnReceiptMenu.label "إعلام الوصول">
 <!ENTITY returnReceiptMenu.accesskey "ص">
-<!ENTITY dsnMenu.label "تنبيه حالة الاستلام">
+<!ENTITY dsnMenu.label "تنويه حالة الاستلام">
 <!ENTITY dsnMenu.accesskey "ه">
 <!ENTITY deliveryFormatMenu.label "نسق التسليم">
 <!ENTITY deliveryFormatMenu.accesskey "س">
@@ -307,8 +307,5 @@
 <!ENTITY addressesSidebarTitle.label "المتراسلون">
 <!-- Identity popup customize menuitem -->
 
-
-<!ENTITY customizeFromAddress.accesskey "A">
-
-<!-- Identity popup customize menuitem -->
-<!ENTITY customizeFromAddress.label "Customize From Address…">
+<!ENTITY customizeFromAddress.label "خصص عنوان المُرسِل…">
+<!ENTITY customizeFromAddress.accesskey "ع">

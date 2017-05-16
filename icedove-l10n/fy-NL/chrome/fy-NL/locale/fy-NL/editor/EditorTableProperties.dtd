@@ -31,10 +31,10 @@
 <!ENTITY tableCaption.accessKey           "i">
 <!ENTITY tableCaptionAbove.label          "Boppe de tabel">
 <!ENTITY tableCaptionBelow.label          "Under de tabel">
-<!ENTITY tableCaptionLeft.label           "Links fan de tabel">
+<!ENTITY tableCaptionLeft.label           "Lofts fan de tabel">
 <!ENTITY tableCaptionRight.label          "Rochts fan de tabel">
 <!ENTITY tableCaptionNone.label           "Gjin">
-<!ENTITY tableInheritColor.label          "(Sidekleur trochskine litte)">
+<!ENTITY tableInheritColor.label           "(Sidekleur trochskine litte)">
 
 <!ENTITY cellSelection.label              "Seleksje">
 <!ENTITY cellSelectCell.label             "Sel">
@@ -44,7 +44,7 @@
 <!ENTITY cellSelectNext.accessKey         "F">
 <!ENTITY cellSelectPrevious.label         "Foarige">
 <!ENTITY cellSelectPrevious.accessKey     "o">
-<!ENTITY applyBeforeChange.label          "Dizze wizigings wurde tapast foardat de seleksje wizige wurdt.">
+<!ENTITY applyBeforeChange.label          "Dizze wizigingen wurde tapast foardat de seleksje wizige wurdt.">
 <!ENTITY cellContentAlignment.label       "Ynhâld rjochtsje">
 <!ENTITY cellHorizontal.label             "Horizontaal:">
 <!ENTITY cellHorizontal.accessKey         "z">
@@ -59,7 +59,7 @@
 <!ENTITY cellWrap.label                   "Rjochtsje">
 <!ENTITY cellNoWrap.label                 "Net rjochtsje">
 <!ENTITY cellAlignTop.label               "Boppe">
-<!ENTITY cellAlignMiddle.label            "Midden">
+<!ENTITY cellAlignMiddle.label            "Sintrearre">
 <!ENTITY cellAlignBottom.label            "Under">
 <!ENTITY cellAlignJustify.label           "Utfolje">
 <!ENTITY cellInheritColor.label           "(Tabelkleur trochskine litte)">
@@ -70,6 +70,6 @@
 <!ENTITY pixels.label                     "piksels">
 <!ENTITY backgroundColor.label            "Eftergrûnkleur:">
 <!ENTITY backgroundColor.accessKey        "E">
-<!ENTITY AlignLeft.label                  "Links">
-<!ENTITY AlignCenter.label                "Midden">
+<!ENTITY AlignLeft.label                  "Lofts">
+<!ENTITY AlignCenter.label                "Sintrearre">
 <!ENTITY AlignRight.label                 "Rjochts">

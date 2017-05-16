@@ -4,155 +4,84 @@
 
 <!ENTITY aboutTelemetry.pageTitle "Telemetri-data">
 
-<!ENTITY aboutTelemetry.telemetryEnabled "
-  Telemetry er <span>påslått</span>.
-">
+<!ENTITY aboutTelemetry.changeDataChoices "  Endre">
 
-<!ENTITY aboutTelemetry.telemetryDisabled "
-  Telemetry er <span>avslått</span>.
-">
+<!ENTITY aboutTelemetry.uploadEnabled "  FHR dataopplasting er <span>påslått</span>.">
 
-<!ENTITY aboutTelemetry.generalDataSection "
-  Generell data
-">
+<!ENTITY aboutTelemetry.uploadDisabled "  FHR dataopplasting er <span>avslått</span>.">
 
-<!ENTITY aboutTelemetry.slowSqlSection "
-  Trege SQL-uttrykk
-">
+<!ENTITY aboutTelemetry.extendedRecordingEnabled "  Utvidet Telemetry-registrering er <span>påslått</span>.">
 
-<!ENTITY aboutTelemetry.chromeHangsSection "
-  Nettleserheng
-">
+<!ENTITY aboutTelemetry.extendedRecordingDisabled "  Utvidet Telemetry-registrering er <span>avslått</span>.">
 
-<!ENTITY aboutTelemetry.threadHangStatsSection "
-  Trådheng
-">
+<!ENTITY aboutTelemetry.pingDataSource "Pingdata-kilde:">
 
-<!ENTITY aboutTelemetry.histogramsSection "
-  Histogrammer
-">
+<!ENTITY aboutTelemetry.showCurrentPingData "Gjeldende ping-data">
 
-<!ENTITY aboutTelemetry.keyedHistogramsSection "
-  Histogrammer etter nøkler
-">
+<!ENTITY aboutTelemetry.showArchivedPingData "Arkiverte ping-data">
 
-<!ENTITY aboutTelemetry.simpleMeasurementsSection "
-  Enkle målinger
-">
+<!ENTITY aboutTelemetry.pingDataDisplay "Visning av ping-data:">
 
-<!ENTITY aboutTelemetry.addonDetailsSection "
-  Utvidelsesdetaljer
-">
+<!ENTITY aboutTelemetry.structured "Strukturert">
 
-<!ENTITY aboutTelemetry.lateWritesSection "
-  Sen skriving
-">
+<!ENTITY aboutTelemetry.raw "Rå JSON">
 
-<!ENTITY aboutTelemetry.systemInfoSection "
-  Systeminfo
-">
+<!ENTITY aboutTelemetry.showSubsessionData "Vis undersøkt-data">
 
-<!ENTITY aboutTelemetry.addonHistogramsSection "
-  Histogrammer samlet av utvidelser
-">
+<!ENTITY aboutTelemetry.choosePing "Velg ping:">
 
-<!ENTITY aboutTelemetry.toggle "
-  Trykk for å slå av/på seksjonen
-">
+<!ENTITY aboutTelemetry.showNewerPing "&lt;&lt; Nyere ping">
 
-<!ENTITY aboutTelemetry.emptySection "
-  (Ingen data samlet inn)
-">
+<!ENTITY aboutTelemetry.showOlderPing "Eldre ping &gt;&gt;">
 
-<!ENTITY aboutTelemetry.fullSqlWarning "
-  MERK: Treg SQL-feilsøking er påslått. Fullstendige SQL-uttrykk kan vises nedenfor, men de sendes ikke inn til Telemetry.
-">
+<!ENTITY aboutTelemetry.rawPingData "Rå ping-data ...">
 
-<!ENTITY aboutTelemetry.fetchSymbols "
-  Hent funksjonsnavn for heng-stakker
-">
+<!ENTITY aboutTelemetry.archiveWeekHeader "Uke">
 
-<!ENTITY aboutTelemetry.hideSymbols "
-  Vis rådata fra heng
-">
+<!ENTITY aboutTelemetry.archivePingHeader "Ping">
 
-<!ENTITY aboutTelemetry.filterText "
-  Filtrer (strenger eller /regexp/)
-">
+<!ENTITY aboutTelemetry.generalDataSection "  Generell data">
 
+<!ENTITY aboutTelemetry.environmentDataSection "  Miljødata">
 
-<!ENTITY aboutTelemetry.archivePingHeader "
-Ping
-">
+<!ENTITY aboutTelemetry.telemetryLogSection "  Telemetri-logg">
 
-<!ENTITY aboutTelemetry.archiveWeekHeader "
-Week
-">
+<!ENTITY aboutTelemetry.slowSqlSection "  Trege SQL-uttrykk">
 
-<!ENTITY aboutTelemetry.changeDataChoices "
-  Change
-">
+<!ENTITY aboutTelemetry.chromeHangsSection "  Nettleserheng">
 
-<!ENTITY aboutTelemetry.choosePing "
-Choose ping:
-">
+<!ENTITY aboutTelemetry.threadHangStatsSection "  Trådheng">
 
-<!ENTITY aboutTelemetry.environmentDataSection "
-  Environment Data
-">
+<!ENTITY aboutTelemetry.scalarsSection "  Skalarer">
 
-<!ENTITY aboutTelemetry.extendedRecordingDisabled "
-  Extended Telemetry recording is <span>disabled</span>.
-">
+<!ENTITY aboutTelemetry.keyedScalarsSection "  Keyed Scalars">
 
-<!ENTITY aboutTelemetry.extendedRecordingEnabled "
-  Extended Telemetry recording is <span>enabled</span>.
-">
+<!ENTITY aboutTelemetry.histogramsSection "  Histogrammer">
 
-<!ENTITY aboutTelemetry.payloadChoiceHeader "
-  Payload
-">
+<!ENTITY aboutTelemetry.keyedHistogramsSection "  Histogrammer etter nøkler">
 
-<!ENTITY aboutTelemetry.pingDataSource "
-Ping data source:
-">
+<!ENTITY aboutTelemetry.simpleMeasurementsSection "  Enkle målinger">
 
-<!ENTITY aboutTelemetry.rawPingData "
-Raw ping data ...
-">
+<!ENTITY aboutTelemetry.addonDetailsSection "  Utvidelsesdetaljer">
 
-<!ENTITY aboutTelemetry.sessionInfoSection "
-  Session Information
-">
+<!ENTITY aboutTelemetry.lateWritesSection "  Sen skriving">
 
-<!ENTITY aboutTelemetry.showArchivedPingData "
-Archived ping data
-">
+<!ENTITY aboutTelemetry.sessionInfoSection "  Øktinformasjon">
 
-<!ENTITY aboutTelemetry.showCurrentPingData "
-Current ping data
-">
+<!ENTITY aboutTelemetry.addonHistogramsSection "  Histogrammer samlet av utvidelser">
 
-<!ENTITY aboutTelemetry.showNewerPing "
-&lt;&lt; Newer ping
-">
+<!ENTITY aboutTelemetry.toggle "  Trykk for å slå av/på seksjonen">
 
-<!ENTITY aboutTelemetry.showOlderPing "
-Older ping &gt;&gt;
-">
+<!ENTITY aboutTelemetry.emptySection "  (Ingen data samlet inn)">
 
-<!ENTITY aboutTelemetry.showSubsessionData "
-Show subsession data
-">
+<!ENTITY aboutTelemetry.fullSqlWarning "  MERK: Treg SQL-feilsøking er påslått. Fullstendige SQL-uttrykk kan vises nedenfor, men de sendes ikke inn til Telemetry.">
 
-<!ENTITY aboutTelemetry.telemetryLogSection "
-  Telemetry Log
-">
+<!ENTITY aboutTelemetry.fetchSymbols "  Hent funksjonsnavn for heng-stakker">
 
-<!ENTITY aboutTelemetry.uploadDisabled "
-  FHR data upload is <span>disabled</span>.
-">
+<!ENTITY aboutTelemetry.hideSymbols "  Vis rådata fra heng">
 
-<!ENTITY aboutTelemetry.uploadEnabled "
-  FHR data upload is <span>enabled</span>.
-">
+<!ENTITY aboutTelemetry.filterText "  Filtrer (strenger eller /regexp/)">
+
+<!ENTITY aboutTelemetry.payloadChoiceHeader "  Nyttelast">
+
+<!ENTITY aboutTelemetry.rawPayload "  Rå nyttelast">

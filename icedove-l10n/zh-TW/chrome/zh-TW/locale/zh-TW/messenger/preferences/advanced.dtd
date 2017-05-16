@@ -3,7 +3,7 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
 <!ENTITY itemGeneral.label       "一般">
-<!ENTITY dataChoicesTab.label    "資料選擇">
+<!ENTITY dataChoicesTab.label    "回報資料">
 <!ENTITY itemUpdate.label        "更新">
 <!ENTITY itemNetworking.label    "網路與磁碟空間">
 <!ENTITY itemCertificates.label  "憑證">
@@ -27,7 +27,7 @@
 <!ENTITY systemIntegration.label       "系統整合">
 <!ENTITY alwaysCheckDefault.label      "每次啟動時檢查 &brandShortName; 是否為預設電子郵件用戶端">
 <!ENTITY alwaysCheckDefault.accesskey  "a">
-<!ENTITY searchIntegration.label       "允許 &searchIntegration.engineName; 搜尋郵件">
+<!ENTITY searchIntegration.label       "允許 &searchIntegration.engineName; 搜尋訊息">
 <!ENTITY searchIntegration.accesskey   "s">
 <!ENTITY checkDefaultsNow.label        "立刻檢查…">
 <!ENTITY checkDefaultsNow.accesskey    "N">
@@ -59,8 +59,6 @@
 <!ENTITY updateCheck.accesskey           "C">
 <!ENTITY updateManual.label              "不要檢查更新（不建議，可能會有安全性風險）">
 <!ENTITY updateManual.accesskey          "N">
-<!ENTITY updateAutoAddonWarn.label       "若需要停用任何已安裝的附加元件時先警告我">
-<!ENTITY updateAutoAddonWarn.accesskey   "W">
 <!ENTITY updateHistory.label             "顯示更新記錄">
 <!ENTITY updateHistory.accesskey         "p">
 
@@ -103,8 +101,8 @@
 <!ENTITY enableOCSP.label                "向 OCSP 回應伺服器查詢，以確認憑證有效性">
 <!ENTITY enableOCSP.accesskey            "Q">
 
-<!ENTITY viewCertificates.label         "檢視憑證">
-<!ENTITY viewCertificates.accesskey     "C">
-<!ENTITY viewSecurityDevices.label      "安全裝置">
-<!ENTITY viewSecurityDevices.accesskey  "S">
+<!ENTITY manageCertificates.label "管理憑證">
+<!ENTITY manageCertificates.accesskey "M">
+<!ENTITY viewSecurityDevices.label "安全裝置">
+<!ENTITY viewSecurityDevices.accesskey "S">
 

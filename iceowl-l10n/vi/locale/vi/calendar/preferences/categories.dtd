@@ -55,3 +55,14 @@
 <!ENTITY pref.categories.overwrite "Đã tồn tại một phân mục có tên đó. \n Bạn có muốn ghi đè nó không?">
 <!ENTITY pref.categories.overwrite.title "Cảnh báo: Trùng tên">
 <!ENTITY pref.categories.noBlankCategories "Bạn phải nhập một tên phân mục.">
+
+
+
+<!-- WARNING! This file contains UTF-8 encoded characters!
+   - If this ==> … <== doesn't look like an ellipsis (three dots in a row),
+   - your editor isn't using UTF-8 encoding and may munge up the document!
+  -->
+
+<!ENTITY pref.categories.new.title "New Category">
+<!ENTITY pref.categories.newButton.accesskey "N">
+<!ENTITY pref.categories.newButton.label "New…">

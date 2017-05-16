@@ -13,5 +13,4 @@
 <!ENTITY showAllUnreadMessagesCount.accesskey  "u">
 <!ENTITY dockIconBadge.label                   "App-ikon merke">
 <!ENTITY dockIconShow.label                    "Merk app-ikonet med:">
-
-<!ENTITY directNotificationSettings.label      "You can disable the badge on the Notification pane of System Preferences.">
+<!ENTITY directNotificationSettings.label      "Du kan skru av merket på varselpanelet i systeminnstillingar.">

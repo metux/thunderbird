@@ -21,7 +21,7 @@ var tests = [
   testDetach,
 ]
 
-function startCopy()
+function* startCopy()
 {
   // Get a message into the local filestore.
   var mailFile = do_get_file("../../../data/external-attach-test");
@@ -31,7 +31,7 @@ function startCopy()
 }
 
 // process the message through mime
-function startMime()
+function* startMime()
 {
   let msgHdr = mailTestUtils.firstMsgHdr(localAccountUtils.inboxFolder);
 
@@ -41,7 +41,7 @@ function startMime()
 }
 
 // detach any found attachments
-function startDetach()
+function* startDetach()
 {
   let msgHdr = mailTestUtils.firstMsgHdr(localAccountUtils.inboxFolder);
   let msgURI = msgHdr.folder.generateMessageURI(msgHdr.messageKey);
@@ -56,7 +56,7 @@ function startDetach()
 }
 
 // test that the detachment was successful
-function testDetach()
+function* testDetach()
 {
   // This test seems to fail on Linux without the following delay.
   do_timeout(200, async_driver);
@@ -121,5 +121,7 @@ function getContentFromMessage(aMsgHdr) {
   let sis = Cc["@mozilla.org/scriptableinputstream;1"]
               .createInstance(Ci.nsIScriptableInputStream);
   sis.init(streamListener.inputStream);
-  return sis.read(MAX_MESSAGE_LENGTH);
+  let content = sis.read(MAX_MESSAGE_LENGTH);
+  sis.close();
+  return content;
 }

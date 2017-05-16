@@ -33,16 +33,6 @@ NS_DEFINE_NAMED_CID(NS_TEXTIMPORT_CID);
 NS_DEFINE_NAMED_CID(NS_VCARDIMPORT_CID);
 
 ////////////////////////////////////////////////////////////////////////////////
-// eudora import Include Files
-////////////////////////////////////////////////////////////////////////////////
-#if defined(XP_WIN) || defined(XP_MACOSX)
-#include "nsEudoraImport.h"
-#include "nsEudoraStringBundle.h"
-
-NS_DEFINE_NAMED_CID(NS_EUDORAIMPORT_CID);
-#endif
-
-////////////////////////////////////////////////////////////////////////////////
 // Apple Mail import Include Files
 ////////////////////////////////////////////////////////////////////////////////
 #if defined(XP_MACOSX)
@@ -73,6 +63,16 @@ NS_DEFINE_NAMED_CID(NS_OUTLOOKIMPORT_CID);
 #endif // XP_WIN
 
 ////////////////////////////////////////////////////////////////////////////////
+// becky import Include Files
+////////////////////////////////////////////////////////////////////////////////
+#ifdef XP_WIN
+#include "nsBeckyImport.h"
+#include "nsBeckyStringBundle.h"
+
+NS_DEFINE_NAMED_CID(NS_BECKYIMPORT_CID);
+#endif // XP_WIN
+
+////////////////////////////////////////////////////////////////////////////////
 // core import factories
 ////////////////////////////////////////////////////////////////////////////////
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsImportService)
@@ -87,13 +87,6 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(nsTextImport)
 // vcard import factories
 ////////////////////////////////////////////////////////////////////////////////
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsVCardImport)
-
-////////////////////////////////////////////////////////////////////////////////
-// eudora import factories
-////////////////////////////////////////////////////////////////////////////////
-#if defined(XP_WIN) || defined(XP_MACOSX)
-NS_GENERIC_FACTORY_CONSTRUCTOR(nsEudoraImport)
-#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 // apple mail import factories
@@ -113,18 +106,22 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(nsWMImport)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsOutlookImport)
 #endif
 #endif // XP_WIN
+////////////////////////////////////////////////////////////////////////////////
+// becky import factory
+////////////////////////////////////////////////////////////////////////////////
+#ifdef XP_WIN
+NS_GENERIC_FACTORY_CONSTRUCTOR(nsBeckyImport)
+#endif // XP_WIN
 
 static const mozilla::Module::CategoryEntry kMailNewsImportCategories[] = {
   // XXX These CIDs should match the explicit CIDs defined in the header files,
   // or be changed so that they are contract IDs (with appropriate code updates)
   { "mailnewsimport", "{A5991D01-ADA7-11d3-A9C2-00A0CC26DA63}", NS_IMPORT_ADDRESS_STR },
   { "mailnewsimport", "{0eb034a3-964a-4e2f-92eb-cc55d9ae9dd2}", NS_IMPORT_ADDRESS_STR },
-#if defined(XP_WIN) || defined(XP_MACOSX)
-  { "mailnewsimport", "{c8448da0-8f83-11d3-a206-00a0cc26da63}", kEudoraSupportsString },
-#endif
 #ifdef XP_WIN
   { "mailnewsimport", "{42bc82bc-8e9f-4597-8b6e-e529daaf3af1}", kWMSupportsString },
   { "mailnewsimport", "{be0bc880-1742-11d3-a206-00a0cc26da63}", kOESupportsString },
+  { "mailnewsimport", "{7952a6cf-2442-4c04-9f02-150b15a0a841}", kBeckySupportsString },
 #ifdef MOZ_MAPI_SUPPORT
   { "mailnewsimport", "{1DB469A0-8B00-11d3-A206-00A0CC26DA63}", kOutlookSupportsString },
 #endif
@@ -140,9 +137,6 @@ const mozilla::Module::CIDEntry kMailNewsImportCIDs[] = {
   { &kNS_IMPORTMIMEENCODE_CID, false, NULL, nsIImportMimeEncodeImplConstructor },
   { &kNS_TEXTIMPORT_CID, false, NULL, nsTextImportConstructor },
   { &kNS_VCARDIMPORT_CID, false, NULL, nsVCardImportConstructor },
-#if defined(XP_WIN) || defined(XP_MACOSX)
-  { &kNS_EUDORAIMPORT_CID, false, NULL, nsEudoraImportConstructor },
-#endif
 #if defined(XP_MACOSX)
   { &kNS_APPLEMAILIMPORT_CID, false, NULL, nsAppleMailImportModuleConstructor },
   { &kNS_APPLEMAILIMPL_CID, false, NULL, nsAppleMailImportMailConstructor },
@@ -151,6 +145,7 @@ const mozilla::Module::CIDEntry kMailNewsImportCIDs[] = {
 #ifdef XP_WIN
   { &kNS_OEIMPORT_CID, false, NULL, nsOEImportConstructor },
   { &kNS_WMIMPORT_CID, false, NULL, nsWMImportConstructor },
+  { &kNS_BECKYIMPORT_CID, false, NULL, nsBeckyImportConstructor },
 #ifdef MOZ_MAPI_SUPPORT
   { &kNS_OUTLOOKIMPORT_CID, false, NULL, nsOutlookImportConstructor },
 #endif
@@ -163,9 +158,6 @@ const mozilla::Module::ContractIDEntry kMailNewsImportContracts[] = {
   { "@mozilla.org/import/import-mimeencode;1", &kNS_IMPORTMIMEENCODE_CID },
   { "@mozilla.org/import/import-text;1", &kNS_TEXTIMPORT_CID },
   { "@mozilla.org/import/import-vcard;1", &kNS_VCARDIMPORT_CID },
-#if defined(XP_WIN) || defined(XP_MACOSX)
-  { "@mozilla.org/import/import-eudora;1", &kNS_EUDORAIMPORT_CID },
-#endif
 #if defined(XP_MACOSX)
   { "@mozilla.org/import/import-applemail;1", &kNS_APPLEMAILIMPORT_CID },
   { NS_APPLEMAILIMPL_CONTRACTID, &kNS_APPLEMAILIMPL_CID },
@@ -174,6 +166,7 @@ const mozilla::Module::ContractIDEntry kMailNewsImportContracts[] = {
 #ifdef XP_WIN
   { "@mozilla.org/import/import-oe;1", &kNS_OEIMPORT_CID },
   { "@mozilla.org/import/import-wm;1", &kNS_WMIMPORT_CID },
+  { "@mozilla.org/import/import-becky;1", &kNS_BECKYIMPORT_CID },
 #ifdef MOZ_MAPI_SUPPORT
   { "@mozilla.org/import/import-outlook;1", &kNS_OUTLOOKIMPORT_CID },
 #endif
@@ -184,14 +177,11 @@ const mozilla::Module::ContractIDEntry kMailNewsImportContracts[] = {
 
 static void importModuleDtor()
 {
-#if defined(XP_WIN) || defined(XP_MACOSX)
-    nsEudoraStringBundle::Cleanup();
-#endif
-
 #ifdef XP_WIN
 
     nsOEStringBundle::Cleanup();
     nsWMStringBundle::Cleanup();
+    nsBeckyStringBundle::Cleanup();
 #ifdef MOZ_MAPI_SUPPORT
     nsOutlookStringBundle::Cleanup();
 #endif

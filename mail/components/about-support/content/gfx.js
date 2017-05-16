@@ -2,6 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+"use strict";
+
+Components.utils.import("resource://gre/modules/AppConstants.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
 
 function populateGraphicsSection() {
@@ -39,11 +42,21 @@ function populateGraphicsSection() {
     return elem;
   }
 
-  function pushInfoRow(table, name, value)
+  function pushHeaderRow(table, displayName)
+  {
+    let header = createHeader(displayName);
+    header.colSpan = 2;
+    table.push(createParentElement("tr", [
+      header,
+    ]));
+  }
+
+  function pushInfoRow(table, name, value, displayName)
   {
     if(value) {
+      let string = displayName || bundle.GetStringFromName(name);
       table.push(createParentElement("tr", [
-        createHeader(bundle.GetStringFromName(name)),
+        createHeader(string),
         createElement("td", value),
       ]));
     }
@@ -85,15 +98,16 @@ function populateGraphicsSection() {
     return errorMessage;
   }
 
-  function pushFeatureInfoRow(table, name, feature, isEnabled, message) {
+  function pushFeatureInfoRow(table, name, feature, isEnabled, message, displayName) {
     message = message || isEnabled;
     if (!isEnabled) {
       var errorMessage = errorMessageForFeature(feature);
       if (errorMessage)
         message = errorMessage;
     }
+    let string = displayName || bundle.GetStringFromName(name);
     table.push(createParentElement("tr", [
-      createHeader(bundle.GetStringFromName(name)),
+      createHeader(string),
       createElement("td", message),
     ]));
   }
@@ -116,49 +130,54 @@ function populateGraphicsSection() {
 
   if (gfxInfo) {
     let trGraphics = [];
-    pushInfoRow(trGraphics, "adapterDescription", gfxInfo.adapterDescription);
-    pushInfoRow(trGraphics, "adapterVendorID", gfxInfo.adapterVendorID);
-    pushInfoRow(trGraphics, "adapterDeviceID", gfxInfo.adapterDeviceID);
-    pushInfoRow(trGraphics, "adapterRAM", gfxInfo.adapterRAM);
-    pushInfoRow(trGraphics, "adapterDrivers", gfxInfo.adapterDriver);
-    pushInfoRow(trGraphics, "driverVersion", gfxInfo.adapterDriverVersion);
-    pushInfoRow(trGraphics, "driverDate", gfxInfo.adapterDriverDate);
+    pushHeaderRow(trGraphics, "GPU #1");
+    pushInfoRow(trGraphics, "gpuDescription", gfxInfo.adapterDescription);
+    pushInfoRow(trGraphics, "gpuVendorID", gfxInfo.adapterVendorID);
+    pushInfoRow(trGraphics, "gpuDeviceID", gfxInfo.adapterDeviceID);
+    pushInfoRow(trGraphics, "gpuRAM", gfxInfo.adapterRAM);
+    pushInfoRow(trGraphics, "gpuDrivers", gfxInfo.adapterDriver);
+    pushInfoRow(trGraphics, "gpuDriverVersion", gfxInfo.adapterDriverVersion);
+    pushInfoRow(trGraphics, "gpuDriverDate", gfxInfo.adapterDriverDate);
 
-#ifdef XP_WIN
-    pushInfoRow(trGraphics, "adapterDescription2", gfxInfo.adapterDescription2);
-    pushInfoRow(trGraphics, "adapterVendorID2", gfxInfo.adapterVendorID2);
-    pushInfoRow(trGraphics, "adapterDeviceID2", gfxInfo.adapterDeviceID2);
-    pushInfoRow(trGraphics, "adapterRAM2", gfxInfo.adapterRAM2);
-    pushInfoRow(trGraphics, "adapterDrivers2", gfxInfo.adapterDriver2);
-    pushInfoRow(trGraphics, "driverVersion2", gfxInfo.adapterDriverVersion2);
-    pushInfoRow(trGraphics, "driverDate2", gfxInfo.adapterDriverDate2);
-    pushInfoRow(trGraphics, "isGPU2Active", gfxInfo.isGPU2Active);
-
-    var version = Services.sysinfo.getProperty("version");
-    var isWindowsVistaOrHigher = (parseFloat(version) >= 6.0);
-    if (isWindowsVistaOrHigher) {
-      var d2dEnabled = "false";
-      try {
-        d2dEnabled = gfxInfo.D2DEnabled;
-      } catch(e) {}
-      pushFeatureInfoRow(trGraphics, "direct2DEnabled", gfxInfo.FEATURE_DIRECT2D, d2dEnabled);
-
-      var dwEnabled = "false";
-      try {
-        dwEnabled = gfxInfo.DWriteEnabled + " (" + gfxInfo.DWriteVersion + ")";
-      } catch(e) {}
-      pushInfoRow(trGraphics, "directWriteEnabled", dwEnabled);
-
-      var cleartypeParams = "";
-      try {
-        cleartypeParams = gfxInfo.cleartypeParameters;
-      } catch(e) {
-        cleartypeParams = bundle.GetStringFromName("clearTypeParametersNotFound");
+    if (AppConstants.platform == "win") {
+      if(gfxInfo.adapterDescription2) {
+        pushHeaderRow(trGraphics, "GPU #2");
+        pushInfoRow(trGraphics, "gpuDescription", gfxInfo.adapterDescription2);
+        pushInfoRow(trGraphics, "gpuVendorID", gfxInfo.adapterVendorID2);
+        pushInfoRow(trGraphics, "gpuDeviceID", gfxInfo.adapterDeviceID2);
+        pushInfoRow(trGraphics, "gpuRAM", gfxInfo.adapterRAM2);
+        pushInfoRow(trGraphics, "gpuDrivers", gfxInfo.adapterDriver2);
+        pushInfoRow(trGraphics, "gpuDriverVersion", gfxInfo.adapterDriverVersion2);
+        pushInfoRow(trGraphics, "gpuDriverDate", gfxInfo.adapterDriverDate2);
+        pushInfoRow(trGraphics, "active", gfxInfo.isGPU2Active);
       }
-      pushInfoRow(trGraphics, "clearTypeParameters", cleartypeParams);
     }
 
-#endif
+    pushHeaderRow(trGraphics, "Features");
+
+    if (AppConstants.platform == "win") {
+      let version = Services.sysinfo.getProperty("version");
+      let isWindowsVistaOrHigher = (parseFloat(version) >= 6.0);
+      if (isWindowsVistaOrHigher) {
+        let d2dEnabled = "false";
+        try {
+          d2dEnabled = gfxInfo.D2DEnabled;
+        } catch(e) {}
+        pushFeatureInfoRow(trGraphics, "direct2DEnabled", gfxInfo.FEATURE_DIRECT2D, d2dEnabled, null, "Direct2D");
+
+        let dwEnabled = "false";
+        try {
+          dwEnabled = gfxInfo.DWriteEnabled + " (" + gfxInfo.DWriteVersion + ")";
+        } catch(e) {}
+        pushInfoRow(trGraphics, "directWriteEnabled", dwEnabled, "DirectWrite");
+
+        let cleartypeParams = "";
+        try {
+          cleartypeParams = gfxInfo.cleartypeParameters;
+          pushInfoRow(trGraphics, "clearTypeParameters", cleartypeParams);
+        } catch(e) {}
+      }
+    }
 
     var webglrenderer;
     var webglenabled;
@@ -169,16 +188,16 @@ function populateGraphicsSection() {
       webglrenderer = false;
       webglenabled = false;
     }
-#ifdef XP_WIN
-    // If ANGLE is not available but OpenGL is, we want to report on the OpenGL feature, because that's what's going to get used.
-    // In all other cases we want to report on the ANGLE feature.
-    var webglfeature = gfxInfo.FEATURE_WEBGL_ANGLE;
-    if (gfxInfo.getFeatureStatus(gfxInfo.FEATURE_WEBGL_ANGLE)  != gfxInfo.FEATURE_STATUS_OK &&
-        gfxInfo.getFeatureStatus(gfxInfo.FEATURE_WEBGL_OPENGL) == gfxInfo.FEATURE_STATUS_OK)
-      webglfeature = gfxInfo.FEATURE_WEBGL_OPENGL;
-#else
-    var webglfeature = gfxInfo.FEATURE_WEBGL_OPENGL;
-#endif
+
+    let webglfeature = gfxInfo.FEATURE_WEBGL_OPENGL;
+    if (AppConstants.platform == "win") {
+      // If ANGLE is not available but OpenGL is, we want to report on the OpenGL feature, because that's what's going to get used.
+      // In all other cases we want to report on the ANGLE feature.
+      webglfeature = gfxInfo.FEATURE_WEBGL_ANGLE;
+      if (gfxInfo.getFeatureStatus(gfxInfo.FEATURE_WEBGL_ANGLE)  != gfxInfo.FEATURE_STATUS_OK &&
+          gfxInfo.getFeatureStatus(gfxInfo.FEATURE_WEBGL_OPENGL) == gfxInfo.FEATURE_STATUS_OK)
+        webglfeature = gfxInfo.FEATURE_WEBGL_OPENGL;
+    }
     pushFeatureInfoRow(trGraphics, "webglRenderer", webglfeature, webglenabled, webglrenderer);
 
     appendChildren(graphics_tbody, trGraphics);
@@ -195,7 +214,7 @@ function populateGraphicsSection() {
     // display any failures that have occurred
     let graphics_failures_tbody = document.getElementById("graphics-failures-tbody");
 
-    let data = {failures: [], indices: []};
+    let data = {};
 
     let failureCount = {};
     let failureIndices = {};
@@ -207,35 +226,37 @@ function populateGraphicsSection() {
         data.indices = failureIndices.value;
       }
     }
-    let trGraphicsFailures;
-    // If indices is there, it should be the same length as failures,
-    // (see Troubleshoot.jsm) but we check anyway:
-    if ("indices" in data && data.failures.length == data.indices.length) {
-      let combined = [];
-      for (let i = 0; i < data.failures.length; i++) {
-        let assembled = assembleFromGraphicsFailure(i, data);
-        combined.push(assembled);
+    if ("failures" in data) {
+      let trGraphicsFailures;
+      // If indices is there, it should be the same length as failures,
+      // (see Troubleshoot.jsm) but we check anyway:
+      if ("indices" in data && data.failures.length == data.indices.length) {
+        let combined = [];
+        for (let i = 0; i < data.failures.length; i++) {
+          let assembled = assembleFromGraphicsFailure(i, data);
+          combined.push(assembled);
+        }
+        combined.sort(function(a,b) {
+            if (a.index < b.index) return -1;
+            if (a.index > b.index) return 1;
+            return 0;});
+        trGraphicsFailures = combined.map(function(val) {
+                                 return createParentElement("tr", [
+                                     createElement("th", val.header, {class: "column"}),
+                                     createElement("td", val.message),
+                                 ]);
+                             });
+      } else {
+        trGraphicsFailures = createParentElement("tr", [
+                                 createElement("th", "LogFailure", {class: "column"}),
+                                 createParentElement("td", data.failures.map(val =>
+                                     createElement("p", val)
+                             ))]);
       }
-      combined.sort(function(a,b) {
-          if (a.index < b.index) return -1;
-          if (a.index > b.index) return 1;
-          return 0;});
-      trGraphicsFailures = combined.map(function(val) {
-                               createParentElement("tr", [
-                                   createElement("th", val.header, {class: "column"}),
-                                   createElement("td", val.message),
-                               ]);
-                           });
-    } else {
-      trGraphicsFailures = createParentElement("tr", [
-                               createElement("th", "LogFailure", {class: "column"}),
-                               createParentElement("td", data.failures.map(val =>
-                                   createElement("p", val)
-                           ))]);
-    }
 
-    appendChildren(graphics_failures_tbody, trGraphicsFailures);
-  } // end if (gfxInfo)
+      appendChildren(graphics_failures_tbody, trGraphicsFailures);
+    }
+  }
 
   let windows = Services.ww.getWindowEnumerator();
   let acceleratedWindows = 0;
@@ -246,30 +267,13 @@ function populateGraphicsSection() {
 
     let awindow = windows.getNext().QueryInterface(Ci.nsIInterfaceRequestor);
     let windowutils = awindow.getInterface(Ci.nsIDOMWindowUtils);
-    if (windowutils.layerManagerType != "Basic") {
-      acceleratedWindows++;
-      mgrType = windowutils.layerManagerType;
+    try {
+      if (windowutils.layerManagerType != "Basic") {
+        acceleratedWindows++;
+        mgrType = windowutils.layerManagerType;
+      }
+    } catch (e) {
+      continue;
     }
   }
-
-  let msg = acceleratedWindows;
-  if (acceleratedWindows) {
-    msg += "/" + totalWindows + " " + mgrType;
-  } else {
-#ifdef XP_WIN
-    var feature = gfxInfo.FEATURE_DIRECT3D_9_LAYERS;
-#else
-    var feature = gfxInfo.FEATURE_OPENGL_LAYERS;
-#endif
-    var errMsg = errorMessageForFeature(feature);
-    if (errMsg)
-      msg += ". " + errMsg;
-  }
-
-  appendChildren(graphics_tbody, [
-    createParentElement("tr", [
-      createHeader(bundle.GetStringFromName("acceleratedWindows")),
-      createElement("td", msg),
-    ])
-  ]);
 }

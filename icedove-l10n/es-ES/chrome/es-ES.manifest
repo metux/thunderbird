@@ -4,12 +4,12 @@ locale branding es-ES es-ES/locale/es-ES/branding/
 locale chat es-ES es-ES/locale/es-ES/chat/
 locale communicator es-ES es-ES/locale/es-ES/communicator/
 locale cookie es-ES es-ES/locale/es-ES/cookie/
+locale devtools es-ES es-ES/locale/es-ES/devtools/client/
 locale devtools-shared es-ES es-ES/locale/es-ES/devtools/shared/
 locale editor es-ES es-ES/locale/es-ES/editor/
 locale formautofill es-ES es-ES/locale/es-ES/formautofill/
 locale global es-ES es-ES/locale/es-ES/global/
 locale global-platform es-ES es-ES/locale/es-ES/global-platform/
-locale global-region es-ES es-ES/locale/es-ES/global-region/
 locale messenger es-ES es-ES/locale/es-ES/messenger/
 locale messenger-mapi es-ES es-ES/locale/es-ES/messenger-mapi/
 locale messenger-newsblog es-ES es-ES/locale/es-ES/messenger-newsblog/

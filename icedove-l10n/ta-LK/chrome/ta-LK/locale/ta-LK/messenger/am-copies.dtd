@@ -50,3 +50,5 @@ Entities below were automatically added by compare-locales,
 <!ENTITY archiveHierarchyButton.accesskey "A">
 <!ENTITY keepTemplates.label "முன் வடிவில் செய்தியை வைக்கவும்:">
 <!ENTITY bccAddressList.placeholder "காற்புள்ளிகளால் முகவரியை வேறுப்படுத்துக">
+
+<!ENTITY keepDrafts2.label "Keep draft messages in:">

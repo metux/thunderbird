@@ -1,5 +1,5 @@
 /* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * 
+ *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -167,7 +167,7 @@ bool nsLDAPServiceEntry::DeleteEntry()
 
 
 // Here begins the implementation for nsLDAPService
-// 
+//
 NS_IMPL_ISUPPORTS(nsLDAPService,
                               nsILDAPService,
                               nsILDAPMessageListener)
@@ -199,7 +199,7 @@ NS_IMETHODIMP nsLDAPService::AddServer(nsILDAPServer *aServer)
     nsLDAPServiceEntry *entry;
     nsString key;
     nsresult rv;
-    
+
     if (!aServer) {
         NS_ERROR("nsLDAPService::AddServer: null pointer ");
         return NS_ERROR_NULL_POINTER;
@@ -209,16 +209,11 @@ NS_IMETHODIMP nsLDAPService::AddServer(nsILDAPServer *aServer)
     //
     rv = aServer->GetKey(getter_Copies(key));
     if (NS_FAILED(rv)) {
-        switch (rv) {
         // Only pass along errors we are aware of
-        //
-        case NS_ERROR_OUT_OF_MEMORY:
-        case NS_ERROR_NULL_POINTER:
+        if ((rv == NS_ERROR_OUT_OF_MEMORY) || (rv == NS_ERROR_NULL_POINTER))
             return rv;
-
-        default:
+        else
             return NS_ERROR_FAILURE;
-        }
     }
 
     // Create the new service server entry, and add it into the hash table
@@ -265,7 +260,7 @@ NS_IMETHODIMP nsLDAPService::DeleteServer(const char16_t *aKey)
 {
     nsLDAPServiceEntry *entry;
     MutexAutoLock lock(mLock);
-        
+
     // We should probably rename the key for this entry now that it's
     // "deleted", so that we can add in a new one with the same ID.
     // This is bug #77669.
@@ -359,7 +354,7 @@ NS_IMETHODIMP nsLDAPService::RequestConnection(const char16_t *aKey,
     //
     {
         MutexAutoLock lock(mLock);
-            
+
         if (!mServers.Get(nsDependentString(aKey), &entry) ||
             !entry->PushListener(static_cast<nsILDAPMessageListener *>
                                             (aListener))) {
@@ -431,7 +426,7 @@ NS_IMETHODIMP nsLDAPService::ReconnectConnection(const char16_t *aKey,
 
     {
         MutexAutoLock lock(mLock);
-        
+
         if (!mServers.Get(nsDependentString(aKey), &entry)) {
             return NS_ERROR_FAILURE;
         }
@@ -465,7 +460,7 @@ NS_IMETHODIMP nsLDAPService::ReconnectConnection(const char16_t *aKey,
 
     {
         MutexAutoLock lock(mLock);
-        
+
         if (!entry->PushListener(static_cast<nsILDAPMessageListener *>
                                             (aListener))) {
             entry->SetRebinding(false);
@@ -483,7 +478,7 @@ NS_IMETHODIMP nsLDAPService::ReconnectConnection(const char16_t *aKey,
  *
  * void OnLDAPMessage (in nsILDAPMessage aMessage)
  */
-NS_IMETHODIMP 
+NS_IMETHODIMP
 nsLDAPService::OnLDAPMessage(nsILDAPMessage *aMessage)
 {
     nsCOMPtr<nsILDAPOperation> operation;
@@ -562,7 +557,7 @@ nsLDAPService::OnLDAPMessage(nsILDAPMessage *aMessage)
 
         // get the console service so we can log a message
         //
-        nsCOMPtr<nsIConsoleService> consoleSvc = 
+        nsCOMPtr<nsIConsoleService> consoleSvc =
             do_GetService("@mozilla.org/consoleservice;1", &rv);
         if (NS_FAILED(rv)) {
             NS_ERROR("nsLDAPChannel::OnLDAPMessage() couldn't get console "
@@ -673,7 +668,7 @@ nsLDAPService::EstablishConnection(nsLDAPServiceEntry *aEntry,
     if (conn2) {
         // Drop the new connection, we can't use it.
         //
-        conn = 0;
+        conn = nullptr;
         if (message) {
             aListener->OnLDAPMessage(message);
             return NS_OK;
@@ -714,30 +709,26 @@ nsLDAPService::EstablishConnection(nsLDAPServiceEntry *aEntry,
         return NS_ERROR_UNEXPECTED; // this should never happen
     }
 
-    // Start a bind operation 
+    // Start a bind operation
     //
     // Here we need to support the password, see bug #75990
-    // 
+    //
     rv = operation->SimpleBind(password);
     if (NS_FAILED(rv)) {
-        switch (rv) {
         // Only pass along errors we are aware of
-        //
-        case NS_ERROR_LDAP_ENCODING_ERROR:
-        case NS_ERROR_FAILURE:
-        case NS_ERROR_OUT_OF_MEMORY:
+        if ((rv == NS_ERROR_LDAP_ENCODING_ERROR) ||
+            (rv == NS_ERROR_FAILURE) ||
+            (rv == NS_ERROR_OUT_OF_MEMORY))
             return rv;
-
-        default:
+        else
             return NS_ERROR_UNEXPECTED;
-        }
     }
 
     return NS_OK;
 }
 
 /* AString createFilter (in unsigned long aMaxSize, in AString aPattern, in AString aPrefix, in AString aSuffix, in AString aAttr, in AString aValue); */
-NS_IMETHODIMP nsLDAPService::CreateFilter(uint32_t aMaxSize, 
+NS_IMETHODIMP nsLDAPService::CreateFilter(uint32_t aMaxSize,
                                           const nsACString & aPattern,
                                           const nsACString & aPrefix,
                                           const nsACString & aSuffix,
@@ -754,7 +745,7 @@ NS_IMETHODIMP nsLDAPService::CreateFilter(uint32_t aMaxSize,
     //
     const char *iter = aValue.BeginReading();
     const char *iterEnd = aValue.EndReading();
-    uint32_t numTokens = CountTokens(iter, iterEnd); 
+    uint32_t numTokens = CountTokens(iter, iterEnd);
     char **valueWords;
     valueWords = static_cast<char **>(moz_xmalloc((numTokens + 1) *
                                                 sizeof(char *)));
@@ -775,7 +766,7 @@ NS_IMETHODIMP nsLDAPService::CreateFilter(uint32_t aMaxSize,
     }
     valueWords[numTokens] = 0;  // end of array signal to LDAP C SDK
 
-    // make buffer to be used for construction 
+    // make buffer to be used for construction
     //
     char *buffer = static_cast<char *>(moz_xmalloc(aMaxSize * sizeof(char)));
     if (!buffer) {
@@ -786,7 +777,7 @@ NS_IMETHODIMP nsLDAPService::CreateFilter(uint32_t aMaxSize,
     // create the filter itself
     //
     nsresult rv;
-    int result = ldap_create_filter(buffer, aMaxSize, 
+    int result = ldap_create_filter(buffer, aMaxSize,
                    const_cast<char *>(PromiseFlatCString(aPattern).get()),
                    const_cast<char *>(PromiseFlatCString(aPrefix).get()),
                    const_cast<char *>(PromiseFlatCString(aSuffix).get()),
@@ -799,9 +790,9 @@ NS_IMETHODIMP nsLDAPService::CreateFilter(uint32_t aMaxSize,
         break;
 
     case LDAP_SIZELIMIT_EXCEEDED:
-        MOZ_LOG(gLDAPLogModule, mozilla::LogLevel::Debug, 
+        MOZ_LOG(gLDAPLogModule, mozilla::LogLevel::Debug,
                    ("nsLDAPService::CreateFilter(): "
-                    "filter longer than max size of %d generated", 
+                    "filter longer than max size of %d generated",
                     aMaxSize));
         rv = NS_ERROR_NOT_AVAILABLE;
         break;
@@ -877,7 +868,7 @@ NS_IMETHODIMP nsLDAPService::ParseDn(const char *aDn,
         ldap_value_free(rdnComponents);
         return NS_ERROR_UNEXPECTED;
     }
-  
+
     // get the RDN attribute names
     char **attrNameArray = static_cast<char **>(
         moz_xmalloc(rdnCount * sizeof(char *)));
@@ -934,7 +925,7 @@ nsLDAPService::CountTokens(const char *aIter,
     // keep iterating through the string until we hit the end
     //
     while (aIter != aIterEnd) {
-    
+
         // move past any leading spaces
         //
         while (aIter != aIterEnd &&
@@ -954,7 +945,7 @@ nsLDAPService::CountTokens(const char *aIter,
 
             ++aIter; // move to next char
 
-            // if we've hit the end of this token and the end of this 
+            // if we've hit the end of this token and the end of this
             // iterator simultaneous, be sure to bump the count, since we're
             // never gonna hit the IsAsciiSpace where it's normally done.
             //

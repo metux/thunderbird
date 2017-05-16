@@ -133,7 +133,7 @@
 <!ENTITY messagePaneVertical.accesskey "В">
 <!ENTITY showFolderPaneCmd.label "Панель папок">
 <!ENTITY showFolderPaneCmd.accesskey "а">
-<!ENTITY showFolderPaneColsCmd.label "Колонки панели папок">
+<!ENTITY showFolderPaneColsCmd.label "Инструменты панели папок">
 <!ENTITY showFolderPaneColsCmd.accesskey "о">
 <!ENTITY showMessageCmd.label "Область просмотра сообщений">
 <!ENTITY showMessageCmd.accesskey "О">
@@ -151,6 +151,9 @@
 <!ENTITY recentFolders.accesskey "о">
 <!ENTITY compactVersion.label "Компактный вид">
 <!ENTITY compactVersion.accesskey "о">
+<!ENTITY folderPaneBar.label "Панель вида папок">
+<!ENTITY folderPaneBar.accesskey "а">
+<!ENTITY folderModeSelector.label "Отображения папок">
 <!ENTITY sortMenu.label "Сортировка">
 <!ENTITY sortMenu.accesskey "р">
 <!ENTITY sortByDateCmd.label "по дате отправки">
@@ -336,6 +339,8 @@
 <!ENTITY editAsNewMsgCmd.label "Редактировать как новое сообщение">
 <!ENTITY editAsNewMsgCmd.accesskey "е">
 <!ENTITY editAsNewMsgCmd.key "e">
+<!ENTITY editDraftMsgCmd.label "Редактировать черновик сообщения">
+<!ENTITY editDraftMsgCmd.accesskey "а">
 <!ENTITY createFilter.label "Создать фильтр…">
 <!ENTITY createFilter.accesskey "ф">
 <!ENTITY moveMsgToMenu.label "Переместить в папку">
@@ -450,16 +455,27 @@
 <!ENTITY deleteJunk.accesskey "д">
 <!ENTITY importCmd.label "Импорт…">
 <!ENTITY importCmd.accesskey "И">
-<!ENTITY errorConsoleCmd.label "Консоль ошибок">
-<!ENTITY errorConsoleCmd.accesskey "н">
-<!ENTITY errorConsoleCmd.commandkey "j">
 <!ENTITY clearRecentHistory.label "Стереть недавнюю историю…">
 <!ENTITY clearRecentHistory.accesskey "т">
 <!ENTITY accountManagerCmd2.label "Параметры учётной записи">
 <!ENTITY accountManagerCmd2.accesskey "м">
 <!ENTITY accountManagerCmdUnix2.accesskey "м">
-<!ENTITY allowRemoteDebugging.label "Разрешить удалённую отладку">
-<!ENTITY allowRemoteDebugging.accesskey "з">
+<!ENTITY devtoolsMenu.label "Инструменты разработчика">
+<!ENTITY devtoolsMenu.accesskey "е">
+<!ENTITY devToolboxCmd.label "Панель разработки">
+<!ENTITY devToolboxCmd.accesskey "а">
+<!ENTITY devToolboxCmd.commandkey "i">
+<!ENTITY addonDebugCmd.label "Отладчик дополнений">
+<!ENTITY addonDebugCmd.accesskey "л">
+<!ENTITY tabsDebugCmd.label "Отладчик фрейма содержимого">
+<!ENTITY tabsDebugCmd.accesskey "и">
+<!ENTITY errorConsoleCmd.label "Консоль ошибок">
+<!ENTITY errorConsoleCmd.accesskey "н">
+<!ENTITY errorConsoleCmd.commandkey "j">
+<!ENTITY scratchpadCmd.label "Простой редактор JavaScript">
+<!ENTITY scratchpadCmd.accesskey "о">
+<!ENTITY scratchpadCmd.keycode "VK_F4">
+<!ENTITY scratchpadCmd.keytext "F4">
 <!ENTITY getMsgButton1.label "Получить">
 <!ENTITY newMsgButton.label "Создать">
 <!ENTITY replyButton.label "Ответить">
@@ -468,6 +484,7 @@
 <!ENTITY forwardButton.label "Переслать">
 <!ENTITY fileButton.label "Поместить">
 <!ENTITY archiveButton.label "Архивировать">
+<!ENTITY openConversationButton.label "Разговор">
 <!ENTITY nextButton.label "Следующее">
 <!ENTITY nextButtonToolbarItem.label "Следующее непрочитанное">
 <!ENTITY nextMsgButton.label "Следующее">
@@ -508,6 +525,7 @@
 <!ENTITY forwardAsAttachment.tooltip "Переслать выбранное сообщение как вложение">
 <!ENTITY fileButton.tooltip "Поместить выбранное сообщение в нужную папку">
 <!ENTITY archiveButton.tooltip "Архивировать выделенные сообщения">
+<!ENTITY openConversationButton.tooltip "Показать разговор для выделенного сообщения">
 <!ENTITY nextButton.tooltip "Перейти к следующему непрочитанному сообщению">
 <!ENTITY nextMsgButton.tooltip "Перейти к следующему сообщению">
 <!ENTITY previousButton.tooltip "Перейти к предыдущему непрочитанному сообщению">
@@ -651,6 +669,7 @@
 <!ENTITY contextOpenContainingFolder.accesskey "ы">
 <!ENTITY contextEditMsgAsNew.label "Редактировать как новое сообщение">
 <!ENTITY contextEditMsgAsNew.accesskey "а">
+<!ENTITY contextEditDraftMsg.label "Редактировать черновик сообщения">
 <!ENTITY contextArchive.label "Архивировать">
 <!ENTITY contextArchive.accesskey "х">
 <!ENTITY contextReplySender.label "Ответить отправителю">
@@ -678,9 +697,11 @@
 <!ENTITY contextCopyMsgMenu.label "Копировать в папку">
 <!ENTITY contextCopyMsgMenu.accesskey "К">
 <!ENTITY contextKillThreadMenu.label "Пропустить обсуждение">
+<!ENTITY contextKillSubthreadMenu.accesskey "е">
 <!ENTITY contextKillThreadMenu.accesskey "о">
 <!ENTITY contextKillSubthreadMenu.label "Пропустить ветку обсуждения">
 <!ENTITY contextWatchThreadMenu.label "Отслеживать обсуждение">
+<!ENTITY contextWatchThreadMenu.accesskey "л">
 <!ENTITY contextSaveAs.label "Сохранить как…">
 <!ENTITY contextSaveAs.accesskey "С">
 <!ENTITY contextPrint.label "Распечатать…">

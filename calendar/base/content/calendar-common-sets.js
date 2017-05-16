@@ -4,6 +4,11 @@
 
 Components.utils.import("resource://gre/modules/Services.jsm");
 
+/* exported injectCalendarCommandController, removeCalendarCommandController,
+ *          setupContextItemType, minimonthPick, getSelectedItems,
+ *          deleteSelectedItems, calendarUpdateNewItemsCommand
+ */
+
 var CalendarDeleteCommandEnabled = false;
 var CalendarNewEventsCommandEnabled = false;
 var CalendarNewTasksCommandEnabled = false;
@@ -79,6 +84,10 @@ var calendarController = {
 
         "calendar_attendance_command": true,
 
+        // for events/tasks in a tab
+        "cmd_save": true,
+        "cmd_accept": true,
+
         // Pseudo commands
         "calendar_in_foreground": true,
         "calendar_in_background": true,
@@ -88,13 +97,13 @@ var calendarController = {
         "cmd_selectAll": true
     },
 
-    updateCommands: function cC_updateCommands() {
-        for (var command in this.commands) {
+    updateCommands: function() {
+        for (let command in this.commands) {
             goUpdateCommand(command);
         }
     },
 
-    supportsCommand: function cC_supportsCommand(aCommand) {
+    supportsCommand: function(aCommand) {
         if (aCommand in this.commands) {
             return true;
         }
@@ -104,7 +113,7 @@ var calendarController = {
         return false;
     },
 
-    isCommandEnabled: function cC_isCommandEnabled(aCommand) {
+    isCommandEnabled: function(aCommand) {
         switch (aCommand) {
             case "calendar_new_event_command":
             case "calendar_new_event_context_command":
@@ -123,17 +132,19 @@ var calendarController = {
                 return CalendarNewTasksCommandEnabled;
             case "calendar_modify_todo_command":
             case "calendar_modify_todo_todaypane_command":
-                 return this.todo_items_selected;
-                 // This code is temporarily commented out due to
-                 // bug 469684 Unifinder-todo: raising of the context menu fires blur-event
-                 // this.todo_tasktree_focused;
+                return this.todo_items_selected;
+                // This code is temporarily commented out due to
+                // bug 469684 Unifinder-todo: raising of the context menu fires blur-event
+                // this.todo_tasktree_focused;
             case "calendar_edit_calendar_command":
                 return this.isCalendarInForeground();
             case "calendar_task_filter_command":
                 return true;
             case "calendar_delete_todo_command":
-                if (!CalendarDeleteCommandEnabled)
+                if (!CalendarDeleteCommandEnabled) {
                     return false;
+                }
+                // falls through otherwise
             case "calendar_toggle_completed_command":
             case "calendar_percentComplete-0_command":
             case "calendar_percentComplete-25_command":
@@ -151,10 +162,11 @@ var calendarController = {
             case "calendar_postpone-1hour_command":
             case "calendar_postpone-1day_command":
             case "calendar_postpone-1week_command":
-                return (this.isCalendarInForeground() || this.todo_tasktree_focused) &&
+                return ((this.isCalendarInForeground() || this.todo_tasktree_focused) &&
                        this.writable &&
                        this.todo_items_selected &&
-                       this.todo_items_writable;
+                       this.todo_items_writable) ||
+                       document.getElementById("tabmail").currentTabInfo.mode.type == "calendarTask";
             case "calendar_delete_calendar_command":
                 return this.isCalendarInForeground() && !this.last_calendar;
             case "calendar_import_command":
@@ -188,7 +200,6 @@ var calendarController = {
                 // Small hack, we want to hide instead of disable.
                 setBooleanAttribute("calendar_attendance_command", "hidden", !attendSel);
                 return attendSel;
-                break;
             }
 
             // The following commands all just need the calendar in foreground,
@@ -221,19 +232,27 @@ var calendarController = {
                 }
                 break;
 
+            // for events/tasks in a tab
+            case "cmd_save":
+            // falls through
+            case "cmd_accept": {
+                let tabType = document.getElementById("tabmail").currentTabInfo.mode.type;
+                return tabType == "calendarTask" || tabType == "calendarEvent";
+            }
+
             default:
                 if (this.defaultController && !this.isCalendarInForeground()) {
                     // The delete-button demands a special handling in mail-mode
                     // as it is supposed to delete an element of the focused pane
                     if (aCommand == "cmd_delete" || aCommand == "button_delete") {
-                        var focusedElement = document.commandDispatcher.focusedElement;
+                        let focusedElement = document.commandDispatcher.focusedElement;
                         if (focusedElement) {
                             if (focusedElement.getAttribute("id") == "agenda-listbox") {
-                                 return agendaListbox.isEventSelected();
+                                return agendaListbox.isEventSelected();
                             } else if (focusedElement.className == "calendar-task-tree") {
-                                 return this.writable &&
-                                        this.todo_items_selected &&
-                                        this.todo_items_writable;
+                                return this.writable &&
+                                       this.todo_items_selected &&
+                                       this.todo_items_writable;
                             }
                         }
                     }
@@ -250,7 +269,7 @@ var calendarController = {
         return false;
     },
 
-    doCommand: function cC_doCommand(aCommand) {
+    doCommand: function(aCommand) {
         switch (aCommand) {
             // Common Commands
             case "calendar_new_event_command":
@@ -423,14 +442,14 @@ var calendarController = {
         return;
     },
 
-    onEvent: function cC_onEvent(aEvent) {
+    onEvent: function(aEvent) {
     },
 
-    isCalendarInForeground: function cC_isCalendarInForeground() {
+    isCalendarInForeground: function() {
         return gCurrentMode && gCurrentMode != "mail";
     },
 
-    isInMode: function cC_isInMode(mode) {
+    isInMode: function(mode) {
         switch (mode) {
             case "mail":
                 return !isCalendarInForeground();
@@ -442,8 +461,8 @@ var calendarController = {
         return false;
     },
 
-    onSelectionChanged: function cC_onSelectionChanged(aEvent) {
-        var selectedItems = aEvent.detail;
+    onSelectionChanged: function(aEvent) {
+        let selectedItems = aEvent.detail;
 
         calendarUpdateDeleteCommand(selectedItems);
         calendarController.item_selected = selectedItems && (selectedItems.length > 0);
@@ -454,7 +473,7 @@ var calendarController = {
         let selected_events_invitation = 0;
 
         if (selLength > 0) {
-            for each (var item in selectedItems) {
+            for (let item of selectedItems) {
                 if (item.calendar.readOnly) {
                     selected_events_readonly++;
                 }
@@ -487,7 +506,7 @@ var calendarController = {
 
         calendarController.updateCommands();
         calendarController2.updateCommands();
-        document.commandDispatcher.updateCommands('mail-toolbar');
+        document.commandDispatcher.updateCommands("mail-toolbar");
     },
 
     /**
@@ -505,7 +524,7 @@ var calendarController = {
      * calendar.
      */
     get writable() {
-        return (cal.getCalendarManager().getCalendars({}).some(cal.isCalendarWritable));
+        return cal.getCalendarManager().getCalendars({}).some(cal.isCalendarWritable);
     },
 
     /**
@@ -519,8 +538,8 @@ var calendarController = {
     /**
      * Returns a boolean indicating if all calendars are readonly.
      */
-    get all_readonly () {
-        var calMgr = getCalendarManager();
+    get all_readonly() {
+        let calMgr = getCalendarManager();
         return (calMgr.readOnlyCalendarCount == calMgr.calendarCount);
     },
 
@@ -536,7 +555,7 @@ var calendarController = {
      * network access.
      */
     get has_local_calendars() {
-        var calMgr = getCalendarManager();
+        let calMgr = getCalendarManager();
         return (calMgr.networkCalendarCount < calMgr.calendarCount);
     },
 
@@ -547,7 +566,7 @@ var calendarController = {
     get has_cached_calendars() {
         let calMgr = getCalendarManager();
         let calendars = calMgr.getCalendars({});
-        for each (let calendar in calendars) {
+        for (let calendar of calendars) {
             if (calendar.getProperty("cache.enabled") || calendar.getProperty("cache.always")) {
                 return true;
             }
@@ -568,9 +587,9 @@ var calendarController = {
     get all_local_calendars_readonly() {
         // We might want to speed this part up by keeping track of this in the
         // calendar manager.
-        var calendars = getCalendarManager().getCalendars({});
-        var count = calendars.length;
-        for each (var calendar in calendars) {
+        let calendars = getCalendarManager().getCalendars({});
+        let count = calendars.length;
+        for (let calendar of calendars) {
             if (!isCalendarWritable(calendar)) {
                 count--;
             }
@@ -593,7 +612,7 @@ var calendarController = {
      * Returns a boolean indicating that tasks are selected.
      */
     get todo_items_selected() {
-        var selectedTasks = getSelectedTasks();
+        let selectedTasks = getSelectedTasks();
         return (selectedTasks.length > 0);
     },
 
@@ -602,7 +621,7 @@ var calendarController = {
         let selectedTasks = getSelectedTasks();
         let selected_tasks_invitation = 0;
 
-        for each (let item in selectedTasks) {
+        for (let item of selectedTasks) {
             if (cal.isInvitation(item)) {
                 selected_tasks_invitation++;
             } else if (item.organizer) {
@@ -623,8 +642,8 @@ var calendarController = {
      * on a calendar that is writable.
      */
     get todo_items_writable() {
-        var selectedTasks = getSelectedTasks();
-        for each (var task in selectedTasks) {
+        let selectedTasks = getSelectedTasks();
+        for (let task of selectedTasks) {
             if (isCalendarWritable(task.calendar)) {
                 return true;
             }
@@ -641,25 +660,25 @@ var calendarController2 = {
     defaultController: null,
 
     commands: {
-        "cmd_cut": true,
-        "cmd_copy": true,
-        "cmd_paste": true,
-        "cmd_undo": true,
-        "cmd_redo": true,
-        "cmd_print": true,
-        "cmd_pageSetup": true,
+        cmd_cut: true,
+        cmd_copy: true,
+        cmd_paste: true,
+        cmd_undo: true,
+        cmd_redo: true,
+        cmd_print: true,
+        cmd_pageSetup: true,
 
-        "cmd_printpreview": true,
-        "button_print": true,
-        "button_delete": true,
-        "cmd_delete": true,
-        "cmd_properties": true,
-        "cmd_goForward": true,
-        "cmd_goBack": true,
-        "cmd_fullZoomReduce": true,
-        "cmd_fullZoomEnlarge": true,
-        "cmd_fullZoomReset": true,
-        "cmd_showQuickFilterBar": true
+        cmd_printpreview: true,
+        button_print: true,
+        button_delete: true,
+        cmd_delete: true,
+        cmd_properties: true,
+        cmd_goForward: true,
+        cmd_goBack: true,
+        cmd_fullZoomReduce: true,
+        cmd_fullZoomEnlarge: true,
+        cmd_fullZoomReset: true,
+        cmd_showQuickFilterBar: true
     },
 
     // These functions can use the same from the calendar controller for now.
@@ -667,7 +686,7 @@ var calendarController2 = {
     supportsCommand: calendarController.supportsCommand,
     onEvent: calendarController.onEvent,
 
-    isCommandEnabled: function isCommandEnabled(aCommand) {
+    isCommandEnabled: function(aCommand) {
         switch (aCommand) {
             // Thunderbird Commands
             case "cmd_cut":
@@ -677,10 +696,10 @@ var calendarController2 = {
             case "cmd_paste":
                 return canPaste();
             case "cmd_undo":
-                goSetMenuValue(aCommand, 'valueDefault');
+                goSetMenuValue(aCommand, "valueDefault");
                 return canUndo();
             case "cmd_redo":
-                goSetMenuValue(aCommand, 'valueDefault');
+                goSetMenuValue(aCommand, "valueDefault");
                 return canRedo();
             case "button_delete":
             case "cmd_delete":
@@ -688,8 +707,8 @@ var calendarController2 = {
             case "cmd_fullZoomReduce":
             case "cmd_fullZoomEnlarge":
             case "cmd_fullZoomReset":
-              return calendarController.isInMode("calendar") &&
-                     currentView().supportsZoom;
+                return calendarController.isInMode("calendar") &&
+                       currentView().supportsZoom;
             case "cmd_properties":
             case "cmd_printpreview":
                 return false;
@@ -700,7 +719,7 @@ var calendarController2 = {
         }
     },
 
-    doCommand: function doCommand(aCommand) {
+    doCommand: function(aCommand) {
         switch (aCommand) {
             case "cmd_cut":
                 cutToClipboard();
@@ -742,7 +761,7 @@ var calendarController2 = {
                 currentView().zoomReset();
                 break;
             case "cmd_showQuickFilterBar":
-                document.getElementById('task-text-filter-field').select();
+                document.getElementById("task-text-filter-field").select();
                 break;
 
             case "button_delete":
@@ -830,26 +849,26 @@ function setupContextItemType(event, items) {
  * @param aNewDate      The new date as a JSDate.
  */
 function minimonthPick(aNewDate) {
-  if (gCurrentMode == "calendar" || gCurrentMode == "task") {
-      let cdt = cal.jsDateToDateTime(aNewDate, currentView().timezone);
-      cdt.isDate = true;
-      currentView().goToDay(cdt);
+    if (gCurrentMode == "calendar" || gCurrentMode == "task") {
+        let cdt = cal.jsDateToDateTime(aNewDate, currentView().timezone);
+        cdt.isDate = true;
+        currentView().goToDay(cdt);
 
-      // update date filter for task tree
-      let tree = document.getElementById("calendar-task-tree");
-      tree.updateFilter();
-  }
+        // update date filter for task tree
+        let tree = document.getElementById("calendar-task-tree");
+        tree.updateFilter();
+    }
 }
 
 /**
  * Selects all items, based on which mode we are currently in and what task tree is focused
  */
 function selectAllItems() {
-  if (calendarController.todo_tasktree_focused) {
-    getTaskTree().selectAll();
-  } else if (calendarController.isInMode("calendar")) {
-    selectAllEvents();
-  }
+    if (calendarController.todo_tasktree_focused) {
+        getTaskTree().selectAll();
+    } else if (calendarController.isInMode("calendar")) {
+        selectAllEvents();
+    }
 }
 
 /**
@@ -890,16 +909,20 @@ function calendarUpdateNewItemsCommand() {
     CalendarNewEventsCommandEnabled = false;
     CalendarNewTasksCommandEnabled = false;
     let calendars = cal.getCalendarManager().getCalendars({}).filter(cal.isCalendarWritable).filter(userCanAddItemsToCalendar);
-    if (calendars.some(cal.isEventCalendar))
+    if (calendars.some(cal.isEventCalendar)) {
         CalendarNewEventsCommandEnabled = true;
-    if (calendars.some(cal.isTaskCalendar))
+    }
+    if (calendars.some(cal.isTaskCalendar)) {
         CalendarNewTasksCommandEnabled = true;
+    }
 
     // update command status if required
-    if (CalendarNewEventsCommandEnabled != oldEventValue)
+    if (CalendarNewEventsCommandEnabled != oldEventValue) {
         eventCommands.forEach(goUpdateCommand);
-    if (CalendarNewTasksCommandEnabled != oldTaskValue)
+    }
+    if (CalendarNewTasksCommandEnabled != oldTaskValue) {
         taskCommands.forEach(goUpdateCommand);
+    }
 }
 
 function calendarUpdateDeleteCommand(selectedItems) {
@@ -907,7 +930,7 @@ function calendarUpdateDeleteCommand(selectedItems) {
     CalendarDeleteCommandEnabled = (selectedItems.length > 0);
 
     /* we must disable "delete" when at least one item cannot be deleted */
-    for each (let item in selectedItems) {
+    for (let item of selectedItems) {
         if (!userCanDeleteItemsFromCalendar(item.calendar)) {
             CalendarDeleteCommandEnabled = false;
             break;
@@ -920,7 +943,7 @@ function calendarUpdateDeleteCommand(selectedItems) {
                         "calendar_delete_focused_item_command",
                         "button_delete",
                         "cmd_delete"];
-        for each (let command in commands) {
+        for (let command of commands) {
             goUpdateCommand(command);
         }
     }

@@ -81,3 +81,7 @@
 #GenericPhotoList[value="default"] {
   list-style-image: url("chrome://messenger/skin/addressbook/icons/contact-generic-tiny.png");
 }
+
+.fileFieldContentBox {
+  background-color: transparent;
+}

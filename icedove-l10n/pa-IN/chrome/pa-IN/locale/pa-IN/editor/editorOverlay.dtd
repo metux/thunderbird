@@ -432,6 +432,9 @@
 <!ENTITY incrementFontSize.key "&gt;">
 <!ENTITY incrementFontSize.key2 "."> <!-- > is above this key on many keyboards -->
 
+<!ENTITY insertLinkCmd2.accesskey "L">
+<!ENTITY insertLinkCmd2.key "K">
+<!ENTITY insertLinkCmd2.label "Link…">
 <!ENTITY insertMathCmd.accesskey "M">
 <!ENTITY insertMathCmd.label "Math…">
 <!ENTITY size-extraLargeCmd.accesskey "x">

@@ -1,6 +1,11 @@
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+
 <!ENTITY itemGeneral.label                   "Utama">
 <!ENTITY itemAutoComplete.label              "Alamat">
 <!ENTITY itemSpellCheck.label                "Pemeriksa Ejaan">
+
 
 <!ENTITY forwardMsg.label                     "Teruskan pesan:">
 <!ENTITY forwardMsg.accesskey                 "T">
@@ -20,6 +25,8 @@
 <!ENTITY bgColor.accesskey                    "W">
 <!ENTITY restoreHTMLDefaults.label            "Kembalikan Nilai Default">
 <!ENTITY restoreHTMLDefaults.accesskey        "K">
+
+
 
 <!ENTITY spellCheck.label                     "Periksa ejaan sebelum mengirim">
 <!ENTITY spellCheck.accesskey                 "e">
@@ -56,7 +63,7 @@
 <!ENTITY attachmentReminderOptions.label       "Kata Kunci…">
 <!ENTITY attachmentReminderOptions.accesskey   "K">
 
+<!ENTITY defaultToParagraph.accesskey         "P">
+<!ENTITY defaultToParagraph.label             "Use Paragraph format instead of Body Text by default">
 
 <!ENTITY dialogCompose.title                 "Composing">
-<!ENTITY enterKeyCreatesNewParagraph.accesskey "p">
-<!ENTITY enterKeyCreatesNewParagraph.label    "When using paragraph format, the enter key creates a new paragraph">

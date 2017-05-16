@@ -28,10 +28,10 @@
 <!-- labels -->
 
 <!ENTITY displayTagsText.label     "Etichetele pot fi folosite pentru a organiza mesajele dumneavoastră pe categorii și după priorități.">
-<!ENTITY addTagButton.label        "Adaugă">
-<!ENTITY addTagButton.accesskey    "A">
-<!ENTITY editTagButton.label       "Modifică">
-<!ENTITY editTagButton.accesskey   "M">
+
+
+
+
 <!ENTITY removeTagButton.label     "Șterge">
 <!ENTITY removeTagButton.accesskey "t">
 <!-- Fonts and Colors -->
@@ -41,8 +41,8 @@
 <!ENTITY defaultFont.accesskey   "F">
 <!ENTITY defaultSize.label       "Mărime:">
 <!ENTITY defaultSize.accesskey   "M">
-<!ENTITY fontOptions.accesskey   "F">
-<!ENTITY fontOptions.label       "Fonturi…">
+<!ENTITY fontOptions.accesskey   "A">
+<!ENTITY fontOptions.label       "Avansat…">
 <!ENTITY colorButton.label       "Culori…">
 <!ENTITY colorButton.accesskey   "C">
 <!-- Advanced -->
@@ -71,3 +71,8 @@
 <!ENTITY reuseExpRadio1.accesskey         "x">
 <!ENTITY closeMsgOnMoveOrDelete.label     "Închide fereastra sau fila cu mesajul la mutare sau ștergere">
 <!ENTITY closeMsgOnMoveOrDelete.accesskey "c">
+
+<!ENTITY editTagButton1.accesskey  "E">
+<!ENTITY editTagButton1.label      "Edit…">
+<!ENTITY newTagButton.accesskey    "N">
+<!ENTITY newTagButton.label        "New…">

@@ -1,31 +1,42 @@
-<!ENTITY typeColumn.label "Τύπος περιεχομένου">
-<!ENTITY typeColumn.accesskey "Τ">
-<!ENTITY actionColumn2.label "Ενέργεια">
-<!ENTITY actionColumn2.accesskey "ν">
-<!ENTITY focusSearch1.key "f">
-<!ENTITY focusSearch2.key "k">
-<!ENTITY filter.placeholder "Αναζήτηση">
-<!ENTITY saveTo.label "Αποθήκευση αρχείων σε">
-<!ENTITY saveTo.accesskey "θ">
-<!ENTITY alwaysAsk.label "Πάντα ερώτηση για την τοποθεσία αποθήκευσης">
-<!ENTITY alwaysAsk.accesskey "Π">
-<!ENTITY chooseFolderWin.label "Εξερεύνηση…">
-<!ENTITY chooseFolderWin.accesskey "ξ">
-<!ENTITY chooseFolderMac.label "Επιλογή…">
-<!ENTITY chooseFolderMac.accesskey "π">
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
+<!ENTITY  typeColumn.label            "Τύπος περιεχομένου">
+<!ENTITY  typeColumn.accesskey        "Τ">
+
+<!ENTITY  actionColumn2.label         "Ενέργεια">
+<!ENTITY  actionColumn2.accesskey     "ν">
+
+<!ENTITY  focusSearch1.key            "f">
+<!ENTITY  focusSearch2.key            "k">
+
+<!ENTITY  filter.placeholder          "Αναζήτηση">
+
+<!ENTITY saveTo.label                 "Αποθήκευση αρχείων σε">
+<!ENTITY saveTo.accesskey             "θ">
+<!ENTITY alwaysAsk.label              "Πάντα ερώτηση για την τοποθεσία αποθήκευσης">
+<!ENTITY alwaysAsk.accesskey          "Π">
+<!ENTITY chooseFolderWin.label        "Εξερεύνηση…">
+<!ENTITY chooseFolderWin.accesskey    "ξ">
+<!ENTITY chooseFolderMac.label        "Επιλογή…">
+<!ENTITY chooseFolderMac.accesskey    "π">
+
+<!ENTITY attachments.incoming.label   "Εισερχόμενα">
+<!ENTITY attachments.outgoing.label   "Εξερχόμενα">
+
+<!ENTITY addCloudFileAccount.label        "Προσθήκη">
 <!ENTITY addCloudFileAccount.accesskey    "A">
-<!ENTITY addCloudFileAccount.description  "Add a new Filelink storage service">
-
-<!ENTITY addCloudFileAccount.label        "Add">
-
-<!ENTITY attachments.incoming.label   "Incoming">
-<!ENTITY attachments.outgoing.label   "Outgoing">
-<!ENTITY authRequired.button.accesskey    "U">
-<!ENTITY authRequired.button.label        "Authorize">
-<!ENTITY authRequired.description         "Your authorization is required in order to see the settings for this storage service.">
-
-<!ENTITY enableCloudFileAccountOffer.label "Offer to share for files larger than">
-<!ENTITY enableCloudFileAccountOffer.mb "MB">
+<!ENTITY addCloudFileAccount.description  "Προσθήκη νέας υπηρεσίας αποθηκευτικού χώρου Filelink">
+<!ENTITY removeCloudFileAccount.label     "Αφαίρεση">
 <!ENTITY removeCloudFileAccount.accesskey "R">
-<!ENTITY removeCloudFileAccount.label     "Remove">
+<!ENTITY authRequired.description         "Απαιτείται η πιστοποίησή σας για την προβολή ρυθμίσεων για αυτή την υπηρεσία αποθηκευτικού χώρου.">
+<!ENTITY authRequired.button.label        "Πιστοποίηση">
+<!ENTITY authRequired.button.accesskey    "U">
+
+<!ENTITY enableCloudFileAccountOffer.label "Πρόταση για κοινή χρήση αρχείων, μεγαλύτερων από">
+<!ENTITY enableCloudFileAccountOffer.mb "MB">
+
+<!ENTITY addCloudFileAccount1.accesskey   "A">
+
+<!ENTITY addCloudFileAccount1.label       "Add…">

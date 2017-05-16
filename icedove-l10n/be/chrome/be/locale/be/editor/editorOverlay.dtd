@@ -297,6 +297,9 @@
 
 <!-- Editor toolbar -->
 <!ENTITY absoluteFontSizeToolbarCmd.tooltip "Set font size">
+<!ENTITY insertLinkCmd2.accesskey "L">
+<!ENTITY insertLinkCmd2.key "K">
+<!ENTITY insertLinkCmd2.label "Link…">
 <!ENTITY size-extraLargeCmd.accesskey "x">
 <!ENTITY size-extraLargeCmd.label "Extra Large">
 <!ENTITY size-hugeCmd.accesskey "H">

@@ -14,7 +14,6 @@
 #include "nsIFile.h"
 #include "nsDirectoryServiceDefs.h"
 #include "nsQuickSort.h"
-#include "nsAutoPtr.h"
 #include "nsNativeCharsetUtils.h"
 #include "nsIMutableArray.h"
 #include "mozilla/Services.h"
@@ -99,7 +98,6 @@
 
 static NS_DEFINE_CID(kRDFServiceCID,  NS_RDFSERVICE_CID);
 
-#define FOUR_K 4096
 #define MESSENGER_SAVE_DIR_PREF_NAME "messenger.save.dir"
 #define MIMETYPE_DELETED    "text/x-moz-deleted"
 #define ATTACHMENT_PERMISSION 00664
@@ -151,7 +149,7 @@ public:
 
   nsCOMPtr<nsIFile> m_file;
   nsCOMPtr<nsIOutputStream> m_outputStream;
-  nsAutoPtr<char> m_dataBuffer;
+  char m_dataBuffer[FILE_IO_BUFFER_SIZE];
   nsCOMPtr<nsIChannel> m_channel;
   nsCString m_templateUri;
   nsMessenger *m_messenger; // not ref counted
@@ -227,7 +225,7 @@ nsMessenger::~nsMessenger()
 
 NS_IMPL_ISUPPORTS(nsMessenger, nsIMessenger, nsISupportsWeakReference, nsIFolderListener)
 
-NS_IMETHODIMP nsMessenger::SetWindow(nsIDOMWindow *aWin, nsIMsgWindow *aMsgWindow)
+NS_IMETHODIMP nsMessenger::SetWindow(mozIDOMWindowProxy *aWin, nsIMsgWindow *aMsgWindow)
 {
   nsresult rv;
 
@@ -243,8 +241,8 @@ NS_IMETHODIMP nsMessenger::SetWindow(nsIDOMWindow *aWin, nsIMsgWindow *aMsgWindo
     rv = mailSession->AddFolderListener(this, nsIFolderListener::removed);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    nsCOMPtr<nsPIDOMWindow> win( do_QueryInterface(aWin) );
-    NS_ENSURE_TRUE(win, NS_ERROR_FAILURE);
+    NS_ENSURE_TRUE(aWin, NS_ERROR_FAILURE);
+    nsCOMPtr<nsPIDOMWindowOuter> win = nsPIDOMWindowOuter::From(aWin);
 
     nsIDocShell *docShell = win->GetDocShell();
     nsCOMPtr<nsIDocShellTreeItem> docShellAsItem(do_QueryInterface(docShell));
@@ -254,7 +252,7 @@ NS_IMETHODIMP nsMessenger::SetWindow(nsIDOMWindow *aWin, nsIMsgWindow *aMsgWindo
     docShellAsItem->GetSameTypeRootTreeItem(getter_AddRefs(rootDocShellAsItem));
 
     nsCOMPtr<nsIDocShellTreeItem> childAsItem;
-    rv = rootDocShellAsItem->FindChildWithName(MOZ_UTF16("messagepane"), true, false,
+    rv = rootDocShellAsItem->FindChildWithName(NS_LITERAL_STRING("messagepane"), true, false,
                                                nullptr, nullptr, getter_AddRefs(childAsItem));
 
     mDocShell = do_QueryInterface(childAsItem);
@@ -327,7 +325,7 @@ nsMessenger::PromptIfFileExists(nsIFile *file)
       rv = InitStringBundle();
       NS_ENSURE_SUCCESS(rv, rv);
     }
-    rv = mStringBundle->FormatStringFromName(MOZ_UTF16("fileExists"),
+    rv = mStringBundle->FormatStringFromName(u"fileExists",
                                              pathFormatStrings, 1,
                                              getter_Copies(errorMessage));
     NS_ENSURE_SUCCESS(rv, rv);
@@ -471,7 +469,7 @@ NS_IMETHODIMP nsMessenger::LaunchExternalURL(const nsACString& aURL)
 }
 
 NS_IMETHODIMP
-nsMessenger::LoadURL(nsIDOMWindow *aWin, const nsACString& aURL)
+nsMessenger::LoadURL(mozIDOMWindowProxy *aWin, const nsACString& aURL)
 {
   nsresult rv;
 
@@ -659,7 +657,8 @@ nsresult nsMessenger::SaveAttachment(nsIFile *aFile,
       nsresult rv = NS_NewFileURI(getter_AddRefs(outputURI), aFile);
       NS_ENSURE_SUCCESS(rv, rv);
       nsAutoCString fileUriSpec;
-      outputURI->GetSpec(fileUriSpec);
+      rv = outputURI->GetSpec(fileUriSpec);
+      NS_ENSURE_SUCCESS(rv, rv);
       saveState->m_savedFiles.AppendElement(fileUriSpec);
     }
   }
@@ -838,7 +837,7 @@ nsMessenger::SaveOneAttachment(const char * aContentType, const char * aURL,
     nsString filterName;
     const char16_t *extensionParam[] = { extension.get() };
     rv = mStringBundle->FormatStringFromName(
-      MOZ_UTF16("saveAsType"), extensionParam, 1, getter_Copies(filterName));
+      u"saveAsType", extensionParam, 1, getter_Copies(filterName));
     NS_ENSURE_SUCCESS(rv, rv);
 
     extension.Insert(NS_LITERAL_STRING("*."), 0);
@@ -1639,7 +1638,6 @@ nsSaveMsgListener::nsSaveMsgListener(nsIFile* aFile, nsMessenger *aMessenger, ns
   mCanceled = false;
   m_outputFormat = eUnknown;
   mInitialized = false;
-  m_dataBuffer = new char[FOUR_K];
 }
 
 nsSaveMsgListener::~nsSaveMsgListener()
@@ -1859,6 +1857,11 @@ nsSaveMsgListener::OnStopRequest(nsIRequest* request, nsISupports* aSupport,
     nsCString outCString;
     rv = nsMsgI18NConvertFromUnicode(nsMsgI18NFileSystemCharset(),
       utf16Buffer, outCString, false, true);
+    if (rv == NS_ERROR_UENC_NOMAPPING) {
+      // If we can't encode with the preferred charset, use UTF-8.
+      CopyUTF16toUTF8(utf16Buffer, outCString);
+      rv = NS_OK;
+    }
     if (NS_SUCCEEDED(rv))
     {
       uint32_t writeCount;
@@ -1967,11 +1970,11 @@ nsSaveMsgListener::OnDataAvailable(nsIRequest* request,
   if (!mInitialized)
     InitializeDownload(request);
 
-  if (m_dataBuffer && m_outputStream)
+  if (m_outputStream)
   {
     mProgress += count;
     uint64_t available;
-    uint32_t readCount, maxReadCount = FOUR_K;
+    uint32_t readCount, maxReadCount = sizeof(m_dataBuffer);
     uint32_t writeCount;
     rv = inStream->Available(&available);
     while (NS_SUCCEEDED(rv) && available)
@@ -2031,6 +2034,8 @@ nsMessenger::GetString(const nsString& aStringName, nsString& aValue)
 
   if (mStringBundle)
     rv = mStringBundle->GetStringFromName(aStringName.get(), getter_Copies(aValue));
+  else
+    rv = NS_ERROR_FAILURE;
 
   if (NS_FAILED(rv) || aValue.IsEmpty())
     aValue = aStringName;
@@ -2892,9 +2897,10 @@ nsDelAttachListener::StartProcessing(nsMessenger * aMessenger, nsIMsgWindow * aM
   nsCOMPtr<nsIUrlListener> listenerUrlListener = do_QueryInterface(listenerSupports, &rv);
   NS_ENSURE_SUCCESS(rv,rv);
 
+  nsCOMPtr<nsIURI> dummyNull;
   rv = mMessageService->StreamMessage(messageUri, listenerSupports, mMsgWindow,
                                       listenerUrlListener, true, sHeader,
-                                      false, nullptr);
+                                      false, getter_AddRefs(dummyNull));
   NS_ENSURE_SUCCESS(rv,rv);
 
   return NS_OK;
@@ -3053,7 +3059,7 @@ nsMessenger::PromptIfDeleteAttachments(bool aSaveFirst,
   // format the message and display
   nsString promptMessage;
   const char16_t * propertyName = aSaveFirst ?
-    MOZ_UTF16("detachAttachments") : MOZ_UTF16("deleteAttachments");
+    u"detachAttachments" : u"deleteAttachments";
   rv = mStringBundle->FormatStringFromName(propertyName, formatStrings, 1,getter_Copies(promptMessage));
   NS_ENSURE_SUCCESS(rv, rv);
 

@@ -9,6 +9,8 @@ AC_DEFINE(MOZ_THUNDERBIRD)
 AC_SUBST(MOZ_THUNDERBIRD)
 AC_SUBST(MOZ_COMPOSER)
 AC_SUBST(THUNDERBIRD_VERSION)
+AC_DEFINE(MOZ_SEPARATE_MANIFEST_FOR_THEME_OVERRIDES)
+AC_SUBST(MOZ_BUNDLED_FONTS)
 
 dnl Optional parts of the build.
 AC_SUBST(MOZ_MORK)
@@ -23,7 +25,7 @@ fi
 AC_SUBST(MOZ_MOVEMAIL)
 
 dnl Get other versions (for the calendar plugin)
-SEAMONKEY_VERSION=`cat $topsrcdir/suite/config/version.txt`
+SEAMONKEY_VERSION=`cat ${_topsrcdir}/../suite/config/version.txt`
 AC_SUBST(SEAMONKEY_VERSION)
 
 dnl =========================================================

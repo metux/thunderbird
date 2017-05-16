@@ -3,13 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 function run_test() {
-    do_test_pending();
-    cal.getTimezoneService().startup({
-        onResult: function() {
-            really_run_test();
-            do_test_finished();
-        }
-    });
+    do_calendar_startup(really_run_test);
 }
 
 function really_run_test() {
@@ -77,9 +71,10 @@ function test_attendeeMatchesAddresses() {
 }
 
 function test_getDefaultStartDate() {
-    function tt(n, t) {
-        now = cal.createDateTime(n);
-        return cal.getDefaultStartDate(t ? cal.createDateTime(t) : null);
+    function transform(nowString, refDateString) {
+        now = cal.createDateTime(nowString);
+        let refDate = refDateString ? cal.createDateTime(refDateString) : null;
+        return cal.getDefaultStartDate(refDate);
     }
 
     let oldNow = cal.now;
@@ -91,15 +86,15 @@ function test_getDefaultStartDate() {
     dump("TT: " + cal.createDateTime("20120101T000000") + "\n");
     dump("TT: " + cal.getDefaultStartDate(cal.createDateTime("20120101T000000")) + "\n");
 
-    equal(tt("20120101T000000").icalString, "20120101T010000");
-    equal(tt("20120101T015959").icalString, "20120101T020000");
-    equal(tt("20120101T230000").icalString, "20120101T230000");
-    equal(tt("20120101T235959").icalString, "20120101T230000");
+    equal(transform("20120101T000000").icalString, "20120101T010000");
+    equal(transform("20120101T015959").icalString, "20120101T020000");
+    equal(transform("20120101T230000").icalString, "20120101T230000");
+    equal(transform("20120101T235959").icalString, "20120101T230000");
 
-    equal(tt("20120101T000000", "20120202").icalString, "20120202T010000");
-    equal(tt("20120101T015959", "20120202").icalString, "20120202T020000");
-    equal(tt("20120101T230000", "20120202").icalString, "20120202T230000");
-    equal(tt("20120101T235959", "20120202").icalString, "20120202T230000");
+    equal(transform("20120101T000000", "20120202").icalString, "20120202T010000");
+    equal(transform("20120101T015959", "20120202").icalString, "20120202T020000");
+    equal(transform("20120101T230000", "20120202").icalString, "20120202T230000");
+    equal(transform("20120101T235959", "20120202").icalString, "20120202T230000");
 
     let event = cal.createEvent();
     now = cal.createDateTime("20120101T015959");
@@ -129,7 +124,10 @@ function test_getStartEndProps() {
 
 function test_calOperationGroup() {
     let cancelCalled = false;
-    function cancelFunc() { return cancelCalled = true; }
+    function cancelFunc() {
+        cancelCalled = true;
+        return true;
+    }
 
     let group = new cal.calOperationGroup(cancelFunc);
 
@@ -138,9 +136,7 @@ function test_calOperationGroup() {
     equal(group.status, Components.results.NS_OK);
     equal(group.isPending, true);
 
-    let completedOp = {
-        isPending: false
-    };
+    let completedOp = { isPending: false };
 
     group.add(completedOp);
     ok(group.isEmpty);
@@ -149,7 +145,7 @@ function test_calOperationGroup() {
     let pendingOp1 = {
         id: 1,
         isPending: true,
-        cancel: function() { return this.cancelCalled = true; }
+        cancel: function() { this.cancelCalled = true; return true; }
     };
 
     group.add(pendingOp1);
@@ -159,7 +155,7 @@ function test_calOperationGroup() {
     let pendingOp2 = {
         id: 2,
         isPending: true,
-        cancel: function() { return this.cancelCalled = true; }
+        cancel: function() { this.cancelCalled = true; return true; }
     };
 
     group.add(pendingOp2);
@@ -176,12 +172,12 @@ function test_calOperationGroup() {
 }
 
 function test_sameDay() {
-    let dt = cal.createDateTime;
+    let createDate = cal.createDateTime.bind(cal);
 
-    ok(cal.sameDay(dt("20120101"), dt("20120101T120000")));
-    ok(cal.sameDay(dt("20120101"), dt("20120101")));
-    ok(!cal.sameDay(dt("20120101"), dt("20120102")));
-    ok(!cal.sameDay(dt("20120101T120000"), dt("20120102T120000")));
+    ok(cal.sameDay(createDate("20120101"), createDate("20120101T120000")));
+    ok(cal.sameDay(createDate("20120101"), createDate("20120101")));
+    ok(!cal.sameDay(createDate("20120101"), createDate("20120102")));
+    ok(!cal.sameDay(createDate("20120101T120000"), createDate("20120102T120000")));
 }
 
 function test_binarySearch() {
@@ -190,7 +186,7 @@ function test_binarySearch() {
     equal(binarySearch(arr, 2), 0); // Left most
     equal(binarySearch(arr, 62), 11); // Right most
 
-    equal(binarySearch([5], 5), 1) // One element found
-    equal(binarySearch([1], 0), 0) // One element insert left
-    equal(binarySearch([1], 2), 1) // One element insert right
+    equal(binarySearch([5], 5), 1); // One element found
+    equal(binarySearch([1], 0), 0); // One element insert left
+    equal(binarySearch([1], 2), 1); // One element insert right
 }

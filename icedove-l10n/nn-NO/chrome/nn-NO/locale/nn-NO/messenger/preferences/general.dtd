@@ -16,10 +16,13 @@
 
 <!ENTITY newMessagesArrive.label          "Når ei ny melding kjem:">
 <!ENTITY playSound.label                  "Spel av ein lyd">
-<!ENTITY playSound1.accesskey              "S">
+<!ENTITY playSound1.accesskey             "S">
+
+
 <!ENTITY showAnimatedAlert.label          "Vis eit varsel">
 <!ENTITY showAnimatedAlert.accesskey      "V">
-<!ENTITY customizeMailAlert.label         "Avansert …">
+
+<!ENTITY customizeMailAlert.label         "Avansert…">
 <!ENTITY customizeMailAlert.accesskey     "A">
 
 <!ENTITY showTrayIcon.label               "Vis eit ikon i systemstatusfeltet">
@@ -28,8 +31,6 @@
 <!ENTITY play.label                       "Spel av">
 <!ENTITY play.accesskey                   "e">
 <!ENTITY systemsound.label                "Standard systemlyd for ny e-post">
-<!ENTITY systemsoundMac.label             "Systemlyd">
-<!ENTITY systemsoundMac.accesskey         "e">
 <!ENTITY systemsound.accesskey            "m">
 <!ENTITY customsound.label                "Bruk følgjande lydfil">
 <!ENTITY customsound.accesskey            "r">
@@ -37,3 +38,7 @@
 <!ENTITY browse.accesskey                 "B">
 
 <!ENTITY defaultSearchEngine.label        "Standard søkjemotor">
+
+<!ENTITY notificationAlertSettings2.label "Alerts and the default sound can be disabled on the Notification pane of System Preferences.">
+<!ENTITY playSoundMac.accesskey           "d">
+<!ENTITY playSoundMac.label               "Play the following sound file:">

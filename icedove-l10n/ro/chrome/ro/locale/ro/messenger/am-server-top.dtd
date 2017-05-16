@@ -23,8 +23,8 @@
 <!ENTITY biffStart.label "Caută mesaje noi la fiecare ">
 <!ENTITY biffStart.accesskey "u">
 <!ENTITY biffEnd.label "Minute">
-
-
+<!ENTITY useIdleNotifications.label "Permite notificări imediate de la server atunci când apar mesaje noi">
+<!ENTITY useIdleNotifications.accesskey "w">
 <!ENTITY connectionSecurity.label "Securitatea conexiunii:">
 <!ENTITY connectionSecurity.accesskey "u">
 <!ENTITY connectionSecurityType-0.label "Niciuna">
@@ -90,6 +90,3 @@
 <!ENTITY storeType.accesskey "T">
 <!ENTITY mboxStore2.label "Fișier per dosar (mbox)">
 <!ENTITY maildirStore.label "Fișiere per mesaj (maildir)">
-
-<!ENTITY useIdleNotifications.accesskey "w">
-<!ENTITY useIdleNotifications.label "Allow immediate server notifications when new messages arrive">

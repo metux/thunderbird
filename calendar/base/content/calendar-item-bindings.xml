@@ -29,28 +29,28 @@
       <xul:label anonid="item-datetime-value"/>
     </content>
     <implementation>
-      <field name="mItem">null</field>  
+      <field name="mItem">null</field>
       <property name="mode"
                 readonly="true">
         <getter><![CDATA[
-            if (this.hasAttribute("mode")) {
-                return this.getAttribute("mode");
-            } else {
-                return "start";
-            }
+          if (this.hasAttribute("mode")) {
+              return this.getAttribute("mode");
+          } else {
+              return "start";
+          }
         ]]></getter>
       </property>
       <property name="Item">
         <getter><![CDATA[
-            return mItem;
+          return mItem;
         ]]></getter>
         <setter><![CDATA[
           this.mItem = val;
-          var headerLabel = document.getAnonymousElementByAttribute(this, "anonid", "item-datetime-label");
-          var itemDateTimeLabel = document.getAnonymousElementByAttribute(this, "anonid", "item-datetime-value");
+          let headerLabel = document.getAnonymousElementByAttribute(this, "anonid", "item-datetime-label");
+          let itemDateTimeLabel = document.getAnonymousElementByAttribute(this, "anonid", "item-datetime-value");
+          let date;
           if (this.mode == "start") {
-              var date = this.mItem[calGetStartDateProp(this.mItem)];
-              //this.mItem.startDate || this.mItem.entryDate;
+              date = this.mItem[calGetStartDateProp(this.mItem)];
               if (date) {
                   let label;
                   if (isToDo(this.mItem)) {
@@ -61,18 +61,18 @@
                   headerLabel.value = label;
               }
           } else {
-              var date = this.mItem[calGetEndDateProp(this.mItem)];
+              date = this.mItem[calGetEndDateProp(this.mItem)];
               if (date) {
                   let label;
                   if (isToDo(this.mItem)) {
-                          label = this.getAttribute("taskDueLabel");
+                      label = this.getAttribute("taskDueLabel");
                   } else {
                       label = this.getAttribute("eventEndLabel");
                   }
                   headerLabel.value = label;
               }
           }
-          var hideLabels = (date == null);
+          let hideLabels = (date == null);
           if (hideLabels) {
               this.setAttribute("hidden", "true");
           } else {
@@ -80,7 +80,7 @@
               let localTime = date.getInTimezone(kDefaultTimezone);
               let formatter = getDateFormatter();
               itemDateTimeLabel.value = formatter.formatDateTime(localTime);
-              if (date.timezone.tzid != kDefaultTimezone.tzid) {
+              if (!date.timezone.isFloating && date.timezone.tzid != kDefaultTimezone.tzid) {
                   // we additionally display the original datetime with timezone
                   let orgTime = cal.calGetString("calendar",
                                                  "datetimeWithTimezone",

@@ -53,7 +53,6 @@ public:
 
   nsCOMPtr <nsIMsgFolder> m_virtualFolder; // folder we're listening to db changes on behalf of.
   nsCOMPtr <nsIMsgFolder> m_folderWatching; // folder whose db we're listening to.
-  nsCOMPtr <nsISupportsArray> m_searchTerms;
   nsCOMPtr <nsIMsgSearchSession> m_searchSession;
   bool m_searchOnMsgStatus;
   bool m_batchingEvents;
@@ -152,8 +151,6 @@ private:
   // fires notifications to the appropriate root folders
   nsresult notifyDefaultServerChange(nsIMsgAccount *aOldAccount,
                                      nsIMsgAccount *aNewAccount);
-    
-  static PLDHashOperator hashUnloadServer(nsCStringHashKey::KeyType aKey, nsCOMPtr<nsIMsgIncomingServer>& aServer, void* aClosure);
 
   //
   // account enumerators
@@ -170,11 +167,6 @@ private:
   // server enumerators
   // ("element" is always a server)
   //
-
-  // save the server's saved searches to virtualFolders.dat
-  static PLDHashOperator saveVirtualFolders(nsCStringHashKey::KeyType aKey,
-                                       nsCOMPtr<nsIMsgIncomingServer>& aServer,
-                                       void *outputStream);
 
   nsresult findServerInternal(const nsACString& username,
                               const nsACString& hostname,

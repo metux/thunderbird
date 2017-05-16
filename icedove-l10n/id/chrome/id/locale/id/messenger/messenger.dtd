@@ -1,7 +1,11 @@
-<!ENTITY titledefault.label    "&brandFullName;">
-<!ENTITY titleSeparator.label " - ">
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
+<!ENTITY titledefault.label "&brandFullName;">
+<!ENTITY titleSeparator.label " - ">
 <!-- File Menu -->
+
 <!ENTITY newFolderCmd.label "Folder…">
 <!ENTITY newFolderCmd.accesskey "F">
 <!ENTITY closeTabCmd2.label "Tutup Tab">
@@ -28,10 +32,12 @@
 <!ENTITY newExistingEmailAccountCmd.accesskey "E">
 <!ENTITY newIMAccountCmd.label "Akun Ngobrol…">
 <!ENTITY newIMAccountCmd.accesskey "N">
+
+
+
+
 <!ENTITY openMessageFileCmd.label "Buka Pesan Tersimpan…">
 <!ENTITY openMessageFileCmd.accesskey "P">
-<!ENTITY openAttachmentCmd.label "Lampiran">
-<!ENTITY openAttachmentCmd.accesskey "L">
 <!ENTITY saveAsMenu.label "Simpan sebagai">
 <!ENTITY saveAsMenu.accesskey "S">
 <!ENTITY saveAsFileCmd.label "Berkas">
@@ -57,17 +63,17 @@
 <!ENTITY renameFolder.accesskey "G">
 <!ENTITY renameFolder.key "VK_F2">
 <!ENTITY compactFolders.label "Padatkan Folder">
-<!ENTITY compactFolders.accesskey    "d">
+<!ENTITY compactFolders.accesskey "d">
 <!ENTITY emptyTrashCmd.label "Kosongkan Tong Sampah">
-<!ENTITY emptyTrashCmd.accesskey    "o">
+<!ENTITY emptyTrashCmd.accesskey "o">
 <!ENTITY offlineMenu.label "Luring">
 <!ENTITY offlineMenu.accesskey "u">
 <!ENTITY offlineGoOfflineCmd.label "Bekerja Luring">
 <!ENTITY offlineGoOfflineCmd.accesskey "L">
 <!ENTITY synchronizeOfflineCmd.label "Unduh/Sinkron Sekarang…">
 <!ENTITY synchronizeOfflineCmd.accesskey "S">
-<!ENTITY settingsOfflineCmd.label "Pengaturan Luring…">
-<!ENTITY settingsOfflineCmd.accesskey "e">
+
+
 <!ENTITY downloadSelectedCmd.label "Ambil Pesan Terpilih">
 <!ENTITY downloadSelectedCmd.accesskey "l">
 <!ENTITY downloadStarredCmd.label "Ambil Pesan dengan Bintang">
@@ -79,14 +85,12 @@
 <!ENTITY printPreviewCmd.accesskey "j">
 <!ENTITY printSetupCmd.label "Tata Laman…">
 <!ENTITY printSetupCmd.accesskey "L">
-
 <!-- Edit Menu -->
+
 <!ENTITY deleteMsgCmd.label "Hapus Pesan">
 <!ENTITY deleteMsgCmd.accesskey "H">
 <!ENTITY undeleteMsgCmd.label "kembalikan Pesan">
 <!ENTITY undeleteMsgCmd.accesskey "k">
-<!ENTITY cancelNewsMsgCmd.label "Batalkan Pesan">
-<!ENTITY cancelNewsMsgCmd.accesskey "B">
 <!ENTITY deleteMsgsCmd.label "Hapus Pesan Terpilih">
 <!ENTITY deleteMsgsCmd.accesskey "H">
 <!ENTITY undeleteMsgsCmd.label "Kembalikan Pesan yang Dipilih">
@@ -97,8 +101,8 @@
 <!ENTITY unsubscribeNewsgroupCmd.accesskey "n">
 <!ENTITY selectMenu.label "Pilih">
 <!ENTITY selectMenu.accesskey "P">
-<!ENTITY all.label "Semua">
-<!ENTITY all.accesskey "a">
+
+
 <!ENTITY selectThreadCmd.label "Utas">
 <!ENTITY selectThreadCmd.accesskey "U">
 <!ENTITY selectThreadCmd.key "a">
@@ -106,9 +110,9 @@
 <!ENTITY selectFlaggedCmd.accesskey "s">
 <!ENTITY menuFavoriteFolder.label "Folder Favorit">
 <!ENTITY menuFavoriteFolder.accesskey "a">
-<!ENTITY folderPropsCmd.label "Properti…">
-<!ENTITY folderPropsFolderCmd.label "Properti Folder…">
-<!ENTITY folderPropsNewsgroupCmd.label "Properti Newsgroup…">
+<!ENTITY folderPropsCmd2.label "Keterangan:">
+<!ENTITY folderPropsFolderCmd2.label "Properti Folder">
+
 <!ENTITY folderPropsCmd.accesskey "o">
 <!ENTITY undoDeleteMsgCmd.label "Batal Menghapus Pesan">
 <!ENTITY redoDeleteMsgCmd.label "Ulangi Menghapus Pesan">
@@ -122,8 +126,8 @@
 <!ENTITY undoDefaultCmd.accesskey "B">
 <!ENTITY redoDefaultCmd.label "Ulangi">
 <!ENTITY redoDefaultCmd.accesskey "U">
-
 <!-- View Menu -->
+
 <!ENTITY menubarCmd.label "Bilah Menu">
 <!ENTITY menubarCmd.accesskey "M">
 <!ENTITY showMessengerToolbarCmd.label "Bilah Alat Email">
@@ -141,6 +145,8 @@
 <!ENTITY messagePaneVertical.accesskey "T">
 <!ENTITY showFolderPaneCmd.label "Panel Folder">
 <!ENTITY showFolderPaneCmd.accesskey "F">
+
+
 <!ENTITY showMessageCmd.label "Panel Pesan">
 <!ENTITY showMessageCmd.accesskey "P">
 
@@ -157,7 +163,12 @@
 <!ENTITY recentFolders.label "Terbaru">
 <!ENTITY recentFolders.accesskey "T">
 
+
+
+
+
 <!-- Sort Menu -->
+
 <!ENTITY sortMenu.label "Urut berdasar">
 <!ENTITY sortMenu.accesskey "U">
 <!ENTITY sortByDateCmd.label "Tanggal">
@@ -184,6 +195,8 @@
 <!ENTITY sortByFromCmd.accesskey "D">
 <!ENTITY sortByRecipientCmd.label "Penerima">
 <!ENTITY sortByRecipientCmd.accesskey "P">
+
+
 <!ENTITY sortByUnreadCmd.label "Dibaca">
 <!ENTITY sortByUnreadCmd.accesskey "b">
 <!ENTITY sortByOrderReceivedCmd.label "Urutan Diterima">
@@ -248,40 +261,13 @@
 <!ENTITY viewAttachmentsInlineCmd.label "Tampilkan Lampiran Tanpa Dipisah dari Pesan">
 <!ENTITY viewAttachmentsInlineCmd.accesskey "a">
 
-<!-- LOCALIZATION NOTE :
-fullZoomEnlargeCmd.commandkey3, fullZoomReduceCmd.commandkey2 and
-fullZoomResetCmd.commandkey2 are alternative acceleration keys for zoom.
-If shift key is needed with your locale popular keyboard for them,
-you can use these alternative items. Otherwise, their values should be empty.  -->
-
-<!ENTITY fullZoomEnlargeCmd.label       "Perbesar">
-<!ENTITY fullZoomEnlargeCmd.accesskey   "b">
-<!ENTITY fullZoomEnlargeCmd.commandkey  "+">
-<!ENTITY fullZoomEnlargeCmd.commandkey2 "="> <!-- + is above this key on many keyboards -->
-<!ENTITY fullZoomEnlargeCmd.commandkey3 "">
-
-<!ENTITY fullZoomReduceCmd.label        "Perkecil">
-<!ENTITY fullZoomReduceCmd.accesskey    "k">
-<!ENTITY fullZoomReduceCmd.commandkey   "-">
-<!ENTITY fullZoomReduceCmd.commandkey2  "">
-
-<!ENTITY fullZoomResetCmd.label         "Normal">
-<!ENTITY fullZoomResetCmd.accesskey     "N">
-<!ENTITY fullZoomResetCmd.commandkey    "0">
-<!ENTITY fullZoomResetCmd.commandkey2   "">
-
-<!ENTITY fullZoomToggleCmd.label        "Perbesar Teks Saja">
-<!ENTITY fullZoomToggleCmd.accesskey    "T">
-<!ENTITY fullZoom.label                 "Perbesaran">
-<!ENTITY fullZoom.accesskey             "P">
-
 <!ENTITY pageSourceCmd.label "Kode Sumber Pesan">
 <!ENTITY pageSourceCmd.accesskey "P">
 <!ENTITY pageSourceCmd.key "u">
 <!ENTITY getNewMessagesCmd.key "y">
 <!ENTITY getAllNewMessagesCmd.key "Y">
-
 <!-- Search Menu -->
+
 <!ENTITY findMenu.label "Cari">
 <!ENTITY findMenu.accesskey "C">
 <!ENTITY findCmd.label "Cari dalam Isi Pesan…">
@@ -298,8 +284,8 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY searchMailCmd.key "f">
 <!ENTITY searchAddressesCmd.label "Cari Alamat…">
 <!ENTITY searchAddressesCmd.accesskey "a">
-
 <!-- Go Menu -->
+
 <!ENTITY goMenu.label "Navigasi">
 <!ENTITY goMenu.accesskey "v">
 <!ENTITY nextMenu.label "Lanjut">
@@ -309,12 +295,12 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY nextMsgCmd.key "f">
 <!ENTITY nextUnreadMsgCmd.label "Pesan Belum Dibaca">
 <!ENTITY nextUnreadMsgCmd.accesskey "B">
-<!ENTITY nextUnreadMsgCmd.key "n">
+
 <!ENTITY nextStarredMsgCmd.label "Pesan Berbintang">
 <!ENTITY nextStarredMsgCmd.accesskey "t">
 <!ENTITY nextUnreadThread.label "Utas yang Belum Dibaca">
 <!ENTITY nextUnreadThread.accesskey "U">
-<!ENTITY nextUnreadThread.key "t">
+
 <!ENTITY prevMenu.label "Sebelumnya">
 <!ENTITY prevMenu.accesskey "S">
 <!ENTITY prevMsgCmd.label "Pesan">
@@ -323,27 +309,25 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY prevUnreadMsgCmd.label "Pesan Belum Dibaca">
 <!ENTITY prevUnreadMsgCmd.accesskey "P">
 <!ENTITY prevUnreadMsgCmd.key "p">
-<!ENTITY goForwardCmd.label "Maju">
-<!ENTITY goForwardCmd.accesskey "j">
+
+
 <!ENTITY goForwardCmd.commandKey "]">
 <!ENTITY goBackCmd.label "Mundur">
 <!ENTITY goBackCmd.accesskey "M">
 <!ENTITY goBackCmd.commandKey "[">
 <!ENTITY goChatCmd.label "Ngobrol">
-<!ENTITY goChatCmd.accesskey "n">
-<!ENTITY goChatCmd.commandKey "C">
+<!ENTITY goChatCmd.accesskey "N">
+
 <!ENTITY prevStarredMsgCmd.label "Pesan Berbintang">
 <!ENTITY prevStarredMsgCmd.accesskey "B">
 <!ENTITY folderMenu.label "Folder">
-<!ENTITY folderMenu.accesskey "O">
-<!ENTITY thisFolder.label "Folder Ini">
-<!ENTITY thisFolder.accesskey "F">
+<!ENTITY folderMenu.accesskey "o">
 <!ENTITY goRecentlyClosedTabs.label "Tab yang Baru Saja Ditutup">
 <!ENTITY goRecentlyClosedTabs.accesskey "j">
 <!ENTITY startPageCmd.label "Laman Beranda">
 <!ENTITY startPageCmd.accesskey "L">
-
 <!-- Message Menu -->
+
 <!ENTITY msgMenu.label "Pesan">
 <!ENTITY msgMenu.accesskey "P">
 <!ENTITY newMsgCmd.label "Pesan Baru">
@@ -352,32 +336,36 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY newNewMsgCmd.accesskey "P">
 <!ENTITY archiveMsgCmd.label "Simpan di Arsip">
 <!ENTITY archiveMsgCmd.accesskey "a">
-<!ENTITY archiveMsgCmd.key  "a">
+<!ENTITY archiveMsgCmd.key "a">
+<!ENTITY cancelNewsMsgCmd.label "Batalkan Pesan">
+<!ENTITY cancelNewsMsgCmd.accesskey "B">
 <!ENTITY replyMsgCmd.label "Balas">
 <!ENTITY replyMsgCmd.accesskey "B">
-<!ENTITY replyMsgCmd.key  "r">
+<!ENTITY replyMsgCmd.key "r">
 <!ENTITY replySenderCmd.label "Hanya Balas ke Pengirim">
 <!ENTITY replySenderCmd.accesskey "P">
 <!ENTITY replyNewsgroupCmd2.label "Balas ke Newsgroup">
-<!ENTITY replyNewsgroupCmd2.accesskey  "B">
+<!ENTITY replyNewsgroupCmd2.accesskey "B">
 <!ENTITY replyToAllMsgCmd.label "Balas ke Semua">
-<!ENTITY replyToAllMsgCmd.accesskey  "s">
-<!ENTITY replyToAllMsgCmd.key  "r">
+<!ENTITY replyToAllMsgCmd.accesskey "s">
+<!ENTITY replyToAllMsgCmd.key "r">
 <!ENTITY replyToListMsgCmd.label "Balas ke Milis">
-<!ENTITY replyToListMsgCmd.accesskey  "M">
-<!ENTITY replyToListMsgCmd.key  "m">
+<!ENTITY replyToListMsgCmd.accesskey "M">
+<!ENTITY replyToListMsgCmd.key "m">
 <!ENTITY forwardMsgCmd.label "Teruskan">
 <!ENTITY forwardMsgCmd.accesskey "T">
-<!ENTITY forwardMsgCmd.key  "l">
+<!ENTITY forwardMsgCmd.key "l">
 <!ENTITY forwardAsMenu.label "Teruskan Sebagai">
 <!ENTITY forwardAsMenu.accesskey "r">
-<!ENTITY forwardAsInline.label "Tidak Terpisah">
-<!ENTITY forwardAsInline.accesskey "i">
-<!ENTITY forwardAsAttachmentCmd.label "Lampiran">
-<!ENTITY forwardAsAttachmentCmd.accesskey "L">
-<!ENTITY editMsgAsNewCmd.label "Sunting Sebagai Pesan Baru">
-<!ENTITY editMsgAsNewCmd.accesskey "b">
-<!ENTITY editMsgAsNewCmd.key "e">
+
+
+
+
+
+
+
+
+
 <!ENTITY createFilter.label "Buat Filter dari Pesan…">
 <!ENTITY createFilter.accesskey "a">
 <!ENTITY moveMsgToMenu.label "Pindahkan">
@@ -391,8 +379,8 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY moveToFolderAgain.label "Pindahkan Lagi">
 <!ENTITY moveToFolderAgain.accesskey "L">
 <!ENTITY moveToFolderAgainCmd.key "m">
-<!ENTITY killThreadMenu.label "Abaikan Utas">
-<!ENTITY killThreadMenu.accesskey "i">
+
+
 <!ENTITY killThreadMenu.key "k">
 <!ENTITY killSubthreadMenu.label "Abaikan Sub Utas">
 <!ENTITY killSubthreadMenu.accesskey "S">
@@ -400,10 +388,6 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY watchThreadMenu.label "Monitor Utas">
 <!ENTITY watchThreadMenu.accesskey "M">
 <!ENTITY watchThreadMenu.key "w">
-<!ENTITY fileHereMenu.label "Simpan ke Sini">
-<!ENTITY fileHereMenu.accesskey "i">
-<!ENTITY copyHereMenu.label "Salin ke Sini">
-<!ENTITY copyHereMenu.accesskey "i">
 <!ENTITY tagMenu.label "Tag">
 <!ENTITY tagMenu.accesskey "g">
 <!ENTITY tagCmd0.key "0">
@@ -434,7 +418,7 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY markAllReadCmd.key "c">
 <!ENTITY markStarredCmd.label "Tambah Bintang">
 <!ENTITY markStarredCmd.accesskey "b">
-<!ENTITY markStarredCmd.key "S">
+
 <!ENTITY markAsJunkCmd.label "Sebagai Junk">
 <!ENTITY markAsJunkCmd.accesskey "S">
 <!ENTITY markAsJunkCmd.key "j">
@@ -449,19 +433,21 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY openConversationCmd.label "Buka Pesan dalam Mode Percakapan">
 <!ENTITY openConversationCmd.accesskey "k">
 <!ENTITY openConversationCmd.key "c">
-<!ENTITY openFeedMessage.label "Buka Pesan Feed">
-<!ENTITY openFeedMessage.accesskey "F">
-<!ENTITY openFeedWebPageInWindow.label "Laman Web pada Jendela Baru">
-<!ENTITY openFeedWebPageInWindow.accesskey "J">
-<!ENTITY openFeedSummaryInWindow.label "Ringkasan pada Jendela Baru">
-<!ENTITY openFeedSummaryInWindow.accesskey "s">
+
+
+
+
+
+
+
+
 <!ENTITY openFeedWebPageInMP.label "Ganti antara Laman Web dan Ringkasan pada Panel Pesan">
 <!ENTITY openFeedWebPageInMP.accesskey "G">
-
 <!-- Windows Menu -->
-<!ENTITY windowMenu.label "Jendela">
 
+<!ENTITY windowMenu.label "Jendela">
 <!-- Tools Menu -->
+
 <!ENTITY tasksMenu.label "Alat">
 <!ENTITY tasksMenu.accesskey "A">
 <!ENTITY messengerCmd.label "Email &amp; Newsgroup">
@@ -479,11 +465,13 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY imStatus.unavailable        "Tidak tersedia">
 <!ENTITY imStatus.offline            "Luring">
 <!ENTITY imStatus.showAccounts       "Tampilkan Akun…">
+
+
 <!ENTITY savedFiles.label "Berkas Tersimpan">
 <!ENTITY savedFiles.accesskey "s">
 <!ENTITY savedFiles.key "j">
-<!ENTITY filtersCmd.label "Filter Pesan…">
-<!ENTITY filtersCmd.accesskey "F">
+
+
 <!ENTITY filtersApply.label "Jalankan Pemfilter Pesan pada Folder">
 <!ENTITY filtersApply.accesskey "J">
 <!ENTITY filtersApplyToSelection.label "Jalankan Filter pada Pesan Terpilih">
@@ -496,17 +484,35 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY deleteJunk.accesskey "l">
 <!ENTITY importCmd.label "Impor…">
 <!ENTITY importCmd.accesskey "I">
+
+
+
+
+<!-- LOCALIZATION NOTE (accountManagerCmdUnix.accesskey):
+     Belongs to accountManagerCmd.label, which is placed under the Edit menu
+     on Unix systems
+  -->
+<!-- Developer Tools Submenu -->
+
+
+
+
+
+
+
+
 <!ENTITY errorConsoleCmd.label "Konsol Kesalahan">
 <!ENTITY errorConsoleCmd.accesskey "K">
 <!ENTITY errorConsoleCmd.commandkey "j">
-<!ENTITY accountManagerCmd.label "Pengaturan Akun…">
-<!ENTITY accountManagerCmd.accesskey "k">
-<!-- LOCALIZATION NOTE (accountManagerCmdUnix.accesskey): belongs to accountManagerCmd.label,
-        which is placed under the Edit menu on Unix systems -->
-<!ENTITY accountManagerCmdUnix.accesskey "A">
 
+
+<!--LOCALIZATION NOTE (scratchpadCmd.keycode):
+    This should be a key code constant as per
+    https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/keyCode#Constants_for_keyCode_value
+    (but without the DOM_ prefix) -->
+<!--LOCALIZATION NOTE (scratchpadCmd.keytext):
+    This should be the text printed on the key defined in the previous string. -->
 <!-- Mail Toolbar -->
-<!ENTITY getMsgButton.label "Ambil Pesan">
 <!ENTITY newMsgButton.label "Tulis">
 <!ENTITY replyButton.label "Balas">
 <!ENTITY replyAllButton.label "Balas ke Semua">
@@ -514,6 +520,7 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY forwardButton.label "Teruskan">
 <!ENTITY fileButton.label "Berkas">
 <!ENTITY archiveButton.label "Arsipkan">
+
 <!ENTITY nextButton.label "Selanjutnya">
 <!ENTITY nextButtonToolbarItem.label "Yang Belum Dibaca Selanjutnya">
 <!ENTITY nextMsgButton.label "Selanjutnya">
@@ -542,6 +549,7 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY compactButton.label "Padatkan">
 
 <!-- Mail Toolbar Tooltips-->
+
 <!ENTITY advancedButton.tooltip "Pencarian pesan khusus">
 <!ENTITY getMsgButton.tooltip "Ambil pesan baru">
 <!ENTITY getAllNewMsgCmd.label "Ambil Semua Pesan Baru">
@@ -551,8 +559,11 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY replyAllButton.tooltip "Balas kepada pengirim dan semua penerima">
 <!ENTITY replyListButton.tooltip "Balas kepada milis">
 <!ENTITY forwardButton.tooltip "Teruskan pesan terpilih">
+
+
 <!ENTITY fileButton.tooltip "Simpan pesan terpilih sebagai berkas ">
 <!ENTITY archiveButton.tooltip "Arsipkan pesan terpilih">
+
 <!ENTITY nextButton.tooltip "Pindah ke pesan yang belum dibaca selanjutnya">
 <!ENTITY nextMsgButton.tooltip "Pindah ke pesan selanjutnya">
 <!ENTITY previousButton.tooltip "Pindah ke pesan yang belum dibaca sebelumnya">
@@ -571,19 +582,44 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY tagButton.tooltip "Tambahkan tag pada pesan">
 <!ENTITY compactButton.tooltip "Buang pesan yang dihapus pada folder terpilih">
 
+<!-- Toolbar Button Popup -->
+
+<!-- Remote Content Button Popup -->
+
+
+
+
+
+<!-- Phishing Button Popup -->
+
+
+
+
+
+<!-- AppMenu Popup -->
+
+
+
+
+
 <!-- Tags Menu Popup -->
+
 <!ENTITY addNewTag.label "Tag baru…">
 <!ENTITY addNewTag.accesskey "T">
 
-<!-- Folder Pane -->
-<!ENTITY folderColumn.label "Nama">
-<!ENTITY folderSizeColumn.label "Ukuran">
 
+<!-- Folder Pane -->
+
+<!ENTITY folderNameColumn.label "Nama">
+
+
+<!ENTITY folderSizeColumn.label "Ukuran">
 <!-- Folder Pane Context Menu -->
+
 <!ENTITY folderContextGetMessages.label "Ambil Pesan">
 <!ENTITY folderContextGetMessages.accesskey "A">
-<!ENTITY folderContextOpenNewWindow.label "Buka">
-<!ENTITY folderContextOpenNewWindow.accesskey "B">
+
+
 <!ENTITY folderContextOpenNewTab.label "Buka di Tab Baru">
 <!ENTITY folderContextOpenNewTab.accesskey "T">
 <!ENTITY folderContextNew.label "Buat Subfolder baru…">
@@ -609,22 +645,22 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY folderContextSubscribe.label "Berlangganan…">
 <!ENTITY folderContextSubscribe.accesskey "B">
 <!ENTITY folderContextSearchForMessages.label "Cari Pesan…">
-<!ENTITY folderContextSearchForMessages.accesskey "S">
-<!ENTITY folderContextProperties.label "Properti…">
-<!ENTITY folderContextProperties.accesskey "P">
+<!ENTITY folderContextSearchForMessages.accesskey "s">
+<!ENTITY folderContextProperties2.label "Properti">
+<!ENTITY folderContextProperties2.accesskey "P">
 <!ENTITY folderContextFavoriteFolder.label "Folder Favorit">
 <!ENTITY folderContextFavoriteFolder.accesskey "a">
-<!ENTITY folderContextSettings.label "Pengaturan…">
-<!ENTITY folderContextSettings.accesskey "e">
+
 
 <!-- Search Bar -->
+
 <!ENTITY SearchNameOrEmail.label "Nama atau Email yang mengandung:">
 <!ENTITY SearchNameOrEmail.accesskey "N">
-
 <!-- Gloda Search Bar -->
-<!ENTITY glodaSearchBar.placeholder "Cari Pesan…">
 
+<!ENTITY glodaSearchBar.placeholder "Cari Pesan…">
 <!-- Quick Search Menu Bar -->
+
 <!ENTITY searchSubjectMenu.label "Subjek">
 <!ENTITY searchFromMenu.label "Dari">
 <!ENTITY searchSubjectOrFromMenu.label "Subjek atau Dari">
@@ -632,11 +668,12 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY searchSubjectOrRecipientMenu.label "Subjek, Kepada, atau Cc">
 <!ENTITY searchMessageBody.label "Keseluruhan Pesan">
 <!ENTITY saveAsVirtualFolderMenu.label "Simpan Pencarian sebagai Folder…">
-
 <!-- Thread Pane -->
+
 <!ENTITY threadColumn.label "Utas">
 <!ENTITY fromColumn.label "Dari">
 <!ENTITY recipientColumn.label "Penerima">
+
 <!ENTITY subjectColumn.label "Subjek">
 <!ENTITY dateColumn.label "Tanggal">
 <!ENTITY priorityColumn.label "Prioritas">
@@ -645,46 +682,52 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY statusColumn.label "Status">
 <!ENTITY sizeColumn.label "Ukuran">
 <!ENTITY junkStatusColumn.label "Status Junk">
-<!ENTITY unreadColumn.label "Belum Dibaca">
-<!ENTITY totalColumn.label "Total">
+
+
 <!ENTITY readColumn.label "Sudah Dibaca">
 <!ENTITY receivedColumn.label "Diterima">
 <!ENTITY starredColumn.label "Bintang">
 <!ENTITY locationColumn.label "Lokasi">
 <!ENTITY idColumn.label "Urutan Diterima">
-<!ENTITY attachmentColumn.label "Lampiran">
 
 <!-- Thread Pane Tooltips -->
-<!ENTITY columnChooser.tooltip "Klik untuk memilih kolom tampilan">
-<!ENTITY threadColumn.tooltip "Klik untuk menampilkan utas pesan">
-<!ENTITY fromColumn.tooltip "Klik untuk mengurut berdasarkan pengirim">
-<!ENTITY recipientColumn.tooltip "Klik untuk mengurut berdasarkan penerima">
-<!ENTITY subjectColumn.tooltip "Klik untuk mengurut berdasarkan subjek">
-<!ENTITY dateColumn.tooltip "Klik untuk mengurut berdasarkan tanggal">
-<!ENTITY priorityColumn.tooltip "Klik untuk mengurut berdasarkan prioritas">
-<!ENTITY tagsColumn.tooltip "Klik untuk mengurut berdasarkan tag">
-<!ENTITY accountColumn.tooltip "Klik untuk mengurut berdasarkan nama akun">
-<!ENTITY statusColumn.tooltip "Klik untuk mengurut berdasarkan status">
-<!ENTITY sizeColumn.tooltip "Klik untuk mengurut berdasarkan ukuran">
-<!ENTITY junkStatusColumn.tooltip "Klik untuk mengurut berdasarkan status junk">
-<!ENTITY unreadColumn.tooltip "Jumlah pesan yang belum dibaca dalam utas">
-<!ENTITY totalColumn.tooltip "Jumlah pesan dalam utas">
-<!ENTITY readColumn.tooltip "Klik untuk mengurut berdasarkan status dibaca">
-<!ENTITY receivedColumn.tooltip "Klik untuk mengurut berdasarkan tanggal diterima">
-<!ENTITY starredColumn.tooltip "Klik untuk mengurut berdasarkan bintang">
-<!ENTITY locationColumn.tooltip "Klik untuk mengurut berdasarkan lokasi">
-<!ENTITY idColumn.tooltip "Klik untuk mengurut berdasarkan urutan diterima">
-<!ENTITY attachmentColumn.tooltip "Klik untuk mengurut berdasarkan lampiran">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 <!-- Thread Pane Context Menu -->
+
 <!ENTITY contextOpenNewWindow.label "Buka Pesan di Jendela Baru">
 <!ENTITY contextOpenNewWindow.accesskey "J">
+<!-- The key potentially conflicts with cutCmd.accessKey which is defined in
+     textcontext.dtd from toolkit. Right now, both menu items can't be visible
+     at the same time, but should someone enable copy/paste of message, this key
+     would probably need to be changed. -->
 <!ENTITY contextOpenNewTab.label "Buka Pesan di Tab Baru">
 <!ENTITY contextOpenNewTab.accesskey "T">
 <!ENTITY contextOpenConversation.label "Buka Pesan dalam Mode Percakapan">
 <!ENTITY contextOpenConversation.accesskey "n">
-<!ENTITY contextEditAsNew.label "Sunting sebagai Pesan Baru…">
-<!ENTITY contextEditAsNew.accesskey "S">
+
+
+
+
+
 <!ENTITY contextArchive.label "Arsipkan">
 <!ENTITY contextArchive.accesskey "A">
 <!ENTITY contextReplySender.label "Hanya Balas ke Pengirim">
@@ -697,68 +740,85 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY contextReplyList.accesskey "D">
 <!ENTITY contextForward.label "Teruskan">
 <!ENTITY contextForward.accesskey "T">
-<!ENTITY contextForwardAsAttachment.label "Teruskan sebagai Lampiran">
-<!ENTITY contextForwardAsAttachment.accesskey "L">
+
+
+
+
+
+
+
+
 <!ENTITY contextMoveMsgMenu.label "Pindahkan Ke">
 <!ENTITY contextMoveMsgMenu.accesskey "P">
 <!ENTITY contextMoveCopyMsgRecentMenu.label "Terbaru">
 <!ENTITY contextMoveCopyMsgRecentMenu.accesskey "r">
 <!ENTITY contextCopyMsgMenu.label "Salin Ke">
 <!ENTITY contextCopyMsgMenu.accesskey "S">
+
+
+
+
+
+<!-- LOCALIZATION NOTE (contextWatchThreadMenu.accesskey):
+     In the en-US locale we ran out of access keys, so there is an empty access key for
+     Watch Thread. Localizers can pick a suitable key
+  -->
+<!ENTITY contextWatchThreadMenu.accesskey "">
 <!ENTITY contextSaveAs.label "Simpan Sebagai…">
 <!ENTITY contextSaveAs.accesskey "S">
 <!ENTITY contextPrint.label "Cetak…">
 <!ENTITY contextPrint.accesskey "C">
 <!ENTITY contextPrintPreview.label "Pratinjau Cetak">
 <!ENTITY contextPrintPreview.accesskey "P">
-
 <!-- Thread Pane Column Picker -->
 <!-- LOCALIZATION NOTE (columnPicker.resetToInbox.label):
-   This option in the thread pane column picker causes us to reset the
-   customizations for the thread pane columns in this folder to their default.
+     This option in the thread pane column picker causes us to reset the
+     customizations for the thread pane columns in this folder to their default.
   -->
+
 <!ENTITY columnPicker.resetToInbox.label "Kembalikan setelan kolom ke setelan default">
 <!-- LOCALIZATION NOTE (columnPicker.applyTo.label):
-   This option in the thread pane column picker pops up a sub-menu containing
-   the "columnPicker.applyToFolder.label" and
-   "columnPicker.applyToFolderAndChildren.label" options.  This item indicates
-   a desire to apply the currently displayed set of columns to some other
-   folder(s).  The sub-menu items indicate whether we want to apply it to just
-   a folder or also its children.
+     This option in the thread pane column picker pops up a sub-menu containing
+     the "columnPicker.applyToFolder.label" and
+     "columnPicker.applyToFolderAndChildren.label" options. This item indicates
+     a desire to apply the currently displayed set of columns to some other
+     folder(s). The sub-menu items indicate whether we want to apply it to just
+     a folder or also its children.
   -->
 <!ENTITY columnPicker.applyTo.label "Terapkan setelan kolom untuk…">
 <!-- LOCALIZATION NOTE (columnPicker.applyToFolder.label):
-   This option in the thread pane column picker is found on a sub-menu beneath
-   the "columnPicker.applyTo.label" alongside
-   "columnPicker.applyToFolderAndChildren.label".  It indicates a desire to
-   apply the currently display thread pane column settings to a single folder
-   that the user selects using the same widget as the move to/copy to
-   mechanism (via a series of popups).
+     This option in the thread pane column picker is found on a sub-menu beneath
+     the "columnPicker.applyTo.label" alongside
+     "columnPicker.applyToFolderAndChildren.label". It indicates a desire to
+     apply the currently display thread pane column settings to a single folder
+     that the user selects using the same widget as the move to/copy to
+     mechanism (via a series of popups).
   -->
 <!ENTITY columnPicker.applyToFolder.label "Folder…">
 <!-- LOCALIZATION NOTE (columnPicker.applyToFolderAndChildren.label):
-   This option in the thread pane column picker is found on a sub-menu beneath
-   the "columnPicker.applyTo.label" alongside
-   "columnPicker.applyToFolder.label".  It indicates a desire to
-   apply the currently display thread pane column settings to a folder and all
-   of its descendents.  The user selects the folder using the same widget as the
-   move to/copy to mechanism (via a series of popups).
+     This option in the thread pane column picker is found on a sub-menu beneath
+     the "columnPicker.applyTo.label" alongside
+     "columnPicker.applyToFolder.label". It indicates a desire to
+     apply the currently display thread pane column settings to a folder and all
+     of its descendents. The user selects the folder using the same widget as the
+     move to/copy to mechanism (via a series of popups).
   -->
 <!ENTITY columnPicker.applyToFolderAndChildren.label "Folder dan folder di bawahnya…">
 <!-- LOCALIZATION NOTE (columnPicker.thisFolder.label):
-   This is used in the folder selection widget for the
-   "columnPicker.applyToFolder.label" and
-   "columnPicker.applyToFolderAndChildren.label" menu options.  Whenever
-   a folder has children, it results in a menu popup; the first menu item
-   in that popup is given this label to indicate that that folder should be
-   selected.  For example, if folder "A" has two children, "B" and "C", then
-   when the user hovers over "A", a new popup menu will be displayed whose
-   items are "This folder", "B", and "C".  This is the equivalent of the
-   "File here" option for the move to/copy to widge.t
+     This is used in the folder selection widget for the
+     "columnPicker.applyToFolder.label" and
+     "columnPicker.applyToFolderAndChildren.label" menu options. Whenever
+     a folder has children, it results in a menu popup; the first menu item
+     in that popup is given this label to indicate that that folder should be
+     selected. For example, if folder "A" has two children, "B" and "C", then
+     when the user hovers over "A", a new popup menu will be displayed whose
+     items are "This folder", "B", and "C". This is the equivalent of the
+     "File here" option for the move to/copy to widget.
   -->
 <!ENTITY columnPicker.thisFolder.label "Folder ini">
-
 <!-- Media (video/audio) controls -->
+
+
 <!ENTITY contextPlay.label "Mainkan">
 <!ENTITY contextPlay.accesskey "M">
 <!ENTITY contextPause.label "Tunda">
@@ -767,64 +827,42 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY contextMute.accesskey "S">
 <!ENTITY contextUnmute.label "Keraskan">
 <!ENTITY contextUnmute.accesskey "K">
-
-<!-- Junk Bar -->
-<!ENTITY junkBarMessage1.label "Email Junk">
-<!ENTITY junkBarButton1.label "Bukan Junk">
-<!ENTITY junkInfoButton.label "?">
-
-<!-- Remote Content Bar -->
-<!ENTITY remoteContentMessage2.label "Untuk melindungi privasi Anda, kandungan daring pada pesan ini telah diblokir.">
-<!ENTITY loadRemoteContentButton3.label "Tampilkan Kandungan Daring">
-
-<!-- Phishing Bar -->
-<!ENTITY phishingBarMessage2.label "Pesan ini mungkin berisi penipuan (scam).">
-<!ENTITY removePhishingBarButton1.label "Abaikan Peringatan">
-<!ENTITY disablePhishingWarning1.label "Nonaktifkan deteksi penipuan untuk semua pesan">
-<!ENTITY reportPhishingError1.label "Tampaknya pesan ini bukan pesan berisi penipuan.">
-
-<!-- MDN Bar -->
-<!ENTITY mdnBarIgnoreButton2.label "Abaikan">
-<!ENTITY mdnBarIgnoreButton2.accesskey "i">
-<!ENTITY mdnBarSendButton2.label "Kirimkan Pemberitahuan Telah Dibaca">
-<!ENTITY mdnBarSendButton2.accesskey "n">
-
 <!-- Quick Search Bar -->
 <!-- LOCALIZATION NOTE (quickSearchCmd.key):
      This is actually the key used for the global message search box; we have
-     not changed 
-     -->
+     not changed
+  -->
+
 <!ENTITY quickSearchCmd.key "k">
-<!-- LOCALIZATION NOTE (search.label.base):
-     This is the base of the empty text for the global search box.  We replace
+<!-- LOCALIZATION NOTE (search.label.base1):
+      This is the base of the empty text for the global search box. We replace
      #1 with the contents of the appropriate search.keyLabel.* value for the
      platform.
      The goal is to convey to the user that typing in the box will allow them
      to search for messages globally and that there is a hotkey they can press
-     to get to the box faster.  If the global indexer is disabled, the search
+     to get to the box faster. If the global indexer is disabled, the search
      box will be collapsed and the user will never see this message.
-     -->
-<!ENTITY search.label.base "Cari… #1">
+  -->
 <!-- LOCALIZATION NOTE (search.keyLabel.nonmac):
      The description of the key-binding to get into the global search box on
-     windows and linux (which use the control key).  We use the key defined in
+     windows and linux (which use the control key). We use the key defined in
      the quickSearchCmd.key entity defined above, the letter should match it.
-     -->
+  -->
 <!ENTITY search.keyLabel.nonmac "&lt;Ctrl+K&gt;">
 <!-- LOCALIZATION NOTE (search.keyLabel.mac):
      The description of the key-binding to get into the global search box on mac
-     systems.  We use the key defined in the quickSearchCmd.key entity defined
+     systems. We use the key defined in the quickSearchCmd.key entity defined
      above, the letter should match it.
-     -->
+  -->
 <!ENTITY search.keyLabel.mac "&lt;&#x2318;K&gt;">
-
 <!-- Message Header Context Menu -->
+
 <!ENTITY AddToAddressBook.label "Tambahkan ke Buku Alamat…">
 <!ENTITY AddToAddressBook.accesskey "a">
 <!ENTITY AddDirectlyToAddressBook.label "Tambahkan ke Buku Alamat">
 <!ENTITY AddDirectlyToAddressBook.accesskey "a">
-<!ENTITY EditContact.label "Sunting Kenalan…">
-<!ENTITY EditContact.accesskey "S">
+
+
 <!ENTITY ViewContact.label "Tampilkan Kenalan">
 <!ENTITY ViewContact.accesskey "k">
 <!ENTITY SubscribeToNewsgroup.label "Berlangganan Newsgroup ini">
@@ -833,6 +871,8 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY SendMessageTo.accesskey "s">
 <!ENTITY CopyEmailAddress.label "Salin Alamat Email">
 <!ENTITY CopyEmailAddress.accesskey "S">
+
+
 <!ENTITY CopyNewsgroupName.label "Salin Nama Newsgroup">
 <!ENTITY CopyNewsgroupName.accesskey "n">
 <!ENTITY CopyNewsgroupURL.label "Salin URL Newsgroup">
@@ -841,13 +881,12 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY CreateFilterFrom.accesskey "B">
 <!ENTITY reportPhishingURL.label "Laporkan Email Penipuan (Scam)">
 <!ENTITY reportPhishingURL.accesskey "o">
-
 <!-- Spell checker context menu items -->
+
 <!ENTITY spellAddDictionaries.label "Tambah Kamus…">
 <!ENTITY spellAddDictionaries.accesskey "K">
-
-
 <!-- Content Pane Context Menu -->
+
 <!ENTITY saveLinkAsCmd.label "Simpan Tautan dengan Nama…">
 <!ENTITY saveLinkAsCmd.accesskey "T">
 <!ENTITY saveImageAsCmd.label "Simpan Gambar dengan Nama…">
@@ -866,18 +905,18 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY openInBrowser.accesskey "P">
 <!ENTITY openLinkInBrowser.label "Buka Tautan di Peramban">
 <!ENTITY openLinkInBrowser.accesskey "T">
-
 <!-- Statusbar -->
-<!ENTITY statusText.label "Selesai">
 
-<!--  Mac OS X Window Menu -->
+<!ENTITY statusText.label "Selesai">
+<!-- Mac OS X Window Menu -->
+
 <!ENTITY minimizeWindow.label "Kecilkan">
 <!ENTITY minimizeWindow.key "k">
 <!ENTITY bringAllToFront.label "Tampilkan Semua ke Latar Depan">
 <!ENTITY zoomWindow.label "Perbesaran">
-
 <!-- Mac OS X Application Menu (Cocoa widgets) -->
-<!ENTITY preferencesCmdMac.label        "Pengaturan…">
+
+<!ENTITY preferencesCmdMac2.label       "Pengaturan">
 <!ENTITY preferencesCmdMac.commandkey   ",">
 <!ENTITY preferencesCmdMac.modifiers    "accel">
 <!ENTITY servicesMenuMac.label          "Layanan">
@@ -888,6 +927,7 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY hideOtherAppsCmdMac.commandkey "H">
 <!ENTITY hideOtherAppsCmdMac.modifiers  "accel,alt">
 <!ENTITY showAllAppsCmdMac.label        "Tampilkan Semua">
+<!-- Mac OS X Dock Icon pop-up menu -->
 
 <!ENTITY CopyNameAndEmailAddress.accesskey "N">
 <!ENTITY CopyNameAndEmailAddress.label "Copy Name and Email Address">
@@ -896,11 +936,15 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY accountColumn2.tooltip "Sort by account">
 <!ENTITY accountManagerCmd2.accesskey "S">
 <!ENTITY accountManagerCmd2.label "Account Settings">
-<!-- LOCALIZATION NOTE (accountManagerCmdUnix2.accesskey): belongs to accountManagerCmd2.label,
-        which is placed under the Edit menu on Unix systems -->
+<!-- LOCALIZATION NOTE (accountManagerCmdUnix.accesskey):
+     Belongs to accountManagerCmd.label, which is placed under the Edit menu
+     on Unix systems
+  -->
 <!ENTITY accountManagerCmdUnix2.accesskey "A">
-<!ENTITY allowRemoteDebugging.accesskey "g">
-<!ENTITY allowRemoteDebugging.label "Allow Remote Debugging">
+<!ENTITY addonDebugCmd.accesskey "A">
+<!ENTITY addonDebugCmd.label "Add-on Debugger">
+<!ENTITY all.accesskey "A">
+<!ENTITY all.label "All">
 <!ENTITY appmenuButton.label "AppMenu">
 <!ENTITY appmenuButton1.tooltip "Display the &brandShortName; Menu">
 <!ENTITY appmenuEditMenu.label "Edit">
@@ -911,6 +955,7 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY appmenuSelectFlagged.label "Select Starred Messages">
 <!ENTITY appmenuSelectThread.label "Select Thread">
 <!ENTITY appmenuToolbarLayout.label "Toolbar Layout…">
+<!ENTITY attachmentColumn.label "Attachments">
 <!ENTITY attachmentColumn2.tooltip "Sort by attachments">
 <!ENTITY buttonMenuForwardAsAttachment.label "Forward As Attachment">
 
@@ -923,6 +968,7 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY columnChooser2.tooltip "Select columns to display">
 <!ENTITY compactVersion.accesskey "C">
 <!ENTITY compactVersion.label "Compact View">
+<!ENTITY contextEditDraftMsg.label "Edit Draft Message">
 <!ENTITY contextEditMsgAsNew.accesskey "E">
 <!ENTITY contextEditMsgAsNew.label "Edit As New Message">
 <!ENTITY contextForwardAsAttachmentItem.accesskey "A">
@@ -931,6 +977,7 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY contextForwardAsInline.label "Inline">
 <!ENTITY contextForwardAsMenu.accesskey "o">
 <!ENTITY contextForwardAsMenu.label "Forward As">
+<!ENTITY contextKillSubthreadMenu.accesskey "b">
 <!ENTITY contextKillSubthreadMenu.label "Ignore Subthread">
 <!ENTITY contextKillThreadMenu.accesskey "I">
 <!ENTITY contextKillThreadMenu.label "Ignore Thread">
@@ -942,12 +989,21 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY correspondentColumn.label "Correspondents">
 <!ENTITY correspondentColumn2.tooltip "Sort by correspondents">
 <!ENTITY dateColumn2.tooltip "Sort by date">
+<!ENTITY devToolboxCmd.accesskey "T">
+<!ENTITY devToolboxCmd.commandkey "i">
+<!ENTITY devToolboxCmd.label "Developer Toolbox">
+<!ENTITY devtoolsMenu.accesskey "e">
+
+<!-- Developer Tools Submenu -->
+<!ENTITY devtoolsMenu.label "Developer Tools">
 
 <!-- Mac OS X Dock Icon pop-up menu -->
 <!ENTITY dockOptions.label              "App Icon Options…">
 <!ENTITY editAsNewMsgCmd.accesskey "E">
 <!ENTITY editAsNewMsgCmd.key "e">
 <!ENTITY editAsNewMsgCmd.label "Edit As New Message">
+<!ENTITY editDraftMsgCmd.accesskey "D">
+<!ENTITY editDraftMsgCmd.label "Edit Draft Message">
 <!ENTITY editRemoteContentSettings.accesskey "E">
 <!ENTITY editRemoteContentSettings.label "Edit remote content options…">
 <!ENTITY editRemoteContentSettingsUnix.accesskey "E">
@@ -956,38 +1012,47 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY filtersCmd2.label "Message Filters">
 <!ENTITY folderContextOpenInNewWindow.accesskey "O">
 <!ENTITY folderContextOpenInNewWindow.label "Open in New Window">
-<!ENTITY folderContextProperties2.accesskey "P">
-<!ENTITY folderContextProperties2.label "Properties">
 <!ENTITY folderContextSettings2.accesskey "e">
 <!ENTITY folderContextSettings2.label "Settings">
-
-<!-- Folder Pane -->
-<!ENTITY folderNameColumn.label "Name">
-<!ENTITY folderPropsCmd2.label "Properties">
-<!ENTITY folderPropsFolderCmd2.label "Folder Properties">
+<!ENTITY folderModeSelector.label "Folder Views">
+<!ENTITY folderPaneBar.accesskey "F">
+<!ENTITY folderPaneBar.label "Folder Pane Toolbar">
 <!ENTITY folderPropsNewsgroupCmd2.label "Newsgroup Properties">
 <!ENTITY folderTotalColumn.label "Total">
 <!ENTITY folderUnreadColumn.label "Unread">
 <!ENTITY forwardAsAttachment.tooltip "Forward selected message as an attachment">
+<!ENTITY forwardAsAttachmentCmd.accesskey "A">
+<!ENTITY forwardAsAttachmentCmd.label "Attachment">
+<!ENTITY forwardAsInline.accesskey "I">
+<!ENTITY forwardAsInline.label "Inline">
 <!ENTITY forwardAsInline.tooltip "Forward selected message as inline text">
 <!ENTITY fromColumn2.tooltip "Sort by from">
 
 <!-- Mail Toolbar -->
 <!ENTITY getMsgButton1.label "Get Messages">
 <!ENTITY goChatCmd.key "I">
+<!ENTITY goForwardCmd.accesskey "F">
+<!ENTITY goForwardCmd.label "Forward">
 <!ENTITY idColumn2.tooltip "Sort by order received">
 <!ENTITY joinChatCmd.accesskey "t">
 <!ENTITY joinChatCmd.label "Join Chat…">
 <!ENTITY junkStatusColumn2.tooltip "Sort by junk status">
+<!ENTITY killThreadMenu.accesskey "I">
+<!ENTITY killThreadMenu.label "Ignore Thread">
 <!ENTITY locationColumn2.tooltip "Sort by location">
 <!ENTITY manageTags.accesskey "M">
 <!ENTITY manageTags.label "Manage Tags…">
+<!ENTITY markStarredCmd.key "S">
 <!ENTITY newFeedAccountCmd.accesskey "d">
 <!ENTITY newFeedAccountCmd.label "Feed Account…">
 <!ENTITY newIMContactCmd.accesskey "h">
 <!ENTITY newIMContactCmd.label "Chat Contact…">
+<!ENTITY nextUnreadMsgCmd.key "n">
+<!ENTITY nextUnreadThread.key "t">
 <!ENTITY openAttachmentListCmd.accesskey "h">
 <!ENTITY openAttachmentListCmd.label "Attachments">
+<!ENTITY openConversationButton.label "Conversation">
+<!ENTITY openConversationButton.tooltip "Show conversation of selected message">
 <!ENTITY openFeedMessage1.accesskey "O">
 <!ENTITY openFeedMessage1.label "When Opening Feed Messages">
 <!ENTITY openFeedSummary.accesskey "S">
@@ -1002,9 +1067,6 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY phishingOptionSettings.label "Edit scam detection options…">
 <!ENTITY phishingOptionSettingsUnix.accesskey "d">
 <!ENTITY phishingOptionSettingsUnix.label "Edit scam detection preferences…">
-
-<!-- Mac OS X Application Menu (Cocoa widgets) -->
-<!ENTITY preferencesCmdMac2.label       "Preferences">
 <!ENTITY priorityColumn2.tooltip "Sort by priority">
 <!ENTITY readColumn2.tooltip "Sort by read">
 <!ENTITY receivedColumn2.tooltip "Sort by date received">
@@ -1013,15 +1075,26 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 
 <!-- Remote Content Button Popup -->
 <!ENTITY remoteContentOptionsAllowForMsg.label "Show remote content in this message">
+<!ENTITY scratchpadCmd.accesskey "S">
+
+<!--LOCALIZATION NOTE (scratchpadCmd.keycode):
+    This should be a key code constant as per
+    https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/keyCode#Constants_for_keyCode_value
+    (but without the DOM_ prefix) -->
+<!ENTITY scratchpadCmd.keycode "VK_F4">
+<!--LOCALIZATION NOTE (scratchpadCmd.keytext):
+    This should be the text printed on the key defined in the previous string. -->
+<!ENTITY scratchpadCmd.keytext "F4">
+<!ENTITY scratchpadCmd.label "Scratchpad">
 <!-- LOCALIZATION NOTE (search.label.base1):
-     This is the base of the empty text for the global search box.  We replace
+      This is the base of the empty text for the global search box. We replace
      #1 with the contents of the appropriate search.keyLabel.* value for the
      platform.
      The goal is to convey to the user that typing in the box will allow them
      to search for messages globally and that there is a hotkey they can press
-     to get to the box faster.  If the global indexer is disabled, the search
+     to get to the box faster. If the global indexer is disabled, the search
      box will be collapsed and the user will never see this message.
-     -->
+  -->
 <!ENTITY search.label.base1 "Search #1">
 <!ENTITY settingsOfflineCmd2.accesskey "e">
 <!ENTITY settingsOfflineCmd2.label "Offline Settings">
@@ -1033,7 +1106,11 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY starredColumn2.tooltip "Sort by star">
 <!ENTITY statusColumn2.tooltip "Sort by status">
 <!ENTITY subjectColumn2.tooltip "Sort by subject">
+<!ENTITY tabsDebugCmd.accesskey "C">
+<!ENTITY tabsDebugCmd.label "Content Frame Debugger">
 <!ENTITY tagsColumn2.tooltip "Sort by tags">
 <!ENTITY threadColumn2.tooltip "Display message threads">
+<!ENTITY totalColumn.label "Total">
 <!ENTITY totalColumn2.tooltip "Total number of messages in thread">
+<!ENTITY unreadColumn.label "Unread">
 <!ENTITY unreadColumn2.tooltip "Number of unread messages in thread">

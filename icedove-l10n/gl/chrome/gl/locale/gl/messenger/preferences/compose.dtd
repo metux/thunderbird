@@ -60,7 +60,7 @@
 <!ENTITY attachmentReminderOptions.label       "Palabras chave…">
 <!ENTITY attachmentReminderOptions.accesskey   "P">
 
+<!ENTITY defaultToParagraph.accesskey         "P">
+<!ENTITY defaultToParagraph.label             "Use Paragraph format instead of Body Text by default">
 
 <!ENTITY dialogCompose.title                 "Composing">
-<!ENTITY enterKeyCreatesNewParagraph.accesskey "p">
-<!ENTITY enterKeyCreatesNewParagraph.label    "When using paragraph format, the enter key creates a new paragraph">

@@ -44,8 +44,6 @@
 #include "nsIMimeMiscStatus.h"
 #include "nsMsgUtils.h"
 #include "nsIChannel.h"
-#include "nsICacheEntryDescriptor.h"
-#include "nsICacheSession.h"
 #include "nsITransport.h"
 #include "mimeebod.h"
 #include "mimeeobj.h"
@@ -56,10 +54,7 @@
 #include "nsIParserUtils.h"
 // </for>
 #include "mozilla/Services.h"
-
-#ifdef HAVE_MIME_DATA_SLOT
-#define LOCK_LAST_CACHED_MESSAGE
-#endif
+#include "mozilla/Unused.h"
 
 void                 ValidateRealName(nsMsgAttachmentData *aAttach, MimeHeaders *aHdrs);
 
@@ -322,12 +317,19 @@ GenerateAttachmentData(MimeObject *object, const char *aMessageURL, MimeDisplayO
   if ((options->format_out == nsMimeOutput::nsMimeMessageBodyDisplay) && (PL_strncasecmp(aMessageURL, urlSpec, strlen(urlSpec)) == 0))
     return NS_OK;
 
+  nsCString urlString(urlSpec);
+
   nsMsgAttachmentData *tmp = &(aAttachData[attIndex++]);
 
   tmp->m_realType = object->content_type;
   tmp->m_realEncoding = object->encoding;
   tmp->m_isExternalAttachment = isExternalAttachment;
+  tmp->m_isExternalLinkAttachment =
+    (isExternalAttachment &&
+     StringBeginsWith(urlString, NS_LITERAL_CSTRING("http"),
+                      nsCaseInsensitiveCStringComparator()));
   tmp->m_size = attSize;
+  tmp->m_sizeExternalStr = "-1";
   tmp->m_disposition.Adopt(MimeHeaders_get(object->headers, HEADER_CONTENT_DISPOSITION, true, false));
   tmp->m_displayableInline = object->clazz->displayable_inline_p(object->clazz, object->headers);
 
@@ -407,6 +409,18 @@ GenerateAttachmentData(MimeObject *object, const char *aMessageURL, MimeDisplayO
           tmp->m_realName.Adopt(fname);
       }
     }
+
+    if (tmp->m_isExternalLinkAttachment)
+    {
+      // If an external link attachment part's Content-Type contains a
+      // |size| parm, store it in m_sizeExternalStr. Let the msgHeaderSink
+      // addAttachmentField() figure out if it's sane, and don't bother
+      // strtol'ing it to an int only to emit it as a string.
+      char* sizeStr = MimeHeaders_get_parameter(disp, "size", nullptr, nullptr);
+      if (sizeStr)
+        tmp->m_sizeExternalStr = sizeStr;
+    }
+
     PR_FREEIF(disp);
   }
 
@@ -432,7 +446,6 @@ GenerateAttachmentData(MimeObject *object, const char *aMessageURL, MimeDisplayO
   } else {
     tmp->m_hasFilename = true;
   }
-  nsCString urlString(urlSpec);
 
   if (!tmp->m_realName.IsEmpty() && !tmp->m_isExternalAttachment)
   {
@@ -484,7 +497,7 @@ BuildAttachmentList(MimeObject *anObject, nsMsgAttachmentData *aAttachData, cons
   int32_t               i;
   MimeContainer         *cobj = (MimeContainer *) anObject;
   bool                  found_output = false;
-  
+
   if ( (!anObject) || (!cobj->children) || (!cobj->nchildren) ||
        (mime_typep(anObject, (MimeObjectClass *)&mimeExternalBodyClass)))
     return NS_OK;
@@ -613,9 +626,19 @@ MimeGetAttachmentList(MimeObject *tobj, const char *aMessageURL, nsMsgAttachment
     MimeGetSize(obj, &size);
     rv = GenerateAttachmentData(obj, aMessageURL, obj->options, false, size,
                                 *data);
-    NS_ENSURE_SUCCESS(rv, rv);
+    if (NS_FAILED(rv))
+    {
+      delete [] *data;             // release data in case of error return.
+      return rv;
+    }
+
   }
-  return BuildAttachmentList((MimeObject *) cobj, *data, aMessageURL);
+  rv = BuildAttachmentList((MimeObject *) cobj, *data, aMessageURL);
+  if (NS_FAILED(rv))
+  {
+    delete [] *data;             // release data in case of error return.
+  }
+  return rv;
 }
 
 extern "C" void
@@ -656,11 +679,19 @@ NotifyEmittersOfAttachmentList(MimeDisplayOptions     *opt,
     }
 
     nsAutoCString spec;
-    if (tmp->m_url)
-      tmp->m_url->GetSpec(spec);
+    if (tmp->m_url) {
+      if (tmp->m_isExternalLinkAttachment)
+        mozilla::Unused << tmp->m_url->GetAsciiSpec(spec);
+      else
+        mozilla::Unused << tmp->m_url->GetSpec(spec);
+    }
 
     nsAutoCString sizeStr;
-    sizeStr.AppendInt(tmp->m_size);
+    if (tmp->m_isExternalLinkAttachment)
+      sizeStr.Append(tmp->m_sizeExternalStr);
+    else
+      sizeStr.AppendInt(tmp->m_size);
+
     nsAutoCString downloadedStr;
     downloadedStr.AppendInt(tmp->m_isDownloaded);
 
@@ -1110,8 +1141,6 @@ public:
   mime_stream_data *msd;
   char                    *url;
   nsMIMESession           *istream;
-  nsCOMPtr<nsIOutputStream> memCacheOutputStream;
-  bool m_shouldCacheImage;
 };
 
 mime_image_stream_data::mime_image_stream_data()
@@ -1119,7 +1148,6 @@ mime_image_stream_data::mime_image_stream_data()
   url = nullptr;
   istream = nullptr;
   msd = nullptr;
-  m_shouldCacheImage = false;
 }
 
 static void *
@@ -1142,50 +1170,6 @@ mime_image_begin(const char *image_url, const char *content_type,
     return nullptr;
   }
 
-  if (msd->channel)
-  {
-    nsCOMPtr <nsIURI> uri;
-    nsresult rv = msd->channel->GetURI(getter_AddRefs(uri));
-    if (NS_SUCCEEDED(rv) && uri)
-    {
-      nsCOMPtr <nsIMsgMailNewsUrl> mailUrl = do_QueryInterface(uri);
-      if (mailUrl)
-      {
-        nsCOMPtr<nsICacheSession> memCacheSession;
-        mailUrl->GetImageCacheSession(getter_AddRefs(memCacheSession));
-        if (memCacheSession)
-        {
-          nsCOMPtr<nsICacheEntryDescriptor> entry;
-
-          // we may need to convert the image_url into just a part url - in any case,
-          // it has to be the same as what imglib will be asking imap for later
-          // on so that we'll find this in the memory cache.
-          rv = memCacheSession->OpenCacheEntry(nsDependentCString(image_url), nsICache::ACCESS_READ_WRITE, nsICache::BLOCKING, getter_AddRefs(entry));
-          nsCacheAccessMode access;
-          if (entry)
-          {
-            entry->GetAccessGranted(&access);
-#ifdef DEBUG_bienvenu
-            printf("Mime opening cache entry for %s access = %ld\n", image_url, access);
-#endif
-            // if we only got write access, then we should fill in this cache entry
-            if (access & nsICache::ACCESS_WRITE && !(access & nsICache::ACCESS_READ))
-            {
-              mailUrl->CacheCacheEntry(entry);
-              entry->MarkValid();
-
-              // remember the content type as meta data so we can pull it out in the imap code
-              // to feed the cache entry directly to imglib w/o going through mime.
-              entry->SetMetaDataElement("contentType", content_type);
-
-              rv = entry->OpenOutputStream(0, getter_AddRefs(mid->memCacheOutputStream));
-              if (NS_FAILED(rv)) return nullptr;
-            }
-          }
-        }
-      }
-    }
-  }
   mid->istream = (nsMIMESession *) msd->pluginObj2;
   return mid;
 }
@@ -1199,8 +1183,6 @@ mime_image_end(void *image_closure, int status)
   PR_ASSERT(mid);
   if (!mid)
     return;
-  if (mid->memCacheOutputStream)
-    mid->memCacheOutputStream->Close();
 
   PR_FREEIF(mid->url);
   delete mid;
@@ -1266,16 +1248,6 @@ mime_image_write_buffer(const char *buf, int32_t size, void *image_closure)
        ( (!msd->pluginObj2)     ) )
     return -1;
 
-  //
-  // If we get here, we are just eating the data this time around
-  // and the returned URL will deal with writing the data to the viewer.
-  // Just return the size value to the caller.
-  //
-  if (mid->memCacheOutputStream)
-  {
-    uint32_t bytesWritten;
-    mid->memCacheOutputStream->Write(buf, size, &bytesWritten);
-  }
   return size;
 }
 
@@ -1337,7 +1309,7 @@ bool MimeObjectIsMessageBodyNoClimb(MimeObject *parent,
 
   for (i = 0; i < container->nchildren; i++) {
     MimeObject *child = container->children[i];
-    bool is_body = false;
+    bool is_body = true;
 
     // The body can't be something we're not displaying.
     if (! child->output_p)
@@ -1419,6 +1391,7 @@ MimeDisplayOptions::MimeDisplayOptions()
   rot13_p = false;
   part_to_load = nullptr;
 
+  no_output_p = false;
   write_html_p = false;
 
   decrypt_p = false;
@@ -1561,7 +1534,7 @@ mime_bridge_create_display_stream(
   rv = CallCreateInstance(MOZ_TXTTOHTMLCONV_CONTRACTID, &(msd->options->conv));
   if (NS_FAILED(rv))
   {
-    msd->options->m_prefBranch = 0;
+    msd->options->m_prefBranch = nullptr;
     delete msd;
     return nullptr;
   }
@@ -1811,7 +1784,7 @@ mimeEmitterAddAllHeaders(MimeDisplayOptions *opt, const char *allheaders, const 
   if (msd->output_emitter)
   {
     nsIMimeEmitter *emitter = (nsIMimeEmitter *)msd->output_emitter;
-    return emitter->AddAllHeaders(Substring(allheaders, 
+    return emitter->AddAllHeaders(Substring(allheaders,
                                             allheaders + allheadersize));
   }
 

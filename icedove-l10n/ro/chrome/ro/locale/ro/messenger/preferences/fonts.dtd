@@ -47,7 +47,7 @@
 <!ENTITY  font.langGroup.khmer                    "Khmeră">
 <!ENTITY  font.langGroup.malayalam                "Malayalam">
 <!ENTITY  font.langGroup.math                     "Matematică">
-<!ENTITY  font.langGroup.oriya                    "Oriya">
+
 <!ENTITY  font.langGroup.telugu                   "Telugu">
 <!ENTITY  font.langGroup.kannada                  "Kannada">
 <!ENTITY  font.langGroup.sinhala                  "Sinhala">
@@ -78,3 +78,5 @@
 <!ENTITY viewDefaultCharsetList.accesskey  "i">
 <!ENTITY replyInDefaultCharset3.label     "Când e posibil, folosește codarea de text implicită în răspunsuri">
 <!ENTITY replyInDefaultCharset3.accesskey "n">
+
+<!ENTITY  font.langGroup.odia                     "Odia">

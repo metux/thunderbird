@@ -107,7 +107,8 @@ NS_IMETHODIMP nsNntpUrl::SetSpec(const nsACString &aSpec)
   else if (scheme.EqualsLiteral("news-message"))
   {
     nsAutoCString spec;
-    GetSpec(spec);
+    rv = GetSpec(spec);
+    NS_ENSURE_SUCCESS(rv, rv);
     rv = nsParseNewsMessageURI(spec.get(), m_group, &m_key);
     NS_ENSURE_SUCCESS(rv, NS_ERROR_MALFORMED_URI);
   }
@@ -138,7 +139,8 @@ nsresult nsNntpUrl::ParseNewsURL()
 
     // Set group, key for ?group=foo&key=123 uris
     nsAutoCString spec;
-    GetSpec(spec);
+    rv = GetSpec(spec);
+    NS_ENSURE_SUCCESS(rv, rv);
     int32_t groupPos = spec.Find(kNewsURIGroupQuery); // find ?group=
     int32_t keyPos   = spec.Find(kNewsURIKeyQuery);   // find &key=
     if (groupPos != kNotFound && keyPos != kNotFound)
@@ -377,11 +379,13 @@ NS_IMETHODIMP nsNntpUrl::GetMessageHeader(nsIMsgDBHdr ** aMsgHdr)
   NS_ENSURE_SUCCESS(rv,rv);
 
   nsAutoCString spec(mOriginalSpec);
-  if (spec.IsEmpty())
+  if (spec.IsEmpty()) {
     // Handle the case where necko directly runs an internal news:// URL,
     // one that looks like news://host/message-id?group=mozilla.announce&key=15
     // Other sorts of URLs -- e.g. news://host/message-id -- will not succeed.
-    GetSpec(spec);
+    rv = GetSpec(spec);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 
   return msgService->MessageURIToMsgHdr(spec.get(), aMsgHdr);
 }
@@ -553,10 +557,12 @@ NS_IMETHODIMP nsNntpUrl::SetCharsetOverRide(const char * aCharacterSet)
   return NS_OK;
 }
 
-NS_IMETHODIMP nsNntpUrl::Clone(nsIURI **_retval)
+NS_IMETHODIMP nsNntpUrl::CloneInternal(uint32_t aRefHandlingMode,
+                                       const nsACString& newRef,
+                                       nsIURI **_retval)
 {
   nsresult rv;
-  rv = nsMsgMailNewsUrl::Clone(_retval);
+  rv = nsMsgMailNewsUrl::CloneInternal(aRefHandlingMode, newRef, _retval);
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIMsgMessageUrl> newsurl = do_QueryInterface(*_retval, &rv);

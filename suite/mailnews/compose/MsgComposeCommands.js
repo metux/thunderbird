@@ -11,14 +11,14 @@ Components.utils.import("resource:///modules/mailServices.js");
 /**
  * interfaces
  */
-const nsIMsgCompDeliverMode = Components.interfaces.nsIMsgCompDeliverMode;
-const nsIMsgCompSendFormat = Components.interfaces.nsIMsgCompSendFormat;
-const nsIMsgCompConvertible = Components.interfaces.nsIMsgCompConvertible;
-const nsIMsgCompType = Components.interfaces.nsIMsgCompType;
-const nsIMsgCompFormat = Components.interfaces.nsIMsgCompFormat;
-const nsIAbPreferMailFormat = Components.interfaces.nsIAbPreferMailFormat;
-const nsIPlaintextEditorMail = Components.interfaces.nsIPlaintextEditor;
-const mozISpellCheckingEngine = Components.interfaces.mozISpellCheckingEngine;
+var nsIMsgCompDeliverMode = Components.interfaces.nsIMsgCompDeliverMode;
+var nsIMsgCompSendFormat = Components.interfaces.nsIMsgCompSendFormat;
+var nsIMsgCompConvertible = Components.interfaces.nsIMsgCompConvertible;
+var nsIMsgCompType = Components.interfaces.nsIMsgCompType;
+var nsIMsgCompFormat = Components.interfaces.nsIMsgCompFormat;
+var nsIAbPreferMailFormat = Components.interfaces.nsIAbPreferMailFormat;
+var nsIPlaintextEditorMail = Components.interfaces.nsIPlaintextEditor;
+var mozISpellCheckingEngine = Components.interfaces.mozISpellCheckingEngine;
 
 /**
  * In order to distinguish clearly globals that are initialized once when js load (static globals) and those that need to be
@@ -67,6 +67,7 @@ var gMsgAddressingWidgetElement;
 var gMsgSubjectElement;
 var gMsgAttachmentElement;
 var gMsgHeadersToolbarElement;
+var gComposeType;
 
 // i18n globals
 var gSendDefaultCharset;
@@ -84,7 +85,7 @@ var gAutoSaveTimeout;
 var gAutoSaveKickedIn;
 var gEditingDraft;
 
-const kComposeAttachDirPrefName = "mail.compose.attach.dir";
+var kComposeAttachDirPrefName = "mail.compose.attach.dir";
 
 function InitializeGlobalVariables()
 {
@@ -143,96 +144,170 @@ function enableEditableFields()
 
 }
 
-var gComposeRecyclingListener = {
-  onClose: function() {
-    //Reset recipients and attachments
-    awResetAllRows();
-    RemoveAllAttachments();
-
-    // We need to clear the identity popup menu in case the user will change them. It will be rebuilded later in ComposeStartup
-    ClearIdentityListPopup(document.getElementById("msgIdentityPopup"));
-
-    // Stop listening to changes in the spell check dictionary.
-    document.removeEventListener("spellcheck-changed", updateDocumentLanguage);
-
-    // Stop InlineSpellCheckerUI so personal dictionary is saved.
-    // We need to do this before disabling the editor.
-    EnableInlineSpellCheck(false);
-    // clear any suggestions in the context menu
-    InlineSpellCheckerUI.clearSuggestionsFromMenu();
-    InlineSpellCheckerUI.clearDictionaryListFromMenu();
-
-    //Clear the subject
-    GetMsgSubjectElement().value = "";
-    SetComposeWindowTitle();
-
-    SetContentAndBodyAsUnmodified();
-    disableEditableFields();
-    ReleaseGlobalVariables();
-
-    // Clear the focus
-    awGetInputElement(1).removeAttribute('focused');
-
-    //Reset Boxes size
-    document.getElementById("compose-toolbox").removeAttribute("height");
-    document.getElementById("appcontent").removeAttribute("height");
-    document.getElementById("addresses-box").removeAttribute("width");
-    document.getElementById("attachments-box").removeAttribute("width");
-
-    //Reset menu options
-    document.getElementById("format_auto").setAttribute("checked", "true");
-
-    //Reset toolbars that could be hidden
-    if (gHideMenus) {
-      document.getElementById("formatMenu").hidden = false;
-      document.getElementById("insertMenu").hidden = false;
-      var showFormat = document.getElementById("menu_showFormatToolbar")
-      showFormat.hidden = false;
-      if (showFormat.getAttribute("checked") == "true")
-        document.getElementById("FormatToolbar").hidden = false;
-    }
-
-    //Reset the Customize Toolbars panel/sheet if open.
-    if (getMailToolbox().customizing && gCustomizeSheet)
-      document.getElementById("customizeToolbarSheetIFrame")
-              .contentWindow.finishToolbarCustomization();
-
-    //Reset editor
-    EditorResetFontAndColorAttributes();
-    EditorCleanup();
-
-    //Release the nsIMsgComposeParams object
-    if (window.arguments && window.arguments[0])
-      window.arguments[0] = null;
-
-    var event = document.createEvent('Events');
-    event.initEvent('compose-window-close', false, true);
-    document.getElementById("msgcomposeWindow").dispatchEvent(event);
-    if (gAutoSaveTimeout)
-      clearTimeout(gAutoSaveTimeout);
-  },
-
-  onReopen: function(params) {
-    // Reset focus to avoid undesirable visual effect when reopening the window
-
-    InitializeGlobalVariables();
-    ComposeStartup(true, params);
-
-    var event = document.createEvent('Events');
-    event.initEvent('compose-window-reopen', false, true);
-    document.getElementById("msgcomposeWindow").dispatchEvent(event);
-  }
-};
-
 var stateListener = {
   NotifyComposeFieldsReady: function() {
     ComposeFieldsReady();
   },
 
   NotifyComposeBodyReady: function() {
+    this.useParagraph = gMsgCompose.composeHTML &&
+                        Services.prefs.getBoolPref("mail.compose.default_to_paragraph");
+    this.editor = GetCurrentEditor();
+    this.paragraphState = document.getElementById("cmd_paragraphState");
+
+    // Look at the compose types which require action (nsIMsgComposeParams.idl):
+    switch (gComposeType) {
+
+      case Components.interfaces.nsIMsgCompType.New:
+      case Components.interfaces.nsIMsgCompType.NewsPost:
+      case Components.interfaces.nsIMsgCompType.ForwardAsAttachment:
+        this.NotifyComposeBodyReadyNew();
+        break;
+
+      case Components.interfaces.nsIMsgCompType.Reply:
+      case Components.interfaces.nsIMsgCompType.ReplyAll:
+      case Components.interfaces.nsIMsgCompType.ReplyToSender:
+      case Components.interfaces.nsIMsgCompType.ReplyToGroup:
+      case Components.interfaces.nsIMsgCompType.ReplyToSenderAndGroup:
+      case Components.interfaces.nsIMsgCompType.ReplyWithTemplate:
+      case Components.interfaces.nsIMsgCompType.ReplyToList:
+        this.NotifyComposeBodyReadyReply();
+        break;
+
+      case Components.interfaces.nsIMsgCompType.ForwardInline:
+        this.NotifyComposeBodyReadyForwardInline();
+        break;
+    }
+
+    // Set the selected item in the identity list as needed, which will cause
+    // an identity/signature switch. This can only be done once the message
+    // body has already been assembled with the signature we need to switch.
+    if (gMsgCompose.identity != gCurrentIdentity) {
+      // Since switching the signature loses the caret position, we record it
+      // and restore it later.
+      let selection = this.editor.selection;
+      let range = selection.getRangeAt(0);
+      let start = range.startOffset;
+      let startNode = range.startContainer;
+
+      this.editor.enableUndo(false);
+      let identityList = GetMsgIdentityElement();
+      identityList.selectedItem = identityList.getElementsByAttribute(
+        "identitykey", gMsgCompose.identity.key)[0];
+      LoadIdentity(false);
+
+      this.editor.enableUndo(true);
+      this.editor.resetModificationCount();
+      selection.collapse(startNode, start);
+    }
+
     if (gMsgCompose.composeHTML)
       loadHTMLMsgPrefs();
     AdjustFocus();
+  },
+
+  NotifyComposeBodyReadyNew: function() {
+    // Control insertion of line breaks.
+    if (this.useParagraph) {
+      this.editor.enableUndo(false);
+
+      let pElement = this.editor.createElementWithDefaults("p");
+      let brElement = this.editor.createElementWithDefaults("br");
+      pElement.appendChild(brElement);
+      this.editor.insertElementAtSelection(pElement, false);
+
+      this.paragraphState.setAttribute("state", "p");
+
+      this.editor.beginningOfDocument();
+      this.editor.enableUndo(true);
+      this.editor.resetModificationCount();
+    } else {
+      this.paragraphState.setAttribute("state", "");
+    }
+  },
+
+  NotifyComposeBodyReadyReply: function() {
+    // Control insertion of line breaks.
+    if (this.useParagraph) {
+      let mailDoc = document.getElementById("content-frame").contentDocument;
+      let mailBody = mailDoc.querySelector("body");
+      let selection = this.editor.selection;
+      let range = selection.getRangeAt(0);
+      let start = range.startOffset;
+
+      if (start != range.endOffset) {
+        // The selection is not collapsed, most likely due to the
+        // "select the quote" option. In this case we do nothing.
+        return;
+      }
+
+      if (range.startContainer != mailBody) {
+        dump("Unexpected selection in NotifyComposeBodyReadyReply\n");
+        return;
+      }
+
+      this.editor.enableUndo(false);
+
+      // Delete a <br> if we see one.
+      let deleted2ndBR = false;
+      let currentNode = mailBody.childNodes[start];
+      if (currentNode.nodeName == "BR") {
+        currentNode.remove();
+        currentNode = mailBody.childNodes[start];
+        if (currentNode && currentNode.nodeName == "BR") {
+          currentNode.remove();
+          deleted2ndBR = true;
+        }
+      }
+
+      let pElement = this.editor.createElementWithDefaults("p");
+      let brElement = this.editor.createElementWithDefaults("br");
+      pElement.appendChild(brElement);
+      this.editor.insertElementAtSelection(pElement, false);
+
+      if (deleted2ndBR) {
+        let brElement2 = this.editor.createElementWithDefaults("br");
+        this.editor.insertElementAtSelection(brElement2, false);
+      }
+
+      // Position into the paragraph.
+      selection.collapse(pElement, 0);
+
+      this.paragraphState.setAttribute("state", "p");
+
+      this.editor.enableUndo(true);
+      this.editor.resetModificationCount();
+    } else {
+      this.paragraphState.setAttribute("state", "");
+    }
+  },
+
+  NotifyComposeBodyReadyForwardInline: function() {
+    let mailDoc = document.getElementById("content-frame").contentDocument;
+    let mailBody = mailDoc.querySelector("body");
+    let selection = this.editor.selection;
+
+    this.editor.enableUndo(false);
+
+    // Control insertion of line breaks.
+    selection.collapse(mailBody, 0);
+    if (this.useParagraph) {
+      let pElement = this.editor.createElementWithDefaults("p");
+      let brElement = this.editor.createElementWithDefaults("br");
+      pElement.appendChild(brElement);
+      this.editor.insertElementAtSelection(pElement, false);
+      this.paragraphState.setAttribute("state", "p");
+    } else {
+      // insertLineBreak() has been observed to insert two <br> elements
+      // instead of one before a <div>, so we'll do it ourselves here.
+      let brElement = this.editor.createElementWithDefaults("br");
+      this.editor.insertElementAtSelection(brElement, false);
+      this.paragraphState.setAttribute("state", "");
+    }
+
+    this.editor.beginningOfDocument();
+    this.editor.enableUndo(true);
+    this.editor.resetModificationCount();
   },
 
   ComposeProcessDone: function(aResult) {
@@ -251,7 +326,7 @@ var stateListener = {
         if (gMsgCompose)
           gMsgCompose.onSendNotPerformed(null, Components.results.NS_ERROR_ABORT);
 
-        MsgComposeCloseWindow(true);
+        MsgComposeCloseWindow();
       }
     }
     // else if we failed to save, and we're autosaving, need to re-mark the editor
@@ -734,7 +809,7 @@ function DoCommandClose()
       gMsgCompose.onSendNotPerformed(null, Components.results.NS_ERROR_ABORT);
 
     // note: if we're not caching this window, this destroys it for us
-    MsgComposeCloseWindow(true);
+    MsgComposeCloseWindow();
   }
 
   return false;
@@ -930,7 +1005,7 @@ function handleMailtoArgs(mailtoUrl)
   return null;
 }
 
-function ComposeStartup(recycled, aParams)
+function ComposeStartup(aParams)
 {
   var params = null; // New way to pass parameters to the compose window as a nsIMsgComposeParameters object
   var args = null;   // old way, parameters are passed as a string
@@ -977,8 +1052,8 @@ function ComposeStartup(recycled, aParams)
         params.type = args.type;
       if (args.format)
         params.format = args.format;
-      if (args.originalMsg)
-        params.originalMsgURI = args.originalMsg;
+      if (args.originalMsgURI)
+        params.originalMsgURI = args.originalMsgURI;
       if (args.preselectid)
         params.identity = getIdentityForKey(args.preselectid);
       if (args.to)
@@ -1033,8 +1108,10 @@ function ComposeStartup(recycled, aParams)
     }
   }
 
-  // " <>" is an empty identity, and most likely not valid
-  if (!params.identity || params.identity.identityName == " <>") {
+  gComposeType = params.type;
+
+  // An identity with no email is likely not valid.
+  if (!params.identity || !params.identity.email) {
     // no pre selected identity, so use the default account
     var identities = gAccountManager.defaultAccount.identities;
     if (identities.length == 0)
@@ -1055,12 +1132,6 @@ function ComposeStartup(recycled, aParams)
                                                  editorElement.docShell);
     if (gMsgCompose)
     {
-      // set the close listener
-      gMsgCompose.recyclingListener = gComposeRecyclingListener;
-
-      //Lets the compose object knows that we are dealing with a recycled window
-      gMsgCompose.recycledWindow = recycled;
-
       if (!editorElement)
       {
         dump("Failed to get editor element!\n");
@@ -1076,32 +1147,28 @@ function ComposeStartup(recycled, aParams)
       document.getElementById("menu_inlineSpellCheck")
               .setAttribute("checked", getPref("mail.spellcheck.inline"));
 
-      // If recycle, editor is already created
-      if (!recycled)
+      try {
+        var editortype = gMsgCompose.composeHTML ? "htmlmail" : "textmail";
+        editorElement.makeEditable(editortype, true);
+      } catch (e) { dump(" FAILED TO START EDITOR: "+e+"\n"); }
+
+      // setEditorType MUST be call before setContentWindow
+      if (gMsgCompose.composeHTML)
       {
-        try {
-          var editortype = gMsgCompose.composeHTML ? "htmlmail" : "textmail";
-          editorElement.makeEditable(editortype, true);
-        } catch (e) { dump(" FAILED TO START EDITOR: "+e+"\n"); }
-
-        // setEditorType MUST be call before setContentWindow
-        if (gMsgCompose.composeHTML)
-        {
-          initLocalFontFaceMenu(document.getElementById("FontFacePopup"));
-        }
-        else
-        {
-          //Remove HTML toolbar, format and insert menus as we are editing in plain text mode
-          document.getElementById("outputFormatMenu").setAttribute("hidden", true);
-          document.getElementById("FormatToolbar").setAttribute("hidden", true);
-          document.getElementById("formatMenu").setAttribute("hidden", true);
-          document.getElementById("insertMenu").setAttribute("hidden", true);
-          document.getElementById("menu_showFormatToolbar").setAttribute("hidden", true);
-        }
-
-        // Do setup common to Message Composer and Web Composer
-        EditorSharedStartup();
+        initLocalFontFaceMenu(document.getElementById("FontFacePopup"));
       }
+      else
+      {
+        //Remove HTML toolbar, format and insert menus as we are editing in plain text mode
+        document.getElementById("outputFormatMenu").setAttribute("hidden", true);
+        document.getElementById("FormatToolbar").setAttribute("hidden", true);
+        document.getElementById("formatMenu").setAttribute("hidden", true);
+        document.getElementById("insertMenu").setAttribute("hidden", true);
+        document.getElementById("menu_showFormatToolbar").setAttribute("hidden", true);
+      }
+
+      // Do setup common to Message Composer and Web Composer
+      EditorSharedStartup();
 
       var msgCompFields = gMsgCompose.compFields;
       if (msgCompFields)
@@ -1138,35 +1205,20 @@ function ComposeStartup(recycled, aParams)
 
       gMsgCompose.RegisterStateListener(stateListener);
 
-      if (recycled)
-      {
-        InitEditor(GetCurrentEditor());
+      // Add an observer to be called when document is done loading,
+      //   which creates the editor
+      try {
+        GetCurrentCommandManager().
+              addCommandObserver(gMsgEditorCreationObserver, "obs_documentCreated");
 
-        if (gMsgCompose.composeHTML)
-        {
-          // Force color picker on toolbar to show document colors
-          onFontColorChange();
-          onBackgroundColorChange();
-          // XXX todo: reset paragraph select to "Body Text"
-        }
-      }
-      else
-      {
-        // Add an observer to be called when document is done loading,
-        //   which creates the editor
-        try {
-          GetCurrentCommandManager().
-                addCommandObserver(gMsgEditorCreationObserver, "obs_documentCreated");
-
-          // Load empty page to create the editor
-          editorElement.webNavigation.loadURI("about:blank", // uri string
-                               0,                            // load flags
-                               null,                         // referrer
-                               null,                         // post-data stream
-                               null);
-        } catch (e) {
-          dump(" Failed to startup editor: "+e+"\n");
-        }
+        // Load empty page to create the editor
+        editorElement.webNavigation.loadURI("about:blank", // uri string
+                             0,                            // load flags
+                             null,                         // referrer
+                             null,                         // post-data stream
+                             null);
+      } catch (e) {
+        dump(" Failed to startup editor: "+e+"\n");
       }
     }
   }
@@ -1223,12 +1275,12 @@ var gMsgEditorCreationObserver =
 function WizCallback(state)
 {
   if (state){
-    ComposeStartup(false, null);
+    ComposeStartup(null);
   }
   else
   {
     // The account wizard is still closing so we can't close just yet
-    setTimeout(MsgComposeCloseWindow, 0, false); // Don't recycle a bogus window
+    setTimeout(MsgComposeCloseWindow, 0);
   }
 }
 
@@ -1261,7 +1313,7 @@ function ComposeLoad()
         selectNode.appendItem(otherHeaders_Array[i] + ":", "addr_other");
     }
     if (state)
-      ComposeStartup(false, null);
+      ComposeStartup(null);
   }
   catch (ex) {
     Components.utils.reportError(ex);
@@ -1269,7 +1321,7 @@ function ComposeLoad()
     var errorMsg = sComposeMsgsBundle.getString("initErrorDlgMessage");
     Services.prompt.alert(window, errorTitle, errorMsg);
 
-    MsgComposeCloseWindow(false); // Don't try to recycle a bogus window
+    MsgComposeCloseWindow();
     return;
   }
   if (gLogComposePerformance)
@@ -1284,6 +1336,10 @@ function ComposeLoad()
 
 function ComposeUnload()
 {
+  // Send notification that the window is going away completely.
+  document.getElementById("msgcomposeWindow").dispatchEvent(
+    new Event("compose-window-unload", { bubbles: false, cancelable: false }));
+
   UnloadCommandUpdateHandlers();
 
   // Stop InlineSpellCheckerUI so personal dictionary is saved
@@ -1690,8 +1746,22 @@ function SaveAsDraft()
 
 function SaveAsTemplate()
 {
+  let savedReferences = null;
+  if (gMsgCompose && gMsgCompose.compFields) {
+    // Clear References header. When we use the template, we don't want that
+    // header, yet, "edit as new message" maintains it. So we need to clear
+    // it when saving the template.
+    // Note: The In-Reply-To header is the last entry in the references header,
+    // so it will get cleared as well.
+    savedReferences = gMsgCompose.compFields.references;
+    gMsgCompose.compFields.references = null;
+  }
+
   GenericSendMessage(nsIMsgCompDeliverMode.SaveAsTemplate);
   defaultSaveOperation = "template";
+
+  if (savedReferences)
+    gMsgCompose.compFields.references = savedReferences;
 
   gAutoSaveKickedIn = false;
   gEditingDraft = false;
@@ -1975,13 +2045,6 @@ function ToggleAttachVCard(target)
   }
 }
 
-function ClearIdentityListPopup(popup)
-{
-  if (popup)
-    while (popup.hasChildNodes())
-      popup.lastChild.remove();
-}
-
 function FillIdentityList(menulist)
 {
   var accounts = allAccountsSorted(true);
@@ -1998,11 +2061,8 @@ function FillIdentityList(menulist)
     for (let i = 0; i < identities.length; i++)
     {
       let identity = identities[i];
-      let address = MailServices.headerParser
-                                .makeMailboxObject(identity.fullName,
-                                                   identity.email).toString();
       let item = menulist.appendItem(identity.identityName,
-                                     address,
+                                     identity.fullAddress,
                                      account.incomingServer.prettyName);
       item.setAttribute("identitykey", identity.key);
       item.setAttribute("accountkey", account.key);
@@ -2121,7 +2181,7 @@ function ComposeCanClose()
       case 2: //Don't Save
         // only delete the draft if we didn't start off editing a draft
         if (!gEditingDraft && gAutoSaveKickedIn)
-          RemoveDraft();            
+          RemoveDraft();
         break;
     }
   }
@@ -2137,11 +2197,11 @@ function RemoveDraft()
     var msgKey = draftId.substr(draftId.indexOf('#') + 1);
     var folder = sRDF.GetResource(gMsgCompose.savedFolderURI);
     try {
-      if (folder instanceof Components.interfaces.nsIMsgFolder) 
+      if (folder instanceof Components.interfaces.nsIMsgFolder)
       {
         var msgs = Components.classes["@mozilla.org/array;1"]
                              .createInstance(Components.interfaces.nsIMutableArray);
-        msgs.appendElement(folder.GetMessageHeader(msgKey), false);    
+        msgs.appendElement(folder.GetMessageHeader(msgKey), false);
         folder.deleteMessages(msgs, null, true, false, null, false);
       }
     }
@@ -2162,10 +2222,10 @@ function SetContentAndBodyAsUnmodified()
   gContentChanged = false;
 }
 
-function MsgComposeCloseWindow(recycleIt)
+function MsgComposeCloseWindow()
 {
   if (gMsgCompose)
-    gMsgCompose.CloseWindow(recycleIt);
+    gMsgCompose.CloseWindow();
   else
     window.close();
 }
@@ -2566,22 +2626,34 @@ function LoadIdentity(startup)
               awAddRecipients(msgCompFields, "addr_reply", newReplyTo);
           }
 
+          let toAddrs = new Set(msgCompFields.splitRecipients(msgCompFields.to, true, {}));
+          let ccAddrs = new Set(msgCompFields.splitRecipients(msgCompFields.cc, true, {}));
+
           if (newCc != prevCc)
           {
             needToCleanUp = true;
-            if (prevCc != "")
+            if (prevCc)
               awRemoveRecipients(msgCompFields, "addr_cc", prevCc);
-            if (newCc != "")
+            if (newCc) {
+              // Ensure none of the Ccs are already in To.
+              let cc2 = msgCompFields.splitRecipients(newCc, true, {});
+              newCc = cc2.filter(x => !toAddrs.has(x)).join(", ");
               awAddRecipients(msgCompFields, "addr_cc", newCc);
+            }
           }
 
           if (newBcc != prevBcc)
           {
             needToCleanUp = true;
-            if (prevBcc != "")
+            if (prevBcc)
               awRemoveRecipients(msgCompFields, "addr_bcc", prevBcc);
-            if (newBcc != "")
+            if (newBcc) {
+              // Ensure none of the Bccs are already in To or Cc.
+              let bcc2 = msgCompFields.splitRecipients(newBcc, true, {});
+              let toCcAddrs = new Set([...toAddrs, ...ccAddrs]);
+              newBcc = bcc2.filter(x => !toCcAddrs.has(x)).join(", ");
               awAddRecipients(msgCompFields, "addr_bcc", newBcc);
+            }
           }
 
           if (needToCleanUp)
@@ -2600,8 +2672,9 @@ function LoadIdentity(startup)
           if (getPref("mail.autoComplete.highlightNonMatches"))
             document.getElementById('addressCol2#1').highlightNonMatches = true;
 
-          // only do this if we aren't starting up....it gets done as part of startup already
-          addRecipientsToIgnoreList(gCurrentIdentity.identityName);
+          // Only do this if we aren't starting up...
+          // It gets done as part of startup already.
+          addRecipientsToIgnoreList(gCurrentIdentity.fullAddress);
       }
     }
 }
@@ -3012,6 +3085,11 @@ function InitEditor(editor)
   var eEditorMailMask = Components.interfaces.nsIPlaintextEditor.eEditorMailMask;
   editor.flags |= eEditorMailMask;
   GetMsgSubjectElement().editor.flags |= eEditorMailMask;
+
+  // Control insertion of line breaks.
+  editor.returnInParagraphCreatesNewParagraph =
+    Services.prefs.getBoolPref("mail.compose.default_to_paragraph") ||
+    Services.prefs.getBoolPref("editor.CR_creates_new_p");
 
   gMsgCompose.initEditor(editor, window.content);
   InlineSpellCheckerUI.init(editor);

@@ -5,3 +5,11 @@
 <!ENTITY noConfig.label             "ਇਹ ਐਪਲੀਕੇਸ਼ਨ ਕਰੈਸ਼ ਰਿਪੋਰਟਾਂ ਵੇਖਾਉਣ ਲਈ ਸੰਰਚਿਤ ਨਹੀਂ ਕੀਤੀ ਗਈ ਹੈ। <code>breakpad.reportURL</code> ਸੈੱਟ ਹੋਣਾ ਚਾਹੀਦਾ ਹੈ।">
 <!ENTITY clearAllReports.label      "ਸਭ ਰਿਪੋਰਟਾਂ ਹਟਾਓ">
 
+
+
+
+<!ENTITY crashReports.title         "Crash Reports">
+<!ENTITY crashesSubmitted.label     "Submitted Crash Reports">
+<!ENTITY crashesUnsubmitted.label   "Unsubmitted Crash Reports">
+<!ENTITY dateCrashed.heading        "Date Crashed">
+<!ENTITY dateSubmitted.heading      "Date Submitted">

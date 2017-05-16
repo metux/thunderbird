@@ -9,3 +9,11 @@
 <!ENTITY noConfig.label             "O aplicativo non está configurado para mostrar informes de erro. Seleccione a preferencia <code>breakpad.reportURL</code>.">
 <!ENTITY clearAllReports.label      "Borrar todos os informes">
 
+
+
+
+<!ENTITY crashReports.title         "Crash Reports">
+<!ENTITY crashesSubmitted.label     "Submitted Crash Reports">
+<!ENTITY crashesUnsubmitted.label   "Unsubmitted Crash Reports">
+<!ENTITY dateCrashed.heading        "Date Crashed">
+<!ENTITY dateSubmitted.heading      "Date Submitted">

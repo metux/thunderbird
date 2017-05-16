@@ -44,7 +44,7 @@ tree {
 }
 
 caption {
-  -moz-padding-start: 0;
+  padding-inline-start: 0;
 }
 
 groupbox {
@@ -82,4 +82,16 @@ groupbox description {
 #cookieInfoBox {
   margin-right: 0;
   margin-left: 0;
+}
+
+/* Create a separate rule to unset these styles on .tree-input instead of
+   using :not(.tree-input) so the selector specifity doesn't change. */
+textbox.tree-input {
+  font-size: unset;
+}
+
+/* Adjust the Lightning Edit Category dialog */
+#colorSelectRow {
+  margin-top: 10px;
+  margin-inline-start: 4px;
 }

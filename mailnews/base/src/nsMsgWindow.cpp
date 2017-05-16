@@ -9,7 +9,7 @@
 #include "nsIDocShell.h"
 #include "nsIDocShellTreeItem.h"
 #include "nsIDOMElement.h"
-#include "nsIDOMWindow.h"
+#include "mozIDOMWindow.h"
 #include "nsTransactionManagerCID.h"
 #include "nsIComponentManager.h"
 #include "nsILoadGroup.h"
@@ -43,7 +43,8 @@ static NS_DEFINE_CID(kTransactionManagerCID, NS_TRANSACTIONMANAGER_CID);
 NS_IMPL_ISUPPORTS(nsMsgWindow,
                               nsIMsgWindow,
                               nsIURIContentListener,
-                              nsISupportsWeakReference)
+                              nsISupportsWeakReference,
+                              nsIMsgWindowTest)
 
 nsMsgWindow::nsMsgWindow()
 {
@@ -86,7 +87,7 @@ NS_IMETHODIMP nsMsgWindow::GetMessageWindowDocShell(nsIDocShell ** aDocShell)
     {
       nsCOMPtr<nsIDocShellTreeItem> msgDocShellItem;
       if(rootShell)
-         rootShell->FindChildWithName(MOZ_UTF16("messagepane"),
+         rootShell->FindChildWithName(NS_LITERAL_STRING("messagepane"),
                                       true, false, nullptr, nullptr,
                                       getter_AddRefs(msgDocShellItem));
       NS_ENSURE_TRUE(msgDocShellItem, NS_ERROR_FAILURE);
@@ -213,6 +214,14 @@ NS_IMETHODIMP nsMsgWindow::GetRootDocShell(nsIDocShell * *aDocShell)
 NS_IMETHODIMP nsMsgWindow::GetAuthPrompt(nsIAuthPrompt * *aAuthPrompt)
 {
   NS_ENSURE_ARG_POINTER(aAuthPrompt);
+
+  // testing only
+  if (mAuthPrompt)
+  {
+    NS_ADDREF(*aAuthPrompt = mAuthPrompt);
+    return NS_OK;
+  }
+
   if (!mRootDocShellWeak)
     return NS_ERROR_FAILURE;
 
@@ -226,6 +235,12 @@ NS_IMETHODIMP nsMsgWindow::GetAuthPrompt(nsIAuthPrompt * *aAuthPrompt)
   prompt.swap(*aAuthPrompt);
 
   return rv;
+}
+
+NS_IMETHODIMP nsMsgWindow::SetAuthPrompt(nsIAuthPrompt* aAuthPrompt)
+{
+  mAuthPrompt = aAuthPrompt;
+  return NS_OK;
 }
 
 NS_IMETHODIMP nsMsgWindow::SetRootDocShell(nsIDocShell * aDocShell)
@@ -306,7 +321,7 @@ NS_IMETHODIMP nsMsgWindow::SetCharsetOverride(bool aCharsetOverride)
   return NS_OK;
 }
 
-NS_IMETHODIMP nsMsgWindow::GetDomWindow(nsIDOMWindow **aWindow)
+NS_IMETHODIMP nsMsgWindow::GetDomWindow(mozIDOMWindowProxy **aWindow)
 {
   NS_ENSURE_ARG_POINTER(aWindow);
   if (mDomWindow)
@@ -316,12 +331,12 @@ NS_IMETHODIMP nsMsgWindow::GetDomWindow(nsIDOMWindow **aWindow)
   return NS_OK;
 }
 
-NS_IMETHODIMP nsMsgWindow::SetDomWindow(nsIDOMWindow * aWindow)
+NS_IMETHODIMP nsMsgWindow::SetDomWindow(mozIDOMWindowProxy * aWindow)
 {
   NS_ENSURE_ARG_POINTER(aWindow);
   mDomWindow = do_GetWeakReference(aWindow);
 
-  nsCOMPtr<nsPIDOMWindow> win(do_QueryInterface(aWindow));
+  nsCOMPtr<nsPIDOMWindowOuter> win = nsPIDOMWindowOuter::From(aWindow);
   nsIDocShell *docShell = nullptr;
   if (win)
     docShell = win->GetDocShell();
@@ -458,6 +473,14 @@ NS_IMETHODIMP nsMsgWindow::SetLoadCookie(nsISupports * aLoadCookie)
 NS_IMETHODIMP nsMsgWindow::GetPromptDialog(nsIPrompt **aPrompt)
 {
   NS_ENSURE_ARG_POINTER(aPrompt);
+
+  // testing only
+  if (mPromptDialog)
+  {
+    NS_ADDREF(*aPrompt = mPromptDialog);
+    return NS_OK;
+  }
+
   nsresult rv;
   nsCOMPtr<nsIDocShell> rootShell(do_QueryReferent(mRootDocShellWeak, &rv));
   if (rootShell)
@@ -467,6 +490,12 @@ NS_IMETHODIMP nsMsgWindow::GetPromptDialog(nsIPrompt **aPrompt)
     dialog.swap(*aPrompt);
   }
   return rv;
+}
+
+NS_IMETHODIMP nsMsgWindow::SetPromptDialog(nsIPrompt* aPromptDialog)
+{
+  mPromptDialog = aPromptDialog;
+  return NS_OK;
 }
 
 NS_IMETHODIMP

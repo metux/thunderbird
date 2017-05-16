@@ -59,8 +59,6 @@
 <!ENTITY updateCheck.accesskey           "ت">
 <!ENTITY updateManual.label              "لا تلتمس التحديثات أبدًا (غير منصوح به: مجازفة أمنية)">
 <!ENTITY updateManual.accesskey          "د">
-<!ENTITY updateAutoAddonWarn.label       "حذرني لو أن هذا سيعطل أيًا من ملحقاتي">
-<!ENTITY updateAutoAddonWarn.accesskey   "ذ">
 <!ENTITY updateHistory.label             "أظهر تأريخ التحديث">
 <!ENTITY updateHistory.accesskey         "ظ">
 
@@ -103,7 +101,7 @@
 <!ENTITY enableOCSP.label                "استعلم من خواديم مستجيبي OCSP عن الصلاحية الحالية للشهادات">
 <!ENTITY enableOCSP.accesskey            "س">
 
-<!ENTITY viewCertificates.label         "اعرض الشهادات">
-<!ENTITY viewCertificates.accesskey     "ش">
-<!ENTITY viewSecurityDevices.label      "أجهزة الأمن">
-<!ENTITY viewSecurityDevices.accesskey  "م">
+<!ENTITY manageCertificates.label "أدِر الشهادات">
+<!ENTITY manageCertificates.accesskey "ش">
+<!ENTITY viewSecurityDevices.label "أجهزة الأمن">
+<!ENTITY viewSecurityDevices.accesskey "م">

@@ -23,6 +23,7 @@ var myEmail = "me@example.com";
 var myEmail2 = "otherme@example.com";
 
 var identity;
+var identity2;
 
 Cu.import("resource:///modules/mailServices.js");
 
@@ -45,7 +46,7 @@ function setupModule(module) {
   identity.email = myEmail;
   account.addIdentity(identity);
 
-  let identity2 = acctMgr.createIdentity();
+  identity2 = acctMgr.createIdentity();
   identity2.email = myEmail2;
   account.addIdentity(identity2);
 
@@ -82,6 +83,8 @@ function checkToAddresses(replyWinController, expectedFields) {
     let addrType = (selectedIndex != -1) ?
       typeMenuitems[selectedIndex].value : typeMenuitems[0].value;
 
+    if (!addrTextbox.value)
+      continue;
     let addresses = obtainedFields[addrType];
     if (addresses)
       addresses.push(addrTextbox.value);
@@ -161,6 +164,54 @@ function stopUsingAutoBcc(aIdentity) {
  */
 function ensureNoAutoBcc(aIdentity) {
   aIdentity.doBcc = false;
+}
+
+/**
+ * Tests that for a list post with munged Reply-To:
+ * - reply: goes to From
+ * - reply all: includes From + the usual thing
+ * - reply list: goes to the list
+ */
+function testReplyToMungedReplyToList() {
+  let msg0 = create_message({
+    from: "Tester <test@example.com>",
+    to: "munged.list@example.com, someone.else@example.com",
+    subject: "testReplyToMungedReplyToList",
+    clobberHeaders: {
+      "Reply-To": "Munged List <munged.list@example.com>",
+      "List-Post": "<mailto:munged.list@example.com>",
+    }
+  });
+  add_message_to_folder(folder, msg0);
+
+  be_in_folder(folder);
+  let msg = select_click_row(i++);
+  assert_selected_and_displayed(mc, msg);
+
+  ensureNoAutoCc(identity);
+
+  checkReply(
+    open_compose_with_reply,
+    {"addr_to": ["Tester <test@example.com>"]}
+  );
+
+  checkReply(
+    open_compose_with_reply_to_all,
+    {
+      "addr_to": [
+        "Munged List <munged.list@example.com>",
+        "someone.else@example.com",
+        "Tester <test@example.com>"
+       ]
+    }
+  );
+
+  checkReply(
+    open_compose_with_reply_to_list,
+    {
+      "addr_to": ["munged.list@example.com"]
+    }
+  );
 }
 
 /**
@@ -762,8 +813,8 @@ function testReplyToSelfNotOriginalSourceMsgReplyAll() {
   let msg = select_click_row(i++);
   assert_selected_and_displayed(mc, msg);
 
-  ensureNoAutoCc(identity);
-  useAutoBcc(identity, myEmail + ", smithers@example.com");
+  ensureNoAutoCc(identity2);
+  useAutoBcc(identity2, myEmail + ", smithers@example.com");
   checkReply(
      open_compose_with_reply_to_all,
     // To: original To
@@ -778,10 +829,10 @@ function testReplyToSelfNotOriginalSourceMsgReplyAll() {
       "addr_reply": ["Flanders <flanders@example.com>"]
     }
   );
-  stopUsingAutoBcc(identity);
+  stopUsingAutoBcc(identity2);
 
-  useAutoCc(identity, myEmail + ", smithers@example.com");
-  useAutoBcc(identity, "moe@example.com,bart@example.com,lisa@example.com");
+  useAutoCc(identity2, myEmail + ", smithers@example.com");
+  useAutoBcc(identity2, "moe@example.com,bart@example.com,lisa@example.com");
   checkReply(
     open_compose_with_reply_to_all,
     // To: original To
@@ -791,15 +842,15 @@ function testReplyToSelfNotOriginalSourceMsgReplyAll() {
     {
       "addr_to": ["Bart <bart@example.com>",
                   "Maggie <maggie@example.com>"],
-      "addr_cc": ["Lisa <lisa@example.com>"],
+      "addr_cc": ["Lisa <lisa@example.com>", myEmail, "smithers@example.com"],
       "addr_bcc": ["moe@example.com"],
       "addr_reply": ["Flanders <flanders@example.com>"]
     }
   );
-  stopUsingAutoCc(identity);
-  stopUsingAutoBcc(identity);
+  stopUsingAutoCc(identity2);
+  stopUsingAutoBcc(identity2);
 
-  useAutoBcc(identity, myEmail2 + ", smithers@example.com");
+  useAutoBcc(identity2, myEmail2 + ", smithers@example.com");
   checkReply(
     open_compose_with_reply_to_all,
     // To: original To
@@ -814,7 +865,7 @@ function testReplyToSelfNotOriginalSourceMsgReplyAll() {
       "addr_reply": ["Flanders <flanders@example.com>"]
     }
   );
-  stopUsingAutoBcc(identity);
+  stopUsingAutoBcc(identity2);
 }
 
 /**
@@ -837,7 +888,8 @@ function testReplyToOtherIdentity() {
   let msg = select_click_row(i++);
   assert_selected_and_displayed(mc, msg);
 
-  ensureNoAutoCc(identity);
+  ensureNoAutoCc(identity2);
+  ensureNoAutoBcc(identity2);
   checkReply(
     open_compose_with_reply_to_all,
     // To: from + to (except me2)

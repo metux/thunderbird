@@ -38,11 +38,11 @@ var setupModule = function (module) {
   // Don't create paragraphs in the test.
   // The test checks for the first DOM node and expects a text and not
   // a paragraph.
-  Services.prefs.setBoolPref("editor.CR_creates_new_p", false);
+  Services.prefs.setBoolPref("mail.compose.default_to_paragraph", false);
 };
 
 function teardownModule(module) {
-  Services.prefs.clearUserPref("editor.CR_creates_new_p");
+  Services.prefs.clearUserPref("mail.compose.default_to_paragraph");
 }
 
 function forward_selected_messages_and_go_to_drafts_folder(f) {
@@ -65,10 +65,11 @@ function forward_selected_messages_and_go_to_drafts_folder(f) {
   cwc.window.goDoCommand('cmd_close');
   // wait for the modal dialog to return
   wait_for_modal_dialog();
-  // actually quite the window
+  // Actually quit the window.
   wait_for_window_close();
 
-  let draftsFolder = MailServices.accounts.localFoldersServer.rootFolder.getChildNamed("Drafts");
+  // Visit the existing Drafts folder.
+  let draftsFolder = get_special_folder(Ci.nsMsgFolderFlags.Drafts);
   be_in_folder(draftsFolder);
 }
 

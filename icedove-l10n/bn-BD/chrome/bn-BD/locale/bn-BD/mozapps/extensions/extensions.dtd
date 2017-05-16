@@ -204,11 +204,11 @@
 <!ENTITY cmd.alwaysActivate.tooltip           "Always use this add-on">
 <!ENTITY cmd.askToActivate.label              "Ask to Activate">
 <!ENTITY cmd.askToActivate.tooltip            "Ask to use this add-on each time">
-<!ENTITY cmd.debugAddon.accesskey             "B">
-<!ENTITY cmd.debugAddon.label                 "Debug">
 <!ENTITY cmd.neverActivate.label              "Never Activate">
 <!ENTITY cmd.neverActivate.tooltip            "Never use this add-on">
 <!ENTITY cmd.stateMenu.tooltip                "Change when this add-on runs">
+<!ENTITY debugAddons.accesskey                "B">
+<!ENTITY debugAddons.label                    "Debug Add-ons">
 <!ENTITY disabledUnsigned.description.end " or ask the developer to get them verified.">
 <!ENTITY disabledUnsigned.description.findAddonsLink "find replacements">
 <!-- LOCALIZATION NOTE (disabledUnsigned.description.start, disabledUnsigned.description.findAddonsLink, disabledUnsigned.description.end):
@@ -232,9 +232,12 @@
      This tab won't be displayed unless an Experiment add-on is installed.
      Install https://people.mozilla.org/~gszorc/dummy-experiment-addon.xpi
      to cause this tab to appear. -->
-<!ENTITY experiment.info.label "What's this? Telemetry may install and run experiments from time to time.">
+<!ENTITY experiment.info.label "What’s this? Telemetry may install and run experiments from time to time.">
 <!ENTITY experiment.info.learnmore "Learn More">
 <!ENTITY experiment.info.learnmore.accesskey "L">
+
+<!ENTITY pluginDeprecation.description "Missing something? Some plugins are no longer supported by &brandShortName;.">
+<!ENTITY pluginDeprecation.learnMore "Learn More.">
 <!ENTITY search.buttonlabel                   "Search">
 <!-- LOCALIZATION NOTE (search.commandKey):
      The search command key should match findOnCmd.commandkey from browser.dtd -->

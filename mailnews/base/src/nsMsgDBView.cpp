@@ -48,6 +48,7 @@
 #include "nsIAbDirectory.h"
 #include "nsIAbCard.h"
 #include "mozilla/Services.h"
+#include "mozilla/Attributes.h"
 #include "mozilla/mailnews/MimeHeaderParser.h"
 #include "nsTArray.h"
 #include <algorithm>
@@ -157,16 +158,16 @@ void nsMsgDBView::InitializeAtomsAndLiterals()
   kNotJunkMsgAtom = MsgNewAtom("notjunk").take();
 
   // priority strings
-  kHighestPriorityString = GetString(MOZ_UTF16("priorityHighest"));
-  kHighPriorityString = GetString(MOZ_UTF16("priorityHigh"));
-  kLowestPriorityString = GetString(MOZ_UTF16("priorityLowest"));
-  kLowPriorityString = GetString(MOZ_UTF16("priorityLow"));
-  kNormalPriorityString = GetString(MOZ_UTF16("priorityNormal"));
+  kHighestPriorityString = GetString(u"priorityHighest");
+  kHighPriorityString = GetString(u"priorityHigh");
+  kLowestPriorityString = GetString(u"priorityLowest");
+  kLowPriorityString = GetString(u"priorityLow");
+  kNormalPriorityString = GetString(u"priorityNormal");
 
-  kReadString = GetString(MOZ_UTF16("read"));
-  kRepliedString = GetString(MOZ_UTF16("replied"));
-  kForwardedString = GetString(MOZ_UTF16("forwarded"));
-  kNewString = GetString(MOZ_UTF16("new"));
+  kReadString = GetString(u"read");
+  kRepliedString = GetString(u"replied");
+  kForwardedString = GetString(u"forwarded");
+  kNewString = GetString(u"new");
 }
 
 nsMsgDBView::~nsMsgDBView()
@@ -528,6 +529,14 @@ nsresult nsMsgDBView::FetchRecipients(nsIMsgDBHdr * aHdr, nsAString &aRecipients
       aRecipientsString.Append(NS_LITERAL_STRING(", "));
 
     aRecipientsString.Append(recipient);
+  }
+
+  if (numAddresses == 0 && unparsedRecipients.FindChar(':') != kNotFound) {
+    // No addresses and a colon, so an empty group like "undisclosed-recipients: ;".
+    // Add group name so at least something displays.
+    nsString group;
+    CopyUTF8toUTF16(unparsedRecipients, group);
+    aRecipientsString.Assign(group);
   }
 
   UpdateCachedName(aHdr, "recipient_names", aRecipientsString);
@@ -1621,6 +1630,9 @@ NS_IMETHODIMP nsMsgDBView::GetLevel(int32_t index, int32_t *_retval)
 nsresult nsMsgDBView::GetMsgHdrForViewIndex(nsMsgViewIndex index, nsIMsgDBHdr **msgHdr)
 {
   nsresult rv = NS_OK;
+  if (!IsValidIndex(index))
+    return NS_MSG_INVALID_DBVIEW_INDEX;
+
   nsMsgKey key = m_keys[index];
   if (key == nsMsgKey_None || !m_db)
     return NS_MSG_INVALID_DBVIEW_INDEX;
@@ -1730,14 +1742,14 @@ NS_IMETHODIMP nsMsgDBView::GetCellValue(int32_t aRow, nsITreeColumn* aCol, nsASt
     case 'a': // attachment column
       if (flags & nsMsgMessageFlags::Attachment) {
         nsString tmp_str;
-        tmp_str.Adopt(GetString(MOZ_UTF16("messageHasAttachment")));
+        tmp_str.Adopt(GetString(u"messageHasAttachment"));
         aValue.Assign(tmp_str);
       }
       break;
     case 'f': // flagged (starred) column
       if (flags & nsMsgMessageFlags::Marked) {
         nsString tmp_str;
-        tmp_str.Adopt(GetString(MOZ_UTF16("messageHasFlag")));
+        tmp_str.Adopt(GetString(u"messageHasFlag"));
         aValue.Assign(tmp_str);
       }
       break;
@@ -1769,8 +1781,8 @@ NS_IMETHODIMP nsMsgDBView::GetCellValue(int32_t aRow, nsITreeColumn* aCol, nsASt
 
             IsContainerOpen(aRow, &isContainerOpen);
             tmp_str.Adopt(GetString(isContainerOpen ?
-                            MOZ_UTF16("messageExpanded") :
-                            MOZ_UTF16("messageCollapsed")));
+                            u"messageExpanded" :
+                            u"messageCollapsed"));
             aValue.Assign(tmp_str);
           }
         }
@@ -1779,7 +1791,7 @@ NS_IMETHODIMP nsMsgDBView::GetCellValue(int32_t aRow, nsITreeColumn* aCol, nsASt
     case 'u': // read/unread column
       if (!(flags & nsMsgMessageFlags::Read)) {
         nsString tmp_str;
-        tmp_str.Adopt(GetString(MOZ_UTF16("messageUnread")));
+        tmp_str.Adopt(GetString(u"messageUnread"));
         aValue.Assign(tmp_str);
       }
       break;
@@ -2091,6 +2103,7 @@ NS_IMETHODIMP nsMsgDBView::CellTextForColumn(int32_t aRow,
       keyString.AppendInt((int64_t)key);
       aValue.Assign(keyString);
     }
+    break;
   default:
     break;
   }
@@ -2714,7 +2727,7 @@ NS_IMETHODIMP nsMsgDBView::GetCommandStatus(nsMsgViewCommandTypeValue command, b
     haveSelection = NonDummyMsgSelected(indices, numIndices);
   else
   // If we don't have a tree selection we must be in stand alone mode.
-    haveSelection = m_currentlyDisplayedViewIndex != nsMsgViewIndex_None;
+    haveSelection = IsValidIndex(m_currentlyDisplayedViewIndex);
 
   switch (command)
   {
@@ -2759,7 +2772,7 @@ NS_IMETHODIMP nsMsgDBView::GetCommandStatus(nsMsgViewCommandTypeValue command, b
     break;
   case nsMsgViewCommandType::junk:
   case nsMsgViewCommandType::unjunk:
-    *selectable_p = haveSelection && JunkControlsEnabled(selection[0]);
+    *selectable_p = haveSelection && numIndices && JunkControlsEnabled(selection[0]);
     break;
   case nsMsgViewCommandType::cmdRequiringMsgBody:
     *selectable_p = haveSelection && (!WeAreOffline() || OfflineMsgSelected(indices, numIndices));
@@ -3230,9 +3243,9 @@ nsresult nsMsgDBView::DeleteMessages(nsIMsgWindow *window, nsMsgViewIndex *indic
     nsString confirmString;
     nsString checkboxText;
     nsString buttonApplyNowText;
-    dialogTitle.Adopt(GetString(MOZ_UTF16("confirmMsgDelete.title")));
-    checkboxText.Adopt(GetString(MOZ_UTF16("confirmMsgDelete.dontAsk.label")));
-    buttonApplyNowText.Adopt(GetString(MOZ_UTF16("confirmMsgDelete.delete.label")));
+    dialogTitle.Adopt(GetString(u"confirmMsgDelete.title"));
+    checkboxText.Adopt(GetString(u"confirmMsgDelete.dontAsk.label"));
+    buttonApplyNowText.Adopt(GetString(u"confirmMsgDelete.delete.label"));
 
     confirmString.Adopt(GetString(warningName.get()));
 
@@ -6246,11 +6259,13 @@ NS_IMETHODIMP nsMsgDBView::OnHdrFlagsChanged(nsIMsgDBHdr *aHdrChanged, uint32_t 
   return NS_OK;
 }
 
-NS_IMETHODIMP nsMsgDBView::OnHdrDeleted(nsIMsgDBHdr *aHdrChanged, nsMsgKey aParentKey, int32_t aFlags,
-                            nsIDBChangeListener *aInstigator)
+NS_IMETHODIMP nsMsgDBView::OnHdrDeleted(nsIMsgDBHdr *aHdrChanged,
+                                        nsMsgKey aParentKey,
+                                        int32_t aFlags,
+                                        nsIDBChangeListener *aInstigator)
 {
   nsMsgViewIndex deletedIndex = FindHdr(aHdrChanged);
-  if (deletedIndex != nsMsgViewIndex_None)
+  if (IsValidIndex(deletedIndex))
   {
     // Check if this message is currently selected. If it is, tell the frontend
     // to be prepared for a delete.
@@ -6378,6 +6393,7 @@ NS_IMETHODIMP nsMsgDBView::NoteChange(nsMsgViewIndex firstLineChanged,
       // RowCountChanged() will call our GetRowCount()
       mTree->RowCountChanged(firstLineChanged, numChanged);
       mRemovingRow = false;
+      MOZ_FALLTHROUGH;
     case nsMsgViewNotificationCode::all:
       ClearHdrCache();
       break;
@@ -6657,6 +6673,7 @@ nsresult nsMsgDBView::NavigateFromPos(nsMsgNavigationTypeValue motion, nsMsgView
             break;
         case nsMsgNavigationType::firstUnreadMessage:
             startIndex = nsMsgViewIndex_None;        // note fall thru - is this motion ever used?
+            MOZ_FALLTHROUGH;
         case nsMsgNavigationType::nextUnreadMessage:
             for (curIndex = (startIndex == nsMsgViewIndex_None) ? 0 : startIndex; curIndex <= lastIndex && lastIndex != nsMsgViewIndex_None; curIndex++) {
                 uint32_t flags = m_flags[curIndex];
@@ -7391,8 +7408,8 @@ nsMsgDBView::GetMsgToSelectAfterDelete(nsMsgViewIndex *msgToSelectAfterDelete)
         // If the tree selection is goofy (eg adjacent or overlapping ranges),
         // complain about it, but don't try and cope.  Just live with the fact
         // that one of the deleted messages is going to end up selected.
-        NS_WARN_IF_FALSE(endFirstRange != startRange,
-                         "goofy tree selection state: two ranges are adjacent!");
+        NS_WARNING_ASSERTION(endFirstRange != startRange,
+                             "goofy tree selection state: two ranges are adjacent!");
       }
       *msgToSelectAfterDelete = std::min(*msgToSelectAfterDelete,
                                        (nsMsgViewIndex)startRange);
@@ -7755,12 +7772,12 @@ NS_IMETHODIMP nsMsgDBView::SelectMsgByKey(nsMsgKey aKey)
   // but pass in a different key array so that we'll
   // select (and load) the desired message
 
-  nsAutoTArray<nsMsgKey, 1> preservedSelection;
+  AutoTArray<nsMsgKey, 1> preservedSelection;
   nsresult rv = SaveAndClearSelection(nullptr, preservedSelection);
   NS_ENSURE_SUCCESS(rv,rv);
 
   // now, restore our desired selection
-  nsAutoTArray<nsMsgKey, 1> keyArray;
+  AutoTArray<nsMsgKey, 1> keyArray;
   keyArray.AppendElement(aKey);
 
   // if the key was not found
@@ -7999,7 +8016,7 @@ bool nsMsgDBView::JunkControlsEnabled(nsMsgViewIndex aViewIndex)
 
   // we need to check per message or folder
   nsCOMPtr <nsIMsgFolder> folder = m_folder;
-  if (!folder && aViewIndex != nsMsgViewIndex_None)
+  if (!folder && IsValidIndex(aViewIndex))
     GetFolderForViewIndex(aViewIndex, getter_AddRefs(folder));
   if (folder)
   {

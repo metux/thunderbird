@@ -121,7 +121,7 @@ function actually_run_test() {
   async_run_tests(tests);
 }
 
-function getMail1() {
+function* getMail1() {
   dump("\nGet Mail 1\n");
 
   // Now get mail
@@ -144,7 +144,7 @@ function getMail1() {
   yield true;
 }
 
-function getMail2() {
+function* getMail2() {
   dump("\nGet Mail 2\n");
 
   // Now get the mail
@@ -153,7 +153,7 @@ function getMail2() {
   dump("\nGot Mail 2\n");
 }
 
-function endTest() {
+function* endTest() {
   // Now check the new one has been saved.
   logins = Services.logins.findLogins(count, "mailbox://localhost", null,
                                       "mailbox://localhost");
@@ -186,7 +186,7 @@ function run_test()
     var handler = new POP3_RFC1939_handler(d);
     handler.dropOnAuthFailure = true;
 
-    // Set the server expected username & password to what we have in signons.txt
+    // Login information needs to match the one stored in the signons json file.
     handler.kUsername = kUserName;
     handler.kPassword = kValidPassword;
     return handler;
@@ -197,7 +197,7 @@ function run_test()
   // Set up the basic accounts and folders.
   // We would use createPop3ServerAndLocalFolders() however we want to have
   // a different username and NO password for this test (as we expect to load
-  // it from signons.txt).
+  // it from the signons json file in which the login information is stored).
   localAccountUtils.loadLocalMailAccount();
 
   incomingServer = MailServices.accounts

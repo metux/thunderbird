@@ -58,8 +58,8 @@ function Startup()
     gDialog.RemoveFieldSet.hidden = true;
   }
 
-  legendElement = fieldsetElement.firstChild;
-  if (legendElement && legendElement.localName == "LEGEND")
+  legendElement = fieldsetElement.querySelector("legend");
+  if (legendElement)
   {
     newLegend = false;
     var range = editor.document.createRange();
@@ -70,7 +70,9 @@ function Startup()
       gDialog.editText.checked = false;
       gDialog.editText.disabled = false;
       gDialog.legendText.disabled = true;
-      gDialog.editText.addEventListener("command", onEditText, false);
+      gDialog.editText.addEventListener("command",
+        () => Services.prompt.alert(window, GetString("Alert"), GetString("EditTextWarning")),
+        {capture: false, once: true});
       gDialog.RemoveFieldSet.focus();
     }
     else
@@ -104,12 +106,6 @@ function Startup()
 function InitDialog()
 {
   gDialog.legendAlign.value = GetHTMLOrCSSStyleValue(globalElement, "align", "caption-side");
-}
-
-function onEditText()
-{
-  gDialog.editText.removeEventListener("command", onEditText, false);
-  Services.prompt.alert(window, GetString("Alert"), GetString("EditTextWarning"));
 }
 
 function RemoveFieldSet()

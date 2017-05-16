@@ -31,3 +31,8 @@
 <!ENTITY loaddevice.browse "Агляд…">
 <!ENTITY loaddevice.browse.accesskey "А">
 <!ENTITY loaddevice.title "Загрузка збудовы PKCS#11">
+
+<!-- LOCALIZATION NOTE (devmgr.style2): This is CSS style for Device Manager
+     window size. Don't translate "width" nor "height". Adjust the numbers
+     to make window contents fit. -->
+<!ENTITY devmgr.style2                          "width: 67em; height: 32em;">

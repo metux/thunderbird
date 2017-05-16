@@ -164,6 +164,9 @@
 <!ENTITY recentFolders.accesskey "e">
 <!ENTITY compactVersion.label "Kompakt visning">
 <!ENTITY compactVersion.accesskey "K">
+<!ENTITY folderPaneBar.label "Værktøjslinje for mapper">
+<!ENTITY folderPaneBar.accesskey "æ">
+<!ENTITY folderModeSelector.label "Mappevisninger">
 
 <!-- Sort Menu -->
 <!ENTITY sortMenu.label "Sorter efter">
@@ -258,12 +261,6 @@
 <!ENTITY viewAttachmentsInlineCmd.label "Vis vedhæftede filer som en del af meddelelsen">
 <!ENTITY viewAttachmentsInlineCmd.accesskey "f">
 
-<!-- LOCALIZATION NOTE :
-fullZoomEnlargeCmd.commandkey3, fullZoomReduceCmd.commandkey2 and
-fullZoomResetCmd.commandkey2 are alternative acceleration keys for zoom.
-If shift key is needed with your locale popular keyboard for them,
-you can use these alternative items. Otherwise, their values should be empty.  -->
-
 <!ENTITY pageSourceCmd.label "Kildekode">
 <!ENTITY pageSourceCmd.accesskey "e">
 <!ENTITY pageSourceCmd.key "u">
@@ -347,7 +344,7 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY replyMsgCmd.key "r">
 <!ENTITY replySenderCmd.label "Svar kun afsenderen">
 <!ENTITY replySenderCmd.accesskey "S">
-<!ENTITY replyNewsgroupCmd2.label "Svar nyhedsgruppen">
+<!ENTITY replyNewsgroupCmd2.label "Svar til nyhedsgruppen">
 <!ENTITY replyNewsgroupCmd2.accesskey  "n">
 <!ENTITY replyToAllMsgCmd.label "Svar alle">
 <!ENTITY replyToAllMsgCmd.accesskey "e">
@@ -364,9 +361,11 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY forwardAsInline.accesskey "s">
 <!ENTITY forwardAsAttachmentCmd.label "Vedhæftet fil">
 <!ENTITY forwardAsAttachmentCmd.accesskey "V">
-<!ENTITY editAsNewMsgCmd.label "Rediger meddelelsen som ny">
+<!ENTITY editAsNewMsgCmd.label "Rediger som ny meddelelse">
 <!ENTITY editAsNewMsgCmd.accesskey "R">
 <!ENTITY editAsNewMsgCmd.key "e">
+<!ENTITY editDraftMsgCmd.label "Rediger kladde">
+<!ENTITY editDraftMsgCmd.accesskey "l">
 <!ENTITY createFilter.label "Opret filter…">
 <!ENTITY createFilter.accesskey "f">
 <!ENTITY moveMsgToMenu.label "Flyt til">
@@ -417,7 +416,7 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY markAllReadCmd.label "Alle som læste">
 <!ENTITY markAllReadCmd.accesskey "A">
 <!ENTITY markAllReadCmd.key "c">
-<!ENTITY markStarredCmd.label "Tilføj Stjerne">
+<!ENTITY markStarredCmd.label "Tilføj stjerne">
 <!ENTITY markStarredCmd.accesskey "S">
 <!ENTITY markStarredCmd.key "i">
 <!ENTITY markAsJunkCmd.label "Som spam">
@@ -485,18 +484,40 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY deleteJunk.accesskey "l">
 <!ENTITY importCmd.label "Importer…">
 <!ENTITY importCmd.accesskey "m">
-<!ENTITY errorConsoleCmd.label "Fejlkonsol">
-<!ENTITY errorConsoleCmd.accesskey "j">
-<!ENTITY errorConsoleCmd.commandkey "j">
 <!ENTITY clearRecentHistory.label "Ryd seneste historik…">
 <!ENTITY clearRecentHistory.accesskey "h">
 <!ENTITY accountManagerCmd2.label "Kontoindstillinger">
 <!ENTITY accountManagerCmd2.accesskey "o">
-<!-- LOCALIZATION NOTE (accountManagerCmdUnix2.accesskey): belongs to accountManagerCmd2.label,
-        which is placed under the Edit menu on Unix systems -->
+<!-- LOCALIZATION NOTE (accountManagerCmdUnix.accesskey):
+     Belongs to accountManagerCmd.label, which is placed under the Edit menu
+     on Unix systems
+  -->
 <!ENTITY accountManagerCmdUnix2.accesskey "K">
-<!ENTITY allowRemoteDebugging.label "Tillad remote debugging">
-<!ENTITY allowRemoteDebugging.accesskey "r">
+
+<!-- Developer Tools Submenu -->
+<!ENTITY devtoolsMenu.label "Udviklerværktøjer">
+<!ENTITY devtoolsMenu.accesskey "U">
+<!ENTITY devToolboxCmd.label "Værktøjsboks">
+<!ENTITY devToolboxCmd.accesskey "V">
+<!ENTITY devToolboxCmd.commandkey "i">
+<!ENTITY addonDebugCmd.label "Tilføjelse-debugger">
+<!ENTITY addonDebugCmd.accesskey "T">
+<!ENTITY tabsDebugCmd.label "Indholdsramme-debugger">
+<!ENTITY tabsDebugCmd.accesskey "n">
+<!ENTITY errorConsoleCmd.label "Fejlkonsol">
+<!ENTITY errorConsoleCmd.accesskey "j">
+<!ENTITY errorConsoleCmd.commandkey "j">
+<!ENTITY scratchpadCmd.label "Kladdeblok">
+<!ENTITY scratchpadCmd.accesskey "K">
+
+<!--LOCALIZATION NOTE (scratchpadCmd.keycode):
+    This should be a key code constant as per
+    https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/keyCode#Constants_for_keyCode_value
+    (but without the DOM_ prefix) -->
+<!ENTITY scratchpadCmd.keycode "VK_F4">
+<!--LOCALIZATION NOTE (scratchpadCmd.keytext):
+    This should be the text printed on the key defined in the previous string. -->
+<!ENTITY scratchpadCmd.keytext "F4">
 
 <!-- Mail Toolbar -->
 <!ENTITY getMsgButton1.label "Hent meddelelser">
@@ -507,6 +528,7 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY forwardButton.label "Videresend">
 <!ENTITY fileButton.label "Gem">
 <!ENTITY archiveButton.label "Arkiver">
+<!ENTITY openConversationButton.label "Samtale">
 <!ENTITY nextButton.label "Næste">
 <!ENTITY nextButtonToolbarItem.label "Næste ulæste">
 <!ENTITY nextMsgButton.label "Næste">
@@ -545,10 +567,11 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY replyAllButton.tooltip "Svar til afsenderen og alle modtagerne">
 <!ENTITY replyListButton.tooltip "Svar til mailingliste">
 <!ENTITY forwardButton.tooltip "Videresend den valgte meddelelse">
-<!ENTITY forwardAsInline.tooltip "Videresend den markerede meddelelse som en del af selve meddelelsen">
-<!ENTITY forwardAsAttachment.tooltip "Videresend dem markerede meddelelse som en vedhæftet fil">
+<!ENTITY forwardAsInline.tooltip "Videresend den valgte meddelelse som en del af selve meddelelsen">
+<!ENTITY forwardAsAttachment.tooltip "Videresend den valgte meddelelse som en vedhæftet fil">
 <!ENTITY fileButton.tooltip "Gem den valgte meddelelse">
 <!ENTITY archiveButton.tooltip "Arkiver valgte meddelelser">
+<!ENTITY openConversationButton.tooltip "Vis den valgte meddelelses samtale">
 <!ENTITY nextButton.tooltip "Gå til næste ulæste meddelelse">
 <!ENTITY nextMsgButton.tooltip "Gå til den næste meddelelse">
 <!ENTITY previousButton.tooltip "Gå til forrige ulæste meddelelse">
@@ -566,7 +589,6 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY chatButton.tooltip "Vis fanebladet Chat">
 <!ENTITY tagButton.tooltip "Marker meddelelser">
 <!ENTITY compactButton.tooltip "Fjern slettede meddelelser fra valgte mappe">
-
 <!ENTITY appmenuButton1.tooltip "Vis &brandShortName;-menuen">
 
 <!-- Toolbar Button Popup -->
@@ -577,13 +599,13 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY remoteContentOptionsAllowForMsg.label "Vis eksternt indhold i denne meddelelse">
 <!ENTITY remoteContentOptionsAllowForMsg.accesskey "V">
 <!ENTITY editRemoteContentSettings.label "Indstillinger for redigering af eksternt indhold…">
-<!ENTITY editRemoteContentSettings.accesskey "I">
+<!ENTITY editRemoteContentSettings.accesskey "n">
 <!ENTITY editRemoteContentSettingsUnix.label "Indstillinger for redigering af eksternt indhold…">
-<!ENTITY editRemoteContentSettingsUnix.accesskey "I">
+<!ENTITY editRemoteContentSettingsUnix.accesskey "n">
 
 <!-- Phishing Button Popup -->
 <!ENTITY phishingOptionIgnore.label "Ignorer advarsel for denne meddelelse">
-<!ENTITY phishingOptionIgnore.accesskey "I">
+<!ENTITY phishingOptionIgnore.accesskey "g">
 <!ENTITY phishingOptionSettings.label "Rediger indstillinger for mailsvindel…">
 <!ENTITY phishingOptionSettings.accesskey "R">
 <!ENTITY phishingOptionSettingsUnix.label "Rediger indstillinger for mailsvindel…">
@@ -623,7 +645,7 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY folderContextRemove.label "Slet mappe">
 <!ENTITY folderContextRemove.accesskey "S">
 <!ENTITY folderContextCompact.label "Optimer denne mappe">
-<!ENTITY folderContextCompact.accesskey "p">
+<!ENTITY folderContextCompact.accesskey "m">
 <!ENTITY folderContextEmptyTrash.label "Tøm papirkurv">
 <!ENTITY folderContextEmptyTrash.accesskey "ø">
 <!ENTITY folderContextEmptyJunk.label "Tøm spam-mappen">
@@ -642,7 +664,7 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY folderContextSearchForMessages.accesskey "g">
 <!ENTITY folderContextProperties2.label "Egenskaber">
 <!ENTITY folderContextProperties2.accesskey "E">
-<!ENTITY folderContextFavoriteFolder.label "Favoritmapper">
+<!ENTITY folderContextFavoriteFolder.label "Favoritmappe">
 <!ENTITY folderContextFavoriteFolder.accesskey "F">
 <!ENTITY folderContextSettings2.label "Indstillinger">
 <!ENTITY folderContextSettings2.accesskey "I">
@@ -719,6 +741,7 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY contextOpenContainingFolder.accesskey "m">
 <!ENTITY contextEditMsgAsNew.label "Rediger som ny meddelelse">
 <!ENTITY contextEditMsgAsNew.accesskey "y">
+<!ENTITY contextEditDraftMsg.label "Rediger kladde">
 <!ENTITY contextArchive.label "Arkiver">
 <!ENTITY contextArchive.accesskey "r">
 <!ENTITY contextReplySender.label "Svar kun afsenderen">
@@ -746,9 +769,15 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY contextCopyMsgMenu.label "Kopier til">
 <!ENTITY contextCopyMsgMenu.accesskey "K">
 <!ENTITY contextKillThreadMenu.label "Ignorer tråd">
+<!ENTITY contextKillSubthreadMenu.accesskey "e">
 <!ENTITY contextKillThreadMenu.accesskey "t">
 <!ENTITY contextKillSubthreadMenu.label "Ignorer undertråd">
 <!ENTITY contextWatchThreadMenu.label "Overvåg tråd">
+<!--LOCALIZATION NOTE (contextWatchThreadMenu.accesskey):
+   In the en-US locale we ran out of access keys, so there is an empty access key for
+   Watch Thread. Localizers can pick a suitable key
+  -->
+<!ENTITY contextWatchThreadMenu.accesskey "o">
 <!ENTITY contextSaveAs.label "Gem som…">
 <!ENTITY contextSaveAs.accesskey "G">
 <!ENTITY contextPrint.label "Udskriv…">

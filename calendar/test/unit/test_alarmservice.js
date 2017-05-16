@@ -9,7 +9,7 @@ var EXPECT_NONE = 0;
 var EXPECT_FIRED = 1;
 var EXPECT_TIMER = 2;
 
-function do_check_xor(a, b) { return ok((a && !b) || (!a && b)); }
+function do_check_xor(a, b, aMessage) { return ok((a && !b) || (!a && b), aMessage); }
 
 var alarmObserver = {
     service: null,
@@ -17,12 +17,12 @@ var alarmObserver = {
     expectedMap: {},
     pendingOps: {},
 
-    onAlarm: function obs_onAlarm(aItem, aAlarm) {
+    onAlarm: function(aItem, aAlarm) {
         this.firedMap[aItem.hashId] = this.firedMap[aItem.hashId] || {};
         this.firedMap[aItem.hashId][aAlarm.icalString] = true;
     },
 
-    onRemoveAlarmsByItem: function obs_onRemoveAlarmsByItem(aItem) {
+    onRemoveAlarmsByItem: function(aItem) {
         if (aItem.hashId in this.firedMap) {
             delete this.firedMap[aItem.hashId];
         }
@@ -30,14 +30,14 @@ var alarmObserver = {
 
     onRemoveAlarmsByCalendar: function() {},
 
-    onAlarmsLoaded: function obs_onAlarmsLoaded(aCalendar) {
+    onAlarmsLoaded: function(aCalendar) {
         this.checkLoadStatus();
         if (aCalendar.id in this.pendingOps) {
             this.pendingOps[aCalendar.id].call();
         }
     },
 
-    doOnAlarmsLoaded: function obs_doOnAlarmsLoaded(aCalendar, aOperation) {
+    doOnAlarmsLoaded: function(aCalendar, aOperation) {
         this.checkLoadStatus();
         if (aCalendar.id in this.service.mLoadedCalendars &&
             this.service.mLoadedCalendars[aCalendar.id]) {
@@ -49,48 +49,58 @@ var alarmObserver = {
         }
     },
 
-    getTimer: function obs_getTimer(aCalendarId, aItemId, aAlarmStr) {
-        return (aCalendarId in this.service.mTimerMap &&
-                aItemId in this.service.mTimerMap[aCalendarId] &&
-                aAlarmStr in this.service.mTimerMap[aCalendarId][aItemId]) ?
+    getTimer: function(aCalendarId, aItemId, aAlarmStr) {
+        return aCalendarId in this.service.mTimerMap &&
+               aItemId in this.service.mTimerMap[aCalendarId] &&
+               aAlarmStr in this.service.mTimerMap[aCalendarId][aItemId] ?
                this.service.mTimerMap[aCalendarId][aItemId][aAlarmStr] : null;
     },
 
-    expectResult: function obs_expectResult(aCalendar, aItem, aAlarm, aExpected) {
+    expectResult: function(aCalendar, aItem, aAlarm, aExpected) {
+        let expectedAndTitle = {
+            expected: aExpected,
+            title: aItem.title
+        };
         this.expectedMap[aCalendar.id] = this.expectedMap[aCalendar.id] || {};
         this.expectedMap[aCalendar.id][aItem.hashId] = this.expectedMap[aCalendar.id][aItem.hashId] || {};
-        this.expectedMap[aCalendar.id][aItem.hashId][aAlarm.icalString] = aExpected;
+        this.expectedMap[aCalendar.id][aItem.hashId][aAlarm.icalString] = expectedAndTitle;
     },
 
-    expectOccurrences: function obs_expectOccurrences(aCalendar, aItem, aAlarm, aExpectedArray) {
+    expectOccurrences: function(aCalendar, aItem, aAlarm, aExpectedArray) {
         // we need to be earlier than the first occurrence
-        let dt = aItem.startDate.clone();
-        dt.second -= 1;
+        let date = aItem.startDate.clone();
+        date.second -= 1;
 
-        for each (let expected in aExpectedArray) {
-            let occ = aItem.recurrenceInfo.getNextOccurrence(dt);
-            dt = occ.startDate;
+        for (let expected of aExpectedArray) {
+            let occ = aItem.recurrenceInfo.getNextOccurrence(date);
+            date = occ.startDate;
             this.expectResult(aCalendar, occ, aAlarm, expected);
         }
     },
 
-    checkExpected: function obs_checkExpected() {
+    checkExpected: function(aMessage) {
         for (let calId in this.expectedMap) {
             for (let id in this.expectedMap[calId]) {
                 for (let icalString in this.expectedMap[calId][id]) {
+                    let expectedAndTitle = this.expectedMap[calId][id][icalString];
+                    // if no explicit message has been passed, take the item title
+                    let message = (typeof aMessage == "string") ? aMessage
+                                                                : expectedAndTitle.title;
                     // only alarms expected as fired should exist in our fired alarm map
-                    do_check_xor(this.expectedMap[calId][id][icalString] != EXPECT_FIRED,
+                    do_check_xor(expectedAndTitle.expected != EXPECT_FIRED,
                                  (id in this.firedMap) &&
-                                 (icalString in this.firedMap[id]));
+                                 (icalString in this.firedMap[id]),
+                                 message + "; check fired");
                     // only alarms expected as timers should exist in the service's timer map
-                    do_check_xor(this.expectedMap[calId][id][icalString] != EXPECT_TIMER,
-                                 !!this.getTimer(calId, id, icalString));
+                    do_check_xor(expectedAndTitle.expected != EXPECT_TIMER,
+                                 !!this.getTimer(calId, id, icalString),
+                                 message + "; check timer");
                 }
             }
         }
     },
 
-    checkLoadStatus: function obs_checkLoadStatus() {
+    checkLoadStatus: function() {
         for (let calId in this.service.mLoadedCalendars) {
             if (!this.service.mLoadedCalendars[calId]) {
                 // at least one calendar hasn't finished loading alarms
@@ -101,7 +111,7 @@ var alarmObserver = {
         ok(!this.service.isLoading);
     },
 
-    clear: function obs_clear() {
+    clear: function() {
         this.firedMap = {};
         this.pendingOps = {};
         this.expectedMap = {};
@@ -114,12 +124,10 @@ function run_test() {
     add_test(() => {
         // initialization needs to be done within the first test in order for
         // the subsequent tests to run properly
-        initializeAlarmService();
-        cal.getCalendarManager().startup({onResult: function() {
-            cal.getTimezoneService().startup({onResult: function() {
-                run_next_test();
-            }});
-        }});
+        do_calendar_startup(() => {
+            initializeAlarmService();
+            run_next_test();
+        });
     });
     add_test(test_addItems);
     add_test(test_loadCalendar);
@@ -133,12 +141,11 @@ function initializeAlarmService() {
                                        .getService(Components.interfaces.calIAlarmService)
                                        .wrappedJSObject;
     ok(!alarmObserver.service.mStarted);
-
-    alarmObserver.service.startup();
+    alarmObserver.service.startup(null);
     ok(alarmObserver.service.mStarted);
 
     // we need to replace the existing observers with our observer
-    for each (let obs in alarmObserver.service.mObservers.mInterfaces) {
+    for (let obs of alarmObserver.service.mObservers.mInterfaces) {
         alarmObserver.service.removeObserver(obs);
     }
     alarmObserver.service.addObserver(alarmObserver);
@@ -176,57 +183,86 @@ function addTestItems(aCalendar) {
     let item, alarm;
 
     // alarm on an item starting more than a month in the past should not fire
-    let dt = cal.now();
-    dt.day -= 32;
-    [item, alarm] = createEventWithAlarm(aCalendar, dt, dt, "P7D");
+    let date = cal.now();
+    date.day -= 32;
+    [item, alarm] = createEventWithAlarm(aCalendar, date, date, "P7D");
+    item.title="addTestItems Test 1";
     alarmObserver.expectResult(aCalendar, item, alarm, EXPECT_NONE);
     aCalendar.addItem(item, null);
 
     // alarm 15 minutes ago should fire
-    dt = cal.now();
-    [item, alarm] = createEventWithAlarm(aCalendar, dt, dt, "-PT15M");
+    date = cal.now();
+    [item, alarm] = createEventWithAlarm(aCalendar, date, date, "-PT15M");
+    item.title="addTestItems Test 2";
     alarmObserver.expectResult(aCalendar, item, alarm, EXPECT_FIRED);
     aCalendar.addItem(item, null);
 
     // alarm within 6 hours should have a timer set
-    [item, alarm] = createEventWithAlarm(aCalendar, dt, dt, "PT1H");
+    [item, alarm] = createEventWithAlarm(aCalendar, date, date, "PT1H");
+    item.title="addTestItems Test 3";
     alarmObserver.expectResult(aCalendar, item, alarm, EXPECT_TIMER);
     aCalendar.addItem(item, null);
 
     // alarm more than 6 hours in the future should not have a timer set
-    [item, alarm] = createEventWithAlarm(aCalendar, dt, dt, "PT7H");
+    [item, alarm] = createEventWithAlarm(aCalendar, date, date, "PT7H");
+    item.title="addTestItems Test 4";
     alarmObserver.expectResult(aCalendar, item, alarm, EXPECT_NONE);
     aCalendar.addItem(item, null);
 
     // test multiple alarms on an item
-    [item, alarm] = createEventWithAlarm(aCalendar, dt, dt);
-    [["-PT1H", EXPECT_FIRED], ["-PT15M", EXPECT_FIRED], ["PT1H", EXPECT_TIMER],
-     ["PT7H", EXPECT_NONE], ["P7D", EXPECT_NONE]].forEach(function([offset, expected]) {
+    [item, alarm] = createEventWithAlarm(aCalendar, date, date);
+    item.title="addTestItems Test 5";
+    const firedOffsets = [
+        ["-PT1H", EXPECT_FIRED], ["-PT15M", EXPECT_FIRED], ["PT1H", EXPECT_TIMER],
+        ["PT7H", EXPECT_NONE], ["P7D", EXPECT_NONE]
+    ];
+
+    firedOffsets.forEach(([offset, expected]) => {
         alarm = createAlarmFromDuration(offset);
         item.addAlarm(alarm);
         alarmObserver.expectResult(aCalendar, item, alarm, expected);
-    }, this);
+    });
     aCalendar.addItem(item, null);
 
     // daily repeating event starting almost 2 full days ago. The alarms on the first 2 occurrences
     // should fire, and a timer should be set for the next occurrence only
-    dt = cal.now();
-    dt.hour -= 47;
-    [item, alarm] = createEventWithAlarm(aCalendar, dt, dt, "-PT15M", "RRULE:FREQ=DAILY");
+    date = cal.now();
+    date.hour -= 47;
+    [item, alarm] = createEventWithAlarm(aCalendar, date, date, "-PT15M", "RRULE:FREQ=DAILY");
+    item.title="addTestItems Test 6";
     alarmObserver.expectOccurrences(aCalendar, item, alarm,
                                    [EXPECT_FIRED, EXPECT_FIRED, EXPECT_TIMER,
                                     EXPECT_NONE, EXPECT_NONE]);
     aCalendar.addItem(item, null);
 
     // monthly repeating event starting 2 months and a day ago. The alarms on the first 2 occurrences
-    // should be ignored, the alarm on the next occurrence only should fire
-    dt = cal.now();
-    dt.month -= 2;
-    dt.day -= 1;
-    [item, alarm] = createEventWithAlarm(aCalendar, dt, dt, "-PT15M", "RRULE:FREQ=MONTHLY");
-    alarmObserver.expectOccurrences(aCalendar, item, alarm,
-                                   [EXPECT_NONE, EXPECT_NONE, EXPECT_FIRED,
-                                    EXPECT_NONE, EXPECT_NONE]);
+    // should be ignored, the alarm on the next occurrence only should fire.
+    // For the first day of a month, the event is going to start three months before on the last day
+    // and if it is a 31st, missing occurrences for next months with 30 days have to be considered.
+    date = cal.now();
+    let expected = [EXPECT_NONE, EXPECT_NONE, EXPECT_FIRED, EXPECT_NONE, EXPECT_NONE];
+    if (date.day == 1) {
+        let first3Expected = [
+            [EXPECT_NONE, EXPECT_FIRED, EXPECT_NONE],
+            [EXPECT_NONE, EXPECT_NONE, EXPECT_FIRED],
+            [EXPECT_NONE, EXPECT_NONE, EXPECT_NONE],
+            [EXPECT_NONE, EXPECT_FIRED, EXPECT_NONE],
+            [EXPECT_NONE, EXPECT_NONE, EXPECT_FIRED],
+            [EXPECT_NONE, EXPECT_FIRED, EXPECT_NONE],
+            [EXPECT_NONE, EXPECT_NONE, EXPECT_FIRED],
+            [EXPECT_NONE, EXPECT_FIRED, EXPECT_NONE],
+            [EXPECT_NONE, EXPECT_NONE, EXPECT_FIRED],
+            [EXPECT_NONE, EXPECT_NONE, EXPECT_NONE],
+            [EXPECT_NONE, EXPECT_FIRED, EXPECT_NONE],
+            [EXPECT_NONE, EXPECT_NONE, EXPECT_NONE]
+        ];
+        expected = first3Expected[date.month].concat([EXPECT_NONE, EXPECT_NONE]);
+    }
+    date.month -= 2;
+    date.day -= 1;
+    [item, alarm] = createEventWithAlarm(aCalendar, date, date, "-PT15M", "RRULE:FREQ=MONTHLY");
+    item.title="addTestItems Test 7";
+    alarmObserver.expectOccurrences(aCalendar, item, alarm, expected);
     aCalendar.addItem(item, null);
 }
 
@@ -234,49 +270,74 @@ function doModifyItemTest(aCalendar) {
     let item, alarm;
 
     // begin with item starting before the alarm date range
-    let dt = cal.now();
-    dt.day -= 32;
-    [item, alarm] = createEventWithAlarm(aCalendar, dt, dt, "PT0S");
+    let date = cal.now();
+    date.day -= 32;
+    [item, alarm] = createEventWithAlarm(aCalendar, date, date, "PT0S");
     aCalendar.addItem(item, null);
     alarmObserver.expectResult(aCalendar, item, alarm, EXPECT_NONE);
-    alarmObserver.checkExpected();
+    alarmObserver.checkExpected("doModifyItemTest Test 1");
 
     // move event into the fired range
     let oldItem = item.clone();
-    dt.day += 31;
-    item.startDate = dt.clone();
+    date.day += 31;
+    item.startDate = date.clone();
     item.generation++;
     aCalendar.modifyItem(item, oldItem, null);
     alarmObserver.expectResult(aCalendar, item, alarm, EXPECT_FIRED);
-    alarmObserver.checkExpected();
+    alarmObserver.checkExpected("doModifyItemTest Test 2");
 
     // move event into the timer range
     oldItem = item.clone();
-    dt.hour += 25;
-    item.startDate = dt.clone();
+    date.hour += 25;
+    item.startDate = date.clone();
     item.generation++;
     aCalendar.modifyItem(item, oldItem, null);
     alarmObserver.expectResult(aCalendar, item, alarm, EXPECT_TIMER);
-    alarmObserver.checkExpected();
+    alarmObserver.checkExpected("doModifyItemTest Test 3");
 
     // move event past the timer range
     oldItem = item.clone();
-    dt.hour += 6;
-    item.startDate = dt.clone();
+    date.hour += 6;
+    item.startDate = date.clone();
     item.generation++;
     aCalendar.modifyItem(item, oldItem, null);
     alarmObserver.expectResult(aCalendar, item, alarm, EXPECT_NONE);
-    alarmObserver.checkExpected();
+    alarmObserver.checkExpected("doModifyItemTest Test 4");
+
+    // re-move the event in the timer range and verify that the timer
+    // doesn't change when the timezone changes to floating (bug 1300493).
+    oldItem = item.clone();
+    date.hour -= 6;
+    item.startDate = date.clone();
+    item.generation++;
+    aCalendar.modifyItem(item, oldItem, null);
+    alarmObserver.expectResult(aCalendar, item, alarm, EXPECT_TIMER);
+    alarmObserver.checkExpected("doModifyItemTest Test 5");
+    let oldTimer = alarmObserver.getTimer(aCalendar.id, item.hashId, alarm.icalString);
+    oldItem = item.clone();
+    // change the timezone to floating
+    item.startDate.timezone = cal.floating();
+    item.generation++;
+    aCalendar.modifyItem(item, oldItem, null);
+    // the alarm must still be timer and with the same value (apart from milliseconds)
+    alarmObserver.expectResult(aCalendar, item, alarm, EXPECT_TIMER);
+    alarmObserver.checkExpected("doModifyItemTest Test 5, floating timezone");
+    let newTimer = alarmObserver.getTimer(aCalendar.id, item.hashId, alarm.icalString);
+    ok((newTimer.delay - oldTimer.delay) <= 1000,
+       "doModifyItemTest Test 5, floating timezone; check timer value");
 }
 
 function doDeleteItemTest(aCalendar) {
+    alarmObserver.clear();
     let item, alarm;
     let item2, alarm2;
 
     // create a fired alarm and a timer
-    let dt = cal.now();
-    [item, alarm] = createEventWithAlarm(aCalendar, dt, dt, "-PT5M");
-    [item2, alarm2] = createEventWithAlarm(aCalendar, dt, dt, "PT1H");
+    let date = cal.now();
+    [item, alarm] = createEventWithAlarm(aCalendar, date, date, "-PT5M");
+    [item2, alarm2] = createEventWithAlarm(aCalendar, date, date, "PT1H");
+    item.title="doDeleteItemTest item Test 1";
+    item2.title="doDeleteItemTest item2 Test 1";
     aCalendar.addItem(item, null);
     aCalendar.addItem(item2, null);
     alarmObserver.expectResult(aCalendar, item, alarm, EXPECT_FIRED);
@@ -288,17 +349,20 @@ function doDeleteItemTest(aCalendar) {
     aCalendar.deleteItem(item2, null);
     alarmObserver.expectResult(aCalendar, item, alarm, EXPECT_NONE);
     alarmObserver.expectResult(aCalendar, item2, alarm2, EXPECT_NONE);
-    alarmObserver.checkExpected();
+    alarmObserver.checkExpected("doDeleteItemTest, cleared fired alarm and timer");
 }
 
 function doAcknowledgeTest(aCalendar) {
+    alarmObserver.clear();
     let item, alarm;
     let item2, alarm2;
 
     // create the fired alarms
-    let dt = cal.now();
-    [item, alarm] = createEventWithAlarm(aCalendar, dt, dt, "-PT5M");
-    [item2, alarm2] = createEventWithAlarm(aCalendar, dt, dt, "-PT5M");
+    let date = cal.now();
+    [item, alarm] = createEventWithAlarm(aCalendar, date, date, "-PT5M");
+    [item2, alarm2] = createEventWithAlarm(aCalendar, date, date, "-PT5M");
+    item.title="doAcknowledgeTest item Test 1";
+    item2.title="doAcknowledgeTest item2 Test 1";
     aCalendar.addItem(item, null);
     aCalendar.addItem(item2, null);
     alarmObserver.expectResult(aCalendar, item, alarm, EXPECT_FIRED);
@@ -308,16 +372,17 @@ function doAcknowledgeTest(aCalendar) {
     // test snooze alarm
     alarmObserver.service.snoozeAlarm(item, alarm, cal.createDuration("PT1H"));
     alarmObserver.expectResult(aCalendar, item, alarm, EXPECT_TIMER);
-    alarmObserver.checkExpected();
+    alarmObserver.checkExpected("doAcknowledgeTest, test snooze alarm");
 
     // the snoozed alarm timer delay should be close to an hour
     let tmr = alarmObserver.getTimer(aCalendar.id, item.hashId, alarm.icalString);
-    ok(Math.abs(tmr.delay - 3600000) <= 1000);
+    ok(Math.abs(tmr.delay - 3600000) <= 1000,
+       "doAcknowledgeTest, snoozed alarm timer delay close to an hour");
 
     // test dismiss alarm
     alarmObserver.service.dismissAlarm(item2, alarm2);
     alarmObserver.expectResult(aCalendar, item2, alarm2, EXPECT_NONE);
-    alarmObserver.checkExpected();
+    alarmObserver.checkExpected("doAcknowledgeTest, test dismiss alarm");
 }
 
 function doRunTest(aOnCalendarCreated, aOnAlarmsLoaded) {
@@ -333,7 +398,7 @@ function doRunTest(aOnCalendarCreated, aOnAlarmsLoaded) {
 
     calmgr.registerCalendar(memory);
 
-    alarmObserver.doOnAlarmsLoaded(memory, function() {
+    alarmObserver.doOnAlarmsLoaded(memory, () => {
         if (aOnAlarmsLoaded) {
             aOnAlarmsLoaded.call(aOnAlarmsLoaded, memory);
         }
@@ -349,7 +414,7 @@ function test_loadCalendar() {
 
 // Test adding alarm data to a calendar already registered
 function test_addItems() {
-    doRunTest(null, function(memory) {
+    doRunTest(null, (memory) => {
         addTestItems(memory);
         alarmObserver.checkExpected();
     });
@@ -357,7 +422,7 @@ function test_addItems() {
 
 // Test response to modification of alarm data
 function test_modifyItems() {
-    doRunTest(null, function(memory) {
+    doRunTest(null, (memory) => {
         doModifyItemTest(memory);
         doDeleteItemTest(memory);
         doAcknowledgeTest(memory);

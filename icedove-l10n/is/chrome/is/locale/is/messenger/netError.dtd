@@ -31,6 +31,12 @@
   <li>Athugaðu hvort skráin hefur verið færð, endurnefnt eða eytt.</li>
 </ul>
 ">
+<!ENTITY fileAccessDenied.title "Ekki fékkst aðgangur að skrá">
+<!ENTITY fileAccessDenied.longDesc "
+<ul>
+  <li>Enginn aðgangur, hugsanlega gæti verið að skráin hafi verið fjarlægð, færð, eða skráaraðgangi breytt.</li>
+</ul>
+">
 <!ENTITY generic.title "Ææ.">
 <!ENTITY generic.longDesc "
 <p>Af einhverri ástæðu getur &brandShortName; ekki hlaðið inn þessari síðu.</p>
@@ -127,26 +133,10 @@
     hvort &brandShortName; hafi aðgang til þess að fara á netið.</li>
 </ul>
 ">
-<!ENTITY malwareBlocked.title "Grunað árásarsvæði!">
-<!ENTITY malwareBlocked.longDesc "
-<p>Árásarsvæði eru svæði sem reyna að setja inn forrit til að stela persónulegum upplýsingum, nota tölvuna þína til að gera árás á aðra, eða valda skemmdum.</p>
-<p>Vefstjóra sem grunar að þeirra svæði hafi rangt verið tilkynnt sem árásarsvæði geta <a href='http://www.stopbadware.org/home/reviewinfo' >beðið um endurskoðun</a>.</p>">
-<!ENTITY unwantedBlocked.title "Grunur um að vefsvæði sé með óæskilegan hugbúnað!">
-<!ENTITY unwantedBlocked.longDesc "
-<p>Vefsvæði með óæskilegan hugbúnað reyna að setja inn hugbúnað sem getur verið villandi og hefur ýmis óvænt áhrif á tölvuna þína.</p>
-">
-<!ENTITY phishingBlocked.title "Grunað falsað vefsvæði!">
-<!ENTITY phishingBlocked.longDesc "
-<p>Ef þú slærð inn einhverjar persónuupplýsingar á þessari síðu gætirðu hugsanlega lent í kennisstuldi eða svikum.</p>
-<p>Þessar tegundir af vef fölsunum eru notaðar í svikum betur þekktar sem vefveiðar, í því eru sviksamlegar vefsíður og tölvupóstur notað til að líkja eftir aðilum sem þú treystir.</p>
-">
-<!ENTITY forbiddenBlocked.title "Óleyfilegt vefsvæði">
-<!ENTITY forbiddenBlocked.longDesc "<p>&brandShortName; kom í veg fyrir að náð væri í þessa síðu vegna þess að stillt er að loka á hana.</p>
-">
 <!ENTITY cspBlocked.title "Lokað á vegna öryggisreglu">
 <!ENTITY cspBlocked.longDesc "<p>&brandShortName; kom í veg fyrir að þessi síða birtist á þennan hátt þar sem síðan inniheldur öryggisreglu sem kemur í veg fyrir það.</p>">
-<!ENTITY corruptedContentError.title "Villa skemmd gögn">
-<!ENTITY corruptedContentError.longDesc "<p>Ekki er hægt að sýna innihaldið vegna villu í gagnasendingu.</p><ul><li>Hafðu samband við eiganda til að láta hann vita af vandamálinu.</li></ul>">
+<!ENTITY corruptedContentErrorv2.title "Villa skemmd gögn">
+<!ENTITY corruptedContentErrorv2.longDesc "<p>Ekki er hægt að sýna síðuna vegna villu í gagnasendingu.</p><ul><li>Hafðu samband við vefsíðueiganda til að láta hann vita af vandamálinu.</li></ul>">
 <!ENTITY securityOverride.linkText "Eða þú getur bætt við undantekningu…">
 <!ENTITY securityOverride.getMeOutOfHereButton "Hjálpaðu mér héðan út!">
 <!ENTITY securityOverride.exceptionButtonLabel "Bæta við undantekningu…">
@@ -163,3 +153,7 @@ functionality specific to thunderbird. -->
 ">
 <!ENTITY remoteXUL.title "Fjarlægt XUL">
 <!ENTITY remoteXUL.longDesc "<p><ul><li>Hafðu samband við eigendur vefsvæðins til að láta þá vita af þessu vandamáli.</li></ul></p>">
+<!ENTITY inadequateSecurityError.title "Tenging er ekki örugg">
+<!-- LOCALIZATION NOTE (inadequateSecurityError.longDesc) - Do not translate
+     "NS_ERROR_NET_INADEQUATE_SECURITY". -->
+<!ENTITY inadequateSecurityError.longDesc "<p><span class='hostname'></span> notar öryggistækni sem er úrelt og er ekki örugg. Árásaraðili gæti auðveldlega náð í upplýsingar sem þú gætir talið að væru öruggar. Kerfisstjóri þarf að lagfæra netþjóninn áður áður en þú getur heimsótt vefsvæðið.</p><p>Villukóði: NS_ERROR_NET_INADEQUATE_SECURITY</p>">

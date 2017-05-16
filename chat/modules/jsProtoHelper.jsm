@@ -173,7 +173,7 @@ var GenericAccountPrototype = {
     if (!this._pendingBuddyRequests)
       return;
 
-    for each (let request in this._pendingBuddyRequests)
+    for (let request of this._pendingBuddyRequests)
       request.cancel();
     delete this._pendingBuddyRequests;
   },
@@ -207,6 +207,7 @@ var GenericAccountPrototype = {
     return new ChatRoomFieldValues(defaultFieldValues);
   },
   requestRoomInfo: function(aCallback) { throw Cr.NS_ERROR_NOT_IMPLEMENTED; },
+  getRoomInfo: function(aName) { throw Cr.NS_ERROR_NOT_IMPLEMENTED; },
   get isRoomInfoStale() { return false; },
 
   getPref: function (aName, aType) {
@@ -469,14 +470,14 @@ var GenericConversationPrototype = {
   },
 
   addObserver: function(aObserver) {
-    if (this._observers.indexOf(aObserver) == -1)
+    if (!this._observers.includes(aObserver))
       this._observers.push(aObserver);
   },
   removeObserver: function(aObserver) {
     this._observers = this._observers.filter(o => o !== aObserver);
   },
   notifyObservers: function(aSubject, aTopic, aData) {
-    for each (let observer in this._observers) {
+    for (let observer of this._observers) {
       try {
         observer.observe(aSubject, aTopic, aData);
       } catch(e) {
@@ -624,7 +625,7 @@ var GenericConvChatPrototype = {
   getParticipants: function() {
     // Convert the values of the Map into a nsSimpleEnumerator.
     return new nsSimpleEnumerator(
-      [participant for (participant of this._participants.values())]
+      Array.from(this._participants.values())
     );
   },
   getNormalizedChatBuddyName: aChatBuddyName => aChatBuddyName,

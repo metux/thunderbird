@@ -2,11 +2,16 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY attachmentReminderDialog.title   "Nøkkelord for vedleggpåminning">
-<!ENTITY attachKeywordText.label          "&brandShortName; åtvarar deg om manglande vedlegg dersom du skal til å sende ein e-post som inneheld eitt av desse nøkkelorda.">
-<!ENTITY addKeywordButton.label           "Legg til">
-<!ENTITY addKeywordButton.accesskey       "L">
-<!ENTITY editKeywordButton.label          "Rediger">
-<!ENTITY editKeywordButton.accesskey      "R">
+<!ENTITY attachmentReminderDialog.title   "Stikkord for vedleggspåminning">
+<!ENTITY attachKeywordText.label          "&brandShortName; åtvarar deg om manglande vedlegg dersom du skal til å sende ein e-post som inneheld eitt av desse stikkorda.">
+
+
+
+
 <!ENTITY removeKeywordButton.label        "Slett">
 <!ENTITY removeKeywordButton.accesskey    "S">
+
+<!ENTITY editKeywordButton1.accesskey     "E">
+<!ENTITY editKeywordButton1.label         "Edit…">
+<!ENTITY newKeywordButton.accesskey       "N">
+<!ENTITY newKeywordButton.label           "New…">

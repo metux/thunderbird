@@ -758,24 +758,60 @@
 
 <!ENTITY CopyNameAndEmailAddress.accesskey "N">
 <!ENTITY CopyNameAndEmailAddress.label "Copy Name and Email Address">
+<!ENTITY addonDebugCmd.accesskey "A">
+<!ENTITY addonDebugCmd.label "Add-on Debugger">
+<!ENTITY contextEditDraftMsg.label "Edit Draft Message">
+<!ENTITY contextKillSubthreadMenu.accesskey "b">
+<!-- LOCALIZATION NOTE (contextWatchThreadMenu.accesskey):
+     In the en-US locale we ran out of access keys, so there is an empty access key for
+     Watch Thread. Localizers can pick a suitable key
+  -->
+<!ENTITY contextWatchThreadMenu.accesskey "">
 <!ENTITY correspondentColumn.label "Correspondents">
 <!ENTITY correspondentColumn2.tooltip "Sort by correspondents">
+<!ENTITY devToolboxCmd.accesskey "T">
+<!ENTITY devToolboxCmd.commandkey "i">
+<!ENTITY devToolboxCmd.label "Developer Toolbox">
+<!ENTITY devtoolsMenu.accesskey "e">
+
+<!-- Developer Tools Submenu -->
+<!ENTITY devtoolsMenu.label "Developer Tools">
+<!ENTITY editDraftMsgCmd.accesskey "D">
+<!ENTITY editDraftMsgCmd.label "Edit Draft Message">
+<!ENTITY folderModeSelector.label "Folder Views">
 
 <!-- Folder Pane -->
 <!ENTITY folderNameColumn.label "Name">
+<!ENTITY folderPaneBar.accesskey "F">
+<!ENTITY folderPaneBar.label "Folder Pane Toolbar">
 <!ENTITY folderTotalColumn.label "Total">
 <!ENTITY folderUnreadColumn.label "Unread">
+<!ENTITY openConversationButton.label "Conversation">
+<!ENTITY openConversationButton.tooltip "Show conversation of selected message">
+<!ENTITY scratchpadCmd.accesskey "S">
+
+<!--LOCALIZATION NOTE (scratchpadCmd.keycode):
+    This should be a key code constant as per
+    https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/keyCode#Constants_for_keyCode_value
+    (but without the DOM_ prefix) -->
+<!ENTITY scratchpadCmd.keycode "VK_F4">
+<!--LOCALIZATION NOTE (scratchpadCmd.keytext):
+    This should be the text printed on the key defined in the previous string. -->
+<!ENTITY scratchpadCmd.keytext "F4">
+<!ENTITY scratchpadCmd.label "Scratchpad">
 <!-- LOCALIZATION NOTE (search.label.base1):
-     This is the base of the empty text for the global search box.  We replace
+      This is the base of the empty text for the global search box. We replace
      #1 with the contents of the appropriate search.keyLabel.* value for the
      platform.
      The goal is to convey to the user that typing in the box will allow them
      to search for messages globally and that there is a hotkey they can press
-     to get to the box faster.  If the global indexer is disabled, the search
+     to get to the box faster. If the global indexer is disabled, the search
      box will be collapsed and the user will never see this message.
-     -->
+  -->
 <!ENTITY search.label.base1 "Search #1">
 <!ENTITY showFolderPaneColsCmd.accesskey "P">
 <!ENTITY showFolderPaneColsCmd.label "Folder Pane Columns">
 <!ENTITY sortByCorrespondentCmd.accesskey "n">
 <!ENTITY sortByCorrespondentCmd.label "Correspondents">
+<!ENTITY tabsDebugCmd.accesskey "C">
+<!ENTITY tabsDebugCmd.label "Content Frame Debugger">

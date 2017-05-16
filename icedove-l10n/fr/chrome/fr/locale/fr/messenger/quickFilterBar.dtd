@@ -89,7 +89,7 @@
      books.
      -->
 <!ENTITY quickFilterBar.inaddrbook.tooltip
-         "Afficher seulement les messages des personnes présentes dans mon carnet d'adresses.">
+         "Afficher seulement les messages des personnes présentes dans mon carnet d’adresses.">
 
 <!-- LOCALIZATION NOTE (quickFilterBar.tags.label):
      The label for the filter button that causes us to filter results to only
@@ -172,7 +172,7 @@
       quickFilterBar.show.key above.
       -->
  <!ENTITY quickFilterBar.textbox.emptyText.keyLabel2.nonmac
-          "&lt;Ctrl+Shift+K&gt;">
+          "&lt;Ctrl+Maj+K&gt;">
 
  <!-- LOCALIZATION NOTE (quickFilterBar.textbox.emptyText.keyLabel.mac):
       The description of the key-binding to get into the box on mac systems.

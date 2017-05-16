@@ -48,24 +48,23 @@ function contactsListOnKeyPress(aEvent)
   }
 }
 
-function addSelectedAddresses(recipientType)
+/**
+ * Appends the currently selected cards as new recipients in the composed message.
+ *
+ * @param aRecipientType  Type of recipient, e.g. "addr_to".
+ */
+function addSelectedAddresses(aRecipientType)
 {
   var cards = GetSelectedAbCards();
-  var count = cards.length;
 
-
-  for (let i = 0; i < count; i++)
-  {
-    // turn each card into a properly formatted address
-    var address = GenerateAddressFromCard(cards[i]);
-    if (address != "")
-      parent.AddRecipient(recipientType, address);
-  }
+  // Turn each card into a properly formatted address.
+  var addressArray = cards.map(GenerateAddressFromCard).filter(addr => (addr != ""));
+  parent.AddRecipientsArray(aRecipientType, addressArray);
 }
 
 function AddressBookMenuListChange()
 {
-  var searchInput = document.getElementById("peopleSearchInput");
+  let searchInput = document.getElementById("peopleSearchInput");
   if (searchInput.value && !searchInput.showingSearchCriteria)
     onEnterInSearchBar();
   else
@@ -83,17 +82,6 @@ function AddressBookMenuListChange()
   }
 
   CommandUpdate_AddressBook();
-}
-
-function AbPanelOnComposerClose()
-{
-  CloseAbView();
-  onAbClearSearch(false);
-}
-
-function AbPanelOnComposerReOpen()
-{
-  SetAbView(GetSelectedDirectory());
 }
 
 var mutationObs = null;
@@ -116,12 +104,9 @@ function AbPanelLoad()
 
   ChangeDirectoryByURI(abPopup.value);
 
-  parent.addEventListener("compose-window-close", AbPanelOnComposerClose, true);
-  parent.addEventListener("compose-window-reopen", AbPanelOnComposerReOpen, true);
-
   mutationObs = new MutationObserver(function(aMutations) {
     aMutations.forEach(function(mutation) {
-      if (GetSelectedDirectory() == (kAllDirectoryRoot + "?") &&
+      if (getSelectedDirectoryURI() == (kAllDirectoryRoot + "?") &&
           mutation.type == "attributes" &&
           mutation.attributeName == "hidden") {
         let curState = document.getElementById("addrbook").hidden;
@@ -138,8 +123,6 @@ function AbPanelLoad()
 
 function AbPanelUnload()
 {
-  parent.removeEventListener("compose-window-close", AbPanelOnComposerClose, true);
-  parent.removeEventListener("compose-window-reopen", AbPanelOnComposerReOpen, true);
   mutationObs.disconnect();
 
   CloseAbView();
@@ -190,8 +173,8 @@ function onEnterInSearchBar()
     gQueryURIFormat = getModelQuery("mail.addr_book.quicksearchquery.format");
   }
 
-  var searchURI = GetSelectedDirectory();
-  var searchInput = document.getElementById("peopleSearchInput");
+  let searchURI = getSelectedDirectoryURI();
+  let searchInput = document.getElementById("peopleSearchInput");
 
   // Use helper method to split up search query to multi-word search
   // query against multiple fields.

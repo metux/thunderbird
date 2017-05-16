@@ -71,3 +71,8 @@
 <!ENTITY reuseExpRadio1.accesskey          "s">
 <!ENTITY closeMsgOnMoveOrDelete.label      "Kustutamisel või liigutamisel kirja aken/kaart suletakse">
 <!ENTITY closeMsgOnMoveOrDelete.accesskey  "K">
+
+<!ENTITY editTagButton1.accesskey  "E">
+<!ENTITY editTagButton1.label      "Edit…">
+<!ENTITY newTagButton.accesskey    "N">
+<!ENTITY newTagButton.label        "New…">

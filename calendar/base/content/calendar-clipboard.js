@@ -5,6 +5,8 @@
 Components.utils.import("resource://gre/modules/Services.jsm");
 Components.utils.import("resource://calendar/modules/calUtils.jsm");
 
+/* exported cutToClipboard, pasteFromClipboard */
+
 /**
  * Test if a writable calendar is selected, and if the clipboard has items that
  * can be pasted into Calendar. The data must be of type "text/calendar" or
@@ -124,7 +126,7 @@ function pasteFromClipboard() {
     data = data.value.QueryInterface(Components.interfaces.nsISupportsString).data;
     switch (flavor.value) {
         case "text/calendar":
-        case "text/unicode":
+        case "text/unicode": {
             let destCal = getSelectedCalendar();
             if (!destCal) {
                 return;
@@ -134,7 +136,10 @@ function pasteFromClipboard() {
                                       .createInstance(Components.interfaces.calIIcsParser);
             try {
                 icsParser.parseString(data);
-            } catch(e) {}
+            } catch (e) {
+                // Ignore parser errors from the clipboard data, if it fails
+                // there will just be 0 items.
+            }
 
             let items = icsParser.getItems({});
             if (items.length == 0) {
@@ -144,7 +149,7 @@ function pasteFromClipboard() {
             // If there are multiple items on the clipboard, the earliest
             // should be set to the selected day and the rest adjusted.
             let earliestDate = null;
-            for each (let item in items) {
+            for (let item of items) {
                 let date = null;
                 if (item.startDate) {
                     date = item.startDate.clone();
@@ -177,7 +182,7 @@ function pasteFromClipboard() {
             }
 
             startBatchTransaction();
-            for each (let item in items) {
+            for (let item of items) {
                 let newItem = item.clone();
                 // Set new UID to allow multiple paste actions of the same
                 // clipboard content.
@@ -185,10 +190,11 @@ function pasteFromClipboard() {
                 if (offset) {
                     cal.shiftItem(newItem, offset);
                 }
-                doTransaction('add', newItem, destCal, null, null);
+                doTransaction("add", newItem, destCal, null, null);
             }
             endBatchTransaction();
             break;
+        }
         default:
             break;
     }

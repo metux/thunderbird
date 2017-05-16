@@ -3,7 +3,7 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<?xml-stylesheet href="chrome://instantbird/content/accounts.css" type="text/css"?>
+<?xml-stylesheet href="chrome://chat/content/accounts.css" type="text/css"?>
 <?xml-stylesheet href="chrome://instantbird/skin/richlistbox.css" type="text/css"?>
 <?xml-stylesheet href="chrome://instantbird/skin/accounts.css" type="text/css"?>
 #ifdef XP_MACOSX
@@ -11,7 +11,7 @@
 #endif
 
 <!DOCTYPE window [
- <!ENTITY % accountsDTD SYSTEM "chrome://instantbird/locale/accounts.dtd">
+ <!ENTITY % accountsDTD SYSTEM "chrome://chat/locale/accounts.dtd">
  <!ENTITY % brandDTD SYSTEM "chrome://branding/locale/brand.dtd">
  %accountsDTD;
  %brandDTD;
@@ -123,7 +123,6 @@
   <deck flex="1" id="accountsDesk" ondblclick="gAccountManager.new();">
     <vbox flex="1" id="noAccountScreen" align="center" pack="center">
       <hbox id="noAccountBox" align="top">
-        <image id="noAccountImage"/>
         <vbox id="noAccountInnerBox" flex="1">
           <label id="noAccountTitle" value="&accountManager.noAccount.title;"/>
           <description id="noAccountDesc">&accountManager.noAccount.description;</description>
@@ -142,6 +141,8 @@
   <windowdragbox id="bottombuttons" align="center">
     <button id="newaccount" command="cmd_new"/>
     <spacer flex="1"/>
+#ifdef XP_WIN
     <button id="close" command="cmd_close"/>
+#endif
   </windowdragbox>
 </window>

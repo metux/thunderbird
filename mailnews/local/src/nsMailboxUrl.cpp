@@ -130,9 +130,12 @@ NS_IMETHODIMP nsMailboxUrl::SetUri(const char * aURI)
   return NS_OK;
 }
 
-NS_IMETHODIMP nsMailboxUrl::Clone(nsIURI **_retval)
+NS_IMETHODIMP nsMailboxUrl::CloneInternal(uint32_t aRefHandlingMode,
+                                          const nsACString& newRef,
+                                          nsIURI **_retval)
 {
-  nsresult rv = nsMsgMailNewsUrl::Clone(_retval);
+  nsresult rv = nsMsgMailNewsUrl::CloneInternal(aRefHandlingMode,
+                                                newRef, _retval);
   NS_ENSURE_SUCCESS(rv, rv);
   // also clone the mURI member, because GetUri below won't work if
   // mURI isn't set due to nsIFile fun.
@@ -162,8 +165,10 @@ NS_IMETHODIMP nsMailboxUrl::GetUri(char ** aURI)
       // we blow off errors here so that we can open attachments
       // in .eml files.
       (void) accountManager->FolderUriForPath(m_filePath, baseUri);
-      if (baseUri.IsEmpty())
-        m_baseURL->GetSpec(baseUri);
+      if (baseUri.IsEmpty()) {
+        rv = m_baseURL->GetSpec(baseUri);
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
       nsCString baseMessageURI;
       nsCreateLocalBaseMessageURI(baseUri, baseMessageURI);
       nsAutoCString uriStr;

@@ -30,8 +30,6 @@
 <!ENTITY retentionKeepAll.accesskey "a">
 <!ENTITY retentionKeepRecent.label "除了最近的">
 <!ENTITY retentionKeepRecent.accesskey "l">
-<!-- LOCALIZATION NOTE: Unhide with .keepUnreadOnly { display: -moz-box; } -->
-<!ENTITY retentionKeepUnreadHidden.label "總是刪除已讀郵件(無視信件時間設定)">
 <!ENTITY retentionApplyToFlagged.label "保留星號標記的郵件">
 <!ENTITY retentionApplyToFlagged.accesskey "e">
 
@@ -58,10 +56,10 @@
 <!ENTITY privileges.button.label                 "權限…">
 <!ENTITY privileges.button.accesskey             "P">
 <!ENTITY permissionsDesc.label                   "您有下列權限:">
-<!ENTITY folderType.label                        "目錄類型:">
+<!ENTITY folderType.label                        "信件匣類型:">
 
 <!ENTITY folderQuotaTab.label                    "配額">
-<!ENTITY folderQuotaRoot.label                   "配額 (Quota) 根目錄:">
+<!ENTITY folderQuotaRoot.label                   "配額根目錄:">
 <!ENTITY folderQuotaUsage.label                  "用量:">
 <!ENTITY folderQuotaStatus.label                 "狀態:">
 

@@ -13,7 +13,7 @@
 <!ENTITY convertPlain.accesskey       "k">
 <!ENTITY sendHTML.label               "Berjocht dochs as HTML ferstjoere">
 <!ENTITY sendHTML.accesskey           "H">
-<!ENTITY sendBoth.label               "Berjocht as platte tekst en HTML ferstjoere">
+<!ENTITY sendBoth.label               "It berjocht as platte tekst en HTML ferstjoere">
 <!ENTITY sendBoth.accesskey           "e">
 <!ENTITY override.label               "Noat: brûk it adresboek om winske tekstopmaak foar ûntfangers te spesifisearjen.">
 
@@ -31,7 +31,7 @@
 <!ENTITY DeletePlainText.label        "Fuortsmite">
 <!ENTITY DeletePlainText.accesskey    "s">
 
-<!ENTITY add.htmltitle                "In HTML-domeinnamme tafoegje">
+<!ENTITY add.htmltitle                "HTML-domeinnamme tafoegje">
 <!ENTITY add.htmldomain               "HTML-domeinnamme:">
-<!ENTITY add.plaintexttitle           "In platte-tekstdomeinnamme tafoegje">
+<!ENTITY add.plaintexttitle           "Platte-tekstdomeinnamme tafoegje">
 <!ENTITY add.plaintextdomain          "Platte-tekstdomeinnamme:">

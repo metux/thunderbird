@@ -6,3 +6,8 @@
 <!ENTITY newTagDialog.title      "Crear ina nova etichetta">
 <!ENTITY name.label              "Num e colur da la etichetta:">
 <!ENTITY name.accesskey          "T">
+
+
+
+<!-- New Tag Dialog -->
+<!ENTITY newTagDialog1.title     "New Tag">

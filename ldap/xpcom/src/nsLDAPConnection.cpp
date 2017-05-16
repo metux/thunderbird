@@ -27,21 +27,21 @@
 #include "nsLDAPUtils.h"
 #include "nsProxyRelease.h"
 #include "mozilla/Logging.h"
+#include "mozilla/Attributes.h"
 
 using namespace mozilla;
 
-const char kConsoleServiceContractId[] = "@mozilla.org/consoleservice;1";
 const char kDNSServiceContractId[] = "@mozilla.org/network/dns-service;1";
 
 // constructor
 //
 nsLDAPConnection::nsLDAPConnection()
-    : mConnectionHandle(0),
+    : mConnectionHandle(nullptr),
       mPendingOperationsMutex("nsLDAPConnection.mPendingOperationsMutex"),
       mPendingOperations(10),
       mSSL(false),
       mVersion(nsILDAPConnection::VERSION3),
-      mDNSRequest(0)
+      mDNSRequest(nullptr)
 {
 }
 
@@ -205,9 +205,9 @@ nsLDAPConnection::Close()
   //
   if (mDNSRequest) {
       mDNSRequest->Cancel(NS_ERROR_ABORT);
-      mDNSRequest = 0;
+      mDNSRequest = nullptr;
   }
-  mInitListener = 0;
+  mInitListener = nullptr;
 
 }
 
@@ -377,7 +377,7 @@ nsLDAPConnection::RemovePendingOperation(uint32_t aOperationID)
   return NS_OK;
 }
 
-class nsOnLDAPMessageRunnable : public nsRunnable
+class nsOnLDAPMessageRunnable : public Runnable
 {
 public:
   nsOnLDAPMessageRunnable(nsLDAPMessage *aMsg, bool aClear)
@@ -589,13 +589,13 @@ nsLDAPConnection::OnLookupComplete(nsICancelable *aRequest,
     // Drop the DNS request object, we no longer need it, and set the flag
     // indicating that DNS has finished.
     //
-    mDNSRequest = 0;
+    mDNSRequest = nullptr;
     mDNSHost.Truncate();
 
     // Call the listener, and then we can release our reference to it.
     //
     mInitListener->OnLDAPInit(this, rv);
-    mInitListener = 0;
+    mInitListener = nullptr;
 
     return rv;
 }
@@ -610,10 +610,7 @@ nsLDAPConnectionRunnable::nsLDAPConnectionRunnable(int32_t aOperationID,
 nsLDAPConnectionRunnable::~nsLDAPConnectionRunnable()
 {
   if (mConnection) {
-    nsCOMPtr<nsIThread> thread = do_GetMainThread();
-    nsILDAPConnection* forgettableConnection;
-    mConnection.forget(&forgettableConnection);
-    NS_ProxyRelease(thread, forgettableConnection, false);
+    NS_ReleaseOnMainThread(mConnection.forget());
   }
 }
 
@@ -648,6 +645,7 @@ NS_IMETHODIMP nsLDAPConnectionRunnable::Run()
     case LDAP_RES_SEARCH_REFERENCE:
       // XXX what should we do with LDAP_RES_SEARCH_EXTENDED
       operationFinished = false;
+      MOZ_FALLTHROUGH;
     default:
     {
       msg = new nsLDAPMessage;

@@ -4,8 +4,8 @@
 
 <!ENTITY securityTitle.label "Անվտանգություն">
 <!ENTITY securityTab.label "Անվտանգություն">
-<!ENTITY securityHeading.label "Ուղարկելու և ստանալու համար ստորագրված կամ կոդավորված նամակներ, նախ պետք է որոշեք թվային ստորագրության հավաստագիրը և կոդավորված հավաստագիրը։">
-<!ENTITY encryptionGroupTitle.label "Կոդավորված">
+<!ENTITY securityHeading.label "Ուղարկելու և ստանալու համար ստորագրված կամ գաղտնագրված նամակներ, նախ պետք է որոշեք թվային ստորագրության հավաստագիրը և կոդավորված հավաստագիրը։">
+<!ENTITY encryptionGroupTitle.label "Գաղտնագրում">
 <!ENTITY encryptionChoiceLabel.label "Նամակը ուղարկելիս ծրագրային կոդավորումը.">
 <!ENTITY neverEncrypt.label "Երբեք (չօգտագործել կոդավորում)">
 <!ENTITY neverEncrypt.accesskey "N">
@@ -26,7 +26,14 @@
 <!ENTITY signingCert.message "Օգտ. այս հավաստագիրը՝ նամակների թվային ստորագրման համար.">
 
 <!ENTITY certificates.label "Հավաստագրեր">
-<!ENTITY manageCerts.label "Նայել հավաստագրերը">
-<!ENTITY manageCerts.accesskey "Ն">
+<!ENTITY manageCerts2.label "Կառավարել վկայագրերը">
+<!ENTITY manageCerts2.accesskey "Կ">
 <!ENTITY manageDevices.label "Անվտանգության սարքեր">
 <!ENTITY manageDevices.accesskey "y">
+<!-- Strings for the cert picker dialog -->
+<!ENTITY certPicker.info  "Վկայագիր.">
+<!ENTITY certPicker.detailsLabel "Ընտրված Վկայագրի մանրամասները.">
+
+
+<!-- Strings for the cert picker dialog -->
+<!ENTITY certPicker.title "Select Certificate">

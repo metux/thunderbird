@@ -4,12 +4,12 @@ locale branding gl gl/locale/gl/branding/
 locale chat gl gl/locale/gl/chat/
 locale communicator gl gl/locale/gl/communicator/
 locale cookie gl gl/locale/gl/cookie/
+locale devtools gl gl/locale/gl/devtools/client/
 locale devtools-shared gl gl/locale/gl/devtools/shared/
 locale editor gl gl/locale/gl/editor/
 locale formautofill gl gl/locale/gl/formautofill/
 locale global gl gl/locale/gl/global/
 locale global-platform gl gl/locale/gl/global-platform/
-locale global-region gl gl/locale/gl/global-region/
 locale messenger gl gl/locale/gl/messenger/
 locale messenger-mapi gl gl/locale/gl/messenger-mapi/
 locale messenger-newsblog gl gl/locale/gl/messenger-newsblog/

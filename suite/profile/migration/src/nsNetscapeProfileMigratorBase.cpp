@@ -106,7 +106,7 @@ nsNetscapeProfileMigratorBase::GetSourceProfiles(nsIArray** aResult)
     // Fills mProfileNames and mProfileLocations
     FillProfileDataFromRegistry();
   }
-  
+
   NS_IF_ADDREF(*aResult = mProfileNames);
   return NS_OK;
 }
@@ -416,7 +416,7 @@ nsNetscapeProfileMigratorBase::CopyFile(const char* aSourceFileName,
 
   nsCOMPtr<nsIFile> targetFile;
   mTargetProfile->Clone(getter_AddRefs(targetFile));
-  
+
   targetFile->AppendNative(nsDependentCString(aTargetFileName));
   targetFile->Exists(&exists);
   if (exists)
@@ -461,7 +461,7 @@ nsNetscapeProfileMigratorBase::RecursiveCopy(nsIFile* srcDir,
 
   bool hasMore = false;
   rv = dirIterator->HasMoreElements(&hasMore);
-  NS_ENSURE_SUCCESS(rv, rv); 
+  NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIFile> dirEntry;
 
@@ -504,7 +504,7 @@ nsNetscapeProfileMigratorBase::RecursiveCopy(nsIFile* srcDir,
     if (NS_FAILED(rv))
       return rv;
   }
-  
+
   return rv;
 }
 
@@ -645,7 +645,7 @@ nsNetscapeProfileMigratorBase::CopyCookies(bool aReplace)
 
   nsresult rv;
   nsCOMPtr<nsICookieManager2> cookieManager(do_GetService(NS_COOKIEMANAGER_CONTRACTID, &rv));
-  if (NS_FAILED(rv)) 
+  if (NS_FAILED(rv))
     return rv;
 
   nsCOMPtr<nsIFile> seamonkeyCookiesFile;
@@ -780,7 +780,8 @@ nsNetscapeProfileMigratorBase::CopySignatureFiles(PBStructArray &aIdentities,
       // turn the pref into a nsIFile
       nsCOMPtr<nsIFile> srcSigFile =
         do_CreateInstance(NS_LOCAL_FILE_CONTRACTID);
-      srcSigFile->SetPersistentDescriptor(nsDependentCString(pref->stringValue));
+      rv = srcSigFile->SetPersistentDescriptor(nsDependentCString(pref->stringValue));
+      NS_ENSURE_SUCCESS(rv, rv);
 
       nsCOMPtr<nsIFile> targetSigFile;
       rv = mTargetProfile->Clone(getter_AddRefs(targetSigFile));
@@ -799,7 +800,9 @@ nsNetscapeProfileMigratorBase::CopySignatureFiles(PBStructArray &aIdentities,
 
         // now write out the new descriptor
         nsAutoCString descriptorString;
-        targetSigFile->GetPersistentDescriptor(descriptorString);
+        rv = targetSigFile->GetPersistentDescriptor(descriptorString);
+        NS_ENSURE_SUCCESS(rv, rv);
+
         NS_Free(pref->stringValue);
         pref->stringValue = ToNewCString(descriptorString);
       }
@@ -879,14 +882,17 @@ nsNetscapeProfileMigratorBase::CopyMailFolderPrefs(PBStructArray &aMailServers,
         // we should make sure the host name based directory we are going to
         // migrate the accounts into is unique. This protects against the
         // case where the user has multiple servers with the same host name.
-        targetMailFolder->CreateUnique(nsIFile::DIRECTORY_TYPE, 0777);
+        rv = targetMailFolder->CreateUnique(nsIFile::DIRECTORY_TYPE, 0777);
+        NS_ENSURE_SUCCESS(rv, rv);
 
         RecursiveCopy(sourceMailFolder, targetMailFolder);
         // now we want to make sure the actual directory pref that gets
         // transformed into the new profile's pref.js has the right file
         // location.
         nsAutoCString descriptorString;
-        targetMailFolder->GetPersistentDescriptor(descriptorString);
+        rv = targetMailFolder->GetPersistentDescriptor(descriptorString);
+        NS_ENSURE_SUCCESS(rv, rv);
+
         NS_Free(pref->stringValue);
         pref->stringValue = ToNewCString(descriptorString);
       }
@@ -902,8 +908,9 @@ nsNetscapeProfileMigratorBase::CopyMailFolderPrefs(PBStructArray &aMailServers,
       // turn the pref into a nsIFile
       nsCOMPtr<nsIFile> srcNewsRCFile =
         do_CreateInstance(NS_LOCAL_FILE_CONTRACTID);
-      srcNewsRCFile->SetPersistentDescriptor(
+      nsresult rv = srcNewsRCFile->SetPersistentDescriptor(
         nsDependentCString(pref->stringValue));
+      NS_ENSURE_SUCCESS(rv, rv);
 
       // now make the copy
       bool exists;
@@ -917,7 +924,9 @@ nsNetscapeProfileMigratorBase::CopyMailFolderPrefs(PBStructArray &aMailServers,
 
         // now write out the new descriptor
         nsAutoCString descriptorString;
-        targetNewsRCFile->GetPersistentDescriptor(descriptorString);
+        rv = targetNewsRCFile->GetPersistentDescriptor(descriptorString);
+        NS_ENSURE_SUCCESS(rv, rv);
+
         NS_Free(pref->stringValue);
         pref->stringValue = ToNewCString(descriptorString);
       }

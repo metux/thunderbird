@@ -20,6 +20,11 @@
 
 
 
+<!ENTITY pref.categories.color.label "Color">
+<!ENTITY pref.categories.edit.title "Edit Category">
+<!ENTITY pref.categories.editButton.accesskey "E">
+<!ENTITY pref.categories.editButton.label "Edit…">
+<!ENTITY pref.categories.name.label "Name">
 
 
 <!-- WARNING! This file contains UTF-8 encoded characters!
@@ -27,14 +32,9 @@
    - your editor isn't using UTF-8 encoding and may munge up the document!
   -->
 
-<!ENTITY pref.categories.add.title "Add Category">
-<!ENTITY pref.categories.addButton.accesskey "A">
-<!ENTITY pref.categories.addButton.label "Add…">
-<!ENTITY pref.categories.color.label "Color">
-<!ENTITY pref.categories.edit.title "Edit Category">
-<!ENTITY pref.categories.editButton.accesskey "E">
-<!ENTITY pref.categories.editButton.label "Edit…">
-<!ENTITY pref.categories.name.label "Name">
+<!ENTITY pref.categories.new.title "New Category">
+<!ENTITY pref.categories.newButton.accesskey "N">
+<!ENTITY pref.categories.newButton.label "New…">
 <!ENTITY pref.categories.noBlankCategories "You must enter a category name.">
 <!ENTITY pref.categories.none.label "(none)">
 <!ENTITY pref.categories.overwrite "A category already exists with that name. \n Do you want to overwrite it?">

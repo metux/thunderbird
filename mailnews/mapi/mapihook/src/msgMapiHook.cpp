@@ -15,7 +15,7 @@
 #include "nsIPromptService.h"
 #include "nsIAppStartup.h"
 #include "nsIAppShellService.h"
-#include "nsIDOMWindow.h"
+#include "mozIDOMWindow.h"
 #include "nsINativeAppSupport.h"
 #include "nsIMsgAccountManager.h"
 #include "nsMsgBaseCID.h"
@@ -52,8 +52,6 @@ extern PRLogModuleInfo *MAPI;
 class nsMAPISendListener : public nsIMsgSendListener
 {
 public:
-
-    virtual ~nsMAPISendListener() { }
 
     // nsISupports interface
     NS_DECL_THREADSAFE_ISUPPORTS
@@ -96,6 +94,9 @@ protected :
     }
 
     bool            m_done;
+private:
+    virtual ~nsMAPISendListener() { }
+
 };
 
 
@@ -146,7 +147,7 @@ bool nsMapiHook::DisplayLoginDialog(bool aLogin, char16_t **aUsername,
 
     nsString brandName;
     rv = brandBundle->GetStringFromName(
-                       MOZ_UTF16("brandFullName"),
+                       u"brandFullName",
                        getter_Copies(brandName));
     if (NS_FAILED(rv)) return false;
 
@@ -161,7 +162,7 @@ bool nsMapiHook::DisplayLoginDialog(bool aLogin, char16_t **aUsername,
     if (aLogin)
     {
       nsString loginText;
-      rv = bundle->GetStringFromName(MOZ_UTF16("loginTextwithName"),
+      rv = bundle->GetStringFromName(u"loginTextwithName",
                                      getter_Copies(loginText));
       if (NS_FAILED(rv) || loginText.IsEmpty()) return false;
 
@@ -255,12 +256,12 @@ nsMapiHook::IsBlindSendAllowed()
   if (NS_FAILED(rv) || !bundle) return false;
 
   nsString warningMsg;
-  rv = bundle->GetStringFromName(MOZ_UTF16("mapiBlindSendWarning"),
+  rv = bundle->GetStringFromName(u"mapiBlindSendWarning",
                                       getter_Copies(warningMsg));
   if (NS_FAILED(rv)) return false;
 
   nsString dontShowAgainMessage;
-  rv = bundle->GetStringFromName(MOZ_UTF16("mapiBlindSendDontShowAgain"),
+  rv = bundle->GetStringFromName(u"mapiBlindSendDontShowAgain",
                                       getter_Copies(dontShowAgainMessage));
   if (NS_FAILED(rv)) return false;
 
@@ -287,7 +288,7 @@ nsresult nsMapiHook::BlindSendMail (unsigned long aSession, nsIMsgCompFields * a
 
   /** create nsIMsgComposeParams obj and other fields to populate it **/
 
-  nsCOMPtr<nsIDOMWindow>  hiddenWindow;
+  nsCOMPtr<mozIDOMWindowProxy> hiddenWindow;
   // get parent window
   nsCOMPtr<nsIAppShellService> appService = do_GetService( "@mozilla.org/appshell/appShellService;1", &rv);
   if (NS_FAILED(rv)|| (!appService) ) return rv ;
@@ -435,9 +436,6 @@ nsresult nsMapiHook::PopulateCompFields(lpnsMapiMessage aMessage,
       if (Body.Last() != '\n')
         Body.AppendLiteral(CRLF);
 
-      if (Body.Find("<html>") == kNotFound)
-        aCompFields->SetForcePlainText(true);
-
       rv = aCompFields->SetBody(Body) ;
   }
   return rv ;
@@ -458,7 +456,6 @@ nsresult nsMapiHook::HandleAttachments (nsIMsgCompFields * aCompFields, int32_t 
 
     for (int i=0 ; i < aFileCount ; i++)
     {
-        bool bTempFile = false ;
         if (aFiles[i].lpszPathName)
         {
             // check if attachment exists
@@ -638,11 +635,8 @@ nsresult nsMapiHook::PopulateCompFieldsWithConversion(lpnsMapiMessage aMessage,
       platformCharSet.Assign(nsMsgI18NFileSystemCharset());
     rv = ConvertToUnicode(platformCharSet.get(), (char *) aMessage->lpszNoteText, Body);
     if (NS_FAILED(rv)) return rv ;
-    if (Body.Last() != '\n')
+    if (Body.IsEmpty() || Body.Last() != '\n')
       Body.AppendLiteral(CRLF);
-
-    if (Body.Find("<html>") == kNotFound)
-      aCompFields->SetForcePlainText(true);
 
     rv = aCompFields->SetBody(Body) ;
   }
@@ -717,7 +711,7 @@ nsresult nsMapiHook::PopulateCompFieldsForSendDocs(nsIMsgCompFields * aCompField
       if (offset != kNotFound)
       {
         RemainingPaths.SetLength (offset) ;
-        if ((offset + strDelimChars.Length()) < FilePathsLen)
+        if ((offset + (int32_t)strDelimChars.Length()) < FilePathsLen)
           newFilePaths += offset + strDelimChars.Length() ;
         else
           offset = kNotFound;

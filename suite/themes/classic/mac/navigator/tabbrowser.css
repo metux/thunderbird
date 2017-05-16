@@ -36,7 +36,7 @@ tabpanels {
 }
 
 .tab-icon {
-  -moz-margin-end: 3px;
+  margin-inline-end: 3px;
   width: 16px;
   height: 16px;
 }
@@ -61,7 +61,7 @@ tabpanels {
 }
 
 .tabbrowser-tab:not(:first-child) {
-  -moz-margin-start: -3px;
+  margin-inline-start: -3px;
 }
 
 .tab-middle {
@@ -94,7 +94,7 @@ tabpanels {
 }
 
 .tabbrowser-tab[busy] {
-  list-style-image: url("chrome://global/skin/icons/loading_16.png");
+  list-style-image: url("chrome://communicator/skin/icons/loading.png");
 }
 
 .tabbrowser-tab[selected="true"] {
@@ -188,7 +188,7 @@ tabpanels {
 }
 
 .alltabs-item[busy] {
-  list-style-image: url("chrome://global/skin/icons/loading_16.png") !important;
+  list-style-image: url("chrome://communicator/skin/icons/loading.png") !important;
 }
 
 .alltabs-item[tabIsScrolled] {
@@ -221,7 +221,7 @@ tabpanels {
 .tab-drop-indicator-bar {
   height: 11px;
   margin-top: -11px;
-  -moz-margin-start: -6px;
+  margin-inline-start: -6px;
   position: relative;
 }
 

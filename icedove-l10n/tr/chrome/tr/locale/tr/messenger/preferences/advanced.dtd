@@ -25,8 +25,8 @@
 <!ENTITY useSmoothScrolling.accesskey  "Y">
 
 <!ENTITY systemIntegration.label       "Sistem Bütünleşmesi">
-<!ENTITY alwaysCheckDefault.label      "&brandShortName; uygulamasının varsayılan e-posta istemcisi olup olmadığını her açılışta denetle">
-<!ENTITY alwaysCheckDefault.accesskey  "h">
+<!ENTITY alwaysCheckDefault.label      "&brandShortName;’ün varsayılan e-posta istemcisi olup olmadığını açılışta denetle">
+<!ENTITY alwaysCheckDefault.accesskey  "a">
 <!ENTITY searchIntegration.label       "&searchIntegration.engineName; uygulamasının iletileri aramasına izin ver">
 <!ENTITY searchIntegration.accesskey   "s">
 <!ENTITY checkDefaultsNow.label        "Şimdi denetle…">
@@ -59,8 +59,6 @@
 <!ENTITY updateCheck.accesskey           "d">
 <!ENTITY updateManual.label              "Güncellemeleri asla denetleme (önerilmez: güvenlik riski)">
 <!ENTITY updateManual.accesskey          "a">
-<!ENTITY updateAutoAddonWarn.label       "Bu işlem herhangi bir eklentimi devredışı bırakacaksa beni uyar">
-<!ENTITY updateAutoAddonWarn.accesskey   "B">
 <!ENTITY updateHistory.label             "Güncelleme geçmişini göster">
 <!ENTITY updateHistory.accesskey         "n">
 
@@ -103,7 +101,7 @@
 <!ENTITY enableOCSP.label                "Sertifikaların geçerliliğini doğrulamak için OCSP yanıt sunucularını sorgula">
 <!ENTITY enableOCSP.accesskey            "S">
 
-<!ENTITY viewCertificates.label         "Sertifikaları göster">
-<!ENTITY viewCertificates.accesskey     "S">
-<!ENTITY viewSecurityDevices.label      "Güvenlik aygıtları">
-<!ENTITY viewSecurityDevices.accesskey  "G">
+<!ENTITY manageCertificates.label "Sertifikaları yönet">
+<!ENTITY manageCertificates.accesskey "S">
+<!ENTITY viewSecurityDevices.label "Güvenlik aygıtları">
+<!ENTITY viewSecurityDevices.accesskey "G">

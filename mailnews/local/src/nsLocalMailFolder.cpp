@@ -427,7 +427,10 @@ nsMsgLocalMailFolder::UpdateFolder(nsIMsgWindow *aWindow)
   if (!mDatabase)
   {
     // return of NS_ERROR_NOT_INITIALIZED means running parsing URL
-    rv = GetDatabaseWithReparse(this, aWindow, getter_AddRefs(mDatabase));
+    // We don't need the return value, and assigning it to mDatabase which
+    // is already set internally leaks.
+    nsCOMPtr<nsIMsgDatabase> returnedDb;
+    rv = GetDatabaseWithReparse(this, aWindow, getter_AddRefs(returnedDb));
     if (NS_SUCCEEDED(rv))
       NotifyFolderEvent(mFolderLoadedAtom);
   }
@@ -775,7 +778,7 @@ NS_IMETHODIMP nsMsgLocalMailFolder::Delete()
   //Clean up .sbd folder if it exists.
   // Remove summary file.
   rv = summaryFile->Remove(false);
-  NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "Could not delete msg summary file");
+  NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "Could not delete msg summary file");
 
   rv = msgStore->DeleteFolder(this);
   if (rv == NS_ERROR_FILE_NOT_FOUND ||
@@ -844,19 +847,19 @@ nsresult nsMsgLocalMailFolder::ConfirmFolderDeletion(nsIMsgWindow *aMsgWindow,
 
       nsAutoString deleteFolderDialogTitle;
       rv = bundle->GetStringFromName(
-        MOZ_UTF16("pop3DeleteFolderDialogTitle"),
+        u"pop3DeleteFolderDialogTitle",
         getter_Copies(deleteFolderDialogTitle));
       NS_ENSURE_SUCCESS(rv, rv);
 
       nsAutoString deleteFolderButtonLabel;
       rv = bundle->GetStringFromName(
-        MOZ_UTF16("pop3DeleteFolderButtonLabel"),
+        u"pop3DeleteFolderButtonLabel",
         getter_Copies(deleteFolderButtonLabel));
       NS_ENSURE_SUCCESS(rv, rv);
 
       nsAutoString confirmationStr;
       rv = bundle->FormatStringFromName(
-        MOZ_UTF16("pop3MoveFolderToTrash"), formatStrings, 1,
+        u"pop3MoveFolderToTrash", formatStrings, 1,
         getter_Copies(confirmationStr));
       NS_ENSURE_SUCCESS(rv, rv);
 
@@ -1710,20 +1713,23 @@ nsMsgLocalMailFolder::CopyFolderAcrossServer(nsIMsgFolder* srcFolder, nsIMsgWind
 
   nsCOMPtr<nsISimpleEnumerator> messages;
   rv = srcFolder->GetMessages(getter_AddRefs(messages));
+  NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIMutableArray> msgArray(do_CreateInstance(NS_ARRAY_CONTRACTID));
 
-  bool hasMoreElements;
+  bool hasMoreElements = false;
   nsCOMPtr<nsISupports> aSupport;
 
   if (messages)
-    messages->HasMoreElements(&hasMoreElements);
+    rv = messages->HasMoreElements(&hasMoreElements);
 
-  while (hasMoreElements && NS_SUCCEEDED(rv))
+  while (NS_SUCCEEDED(rv) && hasMoreElements)
   {
     rv = messages->GetNext(getter_AddRefs(aSupport));
+    NS_ENSURE_SUCCESS(rv, rv);
     rv = msgArray->AppendElement(aSupport, false);
-    messages->HasMoreElements(&hasMoreElements);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = messages->HasMoreElements(&hasMoreElements);
   }
 
   uint32_t numMsgs=0;
@@ -2197,7 +2203,7 @@ NS_IMETHODIMP nsMsgLocalMailFolder::CopyData(nsIInputStream *aIStream, int32_t a
       if (mCopyState->m_wholeMsgInStream)
       {
         end = start + mCopyState->m_leftOver;
-        memcpy (end, MSG_LINEBREAK + '\0', MSG_LINEBREAK_LEN + 1);
+        memcpy(end, MSG_LINEBREAK "\0", MSG_LINEBREAK_LEN + 1);
       }
       else
       {
@@ -3149,7 +3155,8 @@ nsMsgLocalMailFolder::OnStartRunningUrl(nsIURI * aUrl)
   if (NS_SUCCEEDED(rv))
   {
     nsAutoCString aSpec;
-    aUrl->GetSpec(aSpec);
+    rv = aUrl->GetSpec(aSpec);
+    NS_ENSURE_SUCCESS(rv, rv);
     if (strstr(aSpec.get(), "uidl="))
     {
       nsCOMPtr<nsIPop3Sink> popsink;
@@ -3186,8 +3193,10 @@ nsMsgLocalMailFolder::OnStopRunningUrl(nsIURI * aUrl, nsresult aExitCode)
     nsCOMPtr<nsIMsgWindow> msgWindow;
     rv = mailSession->GetTopmostMsgWindow(getter_AddRefs(msgWindow));
     nsAutoCString aSpec;
-    if (aUrl)
-    aUrl->GetSpec(aSpec);
+    if (aUrl) {
+      rv = aUrl->GetSpec(aSpec);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
 
     if (strstr(aSpec.get(), "uidl="))
     {
@@ -3316,8 +3325,8 @@ nsresult nsMsgLocalMailFolder::DisplayMoveCopyStatusMsg()
       const char16_t * stringArray[] = { numMsgSoFarString.get(), totalMessagesString.get(), folderName.get() };
       rv = mCopyState->m_stringBundle->FormatStringFromName(
         (mCopyState->m_isMove) ?
-        MOZ_UTF16("movingMessagesStatus") :
-        MOZ_UTF16("copyingMessagesStatus"),
+        u"movingMessagesStatus" :
+        u"copyingMessagesStatus",
         stringArray, 3, getter_Copies(finalString));
       int64_t nowMS = PR_IntervalToMilliseconds(PR_IntervalNow());
 

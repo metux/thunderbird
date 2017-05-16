@@ -172,7 +172,9 @@ nsMsgFilter::nsMsgFilter():
     m_filterList(nullptr),
     m_expressionTree(nullptr)
 {
-  NS_NewISupportsArray(getter_AddRefs(m_termList));
+  nsresult rv = NS_NewISupportsArray(getter_AddRefs(m_termList));
+  if (NS_FAILED(rv))
+    NS_ASSERTION(false, "Failed to allocate a nsISupportsArray for nsMsgFilter");
 
   m_type = nsMsgFilterType::InboxRule | nsMsgFilterType::Manual;
 }
@@ -586,7 +588,7 @@ nsMsgFilter::LogRuleHitGeneric(nsIMsgRuleAction *aFilterAction,
       const char16_t *logErrorFormatStrings[2] = { tErrmsg16.get(),  tcode16.get()};
       nsString filterFailureWarningPrefix;
       rv = bundle->FormatStringFromName(
-                      MOZ_UTF16("filterFailureWarningPrefix"),
+                      u"filterFailureWarningPrefix",
                       logErrorFormatStrings, 2,
                       getter_Copies(filterFailureWarningPrefix));
       NS_ENSURE_SUCCESS(rv, rv);
@@ -597,7 +599,7 @@ nsMsgFilter::LogRuleHitGeneric(nsIMsgRuleAction *aFilterAction,
     const char16_t *filterLogDetectFormatStrings[4] = { filterName.get(), authorValue.get(), subjectValue.get(), dateValue.get() };
     nsString filterLogDetectStr;
     rv = bundle->FormatStringFromName(
-      MOZ_UTF16("filterLogDetectStr"),
+      u"filterLogDetectStr",
       filterLogDetectFormatStrings, 4,
       getter_Copies(filterLogDetectStr));
     NS_ENSURE_SUCCESS(rv, rv);
@@ -620,7 +622,7 @@ nsMsgFilter::LogRuleHitGeneric(nsIMsgRuleAction *aFilterAction,
       nsString logMoveStr;
       rv = bundle->FormatStringFromName(
         (actionType == nsMsgFilterAction::MoveToFolder) ?
-          MOZ_UTF16("logMoveStr") : MOZ_UTF16("logCopyStr"),
+          u"logMoveStr" : u"logCopyStr",
         logMoveFormatStrings, 2,
         getter_Copies(logMoveStr));
       NS_ENSURE_SUCCESS(rv, rv);
@@ -636,7 +638,7 @@ nsMsgFilter::LogRuleHitGeneric(nsIMsgRuleAction *aFilterAction,
         customAction->GetName(filterActionName);
       if (filterActionName.IsEmpty())
         bundle->GetStringFromName(
-                  MOZ_UTF16("filterMissingCustomAction"),
+                  u"filterMissingCustomAction",
                   getter_Copies(filterActionName));
       buffer += NS_ConvertUTF16toUTF8(filterActionName);
     }

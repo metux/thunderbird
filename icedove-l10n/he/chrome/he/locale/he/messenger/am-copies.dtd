@@ -62,3 +62,5 @@
 <!ENTITY templateInOtherFolder.label "אחר:">
 <!ENTITY templateInOtherFolder.accesskey "א">
 
+
+<!ENTITY keepDrafts2.label "Keep draft messages in:">

@@ -2,22 +2,19 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY addressbookPicker.label             "Osoitekirja:">
-<!ENTITY addressbookPicker.accesskey        "O">
-<!ENTITY searchInput.label                   "Etsi:">
-<!ENTITY searchInput.accesskey              "E">
-<!ENTITY SearchNameOrEmail.label             "Nimestä tai osoitteesta">
 
+<!ENTITY addressbookPicker.label            "Osoitekirja:">
+<!ENTITY addressbookPicker.accesskey        "O">
+<!ENTITY SearchNameOrEmail.label            "Nimestä tai osoitteesta">
+
+<!ENTITY addtoToFieldMenu.label             "Lisää vastaanottajakenttään">
+<!ENTITY addtoToFieldMenu.accesskey         "v">
+<!ENTITY addtoCcFieldMenu.label             "Lisää kopiokenttään">
+<!ENTITY addtoCcFieldMenu.accesskey         "k">
+<!ENTITY addtoBccFieldMenu.label            "Lisää piilokopiokenttään">
+<!ENTITY addtoBccFieldMenu.accesskey        "p">
 <!ENTITY deleteAddrBookCard.label           "Poista">
 <!ENTITY deleteAddrBookCard.accesskey       "P">
-<!ENTITY addrBookCardProperties.label       "Ominaisuudet">
-<!ENTITY addrBookCardProperties.accesskey   "O">
-<!ENTITY addtoToFieldMenu.label              "Lisää vastaanottajakenttään">
-<!ENTITY addtoToFieldMenu.accesskey         "v">
-<!ENTITY addtoCcFieldMenu.label              "Lisää kopiokenttään">
-<!ENTITY addtoCcFieldMenu.accesskey         "k">
-<!ENTITY addtoBccFieldMenu.label             "Lisää piilokopiokenttään">
-<!ENTITY addtoBccFieldMenu.accesskey        "p">
 
 <!ENTITY toButton.label                     "Vastaanottaja:">
 <!ENTITY toButton.accesskey                 "V">
@@ -25,3 +22,25 @@
 <!ENTITY ccButton.accesskey                 "K">
 <!ENTITY bccButton.label                    "Piilokopio:">
 <!ENTITY bccButton.accesskey                "P">
+
+<!ENTITY abPropertiesContext.accesskey      "i">
+<!ENTITY abPropertiesContext.label          "Properties">
+<!ENTITY abPropertiesMenu.accesskey         "i">
+<!ENTITY abPropertiesMenu.label             "Address Book Properties">
+<!ENTITY contactPropertiesMenu.accesskey    "i">
+<!ENTITY contactPropertiesMenu.label        "Contact Properties">
+<!ENTITY editContactContext.accesskey       "E">
+<!ENTITY editContactContext.label           "Edit Contact">
+<!ENTITY editMailingListContext.accesskey   "E">
+<!ENTITY editMailingListContext.label       "Edit List">
+<!ENTITY mailingListPropertiesMenu.accesskey "i">
+<!ENTITY mailingListPropertiesMenu.label    "Mailing List Properties">
+<!ENTITY propertiesCmd.key                  "i">
+<!ENTITY propertiesContext.accesskey        "i">
+<!ENTITY propertiesContext.label            "Properties">
+<!ENTITY propertiesMenu.accesskey           "i">
+
+
+<!ENTITY propertiesMenu.label               "Properties">
+<!ENTITY searchContacts.accesskey           "n">
+<!ENTITY searchContacts.label               "Search Contacts:">

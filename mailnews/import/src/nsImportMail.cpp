@@ -55,21 +55,21 @@ public:
   NS_DECL_THREADSAFE_ISUPPORTS
 
   /* nsISupports GetData (in string dataId); */
-  NS_IMETHOD GetData(const char *dataId, nsISupports **_retval);
+  NS_IMETHOD GetData(const char *dataId, nsISupports **_retval) override;
 
-  NS_IMETHOD SetData(const char *dataId, nsISupports *pData);
+  NS_IMETHOD SetData(const char *dataId, nsISupports *pData) override;
 
-  NS_IMETHOD GetStatus(const char *statusKind, int32_t *_retval);
+  NS_IMETHOD GetStatus(const char *statusKind, int32_t *_retval) override;
 
-  NS_IMETHOD WantsProgress(bool *_retval);
+  NS_IMETHOD WantsProgress(bool *_retval) override;
 
-  NS_IMETHODIMP BeginImport(nsISupportsString *successLog, nsISupportsString *errorLog, bool *_retval) ;
+  NS_IMETHODIMP BeginImport(nsISupportsString *successLog, nsISupportsString *errorLog, bool *_retval) override;
 
-  NS_IMETHOD ContinueImport(bool *_retval);
+  NS_IMETHOD ContinueImport(bool *_retval) override;
 
-  NS_IMETHOD GetProgress(int32_t *_retval);
+  NS_IMETHOD GetProgress(int32_t *_retval) override;
 
-  NS_IMETHOD CancelImport(void);
+  NS_IMETHOD CancelImport(void) override;
 
 private:
   virtual ~nsImportGenericMail();
@@ -907,12 +907,12 @@ bool nsImportGenericMail::CreateFolder(nsIMsgFolder **ppFolder)
   nsString folderName;
   if (!m_pName.IsEmpty()) {
     const char16_t *moduleName[] = { m_pName.get() };
-    rv = bundle->FormatStringFromName(MOZ_UTF16("ImportModuleFolderName"),
+    rv = bundle->FormatStringFromName(u"ImportModuleFolderName",
                                       moduleName, 1,
                                       getter_Copies(folderName));
   }
   else {
-    rv = bundle->GetStringFromName(MOZ_UTF16("DefaultFolderName"),
+    rv = bundle->GetStringFromName(u"DefaultFolderName",
                                    getter_Copies(folderName));
   }
   if (NS_FAILED(rv)) {
@@ -990,7 +990,7 @@ bool nsImportGenericMail::CreateFolder(nsIMsgFolder **ppFolder)
  * the folder, the main thread hands it the next folder.
  */
 
-class GetSubFoldersRunnable : public nsRunnable
+class GetSubFoldersRunnable : public mozilla::Runnable
 {
 public:
   GetSubFoldersRunnable(nsIMsgFolder *aFolder);
@@ -1018,7 +1018,7 @@ nsresult ProxyGetSubFolders(nsIMsgFolder *aFolder)
   return NS_DispatchToMainThread(getSubFolders, NS_DISPATCH_SYNC);
 }
 
-class GetChildNamedRunnable : public nsRunnable
+class GetChildNamedRunnable : public mozilla::Runnable
 {
 public:
   GetChildNamedRunnable(nsIMsgFolder *aFolder, const nsAString& aName, nsIMsgFolder **aChild);
@@ -1050,7 +1050,7 @@ nsresult ProxyGetChildNamed(nsIMsgFolder *aFolder, const nsAString & aName,
   return NS_DispatchToMainThread(getChildNamed, NS_DISPATCH_SYNC);
 }
 
-class GetParentRunnable : public nsRunnable
+class GetParentRunnable : public mozilla::Runnable
 {
 public:
   GetParentRunnable(nsIMsgFolder *aFolder, nsIMsgFolder **aParent);
@@ -1078,7 +1078,7 @@ nsresult ProxyGetParent(nsIMsgFolder *aFolder, nsIMsgFolder **aParent)
   return NS_DispatchToMainThread(getParent, NS_DISPATCH_SYNC);
 }
 
-class ContainsChildNamedRunnable : public nsRunnable
+class ContainsChildNamedRunnable : public mozilla::Runnable
 {
 public:
   ContainsChildNamedRunnable(nsIMsgFolder *aFolder, const nsAString& aName, bool *aResult);
@@ -1111,7 +1111,7 @@ nsresult ProxyContainsChildNamed(nsIMsgFolder *aFolder, const nsAString &aName,
 }
 
 
-class GenerateUniqueSubfolderNameRunnable : public nsRunnable
+class GenerateUniqueSubfolderNameRunnable : public mozilla::Runnable
 {
 public:
   GenerateUniqueSubfolderNameRunnable(nsIMsgFolder *aFolder,
@@ -1150,7 +1150,7 @@ nsresult ProxyGenerateUniqueSubfolderName(nsIMsgFolder *aFolder,
   return NS_DispatchToMainThread(generateUniqueSubfolderName, NS_DISPATCH_SYNC);
 }
 
-class CreateSubfolderRunnable : public nsRunnable
+class CreateSubfolderRunnable : public mozilla::Runnable
 {
 public:
   CreateSubfolderRunnable(nsIMsgFolder *aFolder, const nsAString& aName);
@@ -1179,7 +1179,7 @@ nsresult ProxyCreateSubfolder(nsIMsgFolder *aFolder, const nsAString &aName)
   return NS_DispatchToMainThread(createSubfolder, NS_DISPATCH_SYNC);
 }
 
-class ForceDBClosedRunnable : public nsRunnable
+class ForceDBClosedRunnable : public mozilla::Runnable
 {
 public:
   ForceDBClosedRunnable(nsIMsgFolder *aFolder);

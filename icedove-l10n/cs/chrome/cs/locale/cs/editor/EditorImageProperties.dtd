@@ -13,6 +13,7 @@
 <!ENTITY locationEditField.label "Adresa obrázku:">
 <!ENTITY locationEditField.accessKey "d">
 <!ENTITY locationEditField.tooltip "Vyberte adresu a jméno obrázku">
+<!ENTITY locationEditField.shortenedDataURI "Zkrácená URI (zkopírování vloží celou URI do schránky)">
 <!ENTITY title.label "Pomocný název:">
 <!ENTITY title.accessKey "P">
 <!ENTITY title.tooltip "HTML atribut 'title' se používá jako pomocný název">
@@ -68,7 +69,7 @@
 <!ENTITY showImageLinkBorder.accessKey "o">
 <!ENTITY LinkAdvancedEditButton.label "Rozšířené úpravy odkazu…">
 <!ENTITY LinkAdvancedEditButton.accessKey "L">
-<!ENTITY LinkAdvancedEditButton.tooltip "Umožní přidat nebo upravit HTML atributy, styly a JavaScript">
+<!ENTITY LinkAdvancedEditButton.tooltip "Vložení nebo úprava HTML atributů, stylů a JavaScriptu">
 
 <!-- These tabs are currently used in the image input dialog -->
 <!ENTITY imageInputTab.label "Formulář">

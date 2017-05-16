@@ -6,7 +6,7 @@
 #include "nsAbLDAPListenerBase.h"
 #include "nsIWindowWatcher.h"
 #include "nsIWindowMediator.h"
-#include "nsIDOMWindow.h"
+#include "mozIDOMWindow.h"
 #include "nsIAuthPrompt.h"
 #include "nsIStringBundle.h"
 #include "nsILDAPMessage.h"
@@ -74,7 +74,7 @@ NS_IMETHODIMP nsAbLDAPListenerBase::OnLDAPInit(nsILDAPConnection *aConn, nsresul
   {
     // get the string bundle service
     //
-    nsCOMPtr<nsIStringBundleService> stringBundleSvc = 
+    nsCOMPtr<nsIStringBundleService> stringBundleSvc =
       mozilla::services::GetStringBundleService();
     if (!stringBundleSvc)
     {
@@ -100,7 +100,7 @@ NS_IMETHODIMP nsAbLDAPListenerBase::OnLDAPInit(nsILDAPConnection *aConn, nsresul
     // get the title for the authentication prompt
     //
     nsString authPromptTitle;
-    rv = ldapBundle->GetStringFromName(MOZ_UTF16("authPromptTitle"),
+    rv = ldapBundle->GetStringFromName(u"authPromptTitle",
                                        getter_Copies(authPromptTitle));
     if (NS_FAILED(rv))
     {
@@ -123,7 +123,7 @@ NS_IMETHODIMP nsAbLDAPListenerBase::OnLDAPInit(nsILDAPConnection *aConn, nsresul
       return rv;
     }
 
-    // hostTemp is only necessary to work around a code-generation 
+    // hostTemp is only necessary to work around a code-generation
     // bug in egcs 1.1.2 (the version of gcc that comes with Red Hat 6.2),
     // which is the default compiler for Mozilla on linux at the moment.
     //
@@ -133,7 +133,7 @@ NS_IMETHODIMP nsAbLDAPListenerBase::OnLDAPInit(nsILDAPConnection *aConn, nsresul
     // format the hostname into the authprompt text string
     //
     nsString authPromptText;
-    rv = ldapBundle->FormatStringFromName(MOZ_UTF16("authPromptText"),
+    rv = ldapBundle->FormatStringFromName(u"authPromptText",
                                           hostArray,
                                           sizeof(hostArray) / sizeof(const char16_t *),
                                           getter_Copies(authPromptText));
@@ -161,9 +161,9 @@ NS_IMETHODIMP nsAbLDAPListenerBase::OnLDAPInit(nsILDAPConnection *aConn, nsresul
     // get the addressbook window, as it will be used to parent the auth
     // prompter dialog
     //
-    nsCOMPtr<nsIDOMWindow> window;
+    nsCOMPtr<mozIDOMWindowProxy> window;
     rv = windowMediator->GetMostRecentWindow(nullptr,
-                                               getter_AddRefs(window));
+                                             getter_AddRefs(window));
     if (NS_FAILED(rv))
     {
       NS_ERROR("nsAbLDAPListenerBase::OnLDAPInit():"
@@ -174,7 +174,7 @@ NS_IMETHODIMP nsAbLDAPListenerBase::OnLDAPInit(nsILDAPConnection *aConn, nsresul
 
     // get the window watcher service, so we can get an auth prompter
     //
-    nsCOMPtr<nsIWindowWatcher> windowWatcherSvc = 
+    nsCOMPtr<nsIWindowWatcher> windowWatcherSvc =
       do_GetService(NS_WINDOWWATCHER_CONTRACTID, &rv);
     if (NS_FAILED(rv))
     {
@@ -199,7 +199,7 @@ NS_IMETHODIMP nsAbLDAPListenerBase::OnLDAPInit(nsILDAPConnection *aConn, nsresul
 
     // get authentication password, prompting the user if necessary
     //
-    // we're going to use the URL spec of the server as the "realm" for 
+    // we're going to use the URL spec of the server as the "realm" for
     // wallet to remember the password by / for.
 
     // Get the specification
@@ -269,7 +269,7 @@ NS_IMETHODIMP nsAbLDAPListenerBase::OnLDAPInit(nsILDAPConnection *aConn, nsresul
     {
       NS_ERROR("nsAbLDAPMessageBase::OnLDAPInit(): "
                "failed to perform GSSAPI bind");
-      mOperation = 0; // Break Listener -> Operation -> Listener ref cycle
+      mOperation = nullptr; // Break Listener -> Operation -> Listener ref cycle
       InitFailed();
     }
     return rv;
@@ -280,7 +280,7 @@ NS_IMETHODIMP nsAbLDAPListenerBase::OnLDAPInit(nsILDAPConnection *aConn, nsresul
   if (NS_FAILED(rv))
   {
     NS_ERROR("nsAbLDAPMessageBase::OnLDAPInit(): failed to perform bind operation");
-    mOperation = 0; // Break Listener->Operation->Listener reference cycle
+    mOperation = nullptr; // Break Listener->Operation->Listener reference cycle
     InitFailed();
   }
   return rv;
@@ -342,7 +342,7 @@ nsresult nsAbLDAPListenerBase::OnLDAPMessageBind(nsILDAPMessage *aMessage)
       NS_FREE_XPCOM_ISUPPORTS_POINTER_ARRAY(count, logins);
 
       // XXX We should probably pop up an error dialog telling
-      // the user that the login failed here, rather than just bringing 
+      // the user that the login failed here, rather than just bringing
       // up the password dialog again, which is what calling OnLDAPInit()
       // does.
       return OnLDAPInit(nullptr, NS_OK);

@@ -2,15 +2,14 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY newDirectoryTitle.label           "Proprietăți server LDAP">
 <!ENTITY directoryName.label               "Nume: ">
 <!ENTITY directoryName.accesskey           "N">
 <!ENTITY directoryHostname.label           "Nume host: ">
 <!ENTITY directoryHostname.accesskey       "o">
 <!ENTITY directoryBaseDN.label             "DN bază: ">
 <!ENTITY directoryBaseDN.accesskey         "b">
-<!ENTITY findButton.label                  "Caută">
-<!ENTITY findButton.accesskey              "C">
+<!ENTITY findButton.label                  "Găsește">
+<!ENTITY findButton.accesskey              "G">
 <!ENTITY directorySecure.label             "Utilizează conexiune securizată (SSL)">
 <!ENTITY directorySecure.accesskey         "U">
 <!ENTITY directoryLogin.label              "Bind DN: ">

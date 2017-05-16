@@ -16,7 +16,7 @@
 #include "nsXPCOM.h"
 #include "nsISupportsPrimitives.h"
 #include "nsIWindowWatcher.h"
-#include "nsIDOMWindow.h"
+#include "mozIDOMWindow.h"
 #include "nsIContentViewer.h"
 #include "nsIMsgWindow.h"
 #include "nsIDocShell.h"
@@ -72,8 +72,6 @@
 
 #define DEFAULT_CHROME  "chrome://messenger/content/messengercompose/messengercompose.xul"
 
-#define PREF_MAIL_COMPOSE_MAXRECYCLEDWINDOWS  "mail.compose.max_recycled_windows"
-
 #define PREF_MAILNEWS_REPLY_QUOTING_SELECTION            "mailnews.reply_quoting_selection"
 #define PREF_MAILNEWS_REPLY_QUOTING_SELECTION_MULTI_WORD "mailnews.reply_quoting_selection.multi_word"
 #define PREF_MAILNEWS_REPLY_QUOTING_SELECTION_ONLY_IF    "mailnews.reply_quoting_selection.only_if_chars"
@@ -118,45 +116,21 @@ nsMsgComposeService::nsMsgComposeService()
   mPreviousTime = mStartTime;
 #endif
 
-  mMaxRecycledWindows = 0;
-  mCachedWindows = nullptr;
 }
 
 NS_IMPL_ISUPPORTS(nsMsgComposeService,
                    nsIMsgComposeService,
-                   nsIObserver,
                    ICOMMANDLINEHANDLER,
                    nsISupportsWeakReference)
 
 nsMsgComposeService::~nsMsgComposeService()
 {
-  if (mCachedWindows)
-  {
-    DeleteCachedWindows();
-    delete [] mCachedWindows;
-  }
-
   mOpenComposeWindows.Clear();
 }
 
 nsresult nsMsgComposeService::Init()
 {
   nsresult rv = NS_OK;
-  // Register observers
-
-  // Register for quit application and profile change, we will need to clear the cache.
-  nsCOMPtr<nsIObserverService> observerService =
-    mozilla::services::GetObserverService();
-  if (observerService)
-  {
-    rv = observerService->AddObserver(this, "quit-application", true);
-    rv = observerService->AddObserver(this, "profile-do-change", true);
-  }
-
-  // Register some pref observer
-  nsCOMPtr<nsIPrefBranch> pbi = do_GetService(NS_PREFSERVICE_CONTRACTID);
-  if (pbi)
-    rv = pbi->AddObserver(PREF_MAIL_COMPOSE_MAXRECYCLEDWINDOWS, this, true);
 
   Reset();
 
@@ -171,41 +145,11 @@ nsresult nsMsgComposeService::Init()
 
 void nsMsgComposeService::Reset()
 {
-  nsresult rv = NS_OK;
-
-  if (mCachedWindows)
-  {
-    DeleteCachedWindows();
-    delete [] mCachedWindows;
-    mCachedWindows = nullptr;
-    mMaxRecycledWindows = 0;
-  }
-
   mOpenComposeWindows.Clear();
 
   nsCOMPtr<nsIPrefBranch> prefs(do_GetService(NS_PREFSERVICE_CONTRACTID));
-  if(prefs)
-    rv = prefs->GetIntPref(PREF_MAIL_COMPOSE_MAXRECYCLEDWINDOWS, &mMaxRecycledWindows);
-  if (NS_SUCCEEDED(rv) && mMaxRecycledWindows > 0)
-  {
-    mCachedWindows = new nsMsgCachedWindowInfo[mMaxRecycledWindows];
-    if (!mCachedWindows)
-      mMaxRecycledWindows = 0;
-  }
-
-  rv = prefs->GetBoolPref("mailnews.logComposePerformance", &mLogComposePerformance);
-
-  return;
-}
-
-void nsMsgComposeService::DeleteCachedWindows()
-{
-  int32_t i;
-  for (i = 0; i < mMaxRecycledWindows; i ++)
-  {
-    CloseHiddenCachedWindow(mCachedWindows[i].window);
-    mCachedWindows[i].Clear();
-  }
+  if (prefs)
+    prefs->GetBoolPref("mailnews.logComposePerformance", &mLogComposePerformance);
 }
 
 // Function to open a message compose window and pass an nsIMsgComposeParams
@@ -235,38 +179,7 @@ nsMsgComposeService::OpenComposeWindowWithParams(const char *chrome,
     params->SetIdentity(identity);
   }
 
-  //if we have a cached window for the default chrome, try to reuse it...
-  if (!chrome || PL_strcasecmp(chrome, DEFAULT_CHROME) == 0)
-  {
-    MSG_ComposeFormat format;
-    params->GetFormat(&format);
-
-    bool composeHTML = true;
-    rv = DetermineComposeHTML(identity, format, &composeHTML);
-    if (NS_SUCCEEDED(rv))
-    {
-      int32_t i;
-      for (i = 0; i < mMaxRecycledWindows; i ++)
-      {
-        if (mCachedWindows[i].window && (mCachedWindows[i].htmlCompose == composeHTML) && mCachedWindows[i].listener)
-        {
-          /* We need to save the window pointer as OnReopen will call nsMsgComposeService::InitCompose which will
-             clear the cache entry if everything goes well
-          */
-          nsCOMPtr<nsIDOMWindow> domWindow(mCachedWindows[i].window);
-          nsCOMPtr<nsIXULWindow> xulWindow(mCachedWindows[i].xulWindow);
-          rv = ShowCachedComposeWindow(domWindow, xulWindow, true);
-          if (NS_SUCCEEDED(rv))
-          {
-            mCachedWindows[i].listener->OnReopen(params);
-            return NS_OK;
-          }
-        }
-      }
-    }
-  }
-
-  //Else, create a new one...
+  // Create a new window.
   nsCOMPtr<nsIWindowWatcher> wwatch(do_GetService(NS_WINDOWWATCHER_CONTRACTID));
   if (!wwatch)
     return NS_ERROR_FAILURE;
@@ -278,69 +191,12 @@ nsMsgComposeService::OpenComposeWindowWithParams(const char *chrome,
   msgParamsWrapper->SetData(params);
   msgParamsWrapper->SetDataIID(&NS_GET_IID(nsIMsgComposeParams));
 
-  nsCOMPtr<nsIDOMWindow> newWindow;
+  nsCOMPtr<mozIDOMWindowProxy> newWindow;
   rv = wwatch->OpenWindow(0, chrome && *chrome ? chrome : DEFAULT_CHROME,
                  "_blank", "all,chrome,dialog=no,status,toolbar", msgParamsWrapper,
                  getter_AddRefs(newWindow));
 
   return rv;
-}
-
-void nsMsgComposeService::CloseHiddenCachedWindow(nsIDOMWindow *domWindow)
-{
-  if (domWindow)
-  {
-    nsCOMPtr<nsIDocShell> docshell;
-    nsCOMPtr<nsPIDOMWindow> window(do_QueryInterface(domWindow));
-    if (window)
-    {
-      nsCOMPtr<nsIDocShellTreeItem> treeItem =
-        do_QueryInterface(window->GetDocShell());
-
-      if (treeItem)
-      {
-        nsCOMPtr<nsIDocShellTreeOwner> treeOwner;
-        treeItem->GetTreeOwner(getter_AddRefs(treeOwner));
-        if (treeOwner)
-        {
-          nsCOMPtr<nsIBaseWindow> baseWindow;
-          baseWindow = do_QueryInterface(treeOwner);
-          if (baseWindow) {
-            // HACK ALERT: when we hid this window we fired the "xul-window-destroyed"
-            // notification for it. Now that it's being really-destroyed it will fire that
-            // notification *again* for itself. The appstartup code maintains an internal
-            // reference count of windows that block app shutdown: we want to increment that
-            // count without cancelling app shutdown (so don't use "xul-window-registered").
-            nsCOMPtr<nsIAppStartup> appStartup(do_GetService(NS_APPSTARTUP_CONTRACTID));
-            if (appStartup)
-              appStartup->EnterLastWindowClosingSurvivalArea();
-
-            baseWindow->Destroy();
-          }
-        }
-      }
-    }
-  }
-}
-
-NS_IMETHODIMP
-nsMsgComposeService::Observe(nsISupports *aSubject, const char *aTopic, const char16_t *someData)
-{
-  if (!strcmp(aTopic, "profile-do-change") || !strcmp(aTopic, "quit-application"))
-  {
-    DeleteCachedWindows();
-    return NS_OK;
-  }
-
-  if (!strcmp(aTopic, NS_PREFBRANCH_PREFCHANGE_TOPIC_ID))
-  {
-    nsDependentString prefName(someData);
-    if (prefName.EqualsLiteral(PREF_MAIL_COMPOSE_MAXRECYCLEDWINDOWS))
-      Reset();
-    return NS_OK;
-  }
-
-  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -413,17 +269,16 @@ nsMsgComposeService::GetOrigWindowSelection(MSG_ComposeType type, nsIMsgWindow *
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIDocShellTreeItem> childAsItem;
-  rv = rootDocShell->FindChildWithName(MOZ_UTF16("messagepane"),
+  rv = rootDocShell->FindChildWithName(NS_LITERAL_STRING("messagepane"),
                                        true, false, nullptr, nullptr, getter_AddRefs(childAsItem));
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIDocShell> docShell(do_QueryInterface(childAsItem, &rv));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsIDOMWindow> domWindow(do_GetInterface(childAsItem, &rv));
-  NS_ENSURE_SUCCESS(rv, rv);
-  nsCOMPtr<nsPIDOMWindow> privateWindow(do_QueryInterface(domWindow, &rv));
-  NS_ENSURE_SUCCESS(rv, rv);
+  nsCOMPtr<mozIDOMWindowProxy> domWindow(do_GetInterface(childAsItem));
+  NS_ENSURE_TRUE(domWindow, NS_ERROR_FAILURE);
+  nsCOMPtr<nsPIDOMWindowOuter> privateWindow = nsPIDOMWindowOuter::From(domWindow);
   nsCOMPtr<nsISelection> sel = privateWindow->GetSelection();
   NS_ENSURE_TRUE(sel, NS_ERROR_FAILURE);
 
@@ -451,7 +306,7 @@ nsMsgComposeService::GetOrigWindowSelection(MSG_ComposeType type, nsIMsgWindow *
         const uint32_t length = selPlain.Length();
         const char16_t* unicodeStr = selPlain.get();
         int32_t endWordPos = lineBreaker->Next(unicodeStr, length, 0);
-        
+
         // If there's not even one word, then there's not multiple words
         if (endWordPos == NS_LINEBREAKER_NEED_MORE_TEXT)
           return NS_ERROR_ABORT;
@@ -726,19 +581,10 @@ NS_IMETHODIMP nsMsgComposeService::OpenComposeWindowWithURI(const char * aMsgCom
 }
 
 NS_IMETHODIMP nsMsgComposeService::InitCompose(nsIMsgComposeParams *aParams,
-                                               nsIDOMWindow *aWindow,
+                                               mozIDOMWindowProxy *aWindow,
                                                nsIDocShell *aDocShell,
                                                nsIMsgCompose **_retval)
 {
-  // We need to remove the window from the cache.
-  int32_t i;
-  for (i = 0; i < mMaxRecycledWindows; i ++)
-    if (mCachedWindows[i].window == aWindow)
-    {
-      mCachedWindows[i].Clear();
-      break;
-    }
-
   nsresult rv;
   nsCOMPtr<nsIMsgCompose> msgCompose =
     do_CreateInstance(NS_MSGCOMPOSE_CONTRACTID, &rv);
@@ -806,90 +652,6 @@ NS_IMETHODIMP nsMsgComposeService::TimeStamp(const char * label, bool resetTime)
   return NS_OK;
 }
 
-NS_IMETHODIMP
-nsMsgComposeService::IsCachedWindow(nsIDOMWindow *aCachedWindow, bool *aIsCachedWindow)
-{
-  NS_ENSURE_ARG_POINTER(aCachedWindow);
-  NS_ENSURE_ARG_POINTER(aIsCachedWindow);
-
-  int32_t i;
-  for (i = 0; i < mMaxRecycledWindows; i ++)
-    if (mCachedWindows[i].window.get() == aCachedWindow)
-    {
-      *aIsCachedWindow = true;
-      return NS_OK;
-    }
-
- *aIsCachedWindow = false;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsMsgComposeService::CacheWindow(nsIDOMWindow *aWindow, bool aComposeHTML, nsIMsgComposeRecyclingListener * aListener)
-{
-  NS_ENSURE_ARG_POINTER(aWindow);
-  NS_ENSURE_ARG_POINTER(aListener);
-
-  nsresult rv;
-  nsCOMPtr<nsPIDOMWindow> window(do_QueryInterface(aWindow, &rv));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsCOMPtr<nsIDocShellTreeItem> treeItem(do_QueryInterface(window->GetDocShell(), &rv));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsCOMPtr <nsIDocShellTreeOwner> treeOwner;
-  rv = treeItem->GetTreeOwner(getter_AddRefs(treeOwner));
-  NS_ENSURE_SUCCESS(rv,rv);
-
-  nsCOMPtr<nsIXULWindow> xulWindow(do_GetInterface(treeOwner, &rv));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  int32_t i;
-  int32_t sameTypeId = -1;
-  int32_t oppositeTypeId = -1;
-
-  for (i = 0; i < mMaxRecycledWindows; i ++)
-  {
-    if (!mCachedWindows[i].window)
-    {
-      rv = ShowCachedComposeWindow(aWindow, xulWindow, false);
-      if (NS_SUCCEEDED(rv))
-        mCachedWindows[i].Initialize(aWindow, xulWindow, aListener, aComposeHTML);
-
-      return rv;
-    }
-    else
-      if (mCachedWindows[i].htmlCompose == aComposeHTML)
-      {
-        if (sameTypeId == -1)
-          sameTypeId = i;
-      }
-      else
-      {
-        if (oppositeTypeId == -1)
-          oppositeTypeId = i;
-      }
-  }
-
-  /* Looks like the cache is full. In the case we try to cache a type (html or plain text) of compose window which is not
-     already cached, we should replace an opposite one with this new one. That would allow users to be able to take advantage
-     of the cached compose window when they switch from one type to another one
-  */
-  if (sameTypeId == -1 && oppositeTypeId != -1)
-  {
-    CloseHiddenCachedWindow(mCachedWindows[oppositeTypeId].window);
-    mCachedWindows[oppositeTypeId].Clear();
-
-    rv = ShowCachedComposeWindow(aWindow, xulWindow, false);
-    if (NS_SUCCEEDED(rv))
-      mCachedWindows[oppositeTypeId].Initialize(aWindow, xulWindow, aListener, aComposeHTML);
-
-    return rv;
-  }
-
-  return NS_ERROR_NOT_AVAILABLE;
-}
-
 class nsMsgTemplateReplyHelper final: public nsIStreamListener,
                                       public nsIUrlListener
 {
@@ -938,7 +700,7 @@ NS_IMETHODIMP nsMsgTemplateReplyHelper::OnStopRunningUrl(nsIURI *aUrl, nsresult 
 {
   NS_ENSURE_SUCCESS(aExitCode, aExitCode);
   nsresult rv;
-  nsCOMPtr<nsIDOMWindow> parentWindow;
+  nsCOMPtr<nsPIDOMWindowOuter> parentWindow;
   if (mMsgWindow)
   {
     nsCOMPtr<nsIDocShell> docShell;
@@ -981,7 +743,7 @@ NS_IMETHODIMP nsMsgTemplateReplyHelper::OnStopRunningUrl(nsIURI *aUrl, nsresult 
   NS_ENSURE_SUCCESS(rv, rv);
   compFields->SetCharacterSet(charset.get());
   rv = nsMsgI18NConvertToUnicode(charset.get(), mTemplateBody, body);
-  NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "couldn't convert templ body to unicode");
+  NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "couldn't convert templ body to unicode");
   compFields->SetBody(body);
 
   nsCString msgUri;
@@ -1003,8 +765,6 @@ NS_IMETHODIMP nsMsgTemplateReplyHelper::OnStopRunningUrl(nsIURI *aUrl, nsresult 
 
   rv = pMsgCompose->Initialize(pMsgComposeParams, parentWindow, nullptr);
   NS_ENSURE_SUCCESS(rv,rv);
-
-  Release();
 
   return pMsgCompose->SendMsg(nsIMsgSend::nsMsgDeliverNow, mIdentity, nullptr, nullptr, nullptr) ;
 }
@@ -1142,11 +902,7 @@ NS_IMETHODIMP nsMsgComposeService::ReplyWithTemplate(nsIMsgDBHdr *aMsgHdr, const
   if (!identity) // Found no match -> don't reply.
     return NS_ERROR_ABORT;
 
-  nsMsgTemplateReplyHelper *helper = new nsMsgTemplateReplyHelper;
-  if (!helper)
-    return NS_ERROR_OUT_OF_MEMORY;
-
-  NS_ADDREF(helper);
+  RefPtr<nsMsgTemplateReplyHelper> helper = new nsMsgTemplateReplyHelper;
 
   helper->mHdrToReplyTo = aMsgHdr;
   helper->mMsgWindow = aMsgWindow;
@@ -1166,7 +922,7 @@ NS_IMETHODIMP nsMsgComposeService::ReplyWithTemplate(nsIMsgDBHdr *aMsgHdr, const
   if (!query)
     return NS_ERROR_FAILURE;
 
-  nsAutoCString folderUri(Substring(templateUri, query)); 
+  nsAutoCString folderUri(Substring(templateUri, query));
   rv = GetExistingFolder(folderUri, getter_AddRefs(templateFolder));
   NS_ENSURE_SUCCESS(rv, rv);
   rv = templateFolder->GetMsgDatabase(getter_AddRefs(templateDB));
@@ -1201,10 +957,11 @@ NS_IMETHODIMP nsMsgComposeService::ReplyWithTemplate(nsIMsgDBHdr *aMsgHdr, const
   nsCOMPtr<nsISupports> listenerSupports;
   helper->QueryInterface(NS_GET_IID(nsISupports), getter_AddRefs(listenerSupports));
 
+  nsCOMPtr<nsIURI> dummyNull;
   rv = msgService->StreamMessage(templateMsgHdrUri.get(), listenerSupports,
                                  aMsgWindow, helper,
                                  false, // convert data
-                                 EmptyCString(), false, nullptr);
+                                 EmptyCString(), false, getter_AddRefs(dummyNull));
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIMsgFolder> folder;
@@ -1272,7 +1029,7 @@ nsMsgComposeService::ForwardMessage(const nsAString &forwardTo,
                                       true, forwardTo,
                                       false, aMsgWindow);
 
-  nsCOMPtr<nsIDOMWindow> parentWindow;
+  nsCOMPtr<mozIDOMWindowProxy> parentWindow;
   if (aMsgWindow)
   {
     nsCOMPtr<nsIDocShell> docShell;
@@ -1310,75 +1067,6 @@ nsMsgComposeService::ForwardMessage(const nsAString &forwardTo,
   // object is not set so ProcessReplyFlags won't get called.
   // Therefore, let's just mark it here instead.
   return folder->AddMessageDispositionState(aMsgHdr, nsIMsgFolder::nsMsgDispositionState_Forwarded);
-}
-
-nsresult nsMsgComposeService::ShowCachedComposeWindow(nsIDOMWindow *aComposeWindow, nsIXULWindow *aXULWindow, bool aShow)
-{
-  nsresult rv = NS_OK;
-
-  nsCOMPtr<nsIObserverService> obs =
-    mozilla::services::GetObserverService();
-  NS_ENSURE_TRUE(obs, NS_ERROR_UNEXPECTED);
-
-  nsCOMPtr <nsPIDOMWindow> window = do_QueryInterface(aComposeWindow, &rv);
-
-  NS_ENSURE_SUCCESS(rv,rv);
-
-  nsIDocShell *docShell = window->GetDocShell();
-
-  nsCOMPtr <nsIDocShellTreeItem> treeItem = do_QueryInterface(docShell, &rv);
-  NS_ENSURE_SUCCESS(rv,rv);
-
-  nsCOMPtr <nsIDocShellTreeOwner> treeOwner;
-  rv = treeItem->GetTreeOwner(getter_AddRefs(treeOwner));
-  NS_ENSURE_SUCCESS(rv,rv);
-
-  if (treeOwner) {
-    // the window need to be sticky before we hide it.
-    nsCOMPtr<nsIContentViewer> contentViewer;
-    rv = docShell->GetContentViewer(getter_AddRefs(contentViewer));
-    NS_ENSURE_SUCCESS(rv,rv);
-
-    rv = contentViewer->SetSticky(!aShow);
-    NS_ENSURE_SUCCESS(rv,rv);
-
-    // disable (enable) the cached window
-    nsCOMPtr<nsIBaseWindow> baseWindow;
-    baseWindow = do_QueryInterface(treeOwner, &rv);
-    NS_ENSURE_SUCCESS(rv,rv);
-
-    baseWindow->SetEnabled(aShow);
-    NS_ENSURE_SUCCESS(rv,rv);
-
-    nsCOMPtr<nsIWindowMediator> windowMediator =
-	         do_GetService(NS_WINDOWMEDIATOR_CONTRACTID, &rv);
-    NS_ENSURE_SUCCESS(rv,rv);
-
-    // if showing, reinstate the window with the mediator
-    if (aShow) {
-      rv = windowMediator->RegisterWindow(aXULWindow);
-      NS_ENSURE_SUCCESS(rv,rv);
-
-      obs->NotifyObservers(aXULWindow, "xul-window-registered", nullptr);
-    }
-
-    // hide (show) the cached window
-    rv = baseWindow->SetVisibility(aShow);
-    NS_ENSURE_SUCCESS(rv,rv);
-
-    // if hiding, remove the window from the mediator,
-    // so that it will be removed from the task list
-    if (!aShow) {
-      rv = windowMediator->UnregisterWindow(aXULWindow);
-      NS_ENSURE_SUCCESS(rv,rv);
-
-      obs->NotifyObservers(aXULWindow, "xul-window-destroyed", nullptr);
-    }
-  }
-  else {
-    rv = NS_ERROR_FAILURE;
-  }
-  return rv;
 }
 
 nsresult nsMsgComposeService::AddGlobalHtmlDomains()
@@ -1559,7 +1247,7 @@ nsMsgComposeService::LoadDraftOrTemplate(const nsACString& aMsgURI, nsMimeOutput
 }
 
 /**
- * Run the aMsgURI message through libmime. We set various attributes of the 
+ * Run the aMsgURI message through libmime. We set various attributes of the
  * nsIMimeStreamConverter so mimedrft.cpp will know what to do with the message
  * when its done streaming. Usually that will be opening a compose window
  * with the contents of the message, but if forwardTo is non-empty, mimedrft.cpp
@@ -1724,7 +1412,9 @@ nsMsgComposeService::Handle(nsICommandLine* aCmdLine)
         StringBeginsWith(uristr, NS_LITERAL_STRING("subject=")) ||
         StringBeginsWith(uristr, NS_LITERAL_STRING("format=")) ||
         StringBeginsWith(uristr, NS_LITERAL_STRING("body="))  ||
-        StringBeginsWith(uristr, NS_LITERAL_STRING("attachment="))) {
+        StringBeginsWith(uristr, NS_LITERAL_STRING("attachment=")) ||
+        StringBeginsWith(uristr, NS_LITERAL_STRING("message=")) ||
+        StringBeginsWith(uristr, NS_LITERAL_STRING("from="))) {
       composeShouldHandle = true; // the -url argument looks like mailto
       end++;
       // mailto: URIs are frequently passed with spaces in them. They should be
@@ -1755,7 +1445,7 @@ nsMsgComposeService::Handle(nsICommandLine* aCmdLine)
     if (arg)
       arg->SetData(uristr);
 
-    nsCOMPtr<nsIDOMWindow> opened;
+    nsCOMPtr<mozIDOMWindowProxy> opened;
     wwatch->OpenWindow(nullptr, DEFAULT_CHROME, "_blank",
                        "chrome,dialog=no,all", arg, getter_AddRefs(opened));
 
@@ -1767,7 +1457,11 @@ nsMsgComposeService::Handle(nsICommandLine* aCmdLine)
 NS_IMETHODIMP
 nsMsgComposeService::GetHelpInfo(nsACString& aResult)
 {
-  aResult.Assign(NS_LITERAL_CSTRING("  -compose           Compose a mail or news message.\n"));
+  aResult.AssignLiteral(
+    "  -compose [ <options> ] Compose a mail or news message. Options are specified\n"
+    "                     as string \"option='value,...',option=value,...\" and\n"
+    "                     include: from, to, cc, bcc, newsgroups, subject, body,\n"
+    "                     message (file), attachment (file), format (html | text).\n"
+    "                     Example: \"to=john@example.com,subject='Dinner tonight?'\"\n");
   return NS_OK;
 }
-

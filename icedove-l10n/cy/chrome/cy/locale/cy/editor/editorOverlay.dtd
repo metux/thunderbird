@@ -17,7 +17,7 @@
 <!ENTITY pasteAsQuotationCmd.accesskey "D">
 <!ENTITY pasteAsQuotationCmd.key "o">
 <!ENTITY findBarCmd.label "Canfod…">
-<!ENTITY findReplaceCmd.label "Canfod ac Amnewid…">
+<!ENTITY findReplaceCmd.label "Canfod a Newid…">
 <!ENTITY enableInlineSpellChecker.label "Gwirio Sillafu Wrth Deipio">
 <!ENTITY enableInlineSpellChecker.accesskey "S">
 <!ENTITY checkSpellingCmd2.label "Gwirio Sillafu…">
@@ -27,9 +27,9 @@
 
 <!ENTITY insertMenu.label "Mewnosod">
 <!ENTITY insertMenu.accesskey "M">
-<!ENTITY insertLinkCmd.label "Dolen…">
-<!ENTITY insertLinkCmd.accesskey "D">
-<!ENTITY insertLinkCmd.key "L">
+<!ENTITY insertLinkCmd2.label "Dolen…">
+<!ENTITY insertLinkCmd2.accesskey "D">
+<!ENTITY insertLinkCmd2.key "K">
 <!ENTITY insertAnchorCmd.label "Angor a Enwyd…">
 <!ENTITY insertAnchorCmd.accesskey "A">
 <!ENTITY insertImageCmd.label "Delwedd…">
@@ -147,7 +147,7 @@
 
 <!ENTITY paragraphMenu.label "Paragraff">
 <!ENTITY paragraphMenu.accesskey "P">
-<!ENTITY paragraphParagraphCmd.label "Paragraff">  
+<!ENTITY paragraphParagraphCmd.label "Paragraff">
 <!ENTITY paragraphParagraphCmd.accesskey "P">
 <!ENTITY heading1Cmd.label "Pennyn 1">
 <!ENTITY heading1Cmd.accesskey "1">
@@ -269,7 +269,7 @@
 <!-- Delete SubMenu -->
 <!ENTITY tableDeleteMenu.label "Dileu">
 <!ENTITY tableDeleteMenu.accesskey "D">
-<!-- text for "Join Cells" is in editor.properties 
+<!-- text for "Join Cells" is in editor.properties
      ("JoinSelectedCells" and "JoinCellToRight")
      the access key must exist in both of those strings
      But value must be set here for accesskey to draw properly
@@ -293,7 +293,7 @@
 <!ENTITY printToolbarCmd.label "Argraffu">
 <!ENTITY printToolbarCmd.tooltip "Argraffu'r dudalen">
 <!ENTITY findToolbarCmd.label "Canfod">
-<!ENTITY findToolbarCmd.tooltip "Canfod y testun yn y dudalen">
+<!ENTITY findToolbarCmd.tooltip "Canfod y testun ar y dudalen">
 <!ENTITY spellToolbarCmd.label "Sillafu">
 <!ENTITY spellToolbarCmd.tooltip "Gwirio sillafu o adran neu o'r dudalen gyfan">
 <!ENTITY imageToolbarCmd.label "Delwedd">

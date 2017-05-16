@@ -76,3 +76,8 @@
 <!ENTITY update.details.label "Падрабязнасці">
 <!ENTITY update.installedOn.label "Усталявана ў:">
 <!ENTITY update.status.label "Статус:">
+
+<!ENTITY  finishedBackground.moreElevated "This update requires administrator privileges. The update will be
+                                           installed the next time &brandShortName; starts. You can restart
+                                           &brandShortName; now, continue working and restart later, or decline this
+                                           update.">

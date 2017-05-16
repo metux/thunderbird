@@ -23,7 +23,11 @@
       accesskey="&locationEditField.accessKey;"
       tooltiptext="&locationEditField.tooltip;"
       />
-    <textbox id="srcInput" oninput="ChangeImageSrc();" tabindex="1" class="uri-element"/>
+    <tooltip id="shortenedDataURI">
+      <label value="&locationEditField.shortenedDataURI;"/>
+    </tooltip>
+    <textbox id="srcInput" oninput="ChangeImageSrc();" tabindex="1" class="uri-element"
+             tooltiptext="&locationEditField.tooltip;"/>
     <hbox id="MakeRelativeHbox">
       <checkbox 
         id  = "MakeRelativeCheckbox"

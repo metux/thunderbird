@@ -10,11 +10,9 @@ var gMinTrayR = {
   get menu() { return document.getElementById("MinTrayR_context"); },
 
   load: function() {
-    window.removeEventListener("load", gMinTrayR.load, true);
-    gMinTrayR.init();
-  },
-  init: function() {
-    window.addEventListener("unload", this.uninit);
+    window.addEventListener("unload",
+      () => gMinTrayR._prefs.removeObserver("alwaysShowTrayIcon", gMinTrayR),
+      {once: true});
 
     let node = document.getElementById("menu_FileQuitItem").cloneNode(true);
     node.setAttribute('id', 'MinTrayR_' + node.id);
@@ -38,32 +36,25 @@ var gMinTrayR = {
 
     this.trayService =
       Components.classes['@tn123.ath.cx/trayservice;1']
-                .getService(Ci.trayITrayService);
+                .getService(Components.interfaces.trayITrayService);
     this.trayService.watchMinimize(window);
 
     this._prefs = Services.prefs.getBranch("extensions.mintrayr.")
-                                .QueryInterface(Ci.nsIPrefBranch2);
+                                .QueryInterface(Components.interfaces.nsIPrefBranch2);
     this._prefs.addObserver("alwaysShowTrayIcon", this, false);
 
     // Add a listener to minimize the window on startup once it has been
     // fully created if the corresponding pref is set.
     if (this._prefs.getBoolPref("startMinimized")) {
-      this._onfocus = function() {
-        if (this._prefs.getIntPref("minimizeon"))
-          this.minimize();
+      window.addEventListener("focus", () => {
+        if (gMinTrayR._prefs.getIntPref("minimizeon"))
+          gMinTrayR.minimize();
         else
           window.minimize();
-        window.removeEventListener("focus", this._onfocus);
-      }.bind(this);
-      window.addEventListener("focus", this._onfocus);
+      }, {once: true});
     }
 
     this.reinitWindow();
-  },
-
-  uninit: function() {
-    window.removeEventListener("unload", gMinTrayR.uninit, false);
-    gMinTrayR._prefs.removeObserver("alwaysShowTrayIcon", gMinTrayR);
   },
 
   observe: function(aSubject, aTopic, aData) {
@@ -141,4 +132,5 @@ var gMinTrayR = {
   }
 };
 
-window.addEventListener("load", gMinTrayR.load, true);
+window.addEventListener("load", gMinTrayR.load.bind(gMinTrayR),
+                        {capture: true, once: true});

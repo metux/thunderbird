@@ -50,8 +50,6 @@
 <!ENTITY updateCheck.accesskey "B">
 <!ENTITY updateManual.label "No buscar nunca actualizaciones (no recomendado: riesgos de seguridad)">
 <!ENTITY updateManual.accesskey "N">
-<!ENTITY updateAutoAddonWarn.label "Avisarme si esto desactivará alguno de mis complementos">
-<!ENTITY updateAutoAddonWarn.accesskey "A">
 <!ENTITY updateHistory.label "Mostrar historial de actualizaciones">
 <!ENTITY updateHistory.accesskey "M">
 <!ENTITY useService.label "Usar un servicio en segundo plano para instalar actualizaciones">
@@ -80,7 +78,7 @@
 <!ENTITY certs.ask.accesskey "P">
 <!ENTITY enableOCSP.label "Preguntar a los servidores respondedores de OCSP para confirmar la validez actual de los certificados">
 <!ENTITY enableOCSP.accesskey "u">
-<!ENTITY viewCertificates.label "Ver certificados">
-<!ENTITY viewCertificates.accesskey "a">
+<!ENTITY manageCertificates.label "Administrar certificados">
+<!ENTITY manageCertificates.accesskey "A">
 <!ENTITY viewSecurityDevices.label "Dispositivos de seguridad">
 <!ENTITY viewSecurityDevices.accesskey "D">

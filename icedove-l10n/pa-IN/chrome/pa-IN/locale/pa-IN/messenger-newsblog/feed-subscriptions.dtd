@@ -25,6 +25,8 @@
 <!ENTITY autotagUsePrefix.label      "Prefix tags with:">
 <!ENTITY button.close.label          "Close">
 <!ENTITY button.exportOPML.tooltip   "Export Feeds with folder structure; ctrl click or ctrl enter to export Feeds as a list">
+<!ENTITY button.updateFeed.accesskey "U">
+<!ENTITY button.updateFeed.label     "Update">
 <!ENTITY feedFolder.accesskey        "S">
 
 <!ENTITY feedFolder.label            "Store Articles in:">

@@ -40,3 +40,11 @@
 <!ENTITY pref.accessibility.label "Erabilgarritasuna" >
 <!ENTITY pref.systemcolors.label "Optimizatu koloreak erabilgarritasunerako" >
 <!ENTITY pref.systemcolors.accesskey "k">
+
+
+
+
+<!ENTITY pref.editInTab.accesskey "t">
+<!ENTITY pref.editInTab.label "Edit events and tasks in a tab instead of in a dialog window." >
+
+<!ENTITY pref.eventsandtasks.label "Events and Tasks" >

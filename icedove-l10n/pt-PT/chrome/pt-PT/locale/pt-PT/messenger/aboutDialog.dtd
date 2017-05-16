@@ -1,5 +1,5 @@
 <!ENTITY aboutDialog.title          "Acerca do &brandFullName;">
-<!-- LOCALIZATION NOTE (update.checkForUpdatesButton.*, update.updateButton.*, update.applyButtonBillboard.*):
+<!-- LOCALIZATION NOTE (update.checkForUpdatesButton.*, update.updateButton.*):
 # Only one button is present at a time.
 # The button when displayed is located directly under the Thunderbird version in
 # the about dialog.
@@ -10,8 +10,6 @@
 <!ENTITY update.checkForUpdatesButton.accesskey   "c">
 <!ENTITY update.updateButton.label2               "Reinicie o &brandShortName; para atualizar">
 <!ENTITY update.updateButton.accesskey            "R">
-<!ENTITY update.applyButtonBillboard.label        "Aplicar atualização…">
-<!ENTITY update.applyButtonBillboard.accesskey    "A">
 <!-- LOCALIZATION NOTE (warningDesc.version): This is a warning about the experimental nature of Nightly and Aurora builds. It is only shown in those versions. -->
 
 
@@ -26,26 +24,28 @@
 <!ENTITY community.exp.middle       " é uma ">
 <!-- LOCALIZATION NOTE (community.exp.creditslink): This is a link title that links to about:credits. -->
 <!ENTITY community.exp.creditsLink  "comunidade global">
-<!ENTITY community.exp.end          " que trabalha para manter a web aberta, pública e acessível a todos.">
+<!ENTITY community.exp.end          " que trabalha para manter a web aberta, pública e acessível para todos.">
 
-<!ENTITY community.start2           "O &brandShortName; é desenvolvido pela ">
+<!ENTITY community.start2           "O &brandShortName; é desenhado pela ">
 <!-- LOCALIZATION NOTE (community.mozillaLink): This is a link title that links to http://www.mozilla.org/. -->
 <!ENTITY community.mozillaLink      "&vendorShortName;">
 <!ENTITY community.middle2          ", uma ">
 <!-- LOCALIZATION NOTE (community.creditsLink): This is a link title that links to about:credits. -->
 <!ENTITY community.creditsLink      "comunidade global">
-<!ENTITY community.end3             " que trabalha para tornar a Internet melhor. Acreditamos que a Internet deve ser aberta, pública e acessível a todos.">
+<!ENTITY community.end3             " que trabalha para tornar a Internet melhor. Acreditamos que a Internet deve ser aberta, pública e acessível para todos.">
 
-<!ENTITY helpus.start               "Gostaria de nos ajudar? ">
+<!ENTITY helpus.start               "Quer ajudar? ">
 <!-- LOCALIZATION NOTE (helpus.donateLink): This is a link title that links to the thunderbird donation page -->
 <!ENTITY helpus.donateLink          "Efetue um donativo">
 <!ENTITY helpus.middle              " ou ">
 <!-- LOCALIZATION NOTE (helpus.getInvolvedLink): This is a link title that links to http://www.mozilla.org/contribute/. -->
 <!ENTITY helpus.getInvolvedLink     "envolva-se no projeto!">
 <!ENTITY helpus.end                 "">
+
+<!ENTITY releaseNotes.link          "Notas da versão">
 <!-- LOCALIZATION NOTE (bottomLinks.license): This is a link title that links to about:license. -->
 
-<!ENTITY bottomLinks.license        "Informações de licenciamento">
+<!ENTITY bottomLinks.license        "Informação da licença">
 <!-- LOCALIZATION NOTE (bottomLinks.rights): This is a link title that links to about:rights. -->
 
 <!ENTITY bottomLinks.rights         "Direitos do utilizador final">

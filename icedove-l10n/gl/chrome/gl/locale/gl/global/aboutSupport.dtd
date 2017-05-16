@@ -67,6 +67,10 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.appBasicsBuildID "Build ID">
 
 <!ENTITY aboutSupport.appBasicsMultiProcessSupport "Multiprocess Windows">
+<!ENTITY aboutSupport.appBasicsOS "OS">
+<!ENTITY aboutSupport.appBasicsPerformance "Performance">
+
+<!ENTITY aboutSupport.appBasicsProfiles "Profiles">
 
 <!ENTITY aboutSupport.appBasicsSafeMode "Safe Mode">
 
@@ -95,12 +99,28 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.experimentName "Name">
 
 <!ENTITY aboutSupport.experimentsTitle "Experimental Features">
+<!ENTITY aboutSupport.graphicsCrashGuardsTitle "Crash Guard Disabled Features">
+<!ENTITY aboutSupport.graphicsDecisionLogTitle "Decision Log">
+<!ENTITY aboutSupport.graphicsDiagnosticsTitle "Diagnostics">
+<!ENTITY aboutSupport.graphicsFailureLogTitle "Failure Log">
+
+<!ENTITY aboutSupport.graphicsFeaturesTitle "Features">
+<!ENTITY aboutSupport.graphicsGPU1Title "GPU #1">
+<!ENTITY aboutSupport.graphicsGPU2Title "GPU #2">
+<!ENTITY aboutSupport.graphicsWorkaroundsTitle "Workarounds">
 
 <!ENTITY aboutSupport.lockedKeyPrefsTitle "Important Locked Preferences">
 <!ENTITY aboutSupport.lockedPrefsName "Name">
 <!ENTITY aboutSupport.lockedPrefsValue "Value">
+<!ENTITY aboutSupport.placeDatabaseIntegrity "Integrity">
+
+<!ENTITY aboutSupport.placeDatabaseTitle "Places Database">
+<!ENTITY aboutSupport.placeDatabaseVerifyIntegrity "Verify Integrity">
 <!ENTITY aboutSupport.restartInSafeMode.label "Restart with Add-ons Disabled…">
 
 <!ENTITY aboutSupport.safeModeTitle "Try Safe Mode">
 
 <!ENTITY aboutSupport.sandboxTitle "Sandbox">
+<!-- LOCALIZATION NOTE (aboutSupport.showWin2.label): This is the Windows-specific
+variant of aboutSupport.showDir.label. -->
+<!ENTITY aboutSupport.showWin2.label "Open Folder">

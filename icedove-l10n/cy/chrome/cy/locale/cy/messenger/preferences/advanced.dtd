@@ -59,8 +59,6 @@
 <!ENTITY updateCheck.accesskey           "d">
 <!ENTITY updateManual.label              "Byth gwirio am ddiweddariadau (ddim yn argymell: perygl diogelwch)">
 <!ENTITY updateManual.accesskey          "B">
-<!ENTITY updateAutoAddonWarn.label       "Rhybuddio os fydd hwn yn anablu ychwanegion">
-<!ENTITY updateAutoAddonWarn.accesskey   "R">
 <!ENTITY updateHistory.label             "Dangos Hanes Diweddaru">
 <!ENTITY updateHistory.accesskey         "D">
 
@@ -103,7 +101,7 @@
 <!ENTITY enableOCSP.label                "Ymholi gweinyddion ymatebydd OCSP i gadarnhau dilysrwydd cyfredol y tystysgrifau">
 <!ENTITY enableOCSP.accesskey            "Y">
 
-<!ENTITY viewCertificates.label         "Darllen Tystysgrifau">
-<!ENTITY viewCertificates.accesskey     "D">
-<!ENTITY viewSecurityDevices.label      "Dyfeisiau Diogelwch">
-<!ENTITY viewSecurityDevices.accesskey  "D">
+<!ENTITY manageCertificates.label "Rheoli Tystysgrifau">
+<!ENTITY manageCertificates.accesskey "R">
+<!ENTITY viewSecurityDevices.label "Dyfeisiau Diogelwch">
+<!ENTITY viewSecurityDevices.accesskey "D">

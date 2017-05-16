@@ -26,6 +26,9 @@ XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
 XPCOMUtils.defineLazyModuleGetter(this, "PlacesBackups",
                                   "resource://gre/modules/PlacesBackups.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "AutoCompletePopup",
+                                  "resource://gre/modules/AutoCompletePopup.jsm");
+
 XPCOMUtils.defineLazyModuleGetter(this, "BookmarkHTMLUtils",
                                   "resource://gre/modules/BookmarkHTMLUtils.jsm");
 
@@ -164,7 +167,6 @@ SuiteGlue.prototype = {
         Components.classes["@mozilla.org/globalmessagemanager;1"]
                   .getService(Components.interfaces.nsIMessageListenerManager)
                   .loadFrameScript("chrome://navigator/content/content.js", true);
-        Components.utils.import("resource://gre/modules/Webapps.jsm");
         Components.utils.import("resource://gre/modules/NotificationDB.jsm");
         break;
       case "sessionstore-windows-restored":
@@ -179,6 +181,8 @@ SuiteGlue.prototype = {
         this._onQuitRequest(subject, data);
         break;
       case "quit-application-granted":
+        AutoCompletePopup.uninit();
+
         if (this._saveSession) {
           this._setPrefToSaveSession();
         }
@@ -238,21 +242,6 @@ SuiteGlue.prototype = {
         this._initialMigrationPerformed = true;
         break;
       case "browser-search-engine-modified":
-        if (data != "engine-default" && data != "engine-current") {
-          break;
-        }
-        // Enforce that the search service's defaultEngine is always equal to
-        // its currentEngine. The search service will notify us any time either
-        // of them are changed (either by directly setting the relevant prefs,
-        // i.e. if add-ons try to change this directly, or if the
-        // nsIBrowserSearchService setters are called).
-        var ss = Services.search;
-        if (ss.currentEngine.name == ss.defaultEngine.name)
-          return;
-        if (data == "engine-current")
-          ss.defaultEngine = ss.currentEngine;
-        else
-          ss.currentEngine = ss.defaultEngine;
         break;
       case "notifications-open-settings":
         // Since this is a web notification, there's probably a browser window.
@@ -266,6 +255,23 @@ SuiteGlue.prototype = {
         // because a restored page contains a password field, it will be loaded on
         // the main thread, and this initialization request will be ignored.
         Services.logins;
+        break;
+      case "handle-xul-text-link":
+        let linkHandled = subject.QueryInterface(Components.interfaces.nsISupportsPRBool);
+        if (!linkHandled.data) {
+          let mostRecentBrowserWindow = Services.wm.getMostRecentWindow("navigator:browser");
+          if (mostRecentBrowserWindow) {
+            let dataObj = JSON.parse(data);
+            let where = mostRecentBrowserWindow.whereToOpenLink(dataObj, false, true, true);
+            // Preserve legacy behavior of non-modifier left-clicks
+            // opening in a new selected tab.
+            if (where == "current") {
+              where = "tabfocused";
+            }
+            mostRecentBrowserWindow.openUILinkIn(dataObj.href, where);
+            linkHandled.data = true;
+          }
+        }
         break;
     }
   },
@@ -327,6 +333,7 @@ SuiteGlue.prototype = {
     Services.obs.addObserver(this, "browser-search-engine-modified", true);
     Services.obs.addObserver(this, "notifications-open-settings", true);
     Services.prefs.addObserver("devtools.debugger.", this, true);
+    Services.obs.addObserver(this, "handle-xul-text-link", true);
     Components.classes['@mozilla.org/docloaderservice;1']
               .getService(Components.interfaces.nsIWebProgress)
               .addProgressListener(this, Components.interfaces.nsIWebProgress.NOTIFY_LOCATION);
@@ -337,14 +344,16 @@ SuiteGlue.prototype = {
   {
     // check if we're in safe mode
     if (Services.appinfo.inSafeMode) {
-      Services.ww.openWindow(null, "chrome://communicator/content/safeMode.xul", 
+      Services.ww.openWindow(null, "chrome://communicator/content/safeMode.xul",
                              "_blank", "chrome,centerscreen,modal,resizable=no", null);
     }
+    this._copyDefaultProfileFiles();
   },
 
   // profile startup handler (contains profile initialization routines)
   _onProfileStartup: function()
   {
+    this._migrateUI();
     this._updatePrefs();
     this._migrateDownloadPrefs();
     migrateMailnews(); // mailnewsMigrator.js
@@ -364,6 +373,131 @@ SuiteGlue.prototype = {
     var timer = Components.classes["@mozilla.org/timer;1"]
                           .createInstance(Components.interfaces.nsITimer);
     timer.init(this, 3000, timer.TYPE_ONE_SHOT);
+  },
+
+  _migrateUI: function()
+  {
+    const UI_VERSION = 1;
+
+    // If the pref is not set this is a new or pre SeaMonkey 2.50 profile.
+    // We can't tell so we just run migration with version 0.
+    let currentUIVersion = 0;
+
+    if (Services.prefs.prefHasUserValue("suite.migration.version")) {
+      currentUIVersion = Services.prefs.getIntPref("suite.migration.version");
+    }
+
+    if (currentUIVersion >= UI_VERSION)
+      return;
+
+    // Migrate remote content exceptions for email addresses which are
+    // encoded as chrome URIs.
+    if (currentUIVersion < 1) {
+      let permissionsDB =
+        Services.dirsvc.get("ProfD", Components.interfaces.nsILocalFile);
+      permissionsDB.append("permissions.sqlite");
+      let db = Services.storage.openDatabase(permissionsDB);
+
+      try {
+        let statement = db.createStatement(
+          "select origin, permission from moz_perms where " +
+          // Avoid 'like' here which needs to be escaped.
+          "  substr(origin, 1, 28) = 'chrome://messenger/content/?';");
+
+        try {
+          while (statement.executeStep()) {
+            let origin = statement.getUTF8String(0);
+            let permission = statement.getInt32(1);
+            Services.console.logStringMessage("Mail-Image-Perm Mig: " + origin);
+            Services.perms.remove(
+              Services.io.newURI(origin), "image");
+            origin = origin.replace("chrome://messenger/content/?",
+                                    "chrome://messenger/content/");
+            Services.perms.add(
+              Services.io.newURI(origin), "image", permission);
+          }
+        } finally {
+          statement.finalize();
+        }
+
+        // Sadly we still need to clear the database manually. Experiments
+        // showed that the permissions manager deletes only one record.
+        db.beginTransactionAs(Components.interfaces.mozIStorageConnection.TRANSACTION_EXCLUSIVE);
+
+        try {
+          db.executeSimpleSQL("delete from moz_perms where " +
+               "  substr(origin, 1, 28) = 'chrome://messenger/content/?';");
+          db.commitTransaction();
+        } catch (ex) {
+          db.rollbackTransaction();
+          throw ex;
+        }
+      } finally {
+        db.close();
+      }
+    }
+
+    // Update the migration version.
+    Services.prefs.setIntPref("suite.migration.version", UI_VERSION);
+  },
+
+  // Copies additional profile files from the default profile tho the current profile.
+  // Only files not covered by the regular profile creation process.
+  // Currently only the userchrome examples.
+  _copyDefaultProfileFiles: function()
+  {
+    // Copy default chrome example files if they do not exist in the current profile.
+    var profileDir = Services.dirsvc.get("ProfD", Components.interfaces.nsILocalFile);
+    profileDir.append("chrome");
+
+    // The chrome directory in the current/new profile already exists so no copying.
+    if (profileDir.exists())
+      return;
+
+    let defaultProfileDir = Services.dirsvc.get("DefRt",
+                                                Components.interfaces.nsIFile);
+    defaultProfileDir.append("profile");
+    defaultProfileDir.append("chrome");
+
+    if (defaultProfileDir.exists() && defaultProfileDir.isDirectory()) {
+      try {
+        this._copyDir(defaultProfileDir, profileDir);
+      } catch (e) {
+        Components.utils.reportError(e);
+      }
+    }
+  },
+
+  // Simple copy function for copying complete aSource Directory to aDestiniation.
+  _copyDir: function(aSource, aDestination)
+  {
+    let enumerator = aSource.directoryEntries;
+
+    while (enumerator.hasMoreElements()) {
+      let file = enumerator.getNext().QueryInterface(Components.interfaces.nsIFile);
+
+      if (file.isDirectory()) {
+        let subdir = aDestination.clone();
+        subdir.append(file.leafName);
+
+        // Create the target directory. If it already exists continue copying files.
+        try {
+          subdir.create(Components.interfaces.nsIFile.DIRECTORY_TYPE,
+                        FileUtils.PERMS_DIRECTORY);
+        } catch (ex) {
+           if (ex.result != Components.results.NS_ERROR_FILE_ALREADY_EXISTS)
+            throw ex;
+        }
+        // Directory created. Now copy the files.
+        this._copyDir(file, subdir);
+      } else {
+        try {
+          file.copyTo(aDestination, null);
+        } catch (e) {
+          Components.utils.reportError(e);
+        }
+      }
+    }
   },
 
   _setUpUserAgentOverrides: function ()
@@ -389,6 +523,8 @@ SuiteGlue.prototype = {
   // Browser startup complete. All initial windows have opened.
   _onBrowserStartup: function(aWindow)
   {
+    AutoCompletePopup.init();
+
     if (Services.prefs.getBoolPref("plugins.update.notifyUser"))
       this._showPluginUpdatePage(aWindow);
 

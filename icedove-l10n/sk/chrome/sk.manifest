@@ -4,12 +4,12 @@ locale branding sk sk/locale/sk/branding/
 locale chat sk sk/locale/sk/chat/
 locale communicator sk sk/locale/sk/communicator/
 locale cookie sk sk/locale/sk/cookie/
+locale devtools sk sk/locale/sk/devtools/client/
 locale devtools-shared sk sk/locale/sk/devtools/shared/
 locale editor sk sk/locale/sk/editor/
 locale formautofill sk sk/locale/sk/formautofill/
 locale global sk sk/locale/sk/global/
 locale global-platform sk sk/locale/sk/global-platform/
-locale global-region sk sk/locale/sk/global-region/
 locale messenger sk sk/locale/sk/messenger/
 locale messenger-mapi sk sk/locale/sk/messenger-mapi/
 locale messenger-newsblog sk sk/locale/sk/messenger-newsblog/

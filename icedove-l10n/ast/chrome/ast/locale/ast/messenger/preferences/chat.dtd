@@ -13,21 +13,19 @@
 <!ENTITY andSetStatusToAway.accesskey "t">
 <!ENTITY sendTyping.label "Unviar notificaciones d'escritura en conversaciones">
 <!ENTITY sendTyping.accesskey "U">
-
-<!ENTITY  browse.accesskey                    "B">
-<!ENTITY  browse.label                        "Browse…">
-<!ENTITY  buddyInfoOnly.label                 "with sender's name only">
-
-<!ENTITY  chatNotifications.label             "When messages directed at you arrive:">
-<!ENTITY  chatSound.accesskey                 "d">
-<!ENTITY  chatSound.label                     "Play a sound">
-<!ENTITY  completeNotification.label          "with sender's name and message preview">
-<!ENTITY  customsound.accesskey               "U">
-<!ENTITY  customsound.label                   "Use the following sound file">
-<!ENTITY  desktopChatNotifications.accesskey  "c">
-<!ENTITY  desktopChatNotifications.label      "Show a notification:">
-<!ENTITY  dummyNotification.label             "without any info">
-<!ENTITY  play.accesskey                      "P">
-<!ENTITY  play.label                          "Play">
-<!ENTITY  systemSound.accesskey               "D">
-<!ENTITY  systemSound.label                   "Default system sound for new mail">
+<!ENTITY systemSound.label "Soníu por defeutu del sistema pal corréu nuevu">
+<!ENTITY systemSound.accesskey "S">
+<!ENTITY play.label "Reproducir">
+<!ENTITY play.accesskey "c">
+<!ENTITY dummyNotification.label "ensin nenguna información">
+<!ENTITY desktopChatNotifications.label "Amosar una notificación:">
+<!ENTITY desktopChatNotifications.accesskey "M">
+<!ENTITY customsound.label "Usar el siguiente ficheru de soníu">
+<!ENTITY customsound.accesskey "U">
+<!ENTITY completeNotification.label "col nome del remitente y una vista preliminar del mensaxe">
+<!ENTITY chatSound.label "Reproducir un soníu">
+<!ENTITY chatSound.accesskey "R">
+<!ENTITY chatNotifications.label "Cuando aporten mensaxes dirixíos a mi:">
+<!ENTITY buddyInfoOnly.label "col nome del remitente namái">
+<!ENTITY browse.label "Desaminar…">
+<!ENTITY browse.accesskey "s">

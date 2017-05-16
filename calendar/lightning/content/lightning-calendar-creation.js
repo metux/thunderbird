@@ -5,14 +5,13 @@
 var common_initCustomizePage = initCustomizePage;
 var common_doCreateCalendar = doCreateCalendar;
 
-initCustomizePage = function ltn_initCustomizePage() {
+initCustomizePage = function() {
     common_initCustomizePage();
     ltnInitMailIdentitiesRow();
 };
 
-doCreateCalendar = function ltn_doCreateCalendar() {
+doCreateCalendar = function() {
     common_doCreateCalendar();
     ltnSaveMailIdentitySelection();
     return true;
 };
-

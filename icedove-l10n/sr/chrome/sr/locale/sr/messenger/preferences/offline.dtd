@@ -1,36 +1,32 @@
-<!ENTITY offlineDialog.title "Подешавања за рад ван мреже">
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY textStartUp "При покретању:">
-<!ENTITY radioRememberPrevState.label "Запамти претходни статус везе">
+<!ENTITY offlineDialog.title "Подешавања рада ван мреже">
+
+<!ENTITY checkAutoDetect.label "Аутоматски прати пронађено стање рада на мрежи">
+<!ENTITY checkAutoDetect.accesskey "т">
+<!ENTITY titleStartUp "Ручно стање приликом покретања:">
+<!ENTITY radioRememberPrevState.label "Запамти претходно стање рада на мрежи">
 <!ENTITY radioRememberPrevState.accesskey "З">
-<!ENTITY radioAskMe.label "Питај ме о статусу везе при покретању">
-<!ENTITY radioAskMe.accesskey "п">
-<!ENTITY radioAlwaysOnline.label "Увек покрени на вези">
-<!ENTITY radioAlwaysOnline.accesskey "У">
+<!ENTITY radioAskState.label "Питај ме за стање рада на мрежи">
+<!ENTITY radioAskState.accesskey "ј">
+<!ENTITY radioAlwaysOnlineState.label "На мрежи">
+<!ENTITY radioAlwaysOnlineState.accesskey "Н">
+<!ENTITY radioAlwaysOffline.label "Ван мреже">
+<!ENTITY radioAlwaysOffline.accesskey "В">
 
-<!ENTITY textGoingOnline "Да ли непослате поруке треба послати при успостави везе?">
+<!ENTITY textGoingOnline "Послати непослате поруке након повезивања на мрежу?">
 <!ENTITY radioAutoSend.label "Да">
 <!ENTITY radioAutoSend.accesskey "Д">
 <!ENTITY radioNotSend.label "Не">
 <!ENTITY radioNotSend.accesskey "Н">
 <!ENTITY radioAskUnsent.label "Питај ме">
-<!ENTITY radioAskUnsent.accesskey "П">
-<!ENTITY textGoingOffline "Да ли преузети поруке за читање у локалу при раскидању везе?">
+<!ENTITY radioAskUnsent.accesskey "ј">
+<!ENTITY textGoingOffline "Преузети поруке за употребу ван мреже пре одласка у рад ван мреже?">
 <!ENTITY radioAutoDownload.label "Да">
 <!ENTITY radioAutoDownload.accesskey "а">
 <!ENTITY radioNotDownload.label "Не">
 <!ENTITY radioNotDownload.accesskey "е">
 <!ENTITY radioAskDownload.label "Питај ме">
-<!ENTITY radioAskDownload.accesskey "и">
-
-
-<!ENTITY checkAutoDetect.accesskey "d">
-
-<!ENTITY checkAutoDetect.label "Automatically follow detected online state">
-<!ENTITY radioAlwaysOffline.accesskey "f">
-<!ENTITY radioAlwaysOffline.label "Offline">
-<!ENTITY radioAlwaysOnlineState.accesskey "l">
-<!ENTITY radioAlwaysOnlineState.label "Online">
-<!ENTITY radioAskState.accesskey "k">
-<!ENTITY radioAskState.label "Ask me for online state">
-<!ENTITY titleStartUp "Manual state when starting up:">
+<!ENTITY radioAskDownload.accesskey "т">

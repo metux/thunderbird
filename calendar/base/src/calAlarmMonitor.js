@@ -53,7 +53,7 @@ calAlarmMonitor.prototype = {
     /**
      * nsIObserver
      */
-    observe: function cAM_observe(aSubject, aTopic, aData) {
+    observe: function(aSubject, aTopic, aData) {
         let alarmService = Components.classes["@mozilla.org/calendar/alarm-service;1"]
                                      .getService(Components.interfaces.calIAlarmService);
         switch (aTopic) {
@@ -69,7 +69,7 @@ calAlarmMonitor.prototype = {
     /**
      * calIAlarmServiceObserver
      */
-    onAlarm: function cAM_onAlarm(aItem, aAlarm) {
+    onAlarm: function(aItem, aAlarm) {
         if (aAlarm.action != "DISPLAY") {
             // This monitor only looks for DISPLAY alarms.
             return;
@@ -118,8 +118,8 @@ calAlarmMonitor.prototype = {
         }
 
         let calAlarmWindow = peekAlarmWindow();
-        if (!calAlarmWindow  && (!this.mWindowOpening ||
-                                  this.mWindowOpening.closed)) {
+        if (!calAlarmWindow && (!this.mWindowOpening ||
+                                 this.mWindowOpening.closed)) {
             this.mWindowOpening = Services.ww.openWindow(
                 null,
                 "chrome://calendar/content/calendar-alarm-dialog.xul",
@@ -132,11 +132,11 @@ calAlarmMonitor.prototype = {
         }
     },
 
-    window_onLoad: function cAM_window_onLoad() {
+    window_onLoad: function() {
         let calAlarmWindow = this.mWindowOpening;
         this.mWindowOpening = null;
         if (this.mAlarms.length > 0) {
-            for each (let [item, alarm] in this.mAlarms) {
+            for (let [item, alarm] of this.mAlarms) {
                 calAlarmWindow.addWidgetFor(item, alarm);
             }
         } else {
@@ -146,10 +146,9 @@ calAlarmMonitor.prototype = {
         }
     },
 
-    onRemoveAlarmsByItem: function cAM_onRemoveAlarmsByItem(aItem) {
+    onRemoveAlarmsByItem: function(aItem) {
         let calAlarmWindow = peekAlarmWindow();
-        this.mAlarms = this.mAlarms.filter(function(itemAlarm) {
-            let [thisItem, alarm] = itemAlarm;
+        this.mAlarms = this.mAlarms.filter(([thisItem, alarm]) => {
             let ret = (aItem.hashId != thisItem.hashId);
             if (!ret && calAlarmWindow) { // window is open
                 calAlarmWindow.removeWidgetFor(thisItem, alarm);
@@ -158,10 +157,9 @@ calAlarmMonitor.prototype = {
         });
     },
 
-    onRemoveAlarmsByCalendar: function cAM_onRemoveAlarmsByCalendar(calendar) {
+    onRemoveAlarmsByCalendar: function(calendar) {
         let calAlarmWindow = peekAlarmWindow();
-        this.mAlarms = this.mAlarms.filter(function(itemAlarm) {
-            let [thisItem, alarm] = itemAlarm;
+        this.mAlarms = this.mAlarms.filter(([thisItem, alarm]) => {
             let ret = (calendar.id != thisItem.calendar.id);
 
             if (!ret && calAlarmWindow) { // window is open
@@ -171,7 +169,7 @@ calAlarmMonitor.prototype = {
         });
     },
 
-    onAlarmsLoaded: function cAM_onAlarmsLoaded(aCalendar) {
+    onAlarmsLoaded: function(aCalendar) {
         // the alarm dialog won't close while alarms are loading, check again now
         let calAlarmWindow = peekAlarmWindow();
         if (calAlarmWindow && this.mAlarms.length == 0) {

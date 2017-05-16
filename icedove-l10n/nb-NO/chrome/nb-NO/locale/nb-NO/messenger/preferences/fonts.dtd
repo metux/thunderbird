@@ -20,9 +20,9 @@
 <!ENTITY  sans-serif.accesskey                    "ø">
 <!ENTITY  monospace.label                         "Fast bredde:">
 <!ENTITY  monospace.accesskey                     "F">
-
 <!-- LOCALIZATION NOTE (font.langGroup.latin) :
      Translate "Latin" as the name of Latin (Roman) script, not as the name of the Latin language. -->
+
 <!ENTITY  font.langGroup.latin                    "Vestlig">
 <!ENTITY  font.langGroup.japanese                 "Japansk">
 <!ENTITY  font.langGroup.trad-chinese             "Tradisjonell kinesisk (Taiwan)">
@@ -46,7 +46,8 @@
 <!ENTITY  font.langGroup.gurmukhi                 "Gurmukhi">
 <!ENTITY  font.langGroup.khmer                    "Khmer">
 <!ENTITY  font.langGroup.malayalam                "Malayalam">
-<!ENTITY  font.langGroup.oriya                    "Oriya">
+<!ENTITY  font.langGroup.math                     "Matematikk">
+
 <!ENTITY  font.langGroup.telugu                   "Telugu">
 <!ENTITY  font.langGroup.kannada                  "Kannada">
 <!ENTITY  font.langGroup.sinhala                  "Sinhala">
@@ -55,31 +56,27 @@
 <!ENTITY minSize.label                            "Minste skriftstørrelse:">
 <!ENTITY minSize.accesskey                        "M">
 <!ENTITY minSize.none                             "Ingen">
-
 <!-- default font type -->
+
 <!ENTITY  useDefaultFontSerif.label               "Seriffskrift">
 <!ENTITY  useDefaultFontSansSerif.label           "Seriffløs skrift">
-
 <!-- fonts in message -->
+
 <!ENTITY  fontControl.label                       "Skrifttypekontroll">
 <!ENTITY  useFixedWidthForPlainText.label         "Bruk skrifttype med fast tegnavstand for meldinger i ren tekst">
 <!ENTITY  fixedWidth.accesskey                    "B">
 <!ENTITY  useDocumentFonts.label                  "La meldinger bruke andre skrifttyper">
 <!ENTITY  useDocumentFonts.accesskey              "L">
-
 <!-- Language settings -->
+
 <!ENTITY sendDefaultCharset.label         "Utgående e-post:">
-<!ENTITY sendDefaultCharset.accesskey     "u">
-<!ENTITY languagesTitle1.label            "Tegnkoding">
-<!ENTITY composingDescription.label       "Sett standard tegnkoding for sending og mottak av e-post">
+<!ENTITY sendDefaultCharset.accesskey     "U">
+<!ENTITY languagesTitle2.label            "Tekstkoding">
+<!ENTITY composingDescription2.label      "Bruk standard tekstkoding for sending og mottak av e-post">
 
 <!ENTITY viewDefaultCharsetList.label     "Innkommende e-post:">
 <!ENTITY viewDefaultCharsetList.accesskey  "I">
-<!ENTITY replyInDefaultCharset2.label     "Når mulig, bruk standard tegnkoding i svar">
-<!ENTITY replyInDefaultCharset2.accesskey "N">
+<!ENTITY replyInDefaultCharset3.label     "Når mulig, bruk standard tekstkoding i svar">
+<!ENTITY replyInDefaultCharset3.accesskey "N">
 
-<!ENTITY composingDescription2.label      "Set the default text encoding for sending and receiving mail">
-<!ENTITY  font.langGroup.math                     "Mathematics">
-<!ENTITY languagesTitle2.label            "Text Encoding">
-<!ENTITY replyInDefaultCharset3.accesskey "h">
-<!ENTITY replyInDefaultCharset3.label     "When possible, use the default text encoding in replies">
+<!ENTITY  font.langGroup.odia                     "Odia">

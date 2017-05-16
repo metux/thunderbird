@@ -1,38 +1,43 @@
-<!ENTITY feedSubscriptions.label "Συνδρομές σε αρχεία ροής">
-<!ENTITY subscriptionDesc.label "Σημείωση: Η απομάκρυνση ή αλλαγή του φακέλου για ένα αρχείο ροής δεν θα επηρεάσει τα άρθρα που έχουν ληφθεί προηγουμένως.">
-<!ENTITY feedTitle.label "Τίτλος:">
-<!ENTITY location.label "Τοποθεσία:">
-<!ENTITY button.addFeed.label "Προσθήκη">
-<!ENTITY button.addFeed.accesskey "θ">
-<!ENTITY button.editFeed.label "Επεξεργασία">
-<!ENTITY button.editFeed.accesskey "ξ">
-<!ENTITY button.removeFeed.label "Απομάκρυνση">
-<!ENTITY button.removeFeed.accesskey "ρ">
-<!ENTITY button.importOPML.label "Εισαγωγή">
-<!ENTITY button.importOPML.accesskey "ι">
-<!ENTITY button.exportOPML.label "Εξαγωγή">
-<!ENTITY button.exportOPML.accesskey "ξ">
-<!ENTITY cmd.close.commandKey "w">
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY autoTagPrefix.placeholder   "Enter a tag prefix">
-<!ENTITY autotagEnable.accesskey     "c">
+<!-- Subscription Dialog -->
+<!ENTITY feedSubscriptions.label     "Συνδρομές σε αρχεία ροής">
+<!ENTITY learnMore.label             "Μάθετε περισσότερα για τις ροές">
 
-<!ENTITY autotagEnable.label         "Automatically create tags from feed &lt;category&gt; names">
-<!ENTITY autotagUsePrefix.accesskey  "P">
-<!ENTITY autotagUsePrefix.label      "Prefix tags with:">
-<!ENTITY button.close.label          "Close">
-<!ENTITY button.exportOPML.tooltip   "Export Feeds with folder structure; ctrl click or ctrl enter to export Feeds as a list">
+<!ENTITY feedTitle.label             "Τίτλος:">
+<!ENTITY feedTitle.accesskey         "Τ">
+
+<!ENTITY feedLocation.label          "URL Ροής:">
+<!ENTITY feedLocation.accesskey      "U">
+<!ENTITY feedLocation.placeholder    "Εισάγετε ένα έγκυρο url ροής για προσθήκη">
+<!ENTITY locationValidate.label      "Επαλήθευση">
+<!ENTITY validateText.label          "Έλεγχος επαλήθευσης και ανάκτηση έγκυρου url.">
+
+<!ENTITY feedFolder.label            "Αποθήκευση άρθρων σε:">
 <!ENTITY feedFolder.accesskey        "S">
 
-<!ENTITY feedFolder.label            "Store Articles in:">
-<!ENTITY feedLocation.accesskey      "U">
-
-<!ENTITY feedLocation.label          "Feed URL:">
-<!ENTITY feedLocation.placeholder    "Enter a valid feed url to Add">
-<!ENTITY feedTitle.accesskey         "T">
-<!ENTITY learnMore.label             "Learn more about Feeds">
-<!ENTITY locationValidate.label      "Validate">
+<!ENTITY quickMode.label             "Εμφάνιση της σύνοψης του άρθρου αντί για φόρτωση της ιστοσελίδας">
 <!ENTITY quickMode.accesskey         "h">
 
-<!ENTITY quickMode.label             "Show the article summary instead of loading the web page">
-<!ENTITY validateText.label          "Check validation and retrieve a valid url.">
+<!ENTITY autotagEnable.label         "Αυτόματη δημιουργία ετικετών από ονόματα &lt;κατηγορίας&gt; ροών">
+<!ENTITY autotagEnable.accesskey     "c">
+<!ENTITY autotagUsePrefix.label      "Να μπει στις ετικέτες το πρόθεμα:">
+<!ENTITY autotagUsePrefix.accesskey  "P">
+<!ENTITY autoTagPrefix.placeholder   "Εισαγωγή προθέματος ετικέτας">
+
+<!ENTITY button.addFeed.label        "Προσθήκη">
+<!ENTITY button.addFeed.accesskey    "θ">
+<!ENTITY button.updateFeed.label     "Ενημέρωση">
+<!ENTITY button.updateFeed.accesskey "Ε">
+<!ENTITY button.removeFeed.label     "Απομάκρυνση">
+<!ENTITY button.removeFeed.accesskey "ρ">
+<!ENTITY button.importOPML.label     "Εισαγωγή">
+<!ENTITY button.importOPML.accesskey "ι">
+<!ENTITY button.exportOPML.label     "Εξαγωγή">
+<!ENTITY button.exportOPML.accesskey "ξ">
+<!ENTITY button.exportOPML.tooltip   "Εξαγωγή ροών με δομή φακέλου; κάντε ctrl κλικ ή ctrl enter για εξαγωγή ροών σε λίστα">
+
+<!ENTITY cmd.close.commandKey        "w">
+<!ENTITY button.close.label          "Κλείσιμο">

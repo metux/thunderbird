@@ -20,7 +20,7 @@
 #include "MailNewsTypes.h"
 #include "nsIWindowMediator.h"
 #include "nsIDOMChromeWindow.h"
-#include "nsIDOMWindow.h"
+#include "mozIDOMWindow.h"
 #include "nsPIDOMWindow.h"
 #include "nsIDocShell.h"
 #include "nsIBaseWindow.h"
@@ -51,9 +51,7 @@
 #include <Carbon/Carbon.h>
 #import <Cocoa/Cocoa.h>
 
-#define kNewMailAlertIcon "chrome://messenger/skin/icons/new-mail-alert.png"
 #define kChatEnabledPref "mail.chat.enabled"
-#define kBiffShowAlertPref "mail.biff.show_alert"
 #define kBiffAnimateDockIconPref "mail.biff.animate_dock_icon"
 #define kMaxDisplayCount 10
 #define kNewChatMessageTopic "new-directed-incoming-message"
@@ -108,7 +106,7 @@ static void openMailWindow(const nsCString& aUri)
         // supports message headers. This should be simplified/removed when
         // bug 507593 is implemented.
 #ifdef MOZ_SUITE
-        nsCOMPtr<nsIDOMWindow> newWindow;
+        nsCOMPtr<mozIDOMWindowProxy> newWindow;
         wwatch->OpenWindow(0, "chrome://messenger/content/messageWindow.xul",
                            "_blank", "all,chrome,dialog=no,status,toolbar", msgUri,
                            getter_AddRefs(newWindow));
@@ -121,7 +119,7 @@ static void openMailWindow(const nsCString& aUri)
         messenger->MsgHdrFromURI(aUri, getter_AddRefs(msgHdr));
         if (msgHdr)
         {
-          nsCOMPtr<nsIDOMWindow> newWindow;
+          nsCOMPtr<mozIDOMWindowProxy> newWindow;
           wwatch->OpenWindow(0, "chrome://messenger/content/messageWindow.xul",
                              "_blank", "all,chrome,dialog=no,status,toolbar", msgHdr,
                              getter_AddRefs(newWindow));
@@ -138,11 +136,12 @@ static void openMailWindow(const nsCString& aUri)
     }
 
     FocusAppNative();
-    nsCOMPtr<nsIDOMWindow> domWindow;
+    nsCOMPtr<mozIDOMWindowProxy> domWindow;
     topMostMsgWindow->GetDomWindow(getter_AddRefs(domWindow));
-    nsCOMPtr<nsPIDOMWindow> privateWindow(do_QueryInterface(domWindow));
-    if (privateWindow)
+    if (domWindow) {
+      nsCOMPtr<nsPIDOMWindowOuter> privateWindow = nsPIDOMWindowOuter::From(domWindow);
       privateWindow->Focus();
+    }
   }
   else
   {
@@ -334,7 +333,7 @@ nsMessengerOSXIntegration::FillToolTipInfo(nsIMsgFolder *aFolder, int32_t aNewCo
         nsAutoString numNotDisplayedText;
         numNotDisplayedText.AppendInt(numNotDisplayed);
         const char16_t *formatStrings[3] = { numNewMsgsText.get(), authors.get(), numNotDisplayedText.get() };
-        bundle->FormatStringFromName(MOZ_UTF16("macBiffNotification_messages_extra"),
+        bundle->FormatStringFromName(u"macBiffNotification_messages_extra",
                                      formatStrings,
                                      3,
                                      getter_Copies(finalText));
@@ -345,7 +344,7 @@ nsMessengerOSXIntegration::FillToolTipInfo(nsIMsgFolder *aFolder, int32_t aNewCo
 
         if (aNewCount == 1)
         {
-          bundle->FormatStringFromName(MOZ_UTF16("macBiffNotification_message"),
+          bundle->FormatStringFromName(u"macBiffNotification_message",
                                        formatStrings,
                                        2,
                                        getter_Copies(finalText));
@@ -369,7 +368,7 @@ nsMessengerOSXIntegration::FillToolTipInfo(nsIMsgFolder *aFolder, int32_t aNewCo
           }
         }
         else
-          bundle->FormatStringFromName(MOZ_UTF16("macBiffNotification_messages"),
+          bundle->FormatStringFromName(u"macBiffNotification_messages",
                                        formatStrings,
                                        2,
                                        getter_Copies(finalText));
@@ -385,32 +384,25 @@ nsMessengerOSXIntegration::ShowAlertMessage(const nsAString& aAlertTitle,
                                             const nsACString& aFolderURI)
 {
   nsresult rv;
-  nsCOMPtr<nsIPrefBranch> prefBranch(do_GetService(NS_PREFSERVICE_CONTRACTID, &rv));
-  NS_ENSURE_SUCCESS(rv, rv);
 
-  bool showAlert = true;
-  prefBranch->GetBoolPref(kBiffShowAlertPref, &showAlert);
-
-  if (showAlert)
+  nsCOMPtr<nsIAlertsService> alertsService (do_GetService(NS_ALERTSERVICE_CONTRACTID, &rv));
+  // If we have an nsIAlertsService implementation, use it:
+  if (NS_SUCCEEDED(rv))
   {
-    nsCOMPtr<nsIAlertsService> alertsService (do_GetService(NS_ALERTSERVICE_CONTRACTID, &rv));
-    // If we have an nsIAlertsService implementation, use it:
-    if (NS_SUCCEEDED(rv))
-    {
-      alertsService->ShowAlertNotification(NS_LITERAL_STRING(kNewMailAlertIcon),
-                                           aAlertTitle, aAlertText, true,
-                                           NS_ConvertASCIItoUTF16(aFolderURI),
-                                           this, EmptyString(),
-                                           NS_LITERAL_STRING("auto"),
-                                           EmptyString(), EmptyString(),
-                                           nullptr,
-                                           false);
-    }
-
-    BounceDockIcon();
+    alertsService->ShowAlertNotification(EmptyString(),
+                                         aAlertTitle, aAlertText, true,
+                                         NS_ConvertASCIItoUTF16(aFolderURI),
+                                         this, EmptyString(),
+                                         NS_LITERAL_STRING("auto"),
+                                         EmptyString(), EmptyString(),
+                                         nullptr,
+                                         false,
+                                         false);
   }
 
-  if (!showAlert || NS_FAILED(rv))
+  BounceDockIcon();
+
+  if (NS_FAILED(rv))
     OnAlertFinished();
 
   return rv;
@@ -494,8 +486,8 @@ nsMessengerOSXIntegration::BounceDockIcon()
   nsCOMPtr<nsIWindowMediator> mediator(do_GetService(NS_WINDOWMEDIATOR_CONTRACTID));
   if (mediator)
   {
-    nsCOMPtr<nsIDOMWindow> domWindow;
-    mediator->GetMostRecentWindow(MOZ_UTF16("mail:3pane"), getter_AddRefs(domWindow));
+    nsCOMPtr<mozIDOMWindowProxy> domWindow;
+    mediator->GetMostRecentWindow(u"mail:3pane", getter_AddRefs(domWindow));
     if (domWindow)
     {
       nsCOMPtr<nsIDOMChromeWindow> chromeWindow(do_QueryInterface(domWindow));
@@ -566,7 +558,7 @@ nsMessengerOSXIntegration::BadgeDockIcon()
   }
 
   id tile = [[NSApplication sharedApplication] dockTile];
-  [tile setBadgeLabel:[NSString stringWithFormat:@"%S", badgeString.get()]];
+  [tile setBadgeLabel:[NSString stringWithFormat:@"%S", (const unichar*)badgeString.get()]];
   return NS_OK;
 
   NS_OBJC_END_TRY_ABORT_BLOCK_NSRESULT;
@@ -634,7 +626,7 @@ nsMessengerOSXIntegration::GetNewMailAuthors(nsIMsgFolder* aFolder,
     if (NS_SUCCEEDED(rv))
     {
       nsString listSeparator;
-      bundle->GetStringFromName(MOZ_UTF16("macBiffNotification_separator"), getter_Copies(listSeparator));
+      bundle->GetStringFromName(u"macBiffNotification_separator", getter_Copies(listSeparator));
 
       int32_t displayed = 0;
       for (int32_t i = numNewKeys - 1; i >= 0; i--, aNewCount--)

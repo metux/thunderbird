@@ -1,12 +1,6 @@
-<!ENTITY accountTitle.label "Подешавања налога">
-<!ENTITY accountSettingsDesc.label "Ово је посебан налог. Није му придружен ниједан идентитет.">
-<!ENTITY accountName.label "Корисничко име:">
-<!ENTITY accountName.accesskey "К">
-<!ENTITY messageStorage.label "Складиште порука">
-<!ENTITY emptyTrashOnExit.label "Испразни смеће при крају рада">
-<!ENTITY emptyTrashOnExit.accesskey "з">
-<!ENTITY localPath.label "Локални директоријум:">
-<!ENTITY localFolderPicker.label "Избор локалног директоријума">
-<!ENTITY browseFolder.label "Преглед…">
-<!ENTITY browseFolder.accesskey "П">
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
+<!ENTITY accountName.label "Име налога:">
+<!ENTITY accountName.accesskey "И">

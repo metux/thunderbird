@@ -1,9 +1,20 @@
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+
+<!-- LOCALIZATION NOTE (quickFilterBar.qfbShowFilterBar.label):
+     The label  for the button on the tab bar that toggles the visibility of
+     the quick filter bar.
+     -->
+<!ENTITY quickFilterBar.qfbShowFilterBar.label
+         "Брзо филтрирање">
+
 <!-- LOCALIZATION NOTE (quickFilterBar.toggleBarVisibility.menu.label):
      The label to display for the "View... Toolbars..." menu item that controls
      whether the quick filter bar is visible.
      -->
 <!ENTITY quickFilterBar.toggleBarVisibility.menu.label
-         "Трака са брзим филтерима">
+         "Трака брзог филтрирања">
 
 <!-- LOCALIZATION NOTE (quickFilterBar.toggleBarVisibility.menu.accesskey):
      The access key for the "View... Toolbars..." menu item label that controls
@@ -12,12 +23,19 @@
 <!ENTITY quickFilterBar.toggleBarVisibility.menu.accesskey
          "б">
 
+<!-- LOCALIZATION NOTE (quickFilterBar.toggleBarVisibility.appmenu.label):
+     The label to display for the "App Menu... Preferences..." menu item that
+     controls whether the quick filter bar is visible.
+     -->
+<!ENTITY quickFilterBar.toggleBarVisibility.appmenu.label
+         "Трака брзог филтрирања">
+
 <!-- LOCALIZATION NOTE (quickFilterBar.toggleBarVisibility.button.tooltip):
      The tooltip to display when hovering over the button on the tab bar that
      toggles the visibility of the quick filter bar.
      -->
 <!ENTITY quickFilterBar.toggleBarVisibility.button.tooltip
-         "Приказ траке са брзим филтерима">
+         "Укључите траку брзог филтрирања">
 
 <!-- LOCALIZATION NOTE (quickFilterBar.sticky.tooltip):
      The tooltip to display when the user hovers over the sticky button
@@ -27,42 +45,35 @@
      filters are propagated between folder changes and when opening new tabs.)
      -->
 <!ENTITY quickFilterBar.sticky.tooltip
-         "Задржи филтере при промени директоријума">
-
-<!-- LOCALIZATION NOTE (quickFilterBar.barLabel.label):
-     The text to display on the quick filter bar, labeling it.  This should
-     ideally be as short as possible.
-     -->
-<!ENTITY quickFilterBar.barLabel.label
-         "Брзи филтер:">
+         "Задржи примену филтера приликом мењања између фасцикли">
 
 <!-- LOCALIZATION NOTE (quickFilterBar.unread.label):
      The label for the filter button that causes us to filter results to only
      include unread messages.
      -->
 <!ENTITY quickFilterBar.unread.label
-         "Непрочитане">
+         "Непрочитано">
 
 <!-- LOCALIZATION NOTE (quickFilterBar.unread.tooltip):
      The tooltip for the filter button that causes us to filter results to only
      include unread messages.
      -->
 <!ENTITY quickFilterBar.unread.tooltip
-         "Приказ само непрочитаних порука">
+         "Прикажи само непрочитане поруке">
 
 <!-- LOCALIZATION NOTE (quickFilterBar.starred.label):
      The label for the filter button that causes us to filter results to only
      include messages that have been starred/flagged.
      -->
 <!ENTITY quickFilterBar.starred.label
-         "Са звездом">
+         "Са звездицом">
 
 <!-- LOCALIZATION NOTE (quickFilterBar.starred.tooltip):
      The tooltip for the filter button that causes us to filter results to only
      include messages that have been starred/flagged.
      -->
 <!ENTITY quickFilterBar.starred.tooltip
-         "Приказ само порука са звездицом">
+         "Прикажи само поруке са звездицом">
 
 <!-- LOCALIZATION NOTE (quickFilterBar.inaddrbook.label):
      The label for the filter button that causes us to filter results to only
@@ -78,7 +89,7 @@
      books.
      -->
 <!ENTITY quickFilterBar.inaddrbook.tooltip
-         "Приказ само порука од особа из адресара">
+         "Прикажи само поруке од особа из вашег именика">
 
 <!-- LOCALIZATION NOTE (quickFilterBar.tags.label):
      The label for the filter button that causes us to filter results to only
@@ -92,7 +103,7 @@
      include messages with at least one tag on them.
      -->
 <!ENTITY quickFilterBar.tags.tooltip
-         "Приказ само порука са ознакама">
+         "Прикажи само поруке са ознакама на себи">
 
 <!-- LOCALIZATION NOTE (quickFilterBar.attachment.label):
      The label for the filter button that causes us to filter results to only
@@ -106,7 +117,7 @@
      include messages with attachments.
      -->
 <!ENTITY quickFilterBar.attachment.tooltip
-         "Приказ само порука са прилозима">
+         "Прикажи само поруке са прилозима">
 
 <!-- LOCALIZATION NOTE (quickFilterBar.resultsLabel.some.formatString):
      This is used to populate the results box; it either displays the
@@ -118,7 +129,7 @@
      https://developer.mozilla.org/En/Localization_and_Plurals
      -->
 <!ENTITY quickFilterBar.resultsLabel.some.formatString
-         "#1 порука;#1 поруке;#1 порука">
+         "#1 порука;#1 порука">
 
 <!-- LOCALIZATION NOTE (quickFilterBar.resultsLabel.none):
      The contents of the results box when there is a filter active but there
@@ -139,7 +150,7 @@
 <!ENTITY quickFilterBar.resultsLabel.minWidth
          "100">
 
-<!-- LOCALIZATION NOTE (quickFilterBar.textbox.emptyText.base):
+<!-- LOCALIZATION NOTE (quickFilterBar.textbox.emptyText.base1):
      This is the base of the empty text for the text search box.  We replace
      #1 with the contents of the appropriate
      quickFilterBar.textbox.emptyText.keyLabel.* value for the platform.
@@ -147,8 +158,8 @@
      the messages and that there is a hotkey they can press to get to the
      box faster.
      -->
-<!ENTITY quickFilterBar.textbox.emptyText.base
-         "Филтрирање ових порука... #1">
+<!ENTITY quickFilterBar.textbox.emptyText.base1
+         "Филтирај ове поруке #1">
 
 <!-- LOCALIZATION NOTE (quickFilterBar.show.key2):
      This is the key used to show the quick filter bar. -->
@@ -169,6 +180,31 @@
      -->
 <!ENTITY quickFilterBar.textbox.emptyText.keyLabel2.mac
          "&lt;&#x21E7;&#x2318;K&gt;">
+
+<!-- LOCALIZATION NOTE (quickFilterBar.booleanMode.tooltip):
+     Tooltip of the Any of / All of tagging mode selector.
+     -->
+<!ENTITY quickFilterBar.booleanMode.tooltip "Режим филтрирања ознака">
+
+<!-- LOCALIZATION NOTE (quickFilterBar.booleanModeAny.label):
+     Tooltip of the Any of / All of tagging mode selector.
+     -->
+<!ENTITY quickFilterBar.booleanModeAny.label "Било шта од">
+
+<!-- LOCALIZATION NOTE (quickFilterBar.booleanModeAny.tooltip):
+     Tooltip of the Any of / All of tagging mode selector.
+     -->
+<!ENTITY quickFilterBar.booleanModeAny.tooltip "Барем један од услова изабраних ознака треба да се испуни">
+
+<!-- LOCALIZATION NOTE (quickFilterBar.booleanModeAll.label):
+     Tooltip of the Any of / All of tagging mode selector.
+     -->
+<!ENTITY quickFilterBar.booleanModeAll.label "Све од">
+
+<!-- LOCALIZATION NOTE (quickFilterBar.booleanModeAll.tooltip):
+     Tooltip of the Any of / All of tagging mode selector.
+     -->
+<!ENTITY quickFilterBar.booleanModeAll.tooltip "Сви од услова изабраних ознака треба да се испуне">
 
 <!-- LOCALIZATION NOTE (quickFilterBar.textbox.idealWidth):
      The number of pixels for the ideal width of the quick filter box textbox.
@@ -195,99 +231,46 @@
      arrow scroll box.)
      -->
 <!ENTITY quickFilterBar.textFilter.explanation.label
-         "Филтрирање порука по:">
+         "Филтрирај поруке по:">
 
 <!-- LOCALIZATION NOTE (quickFilterBar.textFilter.sender.label):
      The button label that toggles whether the text filter searches the message
      sender for the string.
      -->
 <!ENTITY quickFilterBar.textFilter.sender.label
-         "Шаље">
+         "Пошиљаоцу">
 
 <!-- LOCALIZATION NOTE (quickFilterBar.textFilter.recipients.label):
      The button label that toggles whether the text filter searches the message
      recipients (to, cc) for the string.
      -->
 <!ENTITY quickFilterBar.textFilter.recipients.label
-         "Примаоци">
+         "Примаоцима">
 
 <!-- LOCALIZATION NOTE (quickFilterBar.textFilter.subject.label):
      The button label that toggles whether the text filter searches the message
      subject for the string.
      -->
 <!ENTITY quickFilterBar.textFilter.subject.label
-         "Тема">
+         "Теми">
 
 <!-- LOCALIZATION NOTE (quickFilterBar.textFilter.body.label):
      The button label that toggles whether the text filter searches the message
      body for the string.
      -->
 <!ENTITY quickFilterBar.textFilter.body.label
-         "Тело">
+         "Телу">
 
 <!-- LOCALIZATION NOTE (quickFilterBar.glodaUpsell.continueSearch):
      The first line of the panel popup that tells the user we found no matches
      but we can convert to a global search for them.
      -->
 <!ENTITY quickFilterBar.glodaUpsell.continueSearch
-         "Настави ову претрагу у свим директоријумима">
+         "Настави претраживање по свим фасциклама">
 
 <!-- LOCALIZATION NOTE (quickFilterBar.glodaUpsell.pressEnterAndCurrent):
      The second line of the panel popup that tells the user we found no matches.
      This line will have #1 replaced with what the user has typed so far.
      -->
 <!ENTITY quickFilterBar.glodaUpsell.pressEnterAndCurrent
-         "Притисните поново „Enter“ како бисте наставили претрагу за: #1">
-
-
-
-<!-- LOCALIZATION NOTE (quickFilterBar.booleanMode.tooltip):
-     Tooltip of the Any of / All of tagging mode selector.
-     -->
-<!ENTITY quickFilterBar.booleanMode.tooltip "Tag filtering mode">
-
-<!-- LOCALIZATION NOTE (quickFilterBar.booleanModeAll.label):
-     Tooltip of the Any of / All of tagging mode selector.
-     -->
-<!ENTITY quickFilterBar.booleanModeAll.label "All of">
-
-<!-- LOCALIZATION NOTE (quickFilterBar.booleanModeAll.tooltip):
-     Tooltip of the Any of / All of tagging mode selector.
-     -->
-<!ENTITY quickFilterBar.booleanModeAll.tooltip "All of the selected tag criteria must match">
-
-<!-- LOCALIZATION NOTE (quickFilterBar.booleanModeAny.label):
-     Tooltip of the Any of / All of tagging mode selector.
-     -->
-<!ENTITY quickFilterBar.booleanModeAny.label "Any of">
-
-<!-- LOCALIZATION NOTE (quickFilterBar.booleanModeAny.tooltip):
-     Tooltip of the Any of / All of tagging mode selector.
-     -->
-<!ENTITY quickFilterBar.booleanModeAny.tooltip "At least one of the selected tag criteria should match">
-
-
-<!-- LOCALIZATION NOTE (quickFilterBar.qfbShowFilterBar.label):
-     The label  for the button on the tab bar that toggles the visibility of
-     the quick filter bar.
-     -->
-<!ENTITY quickFilterBar.qfbShowFilterBar.label
-         "Quick Filter">
-
-<!-- LOCALIZATION NOTE (quickFilterBar.textbox.emptyText.base1):
-     This is the base of the empty text for the text search box.  We replace
-     #1 with the contents of the appropriate
-     quickFilterBar.textbox.emptyText.keyLabel.* value for the platform.
-     The goal is to convey to the user that typing in the box will filter
-     the messages and that there is a hotkey they can press to get to the
-     box faster.
-     -->
-<!ENTITY quickFilterBar.textbox.emptyText.base1
-         "Filter these messages #1">
-
-<!-- LOCALIZATION NOTE (quickFilterBar.toggleBarVisibility.appmenu.label):
-     The label to display for the "App Menu... Preferences..." menu item that
-     controls whether the quick filter bar is visible.
-     -->
-<!ENTITY quickFilterBar.toggleBarVisibility.appmenu.label
-         "Quick Filter Bar">
+         "Притисните још једном „Ентер“ да бисте наставили вашу претрагу за: #1">

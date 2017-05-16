@@ -673,10 +673,10 @@ function openDictionaryList()
   }
 }
 
-// Prompt user to restart the browser in safe mode 
+// Prompt user to restart the browser in safe mode
 function safeModeRestart()
 {
-  // prompt the user to confirm 
+  // prompt the user to confirm
   var promptTitle = gUtilityBundle.getString("safeModeRestartPromptTitle");
   var promptMessage = gUtilityBundle.getString("safeModeRestartPromptMessage");
   var restartText = gUtilityBundle.getString("safeModeRestartButton");
@@ -769,7 +769,7 @@ function updateCheckUpdatesItem()
   else
     checkForUpdates.label = gUtilityBundle.getString("updatesItem_" + key + "Fallback");
 
-  checkForUpdates.accessKey = gUtilityBundle.getString("updatesItem_" + key + "AccessKey"); 
+  checkForUpdates.accessKey = gUtilityBundle.getString("updatesItem_" + key + "AccessKey");
 
   if (um.activeUpdate && updates.isDownloading)
     checkForUpdates.setAttribute("loading", "true");
@@ -945,7 +945,7 @@ function focusElement(aElement)
   if (isElementVisible(aElement))
     aElement.focus();
 }
- 
+
 function isElementVisible(aElement)
 {
   if (!aElement)
@@ -1156,9 +1156,15 @@ function BrowserOnCommand(event)
   }
   else if (docURI.startsWith("about:blocked")) {
     // The event came from a button on a malware/phishing block page
-    // First check whether it's malware or phishing, so that we can
+    // First check whether the reason, so that we can
     // use the right strings/links
-    let isMalware = /e=malwareBlocked/.test(docURI);
+    let reason = "phishing";
+
+    if (/e=malwareBlocked/.test(docURI)) {
+      reason = "malware";
+    } else if (/e=unwantedBlocked/.test(docURI)) {
+      reason = "unwanted";
+    }
 
     switch (buttonID) {
       case "getMeOutOfHereButton":
@@ -1166,33 +1172,21 @@ function BrowserOnCommand(event)
         break;
 
       case "reportButton":
-        // This is the "Why is this site blocked" button.  For malware,
-        // we can fetch a site-specific report, for phishing, we redirect
-        // to the generic page describing phishing protection.
-
-        if (isMalware) {
-          // Get the stop badware "why is this blocked" report url,
-          // append the current url, and go there.
-          try {
-            let reportURL = Services.urlFormatter.formatURLPref("browser.safebrowsing.malware.reportURL");
-            reportURL += ownerDoc.location.href;
-            loadURI(reportURL);
-          } catch (e) {
-            Components.utils.reportError("Couldn't get malware report URL: " + e);
-          }
-        }
-        else { // It's a phishing site, not malware
-          try {
-            loadURI(Services.urlFormatter.formatURLPref("browser.safebrowsing.warning.infoURL"));
-          } catch (e) {
-            Components.utils.reportError("Couldn't get phishing info URL: " + e);
-          }
+        // This is the "Why is this site blocked" button. We redirect
+        // to the generic page describing phishing/malware protection.
+        try {
+          loadURI(Services.urlFormatter.formatURLPref("browser.safebrowsing.warning.infoURL"));
+        } catch (e) {
+          Components.utils.reportError("Couldn't get phishing info URL: " + e);
         }
         break;
 
       case "ignoreWarningButton":
-        getBrowser().getNotificationBox().ignoreSafeBrowsingWarning(isMalware);
+        if (Services.prefs.getBoolPref("browser.safebrowsing.allowOverride")) {
+          getBrowser().getNotificationBox().ignoreSafeBrowsingWarning(reason);
+        }
         break;
+
     }
   }
 }
@@ -1251,29 +1245,32 @@ function createShowPopupsMenu(parent, browser)
   if (!browser)
     return false;
 
-  var popups = browser.blockedPopups;
-
-  if (!popups)
+  if (!browser.blockedPopups ||
+      browser.blockedPopups.count == 0)
     return false;
 
   parent.browser = browser;
 
-  for (var i = 0; i < popups.length; i++) {
-    // popupWindowURI will be null if a file input was blocked.
-    var URI = popups[i].popupWindowURI;
-    if (!URI)
-      continue;
+  browser.retrieveListOfBlockedPopups().then(blockedPopups => {
 
-    var str = gUtilityBundle.getFormattedString("popupMenuShow", [URI.spec]);
-    // Check for duplicates and reuse the old menuitem.
-    var menuitem = parent.getElementsByAttribute("label", str).item(0);
-    if (!menuitem) {
-      menuitem = document.createElement("menuitem");
-      menuitem.setAttribute("label", str);
+    for (var i = 0; i < blockedPopups.length; i++) {
+
+      let blockedPopup = blockedPopups[i];
+      // popupWindowURI will be null if the file picker popup is blocked.
+      if (!blockedPopup.popupWindowURIspec)
+            continue;
+
+      let str = gUtilityBundle.getFormattedString("popupMenuShow", [blockedPopup.popupWindowURIspec]);
+      // Check for duplicates in the blockedPopups list and reuse the old menuitem.
+      let menuitem = parent.getElementsByAttribute("label", str).item(0);
+      if (!menuitem) {
+        menuitem = document.createElement("menuitem");
+        menuitem.setAttribute("label", str);
+      }
+      menuitem.setAttribute("popupReportIndex", i);
+      parent.appendChild(menuitem);
     }
-    menuitem.setAttribute("popupReportIndex", i);
-    parent.appendChild(menuitem);
-  }
+  }, null);
 
   return parent.getElementsByAttribute("popupReportIndex", "*").item(0) != null;
 }
@@ -1282,6 +1279,15 @@ function popupBlockerMenuCommand(target)
 {
   if (target.hasAttribute("popupReportIndex"))
     target.parentNode.browser.unblockPopup(target.getAttribute("popupReportIndex"));
+}
+
+function hostUrl()
+{
+  var url = "";
+  try {
+    url = getBrowser().currentURI.scheme + "://" + getBrowser().currentURI.hostPort;
+  } catch (e) {}
+  return url;
 }
 
 function disablePopupBlockerNotifications()
@@ -1299,7 +1305,7 @@ function disablePopupBlockerNotifications()
  * @param  aIsFeed
  *         Whether this is already a known feed or not, if true only a security
  *         check will be performed.
- */ 
+ */
 function isValidFeed(aData, aPrincipal, aIsFeed)
 {
   if (!aData || !aPrincipal)
@@ -1661,9 +1667,7 @@ function switchToTabHavingURI(aURI, aOpenNew, aCallback) {
 
   // No opened tab has that url.
   if (aOpenNew) {
-    let newWindowPref = Services.prefs.getIntPref("browser.link.open_external");
-    let where = newWindowPref == kNewTab ? "tabfocused" : "window";
-    let browserWin = openUILinkIn(aURI.spec, where);
+    let browserWin = openUILinkIn(aURI.spec, "tabfocused");
     if (aCallback) {
       browserWin.addEventListener("pageshow", function browserWinPageShow(event) {
         if (event.target.location.href != aURI.spec)

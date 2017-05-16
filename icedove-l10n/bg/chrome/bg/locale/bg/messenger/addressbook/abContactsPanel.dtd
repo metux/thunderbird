@@ -2,22 +2,19 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
+
 <!ENTITY addressbookPicker.label            "Адресник:">
 <!ENTITY addressbookPicker.accesskey        "к">
-<!ENTITY searchInput.label                  "Търсене за:">
-<!ENTITY searchInput.accesskey              "з">
 <!ENTITY SearchNameOrEmail.label            "Име или адрес">
 
-<!ENTITY deleteAddrBookCard.label           "Изтриване">
-<!ENTITY deleteAddrBookCard.accesskey       "т">
-<!ENTITY addrBookCardProperties.label       "Свойства">
-<!ENTITY addrBookCardProperties.accesskey   "С">
 <!ENTITY addtoToFieldMenu.label             "Добавяне към поле До">
 <!ENTITY addtoToFieldMenu.accesskey         "Д">
 <!ENTITY addtoCcFieldMenu.label             "Добавяне към поле Копие (Cc)">
 <!ENTITY addtoCcFieldMenu.accesskey         "К">
 <!ENTITY addtoBccFieldMenu.label            "Добавяне към поле Скрито (Bcc)">
 <!ENTITY addtoBccFieldMenu.accesskey        "С">
+<!ENTITY deleteAddrBookCard.label           "Изтриване">
+<!ENTITY deleteAddrBookCard.accesskey       "т">
 
 <!ENTITY toButton.label                     "Добави към До:">
 <!ENTITY toButton.accesskey                 "Д">
@@ -25,3 +22,25 @@
 <!ENTITY ccButton.accesskey                 "б">
 <!ENTITY bccButton.label                    "Добави към Bcc:">
 <!ENTITY bccButton.accesskey                "б">
+
+<!ENTITY abPropertiesContext.accesskey      "i">
+<!ENTITY abPropertiesContext.label          "Properties">
+<!ENTITY abPropertiesMenu.accesskey         "i">
+<!ENTITY abPropertiesMenu.label             "Address Book Properties">
+<!ENTITY contactPropertiesMenu.accesskey    "i">
+<!ENTITY contactPropertiesMenu.label        "Contact Properties">
+<!ENTITY editContactContext.accesskey       "E">
+<!ENTITY editContactContext.label           "Edit Contact">
+<!ENTITY editMailingListContext.accesskey   "E">
+<!ENTITY editMailingListContext.label       "Edit List">
+<!ENTITY mailingListPropertiesMenu.accesskey "i">
+<!ENTITY mailingListPropertiesMenu.label    "Mailing List Properties">
+<!ENTITY propertiesCmd.key                  "i">
+<!ENTITY propertiesContext.accesskey        "i">
+<!ENTITY propertiesContext.label            "Properties">
+<!ENTITY propertiesMenu.accesskey           "i">
+
+
+<!ENTITY propertiesMenu.label               "Properties">
+<!ENTITY searchContacts.accesskey           "n">
+<!ENTITY searchContacts.label               "Search Contacts:">

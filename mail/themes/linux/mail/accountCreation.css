@@ -13,8 +13,8 @@
   background-color: InfoBackground;
   border-radius: 4px;
   margin-top: 3px;
-  -moz-padding-start: 3px;
-  -moz-padding-end: 3px;
+  padding-inline-start: 3px;
+  padding-inline-end: 3px;
 }
 
 .initialDesc, .columnHeader {
@@ -38,10 +38,6 @@ menulist[disabled="true"] > .menulist-dropmarker {
   padding: 6px;
 }
 
-window {
-  -moz-appearance: none;
-}
-
 .warningicon {
   width: 16px;
   height: 16px;
@@ -63,8 +59,7 @@ window {
 }
 
 .mastervbox {
-  padding: 14px;
-  background: -moz-dialog;
+  padding: 8px;
 }
 
 #warningbox {
@@ -105,7 +100,7 @@ window {
 }
 
 .larrybox {
-  -moz-padding-end: 2em;
+  padding-inline-end: 2em;
 }
 
 checkbox.acknowledge_checkbox {
@@ -132,7 +127,7 @@ checkbox.acknowledge_checkbox {
 }
 
 .protocol > label {
-  -moz-padding-start: 6px;
+  padding-inline-start: 6px;
 }
 
 .security {
@@ -151,8 +146,6 @@ textbox.username {
 
 .host {
   width: 12em;
-  margin-bottom: 4px !important;
-  margin-top: 4px !important;
 }
 
 .technical_details {
@@ -183,6 +176,24 @@ menulist[disabled="true"] {
   color: -moz-DialogText;
 }
 
+menulist:not([editable="true"]) {
+  padding-top: 2px;
+  padding-bottom: 3px;
+}
+
+.menulist-editable-box {
+  -moz-appearance: textfield;
+  min-width: 4em;
+  padding-top: 2px;
+  padding-bottom: 2px;
+  padding-inline-start: 4px;
+  padding-inline-end: 2px;
+}
+
+menulist > .menulist-editable-input {
+  padding-right: 1px !important;
+  padding-left: 1px !important;
+}
 
 /* status area */
 
@@ -205,7 +216,7 @@ menulist[disabled="true"] {
 }
 
 #status_area[status=loading] #status_img_after {
-  background: url("chrome://messenger/skin/icons/loading.png") no-repeat;
+  background: url("chrome://global/skin/icons/loading.png") no-repeat;
   width: 16px;
   height: 16px;
 }
@@ -217,6 +228,10 @@ menulist[disabled="true"] {
 
 textbox.port[disabled="true"] {
   padding-top: 4px;
+}
+
+#outgoing_server_area {
+  padding-top: 2px;
 }
 
 #incoming_protocol[disabled="true"] {

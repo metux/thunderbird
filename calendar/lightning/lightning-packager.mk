@@ -30,9 +30,8 @@ else
 UNIVERSAL_PATH=
 endif
 
-_ABS_DIST := $(abspath $(DIST))
 XPI_STAGE_PATH = $(DIST)/$(UNIVERSAL_PATH)xpi-stage
-_ABS_XPI_STAGE_PATH = $(_ABS_DIST)/$(UNIVERSAL_PATH)xpi-stage
+_ABS_XPI_STAGE_PATH = $(ABS_DIST)/$(UNIVERSAL_PATH)xpi-stage
 ENUS_PKGNAME=$(subst .$(AB_CD).,.en-US.,$(XPI_PKGNAME))
 XPI_ZIP_IN=$(_ABS_XPI_STAGE_PATH)/$(ENUS_PKGNAME).xpi
 
@@ -78,7 +77,12 @@ endif
 # function print_ltnconfig(section,configname)
 print_ltnconfig = $(shell $(PYTHON) $(MOZILLA_SRCDIR)/config/printconfigsetting.py $(XPI_STAGE_PATH)/$(XPI_NAME)/app.ini $1 $2)
 
-wget-en-US: FINAL_BINARY_URL = $(subst thunderbird,calendar/lightning,$(EN_US_BINARY_URL))
+wget-en-US:
+ifeq (thunderbird,$(MOZ_APP_NAME))
+FINAL_BINARY_URL = $(subst thunderbird,calendar/lightning,$(EN_US_BINARY_URL))
+else
+FINAL_BINARY_URL = $(subst seamonkey,calendar/lightning,$(subst latest-comm-central-trunk,latest-comm-central,$(EN_US_BINARY_URL)))
+endif
 wget-en-US: $(XPI_STAGE_PATH)
 	(cd $(XPI_STAGE_PATH) && $(WGET) -nv -N $(FINAL_BINARY_URL)/$(ENUS_PKGNAME).xpi)
 	@echo "Downloaded $(FINAL_BINARY_URL)/$(ENUS_PKGNAME) to $(XPI_ZIP_IN)"
@@ -98,18 +102,13 @@ unpack: $(XPI_ZIP_IN)
 langpack-en-US:
 	@echo "Skipping $@ as en-US is the default"
 
-# It wouldn't fit into mozharness to run compare-locales for calendar
-# separately, so we need to do it ourselves. Unfortunately compare-locales is
-# not installed globally on the slaves, so we need to hardcode the path.
-BUILD_COMPARE_LOCALES = $(wildcard $(topsrcdir)/../compare-locales)
-COMPARE_LOCALES = $(if $(BUILD_COMPARE_LOCALES),$(PYTHON) $(BUILD_COMPARE_LOCALES)/scripts/compare-locales,compare-locales)
-COMPARE_LOCALES_PYTHONPATH = $(if $(BUILD_COMPARE_LOCALES),$(BUILD_COMPARE_LOCALES)/lib,)
-
 merge-%:
 ifdef LOCALE_MERGEDIR
 	$(RM) -rf $(LOCALE_MERGEDIR)/calendar
-	MACOSX_DEPLOYMENT_TARGET= PYTHONPATH=$(COMPARE_LOCALES_PYTHONPATH) \
-	  $(COMPARE_LOCALES) -m $(LOCALE_MERGEDIR) $(topsrcdir)/calendar/locales/l10n.ini $(L10NBASEDIR) $*
+	$(MOZILLA_SRCDIR)/mach compare-locales \
+	    --merge-dir $(LOCALE_MERGEDIR) \
+	    --l10n-ini $(topsrcdir)/calendar/locales/l10n.ini \
+	    $*
 
 	# This file requires a bugfix with string changes, see bug 1154448
 	[ -f $(L10NBASEDIR)/$*/calendar/chrome/calendar/calendar-extract.properties ] && \
@@ -141,7 +140,7 @@ repack-stage:
 	@echo "Repackaging $(XPI_PKGNAME) locale for Language $(AB_CD)"
 	$(RM) -rf $(L10N_TARGET)
 	cp -R $(XPI_STAGE_PATH)/$(XPI_NAME) $(L10N_TARGET)
-	grep -v 'locale \w\+ en-US' $(L10N_TARGET)/chrome.manifest > $(L10N_TARGET)/chrome.manifest~ && \
+	grep -v '^locale [a-z\-]\+ en-US' $(L10N_TARGET)/chrome.manifest > $(L10N_TARGET)/chrome.manifest~ && \
 	  mv $(L10N_TARGET)/chrome.manifest~ $(L10N_TARGET)/chrome.manifest
 	find $(abspath $(L10N_TARGET)) -name '*en-US*' -print0 | xargs -0 rm -rf
 
@@ -153,9 +152,9 @@ repack-stage:
 libs-%: FINAL_XPI_NAME=$(if $(L10N_XPI_NAME),$(L10N_XPI_NAME),$(XPI_NAME))
 libs-%: FINAL_XPI_PKGNAME=$(if $(L10N_XPI_PKGNAME),$(L10N_XPI_PKGNAME),$(XPI_PKGNAME))
 libs-%:
-	$(MAKE) -C locales libs AB_CD=$* FINAL_TARGET=$(_ABS_DIST)/$(UNIVERSAL_PATH)xpi-stage/$(FINAL_XPI_NAME) \
+	$(MAKE) -C locales libs AB_CD=$* FINAL_TARGET=$(ABS_DIST)/$(UNIVERSAL_PATH)xpi-stage/$(FINAL_XPI_NAME) \
 	  XPI_NAME=$(FINAL_XPI_NAME) XPI_PKGNAME=$(FINAL_XPI_PKGNAME) USE_EXTENSION_MANIFEST=1
-	$(MAKE) -C locales tools AB_CD=$* FINAL_TARGET=$(_ABS_DIST)/$(UNIVERSAL_PATH)xpi-stage/$(FINAL_XPI_NAME) \
+	$(MAKE) -C locales tools AB_CD=$* FINAL_TARGET=$(ABS_DIST)/$(UNIVERSAL_PATH)xpi-stage/$(FINAL_XPI_NAME) \
 	  XPI_NAME=$(FINAL_XPI_NAME) XPI_PKGNAME=$(FINAL_XPI_PKGNAME) USE_EXTENSION_MANIFEST=1
 
 # The calling makefile might need to process some extra files. Provide an empty

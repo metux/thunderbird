@@ -27,3 +27,11 @@
 <!ENTITY manageCerts.accesskey "V">
 <!ENTITY manageDevices.label "பாதுகாப்புச் சாதனங்கள்">
 <!ENTITY manageDevices.accesskey "y">
+
+<!ENTITY certPicker.detailsLabel "Details of selected certificate:">
+<!ENTITY certPicker.info  "Certificate:">
+
+<!-- Strings for the cert picker dialog -->
+<!ENTITY certPicker.title "Select Certificate">
+<!ENTITY manageCerts2.accesskey "M">
+<!ENTITY manageCerts2.label "Manage Certificates">

@@ -5,6 +5,7 @@
 <!ENTITY toField4.label "Pour">
 <!ENTITY fromField4.label "De">
 <!ENTITY senderField4.label "Expéditeur">
+<!ENTITY author.label "Auteur">
 <!ENTITY organizationField4.label "Organisation">
 <!ENTITY replyToField4.label "Réponse à">
 
@@ -23,11 +24,13 @@
 
 <!ENTITY hdrArchiveButton1.label "Archiver">
 <!ENTITY hdrArchiveButton1.tooltip "Archiver ce message">
+<!ENTITY hdrOpenConversationButton1.label "Conversation">
+<!ENTITY hdrOpenConversationButton1.tooltip "Afficher la conversation de ce message">
 <!ENTITY hdrSmartReplyButton1.label "Répondre (contextuel)">
 <!ENTITY hdrReplyButton1.label "Répondre">
-<!ENTITY hdrReplyButton2.tooltip "Répondre à l'expéditeur du message">
+<!ENTITY hdrReplyButton2.tooltip "Répondre à l’expéditeur du message">
 <!ENTITY hdrReplyAllButton1.label "Répondre à tous">
-<!ENTITY hdrReplyAllButton1.tooltip "Répondre à tous les destinataires">
+<!ENTITY hdrReplyAllButton1.tooltip "Répondre à l’expéditeur et à tous les destinataires">
 <!ENTITY hdrReplyListButton1.label "Répondre à la liste">
 <!ENTITY hdrReplyListButton1.tooltip "Répondre à la liste de diffusion">
 <!ENTITY hdrFollowupButton1.label "Répondre au groupe">
@@ -46,7 +49,7 @@
 <!ENTITY hdrViewToolbarShowIcons.accesskey "f">
 <!ENTITY hdrViewToolbarShowText.label "Afficher le texte uniquement">
 <!ENTITY hdrViewToolbarShowText.accesskey "h">
-<!ENTITY hdrViewToolbarAlwaysReplySender.label "Toujours afficher Répondre à l'expéditeur">
+<!ENTITY hdrViewToolbarAlwaysReplySender.label "Toujours afficher Répondre à l’expéditeur">
 <!ENTITY hdrViewToolbarAlwaysReplySender.accesskey "x">
 
 <!ENTITY otherActionsButton2.label "Autres">
@@ -98,12 +101,12 @@
 <!ENTITY saveAllAttachmentsButton1.label "Tout enregistrer">
 <!ENTITY saveAllAttachmentsButton1.tooltip "Enregistrer toutes les pièces jointes">
 
-<!ENTITY copyLinkCmd.label "Copier l'adresse du lien">
+<!ENTITY copyLinkCmd.label "Copier l’adresse du lien">
 <!ENTITY copyLinkCmd.accesskey "C">
 
-<!ENTITY CopyMessageId.label "Copier l'identifiant du message">
+<!ENTITY CopyMessageId.label "Copier l’identifiant du message">
 <!ENTITY CopyMessageId.accesskey "C">
-<!ENTITY OpenMessageForMsgId.label "Ouvrir le message pour l'identifiant">
+<!ENTITY OpenMessageForMsgId.label "Ouvrir le message pour l’identifiant">
 <!ENTITY OpenMessageForMsgId.accesskey "O">
-<!ENTITY OpenBrowserWithMsgId.label "Ouvrir le navigateur avec l'identifiant de message">
+<!ENTITY OpenBrowserWithMsgId.label "Ouvrir le navigateur avec l’identifiant de message">
 <!ENTITY OpenBrowserWithMsgId.accesskey "v">

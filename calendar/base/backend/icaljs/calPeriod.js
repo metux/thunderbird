@@ -32,24 +32,28 @@ calPeriod.prototype = {
     clone: function() { return new calPeriod(this.innerObject.clone()); },
 
     get start() { return wrapGetter(calDateTime, this.innerObject.start); },
-    set start(val) { unwrapSetter(ICAL.Time, val, function(val) {
-        this.innerObject.start = val;
-    }, this); },
+    set start(rawval) {
+        unwrapSetter(ICAL.Time, rawval, function(val) {
+            this.innerObject.start = val;
+        }, this);
+    },
 
     get end() { return wrapGetter(calDateTime, this.innerObject.getEnd()); },
-    set end(val) { unwrapSetter(ICAL.Time, val, function(val) {
-        if (this.innerObject.duration) {
-            this.innerObject.duration = null;
-        }
-        this.innerObject.end = val;
-    }, this); },
+    set end(rawval) {
+        unwrapSetter(ICAL.Time, rawval, function(val) {
+            if (this.innerObject.duration) {
+                this.innerObject.duration = null;
+            }
+            this.innerObject.end = val;
+        }, this);
+    },
 
     get duration() { return wrapGetter(calDuration, this.innerObject.getDuration()); },
 
     get icalString() { return this.innerObject.toICALString(); },
     set icalString(val) {
-        let str = ICAL.parse._parseValue(val, "period");
-        this.innerObject = ICAL.Period.fromString(str);
+        let dates = ICAL.parse._parseValue(val, "period", ICAL.design.icalendar);
+        this.innerObject = ICAL.Period.fromString(dates.join("/"));
         return val;
     },
 

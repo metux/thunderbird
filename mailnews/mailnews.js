@@ -87,6 +87,16 @@ pref("mail.db.idle_limit", 300000);
 // How many db's should we leave open? LRU db's will be closed first
 pref("mail.db.max_open", 30);
 
+// Should we allow folders over 4GB in size?
+pref("mailnews.allowMboxOver4GB", true);
+
+// For IMAP caching lift the limits since they are designed for HTML pages.
+// Note that the maximum size of a cache entry is limited by
+// max_entry_size and (capacity >> 3), so devided by 8.
+// Larger messages or attachments won't be cached.
+pref("browser.cache.memory.max_entry_size", 15000); //  15 MB
+pref("browser.cache.memory.capacity",      120000); // 120 MB = 8*15 MB
+
 pref("mail.imap.chunk_size",                65536);
 pref("mail.imap.min_chunk_size_threshold",  98304);
 pref("mail.imap.chunk_fast",                2);
@@ -105,7 +115,7 @@ pref("mail.imap.expunge_threshold_number",  20);
 pref("mail.imap.hdr_chunk_size", 200);
 // Should we filter imap messages based on new messages since the previous
 // highest UUID seen instead of unread?
-pref("mail.imap.filter_on_new", false);
+pref("mail.imap.filter_on_new", true);
 
 // if true, we assume that a user access a folder in the other users namespace
 // is acting as a delegate for that folder, and wishes to use the other users
@@ -191,6 +201,8 @@ pref("mail.html_compose",                   true);
 pref("mail.compose.other.header", "");
 pref("mail.compose.autosave", true);
 pref("mail.compose.autosaveinterval", 5); // in minutes
+pref("mail.compose.default_to_paragraph", false);
+
 // true:  If the message has practically no HTML formatting, bypass recipient-centric
 //        auto-detection of delivery format; auto-downgrade and silently send as plain text.
 // false: Don't auto-downgrade; use recipient-centric auto-detection of best delivery format,
@@ -220,7 +232,6 @@ pref("news.update_unread_on_expand",        true);
 pref("news.get_messages_on_select",         true);
 
 pref("mailnews.wraplength",                 72);
-pref("mail.compose.wrap_to_window_width",   false);
 
 // 0=no header, 1="<author> wrote:", 2="On <date> <author> wrote:", 3="<author> wrote On <date>:", 4=user specified
 pref("mailnews.reply_header_type",          1);
@@ -659,7 +670,11 @@ pref("mail.biff.alert.show_subject", true);
 pref("mail.biff.alert.show_sender",  true);
 pref("mail.biff.alert.preview_length", 40);
 
+#ifdef XP_MACOSX
+pref("mail.biff.play_sound", false);
+#else
 pref("mail.biff.play_sound", true);
+#endif
 // 0 == default system sound, 1 == user specified wav
 pref("mail.biff.play_sound.type", 0);
 // _moz_mailbeep is a magic key, for the default sound.
@@ -732,8 +747,6 @@ pref("mailnews.ui.select_addresses_results.version", 1);
 // to hide the non default columns in the advanced directory search dialog
 // see abCommon.js and ABSearchDialog.js
 pref("mailnews.ui.advanced_directory_search_results.version", 1);
-//If set to a number greater than 0, msg compose windows will be recycled in order to open them quickly
-pref("mail.compose.max_recycled_windows", 1);
 
 // default description and color prefs for tags
 // (we keep the .labels. names for backwards compatibility)
@@ -767,10 +780,10 @@ pref("msgcompose.background_color",         "#FFFFFF");
 // to prevent some mail server to disclose the bcc recipients
 pref("mail.compose.add_undisclosed_recipients", true);
 
-// Set this preference to true to tell mail not to attach the source of a link to a local
-// network file (file://///<network name>/<path>/<file name>). Windows only
-pref("mail.compose.dont_attach_source_of_local_network_links", false);
 pref("mail.compose.dontWarnMail2Newsgroup", false);
+
+// Attach http image resources to composed messages.
+pref("mail.compose.attach_http_images", false);
 
 // these prefs (in minutes) are here to help QA test this feature
 // "mail.purge.min_delay", never purge a junk folder more than once every 480 minutes (60 mins/hour * 8 hours)

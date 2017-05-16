@@ -191,6 +191,17 @@
 #include "nsMsgCompUtils.h"
 
 ////////////////////////////////////////////////////////////////////////////////
+//  jsAccount includes
+////////////////////////////////////////////////////////////////////////////////
+#include "msgJsAccountCID.h"
+#include "JaAbDirectory.h"
+#include "JaCompose.h"
+#include "JaIncomingServer.h"
+#include "JaMsgFolder.h"
+#include "JaSend.h"
+#include "JaUrl.h"
+
+////////////////////////////////////////////////////////////////////////////////
 // imap includes
 ////////////////////////////////////////////////////////////////////////////////
 #include "nsMsgImapCID.h"
@@ -278,6 +289,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 #include "nsCMS.h"
 #include "nsCMSSecureMessage.h"
+#include "nsCertPicker.h"
 #include "nsMsgSMIMECID.h"
 #include "nsMsgComposeSecure.h"
 #include "nsSMimeJSHelper.h"
@@ -586,6 +598,23 @@ NS_DEFINE_NAMED_CID(NS_URLFETCHER_CID);
 NS_DEFINE_NAMED_CID(NS_MSGCOMPUTILS_CID);
 
 ////////////////////////////////////////////////////////////////////////////////
+// jsAccount factories
+////////////////////////////////////////////////////////////////////////////////
+NS_GENERIC_FACTORY_CONSTRUCTOR(JaCppAbDirectoryDelegator)
+NS_GENERIC_FACTORY_CONSTRUCTOR(JaCppComposeDelegator)
+NS_GENERIC_FACTORY_CONSTRUCTOR(JaCppIncomingServerDelegator)
+NS_GENERIC_FACTORY_CONSTRUCTOR(JaCppMsgFolderDelegator)
+NS_GENERIC_FACTORY_CONSTRUCTOR(JaCppSendDelegator)
+NS_GENERIC_FACTORY_CONSTRUCTOR(JaCppUrlDelegator)
+
+NS_DEFINE_NAMED_CID(JACPPABDIRECTORYDELEGATOR_CID);
+NS_DEFINE_NAMED_CID(JACPPCOMPOSEDELEGATOR_CID);
+NS_DEFINE_NAMED_CID(JACPPINCOMINGSERVERDELEGATOR_CID);
+NS_DEFINE_NAMED_CID(JACPPMSGFOLDERDELEGATOR_CID);
+NS_DEFINE_NAMED_CID(JACPPSENDDELEGATOR_CID);
+NS_DEFINE_NAMED_CID(JACPPURLDELEGATOR_CID);
+
+////////////////////////////////////////////////////////////////////////////////
 // imap factories
 ////////////////////////////////////////////////////////////////////////////////
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsImapUrl)
@@ -740,6 +769,7 @@ NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(nsCMSDecoder, Init)
 NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(nsCMSEncoder, Init)
 NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(nsCMSMessage, Init)
 NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(nsCMSSecureMessage, Init)
+NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(nsCertPicker, Init)
 
 NS_DEFINE_NAMED_CID(NS_MSGCOMPOSESECURE_CID);
 NS_DEFINE_NAMED_CID(NS_MSGSMIMECOMPFIELDS_CID);
@@ -749,6 +779,7 @@ NS_DEFINE_NAMED_CID(NS_CMSDECODER_CID);
 NS_DEFINE_NAMED_CID(NS_CMSENCODER_CID);
 NS_DEFINE_NAMED_CID(NS_CMSMESSAGE_CID);
 NS_DEFINE_NAMED_CID(NS_CMSSECUREMESSAGE_CID);
+NS_DEFINE_NAMED_CID(NS_CERT_PICKER_CID);
 
 ////////////////////////////////////////////////////////////////////////////////
 // vcard factories
@@ -968,6 +999,13 @@ const mozilla::Module::CIDEntry kMailNewsCIDs[] = {
   { &kNS_MSGQUOTELISTENER_CID, false, NULL, nsMsgQuoteListenerConstructor},
   { &kNS_URLFETCHER_CID, false, NULL, nsURLFetcherConstructor},
   { &kNS_MSGCOMPUTILS_CID, false, NULL, nsMsgCompUtilsConstructor},
+  // JsAccount Entries
+  { &kJACPPABDIRECTORYDELEGATOR_CID, false, nullptr, JaCppAbDirectoryDelegatorConstructor },
+  { &kJACPPCOMPOSEDELEGATOR_CID, false, nullptr, JaCppComposeDelegatorConstructor },
+  { &kJACPPINCOMINGSERVERDELEGATOR_CID, false, nullptr, JaCppIncomingServerDelegatorConstructor },
+  { &kJACPPMSGFOLDERDELEGATOR_CID, false, nullptr, JaCppMsgFolderDelegatorConstructor },
+  { &kJACPPSENDDELEGATOR_CID, false, nullptr, JaCppSendDelegatorConstructor },
+  { &kJACPPURLDELEGATOR_CID, false, nullptr, JaCppUrlDelegatorConstructor },
   // Imap Entries
   { &kNS_IMAPURL_CID, false, NULL, nsImapUrlConstructor },
   { &kNS_IMAPPROTOCOL_CID, false, nullptr, nsImapProtocolConstructor },
@@ -1036,6 +1074,7 @@ const mozilla::Module::CIDEntry kMailNewsCIDs[] = {
   { &kNS_CMSENCODER_CID, false, NULL, nsCMSEncoderConstructor },
   { &kNS_CMSMESSAGE_CID, false, NULL, nsCMSMessageConstructor },
   { &kNS_CMSSECUREMESSAGE_CID, false, NULL, nsCMSSecureMessageConstructor },
+  { &kNS_CERT_PICKER_CID, false, nullptr, nsCertPickerConstructor },
   // Vcard Entries
   { &kNS_VCARD_CONTENT_TYPE_HANDLER_CID, false, NULL, nsVCardMimeContentTypeHandlerConstructor},
   // PGP/MIME Entries
@@ -1184,6 +1223,13 @@ const mozilla::Module::ContractIDEntry kMailNewsContracts[] = {
   { NS_MSGQUOTELISTENER_CONTRACTID, &kNS_MSGQUOTELISTENER_CID },
   { NS_URLFETCHER_CONTRACTID, &kNS_URLFETCHER_CID },
   { NS_MSGCOMPUTILS_CONTRACTID, &kNS_MSGCOMPUTILS_CID },
+  // JsAccount Entries
+  { JACPPABDIRECTORYDELEGATOR_CONTRACTID, &kJACPPABDIRECTORYDELEGATOR_CID },
+  { JACPPCOMPOSEDELEGATOR_CONTRACTID, &kJACPPCOMPOSEDELEGATOR_CID },
+  { JACPPINCOMINGSERVERDELEGATOR_CONTRACTID, &kJACPPINCOMINGSERVERDELEGATOR_CID },
+  { JACPPMSGFOLDERDELEGATOR_CONTRACTID, &kJACPPMSGFOLDERDELEGATOR_CID },
+  { JACPPSENDDELEGATOR_CONTRACTID, &kJACPPSENDDELEGATOR_CID },
+  { JACPPURLDELEGATOR_CONTRACTID, &kJACPPURLDELEGATOR_CID },
   // Imap Entries
   { NS_IMAPINCOMINGSERVER_CONTRACTID, &kNS_IMAPINCOMINGSERVER_CID },
   { NS_RDF_RESOURCE_FACTORY_CONTRACTID_PREFIX "imap", &kNS_IMAPRESOURCE_CID },
@@ -1275,6 +1321,8 @@ const mozilla::Module::ContractIDEntry kMailNewsContracts[] = {
   { NS_CMSDECODER_CONTRACTID, &kNS_CMSDECODER_CID },
   { NS_CMSENCODER_CONTRACTID, &kNS_CMSENCODER_CID },
   { NS_CMSMESSAGE_CONTRACTID, &kNS_CMSMESSAGE_CID },
+  { NS_CERTPICKDIALOGS_CONTRACTID, &kNS_CERT_PICKER_CID },
+  { NS_CERT_PICKER_CONTRACTID, &kNS_CERT_PICKER_CID },
   // Vcard Entries
   { "@mozilla.org/mimecth;1?type=text/x-vcard", &kNS_VCARD_CONTENT_TYPE_HANDLER_CID },
   // PGP/MIME Entries
@@ -1304,6 +1352,7 @@ static const mozilla::Module::CategoryEntry kMailNewsCategories[] = {
   // Bayesian Filter Entries
   // Compose Entries
   { "command-line-handler", "m-compose", NS_MSGCOMPOSESTARTUPHANDLER_CONTRACTID },
+  // JsAccount Entries
   // Imap Entries
   // Local Entries
   // msgdb Entries

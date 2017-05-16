@@ -11,20 +11,20 @@ const BIFF_STATE_NOMESSAGES = "NoMail";
 const BIFF_STATE_UNKNOWN    = "UnknownMail";
 
 
-// uses "toOpenWindowByType" function provided by utilityOverlay.js
-// which is included by most clients. 
+// uses "toOpenWindowByType" function provided by tasksOverlay.js
+// which is included by most clients.
 function toMessengerWindow()
 {
   toOpenWindowByType("mail:3pane", "chrome://messenger/content/");
 }
 
-function toAddressBook() 
+function toAddressBook()
 {
   toOpenWindowByType("mail:addressbook",
                      "chrome://messenger/content/addressbook/addressbook.xul");
 }
 
-function toNewsgroups() 
+function toNewsgroups()
 {
   dump("Sorry, command not implemented.\n");
 }

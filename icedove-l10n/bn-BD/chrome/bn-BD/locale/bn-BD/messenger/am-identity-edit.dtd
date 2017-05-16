@@ -5,3 +5,9 @@
 <!ENTITY settingsTab.label       "সেটিংসমূহ">
 <!ENTITY copiesFoldersTab.label "অনুলিপি ও ফোল্ডার">
 <!ENTITY addressingTab.label    "রচনা ও সম্বোধন">
+
+<!ENTITY identityAlias.accesskey "b">
+<!ENTITY identityAlias.label     "Identity Label:">
+<!ENTITY privateData.label       "Private Data">
+
+<!ENTITY publicData.label        "Public Data">

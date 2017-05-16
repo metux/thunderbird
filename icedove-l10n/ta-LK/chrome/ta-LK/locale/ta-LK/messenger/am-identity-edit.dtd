@@ -5,6 +5,11 @@
 <!ENTITY copiesFoldersTab.label "நகல்களும் கோப்புறைகளும்">
 <!ENTITY addressingTab.label "உருவாக்கலும் முகவரியிடலும்">
 
+<!ENTITY identityAlias.accesskey "b">
+<!ENTITY identityAlias.label     "Identity Label:">
+<!ENTITY privateData.label       "Private Data">
+
+<!ENTITY publicData.label        "Public Data">
 
 
 <!-- LOCALIZATION NOTE (identityDialog.style): This value should be roughly

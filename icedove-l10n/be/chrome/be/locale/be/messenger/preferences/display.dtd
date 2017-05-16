@@ -44,6 +44,8 @@
 <!ENTITY closeMsgOnMoveOrDelete.accesskey "C">
 <!ENTITY closeMsgOnMoveOrDelete.label     "Close message window/tab on move or delete">
 <!ENTITY display.caption                  "Display">
+<!ENTITY editTagButton1.accesskey  "E">
+<!ENTITY editTagButton1.label      "Edit…">
 <!ENTITY itemAdvanced.label               "Advanced">
 <!ENTITY markAsReadDelay.accesskey        "d">
 <!-- LOCALIZATION NOTE (markAsReadDelay.label): This will concatenate to
@@ -52,6 +54,8 @@
 <!ENTITY markAsReadDelay.label            "After displaying for">
 <!ENTITY markAsReadNoDelay.accesskey      "o">
 <!ENTITY markAsReadNoDelay.label          "Immediately on display">
+<!ENTITY newTagButton.accesskey    "N">
+<!ENTITY newTagButton.label        "New…">
 <!ENTITY openMsgIn.label                  "Open messages in:">
 <!ENTITY openMsgInNewTab.accesskey        "t">
 <!ENTITY openMsgInNewTab.label            "A new tab">

@@ -26,8 +26,8 @@
 <!ENTITY bgColor.accesskey                    "H">
 <!ENTITY restoreHTMLDefaults.label            "Standard wiederherstellen">
 <!ENTITY restoreHTMLDefaults.accesskey        "w">
-<!ENTITY enterKeyCreatesNewParagraph.label    "Eingabetaste erzeugt neuen Absatz, falls Formatierung &quot;Absatz&quot; verwendet wird">
-<!ENTITY enterKeyCreatesNewParagraph.accesskey "E">
+<!ENTITY defaultToParagraph.label             "Format &quot;Absatz&quot; anstatt &quot;Normaler Text&quot; verwenden">
+<!ENTITY defaultToParagraph.accesskey         "F">
 
 <!ENTITY spellCheck.label                     "Rechtschreibprüfung vor dem Senden">
 <!ENTITY spellCheck.accesskey                 "R">
@@ -37,7 +37,7 @@
 <!ENTITY languagePopup.accessKey              "p">
 <!ENTITY downloadDictionaries.label           "Weitere Wörterbücher herunterladen">
 
-<!ENTITY warnOnSendAccelKey.label             "Bestätigen, wenn das Tastaturkürzel zum Senden einer Nachricht verwendet wird">
+<!ENTITY warnOnSendAccelKey.label             "Bestätigen, wenn die Tastenkombination zum Senden einer Nachricht verwendet wird">
 <!ENTITY warnOnSendAccelKey.accesskey         "B">
 <!ENTITY autoSave.label                       "Alle">
 <!ENTITY autoSave.accesskey                   "A">
@@ -56,8 +56,8 @@
 <!ENTITY editDirectories.accesskey             "B">
 
 <!ENTITY sendOptionsDescription.label          "Verhalten beim Senden von HTML-Nachrichten:">
-<!ENTITY sendOptions.label                     "Sende-Optionen…">
-<!ENTITY sendOptions.accesskey                 "O">
+<!ENTITY sendOptions.label                     "Sendeoptionen…">
+<!ENTITY sendOptions.accesskey                 "o">
 
 <!ENTITY attachmentReminder.label              "Auf fehlende Anhänge prüfen">
 <!ENTITY attachmentReminder.accesskey          "u">

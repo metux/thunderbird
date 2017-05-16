@@ -29,3 +29,7 @@
 <!ENTITY authRequired.button.accesskey "з">
 <!ENTITY enableCloudFileAccountOffer.label "Прапанова дзяліцца файламі большымі, чым ">
 <!ENTITY enableCloudFileAccountOffer.mb "МБ">
+
+<!ENTITY addCloudFileAccount1.accesskey   "A">
+
+<!ENTITY addCloudFileAccount1.label       "Add…">

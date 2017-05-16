@@ -8,7 +8,7 @@
 <!ENTITY checkAutoDetect.accesskey "T">
 <!ENTITY titleStartUp "Au démarrage :">
 
-<!ENTITY radioRememberPrevState.label "Se souvenir de l'état précédent">
+<!ENTITY radioRememberPrevState.label "Se souvenir de l’état précédent">
 <!ENTITY radioRememberPrevState.accesskey "S">
 <!ENTITY radioAskState.label "Demander à passer en mode en ligne">
 <!ENTITY radioAskState.accesskey "D">
@@ -24,7 +24,7 @@
 <!ENTITY radioNotSend.accesskey "N">
 <!ENTITY radioAskUnsent.label "Demander">
 <!ENTITY radioAskUnsent.accesskey "e">
-<!ENTITY textGoingOffline "Télécharger les messages pour une utilisation hors connexion lors du passage en mode hors connexion ?">
+<!ENTITY textGoingOffline "À la déconnexion, télécharger les messages pour une utilisation hors connexion ?">
 <!ENTITY radioAutoDownload.label "Oui">
 <!ENTITY radioAutoDownload.accesskey "i">
 <!ENTITY radioNotDownload.label "Non">

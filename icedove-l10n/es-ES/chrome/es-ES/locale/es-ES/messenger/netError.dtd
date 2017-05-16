@@ -14,8 +14,8 @@
 <!ENTITY dnsNotFound.longDesc "
 <ul>
   <li>Compruebe que la dirección no tiene errores de escritura
-    del tipo <strong>ww</strong>.ejemplo.com en lugar de
-    <strong>www</strong>.ejemplo.com</li>
+    del tipo <strong>ww</strong>.example.com en lugar de
+    <strong>www</strong>.example.com</li>
   <li>Si no puede cargar ninguna página, compruebe la conexión
     de red de su ordenador.</li>
   <li>Si su ordenador o red están protegidos por un cortafuegos
@@ -32,6 +32,12 @@
    eliminado.</li>
 </ul>
 ">
+<!ENTITY fileAccessDenied.title "El acceso al archivo ha sido denegado">
+<!ENTITY fileAccessDenied.longDesc "
+<ul>
+  <li>Puede haber sido eliminado, movido o sus permisos de archivo pueden estar impidiendo el acceso.</li>
+</ul>
+">
 <!ENTITY generic.title "¡Vaya!">
 <!ENTITY generic.longDesc "
 <p>&brandShortName; no puede cargar esta página por alguna razón.</p>
@@ -40,7 +46,7 @@
 <!ENTITY malformedURI.longDesc "
 <ul>
   <li>Las direcciones web se escriben normalmente como
-    <strong>http://www.ejemplo.com/</strong></li>
+    <strong>http://www.example.com/</strong></li>
   <li>Asegúrese de que está usando barras inclinadas hacia
     delante (p.e. <strong>/</strong>).</li>
 </ul>
@@ -138,24 +144,10 @@
    acceder a la web.</li>
 </ul>
 ">
-<!ENTITY malwareBlocked.title "¡Posible sitio peligroso!">
-<!ENTITY malwareBlocked.longDesc "<p>Los sitios atacantes intentan instalar programas que pueden robar información privada, usar su ordenador para atacar otros o dañar su sistema.</p>
-<p>Los propietarios de sitios web que crean que han sido reportados como un sitio atacante pueden <a href='http://www.stopbadware.org/home/reviewinfo' >pedir una revisión</a>.</p>
-">
-<!ENTITY unwantedBlocked.title "¡Sitio sospechoso de software no deseado!">
-<!ENTITY unwantedBlocked.longDesc "
-<p>Las páginas con software no deseado intentan instalar software que puede ser engañoso y afectar a su sistema de maneras inesperadas.</p>
-">
-<!ENTITY phishingBlocked.title "¡Posible sitio web fraudulento!">
-<!ENTITY phishingBlocked.longDesc "<p>Introducir cualquier información personal en esta página puede resultar en un robo de identidad u otro fraude.</p>
-<p>Estos tipos de webs fraudulentas son usadas en ataques de phishing, en los cuales páginas y correos electrónicos fraudulentos se utilizan para imitar fuentes en las que confías.</p>">
-<!ENTITY forbiddenBlocked.title "Sitio prohibido">
-<!ENTITY forbiddenBlocked.longDesc "<p>&brandShortName; ha impedido que se cargue esta página porque está configurado para bloquearla.</p>
-">
 <!ENTITY cspBlocked.title "Bloqueado por la política de seguridad de contenido">
 <!ENTITY cspBlocked.longDesc "<p>&brandShortName; ha impedido que se cargue esta página de esta forma porque la página tiene una política de seguridad de contenido que lo impide.</p>">
-<!ENTITY corruptedContentError.title "Error por contenido corrupto">
-<!ENTITY corruptedContentError.longDesc "<p>El contenido que está intentando ver no puede mostrarse porque se ha detectado un error en la transmisión de datos.</p><ul><li>Contacte con los propietarios para informarles de este problema.</li></ul>">
+<!ENTITY corruptedContentErrorv2.title "Error de contenido dañado">
+<!ENTITY corruptedContentErrorv2.longDesc "<p>La página que está intentando ver no se puede mostrar porque se ha detectado un error en la transmisión de datos.</p><ul><li>Contacte con los propietarios del sitio web para informarles de este problema.</li></ul>">
 <!ENTITY securityOverride.linkText "O puede añadir una excepción…">
 <!ENTITY securityOverride.getMeOutOfHereButton "¡Sácame de aquí!">
 <!ENTITY securityOverride.exceptionButtonLabel "Añadir excepción…">
@@ -167,3 +159,5 @@
 ">
 <!ENTITY remoteXUL.title "XUL remoto">
 <!ENTITY remoteXUL.longDesc "<p><ul><li>Contacte con los propietarios del sitio web para informarles de este problema.</li></ul></p>">
+<!ENTITY inadequateSecurityError.title "Su conexión no es segura">
+<!ENTITY inadequateSecurityError.longDesc "<p><span class='hostname'></span> usa tecnología de seguridad que está obsoleta y es vulnerable a ataques. Un atacante podría revelar fácilmente información que se considera segura. El administrador web necesita corregir el servidor antes de que pueda visitar el sitio.</p><p>Código de error: NS_ERROR_NET_INADEQUATE_SECURITY</p>">

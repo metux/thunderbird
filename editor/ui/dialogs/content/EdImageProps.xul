@@ -6,10 +6,8 @@
 <?xml-stylesheet href="chrome://editor/skin/editor.css" type="text/css"?>
 <?xml-stylesheet href="chrome://editor/skin/EditorDialog.css" type="text/css"?>
 
-<?xul-overlay href="chrome://editor/content/EdImageOverlay.xul"?> 
-<?xul-overlay href="chrome://editor/content/EdDialogOverlay.xul"?> 
-<?xul-overlay href="chrome://global/content/globalOverlay.xul"?>
-<?xul-overlay href="chrome://communicator/content/utilityOverlay.xul"?> 
+<?xul-overlay href="chrome://editor/content/EdImageOverlay.xul"?>
+<?xul-overlay href="chrome://editor/content/EdDialogOverlay.xul"?>
 
 <!DOCTYPE dialog SYSTEM "chrome://editor/locale/EditorImageProperties.dtd">
 
@@ -21,11 +19,10 @@
     buttons="accept,cancel"
     ondialogaccept="return onAccept();"
     ondialogcancel="return onCancel();">
-  
+
   <script type="application/javascript" src="chrome://editor/content/editorUtilities.js"/>
   <script type="application/javascript" src="chrome://editor/content/EdDialogCommon.js"/>
   <script type="application/javascript" src="chrome://editor/content/EdImageProps.js"/>
-  <script type="application/javascript" src="chrome://global/content/globalOverlay.js"/>
 
   <spacer id="location" offsetY="50" persist="offsetX offsetY"/>
   <broadcaster id="args" value=""/>
@@ -68,5 +65,6 @@
     <!-- from EdDialogOverlay -->
     <vbox id="AdvancedEdit"/>
   </hbox>
+  <separator class="groove"/>
 
 </dialog>

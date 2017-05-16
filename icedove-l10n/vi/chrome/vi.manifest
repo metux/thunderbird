@@ -4,12 +4,12 @@ locale branding vi vi/locale/vi/branding/
 locale chat vi vi/locale/vi/chat/
 locale communicator vi vi/locale/vi/communicator/
 locale cookie vi vi/locale/vi/cookie/
+locale devtools vi vi/locale/vi/devtools/client/
 locale devtools-shared vi vi/locale/vi/devtools/shared/
 locale editor vi vi/locale/vi/editor/
 locale formautofill vi vi/locale/vi/formautofill/
 locale global vi vi/locale/vi/global/
 locale global-platform vi vi/locale/vi/global-platform/
-locale global-region vi vi/locale/vi/global-region/
 locale messenger vi vi/locale/vi/messenger/
 locale messenger-mapi vi vi/locale/vi/messenger-mapi/
 locale messenger-newsblog vi vi/locale/vi/messenger-newsblog/

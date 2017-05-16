@@ -21,6 +21,7 @@
 #include "nsIUnicodeDecoder.h"
 #include "nsIMsgFolder.h"
 #include "nsIDOMNode.h"
+#include "mozIDOMWindow.h"
 
 // Forward declares
 class QuotingOutputStreamListener;
@@ -34,22 +35,22 @@ class nsMsgCompose : public nsIMsgCompose, public nsSupportsWeakReference
 {
  public: 
 
-	nsMsgCompose();
+  nsMsgCompose();
 
-	/* this macro defines QueryInterface, AddRef and Release for this class */
-	NS_DECL_THREADSAFE_ISUPPORTS
+  /* this macro defines QueryInterface, AddRef and Release for this class */
+  NS_DECL_THREADSAFE_ISUPPORTS
 
-	/*** nsIMsgCompose pure virtual functions */
-	NS_DECL_NSIMSGCOMPOSE
+  /*** nsIMsgCompose pure virtual functions */
+  NS_DECL_NSIMSGCOMPOSE
 
   /* nsIMsgSendListener interface */
   NS_DECL_NSIMSGSENDLISTENER
 
 protected:
-	virtual ~nsMsgCompose();
+  virtual ~nsMsgCompose();
 
  // Deal with quoting issues...
-	nsresult                      QuoteOriginalMessage(); // New template
+  nsresult                      QuoteOriginalMessage(); // New template
   nsresult                      SetQuotingToFollow(bool aVal);
   nsresult                      ConvertHTMLToText(nsIFile *aSigFile, nsString &aSigData);
   nsresult                      ConvertTextToHTML(nsIFile *aSigFile, nsString &aSigData);
@@ -79,15 +80,21 @@ protected:
  protected:
   nsresult CreateMessage(const char * originalMsgURI, MSG_ComposeType type, nsIMsgCompFields* compFields);
   void CleanUpRecipients(nsString& recipients);
-  nsresult GetABDirectories(const nsACString& aDirUri,
-                            nsCOMArray<nsIAbDirectory> &aDirArray);
-  nsresult BuildMailListArray(nsIAbDirectory* parentDir,
-                              nsTArray<nsMsgMailList>& array);
+  nsresult GetABDirAndMailLists(const nsACString& aDirUri,
+                                nsCOMArray<nsIAbDirectory>& aDirArray,
+                                nsTArray<nsMsgMailList>& aMailListArray);
+  nsresult ResolveMailList(nsIAbDirectory* aMailList,
+                           nsCOMArray<nsIAbDirectory>& allDirectoriesArray,
+                           nsTArray<nsMsgMailList>& allMailListArray,
+                           nsTArray<nsMsgMailList>& mailListResolved,
+                           nsTArray<nsMsgRecipient>& aListMembers);
   nsresult TagConvertible(nsIDOMElement *node,  int32_t *_retval);
   nsresult _NodeTreeConvertible(nsIDOMElement *node, int32_t *_retval);
   nsresult MoveToAboveQuote(void);
   nsresult MoveToBeginningOfDocument(void);
   nsresult MoveToEndOfDocument(void);
+  nsresult ReplaceFileURLs(nsAutoString &sigData);
+  nsresult DataURLForFileURL(const nsAString &aFileURL, nsAString &aDataURL);
 
 // 3 = To, Cc, Bcc
 #define MAX_OF_RECIPIENT_ARRAY 3
@@ -102,27 +109,26 @@ protected:
        // Helper function. Parameters are not checked.
   bool                                      mConvertStructs;    // for TagConvertible
   
-	nsCOMPtr<nsIEditor>                       m_editor;
-	nsIDOMWindow                              *m_window;
+  nsCOMPtr<nsIEditor>                       m_editor;
+  mozIDOMWindowProxy                        *m_window;
   nsCOMPtr<nsIDocShell>                     mDocShell;
   nsCOMPtr<nsIBaseWindow>                   m_baseWindow;
-	nsMsgCompFields                           *m_compFields;
-	nsCOMPtr<nsIMsgIdentity>                  m_identity;
-	bool						                        m_composeHTML;
-	QuotingOutputStreamListener               *mQuoteStreamListener;
-	nsCOMPtr<nsIOutputStream>                 mBaseStream;
+  nsMsgCompFields                           *m_compFields;
+  nsCOMPtr<nsIMsgIdentity>                  m_identity;
+  bool                                      m_composeHTML;
+  QuotingOutputStreamListener               *mQuoteStreamListener;
+  nsCOMPtr<nsIOutputStream>                 mBaseStream;
 
-  nsCOMPtr<nsIMsgComposeRecyclingListener>  mRecyclingListener;
-  bool                                      mRecycledWindow;
-	nsCOMPtr<nsIMsgSend>                      mMsgSend;           // for composition back end
-	nsCOMPtr<nsIMsgProgress>                  mProgress;          // use by the back end to report progress to the front end
+  nsCOMPtr<nsIMsgSend>                      mMsgSend;           // for composition back end
+  nsCOMPtr<nsIMsgProgress>                  mProgress;          // use by the back end to report progress to the front end
 
   // Deal with quoting issues...
   nsString                                  mCiteReference;
-	nsCOMPtr<nsIMsgQuote>                     mQuote;
-	bool						                        mQuotingToFollow;   // Quoting indicator
-	MSG_ComposeType                           mType;		          // Message type
+  nsCOMPtr<nsIMsgQuote>                     mQuote;
+  bool                                      mQuotingToFollow;   // Quoting indicator
+  MSG_ComposeType                           mType;              // Message type
   bool                                      mCharsetOverride;
+  bool                                      mAnswerDefaultCharset;
   bool                                      mDeleteDraft;
   nsMsgDispositionState                     mDraftDisposition;
   nsCOMPtr <nsIMsgDBHdr>                    mOrigMsgHdr;
@@ -132,12 +138,12 @@ protected:
 
   nsTObserverArray<nsCOMPtr<nsIMsgComposeStateListener> > mStateListeners;
   nsTObserverArray<nsCOMPtr<nsIMsgSendListener> > mExternalSendListeners;
-    
+
   bool                                      mInsertingQuotedContent;
   MSG_DeliverMode                           mDeliverMode;  // nsIMsgCompDeliverMode long.
 
   friend class QuotingOutputStreamListener;
-	friend class nsMsgComposeSendListener;
+  friend class nsMsgComposeSendListener;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -152,8 +158,8 @@ public:
                                 bool quoteHeaders,
                                 bool headersOnly,
                                 nsIMsgIdentity *identity,
-                                const char *charset,
-                                bool charetOverride, 
+                                nsIMsgQuote* msgQuote,
+                                bool charsetFixed,
                                 bool quoteOriginal,
                                 const nsACString& htmlToQuote);
 
@@ -172,22 +178,24 @@ public:
 
 private:
     virtual ~QuotingOutputStreamListener();
-    nsWeakPtr                 mWeakComposeObj;
-    nsString       				    mMsgBody;
-    nsString       				    mCitePrefix;
-    nsString       				    mSignature;
-    bool						        mQuoteHeaders;
-    bool						        mHeadersOnly;
-    nsCOMPtr<nsIMimeHeaders>	mHeaders;
-    nsCOMPtr<nsIMsgIdentity>  mIdentity;
-    nsCOMPtr<nsIMsgDBHdr>     mOrigMsgHdr;
-    nsString                  mCiteReference;
-    nsCOMPtr<nsIMimeConverter> mMimeConverter;
+    nsWeakPtr                   mWeakComposeObj;
+    nsString                    mMsgBody;
+    nsString                    mCitePrefix;
+    nsString                    mSignature;
+    bool                        mQuoteHeaders;
+    bool                        mHeadersOnly;
+    bool                        mCharsetFixed;
+    nsCOMPtr<nsIMsgQuote>       mQuote;
+    nsCOMPtr<nsIMimeHeaders>    mHeaders;
+    nsCOMPtr<nsIMsgIdentity>    mIdentity;
+    nsCOMPtr<nsIMsgDBHdr>       mOrigMsgHdr;
+    nsString                    mCiteReference;
+    nsCOMPtr<nsIMimeConverter>  mMimeConverter;
     nsCOMPtr<nsIUnicodeDecoder> mUnicodeDecoder;
-    int32_t                   mUnicodeBufferCharacterLength;
-    char16_t*                mUnicodeConversionBuffer;
-    bool                      mQuoteOriginal;
-    nsCString                 mHtmlToQuote;
+    int32_t                     mUnicodeBufferCharacterLength;
+    char16_t*                   mUnicodeConversionBuffer;
+    bool                        mQuoteOriginal;
+    nsCString                   mHtmlToQuote;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -211,8 +219,8 @@ public:
   // nsIMsgCopyServiceListener interface
   NS_DECL_NSIMSGCOPYSERVICELISTENER
   
-	// nsIWebProgressListener interface
-	NS_DECL_NSIWEBPROGRESSLISTENER
+  // nsIWebProgressListener interface
+  NS_DECL_NSIWEBPROGRESSLISTENER
 
   nsresult    RemoveCurrentDraftMessage(nsIMsgCompose *compObj, bool calledByCopy);
   nsresult    GetMsgFolder(nsIMsgCompose *compObj, nsIMsgFolder **msgFolder);
@@ -220,7 +228,7 @@ public:
 private:
   virtual ~nsMsgComposeSendListener();
   nsWeakPtr               mWeakComposeObj;
-	MSG_DeliverMode         mDeliverMode;
+  MSG_DeliverMode         mDeliverMode;
 };
 
 /******************************************************************************

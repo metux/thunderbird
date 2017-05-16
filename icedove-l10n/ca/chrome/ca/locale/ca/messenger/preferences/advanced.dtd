@@ -59,8 +59,6 @@
 <!ENTITY updateCheck.accesskey           "C">
 <!ENTITY updateManual.label              "No cerquis mai actualitzacions (poc recomanable pel risc de seguretat que comporta)">
 <!ENTITY updateManual.accesskey          "N">
-<!ENTITY updateAutoAddonWarn.label       "Avisa'm si això faria que s'inhabilités algun dels meus complements">
-<!ENTITY updateAutoAddonWarn.accesskey   "v">
 <!ENTITY updateHistory.label             "Mostra l'historial d'actualitzacions">
 <!ENTITY updateHistory.accesskey         "h">
 
@@ -103,7 +101,7 @@
 <!ENTITY enableOCSP.label                "Consulta els servidors de resposta OCSP per confirmar la validesa actual dels certificats">
 <!ENTITY enableOCSP.accesskey            "C">
 
-<!ENTITY viewCertificates.label         "Visualitza els certificats">
-<!ENTITY viewCertificates.accesskey     "a">
-<!ENTITY viewSecurityDevices.label      "Dispositius de seguretat">
-<!ENTITY viewSecurityDevices.accesskey  "D">
+<!ENTITY manageCertificates.label "Gestiona els certificats">
+<!ENTITY manageCertificates.accesskey "G">
+<!ENTITY viewSecurityDevices.label "Dispositius de seguretat">
+<!ENTITY viewSecurityDevices.accesskey "D">

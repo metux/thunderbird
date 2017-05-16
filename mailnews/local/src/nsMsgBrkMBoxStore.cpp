@@ -34,6 +34,7 @@
 #include "nsIMsgFolderCompactor.h"
 #include "nsIPrefService.h"
 #include "nsIPrefBranch.h"
+#include "mozilla/Preferences.h"
 #include "prprf.h"
 #include <cstdlib> // for std::abs(int/long)
 #include <cmath> // for std::abs(float/double)
@@ -60,8 +61,10 @@ NS_IMETHODIMP nsMsgBrkMBoxStore::DiscoverSubFolders(nsIMsgFolder *aParentFolder,
 
   bool exists;
   path->Exists(&exists);
-  if (!exists)
-    path->Create(nsIFile::DIRECTORY_TYPE, 0755);
+  if (!exists) {
+    rv = path->Create(nsIFile::DIRECTORY_TYPE, 0755);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 
   return AddSubFolders(aParentFolder, path, aDeep);
 }
@@ -96,7 +99,8 @@ NS_IMETHODIMP nsMsgBrkMBoxStore::CreateFolder(nsIMsgFolder *aParent,
   if (exists) //check this because localized names are different from disk names
     return NS_MSG_FOLDER_EXISTS;
 
-  path->Create(nsIFile::NORMAL_FILE_TYPE, 0600);
+  rv = path->Create(nsIFile::NORMAL_FILE_TYPE, 0600);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   //GetFlags and SetFlags in AddSubfolder will fail because we have no db at
   // this point but mFlags is set.
@@ -172,14 +176,18 @@ NS_IMETHODIMP nsMsgBrkMBoxStore::HasSpaceAvailable(nsIMsgFolder *aFolder,
   nsresult rv = aFolder->GetFilePath(getter_AddRefs(pathFile));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  // Allow the mbox to only reach 0xFFC00000 = 4 GiB - 4 MiB for now.
-  // This limit can be increased after bug 789679 is fixed.
-  int64_t fileSize;
-  rv = pathFile->GetFileSize(&fileSize);
-  NS_ENSURE_SUCCESS(rv, rv);
-  *aResult = ((fileSize + aSpaceRequested) < 0xFFC00000LL);
-  if (!*aResult)
-    return NS_ERROR_FILE_TOO_BIG;
+  bool allow4GBfolders = mozilla::Preferences::GetBool("mailnews.allowMboxOver4GB", true);
+
+  if (!allow4GBfolders) {
+    // Allow the mbox to only reach 0xFFC00000 = 4 GiB - 4 MiB.
+    int64_t fileSize;
+    rv = pathFile->GetFileSize(&fileSize);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    *aResult = ((fileSize + aSpaceRequested) < 0xFFC00000LL);
+    if (!*aResult)
+      return NS_ERROR_FILE_TOO_BIG;
+  }
 
   *aResult = DiskSpaceAvailableInStore(pathFile, aSpaceRequested);
   if (!*aResult)
@@ -212,7 +220,7 @@ NS_IMETHODIMP nsMsgBrkMBoxStore::IsSummaryFileValid(nsIMsgFolder *aFolder,
   nsCOMPtr<nsIDBFolderInfo> folderInfo;
   rv = aDB->GetDBFolderInfo(getter_AddRefs(folderInfo));
   NS_ENSURE_SUCCESS(rv, rv);
-  uint64_t folderSize;
+  int64_t folderSize;
   uint32_t folderDate;
   int32_t numUnreadMessages;
 
@@ -226,7 +234,7 @@ NS_IMETHODIMP nsMsgBrkMBoxStore::IsSummaryFileValid(nsIMsgFolder *aFolder,
   uint32_t actualFolderTimeStamp = 0;
   GetMailboxModProperties(aFolder, &fileSize, &actualFolderTimeStamp);
 
-  if ((int64_t)folderSize == fileSize && numUnreadMessages >= 0)
+  if (folderSize == fileSize && numUnreadMessages >= 0)
   {
     if (!folderSize)
     {
@@ -435,7 +443,10 @@ NS_IMETHODIMP nsMsgBrkMBoxStore::CopyFolder(nsIMsgFolder *aSrcFolder,
   if (!newPathIsDirectory)
   {
     AddDirectorySeparator(newPath);
-    newPath->Create(nsIFile::DIRECTORY_TYPE, 0700);
+    rv = newPath->Create(nsIFile::DIRECTORY_TYPE, 0700);
+    if (rv == NS_ERROR_FILE_ALREADY_EXISTS)
+      rv = NS_OK;
+    NS_ENSURE_SUCCESS(rv, rv);
   }
 
   nsCOMPtr<nsIFile> origPath;
@@ -618,13 +629,15 @@ nsMsgBrkMBoxStore::GetNewMsgOutputStream(nsIMsgFolder *aFolder,
   if (!db && !*aNewMsgHdr)
     NS_WARNING("no db, and no message header");
   bool exists;
+  nsresult rv;
   mboxFile->Exists(&exists);
-  if (!exists)
-    mboxFile->Create(nsIFile::NORMAL_FILE_TYPE, 0600);
+  if (!exists) {
+    rv = mboxFile->Create(nsIFile::NORMAL_FILE_TYPE, 0600);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 
   nsCString URI;
   aFolder->GetURI(URI);
-  nsresult rv;
   nsCOMPtr<nsISeekableStream> seekable;
   if (m_outputStreams.Get(URI, aResult))
   {

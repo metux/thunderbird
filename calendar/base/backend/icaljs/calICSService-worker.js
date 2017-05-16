@@ -8,16 +8,15 @@
 
 var NS_OK = 0;
 var NS_ERROR_FAILURE = 2147500037;
-var ICS_ERROR_BASE = 2152333568;
 
 importScripts("resource://calendar/modules/ical.js");
 
-onmessage = function onmessage(event) {
+onmessage = function(event) {
     try {
         let comp = ICAL.parse(event.data);
         postMessage({ rc: NS_OK, data: comp });
     } catch (e) {
-        postMessage({ rc: NS_ERROR_FAILURE, data: "Exception occurred: " + e});
+        postMessage({ rc: NS_ERROR_FAILURE, data: "Exception occurred: " + e });
     }
     close();
-}
+};

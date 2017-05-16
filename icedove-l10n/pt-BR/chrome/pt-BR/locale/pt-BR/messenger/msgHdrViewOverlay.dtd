@@ -5,6 +5,7 @@
 <!ENTITY toField4.label "Para">
 <!ENTITY fromField4.label "De">
 <!ENTITY senderField4.label "Remetente">
+<!ENTITY author.label "Autor">
 <!ENTITY organizationField4.label "Empresa">
 <!ENTITY replyToField4.label "Responder para">
 
@@ -23,6 +24,8 @@
 
 <!ENTITY hdrArchiveButton1.label "Arquivar">
 <!ENTITY hdrArchiveButton1.tooltip "Arquivar esta mensagem">
+<!ENTITY hdrOpenConversationButton1.label "Conversa">
+<!ENTITY hdrOpenConversationButton1.tooltip "Mostrar a conversa desta mensagem">
 <!ENTITY hdrSmartReplyButton1.label "Responder inteligente">
 <!ENTITY hdrReplyButton1.label "Responder">
 <!ENTITY hdrReplyButton2.tooltip "Responder ao remetente desta mensagem">
@@ -44,7 +47,7 @@
 <!ENTITY hdrViewToolbarShowFull.accesskey "x">
 <!ENTITY hdrViewToolbarShowIcons.label "Exibir somente ícones">
 <!ENTITY hdrViewToolbarShowIcons.accesskey "E">
-<!ENTITY hdrViewToolbarShowText.label "Exibir somente texto">
+<!ENTITY hdrViewToolbarShowText.label "Mostrar somente texto">
 <!ENTITY hdrViewToolbarShowText.accesskey "b">
 <!ENTITY hdrViewToolbarAlwaysReplySender.label "Sempre exibir o “Responder a”">
 <!ENTITY hdrViewToolbarAlwaysReplySender.accesskey "S">
@@ -67,12 +70,12 @@
 <!ENTITY viewSourceMenuItem1.accesskey "V">
 <!ENTITY otherActionsPrint1.label "Imprimir…">
 <!ENTITY otherActionsPrint1.accesskey "I">
-<!-- Attachment bar context menu items -->
 
+<!-- Attachment bar context menu items -->
 <!ENTITY startExpandedCmd.label    "Sempre exibir o painel de anexos">
 <!ENTITY startExpandedCmd.accesskey    "S">
-<!-- Attachment context menu items -->
 
+<!-- Attachment context menu items -->
 <!ENTITY openAttachmentCmd.label    "Abrir">
 <!ENTITY openAttachmentCmd.accesskey    "A">
 <!ENTITY saveAsAttachmentCmd.label    "Salvar como…">
@@ -91,8 +94,8 @@
 <!ENTITY deleteAllAttachmentsCmd.accesskey    "x">
 
 <!ENTITY openAttachment.tooltip "Abrir o arquivo anexo">
-<!-- Attachment toolbar items -->
 
+<!-- Attachment toolbar items -->
 <!ENTITY saveAttachmentButton1.label       "Salvar">
 <!ENTITY saveAttachmentButton1.tooltip     "Salvar arquivo anexo">
 <!ENTITY saveAllAttachmentsButton1.label   "Salvar todos">

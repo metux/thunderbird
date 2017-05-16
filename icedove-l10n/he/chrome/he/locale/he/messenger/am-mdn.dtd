@@ -5,6 +5,7 @@
 <!ENTITY pane.title                   "קבלות חוזרות">
 <!ENTITY useGlobalPrefs.label         "השתמש בהעדפות קבלות חוזרות הכלליות שלי עבור חשבון זה">
 <!ENTITY useGlobalPrefs.accesskey     "ע">
+<!ENTITY globalReceipts.label         "העדפות כלליות…">
 <!ENTITY useCustomPrefs.label         "התאם אישית קבלות חוזרות עבור חשבון זה">
 <!ENTITY useCustomPrefs.accesskey     "ש">
 <!ENTITY requestReceipt.label         "בעת שליחת הודעות, בקש תמיד קבלה חוזרת">
@@ -30,7 +31,4 @@
 <!ENTITY alwaysSend.label             "שלח תמיד">
 <!ENTITY neverSend.label              "אל תשלח לעולם">
 
-
-
 <!ENTITY globalReceipts.accesskey     "G">
-<!ENTITY globalReceipts.label         "Global Preferences…">

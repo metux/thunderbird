@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+"use strict";
+
 var ELLIPSIS = Services.prefs.getComplexValue("intl.ellipsis",
                                                 Ci.nsIPrefLocalizedString).data;
 
@@ -107,14 +109,29 @@ function formatPrefValue(prefValue) {
 
 function getModifiedPrefs() {
   // We use the low-level prefs API to identify prefs that have been
-  // modified, rather that Application.prefs.all since the latter is
-  // much, much slower.  Application.prefs.all also gets slower each
+  // modified, rather than extApplication.js::prefs.all since the latter is
+  // much, much slower. extApplication.js::prefs.all also gets slower each
   // time it's called.  See bug 517312.
+  function GetPref(name) {
+    let type = Services.prefs.getPrefType(name);
+    switch (type) {
+      case Services.prefs.PREF_STRING:
+        return Services.prefs.getCharPref(name);
+      case Services.prefs.PREF_INT:
+        return Services.prefs.getIntPref(name);
+      case Services.prefs.PREF_BOOL:
+        return Services.prefs.getBoolPref(name);
+      default:
+        throw new Error("Unknown type");
+    }
+  }
+
   let prefNames = getWhitelistedPrefNames();
-  let prefs = [Application.prefs.get(prefName)
-                      for (prefName of prefNames)
-                          if (Services.prefs.prefHasUserValue(prefName)
-                            && !isBlacklisted(prefName))];
+  prefNames = prefNames.filter(prefName => (Services.prefs.prefHasUserValue(prefName)
+                                            && !isBlacklisted(prefName)));
+  let prefs = [];
+  prefNames.forEach(prefName =>
+                    prefs.push({ name: prefName, value: GetPref(prefName) }));
   return prefs;
 }
 

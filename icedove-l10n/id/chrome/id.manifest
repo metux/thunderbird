@@ -4,12 +4,12 @@ locale branding id id/locale/id/branding/
 locale chat id id/locale/id/chat/
 locale communicator id id/locale/id/communicator/
 locale cookie id id/locale/id/cookie/
+locale devtools id id/locale/id/devtools/client/
 locale devtools-shared id id/locale/id/devtools/shared/
 locale editor id id/locale/id/editor/
 locale formautofill id id/locale/id/formautofill/
 locale global id id/locale/id/global/
 locale global-platform id id/locale/id/global-platform/
-locale global-region id id/locale/id/global-region/
 locale messenger id id/locale/id/messenger/
 locale messenger-mapi id id/locale/id/messenger-mapi/
 locale messenger-newsblog id id/locale/id/messenger-newsblog/

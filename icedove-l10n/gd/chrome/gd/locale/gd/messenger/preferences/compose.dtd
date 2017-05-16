@@ -11,7 +11,7 @@
 <!ENTITY forwardMsg.label                     "Sìn air adhart teachdaireachdan:">
 <!ENTITY forwardMsg.accesskey                 "S">
 <!ENTITY inline.label                         "Taobh a-staigh na loidhne">
-<!ENTITY asAttachment.label                   "Taobh a-staigh na loidhne">
+<!ENTITY asAttachment.label                   "Mar cheanglachan">
 <!ENTITY addExtension.label                   "cuir leudachan ri ainm an fhaidhle">
 <!ENTITY addExtension.accesskey               "e">
 
@@ -26,8 +26,8 @@
 <!ENTITY bgColor.accesskey                    "b">
 <!ENTITY restoreHTMLDefaults.label            "Aisig na roghainnean bunaiteach">
 <!ENTITY restoreHTMLDefaults.accesskey        "r">
-<!ENTITY enterKeyCreatesNewParagraph.label    "Nuair a bhios tu san fhòrmat pharagraf, cruthaichidh an iuchair Enter paragraf ùr.">
-<!ENTITY enterKeyCreatesNewParagraph.accesskey "p">
+<!ENTITY defaultToParagraph.label             "Cleachd fòrmat pharagrafan a ghnàth seach teacsa bodhaig">
+<!ENTITY defaultToParagraph.accesskey         "p">
 
 <!ENTITY spellCheck.label                     "Ceartaich an litreachadh mus dèid a chur">
 <!ENTITY spellCheck.accesskey                 "C">

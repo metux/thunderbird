@@ -5,6 +5,7 @@
 var {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 Cu.import("resource:///modules/imXPCOMUtils.jsm");
 Cu.import("resource:///modules/imServices.jsm");
+Cu.import("resource://gre/modules/Task.jsm")
 Cu.import("resource://gre/modules/osfile.jsm");
 
 var kNotificationsToObserve =
@@ -150,7 +151,7 @@ ConvStatsService.prototype = {
     // Read all our conversation stats from the cache.
     this._statsCacheFilePath =
       OS.Path.join(OS.Constants.Path.profileDir, "statsservicecache.json");
-    OS.File.read(this._statsCacheFilePath).then(function(aArray) {
+    OS.File.read(this._statsCacheFilePath).then((aArray) => {
       try {
         let {version: version, stats: allStats} =
           JSON.parse((new TextDecoder()).decode(aArray));
@@ -173,12 +174,12 @@ ConvStatsService.prototype = {
         if (Services.prefs.getBoolPref("statsService.parseLogsForStats"))
           gLogParser.sweep(this);
       }
-    }.bind(this), function(aError) {
+    }, (aError) => {
       if (!aError.becauseNoSuchFile)
         Cu.reportError("Error while reading conversation stats cache.\n" + aError);
       if (Services.prefs.getBoolPref("statsService.parseLogsForStats"))
         gLogParser.sweep(this);
-    }.bind(this));
+    });
   },
 
   _addContact: function(aContact) {
@@ -198,44 +199,62 @@ ConvStatsService.prototype = {
     this._contactsById.delete(aId);
   },
 
-  // Queue of RoomInfo to be added.
-  _pendingChats: [],
   // The last time an update notification was sent to observers.
   _lastUpdateNotification: 0,
   // Account ids from which chat room info has been requested.
   // We send an update notification if this is empty after adding chat rooms.
   _accountsRequestingRoomInfo: new Set(),
-  _addPendingChats: function() {
-    let begin = Date.now();
-    for (let time = 0; time < 15 && this._pendingChats.length;
-         time = Date.now() - begin) {
-      let chat = this._pendingChats.pop();
-      let accountId = chat.accountId;
-      let chatList = this._chatsByAccountIdAndName.get(accountId);
-      if (!chatList) {
-        chatList = new Map();
-        this._chatsByAccountIdAndName.set(accountId, chatList);
-      }
-      // If a chat is already added, we remove it and re-add to refresh.
-      else if (chatList.has(chat.name)) {
-        this._convs.splice(
-          this._convs.indexOf(chatList.get(chat.name)), 1);
-      }
-      let possibleConv = new PossibleChat(chat);
-      let pos = this._getPositionToInsert(possibleConv, this._convs);
-      this._convs.splice(pos, 0, possibleConv);
-      chatList.set(chat.name, possibleConv);
+  _addPendingChats: function(aAccountId, aRoomInfo) {
+    if (this._pendingChats) {
+      this._pendingChats.push([aAccountId, aRoomInfo]);
+      return;
     }
-    if (this._pendingChats.length)
-      executeSoon(this._addPendingChats.bind(this));
-    else
-      delete this._addingPendingChats;
-    let now = Date.now();
-    if ((!this._accountsRequestingRoomInfo.size && !this._pendingChats.length) ||
-        now - this._lastUpdateNotification > 500) {
-      this._notifyObservers("updated");
-      this._lastUpdateNotification = now;
-    }
+
+    this._pendingChats = [[aAccountId, aRoomInfo]];
+    Task.spawn(function*() {
+      let t = Date.now();
+      let sendUpdateNotification = () => {
+        if ((!this._accountsRequestingRoomInfo.size &&
+             !this._pendingChats.length) ||
+            t - this._lastUpdateNotification > 500) {
+          this._notifyObservers("updated");
+          this._lastUpdateNotification = t;
+        }
+      };
+
+      while (this._pendingChats.length) {
+        let [accountId, rooms] = this._pendingChats.pop();
+
+        let chatList = this._chatsByAccountIdAndName.get(accountId);
+        if (!chatList) // Account no longer connected.
+          continue;
+
+        for (let name of rooms) {
+          // If a chat is already added, we remove it and re-add to refresh.
+          if (chatList.has(name))
+            this._convs.splice(this._convs.indexOf(chatList.get(name)), 1);
+          let possibleConv = new PossibleChat(accountId, name);
+          let pos = this._getPositionToInsert(possibleConv, this._convs);
+          this._convs.splice(pos, 0, possibleConv);
+          chatList.set(name, possibleConv);
+
+          // Unblock every 10ms.
+          if (Date.now() > t + 10) {
+            yield Promise.resolve();
+            t = Date.now();
+            sendUpdateNotification();
+            if (!this._chatsByAccountIdAndName.has(accountId)) {
+              // The account was disconnected in the meantime, so don't add
+              // any more chats to it.
+              break;
+            }
+          }
+        }
+      }
+      t = Date.now();
+      sendUpdateNotification();
+      delete this._pendingChats;
+    }.bind(this));
   },
 
   _removeChatsForAccount: function(aAccId) {
@@ -245,7 +264,6 @@ ConvStatsService.prototype = {
     this._convs = this._convs.filter(c =>
       c.source != "chat" || c.accountId != aAccId);
     this._chatsByAccountIdAndName.delete(aAccId);
-    this._pendingChats = this._pendingChats.filter(c => c.accountId != aAccId);
   },
 
   _getPositionToInsert: function(aPossibleConversation, aArrayToInsert) {
@@ -329,7 +347,7 @@ ConvStatsService.prototype = {
             if (word.startsWith(s))
               return true;
             // Ignore channel prefix characters.
-            while (word.length && "#&+!@_*".indexOf(word[0]) != -1) {
+            while (word.length && "#&+!@_*".includes(word[0])) {
               word = word.substr(1);
               if (word.startsWith(s))
                 return true;
@@ -376,18 +394,17 @@ ConvStatsService.prototype = {
         // Discard any chat room data we already have.
         this._removeChatsForAccount(id);
         try {
-          acc.prplAccount.requestRoomInfo(function(aRoomInfo, aPrplAccount, aCompleted) {
+          this._chatsByAccountIdAndName.set(id, new Map());
+          acc.prplAccount.requestRoomInfo((aRoomInfo, aCompleted) => {
             if (aCompleted)
-              this._accountsRequestingRoomInfo.delete(acc.id);
-            this._pendingChats = this._pendingChats.concat(aRoomInfo);
-            if (this._addingPendingChats)
-              return;
-            this._addingPendingChats = true;
-            executeSoon(this._addPendingChats.bind(this));
-          }.bind(this));
-          this._accountsRequestingRoomInfo.add(acc.id);
+              this._accountsRequestingRoomInfo.delete(id);
+            this._addPendingChats(id, aRoomInfo);
+          });
+          this._accountsRequestingRoomInfo.add(id);
         } catch(e) {
-          if (e.result != Cr.NS_ERROR_NOT_IMPLEMENTED)
+          if (e.result == Cr.NS_ERROR_NOT_IMPLEMENTED)
+            this._chatsByAccountIdAndName.delete(id);
+          else
             Cu.reportError(e);
           continue;
         }
@@ -396,7 +413,7 @@ ConvStatsService.prototype = {
   },
 
   addObserver: function(aObserver) {
-    if (this._observers.indexOf(aObserver) != -1)
+    if (this._observers.includes(aObserver))
       return;
     this._observers.push(aObserver);
 
@@ -430,7 +447,7 @@ ConvStatsService.prototype = {
     if (aTopic == "profile-after-change")
       Services.obs.addObserver(this, "prpl-init", false);
     else if (aTopic == "prpl-init") {
-      executeSoon(this._init.bind(this));
+      executeSoon(() => this._init());
       Services.obs.removeObserver(this, "prpl-init");
     }
     else if (aTopic == "prpl-quit") {
@@ -459,7 +476,7 @@ ConvStatsService.prototype = {
       // Schedule a cache update in 10 minutes.
       if (!this._statsCacheUpdateTimer) {
         this._statsCacheUpdateTimer =
-          setTimeout(this._cacheAllStats.bind(this), 600000);
+          setTimeout(() => this._cacheAllStats(), 600000);
       }
     }
     else if (aTopic == "new-conversation") {
@@ -622,7 +639,7 @@ PossibleConvFromContact.prototype = {
   get lowerCaseName() {
     if (!this._lowerCaseName) {
       let buddies = this.contact.getBuddies();
-      let names = [b.displayName for (b of buddies)].join(" ");
+      let names = buddies.map(b => b.displayName).join(" ");
       this._lowerCaseName = names.toLowerCase();
     }
     return this._lowerCaseName;
@@ -661,34 +678,41 @@ PossibleConvFromContact.prototype = {
   createConversation: function() { return this.contact.createConversation(); }
 };
 
-function PossibleChat(aRoomInfo) {
-  this._roomInfo = aRoomInfo;
+function PossibleChat(aAccountId, aName) {
+  this.displayName = aName;
+  this.accountId = aAccountId;
   let account = this.account;
   this.id = getConversationId(account.protocol.normalizedName,
                               account.normalizedName,
-                              account.normalize(aRoomInfo.name), true);
+                              account.normalize(aName), true);
 }
 PossibleChat.prototype = {
   get isChat() { return true; },
   get statusType() { return Ci.imIStatusInfo.STATUS_AVAILABLE; },
   get buddyIconFilename() { return ""; },
-  get displayName() { return this._roomInfo.name; },
   get lowerCaseName() {
     return this._lowerCaseName || (this._lowerCaseName = this.displayName.toLowerCase());
   },
   get statusText() {
-    return "(" + this._roomInfo.participantCount + ") " + this._roomInfo.topic;
+    let roomInfo = this.account.prplAccount.getRoomInfo(this.displayName);
+    let text = "";
+    if (roomInfo.participantCount != Ci.prplIRoomInfo.NO_PARTICIPANT_COUNT)
+      text += "(" + roomInfo.participantCount + ") ";
+    if (roomInfo.topic)
+      text += roomInfo.topic;
+    return text;
   },
   get infoText() { return this.account.normalizedName; },
   get source() { return "chat"; },
-  get accountId() { return this._roomInfo.accountId; },
   get account() { return Services.accounts.getAccountById(this.accountId); },
   createConversation: function() {
-    this.account.joinChat(this._roomInfo.chatRoomFieldValues);
+    let account = this.account;
+    account.joinChat(account.prplAccount.getRoomInfo(this.displayName)
+                                        .chatRoomFieldValues);
     // Work around the fact that joinChat doesn't return the conv.
     return Services.conversations
-                   .getConversationByNameAndAccount(this._roomInfo.name,
-                                                    this.account, true);
+                   .getConversationByNameAndAccount(this.displayName,
+                                                    account, true);
   },
   get computedScore() {
     let stats = gStatsByConvId[this.id];

@@ -2,7 +2,7 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY itemGeneral.label       "Powškny">
+<!ENTITY itemGeneral.label       "Powšykne">
 <!ENTITY dataChoicesTab.label    "Datowy wuběrk">
 <!ENTITY itemUpdate.label        "Aktualizacija">
 <!ENTITY itemNetworking.label    "Seś a platowy rum">
@@ -12,7 +12,7 @@
 <!ENTITY enableGlodaSearch.label       "Globalne pytanje a indicěrowanje zmóžniś">
 <!ENTITY enableGlodaSearch.accesskey   "G">
 <!ENTITY allowHWAccel.label            "Hardwarowe póspěšenje wužywaś, jolic jo k dispoziciji">
-<!ENTITY allowHWAccel.accesskey        "h">
+<!ENTITY allowHWAccel.accesskey        "H">
 <!ENTITY storeType.label               "Sładowański typ powěsćow za nowe konta:">
 <!ENTITY storeType.accesskey           "t">
 <!ENTITY mboxStore2.label              "Dataja na zarědnik (mbox)">
@@ -32,8 +32,8 @@
 <!ENTITY checkDefaultsNow.label        "Něnto kontrolěrowaś…">
 <!ENTITY checkDefaultsNow.accesskey    "N">
 <!ENTITY configEditDesc.label          "Rozšyrjona konfiguracija">
-<!ENTITY configEdit.label              "Editor konfigurěrowaś…">
-<!ENTITY configEdit.accesskey          "E">
+<!ENTITY configEdit.label              "Konfiguraciski editor…">
+<!ENTITY configEdit.accesskey          "K">
 <!ENTITY returnReceiptsInfo.label      "Póstajiś, kak &brandShortName; ma z wobtwarźenjami dostaśa wobchadaś">
 <!ENTITY showReturnReceipts.label      "Wobtwarźenja dostaśa…">
 <!ENTITY showReturnReceipts.accesskey  "t">
@@ -46,7 +46,7 @@
 <!ENTITY telemetryLearnMore.label        "Dalšne informacije">
 
 <!ENTITY crashReporterSection.label      "Rozpšawjak wó wowalenjach">
-<!ENTITY crashReporterDesc.label         "&brandShortName; sćelo rozpšawy wó wowalenjach, aby&vendorShortName; pomagał, waš e-mailowy klient stabilnjejšy a wěsćejšy cyniś.">
+<!ENTITY crashReporterDesc.label         "&brandShortName; sćelo rozpšawy wó wowalenjach, aby&vendorShortName; pomagał, waš e-mailowy klient stabilnjejšy a wěsćejšy cyniś">
 <!ENTITY enableCrashReporter.label       "Rozpšawjak wo wowalenjach zmóžniś">
 <!ENTITY enableCrashReporter.accesskey   "R">
 <!ENTITY crashReporterLearnMore.label    "Dalšne informacije">
@@ -59,8 +59,6 @@
 <!ENTITY updateCheck.accesskey           "c">
 <!ENTITY updateManual.label              "Nigda aktualizacije njepytaś (njepśiraźijo se: wěstotne riziko)">
 <!ENTITY updateManual.accesskey          "N">
-<!ENTITY updateAutoAddonWarn.label       "Warnowaś, jolic to znjemóžnijo jaden z dodankow">
-<!ENTITY updateAutoAddonWarn.accesskey   "W">
 <!ENTITY updateHistory.label             "Historiju aktualizacijow pokazaś">
 <!ENTITY updateHistory.accesskey         "H">
 
@@ -101,9 +99,9 @@
 <!ENTITY certs.ask                       "Kuždy raz se pšašaś">
 <!ENTITY certs.ask.accesskey             "K">
 <!ENTITY enableOCSP.label                "Pla wótegronowych serwerow OCSP se napšašowaś, aby se aktualna płaśiwosć certifikatow wobkšuśiło">
-<!ENTITY enableOCSP.accesskey            "Q">
+<!ENTITY enableOCSP.accesskey            "P">
 
-<!ENTITY viewCertificates.label         "Certifikaty zwobrazniś">
-<!ENTITY viewCertificates.accesskey     "C">
-<!ENTITY viewSecurityDevices.label      "Wěstotne rědy">
-<!ENTITY viewSecurityDevices.accesskey  "s">
+<!ENTITY manageCertificates.label "Certifikaty zastojaś">
+<!ENTITY manageCertificates.accesskey "C">
+<!ENTITY viewSecurityDevices.label "Wěstotne rědy">
+<!ENTITY viewSecurityDevices.accesskey "s">
