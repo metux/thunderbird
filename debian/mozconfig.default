@@ -16,18 +16,19 @@
 #      mozconfig.$APPLICATION file!
 
 # use/use not packaged software instead of preshipped
-ac_add_options --without-system-jpeg     # Mozilla uses a modified libjpeg
+ac_add_options --with-system-jpeg
 ac_add_options --with-system-bz2
 ac_add_options --with-system-icu
 ac_add_options --with-system-nspr
 ac_add_options --with-system-nss
-ac_add_options --with-system-zlib=/usr
+ac_add_options --with-system-zlib
 
 # other packaged software
 ac_add_options --with-system-libevent
 ac_add_options --with-system-libvpx
 
 # disabled features
+ac_add_options --disable-gconf
 ac_add_options --disable-install-strip
 ac_add_options --disable-strip
 ac_add_options --disable-tests
