@@ -1168,6 +1168,9 @@ class LinuxCrossCompileToolchainTest(BaseToolchainTest):
         'm68k-unknown-linux-gnu': big_endian + {
             '__m68k__': 1,
         },
+        'sh4-unknown-linux-gnu': little_endian + {
+            '__sh__': 1,
+        },
     }
 
     PLATFORMS['powerpc64le-unknown-linux-gnu'] = \

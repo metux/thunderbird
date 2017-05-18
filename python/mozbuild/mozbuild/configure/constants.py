@@ -91,6 +91,7 @@ CPU_preprocessor_checks = OrderedDict((
     ('mips32', '__mips__'),
     ('sh4', '__sh__'),
     ('m68k', '__m68k__'),
+    ('sh4', '__sh__'),
 ))
 
 assert sorted(CPU_preprocessor_checks.keys()) == sorted(CPU.POSSIBLE_VALUES)
