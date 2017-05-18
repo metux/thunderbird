@@ -229,6 +229,7 @@ Package: thunderbird-dbg
 Architecture: any
 Priority: extra
 Section: debug
+Multi-Arch: same
 Depends:
  thunderbird (= ${binary:Version}),
  ${misc:Depends},
