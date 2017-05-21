@@ -1,3 +1,147 @@
+icedove (1:52.1.1-1) unstable; urgency=medium
+
+  [ Guido Günther ]
+  * [db8d0db] Tighten meta package dependencies
+  * [defb689] Copy-edit thunderbird-wrapper-helper.sh
+  * [54b35d4] Allow one to override the location of the wrapper-helper
+  * [a187364] dh-exec: avoid multiple spaces around filenames
+  * [a85bc7a] thunderbird-wrapper: robustness when sourcing helper
+  * [eee56ab] Drop replaces on packages no longer in any release
+
+  [ Carsten Schoenert ]
+  * [1d85980] rebuild patch queue from patch-queue branch
+    added patches:
+    - porting-mk68/Add-m68k-support-to-Thunderbird.patch
+    - porting-sparc64/Add-sparc64-support-to-Thunderbird.patch
+    (Closes: #859151, #859271)
+  * [2717849] tb-wrapper: call thunderbird starting with exec
+    (Closes: #858100)
+  * [8afa31b] d/gbp.conf: adjust upstream branch to new ESR version
+  * [43d2e70] New upstream version 52.1.1
+    Fixed CVE issues in upstream version 52.0 (MFSA 2017-09)
+    CVE-2017-5413: Segmentation fault during bidirectional operations
+    CVE-2017-5414: File picker can choose incorrect default directory
+    CVE-2017-5416: Null dereference crash in HttpChannel
+    CVE-2017-5426: Gecko Media Plugin sandbox is not started if seccomp-bpf
+                   filter is running
+    CVE-2017-5418: Out of bounds read when parsing HTTP digest authorization
+                   responses
+    CVE-2017-5419: Repeated authentication prompts lead to DOS attack
+    CVE-2017-5405: FTP response codes can cause use of uninitialized values
+                   for ports
+    CVE-2017-5421: Print preview spoofing
+    CVE-2017-5422: DOS attack by using view-source: protocol repeatedly in one
+                   hyperlink
+    CVE-2017-5399: Memory safety bugs fixed in Thunderbird 52
+    Fixed CVE issues in upstream version 52.1.0 (MFSA 2017-13)
+    CVE-2017-5433: Use-after-free in SMIL animation functions
+    CVE-2017-5435: Use-after-free during transaction processing in the editor
+    CVE-2017-5436: Out-of-bounds write with malicious font in Graphite 2
+    CVE-2017-5461: Out-of-bounds write in Base64 encoding in NSS
+    CVE-2017-5459: Buffer overflow in WebGL
+    CVE-2017-5466: Origin confusion when reloading isolated data:text/html URLs
+    CVE-2017-5434: Use-after-free during focus handling
+    CVE-2017-5432: Use-after-free in text input selection
+    CVE-2017-5460: Use-after-free in frame selection
+    CVE-2017-5438: Use-after-free in nsAutoPtr during XSLT processing
+    CVE-2017-5439: Use-after-free in nsTArray Length() during XSLT processing
+    CVE-2017-5440: Use-after-free in txExecutionState destructor during XSLT
+                   processing
+    CVE-2017-5441: Use-after-free with selection during scroll events
+    CVE-2017-5442: Use-after-free during style changes
+    CVE-2017-5464: Memory corruption with accessibility and DOM manipulation
+    CVE-2017-5443: Out-of-bounds write during BinHex decoding
+    CVE-2017-5444: Buffer overflow while parsing application/http-index-format
+                   contents
+    CVE-2017-5446: Out-of-bounds read when HTTP/2 DATA frames are sent with
+                   incorrect data
+    CVE-2017-5447: Out-of-bounds read during glyph processing
+    CVE-2017-5465: Out-of-bounds read in ConvolvePixel
+    CVE-2016-10196: Vulnerabilities in Libevent library
+    CVE-2017-5454: Sandbox escape allowing file system read access through
+                   file picker
+    CVE-2017-5469: Potential Buffer overflow in flex-generated code
+    CVE-2017-5445: Uninitialized values used while parsing
+                   application/http-index-format content
+    CVE-2017-5449: Crash during bidirectional unicode manipulation with
+                   animation
+    CVE-2017-5451: Addressbar spoofing with onblur event
+    CVE-2017-5462: DRBG flaw in NSS
+    CVE-2017-5467: Memory corruption when drawing Skia content
+    CVE-2017-5430: Memory safety bugs fixed in Firefox 53, Firefox ESR 52.1,
+                   Thunderbird 52.1
+    CVE-2017-5429: Memory safety bugs fixed in Firefox 53, Firefox ESR 45.9,
+                   Firefox ESR 52.1, and Thunderbird 52.1
+    (Closes: #855344, #495372, #861480, #682208, #698244, #859909, #857593,
+             #837771)
+  * [de561ef] rebuild patch queue from patch-queue branch
+    added patches:
+    - debian-hacks/Allow-to-override-ICU_DATA_FILE-from-the-environment.patch
+    - debian-hacks/Build-against-system-libjsoncpp.patch
+    - debian-hacks/Don-t-build-testing-suites-and-stuff.patch
+    - debian-hacks/Force-use-the-i686-rust-target.patch
+    - fixes/Bug-1308908-Compare-the-whole-accessible-name-when-checki.patch
+      (Closes: #826325)
+    - porting-sh4/Add-sh4-support-to-Thunderbird.patch
+      (Closes: #859508)
+    removed patches (obsolet by upstream changes):
+    - debian-hacks/Don-t-build-example-component.patch
+    - debian-hacks/fix-identification-of-ObjdirMismatchException.patch
+    - fixes/Bug-1245076-Don-t-include-mozalloc.h-from-the-cstdlib-wra.patch
+    - fixes/Bug-1273020-Add-missing-null-checks-in-ApplicationAccessi.patch
+    - fixes/Bug-1277295-Remove-obsolete-reference-to-storage-service-.patch
+    - fixes/Bug-1340724-fix-SMTP-server-name-output-in-SMTP-logging.-.patch
+    - fixes/Bug-497488-Implement-verify-mode-in-the-subscribe-dialog-.patch
+    - fixes/Bug-497488-RSS-feeds-with-an-invalid-certificate-fail-wit-1.patch
+    - fixes/Bug-497488-RSS-feeds-with-an-invalid-certificate-fail-wit.patch
+    - porting-arm64/Bug-1091515-Don-t-set-64KB-page-size-on-aarch64.-r-glandi.patch
+    - porting-kfreebsd-hurd/CrossProcessMutex.h-fix-build-on-kfreebsd-and-GNU-hurd.patch
+    - porting-kfreebsd-hurd/FTBFS-hurd-adding-the-HURD-platform-to-the-configure.patch
+    - porting-kfreebsd-hurd/correcting-file-inclusion-for-kfreebsd-and-hurd.patch
+    - porting-mips/Fix-build-error-in-MIPS-SIMD-when-compiling-with-mfp.patch
+    - porting-mips/libyuv_disable-mips-assembly-for-MIPS64.patch
+    - porting-powerpcspe/FTBFS-powerpcspe-disable-AltiVec-instructions.patch
+    - porting-sparc64/Add-sparc64-support-to-Thunderbird.patch
+     (unclear state, will be added later again)
+    - porting/Add-xptcall-support-for-SH4-processors.patch
+      (Closes: #859362)
+    - debian-hacks/Move-profile.patch
+    modified or adjusted patches:
+    - debian-hacks/changing-the-default-search-engine.patch
+    - debian-hacks/stop-configure-if-with-system-bz2-was-passed-but-no-.patch
+    - icedove-l10n/disable-extension-update-extension-is-managed-by-apt.patch
+      --> icedove-l10n/thunderbird-l10n-disable-external-extension-update.patch
+          (renamed to and modified due new languages)
+    - icedove/fix-installdir.patch
+      --> debian-hacks/Thunderbird-fix-installdir-for-icons.patch
+  * [684ad58] d/source.filter: update due upstream changes
+  * [d005649] debian/control: modify various B-D
+  * [7a8a98d] debian/rules: adding some more extra C*FLAGS
+  * [56f8f4b] debian/rules: adding hack to preserve correct config.status
+  * [fb500a6] mozconfig.default: remove no longer existing options
+  * [c9a3e60] mozconfig.default: some minor adjustments to configure options
+  * [f584857] mozconfig.default: enable GTK3 theme explicit
+    (Closes: #857593)
+  * [3cbe1fb] debian/control: add packages for *-dsb language
+  * [8317735] debian/control: add packages for *-hsb language
+  * [39d90c1] debian/control: add packages for *-kab language
+  * [82b4f50] debian/control: add missing packages for *-ast language
+  * [0edde96] debian/rules: include also l10n folder with 3 characters
+  * [47f17a4] lintian-overrides: modify the list for the js files to ignore
+  * [8872d34] debian/copyright: update after upstream changes
+  * [6755547] mozconfig.default: use some internal libraries
+              Use libicu-dev, libnspr4-dev, libnss3-dev, libsqlite3-dev from
+              shipped source as Stretch versions not recent enough.
+  * [5b04b32] thunderbird.install: pick up icu*.dat if around
+  * [edf24d7] debian/control: mark thunderbird-dbg as Multi-Arch: same
+  * [5d5392b] apparmor/usr.bin.thunderbird: update for version 52
+              (cherry-picked from upstream)
+    (Closes: #859179)
+  * [f49ad79] apparmor/usr.bin.thunderbird: grant access to commonly used
+              locations (cherry-picked from upstream)
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Thu, 20 May 2017 10:32:48 +0200
+
 icedove (1:45.8.0-3) unstable; urgency=medium
 
   [ Carsten Schoenert ]
