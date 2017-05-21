@@ -124,16 +124,16 @@ override_dh_auto_install:
 	# install lightning-l10n
 	for jar in $(LIGHTNING_L10N_BUILDDIR)/*.jar; do \
 		locale=`basename $${jar} .jar | tr 'A-Z' 'a-z'`; \
-		mkdir -p $(CURDIR)/debian/lightning-l10n-$${locale}/usr/share/iceowl/extensions/langpack-$${locale}@lightning.debian.org/chrome; \
-		install -m 644 $${jar} $(CURDIR)/debian/lightning-l10n-$${locale}/usr/share/iceowl/extensions/langpack-$${locale}@lightning.debian.org/chrome/; \
+		mkdir -p $(CURDIR)/debian/lightning-l10n-$${locale}/usr/share/lightning/extensions/langpack-$${locale}@lightning.debian.org/chrome; \
+		install -m 644 $${jar} $(CURDIR)/debian/lightning-l10n-$${locale}/usr/share/lightning/extensions/langpack-$${locale}@lightning.debian.org/chrome/; \
 	done
 	for jar in $(LIGHTNING_L10N_BUILDDIR)/*.jar; do \
 		locale=`basename $${jar} .jar | tr 'A-Z' 'a-z'`; \
-		mkdir -p $(CURDIR)/debian/lightning-l10n-$${locale}/usr/lib/iceowl/extensions/; \
-		ln -sf /usr/share/iceowl/extensions/langpack-$${locale}@lightning.debian.org/ \
-			$(CURDIR)/debian/lightning-l10n-$${locale}/usr/lib/iceowl/extensions/langpack-$${locale}@lightning.debian.org; \
+		mkdir -p $(CURDIR)/debian/lightning-l10n-$${locale}/usr/lib/lightning/extensions/; \
+		ln -sf /usr/share/lightning/extensions/langpack-$${locale}@lightning.debian.org/ \
+			$(CURDIR)/debian/lightning-l10n-$${locale}/usr/lib/lightning/extensions/langpack-$${locale}@lightning.debian.org; \
 		mkdir -p $(CURDIR)/debian/lightning-l10n-$${locale}/usr/lib/thunderbird/extensions/; \
-		ln -sf /usr/share/iceowl/extensions/langpack-$${locale}@lightning.debian.org/ \
+		ln -sf /usr/share/lightning/extensions/langpack-$${locale}@lightning.debian.org/ \
 			$(CURDIR)/debian/lightning-l10n-$${locale}/usr/lib/thunderbird/extensions/langpack-$${locale}@lightning.debian.org; \
 	done
 	# install lightning-l10n; install.rdf
@@ -141,7 +141,7 @@ override_dh_auto_install:
 		locale=`basename $${jar} .jar | tr 'A-Z' 'a-z'`; \
 		sed -e s"/##LOCALE##/$${locale}/" -e s",##VERSION##,$(LIGHTNING_VERSION)," \
 			debian/lightning-l10n-install.rdf.in \
-			> $(CURDIR)/debian/lightning-l10n-$${locale}/usr/share/iceowl/extensions/langpack-$${locale}@lightning.debian.org/install.rdf; \
+			> $(CURDIR)/debian/lightning-l10n-$${locale}/usr/share/lightning/extensions/langpack-$${locale}@lightning.debian.org/install.rdf; \
 	done
 	# install lightning-l10n; chrome.manifest
 	for jar in $(LIGHTNING_L10N_BUILDDIR)/*.jar; do \
@@ -149,13 +149,13 @@ override_dh_auto_install:
 		locale=`basename $${jar} .jar | tr 'A-Z' 'a-z'`; \
 			sed -e s"/##LANG##/$${lang}/g" \
 			debian/lightning-l10n-chrome.manifest.in \
-			> $(CURDIR)/debian/lightning-l10n-$${locale}/usr/share/iceowl/extensions/langpack-$${locale}@lightning.debian.org/chrome.manifest; \
+			> $(CURDIR)/debian/lightning-l10n-$${locale}/usr/share/lightning/extensions/langpack-$${locale}@lightning.debian.org/chrome.manifest; \
 	done
 	# install lightning-l10n; uninstall
 	for jar in $(LIGHTNING_L10N_BUILDDIR)/*.jar; do \
 		locale=`basename $${jar} .jar | tr 'A-Z' 'a-z'`; \
-		mkdir -p $(CURDIR)/debian/lightning-l10n-$${locale}/usr/share/iceowl/extensions/langpack-$${locale}@lightning.debian.org/uninstall; \
-		touch $(CURDIR)/debian/lightning-l10n-$${locale}/usr/share/iceowl/extensions/langpack-$${locale}@lightning.debian.org/uninstall/Uninstall; \
+		mkdir -p $(CURDIR)/debian/lightning-l10n-$${locale}/usr/share/lightning/extensions/langpack-$${locale}@lightning.debian.org/uninstall; \
+		touch $(CURDIR)/debian/lightning-l10n-$${locale}/usr/share/lightning/extensions/langpack-$${locale}@lightning.debian.org/uninstall/Uninstall; \
 	done
 	dh_bash-completion
 
