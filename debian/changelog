@@ -2,12 +2,12 @@ icedove (1:52.1.1-1) unstable; urgency=medium
 
   [ Guido Günther ]
   * [db8d0db] Tighten meta package dependencies
-    Be more strict on depending packages and adding a version to all related
+    Be more strict on depends and add a version to all related
     Thunderbird specific packages.
   * [defb689] Copy-edit thunderbird-wrapper-helper.sh
   * [54b35d4] Allow one to override the location of the wrapper-helper
     Make $TB_HELPER more flexible and give the variable a default value, so a
-    user can simple override it with it's own.
+    user can override it with it's own.
   * [a187364] dh-exec: avoid multiple spaces around filenames
   * [a85bc7a] thunderbird-wrapper: robustness when sourcing helper
   * [eee56ab] Drop replaces on packages no longer in any release
@@ -88,7 +88,7 @@ icedove (1:52.1.1-1) unstable; urgency=medium
       (Closes: #826325)
     - porting-sh4/Add-sh4-support-to-Thunderbird.patch
       (Closes: #859508)
-    removed patches (obsolet by upstream changes):
+    removed patches (obsoleted by upstream changes):
     - debian-hacks/Don-t-build-example-component.patch
     - debian-hacks/fix-identification-of-ObjdirMismatchException.patch
     - fixes/Bug-1245076-Don-t-include-mozalloc.h-from-the-cstdlib-wra.patch
@@ -120,12 +120,12 @@ icedove (1:52.1.1-1) unstable; urgency=medium
       --> debian-hacks/Thunderbird-fix-installdir-for-icons.patch
   * [684ad58] d/source.filter: update due upstream changes
   * [d005649] debian/control: modify various B-D
-  * [7a8a98d] debian/rules: adding some more extra C*FLAGS
+  * [7a8a98d] debian/rules: add some extra C*FLAGS
     Adding '-fno-lifetime-dse' to not enable dead store elimination of
-    objects whithin their lifetime, some parts of the source is relying on
+    objects within their lifetime, some parts of the source is relying
     on the persistent values of such objects.
-    Some other distributions as Ubuntu, Fedora and Arch e.g. using this flag too
-    at least with ESR52 to prevent possible segfaults.
+    Some other distributions as Ubuntu, Fedora and Arch e.g. use this flag too
+    (at least with ESR52) to prevent possible segfaults.
   * [56f8f4b] debian/rules: adding hack to preserve correct config.status
   * [fb500a6] mozconfig.default: remove no longer existing options
   * [c9a3e60] mozconfig.default: some minor adjustments to configure options
@@ -150,7 +150,7 @@ icedove (1:52.1.1-1) unstable; urgency=medium
               locations (cherry-picked from upstream)
   * [510fd6f] debian/rules: install lightning-l10n files into correct place
   * [d70ade4] lightning-l10n: adjust min/max version for ESR 52 cycle
-    With the new ESR version tweeking the extension version of l10n packages
+    With the new ESR version tweaking the extension version of l10n packages
     for lightning > 52.0 and < 52.*.
 
  -- Carsten Schoenert <c.schoenert@t-online.de>  Thu, 20 May 2017 10:32:48 +0200
