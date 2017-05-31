@@ -6,3 +6,6 @@ Depends: icedove-dev
 
 Tests: idlTest.sh
 Depends: icedove-dev, build-essential
+
+Tests: icudatfileTest.sh
+Depends: icedove-dev
