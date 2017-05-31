@@ -1,4 +1,4 @@
-icedove (1:52.1.1-1) unstable; urgency=medium
+icedove (1:52.1.1-1) experimental; urgency=medium
 
   [ Guido Günther ]
   * [db8d0db] Tighten meta package dependencies
@@ -152,8 +152,24 @@ icedove (1:52.1.1-1) unstable; urgency=medium
   * [d70ade4] lightning-l10n: adjust min/max version for ESR 52 cycle
     With the new ESR version tweaking the extension version of l10n packages
     for lightning > 52.0 and < 52.*.
+  * [c0dd18f] debian/rules: install icudt5*.dat file more flexible
+  * [b5136f7] autopkg: improve the output of idlTest.sh
+  * [7ac04f6] autopkg: add extra test icudatfileTest.sh
 
- -- Carsten Schoenert <c.schoenert@t-online.de>  Thu, 20 May 2017 10:32:48 +0200
+  [ Christoph Goehre ]
+  * [13f5178] lintian-overrides: we build against internal nspr and nss
+  * [56bbf23] rebuild patch queue from patch-queue branch
+    added patches:
+    - porting-sparc64/Add-sparc64-support-to-Thunderbird.patch
+    (Closes: #859151)
+    modified patches:
+    - porting-mk68/Add-m68k-support-to-Thunderbird.patch
+      -> porting-m68k/Add-m68k-support-to-Thunderbird.patch (renamed)
+  * [6a7ef60] tests/idlTest.sh: remove duplicated 'done' output
+  * [42bf8e1] debian/rules: remove duplicate .so files in thunderbird-dev
+  * [5dc08bc] tests/soSymlinkTest.sh: check for symlinked .so files
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Sat, 03 Jun 2017 19:54:43 +0200
 
 icedove (1:45.8.0-3) unstable; urgency=medium
 
