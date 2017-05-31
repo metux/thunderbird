@@ -14,7 +14,6 @@ debian/logo/thunderbird/thunderbird.svg           usr/share/icons/hicolor/scalab
 debian/thunderbird.desktop                        usr/share/applications
 debian/thunderbird.js                             etc/thunderbird/pref
 debian/thunderbird-wrapper-helper.sh              usr/lib/thunderbird
-debian/tmp/usr/lib/thunderbird/icu*.dat
 debian/tmp/usr/lib/thunderbird/*.ini
 debian/tmp/usr/lib/thunderbird/blocklist.xml
 debian/tmp/usr/lib/thunderbird/chrome             usr/share/thunderbird

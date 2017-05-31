@@ -8,6 +8,7 @@
 # the thunderbird-dbg package
 RELEASE := $(shell head -1 debian/changelog | cut -d" " -f3 | tr -d ';')
 
+ICUDATFILE=$(shell basename mozilla/config/external/icu/data/icud*.dat)
 THUNDERBIRD_VERSION=$(shell tail -1 mail/config/version.txt)
 DEB_AUTO_UPDATE_AUTOCONF=2.13
 
@@ -160,6 +161,14 @@ override_dh_auto_install:
 	dh_bash-completion
 
 override_dh_install-arch:
+	# in case of a pre-builded and installed icudt*.dat file pick it up
+	# and do a needed symlinking for the thunderbird-dev package afterwards
+	if [ -f debian/tmp/usr/lib/thunderbird/$(ICUDATFILE) ]; then \
+		if ! grep -qs $(ICUDATFILE) debian/thunderbird.install ; then \
+			echo "debian/tmp/usr/lib/thunderbird/$(ICUDATFILE)" >> debian/thunderbird.install ;\
+			echo "usr/lib/thunderbird/$(ICUDATFILE)  usr/share/thunderbird/$(ICUDATFILE)" >> debian/thunderbird-dev.links ;\
+		fi \
+	fi
 	dh_install
 	# adjust Thunderbird version in pkg-config file
 	sed -i 's/@Version@/$(THUNDERBIRD_VERSION)/' debian/thunderbird-dev/usr/lib/pkgconfig/thunderbird.pc
