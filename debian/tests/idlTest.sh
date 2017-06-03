@@ -19,7 +19,6 @@ echo -n "Test1: Make sure we can generate typelibs..."
     -I"/usr/lib/thunderbird-devel/idl" \
     -o "${SCRATCHDIR}/test.xpt" \
     "${TEST_IDL_FILE}"
-echo "done."
 if [ -f "${SCRATCHDIR}/test.xpt" ]; then
     echo "done."
 else
