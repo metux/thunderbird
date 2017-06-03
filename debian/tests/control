@@ -9,3 +9,6 @@ Depends: icedove-dev, build-essential
 
 Tests: icudatfileTest.sh
 Depends: icedove-dev
+
+Tests: soSymlinkTest.sh
+Depends: icedove-dev
