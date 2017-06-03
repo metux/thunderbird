@@ -28,10 +28,11 @@ debian-hacks/changing-the-default-search-engine.patch
 porting-kfreebsd-hurd/adding-missed-HURD-adoptions.patch
 porting-hppa/FTBFS-hppa-xpcshell-segfaulting-during-make-install.patch
 porting-arm64/Bug-1257055-Use-jit-arm64-Architecture-arm64.h-on-non-JIT.patch
-porting-mk68/Add-m68k-support-to-Thunderbird.patch
+porting-m68k/Add-m68k-support-to-Thunderbird.patch
 debian-hacks/Don-t-build-testing-suites-and-stuff.patch
 debian-hacks/Allow-to-override-ICU_DATA_FILE-from-the-environment.patch
 debian-hacks/Force-use-the-i686-rust-target.patch
 debian-hacks/Build-against-system-libjsoncpp.patch
 fixes/Bug-1308908-Compare-the-whole-accessible-name-when-checki.patch
 porting-sh4/Add-sh4-support-to-Thunderbird.patch
+porting-sparc64/Add-sparc64-support-to-Thunderbird.patch
