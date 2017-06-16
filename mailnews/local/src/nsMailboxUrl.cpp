@@ -124,6 +124,53 @@ nsresult nsMailboxUrl::SetMessageSize(uint32_t aMessageSize)
   return NS_OK;
 }
 
+NS_IMETHODIMP nsMailboxUrl::GetPrincipalSpec(nsACString& aPrincipalSpec)
+{
+  nsCOMPtr<nsIMsgMailNewsUrl> mailnewsURL;
+  QueryInterface(NS_GET_IID(nsIMsgMailNewsUrl), getter_AddRefs(mailnewsURL));
+
+  nsAutoCString spec;
+  mailnewsURL->GetSpecIgnoringRef(spec);
+
+  // mailbox: URLs contain a lot of query parts. We want need a normalised form:
+  // mailbox:///path/to/folder?number=nn.
+  // We also need to translate the second form mailbox://user@domain@server/folder?number=nn.
+
+  char* messageKey = extractAttributeValue(spec.get(), "number=");
+
+  // Strip any query part beginning with ? & or /;
+  int32_t ind = spec.Find("/;");
+  if (ind != kNotFound)
+    spec.SetLength(ind);
+
+  ind = spec.FindChar('?');
+  if (ind != kNotFound)
+    spec.SetLength(ind);
+
+  ind = spec.FindChar('&');
+  if (ind != kNotFound)
+    spec.SetLength(ind);
+
+  // Check for format lacking absolute path.
+  if (spec.Find("///") == kNotFound) {
+    nsCString folderPath;
+    nsresult rv = nsLocalURI2Path(kMailboxRootURI, spec.get(), folderPath);
+    if (NS_SUCCEEDED (rv)) {
+      nsAutoCString buf;
+      MsgEscapeURL(folderPath,
+                   nsINetUtil::ESCAPE_URL_DIRECTORY | nsINetUtil::ESCAPE_URL_FORCED, buf);
+      spec = NS_LITERAL_CSTRING("mailbox://") + buf;
+    }
+  }
+
+  spec += NS_LITERAL_CSTRING("?number=");
+  spec.Append(messageKey);
+  PR_Free(messageKey);
+
+  aPrincipalSpec.Assign(spec);
+  return NS_OK;
+}
+
 NS_IMETHODIMP nsMailboxUrl::SetUri(const char * aURI)
 {
   mURI= aURI;

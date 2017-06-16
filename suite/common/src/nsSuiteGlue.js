@@ -354,8 +354,6 @@ SuiteGlue.prototype = {
   _onProfileStartup: function()
   {
     this._migrateUI();
-    this._updatePrefs();
-    this._migrateDownloadPrefs();
     migrateMailnews(); // mailnewsMigrator.js
 
     Sanitizer.checkSettings();
@@ -377,9 +375,9 @@ SuiteGlue.prototype = {
 
   _migrateUI: function()
   {
-    const UI_VERSION = 1;
+    const UI_VERSION = 2;
 
-    // If the pref is not set this is a new or pre SeaMonkey 2.50 profile.
+    // If the pref is not set this is a new or pre SeaMonkey 2.49 profile.
     // We can't tell so we just run migration with version 0.
     let currentUIVersion = 0;
 
@@ -390,9 +388,13 @@ SuiteGlue.prototype = {
     if (currentUIVersion >= UI_VERSION)
       return;
 
-    // Migrate remote content exceptions for email addresses which are
-    // encoded as chrome URIs.
     if (currentUIVersion < 1) {
+      // Run any migrations due prior to 2.49.
+      this._updatePrefs();
+      this._migrateDownloadPrefs();
+
+      // Migrate remote content exceptions for email addresses which are
+      // encoded as chrome URIs.
       let permissionsDB =
         Services.dirsvc.get("ProfD", Components.interfaces.nsILocalFile);
       permissionsDB.append("permissions.sqlite");
@@ -435,6 +437,16 @@ SuiteGlue.prototype = {
       } finally {
         db.close();
       }
+    }
+
+    // Migration of disabled safebrowsing-phishing setting after pref renaming.
+    if (currentUIVersion < 2) {
+      try {
+        if (!Services.prefs.getBoolPref("browser.safebrowsing.enabled")) {
+          Services.prefs.setBoolPref("browser.safebrowsing.phishing.enabled", false);
+          Services.prefs.clearUserPref("browser.safebrowsing.enabled");
+        }
+      } catch (ex) {}
     }
 
     // Update the migration version.

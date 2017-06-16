@@ -6692,7 +6692,7 @@ if test "$GNU_CC" -a -n "$MOZ_PIE"; then
     echo $ac_n "checking for PIE support""... $ac_c" 1>&6
 echo "configure:6694: checking for PIE support" >&5
     _SAVE_LDFLAGS=$LDFLAGS
-    LDFLAGS="$LDFLAGS -pie"
+    LDFLAGS="$LDFLAGS $DSO_PIC_CFLAGS -pie"
     cat > conftest.$ac_ext <<EOF
 #line 6698 "configure"
 #include "confdefs.h"
@@ -10634,7 +10634,7 @@ else
   echo "$ac_t""no" 1>&6
 fi
 
-	min_nss_version=3.28.4
+	min_nss_version=3.28.5
 	echo $ac_n "checking for NSS - version >= $min_nss_version""... $ac_c" 1>&6
 echo "configure:10640: checking for NSS - version >= $min_nss_version" >&5
 

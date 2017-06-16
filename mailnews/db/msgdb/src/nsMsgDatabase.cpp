@@ -3951,6 +3951,10 @@ nsresult nsMsgDatabase::SetProperty(nsIMdbRow *row, const char *propertyName, co
   nsresult err = NS_OK;
   mdb_token  property_token;
 
+  NS_ENSURE_STATE(m_mdbStore); // db might have been closed out from under us.
+  if (!row)
+    return NS_ERROR_NULL_POINTER;
+
   err = m_mdbStore->StringToToken(GetEnv(),  propertyName, &property_token);
   if (NS_SUCCEEDED(err))
     CharPtrToRowCellColumn(row, property_token, propertyVal);
@@ -3961,6 +3965,10 @@ nsresult nsMsgDatabase::GetPropertyAsNSString(nsIMdbRow *row, const char *proper
 {
   nsresult err = NS_OK;
   mdb_token  property_token;
+
+  NS_ENSURE_STATE(m_mdbStore); // db might have been closed out from under us.
+  if (!row)
+    return NS_ERROR_NULL_POINTER;
 
   err = m_mdbStore->StringToToken(GetEnv(),  propertyName, &property_token);
   if (NS_SUCCEEDED(err))
@@ -3973,6 +3981,10 @@ nsresult nsMsgDatabase::SetPropertyFromNSString(nsIMdbRow *row, const char *prop
 {
   nsresult err = NS_OK;
   mdb_token  property_token;
+
+  NS_ENSURE_STATE(m_mdbStore); // db might have been closed out from under us.
+  if (!row)
+    return NS_ERROR_NULL_POINTER;
 
   err = m_mdbStore->StringToToken(GetEnv(),  propertyName, &property_token);
   if (NS_SUCCEEDED(err))
@@ -3987,6 +3999,10 @@ nsresult nsMsgDatabase::GetUint32Property(nsIMdbRow *row, const char *propertyNa
   nsresult err = NS_OK;
   mdb_token  property_token;
 
+  NS_ENSURE_STATE(m_mdbStore); // db might have been closed out from under us.
+  if (!row)
+    return NS_ERROR_NULL_POINTER;
+
   err = m_mdbStore->StringToToken(GetEnv(),  propertyName, &property_token);
   if (NS_SUCCEEDED(err))
     err = RowCellColumnToUInt32(row, property_token, result, defaultValue);
@@ -3998,6 +4014,10 @@ nsresult nsMsgDatabase::GetUint64Property(nsIMdbRow *row, const char *propertyNa
 {
   nsresult err = NS_OK;
   mdb_token property_token;
+
+  NS_ENSURE_STATE(m_mdbStore); // db might have been closed out from under us.
+  if (!row)
+    return NS_ERROR_NULL_POINTER;
 
   err = m_mdbStore->StringToToken(GetEnv(), propertyName, &property_token);
   if (NS_SUCCEEDED(err))

@@ -999,7 +999,7 @@ nsHttpTransaction::Close(nsresult reason)
     // auth provider, beliving the cached credentials are wrong and asking for
     // the password mistakenly again from the user.
     if ((reason == NS_ERROR_NET_RESET || reason == NS_OK) &&
-        !(mCaps & NS_HTTP_STICKY_CONNECTION)) {
+        (!(mCaps & NS_HTTP_STICKY_CONNECTION) || (mCaps & NS_HTTP_CONNECTION_RESTARTABLE))) {
 
         if (mForceRestart && NS_SUCCEEDED(Restart())) {
             if (mResponseHead) {
@@ -2026,11 +2026,6 @@ nsHttpTransaction::CheckForStickyAuthScheme()
   MOZ_ASSERT(mHaveAllHeaders);
   MOZ_ASSERT(mResponseHead);
   MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread);
-
-  if (mClosed) {
-      LOG(("  closed, not checking"));
-      return;
-  }
 
   CheckForStickyAuthSchemeAt(nsHttp::WWW_Authenticate);
   CheckForStickyAuthSchemeAt(nsHttp::Proxy_Authenticate);
