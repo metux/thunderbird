@@ -173,15 +173,15 @@ def main():
         help="use the given compression for the new tarball")
     (options, args) = parser.parse_args()
 
-    if not options.upstream_version:
-        parser.error("Need an upstream version")
-        return
-
     if len(args) < 1:
-        parser.error("Too few arguments")
+        parser.error("Too few arguments! You may want to use option '--help' for usage first?")
         return
     if len(args) > 1:
-        parser.error("Too many arguments")
+        parser.error("Too many arguments! You may want to use option '--help' for usage first?")
+        return
+
+    if not options.upstream_version:
+        parser.error("Need an upstream version")
         return
 
     if not options.filter:
