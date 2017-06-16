@@ -3,6 +3,8 @@ Date: Thu, 18 May 2017 19:08:05 +0200
 Subject: Add sh4 support to Thunderbird
 
 Cherry-picked and adapted patches from Firefox upstream:
+- 5a74d13630a969473f72a143f37728f5bb87f552
+Bug 1329194 - mozbuild: Add SH4 as target architecture.
 - b179235c38eb631286f9e2fd4a7b23361dbab6d2
 Bug 1329194 - js:jit: Use PowerPC atomic operations on SH.
 - ba58645c87ed7e08b16adc3b40f0c6e3b6a2e140
@@ -20,17 +22,34 @@ Bug 382214 - xpcom: Make SH xpctcall inline assembly position-independent
 
 Closes: #859508
 ---
+ mozilla/build/moz.configure/init.configure         |   3 +
  mozilla/ipc/chromium/src/build/build_config.h      |   3 +
  mozilla/js/src/jit/AtomicOperations.h              |   2 +
  mozilla/media/webrtc/trunk/build/build_config.h    |   3 +
  mozilla/mfbt/tests/TestPoisonArea.cpp              |   3 +
+ .../mozbuild/mozbuild/configure/constants.py       |   2 +
+ .../test/configure/test_toolchain_configure.py     |   3 +
  mozilla/xpcom/reflect/xptcall/md/unix/moz.build    |   5 +
  .../xptcall/md/unix/xptcinvoke_linux_sh.cpp        | 210 +++++++++++++++++
  .../reflect/xptcall/md/unix/xptcstubs_linux_sh.cpp | 262 +++++++++++++++++++++
- 7 files changed, 488 insertions(+)
+ 10 files changed, 496 insertions(+)
  create mode 100644 mozilla/xpcom/reflect/xptcall/md/unix/xptcinvoke_linux_sh.cpp
  create mode 100644 mozilla/xpcom/reflect/xptcall/md/unix/xptcstubs_linux_sh.cpp
 
+diff --git a/mozilla/build/moz.configure/init.configure b/mozilla/build/moz.configure/init.configure
+index 3c2d609..ea7c48c 100644
+--- a/mozilla/build/moz.configure/init.configure
++++ b/mozilla/build/moz.configure/init.configure
+@@ -383,6 +383,9 @@ def split_triplet(triplet):
+     elif cpu in ('m68k'):
+         canonical_cpu = 'm68k'
+         endianness = 'big'
++    elif cpu == 'sh4':
++        canonical_cpu = 'sh4'
++        endianness = 'little'
+     else:
+         die('Unknown CPU type: %s' % cpu)
+ 
 diff --git a/mozilla/ipc/chromium/src/build/build_config.h b/mozilla/ipc/chromium/src/build/build_config.h
 index 6ac0918..53ad98e 100644
 --- a/mozilla/ipc/chromium/src/build/build_config.h
@@ -86,6 +105,40 @@ index 9360ac9..1876b6e 100644
  #elif defined __aarch64__
  #define RETURN_INSTR 0xd65f03c0 /* ret */
  
+diff --git a/mozilla/python/mozbuild/mozbuild/configure/constants.py b/mozilla/python/mozbuild/mozbuild/configure/constants.py
+index 9c0f0ca..de33064 100644
+--- a/mozilla/python/mozbuild/mozbuild/configure/constants.py
++++ b/mozilla/python/mozbuild/mozbuild/configure/constants.py
+@@ -51,6 +51,7 @@ CPU_bitness = {
+     'ppc64': 64,
+     's390': 32,
+     's390x': 64,
++    'sh4': 32,
+     'sparc': 32,
+     'sparc64': 64,
+     'x86': 32,
+@@ -87,6 +88,7 @@ CPU_preprocessor_checks = OrderedDict((
+     ('mips64', '__mips64'),
+     ('mips32', '__mips__'),
+     ('m68k', '__m68k__'),
++    ('sh4', '__sh__'),
+ ))
+ 
+ assert sorted(CPU_preprocessor_checks.keys()) == sorted(CPU.POSSIBLE_VALUES)
+diff --git a/mozilla/python/mozbuild/mozbuild/test/configure/test_toolchain_configure.py b/mozilla/python/mozbuild/mozbuild/test/configure/test_toolchain_configure.py
+index b06ddde..12dc324 100644
+--- a/mozilla/python/mozbuild/mozbuild/test/configure/test_toolchain_configure.py
++++ b/mozilla/python/mozbuild/mozbuild/test/configure/test_toolchain_configure.py
+@@ -1040,6 +1040,9 @@ class LinuxCrossCompileToolchainTest(BaseToolchainTest):
+         'm68k-unknown-linux-gnu': big_endian + {
+             '__m68k__': 1,
+         },
++        'sh4-unknown-linux-gnu': little_endian + {
++            '__sh__': 1,
++        },
+     }
+ 
+     PLATFORMS['powerpc64le-unknown-linux-gnu'] = \
 diff --git a/mozilla/xpcom/reflect/xptcall/md/unix/moz.build b/mozilla/xpcom/reflect/xptcall/md/unix/moz.build
 index 1d182bb..067a6ad 100644
 --- a/mozilla/xpcom/reflect/xptcall/md/unix/moz.build
