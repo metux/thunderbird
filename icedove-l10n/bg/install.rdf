@@ -8,7 +8,7 @@
   <Description about="urn:mozilla:install-manifest"
                em:id="langpack-bg@thunderbird.mozilla.org"
                em:name="Английски (САЩ) Language Pack"
-               em:version="52.1.1"
+               em:version="52.2.0"
                em:type="8"
                em:creator="mozilla.org">
     <em:contributor>Огнян Кулев</em:contributor> <em:contributor>Митко Митев</em:contributor> <em:contributor>Златко Попов</em:contributor> <em:contributor>Милен Иванов</em:contributor> <em:contributor>Стоян Димитров</em:contributor>
@@ -16,7 +16,7 @@
     <em:targetApplication>
       <Description>
         <em:id>{3550f703-e582-4d05-9a08-453d09bdfdc6}</em:id>
-        <em:minVersion>52.1.1</em:minVersion>
+        <em:minVersion>52.2.0</em:minVersion>
         <em:maxVersion>52.*</em:maxVersion>
       </Description>
     </em:targetApplication>
