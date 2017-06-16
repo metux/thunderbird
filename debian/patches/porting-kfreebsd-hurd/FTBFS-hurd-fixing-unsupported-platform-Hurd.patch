@@ -271,13 +271,13 @@ index 4805147..5683aba 100644
  #endif
                    false, &process, arch);
 diff --git a/mozilla/js/src/wasm/WasmSignalHandlers.cpp b/mozilla/js/src/wasm/WasmSignalHandlers.cpp
-index d9f2dfd..6a92a0e 100644
+index 78d2136..ac0aa45 100644
 --- a/mozilla/js/src/wasm/WasmSignalHandlers.cpp
 +++ b/mozilla/js/src/wasm/WasmSignalHandlers.cpp
-@@ -118,10 +118,12 @@ class AutoSetHandlingSegFault
- # define R13_sig(p) ((p)->sc_r13)
- # define R14_sig(p) ((p)->sc_r14)
- # define R15_sig(p) ((p)->sc_r15)
+@@ -130,10 +130,12 @@ class AutoSetHandlingSegFault
+ #  define EPC_sig(p) ((p)->sc_pc)
+ #  define RFP_sig(p) ((p)->sc_regs[30])
+ # endif
 -#elif defined(__linux__) || defined(SOLARIS)
 +#elif defined(__linux__) || defined(SOLARIS) || defined(__GNU__)
  # if defined(__linux__)
