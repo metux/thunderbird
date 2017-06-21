@@ -364,6 +364,9 @@ AtomicOperations::isLockfreeJS(int32_t size)
 #elif defined(__aarch64__)
 # if defined(__clang__) || defined(__GNUC__)
 #  include "jit/arm64/AtomicOperations-arm64.h"
+# elif defined(__s390__)
+  // The sparc file is more or less generic and works on s390x.
+#  include "jit/none/AtomicOperations-sparc.h"
 # else
 #  error "No AtomicOperations support for this platform+compiler combination"
 # endif
