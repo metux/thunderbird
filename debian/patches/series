@@ -36,3 +36,5 @@ debian-hacks/Build-against-system-libjsoncpp.patch
 fixes/Bug-1308908-Compare-the-whole-accessible-name-when-checki.patch
 porting-sh4/Add-sh4-support-to-Thunderbird.patch
 porting-sparc64/Add-sparc64-support-to-Thunderbird.patch
+porting-s390x/FTBFS-s390x-Use-jit-none-AtomicOperations-sparc.h-on-s390.patch
+porting-mips/Fix-CPU_ARCH-test-for-libjpeg-on-mips.patch
