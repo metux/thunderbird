@@ -88,8 +88,7 @@ override_dh_auto_configure:
 	echo 'mk_add_options MOZ_OBJDIR=$(CURDIR)/obj-thunderbird' >> mozconfig.thunderbird
 	# configure the various build settings
 	# thunderbird, thunderbird-dev, calendar-google-provider, lightning
-	make -f client.mk configure
-	sed -i 's|Isid|I$(CURDIR)\/obj-thunderbird\/config|' obj-thunderbird/config.status
+	DIST= make -f client.mk configure
 
 override_dh_auto_build:
 	# building the stuff
