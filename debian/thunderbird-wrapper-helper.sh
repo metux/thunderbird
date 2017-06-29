@@ -149,25 +149,28 @@ done
 
 # Inform the user we will starting the migration
 do_inform_migration_start () {
-case "${DESKTOP}" in
-    gnome|mate|xfce)
-        local_zenity --info --no-wrap --title "${TITLE}" --text "${START_MIGRATION}"
-        if [ $? -ne 0 ]; then
-            local_xmessage -center "${START_MIGRATION}"
-        fi
-        ;;
+# A system admin may avoid the dialog ...
+if [ ! -f /etc/thunderbird/no_migration_popup ]; then
+    case "${DESKTOP}" in
+        gnome|mate|xfce)
+            local_zenity --info --no-wrap --title "${TITLE}" --text "${START_MIGRATION}"
+            if [ $? -ne 0 ]; then
+                local_xmessage -center "${START_MIGRATION}"
+            fi
+            ;;
 
-    kde)
-        local_kdialog --title "${TITLE}" --msgbox "${START_MIGRATION}"
-        if [ $? -ne 0 ]; then
-            local_xmessage -center "${START_MIGRATION}"
-        fi
-        ;;
+        kde)
+            local_kdialog --title "${TITLE}" --msgbox "${START_MIGRATION}"
+            if [ $? -ne 0 ]; then
+                local_xmessage -center "${START_MIGRATION}"
+            fi
+            ;;
 
-    *)
-        xmessage -center "${START_MIGRATION}"
-        ;;
-esac
+        *)
+            xmessage -center "${START_MIGRATION}"
+            ;;
+    esac
+fi
 }
 
 # Function that will do the fixing of mimeapps.list files

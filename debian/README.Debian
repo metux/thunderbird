@@ -106,6 +106,16 @@ For backward compatibility whithin the Stretch release there will be that
 migration functionality until the release of Buster (aka Debian 10).
 Afterwards you can still do this on your on by moving the folders manually.
 
+= Avoid the pop-up information about migration globally =
+=========================================================
+
+Within some use cases (e.g. bigger company environments) it can sometimes not
+be useful that a user will see the dialogue window about the profile migration
+as this can be more confusing than helpful.
+To avoid this dialogue for all users on the system the administrator can create
+a file '/etc/thunderbird/no_migration_popup' and the starting wrapper will
+not pop-up the information dialogue if the migration isn't already done.
+
 = User specific MIME Associations =
 ===================================
 
