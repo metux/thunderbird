@@ -1,3 +1,21 @@
+icedove (1:52.2.1-1) unstable; urgency=medium
+
+  [ Guido Günther ]
+  * [4e87d6b] d/rules: Make sure DIST is not passed on to configure
+
+  [ Carsten Schoenert ]
+  * [35b84ef] rebuild patch queue from patch-queue branch
+    added patches:
+    - porting-mips/Fix-CPU_ARCH-test-for-libjpeg-on-mips.patch
+    - porting-s390x/FTBFS-s390x-Use-jit-none-AtomicOperations-sparc.h-on-s390.patch
+    (Closes: #864974)
+  * [c818874] New upstream version 52.2.1
+    (Closes: #861840)
+  * [8c776c9] Icedove2Thunderbird: add opt out for dialogue pop-up
+    (Closes: #860381)
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Wed, 28 Jun 2017 20:01:44 +0200
+
 icedove (1:52.2.0-1) unstable; urgency=medium
 
   [ Christoph Goehre ]
