@@ -1,3 +1,17 @@
+icedove (1:52.2.1-2) unstable; urgency=medium
+
+  [ Carsten Schoenert ]
+  * [e8ce299] disabling ICU support on some big endian systems
+    This hack should enable at least successful building of all RC platforms
+    and needs to be solved in a not such agressive way without loosing ICU
+    support on the problematic platforms.
+    Thanks John Paul Adrian Glaubitz for catching the root of the issue.
+  * [a66e812] rebuild patch queue from patch-queue branch
+    Adding a small needed fix for getting mips* out od FTBFS. Also GNU/Hurd
+    should pass the configure script now.
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Fri, 30 Jun 2017 19:38:28 +0200
+
 icedove (1:52.2.1-1) unstable; urgency=medium
 
   [ Guido Günther ]
