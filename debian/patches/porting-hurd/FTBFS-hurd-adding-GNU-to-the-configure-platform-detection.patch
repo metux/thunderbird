@@ -1,0 +1,84 @@
+From: Carsten Schoenert <c.schoenert@t-online.de>
+Date: Fri, 30 Jun 2017 19:20:12 +0200
+Subject: FTBFS hurd: adding GNU to the configure platform detection
+
+On GNU/Hurd the configure script is complaining about a not known
+value 'GNU' while running.
+
+checking for host system type... Traceback (most recent call last):
+  File "/<<PKGBUILDDIR>>/configure.py", line 32, in <module>
+    sys.exit(main(sys.argv))
+  File "/<<PKGBUILDDIR>>/configure.py", line 24, in main
+    sandbox.run(os.path.join(os.path.dirname(__file__), 'moz.configure'))
+  File "/<<PKGBUILDDIR>>/mozilla/python/mozbuild/mozbuild/configure/__init__.py", line 344, in run
+    self._value_for(option)
+  File "/<<PKGBUILDDIR>>/mozilla/python/mozbuild/mozbuild/configure/__init__.py", line 409, in _value_for
+    return self._value_for_option(obj)
+  File "/<<PKGBUILDDIR>>/mozilla/python/mozbuild/mozbuild/util.py", line 925, in method_call
+    cache[args] = self.func(instance, *args)
+  File "/<<PKGBUILDDIR>>/mozilla/python/mozbuild/mozbuild/configure/__init__.py", line 431, in _value_for_option
+    need_help_dependency=False)
+  File "/<<PKGBUILDDIR>>/mozilla/python/mozbuild/mozbuild/configure/__init__.py", line 396, in _resolve
+    need_help_dependency)
+  File "/<<PKGBUILDDIR>>/mozilla/python/mozbuild/mozbuild/util.py", line 925, in method_call
+    cache[args] = self.func(instance, *args)
+  File "/<<PKGBUILDDIR>>/mozilla/python/mozbuild/mozbuild/configure/__init__.py", line 416, in _value_for_depends
+    return obj.result
+  File "/<<PKGBUILDDIR>>/mozilla/python/mozbuild/mozbuild/util.py", line 943, in __get__
+    setattr(instance, name, self.func(instance))
+  File "/<<PKGBUILDDIR>>/mozilla/python/mozbuild/mozbuild/configure/__init__.py", line 89, in result
+    resolved_args = [self.sandbox._value_for(d) for d in self.dependencies]
+  File "/<<PKGBUILDDIR>>/mozilla/python/mozbuild/mozbuild/configure/__init__.py", line 406, in _value_for
+    return self._value_for_depends(obj, need_help_dependency)
+  File "/<<PKGBUILDDIR>>/mozilla/python/mozbuild/mozbuild/util.py", line 925, in method_call
+    cache[args] = self.func(instance, *args)
+  File "/<<PKGBUILDDIR>>/mozilla/python/mozbuild/mozbuild/configure/__init__.py", line 416, in _value_for_depends
+    return obj.result
+  File "/<<PKGBUILDDIR>>/mozilla/python/mozbuild/mozbuild/util.py", line 943, in __get__
+    setattr(instance, name, self.func(instance))
+  File "/<<PKGBUILDDIR>>/mozilla/python/mozbuild/mozbuild/configure/__init__.py", line 89, in result
+    resolved_args = [self.sandbox._value_for(d) for d in self.dependencies]
+  File "/<<PKGBUILDDIR>>/mozilla/python/mozbuild/mozbuild/configure/__init__.py", line 406, in _value_for
+    return self._value_for_depends(obj, need_help_dependency)
+  File "/<<PKGBUILDDIR>>/mozilla/python/mozbuild/mozbuild/util.py", line 925, in method_call
+    cache[args] = self.func(instance, *args)
+  File "/<<PKGBUILDDIR>>/mozilla/python/mozbuild/mozbuild/configure/__init__.py", line 416, in _value_for_depends
+    return obj.result
+  File "/<<PKGBUILDDIR>>/mozilla/python/mozbuild/mozbuild/util.py", line 943, in __get__
+    setattr(instance, name, self.func(instance))
+  File "/<<PKGBUILDDIR>>/mozilla/python/mozbuild/mozbuild/configure/__init__.py", line 90, in result
+    return self.func(*resolved_args)
+  File "/<<PKGBUILDDIR>>/mozilla/python/mozbuild/mozbuild/configure/__init__.py", line 932, in wrapped
+    return new_func(*args, **kwargs)
+  File "/<<PKGBUILDDIR>>/mozilla/python/mozbuild/mozbuild/configure/__init__.py", line 668, in wrapper
+    ret = template(*args, **kwargs)
+  File "/<<PKGBUILDDIR>>/mozilla/build/moz.configure/checks.configure", line 53, in wrapped
+    ret = func(*args, **kwargs)
+  File "/<<PKGBUILDDIR>>/mozilla/python/mozbuild/mozbuild/configure/__init__.py", line 932, in wrapped
+    return new_func(*args, **kwargs)
+  File "/<<PKGBUILDDIR>>/mozilla/build/moz.configure/init.configure", line 425, in host
+    return split_triplet(config_sub(shell, host))
+  File "/<<PKGBUILDDIR>>/mozilla/python/mozbuild/mozbuild/configure/__init__.py", line 932, in wrapped
+    return new_func(*args, **kwargs)
+  File "/<<PKGBUILDDIR>>/mozilla/build/moz.configure/init.configure", line 396, in split_triplet
+    kernel=Kernel(canonical_kernel),
+  File "/<<PKGBUILDDIR>>/mozilla/python/mozbuild/mozbuild/util.py", line 1164, in __init__
+    % (value, self.__class__.__name__))
+ValueError: 'GNU' is not a valid value for EnumStringSubclass
+---
+ mozilla/build/moz.configure/init.configure | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/mozilla/build/moz.configure/init.configure b/mozilla/build/moz.configure/init.configure
+index ea7c48c..ed69f73 100644
+--- a/mozilla/build/moz.configure/init.configure
++++ b/mozilla/build/moz.configure/init.configure
+@@ -318,7 +318,7 @@ def split_triplet(triplet):
+     elif os.startswith('kfreebsd') and os.endswith('-gnu'):
+         canonical_os = 'GNU'
+         canonical_kernel = 'kFreeBSD'
+-    elif os.startswith('gnu'):
++    elif os.startswith('gnu') or os.startswith('GNU'):
+         canonical_os = canonical_kernel = 'GNU'
+     elif os.startswith('mingw'):
+         canonical_os = canonical_kernel = 'WINNT'

@@ -38,3 +38,5 @@ porting-sh4/Add-sh4-support-to-Thunderbird.patch
 porting-sparc64/Add-sparc64-support-to-Thunderbird.patch
 porting-s390x/FTBFS-s390x-Use-jit-none-AtomicOperations-sparc.h-on-s390.patch
 porting-mips/Fix-CPU_ARCH-test-for-libjpeg-on-mips.patch
+porting-mips/FTBFS-mips-add-missing-char-variable.patch
+porting-hurd/FTBFS-hurd-adding-GNU-to-the-configure-platform-detection.patch
