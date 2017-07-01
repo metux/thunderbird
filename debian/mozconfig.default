@@ -84,6 +84,7 @@ case `dpkg --print-architecture` in
     ;;
   hppa)
     ac_add_options --disable-optimize
+    ac_add_options --without-intl-api
     ;;
   i386)
     ac_add_options --enable-crashreporter
@@ -97,28 +98,32 @@ case `dpkg --print-architecture` in
   kfreebsd-amd64)
     ac_add_options --disable-necko-wifi
     ;;
-  m86k)
+  m68k)
     ac_add_options --without-intl-api
-	;;
+    ;;
   mips)
     ac_add_options --disable-ion
+    ac_add_options --without-intl-api
     ;;
-  ppc)
-	ac_add_options --without-intl-api
+  powerpc)
+    ac_add_options --without-intl-api
+    ;;
+  powerpcspe)
+    ac_add_options --without-intl-api
     ;;
   ppc64)
     ac_add_options --disable-optimize
-	ac_add_options --without-intl-api
+    ac_add_options --without-intl-api
     ;;
   sparc)
     ac_add_options --enable-optimize=-O1
-	ac_add_options --without-intl-api
+    ac_add_options --without-intl-api
     ;;
   sparc64)
     ac_add_options --without-intl-api
-	;;
+    ;;
   s390x)
     ac_add_options --enable-optimize=-O1
-	ac_add_options --without-intl-api
+    ac_add_options --without-intl-api
     ;;
 esac
