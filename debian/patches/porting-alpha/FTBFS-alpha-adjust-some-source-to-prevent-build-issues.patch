@@ -1,0 +1,91 @@
+From: John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
+Date: Mon, 3 Jul 2017 20:00:34 +0200
+Subject: FTBFS alpha: adjust some source to prevent build issues
+
+Thunderbird currently FTBFS because it misses a number of patches which
+have been merged by Mozilla Firefox upstream:
+
+ - c17700bc0762fb831bac4f6a1ae2ad8af1b7f73f
+   Bug 1326496 - testing:mozbase: Use find_library to get libc filename. r=ahal
+ - a2cfbb6178c2a9e6b7226fee7a91459700017f11
+   Bug 1326496 - testing:mochitest: Use find_library to get libc filename. r=ahal
+ - e8d74e899f29c6932f7753f690fcf3a795a218bf
+   Bug 1326496 - js:jit: Use PowerPC atomic operations on alpha. r=jandem
+ - 584199a8421529e6d390860c1a481f830a7f619f
+   Bug 1326496 - mozbuild: Fix bitness from 32 to 64 bits on alpha. r=glandium
+---
+ mozilla/js/src/jit/AtomicOperations.h                   | 2 ++
+ mozilla/python/mozbuild/mozbuild/configure/constants.py | 2 +-
+ mozilla/testing/mochitest/runtests.py                   | 3 ++-
+ mozilla/testing/mozbase/mozinfo/mozinfo/mozinfo.py      | 4 ++--
+ 4 files changed, 7 insertions(+), 4 deletions(-)
+
+diff --git a/mozilla/js/src/jit/AtomicOperations.h b/mozilla/js/src/jit/AtomicOperations.h
+index d239616..1e419ab 100644
+--- a/mozilla/js/src/jit/AtomicOperations.h
++++ b/mozilla/js/src/jit/AtomicOperations.h
+@@ -324,6 +324,8 @@ AtomicOperations::isLockfree(int32_t size)
+ # include "jit/arm/AtomicOperations-arm.h"
+ #elif defined(JS_CODEGEN_ARM64) || defined(__aarch64__)
+ # include "jit/arm64/AtomicOperations-arm64.h"
++#elif defined(__alpha__)
++# include "jit/none/AtomicOperations-ppc.h"
+ #elif defined(__hppa__)
+ # include "jit/none/AtomicOperations-ppc.h"
+ #elif defined(__m68k__)
+diff --git a/mozilla/python/mozbuild/mozbuild/configure/constants.py b/mozilla/python/mozbuild/mozbuild/configure/constants.py
+index de33064..6464bfb 100644
+--- a/mozilla/python/mozbuild/mozbuild/configure/constants.py
++++ b/mozilla/python/mozbuild/mozbuild/configure/constants.py
+@@ -40,7 +40,7 @@ Kernel = EnumString.subclass(
+ 
+ CPU_bitness = {
+     'aarch64': 64,
+-    'Alpha': 32,
++    'Alpha': 64,
+     'arm': 32,
+     'hppa': 32,
+     'ia64': 64,
+diff --git a/mozilla/testing/mochitest/runtests.py b/mozilla/testing/mochitest/runtests.py
+index 7d0c89a..d3b12be 100644
+--- a/mozilla/testing/mochitest/runtests.py
++++ b/mozilla/testing/mochitest/runtests.py
+@@ -37,6 +37,7 @@ import uuid
+ import zipfile
+ import bisection
+ 
++from ctypes.util import find_library
+ from datetime import datetime
+ from manifestparser import TestManifest
+ from manifestparser.filters import (
+@@ -627,7 +628,7 @@ def checkAndConfigureV4l2loopback(device):
+     if not mozinfo.isLinux:
+         return False, ''
+ 
+-    libc = ctypes.cdll.LoadLibrary('libc.so.6')
++    libc = ctypes.cdll.LoadLibrary(find_library("c"))
+     O_RDWR = 2
+     # These are from linux/videodev2.h
+ 
+diff --git a/mozilla/testing/mozbase/mozinfo/mozinfo/mozinfo.py b/mozilla/testing/mozbase/mozinfo/mozinfo/mozinfo.py
+index 81a3030..259611e 100755
+--- a/mozilla/testing/mozbase/mozinfo/mozinfo/mozinfo.py
++++ b/mozilla/testing/mozbase/mozinfo/mozinfo/mozinfo.py
+@@ -15,7 +15,7 @@ import platform
+ import re
+ import sys
+ from .string_version import StringVersion
+-
++from ctypes.util import find_library
+ 
+ # keep a copy of the os module since updating globals overrides this
+ _os = os
+@@ -150,7 +150,7 @@ if info['os'] == 'linux':
+     import errno
+     PR_SET_SECCOMP = 22
+     SECCOMP_MODE_FILTER = 2
+-    ctypes.CDLL("libc.so.6", use_errno=True).prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER, 0)
++    ctypes.CDLL(find_library("c"), use_errno=True).prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER, 0)
+     info['has_sandbox'] = ctypes.get_errno() == errno.EFAULT
+ else:
+     info['has_sandbox'] = True
