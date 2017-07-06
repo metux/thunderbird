@@ -1,3 +1,21 @@
+icedove (1:52.2.1-4) unstable; urgency=medium
+
+  [ Guido Günther ]
+  * [04de899] Don't use different profile folder for jessie and wheezy
+
+  [ Carsten Schoenert ]
+  * [692d3ce] rebuild patch queue from patch-queue branch (Closes: #867013)
+    added patch (provided by Adrian):
+    - porting-alpha/FTBFS-alpha-adjust-some-source-to-prevent-build-issues.patch
+    removed patch:
+    - porting-hurd/FTBFS-hurd-adding-GNU-to-the-configure-platform-detection.patch
+    (wrong approach, the Python wrapper around configure isn't yet smart enough)
+
+  [ John Paul Adrian Glaubitz ]
+  * [5153ce2] mips: final fixups to prevent FTBFS
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Thu, 06 Jul 2017 16:53:30 +0200
+
 icedove (1:52.2.1-3) unstable; urgency=medium
 
   [ John Paul Adrian Glaubitz ]
