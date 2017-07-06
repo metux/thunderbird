@@ -102,7 +102,6 @@ case `dpkg --print-architecture` in
     ac_add_options --without-intl-api
     ;;
   mips)
-    ac_add_options --disable-ion
     ac_add_options --without-intl-api
     ;;
   powerpc)
