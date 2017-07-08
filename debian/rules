@@ -254,7 +254,6 @@ override_dh_builddeb:
 		dh_builddeb ;\
 	else \
 		dh_builddeb -pthunderbird ;\
-		dh_builddeb -picedove ;\
 		dh_builddeb -pthunderbird-dev ;\
 		dh_builddeb -plightning ;\
 		dh_builddeb -pcalendar-google-provider ;\
