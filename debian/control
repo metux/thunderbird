@@ -2222,18 +2222,3 @@ Description: Debug Symbols for Icedove
  .
  This is a transitional package. It can be safely removed.
 
-Package: iceowl-extension
-Architecture: all
-Section: oldlibs
-Depends:
- lightning (>= ${binary:Version}),
- ${misc:Depends},
-Description: Calendar Extension for Thunderbird/Icedove
- Iceowl Extension is an unbranded Lightning Calendar extension for
- Thunderbird/Icedove. It can handle events, event invitations and
- tasks in multiple calendars.
- .
- It supports local calendars, CalDAV and plain ics files on WebDAV.
- .
- This is a transitional package. It can be safely removed.
-

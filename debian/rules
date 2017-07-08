@@ -258,7 +258,6 @@ override_dh_builddeb:
 		dh_builddeb -pthunderbird-dev ;\
 		dh_builddeb -picedove-dev ;\
 		dh_builddeb -plightning ;\
-		dh_builddeb -piceowl-extension ;\
 		dh_builddeb -pcalendar-google-provider ;\
 		for package in `grep -e \
 			'Package: thunderbird-l10n\|Package: lightning-l10n' debian/control | awk '{print $$2;}'`; do \
