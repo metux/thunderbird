@@ -2182,21 +2182,3 @@ Description: mail/news client with RSS and integrated spam filter support
  .
  This is a transitional package. It can be safely removed.
 
-Package: icedove-dev
-Architecture: all
-Section: oldlibs
-Depends:
- thunderbird-dev (>= ${binary:Version}),
- ${misc:Depends},
-Description: Development files for Icedove
- Icedove is an unbranded Thunderbird mail client suitable for free
- distribution. It supports different mail accounts (POP, IMAP, Gmail), has an
- integrated learning Spam filter, and offers easy organization of mails with
- tagging and virtual folders. Also, more features can be added by installing
- extensions.
- .
- This package contains the development headers, idl files and static libraries
- needed to develop applications using Icedove.
- .
- This is a transitional package. It can be safely removed.
-
