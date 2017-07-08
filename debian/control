@@ -2200,22 +2200,3 @@ Description: Development files for Icedove
  .
  This is a transitional package. It can be safely removed.
 
-Package: icedove-dbg
-Architecture: all
-Section: oldlibs
-Depends:
- thunderbird-dbg,
- ${misc:Depends},
-Description: Debug Symbols for Icedove
- Icedove is an unbranded Thunderbird mail client suitable for free
- distribution. It supports different mail accounts (POP, IMAP, Gmail), has an
- integrated learning Spam filter, and offers easy organization of mails with
- tagging and virtual folders. Also, more features can be added by installing
- extensions.
- .
- This package contains the debug symbols for Icedove. Install this package if
- you need to debug such a program or if you need a useful backtrace of a
- crash.
- .
- This is a transitional package. It can be safely removed.
-
