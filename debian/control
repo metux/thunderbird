@@ -170,12 +170,6 @@ Depends:
  python,
  ${misc:Depends},
  ${shlibs:Depends},
-Replaces:
- icedove-dev (<< 1:45.6.0-2.1~),
-Breaks:
- icedove-dev (<< 1:45.6.0-2.1~),
-Provides:
- icedove-dev,
 Description: Development files for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
