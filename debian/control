@@ -1612,12 +1612,6 @@ Depends:
  ${misc:Depends},
 Recommends:
  hunspell-ar,
-Replaces:
- iceowl-l10n-ar (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-ar (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-ar,
 Description: Arabic language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -1632,8 +1626,6 @@ Depends:
  lightning (<< ${source:Version}.1~),
  lightning (>= ${source:Version}),
  ${misc:Depends},
-Provides:
- iceowl-l10n-ast,
 Description: Asturian language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -1650,12 +1642,6 @@ Depends:
  ${misc:Depends},
 Recommends:
  hunspell-be,
-Replaces:
- iceowl-l10n-be (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-be (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-be,
 Description: Belarusian language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -1672,12 +1658,6 @@ Depends:
  ${misc:Depends},
 Recommends:
  hunspell-bg | myspell-bg,
-Replaces:
- iceowl-l10n-bg (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-bg (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-bg,
 Description: Bulgarian language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -1694,12 +1674,6 @@ Depends:
  ${misc:Depends},
 Recommends:
  hunspell-bn,
-Replaces:
- iceowl-l10n-bn-bd (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-bn-bd (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-bn-bd,
 Description: Bengali (Bangladesh) language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -1716,12 +1690,6 @@ Depends:
  ${misc:Depends},
 Recommends:
  hunspell-br,
-Replaces:
- iceowl-l10n-br (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-br (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-br,
 Description: Breton language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -1738,12 +1706,6 @@ Depends:
  ${misc:Depends},
 Recommends:
  hunspell-ca | myspell-ca,
-Replaces:
- iceowl-l10n-ca (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-ca (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-ca,
 Description: Catalan/Valencian language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -1760,12 +1722,6 @@ Depends:
  ${misc:Depends},
 Recommends:
  hunspell-cs | myspell-cs-cz,
-Replaces:
- iceowl-l10n-cs (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-cs (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-cs,
 Description: Czech language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -1780,12 +1736,6 @@ Depends:
  lightning (<< ${source:Version}.1~),
  lightning (>= ${source:Version}),
  ${misc:Depends},
-Replaces:
- iceowl-l10n-cy (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-cy (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-cy,
 Description: Welsh language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -1802,12 +1752,6 @@ Depends:
  ${misc:Depends},
 Recommends:
  myspell-da | hunspell-da,
-Replaces:
- iceowl-l10n-da (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-da (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-da,
 Description: Danish language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -1824,12 +1768,6 @@ Depends:
  ${misc:Depends},
 Recommends:
  hunspell-de-de | hunspell-de-at | hunspell-de-ch | myspell-de-de | myspell-de-at | myspell-de-ch,
-Replaces:
- iceowl-l10n-de (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-de (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-de,
 Description: German language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -1844,8 +1782,6 @@ Depends:
  lightning (<< ${source:Version}.1~),
  lightning (>= ${source:Version}),
  ${misc:Depends},
-Provides:
- iceowl-l10n-dsb,
 Description: Lower Sorbian language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -1862,12 +1798,6 @@ Depends:
  ${misc:Depends},
 Recommends:
  hunspell-el | myspell-el-gr,
-Replaces:
- iceowl-l10n-el (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-el (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-el,
 Description: Greek language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -1884,12 +1814,6 @@ Depends:
  ${misc:Depends},
 Recommends:
  hunspell-es | myspell-es,
-Replaces:
- iceowl-l10n-es-ar (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-es-ar (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-es-ar,
 Description: Spanish (Argentina) language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -1906,12 +1830,6 @@ Depends:
  ${misc:Depends},
 Recommends:
  hunspell-es | myspell-es,
-Replaces:
- iceowl-l10n-es-es (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-es-es (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-es-es,
 Description: Spanish (Spain) language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -1928,12 +1846,6 @@ Depends:
  ${misc:Depends},
 Recommends:
  hunspell-en-gb | hunspell-en-au | hunspell-en-ca | hunspell-en-za,
-Replaces:
- iceowl-l10n-en-gb (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-en-gb (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-en-gb,
 Description: British English language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -1950,12 +1862,6 @@ Depends:
  ${misc:Depends},
 Recommends:
  myspell-et,
-Replaces:
- iceowl-l10n-et (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-et (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-et,
 Description: Estonian language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -1972,12 +1878,6 @@ Depends:
  ${misc:Depends},
 Recommends:
  hunspell-eu,
-Replaces:
- iceowl-l10n-eu (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-eu (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-eu,
 Description: Basque language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -1995,12 +1895,6 @@ Depends:
 Recommends:
  myspell-fi,
  xul-ext-mozvoikko,
-Replaces:
- iceowl-l10n-fi (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-fi (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-fi,
 Description: Finnish language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -2017,12 +1911,6 @@ Depends:
  ${misc:Depends},
 Recommends:
  hunspell-fr | myspell-fr | myspell-fr-gut,
-Replaces:
- iceowl-l10n-fr (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-fr (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-fr,
 Description: French language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -2037,12 +1925,6 @@ Depends:
  lightning (<< ${source:Version}.1~),
  lightning (>= ${source:Version}),
  ${misc:Depends},
-Replaces:
- iceowl-l10n-fy-nl (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-fy-nl (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-fy-nl,
 Description: Western Frisian language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -2057,12 +1939,6 @@ Depends:
  lightning (<< ${source:Version}.1~),
  lightning (>= ${source:Version}),
  ${misc:Depends},
-Replaces:
- iceowl-l10n-ga-ie (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-ga-ie (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-ga-ie,
 Description: Irish (Ireland) language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -2079,12 +1955,6 @@ Depends:
  ${misc:Depends},
 Recommends:
  hunspell-gd,
-Replaces:
- iceowl-l10n-gd (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-gd (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-gd,
 Description: Scottish Gaelic language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -2101,12 +1971,6 @@ Depends:
  ${misc:Depends},
 Recommends:
  hunspell-gl | hunspell-gl-es,
-Replaces:
- iceowl-l10n-gl (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-gl (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-gl,
 Description: Galician language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -2123,12 +1987,6 @@ Depends:
  ${misc:Depends},
 Recommends:
  hunspell-he | myspell-he,
-Replaces:
- iceowl-l10n-he (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-he (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-he,
 Description: Hebrew language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -2145,12 +2003,6 @@ Depends:
  ${misc:Depends},
 Recommends:
  hunspell-hr | myspell-hr,
-Replaces:
- iceowl-l10n-hr (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-hr (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-hr,
 Description: Croatian language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -2167,8 +2019,6 @@ Depends:
  ${misc:Depends},
 Recommends:
  aspell-hsb,
-Provides:
- iceowl-l10n-hsb,
 Description: Upper Sorbian language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -2185,12 +2035,6 @@ Depends:
  ${misc:Depends},
 Recommends:
  hunspell-hu | myspell-hu,
-Replaces:
- iceowl-l10n-hu (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-hu (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-hu,
 Description: Hungarian language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -2207,12 +2051,6 @@ Depends:
  ${misc:Depends},
 Recommends:
  myspell-hy,
-Replaces:
- iceowl-l10n-hy-am (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-hy-am (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-hy-am,
 Description: Armenian language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -2227,12 +2065,6 @@ Depends:
  lightning (<< ${source:Version}.1~),
  lightning (>= ${source:Version}),
  ${misc:Depends},
-Replaces:
- iceowl-l10n-id (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-id (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-id,
 Description: Indonesian language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -2249,12 +2081,6 @@ Depends:
  ${misc:Depends},
 Recommends:
  hunspell-is,
-Replaces:
- iceowl-l10n-is (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-is (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-is,
 Description: Icelandic language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -2271,12 +2097,6 @@ Depends:
  ${misc:Depends},
 Recommends:
  hunspell-it | myspell-it,
-Replaces:
- iceowl-l10n-it (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-it (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-it,
 Description: Italian language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -2291,12 +2111,6 @@ Depends:
  lightning (<< ${source:Version}.1~),
  lightning (>= ${source:Version}),
  ${misc:Depends},
-Replaces:
- iceowl-l10n-ja (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-ja (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-ja,
 Description: Japanese language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -2311,8 +2125,6 @@ Depends:
  lightning (<< ${source:Version}.1~),
  lightning (>= ${source:Version}),
  ${misc:Depends},
-Provides:
- iceowl-l10n-kab,
 Description: Kabyle language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -2329,12 +2141,6 @@ Depends:
  ${misc:Depends},
 Recommends:
  hunspell-ko,
-Replaces:
- iceowl-l10n-ko (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-ko (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-ko,
 Description: Korean language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -2351,12 +2157,6 @@ Depends:
  ${misc:Depends},
 Recommends:
  hunspell-lt | myspell-lt,
-Replaces:
- iceowl-l10n-lt (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-lt (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-lt,
 Description: Lithuanian language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -2373,12 +2173,6 @@ Depends:
  ${misc:Depends},
 Recommends:
  hunspell-no | myspell-nb,
-Replaces:
- iceowl-l10n-nb-no (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-nb-no (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-nb-no,
 Description: Bokmaal (Norway) language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -2395,12 +2189,6 @@ Depends:
  ${misc:Depends},
 Recommends:
  hunspell-nl | myspell-nl,
-Replaces:
- iceowl-l10n-nl (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-nl (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-nl,
 Description: Dutch language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -2417,12 +2205,6 @@ Depends:
  ${misc:Depends},
 Recommends:
  hunspell-no | myspell-nn,
-Replaces:
- iceowl-l10n-nn-no (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-nn-no (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-nn-no,
 Description: Nynorsk (Norway) language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -2437,12 +2219,6 @@ Depends:
  lightning (<< ${source:Version}.1~),
  lightning (>= ${source:Version}),
  ${misc:Depends},
-Replaces:
- iceowl-l10n-pa-in (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-pa-in (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-pa-in,
 Description: Punjabi language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -2459,12 +2235,6 @@ Depends:
  ${misc:Depends},
 Recommends:
  hunspell-pl | myspell-pl,
-Replaces:
- iceowl-l10n-pl (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-pl (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-pl,
 Description: Polish language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -2481,12 +2251,6 @@ Depends:
  ${misc:Depends},
 Recommends:
  hunspell-pt-br | myspell-pt-br | myspell-pt,
-Replaces:
- iceowl-l10n-pt-br (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-pt-br (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-pt-br,
 Description: Portuguese (Brazil) language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -2503,12 +2267,6 @@ Depends:
  ${misc:Depends},
 Recommends:
  hunspell-pt-pt | myspell-pt-pt | myspell-pt,
-Replaces:
- iceowl-l10n-pt-pt (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-pt-pt (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-pt-pt,
 Description: Portuguese (Portugal) language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -2523,12 +2281,6 @@ Depends:
  lightning (<< ${source:Version}.1~),
  lightning (>= ${source:Version}),
  ${misc:Depends},
-Replaces:
- iceowl-l10n-rm (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-rm (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-rm,
 Description: Romansh language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -2545,12 +2297,6 @@ Depends:
  ${misc:Depends},
 Recommends:
  hunspell-ro,
-Replaces:
- iceowl-l10n-ro (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-ro (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-ro,
 Description: Romanian language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -2567,12 +2313,6 @@ Depends:
  ${misc:Depends},
 Recommends:
  hunspell-ru | myspell-ru,
-Replaces:
- iceowl-l10n-ru (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-ru (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-ru,
 Description: Russian language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -2589,12 +2329,6 @@ Depends:
  ${misc:Depends},
 Recommends:
  hunspell-si,
-Replaces:
- iceowl-l10n-si (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-si (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-si,
 Description: Sinhala language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -2611,12 +2345,6 @@ Depends:
  ${misc:Depends},
 Recommends:
  hunspell-sk | myspell-sk,
-Replaces:
- iceowl-l10n-sk (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-sk (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-sk,
 Description: Slovak language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -2633,12 +2361,6 @@ Depends:
  ${misc:Depends},
 Recommends:
  hunspell-sl | myspell-sl,
-Replaces:
- iceowl-l10n-sl (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-sl (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-sl,
 Description: Slovenian language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -2655,12 +2377,6 @@ Depends:
  ${misc:Depends},
 Recommends:
  hunspell-sr,
-Replaces:
- iceowl-l10n-sr (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-sr (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-sr,
 Description: Serbian language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -2675,12 +2391,6 @@ Depends:
  lightning (<< ${source:Version}.1~),
  lightning (>= ${source:Version}),
  ${misc:Depends},
-Replaces:
- iceowl-l10n-sq (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-sq (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-sq,
 Description: Albanian language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -2697,12 +2407,6 @@ Depends:
  ${misc:Depends},
 Recommends:
  hunspell-sv | myspell-sv-se,
-Replaces:
- iceowl-l10n-sv-se (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-sv-se (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-sv-se,
 Description: Swedish language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -2717,12 +2421,6 @@ Depends:
  lightning (<< ${source:Version}.1~),
  lightning (>= ${source:Version}),
  ${misc:Depends},
-Replaces:
- iceowl-l10n-ta-lk (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-ta-lk (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-ta-lk,
 Description: Tamil language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -2737,12 +2435,6 @@ Depends:
  lightning (<< ${source:Version}.1~),
  lightning (>= ${source:Version}),
  ${misc:Depends},
-Replaces:
- iceowl-l10n-tr (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-tr (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-tr,
 Description: Turkish language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -2759,12 +2451,6 @@ Depends:
  ${misc:Depends},
 Recommends:
  hunspell-uk | myspell-uk,
-Replaces:
- iceowl-l10n-uk (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-uk (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-uk,
 Description: Ukrainian language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -2781,12 +2467,6 @@ Depends:
  ${misc:Depends},
 Recommends:
  hunspell-vi,
-Replaces:
- iceowl-l10n-vi (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-vi (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-vi,
 Description: Vietnamese language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -2801,12 +2481,6 @@ Depends:
  lightning (<< ${source:Version}.1~),
  lightning (>= ${source:Version}),
  ${misc:Depends},
-Replaces:
- iceowl-l10n-zh-cn (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-zh-cn (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-zh-cn,
 Description: Chinese (China) language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
@@ -2821,12 +2495,6 @@ Depends:
  lightning (<< ${source:Version}.1~),
  lightning (>= ${source:Version}),
  ${misc:Depends},
-Replaces:
- iceowl-l10n-zh-tw (<< 1:45.6.0-2.1~),
-Breaks:
- iceowl-l10n-zh-tw (<< 1:45.6.0-2.1~),
-Provides:
- iceowl-l10n-zh-tw,
 Description: Chinese (Taiwan) language package for lightning
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
