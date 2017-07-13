@@ -9,7 +9,16 @@
 include /usr/share/dpkg/pkg-info.mk
 RELEASE := $(DEB_DISTRIBUTION)
 
-ICUDATFILE=$(shell basename mozilla/config/external/icu/data/icud*.dat)
+ifneq (,$(filter parallel=%,$(DEB_BUILD_OPTIONS)))
+	NUMJOBS = $(patsubst parallel=%,%,$(filter parallel=%,$(DEB_BUILD_OPTIONS)))
+endif
+
+ICU_DATA_FILE := $(shell basename mozilla/config/external/icu/data/icud*.dat)
+ICU_BUILD := $(shell if ! grep -qs -e "--with-system-icu" debian/mozconfig.default; then echo YES || NO; fi)
+ICU_BUILD_DIR := $(CURDIR)/obj-thunderbird/obj-icu
+ICU_BUILD_CONFIGURE := --with-data-packaging=archive --enable-static --disable-shared --disable-extras --disable-icuio --disable-layout --disable-tests --disable-samples --disable-strict
+ICU_BUILD_CPPFLAGS := "-DU_NO_DEFAULT_INCLUDE_UTF_HEADERS=1 -DUCONFIG_NO_LEGACY_CONVERSION -DUCONFIG_NO_TRANSLITERATION -DUCONFIG_NO_REGULAR_EXPRESSIONS -DUCONFIG_NO_BREAK_ITERATION -DU_CHARSET_IS_UTF8"
+
 THUNDERBIRD_VERSION=$(shell tail -1 mail/config/version.txt)
 DEB_AUTO_UPDATE_AUTOCONF=2.13
 
@@ -83,6 +92,20 @@ override_dh_auto_configure:
 	cp debian/mozconfig.* .
 	cp debian/mozconfig.default mozilla/
 	echo 'mk_add_options MOZ_OBJDIR=$(CURDIR)/obj-thunderbird' >> mozconfig.thunderbird
+	@echo "rebuild ICU data file needed: $(ICU_BUILD)"
+ifeq ($(ICU_BUILD),YES)
+	#####################################################################
+	# (re)build upstream icudt5*.dat due disabled usage of system files #
+	#####################################################################
+	rm -f $(ICU_DATA_FILE)
+	mkdir -p $(ICU_BUILD_DIR)
+	cd $(ICU_BUILD_DIR) ;\
+		$(CURDIR)/mozilla/intl/icu/source/configure $(ICU_BUILD_CONFIGURE) CPPFLAGS=$(ICU_BUILD_CPPFLAGS) ;\
+		$(MAKE) -j$(NUMJOBS)
+	test -f $(ICU_BUILD_DIR)/data/out/$(ICU_DATA_FILE) && cp $(ICU_BUILD_DIR)/data/out/$(ICU_DATA_FILE) $(CURDIR)/mozilla/config/external/icu/data
+	ICU_DATA_FILE=$$(basename mozilla/config/external/icu/data/icud*.dat)
+	echo "created new ICU_DATA_FILE in $(CURDIR)/mozilla/config/external/icu/data/$(ICU_DATA_FILE)"
+endif
 	# configure the various build settings
 	# thunderbird, thunderbird-dev, calendar-google-provider, lightning
 	DIST= make -f client.mk configure
@@ -162,10 +185,10 @@ endif
 override_dh_install-arch:
 	# in case of a pre-builded and installed icudt*.dat file pick it up
 	# and do a needed symlinking for the thunderbird-dev package afterwards
-	if [ -f debian/tmp/usr/lib/thunderbird/$(ICUDATFILE) ]; then \
-		if ! grep -qs $(ICUDATFILE) debian/thunderbird.install ; then \
-			echo "debian/tmp/usr/lib/thunderbird/$(ICUDATFILE)" >> debian/thunderbird.install ;\
-			echo "usr/lib/thunderbird/$(ICUDATFILE)  usr/share/thunderbird/$(ICUDATFILE)" >> debian/thunderbird-dev.links ;\
+	if [ -f debian/tmp/usr/lib/thunderbird/$(ICU_DATA_FILE) ]; then \
+		if ! grep -qs $(ICU_DATA_FILE) debian/thunderbird.install ; then \
+			echo "debian/tmp/usr/lib/thunderbird/$(ICU_DATA_FILE)" >> debian/thunderbird.install ;\
+			echo "usr/lib/thunderbird/$(ICU_DATA_FILE)  usr/share/thunderbird/$(ICU_DATA_FILE)" >> debian/thunderbird-dev.links ;\
 		fi \
 	fi
 	dh_install
