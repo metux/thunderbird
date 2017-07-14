@@ -16,11 +16,11 @@
 #      mozconfig.$APPLICATION file!
 
 # use/use not packaged software instead of preshipped
-#ac_add_options --with-system-jpeg     # Debian version causes issues on mips*
+ac_add_options --without-system-jpeg   # Debian version causes issues on mips*
 ac_add_options --with-system-bz2
-#ac_add_options --with-system-icu      # Debian version to old in unstable
-#ac_add_options --with-system-nspr     # Debian version to old in unstable
-#ac_add_options --with-system-nss      # Debian version to old in unstable
+ac_add_options --without-system-icu    # Debian version to old in unstable
+ac_add_options --without-system-nspr   # Debian version to old in unstable
+ac_add_options --without-system-nss    # Debian version to old in unstable
 ac_add_options --with-system-zlib
 
 # other packaged software
