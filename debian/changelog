@@ -1,3 +1,9 @@
+icedove (1:52.2.1-4~deb9u1) stretch-security; urgency=medium
+
+  * Rebuild for stretch-security
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 21 Jul 2017 20:39:22 +0200
+
 icedove (1:52.2.1-4) unstable; urgency=medium
 
   [ Guido Günther ]
