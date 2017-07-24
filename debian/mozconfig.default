@@ -114,6 +114,9 @@ case `dpkg --print-architecture` in
     ac_add_options --disable-optimize
     ac_add_options --without-intl-api
     ;;
+  sh4)
+    ac_add_options --disable-pie
+    ;;
   sparc)
     ac_add_options --enable-optimize=-O1
     ac_add_options --without-intl-api
