@@ -1,3 +1,30 @@
+icedove (1:52.2.1-5) unstable; urgency=high
+
+  [ Carsten Schoenert ]
+  * [133a574] Use gcc-6 and g++-6 due broken GUI with GCC-7
+    The usage of the GCC-7 suite introduces a broken GUI currently that make
+    using thunderbird mostly impossible.
+    (Closes: #871629)
+  * [3ebacd1] d/rules: use DEB_* variables for entries from changelog
+    By using variables that are prepared by dpkg we don't need to manually
+    search for dates and versions. etc.
+  * [52c2b83] d/copyright: MPL-1.1 and MPL-2.0 now provided by common-licenses
+    Since policy 4.0.0 the two Mozilla related licenses are included and don't
+    need to be added extra.
+  * [3f37967] adjust X-Debian-Homepage to existing Thunderbird page
+  * [41b5c03] debian/control: increase Standards-Version to 4.0.0
+  * [e3c3994] mozconfig.default: use proper disabled options
+  * [2d4b846] debian/control: increase Breaks for enigmail version
+    (Closes: #869789)
+
+  [ John Paul Adrian Glaubitz ]
+  * [4879401] sh4: disable option --disable-pie (Closes: #867553)
+
+  [ Carsten Schoenert ]
+  * [2646f3f] autpkgtests: disable the idlTest.sh test case
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Fri, 11 Aug 2017 22:02:47 -0400
+
 icedove (1:52.2.1-4) unstable; urgency=medium
 
   [ Guido Günther ]
