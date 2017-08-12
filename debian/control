@@ -15,6 +15,8 @@ Build-Depends:
  dh-exec,
  dpkg (>= 1.16.18~),
  dpkg-dev (>= 1.16.18~),
+ gcc-6,
+ g++-6,
  libasound2-dev [linux-any],
  libatk-adaptor,
  libbz2-dev,
