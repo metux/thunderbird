@@ -114,7 +114,7 @@ index 078be67..e12cb86 100644
  # include "jit/mips-shared/AtomicOperations-mips-shared.h"
  #elif defined(__ppc__) || defined(__PPC__)
 diff --git a/mozilla/js/src/jsfriendapi.h b/mozilla/js/src/jsfriendapi.h
-index d6463d3..d7ead8f 100644
+index b1c7cb0..2b6b956 100644
 --- a/mozilla/js/src/jsfriendapi.h
 +++ b/mozilla/js/src/jsfriendapi.h
 @@ -571,7 +571,7 @@ public:

@@ -43,7 +43,7 @@ index 53ad98e..42e8c41 100644
  #define ARCH_CPU_64_BITS 1
  #elif defined(__sparc__)
 diff --git a/mozilla/js/src/gc/Memory.cpp b/mozilla/js/src/gc/Memory.cpp
-index 00f3c23..816cc3e 100644
+index 26da754..4d8bcc7 100644
 --- a/mozilla/js/src/gc/Memory.cpp
 +++ b/mozilla/js/src/gc/Memory.cpp
 @@ -501,7 +501,9 @@ static inline void*
