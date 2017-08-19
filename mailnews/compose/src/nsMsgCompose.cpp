@@ -1011,9 +1011,6 @@ nsMsgCompose::Initialize(nsIMsgComposeParams *aParams,
     if (NS_FAILED(rv)) return rv;
 
     m_baseWindow = do_QueryInterface(treeOwner);
-#ifdef MOZ_SUITE
-    window->GetDocShell()->SetAppType(nsIDocShell::APP_TYPE_EDITOR);
-#endif
   }
 
   MSG_ComposeFormat format;
@@ -1312,6 +1309,8 @@ NS_IMETHODIMP nsMsgCompose::SendMsg(MSG_DeliverMode deliverMode, nsIMsgIdentity 
         flags |= nsIDocumentEncoder::OutputFormatted;
       if (disallowBreaks)
         flags |= nsIDocumentEncoder::OutputDisallowLineBreaking;
+      // Don't lose NBSP in the plain text encoder.
+      flags |= nsIDocumentEncoder::OutputPersistNBSP;
     }
     rv = m_editor->OutputToString(contentType, flags, msgBody);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -1865,7 +1864,11 @@ nsresult nsMsgCompose::CreateMessage(const char * originalMsgURI,
       {
         nsCString queuedDisposition;
         msgDBHdr->GetStringProperty(QUEUED_DISPOSITION_PROPERTY, getter_Copies(queuedDisposition));
-        mOriginalMsgURI.Assign(originalMsgURI);
+        // We need to retrieve the original URI from the database so we can
+        // set the disposition flags correctly if the draft is a reply or forwarded message.
+        nsCString originalMsgURIfromDB;
+        msgDBHdr->GetStringProperty(ORIG_URI_PROPERTY, getter_Copies(originalMsgURIfromDB));
+        mOriginalMsgURI = originalMsgURIfromDB;
         if (!queuedDisposition.IsEmpty())
         {
           if (queuedDisposition.Equals("replied"))
