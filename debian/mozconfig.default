@@ -62,6 +62,9 @@ ac_add_options --host=$DEB_HOST_GNU_TYPE
 
 # some platform depended things
 case `dpkg --print-architecture` in
+  alpha)
+    ac_add_options --enable-optimize=-O1
+    ;;
   amd64)
     ac_add_options --enable-crashreporter
     ;;
@@ -75,9 +78,6 @@ case `dpkg --print-architecture` in
   armhf)
     ac_add_options --enable-optimize=-O1
     ac_add_options --enable-crashreporter
-    ;;
-  alpha)
-    ac_add_options --enable-optimize=-O1
     ;;
   hurd-i386)
     ac_add_options --disable-necko-wifi
