@@ -84,7 +84,7 @@ case `dpkg --print-architecture` in
     ;;
   hppa)
     ac_add_options --disable-optimize
-    ac_add_options --without-intl-api
+    ac_add_options --with-intl-api
     ;;
   i386)
     ac_add_options --enable-crashreporter
@@ -99,33 +99,33 @@ case `dpkg --print-architecture` in
     ac_add_options --disable-necko-wifi
     ;;
   m68k)
-    ac_add_options --without-intl-api
+    ac_add_options --with-intl-api
     ;;
   mips)
-    ac_add_options --without-intl-api
+    ac_add_options --with-intl-api
     ;;
   powerpc)
-    ac_add_options --without-intl-api
+    ac_add_options --with-intl-api
     ;;
   powerpcspe)
-    ac_add_options --without-intl-api
+    ac_add_options --with-intl-api
     ;;
   ppc64)
     ac_add_options --disable-optimize
-    ac_add_options --without-intl-api
+    ac_add_options --with-intl-api
     ;;
   sh4)
     ac_add_options --disable-pie
     ;;
   sparc)
     ac_add_options --enable-optimize=-O1
-    ac_add_options --without-intl-api
+    ac_add_options --with-intl-api
     ;;
   sparc64)
-    ac_add_options --without-intl-api
+    ac_add_options --with-intl-api
     ;;
   s390x)
     ac_add_options --enable-optimize=-O1
-    ac_add_options --without-intl-api
+    ac_add_options --with-intl-api
     ;;
 esac
