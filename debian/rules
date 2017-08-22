@@ -97,14 +97,14 @@ ifeq ($(ICU_BUILD),YES)
 	#####################################################################
 	# (re)build upstream icudt5*.dat due disabled usage of system files #
 	#####################################################################
-	rm -f $(ICU_DATA_FILE)
+	rm -f $(CURDIR)/mozilla/config/external/icu/data/$(ICU_DATA_FILE)
 	mkdir -p $(ICU_BUILD_DIR)
 	cd $(ICU_BUILD_DIR) ;\
 		$(CURDIR)/mozilla/intl/icu/source/configure $(ICU_BUILD_CONFIGURE) CPPFLAGS=$(ICU_BUILD_CPPFLAGS) ;\
 		$(MAKE) -j$(NUMJOBS)
-	test -f $(ICU_BUILD_DIR)/data/out/$(ICU_DATA_FILE) && cp $(ICU_BUILD_DIR)/data/out/$(ICU_DATA_FILE) $(CURDIR)/mozilla/config/external/icu/data
-	ICU_DATA_FILE=$$(basename mozilla/config/external/icu/data/icud*.dat)
-	echo "created new ICU_DATA_FILE in $(CURDIR)/mozilla/config/external/icu/data/$(ICU_DATA_FILE)"
+	@ICU_DATA_FILE_CREATED=$$(basename $(ICU_BUILD_DIR)/data/out/icud*.dat) ;\
+	test -f $(ICU_BUILD_DIR)/data/out/$$ICU_DATA_FILE_CREATED && cp $(ICU_BUILD_DIR)/data/out/$$ICU_DATA_FILE_CREATED $(CURDIR)/mozilla/config/external/icu/data ;\
+	echo "created new ICU_DATA_FILE in $(CURDIR)/mozilla/config/external/icu/data/$$ICU_DATA_FILE_CREATED"
 endif
 	# configure the various build settings
 	# thunderbird, thunderbird-dev, calendar-google-provider, lightning
