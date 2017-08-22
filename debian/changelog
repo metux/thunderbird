@@ -1,3 +1,10 @@
+icedove (1:52.3.0-2) unstable; urgency=medium
+
+  [ Carsten Schoenert ]
+  * [d544a01] debian/rules: correct icu build sequence
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Tue, 22 Aug 2017 18:57:36 +0200
+
 icedove (1:52.3.0-1) unstable; urgency=medium
 
   [ Carsten Schoenert ]
