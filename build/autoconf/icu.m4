@@ -78,7 +78,31 @@ if test -n "$USE_ICU"; then
     # TODO: the l is actually endian-dependent
     # We could make this set as 'l' or 'b' for little or big, respectively,
     # but we'd need to check in a big-endian version of the file.
-    ICU_DATA_FILE="icudt${version}l.dat"
+    case $host in
+        dnl big endian architectures
+        hppa-*)
+            ICU_DATA_FILE="icudt${version}b.dat"
+            ;;
+        m68k-*)
+            ICU_DATA_FILE="icudt${version}b.dat"
+            ;;
+        mips-*)
+            ICU_DATA_FILE="icudt${version}b.dat"
+            ;;
+        powerpc-* | powerpc64-*)
+            ICU_DATA_FILE="icudt${version}b.dat"
+            ;;
+        s390*-*)
+            ICU_DATA_FILE="icudt${version}b.dat"
+            ;;
+        sparc*-*)
+            ICU_DATA_FILE="icudt${version}b.dat"
+            ;;
+        dnl assume little endian by default
+        *)
+            ICU_DATA_FILE="icudt${version}l.dat"
+            ;;
+    esac
 
     MOZ_ICU_DATA_ARCHIVE=
 fi
