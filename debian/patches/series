@@ -31,6 +31,7 @@ porting-arm64/Bug-1257055-Use-jit-arm64-Architecture-arm64.h-on-non-JIT.patch
 porting-m68k/Add-m68k-support-to-Thunderbird.patch
 debian-hacks/Don-t-build-testing-suites-and-stuff.patch
 debian-hacks/Allow-to-override-ICU_DATA_FILE-from-the-environment.patch
+debian-hacks/use-icudt-b-l-.dat-depending-on-architecture.patch
 debian-hacks/Force-use-the-i686-rust-target.patch
 debian-hacks/Build-against-system-libjsoncpp.patch
 porting-sh4/Add-sh4-support-to-Thunderbird.patch

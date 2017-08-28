@@ -1,0 +1,121 @@
+From: Carsten Schoenert <c.schoenert@t-online.de>
+Date: Sun, 27 Aug 2017 21:14:01 +0200
+Subject: use icudt??{b,l}.dat depending on architecture
+
+Upstream doesn't really care about big endian platforms and so also don't
+care about a needed file icudt??b.dat on big endian platforms. Changing
+the m4 macro for ICU so the needed file will be depended on the build
+platform exported and let later the configure run automatically use the
+correct name for the ICU *.dat file so we not only depend on the
+prebuild *.dat file for little endian.
+
+The `case foo in ...` loop could be obviously more compressed to only two
+cases, one with architectures which are little endian and a second with all
+big endian platforms. For more readability the more exclusive extra list
+of all possible architectures in Debian was choosen.
+---
+ mozilla/build/autoconf/icu.m4 | 91 ++++++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 90 insertions(+), 1 deletion(-)
+
+diff --git a/mozilla/build/autoconf/icu.m4 b/mozilla/build/autoconf/icu.m4
+index e0f922d..566b966 100644
+--- a/mozilla/build/autoconf/icu.m4
++++ b/mozilla/build/autoconf/icu.m4
+@@ -79,7 +79,96 @@ if test -n "$USE_ICU"; then
+     # We could make this set as 'l' or 'b' for little or big, respectively,
+     # but we'd need to check in a big-endian version of the file.
+     if test -z "$ICU_DATA_FILE"; then
+-        ICU_DATA_FILE="icudt${version}l.dat"
++        case $host in
++            x86_64-pc-linux-gnu)
++                dnl amd64
++                ICU_DATA_FILE="icudt${version}l.dat"
++                ;;
++            i686-pc-linux-gnui)
++                dnl i386
++                ICU_DATA_FILE="icudt${version}l.dat"
++                ;;
++            arm-unknown-linux-gnueabi)
++                dnl armel
++                ICU_DATA_FILE="icudt${version}l.dat"
++                ;;
++            arm-unknown-linux-gnueabihf)
++                dnl armhf
++                ICU_DATA_FILE="icudt${version}l.dat"
++                ;;
++            aarch64-unknown-linux-gnu)
++                dnl arm64
++                ICU_DATA_FILE="icudt${version}l.dat"
++                ;;
++            mips-unknown-linux-gnu)
++                dnl mips
++                ICU_DATA_FILE="icudt${version}b.dat"
++                ;;
++            mips64el-unknown-linux-gnuabi64)
++                dnl mips64el
++                ICU_DATA_FILE="icudt${version}l.dat"
++                ;;
++            mipsel-unknown-linux-gnu)
++                dnl mipsel
++                ICU_DATA_FILE="icudt${version}l.dat"
++                ;;
++            powerpc64le-unknown-linux-gnu)
++                dnl ppc64el
++                ICU_DATA_FILE="icudt${version}l.dat"
++                ;;
++            s390x-ibm-linux-gnu)
++                dnl s390x
++                ICU_DATA_FILE="icudt${version}b.dat"
++                ;;
++            alpha-unknown-linux-gnu)
++                dnl alpha
++                ICU_DATA_FILE="icudt${version}l.dat"
++                ;;
++            hppa-unknown-linux-gnu)
++                dnl hppa
++                ICU_DATA_FILE="icudt${version}b.dat"
++                ;;
++            i686-pc-gnu)
++                dnl hurd-386
++                ICU_DATA_FILE="icudt${version}l.dat"
++                ;;
++            x86_64-pc-kfreebsd-gnu)
++                dnl kfreebsd-amd64
++                ICU_DATA_FILE="icudt${version}l.dat"
++                ;;
++            i686-pc-kfreebsd-gnu)
++                dnl kfreebsd-i386
++                ICU_DATA_FILE="icudt${version}l.dat"
++                ;;
++            m68k-unknown-linux-gnu)
++                dnl m68k
++                ICU_DATA_FILE="icudt${version}b.dat"
++                ;;
++            powerpc-unknown-linux-gnu)
++                dnl powerpc
++                ICU_DATA_FILE="icudt${version}b.dat"
++                ;;
++            powerpc-unknown-linux-gnuspe)
++                dnl powerpcspe
++                ICU_DATA_FILE="icudt${version}b.dat"
++                ;;
++            powerpc64-unknown-linux-gnu)
++                dnl ppc64
++                ICU_DATA_FILE="icudt${version}b.dat"
++                ;;
++            sh4-unknown-linux-gnu)
++                dnl sh4
++                ICU_DATA_FILE="icudt${version}l.dat"
++                ;;
++            sparc64-unknown-linux-gnu)
++                dnl sparc64
++                ICU_DATA_FILE="icudt${version}b.dat"
++                ;;
++            x86_64-pc-linux-gnux32)
++                dnl x32
++                ICU_DATA_FILE="icudt${version}l.dat"
++                ;;
++        esac
+     fi
+ 
+     dnl We won't build ICU data as a separate file when building
