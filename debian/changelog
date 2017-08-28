@@ -1,3 +1,11 @@
+icedove (1:52.3.0-3) unstable; urgency=medium
+
+  [ Carsten Schoenert ]
+  * [c08f005] rebuild patch queue from patch-queue branch
+  * [f658cab] debian/rules: enable verbose build for ICU
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Mon, 28 Aug 2017 19:44:07 +0200
+
 icedove (1:52.3.0-2) unstable; urgency=medium
 
   [ Carsten Schoenert ]
