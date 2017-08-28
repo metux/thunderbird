@@ -101,7 +101,7 @@ ifeq ($(ICU_BUILD),YES)
 	mkdir -p $(ICU_BUILD_DIR)
 	cd $(ICU_BUILD_DIR) ;\
 		$(CURDIR)/mozilla/intl/icu/source/configure $(ICU_BUILD_CONFIGURE) CPPFLAGS=$(ICU_BUILD_CPPFLAGS) ;\
-		$(MAKE) -j$(NUMJOBS)
+		$(MAKE) VERBOSE=1 -j$(NUMJOBS)
 	@ICU_DATA_FILE_CREATED=$$(basename $(ICU_BUILD_DIR)/data/out/icud*.dat) ;\
 	test -f $(ICU_BUILD_DIR)/data/out/$$ICU_DATA_FILE_CREATED && cp $(ICU_BUILD_DIR)/data/out/$$ICU_DATA_FILE_CREATED $(CURDIR)/mozilla/config/external/icu/data ;\
 	echo "created new ICU_DATA_FILE in $(CURDIR)/mozilla/config/external/icu/data/$$ICU_DATA_FILE_CREATED"
