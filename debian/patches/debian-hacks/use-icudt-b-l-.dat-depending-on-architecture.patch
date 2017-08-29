@@ -31,7 +31,7 @@ index e0f922d..566b966 100644
 +                dnl amd64
 +                ICU_DATA_FILE="icudt${version}l.dat"
 +                ;;
-+            i686-pc-linux-gnui)
++            i686-pc-linux-gnu)
 +                dnl i386
 +                ICU_DATA_FILE="icudt${version}l.dat"
 +                ;;
