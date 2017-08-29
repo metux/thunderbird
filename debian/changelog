@@ -1,3 +1,11 @@
+icedove (1:52.3.0-4) unstable; urgency=medium
+
+  [ Carsten Schoenert ]
+  * [3ddf57b] rebuild patch queue from patch-queue branch
+  * [3bd845d] debian/control: increase Standards-Version to 4.1.0
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Tue, 29 Aug 2017 16:17:24 +0200
+
 icedove (1:52.3.0-3) unstable; urgency=medium
 
   [ Carsten Schoenert ]
