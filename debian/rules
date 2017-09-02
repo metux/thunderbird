@@ -6,9 +6,19 @@
 
 # checking the release type, if $(RELEASE)=UNRELEASED we won't build
 # the thunderbird-dbg package
-RELEASE := $(shell head -1 debian/changelog | cut -d" " -f3 | tr -d ';')
+include /usr/share/dpkg/pkg-info.mk
+RELEASE := $(DEB_DISTRIBUTION)
 
-ICUDATFILE=$(shell basename mozilla/config/external/icu/data/icud*.dat)
+ifneq (,$(filter parallel=%,$(DEB_BUILD_OPTIONS)))
+	NUMJOBS = $(patsubst parallel=%,%,$(filter parallel=%,$(DEB_BUILD_OPTIONS)))
+endif
+
+ICU_DATA_FILE := $(shell basename mozilla/config/external/icu/data/icud*.dat)
+ICU_BUILD := $(shell if ! grep -qs -e "--with-system-icu" debian/mozconfig.default; then echo YES || NO; fi)
+ICU_BUILD_DIR := $(CURDIR)/obj-thunderbird/obj-icu
+ICU_BUILD_CONFIGURE := --with-data-packaging=archive --enable-static --disable-shared --disable-extras --disable-icuio --disable-layout --disable-tests --disable-samples --disable-strict
+ICU_BUILD_CPPFLAGS := "-DU_NO_DEFAULT_INCLUDE_UTF_HEADERS=1 -DUCONFIG_NO_LEGACY_CONVERSION -DUCONFIG_NO_TRANSLITERATION -DUCONFIG_NO_REGULAR_EXPRESSIONS -DUCONFIG_NO_BREAK_ITERATION -DU_CHARSET_IS_UTF8"
+
 THUNDERBIRD_VERSION=$(shell tail -1 mail/config/version.txt)
 DEB_AUTO_UPDATE_AUTOCONF=2.13
 
@@ -30,6 +40,9 @@ include /usr/share/dpkg/architecture.mk
 CFLAGS += -fno-delete-null-pointer-checks -fno-schedule-insns2 -fno-lifetime-dse
 CXXFLAGS += -fno-delete-null-pointer-checks -fno-schedule-insns2 -fno-lifetime-dse
 
+export CC=gcc-6
+export CXX=g++-6
+
 # special CFLAGS for various platforms
 ifeq ($(DEB_BUILD_ARCH),armel)
 	CFLAGS += -D__ARM_PCS
@@ -43,7 +56,7 @@ LDFLAGS += -Wl,--no-keep-memory -Wl,--reduce-memory-overheads
 # Add execution time and memory usage stats in the logs
 LDFLAGS += -Wl,--stats
 
-export MOZ_BUILD_DATE := $(shell TZ=UTC date -d "$(shell dpkg-parsechangelog -S Date)" +%Y%m%d%H%M%S)
+export MOZ_BUILD_DATE := $(SOURCE_DATE_EPOCH)
 export MOZCONFIG=$(shell pwd)/mozconfig.thunderbird
 export MOZILLA_OFFICIAL=1
 export DEB_BUILD_GNU_TYPE
@@ -79,6 +92,20 @@ override_dh_auto_configure:
 	cp debian/mozconfig.* .
 	cp debian/mozconfig.default mozilla/
 	echo 'mk_add_options MOZ_OBJDIR=$(CURDIR)/obj-thunderbird' >> mozconfig.thunderbird
+	@echo "rebuild ICU data file needed: $(ICU_BUILD)"
+ifeq ($(ICU_BUILD),YES)
+	#####################################################################
+	# (re)build upstream icudt5*.dat due disabled usage of system files #
+	#####################################################################
+	rm -f $(CURDIR)/mozilla/config/external/icu/data/$(ICU_DATA_FILE)
+	mkdir -p $(ICU_BUILD_DIR)
+	cd $(ICU_BUILD_DIR) ;\
+		$(CURDIR)/mozilla/intl/icu/source/configure $(ICU_BUILD_CONFIGURE) CPPFLAGS=$(ICU_BUILD_CPPFLAGS) ;\
+		$(MAKE) VERBOSE=1 -j$(NUMJOBS)
+	@ICU_DATA_FILE_CREATED=$$(basename $(ICU_BUILD_DIR)/data/out/icud*.dat) ;\
+	test -f $(ICU_BUILD_DIR)/data/out/$$ICU_DATA_FILE_CREATED && cp $(ICU_BUILD_DIR)/data/out/$$ICU_DATA_FILE_CREATED $(CURDIR)/mozilla/config/external/icu/data ;\
+	echo "created new ICU_DATA_FILE in $(CURDIR)/mozilla/config/external/icu/data/$$ICU_DATA_FILE_CREATED"
+endif
 	# configure the various build settings
 	# thunderbird, thunderbird-dev, calendar-google-provider, lightning
 	DIST= make -f client.mk configure
@@ -158,10 +185,10 @@ endif
 override_dh_install-arch:
 	# in case of a pre-builded and installed icudt*.dat file pick it up
 	# and do a needed symlinking for the thunderbird-dev package afterwards
-	if [ -f debian/tmp/usr/lib/thunderbird/$(ICUDATFILE) ]; then \
-		if ! grep -qs $(ICUDATFILE) debian/thunderbird.install ; then \
-			echo "debian/tmp/usr/lib/thunderbird/$(ICUDATFILE)" >> debian/thunderbird.install ;\
-			echo "usr/lib/thunderbird/$(ICUDATFILE)  usr/share/thunderbird/$(ICUDATFILE)" >> debian/thunderbird-dev.links ;\
+	if [ -f debian/tmp/usr/lib/thunderbird/$(ICU_DATA_FILE) ]; then \
+		if ! grep -qs $(ICU_DATA_FILE) debian/thunderbird.install ; then \
+			echo "debian/tmp/usr/lib/thunderbird/$(ICU_DATA_FILE)" >> debian/thunderbird.install ;\
+			echo "usr/lib/thunderbird/$(ICU_DATA_FILE)  usr/share/thunderbird/$(ICU_DATA_FILE)" >> debian/thunderbird-dev.links ;\
 		fi \
 	fi
 	dh_install

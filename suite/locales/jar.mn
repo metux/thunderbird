@@ -2,7 +2,10 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
-
+ 
+# These are used for the if statement, as the preprocessor can't handle
+# dashes.
+#define en_US en-US
 
 @AB_CD@.jar:
 % locale branding @AB_CD@ %locale/@AB_CD@/branding/
@@ -289,6 +292,11 @@
   locale/@AB_CD@/messenger/messengercompose/askSendFormat.dtd               (%chrome/mailnews/compose/askSendFormat.dtd)
   locale/@AB_CD@/messenger/messengercompose/askSendFormat.properties        (%chrome/mailnews/compose/askSendFormat.properties)
   locale/@AB_CD@/messenger/messengercompose/composeMsgs.properties          (%chrome/mailnews/compose/composeMsgs.properties)
+#if AB_CD == en_US
+  locale/@AB_CD@/messenger/messengercompose/composeMsgsTB.properties        (/mail/locales/en-US/chrome/messenger/messengercompose/composeMsgs.properties)
+#else
+  locale/@AB_CD@/messenger/messengercompose/composeMsgsTB.properties        (%../mail/chrome/messenger/messengercompose/composeMsgs.properties)
+#endif
   locale/@AB_CD@/messenger/messengercompose/mailComposeEditorOverlay.dtd    (%chrome/mailnews/compose/mailComposeEditorOverlay.dtd)
   locale/@AB_CD@/messenger/messengercompose/messengercompose.dtd            (%chrome/mailnews/compose/messengercompose.dtd)
   locale/@AB_CD@/messenger/messengercompose/pref-composing_messages.dtd     (%chrome/mailnews/pref/pref-composing_messages.dtd)

@@ -8,7 +8,7 @@ Closes: #780404
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/mozilla/memory/mozjemalloc/jemalloc.c b/mozilla/memory/mozjemalloc/jemalloc.c
-index 00e54dc..804a883 100644
+index ecfc9e6..04488b3 100644
 --- a/mozilla/memory/mozjemalloc/jemalloc.c
 +++ b/mozilla/memory/mozjemalloc/jemalloc.c
 @@ -1096,7 +1096,7 @@ static const bool config_recycle = false;

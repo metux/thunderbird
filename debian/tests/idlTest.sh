@@ -24,7 +24,7 @@ if [ -f "${SCRATCHDIR}/test.xpt" ]; then
 else
     echo "No!"
     echo "Test call successful but no outputfile '${SCRATCHDIR}/test.xpt' found!"
-	exit 1
+    exit 1
 fi
 
 echo -n "Test2: Make sure we can generate C++ headers..."
@@ -37,7 +37,7 @@ if [ -f "${SCRATCHDIR}/test.h" ]; then
 else
     echo "No!"
     echo "Test call successful but no outputfile '${SCRATCHDIR}/test.h' found!"
-	exit 1
+    exit 1
 fi
 
 echo -n "Test3: Compiling generated file..."
@@ -48,4 +48,4 @@ g++ -std=c++11 \
     "${SCRATCHDIR}/test.h"
 echo "done."
 
-echo "All Tests in ${TESTFILE} finished succesfully."
+echo "All Tests in ${TESTFILE} finished successfully."

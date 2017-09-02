@@ -67,7 +67,7 @@ Closes: #616102
  57 files changed, 57 insertions(+)
 
 diff --git a/icedove-l10n/ar/install.rdf b/icedove-l10n/ar/install.rdf
-index f450082..ee91842 100644
+index 57971d3..caf461a 100644
 --- a/icedove-l10n/ar/install.rdf
 +++ b/icedove-l10n/ar/install.rdf
 @@ -20,5 +20,6 @@
@@ -78,7 +78,7 @@ index f450082..ee91842 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/ast/install.rdf b/icedove-l10n/ast/install.rdf
-index 4812621..c3277cc 100644
+index 8dd5a95..79bd47a 100644
 --- a/icedove-l10n/ast/install.rdf
 +++ b/icedove-l10n/ast/install.rdf
 @@ -20,5 +20,6 @@
@@ -89,7 +89,7 @@ index 4812621..c3277cc 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/be/install.rdf b/icedove-l10n/be/install.rdf
-index 86dfa4a..91ac343 100644
+index 77efe42..6af9124 100644
 --- a/icedove-l10n/be/install.rdf
 +++ b/icedove-l10n/be/install.rdf
 @@ -20,5 +20,6 @@
@@ -100,7 +100,7 @@ index 86dfa4a..91ac343 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/bg/install.rdf b/icedove-l10n/bg/install.rdf
-index 1db61dc..c988bbc 100644
+index 2a10056..eee867f 100644
 --- a/icedove-l10n/bg/install.rdf
 +++ b/icedove-l10n/bg/install.rdf
 @@ -20,5 +20,6 @@
@@ -111,7 +111,7 @@ index 1db61dc..c988bbc 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/bn-BD/install.rdf b/icedove-l10n/bn-BD/install.rdf
-index 44b34ac..cf730c0a 100644
+index de4909e..143b1a1 100644
 --- a/icedove-l10n/bn-BD/install.rdf
 +++ b/icedove-l10n/bn-BD/install.rdf
 @@ -20,5 +20,6 @@
@@ -122,7 +122,7 @@ index 44b34ac..cf730c0a 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/br/install.rdf b/icedove-l10n/br/install.rdf
-index ceb23b2..43b5176 100644
+index 1636974..4dfd912 100644
 --- a/icedove-l10n/br/install.rdf
 +++ b/icedove-l10n/br/install.rdf
 @@ -20,5 +20,6 @@
@@ -133,7 +133,7 @@ index ceb23b2..43b5176 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/ca/install.rdf b/icedove-l10n/ca/install.rdf
-index 8aed4e4..bb6e828 100644
+index 583468e..0af77de 100644
 --- a/icedove-l10n/ca/install.rdf
 +++ b/icedove-l10n/ca/install.rdf
 @@ -20,5 +20,6 @@
@@ -144,7 +144,7 @@ index 8aed4e4..bb6e828 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/cs/install.rdf b/icedove-l10n/cs/install.rdf
-index 845dd21..797ba2d 100644
+index ef65a02..32d1cfd 100644
 --- a/icedove-l10n/cs/install.rdf
 +++ b/icedove-l10n/cs/install.rdf
 @@ -20,5 +20,6 @@
@@ -155,7 +155,7 @@ index 845dd21..797ba2d 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/cy/install.rdf b/icedove-l10n/cy/install.rdf
-index dd82959..859e160 100644
+index e33ace1..6542a0b 100644
 --- a/icedove-l10n/cy/install.rdf
 +++ b/icedove-l10n/cy/install.rdf
 @@ -20,5 +20,6 @@
@@ -166,7 +166,7 @@ index dd82959..859e160 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/da/install.rdf b/icedove-l10n/da/install.rdf
-index 3d2c109..84d0b93 100644
+index 7fb4eed..038d1bf 100644
 --- a/icedove-l10n/da/install.rdf
 +++ b/icedove-l10n/da/install.rdf
 @@ -19,5 +19,6 @@
@@ -177,7 +177,7 @@ index 3d2c109..84d0b93 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/de/install.rdf b/icedove-l10n/de/install.rdf
-index 15e3836..606276c 100644
+index 67e1b91..b67925d 100644
 --- a/icedove-l10n/de/install.rdf
 +++ b/icedove-l10n/de/install.rdf
 @@ -20,5 +20,6 @@
@@ -188,7 +188,7 @@ index 15e3836..606276c 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/dsb/install.rdf b/icedove-l10n/dsb/install.rdf
-index 069796f..8c83dad 100644
+index a0849fe..67abab4 100644
 --- a/icedove-l10n/dsb/install.rdf
 +++ b/icedove-l10n/dsb/install.rdf
 @@ -20,5 +20,6 @@
@@ -199,7 +199,7 @@ index 069796f..8c83dad 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/el/install.rdf b/icedove-l10n/el/install.rdf
-index 6aa559e..960b57c 100644
+index 51a7444..976d52a 100644
 --- a/icedove-l10n/el/install.rdf
 +++ b/icedove-l10n/el/install.rdf
 @@ -20,5 +20,6 @@
@@ -210,7 +210,7 @@ index 6aa559e..960b57c 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/en-GB/install.rdf b/icedove-l10n/en-GB/install.rdf
-index 149ccae..0255c89 100644
+index 34d37b2..6a0fb4d 100644
 --- a/icedove-l10n/en-GB/install.rdf
 +++ b/icedove-l10n/en-GB/install.rdf
 @@ -20,5 +20,6 @@
@@ -221,7 +221,7 @@ index 149ccae..0255c89 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/es-AR/install.rdf b/icedove-l10n/es-AR/install.rdf
-index d71c1d7..18aa929 100644
+index 8d4d403..9c938ae 100644
 --- a/icedove-l10n/es-AR/install.rdf
 +++ b/icedove-l10n/es-AR/install.rdf
 @@ -20,5 +20,6 @@
@@ -232,7 +232,7 @@ index d71c1d7..18aa929 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/es-ES/install.rdf b/icedove-l10n/es-ES/install.rdf
-index e5762ea..b3d49f9 100644
+index 1d8238c..9defd11 100644
 --- a/icedove-l10n/es-ES/install.rdf
 +++ b/icedove-l10n/es-ES/install.rdf
 @@ -19,5 +19,6 @@
@@ -243,7 +243,7 @@ index e5762ea..b3d49f9 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/et/install.rdf b/icedove-l10n/et/install.rdf
-index 7e8829a..8f1adf7 100644
+index eb8e83e..df410f9 100644
 --- a/icedove-l10n/et/install.rdf
 +++ b/icedove-l10n/et/install.rdf
 @@ -20,5 +20,6 @@
@@ -254,7 +254,7 @@ index 7e8829a..8f1adf7 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/eu/install.rdf b/icedove-l10n/eu/install.rdf
-index 3c566e2..cd6ff0c 100644
+index 6599a73..80a1b93 100644
 --- a/icedove-l10n/eu/install.rdf
 +++ b/icedove-l10n/eu/install.rdf
 @@ -20,5 +20,6 @@
@@ -265,7 +265,7 @@ index 3c566e2..cd6ff0c 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/fi/install.rdf b/icedove-l10n/fi/install.rdf
-index 56d5745..613357a 100644
+index cb7a425..a46fdff 100644
 --- a/icedove-l10n/fi/install.rdf
 +++ b/icedove-l10n/fi/install.rdf
 @@ -19,5 +19,6 @@
@@ -276,7 +276,7 @@ index 56d5745..613357a 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/fr/install.rdf b/icedove-l10n/fr/install.rdf
-index 6096b4c..3a95b15 100644
+index 217e725..79b649a 100644
 --- a/icedove-l10n/fr/install.rdf
 +++ b/icedove-l10n/fr/install.rdf
 @@ -20,5 +20,6 @@
@@ -287,7 +287,7 @@ index 6096b4c..3a95b15 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/fy-NL/install.rdf b/icedove-l10n/fy-NL/install.rdf
-index 926e135..53e0184 100644
+index b4b9b60..2642d0f 100644
 --- a/icedove-l10n/fy-NL/install.rdf
 +++ b/icedove-l10n/fy-NL/install.rdf
 @@ -20,5 +20,6 @@
@@ -298,7 +298,7 @@ index 926e135..53e0184 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/ga-IE/install.rdf b/icedove-l10n/ga-IE/install.rdf
-index a268de5..16e889a 100644
+index 04b6199..4e8da93 100644
 --- a/icedove-l10n/ga-IE/install.rdf
 +++ b/icedove-l10n/ga-IE/install.rdf
 @@ -20,5 +20,6 @@
@@ -309,7 +309,7 @@ index a268de5..16e889a 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/gd/install.rdf b/icedove-l10n/gd/install.rdf
-index fdb007d..3a43bfc 100644
+index 10a597f..e86f606 100644
 --- a/icedove-l10n/gd/install.rdf
 +++ b/icedove-l10n/gd/install.rdf
 @@ -20,5 +20,6 @@
@@ -320,7 +320,7 @@ index fdb007d..3a43bfc 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/gl/install.rdf b/icedove-l10n/gl/install.rdf
-index 82ae85f..ea3bf49 100644
+index 9534fa2..4203757 100644
 --- a/icedove-l10n/gl/install.rdf
 +++ b/icedove-l10n/gl/install.rdf
 @@ -20,5 +20,6 @@
@@ -331,7 +331,7 @@ index 82ae85f..ea3bf49 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/he/install.rdf b/icedove-l10n/he/install.rdf
-index 26be1cc..79c5b85 100644
+index 7256f5e..2e105ea 100644
 --- a/icedove-l10n/he/install.rdf
 +++ b/icedove-l10n/he/install.rdf
 @@ -20,5 +20,6 @@
@@ -342,7 +342,7 @@ index 26be1cc..79c5b85 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/hr/install.rdf b/icedove-l10n/hr/install.rdf
-index 8a7514b..96a9422 100644
+index 93bd98d..b3fc34c 100644
 --- a/icedove-l10n/hr/install.rdf
 +++ b/icedove-l10n/hr/install.rdf
 @@ -20,5 +20,6 @@
@@ -353,7 +353,7 @@ index 8a7514b..96a9422 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/hsb/install.rdf b/icedove-l10n/hsb/install.rdf
-index 3b4a517..242246a 100644
+index 16a131c..de6f973 100644
 --- a/icedove-l10n/hsb/install.rdf
 +++ b/icedove-l10n/hsb/install.rdf
 @@ -20,5 +20,6 @@
@@ -364,7 +364,7 @@ index 3b4a517..242246a 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/hu/install.rdf b/icedove-l10n/hu/install.rdf
-index fa36d06..bf3bdb0 100644
+index da6ce12..1bb88e6 100644
 --- a/icedove-l10n/hu/install.rdf
 +++ b/icedove-l10n/hu/install.rdf
 @@ -20,5 +20,6 @@
@@ -375,7 +375,7 @@ index fa36d06..bf3bdb0 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/hy-AM/install.rdf b/icedove-l10n/hy-AM/install.rdf
-index 259303a..a926f6b 100644
+index 4d98718..2cb00bd 100644
 --- a/icedove-l10n/hy-AM/install.rdf
 +++ b/icedove-l10n/hy-AM/install.rdf
 @@ -20,5 +20,6 @@
@@ -386,7 +386,7 @@ index 259303a..a926f6b 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/id/install.rdf b/icedove-l10n/id/install.rdf
-index 90e70ed..9ec84c3 100644
+index e8d37c5..df4bbea 100644
 --- a/icedove-l10n/id/install.rdf
 +++ b/icedove-l10n/id/install.rdf
 @@ -20,5 +20,6 @@
@@ -397,7 +397,7 @@ index 90e70ed..9ec84c3 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/is/install.rdf b/icedove-l10n/is/install.rdf
-index 89dfa0d..0c7b264 100644
+index d94666a..5624457 100644
 --- a/icedove-l10n/is/install.rdf
 +++ b/icedove-l10n/is/install.rdf
 @@ -19,5 +19,6 @@
@@ -408,7 +408,7 @@ index 89dfa0d..0c7b264 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/it/install.rdf b/icedove-l10n/it/install.rdf
-index b7c766a..534da72 100644
+index f76b919..e5d2b3c 100644
 --- a/icedove-l10n/it/install.rdf
 +++ b/icedove-l10n/it/install.rdf
 @@ -20,5 +20,6 @@
@@ -419,7 +419,7 @@ index b7c766a..534da72 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/ja/install.rdf b/icedove-l10n/ja/install.rdf
-index 3171f0f..47f801b 100644
+index 078dd43..c381fd2 100644
 --- a/icedove-l10n/ja/install.rdf
 +++ b/icedove-l10n/ja/install.rdf
 @@ -20,5 +20,6 @@
@@ -430,7 +430,7 @@ index 3171f0f..47f801b 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/kab/install.rdf b/icedove-l10n/kab/install.rdf
-index 66c3e8a..264b589 100644
+index 6c575b8..d9a5197 100644
 --- a/icedove-l10n/kab/install.rdf
 +++ b/icedove-l10n/kab/install.rdf
 @@ -20,5 +20,6 @@
@@ -441,7 +441,7 @@ index 66c3e8a..264b589 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/ko/install.rdf b/icedove-l10n/ko/install.rdf
-index 14cf02d..f6411fa 100644
+index 2910e08..9399a5c 100644
 --- a/icedove-l10n/ko/install.rdf
 +++ b/icedove-l10n/ko/install.rdf
 @@ -20,5 +20,6 @@
@@ -452,7 +452,7 @@ index 14cf02d..f6411fa 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/lt/install.rdf b/icedove-l10n/lt/install.rdf
-index f8948d8..de5633c 100644
+index e0af7b2..1b12592 100644
 --- a/icedove-l10n/lt/install.rdf
 +++ b/icedove-l10n/lt/install.rdf
 @@ -20,5 +20,6 @@
@@ -463,7 +463,7 @@ index f8948d8..de5633c 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/nb-NO/install.rdf b/icedove-l10n/nb-NO/install.rdf
-index 7b093dc..46e1c71 100644
+index f437bfc..df84f8b 100644
 --- a/icedove-l10n/nb-NO/install.rdf
 +++ b/icedove-l10n/nb-NO/install.rdf
 @@ -20,5 +20,6 @@
@@ -474,7 +474,7 @@ index 7b093dc..46e1c71 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/nl/install.rdf b/icedove-l10n/nl/install.rdf
-index eb078f7..0a80286 100644
+index deb2865..f9e3c3e 100644
 --- a/icedove-l10n/nl/install.rdf
 +++ b/icedove-l10n/nl/install.rdf
 @@ -20,5 +20,6 @@
@@ -485,7 +485,7 @@ index eb078f7..0a80286 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/nn-NO/install.rdf b/icedove-l10n/nn-NO/install.rdf
-index f084919..a2b7fcd 100644
+index da2decf..830738c 100644
 --- a/icedove-l10n/nn-NO/install.rdf
 +++ b/icedove-l10n/nn-NO/install.rdf
 @@ -20,5 +20,6 @@
@@ -496,7 +496,7 @@ index f084919..a2b7fcd 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/pa-IN/install.rdf b/icedove-l10n/pa-IN/install.rdf
-index 48966a1..4a8a528 100644
+index 25b7c3e..0f3c8a1 100644
 --- a/icedove-l10n/pa-IN/install.rdf
 +++ b/icedove-l10n/pa-IN/install.rdf
 @@ -19,5 +19,6 @@
@@ -507,7 +507,7 @@ index 48966a1..4a8a528 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/pl/install.rdf b/icedove-l10n/pl/install.rdf
-index 161ea28..6d068f4 100644
+index 46abffd..ed69433 100644
 --- a/icedove-l10n/pl/install.rdf
 +++ b/icedove-l10n/pl/install.rdf
 @@ -20,5 +20,6 @@
@@ -518,7 +518,7 @@ index 161ea28..6d068f4 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/pt-BR/install.rdf b/icedove-l10n/pt-BR/install.rdf
-index a0ffc23..fe67835 100644
+index 6e159b3..6a8d120 100644
 --- a/icedove-l10n/pt-BR/install.rdf
 +++ b/icedove-l10n/pt-BR/install.rdf
 @@ -20,5 +20,6 @@
@@ -529,7 +529,7 @@ index a0ffc23..fe67835 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/rm/install.rdf b/icedove-l10n/rm/install.rdf
-index 29d7817..5bf7e04 100644
+index 3ce7789..294cee5 100644
 --- a/icedove-l10n/rm/install.rdf
 +++ b/icedove-l10n/rm/install.rdf
 @@ -20,5 +20,6 @@
@@ -540,7 +540,7 @@ index 29d7817..5bf7e04 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/ro/install.rdf b/icedove-l10n/ro/install.rdf
-index f733680..bb70be6 100644
+index d9e1f71..4ef588b 100644
 --- a/icedove-l10n/ro/install.rdf
 +++ b/icedove-l10n/ro/install.rdf
 @@ -20,5 +20,6 @@
@@ -551,7 +551,7 @@ index f733680..bb70be6 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/ru/install.rdf b/icedove-l10n/ru/install.rdf
-index 6756e01..5c95b1b 100644
+index cedfb9b..449dff2 100644
 --- a/icedove-l10n/ru/install.rdf
 +++ b/icedove-l10n/ru/install.rdf
 @@ -20,5 +20,6 @@
@@ -562,7 +562,7 @@ index 6756e01..5c95b1b 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/si/install.rdf b/icedove-l10n/si/install.rdf
-index d158f0d..f4227a2 100644
+index 1dbee3b..99df876 100644
 --- a/icedove-l10n/si/install.rdf
 +++ b/icedove-l10n/si/install.rdf
 @@ -20,5 +20,6 @@
@@ -573,7 +573,7 @@ index d158f0d..f4227a2 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/sk/install.rdf b/icedove-l10n/sk/install.rdf
-index bd3280a..1e640f4 100644
+index 89b6c2b..9bad278 100644
 --- a/icedove-l10n/sk/install.rdf
 +++ b/icedove-l10n/sk/install.rdf
 @@ -20,5 +20,6 @@
@@ -584,7 +584,7 @@ index bd3280a..1e640f4 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/sl/install.rdf b/icedove-l10n/sl/install.rdf
-index 840e2b1..7a1e049 100644
+index cb8d7c1..6c63607 100644
 --- a/icedove-l10n/sl/install.rdf
 +++ b/icedove-l10n/sl/install.rdf
 @@ -20,5 +20,6 @@
@@ -595,7 +595,7 @@ index 840e2b1..7a1e049 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/sq/install.rdf b/icedove-l10n/sq/install.rdf
-index 0333b37..3241f8d 100644
+index a102288..0413a8c 100644
 --- a/icedove-l10n/sq/install.rdf
 +++ b/icedove-l10n/sq/install.rdf
 @@ -20,5 +20,6 @@
@@ -606,7 +606,7 @@ index 0333b37..3241f8d 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/sr/install.rdf b/icedove-l10n/sr/install.rdf
-index 17bb3a5..b3ce015 100644
+index 80d4e88..dae2f3d 100644
 --- a/icedove-l10n/sr/install.rdf
 +++ b/icedove-l10n/sr/install.rdf
 @@ -20,5 +20,6 @@
@@ -617,7 +617,7 @@ index 17bb3a5..b3ce015 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/sv-SE/install.rdf b/icedove-l10n/sv-SE/install.rdf
-index 416e7d1..ffb00bc 100644
+index 2f5cf2c..844a740 100644
 --- a/icedove-l10n/sv-SE/install.rdf
 +++ b/icedove-l10n/sv-SE/install.rdf
 @@ -20,5 +20,6 @@
@@ -628,7 +628,7 @@ index 416e7d1..ffb00bc 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/ta-LK/install.rdf b/icedove-l10n/ta-LK/install.rdf
-index fd88c45..20ef196 100644
+index a269056..017846b 100644
 --- a/icedove-l10n/ta-LK/install.rdf
 +++ b/icedove-l10n/ta-LK/install.rdf
 @@ -20,5 +20,6 @@
@@ -639,7 +639,7 @@ index fd88c45..20ef196 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/tr/install.rdf b/icedove-l10n/tr/install.rdf
-index 18d120c..7b91593 100644
+index 525a40d..197ecda 100644
 --- a/icedove-l10n/tr/install.rdf
 +++ b/icedove-l10n/tr/install.rdf
 @@ -20,5 +20,6 @@
@@ -650,7 +650,7 @@ index 18d120c..7b91593 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/uk/install.rdf b/icedove-l10n/uk/install.rdf
-index 4aeaa69..559c4b5 100644
+index 7b48b44..937a853 100644
 --- a/icedove-l10n/uk/install.rdf
 +++ b/icedove-l10n/uk/install.rdf
 @@ -20,5 +20,6 @@
@@ -661,7 +661,7 @@ index 4aeaa69..559c4b5 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/vi/install.rdf b/icedove-l10n/vi/install.rdf
-index fb91173..1869da4 100644
+index 11f7671..95caecc 100644
 --- a/icedove-l10n/vi/install.rdf
 +++ b/icedove-l10n/vi/install.rdf
 @@ -20,5 +20,6 @@
@@ -672,7 +672,7 @@ index fb91173..1869da4 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/zh-CN/install.rdf b/icedove-l10n/zh-CN/install.rdf
-index 684ba5b..9ee52d6 100644
+index 63a5437..e90345a 100644
 --- a/icedove-l10n/zh-CN/install.rdf
 +++ b/icedove-l10n/zh-CN/install.rdf
 @@ -20,5 +20,6 @@
@@ -683,7 +683,7 @@ index 684ba5b..9ee52d6 100644
    </Description>
  </RDF>
 diff --git a/icedove-l10n/zh-TW/install.rdf b/icedove-l10n/zh-TW/install.rdf
-index c4ab96f..f32ddab 100644
+index 71fd866..33cb35c 100644
 --- a/icedove-l10n/zh-TW/install.rdf
 +++ b/icedove-l10n/zh-TW/install.rdf
 @@ -20,5 +20,6 @@

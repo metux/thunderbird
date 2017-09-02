@@ -110,10 +110,13 @@ diff --git a/mozilla/media/webrtc/signaling/signaling.gyp b/mozilla/media/webrtc
 index ee19411..0c69066 100644
 --- a/mozilla/media/webrtc/signaling/signaling.gyp
 +++ b/mozilla/media/webrtc/signaling/signaling.gyp
-@@ -367,6 +367,22 @@
-           'cflags_mozilla': [
+@@ -364,6 +364,22 @@
+             '_FORTIFY_SOURCE=2',
            ],
-         }],
+ 
++          'cflags_mozilla': [
++          ],
++        }],
 +        ['OS=="gnu"', {
 +          'include_dirs': [
 +          ],
@@ -127,12 +130,9 @@ index ee19411..0c69066 100644
 +            'SECLIB_OPENSSL',
 +          ],
 +
-+          'cflags_mozilla': [
-+          ],
-+        }],
-       ],
-     },
-   ],
+           'cflags_mozilla': [
+           ],
+         }],
 diff --git a/mozilla/media/webrtc/signaling/src/sdp/sipcc/cpr_types.h b/mozilla/media/webrtc/signaling/src/sdp/sipcc/cpr_types.h
 index 808067e..d43eaaa 100644
 --- a/mozilla/media/webrtc/signaling/src/sdp/sipcc/cpr_types.h

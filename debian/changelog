@@ -1,3 +1,99 @@
+icedove (1:52.3.0-4) unstable; urgency=medium
+
+  [ Carsten Schoenert ]
+  * [3ddf57b] rebuild patch queue from patch-queue branch
+  * [3bd845d] debian/control: increase Standards-Version to 4.1.0
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Tue, 29 Aug 2017 16:17:24 +0200
+
+icedove (1:52.3.0-3) unstable; urgency=medium
+
+  [ Carsten Schoenert ]
+  * [c08f005] rebuild patch queue from patch-queue branch
+  * [f658cab] debian/rules: enable verbose build for ICU
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Mon, 28 Aug 2017 19:44:07 +0200
+
+icedove (1:52.3.0-2) unstable; urgency=medium
+
+  [ Carsten Schoenert ]
+  * [d544a01] debian/rules: correct icu build sequence
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Tue, 22 Aug 2017 18:57:36 +0200
+
+icedove (1:52.3.0-1) unstable; urgency=medium
+
+  [ Carsten Schoenert ]
+  * [8e852be] New upstream version 52.3.0
+    Fixed CVE issues in upstream version 52.0 (MFSA 2017-20)
+    CVE-2017-7800: Use-after-free in WebSockets during disconnection
+    CVE-2017-7801: Use-after-free with marquee during window resizing
+    CVE-2017-7809: Use-after-free while deleting attached editor DOM node
+    CVE-2017-7784: Use-after-free with image observers
+    CVE-2017-7802: Use-after-free resizing image elements
+    CVE-2017-7785: Buffer overflow manipulating ARIA attributes in DOM
+    CVE-2017-7786: Buffer overflow while painting non-displayable SVG
+    CVE-2017-7753: Out-of-bounds read with cached style data and
+                   pseudo-elements
+    CVE-2017-7787: Same-origin policy bypass with iframes through page reloads
+    CVE-2017-7807: Domain hijacking through AppCache fallback
+    CVE-2017-7792: Buffer overflow viewing certificates with an extremely
+                   long OID
+    CVE-2017-7804: Memory protection bypass through WindowsDllDetourPatcher
+    CVE-2017-7791: Spoofing following page navigation with data: protocol and
+                   modal alerts
+    CVE-2017-7782: WindowsDllDetourPatcher allocates memory without DEP
+                   protections
+    CVE-2017-7803: CSP containing 'sandbox' improperly applied
+    CVE-2017-7779: Memory safety bugs fixed in Firefox 55, Firefox ESR 52.3,
+                   and Thunderbird 52.3
+  * [0b7243b] debian/rules: build icudt5*.dat on our own if needed
+    If we need to use the internal sources of ICU (triggered by
+    using --with-system-icu) we need to build the platform depended file
+    icudt*[b,l].dat before we can call the configure run.
+    This is needed as Mozilla only ships a precompiled little endian version
+    of the file icudt*.dat and all platforms with big endianness are failing
+    later due issues related to the wrong endianness.
+  * [1964469] debian/mozconfig.default: enable i18n on big endian
+  * [6b58ac5] debian/control: increase Standards-Version to 4.0.1
+  * [e59cf81] rebuild patch queue from patch-queue branch
+    removed patche(s) (applied upstream):
+    - fixes/Bug-1308908-Compare-the-whole-accessible-name-when-checki.patch
+    updated/refreshed patches (no changes):
+    - porting-kfreebsd-hurd/adding-missed-HURD-adoptions.patch
+
+  [ Simon Deziel ]
+  * [a574010] apparmor/usr.bin.thunderbird: small update to avoid noise
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Sat, 19 Aug 2017 18:27:19 +0200
+
+icedove (1:52.2.1-5) unstable; urgency=high
+
+  [ Carsten Schoenert ]
+  * [133a574] Use gcc-6 and g++-6 due broken GUI with GCC-7
+    The usage of the GCC-7 suite introduces a broken GUI currently that make
+    using thunderbird mostly impossible.
+    (Closes: #871629)
+  * [3ebacd1] d/rules: use DEB_* variables for entries from changelog
+    By using variables that are prepared by dpkg we don't need to manually
+    search for dates and versions. etc.
+  * [52c2b83] d/copyright: MPL-1.1 and MPL-2.0 now provided by common-licenses
+    Since policy 4.0.0 the two Mozilla related licenses are included and don't
+    need to be added extra.
+  * [3f37967] adjust X-Debian-Homepage to existing Thunderbird page
+  * [41b5c03] debian/control: increase Standards-Version to 4.0.0
+  * [e3c3994] mozconfig.default: use proper disabled options
+  * [2d4b846] debian/control: increase Breaks for enigmail version
+    (Closes: #869789)
+
+  [ John Paul Adrian Glaubitz ]
+  * [4879401] sh4: disable option --disable-pie (Closes: #867553)
+
+  [ Carsten Schoenert ]
+  * [2646f3f] autpkgtests: disable the idlTest.sh test case
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Fri, 11 Aug 2017 22:02:47 -0400
+
 icedove (1:52.2.1-4~deb9u1) stretch-security; urgency=medium
 
   * Rebuild for stretch-security

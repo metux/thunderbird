@@ -15,6 +15,8 @@ Build-Depends:
  dh-exec,
  dpkg (>= 1.16.18~),
  dpkg-dev (>= 1.16.18~),
+ gcc-6,
+ g++-6,
  libasound2-dev [linux-any],
  libatk-adaptor,
  libbz2-dev,
@@ -55,8 +57,8 @@ Build-Depends:
 Vcs-Git: https://anonscm.debian.org/cgit/pkg-mozilla/icedove.git
 Vcs-Browser: https://anonscm.debian.org/cgit/pkg-mozilla/icedove.git
 Homepage: http://www.mozilla.org/thunderbird/
-X-Debian-Homepage: http://wiki.debian.org/Icedove
-Standards-Version: 3.9.8
+X-Debian-Homepage: http://wiki.debian.org/Thunderbird
+Standards-Version: 4.1.0
 
 Package: thunderbird
 Architecture: any
@@ -82,8 +84,8 @@ Xb-Xul-AppId: {3550f703-e582-4d05-9a08-453d09bdfdc6}
 Replaces:
  icedove (<< 1:45.6.0-2.1~),
 Breaks:
- enigmail (<< 2:1.8),
  icedove (<< 1:45.6.0-2.1~),
+ enigmail (<< 2:1.9.8.1-1),
  hunspell-ar (<< 0.0.0+20080110-1.1),
  hunspell-da (<< 1:3.1.0-3),
  hunspell-de-at (<< 20071211-2),
