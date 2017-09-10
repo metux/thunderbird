@@ -1,10 +1,10 @@
 Source: icedove
 Section: mail
 Priority: optional
-Maintainer: Christoph Goehre <chris@sigxcpu.org>
+Maintainer: Carsten Schoenert <c.schoenert@t-online.de>
 Uploaders:
  Guido Günther <agx@sigxcpu.org>,
- Carsten Schoenert <c.schoenert@t-online.de>,
+ Christoph Goehre <chris@sigxcpu.org>,
 Build-Depends:
  autoconf2.13,
  autotools-dev,
