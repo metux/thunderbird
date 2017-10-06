@@ -1,6 +1,6 @@
-icedove-l10n/sl-change-Edit-Uredi-to-CTRL-E.patch
-icedove-l10n/thunderbird-l10n-disable-external-extension-update.patch
-icedove/Thunderbird-fix-installdir-for-icons.patch
+thunderbird-l10n/sl-change-Edit-Uredi-to-CTRL-E.patch
+thunderbird-l10n/thunderbird-l10n-disable-external-extension-update.patch
+thunderbird/Thunderbird-fix-installdir-for-icons.patch
 debian-hacks/Strip-version-number-from-application-before-installation.patch
 debian-hacks/Add-another-preferences-directory-for-applications-p.patch
 fixes/Allow-.js-preference-files-to-set-locked-prefs-with-.patch

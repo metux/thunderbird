@@ -37,10 +37,10 @@ Closes: #859508
  create mode 100644 mozilla/xpcom/reflect/xptcall/md/unix/xptcstubs_linux_sh.cpp
 
 diff --git a/mozilla/build/moz.configure/init.configure b/mozilla/build/moz.configure/init.configure
-index 3c2d609..ea7c48c 100644
+index 341e8f1..4df1b62 100644
 --- a/mozilla/build/moz.configure/init.configure
 +++ b/mozilla/build/moz.configure/init.configure
-@@ -383,6 +383,9 @@ def split_triplet(triplet):
+@@ -399,6 +399,9 @@ def split_triplet(triplet):
      elif cpu in ('m68k'):
          canonical_cpu = 'm68k'
          endianness = 'big'
