@@ -1,3 +1,9 @@
+thunderbird (1:52.4.0-1) UNRELEASED; urgency=medium
+
+  * prepare next Debian release
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Fri, 6 Oct 2017 19:32:04 +0200
+
 icedove (1:52.3.0-4) unstable; urgency=medium
 
   [ Carsten Schoenert ]
