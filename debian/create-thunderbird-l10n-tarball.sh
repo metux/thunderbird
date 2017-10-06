@@ -86,8 +86,8 @@ test -f /usr/bin/wget || fail "wget is missing, please install first!"
 test -f /usr/bin/curl || fail "curl is missing, please install first!"
 
 # check if we are inside icedove/ and have a git environment
-if [ "${CURDIR}" != "icedove" ]; then
-    echo "Not in icedove/.."
+if [ "${CURDIR}" != "thunderbird" ]; then
+    echo "Not in thunderbird/.."
     exit ${EXIT_FAILURE}
 else
     if [ ! -d .git ]; then
