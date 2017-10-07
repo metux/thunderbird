@@ -1657,16 +1657,13 @@ function BrowserCloseWindow()
   window.close();
 }
 
-function loadURI(uri, referrer, postData, allowThirdPartyFixup, isUTF8)
+function loadURI(uri, referrer, postData, allowThirdPartyFixup)
 {
   try {
     var flags = nsIWebNavigation.LOAD_FLAGS_NONE;
     if (allowThirdPartyFixup) {
       flags = nsIWebNavigation.LOAD_FLAGS_ALLOW_THIRD_PARTY_FIXUP |
               nsIWebNavigation.LOAD_FLAGS_FIXUP_SCHEME_TYPOS;
-    }
-    if (isUTF8) {
-      flags |= nsIWebNavigation.LOAD_FLAGS_URI_IS_UTF8;
     }
     if (!flags && typeof postData == "number") {
       // Deal with legacy code that passes load flags in the third argument.
@@ -1715,7 +1712,6 @@ function handleURLBarCommand(aUserAction, aTriggeringEvent)
     }
 
     var browser = getBrowser();
-    var isUTF8 = browser.userTypedValue === null;
     // Accept both Control and Meta (=Command) as New-Window-Modifiers
     if (aTriggeringEvent &&
         (('ctrlKey' in aTriggeringEvent && aTriggeringEvent.ctrlKey) ||
@@ -1729,7 +1725,6 @@ function handleURLBarCommand(aUserAction, aTriggeringEvent)
         var t = browser.addTab(data.url, {
                   postData: data.postData,
                   allowThirdPartyFixup: true,
-                  isUTF8: isUTF8
                 });
 
         // Focus new tab unless shift is pressed
@@ -1738,7 +1733,7 @@ function handleURLBarCommand(aUserAction, aTriggeringEvent)
       } else {
         // Open a new window with the URL
         var newWin = openDialog(getBrowserURL(), "_blank", "all,dialog=no", data.url,
-                                null, null, data.postData, true, isUTF8);
+                                null, null, data.postData, true);
         // Reset url in the urlbar
         URLBarSetURI();
 
@@ -1768,7 +1763,7 @@ function handleURLBarCommand(aUserAction, aTriggeringEvent)
     } else {
       // No modifier was pressed, load the URL normally and
       // focus the content area
-      loadURI(data.url, null, data.postData, true, isUTF8);
+      loadURI(data.url, null, data.postData, true);
       content.focus();
     }
   });
