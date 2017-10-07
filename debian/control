@@ -54,8 +54,8 @@ Build-Depends:
  yasm (>= 1.1),
  zip,
  zlib1g-dev,
-Vcs-Git: https://anonscm.debian.org/cgit/pkg-mozilla/icedove.git
-Vcs-Browser: https://anonscm.debian.org/cgit/pkg-mozilla/icedove.git
+Vcs-Git: https://anonscm.debian.org/cgit/pkg-mozilla/thunderbird.git
+Vcs-Browser: https://anonscm.debian.org/cgit/pkg-mozilla/thunderbird.git
 Homepage: http://www.mozilla.org/thunderbird/
 X-Debian-Homepage: http://wiki.debian.org/Thunderbird
 Standards-Version: 4.1.0
