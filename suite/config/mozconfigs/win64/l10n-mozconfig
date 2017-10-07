@@ -1,14 +1,13 @@
 . "$topsrcdir/build/mozconfig.common"
+. "$topsrcdir/suite/config/mozconfigs/mozconfig.win.common"
 
 ac_add_options --target=x86_64-pc-mingw32
 ac_add_options --host=x86_64-pc-mingw32
 
+ac_add_options --with-l10n-base=../../l10n
 ac_add_options --enable-application=suite
 ac_add_options --enable-update-channel=${MOZ_UPDATE_CHANNEL}
-ac_add_options --enable-update-packaging
 ac_add_options --enable-jemalloc
-
-# Build lightning locales
 ac_add_options --enable-calendar
 
 # Needed to enable breakpad in application.ini
@@ -24,3 +23,5 @@ MOZ_REQUIRE_SIGNING=0
 # Set up mapi includes (must be done after visual studio setup)
 export INCLUDE=$INCLUDE:/c/Office\ 2010\ Developer\ Resources/Outlook\ 2010\ MAPI\ Headers
 mk_export_correct_style INCLUDE
+
+. "$topsrcdir/build/mozconfig.rust"

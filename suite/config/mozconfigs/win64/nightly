@@ -1,5 +1,6 @@
 . "$topsrcdir/build/mozconfig.win-common"
 . "$topsrcdir/build/mozconfig.common"
+. "$topsrcdir/suite/config/mozconfigs/mozconfig.win.common"
 
 ac_add_options --target=x86_64-pc-mingw32
 ac_add_options --host=x86_64-pc-mingw32
@@ -27,3 +28,5 @@ export MOZ_PACKAGE_JSSHELL=1
 # Set up mapi includes (must be done after visual studio setup)
 export INCLUDE=$INCLUDE:/c/Office\ 2010\ Developer\ Resources/Outlook\ 2010\ MAPI\ Headers
 mk_export_correct_style INCLUDE
+
+. "$topsrcdir/build/mozconfig.rust"
