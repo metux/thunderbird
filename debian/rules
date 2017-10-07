@@ -115,14 +115,14 @@ override_dh_auto_build:
 	make -f client.mk build
 	# build thunderbird-l10n
 	mkdir -p $(THUNDERBIRD_L10N_BUILDDIR)
-	cd $(CURDIR)/icedove-l10n; \
+	cd $(CURDIR)/thunderbird-l10n; \
 	for XPI in *; do \
 		LOCALE=`basename $${XPI}`; \
 		xpi-pack $${LOCALE} ../$(THUNDERBIRD_L10N_BUILDDIR)/$${LOCALE}.xpi; \
 	done
 	# build lightning-l10n
 	mkdir -p $(LIGHTNING_L10N_BUILDDIR)
-	cd $(CURDIR)/iceowl-l10n; \
+	cd $(CURDIR)/lightning-l10n; \
 	for dir in ?? ??? ??-*; do \
 		cd $${dir}; \
 		zip -q -X -r ../../$(LIGHTNING_L10N_BUILDDIR)/$${dir}.jar locale; \
@@ -136,7 +136,7 @@ ifneq (,$(filter mips,$(DEB_BUILD_ARCH)))
 endif
 	make -f client.mk install DESTDIR=$(CURDIR)/debian/tmp
 	# install thunderbird-l10n
-	cd $(CURDIR)/icedove-l10n; \
+	cd $(CURDIR)/thunderbird-l10n; \
 	for DIRECTORY in *; do \
 		LOCALE=`echo $${DIRECTORY} | tr [:upper:] [:lower:]`; \
 		ID=`cat $${DIRECTORY}/install.rdf | sed --posix '/em:id=/!d;s/[ ]*em:id="//;s/".*//'`; \
