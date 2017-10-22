@@ -1,4 +1,7 @@
-thunderbird (1:52.4.0-1) unstable; urgency=medium
+thunderbird (1:52.4.0-1~deb9u1) stretch-security; urgency=medium
+
+  [ Carsten Schoenert ]
+  * Rebuild for stretch-security
 
   [ Guido Günther ]
   * [da3c5cc] Simplify endianness selection for ICU
@@ -59,7 +62,7 @@ thunderbird (1:52.4.0-1) unstable; urgency=medium
   * [6b1649c] lintian: adding a override for thunderbird-l10n-all
   * [ceab93f] debian/README.source: reflect src package name change
 
- -- Carsten Schoenert <c.schoenert@t-online.de>  Tue, 17 Oct 2017 18:20:29 +0200
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Sat, 28 Oct 2017 08:42:05 +0200
 
 icedove (1:52.3.0-4~deb9u1) stretch-security; urgency=medium
 
