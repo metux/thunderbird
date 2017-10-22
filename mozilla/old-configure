@@ -10360,15 +10360,12 @@ fi
 
 
 
-NSPR_PKGCONF_CHECK="nspr"
+PKGCONF_REQUIRES_PRIVATE="Requires.private: nspr"
 if test -n "$MOZ_SYSTEM_NSPR"; then
-    # piggy back on $MOZ_SYSTEM_NSPR to set a variable for the nspr check for js.pc
-    NSPR_PKGCONF_CHECK="nspr >= $NSPR_MINVER"
-
     _SAVE_CFLAGS=$CFLAGS
     CFLAGS="$CFLAGS $NSPR_CFLAGS"
     cat > conftest.$ac_ext <<EOF
-#line 10372 "configure"
+#line 10369 "configure"
 #include "confdefs.h"
 #include "prlog.h"
 int main() {
@@ -10377,7 +10374,7 @@ int main() {
                  #endif
 ; return 0; }
 EOF
-if { (eval echo configure:10381: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:10378: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   :
 else
   echo "configure: failed program was:" >&5
@@ -10387,6 +10384,10 @@ else
 fi
 rm -f conftest*
     CFLAGS=$_SAVE_CFLAGS
+    # piggy back on $MOZ_SYSTEM_NSPR to set a variable for the nspr check for js.pc
+    PKGCONF_REQUIRES_PRIVATE="Requires.private: nspr >= $NSPR_MINVER"
+elif test -n "$JS_POSIX_NSPR"; then
+    PKGCONF_REQUIRES_PRIVATE=
 fi
 
 
@@ -10416,19 +10417,19 @@ if test "$LIBEVENT_DIR" = yes; then
      PKG_CONFIG_MIN_VERSION=0.9.0
      if $PKG_CONFIG --atleast-pkgconfig-version $PKG_CONFIG_MIN_VERSION; then
         echo $ac_n "checking for libevent""... $ac_c" 1>&6
-echo "configure:10420: checking for libevent" >&5
+echo "configure:10421: checking for libevent" >&5
 
         if $PKG_CONFIG --exists "libevent" ; then
             echo "$ac_t""yes" 1>&6
             succeeded=yes
 
             echo $ac_n "checking MOZ_LIBEVENT_CFLAGS""... $ac_c" 1>&6
-echo "configure:10427: checking MOZ_LIBEVENT_CFLAGS" >&5
+echo "configure:10428: checking MOZ_LIBEVENT_CFLAGS" >&5
             MOZ_LIBEVENT_CFLAGS=`$PKG_CONFIG --cflags "libevent"`
             echo "$ac_t""$MOZ_LIBEVENT_CFLAGS" 1>&6
 
             echo $ac_n "checking MOZ_LIBEVENT_LIBS""... $ac_c" 1>&6
-echo "configure:10432: checking MOZ_LIBEVENT_LIBS" >&5
+echo "configure:10433: checking MOZ_LIBEVENT_LIBS" >&5
             ## Remove evil flags like -Wl,--export-dynamic
             MOZ_LIBEVENT_LIBS="`$PKG_CONFIG --libs \"libevent\" |sed s/-Wl,--export-dynamic//g`"
             echo "$ac_t""$MOZ_LIBEVENT_LIBS" 1>&6
@@ -10465,12 +10466,12 @@ elif test -z "$MOZ_SYSTEM_LIBEVENT"; then
     LDFLAGS="-L${LIBEVENT_DIR}/lib $LDFLAGS"
        ac_safe=`echo "event.h" | sed 'y%./+-%__p_%'`
   echo $ac_n "checking for event.h""... $ac_c" 1>&6
-echo "configure:10469: checking for event.h" >&5
+echo "configure:10470: checking for event.h" >&5
   if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
    cat > conftest.$ac_ext <<EOF
-#line 10474 "configure"
+#line 10475 "configure"
 #include "confdefs.h"
 
 #include <event.h>
@@ -10478,7 +10479,7 @@ int main() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:10482: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:10483: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   eval "ac_cv_header_$ac_safe=yes"
 else
@@ -10501,7 +10502,7 @@ fi
   fi
 
     echo $ac_n "checking for event_init in -levent""... $ac_c" 1>&6
-echo "configure:10505: checking for event_init in -levent" >&5
+echo "configure:10506: checking for event_init in -levent" >&5
 ac_lib_var=`echo event'_'event_init | sed 'y%./+-%__p_%'`
 if eval "test \"`echo '$''{'ac_cv_lib_$ac_lib_var'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -10509,7 +10510,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-levent  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 10513 "configure"
+#line 10514 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -10520,7 +10521,7 @@ int main() {
 event_init()
 ; return 0; }
 EOF
-if { (eval echo configure:10524: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:10525: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -10601,7 +10602,7 @@ fi
 	# Extract the first word of "nss-config", so it can be a program name with args.
 set dummy nss-config; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:10605: checking for $ac_word" >&5
+echo "configure:10606: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_path_NSS_CONFIG'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -10634,9 +10635,9 @@ else
   echo "$ac_t""no" 1>&6
 fi
 
-	min_nss_version=3.28.5
+	min_nss_version=3.28.6
 	echo $ac_n "checking for NSS - version >= $min_nss_version""... $ac_c" 1>&6
-echo "configure:10640: checking for NSS - version >= $min_nss_version" >&5
+echo "configure:10641: checking for NSS - version >= $min_nss_version" >&5
 
 	no_nss=""
 	if test "$NSS_CONFIG" = "no"; then
@@ -10717,7 +10718,7 @@ if test -z "$JPEG_DIR" -o "$JPEG_DIR" = no; then
     MOZ_SYSTEM_JPEG=
 else
     echo $ac_n "checking for jpeg_destroy_compress in -ljpeg""... $ac_c" 1>&6
-echo "configure:10721: checking for jpeg_destroy_compress in -ljpeg" >&5
+echo "configure:10722: checking for jpeg_destroy_compress in -ljpeg" >&5
 ac_lib_var=`echo jpeg'_'jpeg_destroy_compress | sed 'y%./+-%__p_%'`
 if eval "test \"`echo '$''{'ac_cv_lib_$ac_lib_var'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -10725,7 +10726,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-ljpeg  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 10729 "configure"
+#line 10730 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -10736,7 +10737,7 @@ int main() {
 jpeg_destroy_compress()
 ; return 0; }
 EOF
-if { (eval echo configure:10740: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:10741: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -10761,7 +10762,7 @@ fi
 
 if test "$MOZ_SYSTEM_JPEG" = 1; then
     cat > conftest.$ac_ext <<EOF
-#line 10765 "configure"
+#line 10766 "configure"
 #include "confdefs.h"
  #include <stdio.h>
                      #include <sys/types.h>
@@ -10776,7 +10777,7 @@ int main() {
                      
 ; return 0; }
 EOF
-if { (eval echo configure:10780: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:10781: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   MOZ_SYSTEM_JPEG=1
 else
@@ -10823,7 +10824,7 @@ if test -z "$MOZ_ZLIB_LIBS$MOZ_ZLIB_CFLAGS$SKIP_LIBRARY_CHECKS"; then
         MOZ_SYSTEM_ZLIB=
     else
         echo $ac_n "checking for gzread in -lz""... $ac_c" 1>&6
-echo "configure:10827: checking for gzread in -lz" >&5
+echo "configure:10828: checking for gzread in -lz" >&5
 ac_lib_var=`echo z'_'gzread | sed 'y%./+-%__p_%'`
 if eval "test \"`echo '$''{'ac_cv_lib_$ac_lib_var'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -10831,7 +10832,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-lz  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 10835 "configure"
+#line 10836 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -10842,7 +10843,7 @@ int main() {
 gzread()
 ; return 0; }
 EOF
-if { (eval echo configure:10846: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:10847: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -10866,7 +10867,7 @@ fi
         if test "$MOZ_SYSTEM_ZLIB" = 1; then
             MOZZLIBNUM=`echo $MOZZLIB | awk -F. '{printf "0x%x\n", ((($1 * 16 + $2) * 16) + $3) * 16 + $4}'`
             cat > conftest.$ac_ext <<EOF
-#line 10870 "configure"
+#line 10871 "configure"
 #include "confdefs.h"
  #include <stdio.h>
                              #include <string.h>
@@ -10877,7 +10878,7 @@ int main() {
                              #endif 
 ; return 0; }
 EOF
-if { (eval echo configure:10881: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:10882: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   MOZ_SYSTEM_ZLIB=1
 else
@@ -10923,7 +10924,7 @@ if test -z "$BZ2_DIR" -o "$BZ2_DIR" = no; then
     MOZ_SYSTEM_BZ2=
 else
     echo $ac_n "checking for BZ2_bzread in -lbz2""... $ac_c" 1>&6
-echo "configure:10927: checking for BZ2_bzread in -lbz2" >&5
+echo "configure:10928: checking for BZ2_bzread in -lbz2" >&5
 ac_lib_var=`echo bz2'_'BZ2_bzread | sed 'y%./+-%__p_%'`
 if eval "test \"`echo '$''{'ac_cv_lib_$ac_lib_var'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -10931,7 +10932,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-lbz2  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 10935 "configure"
+#line 10936 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -10942,7 +10943,7 @@ int main() {
 BZ2_bzread()
 ; return 0; }
 EOF
-if { (eval echo configure:10946: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:10947: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -10991,7 +10992,7 @@ if test -z "$PNG_DIR" -o "$PNG_DIR" = no; then
     MOZ_SYSTEM_PNG=
 else
     echo $ac_n "checking for png_get_valid in -lpng""... $ac_c" 1>&6
-echo "configure:10995: checking for png_get_valid in -lpng" >&5
+echo "configure:10996: checking for png_get_valid in -lpng" >&5
 ac_lib_var=`echo png'_'png_get_valid | sed 'y%./+-%__p_%'`
 if eval "test \"`echo '$''{'ac_cv_lib_$ac_lib_var'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -10999,7 +11000,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-lpng  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 11003 "configure"
+#line 11004 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -11010,7 +11011,7 @@ int main() {
 png_get_valid()
 ; return 0; }
 EOF
-if { (eval echo configure:11014: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:11015: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -11032,7 +11033,7 @@ else
 fi
 
     echo $ac_n "checking for png_get_acTL in -lpng""... $ac_c" 1>&6
-echo "configure:11036: checking for png_get_acTL in -lpng" >&5
+echo "configure:11037: checking for png_get_acTL in -lpng" >&5
 ac_lib_var=`echo png'_'png_get_acTL | sed 'y%./+-%__p_%'`
 if eval "test \"`echo '$''{'ac_cv_lib_$ac_lib_var'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -11040,7 +11041,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-lpng  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 11044 "configure"
+#line 11045 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -11051,7 +11052,7 @@ int main() {
 png_get_acTL()
 ; return 0; }
 EOF
-if { (eval echo configure:11055: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:11056: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -11085,7 +11086,7 @@ fi
 fi
 if test "$MOZ_SYSTEM_PNG" = 1; then
     cat > conftest.$ac_ext <<EOF
-#line 11089 "configure"
+#line 11090 "configure"
 #include "confdefs.h"
  #include <stdio.h>
                      #include <sys/types.h>
@@ -11099,7 +11100,7 @@ int main() {
                      #endif 
 ; return 0; }
 EOF
-if { (eval echo configure:11103: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:11104: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   MOZ_SYSTEM_PNG=1
 else
@@ -11233,7 +11234,7 @@ fi
 
 # Allow the application to influence configure with a confvars.sh script.
 echo $ac_n "checking if app-specific confvars.sh exists""... $ac_c" 1>&6
-echo "configure:11237: checking if app-specific confvars.sh exists" >&5
+echo "configure:11238: checking if app-specific confvars.sh exists" >&5
 if test -f "${srcdir}/${MOZ_BUILD_APP}/confvars.sh" ; then
   echo "$ac_t""${srcdir}/${MOZ_BUILD_APP}/confvars.sh" 1>&6
   . "${srcdir}/${MOZ_BUILD_APP}/confvars.sh"
@@ -11397,7 +11398,7 @@ case "$target" in
 
     android_target_sdk=23
     echo $ac_n "checking for Android SDK platform version $android_target_sdk""... $ac_c" 1>&6
-echo "configure:11401: checking for Android SDK platform version $android_target_sdk" >&5
+echo "configure:11402: checking for Android SDK platform version $android_target_sdk" >&5
     android_sdk=$android_sdk_root/platforms/android-$android_target_sdk
     if ! test -e "$android_sdk/source.properties" ; then
         { echo "configure: error: You must download Android SDK platform version $android_target_sdk.  Try |mach bootstrap|.  (Looked for $android_sdk)" 1>&2; echo "configure: error: You must download Android SDK platform version $android_target_sdk.  Try |mach bootstrap|.  (Looked for $android_sdk)" 1>&5; exit 1; }
@@ -11405,7 +11406,7 @@ echo "configure:11401: checking for Android SDK platform version $android_target
     echo "$ac_t""$android_sdk" 1>&6
 
     echo $ac_n "checking for Android build-tools""... $ac_c" 1>&6
-echo "configure:11409: checking for Android build-tools" >&5
+echo "configure:11410: checking for Android build-tools" >&5
     android_build_tools_base="$android_sdk_root"/build-tools
     android_build_tools_version=""
     for version in 23.0.3 23.0.1; do
@@ -11424,7 +11425,7 @@ echo "configure:11409: checking for Android build-tools" >&5
      # Extract the first word of "zipalign", so it can be a program name with args.
 set dummy zipalign; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:11428: checking for $ac_word" >&5
+echo "configure:11429: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_path_ZIPALIGN'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -11473,7 +11474,7 @@ fi
      # Extract the first word of "dx", so it can be a program name with args.
 set dummy dx; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:11477: checking for $ac_word" >&5
+echo "configure:11478: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_path_DX'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -11522,7 +11523,7 @@ fi
      # Extract the first word of "aapt", so it can be a program name with args.
 set dummy aapt; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:11526: checking for $ac_word" >&5
+echo "configure:11527: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_path_AAPT'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -11571,7 +11572,7 @@ fi
      # Extract the first word of "aidl", so it can be a program name with args.
 set dummy aidl; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:11575: checking for $ac_word" >&5
+echo "configure:11576: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_path_AIDL'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -11632,7 +11633,7 @@ fi
 
     android_platform_tools="$android_sdk_root"/platform-tools
     echo $ac_n "checking for Android platform-tools""... $ac_c" 1>&6
-echo "configure:11636: checking for Android platform-tools" >&5
+echo "configure:11637: checking for Android platform-tools" >&5
     if test -d "$android_platform_tools" -a -f "$android_platform_tools/adb"; then
         echo "$ac_t""$android_platform_tools" 1>&6
     else
@@ -11642,7 +11643,7 @@ echo "configure:11636: checking for Android platform-tools" >&5
      # Extract the first word of "adb", so it can be a program name with args.
 set dummy adb; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:11646: checking for $ac_word" >&5
+echo "configure:11647: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_path_ADB'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -11694,7 +11695,7 @@ fi
 
     android_tools="$android_sdk_root"/tools
     echo $ac_n "checking for Android tools""... $ac_c" 1>&6
-echo "configure:11698: checking for Android tools" >&5
+echo "configure:11699: checking for Android tools" >&5
     if test -d "$android_tools" -a -f "$android_tools/emulator"; then
         echo "$ac_t""$android_tools" 1>&6
     else
@@ -11704,7 +11705,7 @@ echo "configure:11698: checking for Android tools" >&5
      # Extract the first word of "emulator", so it can be a program name with args.
 set dummy emulator; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:11708: checking for $ac_word" >&5
+echo "configure:11709: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_path_EMULATOR'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -11777,7 +11778,7 @@ EOF
   
   ANDROID_CUSTOMTABS_AAR="$ANDROID_SDK_ROOT/extras/android/m2repository/com/android/support/customtabs/$ANDROID_SUPPORT_LIBRARY_VERSION/customtabs-$ANDROID_SUPPORT_LIBRARY_VERSION.aar"
   echo $ac_n "checking for customtabs AAR""... $ac_c" 1>&6
-echo "configure:11781: checking for customtabs AAR" >&5
+echo "configure:11782: checking for customtabs AAR" >&5
   if ! test -e "$ANDROID_CUSTOMTABS_AAR" ; then
     { echo "configure: error: You must download the customtabs AAR.  Run the Android SDK tool and install the Android and Google Support Repositories under Extras.  See https://developer.android.com/tools/extras/support-library.html for more info. (Looked for $ANDROID_CUSTOMTABS_AAR)" 1>&2; echo "configure: error: You must download the customtabs AAR.  Run the Android SDK tool and install the Android and Google Support Repositories under Extras.  See https://developer.android.com/tools/extras/support-library.html for more info. (Looked for $ANDROID_CUSTOMTABS_AAR)" 1>&5; exit 1; }
   fi
@@ -11792,7 +11793,7 @@ echo "configure:11781: checking for customtabs AAR" >&5
   
   
     echo $ac_n "checking for ANDROID_CUSTOMTABS_AAR_LIB""... $ac_c" 1>&6
-echo "configure:11796: checking for ANDROID_CUSTOMTABS_AAR_LIB" >&5
+echo "configure:11797: checking for ANDROID_CUSTOMTABS_AAR_LIB" >&5
     ANDROID_CUSTOMTABS_AAR_LIB="$MOZ_BUILD_ROOT/dist/exploded-aar/customtabs-$ANDROID_SUPPORT_LIBRARY_VERSION/customtabs-$ANDROID_SUPPORT_LIBRARY_VERSION-classes.jar"
     if ! test -e "$ANDROID_CUSTOMTABS_AAR_LIB" ; then
       { echo "configure: error: Could not find required exploded ANDROID_CUSTOMTABS_AAR_LIB!" 1>&2; echo "configure: error: Could not find required exploded ANDROID_CUSTOMTABS_AAR_LIB!" 1>&5; exit 1; }
@@ -11804,7 +11805,7 @@ echo "configure:11796: checking for ANDROID_CUSTOMTABS_AAR_LIB" >&5
   
   
     echo $ac_n "checking for ANDROID_CUSTOMTABS_AAR_RES""... $ac_c" 1>&6
-echo "configure:11808: checking for ANDROID_CUSTOMTABS_AAR_RES" >&5
+echo "configure:11809: checking for ANDROID_CUSTOMTABS_AAR_RES" >&5
     ANDROID_CUSTOMTABS_AAR_RES="$MOZ_BUILD_ROOT/dist/exploded-aar/customtabs-$ANDROID_SUPPORT_LIBRARY_VERSION/res"
     if ! test -e "$ANDROID_CUSTOMTABS_AAR_RES" ; then
       { echo "configure: error: Could not find required exploded ANDROID_CUSTOMTABS_AAR_RES!" 1>&2; echo "configure: error: Could not find required exploded ANDROID_CUSTOMTABS_AAR_RES!" 1>&5; exit 1; }
@@ -11833,7 +11834,7 @@ echo "configure:11808: checking for ANDROID_CUSTOMTABS_AAR_RES" >&5
   
   ANDROID_APPCOMPAT_V7_AAR="$ANDROID_SDK_ROOT/extras/android/m2repository/com/android/support/appcompat-v7/$ANDROID_SUPPORT_LIBRARY_VERSION/appcompat-v7-$ANDROID_SUPPORT_LIBRARY_VERSION.aar"
   echo $ac_n "checking for appcompat-v7 AAR""... $ac_c" 1>&6
-echo "configure:11837: checking for appcompat-v7 AAR" >&5
+echo "configure:11838: checking for appcompat-v7 AAR" >&5
   if ! test -e "$ANDROID_APPCOMPAT_V7_AAR" ; then
     { echo "configure: error: You must download the appcompat-v7 AAR.  Run the Android SDK tool and install the Android and Google Support Repositories under Extras.  See https://developer.android.com/tools/extras/support-library.html for more info. (Looked for $ANDROID_APPCOMPAT_V7_AAR)" 1>&2; echo "configure: error: You must download the appcompat-v7 AAR.  Run the Android SDK tool and install the Android and Google Support Repositories under Extras.  See https://developer.android.com/tools/extras/support-library.html for more info. (Looked for $ANDROID_APPCOMPAT_V7_AAR)" 1>&5; exit 1; }
   fi
@@ -11848,7 +11849,7 @@ echo "configure:11837: checking for appcompat-v7 AAR" >&5
   
   
     echo $ac_n "checking for ANDROID_APPCOMPAT_V7_AAR_LIB""... $ac_c" 1>&6
-echo "configure:11852: checking for ANDROID_APPCOMPAT_V7_AAR_LIB" >&5
+echo "configure:11853: checking for ANDROID_APPCOMPAT_V7_AAR_LIB" >&5
     ANDROID_APPCOMPAT_V7_AAR_LIB="$MOZ_BUILD_ROOT/dist/exploded-aar/appcompat-v7-$ANDROID_SUPPORT_LIBRARY_VERSION/appcompat-v7-$ANDROID_SUPPORT_LIBRARY_VERSION-classes.jar"
     if ! test -e "$ANDROID_APPCOMPAT_V7_AAR_LIB" ; then
       { echo "configure: error: Could not find required exploded ANDROID_APPCOMPAT_V7_AAR_LIB!" 1>&2; echo "configure: error: Could not find required exploded ANDROID_APPCOMPAT_V7_AAR_LIB!" 1>&5; exit 1; }
@@ -11860,7 +11861,7 @@ echo "configure:11852: checking for ANDROID_APPCOMPAT_V7_AAR_LIB" >&5
   
   
     echo $ac_n "checking for ANDROID_APPCOMPAT_V7_AAR_RES""... $ac_c" 1>&6
-echo "configure:11864: checking for ANDROID_APPCOMPAT_V7_AAR_RES" >&5
+echo "configure:11865: checking for ANDROID_APPCOMPAT_V7_AAR_RES" >&5
     ANDROID_APPCOMPAT_V7_AAR_RES="$MOZ_BUILD_ROOT/dist/exploded-aar/appcompat-v7-$ANDROID_SUPPORT_LIBRARY_VERSION/res"
     if ! test -e "$ANDROID_APPCOMPAT_V7_AAR_RES" ; then
       { echo "configure: error: Could not find required exploded ANDROID_APPCOMPAT_V7_AAR_RES!" 1>&2; echo "configure: error: Could not find required exploded ANDROID_APPCOMPAT_V7_AAR_RES!" 1>&5; exit 1; }
@@ -11889,7 +11890,7 @@ echo "configure:11864: checking for ANDROID_APPCOMPAT_V7_AAR_RES" >&5
   
   ANDROID_SUPPORT_VECTOR_DRAWABLE_AAR="$ANDROID_SDK_ROOT/extras/android/m2repository/com/android/support/support-vector-drawable/$ANDROID_SUPPORT_LIBRARY_VERSION/support-vector-drawable-$ANDROID_SUPPORT_LIBRARY_VERSION.aar"
   echo $ac_n "checking for support-vector-drawable AAR""... $ac_c" 1>&6
-echo "configure:11893: checking for support-vector-drawable AAR" >&5
+echo "configure:11894: checking for support-vector-drawable AAR" >&5
   if ! test -e "$ANDROID_SUPPORT_VECTOR_DRAWABLE_AAR" ; then
     { echo "configure: error: You must download the support-vector-drawable AAR.  Run the Android SDK tool and install the Android and Google Support Repositories under Extras.  See https://developer.android.com/tools/extras/support-library.html for more info. (Looked for $ANDROID_SUPPORT_VECTOR_DRAWABLE_AAR)" 1>&2; echo "configure: error: You must download the support-vector-drawable AAR.  Run the Android SDK tool and install the Android and Google Support Repositories under Extras.  See https://developer.android.com/tools/extras/support-library.html for more info. (Looked for $ANDROID_SUPPORT_VECTOR_DRAWABLE_AAR)" 1>&5; exit 1; }
   fi
@@ -11904,7 +11905,7 @@ echo "configure:11893: checking for support-vector-drawable AAR" >&5
   
   
     echo $ac_n "checking for ANDROID_SUPPORT_VECTOR_DRAWABLE_AAR_LIB""... $ac_c" 1>&6
-echo "configure:11908: checking for ANDROID_SUPPORT_VECTOR_DRAWABLE_AAR_LIB" >&5
+echo "configure:11909: checking for ANDROID_SUPPORT_VECTOR_DRAWABLE_AAR_LIB" >&5
     ANDROID_SUPPORT_VECTOR_DRAWABLE_AAR_LIB="$MOZ_BUILD_ROOT/dist/exploded-aar/support-vector-drawable-$ANDROID_SUPPORT_LIBRARY_VERSION/support-vector-drawable-$ANDROID_SUPPORT_LIBRARY_VERSION-classes.jar"
     if ! test -e "$ANDROID_SUPPORT_VECTOR_DRAWABLE_AAR_LIB" ; then
       { echo "configure: error: Could not find required exploded ANDROID_SUPPORT_VECTOR_DRAWABLE_AAR_LIB!" 1>&2; echo "configure: error: Could not find required exploded ANDROID_SUPPORT_VECTOR_DRAWABLE_AAR_LIB!" 1>&5; exit 1; }
@@ -11916,7 +11917,7 @@ echo "configure:11908: checking for ANDROID_SUPPORT_VECTOR_DRAWABLE_AAR_LIB" >&5
   
   
     echo $ac_n "checking for ANDROID_SUPPORT_VECTOR_DRAWABLE_AAR_RES""... $ac_c" 1>&6
-echo "configure:11920: checking for ANDROID_SUPPORT_VECTOR_DRAWABLE_AAR_RES" >&5
+echo "configure:11921: checking for ANDROID_SUPPORT_VECTOR_DRAWABLE_AAR_RES" >&5
     ANDROID_SUPPORT_VECTOR_DRAWABLE_AAR_RES="$MOZ_BUILD_ROOT/dist/exploded-aar/support-vector-drawable-$ANDROID_SUPPORT_LIBRARY_VERSION/res"
     if ! test -e "$ANDROID_SUPPORT_VECTOR_DRAWABLE_AAR_RES" ; then
       { echo "configure: error: Could not find required exploded ANDROID_SUPPORT_VECTOR_DRAWABLE_AAR_RES!" 1>&2; echo "configure: error: Could not find required exploded ANDROID_SUPPORT_VECTOR_DRAWABLE_AAR_RES!" 1>&5; exit 1; }
@@ -11945,7 +11946,7 @@ echo "configure:11920: checking for ANDROID_SUPPORT_VECTOR_DRAWABLE_AAR_RES" >&5
   
   ANDROID_ANIMATED_VECTOR_DRAWABLE_AAR="$ANDROID_SDK_ROOT/extras/android/m2repository/com/android/support/animated-vector-drawable/$ANDROID_SUPPORT_LIBRARY_VERSION/animated-vector-drawable-$ANDROID_SUPPORT_LIBRARY_VERSION.aar"
   echo $ac_n "checking for animated-vector-drawable AAR""... $ac_c" 1>&6
-echo "configure:11949: checking for animated-vector-drawable AAR" >&5
+echo "configure:11950: checking for animated-vector-drawable AAR" >&5
   if ! test -e "$ANDROID_ANIMATED_VECTOR_DRAWABLE_AAR" ; then
     { echo "configure: error: You must download the animated-vector-drawable AAR.  Run the Android SDK tool and install the Android and Google Support Repositories under Extras.  See https://developer.android.com/tools/extras/support-library.html for more info. (Looked for $ANDROID_ANIMATED_VECTOR_DRAWABLE_AAR)" 1>&2; echo "configure: error: You must download the animated-vector-drawable AAR.  Run the Android SDK tool and install the Android and Google Support Repositories under Extras.  See https://developer.android.com/tools/extras/support-library.html for more info. (Looked for $ANDROID_ANIMATED_VECTOR_DRAWABLE_AAR)" 1>&5; exit 1; }
   fi
@@ -11960,7 +11961,7 @@ echo "configure:11949: checking for animated-vector-drawable AAR" >&5
   
   
     echo $ac_n "checking for ANDROID_ANIMATED_VECTOR_DRAWABLE_AAR_LIB""... $ac_c" 1>&6
-echo "configure:11964: checking for ANDROID_ANIMATED_VECTOR_DRAWABLE_AAR_LIB" >&5
+echo "configure:11965: checking for ANDROID_ANIMATED_VECTOR_DRAWABLE_AAR_LIB" >&5
     ANDROID_ANIMATED_VECTOR_DRAWABLE_AAR_LIB="$MOZ_BUILD_ROOT/dist/exploded-aar/animated-vector-drawable-$ANDROID_SUPPORT_LIBRARY_VERSION/animated-vector-drawable-$ANDROID_SUPPORT_LIBRARY_VERSION-classes.jar"
     if ! test -e "$ANDROID_ANIMATED_VECTOR_DRAWABLE_AAR_LIB" ; then
       { echo "configure: error: Could not find required exploded ANDROID_ANIMATED_VECTOR_DRAWABLE_AAR_LIB!" 1>&2; echo "configure: error: Could not find required exploded ANDROID_ANIMATED_VECTOR_DRAWABLE_AAR_LIB!" 1>&5; exit 1; }
@@ -11972,7 +11973,7 @@ echo "configure:11964: checking for ANDROID_ANIMATED_VECTOR_DRAWABLE_AAR_LIB" >&
   
   
     echo $ac_n "checking for ANDROID_ANIMATED_VECTOR_DRAWABLE_AAR_RES""... $ac_c" 1>&6
-echo "configure:11976: checking for ANDROID_ANIMATED_VECTOR_DRAWABLE_AAR_RES" >&5
+echo "configure:11977: checking for ANDROID_ANIMATED_VECTOR_DRAWABLE_AAR_RES" >&5
     ANDROID_ANIMATED_VECTOR_DRAWABLE_AAR_RES="$MOZ_BUILD_ROOT/dist/exploded-aar/animated-vector-drawable-$ANDROID_SUPPORT_LIBRARY_VERSION/res"
     if ! test -e "$ANDROID_ANIMATED_VECTOR_DRAWABLE_AAR_RES" ; then
       { echo "configure: error: Could not find required exploded ANDROID_ANIMATED_VECTOR_DRAWABLE_AAR_RES!" 1>&2; echo "configure: error: Could not find required exploded ANDROID_ANIMATED_VECTOR_DRAWABLE_AAR_RES!" 1>&5; exit 1; }
@@ -12001,7 +12002,7 @@ echo "configure:11976: checking for ANDROID_ANIMATED_VECTOR_DRAWABLE_AAR_RES" >&
   
   ANDROID_CARDVIEW_V7_AAR="$ANDROID_SDK_ROOT/extras/android/m2repository/com/android/support/cardview-v7/$ANDROID_SUPPORT_LIBRARY_VERSION/cardview-v7-$ANDROID_SUPPORT_LIBRARY_VERSION.aar"
   echo $ac_n "checking for cardview-v7 AAR""... $ac_c" 1>&6
-echo "configure:12005: checking for cardview-v7 AAR" >&5
+echo "configure:12006: checking for cardview-v7 AAR" >&5
   if ! test -e "$ANDROID_CARDVIEW_V7_AAR" ; then
     { echo "configure: error: You must download the cardview-v7 AAR.  Run the Android SDK tool and install the Android and Google Support Repositories under Extras.  See https://developer.android.com/tools/extras/support-library.html for more info. (Looked for $ANDROID_CARDVIEW_V7_AAR)" 1>&2; echo "configure: error: You must download the cardview-v7 AAR.  Run the Android SDK tool and install the Android and Google Support Repositories under Extras.  See https://developer.android.com/tools/extras/support-library.html for more info. (Looked for $ANDROID_CARDVIEW_V7_AAR)" 1>&5; exit 1; }
   fi
@@ -12016,7 +12017,7 @@ echo "configure:12005: checking for cardview-v7 AAR" >&5
   
   
     echo $ac_n "checking for ANDROID_CARDVIEW_V7_AAR_LIB""... $ac_c" 1>&6
-echo "configure:12020: checking for ANDROID_CARDVIEW_V7_AAR_LIB" >&5
+echo "configure:12021: checking for ANDROID_CARDVIEW_V7_AAR_LIB" >&5
     ANDROID_CARDVIEW_V7_AAR_LIB="$MOZ_BUILD_ROOT/dist/exploded-aar/cardview-v7-$ANDROID_SUPPORT_LIBRARY_VERSION/cardview-v7-$ANDROID_SUPPORT_LIBRARY_VERSION-classes.jar"
     if ! test -e "$ANDROID_CARDVIEW_V7_AAR_LIB" ; then
       { echo "configure: error: Could not find required exploded ANDROID_CARDVIEW_V7_AAR_LIB!" 1>&2; echo "configure: error: Could not find required exploded ANDROID_CARDVIEW_V7_AAR_LIB!" 1>&5; exit 1; }
@@ -12028,7 +12029,7 @@ echo "configure:12020: checking for ANDROID_CARDVIEW_V7_AAR_LIB" >&5
   
   
     echo $ac_n "checking for ANDROID_CARDVIEW_V7_AAR_RES""... $ac_c" 1>&6
-echo "configure:12032: checking for ANDROID_CARDVIEW_V7_AAR_RES" >&5
+echo "configure:12033: checking for ANDROID_CARDVIEW_V7_AAR_RES" >&5
     ANDROID_CARDVIEW_V7_AAR_RES="$MOZ_BUILD_ROOT/dist/exploded-aar/cardview-v7-$ANDROID_SUPPORT_LIBRARY_VERSION/res"
     if ! test -e "$ANDROID_CARDVIEW_V7_AAR_RES" ; then
       { echo "configure: error: Could not find required exploded ANDROID_CARDVIEW_V7_AAR_RES!" 1>&2; echo "configure: error: Could not find required exploded ANDROID_CARDVIEW_V7_AAR_RES!" 1>&5; exit 1; }
@@ -12057,7 +12058,7 @@ echo "configure:12032: checking for ANDROID_CARDVIEW_V7_AAR_RES" >&5
   
   ANDROID_DESIGN_AAR="$ANDROID_SDK_ROOT/extras/android/m2repository/com/android/support/design/$ANDROID_SUPPORT_LIBRARY_VERSION/design-$ANDROID_SUPPORT_LIBRARY_VERSION.aar"
   echo $ac_n "checking for design AAR""... $ac_c" 1>&6
-echo "configure:12061: checking for design AAR" >&5
+echo "configure:12062: checking for design AAR" >&5
   if ! test -e "$ANDROID_DESIGN_AAR" ; then
     { echo "configure: error: You must download the design AAR.  Run the Android SDK tool and install the Android and Google Support Repositories under Extras.  See https://developer.android.com/tools/extras/support-library.html for more info. (Looked for $ANDROID_DESIGN_AAR)" 1>&2; echo "configure: error: You must download the design AAR.  Run the Android SDK tool and install the Android and Google Support Repositories under Extras.  See https://developer.android.com/tools/extras/support-library.html for more info. (Looked for $ANDROID_DESIGN_AAR)" 1>&5; exit 1; }
   fi
@@ -12072,7 +12073,7 @@ echo "configure:12061: checking for design AAR" >&5
   
   
     echo $ac_n "checking for ANDROID_DESIGN_AAR_LIB""... $ac_c" 1>&6
-echo "configure:12076: checking for ANDROID_DESIGN_AAR_LIB" >&5
+echo "configure:12077: checking for ANDROID_DESIGN_AAR_LIB" >&5
     ANDROID_DESIGN_AAR_LIB="$MOZ_BUILD_ROOT/dist/exploded-aar/design-$ANDROID_SUPPORT_LIBRARY_VERSION/design-$ANDROID_SUPPORT_LIBRARY_VERSION-classes.jar"
     if ! test -e "$ANDROID_DESIGN_AAR_LIB" ; then
       { echo "configure: error: Could not find required exploded ANDROID_DESIGN_AAR_LIB!" 1>&2; echo "configure: error: Could not find required exploded ANDROID_DESIGN_AAR_LIB!" 1>&5; exit 1; }
@@ -12084,7 +12085,7 @@ echo "configure:12076: checking for ANDROID_DESIGN_AAR_LIB" >&5
   
   
     echo $ac_n "checking for ANDROID_DESIGN_AAR_RES""... $ac_c" 1>&6
-echo "configure:12088: checking for ANDROID_DESIGN_AAR_RES" >&5
+echo "configure:12089: checking for ANDROID_DESIGN_AAR_RES" >&5
     ANDROID_DESIGN_AAR_RES="$MOZ_BUILD_ROOT/dist/exploded-aar/design-$ANDROID_SUPPORT_LIBRARY_VERSION/res"
     if ! test -e "$ANDROID_DESIGN_AAR_RES" ; then
       { echo "configure: error: Could not find required exploded ANDROID_DESIGN_AAR_RES!" 1>&2; echo "configure: error: Could not find required exploded ANDROID_DESIGN_AAR_RES!" 1>&5; exit 1; }
@@ -12113,7 +12114,7 @@ echo "configure:12088: checking for ANDROID_DESIGN_AAR_RES" >&5
   
   ANDROID_RECYCLERVIEW_V7_AAR="$ANDROID_SDK_ROOT/extras/android/m2repository/com/android/support/recyclerview-v7/$ANDROID_SUPPORT_LIBRARY_VERSION/recyclerview-v7-$ANDROID_SUPPORT_LIBRARY_VERSION.aar"
   echo $ac_n "checking for recyclerview-v7 AAR""... $ac_c" 1>&6
-echo "configure:12117: checking for recyclerview-v7 AAR" >&5
+echo "configure:12118: checking for recyclerview-v7 AAR" >&5
   if ! test -e "$ANDROID_RECYCLERVIEW_V7_AAR" ; then
     { echo "configure: error: You must download the recyclerview-v7 AAR.  Run the Android SDK tool and install the Android and Google Support Repositories under Extras.  See https://developer.android.com/tools/extras/support-library.html for more info. (Looked for $ANDROID_RECYCLERVIEW_V7_AAR)" 1>&2; echo "configure: error: You must download the recyclerview-v7 AAR.  Run the Android SDK tool and install the Android and Google Support Repositories under Extras.  See https://developer.android.com/tools/extras/support-library.html for more info. (Looked for $ANDROID_RECYCLERVIEW_V7_AAR)" 1>&5; exit 1; }
   fi
@@ -12128,7 +12129,7 @@ echo "configure:12117: checking for recyclerview-v7 AAR" >&5
   
   
     echo $ac_n "checking for ANDROID_RECYCLERVIEW_V7_AAR_LIB""... $ac_c" 1>&6
-echo "configure:12132: checking for ANDROID_RECYCLERVIEW_V7_AAR_LIB" >&5
+echo "configure:12133: checking for ANDROID_RECYCLERVIEW_V7_AAR_LIB" >&5
     ANDROID_RECYCLERVIEW_V7_AAR_LIB="$MOZ_BUILD_ROOT/dist/exploded-aar/recyclerview-v7-$ANDROID_SUPPORT_LIBRARY_VERSION/recyclerview-v7-$ANDROID_SUPPORT_LIBRARY_VERSION-classes.jar"
     if ! test -e "$ANDROID_RECYCLERVIEW_V7_AAR_LIB" ; then
       { echo "configure: error: Could not find required exploded ANDROID_RECYCLERVIEW_V7_AAR_LIB!" 1>&2; echo "configure: error: Could not find required exploded ANDROID_RECYCLERVIEW_V7_AAR_LIB!" 1>&5; exit 1; }
@@ -12140,7 +12141,7 @@ echo "configure:12132: checking for ANDROID_RECYCLERVIEW_V7_AAR_LIB" >&5
   
   
     echo $ac_n "checking for ANDROID_RECYCLERVIEW_V7_AAR_RES""... $ac_c" 1>&6
-echo "configure:12144: checking for ANDROID_RECYCLERVIEW_V7_AAR_RES" >&5
+echo "configure:12145: checking for ANDROID_RECYCLERVIEW_V7_AAR_RES" >&5
     ANDROID_RECYCLERVIEW_V7_AAR_RES="$MOZ_BUILD_ROOT/dist/exploded-aar/recyclerview-v7-$ANDROID_SUPPORT_LIBRARY_VERSION/res"
     if ! test -e "$ANDROID_RECYCLERVIEW_V7_AAR_RES" ; then
       { echo "configure: error: Could not find required exploded ANDROID_RECYCLERVIEW_V7_AAR_RES!" 1>&2; echo "configure: error: Could not find required exploded ANDROID_RECYCLERVIEW_V7_AAR_RES!" 1>&5; exit 1; }
@@ -12169,7 +12170,7 @@ echo "configure:12144: checking for ANDROID_RECYCLERVIEW_V7_AAR_RES" >&5
   
   ANDROID_SUPPORT_V4_AAR="$ANDROID_SDK_ROOT/extras/android/m2repository/com/android/support/support-v4/$ANDROID_SUPPORT_LIBRARY_VERSION/support-v4-$ANDROID_SUPPORT_LIBRARY_VERSION.aar"
   echo $ac_n "checking for support-v4 AAR""... $ac_c" 1>&6
-echo "configure:12173: checking for support-v4 AAR" >&5
+echo "configure:12174: checking for support-v4 AAR" >&5
   if ! test -e "$ANDROID_SUPPORT_V4_AAR" ; then
     { echo "configure: error: You must download the support-v4 AAR.  Run the Android SDK tool and install the Android and Google Support Repositories under Extras.  See https://developer.android.com/tools/extras/support-library.html for more info. (Looked for $ANDROID_SUPPORT_V4_AAR)" 1>&2; echo "configure: error: You must download the support-v4 AAR.  Run the Android SDK tool and install the Android and Google Support Repositories under Extras.  See https://developer.android.com/tools/extras/support-library.html for more info. (Looked for $ANDROID_SUPPORT_V4_AAR)" 1>&5; exit 1; }
   fi
@@ -12184,7 +12185,7 @@ echo "configure:12173: checking for support-v4 AAR" >&5
   
   
     echo $ac_n "checking for ANDROID_SUPPORT_V4_AAR_LIB""... $ac_c" 1>&6
-echo "configure:12188: checking for ANDROID_SUPPORT_V4_AAR_LIB" >&5
+echo "configure:12189: checking for ANDROID_SUPPORT_V4_AAR_LIB" >&5
     ANDROID_SUPPORT_V4_AAR_LIB="$MOZ_BUILD_ROOT/dist/exploded-aar/support-v4-$ANDROID_SUPPORT_LIBRARY_VERSION/support-v4-$ANDROID_SUPPORT_LIBRARY_VERSION-classes.jar"
     if ! test -e "$ANDROID_SUPPORT_V4_AAR_LIB" ; then
       { echo "configure: error: Could not find required exploded ANDROID_SUPPORT_V4_AAR_LIB!" 1>&2; echo "configure: error: Could not find required exploded ANDROID_SUPPORT_V4_AAR_LIB!" 1>&5; exit 1; }
@@ -12196,7 +12197,7 @@ echo "configure:12188: checking for ANDROID_SUPPORT_V4_AAR_LIB" >&5
   
   
     echo $ac_n "checking for ANDROID_SUPPORT_V4_AAR_RES""... $ac_c" 1>&6
-echo "configure:12200: checking for ANDROID_SUPPORT_V4_AAR_RES" >&5
+echo "configure:12201: checking for ANDROID_SUPPORT_V4_AAR_RES" >&5
     ANDROID_SUPPORT_V4_AAR_RES="$MOZ_BUILD_ROOT/dist/exploded-aar/support-v4-$ANDROID_SUPPORT_LIBRARY_VERSION/res"
     if ! test -e "$ANDROID_SUPPORT_V4_AAR_RES" ; then
       { echo "configure: error: Could not find required exploded ANDROID_SUPPORT_V4_AAR_RES!" 1>&2; echo "configure: error: Could not find required exploded ANDROID_SUPPORT_V4_AAR_RES!" 1>&5; exit 1; }
@@ -12208,7 +12209,7 @@ echo "configure:12200: checking for ANDROID_SUPPORT_V4_AAR_RES" >&5
   
   
     echo $ac_n "checking for ANDROID_SUPPORT_V4_AAR_INTERNAL_LIB""... $ac_c" 1>&6
-echo "configure:12212: checking for ANDROID_SUPPORT_V4_AAR_INTERNAL_LIB" >&5
+echo "configure:12213: checking for ANDROID_SUPPORT_V4_AAR_INTERNAL_LIB" >&5
     ANDROID_SUPPORT_V4_AAR_INTERNAL_LIB="$MOZ_BUILD_ROOT/dist/exploded-aar/support-v4-$ANDROID_SUPPORT_LIBRARY_VERSION/libs/support-v4-$ANDROID_SUPPORT_LIBRARY_VERSION-internal_impl-$ANDROID_SUPPORT_LIBRARY_VERSION.jar"
     if ! test -e "$ANDROID_SUPPORT_V4_AAR_INTERNAL_LIB" ; then
       { echo "configure: error: Could not find required exploded ANDROID_SUPPORT_V4_AAR_INTERNAL_LIB!" 1>&2; echo "configure: error: Could not find required exploded ANDROID_SUPPORT_V4_AAR_INTERNAL_LIB!" 1>&5; exit 1; }
@@ -12230,7 +12231,7 @@ echo "configure:12212: checking for ANDROID_SUPPORT_V4_AAR_INTERNAL_LIB" >&5
   
   ANDROID_PALETTE_V7_AAR="$ANDROID_SDK_ROOT/extras/android/m2repository/com/android/support/palette-v7/$ANDROID_SUPPORT_LIBRARY_VERSION/palette-v7-$ANDROID_SUPPORT_LIBRARY_VERSION.aar"
   echo $ac_n "checking for palette-v7 AAR""... $ac_c" 1>&6
-echo "configure:12234: checking for palette-v7 AAR" >&5
+echo "configure:12235: checking for palette-v7 AAR" >&5
   if ! test -e "$ANDROID_PALETTE_V7_AAR" ; then
     { echo "configure: error: You must download the palette-v7 AAR.  Run the Android SDK tool and install the Android and Google Support Repositories under Extras.  See https://developer.android.com/tools/extras/support-library.html for more info. (Looked for $ANDROID_PALETTE_V7_AAR)" 1>&2; echo "configure: error: You must download the palette-v7 AAR.  Run the Android SDK tool and install the Android and Google Support Repositories under Extras.  See https://developer.android.com/tools/extras/support-library.html for more info. (Looked for $ANDROID_PALETTE_V7_AAR)" 1>&5; exit 1; }
   fi
@@ -12245,7 +12246,7 @@ echo "configure:12234: checking for palette-v7 AAR" >&5
   
   
     echo $ac_n "checking for ANDROID_PALETTE_V7_AAR_LIB""... $ac_c" 1>&6
-echo "configure:12249: checking for ANDROID_PALETTE_V7_AAR_LIB" >&5
+echo "configure:12250: checking for ANDROID_PALETTE_V7_AAR_LIB" >&5
     ANDROID_PALETTE_V7_AAR_LIB="$MOZ_BUILD_ROOT/dist/exploded-aar/palette-v7-$ANDROID_SUPPORT_LIBRARY_VERSION/palette-v7-$ANDROID_SUPPORT_LIBRARY_VERSION-classes.jar"
     if ! test -e "$ANDROID_PALETTE_V7_AAR_LIB" ; then
       { echo "configure: error: Could not find required exploded ANDROID_PALETTE_V7_AAR_LIB!" 1>&2; echo "configure: error: Could not find required exploded ANDROID_PALETTE_V7_AAR_LIB!" 1>&5; exit 1; }
@@ -12257,7 +12258,7 @@ echo "configure:12249: checking for ANDROID_PALETTE_V7_AAR_LIB" >&5
   
   
     echo $ac_n "checking for ANDROID_PALETTE_V7_AAR_RES""... $ac_c" 1>&6
-echo "configure:12261: checking for ANDROID_PALETTE_V7_AAR_RES" >&5
+echo "configure:12262: checking for ANDROID_PALETTE_V7_AAR_RES" >&5
     ANDROID_PALETTE_V7_AAR_RES="$MOZ_BUILD_ROOT/dist/exploded-aar/palette-v7-$ANDROID_SUPPORT_LIBRARY_VERSION/res"
     if ! test -e "$ANDROID_PALETTE_V7_AAR_RES" ; then
       { echo "configure: error: Could not find required exploded ANDROID_PALETTE_V7_AAR_RES!" 1>&2; echo "configure: error: Could not find required exploded ANDROID_PALETTE_V7_AAR_RES!" 1>&5; exit 1; }
@@ -12284,7 +12285,7 @@ echo "configure:12261: checking for ANDROID_PALETTE_V7_AAR_RES" >&5
 
     ANDROID_SUPPORT_ANNOTATIONS_JAR="$ANDROID_SDK_ROOT/extras/android/m2repository/com/android/support/support-annotations/$ANDROID_SUPPORT_LIBRARY_VERSION/support-annotations-$ANDROID_SUPPORT_LIBRARY_VERSION.jar"
     echo $ac_n "checking for support-annotations JAR""... $ac_c" 1>&6
-echo "configure:12288: checking for support-annotations JAR" >&5
+echo "configure:12289: checking for support-annotations JAR" >&5
     if ! test -e $ANDROID_SUPPORT_ANNOTATIONS_JAR ; then
         { echo "configure: error: You must download the support-annotations lib.  Run the Android SDK tool and install the Android Support Repository under Extras.  See https://developer.android.com/tools/extras/support-library.html for more info. (looked for $ANDROID_SUPPORT_ANNOTATIONS_JAR)" 1>&2; echo "configure: error: You must download the support-annotations lib.  Run the Android SDK tool and install the Android Support Repository under Extras.  See https://developer.android.com/tools/extras/support-library.html for more info. (looked for $ANDROID_SUPPORT_ANNOTATIONS_JAR)" 1>&5; exit 1; }
     fi
@@ -12394,19 +12395,19 @@ if test "$COMPILE_ENVIRONMENT"; then
      PKG_CONFIG_MIN_VERSION=0.9.0
      if $PKG_CONFIG --atleast-pkgconfig-version $PKG_CONFIG_MIN_VERSION; then
         echo $ac_n "checking for gtk+-3.0 >= $GTK3_VERSION gtk+-unix-print-3.0 glib-2.0 gobject-2.0 $GDK_PACKAGES""... $ac_c" 1>&6
-echo "configure:12398: checking for gtk+-3.0 >= $GTK3_VERSION gtk+-unix-print-3.0 glib-2.0 gobject-2.0 $GDK_PACKAGES" >&5
+echo "configure:12399: checking for gtk+-3.0 >= $GTK3_VERSION gtk+-unix-print-3.0 glib-2.0 gobject-2.0 $GDK_PACKAGES" >&5
 
         if $PKG_CONFIG --exists "gtk+-3.0 >= $GTK3_VERSION gtk+-unix-print-3.0 glib-2.0 gobject-2.0 $GDK_PACKAGES" ; then
             echo "$ac_t""yes" 1>&6
             succeeded=yes
 
             echo $ac_n "checking MOZ_GTK3_CFLAGS""... $ac_c" 1>&6
-echo "configure:12405: checking MOZ_GTK3_CFLAGS" >&5
+echo "configure:12406: checking MOZ_GTK3_CFLAGS" >&5
             MOZ_GTK3_CFLAGS=`$PKG_CONFIG --cflags "gtk+-3.0 >= $GTK3_VERSION gtk+-unix-print-3.0 glib-2.0 gobject-2.0 $GDK_PACKAGES"`
             echo "$ac_t""$MOZ_GTK3_CFLAGS" 1>&6
 
             echo $ac_n "checking MOZ_GTK3_LIBS""... $ac_c" 1>&6
-echo "configure:12410: checking MOZ_GTK3_LIBS" >&5
+echo "configure:12411: checking MOZ_GTK3_LIBS" >&5
             ## Remove evil flags like -Wl,--export-dynamic
             MOZ_GTK3_LIBS="`$PKG_CONFIG --libs \"gtk+-3.0 >= $GTK3_VERSION gtk+-unix-print-3.0 glib-2.0 gobject-2.0 $GDK_PACKAGES\" |sed s/-Wl,--export-dynamic//g`"
             echo "$ac_t""$MOZ_GTK3_LIBS" 1>&6
@@ -12480,19 +12481,19 @@ EOF
      PKG_CONFIG_MIN_VERSION=0.9.0
      if $PKG_CONFIG --atleast-pkgconfig-version $PKG_CONFIG_MIN_VERSION; then
         echo $ac_n "checking for gtk+-2.0 >= $GTK2_VERSION gtk+-unix-print-2.0 glib-2.0 >= $GLIB_VERSION gobject-2.0 $GDK_PACKAGES""... $ac_c" 1>&6
-echo "configure:12484: checking for gtk+-2.0 >= $GTK2_VERSION gtk+-unix-print-2.0 glib-2.0 >= $GLIB_VERSION gobject-2.0 $GDK_PACKAGES" >&5
+echo "configure:12485: checking for gtk+-2.0 >= $GTK2_VERSION gtk+-unix-print-2.0 glib-2.0 >= $GLIB_VERSION gobject-2.0 $GDK_PACKAGES" >&5
 
         if $PKG_CONFIG --exists "gtk+-2.0 >= $GTK2_VERSION gtk+-unix-print-2.0 glib-2.0 >= $GLIB_VERSION gobject-2.0 $GDK_PACKAGES" ; then
             echo "$ac_t""yes" 1>&6
             succeeded=yes
 
             echo $ac_n "checking MOZ_GTK2_CFLAGS""... $ac_c" 1>&6
-echo "configure:12491: checking MOZ_GTK2_CFLAGS" >&5
+echo "configure:12492: checking MOZ_GTK2_CFLAGS" >&5
             MOZ_GTK2_CFLAGS=`$PKG_CONFIG --cflags "gtk+-2.0 >= $GTK2_VERSION gtk+-unix-print-2.0 glib-2.0 >= $GLIB_VERSION gobject-2.0 $GDK_PACKAGES"`
             echo "$ac_t""$MOZ_GTK2_CFLAGS" 1>&6
 
             echo $ac_n "checking MOZ_GTK2_LIBS""... $ac_c" 1>&6
-echo "configure:12496: checking MOZ_GTK2_LIBS" >&5
+echo "configure:12497: checking MOZ_GTK2_LIBS" >&5
             ## Remove evil flags like -Wl,--export-dynamic
             MOZ_GTK2_LIBS="`$PKG_CONFIG --libs \"gtk+-2.0 >= $GTK2_VERSION gtk+-unix-print-2.0 glib-2.0 >= $GLIB_VERSION gobject-2.0 $GDK_PACKAGES\" |sed s/-Wl,--export-dynamic//g`"
             echo "$ac_t""$MOZ_GTK2_LIBS" 1>&6
@@ -12561,19 +12562,19 @@ fi
      PKG_CONFIG_MIN_VERSION=0.9.0
      if $PKG_CONFIG --atleast-pkgconfig-version $PKG_CONFIG_MIN_VERSION; then
         echo $ac_n "checking for libstartup-notification-1.0 >= $STARTUP_NOTIFICATION_VERSION""... $ac_c" 1>&6
-echo "configure:12565: checking for libstartup-notification-1.0 >= $STARTUP_NOTIFICATION_VERSION" >&5
+echo "configure:12566: checking for libstartup-notification-1.0 >= $STARTUP_NOTIFICATION_VERSION" >&5
 
         if $PKG_CONFIG --exists "libstartup-notification-1.0 >= $STARTUP_NOTIFICATION_VERSION" ; then
             echo "$ac_t""yes" 1>&6
             succeeded=yes
 
             echo $ac_n "checking MOZ_STARTUP_NOTIFICATION_CFLAGS""... $ac_c" 1>&6
-echo "configure:12572: checking MOZ_STARTUP_NOTIFICATION_CFLAGS" >&5
+echo "configure:12573: checking MOZ_STARTUP_NOTIFICATION_CFLAGS" >&5
             MOZ_STARTUP_NOTIFICATION_CFLAGS=`$PKG_CONFIG --cflags "libstartup-notification-1.0 >= $STARTUP_NOTIFICATION_VERSION"`
             echo "$ac_t""$MOZ_STARTUP_NOTIFICATION_CFLAGS" 1>&6
 
             echo $ac_n "checking MOZ_STARTUP_NOTIFICATION_LIBS""... $ac_c" 1>&6
-echo "configure:12577: checking MOZ_STARTUP_NOTIFICATION_LIBS" >&5
+echo "configure:12578: checking MOZ_STARTUP_NOTIFICATION_LIBS" >&5
             ## Remove evil flags like -Wl,--export-dynamic
             MOZ_STARTUP_NOTIFICATION_LIBS="`$PKG_CONFIG --libs \"libstartup-notification-1.0 >= $STARTUP_NOTIFICATION_VERSION\" |sed s/-Wl,--export-dynamic//g`"
             echo "$ac_t""$MOZ_STARTUP_NOTIFICATION_LIBS" 1>&6
@@ -12709,7 +12710,7 @@ if test -n "$MOZ_NATIVE_DEVICES" ; then
   
   ANDROID_PLAY_SERVICES_BASE_AAR="$ANDROID_SDK_ROOT/extras/google/m2repository/com/google/android/gms/play-services-base/$ANDROID_GOOGLE_PLAY_SERVICES_VERSION/play-services-base-$ANDROID_GOOGLE_PLAY_SERVICES_VERSION.aar"
   echo $ac_n "checking for play-services-base AAR""... $ac_c" 1>&6
-echo "configure:12713: checking for play-services-base AAR" >&5
+echo "configure:12714: checking for play-services-base AAR" >&5
   if ! test -e "$ANDROID_PLAY_SERVICES_BASE_AAR" ; then
     { echo "configure: error: You must download the play-services-base AAR.  Run the Android SDK tool and install the Android and Google Support Repositories under Extras.  See https://developer.android.com/tools/extras/support-library.html for more info. (Looked for $ANDROID_PLAY_SERVICES_BASE_AAR)" 1>&2; echo "configure: error: You must download the play-services-base AAR.  Run the Android SDK tool and install the Android and Google Support Repositories under Extras.  See https://developer.android.com/tools/extras/support-library.html for more info. (Looked for $ANDROID_PLAY_SERVICES_BASE_AAR)" 1>&5; exit 1; }
   fi
@@ -12724,7 +12725,7 @@ echo "configure:12713: checking for play-services-base AAR" >&5
   
   
     echo $ac_n "checking for ANDROID_PLAY_SERVICES_BASE_AAR_LIB""... $ac_c" 1>&6
-echo "configure:12728: checking for ANDROID_PLAY_SERVICES_BASE_AAR_LIB" >&5
+echo "configure:12729: checking for ANDROID_PLAY_SERVICES_BASE_AAR_LIB" >&5
     ANDROID_PLAY_SERVICES_BASE_AAR_LIB="$MOZ_BUILD_ROOT/dist/exploded-aar/play-services-base-$ANDROID_GOOGLE_PLAY_SERVICES_VERSION/play-services-base-$ANDROID_GOOGLE_PLAY_SERVICES_VERSION-classes.jar"
     if ! test -e "$ANDROID_PLAY_SERVICES_BASE_AAR_LIB" ; then
       { echo "configure: error: Could not find required exploded ANDROID_PLAY_SERVICES_BASE_AAR_LIB!" 1>&2; echo "configure: error: Could not find required exploded ANDROID_PLAY_SERVICES_BASE_AAR_LIB!" 1>&5; exit 1; }
@@ -12736,7 +12737,7 @@ echo "configure:12728: checking for ANDROID_PLAY_SERVICES_BASE_AAR_LIB" >&5
   
   
     echo $ac_n "checking for ANDROID_PLAY_SERVICES_BASE_AAR_RES""... $ac_c" 1>&6
-echo "configure:12740: checking for ANDROID_PLAY_SERVICES_BASE_AAR_RES" >&5
+echo "configure:12741: checking for ANDROID_PLAY_SERVICES_BASE_AAR_RES" >&5
     ANDROID_PLAY_SERVICES_BASE_AAR_RES="$MOZ_BUILD_ROOT/dist/exploded-aar/play-services-base-$ANDROID_GOOGLE_PLAY_SERVICES_VERSION/res"
     if ! test -e "$ANDROID_PLAY_SERVICES_BASE_AAR_RES" ; then
       { echo "configure: error: Could not find required exploded ANDROID_PLAY_SERVICES_BASE_AAR_RES!" 1>&2; echo "configure: error: Could not find required exploded ANDROID_PLAY_SERVICES_BASE_AAR_RES!" 1>&5; exit 1; }
@@ -12765,7 +12766,7 @@ echo "configure:12740: checking for ANDROID_PLAY_SERVICES_BASE_AAR_RES" >&5
   
   ANDROID_PLAY_SERVICES_BASEMENT_AAR="$ANDROID_SDK_ROOT/extras/google/m2repository/com/google/android/gms/play-services-basement/$ANDROID_GOOGLE_PLAY_SERVICES_VERSION/play-services-basement-$ANDROID_GOOGLE_PLAY_SERVICES_VERSION.aar"
   echo $ac_n "checking for play-services-basement AAR""... $ac_c" 1>&6
-echo "configure:12769: checking for play-services-basement AAR" >&5
+echo "configure:12770: checking for play-services-basement AAR" >&5
   if ! test -e "$ANDROID_PLAY_SERVICES_BASEMENT_AAR" ; then
     { echo "configure: error: You must download the play-services-basement AAR.  Run the Android SDK tool and install the Android and Google Support Repositories under Extras.  See https://developer.android.com/tools/extras/support-library.html for more info. (Looked for $ANDROID_PLAY_SERVICES_BASEMENT_AAR)" 1>&2; echo "configure: error: You must download the play-services-basement AAR.  Run the Android SDK tool and install the Android and Google Support Repositories under Extras.  See https://developer.android.com/tools/extras/support-library.html for more info. (Looked for $ANDROID_PLAY_SERVICES_BASEMENT_AAR)" 1>&5; exit 1; }
   fi
@@ -12780,7 +12781,7 @@ echo "configure:12769: checking for play-services-basement AAR" >&5
   
   
     echo $ac_n "checking for ANDROID_PLAY_SERVICES_BASEMENT_AAR_LIB""... $ac_c" 1>&6
-echo "configure:12784: checking for ANDROID_PLAY_SERVICES_BASEMENT_AAR_LIB" >&5
+echo "configure:12785: checking for ANDROID_PLAY_SERVICES_BASEMENT_AAR_LIB" >&5
     ANDROID_PLAY_SERVICES_BASEMENT_AAR_LIB="$MOZ_BUILD_ROOT/dist/exploded-aar/play-services-basement-$ANDROID_GOOGLE_PLAY_SERVICES_VERSION/play-services-basement-$ANDROID_GOOGLE_PLAY_SERVICES_VERSION-classes.jar"
     if ! test -e "$ANDROID_PLAY_SERVICES_BASEMENT_AAR_LIB" ; then
       { echo "configure: error: Could not find required exploded ANDROID_PLAY_SERVICES_BASEMENT_AAR_LIB!" 1>&2; echo "configure: error: Could not find required exploded ANDROID_PLAY_SERVICES_BASEMENT_AAR_LIB!" 1>&5; exit 1; }
@@ -12792,7 +12793,7 @@ echo "configure:12784: checking for ANDROID_PLAY_SERVICES_BASEMENT_AAR_LIB" >&5
   
   
     echo $ac_n "checking for ANDROID_PLAY_SERVICES_BASEMENT_AAR_RES""... $ac_c" 1>&6
-echo "configure:12796: checking for ANDROID_PLAY_SERVICES_BASEMENT_AAR_RES" >&5
+echo "configure:12797: checking for ANDROID_PLAY_SERVICES_BASEMENT_AAR_RES" >&5
     ANDROID_PLAY_SERVICES_BASEMENT_AAR_RES="$MOZ_BUILD_ROOT/dist/exploded-aar/play-services-basement-$ANDROID_GOOGLE_PLAY_SERVICES_VERSION/res"
     if ! test -e "$ANDROID_PLAY_SERVICES_BASEMENT_AAR_RES" ; then
       { echo "configure: error: Could not find required exploded ANDROID_PLAY_SERVICES_BASEMENT_AAR_RES!" 1>&2; echo "configure: error: Could not find required exploded ANDROID_PLAY_SERVICES_BASEMENT_AAR_RES!" 1>&5; exit 1; }
@@ -12821,7 +12822,7 @@ echo "configure:12796: checking for ANDROID_PLAY_SERVICES_BASEMENT_AAR_RES" >&5
   
   ANDROID_PLAY_SERVICES_CAST_AAR="$ANDROID_SDK_ROOT/extras/google/m2repository/com/google/android/gms/play-services-cast/$ANDROID_GOOGLE_PLAY_SERVICES_VERSION/play-services-cast-$ANDROID_GOOGLE_PLAY_SERVICES_VERSION.aar"
   echo $ac_n "checking for play-services-cast AAR""... $ac_c" 1>&6
-echo "configure:12825: checking for play-services-cast AAR" >&5
+echo "configure:12826: checking for play-services-cast AAR" >&5
   if ! test -e "$ANDROID_PLAY_SERVICES_CAST_AAR" ; then
     { echo "configure: error: You must download the play-services-cast AAR.  Run the Android SDK tool and install the Android and Google Support Repositories under Extras.  See https://developer.android.com/tools/extras/support-library.html for more info. (Looked for $ANDROID_PLAY_SERVICES_CAST_AAR)" 1>&2; echo "configure: error: You must download the play-services-cast AAR.  Run the Android SDK tool and install the Android and Google Support Repositories under Extras.  See https://developer.android.com/tools/extras/support-library.html for more info. (Looked for $ANDROID_PLAY_SERVICES_CAST_AAR)" 1>&5; exit 1; }
   fi
@@ -12836,7 +12837,7 @@ echo "configure:12825: checking for play-services-cast AAR" >&5
   
   
     echo $ac_n "checking for ANDROID_PLAY_SERVICES_CAST_AAR_LIB""... $ac_c" 1>&6
-echo "configure:12840: checking for ANDROID_PLAY_SERVICES_CAST_AAR_LIB" >&5
+echo "configure:12841: checking for ANDROID_PLAY_SERVICES_CAST_AAR_LIB" >&5
     ANDROID_PLAY_SERVICES_CAST_AAR_LIB="$MOZ_BUILD_ROOT/dist/exploded-aar/play-services-cast-$ANDROID_GOOGLE_PLAY_SERVICES_VERSION/play-services-cast-$ANDROID_GOOGLE_PLAY_SERVICES_VERSION-classes.jar"
     if ! test -e "$ANDROID_PLAY_SERVICES_CAST_AAR_LIB" ; then
       { echo "configure: error: Could not find required exploded ANDROID_PLAY_SERVICES_CAST_AAR_LIB!" 1>&2; echo "configure: error: Could not find required exploded ANDROID_PLAY_SERVICES_CAST_AAR_LIB!" 1>&5; exit 1; }
@@ -12848,7 +12849,7 @@ echo "configure:12840: checking for ANDROID_PLAY_SERVICES_CAST_AAR_LIB" >&5
   
   
     echo $ac_n "checking for ANDROID_PLAY_SERVICES_CAST_AAR_RES""... $ac_c" 1>&6
-echo "configure:12852: checking for ANDROID_PLAY_SERVICES_CAST_AAR_RES" >&5
+echo "configure:12853: checking for ANDROID_PLAY_SERVICES_CAST_AAR_RES" >&5
     ANDROID_PLAY_SERVICES_CAST_AAR_RES="$MOZ_BUILD_ROOT/dist/exploded-aar/play-services-cast-$ANDROID_GOOGLE_PLAY_SERVICES_VERSION/res"
     if ! test -e "$ANDROID_PLAY_SERVICES_CAST_AAR_RES" ; then
       { echo "configure: error: Could not find required exploded ANDROID_PLAY_SERVICES_CAST_AAR_RES!" 1>&2; echo "configure: error: Could not find required exploded ANDROID_PLAY_SERVICES_CAST_AAR_RES!" 1>&5; exit 1; }
@@ -12877,7 +12878,7 @@ echo "configure:12852: checking for ANDROID_PLAY_SERVICES_CAST_AAR_RES" >&5
   
   ANDROID_MEDIAROUTER_V7_AAR="$ANDROID_SDK_ROOT/extras/android/m2repository/com/android/support/mediarouter-v7/$ANDROID_SUPPORT_LIBRARY_VERSION/mediarouter-v7-$ANDROID_SUPPORT_LIBRARY_VERSION.aar"
   echo $ac_n "checking for mediarouter-v7 AAR""... $ac_c" 1>&6
-echo "configure:12881: checking for mediarouter-v7 AAR" >&5
+echo "configure:12882: checking for mediarouter-v7 AAR" >&5
   if ! test -e "$ANDROID_MEDIAROUTER_V7_AAR" ; then
     { echo "configure: error: You must download the mediarouter-v7 AAR.  Run the Android SDK tool and install the Android and Google Support Repositories under Extras.  See https://developer.android.com/tools/extras/support-library.html for more info. (Looked for $ANDROID_MEDIAROUTER_V7_AAR)" 1>&2; echo "configure: error: You must download the mediarouter-v7 AAR.  Run the Android SDK tool and install the Android and Google Support Repositories under Extras.  See https://developer.android.com/tools/extras/support-library.html for more info. (Looked for $ANDROID_MEDIAROUTER_V7_AAR)" 1>&5; exit 1; }
   fi
@@ -12892,7 +12893,7 @@ echo "configure:12881: checking for mediarouter-v7 AAR" >&5
   
   
     echo $ac_n "checking for ANDROID_MEDIAROUTER_V7_AAR_LIB""... $ac_c" 1>&6
-echo "configure:12896: checking for ANDROID_MEDIAROUTER_V7_AAR_LIB" >&5
+echo "configure:12897: checking for ANDROID_MEDIAROUTER_V7_AAR_LIB" >&5
     ANDROID_MEDIAROUTER_V7_AAR_LIB="$MOZ_BUILD_ROOT/dist/exploded-aar/mediarouter-v7-$ANDROID_SUPPORT_LIBRARY_VERSION/mediarouter-v7-$ANDROID_SUPPORT_LIBRARY_VERSION-classes.jar"
     if ! test -e "$ANDROID_MEDIAROUTER_V7_AAR_LIB" ; then
       { echo "configure: error: Could not find required exploded ANDROID_MEDIAROUTER_V7_AAR_LIB!" 1>&2; echo "configure: error: Could not find required exploded ANDROID_MEDIAROUTER_V7_AAR_LIB!" 1>&5; exit 1; }
@@ -12904,7 +12905,7 @@ echo "configure:12896: checking for ANDROID_MEDIAROUTER_V7_AAR_LIB" >&5
   
   
     echo $ac_n "checking for ANDROID_MEDIAROUTER_V7_AAR_RES""... $ac_c" 1>&6
-echo "configure:12908: checking for ANDROID_MEDIAROUTER_V7_AAR_RES" >&5
+echo "configure:12909: checking for ANDROID_MEDIAROUTER_V7_AAR_RES" >&5
     ANDROID_MEDIAROUTER_V7_AAR_RES="$MOZ_BUILD_ROOT/dist/exploded-aar/mediarouter-v7-$ANDROID_SUPPORT_LIBRARY_VERSION/res"
     if ! test -e "$ANDROID_MEDIAROUTER_V7_AAR_RES" ; then
       { echo "configure: error: Could not find required exploded ANDROID_MEDIAROUTER_V7_AAR_RES!" 1>&2; echo "configure: error: Could not find required exploded ANDROID_MEDIAROUTER_V7_AAR_RES!" 1>&5; exit 1; }
@@ -12916,7 +12917,7 @@ echo "configure:12908: checking for ANDROID_MEDIAROUTER_V7_AAR_RES" >&5
   
   
     echo $ac_n "checking for ANDROID_MEDIAROUTER_V7_AAR_INTERNAL_LIB""... $ac_c" 1>&6
-echo "configure:12920: checking for ANDROID_MEDIAROUTER_V7_AAR_INTERNAL_LIB" >&5
+echo "configure:12921: checking for ANDROID_MEDIAROUTER_V7_AAR_INTERNAL_LIB" >&5
     ANDROID_MEDIAROUTER_V7_AAR_INTERNAL_LIB="$MOZ_BUILD_ROOT/dist/exploded-aar/mediarouter-v7-$ANDROID_SUPPORT_LIBRARY_VERSION/libs/mediarouter-v7-$ANDROID_SUPPORT_LIBRARY_VERSION-internal_impl-$ANDROID_SUPPORT_LIBRARY_VERSION.jar"
     if ! test -e "$ANDROID_MEDIAROUTER_V7_AAR_INTERNAL_LIB" ; then
       { echo "configure: error: Could not find required exploded ANDROID_MEDIAROUTER_V7_AAR_INTERNAL_LIB!" 1>&2; echo "configure: error: Could not find required exploded ANDROID_MEDIAROUTER_V7_AAR_INTERNAL_LIB!" 1>&5; exit 1; }
@@ -12944,7 +12945,7 @@ if test -n "$MOZ_ANDROID_GCM" ; then
   
   ANDROID_PLAY_SERVICES_BASE_AAR="$ANDROID_SDK_ROOT/extras/google/m2repository/com/google/android/gms/play-services-base/$ANDROID_GOOGLE_PLAY_SERVICES_VERSION/play-services-base-$ANDROID_GOOGLE_PLAY_SERVICES_VERSION.aar"
   echo $ac_n "checking for play-services-base AAR""... $ac_c" 1>&6
-echo "configure:12948: checking for play-services-base AAR" >&5
+echo "configure:12949: checking for play-services-base AAR" >&5
   if ! test -e "$ANDROID_PLAY_SERVICES_BASE_AAR" ; then
     { echo "configure: error: You must download the play-services-base AAR.  Run the Android SDK tool and install the Android and Google Support Repositories under Extras.  See https://developer.android.com/tools/extras/support-library.html for more info. (Looked for $ANDROID_PLAY_SERVICES_BASE_AAR)" 1>&2; echo "configure: error: You must download the play-services-base AAR.  Run the Android SDK tool and install the Android and Google Support Repositories under Extras.  See https://developer.android.com/tools/extras/support-library.html for more info. (Looked for $ANDROID_PLAY_SERVICES_BASE_AAR)" 1>&5; exit 1; }
   fi
@@ -12959,7 +12960,7 @@ echo "configure:12948: checking for play-services-base AAR" >&5
   
   
     echo $ac_n "checking for ANDROID_PLAY_SERVICES_BASE_AAR_LIB""... $ac_c" 1>&6
-echo "configure:12963: checking for ANDROID_PLAY_SERVICES_BASE_AAR_LIB" >&5
+echo "configure:12964: checking for ANDROID_PLAY_SERVICES_BASE_AAR_LIB" >&5
     ANDROID_PLAY_SERVICES_BASE_AAR_LIB="$MOZ_BUILD_ROOT/dist/exploded-aar/play-services-base-$ANDROID_GOOGLE_PLAY_SERVICES_VERSION/play-services-base-$ANDROID_GOOGLE_PLAY_SERVICES_VERSION-classes.jar"
     if ! test -e "$ANDROID_PLAY_SERVICES_BASE_AAR_LIB" ; then
       { echo "configure: error: Could not find required exploded ANDROID_PLAY_SERVICES_BASE_AAR_LIB!" 1>&2; echo "configure: error: Could not find required exploded ANDROID_PLAY_SERVICES_BASE_AAR_LIB!" 1>&5; exit 1; }
@@ -12971,7 +12972,7 @@ echo "configure:12963: checking for ANDROID_PLAY_SERVICES_BASE_AAR_LIB" >&5
   
   
     echo $ac_n "checking for ANDROID_PLAY_SERVICES_BASE_AAR_RES""... $ac_c" 1>&6
-echo "configure:12975: checking for ANDROID_PLAY_SERVICES_BASE_AAR_RES" >&5
+echo "configure:12976: checking for ANDROID_PLAY_SERVICES_BASE_AAR_RES" >&5
     ANDROID_PLAY_SERVICES_BASE_AAR_RES="$MOZ_BUILD_ROOT/dist/exploded-aar/play-services-base-$ANDROID_GOOGLE_PLAY_SERVICES_VERSION/res"
     if ! test -e "$ANDROID_PLAY_SERVICES_BASE_AAR_RES" ; then
       { echo "configure: error: Could not find required exploded ANDROID_PLAY_SERVICES_BASE_AAR_RES!" 1>&2; echo "configure: error: Could not find required exploded ANDROID_PLAY_SERVICES_BASE_AAR_RES!" 1>&5; exit 1; }
@@ -13000,7 +13001,7 @@ echo "configure:12975: checking for ANDROID_PLAY_SERVICES_BASE_AAR_RES" >&5
   
   ANDROID_PLAY_SERVICES_BASEMENT_AAR="$ANDROID_SDK_ROOT/extras/google/m2repository/com/google/android/gms/play-services-basement/$ANDROID_GOOGLE_PLAY_SERVICES_VERSION/play-services-basement-$ANDROID_GOOGLE_PLAY_SERVICES_VERSION.aar"
   echo $ac_n "checking for play-services-basement AAR""... $ac_c" 1>&6
-echo "configure:13004: checking for play-services-basement AAR" >&5
+echo "configure:13005: checking for play-services-basement AAR" >&5
   if ! test -e "$ANDROID_PLAY_SERVICES_BASEMENT_AAR" ; then
     { echo "configure: error: You must download the play-services-basement AAR.  Run the Android SDK tool and install the Android and Google Support Repositories under Extras.  See https://developer.android.com/tools/extras/support-library.html for more info. (Looked for $ANDROID_PLAY_SERVICES_BASEMENT_AAR)" 1>&2; echo "configure: error: You must download the play-services-basement AAR.  Run the Android SDK tool and install the Android and Google Support Repositories under Extras.  See https://developer.android.com/tools/extras/support-library.html for more info. (Looked for $ANDROID_PLAY_SERVICES_BASEMENT_AAR)" 1>&5; exit 1; }
   fi
@@ -13015,7 +13016,7 @@ echo "configure:13004: checking for play-services-basement AAR" >&5
   
   
     echo $ac_n "checking for ANDROID_PLAY_SERVICES_BASEMENT_AAR_LIB""... $ac_c" 1>&6
-echo "configure:13019: checking for ANDROID_PLAY_SERVICES_BASEMENT_AAR_LIB" >&5
+echo "configure:13020: checking for ANDROID_PLAY_SERVICES_BASEMENT_AAR_LIB" >&5
     ANDROID_PLAY_SERVICES_BASEMENT_AAR_LIB="$MOZ_BUILD_ROOT/dist/exploded-aar/play-services-basement-$ANDROID_GOOGLE_PLAY_SERVICES_VERSION/play-services-basement-$ANDROID_GOOGLE_PLAY_SERVICES_VERSION-classes.jar"
     if ! test -e "$ANDROID_PLAY_SERVICES_BASEMENT_AAR_LIB" ; then
       { echo "configure: error: Could not find required exploded ANDROID_PLAY_SERVICES_BASEMENT_AAR_LIB!" 1>&2; echo "configure: error: Could not find required exploded ANDROID_PLAY_SERVICES_BASEMENT_AAR_LIB!" 1>&5; exit 1; }
@@ -13027,7 +13028,7 @@ echo "configure:13019: checking for ANDROID_PLAY_SERVICES_BASEMENT_AAR_LIB" >&5
   
   
     echo $ac_n "checking for ANDROID_PLAY_SERVICES_BASEMENT_AAR_RES""... $ac_c" 1>&6
-echo "configure:13031: checking for ANDROID_PLAY_SERVICES_BASEMENT_AAR_RES" >&5
+echo "configure:13032: checking for ANDROID_PLAY_SERVICES_BASEMENT_AAR_RES" >&5
     ANDROID_PLAY_SERVICES_BASEMENT_AAR_RES="$MOZ_BUILD_ROOT/dist/exploded-aar/play-services-basement-$ANDROID_GOOGLE_PLAY_SERVICES_VERSION/res"
     if ! test -e "$ANDROID_PLAY_SERVICES_BASEMENT_AAR_RES" ; then
       { echo "configure: error: Could not find required exploded ANDROID_PLAY_SERVICES_BASEMENT_AAR_RES!" 1>&2; echo "configure: error: Could not find required exploded ANDROID_PLAY_SERVICES_BASEMENT_AAR_RES!" 1>&5; exit 1; }
@@ -13056,7 +13057,7 @@ echo "configure:13031: checking for ANDROID_PLAY_SERVICES_BASEMENT_AAR_RES" >&5
   
   ANDROID_PLAY_SERVICES_GCM_AAR="$ANDROID_SDK_ROOT/extras/google/m2repository/com/google/android/gms/play-services-gcm/$ANDROID_GOOGLE_PLAY_SERVICES_VERSION/play-services-gcm-$ANDROID_GOOGLE_PLAY_SERVICES_VERSION.aar"
   echo $ac_n "checking for play-services-gcm AAR""... $ac_c" 1>&6
-echo "configure:13060: checking for play-services-gcm AAR" >&5
+echo "configure:13061: checking for play-services-gcm AAR" >&5
   if ! test -e "$ANDROID_PLAY_SERVICES_GCM_AAR" ; then
     { echo "configure: error: You must download the play-services-gcm AAR.  Run the Android SDK tool and install the Android and Google Support Repositories under Extras.  See https://developer.android.com/tools/extras/support-library.html for more info. (Looked for $ANDROID_PLAY_SERVICES_GCM_AAR)" 1>&2; echo "configure: error: You must download the play-services-gcm AAR.  Run the Android SDK tool and install the Android and Google Support Repositories under Extras.  See https://developer.android.com/tools/extras/support-library.html for more info. (Looked for $ANDROID_PLAY_SERVICES_GCM_AAR)" 1>&5; exit 1; }
   fi
@@ -13071,7 +13072,7 @@ echo "configure:13060: checking for play-services-gcm AAR" >&5
   
   
     echo $ac_n "checking for ANDROID_PLAY_SERVICES_GCM_AAR_LIB""... $ac_c" 1>&6
-echo "configure:13075: checking for ANDROID_PLAY_SERVICES_GCM_AAR_LIB" >&5
+echo "configure:13076: checking for ANDROID_PLAY_SERVICES_GCM_AAR_LIB" >&5
     ANDROID_PLAY_SERVICES_GCM_AAR_LIB="$MOZ_BUILD_ROOT/dist/exploded-aar/play-services-gcm-$ANDROID_GOOGLE_PLAY_SERVICES_VERSION/play-services-gcm-$ANDROID_GOOGLE_PLAY_SERVICES_VERSION-classes.jar"
     if ! test -e "$ANDROID_PLAY_SERVICES_GCM_AAR_LIB" ; then
       { echo "configure: error: Could not find required exploded ANDROID_PLAY_SERVICES_GCM_AAR_LIB!" 1>&2; echo "configure: error: Could not find required exploded ANDROID_PLAY_SERVICES_GCM_AAR_LIB!" 1>&5; exit 1; }
@@ -13083,7 +13084,7 @@ echo "configure:13075: checking for ANDROID_PLAY_SERVICES_GCM_AAR_LIB" >&5
   
   
     echo $ac_n "checking for ANDROID_PLAY_SERVICES_GCM_AAR_RES""... $ac_c" 1>&6
-echo "configure:13087: checking for ANDROID_PLAY_SERVICES_GCM_AAR_RES" >&5
+echo "configure:13088: checking for ANDROID_PLAY_SERVICES_GCM_AAR_RES" >&5
     ANDROID_PLAY_SERVICES_GCM_AAR_RES="$MOZ_BUILD_ROOT/dist/exploded-aar/play-services-gcm-$ANDROID_GOOGLE_PLAY_SERVICES_VERSION/res"
     if ! test -e "$ANDROID_PLAY_SERVICES_GCM_AAR_RES" ; then
       { echo "configure: error: Could not find required exploded ANDROID_PLAY_SERVICES_GCM_AAR_RES!" 1>&2; echo "configure: error: Could not find required exploded ANDROID_PLAY_SERVICES_GCM_AAR_RES!" 1>&5; exit 1; }
@@ -13112,7 +13113,7 @@ echo "configure:13087: checking for ANDROID_PLAY_SERVICES_GCM_AAR_RES" >&5
   
   ANDROID_PLAY_SERVICES_MEASUREMENT_AAR="$ANDROID_SDK_ROOT/extras/google/m2repository/com/google/android/gms/play-services-measurement/$ANDROID_GOOGLE_PLAY_SERVICES_VERSION/play-services-measurement-$ANDROID_GOOGLE_PLAY_SERVICES_VERSION.aar"
   echo $ac_n "checking for play-services-measurement AAR""... $ac_c" 1>&6
-echo "configure:13116: checking for play-services-measurement AAR" >&5
+echo "configure:13117: checking for play-services-measurement AAR" >&5
   if ! test -e "$ANDROID_PLAY_SERVICES_MEASUREMENT_AAR" ; then
     { echo "configure: error: You must download the play-services-measurement AAR.  Run the Android SDK tool and install the Android and Google Support Repositories under Extras.  See https://developer.android.com/tools/extras/support-library.html for more info. (Looked for $ANDROID_PLAY_SERVICES_MEASUREMENT_AAR)" 1>&2; echo "configure: error: You must download the play-services-measurement AAR.  Run the Android SDK tool and install the Android and Google Support Repositories under Extras.  See https://developer.android.com/tools/extras/support-library.html for more info. (Looked for $ANDROID_PLAY_SERVICES_MEASUREMENT_AAR)" 1>&5; exit 1; }
   fi
@@ -13127,7 +13128,7 @@ echo "configure:13116: checking for play-services-measurement AAR" >&5
   
   
     echo $ac_n "checking for ANDROID_PLAY_SERVICES_MEASUREMENT_AAR_LIB""... $ac_c" 1>&6
-echo "configure:13131: checking for ANDROID_PLAY_SERVICES_MEASUREMENT_AAR_LIB" >&5
+echo "configure:13132: checking for ANDROID_PLAY_SERVICES_MEASUREMENT_AAR_LIB" >&5
     ANDROID_PLAY_SERVICES_MEASUREMENT_AAR_LIB="$MOZ_BUILD_ROOT/dist/exploded-aar/play-services-measurement-$ANDROID_GOOGLE_PLAY_SERVICES_VERSION/play-services-measurement-$ANDROID_GOOGLE_PLAY_SERVICES_VERSION-classes.jar"
     if ! test -e "$ANDROID_PLAY_SERVICES_MEASUREMENT_AAR_LIB" ; then
       { echo "configure: error: Could not find required exploded ANDROID_PLAY_SERVICES_MEASUREMENT_AAR_LIB!" 1>&2; echo "configure: error: Could not find required exploded ANDROID_PLAY_SERVICES_MEASUREMENT_AAR_LIB!" 1>&5; exit 1; }
@@ -13139,7 +13140,7 @@ echo "configure:13131: checking for ANDROID_PLAY_SERVICES_MEASUREMENT_AAR_LIB" >
   
   
     echo $ac_n "checking for ANDROID_PLAY_SERVICES_MEASUREMENT_AAR_RES""... $ac_c" 1>&6
-echo "configure:13143: checking for ANDROID_PLAY_SERVICES_MEASUREMENT_AAR_RES" >&5
+echo "configure:13144: checking for ANDROID_PLAY_SERVICES_MEASUREMENT_AAR_RES" >&5
     ANDROID_PLAY_SERVICES_MEASUREMENT_AAR_RES="$MOZ_BUILD_ROOT/dist/exploded-aar/play-services-measurement-$ANDROID_GOOGLE_PLAY_SERVICES_VERSION/res"
     if ! test -e "$ANDROID_PLAY_SERVICES_MEASUREMENT_AAR_RES" ; then
       { echo "configure: error: Could not find required exploded ANDROID_PLAY_SERVICES_MEASUREMENT_AAR_RES!" 1>&2; echo "configure: error: Could not find required exploded ANDROID_PLAY_SERVICES_MEASUREMENT_AAR_RES!" 1>&5; exit 1; }
@@ -13175,7 +13176,7 @@ if test -n "$MOZ_INSTALL_TRACKING"; then
   
   ANDROID_PLAY_SERVICES_ADS_AAR="$ANDROID_SDK_ROOT/extras/google/m2repository/com/google/android/gms/play-services-ads/$ANDROID_GOOGLE_PLAY_SERVICES_VERSION/play-services-ads-$ANDROID_GOOGLE_PLAY_SERVICES_VERSION.aar"
   echo $ac_n "checking for play-services-ads AAR""... $ac_c" 1>&6
-echo "configure:13179: checking for play-services-ads AAR" >&5
+echo "configure:13180: checking for play-services-ads AAR" >&5
   if ! test -e "$ANDROID_PLAY_SERVICES_ADS_AAR" ; then
     { echo "configure: error: You must download the play-services-ads AAR.  Run the Android SDK tool and install the Android and Google Support Repositories under Extras.  See https://developer.android.com/tools/extras/support-library.html for more info. (Looked for $ANDROID_PLAY_SERVICES_ADS_AAR)" 1>&2; echo "configure: error: You must download the play-services-ads AAR.  Run the Android SDK tool and install the Android and Google Support Repositories under Extras.  See https://developer.android.com/tools/extras/support-library.html for more info. (Looked for $ANDROID_PLAY_SERVICES_ADS_AAR)" 1>&5; exit 1; }
   fi
@@ -13190,7 +13191,7 @@ echo "configure:13179: checking for play-services-ads AAR" >&5
   
   
     echo $ac_n "checking for ANDROID_PLAY_SERVICES_ADS_AAR_LIB""... $ac_c" 1>&6
-echo "configure:13194: checking for ANDROID_PLAY_SERVICES_ADS_AAR_LIB" >&5
+echo "configure:13195: checking for ANDROID_PLAY_SERVICES_ADS_AAR_LIB" >&5
     ANDROID_PLAY_SERVICES_ADS_AAR_LIB="$MOZ_BUILD_ROOT/dist/exploded-aar/play-services-ads-$ANDROID_GOOGLE_PLAY_SERVICES_VERSION/play-services-ads-$ANDROID_GOOGLE_PLAY_SERVICES_VERSION-classes.jar"
     if ! test -e "$ANDROID_PLAY_SERVICES_ADS_AAR_LIB" ; then
       { echo "configure: error: Could not find required exploded ANDROID_PLAY_SERVICES_ADS_AAR_LIB!" 1>&2; echo "configure: error: Could not find required exploded ANDROID_PLAY_SERVICES_ADS_AAR_LIB!" 1>&5; exit 1; }
@@ -13202,7 +13203,7 @@ echo "configure:13194: checking for ANDROID_PLAY_SERVICES_ADS_AAR_LIB" >&5
   
   
     echo $ac_n "checking for ANDROID_PLAY_SERVICES_ADS_AAR_RES""... $ac_c" 1>&6
-echo "configure:13206: checking for ANDROID_PLAY_SERVICES_ADS_AAR_RES" >&5
+echo "configure:13207: checking for ANDROID_PLAY_SERVICES_ADS_AAR_RES" >&5
     ANDROID_PLAY_SERVICES_ADS_AAR_RES="$MOZ_BUILD_ROOT/dist/exploded-aar/play-services-ads-$ANDROID_GOOGLE_PLAY_SERVICES_VERSION/res"
     if ! test -e "$ANDROID_PLAY_SERVICES_ADS_AAR_RES" ; then
       { echo "configure: error: Could not find required exploded ANDROID_PLAY_SERVICES_ADS_AAR_RES!" 1>&2; echo "configure: error: Could not find required exploded ANDROID_PLAY_SERVICES_ADS_AAR_RES!" 1>&5; exit 1; }
@@ -13231,7 +13232,7 @@ echo "configure:13206: checking for ANDROID_PLAY_SERVICES_ADS_AAR_RES" >&5
   
   ANDROID_PLAY_SERVICES_BASEMENT_AAR="$ANDROID_SDK_ROOT/extras/google/m2repository/com/google/android/gms/play-services-basement/$ANDROID_GOOGLE_PLAY_SERVICES_VERSION/play-services-basement-$ANDROID_GOOGLE_PLAY_SERVICES_VERSION.aar"
   echo $ac_n "checking for play-services-basement AAR""... $ac_c" 1>&6
-echo "configure:13235: checking for play-services-basement AAR" >&5
+echo "configure:13236: checking for play-services-basement AAR" >&5
   if ! test -e "$ANDROID_PLAY_SERVICES_BASEMENT_AAR" ; then
     { echo "configure: error: You must download the play-services-basement AAR.  Run the Android SDK tool and install the Android and Google Support Repositories under Extras.  See https://developer.android.com/tools/extras/support-library.html for more info. (Looked for $ANDROID_PLAY_SERVICES_BASEMENT_AAR)" 1>&2; echo "configure: error: You must download the play-services-basement AAR.  Run the Android SDK tool and install the Android and Google Support Repositories under Extras.  See https://developer.android.com/tools/extras/support-library.html for more info. (Looked for $ANDROID_PLAY_SERVICES_BASEMENT_AAR)" 1>&5; exit 1; }
   fi
@@ -13246,7 +13247,7 @@ echo "configure:13235: checking for play-services-basement AAR" >&5
   
   
     echo $ac_n "checking for ANDROID_PLAY_SERVICES_BASEMENT_AAR_LIB""... $ac_c" 1>&6
-echo "configure:13250: checking for ANDROID_PLAY_SERVICES_BASEMENT_AAR_LIB" >&5
+echo "configure:13251: checking for ANDROID_PLAY_SERVICES_BASEMENT_AAR_LIB" >&5
     ANDROID_PLAY_SERVICES_BASEMENT_AAR_LIB="$MOZ_BUILD_ROOT/dist/exploded-aar/play-services-basement-$ANDROID_GOOGLE_PLAY_SERVICES_VERSION/play-services-basement-$ANDROID_GOOGLE_PLAY_SERVICES_VERSION-classes.jar"
     if ! test -e "$ANDROID_PLAY_SERVICES_BASEMENT_AAR_LIB" ; then
       { echo "configure: error: Could not find required exploded ANDROID_PLAY_SERVICES_BASEMENT_AAR_LIB!" 1>&2; echo "configure: error: Could not find required exploded ANDROID_PLAY_SERVICES_BASEMENT_AAR_LIB!" 1>&5; exit 1; }
@@ -13258,7 +13259,7 @@ echo "configure:13250: checking for ANDROID_PLAY_SERVICES_BASEMENT_AAR_LIB" >&5
   
   
     echo $ac_n "checking for ANDROID_PLAY_SERVICES_BASEMENT_AAR_RES""... $ac_c" 1>&6
-echo "configure:13262: checking for ANDROID_PLAY_SERVICES_BASEMENT_AAR_RES" >&5
+echo "configure:13263: checking for ANDROID_PLAY_SERVICES_BASEMENT_AAR_RES" >&5
     ANDROID_PLAY_SERVICES_BASEMENT_AAR_RES="$MOZ_BUILD_ROOT/dist/exploded-aar/play-services-basement-$ANDROID_GOOGLE_PLAY_SERVICES_VERSION/res"
     if ! test -e "$ANDROID_PLAY_SERVICES_BASEMENT_AAR_RES" ; then
       { echo "configure: error: Could not find required exploded ANDROID_PLAY_SERVICES_BASEMENT_AAR_RES!" 1>&2; echo "configure: error: Could not find required exploded ANDROID_PLAY_SERVICES_BASEMENT_AAR_RES!" 1>&5; exit 1; }
@@ -13324,19 +13325,19 @@ fi
      PKG_CONFIG_MIN_VERSION=0.9.0
      if $PKG_CONFIG --atleast-pkgconfig-version $PKG_CONFIG_MIN_VERSION; then
         echo $ac_n "checking for gtk+-2.0 >= 2.14""... $ac_c" 1>&6
-echo "configure:13328: checking for gtk+-2.0 >= 2.14" >&5
+echo "configure:13329: checking for gtk+-2.0 >= 2.14" >&5
 
         if $PKG_CONFIG --exists "gtk+-2.0 >= 2.14" ; then
             echo "$ac_t""yes" 1>&6
             succeeded=yes
 
             echo $ac_n "checking _GTKCHECK_CFLAGS""... $ac_c" 1>&6
-echo "configure:13335: checking _GTKCHECK_CFLAGS" >&5
+echo "configure:13336: checking _GTKCHECK_CFLAGS" >&5
             _GTKCHECK_CFLAGS=`$PKG_CONFIG --cflags "gtk+-2.0 >= 2.14"`
             echo "$ac_t""$_GTKCHECK_CFLAGS" 1>&6
 
             echo $ac_n "checking _GTKCHECK_LIBS""... $ac_c" 1>&6
-echo "configure:13340: checking _GTKCHECK_LIBS" >&5
+echo "configure:13341: checking _GTKCHECK_LIBS" >&5
             ## Remove evil flags like -Wl,--export-dynamic
             _GTKCHECK_LIBS="`$PKG_CONFIG --libs \"gtk+-2.0 >= 2.14\" |sed s/-Wl,--export-dynamic//g`"
             echo "$ac_t""$_GTKCHECK_LIBS" 1>&6
@@ -13377,19 +13378,19 @@ echo "configure:13340: checking _GTKCHECK_LIBS" >&5
      PKG_CONFIG_MIN_VERSION=0.9.0
      if $PKG_CONFIG --atleast-pkgconfig-version $PKG_CONFIG_MIN_VERSION; then
         echo $ac_n "checking for gio-2.0 >= $GIO_VERSION""... $ac_c" 1>&6
-echo "configure:13381: checking for gio-2.0 >= $GIO_VERSION" >&5
+echo "configure:13382: checking for gio-2.0 >= $GIO_VERSION" >&5
 
         if $PKG_CONFIG --exists "gio-2.0 >= $GIO_VERSION" ; then
             echo "$ac_t""yes" 1>&6
             succeeded=yes
 
             echo $ac_n "checking MOZ_GIO_CFLAGS""... $ac_c" 1>&6
-echo "configure:13388: checking MOZ_GIO_CFLAGS" >&5
+echo "configure:13389: checking MOZ_GIO_CFLAGS" >&5
             MOZ_GIO_CFLAGS=`$PKG_CONFIG --cflags "gio-2.0 >= $GIO_VERSION"`
             echo "$ac_t""$MOZ_GIO_CFLAGS" 1>&6
 
             echo $ac_n "checking MOZ_GIO_LIBS""... $ac_c" 1>&6
-echo "configure:13393: checking MOZ_GIO_LIBS" >&5
+echo "configure:13394: checking MOZ_GIO_LIBS" >&5
             ## Remove evil flags like -Wl,--export-dynamic
             MOZ_GIO_LIBS="`$PKG_CONFIG --libs \"gio-2.0 >= $GIO_VERSION\" |sed s/-Wl,--export-dynamic//g`"
             echo "$ac_t""$MOZ_GIO_LIBS" 1>&6
@@ -13464,19 +13465,19 @@ fi
      PKG_CONFIG_MIN_VERSION=0.9.0
      if $PKG_CONFIG --atleast-pkgconfig-version $PKG_CONFIG_MIN_VERSION; then
         echo $ac_n "checking for gconf-2.0 >= $GCONF_VERSION gobject-2.0 ""... $ac_c" 1>&6
-echo "configure:13468: checking for gconf-2.0 >= $GCONF_VERSION gobject-2.0 " >&5
+echo "configure:13469: checking for gconf-2.0 >= $GCONF_VERSION gobject-2.0 " >&5
 
         if $PKG_CONFIG --exists "gconf-2.0 >= $GCONF_VERSION gobject-2.0 " ; then
             echo "$ac_t""yes" 1>&6
             succeeded=yes
 
             echo $ac_n "checking MOZ_GCONF_CFLAGS""... $ac_c" 1>&6
-echo "configure:13475: checking MOZ_GCONF_CFLAGS" >&5
+echo "configure:13476: checking MOZ_GCONF_CFLAGS" >&5
             MOZ_GCONF_CFLAGS=`$PKG_CONFIG --cflags "gconf-2.0 >= $GCONF_VERSION gobject-2.0 "`
             echo "$ac_t""$MOZ_GCONF_CFLAGS" 1>&6
 
             echo $ac_n "checking MOZ_GCONF_LIBS""... $ac_c" 1>&6
-echo "configure:13480: checking MOZ_GCONF_LIBS" >&5
+echo "configure:13481: checking MOZ_GCONF_LIBS" >&5
             ## Remove evil flags like -Wl,--export-dynamic
             MOZ_GCONF_LIBS="`$PKG_CONFIG --libs \"gconf-2.0 >= $GCONF_VERSION gobject-2.0 \" |sed s/-Wl,--export-dynamic//g`"
             echo "$ac_t""$MOZ_GCONF_LIBS" 1>&6
@@ -13561,19 +13562,19 @@ fi
      PKG_CONFIG_MIN_VERSION=0.9.0
      if $PKG_CONFIG --atleast-pkgconfig-version $PKG_CONFIG_MIN_VERSION; then
         echo $ac_n "checking for libproxy-1.0""... $ac_c" 1>&6
-echo "configure:13565: checking for libproxy-1.0" >&5
+echo "configure:13566: checking for libproxy-1.0" >&5
 
         if $PKG_CONFIG --exists "libproxy-1.0" ; then
             echo "$ac_t""yes" 1>&6
             succeeded=yes
 
             echo $ac_n "checking MOZ_LIBPROXY_CFLAGS""... $ac_c" 1>&6
-echo "configure:13572: checking MOZ_LIBPROXY_CFLAGS" >&5
+echo "configure:13573: checking MOZ_LIBPROXY_CFLAGS" >&5
             MOZ_LIBPROXY_CFLAGS=`$PKG_CONFIG --cflags "libproxy-1.0"`
             echo "$ac_t""$MOZ_LIBPROXY_CFLAGS" 1>&6
 
             echo $ac_n "checking MOZ_LIBPROXY_LIBS""... $ac_c" 1>&6
-echo "configure:13577: checking MOZ_LIBPROXY_LIBS" >&5
+echo "configure:13578: checking MOZ_LIBPROXY_LIBS" >&5
             ## Remove evil flags like -Wl,--export-dynamic
             MOZ_LIBPROXY_LIBS="`$PKG_CONFIG --libs \"libproxy-1.0\" |sed s/-Wl,--export-dynamic//g`"
             echo "$ac_t""$MOZ_LIBPROXY_LIBS" 1>&6
@@ -13642,19 +13643,19 @@ fi
      PKG_CONFIG_MIN_VERSION=0.9.0
      if $PKG_CONFIG --atleast-pkgconfig-version $PKG_CONFIG_MIN_VERSION; then
         echo $ac_n "checking for libgnomeui-2.0 >= $GNOMEUI_VERSION""... $ac_c" 1>&6
-echo "configure:13646: checking for libgnomeui-2.0 >= $GNOMEUI_VERSION" >&5
+echo "configure:13647: checking for libgnomeui-2.0 >= $GNOMEUI_VERSION" >&5
 
         if $PKG_CONFIG --exists "libgnomeui-2.0 >= $GNOMEUI_VERSION" ; then
             echo "$ac_t""yes" 1>&6
             succeeded=yes
 
             echo $ac_n "checking MOZ_GNOMEUI_CFLAGS""... $ac_c" 1>&6
-echo "configure:13653: checking MOZ_GNOMEUI_CFLAGS" >&5
+echo "configure:13654: checking MOZ_GNOMEUI_CFLAGS" >&5
             MOZ_GNOMEUI_CFLAGS=`$PKG_CONFIG --cflags "libgnomeui-2.0 >= $GNOMEUI_VERSION"`
             echo "$ac_t""$MOZ_GNOMEUI_CFLAGS" 1>&6
 
             echo $ac_n "checking MOZ_GNOMEUI_LIBS""... $ac_c" 1>&6
-echo "configure:13658: checking MOZ_GNOMEUI_LIBS" >&5
+echo "configure:13659: checking MOZ_GNOMEUI_LIBS" >&5
             ## Remove evil flags like -Wl,--export-dynamic
             MOZ_GNOMEUI_LIBS="`$PKG_CONFIG --libs \"libgnomeui-2.0 >= $GNOMEUI_VERSION\" |sed s/-Wl,--export-dynamic//g`"
             echo "$ac_t""$MOZ_GNOMEUI_LIBS" 1>&6
@@ -13737,19 +13738,19 @@ fi
      PKG_CONFIG_MIN_VERSION=0.9.0
      if $PKG_CONFIG --atleast-pkgconfig-version $PKG_CONFIG_MIN_VERSION; then
         echo $ac_n "checking for dbus-1 >= $DBUS_VERSION""... $ac_c" 1>&6
-echo "configure:13741: checking for dbus-1 >= $DBUS_VERSION" >&5
+echo "configure:13742: checking for dbus-1 >= $DBUS_VERSION" >&5
 
         if $PKG_CONFIG --exists "dbus-1 >= $DBUS_VERSION" ; then
             echo "$ac_t""yes" 1>&6
             succeeded=yes
 
             echo $ac_n "checking MOZ_DBUS_CFLAGS""... $ac_c" 1>&6
-echo "configure:13748: checking MOZ_DBUS_CFLAGS" >&5
+echo "configure:13749: checking MOZ_DBUS_CFLAGS" >&5
             MOZ_DBUS_CFLAGS=`$PKG_CONFIG --cflags "dbus-1 >= $DBUS_VERSION"`
             echo "$ac_t""$MOZ_DBUS_CFLAGS" 1>&6
 
             echo $ac_n "checking MOZ_DBUS_LIBS""... $ac_c" 1>&6
-echo "configure:13753: checking MOZ_DBUS_LIBS" >&5
+echo "configure:13754: checking MOZ_DBUS_LIBS" >&5
             ## Remove evil flags like -Wl,--export-dynamic
             MOZ_DBUS_LIBS="`$PKG_CONFIG --libs \"dbus-1 >= $DBUS_VERSION\" |sed s/-Wl,--export-dynamic//g`"
             echo "$ac_t""$MOZ_DBUS_LIBS" 1>&6
@@ -13789,19 +13790,19 @@ echo "configure:13753: checking MOZ_DBUS_LIBS" >&5
      PKG_CONFIG_MIN_VERSION=0.9.0
      if $PKG_CONFIG --atleast-pkgconfig-version $PKG_CONFIG_MIN_VERSION; then
         echo $ac_n "checking for dbus-glib-1 >= $DBUS_VERSION""... $ac_c" 1>&6
-echo "configure:13793: checking for dbus-glib-1 >= $DBUS_VERSION" >&5
+echo "configure:13794: checking for dbus-glib-1 >= $DBUS_VERSION" >&5
 
         if $PKG_CONFIG --exists "dbus-glib-1 >= $DBUS_VERSION" ; then
             echo "$ac_t""yes" 1>&6
             succeeded=yes
 
             echo $ac_n "checking MOZ_DBUS_GLIB_CFLAGS""... $ac_c" 1>&6
-echo "configure:13800: checking MOZ_DBUS_GLIB_CFLAGS" >&5
+echo "configure:13801: checking MOZ_DBUS_GLIB_CFLAGS" >&5
             MOZ_DBUS_GLIB_CFLAGS=`$PKG_CONFIG --cflags "dbus-glib-1 >= $DBUS_VERSION"`
             echo "$ac_t""$MOZ_DBUS_GLIB_CFLAGS" 1>&6
 
             echo $ac_n "checking MOZ_DBUS_GLIB_LIBS""... $ac_c" 1>&6
-echo "configure:13805: checking MOZ_DBUS_GLIB_LIBS" >&5
+echo "configure:13806: checking MOZ_DBUS_GLIB_LIBS" >&5
             ## Remove evil flags like -Wl,--export-dynamic
             MOZ_DBUS_GLIB_LIBS="`$PKG_CONFIG --libs \"dbus-glib-1 >= $DBUS_VERSION\" |sed s/-Wl,--export-dynamic//g`"
             echo "$ac_t""$MOZ_DBUS_GLIB_LIBS" 1>&6
@@ -13904,14 +13905,14 @@ if test -n "$MOZ_WEBRTC"; then
 fi
 
 cat > conftest.$ac_ext <<EOF
-#line 13908 "configure"
+#line 13909 "configure"
 #include "confdefs.h"
 #include <linux/ethtool.h>
 int main() {
  struct ethtool_cmd cmd; cmd.speed_hi = 0; 
 ; return 0; }
 EOF
-if { (eval echo configure:13915: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:13916: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   MOZ_WEBRTC_HAVE_ETHTOOL_SPEED_HI=1
 else
@@ -14091,17 +14092,17 @@ if test -n "$MOZ_APPLEMEDIA"; then
     
 ac_safe=`echo "CoreMedia/CoreMedia.h" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for CoreMedia/CoreMedia.h""... $ac_c" 1>&6
-echo "configure:14095: checking for CoreMedia/CoreMedia.h" >&5
+echo "configure:14096: checking for CoreMedia/CoreMedia.h" >&5
 if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 14100 "configure"
+#line 14101 "configure"
 #include "confdefs.h"
 #include <CoreMedia/CoreMedia.h>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:14105: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:14106: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -14261,19 +14262,19 @@ if test -n "$MOZ_SYSTEM_LIBVPX"; then
      PKG_CONFIG_MIN_VERSION=0.9.0
      if $PKG_CONFIG --atleast-pkgconfig-version $PKG_CONFIG_MIN_VERSION; then
         echo $ac_n "checking for vpx >= 1.5.0""... $ac_c" 1>&6
-echo "configure:14265: checking for vpx >= 1.5.0" >&5
+echo "configure:14266: checking for vpx >= 1.5.0" >&5
 
         if $PKG_CONFIG --exists "vpx >= 1.5.0" ; then
             echo "$ac_t""yes" 1>&6
             succeeded=yes
 
             echo $ac_n "checking MOZ_LIBVPX_CFLAGS""... $ac_c" 1>&6
-echo "configure:14272: checking MOZ_LIBVPX_CFLAGS" >&5
+echo "configure:14273: checking MOZ_LIBVPX_CFLAGS" >&5
             MOZ_LIBVPX_CFLAGS=`$PKG_CONFIG --cflags "vpx >= 1.5.0"`
             echo "$ac_t""$MOZ_LIBVPX_CFLAGS" 1>&6
 
             echo $ac_n "checking MOZ_LIBVPX_LIBS""... $ac_c" 1>&6
-echo "configure:14277: checking MOZ_LIBVPX_LIBS" >&5
+echo "configure:14278: checking MOZ_LIBVPX_LIBS" >&5
             ## Remove evil flags like -Wl,--export-dynamic
             MOZ_LIBVPX_LIBS="`$PKG_CONFIG --libs \"vpx >= 1.5.0\" |sed s/-Wl,--export-dynamic//g`"
             echo "$ac_t""$MOZ_LIBVPX_LIBS" 1>&6
@@ -14308,12 +14309,12 @@ echo "configure:14277: checking MOZ_LIBVPX_LIBS" >&5
 
        ac_safe=`echo "vpx/vpx_decoder.h" | sed 'y%./+-%__p_%'`
   echo $ac_n "checking for vpx/vpx_decoder.h""... $ac_c" 1>&6
-echo "configure:14312: checking for vpx/vpx_decoder.h" >&5
+echo "configure:14313: checking for vpx/vpx_decoder.h" >&5
   if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
    cat > conftest.$ac_ext <<EOF
-#line 14317 "configure"
+#line 14318 "configure"
 #include "confdefs.h"
 
 #include <vpx/vpx_decoder.h>
@@ -14321,7 +14322,7 @@ int main() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:14325: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:14326: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   eval "ac_cv_header_$ac_safe=yes"
 else
@@ -14343,7 +14344,7 @@ fi
 
 
     echo $ac_n "checking for vpx_codec_dec_init_ver in -lvpx""... $ac_c" 1>&6
-echo "configure:14347: checking for vpx_codec_dec_init_ver in -lvpx" >&5
+echo "configure:14348: checking for vpx_codec_dec_init_ver in -lvpx" >&5
 ac_lib_var=`echo vpx'_'vpx_codec_dec_init_ver | sed 'y%./+-%__p_%'`
 if eval "test \"`echo '$''{'ac_cv_lib_$ac_lib_var'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -14351,7 +14352,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-lvpx  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 14355 "configure"
+#line 14356 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -14362,7 +14363,7 @@ int main() {
 vpx_codec_dec_init_ver()
 ; return 0; }
 EOF
-if { (eval echo configure:14366: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:14367: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -14396,12 +14397,12 @@ fi
 
        ac_safe=`echo "vpx_mem/vpx_mem.h" | sed 'y%./+-%__p_%'`
   echo $ac_n "checking for vpx_mem/vpx_mem.h""... $ac_c" 1>&6
-echo "configure:14400: checking for vpx_mem/vpx_mem.h" >&5
+echo "configure:14401: checking for vpx_mem/vpx_mem.h" >&5
   if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
    cat > conftest.$ac_ext <<EOF
-#line 14405 "configure"
+#line 14406 "configure"
 #include "confdefs.h"
 
 #include <vpx_mem/vpx_mem.h>
@@ -14409,7 +14410,7 @@ int main() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:14413: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:14414: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   eval "ac_cv_header_$ac_safe=yes"
 else
@@ -14424,12 +14425,12 @@ fi
   if eval "test \"`echo '$ac_cv_header_'$ac_safe`\" = yes"; then
     echo "$ac_t""yes" 1>&6
     echo $ac_n "checking for vpx_mem_set_functions""... $ac_c" 1>&6
-echo "configure:14428: checking for vpx_mem_set_functions" >&5
+echo "configure:14429: checking for vpx_mem_set_functions" >&5
 if eval "test \"`echo '$''{'ac_cv_func_vpx_mem_set_functions'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 14433 "configure"
+#line 14434 "configure"
 #define vpx_mem_set_functions innocuous_vpx_mem_set_functions
 #include "confdefs.h"
 #undef vpx_mem_set_functions
@@ -14456,7 +14457,7 @@ vpx_mem_set_functions();
 
 ; return 0; }
 EOF
-if { (eval echo configure:14460: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:14461: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_vpx_mem_set_functions=yes"
 else
@@ -14536,7 +14537,7 @@ if test -z "$MOZ_SYSTEM_LIBVPX"; then
         VPX_AS_CONVERSION='$(PERL) $(topsrcdir)/media/libvpx/build/make/ads2gas.pl'
         VPX_ARM_ASM=1
                                                                                                 cat > conftest.$ac_ext <<EOF
-#line 14540 "configure"
+#line 14541 "configure"
 #include "confdefs.h"
 
 int main() {
@@ -14545,7 +14546,7 @@ int main() {
            #endif
 ; return 0; }
 EOF
-if { (eval echo configure:14549: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:14550: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   VPX_ASFLAGS="$VPX_ASFLAGS -mfloat-abi=softfp"
            
@@ -14668,19 +14669,19 @@ if test -n "$MOZ_ALSA"; then
      PKG_CONFIG_MIN_VERSION=0.9.0
      if $PKG_CONFIG --atleast-pkgconfig-version $PKG_CONFIG_MIN_VERSION; then
         echo $ac_n "checking for alsa""... $ac_c" 1>&6
-echo "configure:14672: checking for alsa" >&5
+echo "configure:14673: checking for alsa" >&5
 
         if $PKG_CONFIG --exists "alsa" ; then
             echo "$ac_t""yes" 1>&6
             succeeded=yes
 
             echo $ac_n "checking MOZ_ALSA_CFLAGS""... $ac_c" 1>&6
-echo "configure:14679: checking MOZ_ALSA_CFLAGS" >&5
+echo "configure:14680: checking MOZ_ALSA_CFLAGS" >&5
             MOZ_ALSA_CFLAGS=`$PKG_CONFIG --cflags "alsa"`
             echo "$ac_t""$MOZ_ALSA_CFLAGS" 1>&6
 
             echo $ac_n "checking MOZ_ALSA_LIBS""... $ac_c" 1>&6
-echo "configure:14684: checking MOZ_ALSA_LIBS" >&5
+echo "configure:14685: checking MOZ_ALSA_LIBS" >&5
             ## Remove evil flags like -Wl,--export-dynamic
             MOZ_ALSA_LIBS="`$PKG_CONFIG --libs \"alsa\" |sed s/-Wl,--export-dynamic//g`"
             echo "$ac_t""$MOZ_ALSA_LIBS" 1>&6
@@ -14756,19 +14757,19 @@ EOF
      PKG_CONFIG_MIN_VERSION=0.9.0
      if $PKG_CONFIG --atleast-pkgconfig-version $PKG_CONFIG_MIN_VERSION; then
         echo $ac_n "checking for libpulse""... $ac_c" 1>&6
-echo "configure:14760: checking for libpulse" >&5
+echo "configure:14761: checking for libpulse" >&5
 
         if $PKG_CONFIG --exists "libpulse" ; then
             echo "$ac_t""yes" 1>&6
             succeeded=yes
 
             echo $ac_n "checking MOZ_PULSEAUDIO_CFLAGS""... $ac_c" 1>&6
-echo "configure:14767: checking MOZ_PULSEAUDIO_CFLAGS" >&5
+echo "configure:14768: checking MOZ_PULSEAUDIO_CFLAGS" >&5
             MOZ_PULSEAUDIO_CFLAGS=`$PKG_CONFIG --cflags "libpulse"`
             echo "$ac_t""$MOZ_PULSEAUDIO_CFLAGS" 1>&6
 
             echo $ac_n "checking MOZ_PULSEAUDIO_LIBS""... $ac_c" 1>&6
-echo "configure:14772: checking MOZ_PULSEAUDIO_LIBS" >&5
+echo "configure:14773: checking MOZ_PULSEAUDIO_LIBS" >&5
             ## Remove evil flags like -Wl,--export-dynamic
             MOZ_PULSEAUDIO_LIBS="`$PKG_CONFIG --libs \"libpulse\" |sed s/-Wl,--export-dynamic//g`"
             echo "$ac_t""$MOZ_PULSEAUDIO_LIBS" 1>&6
@@ -14970,12 +14971,12 @@ if test -n "$MOZ_ANGLE_RENDERER"; then
   if test -n "$GNU_CC"; then
        ac_safe=`echo "d3d10.h" | sed 'y%./+-%__p_%'`
   echo $ac_n "checking for d3d10.h""... $ac_c" 1>&6
-echo "configure:14974: checking for d3d10.h" >&5
+echo "configure:14975: checking for d3d10.h" >&5
   if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
    cat > conftest.$ac_ext <<EOF
-#line 14979 "configure"
+#line 14980 "configure"
 #include "confdefs.h"
 
 #include <d3d10.h>
@@ -14983,7 +14984,7 @@ int main() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:14987: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:14988: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   eval "ac_cv_header_$ac_safe=yes"
 else
@@ -15123,12 +15124,12 @@ if test "$MOZ_GAMEPAD"; then
     Linux)
            ac_safe=`echo "linux/joystick.h" | sed 'y%./+-%__p_%'`
   echo $ac_n "checking for linux/joystick.h""... $ac_c" 1>&6
-echo "configure:15127: checking for linux/joystick.h" >&5
+echo "configure:15128: checking for linux/joystick.h" >&5
   if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
    cat > conftest.$ac_ext <<EOF
-#line 15132 "configure"
+#line 15133 "configure"
 #include "confdefs.h"
 
 #include <linux/joystick.h>
@@ -15136,7 +15137,7 @@ int main() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:15140: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:15141: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   eval "ac_cv_header_$ac_safe=yes"
 else
@@ -15241,19 +15242,19 @@ EOF
      PKG_CONFIG_MIN_VERSION=0.9.0
      if $PKG_CONFIG --atleast-pkgconfig-version $PKG_CONFIG_MIN_VERSION; then
         echo $ac_n "checking for gthread-2.0""... $ac_c" 1>&6
-echo "configure:15245: checking for gthread-2.0" >&5
+echo "configure:15246: checking for gthread-2.0" >&5
 
         if $PKG_CONFIG --exists "gthread-2.0" ; then
             echo "$ac_t""yes" 1>&6
             succeeded=yes
 
             echo $ac_n "checking MOZ_GTHREAD_CFLAGS""... $ac_c" 1>&6
-echo "configure:15252: checking MOZ_GTHREAD_CFLAGS" >&5
+echo "configure:15253: checking MOZ_GTHREAD_CFLAGS" >&5
             MOZ_GTHREAD_CFLAGS=`$PKG_CONFIG --cflags "gthread-2.0"`
             echo "$ac_t""$MOZ_GTHREAD_CFLAGS" 1>&6
 
             echo $ac_n "checking MOZ_GTHREAD_LIBS""... $ac_c" 1>&6
-echo "configure:15257: checking MOZ_GTHREAD_LIBS" >&5
+echo "configure:15258: checking MOZ_GTHREAD_LIBS" >&5
             ## Remove evil flags like -Wl,--export-dynamic
             MOZ_GTHREAD_LIBS="`$PKG_CONFIG --libs \"gthread-2.0\" |sed s/-Wl,--export-dynamic//g`"
             echo "$ac_t""$MOZ_GTHREAD_LIBS" 1>&6
@@ -15551,7 +15552,7 @@ do
 # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:15555: checking for $ac_word" >&5
+echo "configure:15556: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_WGET'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -15924,19 +15925,19 @@ then
      PKG_CONFIG_MIN_VERSION=0.9.0
      if $PKG_CONFIG --atleast-pkgconfig-version $PKG_CONFIG_MIN_VERSION; then
         echo $ac_n "checking for sqlite3 >= $SQLITE_VERSION""... $ac_c" 1>&6
-echo "configure:15928: checking for sqlite3 >= $SQLITE_VERSION" >&5
+echo "configure:15929: checking for sqlite3 >= $SQLITE_VERSION" >&5
 
         if $PKG_CONFIG --exists "sqlite3 >= $SQLITE_VERSION" ; then
             echo "$ac_t""yes" 1>&6
             succeeded=yes
 
             echo $ac_n "checking SQLITE_CFLAGS""... $ac_c" 1>&6
-echo "configure:15935: checking SQLITE_CFLAGS" >&5
+echo "configure:15936: checking SQLITE_CFLAGS" >&5
             SQLITE_CFLAGS=`$PKG_CONFIG --cflags "sqlite3 >= $SQLITE_VERSION"`
             echo "$ac_t""$SQLITE_CFLAGS" 1>&6
 
             echo $ac_n "checking SQLITE_LIBS""... $ac_c" 1>&6
-echo "configure:15940: checking SQLITE_LIBS" >&5
+echo "configure:15941: checking SQLITE_LIBS" >&5
             ## Remove evil flags like -Wl,--export-dynamic
             SQLITE_LIBS="`$PKG_CONFIG --libs \"sqlite3 >= $SQLITE_VERSION\" |sed s/-Wl,--export-dynamic//g`"
             echo "$ac_t""$SQLITE_LIBS" 1>&6
@@ -15967,7 +15968,7 @@ echo "configure:15940: checking SQLITE_LIBS" >&5
 
 
                         echo $ac_n "checking for SQLITE_SECURE_DELETE support in system SQLite""... $ac_c" 1>&6
-echo "configure:15971: checking for SQLITE_SECURE_DELETE support in system SQLite" >&5
+echo "configure:15972: checking for SQLITE_SECURE_DELETE support in system SQLite" >&5
     _SAVE_CFLAGS="$CFLAGS"
     CFLAGS="$CFLAGS $SQLITE_CFLAGS"
     _SAVE_LIBS="$LIBS"
@@ -15981,7 +15982,7 @@ else
         
 else
   cat > conftest.$ac_ext <<EOF
-#line 15985 "configure"
+#line 15986 "configure"
 #include "confdefs.h"
 
             #include "sqlite3.h"
@@ -15990,7 +15991,7 @@ else
               return !sqlite3_compileoption_used("SQLITE_SECURE_DELETE");
             }
 EOF
-if { (eval echo configure:15994: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:15995: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ac_cv_sqlite_secure_delete=yes
 else
@@ -16013,7 +16014,7 @@ fi
     fi
 
                         echo $ac_n "checking for SQLITE_THREADSAFE support in system SQLite""... $ac_c" 1>&6
-echo "configure:16017: checking for SQLITE_THREADSAFE support in system SQLite" >&5
+echo "configure:16018: checking for SQLITE_THREADSAFE support in system SQLite" >&5
     _SAVE_CFLAGS="$CFLAGS"
     CFLAGS="$CFLAGS $SQLITE_CFLAGS"
     _SAVE_LIBS="$LIBS"
@@ -16027,7 +16028,7 @@ else
         
 else
   cat > conftest.$ac_ext <<EOF
-#line 16031 "configure"
+#line 16032 "configure"
 #include "confdefs.h"
 
             #include "sqlite3.h"
@@ -16036,7 +16037,7 @@ else
               return !sqlite3_compileoption_used("SQLITE_THREADSAFE=1");
             }
 EOF
-if { (eval echo configure:16040: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:16041: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ac_cv_sqlite_threadsafe=yes
 else
@@ -16059,7 +16060,7 @@ fi
     fi
 
                         echo $ac_n "checking for SQLITE_ENABLE_FTS3 support in system SQLite""... $ac_c" 1>&6
-echo "configure:16063: checking for SQLITE_ENABLE_FTS3 support in system SQLite" >&5
+echo "configure:16064: checking for SQLITE_ENABLE_FTS3 support in system SQLite" >&5
     _SAVE_CFLAGS="$CFLAGS"
     CFLAGS="$CFLAGS $SQLITE_CFLAGS"
     _SAVE_LIBS="$LIBS"
@@ -16073,7 +16074,7 @@ else
         
 else
   cat > conftest.$ac_ext <<EOF
-#line 16077 "configure"
+#line 16078 "configure"
 #include "confdefs.h"
 
             #include "sqlite3.h"
@@ -16082,7 +16083,7 @@ else
               return !sqlite3_compileoption_used("SQLITE_ENABLE_FTS3");
             }
 EOF
-if { (eval echo configure:16086: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:16087: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ac_cv_sqlite_enable_fts3=yes
 else
@@ -16105,7 +16106,7 @@ fi
     fi
 
                         echo $ac_n "checking for SQLITE_ENABLE_UNLOCK_NOTIFY support in system SQLite""... $ac_c" 1>&6
-echo "configure:16109: checking for SQLITE_ENABLE_UNLOCK_NOTIFY support in system SQLite" >&5
+echo "configure:16110: checking for SQLITE_ENABLE_UNLOCK_NOTIFY support in system SQLite" >&5
     _SAVE_CFLAGS="$CFLAGS"
     CFLAGS="$CFLAGS $SQLITE_CFLAGS"
     _SAVE_LIBS="$LIBS"
@@ -16119,7 +16120,7 @@ else
         
 else
   cat > conftest.$ac_ext <<EOF
-#line 16123 "configure"
+#line 16124 "configure"
 #include "confdefs.h"
 
             #include "sqlite3.h"
@@ -16128,7 +16129,7 @@ else
               return !sqlite3_compileoption_used("SQLITE_ENABLE_UNLOCK_NOTIFY");
             }
 EOF
-if { (eval echo configure:16132: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:16133: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ac_cv_sqlite_enable_unlock_notify=yes
 else
@@ -16151,7 +16152,7 @@ fi
     fi
 
                         echo $ac_n "checking for SQLITE_ENABLE_DBSTAT_VTAB support in system SQLite""... $ac_c" 1>&6
-echo "configure:16155: checking for SQLITE_ENABLE_DBSTAT_VTAB support in system SQLite" >&5
+echo "configure:16156: checking for SQLITE_ENABLE_DBSTAT_VTAB support in system SQLite" >&5
     _SAVE_CFLAGS="$CFLAGS"
     CFLAGS="$CFLAGS $SQLITE_CFLAGS"
     _SAVE_LIBS="$LIBS"
@@ -16165,7 +16166,7 @@ else
         
 else
   cat > conftest.$ac_ext <<EOF
-#line 16169 "configure"
+#line 16170 "configure"
 #include "confdefs.h"
 
             #include "sqlite3.h"
@@ -16174,7 +16175,7 @@ else
               return !sqlite3_compileoption_used("SQLITE_ENABLE_DBSTAT_VTAB");
             }
 EOF
-if { (eval echo configure:16178: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:16179: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ac_cv_sqlite_dbstat_vtab=yes
 else
@@ -16358,18 +16359,18 @@ fi
 if test "$COMPILE_ENVIRONMENT"; then
 if test -n "$MOZ_OPTIMIZE"; then
     echo $ac_n "checking for valid C compiler optimization flags""... $ac_c" 1>&6
-echo "configure:16362: checking for valid C compiler optimization flags" >&5
+echo "configure:16363: checking for valid C compiler optimization flags" >&5
     _SAVE_CFLAGS=$CFLAGS
     CFLAGS="$CFLAGS $MOZ_OPTIMIZE_FLAGS"
     cat > conftest.$ac_ext <<EOF
-#line 16366 "configure"
+#line 16367 "configure"
 #include "confdefs.h"
 #include <stdio.h>
 int main() {
 printf("Hello World\n");
 ; return 0; }
 EOF
-if { (eval echo configure:16373: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:16374: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   _results=yes
 else
@@ -16503,12 +16504,12 @@ if test -n "$MOZ_REPLACE_MALLOC"; then
 
         if test -n "$MACOSX_DEPLOYMENT_TARGET"; then
         echo $ac_n "checking how to do weak dynamic linking""... $ac_c" 1>&6
-echo "configure:16507: checking how to do weak dynamic linking" >&5
+echo "configure:16508: checking how to do weak dynamic linking" >&5
 if eval "test \"`echo '$''{'ac_cv_weak_dynamic_linking'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   echo 'extern void foo() __attribute__((weak_import));int bar() { if (foo) foo(); return 0; }' > conftest.c
-             if { ac_try='${CC-cc} -o conftest${DLL_SUFFIX} $CFLAGS -dynamiclib $LDFLAGS -Wl,-U,_foo conftest.c $LIBS 1>&5'; { (eval echo configure:16512: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }; } &&
+             if { ac_try='${CC-cc} -o conftest${DLL_SUFFIX} $CFLAGS -dynamiclib $LDFLAGS -Wl,-U,_foo conftest.c $LIBS 1>&5'; { (eval echo configure:16513: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }; } &&
                 test -s conftest${DLL_SUFFIX}; then
                                                                                      if "$OTOOL" -l conftest${DLL_SUFFIX} 2> /dev/null | grep "LC_DYLD_INFO_ONLY" > /dev/null; then
                      _CLASSIC_INFO=
@@ -16559,12 +16560,12 @@ else
     for ac_func in mallctl nallocx
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
-echo "configure:16563: checking for $ac_func" >&5
+echo "configure:16564: checking for $ac_func" >&5
 if eval "test \"`echo '$''{'ac_cv_func_$ac_func'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 16568 "configure"
+#line 16569 "configure"
 #define $ac_func innocuous_$ac_func
 #include "confdefs.h"
 #undef $ac_func
@@ -16591,7 +16592,7 @@ $ac_func();
 
 ; return 0; }
 EOF
-if { (eval echo configure:16595: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:16596: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_$ac_func=yes"
 else
@@ -16691,7 +16692,7 @@ if test -n "$ENABLE_CLANG_PLUGIN"; then
     fi
 
     echo $ac_n "checking for llvm-config""... $ac_c" 1>&6
-echo "configure:16695: checking for llvm-config" >&5
+echo "configure:16696: checking for llvm-config" >&5
     if test -z "$LLVMCONFIG"; then
       if test -n "$CLANG_CL"; then
           CXX_COMPILER="$(dirname "$CXX")/clang"
@@ -16751,7 +16752,7 @@ echo "configure:16695: checking for llvm-config" >&5
     fi
 
                 echo $ac_n "checking for new ASTMatcher API""... $ac_c" 1>&6
-echo "configure:16755: checking for new ASTMatcher API" >&5
+echo "configure:16756: checking for new ASTMatcher API" >&5
 if eval "test \"`echo '$''{'ac_cv_have_new_ASTMatcher_api'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -16771,14 +16772,14 @@ cross_compiling=$ac_cv_prog_cxx_cross
             CXXFLAGS="${LLVM_CXXFLAGS}"
             CXX="${HOST_CXX}"
             cat > conftest.$ac_ext <<EOF
-#line 16775 "configure"
+#line 16776 "configure"
 #include "confdefs.h"
 #include "clang/ASTMatchers/ASTMatchers.h"
 int main() {
 clang::ast_matchers::cxxConstructExpr();
 ; return 0; }
 EOF
-if { (eval echo configure:16782: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:16783: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   ac_cv_have_new_ASTMatcher_names="yes"
 else
@@ -16807,7 +16808,7 @@ echo "$ac_t""$ac_cv_have_new_ASTMatcher_api" 1>&6
     fi
 
                 echo $ac_n "checking for has with ignoringParenImpCasts""... $ac_c" 1>&6
-echo "configure:16811: checking for has with ignoringParenImpCasts" >&5
+echo "configure:16812: checking for has with ignoringParenImpCasts" >&5
 if eval "test \"`echo '$''{'ac_cv_has_accepts_ignoringParenImpCasts'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -16827,7 +16828,7 @@ cross_compiling=$ac_cv_prog_cxx_cross
             CXXFLAGS="${LLVM_CXXFLAGS}"
             CXX="${HOST_CXX}"
             cat > conftest.$ac_ext <<EOF
-#line 16831 "configure"
+#line 16832 "configure"
 #include "confdefs.h"
 #include "clang/ASTMatchers/ASTMatchers.h"
 int main() {
@@ -16836,7 +16837,7 @@ using namespace clang::ast_matchers;
                            
 ; return 0; }
 EOF
-if { (eval echo configure:16840: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:16841: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   ac_cv_has_accepts_ignoringParenImpCasts="yes"
 else
@@ -16943,12 +16944,12 @@ fi
 
 if test -n "$COMPILE_ENVIRONMENT" -a -n "$USE_ELF_HACK"; then
                                         echo $ac_n "checking whether linker creates PT_GNU_RELRO segments""... $ac_c" 1>&6
-echo "configure:16947: checking whether linker creates PT_GNU_RELRO segments" >&5
+echo "configure:16948: checking whether linker creates PT_GNU_RELRO segments" >&5
 if eval "test \"`echo '$''{'LINK_WITH_PT_GNU_RELRO'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   echo "int main() {return 0;}" > conftest.${ac_ext}
-         if { ac_try='${CC-cc} -o conftest${ac_exeext} $LDFLAGS conftest.${ac_ext} $LIBS 1>&2'; { (eval echo configure:16952: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }; } &&
+         if { ac_try='${CC-cc} -o conftest${ac_exeext} $LDFLAGS conftest.${ac_ext} $LIBS 1>&2'; { (eval echo configure:16953: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }; } &&
             test -s conftest${ac_exeext}; then
             if ${TOOLCHAIN_PREFIX}readelf -l conftest${ac_exeext} | grep GNU_RELRO > /dev/null; then
                 LINK_WITH_PT_GNU_RELRO=yes
@@ -16965,18 +16966,18 @@ echo "$ac_t""$LINK_WITH_PT_GNU_RELRO" 1>&6
     if test "$LINK_WITH_PT_GNU_RELRO" = yes; then
         if test "$USE_ELF_HACK" = F; then
             echo $ac_n "checking for -z norelro option to ld""... $ac_c" 1>&6
-echo "configure:16969: checking for -z norelro option to ld" >&5
+echo "configure:16970: checking for -z norelro option to ld" >&5
             _SAVE_LDFLAGS=$LDFLAGS
             LDFLAGS="$LDFLAGS -Wl,-z,norelro"
             cat > conftest.$ac_ext <<EOF
-#line 16973 "configure"
+#line 16974 "configure"
 #include "confdefs.h"
 
 int main() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:16980: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:16981: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   echo "$ac_t""yes" 1>&6
                         NSPR_LDFLAGS="$NSPR_LDFLAGS -Wl,-z,norelro"
@@ -17221,12 +17222,12 @@ cross_compiling=$ac_cv_prog_cxx_cross
     for ac_func in __cxa_demangle
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
-echo "configure:17225: checking for $ac_func" >&5
+echo "configure:17226: checking for $ac_func" >&5
 if eval "test \"`echo '$''{'ac_cv_func_$ac_func'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 17230 "configure"
+#line 17231 "configure"
 #define $ac_func innocuous_$ac_func
 #include "confdefs.h"
 #undef $ac_func
@@ -17256,7 +17257,7 @@ $ac_func();
 
 ; return 0; }
 EOF
-if { (eval echo configure:17260: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:17261: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_$ac_func=yes"
 else
@@ -17318,12 +17319,12 @@ cross_compiling=$ac_cv_prog_cxx_cross
 
        ac_safe=`echo "unwind.h" | sed 'y%./+-%__p_%'`
   echo $ac_n "checking for unwind.h""... $ac_c" 1>&6
-echo "configure:17322: checking for unwind.h" >&5
+echo "configure:17323: checking for unwind.h" >&5
   if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
    cat > conftest.$ac_ext <<EOF
-#line 17327 "configure"
+#line 17328 "configure"
 #include "confdefs.h"
 
 #include <unwind.h>
@@ -17331,7 +17332,7 @@ int main() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:17335: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:17336: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   eval "ac_cv_header_$ac_safe=yes"
 else
@@ -17348,12 +17349,12 @@ fi
     for ac_func in _Unwind_Backtrace
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
-echo "configure:17352: checking for $ac_func" >&5
+echo "configure:17353: checking for $ac_func" >&5
 if eval "test \"`echo '$''{'ac_cv_func_$ac_func'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 17357 "configure"
+#line 17358 "configure"
 #define $ac_func innocuous_$ac_func
 #include "confdefs.h"
 #undef $ac_func
@@ -17385,7 +17386,7 @@ $ac_func();
 
 ; return 0; }
 EOF
-if { (eval echo configure:17389: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:17390: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_$ac_func=yes"
 else
@@ -17531,7 +17532,7 @@ if test -z "$SKIP_COMPILER_CHECKS"; then
 # Compiler Options
 
 echo $ac_n "checking for -pipe support""... $ac_c" 1>&6
-echo "configure:17535: checking for -pipe support" >&5
+echo "configure:17536: checking for -pipe support" >&5
 if test -n "$GNU_CC" -a -n "$GNU_CXX"; then
         CFLAGS="$CFLAGS -pipe"
     CXXFLAGS="$CXXFLAGS -pipe"
@@ -17545,16 +17546,16 @@ _SAVE_CFLAGS="$CFLAGS"
 CFLAGS="$CFLAGS -fprofile-generate -fprofile-correction"
 
 echo $ac_n "checking whether C compiler supports -fprofile-generate""... $ac_c" 1>&6
-echo "configure:17549: checking whether C compiler supports -fprofile-generate" >&5
+echo "configure:17550: checking whether C compiler supports -fprofile-generate" >&5
 cat > conftest.$ac_ext <<EOF
-#line 17551 "configure"
+#line 17552 "configure"
 #include "confdefs.h"
 
 int main() {
 return 0;
 ; return 0; }
 EOF
-if { (eval echo configure:17558: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:17559: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
    PROFILE_GEN_CFLAGS="-fprofile-generate"
                  result="yes" 
@@ -17601,20 +17602,20 @@ if test "$COMPILE_ENVIRONMENT"; then
 
 
 echo $ac_n "checking what kind of list files are supported by the linker""... $ac_c" 1>&6
-echo "configure:17605: checking what kind of list files are supported by the linker" >&5
+echo "configure:17606: checking what kind of list files are supported by the linker" >&5
 if eval "test \"`echo '$''{'EXPAND_LIBS_LIST_STYLE'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   echo "int main() {return 0;}" > conftest.${ac_ext}
-     if { ac_try='${CC-cc} -o conftest.${OBJ_SUFFIX} -c $CFLAGS $CPPFLAGS conftest.${ac_ext} 1>&5'; { (eval echo configure:17610: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }; } && test -s conftest.${OBJ_SUFFIX}; then
+     if { ac_try='${CC-cc} -o conftest.${OBJ_SUFFIX} -c $CFLAGS $CPPFLAGS conftest.${ac_ext} 1>&5'; { (eval echo configure:17611: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }; } && test -s conftest.${OBJ_SUFFIX}; then
          echo "INPUT(conftest.${OBJ_SUFFIX})" > conftest.list
-         if { ac_try='${CC-cc} -o conftest${ac_exeext} $LDFLAGS conftest.list $LIBS 1>&5'; { (eval echo configure:17612: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }; } && test -s conftest${ac_exeext}; then
+         if { ac_try='${CC-cc} -o conftest${ac_exeext} $LDFLAGS conftest.list $LIBS 1>&5'; { (eval echo configure:17613: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }; } && test -s conftest${ac_exeext}; then
              EXPAND_LIBS_LIST_STYLE=linkerscript
          else
              echo "conftest.${OBJ_SUFFIX}" > conftest.list
-                                                                 if { ac_try='${CC-cc} -o conftest${ac_exeext} $LDFLAGS -Wl,-filelist,conftest.list $LIBS 1>&5'; { (eval echo configure:17616: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }; } && test -s conftest${ac_exeext}; then
+                                                                 if { ac_try='${CC-cc} -o conftest${ac_exeext} $LDFLAGS -Wl,-filelist,conftest.list $LIBS 1>&5'; { (eval echo configure:17617: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }; } && test -s conftest${ac_exeext}; then
                  EXPAND_LIBS_LIST_STYLE=filelist
-             elif { ac_try='${CC-cc} -o conftest${ac_exeext} $LDFLAGS @conftest.list $LIBS 1>&5'; { (eval echo configure:17618: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }; } && test -s conftest${ac_exeext}; then
+             elif { ac_try='${CC-cc} -o conftest${ac_exeext} $LDFLAGS @conftest.list $LIBS 1>&5'; { (eval echo configure:17619: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }; } && test -s conftest${ac_exeext}; then
                  EXPAND_LIBS_LIST_STYLE=list
              else
                  EXPAND_LIBS_LIST_STYLE=none
@@ -17634,7 +17635,7 @@ LIBS_DESC_SUFFIX=desc
 
 if test "$GCC_USE_GNU_LD"; then
     echo $ac_n "checking what kind of ordering can be done with the linker""... $ac_c" 1>&6
-echo "configure:17638: checking what kind of ordering can be done with the linker" >&5
+echo "configure:17639: checking what kind of ordering can be done with the linker" >&5
 if eval "test \"`echo '$''{'EXPAND_LIBS_ORDER_STYLE'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -17642,14 +17643,14 @@ else
          _SAVE_LDFLAGS="$LDFLAGS"
          LDFLAGS="${LDFLAGS} -Wl,--section-ordering-file,conftest.order"
          cat > conftest.$ac_ext <<EOF
-#line 17646 "configure"
+#line 17647 "configure"
 #include "confdefs.h"
 
 int main() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:17653: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:17654: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   EXPAND_LIBS_ORDER_STYLE=section-ordering-file
 else
@@ -17661,7 +17662,7 @@ fi
 rm -f conftest*
          LDFLAGS="$_SAVE_LDFLAGS"
          if test -z "$EXPAND_LIBS_ORDER_STYLE"; then
-             if { ac_try='${CC-cc} ${DSO_LDOPTS} ${LDFLAGS} -o ${DLL_PREFIX}conftest${DLL_SUFFIX} -Wl'; { (eval echo configure:17665: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }; }; then
+             if { ac_try='${CC-cc} ${DSO_LDOPTS} ${LDFLAGS} -o ${DLL_PREFIX}conftest${DLL_SUFFIX} -Wl'; { (eval echo configure:17666: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }; }; then
                  EXPAND_LIBS_ORDER_STYLE=linkerscript
              else
                  EXPAND_LIBS_ORDER_STYLE=none
@@ -17741,19 +17742,19 @@ if test -z "${GLIB_CFLAGS}" -o -z "${GLIB_LIBS}" ; then
      PKG_CONFIG_MIN_VERSION=0.9.0
      if $PKG_CONFIG --atleast-pkgconfig-version $PKG_CONFIG_MIN_VERSION; then
         echo $ac_n "checking for glib-2.0 >= 1.3.7 gobject-2.0""... $ac_c" 1>&6
-echo "configure:17745: checking for glib-2.0 >= 1.3.7 gobject-2.0" >&5
+echo "configure:17746: checking for glib-2.0 >= 1.3.7 gobject-2.0" >&5
 
         if $PKG_CONFIG --exists "glib-2.0 >= 1.3.7 gobject-2.0" ; then
             echo "$ac_t""yes" 1>&6
             succeeded=yes
 
             echo $ac_n "checking GLIB_CFLAGS""... $ac_c" 1>&6
-echo "configure:17752: checking GLIB_CFLAGS" >&5
+echo "configure:17753: checking GLIB_CFLAGS" >&5
             GLIB_CFLAGS=`$PKG_CONFIG --cflags "glib-2.0 >= 1.3.7 gobject-2.0"`
             echo "$ac_t""$GLIB_CFLAGS" 1>&6
 
             echo $ac_n "checking GLIB_LIBS""... $ac_c" 1>&6
-echo "configure:17757: checking GLIB_LIBS" >&5
+echo "configure:17758: checking GLIB_LIBS" >&5
             ## Remove evil flags like -Wl,--export-dynamic
             GLIB_LIBS="`$PKG_CONFIG --libs \"glib-2.0 >= 1.3.7 gobject-2.0\" |sed s/-Wl,--export-dynamic//g`"
             echo "$ac_t""$GLIB_LIBS" 1>&6
@@ -17804,12 +17805,12 @@ if test "$USE_FC_FREETYPE"; then
             CFLAGS="$CFLAGS $FT2_CFLAGS"
 
             echo $ac_n "checking for FT_Bitmap_Size.y_ppem""... $ac_c" 1>&6
-echo "configure:17808: checking for FT_Bitmap_Size.y_ppem" >&5
+echo "configure:17809: checking for FT_Bitmap_Size.y_ppem" >&5
 if eval "test \"`echo '$''{'ac_cv_member_FT_Bitmap_Size_y_ppem'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 17813 "configure"
+#line 17814 "configure"
 #include "confdefs.h"
 #include <ft2build.h>
                                  #include FT_FREETYPE_H
@@ -17819,7 +17820,7 @@ FT_Bitmap_Size s;
                                  return 1
 ; return 0; }
 EOF
-if { (eval echo configure:17823: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:17824: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   ac_cv_member_FT_Bitmap_Size_y_ppem=yes
 else
@@ -17848,12 +17849,12 @@ EOF
             for ac_func in FT_GlyphSlot_Embolden FT_Load_Sfnt_Table
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
-echo "configure:17852: checking for $ac_func" >&5
+echo "configure:17853: checking for $ac_func" >&5
 if eval "test \"`echo '$''{'ac_cv_func_$ac_func'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 17857 "configure"
+#line 17858 "configure"
 #define $ac_func innocuous_$ac_func
 #include "confdefs.h"
 #undef $ac_func
@@ -17880,7 +17881,7 @@ $ac_func();
 
 ; return 0; }
 EOF
-if { (eval echo configure:17884: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:17885: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_$ac_func=yes"
 else
@@ -17918,12 +17919,12 @@ done
   do
        ac_safe=`echo "$ac_hdr" | sed 'y%./+-%__p_%'`
   echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&6
-echo "configure:17922: checking for $ac_hdr" >&5
+echo "configure:17923: checking for $ac_hdr" >&5
   if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
    cat > conftest.$ac_ext <<EOF
-#line 17927 "configure"
+#line 17928 "configure"
 #include "confdefs.h"
 #include <fontconfig/fontconfig.h>
 #include <$ac_hdr>
@@ -17931,7 +17932,7 @@ int main() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:17935: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:17936: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   eval "ac_cv_header_$ac_safe=yes"
 else
@@ -18026,19 +18027,19 @@ else
      PKG_CONFIG_MIN_VERSION=0.9.0
      if $PKG_CONFIG --atleast-pkgconfig-version $PKG_CONFIG_MIN_VERSION; then
         echo $ac_n "checking for pixman-1 >= 0.19.2""... $ac_c" 1>&6
-echo "configure:18030: checking for pixman-1 >= 0.19.2" >&5
+echo "configure:18031: checking for pixman-1 >= 0.19.2" >&5
 
         if $PKG_CONFIG --exists "pixman-1 >= 0.19.2" ; then
             echo "$ac_t""yes" 1>&6
             succeeded=yes
 
             echo $ac_n "checking MOZ_PIXMAN_CFLAGS""... $ac_c" 1>&6
-echo "configure:18037: checking MOZ_PIXMAN_CFLAGS" >&5
+echo "configure:18038: checking MOZ_PIXMAN_CFLAGS" >&5
             MOZ_PIXMAN_CFLAGS=`$PKG_CONFIG --cflags "pixman-1 >= 0.19.2"`
             echo "$ac_t""$MOZ_PIXMAN_CFLAGS" 1>&6
 
             echo $ac_n "checking MOZ_PIXMAN_LIBS""... $ac_c" 1>&6
-echo "configure:18042: checking MOZ_PIXMAN_LIBS" >&5
+echo "configure:18043: checking MOZ_PIXMAN_LIBS" >&5
             ## Remove evil flags like -Wl,--export-dynamic
             MOZ_PIXMAN_LIBS="`$PKG_CONFIG --libs \"pixman-1 >= 0.19.2\" |sed s/-Wl,--export-dynamic//g`"
             echo "$ac_t""$MOZ_PIXMAN_LIBS" 1>&6
@@ -18122,12 +18123,12 @@ EOF
 
              ac_safe=`echo "d3d9.h" | sed 'y%./+-%__p_%'`
   echo $ac_n "checking for d3d9.h""... $ac_c" 1>&6
-echo "configure:18126: checking for d3d9.h" >&5
+echo "configure:18127: checking for d3d9.h" >&5
   if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
    cat > conftest.$ac_ext <<EOF
-#line 18131 "configure"
+#line 18132 "configure"
 #include "confdefs.h"
 
 #include <d3d9.h>
@@ -18135,7 +18136,7 @@ int main() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:18139: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:18140: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   eval "ac_cv_header_$ac_safe=yes"
 else
@@ -18159,12 +18160,12 @@ fi
                     if test -n "$WIN32_D2D_SURFACE_FEATURE"; then
                ac_safe=`echo "d3d10.h" | sed 'y%./+-%__p_%'`
   echo $ac_n "checking for d3d10.h""... $ac_c" 1>&6
-echo "configure:18163: checking for d3d10.h" >&5
+echo "configure:18164: checking for d3d10.h" >&5
   if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
    cat > conftest.$ac_ext <<EOF
-#line 18168 "configure"
+#line 18169 "configure"
 #include "confdefs.h"
 
 #include <d3d10.h>
@@ -18172,7 +18173,7 @@ int main() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:18176: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:18177: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   eval "ac_cv_header_$ac_safe=yes"
 else
@@ -18241,19 +18242,19 @@ else
      PKG_CONFIG_MIN_VERSION=0.9.0
      if $PKG_CONFIG --atleast-pkgconfig-version $PKG_CONFIG_MIN_VERSION; then
         echo $ac_n "checking for cairo >= $CAIRO_VERSION""... $ac_c" 1>&6
-echo "configure:18245: checking for cairo >= $CAIRO_VERSION" >&5
+echo "configure:18246: checking for cairo >= $CAIRO_VERSION" >&5
 
         if $PKG_CONFIG --exists "cairo >= $CAIRO_VERSION" ; then
             echo "$ac_t""yes" 1>&6
             succeeded=yes
 
             echo $ac_n "checking CAIRO_CFLAGS""... $ac_c" 1>&6
-echo "configure:18252: checking CAIRO_CFLAGS" >&5
+echo "configure:18253: checking CAIRO_CFLAGS" >&5
             CAIRO_CFLAGS=`$PKG_CONFIG --cflags "cairo >= $CAIRO_VERSION"`
             echo "$ac_t""$CAIRO_CFLAGS" 1>&6
 
             echo $ac_n "checking CAIRO_LIBS""... $ac_c" 1>&6
-echo "configure:18257: checking CAIRO_LIBS" >&5
+echo "configure:18258: checking CAIRO_LIBS" >&5
             ## Remove evil flags like -Wl,--export-dynamic
             CAIRO_LIBS="`$PKG_CONFIG --libs \"cairo >= $CAIRO_VERSION\" |sed s/-Wl,--export-dynamic//g`"
             echo "$ac_t""$CAIRO_LIBS" 1>&6
@@ -18295,19 +18296,19 @@ echo "configure:18257: checking CAIRO_LIBS" >&5
      PKG_CONFIG_MIN_VERSION=0.9.0
      if $PKG_CONFIG --atleast-pkgconfig-version $PKG_CONFIG_MIN_VERSION; then
         echo $ac_n "checking for cairo-tee >= $CAIRO_VERSION""... $ac_c" 1>&6
-echo "configure:18299: checking for cairo-tee >= $CAIRO_VERSION" >&5
+echo "configure:18300: checking for cairo-tee >= $CAIRO_VERSION" >&5
 
         if $PKG_CONFIG --exists "cairo-tee >= $CAIRO_VERSION" ; then
             echo "$ac_t""yes" 1>&6
             succeeded=yes
 
             echo $ac_n "checking CAIRO_TEE_CFLAGS""... $ac_c" 1>&6
-echo "configure:18306: checking CAIRO_TEE_CFLAGS" >&5
+echo "configure:18307: checking CAIRO_TEE_CFLAGS" >&5
             CAIRO_TEE_CFLAGS=`$PKG_CONFIG --cflags "cairo-tee >= $CAIRO_VERSION"`
             echo "$ac_t""$CAIRO_TEE_CFLAGS" 1>&6
 
             echo $ac_n "checking CAIRO_TEE_LIBS""... $ac_c" 1>&6
-echo "configure:18311: checking CAIRO_TEE_LIBS" >&5
+echo "configure:18312: checking CAIRO_TEE_LIBS" >&5
             ## Remove evil flags like -Wl,--export-dynamic
             CAIRO_TEE_LIBS="`$PKG_CONFIG --libs \"cairo-tee >= $CAIRO_VERSION\" |sed s/-Wl,--export-dynamic//g`"
             echo "$ac_t""$CAIRO_TEE_LIBS" 1>&6
@@ -18348,19 +18349,19 @@ echo "configure:18311: checking CAIRO_TEE_LIBS" >&5
      PKG_CONFIG_MIN_VERSION=0.9.0
      if $PKG_CONFIG --atleast-pkgconfig-version $PKG_CONFIG_MIN_VERSION; then
         echo $ac_n "checking for cairo-xlib-xrender >= $CAIRO_VERSION""... $ac_c" 1>&6
-echo "configure:18352: checking for cairo-xlib-xrender >= $CAIRO_VERSION" >&5
+echo "configure:18353: checking for cairo-xlib-xrender >= $CAIRO_VERSION" >&5
 
         if $PKG_CONFIG --exists "cairo-xlib-xrender >= $CAIRO_VERSION" ; then
             echo "$ac_t""yes" 1>&6
             succeeded=yes
 
             echo $ac_n "checking CAIRO_XRENDER_CFLAGS""... $ac_c" 1>&6
-echo "configure:18359: checking CAIRO_XRENDER_CFLAGS" >&5
+echo "configure:18360: checking CAIRO_XRENDER_CFLAGS" >&5
             CAIRO_XRENDER_CFLAGS=`$PKG_CONFIG --cflags "cairo-xlib-xrender >= $CAIRO_VERSION"`
             echo "$ac_t""$CAIRO_XRENDER_CFLAGS" 1>&6
 
             echo $ac_n "checking CAIRO_XRENDER_LIBS""... $ac_c" 1>&6
-echo "configure:18364: checking CAIRO_XRENDER_LIBS" >&5
+echo "configure:18365: checking CAIRO_XRENDER_LIBS" >&5
             ## Remove evil flags like -Wl,--export-dynamic
             CAIRO_XRENDER_LIBS="`$PKG_CONFIG --libs \"cairo-xlib-xrender >= $CAIRO_VERSION\" |sed s/-Wl,--export-dynamic//g`"
             echo "$ac_t""$CAIRO_XRENDER_LIBS" 1>&6
@@ -18932,19 +18933,19 @@ if test -n "$MOZ_SYSTEM_ICU"; then
      PKG_CONFIG_MIN_VERSION=0.9.0
      if $PKG_CONFIG --atleast-pkgconfig-version $PKG_CONFIG_MIN_VERSION; then
         echo $ac_n "checking for icu-i18n >= 58.1""... $ac_c" 1>&6
-echo "configure:18936: checking for icu-i18n >= 58.1" >&5
+echo "configure:18937: checking for icu-i18n >= 58.1" >&5
 
         if $PKG_CONFIG --exists "icu-i18n >= 58.1" ; then
             echo "$ac_t""yes" 1>&6
             succeeded=yes
 
             echo $ac_n "checking MOZ_ICU_CFLAGS""... $ac_c" 1>&6
-echo "configure:18943: checking MOZ_ICU_CFLAGS" >&5
+echo "configure:18944: checking MOZ_ICU_CFLAGS" >&5
             MOZ_ICU_CFLAGS=`$PKG_CONFIG --cflags "icu-i18n >= 58.1"`
             echo "$ac_t""$MOZ_ICU_CFLAGS" 1>&6
 
             echo $ac_n "checking MOZ_ICU_LIBS""... $ac_c" 1>&6
-echo "configure:18948: checking MOZ_ICU_LIBS" >&5
+echo "configure:18949: checking MOZ_ICU_LIBS" >&5
             ## Remove evil flags like -Wl,--export-dynamic
             MOZ_ICU_LIBS="`$PKG_CONFIG --libs \"icu-i18n >= 58.1\" |sed s/-Wl,--export-dynamic//g`"
             echo "$ac_t""$MOZ_ICU_LIBS" 1>&6
@@ -19228,12 +19229,12 @@ if test -n "$COMPILE_ENVIRONMENT"; then
 for ac_func in posix_fadvise posix_fallocate
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
-echo "configure:19232: checking for $ac_func" >&5
+echo "configure:19233: checking for $ac_func" >&5
 if eval "test \"`echo '$''{'ac_cv_func_$ac_func'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 19237 "configure"
+#line 19238 "configure"
 #define $ac_func innocuous_$ac_func
 #include "confdefs.h"
 #undef $ac_func
@@ -19260,7 +19261,7 @@ $ac_func();
 
 ; return 0; }
 EOF
-if { (eval echo configure:19264: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:19265: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_$ac_func=yes"
 else
@@ -19292,7 +19293,7 @@ if test "$MOZ_X11"; then
                 _SAVE_CFLAGS=$CFLAGS
     CFLAGS="$CFLAGS $XCFLAGS"
     cat > conftest.$ac_ext <<EOF
-#line 19296 "configure"
+#line 19297 "configure"
 #include "confdefs.h"
 
         #include <stdio.h>
@@ -19311,7 +19312,7 @@ int main() {
     
 ; return 0; }
 EOF
-if { (eval echo configure:19315: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:19316: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   :
 else
   echo "configure: failed program was:" >&5
@@ -19687,7 +19688,7 @@ sed 's/$/,/' >> $CONFIG_STATUS <<EOF
     (''' NSPR_LIBS ''', list(r''' $NSPR_LIBS '''.split()))
     (''' NSPR_INCLUDE_DIR ''', r''' $NSPR_INCLUDE_DIR ''')
     (''' NSPR_LIB_DIR ''', r''' $NSPR_LIB_DIR ''')
-    (''' NSPR_PKGCONF_CHECK ''', r''' $NSPR_PKGCONF_CHECK ''')
+    (''' PKGCONF_REQUIRES_PRIVATE ''', r''' $PKGCONF_REQUIRES_PRIVATE ''')
     (''' MOZ_LIBEVENT_CFLAGS ''', list(r''' $MOZ_LIBEVENT_CFLAGS '''.split()))
     (''' MOZ_LIBEVENT_LIBS ''', list(r''' $MOZ_LIBEVENT_LIBS '''.split()))
     (''' MOZ_SYSTEM_LIBEVENT ''', r''' $MOZ_SYSTEM_LIBEVENT ''')

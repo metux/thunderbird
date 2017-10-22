@@ -1,4 +1,5 @@
 . "$topsrcdir/build/unix/mozconfig.linux"
+. "$topsrcdir/suite/config/mozconfigs/mozconfig.linux.common"
 
 ac_add_options --enable-application=suite
 ac_add_options --enable-update-channel=${MOZ_UPDATE_CHANNEL}
@@ -19,3 +20,5 @@ MOZ_REQUIRE_SIGNING=0
 
 #Use ccache
 ac_add_options --with-ccache=/usr/bin/ccache
+
+. "$topsrcdir/build/mozconfig.rust"

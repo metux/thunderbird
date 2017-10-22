@@ -412,7 +412,7 @@ cat << EOF
     Some example for invoking Thunderbird from the ommand line:
     Run in safe-mode with the JS Error console:
 
-      ${0##*/} --safe-mode -jsconsole
+      ${0##*/} --safe-mode --jsconsole
 
     Call Thunderbird directly to compose a message with a specific
     attachement.

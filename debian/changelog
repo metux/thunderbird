@@ -1,3 +1,66 @@
+thunderbird (1:52.4.0-1) unstable; urgency=medium
+
+  [ Guido Günther ]
+  * [da3c5cc] Simplify endianness selection for ICU
+              Since we need to build ICU on the various Debian releases we
+              need to ensure the architecture detection isn't to strict.
+              Thanks Guido for helping out here!
+
+  [ Carsten Schoenert ]
+  * [47748ca] debian/control: be more relaxed on Breaks for enigmail
+  * [6a54666] thunderbird-wrapper: fix small typo in help output
+              A small typo was happen in the example call with the JS console.
+  * [6d5266e] README.Debian: update info around tls fallback-limit
+              The default behavior on the TLS fallback has changed some
+              versions ago, document this accordingly.
+  * [24ad883] debian/control: change maintainer
+              Thanks Christoph for the work over the past years!
+  * [c78200e] debian/control: move src pkg name to thunderbird
+              By this version we move the source package name also back to
+              thunderbird. This follows the changes that are already made to
+              the binary package names and we can call the source package now
+              also again thunderbird.
+              (Closes: #857075)
+  * [c26133d] debian/gbp.conf: rename components to real used names
+              Due the changes of the source package the names for the
+              sub-folders within the additional tarballs can also be changed
+              to be closer on the real upstream used names.
+  * [a5ce4f7] New upstream version 52.4.0
+    (Closes: #878845, #878870)
+    Fixed CVE issues in upstream version 52.0 (MFSA 2017-23)
+    CVE-2017-7793: Use-after-free with Fetch API
+    CVE-2017-7818: Use-after-free during ARIA array manipulation
+    CVE-2017-7819: Use-after-free while resizing images in design mode
+    CVE-2017-7824: Buffer overflow when drawing and validating elements with
+                   ANGLE
+    CVE-2017-7805: Use-after-free in TLS 1.2 generating handshake hashes
+    CVE-2017-7814: Blob and data URLs bypass phishing and malware protection
+                   warnings
+    CVE-2017-7825: OS X fonts render some Tibetan and Arabic unicode characters
+                   as spaces
+    CVE-2017-7823: CSP sandbox directive did not create a unique origin
+    CVE-2017-7810: Memory safety bugs fixed in Firefox 56 and Firefox ESR 52.4,
+                   and Thunderbird 52.4
+  * [104b4e5] rebuild patch queue from patch-queue branch
+  * [d63662a] lintian: move oldlibs/extra -> oldlibs/optional
+              By moving all transitional package to oldlibs/optional we can
+              help deborphan to detect better not needed packages.
+  * [fb56001] d/rules: reflect changes from renamed component tarballs
+              The additional tarballs are stored in folders which reflect
+              the upstream names of those components. This also needs to be
+              respected for the build instructions of the package.
+  * [61288fb] debian/control: change Vcs* fields due the src name change
+              Addressing the changed source package name in the Git Vcs urls.
+  * [ef95ab5] debian/control: increase Standards-Version to 4.1.1
+              No further changes needed.
+  * [45e8fe2] apparmor: update profile from upstream
+              Thanks to Simon Deziel and intrigeri we can simply use the
+              apparmor profile changes done for the Ubuntu releases.
+  * [6b1649c] lintian: adding a override for thunderbird-l10n-all
+  * [ceab93f] debian/README.source: reflect src package name change
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Tue, 17 Oct 2017 18:20:29 +0200
+
 icedove (1:52.3.0-4~deb9u1) stretch-security; urgency=medium
 
   [ Carsten Schoenert ]
