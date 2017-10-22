@@ -59,7 +59,7 @@ thunderbird (1:52.4.0-1) unstable; urgency=medium
   * [6b1649c] lintian: adding a override for thunderbird-l10n-all
   * [ceab93f] debian/README.source: reflect src package name change
 
- -- Carsten Schoenert <c.schoenert@t-online.de>  Fri, 17 Oct 2017 18:20:29 +0200
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Tue, 17 Oct 2017 18:20:29 +0200
 
 icedove (1:52.3.0-4) unstable; urgency=medium
 
