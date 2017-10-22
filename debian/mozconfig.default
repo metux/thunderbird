@@ -29,6 +29,7 @@ ac_add_options --with-system-libvpx
 
 # disabled features
 ac_add_options --disable-gconf
+ac_add_options --disable-gnomeui
 ac_add_options --disable-install-strip
 ac_add_options --disable-strip
 ac_add_options --disable-tests
@@ -38,7 +39,6 @@ ac_add_options --disable-updater
 ac_add_options --enable-default-toolkit=cairo-gtk3
 ac_add_options --enable-extensions=default
 ac_add_options --enable-gio
-ac_add_options --enable-gnomeui
 ac_add_options --enable-official-branding # use the official artwork
 ac_add_options --enable-optimize
 ac_add_options --enable-pie
