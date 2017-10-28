@@ -1,7 +1,7 @@
 From: Christopher Aillon <caillon@redhat.com>
 Date: Tue, 8 Feb 2011 14:16:37 -0500
-Subject: Bug 628252 - os2.cc fails to compile against GCC 4.6, missing
- #include <cstddef>; r,a=roc
+Subject: Bug 628252 - os2.cc fails to compile against GCC 4.6,
+ missing #include <cstddef>; r,a=roc
 
 ---
  mozilla/gfx/ots/src/os2.cc | 1 +

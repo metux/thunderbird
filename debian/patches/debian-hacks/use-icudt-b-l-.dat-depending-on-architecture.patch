@@ -9,16 +9,23 @@ platform exported and let later the configure run automatically use the
 correct name for the ICU *.dat file so we not only depend on the
 prebuild *.dat file for little endian.
 
-The `case foo in ...` loop could be obviously more compressed to only two
-cases, one with architectures which are little endian and a second with all
-big endian platforms. For more readability the more exclusive extra list
-of all possible architectures in Debian was choosen.
+The `case foo in ...` loop could be obviously more compressed with only
+one case entry for all architectures which are all big endian.
+
+---%<---
+    case $host in
+       dnl big endian architectures
+       hppa-*|m68k-*|...)
+--->%---
+
+For more readability the more exclusive extra list of all possible
+architectures with big endianness in Debian was choosen.
 ---
  mozilla/build/autoconf/icu.m4 | 26 +++++++++++++++++++++++++-
  1 file changed, 25 insertions(+), 1 deletion(-)
 
 diff --git a/mozilla/build/autoconf/icu.m4 b/mozilla/build/autoconf/icu.m4
-index e0f922d..0252375 100644
+index e0f922d..44ae827 100644
 --- a/mozilla/build/autoconf/icu.m4
 +++ b/mozilla/build/autoconf/icu.m4
 @@ -79,7 +79,31 @@ if test -n "$USE_ICU"; then
@@ -37,10 +44,10 @@ index e0f922d..0252375 100644
 +            mips-*)
 +                ICU_DATA_FILE="icudt${version}b.dat"
 +                ;;
-+            s390*-*)
++            powerpc-* | powerpc64-*)
 +                ICU_DATA_FILE="icudt${version}b.dat"
 +                ;;
-+            powerpc-*)
++            s390*-*)
 +                ICU_DATA_FILE="icudt${version}b.dat"
 +                ;;
 +            sparc*-*)
