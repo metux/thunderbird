@@ -23,6 +23,7 @@ profile thunderbird /usr/lib/thunderbird/thunderbird {
   #include <abstractions/private-files>
   #include <abstractions/ssl_certs>
   #include <abstractions/ubuntu-browsers>
+  #include <abstractions/ubuntu-browsers.d/java>
   #include <abstractions/ubuntu-helpers>
 
   # Allow opening attachments
@@ -177,6 +178,7 @@ profile thunderbird /usr/lib/thunderbird/thunderbird {
   owner @{HOME}/.{icedove,thunderbird}/**/extensions/** mixrw,
   owner @{HOME}/.mozilla/extensions/**        mixr,
   /usr/share/xul-ext/**/*.sqlite              rk,
+  /usr/lib/mozilla/plugins/*.so               rm,
   /usr/lib/xul-ext/**/*.sqlite                rk,
   /usr/lib/thunderbird-addons/extensions/**/*.sqlite rk,
 
