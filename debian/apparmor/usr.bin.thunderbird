@@ -219,6 +219,9 @@ profile thunderbird /usr/lib/thunderbird/thunderbird {
     deny owner @{HOME}/.{icedove,thunderbird}/**/*.msf w,
     deny owner @{HOME}/.cache/thunderbird/**/_CACHE_* w,
 
+    # noise from inherited files
+    deny /usr/{lib,share}/thunderbird/omni.ja r,
+
     # For smartcards?
     /dev/bus/usb/ r,
     /dev/bus/usb/[0-9]*/ r,
