@@ -57,6 +57,7 @@ LDFLAGS += -Wl,--no-keep-memory -Wl,--reduce-memory-overheads
 LDFLAGS += -Wl,--stats
 
 export MOZ_BUILD_DATE := $(SOURCE_DATE_EPOCH)
+export BUILD_DATE := $(shell dpkg-parsechangelog --show-field=Date)
 export MOZCONFIG=$(shell pwd)/mozconfig.thunderbird
 export MOZILLA_OFFICIAL=1
 export DEB_BUILD_GNU_TYPE
@@ -205,6 +206,8 @@ override_dh_install-arch:
 	# sometimes there are temporary build files in lightning
 	@echo "    --> searching for temporary build files in 'lightning' ..."
 	@for i in `find debian/lightning/ -name ".mkdir.done*"`; do echo remove $$i && rm $$i; done
+	find debian/lightning/usr/lib/lightning -newermt '$(BUILD_DATE)' -print0 | \
+		xargs -0r touch --no-dereference --date='$(BUILD_DATE)'
 	# remove duplicate .so files in dev package
 	rm debian/thunderbird-dev/usr/lib/thunderbird-devel/sdk/lib/libxul.so
 	rm debian/thunderbird-dev/usr/lib/thunderbird-devel/sdk/lib/libnss3.so
@@ -223,6 +226,8 @@ override_dh_install-indep:
 	mkdir -p debian/calendar-google-provider/usr/share/xul-ext/calendar-google-provider/
 	GDATA_PROVIDER=`find -type f -name "gdata-provider*.xpi"` &&\
 		unzip -d debian/calendar-google-provider/usr/share/xul-ext/calendar-google-provider/ $(CURDIR)/$$GDATA_PROVIDER
+	find debian/calendar-google-provider/usr/share/xul-ext/calendar-google-provider -newermt '$(BUILD_DATE)' -print0 | \
+		xargs -0r touch --no-dereference --date='$(BUILD_DATE)'
 	# sometimes there are temporary build files in calendar-google-provider
 	@echo "    --> searching for temporary build files in 'calendar-google-provider' ..."
 	@for i in `find debian/calendar-google-provider/ -name ".mkdir.done*"`; do echo remove $$i && rm $$i; done
