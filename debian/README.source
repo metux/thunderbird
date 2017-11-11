@@ -82,3 +82,24 @@ usual:
 
  gbp import-orig --sign-tags [--verbose] /path/to/thunderbird_[version].orig.tar.xz
 
+
+Pre-shipped Font file(s)
+=======================
+The source of Firefox is shipping a pre-build font EmojiOneMozilla.ttf in
+the folder
+
+  mozilla/browser/fonts/
+
+Currently this font isn't provided by any package in Debian but Thunderbird is
+needing this font as well in case users are working and using the HTML modus for
+email reading or writing. Thus we ship that font starting with > 52.4.0-1 in
+
+ /usr/lib/thunderbird/font
+
+Once the font is provided by a package we can drop the shipped file. There is
+RFP #881475 about packaging the EmojiOne font.
+
+See also bug reports #849602 and #881299
+
+  https://bugs.debian.org/849602
+  https://bugs.debian.org/881299
