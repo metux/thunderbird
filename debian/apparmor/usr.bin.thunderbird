@@ -241,12 +241,12 @@ profile thunderbird /usr/lib/thunderbird/thunderbird {
     owner @{HOME}/.gnupg/ rw,
     owner @{HOME}/.gnupg/gpg.conf r,
     owner @{HOME}/.gnupg/random_seed rwk,
-    owner @{HOME}/.gnupg/pubring.gpg{,~} rw,
+    owner @{HOME}/.gnupg/pubring.{gpg,kbx}{,~} rw,
     owner @{HOME}/.gnupg/secring.gpg rw,
     owner @{HOME}/.gnupg/trustdb.gpg rw,
     owner @{HOME}/.gnupg/S.gpg-agent rw,
     owner @{HOME}/.gnupg/S.dirmngr rw,
-    owner @{HOME}/.gnupg/*.gpg.{lock,tmp} rwl,
+    owner @{HOME}/.gnupg/*.{gpg,kbx}.{lock,tmp} rwl,
     owner @{HOME}/.gnupg/.gpg-*.lock rwl,
     owner @{HOME}/.gnupg/gnupg_spawn_*.lock rwl,
     owner @{HOME}/.gnupg/.#*[0-9]  rw,
@@ -261,6 +261,14 @@ profile thunderbird /usr/lib/thunderbird/thunderbird {
     # for inline pgp
     owner /tmp/encfile rw,
     owner /tmp/encfile-[0-9]* rw,
+
+    # for key import
+    owner /tmp/enigmail_import/.#lk0x[0-9a-f]*  rw,
+    owner /tmp/enigmail_import/.#lk0x[0-9a-f]*x rwl,
+    owner /tmp/enigmail_import/{keyring,trustdb}.lock rwl,
+    owner /tmp/enigmail_import/{keyring,trustdb}{,~,.tmp} rw,
+    /usr/bin/dirmngr ix,
+    owner @{PROC}/@{pids}/task/@{tid}/comm rw,
 
     # for signature generation
     owner /tmp/nsemail.eml w,
