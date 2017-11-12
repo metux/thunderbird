@@ -1,3 +1,64 @@
+thunderbird (1:52.4.0-2~exp1) experimental; urgency=medium
+
+  [ Carsten Schoenert ]
+  * [a3e73e9] disable usage of libgnomeui parts
+              The libgnomeui stuff (only relevant for GTK+2) is deprecated
+              for a long time and will be removed in buster, and we don't need
+              this at all.
+              See https://lists.debian.org/debian-devel/2017/10/msg00299.html
+  * [9efc5c9] debian/watch: switch to https
+  * [bd5a635] rebuild patch queue from patch-queue branch
+              Fixup for [da3c5cc], add ppc64 to the list of BE architectures.
+              Thanks Adrian Glaubitz for pointing the issue. (Closes: #879270)
+  * [42f5ab5] apparmor: update profile from upstream (Closes: #876333, #855346)
+
+  [ intrigeri ]
+  * [d7febc8, b026d28] AppArmor: update profile from upstream
+              (Closes: #880425, #877324)
+  * [377e7b5] README.Debian: fixing small typo
+  * [3b0a63a] AppArmor: fix importing public OpenPGP keys from file
+              (Closes: #880715)
+
+  [ Carsten Schoenert ]
+  * [241690e] d/control: s/Icedove/Thunderbird in desc's for lightning-l10n-*
+              The lightning-l10n package were still using the name 'Icdeove'
+              instead of 'Thunderbird'.
+  * [f17f735] debian/control: moving transitional packages at bottom
+  * [91f9897] autopkg: adjust icedove to thunderbird depends
+              Now move over to depend in favor of thunderbird for some of
+              the autopkg tests.
+  * [8ae2ad7] autopkg: adjust icedove-dev to thunderbird-dev depends
+              Doing the same as before for thunderbird-dev as the native
+              replacement for icedove-dev.
+  * [fa0134c] bump debhelper >= 10.2.5
+  * [8752789] debian/rules: try to build extensions reproducible
+              The two extensions (lightning and calendar-google-provider)
+              don't build reproducible right now. Trying to fix this by using
+              the timestamp from the changelog entry for the files. May not
+              work correctly and we need to tune more.
+  * [1496368] d/thunderbird.install: also install the fonts folder
+              Recent versions of Thunderbird needing the font EmojiOne which
+              isn't provided by any other package.
+              (Closes: #881299)
+
+  The following changes are take effect in removing all transitional packages
+  related to the old icedove packaging only for buster. We still need all the
+  transitional packages in wheezy, jessie and stretch!
+  * [54c8a9b] [buster] remove transitional iceowl-l10n-* packages
+  * [c338630] [buster] remove Replace, Breaks and Provides for iceowl-l10n-*
+  * [4311683] [buster] remove transitional icedove-l10n-* packages
+  * [f6e3a01] [buster] remove Replace, Breaks and Provides for icedove-l10n-*
+  * [a9117e4] [buster] remove transitional iceowl-extension package
+  * [5aed012] [buster] remove Replace, Breaks and Provides for iceowl-extension
+  * [27fc04b] [buster] remove transitional icedove-dbg package
+  * [53b4825] [buster] remove transitional icedove-dev package
+  * [e2d808f] [buster] remove Replace, Breaks and Provides for icedove-dev
+  * [97edfbe] [buster] remove transitional icedove package
+  * [3748054] [buster] remove Replace and Breaks for icedove
+  * [611a704] [buster] move thunderbird-dbg into *-dbgsym package
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Sun, 12 Nov 2017 16:01:07 +0100
+
 thunderbird (1:52.4.0-1) unstable; urgency=medium
 
   [ Guido Günther ]
