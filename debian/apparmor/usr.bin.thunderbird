@@ -19,6 +19,7 @@ profile thunderbird /usr/lib/thunderbird/thunderbird {
   #include <abstractions/gnome>
   #include <abstractions/ibus>
   #include <abstractions/nameservice>
+  #include <abstractions/nvidia>
   #include <abstractions/p11-kit>
   #include <abstractions/private-files>
   #include <abstractions/ssl_certs>
