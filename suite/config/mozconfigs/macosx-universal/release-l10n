@@ -1,3 +1,4 @@
+. $topsrcdir/build/macosx/universal/mozconfig.common
 . $topsrcdir/suite/config/mozconfigs/mozconfig.macosx.common
 
 ac_add_options --with-l10n-base=../../l10n

@@ -321,6 +321,8 @@ static bool gUseLiteralPlus = true;
 static bool gExpungeAfterDelete = false;
 static bool gCheckDeletedBeforeExpunge = false; //bug 235004
 static int32_t gResponseTimeout = 60;
+static nsCString gForceSelectDetect;
+static nsTArray<nsCString> gForceSelectServersArray;
 
 // let delete model control expunging, i.e., don't ever expunge when the
 // user chooses the imap delete model, otherwise, expunge when over the
@@ -365,6 +367,10 @@ nsresult nsImapProtocol::GlobalInitialization(nsIPrefBranch *aPrefBranch)
     aPrefBranch->GetIntPref("mail.imap.expunge_threshold_number",
                             &gExpungeThreshold);
     aPrefBranch->GetIntPref("mailnews.tcptimeout", &gResponseTimeout);
+    aPrefBranch->GetCharPref("mail.imap.force_select_detect",
+                             getter_Copies(gForceSelectDetect));
+    ParseString(gForceSelectDetect, ';', gForceSelectServersArray);
+
     nsCOMPtr<nsIXULAppInfo> appInfo(do_GetService(XULAPPINFO_SERVICE_CONTRACTID));
 
     if (appInfo)
@@ -503,6 +509,7 @@ nsImapProtocol::nsImapProtocol() : nsMsgProtocol(nullptr),
 
   Configure(gTooFastTime, gIdealTime, gChunkAddSize, gChunkSize,
                     gChunkThreshold, gFetchByChunks);
+  m_forceSelect = false;
 
   // where should we do this? Perhaps in the factory object?
   if (!IMAP)
@@ -541,6 +548,7 @@ nsImapProtocol::Initialize(nsIImapHostSessionList * aHostSessionList,
     return NS_ERROR_OUT_OF_MEMORY;
 
   aServer->GetUseIdle(&m_useIdle);
+  aServer->GetForceSelect(m_forceSelectValue);
   aServer->GetUseCondStore(&m_useCondStore);
   aServer->GetUseCompressDeflate(&m_useCompressDeflate);
   NS_ADDREF(m_flagState);
@@ -2481,6 +2489,17 @@ void nsImapProtocol::ProcessSelectedStateURL()
         // get new message counts, if any, from server
         if (m_needNoop)
         {
+          // For some IMAP servers, to detect new email we must send imap
+          // SELECT even if already SELECTed on the same mailbox. For other
+          // servers that simply don't support IDLE, doing select here will
+          // cause emails to be properly marked "read" after they have been
+          // read in another email client.
+          if (m_forceSelect)
+          {
+            SelectMailbox(mailboxName.get());
+            selectIssued = true;
+          }
+
           m_noopCount++;
           if ((gPromoteNoopToCheckCount > 0 && (m_noopCount % gPromoteNoopToCheckCount) == 0) ||
             CheckNeeded())
@@ -2943,20 +2962,41 @@ void nsImapProtocol::ProcessSelectedStateURL()
             (ImapOnlineCopyState) ImapOnlineCopyStateType::kFailedCopy;
             if (m_imapMailFolderSink)
               m_imapMailFolderSink->OnlineCopyCompleted(this, copyState);
-
-            // Don't mark msg 'Deleted' for aol servers since we already issued 'xaol-move' cmd.
+            // Don't mark message 'Deleted' for AOL servers or standard imap servers
+            // that support MOVE since we already issued an 'xaol-move' or 'move' command.
             if (GetServerStateParser().LastCommandSuccessful() &&
               (m_imapAction == nsIImapUrl::nsImapOnlineMove) &&
               !(GetServerStateParser().ServerIsAOLServer() ||
                 GetServerStateParser().GetCapabilityFlag() & kHasMoveCapability))
             {
+              // Simulate MOVE for servers that don't support MOVE: do COPY-DELETE-EXPUNGE.
               Store(messageIdString, "+FLAGS (\\Deleted \\Seen)",
                 bMessageIdsAreUids);
               bool storeSuccessful = GetServerStateParser().LastCommandSuccessful();
-
-              if (gExpungeAfterDelete && storeSuccessful)
-                Expunge();
-
+              if (storeSuccessful)
+              {
+                if(gExpungeAfterDelete)
+                {
+                  // This will expunge all emails marked as deleted in mailbox,
+                  // not just the ones marked as deleted above.
+                  Expunge();
+                }
+                else
+                {
+                  // Check if UIDPLUS capable so we can just expunge emails we just
+                  // copied and marked as deleted. This prevents expunging emails
+                  // that other clients may have marked as deleted in the mailbox
+                  // and don't want them to disappear.
+                  // Only do UidExpunge() when user selected delete method is "Move
+                  // it to this folder" or "Remove it immediately", not when the
+                  // delete method is "Just mark it as deleted".
+                  if (!GetShowDeletedMessages() &&
+                      (GetServerStateParser().GetCapabilityFlag() & kUidplusCapability))
+                  {
+                    UidExpunge(messageIdString);
+                  }
+                }
+              }
               if (m_imapMailFolderSink)
               {
                 copyState = storeSuccessful ? (ImapOnlineCopyState) ImapOnlineCopyStateType::kSuccessfulDelete
@@ -7650,6 +7690,50 @@ bool nsImapProtocol::GetListSubscribedIsBrokenOnServer()
   return false;
 }
 
+// This identifies servers that require an extra imap SELECT to detect new
+// email in a mailbox. Servers requiring this are found by comparing their
+// ID string, returned with imap ID command, to strings entered in
+// mail.imap.force_select_detect. Only openwave servers used by
+// Charter/Spectrum ISP returning an ID containing the strings ""name" "Email Mx""
+// and ""vendor" "Openwave Messaging"" are now known to have this issue. The
+// compared strings can be modified with the config editor if necessary
+// (e.g., a "version" substring could be added). Also, additional servers
+// having a different set of strings can be added if ever needed.
+// The mail.imap.force_select_detect uses semicolon delimiter between
+// servers and within a server substrings to compare are comma delimited.
+// This example force_select_detect value shows how two servers types
+// could be detected:
+// "name" "Email Mx","vendor" "Openwave Messaging";"vendor" "Yahoo! Inc.","name" "Y!IMAP";
+bool nsImapProtocol::IsExtraSelectNeeded()
+{
+  bool retVal;
+  for (uint32_t i = 0; i < gForceSelectServersArray.Length(); i++)
+  {
+    retVal = true;
+    nsTArray<nsCString> forceSelectStringsArray;
+    ParseString(gForceSelectServersArray[i], ',', forceSelectStringsArray);
+    for (uint32_t j = 0; j < forceSelectStringsArray.Length(); j++)
+    {
+      // Each substring within the server string must be contained in ID string.
+      // First un-escape any comma (%2c) or semicolon (%3b) within the substring.
+      nsAutoCString unescapedString;
+      MsgUnescapeString(forceSelectStringsArray[j], 0, unescapedString);
+      if (GetServerStateParser().GetServerID()
+          .Find(unescapedString, CaseInsensitiveCompare) == kNotFound)
+      {
+        retVal = false;
+        break;
+      }
+    }
+    // Matches found for all substrings for the server.
+    if (retVal)
+      return true;
+  }
+
+  // If reached, no substrings match for any server.
+  return false;
+}
+
 void nsImapProtocol::Lsub(const char *mailboxPattern, bool addDirectoryIfNecessary)
 {
   ProgressEventFunctionUsingName("imapStatusLookingForMailbox");
@@ -8077,12 +8161,78 @@ void nsImapProtocol::ProcessAfterAuthenticated()
   if ((GetServerStateParser().GetCapabilityFlag() & kHasEnableCapability) &&
        UseCondStore())
     EnableCondStore();
+
+  bool haveIdResponse = false;
   if ((GetServerStateParser().GetCapabilityFlag() & kHasIDCapability) &&
        m_sendID)
   {
     ID();
     if (m_imapServerSink && !GetServerStateParser().GetServerID().IsEmpty())
+    {
+      haveIdResponse = true;
+      // Determine value for m_forceSelect based on config editor
+      // entries and comparison to imap ID string returned by the server.
       m_imapServerSink->SetServerID(GetServerStateParser().GetServerID());
+      switch (m_forceSelectValue.get()[0])
+      {
+      // Yes: Set to always force even if imap server doesn't need it.
+      case 'y':
+      case 'Y':
+        m_forceSelect = true;
+        break;
+
+      // No: Set to never force a select for this imap server.
+      case 'n':
+      case 'N':
+        m_forceSelect = false;
+        break;
+
+      // Auto: Set to force only if imap server requires it.
+      default:
+        nsAutoCString statusString;
+        m_forceSelect = IsExtraSelectNeeded();
+        // Setting to "yes-auto" or "no-auto" avoids doing redundant calls to
+        // IsExtraSelectNeeded() on subsequent ID() occurrences. It also
+        // provides feedback to the user regarding the detection status.
+        if (m_forceSelect)
+        {
+          // Set preference value to "yes-auto".
+          statusString.Assign("yes-auto");
+        }
+        else
+        {
+          // Set preference value to "no-auto".
+          statusString.Assign("no-auto");
+        }
+        m_imapServerSink->SetServerForceSelect(statusString);
+        break;
+      }
+    }
+  }
+
+  // If no ID capability or empty ID response, user may still want to
+  // change "force select".
+  if (!haveIdResponse)
+  {
+    switch (m_forceSelectValue.get()[0])
+    {
+    case 'a':
+      {
+        // If default "auto", set to "no-auto" so visible in config editor
+        // and set/keep m_forceSelect false.
+        nsAutoCString statusString;
+        statusString.Assign("no-auto");
+        m_imapServerSink->SetServerForceSelect(statusString);
+        m_forceSelect = false;
+      }
+      break;
+    case 'y':
+    case 'Y':
+      m_forceSelect = true;
+      break;
+    default:
+      m_forceSelect = false;
+    }
   }
 }
 
