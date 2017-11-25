@@ -276,6 +276,9 @@ nsImapIncomingServer::SetMaximumConnectionsNumber(int32_t aMaxConnections)
   return SetIntValue("max_cached_connections", aMaxConnections);
 }
 
+NS_IMPL_SERVERPREF_STR(nsImapIncomingServer, ForceSelect,
+                       "force_select")
+
 NS_IMPL_SERVERPREF_BOOL(nsImapIncomingServer, DualUseFolders,
                         "dual_use_folders")
 
@@ -1890,11 +1893,12 @@ nsImapIncomingServer::FEAlertWithName(const char* aMsgName, nsIMsgMailNewsUrl *a
 
   if (m_stringBundle)
   {
-    nsAutoString hostName;
-    nsresult rv = GetPrettyName(hostName);
+    nsAutoCString hostName;
+    nsresult rv = GetHostName(hostName);
     if (NS_SUCCEEDED(rv))
     {
-      const char16_t *params[] = { hostName.get() };
+      const NS_ConvertUTF8toUTF16 hostName16(hostName);
+      const char16_t *params[] = { hostName16.get() };
       rv = m_stringBundle->FormatStringFromName(
         NS_ConvertASCIItoUTF16(aMsgName).get(),
         params, 1,getter_Copies(message));
@@ -3369,4 +3373,10 @@ NS_IMETHODIMP
 nsImapIncomingServer::SetServerDoingLsub(bool aDoingLsub)
 {
   return SetDoingLsub(aDoingLsub);
+}
+
+NS_IMETHODIMP
+nsImapIncomingServer::SetServerForceSelect(const nsACString &aForceSelect)
+{
+  return SetForceSelect(aForceSelect);
 }
