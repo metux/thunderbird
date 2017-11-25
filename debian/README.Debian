@@ -12,6 +12,10 @@ functionality breakage, you can enable this profile by running:
     sudo rm /etc/apparmor.d/disable/usr.bin.thunderbird && \
     sudo apparmor_parser -r -T -W /etc/apparmor.d/usr.bin.thunderbird
 
+To debug issues with this AppArmor profile, see:
+
+  https://wiki.debian.org/AppArmor/Debug
+
 This AppArmor profile is maintained collaboratively, in
 a cross-distribution manner, within the AppArmor upstream project.
 You can report issues or propose improvements there:
