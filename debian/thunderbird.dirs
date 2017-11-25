@@ -1,4 +1,5 @@
 etc/apparmor.d
+etc/apparmor.d/disable
 usr/bin
 usr/share/icons/hicolor/16x16/apps
 usr/share/icons/hicolor/22x22/apps

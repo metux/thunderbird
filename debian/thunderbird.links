@@ -1,3 +1,4 @@
+/etc/apparmor.d/usr.bin.thunderbird  /etc/apparmor.d/disable/usr.bin.thunderbird
 /etc/thunderbird/pref            usr/share/thunderbird/defaults/syspref
 /usr/share/hunspell              usr/lib/thunderbird/dictionaries
 # don't link /usr/bin/thunderbird -> /usr/lib/thunderbird/thunderbird
