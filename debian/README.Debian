@@ -1,4 +1,24 @@
-﻿De-Branding of Icedove, Reintroduce Thunderbird in Debian
+﻿AppArmor policy
+---------------
+
+The thunderbird package includes an AppArmor profile
+(/etc/apparmor.d/usr.bin.thunderbird). This profile is disabled by
+default because it has to break a number of common use cases in order
+to provide meaningful application confinement.
+
+If you want to trade additional security against potential
+functionality breakage, you can enable this profile by running:
+
+    sudo rm /etc/apparmor.d/disable/usr.bin.thunderbird && \
+    sudo apparmor_parser -r -T -W /etc/apparmor.d/usr.bin.thunderbird
+
+This AppArmor profile is maintained collaboratively, in
+a cross-distribution manner, within the AppArmor upstream project.
+You can report issues or propose improvements there:
+
+  https://gitlab.com/apparmor/apparmor-profiles
+
+De-Branding of Icedove, Reintroduce Thunderbird in Debian
 ---------------------------------------------------------
 
 Debian and Mozilla has done some new rethinking and talking about the old legal
