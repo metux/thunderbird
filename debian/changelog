@@ -88,7 +88,7 @@ thunderbird (1:52.4.0-1) unstable; urgency=medium
               to be closer on the real upstream used names.
   * [a5ce4f7] New upstream version 52.4.0
     (Closes: #878845, #878870)
-    Fixed CVE issues in upstream version 52.0 (MFSA 2017-23)
+    Fixed CVE issues in upstream version 52.4 (MFSA 2017-23)
     CVE-2017-7793: Use-after-free with Fetch API
     CVE-2017-7818: Use-after-free during ARIA array manipulation
     CVE-2017-7819: Use-after-free while resizing images in design mode
@@ -149,7 +149,7 @@ icedove (1:52.3.0-1) unstable; urgency=medium
 
   [ Carsten Schoenert ]
   * [8e852be] New upstream version 52.3.0
-    Fixed CVE issues in upstream version 52.0 (MFSA 2017-20)
+    Fixed CVE issues in upstream version 52.3 (MFSA 2017-20)
     CVE-2017-7800: Use-after-free in WebSockets during disconnection
     CVE-2017-7801: Use-after-free with marquee during window resizing
     CVE-2017-7809: Use-after-free while deleting attached editor DOM node
@@ -300,7 +300,7 @@ icedove (1:52.2.0-1) unstable; urgency=medium
     - porting-sh4/Add-sh4-support-to-Thunderbird.patch
     (Closes: #859271, #859508)
   * [0a89f76] New upstream version 52.2.0
-    Fixed CVE issues in upstream version 52.0 (MFSA 2017-17)
+    Fixed CVE issues in upstream version 52.2 (MFSA 2017-17)
     CVE-2017-5472: Use-after-free using destroyed node when regenerating trees
     CVE-2017-7749: Use-after-free during docshell reloading
     CVE-2017-7750: Use-after-free with track elements
@@ -346,7 +346,7 @@ icedove (1:52.1.1-1) experimental; urgency=medium
     (Closes: #858100)
   * [8afa31b] d/gbp.conf: adjust upstream branch to new ESR version
   * [43d2e70] New upstream version 52.1.1
-    Fixed CVE issues in upstream version 52.0 (MFSA 2017-09)
+    Fixed CVE issues in upstream version 52.1 (MFSA 2017-09)
     CVE-2017-5413: Segmentation fault during bidirectional operations
     CVE-2017-5414: File picker can choose incorrect default directory
     CVE-2017-5416: Null dereference crash in HttpChannel
@@ -361,7 +361,7 @@ icedove (1:52.1.1-1) experimental; urgency=medium
     CVE-2017-5422: DOS attack by using view-source: protocol repeatedly in one
                    hyperlink
     CVE-2017-5399: Memory safety bugs fixed in Thunderbird 52
-    Fixed CVE issues in upstream version 52.1.0 (MFSA 2017-13)
+    Fixed CVE issues in upstream version 52.1 (MFSA 2017-13)
     CVE-2017-5433: Use-after-free in SMIL animation functions
     CVE-2017-5435: Use-after-free during transaction processing in the editor
     CVE-2017-5436: Out-of-bounds write with malicious font in Graphite 2
