@@ -3,7 +3,6 @@ Section: mail
 Priority: optional
 Maintainer: Carsten Schoenert <c.schoenert@t-online.de>
 Uploaders:
- Guido Günther <agx@sigxcpu.org>,
  Christoph Goehre <chris@sigxcpu.org>,
 Build-Depends:
  autoconf2.13,
