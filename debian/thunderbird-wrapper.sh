@@ -235,8 +235,8 @@ fi
 
 if [ "${DEBUG}" = "" ]; then
     TB_ARGS_LINE=$(echo "${TB_ARGS[@]}" | sed "s/'/\"/g")
-    output_debug "call '${MOZ_LIBDIR}/${MOZ_APP_NAME}-bin ${TB_ARGS_LINE}'"
-    exec "${MOZ_LIBDIR}"/"${MOZ_APP_NAME}-bin" "${TB_ARGS[@]}"
+    output_debug "call '${MOZ_LIBDIR}/${MOZ_APP_NAME} ${TB_ARGS_LINE}'"
+    exec "${MOZ_LIBDIR}"/"${MOZ_APP_NAME}" "${TB_ARGS[@]}"
 else
     # User has selected GDB?
     if [ "${DEBUGGER}" = "1" ]; then
@@ -244,7 +244,7 @@ else
         if [ -f /usr/bin/gdb ]; then
             if dpkg-query -W -f='${Version}' thunderbird-dbgsym &>/dev/null ; then
                 output_info "Starting Thunderbird with GDB ..."
-                LANG='' exec "${MOZ_LIBDIR}"/run-mozilla.sh -g "${MOZ_LIBDIR}"/"${MOZ_APP_NAME}-bin" "${TB_ARGS[@]}"
+                LANG='' exec "${MOZ_LIBDIR}"/run-mozilla.sh -g "${MOZ_LIBDIR}"/"${MOZ_APP_NAME}" "${TB_ARGS[@]}"
             else
                 output_info "No package 'thunderbird-dbgsym' installed! Please install first and restart."
                 exit 1
