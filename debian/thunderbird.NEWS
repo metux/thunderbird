@@ -1,0 +1,16 @@
+thunderbird (1:52.5.0-1) unstable; urgency=high
+
+  The profile for AppArmor within Thunderbird is now disabled by default.
+  Since the activated Recommends for the apparmor package in recent
+  kernel-image packages it turns out there are to many things that simply not
+  working like before if Thunderbird is using the current AppArmor profile.
+
+  Please read README.apparmor for getting more information about the
+  re-enabling of the AppArmor profile.
+  People who wants to help to improve the AppAprmor profile are appreciated.
+  
+  Take also a look at #882048 for the reason behind that decision.
+
+  https://bugs.debian.org/882048
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Sun, 26 Nov 2017 12:45:00 +0200
