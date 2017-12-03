@@ -65,19 +65,19 @@ case `dpkg --print-architecture` in
   alpha)
     ac_add_options --enable-optimize=-O1
     ;;
-  amd64)
-    ac_add_options --enable-crashreporter
-    ;;
+#  amd64)
+#    ac_add_options --enable-crashreporter
+#    ;;
   arm64)
     ac_add_options --enable-optimize=-O1
     ;;
   armel)
     ac_add_options --enable-optimize=-O1
-    ac_add_options --enable-crashreporter
+#    ac_add_options --enable-crashreporter
     ;;
   armhf)
     ac_add_options --enable-optimize=-O1
-    ac_add_options --enable-crashreporter
+#    ac_add_options --enable-crashreporter
     ;;
   hurd-i386)
     ac_add_options --disable-necko-wifi
@@ -87,7 +87,7 @@ case `dpkg --print-architecture` in
     ac_add_options --with-intl-api
     ;;
   i386)
-    ac_add_options --enable-crashreporter
+#    ac_add_options --enable-crashreporter
     ;;
   ia64)
     ac_add_options --enable-optimize=-O2
