@@ -1,3 +1,49 @@
+thunderbird (1:52.5.0-1) unstable; urgency=high
+
+  [ intrigeri ]
+  * [48e6b65] AppArmor: fix the Crash Reporter and avoid noisy denial logs
+              (Closes: #880953)
+  * [ad8b3b5] AppArmor: fix compatibility with NVIDIA hardware
+              (Closes: #880532)
+  * [d8ff6b6] Disable the AppArmor profile by default
+              Due the various side effects by the enabled AppArmor profile in
+              Thunderbird it's currently better for a user experience we
+              disabling the AppArmor profile for to not get people get mad with
+              to many broken things.
+              Users can always enable the profile by themselves again.
+              (Closes: #882672)
+  * [e50eac5] README.Debian: document how to opt-in for AppArmor confinement
+  * [860d325] README.Debian: document how one can debug the AppArmor profile
+
+  [ Guido Günther ]
+  * [50a8f60] Drop myself from maintainers
+              Thank you Guido for always helping out if we had some questions!
+
+  [ Carsten Schoenert ]
+  * [b64509b] New upstream version 52.5.0
+    Fixed CVE issues in upstream version 52.5 (MFSA 2017-26)
+    CVE-2017-7828: Use-after-free of PressShell while restyling layout
+    CVE-2017-7830: Cross-origin URL information leak through Resource Timing API
+    CVE-2017-7826: Memory safety bugs fixed in Firefox 57, Firefox ESR 52.5,
+                   and Thunderbird 52.5
+  * [3166018] thunderbird.links: let thunderbird pointing to thunderbird-bin
+              (Closes: #856492)
+  * [6fff70c] [buster] tb-wrapper: searching the correct dbgsym package
+  * [4763ca6] adding a NEWS file for thunderbird package
+              Giving a note about the now disabled AppArmor profile.
+  * [0b9d656] disabling crashreporter for now
+              Also don't build and ship the Crashreporter any more, it's useless
+              until we can collect all symbols correctly.
+  * [a285647] move AppArmor specific things into own README file
+              Put all AppArmor related information into one dedicated file.
+  * [5d56439] d/thunderbird.js: prepare a line for extra X-Debbugs-Cc
+              A really old bug report ... building a compromise and put the
+              requested extra header config into the configuration file but keep
+              it deactivated as default.
+              (Closes: #379304)
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Sun, 03 Dec 2017 19:58:57 +0100
+
 thunderbird (1:52.4.0-2~exp1) experimental; urgency=medium
 
   [ Carsten Schoenert ]
