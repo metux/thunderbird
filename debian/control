@@ -2156,3 +2156,21 @@ Description: Chinese (Taiwan) language package for lightning
  .
  This package contains the localization of lightning in Chinese (Taiwan).
 
+Package: icedove
+Architecture: all
+Section: oldlibs
+Depends:
+ thunderbird (>= ${binary:Version}),
+ ${misc:Depends},
+Description: mail/news client with RSS and integrated spam filter support
+ Icedove is an unbranded Thunderbird mail client suitable for free
+ distribution. It supports different mail accounts (POP, IMAP, Gmail), has an
+ integrated learning Spam filter, and offers easy organization of mails with
+ tagging and virtual folders. Also, more features can be added by installing
+ extensions.
+ .
+ The goal of Icedove is to produce a cross platform standalone mail application
+ using the XUL user interface language.
+ .
+ This is a transitional package. It can be safely removed.
+
