@@ -224,10 +224,13 @@ Suggests:
  fonts-lyx,
 Provides:
  calendar-timezones,
+ iceowl-extension,
 Breaks:
  calendar-timezones,
+ iceowl-extension (<< 1:45.6.0-2.1~),
 Replaces:
  calendar-timezones,
+ iceowl-extension (<< 1:45.6.0-2.1~),
 Description: Calendar Extension for Thunderbird
  Lightning is a calendar extension for Thunderbird. It can handle events,
  event invitations and tasks in multiple calendars.
