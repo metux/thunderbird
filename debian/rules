@@ -5,7 +5,7 @@
 # export DH_VERBOSE=1
 
 # checking the release type, if $(RELEASE)=UNRELEASED we won't build
-# the thunderbird-dbgsym package
+# the thunderbird-dbg package
 include /usr/share/dpkg/pkg-info.mk
 RELEASE := $(DEB_DISTRIBUTION)
 
@@ -242,7 +242,7 @@ override_dh_fixperms-arch:
 
 override_dh_strip:
 	if [ "$(RELEASE)" != "UNRELEASED" ]; then \
-		dh_strip --automatic-dbgsym ;\
+		dh_strip --dbg-package=thunderbird-dbg ;\
 	else \
 		dh_strip --no-automatic-dbgsym ;\
 	fi
@@ -252,7 +252,7 @@ override_dh_shlibdeps:
 
 override_dh_builddeb:
 	# just build all packages if there is no 'UNRELEASED' within the changelog
-	# found, otherwise skip the thunderbird-dbgsym package, it isn't there
+	# found, otherwise skip the thunderbird-dbg package, it isn't there
 	if [ "$(RELEASE)" != "UNRELEASED" ]; then \
 		dh_builddeb ;\
 	else \
@@ -264,7 +264,7 @@ override_dh_builddeb:
 			'Package: thunderbird-l10n\|Package: lightning-l10n' debian/control | awk '{print $$2;}'`; do \
 			dh_builddeb -p$$package ;\
 		done ;\
-		sed -i '/thunderbird-dbgsym/d' debian/files ;\
+		sed -i '/thunderbird-dbg/d' debian/files ;\
 	fi
 
 override_dh_lintian:

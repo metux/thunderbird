@@ -176,6 +176,33 @@ Description: Development files for Thunderbird
  This package contains the development headers, idl files and static libraries
  needed to develop applications using Thunderbird.
 
+Package: thunderbird-dbg
+Architecture: any
+Priority: extra
+Section: debug
+Multi-Arch: same
+Depends:
+ thunderbird (= ${binary:Version}),
+ ${misc:Depends},
+Replaces:
+ icedove-dbg (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-dbg (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-dbg,
+Description: Debug Symbols for Thunderbird
+ Thunderbird is an mail client suitable for free distribution. The goal of
+ Thunderbird is to produce a cross platform stand-alone mail application using
+ the XUL user interface language.
+ It supports different mail accounts, no matter of the used protocol like
+ POP(s) or IMAP(s), has an integrated learning Spam filter, and offers easy
+ organization of mails with tagging and virtual folders. Also, more features
+ can be added by installing extensions.
+ .
+ This package contains the debug symbols for Thunderbird. Install this package
+ if you need to debug such a program or if you need a useful backtrace of a
+ crash.
+
 Package: lightning
 Architecture: any
 Depends:
