@@ -76,8 +76,12 @@ Suggests:
  ${gnome:Depends},
 Provides:
  mail-reader,
+ icedove,
 Xb-Xul-AppId: {3550f703-e582-4d05-9a08-453d09bdfdc6}
+Replaces:
+ icedove (<< 1:45.6.0-2.1~),
 Breaks:
+ icedove (<< 1:45.6.0-2.1~),
  enigmail (<< 2:1.9.8.1-1~),
  hunspell-ar (<< 0.0.0+20080110-1.1),
  hunspell-da (<< 1:3.1.0-3),
