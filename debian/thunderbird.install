@@ -14,6 +14,7 @@ debian/logo/thunderbird/thunderbird.svg           usr/share/icons/hicolor/scalab
 debian/thunderbird.desktop                        usr/share/applications
 debian/thunderbird.js                             etc/thunderbird/pref
 debian/thunderbird-wrapper-helper.sh              usr/lib/thunderbird
+debian/tmp/usr/lib/thunderbird/fonts
 debian/tmp/usr/lib/thunderbird/*.ini
 debian/tmp/usr/lib/thunderbird/blocklist.xml
 debian/tmp/usr/lib/thunderbird/chrome             usr/share/thunderbird
@@ -27,6 +28,6 @@ debian/tmp/usr/lib/thunderbird/omni.ja            usr/share/thunderbird
 debian/tmp/usr/lib/thunderbird/plugin-container
 debian/tmp/usr/lib/thunderbird/removed-files
 debian/tmp/usr/lib/thunderbird/run-mozilla.sh
-[amd64 armel armhf i386] debian/tmp/usr/lib/thunderbird/Throbber-small.gif
-[amd64 armel armhf i386] debian/tmp/usr/lib/thunderbird/crashreporter
+#[amd64 armel armhf i386] debian/tmp/usr/lib/thunderbird/Throbber-small.gif
+#[amd64 armel armhf i386] debian/tmp/usr/lib/thunderbird/crashreporter
 debian/vendor.js                                  usr/share/thunderbird/defaults/pref

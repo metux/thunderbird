@@ -1,3 +1,110 @@
+thunderbird (1:52.5.0-1) unstable; urgency=high
+
+  [ intrigeri ]
+  * [48e6b65] AppArmor: fix the Crash Reporter and avoid noisy denial logs
+              (Closes: #880953)
+  * [ad8b3b5] AppArmor: fix compatibility with NVIDIA hardware
+              (Closes: #880532)
+  * [d8ff6b6] Disable the AppArmor profile by default
+              Due the various side effects by the enabled AppArmor profile in
+              Thunderbird it's currently better for a user experience we
+              disabling the AppArmor profile for to not get people get mad with
+              to many broken things.
+              Users can always enable the profile by themselves again.
+              (Closes: #882672)
+  * [e50eac5] README.Debian: document how to opt-in for AppArmor confinement
+  * [860d325] README.Debian: document how one can debug the AppArmor profile
+
+  [ Guido Günther ]
+  * [50a8f60] Drop myself from maintainers
+              Thank you Guido for always helping out if we had some questions!
+
+  [ Carsten Schoenert ]
+  * [b64509b] New upstream version 52.5.0
+    Fixed CVE issues in upstream version 52.5 (MFSA 2017-26)
+    CVE-2017-7828: Use-after-free of PressShell while restyling layout
+    CVE-2017-7830: Cross-origin URL information leak through Resource Timing API
+    CVE-2017-7826: Memory safety bugs fixed in Firefox 57, Firefox ESR 52.5,
+                   and Thunderbird 52.5
+  * [3166018] thunderbird.links: let thunderbird pointing to thunderbird-bin
+              (Closes: #856492)
+  * [6fff70c] [buster] tb-wrapper: searching the correct dbgsym package
+  * [4763ca6] adding a NEWS file for thunderbird package
+              Giving a note about the now disabled AppArmor profile.
+  * [0b9d656] disabling crashreporter for now
+              Also don't build and ship the Crashreporter any more, it's useless
+              until we can collect all symbols correctly.
+  * [a285647] move AppArmor specific things into own README file
+              Put all AppArmor related information into one dedicated file.
+  * [5d56439] d/thunderbird.js: prepare a line for extra X-Debbugs-Cc
+              A really old bug report ... building a compromise and put the
+              requested extra header config into the configuration file but keep
+              it deactivated as default.
+              (Closes: #379304)
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Sun, 03 Dec 2017 19:58:57 +0100
+
+thunderbird (1:52.4.0-2~exp1) experimental; urgency=medium
+
+  [ Carsten Schoenert ]
+  * [a3e73e9] disable usage of libgnomeui parts
+              The libgnomeui stuff (only relevant for GTK+2) is deprecated
+              for a long time and will be removed in buster, and we don't need
+              this at all.
+              See https://lists.debian.org/debian-devel/2017/10/msg00299.html
+  * [9efc5c9] debian/watch: switch to https
+  * [bd5a635] rebuild patch queue from patch-queue branch
+              Fixup for [da3c5cc], add ppc64 to the list of BE architectures.
+              Thanks Adrian Glaubitz for pointing the issue. (Closes: #879270)
+  * [42f5ab5] apparmor: update profile from upstream (Closes: #876333, #855346)
+
+  [ intrigeri ]
+  * [d7febc8, b026d28] AppArmor: update profile from upstream
+              (Closes: #880425, #877324)
+  * [377e7b5] README.Debian: fixing small typo
+  * [3b0a63a] AppArmor: fix importing public OpenPGP keys from file
+              (Closes: #880715)
+
+  [ Carsten Schoenert ]
+  * [241690e] d/control: s/Icedove/Thunderbird in desc's for lightning-l10n-*
+              The lightning-l10n package were still using the name 'Icdeove'
+              instead of 'Thunderbird'.
+  * [f17f735] debian/control: moving transitional packages at bottom
+  * [91f9897] autopkg: adjust icedove to thunderbird depends
+              Now move over to depend in favor of thunderbird for some of
+              the autopkg tests.
+  * [8ae2ad7] autopkg: adjust icedove-dev to thunderbird-dev depends
+              Doing the same as before for thunderbird-dev as the native
+              replacement for icedove-dev.
+  * [fa0134c] bump debhelper >= 10.2.5
+  * [8752789] debian/rules: try to build extensions reproducible
+              The two extensions (lightning and calendar-google-provider)
+              don't build reproducible right now. Trying to fix this by using
+              the timestamp from the changelog entry for the files. May not
+              work correctly and we need to tune more.
+  * [1496368] d/thunderbird.install: also install the fonts folder
+              Recent versions of Thunderbird needing the font EmojiOne which
+              isn't provided by any other package.
+              (Closes: #881299)
+
+  The following changes are take effect in removing all transitional packages
+  related to the old icedove packaging only for buster. We still need all the
+  transitional packages in wheezy, jessie and stretch!
+  * [54c8a9b] [buster] remove transitional iceowl-l10n-* packages
+  * [c338630] [buster] remove Replace, Breaks and Provides for iceowl-l10n-*
+  * [4311683] [buster] remove transitional icedove-l10n-* packages
+  * [f6e3a01] [buster] remove Replace, Breaks and Provides for icedove-l10n-*
+  * [a9117e4] [buster] remove transitional iceowl-extension package
+  * [5aed012] [buster] remove Replace, Breaks and Provides for iceowl-extension
+  * [27fc04b] [buster] remove transitional icedove-dbg package
+  * [53b4825] [buster] remove transitional icedove-dev package
+  * [e2d808f] [buster] remove Replace, Breaks and Provides for icedove-dev
+  * [97edfbe] [buster] remove transitional icedove package
+  * [3748054] [buster] remove Replace and Breaks for icedove
+  * [611a704] [buster] move thunderbird-dbg into *-dbgsym package
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Sun, 12 Nov 2017 16:01:07 +0100
+
 thunderbird (1:52.4.0-1~deb9u1) stretch-security; urgency=medium
 
   [ Carsten Schoenert ]
@@ -30,7 +137,7 @@ thunderbird (1:52.4.0-1~deb9u1) stretch-security; urgency=medium
               to be closer on the real upstream used names.
   * [a5ce4f7] New upstream version 52.4.0
     (Closes: #878845, #878870)
-    Fixed CVE issues in upstream version 52.0 (MFSA 2017-23)
+    Fixed CVE issues in upstream version 52.4 (MFSA 2017-23)
     CVE-2017-7793: Use-after-free with Fetch API
     CVE-2017-7818: Use-after-free during ARIA array manipulation
     CVE-2017-7819: Use-after-free while resizing images in design mode
@@ -99,7 +206,7 @@ icedove (1:52.3.0-1) unstable; urgency=medium
 
   [ Carsten Schoenert ]
   * [8e852be] New upstream version 52.3.0
-    Fixed CVE issues in upstream version 52.0 (MFSA 2017-20)
+    Fixed CVE issues in upstream version 52.3 (MFSA 2017-20)
     CVE-2017-7800: Use-after-free in WebSockets during disconnection
     CVE-2017-7801: Use-after-free with marquee during window resizing
     CVE-2017-7809: Use-after-free while deleting attached editor DOM node
@@ -256,7 +363,7 @@ icedove (1:52.2.0-1) unstable; urgency=medium
     - porting-sh4/Add-sh4-support-to-Thunderbird.patch
     (Closes: #859271, #859508)
   * [0a89f76] New upstream version 52.2.0
-    Fixed CVE issues in upstream version 52.0 (MFSA 2017-17)
+    Fixed CVE issues in upstream version 52.2 (MFSA 2017-17)
     CVE-2017-5472: Use-after-free using destroyed node when regenerating trees
     CVE-2017-7749: Use-after-free during docshell reloading
     CVE-2017-7750: Use-after-free with track elements
@@ -302,7 +409,7 @@ icedove (1:52.1.1-1) experimental; urgency=medium
     (Closes: #858100)
   * [8afa31b] d/gbp.conf: adjust upstream branch to new ESR version
   * [43d2e70] New upstream version 52.1.1
-    Fixed CVE issues in upstream version 52.0 (MFSA 2017-09)
+    Fixed CVE issues in upstream version 52.1 (MFSA 2017-09)
     CVE-2017-5413: Segmentation fault during bidirectional operations
     CVE-2017-5414: File picker can choose incorrect default directory
     CVE-2017-5416: Null dereference crash in HttpChannel
@@ -317,7 +424,7 @@ icedove (1:52.1.1-1) experimental; urgency=medium
     CVE-2017-5422: DOS attack by using view-source: protocol repeatedly in one
                    hyperlink
     CVE-2017-5399: Memory safety bugs fixed in Thunderbird 52
-    Fixed CVE issues in upstream version 52.1.0 (MFSA 2017-13)
+    Fixed CVE issues in upstream version 52.1 (MFSA 2017-13)
     CVE-2017-5433: Use-after-free in SMIL animation functions
     CVE-2017-5435: Use-after-free during transaction processing in the editor
     CVE-2017-5436: Out-of-bounds write with malicious font in Graphite 2

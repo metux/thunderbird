@@ -1,14 +1,14 @@
 Tests: help.sh
-Depends: icedove, xvfb, xauth
+Depends: thunderbird, xvfb, xauth
 
 Tests: xpcshellTest.sh
-Depends: icedove-dev
+Depends: thunderbird-dev
 
 #Tests: idlTest.sh
-#Depends: icedove-dev, build-essential
+#Depends: thunderbird-dev, build-essential
 
 Tests: icudatfileTest.sh
-Depends: icedove-dev
+Depends: thunderbird-dev
 
 Tests: soSymlinkTest.sh
-Depends: icedove-dev
+Depends: thunderbird-dev

@@ -32,3 +32,7 @@ pref("network.protocol-handler.app.https", "x-www-browser");
 // memory between interacting JS files is disabled.
 pref ("javascript.options.baselinejit", false);
 
+// Uncomment the follwing setting if you want to have a extra mail header field
+// for X-Debbugs-Cc, only needed in case you have to work with the Debian
+// Bug Tracking System more deeply
+//pref("mail.compose.other.header", "X-Debbugs-Cc");

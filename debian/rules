@@ -5,7 +5,7 @@
 # export DH_VERBOSE=1
 
 # checking the release type, if $(RELEASE)=UNRELEASED we won't build
-# the thunderbird-dbg package
+# the thunderbird-dbgsym package
 include /usr/share/dpkg/pkg-info.mk
 RELEASE := $(DEB_DISTRIBUTION)
 
@@ -57,6 +57,7 @@ LDFLAGS += -Wl,--no-keep-memory -Wl,--reduce-memory-overheads
 LDFLAGS += -Wl,--stats
 
 export MOZ_BUILD_DATE := $(SOURCE_DATE_EPOCH)
+export BUILD_DATE := $(shell dpkg-parsechangelog --show-field=Date)
 export MOZCONFIG=$(shell pwd)/mozconfig.thunderbird
 export MOZILLA_OFFICIAL=1
 export DEB_BUILD_GNU_TYPE
@@ -79,15 +80,13 @@ override_dh_auto_clean:
 	rm -rf $(LIGHTNING_L10N_BUILDDIR)
 
 override_dh_auto_configure:
-	# update config.sub and config.guess
-	dh_autotools-dev_updateconfig
 	# run autoconf for all configure files
-	if [ "Z$(DEB_AUTO_UPDATE_AUTOCONF)" != Z ] || [ ! -e $(CURDIR)/configure ]; \
-	then cd $(CURDIR) && `which autoconf$(DEB_AUTO_UPDATE_AUTOCONF) || which autoconf`; fi
-	if [ "Z$(DEB_AUTO_UPDATE_AUTOCONF)" != Z ] || [ ! -e $(CURDIR)/mozilla/configure ]; \
-	then cd $(CURDIR)/mozilla && `which autoconf$(DEB_AUTO_UPDATE_AUTOCONF) || which autoconf`; fi
-	if [ "Z$(DEB_AUTO_UPDATE_AUTOCONF)" != Z ] || [ ! -e $(CURDIR)/mozilla/js/src/configure ]; \
-	then cd $(CURDIR)/mozilla/js/src && `which autoconf$(DEB_AUTO_UPDATE_AUTOCONF) || which autoconf`; fi
+	if [ "Z$(DEB_AUTO_UPDATE_AUTOCONF)" != Z ] || [ ! -e $(CURDIR)/configure ]; then \
+		cd $(CURDIR) && `which autoconf$(DEB_AUTO_UPDATE_AUTOCONF) || which autoconf`; fi
+	if [ "Z$(DEB_AUTO_UPDATE_AUTOCONF)" != Z ] || [ ! -e $(CURDIR)/mozilla/configure ]; then \
+		cd $(CURDIR)/mozilla && `which autoconf$(DEB_AUTO_UPDATE_AUTOCONF) || which autoconf`; fi
+	if [ "Z$(DEB_AUTO_UPDATE_AUTOCONF)" != Z ] || [ ! -e $(CURDIR)/mozilla/js/src/configure ]; then \
+		cd $(CURDIR)/mozilla/js/src && `which autoconf$(DEB_AUTO_UPDATE_AUTOCONF) || which autoconf`; fi
 	# copy the mozconfig files
 	cp debian/mozconfig.* .
 	cp debian/mozconfig.default mozilla/
@@ -207,6 +206,8 @@ override_dh_install-arch:
 	# sometimes there are temporary build files in lightning
 	@echo "    --> searching for temporary build files in 'lightning' ..."
 	@for i in `find debian/lightning/ -name ".mkdir.done*"`; do echo remove $$i && rm $$i; done
+	find debian/lightning/usr/lib/lightning -newermt '$(BUILD_DATE)' -print0 | \
+		xargs -0r touch --no-dereference --date='$(BUILD_DATE)'
 	# remove duplicate .so files in dev package
 	rm debian/thunderbird-dev/usr/lib/thunderbird-devel/sdk/lib/libxul.so
 	rm debian/thunderbird-dev/usr/lib/thunderbird-devel/sdk/lib/libnss3.so
@@ -225,6 +226,8 @@ override_dh_install-indep:
 	mkdir -p debian/calendar-google-provider/usr/share/xul-ext/calendar-google-provider/
 	GDATA_PROVIDER=`find -type f -name "gdata-provider*.xpi"` &&\
 		unzip -d debian/calendar-google-provider/usr/share/xul-ext/calendar-google-provider/ $(CURDIR)/$$GDATA_PROVIDER
+	find debian/calendar-google-provider/usr/share/xul-ext/calendar-google-provider -newermt '$(BUILD_DATE)' -print0 | \
+		xargs -0r touch --no-dereference --date='$(BUILD_DATE)'
 	# sometimes there are temporary build files in calendar-google-provider
 	@echo "    --> searching for temporary build files in 'calendar-google-provider' ..."
 	@for i in `find debian/calendar-google-provider/ -name ".mkdir.done*"`; do echo remove $$i && rm $$i; done
@@ -239,7 +242,7 @@ override_dh_fixperms-arch:
 
 override_dh_strip:
 	if [ "$(RELEASE)" != "UNRELEASED" ]; then \
-		dh_strip --dbg-package=thunderbird-dbg ;\
+		dh_strip --automatic-dbgsym ;\
 	else \
 		dh_strip --no-automatic-dbgsym ;\
 	fi
@@ -249,23 +252,19 @@ override_dh_shlibdeps:
 
 override_dh_builddeb:
 	# just build all packages if there is no 'UNRELEASED' within the changelog
-	# found, otherwise skip the thunderbird-dbg package, it isn't there
+	# found, otherwise skip the thunderbird-dbgsym package, it isn't there
 	if [ "$(RELEASE)" != "UNRELEASED" ]; then \
 		dh_builddeb ;\
 	else \
 		dh_builddeb -pthunderbird ;\
-		dh_builddeb -picedove ;\
 		dh_builddeb -pthunderbird-dev ;\
-		dh_builddeb -picedove-dev ;\
 		dh_builddeb -plightning ;\
-		dh_builddeb -piceowl-extension ;\
 		dh_builddeb -pcalendar-google-provider ;\
 		for package in `grep -e \
-			'Package: thunderbird-l10n\|Package: lightning-l10n\|Package: icedove-l10n\|Package: iceowl-l10n' debian/control | awk '{print $$2;}'`; do \
+			'Package: thunderbird-l10n\|Package: lightning-l10n' debian/control | awk '{print $$2;}'`; do \
 			dh_builddeb -p$$package ;\
 		done ;\
-		sed -i '/thunderbird-dbg/d' debian/files ;\
-		sed -i '/icedove-dbg/d' debian/files ;\
+		sed -i '/thunderbird-dbgsym/d' debian/files ;\
 	fi
 
 override_dh_lintian:

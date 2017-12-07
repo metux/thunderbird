@@ -164,7 +164,7 @@ about such issues.
 Mozilla Crash Reporter for Thunderbird
 --------------------------------------
 
-The crash reporter tor Thunderbird is enabled since version > 1:45.6.0-3. By
+The crash reporter for Thunderbird is enabled since version > 1:45.6.0-3. By
 this a possible crash could be automatically send to Mozilla if the user is
 accepting this. There is nothing send to Mozilla without a user action. More
 information about the crash reporter can be found on:
