@@ -314,6 +314,12 @@ Depends:
  thunderbird-l10n-zh-cn (>= ${binary:Version}),
  thunderbird-l10n-zh-tw (>= ${binary:Version}),
  ${misc:Depends},
+Replaces:
+ icedove-l10n-all (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-all (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-all,
 Description: All language packages for Thunderbird (meta)
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -332,6 +338,12 @@ Depends:
 Homepage: https://wiki.mozilla.org/L10n:Teams:ar
 Recommends:
  hunspell-ar,
+Replaces:
+ icedove-l10n-ar (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-ar (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-ar,
 Description: Arabic language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -347,6 +359,12 @@ Depends:
  thunderbird (>= ${source:Version}),
  ${misc:Depends},
 Homepage: https://wiki.mozilla.org/L10n:Teams:ast
+Replaces:
+ icedove-l10n-ast (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-ast (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-ast,
 Description: Asturian language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -364,6 +382,12 @@ Depends:
 Homepage: https://wiki.mozilla.org/L10n:Teams:be
 Recommends:
  hunspell-be,
+Replaces:
+ icedove-l10n-be (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-be (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-be,
 Description: Belarusian language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -381,6 +405,12 @@ Depends:
 Homepage: https://wiki.mozilla.org/L10n:Teams:bg
 Recommends:
  hunspell-bg | myspell-bg,
+Replaces:
+ icedove-l10n-bg (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-bg (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-bg,
 Description: Bulgarian language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -398,6 +428,12 @@ Depends:
 Homepage: https://wiki.mozilla.org/L10n:Teams:bd-BD
 Recommends:
  hunspell-bn,
+Replaces:
+ icedove-l10n-bn-bd (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-bn-bd (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-bn-bd,
 Description: Bengali language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -415,6 +451,12 @@ Depends:
 Homepage: https://wiki.mozilla.org/L10n:Teams:br
 Recommends:
  hunspell-br,
+Replaces:
+ icedove-l10n-br (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-br (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-br,
 Description: Breton language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -432,6 +474,12 @@ Depends:
 Homepage: https://wiki.mozilla.org/L10n:Teams:ca
 Recommends:
  hunspell-ca | myspell-ca,
+Replaces:
+ icedove-l10n-ca (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-ca (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-ca,
 Description: Catalan/Valencian language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -449,6 +497,12 @@ Depends:
 Homepage: https://wiki.mozilla.org/L10n:Teams:cs
 Recommends:
  hunspell-cs | myspell-cs-cz,
+Replaces:
+ icedove-l10n-cs (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-cs (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-cs,
 Description: Czech language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -467,6 +521,11 @@ Homepage: https://wiki.mozilla.org/L10n:Teams:da
 Recommends:
  myspell-da | hunspell-da,
 Replaces:
+ icedove-l10n-da (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-da (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-da,
 Description: Danish language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -484,6 +543,12 @@ Depends:
 Homepage: https://wiki.mozilla.org/L10n:Teams:de
 Recommends:
  hunspell-de-de | hunspell-de-at | hunspell-de-ch | myspell-de-de | myspell-de-at | myspell-de-ch,
+Replaces:
+ icedove-l10n-de (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-de (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-de,
 Description: German language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -499,6 +564,8 @@ Depends:
  thunderbird (>= ${source:Version}),
  ${misc:Depends},
 Homepage: https://wiki.mozilla.org/L10n:Teams:dsb
+Provides:
+ icedove-l10n-dsb,
 Description: Lower Sorbian language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -516,6 +583,12 @@ Depends:
 Homepage: https://wiki.mozilla.org/L10n:Teams:el
 Recommends:
  hunspell-el | myspell-el-gr,
+Replaces:
+ icedove-l10n-el (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-el (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-el,
 Description: Greek language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -533,6 +606,12 @@ Depends:
 Homepage: https://wiki.mozilla.org/L10n:Teams:en-GB
 Recommends:
  hunspell-en-gb | hunspell-en-au | hunspell-en-ca | hunspell-en-za,
+Replaces:
+ icedove-l10n-en-gb (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-en-gb (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-en-gb,
 Description: English (Great Britain) language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -551,6 +630,12 @@ Depends:
 Homepage: https://wiki.mozilla.org/L10n:Teams:es-AR
 Recommends:
  hunspell-es | myspell-es,
+Replaces:
+ icedove-l10n-es-ar (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-es-ar (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-es-ar,
 Description: Spanish (Argentina) language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -568,6 +653,12 @@ Depends:
 Homepage: https://wiki.mozilla.org/L10n:Teams:es-ES
 Recommends:
  hunspell-es | myspell-es,
+Replaces:
+ icedove-l10n-es-es (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-es-es (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-es-es,
 Description: Spanish (Spain) language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -585,6 +676,12 @@ Depends:
 Homepage: https://wiki.mozilla.org/L10n:Teams:et
 Recommends:
  myspell-et,
+Replaces:
+ icedove-l10n-et (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-et (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-et,
 Description: Estonian language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -602,6 +699,12 @@ Depends:
 Homepage: https://wiki.mozilla.org/L10n:Teams:eu
 Recommends:
  hunspell-eu,
+Replaces:
+ icedove-l10n-eu (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-eu (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-eu,
 Description: Basque language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -620,6 +723,12 @@ Homepage: https://wiki.mozilla.org/L10n:Teams:fi
 Recommends:
  myspell-fi,
  xul-ext-mozvoikko,
+Replaces:
+ icedove-l10n-fi (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-fi (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-fi,
 Description: Finnish language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -637,6 +746,12 @@ Depends:
 Homepage: https://wiki.mozilla.org/L10n:Teams:fr
 Recommends:
  hunspell-fr | myspell-fr | myspell-fr-gut,
+Replaces:
+ icedove-l10n-fr (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-fr (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-fr,
 Description: French language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -652,6 +767,12 @@ Depends:
  thunderbird (>= ${source:Version}),
  ${misc:Depends},
 Homepage: https://wiki.mozilla.org/L10n:Teams:fy-NL
+Replaces:
+ icedove-l10n-fy-nl (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-fy-nl (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-fy-nl,
 Description: Frisian language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -667,6 +788,12 @@ Depends:
  thunderbird (>= ${source:Version}),
  ${misc:Depends},
 Homepage: https://wiki.mozilla.org/L10n:Teams:ga-IE
+Replaces:
+ icedove-l10n-ga-ie (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-ga-ie (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-ga-ie,
 Description: Irish (Ireland) language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -684,6 +811,12 @@ Depends:
 Homepage: https://wiki.mozilla.org/L10n:Teams:gd
 Recommends:
  hunspell-gd | myspell-gd,
+Replaces:
+ icedove-l10n-gd (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-gd (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-gd,
 Description: Gaelic (Scottish) language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -701,6 +834,12 @@ Depends:
 Homepage: https://wiki.mozilla.org/L10n:Teams:gl
 Recommends:
  hunspell-gl | hunspell-gl-es,
+Replaces:
+ icedove-l10n-gl (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-gl (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-gl,
 Description: Galician language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -718,6 +857,12 @@ Depends:
 Homepage: https://wiki.mozilla.org/L10n:Teams:he
 Recommends:
  hunspell-he | myspell-he,
+Replaces:
+ icedove-l10n-he (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-he (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-he,
 Description: Hebrew language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -735,6 +880,12 @@ Depends:
 Homepage: https://wiki.mozilla.org/L10n:Teams:hr
 Recommends:
  hunspell-hr | myspell-hr,
+Replaces:
+ icedove-l10n-hr (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-hr (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-hr,
 Description: Croatian language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -752,6 +903,8 @@ Depends:
 Homepage: https://wiki.mozilla.org/L10n:Teams:hsb
 Recommends:
  aspell-hsb,
+Provides:
+ icedove-l10n-hsb,
 Description: Upper Sorbian language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -769,6 +922,12 @@ Depends:
 Homepage: https://wiki.mozilla.org/L10n:Teams:hu
 Recommends:
  hunspell-hu | myspell-hu,
+Replaces:
+ icedove-l10n-hu (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-hu (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-hu,
 Description: Hungarian language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -786,6 +945,12 @@ Depends:
 Homepage: https://wiki.mozilla.org/L10n:Teams:hy-AM
 Recommends:
  myspell-hy,
+Replaces:
+ icedove-l10n-hy-am (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-hy-am (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-hy-am,
 Description: Armenian language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -801,6 +966,12 @@ Depends:
  thunderbird (>= ${source:Version}),
  ${misc:Depends},
 Homepage: https://wiki.mozilla.org/L10n:Teams:id
+Replaces:
+ icedove-l10n-id (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-id (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-id,
 Description: Indonesian language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -818,6 +989,12 @@ Depends:
 Homepage: https://wiki.mozilla.org/L10n:Teams:is
 Recommends:
  hunspell-is,
+Replaces:
+ icedove-l10n-is (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-is (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-is,
 Description: Icelandic language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -835,6 +1012,12 @@ Depends:
 Homepage: https://wiki.mozilla.org/L10n:Teams:it
 Recommends:
  hunspell-it | myspell-it,
+Replaces:
+ icedove-l10n-it (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-it (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-it,
 Description: Italian language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -850,6 +1033,12 @@ Depends:
  thunderbird (>= ${source:Version}),
  ${misc:Depends},
 Homepage: https://wiki.mozilla.org/L10n:Teams:ja
+Replaces:
+ icedove-l10n-ja (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-ja (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-ja,
 Description: Japanese language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -865,6 +1054,8 @@ Depends:
  thunderbird (>= ${source:Version}),
  ${misc:Depends},
 Homepage: https://wiki.mozilla.org/L10n:Teams:kab
+Provides:
+ icedove-l10n-kab,
 Description: Kabyle language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -882,6 +1073,12 @@ Depends:
 Homepage: https://wiki.mozilla.org/L10n:Teams:ko
 Recommends:
  hunspell-ko,
+Replaces:
+ icedove-l10n-ko (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-ko (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-ko,
 Description: Korean language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -899,6 +1096,12 @@ Depends:
 Homepage: https://wiki.mozilla.org/L10n:Teams:lt
 Recommends:
  hunspell-lt | myspell-lt,
+Replaces:
+ icedove-l10n-lt (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-lt (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-lt,
 Description: Lithuanian language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -916,6 +1119,12 @@ Depends:
 Homepage: https://wiki.mozilla.org/L10n:Teams:nb-NO
 Recommends:
  hunspell-no | myspell-nb,
+Replaces:
+ icedove-l10n-nb-no (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-nb-no (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-nb-no,
 Description: Bokmaal (Norway) language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -933,6 +1142,12 @@ Depends:
 Homepage: https://wiki.mozilla.org/L10n:Teams:nl
 Recommends:
  hunspell-nl | myspell-nl,
+Replaces:
+ icedove-l10n-nl (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-nl (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-nl,
 Description: Dutch language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -950,6 +1165,12 @@ Depends:
 Homepage: https://wiki.mozilla.org/L10n:Teams:nn-NO
 Recommends:
  hunspell-no | myspell-nn,
+Replaces:
+ icedove-l10n-nn-no (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-nn-no (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-nn-no,
 Description: Nynorsk (Norway) language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -965,6 +1186,12 @@ Depends:
  thunderbird (>= ${source:Version}),
  ${misc:Depends},
 Homepage: https://wiki.mozilla.org/L10n:Teams:pa
+Replaces:
+ icedove-l10n-pa-in (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-pa-in (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-pa-in,
 Description: Punjabi (India) language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -982,6 +1209,12 @@ Depends:
 Homepage: https://wiki.mozilla.org/L10n:Teams:pl
 Recommends:
  hunspell-pl | myspell-pl,
+Replaces:
+ icedove-l10n-pl (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-pl (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-pl,
 Description: Polish language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -999,6 +1232,12 @@ Depends:
 Homepage: https://wiki.mozilla.org/L10n:Teams:pt-BR
 Recommends:
  hunspell-pt-br | myspell-pt-br | myspell-pt,
+Replaces:
+ icedove-l10n-pt-br (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-pt-br (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-pt-br,
 Description: Portuguese (Brazil) language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -1016,6 +1255,12 @@ Depends:
 Homepage: https://wiki.mozilla.org/L10n:Teams:pt-PT
 Recommends:
  hunspell-pt-pt | myspell-pt-pt | myspell-pt,
+Replaces:
+ icedove-l10n-pt-pt (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-pt-pt (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-pt-pt,
 Description: Portuguese (Portugal) language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -1031,6 +1276,12 @@ Depends:
  thunderbird (>= ${source:Version}),
  ${misc:Depends},
 Homepage: https://wiki.mozilla.org/L10n:Teams:rm
+Replaces:
+ icedove-l10n-rm (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-rm (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-rm,
 Description: Romansh language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -1048,6 +1299,12 @@ Depends:
 Homepage: https://wiki.mozilla.org/L10n:Teams:ro
 Recommends:
  hunspell-ro,
+Replaces:
+ icedove-l10n-ro (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-ro (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-ro,
 Description: Romania language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -1065,6 +1322,12 @@ Depends:
 Homepage: https://wiki.mozilla.org/L10n:Teams:ru
 Recommends:
  hunspell-ru | myspell-ru,
+Replaces:
+ icedove-l10n-ru (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-ru (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-ru,
 Description: Russian language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -1082,6 +1345,12 @@ Depends:
 Homepage: https://wiki.mozilla.org/L10n:Teams:si
 Recommends:
  hunspell-si,
+Replaces:
+ icedove-l10n-si (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-si (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-si,
 Description: Sinhala language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -1099,6 +1368,12 @@ Depends:
 Homepage: https://wiki.mozilla.org/L10n:Teams:sk
 Recommends:
  hunspell-sk | myspell-sk,
+Replaces:
+ icedove-l10n-sk (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-sk (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-sk,
 Description: Slovak language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -1116,6 +1391,12 @@ Depends:
 Homepage: https://wiki.mozilla.org/L10n:Teams:sl
 Recommends:
  hunspell-sl | myspell-sl,
+Replaces:
+ icedove-l10n-sl (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-sl (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-sl,
 Description: Slovenian language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -1131,6 +1412,12 @@ Depends:
  thunderbird (>= ${source:Version}),
  ${misc:Depends},
 Homepage: https://wiki.mozilla.org/L10n:Teams:sq
+Replaces:
+ icedove-l10n-sq (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-sq (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-sq,
 Description: Albanian language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -1148,6 +1435,12 @@ Depends:
 Homepage: https://wiki.mozilla.org/L10n:Teams:sr
 Recommends:
  hunspell-sr,
+Replaces:
+ icedove-l10n-sr (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-sr (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-sr,
 Description: Serbian language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -1165,6 +1458,12 @@ Depends:
 Homepage: https://wiki.mozilla.org/L10n:Teams:sv-SE
 Recommends:
  hunspell-sv | myspell-sv-se,
+Replaces:
+ icedove-l10n-sv-se (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-sv-se (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-sv-se,
 Description: Swedish (Sweden) language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -1180,6 +1479,12 @@ Depends:
  thunderbird (>= ${source:Version}),
  ${misc:Depends},
 Homepage: https://wiki.mozilla.org/L10n:Teams:ta-LK
+Replaces:
+ icedove-l10n-ta-lk (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-ta-lk (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-ta-lk,
 Description: Tamil language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -1195,6 +1500,12 @@ Depends:
  thunderbird (>= ${source:Version}),
  ${misc:Depends},
 Homepage: https://wiki.mozilla.org/L10n:Teams:tr
+Replaces:
+ icedove-l10n-tr (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-tr (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-tr,
 Description: Turkish language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -1212,6 +1523,12 @@ Depends:
 Homepage: https://wiki.mozilla.org/L10n:Teams:uk
 Recommends:
  hunspell-uk | myspell-uk
+Replaces:
+ icedove-l10n-uk (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-uk (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-uk,
 Description: Ukrainian language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -1229,6 +1546,12 @@ Depends:
 Homepage: https://wiki.mozilla.org/L10n:Teams:vi
 Recommends:
  hunspell-vi,
+Replaces:
+ icedove-l10n-vi (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-vi (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-vi,
 Description: Vietnamese language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -1244,6 +1567,12 @@ Depends:
  thunderbird (>= ${source:Version}),
  ${misc:Depends},
 Homepage: https://wiki.mozilla.org/L10n:Teams:zh-CN
+Replaces:
+ icedove-l10n-zh-cn (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-zh-cn (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-th-cn,
 Description: Chinese (China) language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -1259,6 +1588,12 @@ Depends:
  thunderbird (>= ${source:Version}),
  ${misc:Depends},
 Homepage: https://wiki.mozilla.org/L10n:Teams:zh-TW
+Replaces:
+ icedove-l10n-zh-tw (<< 1:45.6.0-2.1~),
+Breaks:
+ icedove-l10n-zh-tw (<< 1:45.6.0-2.1~),
+Provides:
+ icedove-l10n-zh-tw,
 Description: Chinese (Taiwan) language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
