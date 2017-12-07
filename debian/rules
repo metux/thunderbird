@@ -267,6 +267,7 @@ override_dh_builddeb:
 			dh_builddeb -p$$package ;\
 		done ;\
 		sed -i '/thunderbird-dbg/d' debian/files ;\
+		sed -i '/icedove-dbg/d' debian/files ;\
 	fi
 
 override_dh_lintian:
