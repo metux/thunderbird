@@ -1,3 +1,24 @@
+thunderbird (1:52.5.0-1~deb9u1) stretch-security; urgency=medium
+
+  [ Carsten Schoenert ]
+  * Rebuild for stretch-security
+
+  * [9fb0603] Revert "[buster] tb-wrapper: searching the correct dbgsym package"
+  * [3ba70b8] Revert "[buster] move thunderbird-dbg into *-dbgsym package"
+  * [b16725e] Revert "[buster] remove Replace and Breaks for icedove"
+  * [9cf7315] Revert "[buster] remove transitional icedove package"
+  * [a1b62c0] Revert "[buster] remove Replace, Breaks and Provides for icedove-dev"
+  * [435f016] Revert "[buster] remove transitional icedove-dev package"
+  * [43c5ec2] Revert "[buster] remove transitional icedove-dbg package"
+  * [f014c58] Revert "[buster] remove Replace, Breaks and Provides for iceowl-extension"
+  * [5db94a1] Revert "[buster] remove transitional iceowl-extension package"
+  * [2860355] Revert "[buster] remove Replace, Breaks and Provides for icedove-l10n-*"
+  * [f148d56] Revert "[buster] remove transitional icedove-l10n-* packages"
+  * [b7debd2] Revert "[buster] remove Replace, Breaks and Provides for iceowl-l10n-*"
+  * [e89d082] Revert "[buster] remove transitional iceowl-l10n-* packages"
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Thu, 07 Dec 2017 19:40:47 +0100
+
 thunderbird (1:52.5.0-1) unstable; urgency=high
 
   [ intrigeri ]
