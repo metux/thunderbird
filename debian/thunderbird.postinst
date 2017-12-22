@@ -69,6 +69,10 @@ case "$1" in
                 fi
             fi
         fi
+        # Reload AppArmor profile
+        if [ ! -f "/etc/apparmor.d/disable/usr.bin.thunderbird" ] && aa-status --enabled 2>/dev/null; then
+            apparmor_parser -r -T -W "/etc/apparmor.d/usr.bin.thunderbird" || true
+        fi
     ;;
 
     configure|abort-upgrade)
