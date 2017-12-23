@@ -6,6 +6,7 @@ Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
 // Load DownloadUtils module for convertByteUnits
 Components.utils.import("resource://gre/modules/DownloadUtils.jsm");
+Components.utils.import("resource://gre/modules/AppConstants.jsm");
 
 // locally loaded services
 var gLocSvc = {};
@@ -724,7 +725,9 @@ var gDomains = {
   },
 
   handleKeyPress: function domain_handleKeyPress(aEvent) {
-    if (aEvent.keyCode == KeyEvent.DOM_VK_DELETE) {
+    if (aEvent.keyCode == KeyEvent.DOM_VK_DELETE ||
+        (AppConstants.platform == "macosx" &&
+         aEvent.keyCode == KeyEvent.DOM_VK_BACK_SPACE)) {
       this.forget();
     }
     else if (aEvent.keyCode == KeyEvent.DOM_VK_ESCAPE &&
@@ -1038,7 +1041,9 @@ var gCookies = {
   },
 
   handleKeyPress: function cookies_handleKeyPress(aEvent) {
-    if (aEvent.keyCode == KeyEvent.DOM_VK_DELETE) {
+    if (aEvent.keyCode == KeyEvent.DOM_VK_DELETE ||
+        (AppConstants.platform == "macosx" &&
+         aEvent.keyCode == KeyEvent.DOM_VK_BACK_SPACE)) {
       this.delete();
     }
   },
@@ -1774,7 +1779,9 @@ var gPrefs = {
   },
 
   handleKeyPress: function prefs_handleKeyPress(aEvent) {
-    if (aEvent.keyCode == KeyEvent.DOM_VK_DELETE) {
+    if (aEvent.keyCode == KeyEvent.DOM_VK_DELETE ||
+        (AppConstants.platform == "macosx" &&
+         aEvent.keyCode == KeyEvent.DOM_VK_BACK_SPACE)) {
       this.delete();
     }
   },
@@ -2079,7 +2086,9 @@ var gPasswords = {
   },
 
   handleKeyPress: function passwords_handleKeyPress(aEvent) {
-    if (aEvent.keyCode == KeyEvent.DOM_VK_DELETE) {
+    if (aEvent.keyCode == KeyEvent.DOM_VK_DELETE ||
+        (AppConstants.platform == "macosx" &&
+         aEvent.keyCode == KeyEvent.DOM_VK_BACK_SPACE)) {
       this.delete();
     }
   },
@@ -2574,7 +2583,9 @@ var gStorage = {
   },
 
   handleKeyPress: function storage_handleKeyPress(aEvent) {
-    if (aEvent.keyCode == KeyEvent.DOM_VK_DELETE) {
+    if (aEvent.keyCode == KeyEvent.DOM_VK_DELETE ||
+        (AppConstants.platform == "macosx" &&
+         aEvent.keyCode == KeyEvent.DOM_VK_BACK_SPACE)) {
       this.delete();
     }
   },
@@ -2869,7 +2880,9 @@ var gFormdata = {
   },
 
   handleKeyPress: function formdata_handleKeyPress(aEvent) {
-    if (aEvent.keyCode == KeyEvent.DOM_VK_DELETE) {
+    if (aEvent.keyCode == KeyEvent.DOM_VK_DELETE ||
+        (AppConstants.platform == "macosx" &&
+         aEvent.keyCode == KeyEvent.DOM_VK_BACK_SPACE)) {
       this.delete();
     }
   },
