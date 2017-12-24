@@ -69,6 +69,12 @@ case "$1" in
                 fi
             fi
         fi
+		# Disable apparmor on new installations and when we're upgrading from
+        # a version that had it enabled by default
+        if test -z "$2" || dpkg --compare-versions "$2" le "1:52.5.0-1~"; then
+            mkdir -p /etc/apparmor.d/disable
+            ln -s /etc/apparmor.d/usr.bin.thunderbird  /etc/apparmor.d/disable/usr.bin.thunderbird
+        fi
         # Reload AppArmor profile
         if [ ! -f "/etc/apparmor.d/disable/usr.bin.thunderbird" ] && aa-status --enabled 2>/dev/null; then
             apparmor_parser -r -T -W "/etc/apparmor.d/usr.bin.thunderbird" || true
