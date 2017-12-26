@@ -1,3 +1,42 @@
+thunderbird (1:52.5.2-2) unstable; urgency=medium
+
+  [ Carsten Schoenert ]
+  * [f597157] Revert "d/thunderbird.postinst: reload AA profile on updates"
+              The trigger automatics for appamor already is handling the
+              needed reload on profile updates for the applications.
+              (Closes: #885158)
+  * [8ebdb96] debian/control: increase Standards-Version to 4.1.2
+              No further changes needed.
+  * [81a8c00] use inverse logic on version for AA profile status check
+              By this change we don't enforce the disabled profile from the
+              previous version in some cases and can also handle possible
+              version strings from -security and -backports.
+              (Closes: #885157)
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Tue, 26 Dec 2017 14:56:40 +0100
+
+thunderbird (1:52.5.2-1) unstable; urgency=high
+
+  [ intrigeri ]
+  * [b791221] AppArmor: support new thunderbird executable path
+    (Closes: #883561, #884217)
+
+  [ Carsten Schoenert ]
+  * [1f46308] New upstream version 52.5.2
+    Fixed CVE issues in upstream version 52.5 (MFSA 2017-30)
+    CVE-2017-7829: Mailsploit part 1: From address with encoded null character
+                   is cut off in message header display
+    CVE-2017-7846: JavaScript Execution via RSS in mailbox:// origin
+    CVE-2017-7847: Local path string can be leaked from RSS feed
+    CVE-2017-7848: RSS Feed vulnerable to new line Injection
+  * [0dd21b9] d/thunderbird.postinst: reload AA profile on updates
+  * [8c57218] don't disable AA profile on package updates
+              As people want to re-enable the AA profile a update of
+              thunderbird doesn't have to disable this again.
+              (Closes: #884191)
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Sun, 24 Dec 2017 11:30:09 +0100
+
 thunderbird (1:52.5.0-1~deb9u1) stretch-security; urgency=medium
 
   [ Carsten Schoenert ]

@@ -69,6 +69,15 @@ case "$1" in
                 fi
             fi
         fi
+        # Disable apparmor on new installations and when we're upgrading from
+        # a version that had it enabled by default
+        if test -n "$2" && dpkg --compare-versions "$2" gt "1:52.5.0-1~"; then
+            :   # Leave the disable/ symlink at users choice if
+                # upgrading from a version that ships the symlink
+        else
+            mkdir -p /etc/apparmor.d/disable
+            [ -f /etc/apparmor.d/disable/usr.bin.thunderbird ] || ln -s /etc/apparmor.d/usr.bin.thunderbird  /etc/apparmor.d/disable/usr.bin.thunderbird
+        fi
     ;;
 
     configure|abort-upgrade)

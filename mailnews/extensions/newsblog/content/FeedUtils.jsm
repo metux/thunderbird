@@ -464,8 +464,6 @@ var FeedUtils = {
 
     // Update folderpane.
     this.setFolderPaneProperty(aParentFolder, "favicon", null, "row");
-
-    feed = null;
   },
 
 /**

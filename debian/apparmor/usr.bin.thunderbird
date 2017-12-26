@@ -5,10 +5,11 @@
 
 # Declare an apparmor variable to help with overrides
 @{MOZ_LIBDIR}=/usr/lib/thunderbird
+@{thunderbird_executable} = /usr/lib/thunderbird/thunderbird{,-bin}
 
 #include <tunables/global>
 
-profile thunderbird /usr/lib/thunderbird/thunderbird {
+profile thunderbird @{thunderbird_executable} {
   #include <abstractions/audio>
   #include <abstractions/aspell>
   #include <abstractions/cups-client>
@@ -41,7 +42,7 @@ profile thunderbird /usr/lib/thunderbird/thunderbird {
   # for crash reports?
   ptrace (read,trace) peer=@{profile_name},
 
-  /usr/lib/thunderbird/thunderbird ixr,
+  @{thunderbird_executable} ixr,
 
   # Pulseaudio
   /usr/bin/pulseaudio Pixr,
