@@ -1,3 +1,20 @@
+thunderbird (1:52.5.2-2) unstable; urgency=medium
+
+  [ Carsten Schoenert ]
+  * [f597157] Revert "d/thunderbird.postinst: reload AA profile on updates"
+              The trigger automatics for appamor already is handling the
+              needed reload on profile updates for the applications.
+              (Closes: #885158)
+  * [8ebdb96] debian/control: increase Standards-Version to 4.1.2
+              No further changes needed.
+  * [81a8c00] use inverse logic on version for AA profile status check
+              By this change we don't enforce the disabled profile from the
+              previous version in some cases and can also handle possible
+              version strings from -security and -backports.
+              (Closes: #885157)
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Tue, 26 Dec 2017 14:56:40 +0100
+
 thunderbird (1:52.5.2-1) unstable; urgency=high
 
   [ intrigeri ]
