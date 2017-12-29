@@ -1,3 +1,10 @@
+thunderbird (1:52.5.2-2~deb9u1) stretch-security; urgency=medium
+
+  [ Carsten Schoenert ]
+  * Rebuild for stretch-security
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Tue, 26 Dec 2017 20:18:01 +0100
+
 thunderbird (1:52.5.2-2) unstable; urgency=medium
 
   [ Carsten Schoenert ]
