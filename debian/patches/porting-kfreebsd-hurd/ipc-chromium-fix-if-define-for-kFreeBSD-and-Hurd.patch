@@ -14,7 +14,7 @@ ipc/chromium on kFreeBSD and Hurd' from the the version 17.
  1 file changed, 6 insertions(+), 3 deletions(-)
 
 diff --git a/mozilla/ipc/chromium/src/base/platform_thread_posix.cc b/mozilla/ipc/chromium/src/base/platform_thread_posix.cc
-index ad55ae7..29d1e21 100644
+index 481549e..5f9108d 100644
 --- a/mozilla/ipc/chromium/src/base/platform_thread_posix.cc
 +++ b/mozilla/ipc/chromium/src/base/platform_thread_posix.cc
 @@ -13,16 +13,19 @@
@@ -39,7 +39,7 @@ index ad55ae7..29d1e21 100644
  #include <pthread_np.h>
  #endif
  
-@@ -105,7 +108,7 @@ void PlatformThread::SetName(const char* name) {
+@@ -102,7 +105,7 @@ void PlatformThread::SetName(const char* name) {
    // Note that glibc also has a 'pthread_setname_np' api, but it may not be
    // available everywhere and it's only benefit over using prctl directly is
    // that it can set the name of threads other than the current thread.

@@ -22,114 +22,32 @@ Bug 382214 - xpcom: Make SH xpctcall inline assembly position-independent
 
 Closes: #859508
 ---
- mozilla/build/moz.configure/init.configure         |   3 +
- mozilla/ipc/chromium/src/build/build_config.h      |   3 +
- mozilla/js/src/jit/AtomicOperations.h              |   2 +
- mozilla/media/webrtc/trunk/build/build_config.h    |   3 +
- mozilla/mfbt/tests/TestPoisonArea.cpp              |   3 +
- .../mozbuild/mozbuild/configure/constants.py       |   2 +
+ .../mozbuild/mozbuild/configure/constants.py       |   1 +
  .../test/configure/test_toolchain_configure.py     |   3 +
  mozilla/xpcom/reflect/xptcall/md/unix/moz.build    |   5 +
  .../xptcall/md/unix/xptcinvoke_linux_sh.cpp        | 210 +++++++++++++++++
  .../reflect/xptcall/md/unix/xptcstubs_linux_sh.cpp | 262 +++++++++++++++++++++
- 10 files changed, 496 insertions(+)
+ 5 files changed, 481 insertions(+)
  create mode 100644 mozilla/xpcom/reflect/xptcall/md/unix/xptcinvoke_linux_sh.cpp
  create mode 100644 mozilla/xpcom/reflect/xptcall/md/unix/xptcstubs_linux_sh.cpp
 
-diff --git a/mozilla/build/moz.configure/init.configure b/mozilla/build/moz.configure/init.configure
-index 341e8f1..4df1b62 100644
---- a/mozilla/build/moz.configure/init.configure
-+++ b/mozilla/build/moz.configure/init.configure
-@@ -399,6 +399,9 @@ def split_triplet(triplet):
-     elif cpu in ('m68k'):
-         canonical_cpu = 'm68k'
-         endianness = 'big'
-+    elif cpu == 'sh4':
-+        canonical_cpu = 'sh4'
-+        endianness = 'little'
-     else:
-         die('Unknown CPU type: %s' % cpu)
- 
-diff --git a/mozilla/ipc/chromium/src/build/build_config.h b/mozilla/ipc/chromium/src/build/build_config.h
-index 6ac0918..53ad98e 100644
---- a/mozilla/ipc/chromium/src/build/build_config.h
-+++ b/mozilla/ipc/chromium/src/build/build_config.h
-@@ -111,6 +111,9 @@
- #elif defined(__s390__)
- #define ARCH_CPU_S390 1
- #define ARCH_CPU_32_BITS 1
-+#elif defined(__sh__)
-+#define ARCH_CPU_SH 1
-+#define ARCH_CPU_32_BITS 1
- #elif defined(__alpha__)
- #define ARCH_CPU_ALPHA 1
- #define ARCH_CPU_64_BITS 1
-diff --git a/mozilla/js/src/jit/AtomicOperations.h b/mozilla/js/src/jit/AtomicOperations.h
-index e12cb86..90b42c5 100644
---- a/mozilla/js/src/jit/AtomicOperations.h
-+++ b/mozilla/js/src/jit/AtomicOperations.h
-@@ -332,6 +332,8 @@ AtomicOperations::isLockfree(int32_t size)
- # include "jit/mips-shared/AtomicOperations-mips-shared.h"
- #elif defined(__ppc__) || defined(__PPC__)
- # include "jit/none/AtomicOperations-ppc.h"
-+#elif defined(__sh__)
-+# include "jit/none/AtomicOperations-ppc.h"
- #elif defined(__sparc__)
- # include "jit/none/AtomicOperations-sparc.h"
- #elif defined(JS_CODEGEN_NONE)
-diff --git a/mozilla/media/webrtc/trunk/build/build_config.h b/mozilla/media/webrtc/trunk/build/build_config.h
-index bbd0b22..e10707d 100644
---- a/mozilla/media/webrtc/trunk/build/build_config.h
-+++ b/mozilla/media/webrtc/trunk/build/build_config.h
-@@ -162,6 +162,9 @@
- #elif defined(__s390__)
- #define ARCH_CPU_S390 1
- #define ARCH_CPU_32_BITS 1
-+#elif defined(__sh__)
-+#define ARCH_CPU_SH 1
-+#define ARCH_CPU_32_BITS 1
- #elif defined(__alpha__)
- #define ARCH_CPU_ALPHA 1
- #define ARCH_CPU_64_BITS 1
-diff --git a/mozilla/mfbt/tests/TestPoisonArea.cpp b/mozilla/mfbt/tests/TestPoisonArea.cpp
-index 9360ac9..1876b6e 100644
---- a/mozilla/mfbt/tests/TestPoisonArea.cpp
-+++ b/mozilla/mfbt/tests/TestPoisonArea.cpp
-@@ -157,6 +157,9 @@
- #elif defined __s390__
- #define RETURN_INSTR 0x07fe0000 /* br %r14 */
- 
-+#elif defined __sh__
-+#define RETURN_INSTR 0x0b000b00 /* rts; rts */
-+
- #elif defined __aarch64__
- #define RETURN_INSTR 0xd65f03c0 /* ret */
- 
 diff --git a/mozilla/python/mozbuild/mozbuild/configure/constants.py b/mozilla/python/mozbuild/mozbuild/configure/constants.py
-index 9c0f0ca..de33064 100644
+index a67ab80..c31464b 100644
 --- a/mozilla/python/mozbuild/mozbuild/configure/constants.py
 +++ b/mozilla/python/mozbuild/mozbuild/configure/constants.py
-@@ -51,6 +51,7 @@ CPU_bitness = {
-     'ppc64': 64,
-     's390': 32,
-     's390x': 64,
-+    'sh4': 32,
-     'sparc': 32,
-     'sparc64': 64,
-     'x86': 32,
-@@ -87,6 +88,7 @@ CPU_preprocessor_checks = OrderedDict((
-     ('mips64', '__mips64'),
+@@ -91,6 +91,7 @@ CPU_preprocessor_checks = OrderedDict((
      ('mips32', '__mips__'),
+     ('sh4', '__sh__'),
      ('m68k', '__m68k__'),
 +    ('sh4', '__sh__'),
  ))
  
  assert sorted(CPU_preprocessor_checks.keys()) == sorted(CPU.POSSIBLE_VALUES)
 diff --git a/mozilla/python/mozbuild/mozbuild/test/configure/test_toolchain_configure.py b/mozilla/python/mozbuild/mozbuild/test/configure/test_toolchain_configure.py
-index b06ddde..12dc324 100644
+index 32283ad..070f29b 100755
 --- a/mozilla/python/mozbuild/mozbuild/test/configure/test_toolchain_configure.py
 +++ b/mozilla/python/mozbuild/mozbuild/test/configure/test_toolchain_configure.py
-@@ -1040,6 +1040,9 @@ class LinuxCrossCompileToolchainTest(BaseToolchainTest):
+@@ -1164,6 +1164,9 @@ class LinuxCrossCompileToolchainTest(BaseToolchainTest):
          'm68k-unknown-linux-gnu': big_endian + {
              '__m68k__': 1,
          },
@@ -140,10 +58,10 @@ index b06ddde..12dc324 100644
  
      PLATFORMS['powerpc64le-unknown-linux-gnu'] = \
 diff --git a/mozilla/xpcom/reflect/xptcall/md/unix/moz.build b/mozilla/xpcom/reflect/xptcall/md/unix/moz.build
-index 1d182bb..067a6ad 100644
+index 73ec27a..5708157 100644
 --- a/mozilla/xpcom/reflect/xptcall/md/unix/moz.build
 +++ b/mozilla/xpcom/reflect/xptcall/md/unix/moz.build
-@@ -316,6 +316,11 @@ if CONFIG['OS_ARCH'] == 'Linux':
+@@ -325,6 +325,11 @@ if CONFIG['OS_ARCH'] == 'Linux':
              '-fomit-frame-pointer',
              '-mbackchain',
          ]

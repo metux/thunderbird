@@ -16,7 +16,7 @@ Squashed kFreeBSD/Hurd related fixes:
  4 files changed, 47 insertions(+), 14 deletions(-)
 
 diff --git a/ldap/c-sdk/include/portable.h b/ldap/c-sdk/include/portable.h
-index 5269886..ab2c7fa 100644
+index 1ecbd38..660bbb9 100644
 --- a/ldap/c-sdk/include/portable.h
 +++ b/ldap/c-sdk/include/portable.h
 @@ -122,7 +122,7 @@
@@ -105,7 +105,7 @@ index 5269886..ab2c7fa 100644
  #define NSLDAPI_CTIME( c, b, l )        ctime_r( c, b )
  #elif defined( OSF1V3 )
  #define NSLDAPI_CTIME( c, b, l )	(ctime_r( c, b, l ) ? NULL : b)
-@@ -452,7 +460,7 @@ int select(int, fd_set *, fd_set *, fd_set *, struct timeval *);
+@@ -448,7 +456,7 @@ int select(int, fd_set *, fd_set *, fd_set *, struct timeval *);
  #define NSLDAPI_FOPEN( filename, mode )	fopen( filename, mode )
  #endif
  

@@ -9,16 +9,16 @@ used on sparc as they are generic enough.
  1 file changed, 3 insertions(+)
 
 diff --git a/mozilla/js/src/jit/AtomicOperations.h b/mozilla/js/src/jit/AtomicOperations.h
-index 90b42c5..d239616 100644
+index c1ba0e4..a14f208 100644
 --- a/mozilla/js/src/jit/AtomicOperations.h
 +++ b/mozilla/js/src/jit/AtomicOperations.h
-@@ -347,6 +347,9 @@ AtomicOperations::isLockfree(int32_t size)
- #  include "jit/none/AtomicOperations-ppc.h"
- # elif defined(__aarch64__)
+@@ -391,6 +391,9 @@ AtomicOperations::isLockfreeJS(int32_t size)
+ #elif defined(__aarch64__)
+ # if defined(__clang__) || defined(__GNUC__)
  #  include "jit/arm64/AtomicOperations-arm64.h"
 +# elif defined(__s390__)
 +  // The sparc file is more or less generic and works on s390x.
 +#  include "jit/none/AtomicOperations-sparc.h"
  # else
- #  include "jit/none/AtomicOperations-none.h" // These MOZ_CRASH() always
+ #  error "No AtomicOperations support for this platform+compiler combination"
  # endif

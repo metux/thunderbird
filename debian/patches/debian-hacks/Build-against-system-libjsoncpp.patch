@@ -3,25 +3,28 @@ Date: Tue, 9 May 2017 10:41:13 +0200
 Subject: Build against system libjsoncpp
 
 ---
- mozilla/config/system-headers                      |  1 +
- .../crashreporter/jsoncpp/src/lib_json/moz.build   | 27 +---------------------
+ mozilla/config/system-headers.mozbuild             |  1 +
+ .../components/jsoncpp/src/lib_json/moz.build      | 46 +---------------------
  .../crashreporter/minidump-analyzer/moz.build      |  2 +-
- 3 files changed, 3 insertions(+), 27 deletions(-)
+ 3 files changed, 3 insertions(+), 46 deletions(-)
 
-diff --git a/mozilla/config/system-headers b/mozilla/config/system-headers
-index be3162f..623dd15 100644
---- a/mozilla/config/system-headers
-+++ b/mozilla/config/system-headers
-@@ -1335,3 +1335,4 @@ unicode/utypes.h
- libutil.h
- unwind.h
- fenv.h
-+json/json.h
-diff --git a/mozilla/toolkit/crashreporter/jsoncpp/src/lib_json/moz.build b/mozilla/toolkit/crashreporter/jsoncpp/src/lib_json/moz.build
-index 2d51c2c..5e20a3d 100644
---- a/mozilla/toolkit/crashreporter/jsoncpp/src/lib_json/moz.build
-+++ b/mozilla/toolkit/crashreporter/jsoncpp/src/lib_json/moz.build
-@@ -4,31 +4,6 @@
+diff --git a/mozilla/config/system-headers.mozbuild b/mozilla/config/system-headers.mozbuild
+index e02d381..62bd0a6 100644
+--- a/mozilla/config/system-headers.mozbuild
++++ b/mozilla/config/system-headers.mozbuild
+@@ -363,6 +363,7 @@ system_headers = [
+     'jar-ds.h',
+     'jarfile.h',
+     'jar.h',
++    'json/json.h',
+     'JavaControl.h',
+     'JavaEmbedding/JavaControl.h',
+     'JavaVM/jni.h',
+diff --git a/mozilla/toolkit/components/jsoncpp/src/lib_json/moz.build b/mozilla/toolkit/components/jsoncpp/src/lib_json/moz.build
+index 9997014..5e20a3d 100644
+--- a/mozilla/toolkit/components/jsoncpp/src/lib_json/moz.build
++++ b/mozilla/toolkit/components/jsoncpp/src/lib_json/moz.build
+@@ -4,50 +4,6 @@
  # License, v. 2.0. If a copy of the MPL was not distributed with this
  # file, You can obtain one at http://mozilla.org/MPL/2.0/.
  
@@ -32,7 +35,7 @@ index 2d51c2c..5e20a3d 100644
 -]
 -
 -LOCAL_INCLUDES += [
--    '/toolkit/crashreporter/jsoncpp/include',
+-    '/toolkit/components/jsoncpp/include',
 -]
 -
 -# This code is only used in the stand-alone minidump analyzer executable so
@@ -48,21 +51,40 @@ index 2d51c2c..5e20a3d 100644
 -    ]
 -
 -# Required to build with exceptions enabled
--DISABLE_STL_WRAPPING = True
+-DisableStlWrapping()
 -
  Library('jsoncpp')
  
--include('/toolkit/crashreporter/crashreporter.mozbuild')
+-# Suppress warnings in third-party code.
+-if CONFIG['_MSC_VER']:
+-    CXXFLAGS += [
+-        '-wd4005', # macro redefinition
+-    ]
+-elif CONFIG['GNU_CXX']:
+-    CXXFLAGS += [
+-        '-Wno-unused-local-typedefs',
+-        '-Wno-shadow',
+-    ]
+-
+-if CONFIG['CLANG_CXX'] or CONFIG['CLANG_CL']:
+-    CXXFLAGS += [
+-        '-Wno-c++11-narrowing',
+-    ]
+-
+-if CONFIG['CLANG_CXX'] or CONFIG['CLANG_CL'] or CONFIG['GNU_CXX']:
+-    CXXFLAGS += [
+-        '-Wno-implicit-fallthrough',
+-    ]
 +OS_LIBS += ['jsoncpp']
 diff --git a/mozilla/toolkit/crashreporter/minidump-analyzer/moz.build b/mozilla/toolkit/crashreporter/minidump-analyzer/moz.build
-index bd4aa76..e4ac2de 100644
+index f40d1c1..b7ec0b1 100644
 --- a/mozilla/toolkit/crashreporter/minidump-analyzer/moz.build
 +++ b/mozilla/toolkit/crashreporter/minidump-analyzer/moz.build
 @@ -20,7 +20,7 @@ if CONFIG['OS_TARGET'] != 'Android':
      ]
  
      LOCAL_INCLUDES += [
--        '/toolkit/crashreporter/jsoncpp/include',
+-        '/toolkit/components/jsoncpp/include',
 +        '%/usr/include/jsoncpp',
      ]
  

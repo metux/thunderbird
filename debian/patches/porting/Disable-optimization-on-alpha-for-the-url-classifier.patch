@@ -4,17 +4,22 @@ Subject: Disable optimization on alpha for the url-classifier component
 
 The use of this component leads to crashes when built with optimizations.
 ---
- mozilla/b2g/Makefile.in | 10 ++++++++++
- 1 file changed, 10 insertions(+)
+ mozilla/mobile/android/stumbler/Makefile.in | 12 +++++++++++-
+ 1 file changed, 11 insertions(+), 1 deletion(-)
 
-diff --git a/mozilla/b2g/Makefile.in b/mozilla/b2g/Makefile.in
-index 9b3e1e0..1dfdd4a 100644
---- a/mozilla/b2g/Makefile.in
-+++ b/mozilla/b2g/Makefile.in
-@@ -4,3 +4,13 @@
+diff --git a/mozilla/mobile/android/stumbler/Makefile.in b/mozilla/mobile/android/stumbler/Makefile.in
+index 958d503..32e267b 100644
+--- a/mozilla/mobile/android/stumbler/Makefile.in
++++ b/mozilla/mobile/android/stumbler/Makefile.in
+@@ -3,7 +3,17 @@
+ # file, You can obtain one at http://mozilla.org/MPL/2.0/.
  
  include $(topsrcdir)/config/rules.mk
- include $(topsrcdir)/testing/testsuite-targets.mk
+-
+ include $(topsrcdir)/config/android-common.mk
+ 
+ libs:: stumbler.jar
++include $(topsrcdir)/testing/testsuite-targets.mk
 +
 +ABS_SRCDIR := $(abspath $(srcdir))
 +

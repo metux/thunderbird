@@ -1,0 +1,21 @@
+From: Carsten Schoenert <c.schoenert@t-online.de>
+Date: Sun, 14 Jan 2018 17:28:02 +0100
+Subject: Allow usage of libnspr4-dev 4.16
+
+---
+ mozilla/old-configure.in | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/mozilla/old-configure.in b/mozilla/old-configure.in
+index e20bac2..f4dbe00 100644
+--- a/mozilla/old-configure.in
++++ b/mozilla/old-configure.in
+@@ -48,7 +48,7 @@ dnl ========================================================
+ MOZJPEG=62
+ MOZPNG=10634
+ NSPR_VERSION=4
+-NSPR_MINVER=4.17
++NSPR_MINVER=4.16
+ NSS_VERSION=3
+ 
+ dnl Set the minimum version of toolkit libs used by mozilla

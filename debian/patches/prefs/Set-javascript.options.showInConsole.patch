@@ -3,18 +3,29 @@ Date: Sat, 8 Dec 2007 19:24:40 +0100
 Subject: Set javascript.options.showInConsole
 
 ---
- mozilla/modules/libpref/init/all.js | 1 +
- 1 file changed, 1 insertion(+)
+ mozilla/modules/libpref/init/all.js | 5 +++++
+ 1 file changed, 5 insertions(+)
 
 diff --git a/mozilla/modules/libpref/init/all.js b/mozilla/modules/libpref/init/all.js
-index 1cb9e19..f984bff 100644
+index c06f1d8..afd366d 100644
 --- a/mozilla/modules/libpref/init/all.js
 +++ b/mozilla/modules/libpref/init/all.js
-@@ -1249,6 +1249,7 @@ pref("javascript.options.ion.offthread_compilation", true);
+@@ -1465,6 +1465,7 @@ pref("javascript.options.jit.full_debug_checks", false);
  // memory, but makes things like Function.prototype.toSource()
  // fail.
  pref("javascript.options.discardSystemSource", false);
 +pref("javascript.options.showInConsole",    true);
- // This preference limits the memory usage of javascript.
- // If you want to change these values for your device,
- // please find Bug 417052 comment 17 and Bug 456721
+ 
+ // Many of the the following preferences tune the SpiderMonkey GC, if you
+ // change the defaults here please also consider changing them in
+@@ -1472,6 +1473,10 @@ pref("javascript.options.discardSystemSource", false);
+ 
+ // JSGC_MAX_MALLOC_BYTES
+ // How much malloc memory can be allocated before triggering a GC, in MB.
++// This preference limits the memory usage of javascript.
++// If you want to change these values for your device,
++// please find Bug 417052 comment 17 and Bug 456721
++// Comment 32 and Bug 613551.
+ pref("javascript.options.mem.high_water_mark", 128);
+ 
+ // JSGC_MAX_BYTES

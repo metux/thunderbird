@@ -7,10 +7,10 @@ Subject: Thunderbird: fix installdir for icons
  1 file changed, 9 insertions(+)
 
 diff --git a/mail/app/Makefile.in b/mail/app/Makefile.in
-index 474a95b..2c3339c 100644
+index f3bbe98..b6d8250 100644
 --- a/mail/app/Makefile.in
 +++ b/mail/app/Makefile.in
-@@ -90,11 +90,20 @@ libs:: $(addprefix icons/$(MOZ_WIDGET_TOOLKIT)/,$(DESKTOP_ICON_FILES))
+@@ -99,11 +99,20 @@ libs:: $(addprefix icons/$(MOZ_WIDGET_TOOLKIT)/,$(DESKTOP_ICON_FILES))
  
  libs:: $(addprefix $(DIST)/branding/,$(BRANDED_ICON_FILES))
  	$(INSTALL) $(IFLAGS1) $^ $(DIST)/bin/chrome/icons/default

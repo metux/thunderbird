@@ -1,0 +1,21 @@
+From: Carsten Schoenert <c.schoenert@t-online.de>
+Date: Fri, 12 Jan 2018 16:36:56 +0100
+Subject: icu: use locale.h instead of xlocale.h
+
+---
+ mozilla/intl/icu/source/i18n/digitlst.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/mozilla/intl/icu/source/i18n/digitlst.cpp b/mozilla/intl/icu/source/i18n/digitlst.cpp
+index 4d7c3f4..2292c01 100644
+--- a/mozilla/intl/icu/source/i18n/digitlst.cpp
++++ b/mozilla/intl/icu/source/i18n/digitlst.cpp
+@@ -64,7 +64,7 @@
+ # if U_PLATFORM_USES_ONLY_WIN32_API || U_PLATFORM == U_PF_CYGWIN
+ #   include <locale.h>
+ # else
+-#   include <xlocale.h>
++#   include <locale.h>
+ # endif
+ #endif
+ 
