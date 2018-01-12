@@ -63,7 +63,7 @@
 
 #if U_USE_STRTOD_L
 # if U_HAVE_XLOCALE_H
-#   include <xlocale.h>
+#   include <locale.h>
 # else
 #   include <locale.h>
 # endif
