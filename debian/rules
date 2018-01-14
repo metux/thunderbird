@@ -106,7 +106,7 @@ ifeq ($(ICU_BUILD),YES)
 	echo "created new ICU_DATA_FILE in $(CURDIR)/mozilla/config/external/icu/data/$$ICU_DATA_FILE_CREATED"
 endif
 	# configure the various build settings
-	# thunderbird, thunderbird-dev, calendar-google-provider, lightning
+	# thunderbird, calendar-google-provider, lightning
 	DIST= make -f client.mk configure
 
 override_dh_auto_build:
@@ -185,16 +185,12 @@ endif
 
 override_dh_install-arch:
 	# in case of a pre-builded and installed icudt*.dat file pick it up
-	# and do a needed symlinking for the thunderbird-dev package afterwards
 	if [ -f debian/tmp/usr/lib/thunderbird/$(ICU_DATA_FILE) ]; then \
 		if ! grep -qs $(ICU_DATA_FILE) debian/thunderbird.install ; then \
 			echo "debian/tmp/usr/lib/thunderbird/$(ICU_DATA_FILE)" >> debian/thunderbird.install ;\
-			echo "usr/lib/thunderbird/$(ICU_DATA_FILE)  usr/share/thunderbird/$(ICU_DATA_FILE)" >> debian/thunderbird-dev.links ;\
 		fi \
 	fi
 	dh_install
-	# adjust Thunderbird version in pkg-config file
-	sed -i 's/@Version@/$(THUNDERBIRD_VERSION)/' debian/thunderbird-dev/usr/lib/pkgconfig/thunderbird.pc
 	# prepare lightning
 	LIGHTNING=`find -type f -name "lightning*.xpi"` &&\
 		unzip -d debian/lightning/usr/lib/lightning/ $(CURDIR)/$$LIGHTNING
@@ -210,14 +206,6 @@ override_dh_install-arch:
 	@for i in `find debian/lightning/ -name ".mkdir.done*"`; do echo remove $$i && rm $$i; done
 	find debian/lightning/usr/lib/lightning -newermt '$(BUILD_DATE)' -print0 | \
 		xargs -0r touch --no-dereference --date='$(BUILD_DATE)'
-	# remove duplicate .so files in dev package
-	rm debian/thunderbird-dev/usr/lib/thunderbird-devel/sdk/lib/libxul.so
-	rm debian/thunderbird-dev/usr/lib/thunderbird-devel/sdk/lib/libnss3.so
-	rm debian/thunderbird-dev/usr/lib/thunderbird-devel/sdk/lib/libnssutil3.so
-	rm debian/thunderbird-dev/usr/lib/thunderbird-devel/sdk/lib/libsmime3.so
-	rm debian/thunderbird-dev/usr/lib/thunderbird-devel/sdk/lib/libssl3.so
-	# remove hardlink in dev package
-	rm debian/thunderbird-dev/usr/include/thunderbird/mozilla/dom/MediaStreamAudioDestinationNode.h
 	# install apparmor profile
 	cp debian/apparmor/usr.bin.thunderbird debian/thunderbird/etc/apparmor.d/usr.bin.thunderbird
 	dh_apparmor --profile-name=usr.bin.thunderbird -pthunderbird
@@ -233,14 +221,6 @@ override_dh_install-indep:
 	# sometimes there are temporary build files in calendar-google-provider
 	@echo "    --> searching for temporary build files in 'calendar-google-provider' ..."
 	@for i in `find debian/calendar-google-provider/ -name ".mkdir.done*"`; do echo remove $$i && rm $$i; done
-
-override_dh_fixperms-arch:
-	dh_fixperms
-	chmod a-x debian/thunderbird-dev/usr/share/idl/thunderbird/*.idl
-	chmod 0755 debian/thunderbird-dev/usr/lib/thunderbird-devel/sdk/bin/*.py
-	chmod 0644 debian/thunderbird-dev/usr/lib/thunderbird-devel/sdk/bin/xpidllex.py
-	chmod 0644 debian/thunderbird-dev/usr/lib/thunderbird-devel/sdk/bin/xpidlyacc.py
-	chmod 0755 debian/thunderbird-dev/usr/lib/thunderbird-devel/sdk/bin/xpcshell
 
 override_dh_strip:
 	if [ "$(RELEASE)" != "UNRELEASED" ]; then \
@@ -259,7 +239,6 @@ override_dh_builddeb:
 		dh_builddeb ;\
 	else \
 		dh_builddeb -pthunderbird ;\
-		dh_builddeb -pthunderbird-dev ;\
 		dh_builddeb -plightning ;\
 		dh_builddeb -pcalendar-google-provider ;\
 		for package in `grep -e \
