@@ -260,7 +260,6 @@ Copyright: 2006, Lawrence Oluyede <l.oluyede@gmail.com>
 License: Expat
 
 Files: mailnews/*
-       mozilla/addon-sdk/*
        mozilla/browser/*
 Copyright: no-info-found
 License: MPL-2.0
@@ -287,22 +286,6 @@ License: MPL-2.0
 Files: mailnews/mime/src/modmimee.h
 Copyright: 1996, Netscape Communications Corporation
 License: MPL-2.0
-
-Files: mozilla/addon-sdk/source/lib/sdk/fs/*
-       mozilla/addon-sdk/source/test/buffers/*
-       mozilla/addon-sdk/source/test/path/*
-       mozilla/addon-sdk/source/test/querystring/*
-Copyright: Joyent, Inc. and other Node contributors
-License: Expat
-
-Files: mozilla/addon-sdk/source/lib/sdk/lang/functional/concurrent.js
-Copyright: 2009-2014, Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
-License: MPL-2.0
-
-Files: mozilla/addon-sdk/source/lib/sdk/system/child_process/*
-Copyright: 2011, Patrick Brunschwig <patrick@enigmail.net>
-           2011, Jan Gerber <j@mailb.org>
-License: MPL-1.1 or GPL-2 or LGPL-2.1
 
 Files: mozilla/browser/components/translation/cld2/*
        mozilla/browser/components/translation/test/unit/test_cld2.js
@@ -362,11 +345,6 @@ Files: mozilla/dom/imptests/parseManifest.py
 Copyright: 2011-2013, Ms2ger
 License: Expat
 
-Files: mozilla/dom/media/gmp-plugin/gmp-fake.cpp
-Copyright: 2014, Mozilla Foundation
-           2009-2014, Cisco Systems
-License: BSD-2-clause
-
 Files: mozilla/dom/media/gmp/GMPVideoEncodedFrameImpl.h
 Copyright: 2014, Mozilla Corporation
 License: BSD-2-clause
@@ -376,13 +354,7 @@ Copyright: 2014, Mozilla Foundation
            2011, The WebRTC project authors.
 License: BSD-3-clause
 
-Files: mozilla/dom/media/gmp/gmp-api/gmp-async-shutdown.h
-       mozilla/dom/media/gmp/gmp-api/gmp-audio-codec.h
-       mozilla/dom/media/gmp/gmp-api/gmp-audio-decode.h
-       mozilla/dom/media/gmp/gmp-api/gmp-audio-host.h
-       mozilla/dom/media/gmp/gmp-api/gmp-audio-samples.h
-       mozilla/dom/media/gmp/gmp-api/gmp-decryption.h
-       mozilla/dom/media/gmp/gmp-api/gmp-storage.h
+Files: mozilla/dom/media/gmp/gmp-api/gmp-storage.h
 Copyright: 2012-2014, Mozilla Foundation and contributors
 License: Apache-2.0
 
@@ -390,10 +362,6 @@ Files: mozilla/dom/media/gmp/gmp-api/gmp-errors.h
        mozilla/dom/media/gmp/gmp-api/gmp-platform.h
 Copyright: 2014, Mozilla
 License: BSD-3-clause
-
-Files: mozilla/dom/media/gmp/rlz/lib/assert.h
-Copyright: no-info-found
-License: MPL-2.0
 
 Files: mozilla/dom/media/test/graph_latency.py
        mozilla/dom/media/test/make-headers.sh
@@ -424,16 +392,6 @@ Files: mozilla/dom/media/webspeech/recognition/endpointer.cc
 Copyright: 2006-2013, The Chromium Authors
 License: BSD-3-clause
 
-Files: mozilla/dom/secureelement/gonk/*
-Copyright: 2013-2014, Deutsche Telekom, Inc.
-           2012, Mozilla Foundation and Mozilla contributors
-License: Apache-2.0
-
-Files: mozilla/dom/plugins/base/android/ANPKeyCodes.h
-       mozilla/dom/plugins/base/android/android_npapi.h
-Copyright: 2008-2010, The Android Open Source Project
-License: BSD-2-clause
-
 Files: mozilla/dom/plugins/base/npruntime.h
 Copyright: 2004, Apple Computer, Inc. and The Mozilla Foundation
 License: BSD-3-clause
@@ -445,10 +403,6 @@ License: BSD-3-clause
 Files: mozilla/dom/plugins/test/testplugin/*
 Copyright: 2008, 2010, Mozilla Corporation
 License: BSD-3-clause
-
-Files: mozilla/dom/plugins/test/testplugin/javaplugin/*
-Copyright: no-info-found
-License: MPL-2.0
 
 Files: mozilla/dom/plugins/test/testplugin/nptest_utils.cpp
        mozilla/dom/plugins/test/testplugin/nptest_utils.h
@@ -475,24 +429,6 @@ License: MPL-2.0
 Files: mozilla/dom/secureelement/DOMSecureElement.js
 Copyright: 2013-2014, Deutsche Telekom, Inc.
 License: MPL-2.0
-
-Files: mozilla/dom/system/gonk/AudioManager.cpp
-       mozilla/dom/system/gonk/AudioManager.h
-       mozilla/dom/system/gonk/GonkGPSGeolocationProvider.cpp
-       mozilla/dom/system/gonk/GonkGPSGeolocationProvider.h
-       mozilla/dom/system/gonk/NetworkUtils.cpp
-       mozilla/dom/system/gonk/RadioInterfaceLayer.js
-       mozilla/dom/system/gonk/SystemWorkerManager.cpp
-       mozilla/dom/system/gonk/SystemWorkerManager.h
-       mozilla/dom/system/gonk/ril_consts.js
-       mozilla/dom/system/gonk/ril_worker.js
-       mozilla/dom/system/gonk/systemlibs.js
-Copyright: 2012-2014, Mozilla Foundation and Mozilla contributors
-License: Apache-2.0
-
-Files: mozilla/dom/system/gonk/android_audio/*
-Copyright: 2005-2013, The Android Open Source Project
-License: Apache-2.0
 
 Files: mozilla/dom/tests/mochitest/ajax/jquery/dist/*
 Copyright: 2006-2008, John Resig (jquery.com)
@@ -556,15 +492,6 @@ Copyright: various contributors
 License: other-2
  The complete text of the hunspell License can be found in the
  `README_en_US.txt' file in the same directory as this file.
-
-Files: mozilla/gfx/2d/convolver.cpp
-       mozilla/gfx/2d/convolver.h
-       mozilla/gfx/2d/convolverSSE2.cpp
-       mozilla/gfx/2d/convolverSSE2.h
-       mozilla/gfx/2d/image_operations.cpp
-       mozilla/gfx/2d/image_operations.h
-Copyright: 2006-2013, The Chromium Authors
-License: BSD-3-clause
 
 Files: mozilla/gfx/angle/include/EGL/*
        mozilla/gfx/angle/include/GLES3/gl3.h
@@ -1243,42 +1170,19 @@ Files: mozilla/gfx/ycbcr/YCbCrUtils.cpp
 Copyright: no-info-found
 License: MPL-2.0
 
-Files: mozilla/hal/gonk/*
-Copyright: 2012-2014, Mozilla Foundation and Mozilla contributors
-License: Apache-2.0
-
-Files: mozilla/hal/gonk/GonkDiskSpaceWatcher.cpp
-Copyright: no-info-found
-License: MPL-2.0
-
 Files: mozilla/intl/icu/source/tools/tzcode/*
        mozilla/intl/icu/source/tools/tzcode/zic.c
 Copyright: no-info-found
 License: public-domain
 
-Files: mozilla/intl/locale/nsLocale.h
-Copyright: International Business Machines (IBM)
-License: MPL-2.0
-
 Files: mozilla/intl/lwbrk/nsSampleWordBreaker.cpp
 Copyright: no-info-found
 License: MPL-2.0
 
-Files: mozilla/intl/unicharutil/normalization_data.h
-       mozilla/intl/unicharutil/nsUnicodeNormalizer.cpp
-       mozilla/intl/unicharutil/util/nsBidiUtils.cpp
+Files: mozilla/intl/unicharutil/util/nsBidiUtils.cpp
        mozilla/intl/unicharutil/util/nsUnicharUtils.h
 Copyright: 2000-2002, Japan Network Information Center
 License: MPL-2.0 or BSD-3-clause
-
-Files: mozilla/intl/unicharutil/tools/ucgendat.c
-Copyright: 1996-1998, Computing Research Labs
-License: Expat
-
-Files: mozilla/intl/unicharutil/ucdata.c
-       mozilla/intl/unicharutil/ucdata.h
-Copyright: 1996-1998, Computing Research Labs
-License: Expat
 
 Files: mozilla/intl/unicharutil/util/nsUnicodePropertyData.cpp
        mozilla/intl/unicharutil/util/nsUnicodeScriptCodes.h
@@ -1330,7 +1234,6 @@ Files: mozilla/ipc/chromium/src/third_party/libevent/buffer_iocp.c
        mozilla/ipc/chromium/src/third_party/libevent/evthread_pthread.c
        mozilla/ipc/chromium/src/third_party/libevent/evthread_win32.c
        mozilla/ipc/chromium/src/third_party/libevent/evutil.c
-       mozilla/ipc/chromium/src/third_party/libevent/evutil.h
        mozilla/ipc/chromium/src/third_party/libevent/evutil_rand.c
        mozilla/ipc/chromium/src/third_party/libevent/iocp-internal.h
        mozilla/ipc/chromium/src/third_party/libevent/ipv6-internal.h
@@ -1393,10 +1296,6 @@ Copyright: 2005-2012, Niels Provos and Nick Mathewson
            1993, University of California
 License: BSD-3-clause
 
-Files: mozilla/ipc/chromium/src/third_party/libevent/ltmain.sh
-Copyright: 1996-2001, 2003-2006, Free Software Foundation
-License: GPL-2+
-
 Files: mozilla/ipc/chromium/src/third_party/libevent/minheap-internal.h
 Copyright: 2007-2012, Niels Provos and Nick Mathewson
            2006, Maxim Yegorushkin <maxim.yegorushkin@gmail.com>
@@ -1442,11 +1341,6 @@ Copyright: 2007-2012, Niels Provos and Nick Mathewson
            2003, Michael A. Davis <mike@datanerds.net>
            2000-2007, Niels Provos <provos@citi.umich.edu>
 License: BSD-3-clause
-
-Files: mozilla/ipc/dbus/DBusUtils.cpp
-       mozilla/ipc/dbus/DBusUtils.h
-Copyright: 2005-2013, The Android Open Source Project
-License: Apache-2.0
 
 Files: mozilla/ipc/glue/StringUtil.cpp
 Copyright: 2006-2008, The Chromium Authors.
@@ -1758,9 +1652,6 @@ Files: mozilla/js/src/tests/ecma/Array/15.4.4.5-1.js
        mozilla/js/src/tests/ecma_5/extensions/15.9.4.2.js
        mozilla/js/src/tests/ecma_5/misc/unnamed-function.js
        mozilla/js/src/tests/ecma_6/Array/find_findindex.js
-       mozilla/js/src/tests/ecma_6/Comprehensions/error-messages.js
-       mozilla/js/src/tests/ecma_6/Comprehensions/sudoku.js
-       mozilla/js/src/tests/ecma_6/Comprehensions/toSource.js
        mozilla/js/src/tests/ecma_6/Generators/shell.js
        mozilla/js/src/tests/ecma_6/Object/assign.js
        mozilla/js/src/tests/ecma_6/TemplateStrings/*
@@ -1843,8 +1734,6 @@ Files: mozilla/layout/base/nsFrameManager.cpp
        mozilla/layout/base/nsFrameManager.h
        mozilla/layout/base/nsFrameManagerBase.h
        mozilla/layout/base/nsIPresShell.h
-       mozilla/layout/base/nsPresShell.cpp
-       mozilla/layout/base/nsPresShell.h
        mozilla/layout/generic/nsLineLayout.h
        mozilla/layout/style/nsHTMLStyleSheet.cpp
 Copyright: 2000, International Business Machines (IBM)
@@ -1855,13 +1744,7 @@ Files: mozilla/layout/reftests/fonts/mark-generate.py
 Copyright: 2008, Mozilla Corporation
 License: MPL-2.0
 
-Files: mozilla/media/gmp-clearkey/0.1/AudioDecoder.cpp
-       mozilla/media/gmp-clearkey/0.1/AudioDecoder.h
-       mozilla/media/gmp-clearkey/0.1/VideoDecoder.cpp
-       mozilla/media/gmp-clearkey/0.1/VideoDecoder.h
-       mozilla/media/gmp-clearkey/0.1/WMFAACDecoder.cpp
-       mozilla/media/gmp-clearkey/0.1/WMFAACDecoder.h
-       mozilla/media/gmp-clearkey/0.1/WMFH264Decoder.cpp
+Files: mozilla/media/gmp-clearkey/0.1/WMFH264Decoder.cpp
        mozilla/media/gmp-clearkey/0.1/WMFH264Decoder.h
        mozilla/media/gmp-clearkey/0.1/WMFUtils.cpp
        mozilla/media/gmp-clearkey/0.1/WMFUtils.h
@@ -2103,7 +1986,6 @@ Files: mozilla/media/libspeex_resampler/src/simd_detect.cpp
        mozilla/media/libstagefright/binding/*
        mozilla/media/libstagefright/gtest/*
        mozilla/media/libvpx/update.py
-       mozilla/media/libyuv/build/*
 Copyright: no-info-found
 License: MPL-2.0
 
@@ -2220,40 +2102,10 @@ Files: mozilla/media/mtransport/third_party/nrappkit/src/util/libekr/r_memory.c
 Copyright: 2001-2007, Network Resonance, Inc.
 License: BSD-2-clause
 
-Files: mozilla/media/omx-plugin/include/*
-Copyright: 2005-2013, The Android Open Source Project
-License: Apache-2.0
-
-Files: mozilla/media/omx-plugin/include/ics/media/stagefright/openmax/*
-Copyright: 2008, The Khronos Group Inc.
-           1998-2009, PacketVideo
-License: Apache-2.0 or Expat
-
 Files: mozilla/media/webrtc/signaling/src/media-conduit/VideoTypes.h
        mozilla/media/webrtc/signaling/src/media-conduit/WebrtcGmpVideoCodec.h
 Copyright: 2012, The WebRTC project authors
 License: MPL-2.0
-
-Files: mozilla/media/webrtc/trunk/testing/gtest/*
-Copyright: 1999-2013, Google Inc.
-License: BSD-3-clause
-
-Files: mozilla/media/webrtc/trunk/testing/gtest/samples/sample10_unittest.cc
-       mozilla/media/webrtc/trunk/testing/gtest/samples/sample9_unittest.cc
-Copyright: 2005-2006, 2008-2013, Google Inc.
-License: BSD-3-clause
-
-Files: mozilla/media/webrtc/trunk/testing/gtest/scripts/upload.py
-Copyright: 2007-2008, 2010, 2012, Google Inc.
-License: Apache-2.0
-
-Files: mozilla/media/webrtc/trunk/testing/gtest/test/gtest-listener_test.cc
-       mozilla/media/webrtc/trunk/testing/gtest/test/gtest-unittest-api_test.cc
-       mozilla/media/webrtc/trunk/testing/gtest/test/gtest_catch_exceptions_test.py
-       mozilla/media/webrtc/trunk/testing/gtest/test/gtest_filter_unittest.py
-       mozilla/media/webrtc/trunk/testing/gtest/test/gtest_shuffle_test.py
-Copyright: 2005-2006, 2008-2013, Google Inc.
-License: BSD-3-clause
 
 Files: mozilla/media/webrtc/trunk/webrtc/base/md5.cc
        mozilla/media/webrtc/trunk/webrtc/base/md5.h
@@ -2272,80 +2124,31 @@ Copyright: 1999-2000, Ross Bencina and Phil Burk
 License: Expat
 
 Files: mozilla/media/webrtc/trunk/webrtc/modules/audio_device/opensl/*
-      mozilla/media/webrtc/trunk/webrtc/modules/audio_device/shared/*
-      mozilla/media/webrtc/trunk/webrtc/modules/desktop_capture/desktop_device_info.cc
-      mozilla/media/webrtc/trunk/webrtc/modules/desktop_capture/desktop_device_info.h
-      mozilla/media/webrtc/trunk/webrtc/modules/desktop_capture/desktop_device_info_null.cc
-      mozilla/media/webrtc/trunk/webrtc/modules/desktop_capture/mac/desktop_device_info_mac.h
-      mozilla/media/webrtc/trunk/webrtc/modules/desktop_capture/win/desktop_device_info_win.cc
-      mozilla/media/webrtc/trunk/webrtc/modules/desktop_capture/win/desktop_device_info_win.h
-      mozilla/media/webrtc/trunk/webrtc/modules/desktop_capture/win/win_shared.cc
-      mozilla/media/webrtc/trunk/webrtc/modules/desktop_capture/win/win_shared.h
-      mozilla/media/webrtc/trunk/webrtc/modules/desktop_capture/x11/desktop_device_info_x11.cc
-      mozilla/media/webrtc/trunk/webrtc/modules/desktop_capture/x11/desktop_device_info_x11.h
-      mozilla/media/webrtc/trunk/webrtc/modules/video_capture/windows/BaseFilter.cpp
-      mozilla/media/webrtc/trunk/webrtc/modules/video_capture/windows/BaseFilter.h
-      mozilla/media/webrtc/trunk/webrtc/modules/video_capture/windows/BaseInputPin.cpp
-      mozilla/media/webrtc/trunk/webrtc/modules/video_capture/windows/BaseInputPin.h
-      mozilla/media/webrtc/trunk/webrtc/modules/video_capture/windows/BasePin.cpp
-      mozilla/media/webrtc/trunk/webrtc/modules/video_capture/windows/BasePin.h
-      mozilla/media/webrtc/trunk/webrtc/modules/video_capture/windows/DShowTools.h
-      mozilla/media/webrtc/trunk/webrtc/modules/video_capture/windows/MediaType.cpp
-      mozilla/media/webrtc/trunk/webrtc/modules/video_capture/windows/MediaType.h
+       mozilla/media/webrtc/trunk/webrtc/modules/desktop_capture/desktop_device_info.cc
+       mozilla/media/webrtc/trunk/webrtc/modules/desktop_capture/desktop_device_info.h
+       mozilla/media/webrtc/trunk/webrtc/modules/desktop_capture/desktop_device_info_null.cc
+       mozilla/media/webrtc/trunk/webrtc/modules/desktop_capture/mac/desktop_device_info_mac.h
+       mozilla/media/webrtc/trunk/webrtc/modules/desktop_capture/win/desktop_device_info_win.cc
+       mozilla/media/webrtc/trunk/webrtc/modules/desktop_capture/win/desktop_device_info_win.h
+       mozilla/media/webrtc/trunk/webrtc/modules/desktop_capture/win/win_shared.cc
+       mozilla/media/webrtc/trunk/webrtc/modules/desktop_capture/win/win_shared.h
+       mozilla/media/webrtc/trunk/webrtc/modules/desktop_capture/x11/desktop_device_info_x11.cc
+       mozilla/media/webrtc/trunk/webrtc/modules/desktop_capture/x11/desktop_device_info_x11.h
+       mozilla/media/webrtc/trunk/webrtc/modules/video_capture/windows/BaseFilter.cpp
+       mozilla/media/webrtc/trunk/webrtc/modules/video_capture/windows/BaseFilter.h
+       mozilla/media/webrtc/trunk/webrtc/modules/video_capture/windows/BaseInputPin.cpp
+       mozilla/media/webrtc/trunk/webrtc/modules/video_capture/windows/BaseInputPin.h
+       mozilla/media/webrtc/trunk/webrtc/modules/video_capture/windows/BasePin.cpp
+       mozilla/media/webrtc/trunk/webrtc/modules/video_capture/windows/BasePin.h
+       mozilla/media/webrtc/trunk/webrtc/modules/video_capture/windows/DShowTools.h
+       mozilla/media/webrtc/trunk/webrtc/modules/video_capture/windows/MediaType.cpp
+       mozilla/media/webrtc/trunk/webrtc/modules/video_capture/windows/MediaType.h
 Copyright: no-info-found
 License: MPL-2.0
 
 Files: mozilla/media/webrtc/trunk/webrtc/modules/audio_processing/test/android/*
 Copyright: 2005-2013, The Android Open Source Project
 License: Apache-2.0
-
-Files: mozilla/media/webrtc/trunk/webrtc/system_wrappers/source/spreadsortlib/*
-Copyright: no-info-found
-License: BSL-1.0
-
-Files: mozilla/media/webrtc/trunk/webrtc/system_wrappers/source/spreadsortlib/spreadsort.hpp
-Copyright: Steven J. Ross 2001-2009
-License: BSL-1.0
-
-Files: mozilla/memory/jemalloc/*
-Copyright: 2002-2015 Jason Evans <jasone@canonware.com>
-           2002 Niels Provos
-           2007-2012 Mozilla Foundation
-           2009-2015 Facebook, Inc.
-License: BSD-2-clause
-
-Files: mozilla/memory/jemalloc/src/include/*
-Copyright: 2006-2008, Alexander Chemeris
-License: BSD-2-clause
-
-Files: mozilla/memory/jemalloc/src/test/include/*
-Copyright: 2006, 2007, Mutsuo Saito, Makoto Matsumoto and Hiroshima
-License: BSD-3-clause
-
-Files: mozilla/memory/jemalloc/src/test/src/SFMT.c
-Copyright: 2006, 2007, Mutsuo Saito, Makoto Matsumoto and Hiroshima
-License: BSD-3-clause
-
-Files: mozilla/memory/jemalloc/src/test/unit/SFMT.c
-Copyright: 2006, 2007, Mutsuo Saito, Makoto Matsumoto and Hiroshima
-License: BSD-3-clause
-
-Files: mozilla/memory/jemalloc/src/test/unit/hash.c
-Copyright: 2010-2012, Austin Appleby
-License: Expat
-
-Files: mozilla/memory/mozjemalloc/*
-Copyright: 2006-2008, Jason Evans <jasone@FreeBSD.org>
-License: BSD-2-clause
-
-Files: mozilla/memory/mozjemalloc/linkedlist.h
-Copyright: Mozilla Foundation
-License: BSD-2-clause
-
-Files: mozilla/memory/mozjemalloc/ql.h
-       mozilla/memory/mozjemalloc/qr.h
-Copyright: 2002, Jason Evans <jasone@canonware.com>
-License: BSD-2-clause
 
 Files: mozilla/mfbt/decimal/*
 Copyright: 2005-2006, 2008-2013, Google Inc.
@@ -2484,15 +2287,7 @@ Files: mozilla/mozglue/android/pbkdf2_sha256.c
 Copyright: 2003-2005, 2007, 2009, Colin Percival
 License: BSD-2-clause
 
-Files: mozilla/mozglue/build/cpuacct.c
-       mozilla/mozglue/build/cpuacct.h
-Copyright: 2008-2010, The Android Open Source Project
-License: BSD-2-clause
-
-Files: mozilla/netwerk/dns/nameprep.c
-       mozilla/netwerk/dns/nameprepdata.c
-       mozilla/netwerk/dns/nameprep_template.c
-       mozilla/netwerk/dns/nsIDNKitInterface.h
+Files: mozilla/netwerk/dns/nsIDNKitInterface.h
 Copyright: 2000-2002, Japan Network Information Center
 License: BSD-3-clause
 
@@ -2622,8 +2417,7 @@ Files: mozilla/netwerk/streamconv/nsStreamConverterService.cpp
 Copyright: 2000, International Business Machines (IBM)
 License: MPL-2.0
 
-Files: mozilla/netwerk/streamconv/test/TestStreamConv.cpp
-       mozilla/netwerk/test/unit/test_NetUtil.js
+Files: mozilla/netwerk/test/unit/test_NetUtil.js
        mozilla/netwerk/test/unit/test_about_networking.js
        mozilla/netwerk/test/unit/test_about_protocol.js
        mozilla/netwerk/test/unit/test_auth_proxy.js
@@ -2635,7 +2429,6 @@ Files: mozilla/netwerk/streamconv/test/TestStreamConv.cpp
        mozilla/netwerk/test/unit/test_cookiejars_safebrowsing.js
        mozilla/netwerk/test/unit/test_dns_proxy_bypass.js
        mozilla/netwerk/test/unit/test_extract_charset_from_content_type.js
-       mozilla/netwerk/test/unit/test_file_partial_inputstream.js
        mozilla/netwerk/test/unit/test_httpResponseTimeout.js
        mozilla/netwerk/test/unit/test_httpauth.js
        mozilla/netwerk/test/unit/test_mozTXTToHTMLConv.js
@@ -2699,10 +2492,6 @@ Files: mozilla/other-licenses/ply/*
 Copyright: 2001-2009, David M. Beazley
 License: BSD-3-clause
 
-Files: mozilla/other-licenses/skia-npapi/*
-Copyright: 2008-2010, The Android Open Source Project
-License: BSD-2-clause
-
 Files: mozilla/other-licenses/snappy/*
 Copyright: 2005, 2006, 2008-2013, Google Inc.
 License: BSD-3-clause
@@ -2729,7 +2518,6 @@ License: MPL-2.0
 
 Files: mozilla/parser/html/jArray.h
        mozilla/parser/html/nsHtml5ArrayCopy.h
-       mozilla/parser/html/nsHtml5AtomList.h
        mozilla/parser/html/nsHtml5AttributeName.cpp
        mozilla/parser/html/nsHtml5AttributeName.h
        mozilla/parser/html/nsHtml5ElementName.cpp
@@ -2746,8 +2534,7 @@ Files: mozilla/parser/html/jArray.h
 Copyright: 2008-2014, Mozilla Foundation
 License: Expat
 
-Files: mozilla/parser/html/javasrc/HtmlAttributes.java
-       mozilla/parser/html/javasrc/MetaScanner.java
+Files: mozilla/parser/html/javasrc/MetaScanner.java
        mozilla/parser/html/javasrc/StackNode.java
 Copyright: 2007-2011, Mozilla Foundation
            2007, Henri Sivonen
@@ -2779,31 +2566,14 @@ Copyright: 2007-2013, Mozilla Foundation
            2004-2010, Apple Computer, Inc.
 License: Expat
 
-Files: mozilla/python/bitstring/bitstring.py
-Copyright: 2006-2014, Scott Griffiths <scott@griffiths.name>
-License: Expat
-
-Files: mozilla/python/bitstring/setup.py
-Copyright: no-info-found
-License: Expat
-
-Files: mozilla/python/jsmin/jsmin/__init__.py
-Copyright: 2013, Dave St.Germain
-License: Expat
-
 Files: mozilla/parser/html/nsHtml5TokenizerCppSupplement.h
        mozilla/python/mach/*
        mozilla/python/mach_commands.py
        mozilla/python/mozboot/*
        mozilla/python/mozbuild/*
        mozilla/python/mozversioncontrol/*
-       mozilla/python/redo/*
 Copyright: no-info-found
 License: MPL-2.0
-
-Files: mozilla/python/which/launcher.cpp
-Copyright: 2002-2003, ActiveState Corp
-License: Expat
 
 Files: mozilla/rdf/base/nsInMemoryDataSource.cpp
        mozilla/rdf/base/nsRDFService.cpp
@@ -2886,8 +2656,6 @@ Files: mozilla/security/nss/lib/ssl/ssl3gthr.c
        mozilla/security/nss/lib/zlib/trees.h
        mozilla/security/nss/lib/zlib/patches/*
        mozilla/services/common/tests/unit/head_helpers.js
-       mozilla/services/sync/tests/tps/mozmill_sanity.js
-       mozilla/services/sync/tests/tps/mozmill_sanity2.js
 Copyright: no-info-found
 License: MPL-2.0
 
@@ -2931,18 +2699,6 @@ Files: mozilla/security/sandbox/chromium/base/third_party/superfasthash/*
 Copyright: 2010, Paul Hsieh
 License: BSD-2-clause
 
-Files: mozilla/services/sync/tps/extensions/mozmill/resource/modules/assertions.js
-Copyright: 2009, Thomas Robinson <280north.com>
-License: MPL-2.0 or Expat
-
-Files: mozilla/services/sync/tps/extensions/mozmill/resource/stdlib/securable-module.js
-Copyright: 2007, Mozilla
-License: MPL-1.1 or GPL-2 or LGPL-2.1
-
-Files: mozilla/services/sync/tps/extensions/mozmill/resource/stdlib/withs.js
-Copyright: 2006, Lawrence Oluyede <l.oluyede@gmail.com>
-License: Expat
-
 Files: mozilla/testing/gtest/gmock/*
        mozilla/testing/gtest/gtest/*
 Copyright: 1999-2013, Google Inc.
@@ -2964,18 +2720,14 @@ Files: mozilla/testing/mochitest/tests/SimpleTest/ChromePowers.js
        mozilla/testing/mozbase/manifestparser/tests/test_convert_directory.py
        mozilla/testing/mozbase/manifestparser/tests/test_convert_symlinks.py
        mozilla/testing/mozbase/manifestparser/tests/test_manifestparser.py
-       mozilla/testing/mozbase/mozdevice/tests/sut_copytree.py
-       mozilla/testing/mozbase/mozdevice/tests/sut_movetree.py
        mozilla/testing/mozbase/mozfile/tests/test_tempdir.py
        mozilla/testing/mozbase/mozfile/tests/test_tempfile.py
        mozilla/testing/mozbase/mozprocess/tests/proclaunch.c
        mozilla/testing/mozbase/mozprocess/tests/test_mozprocess.py
        mozilla/testing/mozbase/mozprocess/tests/test_mozprocess_params.py
        mozilla/testing/web-platform/tests/resources/testharnessreport.js
-       mozilla/testing/web-platform/harness/wptrunner/update/sync.py
        mozilla/toolkit/components/ctypes/tests/unit/test_jsctypes.js
        mozilla/toolkit/components/mediasniffer/mp3sniff.c
-       mozilla/toolkit/components/osfile/tests/xpcshell/test_available_free_space.js
        mozilla/toolkit/components/osfile/tests/xpcshell/test_file_URL_conversion.js
        mozilla/toolkit/components/osfile/tests/xpcshell/test_makeDir.js
        mozilla/toolkit/components/osfile/tests/xpcshell/test_path.js
@@ -2990,14 +2742,9 @@ Files: mozilla/testing/mochitest/tests/SimpleTest/ChromePowers.js
        mozilla/toolkit/components/search/tests/xpcshell/test_init_async_multiple_then_sync.js
        mozilla/toolkit/content/tests/browser/browser_save_resend_postdata.js
        mozilla/toolkit/content/tests/browser/common/*
-       mozilla/toolkit/content/tests/fennec-tile-testapp/chrome/*
        mozilla/toolkit/content/tests/unit/*
 Copyright: no-info-found
 License: MPL-2.0
-
-Files: mozilla/testing/mozbase/mozdevice/mozdevice/Zeroconf.py
-Copyright: 2003, Paul Scott-Murphy
-License: LGPL-2.1+
 
 Files: mozilla/testing/tools/screenshot/*
 Copyright: 2009, The Mozilla Foundation
@@ -3039,15 +2786,6 @@ License: BSD-3-clause
 Files: mozilla/toolkit/crashreporter/google-breakpad/autotools/*
 Copyright: 1996-2014, Free Software Foundation, Inc.
 License: GPL-2+
-
-Files: mozilla/toolkit/crashreporter/google-breakpad/src/client/mac/handler/breakpad_nlist_64.cc
-Copyright: 1999, Apple Computer, Inc.
-           1989, 1993, University of California
-License: BSD-4-clause
-
-Files: mozilla/toolkit/crashreporter/google-breakpad/src/client/mac/handler/testcases/*
-Copyright: 2008, Google Inc.
-License: BSD-3-clause
 
 Files: mozilla/toolkit/crashreporter/google-breakpad/src/common/arm_ex_reader.cc
        mozilla/toolkit/crashreporter/google-breakpad/src/common/arm_ex_reader.h
@@ -3120,8 +2858,7 @@ Files: mozilla/toolkit/crashreporter/test/browser/browser_clearReports.js
 Copyright: no-info-found
 License: MPL-2.0
 
-Files: mozilla/toolkit/identity/tests/unit/test_load_modules.js
-       mozilla/toolkit/locales/compare-locales.pl
+Files: mozilla/toolkit/locales/compare-locales.pl
        mozilla/toolkit/modules/tests/xpcshell/test_propertyListsUtils.js
        mozilla/toolkit/mozapps/extensions/test/browser/browser_CTP_plugins.js
        mozilla/toolkit/mozapps/extensions/test/browser/browser_bug562992.js
@@ -3153,11 +2890,8 @@ Files: mozilla/toolkit/identity/tests/unit/test_load_modules.js
        mozilla/toolkit/mozapps/extensions/test/xpcshell/test_bug521905.js
        mozilla/toolkit/mozapps/extensions/test/xpcshell/test_bug526598.js
        mozilla/toolkit/mozapps/extensions/test/xpcshell/test_bug541420.js
-       mozilla/toolkit/mozapps/extensions/test/xpcshell/test_bug542391.js
        mozilla/toolkit/mozapps/extensions/test/xpcshell/test_dataDirectory.js
-       mozilla/toolkit/mozapps/extensions/test/xpcshell/test_fuel.js
        mozilla/toolkit/mozapps/extensions/test/xpcshell/test_isDebuggable.js
-       mozilla/toolkit/mozapps/extensions/test/xpcshell/test_metadata_update.js
        mozilla/toolkit/mozapps/extensions/test/xpcshell/test_pluginBlocklistCtp.js
        mozilla/toolkit/mozapps/extensions/test/xpcshell/test_pluginInfoURL.js
        mozilla/toolkit/mozapps/update/tests/TestAUSReadStrings.cpp
@@ -3186,80 +2920,12 @@ License: BSD-2-clause
 
 Files: mozilla/tools/update-packaging/test/common.sh
        mozilla/tools/update-packaging/test/make_full_update.sh
-       mozilla/widget/gonk/GfxInfo.cpp
-       mozilla/widget/gonk/GfxInfo.h
-       mozilla/widget/gonk/GonkMemoryPressureMonitoring.cpp
-       mozilla/widget/gonk/GonkMemoryPressureMonitoring.h
-       mozilla/widget/gonk/WidgetTraceEvent.cpp
-       mozilla/widget/gonk/nsClipboard.cpp
-       mozilla/widget/gonk/nsClipboard.h
 Copyright: no-info-found
 License: MPL-2.0
-
-Files: mozilla/uriloader/exthandler/gonk/*
-Copyright: 2012-2014, Mozilla Foundation and Mozilla contributors
-License: Apache-2.0
 
 Files: mozilla/widget/cocoa/ComplexTextInputPanel.h
 Copyright: 2006-2009, 2012, Apple Inc.
 License: BSD-2-clause
-
-Files: mozilla/widget/gonk/*
-Copyright: 2012-2014, Mozilla Foundation and Mozilla contributors
-License: Apache-2.0
-
-Files: mozilla/widget/gonk/GonkPermission.cpp
-       mozilla/widget/gonk/GonkPermission.h
-Copyright: 2012-2015, Mozilla Foundation
-License: Apache-2.0
-
-Files: mozilla/widget/gonk/HwcComposer2D.cpp
-       mozilla/widget/gonk/HwcComposer2D.h
-       mozilla/widget/gonk/HwcUtils.cpp
-       mozilla/widget/gonk/HwcUtils.h
-Copyright: 2012-2013, The Linux Foundation.
-License: Apache-2.0
-
-Files: mozilla/widget/gonk/ProcessOrientation.cpp
-       mozilla/widget/gonk/ProcessOrientation.h
-Copyright: 2013, Linux Foundation.
-           2008, The Android Open Source Project
-License: Apache-2.0
-
-Files: mozilla/widget/gonk/libdisplay/FramebufferSurface.h
-       mozilla/widget/gonk/libdisplay/GraphicBufferAlloc.h
-       mozilla/widget/gonk/libui/*
-Copyright: 2005-2013, The Android Open Source Project
-License: Apache-2.0
-
-Files: mozilla/widget/gonk/nativewindow/*
-Copyright: 2012-2014, Mozilla Foundation
-           2007, 2009, 2010, 2012, The Android Open Source Project
-License: Apache-2.0
-
-Files: mozilla/widget/gonk/nativewindow/GonkBufferQueue.h
-       mozilla/widget/gonk/nativewindow/GonkNativeWindow.h
-       mozilla/widget/gonk/nativewindow/IGonkGraphicBufferConsumer.h
-Copyright: 2012-2014, Mozilla Foundation and Mozilla contributors
-License: Apache-2.0
-
-Files: mozilla/widget/gonk/nativewindow/GonkBufferQueueLL/*
-Copyright: 2014, The Android Open Source Project
-           2014, Mozilla Foundation
-License: Apache-2.0
-
-Files: mozilla/widget/gonk/nativewindow/GonkBufferQueueLL/GonkBufferQueueLL.cpp
-       mozilla/widget/gonk/nativewindow/GonkBufferQueueLL/GonkBufferQueueLL.h
-Copyright: 2012-2014, Mozilla Foundation
-           2007, 2009-2010, 2012, The Android Open Source Project
-License: Apache-2.0
-
-Files: mozilla/widget/gonk/nativewindow/IGonkGraphicBufferConsumerKK.cpp
-       mozilla/widget/gonk/nativewindow/IGonkGraphicBufferConsumerKK.h
-       mozilla/widget/gonk/nativewindow/IGonkGraphicBufferConsumerLL.cpp
-       mozilla/widget/gonk/nativewindow/IGonkGraphicBufferConsumerLL.h
-Copyright: 2005-2013, The Android Open Source Project
-License: Apache-2.0
 
 Files: mozilla/widget/x11/keysym2ucs.c
 Copyright: Markus G. Kuhn <mkuhn@acm.org>
@@ -3270,14 +2936,9 @@ Copyright: 2003-2009, Jonathan Wolf Rentzsch: <http://rentzsch.com>
 License: Expat
 
 Files: mozilla/xpcom/components/nsComponentManager.cpp
-       mozilla/xpcom/components/nsNativeModuleLoader.cpp
        mozilla/xpcom/io/nsLocalFile.h
 Copyright: 2000, International Business Machines (IBM)
 License: MPL-2.0
-
-Files: mozilla/xpcom/glue/nsQuickSort.cpp
-Copyright: 1992, 1993, University of California
-License: BSD-3-clause
 
 Files: mozilla/xpcom/io/SpecialSystemDirectory.cpp
 Copyright: 1998 Netscape Communications Corporation,
@@ -3309,7 +2970,6 @@ Files: mozilla/xpcom/tests/unit/data/*
        suite/browser/test/browser/browser_privatebrowsing_protocolhandler.js
        suite/browser/test/browser/browser_relatedTabs.js
        suite/browser/test/browser/head.js
-       suite/debugQA/locales/en-US/debugQAEditorOverlay.dtd
        suite/locales/en-US/chrome/browser/pageInfo.dtd
        suite/locales/en-US/chrome/common/aboutPrivateBrowsing.dtd
        suite/locales/en-US/suite-l10n.js
@@ -3371,31 +3031,6 @@ License: BZIP2
  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 Comment:
  Licensing details are available in mozilla/modules/libbz2/src/LICENSE.
-
-License: BSL-1.0
- Boost Software License - Version 1.0 - August 17th, 2003
- .
- Permission is hereby granted, free of charge, to any person or organization
- obtaining a copy of the software and accompanying documentation covered by
- this license (the "Software") to use, reproduce, display, distribute,
- execute, and transmit the Software, and to prepare derivative works of the
- Software, and to permit third-parties to whom the Software is furnished to
- do so, all subject to the following:
- .
- The copyright notices in the Software and this entire statement, including
- the above license grant, this restriction and the following disclaimer,
- must be included in all copies of the Software, in whole or in part, and
- all derivative works of the Software, unless such copies or derivative
- works are solely in the form of machine-executable object code generated by
- a source language processor.
- .
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- FITNESS FOR A PARTICULAR PURPOSE, TITLE AND NON-INFRINGEMENT. IN NO EVENT
- SHALL THE COPYRIGHT HOLDERS OR ANYONE DISTRIBUTING THE SOFTWARE BE LIABLE
- FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
- ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
- DEALINGS IN THE SOFTWARE.
 
 License: BSD-2-clause
  Redistribution and use in source and binary forms, with or without
