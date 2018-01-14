@@ -13,7 +13,6 @@ source: source-is-missing editor/ui/texzilla/content/TeXZilla.js *
 source: source-is-missing mozilla/layout/reftests/svg/nesting-invalid-01.js *
 
 # files are under MPL-2 license with some long lines
-source: source-is-missing mozilla/addon-sdk/source/lib/dev/volcan.js *
 source: source-is-missing mail/components/compose/content/cloudAttachmentLinkManager.js *
 source: source-is-missing mozilla/js/src/devtools/rootAnalysis/annotations.js *
 
@@ -26,6 +25,9 @@ source: source-is-missing mozilla/js/src/octane/*
 # no JS files
 source: source-is-missing mozilla/modules/libpref/init/all.js *
 source: source-is-missing mozilla/browser/app/profile/firefox.js *
+
+# needed by TB, some various long lines
+source: source-is-missing mail/app/profile/all-thunderbird.js *
 
 # this is no brace expansion
 source: brace-expansion-in-debhelper-config-file debian/calendar-google-provider.links
