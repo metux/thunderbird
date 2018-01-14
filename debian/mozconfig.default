@@ -24,6 +24,8 @@ ac_add_options --without-system-nss    # Debian version to old in unstable
 ac_add_options --with-system-zlib
 
 # other packaged software
+ac_add_options --with-system-nspr
+ac_add_options --with-system-nss
 ac_add_options --with-system-libevent
 ac_add_options --with-system-libvpx
 
@@ -45,7 +47,7 @@ ac_add_options --enable-startup-notification
 ac_add_options --enable-system-cairo
 ac_add_options --enable-system-ffi
 ac_add_options --enable-system-hunspell
-#ac_add_options --enable-system-sqlite # Debian version to old in unstable
+ac_add_options --enable-system-sqlite
 
 # Debian specific things
 PARALLEL_BUILD=$(echo $DEB_BUILD_OPTIONS | sed -e '/parallel=/!s/.*/1/;s/.*parallel=\([0-9]\+\).*/\1/g')
