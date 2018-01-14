@@ -167,7 +167,6 @@ Architecture: any
 Depends:
  thunderbird (>= ${binary:Version}),
  ${misc:Depends},
- ${shlibs:Depends},
 Suggests:
  calendar-google-provider,
  fonts-lyx,
