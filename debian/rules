@@ -114,10 +114,10 @@ override_dh_auto_build:
 	make -f client.mk build
 	# build thunderbird-l10n
 	mkdir -p $(THUNDERBIRD_L10N_BUILDDIR)
-	cd $(CURDIR)/thunderbird-l10n; \
+	cd $(CURDIR)/thunderbird-l10n ;\
 	for XPI in *; do \
-		LOCALE=`basename $${XPI}`; \
-		xpi-pack $${LOCALE} ../$(THUNDERBIRD_L10N_BUILDDIR)/$${LOCALE}.xpi; \
+		locale=`basename $${XPI}` ;\
+		xpi-pack $${XPI} ../$(THUNDERBIRD_L10N_BUILDDIR)/langpack-$${locale}@firefox.mozilla.org.xpi ;\
 	done
 	# build lightning-l10n
 	mkdir -p $(LIGHTNING_L10N_BUILDDIR)
@@ -134,14 +134,16 @@ ifneq (,$(filter mips,$(DEB_BUILD_ARCH)))
 	sed -i '/"javascript.options.\(baselinejit\|ion\)"/s/true/false/' obj-thunderbird/dist/bin/greprefs.js
 endif
 	make -f client.mk install DESTDIR=$(CURDIR)/debian/tmp
-	# install thunderbird-l10n
-	cd $(CURDIR)/thunderbird-l10n; \
-	for DIRECTORY in *; do \
-		LOCALE=`echo $${DIRECTORY} | tr [:upper:] [:lower:]`; \
-		ID=`cat $${DIRECTORY}/install.rdf | sed --posix '/em:id=/!d;s/[ ]*em:id="//;s/".*//'`; \
-		install -D -m 644 ../$(THUNDERBIRD_L10N_BUILDDIR)/$${DIRECTORY}.xpi $(CURDIR)/debian/thunderbird-l10n-$${LOCALE}/usr/share/thunderbird/extensions/$${ID}.xpi; \
-		mkdir -p $(CURDIR)/debian/thunderbird-l10n-$${LOCALE}/usr/lib/thunderbird/extensions; \
-		ln -sf /usr/share/thunderbird/extensions/$${ID}.xpi $(CURDIR)/debian/thunderbird-l10n-$${LOCALE}/usr/lib/thunderbird/extensions/$${ID}.xpi; \
+	# install, symlinking thunderbird-l10n packages
+	cd $(CURDIR)/thunderbird-l10n ;\
+	for LANG in *; do \
+		locale=`basename $${LANG}` ;\
+		lowercase_locale=`echo $${locale} | tr 'A-Z' 'a-z'` ;\
+		echo "preparing and working on 'thunderbird-l10n-$${lowercase_locale}  (langpack-$${locale}@firefox.mozilla.org.xpi)" ;\
+		mkdir -p $(CURDIR)/debian/thunderbird-l10n-$${lowercase_locale}/usr/lib/thunderbird/extensions/ ;\
+		install -D -m 644 ../$(THUNDERBIRD_L10N_BUILDDIR)/langpack-$${locale}@firefox.mozilla.org.xpi $(CURDIR)/debian/thunderbird-l10n-$${lowercase_locale}/usr/share/thunderbird/extensions/langpack-$${locale}@firefox.mozilla.org.xpi ;\
+		ln -sf /usr/share/thunderbird/extensions/langpack-$${locale}@firefox.mozilla.org.xpi \
+			$(CURDIR)/debian/thunderbird-l10n-$${lowercase_locale}/usr/lib/thunderbird/extensions/langpack-$${locale}@firefox.mozilla.org.xpi ;\
 	done
 	# install lightning-l10n
 	for jar in $(LIGHTNING_L10N_BUILDDIR)/*.jar; do \
