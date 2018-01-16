@@ -153,10 +153,10 @@ debug "Debian version: ...... ${VERSION}"
 debug "Lightning version: ... ${LN_VERSION}"
 
 # creating temporary directories inside /tmp
-# UNPACKDIR -> the directory there the original 'lightning.xpi' or the single
-#            'lightning-${LN_VERSION}.$LANG.linux-i686.xpi' will be extracted, it
-#             contains the complete content of the lightning.xpi
-# ORIGDIR   -> the directory for the plain needed content of the ${LANG}.jar,
+# UNPACKDIR -> the directory there the original '${lightning-l10n}.xpi' or the single
+#              'lightning-${LN_VERSION}.$LANG.linux-i686.xpi' will be extracted, it
+#              contains the complete content of the lightning.xpi
+# ORIGDIR   -> the directory for the plain needed content of the ${LANG},
 #              will be used for the debian.orig.tar.xz
 
 export TMPDIR=$(mktemp --tmpdir=/tmp -d)/
@@ -172,7 +172,7 @@ if [ -n "${DOWNLOAD}" ]; then
         # packages for every single language instead of one single file without
         # all languages.
         # getting the latest build inside a release candidates
-        debug "${MOZILLA_CDN_PROTO}${MOZILLA_CDN_BASE}/lightning/candidates/${LN_VERSION}-candidates/"        
+        debug "${MOZILLA_CDN_PROTO}${MOZILLA_CDN_BASE}/lightning/candidates/${LN_VERSION}-candidates/"
         RET=`curl -L --silent "${MOZILLA_CDN_PROTO}${MOZILLA_CDN_BASE}/lightning/candidates/${LN_VERSION}-candidates/" \
              | grep "build" | awk '{print $2}' | tr '<>/"' ' ' | awk '{print $8}' | tail -1`
         if [ "$?" = "0" -a "${RET}" != "" ]; then
@@ -180,7 +180,7 @@ if [ -n "${DOWNLOAD}" ]; then
             DATE=`echo ${RET} | tr ' ' '\n' | tail -1`
             debug "found directory '${LN_VERsion}-candidates/${DIRECTORY}' from '${DATE}'"
             debug "creating ${UNPACKDIR}"
-            mkdir ${UNPACKDIR}
+            mkdir -p ${UNPACKDIR}
             debug "going downloading *.xpi files from ${MOZILLA_CDN_PROTO}${MOZILLA_CDN_BASE}/lightning/candidates/${LN_VERSION}-candidates/${DIRECTORY}/linux-i686/"
             cd /tmp
             # going to download the files, creating a list of the XPI files first
@@ -190,10 +190,10 @@ if [ -n "${DOWNLOAD}" ]; then
             done
 
             # unpack all files
-            for XPIFILE in `ls download-origin.cdn.mozilla.net/pub/calendar/lightning/candidates/${LN_VERSION}-candidates/${DIRECTORY}/linux-i686/lightning-*.*.linux-i686.xpi`; do
+            for XPIFILE in `ls /tmp/download-origin.cdn.mozilla.net/pub/calendar/lightning/candidates/${LN_VERSION}-candidates/${DIRECTORY}/linux-i686/lightning-*.xpi`; do
                 LANG=`basename ${XPIFILE} | sed s/lightning-${LN_VERSION}.// | sed s/.linux-i686.xpi//`
                 debug "extracting '`basename ${XPIFILE}`' to '${UNPACKDIR}/${LANG}'"
-                mkdir ${UNPACKDIR}/${LANG}
+                mkdir -p ${UNPACKDIR}/${LANG}
                 unzip -q -o -d ${UNPACKDIR}/${LANG} ${XPIFILE} || fail "Oops! Failed to unzip ${XPIFILE}"
             done
             cd ${TMPDIR}
@@ -213,8 +213,8 @@ else
     fi
 fi
 
-debug "creating ${ORIGDIR}"
-mkdir ${ORIGDIR}
+debug "creating folder '${ORIGDIR}'"
+mkdir -p ${ORIGDIR}
 
 if [ "$EXPERIMENTAL" != "1" ]; then
     # don't try to do anything if we have download beta versions'
@@ -224,25 +224,38 @@ if [ "$EXPERIMENTAL" != "1" ]; then
 fi
 
 # getting the versions
-ICEDOVE_VER=$(grep -A2 '{3550f703-e582-4d05-9a08-453d09bdfdc6}' ${UNPACKDIR}/en-US/install.rdf)
+TB_VER=$(grep -A2 '{3550f703-e582-4d05-9a08-453d09bdfdc6}' ${UNPACKDIR}/en-US*/install.rdf)
+if [ "$?" != "0" ]; then
+    debug "error"
+    debug "UNPACKDIR: ${UNPACKDIR}"
+    exit 1
+fi
 
-# shipped with lightning-extension already, removing the folder 'en-US'
+# shipped with lightning already, removing the folder 'en-US'
 debug "removing language 'en-US' ${UNPACKDIR}en-US"
-rm -rf ${UNPACKDIR}en-US
+rm -rf ${UNPACKDIR}en-US*
 
 LANG=`ls ${UNPACKDIR}`
 debug "moving extracted source into directory for tarball creation"
 for i in ${LANG}; do
-    echo "processing ${ORIGDIR}/locale/${i}"
-    TARGET_DIR=${ORIGDIR}/${i}/locale/${i}
-    # creating the folder for the localization
+    echo "processing l10n folder ${ORIGDIR}/locale/${i}"
+    TARGET_DIR=${ORIGDIR}/${i%.xpi}
+    TARGET_LANG=${i%.xpi}
+    # creating the folder for the l10n files in the target directory
+    debug "creating folder '${TARGET_DIR}'"
     mkdir -p ${TARGET_DIR}
     # move the files from the extracted source into the target
-    debug "moving files ${i}/chrome/calendar-${i}/locale/${i}/calendar"
-    debug "moving files ${i}/chrome/calendar-${i}/locale/${i}/lightning"
-    debug "        into ${TARGET_DIR}"
-    mv ${UNPACKDIR}${i}/chrome/calendar-${i}/locale/${i}/calendar ${TARGET_DIR}
-    mv ${UNPACKDIR}${i}/chrome/lightning-${i}/locale/${i}/lightning ${TARGET_DIR}
+    debug "moving ${i}/chrome.manifest ${i}/chrome/{calendar,lightning}-${TARGET_LANG}"
+    debug "into   '${TARGET_DIR}'"
+    debug ""
+    if mv ${UNPACKDIR}${i}/chrome.manifest ${TARGET_DIR} ;then
+        :
+    else
+        fail "couldn't mv ${UNPACKDIR}${i}/chrome.manifest ${TARGET_DIR} "
+    fi
+    for FOLDER in $(find ${UNPACKDIR}${i}/chrome -type d -name *-${TARGET_LANG}); do
+        mv "${FOLDER}" "${TARGET_DIR}/chrome"
+    done
 done
 
 debug "creating 'thunderbird_${VERSION}.orig-${BASE_PKG}.tar.xz'"
@@ -252,8 +265,8 @@ tar Jcf ${TARBALL} ${BASE_PKG}
 TARBALL=$(readlink -f ${TARBALL})
 
 echo
-echo "Icedove version information"
-echo ${ICEDOVE_VER}
+echo "Lightning version information"
+echo ${TB_VER}
 
 # counting languages
 LANG_COUNT=`ls -l ${ORIGDIR} | wc -l`
