@@ -25,8 +25,6 @@ DEB_AUTO_UPDATE_AUTOCONF=2.13
 # build directory used for building the thunderbird-l10n files
 THUNDERBIRD_L10N_BUILDDIR=debian/thunderbird-l10n-build
 
-# build directory used for building the lightning-l10n files
-LIGHTNING_L10N_BUILDDIR=debian/lightning-l10n-build
 # Iceowl/Lightning version, note this is different from the TB version!
 LIGHTNING_VERSION := $(shell python $(CURDIR)/calendar/lightning/build/makeversion.py ${THUNDERBIRD_VERSION})
 
@@ -76,8 +74,6 @@ override_dh_auto_clean:
 	dh_auto_clean --builddirectory=obj-thunderbird
 	# needed for thunderbird-l10n
 	rm -rf $(THUNDERBIRD_L10N_BUILDDIR)
-	# needed for lightning-l10n
-	rm -rf $(LIGHTNING_L10N_BUILDDIR)
 
 override_dh_auto_configure:
 	# run autoconf for all configure files
@@ -119,15 +115,6 @@ override_dh_auto_build:
 		locale=`basename $${XPI}` ;\
 		xpi-pack $${XPI} ../$(THUNDERBIRD_L10N_BUILDDIR)/langpack-$${locale}@firefox.mozilla.org.xpi ;\
 	done
-	# build lightning-l10n
-	mkdir -p $(LIGHTNING_L10N_BUILDDIR)
-	cd $(CURDIR)/lightning-l10n; \
-	for dir in ?? ??? ??-*; do \
-		cd $${dir}; \
-		zip -q -X -r ../../$(LIGHTNING_L10N_BUILDDIR)/$${dir}.jar locale; \
-		cd -; \
-	done
-	rm -rf $(LIGHTNING_L10N_BUILDDIR)/en-US.jar
 
 override_dh_auto_install:
 ifneq (,$(filter mips,$(DEB_BUILD_ARCH)))
@@ -146,40 +133,28 @@ endif
 			$(CURDIR)/debian/thunderbird-l10n-$${lowercase_locale}/usr/lib/thunderbird/extensions/langpack-$${locale}@firefox.mozilla.org.xpi ;\
 	done
 	# install lightning-l10n
-	for jar in $(LIGHTNING_L10N_BUILDDIR)/*.jar; do \
-		locale=`basename $${jar} .jar | tr 'A-Z' 'a-z'`; \
-		mkdir -p $(CURDIR)/debian/lightning-l10n-$${locale}/usr/share/lightning/extensions/langpack-$${locale}@lightning.debian.org/chrome; \
-		install -m 644 $${jar} $(CURDIR)/debian/lightning-l10n-$${locale}/usr/share/lightning/extensions/langpack-$${locale}@lightning.debian.org/chrome/; \
+	cd $(CURDIR)/lightning-l10n ;\
+	for LANG in *; do \
+		locale=`basename $${LANG}` ;\
+		lowercase_locale=`echo $${locale} | tr 'A-Z' 'a-z'` ;\
+		echo "preparing and working on 'lightning-l10n-$${lowercase_locale}'   (langpack-$${locale}@lightning.debian.org)" ;\
+		mkdir -p $(CURDIR)/debian/lightning-l10n-$${lowercase_locale}/usr/share/lightning/extensions/langpack-$${locale}@lightning.debian.org ;\
+		cp -a $${locale}/* $(CURDIR)/debian/lightning-l10n-$${lowercase_locale}/usr/share/lightning/extensions/langpack-$${locale}@lightning.debian.org/ ;\
+		rm $(CURDIR)/debian/lightning-l10n-$${lowercase_locale}/usr/share/lightning/extensions/langpack-$${locale}@lightning.debian.org/app.ini ;\
 	done
-	for jar in $(LIGHTNING_L10N_BUILDDIR)/*.jar; do \
-		locale=`basename $${jar} .jar | tr 'A-Z' 'a-z'`; \
-		mkdir -p $(CURDIR)/debian/lightning-l10n-$${locale}/usr/lib/lightning/extensions/; \
+	# symlink lightning-l10n packages for Thunderbird and Lightning
+	#   /u/l/lightning/extensions/$(langpack)   -> /u/s/lightning/extensions/$(langpack)
+	#   /u/l/thunderbird/extensions/$(langpack) -> /u/s/lightning/extensions/$(langpack)
+	cd $(CURDIR)/lightning-l10n ;\
+	for LANG in *; do \
+		locale=`basename $${LANG}`; \
+		lowercase_locale=`echo $${locale} | tr 'A-Z' 'a-z'` ;\
+		mkdir -p $(CURDIR)/debian/lightning-l10n-$${lowercase_locale}/usr/lib/lightning/extensions/ ;\
 		ln -sf /usr/share/lightning/extensions/langpack-$${locale}@lightning.debian.org/ \
-			$(CURDIR)/debian/lightning-l10n-$${locale}/usr/lib/lightning/extensions/langpack-$${locale}@lightning.debian.org; \
-		mkdir -p $(CURDIR)/debian/lightning-l10n-$${locale}/usr/lib/thunderbird/extensions/; \
+			$(CURDIR)/debian/lightning-l10n-$${lowercase_locale}/usr/lib/lightning/extensions/langpack-$${locale}@lightning.debian.org ;\
+		mkdir -p $(CURDIR)/debian/lightning-l10n-$${lowercase_locale}/usr/lib/thunderbird/extensions/ ;\
 		ln -sf /usr/share/lightning/extensions/langpack-$${locale}@lightning.debian.org/ \
-			$(CURDIR)/debian/lightning-l10n-$${locale}/usr/lib/thunderbird/extensions/langpack-$${locale}@lightning.debian.org; \
-	done
-	# install lightning-l10n; install.rdf
-	for jar in $(LIGHTNING_L10N_BUILDDIR)/*.jar; do \
-		locale=`basename $${jar} .jar | tr 'A-Z' 'a-z'`; \
-		sed -e s"/##LOCALE##/$${locale}/" -e s",##VERSION##,$(LIGHTNING_VERSION)," \
-			debian/lightning-l10n-install.rdf.in \
-			> $(CURDIR)/debian/lightning-l10n-$${locale}/usr/share/lightning/extensions/langpack-$${locale}@lightning.debian.org/install.rdf; \
-	done
-	# install lightning-l10n; chrome.manifest
-	for jar in $(LIGHTNING_L10N_BUILDDIR)/*.jar; do \
-		lang=`basename $${jar} .jar`; \
-		locale=`basename $${jar} .jar | tr 'A-Z' 'a-z'`; \
-			sed -e s"/##LANG##/$${lang}/g" \
-			debian/lightning-l10n-chrome.manifest.in \
-			> $(CURDIR)/debian/lightning-l10n-$${locale}/usr/share/lightning/extensions/langpack-$${locale}@lightning.debian.org/chrome.manifest; \
-	done
-	# install lightning-l10n; uninstall
-	for jar in $(LIGHTNING_L10N_BUILDDIR)/*.jar; do \
-		locale=`basename $${jar} .jar | tr 'A-Z' 'a-z'`; \
-		mkdir -p $(CURDIR)/debian/lightning-l10n-$${locale}/usr/share/lightning/extensions/langpack-$${locale}@lightning.debian.org/uninstall; \
-		touch $(CURDIR)/debian/lightning-l10n-$${locale}/usr/share/lightning/extensions/langpack-$${locale}@lightning.debian.org/uninstall/Uninstall; \
+			$(CURDIR)/debian/lightning-l10n-$${lowercase_locale}/usr/lib/thunderbird/extensions/langpack-$${locale}@lightning.debian.org ;\
 	done
 	dh_bash-completion
 
@@ -195,7 +170,7 @@ override_dh_install-arch:
 	LIGHTNING=`find -type f -name "lightning*.xpi"` &&\
 		unzip -d debian/lightning/usr/lib/lightning/ $(CURDIR)/$$LIGHTNING
 	# remove executable rights on *.js, *.png, *.xul files
-	find debian/lightning/ -type f \( -name "*.js" -o -name "*.png" -o -name "*.xul" \) -exec chmod 644 {} \;
+	find debian/lightning*/ -type f \( -name "*.dtd" -o -name "*.js" -o -name "*.png" -o -name "*.properties" -o -name "*.xul" \) -exec chmod 644 {} \;
 	# moving skins and icon stuff to /usr/share/lightning/
 	mv debian/lightning/usr/lib/lightning/chrome/skin debian/lightning/usr/share/lightning/chrome/
 	mv debian/lightning/usr/lib/lightning/chrome/icons debian/lightning/usr/share/lightning/chrome/
