@@ -1,0 +1,18 @@
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+
+<!--LOCALIZATION NOTE msgCompSecurityInfo.dtd UI for viewing security status when composing a message -->
+
+<!ENTITY title.label "Ασφάλεια μηνύματος">
+<!ENTITY subject.plaintextWarning "Παρακαλώ σημειώστε ότι οι γραμμές θέματος των e-mails δεν κρυπτογραφούνται ποτέ.">
+<!ENTITY status.heading "Το περιεχόμενο του μηνύματος θα αποσταλεί ως ακολούθως:">
+<!ENTITY status.signed "Με ψηφιακή υπογραφή:">
+<!ENTITY status.encrypted "Κρυπτογραφημένα:">
+<!ENTITY status.certificates "Πιστοποιητικά:">
+<!ENTITY view.label "Προβολή">
+<!ENTITY view.accesskey "β">
+<!ENTITY tree.recipient "Παραλήπτης:">
+<!ENTITY tree.status "Κατάσταση:">
+<!ENTITY tree.issuedDate "Εκδόθηκε:">
+<!ENTITY tree.expiresDate "Λήγει:">

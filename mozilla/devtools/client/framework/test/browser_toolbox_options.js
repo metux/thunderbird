@@ -1,18 +1,28 @@
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
+/* vim: set ft=javascript ts=2 et sw=2 tw=80: */
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
+
+/* import-globals-from shared-head.js */
+"use strict";
 
 // Tests that changing preferences in the options panel updates the prefs
 // and toggles appropriate things in the toolbox.
 
 var doc = null, toolbox = null, panelWin = null, modifiedPrefs = [];
+const {LocalizationHelper} = require("devtools/shared/l10n");
+const L10N = new LocalizationHelper("devtools/client/locales/toolbox.properties");
+const {PrefObserver} = require("devtools/client/shared/prefs");
 
-add_task(function*() {
-  const URL = "data:text/html;charset=utf8,test for dynamically registering and unregistering tools";
+add_task(function* () {
+  const URL = "data:text/html;charset=utf8,test for dynamically registering " +
+              "and unregistering tools";
   registerNewTool();
   let tab = yield addTab(URL);
   let target = TargetFactory.forTab(tab);
   toolbox = yield gDevTools.showToolbox(target);
   doc = toolbox.doc;
+  yield registerNewPerToolboxTool();
   yield testSelectTool();
   yield testOptionsShortcut();
   yield testOptions();
@@ -38,8 +48,33 @@ function registerNewTool() {
     "The tool is registered");
 }
 
+function registerNewPerToolboxTool() {
+  let toolDefinition = {
+    id: "test-pertoolbox-tool",
+    isTargetSupported: () => true,
+    visibilityswitch: "devtools.test-pertoolbox-tool.enabled",
+    url: "about:blank",
+    label: "perToolboxSomeLabel"
+  };
+
+  ok(gDevTools, "gDevTools exists");
+  ok(!gDevTools.getToolDefinitionMap().has("test-pertoolbox-tool"),
+     "The per-toolbox tool is not registered globally");
+
+  ok(toolbox, "toolbox exists");
+  ok(!toolbox.hasAdditionalTool("test-pertoolbox-tool"),
+     "The per-toolbox tool is not yet registered to the toolbox");
+
+  toolbox.addAdditionalTool(toolDefinition);
+
+  ok(!gDevTools.getToolDefinitionMap().has("test-pertoolbox-tool"),
+     "The per-toolbox tool is not registered globally");
+  ok(toolbox.hasAdditionalTool("test-pertoolbox-tool"),
+     "The per-toolbox tool has been registered to the toolbox");
+}
+
 function* testSelectTool() {
-  info ("Checking to make sure that the options panel can be selected.");
+  info("Checking to make sure that the options panel can be selected.");
 
   let onceSelected = toolbox.once("options-selected");
   toolbox.selectTool("options");
@@ -48,29 +83,30 @@ function* testSelectTool() {
 }
 
 function* testOptionsShortcut() {
-  info ("Selecting another tool, then reselecting options panel with keyboard.");
+  info("Selecting another tool, then reselecting options panel with keyboard.");
 
   yield toolbox.selectTool("webconsole");
   is(toolbox.currentToolId, "webconsole", "webconsole is selected");
-  synthesizeKeyFromKeyTag(doc.getElementById("toolbox-options-key"));
+  synthesizeKeyShortcut(L10N.getStr("toolbox.options.key"));
   is(toolbox.currentToolId, "options", "Toolbox selected via shortcut key (1)");
-  synthesizeKeyFromKeyTag(doc.getElementById("toolbox-options-key"));
+  synthesizeKeyShortcut(L10N.getStr("toolbox.options.key"));
   is(toolbox.currentToolId, "webconsole", "webconsole is selected (1)");
 
   yield toolbox.selectTool("webconsole");
   is(toolbox.currentToolId, "webconsole", "webconsole is selected");
-  synthesizeKeyFromKeyTag(doc.getElementById("toolbox-options-key2"));
+  synthesizeKeyShortcut(L10N.getStr("toolbox.help.key"));
   is(toolbox.currentToolId, "options", "Toolbox selected via shortcut key (2)");
-  synthesizeKeyFromKeyTag(doc.getElementById("toolbox-options-key"));
+  synthesizeKeyShortcut(L10N.getStr("toolbox.options.key"));
   is(toolbox.currentToolId, "webconsole", "webconsole is reselected (2)");
-  synthesizeKeyFromKeyTag(doc.getElementById("toolbox-options-key2"));
+  synthesizeKeyShortcut(L10N.getStr("toolbox.help.key"));
   is(toolbox.currentToolId, "options", "Toolbox selected via shortcut key (2)");
 }
 
 function* testOptions() {
   let tool = toolbox.getPanel("options");
   panelWin = tool.panelWin;
-  let prefNodes = tool.panelDoc.querySelectorAll("checkbox[data-pref]");
+  let prefNodes = tool.panelDoc.querySelectorAll(
+    "input[type=checkbox][data-pref]");
 
   // Store modified pref names so that they can be cleared on error.
   for (let node of tool.panelDoc.querySelectorAll("[data-pref]")) {
@@ -88,57 +124,56 @@ function* testOptions() {
     yield testMouseClick(node, !prefValue);
   }
 
-  let prefDropdowns = tool.panelDoc.querySelectorAll("menulist[data-pref]");
-  for (let node of prefDropdowns) {
-    yield testMenuList(node);
+  let prefSelects = tool.panelDoc.querySelectorAll("select[data-pref]");
+  for (let node of prefSelects) {
+    yield testSelect(node);
   }
 }
 
-function* testMenuList(menulist) {
-  let pref = menulist.getAttribute("data-pref");
-  let menuitems = menulist.querySelectorAll("menuitem");
-  info ("Checking menu list for: " + pref);
+function* testSelect(select) {
+  let pref = select.getAttribute("data-pref");
+  let options = Array.from(select.options);
+  info("Checking select for: " + pref);
 
-  is (menulist.selectedItem.value, GetPref(pref), "Menu starts out selected");
+  is(select.options[select.selectedIndex].value, GetPref(pref),
+    "select starts out selected");
 
-  for (let menuitem of menuitems) {
-    if (menuitem === menulist.selectedItem) {
+  for (let option of options) {
+    if (options.indexOf(option) === select.selectedIndex) {
       continue;
     }
 
-    let deferred = promise.defer();
-    gDevTools.once("pref-changed", (event, data) => {
-      if (data.pref == pref) {
-        ok(true, "Correct pref was changed");
-        is (GetPref(pref), menuitem.value, "Preference been switched for " + pref);
-      } else {
-        ok(false, "Pref " + pref + " was not changed correctly");
-      }
+    let observer = new PrefObserver("devtools.");
+
+    let deferred = defer();
+    let changeSeen = false;
+    observer.once(pref, () => {
+      changeSeen = true;
+      is(GetPref(pref), option.value, "Preference been switched for " + pref);
       deferred.resolve();
     });
 
-    menulist.selectedItem = menuitem;
-    let commandEvent = menulist.ownerDocument.createEvent("XULCommandEvent");
-    commandEvent.initCommandEvent("command", true, true, window, 0, false, false,
-                                  false, false, null);
-    menulist.dispatchEvent(commandEvent);
+    select.selectedIndex = options.indexOf(option);
+    let changeEvent = new Event("change");
+    select.dispatchEvent(changeEvent);
 
     yield deferred.promise;
+
+    ok(changeSeen, "Correct pref was changed");
+    observer.destroy();
   }
 }
 
 function* testMouseClick(node, prefValue) {
-  let deferred = promise.defer();
+  let deferred = defer();
+
+  let observer = new PrefObserver("devtools.");
 
   let pref = node.getAttribute("data-pref");
-  gDevTools.once("pref-changed", (event, data) => {
-    if (data.pref == pref) {
-      ok(true, "Correct pref was changed");
-      is(data.oldValue, prefValue, "Previous value is correct for " + pref);
-      is(data.newValue, !prefValue, "New value is correct for " + pref);
-    } else {
-      ok(false, "Pref " + pref + " was not changed correctly");
-    }
+  let changeSeen = false;
+  observer.once(pref, () => {
+    changeSeen = true;
+    is(GetPref(pref), !prefValue, "New value is correct for " + pref);
     deferred.resolve();
   });
 
@@ -146,25 +181,34 @@ function* testMouseClick(node, prefValue) {
 
   // We use executeSoon here to ensure that the element is in view and
   // clickable.
-  executeSoon(function() {
+  executeSoon(function () {
     info("Click event synthesized for pref " + pref);
     EventUtils.synthesizeMouseAtCenter(node, {}, panelWin);
   });
 
   yield deferred.promise;
+
+  ok(changeSeen, "Correct pref was changed");
+  observer.destroy();
 }
 
 function* testToggleTools() {
-  let toolNodes = panelWin.document.querySelectorAll("#default-tools-box > checkbox:not([unsupported]), #additional-tools-box > checkbox:not([unsupported])");
+  let toolNodes = panelWin.document.querySelectorAll(
+    "#default-tools-box input[type=checkbox]:not([data-unsupported])," +
+    "#additional-tools-box input[type=checkbox]:not([data-unsupported])");
   let enabledTools = [...toolNodes].filter(node => node.checked);
 
-  let toggleableTools = gDevTools.getDefaultTools().filter(tool => {
-    return tool.visibilityswitch;
-  }).concat(gDevTools.getAdditionalTools());
+  let toggleableTools = gDevTools.getDefaultTools()
+                                 .filter(tool => {
+                                   return tool.visibilityswitch;
+                                 })
+                                 .concat(gDevTools.getAdditionalTools())
+                                 .concat(toolbox.getAdditionalTools());
+
 
   for (let node of toolNodes) {
     let id = node.getAttribute("id");
-    ok (toggleableTools.some(tool => tool.id === id),
+    ok(toggleableTools.some(tool => tool.id === id),
       "There should be a toggle checkbox for: " + id);
   }
 
@@ -195,9 +239,9 @@ function* testToggleTools() {
 
   // Toggle first, middle, and last tools to ensure that toolbox tabs are
   // inserted in order
-  let firstTool  = toolNodes[0],
-      middleTool = toolNodes[(toolNodes.length / 2) | 0],
-      lastTool   = toolNodes[toolNodes.length - 1];
+  let firstTool = toolNodes[0];
+  let middleTool = toolNodes[(toolNodes.length / 2) | 0];
+  let lastTool = toolNodes[toolNodes.length - 1];
 
   yield toggleTool(firstTool);
   yield toggleTool(firstTool);
@@ -208,14 +252,15 @@ function* testToggleTools() {
 }
 
 function* toggleTool(node) {
-  let deferred = promise.defer();
+  let deferred = defer();
 
   let toolId = node.getAttribute("id");
-  let onRegistrationChange;
   if (node.checked) {
-    gDevTools.once("tool-unregistered", checkUnregistered.bind(null, toolId, deferred));
+    gDevTools.once("tool-unregistered",
+      checkUnregistered.bind(null, toolId, deferred));
   } else {
-    gDevTools.once("tool-registered", checkRegistered.bind(null, toolId, deferred));
+    gDevTools.once("tool-registered",
+      checkRegistered.bind(null, toolId, deferred));
   }
   node.scrollIntoView();
   EventUtils.synthesizeMouseAtCenter(node, {}, panelWin);
@@ -224,10 +269,11 @@ function* toggleTool(node) {
 }
 
 function checkUnregistered(toolId, deferred, event, data) {
-  if (data.id == toolId) {
+  if (data == toolId) {
     ok(true, "Correct tool removed");
     // checking tab on the toolbox
-    ok(!doc.getElementById("toolbox-tab-" + toolId), "Tab removed for " + toolId);
+    ok(!doc.getElementById("toolbox-tab-" + toolId),
+      "Tab removed for " + toolId);
   } else {
     ok(false, "Something went wrong, " + toolId + " was not unregistered");
   }
@@ -238,22 +284,8 @@ function checkRegistered(toolId, deferred, event, data) {
   if (data == toolId) {
     ok(true, "Correct tool added back");
     // checking tab on the toolbox
-    let radio = doc.getElementById("toolbox-tab-" + toolId);
-    ok(radio, "Tab added back for " + toolId);
-    if (radio.previousSibling) {
-      ok(+radio.getAttribute("ordinal") >=
-         +radio.previousSibling.getAttribute("ordinal"),
-         "Inserted tab's ordinal is greater than equal to its previous tab." +
-         "Expected " + radio.getAttribute("ordinal") + " >= " +
-         radio.previousSibling.getAttribute("ordinal"));
-    }
-    if (radio.nextSibling) {
-      ok(+radio.getAttribute("ordinal") <
-         +radio.nextSibling.getAttribute("ordinal"),
-         "Inserted tab's ordinal is less than its next tab. Expected " +
-         radio.getAttribute("ordinal") + " < " +
-         radio.nextSibling.getAttribute("ordinal"));
-    }
+    let button = doc.getElementById("toolbox-tab-" + toolId);
+    ok(button, "Tab added back for " + toolId);
   } else {
     ok(false, "Something went wrong, " + toolId + " was not registered");
   }

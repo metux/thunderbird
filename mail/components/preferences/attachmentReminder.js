@@ -38,8 +38,8 @@ var gAttachmentReminderOptionsDialog = {
   {
     var input = {value: ""}; // Default to empty.
     var ok = Services.prompt.prompt(window,
-                                    this.bundle.getString("attachmentReminderAddDialogTitle"),
-                                    this.bundle.getString("attachmentReminderAddText"),
+                                    this.bundle.getString("attachmentReminderNewDialogTitle"),
+                                    this.bundle.getString("attachmentReminderNewText"),
                                     input, null, {value:0});
     if (ok && input.value)
       this.keywordListBox.appendItem(input.value, input.value);
@@ -77,10 +77,7 @@ var gAttachmentReminderOptionsDialog = {
         keywordList += ",";
     }
 
-    var str = Components.classes["@mozilla.org/supports-string;1"]
-                        .createInstance(Components.interfaces.nsISupportsString);
-    str.data = keywordList;
-    Services.prefs.setComplexValue("mail.compose.attachment_reminder_keywords",
-                                   Components.interfaces.nsISupportsString, str);
+    Services.prefs.setStringPref("mail.compose.attachment_reminder_keywords",
+                                 keywordList);
   }
 };

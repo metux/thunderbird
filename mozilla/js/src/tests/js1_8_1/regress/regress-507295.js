@@ -12,7 +12,6 @@ var expect = 'do not crash';
 
 //-----------------------------------------------------------------------------
 start_test();
-jit(true);
 
 (function () {
     var y;
@@ -24,14 +23,12 @@ jit(true);
      "))()
 })()
 
-jit(false);
 actual = 'do not crash'
 finish_test();
 //-----------------------------------------------------------------------------
 
 function start_test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
 }
@@ -39,5 +36,4 @@ function start_test()
 function finish_test()
 {
   reportCompare(expect, actual, summary);
-  exitFunc ('test');
 }

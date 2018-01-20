@@ -23,24 +23,29 @@ public:
      */
     struct FontCallbackData {
         gfxHarfBuzzShaper* mShaper;
-        mozilla::gfx::DrawTarget* mDrawTarget;
+        // initialized to a DrawTarget owned by our caller on every call to
+        // ShapeText
+        mozilla::gfx::DrawTarget* MOZ_NON_OWNING_REF mDrawTarget;
     };
 
     bool Initialize();
-    virtual bool ShapeText(gfxContext      *aContext,
-                           const char16_t *aText,
-                           uint32_t         aOffset,
-                           uint32_t         aLength,
-                           int32_t          aScript,
-                           bool             aVertical,
-                           gfxShapedText   *aShapedText);
+
+    bool ShapeText(DrawTarget      *aDrawTarget,
+                   const char16_t *aText,
+                   uint32_t         aOffset,
+                   uint32_t         aLength,
+                   Script           aScript,
+                   bool             aVertical,
+                   RoundingFlags    aRounding,
+                   gfxShapedText   *aShapedText) override;
 
     // get a given font table in harfbuzz blob form
     hb_blob_t * GetFontTable(hb_tag_t aTag) const;
 
     // map unicode character to glyph ID
-    hb_codepoint_t GetGlyph(hb_codepoint_t unicode,
-                            hb_codepoint_t variation_selector) const;
+    hb_codepoint_t GetNominalGlyph(hb_codepoint_t unicode) const;
+    hb_codepoint_t GetVariationGlyph(hb_codepoint_t unicode,
+                                     hb_codepoint_t variation_selector) const;
 
     // get harfbuzz glyph advance, in font design units
     hb_position_t GetGlyphHAdvance(hb_codepoint_t glyph) const;
@@ -61,11 +66,6 @@ public:
                        hb_codepoint_t glyph, void *user_data);
 
     static hb_bool_t
-    HBGetGlyphHOrigin(hb_font_t *font, void *font_data,
-                      hb_codepoint_t glyph,
-                      hb_position_t *x, hb_position_t *y,
-                      void *user_data);
-    static hb_bool_t
     HBGetGlyphVOrigin(hb_font_t *font, void *font_data,
                       hb_codepoint_t glyph,
                       hb_position_t *x, hb_position_t *y,
@@ -83,10 +83,10 @@ public:
     }
 
     static hb_script_t
-    GetHBScriptUsedForShaping(int32_t aScript) {
+    GetHBScriptUsedForShaping(Script aScript) {
         // Decide what harfbuzz script code will be used for shaping
         hb_script_t hbScript;
-        if (aScript <= MOZ_SCRIPT_INHERITED) {
+        if (aScript <= Script::INHERITED) {
             // For unresolved "common" or "inherited" runs,
             // default to Latin for now.
             hbScript = HB_SCRIPT_LATIN;
@@ -98,18 +98,16 @@ public:
     }
 
 protected:
-    nsresult SetGlyphsFromRun(gfxContext     *aContext,
-                              gfxShapedText  *aShapedText,
+    nsresult SetGlyphsFromRun(gfxShapedText  *aShapedText,
                               uint32_t        aOffset,
                               uint32_t        aLength,
                               const char16_t *aText,
-                              hb_buffer_t    *aBuffer,
-                              bool            aVertical);
+                              bool            aVertical,
+                              RoundingFlags   aRounding);
 
     // retrieve glyph positions, applying advance adjustments and attachments
     // returns results in appUnits
     nscoord GetGlyphPositions(gfxContext *aContext,
-                              hb_buffer_t *aBuffer,
                               nsTArray<nsPoint>& aPositions,
                               uint32_t aAppUnitsPerDevUnit);
 
@@ -118,11 +116,11 @@ protected:
 
     struct Glyf { // we only need the bounding-box at the beginning
                   // of the glyph record, not the actual outline data
-        AutoSwap_PRInt16 numberOfContours;
-        AutoSwap_PRInt16 xMin;
-        AutoSwap_PRInt16 yMin;
-        AutoSwap_PRInt16 xMax;
-        AutoSwap_PRInt16 yMax;
+        mozilla::AutoSwap_PRInt16 numberOfContours;
+        mozilla::AutoSwap_PRInt16 xMin;
+        mozilla::AutoSwap_PRInt16 yMin;
+        mozilla::AutoSwap_PRInt16 xMax;
+        mozilla::AutoSwap_PRInt16 yMax;
     };
 
     const Glyf *FindGlyf(hb_codepoint_t aGlyph, bool *aEmptyGlyf) const;
@@ -133,6 +131,9 @@ protected:
 
     // size-specific font object, owned by the gfxHarfBuzzShaper
     hb_font_t         *mHBFont;
+
+    // harfbuzz buffer for the shaping process
+    hb_buffer_t       *mBuffer;
 
     FontCallbackData   mCallbackData;
 

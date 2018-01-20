@@ -9,7 +9,7 @@
 
 #include "nsIAbLDAPReplicationService.h"
 #include "nsIAbLDAPReplicationQuery.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 
 class nsAbLDAPReplicationService : public nsIAbLDAPReplicationService
 {
@@ -23,7 +23,7 @@ public:
 
 protected:
   virtual ~nsAbLDAPReplicationService();
-  nsCOMPtr<nsIAbLDAPReplicationQuery> mQuery; 
+  nsCOMPtr<nsIAbLDAPReplicationQuery> mQuery;
   bool           mReplicating;
   nsCOMPtr<nsIAbLDAPDirectory> mDirectory;
 

@@ -1,6 +1,8 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
+"use strict";
+
 /**
  * Test that we can represent ES6 Symbols over the RDP.
  */
@@ -12,11 +14,12 @@ function run_test() {
   const debuggee = addTestGlobal("test-symbols");
   const client = new DebuggerClient(DebuggerServer.connectPipe());
 
-  client.connect(function() {
-    attachTestTabAndResume(client, "test-symbols", function(response, tabClient, threadClient) {
-      add_task(testSymbols.bind(null, client, debuggee));
-      run_next_test();
-    });
+  client.connect().then(function () {
+    attachTestTabAndResume(client, "test-symbols",
+                           function (response, tabClient, threadClient) {
+                             add_task(testSymbols.bind(null, client, debuggee));
+                             run_next_test();
+                           });
   });
 
   do_test_pending();
@@ -24,6 +27,7 @@ function run_test() {
 
 function* testSymbols(client, debuggee) {
   const evalCode = () => {
+    /* eslint-disable */
     Components.utils.evalInSandbox(
       "(" + function () {
         var symbolWithName = Symbol("Chris");
@@ -36,6 +40,7 @@ function* testSymbols(client, debuggee) {
       URL,
       1
     );
+    /* eslint-enable */
   };
 
   const packet = yield executeOnNextTickAndWaitForPause(evalCode, client);

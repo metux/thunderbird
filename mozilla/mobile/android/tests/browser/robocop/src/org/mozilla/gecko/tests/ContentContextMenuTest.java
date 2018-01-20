@@ -5,11 +5,13 @@
 package org.mozilla.gecko.tests;
 
 import org.mozilla.gecko.Actions;
-import org.mozilla.gecko.util.Clipboard;
+import org.mozilla.gecko.Clipboard;
+import org.mozilla.gecko.Element;
+import org.mozilla.gecko.R;
 
 import android.util.DisplayMetrics;
 
-import com.jayway.android.robotium.solo.Condition;
+import com.robotium.solo.Condition;
 
 /**
  * This class covers interactions with the context menu opened from web content
@@ -46,7 +48,7 @@ abstract class ContentContextMenuTest extends PixelTest {
         if (!mSolo.searchText(contextMenuOption)) {
             openWebContentContextMenu(contextMenuOption); // Open the context menu if it is not already
         }
-        Actions.EventExpecter tabEventExpecter = mActions.expectGeckoEvent("Tab:Added");
+        Actions.EventExpecter tabEventExpecter = mActions.expectGlobalEvent(Actions.EventType.UI, "Tab:Added");
         mSolo.clickOnText(contextMenuOption);
         tabEventExpecter.blockForEvent();
         tabEventExpecter.unregisterListener();
@@ -79,7 +81,7 @@ abstract class ContentContextMenuTest extends PixelTest {
         boolean correctText = waitForCondition(new Condition() {
             @Override
             public boolean isSatisfied() {
-                final String clipboardText = Clipboard.getText();
+                final String clipboardText = Clipboard.getText(getActivity());
                 mAsserter.dumpLog("Clipboard text = " + clipboardText + " , expected text = " + copiedText);
                 return clipboardText.contains(copiedText);
             }
@@ -98,6 +100,26 @@ abstract class ContentContextMenuTest extends PixelTest {
         mAsserter.ok(waitForText(shareOption), "Checking that the share pop-up is displayed", "The pop-up has been displayed");
 
         // Close the Share Link option menu and wait for the page to be focused again
+        mSolo.goBack();
+        waitForText(pageTitle);
+    }
+
+    protected void verifyViewImageOption(String viewImageOption, final String imageUrl, String pageTitle) {
+        if (!mSolo.searchText(viewImageOption)) {
+            openWebContentContextMenu(viewImageOption);
+        }
+        mSolo.clickOnText(viewImageOption);
+
+        boolean viewedImage = waitForCondition(new Condition() {
+            @Override
+            public boolean isSatisfied() {
+                final Element urlBarElement = mDriver.findElement(getActivity(), R.id.url_edit_text);
+                final String loadedUrl = urlBarElement.getText();
+                return loadedUrl.contentEquals(imageUrl);
+            }
+        }, MAX_TEST_TIMEOUT);
+        mAsserter.ok(viewedImage, "Checking if the image is correctly viewed", "The image was correctly viewed");
+
         mSolo.goBack();
         waitForText(pageTitle);
     }

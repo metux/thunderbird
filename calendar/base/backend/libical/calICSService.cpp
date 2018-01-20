@@ -111,8 +111,7 @@ calIcalProperty::SetValue(const nsACString &str)
         icalvalue *v = icalvalue_new_x(PromiseFlatCString(str).get());
         icalproperty_set_value(mProperty, v);
     } else if (kind == ICAL_ATTACH_VALUE) {
-        const char *strdata = PromiseFlatCString(str).get();
-        icalattach *v = icalattach_new_from_data(strdata, nullptr, nullptr);
+        icalattach *v = icalattach_new_from_data(PromiseFlatCString(str).get(), nullptr, nullptr);
         icalproperty_set_attach(mProperty, v);
     } else {
         icalproperty_set_value_from_string(mProperty,
@@ -1002,7 +1001,7 @@ calIcalComponent::SerializeToICSStream(nsIInputStream **aStreamResult)
     nsresult rv = Serialize(&icalstr);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    nsCOMPtr<nsIStringInputStream> const aStringStream(
+    nsCOMPtr<nsIStringInputStream> aStringStream(
         do_CreateInstance(NS_STRINGINPUTSTREAM_CONTRACTID, &rv));
     NS_ENSURE_SUCCESS(rv, rv);
     // copies the string into the input stream that's handed back.
@@ -1010,8 +1009,7 @@ calIcalComponent::SerializeToICSStream(nsIInputStream **aStreamResult)
     // it's one of libical's ring buffers
     rv = aStringStream->SetData(icalstr, -1);
     NS_ENSURE_SUCCESS(rv, rv);
-    NS_ADDREF(*aStreamResult = aStringStream);
-    return rv;
+    return CallQueryInterface(aStringStream, aStreamResult);
 }
 
 nsresult
@@ -1277,8 +1275,7 @@ calICSService::ParseICS(const nsACString& serialized,
 NS_IMETHODIMP
 calICSService::ParserWorker::Run()
 {
-    icalcomponent *ical =
-        icalparser_parse_string(PromiseFlatCString(mString).get());
+    icalcomponent *ical = icalparser_parse_string(mString.get());
     nsresult status = NS_OK;
     calIIcalComponent *comp = nullptr;
 

@@ -5,10 +5,14 @@
 </head>
 <body>
 <script>
-window.onload = function() {
-  var allocs = [];
+"use strict";
+
+window.allocs = [];
+window.onload = function () {
   function allocator() {
-    allocs.push(new Object);
+    for (let i = 0; i < 1000; i++) {
+      window.allocs.push(new Object());
+    }
   }
 
   window.setInterval(allocator, 1);

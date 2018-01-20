@@ -22,7 +22,7 @@ NS_IMPL_CYCLE_COLLECTION_INHERITED(DeviceMotionEvent, Event,
 NS_IMPL_ADDREF_INHERITED(DeviceMotionEvent, Event)
 NS_IMPL_RELEASE_INHERITED(DeviceMotionEvent, Event)
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(DeviceMotionEvent)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(DeviceMotionEvent)
 NS_INTERFACE_MAP_END_INHERITING(Event)
 
 void
@@ -33,8 +33,26 @@ DeviceMotionEvent::InitDeviceMotionEvent(
                      const DeviceAccelerationInit& aAcceleration,
                      const DeviceAccelerationInit& aAccelIncludingGravity,
                      const DeviceRotationRateInit& aRotationRate,
-                     Nullable<double> aInterval)
+                     const Nullable<double>& aInterval)
 {
+  InitDeviceMotionEvent(aType, aCanBubble, aCancelable, aAcceleration,
+                        aAccelIncludingGravity, aRotationRate, aInterval,
+                        Nullable<uint64_t>());
+}
+
+void
+DeviceMotionEvent::InitDeviceMotionEvent(
+                     const nsAString& aType,
+                     bool aCanBubble,
+                     bool aCancelable,
+                     const DeviceAccelerationInit& aAcceleration,
+                     const DeviceAccelerationInit& aAccelIncludingGravity,
+                     const DeviceRotationRateInit& aRotationRate,
+                     const Nullable<double>& aInterval,
+                     const Nullable<uint64_t>& aTimeStamp)
+{
+  NS_ENSURE_TRUE_VOID(!mEvent->mFlags.mIsBeingDispatched);
+
   Event::InitEvent(aType, aCanBubble, aCancelable);
 
   mAcceleration = new DeviceAcceleration(this, aAcceleration.mX,
@@ -50,6 +68,14 @@ DeviceMotionEvent::InitDeviceMotionEvent(
                                          aRotationRate.mBeta,
                                          aRotationRate.mGamma);
   mInterval = aInterval;
+  if (!aTimeStamp.IsNull()) {
+    mEvent->mTime = aTimeStamp.Value();
+
+    static mozilla::TimeStamp sInitialNow = mozilla::TimeStamp::Now();
+    static uint64_t sInitialEventTime = aTimeStamp.Value();
+    mEvent->mTimeStamp = sInitialNow + mozilla::TimeDuration::FromMicroseconds(
+      aTimeStamp.Value() - sInitialEventTime);
+  }
 }
 
 already_AddRefed<DeviceMotionEvent>
@@ -80,7 +106,7 @@ DeviceMotionEvent::Constructor(const GlobalObject& aGlobal,
 
   e->mInterval = aEventInitDict.mInterval;
   e->SetTrusted(trusted);
-
+  e->SetComposed(aEventInitDict.mComposed);
   return e.forget();
 }
 
@@ -94,9 +120,9 @@ NS_IMPL_CYCLE_COLLECTION_ROOT_NATIVE(DeviceAcceleration, AddRef)
 NS_IMPL_CYCLE_COLLECTION_UNROOT_NATIVE(DeviceAcceleration, Release)
 
 DeviceAcceleration::DeviceAcceleration(DeviceMotionEvent* aOwner,
-                                       Nullable<double> aX,
-                                       Nullable<double> aY,
-                                       Nullable<double> aZ)
+                                       const Nullable<double>& aX,
+                                       const Nullable<double>& aY,
+                                       const Nullable<double>& aZ)
   : mOwner(aOwner)
   , mX(aX)
   , mY(aY)
@@ -118,9 +144,9 @@ NS_IMPL_CYCLE_COLLECTION_ROOT_NATIVE(DeviceRotationRate, AddRef)
 NS_IMPL_CYCLE_COLLECTION_UNROOT_NATIVE(DeviceRotationRate, Release)
 
 DeviceRotationRate::DeviceRotationRate(DeviceMotionEvent* aOwner,
-                                       Nullable<double> aAlpha,
-                                       Nullable<double> aBeta,
-                                       Nullable<double> aGamma)
+                                       const Nullable<double>& aAlpha,
+                                       const Nullable<double>& aBeta,
+                                       const Nullable<double>& aGamma)
   : mOwner(aOwner)
   , mAlpha(aAlpha)
   , mBeta(aBeta)
@@ -141,7 +167,7 @@ using namespace mozilla::dom;
 already_AddRefed<DeviceMotionEvent>
 NS_NewDOMDeviceMotionEvent(EventTarget* aOwner,
                            nsPresContext* aPresContext,
-                           WidgetEvent* aEvent) 
+                           WidgetEvent* aEvent)
 {
   RefPtr<DeviceMotionEvent> it =
     new DeviceMotionEvent(aOwner, aPresContext, aEvent);

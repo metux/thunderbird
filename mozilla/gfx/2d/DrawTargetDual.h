@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-  * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
      
@@ -49,11 +50,14 @@ public:
     return MakeAndAddRef<SourceSurfaceDual>(mA, mB);
   }
   virtual IntSize GetSize() override { return mA->GetSize(); }
-     
+
+  virtual void DetachAllSnapshots() override;
+
   FORWARD_FUNCTION(Flush)
   FORWARD_FUNCTION1(PushClip, const Path *, aPath)
   FORWARD_FUNCTION1(PushClipRect, const Rect &, aRect)
   FORWARD_FUNCTION(PopClip)
+  FORWARD_FUNCTION(PopLayer)
   FORWARD_FUNCTION1(ClearRect, const Rect &, aRect)
 
   virtual void SetTransform(const Matrix &aTransform) override {
@@ -100,11 +104,16 @@ public:
   virtual void Fill(const Path *aPath, const Pattern &aPattern, const DrawOptions &aOptions) override;
 
   virtual void FillGlyphs(ScaledFont *aScaledFont, const GlyphBuffer &aBuffer,
-                          const Pattern &aPattern, const DrawOptions &aOptions,
-                          const GlyphRenderingOptions *aRenderingOptions) override;
+                          const Pattern &aPattern, const DrawOptions &aOptions) override;
   
   virtual void Mask(const Pattern &aSource, const Pattern &aMask, const DrawOptions &aOptions) override;
-     
+
+  virtual void PushLayer(bool aOpaque, Float aOpacity,
+                         SourceSurface* aMask,
+                         const Matrix& aMaskTransform,
+                         const IntRect& aBounds = IntRect(),
+                         bool aCopyBackground = false) override;
+
   virtual already_AddRefed<SourceSurface>
     CreateSourceSurfaceFromData(unsigned char *aData,
                                 const IntSize &aSize,
@@ -155,6 +164,8 @@ public:
   {
     return true;
   }
+
+  virtual bool IsCurrentGroupOpaque() override { return mA->IsCurrentGroupOpaque(); }
      
 private:
   RefPtr<DrawTarget> mA;

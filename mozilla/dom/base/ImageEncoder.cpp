@@ -11,9 +11,13 @@
 #include "mozilla/layers/AsyncCanvasRenderer.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/SyncRunnable.h"
-#include "mozilla/unused.h"
+#include "mozilla/Unused.h"
 #include "gfxUtils.h"
+#include "nsIThreadPool.h"
 #include "nsNetUtil.h"
+#include "nsXPCOMCIDInternal.h"
+#include "WorkerPrivate.h"
+#include "YCbCrUtils.h"
 
 using namespace mozilla::gfx;
 
@@ -23,13 +27,16 @@ namespace dom {
 // This class should be placed inside GetBRGADataSourceSurfaceSync(). However,
 // due to B2G ICS uses old complier (C++98/03) which forbids local class as
 // template parameter, we need to move this class outside.
-class SurfaceHelper : public nsRunnable {
+class SurfaceHelper : public Runnable {
 public:
-  explicit SurfaceHelper(already_AddRefed<layers::Image> aImage) : mImage(aImage) {}
+  explicit SurfaceHelper(already_AddRefed<layers::Image> aImage)
+    : Runnable("SurfaceHelper")
+    , mImage(aImage)
+  {}
 
   // It retrieves a SourceSurface reference and convert color format on main
   // thread and passes DataSourceSurface to caller thread.
-  NS_IMETHOD Run() {
+  NS_IMETHOD Run() override {
     // It guarantees the reference will be released on main thread.
     nsCountedRef<nsMainThreadSourceSurfaceRef> surface;
     surface.own(mImage->GetAsSourceSurface().take());
@@ -45,9 +52,9 @@ public:
   }
 
   already_AddRefed<gfx::DataSourceSurface> GetDataSurfaceSafe() {
-    nsCOMPtr<nsIThread> mainThread = do_GetMainThread();
-    MOZ_ASSERT(mainThread);
-    SyncRunnable::DispatchToThread(mainThread, this, false);
+    nsCOMPtr<nsIEventTarget> mainTarget = GetMainThreadEventTarget();
+    MOZ_ASSERT(mainTarget);
+    SyncRunnable::DispatchToThread(mainTarget, this, false);
 
     return mDataSourceSurface.forget();
   }
@@ -69,27 +76,29 @@ GetBRGADataSourceSurfaceSync(already_AddRefed<layers::Image> aImage)
   return helper->GetDataSurfaceSafe();
 }
 
-class EncodingCompleteEvent : public nsRunnable
+class EncodingCompleteEvent : public CancelableRunnable
 {
   virtual ~EncodingCompleteEvent() {}
 
 public:
-  NS_DECL_ISUPPORTS_INHERITED
-
-  EncodingCompleteEvent(nsIThread* aEncoderThread,
-                        EncodeCompleteCallback* aEncodeCompleteCallback)
-    : mImgSize(0)
+  explicit EncodingCompleteEvent(EncodeCompleteCallback* aEncodeCompleteCallback)
+    : CancelableRunnable("EncodingCompleteEvent")
+    , mImgSize(0)
     , mType()
     , mImgData(nullptr)
-    , mEncoderThread(aEncoderThread)
     , mEncodeCompleteCallback(aEncodeCompleteCallback)
     , mFailed(false)
-  {}
+  {
+    if (!NS_IsMainThread() && workers::GetCurrentThreadWorkerPrivate()) {
+      mCreationEventTarget = GetCurrentThreadEventTarget();
+    } else {
+      mCreationEventTarget = GetMainThreadEventTarget();
+    }
+  }
 
   NS_IMETHOD Run() override
   {
     nsresult rv = NS_OK;
-    MOZ_ASSERT(NS_IsMainThread());
 
     if (!mFailed) {
       // The correct parentObject has to be set by the mEncodeCompleteCallback.
@@ -102,7 +111,6 @@ public:
 
     mEncodeCompleteCallback = nullptr;
 
-    mEncoderThread->Shutdown();
     return rv;
   }
 
@@ -118,18 +126,21 @@ public:
     mFailed = true;
   }
 
+  nsIEventTarget* GetCreationThreadEventTarget()
+  {
+    return mCreationEventTarget;
+  }
+
 private:
   uint64_t mImgSize;
   nsAutoString mType;
   void* mImgData;
-  nsCOMPtr<nsIThread> mEncoderThread;
+  nsCOMPtr<nsIEventTarget> mCreationEventTarget;
   RefPtr<EncodeCompleteCallback> mEncodeCompleteCallback;
   bool mFailed;
 };
 
-NS_IMPL_ISUPPORTS_INHERITED0(EncodingCompleteEvent, nsRunnable);
-
-class EncodingRunnable : public nsRunnable
+class EncodingRunnable : public Runnable
 {
   virtual ~EncodingRunnable() {}
 
@@ -144,8 +155,10 @@ public:
                    EncodingCompleteEvent* aEncodingCompleteEvent,
                    int32_t aFormat,
                    const nsIntSize aSize,
+                   bool aUsePlaceholder,
                    bool aUsingCustomOptions)
-    : mType(aType)
+    : Runnable("EncodingRunnable")
+    , mType(aType)
     , mOptions(aOptions)
     , mImageBuffer(Move(aImageBuffer))
     , mImage(aImage)
@@ -153,6 +166,7 @@ public:
     , mEncodingCompleteEvent(aEncodingCompleteEvent)
     , mFormat(aFormat)
     , mSize(aSize)
+    , mUsePlaceholder(aUsePlaceholder)
     , mUsingCustomOptions(aUsingCustomOptions)
   {}
 
@@ -164,6 +178,7 @@ public:
                                                     mImageBuffer.get(),
                                                     mFormat,
                                                     mSize,
+                                                    mUsePlaceholder,
                                                     mImage,
                                                     nullptr,
                                                     nullptr,
@@ -178,6 +193,7 @@ public:
                                              mImageBuffer.get(),
                                              mFormat,
                                              mSize,
+                                             mUsePlaceholder,
                                              mImage,
                                              nullptr,
                                              nullptr,
@@ -186,11 +202,7 @@ public:
     }
     NS_ENSURE_SUCCESS(rv, rv);
 
-    rv = stream->Available(aImgSize);
-    NS_ENSURE_SUCCESS(rv, rv);
-    NS_ENSURE_TRUE(*aImgSize <= UINT32_MAX, NS_ERROR_FILE_TOO_BIG);
-
-    rv = NS_ReadInputStreamToBuffer(stream, aImgData, *aImgSize);
+    rv = NS_ReadInputStreamToBuffer(stream, aImgData, -1, aImgSize);
     NS_ENSURE_SUCCESS(rv, rv);
 
     return rv;
@@ -207,7 +219,8 @@ public:
     } else {
       mEncodingCompleteEvent->SetMembers(imgData, imgSize, mType);
     }
-    rv = NS_DispatchToMainThread(mEncodingCompleteEvent);
+    rv = mEncodingCompleteEvent->GetCreationThreadEventTarget()->
+      Dispatch(mEncodingCompleteEvent, nsIThread::DISPATCH_NORMAL);
     if (NS_FAILED(rv)) {
       // Better to leak than to crash.
       Unused << mEncodingCompleteEvent.forget();
@@ -226,16 +239,20 @@ private:
   RefPtr<EncodingCompleteEvent> mEncodingCompleteEvent;
   int32_t mFormat;
   const nsIntSize mSize;
+  bool mUsePlaceholder;
   bool mUsingCustomOptions;
 };
 
-NS_IMPL_ISUPPORTS_INHERITED0(EncodingRunnable, nsRunnable);
+NS_IMPL_ISUPPORTS_INHERITED0(EncodingRunnable, Runnable);
+
+StaticRefPtr<nsIThreadPool> ImageEncoder::sThreadPool;
 
 /* static */
 nsresult
 ImageEncoder::ExtractData(nsAString& aType,
                           const nsAString& aOptions,
                           const nsIntSize aSize,
+                          bool aUsePlaceholder,
                           nsICanvasRenderingContextInternal* aContext,
                           layers::AsyncCanvasRenderer* aRenderer,
                           nsIInputStream** aStream)
@@ -245,7 +262,8 @@ ImageEncoder::ExtractData(nsAString& aType,
     return NS_IMAGELIB_ERROR_NO_ENCODER;
   }
 
-  return ExtractDataInternal(aType, aOptions, nullptr, 0, aSize, nullptr,
+  return ExtractDataInternal(aType, aOptions, nullptr, 0, aSize,
+                             aUsePlaceholder, nullptr,
                              aContext, aRenderer, aStream, encoder);
 }
 
@@ -255,6 +273,7 @@ ImageEncoder::ExtractDataFromLayersImageAsync(nsAString& aType,
                                               const nsAString& aOptions,
                                               bool aUsingCustomOptions,
                                               layers::Image* aImage,
+                                              bool aUsePlaceholder,
                                               EncodeCompleteCallback* aEncodeCallback)
 {
   nsCOMPtr<imgIEncoder> encoder = ImageEncoder::GetImageEncoder(aType);
@@ -262,12 +281,13 @@ ImageEncoder::ExtractDataFromLayersImageAsync(nsAString& aType,
     return NS_IMAGELIB_ERROR_NO_ENCODER;
   }
 
-  nsCOMPtr<nsIThread> encoderThread;
-  nsresult rv = NS_NewThread(getter_AddRefs(encoderThread), nullptr);
-  NS_ENSURE_SUCCESS(rv, rv);
+  nsresult rv = EnsureThreadPool();
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
 
   RefPtr<EncodingCompleteEvent> completeEvent =
-    new EncodingCompleteEvent(encoderThread, aEncodeCallback);
+    new EncodingCompleteEvent(aEncodeCallback);
 
   nsIntSize size(aImage->GetSize().width, aImage->GetSize().height);
   nsCOMPtr<nsIRunnable> event = new EncodingRunnable(aType,
@@ -278,8 +298,9 @@ ImageEncoder::ExtractDataFromLayersImageAsync(nsAString& aType,
                                                      completeEvent,
                                                      imgIEncoder::INPUT_FORMAT_HOSTARGB,
                                                      size,
+                                                     aUsePlaceholder,
                                                      aUsingCustomOptions);
-  return encoderThread->Dispatch(event, NS_DISPATCH_NORMAL);
+  return sThreadPool->Dispatch(event, NS_DISPATCH_NORMAL);
 }
 
 /* static */
@@ -290,6 +311,7 @@ ImageEncoder::ExtractDataAsync(nsAString& aType,
                                UniquePtr<uint8_t[]> aImageBuffer,
                                int32_t aFormat,
                                const nsIntSize aSize,
+                               bool aUsePlaceholder,
                                EncodeCompleteCallback* aEncodeCallback)
 {
   nsCOMPtr<imgIEncoder> encoder = ImageEncoder::GetImageEncoder(aType);
@@ -297,12 +319,13 @@ ImageEncoder::ExtractDataAsync(nsAString& aType,
     return NS_IMAGELIB_ERROR_NO_ENCODER;
   }
 
-  nsCOMPtr<nsIThread> encoderThread;
-  nsresult rv = NS_NewThread(getter_AddRefs(encoderThread), nullptr);
-  NS_ENSURE_SUCCESS(rv, rv);
+  nsresult rv = EnsureThreadPool();
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
 
   RefPtr<EncodingCompleteEvent> completeEvent =
-    new EncodingCompleteEvent(encoderThread, aEncodeCallback);
+    new EncodingCompleteEvent(aEncodeCallback);
 
   nsCOMPtr<nsIRunnable> event = new EncodingRunnable(aType,
                                                      aOptions,
@@ -312,8 +335,9 @@ ImageEncoder::ExtractDataAsync(nsAString& aType,
                                                      completeEvent,
                                                      aFormat,
                                                      aSize,
+                                                     aUsePlaceholder,
                                                      aUsingCustomOptions);
-  return encoderThread->Dispatch(event, NS_DISPATCH_NORMAL);
+  return sThreadPool->Dispatch(event, NS_DISPATCH_NORMAL);
 }
 
 /*static*/ nsresult
@@ -342,6 +366,7 @@ ImageEncoder::ExtractDataInternal(const nsAString& aType,
                                   uint8_t* aImageBuffer,
                                   int32_t aFormat,
                                   const nsIntSize aSize,
+                                  bool aUsePlaceholder,
                                   layers::Image* aImage,
                                   nsICanvasRenderingContextInternal* aContext,
                                   layers::AsyncCanvasRenderer* aRenderer,
@@ -356,7 +381,11 @@ ImageEncoder::ExtractDataInternal(const nsAString& aType,
 
   // get image bytes
   nsresult rv;
-  if (aImageBuffer) {
+  if (aImageBuffer && !aUsePlaceholder) {
+    if (BufferSizeFromDimensions(aSize.width, aSize.height, 4) == 0) {
+      return NS_ERROR_INVALID_ARG;
+    }
+
     rv = ImageEncoder::GetInputStream(
       aSize.width,
       aSize.height,
@@ -365,17 +394,17 @@ ImageEncoder::ExtractDataInternal(const nsAString& aType,
       aEncoder,
       nsPromiseFlatString(aOptions).get(),
       getter_AddRefs(imgStream));
-  } else if (aContext) {
+  } else if (aContext && !aUsePlaceholder) {
     NS_ConvertUTF16toUTF8 encoderType(aType);
     rv = aContext->GetInputStream(encoderType.get(),
                                   nsPromiseFlatString(aOptions).get(),
                                   getter_AddRefs(imgStream));
-  } else if (aRenderer) {
+  } else if (aRenderer && !aUsePlaceholder) {
     NS_ConvertUTF16toUTF8 encoderType(aType);
     rv = aRenderer->GetInputStream(encoderType.get(),
                                    nsPromiseFlatString(aOptions).get(),
                                    getter_AddRefs(imgStream));
-  } else if (aImage) {
+  } else if (aImage && !aUsePlaceholder) {
     // It is safe to convert PlanarYCbCr format from YUV to RGB off-main-thread.
     // Other image formats could have problem to convert format off-main-thread.
     // So here it uses a help function GetBRGADataSourceSurfaceSync() to convert
@@ -383,16 +412,19 @@ ImageEncoder::ExtractDataInternal(const nsAString& aType,
     if (aImage->GetFormat() == ImageFormat::PLANAR_YCBCR) {
       nsTArray<uint8_t> data;
       layers::PlanarYCbCrImage* ycbcrImage = static_cast<layers::PlanarYCbCrImage*> (aImage);
-      gfxImageFormat format = gfxImageFormat::ARGB32;
-      uint32_t stride = GetAlignedStride<16>(aSize.width * 4);
+      gfxImageFormat format = SurfaceFormat::A8R8G8B8_UINT32;
+      uint32_t stride = GetAlignedStride<16>(aSize.width, 4);
       size_t length = BufferSizeFromStrideAndHeight(stride, aSize.height);
+      if (length == 0) {
+        return NS_ERROR_INVALID_ARG;
+      }
       data.SetCapacity(length);
 
-      gfxUtils::ConvertYCbCrToRGB(*ycbcrImage->GetData(),
-                                  format,
-                                  aSize,
-                                  data.Elements(),
-                                  stride);
+      ConvertYCbCrToRGB(*ycbcrImage->GetData(),
+                        format,
+                        aSize,
+                        data.Elements(),
+                        stride);
 
       rv = aEncoder->InitFromData(data.Elements(),
                                   aSize.width * aSize.height * 4,
@@ -402,6 +434,10 @@ ImageEncoder::ExtractDataInternal(const nsAString& aType,
                                   imgIEncoder::INPUT_FORMAT_HOSTARGB,
                                   aOptions);
     } else {
+      if (BufferSizeFromDimensions(aSize.width, aSize.height, 4) == 0) {
+        return NS_ERROR_INVALID_ARG;
+      }
+
       RefPtr<gfx::DataSourceSurface> dataSurface;
       RefPtr<layers::Image> image(aImage);
       dataSurface = GetBRGADataSourceSurfaceSync(image.forget());
@@ -424,6 +460,10 @@ ImageEncoder::ExtractDataInternal(const nsAString& aType,
       imgStream = do_QueryInterface(aEncoder);
     }
   } else {
+    if (BufferSizeFromDimensions(aSize.width, aSize.height, 4) == 0) {
+      return NS_ERROR_INVALID_ARG;
+    }
+
     // no context, so we have to encode an empty image
     // note that if we didn't have a current context, the spec says we're
     // supposed to just return transparent black pixels of the canvas
@@ -439,6 +479,10 @@ ImageEncoder::ExtractDataInternal(const nsAString& aType,
     DataSourceSurface::MappedSurface map;
     if (!emptyCanvas->Map(DataSourceSurface::MapType::WRITE, &map)) {
       return NS_ERROR_INVALID_ARG;
+    }
+    if (aUsePlaceholder) {
+      // If placeholder data was requested, return all-white, opaque image data.
+      memset(map.mData, 0xFF, 4 * aSize.width * aSize.height);
     }
     rv = aEncoder->InitFromData(map.mData,
                                 aSize.width * aSize.height * 4,
@@ -477,6 +521,82 @@ ImageEncoder::GetImageEncoder(nsAString& aType)
   }
 
   return encoder.forget();
+}
+
+class EncoderThreadPoolTerminator final : public nsIObserver
+{
+  public:
+    NS_DECL_ISUPPORTS
+
+    NS_IMETHOD Observe(nsISupports *, const char *topic, const char16_t *) override
+    {
+      NS_ASSERTION(!strcmp(topic, "xpcom-shutdown-threads"),
+                   "Unexpected topic");
+      if (ImageEncoder::sThreadPool) {
+        ImageEncoder::sThreadPool->Shutdown();
+        ImageEncoder::sThreadPool = nullptr;
+      }
+      return NS_OK;
+    }
+  private:
+    ~EncoderThreadPoolTerminator() {}
+};
+
+NS_IMPL_ISUPPORTS(EncoderThreadPoolTerminator, nsIObserver)
+
+static void
+RegisterEncoderThreadPoolTerminatorObserver()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
+  NS_ASSERTION(os, "do_GetService failed");
+  os->AddObserver(new EncoderThreadPoolTerminator(),
+                  "xpcom-shutdown-threads",
+                  false);
+}
+
+/* static */
+nsresult
+ImageEncoder::EnsureThreadPool()
+{
+  if (!sThreadPool) {
+    nsCOMPtr<nsIThreadPool> threadPool = do_CreateInstance(NS_THREADPOOL_CONTRACTID);
+    sThreadPool = threadPool;
+
+    if (!NS_IsMainThread()) {
+      NS_DispatchToMainThread(NS_NewRunnableFunction(
+        "dom::ImageEncoder::EnsureThreadPool",
+        []() -> void { RegisterEncoderThreadPoolTerminatorObserver(); }));
+    } else {
+      RegisterEncoderThreadPoolTerminatorObserver();
+    }
+
+    const uint32_t kThreadLimit = 2;
+    const uint32_t kIdleThreadLimit = 1;
+    const uint32_t kIdleThreadTimeoutMs = 30000;
+
+    nsresult rv = sThreadPool->SetName(NS_LITERAL_CSTRING("EncodingRunnable"));
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
+    }
+
+    rv = sThreadPool->SetThreadLimit(kThreadLimit);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
+    }
+
+    rv = sThreadPool->SetIdleThreadLimit(kIdleThreadLimit);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
+    }
+
+    rv = sThreadPool->SetIdleThreadTimeout(kIdleThreadTimeoutMs);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
+    }
+  }
+
+  return NS_OK;
 }
 
 } // namespace dom

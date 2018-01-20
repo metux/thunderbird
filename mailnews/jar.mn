@@ -63,20 +63,8 @@ messenger.jar:
     content/messenger/SmtpServerEdit.js                                        (base/prefs/content/SmtpServerEdit.js)
     content/messenger/smtpEditOverlay.xul                                      (base/prefs/content/smtpEditOverlay.xul)
     content/messenger/smtpEditOverlay.js                                       (base/prefs/content/smtpEditOverlay.js)
-#ifdef MOZ_THUNDERBIRD
-    content/messenger/accountcreation/accountConfig.js                         (base/prefs/content/accountcreation/accountConfig.js)
-    content/messenger/accountcreation/createInBackend.js                       (base/prefs/content/accountcreation/createInBackend.js)
-    content/messenger/accountcreation/emailWizard.js                           (base/prefs/content/accountcreation/emailWizard.js)
-    content/messenger/accountcreation/emailWizard.xul                          (base/prefs/content/accountcreation/emailWizard.xul)
-    content/messenger/accountcreation/fetchConfig.js                           (base/prefs/content/accountcreation/fetchConfig.js)
-    content/messenger/accountcreation/fetchhttp.js                             (base/prefs/content/accountcreation/fetchhttp.js)
-    content/messenger/accountcreation/guessConfig.js                           (base/prefs/content/accountcreation/guessConfig.js)
-    content/messenger/accountcreation/MyBadCertHandler.js                      (base/prefs/content/accountcreation/MyBadCertHandler.js)
-    content/messenger/accountcreation/readFromXML.js                           (base/prefs/content/accountcreation/readFromXML.js)
-    content/messenger/accountcreation/sanitizeDatatypes.js                     (base/prefs/content/accountcreation/sanitizeDatatypes.js)
-    content/messenger/accountcreation/util.js                                  (base/prefs/content/accountcreation/util.js)
-    content/messenger/accountcreation/verifyConfig.js                          (base/prefs/content/accountcreation/verifyConfig.js)
-#endif
+    content/messenger/removeAccount.xul                                        (base/prefs/content/removeAccount.xul)
+    content/messenger/removeAccount.js                                         (base/prefs/content/removeAccount.js)
     content/messenger/msgSynchronize.xul                                       (base/content/msgSynchronize.xul)
     content/messenger/msgSynchronize.js                                        (base/content/msgSynchronize.js)
     content/messenger/folderProps.xul                                          (base/content/folderProps.xul)
@@ -117,8 +105,10 @@ messenger.jar:
     content/messenger/messengercompose/sendProgress.xul                        (compose/content/sendProgress.xul)
     content/messenger/messengercompose/sendProgress.js                         (compose/content/sendProgress.js)
     content/messenger/messengercompose/mailComposeEditorOverlay.xul            (compose/content/mailComposeEditorOverlay.xul)
+#ifndef MOZ_THUNDERBIRD
     content/messenger/messengercompose/menulistCompactBindings.xml             (compose/content/menulistCompactBindings.xml)
-*   content/messenger/importDialog.js                                          (import/content/importDialog.js)
+#endif
+    content/messenger/importDialog.js                                          (import/content/importDialog.js)
 *   content/messenger/importDialog.xul                                         (import/content/importDialog.xul)
     content/messenger/fieldMapImport.xul                                       (import/content/fieldMapImport.xul)
     content/messenger/fieldMapImport.js                                        (import/content/fieldMapImport.js)
@@ -129,6 +119,9 @@ messenger.jar:
     content/messenger/dateFormat.js                                            (base/content/dateFormat.js)
     content/messenger/shutdownWindow.xul                                       (base/content/shutdownWindow.xul)
     content/messenger/shutdownWindow.js                                        (base/content/shutdownWindow.js)
+    content/messenger/newsError.xhtml                                          (base/content/newsError.xhtml)
+#ifndef XP_MACOSX
     content/messenger/newmailalert.css                                         (base/content/newmailalert.css)
     content/messenger/newmailalert.js                                          (base/content/newmailalert.js)
     content/messenger/newmailalert.xul                                         (base/content/newmailalert.xul)
+#endif

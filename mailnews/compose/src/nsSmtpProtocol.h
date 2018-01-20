@@ -14,6 +14,7 @@
 #include "nsIMsgStatusFeedback.h"
 #include "nsMsgLineBuffer.h"
 #include "nsIAuthModule.h"
+#include "nsIProtocolProxyCallback.h"
 #include "MailNewsTypes2.h" // for nsMsgSocketType
 
 #include "nsCOMPtr.h"
@@ -55,7 +56,7 @@ SMTP_AUTH_OAUTH2_STEP,                              // 26
 SMTP_AUTH_OAUTH2_RESPONSE,                          // 27
 } SmtpState;
 
-// State Flags (Note, I use the word state in terms of storing 
+// State Flags (Note, I use the word state in terms of storing
 // state information about the connection (authentication, have we sent
 // commands, etc. I do not intend it to refer to protocol state)
 #define SMTP_PAUSE_FOR_READ             0x00000001  /* should we pause for the next read */
@@ -84,11 +85,13 @@ SMTP_AUTH_OAUTH2_RESPONSE,                          // 27
 #define SMTP_AUTH_NONE_ENABLED          0x00040000
 
 class nsSmtpProtocol : public nsMsgAsyncWriteProtocol,
-                       public msgIOAuth2ModuleListener
+                       public msgIOAuth2ModuleListener,
+                       public nsIProtocolProxyCallback
 {
 public:
     NS_DECL_ISUPPORTS_INHERITED
     NS_DECL_MSGIOAUTH2MODULELISTENER
+    NS_DECL_NSIPROTOCOLPROXYCALLBACK
 
     // Creating a protocol instance requires the URL which needs to be run.
     nsSmtpProtocol(nsIURI * aURL);
@@ -97,10 +100,10 @@ public:
     virtual nsresult SendData(const char * dataBuffer, bool aSuppressLogging = false) override;
 
     ////////////////////////////////////////////////////////////////////////////////////////
-    // we suppport the nsIStreamListener interface 
+    // we suppport the nsIStreamListener interface
     ////////////////////////////////////////////////////////////////////////////////////////
 
-    // stop binding is a "notification" informing us that the stream associated with aURL is going away. 
+    // stop binding is a "notification" informing us that the stream associated with aURL is going away.
     NS_IMETHOD OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult status) override;
 
 private:
@@ -118,11 +121,11 @@ private:
     nsCOMPtr<nsIMsgStatusFeedback> m_statusFeedback;
 
     // Generic state information -- What state are we in? What state do we want to go to
-    // after the next response? What was the last response code? etc. 
+    // after the next response? What was the last response code? etc.
     SmtpState m_nextState;
     SmtpState m_nextStateAfterResponse;
     int32_t m_responseCode;    /* code returned from Smtp server */
-    int32_t m_previousResponseCode; 
+    int32_t m_previousResponseCode;
     int32_t m_continuationResponse;
     nsCString m_responseText;   /* text returned from Smtp server */
     nsMsgLineStreamBuffer *m_lineStreamBuffer; // used to efficiently extract lines from the incoming data stream
@@ -152,24 +155,26 @@ private:
     int32_t   m_originalContentLength; /* the content length at the time of calling graph progress */
 
     // initialization function given a new url and transport layer
-    void Initialize(nsIURI * aURL);
-    virtual nsresult ProcessProtocolState(nsIURI * url, nsIInputStream * inputStream, 
+    nsresult Initialize(nsIURI * aURL);
+    nsresult InitializeInternal(nsIProxyInfo* proxyInfo);
+    nsresult LoadUrlInternal(nsIURI *aURL, nsISupports *aConsumer);
+    virtual nsresult ProcessProtocolState(nsIURI * url, nsIInputStream * inputStream,
                                           uint64_t sourceOffset, uint32_t length) override;
 
     ////////////////////////////////////////////////////////////////////////////////////////
     // Communication methods --> Reading and writing protocol
     ////////////////////////////////////////////////////////////////////////////////////////
 
-    void UpdateStatus(const char16_t* aStatusName);
+    void UpdateStatus(const char* aStatusName);
     void UpdateStatusWithString(const char16_t * aStatusString);
 
     ////////////////////////////////////////////////////////////////////////////////////////
-    // Protocol Methods --> This protocol is state driven so each protocol method is 
-    //						designed to re-act to the current "state". I've attempted to 
-    //						group them together based on functionality. 
+    // Protocol Methods --> This protocol is state driven so each protocol method is
+    //						designed to re-act to the current "state". I've attempted to
+    //						group them together based on functionality.
     ////////////////////////////////////////////////////////////////////////////////////////
 
-    nsresult SmtpResponse(nsIInputStream * inputStream, uint32_t length); 
+    nsresult SmtpResponse(nsIInputStream * inputStream, uint32_t length);
     nsresult ExtensionLoginResponse(nsIInputStream * inputStream, uint32_t length);
     nsresult SendHeloResponse(nsIInputStream * inputStream, uint32_t length);
     nsresult SendEhloResponse(nsIInputStream * inputStream, uint32_t length);	
@@ -200,11 +205,11 @@ private:
     void SendMessageInFile();
 
     void AppendHelloArgument(nsACString& aResult);
-    nsresult GetPassword(nsCString &aPassword);
-    nsresult GetUsernamePassword(nsACString &aUsername, nsACString &aPassword);
-    nsresult PromptForPassword(nsISmtpServer *aSmtpServer, nsISmtpUrl *aSmtpUrl, 
-                               const char16_t **formatStrings, 
-                               nsACString &aPassword);
+    nsresult GetPassword(nsString &aPassword);
+    nsresult GetUsernamePassword(nsACString &aUsername, nsAString &aPassword);
+    nsresult PromptForPassword(nsISmtpServer *aSmtpServer, nsISmtpUrl *aSmtpUrl,
+                               const char16_t **formatStrings,
+                               nsAString &aPassword);
 
     void    InitPrefAuthMethods(int32_t authMethodPrefValue);
     nsresult ChooseAuthMethod();

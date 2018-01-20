@@ -12,7 +12,7 @@
 #include "nsIUrlListener.h"
 #include "nsIMsgWindow.h"
 #include "nsITimer.h"
-#include "nsISupportsArray.h"
+#include "nsIMutableArray.h"
 #include "nsCOMArray.h"
 #include "nsWeakReference.h"
 #include "nsTObserverArray.h"
@@ -48,7 +48,7 @@ protected:
   void ReleaseFolderDBRef();
 
   nsTArray<RefPtr<nsMsgSearchScopeTerm>> m_scopeList;
-  nsCOMPtr <nsISupportsArray> m_termList;
+  nsCOMPtr<nsIMutableArray> m_termList;
 
   nsTArray<nsCOMPtr<nsIMsgSearchNotify> > m_listenerList;
   nsTArray<int32_t> m_listenerFlagList;

@@ -33,8 +33,7 @@
     onload="OnLoadAddressBook()"
     onunload="OnUnloadAddressBook()"
     lightweightthemes="true"
-    fullscreenbutton="true"
-    lightweightthemesfooter="status-bar">
+    fullscreenbutton="true">
 
   <stringbundleset id="stringbundleset">
     <stringbundle id="bundle_addressBook" src="chrome://messenger/locale/addressbook/addressBook.properties"/>
@@ -82,7 +81,33 @@
     <command id="cmd_newCard" oncommand="goDoCommand('cmd_newCard');"/>
     <command id="cmd_printcardpreview" oncommand="AbPrintPreviewCard();"/>
     <command id="cmd_printcard" oncommand="AbPrintCard();"/>
+    <command id="cmd_newMessage" oncommand="AbNewMessage();" disabled="true"/>
     <command id="cmd_properties" oncommand="goDoCommand('cmd_properties');" disabled="true"/>
+    <broadcasterset id="cmd_properties-flavors">
+      <broadcaster id="cmd_properties-button" observes="cmd_properties"
+                   valueGenericTooltipText="&editPropertiesButton.tooltip;"
+                   valueAddressBookTooltipText="&editAbPropertiesButton.tooltip;"
+                   valueContactTooltipText="&editContactPropertiesButton.tooltip;"
+                   valueMailingListTooltipText="&editMailingListPropertiesButton.tooltip;"/>
+      <broadcaster id="cmd_properties-contextMenu" observes="cmd_properties"
+                   valueGeneric="&propertiesContext.label;"
+                   valueGenericAccessKey="&propertiesContext.accesskey;"
+                   valueAddressBook="&abPropertiesContext.label;"
+                   valueAddressBookAccessKey="&abPropertiesContext.accesskey;"
+                   valueContact="&editContactContext.label;"
+                   valueContactAccessKey="&editContactContext.accesskey;"
+                   valueMailingList="&editMailingListContext.label;"
+                   valueMailingListAccessKey="&editMailingListContext.accesskey;"/>
+      <broadcaster id="cmd_properties-menu" observes="cmd_properties"
+                   valueGeneric="&propertiesMenu.label;"
+                   valueGenericAccessKey="&propertiesMenu.accesskey;"
+                   valueAddressBook="&abPropertiesMenu.label;"
+                   valueAddressBookAccessKey="&abPropertiesMenu.accesskey;"
+                   valueContact="&contactPropertiesMenu.label;"
+                   valueContactAccessKey="&contactPropertiesMenu.accesskey;"
+                   valueMailingList="&mailingListPropertiesMenu.label;"
+                   valueMailingListAccessKey="&mailingListPropertiesMenu.accesskey;"/>
+    </broadcasterset>
     <command id="cmd_undo" oncommand="goDoCommand('cmd_undo')" disabled="true"/>
     <command id="cmd_redo" oncommand="goDoCommand('cmd_redo')" disabled="true"/>
     <command id="cmd_cut" oncommand="goDoCommand('cmd_cut')" disabled="true"/>
@@ -118,9 +143,9 @@
 <keyset id="tasksKeys">
   <!-- File Menu -->
 #ifdef XP_MACOSX
-  <key id="key_newMessage" key="&newMessageCmd.key;" modifiers="accel,shift" oncommand="AbNewMessage()"/>
+  <key id="key_newMessage" key="&newMessageCmd.key;" modifiers="accel,shift" command="cmd_newMessage"/>
 #else
-  <key id="key_newMessage" key="&newMessageCmd.key;" modifiers="accel" oncommand="AbNewMessage()"/>
+  <key id="key_newMessage" key="&newMessageCmd.key;" modifiers="accel" command="cmd_newMessage"/>
 #endif
   <key id="key_newCard" key="&newContact.key;" modifiers="accel"
        command="cmd_newCard"/>
@@ -175,11 +200,9 @@
 
 <keyset id="baseMenuKeyset"/>
 
-<menupopup id="dirTreeContext">
+<menupopup id="dirTreeContext" onpopupshowing="updateDirTreeContext();">
   <menuitem id="dirTreeContext-properties"
-            label="&editButton2.label;"
-            accesskey="&editButton2.accesskey;"
-            command="cmd_properties"/>
+            command="cmd_properties-contextMenu"/>
   <menuseparator/>
   <menuitem id="dirTreeContext-newcard" label="&newContactButton.label;"
             accesskey="&newContactButton.accesskey;" command="cmd_newCard"/>
@@ -187,6 +210,12 @@
             label="&newlistButton.label;"
             accesskey="&newlistButton.accesskey;"
             command="cmd_newlist"/>
+  <menuitem id="dirTreeContext-startupDir"
+            label="&showAsDefault.label;"
+            accesskey="&showAsDefault.accesskey;"
+            type="checkbox"
+            checked="false"
+            oncommand="goDoCommand('cmd_abToggleStartupDir');"/>
   <menuseparator/>
   <menuitem id="dirTreeContext-delete"
             label="&deleteButton2.label;"
@@ -197,14 +226,12 @@
 
 <menupopup id="abResultsTreeContext">
   <menuitem id="abResultsTreeContext-properties"
-            label="&editButton2.label;"
-            accesskey="&editButton2.accesskey;"
-            command="cmd_properties"/>
+            command="cmd_properties-contextMenu"/>
   <menuseparator/>
   <menuitem id="abResultsTreeContext-newmessage"
             label="&newmsgButton.label;"
             accesskey="&newmsgButton.accesskey;"
-            oncommand="AbNewMessage()"/>
+            command="cmd_newMessage"/>
   <menuitem id="abResultsTreeContext-newim"
             label="&newIM.label;"
             accesskey="&newIM.accesskey;"
@@ -214,6 +241,7 @@
             label="&printButton.label;"
             accesskey="&printButton.accesskey;"
             command="cmd_printcard"/>
+  <menuseparator/>
   <menuitem id="abResultsTreeContext-delete"
             label="&deleteButton2.label;"
             accesskey="&deleteButton2.accesskey;"
@@ -298,7 +326,7 @@
                                 label="&newMessageCmd.label;"
                                 key="key_newMessage"
                                 accesskey="&newMessageCmd.accesskey;"
-                                oncommand="AbNewMessage()"/>
+                                command="cmd_newMessage"/>
                     </menupopup>
                 </menu>
                 <menuseparator/>
@@ -397,10 +425,8 @@
                       hidden="&hideSwapFnLnUI;"
                       oncommand="AbSwapFirstNameLastName()"/>
             <menuitem id="menu_properties"
-                      label="&propertiesCmd2.label;"
-                      accesskey="&propertiesCmd2.accesskey;"
                       key="key_properties"
-                      command="cmd_properties"/>
+                      command="cmd_properties-menu"/>
 #ifdef XP_UNIX
 #ifndef XP_MACOSX
         <menuseparator id="prefSep"/>
@@ -575,7 +601,7 @@
 
 #ifdef XP_MACOSX
 <!-- Mac window menu -->
-#include ../../../../mozilla/toolkit/content/macWindowMenu.inc
+#includesubst @TOOLKIT_DIR@/content/macWindowMenu.inc
 #endif
 
       <!-- Help -->
@@ -590,10 +616,9 @@
                      tooltiptext="&newContactButton.tooltip;"/>
       <toolbarbutton class="toolbarbutton-1" id="button-newlist" label="&newlistButton.label;" tooltiptext="&newlistButton.tooltip;" command="cmd_newlist"/>
       <toolbarbutton class="toolbarbutton-1" id="button-editcard"
-                     label="&editButton2.label;"
-                     tooltiptext="&editButton2.tooltip;"
-                     command="cmd_properties"/>
-      <toolbarbutton class="toolbarbutton-1" id="button-newmessage" label="&newmsgButton.label;" tooltiptext="&newmsgButton.tooltip;" oncommand="AbNewMessage();"/>
+                     label="&editPropertiesButton.label;"
+                     command="cmd_properties-button"/>
+      <toolbarbutton class="toolbarbutton-1" id="button-newmessage" label="&newmsgButton.label;" tooltiptext="&newmsgButton.tooltip;" command="cmd_newMessage"/>
       <toolbarbutton class="toolbarbutton-1" id="button-newim" label="&newIM.label;" tooltiptext="&newIM.tooltip;" command="cmd_chatWithCard"/>
       <toolbarbutton class="toolbarbutton-1" id="button-abdelete"
                      observes="button_delete" label="&deleteButton2.label;"
@@ -754,116 +779,116 @@
               <vbox id="cvbPhoto" class="cardViewGroup" align="center">
                 <image id="cvPhoto" style="max-width: 10ch; max-height: 10ch;"/>
               </vbox>
-              <vbox flex="1">
-                <vbox id="cvbContact" class="cardViewGroup">
-                  <description class="CardViewHeading" id="cvhContact">&contact.heading;</description>
-                  <description class="CardViewLink" id="cvListNameBox">
-                    <html:p><html:a href="" id="cvListName"/></html:p>
-                  </description>
-                  <description class="CardViewText" id="cvDisplayName"/>
-                  <description class="CardViewText" id="cvNickname"/>
-                  <description class="CardViewLink" id="cvEmail1Box">
-                    <html:a href="" id="cvEmail1"/>
-                  </description>
-                  <description class="CardViewLink" id="cvEmail2Box">
-                    <html:a href="" id="cvEmail2"/>
-                  </description>
+              <hbox flex="1" equalsize="always">
+                <vbox flex="1" style="margin-inline-end: 10px;">
+                  <vbox id="cvbContact" class="cardViewGroup">
+                    <description class="CardViewHeading" id="cvhContact">&contact.heading;</description>
+                    <description class="CardViewLink" id="cvListNameBox">
+                      <html:p><html:a href="" id="cvListName"/></html:p>
+                    </description>
+                    <description class="CardViewText" id="cvDisplayName"/>
+                    <description class="CardViewText" id="cvNickname"/>
+                    <description class="CardViewLink" id="cvEmail1Box">
+                      <html:a href="" id="cvEmail1"/>
+                    </description>
+                    <description class="CardViewLink" id="cvEmail2Box">
+                      <html:a href="" id="cvEmail2"/>
+                    </description>
+                  </vbox>
+                  <vbox id="cvbHome" class="cardViewGroup">
+                    <description class="CardViewHeading" id="cvhHome">&home.heading;</description>
+                    <hbox>
+                      <vbox flex="1">
+                        <description class="CardViewText" id="cvHomeAddress"/>
+                        <description class="CardViewText" id="cvHomeAddress2"/>
+                        <description class="CardViewText" id="cvHomeCityStZip"/>
+                        <description class="CardViewText" id="cvHomeCountry"/>
+                      </vbox>
+                      <vbox id="cvbHomeMapItBox" pack="end">
+                        <button id="cvHomeMapIt"
+                                label="&mapItButton.label;"
+                                type="menu-button"
+                                oncommand="openLinkWithUrl(this.firstChild.mapURL);"
+                                tooltiptext="&mapIt.tooltip;">
+                          <menupopup class="map-list"/>
+                        </button>
+                      </vbox>
+                    </hbox>
+                    <description class="CardViewLink" id="cvHomeWebPageBox">
+                      <html:a onclick="return openLink('cvHomeWebPage');" href="" id="cvHomeWebPage"/>
+                    </description>
+                  </vbox>
+                  <vbox id="cvbOther" class="cardViewGroup">
+                    <description class="CardViewHeading" id="cvhOther">&other.heading;</description>
+                    <description class="CardViewText" id="cvBirthday"/>
+                    <description class="CardViewText" id="cvCustom1"/>
+                    <description class="CardViewText" id="cvCustom2"/>
+                    <description class="CardViewText" id="cvCustom3"/>
+                    <description class="CardViewText" id="cvCustom4"/>
+                    <description class="CardViewText" id="cvNotes" style="white-space: pre-wrap;"/>
+                    <hbox>
+                      <image id="cvBuddyIcon"/>
+                    </hbox>
+                  </vbox>
+                  <vbox id="cvbChat" class="cardViewGroup">
+                    <description class="CardViewHeading" id="cvhChat">&chat.heading;</description>
+                    <description class="CardViewText" id="cvGtalk"/>
+                    <description class="CardViewText" id="cvAIM"/>
+                    <description class="CardViewText" id="cvYahoo"/>
+                    <description class="CardViewText" id="cvSkype"/>
+                    <description class="CardViewText" id="cvQQ"/>
+                    <description class="CardViewText" id="cvMSN"/>
+                    <description class="CardViewText" id="cvICQ"/>
+                    <description class="CardViewText" id="cvXMPP"/>
+                    <description class="CardViewText" id="cvIRC"/>
+                  </vbox>
+                  <!-- the description and addresses groups are only for mailing lists -->
+                  <vbox id="cvbDescription" class="cardViewGroup">
+                    <description class="CardViewHeading" id="cvhDescription">&description.heading;</description>
+                    <description class="CardViewText" id="cvDescription"/>
+                  </vbox>
+                  <vbox id="cvbAddresses" class="cardViewGroup">
+                    <description class="CardViewHeading" id="cvhAddresses">&addresses.heading;</description>
+                  </vbox>
                 </vbox>
-                <vbox id="cvbHome" class="cardViewGroup">
-                  <description class="CardViewHeading" id="cvhHome">&home.heading;</description>
-                  <hbox>
-                    <vbox flex="1">
-                      <description class="CardViewText" id="cvHomeAddress"/>
-                      <description class="CardViewText" id="cvHomeAddress2"/>
-                      <description class="CardViewText" id="cvHomeCityStZip"/>
-                      <description class="CardViewText" id="cvHomeCountry"/>
-                    </vbox>
-                    <vbox id="cvbHomeMapItBox" pack="end">
-                      <button id="cvHomeMapIt"
-                              label="&mapItButton.label;"
-                              type="menu-button"
-                              oncommand="openLinkWithUrl(this.firstChild.mapURL);"
-                              tooltiptext="&mapIt.tooltip;">
-                        <menupopup class="map-list"/>
-                      </button>
-                    </vbox>
-                  </hbox>
-                  <description class="CardViewLink" id="cvHomeWebPageBox">
-                    <html:a onclick="return openLink('cvHomeWebPage');" href="" id="cvHomeWebPage"/>
-                  </description>
-                </vbox>
-                <vbox id="cvbOther" class="cardViewGroup">
-                  <description class="CardViewHeading" id="cvhOther">&other.heading;</description>
-                  <description class="CardViewText" id="cvBirthday"/>
-                  <description class="CardViewText" id="cvCustom1"/>
-                  <description class="CardViewText" id="cvCustom2"/>
-                  <description class="CardViewText" id="cvCustom3"/>
-                  <description class="CardViewText" id="cvCustom4"/>
-                  <description class="CardViewText" id="cvNotes" style="white-space: pre-wrap;"/>
-                  <hbox>
-                    <image id="cvBuddyIcon"/>
-                  </hbox>
-                </vbox>
-                <vbox id="cvbChat" class="cardViewGroup">
-                  <description class="CardViewHeading" id="cvhChat">&chat.heading;</description>
-                  <description class="CardViewText" id="cvGtalk"/>
-                  <description class="CardViewText" id="cvAIM"/>
-                  <description class="CardViewText" id="cvYahoo"/>
-                  <description class="CardViewText" id="cvSkype"/>
-                  <description class="CardViewText" id="cvQQ"/>
-                  <description class="CardViewText" id="cvMSN"/>
-                  <description class="CardViewText" id="cvICQ"/>
-                  <description class="CardViewText" id="cvXMPP"/>
-                  <description class="CardViewText" id="cvIRC"/>
-                </vbox>
-                <!-- the description and addresses groups are only for mailing lists -->
-                <vbox id="cvbDescription" class="cardViewGroup">
-                  <description class="CardViewHeading" id="cvhDescription">&description.heading;</description>
-                  <description class="CardViewText" id="cvDescription"/>
-                </vbox>
-                <vbox id="cvbAddresses" class="cardViewGroup">
-                  <description class="CardViewHeading" id="cvhAddresses">&addresses.heading;</description>
-                </vbox>
-              </vbox>
 
-              <spacer width="20"/>
-
-              <vbox flex="1">
-                <vbox id="cvbPhone" class="cardViewGroup">
-                  <description class="CardViewHeading" id="cvhPhone">&phone.heading;</description>
-                  <description class="CardViewText" id="cvPhWork"/>
-                  <description class="CardViewText" id="cvPhHome"/>
-                  <description class="CardViewText" id="cvPhFax"/>
-                  <description class="CardViewText" id="cvPhCellular"/>
-                  <description class="CardViewText" id="cvPhPager"/>
+                <vbox flex="1" style="margin-inline-start: 10px;">
+                  <vbox id="cvbPhone" class="cardViewGroup">
+                    <description class="CardViewHeading" id="cvhPhone">&phone.heading;</description>
+                    <description class="CardViewText" id="cvPhWork"/>
+                    <description class="CardViewText" id="cvPhHome"/>
+                    <description class="CardViewText" id="cvPhFax"/>
+                    <description class="CardViewText" id="cvPhCellular"/>
+                    <description class="CardViewText" id="cvPhPager"/>
+                  </vbox>
+                  <vbox id="cvbWork" class="cardViewGroup">
+                    <description class="CardViewHeading" id="cvhWork">&work.heading;</description>
+                    <description class="CardViewText" id="cvJobTitle"/>
+                    <description class="CardViewText" id="cvDepartment"/>
+                    <description class="CardViewText" id="cvCompany"/>
+                    <hbox>
+                      <vbox flex="1">
+                        <description class="CardViewText" id="cvWorkAddress"/>
+                        <description class="CardViewText" id="cvWorkAddress2"/>
+                        <description class="CardViewText" id="cvWorkCityStZip"/>
+                        <description class="CardViewText" id="cvWorkCountry"/>
+                      </vbox>
+                      <vbox id="cvbWorkMapItBox" pack="end">
+                        <button id="cvWorkMapIt"
+                                label="&mapItButton.label;"
+                                type="menu-button"
+                                oncommand="openLinkWithUrl(this.firstChild.mapURL);"
+                                tooltiptext="&mapIt.tooltip;">
+                          <menupopup class="map-list"/>
+                        </button>
+                      </vbox>
+                    </hbox>
+                    <description class="CardViewLink" id="cvWorkWebPageBox">
+                      <html:a onclick="return openLink('cvWorkWebPage');" href="" id="cvWorkWebPage"/>
+                    </description>
+                  </vbox>
                 </vbox>
-                <vbox id="cvbWork" class="cardViewGroup">
-                  <description class="CardViewHeading" id="cvhWork">&work.heading;</description>
-                  <description class="CardViewText" id="cvJobTitle"/>
-                  <description class="CardViewText" id="cvDepartment"/>
-                  <description class="CardViewText" id="cvCompany"/>
-                  <hbox>
-                    <vbox flex="1">
-                      <description class="CardViewText" id="cvWorkAddress"/>
-                      <description class="CardViewText" id="cvWorkAddress2"/>
-                      <description class="CardViewText" id="cvWorkCityStZip"/>
-                      <description class="CardViewText" id="cvWorkCountry"/>
-                    </vbox>
-                    <vbox id="cvbWorkMapItBox" pack="end">
-                      <button id="cvWorkMapIt"
-                              label="&mapItButton.label;"
-                              type="menu-button"
-                              oncommand="openLinkWithUrl(this.firstChild.mapURL);"
-                              tooltiptext="&mapIt.tooltip;">
-                        <menupopup class="map-list"/>
-                      </button>
-                    </vbox>
-                  </hbox>
-                  <description class="CardViewLink" id="cvWorkWebPageBox">
-                    <html:a onclick="return openLink('cvWorkWebPage');" href="" id="cvWorkWebPage"/>
-                  </description>
-                </vbox>
-              </vbox>
+              </hbox>
             </hbox>
           </vbox>
         </vbox>

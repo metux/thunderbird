@@ -1,11 +1,12 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/dom/TreeBoxObject.h"
 #include "nsCOMPtr.h"
-#include "nsIDOMXULElement.h"
+#include "nsXULElement.h"
 #include "nsIScriptableRegion.h"
 #include "nsIXULTemplateBuilder.h"
 #include "nsTreeContentView.h"
@@ -30,7 +31,7 @@ NS_IMPL_CYCLE_COLLECTION_INHERITED(TreeBoxObject, BoxObject,
 NS_IMPL_ADDREF_INHERITED(TreeBoxObject, BoxObject)
 NS_IMPL_RELEASE_INHERITED(TreeBoxObject, BoxObject)
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(TreeBoxObject)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(TreeBoxObject)
   NS_INTERFACE_MAP_ENTRY(nsITreeBoxObject)
 NS_INTERFACE_MAP_END_INHERITING(BoxObject)
 
@@ -93,7 +94,7 @@ TreeBoxObject::GetTreeBodyFrame(bool aFlushLayout)
   // is true we need to make sure to flush no matter what.
   // XXXbz except that flushing style when we were not asked to flush
   // layout here breaks things.  See bug 585123.
-  nsIFrame* frame;
+  nsIFrame* frame = nullptr;
   if (aFlushLayout) {
     frame = GetFrame(aFlushLayout);
     if (!frame)
@@ -143,11 +144,10 @@ TreeBoxObject::GetView(nsITreeView * *aView)
       return mTreeBody->GetView(aView);
   }
   if (!mView) {
-    nsCOMPtr<nsIDOMXULElement> xulele = do_QueryInterface(mContent);
+    RefPtr<nsXULElement> xulele = nsXULElement::FromContentOrNull(mContent);
     if (xulele) {
       // See if there is a XUL tree builder associated with the element
-      nsCOMPtr<nsIXULTemplateBuilder> builder;
-      xulele->GetBuilder(getter_AddRefs(builder));
+      nsCOMPtr<nsIXULTemplateBuilder> builder = xulele->GetBuilder();
       mView = do_QueryInterface(builder);
 
       if (!mView) {
@@ -666,6 +666,24 @@ TreeBoxObject::ClearStyleAndImageCaches()
   if (body)
     return body->ClearStyleAndImageCaches();
   return NS_OK;
+}
+
+NS_IMETHODIMP
+TreeBoxObject::RemoveImageCacheEntry(int32_t aRowIndex, nsITreeColumn* aCol)
+{
+  NS_ENSURE_ARG(aCol);
+  NS_ENSURE_TRUE(aRowIndex >= 0, NS_ERROR_INVALID_ARG);
+  nsTreeBodyFrame* body = GetTreeBodyFrame();
+  if (body) {
+    return body->RemoveImageCacheEntry(aRowIndex, aCol);
+  }
+  return NS_OK;
+}
+
+void
+TreeBoxObject::RemoveImageCacheEntry(int32_t row, nsITreeColumn& col, ErrorResult& aRv)
+{
+  aRv = RemoveImageCacheEntry(row, &col);
 }
 
 void

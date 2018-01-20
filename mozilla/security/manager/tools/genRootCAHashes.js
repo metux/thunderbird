@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+"use strict";
 
 // How to run this file:
 // 1. [obtain firefox source code]
@@ -8,8 +9,6 @@
 // 3. run `[path to]/run-mozilla.sh [path to]/xpcshell genRootCAHashes.js \
 //                                  [absolute path to]/RootHashes.inc'
 
-// <https://developer.mozilla.org/en/XPConnect/xpcshell/HOWTO>
-// <https://bugzilla.mozilla.org/show_bug.cgi?id=546628>
 var Cc = Components.classes;
 var Ci = Components.interfaces;
 var Cu = Components.utils;
@@ -21,7 +20,7 @@ const CertDb = Components.classes[nsX509CertDB].getService(Ci.nsIX509CertDB);
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/FileUtils.jsm");
 Cu.import("resource://gre/modules/NetUtil.jsm");
-Cu.import("resource://services-common/utils.js");
+const { CommonUtils } = Cu.import("resource://services-common/utils.js", {});
 
 const FILENAME_OUTPUT = "RootHashes.inc";
 const FILENAME_TRUST_ANCHORS = "KnownRootHashes.json";
@@ -49,8 +48,9 @@ const FILE_HEADER = "/* This Source Code Form is subject to the terms of the Moz
 "#define HASH_LEN 32\n";
 
 const FP_PREAMBLE = "struct CertAuthorityHash {\n" +
-" const uint8_t hash[HASH_LEN];\n" +
-" const int32_t binNumber;\n" +
+"  // See bug 1338873 about making these fields const.\n" +
+"  uint8_t hash[HASH_LEN];\n" +
+"  int32_t binNumber;\n" +
 "};\n\n" +
 "static const struct CertAuthorityHash ROOT_TABLE[] = {\n";
 
@@ -63,7 +63,7 @@ function writeString(fos, string) {
 
 // Remove all colons from a string
 function stripColons(hexString) {
-  return hexString.replace(/:/g, '');
+  return hexString.replace(/:/g, "");
 }
 
 // Expect an array of bytes and make it C-formatted
@@ -111,7 +111,7 @@ function loadTrustAnchors(file) {
 function writeTrustAnchors(file) {
   let fos = FileUtils.openSafeFileOutputStream(file);
 
-  let serializedData = JSON.stringify(gTrustAnchors, null, '  ');
+  let serializedData = JSON.stringify(gTrustAnchors, null, "  ");
   fos.write(JSON_HEADER, JSON_HEADER.length);
   fos.write(serializedData, serializedData.length);
 
@@ -130,7 +130,7 @@ function writeRootHashes(fos) {
       let fpBytes = atob(fp.sha256Fingerprint);
 
       writeString(fos, "  {\n");
-      writeString(fos, "    /* "+fp.label+" */\n");
+      writeString(fos, "    /* " + fp.label + " */\n");
       writeString(fos, "    { " + hexSlice(fpBytes, 0, 16) + ",\n");
       writeString(fos, "      " + hexSlice(fpBytes, 16, 32) + " },\n");
       writeString(fos, "      " + fp.binNumber + " /* Bin Number */\n");
@@ -140,9 +140,7 @@ function writeRootHashes(fos) {
     writeString(fos, FP_POSTAMBLE);
 
     writeString(fos, "\n");
-
-  }
-  catch (e) {
+  } catch (e) {
     dump("ERROR: problem writing output: " + e + "\n");
   }
 }
@@ -166,14 +164,14 @@ function getLabelForCert(cert) {
   }
 
   // replace non-ascii characters
-  label = label.replace( /[^[:ascii:]]/g, "_");
+  label = label.replace(/[^[:ascii:]]/g, "_");
   // replace non-word characters
-  label = label.replace(/[^A-Za-z0-9]/g ,"_");
+  label = label.replace(/[^A-Za-z0-9]/g, "_");
   return label;
 }
 
 // Fill in the gTrustAnchors list with trust anchors from the database.
-function insertTrustAnchorsFromDatabase(){
+function insertTrustAnchorsFromDatabase() {
   // We only want CA certs for SSL
   const CERT_TYPE = Ci.nsIX509Cert.CA_CERT;
   const TRUST_TYPE = Ci.nsIX509CertDB.TRUSTED_SSL;
@@ -194,7 +192,6 @@ function insertTrustAnchorsFromDatabase(){
 
        // Scan to see if this is already in the database.
       if (findTrustAnchorByFingerprint(encodedFingerprint) == ROOT_NOT_ASSIGNED) {
-
         // Let's get a usable name; some old certs do not have CN= filled out
         let label = getLabelForCert(cert);
 
@@ -215,13 +212,14 @@ function insertTrustAnchorsFromDatabase(){
 //  PRIMARY LOGIC
 //
 
-if (arguments.length < 1) {
-  throw "Usage: genRootCAHashes.js <absolute path to current RootHashes.inc>";
+if (arguments.length != 1) {
+  throw new Error("Usage: genRootCAHashes.js " +
+                  "<absolute path to current RootHashes.inc>");
 }
 
 var trustAnchorsFile = FileUtils.getFile("CurWorkD", [FILENAME_TRUST_ANCHORS]);
 // let rootHashesFile = FileUtils.getFile("CurWorkD", arguments[0]);
-var rootHashesFile = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsILocalFile);
+var rootHashesFile = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsIFile);
 rootHashesFile.initWithPath(arguments[0]);
 
 // Open the known hashes file; this is to ensure stable bin numbers.
@@ -238,14 +236,15 @@ writeTrustAnchors(trustAnchorsFile);
 gTrustAnchors.roots.sort(function(a, b) {
   // We need to work from the binary values, not the base64 values.
   let aBin = atob(a.sha256Fingerprint);
-  let bBin = atob(b.sha256Fingerprint)
+  let bBin = atob(b.sha256Fingerprint);
 
-  if (aBin < bBin)
-     return -1;
-  else if (aBin > bBin)
-     return 1;
-   else
-     return 0;
+  if (aBin < bBin) {
+    return -1;
+  }
+  if (aBin > bBin) {
+    return 1;
+  }
+  return 0;
 });
 
 // Write the output file.

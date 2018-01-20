@@ -1,5 +1,6 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
+"use strict";
 
 /**
  * Tests CensusTreeNode with `allocationStack` => `objectClass` breakdown.
@@ -29,11 +30,11 @@ function run_test() {
   }());
 
   const REPORT = new Map([
-    [stack,     { Foo:   { bytes: 10, count: 1 },
-                  Bar:   { bytes: 20, count: 2 },
-                  Baz:   { bytes: 30, count: 3 },
-                  other: { bytes: 40, count: 4 }
-                }],
+    [stack, { Foo: { bytes: 10, count: 1 },
+              Bar: { bytes: 20, count: 2 },
+              Baz: { bytes: 30, count: 3 },
+              other: { bytes: 40, count: 4 }
+    }],
     ["noStack", { bytes: 50, count: 5 }],
   ]);
 
@@ -74,6 +75,7 @@ function run_test() {
                     children: undefined,
                     id: 8,
                     parent: 4,
+                    reportLeafIndex: 5,
                   },
                   {
                     name: "Baz",
@@ -84,6 +86,7 @@ function run_test() {
                     children: undefined,
                     id: 7,
                     parent: 4,
+                    reportLeafIndex: 4,
                   },
                   {
                     name: "Bar",
@@ -94,6 +97,7 @@ function run_test() {
                     children: undefined,
                     id: 6,
                     parent: 4,
+                    reportLeafIndex: 3,
                   },
                   {
                     name: "Foo",
@@ -104,18 +108,22 @@ function run_test() {
                     children: undefined,
                     id: 5,
                     parent: 4,
+                    reportLeafIndex: 2,
                   },
                 ],
                 id: 4,
                 parent: 3,
+                reportLeafIndex: undefined,
               }
             ],
             id: 3,
             parent: 2,
+            reportLeafIndex: undefined,
           }
         ],
         id: 2,
         parent: 1,
+        reportLeafIndex: undefined,
       },
       {
         name: "noStack",
@@ -126,10 +134,12 @@ function run_test() {
         children: undefined,
         id: 9,
         parent: 1,
+        reportLeafIndex: 6,
       },
     ],
     id: 1,
     parent: undefined,
+    reportLeafIndex: undefined,
   };
 
   compareCensusViewData(BREAKDOWN, REPORT, EXPECTED);

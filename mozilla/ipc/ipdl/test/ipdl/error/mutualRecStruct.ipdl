@@ -1,3 +1,7 @@
+//error: struct `X' is only partially defined
+//error: struct `Y' is only partially defined
+//error: struct `Z' is only partially defined
+
 struct X {
     int i;
     Y[] y;
@@ -15,6 +19,6 @@ struct Z {
 
 protocol mutualRecStruct {
 child:
-    Test(X x, Y y, Z z);
-    __delete__();
+    async Test(X x, Y y, Z z);
+    async __delete__();
 };

@@ -14,6 +14,7 @@
 #include "nsFocusManager.h"
 #include "nsIDOMMouseEvent.h"
 #include "nsQueryObject.h"
+#include "mozilla/dom/ShadowRoot.h"
 
 // construction, destruction
 
@@ -34,42 +35,27 @@ HTMLLabelElement::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aGivenProto)
 
 // nsISupports
 
-NS_IMPL_ISUPPORTS_INHERITED(HTMLLabelElement, nsGenericHTMLFormElement,
-                            nsIDOMHTMLLabelElement)
+NS_IMPL_ISUPPORTS_INHERITED0(HTMLLabelElement, nsGenericHTMLElement)
 
 // nsIDOMHTMLLabelElement
 
 NS_IMPL_ELEMENT_CLONE(HTMLLabelElement)
 
-NS_IMETHODIMP
-HTMLLabelElement::GetForm(nsIDOMHTMLFormElement** aForm)
+HTMLFormElement*
+HTMLLabelElement::GetForm() const
 {
-  return nsGenericHTMLFormElement::GetForm(aForm);
-}
+  nsGenericHTMLElement* control = GetControl();
+  if (!control) {
+    return nullptr;
+  }
 
-NS_IMETHODIMP
-HTMLLabelElement::GetControl(nsIDOMHTMLElement** aElement)
-{
-  nsCOMPtr<nsIDOMHTMLElement> element = do_QueryObject(GetLabeledElement());
-  element.forget(aElement);
-  return NS_OK;
-}
+  // Not all labeled things have a form association.  Stick to the ones that do.
+  nsCOMPtr<nsIFormControl> formControl = do_QueryObject(control);
+  if (!formControl) {
+    return nullptr;
+  }
 
-NS_IMETHODIMP
-HTMLLabelElement::SetHtmlFor(const nsAString& aHtmlFor)
-{
-  ErrorResult rv;
-  SetHtmlFor(aHtmlFor, rv);
-  return rv.StealNSResult();
-}
-
-NS_IMETHODIMP
-HTMLLabelElement::GetHtmlFor(nsAString& aHtmlFor)
-{
-  nsString htmlFor;
-  GetHtmlFor(htmlFor);
-  aHtmlFor = htmlFor;
-  return NS_OK;
+  return static_cast<HTMLFormElement*>(formControl->GetFormElement());
 }
 
 void
@@ -112,7 +98,7 @@ HTMLLabelElement::PostHandleEvent(EventChainPostVisitor& aVisitor)
     return NS_OK;
   }
 
-  nsCOMPtr<nsIContent> target = do_QueryInterface(aVisitor.mEvent->target);
+  nsCOMPtr<nsIContent> target = do_QueryInterface(aVisitor.mEvent->mTarget);
   if (InInteractiveHTMLContent(target, this)) {
     return NS_OK;
   }
@@ -128,7 +114,7 @@ HTMLLabelElement::PostHandleEvent(EventChainPostVisitor& aVisitor)
           // We reset the mouse-down point on every event because there is
           // no guarantee we will reach the eMouseClick code below.
           LayoutDeviceIntPoint* curPoint =
-            new LayoutDeviceIntPoint(mouseEvent->refPoint);
+            new LayoutDeviceIntPoint(mouseEvent->mRefPoint);
           SetProperty(nsGkAtoms::labelMouseDownPtProperty,
                       static_cast<void*>(curPoint),
                       nsINode::DeleteProperty<LayoutDeviceIntPoint>);
@@ -146,7 +132,7 @@ HTMLLabelElement::PostHandleEvent(EventChainPostVisitor& aVisitor)
             LayoutDeviceIntPoint dragDistance = *mouseDownPoint;
             DeleteProperty(nsGkAtoms::labelMouseDownPtProperty);
 
-            dragDistance -= mouseEvent->refPoint;
+            dragDistance -= mouseEvent->mRefPoint;
             const int CLICK_DISTANCE = 2;
             dragSelect = dragDistance.x > CLICK_DISTANCE ||
                          dragDistance.x < -CLICK_DISTANCE ||
@@ -161,7 +147,7 @@ HTMLLabelElement::PostHandleEvent(EventChainPostVisitor& aVisitor)
           }
           // Only set focus on the first click of multiple clicks to prevent
           // to prevent immediate de-focus.
-          if (mouseEvent->clickCount <= 1) {
+          if (mouseEvent->mClickCount <= 1) {
             nsIFocusManager* fm = nsFocusManager::GetFocusManager();
             if (fm) {
               // Use FLAG_BYMOVEFOCUS here so that the label is scrolled to.
@@ -208,18 +194,6 @@ HTMLLabelElement::PostHandleEvent(EventChainPostVisitor& aVisitor)
   return NS_OK;
 }
 
-nsresult
-HTMLLabelElement::Reset()
-{
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-HTMLLabelElement::SubmitNamesValues(nsFormSubmission* aFormSubmission)
-{
-  return NS_OK;
-}
-
 bool
 HTMLLabelElement::PerformAccesskey(bool aKeyCausesActivation,
                                    bool aIsTrustedEvent)
@@ -261,17 +235,23 @@ HTMLLabelElement::GetLabeledElement() const
     return GetFirstLabelableDescendant();
   }
 
-  // We have a @for. The id has to be linked to an element in the same document
+  // We have a @for. The id has to be linked to an element in the same tree
   // and this element should be a labelable form control.
-  //XXXsmaug It is unclear how this should work in case the element is in
-  //         Shadow DOM.
-  //         See https://www.w3.org/Bugs/Public/show_bug.cgi?id=26365.
-  nsIDocument* doc = GetUncomposedDoc();
-  if (!doc) {
-    return nullptr;
+  nsINode* root = SubtreeRoot();
+  ShadowRoot* shadow = ShadowRoot::FromNode(root);
+  Element* element = nullptr;
+
+  if (shadow) {
+    element = shadow->GetElementById(elementId);
+  } else {
+    nsIDocument* doc = GetUncomposedDoc();
+    if (doc) {
+      element = doc->GetElementById(elementId);
+    } else {
+      element = nsContentUtils::MatchElementId(root->AsContent(), elementId);
+    }
   }
 
-  Element* element = doc->GetElementById(elementId);
   if (element && element->IsLabelable()) {
     return static_cast<nsGenericHTMLElement*>(element);
   }

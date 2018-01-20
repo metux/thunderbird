@@ -1,15 +1,11 @@
-'use strict';
+"use strict";
 
-/* global getMainChromeWindow, AccessFuTest, GestureSettings, GestureTracker,
-   SimpleTest, getBoundsForDOMElm, Point, Utils */
 /* exported loadJSON, eventMap */
 
 var Ci = Components.interfaces;
 var Cu = Components.utils;
 
-Cu.import('resource://gre/modules/accessibility/Utils.jsm');
-Cu.import('resource://gre/modules/Geometry.jsm');
-Cu.import("resource://gre/modules/accessibility/Gestures.jsm");
+Cu.import("resource://gre/modules/Geometry.jsm");
 
 var win = getMainChromeWindow(window);
 
@@ -45,7 +41,7 @@ function calculateTouchListCoordinates(aTouchPoints) {
   var coords = [];
   for (var i = 0, target = aTouchPoints[i]; i < aTouchPoints.length; ++i) {
     var bounds = getBoundsForDOMElm(target.base);
-    var parentBounds = getBoundsForDOMElm('root');
+    var parentBounds = getBoundsForDOMElm("root");
     var point = new Point(target.x || 0, target.y || 0);
     point.scale(Utils.dpi);
     point.add(bounds[0], bounds[1]);
@@ -67,7 +63,7 @@ function calculateTouchListCoordinates(aTouchPoints) {
  */
 function sendTouchEvent(aTouchPoints, aName) {
   var touchList = sendTouchEvent.touchList;
-  if (aName === 'touchend') {
+  if (aName === "touchend") {
     sendTouchEvent.touchList = null;
   } else {
     var coords = calculateTouchListCoordinates(aTouchPoints);
@@ -75,14 +71,14 @@ function sendTouchEvent(aTouchPoints, aName) {
     for (var i = 0; i < coords.length; ++i) {
       var {x, y} = coords[i];
       var node = document.elementFromPoint(x, y);
-      var touch = document.createTouch(window, node, aName === 'touchstart' ?
+      var touch = document.createTouch(window, node, aName === "touchstart" ?
         1 : touchList.item(i).identifier, x, y, x, y);
       touches.push(touch);
     }
     touchList = document.createTouchList(touches);
     sendTouchEvent.touchList = touchList;
   }
-  var evt = document.createEvent('TouchEvent');
+  var evt = document.createEvent("TouchEvent");
   evt.initTouchEvent(aName, true, true, window, 0, false, false, false, false,
     touchList, touchList, touchList);
   document.dispatchEvent(evt);
@@ -100,11 +96,6 @@ var eventMap = {
   touchmove: sendTouchEvent
 };
 
-var originalDwellThreshold = GestureSettings.dwellThreshold;
-var originalSwipeMaxDuration = GestureSettings.swipeMaxDuration;
-var originalConsecutiveGestureDelay =
-  GestureSettings.maxConsecutiveGestureDelay;
-
 /**
  * Attach a listener for the mozAccessFuGesture event that tests its
  * type.
@@ -116,24 +107,24 @@ function testMozAccessFuGesture(aExpectedGestures, aTitle) {
   var types = aExpectedGestures;
   function handleGesture(aEvent) {
     if (aEvent.detail.type !== types[0].type) {
-      info('Got ' + aEvent.detail.type + ' waiting for ' + types[0].type);
+      info("Got " + aEvent.detail.type + " waiting for " + types[0].type);
       // The is not the event of interest.
       return;
     }
     is(!!aEvent.detail.edge, !!types[0].edge);
     is(aEvent.detail.touches.length, types[0].fingers || 1,
-      'failed to count fingers: ' + types[0].type);
-    ok(true, 'Received correct mozAccessFuGesture: ' +
-      JSON.stringify(types.shift()) + '. (' + aTitle + ')');
+      "failed to count fingers: " + types[0].type);
+    ok(true, "Received correct mozAccessFuGesture: " +
+      JSON.stringify(types.shift()) + ". (" + aTitle + ")");
     if (types.length === 0) {
-      win.removeEventListener('mozAccessFuGesture', handleGesture);
+      win.removeEventListener("mozAccessFuGesture", handleGesture);
       if (AccessFuTest.sequenceCleanup) {
         AccessFuTest.sequenceCleanup();
       }
       AccessFuTest.nextTest();
     }
   }
-  win.addEventListener('mozAccessFuGesture', handleGesture);
+  win.addEventListener("mozAccessFuGesture", handleGesture);
 }
 
 /**
@@ -158,9 +149,11 @@ function setTimers(aTimeStamp, aRemoveDwellThreshold, aRemoveSwipeMaxDuration) {
   GestureTracker.current.startTimer(aTimeStamp);
 }
 
-function resetTimers() {
-  GestureSettings.dwellThreshold = originalDwellThreshold;
-  GestureSettings.swipeMaxDuration = originalSwipeMaxDuration;
+function resetTimers(aRemoveGestureResolveDelay) {
+  GestureSettings.dwellThreshold = AccessFuTest.dwellThreshold;
+  GestureSettings.swipeMaxDuration = AccessFuTest.swipeMaxDuration;
+  GestureSettings.maxGestureResolveTimeout = aRemoveGestureResolveDelay ?
+    0 : AccessFuTest.maxGestureResolveTimeout;
 }
 
 /**
@@ -179,10 +172,7 @@ AccessFuTest.addSequence = function AccessFuTest_addSequence(aSequence) {
         type: aEvent.type
       };
       var timeStamp = Date.now();
-      resetTimers();
-      GestureSettings.maxConsecutiveGestureDelay =
-        aEvent.removeConsecutiveGestureDelay ?
-        0 : originalConsecutiveGestureDelay;
+      resetTimers(aEvent.removeGestureResolveDelay);
       GestureTracker.handle(event, timeStamp);
       setTimers(timeStamp, aEvent.removeDwellThreshold,
         aEvent.removeSwipeMaxDuration);
@@ -208,8 +198,8 @@ AccessFuTest.addSequence = function AccessFuTest_addSequence(aSequence) {
  */
 function loadJSON(aPath, aCallback) {
   var request = new XMLHttpRequest();
-  request.open('GET', aPath, true);
-  request.responseType = 'json';
+  request.open("GET", aPath, true);
+  request.responseType = "json";
   request.onload = function onload() {
     aCallback(request.response);
   };

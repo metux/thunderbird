@@ -44,15 +44,15 @@ const ldapURLs =
       options: 0
     },
     { url: "ldap://\u65e5\u672c\u8a93.jp:389/dc=tes\u65e5t??one?(oc=xyz)",
-      spec: "ldap://\u65e5\u672c\u8a93.jp" + portAdpt + "/dc=tes%E6%97%A5t??one?(oc=xyz)",
+      spec: "ldap://xn--wgv71a309e.jp" + portAdpt + "/dc=tes%E6%97%A5t??one?(oc=xyz)",
       asciiSpec: "ldap://xn--wgv71a309e.jp" + portAdpt + "/dc=tes%E6%97%A5t??one?(oc=xyz)",
-      host: "\u65e5\u672c\u8a93.jp",
+      host: "xn--wgv71a309e.jp",
       asciiHost: "xn--wgv71a309e.jp",
       port: usingWallet ? 389 : -1,
       scheme: "ldap",
       path: "/dc=tes%E6%97%A5t??one?(oc=xyz)",
-      prePath: "ldap://\u65e5\u672c\u8a93.jp" + portAdpt,
-      hostPort: "\u65e5\u672c\u8a93.jp" + portAdpt,
+      prePath: "ldap://xn--wgv71a309e.jp" + portAdpt,
+      hostPort: "xn--wgv71a309e.jp" + portAdpt,
       dn: "dc=tes\u65e5t",
       scope: Ci.nsILDAPURL.SCOPE_ONELEVEL,
       filter: "(oc=xyz)",
@@ -88,7 +88,7 @@ function run_test() {
   for (part = 0; part < ldapURLs.length; ++part)
   {
     dump("url: " + ldapURLs[part].url + "\n");
-    url = ioService.newURI(ldapURLs[part].url, null, null);
+    url = ioService.newURI(ldapURLs[part].url);
 
     do_check_eq(url.spec, ldapURLs[part].spec);
     do_check_eq(url.asciiSpec, ldapURLs[part].asciiSpec);
@@ -96,7 +96,7 @@ function run_test() {
     do_check_eq(url.host, ldapURLs[part].host);
     do_check_eq(url.asciiHost, ldapURLs[part].asciiHost);
     do_check_eq(url.port, ldapURLs[part].port);
-    do_check_eq(url.path, ldapURLs[part].path);
+    do_check_eq(url.pathQueryRef, ldapURLs[part].path);
     do_check_eq(url.prePath, ldapURLs[part].prePath);
     do_check_eq(url.hostPort, ldapURLs[part].hostPort);
     // XXX nsLDAPURL ought to have classinfo.
@@ -113,7 +113,7 @@ function run_test() {
   // Start off with a base url
   const kBaseURL = "ldap://localhost:389/dc=test,dc=abc??sub?(objectclass=*)";
 
-  url = ioService.newURI(kBaseURL, null, null)
+  url = ioService.newURI(kBaseURL)
                  .QueryInterface(Ci.nsILDAPURL);
 
   // Test - dn
@@ -185,7 +185,7 @@ function run_test() {
 
   // Test - Equals
 
-  var url2 = ioService.newURI("ldap://localhost" + portAdpt + "/dc=short??one?(objectclass=*)", null, null)
+  var url2 = ioService.newURI("ldap://localhost" + portAdpt + "/dc=short??one?(objectclass=*)")
                       .QueryInterface(Ci.nsILDAPURL);
 
   do_check_true(url.equals(url2));

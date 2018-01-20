@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://gre/modules/Services.jsm");
 Components.utils.import("resource:///modules/iteratorUtils.jsm");
+Components.utils.import("resource://gre/modules/PluralForm.jsm");
+Components.utils.import("resource://gre/modules/Services.jsm");
 
 // Copied from nsILookAndFeel.h, see comments on eMetric_AlertNotificationOrigin
 var NS_ALERT_HORIZONTAL = 1;
@@ -43,19 +44,18 @@ function prefillAlertInfo()
   // Generate an account label string based on the root folder.
   var label = document.getElementById('alertTitle');
   var totalNumNewMessages = rootFolder.getNumNewMessages(true);
-  var message = totalNumNewMessages == 1 ? "newMailNotification_message"
-                                         : "newMailNotification_messages";
-  label.value = document.getElementById('bundle_messenger')
-                        .getFormattedString(message,
-                                            [rootFolder.prettiestName,
-                                             totalNumNewMessages]);
+  let message = document.getElementById("bundle_messenger")
+                        .getString("newMailAlert_message");
+  label.value = PluralForm.get(totalNumNewMessages, message)
+                          .replace("#1", rootFolder.prettyName)
+                          .replace("#2", totalNumNewMessages);
 
   // This is really the root folder and we have to walk through the list to
   // find the real folder that has new mail in it...:(
   let allFolders = rootFolder.descendants;
   var folderSummaryInfoEl = document.getElementById('folderSummaryInfo');
   folderSummaryInfoEl.mMaxMsgHdrsInPopup = gNumNewMsgsToShowInAlert;
-  for (let folder in fixIterator(allFolders, Components.interfaces.nsIMsgFolder))
+  for (let folder of fixIterator(allFolders, Components.interfaces.nsIMsgFolder))
   {
     if (folder.hasNewMessages && !folder.getFlag(Ci.nsMsgFolderFlags.Virtual))
     {
@@ -125,7 +125,7 @@ function showAlert()
   var alertContainer = document.getElementById("alertContainer");
   // Don't fade in if the user opened the alert or the pref is true.
   if (gUserInitiated ||
-      Services.prefs.getBoolPref("alerts.disableSlidingEffect")) {
+      !Services.prefs.getBoolPref("toolkit.cosmeticAnimations.enabled")) {
     alertContainer.setAttribute("noanimation", true);
     setTimeout(closeAlert, gOpenTime);
     return;
@@ -134,10 +134,10 @@ function showAlert()
   alertContainer.addEventListener("animationend", function hideAlert(event) {
     if (event.animationName == "fade-in") {
       alertContainer.removeEventListener("animationend", hideAlert, false);
-      let remaining = Math.max(Math.round(gOpenTime - event.elapsedTime * 1000), 0);
-      setTimeout(fadeOutAlert, remaining);
+      setTimeout(fadeOutAlert, gOpenTime);
     }
   }, false);
+
   alertContainer.setAttribute("fade-in", true);
 }
 

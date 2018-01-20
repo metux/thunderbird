@@ -8,6 +8,7 @@
 #include <limits>
 #include "Intervals.h"
 
+#include "mozilla/CheckedInt.h"
 #include "mozilla/Logging.h"
 
 #if defined(MOZ_FMP4)
@@ -23,15 +24,31 @@ extern mozilla::LogModule* GetDemuxerLog();
 namespace mp4_demuxer
 {
 
-using namespace stagefright;
 using namespace mozilla;
 
+const uint32_t kKeyIdSize = 16;
+
 bool
-MoofParser::RebuildFragmentedIndex(
-  const MediaByteRangeSet& aByteRanges)
+MoofParser::RebuildFragmentedIndex(const MediaByteRangeSet& aByteRanges)
 {
   BoxContext context(mSource, aByteRanges);
   return RebuildFragmentedIndex(context);
+}
+
+bool
+MoofParser::RebuildFragmentedIndex(
+  const MediaByteRangeSet& aByteRanges, bool* aCanEvict)
+{
+  MOZ_ASSERT(aCanEvict);
+  if (*aCanEvict && mMoofs.Length() > 1) {
+    MOZ_ASSERT(mMoofs.Length() == mMediaRanges.Length());
+    mMoofs.RemoveElementsAt(0, mMoofs.Length() - 1);
+    mMediaRanges.RemoveElementsAt(0, mMediaRanges.Length() - 1);
+    *aCanEvict = true;
+  } else {
+    *aCanEvict = false;
+  }
+  return RebuildFragmentedIndex(aByteRanges);
 }
 
 bool
@@ -45,7 +62,7 @@ MoofParser::RebuildFragmentedIndex(BoxContext& aContext)
       mInitRange = MediaByteRange(0, box.Range().mEnd);
       ParseMoov(box);
     } else if (box.IsType("moof")) {
-      Moof moof(box, mTrex, mMvhd, mMdhd, mEdts, mSinf, mIsAudio);
+      Moof moof(box, mTrex, mMvhd, mMdhd, mEdts, mSinf, &mLastDecodeTime, mIsAudio);
 
       if (!moof.IsValid() && !box.Next().IsAvailable()) {
         // Moof isn't valid abort search for now.
@@ -182,27 +199,34 @@ MoofParser::Metadata()
   MediaByteRange ftyp;
   MediaByteRange moov;
   ScanForMetadata(ftyp, moov);
-  if (!ftyp.Length() || !moov.Length() ||
-      ftyp.Length() > Box::kMAX_BOX_READ || moov.Length() > Box::kMAX_BOX_READ) {
-    // No ftyp or moov, or trying to read bigger-that-readable box (32MB).
+  CheckedInt<MediaByteBuffer::size_type> ftypLength = ftyp.Length();
+  CheckedInt<MediaByteBuffer::size_type> moovLength = moov.Length();
+  if (!ftypLength.isValid() || !moovLength.isValid()
+      || !ftypLength.value() || !moovLength.value()) {
+    // No ftyp or moov, or they cannot be used as array size.
+    return nullptr;
+  }
+  CheckedInt<MediaByteBuffer::size_type> totalLength = ftypLength + moovLength;
+  if (!totalLength.isValid()) {
+    // Addition overflow, or sum cannot be used as array size.
     return nullptr;
   }
   RefPtr<MediaByteBuffer> metadata = new MediaByteBuffer();
-  if (!metadata->SetLength(ftyp.Length() + moov.Length(), fallible)) {
-    // OOM
+  if (!metadata->SetLength(totalLength.value(), fallible)) {
+    LOG(Moof, "OOM");
     return nullptr;
   }
 
   RefPtr<mp4_demuxer::BlockingStream> stream = new BlockingStream(mSource);
   size_t read;
   bool rv =
-    stream->ReadAt(ftyp.mStart, metadata->Elements(), ftyp.Length(), &read);
-  if (!rv || read != ftyp.Length()) {
+    stream->ReadAt(ftyp.mStart, metadata->Elements(), ftypLength.value(), &read);
+  if (!rv || read != ftypLength.value()) {
     return nullptr;
   }
   rv =
-    stream->ReadAt(moov.mStart, metadata->Elements() + ftyp.Length(), moov.Length(), &read);
-  if (!rv || read != moov.Length()) {
+    stream->ReadAt(moov.mStart, metadata->Elements() + ftypLength.value(), moovLength.value(), &read);
+  if (!rv || read != moovLength.value()) {
     return nullptr;
   }
   return metadata.forget();
@@ -307,6 +331,24 @@ MoofParser::ParseStbl(Box& aBox)
   for (Box box = aBox.FirstChild(); box.IsAvailable(); box = box.Next()) {
     if (box.IsType("stsd")) {
       ParseStsd(box);
+    } else if (box.IsType("sgpd")) {
+      Sgpd sgpd(box);
+      if (sgpd.IsValid() && sgpd.mGroupingType == "seig") {
+        mTrackSampleEncryptionInfoEntries.Clear();
+        if (!mTrackSampleEncryptionInfoEntries.AppendElements(sgpd.mEntries, mozilla::fallible)) {
+          LOG(Moof, "OOM");
+          return;
+        }
+      }
+    } else if (box.IsType("sbgp")) {
+      Sbgp sbgp(box);
+      if (sbgp.IsValid() && sbgp.mGroupingType == "seig") {
+        mTrackSampleToGroupEntries.Clear();
+        if (!mTrackSampleToGroupEntries.AppendElements(sbgp.mEntries, mozilla::fallible)) {
+          LOG(Moof, "OOM");
+          return;
+        }
+      }
     }
   }
 }
@@ -338,22 +380,91 @@ MoofParser::ParseEncrypted(Box& aBox)
   }
 }
 
-Moof::Moof(Box& aBox, Trex& aTrex, Mvhd& aMvhd, Mdhd& aMdhd, Edts& aEdts, Sinf& aSinf, bool aIsAudio)
+class CtsComparator
+{
+public:
+  bool Equals(Sample* const aA, Sample* const aB) const
+  {
+    return aA->mCompositionRange.start == aB->mCompositionRange.start;
+  }
+  bool
+  LessThan(Sample* const aA, Sample* const aB) const
+  {
+    return aA->mCompositionRange.start < aB->mCompositionRange.start;
+  }
+};
+
+Moof::Moof(Box& aBox, Trex& aTrex, Mvhd& aMvhd, Mdhd& aMdhd, Edts& aEdts, Sinf& aSinf, uint64_t* aDecodeTime, bool aIsAudio)
   : mRange(aBox.Range())
   , mMaxRoundingError(35000)
 {
+  nsTArray<Box> psshBoxes;
   for (Box box = aBox.FirstChild(); box.IsAvailable(); box = box.Next()) {
     if (box.IsType("traf")) {
-      ParseTraf(box, aTrex, aMvhd, aMdhd, aEdts, aSinf, aIsAudio);
+      ParseTraf(box, aTrex, aMvhd, aMdhd, aEdts, aSinf, aDecodeTime, aIsAudio);
+    }
+    if (box.IsType("pssh")) {
+      psshBoxes.AppendElement(box);
     }
   }
+
+  // The EME spec requires that PSSH boxes which are contiguous in the
+  // file are dispatched to the media element in a single "encrypted" event.
+  // So append contiguous boxes here.
+  for (size_t i = 0; i < psshBoxes.Length(); ++i) {
+    Box box = psshBoxes[i];
+    if (i == 0 || box.Offset() != psshBoxes[i - 1].NextOffset()) {
+      mPsshes.AppendElement();
+    }
+    nsTArray<uint8_t>& pssh = mPsshes.LastElement();
+    pssh.AppendElements(box.Header());
+    pssh.AppendElements(box.Read());
+  }
+
   if (IsValid()) {
+    if (mIndex.Length()) {
+      // Ensure the samples are contiguous with no gaps.
+      nsTArray<Sample*> ctsOrder;
+      for (auto& sample : mIndex) {
+        ctsOrder.AppendElement(&sample);
+      }
+      ctsOrder.Sort(CtsComparator());
+
+      for (size_t i = 1; i < ctsOrder.Length(); i++) {
+        ctsOrder[i-1]->mCompositionRange.end = ctsOrder[i]->mCompositionRange.start;
+      }
+
+      // In MP4, the duration of a sample is defined as the delta between two decode
+      // timestamps. The operation above has updated the duration of each sample
+      // as a Sample's duration is mCompositionRange.end - mCompositionRange.start
+      // MSE's TrackBuffersManager expects dts that increased by the sample's
+      // duration, so we rewrite the dts accordingly.
+      int64_t presentationDuration =
+        ctsOrder.LastElement()->mCompositionRange.end
+        - ctsOrder[0]->mCompositionRange.start;
+      auto decodeOffset = aMdhd.ToMicroseconds((int64_t)*aDecodeTime - aEdts.mMediaStart);
+      auto offsetOffset = aMvhd.ToMicroseconds(aEdts.mEmptyOffset);
+      int64_t endDecodeTime = decodeOffset.isOk() & offsetOffset.isOk() ?
+                              decodeOffset.unwrap() + offsetOffset.unwrap() : 0;
+      int64_t decodeDuration = endDecodeTime - mIndex[0].mDecodeTime;
+      double adjust = !!presentationDuration ? (double)decodeDuration / presentationDuration : 0;
+      int64_t dtsOffset = mIndex[0].mDecodeTime;
+      int64_t compositionDuration = 0;
+      // Adjust the dts, ensuring that the new adjusted dts will never be greater
+      // than decodeTime (the next moof's decode start time).
+      for (auto& sample : mIndex) {
+        sample.mDecodeTime = dtsOffset + int64_t(compositionDuration * adjust);
+        compositionDuration += sample.mCompositionRange.Length();
+      }
+      mTimeRange = Interval<Microseconds>(ctsOrder[0]->mCompositionRange.start,
+          ctsOrder.LastElement()->mCompositionRange.end);
+    }
     ProcessCenc();
   }
 }
 
 bool
-Moof::GetAuxInfo(AtomType aType, nsTArray<MediaByteRange>* aByteRanges)
+Moof::GetAuxInfo(AtomType aType, FallibleTArray<MediaByteRange>* aByteRanges)
 {
   aByteRanges->Clear();
 
@@ -379,22 +490,34 @@ Moof::GetAuxInfo(AtomType aType, nsTArray<MediaByteRange>* aByteRanges)
   }
 
   if (saio->mOffsets.Length() == 1) {
-    aByteRanges->SetCapacity(saiz->mSampleInfoSize.Length());
+    if (!aByteRanges->SetCapacity(saiz->mSampleInfoSize.Length(), mozilla::fallible)) {
+      LOG(Moof, "OOM");
+      return false;
+    }
     uint64_t offset = mRange.mStart + saio->mOffsets[0];
     for (size_t i = 0; i < saiz->mSampleInfoSize.Length(); i++) {
-      aByteRanges->AppendElement(
-        MediaByteRange(offset, offset + saiz->mSampleInfoSize[i]));
+      if (!aByteRanges->AppendElement(
+           MediaByteRange(offset, offset + saiz->mSampleInfoSize[i]), mozilla::fallible)) {
+        LOG(Moof, "OOM");
+        return false;
+      }
       offset += saiz->mSampleInfoSize[i];
     }
     return true;
   }
 
   if (saio->mOffsets.Length() == saiz->mSampleInfoSize.Length()) {
-    aByteRanges->SetCapacity(saiz->mSampleInfoSize.Length());
+    if (!aByteRanges->SetCapacity(saiz->mSampleInfoSize.Length(), mozilla::fallible)) {
+      LOG(Moof, "OOM");
+      return false;
+    }
     for (size_t i = 0; i < saio->mOffsets.Length(); i++) {
       uint64_t offset = mRange.mStart + saio->mOffsets[i];
-      aByteRanges->AppendElement(
-        MediaByteRange(offset, offset + saiz->mSampleInfoSize[i]));
+      if (!aByteRanges->AppendElement(
+            MediaByteRange(offset, offset + saiz->mSampleInfoSize[i]), mozilla::fallible)) {
+        LOG(Moof, "OOM");
+        return false;
+      }
     }
     return true;
   }
@@ -405,7 +528,7 @@ Moof::GetAuxInfo(AtomType aType, nsTArray<MediaByteRange>* aByteRanges)
 bool
 Moof::ProcessCenc()
 {
-  nsTArray<MediaByteRange> cencRanges;
+  FallibleTArray<MediaByteRange> cencRanges;
   if (!GetAuxInfo(AtomType("cenc"), &cencRanges) ||
       cencRanges.Length() != mIndex.Length()) {
     return false;
@@ -417,42 +540,67 @@ Moof::ProcessCenc()
 }
 
 void
-Moof::ParseTraf(Box& aBox, Trex& aTrex, Mvhd& aMvhd, Mdhd& aMdhd, Edts& aEdts, Sinf& aSinf, bool aIsAudio)
+Moof::ParseTraf(Box& aBox, Trex& aTrex, Mvhd& aMvhd, Mdhd& aMdhd, Edts& aEdts, Sinf& aSinf, uint64_t* aDecodeTime, bool aIsAudio)
 {
+  MOZ_ASSERT(aDecodeTime);
   Tfhd tfhd(aTrex);
   Tfdt tfdt;
+
   for (Box box = aBox.FirstChild(); box.IsAvailable(); box = box.Next()) {
     if (box.IsType("tfhd")) {
       tfhd = Tfhd(box, aTrex);
     } else if (!aTrex.mTrackId || tfhd.mTrackId == aTrex.mTrackId) {
       if (box.IsType("tfdt")) {
         tfdt = Tfdt(box);
+      } else if (box.IsType("sgpd")) {
+        Sgpd sgpd(box);
+        if (sgpd.IsValid() && sgpd.mGroupingType == "seig") {
+          mFragmentSampleEncryptionInfoEntries.Clear();
+          if (!mFragmentSampleEncryptionInfoEntries.AppendElements(sgpd.mEntries, mozilla::fallible)) {
+            LOG(Moof, "OOM");
+            return;
+          }
+        }
+      } else if (box.IsType("sbgp")) {
+        Sbgp sbgp(box);
+        if (sbgp.IsValid() && sbgp.mGroupingType == "seig") {
+          mFragmentSampleToGroupEntries.Clear();
+          if (!mFragmentSampleToGroupEntries.AppendElements(sbgp.mEntries, mozilla::fallible)) {
+            LOG(Moof, "OOM");
+            return;
+          }
+        }
       } else if (box.IsType("saiz")) {
-        mSaizs.AppendElement(Saiz(box, aSinf.mDefaultEncryptionType));
+        if (!mSaizs.AppendElement(Saiz(box, aSinf.mDefaultEncryptionType), mozilla::fallible)) {
+          LOG(Moof, "OOM");
+          return;
+        }
       } else if (box.IsType("saio")) {
-        mSaios.AppendElement(Saio(box, aSinf.mDefaultEncryptionType));
+        if (!mSaios.AppendElement(Saio(box, aSinf.mDefaultEncryptionType), mozilla::fallible)) {
+          LOG(Moof, "OOM");
+          return;
+        }
       }
     }
   }
   if (aTrex.mTrackId && tfhd.mTrackId != aTrex.mTrackId) {
     return;
   }
-  if (!tfdt.IsValid()) {
-    LOG(Moof, "Invalid tfdt dependency");
-    return;
-  }
   // Now search for TRUN boxes.
-  uint64_t decodeTime = tfdt.mBaseMediaDecodeTime;
+  uint64_t decodeTime =
+    tfdt.IsValid() ? tfdt.mBaseMediaDecodeTime : *aDecodeTime;
   for (Box box = aBox.FirstChild(); box.IsAvailable(); box = box.Next()) {
     if (box.IsType("trun")) {
-      if (ParseTrun(box, tfhd, aMvhd, aMdhd, aEdts, &decodeTime, aIsAudio)) {
+      if (ParseTrun(box, tfhd, aMvhd, aMdhd, aEdts, &decodeTime, aIsAudio).isOk()) {
         mValid = true;
       } else {
+        LOG(Moof, "ParseTrun failed");
         mValid = false;
         break;
       }
     }
   }
+  *aDecodeTime = decodeTime;
 }
 
 void
@@ -463,197 +611,178 @@ Moof::FixRounding(const Moof& aMoof) {
   }
 }
 
-class CtsComparator
-{
-public:
-  bool Equals(Sample* const aA, Sample* const aB) const
-  {
-    return aA->mCompositionRange.start == aB->mCompositionRange.start;
-  }
-  bool
-  LessThan(Sample* const aA, Sample* const aB) const
-  {
-    return aA->mCompositionRange.start < aB->mCompositionRange.start;
-  }
-};
-
-bool
+Result<Ok, nsresult>
 Moof::ParseTrun(Box& aBox, Tfhd& aTfhd, Mvhd& aMvhd, Mdhd& aMdhd, Edts& aEdts, uint64_t* aDecodeTime, bool aIsAudio)
 {
   if (!aTfhd.IsValid() || !aMvhd.IsValid() || !aMdhd.IsValid() ||
       !aEdts.IsValid()) {
     LOG(Moof, "Invalid dependencies: aTfhd(%d) aMvhd(%d) aMdhd(%d) aEdts(%d)",
         aTfhd.IsValid(), aMvhd.IsValid(), aMdhd.IsValid(), !aEdts.IsValid());
-    return false;
+    return Err(NS_ERROR_FAILURE);
   }
 
   BoxReader reader(aBox);
   if (!reader->CanReadType<uint32_t>()) {
     LOG(Moof, "Incomplete Box (missing flags)");
-    return false;
+    return Err(NS_ERROR_FAILURE);
   }
-  uint32_t flags = reader->ReadU32();
+  uint32_t flags;
+  MOZ_TRY_VAR(flags, reader->ReadU32());
   uint8_t version = flags >> 24;
 
   if (!reader->CanReadType<uint32_t>()) {
     LOG(Moof, "Incomplete Box (missing sampleCount)");
-    return false;
+    return Err(NS_ERROR_FAILURE);
   }
-  uint32_t sampleCount = reader->ReadU32();
+  uint32_t sampleCount;
+  MOZ_TRY_VAR(sampleCount, reader->ReadU32());
   if (sampleCount == 0) {
-    return true;
+    return Ok();
   }
 
-  size_t need =
-    ((flags & 1) ? sizeof(uint32_t) : 0) +
-    ((flags & 4) ? sizeof(uint32_t) : 0);
-  uint16_t flag[] = { 0x100, 0x200, 0x400, 0x800, 0 };
-  for (size_t i = 0; flag[i]; i++) {
-    if (flags & flag[i]) {
-      need += sizeof(uint32_t) * sampleCount;
-    }
+  uint64_t offset = aTfhd.mBaseDataOffset;
+  if (flags & 0x01) {
+    uint32_t tmp;
+    MOZ_TRY_VAR(tmp, reader->ReadU32());
+    offset += tmp;
   }
-  if (reader->Remaining() < need) {
-    LOG(Moof, "Incomplete Box (have:%lld need:%lld)",
-        reader->Remaining(), need);
-    return false;
+  uint32_t firstSampleFlags = aTfhd.mDefaultSampleFlags;
+  if (flags & 0x04) {
+    MOZ_TRY_VAR(firstSampleFlags, reader->ReadU32());
   }
-
-  uint64_t offset = aTfhd.mBaseDataOffset + (flags & 1 ? reader->ReadU32() : 0);
-  uint32_t firstSampleFlags =
-    flags & 4 ? reader->ReadU32() : aTfhd.mDefaultSampleFlags;
   uint64_t decodeTime = *aDecodeTime;
   nsTArray<Interval<Microseconds>> timeRanges;
 
   if (!mIndex.SetCapacity(sampleCount, fallible)) {
     LOG(Moof, "Out of Memory");
-    return false;
+    return Err(NS_ERROR_FAILURE);
   }
 
   for (size_t i = 0; i < sampleCount; i++) {
-    uint32_t sampleDuration =
-      flags & 0x100 ? reader->ReadU32() : aTfhd.mDefaultSampleDuration;
-    uint32_t sampleSize =
-      flags & 0x200 ? reader->ReadU32() : aTfhd.mDefaultSampleSize;
-    uint32_t sampleFlags =
-      flags & 0x400 ? reader->ReadU32()
-                    : i ? aTfhd.mDefaultSampleFlags : firstSampleFlags;
+    uint32_t sampleDuration = aTfhd.mDefaultSampleDuration;
+    if (flags & 0x100) {
+      MOZ_TRY_VAR(sampleDuration, reader->ReadU32());
+    }
+    uint32_t sampleSize = aTfhd.mDefaultSampleSize;
+    if (flags & 0x200) {
+      MOZ_TRY_VAR(sampleSize, reader->ReadU32());
+    }
+    uint32_t sampleFlags = i ? aTfhd.mDefaultSampleFlags : firstSampleFlags;
+    if (flags & 0x400) {
+      MOZ_TRY_VAR(sampleFlags, reader->ReadU32());
+    }
     int32_t ctsOffset = 0;
     if (flags & 0x800) {
-      ctsOffset = reader->Read32();
+      MOZ_TRY_VAR(ctsOffset, reader->Read32());
     }
 
-    Sample sample;
-    sample.mByteRange = MediaByteRange(offset, offset + sampleSize);
-    offset += sampleSize;
+    if (sampleSize) {
+      Sample sample;
+      sample.mByteRange = MediaByteRange(offset, offset + sampleSize);
+      offset += sampleSize;
 
-    sample.mDecodeTime =
-      aMdhd.ToMicroseconds((int64_t)decodeTime - aEdts.mMediaStart) + aMvhd.ToMicroseconds(aEdts.mEmptyOffset);
-    sample.mCompositionRange = Interval<Microseconds>(
-      aMdhd.ToMicroseconds((int64_t)decodeTime + ctsOffset - aEdts.mMediaStart) + aMvhd.ToMicroseconds(aEdts.mEmptyOffset),
-      aMdhd.ToMicroseconds((int64_t)decodeTime + ctsOffset + sampleDuration - aEdts.mMediaStart) + aMvhd.ToMicroseconds(aEdts.mEmptyOffset));
+      Microseconds decodeOffset, emptyOffset, startCts, endCts;
+      MOZ_TRY_VAR(decodeOffset, aMdhd.ToMicroseconds((int64_t)decodeTime - aEdts.mMediaStart));
+      MOZ_TRY_VAR(emptyOffset, aMvhd.ToMicroseconds(aEdts.mEmptyOffset));
+      sample.mDecodeTime = decodeOffset + emptyOffset;
+      MOZ_TRY_VAR(startCts, aMdhd.ToMicroseconds((int64_t)decodeTime + ctsOffset - aEdts.mMediaStart));
+      MOZ_TRY_VAR(endCts, aMdhd.ToMicroseconds((int64_t)decodeTime + ctsOffset + sampleDuration - aEdts.mMediaStart));
+      sample.mCompositionRange = Interval<Microseconds>(startCts + emptyOffset, endCts + emptyOffset);
+      // Sometimes audio streams don't properly mark their samples as keyframes,
+      // because every audio sample is a keyframe.
+      sample.mSync = !(sampleFlags & 0x1010000) || aIsAudio;
+
+      // FIXME: Make this infallible after bug 968520 is done.
+      MOZ_ALWAYS_TRUE(mIndex.AppendElement(sample, fallible));
+
+      mMdatRange = mMdatRange.Span(sample.mByteRange);
+    }
     decodeTime += sampleDuration;
-
-    // Sometimes audio streams don't properly mark their samples as keyframes,
-    // because every audio sample is a keyframe.
-    sample.mSync = !(sampleFlags & 0x1010000) || aIsAudio;
-
-    // FIXME: Make this infallible after bug 968520 is done.
-    MOZ_ALWAYS_TRUE(mIndex.AppendElement(sample, fallible));
-
-    mMdatRange = mMdatRange.Span(sample.mByteRange);
   }
-  mMaxRoundingError += aMdhd.ToMicroseconds(sampleCount);
+  Microseconds roundTime;
+  MOZ_TRY_VAR(roundTime, aMdhd.ToMicroseconds(sampleCount));
+  mMaxRoundingError += roundTime;
 
-  nsTArray<Sample*> ctsOrder;
-  for (int i = 0; i < mIndex.Length(); i++) {
-    ctsOrder.AppendElement(&mIndex[i]);
-  }
-  ctsOrder.Sort(CtsComparator());
-
-  for (size_t i = 0; i < ctsOrder.Length(); i++) {
-    if (i + 1 < ctsOrder.Length()) {
-      ctsOrder[i]->mCompositionRange.end = ctsOrder[i + 1]->mCompositionRange.start;
-    }
-  }
-  mTimeRange = Interval<Microseconds>(ctsOrder[0]->mCompositionRange.start,
-      ctsOrder.LastElement()->mCompositionRange.end);
   *aDecodeTime = decodeTime;
-  return true;
+
+  return Ok();
 }
 
 Tkhd::Tkhd(Box& aBox)
 {
+  mValid = Parse(aBox).isOk();
+  if (!mValid) {
+    LOG(Tkhd, "Parse failed");
+  }
+}
+
+Result<Ok, nsresult>
+Tkhd::Parse(Box& aBox)
+{
   BoxReader reader(aBox);
-  if (!reader->CanReadType<uint32_t>()) {
-    LOG(Tkhd, "Incomplete Box (missing flags)");
-    return;
-  }
-  uint32_t flags = reader->ReadU32();
+  uint32_t flags;
+  MOZ_TRY_VAR(flags, reader->ReadU32());
   uint8_t version = flags >> 24;
-  size_t need =
-    3*(version ? sizeof(int64_t) : sizeof(int32_t)) + 2*sizeof(int32_t);
-  if (reader->Remaining() < need) {
-    LOG(Tkhd, "Incomplete Box (have:%lld need:%lld)",
-        (uint64_t)reader->Remaining(), (uint64_t)need);
-    return;
-  }
   if (version == 0) {
-    mCreationTime = reader->ReadU32();
-    mModificationTime = reader->ReadU32();
-    mTrackId = reader->ReadU32();
-    uint32_t reserved = reader->ReadU32();
+    uint32_t creationTime, modificationTime, reserved, duration;
+    MOZ_TRY_VAR(creationTime, reader->ReadU32());
+    MOZ_TRY_VAR(modificationTime, reader->ReadU32());
+    MOZ_TRY_VAR(mTrackId, reader->ReadU32());
+    MOZ_TRY_VAR(reserved, reader->ReadU32());
+    MOZ_TRY_VAR(duration, reader->ReadU32());
+
     NS_ASSERTION(!reserved, "reserved should be 0");
-    mDuration = reader->ReadU32();
+
+    mCreationTime = creationTime;
+    mModificationTime = modificationTime;
+    mDuration = duration;
   } else if (version == 1) {
-    mCreationTime = reader->ReadU64();
-    mModificationTime = reader->ReadU64();
-    mTrackId = reader->ReadU32();
-    uint32_t reserved = reader->ReadU32();
+    uint32_t reserved;
+    MOZ_TRY_VAR(mCreationTime, reader->ReadU64());
+    MOZ_TRY_VAR(mModificationTime, reader->ReadU64());
+    MOZ_TRY_VAR(mTrackId, reader->ReadU32());
+    MOZ_TRY_VAR(reserved, reader->ReadU32());
     NS_ASSERTION(!reserved, "reserved should be 0");
-    mDuration = reader->ReadU64();
+    MOZ_TRY_VAR(mDuration, reader->ReadU64());
   }
-  // More stuff that we don't care about
-  reader->DiscardRemaining();
-  mValid = true;
+  return Ok();
 }
 
 Mvhd::Mvhd(Box& aBox)
 {
+  mValid = Parse(aBox).isOk();
+  if (!mValid) {
+    LOG(Mvhd, "Parse failed");
+  }
+}
+
+Result<Ok, nsresult>
+Mvhd::Parse(Box& aBox)
+{
   BoxReader reader(aBox);
-  if (!reader->CanReadType<uint32_t>()) {
-    LOG(Mdhd, "Incomplete Box (missing flags)");
-    return;
-  }
-  uint32_t flags = reader->ReadU32();
+
+  uint32_t flags;
+  MOZ_TRY_VAR(flags, reader->ReadU32());
   uint8_t version = flags >> 24;
-  size_t need =
-    3*(version ? sizeof(int64_t) : sizeof(int32_t)) + sizeof(uint32_t);
-  if (reader->Remaining() < need) {
-    LOG(Mvhd, "Incomplete Box (have:%lld need:%lld)",
-        (uint64_t)reader->Remaining(), (uint64_t)need);
-    return;
-  }
 
   if (version == 0) {
-    mCreationTime = reader->ReadU32();
-    mModificationTime = reader->ReadU32();
-    mTimescale = reader->ReadU32();
-    mDuration = reader->ReadU32();
+    uint32_t creationTime, modificationTime, duration;
+    MOZ_TRY_VAR(creationTime, reader->ReadU32());
+    MOZ_TRY_VAR(modificationTime, reader->ReadU32());
+    MOZ_TRY_VAR(mTimescale, reader->ReadU32());
+    MOZ_TRY_VAR(duration, reader->ReadU32());
+    mCreationTime = creationTime;
+    mModificationTime = modificationTime;
+    mDuration = duration;
   } else if (version == 1) {
-    mCreationTime = reader->ReadU64();
-    mModificationTime = reader->ReadU64();
-    mTimescale = reader->ReadU32();
-    mDuration = reader->ReadU64();
+    MOZ_TRY_VAR(mCreationTime, reader->ReadU64());
+    MOZ_TRY_VAR(mModificationTime, reader->ReadU64());
+    MOZ_TRY_VAR(mTimescale, reader->ReadU32());
+    MOZ_TRY_VAR(mDuration, reader->ReadU64());
   } else {
-    reader->DiscardRemaining();
-    return;
+    return Err(NS_ERROR_FAILURE);
   }
-  // More stuff that we don't care about
-  reader->DiscardRemaining();
-  if (mTimescale) {
-    mValid = true;
-  }
+    return Ok();
 }
 
 Mdhd::Mdhd(Box& aBox)
@@ -663,123 +792,131 @@ Mdhd::Mdhd(Box& aBox)
 
 Trex::Trex(Box& aBox)
 {
-  BoxReader reader(aBox);
-  if (reader->Remaining() < 6*sizeof(uint32_t)) {
-    LOG(Trex, "Incomplete Box (have:%lld need:%lld)",
-        (uint64_t)reader->Remaining(), (uint64_t)6*sizeof(uint32_t));
-    return;
+  mValid = Parse(aBox).isOk();
+  if (!mValid) {
+    LOG(Trex, "Parse failed");
   }
-  mFlags = reader->ReadU32();
-  mTrackId = reader->ReadU32();
-  mDefaultSampleDescriptionIndex = reader->ReadU32();
-  mDefaultSampleDuration = reader->ReadU32();
-  mDefaultSampleSize = reader->ReadU32();
-  mDefaultSampleFlags = reader->ReadU32();
-  mValid = true;
+}
+
+Result<Ok, nsresult>
+Trex::Parse(Box& aBox)
+{
+  BoxReader reader(aBox);
+
+  MOZ_TRY_VAR(mFlags, reader->ReadU32());
+  MOZ_TRY_VAR(mTrackId, reader->ReadU32());
+  MOZ_TRY_VAR(mDefaultSampleDescriptionIndex, reader->ReadU32());
+  MOZ_TRY_VAR(mDefaultSampleDuration, reader->ReadU32());
+  MOZ_TRY_VAR(mDefaultSampleSize, reader->ReadU32());
+  MOZ_TRY_VAR(mDefaultSampleFlags, reader->ReadU32());
+
+  return Ok();
 }
 
 Tfhd::Tfhd(Box& aBox, Trex& aTrex)
   : Trex(aTrex)
+{
+  mValid = Parse(aBox).isOk();
+  if (!mValid) {
+    LOG(Tfhd, "Parse failed");
+  }
+}
+
+Result<Ok, nsresult>
+Tfhd::Parse(Box& aBox)
 {
   MOZ_ASSERT(aBox.IsType("tfhd"));
   MOZ_ASSERT(aBox.Parent()->IsType("traf"));
   MOZ_ASSERT(aBox.Parent()->Parent()->IsType("moof"));
 
   BoxReader reader(aBox);
-  if (!reader->CanReadType<uint32_t>()) {
-    LOG(Tfhd, "Incomplete Box (missing flags)");
-    return;
+
+  MOZ_TRY_VAR(mFlags, reader->ReadU32());
+  MOZ_TRY_VAR(mTrackId, reader->ReadU32());
+  mBaseDataOffset = aBox.Parent()->Parent()->Offset();
+  if (mFlags & 0x01) {
+    MOZ_TRY_VAR(mBaseDataOffset, reader->ReadU64());
   }
-  mFlags = reader->ReadU32();
-  size_t need = sizeof(uint32_t) /* trackid */;
-  uint8_t flag[] = { 1, 2, 8, 0x10, 0x20, 0 };
-  uint8_t flagSize[] = { sizeof(uint64_t), sizeof(uint32_t), sizeof(uint32_t), sizeof(uint32_t), sizeof(uint32_t) };
-  for (size_t i = 0; flag[i]; i++) {
-    if (mFlags & flag[i]) {
-      need += flagSize[i];
-    }
+  if (mFlags & 0x02) {
+    MOZ_TRY_VAR(mDefaultSampleDescriptionIndex, reader->ReadU32());
   }
-  if (reader->Remaining() < need) {
-    LOG(Tfhd, "Incomplete Box (have:%lld need:%lld)",
-        (uint64_t)reader->Remaining(), (uint64_t)need);
-    return;
-  }
-  mTrackId = reader->ReadU32();
-  mBaseDataOffset =
-    mFlags & 1 ? reader->ReadU64() : aBox.Parent()->Parent()->Offset();
-  if (mFlags & 2) {
-    mDefaultSampleDescriptionIndex = reader->ReadU32();
-  }
-  if (mFlags & 8) {
-    mDefaultSampleDuration = reader->ReadU32();
+  if (mFlags & 0x08) {
+    MOZ_TRY_VAR(mDefaultSampleDuration, reader->ReadU32());
   }
   if (mFlags & 0x10) {
-    mDefaultSampleSize = reader->ReadU32();
+    MOZ_TRY_VAR(mDefaultSampleSize, reader->ReadU32());
   }
   if (mFlags & 0x20) {
-    mDefaultSampleFlags = reader->ReadU32();
+    MOZ_TRY_VAR(mDefaultSampleFlags, reader->ReadU32());
   }
-  mValid = true;
+
+  return Ok();
 }
 
 Tfdt::Tfdt(Box& aBox)
 {
+  mValid = Parse(aBox).isOk();
+  if (!mValid) {
+    LOG(Tfdt, "Parse failed");
+  }
+}
+
+Result<Ok, nsresult>
+Tfdt::Parse(Box& aBox)
+{
   BoxReader reader(aBox);
-  if (!reader->CanReadType<uint32_t>()) {
-    LOG(Tfdt, "Incomplete Box (missing flags)");
-    return;
-  }
-  uint32_t flags = reader->ReadU32();
+
+  uint32_t flags;
+  MOZ_TRY_VAR(flags, reader->ReadU32());
   uint8_t version = flags >> 24;
-  size_t need = version ? sizeof(uint64_t) : sizeof(uint32_t) ;
-  if (reader->Remaining() < need) {
-    LOG(Tfdt, "Incomplete Box (have:%lld need:%lld)",
-        (uint64_t)reader->Remaining(), (uint64_t)need);
-    return;
-  }
   if (version == 0) {
-    mBaseMediaDecodeTime = reader->ReadU32();
+    uint32_t tmp;
+    MOZ_TRY_VAR(tmp, reader->ReadU32());
+    mBaseMediaDecodeTime = tmp;
   } else if (version == 1) {
-    mBaseMediaDecodeTime = reader->ReadU64();
+    MOZ_TRY_VAR(mBaseMediaDecodeTime, reader->ReadU64());
   }
-  reader->DiscardRemaining();
-  mValid = true;
+  return Ok();
 }
 
 Edts::Edts(Box& aBox)
   : mMediaStart(0)
   , mEmptyOffset(0)
 {
+  mValid = Parse(aBox).isOk();
+  if (!mValid) {
+    LOG(Edts, "Parse failed");
+  }
+}
+
+Result<Ok, nsresult>
+Edts::Parse(Box& aBox)
+{
   Box child = aBox.FirstChild();
   if (!child.IsType("elst")) {
-    return;
+    return Err(NS_ERROR_FAILURE);
   }
 
   BoxReader reader(child);
-  if (!reader->CanReadType<uint32_t>()) {
-    LOG(Edts, "Incomplete Box (missing flags)");
-    return;
-  }
-  uint32_t flags = reader->ReadU32();
+  uint32_t flags;
+  MOZ_TRY_VAR(flags, reader->ReadU32());
   uint8_t version = flags >> 24;
-  size_t need =
-    sizeof(uint32_t) + 2*(version ? sizeof(int64_t) : sizeof(uint32_t));
-  if (reader->Remaining() < need) {
-    LOG(Edts, "Incomplete Box (have:%lld need:%lld)",
-        (uint64_t)reader->Remaining(), (uint64_t)need);
-    return;
-  }
   bool emptyEntry = false;
-  uint32_t entryCount = reader->ReadU32();
+  uint32_t entryCount;
+  MOZ_TRY_VAR(entryCount, reader->ReadU32());
   for (uint32_t i = 0; i < entryCount; i++) {
     uint64_t segment_duration;
     int64_t media_time;
     if (version == 1) {
-      segment_duration = reader->ReadU64();
-      media_time = reader->Read64();
+      MOZ_TRY_VAR(segment_duration, reader->ReadU64());
+      MOZ_TRY_VAR(media_time, reader->Read64());
     } else {
-      segment_duration = reader->ReadU32();
-      media_time = reader->Read32();
+      uint32_t tmp;
+      MOZ_TRY_VAR(tmp, reader->ReadU32());
+      segment_duration = tmp;
+      int32_t tmp2;
+      MOZ_TRY_VAR(tmp2, reader->Read32());
+      media_time = tmp2;
     }
     if (media_time == -1 && i) {
       LOG(Edts, "Multiple empty edit, not handled");
@@ -792,86 +929,230 @@ Edts::Edts(Box& aBox)
     } else {
       mMediaStart = media_time;
     }
-    reader->ReadU32(); // media_rate_integer and media_rate_fraction
+    MOZ_TRY(reader->ReadU32()); // media_rate_integer and media_rate_fraction
   }
+
+  return Ok();
 }
 
 Saiz::Saiz(Box& aBox, AtomType aDefaultType)
   : mAuxInfoType(aDefaultType)
   , mAuxInfoTypeParameter(0)
 {
+  mValid = Parse(aBox).isOk();
+  if (!mValid) {
+    LOG(Saiz, "Parse failed");
+  }
+}
+
+Result<Ok, nsresult>
+Saiz::Parse(Box& aBox)
+{
   BoxReader reader(aBox);
-  if (!reader->CanReadType<uint32_t>()) {
-    LOG(Saiz, "Incomplete Box (missing flags)");
-    return;
-  }
-  uint32_t flags = reader->ReadU32();
+
+  uint32_t flags;
+  MOZ_TRY_VAR(flags, reader->ReadU32());
   uint8_t version = flags >> 24;
-  size_t need =
-    ((flags & 1) ? 2*sizeof(uint32_t) : 0) + sizeof(uint8_t) + sizeof(uint32_t);
-  if (reader->Remaining() < need) {
-    LOG(Saiz, "Incomplete Box (have:%lld need:%lld)",
-        (uint64_t)reader->Remaining(), (uint64_t)need);
-    return;
-  }
   if (flags & 1) {
-    mAuxInfoType = reader->ReadU32();
-    mAuxInfoTypeParameter = reader->ReadU32();
+    MOZ_TRY_VAR(mAuxInfoType, reader->ReadU32());
+    MOZ_TRY_VAR(mAuxInfoTypeParameter, reader->ReadU32());
   }
-  uint8_t defaultSampleInfoSize = reader->ReadU8();
-  uint32_t count = reader->ReadU32();
+  uint8_t defaultSampleInfoSize;
+  MOZ_TRY_VAR(defaultSampleInfoSize, reader->ReadU8());
+  uint32_t count;
+  MOZ_TRY_VAR(count, reader->ReadU32());
   if (defaultSampleInfoSize) {
-    for (int i = 0; i < count; i++) {
-      mSampleInfoSize.AppendElement(defaultSampleInfoSize);
+    if (!mSampleInfoSize.SetLength(count, fallible)) {
+      LOG(Saiz, "OOM");
+    return Err(NS_ERROR_FAILURE);
     }
+    memset(mSampleInfoSize.Elements(), defaultSampleInfoSize, mSampleInfoSize.Length());
   } else {
     if (!reader->ReadArray(mSampleInfoSize, count)) {
-      LOG(Saiz, "Incomplete Box (missing count:%u)", count);
-      return;
+      LOG(Saiz, "Incomplete Box (OOM or missing count:%u)", count);
+    return Err(NS_ERROR_FAILURE);
     }
   }
-  mValid = true;
+  return Ok();
 }
 
 Saio::Saio(Box& aBox, AtomType aDefaultType)
   : mAuxInfoType(aDefaultType)
   , mAuxInfoTypeParameter(0)
 {
+  mValid = Parse(aBox).isOk();
+  if (!mValid) {
+    LOG(Saio, "Parse failed");
+  }
+}
+
+Result<Ok, nsresult>
+Saio::Parse(Box& aBox)
+{
   BoxReader reader(aBox);
-  if (!reader->CanReadType<uint32_t>()) {
-    LOG(Saio, "Incomplete Box (missing flags)");
-    return;
-  }
-  uint32_t flags = reader->ReadU32();
+
+  uint32_t flags;
+  MOZ_TRY_VAR(flags, reader->ReadU32());
   uint8_t version = flags >> 24;
-  size_t need = ((flags & 1) ? (2*sizeof(uint32_t)) : 0) + sizeof(uint32_t);
-  if (reader->Remaining() < need) {
-    LOG(Saio, "Incomplete Box (have:%lld need:%lld)",
-        (uint64_t)reader->Remaining(), (uint64_t)need);
-    return;
-  }
   if (flags & 1) {
-    mAuxInfoType = reader->ReadU32();
-    mAuxInfoTypeParameter = reader->ReadU32();
+    MOZ_TRY_VAR(mAuxInfoType, reader->ReadU32());
+    MOZ_TRY_VAR(mAuxInfoTypeParameter, reader->ReadU32());
   }
-  size_t count = reader->ReadU32();
-  need = (version ? sizeof(uint64_t) : sizeof(uint32_t)) * count;
-  if (reader->Remaining() < count) {
-    LOG(Saio, "Incomplete Box (have:%lld need:%lld)",
-        (uint64_t)reader->Remaining(), (uint64_t)need);
-    return;
+
+  size_t count;
+  MOZ_TRY_VAR(count, reader->ReadU32());
+  if (!mOffsets.SetCapacity(count, fallible)) {
+    LOG(Saiz, "OOM");
+    return Err(NS_ERROR_FAILURE);
   }
-  mOffsets.SetCapacity(count);
   if (version == 0) {
+    uint32_t offset;
     for (size_t i = 0; i < count; i++) {
-      mOffsets.AppendElement(reader->ReadU32());
+      MOZ_TRY_VAR(offset, reader->ReadU32());
+      MOZ_ALWAYS_TRUE(mOffsets.AppendElement(offset, fallible));
     }
   } else {
+    uint64_t offset;
     for (size_t i = 0; i < count; i++) {
-      mOffsets.AppendElement(reader->ReadU64());
+      MOZ_TRY_VAR(offset, reader->ReadU64());
+      MOZ_ALWAYS_TRUE(mOffsets.AppendElement(offset, fallible));
     }
   }
-  mValid = true;
+  return Ok();
+}
+
+Sbgp::Sbgp(Box& aBox)
+{
+  mValid = Parse(aBox).isOk();
+  if (!mValid) {
+    LOG(Sbgp, "Parse failed");
+  }
+}
+
+Result<Ok, nsresult>
+Sbgp::Parse(Box& aBox)
+{
+  BoxReader reader(aBox);
+
+  uint32_t flags;
+  MOZ_TRY_VAR(flags, reader->ReadU32());
+  const uint8_t version = flags >> 24;
+  flags = flags & 0xffffff;
+
+  uint32_t type;
+  MOZ_TRY_VAR(type, reader->ReadU32());
+  mGroupingType = type;
+
+  if (version == 1) {
+    MOZ_TRY_VAR(mGroupingTypeParam, reader->ReadU32());
+  }
+
+  uint32_t count;
+  MOZ_TRY_VAR(count, reader->ReadU32());
+
+  for (uint32_t i = 0; i < count; i++) {
+    uint32_t sampleCount;
+    MOZ_TRY_VAR(sampleCount, reader->ReadU32());
+    uint32_t groupDescriptionIndex;
+    MOZ_TRY_VAR(groupDescriptionIndex, reader->ReadU32());
+
+    SampleToGroupEntry entry(sampleCount, groupDescriptionIndex);
+    if (!mEntries.AppendElement(entry, mozilla::fallible)) {
+      LOG(Sbgp, "OOM");
+      return Err(NS_ERROR_FAILURE);
+    }
+  }
+  return Ok();
+}
+
+Sgpd::Sgpd(Box& aBox)
+{
+  mValid = Parse(aBox).isOk();
+  if (!mValid) {
+    LOG(Sgpd, "Parse failed");
+  }
+}
+
+Result<Ok, nsresult>
+Sgpd::Parse(Box& aBox)
+{
+  BoxReader reader(aBox);
+
+  uint32_t flags;
+  MOZ_TRY_VAR(flags, reader->ReadU32());
+  const uint8_t version = flags >> 24;
+  flags = flags & 0xffffff;
+
+  uint32_t type;
+  MOZ_TRY_VAR(type, reader->ReadU32());
+  mGroupingType = type;
+
+  const uint32_t entrySize = sizeof(uint32_t) + kKeyIdSize;
+  uint32_t defaultLength = 0;
+
+  if (version == 1) {
+    MOZ_TRY_VAR(defaultLength, reader->ReadU32());
+    if (defaultLength < entrySize && defaultLength != 0) {
+      return Err(NS_ERROR_FAILURE);
+    }
+  }
+
+  uint32_t count;
+  MOZ_TRY_VAR(count, reader->ReadU32());
+
+  for (uint32_t i = 0; i < count; ++i) {
+    if (version == 1 && defaultLength == 0) {
+      uint32_t descriptionLength;
+      MOZ_TRY_VAR(descriptionLength, reader->ReadU32());
+      if (descriptionLength < entrySize) {
+        return Err(NS_ERROR_FAILURE);
+      }
+    }
+
+    CencSampleEncryptionInfoEntry entry;
+    bool valid = entry.Init(reader).isOk();
+    if (!valid) {
+      return Err(NS_ERROR_FAILURE);
+    }
+    if (!mEntries.AppendElement(entry, mozilla::fallible)) {
+      LOG(Sgpd, "OOM");
+      return Err(NS_ERROR_FAILURE);
+    }
+  }
+  return Ok();
+}
+
+Result<Ok, nsresult>
+CencSampleEncryptionInfoEntry::Init(BoxReader& aReader)
+{
+  // Skip a reserved byte.
+  MOZ_TRY(aReader->ReadU8());
+
+  uint8_t possiblePatternInfo;
+  MOZ_TRY_VAR(possiblePatternInfo, aReader->ReadU8());
+  uint8_t flag;
+  MOZ_TRY_VAR(flag, aReader->ReadU8());
+
+  MOZ_TRY_VAR(mIVSize, aReader->ReadU8());
+
+  // Read the key id.
+  uint8_t key;
+  for (uint32_t i = 0; i < kKeyIdSize; ++i) {
+    MOZ_TRY_VAR(key, aReader->ReadU8());
+    mKeyId.AppendElement(key);
+  }
+
+  mIsEncrypted = flag != 0;
+
+  if (mIsEncrypted) {
+    if (mIVSize != 8 && mIVSize != 16) {
+      return Err(NS_ERROR_FAILURE);
+    }
+  } else if (mIVSize != 0) {
+    return Err(NS_ERROR_FAILURE);
+  }
+
+  return Ok();
 }
 
 #undef LOG

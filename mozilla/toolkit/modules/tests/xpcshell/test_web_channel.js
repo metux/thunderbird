@@ -11,24 +11,20 @@ Cu.import("resource://gre/modules/WebChannel.jsm");
 const ERROR_ID_ORIGIN_REQUIRED = "WebChannel id and originOrPermission are required.";
 const VALID_WEB_CHANNEL_ID = "id";
 const URL_STRING = "http://example.com";
-const VALID_WEB_CHANNEL_ORIGIN = Services.io.newURI(URL_STRING, null, null);
+const VALID_WEB_CHANNEL_ORIGIN = Services.io.newURI(URL_STRING);
 const TEST_PERMISSION_NAME = "test-webchannel-permissions";
 
 var MockWebChannelBroker = {
   _channelMap: new Map(),
-  registerChannel: function(channel) {
+  registerChannel(channel) {
     if (!this._channelMap.has(channel)) {
       this._channelMap.set(channel);
     }
   },
-  unregisterChannel: function (channelToRemove) {
-    this._channelMap.delete(channelToRemove)
+  unregisterChannel(channelToRemove) {
+    this._channelMap.delete(channelToRemove);
   }
 };
-
-function run_test() {
-  run_next_test();
-}
 
 /**
  * Web channel tests

@@ -21,14 +21,22 @@
 #include "nsStringGlue.h"
 #include "nsTArray.h"
 #include "mozilla/dom/JSSlots.h"
+#include "mozilla/fallible.h"
 #include "nsMathUtils.h"
 #include "nsStringBuffer.h"
 #include "mozilla/dom/BindingDeclarations.h"
+#include "mozilla/Preferences.h"
 
-class nsGlobalWindow;
+class nsGlobalWindowInner;
 class nsIPrincipal;
 class nsScriptNameSpaceManager;
-class nsIMemoryReporterCallback;
+class nsIHandleReportCallback;
+
+namespace mozilla {
+namespace dom {
+class Exception;
+}
+}
 
 typedef void (* xpcGCCallback)(JSGCStatus status);
 
@@ -69,7 +77,11 @@ private:
 JSObject*
 TransplantObject(JSContext* cx, JS::HandleObject origobj, JS::HandleObject target);
 
-bool IsContentXBLScope(JSCompartment* compartment);
+JSObject*
+TransplantObjectRetainingXrayExpandos(JSContext* cx, JS::HandleObject origobj, JS::HandleObject target);
+
+bool IsContentXBLCompartment(JSCompartment* compartment);
+bool IsContentXBLScope(JS::Realm* realm);
 bool IsInContentXBLScope(JSObject* obj);
 
 // Return a raw XBL scope object corresponding to contentScope, which must
@@ -106,14 +118,22 @@ GetScopeForXBLExecution(JSContext* cx, JS::HandleObject obj, JSAddonId* addonId)
 // Returns whether XBL scopes have been explicitly disabled for code running
 // in this compartment. See the comment around mAllowContentXBLScope.
 bool
-AllowContentXBLScope(JSCompartment* c);
+AllowContentXBLScope(JS::Realm* realm);
 
-// Returns whether we will use an XBL scope for this compartment. This is
+// Returns whether we will use an XBL scope for this realm. This is
 // semantically equivalent to comparing global != GetXBLScope(global), but it
 // does not have the side-effect of eagerly creating the XBL scope if it does
 // not already exist.
 bool
-UseContentXBLScope(JSCompartment* c);
+UseContentXBLScope(JS::Realm* realm);
+
+// Clear out the content XBL scope (if any) on the given global.  This will
+// force creation of a new one if one is needed again.
+void
+ClearContentXBLScope(JSObject* global);
+
+bool
+IsAddonCompartment(JSCompartment* c);
 
 bool
 IsInAddonScope(JSObject* obj);
@@ -138,8 +158,54 @@ IsXrayWrapper(JSObject* obj);
 JSObject*
 XrayAwareCalleeGlobal(JSObject* fun);
 
+// A version of XrayAwareCalleeGlobal that can be used from a binding
+// specialized getter.  We need this function because in a specialized getter we
+// don't have a callee JSFunction, so can't use xpc::XrayAwareCalleeGlobal.
+// Instead we do something a bit hacky using our current compartment and "this"
+// value.  Note that for the Xray case thisObj will NOT be in the compartment of
+// "cx".
+//
+// As expected, the outparam "global" need not be same-compartment with either
+// thisObj or cx, though it _will_ be same-compartment with one of them.
+//
+// This function can fail; the return value indicates success or failure.
+bool
+XrayAwareCalleeGlobalForSpecializedGetters(JSContext* cx,
+                                           JS::Handle<JSObject*> thisObj,
+                                           JS::MutableHandle<JSObject*> global);
+
+
 void
 TraceXPCGlobal(JSTracer* trc, JSObject* obj);
+
+/**
+ * Creates a new global object using the given aCOMObj as the global
+ * object. The object will be set up according to the flags (defined
+ * below). If you do not pass INIT_JS_STANDARD_CLASSES, then aCOMObj
+ * must implement nsIXPCScriptable so it can resolve the standard
+ * classes when asked by the JS engine.
+ *
+ * @param aJSContext the context to use while creating the global object.
+ * @param aCOMObj the native object that represents the global object.
+ * @param aPrincipal the principal of the code that will run in this
+ *                   compartment. Can be null if not on the main thread.
+ * @param aFlags one of the flags below specifying what options this
+ *               global object wants.
+ * @param aOptions JSAPI-specific options for the new compartment.
+ */
+nsresult
+InitClassesWithNewWrappedGlobal(JSContext* aJSContext,
+                                nsISupports* aCOMObj,
+                                nsIPrincipal* aPrincipal,
+                                uint32_t aFlags,
+                                JS::CompartmentOptions& aOptions,
+                                JS::MutableHandleObject aNewGlobal);
+
+enum InitClassesFlag {
+    INIT_JS_STANDARD_CLASSES  = 1 << 0,
+    DONT_FIRE_ONNEWGLOBALHOOK = 1 << 1,
+    OMIT_COMPONENTS_OBJECT    = 1 << 2,
+};
 
 } /* namespace xpc */
 
@@ -148,6 +214,8 @@ namespace JS {
 struct RuntimeStats;
 
 } // namespace JS
+
+#define XPC_WRAPPER_FLAGS (JSCLASS_HAS_PRIVATE | JSCLASS_FOREGROUND_FINALIZE)
 
 #define XPCONNECT_GLOBAL_FLAGS_WITH_EXTRA_SLOTS(n)                            \
     JSCLASS_DOM_GLOBAL | JSCLASS_HAS_PRIVATE |                                \
@@ -174,15 +242,6 @@ xpc_FastGetCachedWrapper(JSContext* cx, nsWrapperCache* cache, JS::MutableHandle
     return nullptr;
 }
 
-inline JSScript*
-xpc_UnmarkGrayScript(JSScript* script)
-{
-    if (script)
-        JS::ExposeScriptToActiveJS(script);
-
-    return script;
-}
-
 // If aVariant is an XPCVariant, this marks the object to be in aGeneration.
 // This also unmarks the gray JSObject.
 extern void
@@ -198,21 +257,6 @@ xpc_UnmarkSkippableJSHolders();
 // readable string conversions, static methods and members only
 class XPCStringConvert
 {
-    // One-slot cache, because it turns out it's common for web pages to
-    // get the same string a few times in a row.  We get about a 40% cache
-    // hit rate on this cache last it was measured.  We'd get about 70%
-    // hit rate with a hashtable with removal on finalization, but that
-    // would take a lot more machinery.
-    struct ZoneStringCache
-    {
-        // mString owns mBuffer.  mString is a JS thing, so it can only die
-        // during GC.  We clear mString and mBuffer during GC.  As long as
-        // the above holds, mBuffer should not be a dangling pointer, so
-        // using this as a cache key should be safe.
-        void* mBuffer;
-        JSString* mString;
-    };
-
 public:
 
     // If the string shares the readable's buffer, that buffer will
@@ -227,35 +271,15 @@ public:
     StringBufferToJSVal(JSContext* cx, nsStringBuffer* buf, uint32_t length,
                         JS::MutableHandleValue rval, bool* sharedBuffer)
     {
-        JS::Zone* zone = js::GetContextZone(cx);
-        ZoneStringCache* cache = static_cast<ZoneStringCache*>(JS_GetZoneUserData(zone));
-        if (cache && buf == cache->mBuffer) {
-            MOZ_ASSERT(JS::GetStringZone(cache->mString) == zone);
-            JS::MarkStringAsLive(zone, cache->mString);
-            rval.setString(cache->mString);
-            *sharedBuffer = false;
-            return true;
-        }
-
-        JSString* str = JS_NewExternalString(cx,
-                                             static_cast<char16_t*>(buf->Data()),
-                                             length, &sDOMStringFinalizer);
+        JSString* str = JS_NewMaybeExternalString(cx,
+                                                  static_cast<char16_t*>(buf->Data()),
+                                                  length, &sDOMStringFinalizer, sharedBuffer);
         if (!str) {
             return false;
         }
         rval.setString(str);
-        if (!cache) {
-            cache = new ZoneStringCache();
-            JS_SetZoneUserData(zone, cache);
-        }
-        cache->mBuffer = buf;
-        cache->mString = str;
-        *sharedBuffer = true;
         return true;
     }
-
-    static void FreeZoneCache(JS::Zone* zone);
-    static void ClearZoneCache(JS::Zone* zone);
 
     static MOZ_ALWAYS_INLINE bool IsLiteral(JSString* str)
     {
@@ -276,7 +300,7 @@ private:
 
     static void FinalizeDOMString(const JSStringFinalizer* fin, char16_t* chars);
 
-    XPCStringConvert();         // not implemented
+    XPCStringConvert() = delete;
 };
 
 class nsIAddonInterposition;
@@ -306,21 +330,29 @@ inline bool StringToJsval(JSContext* cx, nsAString& str, JS::MutableHandleValue 
 inline bool
 NonVoidStringToJsval(JSContext* cx, const nsAString& str, JS::MutableHandleValue rval)
 {
-    nsString mutableCopy(str);
+    nsString mutableCopy;
+    if (!mutableCopy.Assign(str, mozilla::fallible)) {
+        JS_ReportOutOfMemory(cx);
+        return false;
+    }
     return NonVoidStringToJsval(cx, mutableCopy, rval);
 }
 
 inline bool
 StringToJsval(JSContext* cx, const nsAString& str, JS::MutableHandleValue rval)
 {
-    nsString mutableCopy(str);
+    nsString mutableCopy;
+    if (!mutableCopy.Assign(str, mozilla::fallible)) {
+        JS_ReportOutOfMemory(cx);
+        return false;
+    }
     return StringToJsval(cx, mutableCopy, rval);
 }
 
 /**
  * As above, but for mozilla::dom::DOMString.
  */
-MOZ_ALWAYS_INLINE
+inline
 bool NonVoidStringToJsval(JSContext* cx, mozilla::dom::DOMString& str,
                           JS::MutableHandleValue rval)
 {
@@ -343,7 +375,7 @@ bool NonVoidStringToJsval(JSContext* cx, mozilla::dom::DOMString& str,
     }
     if (shared) {
         // JS now needs to hold a reference to the buffer
-        buf->AddRef();
+        str.RelinquishBufferOwnership();
     }
     return true;
 }
@@ -361,6 +393,9 @@ bool StringToJsval(JSContext* cx, mozilla::dom::DOMString& str,
 
 nsIPrincipal* GetCompartmentPrincipal(JSCompartment* compartment);
 
+void NukeAllWrappersForCompartment(JSContext* cx, JSCompartment* compartment,
+                                   js::NukeReferencesToWindow nukeReferencesToWindow = js::NukeWindowReferences);
+
 void SetLocationForGlobal(JSObject* global, const nsACString& location);
 void SetLocationForGlobal(JSObject* global, nsIURI* locationURI);
 
@@ -368,8 +403,7 @@ void SetLocationForGlobal(JSObject* global, nsIURI* locationURI);
 // of JS::ZoneStats.
 class ZoneStatsExtras {
 public:
-    ZoneStatsExtras()
-    {}
+    ZoneStatsExtras() {}
 
     nsCString pathPrefix;
 
@@ -382,14 +416,11 @@ private:
 // of JS::CompartmentStats.
 class CompartmentStatsExtras {
 public:
-    CompartmentStatsExtras()
-      : sizeOfXPCPrivate(0)
-    {}
+    CompartmentStatsExtras() {}
 
     nsCString jsPathPrefix;
     nsCString domPathPrefix;
     nsCOMPtr<nsIURI> location;
-    size_t sizeOfXPCPrivate;
 
 private:
     CompartmentStatsExtras(const CompartmentStatsExtras& other) = delete;
@@ -400,11 +431,11 @@ private:
 // (which isn't all of them).
 // @see ZoneStatsExtras
 // @see CompartmentStatsExtras
-nsresult
+void
 ReportJSRuntimeExplicitTreeStats(const JS::RuntimeStats& rtStats,
                                  const nsACString& rtPath,
-                                 nsIMemoryReporterCallback* cb,
-                                 nsISupports* closure,
+                                 nsIHandleReportCallback* handleReport,
+                                 nsISupports* data,
                                  bool anonymize,
                                  size_t* rtTotal = nullptr);
 
@@ -418,7 +449,7 @@ Throw(JSContext* cx, nsresult rv);
  * Returns the nsISupports native behind a given reflector (either DOM or
  * XPCWN).
  */
-nsISupports*
+already_AddRefed<nsISupports>
 UnwrapReflectorToISupports(JSObject* reflector);
 
 /**
@@ -452,14 +483,14 @@ NativeGlobal(JSObject* aObj);
  * If |aObj| is a window, returns the associated nsGlobalWindow.
  * Otherwise, returns null.
  */
-nsGlobalWindow*
+nsGlobalWindowInner*
 WindowOrNull(JSObject* aObj);
 
 /**
  * If |aObj| has a window for a global, returns the associated nsGlobalWindow.
  * Otherwise, returns null.
  */
-nsGlobalWindow*
+nsGlobalWindowInner*
 WindowGlobalOrNull(JSObject* aObj);
 
 /**
@@ -467,22 +498,15 @@ WindowGlobalOrNull(JSObject* aObj);
  * live DOM Window, returns the associated nsGlobalWindow. Otherwise, returns
  * null.
  */
-nsGlobalWindow*
+nsGlobalWindowInner*
 AddonWindowOrNull(JSObject* aObj);
 
 /**
  * If |cx| is in a compartment whose global is a window, returns the associated
  * nsGlobalWindow. Otherwise, returns null.
  */
-nsGlobalWindow*
+nsGlobalWindowInner*
 CurrentWindowOrNull(JSContext* cx);
-
-// Error reporter used when there is no associated DOM window on to which to
-// report errors and warnings.
-//
-// Note - This is temporarily implemented in nsJSEnvironment.cpp.
-void
-SystemErrorReporter(JSContext* cx, const char* message, JSErrorReport* rep);
 
 void
 SimulateActivityCallback(bool aActive);
@@ -493,46 +517,109 @@ bool
 ShouldDiscardSystemSource();
 
 bool
+SharedMemoryEnabled();
+
+bool
 SetAddonInterposition(const nsACString& addonId, nsIAddonInterposition* interposition);
+
+bool
+AllowCPOWsInAddon(const nsACString& addonId, bool allow);
 
 bool
 ExtraWarningsForSystemJS();
 
-class ErrorReport {
+class ErrorBase {
+  public:
+    nsString mErrorMsg;
+    nsString mFileName;
+    uint32_t mLineNumber;
+    uint32_t mColumn;
+
+    ErrorBase() : mLineNumber(0)
+                , mColumn(0)
+    {}
+
+    void Init(JSErrorBase* aReport);
+
+    void AppendErrorDetailsTo(nsCString& error);
+};
+
+class ErrorNote : public ErrorBase {
+  public:
+    void Init(JSErrorNotes::Note* aNote);
+
+    // Produce an error event message string from the given JSErrorNotes::Note.
+    // This may produce an empty string if aNote doesn't have a message
+    // attached.
+    static void ErrorNoteToMessageString(JSErrorNotes::Note* aNote,
+                                         nsAString& aString);
+
+    // Log the error note to the stderr.
+    void LogToStderr();
+};
+
+class ErrorReport : public ErrorBase {
   public:
     NS_INLINE_DECL_THREADSAFE_REFCOUNTING(ErrorReport);
 
+    nsTArray<ErrorNote> mNotes;
+
+    nsCString mCategory;
+    nsString mSourceLine;
+    nsString mErrorMsgName;
+    uint64_t mWindowID;
+    uint32_t mFlags;
+    bool mIsMuted;
+
     ErrorReport() : mWindowID(0)
-                  , mLineNumber(0)
-                  , mColumn(0)
                   , mFlags(0)
                   , mIsMuted(false)
     {}
 
-    void Init(JSErrorReport* aReport, const char* aFallbackMessage,
+    void Init(JSErrorReport* aReport, const char* aToStringResult,
               bool aIsChrome, uint64_t aWindowID);
+    void Init(JSContext* aCx, mozilla::dom::Exception* aException,
+              bool aIsChrome, uint64_t aWindowID);
+
+    // Log the error report to the console.  Which console will depend on the
+    // window id it was initialized with.
     void LogToConsole();
+    // Log to console, using the given stack object (which should be a stack of
+    // the sort that JS::CaptureCurrentStack produces).  aStack is allowed to be
+    // null.
     void LogToConsoleWithStack(JS::HandleObject aStack);
 
-  public:
+    // Produce an error event message string from the given JSErrorReport.  Note
+    // that this may produce an empty string if aReport doesn't have a
+    // message attached.
+    static void ErrorReportToMessageString(JSErrorReport* aReport,
+                                           nsAString& aString);
 
-    nsCString mCategory;
-    nsString mErrorMsg;
-    nsString mFileName;
-    nsString mSourceLine;
-    uint64_t mWindowID;
-    uint32_t mLineNumber;
-    uint32_t mColumn;
-    uint32_t mFlags;
-    bool mIsMuted;
+    // Log the error report to the stderr.
+    void LogToStderr();
 
   private:
     ~ErrorReport() {}
 };
 
 void
-DispatchScriptErrorEvent(nsPIDOMWindow* win, JSRuntime* rt, xpc::ErrorReport* xpcReport,
-                         JS::Handle<JS::Value> exception);
+DispatchScriptErrorEvent(nsPIDOMWindowInner* win, JS::RootingContext* rootingCx,
+                         xpc::ErrorReport* xpcReport, JS::Handle<JS::Value> exception);
+
+// Get a stack of the sort that can be passed to
+// xpc::ErrorReport::LogToConsoleWithStack from the given exception value.  Can
+// return null if the exception value doesn't have an associated stack.  The
+// returned stack, if any, may also not be in the same compartment as
+// exceptionValue.
+//
+// The "win" argument passed in here should be the same as the window whose
+// WindowID() is used to initialize the xpc::ErrorReport.  This may be null, of
+// course.  If it's not null, this function may return a null stack object if
+// the window is far enough gone, because in those cases we don't want to have
+// the stack in the console message keeping the window alive.
+JSObject*
+FindExceptionStackForConsoleReport(nsPIDOMWindowInner* win,
+                                   JS::HandleValue exceptionValue);
 
 // Return a name for the compartment.
 // This function makes reasonable efforts to make this name both mostly human-readable
@@ -540,41 +627,62 @@ DispatchScriptErrorEvent(nsPIDOMWindow* win, JSRuntime* rt, xpc::ErrorReport* xp
 extern void
 GetCurrentCompartmentName(JSContext*, nsCString& name);
 
-JSRuntime*
-GetJSRuntime();
-
 void AddGCCallback(xpcGCCallback cb);
 void RemoveGCCallback(xpcGCCallback cb);
+
+inline bool
+AreNonLocalConnectionsDisabled()
+{
+    static int disabledForTest = -1;
+    if (disabledForTest == -1) {
+        char *s = getenv("MOZ_DISABLE_NONLOCAL_CONNECTIONS");
+        if (s) {
+            disabledForTest = *s != '0';
+        } else {
+            disabledForTest = 0;
+        }
+    }
+    return disabledForTest;
+}
+
+inline bool
+IsInAutomation()
+{
+    const char* prefName =
+      "security.turn_off_all_security_so_that_viruses_can_take_over_this_computer";
+    return mozilla::Preferences::GetBool(prefName) &&
+        AreNonLocalConnectionsDisabled();
+}
+
+void
+CreateCooperativeContext();
+
+void
+DestroyCooperativeContext();
+
+// Please see JS_YieldCooperativeContext in jsapi.h.
+void
+YieldCooperativeContext();
+
+// Please see JS_ResumeCooperativeContext in jsapi.h.
+void
+ResumeCooperativeContext();
 
 } // namespace xpc
 
 namespace mozilla {
 namespace dom {
 
-typedef JSObject*
-(*DefineInterface)(JSContext* cx, JS::Handle<JSObject*> global,
-                   JS::Handle<jsid> id, bool defineOnGlobal);
-
-typedef JSObject*
-(*ConstructNavigatorProperty)(JSContext* cx, JS::Handle<JSObject*> naviObj);
-
-// Check whether a constructor should be enabled for the given object.
-// Note that the object should NOT be an Xray, since Xrays will end up
-// defining constructors on the underlying object.
-// This is a typedef for the function type itself, not the function
-// pointer, so it's more obvious that pointers to a ConstructorEnabled
-// can be null.
-typedef bool
-(ConstructorEnabled)(JSContext* cx, JS::Handle<JSObject*> obj);
-
-void
-Register(nsScriptNameSpaceManager* aNameSpaceManager);
-
 /**
  * A test for whether WebIDL methods that should only be visible to
  * chrome or XBL scopes should be exposed.
  */
 bool IsChromeOrXBL(JSContext* cx, JSObject* /* unused */);
+
+/**
+ * Same as IsChromeOrXBL but can be used in worker threads as well.
+ */
+bool ThreadSafeIsChromeOrXBL(JSContext* cx, JSObject* obj);
 
 } // namespace dom
 } // namespace mozilla

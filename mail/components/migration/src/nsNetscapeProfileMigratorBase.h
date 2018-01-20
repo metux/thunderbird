@@ -8,7 +8,7 @@
 
 #include "nsIFile.h"
 #include "nsIStringBundle.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsTArray.h"
 #include "nsIObserverService.h"
 #include "nsITimer.h"
@@ -41,8 +41,8 @@ public:
 
   nsNetscapeProfileMigratorBase();
 
-  NS_IMETHOD GetSourceHasMultipleProfiles(bool* aResult);
-  NS_IMETHOD GetSourceExists(bool* aResult);
+  NS_IMETHOD GetSourceHasMultipleProfiles(bool* aResult) override;
+  NS_IMETHOD GetSourceExists(bool* aResult) override;
 
   struct PrefTransform;
   typedef nsresult(*prefConverter)(PrefTransform*, nsIPrefBranch*);
@@ -92,8 +92,8 @@ protected:
 
   nsresult CopyFile(const nsAString& aSourceFileName, const nsAString& aTargetFileName);
 
-  nsresult GetSignonFileName(bool aReplace, char** aFileName);
-  nsresult LocateSignonsFile(char** aResult);
+  nsresult GetSignonFileName(bool aReplace, nsACString& aFileName);
+  nsresult LocateSignonsFile(nsACString& aResult);
 
   nsCOMPtr<nsIFile> mSourceProfile;
   nsCOMPtr<nsIFile> mTargetProfile;

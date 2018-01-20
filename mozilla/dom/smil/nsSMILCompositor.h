@@ -8,6 +8,7 @@
 #define NS_SMILCOMPOSITOR_H_
 
 #include "mozilla/Move.h"
+#include "mozilla/UniquePtr.h"
 #include "nsTHashtable.h"
 #include "nsString.h"
 #include "nsSMILAnimationFunction.h"
@@ -33,9 +34,9 @@ public:
    : mKey(*aKey),
      mForceCompositing(false)
   { }
-  nsSMILCompositor(const nsSMILCompositor& toCopy)
-    : mKey(toCopy.mKey),
-      mAnimationFunctions(toCopy.mAnimationFunctions),
+  nsSMILCompositor(nsSMILCompositor&& toMove)
+    : mKey(mozilla::Move(toMove.mKey)),
+      mAnimationFunctions(mozilla::Move(toMove.mAnimationFunctions)),
       mForceCompositing(false)
   { }
   ~nsSMILCompositor() { }
@@ -52,8 +53,9 @@ public:
 
   // Composes the attribute's current value with the list of animation
   // functions, and assigns the resulting value to this compositor's target
-  // attribute
-  void ComposeAttribute();
+  // attribute. If a change is made that might produce style updates,
+  // aMightHavePendingStyleUpdates is set to true. Otherwise it is not modified.
+  void ComposeAttribute(bool& aMightHavePendingStyleUpdates);
 
   // Clears animation effects on my target attribute
   void ClearAnimationEffects();
@@ -71,10 +73,27 @@ public:
   }
 
  private:
-  // Create a nsISMILAttr for my target, on the heap.  Caller is responsible
-  // for deallocating the returned object.
-  nsISMILAttr* CreateSMILAttr();
-  
+  // Create a nsISMILAttr for my target, on the heap.
+  //
+  // @param aBaseStyleContext  An optional style context which, if set, will be
+  //                           used when fetching the base style.
+  mozilla::UniquePtr<nsISMILAttr>
+  CreateSMILAttr(nsStyleContext* aBaseStyleContext);
+
+  // Returns the CSS property this compositor should animate, or
+  // eCSSProperty_UNKNOWN if this compositor does not animate a CSS property.
+  nsCSSPropertyID GetCSSPropertyToAnimate() const;
+
+  // Returns true if we might need to refer to base styles (i.e. we are
+  // targeting a CSS property and have one or more animation functions that
+  // don't just replace the underlying value).
+  //
+  // This might return true in some cases where we don't actually need the base
+  // style since it doesn't build up the animation sandwich to check if the
+  // functions that appear to need the base style are actually replaced by
+  // a function further up the stack.
+  bool MightNeedBaseStyle() const;
+
   // Finds the index of the first function that will affect our animation
   // sandwich. Also toggles the 'mForceCompositing' flag if it finds that any
   // (used) functions have changed.
@@ -84,11 +103,7 @@ public:
   // method updates the cached value (and toggles the 'mForceCompositing' flag)
   void UpdateCachedBaseValue(const nsSMILValue& aBaseValue);
 
-  // Static callback methods
-  static PLDHashOperator DoComposeAttribute(
-      nsSMILCompositor* aCompositor, void *aData);
-
-  // The hash key (tuple of element/attributeName/attributeType)
+  // The hash key (tuple of element and attributeName)
   KeyType mKey;
 
   // Hash Value: List of animation functions that animate the specified attr
@@ -101,9 +116,10 @@ public:
   bool mForceCompositing;
 
   // Cached base value, so we can detect & force-recompose when it changes
-  // from one sample to the next. (nsSMILAnimationController copies this
-  // forward from the previous sample's compositor.)
-  nsAutoPtr<nsSMILValue> mCachedBaseValue;
+  // from one sample to the next. (nsSMILAnimationController moves this
+  // forward from the previous sample's compositor by calling
+  // StealCachedBaseValue.)
+  nsSMILValue mCachedBaseValue;
 };
 
 #endif // NS_SMILCOMPOSITOR_H_

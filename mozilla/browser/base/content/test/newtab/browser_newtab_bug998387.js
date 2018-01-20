@@ -1,32 +1,39 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
-const PREF_NEWTAB_ROWS = "browser.newtabpage.rows";
-
-function runTests() {
+add_task(async function() {
   // set max rows to 1, to avoid scroll events by clicking middle button
-  Services.prefs.setIntPref(PREF_NEWTAB_ROWS, 1);
-  yield setLinks("0");
-  yield addNewTabPageTab();
+  await pushPrefs(["browser.newtabpage.rows", 1]);
+  await setLinks("0");
+  await addNewTabPageTab();
   // we need a second newtab to honor max rows
-  yield addNewTabPageTab();
+  await addNewTabPageTab();
 
-  // Remember if the click handler was triggered
-  let {site} = getCell(0);
-  let origOnClick = site.onClick;
-  let clicked = false;
-  site.onClick = e => {
-    origOnClick.call(site, e);
-    clicked = true;
-    executeSoon(TestRunner.next);
-  };
+  await ContentTask.spawn(gBrowser.selectedBrowser, {index: 0}, async function(args) {
+    let {site} = content.wrappedJSObject.gGrid.cells[args.index];
+
+    let origOnClick = site.onClick;
+    site.onClick = e => {
+      origOnClick.call(site, e);
+      sendAsyncMessage("test:clicked-on-cell", {});
+    };
+  });
+
+  let mm = gBrowser.selectedBrowser.messageManager;
+  let messagePromise = new Promise(resolve => {
+    mm.addMessageListener("test:clicked-on-cell", function onResponse(message) {
+      mm.removeMessageListener("test:clicked-on-cell", onResponse);
+      resolve();
+    });
+  });
 
   // Send a middle-click and make sure it happened
-  let block = getContentDocument().querySelector(".newtab-control-block");
-  yield EventUtils.synthesizeMouseAtCenter(block, {button: 1}, getContentWindow());
-  ok(clicked, "middle click triggered click listener");
+  await BrowserTestUtils.synthesizeMouseAtCenter(".newtab-control-block",
+                                                 {button: 1}, gBrowser.selectedBrowser);
+
+  await messagePromise;
+  ok(true, "middle click triggered click listener");
 
   // Make sure the cell didn't actually get blocked
-  checkGrid("0");
-  Services.prefs.clearUserPref(PREF_NEWTAB_ROWS);
-}
+  await checkGrid("0");
+});

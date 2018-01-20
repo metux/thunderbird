@@ -9,36 +9,10 @@ var EXPORTED_SYMBOLS = ["OAuth2"];
 
 var {classes: Cc, interfaces: Ci, results: Cr, utils: Cu} = Components;
 
-Cu.import("resource:///modules/Services.jsm");
-Cu.import("resource:///modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource:///modules/gloda/log4moz.js");
-
-var httpRequest = (function() {
-  let scope = {};
-  try {
-    // Thunderbird 25+
-    Cu.import("resource://gre/modules/Http.jsm", scope);
-  } catch (e) {
-    try {
-      // Thunderbird 24
-      Cu.import("resource:///modules/http.jsm", scope);
-    } catch (e) {
-      // Thunderbird 7
-      Cu.import("resource://gdata-provider/modules/shim/Http.jsm", scope);
-    }
-  }
-
-  if ("httpRequest" in scope) {
-    // Thunderbird 25+ and Thunderbird 7
-    return scope.httpRequest;
-  } else {
-    // Thunderbird 24
-    return function(uri, options) {
-        return scope.doXHRequest(uri, null, options.postData, options.onLoad,
-                                 options.onError, undefined);
-    };
-  }
-})();
+Cu.import("resource://gre/modules/Http.jsm");
 
 function parseURLData(aData) {
   let result = {};
@@ -174,8 +148,11 @@ OAuth2.prototype = {
                                 this._parent.finishAuthorizationRequest();
                                 this._parent.onAuthorizationFailed(null, '{ "error": "http_' + httpchannel.responseStatus + '" }');
                             }
-                        } catch (e if e.result == Components.results.NS_ERROR_NO_INTERFACE) {
-                            // Catch the case where its not a http channel
+                        } catch (e) {
+                            // Throw the case where it's a http channel.
+                            if (e.result != Components.results.NS_ERROR_NO_INTERFACE) {
+                                throw e;
+                            }
                         }
                       }
 

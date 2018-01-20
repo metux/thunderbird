@@ -4,11 +4,15 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
+from __future__ import absolute_import
+
 
 import os
 import tempfile
 import unittest
 import mozfile
+
+import mozunit
 
 from mozprofile.profile import Profile
 
@@ -24,8 +28,8 @@ class CloneCleanupTest(unittest.TestCase):
         path = tempfile.mktemp()
         self.addCleanup(mozfile.remove, path)
         self.profile = Profile(path,
-                          preferences={'foo': 'bar'},
-                          restore=False)
+                               preferences={'foo': 'bar'},
+                               restore=False)
         user_js = os.path.join(self.profile.profile, 'user.js')
         self.assertTrue(os.path.exists(user_js))
 
@@ -60,5 +64,4 @@ class CloneCleanupTest(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main()
-
+    mozunit.main()

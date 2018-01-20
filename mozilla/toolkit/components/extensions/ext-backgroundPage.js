@@ -1,117 +1,67 @@
 "use strict";
 
-var { interfaces: Ci, utils: Cu } = Components;
+XPCOMUtils.defineLazyModuleGetter(this, "TelemetryStopwatch",
+                                  "resource://gre/modules/TelemetryStopwatch.jsm");
 
-Cu.import("resource://gre/modules/Services.jsm");
-
-// WeakMap[Extension -> BackgroundPage]
-var backgroundPagesMap = new WeakMap();
+Cu.import("resource://gre/modules/ExtensionParent.jsm");
+var {
+  HiddenExtensionPage,
+  promiseExtensionViewLoaded,
+} = ExtensionParent;
 
 // Responsible for the background_page section of the manifest.
-function BackgroundPage(options, extension) {
-  this.extension = extension;
-  this.scripts = options.scripts || [];
-  this.page = options.page || null;
-  this.contentWindow = null;
-  this.webNav = null;
-  this.context = null;
-}
+class BackgroundPage extends HiddenExtensionPage {
+  constructor(extension, options) {
+    super(extension, "background");
 
-BackgroundPage.prototype = {
-  build() {
-    let webNav = Services.appShell.createWindowlessBrowser(false);
-    this.webNav = webNav;
+    this.page = options.page || null;
+    this.isGenerated = !!options.scripts;
 
-    let url;
     if (this.page) {
-      url = this.extension.baseURI.resolve(this.page);
-    } else {
-      // TODO: Chrome uses "_generated_background_page.html" for this.
-      url = this.extension.baseURI.resolve("_blank.html");
+      this.url = this.extension.baseURI.resolve(this.page);
+    } else if (this.isGenerated) {
+      this.url = this.extension.baseURI.resolve("_generated_background_page.html");
+    }
+  }
+
+  async build() {
+    TelemetryStopwatch.start("WEBEXT_BACKGROUND_PAGE_LOAD_MS", this);
+    await this.createBrowserElement();
+    this.extension._backgroundPageFrameLoader = this.browser.frameLoader;
+
+    extensions.emit("extension-browser-inserted", this.browser);
+
+    this.browser.loadURI(this.url);
+
+    let context = await promiseExtensionViewLoaded(this.browser);
+    TelemetryStopwatch.finish("WEBEXT_BACKGROUND_PAGE_LOAD_MS", this);
+
+    if (context) {
+      // Wait until all event listeners registered by the script so far
+      // to be handled.
+      await Promise.all(context.listenerPromises);
+      context.listenerPromises = null;
     }
 
-    if (!this.extension.isExtensionURL(url)) {
-      this.extension.manifestError("Background page must be a file within the extension");
-      url = this.extension.baseURI.resolve("_blank.html");
-    }
-
-    let uri = Services.io.newURI(url, null, null);
-    let principal = this.extension.createPrincipal(uri);
-
-    let interfaceRequestor = webNav.QueryInterface(Ci.nsIInterfaceRequestor);
-    let docShell = interfaceRequestor.getInterface(Ci.nsIDocShell);
-
-    this.context = new ExtensionPage(this.extension, {type: "background", docShell, uri});
-    GlobalManager.injectInDocShell(docShell, this.extension, this.context);
-
-    docShell.createAboutBlankContentViewer(principal);
-
-    let window = webNav.document.defaultView;
-    this.contentWindow = window;
-    this.context.contentWindow = window;
-
-    webNav.loadURI(url, 0, null, null, null);
-
-    // TODO: Right now we run onStartup after the background page
-    // finishes. See if this is what Chrome does.
-    let loadListener = event => {
-      if (event.target != window.document) {
-        return;
-      }
-      event.currentTarget.removeEventListener("load", loadListener, true);
-      if (this.scripts) {
-        let doc = window.document;
-        for (let script of this.scripts) {
-          let url = this.extension.baseURI.resolve(script);
-
-          if (!this.extension.isExtensionURL(url)) {
-            this.extension.manifestError("Background scripts must be files within the extension");
-            continue;
-          }
-
-          let tag = doc.createElement("script");
-          tag.setAttribute("src", url);
-          tag.async = false;
-          doc.body.appendChild(tag);
-        }
-      }
-
-      if (this.extension.onStartup) {
-        this.extension.onStartup();
-      }
-    };
-    window.windowRoot.addEventListener("load", loadListener, true);
-  },
+    this.extension.emit("startup");
+  }
 
   shutdown() {
-    // Navigate away from the background page to invalidate any
-    // setTimeouts or other callbacks.
-    this.webNav.loadURI("about:blank", 0, null, null, null);
-    this.webNav = null;
-  },
-};
-
-/* eslint-disable mozilla/balanced-listeners */
-extensions.on("manifest_background", (type, directive, extension, manifest) => {
-  let bgPage = new BackgroundPage(manifest.background, extension);
-  bgPage.build();
-  backgroundPagesMap.set(extension, bgPage);
-});
-
-extensions.on("shutdown", (type, extension) => {
-  if (backgroundPagesMap.has(extension)) {
-    backgroundPagesMap.get(extension).shutdown();
-    backgroundPagesMap.delete(extension);
+    this.extension._backgroundPageFrameLoader = null;
+    super.shutdown();
   }
-});
-/* eslint-enable mozilla/balanced-listeners */
+}
 
-extensions.registerAPI((extension, context) => {
-  return {
-    extension: {
-      getBackgroundPage: function() {
-        return backgroundPagesMap.get(extension).contentWindow;
-      },
-    },
-  };
-});
+this.backgroundPage = class extends ExtensionAPI {
+  onManifestEntry(entryName) {
+    let {manifest} = this.extension;
+
+    this.bgPage = new BackgroundPage(this.extension, manifest.background);
+
+    return this.bgPage.build();
+  }
+
+  onShutdown() {
+    this.bgPage.shutdown();
+  }
+};

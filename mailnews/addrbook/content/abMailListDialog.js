@@ -126,7 +126,7 @@ function GetListValue(mailList, doAdd)
           cardproperty.displayName = addrObjects[j].name || addrObjects[j].email;
 
           if (doAdd || (doAdd == false && pos >= oldTotal))
-            mailList.addressLists.appendElement(cardproperty, false);
+            mailList.addressLists.appendElement(cardproperty);
         }
         pos++;
       }
@@ -256,6 +256,8 @@ function OnLoadEditList()
   document.getElementById('ListNickName').value = gEditList.listNickName;
   document.getElementById('ListDescription').value = gEditList.description;
   oldListName = gEditList.dirName;
+
+  document.title = gAddressBookBundle.getFormattedString("mailingListTitleEdit", [oldListName]);
 
   if (gEditList.addressLists)
   {

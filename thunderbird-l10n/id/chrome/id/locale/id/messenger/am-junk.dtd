@@ -1,0 +1,38 @@
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+
+<!ENTITY junkSettings.label "Pengaturan Pesan Junk">
+
+<!ENTITY level.label "Gunakan kontrol email junk adaptif untuk akun ini">
+<!ENTITY level.accesskey "a">
+
+<!ENTITY move.label "Pindahkan pesan junk ke:">
+<!ENTITY move.accesskey "P">
+<!ENTITY junkFolderOn.label "Folder &quot;Junk&quot; di:">
+<!ENTITY junkFolderOn.accesskey "d">
+<!ENTITY otherFolder.label "Lainnya:">
+<!ENTITY otherFolder.accesskey "L">
+<!ENTITY purge1.label "Otomatis hapus pesan junk yang lebih lama dari">
+<!ENTITY purge1.accesskey "l">
+<!ENTITY purge2.label "hari">
+
+
+
+<!ENTITY ispHeaders.label "Percayai header email junk yang dikirim oleh: ">
+<!ENTITY ispHeaders.accesskey "P">
+
+<!ENTITY junkClassification.label "Pilihan">
+
+
+
+
+<!ENTITY trainingDescription.label "If enabled, you must first train &brandShortName; to identify junk mail by using the Junk toolbar button to mark messages as junk or not. You need to identify both junk and non junk messages. After that &brandShortName; will be able to mark junk automatically.">
+<!ENTITY whitelistHeader.label "Do not automatically mark mail as junk if the sender is in: ">
+<!ENTITY whitelistHeader.accesskey "D">
+
+<!ENTITY ispHeadersWarning.label "If enabled, &brandShortName; will automatically consider messages marked by this external classifier as junk.">
+<!ENTITY junkActions.label "Destination and Retention">
+
+<!ENTITY globalJunkPrefs.label "Global Junk Preferences…">
+<!ENTITY globalJunkPrefs.accesskey "G">

@@ -7,6 +7,7 @@
 #ifndef mozilla_dom_SVGMarkerElement_h
 #define mozilla_dom_SVGMarkerElement_h
 
+#include "nsAutoPtr.h"
 #include "nsSVGAngle.h"
 #include "nsSVGEnum.h"
 #include "nsSVGLength2.h"
@@ -17,6 +18,7 @@
 #include "mozilla/dom/SVGAnimatedEnumeration.h"
 
 class nsSVGMarkerFrame;
+struct nsSVGMark;
 
 nsresult NS_NewSVGMarkerElement(nsIContent **aResult,
                                 already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
@@ -111,22 +113,21 @@ protected:
 
 public:
   // nsIContent interface
-  NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* name) const override;
+  NS_IMETHOD_(bool) IsAttributeMapped(const nsAtom* name) const override;
 
-  virtual nsresult UnsetAttr(int32_t aNameSpaceID, nsIAtom* aAttribute,
+  virtual nsresult UnsetAttr(int32_t aNameSpaceID, nsAtom* aAttribute,
                              bool aNotify) override;
 
   // nsSVGSVGElement methods:
   virtual bool HasValidDimensions() const override;
 
   // public helpers
-  gfx::Matrix GetMarkerTransform(float aStrokeWidth,
-                                 float aX, float aY, float aAutoAngle,
-                                 bool aIsStart);
+  gfx::Matrix GetMarkerTransform(float aStrokeWidth, const nsSVGMark& aMark);
   nsSVGViewBoxRect GetViewBoxRect();
   gfx::Matrix GetViewBoxTransform();
 
-  virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult) const override;
+  virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult,
+                         bool aPreallocateChildren) const override;
 
   nsSVGOrientType* GetOrientType() { return &mOrientType; }
 
@@ -148,11 +149,11 @@ public:
 
 protected:
 
-  virtual bool ParseAttribute(int32_t aNameSpaceID, nsIAtom* aName,
+  virtual bool ParseAttribute(int32_t aNameSpaceID, nsAtom* aName,
                                 const nsAString& aValue,
                                 nsAttrValue& aResult) override;
 
-  void SetParentCoordCtxProvider(SVGSVGElement *aContext);
+  void SetParentCoordCtxProvider(SVGViewportElement *aContext);
 
   virtual LengthAttributesInfo GetLengthInfo() override;
   virtual AngleAttributesInfo GetAngleInfo() override;
@@ -179,7 +180,7 @@ protected:
   // derived properties (from 'orient') handled separately
   nsSVGOrientType                        mOrientType;
 
-  SVGSVGElement                         *mCoordCtx;
+  SVGViewportElement*                    mCoordCtx;
   nsAutoPtr<gfx::Matrix>                 mViewBoxToViewportTransform;
 };
 

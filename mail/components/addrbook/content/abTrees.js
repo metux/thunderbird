@@ -170,12 +170,12 @@ directoryTreeView.prototype = {
   },
 
   // Override the dnd methods for those functions in abDragDrop.js
-  canDrop: function dtv_canDrop(aIndex, aOrientation) {
-    return abDirTreeObserver.canDrop(aIndex, aOrientation);
+  canDrop: function dtv_canDrop(aIndex, aOrientation, dataTransfer) {
+    return abDirTreeObserver.canDrop(aIndex, aOrientation, dataTransfer);
   },
 
-  drop: function dtv_drop(aRow, aOrientation) {
-    abDirTreeObserver.onDrop(aRow, aOrientation);
+  drop: function dtv_drop(aRow, aOrientation, dataTransfer) {
+    abDirTreeObserver.onDrop(aRow, aOrientation, dataTransfer);
   },
 
   getDirectoryAtIndex: function dtv_getDirForIndex(aIndex) {
@@ -234,7 +234,7 @@ directoryTreeView.prototype = {
       return;
 
     // Now select this new item
-    for (var [i, row] in Iterator(this._rowMap)) {
+    for (var [i, row] of this._rowMap.entries()) {
       if (row.id == aItem.URI) {
         this.selection.select(i);
         break;
@@ -259,7 +259,7 @@ directoryTreeView.prototype = {
     }
 
     // Now select this parent item
-    for (var [i, row] in Iterator(this._rowMap)) {
+    for (var [i, row] of this._rowMap.entries()) {
       if (row.id == aParent.URI) {
         this.selection.select(i);
         break;

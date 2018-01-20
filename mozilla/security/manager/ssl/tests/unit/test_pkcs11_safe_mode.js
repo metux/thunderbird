@@ -7,8 +7,6 @@
 // In safe mode, PKCS#11 modules should not be loaded. This test tests this by
 // simulating starting in safe mode and then attempting to load a module.
 
-var { XPCOMUtils } = Cu.import("resource://gre/modules/XPCOMUtils.jsm", {});
-
 function run_test() {
   do_get_profile();
 
@@ -25,9 +23,9 @@ function run_test() {
   };
 
   let xulRuntimeFactory = {
-    createInstance: function (outer, iid) {
+    createInstance(outer, iid) {
       if (outer != null) {
-        throw Cr.NS_ERROR_NO_AGGREGATION;
+        throw new Error(Cr.NS_ERROR_NO_AGGREGATION);
       }
       return xulRuntime.QueryInterface(iid);
     }
@@ -40,18 +38,14 @@ function run_test() {
                             xulRuntimeFactory);
 
   // When starting in safe mode, the test module should fail to load.
-  let pkcs11 = Cc["@mozilla.org/security/pkcs11;1"].getService(Ci.nsIPKCS11);
+  let pkcs11ModuleDB = Cc["@mozilla.org/security/pkcs11moduledb;1"]
+                         .getService(Ci.nsIPKCS11ModuleDB);
   let libraryName = ctypes.libraryName("pkcs11testmodule");
-  let libraryFile = Services.dirsvc.get("CurWorkD", Ci.nsILocalFile);
+  let libraryFile = Services.dirsvc.get("CurWorkD", Ci.nsIFile);
   libraryFile.append("pkcs11testmodule");
   libraryFile.append(libraryName);
   ok(libraryFile.exists(), "The pkcs11testmodule file should exist");
-  let exceptionCaught = false;
-  try {
-    pkcs11.addModule("PKCS11 Test Module", libraryFile.path, 0, 0);
-    ok(false, "addModule should have thrown an exception");
-  } catch (e) {
-    exceptionCaught = true;
-  }
-  ok(exceptionCaught, "addModule should have thrown an exception");
+  throws(() => pkcs11ModuleDB.addModule("PKCS11 Test Module", libraryFile.path,
+                                        0, 0),
+         /NS_ERROR_FAILURE/, "addModule should throw when in safe mode");
 }

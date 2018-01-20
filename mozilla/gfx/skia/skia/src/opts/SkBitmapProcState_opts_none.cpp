@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2011 Google Inc.
  *
@@ -23,6 +22,3 @@
 
 // empty implementation just uses default supplied function pointers
 void SkBitmapProcState::platformProcs() {}
-
-// empty implementation just uses default supplied function pointers
-void SkBitmapScaler::PlatformConvolutionProcs(SkConvolutionProcs*) {}

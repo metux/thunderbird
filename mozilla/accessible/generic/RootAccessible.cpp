@@ -59,9 +59,8 @@ NS_IMPL_ISUPPORTS_INHERITED0(RootAccessible, DocAccessible)
 // Constructor/destructor
 
 RootAccessible::
-  RootAccessible(nsIDocument* aDocument, nsIContent* aRootContent,
-                 nsIPresShell* aPresShell) :
-  DocAccessibleWrap(aDocument, aRootContent, aPresShell)
+  RootAccessible(nsIDocument* aDocument, nsIPresShell* aPresShell) :
+  DocAccessibleWrap(aDocument, aPresShell)
 {
   mType = eRootType;
 }
@@ -78,7 +77,7 @@ RootAccessible::Name(nsString& aName)
 {
   aName.Truncate();
 
-  if (mRoleMapEntry) {
+  if (ARIARoleMap()) {
     Accessible::Name(aName);
     if (!aName.IsEmpty())
       return eNameOK;
@@ -105,7 +104,7 @@ RootAccessible::NativeRole()
 uint32_t
 RootAccessible::GetChromeFlags()
 {
-  // Return the flag set for the top level window as defined 
+  // Return the flag set for the top level window as defined
   // by nsIWebBrowserChrome::CHROME_WINDOW_[FLAGNAME]
   // Not simple: nsIXULWindow is not just a QI from nsIDOMWindow
   nsCOMPtr<nsIDocShell> docShell = nsCoreUtils::GetDocShellFor(mDocumentNode);
@@ -204,7 +203,7 @@ nsresult
 RootAccessible::RemoveEventListeners()
 {
   nsCOMPtr<EventTarget> target = mDocumentNode;
-  if (target) { 
+  if (target) {
     for (const char* const* e = kEventTypes,
                    * const* e_end = ArrayEnd(kEventTypes);
          e < e_end; ++e) {
@@ -286,7 +285,7 @@ RootAccessible::ProcessDOMEvent(nsIDOMEvent* aDOMEvent)
     GetDocAccessible(origTargetNode->OwnerDoc());
   NS_ASSERTION(targetDocument, "No document while accessible is in document?!");
 
-  Accessible* accessible = 
+  Accessible* accessible =
     targetDocument->GetAccessibleOrContainer(origTargetNode);
   if (!accessible)
     return;
@@ -485,12 +484,11 @@ RootAccessible::RelationByType(RelationType aType)
   if (!mDocumentNode || aType != RelationType::EMBEDS)
     return DocAccessibleWrap::RelationByType(aType);
 
-  nsPIDOMWindow* rootWindow = mDocumentNode->GetWindow();
-  if (rootWindow) {
-    nsCOMPtr<nsIDOMWindow> contentWindow = nsGlobalWindow::Cast(rootWindow)->GetContent();
-    nsCOMPtr<nsPIDOMWindow> piWindow = do_QueryInterface(contentWindow);
-    if (piWindow) {
-      nsCOMPtr<nsIDocument> contentDocumentNode = piWindow->GetDoc();
+  if (nsPIDOMWindowOuter* rootWindow = mDocumentNode->GetWindow()) {
+    nsCOMPtr<nsPIDOMWindowOuter> contentWindow =
+      nsGlobalWindowOuter::Cast(rootWindow)->GetContent();
+    if (contentWindow) {
+      nsCOMPtr<nsIDocument> contentDocumentNode = contentWindow->GetDoc();
       if (contentDocumentNode) {
         DocAccessible* contentDocument =
           GetAccService()->GetDocAccessible(contentDocumentNode);
@@ -520,8 +518,8 @@ RootAccessible::HandlePopupShownEvent(Accessible* aAccessible)
 
   if (role == roles::TOOLTIP) {
     // There is a single <xul:tooltip> node which Mozilla moves around.
-    // The accessible for it stays the same no matter where it moves. 
-    // AT's expect to get an EVENT_SHOW for the tooltip. 
+    // The accessible for it stays the same no matter where it moves.
+    // AT's expect to get an EVENT_SHOW for the tooltip.
     // In event callback the tooltip's accessible will be ready.
     nsEventShell::FireEvent(nsIAccessibleEvent::EVENT_SHOW, aAccessible);
     return;
@@ -533,9 +531,7 @@ RootAccessible::HandlePopupShownEvent(Accessible* aAccessible)
     if (!combobox)
       return;
 
-    roles::Role comboboxRole = combobox->Role();
-    if (comboboxRole == roles::COMBOBOX || 
-	comboboxRole == roles::AUTOCOMPLETE) {
+    if (combobox->IsCombobox() || combobox->IsAutoComplete()) {
       RefPtr<AccEvent> event =
         new AccStateChangeEvent(combobox, states::EXPANDED, true);
       if (event)

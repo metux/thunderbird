@@ -11,12 +11,14 @@ function run_test() {
 
     storage.setProperty("capabilities.propagate-sequence", "true");
 
-    let str = ["BEGIN:VEVENT",
-               "UID:recItem",
-               "SEQUENCE:3",
-               "RRULE:FREQ=WEEKLY",
-               "DTSTART:20120101T010101Z",
-               "END:VEVENT"].join("\r\n");
+    let str = [
+        "BEGIN:VEVENT",
+        "UID:recItem",
+        "SEQUENCE:3",
+        "RRULE:FREQ=WEEKLY",
+        "DTSTART:20120101T010101Z",
+        "END:VEVENT"
+    ].join("\r\n");
 
     let item = createEventFromIcalString(str);
     let rid = cal.createDateTime("20120101T010101Z");
@@ -27,13 +29,12 @@ function run_test() {
     do_test_pending();
     storage.addItem(item, { onOperationComplete: checkAddedItem });
 
-    function checkAddedItem(c, s, o, i, addedItem) {
-
+    function checkAddedItem(calendar, status, opType, id, addedItem) {
         let seq = addedItem.getProperty("SEQUENCE");
-        let rec = addedItem.recurrenceInfo.getOccurrenceFor(rid);
+        let occ = addedItem.recurrenceInfo.getOccurrenceFor(rid);
 
         equal(seq, 3);
-        equal(rec.getProperty("SEQUENCE"), seq);
+        equal(occ.getProperty("SEQUENCE"), seq);
 
         let changedItem = addedItem.clone();
         changedItem.setProperty("SEQUENCE", parseInt(seq, 10) + 1);
@@ -41,12 +42,12 @@ function run_test() {
         storage.modifyItem(changedItem, addedItem, { onOperationComplete: checkModifiedItem });
     }
 
-    function checkModifiedItem(c, s, o, i, changedItem) {
+    function checkModifiedItem(calendar, status, opType, id, changedItem) {
         let seq = changedItem.getProperty("SEQUENCE");
-        let rec = changedItem.recurrenceInfo.getOccurrenceFor(rid);
+        let occ = changedItem.recurrenceInfo.getOccurrenceFor(rid);
 
         equal(seq, 4);
-        equal(rec.getProperty("SEQUENCE"), seq);
+        equal(occ.getProperty("SEQUENCE"), seq);
 
         // Now check with the pref off
         storage.deleteProperty("capabilities.propagate-sequence");
@@ -55,15 +56,14 @@ function run_test() {
         changedItem2.setProperty("SEQUENCE", parseInt(seq, 10) + 1);
 
         storage.modifyItem(changedItem2, changedItem, { onOperationComplete: checkNormalItem });
-
     }
 
-    function checkNormalItem(c, s, o, i, changedItem) {
+    function checkNormalItem(calendar, status, opType, id, changedItem) {
         let seq = changedItem.getProperty("SEQUENCE");
-        let rec = changedItem.recurrenceInfo.getOccurrenceFor(rid);
+        let occ = changedItem.recurrenceInfo.getOccurrenceFor(rid);
 
         equal(seq, 5);
-        equal(rec.getProperty("SEQUENCE"), 4);
+        equal(occ.getProperty("SEQUENCE"), 4);
         completeTest();
     }
 

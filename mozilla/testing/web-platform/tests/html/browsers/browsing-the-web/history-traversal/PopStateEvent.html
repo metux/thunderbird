@@ -6,12 +6,6 @@
 <div id="log"></div>
 <script>
 test(function () {
-  assert_throws('NotSupportedError', function() {
-    document.createEvent('PopStateEvent');
-  }, 'document.createEvent("PopStateEvent") should not be supported');
-}, 'document.createEvent');
-
-test(function () {
   assert_false('initPopStateEvent' in PopStateEvent.prototype,
                'There should be no PopStateEvent#initPopStateEvent');
 }, 'initPopStateEvent');

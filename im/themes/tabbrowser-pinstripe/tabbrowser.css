@@ -6,12 +6,11 @@
 
 %filter substitution
 %define loweredShadow 0 1px rgba(255, 255, 255, .4)
-%define focusRingShadow 0 0 1px -moz-mac-focusring inset, 0 0 4px 1px -moz-mac-focusring, 0 0 1.5px 1px -moz-mac-focusring
 
 @namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
 
 statusbarpanel#statusbar-display {
-  -moz-padding-start: 0;
+  padding-inline-start: 0;
 }
 
 .statusbarpanel-text {
@@ -68,8 +67,8 @@ statusbarpanel#statusbar-display {
 .tab-background,
 .tab-content,
 .tabs-newtab-button > .toolbarbutton-icon {
-  -moz-margin-start: -5px;
-  -moz-margin-end: -4px;
+  margin-inline-start: -5px;
+  margin-inline-end: -4px;
   pointer-events: none;
 }
 
@@ -83,8 +82,8 @@ statusbarpanel#statusbar-display {
 }
 
 .tabbrowser-arrowscrollbox > .arrowscrollbox-scrollbox {
-  -moz-padding-start: 5px;
-  -moz-padding-end: 4px;
+  padding-inline-start: 5px;
+  padding-inline-end: 4px;
 }
 
 .tab-content,
@@ -159,9 +158,7 @@ statusbarpanel#statusbar-display {
   background-image:
     url(chrome://instantbird/skin/tabbrowser/tab-top-normal-active.png),
     url(chrome://instantbird/skin/tabbrowser/tab-top-hover-active.png),
-    url(chrome://instantbird/skin/tabbrowser/tab-top-selected-active.png),
-    url(chrome://instantbird/skin/tabbrowser/tabbar-top-bg-active.png),
-    url(chrome://instantbird/skin/tabbrowser/tabbar-top-bg-inactive.png);
+    url(chrome://instantbird/skin/tabbrowser/tab-top-selected-active.png);
 }
 
 @media (min-resolution: 2dppx) {
@@ -189,7 +186,7 @@ statusbarpanel#statusbar-display {
 }
 
 .tabbrowser-tab:focus > .tab-stack {
-  box-shadow: @focusRingShadow@;
+  box-shadow: var(--focus-ring-box-shadow);
 }
 
 .tabbrowser-tab:not([selected="true"]):not(:hover):not(:-moz-lwtheme) {
@@ -208,31 +205,17 @@ statusbarpanel#statusbar-display {
 }
 
 .tabbrowser-strip {
-  -moz-appearance: -moz-mac-unified-toolbar;
+  -moz-appearance: toolbar;
   height: 26px;
-  background-repeat: repeat-x;
-}
-
-.tabbrowser-strip:not(:-moz-lwtheme) {
-  background-color: -moz-mac-chrome-active;
-}
-
-.tabbrowser-strip:not(:-moz-lwtheme):-moz-window-inactive {
-  background-color: -moz-mac-chrome-inactive;
 }
 
 .tabbrowser-strip:not(:-moz-lwtheme) {
   padding-bottom: 1px; /* 2px in Firefox */
   height: 25px; /* not in Firefox */
-  background-image: url(chrome://instantbird/skin/tabbrowser/tabbar-top-bg-active.png) ;
 }
 
 .tabbrowser-tabpanels:not(:-moz-lwtheme) {
   border-top: 1px solid transparent;
-}
-
-.tabbrowser-strip:not(:-moz-lwtheme):-moz-window-inactive {
-  background-image: url(chrome://instantbird/skin/tabbrowser/tabbar-top-bg-inactive.png);
 }
 
 .tabbrowser-tabs {
@@ -255,7 +238,7 @@ statusbarpanel#statusbar-display {
 @media (min-resolution: 2dppx) {
   .tabbrowser-tab[chat][status="joining"],
   .alltabs-item[chat][status="joining"] > .menu-iconic-left > .menu-iconic-icon {
-    list-style-image: url("chrome://chat/skin/loading@2x.png") !important;
+    list-style-image: url("chrome://global/skin/icons/loading@2x.png") !important;
   }
 }
 
@@ -267,9 +250,9 @@ statusbarpanel#statusbar-display {
   height: 10px;
   margin-top: -10px;
   position: relative;
-  /* set -moz-margin-start to -1/2 indicator width: */
-  -moz-margin-start: -5px;
-  -moz-margin-end: -8px;
+  /* set margin-inline-start to -1/2 indicator width: */
+  margin-inline-start: -5px;
+  margin-inline-end: -8px;
 }
 
 .tab-drop-indicator {
@@ -294,7 +277,7 @@ statusbarpanel#statusbar-display {
  */
 
 .tab-close-button > .toolbarbutton-icon {
-  -moz-margin-end: 0px !important;
+  margin-inline-end: 0px !important;
 }
 
 .tab-close-button {
@@ -344,11 +327,11 @@ statusbarpanel#statusbar-display {
 }
 
 .tabbrowser-arrowscrollbox > .scrollbutton-up {
-  -moz-border-end: 2px solid transparent;
+  border-inline-end: 2px solid transparent;
 }
 
 .tabbrowser-arrowscrollbox > .scrollbutton-down {
-  -moz-border-start: 2px solid transparent;
+  border-inline-start: 2px solid transparent;
   -moz-transition: 1s background-color ease-out;
 }
 
@@ -545,12 +528,12 @@ statusbarpanel#statusbar-display {
 }
 
 .tabs-alltabs-button > .toolbarbutton-icon {
-  -moz-margin-end: 2px;
+  margin-inline-end: 2px;
 }
 
 /* Tabstrip close button */
 .tabs-closebutton {
-  -moz-padding-end: 4px;
+  padding-inline-end: 4px;
   list-style-image: url("chrome://global/skin/icons/close.png");
   -moz-image-region: rect(0, 16px, 16px, 0);
   border: none;
@@ -566,7 +549,7 @@ statusbarpanel#statusbar-display {
 
 @media (min-resolution: 2dppx) {
   .tabs-closebutton {
-    -moz-padding-end: 8px;
+    padding-inline-end: 8px;
     list-style-image: url("chrome://global/skin/icons/close@2x.png");
     -moz-image-region: rect(0, 32px, 32px, 0);
   }

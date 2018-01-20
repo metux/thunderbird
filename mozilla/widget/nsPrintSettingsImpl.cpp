@@ -7,7 +7,6 @@
 #include "nsReadableUtils.h"
 #include "nsIPrintSession.h"
 #include "mozilla/RefPtr.h"
-#include "mozilla/gfx/Logging.h"
 
 #define DEFAULT_MARGIN_WIDTH 0.5
 
@@ -35,7 +34,6 @@ nsPrintSettings::nsPrintSettings() :
   mShowPrintProgress(true),
   mPrintPageDelay(50),
   mPaperData(0),
-  mPaperSizeType(kPaperSizeDefined),
   mPaperWidth(8.5),
   mPaperHeight(11.0),
   mPaperSizeUnit(kPaperSizeInches),
@@ -46,8 +44,7 @@ nsPrintSettings::nsPrintSettings() :
   mPrintToFile(false),
   mOutputFormat(kOutputFormatNative),
   mIsInitedFromPrinter(false),
-  mIsInitedFromPrefs(false),
-  mPersistMarginBoxSettings(true)
+  mIsInitedFromPrefs(false)
 {
 
   /* member initializers and constructor code */
@@ -195,19 +192,15 @@ NS_IMETHODIMP nsPrintSettings::SetDuplex(const int32_t aDuplex)
   return NS_OK;
 }
 
-NS_IMETHODIMP nsPrintSettings::GetPrinterName(char16_t * *aPrinter)
+NS_IMETHODIMP nsPrintSettings::GetPrinterName(nsAString& aPrinter)
 {
-   NS_ENSURE_ARG_POINTER(aPrinter);
-
-   *aPrinter = ToNewUnicode(mPrinter);
-   NS_ENSURE_TRUE(*aPrinter, NS_ERROR_OUT_OF_MEMORY);
-
+   aPrinter = mPrinter;
    return NS_OK;
 }
 
-NS_IMETHODIMP nsPrintSettings::SetPrinterName(const char16_t * aPrinter)
+NS_IMETHODIMP nsPrintSettings::SetPrinterName(const nsAString& aPrinter)
 {
-  if (!aPrinter || !mPrinter.Equals(aPrinter)) {
+  if (!mPrinter.Equals(aPrinter)) {
     mIsInitedFromPrinter = false;
     mIsInitedFromPrefs   = false;
   }
@@ -240,19 +233,14 @@ NS_IMETHODIMP nsPrintSettings::SetPrintToFile(bool aPrintToFile)
   return NS_OK;
 }
 
-NS_IMETHODIMP nsPrintSettings::GetToFileName(char16_t * *aToFileName)
+NS_IMETHODIMP nsPrintSettings::GetToFileName(nsAString& aToFileName)
 {
-  //NS_ENSURE_ARG_POINTER(aToFileName);
-  *aToFileName = ToNewUnicode(mToFileName);
+  aToFileName = mToFileName;
   return NS_OK;
 }
-NS_IMETHODIMP nsPrintSettings::SetToFileName(const char16_t * aToFileName)
+NS_IMETHODIMP nsPrintSettings::SetToFileName(const nsAString& aToFileName)
 {
-  if (aToFileName) {
-    mToFileName = aToFileName;
-  } else {
-    mToFileName.SetLength(0);
-  }
+  mToFileName = aToFileName;
   return NS_OK;
 }
 
@@ -300,18 +288,6 @@ NS_IMETHODIMP nsPrintSettings::GetIsInitializedFromPrefs(bool *aInitializedFromP
 NS_IMETHODIMP nsPrintSettings::SetIsInitializedFromPrefs(bool aInitializedFromPrefs)
 {
   mIsInitedFromPrefs = (bool)aInitializedFromPrefs;
-  return NS_OK;
-}
-
-NS_IMETHODIMP nsPrintSettings::GetPersistMarginBoxSettings(bool *aPersistMarginBoxSettings)
-{
-  NS_ENSURE_ARG_POINTER(aPersistMarginBoxSettings);
-  *aPersistMarginBoxSettings = mPersistMarginBoxSettings;
-  return NS_OK;
-}
-NS_IMETHODIMP nsPrintSettings::SetPersistMarginBoxSettings(bool aPersistMarginBoxSettings)
-{
-  mPersistMarginBoxSettings = aPersistMarginBoxSettings;
   return NS_OK;
 }
 
@@ -516,43 +492,25 @@ NS_IMETHODIMP nsPrintSettings::SetPrintRange(int16_t aPrintRange)
   return NS_OK;
 }
 
-NS_IMETHODIMP nsPrintSettings::GetTitle(char16_t * *aTitle)
+NS_IMETHODIMP nsPrintSettings::GetTitle(nsAString& aTitle)
 {
-  NS_ENSURE_ARG_POINTER(aTitle);
-  if (!mTitle.IsEmpty()) {
-    *aTitle = ToNewUnicode(mTitle);
-  } else {
-    *aTitle = nullptr;
-  }
+  aTitle = mTitle;
   return NS_OK;
 }
-NS_IMETHODIMP nsPrintSettings::SetTitle(const char16_t * aTitle)
+NS_IMETHODIMP nsPrintSettings::SetTitle(const nsAString& aTitle)
 {
-  if (aTitle) {
-    mTitle = aTitle;
-  } else {
-    mTitle.SetLength(0);
-  }
+  mTitle = aTitle;
   return NS_OK;
 }
 
-NS_IMETHODIMP nsPrintSettings::GetDocURL(char16_t * *aDocURL)
+NS_IMETHODIMP nsPrintSettings::GetDocURL(nsAString& aDocURL)
 {
-  NS_ENSURE_ARG_POINTER(aDocURL);
-  if (!mURL.IsEmpty()) {
-    *aDocURL = ToNewUnicode(mURL);
-  } else {
-    *aDocURL = nullptr;
-  }
+  aDocURL = mURL;
   return NS_OK;
 }
-NS_IMETHODIMP nsPrintSettings::SetDocURL(const char16_t * aDocURL)
+NS_IMETHODIMP nsPrintSettings::SetDocURL(const nsAString& aDocURL)
 {
-  if (aDocURL) {
-    mURL = aDocURL;
-  } else {
-    mURL.SetLength(0);
-  }
+  mURL = aDocURL;
   return NS_OK;
 }
 
@@ -601,103 +559,70 @@ nsPrintSettings::SetPrintOptionsBits(int32_t aBits)
   return NS_OK;
 }
 
-nsresult 
-nsPrintSettings::GetMarginStrs(char16_t * *aTitle, 
-                              nsHeaderFooterEnum aType, 
-                              int16_t aJust)
+NS_IMETHODIMP nsPrintSettings::GetHeaderStrLeft(nsAString& aTitle)
 {
-  NS_ENSURE_ARG_POINTER(aTitle);
-  *aTitle = nullptr;
-  if (aType == eHeader) {
-    switch (aJust) {
-      case kJustLeft:   *aTitle = ToNewUnicode(mHeaderStrs[0]);break;
-      case kJustCenter: *aTitle = ToNewUnicode(mHeaderStrs[1]);break;
-      case kJustRight:  *aTitle = ToNewUnicode(mHeaderStrs[2]);break;
-    } //switch
-  } else {
-    switch (aJust) {
-      case kJustLeft:   *aTitle = ToNewUnicode(mFooterStrs[0]);break;
-      case kJustCenter: *aTitle = ToNewUnicode(mFooterStrs[1]);break;
-      case kJustRight:  *aTitle = ToNewUnicode(mFooterStrs[2]);break;
-    } //switch
-  }
+  aTitle = mHeaderStrs[0];
+  return NS_OK;
+}
+NS_IMETHODIMP nsPrintSettings::SetHeaderStrLeft(const nsAString& aTitle)
+{
+  mHeaderStrs[0] = aTitle;
   return NS_OK;
 }
 
-nsresult
-nsPrintSettings::SetMarginStrs(const char16_t * aTitle, 
-                              nsHeaderFooterEnum aType, 
-                              int16_t aJust)
+NS_IMETHODIMP nsPrintSettings::GetHeaderStrCenter(nsAString& aTitle)
 {
-  NS_ENSURE_ARG_POINTER(aTitle);
-  if (aType == eHeader) {
-    switch (aJust) {
-      case kJustLeft:   mHeaderStrs[0] = aTitle;break;
-      case kJustCenter: mHeaderStrs[1] = aTitle;break;
-      case kJustRight:  mHeaderStrs[2] = aTitle;break;
-    } //switch
-  } else {
-    switch (aJust) {
-      case kJustLeft:   mFooterStrs[0] = aTitle;break;
-      case kJustCenter: mFooterStrs[1] = aTitle;break;
-      case kJustRight:  mFooterStrs[2] = aTitle;break;
-    } //switch
-  }
+  aTitle = mHeaderStrs[1];
+  return NS_OK;
+}
+NS_IMETHODIMP nsPrintSettings::SetHeaderStrCenter(const nsAString& aTitle)
+{
+  mHeaderStrs[1] = aTitle;
   return NS_OK;
 }
 
-NS_IMETHODIMP nsPrintSettings::GetHeaderStrLeft(char16_t * *aTitle)
+NS_IMETHODIMP nsPrintSettings::GetHeaderStrRight(nsAString& aTitle)
 {
-  return GetMarginStrs(aTitle, eHeader, kJustLeft);
+  aTitle = mHeaderStrs[2];
+  return NS_OK;
 }
-NS_IMETHODIMP nsPrintSettings::SetHeaderStrLeft(const char16_t * aTitle)
+NS_IMETHODIMP nsPrintSettings::SetHeaderStrRight(const nsAString& aTitle)
 {
-  return SetMarginStrs(aTitle, eHeader, kJustLeft);
-}
-
-NS_IMETHODIMP nsPrintSettings::GetHeaderStrCenter(char16_t * *aTitle)
-{
-  return GetMarginStrs(aTitle, eHeader, kJustCenter);
-}
-NS_IMETHODIMP nsPrintSettings::SetHeaderStrCenter(const char16_t * aTitle)
-{
-  return SetMarginStrs(aTitle, eHeader, kJustCenter);
+  mHeaderStrs[2] = aTitle;
+  return NS_OK;
 }
 
-NS_IMETHODIMP nsPrintSettings::GetHeaderStrRight(char16_t * *aTitle)
+NS_IMETHODIMP nsPrintSettings::GetFooterStrLeft(nsAString& aTitle)
 {
-  return GetMarginStrs(aTitle, eHeader, kJustRight);
+  aTitle = mFooterStrs[0];
+  return NS_OK;
 }
-NS_IMETHODIMP nsPrintSettings::SetHeaderStrRight(const char16_t * aTitle)
+NS_IMETHODIMP nsPrintSettings::SetFooterStrLeft(const nsAString& aTitle)
 {
-  return SetMarginStrs(aTitle, eHeader, kJustRight);
-}
-
-NS_IMETHODIMP nsPrintSettings::GetFooterStrLeft(char16_t * *aTitle)
-{
-  return GetMarginStrs(aTitle, eFooter, kJustLeft);
-}
-NS_IMETHODIMP nsPrintSettings::SetFooterStrLeft(const char16_t * aTitle)
-{
-  return SetMarginStrs(aTitle, eFooter, kJustLeft);
+  mFooterStrs[0] = aTitle;
+  return NS_OK;
 }
 
-NS_IMETHODIMP nsPrintSettings::GetFooterStrCenter(char16_t * *aTitle)
+NS_IMETHODIMP nsPrintSettings::GetFooterStrCenter(nsAString& aTitle)
 {
-  return GetMarginStrs(aTitle, eFooter, kJustCenter);
+  aTitle = mFooterStrs[1];
+  return NS_OK;
 }
-NS_IMETHODIMP nsPrintSettings::SetFooterStrCenter(const char16_t * aTitle)
+NS_IMETHODIMP nsPrintSettings::SetFooterStrCenter(const nsAString& aTitle)
 {
-  return SetMarginStrs(aTitle, eFooter, kJustCenter);
+  mFooterStrs[1] = aTitle;
+  return NS_OK;
 }
 
-NS_IMETHODIMP nsPrintSettings::GetFooterStrRight(char16_t * *aTitle)
+NS_IMETHODIMP nsPrintSettings::GetFooterStrRight(nsAString& aTitle)
 {
-  return GetMarginStrs(aTitle, eFooter, kJustRight);
+  aTitle = mFooterStrs[2];
+  return NS_OK;
 }
-NS_IMETHODIMP nsPrintSettings::SetFooterStrRight(const char16_t * aTitle)
+NS_IMETHODIMP nsPrintSettings::SetFooterStrRight(const nsAString& aTitle)
 {
-  return SetMarginStrs(aTitle, eFooter, kJustRight);
+  mFooterStrs[2] = aTitle;
+  return NS_OK;
 }
 
 NS_IMETHODIMP nsPrintSettings::GetPrintFrameTypeUsage(int16_t *aPrintFrameTypeUsage)
@@ -760,23 +685,14 @@ NS_IMETHODIMP nsPrintSettings::SetShowPrintProgress(bool aShowPrintProgress)
   return NS_OK;
 }
 
-NS_IMETHODIMP nsPrintSettings::GetPaperName(char16_t * *aPaperName)
+NS_IMETHODIMP nsPrintSettings::GetPaperName(nsAString& aPaperName)
 {
-  NS_ENSURE_ARG_POINTER(aPaperName);
-  if (!mPaperName.IsEmpty()) {
-    *aPaperName = ToNewUnicode(mPaperName);
-  } else {
-    *aPaperName = nullptr;
-  }
+  aPaperName = mPaperName;
   return NS_OK;
 }
-NS_IMETHODIMP nsPrintSettings::SetPaperName(const char16_t * aPaperName)
+NS_IMETHODIMP nsPrintSettings::SetPaperName(const nsAString& aPaperName)
 {
-  if (aPaperName) {
-    mPaperName = aPaperName;
-  } else {
-    mPaperName.SetLength(0);
-  }
+  mPaperName = aPaperName;
   return NS_OK;
 }
 
@@ -813,9 +729,6 @@ NS_IMETHODIMP nsPrintSettings::GetPaperWidth(double *aPaperWidth)
 NS_IMETHODIMP nsPrintSettings::SetPaperWidth(double aPaperWidth)
 {
   mPaperWidth = aPaperWidth;
-  if (mPaperWidth <= 0) {
-    gfxCriticalError(gfxCriticalError::DefaultOptions(false)) << "Setting paper width to bad value " << mPaperWidth;
-  }
   return NS_OK;
 }
 
@@ -828,9 +741,6 @@ NS_IMETHODIMP nsPrintSettings::GetPaperHeight(double *aPaperHeight)
 NS_IMETHODIMP nsPrintSettings::SetPaperHeight(double aPaperHeight)
 {
   mPaperHeight = aPaperHeight;
-  if (mPaperHeight <= 0) {
-    gfxCriticalError(gfxCriticalError::DefaultOptions(false)) << "Setting paper height to bad value " << mPaperHeight;
-  }
   return NS_OK;
 }
 
@@ -843,18 +753,6 @@ NS_IMETHODIMP nsPrintSettings::GetPaperSizeUnit(int16_t *aPaperSizeUnit)
 NS_IMETHODIMP nsPrintSettings::SetPaperSizeUnit(int16_t aPaperSizeUnit)
 {
   mPaperSizeUnit = aPaperSizeUnit;
-  return NS_OK;
-}
-
-NS_IMETHODIMP nsPrintSettings::GetPaperSizeType(int16_t *aPaperSizeType)
-{
-  NS_ENSURE_ARG_POINTER(aPaperSizeType);
-  *aPaperSizeType = mPaperSizeType;
-  return NS_OK;
-}
-NS_IMETHODIMP nsPrintSettings::SetPaperSizeType(int16_t aPaperSizeType)
-{
-  mPaperSizeType = aPaperSizeType;
   return NS_OK;
 }
 
@@ -1028,7 +926,6 @@ nsPrintSettings& nsPrintSettings::operator=(const nsPrintSettings& rhs)
   mShrinkToFit         = rhs.mShrinkToFit;
   mShowPrintProgress   = rhs.mShowPrintProgress;
   mPaperName           = rhs.mPaperName;
-  mPaperSizeType       = rhs.mPaperSizeType;
   mPaperData           = rhs.mPaperData;
   mPaperWidth          = rhs.mPaperWidth;
   mPaperHeight         = rhs.mPaperHeight;

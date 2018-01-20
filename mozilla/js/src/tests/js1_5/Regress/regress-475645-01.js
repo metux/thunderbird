@@ -16,11 +16,9 @@ test();
 
 function test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
 
-  jit(true);
 
   linkarr = new Array();
   picarr = new Array();
@@ -41,9 +39,6 @@ function test()
     }
   }
 
-  jit(false);
 
   reportCompare(expect, actual, summary);
-
-  exitFunc ('test');
 }

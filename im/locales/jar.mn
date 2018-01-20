@@ -8,7 +8,6 @@
 % locale instantbird @AB_CD@ %locale/@AB_CD@/instantbird/
 	locale/@AB_CD@/instantbird/aboutDialog.dtd	(%chrome/instantbird/aboutDialog.dtd)
 	locale/@AB_CD@/instantbird/account.dtd		(%chrome/instantbird/account.dtd)
-	locale/@AB_CD@/instantbird/accounts.dtd		(%chrome/instantbird/accounts.dtd)
 	locale/@AB_CD@/instantbird/accounts.properties	(%chrome/instantbird/accounts.properties)
 	locale/@AB_CD@/instantbird/accountWizard.dtd	(%chrome/instantbird/accountWizard.dtd)
 	locale/@AB_CD@/instantbird/accountWizard.properties	(%chrome/instantbird/accountWizard.properties)
@@ -47,3 +46,6 @@
 	locale/@AB_CD@/instantbird/preferences/tabs.dtd               (%chrome/instantbird/preferences/tabs.dtd)
 	locale/@AB_CD@/instantbird/preferences/themes.dtd             (%chrome/instantbird/preferences/themes.dtd)
 	locale/@AB_CD@/instantbird/preferences/themes.properties      (%chrome/instantbird/preferences/themes.properties)
+% resource search-plugins chrome://instantbird/locale/searchplugins/
+	locale/@AB_CD@/instantbird/searchplugins/list.txt       (.deps/generated_@AB_CD@/list.txt)
+	locale/@AB_CD@/instantbird/searchplugins/               (.deps/generated_@AB_CD@/*.xml)

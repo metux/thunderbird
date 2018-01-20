@@ -16,6 +16,7 @@
 #include "nsSize.h"
 
 class nsICanvasRenderingContextInternal;
+class nsIThreadPool;
 
 namespace mozilla {
 
@@ -41,6 +42,7 @@ public:
   static nsresult ExtractData(nsAString& aType,
                               const nsAString& aOptions,
                               const nsIntSize aSize,
+                              bool aUsePlaceholder,
                               nsICanvasRenderingContextInternal* aContext,
                               layers::AsyncCanvasRenderer* aRenderer,
                               nsIInputStream** aStream);
@@ -62,6 +64,7 @@ public:
                                    UniquePtr<uint8_t[]> aImageBuffer,
                                    int32_t aFormat,
                                    const nsIntSize aSize,
+                                   bool aUsePlaceholder,
                                    EncodeCompleteCallback* aEncodeCallback);
 
   // Extract an Image asynchronously. Its function is same as ExtractDataAsync
@@ -73,6 +76,7 @@ public:
                                                   const nsAString& aOptions,
                                                   bool aUsingCustomOptions,
                                                   layers::Image* aImage,
+                                                  bool aUsePlaceholder,
                                                   EncodeCompleteCallback* aEncodeCallback);
 
   // Gives you a stream containing the image represented by aImageBuffer.
@@ -94,6 +98,7 @@ private:
                       uint8_t* aImageBuffer,
                       int32_t aFormat,
                       const nsIntSize aSize,
+                      bool aUsePlaceholder,
                       layers::Image* aImage,
                       nsICanvasRenderingContextInternal* aContext,
                       layers::AsyncCanvasRenderer* aRenderer,
@@ -107,7 +112,13 @@ private:
   // undefined in this case.
   static already_AddRefed<imgIEncoder> GetImageEncoder(nsAString& aType);
 
+  static nsresult EnsureThreadPool();
+
+  // Thread pool for dispatching EncodingRunnable.
+  static StaticRefPtr<nsIThreadPool> sThreadPool;
+
   friend class EncodingRunnable;
+  friend class EncoderThreadPoolTerminator;
 };
 
 /**

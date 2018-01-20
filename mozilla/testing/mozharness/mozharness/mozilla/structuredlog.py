@@ -28,10 +28,11 @@ class StructuredOutputParser(OutputParser):
 
         self.suite_category = kwargs.pop('suite_category', None)
 
+        tbpl_compact = kwargs.pop("log_compact", False)
         super(StructuredOutputParser, self).__init__(**kwargs)
 
         mozlog = self._get_mozlog_module()
-        self.formatter = mozlog.formatters.TbplFormatter()
+        self.formatter = mozlog.formatters.TbplFormatter(compact=tbpl_compact)
         self.handler = mozlog.handlers.StatusHandler()
         self.log_actions = mozlog.structuredlog.log_actions()
 
@@ -46,14 +47,9 @@ class StructuredOutputParser(OutputParser):
                        "from the MozbaseMixin to ensure that mozlog is available.")
         return mozlog
 
-    def _handle_unstructured_output(self, line):
-        if self.strict:
-            self.critical(("Test harness output was not a valid structured log message: "
-                          "\n%s") % line)
-            self.update_levels(TBPL_FAILURE, log.CRITICAL)
-            return
-        super(StructuredOutputParser, self).parse_single_line(line)
-
+    def _handle_unstructured_output(self, line, log_output=True):
+        self.log_output = log_output
+        return super(StructuredOutputParser, self).parse_single_line(line)
 
     def parse_single_line(self, line):
         """Parses a line of log output from the child process and passes
@@ -73,17 +69,35 @@ class StructuredOutputParser(OutputParser):
             pass
 
         if data is None:
-            self._handle_unstructured_output(line)
+            if self.strict:
+                self.critical(("Test harness output was not a valid structured log message: "
+                              "\n%s") % line)
+                self.update_levels(TBPL_FAILURE, log.CRITICAL)
+            else:
+                self._handle_unstructured_output(line)
             return
 
         self.handler(data)
 
         action = data["action"]
-        if action == "log":
-            level = getattr(log, data["level"].upper())
+        if action in ('log', 'process_output'):
+            if action == 'log':
+                message = data['message']
+                level = getattr(log, data['level'].upper())
+            else:
+                message = data['data']
 
-        self.log(self.formatter(data), level=level)
-        self.update_levels(tbpl_level, level)
+            # Run log and process_output actions through the error lists, but make sure
+            # the super parser doesn't print them to stdout (they should go through the
+            # log formatter).
+            error_level = self._handle_unstructured_output(message, log_output=False)
+            if error_level is not None:
+                level = self.worst_level(error_level, level)
+
+        log_data = self.formatter(data)
+        if log_data is not None:
+            self.log(log_data, level=level)
+            self.update_levels(tbpl_level, level)
 
     def evaluate_parser(self, return_code, success_codes=None):
         success_codes = success_codes or [0]
@@ -152,7 +166,7 @@ class StructuredOutputParser(OutputParser):
             fail_text = '0'
 
         text_summary = "%s/%s/%s" % (expected_count, fail_text, expected_failures)
-        self.info("TinderboxPrint: %s: %s\n" % (suite_name, text_summary))
+        self.info("TinderboxPrint: %s<br/>%s\n" % (suite_name, text_summary))
 
     def append_tinderboxprint_line(self, suite_name):
         summary = self.handler.summarize()

@@ -33,7 +33,7 @@ NS_IMPL_CYCLE_COLLECTION_INHERITED(SVGSwitchElement, SVGSwitchElementBase,
 NS_IMPL_ADDREF_INHERITED(SVGSwitchElement,SVGSwitchElementBase)
 NS_IMPL_RELEASE_INHERITED(SVGSwitchElement,SVGSwitchElementBase)
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(SVGSwitchElement)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(SVGSwitchElement)
 NS_INTERFACE_MAP_END_INHERITING(SVGSwitchElementBase)
 
 //----------------------------------------------------------------------
@@ -104,7 +104,7 @@ SVGSwitchElement::RemoveChildAt(uint32_t aIndex, bool aNotify)
 // nsIContent methods
 
 NS_IMETHODIMP_(bool)
-SVGSwitchElement::IsAttributeMapped(const nsIAtom* name) const
+SVGSwitchElement::IsAttributeMapped(const nsAtom* name) const
 {
   static const MappedAttributeEntry* const map[] = {
     sFEFloodMap,
@@ -127,14 +127,10 @@ SVGSwitchElement::IsAttributeMapped(const nsIAtom* name) const
 nsIContent *
 SVGSwitchElement::FindActiveChild() const
 {
-  bool allowReorder = AttrValueIs(kNameSpaceID_None,
-                                  nsGkAtoms::allowReorder,
-                                  nsGkAtoms::yes, eCaseMatters);
+  nsAutoString acceptLangs;
+  Preferences::GetLocalizedString("intl.accept_languages", acceptLangs);
 
-  const nsAdoptingString& acceptLangs =
-    Preferences::GetLocalizedString("intl.accept_languages");
-
-  if (allowReorder && !acceptLangs.IsEmpty()) {
+  if (!acceptLangs.IsEmpty()) {
     int32_t bestLanguagePreferenceRank = -1;
     nsIContent *bestChild = nullptr;
     nsIContent *defaultChild = nullptr;
@@ -160,8 +156,10 @@ SVGSwitchElement::FindActiveChild() const
             break;
           case -2:
             // no systemLanguage attribute. If there's nothing better
-            // we'll use the last such child.
-            defaultChild = child;
+            // we'll use the first such child.
+            if (!defaultChild) {
+              defaultChild = child;
+            }
             break;
           default:
             if (bestLanguagePreferenceRank == -1 ||

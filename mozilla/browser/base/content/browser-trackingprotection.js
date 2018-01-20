@@ -3,7 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 var TrackingProtection = {
-  MAX_INTROS: 0,
+  // If the user ignores the doorhanger, we stop showing it after some time.
+  MAX_INTROS: 20,
   PREF_ENABLED_GLOBALLY: "privacy.trackingprotection.enabled",
   PREF_ENABLED_IN_PRIVATE_WINDOWS: "privacy.trackingprotection.pbmode.enabled",
   enabledGlobally: false,
@@ -21,8 +22,8 @@ var TrackingProtection = {
     this.icon = $("#tracking-protection-icon");
 
     this.updateEnabled();
-    Services.prefs.addObserver(this.PREF_ENABLED_GLOBALLY, this, false);
-    Services.prefs.addObserver(this.PREF_ENABLED_IN_PRIVATE_WINDOWS, this, false);
+    Services.prefs.addObserver(this.PREF_ENABLED_GLOBALLY, this);
+    Services.prefs.addObserver(this.PREF_ENABLED_IN_PRIVATE_WINDOWS, this);
 
     this.activeTooltipText =
       gNavigatorBundle.getString("trackingProtection.icon.activeTooltip");
@@ -106,11 +107,13 @@ var TrackingProtection = {
       this.content.setAttribute("state", "blocked-tracking-content");
 
       // Open the tracking protection introduction panel, if applicable.
-      let introCount = gPrefService.getIntPref("privacy.trackingprotection.introCount");
-      if (introCount < TrackingProtection.MAX_INTROS) {
-        gPrefService.setIntPref("privacy.trackingprotection.introCount", ++introCount);
-        gPrefService.savePrefFile(null);
-        this.showIntroPanel();
+      if (this.enabledGlobally) {
+        let introCount = gPrefService.getIntPref("privacy.trackingprotection.introCount");
+        if (introCount < TrackingProtection.MAX_INTROS) {
+          gPrefService.setIntPref("privacy.trackingprotection.introCount", ++introCount);
+          gPrefService.savePrefFile(null);
+          this.showIntroPanel();
+        }
       }
 
       this.shieldHistogramAdd(2);
@@ -138,8 +141,7 @@ var TrackingProtection = {
     // nsChannelClassifier::ShouldEnableTrackingProtection.
     // Any scheme turned into https is correct.
     let normalizedUrl = Services.io.newURI(
-      "https://" + gBrowser.selectedBrowser.currentURI.hostPort,
-      null, null);
+      "https://" + gBrowser.selectedBrowser.currentURI.hostPort);
 
     // Add the current host in the 'trackingprotection' consumer of
     // the permission manager using a normalized URI. This effectively
@@ -165,8 +167,7 @@ var TrackingProtection = {
     // of the permission manager. This effectively removes this host
     // from the tracking protection allowlist.
     let normalizedUrl = Services.io.newURI(
-      "https://" + gBrowser.selectedBrowser.currentURI.hostPort,
-      null, null);
+      "https://" + gBrowser.selectedBrowser.currentURI.hostPort);
 
     if (PrivateBrowsingUtils.isBrowserPrivate(gBrowser.selectedBrowser)) {
       PrivateBrowsingUtils.removeFromTrackingAllowlist(normalizedUrl);
@@ -183,25 +184,33 @@ var TrackingProtection = {
     BrowserReload();
   },
 
-  showIntroPanel: Task.async(function*() {
-    let mm = gBrowser.selectedBrowser.messageManager;
+  dontShowIntroPanelAgain() {
+    // This function may be called in private windows, but it does not change
+    // any preference unless Tracking Protection is enabled globally.
+    if (this.enabledGlobally) {
+      gPrefService.setIntPref("privacy.trackingprotection.introCount",
+                              this.MAX_INTROS);
+      gPrefService.savePrefFile(null);
+    }
+  },
+
+  async showIntroPanel() {
     let brandBundle = document.getElementById("bundle_brand");
     let brandShortName = brandBundle.getString("brandShortName");
 
     let openStep2 = () => {
       // When the user proceeds in the tour, adjust the counter to indicate that
       // the user doesn't need to see the intro anymore.
-      gPrefService.setIntPref("privacy.trackingprotection.introCount",
-                              this.MAX_INTROS);
-      gPrefService.savePrefFile(null);
+      this.dontShowIntroPanelAgain();
 
       let nextURL = Services.urlFormatter.formatURLPref("privacy.trackingprotection.introURL") +
-                    "#step2";
+                    "?step=2&newtab=true";
       switchToTabHavingURI(nextURL, true, {
         // Ignore the fragment in case the intro is shown on the tour page
         // (e.g. if the user manually visited the tour or clicked the link from
         // about:privatebrowsing) so we can avoid a reload.
-        ignoreFragment: true,
+        ignoreFragment: "whenComparingAndReplace",
+        triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
       });
     };
 
@@ -217,12 +226,13 @@ var TrackingProtection = {
       },
     ];
 
-    let panelTarget = yield UITour.getTarget(window, "trackingProtection");
+    let panelTarget = await UITour.getTarget(window, "trackingProtection");
     UITour.initForBrowser(gBrowser.selectedBrowser, window);
-    UITour.showInfo(window, mm, panelTarget,
+    UITour.showInfo(window, panelTarget,
                     gNavigatorBundle.getString("trackingProtection.intro.title"),
-                    gNavigatorBundle.getFormattedString("trackingProtection.intro.description",
+                    gNavigatorBundle.getFormattedString("trackingProtection.intro.description2",
                                                         [brandShortName]),
-                    undefined, buttons);
-  }),
+                    undefined, buttons,
+                    { closeButtonCallback: () => this.dontShowIntroPanelAgain() });
+  },
 };

@@ -16,19 +16,14 @@ test();
 
 function test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
  
-  jit(true);
 
   var a = (function(){}).prototype;
   a.__proto__ = a.toString;
   for (var i = 0; i < 4; ++i) { try{ a.call({}); } catch(e) { } }
 
-  jit(false);
 
   reportCompare(expect, actual, summary);
-
-  exitFunc ('test');
 }

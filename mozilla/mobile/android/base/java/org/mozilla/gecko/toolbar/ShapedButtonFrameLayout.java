@@ -4,14 +4,15 @@
 
 package org.mozilla.gecko.toolbar;
 
+import android.support.v4.content.ContextCompat;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.lwt.LightweightThemeDrawable;
-import org.mozilla.gecko.util.ColorUtils;
 import org.mozilla.gecko.widget.themed.ThemedFrameLayout;
 
 import android.content.Context;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.StateListDrawable;
+import android.support.v4.view.ViewCompat;
 import android.util.AttributeSet;
 
 /** A FrameLayout with lightweight theme support. Note that {@link ShapedButton}'s lwt support is basically the same so
@@ -27,7 +28,7 @@ public class ShapedButtonFrameLayout extends ThemedFrameLayout {
     // The drawable is constructed as per @drawable/shaped_button.
     @Override
     public void onLightweightThemeChanged() {
-        final int background = ColorUtils.getColor(getContext(), R.color.text_and_tabs_tray_grey);
+        final int background = ContextCompat.getColor(getContext(), R.color.text_and_tabs_tray_grey);
         final LightweightThemeDrawable lightWeight = getTheme().getColorDrawable(this, background);
 
         if (lightWeight == null)
@@ -56,15 +57,15 @@ public class ShapedButtonFrameLayout extends ThemedFrameLayout {
             return;
         }
 
-        int[] padding =  new int[] { getPaddingLeft(),
+        int[] padding =  new int[] { ViewCompat.getPaddingStart(this),
                                      getPaddingTop(),
-                                     getPaddingRight(),
+                                     ViewCompat.getPaddingEnd(this),
                                      getPaddingBottom()
                                    };
         drawable.setLevel(getBackground().getLevel());
         super.setBackgroundDrawable(drawable);
 
-        setPadding(padding[0], padding[1], padding[2], padding[3]);
+        ViewCompat.setPaddingRelative(this, padding[0], padding[1], padding[2], padding[3]);
     }
 
     @Override

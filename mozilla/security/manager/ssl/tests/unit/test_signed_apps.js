@@ -1,46 +1,38 @@
 "use strict";
-/* To regenerate the certificates and apps for this test:
 
-        cd security/manager/ssl/tests/unit/test_signed_apps
-        PATH=$NSS/bin:$NSS/lib:$PATH ./generate.sh
-        cd ../../../../../..
-        make -C $OBJDIR/security/manager/ssl/tests
-    
-   $NSS is the path to NSS binaries and libraries built for the host platform. 
-   If you get error messages about "CertUtil" on Windows, then it means that
-   the Windows CertUtil.exe is ahead of the NSS certutil.exe in $PATH.
-    
-   Check in the generated files. These steps are not done as part of the build
-   because we do not want to add a build-time dependency on the OpenSSL or NSS
-   tools or libraries built for the host platform.
-*/
+// Tests the API nsIX509CertDB.openSignedAppFileAsync, which backs add-on
+// signature verification. Testcases include various ways of tampering with
+// add-ons as well as different hash algorithms used in the various
+// signature/metadata files.
 
-// XXX from prio.h
-const PR_RDWR        = 0x04; 
+// from prio.h
+const PR_RDWR        = 0x04;
 const PR_CREATE_FILE = 0x08;
 const PR_TRUNCATE    = 0x20;
 
 do_get_profile(); // must be called before getting nsIX509CertDB
-const certdb = Cc["@mozilla.org/security/x509certdb;1"].getService(Ci.nsIX509CertDB);
+const certdb = Cc["@mozilla.org/security/x509certdb;1"]
+                 .getService(Ci.nsIX509CertDB);
 
 // Creates a new app package based in the inFilePath package, with a set of
 // modifications (including possibly deletions) applied to the existing entries,
 // and/or a set of new entries to be included.
 function tamper(inFilePath, outFilePath, modifications, newEntries) {
-  var writer = Cc["@mozilla.org/zipwriter;1"].createInstance(Ci.nsIZipWriter);
+  let writer = Cc["@mozilla.org/zipwriter;1"].createInstance(Ci.nsIZipWriter);
   writer.open(outFilePath, PR_RDWR | PR_CREATE_FILE | PR_TRUNCATE);
   try {
-    var reader = Cc["@mozilla.org/libjar/zip-reader;1"].createInstance(Ci.nsIZipReader);
+    let reader = Cc["@mozilla.org/libjar/zip-reader;1"]
+                   .createInstance(Ci.nsIZipReader);
     reader.open(inFilePath);
     try {
-      var entries = reader.findEntries("");
+      let entries = reader.findEntries("");
       while (entries.hasMore()) {
-        var entryName = entries.getNext();
-        var inEntry = reader.getEntry(entryName);
-        var entryInput = reader.getInputStream(entryName);
+        let entryName = entries.getNext();
+        let inEntry = reader.getEntry(entryName);
+        let entryInput = reader.getInputStream(entryName);
         try {
-          var f = modifications[entryName];
-          var outEntry, outEntryInput;
+          let f = modifications[entryName];
+          let outEntry, outEntryInput;
           if (f) {
             [outEntry, outEntryInput] = f(inEntry, entryInput);
             delete modifications[entryName];
@@ -57,8 +49,9 @@ function tamper(inFilePath, outFilePath, modifications, newEntries) {
                                     outEntryInput,
                                     false);
             } finally {
-              if (entryInput != outEntryInput)
+              if (entryInput != outEntryInput) {
                 outEntryInput.close();
+              }
             }
           }
         } finally {
@@ -68,18 +61,18 @@ function tamper(inFilePath, outFilePath, modifications, newEntries) {
     } finally {
       reader.close();
     }
-    
+
     // Any leftover modification means that we were expecting to modify an entry
     // in the input file that wasn't there.
-    for(var name in modifications) {
+    for (let name in modifications) {
       if (modifications.hasOwnProperty(name)) {
-        throw "input file was missing expected entries: " + name;
+        throw new Error("input file was missing expected entries: " + name);
       }
     }
-    
+
     // Now, append any new entries to the end
     newEntries.forEach(function(newEntry) {
-      var sis = Cc["@mozilla.org/io/string-input-stream;1"]
+      let sis = Cc["@mozilla.org/io/string-input-stream;1"]
                   .createInstance(Ci.nsIStringInputStream);
       try {
         sis.setData(newEntry.content, newEntry.content.length);
@@ -100,18 +93,16 @@ function tamper(inFilePath, outFilePath, modifications, newEntries) {
 function removeEntry(entry, entryInput) { return [null, null]; }
 
 function truncateEntry(entry, entryInput) {
-  if (entryInput.available() == 0)
-    throw "Truncating already-zero length entry will result in identical entry.";
+  if (entryInput.available() == 0) {
+    throw new Error("Truncating already-zero length entry will result in " +
+                    "identical entry.");
+  }
 
-  var content = Cc["@mozilla.org/io/string-input-stream;1"]
+  let content = Cc["@mozilla.org/io/string-input-stream;1"]
                   .createInstance(Ci.nsIStringInputStream);
   content.data = "";
 
-  return [entry, content]
-}
-
-function run_test() {
-  run_next_test();
+  return [entry, content];
 }
 
 function check_open_result(name, expectedRv) {
@@ -134,53 +125,131 @@ function tampered_app_path(test_name) {
   return FileUtils.getFile("TmpD", ["test_signed_app-" + test_name + ".zip"]);
 }
 
+var hashTestcases = [
+  // SHA-256 in PKCS#7 + SHA-256 present elsewhere => OK
+  { name: "app_mf-1-256_sf-1-256_p7-1-256",
+    expectedResult: Cr.NS_OK },
+  { name: "app_mf-1-256_sf-1-256_p7-256",
+    expectedResult: Cr.NS_OK },
+  { name: "app_mf-1-256_sf-256_p7-1-256",
+    expectedResult: Cr.NS_OK },
+  { name: "app_mf-1-256_sf-256_p7-256",
+    expectedResult: Cr.NS_OK },
+  { name: "app_mf-256_sf-1-256_p7-1-256",
+    expectedResult: Cr.NS_OK },
+  { name: "app_mf-256_sf-1-256_p7-256",
+    expectedResult: Cr.NS_OK },
+  { name: "app_mf-256_sf-256_p7-1-256",
+    expectedResult: Cr.NS_OK },
+  { name: "app_mf-256_sf-256_p7-256",
+    expectedResult: Cr.NS_OK },
+
+  // SHA-1 in PKCS#7 + SHA-1 present elsewhere => OK
+  { name: "app_mf-1-256_sf-1-256_p7-1",
+    expectedResult: Cr.NS_OK },
+  { name: "app_mf-1-256_sf-1_p7-1",
+    expectedResult: Cr.NS_OK },
+  { name: "app_mf-1_sf-1-256_p7-1",
+    expectedResult: Cr.NS_OK },
+  { name: "app_mf-1_sf-1_p7-1",
+    expectedResult: Cr.NS_OK },
+
+  // SHA-256 in PKCS#7 + SHA-256 not present elsewhere => INVALID
+  { name: "app_mf-1-256_sf-1_p7-1-256",
+    expectedResult: Cr.NS_ERROR_SIGNED_JAR_MANIFEST_INVALID },
+  { name: "app_mf-1-256_sf-1_p7-256",
+    expectedResult: Cr.NS_ERROR_SIGNED_JAR_MANIFEST_INVALID },
+  { name: "app_mf-1_sf-1-256_p7-1-256",
+    expectedResult: Cr.NS_ERROR_SIGNED_JAR_MANIFEST_INVALID },
+  { name: "app_mf-1_sf-1-256_p7-256",
+    expectedResult: Cr.NS_ERROR_SIGNED_JAR_MANIFEST_INVALID },
+  { name: "app_mf-1_sf-1_p7-1-256",
+    expectedResult: Cr.NS_ERROR_SIGNED_JAR_MANIFEST_INVALID },
+  { name: "app_mf-1_sf-1_p7-256",
+    expectedResult: Cr.NS_ERROR_SIGNED_JAR_MANIFEST_INVALID },
+  { name: "app_mf-1_sf-256_p7-1-256",
+    expectedResult: Cr.NS_ERROR_SIGNED_JAR_MANIFEST_INVALID },
+  { name: "app_mf-1_sf-256_p7-256",
+    expectedResult: Cr.NS_ERROR_SIGNED_JAR_MANIFEST_INVALID },
+  { name: "app_mf-256_sf-1_p7-1-256",
+    expectedResult: Cr.NS_ERROR_SIGNED_JAR_MANIFEST_INVALID },
+  { name: "app_mf-256_sf-1_p7-256",
+    expectedResult: Cr.NS_ERROR_SIGNED_JAR_MANIFEST_INVALID },
+
+  // SHA-1 in PKCS#7 + SHA-1 not present elsewhere => INVALID
+  { name: "app_mf-1-256_sf-256_p7-1",
+    expectedResult: Cr.NS_ERROR_SIGNED_JAR_MANIFEST_INVALID },
+  { name: "app_mf-1_sf-256_p7-1",
+    expectedResult: Cr.NS_ERROR_SIGNED_JAR_MANIFEST_INVALID },
+  { name: "app_mf-256_sf-1-256_p7-1",
+    expectedResult: Cr.NS_ERROR_SIGNED_JAR_MANIFEST_INVALID },
+  { name: "app_mf-256_sf-1_p7-1",
+    expectedResult: Cr.NS_ERROR_SIGNED_JAR_MANIFEST_INVALID },
+  { name: "app_mf-256_sf-256_p7-1",
+    expectedResult: Cr.NS_ERROR_SIGNED_JAR_MANIFEST_INVALID },
+];
+
+for (let testcase of hashTestcases) {
+  add_test(function () {
+    certdb.openSignedAppFileAsync(
+      Ci.nsIX509CertDB.AppXPCShellRoot,
+      original_app_path(testcase.name),
+      check_open_result(testcase.name, testcase.expectedResult));
+  });
+}
+
 add_test(function () {
   certdb.openSignedAppFileAsync(
-    Ci.nsIX509CertDB.AppXPCShellRoot, original_app_path("valid_app_1"),
-    check_open_result("valid", Cr.NS_OK));
+    Ci.nsIX509CertDB.AppXPCShellRoot,
+    original_app_path("empty_signerInfos"),
+    check_open_result("the signerInfos in the PKCS#7 signature is empty",
+                      Cr.NS_ERROR_CMS_VERIFY_NOT_SIGNED));
 });
 
 add_test(function () {
   certdb.openSignedAppFileAsync(
-    Ci.nsIX509CertDB.AppXPCShellRoot, original_app_path("unsigned_app_1"),
+    Ci.nsIX509CertDB.AppXPCShellRoot, original_app_path("unsigned_app"),
     check_open_result("unsigned", Cr.NS_ERROR_SIGNED_JAR_NOT_SIGNED));
 });
 
 add_test(function () {
   certdb.openSignedAppFileAsync(
-    Ci.nsIX509CertDB.AppXPCShellRoot, original_app_path("unknown_issuer_app_1"),
+    Ci.nsIX509CertDB.AppXPCShellRoot, original_app_path("unknown_issuer_app"),
     check_open_result("unknown_issuer",
                       getXPCOMStatusFromNSS(SEC_ERROR_UNKNOWN_ISSUER)));
 });
 
 // Sanity check to ensure a no-op tampering gives a valid result
 add_test(function () {
-  var tampered = tampered_app_path("identity_tampering");
-  tamper(original_app_path("valid_app_1"), tampered, { }, []);
+  let tampered = tampered_app_path("identity_tampering");
+  tamper(original_app_path("app_mf-1_sf-1_p7-1"), tampered, { }, []);
   certdb.openSignedAppFileAsync(
-    Ci.nsIX509CertDB.AppXPCShellRoot, original_app_path("valid_app_1"),
+    Ci.nsIX509CertDB.AppXPCShellRoot, original_app_path("app_mf-1_sf-1_p7-1"),
     check_open_result("identity_tampering", Cr.NS_OK));
 });
 
 add_test(function () {
-  var tampered = tampered_app_path("missing_rsa");
-  tamper(original_app_path("valid_app_1"), tampered, { "META-INF/A.RSA" : removeEntry }, []);
+  let tampered = tampered_app_path("missing_rsa");
+  tamper(original_app_path("app_mf-1_sf-1_p7-1"), tampered,
+         { "META-INF/A.RSA": removeEntry }, []);
   certdb.openSignedAppFileAsync(
     Ci.nsIX509CertDB.AppXPCShellRoot, tampered,
     check_open_result("missing_rsa", Cr.NS_ERROR_SIGNED_JAR_NOT_SIGNED));
 });
 
 add_test(function () {
-  var tampered = tampered_app_path("missing_sf");
-  tamper(original_app_path("valid_app_1"), tampered, { "META-INF/A.SF" : removeEntry }, []);
+  let tampered = tampered_app_path("missing_sf");
+  tamper(original_app_path("app_mf-1_sf-1_p7-1"), tampered,
+         { "META-INF/A.SF": removeEntry }, []);
   certdb.openSignedAppFileAsync(
     Ci.nsIX509CertDB.AppXPCShellRoot, tampered,
     check_open_result("missing_sf", Cr.NS_ERROR_SIGNED_JAR_MANIFEST_INVALID));
 });
 
 add_test(function () {
-  var tampered = tampered_app_path("missing_manifest_mf");
-  tamper(original_app_path("valid_app_1"), tampered, { "META-INF/MANIFEST.MF" : removeEntry }, []);
+  let tampered = tampered_app_path("missing_manifest_mf");
+  tamper(original_app_path("app_mf-1_sf-1_p7-1"), tampered,
+         { "META-INF/MANIFEST.MF": removeEntry }, []);
   certdb.openSignedAppFileAsync(
     Ci.nsIX509CertDB.AppXPCShellRoot, tampered,
     check_open_result("missing_manifest_mf",
@@ -188,24 +257,57 @@ add_test(function () {
 });
 
 add_test(function () {
-  var tampered = tampered_app_path("missing_entry");
-  tamper(original_app_path("valid_app_1"), tampered, { "manifest.webapp" : removeEntry }, []);
+  let tampered = tampered_app_path("missing_entry");
+  tamper(original_app_path("app_mf-1_sf-1_p7-1"), tampered,
+         { "manifest.json": removeEntry }, []);
   certdb.openSignedAppFileAsync(
     Ci.nsIX509CertDB.AppXPCShellRoot, tampered,
     check_open_result("missing_entry", Cr.NS_ERROR_SIGNED_JAR_ENTRY_MISSING));
 });
 
 add_test(function () {
-  var tampered = tampered_app_path("truncated_entry");
-  tamper(original_app_path("valid_app_1"), tampered, { "manifest.webapp" : truncateEntry }, []);
+  let tampered = tampered_app_path("truncated_entry");
+  tamper(original_app_path("app_mf-1_sf-1_p7-1"), tampered,
+         { "manifest.json": truncateEntry }, []);
   certdb.openSignedAppFileAsync(
     Ci.nsIX509CertDB.AppXPCShellRoot, tampered,
-    check_open_result("truncated_entry", Cr.NS_ERROR_SIGNED_JAR_MODIFIED_ENTRY));
+    check_open_result("truncated_entry",
+                      Cr.NS_ERROR_SIGNED_JAR_MODIFIED_ENTRY));
 });
 
 add_test(function () {
-  var tampered = tampered_app_path("unsigned_entry");
-  tamper(original_app_path("valid_app_1"), tampered, {},
+  let tampered = tampered_app_path("truncated_manifestFile");
+  tamper(original_app_path("app_mf-1_sf-1_p7-1"), tampered,
+         { "META-INF/MANIFEST.MF": truncateEntry }, []);
+  certdb.openSignedAppFileAsync(
+    Ci.nsIX509CertDB.AppXPCShellRoot, tampered,
+    check_open_result("truncated_manifestFile",
+                      Cr.NS_ERROR_SIGNED_JAR_MANIFEST_INVALID));
+});
+
+add_test(function () {
+  let tampered = tampered_app_path("truncated_signatureFile");
+  tamper(original_app_path("app_mf-1_sf-1_p7-1"), tampered,
+         { "META-INF/A.SF": truncateEntry }, []);
+  certdb.openSignedAppFileAsync(
+    Ci.nsIX509CertDB.AppXPCShellRoot, tampered,
+    check_open_result("truncated_signatureFile",
+                      getXPCOMStatusFromNSS(SEC_ERROR_PKCS7_BAD_SIGNATURE)));
+});
+
+add_test(function () {
+  let tampered = tampered_app_path("truncated_pkcs7File");
+  tamper(original_app_path("app_mf-1_sf-1_p7-1"), tampered,
+         { "META-INF/A.RSA": truncateEntry }, []);
+  certdb.openSignedAppFileAsync(
+    Ci.nsIX509CertDB.AppXPCShellRoot, tampered,
+    check_open_result("truncated_pkcs7File",
+                      Cr.NS_ERROR_CMS_VERIFY_NOT_SIGNED));
+});
+
+add_test(function () {
+  let tampered = tampered_app_path("unsigned_entry");
+  tamper(original_app_path("app_mf-1_sf-1_p7-1"), tampered, {},
     [ { "name": "unsigned.txt", "content": "unsigned content!" } ]);
   certdb.openSignedAppFileAsync(
     Ci.nsIX509CertDB.AppXPCShellRoot, tampered,
@@ -213,8 +315,8 @@ add_test(function () {
 });
 
 add_test(function () {
-  var tampered = tampered_app_path("unsigned_metainf_entry");
-  tamper(original_app_path("valid_app_1"), tampered, {},
+  let tampered = tampered_app_path("unsigned_metainf_entry");
+  tamper(original_app_path("app_mf-1_sf-1_p7-1"), tampered, {},
     [ { name: "META-INF/unsigned.txt", content: "unsigned content!" } ]);
   certdb.openSignedAppFileAsync(
     Ci.nsIX509CertDB.AppXPCShellRoot, tampered,

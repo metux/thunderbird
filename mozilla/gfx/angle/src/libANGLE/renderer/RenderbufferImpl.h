@@ -12,7 +12,7 @@
 #include "angle_gl.h"
 #include "common/angleutils.h"
 #include "libANGLE/Error.h"
-#include "libANGLE/FramebufferAttachment.h"
+#include "libANGLE/renderer/FramebufferAttachmentObjectImpl.h"
 
 namespace egl
 {
@@ -27,10 +27,18 @@ class RenderbufferImpl : public FramebufferAttachmentObjectImpl
   public:
     RenderbufferImpl() {}
     virtual ~RenderbufferImpl() {}
+    virtual gl::Error onDestroy(const gl::Context *context) { return gl::NoError(); }
 
-    virtual gl::Error setStorage(GLenum internalformat, size_t width, size_t height) = 0;
-    virtual gl::Error setStorageMultisample(size_t samples, GLenum internalformat, size_t width, size_t height) = 0;
-    virtual gl::Error setStorageEGLImageTarget(egl::Image *image) = 0;
+    virtual gl::Error setStorage(const gl::Context *context,
+                                 GLenum internalformat,
+                                 size_t width,
+                                 size_t height) = 0;
+    virtual gl::Error setStorageMultisample(const gl::Context *context,
+                                            size_t samples,
+                                            GLenum internalformat,
+                                            size_t width,
+                                            size_t height) = 0;
+    virtual gl::Error setStorageEGLImageTarget(const gl::Context *context, egl::Image *image) = 0;
 };
 
 }

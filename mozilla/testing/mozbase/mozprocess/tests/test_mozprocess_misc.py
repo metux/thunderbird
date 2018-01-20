@@ -1,11 +1,17 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from __future__ import absolute_import
 
 import os
-import unittest
+
+import mozunit
+
 import proctest
 from mozprocess import processhandler
 
 here = os.path.dirname(os.path.abspath(__file__))
+
 
 class ProcTestMisc(proctest.ProcTest):
     """ Class to test misc operations """
@@ -15,7 +21,7 @@ class ProcTestMisc(proctest.ProcTest):
         Process is started, then processOutput is called a second time explicitly
         """
         p = processhandler.ProcessHandler([self.python, self.proclaunch,
-                                          "process_waittimeout_10s_python.ini"],
+                                           "process_waittimeout_10s_python.ini"],
                                           cwd=here)
 
         p.run()
@@ -24,5 +30,17 @@ class ProcTestMisc(proctest.ProcTest):
 
         self.determine_status(p, False, ())
 
+    def test_unicode_in_environment(self):
+        env = {
+            'FOOBAR': 'ʘ',
+        }
+        p = processhandler.ProcessHandler([self.python, self.proclaunch,
+                                           "process_normal_finish_python.ini"],
+                                          cwd=here, env=env)
+        # passes if no exceptions are raised
+        p.run()
+        p.wait()
+
+
 if __name__ == '__main__':
-    unittest.main()
+    mozunit.main()

@@ -46,6 +46,9 @@ nsSVGAnimatedTransformList::SetBaseValue(const SVGTransformList& aValue)
     domWrapper->InternalBaseValListWillChangeLengthTo(aValue.Length());
   }
 
+  // (This bool will be copied to our member-var, if attr-change succeeds.)
+  bool hadTransform = HasTransform();
+
   // We don't need to call DidChange* here - we're only called by
   // nsSVGElement::ParseAttribute under Element::SetAttr,
   // which takes care of notifying.
@@ -57,6 +60,7 @@ nsSVGAnimatedTransformList::SetBaseValue(const SVGTransformList& aValue)
     domWrapper->InternalBaseValListWillChangeLengthTo(mBaseVal.Length());
   } else {
     mIsAttrSet = true;
+    mHadTransformBeforeLastBaseValChange = hadTransform;
   }
   return rv;
 }
@@ -64,6 +68,8 @@ nsSVGAnimatedTransformList::SetBaseValue(const SVGTransformList& aValue)
 void
 nsSVGAnimatedTransformList::ClearBaseValue()
 {
+  mHadTransformBeforeLastBaseValChange = HasTransform();
+
   SVGAnimatedTransformList *domWrapper =
     SVGAnimatedTransformList::GetDOMWrapperIfExists(this);
   if (domWrapper) {
@@ -161,10 +167,10 @@ nsSVGAnimatedTransformList::IsExplicitlySet() const
   return mIsAttrSet || !mBaseVal.IsEmpty() || mAnimVal;
 }
 
-nsISMILAttr*
+UniquePtr<nsISMILAttr>
 nsSVGAnimatedTransformList::ToSMILAttr(nsSVGElement* aSVGElement)
 {
-  return new SMILAnimatedTransformList(this, aSVGElement);
+  return MakeUnique<SMILAnimatedTransformList>(this, aSVGElement);
 }
 
 nsresult
@@ -179,7 +185,7 @@ nsSVGAnimatedTransformList::SMILAnimatedTransformList::ValueFromString(
              "aValue should have been cleared before calling ValueFromString");
 
   const nsAttrValue* typeAttr = aSrcElement->GetAnimAttr(nsGkAtoms::type);
-  const nsIAtom* transformType = nsGkAtoms::translate; // default val
+  const nsAtom* transformType = nsGkAtoms::translate; // default val
   if (typeAttr) {
     if (typeAttr->Type() != nsAttrValue::eAtom) {
       // Recognized values of |type| are parsed as an atom -- so if we have
@@ -198,7 +204,7 @@ nsSVGAnimatedTransformList::SMILAnimatedTransformList::ValueFromString(
 void
 nsSVGAnimatedTransformList::SMILAnimatedTransformList::ParseValue(
   const nsAString& aSpec,
-  const nsIAtom* aTransformType,
+  const nsAtom* aTransformType,
   nsSMILValue& aResult)
 {
   MOZ_ASSERT(aResult.IsNull(), "Unexpected type for SMIL value");
@@ -267,7 +273,7 @@ nsSVGAnimatedTransformList::SMILAnimatedTransformList::ParseParameterList(
   while (tokenizer.hasMoreTokens()) {
     float f;
     if (!SVGContentUtils::ParseNumber(tokenizer.nextToken(), f)) {
-      return -1;    
+      return -1;
     }
     if (numArgsFound < aNVars) {
       aVars[numArgsFound] = f;

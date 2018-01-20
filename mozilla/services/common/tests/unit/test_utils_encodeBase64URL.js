@@ -3,17 +3,13 @@
 
 Cu.import("resource://services-common/utils.js");
 
-function run_test() {
-  run_next_test();
-}
-
 add_test(function test_simple() {
   let expected = {
     hello: "aGVsbG8=",
     "<>?": "PD4_",
   };
 
-  for (let [k, v] in Iterator(expected)) {
+  for (let [k, v] of Object.entries(expected)) {
     do_check_eq(CommonUtils.encodeBase64URL(k), v);
   }
 

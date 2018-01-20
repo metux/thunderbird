@@ -33,6 +33,14 @@ function makeReportHandler(testpath, message, expectedJSON) {
       return;
     }
 
+    // check content-type of report is "application/csp-report"
+    var contentType = request.hasHeader("Content-Type")
+                    ? request.getHeader("Content-Type") : undefined;
+    if (contentType !== "application/csp-report") {
+      do_throw("violation report should have the 'application/csp-report' " +
+               "content-type, when in fact it is " + contentType.toString())
+    }
+
     // obtain violation report
     var reportObj = JSON.parse(
           NetUtil.readInputStreamToString(
@@ -79,7 +87,7 @@ function makeTest(id, expectedJSON, useReportOnlyPolicy, callback) {
 
   let ssm = Cc["@mozilla.org/scriptsecuritymanager;1"]
               .getService(Ci.nsIScriptSecurityManager);
-  principal = ssm.getSimpleCodebasePrincipal(selfuri);
+  principal = ssm.createCodebasePrincipal(selfuri, {});
   csp.setRequestContext(null, principal);
 
   // Load up the policy
@@ -99,13 +107,17 @@ function run_test() {
                                ":" + REPORT_SERVER_PORT +
                                "/foo/self");
 
+  let content = Cc["@mozilla.org/supports-string;1"].
+                   createInstance(Ci.nsISupportsString);
+  content.data = "";
   // test that inline script violations cause a report.
   makeTest(0, {"blocked-uri": "self"}, false,
       function(csp) {
         let inlineOK = true;
         inlineOK = csp.getAllowsInline(Ci.nsIContentPolicy.TYPE_SCRIPT,
                                        "", // aNonce
-                                       "", // aContent
+                                       false, // aParserCreated
+                                       content, // aContent
                                        0); // aLineNumber
 
         // this is not a report only policy, so it better block inline scripts
@@ -113,7 +125,9 @@ function run_test() {
       });
 
   // test that eval violations cause a report.
-  makeTest(1, {"blocked-uri": "self"}, false,
+  makeTest(1, {"blocked-uri": "self",
+               // JSON script-sample is UTF8 encoded
+               "script-sample" : "\xc2\xa3\xc2\xa5\xc2\xb5\xe5\x8c\x97\xf0\xa0\x9d\xb9"}, false,
       function(csp) {
         let evalOK = true, oReportViolation = {'value': false};
         evalOK = csp.getAllowsEval(oReportViolation);
@@ -127,7 +141,10 @@ function run_test() {
           // force the logging, since the getter doesn't.
           csp.logViolationDetails(Ci.nsIContentSecurityPolicy.VIOLATION_TYPE_EVAL,
                                   selfuri.asciiSpec,
-                                  "script sample",
+                                  // sending UTF-16 script sample to make sure
+                                  // csp report in JSON is not cut-off, please
+                                  // note that JSON is UTF8 encoded.
+                                  "\u00a3\u00a5\u00b5\u5317\ud841\udf79",
                                   1);
         }
       });
@@ -144,9 +161,13 @@ function run_test() {
   makeTest(3, {"blocked-uri": "self"}, true,
       function(csp) {
         let inlineOK = true;
+        let content = Cc["@mozilla.org/supports-string;1"].
+                         createInstance(Ci.nsISupportsString);
+        content.data = "";
         inlineOK = csp.getAllowsInline(Ci.nsIContentPolicy.TYPE_SCRIPT,
                                        "", // aNonce
-                                       "", // aContent
+                                       false, // aParserCreated
+                                       content, // aContent
                                        0); // aLineNumber
 
         // this is a report only policy, so it better allow inline scripts
@@ -204,4 +225,13 @@ function run_test() {
                      NetUtil.newURI(selfSpec + "#bar"),
                      null, null, null, null);
       });
+
+  // test scheme of ftp:
+  makeTest(8, {"blocked-uri": "ftp://blocked.test"}, false,
+    function(csp) {
+      // shouldLoad creates and sends out the report here.
+      csp.shouldLoad(Ci.nsIContentPolicy.TYPE_SCRIPT,
+                    NetUtil.newURI("ftp://blocked.test/profile.png"),
+                    null, null, null, null);
+    });
 }

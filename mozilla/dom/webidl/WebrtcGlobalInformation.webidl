@@ -18,9 +18,13 @@ interface WebrtcGlobalInformation {
   static void getAllStats(WebrtcGlobalStatisticsCallback callback,
                           optional DOMString pcIdFilter);
 
+  static void clearAllStats();
+
   [Throws]
   static void getLogging(DOMString pattern,
                          WebrtcGlobalLoggingCallback callback);
+
+  static void clearLogging();
 
   // NSPR WebRTC Trace debug level (0 - 65535)
   //
@@ -32,6 +36,6 @@ interface WebrtcGlobalInformation {
 
   // WebRTC AEC debugging enable
   static attribute boolean aecDebug;
+
+  static readonly attribute DOMString aecDebugLogDir;
 };
-
-

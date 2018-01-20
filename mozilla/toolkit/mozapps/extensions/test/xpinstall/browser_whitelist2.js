@@ -11,9 +11,9 @@ function test() {
   pm.add(makeURI("http://example.org/"), "install", pm.ALLOW_ACTION);
 
   var triggers = encodeURIComponent(JSON.stringify({
-    "Unsigned XPI": TESTROOT2 + "unsigned.xpi"
+    "Unsigned XPI": TESTROOT2 + "amosigned.xpi"
   }));
-  gBrowser.selectedTab = gBrowser.addTab();
+  gBrowser.selectedTab = BrowserTestUtils.addTab(gBrowser);
   gBrowser.loadURI(TESTROOT + "installtrigger.html?" + triggers);
 }
 

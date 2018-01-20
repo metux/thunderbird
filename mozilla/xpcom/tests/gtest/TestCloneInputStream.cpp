@@ -6,14 +6,13 @@
 
 #include "gtest/gtest.h"
 #include "Helpers.h"
-#include "mozilla/unused.h"
+#include "mozilla/Unused.h"
 #include "nsICloneableInputStream.h"
 #include "nsIMultiplexInputStream.h"
 #include "nsNetUtil.h"
 #include "nsStreamUtils.h"
 #include "nsStringStream.h"
 #include "nsComponentManagerUtils.h"
-#include "nsAutoPtr.h"
 
 TEST(CloneInputStream, InvalidInput)
 {
@@ -55,7 +54,7 @@ TEST(CloneInputStream, NonCloneableInput_NoFallback)
   // now.  If this changes in the future, then we need a different stream
   // type in this test.
   nsCOMPtr<nsIInputStream> stream;
-  rv = NS_NewBufferedInputStream(getter_AddRefs(stream), base, 4096);
+  rv = NS_NewBufferedInputStream(getter_AddRefs(stream), base.forget(), 4096);
   ASSERT_TRUE(NS_SUCCEEDED(rv));
 
   nsCOMPtr<nsICloneableInputStream> cloneable = do_QueryInterface(stream);
@@ -83,7 +82,7 @@ TEST(CloneInputStream, NonCloneableInput_Fallback)
   // now.  If this changes in the future, then we need a different stream
   // type in this test.
   nsCOMPtr<nsIInputStream> stream;
-  rv = NS_NewBufferedInputStream(getter_AddRefs(stream), base, 4096);
+  rv = NS_NewBufferedInputStream(getter_AddRefs(stream), base.forget(), 4096);
   ASSERT_TRUE(NS_SUCCEEDED(rv));
 
   nsCOMPtr<nsICloneableInputStream> cloneable = do_QueryInterface(stream);
@@ -117,8 +116,10 @@ TEST(CloneInputStream, NonCloneableInput_Fallback)
 
 TEST(CloneInputStream, CloneMultiplexStream)
 {
-  nsCOMPtr<nsIMultiplexInputStream> stream =
+  nsCOMPtr<nsIMultiplexInputStream> multiplexStream =
     do_CreateInstance("@mozilla.org/io/multiplex-input-stream;1");
+  ASSERT_TRUE(multiplexStream);
+  nsCOMPtr<nsIInputStream> stream(do_QueryInterface(multiplexStream));
   ASSERT_TRUE(stream);
 
   nsTArray<char> inputData;
@@ -130,7 +131,7 @@ TEST(CloneInputStream, CloneMultiplexStream)
     nsresult rv = NS_NewCStringInputStream(getter_AddRefs(base), inputString);
     ASSERT_TRUE(NS_SUCCEEDED(rv));
 
-    rv = stream->AppendStream(base);
+    rv = multiplexStream->AppendStream(base);
     ASSERT_TRUE(NS_SUCCEEDED(rv));
   }
 
@@ -145,7 +146,7 @@ TEST(CloneInputStream, CloneMultiplexStream)
   testing::ConsumeAndValidateStream(clone, doubled);
 
   // Stream that has been read should fail.
-  nsAutoPtr<char> buffer(new char[512]);
+  char buffer[512];
   uint32_t read;
   rv = stream->Read(buffer, 512, &read);
   ASSERT_TRUE(NS_SUCCEEDED(rv));
@@ -157,8 +158,10 @@ TEST(CloneInputStream, CloneMultiplexStream)
 
 TEST(CloneInputStream, CloneMultiplexStreamPartial)
 {
-  nsCOMPtr<nsIMultiplexInputStream> stream =
+  nsCOMPtr<nsIMultiplexInputStream> multiplexStream =
     do_CreateInstance("@mozilla.org/io/multiplex-input-stream;1");
+  ASSERT_TRUE(multiplexStream);
+  nsCOMPtr<nsIInputStream> stream(do_QueryInterface(multiplexStream));
   ASSERT_TRUE(stream);
 
   nsTArray<char> inputData;
@@ -170,12 +173,12 @@ TEST(CloneInputStream, CloneMultiplexStreamPartial)
     nsresult rv = NS_NewCStringInputStream(getter_AddRefs(base), inputString);
     ASSERT_TRUE(NS_SUCCEEDED(rv));
 
-    rv = stream->AppendStream(base);
+    rv = multiplexStream->AppendStream(base);
     ASSERT_TRUE(NS_SUCCEEDED(rv));
   }
 
   // Fail when first stream read, but second hasn't been started.
-  nsAutoPtr<char> buffer(new char[1024]);
+  char buffer[1024];
   uint32_t read;
   nsresult rv = stream->Read(buffer, 1024, &read);
   ASSERT_TRUE(NS_SUCCEEDED(rv));

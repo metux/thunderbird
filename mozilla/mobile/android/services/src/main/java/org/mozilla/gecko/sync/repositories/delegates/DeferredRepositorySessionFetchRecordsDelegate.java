@@ -27,21 +27,31 @@ public class DeferredRepositorySessionFetchRecordsDelegate implements Repository
   }
 
   @Override
-  public void onFetchFailed(final Exception ex, final Record record) {
+  public void onFetchFailed(final Exception ex) {
     executor.execute(new Runnable() {
       @Override
       public void run() {
-        inner.onFetchFailed(ex, record);
+        inner.onFetchFailed(ex);
       }
     });
   }
 
   @Override
-  public void onFetchCompleted(final long fetchEnd) {
+  public void onFetchCompleted() {
     executor.execute(new Runnable() {
       @Override
       public void run() {
-        inner.onFetchCompleted(fetchEnd);
+        inner.onFetchCompleted();
+      }
+    });
+  }
+
+  @Override
+  public void onBatchCompleted() {
+    executor.execute(new Runnable() {
+      @Override
+      public void run() {
+        inner.onBatchCompleted();
       }
     });
   }

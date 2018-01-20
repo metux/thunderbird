@@ -9,7 +9,7 @@ function test() {
 
   waitForExplicitFinish();
 
-  ctx.tab1 = gBrowser.addTab(testPath + "bug592641_img.jpg");
+  ctx.tab1 = BrowserTestUtils.addTab(gBrowser, testPath + "bug592641_img.jpg");
   ctx.tab1Browser = gBrowser.getBrowserForTab(ctx.tab1);
   ctx.tab1Browser.addEventListener("load", load1Soon, true);
 }
@@ -30,12 +30,12 @@ function load1Soon() {
 
 function load1Done() {
   // Check the title
-  var title = ctx.tab1Browser.contentWindow.document.title;
+  var title = ctx.tab1Browser.contentTitle;
   checkTitle(title);
 
   // Try loading the same image in a new tab to make sure things work in
   // the cached case.
-  ctx.tab2 = gBrowser.addTab(testPath + "bug592641_img.jpg");
+  ctx.tab2 = BrowserTestUtils.addTab(gBrowser, testPath + "bug592641_img.jpg");
   ctx.tab2Browser = gBrowser.getBrowserForTab(ctx.tab2);
   ctx.tab2Browser.addEventListener("load", load2Soon, true);
 }
@@ -49,7 +49,7 @@ function load2Soon() {
 
 function load2Done() {
   // Check the title
-  var title = ctx.tab2Browser.contentWindow.document.title;
+  var title = ctx.tab2Browser.contentTitle;
   checkTitle(title);
 
   // Clean up

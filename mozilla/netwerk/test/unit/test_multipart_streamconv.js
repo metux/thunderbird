@@ -1,5 +1,5 @@
 Cu.import("resource://testing-common/httpd.js");
-Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/NetUtil.jsm");
 
 var httpserver = null;
 
@@ -8,32 +8,10 @@ XPCOMUtils.defineLazyGetter(this, "uri", function() {
 });
 
 function make_channel(url) {
-  var ios = Cc["@mozilla.org/network/io-service;1"].
-            getService(Ci.nsIIOService);
-  return ios.newChannel2(url,
-                         "",
-                         null,
-                         null,      // aLoadingNode
-                         Services.scriptSecurityManager.getSystemPrincipal(),
-                         null,      // aTriggeringPrincipal
-                         Ci.nsILoadInfo.SEC_NORMAL,
-                         Ci.nsIContentPolicy.TYPE_OTHER);
+  return NetUtil.newChannel({uri: url, loadUsingSystemPrincipal: true});
 }
 
-var multipartBody = "--boundary\r\n\r\nSome text\r\n--boundary\r\n\r\n<?xml version='1.0'?><root/>\r\n--boundary--";
-
-function make_channel(url) {
-  var ios = Cc["@mozilla.org/network/io-service;1"].
-            getService(Ci.nsIIOService);
-  return ios.newChannel2(url,
-                         "",
-                         null,
-                         null,      // aLoadingNode
-                         Services.scriptSecurityManager.getSystemPrincipal(),
-                         null,      // aTriggeringPrincipal
-                         Ci.nsILoadInfo.SEC_NORMAL,
-                         Ci.nsIContentPolicy.TYPE_OTHER);
-}
+var multipartBody = "--boundary\r\nSet-Cookie: foo=bar\r\n\r\nSome text\r\n--boundary\r\nContent-Type: text/x-test\r\n\r\n<?xml version='1.1'?>\r\n<root/>\r\n--boundary\r\n\r\n<?xml version='1.0'?><root/>\r\n--boundary--";
 
 function contentHandler(metadata, response)
 {
@@ -47,16 +25,17 @@ var testNum = 0;
 var testData =
   [
    { data: "Some text", type: "text/plain" },
+   { data: "<?xml version='1.1'?>\r\n<root/>", type: "text/x-test" },
    { data: "<?xml version='1.0'?><root/>", type: "text/xml" }
   ];
 
 function responseHandler(request, buffer)
 {
-    do_check_eq(buffer, testData[testNum].data);
-    do_check_eq(request.QueryInterface(Ci.nsIChannel).contentType,
-		testData[testNum].type);
-    if (++testNum == numTests)
-	httpserver.stop(do_test_finished);
+  do_check_eq(buffer, testData[testNum].data);
+  do_check_eq(request.QueryInterface(Ci.nsIChannel).contentType,
+  testData[testNum].type);
+  if (++testNum == numTests)
+    httpserver.stop(do_test_finished);
 }
 
 var multipartListener = {
@@ -87,7 +66,7 @@ var multipartListener = {
   onStopRequest: function(request, context, status) {
     this._index++;
     // Second part should be last part
-    do_check_eq(request.QueryInterface(Ci.nsIMultiPartChannel).isLastPart, this._index == 2);
+    do_check_eq(request.QueryInterface(Ci.nsIMultiPartChannel).isLastPart, this._index == testData.length);
     try {
       responseHandler(request, this._buffer);
     } catch (ex) {
@@ -110,6 +89,6 @@ function run_test()
 					 null);
 
   var chan = make_channel(uri);
-  chan.asyncOpen(conv, null);
+  chan.asyncOpen2(conv);
   do_test_pending();
 }

@@ -11,7 +11,7 @@ load(_HTTPD_JS_PATH.path);
 // if these tests fail, we'll want the debug output
 DEBUG = true;
 
-Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/NetUtil.jsm");
 
 /**
  * Constructs a new nsHttpServer instance.  This function is intended to
@@ -32,19 +32,8 @@ function createServer()
  */
 function makeChannel(url)
 {
-  var ios = Cc["@mozilla.org/network/io-service;1"]
-              .getService(Ci.nsIIOService);
-  var chan = ios.newChannel2(url,
-                             null,
-                             null,
-                             null,      // aLoadingNode
-                             Services.scriptSecurityManager.getSystemPrincipal(),
-                             null,      // aTriggeringPrincipal
-                             Ci.nsILoadInfo.SEC_NORMAL,
-                             Ci.nsIContentPolicy.TYPE_OTHER)
+  return NetUtil.newChannel({uri: url, loadUsingSystemPrincipal: true})
                 .QueryInterface(Ci.nsIHttpChannel);
-
-  return chan;
 }
 
 /**
@@ -62,7 +51,7 @@ function makeBIS(stream)
 /**
  * Returns the contents of the file as a string.
  *
- * @param file : nsILocalFile
+ * @param file : nsIFile
  *   the file whose contents are to be read
  * @returns string
  *   the contents of the file
@@ -70,7 +59,7 @@ function makeBIS(stream)
 function fileContents(file)
 {
   const PR_RDONLY = 0x01;
-  var fis = new FileInputStream(file, PR_RDONLY, 0444,
+  var fis = new FileInputStream(file, PR_RDONLY, 0o444,
                                 Ci.nsIFileInputStream.CLOSE_ON_EOF);
   var sis = new ScriptableInputStream(fis);
   var contents = sis.read(file.fileSize);
@@ -88,7 +77,7 @@ function fileContents(file)
  *   an Iterator which returns each line from data in turn; note that this
  *   includes a final empty line if data ended with a CRLF
  */
-function LineIterator(data)
+function* LineIterator(data)
 {
   var start = 0, index = 0;
   do
@@ -118,7 +107,7 @@ function LineIterator(data)
 function expectLines(iter, expectedLines)
 {
   var index = 0;
-  for (var line in iter)
+  for (var line of iter)
   {
     if (expectedLines.length == index)
       throw "Error: got more than " + expectedLines.length + " expected lines!";
@@ -166,9 +155,9 @@ function writeDetails(request, response)
  */
 function skipHeaders(iter)
 {
-  var line = iter.next();
+  var line = iter.next().value;
   while (line !== "")
-    line = iter.next();
+    line = iter.next().value;
 }
 
 /**
@@ -297,7 +286,7 @@ function runHttpTests(testArray, done)
     }
 
     listener._channel = ch;
-    ch.asyncOpen(listener, null);
+    ch.asyncOpen2(listener);
   }
 
   /** Index of the test being run. */

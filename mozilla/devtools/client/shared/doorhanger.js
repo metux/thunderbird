@@ -4,32 +4,25 @@
 
 "use strict";
 
-const { Ci, Cc } = require("chrome");
-const { Services } = require("resource://gre/modules/Services.jsm");
+const Services = require("Services");
 const { DOMHelpers } = require("resource://devtools/client/shared/DOMHelpers.jsm");
-const { Task } = require("resource://gre/modules/Task.jsm");
-const { Promise } = require("resource://gre/modules/Promise.jsm");
-const { setTimeout } = require("sdk/timers");
-const { getMostRecentBrowserWindow } = require("sdk/window/utils");
+const { Task } = require("devtools/shared/task");
 
 const XULNS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 const DEV_EDITION_PROMO_URL = "chrome://devtools/content/framework/dev-edition-promo/dev-edition-promo.xul";
 const DEV_EDITION_PROMO_ENABLED_PREF = "devtools.devedition.promo.enabled";
 const DEV_EDITION_PROMO_SHOWN_PREF = "devtools.devedition.promo.shown";
 const DEV_EDITION_PROMO_URL_PREF = "devtools.devedition.promo.url";
-const LOCALE = Cc["@mozilla.org/chrome/chrome-registry;1"]
-               .getService(Ci.nsIXULChromeRegistry)
-               .getSelectedLocale("global");
 
 /**
  * Only show Dev Edition promo if it's enabled (beta channel),
  * if it has not been shown before, and it's a locale build
  * for `en-US`
  */
-function shouldDevEditionPromoShow () {
+function shouldDevEditionPromoShow() {
   return Services.prefs.getBoolPref(DEV_EDITION_PROMO_ENABLED_PREF) &&
          !Services.prefs.getBoolPref(DEV_EDITION_PROMO_SHOWN_PREF) &&
-         LOCALE === "en-US";
+         Services.locale.getAppLocaleAsLangTag() === "en-US";
 }
 
 var TYPES = {
@@ -38,7 +31,9 @@ var TYPES = {
   // in Beta releases. Only displayed once per profile.
   deveditionpromo: {
     predicate: shouldDevEditionPromoShow,
-    success: () => Services.prefs.setBoolPref(DEV_EDITION_PROMO_SHOWN_PREF, true),
+    success: () => {
+      return Services.prefs.setBoolPref(DEV_EDITION_PROMO_SHOWN_PREF, true);
+    },
     action: () => {
       let url = Services.prefs.getCharPref(DEV_EDITION_PROMO_URL_PREF);
       getGBrowser().selectedTab = getGBrowser().addTab(url);
@@ -64,12 +59,13 @@ var panelAttrs = {
  * @param {XULWindow} window
  *        The window that should house the doorhanger.
  * @param {String} type
- *        The type of doorhanger to be displayed is, using the `TYPES` definition.
+ *        The type of doorhanger to be displayed is, using the `TYPES`
+ *        definition.
  * @param {String} selector
- *        The selector that the doorhanger should be appended to within `window`.
- *        Defaults to a XUL Document's `window` element.
+ *        The selector that the doorhanger should be appended to within
+ *        `window`.  Defaults to a XUL Document's `window` element.
  */
-exports.showDoorhanger = Task.async(function *({ window, type, anchor }) {
+exports.showDoorhanger = Task.async(function* ({ window, type, anchor }) {
   let { predicate, success, url, action } = TYPES[type];
   // Abort if predicate fails
   if (!predicate()) {
@@ -118,8 +114,10 @@ exports.showDoorhanger = Task.async(function *({ window, type, anchor }) {
   }
 });
 
-function setDoorhangerStyle (panel, frame) {
-  Object.keys(panelAttrs).forEach(prop => panel.setAttribute(prop, panelAttrs[prop]));
+function setDoorhangerStyle(panel, frame) {
+  Object.keys(panelAttrs).forEach(prop => {
+    return panel.setAttribute(prop, panelAttrs[prop]);
+  });
   panel.style.margin = "20px";
   panel.style.borderRadius = "5px";
   panel.style.border = "none";
@@ -132,29 +130,27 @@ function setDoorhangerStyle (panel, frame) {
   frame.setAttribute("height", "179");
 }
 
-function onFrameLoad (frame) {
-  let { resolve, promise } = Promise.defer();
-
-  if (frame.contentWindow) {
-    let domHelper = new DOMHelpers(frame.contentWindow);
-    domHelper.onceDOMReady(resolve);
-  } else {
-    let callback = () => {
-      frame.removeEventListener("DOMContentLoaded", callback);
-      resolve();
+function onFrameLoad(frame) {
+  return new Promise((resolve, reject) => {
+    if (frame.contentWindow) {
+      let domHelper = new DOMHelpers(frame.contentWindow);
+      domHelper.onceDOMReady(resolve);
+    } else {
+      let callback = () => {
+        frame.removeEventListener("DOMContentLoaded", callback);
+        resolve();
+      };
+      frame.addEventListener("DOMContentLoaded", callback);
     }
-    frame.addEventListener("DOMContentLoaded", callback);
-  }
-
-  return promise;
+  });
 }
 
-function getGBrowser () {
-  return getMostRecentBrowserWindow().gBrowser;
+function getGBrowser() {
+  return Services.wm.getMostRecentWindow("navigator:browser").gBrowser;
 }
 
-function wait (n) {
-  let { resolve, promise } = Promise.defer();
-  setTimeout(resolve, n);
-  return promise;
+function wait(n) {
+  return new Promise((resolve, reject) => {
+    setTimeout(resolve, n);
+  });
 }

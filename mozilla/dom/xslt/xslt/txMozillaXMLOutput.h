@@ -18,7 +18,7 @@
 
 class nsIContent;
 class nsIDOMDocument;
-class nsIAtom;
+class nsAtom;
 class nsIDOMDocumentFragment;
 class nsITransformObserver;
 class nsNodeInfoManager;
@@ -33,9 +33,9 @@ public:
 
     NS_DECL_ISUPPORTS
     NS_DECL_NSISCRIPTLOADEROBSERVER
-    
+
     // nsICSSLoaderObserver
-    NS_IMETHOD StyleSheetLoaded(mozilla::CSSStyleSheet* aSheet,
+    NS_IMETHOD StyleSheetLoaded(mozilla::StyleSheet* aSheet,
                                 bool aWasAlternate,
                                 nsresult aStatus) override;
 
@@ -72,7 +72,7 @@ public:
 
     nsresult closePrevious(bool aFlushText);
 
-    nsresult createResultDocument(const nsSubstring& aName, int32_t aNsID,
+    nsresult createResultDocument(const nsAString& aName, int32_t aNsID,
                                   nsIDOMDocument* aSourceDocument,
                                   bool aLoadedAsData);
 
@@ -80,13 +80,13 @@ private:
     nsresult createTxWrapper();
     nsresult startHTMLElement(nsIContent* aElement, bool aXHTML);
     nsresult endHTMLElement(nsIContent* aElement);
-    void processHTTPEquiv(nsIAtom* aHeader, const nsString& aValue);
-    nsresult createHTMLElement(nsIAtom* aName,
+    void processHTTPEquiv(nsAtom* aHeader, const nsString& aValue);
+    nsresult createHTMLElement(nsAtom* aName,
                                nsIContent** aResult);
 
-    nsresult attributeInternal(nsIAtom* aPrefix, nsIAtom* aLocalName,
+    nsresult attributeInternal(nsAtom* aPrefix, nsAtom* aLocalName,
                                int32_t aNsID, const nsString& aValue);
-    nsresult startElementInternal(nsIAtom* aPrefix, nsIAtom* aLocalName,
+    nsresult startElementInternal(nsAtom* aPrefix, nsAtom* aLocalName,
                                   int32_t aNsID);
 
     nsCOMPtr<nsIDocument> mDocument;

@@ -35,6 +35,11 @@ public:
   FileLocation();
   ~FileLocation();
 
+  FileLocation(const FileLocation& aOther);
+  FileLocation(FileLocation&& aOther);
+
+  FileLocation& operator=(const FileLocation&) = default;
+
   /**
    * Constructor for plain files
    */
@@ -51,7 +56,7 @@ public:
   /**
    * Creates a new file location relative to another one.
    */
-  FileLocation(const FileLocation& aFile, const char* aPath = nullptr);
+  FileLocation(const FileLocation& aFile, const char* aPath);
 
   /**
    * Initialization functions corresponding to constructors
@@ -75,6 +80,8 @@ public:
    */
   already_AddRefed<nsIFile> GetBaseFile();
 
+  nsZipArchive* GetBaseZip() { return mBaseZip; }
+
   /**
    * Returns whether the "base file" (see GetBaseFile) is an archive
    */
@@ -89,11 +96,7 @@ public:
    * Boolean value corresponding to whether the file location is initialized
    * or not.
    */
-#if defined(MOZILLA_XPCOMRT_API)
-  explicit operator bool() const { return mBaseFile; }
-#else
   explicit operator bool() const { return mBaseFile || mBaseZip; }
-#endif // defined(MOZILLA_XPCOMRT_API)
 
   /**
    * Returns whether another FileLocation points to the same resource
@@ -117,9 +120,7 @@ public:
     nsresult Copy(char* aBuf, uint32_t aLen);
   protected:
     friend class FileLocation;
-#if !defined(MOZILLA_XPCOMRT_API)
     nsZipItem* mItem;
-#endif // !defined(MOZILLA_XPCOMRT_API)
     RefPtr<nsZipArchive> mZip;
     mozilla::AutoFDClose mFd;
   };
@@ -131,9 +132,7 @@ public:
   nsresult GetData(Data& aData);
 private:
   nsCOMPtr<nsIFile> mBaseFile;
-#if !defined(MOZILLA_XPCOMRT_API)
   RefPtr<nsZipArchive> mBaseZip;
-#endif // !defined(MOZILLA_XPCOMRT_API)
   nsCString mPath;
 }; /* class FileLocation */
 

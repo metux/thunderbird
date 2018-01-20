@@ -9,12 +9,13 @@
 #include "nsIWebProgressListener2.h"
 #include "nsIWebProgress.h"
 #include "nsWeakReference.h"
+#include "nsCycleCollectionParticipant.h"
 #include "nsITimer.h"
 #include "nsCOMPtr.h"
 #include "nsString.h"
 
 //-----------------------------------------------------------------------------
-// nsBrowserStatusFilter - a web progress listener implementation designed to 
+// nsBrowserStatusFilter - a web progress listener implementation designed to
 // sit between nsDocLoader and nsBrowserStatusHandler to filter out and limit
 // the frequency of certain events to improve page load performance.
 //-----------------------------------------------------------------------------
@@ -26,7 +27,8 @@ class nsBrowserStatusFilter : public nsIWebProgress
 public:
     nsBrowserStatusFilter();
 
-    NS_DECL_ISUPPORTS
+    NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+    NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsBrowserStatusFilter, nsIWebProgress)
     NS_DECL_NSIWEBPROGRESS
     NS_DECL_NSIWEBPROGRESSLISTENER
     NS_DECL_NSIWEBPROGRESSLISTENER2
@@ -46,6 +48,7 @@ private:
 
 private:
     nsCOMPtr<nsIWebProgressListener> mListener;
+    nsCOMPtr<nsIEventTarget>         mTarget;
     nsCOMPtr<nsITimer>               mTimer;
 
     // delayed values

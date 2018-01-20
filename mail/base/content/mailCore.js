@@ -1,7 +1,7 @@
-# -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-# This Source Code Form is subject to the terms of the Mozilla Public
-# License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /*
  * Core mail routines used by all of the major mail windows (address book,
@@ -12,7 +12,9 @@
  * to be used by all of the main mail windows?
  */
 
+Components.utils.import("resource://gre/modules/BrowserUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
+Components.utils.import("resource://gre/modules/AppConstants.jsm");
 Components.utils.import("resource:///modules/mailServices.js");
 
 var gCustomizeSheet = false;
@@ -165,9 +167,8 @@ function CustomizeMailToolbar(toolboxId, customizePopupId)
     // that the user doesn't see a white flash.
     panel.style.visibility = "hidden";
     toolbox.addEventListener("beforecustomization", function removeProp() {
-      toolbox.removeEventListener("beforecustomization", removeProp, false);
       panel.style.removeProperty("visibility");
-    }, false);
+    }, {capture: false, once: true});
     panel.openPopup(toolbox, "after_start", 0, 0);
   }
   else {
@@ -271,12 +272,12 @@ function onViewToolbarsPopupShowing(aEvent, toolboxIds, aInsertPoint)
   // point is defined.
   let firstMenuItem = aInsertPoint || popup.firstChild;
 
-  for (let [, toolboxId] in Iterator(toolboxIds)) {
+  for (let toolboxId of toolboxIds) {
     let toolbox = document.getElementById(toolboxId);
 
     // We'll consider either childnodes that have a toolbarname attribute,
     // or externalToolbars.
-    let potentialToolbars = Array.slice(
+    let potentialToolbars = Array.from(
       toolbox.querySelectorAll("[toolbarname]")
     );
     for (let externalToolbar of toolbox.externalToolbars) {
@@ -322,7 +323,13 @@ function onViewToolbarsPopupShowing(aEvent, toolboxIds, aInsertPoint)
 
 function toJavaScriptConsole()
 {
-  toOpenWindowByType("global:console", "chrome://global/content/console.xul");
+  HUDService.openBrowserConsoleOrFocus();
+}
+
+function openAboutDebugging(hash)
+{
+  let url = "about:debugging" + (hash ? "#" + hash : "");
+  document.getElementById('tabmail').openTab("contentTab", { contentPage: url });
 }
 
 function toOpenWindowByType(inType, uri)
@@ -493,16 +500,17 @@ function openIMAccountWizard()
   const kUrl = "chrome://messenger/content/chat/imAccountWizard.xul";
   const kName = "IMAccountWizard";
 
-#ifdef XP_MACOSX
-  // On Mac, avoid using the hidden window as a parent as that would
-  // make it visible.
-  let hiddenWindowUrl =
-    Services.prefs.getCharPref("browser.hiddenWindowChromeURL");
-  if (window.location.href == hiddenWindowUrl) {
-    Services.ww.openWindow(null, kUrl, kName, kFeatures, null);
-    return;
+  if (AppConstants.platform == "macosx") {
+    // On Mac, avoid using the hidden window as a parent as that would
+    // make it visible.
+    let hiddenWindowUrl =
+      Services.prefs.getCharPref("browser.hiddenWindowChromeURL");
+    if (window.location.href == hiddenWindowUrl) {
+      Services.ww.openWindow(null, kUrl, kName, kFeatures, null);
+      return;
+    }
   }
-#endif
+
   window.openDialog(kUrl, kName, kFeatures);
 }
 
@@ -547,13 +555,14 @@ function openAboutDialog()
     return;
   }
 
-#ifdef XP_WIN
-  var features = "chrome,centerscreen,dependent";
-#elifdef XP_MACOSX
-  var features = "chrome,resizable=no,minimizable=no";
-#else
-  var features = "chrome,centerscreen,dependent,dialog=no";
-#endif
+  let features;
+  if (AppConstants.platform == "win")
+    features = "chrome,centerscreen,dependent";
+  else if (AppConstants.platform == "macosx")
+    features = "chrome,resizable=no,minimizable=no";
+  else
+    features = "chrome,centerscreen,dependent,dialog=no";
+
   window.openDialog("chrome://messenger/content/aboutDialog.xul", "About", features);
 }
 
@@ -575,11 +584,20 @@ function openFormattedURL(aPrefName)
 {
   var urlToOpen = Services.urlFormatter.formatURLPref(aPrefName);
 
-  var uri = Services.io.newURI(urlToOpen, null, null);
+  var uri = Services.io.newURI(urlToOpen);
 
   var protocolSvc = Components.classes["@mozilla.org/uriloader/external-protocol-service;1"]
                               .getService(Components.interfaces.nsIExternalProtocolService);
   protocolSvc.loadURI(uri);
+}
+
+/**
+ * Opens the Troubleshooting page in a new tab.
+ */
+function openAboutSupport() {
+  let tabmail = document.getElementById("tabmail");
+  tabmail.openTab("contentTab", {contentPage: "about:support",
+                  clickHandler: "specialTabs.aboutClickHandler(event);" });
 }
 
 /**
@@ -606,42 +624,40 @@ function safeModeRestart()
     let environment = Components.classes["@mozilla.org/process/environment;1"]
                                 .getService(Components.interfaces.nsIEnvironment);
     environment.set("MOZ_SAFE_MODE_RESTART", "1");
-    Application.restart();
+    BrowserUtils.restartApplication();
   }
 }
 
-#ifndef XP_WIN
-#define BROKEN_WM_Z_ORDER
-#endif
-
 function getMostRecentMailWindow() {
-#ifdef BROKEN_WM_Z_ORDER
-  let win = Services.wm.getMostRecentWindow("mail:3pane", true);
+  let win = null;
+  if (AppConstants.platform != "win") {
+    // Platforms other than Windows have a broken z-order...
+    win = Services.wm.getMostRecentWindow("mail:3pane", true);
 
-  // if we're lucky, this isn't a popup, and we can just return this
-  if (win && win.document.documentElement.getAttribute("chromehidden")) {
-    win = null;
-    var windowList = Services.wm.getEnumerator("mail:3pane", true);
-    // this is oldest to newest, so this gets a bit ugly
-    while (windowList.hasMoreElements()) {
-      var nextWin = windowList.getNext();
-      if (!nextWin.document.documentElement.getAttribute("chromehidden"))
-        win = nextWin;
+    // If we're lucky, this isn't a popup, and we can just return this.
+    if (win && win.document.documentElement.getAttribute("chromehidden")) {
+      win = null;
+      let windowList = Services.wm.getEnumerator("mail:3pane", true);
+      // This is oldest to newest, so this gets a bit ugly.
+      while (windowList.hasMoreElements()) {
+        let nextWin = windowList.getNext();
+        if (!nextWin.document.documentElement.getAttribute("chromehidden"))
+          win = nextWin;
+      }
     }
-  }
-#else
-  var windowList = Services.wm.getZOrderDOMWindowEnumerator("mail:3pane", true);
-  if (!windowList.hasMoreElements())
-    return null;
-
-  var win = windowList.getNext();
-  while (win.document.documentElement.getAttribute("chromehidden")) {
+  } else {
+    let windowList = Services.wm.getZOrderDOMWindowEnumerator("mail:3pane", true);
     if (!windowList.hasMoreElements())
       return null;
 
     win = windowList.getNext();
+    while (win.document.documentElement.getAttribute("chromehidden")) {
+      if (!windowList.hasMoreElements())
+        return null;
+
+      win = windowList.getNext();
+    }
   }
-#endif
 
   return win;
 }
@@ -658,12 +674,10 @@ function getMostRecentMailWindow() {
  */
 function SanitizeAttachmentDisplayName(aAttachment)
 {
-  let displayName = aAttachment.name.trim();
-  return displayName.replace(/\s+/g, " ")
-#ifdef XP_WIN
-                    .replace(/[ \.]+$/, "")
-#endif
-                    .replace(/(.)\1{9,}/g, "$1…$1");
+  let displayName = aAttachment.name.trim().replace(/\s+/g, " ");
+  if (AppConstants.platform == "win")
+    displayName = displayName.replace(/[ \.]+$/, "");
+  return displayName.replace(/(.)\1{9,}/g, "$1…$1");
 }
 
 /**
@@ -737,7 +751,7 @@ nsFlavorDataProvider.prototype =
       var dirPrimitive = {};
       aTransferable.getTransferData("application/x-moz-file-promise-dir",
                                     dirPrimitive, dataSize);
-      var destDirectory = dirPrimitive.value.QueryInterface(Components.interfaces.nsILocalFile);
+      var destDirectory = dirPrimitive.value.QueryInterface(Components.interfaces.nsIFile);
 
       // now save the attachment to the specified location
       // XXX: we need more information than just the attachment url to save it,

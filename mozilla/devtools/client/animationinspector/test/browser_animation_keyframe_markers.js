@@ -21,13 +21,13 @@ const EXPECTED_PROPERTIES = [
   "width"
 ];
 
-add_task(function*() {
-  yield addTab(TEST_URL_ROOT + "doc_keyframes.html");
+add_task(function* () {
+  yield addTab(URL_ROOT + "doc_keyframes.html");
   let {panel} = yield openAnimationInspector();
   let timeline = panel.animationsTimelineComponent;
 
-  info("Expand the animation");
-  yield clickOnAnimation(panel, 0);
+  // doc_keyframes.html has only one animation.
+  // So we don't need to click the animation since already the animation detail shown.
 
   ok(timeline.rootWrapperEl.querySelectorAll(".frames .keyframes").length,
      "There are container elements for displaying keyframes");
@@ -54,18 +54,18 @@ add_task(function*() {
 
 function* getExpectedKeyframesData(animation) {
   // We're testing the UI state here, so it's fine to get the list of expected
-  // keyframes from the animation actor.
-  let frames = yield animation.getFrames();
+  // properties from the animation actor.
+  let properties = yield animation.getProperties();
   let data = {};
 
-  for (let property of EXPECTED_PROPERTIES) {
-    data[property] = [];
-    for (let frame of frames) {
-      if (typeof frame[property] !== "undefined") {
-        data[property].push({
-          offset: frame.computedOffset,
-          value: frame[property]
-        });
+  for (let expectedProperty of EXPECTED_PROPERTIES) {
+    data[expectedProperty] = [];
+    for (let {name, values} of properties) {
+      if (name !== expectedProperty) {
+        continue;
+      }
+      for (let {offset, value} of values) {
+        data[expectedProperty].push({offset, value});
       }
     }
   }

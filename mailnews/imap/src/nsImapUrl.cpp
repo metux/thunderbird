@@ -10,7 +10,7 @@
 #include "nsImapUrl.h"
 #include "nsIIMAPHostSessionList.h"
 #include "nsThreadUtils.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "prmem.h"
 #include "plstr.h"
 #include "prprf.h"
@@ -20,7 +20,7 @@
 #include "nsMsgBaseCID.h"
 #include "nsImapUtils.h"
 #include "nsIMAPNamespace.h"
-#include "nsICacheEntryDescriptor.h"
+#include "nsICacheEntry.h"
 #include "nsIMsgFolder.h"
 #include "nsIDocShell.h"
 #include "nsIInterfaceRequestor.h"
@@ -126,7 +126,7 @@ NS_IMETHODIMP nsImapUrl::GetFolder(nsIMsgFolder **aMsgFolder)
   NS_ENSURE_ARG_POINTER(m_imapFolder);
 
   nsCOMPtr<nsIMsgFolder> folder = do_QueryReferent(m_imapFolder);
-  NS_IF_ADDREF(*aMsgFolder = folder);
+  folder.forget(aMsgFolder);
   return NS_OK;
 }
 
@@ -152,8 +152,7 @@ NS_IMETHODIMP nsImapUrl::GetImapMailFolderSink(nsIImapMailFolderSink **
       return NS_ERROR_NULL_POINTER; // no assert, so don't use NS_ENSURE_POINTER.
 
     nsCOMPtr<nsIImapMailFolderSink> folderSink = do_QueryReferent(m_imapMailFolderSink);
-    *aImapMailFolderSink = folderSink;
-    NS_IF_ADDREF(*aImapMailFolderSink);
+    folderSink.forget(aImapMailFolderSink);
     return NS_OK;
 }
 
@@ -170,8 +169,7 @@ NS_IMETHODIMP nsImapUrl::GetImapMessageSink(nsIImapMessageSink ** aImapMessageSi
     NS_ENSURE_ARG_POINTER(m_imapMessageSink);
 
     nsCOMPtr<nsIImapMessageSink> messageSink = do_QueryReferent(m_imapMessageSink);
-    *aImapMessageSink = messageSink;
-    NS_IF_ADDREF(*aImapMessageSink);
+    messageSink.forget(aImapMessageSink);
     return NS_OK;
 }
 
@@ -188,8 +186,7 @@ NS_IMETHODIMP nsImapUrl::GetImapServerSink(nsIImapServerSink ** aImapServerSink)
     NS_ENSURE_ARG_POINTER(m_imapServerSink);
 
     nsCOMPtr<nsIImapServerSink> serverSink = do_QueryReferent(m_imapServerSink);
-    *aImapServerSink = serverSink;
-    NS_IF_ADDREF(*aImapServerSink);
+    serverSink.forget(aImapServerSink);
     return NS_OK;
 }
 
@@ -231,7 +228,7 @@ nsresult nsImapUrl::ParseUrl()
   GetUserPass(m_userName);
 
   nsAutoCString imapPartOfUrl;
-  rv = GetPath(imapPartOfUrl);
+  rv = GetPathQueryRef(imapPartOfUrl);
   nsAutoCString unescapedImapPartOfUrl;
   MsgUnescapeString(imapPartOfUrl, 0, unescapedImapPartOfUrl);
   if (NS_SUCCEEDED(rv) && !unescapedImapPartOfUrl.IsEmpty())
@@ -371,10 +368,7 @@ NS_IMETHODIMP nsImapUrl::GetOnlineSubDirSeparator(char* separator)
       *separator = m_onlineSubDirSeparator;
       return NS_OK;
   }
-  else
-  {
-      return NS_ERROR_NULL_POINTER;
-  }
+  return NS_ERROR_NULL_POINTER;
 }
 
 NS_IMETHODIMP nsImapUrl::GetNumBytesToFetch(int32_t *aNumBytesToFetch)
@@ -809,7 +803,7 @@ NS_IMETHODIMP nsImapUrl::AddOnlineDirectoryIfNecessary(const char *onlineMailbox
   if (directory)
     *directory = newOnlineName;
   else if (newOnlineName)
-    NS_Free(newOnlineName);
+    free(newOnlineName);
   return rv;
 }
 
@@ -834,14 +828,14 @@ NS_IMETHODIMP nsImapUrl::AllocateServerPath(const char * canonicalPath, char onl
   AddOnlineDirectoryIfNecessary(rv, &onlineNameAdded);
   if (onlineNameAdded)
   {
-    NS_Free(rv);
+    free(rv);
     rv = onlineNameAdded;
   }
 
   if (aAllocatedPath)
     *aAllocatedPath = rv;
   else
-    NS_Free(rv);
+    free(rv);
 
   return retVal;
 }
@@ -865,7 +859,7 @@ NS_IMETHODIMP nsImapUrl::AllocateServerPath(const char * canonicalPath, char onl
   if (!result)
     return NS_ERROR_OUT_OF_MEMORY;
 
-  register unsigned char* dst = (unsigned char *) result;
+  unsigned char* dst = (unsigned char *) result;
   src = sourcePath;
   for (i = 0; i < len; i++)
   {
@@ -887,8 +881,8 @@ NS_IMETHODIMP nsImapUrl::AllocateServerPath(const char * canonicalPath, char onl
 
 /* static */ nsresult nsImapUrl::UnescapeSlashes(char *sourcePath)
 {
-    register char *src = sourcePath;
-    register char *dst = sourcePath;
+    char *src = sourcePath;
+    char *dst = sourcePath;
 
     while (*src)
     {
@@ -1043,7 +1037,7 @@ NS_IMETHODIMP nsImapUrl::SetAllowContentChange(bool allowContentChange)
 NS_IMETHODIMP nsImapUrl::SetContentModified(nsImapContentModifiedType contentModified)
 {
   m_contentModified = contentModified;
-  nsCOMPtr<nsICacheEntryDescriptor>  cacheEntry;
+  nsCOMPtr<nsICacheEntry> cacheEntry;
   nsresult res = GetMemCacheEntry(getter_AddRefs(cacheEntry));
   if (NS_SUCCEEDED(res) && cacheEntry)
   {
@@ -1120,8 +1114,7 @@ NS_IMETHODIMP nsImapUrl::GetCopyState(nsISupports** copyState)
 {
   NS_ENSURE_ARG_POINTER(copyState);
   MutexAutoLock mon(mLock);
-  *copyState = m_copyState;
-  NS_IF_ADDREF(*copyState);
+  NS_IF_ADDREF(*copyState = m_copyState);
 
   return NS_OK;
 }
@@ -1149,16 +1142,16 @@ nsImapUrl::GetMsgFile(nsIFile** aFile)
 NS_IMETHODIMP nsImapUrl::GetMockChannel(nsIImapMockChannel ** aChannel)
 {
   NS_ENSURE_ARG_POINTER(aChannel);
-  NS_WARN_IF_FALSE(NS_IsMainThread(), "should only access mock channel on ui thread");
+  NS_WARNING_ASSERTION(NS_IsMainThread(), "should only access mock channel on ui thread");
   *aChannel = nullptr;
   nsCOMPtr<nsIImapMockChannel> channel(do_QueryReferent(m_channelWeakPtr));
-  channel.swap(*aChannel);
+  channel.forget(aChannel);
   return *aChannel ? NS_OK : NS_ERROR_FAILURE;
 }
 
 NS_IMETHODIMP nsImapUrl::SetMockChannel(nsIImapMockChannel * aChannel)
 {
-  NS_WARN_IF_FALSE(NS_IsMainThread(), "should only access mock channel on ui thread");
+  NS_WARNING_ASSERTION(NS_IsMainThread(), "should only access mock channel on ui thread");
   m_channelWeakPtr = do_GetWeakReference(aChannel);
   return NS_OK;
 }
@@ -1170,9 +1163,12 @@ NS_IMETHODIMP nsImapUrl::GetAllowContentChange(bool *result)
   return NS_OK;
 }
 
-NS_IMETHODIMP nsImapUrl::Clone(nsIURI **_retval)
+NS_IMETHODIMP nsImapUrl::CloneInternal(uint32_t aRefHandlingMode,
+                                       const nsACString& newRef,
+                                       nsIURI** _retval)
 {
-  nsresult rv = nsMsgMailNewsUrl::Clone(_retval);
+  nsresult rv =
+    nsMsgMailNewsUrl::CloneInternal(aRefHandlingMode, newRef, _retval);
   NS_ENSURE_SUCCESS(rv, rv);
   // also clone the mURI member, because GetUri below won't work if
   // mURI isn't set due to escaping issues.
@@ -1182,6 +1178,30 @@ NS_IMETHODIMP nsImapUrl::Clone(nsIURI **_retval)
   return rv;
 }
 
+NS_IMETHODIMP nsImapUrl::GetPrincipalSpec(nsACString& aPrincipalSpec)
+{
+  // URLs look like this:
+  // imap://user@domain@server:port/fetch>UID>folder>nn
+  // We simply strip any query part beginning with ? & or /;
+  // Normalised spec: imap://user@domain@server:port/fetch>UID>folder>nn
+  nsCOMPtr<nsIMsgMailNewsUrl> mailnewsURL;
+  QueryInterface(NS_GET_IID(nsIMsgMailNewsUrl), getter_AddRefs(mailnewsURL));
+
+  nsAutoCString spec;
+  mailnewsURL->GetSpecIgnoringRef(spec);
+
+  // Strip any query part beginning with ? or /;
+  int32_t ind = spec.Find("/;");
+  if (ind != kNotFound)
+    spec.SetLength(ind);
+
+  ind = spec.FindChar('?');
+  if (ind != kNotFound)
+    spec.SetLength(ind);
+
+  aPrincipalSpec.Assign(spec);
+  return NS_OK;
+}
 
 NS_IMETHODIMP nsImapUrl::SetUri(const char * aURI)
 {
@@ -1197,7 +1217,7 @@ NS_IMETHODIMP nsImapUrl::GetUri(char** aURI)
   else
   {
     *aURI = nullptr;
-    uint32_t key = m_listOfMessageIds ? atoi(m_listOfMessageIds) : 0;
+    uint32_t key = m_listOfMessageIds ? strtoul(m_listOfMessageIds, nullptr, 10) : 0;
     nsCString canonicalPath;
     AllocateCanonicalPath(m_sourceCanonicalFolderPathSubString, m_onlineSubDirSeparator, (getter_Copies(canonicalPath)));
     nsCString fullFolderPath("/");

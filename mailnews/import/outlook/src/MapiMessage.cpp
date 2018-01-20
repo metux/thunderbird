@@ -13,7 +13,7 @@
 
 #include "nscore.h"
 #include <time.h>
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsDirectoryServiceDefs.h"
 #include "nsMsgUtils.h"
 #include "nsMimeTypes.h"
@@ -536,7 +536,7 @@ const char* CpToCharset(unsigned int cp)
       {57004, "x-iscii-ta"}, // ISCII Tamil
       {57005, "x-iscii-te"}, // ISCII Telugu
       {57006, "x-iscii-as"}, // ISCII Assamese
-      {57007, "x-iscii-or"}, // ISCII Oriya
+      {57007, "x-iscii-or"}, // ISCII Oriya (Odia)
       {57008, "x-iscii-ka"}, // ISCII Kannada
       {57009, "x-iscii-ma"}, // ISCII Malayalam
       {57010, "x-iscii-gu"}, // ISCII Gujarati
@@ -560,11 +560,6 @@ const char* CpToCharset(unsigned int cp)
   return 0; // not found
 }
 
-// We don't use nsMsgI18Ncheck_data_in_charset_range because it returns true
-// even if there's no such charset:
-// 1. result initialized by true and returned if, eg, GetUnicodeEncoderRaw fail
-// 2. it uses GetUnicodeEncoderRaw(), not GetUnicodeEncoder() (to normalize the
-//    charset string) (see nsMsgI18N.cpp)
 // This function returns true only if the unicode (utf-16) text can be
 // losslessly represented in specified charset
 bool CMapiMessage::CheckBodyInCharsetRange(const char* charset)
@@ -573,42 +568,33 @@ bool CMapiMessage::CheckBodyInCharsetRange(const char* charset)
     return true;
   if (!_stricmp(charset, "utf-8"))
     return true;
-  if (!_stricmp(charset, "utf-7"))
-    return true;
 
-  nsresult rv;
-  static nsCOMPtr<nsICharsetConverterManager> ccm =
-    do_GetService(NS_CHARSETCONVERTERMANAGER_CONTRACTID, &rv);
-  NS_ENSURE_SUCCESS(rv, false);
-  nsCOMPtr<nsIUnicodeEncoder> encoder;
+  auto encoding = mozilla::Encoding::ForLabelNoReplacement(nsDependentCString(charset));
+  if (!encoding)
+    return false;
+  auto encoder = encoding->NewEncoder();
 
-  // get an unicode converter
-  rv = ccm->GetUnicodeEncoder(charset, getter_AddRefs(encoder));
-  NS_ENSURE_SUCCESS(rv, false);
-  rv = encoder->SetOutputErrorBehavior(nsIUnicodeEncoder::kOnError_Signal, nullptr, 0);
-  NS_ENSURE_SUCCESS(rv, false);
-
-  const char16_t *txt = m_body.get();
-  int32_t txtLen = m_body.Length();
-  const char16_t *currentSrcPtr = txt;
-  int srcLength;
-  int dstLength;
-  char localbuf[512];
-  int consumedLen = 0;
-
-  // convert
-  while (consumedLen < txtLen) {
-    srcLength = txtLen - consumedLen;
-    dstLength = sizeof(localbuf)/sizeof(localbuf[0]);
-    rv = encoder->Convert(currentSrcPtr, &srcLength, localbuf, &dstLength);
-    if (rv == NS_ERROR_UENC_NOMAPPING)
-      return false;
-    if (NS_FAILED(rv) || dstLength == 0)
+  uint8_t buffer[512];
+  auto src = mozilla::MakeSpan(m_body);
+  auto dst = mozilla::MakeSpan(buffer);
+  while (true) {
+    uint32_t result;
+    size_t read;
+    size_t written;
+    mozilla::Tie(result, read, written) =
+      encoder->EncodeFromUTF16WithoutReplacement(src, dst, false);
+    if (result == mozilla::kInputEmpty) {
+      // All converted successfully.
       break;
-
-    currentSrcPtr += srcLength;
-    consumedLen = currentSrcPtr - txt; // src length used so far
+    } else if (result != mozilla::kOutputFull) {
+      // Didn't use all the input but the outout isn't full, hence
+      // there was an unencodable character.
+      return false;
+    }
+    src = src.From(read);
+    // dst = dst.From(written); // Just overwrite output since we don't need it.
   }
+
   return true;
 }
 
@@ -647,8 +633,8 @@ void ExtractMetaCharset(const wchar_t* body, int bodySz, /*out*/nsCString& chars
   const wchar_t* chset_end = std::find_first_of(chset_pos, eohd_pos, term,
                                                 term_end);
   if (chset_end != eohd_pos)
-    LossyCopyUTF16toASCII(Substring(wwc(const_cast<wchar_t *>(chset_pos)),
-                                    wwc(const_cast<wchar_t *>(chset_end))),
+    LossyCopyUTF16toASCII(Substring(char16ptr_t(chset_pos),
+                                    char16ptr_t(chset_end)),
                                     charset);
 }
 
@@ -746,7 +732,7 @@ bool CMapiMessage::FetchBody(void)
     }
   }
   if (!bFoundCharset) // Everything else failed, let's use the lossless utf-8...
-    m_mimeCharset.Assign("utf-8");
+    m_mimeCharset.AssignLiteral("utf-8");
 
   MAPI_DUMP_STRING(m_body.get());
   MAPI_TRACE0("\r\n");
@@ -864,7 +850,7 @@ bool CMapiMessage::CopyMsgAttachToFile(LPATTACH lpAttach, /*out*/ nsIFile **tmp_
   nsCOMPtr<nsIOutputStream> destOutputStream;
   nsresult rv = MsgNewBufferedFileOutputStream(getter_AddRefs(destOutputStream), *tmp_file, -1, 0600);
   if (NS_SUCCEEDED(rv))
-    rv = nsOutlookMail::ImportMessage(lpMsg, destOutputStream, nsIMsgSend::nsMsgSaveAsDraft);
+    rv = ImportMailboxRunnable::ImportMessage(lpMsg, destOutputStream, nsIMsgSend::nsMsgSaveAsDraft);
 
   if (NS_FAILED(rv)) {
     (*tmp_file)->Remove(false);
@@ -1134,13 +1120,13 @@ void CMapiMessage::ClearAttachment(attach_data* data)
     data->tmp_file->Remove(false);
 
   if (data->type)
-    NS_Free(data->type);
+    free(data->type);
   if (data->encoding)
-    NS_Free(data->encoding);
+    free(data->encoding);
   if (data->real_name)
-    NS_Free(data->real_name);
+    free(data->real_name);
   if (data->cid)
-    NS_Free(data->cid);
+    free(data->cid);
 
   delete data;
 }
@@ -1184,7 +1170,6 @@ nsresult CMapiMessage::GetAttachments(nsIArray **aArray)
   nsresult rv;
   nsCOMPtr<nsIMutableArray> attachments (do_CreateInstance(NS_ARRAY_CONTRACTID, &rv));
   NS_ENSURE_SUCCESS(rv, rv);
-  NS_IF_ADDREF(*aArray = attachments);
 
   for (std::vector<attach_data*>::const_iterator it = m_stdattachments.begin();
        it != m_stdattachments.end(); it++) {
@@ -1195,8 +1180,9 @@ nsresult CMapiMessage::GetAttachments(nsIArray **aArray)
     a->SetEncoding(nsDependentCString((*it)->encoding));
     a->SetRealName(nsDependentCString((*it)->real_name));
     a->SetType(nsDependentCString((*it)->type));
-    attachments->AppendElement(a, false);
+    attachments->AppendElement(a);
   }
+  attachments.forget(aArray);
   return rv;
 }
 

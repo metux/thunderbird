@@ -1,4 +1,4 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -16,15 +16,14 @@ XPIDL_SOURCES += [
     'nsIDocumentStateListener.idl',
     'nsIEditActionListener.idl',
     'nsIEditor.idl',
-    'nsIEditorIMESupport.idl',
     'nsIEditorMailSupport.idl',
     'nsIEditorObserver.idl',
     'nsIEditorSpellCheck.idl',
     'nsIEditorStyleSheets.idl',
+    'nsIEditorUtils.idl',
     'nsIHTMLAbsPosEditor.idl',
     'nsIHTMLEditor.idl',
     'nsIHTMLInlineTableEditor.idl',
-    'nsIHTMLObjectResizeListener.idl',
     'nsIHTMLObjectResizer.idl',
     'nsIPlaintextEditor.idl',
     'nsITableEditor.idl',
@@ -38,6 +37,9 @@ EXPORTS += [
     'nsEditorCID.h',
 ]
 
-EXTRA_JS_MODULES += [
+TESTING_JS_MODULES += [
     'AsyncSpellCheckTestHelper.jsm',
 ]
+
+with Files('**'):
+    BUG_COMPONENT = ('Core', 'Editor')

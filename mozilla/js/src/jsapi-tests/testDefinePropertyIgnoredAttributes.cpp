@@ -20,7 +20,7 @@ enum PropertyDescriptorKind {
 };
 
 static bool
-CheckDescriptor(JS::Handle<JSPropertyDescriptor> desc, PropertyDescriptorKind kind,
+CheckDescriptor(JS::Handle<JS::PropertyDescriptor> desc, PropertyDescriptorKind kind,
                 bool enumerable, bool writable, bool configurable)
 {
     if (!desc.object())
@@ -39,15 +39,15 @@ CheckDescriptor(JS::Handle<JSPropertyDescriptor> desc, PropertyDescriptorKind ki
 BEGIN_TEST(testDefinePropertyIgnoredAttributes)
 {
     JS::RootedObject obj(cx, JS_NewPlainObject(cx));
-    JS::Rooted<JSPropertyDescriptor> desc(cx);
+    JS::Rooted<JS::PropertyDescriptor> desc(cx);
     JS::RootedValue defineValue(cx);
 
     // Try a getter. Allow it to fill in the defaults. Because we're passing a
     // JSNative, JS_DefineProperty will infer JSPROP_GETTER even though we
     // aren't passing it.
-    CHECK(JS_DefineProperty(cx, obj, "foo", defineValue,
-                            JSPROP_IGNORE_ENUMERATE | JSPROP_IGNORE_PERMANENT | JSPROP_SHARED,
-                            Getter));
+    CHECK(JS_DefineProperty(cx, obj, "foo",
+                            Getter, nullptr,
+                            JSPROP_IGNORE_ENUMERATE | JSPROP_IGNORE_PERMANENT));
 
     CHECK(JS_GetOwnPropertyDescriptor(cx, obj, "foo", &desc));
 
@@ -55,17 +55,17 @@ BEGIN_TEST(testDefinePropertyIgnoredAttributes)
     CHECK(CheckDescriptor(desc, AccessorDescriptor, false, true, false));
 
     // Install another configurable property, so we can futz with it.
-    CHECK(JS_DefineProperty(cx, obj, "bar", defineValue,
-                            JSPROP_IGNORE_ENUMERATE | JSPROP_SHARED,
-                            Getter));
+    CHECK(JS_DefineProperty(cx, obj, "bar",
+                            Getter, nullptr,
+                            JSPROP_IGNORE_ENUMERATE));
     CHECK(JS_GetOwnPropertyDescriptor(cx, obj, "bar", &desc));
     CHECK(CheckDescriptor(desc, AccessorDescriptor, false, true, true));
 
     // Rewrite the descriptor to now be enumerable, leaving the configurability
     // unchanged.
-    CHECK(JS_DefineProperty(cx, obj, "bar", defineValue,
-                            JSPROP_IGNORE_PERMANENT | JSPROP_ENUMERATE | JSPROP_SHARED,
-                            Getter));
+    CHECK(JS_DefineProperty(cx, obj, "bar",
+                            Getter, nullptr,
+                            JSPROP_IGNORE_PERMANENT | JSPROP_ENUMERATE));
     CHECK(JS_GetOwnPropertyDescriptor(cx, obj, "bar", &desc));
     CHECK(CheckDescriptor(desc, AccessorDescriptor, true, true, true));
 

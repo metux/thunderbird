@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -22,8 +23,11 @@
 #include "nsRepeatService.h"
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/MouseEvents.h"
+#include "mozilla/Telemetry.h"
+#include "mozilla/layers/ScrollInputMethods.h"
 
 using namespace mozilla;
+using mozilla::layers::ScrollInputMethod;
 
 //
 // NS_NewToolbarFrame
@@ -42,7 +46,7 @@ nsresult
 nsScrollbarButtonFrame::HandleEvent(nsPresContext* aPresContext,
                                     WidgetGUIEvent* aEvent,
                                     nsEventStatus* aEventStatus)
-{  
+{
   NS_ENSURE_ARG_POINTER(aEventStatus);
 
   // If a web page calls event.preventDefault() we still want to
@@ -110,7 +114,7 @@ nsScrollbarButtonFrame::HandleButtonPress(nsPresContext* aPresContext,
 
   if (scrollbar == nullptr)
     return false;
- 
+
   static nsIContent::AttrValuesArray strings[] = { &nsGkAtoms::increment,
                                                    &nsGkAtoms::decrement,
                                                    nullptr };
@@ -127,7 +131,7 @@ nsScrollbarButtonFrame::HandleButtonPress(nsPresContext* aPresContext,
 
   bool repeat = pressedButtonAction != 2;
   // set this attribute so we can style it later
-  nsWeakFrame weakFrame(this);
+  AutoWeakFrame weakFrame(this);
   mContent->SetAttr(kNameSpaceID_None, nsGkAtoms::active, NS_LITERAL_STRING("true"), true);
 
   nsIPresShell::SetCapturingContent(mContent, CAPTURE_IGNOREALLOWED);
@@ -167,6 +171,10 @@ nsScrollbarButtonFrame::HandleButtonPress(nsPresContext* aPresContext,
     if (!weakFrame.IsAlive()) {
       return false;
     }
+
+    mozilla::Telemetry::Accumulate(mozilla::Telemetry::SCROLL_INPUT_METHODS,
+        (uint32_t) ScrollInputMethod::MainThreadScrollbarButtonClick);
+
     if (!m) {
       sb->MoveToNewPosition();
       if (!weakFrame.IsAlive()) {
@@ -180,7 +188,7 @@ nsScrollbarButtonFrame::HandleButtonPress(nsPresContext* aPresContext,
   return true;
 }
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 nsScrollbarButtonFrame::HandleRelease(nsPresContext* aPresContext,
                                       WidgetGUIEvent* aEvent,
                                       nsEventStatus* aEventStatus)
@@ -222,21 +230,19 @@ void nsScrollbarButtonFrame::Notify()
 }
 
 void
-nsScrollbarButtonFrame::MouseClicked(nsPresContext* aPresContext,
-                                     WidgetGUIEvent* aEvent) 
+nsScrollbarButtonFrame::MouseClicked(WidgetGUIEvent* aEvent)
 {
-  nsButtonBoxFrame::MouseClicked(aPresContext, aEvent);
+  nsButtonBoxFrame::MouseClicked(aEvent);
   //MouseClicked();
 }
 
 nsresult
-nsScrollbarButtonFrame::GetChildWithTag(nsIAtom* atom, nsIFrame* start,
+nsScrollbarButtonFrame::GetChildWithTag(nsAtom* atom, nsIFrame* start,
                                         nsIFrame*& result)
 {
   // recursively search our children
-  nsIFrame* childFrame = start->GetFirstPrincipalChild();
-  while (nullptr != childFrame) 
-  {    
+  for (nsIFrame* childFrame : start->PrincipalChildList())
+  {
     // get the content node
     nsIContent* child = childFrame->GetContent();
 
@@ -252,10 +258,8 @@ nsScrollbarButtonFrame::GetChildWithTag(nsIAtom* atom, nsIFrame* start,
 
      // recursive search the child
      GetChildWithTag(atom, childFrame, result);
-     if (result != nullptr) 
+     if (result != nullptr)
        return NS_OK;
-
-    childFrame = childFrame->GetNextSibling();
   }
 
   result = nullptr;
@@ -263,7 +267,7 @@ nsScrollbarButtonFrame::GetChildWithTag(nsIAtom* atom, nsIFrame* start,
 }
 
 nsresult
-nsScrollbarButtonFrame::GetParentWithTag(nsIAtom* toFind, nsIFrame* start,
+nsScrollbarButtonFrame::GetParentWithTag(nsAtom* toFind, nsIFrame* start,
                                          nsIFrame*& result)
 {
    while (start)
@@ -286,10 +290,10 @@ nsScrollbarButtonFrame::GetParentWithTag(nsIAtom* toFind, nsIFrame* start,
 }
 
 void
-nsScrollbarButtonFrame::DestroyFrom(nsIFrame* aDestructRoot)
+nsScrollbarButtonFrame::DestroyFrom(nsIFrame* aDestructRoot, PostDestroyData& aPostDestroyData)
 {
   // Ensure our repeat service isn't going... it's possible that a scrollbar can disappear out
   // from under you while you're in the process of scrolling.
   StopRepeat();
-  nsButtonBoxFrame::DestroyFrom(aDestructRoot);
+  nsButtonBoxFrame::DestroyFrom(aDestructRoot, aPostDestroyData);
 }

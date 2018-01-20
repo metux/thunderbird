@@ -20,7 +20,7 @@
 #include "nsString.h"
 #include "nsWrapperCache.h"
 
-class nsIAtom;
+class nsAtom;
 class nsIDocument;
 
 /**
@@ -40,7 +40,7 @@ public:
    */
   void* mLocalName;
 
-  nsAttrKey(int32_t aNs, nsIAtom* aName)
+  nsAttrKey(int32_t aNs, nsAtom* aName)
     : mNamespaceID(aNs), mLocalName(aName) {}
 
   nsAttrKey(const nsAttrKey& aAttr)
@@ -115,7 +115,7 @@ public:
    * Drop an attribute from the map's cache (does not remove the attribute
    * from the node!)
    */
-  void DropAttribute(int32_t aNamespaceID, nsIAtom* aLocalName);
+  void DropAttribute(int32_t aNamespaceID, nsAtom* aLocalName);
 
   /**
    * Returns the number of attribute nodes currently in the map.
@@ -139,12 +139,11 @@ public:
   // WebIDL
   Attr* GetNamedItem(const nsAString& aAttrName);
   Attr* NamedGetter(const nsAString& aAttrName, bool& aFound);
-  bool NameIsEnumerable(const nsAString& aName);
   already_AddRefed<Attr>
   RemoveNamedItem(mozilla::dom::NodeInfo* aNodeInfo, ErrorResult& aError);
   already_AddRefed<Attr>
   RemoveNamedItem(const nsAString& aName, ErrorResult& aError);
- 
+
   Attr* Item(uint32_t aIndex);
   Attr* IndexedGetter(uint32_t aIndex, bool& aFound);
   uint32_t Length() const;
@@ -159,7 +158,7 @@ public:
                     ErrorResult& aError);
 
   void
-  GetSupportedNames(unsigned aFlags, nsTArray<nsString>& aNames);
+  GetSupportedNames(nsTArray<nsString>& aNames);
 
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
@@ -178,12 +177,7 @@ private:
   GetAttrNodeInfo(const nsAString& aNamespaceURI,
                   const nsAString& aLocalName);
 
-  Attr* GetAttribute(mozilla::dom::NodeInfo* aNodeInfo, bool aNsAware);
-
-  /**
-   * Remove an attribute, returns the removed node.
-   */
-  already_AddRefed<Attr> RemoveAttribute(mozilla::dom::NodeInfo* aNodeInfo);
+  Attr* GetAttribute(mozilla::dom::NodeInfo* aNodeInfo);
 };
 
 // XXX khuey yes this is crazy.  The bindings code needs to see this include,

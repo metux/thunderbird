@@ -56,7 +56,7 @@ class Expression:
         self.__ignore_whitespace()
         self.e = self.__get_logical_or()
         if self.content:
-            raise Expression.ParseError, self
+            raise Expression.ParseError(self)
 
     def __get_logical_or(self):
         """
@@ -157,7 +157,7 @@ class Expression:
                 if word_len:
                     rv = Expression.__ASTLeaf('string', self.content[:word_len])
                 else:
-                    raise Expression.ParseError, self
+                    raise Expression.ParseError(self)
         self.__strip(word_len)
         self.__ignore_whitespace()
         return rv
@@ -196,7 +196,7 @@ class Expression:
                 return left and right
             elif tok[1].value == '||':
                 return left or right
-            raise Expression.ParseError, self
+            raise Expression.ParseError(self)
 
         # Mapping from token types to evaluator functions
         # Apart from (non-)equality, all these can be simple lambda forms.
@@ -456,7 +456,6 @@ class Preprocessor:
         options, args = p.parse_args(args=args)
         out = self.out
         depfile = None
-        includes = options.I
 
         if options.output:
             out = get_output_file(options.output)
@@ -475,10 +474,9 @@ class Preprocessor:
                 raise Preprocessor.Error(self, "--depend requires the "
                                                "mozbuild.makeutil module", None)
             depfile = get_output_file(options.depend)
-        includes.extend(args)
 
-        if includes:
-            for f in includes:
+        if args:
+            for f in args:
                 with open(f, 'rU') as input:
                     self.processFile(input=input, output=out)
             if depfile:
@@ -512,8 +510,6 @@ class Preprocessor:
         def handleSilenceDirectiveWarnings(option, opt, value, parse):
             self.setSilenceDirectiveWarnings(True)
         p = OptionParser()
-        p.add_option('-I', action='append', type="string", default = [],
-                     metavar="FILENAME", help='Include file')
         p.add_option('-D', action='callback', callback=handleD, type="string",
                      metavar="VAR[=VAL]", help='Define a variable')
         p.add_option('-U', action='callback', callback=handleU, type="string",
@@ -565,7 +561,7 @@ class Preprocessor:
         m = re.match('(?P<name>\w+)(?:\s(?P<value>.*))?', args, re.U)
         if not m:
             raise Preprocessor.Error(self, 'SYNTAX_DEF', args)
-        val = 1
+        val = ''
         if m.group('value'):
             val = self.applyFilters(m.group('value'))
             try:
@@ -582,7 +578,7 @@ class Preprocessor:
     # Logic
     def ensure_not_else(self):
         if len(self.ifStates) == 0 or self.ifStates[-1] == 2:
-            sys.stderr.write('WARNING: bad nesting of #else\n')
+            sys.stderr.write('WARNING: bad nesting of #else in %s\n' % self.context['FILE'])
     def do_if(self, args, replace=False):
         if self.disableLevel and not replace:
             self.disableLevel += 1
@@ -758,7 +754,7 @@ class Preprocessor:
                 raise
             except:
                 raise Preprocessor.Error(self, 'FILE_NOT_FOUND', str(args))
-        self.checkLineNumbers = bool(re.search('\.(js|jsm|java)(?:\.in)?$', args.name))
+        self.checkLineNumbers = bool(re.search('\.(js|jsm|java|webidl)(?:\.in)?$', args.name))
         oldFile = self.context['FILE']
         oldLine = self.context['LINE']
         oldDir = self.context['DIRECTORY']

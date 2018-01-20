@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -41,14 +42,12 @@ X11TextureHost::Lock()
     switch (mCompositor->GetBackendType()) {
       case LayersBackend::LAYERS_BASIC:
         mTextureSource =
-          new X11TextureSourceBasic(static_cast<BasicCompositor*>(mCompositor.get()),
-                                    mSurface);
+          new X11TextureSourceBasic(mCompositor->AsBasicCompositor(), mSurface);
         break;
 #ifdef GL_PROVIDER_GLX
       case LayersBackend::LAYERS_OPENGL:
         mTextureSource =
-          new X11TextureSourceOGL(static_cast<CompositorOGL*>(mCompositor.get()),
-                                  mSurface);
+          new X11TextureSourceOGL(mCompositor->AsCompositorOGL(), mSurface);
         break;
 #endif
       default:
@@ -60,11 +59,16 @@ X11TextureHost::Lock()
 }
 
 void
-X11TextureHost::SetCompositor(Compositor* aCompositor)
+X11TextureHost::SetTextureSourceProvider(TextureSourceProvider* aProvider)
 {
-  mCompositor = aCompositor;
+  mProvider = aProvider;
+  if (mProvider) {
+    mCompositor = mProvider->AsCompositor();
+  } else {
+    mCompositor = nullptr;
+  }
   if (mTextureSource) {
-    mTextureSource->SetCompositor(aCompositor);
+    mTextureSource->SetTextureSourceProvider(aProvider);
   }
 }
 

@@ -5,8 +5,6 @@
 
 <?xml-stylesheet href="chrome://global/skin/global.css"?>
 
-<?xml-stylesheet href="chrome://mozapps/content/preferences/preferences.css"?>
-
 <?xml-stylesheet href="chrome://browser/skin/preferences/preferences.css"?>
 <?xml-stylesheet href="chrome://global/skin/in-content/common.css"?>
 <?xml-stylesheet
@@ -15,12 +13,27 @@
   href="chrome://browser/content/preferences/handlers.css"?>
 <?xml-stylesheet href="chrome://browser/skin/preferences/applications.css"?>
 <?xml-stylesheet href="chrome://browser/skin/preferences/in-content/search.css"?>
+<?xml-stylesheet href="chrome://browser/skin/preferences/in-content/containers.css"?>
+<?xml-stylesheet href="chrome://browser/skin/preferences/in-content/privacy.css"?>
 
 <!DOCTYPE page [
 <!ENTITY % brandDTD SYSTEM "chrome://branding/locale/brand.dtd">
 <!ENTITY % globalPreferencesDTD SYSTEM "chrome://global/locale/preferences.dtd">
 <!ENTITY % preferencesDTD SYSTEM
   "chrome://browser/locale/preferences/preferences.dtd">
+<!ENTITY % selectBookmarkDTD SYSTEM
+  "chrome://browser/locale/preferences/selectBookmark.dtd">
+<!ENTITY % languagesDTD SYSTEM "chrome://browser/locale/preferences/languages.dtd">
+<!ENTITY % fontDTD SYSTEM "chrome://browser/locale/preferences/fonts.dtd">
+<!ENTITY % colorsDTD SYSTEM "chrome://browser/locale/preferences/colors.dtd">
+<!ENTITY % permissionsDTD SYSTEM "chrome://browser/locale/preferences/permissions.dtd">
+<!ENTITY % passwordManagerDTD SYSTEM "chrome://passwordmgr/locale/passwordManager.dtd">
+<!ENTITY % historyDTD SYSTEM "chrome://mozapps/locale/update/history.dtd">
+<!ENTITY % certManagerDTD SYSTEM "chrome://pippki/locale/certManager.dtd">
+<!ENTITY % deviceManangerDTD SYSTEM "chrome://pippki/locale/deviceManager.dtd">
+<!ENTITY % connectionDTD SYSTEM "chrome://browser/locale/preferences/connection.dtd">
+<!ENTITY % siteDataSettingsDTD SYSTEM
+  "chrome://browser/locale/preferences/siteDataSettings.dtd" >
 <!ENTITY % privacyDTD SYSTEM "chrome://browser/locale/preferences/privacy.dtd">
 <!ENTITY % tabsDTD SYSTEM "chrome://browser/locale/preferences/tabs.dtd">
 <!ENTITY % searchDTD SYSTEM "chrome://browser/locale/preferences/search.dtd">
@@ -28,6 +41,8 @@
 <!ENTITY % syncDTD SYSTEM "chrome://browser/locale/preferences/sync.dtd">
 <!ENTITY % securityDTD SYSTEM
   "chrome://browser/locale/preferences/security.dtd">
+<!ENTITY % containersDTD SYSTEM
+  "chrome://browser/locale/preferences/containers.dtd">
 <!ENTITY % sanitizeDTD SYSTEM "chrome://browser/locale/sanitize.dtd">
 <!ENTITY % mainDTD SYSTEM "chrome://browser/locale/preferences/main.dtd">
 <!ENTITY % aboutHomeDTD SYSTEM "chrome://browser/locale/aboutHome.dtd">
@@ -36,15 +51,29 @@
   "chrome://browser/locale/preferences/applications.dtd">
 <!ENTITY % advancedDTD SYSTEM
   "chrome://browser/locale/preferences/advanced.dtd">
+<!ENTITY % aboutDialogDTD SYSTEM "chrome://browser/locale/aboutDialog.dtd" >
+%aboutDialogDTD;
 %brandDTD;
 %globalPreferencesDTD;
 %preferencesDTD;
+%selectBookmarkDTD;
+%languagesDTD;
+%fontDTD;
+%colorsDTD;
+%permissionsDTD;
+%passwordManagerDTD;
+%historyDTD;
+%certManagerDTD;
+%deviceManangerDTD;
+%connectionDTD;
+%siteDataSettingsDTD;
 %privacyDTD;
 %tabsDTD;
 %searchDTD;
 %syncBrandDTD;
 %syncDTD;
 %securityDTD;
+%containersDTD;
 %sanitizeDTD;
 %mainDTD;
 %aboutHomeDTD;
@@ -59,6 +88,7 @@
 
 <page xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
       xmlns:html="http://www.w3.org/1999/xhtml"
+      disablefastfind="true"
 #ifdef USE_WIN_TITLE_STYLE
       title="&prefWindow.titleWin;">
 #else
@@ -66,18 +96,23 @@
 #endif
 
   <html:link rel="shortcut icon"
-              href="chrome://browser/skin/preferences/in-content/favicon.ico"/>
+              href="chrome://browser/skin/settings.svg"/>
 
   <script type="application/javascript"
           src="chrome://browser/content/utilityOverlay.js"/>
   <script type="application/javascript"
           src="chrome://browser/content/preferences/in-content/preferences.js"/>
+  <script src="chrome://browser/content/preferences/in-content/findInPage.js"/>
   <script src="chrome://browser/content/preferences/in-content/subdialogs.js"/>
 
   <stringbundle id="bundleBrand"
                 src="chrome://branding/locale/brand.properties"/>
   <stringbundle id="bundlePreferences"
                 src="chrome://browser/locale/preferences/preferences.properties"/>
+  <stringbundle id="pkiBundle"
+                src="chrome://pippki/locale/pippki.properties"/>
+  <stringbundle id="browserBundle"
+                src="chrome://browser/locale/browser.properties"/>
 
   <stringbundleset id="appManagerBundleset">
     <stringbundle id="appManagerBundle"
@@ -87,121 +122,104 @@
   <stack flex="1">
   <hbox flex="1">
 
-    <!-- category list -->
-    <richlistbox id="categories">
-      <richlistitem id="category-general"
-                    class="category"
-                    value="paneGeneral"
-                    helpTopic="prefs-main"
-                    tooltiptext="&paneGeneral.title;"
-                    align="center">
-        <image class="category-icon"/>
-        <label class="category-name" flex="1">&paneGeneral.title;</label>
-      </richlistitem>
+    <vbox class="navigation">
+      <!-- category list -->
+      <richlistbox id="categories">
+        <richlistitem id="category-general"
+                      class="category"
+                      value="paneGeneral"
+                      helpTopic="prefs-main"
+                      tooltiptext="&paneGeneral.title;"
+                      align="center">
+          <image class="category-icon"/>
+          <label class="category-name" flex="1">&paneGeneral.title;</label>
+        </richlistitem>
 
-      <richlistitem id="category-search"
-                    class="category"
-                    value="paneSearch"
-                    helpTopic="prefs-search"
-                    tooltiptext="&paneSearch.title;"
-                    align="center">
-        <image class="category-icon"/>
-        <label class="category-name" flex="1">&paneSearch.title;</label>
-      </richlistitem>
+        <richlistitem id="category-search"
+                      class="category"
+                      value="paneSearch"
+                      helpTopic="prefs-search"
+                      tooltiptext="&paneSearch.title;"
+                      align="center">
+          <image class="category-icon"/>
+          <label class="category-name" flex="1">&paneSearch.title;</label>
+        </richlistitem>
 
-      <richlistitem id="category-content"
-                    class="category"
-                    value="paneContent"
-                    helpTopic="prefs-content"
-                    tooltiptext="&paneContent.title;"
-                    align="center">
-        <image class="category-icon"/>
-        <label class="category-name" flex="1">&paneContent.title;</label>
-      </richlistitem>
+        <richlistitem id="category-containers"
+                      class="category"
+                      value="paneContainers"
+                      helpTopic="prefs-containers"
+                      hidden="true"/>
 
-      <richlistitem id="category-application"
-                    class="category"
-                    value="paneApplications"
-                    helpTopic="prefs-applications"
-                    tooltiptext="&paneApplications.title;"
-                    align="center">
-        <image class="category-icon"/>
-        <label class="category-name" flex="1">&paneApplications.title;</label>
-      </richlistitem>
+        <richlistitem id="category-privacy"
+                      class="category"
+                      value="panePrivacy"
+                      helpTopic="prefs-privacy"
+                      tooltiptext="&panePrivacySecurity.title;"
+                      align="center">
+          <image class="category-icon"/>
+          <label class="category-name" flex="1">&panePrivacySecurity.title;</label>
+        </richlistitem>
 
-      <richlistitem id="category-privacy"
-                    class="category"
-                    value="panePrivacy"
-                    helpTopic="prefs-privacy"
-                    tooltiptext="&panePrivacy.title;"
-                    align="center">
-        <image class="category-icon"/>
-        <label class="category-name" flex="1">&panePrivacy.title;</label>
-      </richlistitem>
+        <richlistitem id="category-sync"
+                      class="category"
+                      value="paneSync"
+                      helpTopic="prefs-weave"
+                      tooltiptext="&paneSync1.title;"
+                      align="center">
+          <image class="category-icon"/>
+          <label class="category-name" flex="1">&paneSync1.title;</label>
+        </richlistitem>
+      </richlistbox>
 
-      <richlistitem id="category-security"
-                    class="category"
-                    value="paneSecurity"
-                    helpTopic="prefs-security"
-                    tooltiptext="&paneSecurity.title;"
-                    align="center">
-        <image class="category-icon"/>
-        <label class="category-name" flex="1">&paneSecurity.title;</label>
-      </richlistitem>
+      <spacer flex="1"/>
 
-      <richlistitem id="category-sync"
-                    class="category"
-                    value="paneSync"
-                    helpTopic="prefs-weave"
-                    tooltiptext="&paneSync.title;"
-                    align="center">
-        <image class="category-icon"/>
-        <label class="category-name" flex="1">&paneSync.title;</label>
-      </richlistitem>
+      <hbox class="help-button" pack="center">
+        <label class="text-link">
+          <hbox align="center">
+            <image class="help-icon"/><label class="help-label" flex="1">&helpButton2.label;</label>
+          </hbox>
+        </label>
+      </hbox>
+    </vbox>
 
-      <richlistitem id="category-advanced"
-                    class="category"
-                    value="paneAdvanced"
-                    helpTopic="prefs-advanced-general"
-                    tooltiptext="&paneAdvanced.title;"
-                    align="center">
-        <image class="category-icon"/>
-        <label class="category-name" flex="1">&paneAdvanced.title;</label>
-      </richlistitem>
-    </richlistbox>
+    <keyset>
+      <key key="&focusSearch1.key;" modifiers="accel" id="focusSearch1" oncommand="gSearchResultsPane.searchInput.focus();"/>
+    </keyset>
 
-    <vbox class="main-content" flex="1">
-      <prefpane id="mainPrefPane">
+    <vbox class="main-content" flex="1" align="start">
+      <vbox class="pane-container">
+        <hbox class="search-container" pack="end">
+          <textbox type="search" id="searchInput" style="width: &searchField.width;" hidden="true" clickSelectsAll="true"/>
+        </hbox>
+        <prefpane id="mainPrefPane">
+#include searchResults.xul
 #include main.xul
 #include search.xul
 #include privacy.xul
-#include advanced.xul
-#include applications.xul
-#include content.xul
-#include security.xul
+#include containers.xul
 #include sync.xul
-      </prefpane>
+        </prefpane>
+      </vbox>
     </vbox>
-
   </hbox>
 
-    <vbox id="dialogOverlay" align="center" pack="center">
-      <groupbox id="dialogBox"
-                orient="vertical"
-                pack="end"
-                role="dialog"
-                aria-labelledby="dialogTitle">
-        <caption flex="1" align="center">
-          <label id="dialogTitle" flex="1"></label>
-          <button id="dialogClose"
-                  class="close-icon"
-                  aria-label="&preferencesCloseButton.label;"/>
-        </caption>
-        <browser id="dialogFrame"
-                 name="dialogFrame"
-                 autoscroll="false"
-                 disablehistory="true"/>
-      </groupbox>
-    </vbox>
+  <stack id="dialogStack" hidden="true"/>
+  <vbox id="dialogTemplate" class="dialogOverlay" align="center" pack="center" topmost="true" hidden="true">
+    <groupbox class="dialogBox"
+              orient="vertical"
+              pack="end"
+              role="dialog"
+              aria-labelledby="dialogTitle">
+      <caption flex="1" align="center">
+        <label class="dialogTitle" flex="1"></label>
+        <button class="dialogClose close-icon"
+                aria-label="&preferencesCloseButton.label;"/>
+      </caption>
+      <browser class="dialogFrame"
+               autoscroll="false"
+               disablehistory="true"/>
+    </groupbox>
+  </vbox>
   </stack>
 </page>

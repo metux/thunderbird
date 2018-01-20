@@ -25,7 +25,8 @@
 class nsIURI;
 class nsOfflineCacheDevice;
 class mozIStorageService;
-namespace mozilla { class NeckoOriginAttributes; }
+class nsILoadContextInfo;
+namespace mozilla { class OriginAttributesPattern; }
 
 class nsApplicationCacheNamespace final : public nsIApplicationCacheNamespace
 {
@@ -48,19 +49,17 @@ public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_MOZISTORAGEFUNCTION
 
-  explicit nsOfflineCacheEvictionFunction(nsOfflineCacheDevice *device)
-    : mDevice(device)
-  {}
+  explicit nsOfflineCacheEvictionFunction(nsOfflineCacheDevice *device);
 
-  void Reset() { mItems.Clear(); }
+  void Init();
+  void Reset();
   void Apply();
 
 private:
   ~nsOfflineCacheEvictionFunction() {}
 
   nsOfflineCacheDevice *mDevice;
-  nsCOMArray<nsIFile> mItems;
-
+  bool mTLSInited;
 };
 
 class nsOfflineCacheDevice final : public nsCacheDevice
@@ -99,7 +98,7 @@ public:
                                           nsIFile **        result) override;
 
   virtual nsresult        OnDataSizeChange(nsCacheEntry * entry, int32_t deltaSize) override;
-  
+
   virtual nsresult        Visit(nsICacheVisitor * visitor) override;
 
   virtual nsresult        EvictEntries(const char * clientID) override;
@@ -141,13 +140,13 @@ public:
   nsresult                EvictUnownedEntries(const char *clientID);
 
   static nsresult         BuildApplicationCacheGroupID(nsIURI *aManifestURL,
-                                                       mozilla::NeckoOriginAttributes const *aOriginAttributes,
+                                                       nsACString const &aOriginSuffix,
                                                        nsACString &_result);
 
-  nsresult                ActivateCache(const nsCSubstring &group,
-                                        const nsCSubstring &clientID);
-  bool                    IsActiveCache(const nsCSubstring &group,
-                                        const nsCSubstring &clientID);
+  nsresult                ActivateCache(const nsACString& group,
+                                        const nsACString& clientID);
+  bool                    IsActiveCache(const nsACString& group,
+                                        const nsACString& clientID);
   nsresult                CreateApplicationCache(const nsACString &group,
                                                  nsIApplicationCache **out);
 
@@ -168,7 +167,8 @@ public:
   nsresult                CacheOpportunistically(nsIApplicationCache* cache,
                                                  const nsACString &key);
 
-  nsresult                DiscardByAppId(int32_t appID, bool isInBrowser);
+  nsresult                Evict(nsILoadContextInfo *aInfo);
+  nsresult                Evict(mozilla::OriginAttributesPattern const &aPattern);
 
   nsresult                GetGroups(uint32_t *count,char ***keys);
 
@@ -284,7 +284,7 @@ private:
   nsTHashtable<nsCStringHashKey> mActiveCaches;
   nsTHashtable<nsCStringHashKey> mLockedEntries;
 
-  nsCOMPtr<nsIThread> mInitThread;
+  nsCOMPtr<nsIEventTarget> mInitEventTarget;
 };
 
 #endif // nsOfflineCacheDevice_h__

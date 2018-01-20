@@ -12,15 +12,10 @@ const Cu = Components.utils;
 const myScope = this;
 
 Cu.import("resource://gre/modules/Log.jsm");
-Cu.import("resource://gre/modules/debug.js", this);
 Cu.import("resource://gre/modules/Services.jsm", this);
 Cu.import("resource://gre/modules/XPCOMUtils.jsm", this);
-Cu.import("resource://gre/modules/osfile.jsm", this);
-Cu.import("resource://gre/modules/Promise.jsm", this);
 Cu.import("resource://gre/modules/PromiseUtils.jsm", this);
-Cu.import("resource://gre/modules/Task.jsm", this);
 Cu.import("resource://gre/modules/DeferredTask.jsm", this);
-Cu.import("resource://gre/modules/Preferences.jsm");
 Cu.import("resource://gre/modules/Timer.jsm");
 Cu.import("resource://gre/modules/TelemetryUtils.jsm", this);
 Cu.import("resource://gre/modules/AppConstants.jsm");
@@ -30,32 +25,22 @@ const Utils = TelemetryUtils;
 const LOGGER_NAME = "Toolkit.Telemetry";
 const LOGGER_PREFIX = "TelemetryController::";
 
-const PREF_BRANCH = "toolkit.telemetry.";
-const PREF_BRANCH_LOG = PREF_BRANCH + "log.";
-const PREF_SERVER = PREF_BRANCH + "server";
-const PREF_LOG_LEVEL = PREF_BRANCH_LOG + "level";
-const PREF_LOG_DUMP = PREF_BRANCH_LOG + "dump";
-const PREF_CACHED_CLIENTID = PREF_BRANCH + "cachedClientID";
-const PREF_FHR_ENABLED = "datareporting.healthreport.service.enabled";
-const PREF_FHR_UPLOAD_ENABLED = "datareporting.healthreport.uploadEnabled";
-const PREF_SESSIONS_BRANCH = "datareporting.sessions.";
-const PREF_UNIFIED = PREF_BRANCH + "unified";
-const PREF_UNIFIED_OPTIN = PREF_BRANCH + "unifiedIsOptIn";
-const PREF_OPTOUT_SAMPLE = PREF_BRANCH + "optoutSample";
+const PREF_BRANCH_LOG = "toolkit.telemetry.log.";
 
 // Whether the FHR/Telemetry unification features are enabled.
 // Changing this pref requires a restart.
-const IS_UNIFIED_TELEMETRY = Preferences.get(PREF_UNIFIED, false);
-// This preference allows to leave unified Telemetry behavior on only for people that
-// opted into Telemetry. Changing this pref requires a restart.
-const IS_UNIFIED_OPTIN = Preferences.get(PREF_UNIFIED_OPTIN, false);
+const IS_UNIFIED_TELEMETRY = Services.prefs.getBoolPref(TelemetryUtils.Preferences.Unified, false);
 
 const PING_FORMAT_VERSION = 4;
 
 // Delay before intializing telemetry (ms)
-const TELEMETRY_DELAY = Preferences.get("toolkit.telemetry.initDelay", 60) * 1000;
+const TELEMETRY_DELAY = Services.prefs.getIntPref("toolkit.telemetry.initDelay", 60) * 1000;
 // Delay before initializing telemetry if we're testing (ms)
-const TELEMETRY_TEST_DELAY = 100;
+const TELEMETRY_TEST_DELAY = 1;
+
+// How long to wait (ms) before sending the new profile ping on the first
+// run of a new profile.
+const NEWPROFILE_PING_DEFAULT_DELAY = 30 * 60 * 1000;
 
 // Ping types.
 const PING_TYPE_MAIN = "main";
@@ -65,54 +50,25 @@ const PING_TYPE_DELETION = "deletion";
 const REASON_GATHER_PAYLOAD = "gather-payload";
 const REASON_GATHER_SUBSESSION_PAYLOAD = "gather-subsession-payload";
 
-XPCOMUtils.defineLazyModuleGetter(this, "ClientID",
-                                  "resource://gre/modules/ClientID.jsm");
 XPCOMUtils.defineLazyServiceGetter(this, "Telemetry",
                                    "@mozilla.org/base/telemetry;1",
                                    "nsITelemetry");
-XPCOMUtils.defineLazyModuleGetter(this, "AsyncShutdown",
-                                  "resource://gre/modules/AsyncShutdown.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "TelemetryStorage",
-                                  "resource://gre/modules/TelemetryStorage.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "ThirdPartyCookieProbe",
-                                  "resource://gre/modules/ThirdPartyCookieProbe.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "TelemetryEnvironment",
-                                  "resource://gre/modules/TelemetryEnvironment.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "SessionRecorder",
-                                  "resource://gre/modules/SessionRecorder.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "UpdateUtils",
-                                  "resource://gre/modules/UpdateUtils.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "TelemetryArchive",
-                                  "resource://gre/modules/TelemetryArchive.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "TelemetrySession",
-                                  "resource://gre/modules/TelemetrySession.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "TelemetrySend",
-                                  "resource://gre/modules/TelemetrySend.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "TelemetryReportingPolicy",
-                                  "resource://gre/modules/TelemetryReportingPolicy.jsm");
 
-XPCOMUtils.defineLazyGetter(this, "gCrcTable", function() {
-  let c;
-  let table = [];
-  for (let n = 0; n < 256; n++) {
-      c = n;
-      for (let k =0; k < 8; k++) {
-          c = ((c&1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1));
-      }
-      table[n] = c;
-  }
-  return table;
+XPCOMUtils.defineLazyModuleGetters(this, {
+  ClientID: "resource://gre/modules/ClientID.jsm",
+  AsyncShutdown: "resource://gre/modules/AsyncShutdown.jsm",
+  TelemetryStorage: "resource://gre/modules/TelemetryStorage.jsm",
+  ThirdPartyCookieProbe: "resource://gre/modules/ThirdPartyCookieProbe.jsm",
+  TelemetryEnvironment: "resource://gre/modules/TelemetryEnvironment.jsm",
+  UpdateUtils: "resource://gre/modules/UpdateUtils.jsm",
+  TelemetryArchive: "resource://gre/modules/TelemetryArchive.jsm",
+  TelemetrySession: "resource://gre/modules/TelemetrySession.jsm",
+  TelemetrySend: "resource://gre/modules/TelemetrySend.jsm",
+  TelemetryReportingPolicy: "resource://gre/modules/TelemetryReportingPolicy.jsm",
+  TelemetryModules: "resource://gre/modules/TelemetryModules.jsm",
+  UpdatePing: "resource://gre/modules/UpdatePing.jsm",
+  TelemetryHealthPing: "resource://gre/modules/TelemetryHealthPing.jsm",
 });
-
-function crc32(str) {
-    let crc = 0 ^ (-1);
-
-    for (let i = 0; i < str.length; i++ ) {
-        crc = (crc >>> 8) ^ gCrcTable[(crc ^ str.charCodeAt(i)) & 0xFF];
-    }
-
-    return (crc ^ (-1)) >>> 0;
-}
 
 /**
  * Setup Telemetry logging. This function also gets called when loggin related
@@ -128,14 +84,14 @@ function configureLogging() {
     let consoleAppender = new Log.ConsoleAppender(new Log.BasicFormatter());
     gLogger.addAppender(consoleAppender);
 
-    Preferences.observe(PREF_BRANCH_LOG, configureLogging);
+    Services.prefs.addObserver(PREF_BRANCH_LOG, configureLogging);
   }
 
   // Make sure the logger keeps up with the logging level preference.
-  gLogger.level = Log.Level[Preferences.get(PREF_LOG_LEVEL, "Warn")];
+  gLogger.level = Log.Level[Services.prefs.getStringPref(TelemetryUtils.Preferences.LogLevel, "Warn")];
 
   // If enabled in the preferences, add a dump appender.
-  let logDumping = Preferences.get(PREF_LOG_DUMP, false);
+  let logDumping = Services.prefs.getBoolPref(TelemetryUtils.Preferences.LogDump, false);
   if (logDumping != !!gLogAppenderDump) {
     if (logDumping) {
       gLogAppenderDump = new Log.DumpAppender(new Log.BasicFormatter());
@@ -154,47 +110,57 @@ var Policy = {
   now: () => new Date(),
   generatePingId: () => Utils.generateUUID(),
   getCachedClientID: () => ClientID.getCachedClientID(),
-  isUnifiedOptin: () => IS_UNIFIED_OPTIN,
-}
+};
 
 this.EXPORTED_SYMBOLS = ["TelemetryController"];
 
 this.TelemetryController = Object.freeze({
-  Constants: Object.freeze({
-    PREF_LOG_LEVEL: PREF_LOG_LEVEL,
-    PREF_LOG_DUMP: PREF_LOG_DUMP,
-    PREF_SERVER: PREF_SERVER,
-  }),
   /**
    * Used only for testing purposes.
    */
-  initLogging: function() {
+  testAssemblePing(aType, aPayload, aOptions) {
+    return Impl.assemblePing(aType, aPayload, aOptions);
+  },
+
+  /**
+   * Used only for testing purposes.
+   */
+  testInitLogging() {
     configureLogging();
   },
+
   /**
    * Used only for testing purposes.
    */
-  reset: function() {
+  testReset() {
     return Impl.reset();
   },
+
   /**
    * Used only for testing purposes.
    */
-  setup: function() {
+  testSetup() {
     return Impl.setupTelemetry(true);
   },
 
   /**
    * Used only for testing purposes.
    */
-  setupContent: function() {
+  testShutdown() {
+    return Impl.shutdown();
+  },
+
+  /**
+   * Used only for testing purposes.
+   */
+  testSetupContent() {
     return Impl.setupContentTelemetry(true);
   },
 
   /**
    * Send a notification.
    */
-  observe: function (aSubject, aTopic, aData) {
+  observe(aSubject, aTopic, aData) {
     return Impl.observe(aSubject, aTopic, aData);
   },
 
@@ -217,11 +183,13 @@ this.TelemetryController = Object.freeze({
    * @param {Boolean} [aOptions.addEnvironment=false] true if the ping should contain the
    *                  environment data.
    * @param {Object}  [aOptions.overrideEnvironment=null] set to override the environment data.
+   * @param {Boolean} [aOptions.usePingSender=false] if true, send the ping using the PingSender.
    * @returns {Promise} Test-only - a promise that resolves with the ping id once the ping is stored or sent.
    */
-  submitExternalPing: function(aType, aPayload, aOptions = {}) {
+  submitExternalPing(aType, aPayload, aOptions = {}) {
     aOptions.addClientId = aOptions.addClientId || false;
     aOptions.addEnvironment = aOptions.addEnvironment || false;
+    aOptions.usePingSender = aOptions.usePingSender || false;
 
     return Impl.submitExternalPing(aType, aPayload, aOptions);
   },
@@ -232,7 +200,7 @@ this.TelemetryController = Object.freeze({
    * @param {bool} aSubsession Whether to get subsession data. Optional, defaults to false.
    * @return {object} The current ping data if Telemetry is enabled, null otherwise.
    */
-  getCurrentPingData: function(aSubsession = false) {
+  getCurrentPingData(aSubsession = false) {
     return Impl.getCurrentPingData(aSubsession);
   },
 
@@ -253,7 +221,7 @@ this.TelemetryController = Object.freeze({
    * @returns {Promise} A promise that resolves with the ping id when the ping is saved to
    *                    disk.
    */
-  addPendingPing: function(aType, aPayload, aOptions = {}) {
+  addPendingPing(aType, aPayload, aOptions = {}) {
     let options = aOptions;
     options.addClientId = aOptions.addClientId || false;
     options.addEnvironment = aOptions.addEnvironment || false;
@@ -268,7 +236,7 @@ this.TelemetryController = Object.freeze({
    *
    * @return {Promise} Promise that is resolved when the ping is saved.
    */
-  checkAbortedSessionPing: function() {
+  checkAbortedSessionPing() {
     return Impl.checkAbortedSessionPing();
   },
 
@@ -278,7 +246,7 @@ this.TelemetryController = Object.freeze({
    * @param {Object} aPayload The ping payload data.
    * @return {Promise} Promise that is resolved when the ping is saved.
    */
-  saveAbortedSessionPing: function(aPayload) {
+  saveAbortedSessionPing(aPayload) {
     return Impl.saveAbortedSessionPing(aPayload);
   },
 
@@ -287,7 +255,7 @@ this.TelemetryController = Object.freeze({
    *
    * @return {Promise} Promise that is resolved when the ping was removed.
    */
-  removeAbortedSessionPing: function() {
+  removeAbortedSessionPing() {
     return Impl.removeAbortedSessionPing();
   },
 
@@ -310,7 +278,7 @@ this.TelemetryController = Object.freeze({
    * @returns {Promise} A promise that resolves with the ping id when the ping is saved to
    *                    disk.
    */
-  savePing: function(aType, aPayload, aFilePath, aOptions = {}) {
+  savePing(aType, aPayload, aFilePath, aOptions = {}) {
     let options = aOptions;
     options.addClientId = aOptions.addClientId || false;
     options.addEnvironment = aOptions.addEnvironment || false;
@@ -320,44 +288,11 @@ this.TelemetryController = Object.freeze({
   },
 
   /**
-   * The client id send with the telemetry ping.
-   *
-   * @return The client id as string, or null.
-   */
-  get clientID() {
-    return Impl.clientID;
-  },
-
-  /**
-   * Whether this client is part of a sample that gets opt-out Telemetry.
-   *
-   * @return {Boolean} Whether the client is part of the opt-out sample.
-   */
-  get isInOptoutSample() {
-    return Impl.isInOptoutSample;
-  },
-
-  /**
-   * The AsyncShutdown.Barrier to synchronize with TelemetryController shutdown.
-   */
-  get shutdown() {
-    return Impl._shutdownBarrier.client;
-  },
-
-  /**
-   * The session recorder instance managed by Telemetry.
-   * @return {Object} The active SessionRecorder instance or null if not available.
-   */
-  getSessionRecorder: function() {
-    return Impl._sessionRecorder;
-  },
-
-  /**
    * Allows waiting for TelemetryControllers delayed initialization to complete.
    * The returned promise is guaranteed to resolve before TelemetryController is shutting down.
    * @return {Promise} Resolved when delayed TelemetryController initialization completed.
    */
-  promiseInitialized: function() {
+  promiseInitialized() {
     return Impl.promiseInitialized();
   },
 });
@@ -365,6 +300,8 @@ this.TelemetryController = Object.freeze({
 var Impl = {
   _initialized: false,
   _initStarted: false, // Whether we started setting up TelemetryController.
+  _shuttingDown: false, // Whether the browser is shutting down.
+  _shutDown: false, // Whether the browser has shut down.
   _logger: null,
   _prevValues: {},
   // The previous build ID, if this is the first run with a new build.
@@ -376,8 +313,6 @@ var Impl = {
   // The deferred promise resolved when the initialization task completes.
   _delayedInitTaskDeferred: null,
 
-  // The session recorder, shared with FHR and the Data Reporting Service.
-  _sessionRecorder: null,
   // This is a public barrier Telemetry clients can use to add blockers to the shutdown
   // of TelemetryController.
   // After this barrier, clients can not submit Telemetry pings anymore.
@@ -386,6 +321,8 @@ var Impl = {
   _connectionsBarrier: new AsyncShutdown.Barrier("TelemetryController: Waiting for pending ping activity"),
   // This is true when running in the test infrastructure.
   _testMode: false,
+  // The task performing the delayed sending of the "new-profile" ping.
+  _delayedNewPingTask: null,
 
   get _log() {
     if (!this._logger) {
@@ -398,7 +335,7 @@ var Impl = {
   /**
    * Get the data for the "application" section of the ping.
    */
-  _getApplicationSection: function() {
+  _getApplicationSection() {
     // Querying architecture and update channel can throw. Make sure to recover and null
     // those fields.
     let arch = null;
@@ -420,6 +357,7 @@ var Impl = {
       buildId: Services.appinfo.appBuildID,
       name: Services.appinfo.name,
       version: Services.appinfo.version,
+      displayVersion: AppConstants.MOZ_APP_VERSION_DISPLAY,
       vendor: Services.appinfo.vendor,
       platformVersion: Services.appinfo.platformVersion,
       xpcomAbi: Services.appinfo.XPCOMABI,
@@ -456,7 +394,7 @@ var Impl = {
       creationDate: (Policy.now()).toISOString(),
       version: PING_FORMAT_VERSION,
       application: this._getApplicationSection(),
-      payload: payload,
+      payload,
     };
 
     if (aOptions.addClientId) {
@@ -474,13 +412,15 @@ var Impl = {
    * Track any pending ping send and save tasks through the promise passed here.
    * This is needed to block shutdown on any outstanding ping activity.
    */
-  _trackPendingPingTask: function (aPromise) {
+  _trackPendingPingTask(aPromise) {
     this._connectionsBarrier.client.addBlocker("Waiting for ping task", aPromise);
   },
 
   /**
-   * Submit ping payloads to Telemetry. This will assemble a complete ping, adding
-   * environment data, client id and some general info.
+   * Internal function to assemble a complete ping, adding environment data, client id
+   * and some general info. This waits on the client id to be loaded/generated if it's
+   * not yet available. Note that this function is synchronous unless we need to load
+   * the client id.
    * Depending on configuration, the ping will be sent to the server (immediately or later)
    * and archived locally.
    *
@@ -492,10 +432,57 @@ var Impl = {
    * @param {Boolean} [aOptions.addEnvironment=false] true if the ping should contain the
    *                  environment data.
    * @param {Object}  [aOptions.overrideEnvironment=null] set to override the environment data.
+   * @param {Boolean} [aOptions.usePingSender=false] if true, send the ping using the PingSender.
+   * @returns {Promise} Test-only - a promise that is resolved with the ping id once the ping is stored or sent.
+   */
+  async _submitPingLogic(aType, aPayload, aOptions) {
+    // Make sure to have a clientId if we need one. This cover the case of submitting
+    // a ping early during startup, before Telemetry is initialized, if no client id was
+    // cached.
+    if (!this._clientID && aOptions.addClientId) {
+      Telemetry.getHistogramById("TELEMETRY_PING_SUBMISSION_WAITING_CLIENTID").add();
+      // We can safely call |getClientID| here and during initialization: we would still
+      // spawn and return one single loading task.
+      this._clientID = await ClientID.getClientID();
+    }
+
+    const pingData = this.assemblePing(aType, aPayload, aOptions);
+    this._log.trace("submitExternalPing - ping assembled, id: " + pingData.id);
+
+    // Always persist the pings if we are allowed to. We should not yield on any of the
+    // following operations to keep this function synchronous for the majority of the calls.
+    let archivePromise = TelemetryArchive.promiseArchivePing(pingData)
+      .catch(e => this._log.error("submitExternalPing - Failed to archive ping " + pingData.id, e));
+    let p = [ archivePromise ];
+
+    p.push(TelemetrySend.submitPing(pingData, {usePingSender: aOptions.usePingSender}));
+
+    return Promise.all(p).then(() => pingData.id);
+  },
+
+  /**
+   * Submit ping payloads to Telemetry.
+   *
+   * @param {String} aType The type of the ping.
+   * @param {Object} aPayload The actual data payload for the ping.
+   * @param {Object} [aOptions] Options object.
+   * @param {Boolean} [aOptions.addClientId=false] true if the ping should contain the client
+   *                  id, false otherwise.
+   * @param {Boolean} [aOptions.addEnvironment=false] true if the ping should contain the
+   *                  environment data.
+   * @param {Object}  [aOptions.overrideEnvironment=null] set to override the environment data.
+   * @param {Boolean} [aOptions.usePingSender=false] if true, send the ping using the PingSender.
    * @returns {Promise} Test-only - a promise that is resolved with the ping id once the ping is stored or sent.
    */
   submitExternalPing: function send(aType, aPayload, aOptions) {
     this._log.trace("submitExternalPing - type: " + aType + ", aOptions: " + JSON.stringify(aOptions));
+
+    // Reject pings sent after shutdown.
+    if (this._shutDown) {
+      const errorMessage = "submitExternalPing - Submission is not allowed after shutdown, discarding ping of type: " + aType;
+      this._log.error(errorMessage);
+      return Promise.reject(new Error(errorMessage));
+    }
 
     // Enforce the type string to only contain sane characters.
     const typeUuid = /^[a-z0-9][a-z0-9-]+[a-z0-9]$/i;
@@ -505,20 +492,17 @@ var Impl = {
       histogram.add(aType, 1);
       return Promise.reject(new Error("Invalid type string submitted."));
     }
+    // Enforce that the payload is an object.
+    if (aPayload === null || typeof aPayload !== "object" || Array.isArray(aPayload)) {
+      this._log.error("submitExternalPing - invalid payload type: " + typeof aPayload);
+      let histogram = Telemetry.getHistogramById("TELEMETRY_INVALID_PAYLOAD_SUBMITTED");
+      histogram.add(1);
+      return Promise.reject(new Error("Invalid payload type submitted."));
+    }
 
-    const pingData = this.assemblePing(aType, aPayload, aOptions);
-    this._log.trace("submitExternalPing - ping assembled, id: " + pingData.id);
-
-    // Always persist the pings if we are allowed to.
-    let archivePromise = TelemetryArchive.promiseArchivePing(pingData)
-      .catch(e => this._log.error("submitExternalPing - Failed to archive ping " + pingData.id, e));
-    let p = [ archivePromise ];
-
-    p.push(TelemetrySend.submitPing(pingData));
-
-    let promise = Promise.all(p);
+    let promise = this._submitPingLogic(aType, aPayload, aOptions);
     this._trackPendingPingTask(promise);
-    return promise.then(() => pingData.id);
+    return promise;
   },
 
   /**
@@ -586,22 +570,22 @@ var Impl = {
    *
    * @return {Promise} Promise that is resolved when the ping is submitted and archived.
    */
-  checkAbortedSessionPing: Task.async(function*() {
-    let ping = yield TelemetryStorage.loadAbortedSessionPing();
+  async checkAbortedSessionPing() {
+    let ping = await TelemetryStorage.loadAbortedSessionPing();
     this._log.trace("checkAbortedSessionPing - found aborted-session ping: " + !!ping);
     if (!ping) {
       return;
     }
 
     try {
-      yield TelemetryStorage.addPendingPing(ping);
-      yield TelemetryArchive.promiseArchivePing(ping);
+      await TelemetryStorage.addPendingPing(ping);
+      await TelemetryArchive.promiseArchivePing(ping);
     } catch (e) {
       this._log.error("checkAbortedSessionPing - Unable to add the pending ping", e);
     } finally {
-      yield TelemetryStorage.removeAbortedSessionPing();
+      await TelemetryStorage.removeAbortedSessionPing();
     }
-  }),
+  },
 
   /**
    * Save an aborted-session ping to disk without adding it to the pending pings.
@@ -609,43 +593,15 @@ var Impl = {
    * @param {Object} aPayload The ping payload data.
    * @return {Promise} Promise that is resolved when the ping is saved.
    */
-  saveAbortedSessionPing: function(aPayload) {
+  saveAbortedSessionPing(aPayload) {
     this._log.trace("saveAbortedSessionPing");
     const options = {addClientId: true, addEnvironment: true};
     const pingData = this.assemblePing(PING_TYPE_MAIN, aPayload, options);
     return TelemetryStorage.saveAbortedSessionPing(pingData);
   },
 
-  removeAbortedSessionPing: function() {
+  removeAbortedSessionPing() {
     return TelemetryStorage.removeAbortedSessionPing();
-  },
-
-  /**
-   *
-   */
-  _isInOptoutSample: function() {
-    if (!Preferences.get(PREF_OPTOUT_SAMPLE, false)) {
-      this._log.config("_sampleForOptoutTelemetry - optout sampling is disabled");
-      return false;
-    }
-
-    const clientId = Policy.getCachedClientID();
-    if (!clientId) {
-      this._log.config("_sampleForOptoutTelemetry - no cached client id available")
-      return false;
-    }
-
-    // This mimics the server-side 1% sampling, so that we can get matching populations.
-    // The server samples on ((crc32(clientId) % 100) == 42), we match 42+X here to get
-    // a bigger sample.
-    const sample = crc32(clientId) % 100;
-    const offset = 42;
-    const range = 5; // sampling from 5%
-
-    const optout = (sample >= offset && sample < (offset + range));
-    this._log.config("_sampleForOptoutTelemetry - sampling for optout Telemetry - " +
-                     "offset: " + offset + ", range: " + range + ", sample: " + sample);
-    return optout;
   },
 
   /**
@@ -665,24 +621,25 @@ var Impl = {
     }
 
     // Configure base Telemetry recording.
-    // Unified Telemetry makes it opt-out unless the unifedOptin pref is set.
-    // Additionally, we make Telemetry opt-out for a 5% sample.
-    // If extended Telemetry is enabled, base recording is always on as well.
-    const enabled = Utils.isTelemetryEnabled;
-    const isOptout = IS_UNIFIED_TELEMETRY && (!Policy.isUnifiedOptin() || this._isInOptoutSample());
-    Telemetry.canRecordBase = enabled || isOptout;
-
-    if (AppConstants.MOZILLA_OFFICIAL) {
-      // Enable extended telemetry if:
-      //  * the telemetry preference is set and
-      //  * this is an official build or we are in test-mode
-      // We only do the latter check for official builds so that e.g. developer builds
-      // still enable Telemetry based on prefs.
-      Telemetry.canRecordExtended = enabled && (Telemetry.isOfficialTelemetry || this._testMode);
+    // Unified Telemetry makes it opt-out. If extended Telemetry is enabled, base recording
+    // is always on as well.
+    if (IS_UNIFIED_TELEMETRY) {
+      // Enable extended Telemetry on pre-release channels and disable it
+      // on Release/ESR.
+      let prereleaseChannels = ["nightly", "aurora", "beta"];
+      if (!AppConstants.MOZILLA_OFFICIAL) {
+        // Turn extended telemetry for local developer builds.
+        prereleaseChannels.push("default");
+      }
+      const isPrereleaseChannel =
+        prereleaseChannels.includes(AppConstants.MOZ_UPDATE_CHANNEL);
+      Telemetry.canRecordBase = true;
+      Telemetry.canRecordExtended = isPrereleaseChannel ||
+        Services.prefs.getBoolPref(TelemetryUtils.Preferences.OverridePreRelease, false);
     } else {
-      // Turn off extended telemetry recording if disabled by preferences or if base/telemetry
-      // telemetry recording is off.
-      Telemetry.canRecordExtended = enabled;
+      // We're not on unified Telemetry, stick to the old behaviour for
+      // supporting Fennec.
+      Telemetry.canRecordBase = Telemetry.canRecordExtended = Utils.isTelemetryEnabled;
     }
 
     this._log.config("enableTelemetryRecording - canRecordBase:" + Telemetry.canRecordBase +
@@ -701,9 +658,14 @@ var Impl = {
    *   2) _delayedInitTask was scheduled, but didn't run yet.
    *   3) _delayedInitTask is currently running.
    *   4) _delayedInitTask finished running and is nulled out.
+   *
+   * @return {Promise} Resolved when TelemetryController and TelemetrySession are fully
+   *                   initialized. This is only used in tests.
    */
   setupTelemetry: function setupTelemetry(testing) {
     this._initStarted = true;
+    this._shuttingDown = false;
+    this._shutDown = false;
     this._testMode = testing;
 
     this._log.trace("setupTelemetry");
@@ -718,15 +680,6 @@ var Impl = {
       return Promise.resolve();
     }
 
-    // Only initialize the session recorder if FHR is enabled.
-    // TODO: move this after the |enableTelemetryRecording| block and drop the
-    // PREF_FHR_ENABLED check once we permanently switch over to unified Telemetry.
-    if (!this._sessionRecorder &&
-        (Preferences.get(PREF_FHR_ENABLED, true) || IS_UNIFIED_TELEMETRY)) {
-      this._sessionRecorder = new SessionRecorder(PREF_SESSIONS_BRANCH);
-      this._sessionRecorder.onStartup();
-    }
-
     // This will trigger displaying the datachoices infobar.
     TelemetryReportingPolicy.setup();
 
@@ -737,29 +690,59 @@ var Impl = {
 
     this._attachObservers();
 
+    // Perform a lightweight, early initialization for the component, just registering
+    // a few observers and initializing the session.
+    TelemetrySession.earlyInit(this._testMode);
+
+    // Annotate crash reports so that we get pings for startup crashes
+    TelemetrySend.earlyInit();
+
     // For very short session durations, we may never load the client
     // id from disk.
     // We try to cache it in prefs to avoid this, even though this may
     // lead to some stale client ids.
     this._clientID = ClientID.getCachedClientID();
 
+    // Init the update ping telemetry as early as possible. This won't have
+    // an impact on startup.
+    UpdatePing.earlyInit();
+
     // Delay full telemetry initialization to give the browser time to
     // run various late initializers. Otherwise our gathered memory
     // footprint and other numbers would be too optimistic.
-    this._delayedInitTaskDeferred = Promise.defer();
-    this._delayedInitTask = new DeferredTask(function* () {
+    this._delayedInitTaskDeferred = PromiseUtils.defer();
+    this._delayedInitTask = new DeferredTask(async () => {
       try {
         // TODO: This should probably happen after all the delayed init here.
         this._initialized = true;
-
-        yield TelemetrySend.setup(this._testMode);
+        TelemetryEnvironment.delayedInit();
 
         // Load the ClientID.
-        this._clientID = yield ClientID.getClientID();
+        this._clientID = await ClientID.getClientID();
 
-        // Purge the pings archive by removing outdated pings. We don't wait for this
-        // task to complete, but TelemetryStorage blocks on it during shutdown.
+        await TelemetrySend.setup(this._testMode);
+
+        // Perform TelemetrySession delayed init.
+        await TelemetrySession.delayedInit();
+
+        if (Services.prefs.getBoolPref(TelemetryUtils.Preferences.NewProfilePingEnabled, false) &&
+            !TelemetrySession.newProfilePingSent) {
+          // Kick off the scheduling of the new-profile ping.
+          this.scheduleNewProfilePing();
+        }
+
+        // Purge the pings archive by removing outdated pings. We don't wait for
+        // this task to complete, but TelemetryStorage blocks on it during
+        // shutdown.
         TelemetryStorage.runCleanPingArchiveTask();
+
+        // Now that FHR/healthreporter is gone, make sure to remove FHR's DB from
+        // the profile directory. This is a temporary measure that we should drop
+        // in the future.
+        TelemetryStorage.removeFHRDatabase();
+
+        // Report the modules loaded in the Firefox process.
+        TelemetryModules.start();
 
         this._delayedInitTaskDeferred.resolve();
       } catch (e) {
@@ -767,7 +750,8 @@ var Impl = {
       } finally {
         this._delayedInitTask = null;
       }
-    }.bind(this), this._testMode ? TELEMETRY_TEST_DELAY : TELEMETRY_DELAY);
+    }, this._testMode ? TELEMETRY_TEST_DELAY : TELEMETRY_DELAY,
+       this._testMode ? 0 : undefined);
 
     AsyncShutdown.sendTelemetry.addBlocker("TelemetryController: shutting down",
                                            () => this.shutdown(),
@@ -781,7 +765,7 @@ var Impl = {
    * This triggers basic telemetry initialization for content processes.
    * @param {Boolean} [testing=false] True if we are in test mode, false otherwise.
    */
-  setupContentTelemetry: function (testing = false) {
+  setupContentTelemetry(testing = false) {
     this._testMode = testing;
 
     // We call |enableTelemetryRecording| here to make sure that Telemetry.canRecord* flags
@@ -790,41 +774,57 @@ var Impl = {
       this._log.trace("setupContentTelemetry - Content process recording disabled.");
       return;
     }
+    TelemetrySession.setupContent(testing);
   },
 
   // Do proper shutdown waiting and cleanup.
-  _cleanupOnShutdown: Task.async(function*() {
+  async _cleanupOnShutdown() {
     if (!this._initialized) {
       return;
     }
 
-    Preferences.ignore(PREF_BRANCH_LOG, configureLogging);
+    this._shuttingDown = true;
+
+    Services.prefs.removeObserver(PREF_BRANCH_LOG, configureLogging);
     this._detachObservers();
 
     // Now do an orderly shutdown.
     try {
+      if (this._delayedNewPingTask) {
+        await this._delayedNewPingTask.finalize();
+      }
+
+      UpdatePing.shutdown();
+
       // Stop the datachoices infobar display.
       TelemetryReportingPolicy.shutdown();
+      TelemetryEnvironment.shutdown();
 
       // Stop any ping sending.
-      yield TelemetrySend.shutdown();
+      await TelemetrySend.shutdown();
+
+      // Send latest data.
+      await TelemetryHealthPing.shutdown();
+
+      await TelemetrySession.shutdown();
 
       // First wait for clients processing shutdown.
-      yield this._shutdownBarrier.wait();
+      await this._shutdownBarrier.wait();
 
       // ... and wait for any outstanding async ping activity.
-      yield this._connectionsBarrier.wait();
+      await this._connectionsBarrier.wait();
 
       // Perform final shutdown operations.
-      yield TelemetryStorage.shutdown();
+      await TelemetryStorage.shutdown();
     } finally {
       // Reset state.
       this._initialized = false;
       this._initStarted = false;
+      this._shutDown = true;
     }
-  }),
+  },
 
-  shutdown: function() {
+  shutdown() {
     this._log.trace("shutdown");
 
     // We can be in one the following states here:
@@ -836,6 +836,8 @@ var Impl = {
 
     // This handles 1).
     if (!this._initStarted) {
+      this._shuttingDown = true;
+      this._shutDown = true;
       return Promise.resolve();
     }
 
@@ -852,7 +854,7 @@ var Impl = {
   /**
    * This observer drives telemetry.
    */
-  observe: function (aSubject, aTopic, aData) {
+  observe(aSubject, aTopic, aData) {
     // The logger might still be not available at this point.
     if (aTopic == "profile-after-change" || aTopic == "app-startup") {
       // If we don't have a logger, we need to make sure |Log.repository.getLogger()| is
@@ -869,22 +871,18 @@ var Impl = {
     case "app-startup":
       // app-startup is only registered for content processes.
       return this.setupContentTelemetry();
-      break;
+    case "nsPref:changed":
+      if (aData == TelemetryUtils.Preferences.FhrUploadEnabled) {
+        return this._onUploadPrefChange();
+      }
     }
-  },
-
-  get clientID() {
-    return this._clientID;
-  },
-
-  get isInOptoutSample() {
-    return this._isInOptoutSample();
+    return undefined;
   },
 
   /**
    * Get an object describing the current state of this module for AsyncShutdown diagnostics.
    */
-  _getState: function() {
+  _getState() {
     return {
       initialized: this._initialized,
       initStarted: this._initStarted,
@@ -892,6 +890,7 @@ var Impl = {
       shutdownBarrier: this._shutdownBarrier.state,
       connectionsBarrier: this._connectionsBarrier.state,
       sendModule: TelemetrySend.getShutdownState(),
+      haveDelayedNewProfileTask: !!this._delayedNewPingTask,
     };
   },
 
@@ -899,20 +898,20 @@ var Impl = {
    * Called whenever the FHR Upload preference changes (e.g. when user disables FHR from
    * the preferences panel), this triggers sending the deletion ping.
    */
-  _onUploadPrefChange: function() {
-    const uploadEnabled = Preferences.get(PREF_FHR_UPLOAD_ENABLED, false);
+  _onUploadPrefChange() {
+    const uploadEnabled = Services.prefs.getBoolPref(TelemetryUtils.Preferences.FhrUploadEnabled, false);
     if (uploadEnabled) {
       // There's nothing we should do if we are enabling upload.
       return;
     }
 
-    let p = Task.spawn(function*() {
+    let p = (async () => {
       try {
         // Clear the current pings.
-        yield TelemetrySend.clearCurrentPings();
+        await TelemetrySend.clearCurrentPings();
 
         // Remove all the pending pings, but not the deletion ping.
-        yield TelemetryStorage.runRemovePendingPingsTask();
+        await TelemetryStorage.runRemovePendingPingsTask();
       } catch (e) {
         this._log.error("_onUploadPrefChange - error clearing pending pings", e);
       } finally {
@@ -920,25 +919,27 @@ var Impl = {
         this._log.trace("_onUploadPrefChange - Sending deletion ping.");
         this.submitExternalPing(PING_TYPE_DELETION, {}, { addClientId: true });
       }
-    }.bind(this));
+    })();
 
     this._shutdownBarrier.client.addBlocker(
       "TelemetryController: removing pending pings after data upload was disabled", p);
   },
 
-  _attachObservers: function() {
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsISupportsWeakReference]),
+
+  _attachObservers() {
     if (IS_UNIFIED_TELEMETRY) {
       // Watch the FHR upload setting to trigger deletion pings.
-      Preferences.observe(PREF_FHR_UPLOAD_ENABLED, this._onUploadPrefChange, this);
+      Services.prefs.addObserver(TelemetryUtils.Preferences.FhrUploadEnabled, this, true);
     }
   },
 
   /**
    * Remove the preference observer to avoid leaks.
    */
-  _detachObservers: function() {
+  _detachObservers() {
     if (IS_UNIFIED_TELEMETRY) {
-      Preferences.ignore(PREF_FHR_UPLOAD_ENABLED, this._onUploadPrefChange, this);
+      Services.prefs.removeObserver(TelemetryUtils.Preferences.FhrUploadEnabled, this);
     }
   },
 
@@ -947,12 +948,12 @@ var Impl = {
    * This will complete before TelemetryController is shutting down.
    * @return {Promise} Resolved when delayed TelemetryController initialization completed.
    */
-  promiseInitialized: function() {
+  promiseInitialized() {
     return this._delayedInitTaskDeferred.promise;
   },
 
-  getCurrentPingData: function(aSubsession) {
-    this._log.trace("getCurrentPingData - subsession: " + aSubsession)
+  getCurrentPingData(aSubsession) {
+    this._log.trace("getCurrentPingData - subsession: " + aSubsession);
 
     // Telemetry is disabled, don't gather any data.
     if (!Telemetry.canRecordBase) {
@@ -968,17 +969,74 @@ var Impl = {
     return ping;
   },
 
-  reset: Task.async(function*() {
+  async reset() {
     this._clientID = null;
     this._detachObservers();
+
+    let sessionReset = TelemetrySession.testReset();
+
+    this._connectionsBarrier = new AsyncShutdown.Barrier(
+      "TelemetryController: Waiting for pending ping activity"
+    );
+    this._shutdownBarrier = new AsyncShutdown.Barrier(
+      "TelemetryController: Waiting for clients."
+    );
 
     // We need to kick of the controller setup first for tests that check the
     // cached client id.
     let controllerSetup = this.setupTelemetry(true);
 
-    yield TelemetrySend.reset();
-    yield TelemetryStorage.reset();
+    await sessionReset;
+    await TelemetrySend.reset();
+    await TelemetryStorage.reset();
+    await TelemetryEnvironment.testReset();
 
-    yield controllerSetup;
-  }),
+    await controllerSetup;
+  },
+
+  /**
+   * Schedule sending the "new-profile" ping.
+   */
+  scheduleNewProfilePing() {
+    this._log.trace("scheduleNewProfilePing");
+
+    const sendDelay =
+      Services.prefs.getIntPref(TelemetryUtils.Preferences.NewProfilePingDelay, NEWPROFILE_PING_DEFAULT_DELAY);
+
+    this._delayedNewPingTask = new DeferredTask(async () => {
+      try {
+        await this.sendNewProfilePing();
+      } finally {
+        this._delayedNewPingTask = null;
+      }
+    }, sendDelay);
+
+    this._delayedNewPingTask.arm();
+  },
+
+  /**
+   * Generate and send the new-profile ping
+   */
+  async sendNewProfilePing() {
+    this._log.trace("sendNewProfilePing - shutting down: " + this._shuttingDown);
+
+    // Generate the payload.
+    const payload = {
+      "reason": this._shuttingDown ? "shutdown" : "startup",
+    };
+
+    // Generate and send the "new-profile" ping. This uses the
+    // pingsender if we're shutting down.
+    let options = {
+      addClientId: true,
+      addEnvironment: true,
+      usePingSender: this._shuttingDown,
+    };
+    // TODO: we need to be smarter about when to send the ping (and save the
+    // state to file). |requestIdleCallback| is currently only accessible
+    // through DOM. See bug 1361996.
+    await TelemetryController.submitExternalPing("new-profile", payload, options)
+                             .then(() => TelemetrySession.markNewProfilePingSent(),
+                                   e => this._log.error("sendNewProfilePing - failed to submit new-profile ping", e));
+  },
 };

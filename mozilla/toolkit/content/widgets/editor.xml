@@ -26,8 +26,7 @@
       <field name="_editorContentListener">
         <![CDATA[
           ({
-            QueryInterface: function(iid)
-            {
+            QueryInterface(iid) {
               if (iid.equals(Components.interfaces.nsIURIContentListener) ||
                   iid.equals(Components.interfaces.nsISupportsWeakReference) ||
                   iid.equals(Components.interfaces.nsISupports))
@@ -35,20 +34,16 @@
 
               throw Components.results.NS_ERROR_NO_INTERFACE;
             },
-            onStartURIOpen: function(uri)
-            {
+            onStartURIOpen(uri) {
               return false;
             },
-            doContent: function(contentType, isContentPreferred, request, contentHandler)
-            {
+            doContent(contentType, isContentPreferred, request, contentHandler) {
               return false;
             },
-            isPreferred: function(contentType, desiredContentType)
-            {
+            isPreferred(contentType, desiredContentType) {
               return false;
             },
-            canHandleContent: function(contentType, isContentPreferred, desiredContentType)
-            {
+            canHandleContent(contentType, isContentPreferred, desiredContentType) {
               return false;
             },
             loadCookie: null,
@@ -124,7 +119,6 @@
       </property>
 
       <field name="_lastSearchString">null</field>
-      <field name="_lastSearchHighlight">false</field>
 
       <property name="editortype"
                 onget="return this.getAttribute('editortype');"
@@ -136,7 +130,7 @@
                 onget="return this.webNavigation.document;"/>
       <property name="docShell" readonly="true">
         <getter><![CDATA[
-          let frameLoader = this.QueryInterface(Components.interfaces.nsIFrameLoaderOwner).frameLoader;
+          let {frameLoader} = this;
           return frameLoader ? frameLoader.docShell : null;
         ]]></getter>
       </property>
@@ -174,11 +168,10 @@
                 readonly="true">
         <getter>
           <![CDATA[
-            var owner = this.QueryInterface(Components.interfaces.nsIFrameLoaderOwner);
-            if (!owner.frameLoader) {
-              return null;
+            if (this.frameLoader) {
+              return this.frameLoader.messageManager;
             }
-            return owner.frameLoader.messageManager;
+            return null;
           ]]>
         </getter>
       </property>

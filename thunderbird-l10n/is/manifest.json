@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "is": {
+      "chrome_resources": {
+        "necko": "chrome/is/locale/is/necko/", 
+        "global": "chrome/is/locale/is/global/", 
+        "messenger-region": "chrome/is/locale/is/messenger-region/", 
+        "chat": "chrome/is/locale/is/chat/", 
+        "devtools": "chrome/is/locale/is/devtools/client/", 
+        "pipnss": "chrome/is/locale/is/pipnss/", 
+        "messenger-smime": "chrome/is/locale/is/messenger-smime/", 
+        "messenger-newsblog": "chrome/is/locale/is/messenger-newsblog/", 
+        "devtools-shim": "chrome/is/locale/is/devtools/shim/", 
+        "alerts": "chrome/is/locale/is/alerts/", 
+        "messenger": "chrome/is/locale/is/messenger/", 
+        "editor": "chrome/is/locale/is/editor/", 
+        "branding": "chrome/is/locale/is/branding/", 
+        "mozldap": "chrome/is/locale/is/mozldap/", 
+        "autoconfig": "chrome/is/locale/is/autoconfig/", 
+        "devtools-shared": "chrome/is/locale/is/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/is/locale/is/global-platform/win/", 
+          "android": "chrome/is/locale/is/global-platform/unix/", 
+          "macosx": "chrome/is/locale/is/global-platform/mac/", 
+          "linux": "chrome/is/locale/is/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/is/locale/is/mozapps/", 
+        "pluginproblem": "chrome/is/locale/is/pluginproblem/", 
+        "communicator": "chrome/is/locale/is/communicator/", 
+        "messenger-mapi": "chrome/is/locale/is/messenger-mapi/", 
+        "places": "chrome/is/locale/is/places/", 
+        "passwordmgr": "chrome/is/locale/is/passwordmgr/", 
+        "pippki": "chrome/is/locale/is/pippki/"
+      }, 
+      "version": "20171102110040"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "58.0", 
+      "id": "langpack-is@firefox.mozilla.org", 
+      "strict_max_version": "58.*"
+    }
+  }, 
+  "langpack_id": "is", 
+  "version": "58.0", 
+  "name": "Icelandic (IS) Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "mozilla.org", 
+  "description": "Language pack for Thunderbird for is"
+}

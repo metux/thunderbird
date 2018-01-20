@@ -2,16 +2,21 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
+from __future__ import absolute_import
+
 import sys
 from setuptools import setup
 
 PACKAGE_NAME = 'mozprofile'
-PACKAGE_VERSION = '0.27'
+PACKAGE_VERSION = '0.29'
 
 # we only support python 2 right now
 assert sys.version_info[0] == 2
 
-deps = ['mozfile >= 1.0', 'mozlog >= 3.0']
+deps = ['mozfile >= 1.0',
+        'mozlog >= 3.0',
+        'six >= 1.10.0'
+        ]
 
 setup(name=PACKAGE_NAME,
       version=PACKAGE_VERSION,
@@ -42,5 +47,4 @@ setup(name=PACKAGE_NAME,
       mozprofile = mozprofile:cli
       view-profile = mozprofile:view_profile
       diff-profiles = mozprofile:diff_profiles
-      """,
-    )
+      """, )

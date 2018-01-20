@@ -7,11 +7,10 @@ function test()
 {
   waitForExplicitFinish();
 
-  gBrowser.selectedTab = gBrowser.addTab();
-  gBrowser.selectedBrowser.addEventListener("load", function browserLoad() {
-    gBrowser.selectedBrowser.removeEventListener("load", browserLoad, true);
+  gBrowser.selectedTab = BrowserTestUtils.addTab(gBrowser);
+  gBrowser.selectedBrowser.addEventListener("load", function () {
     openScratchpad(runTests, {"state":{"text":""}});
-  }, true);
+  }, {capture: true, once: true});
 
   content.location = "data:text/html,<p>test that exceptions are output as " +
       "comments for 'display' and not sent to the console in Scratchpad";
@@ -21,7 +20,7 @@ function runTests()
 {
   let scratchpad = gScratchpadWindow.Scratchpad;
 
-  let message = "\"Hello World!\""
+  let message = "\"Hello World!\"";
   let openComment = "\n/*\n";
   let closeComment = "\n*/";
   let error = "throw new Error(\"Ouch!\")";
@@ -33,40 +32,40 @@ function runTests()
     result: message + openComment + "Hello World!" + closeComment,
     label: "message display output"
   },
-  {
-    method: "display",
-    code: error,
-    result: error + openComment + "Exception: Error: Ouch!\n@" +
+    {
+      method: "display",
+      code: error,
+      result: error + openComment + "Exception: Error: Ouch!\n@" +
             scratchpad.uniqueName + ":1:7" + closeComment,
-    label: "error display output",
-  },
-  {
-    method: "display",
-    code: syntaxError,
-    result: syntaxError + openComment + "Exception: SyntaxError: expected expression, got end of script\n@" +
+      label: "error display output",
+    },
+    {
+      method: "display",
+      code: syntaxError,
+      result: syntaxError + openComment + "Exception: SyntaxError: expected expression, got end of script\n@" +
             scratchpad.uniqueName + ":1" + closeComment,
-    label: "syntaxError display output",
-  },
-  {
-    method: "run",
-    code: message,
-    result: message,
-    label: "message run output",
-  },
-  {
-    method: "run",
-    code: error,
-    result: error + openComment + "Exception: Error: Ouch!\n@" +
+      label: "syntaxError display output",
+    },
+    {
+      method: "run",
+      code: message,
+      result: message,
+      label: "message run output",
+    },
+    {
+      method: "run",
+      code: error,
+      result: error + openComment + "Exception: Error: Ouch!\n@" +
             scratchpad.uniqueName + ":1:7" + closeComment,
-    label: "error run output",
-  },
-  {
-    method: "run",
-    code: syntaxError,
-    result: syntaxError + openComment + "Exception: SyntaxError: expected expression, got end of script\n@" +
+      label: "error run output",
+    },
+    {
+      method: "run",
+      code: syntaxError,
+      result: syntaxError + openComment + "Exception: SyntaxError: expected expression, got end of script\n@" +
             scratchpad.uniqueName + ":1" + closeComment,
-    label: "syntaxError run output",
-  }];
+      label: "syntaxError run output",
+    }];
 
   runAsyncTests(scratchpad, tests).then(finish);
 }

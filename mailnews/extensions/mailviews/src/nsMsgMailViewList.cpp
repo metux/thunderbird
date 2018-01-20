@@ -4,7 +4,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsMsgMailViewList.h"
-#include "nsISupportsArray.h"
+#include "nsArray.h"
+#include "nsIMutableArray.h"
 #include "nsIFileChannel.h"
 #include "nsIMsgFilterService.h"
 #include "nsIMsgMailSession.h"
@@ -16,16 +17,18 @@
 #include "nsComponentManagerUtils.h"
 #include "mozilla/Services.h"
 #include "nsIMsgFilter.h"
+#include "nsArrayUtils.h"
 
 #define kDefaultViewPeopleIKnow "People I Know"
 #define kDefaultViewRecent "Recent Mail"
 #define kDefaultViewFiveDays "Last 5 Days"
 #define kDefaultViewNotJunk "Not Junk"
 #define kDefaultViewHasAttachments "Has Attachments"
- 
+
 nsMsgMailView::nsMsgMailView()
 {
-    mViewSearchTerms = do_CreateInstance(NS_SUPPORTSARRAY_CONTRACTID);
+    mViewSearchTerms = nsArray::Create();
+    NS_ASSERTION(mViewSearchTerms, "Failed to allocate a nsIMutableArray for mViewSearchTerms");
 }
 
 NS_IMPL_ADDREF(nsMsgMailView)
@@ -70,47 +73,54 @@ NS_IMETHODIMP nsMsgMailView::GetPrettyName(char16_t ** aMailViewName)
 
     // see if mName has an associated pretty name inside our string bundle and if so, use that as the pretty name
     // otherwise just return mName
-    if (mName.EqualsLiteral(kDefaultViewPeopleIKnow))
-        rv = mBundle->GetStringFromName(MOZ_UTF16("mailViewPeopleIKnow"), aMailViewName);
-    else if (mName.EqualsLiteral(kDefaultViewRecent))
-        rv = mBundle->GetStringFromName(MOZ_UTF16("mailViewRecentMail"), aMailViewName);
-    else if (mName.EqualsLiteral(kDefaultViewFiveDays))
-        rv = mBundle->GetStringFromName(MOZ_UTF16("mailViewLastFiveDays"), aMailViewName);
-    else if (mName.EqualsLiteral(kDefaultViewNotJunk))
-        rv = mBundle->GetStringFromName(MOZ_UTF16("mailViewNotJunk"), aMailViewName);
-    else if (mName.EqualsLiteral(kDefaultViewHasAttachments))
-        rv = mBundle->GetStringFromName(MOZ_UTF16("mailViewHasAttachments"), aMailViewName);
-    else
+    nsAutoString mailViewName;
+    if (mName.EqualsLiteral(kDefaultViewPeopleIKnow)) {
+        rv = mBundle->GetStringFromName("mailViewPeopleIKnow", mailViewName);
+        *aMailViewName = ToNewUnicode(mailViewName);
+    } else if (mName.EqualsLiteral(kDefaultViewRecent)) {
+        rv = mBundle->GetStringFromName("mailViewRecentMail", mailViewName);
+        *aMailViewName = ToNewUnicode(mailViewName);
+    } else if (mName.EqualsLiteral(kDefaultViewFiveDays)) {
+        rv = mBundle->GetStringFromName("mailViewLastFiveDays", mailViewName);
+        *aMailViewName = ToNewUnicode(mailViewName);
+    } else if (mName.EqualsLiteral(kDefaultViewNotJunk)) {
+        rv = mBundle->GetStringFromName("mailViewNotJunk", mailViewName);
+        *aMailViewName = ToNewUnicode(mailViewName);
+    } else if (mName.EqualsLiteral(kDefaultViewHasAttachments)) {
+        rv = mBundle->GetStringFromName("mailViewHasAttachments", mailViewName);
+        *aMailViewName = ToNewUnicode(mailViewName);
+    } else {
         *aMailViewName = ToNewUnicode(mName);
+    }
 
     return rv;
 }
 
-NS_IMETHODIMP nsMsgMailView::GetSearchTerms(nsISupportsArray ** aSearchTerms)
+NS_IMETHODIMP nsMsgMailView::GetSearchTerms(nsIMutableArray **aSearchTerms)
 {
     NS_ENSURE_ARG_POINTER(aSearchTerms);
     NS_IF_ADDREF(*aSearchTerms = mViewSearchTerms);
     return NS_OK;
 }
 
-NS_IMETHODIMP nsMsgMailView::SetSearchTerms(nsISupportsArray * aSearchTerms)
+NS_IMETHODIMP nsMsgMailView::SetSearchTerms(nsIMutableArray *aSearchTerms)
 {
     mViewSearchTerms = aSearchTerms;
     return NS_OK;
 }
 
-NS_IMETHODIMP nsMsgMailView::AppendTerm(nsIMsgSearchTerm * aTerm)
+NS_IMETHODIMP nsMsgMailView::AppendTerm(nsIMsgSearchTerm *aTerm)
 {
     NS_ENSURE_TRUE(aTerm, NS_ERROR_NULL_POINTER);
-    
-    return mViewSearchTerms->AppendElement(static_cast<nsISupports*>(aTerm));
+
+    return mViewSearchTerms->AppendElement(aTerm);
 }
 
 NS_IMETHODIMP nsMsgMailView::CreateTerm(nsIMsgSearchTerm **aResult)
 {
     NS_ENSURE_ARG_POINTER(aResult);
     nsCOMPtr<nsIMsgSearchTerm> searchTerm = do_CreateInstance("@mozilla.org/messenger/searchTerm;1");
-    NS_IF_ADDREF(*aResult = searchTerm);
+    searchTerm.forget(aResult);
     return NS_OK;
 }
 
@@ -170,11 +180,7 @@ NS_IMETHODIMP nsMsgMailViewList::RemoveMailView(nsIMsgMailView * aMailView)
 NS_IMETHODIMP nsMsgMailViewList::CreateMailView(nsIMsgMailView ** aMailView)
 {
     NS_ENSURE_ARG_POINTER(aMailView);
-
-    nsMsgMailView * mailView = new nsMsgMailView;
-    NS_ENSURE_TRUE(mailView, NS_ERROR_OUT_OF_MEMORY);
-
-    NS_IF_ADDREF(*aMailView = mailView);
+    NS_ADDREF(*aMailView = new nsMsgMailView);
     return NS_OK;
 }
 
@@ -215,7 +221,7 @@ nsresult nsMsgMailViewList::ConvertMailViewListToFilterList()
       if (!newMailFilter)
           continue;
 
-      nsCOMPtr<nsISupportsArray> searchTerms;
+      nsCOMPtr<nsIMutableArray> searchTerms;
       mailView->GetSearchTerms(getter_AddRefs(searchTerms));
       newMailFilter->SetSearchTerms(searchTerms);
       mFilterList->InsertFilterAt(index, newMailFilter);
@@ -246,18 +252,18 @@ nsresult nsMsgMailViewList::LoadMailViews()
 
          // get the profile directory
         rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR, getter_AddRefs(profileDir));
-        
+
         // now copy the file over to the profile directory
         defaultMessagesFile->CopyToNative(profileDir, EmptyCString());
     }
-    // this is kind of a hack but I think it will be an effective hack. The filter service already knows how to 
+    // this is kind of a hack but I think it will be an effective hack. The filter service already knows how to
     // take a nsIFile and parse the contents into filters which are very similar to mail views. Intead of
     // re-writing all of that dirty parsing code, let's just re-use it then convert the results into a data strcuture
-    // we wish to give to our consumers. 
-      
+    // we wish to give to our consumers.
+
     nsCOMPtr<nsIMsgFilterService> filterService = do_GetService(NS_MSGFILTERSERVICE_CONTRACTID, &rv);
     nsCOMPtr<nsIMsgFilterList> mfilterList;
-      
+
     rv = filterService->OpenFilterList(file, nullptr, nullptr, getter_AddRefs(mFilterList));
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -291,7 +297,7 @@ nsresult nsMsgMailViewList::ConvertFilterListToMailViews()
         msgFilter->GetFilterName(filterName);
         newMailView->SetMailViewName(filterName.get());
 
-        nsCOMPtr<nsISupportsArray> filterSearchTerms;
+        nsCOMPtr<nsIMutableArray> filterSearchTerms;
         rv = msgFilter->GetSearchTerms(getter_AddRefs(filterSearchTerms));
         NS_ENSURE_SUCCESS(rv, rv);
         rv = newMailView->SetSearchTerms(filterSearchTerms);

@@ -12,17 +12,24 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.InputStreamReader;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
+import java.net.URLDecoder;
 import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
+import java.security.MessageDigest;
 import java.util.zip.GZIPOutputStream;
 
 import org.mozilla.gecko.AppConstants.Versions;
+import org.mozilla.gecko.util.ProxySelector;
 
+import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
@@ -39,11 +46,13 @@ import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 
+@SuppressLint("Registered") // This activity is only registered in the manifest if MOZ_CRASHREPORTER is set
 public class CrashReporter extends AppCompatActivity
 {
     private static final String LOGTAG = "GeckoCrashReporter";
 
     private static final String PASSED_MINI_DUMP_KEY = "minidumpPath";
+    private static final String PASSED_MINI_DUMP_SUCCESS_KEY = "minidumpSuccess";
     private static final String MINI_DUMP_PATH_KEY = "upload_file_minidump";
     private static final String PAGE_URL_KEY = "URL";
     private static final String NOTES_KEY = "Notes";
@@ -63,6 +72,7 @@ public class CrashReporter extends AppCompatActivity
     private File mPendingMinidumpFile;
     private File mPendingExtrasFile;
     private HashMap<String, String> mExtrasStringMap;
+    private boolean mMinidumpSucceeded;
 
     private boolean moveFile(File inFile, File outFile) {
         Log.i(LOGTAG, "moving " + inFile + " to " + outFile);
@@ -119,6 +129,10 @@ public class CrashReporter extends AppCompatActivity
         mProgressDialog = new ProgressDialog(this);
         mProgressDialog.setMessage(getString(R.string.sending_crash_report));
 
+        mMinidumpSucceeded = getIntent().getBooleanExtra(PASSED_MINI_DUMP_SUCCESS_KEY, false);
+        if (!mMinidumpSucceeded) {
+            Log.i(LOGTAG, "Failed to get minidump.");
+        }
         String passedMinidumpPath = getIntent().getStringExtra(PASSED_MINI_DUMP_KEY);
         File passedMinidumpFile = new File(passedMinidumpPath);
         File pendingDir = new File(getFilesDir(), PENDING_SUFFIX);
@@ -130,16 +144,17 @@ public class CrashReporter extends AppCompatActivity
         mPendingExtrasFile = new File(pendingDir, extrasFile.getName());
         moveFile(extrasFile, mPendingExtrasFile);
 
+        computeMinidumpHash(mPendingExtrasFile, mPendingMinidumpFile);
         mExtrasStringMap = new HashMap<String, String>();
         readStringsFromFile(mPendingExtrasFile.getPath(), mExtrasStringMap);
 
-        // Set the flag that indicates we were stopped as expected, as
-        // we will send a crash report, so it is not a silent OOM crash.
-        SharedPreferences prefs = GeckoSharedPrefs.forApp(this);
-        SharedPreferences.Editor editor = prefs.edit();
-        editor.putBoolean(GeckoApp.PREFS_WAS_STOPPED, true);
-        editor.putBoolean(GeckoApp.PREFS_CRASHED, true);
-        editor.apply();
+        // Notify GeckoApp that we've crashed, so it can react appropriately during the next start.
+        try {
+            File crashFlag = new File(GeckoProfileDirectories.getMozillaDirectory(this), "CRASHED");
+            crashFlag.createNewFile();
+        } catch (GeckoProfileDirectories.NoMozillaDirectoryException | IOException e) {
+            Log.e(LOGTAG, "Cannot set crash flag: ", e);
+        }
 
         final CheckBox allowContactCheckBox = (CheckBox) findViewById(R.id.allow_contact);
         final CheckBox includeUrlCheckBox = (CheckBox) findViewById(R.id.include_url);
@@ -148,6 +163,7 @@ public class CrashReporter extends AppCompatActivity
         final EditText emailEditText = (EditText) findViewById(R.id.email);
 
         // Load CrashReporter preferences to avoid redundant user input.
+        SharedPreferences prefs = GeckoSharedPrefs.forCrashReporter(this);
         final boolean sendReport   = prefs.getBoolean(PREFS_SEND_REPORT, true);
         final boolean includeUrl   = prefs.getBoolean(PREFS_INCLUDE_URL, false);
         final boolean allowContact = prefs.getBoolean(PREFS_ALLOW_CONTACT, false);
@@ -233,18 +249,18 @@ public class CrashReporter extends AppCompatActivity
     }
 
     private void savePrefs() {
-        SharedPreferences.Editor editor = GeckoSharedPrefs.forApp(this).edit();
-                  
+        SharedPreferences.Editor editor = GeckoSharedPrefs.forCrashReporter(this).edit();
+
         final boolean allowContact = ((CheckBox) findViewById(R.id.allow_contact)).isChecked();
         final boolean includeUrl   = ((CheckBox) findViewById(R.id.include_url)).isChecked();
         final boolean sendReport   = ((CheckBox) findViewById(R.id.send_report)).isChecked();
         final String contactEmail  = ((EditText) findViewById(R.id.email)).getText().toString();
-                   
+
         editor.putBoolean(PREFS_ALLOW_CONTACT, allowContact);
         editor.putBoolean(PREFS_INCLUDE_URL, includeUrl);
         editor.putBoolean(PREFS_SEND_REPORT, sendReport);
         editor.putString(PREFS_CONTACT_EMAIL, contactEmail);
-                    
+
         // A slight performance improvement via async apply() vs. blocking on commit().
         editor.apply();
     }
@@ -256,6 +272,46 @@ public class CrashReporter extends AppCompatActivity
     public void onRestartClick(View v) {  // bound via crash_reporter.xml
         doRestart();
         backgroundSendReport();
+    }
+
+    private void computeMinidumpHash(File extraFile, File minidump) {
+        try {
+            FileInputStream stream = new FileInputStream(minidump);
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+
+            try {
+                byte[] buffer = new byte[4096];
+                int readBytes;
+
+                while ((readBytes = stream.read(buffer)) != -1) {
+                    md.update(buffer, 0, readBytes);
+                }
+            } finally {
+              stream.close();
+            }
+
+            byte[] digest = md.digest();
+            StringBuilder hash = new StringBuilder(84);
+
+            hash.append("MinidumpSha256Hash=");
+
+            for (int i = 0; i < digest.length; i++) {
+              hash.append(Integer.toHexString((digest[i] & 0xf0) >> 4));
+              hash.append(Integer.toHexString(digest[i] & 0x0f));
+            }
+
+            hash.append('\n');
+
+            FileWriter writer = new FileWriter(extraFile, /* append */ true);
+
+            try {
+                writer.write(hash.toString());
+            } finally {
+                writer.close();
+            }
+        } catch (Exception e) {
+            Log.e(LOGTAG, "exception while computing the minidump hash: ", e);
+        }
     }
 
     private boolean readStringsFromFile(String filePath, Map<String, String> stringMap) {
@@ -314,15 +370,20 @@ public class CrashReporter extends AppCompatActivity
     }
 
     private String readLogcat() {
+        final String crashReporterProc = " " + android.os.Process.myPid() + ' ';
         BufferedReader br = null;
         try {
-            // get the last 200 lines of logcat
+            // get at most the last 400 lines of logcat
             Process proc = Runtime.getRuntime().exec(new String[] {
-                "logcat", "-v", "threadtime", "-t", "200", "-d", "*:D"
+                "logcat", "-v", "threadtime", "-t", "400", "-d", "*:D"
             });
             StringBuilder sb = new StringBuilder();
             br = new BufferedReader(new InputStreamReader(proc.getInputStream()));
             for (String s = br.readLine(); s != null; s = br.readLine()) {
+                if (s.contains(crashReporterProc)) {
+                    // Don't include logs from the crash reporter's process.
+                    break;
+                }
                 sb.append(s).append('\n');
             }
             return sb.toString();
@@ -351,8 +412,11 @@ public class CrashReporter extends AppCompatActivity
 
         Log.i(LOGTAG, "server url: " + spec);
         try {
-            URL url = new URL(spec);
-            HttpURLConnection conn = (HttpURLConnection)url.openConnection();
+            final URL url = new URL(URLDecoder.decode(spec, "UTF-8"));
+            final URI uri = new URI(url.getProtocol(), url.getUserInfo(),
+                                    url.getHost(), url.getPort(),
+                                    url.getPath(), url.getQuery(), url.getRef());
+            HttpURLConnection conn = (HttpURLConnection)ProxySelector.openConnectionWithProxy(uri);
             conn.setRequestMethod("POST");
             String boundary = generateBoundary();
             conn.setDoOutput(true);
@@ -414,6 +478,7 @@ public class CrashReporter extends AppCompatActivity
                 sendPart(os, boundary, "Email", email);
             }
 
+            sendPart(os, boundary, PASSED_MINI_DUMP_SUCCESS_KEY, mMinidumpSucceeded ? "True" : "False");
             sendFile(os, boundary, MINI_DUMP_PATH_KEY, minidumpFile);
             os.write(("\r\n--" + boundary + "--\r\n").getBytes());
             os.flush();
@@ -440,6 +505,8 @@ public class CrashReporter extends AppCompatActivity
             }
         } catch (IOException e) {
             Log.e(LOGTAG, "exception during send: ", e);
+        } catch (URISyntaxException e) {
+            Log.e(LOGTAG, "exception during new URI: ", e);
         }
 
         doFinish();

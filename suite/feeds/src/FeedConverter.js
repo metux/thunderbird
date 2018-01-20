@@ -129,7 +129,6 @@ FeedConverter.prototype = {
      Components.interfaces.nsIRequestObserver,
      Components.interfaces.nsISupports]),
   classID: Components.ID("{88592f45-3866-4c8e-9d8a-ab58b290fcf7}"),
-  implementationLanguage: Components.interfaces.nsIProgrammingLanguage.JAVASCRIPT,
 
   /**
    * See nsIStreamConverter.idl
@@ -252,17 +251,19 @@ FeedConverter.prototype = {
         feedService.addFeedResult(result);
 
         // Now load the actual XUL document.
-        var chromeURI = Services.io.newURI(FEEDHANDLER_URI, null, null);
+        var chromeURI = Services.io.newURI(FEEDHANDLER_URI);
         chromeChannel = Services.io.newChannelFromURIWithLoadInfo(chromeURI, loadInfo);
+        // carry the origin attributes from the channel that loaded the feed.
         chromeChannel.owner = Services.scriptSecurityManager
-                                      .getNoAppCodebasePrincipal(chromeURI);
+                                      .createCodebasePrincipal(chromeURI,
+                                                               loadInfo.originAttributes);
         chromeChannel.originalURI = result.uri;
       }
       else
         chromeChannel = Services.io.newChannelFromURIWithLoadInfo(result.uri, loadInfo);
 
       chromeChannel.loadGroup = this._request.loadGroup;
-      chromeChannel.asyncOpen(this._listener, null);
+      chromeChannel.asyncOpen2(this._listener);
     }
     finally {
       this._releaseHandles();
@@ -296,7 +297,8 @@ FeedConverter.prototype = {
         request.cancel(Components.results.NS_BINDING_ABORTED);
         return;
       }
-      var noSniff = httpChannel.getResponseHeader("X-Moz-Is-Feed");
+      // Note: this throws if the header is not set.
+      httpChannel.getResponseHeader("X-Moz-Is-Feed");
     }
     catch (ex) {
       this._sniffed = true;
@@ -360,7 +362,7 @@ FeedResultService.prototype = {
     switch (handler) {
     case "client":
       var clientApp = Services.prefs.getComplexValue(getPrefAppForType(feedType),
-                                                     Components.interfaces.nsILocalFile);
+                                                     Components.interfaces.nsIFile);
 
       // For the benefit of applications that might know how to deal with more
       // URLs than just feeds, send feed: URLs in the following format:
@@ -369,7 +371,7 @@ FeedResultService.prototype = {
       // http://foo.com/index.rdf -> feed://foo.com/index.rdf
       // other urls: prepend feed: scheme, e.g.
       // https://foo.com/index.rdf -> feed:https://foo.com/index.rdf
-      var feedURI = Services.io.newURI(spec, null, null);
+      var feedURI = Services.io.newURI(spec);
       if (feedURI.schemeIs("http")) {
         feedURI.scheme = "feed";
         spec = feedURI.spec;
@@ -399,7 +401,8 @@ FeedResultService.prototype = {
       // fall through
     case "bookmarks":
       var topWindow = Services.wm.getMostRecentWindow("navigator:browser");
-      topWindow.PlacesCommandHook.addLiveBookmark(spec, title, subtitle);
+      topWindow.PlacesCommandHook.addLiveBookmark(spec, title, subtitle)
+                                 .catch(Components.utils.reportError);
       break;
     case "messenger":
       Components.classes["@mozilla.org/newsblog-feed-downloader;1"]
@@ -461,8 +464,7 @@ FeedResultService.prototype = {
 
   QueryInterface: XPCOMUtils.generateQI([Components.interfaces.nsIFeedResultService,
                                          Components.interfaces.nsISupports]),
-  classID: Components.ID("{e5b05e9d-f037-48e4-b9a4-b99476582927}"),
-  implementationLanguage: Components.interfaces.nsIProgrammingLanguage.JAVASCRIPT
+  classID: Components.ID("{e5b05e9d-f037-48e4-b9a4-b99476582927}")
 };
 
 /**
@@ -477,7 +479,15 @@ function GenericProtocolHandler(scheme, classID) {
 
 GenericProtocolHandler.prototype = {
   get protocolFlags() {
-    return this._http.protocolFlags;
+    var httpPref = "browser.feeds.feeds_like_http"
+    if (Services.prefs.getPrefType(httpPref) == Services.prefs.PREF_BOOL &&
+        Services.prefs.getBoolPref(httpPref)) {
+      return this._http.protocolFlags;
+    }
+
+    return this._http.URI_DANGEROUS_TO_LOAD |
+           this._http.ALLOWS_PROXY |
+           this._http.ALLOWS_PROXY_HTTP;
   },
 
   get defaultPort() {
@@ -500,13 +510,12 @@ GenericProtocolHandler.prototype = {
     var prefix = /^feed:\/\//.test(spec) ? "http:" : "";
     var inner = Services.io.newURI(spec.replace("feed:", prefix),
                                    originalCharset, baseURI);
-    var netutil = Components.classes["@mozilla.org/network/util;1"]
-                            .getService(Components.interfaces.nsINetUtil);
-    if (netutil.URIChainHasFlags(inner,
-        Components.interfaces.nsIProtocolHandler.URI_INHERITS_SECURITY_CONTEXT))
+
+    if (! /^https?/.test(inner.scheme))
       throw Components.results.NS_ERROR_MALFORMED_URI;
 
-    var uri = netutil.newSimpleNestedURI(inner);
+    var uri = Services.io.QueryInterface(Components.interfaces.nsINetUtil)
+                         .newSimpleNestedURI(inner);
     uri.spec = inner.spec.replace(prefix, "feed:");
     return uri;
   },
@@ -523,7 +532,7 @@ GenericProtocolHandler.prototype = {
                   ios.newChannelFromURI2(uri, null,
                                          Services.scriptSecurityManager.getSystemPrincipal(),
                                          null,
-                                         Components.interfaces.nsILoadInfo.SEC_NORMAL,
+                                         Components.interfaces.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
                                          Components.interfaces.nsIContentPolicy.TYPE_OTHER);
     if (channel instanceof Components.interfaces.nsIHttpChannel)
       // Set this so we know this is supposed to be a feed
@@ -533,8 +542,7 @@ GenericProtocolHandler.prototype = {
   },
 
   QueryInterface: XPCOMUtils.generateQI([Components.interfaces.nsIProtocolHandler,
-                                         Components.interfaces.nsISupports]),
-  implementationLanguage: Components.interfaces.nsIProgrammingLanguage.JAVASCRIPT
+                                         Components.interfaces.nsISupports])
 };
 
 function FeedProtocolHandler() {

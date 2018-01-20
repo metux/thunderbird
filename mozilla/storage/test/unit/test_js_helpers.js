@@ -9,27 +9,25 @@
  * This file tests that the JS language helpers in various ways.
  */
 
-////////////////////////////////////////////////////////////////////////////////
-//// Test Functions
+// Test Functions
 
-function test_params_enumerate()
-{
+function test_params_enumerate() {
   let stmt = createStatement(
     "SELECT * FROM test WHERE id IN (:a, :b, :c)"
   );
 
   // Make sure they are right.
-  let expected = ["a", "b", "c"];
+  let expected = [0, 1, 2, "a", "b", "c", "length"];
   let index = 0;
   for (let name in stmt.params) {
     if (name == "QueryInterface")
       continue;
     do_check_eq(name, expected[index++]);
   }
+  do_check_eq(index, 7);
 }
 
-function test_params_prototype()
-{
+function test_params_prototype() {
   let stmt = createStatement(
     "SELECT * FROM sqlite_master"
   );
@@ -38,11 +36,12 @@ function test_params_prototype()
   // bindable parameter, however).
   Object.getPrototypeOf(stmt.params).test = 2;
   do_check_eq(stmt.params.test, 2);
+
+  delete Object.getPrototypeOf(stmt.params).test;
   stmt.finalize();
 }
 
-function test_row_prototype()
-{
+function test_row_prototype() {
   let stmt = createStatement(
     "SELECT * FROM sqlite_master"
   );
@@ -59,8 +58,35 @@ function test_row_prototype()
   stmt.finalize();
 }
 
-function test_params_gets_sync()
-{
+function test_row_enumerate() {
+  let stmt = createStatement(
+    "SELECT * FROM test"
+  );
+
+  do_check_true(stmt.executeStep());
+
+  let expected = ["id", "string"];
+  let expected_values = [123, "foo"];
+  let index = 0;
+  for (let name in stmt.row) {
+    do_check_eq(name, expected[index]);
+    do_check_eq(stmt.row[name], expected_values[index]);
+    index++;
+  }
+  do_check_eq(index, 2);
+
+  // Save off the row helper, then forget the statement and trigger a GC.  We
+  // want to ensure that if the row helper is retained but the statement is
+  // destroyed, that no crash occurs and that the late access attempt simply
+  // throws an error.
+  let savedOffRow = stmt.row;
+  stmt = null;
+  Components.utils.forceGC();
+  Assert.throws(() => { return savedOffRow.string; },
+                "GC'ed statement should throw");
+}
+
+function test_params_gets_sync() {
   // Added for bug 562866.
   /*
   let stmt = createStatement(
@@ -80,8 +106,7 @@ function test_params_gets_sync()
   */
 }
 
-function test_params_gets_async()
-{
+function test_params_gets_async() {
   // Added for bug 562866.
   /*
   let stmt = createAsyncStatement(
@@ -101,25 +126,27 @@ function test_params_gets_async()
   */
 }
 
-////////////////////////////////////////////////////////////////////////////////
-//// Test Runner
+// Test Runner
 
 var tests = [
   test_params_enumerate,
   test_params_prototype,
+  test_row_enumerate,
   test_row_prototype,
   test_params_gets_sync,
   test_params_gets_async,
 ];
-function run_test()
-{
+function run_test() {
   cleanup();
 
   // Create our database.
   getOpenedDatabase().executeSimpleSQL(
     "CREATE TABLE test (" +
-      "id INTEGER PRIMARY KEY " +
+      "id INTEGER PRIMARY KEY, string TEXT" +
     ")"
+  );
+  getOpenedDatabase().executeSimpleSQL(
+    "INSERT INTO test (id, string) VALUES (123, 'foo')"
   );
 
   // Run the tests.

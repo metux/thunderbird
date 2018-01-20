@@ -27,39 +27,43 @@ public class CodeGenerator {
 
     private final Class<?> cls;
     private final String clsName;
+    private final ClassWithOptions options;
+    private AnnotationInfo.CallingThread callingThread = null;
+    private int numNativesInits;
 
     private final HashSet<String> takenMethodNames = new HashSet<String>();
 
     public CodeGenerator(ClassWithOptions annotatedClass) {
         this.cls = annotatedClass.wrappedClass;
         this.clsName = annotatedClass.generatedName;
+        this.options = annotatedClass;
 
         final String unqualifiedName = Utils.getUnqualifiedName(clsName);
         header.append(
-                "class " + clsName + " : public mozilla::jni::Class<" + unqualifiedName + ">\n" +
+                Utils.getIfdefHeader(annotatedClass.ifdef) +
+                "class " + clsName + " : public mozilla::jni::ObjectBase<" +
+                        unqualifiedName + ">\n" +
                 "{\n" +
                 "public:\n" +
-                "    typedef mozilla::jni::Ref<" + unqualifiedName + "> Ref;\n" +
-                "    typedef mozilla::jni::LocalRef<" + unqualifiedName + "> LocalRef;\n" +
-                "    typedef mozilla::jni::GlobalRef<" + unqualifiedName + "> GlobalRef;\n" +
-                "    typedef const mozilla::jni::Param<" + unqualifiedName + ">& Param;\n" +
+                "    static const char name[];\n" +
                 "\n" +
-                "    static constexpr char name[] =\n" +
-                "            \"" + cls.getName().replace('.', '/') + "\";\n" +
-                "\n" +
-                "protected:\n" +
-                "    " + unqualifiedName + "(jobject instance) : Class(instance) {}\n" +
+                "    explicit " + unqualifiedName + "(const Context& ctx) : ObjectBase<" +
+                        unqualifiedName + ">(ctx) {}\n" +
                 "\n");
 
         cpp.append(
-                "constexpr char " + clsName + "::name[];\n" +
+                Utils.getIfdefHeader(annotatedClass.ifdef) +
+                "const char " + clsName + "::name[] =\n" +
+                "        \"" + cls.getName().replace('.', '/') + "\";\n" +
                 "\n");
 
         natives.append(
+                Utils.getIfdefHeader(annotatedClass.ifdef) +
                 "template<class Impl>\n" +
                 "class " + clsName + "::Natives : " +
                         "public mozilla::jni::NativeImpl<" + unqualifiedName + ", Impl>\n" +
-                "{\n");
+                "{\n" +
+                "public:\n");
     }
 
     private String getTraitsName(String uniqueName, boolean includeScope) {
@@ -104,6 +108,13 @@ public class CodeGenerator {
 
     private void generateMember(AnnotationInfo info, Member member,
                                 String uniqueName, Class<?> type, Class<?>[] argTypes) {
+        // Sanity check.
+        if (info.noLiteral && !(member instanceof Field &&
+                                Utils.isStatic(member) && Utils.isFinal(member))) {
+            throw new IllegalStateException(clsName + "::" + uniqueName +
+                                            " is not a static final field");
+        }
+
         final StringBuilder args = new StringBuilder();
         for (Class<?> argType : argTypes) {
             args.append("\n                " + getNativeParameterType(argType, info) + ",");
@@ -113,7 +124,6 @@ public class CodeGenerator {
         }
 
         header.append(
-                "public:\n" +
                 "    struct " + getTraitsName(uniqueName, /* includeScope */ false) + " {\n" +
                 "        typedef " + Utils.getUnqualifiedName(clsName) + " Owner;\n" +
                 "        typedef " + getNativeReturnType(type, info) + " ReturnType;\n" +
@@ -124,12 +134,12 @@ public class CodeGenerator {
                 "        static constexpr char signature[] =\n" +
                 "                \"" + Utils.getSignature(member) + "\";\n" +
                 "        static const bool isStatic = " + Utils.isStatic(member) + ";\n" +
-                "        static const bool isMultithreaded = " + info.isMultithreaded + ";\n" +
                 "        static const mozilla::jni::ExceptionMode exceptionMode =\n" +
-                "                " + (
-                        info.catchException ? "mozilla::jni::ExceptionMode::NSRESULT" :
-                        info.noThrow ?        "mozilla::jni::ExceptionMode::IGNORE" :
-                                              "mozilla::jni::ExceptionMode::ABORT") + ";\n" +
+                "                " + info.exceptionMode.nativeValue() + ";\n" +
+                "        static const mozilla::jni::CallingThread callingThread =\n" +
+                "                " + info.callingThread.nativeValue() + ";\n" +
+                "        static const mozilla::jni::DispatchTarget dispatchTarget =\n" +
+                "                " + info.dispatchTarget.nativeValue() + ";\n" +
                 "    };\n" +
                 "\n");
 
@@ -139,6 +149,13 @@ public class CodeGenerator {
                 "constexpr char " + getTraitsName(uniqueName, /* includeScope */ true) +
                         "::signature[];\n" +
                 "\n");
+
+        if (this.callingThread == null) {
+            this.callingThread = info.callingThread;
+        } else if (this.callingThread != info.callingThread) {
+            // We have a mix of calling threads, so specify "any" for the whole class.
+            this.callingThread = AnnotationInfo.CallingThread.ANY;
+        }
     }
 
     private String getUniqueMethodName(String basename) {
@@ -181,7 +198,8 @@ public class CodeGenerator {
             proto.append(", ");
         }
 
-        if (info.catchException && !returnType.equals(void.class)) {
+        if (info.exceptionMode == AnnotationInfo.ExceptionMode.NSRESULT &&
+                !returnType.equals(void.class)) {
             proto.append(getNativeReturnType(returnType, info)).append('*');
             if (includeArgName) {
                 proto.append(" a").append(argIndex++);
@@ -199,7 +217,7 @@ public class CodeGenerator {
             proto.append(" const");
         }
 
-        if (info.catchException) {
+        if (info.exceptionMode == AnnotationInfo.ExceptionMode.NSRESULT) {
             proto.append(" -> nsresult");
         } else {
             proto.append(" -> ").append(getNativeReturnType(returnType, info));
@@ -239,12 +257,13 @@ public class CodeGenerator {
         // We initialize rv to NS_OK instead of NS_ERROR_* because loading NS_OK (0) uses
         // fewer instructions. We are guaranteed to set rv to the correct value later.
 
-        if (info.catchException && returnType.equals(void.class)) {
+        if (info.exceptionMode == AnnotationInfo.ExceptionMode.NSRESULT &&
+                returnType.equals(void.class)) {
             def.append(
                     "    nsresult rv = NS_OK;\n" +
                     "    ");
 
-        } else if (info.catchException) {
+        } else if (info.exceptionMode == AnnotationInfo.ExceptionMode.NSRESULT) {
             // Non-void return type
             final String resultArg = "a" + argTypes.length;
             def.append(
@@ -261,9 +280,10 @@ public class CodeGenerator {
         // Generate a call, e.g., Method<Traits>::Call(a0, a1, a2);
 
         def.append(accessorName).append("(")
-           .append(isStatic ? "nullptr" : "this");
+           .append(Utils.getUnqualifiedName(clsName) +
+                   (isStatic ? "::Context()" : "::mCtx"));
 
-        if (info.catchException) {
+        if (info.exceptionMode == AnnotationInfo.ExceptionMode.NSRESULT) {
             def.append(", &rv");
         } else {
             def.append(", nullptr");
@@ -277,7 +297,7 @@ public class CodeGenerator {
         def.append(");\n");
 
 
-        if (info.catchException) {
+        if (info.exceptionMode == AnnotationInfo.ExceptionMode.NSRESULT) {
             def.append("    return rv;\n");
         }
 
@@ -299,6 +319,13 @@ public class CodeGenerator {
 
         if (method.isSynthetic()) {
             return;
+        }
+
+        // Sanity check
+        if (info.dispatchTarget != AnnotationInfo.DispatchTarget.CURRENT) {
+            throw new IllegalStateException("Invalid dispatch target \"" +
+                    info.dispatchTarget.name().toLowerCase() +
+                    "\" for non-native method " + clsName + "::" + uniqueName);
         }
 
         generateMember(info, method, uniqueName, returnType, argTypes);
@@ -331,6 +358,20 @@ public class CodeGenerator {
         final Class<?>[] argTypes = method.getParameterTypes();
         final Class<?> returnType = method.getReturnType();
 
+        // Sanity check
+        if (info.exceptionMode != AnnotationInfo.ExceptionMode.ABORT &&
+                info.exceptionMode != AnnotationInfo.ExceptionMode.IGNORE) {
+            throw new IllegalStateException("Invalid exception mode \"" +
+                    info.exceptionMode.name().toLowerCase() +
+                    "\" for native method " + clsName + "::" + uniqueName);
+        }
+        if (info.dispatchTarget != AnnotationInfo.DispatchTarget.CURRENT &&
+                returnType != void.class) {
+            throw new IllegalStateException(
+                    "Must return void when not dispatching to current thread for native method " +
+                     clsName + "::" + uniqueName);
+        }
+
         generateMember(info, method, uniqueName, returnType, argTypes);
 
         final String traits = getTraitsName(uniqueName, /* includeScope */ true);
@@ -342,9 +383,10 @@ public class CodeGenerator {
         nativesInits.append(
                 "\n" +
                 "\n" +
-                "        mozilla::jni::MakeNativeMethod<" + traits + ">(\n" +
-                "                mozilla::jni::NativeStub<" + traits + ", Impl>\n" +
-                "                ::template Wrap<&Impl::" + info.wrapperName + ">)");
+                "    mozilla::jni::MakeNativeMethod<" + traits + ">(\n" +
+                "            mozilla::jni::NativeStub<" + traits + ", Impl>\n" +
+                "            ::template Wrap<&Impl::" + info.wrapperName + ">)");
+        numNativesInits++;
     }
 
     private String getLiteral(Object val, AnnotationInfo info) {
@@ -359,7 +401,7 @@ public class CodeGenerator {
 
         } else if (type.equals(CharSequence.class) || type.equals(String.class)) {
             final CharSequence str = (CharSequence) val;
-            final StringBuilder out = new StringBuilder(info.narrowChars ? "u8\"" : "u\"");
+            final StringBuilder out = new StringBuilder("u\"");
             for (int i = 0; i < str.length(); i++) {
                 final char c = str.charAt(i);
                 if (c >= 0x20 && c < 0x7F) {
@@ -380,16 +422,24 @@ public class CodeGenerator {
         final String uniqueName = info.wrapperName;
         final Class<?> type = field.getType();
 
-        // Handles a peculiar case when dealing with enum types. We don't care about this field.
-        // It just gets in the way and stops our code from compiling.
-        if (field.isSynthetic() || field.getName().equals("$VALUES")) {
+        // Handle various cases where we don't care about the field.
+        if (field.isSynthetic() || field.getName().equals("$VALUES") ||
+                field.getName().equals("CREATOR")) {
             return;
+        }
+
+        // Sanity check
+        if (info.dispatchTarget != AnnotationInfo.DispatchTarget.CURRENT) {
+            throw new IllegalStateException("Invalid dispatch target \"" +
+                    info.dispatchTarget.name().toLowerCase() +
+                    "\" for field " + clsName + "::" + uniqueName);
         }
 
         final boolean isStatic = Utils.isStatic(field);
         final boolean isFinal = Utils.isFinal(field);
 
-        if (isStatic && isFinal && (type.isPrimitive() || type.equals(String.class))) {
+        if (!info.noLiteral && isStatic && isFinal &&
+                (type.isPrimitive() || type.equals(String.class))) {
             Object val = null;
             try {
                 field.setAccessible(true);
@@ -400,17 +450,15 @@ public class CodeGenerator {
             if (val != null && type.isPrimitive()) {
                 // For static final primitive fields, we can use a "static const" declaration.
                 header.append(
-                    "public:\n" +
                     "    static const " + Utils.getNativeReturnType(type, info) +
                             ' ' + info.wrapperName + " = " + getLiteral(val, info) + ";\n" +
                     "\n");
                 return;
 
             } else if (val != null && type.equals(String.class)) {
-                final String nativeType = info.narrowChars ? "char" : "char16_t";
+                final String nativeType = "char16_t";
 
                 header.append(
-                    "public:\n" +
                     "    static const " + nativeType + ' ' + info.wrapperName + "[];\n" +
                     "\n");
 
@@ -472,6 +520,13 @@ public class CodeGenerator {
             return;
         }
 
+        // Sanity check
+        if (info.dispatchTarget != AnnotationInfo.DispatchTarget.CURRENT) {
+            throw new IllegalStateException("Invalid dispatch target \"" +
+                    info.dispatchTarget.name().toLowerCase() +
+                    "\" for constructor " + clsName + "::" + uniqueName);
+        }
+
         generateMember(info, method, uniqueName, returnType, argTypes);
 
         header.append(
@@ -487,40 +542,11 @@ public class CodeGenerator {
                 "\n");
     }
 
-    public void generateMembers(Member[] members) {
-        for (Member m : members) {
-            if (!Modifier.isPublic(m.getModifiers())) {
-                continue;
-            }
-
-            String name = Utils.getMemberName(m);
-            name = name.substring(0, 1).toUpperCase() + name.substring(1);
-
-            final AnnotationInfo info = new AnnotationInfo(name,
-                    /* multithread */ true, /* nothrow */ false,
-                    /* narrow */ false, /* catchException */ true);
-            final AnnotatableEntity entity = new AnnotatableEntity(m, info);
-
-            if (m instanceof Constructor) {
-                generateConstructor(entity);
-            } else if (m instanceof Method) {
-                generateMethod(entity);
-            } else if (m instanceof Field) {
-                generateField(entity);
-            } else {
-                throw new IllegalArgumentException(
-                        "expected member to be Constructor, Method, or Field");
-            }
-        }
-    }
-
     public void generateClasses(final ClassWithOptions[] classes) {
         if (classes.length == 0) {
             return;
         }
 
-        header.append(
-                "public:\n");
         for (final ClassWithOptions cls : classes) {
             // Extract "Inner" from "Outer::Inner".
             header.append(
@@ -535,6 +561,8 @@ public class CodeGenerator {
      * @return The bytes to be written to the wrappers file.
      */
     public String getWrapperFileContents() {
+        cpp.append(
+                Utils.getIfdefFooter(options.ifdef));
         return cpp.toString();
     }
 
@@ -544,14 +572,23 @@ public class CodeGenerator {
      * @return The bytes to be written to the header file.
      */
     public String getHeaderFileContents() {
+        if (this.callingThread == null) {
+            this.callingThread = AnnotationInfo.CallingThread.ANY;
+        }
+
+        header.append(
+                "    static const mozilla::jni::CallingThread callingThread =\n" +
+                "            " + this.callingThread.nativeValue() + ";\n" +
+                "\n");
+
         if (nativesInits.length() > 0) {
             header.append(
-                    "public:\n" +
                     "    template<class Impl> class Natives;\n");
         }
         header.append(
                 "};\n" +
-                "\n");
+                "\n" +
+                Utils.getIfdefFooter(options.ifdef));
         return header.toString();
     }
 
@@ -565,14 +602,14 @@ public class CodeGenerator {
             return "";
         }
         natives.append(
-                "public:\n" +
-                "    static constexpr JNINativeMethod methods[] = {" + nativesInits + '\n' +
-                "    };\n" +
+                "    static const JNINativeMethod methods[" + numNativesInits + "];\n" +
                 "};\n" +
                 "\n" +
                 "template<class Impl>\n" +
-                "constexpr JNINativeMethod " + clsName + "::Natives<Impl>::methods[];\n" +
-                "\n");
+                "const JNINativeMethod " + clsName + "::Natives<Impl>::methods[] = {" + nativesInits + '\n' +
+                "};\n" +
+                "\n" +
+                Utils.getIfdefFooter(options.ifdef));
         return natives.toString();
     }
 }

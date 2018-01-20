@@ -25,29 +25,34 @@ class SwizzleTest : public ANGLETest
         setConfigBlueBits(8);
         setConfigAlphaBits(8);
 
-        GLenum swizzles[] =
-        {
-            GL_RED,
-            GL_GREEN,
-            GL_BLUE,
-            GL_ALPHA,
-            GL_ZERO,
-            GL_ONE,
+        constexpr GLenum swizzles[] = {
+            GL_RED, GL_GREEN, GL_BLUE, GL_ALPHA, GL_ZERO, GL_ONE,
         };
 
-        for (int r = 0; r < 6; r++)
+        // Only use every 13th swizzle permutation, use a prime number to make sure the permuations
+        // are somewhat evenly distributed.  Reduces the permuations from 1296 to 100.
+        constexpr size_t swizzleReductionFactor = 13;
+
+        size_t swizzleCount = 0;
+        for (GLenum r : swizzles)
         {
-            for (int g = 0; g < 6; g++)
+            for (GLenum g : swizzles)
             {
-                for (int b = 0; b < 6; b++)
+                for (GLenum b : swizzles)
                 {
-                    for (int a = 0; a < 6; a++)
+                    for (GLenum a : swizzles)
                     {
+                        swizzleCount++;
+                        if (swizzleCount % swizzleReductionFactor != 0)
+                        {
+                            continue;
+                        }
+
                         swizzlePermutation permutation;
-                        permutation.swizzleRed = swizzles[r];
-                        permutation.swizzleGreen = swizzles[g];
-                        permutation.swizzleBlue = swizzles[b];
-                        permutation.swizzleAlpha = swizzles[a];
+                        permutation.swizzleRed   = r;
+                        permutation.swizzleGreen = g;
+                        permutation.swizzleBlue  = b;
+                        permutation.swizzleAlpha = a;
                         mPermutations.push_back(permutation);
                     }
                 }
@@ -59,9 +64,8 @@ class SwizzleTest : public ANGLETest
     {
         ANGLETest::SetUp();
 
-        const std::string vertexShaderSource = SHADER_SOURCE
-        (
-            precision highp float;
+        const std::string vertexShaderSource =
+            R"(precision highp float;
             attribute vec4 position;
             varying vec2 texcoord;
 
@@ -69,28 +73,23 @@ class SwizzleTest : public ANGLETest
             {
                 gl_Position = position;
                 texcoord = (position.xy * 0.5) + 0.5;
-            }
-        );
+            })";
 
-        const std::string fragmentShaderSource = SHADER_SOURCE
-        (
-            precision highp float;
+        const std::string fragmentShaderSource =
+            R"(precision highp float;
             uniform sampler2D tex;
             varying vec2 texcoord;
 
             void main()
             {
                 gl_FragColor = texture2D(tex, texcoord);
-            }
-        );
+            })";
 
         mProgram = CompileProgram(vertexShaderSource, fragmentShaderSource);
-        if (mProgram == 0)
-        {
-            FAIL() << "shader compilation failed.";
-        }
+        ASSERT_NE(0u, mProgram);
 
         mTextureUniformLocation = glGetUniformLocation(mProgram, "tex");
+        ASSERT_NE(-1, mTextureUniformLocation);
 
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         ASSERT_GL_NO_ERROR();
@@ -142,7 +141,7 @@ class SwizzleTest : public ANGLETest
     void runTest2D()
     {
         // TODO(jmadill): Figure out why this fails on Intel.
-        if (isIntel() && GetParam().getRenderer() == EGL_PLATFORM_ANGLE_TYPE_OPENGL_ANGLE)
+        if (IsIntel() && GetParam().getRenderer() == EGL_PLATFORM_ANGLE_TYPE_OPENGL_ANGLE)
         {
             std::cout << "Test skipped on Intel." << std::endl;
             return;
@@ -165,10 +164,8 @@ class SwizzleTest : public ANGLETest
 
         ASSERT_GL_NO_ERROR();
 
-        for (size_t i = 0; i < mPermutations.size(); i++)
+        for (const auto &permutation : mPermutations)
         {
-            const swizzlePermutation& permutation = mPermutations[i];
-
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, permutation.swizzleRed);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, permutation.swizzleGreen);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, permutation.swizzleBlue);
@@ -202,6 +199,54 @@ class SwizzleTest : public ANGLETest
     std::vector<swizzlePermutation> mPermutations;
 };
 
+class SwizzleIntegerTest : public SwizzleTest
+{
+  protected:
+    void SetUp() override
+    {
+        ANGLETest::SetUp();
+
+        const std::string vertexShaderSource =
+            "#version 300 es\n"
+            "precision highp float;\n"
+            "in vec4 position;\n"
+            "out vec2 texcoord;\n"
+            "\n"
+            "void main()\n"
+            "{\n"
+            "    gl_Position = position;\n"
+            "    texcoord = (position.xy * 0.5) + 0.5;\n"
+            "}\n";
+
+        const std::string fragmentShaderSource =
+            "#version 300 es\n"
+            "precision highp float;\n"
+            "precision highp usampler2D;\n"
+            "uniform usampler2D tex;\n"
+            "in vec2 texcoord;\n"
+            "out vec4 my_FragColor;\n"
+            "\n"
+            "void main()\n"
+            "{\n"
+            "    uvec4 s = texture(tex, texcoord);\n"
+            "    if (s[0] == 1u) s[0] = 255u;\n"
+            "    if (s[1] == 1u) s[1] = 255u;\n"
+            "    if (s[2] == 1u) s[2] = 255u;\n"
+            "    if (s[3] == 1u) s[3] = 255u;\n"
+            "    my_FragColor = vec4(s) / 255.0;\n"
+            "}\n";
+
+        mProgram = CompileProgram(vertexShaderSource, fragmentShaderSource);
+        ASSERT_NE(0u, mProgram);
+
+        mTextureUniformLocation = glGetUniformLocation(mProgram, "tex");
+        ASSERT_NE(-1, mTextureUniformLocation);
+
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+        ASSERT_GL_NO_ERROR();
+    }
+};
+
 TEST_P(SwizzleTest, RGBA8_2D)
 {
     GLubyte data[] = { 1, 64, 128, 200 };
@@ -227,6 +272,13 @@ TEST_P(SwizzleTest, R8_2D)
 {
     GLubyte data[] = { 2 };
     init2DTexture(GL_R8, GL_RED, GL_UNSIGNED_BYTE, data);
+    runTest2D();
+}
+
+TEST_P(SwizzleTest, RGB10_A2_2D)
+{
+    GLuint data[] = {20u | (40u << 10) | (60u << 20) | (2u << 30)};
+    init2DTexture(GL_RGB10_A2, GL_RGBA, GL_UNSIGNED_INT_2_10_10_10_REV, data);
     runTest2D();
 }
 
@@ -302,6 +354,12 @@ TEST_P(SwizzleTest, LA8_2D)
 
 TEST_P(SwizzleTest, L32F_2D)
 {
+    if (!extensionEnabled("GL_OES_texture_float"))
+    {
+        std::cout << "Test skipped due to missing GL_OES_texture_float." << std::endl;
+        return;
+    }
+
     GLfloat data[] = {0.7f};
     init2DTexture(GL_LUMINANCE, GL_LUMINANCE, GL_FLOAT, data);
     runTest2D();
@@ -309,6 +367,12 @@ TEST_P(SwizzleTest, L32F_2D)
 
 TEST_P(SwizzleTest, A32F_2D)
 {
+    if (!extensionEnabled("GL_OES_texture_float"))
+    {
+        std::cout << "Test skipped due to missing GL_OES_texture_float." << std::endl;
+        return;
+    }
+
     GLfloat data[] = {
         0.4f,
     };
@@ -318,6 +382,12 @@ TEST_P(SwizzleTest, A32F_2D)
 
 TEST_P(SwizzleTest, LA32F_2D)
 {
+    if (!extensionEnabled("GL_OES_texture_float"))
+    {
+        std::cout << "Test skipped due to missing GL_OES_texture_float." << std::endl;
+        return;
+    }
+
     GLfloat data[] = {
         0.5f, 0.6f,
     };
@@ -339,7 +409,50 @@ TEST_P(SwizzleTest, CompressedDXT_2D)
     runTest2D();
 }
 
+TEST_P(SwizzleIntegerTest, RGB8UI_2D)
+{
+    GLubyte data[] = {77, 66, 55};
+    init2DTexture(GL_RGB8UI, GL_RGB_INTEGER, GL_UNSIGNED_BYTE, data);
+    runTest2D();
+}
+
+// Test that updating the texture data still generates the correct swizzles
+TEST_P(SwizzleTest, SubUpdate)
+{
+    GLColor data(1, 64, 128, 200);
+    init2DTexture(GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE, &data);
+
+    glUseProgram(mProgram);
+    glBindTexture(GL_TEXTURE_2D, mTexture);
+    glUniform1i(mTextureUniformLocation, 0);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_RED);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, GL_RED);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_RED);
+
+    glClear(GL_COLOR_BUFFER_BIT);
+    drawQuad(mProgram, "position", 0.5f);
+
+    GLColor expectedData(data.R, data.R, data.R, data.R);
+    EXPECT_PIXEL_COLOR_EQ(0, 0, expectedData);
+
+    GLColor updateData(32, 234, 28, 232);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, &updateData);
+
+    glClear(GL_COLOR_BUFFER_BIT);
+    drawQuad(mProgram, "position", 0.5f);
+
+    GLColor expectedUpdateData(updateData.R, updateData.R, updateData.R, updateData.R);
+    EXPECT_PIXEL_COLOR_EQ(0, 0, expectedUpdateData);
+}
+
 // Use this to select which configurations (e.g. which renderer, which GLES major version) these tests should be run against.
-ANGLE_INSTANTIATE_TEST(SwizzleTest, ES3_D3D11(), ES3_OPENGL(), ES3_OPENGL(3, 3));
+ANGLE_INSTANTIATE_TEST(SwizzleTest, ES3_D3D11(), ES3_OPENGL(), ES3_OPENGL(3, 3), ES3_OPENGLES());
+ANGLE_INSTANTIATE_TEST(SwizzleIntegerTest,
+                       ES3_D3D11(),
+                       ES3_OPENGL(),
+                       ES3_OPENGL(3, 3),
+                       ES3_OPENGLES());
 
 } // namespace

@@ -16,6 +16,9 @@
 #include "nsTArrayForwardDeclare.h"
 
 namespace mozilla {
+namespace ipc {
+class AutoIPCStream;
+} // namespace ipc
 namespace dom {
 namespace cache {
 
@@ -64,11 +67,7 @@ public:
     virtual bool
     HasEverBeenRead() const = 0;
 
-    NS_IMETHOD_(MozExternalRefCountType)
-    AddRef(void) = 0;
-
-    NS_IMETHOD_(MozExternalRefCountType)
-    Release(void) = 0;
+    NS_INLINE_DECL_PURE_VIRTUAL_REFCOUNTING
   };
 
   static already_AddRefed<ReadStream>
@@ -81,8 +80,12 @@ public:
   Create(PCacheStreamControlParent* aControl, const nsID& aId,
          nsIInputStream* aStream);
 
-  void Serialize(CacheReadStreamOrVoid* aReadStreamOut);
-  void Serialize(CacheReadStream* aReadStreamOut);
+  void Serialize(CacheReadStreamOrVoid* aReadStreamOut,
+                 nsTArray<UniquePtr<mozilla::ipc::AutoIPCStream>>& aStreamCleanupList,
+                 ErrorResult& aRv);
+  void Serialize(CacheReadStream* aReadStreamOut,
+                 nsTArray<UniquePtr<mozilla::ipc::AutoIPCStream>>& aStreamCleanupList,
+                 ErrorResult& aRv);
 
 private:
   class Inner;

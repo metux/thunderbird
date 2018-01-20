@@ -14,6 +14,8 @@
 namespace rx
 {
 
+class BlitGL;
+class ClearMultiviewGL;
 class FunctionsGL;
 class StateManagerGL;
 struct WorkaroundsGL;
@@ -21,64 +23,115 @@ struct WorkaroundsGL;
 class FramebufferGL : public FramebufferImpl
 {
   public:
-    FramebufferGL(const gl::Framebuffer::Data &data,
+    FramebufferGL(const gl::FramebufferState &data,
                   const FunctionsGL *functions,
                   StateManagerGL *stateManager,
                   const WorkaroundsGL &workarounds,
+                  BlitGL *blitter,
+                  ClearMultiviewGL *multiviewClearer,
                   bool isDefault);
     // Constructor called when we need to create a FramebufferGL from an
     // existing framebuffer name, for example for the default framebuffer
     // on the Mac EGL CGL backend.
     FramebufferGL(GLuint id,
-                  const gl::Framebuffer::Data &data,
+                  const gl::FramebufferState &data,
                   const FunctionsGL *functions,
                   const WorkaroundsGL &workarounds,
+                  BlitGL *blitter,
+                  ClearMultiviewGL *multiviewClearer,
                   StateManagerGL *stateManager);
     ~FramebufferGL() override;
 
-    void onUpdateColorAttachment(size_t index) override;
-    void onUpdateDepthAttachment() override;
-    void onUpdateStencilAttachment() override;
-    void onUpdateDepthStencilAttachment() override;
+    gl::Error discard(const gl::Context *context, size_t count, const GLenum *attachments) override;
+    gl::Error invalidate(const gl::Context *context,
+                         size_t count,
+                         const GLenum *attachments) override;
+    gl::Error invalidateSub(const gl::Context *context,
+                            size_t count,
+                            const GLenum *attachments,
+                            const gl::Rectangle &area) override;
 
-    void setDrawBuffers(size_t count, const GLenum *buffers) override;
-    void setReadBuffer(GLenum buffer) override;
+    gl::Error clear(const gl::Context *context, GLbitfield mask) override;
+    gl::Error clearBufferfv(const gl::Context *context,
+                            GLenum buffer,
+                            GLint drawbuffer,
+                            const GLfloat *values) override;
+    gl::Error clearBufferuiv(const gl::Context *context,
+                             GLenum buffer,
+                             GLint drawbuffer,
+                             const GLuint *values) override;
+    gl::Error clearBufferiv(const gl::Context *context,
+                            GLenum buffer,
+                            GLint drawbuffer,
+                            const GLint *values) override;
+    gl::Error clearBufferfi(const gl::Context *context,
+                            GLenum buffer,
+                            GLint drawbuffer,
+                            GLfloat depth,
+                            GLint stencil) override;
 
-    gl::Error discard(size_t count, const GLenum *attachments) override;
-    gl::Error invalidate(size_t count, const GLenum *attachments) override;
-    gl::Error invalidateSub(size_t count, const GLenum *attachments, const gl::Rectangle &area) override;
+    GLenum getImplementationColorReadFormat(const gl::Context *context) const override;
+    GLenum getImplementationColorReadType(const gl::Context *context) const override;
 
-    gl::Error clear(const gl::Data &data, GLbitfield mask) override;
-    gl::Error clearBufferfv(const gl::State &state, GLenum buffer, GLint drawbuffer, const GLfloat *values) override;
-    gl::Error clearBufferuiv(const gl::State &state, GLenum buffer, GLint drawbuffer, const GLuint *values) override;
-    gl::Error clearBufferiv(const gl::State &state, GLenum buffer, GLint drawbuffer, const GLint *values) override;
-    gl::Error clearBufferfi(const gl::State &state, GLenum buffer, GLint drawbuffer, GLfloat depth, GLint stencil) override;
+    gl::Error readPixels(const gl::Context *context,
+                         const gl::Rectangle &area,
+                         GLenum format,
+                         GLenum type,
+                         void *pixels) override;
 
-    GLenum getImplementationColorReadFormat() const override;
-    GLenum getImplementationColorReadType() const override;
-    gl::Error readPixels(const gl::State &state, const gl::Rectangle &area, GLenum format, GLenum type, GLvoid *pixels) const override;
+    gl::Error blit(const gl::Context *context,
+                   const gl::Rectangle &sourceArea,
+                   const gl::Rectangle &destArea,
+                   GLbitfield mask,
+                   GLenum filter) override;
 
-    gl::Error blit(const gl::State &state, const gl::Rectangle &sourceArea, const gl::Rectangle &destArea,
-                   GLbitfield mask, GLenum filter, const gl::Framebuffer *sourceFramebuffer) override;
+    gl::Error getSamplePosition(size_t index, GLfloat *xy) const override;
 
-    GLenum checkStatus() const override;
+    bool checkStatus() const override;
 
-    void syncDrawState() const;
+    void syncState(const gl::Context *context,
+                   const gl::Framebuffer::DirtyBits &dirtyBits) override;
 
     GLuint getFramebufferID() const;
+    bool isDefault() const;
+
+    void maskOutInactiveOutputDrawBuffers(gl::DrawBufferMask maxSet);
 
   private:
-    void syncClearState(GLbitfield mask);
-    void syncClearBufferState(GLenum buffer, GLint drawBuffer);
+    void syncClearState(const gl::Context *context, GLbitfield mask);
+    void syncClearBufferState(const gl::Context *context, GLenum buffer, GLint drawBuffer);
+
+    bool modifyInvalidateAttachmentsForEmulatedDefaultFBO(
+        size_t count,
+        const GLenum *attachments,
+        std::vector<GLenum> *modifiedAttachments) const;
+
+    gl::Error readPixelsRowByRow(const gl::Context *context,
+                                 const gl::Rectangle &area,
+                                 GLenum format,
+                                 GLenum type,
+                                 const gl::PixelPackState &pack,
+                                 GLubyte *pixels) const;
+
+    gl::Error readPixelsAllAtOnce(const gl::Context *context,
+                                  const gl::Rectangle &area,
+                                  GLenum format,
+                                  GLenum type,
+                                  const gl::PixelPackState &pack,
+                                  GLubyte *pixels,
+                                  bool readLastRowSeparately) const;
 
     const FunctionsGL *mFunctions;
     StateManagerGL *mStateManager;
     const WorkaroundsGL &mWorkarounds;
+    BlitGL *mBlitter;
+    ClearMultiviewGL *mMultiviewClearer;
 
     GLuint mFramebufferID;
     bool mIsDefault;
-};
 
+    gl::DrawBufferMask mAppliedEnabledDrawBuffers;
+};
 }
 
-#endif // LIBANGLE_RENDERER_GL_FRAMEBUFFERGL_H_
+#endif  // LIBANGLE_RENDERER_GL_FRAMEBUFFERGL_H_

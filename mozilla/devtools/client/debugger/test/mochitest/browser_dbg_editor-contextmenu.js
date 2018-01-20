@@ -1,5 +1,7 @@
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
+/* vim: set ft=javascript ts=2 et sw=2 tw=80: */
 /* Any copyright is dedicated to the Public Domain.
-   http://creativecommons.org/publicdomain/zero/1.0/ */
+ * http://creativecommons.org/publicdomain/zero/1.0/ */
 
 /**
  * Bug 731394: Test the debugger source editor default context menu.
@@ -11,7 +13,11 @@ function test() {
   let gTab, gPanel, gDebugger;
   let gEditor, gSources, gContextMenu;
 
-  initDebugger(TAB_URL).then(([aTab,, aPanel]) => {
+  let options = {
+    source: EXAMPLE_URL + "code_script-switching-01.js",
+    line: 1
+  };
+  initDebugger(TAB_URL, options).then(([aTab,, aPanel]) => {
     gTab = aTab;
     gPanel = aPanel;
     gDebugger = gPanel.panelWin;
@@ -19,7 +25,7 @@ function test() {
     gSources = gDebugger.DebuggerView.Sources;
     gContextMenu = gDebugger.document.getElementById("sourceEditorContextMenu");
 
-    waitForSourceAndCaretAndScopes(gPanel, "-02.js", 1).then(performTest).then(null, info);
+    waitForSourceAndCaretAndScopes(gPanel, "-02.js", 1).then(performTest).catch(info);
     callInTab(gTab, "firstCall");
   });
 
@@ -44,7 +50,7 @@ function test() {
     gEditor.focus();
     gEditor.setSelection({ line: 1, ch: 0 }, { line: 1, ch: 10 });
 
-    once(gContextMenu, "popupshown").then(testContextMenu).then(null, info);
+    once(gContextMenu, "popupshown").then(testContextMenu).catch(info);
     gContextMenu.openPopup(gEditor.container, "overlap", 0, 0, true, false);
   }
 

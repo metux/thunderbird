@@ -4,14 +4,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/*
+ * GC-internal definitions.
+ */
+
 #ifndef gc_GCInternals_h
 #define gc_GCInternals_h
 
 #include "mozilla/ArrayUtils.h"
+#include "mozilla/Maybe.h"
 #include "mozilla/PodOperations.h"
 
 #include "jscntxt.h"
 
+#include "gc/RelocationOverlay.h"
 #include "gc/Zone.h"
 #include "vm/HelperThreads.h"
 #include "vm/Runtime.h"
@@ -19,23 +25,7 @@
 namespace js {
 namespace gc {
 
-void
-MarkPersistentRootedChains(JSTracer* trc);
-
-class MOZ_RAII AutoCopyFreeListToArenas
-{
-    JSRuntime* runtime;
-    ZoneSelector selector;
-
-  public:
-    AutoCopyFreeListToArenas(JSRuntime* rt, ZoneSelector selector);
-    ~AutoCopyFreeListToArenas();
-};
-
-struct MOZ_RAII AutoFinishGC
-{
-    explicit AutoFinishGC(JSRuntime* rt);
-};
+void FinishGC(JSContext* cx);
 
 /*
  * This class should be used by any code that needs to exclusive access to the
@@ -47,8 +37,13 @@ class MOZ_RAII AutoTraceSession
     explicit AutoTraceSession(JSRuntime* rt, JS::HeapState state = JS::HeapState::Tracing);
     ~AutoTraceSession();
 
-  protected:
+    // Threads with an exclusive context can hit refillFreeList while holding
+    // the exclusive access lock. To avoid deadlocking when we try to acquire
+    // this lock during GC and the other thread is waiting, make sure we hold
+    // the exclusive access lock during GC sessions.
     AutoLockForExclusiveAccess lock;
+
+  protected:
     JSRuntime* runtime;
 
   private:
@@ -56,40 +51,20 @@ class MOZ_RAII AutoTraceSession
     void operator=(const AutoTraceSession&) = delete;
 
     JS::HeapState prevState;
-    AutoSPSEntry pseudoFrame;
+    AutoGeckoProfilerEntry pseudoFrame;
 };
 
-struct MOZ_RAII AutoPrepareForTracing
+class MOZ_RAII AutoPrepareForTracing
 {
-    AutoFinishGC finish;
-    AutoTraceSession session;
-    AutoCopyFreeListToArenas copy;
-
-    AutoPrepareForTracing(JSRuntime* rt, ZoneSelector selector);
-};
-
-class IncrementalSafety
-{
-    const char* reason_;
-
-    explicit IncrementalSafety(const char* reason) : reason_(reason) {}
+    mozilla::Maybe<AutoTraceSession> session_;
 
   public:
-    static IncrementalSafety Safe() { return IncrementalSafety(nullptr); }
-    static IncrementalSafety Unsafe(const char* reason) { return IncrementalSafety(reason); }
-
-    explicit operator bool() const {
-        return reason_ == nullptr;
-    }
-
-    const char* reason() {
-        MOZ_ASSERT(reason_);
-        return reason_;
-    }
+    AutoPrepareForTracing(JSContext* cx, ZoneSelector selector);
+    AutoTraceSession& session() { return session_.ref(); }
 };
 
-IncrementalSafety
-IsIncrementalGCSafe(JSRuntime* rt);
+AbortReason
+IsIncrementalGCUnsafe(JSRuntime* rt);
 
 #ifdef JS_GC_ZEAL
 
@@ -102,7 +77,12 @@ class MOZ_RAII AutoStopVerifyingBarriers
     AutoStopVerifyingBarriers(JSRuntime* rt, bool isShutdown)
       : gc(&rt->gc)
     {
-        restartPreVerifier = gc->endVerifyPreBarriers() && !isShutdown;
+        if (gc->isVerifyPreBarriersEnabled()) {
+            gc->endVerifyPreBarriers();
+            restartPreVerifier = !isShutdown;
+        } else {
+            restartPreVerifier = false;
+        }
     }
 
     ~AutoStopVerifyingBarriers() {
@@ -110,18 +90,16 @@ class MOZ_RAII AutoStopVerifyingBarriers
         // inside of an outer minor GC. This is not allowed by the
         // gc::Statistics phase tree. So we pause the "real" GC, if in fact one
         // is in progress.
-        gcstats::Phase outer = gc->stats.currentPhase();
-        if (outer != gcstats::PHASE_NONE)
-            gc->stats.endPhase(outer);
-        MOZ_ASSERT((gc->stats.currentPhase() == gcstats::PHASE_NONE) ||
-                   (gc->stats.currentPhase() == gcstats::PHASE_GC_BEGIN) ||
-                   (gc->stats.currentPhase() == gcstats::PHASE_GC_END));
+        gcstats::PhaseKind outer = gc->stats().currentPhaseKind();
+        if (outer != gcstats::PhaseKind::NONE)
+            gc->stats().endPhase(outer);
+        MOZ_ASSERT(gc->stats().currentPhaseKind() == gcstats::PhaseKind::NONE);
 
         if (restartPreVerifier)
             gc->startVerifyPreBarriers();
 
-        if (outer != gcstats::PHASE_NONE)
-            gc->stats.beginPhase(outer);
+        if (outer != gcstats::PhaseKind::NONE)
+            gc->stats().beginPhase(outer);
     }
 };
 #else
@@ -132,8 +110,8 @@ struct MOZ_RAII AutoStopVerifyingBarriers
 #endif /* JS_GC_ZEAL */
 
 #ifdef JSGC_HASH_TABLE_CHECKS
-void
-CheckHashTablesAfterMovingGC(JSRuntime* rt);
+void CheckHashTablesAfterMovingGC(JSRuntime* rt);
+void CheckHeapAfterGC(JSRuntime* rt);
 #endif
 
 struct MovingTracer : JS::CallbackTracer
@@ -141,6 +119,13 @@ struct MovingTracer : JS::CallbackTracer
     explicit MovingTracer(JSRuntime* rt) : CallbackTracer(rt, TraceWeakMapKeysValues) {}
 
     void onObjectEdge(JSObject** objp) override;
+    void onShapeEdge(Shape** shapep) override;
+    void onStringEdge(JSString** stringp) override;
+    void onScriptEdge(JSScript** scriptp) override;
+    void onLazyScriptEdge(LazyScript** lazyp) override;
+    void onBaseShapeEdge(BaseShape** basep) override;
+    void onScopeEdge(Scope** basep) override;
+    void onRegExpSharedEdge(RegExpShared** sharedp) override;
     void onChild(const JS::GCCellPtr& thing) override {
         MOZ_ASSERT(!RelocationOverlay::isCellForwarded(thing.asCell()));
     }
@@ -148,49 +133,10 @@ struct MovingTracer : JS::CallbackTracer
 #ifdef DEBUG
     TracerKind getTracerKind() const override { return TracerKind::Moving; }
 #endif
-};
-
-class MOZ_RAII AutoMaybeStartBackgroundAllocation
-{
-  private:
-    JSRuntime* runtime;
-
-  public:
-    AutoMaybeStartBackgroundAllocation()
-      : runtime(nullptr)
-    {}
-
-    void tryToStartBackgroundAllocation(JSRuntime* rt) {
-        runtime = rt;
-    }
-
-    ~AutoMaybeStartBackgroundAllocation() {
-        if (runtime)
-            runtime->gc.startBackgroundAllocTaskIfIdle();
-    }
-};
-
-// In debug builds, set/unset the GC sweeping flag for the current thread.
-struct MOZ_RAII AutoSetThreadIsSweeping
-{
-#ifdef DEBUG
-    AutoSetThreadIsSweeping()
-      : threadData_(js::TlsPerThreadData.get())
-    {
-        MOZ_ASSERT(!threadData_->gcSweeping);
-        threadData_->gcSweeping = true;
-    }
-
-    ~AutoSetThreadIsSweeping() {
-        MOZ_ASSERT(threadData_->gcSweeping);
-        threadData_->gcSweeping = false;
-    }
 
   private:
-    PerThreadData* threadData_;
-#else
-    AutoSetThreadIsSweeping() {}
-#endif
+    template <typename T>
+    void updateEdge(T** thingp);
 };
 
 // Structure for counting how many times objects in a particular group have
@@ -206,14 +152,116 @@ struct TenureCount
 // of potential collisions.
 struct TenureCountCache
 {
-    TenureCount entries[16];
+    static const size_t EntryShift = 4;
+    static const size_t EntryCount = 1 << EntryShift;
+
+    TenureCount entries[EntryCount];
 
     TenureCountCache() { mozilla::PodZero(this); }
 
+    HashNumber hash(ObjectGroup* group) {
+#if JS_BITS_PER_WORD == 32
+        static const size_t ZeroBits = 3;
+#else
+        static const size_t ZeroBits = 4;
+#endif
+
+        uintptr_t word = uintptr_t(group);
+        MOZ_ASSERT((word & ((1 << ZeroBits) - 1)) == 0);
+        word >>= ZeroBits;
+        return HashNumber((word >> EntryShift) ^ word);
+    }
+
     TenureCount& findEntry(ObjectGroup* group) {
-        return entries[PointerHasher<ObjectGroup*, 3>::hash(group) % mozilla::ArrayLength(entries)];
+        return entries[hash(group) % EntryCount];
     }
 };
+
+struct MOZ_RAII AutoAssertNoNurseryAlloc
+{
+#ifdef DEBUG
+    AutoAssertNoNurseryAlloc();
+    ~AutoAssertNoNurseryAlloc();
+#else
+    AutoAssertNoNurseryAlloc() {}
+#endif
+};
+
+/*
+ * There are a couple of classes here that serve mostly as "tokens" indicating
+ * that a condition holds. Some functions force the caller to possess such a
+ * token because they would misbehave if the condition were false, and it is
+ * far more clear to make the condition visible at the point where it can be
+ * affected rather than just crashing in an assertion down in the place where
+ * it is relied upon.
+ */
+
+/*
+ * A class that serves as a token that the nursery in the current thread's zone
+ * group is empty.
+ */
+class MOZ_RAII AutoAssertEmptyNursery
+{
+  protected:
+    JSContext* cx;
+
+    mozilla::Maybe<AutoAssertNoNurseryAlloc> noAlloc;
+
+    // Check that the nursery is empty.
+    void checkCondition(JSContext* cx);
+
+    // For subclasses that need to empty the nursery in their constructors.
+    AutoAssertEmptyNursery() : cx(nullptr) {
+    }
+
+  public:
+    explicit AutoAssertEmptyNursery(JSContext* cx) : cx(nullptr) {
+        checkCondition(cx);
+    }
+
+    AutoAssertEmptyNursery(const AutoAssertEmptyNursery& other) : AutoAssertEmptyNursery(other.cx)
+    {
+    }
+};
+
+/*
+ * Evict the nursery upon construction. Serves as a token indicating that the
+ * nursery is empty. (See AutoAssertEmptyNursery, above.)
+ *
+ * Note that this is very improper subclass of AutoAssertHeapBusy, in that the
+ * heap is *not* busy within the scope of an AutoEmptyNursery. I will most
+ * likely fix this by removing AutoAssertHeapBusy, but that is currently
+ * waiting on jonco's review.
+ */
+class MOZ_RAII AutoEmptyNursery : public AutoAssertEmptyNursery
+{
+  public:
+    explicit AutoEmptyNursery(JSContext* cx);
+};
+
+extern void
+DelayCrossCompartmentGrayMarking(JSObject* src);
+
+inline bool
+IsOOMReason(JS::gcreason::Reason reason)
+{
+    return reason == JS::gcreason::LAST_DITCH ||
+           reason == JS::gcreason::MEM_PRESSURE;
+}
+
+inline void
+RelocationOverlay::forwardTo(Cell* cell)
+{
+    MOZ_ASSERT(!isForwarded());
+    // The location of magic_ is important because it must never be valid to see
+    // the value Relocated there in a GC thing that has not been moved.
+    static_assert(offsetof(RelocationOverlay, magic_) == offsetof(JSObject, group_) &&
+                  offsetof(RelocationOverlay, magic_) == offsetof(js::Shape, base_) &&
+                  offsetof(RelocationOverlay, magic_) == offsetof(JSString, d.u1.flags),
+                  "RelocationOverlay::magic_ is in the wrong location");
+    magic_ = Relocated;
+    newLocation_ = cell;
+}
 
 } /* namespace gc */
 } /* namespace js */

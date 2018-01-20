@@ -16,7 +16,7 @@ treechildren::-moz-tree-image(noicon) {
 }
 
 treechildren::-moz-tree-image(noicon) {
-  list-style-image: url("chrome://communicator/skin/bookmarks/bookmark-item.gif");
+  list-style-image: url("chrome://communicator/skin/bookmarks/bookmark-item.svg");
 }
 
 treechildren::-moz-tree-image(container, noicon) {
@@ -41,5 +41,5 @@ treechildren::-moz-tree-checkbox(partial) {
 
 #buttons {
   margin-top: 2em;
-  -moz-margin-start: 80px;
+  margin-inline-start: 80px;
 }

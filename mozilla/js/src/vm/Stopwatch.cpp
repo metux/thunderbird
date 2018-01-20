@@ -8,16 +8,15 @@
 
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/IntegerTypeTraits.h"
-#include "mozilla/unused.h"
+#include "mozilla/Unused.h"
 
 #if defined(XP_WIN)
 #include <processthreadsapi.h>
-#include <windows.h>
 #endif // defined(XP_WIN)
 
 #include "jscompartment.h"
+#include "jswin.h"
 
-#include "gc/Zone.h"
 #include "vm/Runtime.h"
 
 namespace js {
@@ -40,6 +39,14 @@ PerformanceMonitoring::reset()
     // be overwritten progressively during the execution.
     ++iteration_;
     recentGroups_.clear();
+
+    // Every so often, we will be rescheduled to another CPU. If this
+    // happens, we may end up with an entirely unsynchronized
+    // timestamp counter. If we do not reset
+    // `highestTimestampCounter_`, we could end up ignoring entirely
+    // valid sets of measures just because we are on a CPU that has a
+    // lower RDTSC.
+    highestTimestampCounter_ = 0;
 }
 
 void
@@ -128,6 +135,9 @@ PerformanceMonitoring::start()
 bool
 PerformanceMonitoring::commit()
 {
+    // Maximal initialization size, in elements for the vector of groups.
+    static const size_t MAX_GROUPS_INIT_CAPACITY = 1024;
+
 #if !defined(MOZ_HAVE_RDTSC)
     // The AutoStopwatch is only executed if `MOZ_HAVE_RDTSC`.
     return false;
@@ -144,18 +154,40 @@ PerformanceMonitoring::commit()
         return true;
     }
 
-    GroupVector recentGroups;
-    recentGroups_.swap(recentGroups);
+    // The move operation is generally constant time, unless
+    // `recentGroups_.length()` is very small, in which case
+    // it's fast just because it's small.
+    PerformanceGroupVector recentGroups(Move(recentGroups_));
+    recentGroups_ = PerformanceGroupVector(); // Reconstruct after `Move`.
 
     bool success = true;
     if (stopwatchCommitCallback)
         success = stopwatchCommitCallback(iteration_, recentGroups, stopwatchCommitClosure);
+
+    // Heuristic: we expect to have roughly the same number of groups as in
+    // the previous iteration.
+    const size_t capacity = std::min(recentGroups.capacity(), MAX_GROUPS_INIT_CAPACITY);
+    success = recentGroups_.reserve(capacity)
+            && success;
 
     // Reset immediately, to make sure that we're not hit by the end
     // of a nested event loop (which would cause `commit` to be called
     // twice in succession).
     reset();
     return success;
+}
+
+uint64_t
+PerformanceMonitoring::monotonicReadTimestampCounter()
+{
+#if defined(MOZ_HAVE_RDTSC)
+    const uint64_t hardware = ReadTimestampCounter();
+    if (highestTimestampCounter_ < hardware)
+        highestTimestampCounter_ = hardware;
+    return highestTimestampCounter_;
+#else
+    return 0;
+#endif // defined(MOZ_HAVE_RDTSC)
 }
 
 void
@@ -179,16 +211,16 @@ PerformanceGroupHolder::unlink()
     groups_.clear();
 }
 
-const GroupVector*
+const PerformanceGroupVector*
 PerformanceGroupHolder::getGroups(JSContext* cx)
 {
     if (initialized_)
         return &groups_;
 
-    if (!runtime_->performanceMonitoring.getGroupsCallback)
+    if (!runtime_->performanceMonitoring().getGroupsCallback)
         return nullptr;
 
-    if (!runtime_->performanceMonitoring.getGroupsCallback(cx, groups_, runtime_->performanceMonitoring.getGroupsClosure))
+    if (!runtime_->performanceMonitoring().getGroupsCallback(cx, groups_, runtime_->performanceMonitoring().getGroupsClosure))
         return nullptr;
 
     initialized_ = true;
@@ -206,13 +238,13 @@ AutoStopwatch::AutoStopwatch(JSContext* cx MOZ_GUARD_OBJECT_NOTIFIER_PARAM_IN_IM
     MOZ_GUARD_OBJECT_NOTIFIER_INIT;
 
     JSCompartment* compartment = cx_->compartment();
-    if (compartment->scheduledForDestruction)
+    if (MOZ_UNLIKELY(compartment->scheduledForDestruction))
         return;
 
     JSRuntime* runtime = cx_->runtime();
-    iteration_ = runtime->performanceMonitoring.iteration();
+    iteration_ = runtime->performanceMonitoring().iteration();
 
-    const GroupVector* groups = compartment->performanceMonitoring.getGroups(cx);
+    const PerformanceGroupVector* groups = compartment->performanceMonitoring.getGroups(cx);
     if (!groups) {
       // Either the embedding has not provided any performance
       // monitoring logistics or there was an error that prevents
@@ -221,8 +253,10 @@ AutoStopwatch::AutoStopwatch(JSContext* cx MOZ_GUARD_OBJECT_NOTIFIER_PARAM_IN_IM
     }
     for (auto group = groups->begin(); group < groups->end(); group++) {
       auto acquired = acquireGroup(*group);
-      if (acquired)
-        groups_.append(acquired);
+      if (acquired) {
+          if (!groups_.append(acquired))
+              MOZ_CRASH();
+      }
     }
     if (groups_.length() == 0) {
       // We are not in charge of monitoring anything.
@@ -231,7 +265,7 @@ AutoStopwatch::AutoStopwatch(JSContext* cx MOZ_GUARD_OBJECT_NOTIFIER_PARAM_IN_IM
 
     // Now that we are sure that JS code is being executed,
     // initialize the stopwatch for this iteration, lazily.
-    runtime->performanceMonitoring.start();
+    runtime->performanceMonitoring().start();
     enter();
 }
 
@@ -243,11 +277,11 @@ AutoStopwatch::~AutoStopwatch()
     }
 
     JSCompartment* compartment = cx_->compartment();
-    if (compartment->scheduledForDestruction)
+    if (MOZ_UNLIKELY(compartment->scheduledForDestruction))
         return;
 
     JSRuntime* runtime = cx_->runtime();
-    if (iteration_ != runtime->performanceMonitoring.iteration()) {
+    if (MOZ_UNLIKELY(iteration_ != runtime->performanceMonitoring().iteration())) {
         // We have entered a nested event loop at some point.
         // Any information we may have is obsolete.
         return;
@@ -264,13 +298,13 @@ AutoStopwatch::enter()
 {
     JSRuntime* runtime = cx_->runtime();
 
-    if (runtime->performanceMonitoring.isMonitoringCPOW()) {
-        CPOWTimeStart_ = runtime->performanceMonitoring.totalCPOWTime;
+    if (runtime->performanceMonitoring().isMonitoringCPOW()) {
+        CPOWTimeStart_ = runtime->performanceMonitoring().totalCPOWTime;
         isMonitoringCPOW_ = true;
     }
 
-    if (runtime->performanceMonitoring.isMonitoringJank()) {
-        cyclesStart_ = this->getCycles();
+    if (runtime->performanceMonitoring().isMonitoringJank()) {
+        cyclesStart_ = this->getCycles(runtime);
         cpuStart_ = this->getCPU();
         isMonitoringJank_ = true;
     }
@@ -282,7 +316,7 @@ AutoStopwatch::exit()
     JSRuntime* runtime = cx_->runtime();
 
     uint64_t cyclesDelta = 0;
-    if (isMonitoringJank_ && runtime->performanceMonitoring.isMonitoringJank()) {
+    if (isMonitoringJank_ && runtime->performanceMonitoring().isMonitoringJank()) {
         // We were monitoring jank when we entered and we still are.
 
         // If possible, discard results when we don't end on the
@@ -293,10 +327,11 @@ AutoStopwatch::exit()
         // limited.
         const cpuid_t cpuEnd = this->getCPU();
         if (isSameCPU(cpuStart_, cpuEnd)) {
-            const uint64_t cyclesEnd = getCycles();
-            cyclesDelta = getDelta(cyclesEnd, cyclesStart_);
+            const uint64_t cyclesEnd = getCycles(runtime);
+            cyclesDelta = cyclesEnd - cyclesStart_; // Always >= 0 by definition of `getCycles`.
         }
-#if WINVER >= 0x600
+// Temporary disable untested code path.
+#if 0 // WINVER >= 0x600
         updateTelemetry(cpuStart_, cpuEnd);
 #elif defined(__linux__)
         updateTelemetry(cpuStart_, cpuEnd);
@@ -304,9 +339,9 @@ AutoStopwatch::exit()
     }
 
     uint64_t CPOWTimeDelta = 0;
-    if (isMonitoringCPOW_ && runtime->performanceMonitoring.isMonitoringCPOW()) {
+    if (isMonitoringCPOW_ && runtime->performanceMonitoring().isMonitoringCPOW()) {
         // We were monitoring CPOW when we entered and we still are.
-        const uint64_t CPOWTimeEnd = runtime->performanceMonitoring.totalCPOWTime;
+        const uint64_t CPOWTimeEnd = runtime->performanceMonitoring().totalCPOWTime;
         CPOWTimeDelta = getDelta(CPOWTimeEnd, CPOWTimeStart_);
     }
     return addToGroups(cyclesDelta, CPOWTimeDelta);
@@ -318,9 +353,9 @@ AutoStopwatch::updateTelemetry(const cpuid_t& cpuStart_, const cpuid_t& cpuEnd)
   JSRuntime* runtime = cx_->runtime();
 
     if (isSameCPU(cpuStart_, cpuEnd))
-        runtime->performanceMonitoring.testCpuRescheduling.stayed += 1;
+        runtime->performanceMonitoring().testCpuRescheduling.stayed += 1;
     else
-        runtime->performanceMonitoring.testCpuRescheduling.moved += 1;
+        runtime->performanceMonitoring().testCpuRescheduling.moved += 1;
 }
 
 PerformanceGroup*
@@ -363,7 +398,7 @@ AutoStopwatch::addToGroup(JSRuntime* runtime, uint64_t cyclesDelta, uint64_t CPO
     MOZ_ASSERT(group);
     MOZ_ASSERT(group->isAcquired(iteration_, this));
 
-    if (!runtime->performanceMonitoring.addRecentGroup(group))
+    if (!runtime->performanceMonitoring().addRecentGroup(group))
       return false;
     group->addRecentTicks(iteration_, 1);
     group->addRecentCycles(iteration_, cyclesDelta);
@@ -380,38 +415,32 @@ AutoStopwatch::getDelta(const uint64_t end, const uint64_t start) const
 }
 
 uint64_t
-AutoStopwatch::getCycles() const
+AutoStopwatch::getCycles(JSRuntime* runtime) const
 {
-#if defined(MOZ_HAVE_RDTSC)
-    return ReadTimestampCounter();
-#else
-    return 0;
-#endif // defined(MOZ_HAVE_RDTSC)
+    return runtime->performanceMonitoring().monotonicReadTimestampCounter();
 }
 
 cpuid_t inline
 AutoStopwatch::getCPU() const
 {
-#if defined(XP_WIN) && WINVER >= _WIN32_WINNT_VISTA
+// Temporary disable untested code path.
+#if 0 // defined(XP_WIN) && WINVER >= _WIN32_WINNT_VISTA
     PROCESSOR_NUMBER proc;
     GetCurrentProcessorNumberEx(&proc);
 
     cpuid_t result(proc.Group, proc.Number);
     return result;
-#elif defined(XP_LINUX)
-    return sched_getcpu();
 #else
     return {};
-#endif // defined(XP_WIN) || defined(XP_LINUX)
+#endif // defined(XP_WIN)
 }
 
 bool inline
 AutoStopwatch::isSameCPU(const cpuid_t& a, const cpuid_t& b) const
 {
-#if defined(XP_WIN)  && WINVER >= _WIN32_WINNT_VISTA
+// Temporary disable untested code path.
+#if 0 // defined(XP_WIN)  && WINVER >= _WIN32_WINNT_VISTA
     return a.group_ == b.group_ && a.number_ == b.number_;
-#elif defined(XP_LINUX)
-    return a == b;
 #else
     return true;
 #endif
@@ -563,73 +592,76 @@ PerformanceGroup::Release()
     this->Delete();
 }
 
-JS_PUBLIC_API(bool) SetStopwatchStartCallback(JSRuntime* rt, StopwatchStartCallback cb, void* closure)
+JS_PUBLIC_API(bool)
+SetStopwatchStartCallback(JSContext* cx, StopwatchStartCallback cb, void* closure)
 {
-    rt->performanceMonitoring.setStopwatchStartCallback(cb, closure);
-    return true;
-}
-
-JS_PUBLIC_API(bool) SetStopwatchCommitCallback(JSRuntime* rt, StopwatchCommitCallback cb, void* closure)
-{
-    rt->performanceMonitoring.setStopwatchCommitCallback(cb, closure);
-    return true;
-}
-
-JS_PUBLIC_API(bool) SetGetPerformanceGroupsCallback(JSRuntime* rt, GetGroupsCallback cb, void* closure)
-{
-    rt->performanceMonitoring.setGetGroupsCallback(cb, closure);
+    cx->runtime()->performanceMonitoring().setStopwatchStartCallback(cb, closure);
     return true;
 }
 
 JS_PUBLIC_API(bool)
-FlushPerformanceMonitoring(JSRuntime* rt)
+SetStopwatchCommitCallback(JSContext* cx, StopwatchCommitCallback cb, void* closure)
 {
-    return rt->performanceMonitoring.commit();
-}
-JS_PUBLIC_API(void)
-ResetPerformanceMonitoring(JSRuntime* rt)
-{
-    return rt->performanceMonitoring.reset();
-}
-JS_PUBLIC_API(void)
-DisposePerformanceMonitoring(JSRuntime* rt)
-{
-    return rt->performanceMonitoring.dispose(rt);
+    cx->runtime()->performanceMonitoring().setStopwatchCommitCallback(cb, closure);
+    return true;
 }
 
 JS_PUBLIC_API(bool)
-SetStopwatchIsMonitoringJank(JSRuntime* rt, bool value)
+SetGetPerformanceGroupsCallback(JSContext* cx, GetGroupsCallback cb, void* closure)
 {
-    return rt->performanceMonitoring.setIsMonitoringJank(value);
-}
-JS_PUBLIC_API(bool)
-GetStopwatchIsMonitoringJank(JSRuntime* rt)
-{
-    return rt->performanceMonitoring.isMonitoringJank();
+    cx->runtime()->performanceMonitoring().setGetGroupsCallback(cb, closure);
+    return true;
 }
 
 JS_PUBLIC_API(bool)
-SetStopwatchIsMonitoringCPOW(JSRuntime* rt, bool value)
+FlushPerformanceMonitoring(JSContext* cx)
 {
-    return rt->performanceMonitoring.setIsMonitoringCPOW(value);
+    return cx->runtime()->performanceMonitoring().commit();
+}
+JS_PUBLIC_API(void)
+ResetPerformanceMonitoring(JSContext* cx)
+{
+    return cx->runtime()->performanceMonitoring().reset();
+}
+JS_PUBLIC_API(void)
+DisposePerformanceMonitoring(JSContext* cx)
+{
+    return cx->runtime()->performanceMonitoring().dispose(cx->runtime());
+}
+
+JS_PUBLIC_API(bool)
+SetStopwatchIsMonitoringJank(JSContext* cx, bool value)
+{
+    return cx->runtime()->performanceMonitoring().setIsMonitoringJank(value);
 }
 JS_PUBLIC_API(bool)
-GetStopwatchIsMonitoringCPOW(JSRuntime* rt)
+GetStopwatchIsMonitoringJank(JSContext* cx)
 {
-    return rt->performanceMonitoring.isMonitoringCPOW();
+    return cx->runtime()->performanceMonitoring().isMonitoringJank();
+}
+
+JS_PUBLIC_API(bool)
+SetStopwatchIsMonitoringCPOW(JSContext* cx, bool value)
+{
+    return cx->runtime()->performanceMonitoring().setIsMonitoringCPOW(value);
+}
+JS_PUBLIC_API(bool)
+GetStopwatchIsMonitoringCPOW(JSContext* cx)
+{
+    return cx->runtime()->performanceMonitoring().isMonitoringCPOW();
 }
 
 JS_PUBLIC_API(void)
-GetPerfMonitoringTestCpuRescheduling(JSRuntime* rt, uint64_t* stayed, uint64_t* moved)
+GetPerfMonitoringTestCpuRescheduling(JSContext* cx, uint64_t* stayed, uint64_t* moved)
 {
-    *stayed = rt->performanceMonitoring.testCpuRescheduling.stayed;
-    *moved = rt->performanceMonitoring.testCpuRescheduling.moved;
+    *stayed = cx->runtime()->performanceMonitoring().testCpuRescheduling.stayed;
+    *moved = cx->runtime()->performanceMonitoring().testCpuRescheduling.moved;
 }
 
 JS_PUBLIC_API(void)
-AddCPOWPerformanceDelta(JSRuntime* rt, uint64_t delta)
+AddCPOWPerformanceDelta(JSContext* cx, uint64_t delta)
 {
-    rt->performanceMonitoring.totalCPOWTime += delta;
+    cx->runtime()->performanceMonitoring().totalCPOWTime += delta;
 }
 
 

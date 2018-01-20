@@ -44,9 +44,6 @@ public:
   // nsIFile interface
   NS_DECL_NSIFILE
 
-  // nsILocalFile interface
-  NS_DECL_NSILOCALFILE
-
   // nsILocalFileWin interface
   NS_DECL_NSILOCALFILEWIN
 
@@ -56,6 +53,9 @@ public:
 public:
   static void GlobalInit();
   static void GlobalShutdown();
+
+  // Removes registry command handler parameters, quotes, and expands environment strings.
+  static bool CleanupCmdHandlerPath(nsAString& aCommandHandler);
 
 private:
   // CopyMove and CopySingleFile constants for |options| parameter:
@@ -108,8 +108,7 @@ private:
 
   nsresult SetModDate(int64_t aLastModifiedTime, const wchar_t* aFilePath);
   nsresult HasFileAttribute(DWORD aFileAttrib, bool* aResult);
-  nsresult AppendInternal(const nsAFlatString& aNode,
-                          bool aMultipleComponents);
+  nsresult AppendInternal(const nsString& aNode, bool aMultipleComponents);
 
   nsresult OpenNSPRFileDescMaybeShareDelete(int32_t aFlags,
                                             int32_t aMode,

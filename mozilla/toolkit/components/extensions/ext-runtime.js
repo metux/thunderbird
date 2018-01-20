@@ -1,105 +1,142 @@
 "use strict";
 
-var { classes: Cc, interfaces: Ci, utils: Cu } = Components;
+// The ext-* files are imported into the same scopes.
+/* import-globals-from ext-toolkit.js */
 
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "AppConstants",
-                                  "resource://gre/modules/AppConstants.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "AddonManager",
+                                  "resource://gre/modules/AddonManager.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "AddonManagerPrivate",
+                                  "resource://gre/modules/AddonManager.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "ExtensionParent",
+                                  "resource://gre/modules/ExtensionParent.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Services",
+                                  "resource://gre/modules/Services.jsm");
 
-Cu.import("resource://gre/modules/ExtensionUtils.jsm");
-var {
-  EventManager,
-  ignoreEvent,
-  runSafe,
-} = ExtensionUtils;
+this.runtime = class extends ExtensionAPI {
+  getAPI(context) {
+    let {extension} = context;
+    return {
+      runtime: {
+        onStartup: new EventManager(context, "runtime.onStartup", fire => {
+          if (context.incognito) {
+            // This event should not fire if we are operating in a private profile.
+            return () => {};
+          }
+          let listener = () => {
+            if (extension.startupReason === "APP_STARTUP") {
+              fire.sync();
+            }
+          };
+          extension.on("startup", listener);
+          return () => {
+            extension.off("startup", listener);
+          };
+        }).api(),
 
-function processRuntimeConnectParams(win, ...args) {
-  let extensionId, connectInfo;
+        onInstalled: new EventManager(context, "runtime.onInstalled", fire => {
+          let temporary = !!extension.addonData.temporarilyInstalled;
 
-  // connect("...") and connect("...", { ... })
-  if (typeof args[0] == "string") {
-    extensionId = args.shift();
+          let listener = () => {
+            switch (extension.startupReason) {
+              case "APP_STARTUP":
+                if (AddonManagerPrivate.browserUpdated) {
+                  fire.sync({reason: "browser_update", temporary});
+                }
+                break;
+              case "ADDON_INSTALL":
+                fire.sync({reason: "install", temporary});
+                break;
+              case "ADDON_UPGRADE":
+                fire.sync({
+                  reason: "update",
+                  previousVersion: extension.addonData.oldVersion,
+                  temporary,
+                });
+                break;
+            }
+          };
+          extension.on("startup", listener);
+          return () => {
+            extension.off("startup", listener);
+          };
+        }).api(),
+
+        onUpdateAvailable: new EventManager(context, "runtime.onUpdateAvailable", fire => {
+          let instanceID = extension.addonData.instanceID;
+          AddonManager.addUpgradeListener(instanceID, upgrade => {
+            extension.upgrade = upgrade;
+            let details = {
+              version: upgrade.version,
+            };
+            fire.sync(details);
+          });
+          return () => {
+            AddonManager.removeUpgradeListener(instanceID).catch(e => {
+              // This can happen if we try this after shutdown is complete.
+            });
+          };
+        }).api(),
+
+        reload: () => {
+          if (extension.upgrade) {
+            // If there is a pending update, install it now.
+            extension.upgrade.install();
+          } else {
+            // Otherwise, reload the current extension.
+            AddonManager.getAddonByID(extension.id, addon => {
+              addon.reload();
+            });
+          }
+        },
+
+        get lastError() {
+          // TODO(robwu): Figure out how to make sure that errors in the parent
+          // process are propagated to the child process.
+          // lastError should not be accessed from the parent.
+          return context.lastError;
+        },
+
+        getBrowserInfo: function() {
+          const {name, vendor, version, appBuildID} = Services.appinfo;
+          const info = {name, vendor, version, buildID: appBuildID};
+          return Promise.resolve(info);
+        },
+
+        getPlatformInfo: function() {
+          return Promise.resolve(ExtensionParent.PlatformInfo);
+        },
+
+        openOptionsPage: function() {
+          if (!extension.manifest.options_ui) {
+            return Promise.reject({message: "No `options_ui` declared"});
+          }
+
+          // This expects openOptionsPage to be defined in the file using this,
+          // e.g. the browser/ version of ext-runtime.js
+          /* global openOptionsPage:false */
+          return openOptionsPage(extension).then(() => {});
+        },
+
+        setUninstallURL: function(url) {
+          if (url.length == 0) {
+            return Promise.resolve();
+          }
+
+          let uri;
+          try {
+            uri = new URL(url);
+          } catch (e) {
+            return Promise.reject({message: `Invalid URL: ${JSON.stringify(url)}`});
+          }
+
+          if (uri.protocol != "http:" && uri.protocol != "https:") {
+            return Promise.reject({message: "url must have the scheme http or https"});
+          }
+
+          extension.uninstallURL = url;
+          return Promise.resolve();
+        },
+      },
+    };
   }
-
-  // connect({ ... }) and connect("...", { ... })
-  if (!!args[0] && typeof args[0] == "object") {
-    connectInfo = args.shift();
-  }
-
-  // raise errors on unexpected connect params (but connect() is ok)
-  if (args.length > 0) {
-    throw win.Error("invalid arguments to runtime.connect");
-  }
-
-  return { extensionId, connectInfo };
-}
-
-extensions.registerAPI((extension, context) => {
-  return {
-    runtime: {
-      onStartup: new EventManager(context, "runtime.onStartup", fire => {
-        extension.onStartup = fire;
-        return () => {
-          extension.onStartup = null;
-        };
-      }).api(),
-
-      onInstalled: ignoreEvent(context, "runtime.onInstalled"),
-
-      onMessage: context.messenger.onMessage("runtime.onMessage"),
-
-      onConnect: context.messenger.onConnect("runtime.onConnect"),
-
-      connect: function(...args) {
-        let { extensionId, connectInfo } = processRuntimeConnectParams(context.contentWindow, ...args);
-
-        let name = connectInfo && connectInfo.name || "";
-        let recipient = extensionId ? {extensionId} : {extensionId: extension.id};
-
-        return context.messenger.connect(Services.cpmm, name, recipient);
-      },
-
-      sendMessage: function(...args) {
-        let options; // eslint-disable-line no-unused-vars
-        let extensionId, message, responseCallback;
-        if (args.length == 1) {
-          message = args[0];
-        } else if (args.length == 2) {
-          [message, responseCallback] = args;
-        } else {
-          [extensionId, message, options, responseCallback] = args;
-        }
-        let recipient = {extensionId: extensionId ? extensionId : extension.id};
-        return context.messenger.sendMessage(Services.cpmm, message, recipient, responseCallback);
-      },
-
-      getManifest() {
-        return Cu.cloneInto(extension.manifest, context.cloneScope);
-      },
-
-      id: extension.id,
-
-      getURL: function(url) {
-        return extension.baseURI.resolve(url);
-      },
-
-      getPlatformInfo: function(callback) {
-        let os = AppConstants.platform;
-        if (os == "macosx") {
-          os = "mac";
-        }
-
-        let abi = Services.appinfo.XPCOMABI;
-        let [arch] = abi.split("-");
-        if (arch == "x86") {
-          arch = "x86-32";
-        } else if (arch == "x86_64") {
-          arch = "x86-64";
-        }
-
-        let info = {os, arch};
-        runSafe(context, callback, info);
-      },
-    },
-  };
-});
+};

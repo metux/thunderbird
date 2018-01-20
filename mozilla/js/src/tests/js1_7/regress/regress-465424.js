@@ -16,17 +16,12 @@ test();
 
 function test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   expect = '0,1,2,3,4,';
 
-  jit(true);
   for (let j=0;j<5;++j) { jj=j; print(actual += '' + (jj--) + ',') }
-  jit(false);
 
   reportCompare(expect, actual, summary);
-
-  exitFunc ('test');
 }

@@ -3,48 +3,41 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 // Tests that keyboard navigation in the search panel works as designed.
 
-const searchbar = document.getElementById("searchbar");
-const textbox = searchbar._textbox;
 const searchPopup = document.getElementById("PopupSearchAutoComplete");
-const searchIcon = document.getAnonymousElementByAttribute(searchbar, "anonid",
-                                                           "searchbar-search-button");
 
 const diacritic_engine = "Foo \u2661";
 
 var Preferences =
   Cu.import("resource://gre/modules/Preferences.jsm", {}).Preferences;
 
-// Get an array of the one-off buttons.
-function getOneOffs() {
-  let oneOffs = [];
-  let oneOff =
-    document.getAnonymousElementByAttribute(searchPopup, "anonid",
-                                            "search-panel-one-offs");
-  for (oneOff = oneOff.firstChild; oneOff; oneOff = oneOff.nextSibling) {
-    if (oneOff.classList.contains("dummy"))
-      break;
-    oneOffs.push(oneOff);
-  }
+let searchbar;
+let searchIcon;
 
-  return oneOffs;
-}
+add_task(async function init() {
+  await SpecialPowers.pushPrefEnv({ set: [
+    ["browser.search.widget.inNavBar", true],
+  ]});
 
-add_task(function* init() {
+  searchbar = document.getElementById("searchbar");
+  searchIcon = document.getAnonymousElementByAttribute(
+    searchbar, "anonid", "searchbar-search-button"
+  );
+
   let currentEngine = Services.search.currentEngine;
-  yield promiseNewEngine("testEngine_diacritics.xml", {setAsCurrent: false});
+  await promiseNewEngine("testEngine_diacritics.xml", {setAsCurrent: false});
   registerCleanupFunction(() => {
     Services.search.currentEngine = currentEngine;
     Services.prefs.clearUserPref("browser.search.hiddenOneOffs");
   });
 });
 
-add_task(function* test_hidden() {
+add_task(async function test_hidden() {
   Preferences.set("browser.search.hiddenOneOffs", diacritic_engine);
 
   let promise = promiseEvent(searchPopup, "popupshown");
   info("Opening search panel");
   EventUtils.synthesizeMouseAtCenter(searchIcon, {});
-  yield promise;
+  await promise;
 
   ok(!getOneOffs().some(x => x.getAttribute("tooltiptext") == diacritic_engine),
      "Search engines with diacritics are hidden when added to hiddenOneOffs preference.");
@@ -52,10 +45,10 @@ add_task(function* test_hidden() {
   promise = promiseEvent(searchPopup, "popuphidden");
   info("Closing search panel");
   EventUtils.synthesizeKey("VK_ESCAPE", {});
-  yield promise;
+  await promise;
 });
 
-add_task(function* test_shown() {
+add_task(async function test_shown() {
   Preferences.set("browser.search.hiddenOneOffs", "");
 
   let promise = promiseEvent(searchPopup, "popupshown");
@@ -63,12 +56,12 @@ add_task(function* test_shown() {
   SimpleTest.executeSoon(() => {
     EventUtils.synthesizeMouseAtCenter(searchIcon, {});
   });
-  yield promise;
+  await promise;
 
   ok(getOneOffs().some(x => x.getAttribute("tooltiptext") == diacritic_engine),
      "Search engines with diacritics are shown when removed from hiddenOneOffs preference.");
 
   promise = promiseEvent(searchPopup, "popuphidden");
   searchPopup.hidePopup();
-  yield promise;
+  await promise;
 });

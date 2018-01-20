@@ -12,14 +12,13 @@ var MODULE_NAME = "test-forward-headers";
 var RELATIVE_ROOT = "../shared-modules";
 var MODULE_REQUIRES = ["folder-display-helpers", "compose-helpers", "window-helpers",
                          "message-helpers"];
-var jumlib = {};
-Components.utils.import("resource://mozmill/modules/jum.js", jumlib);
-var elib = {};
-Components.utils.import("resource://mozmill/modules/elementslib.js", elib);
+
+Components.utils.import("resource://gre/modules/Services.jsm");
 
 var composeHelper = null;
 var cwc = null; // compose window controller
 var folder;
+var gDrafts;
 
 var setupModule = function (module) {
   let fdh = collector.getModule("folder-display-helpers");
@@ -35,14 +34,16 @@ var setupModule = function (module) {
   thread1 = create_thread(10);
   add_sets_to_folders([folder], [thread1]);
 
+  gDrafts = get_special_folder(Ci.nsMsgFolderFlags.Drafts, true);
+
   // Don't create paragraphs in the test.
   // The test checks for the first DOM node and expects a text and not
   // a paragraph.
-  Services.prefs.setBoolPref("editor.CR_creates_new_p", false);
+  Services.prefs.setBoolPref("mail.compose.default_to_paragraph", false);
 };
 
 function teardownModule(module) {
-  Services.prefs.clearUserPref("editor.CR_creates_new_p");
+  Services.prefs.clearUserPref("mail.compose.default_to_paragraph");
 }
 
 function forward_selected_messages_and_go_to_drafts_folder(f) {
@@ -65,11 +66,11 @@ function forward_selected_messages_and_go_to_drafts_folder(f) {
   cwc.window.goDoCommand('cmd_close');
   // wait for the modal dialog to return
   wait_for_modal_dialog();
-  // actually quite the window
+  // Actually quit the window.
   wait_for_window_close();
 
-  let draftsFolder = MailServices.accounts.localFoldersServer.rootFolder.getChildNamed("Drafts");
-  be_in_folder(draftsFolder);
+  // Visit the existing Drafts folder.
+  be_in_folder(gDrafts);
 }
 
 function test_forward_inline () {

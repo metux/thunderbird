@@ -12,7 +12,7 @@ var autoJoinPref = "autoJoin";
 var joinChat = {
   onload: function jc_onload() {
     var accountList = document.getElementById("accountlist");
-    for (let acc in fixIterator(Services.accounts.getAccounts())) {
+    for (let acc of fixIterator(Services.accounts.getAccounts())) {
       if (!acc.connected || !acc.canJoinChat)
         continue;
       var proto = acc.protocol;
@@ -45,7 +45,7 @@ var joinChat = {
       !(protoId == "prpl-irc" || protoId == "prpl-jabber" ||
       protoId == "prpl-gtalk");
 
-    for (let field in fixIterator(acc.getChatRoomFields())) {
+    for (let field of fixIterator(acc.getChatRoomFields())) {
       let row = document.createElement("row");
 
       let label = document.createElement("label");
@@ -139,17 +139,14 @@ var joinChat = {
       let autojoin = [];
       if (prefBranch.prefHasUserValue(autoJoinPref)) {
         let prefValue =
-          prefBranch.getComplexValue(autoJoinPref, Ci.nsISupportsString).data;
+          prefBranch.getStringPref(autoJoinPref);
         if (prefValue)
           autojoin = prefValue.split(",");
       }
 
-      if (autojoin.indexOf(name) == -1) {
+      if (!autojoin.includes(name)) {
         autojoin.push(name);
-        let str = Cc["@mozilla.org/supports-string;1"]
-                    .createInstance(Ci.nsISupportsString);
-        str.data = autojoin.join(",");
-        prefBranch.setComplexValue(autoJoinPref, Ci.nsISupportsString, str);
+        prefBranch.setStringPref(autoJoinPref, autojoin.join(","));
       }
     }
 

@@ -9,6 +9,10 @@ import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
+import android.support.annotation.Nullable;
+import android.support.v4.content.ContextCompat;
+import android.support.v4.widget.TextViewCompat;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewStub;
@@ -16,10 +20,15 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import org.json.JSONObject;
+
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.Tabs;
-import org.mozilla.gecko.util.ColorUtils;
+import org.mozilla.gecko.Telemetry;
+import org.mozilla.gecko.TelemetryContract;
+import org.mozilla.gecko.util.EventCallback;
+import org.mozilla.gecko.util.GeckoBundle;
+
+import java.util.Locale;
 
 public abstract class DoorHanger extends LinearLayout {
 
@@ -35,10 +44,20 @@ public abstract class DoorHanger extends LinearLayout {
     }
 
     // Doorhanger types created from Gecko are checked against enum strings to determine type.
-    public static enum Type { DEFAULT, LOGIN, TRACKING, GEOLOCATION, DESKTOPNOTIFICATION2 }
+    public enum Type {
+        DEFAULT,
+        LOGIN,
+        TRACKING,
+        GEOLOCATION,
+        DESKTOPNOTIFICATION2,
+        WEBRTC,
+        VIBRATION,
+        FLYWEBPUBLISHSERVER,
+        ADDON
+    }
 
     public interface OnButtonClickListener {
-        public void onButtonClick(JSONObject response, DoorHanger doorhanger);
+        public void onButtonClick(GeckoBundle response, DoorHanger doorhanger);
     }
 
     private static final String LOGTAG = "GeckoDoorHanger";
@@ -71,6 +90,9 @@ public abstract class DoorHanger extends LinearLayout {
     protected int mPersistenceCount;
     protected long mTimeout;
 
+    public EventCallback callback;
+    public Integer defaultCallback;
+
     protected DoorHanger(Context context, DoorhangerConfig config, Type type) {
         super(context);
 
@@ -92,26 +114,29 @@ public abstract class DoorHanger extends LinearLayout {
         mPositiveButton = (Button) findViewById(R.id.doorhanger_button_positive);
         mOnButtonClickListener = config.getButtonClickListener();
 
-        mDividerColor = ColorUtils.getColor(context, R.color.divider_light);
+        mDividerColor = ContextCompat.getColor(context, R.color.toolbar_divider_grey);
 
         final ViewStub contentStub = (ViewStub) findViewById(R.id.content);
         contentStub.setLayoutResource(getContentResource());
         contentStub.inflate();
+
+        final String typeExtra = mType.toString().toLowerCase(Locale.US);
+        Telemetry.sendUIEvent(TelemetryContract.Event.SHOW, TelemetryContract.Method.DOORHANGER, typeExtra);
     }
 
     protected abstract int getContentResource();
 
     protected abstract void loadConfig(DoorhangerConfig config);
 
-    protected void setOptions(final JSONObject options) {
-        final int persistence = options.optInt("persistence");
+    protected void setOptions(final GeckoBundle options) {
+        final int persistence = options.getInt("persistence");
         if (persistence > 0) {
             mPersistenceCount = persistence;
         }
 
-        mPersistWhileVisible = options.optBoolean("persistWhileVisible");
+        mPersistWhileVisible = options.getBoolean("persistWhileVisible");
 
-        final long timeout = options.optLong("timeout");
+        final long timeout = (long) options.getDouble("timeout");
         if (timeout > 0) {
             mTimeout = timeout;
         }
@@ -123,16 +148,20 @@ public abstract class DoorHanger extends LinearLayout {
 
         if (negativeButtonConfig != null) {
             mNegativeButton.setText(negativeButtonConfig.label);
-            mNegativeButton.setOnClickListener(makeOnButtonClickListener(negativeButtonConfig.callback));
+            mNegativeButton.setOnClickListener(makeOnButtonClickListener(negativeButtonConfig.callback, "negative"));
             mNegativeButton.setVisibility(VISIBLE);
         }
 
         if (positiveButtonConfig != null) {
             mPositiveButton.setText(positiveButtonConfig.label);
-            mPositiveButton.setOnClickListener(makeOnButtonClickListener(positiveButtonConfig.callback));
+            mPositiveButton.setOnClickListener(makeOnButtonClickListener(positiveButtonConfig.callback, "positive"));
             mPositiveButton.setVisibility(VISIBLE);
         }
    }
+
+    public Type getType() {
+        return mType;
+    }
 
     public int getTabId() {
         return mTabId;
@@ -160,13 +189,15 @@ public abstract class DoorHanger extends LinearLayout {
         mLink.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
-                 Tabs.getInstance().loadUrlInTab(url);
+                final String typeExtra = mType.toString().toLowerCase(Locale.US);
+                Telemetry.sendUIEvent(TelemetryContract.Event.LOAD_URL, TelemetryContract.Method.DOORHANGER, typeExtra);
+                Tabs.getInstance().loadUrlInTab(url);
             }
         });
         mLink.setVisibility(VISIBLE);
     }
 
-    protected abstract OnClickListener makeOnButtonClickListener(final int id);
+    protected abstract OnClickListener makeOnButtonClickListener(final int id, final String telemetryExtra);
 
     /*
      * Checks with persistence and timeout options to see if it's okay to remove a doorhanger.
@@ -196,10 +227,15 @@ public abstract class DoorHanger extends LinearLayout {
         return true;
     }
 
-    public void showTitle(Bitmap favicon, String title) {
+    public void showTitle(@Nullable Bitmap favicon, String title) {
         mDoorhangerTitle.setText(title);
-        mDoorhangerTitle.setCompoundDrawablesWithIntrinsicBounds(new BitmapDrawable(getResources(), favicon), null, null, null);
+
         if (favicon != null) {
+            final Drawable faviconDrawable = new BitmapDrawable(mResources, favicon);
+            final int dimen = (int) mResources.getDimension(R.dimen.browser_toolbar_favicon_size);
+            faviconDrawable.setBounds(0, 0, dimen, dimen);
+
+            TextViewCompat.setCompoundDrawablesRelative(mDoorhangerTitle, faviconDrawable, null, null, null);
             mDoorhangerTitle.setCompoundDrawablePadding((int) mContext.getResources().getDimension(R.dimen.doorhanger_drawable_padding));
         }
         mDoorhangerTitle.setVisibility(VISIBLE);

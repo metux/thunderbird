@@ -7,15 +7,11 @@ function test()
 {
   waitForExplicitFinish();
 
-  gBrowser.selectedTab = gBrowser.addTab();
+  gBrowser.selectedTab = BrowserTestUtils.addTab(gBrowser);
   content.location = "data:text/html,Test keybindings for opening Scratchpad MDN Documentation, bug 650760";
-  gBrowser.selectedBrowser.addEventListener("load", function onTabLoad() {
-    gBrowser.selectedBrowser.removeEventListener("load", onTabLoad, true);
-
-    ok(window.Scratchpad, "Scratchpad variable exists");
-
+  gBrowser.selectedBrowser.addEventListener("load", function () {
     openScratchpad(runTest);
-  }, true);
+  }, {capture: true, once: true});
 }
 
 function runTest()
@@ -42,11 +38,11 @@ function runTest()
     altKey: modifiers.match("alt"),
     metaKey: modifiers.match("meta"),
     accelKey: modifiers.match("accel")
-  }
+  };
 
   info("check that the MDN page is opened on \"F1\"");
   let linkClicked = false;
-  sp.openDocumentationPage = function(event) { linkClicked = true; };
+  sp.openDocumentationPage = function (event) { linkClicked = true; };
 
   EventUtils.synthesizeKey(key, aEvent, gScratchpadWindow);
 

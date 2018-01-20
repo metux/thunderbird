@@ -32,9 +32,22 @@ public:
   {
   }
 
-  JS::Handle<JSObject*> Callable() const
+  // See CallbackObject for an explanation of the arguments.
+  explicit CallbackFunction(JS::Handle<JSObject*> aCallable,
+                            JS::Handle<JSObject*> aAsyncStack,
+                            nsIGlobalObject* aIncumbentGlobal)
+    : CallbackObject(aCallable, aAsyncStack, aIncumbentGlobal)
   {
-    return Callback();
+  }
+
+  JS::Handle<JSObject*> CallableOrNull() const
+  {
+    return CallbackOrNull();
+  }
+
+  JS::Handle<JSObject*> CallablePreserveColor() const
+  {
+    return CallbackPreserveColor();
   }
 
   bool HasGrayCallable() const
@@ -46,6 +59,13 @@ public:
 protected:
   explicit CallbackFunction(CallbackFunction* aCallbackFunction)
     : CallbackObject(aCallbackFunction)
+  {
+  }
+
+  // See CallbackObject for an explanation of the arguments.
+  CallbackFunction(JS::Handle<JSObject*> aCallable,
+                   const FastCallbackConstructor&)
+    : CallbackObject(aCallable, FastCallbackConstructor())
   {
   }
 };

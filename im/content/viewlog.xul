@@ -81,7 +81,7 @@
 
   <stringbundleset id="stringbundleset">
     <stringbundle id="bundle_instantbird" src="chrome://instantbird/locale/instantbird.properties"/>
-    <stringbundle id="bundle_dateformat" src="chrome://global/locale/dateFormat.properties"/>
+    <stringbundle id="bundle_dateformat" src="chrome://chat/locale/dateFormat.properties"/>
     <stringbundle id="bundle_places" src="chrome://places/locale/places.properties"/>
   </stringbundleset>
 
@@ -116,13 +116,12 @@
                  context="contentAreaContextMenu" tooltip="imTooltip"
                  disablehistory="true" src="about:blank" flex="1"/>
         <vbox flex="1">
-          <browser id="conv-browser" type="content-conversation" flex="1"
+          <browser id="conv-browser" type="content" browser-type="conversation" flex="1"
                    context="contentAreaContextMenu" tooltip="imTooltip"/>
           <progressmeter id="browserProgress" hidden="true"/>
         </vbox>
         <vbox flex="1" id="corruptLogScreen" align="center" pack="center">
           <hbox id="corruptLogBox">
-            <image id="corruptLogImage"/>
             <vbox id="corruptLogInnerBox" align="center" pack="center" flex="1">
               <description id="corruptLogDesc">&logsWindow.corruptlogfile;</description>
             </vbox>

@@ -47,13 +47,13 @@ function NetErrorHelper(browser) {
 
 NetErrorHelper.attachToBrowser = function(browser) {
   return new NetErrorHelper(browser);
-}
+};
 
 NetErrorHelper.prototype = {
   handleClick: function(event) {
     let node = event.target;
 
-    while(node) {
+    while (node) {
       if (node.id in handlers && handlers[node.id].handleClick) {
         handlers[node.id].handleClick(event);
         return;
@@ -62,7 +62,7 @@ NetErrorHelper.prototype = {
       node = node.parentNode;
     }
   },
-}
+};
 
 handlers.searchbutton = {
   onPageShown: function(browser) {
@@ -127,7 +127,7 @@ handlers.wifi = {
 
   handleClick: function(event) {
     let node = event.target;
-    while(node && node.id !== "wifi") {
+    while (node && node.id !== "wifi") {
       node = node.parentNode;
     }
 
@@ -143,7 +143,7 @@ handlers.wifi = {
     this.node = Cu.getWeakReference(node);
     Services.obs.addObserver(this, "network:link-status-changed", true);
 
-    Messaging.sendRequest({
+    EventDispatcher.instance.sendRequest({
       type: "Wifi:Enable"
     });
   },
@@ -166,10 +166,10 @@ handlers.wifi = {
 
       // Even at this point, Android sometimes lies about the real state of the network and this reload request fails.
       // Add a 500ms delay before refreshing the page.
-      node.ownerDocument.defaultView.setTimeout(function() {
+      node.ownerGlobal.setTimeout(function() {
         node.ownerDocument.location.reload(false);
       }, 500);
     }
   }
-}
+};
 

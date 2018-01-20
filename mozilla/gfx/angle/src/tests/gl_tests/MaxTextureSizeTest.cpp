@@ -21,13 +21,12 @@ class MaxTextureSizeTest : public ANGLETest
         setConfigAlphaBits(8);
     }
 
-    virtual void SetUp()
+    void SetUp() override
     {
         ANGLETest::SetUp();
 
-        const std::string vsSource = SHADER_SOURCE
-        (
-            precision highp float;
+        const std::string vsSource =
+            R"(precision highp float;
             attribute vec4 position;
             varying vec2 texcoord;
 
@@ -35,30 +34,25 @@ class MaxTextureSizeTest : public ANGLETest
             {
                 gl_Position = position;
                 texcoord = (position.xy * 0.5) + 0.5;
-            }
-        );
+            })";
 
-        const std::string textureFSSource = SHADER_SOURCE
-        (
-            precision highp float;
+        const std::string textureFSSource =
+            R"(precision highp float;
             uniform sampler2D tex;
             varying vec2 texcoord;
 
             void main()
             {
                 gl_FragColor = texture2D(tex, texcoord);
-            }
-        );
+            })";
 
-        const std::string blueFSSource = SHADER_SOURCE
-        (
-            precision highp float;
+        const std::string blueFSSource =
+            R"(precision highp float;
 
             void main()
             {
                 gl_FragColor = vec4(0.0, 0.0, 1.0, 1.0);
-            }
-        );
+            })";
 
         mTextureProgram = CompileProgram(vsSource, textureFSSource);
         mBlueProgram = CompileProgram(vsSource, blueFSSource);
@@ -76,7 +70,7 @@ class MaxTextureSizeTest : public ANGLETest
         ASSERT_GL_NO_ERROR();
     }
 
-    virtual void TearDown()
+    void TearDown() override
     {
         glDeleteProgram(mTextureProgram);
         glDeleteProgram(mBlueProgram);
@@ -151,7 +145,8 @@ TEST_P(MaxTextureSizeTest, SpecificationTexImage)
 
 TEST_P(MaxTextureSizeTest, SpecificationTexStorage)
 {
-    if (getClientVersion() < 3 && (!extensionEnabled("GL_EXT_texture_storage") || !extensionEnabled("GL_OES_rgb8_rgba8")))
+    if (getClientMajorVersion() < 3 &&
+        (!extensionEnabled("GL_EXT_texture_storage") || !extensionEnabled("GL_OES_rgb8_rgba8")))
     {
         return;
     }
@@ -183,7 +178,7 @@ TEST_P(MaxTextureSizeTest, SpecificationTexStorage)
         }
     }
 
-    if (getClientVersion() < 3)
+    if (getClientMajorVersion() < 3)
     {
         glTexStorage2DEXT(GL_TEXTURE_2D, 1, GL_RGBA8_OES, textureWidth, textureHeight);
     }
@@ -221,7 +216,7 @@ TEST_P(MaxTextureSizeTest, SpecificationTexStorage)
 
 TEST_P(MaxTextureSizeTest, RenderToTexture)
 {
-    if (getClientVersion() < 3 && (!extensionEnabled("GL_ANGLE_framebuffer_blit")))
+    if (getClientMajorVersion() < 3 && (!extensionEnabled("GL_ANGLE_framebuffer_blit")))
     {
         std::cout << "Test skipped due to missing glBlitFramebuffer[ANGLE] support." << std::endl;
         return;
@@ -241,7 +236,8 @@ TEST_P(MaxTextureSizeTest, RenderToTexture)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_BGRA_EXT, textureWidth, textureHeight, 0, GL_BGRA_EXT, GL_UNSIGNED_BYTE, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_BGRA_EXT, textureWidth, textureHeight, 0, GL_BGRA_EXT,
+                 GL_UNSIGNED_BYTE, nullptr);
     EXPECT_GL_NO_ERROR();
 
     // create an FBO and attach the texture
@@ -290,6 +286,9 @@ TEST_P(MaxTextureSizeTest, RenderToTexture)
     glDeleteFramebuffers(1, &fbo);
     glDeleteTextures(1, &textureId);
 }
+
+// TODO(geofflang): Fix the dependence on glBlitFramebufferANGLE without checks and assuming the
+// default framebuffer is BGRA to enable the GL and GLES backends. (http://anglebug.com/1289)
 
 // Use this to select which configurations (e.g. which renderer, which GLES major version) these tests should be run against.
 ANGLE_INSTANTIATE_TEST(MaxTextureSizeTest, ES2_D3D9(), ES2_D3D11(), ES2_D3D11_FL9_3());

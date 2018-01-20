@@ -16,6 +16,9 @@ typedef int64_t WebGLintptr;
 typedef bool WebGLboolean;
 
 namespace mozilla {
+namespace gl {
+class GLContext; // This is going to be needed a lot.
+} // namespace gl
 
 /*
  * WebGLTextureFakeBlackStatus is an enum to track what needs to use a dummy 1x1 black
@@ -90,30 +93,35 @@ enum class WebGLTexelFormat : uint8_t {
     // is implicitly treated as being RGB8 itself.
     Auto,
     // 1-channel formats
-    R8,
     A8,
-    R16F, // OES_texture_half_float
     A16F, // OES_texture_half_float
-    R32F, // OES_texture_float
     A32F, // OES_texture_float
+    R8,
+    R16F, // OES_texture_half_float
+    R32F, // OES_texture_float
     // 2-channel formats
     RA8,
     RA16F, // OES_texture_half_float
     RA32F, // OES_texture_float
+    RG8,
+    RG16F,
+    RG32F,
     // 3-channel formats
     RGB8,
-    RGBX8, // used for DOM elements. Source format only.
-    BGRX8, // used for DOM elements. Source format only.
     RGB565,
+    RGB11F11F10F,
     RGB16F, // OES_texture_half_float
     RGB32F, // OES_texture_float
     // 4-channel formats
     RGBA8,
-    BGRA8, // used for DOM elements
     RGBA5551,
     RGBA4444,
     RGBA16F, // OES_texture_half_float
-    RGBA32F // OES_texture_float
+    RGBA32F, // OES_texture_float
+    // DOM element source only formats.
+    RGBX8,
+    BGRX8,
+    BGRA8
 };
 
 enum class WebGLTexImageFunc : uint8_t {
@@ -134,12 +142,14 @@ enum class WebGLTexDimensions : uint8_t {
 enum class WebGLExtensionID : uint8_t {
     ANGLE_instanced_arrays,
     EXT_blend_minmax,
+    EXT_color_buffer_float,
     EXT_color_buffer_half_float,
     EXT_frag_depth,
     EXT_sRGB,
     EXT_shader_texture_lod,
     EXT_texture_filter_anisotropic,
     EXT_disjoint_timer_query,
+    MOZ_debug,
     OES_element_index_uint,
     OES_standard_derivatives,
     OES_texture_float,
@@ -148,10 +158,13 @@ enum class WebGLExtensionID : uint8_t {
     OES_texture_half_float_linear,
     OES_vertex_array_object,
     WEBGL_color_buffer_float,
+    WEBGL_compressed_texture_astc,
     WEBGL_compressed_texture_atc,
+    WEBGL_compressed_texture_etc,
     WEBGL_compressed_texture_etc1,
     WEBGL_compressed_texture_pvrtc,
     WEBGL_compressed_texture_s3tc,
+    WEBGL_compressed_texture_s3tc_srgb,
     WEBGL_debug_renderer_info,
     WEBGL_debug_shaders,
     WEBGL_depth_texture,
@@ -159,6 +172,50 @@ enum class WebGLExtensionID : uint8_t {
     WEBGL_lose_context,
     Max,
     Unknown
+};
+
+class UniqueBuffer
+{
+    // Like UniquePtr<>, but for void* and malloc/calloc/free.
+    void* mBuffer;
+
+public:
+    UniqueBuffer()
+        : mBuffer(nullptr)
+    { }
+
+    MOZ_IMPLICIT UniqueBuffer(void* buffer)
+        : mBuffer(buffer)
+    { }
+
+    ~UniqueBuffer() {
+        free(mBuffer);
+    }
+
+    UniqueBuffer(UniqueBuffer&& other) {
+        this->mBuffer = other.mBuffer;
+        other.mBuffer = nullptr;
+    }
+
+    UniqueBuffer& operator =(UniqueBuffer&& other) {
+        free(this->mBuffer);
+        this->mBuffer = other.mBuffer;
+        other.mBuffer = nullptr;
+        return *this;
+    }
+
+    UniqueBuffer& operator =(void* newBuffer) {
+        free(this->mBuffer);
+        this->mBuffer = newBuffer;
+        return *this;
+    }
+
+    explicit operator bool() const { return bool(mBuffer); }
+
+    void* get() const { return mBuffer; }
+
+    UniqueBuffer(const UniqueBuffer& other) = delete; // construct using Move()!
+    void operator =(const UniqueBuffer& other) = delete; // assign using Move()!
 };
 
 } // namespace mozilla

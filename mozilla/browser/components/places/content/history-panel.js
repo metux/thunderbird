@@ -10,8 +10,7 @@ var gSearchBox;
 var gHistoryGrouping = "";
 var gSearching = false;
 
-function HistorySidebarInit()
-{
+function HistorySidebarInit() {
   gHistoryTree = document.getElementById("historyTree");
   gSearchBox = document.getElementById("search-box");
 
@@ -20,7 +19,7 @@ function HistorySidebarInit()
 
   if (gHistoryGrouping == "site")
     document.getElementById("bysite").setAttribute("checked", "true");
-  else if (gHistoryGrouping == "visited") 
+  else if (gHistoryGrouping == "visited")
     document.getElementById("byvisited").setAttribute("checked", "true");
   else if (gHistoryGrouping == "lastvisited")
     document.getElementById("bylastvisited").setAttribute("checked", "true");
@@ -28,18 +27,16 @@ function HistorySidebarInit()
     document.getElementById("bydayandsite").setAttribute("checked", "true");
   else
     document.getElementById("byday").setAttribute("checked", "true");
-  
+
   searchHistory("");
 }
 
-function GroupBy(groupingType)
-{
+function GroupBy(groupingType) {
   gHistoryGrouping = groupingType;
   searchHistory(gSearchBox.value);
 }
 
-function searchHistory(aInput)
-{
+function searchHistory(aInput) {
   var query = PlacesUtils.history.getNewQuery();
   var options = PlacesUtils.history.getNewQueryOptions();
 
@@ -94,5 +91,4 @@ function searchHistory(aInput)
 }
 
 window.addEventListener("SidebarFocused",
-                        () => gSearchBox.focus(),
-                        false);
+                        () => gSearchBox.focus());

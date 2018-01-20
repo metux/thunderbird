@@ -21,13 +21,13 @@
                   onclick="checkForMiddleClick(this, event);"/>
         <menuitem id="context-reload"
                   class="menuitem-iconic"
-                  tooltiptext="&reloadButton.tooltip;"
+                  tooltip="dynamic-shortcut-tooltip"
                   aria-label="&reloadCmd.label;"
                   oncommand="gContextMenu.reload(event);"
                   onclick="checkForMiddleClick(this, event);"/>
         <menuitem id="context-stop"
                   class="menuitem-iconic"
-                  tooltiptext="&stopButton.tooltip;"
+                  tooltip="dynamic-shortcut-tooltip"
                   aria-label="&stopCmd.label;"
                   command="Browser:Stop"/>
         <menuitem id="context-bookmarkpage"
@@ -54,10 +54,24 @@
                 label="&openLinkCmdInCurrent.label;"
                 accesskey="&openLinkCmdInCurrent.accesskey;"
                 oncommand="gContextMenu.openLinkInCurrent();"/>
+# label and data-usercontextid are dynamically set.
+      <menuitem id="context-openlinkincontainertab"
+                accesskey="&openLinkCmdInTab.accesskey;"
+                oncommand="gContextMenu.openLinkInTab(event);"/>
       <menuitem id="context-openlinkintab"
                 label="&openLinkCmdInTab.label;"
                 accesskey="&openLinkCmdInTab.accesskey;"
-                oncommand="gContextMenu.openLinkInTab();"/>
+                data-usercontextid="0"
+                oncommand="gContextMenu.openLinkInTab(event);"/>
+
+      <menu id="context-openlinkinusercontext-menu"
+            label="&openLinkCmdInContainerTab.label;"
+            accesskey="&openLinkCmdInContainerTab.accesskey;"
+            hidden="true">
+        <menupopup oncommand="gContextMenu.openLinkInTab(event);"
+                   onpopupshowing="return gContextMenu.createContainerMenu(event);" />
+      </menu>
+
       <menuitem id="context-openlink"
                 label="&openLinkCmd.label;"
                 accesskey="&openLinkCmd.accesskey;"
@@ -71,22 +85,10 @@
                 label="&bookmarkThisLinkCmd.label;"
                 accesskey="&bookmarkThisLinkCmd.accesskey;"
                 oncommand="gContextMenu.bookmarkLink();"/>
-      <menuitem id="context-sharelink"
-                label="&shareLink.label;"
-                accesskey="&shareLink.accesskey;"
-                oncommand="gContextMenu.shareLink();"/>
       <menuitem id="context-savelink"
                 label="&saveLinkCmd.label;"
                 accesskey="&saveLinkCmd.accesskey;"
                 oncommand="gContextMenu.saveLink();"/>
-      <menuitem id="context-savelinktopocket"
-                label="&saveLinkToPocketCmd.label;"
-                accesskey="&saveLinkToPocketCmd.accesskey;"
-                oncommand="gContextMenu.saveLinkToPocket();"/>
-      <menu id="context-marklinkMenu" label="&social.marklinkMenu.label;"
-            accesskey="&social.marklinkMenu.accesskey;">
-        <menupopup/>
-      </menu>
       <menuitem id="context-copyemail"
                 label="&copyEmailCmd.label;"
                 accesskey="&copyEmailCmd.accesskey;"
@@ -112,35 +114,46 @@
                 label="&mediaUnmute.label;"
                 accesskey="&mediaUnmute.accesskey;"
                 oncommand="gContextMenu.mediaCommand('unmute');"/>
-      <menu id="context-media-playbackrate" label="&mediaPlaybackRate.label;" accesskey="&mediaPlaybackRate.accesskey;">
+      <menu id="context-media-playbackrate" label="&mediaPlaybackRate2.label;" accesskey="&mediaPlaybackRate2.accesskey;">
         <menupopup>
           <menuitem id="context-media-playbackrate-050x"
-                    label="&mediaPlaybackRate050x.label;"
-                    accesskey="&mediaPlaybackRate050x.accesskey;"
+                    label="&mediaPlaybackRate050x2.label;"
+                    accesskey="&mediaPlaybackRate050x2.accesskey;"
                     type="radio"
                     name="playbackrate"
                     oncommand="gContextMenu.mediaCommand('playbackRate', 0.5);"/>
           <menuitem id="context-media-playbackrate-100x"
-                    label="&mediaPlaybackRate100x.label;"
-                    accesskey="&mediaPlaybackRate100x.accesskey;"
+                    label="&mediaPlaybackRate100x2.label;"
+                    accesskey="&mediaPlaybackRate100x2.accesskey;"
                     type="radio"
                     name="playbackrate"
                     checked="true"
                     oncommand="gContextMenu.mediaCommand('playbackRate', 1.0);"/>
+          <menuitem id="context-media-playbackrate-125x"
+                    label="&mediaPlaybackRate125x2.label;"
+                    accesskey="&mediaPlaybackRate125x2.accesskey;"
+                    type="radio"
+                    name="playbackrate"
+                    oncommand="gContextMenu.mediaCommand('playbackRate', 1.25);"/>
           <menuitem id="context-media-playbackrate-150x"
-                    label="&mediaPlaybackRate150x.label;"
-                    accesskey="&mediaPlaybackRate150x.accesskey;"
+                    label="&mediaPlaybackRate150x2.label;"
+                    accesskey="&mediaPlaybackRate150x2.accesskey;"
                     type="radio"
                     name="playbackrate"
                     oncommand="gContextMenu.mediaCommand('playbackRate', 1.5);"/>
           <menuitem id="context-media-playbackrate-200x"
-                    label="&mediaPlaybackRate200x.label;"
-                    accesskey="&mediaPlaybackRate200x.accesskey;"
+                    label="&mediaPlaybackRate200x2.label;"
+                    accesskey="&mediaPlaybackRate200x2.accesskey;"
                     type="radio"
                     name="playbackrate"
                     oncommand="gContextMenu.mediaCommand('playbackRate', 2.0);"/>
         </menupopup>
       </menu>
+      <menuitem id="context-media-loop"
+                label="&mediaLoop.label;"
+                accesskey="&mediaLoop.accesskey;"
+                type="checkbox"
+                oncommand="gContextMenu.mediaCommand('loop');"/>
       <menuitem id="context-media-showcontrols"
                 label="&mediaShowControls.label;"
                 accesskey="&mediaShowControls.accesskey;"
@@ -149,14 +162,6 @@
                 label="&mediaHideControls.label;"
                 accesskey="&mediaHideControls.accesskey;"
                 oncommand="gContextMenu.mediaCommand('hidecontrols');"/>
-      <menuitem id="context-video-showstats"
-                accesskey="&videoShowStats.accesskey;"
-                label="&videoShowStats.label;"
-                oncommand="gContextMenu.mediaCommand('showstats');"/>
-      <menuitem id="context-video-hidestats"
-                accesskey="&videoHideStats.accesskey;"
-                label="&videoHideStats.label;"
-                oncommand="gContextMenu.mediaCommand('hidestats');"/>
       <menuitem id="context-video-fullscreen"
                 accesskey="&videoFullScreen.accesskey;"
                 label="&videoFullScreen.label;"
@@ -203,10 +208,6 @@
                 label="&saveImageCmd.label;"
                 accesskey="&saveImageCmd.accesskey;"
                 oncommand="gContextMenu.saveMedia();"/>
-      <menuitem id="context-shareimage"
-                label="&shareImage.label;"
-                accesskey="&shareImage.accesskey;"
-                oncommand="gContextMenu.shareImage();"/>
       <menuitem id="context-sendimage"
                 label="&emailImageCmd.label;"
                 accesskey="&emailImageCmd.accesskey;"
@@ -228,10 +229,6 @@
                 label="&saveVideoCmd.label;"
                 accesskey="&saveVideoCmd.accesskey;"
                 oncommand="gContextMenu.saveMedia();"/>
-      <menuitem id="context-sharevideo"
-                label="&shareVideo.label;"
-                accesskey="&shareVideo.accesskey;"
-                oncommand="gContextMenu.shareVideo();"/>
       <menuitem id="context-saveaudio"
                 label="&saveAudioCmd.label;"
                 accesskey="&saveAudioCmd.accesskey;"
@@ -244,11 +241,6 @@
                 label="&emailVideoCmd.label;"
                 accesskey="&emailVideoCmd.accesskey;"
                 oncommand="gContextMenu.sendMedia();"/>
-      <menu id="context-castvideo"
-                label="&castVideoCmd.label;"
-                accesskey="&castVideoCmd.accesskey;">
-        <menupopup id="context-castvideo-popup" onpopupshowing="gContextMenu.populateCastVideoMenu(this)"/>
-      </menu>
       <menuitem id="context-sendaudio"
                 label="&emailAudioCmd.label;"
                 accesskey="&emailAudioCmd.accesskey;"
@@ -262,21 +254,17 @@
                 accesskey="&hidePluginCmd.accesskey;"
                 oncommand="gContextMenu.hidePlugin();"/>
       <menuseparator id="context-sep-ctp"/>
-      <menuitem id="context-sharepage"
-                label="&sharePageCmd.label;"
-                accesskey="&sharePageCmd.accesskey;"
-                oncommand="SocialShare.sharePage();"/>
       <menuitem id="context-savepage"
                 label="&savePageCmd.label;"
                 accesskey="&savePageCmd.accesskey2;"
                 oncommand="gContextMenu.savePageAs();"/>
-      <menuitem id="context-pocket"
-                label="&saveToPocketCmd.label;"
-                accesskey="&saveToPocketCmd.accesskey;"
-                oncommand="gContextMenu.savePageToPocket();"/>
-      <menu id="context-markpageMenu" label="&social.markpageMenu.label;"
-            accesskey="&social.markpageMenu.accesskey;">
-        <menupopup/>
+      <menuseparator id="context-sep-sendpagetodevice" hidden="true"/>
+      <menu id="context-sendpagetodevice"
+                label="&sendPageToDevice.label;"
+                accesskey="&sendPageToDevice.accesskey;"
+                hidden="true">
+        <menupopup id="context-sendpagetodevice-popup"
+                   onpopupshowing="(() => { let browser = gBrowser || getPanelBrowser(); gSync.populateSendTabToDevicesMenu(event.target, browser.currentURI.spec, browser.contentTitle); })()"/>
       </menu>
       <menuseparator id="context-sep-viewbgimage"/>
       <menuitem id="context-viewbgimage"
@@ -317,10 +305,14 @@
                 oncommand="AddKeywordForSearchField();"/>
       <menuitem id="context-searchselect"
                 oncommand="BrowserSearch.loadSearchFromContext(this.searchTerms);"/>
-      <menuitem id="context-shareselect"
-                label="&shareSelect.label;"
-                accesskey="&shareSelect.accesskey;"
-                oncommand="gContextMenu.shareSelect();"/>
+      <menuseparator id="context-sep-sendlinktodevice" hidden="true"/>
+      <menu id="context-sendlinktodevice"
+                label="&sendLinkToDevice.label;"
+                accesskey="&sendLinkToDevice.accesskey;"
+                hidden="true">
+        <menupopup id="context-sendlinktodevice-popup"
+                   onpopupshowing="gSync.populateSendTabToDevicesMenu(event.target, gContextMenu.linkURL, gContextMenu.linkTextStr);"/>
+      </menu>
       <menuseparator id="frame-sep"/>
       <menu id="frame" label="&thisFrameMenu.label;" accesskey="&thisFrameMenu.accesskey;">
         <menupopup>

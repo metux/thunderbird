@@ -29,11 +29,11 @@ class MachRegistrar(object):
 
         if not handler.category:
             raise MachError('Cannot register a mach command without a '
-                'category: %s' % name)
+                            'category: %s' % name)
 
         if handler.category not in self.categories:
             raise MachError('Cannot register a command to an undefined '
-                'category: %s -> %s' % (name, handler.category))
+                            'category: %s -> %s' % (name, handler.category))
 
         self.command_handlers[name] = handler
         self.commands_by_category[handler.category].add(name)
@@ -91,15 +91,23 @@ class MachRegistrar(object):
 
         result = result or 0
         assert isinstance(result, (int, long))
+
+        if context:
+            postrun = getattr(context, 'post_dispatch_handler', None)
+            if postrun:
+                postrun(context, handler, args=kwargs)
+
         return result
 
-    def dispatch(self, name, context=None, argv=None, **kwargs):
+    def dispatch(self, name, context=None, argv=None, subcommand=None, **kwargs):
         """Dispatch/run a command.
 
         Commands can use this to call other commands.
         """
-        # TODO handler.subcommand_handlers are ignored
         handler = self.command_handlers[name]
+
+        if subcommand:
+            handler = handler.subcommand_handlers[subcommand]
 
         if handler.parser:
             parser = handler.parser
@@ -108,12 +116,17 @@ class MachRegistrar(object):
             # subsequent invocations of Registrar.dispatch()
             old_defaults = parser._defaults.copy()
             parser.set_defaults(**kwargs)
-            kwargs, _ = parser.parse_known_args(argv or [])
+            kwargs, unknown = parser.parse_known_args(argv or [])
             kwargs = vars(kwargs)
             parser._defaults = old_defaults
 
-        return self._run_command_handler(handler, context=context, **kwargs)
+            if unknown:
+                if subcommand:
+                    name = '{} {}'.format(name, subcommand)
+                parser.error("unrecognized arguments for {}: {}".format(
+                    name, ', '.join(["'{}'".format(arg) for arg in unknown])))
 
+        return self._run_command_handler(handler, context=context, **kwargs)
 
 
 Registrar = MachRegistrar()

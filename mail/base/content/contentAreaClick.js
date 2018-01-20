@@ -1,4 +1,4 @@
-/** ***** BEGIN LICENSE BLOCK *****
+/**
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -72,14 +72,49 @@ function messagePaneOnResize(aEvent)
   }
 }
 
+/**
+ * Check whether the click target's or its ancestor's href
+ * points to an anchor on the page.
+ *
+ * @param HTMLElement aTargetNode - the element node.
+ * @return                        - true if link pointing to anchor.
+ */
+function isLinkToAnchorOnPage(aTargetNode)
+{
+  let url = aTargetNode.ownerDocument.URL;
+  if (!url.startsWith("http"))
+    return false;
+
+  let linkNode = aTargetNode;
+  while (linkNode && !(linkNode instanceof HTMLAnchorElement))
+    linkNode = linkNode.parentNode;
+
+  // It's not a link with an anchor.
+  if (!linkNode || !linkNode.href || !linkNode.hash)
+    return false;
+
+  // The link's href must match the document URL.
+  if (makeURI(linkNode.href).specIgnoringRef != makeURI(url).specIgnoringRef)
+    return false;
+
+  return true;
+}
+
 // Called whenever the user clicks in the content area,
 // should always return true for click to go through.
 function contentAreaClick(aEvent)
 {
+  let target = aEvent.target;
+
+  // If we've loaded a web page url, and the element's or its ancestor's href
+  // points to an anchor on the page, let the click go through.
+  // Otherwise fall through and open externally.
+  if (isLinkToAnchorOnPage(target))
+    return true;
+
   let href = hRefForClickEvent(aEvent);
 
   if (!href && !aEvent.button) {
-    var target = aEvent.target;
     // Is this an image that we might want to scale?
     const Ci = Components.interfaces;
 
@@ -139,17 +174,31 @@ function openLinkExternally(url)
 {
   let uri = url;
   if (!(uri instanceof Components.interfaces.nsIURI))
-    uri = Services.io.newURI(url, null, null);
+    uri = Services.io.newURI(url);
 
-  PlacesUtils.asyncHistory.updatePlaces({
-    uri: uri,
-    visits:  [{
-      visitDate: Date.now() * 1000,
-      transitionType: Components.interfaces.nsINavHistoryService.TRANSITION_LINK
-    }]
-  });
+  // This can fail if there is a problem with the places database.
+  try {
+    PlacesUtils.asyncHistory.updatePlaces({
+      uri: uri,
+      visits:  [{
+        visitDate: Date.now() * 1000,
+        transitionType: Components.interfaces.nsINavHistoryService.TRANSITION_LINK
+      }]
+    });
+  } catch (ex) {
+    Components.utils.reportError(ex);
+  }
 
   Components.classes["@mozilla.org/uriloader/external-protocol-service;1"]
             .getService(Components.interfaces.nsIExternalProtocolService)
-            .loadUrl(uri);
+            .loadURI(uri);
+}
+
+/**
+ * Compatibility to Firefox, used for example by devtools to open links. Defer
+ * this to the external browser for now, since in most cases this is meant to
+ * open an actionable tab.
+ */
+function openUILinkIn(url, where, options) {
+  openLinkExternally(url);
 }

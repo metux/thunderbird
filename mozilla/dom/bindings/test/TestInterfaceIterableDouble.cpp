@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -20,7 +22,7 @@ NS_WRAPPERCACHE_INTERFACE_MAP_ENTRY
 NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
-TestInterfaceIterableDouble::TestInterfaceIterableDouble(nsPIDOMWindow* aParent)
+TestInterfaceIterableDouble::TestInterfaceIterableDouble(nsPIDOMWindowInner* aParent)
   : mParent(aParent)
 {
   mValues.AppendElement(std::pair<nsString, nsString>(NS_LITERAL_STRING("a"),
@@ -36,7 +38,7 @@ already_AddRefed<TestInterfaceIterableDouble>
 TestInterfaceIterableDouble::Constructor(const GlobalObject& aGlobal,
                                          ErrorResult& aRv)
 {
-  nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(aGlobal.GetAsSupports());
+  nsCOMPtr<nsPIDOMWindowInner> window = do_QueryInterface(aGlobal.GetAsSupports());
   if (!window) {
     aRv.Throw(NS_ERROR_FAILURE);
     return nullptr;
@@ -52,7 +54,7 @@ TestInterfaceIterableDouble::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aG
   return TestInterfaceIterableDoubleBinding::Wrap(aCx, this, aGivenProto);
 }
 
-nsPIDOMWindow*
+nsPIDOMWindowInner*
 TestInterfaceIterableDouble::GetParentObject() const
 {
   return mParent;

@@ -15,17 +15,9 @@ var Cr = Components.results;
  */
 
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/NetUtil.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/BrowserElementPromptService.jsm");
-
-XPCOMUtils.defineLazyGetter(this, "DOMApplicationRegistry", function () {
-  Cu.import("resource://gre/modules/Webapps.jsm");
-  return DOMApplicationRegistry;
-});
-
-XPCOMUtils.defineLazyServiceGetter(this, "systemMessenger",
-                                   "@mozilla.org/system-message-internal;1",
-                                   "nsISystemMessagesInternal");
 
 function debug(msg) {
   //dump("BrowserElementParent - " + msg + "\n");
@@ -42,7 +34,7 @@ function getIntPref(prefName, def) {
 
 function handleWindowEvent(e) {
   if (this._browserElementParents) {
-    let beps = ThreadSafeChromeUtils.nondeterministicGetWeakMapKeys(this._browserElementParents);
+    let beps = ChromeUtils.nondeterministicGetWeakMapKeys(this._browserElementParents);
     beps.forEach(bep => bep._handleOwnerEvent(e));
   }
 }
@@ -68,193 +60,18 @@ function defineDOMRequestMethod(msgName) {
   };
 }
 
-function BrowserElementParentProxyCallHandler() {
-}
-
-BrowserElementParentProxyCallHandler.prototype = {
-  _frameElement: null,
-  _mm: null,
-
-  MOZBROWSER_EVENT_NAMES: Object.freeze([
-    "loadstart", "loadend", "close", "error", "firstpaint",
-    "documentfirstpaint", "audioplaybackchange",
-    "contextmenu", "securitychange", "locationchange",
-    "iconchange", "scrollareachanged", "titlechange",
-    "opensearch", "manifestchange", "metachange",
-    "resize", "selectionstatechanged", "scrollviewchange",
-    "caretstatechanged", "activitydone", "scroll", "opentab"]),
-
-  init: function(frameElement, mm) {
-    this._frameElement = frameElement;
-    this._mm = mm;
-    this.innerWindowIDSet = new Set();
-
-    mm.addMessageListener("browser-element-api:proxy-call", this);
-  },
-
-  // Message manager callback receives messages from BrowserElementProxy.js
-  receiveMessage: function(mmMsg) {
-    let data = mmMsg.json;
-
-    let mm;
-    try {
-      mm = mmMsg.target.QueryInterface(Ci.nsIFrameLoaderOwner)
-                     .frameLoader.messageManager;
-    } catch(e) {
-      mm = mmMsg.target;
-    }
-    if (!mm.assertPermission("browser:embedded-system-app")) {
-      dump("BrowserElementParent.js: Method call " + data.methodName +
-        " from a content process with no 'browser:embedded-system-app'" +
-        " privileges.\n");
-      return;
-    }
-
-    switch (data.methodName) {
-      case '_proxyInstanceInit':
-        if (!this.innerWindowIDSet.size) {
-          this._attachEventListeners();
-        }
-        this.innerWindowIDSet.add(data.innerWindowID);
-
-        break;
-
-      case '_proxyInstanceUninit':
-        this.innerWindowIDSet.delete(data.innerWindowID);
-        if (!this.innerWindowIDSet.size) {
-          this._detachEventListeners();
-        }
-
-        break;
-
-      // void methods
-      case 'setVisible':
-      case 'setActive':
-      case 'sendMouseEvent':
-      case 'sendTouchEvent':
-      case 'goBack':
-      case 'goForward':
-      case 'reload':
-      case 'stop':
-      case 'zoom':
-      case 'setNFCFocus':
-      case 'findAll':
-      case 'findNext':
-      case 'clearMatch':
-      case 'mute':
-      case 'unmute':
-      case 'setVolume':
-        this._frameElement[data.methodName]
-          .apply(this._frameElement, data.args);
-
-        break;
-
-      // DOMRequest methods
-      case 'getVisible':
-      case 'download':
-      case 'purgeHistory':
-      case 'getCanGoBack':
-      case 'getCanGoForward':
-      case 'getContentDimensions':
-      case 'setInputMethodActive':
-      case 'executeScript':
-      case 'getMuted':
-      case 'getVolume':
-        let req = this._frameElement[data.methodName]
-          .apply(this._frameElement, data.args);
-        req.onsuccess = () => {
-          this._sendToProxy({
-            domRequestId: data.domRequestId,
-            innerWindowID: data.innerWindowID,
-            result: req.result
-          });
-        };
-        req.onerror = () => {
-          this._sendToProxy({
-            domRequestId: data.domRequestId,
-            innerWindowID: data.innerWindowID,
-            err: req.error
-          });
-        };
-
-        break;
-
-      // Not implemented
-      case 'getActive': // Sync ???
-      case 'addNextPaintListener': // Takes a callback
-      case 'removeNextPaintListener': // Takes a callback
-      case 'getScreenshot': // Need to pass a blob back
-        dump("BrowserElementParentProxyCallHandler Error:" +
-          "Attempt to call unimplemented method " + data.methodName + ".\n");
-        break;
-
-      default:
-        dump("BrowserElementParentProxyCallHandler Error:" +
-          "Attempt to call non-exist method " + data.methodName + ".\n");
-        break;
-    }
-  },
-
-  // Receving events from the frame element and forward it.
-  handleEvent: function(evt) {
-    // Ignore the events from nested mozbrowser iframes
-    if (evt.target !== this._frameElement) {
-      return;
-    }
-
-    let detailString;
-    try {
-      detailString = JSON.stringify(evt.detail);
-    } catch (e) {
-      dump("BrowserElementParentProxyCallHandler Error:" +
-        "Event detail of " + evt.type + " can't be stingified.\n");
-      return;
-    }
-
-    this.innerWindowIDSet.forEach((innerWindowID) => {
-      this._sendToProxy({
-        eventName: evt.type,
-        innerWindowID: innerWindowID,
-        eventDetailString: detailString
-      });
-    });
-  },
-
-  _sendToProxy: function(data) {
-    this._mm.sendAsyncMessage("browser-element-api:proxy", data);
-  },
-
-  _attachEventListeners: function() {
-    this.MOZBROWSER_EVENT_NAMES.forEach(function(eventName) {
-      this._frameElement.addEventListener(
-        "mozbrowser" + eventName, this, true);
-    }, this);
-  },
-
-  _detachEventListeners: function() {
-    this.MOZBROWSER_EVENT_NAMES.forEach(function(eventName) {
-      this._frameElement.removeEventListener(
-        "mozbrowser" + eventName, this, true);
-    }, this);
-  }
-};
-
 function BrowserElementParent() {
   debug("Creating new BrowserElementParent object");
   this._domRequestCounter = 0;
   this._domRequestReady = false;
   this._pendingAPICalls = [];
   this._pendingDOMRequests = {};
-  this._pendingSetInputMethodActive = [];
   this._nextPaintListeners = [];
   this._pendingDOMFullscreen = false;
 
   Services.obs.addObserver(this, 'oop-frameloader-crashed', /* ownsWeak = */ true);
-  Services.obs.addObserver(this, 'copypaste-docommand', /* ownsWeak = */ true);
   Services.obs.addObserver(this, 'ask-children-to-execute-copypaste-command', /* ownsWeak = */ true);
   Services.obs.addObserver(this, 'back-docommand', /* ownsWeak = */ true);
-
-  this.proxyCallHandler = new BrowserElementParentProxyCallHandler();
 }
 
 BrowserElementParent.prototype = {
@@ -267,6 +84,7 @@ BrowserElementParent.prototype = {
                                          Ci.nsISupportsWeakReference]),
 
   setFrameLoader: function(frameLoader) {
+    debug("Setting frameLoader");
     this._frameLoader = frameLoader;
     this._frameElement = frameLoader.QueryInterface(Ci.nsIFrameLoader).ownerElement;
     if (!this._frameElement) {
@@ -286,7 +104,7 @@ BrowserElementParent.prototype = {
     if (!this._window._browserElementParents) {
       this._window._browserElementParents = new WeakMap();
       let handler = handleWindowEvent.bind(this._window);
-      let windowEvents = ['visibilitychange', 'mozfullscreenchange'];
+      let windowEvents = ['visibilitychange', 'fullscreenchange'];
       let els = Cc["@mozilla.org/eventlistenerservice;1"]
                   .getService(Ci.nsIEventListenerService);
       for (let event of windowEvents) {
@@ -300,10 +118,11 @@ BrowserElementParent.prototype = {
     // Insert ourself into the prompt service.
     BrowserElementPromptService.mapFrameToBrowserElementParent(this._frameElement, this);
     this._setupMessageListener();
-    this._registerAppManifest();
+  },
 
-    this.proxyCallHandler.init(
-      this._frameElement, this._frameLoader.messageManager);
+  destroyFrameScripts() {
+    debug("Destroying frame scripts");
+    this._mm.sendAsyncMessage("browser-element-api:destroy");
   },
 
   _runPendingAPICall: function() {
@@ -321,32 +140,9 @@ BrowserElementParent.prototype = {
     delete this._pendingAPICalls;
   },
 
-  _registerAppManifest: function() {
-    // If this browser represents an app then let the Webapps module register for
-    // any messages that it needs.
-    let appManifestURL =
-          this._frameElement.QueryInterface(Ci.nsIMozBrowserFrame).appManifestURL;
-    if (appManifestURL) {
-      let inParent = Cc["@mozilla.org/xre/app-info;1"]
-                       .getService(Ci.nsIXULRuntime)
-                       .processType == Ci.nsIXULRuntime.PROCESS_TYPE_DEFAULT;
-      if (inParent) {
-        DOMApplicationRegistry.registerBrowserElementParentForApp(
-          { manifestURL: appManifestURL }, this._mm);
-      } else {
-        this._mm.sendAsyncMessage("Webapps:RegisterBEP",
-                                  { manifestURL: appManifestURL });
-      }
-    }
-  },
-
   _setupMessageListener: function() {
     this._mm = this._frameLoader.messageManager;
-    this._isWidget = this._frameLoader
-                         .QueryInterface(Ci.nsIFrameLoader)
-                         .ownerIsWidget;
     this._mm.addMessageListener('browser-element-api:call', this);
-    this._mm.loadFrameScript("chrome://global/content/extensions.js", true);
   },
 
   receiveMessage: function(aMsg) {
@@ -372,25 +168,15 @@ BrowserElementParent.prototype = {
       "got-contentdimensions": this._gotDOMRequestResult,
       "got-can-go-back": this._gotDOMRequestResult,
       "got-can-go-forward": this._gotDOMRequestResult,
-      "got-muted": this._gotDOMRequestResult,
-      "got-volume": this._gotDOMRequestResult,
       "requested-dom-fullscreen": this._requestedDOMFullscreen,
       "fullscreen-origin-change": this._fullscreenOriginChange,
       "exit-dom-fullscreen": this._exitDomFullscreen,
       "got-visible": this._gotDOMRequestResult,
-      "visibilitychange": this._childVisibilityChange,
       "got-set-input-method-active": this._gotDOMRequestResult,
-      "selectionstatechanged": this._handleSelectionStateChanged,
       "scrollviewchange": this._handleScrollViewChange,
       "caretstatechanged": this._handleCaretStateChanged,
       "findchange": this._handleFindChange,
       "execute-script-done": this._gotDOMRequestResult,
-      "got-audio-channel-volume": this._gotDOMRequestResult,
-      "got-set-audio-channel-volume": this._gotDOMRequestResult,
-      "got-audio-channel-muted": this._gotDOMRequestResult,
-      "got-set-audio-channel-muted": this._gotDOMRequestResult,
-      "got-is-audio-channel-active": this._gotDOMRequestResult,
-      "got-structured-data": this._gotDOMRequestResult,
       "got-web-manifest": this._gotDOMRequestResult,
     };
 
@@ -414,7 +200,7 @@ BrowserElementParent.prototype = {
 
     if (aMsg.data.msg_name in mmCalls) {
       return mmCalls[aMsg.data.msg_name].apply(this, arguments);
-    } else if (!this._isWidget && aMsg.data.msg_name in mmSecuritySensitiveCalls) {
+    } else if (aMsg.data.msg_name in mmSecuritySensitiveCalls) {
       return mmSecuritySensitiveCalls[aMsg.data.msg_name].apply(this, arguments);
     }
   },
@@ -430,11 +216,11 @@ BrowserElementParent.prototype = {
   _isAlive: function() {
     return !Cu.isDeadWrapper(this._frameElement) &&
            !Cu.isDeadWrapper(this._frameElement.ownerDocument) &&
-           !Cu.isDeadWrapper(this._frameElement.ownerDocument.defaultView);
+           !Cu.isDeadWrapper(this._frameElement.ownerGlobal);
   },
 
   get _window() {
-    return this._frameElement.ownerDocument.defaultView;
+    return this._frameElement.ownerGlobal;
   },
 
   get _windowUtils() {
@@ -453,10 +239,8 @@ BrowserElementParent.prototype = {
       }
     };
 
-    // 1. We don't handle password-only prompts.
-    // 2. We don't handle for widget case because of security concern.
-    if (authDetail.isOnlyPassword ||
-        this._frameLoader.QueryInterface(Ci.nsIFrameLoader).ownerIsWidget) {
+    // We don't handle password-only prompts.
+    if (authDetail.isOnlyPassword) {
       cancelCallback();
       return;
     }
@@ -464,6 +248,7 @@ BrowserElementParent.prototype = {
     /* username and password */
     let detail = {
       host:     authDetail.host,
+      path:     authDetail.path,
       realm:    authDetail.realm,
       isProxy:  authDetail.isProxy
     };
@@ -619,12 +404,6 @@ BrowserElementParent.prototype = {
     }
   },
 
-  _handleSelectionStateChanged: function(data) {
-    let evt = this._createEvent('selectionstatechanged', data.json,
-                                /* cancelable = */ false);
-    this._frameElement.dispatchEvent(evt);
-  },
-
   // Called when state of accessible caret in child has changed.
   // The fields of data is as following:
   //  - rect: Contains bounding rectangle of selection, Include width, height,
@@ -748,26 +527,6 @@ BrowserElementParent.prototype = {
     }
   },
 
-  setVisible: defineNoReturnMethod(function(visible) {
-    this._sendAsyncMsg('set-visible', {visible: visible});
-    this._frameLoader.visible = visible;
-  }),
-
-  getVisible: defineDOMRequestMethod('get-visible'),
-
-  setActive: defineNoReturnMethod(function(active) {
-    this._frameLoader.visible = active;
-  }),
-
-  getActive: function() {
-    if (!this._isAlive()) {
-      throw Components.Exception("Dead content process",
-                                 Cr.NS_ERROR_DOM_INVALID_STATE_ERR);
-    }
-
-    return this._frameLoader.visible;
-  },
-
   getChildProcessOffset: function() {
     let offset = { x: 0, y: 0 };
     let tabParent = this._frameLoader.tabParent;
@@ -800,39 +559,25 @@ BrowserElementParent.prototype = {
                                                 radiisX, radiisY, rotationAngles, forces,
                                                 count, modifiers) {
 
-    let tabParent = this._frameLoader.tabParent;
-    if (tabParent && tabParent.useAsyncPanZoom) {
-      tabParent.injectTouchEvent(type,
-                                 identifiers,
-                                 touchesX,
-                                 touchesY,
-                                 radiisX,
-                                 radiisY,
-                                 rotationAngles,
-                                 forces,
-                                 count,
-                                 modifiers);
-    } else {
-      let offset = this.getChildProcessOffset();
-      for (var i = 0; i < touchesX.length; i++) {
-        touchesX[i] += offset.x;
-      }
-      for (var i = 0; i < touchesY.length; i++) {
-        touchesY[i] += offset.y;
-      }
-      this._sendAsyncMsg("send-touch-event", {
-        "type": type,
-        "identifiers": identifiers,
-        "touchesX": touchesX,
-        "touchesY": touchesY,
-        "radiisX": radiisX,
-        "radiisY": radiisY,
-        "rotationAngles": rotationAngles,
-        "forces": forces,
-        "count": count,
-        "modifiers": modifiers
-      });
+    let offset = this.getChildProcessOffset();
+    for (var i = 0; i < touchesX.length; i++) {
+      touchesX[i] += offset.x;
     }
+    for (var i = 0; i < touchesY.length; i++) {
+      touchesY[i] += offset.y;
+    }
+    this._sendAsyncMsg("send-touch-event", {
+      "type": type,
+      "identifiers": identifiers,
+      "touchesX": touchesX,
+      "touchesY": touchesY,
+      "radiisX": radiisX,
+      "radiisY": radiisY,
+      "rotationAngles": rotationAngles,
+      "forces": forces,
+      "count": count,
+      "modifiers": modifiers
+    });
   }),
 
   getCanGoBack: defineDOMRequestMethod('get-can-go-back'),
@@ -854,22 +599,6 @@ BrowserElementParent.prototype = {
 
   clearMatch: defineNoReturnMethod(function() {
     return this._sendAsyncMsg('clear-match');
-  }),
-
-  mute: defineNoReturnMethod(function() {
-    this._sendAsyncMsg('mute');
-  }),
-
-  unmute: defineNoReturnMethod(function() {
-    this._sendAsyncMsg('unmute');
-  }),
-
-  getMuted: defineDOMRequestMethod('get-muted'),
-
-  getVolume: defineDOMRequestMethod('get-volume'),
-
-  setVolume: defineNoReturnMethod(function(volume) {
-    this._sendAsyncMsg('set-volume', {volume});
   }),
 
   goBack: defineNoReturnMethod(function() {
@@ -919,7 +648,7 @@ BrowserElementParent.prototype = {
       return null;
     }
 
-    let uri = Services.io.newURI(_url, null, null);
+    let uri = Services.io.newURI(_url);
     let url = uri.QueryInterface(Ci.nsIURL);
 
     debug('original _options = ' + uneval(_options));
@@ -1008,36 +737,17 @@ BrowserElementParent.prototype = {
                                              Ci.nsIRequestObserver])
     };
 
-    // If we have a URI we'll use it to get the triggering principal to use,
-    // if not available a null principal is acceptable.
-    let referrer = null;
-    let principal = null;
-    if (_options.referrer) {
-      // newURI can throw on malformed URIs.
-      try {
-        referrer = Services.io.newURI(_options.referrer, null, null);
-      }
-      catch(e) {
-        debug('Malformed referrer -- ' + e);
-      }
+    let referrer = Services.io.newURI(_options.referrer);
+    let principal =
+      Services.scriptSecurityManager.createCodebasePrincipal(
+        referrer, this._frameLoader.loadContext.originAttributes);
 
-      // This simply returns null if there is no principal available
-      // for the requested uri. This is an acceptable fallback when
-      // calling newChannelFromURI2.
-      principal =
-        Services.scriptSecurityManager.createCodebasePrincipal(
-          referrer, this._frameLoader.loadContext.originAttributes);
-    }
-
-    debug('Using principal? ' + !!principal);
-
-    let channel =
-      Services.io.newChannelFromURI2(url,
-                                     null,       // No document.
-                                     principal,  // Loading principal
-                                     principal,  // Triggering principal
-                                     Ci.nsILoadInfo.SEC_NORMAL,
-                                     Ci.nsIContentPolicy.TYPE_OTHER);
+    let channel = NetUtil.newChannel({
+      uri: url,
+      loadingPrincipal: principal,
+      securityFlags: SEC_ALLOW_CROSS_ORIGIN_DATA_INHERITS,
+      contentPolicyType: Ci.nsIContentPolicy.TYPE_OTHER
+    });
 
     // XXX We would set private browsing information prior to calling this.
     channel.notificationCallbacks = interfaceRequestor;
@@ -1062,7 +772,7 @@ BrowserElementParent.prototype = {
     }
 
     // Set-up complete, let's get things started.
-    channel.asyncOpen(new DownloadListener(), null);
+    channel.asyncOpen2(new DownloadListener());
 
     return req;
   },
@@ -1142,99 +852,6 @@ BrowserElementParent.prototype = {
     }
   },
 
-  setInputMethodActive: function(isActive) {
-    if (!this._isAlive()) {
-      throw Components.Exception("Dead content process",
-                                 Cr.NS_ERROR_DOM_INVALID_STATE_ERR);
-    }
-
-    if (typeof isActive !== 'boolean') {
-      throw Components.Exception("Invalid argument",
-                                 Cr.NS_ERROR_INVALID_ARG);
-    }
-
-    return this._sendDOMRequest('set-input-method-active',
-                                {isActive: isActive});
-  },
-
-  setNFCFocus: function(isFocus) {
-    if (!this._isAlive()) {
-      throw Components.Exception("Dead content process",
-                                 Cr.NS_ERROR_DOM_INVALID_STATE_ERR);
-    }
-
-    // For now, we use tab id as an identifier to let NFC module know
-    // which app is in foreground. But this approach will not work in
-    // in-process mode because tab id doesn't exist. Fix bug 1116449
-    // if we are going to support in-process mode.
-    try {
-      var tabId = this._frameLoader.QueryInterface(Ci.nsIFrameLoader)
-                                   .tabParent
-                                   .tabId;
-    } catch(e) {
-      debug("SetNFCFocus for in-process mode is not yet supported");
-      throw Components.Exception("SetNFCFocus for in-process mode is not yet supported",
-                                 Cr.NS_ERROR_NOT_IMPLEMENTED);
-    }
-
-    try {
-      let nfcContentHelper =
-        Cc["@mozilla.org/nfc/content-helper;1"].getService(Ci.nsINfcBrowserAPI);
-      nfcContentHelper.setFocusTab(tabId, isFocus);
-    } catch(e) {
-      // Not all platforms support NFC
-    }
-  },
-
-  getAudioChannelVolume: function(aAudioChannel) {
-    return this._sendDOMRequest('get-audio-channel-volume',
-                                {audioChannel: aAudioChannel});
-  },
-
-  setAudioChannelVolume: function(aAudioChannel, aVolume) {
-    return this._sendDOMRequest('set-audio-channel-volume',
-                                {audioChannel: aAudioChannel,
-                                 volume: aVolume});
-  },
-
-  getAudioChannelMuted: function(aAudioChannel) {
-    return this._sendDOMRequest('get-audio-channel-muted',
-                                {audioChannel: aAudioChannel});
-  },
-
-  setAudioChannelMuted: function(aAudioChannel, aMuted) {
-    return this._sendDOMRequest('set-audio-channel-muted',
-                                {audioChannel: aAudioChannel,
-                                 muted: aMuted});
-  },
-
-  isAudioChannelActive: function(aAudioChannel) {
-    return this._sendDOMRequest('get-is-audio-channel-active',
-                                {audioChannel: aAudioChannel});
-  },
-
-  notifyChannel: function(aEvent, aManifest, aAudioChannel) {
-    var self = this;
-    var req = Services.DOMRequest.createRequest(self._window);
-
-    // Since the pageURI of the app has been registered to the system messager,
-    // when the app was installed. The system messager can only use the manifest
-    // to send the message to correct page.
-    let manifestURL = Services.io.newURI(aManifest, null, null);
-    systemMessenger.sendMessage(aEvent, aAudioChannel, null, manifestURL)
-      .then(function() {
-        Services.DOMRequest.fireSuccess(req,
-          Cu.cloneInto(true, self._window));
-      }, function() {
-        debug("Error : NotifyChannel fail.");
-        Services.DOMRequest.fireErrorAsync(req,
-          Cu.cloneInto("NotifyChannel fail.", self._window));
-      });
-    return req;
-  },
-
-  getStructuredData: defineDOMRequestMethod('get-structured-data'),
-
   getWebManifest: defineDOMRequestMethod('get-web-manifest'),
   /**
    * Called when the visibility of the window which owns this iframe changes.
@@ -1242,21 +859,6 @@ BrowserElementParent.prototype = {
   _ownerVisibilityChange: function() {
     this._sendAsyncMsg('owner-visibility-change',
                        {visible: !this._window.document.hidden});
-  },
-
-  /*
-   * Called when the child notices that its visibility has changed.
-   *
-   * This is sometimes redundant; for example, the child's visibility may
-   * change in response to a setVisible request that we made here!  But it's
-   * not always redundant; for example, the child's visibility may change in
-   * response to its parent docshell being hidden.
-   */
-  _childVisibilityChange: function(data) {
-    debug("_childVisibilityChange(" + data.json.visible + ")");
-    this._frameLoader.visible = data.json.visible;
-
-    this._fireEventFromMsg(data);
   },
 
   _requestedDOMFullscreen: function() {
@@ -1278,8 +880,8 @@ BrowserElementParent.prototype = {
       case 'visibilitychange':
         this._ownerVisibilityChange();
         break;
-      case 'mozfullscreenchange':
-        if (!this._window.document.mozFullScreen) {
+      case 'fullscreenchange':
+        if (!this._window.document.fullscreenElement) {
           this._sendAsyncMsg('exit-fullscreen');
         } else if (this._pendingDOMFullscreen) {
           this._pendingDOMFullscreen = false;
@@ -1300,11 +902,6 @@ BrowserElementParent.prototype = {
     case 'oop-frameloader-crashed':
       if (this._isAlive() && subject == this._frameLoader) {
         this._fireFatalError();
-      }
-      break;
-    case 'copypaste-docommand':
-      if (this._isAlive() && this._frameElement.isEqualNode(subject.wrappedJSObject)) {
-        this._sendAsyncMsg('do-command', { command: data });
       }
       break;
     case 'ask-children-to-execute-copypaste-command':

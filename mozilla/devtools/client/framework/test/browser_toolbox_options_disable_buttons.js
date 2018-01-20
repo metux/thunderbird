@@ -1,35 +1,37 @@
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
+/* vim: set ft=javascript ts=2 et sw=2 tw=80: */
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
+/* import-globals-from shared-head.js */
+"use strict";
+
+const TEST_URL = "data:text/html;charset=utf8,test for dynamically " +
+                 "registering and unregistering tools";
 var doc = null, toolbox = null, panelWin = null, modifiedPrefs = [];
 
 function test() {
-  gBrowser.selectedTab = gBrowser.addTab();
-  let target = TargetFactory.forTab(gBrowser.selectedTab);
-
-  gBrowser.selectedBrowser.addEventListener("load", function onLoad(evt) {
-    gBrowser.selectedBrowser.removeEventListener(evt.type, onLoad, true);
+  addTab(TEST_URL).then(tab => {
+    let target = TargetFactory.forTab(tab);
     gDevTools.showToolbox(target)
       .then(testSelectTool)
       .then(testToggleToolboxButtons)
       .then(testPrefsAreRespectedWhenReopeningToolbox)
       .then(cleanup, errorHandler);
-  }, true);
-
-  content.location = "data:text/html;charset=utf8,test for dynamically registering and unregistering tools";
+  });
 }
 
 function testPrefsAreRespectedWhenReopeningToolbox() {
-  let deferred = promise.defer();
+  let deferred = defer();
   let target = TargetFactory.forTab(gBrowser.selectedTab);
 
-  info ("Closing toolbox to test after reopening");
+  info("Closing toolbox to test after reopening");
   gDevTools.closeToolbox(target).then(() => {
-    let target = TargetFactory.forTab(gBrowser.selectedTab);
-    gDevTools.showToolbox(target)
+    let tabTarget = TargetFactory.forTab(gBrowser.selectedTab);
+    gDevTools.showToolbox(tabTarget)
       .then(testSelectTool)
       .then(() => {
-        info ("Toolbox has been reopened.  Checking UI state.");
+        info("Toolbox has been reopened.  Checking UI state.");
         testPreferenceAndUIStateIsConsistent();
         deferred.resolve();
       });
@@ -38,11 +40,11 @@ function testPrefsAreRespectedWhenReopeningToolbox() {
   return deferred.promise;
 }
 
-function testSelectTool(aToolbox) {
-  let deferred = promise.defer();
-  info ("Selecting the options panel");
+function testSelectTool(devtoolsToolbox) {
+  let deferred = defer();
+  info("Selecting the options panel");
 
-  toolbox = aToolbox;
+  toolbox = devtoolsToolbox;
   doc = toolbox.doc;
   toolbox.once("options-selected", (event, tool) => {
     ok(true, "Options panel selected via selectTool method");
@@ -55,72 +57,87 @@ function testSelectTool(aToolbox) {
 }
 
 function testPreferenceAndUIStateIsConsistent() {
-  let checkNodes = [...panelWin.document.querySelectorAll("#enabled-toolbox-buttons-box > checkbox")];
+  let checkNodes = [...panelWin.document.querySelectorAll(
+    "#enabled-toolbox-buttons-box input[type=checkbox]")];
   let toolboxButtonNodes = [...doc.querySelectorAll(".command-button")];
-  toolboxButtonNodes.push(doc.getElementById("command-button-frames"));
-  let toggleableTools = toolbox.toolboxButtons;
 
-  for (let tool of toggleableTools) {
+  // The noautohide button is only displayed in the browser toolbox
+  let toolbarButtons = toolbox.toolbarButtons.filter(
+    tool => tool.id != "command-button-noautohide");
+
+  for (let tool of toolbarButtons) {
     let isVisible = getBoolPref(tool.visibilityswitch);
 
-    let button = toolboxButtonNodes.filter(button => button.id === tool.id)[0];
-    is (!button.hasAttribute("hidden"), isVisible, "Button visibility matches pref for " + tool.id);
+    let button = toolboxButtonNodes.find(toolboxButton => toolboxButton.id === tool.id);
+    is(!!button, isVisible,
+      "Button visibility matches pref for " + tool.id);
 
-    let check = checkNodes.filter(node=>node.id === tool.id)[0];
-    is (check.checked, isVisible, "Checkbox should be selected based on current pref for " + tool.id);
+    let check = checkNodes.filter(node => node.id === tool.id)[0];
+    is(check.checked, isVisible,
+      "Checkbox should be selected based on current pref for " + tool.id);
   }
 }
 
 function testToggleToolboxButtons() {
-  let checkNodes = [...panelWin.document.querySelectorAll("#enabled-toolbox-buttons-box > checkbox")];
-  let toolboxButtonNodes = [...doc.querySelectorAll(".command-button")];
-  let toggleableTools = toolbox.toolboxButtons;
+  let checkNodes = [...panelWin.document.querySelectorAll(
+    "#enabled-toolbox-buttons-box input[type=checkbox]")];
 
-  // Tilt is disabled in E10S mode so we skip the tilt button if E10S is
-  // enabled.
-  if (toolbox.target.isMultiProcess) {
-    toolboxButtonNodes = [...doc.querySelectorAll(".command-button:not(#command-button-tilt)")];
-  }
+  // The noautohide button is only displayed in the browser toolbox, and the element
+  // picker button is not toggleable.
+  let toolbarButtons = toolbox.toolbarButtons.filter(
+    tool => tool.id != "command-button-noautohide");
 
-  is (checkNodes.length, toggleableTools.length, "All of the buttons are toggleable." );
-  is (checkNodes.length, toolboxButtonNodes.length, "All of the DOM buttons are toggleable." );
+  let visibleToolbarButtons = toolbox.toolbarButtons.filter(tool => tool.isVisible);
 
-  for (let tool of toggleableTools) {
+  let toolbarButtonNodes = [...doc.querySelectorAll(".command-button")].filter(
+    btn => btn.id != "command-button-noautohide");
+
+  is(checkNodes.length, toolbarButtons.length,
+    "All of the buttons are toggleable.");
+  is(visibleToolbarButtons.length, toolbarButtonNodes.length,
+    "All of the DOM buttons are toggleable.");
+
+  for (let tool of toolbarButtons) {
     let id = tool.id;
-    let matchedCheckboxes = checkNodes.filter(node=>node.id === id);
-    let matchedButtons = toolboxButtonNodes.filter(button=>button.id === id);
-    ok (matchedCheckboxes.length === 1,
+    let matchedCheckboxes = checkNodes.filter(node => node.id === id);
+    let matchedButtons = toolbarButtonNodes.filter(button => button.id === id);
+    is(matchedCheckboxes.length, 1,
       "There should be a single toggle checkbox for: " + id);
-    ok (matchedButtons.length === 1,
-      "There should be a DOM button for: " + id);
-    is (matchedButtons[0], tool.button,
-      "DOM buttons should match for: " + id);
+    if (tool.isVisible) {
+      is(matchedButtons.length, 1,
+        "There should be a DOM button for the visible: " + id);
+      is(matchedButtons[0].getAttribute("title"), tool.description,
+        "The tooltip for button matches the tool definition.");
+    } else {
+      is(matchedButtons.length, 0,
+        "There should not be a DOM button for the invisible: " + id);
+    }
 
-    is (matchedCheckboxes[0].getAttribute("label"), tool.label,
+    is(matchedCheckboxes[0].nextSibling.textContent, tool.description,
       "The label for checkbox matches the tool definition.");
-    is (matchedButtons[0].getAttribute("tooltiptext"), tool.label,
-      "The tooltip for button matches the tool definition.");
   }
 
   // Store modified pref names so that they can be cleared on error.
-  for (let tool of toggleableTools) {
+  for (let tool of toolbarButtons) {
     let pref = tool.visibilityswitch;
     modifiedPrefs.push(pref);
   }
 
   // Try checking each checkbox, making sure that it changes the preference
   for (let node of checkNodes) {
-    let tool = toggleableTools.filter(tool=>tool.id === node.id)[0];
+    let tool = toolbarButtons.filter(
+      commandButton => commandButton.id === node.id)[0];
     let isVisible = getBoolPref(tool.visibilityswitch);
 
     testPreferenceAndUIStateIsConsistent();
-    toggleButton(node);
+    node.click();
     testPreferenceAndUIStateIsConsistent();
 
     let isVisibleAfterClick = getBoolPref(tool.visibilityswitch);
 
-    is (isVisible, !isVisibleAfterClick,
-      "Clicking on the node should have toggled visibility preference for " + tool.visibilityswitch);
+    is(isVisible, !isVisibleAfterClick,
+      "Clicking on the node should have toggled visibility preference for " +
+      tool.visibilityswitch);
   }
 
   return promise.resolve();
@@ -130,13 +147,8 @@ function getBoolPref(key) {
   return Services.prefs.getBoolPref(key);
 }
 
-function toggleButton(node) {
-  node.scrollIntoView();
-  EventUtils.synthesizeMouseAtCenter(node, {}, panelWin);
-}
-
 function cleanup() {
-  toolbox.destroy().then(function() {
+  toolbox.destroy().then(function () {
     gBrowser.removeCurrentTab();
     for (let pref of modifiedPrefs) {
       Services.prefs.clearUserPref(pref);

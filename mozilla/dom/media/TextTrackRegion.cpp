@@ -27,7 +27,7 @@ TextTrackRegion::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
 already_AddRefed<TextTrackRegion>
 TextTrackRegion::Constructor(const GlobalObject& aGlobal, ErrorResult& aRv)
 {
-  nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(aGlobal.GetAsSupports());
+  nsCOMPtr<nsPIDOMWindowInner> window = do_QueryInterface(aGlobal.GetAsSupports());
   if (!window) {
     aRv.Throw(NS_ERROR_FAILURE);
     return nullptr;
@@ -51,6 +51,7 @@ TextTrackRegion::TextTrackRegion(nsISupports* aGlobal)
 void
 TextTrackRegion::CopyValues(TextTrackRegion& aRegion)
 {
+  mId = aRegion.Id();
   mWidth = aRegion.Width();
   mLines = aRegion.Lines();
   mRegionAnchorX = aRegion.RegionAnchorX();

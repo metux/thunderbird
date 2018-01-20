@@ -5,7 +5,7 @@
 # Required Plugins:
 # AppAssocReg    http://nsis.sourceforge.net/Application_Association_Registration_plug-in
 # ApplicationID  http://nsis.sourceforge.net/ApplicationID_plug-in
-# CityHash       http://mxr.mozilla.org/mozilla-central/source/other-licenses/nsis/Contrib/CityHash
+# CityHash       http://dxr.mozilla.org/mozilla-central/source/other-licenses/nsis/Contrib/CityHash
 # ShellLink      http://nsis.sourceforge.net/ShellLink_plug-in
 # UAC            http://nsis.sourceforge.net/UAC_plug-in
 # ServicesHelper Mozilla specific plugin that is located in /other-licenses/nsis
@@ -21,19 +21,16 @@ CRCCheck on
 
 RequestExecutionLevel user
 
-; The commands inside this ifdef require NSIS 3.0a2 or greater so the ifdef can
-; be removed after we require NSIS 3.0a2 or greater.
-!ifdef NSIS_PACKEDVERSION
-  Unicode true
-  ManifestSupportedOS all
-  ManifestDPIAware true
-!endif
+Unicode true
+ManifestSupportedOS all
+ManifestDPIAware true
 
 !addplugindir ./
 
 Var TmpVal
 Var InstallType
 Var AddStartMenuSC
+Var AddTaskbarSC
 Var AddQuickLaunchSC
 Var AddDesktopSC
 Var InstallMaintenanceService
@@ -45,7 +42,7 @@ Var PreventRebootRequired
 ; StartMenuDir variable can use the common InstallOnInitCommon macro.
 !define NO_STARTMENU_DIR
 
-; On Vista and above attempt to elevate Standard Users in addition to users that
+; Attempt to elevate Standard Users in addition to users that
 ; are a member of the Administrators group.
 !define NONADMIN_ELEVATE
 
@@ -251,7 +248,7 @@ Section "-InstallStartCleanup"
   ; setup the application model id registration value
   ${InitHashAppModelId} "$INSTDIR" "Software\Mozilla\${AppName}\TaskBarIDs"
 
-  ; Remove the updates directory for Vista and above
+  ; Remove the updates directory
   ${CleanUpdateDirectories} "Mozilla\Firefox" "Mozilla\updates"
 
   ${RemoveDeprecatedFiles}
@@ -310,6 +307,16 @@ Section "-Application" APP_IDX
 
   ClearErrors
 
+  ${RegisterDLL} "$INSTDIR\AccessibleHandler.dll"
+  ${If} ${Errors}
+    ${LogMsg} "** ERROR Registering: $INSTDIR\AccessibleHandler.dll **"
+  ${Else}
+    ${LogUninstall} "DLLReg: \AccessibleHandler.dll"
+    ${LogMsg} "Registered: $INSTDIR\AccessibleHandler.dll"
+  ${EndIf}
+
+  ClearErrors
+
   ; Default for creating Start Menu shortcut
   ; (1 = create, 0 = don't create)
   ${If} $AddStartMenuSC == ""
@@ -356,6 +363,7 @@ Section "-Application" APP_IDX
   ${EndIf}
 
   ${RemoveDeprecatedKeys}
+  ${Set32to64DidMigrateReg}
 
   ; The previous installer adds several regsitry values to both HKLM and HKCU.
   ; We now try to add to HKLM and if that fails to HKCU
@@ -381,58 +389,28 @@ Section "-Application" APP_IDX
 
   ; In Win8, the delegate execute handler picks up the value in FirefoxURL and
   ; FirefoxHTML to launch the desktop browser when it needs to.
-  ${AddDisabledDDEHandlerValues} "FirefoxHTML" "$2" "$8,1" \
+  ${AddDisabledDDEHandlerValues} "FirefoxHTML-$AppUserModelID" "$2" "$8,1" \
                                  "${AppRegName} Document" ""
-  ${AddDisabledDDEHandlerValues} "FirefoxURL" "$2" "$8,1" "${AppRegName} URL" \
-                                 "true"
+  ${AddDisabledDDEHandlerValues} "FirefoxURL-$AppUserModelID" "$2" "$8,1" \
+                                 "${AppRegName} URL" "true"
 
   ; For pre win8, the following keys should only be set if we can write to HKLM.
-  ; For post win8, the keys below get set in both HKLM and HKCU.
+  ; For post win8, the keys below can be set in HKCU if needed.
   ${If} $TmpVal == "HKLM"
-    ; Set the Start Menu Internet and Vista Registered App HKLM registry keys.
+    ; Set the Start Menu Internet and Registered App HKLM registry keys.
     ${SetStartMenuInternet} "HKLM"
     ${FixShellIconHandler} "HKLM"
-
-    ; If we are writing to HKLM and create either the desktop or start menu
-    ; shortcuts set IconsVisible to 1 otherwise to 0.
-    ${StrFilter} "${FileMainEXE}" "+" "" "" $R9
-    StrCpy $0 "Software\Clients\StartMenuInternet\$R9\InstallInfo"
-    ${If} $AddDesktopSC == 1
-    ${OrIf} $AddStartMenuSC == 1
-      WriteRegDWORD HKLM "$0" "IconsVisible" 1
-    ${Else}
-      WriteRegDWORD HKLM "$0" "IconsVisible" 0
-    ${EndIf}
-  ${EndIf}
-
-  ${If} ${AtLeastWin8}
-    ; Set the Start Menu Internet and Vista Registered App HKCU registry keys.
+  ${ElseIf} ${AtLeastWin8}
+    ; Set the Start Menu Internet and Registered App HKCU registry keys.
     ${SetStartMenuInternet} "HKCU"
     ${FixShellIconHandler} "HKCU"
-
-    ; If we create either the desktop or start menu shortcuts, then
-    ; set IconsVisible to 1 otherwise to 0.
-    ${StrFilter} "${FileMainEXE}" "+" "" "" $R9
-    StrCpy $0 "Software\Clients\StartMenuInternet\$R9\InstallInfo"
-    ${If} $AddDesktopSC == 1
-    ${OrIf} $AddStartMenuSC == 1
-      WriteRegDWORD HKCU "$0" "IconsVisible" 1
-    ${Else}
-      WriteRegDWORD HKCU "$0" "IconsVisible" 0
-    ${EndIf}
-  ${If} ${AtLeastWin8}
-    ${RemoveDEHRegistration} ${DELEGATE_EXECUTE_HANDLER_ID} \
-                             $AppUserModelID \
-                             "FirefoxURL" \
-                             "FirefoxHTML"
-  ${EndIf}
   ${EndIf}
 
 !ifdef MOZ_MAINTENANCE_SERVICE
-  ; If the maintenance service page was displayed then a value was already 
-  ; explicitly selected for installing the maintenance service and 
+  ; If the maintenance service page was displayed then a value was already
+  ; explicitly selected for installing the maintenance service and
   ; and so InstallMaintenanceService will already be 0 or 1.
-  ; If the maintenance service page was not displayed then 
+  ; If the maintenance service page was not displayed then
   ; InstallMaintenanceService will be equal to "".
   ${If} $InstallMaintenanceService == ""
     Call IsUserAdmin
@@ -440,14 +418,8 @@ Section "-Application" APP_IDX
     ${If} $R0 == "true"
     ; Only proceed if we have HKLM write access
     ${AndIf} $TmpVal == "HKLM"
-      ; On Windows < XP SP3 we do not install the maintenance service.
-      ${If} ${IsWinXP}
-      ${AndIf} ${AtMostServicePack} 2
-        StrCpy $InstallMaintenanceService "0"
-      ${Else}
-        ; The user is an admin, so we should default to installing the service.
-        StrCpy $InstallMaintenanceService "1"
-      ${EndIf}
+      ; The user is an admin, so we should default to installing the service.
+      StrCpy $InstallMaintenanceService "1"
     ${Else}
       ; The user is not admin, so we can't install the service.
       StrCpy $InstallMaintenanceService "0"
@@ -456,7 +428,7 @@ Section "-Application" APP_IDX
 
   ${If} $InstallMaintenanceService == "1"
     ; The user wants to install the maintenance service, so execute
-    ; the pre-packaged maintenance service installer. 
+    ; the pre-packaged maintenance service installer.
     ; This option can only be turned on if the user is an admin so there
     ; is no need to use ExecShell w/ verb runas to enforce elevated.
     nsExec::Exec "$\"$INSTDIR\maintenanceservice_installer.exe$\""
@@ -475,7 +447,7 @@ Section "-Application" APP_IDX
   ${CreateRegKey} "$TmpVal" "$0" 0
 
   ${If} $TmpVal == "HKLM"
-    ; Set the permitted LSP Categories for WinVista and above
+    ; Set the permitted LSP Categories
     ${SetAppLSPCategories} ${LSP_CATEGORIES}
   ${EndIf}
 
@@ -491,9 +463,9 @@ Section "-Application" APP_IDX
   ; Always add the application's shortcuts to the shortcuts log ini file. The
   ; DeleteShortcuts macro will do the right thing on uninstall if the
   ; shortcuts don't exist.
-  ${LogStartMenuShortcut} "${BrandFullName}.lnk"
-  ${LogQuickLaunchShortcut} "${BrandFullName}.lnk"
-  ${LogDesktopShortcut} "${BrandFullName}.lnk"
+  ${LogStartMenuShortcut} "${BrandShortName}.lnk"
+  ${LogQuickLaunchShortcut} "${BrandShortName}.lnk"
+  ${LogDesktopShortcut} "${BrandShortName}.lnk"
 
   ; Best effort to update the Win7 taskbar and start menu shortcut app model
   ; id's. The possible contexts are current user / system and the user that
@@ -523,32 +495,76 @@ Section "-Application" APP_IDX
   ; since this will either add it for the user if unelevated or All Users if
   ; elevated.
   ${If} $AddStartMenuSC == 1
-    CreateShortCut "$SMPROGRAMS\${BrandFullName}.lnk" "$INSTDIR\${FileMainEXE}"
+    ; See if there's an existing shortcut for this installation using the old
+    ; name that we should just rename, instead of creating a new shortcut.
+    ; We could do this renaming even when $AddStartMenuSC is false; the idea
+    ; behind not doing that is to interpret "false" as "don't do anything
+    ; involving start menu shortcuts at all." We could also try to do this for
+    ; both shell contexts, but that won't typically accomplish anything.
     ${If} ${FileExists} "$SMPROGRAMS\${BrandFullName}.lnk"
-      ShellLink::SetShortCutWorkingDirectory "$SMPROGRAMS\${BrandFullName}.lnk" \
-                                           "$INSTDIR"
-      ${If} ${AtLeastWin7}
-      ${AndIf} "$AppUserModelID" != ""
-        ApplicationID::Set "$SMPROGRAMS\${BrandFullName}.lnk" "$AppUserModelID" "true"
+      ShellLink::GetShortCutTarget "$SMPROGRAMS\${BrandFullName}.lnk"
+      Pop $0
+      ${GetLongPath} "$0" $0
+      ${If} $0 == "$INSTDIR\${FileMainEXE}"
+      ${AndIfNot} ${FileExists} "$SMPROGRAMS\${BrandShortName}.lnk"
+        Rename "$SMPROGRAMS\${BrandFullName}.lnk" \
+               "$SMPROGRAMS\${BrandShortName}.lnk"
+        ${LogMsg} "Renamed existing shortcut to $SMPROGRAMS\${BrandShortName}.lnk"
       ${EndIf}
-      ${LogMsg} "Added Shortcut: $SMPROGRAMS\${BrandFullName}.lnk"
     ${Else}
-      ${LogMsg} "** ERROR Adding Shortcut: $SMPROGRAMS\${BrandFullName}.lnk"
+      CreateShortCut "$SMPROGRAMS\${BrandShortName}.lnk" "$INSTDIR\${FileMainEXE}"
+      ${If} ${FileExists} "$SMPROGRAMS\${BrandShortName}.lnk"
+        ShellLink::SetShortCutWorkingDirectory "$SMPROGRAMS\${BrandShortName}.lnk" \
+                                               "$INSTDIR"
+        ${If} "$AppUserModelID" != ""
+          ApplicationID::Set "$SMPROGRAMS\${BrandShortName}.lnk" \
+                             "$AppUserModelID" "true"
+        ${EndIf}
+        ${LogMsg} "Added Shortcut: $SMPROGRAMS\${BrandShortName}.lnk"
+      ${Else}
+        ${LogMsg} "** ERROR Adding Shortcut: $SMPROGRAMS\${BrandShortName}.lnk"
+      ${EndIf}
+    ${EndIf}
+  ${EndIf}
+
+  ; Update lastwritetime of the Start Menu shortcut to clear the tile cache.
+  ; Do this for both shell contexts in case the user has shortcuts in multiple
+  ; locations, then restore the previous context at the end.
+  ${If} ${AtLeastWin8}
+    SetShellVarContext all
+    ${TouchStartMenuShortcut}
+    SetShellVarContext current
+    ${TouchStartMenuShortcut}
+    ${If} $TmpVal == "HKLM"
+      SetShellVarContext all
+    ${ElseIf} $TmpVal == "HKCU"
+      SetShellVarContext current
     ${EndIf}
   ${EndIf}
 
   ${If} $AddDesktopSC == 1
-    CreateShortCut "$DESKTOP\${BrandFullName}.lnk" "$INSTDIR\${FileMainEXE}"
     ${If} ${FileExists} "$DESKTOP\${BrandFullName}.lnk"
-      ShellLink::SetShortCutWorkingDirectory "$DESKTOP\${BrandFullName}.lnk" \
-                                             "$INSTDIR"
-      ${If} ${AtLeastWin7}
-      ${AndIf} "$AppUserModelID" != ""
-        ApplicationID::Set "$DESKTOP\${BrandFullName}.lnk" "$AppUserModelID"  "true"
+      ShellLink::GetShortCutTarget "$DESKTOP\${BrandFullName}.lnk"
+      Pop $0
+      ${GetLongPath} "$0" $0
+      ${If} $0 == "$INSTDIR\${FileMainEXE}"
+      ${AndIfNot} ${FileExists} "$DESKTOP\${BrandShortName}.lnk"
+        Rename "$DESKTOP\${BrandFullName}.lnk" "$DESKTOP\${BrandShortName}.lnk"
+        ${LogMsg} "Renamed existing shortcut to $DESKTOP\${BrandShortName}.lnk"
       ${EndIf}
-      ${LogMsg} "Added Shortcut: $DESKTOP\${BrandFullName}.lnk"
     ${Else}
-      ${LogMsg} "** ERROR Adding Shortcut: $DESKTOP\${BrandFullName}.lnk"
+      CreateShortCut "$DESKTOP\${BrandShortName}.lnk" "$INSTDIR\${FileMainEXE}"
+      ${If} ${FileExists} "$DESKTOP\${BrandShortName}.lnk"
+        ShellLink::SetShortCutWorkingDirectory "$DESKTOP\${BrandShortName}.lnk" \
+                                               "$INSTDIR"
+        ${If} "$AppUserModelID" != ""
+          ApplicationID::Set "$DESKTOP\${BrandShortName}.lnk" \
+                             "$AppUserModelID" "true"
+        ${EndIf}
+        ${LogMsg} "Added Shortcut: $DESKTOP\${BrandShortName}.lnk"
+      ${Else}
+        ${LogMsg} "** ERROR Adding Shortcut: $DESKTOP\${BrandShortName}.lnk"
+      ${EndIf}
     ${EndIf}
   ${EndIf}
 
@@ -561,12 +577,12 @@ Section "-Application" APP_IDX
       ${GetOptions} "$0" "/UAC:" $0
       ${If} ${Errors}
         Call AddQuickLaunchShortcut
-        ${LogMsg} "Added Shortcut: $QUICKLAUNCH\${BrandFullName}.lnk"
+        ${LogMsg} "Added Shortcut: $QUICKLAUNCH\${BrandShortName}.lnk"
       ${Else}
         ; It is not possible to add a log entry from the unelevated process so
         ; add the log entry without the path since there is no simple way to
         ; know the correct full path.
-        ${LogMsg} "Added Quick Launch Shortcut: ${BrandFullName}.lnk"
+        ${LogMsg} "Added Quick Launch Shortcut: ${BrandShortName}.lnk"
         GetFunctionAddress $0 AddQuickLaunchShortcut
         UAC::ExecCodeSegment $0
       ${EndIf}
@@ -588,8 +604,33 @@ Section "-InstallEndCleanup"
   SetDetailsPrint none
 
   ${Unless} ${Silent}
+    ClearErrors
     ${MUI_INSTALLOPTIONS_READ} $0 "summary.ini" "Field 4" "State"
     ${If} "$0" == "1"
+      ; NB: this code is duplicated in stub.nsi. Please keep in sync.
+      ; For data migration in the app, we want to know what the default browser
+      ; value was before we changed it. To do so, we read it here and store it
+      ; in our own registry key.
+      StrCpy $0 ""
+      AppAssocReg::QueryCurrentDefault "http" "protocol" "effective"
+      Pop $1
+      ; If the method hasn't failed, $1 will contain the progid. Check:
+      ${If} "$1" != "method failed"
+      ${AndIf} "$1" != "method not available"
+        ; Read the actual command from the progid
+        ReadRegStr $0 HKCR "$1\shell\open\command" ""
+      ${EndIf}
+      ; If using the App Association Registry didn't happen or failed, fall back
+      ; to the effective http default:
+      ${If} "$0" == ""
+        ReadRegStr $0 HKCR "http\shell\open\command" ""
+      ${EndIf}
+      ; If we have something other than empty string now, write the value.
+      ${If} "$0" != ""
+        ClearErrors
+        WriteRegStr HKCU "Software\Mozilla\Firefox" "OldDefaultBrowserCommand" "$0"
+      ${EndIf}
+
       ${LogHeader} "Setting as the default browser"
       ClearErrors
       ${GetParameters} $0
@@ -600,13 +641,18 @@ Section "-InstallEndCleanup"
         GetFunctionAddress $0 SetAsDefaultAppUserHKCU
         UAC::ExecCodeSegment $0
       ${EndIf}
+    ${ElseIfNot} ${Errors}
+      ${LogHeader} "Writing default-browser opt-out"
+      ClearErrors
+      WriteRegStr HKCU "Software\Mozilla\Firefox" "DefaultBrowserOptOut" "True"
+      ${If} ${Errors}
+        ${LogMsg} "Error writing default-browser opt-out"
+      ${EndIf}
     ${EndIf}
-    ; Adds a pinned Task Bar shortcut (see MigrateTaskBarShortcut for details).
-    ${MigrateTaskBarShortcut}
   ${EndUnless}
 
-  ${GetShortcutsLogPath} $0
-  WriteIniStr "$0" "TASKBAR" "Migrated" "true"
+  ; Adds a pinned Task Bar shortcut (see MigrateTaskBarShortcut for details).
+  ${MigrateTaskBarShortcut}
 
   ; Add the Firewall entries during install
   Call AddFirewallEntries
@@ -727,9 +773,9 @@ FunctionEnd
 # Helper Functions
 
 Function AddQuickLaunchShortcut
-  CreateShortCut "$QUICKLAUNCH\${BrandFullName}.lnk" "$INSTDIR\${FileMainEXE}"
-  ${If} ${FileExists} "$QUICKLAUNCH\${BrandFullName}.lnk"
-    ShellLink::SetShortCutWorkingDirectory "$QUICKLAUNCH\${BrandFullName}.lnk" \
+  CreateShortCut "$QUICKLAUNCH\${BrandShortName}.lnk" "$INSTDIR\${FileMainEXE}"
+  ${If} ${FileExists} "$QUICKLAUNCH\${BrandShortName}.lnk"
+    ShellLink::SetShortCutWorkingDirectory "$QUICKLAUNCH\${BrandShortName}.lnk" \
                                            "$INSTDIR"
   ${EndIf}
 FunctionEnd
@@ -805,16 +851,10 @@ Function LaunchApp
 FunctionEnd
 
 Function LaunchAppFromElevatedProcess
-  ; Find the installation directory when launching using GetFunctionAddress
-  ; from an elevated installer since $INSTDIR will not be set in this installer
-  ${StrFilter} "${FileMainEXE}" "+" "" "" $R9
-  ReadRegStr $0 HKLM "Software\Clients\StartMenuInternet\$R9\DefaultIcon" ""
-  ${GetPathFromString} "$0" $0
-  ${GetParent} "$0" $1
   ; Set our current working directory to the application's install directory
   ; otherwise the 7-Zip temp directory will be in use and won't be deleted.
-  SetOutPath "$1"
-  Exec "$\"$0$\""
+  SetOutPath "$INSTDIR"
+  Exec "$\"$INSTDIR\${FileMainEXE}$\""
 FunctionEnd
 
 ################################################################################
@@ -917,12 +957,6 @@ Function preComponents
   Pop $R9
   ${If} $R9 == 1
     ; The service already exists so don't show this page.
-    Abort
-  ${EndIf}
-
-  ; On Windows < XP SP3 we do not install the maintenance service.
-  ${If} ${IsWinXP}
-  ${AndIf} ${AtMostServicePack} 2
     Abort
   ${EndIf}
 
@@ -1099,15 +1133,40 @@ Function .onInit
   StrCpy $LANGUAGE 0
   ${SetBrandNameVars} "$EXEDIR\core\distribution\setup.ini"
 
-  ${InstallOnInitCommon} "$(WARN_MIN_SUPPORTED_OS_MSG)"
+  ; Don't install on systems that don't support SSE2. The parameter value of
+  ; 10 is for PF_XMMI64_INSTRUCTIONS_AVAILABLE which will check whether the
+  ; SSE2 instruction set is available. Result returned in $R7.
+  System::Call "kernel32::IsProcessorFeaturePresent(i 10)i .R7"
 
-; The commands inside this ifndef are needed prior to NSIS 3.0a2 and can be
-; removed after we require NSIS 3.0a2 or greater.
-!ifndef NSIS_PACKEDVERSION
-  ${If} ${AtLeastWinVista}
-    System::Call 'user32::SetProcessDPIAware()'
+  ; Windows NT 6.0 (Vista/Server 2008) and lower are not supported.
+  ${Unless} ${AtLeastWin7}
+    ${If} "$R7" == "0"
+      strCpy $R7 "$(WARN_MIN_SUPPORTED_OSVER_CPU_MSG)"
+    ${Else}
+      strCpy $R7 "$(WARN_MIN_SUPPORTED_OSVER_MSG)"
+    ${EndIf}
+    MessageBox MB_OKCANCEL|MB_ICONSTOP "$R7" IDCANCEL +2
+    ExecShell "open" "${URLSystemRequirements}"
+    Quit
+  ${EndUnless}
+
+  ; SSE2 CPU support
+  ${If} "$R7" == "0"
+    MessageBox MB_OKCANCEL|MB_ICONSTOP "$(WARN_MIN_SUPPORTED_CPU_MSG)" IDCANCEL +2
+    ExecShell "open" "${URLSystemRequirements}"
+    Quit
   ${EndIf}
+
+!ifdef HAVE_64BIT_BUILD
+  ${Unless} ${RunningX64}
+    MessageBox MB_OKCANCEL|MB_ICONSTOP "$(WARN_MIN_SUPPORTED_OSVER_MSG)" IDCANCEL +2
+    ExecShell "open" "${URLSystemRequirements}"
+    Quit
+  ${EndUnless}
+  SetRegView 64
 !endif
+
+  ${InstallOnInitCommon} "$(WARN_MIN_SUPPORTED_OSVER_CPU_MSG)"
 
   !insertmacro InitInstallOptionsFile "options.ini"
   !insertmacro InitInstallOptionsFile "shortcuts.ini"

@@ -1,6 +1,8 @@
 var Cc = Components.classes;
 var Ci = Components.interfaces;
 
+/* global __LOCATION__ */
+
 function run_test() {
   // skip this test on Windows
   if (mozinfo.os != "win") {
@@ -9,14 +11,14 @@ function run_test() {
     var targetFile = testDir.clone();
     targetFile.append("target.txt");
     if (!targetFile.exists())
-      targetFile.create(Ci.nsIFile.NORMAL_FILE_TYPE, 0644);
+      targetFile.create(Ci.nsIFile.NORMAL_FILE_TYPE, 0o644);
 
     var link = testDir.clone();
     link.append("link");
     if (link.exists())
       link.remove(false);
 
-    var ln = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsILocalFile);
+    var ln = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsIFile);
     ln.initWithPath("/bin/ln");
     var process = Cc["@mozilla.org/process/util;1"].createInstance(Ci.nsIProcess);
     process.init(ln);

@@ -10,6 +10,7 @@
 #include "WyciwygChannelChild.h"
 #include "mozilla/dom/TabChild.h"
 #include "mozilla/dom/ContentChild.h"
+#include "mozilla/net/NeckoChild.h"
 
 #include "nsCharsetSource.h"
 #include "nsContentUtils.h"
@@ -37,8 +38,9 @@ NS_IMPL_ISUPPORTS(WyciwygChannelChild,
                   nsIPrivateBrowsingChannel)
 
 
-WyciwygChannelChild::WyciwygChannelChild()
-  : mStatus(NS_OK)
+WyciwygChannelChild::WyciwygChannelChild(nsIEventTarget *aNeckoTarget)
+  : NeckoTargetHolder(aNeckoTarget)
+  , mStatus(NS_OK)
   , mIsPending(false)
   , mCanceled(false)
   , mLoadFlags(LOAD_NORMAL)
@@ -48,20 +50,24 @@ WyciwygChannelChild::WyciwygChannelChild()
   , mIPCOpen(false)
   , mSentAppData(false)
 {
-  LOG(("Creating WyciwygChannelChild @%x\n", this));
+  LOG(("Creating WyciwygChannelChild @%p\n", this));
   mEventQ = new ChannelEventQueue(NS_ISUPPORTS_CAST(nsIWyciwygChannel*, this));
+
+  if (mNeckoTarget) {
+    gNeckoChild->SetEventTargetForActor(this, mNeckoTarget);
+  }
+
+  gNeckoChild->SendPWyciwygChannelConstructor(this);
+  // IPDL holds a reference until IPDL channel gets destroyed
+  AddIPDLReference();
 }
 
 WyciwygChannelChild::~WyciwygChannelChild()
 {
-  LOG(("Destroying WyciwygChannelChild @%x\n", this));
+  LOG(("Destroying WyciwygChannelChild @%p\n", this));
   if (mLoadInfo) {
-    nsCOMPtr<nsIThread> mainThread;
-    NS_GetMainThread(getter_AddRefs(mainThread));
-
-    nsILoadInfo *forgetableLoadInfo;
-    mLoadInfo.forget(&forgetableLoadInfo);
-    NS_ProxyRelease(mainThread, forgetableLoadInfo, false);
+    NS_ReleaseOnMainThreadSystemGroup(
+      "WyciwygChannelChild::mLoadInfo", mLoadInfo.forget());
   }
 }
 
@@ -97,6 +103,7 @@ WyciwygChannelChild::Init(nsIURI* uri)
   // propagate loadInfo
   mozilla::ipc::PrincipalInfo requestingPrincipalInfo;
   mozilla::ipc::PrincipalInfo triggeringPrincipalInfo;
+  mozilla::ipc::PrincipalInfo principalToInheritInfo;
   uint32_t securityFlags;
   uint32_t policyType;
   if (mLoadInfo) {
@@ -104,6 +111,8 @@ WyciwygChannelChild::Init(nsIURI* uri)
                                            &requestingPrincipalInfo);
     mozilla::ipc::PrincipalToPrincipalInfo(mLoadInfo->TriggeringPrincipal(),
                                            &triggeringPrincipalInfo);
+    mozilla::ipc::PrincipalToPrincipalInfo(mLoadInfo->PrincipalToInherit(),
+                                           &principalToInheritInfo);
     securityFlags = mLoadInfo->GetSecurityFlags();
     policyType = mLoadInfo->InternalContentPolicyType();
   }
@@ -113,13 +122,16 @@ WyciwygChannelChild::Init(nsIURI* uri)
                                            &requestingPrincipalInfo);
     mozilla::ipc::PrincipalToPrincipalInfo(nsContentUtils::GetSystemPrincipal(),
                                            &triggeringPrincipalInfo);
-    securityFlags = nsILoadInfo::SEC_NORMAL;
+    mozilla::ipc::PrincipalToPrincipalInfo(nsContentUtils::GetSystemPrincipal(),
+                                           &principalToInheritInfo);
+    securityFlags = nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL;
     policyType = nsIContentPolicy::TYPE_OTHER;
   }
 
   SendInit(serializedUri,
            requestingPrincipalInfo,
            triggeringPrincipalInfo,
+           principalToInheritInfo,
            securityFlags,
            policyType);
   return NS_OK;
@@ -129,7 +141,8 @@ WyciwygChannelChild::Init(nsIURI* uri)
 // WyciwygChannelChild::PWyciwygChannelChild
 //-----------------------------------------------------------------------------
 
-class WyciwygStartRequestEvent : public ChannelEvent
+class WyciwygStartRequestEvent
+  : public NeckoTargetChannelEvent<WyciwygChannelChild>
 {
 public:
   WyciwygStartRequestEvent(WyciwygChannelChild* child,
@@ -138,12 +151,15 @@ public:
                            const int32_t& source,
                            const nsCString& charset,
                            const nsCString& securityInfo)
-  : mChild(child), mStatusCode(statusCode), mContentLength(contentLength),
-    mSource(source), mCharset(charset), mSecurityInfo(securityInfo) {}
+  : NeckoTargetChannelEvent<WyciwygChannelChild>(child)
+  , mStatusCode(statusCode)
+  , mContentLength(contentLength)
+  , mSource(source)
+  , mCharset(charset)
+  , mSecurityInfo(securityInfo) {}
   void Run() { mChild->OnStartRequest(mStatusCode, mContentLength, mSource,
                                      mCharset, mSecurityInfo); }
 private:
-  WyciwygChannelChild* mChild;
   nsresult mStatusCode;
   int64_t mContentLength;
   int32_t mSource;
@@ -151,21 +167,17 @@ private:
   nsCString mSecurityInfo;
 };
 
-bool
+mozilla::ipc::IPCResult
 WyciwygChannelChild::RecvOnStartRequest(const nsresult& statusCode,
                                         const int64_t& contentLength,
                                         const int32_t& source,
                                         const nsCString& charset,
                                         const nsCString& securityInfo)
 {
-  if (mEventQ->ShouldEnqueue()) {
-    mEventQ->Enqueue(new WyciwygStartRequestEvent(this, statusCode,
-                                                 contentLength, source,
-                                                 charset, securityInfo));
-  } else {
-    OnStartRequest(statusCode, contentLength, source, charset, securityInfo);
-  }
-  return true;
+  mEventQ->RunOrEnqueue(new WyciwygStartRequestEvent(this, statusCode,
+                                                     contentLength, source,
+                                                     charset, securityInfo));
+  return IPC_OK();
 }
 
 void
@@ -179,7 +191,9 @@ WyciwygChannelChild::OnStartRequest(const nsresult& statusCode,
 
   mState = WCC_ONSTART;
 
-  mStatus = statusCode;
+  if (!mCanceled && NS_SUCCEEDED(mStatus)) {
+    mStatus = statusCode;
+  }
   mContentLength = contentLength;
   mCharsetSource = source;
   mCharset = charset;
@@ -195,30 +209,28 @@ WyciwygChannelChild::OnStartRequest(const nsresult& statusCode,
     Cancel(rv);
 }
 
-class WyciwygDataAvailableEvent : public ChannelEvent
+class WyciwygDataAvailableEvent
+  : public NeckoTargetChannelEvent<WyciwygChannelChild>
 {
 public:
   WyciwygDataAvailableEvent(WyciwygChannelChild* child,
                             const nsCString& data,
                             const uint64_t& offset)
-  : mChild(child), mData(data), mOffset(offset) {}
+  : NeckoTargetChannelEvent<WyciwygChannelChild>(child)
+  , mData(data)
+  , mOffset(offset) {}
   void Run() { mChild->OnDataAvailable(mData, mOffset); }
 private:
-  WyciwygChannelChild* mChild;
   nsCString mData;
   uint64_t mOffset;
 };
 
-bool
+mozilla::ipc::IPCResult
 WyciwygChannelChild::RecvOnDataAvailable(const nsCString& data,
                                          const uint64_t& offset)
 {
-  if (mEventQ->ShouldEnqueue()) {
-    mEventQ->Enqueue(new WyciwygDataAvailableEvent(this, data, offset));
-  } else {
-    OnDataAvailable(data, offset);
-  }
-  return true;
+  mEventQ->RunOrEnqueue(new WyciwygDataAvailableEvent(this, data, offset));
+  return IPC_OK();
 }
 
 void
@@ -248,7 +260,7 @@ WyciwygChannelChild::OnDataAvailable(const nsCString& data,
   }
 
   AutoEventEnqueuer ensureSerialDispatch(mEventQ);
-  
+
   rv = mListener->OnDataAvailable(this, mListenerContext,
                                   stringStream, offset, data.Length());
   if (NS_FAILED(rv))
@@ -260,34 +272,31 @@ WyciwygChannelChild::OnDataAvailable(const nsCString& data,
   }
 }
 
-class WyciwygStopRequestEvent : public ChannelEvent
+class WyciwygStopRequestEvent
+  : public NeckoTargetChannelEvent<WyciwygChannelChild>
 {
 public:
   WyciwygStopRequestEvent(WyciwygChannelChild* child,
                           const nsresult& statusCode)
-  : mChild(child), mStatusCode(statusCode) {}
+  : NeckoTargetChannelEvent<WyciwygChannelChild>(child)
+  , mStatusCode(statusCode) {}
   void Run() { mChild->OnStopRequest(mStatusCode); }
 private:
-  WyciwygChannelChild* mChild;
   nsresult mStatusCode;
 };
 
-bool
+mozilla::ipc::IPCResult
 WyciwygChannelChild::RecvOnStopRequest(const nsresult& statusCode)
 {
-  if (mEventQ->ShouldEnqueue()) {
-    mEventQ->Enqueue(new WyciwygStopRequestEvent(this, statusCode));
-  } else {
-    OnStopRequest(statusCode);
-  }
-  return true;
+  mEventQ->RunOrEnqueue(new WyciwygStopRequestEvent(this, statusCode));
+  return IPC_OK();
 }
 
 void
 WyciwygChannelChild::OnStopRequest(const nsresult& statusCode)
 {
-  LOG(("WyciwygChannelChild::RecvOnStopRequest [this=%p status=%u]\n",
-           this, statusCode));
+  LOG(("WyciwygChannelChild::RecvOnStopRequest [this=%p status=%" PRIu32 "]\n",
+       this, static_cast<uint32_t>(statusCode)));
 
   { // We need to ensure that all IPDL message dispatching occurs
     // before we delete the protocol below
@@ -302,54 +311,49 @@ WyciwygChannelChild::OnStopRequest(const nsresult& statusCode)
 
     mListener->OnStopRequest(this, mListenerContext, statusCode);
 
-    mListener = 0;
-    mListenerContext = 0;
+    mListener = nullptr;
+    mListenerContext = nullptr;
 
     if (mLoadGroup)
       mLoadGroup->RemoveRequest(this, nullptr, mStatus);
 
-    mCallbacks = 0;
-    mProgressSink = 0;
+    mCallbacks = nullptr;
+    mProgressSink = nullptr;
   }
 
   if (mIPCOpen)
     PWyciwygChannelChild::Send__delete__(this);
 }
 
-class WyciwygCancelEvent : public ChannelEvent
+class WyciwygCancelEvent : public NeckoTargetChannelEvent<WyciwygChannelChild>
 {
  public:
   WyciwygCancelEvent(WyciwygChannelChild* child, const nsresult& status)
-  : mChild(child)
+  : NeckoTargetChannelEvent<WyciwygChannelChild>(child)
   , mStatus(status) {}
 
   void Run() { mChild->CancelEarly(mStatus); }
  private:
-  WyciwygChannelChild* mChild;
   nsresult mStatus;
 };
 
-bool
+mozilla::ipc::IPCResult
 WyciwygChannelChild::RecvCancelEarly(const nsresult& statusCode)
 {
-  if (mEventQ->ShouldEnqueue()) {
-    mEventQ->Enqueue(new WyciwygCancelEvent(this, statusCode));
-  } else {
-    CancelEarly(statusCode);
-  }
-  return true;
+  mEventQ->RunOrEnqueue(new WyciwygCancelEvent(this, statusCode));
+  return IPC_OK();
 }
 
 void WyciwygChannelChild::CancelEarly(const nsresult& statusCode)
 {
   LOG(("WyciwygChannelChild::CancelEarly [this=%p]\n", this));
-  
+
   if (mCanceled)
     return;
 
   mCanceled = true;
   mStatus = statusCode;
-  
+
   mIsPending = false;
   if (mLoadGroup)
     mLoadGroup->RemoveRequest(this, nullptr, mStatus);
@@ -509,6 +513,12 @@ WyciwygChannelChild::SetLoadInfo(nsILoadInfo* aLoadInfo)
 }
 
 NS_IMETHODIMP
+WyciwygChannelChild::GetIsDocument(bool *aIsDocument)
+{
+  return NS_GetIsDocumentChannel(this, aIsDocument);
+}
+
+NS_IMETHODIMP
 WyciwygChannelChild::GetNotificationCallbacks(nsIInterfaceRequestor * *aCallbacks)
 {
   *aCallbacks = mCallbacks;
@@ -554,7 +564,7 @@ WyciwygChannelChild::SetContentType(const nsACString & aContentType)
 NS_IMETHODIMP
 WyciwygChannelChild::GetContentCharset(nsACString & aContentCharset)
 {
-  aContentCharset.AssignLiteral("UTF-16");
+  aContentCharset.AssignLiteral("UTF-16LE");
   return NS_OK;
 }
 NS_IMETHODIMP
@@ -661,6 +671,7 @@ WyciwygChannelChild::AsyncOpen(nsIStreamListener *aListener, nsISupports *aConte
 
   mozilla::dom::TabChild* tabChild = GetTabChild(this);
   if (MissingRequiredTabChild(tabChild, "wyciwyg")) {
+    mCallbacks = nullptr;
     return NS_ERROR_ILLEGAL_VALUE;
   }
 
@@ -680,7 +691,10 @@ WyciwygChannelChild::AsyncOpen2(nsIStreamListener *aListener)
 {
   nsCOMPtr<nsIStreamListener> listener = aListener;
   nsresult rv = nsContentSecurityManager::doContentSecurityCheck(this, listener);
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (NS_FAILED(rv)) {
+    mCallbacks = nullptr;
+    return rv;
+  }
   return AsyncOpen(listener, nullptr);
 }
 
@@ -704,8 +718,22 @@ WyciwygChannelChild::WriteToCacheEntry(const nsAString & aData)
     mSentAppData = true;
   }
 
-  SendWriteToCacheEntry(PromiseFlatString(aData));
   mState = WCC_ONWRITE;
+
+  // Give ourselves a megabyte of headroom for the message size. Convert bytes
+  // to wide chars.
+  static const size_t kMaxMessageSize = (IPC::Channel::kMaximumMessageSize - 1024) / 2;
+
+  size_t curIndex = 0;
+  size_t charsRemaining = aData.Length();
+  do {
+    size_t chunkSize = std::min(charsRemaining, kMaxMessageSize);
+    SendWriteToCacheEntry(Substring(aData, curIndex, chunkSize));
+
+    charsRemaining -= chunkSize;
+    curIndex += chunkSize;
+  } while (charsRemaining != 0);
+
   return NS_OK;
 }
 

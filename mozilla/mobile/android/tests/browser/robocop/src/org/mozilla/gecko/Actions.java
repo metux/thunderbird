@@ -3,6 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 package org.mozilla.gecko;
+
+import org.mozilla.gecko.util.GeckoBundle;
+
 import android.database.Cursor;
 
 public interface Actions {
@@ -26,11 +29,20 @@ public interface Actions {
         /** Blocks until the event has been received and returns data associated with the event. */
         public String blockForEventData();
 
+        /** Blocks until the event has been received and returns data associated with the event. */
+        public GeckoBundle blockForBundle();
+
         /**
          * Blocks until the event has been received, or until the timeout has been exceeded.
          * Returns the data associated with the event, if applicable.
          */
         public String blockForEventDataWithTimeout(long millis);
+
+        /**
+         * Blocks until the event has been received, or until the timeout has been exceeded.
+         * Returns the data associated with the event, if applicable.
+         */
+        public GeckoBundle blockForBundleWithTimeout(long millis);
 
         /** Polls to see if the event has been received. Once this returns true, subsequent calls will also return true. */
         public boolean eventReceived();
@@ -44,44 +56,81 @@ public interface Actions {
         public void blockUntilClear(long millis);
     }
 
-    /**
-     * Sends an event to Gecko.
-     *
-     * @param geckoEvent The geckoEvent JSONObject's type
-     */
-    void sendGeckoEvent(String geckoEvent, String data);
+    public enum EventType {
+        GECKO,
+        UI,
+        BACKGROUND
+    }
 
     /**
-     * Sends a preferences get event to Gecko.
+     * Sends an event to the global EventDispatcher instance.
      *
-     * @param requestId The id of this request.
-     * @param prefNames The preferences being requested.
+     * @param event The event type
+     * @param data Data associated with the event
      */
-    void sendPreferencesGetEvent(int requestId, String[] prefNames);
+    void sendGlobalEvent(String event, GeckoBundle data);
 
     /**
-     * Sends a preferences observe event to Gecko.
+     * Sends an event to the GeckoApp-specific EventDispatcher instance.
      *
-     * @param requestId The id of this request.
-     * @param prefNames The preferences being requested.
+     * @param event The event type
+     * @param data Data associated with the event
      */
-    void sendPreferencesObserveEvent(int requestId, String[] prefNames);
+    void sendWindowEvent(String event, GeckoBundle data);
+
+    public interface PrefWaiter {
+        boolean isFinished();
+        void waitForFinish();
+        void waitForFinish(long timeoutMillis, boolean failOnTimeout);
+    }
+
+    public abstract static class PrefHandlerBase implements PrefsHelper.PrefHandler {
+        /* package */ Assert asserter;
+
+        @Override // PrefsHelper.PrefHandler
+        public void prefValue(String pref, boolean value) {
+            asserter.ok(false, "Unexpected pref callback", "");
+        }
+
+        @Override // PrefsHelper.PrefHandler
+        public void prefValue(String pref, int value) {
+            asserter.ok(false, "Unexpected pref callback", "");
+        }
+
+        @Override // PrefsHelper.PrefHandler
+        public void prefValue(String pref, String value) {
+            asserter.ok(false, "Unexpected pref callback", "");
+        }
+
+        @Override // PrefsHelper.PrefHandler
+        public void finish() {
+        }
+    }
+
+    PrefWaiter getPrefs(String[] prefNames, PrefHandlerBase handler);
+    void setPref(String pref, Object value, boolean flush);
+    PrefWaiter addPrefsObserver(String[] prefNames, PrefHandlerBase handler);
+    void removePrefsObserver(PrefWaiter handler);
 
     /**
-     * Sends a preferences remove observers event to Gecko.
-     *
-     * @param requestId The id of this request.
-     */
-    void sendPreferencesRemoveObserversEvent(int requestid);
-
-    /**
-     * Listens for a gecko event to be sent from the Gecko instance.
+     * Listens for an event on the global EventDispatcher instance.
      * The returned object can be used to test if the event has been
      * received. Note that only one event is listened for.
      *
-     * @param geckoEvent The geckoEvent JSONObject's type
+     * @param type The thread type for the event
+     * @param event The name for the event
      */
-    RepeatedEventExpecter expectGeckoEvent(String geckoEvent);
+    RepeatedEventExpecter expectGlobalEvent(EventType type, String event);
+
+    /**
+     * Listens for an event on the global EventDispatcher instance.
+     * The returned object can be used to test if the event has been
+     * received. Note that only one event is listened for.
+     *
+     * @param type The thread type for the event
+     * @param event The name for the event
+     */
+    RepeatedEventExpecter expectWindowEvent(EventType type, String event);
 
     /**
      * Listens for a paint event. Note that calling expectPaint() will

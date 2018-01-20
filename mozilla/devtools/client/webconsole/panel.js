@@ -1,20 +1,21 @@
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
+/* vim: set ft= javascript ts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 "use strict";
 
-const {Cc, Ci, Cu} = require("chrome");
 const promise = require("promise");
+const defer = require("devtools/shared/defer");
 
-loader.lazyGetter(this, "HUDService", () => require("devtools/client/webconsole/hudservice"));
-loader.lazyGetter(this, "EventEmitter", () => require("devtools/shared/event-emitter"));
+loader.lazyRequireGetter(this, "HUDService", "devtools/client/webconsole/hudservice", true);
+loader.lazyGetter(this, "EventEmitter", () => require("devtools/shared/old-event-emitter"));
 
 /**
  * A DevToolPanel that controls the Web Console.
  */
-function WebConsolePanel(iframeWindow, toolbox)
-{
+function WebConsolePanel(iframeWindow, toolbox) {
   this._frameWindow = iframeWindow;
   this._toolbox = toolbox;
   EventEmitter.decorate(this);
@@ -30,8 +31,7 @@ WebConsolePanel.prototype = {
    * If the WebConsole is opened, check if the JSTerm's input line has focus.
    * If not, focus it.
    */
-  focusInput: function WCP_focusInput()
-  {
+  focusInput: function () {
     this.hud.jsterm.focus();
   },
 
@@ -41,32 +41,28 @@ WebConsolePanel.prototype = {
    * @return object
    *         A promise that is resolved when the Web Console completes opening.
    */
-  open: function WCP_open()
-  {
+  open: function () {
     let parentDoc = this._toolbox.doc;
     let iframe = parentDoc.getElementById("toolbox-panel-iframe-webconsole");
 
     // Make sure the iframe content window is ready.
-    let deferredIframe = promise.defer();
+    let deferredIframe = defer();
     let win, doc;
     if ((win = iframe.contentWindow) &&
         (doc = win.document) &&
         doc.readyState == "complete") {
       deferredIframe.resolve(null);
-    }
-    else {
-      iframe.addEventListener("load", function onIframeLoad() {
-        iframe.removeEventListener("load", onIframeLoad, true);
+    } else {
+      iframe.addEventListener("load", function () {
         deferredIframe.resolve(null);
-      }, true);
+      }, {capture: true, once: true});
     }
 
     // Local debugging needs to make the target remote.
     let promiseTarget;
     if (!this.target.isRemote) {
       promiseTarget = this.target.makeRemote();
-    }
-    else {
+    } else {
       promiseTarget = promise.resolve(this.target);
     }
 
@@ -75,46 +71,52 @@ WebConsolePanel.prototype = {
     // 3. Open the Web Console.
     return deferredIframe.promise
       .then(() => promiseTarget)
-      .then((aTarget) => {
-        this._frameWindow._remoteTarget = aTarget;
+      .then((target) => {
+        this._frameWindow._remoteTarget = target;
 
         let webConsoleUIWindow = iframe.contentWindow.wrappedJSObject;
         let chromeWindow = iframe.ownerDocument.defaultView;
         return HUDService.openWebConsole(this.target, webConsoleUIWindow,
                                          chromeWindow);
       })
-      .then((aWebConsole) => {
-        this.hud = aWebConsole;
+      .then((webConsole) => {
+        this.hud = webConsole;
+        // Pipe 'reloaded' event from NewWebConsoleFrame to WebConsolePanel.
+        // These events are listened by the Toolbox.
+        this.hud.ui.on("reloaded", () => {
+          this.emit("reloaded");
+        });
         this._isReady = true;
         this.emit("ready");
         return this;
-      }, (aReason) => {
+      }, (reason) => {
         let msg = "WebConsolePanel open failed. " +
-                  aReason.error + ": " + aReason.message;
+                  reason.error + ": " + reason.message;
         dump(msg + "\n");
-        Cu.reportError(msg);
+        console.error(msg, reason);
       });
   },
 
-  get target()
-  {
+  get target() {
     return this._toolbox.target;
   },
 
   _isReady: false,
-  get isReady()
-  {
+  get isReady() {
     return this._isReady;
   },
 
-  destroy: function WCP_destroy()
-  {
+  destroy: function () {
     if (this._destroyer) {
       return this._destroyer;
     }
 
     this._destroyer = this.hud.destroy();
-    this._destroyer.then(() => this.emit("destroyed"));
+    this._destroyer.then(() => {
+      this._frameWindow = null;
+      this._toolbox = null;
+      this.emit("destroyed");
+    });
 
     return this._destroyer;
   },

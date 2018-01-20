@@ -2,6 +2,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
+ifdef COMPILE_ENVIRONMENT
+
 include ../webidlsrcs.mk
 
 # $(test_sources) comes from webidlsrcs.mk.
@@ -12,6 +14,4 @@ CPPSRCS += $(addprefix ../,$(test_sources))
 # rules.mk and running make with no target in this dir does the right thing.
 include $(topsrcdir)/config/rules.mk
 
-check::
-	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) $(topsrcdir)/config/pythonpath.py \
-	  $(PLY_INCLUDE) $(srcdir)/../parser/runtests.py
+endif

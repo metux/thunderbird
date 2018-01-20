@@ -38,11 +38,10 @@ char16_t *nsImportStringBundle::GetStringByID(int32_t aStringID,
 {
   if (aBundle)
   {
-    char16_t *ptrv = nullptr;
-    nsresult rv = aBundle->GetStringFromID(aStringID, &ptrv);
-
-    if (NS_SUCCEEDED(rv) && ptrv)
-      return ptrv;
+    nsAutoString str;
+    nsresult rv = aBundle->GetStringFromID(aStringID, str);
+    if (NS_SUCCEEDED(rv))
+      return ToNewUnicode(str);
   }
 
   nsString resultString(NS_LITERAL_STRING("[StringID "));
@@ -64,12 +63,10 @@ char16_t *nsImportStringBundle::GetStringByName(const char *aName,
 {
   if (aBundle)
   {
-    char16_t *ptrv = nullptr;
-    nsresult rv = aBundle->GetStringFromName(
-        NS_ConvertUTF8toUTF16(aName).get(), &ptrv);
-
-    if (NS_SUCCEEDED(rv) && ptrv)
-      return ptrv;
+    nsAutoString str;
+    nsresult rv = aBundle->GetStringFromName(aName, str);
+    if (NS_SUCCEEDED(rv))
+      return ToNewUnicode(str);
   }
 
   nsString resultString(NS_LITERAL_STRING("[StringName "));

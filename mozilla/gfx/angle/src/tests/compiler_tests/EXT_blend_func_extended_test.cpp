@@ -124,12 +124,12 @@ class EXTBlendFuncExtendedTest
   protected:
     virtual void SetUp()
     {
-        ShInitBuiltInResources(&mResources);
+        sh::InitBuiltInResources(&mResources);
         // EXT_draw_buffers is used in some of the shaders for test purposes.
         mResources.EXT_draw_buffers = 1;
         mResources.NV_draw_buffers  = 2;
 
-        mCompiler = NULL;
+        mCompiler = nullptr;
     }
 
     virtual void TearDown() { DestroyCompiler(); }
@@ -137,17 +137,17 @@ class EXTBlendFuncExtendedTest
     {
         if (mCompiler)
         {
-            ShDestruct(mCompiler);
-            mCompiler = NULL;
+            sh::Destruct(mCompiler);
+            mCompiler = nullptr;
         }
     }
 
     void InitializeCompiler()
     {
         DestroyCompiler();
-        mCompiler = ShConstructCompiler(GL_FRAGMENT_SHADER, testing::get<0>(GetParam()),
-                                        SH_GLSL_OUTPUT, &mResources);
-        ASSERT_TRUE(mCompiler != NULL) << "Compiler could not be constructed.";
+        mCompiler = sh::ConstructCompiler(GL_FRAGMENT_SHADER, testing::get<0>(GetParam()),
+                                          SH_GLSL_COMPATIBILITY_OUTPUT, &mResources);
+        ASSERT_TRUE(mCompiler != nullptr) << "Compiler could not be constructed.";
     }
 
     testing::AssertionResult TestShaderCompile(const char *pragma)
@@ -163,12 +163,12 @@ class EXTBlendFuncExtendedTest
                                                const char *shader)
     {
         const char *shaderStrings[] = {version, pragma, shader};
-        bool success = ShCompile(mCompiler, shaderStrings, 3, 0);
+        bool success                = sh::Compile(mCompiler, shaderStrings, 3, 0);
         if (success)
         {
             return ::testing::AssertionSuccess() << "Compilation success";
         }
-        return ::testing::AssertionFailure() << ShGetInfoLog(mCompiler);
+        return ::testing::AssertionFailure() << sh::GetInfoLog(mCompiler);
     }
 
   protected:

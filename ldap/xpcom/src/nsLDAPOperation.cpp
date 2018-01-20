@@ -274,7 +274,7 @@ nsLDAPOperation::SimpleBind(const nsACString& passwd)
     if (!passwd.IsEmpty())
       mSavePassword = passwd;
 
-    NS_PRECONDITION(mMessageListener != 0, "MessageListener not set");
+    NS_PRECONDITION(mMessageListener, "MessageListener not set");
 
     rv = connection->GetBindName(bindName);
     if (NS_FAILED(rv))
@@ -427,7 +427,7 @@ nsLDAPOperation::SearchExt(const nsACString& aBaseDn, int32_t aScope,
         if (NS_FAILED(rv)) {
             MOZ_LOG(gLDAPLogModule, mozilla::LogLevel::Error,
                    ("nsLDAPOperation::SearchExt(): error converting server "
-                    "control array: %x", rv));
+                    "control array: %" PRIx32, static_cast<uint32_t>(rv)));
             return rv;
         }
     }
@@ -438,7 +438,7 @@ nsLDAPOperation::SearchExt(const nsACString& aBaseDn, int32_t aScope,
         if (NS_FAILED(rv)) {
             MOZ_LOG(gLDAPLogModule, mozilla::LogLevel::Error,
                    ("nsLDAPOperation::SearchExt(): error converting client "
-                    "control array: %x", rv));
+                    "control array: %" PRIx32, static_cast<uint32_t>(rv)));
             ldap_controls_free(serverctls);
             return rv;
         }
@@ -452,7 +452,7 @@ nsLDAPOperation::SearchExt(const nsACString& aBaseDn, int32_t aScope,
     uint32_t origLength = attrArray.Length();
     if (origLength)
     {
-      attrs = static_cast<char **> (NS_Alloc((origLength + 1) * sizeof(char *)));
+      attrs = static_cast<char **> (moz_xmalloc((origLength + 1) * sizeof(char *)));
       if (!attrs)
         return NS_ERROR_OUT_OF_MEMORY;
 
@@ -520,7 +520,7 @@ nsLDAPOperation::AbandonExt()
     nsresult rv;
     nsresult retStatus = NS_OK;
 
-    if ( mMessageListener == 0 || mMsgID == 0 ) {
+    if (!mMessageListener || mMsgID == 0) {
         NS_ERROR("nsLDAPOperation::AbandonExt(): mMessageListener or "
                  "mMsgId not initialized");
         return NS_ERROR_NOT_INITIALIZED;
@@ -596,7 +596,7 @@ nsLDAPOperation::AddExt(const char *base,
                         LDAPControl **serverctrls,
                         LDAPControl **clientctrls)
 {
-  if (mMessageListener == 0) {
+  if (!mMessageListener) {
     NS_ERROR("nsLDAPOperation::AddExt(): mMessageListener not set");
     return NS_ERROR_NOT_INITIALIZED;
   }
@@ -697,8 +697,8 @@ nsLDAPOperation::AddExt(const nsACString& aBaseDn,
   if (NS_FAILED(rv)) {
     (void)ldap_abandon_ext(mConnectionHandle, mMsgID, 0, 0);
     MOZ_LOG(gLDAPLogModule, mozilla::LogLevel::Debug,
-           ("nsLDAPOperation::AddExt(): abandoned due to rv %x",
-            rv));
+           ("nsLDAPOperation::AddExt(): abandoned due to rv %" PRIx32,
+            static_cast<uint32_t>(rv)));
   }
   return rv;
 }
@@ -710,7 +710,7 @@ nsLDAPOperation::DeleteExt(const char *base,
                            LDAPControl **serverctrls,
                            LDAPControl **clientctrls)
 {
-  if (mMessageListener == 0) {
+  if (!mMessageListener) {
     NS_ERROR("nsLDAPOperation::DeleteExt(): mMessageListener not set");
     return NS_ERROR_NOT_INITIALIZED;
   }
@@ -747,8 +747,8 @@ nsLDAPOperation::DeleteExt(const nsACString& aBaseDn)
   if (NS_FAILED(rv)) {
     (void)ldap_abandon_ext(mConnectionHandle, mMsgID, 0, 0);
     MOZ_LOG(gLDAPLogModule, mozilla::LogLevel::Debug,
-           ("nsLDAPOperation::AddExt(): abandoned due to rv %x",
-            rv));
+           ("nsLDAPOperation::AddExt(): abandoned due to rv %" PRIx32,
+            static_cast<uint32_t>(rv)));
   }
   return rv;
 }
@@ -761,7 +761,7 @@ nsLDAPOperation::ModifyExt(const char *base,
                            LDAPControl **serverctrls,
                            LDAPControl **clientctrls)
 {
-  if (mMessageListener == 0) {
+  if (!mMessageListener) {
     NS_ERROR("nsLDAPOperation::ModifyExt(): mMessageListener not set");
     return NS_ERROR_NOT_INITIALIZED;
   }
@@ -860,8 +860,8 @@ nsLDAPOperation::ModifyExt(const nsACString& aBaseDn,
   if (NS_FAILED(rv)) {
     (void)ldap_abandon_ext(mConnectionHandle, mMsgID, 0, 0);
     MOZ_LOG(gLDAPLogModule, mozilla::LogLevel::Debug,
-           ("nsLDAPOperation::AddExt(): abandoned due to rv %x",
-            rv));
+           ("nsLDAPOperation::AddExt(): abandoned due to rv %" PRIx32,
+            static_cast<uint32_t>(rv)));
   }
   return rv;
 }
@@ -876,7 +876,7 @@ nsLDAPOperation::Rename(const char *base,
                         LDAPControl **serverctrls,
                         LDAPControl **clientctrls)
 {
-  if (mMessageListener == 0) {
+  if (!mMessageListener) {
     NS_ERROR("nsLDAPOperation::Rename(): mMessageListener not set");
     return NS_ERROR_NOT_INITIALIZED;
   }
@@ -923,8 +923,8 @@ nsLDAPOperation::Rename(const nsACString& aBaseDn,
   if (NS_FAILED(rv)) {
     (void)ldap_abandon_ext(mConnectionHandle, mMsgID, 0, 0);
     MOZ_LOG(gLDAPLogModule, mozilla::LogLevel::Debug,
-           ("nsLDAPOperation::AddExt(): abandoned due to rv %x",
-            rv));
+           ("nsLDAPOperation::AddExt(): abandoned due to rv %" PRIx32,
+            static_cast<uint32_t>(rv)));
   }
   return rv;
 }

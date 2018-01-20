@@ -7,34 +7,11 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/LoadContext.h"
+#include "mozilla/Preferences.h"
 #include "mozilla/dom/ScriptSettings.h" // for AutoJSAPI
 #include "nsContentUtils.h"
 #include "xpcpublic.h"
 
-bool
-nsILoadContext::GetOriginAttributes(mozilla::DocShellOriginAttributes& aAttrs)
-{
-  mozilla::dom::AutoJSAPI jsapi;
-  bool ok = jsapi.Init(xpc::PrivilegedJunkScope());
-  NS_ENSURE_TRUE(ok, false);
-  JS::Rooted<JS::Value> v(jsapi.cx());
-  nsresult rv = GetOriginAttributes(&v);
-  NS_ENSURE_SUCCESS(rv, false);
-  NS_ENSURE_TRUE(v.isObject(), false);
-  JS::Rooted<JSObject*> obj(jsapi.cx(), &v.toObject());
-
-  // If we're JS-implemented, the object will be left in a different (System-Principaled)
-  // scope, so we may need to enter its compartment.
-  MOZ_ASSERT(nsContentUtils::IsSystemPrincipal(nsContentUtils::ObjectPrincipal(obj)));
-  JSAutoCompartment ac(jsapi.cx(), obj);
-
-  mozilla::DocShellOriginAttributes attrs;
-  ok = attrs.Init(jsapi.cx(), v);
-  NS_ENSURE_TRUE(ok, false);
-  aAttrs = attrs;
-  return true;
-}
-  
 namespace mozilla {
 
 NS_IMPL_ISUPPORTS(LoadContext, nsILoadContext, nsIInterfaceRequestor)
@@ -44,24 +21,20 @@ LoadContext::LoadContext(nsIPrincipal* aPrincipal,
   : mTopFrameElement(nullptr)
   , mNestedFrameId(0)
   , mIsContent(true)
-  , mUsePrivateBrowsing(false)
   , mUseRemoteTabs(false)
+  , mUseTrackingProtection(false)
 #ifdef DEBUG
   , mIsNotNull(true)
 #endif
 {
-  PrincipalOriginAttributes poa = BasePrincipal::Cast(aPrincipal)->OriginAttributesRef();
-  mOriginAttributes = DocShellOriginAttributes(poa.mAppId, poa.mInBrowser);
-
+  mOriginAttributes = aPrincipal->OriginAttributesRef();
   if (!aOptionalBase) {
     return;
   }
 
-  MOZ_ALWAYS_TRUE(NS_SUCCEEDED(aOptionalBase->GetIsContent(&mIsContent)));
-  MOZ_ALWAYS_TRUE(
-    NS_SUCCEEDED(aOptionalBase->GetUsePrivateBrowsing(&mUsePrivateBrowsing)));
-  MOZ_ALWAYS_TRUE(
-    NS_SUCCEEDED(aOptionalBase->GetUseRemoteTabs(&mUseRemoteTabs)));
+  MOZ_ALWAYS_SUCCEEDS(aOptionalBase->GetIsContent(&mIsContent));
+  MOZ_ALWAYS_SUCCEEDS(aOptionalBase->GetUseRemoteTabs(&mUseRemoteTabs));
+  MOZ_ALWAYS_SUCCEEDS(aOptionalBase->GetUseTrackingProtection(&mUseTrackingProtection));
 }
 
 //-----------------------------------------------------------------------------
@@ -69,7 +42,7 @@ LoadContext::LoadContext(nsIPrincipal* aPrincipal,
 //-----------------------------------------------------------------------------
 
 NS_IMETHODIMP
-LoadContext::GetAssociatedWindow(nsIDOMWindow**)
+LoadContext::GetAssociatedWindow(mozIDOMWindowProxy**)
 {
   MOZ_ASSERT(mIsNotNull);
 
@@ -78,7 +51,7 @@ LoadContext::GetAssociatedWindow(nsIDOMWindow**)
 }
 
 NS_IMETHODIMP
-LoadContext::GetTopWindow(nsIDOMWindow**)
+LoadContext::GetTopWindow(mozIDOMWindowProxy**)
 {
   MOZ_ASSERT(mIsNotNull);
 
@@ -103,15 +76,6 @@ LoadContext::GetNestedFrameId(uint64_t* aId)
 }
 
 NS_IMETHODIMP
-LoadContext::IsAppOfType(uint32_t, bool*)
-{
-  MOZ_ASSERT(mIsNotNull);
-
-  // don't expect we need this in parent (Thunderbird/SeaMonkey specific?)
-  return NS_ERROR_UNEXPECTED;
-}
-
-NS_IMETHODIMP
 LoadContext::GetIsContent(bool* aIsContent)
 {
   MOZ_ASSERT(mIsNotNull);
@@ -129,7 +93,7 @@ LoadContext::GetUsePrivateBrowsing(bool* aUsePrivateBrowsing)
 
   NS_ENSURE_ARG_POINTER(aUsePrivateBrowsing);
 
-  *aUsePrivateBrowsing = mUsePrivateBrowsing;
+  *aUsePrivateBrowsing = mOriginAttributes.mPrivateBrowsingId > 0;
   return NS_OK;
 }
 
@@ -172,29 +136,18 @@ LoadContext::SetRemoteTabs(bool aUseRemoteTabs)
 }
 
 NS_IMETHODIMP
-LoadContext::GetIsInBrowserElement(bool* aIsInBrowserElement)
+LoadContext::GetIsInIsolatedMozBrowserElement(bool* aIsInIsolatedMozBrowserElement)
 {
   MOZ_ASSERT(mIsNotNull);
 
-  NS_ENSURE_ARG_POINTER(aIsInBrowserElement);
+  NS_ENSURE_ARG_POINTER(aIsInIsolatedMozBrowserElement);
 
-  *aIsInBrowserElement = mOriginAttributes.mInBrowser;
+  *aIsInIsolatedMozBrowserElement = mOriginAttributes.mInIsolatedMozBrowser;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-LoadContext::GetAppId(uint32_t* aAppId)
-{
-  MOZ_ASSERT(mIsNotNull);
-
-  NS_ENSURE_ARG_POINTER(aAppId);
-
-  *aAppId = mOriginAttributes.mAppId;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-LoadContext::GetOriginAttributes(JS::MutableHandleValue aAttrs)
+LoadContext::GetScriptableOriginAttributes(JS::MutableHandleValue aAttrs)
 {
   JSContext* cx = nsContentUtils::GetCurrentJSContext();
   MOZ_ASSERT(cx);
@@ -202,6 +155,31 @@ LoadContext::GetOriginAttributes(JS::MutableHandleValue aAttrs)
   bool ok = ToJSValue(cx, mOriginAttributes, aAttrs);
   NS_ENSURE_TRUE(ok, NS_ERROR_FAILURE);
   return NS_OK;
+}
+
+NS_IMETHODIMP_(void)
+LoadContext::GetOriginAttributes(mozilla::OriginAttributes& aAttrs)
+{
+  aAttrs = mOriginAttributes;
+}
+
+NS_IMETHODIMP
+LoadContext::GetUseTrackingProtection(bool* aUseTrackingProtection)
+{
+  MOZ_ASSERT(mIsNotNull);
+
+  NS_ENSURE_ARG_POINTER(aUseTrackingProtection);
+
+  *aUseTrackingProtection = mUseTrackingProtection;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+LoadContext::SetUseTrackingProtection(bool aUseTrackingProtection)
+{
+  MOZ_ASSERT_UNREACHABLE("Should only be set through nsDocShell");
+
+  return NS_ERROR_UNEXPECTED;
 }
 
 //-----------------------------------------------------------------------------
@@ -220,6 +198,36 @@ LoadContext::GetInterface(const nsIID& aIID, void** aResult)
   }
 
   return NS_NOINTERFACE;
+}
+
+static nsresult
+CreateTestInstance(bool aPrivate, nsISupports *aOuter, REFNSIID aIID, void **aResult)
+{
+  // Shamelessly modified from NS_GENERIC_FACTORY_CONSTRUCTOR
+  *aResult = nullptr;
+
+  if (aOuter) {
+    return NS_ERROR_NO_AGGREGATION;
+  }
+
+  OriginAttributes oa;
+  oa.mPrivateBrowsingId = aPrivate ? 1 : 0;
+
+  RefPtr<LoadContext> lc = new LoadContext(oa);
+
+  return lc->QueryInterface(aIID, aResult);
+}
+
+nsresult
+CreateTestLoadContext(nsISupports *aOuter, REFNSIID aIID, void **aResult)
+{
+  return CreateTestInstance(false, aOuter, aIID, aResult);
+}
+
+nsresult
+CreatePrivateTestLoadContext(nsISupports *aOuter, REFNSIID aIID, void **aResult)
+{
+  return CreateTestInstance(true, aOuter, aIID, aResult);
 }
 
 } // namespace mozilla

@@ -3,28 +3,26 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 var Cu = Components.utils;
-const {Services} = Cu.import("resource://gre/modules/Services.jsm");
 const {require} = Cu.import("resource://devtools/shared/Loader.jsm", {});
+const Services = require("Services");
+const {gDevTools} = require("devtools/client/framework/devtools");
 const {GetAvailableAddons, ForgetAddonsList} = require("devtools/client/webide/modules/addons");
 const Strings = Services.strings.createBundle("chrome://devtools/locale/webide.properties");
 
-window.addEventListener("load", function onLoad() {
-  window.removeEventListener("load", onLoad);
-  document.querySelector("#aboutaddons").onclick = function() {
-    let browserWin = Services.wm.getMostRecentWindow("navigator:browser");
-    browserWin.BrowserOpenAddonsMgr("addons://list/extension");
-  }
+window.addEventListener("load", function () {
+  document.querySelector("#aboutaddons").onclick = function () {
+    let browserWin = Services.wm.getMostRecentWindow(gDevTools.chromeWindowType);
+    if (browserWin && browserWin.BrowserOpenAddonsMgr) {
+      browserWin.BrowserOpenAddonsMgr("addons://list/extension");
+    }
+  };
   document.querySelector("#close").onclick = CloseUI;
-  GetAvailableAddons().then(BuildUI, (e) => {
-    console.error(e);
-    window.alert(Strings.formatStringFromName("error_cantFetchAddonsJSON", [e], 1));
-  });
-}, true);
+  BuildUI(GetAvailableAddons());
+}, {capture: true, once: true});
 
-window.addEventListener("unload", function onUnload() {
-  window.removeEventListener("unload", onUnload);
+window.addEventListener("unload", function () {
   ForgetAddonsList();
-}, true);
+}, {capture: true, once: true});
 
 function CloseUI() {
   window.parent.UI.openProject();
@@ -32,10 +30,6 @@ function CloseUI() {
 
 function BuildUI(addons) {
   BuildItem(addons.adb, "adb");
-  BuildItem(addons.adapters, "adapters");
-  for (let addon of addons.simulators) {
-    BuildItem(addon, "simulator");
-  }
 }
 
 function BuildItem(addon, type) {
@@ -64,12 +58,11 @@ function BuildItem(addon, type) {
   for (let e of events) {
     addon.on(e, onAddonUpdate);
   }
-  window.addEventListener("unload", function onUnload() {
-    window.removeEventListener("unload", onUnload);
+  window.addEventListener("unload", function () {
     for (let e of events) {
       addon.off(e, onAddonUpdate);
     }
-  });
+  }, {once: true});
 
   let li = document.createElement("li");
   li.setAttribute("status", addon.status);
@@ -81,21 +74,6 @@ function BuildItem(addon, type) {
     case "adb":
       li.setAttribute("addon", type);
       name.textContent = Strings.GetStringFromName("addons_adb_label");
-      break;
-    case "adapters":
-      li.setAttribute("addon", type);
-      try {
-        name.textContent = Strings.GetStringFromName("addons_adapters_label");
-      } catch(e) {
-        // This code (bug 1081093) will be backported to Aurora, which doesn't
-        // contain this string.
-        name.textContent = "Tools Adapters Add-on";
-      }
-      break;
-    case "simulator":
-      li.setAttribute("addon", "simulator-" + addon.version);
-      let stability = Strings.GetStringFromName("addons_" + addon.stability);
-      name.textContent = Strings.formatStringFromName("addons_simulator_label", [addon.version, stability], 2);
       break;
   }
 

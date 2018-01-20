@@ -3,7 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- * This Original Code has been modified by IBM Corporation. Modifications made by IBM 
+ * This Original Code has been modified by IBM Corporation. Modifications made by IBM
  * described herein are Copyright (c) International Business Machines Corporation, 2000.
  * Modifications to Mozilla code or documentation identified per MPL Section 3.3
  *
@@ -53,7 +53,6 @@ public:
 
   nsCOMPtr <nsIMsgFolder> m_virtualFolder; // folder we're listening to db changes on behalf of.
   nsCOMPtr <nsIMsgFolder> m_folderWatching; // folder whose db we're listening to.
-  nsCOMPtr <nsISupportsArray> m_searchTerms;
   nsCOMPtr <nsIMsgSearchSession> m_searchSession;
   bool m_searchOnMsgStatus;
   bool m_batchingEvents;
@@ -72,13 +71,13 @@ class nsMsgAccountManager: public nsIMsgAccountManager,
 public:
 
   nsMsgAccountManager();
-  
+
   NS_DECL_THREADSAFE_ISUPPORTS
- 
+
   /* nsIMsgAccountManager methods */
-  
+
   NS_DECL_NSIMSGACCOUNTMANAGER
-  NS_DECL_NSIOBSERVER  
+  NS_DECL_NSIOBSERVER
   NS_DECL_NSIURLLISTENER
   NS_DECL_NSIFOLDERLISTENER
 
@@ -91,8 +90,6 @@ private:
 
   bool m_accountsLoaded;
   nsCOMPtr <nsIMsgFolderCache> m_msgFolderCache;
-  nsCOMPtr<nsIAtom> kDefaultServerAtom;
-  nsCOMPtr<nsIAtom> mFolderFlagAtom;
   nsTArray<nsCOMPtr<nsIMsgAccount> > m_accounts;
   nsInterfaceHashtable<nsCStringHashKey, nsIMsgIdentity> m_identities;
   nsInterfaceHashtable<nsCStringHashKey, nsIMsgIncomingServer> m_incomingServers;
@@ -152,8 +149,6 @@ private:
   // fires notifications to the appropriate root folders
   nsresult notifyDefaultServerChange(nsIMsgAccount *aOldAccount,
                                      nsIMsgAccount *aNewAccount);
-    
-  static PLDHashOperator hashUnloadServer(nsCStringHashKey::KeyType aKey, nsCOMPtr<nsIMsgIncomingServer>& aServer, void* aClosure);
 
   //
   // account enumerators
@@ -170,11 +165,6 @@ private:
   // server enumerators
   // ("element" is always a server)
   //
-
-  // save the server's saved searches to virtualFolders.dat
-  static PLDHashOperator saveVirtualFolders(nsCStringHashKey::KeyType aKey,
-                                       nsCOMPtr<nsIMsgIncomingServer>& aServer,
-                                       void *outputStream);
 
   nsresult findServerInternal(const nsACString& username,
                               const nsACString& hostname,

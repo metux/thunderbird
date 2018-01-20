@@ -6,12 +6,12 @@
 #include "nsISupports.idl"
 #include "nsIMsgSearchValue.idl"
 
+interface nsIMutableArray;
 interface nsIMsgSearchAdapter;
 interface nsIMsgSearchTerm;
 interface nsIMsgSearchNotify;
 interface nsIMsgHdr;
 interface nsIMsgDatabase;
-interface nsISupportsArray;
 interface nsIMsgWindow;
 
 //////////////////////////////////////////////////////////////////////////////
@@ -41,9 +41,9 @@ interface nsIMsgSearchSession :  nsISupports {
                      in boolean BooleanAND,
                      in string customString);
 
-  readonly attribute nsISupportsArray searchTerms;
+  attribute nsIMutableArray searchTerms;
 
-  nsIMsgSearchTerm createTerm ();
+  nsIMsgSearchTerm createTerm();
   void appendTerm(in nsIMsgSearchTerm term);
 
   /**

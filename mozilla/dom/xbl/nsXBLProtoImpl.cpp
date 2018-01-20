@@ -102,7 +102,7 @@ nsXBLProtoImpl::InstallImplementation(nsXBLPrototypeBinding* aPrototypeBinding,
   // weird property holder duplication.
   const char16_t* className = aPrototypeBinding->ClassName().get();
   JS::Rooted<JSObject*> propertyHolder(cx);
-  JS::Rooted<JSPropertyDescriptor> existingHolder(cx);
+  JS::Rooted<JS::PropertyDescriptor> existingHolder(cx);
   if (scopeObject != globalObject &&
       !JS_GetOwnUCPropertyDescriptor(cx, scopeObject, className, &existingHolder)) {
     return NS_ERROR_FAILURE;
@@ -120,8 +120,7 @@ nsXBLProtoImpl::InstallImplementation(nsXBLPrototypeBinding* aPrototypeBinding,
     // Define it as a property on the scopeObject, using the same name used on
     // the content side.
     bool ok = JS_DefineUCProperty(cx, scopeObject, className, -1, propertyHolder,
-                                  JSPROP_PERMANENT | JSPROP_READONLY,
-                                  JS_STUBGETTER, JS_STUBSETTER);
+                                  JSPROP_PERMANENT | JSPROP_READONLY);
     NS_ENSURE_TRUE(ok, NS_ERROR_UNEXPECTED);
   } else {
     propertyHolder = targetClassObject;
@@ -178,9 +177,9 @@ nsXBLProtoImpl::InstallImplementation(nsXBLPrototypeBinding* aPrototypeBinding,
   return NS_OK;
 }
 
-nsresult 
+nsresult
 nsXBLProtoImpl::InitTargetObjects(nsXBLPrototypeBinding* aBinding,
-                                  nsIContent* aBoundElement, 
+                                  nsIContent* aBoundElement,
                                   JS::MutableHandle<JSObject*> aTargetClassObject,
                                   bool* aTargetIsNew)
 {
@@ -213,7 +212,7 @@ nsXBLProtoImpl::InitTargetObjects(nsXBLPrototypeBinding* aBinding,
   // Make sure the interface object is created before the prototype object
   // so that XULElement is hidden from content. See bug 909340.
   bool defineOnGlobal = dom::XULElementBinding::ConstructorEnabled(cx, global);
-  dom::XULElementBinding::GetConstructorObjectHandle(cx, global, defineOnGlobal);
+  dom::XULElementBinding::GetConstructorObjectHandle(cx, defineOnGlobal);
 
   rv = nsContentUtils::WrapNative(cx, aBoundElement, &v,
                                   /* aAllowWrapping = */ false);
@@ -239,13 +238,12 @@ nsXBLProtoImpl::InitTargetObjects(nsXBLPrototypeBinding* aBinding,
 nsresult
 nsXBLProtoImpl::CompilePrototypeMembers(nsXBLPrototypeBinding* aBinding)
 {
-  // We want to pre-compile our implementation's members against a "prototype context". Then when we actually 
-  // bind the prototype to a real xbl instance, we'll clone the pre-compiled JS into the real instance's 
+  // We want to pre-compile our implementation's members against a "prototype context". Then when we actually
+  // bind the prototype to a real xbl instance, we'll clone the pre-compiled JS into the real instance's
   // context.
   AutoJSAPI jsapi;
   if (NS_WARN_IF(!jsapi.Init(xpc::CompilationScope())))
     return NS_ERROR_FAILURE;
-  jsapi.TakeOwnershipOfErrorReporting();
   JSContext* cx = jsapi.cx();
 
   mPrecompiledMemberHolder = JS_NewObjectWithGivenProto(cx, nullptr, nullptr);
@@ -271,7 +269,7 @@ nsXBLProtoImpl::CompilePrototypeMembers(nsXBLPrototypeBinding* aBinding)
 bool
 nsXBLProtoImpl::LookupMember(JSContext* aCx, nsString& aName,
                              JS::Handle<jsid> aNameAsId,
-                             JS::MutableHandle<JSPropertyDescriptor> aDesc,
+                             JS::MutableHandle<JS::PropertyDescriptor> aDesc,
                              JS::Handle<JSObject*> aClassObject)
 {
   for (nsXBLProtoImplMember* m = mMembers; m; m = m->GetNext()) {
@@ -514,9 +512,9 @@ nsXBLProtoImpl::Write(nsIObjectOutputStream* aStream,
   return aStream->Write8(XBLBinding_Serialize_NoMoreItems);
 }
 
-nsresult
-NS_NewXBLProtoImpl(nsXBLPrototypeBinding* aBinding, 
-                   const char16_t* aClassName, 
+void
+NS_NewXBLProtoImpl(nsXBLPrototypeBinding* aBinding,
+                   const char16_t* aClassName,
                    nsXBLProtoImpl** aResult)
 {
   nsXBLProtoImpl* impl = new nsXBLProtoImpl();
@@ -524,13 +522,13 @@ NS_NewXBLProtoImpl(nsXBLPrototypeBinding* aBinding,
     impl->mClassName = aClassName;
   } else {
     nsCString spec;
-    aBinding->BindingURI()->GetSpec(spec);
+    nsresult rv = aBinding->BindingURI()->GetSpec(spec);
+    // XXX: should handle this better
+    MOZ_RELEASE_ASSERT(NS_SUCCEEDED(rv));
     impl->mClassName = NS_ConvertUTF8toUTF16(spec);
   }
 
   aBinding->SetImplementation(impl);
   *aResult = impl;
-
-  return NS_OK;
 }
 

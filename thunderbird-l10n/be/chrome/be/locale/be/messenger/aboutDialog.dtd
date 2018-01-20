@@ -1,0 +1,59 @@
+<!ENTITY aboutDialog.title "Пра &brandFullName;">
+<!ENTITY update.checkForUpdatesButton.label "Праверка існавання абнаўленняў">
+<!ENTITY update.checkForUpdatesButton.accesskey "і">
+<!ENTITY update.updateButton.label "Перазапусціць для абнаўлення">
+<!ENTITY update.updateButton.accesskey "з">
+<!ENTITY update.applyButtonBillboard.label "Ужыць абнаўленне…">
+<!ENTITY update.applyButtonBillboard.accesskey "ж">
+<!ENTITY community.start2 "&brandShortName; распрацаваны ">
+<!ENTITY community.mozillaLink "&vendorShortName;">
+<!ENTITY community.middle2 ", ">
+<!ENTITY community.creditsLink "сусветным згуртаваннем">
+<!ENTITY community.end2 ", якое працуе разам, каб зрабіць Інтэрнэт лепшым. Мы верым, што Інтэрнэт павінны быць адкрытым, прылюдным і даступным кожнаму без любых абмежаванняў.">
+<!ENTITY contribute.start "Цікава?">
+<!ENTITY contribute.getInvolvedLink "Уцягвайцеся!">
+<!ENTITY contribute.end "">
+<!ENTITY bottomLinks.license "Звесткі пра ліцэнзію">
+<!ENTITY bottomLinks.rights "Правы канчатковага карыстальніка">
+<!ENTITY bottomLinks.privacy "Палітыка адасаблення">
+<!ENTITY update.checkingForUpdates "Праверка існавання абнаўленняў…">
+<!ENTITY update.noUpdatesFound "&brandShortName; абноўлены">
+<!ENTITY update.adminDisabled "Абнаўленні забаронены вашым сістэмным спраўнікам">
+<!ENTITY update.failed.start "Няўдача абнаўлення.">
+<!ENTITY update.failed.linkText "Сцягванне апошняй версіі">
+<!ENTITY update.failed.end "">
+<!ENTITY update.manual.start "Сцязгнуць ">
+<!ENTITY update.manual.linkText "апошнюю версію">
+<!ENTITY update.manual.end "">
+<!ENTITY update.unsupported.start "Вы не можаце працягнуць абнаўленне на гэтай сістэме.">
+<!ENTITY update.unsupported.linkText "Падрабязней">
+<!ENTITY update.unsupported.end "">
+<!ENTITY update.downloading.start "Сцягванне абнаўлення — ">
+<!ENTITY update.downloading.end "">
+<!ENTITY update.applying "Ужыванне абнаўлення…">
+<!ENTITY channel.description.start "Зараз вы на ">
+<!ENTITY channel.description.end " канал абнаўленняў.">
+<!ENTITY cmdCloseMac.commandKey "w">
+
+<!ENTITY update.updateButton.label3               "Restart to update &brandShorterName;">
+<!ENTITY warningDesc.version        "&brandShortName; is experimental and may be unstable.">
+<!ENTITY warningDesc.telemetryDesc  "It automatically sends information about performance, hardware, usage and customizations back to &vendorShortName; to help make &brandShortName; better.">
+
+<!ENTITY community.exp.start        "">
+<!ENTITY community.exp.mozillaLink  "&vendorShortName;">
+<!ENTITY community.exp.middle       " is a ">
+<!ENTITY community.exp.creditsLink  "global community">
+<!ENTITY community.exp.end          " working together to keep the Web open, public and accessible to all.">
+
+<!ENTITY community.end3             " working together to keep the Web open, public and accessible to all.">
+
+<!ENTITY helpus.start               "Want to help? ">
+<!ENTITY helpus.donateLink          "Make a donation">
+<!ENTITY helpus.middle              " or ">
+<!ENTITY helpus.getInvolvedLink     "get involved!">
+<!ENTITY helpus.end                 "">
+
+<!ENTITY releaseNotes.link          "Release notes">
+
+<!ENTITY update.otherInstanceHandlingUpdates "&brandShortName; is being updated by another instance">
+

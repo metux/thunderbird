@@ -11,6 +11,7 @@
 #include "nsClassHashtable.h"
 #include "nsRegion.h"
 #include "nsTArray.h"
+#include "ViewRegion.h"
 
 #import <Foundation/NSGeometry.h>
 
@@ -26,7 +27,10 @@ enum class VibrancyType {
   TOOLTIP,
   MENU,
   HIGHLIGHTED_MENUITEM,
-  SHEET
+  SHEET,
+  SOURCE_LIST,
+  SOURCE_LIST_SELECTION,
+  ACTIVE_SOURCE_LIST_SELECTION
 };
 
 /**
@@ -71,6 +75,8 @@ public:
   void UpdateVibrantRegion(VibrancyType aType,
                            const LayoutDeviceIntRegion& aRegion);
 
+  bool HasVibrantRegions() { return !mVibrantRegions.IsEmpty(); }
+
   /**
    * Clear the vibrant areas that we know about.
    * The clearing happens in the current NSGraphicsContext. If you call this
@@ -88,32 +94,19 @@ public:
   NSColor* VibrancyFillColorForType(VibrancyType aType);
 
   /**
-   * Return the font smoothing background color that should be used for text
-   * drawn on top of the vibrant window parts.
-   */
-  NSColor* VibrancyFontSmoothingBackgroundColorForType(VibrancyType aType);
-
-  /**
    * Check whether the operating system supports vibrancy at all.
    * You may only create a VibrancyManager instance if this returns true.
    * @return Whether VibrancyManager can be used on this OS.
    */
   static bool SystemSupportsVibrancy();
 
-  // The following are only public because otherwise ClearVibrantRegionFunc
-  // can't see them.
-  struct VibrantRegion {
-    LayoutDeviceIntRegion region;
-    nsTArray<NSView*> effectViews;
-  };
-  void ClearVibrantRegion(const VibrantRegion& aVibrantRegion) const;
-
 protected:
-  NSView* CreateEffectView(VibrancyType aType, NSRect aRect);
+  void ClearVibrantRegion(const LayoutDeviceIntRegion& aVibrantRegion) const;
+  NSView* CreateEffectView(VibrancyType aType);
 
   const nsChildView& mCoordinateConverter;
   NSView* mContainerView;
-  nsClassHashtable<nsUint32HashKey, VibrantRegion> mVibrantRegions;
+  nsClassHashtable<nsUint32HashKey, ViewRegion> mVibrantRegions;
 };
 
 } // namespace mozilla

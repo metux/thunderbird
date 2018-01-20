@@ -13,6 +13,7 @@
 <p id="display"></p>
 <div id="content"></div>
 <pre id="test"></pre>
+<script src="utils.js"></script>
 <script class="testbody" type="text/javascript">
   var registration;
   var worker;
@@ -20,7 +21,12 @@
   function start() {
     return navigator.serviceWorker.register("xslt_worker.js",
                                             { scope: "./" })
-      .then((swr) => registration = swr);
+      .then((swr) => {
+        registration = swr;
+
+        // Ensure the registration is active before continuing
+        return waitForState(swr.installing, 'activated');
+      });
   }
 
   function unregister() {
@@ -102,7 +108,6 @@
   SimpleTest.waitForExplicitFinish();
   SpecialPowers.pushPrefEnv({"set": [
     ["dom.serviceWorkers.exemptFromPerDomainMax", true],
-    ["dom.serviceWorkers.interception.enabled", true],
     ["dom.serviceWorkers.enabled", true],
     ["dom.serviceWorkers.testing.enabled", true],
   ]}, runTest);

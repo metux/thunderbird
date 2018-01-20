@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "lt": {
+      "chrome_resources": {
+        "necko": "chrome/lt/locale/lt/necko/", 
+        "global": "chrome/lt/locale/lt/global/", 
+        "messenger-region": "chrome/lt/locale/lt/messenger-region/", 
+        "chat": "chrome/lt/locale/lt/chat/", 
+        "devtools": "chrome/lt/locale/lt/devtools/client/", 
+        "pipnss": "chrome/lt/locale/lt/pipnss/", 
+        "messenger-smime": "chrome/lt/locale/lt/messenger-smime/", 
+        "messenger-newsblog": "chrome/lt/locale/lt/messenger-newsblog/", 
+        "devtools-shim": "chrome/lt/locale/lt/devtools/shim/", 
+        "alerts": "chrome/lt/locale/lt/alerts/", 
+        "messenger": "chrome/lt/locale/lt/messenger/", 
+        "editor": "chrome/lt/locale/lt/editor/", 
+        "branding": "chrome/lt/locale/lt/branding/", 
+        "mozldap": "chrome/lt/locale/lt/mozldap/", 
+        "autoconfig": "chrome/lt/locale/lt/autoconfig/", 
+        "devtools-shared": "chrome/lt/locale/lt/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/lt/locale/lt/global-platform/win/", 
+          "android": "chrome/lt/locale/lt/global-platform/unix/", 
+          "macosx": "chrome/lt/locale/lt/global-platform/mac/", 
+          "linux": "chrome/lt/locale/lt/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/lt/locale/lt/mozapps/", 
+        "pluginproblem": "chrome/lt/locale/lt/pluginproblem/", 
+        "communicator": "chrome/lt/locale/lt/communicator/", 
+        "messenger-mapi": "chrome/lt/locale/lt/messenger-mapi/", 
+        "places": "chrome/lt/locale/lt/places/", 
+        "passwordmgr": "chrome/lt/locale/lt/passwordmgr/", 
+        "pippki": "chrome/lt/locale/lt/pippki/"
+      }, 
+      "version": "20171105123221"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "58.0", 
+      "id": "langpack-lt@firefox.mozilla.org", 
+      "strict_max_version": "58.*"
+    }
+  }, 
+  "langpack_id": "lt", 
+  "version": "58.0", 
+  "name": "Lietuvių Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "Mozilla Lietuvoje (contributors: Gintautas Grigas, Tatjana Jevsikova, Rimas Kudelis, Sigita Pedzevičienė)", 
+  "description": "Language pack for Thunderbird for lt"
+}

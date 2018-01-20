@@ -17,7 +17,7 @@ function sleep(wait) {
   return new Promise((resolve, reject) => {
     do_print("sleep start");
     gTimer.initWithCallback({
-      notify: function () {
+      notify: function() {
         do_print("sleep end");
         resolve();
       },
@@ -25,7 +25,7 @@ function sleep(wait) {
   });
 }
 
-function promiseLoadEvent(browser, url, eventType="load") {
+function promiseLoadEvent(browser, url, eventType = "load") {
   return new Promise((resolve, reject) => {
     do_print("Wait browser event: " + eventType);
 
@@ -48,8 +48,10 @@ function promiseLoadEvent(browser, url, eventType="load") {
   });
 }
 
-// Wait 4 seconds for the pending visits to flush (which should happen in 3 seconds)
-const PENDING_VISIT_WAIT = 4000;
+// Wait 6 seconds for the pending visits to flush (which should happen in 3 seconds)
+const PENDING_VISIT_WAIT = 6000;
+// Longer wait required after first load
+const PENDING_VISIT_WAIT_LONG = 20000;
 
 // Manage the saved history visits so we can compare in the tests
 var gVisitURLs = [];
@@ -57,7 +59,7 @@ function visitObserver(subject, topic, data) {
   let uri = subject.QueryInterface(Ci.nsIURI);
   do_print("Observer: " + uri.spec);
   gVisitURLs.push(uri.spec);
-};
+}
 
 // Track the <browser> where the tests are happening
 var gBrowser;
@@ -71,15 +73,14 @@ add_test(function setup_browser() {
     BrowserApp.closeTab(BrowserApp.getTabForBrowser(gBrowser));
   });
 
-  Services.obs.addObserver(visitObserver, "link-visited", false);
+  Services.obs.addObserver(visitObserver, "link-visited");
 
   // Load a blank page
   let url = "about:blank";
   gBrowser = BrowserApp.addTab(url, { selected: true, parentId: BrowserApp.selectedTab.id }).browser;
-  gBrowser.addEventListener("load", function startTests(event) {
-    gBrowser.removeEventListener("load", startTests, true);
-    Services.tm.mainThread.dispatch(run_next_test, Ci.nsIThread.DISPATCH_NORMAL);
-  }, true);
+  gBrowser.addEventListener("load", function(event) {
+    Services.tm.dispatchToMainThread(run_next_test);
+  }, {capture: true, once: true});
 });
 
 add_task(function* () {
@@ -89,7 +90,7 @@ add_task(function* () {
   // Load a simple HTML page with no redirects
   gVisitURLs = [];
   yield promiseLoadEvent(gBrowser, "http://example.org/tests/robocop/robocop_blank_01.html");
-  yield sleep(PENDING_VISIT_WAIT);
+  yield sleep(PENDING_VISIT_WAIT_LONG);
 
   do_print("visit counts: " + gVisitURLs.length);
   ok(gVisitURLs.length == 1, "Simple visit makes 1 history item");

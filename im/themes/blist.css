@@ -18,53 +18,69 @@ richlistbox {
   -moz-appearance: none;
 }
 
+
 .listboxHeader {
   margin: 0 0;
   padding: 2px 5px;
-  border-style: none;
-  -moz-appearance: none;
-%ifdef XP_MACOSX
-  background-color: -moz-mac-chrome-active;
-  background-image: -moz-linear-gradient(rgba(255,255,255,.43), rgba(255,255,255,0));
-  border-bottom: 1px solid rgba(0, 0, 0, 0.57);
 }
 
-.listboxHeader:-moz-window-inactive {
-  background-color: -moz-mac-chrome-inactive;
-  border-bottom-color: rgba(0, 0, 0, 0.32);
-%else
+%ifdef XP_MACOSX
+@media not all and (-moz-mac-yosemite-theme) {
+  .listboxHeader {
+    border-style: none;
+    -moz-appearance: none;
+    background-color: -moz-mac-chrome-active;
+    background-image: -moz-linear-gradient(rgba(255,255,255,.43), rgba(255,255,255,0));
+    border-bottom: 1px solid rgba(0, 0, 0, 0.57);
+  }
+
+  .listboxHeader:-moz-window-inactive {
+    background-color: -moz-mac-chrome-inactive;
+    border-bottom-color: rgba(0, 0, 0, 0.32);
+  }
+
+  #contactsHeader {
+    border-top: 1px solid rgb(66, 66, 66);
+  }
+
+  #contactsHeader:-moz-window-inactive {
+    border-top-color: rgb(137, 137, 137);
+  }
+}
+
+@media (-moz-mac-yosemite-theme) {
+  .listboxHeader {
+    -moz-appearance: toolbar;
+  }
+}
+%endif
+%ifndef XP_MACOSX
+.listboxHeader {
+  border-style: none;
+  -moz-appearance: none;
   background-color: -moz-Dialog;
 %ifdef XP_WIN
   background-image: -moz-linear-gradient(rgba(255,255,255,.5), rgba(255,255,255,0));
 %else
   background-image: -moz-linear-gradient(rgba(255,255,255,.3), rgba(255,255,255,0));
 %endif
-%endif
 }
 
+%ifdef XP_WIN
 #contactsHeader {
-%ifdef XP_MACOSX
-  border-top: 1px solid rgb(66, 66, 66);
-}
-
-#contactsHeader:-moz-window-inactive {
-  border-top-color: rgb(137, 137, 137);
-%else
-%ifdef XP_UNIX
-  border-top: 1px solid rgba(0, 0, 0, 0.1);
-%else
   border-top: none;
-%endif
-%endif
+}
+%else
+#contactsHeader {
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
 }
 
-%ifdef XP_UNIX
-%ifndef XP_MACOSX
 #convsHeader {
   border-top: 1px solid rgba(0, 0, 0, 0.12);
 }
 %endif
 %endif
+
 
 .convUnreadCount,
 .convUnreadTargetedCount {
@@ -100,14 +116,7 @@ group {
   padding: 0 2px;
 }
 
-conv,
-contact,
-buddy {
-  height: 20px; /* 16+2+2px for the protocol icon, padding top and bottom */
-}
-
 /* The vertical padding directly on the binding would not be animated. */
-.prplBuddyIcon,
 group>* {
   padding-top: 2px;
   padding-bottom: 2px;
@@ -153,21 +162,28 @@ contact[droptarget] > buddy[dummy] {
   margin: 0;
 }
 
+.contactDisplayName,
 .buddyDisplayName {
-  -moz-margin-start: 2px;
+  margin-inline-start: 2px;
+}
+
+/* Used for the second line of a contact-big to add space on the left
+   where the .prplBuddyIcon sits on the first line. */
+.contactIconSpace {
+  /* .prplBuddyIcon width+margins (16+3+3) + .contactStatusText margin (2) */
+  margin-inline-start: 24px;
 }
 
 .contact-hbox,
 .conv-hbox {
   margin: 2px 0;
-  -moz-margin-start: 2px;
   min-height: 16px;
   overflow-x: hidden;
 }
 
 /* Avoid a strange jumping bug when hovering and the startChatBubble appears */
 .contact-vbox {
-  min-height: 40px;
+  min-height: calc(var(--blist-item-height) * 2);
 }
 
 .hideGroupButton,
@@ -183,10 +199,10 @@ contact[droptarget] > buddy[dummy] {
 }
 
 .hideGroupButton {
-  -moz-margin-end: 0;
+  margin-inline-end: 0;
   -moz-stack-sizing: ignore;
 %ifdef XP_WIN
-  list-style-image: url("chrome://global/skin/icons/close-XPVista7.png");
+  list-style-image: url("chrome://global/skin/icons/close-win7.png");
 %else
   list-style-image: url("chrome://global/skin/icons/close.png");
 %endif
@@ -204,20 +220,20 @@ contact[droptarget] > buddy[dummy] {
 }
 
 .expander-up {
-  list-style-image: url("chrome://instantbird/skin/collapse.png");
+  list-style-image: url("chrome://global/skin/icons/collapse.png");
 }
 
 .expander-down {
-  list-style-image: url("chrome://instantbird/skin/expand.png");
+  list-style-image: url("chrome://global/skin/icons/expand.png");
 }
 
 .contactBuddies {
-  -moz-padding-start: 23px;
+  padding-inline-start: 23px;
 }
 
 .dummyBuddyIcon {
   margin: 1px 3px;
-  list-style-image: url("chrome://mozapps/skin/places/defaultFavicon.png");
+  list-style-image: url("chrome://mozapps/skin/places/defaultFavicon.svg");
 }
 
 .dummyBuddyLabel {
@@ -240,15 +256,15 @@ contact[droptarget] > buddy[dummy] {
 .startChatBubble,
 .expander-up,
 .expander-down {
-  width: 16px;
-  height: 16px;
+  max-width: 16px;
+  max-height: 16px;
   min-height: 16px;
   min-width: 16px;
 }
 
 group label {
   margin: 0 2px;
-  -moz-margin-end: 0;
+  margin-inline-end: 0;
 }
 
 .blistDisplayName[status="idle"] {
@@ -269,8 +285,8 @@ group .twisty {
   padding-top: 1px;
   width: 9px; /* The image's width is 9 pixels */
   height: 9px;
-  -moz-margin-end: 3px;
-  -moz-margin-start: 3px;
+  margin-inline-end: 3px;
+  margin-inline-start: 3px;
   background: url("chrome://global/skin/tree/twisty.svg#open") no-repeat center;
 }
 
@@ -282,8 +298,8 @@ group[closed] .twisty {
 group .twisty {
   width: 9px;
   height: 9px;
-  -moz-margin-end: 3px;
-  -moz-margin-start: 3px;
+  margin-inline-end: 3px;
+  margin-inline-start: 3px;
   background: url("chrome://global/skin/arrow/arrow-dn-sharp.gif") no-repeat center;
 }
 
@@ -302,7 +318,7 @@ group[closed] .twisty {
 %endif
 
 #updatesMenuItem[loading="true"] {
-  list-style-image: url("chrome://global/skin/icons/loading_16.png");
+  list-style-image: url("chrome://global/skin/icons/loading.png");
 }
 
 #statusArea {
@@ -481,7 +497,7 @@ group[closed] .twisty {
   background: radial-gradient(circle, rgba(255, 255, 255, 0.25) 25%, transparent 100%);
   border: none;
 %ifdef XP_WIN
-  list-style-image: url("chrome://global/skin/icons/close-XPVista7.png");
+  list-style-image: url("chrome://global/skin/icons/close-win7.png");
 %else
   list-style-image: url("chrome://global/skin/icons/close.png");
 %endif

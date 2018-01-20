@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -73,13 +74,11 @@ int32_t
 nsNthIndexCache::GetNthIndex(Element* aChild, bool aIsOfType,
                              bool aIsFromEnd, bool aCheckEdgeOnly)
 {
-  NS_ASSERTION(aChild->GetParent(), "caller should check GetParent()");
-
   if (aChild->IsRootOfAnonymousSubtree()) {
     return 0;
   }
 
-  Cache &cache = mCaches[aIsOfType][aIsFromEnd];
+  Cache& cache = mCaches[aIsOfType][aIsFromEnd];
 
   if (!cache.initialized() && !cache.init()) {
     // Give up and just don't match.
@@ -94,11 +93,11 @@ nsNthIndexCache::GetNthIndex(Element* aChild, bool aIsOfType,
     return 0;
   }
 
-  int32_t &slot = entry->value();
+  int32_t& slot = entry->value();
   if (slot != -2 && (slot != -1 || aCheckEdgeOnly)) {
     return slot;
   }
-  
+
   int32_t result = 1;
   if (aCheckEdgeOnly) {
     // The caller only cares whether or not the result is 1, so we can

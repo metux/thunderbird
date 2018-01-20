@@ -8,7 +8,7 @@
 #define MimeHeaderParser_h__
 
 #include "nsCOMArray.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsTArray.h"
 
 class msgIAddressObject;
@@ -53,7 +53,7 @@ public:
   operator nsTArray<nsString>&() { return mUTF16Array; }
 private:
   nsTArray<nsCString> &mUTF8Array;
-  nsAutoTArray<nsString, N> mUTF16Array;
+  AutoTArray<nsString, N> mUTF16Array;
 };
 
 /**

@@ -10,27 +10,26 @@ Components.utils.import("resource:///modules/FeedUtils.jsm");
 Components.utils.import("resource:///modules/folderUtils.jsm");
 Components.utils.import("resource:///modules/mailServices.js");
 
-const kClassicMailLayout  = 0;
-const kWideMailLayout     = 1;
-const kVerticalMailLayout = 2;
+var kClassicMailLayout  = 0;
+var kWideMailLayout     = 1;
+var kVerticalMailLayout = 2;
 
-const kMouseButtonLeft   = 0;
-const kMouseButtonMiddle = 1;
-const kMouseButtonRight  = 2;
+var kMouseButtonLeft   = 0;
+var kMouseButtonMiddle = 1;
+var kMouseButtonRight  = 2;
 
 // Per message header flags to keep track of whether the user is allowing remote
 // content for a particular message.
 // if you change or add more values to these constants, be sure to modify
 // the corresponding definitions in nsMsgContentPolicy.cpp
-const kNoRemoteContentPolicy = 0;
-const kBlockRemoteContent = 1;
-const kAllowRemoteContent = 2;
+var kNoRemoteContentPolicy = 0;
+var kBlockRemoteContent = 1;
+var kAllowRemoteContent = 2;
 
-const kIsAPhishMessage = 0;
-const kNotAPhishMessage = 1;
+var kIsAPhishMessage = 0;
+var kNotAPhishMessage = 1;
 
-const kMsgForwardAsAttachment = 0;
-const kMsgForwardInline = 2;
+var kMsgForwardAsAttachment = 0;
 
 var gMessengerBundle;
 var gOfflineManager;
@@ -44,7 +43,7 @@ if (gTimelineEnabled) {
   try {
     gTimelineEnabled = Services.prefs.getBoolPref("mailnews.timeline_is_enabled");
     if (gTimelineEnabled) {
-      gTimelineService = 
+      gTimelineService =
         Components.classes["@mozilla.org;timeline-service;1"].getService(Components.interfaces.nsITimelineService);
     }
   }
@@ -228,7 +227,7 @@ function InitViewSortByMenu()
     setSortByMenuItemCheckState("sortByAttachmentsMenuitem", (sortType == nsMsgViewSortType.byAttachments));
 
     var sortOrder = gDBView.sortOrder;
-    var sortTypeSupportsGrouping = (sortType == nsMsgViewSortType.byAuthor 
+    var sortTypeSupportsGrouping = (sortType == nsMsgViewSortType.byAuthor
         || sortType == nsMsgViewSortType.byDate || sortType == nsMsgViewSortType.byReceived || sortType == nsMsgViewSortType.byPriority
         || sortType == nsMsgViewSortType.bySubject || sortType == nsMsgViewSortType.byTags
         || sortType == nsMsgViewSortType.byRecipient|| sortType == nsMsgViewSortType.byFlagged
@@ -271,7 +270,7 @@ function InitViewMessagesMenu()
   var watchedTheadsWithUnreadMenuItem = document.getElementById("viewWatchedThreadsWithUnreadMenuItem");
   if (watchedTheadsWithUnreadMenuItem)
     watchedTheadsWithUnreadMenuItem.setAttribute("checked", viewType == nsMsgViewType.eShowWatchedThreadsWithUnread);
-  
+
   var ignoredTheadsMenuItem = document.getElementById("viewIgnoredThreadsMenuItem");
   if (ignoredTheadsMenuItem)
     ignoredTheadsMenuItem.setAttribute("checked", (viewFlags & nsMsgViewFlagsType.kShowIgnored) != 0);
@@ -395,29 +394,29 @@ function InitViewHeadersMenu()
 {
   var id = null;
   var headerchoice = 1;
-  try 
+  try
   {
     headerchoice = Services.prefs.getIntPref("mail.show_headers");
   }
-  catch (ex) 
+  catch (ex)
   {
     dump("failed to get the header pref\n");
   }
 
-  switch (headerchoice) 
+  switch (headerchoice)
   {
-	case 2:	
-		id = "viewallheaders";
-		break;
-	case 1:	
-	default:
-		id = "viewnormalheaders";
-		break;
+    case 2:
+      id = "viewallheaders";
+      break;
+    case 1:
+    default:
+      id = "viewnormalheaders";
+      break;
   }
 
   var menuitem = document.getElementById(id);
   if (menuitem)
-    menuitem.setAttribute("checked", "true"); 
+    menuitem.setAttribute("checked", "true");
 }
 
 function InitViewBodyMenu()
@@ -536,7 +535,7 @@ function RemoveAllMessageTags()
       messages.clear();
       prevHdrFolder = msgHdr.folder;
     }
-    messages.appendElement(msgHdr, false);
+    messages.appendElement(msgHdr);
   }
   if (prevHdrFolder)
     prevHdrFolder.removeKeywordsFromMessages(messages, allKeys);
@@ -604,7 +603,7 @@ function ToggleMessageTagKey(index)
   for (var i = 0; i < tagArray.length; ++i)
   {
     var key = tagArray[i].key;
-    if (!--index) 
+    if (!--index)
     {
       // found the key, now toggle its state
       var curKeys = msgHdr.getStringProperty("keywords");
@@ -647,7 +646,7 @@ function ToggleMessageTag(key, addKey)
       // If we don't, the thread tree won't always show the correct tag state,
       // because resetting a label doesn't update the tree anymore...
       msg.clear();
-      msg.appendElement(msgHdr, false);
+      msg.appendElement(msgHdr);
       msgHdr.folder.addKeywordsToMessages(msg, "$label" + msgHdr.label);
       msgHdr.label = 0; // remove legacy label
     }
@@ -658,7 +657,7 @@ function ToggleMessageTag(key, addKey)
       messages.clear();
       prevHdrFolder = msgHdr.folder;
     }
-    messages.appendElement(msgHdr, false);
+    messages.appendElement(msgHdr);
   }
   if (prevHdrFolder)
     prevHdrFolder[toggler](messages, key);
@@ -673,7 +672,7 @@ function SetMessageTagLabel(menuitem, index, name)
   var accesskey = shortcutkey ? shortcutkey.getAttribute("key") : "";
   if (accesskey)
     menuitem.setAttribute("accesskey", accesskey);
-  var label = gMessengerBundle.getFormattedString("mailnews.tags.format", 
+  var label = gMessengerBundle.getFormattedString("mailnews.tags.format",
                                                   [accesskey, name]);
   menuitem.setAttribute("label", label);
 }
@@ -965,7 +964,7 @@ function MsgGetNextNMessages()
 {
   if (DoGetNewMailWhenOffline()) {
     var folder = GetFirstSelectedMsgFolder();
-    if(folder) 
+    if(folder)
       GetNextNMessages(folder);
   }
 }
@@ -1199,7 +1198,7 @@ BatchMessageMover.prototype =
     let filterArray = Components.classes["@mozilla.org/array;1"]
                                 .createInstance(Components.interfaces.nsIMutableArray);
     for (let message of msgs) {
-      filterArray.appendElement(message, false);
+      filterArray.appendElement(message);
     }
 
     // Apply filters to this batch.
@@ -1236,7 +1235,7 @@ BatchMessageMover.prototype =
       if (srcFolder.msgDatabase.ContainsKey(item.messageKey) &&
           !(srcFolder.getProcessingFlags(item.messageKey) &
             Components.interfaces.nsMsgProcessingFlags.FilterToMove)) {
-        moveArray.appendElement(item, false);
+        moveArray.appendElement(item);
       }
     }
 
@@ -1284,7 +1283,7 @@ BatchMessageMover.prototype =
 
     // Create the folder structure in Archives.
     // For imap folders, we need to create the sub-folders asynchronously,
-    // so we chain the actions using the listener called back from 
+    // so we chain the actions using the listener called back from
     // createSubfolder. For local, createSubfolder is synchronous.
     if (archiveFolder.canCreateSubfolders && keepFolderStructure)
     {
@@ -1466,7 +1465,7 @@ function MsgCreateFilter()
   }
   if (!folder)
     folder = GetFirstSelectedMsgFolder();
-  
+
     if (emailAddress)
      top.MsgFilters(emailAddress, folder);
 }
@@ -1667,7 +1666,7 @@ function MsgOpenSelectedMessages()
       numMessages == 1 &&
       MsgOpenSelectedMessageInExistingWindow())
     return;
-    
+
   var openWindowWarning = Services.prefs.getIntPref("mailnews.open_window_warning");
   if ((openWindowWarning > 1) && (numMessages >= openWindowWarning)) {
     InitPrompts();
@@ -1759,8 +1758,7 @@ function MsgOpenNewWindowForMessage(messageUri, folderUri)
 
 function CloseMailWindow()
 {
-    //dump("\nClose from XUL\nDo something...\n");
-    window.close();
+  window.close();
 }
 
 function MsgJunk()
@@ -1857,8 +1855,8 @@ function MsgFilters(emailAddress, folder)
     {
       // Prefill the filterEditor with the emailAddress.
       args = {filterList: folder.getEditableFilterList(msgWindow), filterName: emailAddress};
-      window.openDialog("chrome://messenger/content/FilterEditor.xul", "", 
-                        "chrome, modal, resizable,centerscreen,dialog=yes", args);
+      window.openDialog("chrome://messenger/content/FilterEditor.xul", "",
+                        "chrome, modal, resizable,centerscreen,dialog", args);
 
       // args.refresh is set to true in the filterEditor, if the user hits ok.
       // We check this here in args to show the filterList dialog.
@@ -1883,8 +1881,8 @@ function MsgApplyFilters()
   var preselectedFolder = GetFirstSelectedMsgFolder();
   var selectedFolders = Components.classes["@mozilla.org/array;1"]
                                   .createInstance(Components.interfaces.nsIMutableArray);
-  selectedFolders.appendElement(preselectedFolder, false);
-         
+  selectedFolders.appendElement(preselectedFolder);
+
   var curFilterList = preselectedFolder.getFilterList(msgWindow);
   // create a new filter list and copy over the enabled filters to it.
   // We do this instead of having the filter after the fact code ignore
@@ -1932,7 +1930,7 @@ function MsgApplyFiltersToSelection()
         {
           var msgHdr = folder.GetMessageHeader(gDBView.getKeyAt(indices[i]));
           if (msgHdr)
-            selectedMsgs.appendElement(msgHdr, false);
+            selectedMsgs.appendElement(msgHdr);
         }
       } catch (ex) {}
     }
@@ -2043,7 +2041,7 @@ function ToggleInlineAttachment(target)
     var viewAttachmentInline = !Services.prefs.getBoolPref("mail.inline_attachments");
     Services.prefs.setBoolPref("mail.inline_attachments", viewAttachmentInline)
     target.setAttribute("checked", viewAttachmentInline ? "true" : "false");
-    
+
     ReloadMessage();
 }
 
@@ -2056,15 +2054,15 @@ function MsgSendUnsentMsgs()
 {
   // if offline, prompt for sendUnsentMessages
   if (!Services.io.offline) {
-    SendUnsentMessages();    
+    SendUnsentMessages();
   }
   else {
     var option = PromptMessagesOffline("send");
     if(option == 0) {
-      if (!gOfflineManager) 
+      if (!gOfflineManager)
         GetOfflineMgrService();
-      gOfflineManager.goOnline(false /* sendUnsentMessages */, 
-                               false /* playbackOfflineImapOperations */, 
+      gOfflineManager.goOnline(false /* sendUnsentMessages */,
+                               false /* playbackOfflineImapOperations */,
                                msgWindow);
       SendUnsentMessages();
     }
@@ -2120,7 +2118,7 @@ function IsMailFolderSelected()
 function IsGetNewMessagesEnabled()
 {
   // users don't like it when the "Get Msgs" button is disabled
-  // so let's never do that. 
+  // so let's never do that.
   // we'll just handle it as best we can in GetFolderMessages()
   // when they click "Get Msgs" and
   // Local Folders or a news server is selected
@@ -2167,7 +2165,7 @@ function IsEmptyTrashEnabled()
 function IsCompactFolderEnabled()
 {
   var server = GetServer(GetSelectedFolderURI());
-  return (server && 
+  return (server &&
       ((server.type != 'imap') || server.canCompactFoldersOnServer) &&
       isCommandEnabled("cmd_compactFolder"));   // checks e.g. if IMAP is offline
 }
@@ -2177,10 +2175,8 @@ var gDeleteButton = null;
 
 function SetUpToolbarButtons(uri)
 {
-    //dump("SetUpToolbarButtons("+uri+")\n");
-
-    // eventually, we might want to set up the toolbar differently for imap,
-    // pop, and news.  for now, just tweak it based on if it is news or not.
+    // Eventually, we might want to set up the toolbar differently for imap,
+    // pop, and news. For now, just tweak it based on if it is news or not.
     var forNews = isNewsURI(uri);
 
     if(!gDeleteButton) gDeleteButton = document.getElementById("button-delete");
@@ -2221,11 +2217,10 @@ function getMarkupDocumentViewer()
 
 function MsgSynchronizeOffline()
 {
-    //dump("in MsgSynchronize() \n"); 
-    window.openDialog("chrome://messenger/content/msgSynchronize.xul",
-          "", "centerscreen,chrome,modal,titlebar,resizable=yes",{msgWindow:msgWindow}); 		     
+  window.openDialog("chrome://messenger/content/msgSynchronize.xul", "",
+                    "centerscreen,chrome,modal,titlebar,resizable",
+                    {msgWindow:msgWindow});
 }
-
 
 function MsgOpenAttachment() {}
 function MsgUpdateMsgCount() {}
@@ -2285,7 +2280,7 @@ function IsAccountOfflineEnabled()
 
   if (selectedFolders && (selectedFolders.length == 1))
       return selectedFolders[0].supportsOffline;
-     
+
   return false;
 }
 
@@ -2311,10 +2306,10 @@ function DoGetNewMailWhenOffline()
           gOfflinePromptsBundle.getString('sendMessagesNoSendButtonLabel'),
           null, null, {value: false}) == 0;
     }
-    if (!gOfflineManager) 
+    if (!gOfflineManager)
       GetOfflineMgrService();
-    gOfflineManager.goOnline(sendUnsent /* sendUnsentMessages */, 
-                             false /* playbackOfflineImapOperations */, 
+    gOfflineManager.goOnline(sendUnsent /* sendUnsentMessages */,
+                             false /* playbackOfflineImapOperations */,
                              msgWindow);
     return true;
   }
@@ -2328,7 +2323,7 @@ function PromptMessagesOffline(aPrefix)
   var checkValue = {value:false};
   return Services.prompt.confirmEx(
       window,
-      gOfflinePromptsBundle.getString(aPrefix + 'MessagesOfflineWindowTitle'), 
+      gOfflinePromptsBundle.getString(aPrefix + 'MessagesOfflineWindowTitle'),
       gOfflinePromptsBundle.getString(aPrefix + 'MessagesOfflineLabel'),
       (Services.prompt.BUTTON_TITLE_IS_STRING * Services.prompt.BUTTON_POS_0) +
       (Services.prompt.BUTTON_TITLE_CANCEL * Services.prompt.BUTTON_POS_1),
@@ -2353,7 +2348,7 @@ function GetFolderMessages()
 {
   var selectedFolders = GetSelectedMsgFolders();
   var defaultAccountRootFolder = GetDefaultAccountRootFolder();
-  
+
   // if no default account, get msg isn't going do anything anyways
   // so bail out
   if (!defaultAccountRootFolder)
@@ -2413,7 +2408,7 @@ function SendUnsentMessages()
           break;
         }
       }
-    } 
+    }
   }
 }
 
@@ -2565,7 +2560,7 @@ var gMessageNotificationBar =
     let isJunk = false;
     if (aMsgHdr)
     {
-      let junkScore = aMsgHdr.getStringProperty("junkscore"); 
+      let junkScore = aMsgHdr.getStringProperty("junkscore");
       isJunk = ((junkScore != "") && (junkScore != "0"));
     }
 
@@ -2766,7 +2761,7 @@ function onRemoteContentOptionsShowing(aEvent)
   var authorEmailAddress = addresses.value[0];
 
   var emailURI = Services.io.newURI(
-    "chrome://messenger/content/?email=" + authorEmailAddress, null, null);
+    "chrome://messenger/content/email=" + authorEmailAddress);
   var principal = Services.scriptSecurityManager
                           .createCodebasePrincipal(emailURI, {});
   // Put author email first in the menu.
@@ -2784,7 +2779,7 @@ function onRemoteContentOptionsShowing(aEvent)
   for (let origin of origins)
   {
     let menuitem = document.createElement("menuitem");
-    let host = origin.replace("chrome://messenger/content/?email=", "");
+    let host = origin.replace("chrome://messenger/content/email=", "");
     let hostString = messengerBundle.getFormattedString("remoteContentAllow", [host]);
     menuitem.setAttribute("label", hostString);
     menuitem.setAttribute("value", origin);
@@ -2807,7 +2802,7 @@ function allowRemoteContentForURI(aItem)
   if (!origin)
     return;
 
-  let uri = Services.io.newURI(origin, null, null);
+  let uri = Services.io.newURI(origin);
   Services.perms.add(uri, "image", Services.perms.ALLOW_ACTION);
 
   ReloadMessage();
@@ -2873,7 +2868,7 @@ function MarkMessageAsRead(msgHdr)
   ClearPendingReadTimer();
   var headers = Components.classes["@mozilla.org/array;1"]
                           .createInstance(Components.interfaces.nsIMutableArray);
-  headers.appendElement(msgHdr, false);
+  headers.appendElement(msgHdr);
   msgHdr.folder.markMessagesRead(headers, true);
 }
 
@@ -2902,7 +2897,7 @@ function OnMsgParsed(aUrl)
   // scale any overflowing images
   var doc = getMessageBrowser().contentDocument;
   var imgs = doc.getElementsByTagName("img");
-  for each (var img in imgs)
+  for (var img of imgs)
   {
     if (img.className == "moz-attached-image" &&
         img.naturalWidth > doc.body.clientWidth)
@@ -3086,7 +3081,7 @@ function MsgSearchAddresses()
   var args = { directory: null };
   OpenOrFocusWindow(args, "mailnews:absearch", "chrome://messenger/content/ABSearchDialog.xul");
 }
- 
+
 function MsgFilterList(args)
 {
   OpenOrFocusWindow(args, "mailnews:filterlist", "chrome://messenger/content/FilterListDialog.xul");

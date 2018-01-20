@@ -7,12 +7,14 @@ intr protocol PTestFailedCtor {
     manages PTestFailedCtorSub; 
 child:
     intr PTestFailedCtorSub();
-    __delete__();
+    async __delete__();
 
+/*
 state CONSTRUCT:
     call PTestFailedCtorSub goto DEAD;
 state DEAD:
     send __delete__;
+*/
 };
 
 }

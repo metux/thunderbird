@@ -244,9 +244,8 @@ FolderDisplayWidget.prototype = {
    * @return the focused pane
    */
   get focusedPane() {
-    let panes = [document.getElementById(id) for (id of [
-      "threadTree", "folderTree", "messagepanebox"
-    ])];
+    let panes = ["threadTree", "folderTree", "messagepanebox"].map(id =>
+        document.getElementById(id));
 
     let currentNode = top.document.activeElement;
 
@@ -596,7 +595,7 @@ FolderDisplayWidget.prototype = {
 
     // if we are still here, use the defaults and helper functions
     let state = {};
-    for (let [, colId] in Iterator(this.DEFAULT_COLUMNS)) {
+    for (let colId of this.DEFAULT_COLUMNS) {
       let shouldShowColumn = true;
       if (colId in this.COLUMN_DEFAULT_TESTERS) {
         // This is potentially going to be used by extensions; avoid them
@@ -1161,7 +1160,7 @@ FolderDisplayWidget.prototype = {
     //  is backed by a single underlying folder (the only way having just a
     //  message key works out), try that
     if (Services.prefs.getBoolPref("mailnews.remember_selected_message") &&
-        this.view.isSingleFolder) {
+        this.view.isSingleFolder && this.view.displayedFolder) {
       // use the displayed folder; nsMsgDBView goes to the effort to save the
       //  state to the viewFolder, so this is the correct course of action.
       let lastLoadedMessageKey = this.view.displayedFolder.lastMessageLoaded;
@@ -1355,9 +1354,8 @@ FolderDisplayWidget.prototype = {
       browser.contentDocument.body.hidden = true;
 
     UpdateMailToolbar("FolderDisplayWidget displayed message changed");
-    let viewIndex = this.view.dbView.currentlyDisplayedMessage;
-    let msgHdr = (viewIndex != nsMsgViewIndex_None) ?
-                   this.view.dbView.getMsgHdrAt(viewIndex) : null;
+    let selected = this.view.dbView.getSelectedMsgHdrs();
+    let msgHdr = selected.length ? selected[0] : null;
     this.messageDisplay.onDisplayingMessage(msgHdr);
 
     // Although deletes should now be so fast that the user has no time to do
@@ -2164,7 +2162,7 @@ FolderDisplayWidget.prototype = {
 
         const nsIMsgIdentity = Components.interfaces.nsIMsgIdentity;
         let allEnabled = undefined;
-        for (let identity in fixIterator(serverIdentities, nsIMsgIdentity)) {
+        for (let identity of fixIterator(serverIdentities, nsIMsgIdentity)) {
           if (allEnabled === undefined) {
             allEnabled = identity.archiveEnabled;
           }
@@ -2512,7 +2510,7 @@ FolderDisplayWidget.prototype = {
     // try and trigger a reflow...
     treeBox.height;
 
-    let maxIndex = this.view.dbView.rowCount - 1;
+    let maxIndex = treeBox.view.rowCount - 1;
 
     let first = treeBox.getFirstVisibleRow();
     // Assume the bottom row is half-visible and should generally be ignored.
@@ -2723,7 +2721,7 @@ FakeTreeBoxObject.prototype = {
  *  throw an exception, etc.
  */
 function FTBO_stubOutAttributes(aObj, aAttribNames) {
-  for (let [, attrName] in Iterator(aAttribNames)) {
+  for (let attrName of aAttribNames) {
     let myAttrName = attrName;
     aObj.__defineGetter__(attrName,
       function() {
@@ -2742,7 +2740,7 @@ function FTBO_stubOutAttributes(aObj, aAttribNames) {
   }
 }
 function FTBO_stubOutMethods(aObj, aMethodNames) {
-  for (let [, methodName] in Iterator(aMethodNames)) {
+  for (let methodName of aMethodNames) {
     let myMethodName = methodName;
     aObj[myMethodName] = function() {
       let msg = "Call to stubbed method " + myMethodName;

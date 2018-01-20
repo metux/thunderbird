@@ -11,20 +11,16 @@ const channelID = 'cafed00d';
 function run_test() {
   do_get_profile();
   setPrefs();
-  disableServiceWorkerEvents(
-    'https://example.com/invalid-channel'
-  );
   run_next_test();
 }
 
-add_task(function* test_register_invalid_channel() {
+add_task(async function test_register_invalid_channel() {
   let db = PushServiceWebSocket.newPushDB();
   do_register_cleanup(() => {return db.drop().then(_ => db.close());});
 
   PushServiceWebSocket._generateID = () => channelID;
   PushService.init({
     serverURI: "wss://push.example.org/",
-    networkInfo: new MockDesktopNetworkInfo(),
     db,
     makeWebSocket(uri) {
       return new MockWebSocket(uri, {
@@ -47,12 +43,15 @@ add_task(function* test_register_invalid_channel() {
     }
   });
 
-  yield rejects(
-    PushNotificationService.register('https://example.com/invalid-channel',
-      ChromeUtils.originAttributesToSuffix({ appId: Ci.nsIScriptSecurityManager.NO_APP_ID, inBrowser: false })),
+  await rejects(
+    PushService.register({
+      scope: 'https://example.com/invalid-channel',
+      originAttributes: ChromeUtils.originAttributesToSuffix(
+        { appId: Ci.nsIScriptSecurityManager.NO_APP_ID, inIsolatedMozBrowser: false }),
+    }),
     'Expected error for invalid channel ID'
   );
 
-  let record = yield db.getByKeyID(channelID);
+  let record = await db.getByKeyID(channelID);
   ok(!record, 'Should not store records for error responses');
 });

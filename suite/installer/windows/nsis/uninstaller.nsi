@@ -20,13 +20,9 @@ CRCCheck on
 
 RequestExecutionLevel user
 
-; The commands inside this ifdef require NSIS 3.0a2 or greater so the ifdef can
-; be removed after we require NSIS 3.0a2 or greater.
-!ifdef NSIS_PACKEDVERSION
-  Unicode true
-  ManifestSupportedOS all
-  ManifestDPIAware true
-!endif
+Unicode true
+ManifestSupportedOS all
+ManifestDPIAware true
 
 !addplugindir ./
 
@@ -67,7 +63,7 @@ VIAddVersionKey "OriginalFilename" "helper.exe"
 ; Most commonly used macros for managing shortcuts
 !insertmacro _LoggingShortcutsCommon
 
-!insertmacro AddDDEHandlerValues
+!insertmacro AddDisabledDDEHandlerValues
 !insertmacro AddHandlerValues
 !insertmacro CheckIfRegistryKeyExists
 !insertmacro CleanUpdateDirectories
@@ -204,8 +200,7 @@ Section "Uninstall"
   ${un.InitHashAppModelId} "$INSTDIR" "Software\Mozilla\${AppName}\TaskBarIDs"
 
   ; Unregister resources associated with Win7 taskbar jump lists.
-  ${If} ${AtLeastWin7}
-  ${AndIf} "$AppUserModelID" != ""
+  ${If} "$AppUserModelID" != ""
     ApplicationID::UninstallJumpLists "$AppUserModelID"
   ${EndIf}
 
@@ -355,6 +350,18 @@ Section "Uninstall"
   ; Remove files that may be left behind by the application in the
   ; VirtualStore directory.
   ${un.CleanVirtualStore}
+
+  ; Only unregister the dll if the registration points to this installation
+  ReadRegStr $R1 HKCR "CLSID\{0D68D6D0-D93D-4D08-A30D-F00DD1F45B24}\InProcServer32" ""
+  ${If} "$INSTDIR\AccessibleMarshal.dll" == "$R1"
+    ${UnregisterDLL} "$INSTDIR\AccessibleMarshal.dll"
+  ${EndIf}
+
+  ; Only unregister the dll if the registration points to this installation
+  ReadRegStr $R1 HKCR "CLSID\${AccessibleHandlerCLSID}\InProcHandler32" ""
+  ${If} "$INSTDIR\AccessibleHandler.dll" == "$R1"
+    ${UnregisterDLL} "$INSTDIR\AccessibleHandler.dll"
+  ${EndIf}
 
   ; Parse the uninstall log to unregister dll's and remove all installed
   ; files / directories this install is responsible for.

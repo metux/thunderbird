@@ -16,7 +16,6 @@ const REMOTE_INSTALL_URL = TESTROOT + "addons/browser_searching.xpi";
 var gManagerWindow;
 var gCategoryUtilities;
 var gProvider;
-var gServer;
 var gAddonInstalled = false;
 
 function test() {
@@ -145,7 +144,7 @@ function search(aQuery, aFinishImmediately, aCallback, aCategoryType) {
     aCallback();
   });
 
-  finishImmediately = false
+  finishImmediately = false;
   if (!aFinishImmediately)
     check_is_searching(true);
 }
@@ -164,33 +163,31 @@ function get_actual_results() {
   for (var item of rows) {
 
     // Only consider items that are currently showing
-    var style = gManagerWindow.document.defaultView.getComputedStyle(item, "");
+    var style = gManagerWindow.document.defaultView.getComputedStyle(item);
     if (style.display == "none" || style.visibility != "visible")
       continue;
 
     if (item.mInstall || item.isPending("install")) {
       var sourceURI = item.mInstall.sourceURI.spec;
       if (sourceURI == REMOTE_INSTALL_URL) {
-        results.push({name: REMOTE_TO_INSTALL, item: item});
+        results.push({name: REMOTE_TO_INSTALL, item});
         continue;
       }
 
-      var result = sourceURI.match(/^http:\/\/example\.com\/(.+)\.xpi$/);
+      let result = sourceURI.match(/^http:\/\/example\.com\/(.+)\.xpi$/);
       if (result != null) {
         is(item.mInstall.name.indexOf("PASS"), 0, "Install name should start with PASS");
-        results.push({name: result[1], item: item});
+        results.push({name: result[1], item});
         continue;
       }
-    }
-    else if (item.mAddon) {
-      var result = item.mAddon.id.match(/^(.+)@tests\.mozilla\.org$/);
+    } else if (item.mAddon) {
+      let result = item.mAddon.id.match(/^(.+)@tests\.mozilla\.org$/);
       if (result != null) {
         is(item.mAddon.name.indexOf("PASS"), 0, "Addon name should start with PASS");
-        results.push({name: result[1], item: item});
+        results.push({name: result[1], item});
         continue;
       }
-    }
-    else {
+    } else {
       ok(false, "Found an item in the list that was neither installing or installed");
     }
   }
@@ -212,21 +209,21 @@ function get_expected_results(aSortBy, aLocalExpected) {
   var expectedOrder = null, unknownOrder = null;
   switch (aSortBy) {
     case "relevancescore":
-      expectedOrder = [ "addon2"  , "remote1", "install2", "addon1",
-                        "install1", "remote2", "remote3" , "remote4" ];
+      expectedOrder = [ "addon2", "remote1", "install2", "addon1",
+                        "install1", "remote2", "remote3", "remote4" ];
       unknownOrder = [];
       break;
     case "name":
       // Defaults to ascending order
-      expectedOrder = [ "install1", "remote1",  "addon2" , "remote2",
-                        "remote3" , "addon1" , "install2", "remote4" ];
+      expectedOrder = [ "install1", "remote1",  "addon2", "remote2",
+                        "remote3", "addon1", "install2", "remote4" ];
       unknownOrder = [];
       break;
     case "dateUpdated":
       expectedOrder = [ "addon1", "addon2" ];
       // Updated date not available for installs and remote add-ons
       unknownOrder = [ "install1", "install2", "remote1",
-                       "remote2" , "remote3" , "remote4" ];
+                       "remote2", "remote3", "remote4" ];
       break;
     default:
       ok(false, "Should recognize sortBy when checking the order of items");
@@ -248,7 +245,7 @@ function get_expected_results(aSortBy, aLocalExpected) {
 
 
   return [expectedOrder.filter(filterResults),
-          unknownOrder.filter(filterResults)]
+          unknownOrder.filter(filterResults)];
 }
 
 /*
@@ -265,13 +262,9 @@ function get_expected_results(aSortBy, aLocalExpected) {
  */
 function check_results(aQuery, aSortBy, aReverseOrder, aShowLocal) {
 
-  var xpinstall_enabled = true;
-  try {
-    xpinstall_enabled = Services.prefs.getBoolPref(PREF_XPI_ENABLED);
-  }
-  catch (e) {};
+  var xpinstall_enabled = Services.prefs.getBoolPref(PREF_XPI_ENABLED, true);
 
-  // When XPI Instalation is disabled, those buttons are hidden and unused  
+  // When XPI Instalation is disabled, those buttons are hidden and unused
   if (xpinstall_enabled) {
     var localFilterSelected = gManagerWindow.document.getElementById("search-filter-local").selected;
     var remoteFilterSelected = gManagerWindow.document.getElementById("search-filter-remote").selected;
@@ -385,25 +378,6 @@ function get_addon_item(aName) {
 }
 
 /*
- * Get item for a specific install by name
- *
- * @param  aName
- *         The name of the install to search for
- * @return Row of install if found, null otherwise
- */
-function get_install_item(aName) {
-  var sourceURI = "http://example.com/" + aName + ".xpi";
-  var list = gManagerWindow.document.getElementById("search-list");
-  var rows = list.getElementsByTagName("richlistitem");
-  for (var row of rows) {
-    if (row.mInstall && row.mInstall.sourceURI.spec == sourceURI)
-      return row;
-  }
-
-  return null;
-}
-
-/*
  * Gets the install button for a specific item
  *
  * @param  aItem
@@ -500,7 +474,7 @@ add_test(function() {
   }
 
   sorters.handler = {
-    onSortChanged: function(aSortBy, aAscending) {
+    onSortChanged(aSortBy, aAscending) {
       if (originalHandler && "onSortChanged" in originalHandler)
         originalHandler.onSortChanged(aSortBy, aAscending);
 
@@ -557,7 +531,7 @@ add_test(function() {
   var installBtn = null;
 
   var listener = {
-    onInstallEnded: function(aInstall, aAddon) {
+    onInstallEnded(aInstall, aAddon) {
       // Don't immediately consider the installed add-on as local because
       // if the user was filtering out local add-ons, the installed add-on
       // would vanish. Only consider add-on as local on new searches.
@@ -568,7 +542,7 @@ add_test(function() {
       check_filtered_results(QUERY, "relevancescore", false);
       run_next_test();
     }
-  }
+  };
 
   search(QUERY, false, function() {
     var list = gManagerWindow.document.getElementById("search-list");
@@ -617,7 +591,7 @@ add_test(function() {
 
 // Tests that compatible-by-default addons are shown if strict compatibility checking is disabled
 add_test(function() {
-  restart_manager(gManagerWindow, null, function(aWindow) {
+  restart_manager(gManagerWindow, "addons://list/extension", function(aWindow) {
     gManagerWindow = aWindow;
     gCategoryUtilities = new CategoryUtilities(gManagerWindow);
 
@@ -626,10 +600,10 @@ add_test(function() {
       var item = get_addon_item("remote5");
       is_element_visible(item, "Incompatible addon should be visible");
       isnot(item.getAttribute("notification"), "warning", "Compatibility warning should not be shown");
-  
-      var item = get_addon_item("remote6");
+
+      item = get_addon_item("remote6");
       is(item, null, "Addon incompatible with the product should not be visible");
-  
+
       Services.prefs.setBoolPref(PREF_STRICT_COMPAT, true);
       run_next_test();
     });
@@ -649,13 +623,16 @@ add_test(function() {
     // Installed add-on is considered local on new search
     gAddonInstalled = true;
 
-    search(QUERY, false, function() {
-      check_filtered_results(QUERY, "relevancescore", false);
+    // Switch over to extensions list so we can do a new search
+    gCategoryUtilities.openType("extension", function() {
+      search(QUERY, false, function() {
+        check_filtered_results(QUERY, "relevancescore", false);
 
-      var installBtn = get_install_button(get_addon_item(REMOTE_TO_INSTALL));
-      is(installBtn.hidden, true, "Install button should be hidden for installed item");
+        var installBtn = get_install_button(get_addon_item(REMOTE_TO_INSTALL));
+        is(installBtn.hidden, true, "Install button should be hidden for installed item");
 
-      run_next_test();
+        run_next_test();
+      });
     });
   });
 });

@@ -62,7 +62,7 @@
    // The base URI to we use when we're given relative URLs, if any.
    var baseURI = null;
    if (global.window)
-     baseURI = ios.newURI(global.location.href, null, null);
+     baseURI = ios.newURI(global.location.href);
    exports.baseURI = baseURI;
 
    // The "parent" chrome URI to use if we're loading code that
@@ -96,7 +96,7 @@
                                     null,
                                     baseURI);
        if (filenameURI.scheme == 'chrome' &&
-           filenameURI.path.indexOf('/content/') == 0)
+           filenameURI.pathQueryRef.indexOf('/content/') == 0)
          // Content packages will always have wrappers made for them;
          // if automatic wrappers have been disabled for the
          // chrome package via a chrome manifest flag, then
@@ -217,8 +217,9 @@
            var exports = {};
            var sandbox = self.sandboxFactory.createSandbox(options);
            self.sandboxes[path] = sandbox;
-           for (name in self.globals)
+           for (let name in self.globals) {
              sandbox.defineProperty(name, self.globals[name]);
+           }
            sandbox.defineProperty('require', self._makeRequire(path));
            sandbox.evaluate("var exports = {};");
            let ES5 = self.modules.es5;
@@ -259,8 +260,9 @@
        var sandbox = this.sandboxFactory.createSandbox(options);
        if (extraOutput)
          extraOutput.sandbox = sandbox;
-       for (name in this.globals)
+       for (let name in this.globals) {
          sandbox.defineProperty(name, this.globals[name]);
+       }
        sandbox.defineProperty('require', this._makeRequire(null));
        return sandbox.evaluate(options);
      }
@@ -314,13 +316,13 @@
        if (!base)
          baseURI = this._rootURI;
        else
-         baseURI = ios.newURI(base, null, null);
+         baseURI = ios.newURI(base);
        var newURI = ios.newURI(path, null, baseURI);
        var channel = ios.newChannelFromURI2(newURI,
                                             null,
                                             scriptSecurityManager.getSystemPrincipal(),
                                             null,
-                                            Ci.nsILoadInfo.SEC_NORMAL,
+                                            Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
                                             Ci.nsIContentPolicy.TYPE_OTHER);
        try {
          channel.open().close();
@@ -336,7 +338,7 @@
                                      null,
                                      scriptSecurityManager.getSystemPrincipal(),
                                      null,
-                                     Ci.nsILoadInfo.SEC_NORMAL,
+                                     Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
                                      Ci.nsIContentPolicy.TYPE_OTHER);
        var iStream = channel.open();
        var ciStream = Cc["@mozilla.org/intl/converter-input-stream;1"].
@@ -360,13 +362,13 @@
      global.SecurableModule = exports;
    } else if (global.exports) {
      // We're being loaded in a SecurableModule.
-     for (name in exports) {
+     for (let name in exports) {
        global.exports[name] = exports[name];
      }
    } else {
      // We're being loaded in a JS module.
      global.EXPORTED_SYMBOLS = [];
-     for (name in exports) {
+     for (let name in exports) {
        global.EXPORTED_SYMBOLS.push(name);
        global[name] = exports[name];
      }

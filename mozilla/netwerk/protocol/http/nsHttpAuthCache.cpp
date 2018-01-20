@@ -13,7 +13,6 @@
 #include "mozilla/Attributes.h"
 #include "nsString.h"
 #include "nsCRT.h"
-#include "mozIApplicationClearPrivateDataParams.h"
 #include "nsIObserverService.h"
 #include "mozilla/Services.h"
 #include "mozilla/DebugOnly.h"
@@ -60,17 +59,19 @@ nsHttpAuthCache::nsHttpAuthCache()
 {
     nsCOMPtr<nsIObserverService> obsSvc = services::GetObserverService();
     if (obsSvc) {
-        obsSvc->AddObserver(mObserver, "clear-origin-data", false);
+        obsSvc->AddObserver(mObserver, "clear-origin-attributes-data", false);
     }
 }
 
 nsHttpAuthCache::~nsHttpAuthCache()
 {
-    if (mDB)
-        ClearAll();
+    if (mDB) {
+        DebugOnly<nsresult> rv = ClearAll();
+        MOZ_ASSERT(NS_SUCCEEDED(rv));
+    }
     nsCOMPtr<nsIObserverService> obsSvc = services::GetObserverService();
     if (obsSvc) {
-        obsSvc->RemoveObserver(mObserver, "clear-origin-data");
+        obsSvc->RemoveObserver(mObserver, "clear-origin-attributes-data");
         mObserver->mOwner = nullptr;
     }
 }
@@ -146,7 +147,7 @@ nsHttpAuthCache::SetAuthEntry(const char *scheme,
 {
     nsresult rv;
 
-    LOG(("nsHttpAuthCache::SetAuthEntry [key=%s://%s:%d realm=%s path=%s metadata=%x]\n",
+    LOG(("nsHttpAuthCache::SetAuthEntry [key=%s://%s:%d realm=%s path=%s metadata=%p]\n",
         scheme, host, port, realm, path, metadata));
 
     if (!mDB) {
@@ -292,8 +293,8 @@ RemoveEntriesForPattern(PLHashEntry *entry, int32_t number, void *arg)
     nsDependentCSubstring oaSuffix;
     oaSuffix.Rebind(key.BeginReading(), colon);
 
-    // Build the NeckoOriginAttributes object of it...
-    NeckoOriginAttributes oa;
+    // Build the OriginAttributes object of it...
+    OriginAttributes oa;
     DebugOnly<bool> rv = oa.PopulateFromSuffix(oaSuffix);
     MOZ_ASSERT(rv);
 
@@ -505,12 +506,12 @@ nsHttpAuthEntry::Set(const char *path,
 
 nsHttpAuthNode::nsHttpAuthNode()
 {
-    LOG(("Creating nsHttpAuthNode @%x\n", this));
+    LOG(("Creating nsHttpAuthNode @%p\n", this));
 }
 
 nsHttpAuthNode::~nsHttpAuthNode()
 {
-    LOG(("Destroying nsHttpAuthNode @%x\n", this));
+    LOG(("Destroying nsHttpAuthNode @%p\n", this));
 
     mList.Clear();
 }
@@ -580,11 +581,16 @@ nsHttpAuthNode::SetAuthEntry(const char *path,
         entry = new nsHttpAuthEntry(path, realm, creds, challenge, ident, metadata);
         if (!entry)
             return NS_ERROR_OUT_OF_MEMORY;
-        mList.AppendElement(entry);
+
+        // We want the latest identity be at the begining of the list so that
+        // the newest working credentials are sent first on new requests.
+        // Changing a realm is sometimes used to "timeout" authrozization.
+        mList.InsertElementAt(0, entry);
     }
     else {
         // update the entry...
-        entry->Set(path, realm, creds, challenge, ident, metadata);
+        nsresult rv = entry->Set(path, realm, creds, challenge, ident, metadata);
+        NS_ENSURE_SUCCESS(rv, rv);
     }
 
     return NS_OK;

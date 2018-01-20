@@ -23,19 +23,18 @@ Cu.import("resource:///modules/mailServices.js");
 var kBoxId = "attachmentNotificationBox";
 var kNotificationId = "attachmentReminder";
 var kReminderPref = "mail.compose.attachment_reminder";
+var gDrafts;
+var gOutbox;
 
 function setupModule(module) {
   for (let lib of MODULE_REQUIRES) {
     collector.getModule(lib).installInto(module);
   }
 
-  assert_true(Services.prefs.getBoolPref(kReminderPref));
-}
+  gDrafts = get_special_folder(Ci.nsMsgFolderFlags.Drafts, true);
+  gOutbox = get_special_folder(Ci.nsMsgFolderFlags.Queue);
 
-function setupComposeWin(aCwc, toAddr, subj, body) {
-  aCwc.type(aCwc.eid("addressCol2#1"), toAddr);
-  aCwc.type(aCwc.eid("msgSubject"), subj);
-  aCwc.type(aCwc.eid("content-frame"), body);
+  assert_true(Services.prefs.getBoolPref(kReminderPref));
 }
 
 /**
@@ -115,8 +114,8 @@ function test_attachment_reminder_appears_properly() {
   // There should be no notification yet.
   assert_automatic_reminder_state(cwc, false);
 
-  setupComposeWin(cwc, "test@example.org", "Testing automatic reminder!",
-                  "Hello! ");
+  setup_msg_contents(cwc, "test@example.org", "Testing automatic reminder!",
+                     "Hello! ");
 
   // Give the notification time to appear. It shouldn't.
   wait_for_reminder_state(cwc, false);
@@ -157,10 +156,10 @@ function test_attachment_reminder_dismissal() {
   // There should be no notification yet.
   assert_automatic_reminder_state(cwc, false);
 
-  setupComposeWin(cwc, "test@example.org", "popping up, eh?",
-                  "Hi there, remember the attachment! " +
-                  "Yes, there is a file test.doc attached! " +
-                  "Do check it, test.doc is a nice attachment.");
+  setup_msg_contents(cwc, "test@example.org", "popping up, eh?",
+                     "Hi there, remember the attachment! " +
+                     "Yes, there is a file test.doc attached! " +
+                     "Do check it, test.doc is a nice attachment.");
 
   // Give the notification time to appear.
   wait_for_reminder_state(cwc, true);
@@ -193,8 +192,8 @@ function test_attachment_reminder_with_attachment() {
   // There should be no notification yet.
   assert_automatic_reminder_state(cwc, false);
 
-  setupComposeWin(cwc, "test@example.org", "Testing automatic reminder!",
-                  "Hello! We will have a real attachment here.");
+  setup_msg_contents(cwc, "test@example.org", "Testing automatic reminder!",
+                     "Hello! We will have a real attachment here.");
 
   // Give the notification time to appear. It should.
   wait_for_reminder_state(cwc, true);
@@ -211,7 +210,7 @@ function test_attachment_reminder_with_attachment() {
 
   // Add some more text with keyword so the automatic notification
   // could potentially show up.
-  setupComposeWin(cwc, "", "", " Yes, there is a file attached!");
+  setup_msg_contents(cwc, "", "", " Yes, there is a file attached!");
   // Give the notification time to appear. It shouldn't.
   wait_for_reminder_state(cwc, false);
 
@@ -237,8 +236,8 @@ function test_attachment_reminder_aggressive_pref() {
   // There should be no notification yet.
   assert_automatic_reminder_state(cwc, false);
 
-  setupComposeWin(cwc, "test@example.org", "aggressive?",
-                  "Check this attachment!");
+  setup_msg_contents(cwc, "test@example.org", "aggressive?",
+                     "Check this attachment!");
 
   wait_for_reminder_state(cwc, true);
   click_send_and_handle_send_error(cwc);
@@ -257,9 +256,9 @@ function test_attachment_reminder_aggressive_pref() {
 function test_no_send_now_sends() {
   let cwc = open_compose_new_mail();
 
-  setupComposeWin(cwc, "test@example.org",
-                  "will the 'No, Send Now' button work?",
-                  "Hello, i got your attachment!");
+  setup_msg_contents(cwc, "test@example.org",
+                     "will the 'No, Send Now' button work?",
+                     "Hello, I got your attachment!");
 
   wait_for_reminder_state(cwc, true);
 
@@ -284,6 +283,7 @@ function test_no_send_now_sends() {
  */
 function click_manual_reminder(aCwc, aExpectedState) {
   wait_for_window_focused(aCwc.window);
+  aCwc.click(new elementslib.Elem(aCwc.get_menu_dropmarker(aCwc.e("button-attach"))));
   aCwc.click_menus_in_sequence(aCwc.e("button-attachPopup"),
                                [ {id: "button-attachPopup_remindLaterItem"} ]);
   wait_for_window_focused(aCwc.window);
@@ -297,8 +297,8 @@ function click_manual_reminder(aCwc, aExpectedState) {
 function test_manual_attachment_reminder() {
   // Open a sample message with no attachment keywords.
   let cwc = open_compose_new_mail();
-  setupComposeWin(cwc, "test@example.invalid", "Testing manual reminder!",
-                  "Some body...");
+  setup_msg_contents(cwc, "test@example.invalid", "Testing manual reminder!",
+                     "Some body...");
 
   // Enable the manual reminder.
   click_manual_reminder(cwc, true);
@@ -320,9 +320,7 @@ function test_manual_attachment_reminder() {
   close_compose_window(cwc);
 
   // The draft message was saved into Local Folders/Drafts.
-  let drafts = MailServices.accounts.localFoldersServer.rootFolder
-                           .getFolderWithFlags(Ci.nsMsgFolderFlags.Drafts);
-  be_in_folder(drafts);
+  be_in_folder(gDrafts);
 
   select_click_row(0);
   // Wait for the notification with the Edit button.
@@ -373,8 +371,8 @@ function test_manual_automatic_attachment_reminder_interaction() {
   assert_automatic_reminder_state(cwc, false);
 
   // Add some attachment keywords.
-  setupComposeWin(cwc, "test@example.invalid", "Testing manual reminder!",
-                  "Expect an attachment here...");
+  setup_msg_contents(cwc, "test@example.invalid", "Testing manual reminder!",
+                     "Expect an attachment here...");
 
   // The automatic attachment notification should pop up.
   wait_for_reminder_state(cwc, true);
@@ -386,7 +384,7 @@ function test_manual_automatic_attachment_reminder_interaction() {
 
   // Add some more text so the automatic notification
   // could potentially show up.
-  setupComposeWin(cwc, "", "", " and look for your attachment!");
+  setup_msg_contents(cwc, "", "", " and look for your attachment!");
   // Give the notification time to appear. It shouldn't.
   wait_for_reminder_state(cwc, false);
 
@@ -396,12 +394,12 @@ function test_manual_automatic_attachment_reminder_interaction() {
   wait_for_reminder_state(cwc, false);
 
   // Add some more text without keywords.
-  setupComposeWin(cwc, "", "", " No keywords here.");
+  setup_msg_contents(cwc, "", "", " No keywords here.");
   // Give the notification time to appear. It shouldn't.
   wait_for_reminder_state(cwc, false);
 
   // Add some more text with a new keyword.
-  setupComposeWin(cwc, "", "", " Do you find it attached?");
+  setup_msg_contents(cwc, "", "", " Do you find it attached?");
   // Give the notification time to appear. It should now.
   wait_for_reminder_state(cwc, true);
   assert_equals(get_reminder_keywords(cwc), "attachment, attached");
@@ -425,14 +423,13 @@ function assert_any_notification(aCwc, aValue)
 
 /**
  * Bug 989653
- * Send filelink attachment should not trigger the
- * attachment reminder.
+ * Send filelink attachment should not trigger the attachment reminder.
  */
 function test_attachment_vs_filelink_reminder() {
   // Open a blank message compose
   let cwc = open_compose_new_mail();
-  setupComposeWin(cwc, "test@example.invalid", "Testing Filelink notification",
-                  "There is no body. I hope you don't mind!");
+  setup_msg_contents(cwc, "test@example.invalid", "Testing Filelink notification",
+                     "There is no body. I hope you don't mind!");
 
   // There should be no notification yet.
   assert_any_notification(cwc, false);
@@ -440,11 +437,13 @@ function test_attachment_vs_filelink_reminder() {
   // Bring up the FileLink notification.
   let kOfferThreshold = "mail.compose.big_attachments.threshold_kb";
   let maxSize = Services.prefs.getIntPref(kOfferThreshold, 0) * 1024;
-  add_attachment(cwc, "http://www.example.com/1", maxSize);
+  let file = Services.dirsvc.get("ProfD", Components.interfaces.nsIFile);
+  file.append("panacea.dat");
+  add_attachment(cwc, Services.io.newFileURI(file).spec, maxSize);
 
   // The filelink attachment proposal should be up but not the attachment
   // reminder and it should also not interfere with the sending of the message.
-  assert_notification_displayed(cwc, kBoxId, "bigAttachment", true);
+  wait_for_notification_to_show(cwc, kBoxId, "bigAttachment");
   assert_automatic_reminder_state(cwc, false);
 
   click_send_and_handle_send_error(cwc);
@@ -464,8 +463,8 @@ function test_attachment_reminder_in_subject() {
   assert_automatic_reminder_state(cwc, false);
 
   // Add some attachment keyword in subject.
-  setupComposeWin(cwc, "test@example.invalid", "Testing attachment reminder!",
-                  "There is no keyword in this body...");
+  setup_msg_contents(cwc, "test@example.invalid", "Testing attachment reminder!",
+                     "There is no keyword in this body...");
 
   // The automatic attachment notification should pop up.
   wait_for_reminder_state(cwc, true);
@@ -494,8 +493,8 @@ function test_attachment_reminder_in_subject_and_body() {
   assert_automatic_reminder_state(cwc, false);
 
   // Add some attachment keyword in subject.
-  setupComposeWin(cwc, "test@example.invalid", "Testing attachment reminder!",
-                  "There should be an attached file in this body...");
+  setup_msg_contents(cwc, "test@example.invalid", "Testing attachment reminder!",
+                     "There should be an attached file in this body...");
 
   // The automatic attachment notification should pop up.
   wait_for_reminder_state(cwc, true);
@@ -518,13 +517,12 @@ function test_attachment_reminder_in_subject_and_body() {
  * is turned off.
  */
 function test_disabled_attachment_reminder() {
-
   Services.prefs.setBoolPref(kReminderPref, false);
 
   // Open a sample message with no attachment keywords.
   let cwc = open_compose_new_mail();
-  setupComposeWin(cwc, "test@example.invalid", "Testing disabled keyword reminder!",
-                  "Some body...");
+  setup_msg_contents(cwc, "test@example.invalid", "Testing disabled keyword reminder!",
+                     "Some body...");
 
   // This one should have the manual reminder disabled.
   assert_manual_reminder_state(cwc, false);
@@ -533,7 +531,7 @@ function test_disabled_attachment_reminder() {
 
   // Add some keyword so the automatic notification
   // could potentially show up.
-  setupComposeWin(cwc, "", "", " and look for your attachment!");
+  setup_msg_contents(cwc, "", "", " and look for your attachment!");
   // Give the notification time to appear. It shouldn't.
   wait_for_reminder_state(cwc, false);
 
@@ -555,38 +553,122 @@ function test_disabled_attachment_reminder() {
 }
 
 /**
- * Bug 1099866
- * Check if reminder does not stay open on compose window reopen
- * due to window recycling.
+ * Bug 833909
+ * Test reminder comes up when a draft with keywords is opened.
  */
-function test_recycling_attachment_reminder() {
-  let recycledWindows = Services.prefs.getIntPref("mail.compose.max_recycled_windows");
-  assert_true(recycledWindows > 0);
+function test_reminder_in_draft() {
   // Open a sample message with no attachment keywords.
   let cwc = open_compose_new_mail();
-  setupComposeWin(cwc, "test@example.invalid", "Testing recycling a reminder!",
-                  "Some body...");
+  setup_msg_contents(cwc, "test@example.invalid", "Testing draft reminder!",
+                     "Some body...");
 
+  // This one should have the manual reminder disabled.
+  assert_manual_reminder_state(cwc, false);
   // There should be no attachment notification.
   assert_automatic_reminder_state(cwc, false);
 
   // Add some keyword so the automatic notification
   // could potentially show up.
-  setupComposeWin(cwc, "", "", " and look for your attachment!");
-  // Give the notification time to appear. It should.
+  setup_msg_contents(cwc, "", "", " and look for your attachment!");
+
+  // Give the notification time to appear.
   wait_for_reminder_state(cwc, true);
 
-  close_compose_window(cwc, true);
+  // Now close the message with saving it as draft.
+  plan_for_modal_dialog("commonDialog", click_save_message);
+  cwc.window.goDoCommand("cmd_close");
+  wait_for_modal_dialog("commonDialog");
 
-  // Another compose window without any keywords.
-  cwc = open_compose_new_mail();
-  setupComposeWin(cwc, "test@example.invalid", "Testing reminder after recycling!",
-                  "Some body...");
+  // The draft message was saved into Local Folders/Drafts.
+  be_in_folder(gDrafts);
 
-  // There should be no attachment notification.
-  assert_automatic_reminder_state(cwc, false);
+  select_click_row(0);
+  // Wait for the notification with the Edit button.
+  wait_for_notification_to_show(mc, "msgNotificationBar", "draftMsgContent");
+  // Edit the draft again...
+  plan_for_new_window("msgcompose");
+  // ... by clicking Edit in the draft message notification bar.
+  mc.click(mc.eid("msgNotificationBar", {tagName: "button", label: "Edit"}));
+  cwc = wait_for_compose_window();
+
+  // Give the notification time to appear.
+  wait_for_reminder_state(cwc, true);
 
   close_compose_window(cwc);
+
+  // Delete the leftover draft message.
+  press_delete();
+}
+
+/**
+ * Bug 942436
+ * Test that the reminder can be turned off for the current message.
+ */
+function test_disabling_attachment_reminder() {
+  // Open a sample message with attachment keywords.
+  let cwc = open_compose_new_mail();
+  setup_msg_contents(cwc, "test@example.invalid", "Testing turning off the reminder",
+                     "Some attachment keywords here...");
+
+  // This one should have the manual reminder disabled.
+  assert_manual_reminder_state(cwc, false);
+  // There should be an attachment reminder.
+  wait_for_reminder_state(cwc, true);
+
+  // Disable the reminder (not just dismiss) using the menuitem
+  // in the notification bar menu-button.
+  let disableButton = get_notification_button(cwc, kBoxId, kNotificationId,
+                                              { popup: "reminderBarPopup" });
+  cwc.click(new elementslib.Elem(cwc.get_menu_dropmarker(disableButton)));
+  cwc.click_menus_in_sequence(cwc.e("reminderBarPopup"),
+                              [ {id: "disableReminder"} ]);
+
+  wait_for_reminder_state(cwc, false);
+
+  // Add more keywords.
+  setup_msg_contents(cwc, "", "", "... and another file attached.");
+  // Give the notification time to appear. It shouldn't.
+  wait_for_reminder_state(cwc, false);
+
+  // Enable the manual reminder.
+  // This overrides the previous explicit disabling of any reminder.
+  click_manual_reminder(cwc, true);
+  assert_automatic_reminder_state(cwc, false);
+
+  // Disable the manual reminder and the notification should still be hidden
+  // even when there are still keywords in the body.
+  click_manual_reminder(cwc, false);
+  assert_automatic_reminder_state(cwc, false);
+
+  // Add more keywords to trigger automatic reminder.
+  setup_msg_contents(cwc, "", "", "I enclosed another file.");
+  // Give the notification time to appear. It should now.
+  wait_for_reminder_state(cwc, true);
+
+  // Disable the reminder again.
+  disableButton = get_notification_button(cwc, kBoxId, kNotificationId,
+                                          { popup: "reminderBarPopup" });
+  cwc.click(new elementslib.Elem(cwc.get_menu_dropmarker(disableButton)));
+  cwc.click_menus_in_sequence(cwc.e("reminderBarPopup"),
+                              [ {id: "disableReminder"} ]);
+  wait_for_reminder_state(cwc, false);
+
+  // Now send the message.
+  plan_for_window_close(cwc);
+  cwc.window.goDoCommand("cmd_sendLater");
+  wait_for_window_close();
+
+  // There should be no alert so it is saved in Outbox.
+  be_in_folder(gOutbox);
+
+  select_click_row(0);
+  // Delete the leftover outgoing message.
+  press_delete();
+
+  // Get back to the mail account for other tests.
+  let mail = MailServices.accounts.defaultAccount.incomingServer
+                                  .rootFolder;
+  be_in_folder(mail);
 }
 
 
@@ -637,11 +719,4 @@ function click_save_message(controller) {
     throw new Error("Not a Save message dialog; title=" +
                     controller.window.document.title);
   controller.window.document.documentElement.getButton('accept').doCommand();
-}
-
-function teardownModule(module) {
-  let drafts = MailServices.accounts.localFoldersServer.rootFolder
-                           .getFolderWithFlags(Ci.nsMsgFolderFlags.Drafts);
-  MailServices.accounts.localFoldersServer.rootFolder
-              .propagateDelete(drafts, true, null);
 }

@@ -16,7 +16,7 @@
 #include "nsMimeTypes.h"
 #include "nsIComponentManager.h"
 #include "nsIURL.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsUnicharUtils.h"
 #include "nsIServiceManager.h"
 #include "nsMemory.h"
@@ -203,7 +203,7 @@ bridge_new_new_uri(void *bridgeStream, nsIURI *aURI, int32_t aOutputType)
         {
           if (!urlString.IsEmpty())
           {
-            NS_Free(*url_name);
+            free(*url_name);
             *url_name = ToNewCString(urlString);
             if (!(*url_name))
               return NS_ERROR_OUT_OF_MEMORY;
@@ -372,7 +372,7 @@ nsStreamConverter::DetermineOutputFormat(const char *aUrl, nsMimeOutputType *aNe
 
   // is this is a part that should just come out raw
   const char *part = FindQueryElementData(queryPart, "part=");
-  if (part && !mToType.Equals("application/vnd.mozilla.xul+xml"))
+  if (part && !mToType.EqualsLiteral("application/vnd.mozilla.xul+xml"))
   {
     // default for parts
     mOutputFormat = "raw";
@@ -394,13 +394,13 @@ nsStreamConverter::DetermineOutputFormat(const char *aUrl, nsMimeOutputType *aNe
       // and make sure we only get our own value.
       char *nextField = PL_strchr(typeField, '&');
       mRealContentType.Assign(typeField, nextField ? nextField - typeField : -1);
-      if (mRealContentType.Equals("message/rfc822"))
+      if (mRealContentType.EqualsLiteral("message/rfc822"))
       {
         mRealContentType = "application/x-message-display";
         mOutputFormat = "text/html";
         *aNewType = nsMimeOutput::nsMimeMessageBodyDisplay;
       }
-      else if (mRealContentType.Equals("application/x-message-display"))
+      else if (mRealContentType.EqualsLiteral("application/x-message-display"))
       {
         mRealContentType = "";
         mOutputFormat = "text/html";
@@ -619,15 +619,17 @@ NS_IMETHODIMP nsStreamConverter::Init(nsIURI *aURI, nsIStreamListener * aOutList
     }
   }
 
-  // now we want to create a pipe which we'll use for converting the data...
-  nsCOMPtr<nsIPipe> pipe = do_CreateInstance("@mozilla.org/pipe;1");
-  rv = pipe->Init(true, true, 4096, 8);
-  
   // initialize our emitter
-  if (NS_SUCCEEDED(rv) && mEmitter)
+  if (mEmitter)
   {
-    pipe->GetInputStream(getter_AddRefs(mInputStream));
-    pipe->GetOutputStream(getter_AddRefs(mOutputStream));
+    // Now we want to create a pipe which we'll use for converting the data.
+    nsCOMPtr<nsIPipe> pipe = do_CreateInstance("@mozilla.org/pipe;1");
+    rv = pipe->Init(true, true, 4096, 8);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    // These always succeed because the pipe is initialized above.
+    MOZ_ALWAYS_SUCCEEDS(pipe->GetInputStream(getter_AddRefs(mInputStream)));
+    MOZ_ALWAYS_SUCCEEDS(pipe->GetOutputStream(getter_AddRefs(mOutputStream)));
 
     mEmitter->Initialize(aURI, aChannel, newType);
     mEmitter->SetPipe(mInputStream, mOutputStream);
@@ -683,7 +685,7 @@ NS_IMETHODIMP nsStreamConverter::GetContentType(char **aOutputContentType)
   //  (1) check to see if we have a real content type...use it first...
   if (!mRealContentType.IsEmpty())
     *aOutputContentType = ToNewCString(mRealContentType);
-  else if (mOutputFormat.Equals("raw"))
+  else if (mOutputFormat.EqualsLiteral("raw"))
     *aOutputContentType = (char *) nsMemory::Clone(UNKNOWN_CONTENT_TYPE, sizeof(UNKNOWN_CONTENT_TYPE));
   else
     *aOutputContentType = ToNewCString(mOutputFormat);
@@ -801,12 +803,9 @@ NS_IMETHODIMP
 nsStreamConverter::GetIdentity(nsIMsgIdentity * *aIdentity)
 {
   if (!aIdentity) return NS_ERROR_NULL_POINTER;
-  /*
-  We don't have an identity for the local folders account,
-    we will return null but it is not an error!
-  */
-    *aIdentity = mIdentity;
-    NS_IF_ADDREF(*aIdentity);
+  // We don't have an identity for the local folders account,
+  // we will return null but it is not an error!
+  NS_IF_ADDREF(*aIdentity = mIdentity);
   return NS_OK;
 }
 
@@ -999,6 +998,8 @@ nsStreamConverter::OnStartRequest(nsIRequest *request, nsISupports *ctxt)
 nsresult
 nsStreamConverter::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult status)
 {
+  // Make sure we fire any pending OnStartRequest before we do OnStop.
+  FirePendingStartRequest();
 #ifdef DEBUG_rhp
     printf("nsStreamConverter::OnStopRequest()\n");
 #endif

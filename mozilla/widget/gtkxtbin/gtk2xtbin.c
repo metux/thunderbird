@@ -40,7 +40,6 @@ static void            gtk_xtbin_init       (GtkXtBin      *xtbin);
 static void            gtk_xtbin_realize    (GtkWidget      *widget);
 static void            gtk_xtbin_unrealize    (GtkWidget      *widget);
 static void            gtk_xtbin_destroy    (GtkObject      *object);
-static void            gtk_xtbin_shutdown   (GtkObject      *object);
 
 /* Xt aware XEmbed */
 static void       xt_client_handle_xembed_message (Widget w, 
@@ -105,7 +104,6 @@ xt_event_dispatch (GSource*  source_data,
                     GSourceFunc call_back,
                     gpointer  user_data)
 {
-  XEvent event;
   XtAppContext ac;
   int i = 0;
 
@@ -856,7 +854,5 @@ xt_add_focus_listener_tree ( Widget treeroot, XtPointer user_data)
       xt_add_focus_listener_tree( child, user_data);
   }
   XFree((void*)children);
-
-  return;
 }
 

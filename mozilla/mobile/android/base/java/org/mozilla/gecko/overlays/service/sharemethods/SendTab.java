@@ -9,17 +9,12 @@ import android.accounts.AccountManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.database.Cursor;
 import android.os.Bundle;
 import android.os.Parcelable;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
-import org.mozilla.gecko.GeckoProfile;
-import org.mozilla.gecko.R;
-import org.mozilla.gecko.db.BrowserDB;
+
 import org.mozilla.gecko.db.RemoteClient;
-import org.mozilla.gecko.db.TabsAccessor;
-import org.mozilla.gecko.fxa.FirefoxAccounts;
 import org.mozilla.gecko.fxa.FxAccountConstants;
 import org.mozilla.gecko.fxa.authenticator.AndroidFxAccount;
 import org.mozilla.gecko.fxa.login.State;
@@ -29,10 +24,11 @@ import org.mozilla.gecko.sync.CommandProcessor;
 import org.mozilla.gecko.sync.CommandRunner;
 import org.mozilla.gecko.sync.GlobalSession;
 import org.mozilla.gecko.sync.SyncConfiguration;
-import org.mozilla.gecko.sync.SyncConstants;
-import org.mozilla.gecko.sync.setup.SyncAccounts;
-import org.mozilla.gecko.sync.syncadapter.SyncAdapter;
+import org.mozilla.gecko.sync.repositories.NullCursorException;
+import org.mozilla.gecko.sync.repositories.android.ClientsDatabaseAccessor;
+import org.mozilla.gecko.sync.repositories.domain.ClientRecord;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -168,17 +164,6 @@ public class SendTab extends ShareMethod {
             return;
         }
 
-        final Account[] syncAccounts = accountManager.getAccountsByType(SyncConstants.ACCOUNTTYPE_SYNC);
-        if (syncAccounts.length > 0) {
-            tabSender = new Sync11TabSender(context, syncAccounts[0], accountManager);
-
-            updateClientList(tabSender);
-
-            Log.i(LOGTAG, "Allowing tab send for Sync account.");
-            registerDisplayURICommand();
-            return;
-        }
-
         // Have registered UIs offer to set up a Firefox Account.
         setOverrideIntentAction(FxAccountConstants.ACTION_FXA_GET_STARTED);
     }
@@ -245,7 +230,7 @@ public class SendTab extends ShareMethod {
     }
 
     /**
-     * @return A collection of unique remote clients sorted by most recently used.
+     * @return A collection of unique remote clients sorted by name alphabetically.
      */
     protected Collection<RemoteClient> getOtherClients(final TabSender sender) {
         if (sender == null) {
@@ -253,16 +238,19 @@ public class SendTab extends ShareMethod {
             return Collections.emptyList();
         }
 
-        final BrowserDB browserDB = GeckoProfile.get(context).getDB();
-        final TabsAccessor tabsAccessor = browserDB.getTabsAccessor();
-        final Cursor remoteTabsCursor = tabsAccessor.getRemoteClientsByRecencyCursor(context);
+        final ClientsDatabaseAccessor clientsDatabaseAccessor = new ClientsDatabaseAccessor(context);
         try {
-            if (remoteTabsCursor.getCount() == 0) {
-                return Collections.emptyList();
+            final String[] remoteDevicesIds = clientsDatabaseAccessor.getRemoteDevicesIds(context);
+            final Collection<ClientRecord> clientRecords = clientsDatabaseAccessor.fetchNonStaleClients(remoteDevicesIds);
+            final Collection<RemoteClient> remoteClients = new ArrayList<>(clientRecords.size());
+            for (ClientRecord cr : clientRecords) {
+                remoteClients.add(new RemoteClient(cr.guid, cr.name, cr.lastModified, cr.type));
             }
-            return tabsAccessor.getClientsWithoutTabsByRecencyFromCursor(remoteTabsCursor);
+            return remoteClients;
+        } catch (NullCursorException e) {
+            return Collections.emptyList();
         } finally {
-            remoteTabsCursor.close();
+            clientsDatabaseAccessor.close();
         }
     }
 
@@ -305,35 +293,7 @@ public class SendTab extends ShareMethod {
 
         @Override
         public void sync() {
-            fxAccount.requestSync(FirefoxAccounts.FORCE, STAGES_TO_SYNC, null);
-        }
-    }
-
-    private static class Sync11TabSender implements TabSender {
-        private final Account account;
-        private final AccountManager accountManager;
-        private final Context context;
-
-        private Sync11TabSender(Context aContext, Account syncAccount, AccountManager manager) {
-            context = aContext;
-            account = syncAccount;
-            accountManager = manager;
-        }
-
-        @Override
-        public String getAccountGUID() {
-            try {
-                SharedPreferences prefs = SyncAccounts.blockingPrefsFromDefaultProfileV0(context, accountManager, account);
-                return prefs.getString(SyncConfiguration.PREF_ACCOUNT_GUID, null);
-            } catch (Exception e) {
-                Log.w(LOGTAG, "Could not get Sync account parameters or preferences; aborting.");
-                return null;
-            }
-        }
-
-        @Override
-        public void sync() {
-            SyncAdapter.requestImmediateSync(account, STAGES_TO_SYNC);
+            fxAccount.requestImmediateSync(STAGES_TO_SYNC, null, true);
         }
     }
 }

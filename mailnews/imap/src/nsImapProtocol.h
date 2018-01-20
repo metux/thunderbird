@@ -15,12 +15,11 @@
 #include "nsIAsyncOutputStream.h"
 #include "nsIAsyncInputStream.h"
 #include "nsImapCore.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsIProgressEventSink.h"
 #include "nsIInterfaceRequestor.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsISocketTransport.h"
-#include "nsIInputStreamPump.h"
 
 // imap event sinks
 #include "nsIImapMailFolderSink.h"
@@ -46,7 +45,6 @@
 #include "nsCOMPtr.h"
 #include "nsIImapIncomingServer.h"
 #include "nsIMsgWindow.h"
-#include "nsICacheListener.h"
 #include "nsIImapHeaderXferInfo.h"
 #include "nsMsgLineBuffer.h"
 #include "nsIAsyncInputStream.h"
@@ -56,6 +54,10 @@
 #include "nsIMsgAsyncPrompter.h"
 #include "mozilla/ReentrantMonitor.h"
 #include "nsSyncRunnableHelpers.h"
+#include "nsICacheEntryOpenCallback.h"
+#include "nsIProtocolProxyCallback.h"
+#include "nsICancelable.h"
+#include "nsImapStringBundle.h"
 
 class nsIMAPMessagePartIDArray;
 class nsIMsgIncomingServer;
@@ -124,18 +126,29 @@ private:
 #define IMAP_ISSUED_LANGUAGE_REQUEST  0x00000020 // make sure we only issue the language request once per connection...
 #define IMAP_ISSUED_COMPRESS_REQUEST  0x00000040 // make sure we only request compression once
 
+// There are 3 types of progress strings for items downloaded from IMAP servers.
+// An index is needed to keep track of the current count of the number of each
+// item type downloaded. The IMAP_EMPTY_STRING_INDEX means no string displayed.
+#define IMAP_NUMBER_OF_PROGRESS_STRINGS 4
+#define IMAP_HEADERS_STRING_INDEX       0
+#define IMAP_FLAGS_STRING_INDEX         1
+#define IMAP_MESSAGES_STRING_INDEX      2
+#define IMAP_EMPTY_STRING_INDEX         3
+
 class nsImapProtocol : public nsIImapProtocol,
                        public nsIRunnable,
                        public nsIInputStreamCallback,
                        public nsSupportsWeakReference,
                        public nsMsgProtocol,
                        public nsIImapProtocolSink,
-                       public nsIMsgAsyncPromptListener
+                       public nsIMsgAsyncPromptListener,
+                       public nsIProtocolProxyCallback
 {
 public:
 
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_NSIINPUTSTREAMCALLBACK
+  NS_DECL_NSIPROTOCOLPROXYCALLBACK
   nsImapProtocol();
 
   virtual nsresult ProcessProtocolState(nsIURI * url, nsIInputStream * inputStream,
@@ -242,7 +255,7 @@ public:
   void ProgressEventFunctionUsingName(const char* aMsgId);
   void ProgressEventFunctionUsingNameWithString(const char* aMsgName, const char *
     aExtraInfo);
-  void PercentProgressUpdateEvent(char16_t *message, int64_t currentProgress, int64_t maxProgress);
+  void PercentProgressUpdateEvent(const char16_t *message, int64_t currentProgress, int64_t maxProgress);
   void ShowProgress();
 
   // utility function calls made by the server
@@ -355,7 +368,7 @@ private:
   // If we get an async password prompt, this is where the UI thread
   // stores the password, before notifying the imap thread of the password
   // via the m_passwordReadyMonitor.
-  nsCString m_password;
+  nsString m_password;
   // Set to the result of nsImapServer::PromptPassword
   nsresult    m_passwordStatus;
 
@@ -373,8 +386,9 @@ private:
   RefPtr<ImapProtocolSinkProxy>   m_imapProtocolSink;
 
   // helper function to setup imap sink interface proxies
-  void SetupSinkProxy();
+  nsresult SetupSinkProxy();
   // End thread support stuff
+  nsresult LoadImapUrlInternal();
 
   bool GetDeleteIsMoveToTrash();
   bool GetShowDeletedMessages();
@@ -414,6 +428,7 @@ private:
 
   // initialization function given a new url and transport layer
   nsresult  SetupWithUrl(nsIURI * aURL, nsISupports* aConsumer);
+  nsresult  SetupWithUrlCallback(nsIProxyInfo* proxyInfo);
   void ReleaseUrlState(bool rerunningUrl); // release any state that is stored on a per action basis.
   /**
    * Last ditch effort to run the url without using an imap connection.
@@ -450,7 +465,7 @@ private:
   // connection has timed out, this will be set to FALSE.
   bool m_safeToCloseConnection;
 
-  nsImapFlagAndUidState  *m_flagState;
+  RefPtr<nsImapFlagAndUidState> m_flagState;
   nsMsgBiffState        m_currentBiffState;
   // manage the IMAP server command tags
   // 11 = enough memory for the decimal representation of MAX_UINT + trailing nul
@@ -462,7 +477,7 @@ private:
   void StartTLS();
 
   // login related methods.
-  nsresult GetPassword(nsCString &password, bool aNewPasswordRequested);
+  nsresult GetPassword(nsString &password, bool aNewPasswordRequested);
   void InitPrefAuthMethods(int32_t authMethodPrefValue,
                            nsIMsgIncomingServer *aServer);
   nsresult ChooseAuthMethod();
@@ -478,7 +493,7 @@ private:
   void Language(); // set the language on the server if it supports it
   void Namespace();
   void InsecureLogin(const char *userName, const nsCString &password);
-  nsresult AuthLogin(const char *userName, const nsCString &password, eIMAPCapabilityFlag flag);
+  nsresult AuthLogin(const char *userName, const nsString &password, eIMAPCapabilityFlag flag);
   void ProcessAuthenticatedStateURL();
   void ProcessAfterAuthenticated();
   void ProcessSelectedStateURL();
@@ -540,6 +555,7 @@ private:
   // LIST SUBSCRIBED command (from RFC 5258) crashes some servers. so we need to
   // identify those servers
   bool GetListSubscribedIsBrokenOnServer();
+  bool IsExtraSelectNeeded();
   void Lsub(const char *mailboxPattern, bool addDirectoryIfNecessary);
   void List(const char *mailboxPattern, bool addDirectoryIfNecessary,
             bool useXLIST = false);
@@ -562,7 +578,7 @@ private:
   nsresult GetMsgWindow(nsIMsgWindow ** aMsgWindow);
   // End Process AuthenticatedState Url helper methods
 
-  virtual char const *GetType() {return "imap";}
+  virtual char const *GetType() override {return "imap";}
 
   // Quota support
   void GetQuotaDataIfSupported(const char *aBoxName);
@@ -616,25 +632,19 @@ private:
 
   bool m_fromHeaderSeen;
 
-  // these settings allow clients to override various pieces of the connection info from the url
-  bool m_overRideUrlConnectionInfo;
-
-  nsCString m_logonHost;
-  nsCString m_logonCookie;
-  int16_t m_logonPort;
-  
   nsString mAcceptLanguages;
   
   // progress stuff
-  void SetProgressString(const char* stringName);
+  void SetProgressString(uint32_t aStringIndex);
   
-  nsString m_progressString;
   nsCString     m_progressStringName;
-  int32_t       m_progressIndex;
-  int32_t       m_progressCount;
+  uint32_t      m_stringIndex;
+  int32_t       m_progressCurrentNumber[IMAP_NUMBER_OF_PROGRESS_STRINGS];
+  int32_t       m_progressExpectedNumber;
   nsCString     m_lastProgressStringName;
   int32_t       m_lastPercent;
   int64_t       m_lastProgressTime;
+  nsCOMPtr<nsIStringBundle> m_bundle;
 
   bool m_notifySearchHit;
   bool m_checkForNewMailDownloadsHeaders;
@@ -646,12 +656,14 @@ private:
   bool m_closeNeededBeforeSelect;
   bool m_retryUrlOnError;
   bool m_preferPlainText;
+  nsCString m_forceSelectValue;
+  bool m_forceSelect;
 
   int32_t m_uidValidity; // stored uid validity for the selected folder.
 
   enum EMailboxHierarchyNameState {
-    kNoOperationInProgress,
-      kDiscoverBaseFolderInProgress,
+      kNoOperationInProgress,
+      // kDiscoverBaseFolderInProgress, - Unused. Keeping for historical reasons.
       kDiscoverTrashFolderInProgress,
       kDeleteSubFoldersInProgress,
       kListingForInfoOnly,
@@ -682,10 +694,10 @@ private:
 //
 // Threading concern: This class lives entirely in the UI thread.
 
-class nsICacheEntryDescriptor;
+class nsICacheEntry;
 
 class nsImapMockChannel : public nsIImapMockChannel
-                        , public nsICacheListener
+                        , public nsICacheEntryOpenCallback
                         , public nsITransportEventSink
                         , public nsSupportsWeakReference
 {
@@ -696,11 +708,12 @@ public:
   NS_DECL_NSIIMAPMOCKCHANNEL
   NS_DECL_NSICHANNEL
   NS_DECL_NSIREQUEST
-  NS_DECL_NSICACHELISTENER
+  NS_DECL_NSICACHEENTRYOPENCALLBACK
   NS_DECL_NSITRANSPORTEVENTSINK
 
   nsImapMockChannel();
   static nsresult Create (const nsIID& iid, void **result);
+  nsresult RunOnStopRequestFailure();
 
 protected:
   virtual ~nsImapMockChannel();
@@ -718,8 +731,9 @@ protected:
   nsCOMPtr<nsISupports> mOwner;
   nsCOMPtr<nsISupports> mSecurityInfo;
   nsCOMPtr<nsIRequest> mCacheRequest; // the request associated with a read from the cache
-  nsCString m_ContentType;
-  nsWeakPtr   m_protocol;
+  nsCString mContentType;
+  nsCString mCharset;
+  nsWeakPtr mProtocol;
 
   bool mChannelClosed;
   bool mReadingFromCache;
@@ -730,7 +744,7 @@ protected:
   nsresult OpenCacheEntry(); // makes a request to the cache service for a cache entry for a url
   bool ReadFromLocalCache(); // attempts to read the url out of our local (offline) cache....
   nsresult ReadFromImapConnection(); // creates a new imap connection to read the url
-  nsresult ReadFromMemCache(nsICacheEntryDescriptor *entry); // attempts to read the url out of our memory cache
+  nsresult ReadFromMemCache(nsICacheEntry *entry); // attempts to read the url out of our memory cache
   nsresult NotifyStartEndReadFromCache(bool start);
 
   // we end up daisy chaining multiple nsIStreamListeners into the load process.

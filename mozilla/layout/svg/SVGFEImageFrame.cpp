@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -8,38 +9,43 @@
 #include "nsContentUtils.h"
 #include "nsFrame.h"
 #include "nsGkAtoms.h"
+#include "nsIDOMMutationEvent.h"
 #include "nsLiteralString.h"
-#include "nsSVGEffects.h"
+#include "SVGObserverUtils.h"
 #include "nsSVGFilters.h"
 #include "mozilla/dom/SVGFEImageElement.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
 
-typedef nsFrame SVGFEImageFrameBase;
-
-class SVGFEImageFrame : public SVGFEImageFrameBase
+class SVGFEImageFrame final : public nsFrame
 {
   friend nsIFrame*
   NS_NewSVGFEImageFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 protected:
   explicit SVGFEImageFrame(nsStyleContext* aContext)
-    : SVGFEImageFrameBase(aContext)
+    : nsFrame(aContext, kClassID)
   {
     AddStateBits(NS_FRAME_SVG_LAYOUT | NS_FRAME_IS_NONDISPLAY);
+
+    // This frame isn't actually displayed, but it contains an image and we want
+    // to use the nsImageLoadingContent machinery for managing images, which
+    // requires visibility tracking, so we enable visibility tracking and
+    // forcibly mark it visible below.
+    EnableVisibilityTracking();
   }
 
 public:
-  NS_DECL_FRAMEARENA_HELPERS
+  NS_DECL_FRAMEARENA_HELPERS(SVGFEImageFrame)
 
   virtual void Init(nsIContent*       aContent,
                     nsContainerFrame* aParent,
                     nsIFrame*         aPrevInFlow) override;
-  virtual void DestroyFrom(nsIFrame* aDestructRoot) override;
+  virtual void DestroyFrom(nsIFrame* aDestructRoot, PostDestroyData& aPostDestroyData) override;
 
   virtual bool IsFrameOfType(uint32_t aFlags) const override
   {
-    return SVGFEImageFrameBase::IsFrameOfType(aFlags & ~(nsIFrame::eSVG));
+    return nsFrame::IsFrameOfType(aFlags & ~(nsIFrame::eSVG));
   }
 
 #ifdef DEBUG_FRAME_DUMP
@@ -49,18 +55,14 @@ public:
   }
 #endif
 
-  /**
-   * Get the "type" of the frame
-   *
-   * @see nsGkAtoms::svgFEImageFrame
-   */
-  virtual nsIAtom* GetType() const override;
-
   virtual nsresult AttributeChanged(int32_t  aNameSpaceID,
-                                    nsIAtom* aAttribute,
+                                    nsAtom* aAttribute,
                                     int32_t  aModType) override;
 
-  virtual bool UpdateOverflow() override {
+  void OnVisibilityChange(Visibility aNewVisibility,
+                          const Maybe<OnNonvisible>& aNonvisibleAction = Nothing()) override;
+
+  virtual bool ComputeCustomOverflow(nsOverflowAreas& aOverflowAreas) override {
     // We don't maintain a visual overflow rect
     return false;
   }
@@ -75,18 +77,17 @@ NS_NewSVGFEImageFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 NS_IMPL_FRAMEARENA_HELPERS(SVGFEImageFrame)
 
 /* virtual */ void
-SVGFEImageFrame::DestroyFrom(nsIFrame* aDestructRoot)
+SVGFEImageFrame::DestroyFrom(nsIFrame* aDestructRoot, PostDestroyData& aPostDestroyData)
 {
-  nsCOMPtr<nsIImageLoadingContent> imageLoader =
-    do_QueryInterface(SVGFEImageFrameBase::mContent);
+  DecApproximateVisibleCount();
 
+  nsCOMPtr<nsIImageLoadingContent> imageLoader =
+    do_QueryInterface(nsFrame::mContent);
   if (imageLoader) {
     imageLoader->FrameDestroyed(this);
-    imageLoader
-      ->DecrementVisibleCount(nsIImageLoadingContent::ON_NONVISIBLE_NO_ACTION);
   }
 
-  SVGFEImageFrameBase::DestroyFrom(aDestructRoot);
+  nsFrame::DestroyFrom(aDestructRoot, aPostDestroyData);
 }
 
 void
@@ -98,45 +99,70 @@ SVGFEImageFrame::Init(nsIContent*       aContent,
                "Trying to construct an SVGFEImageFrame for a "
                "content element that doesn't support the right interfaces");
 
-  SVGFEImageFrameBase::Init(aContent, aParent, aPrevInFlow);
-  nsCOMPtr<nsIImageLoadingContent> imageLoader =
-    do_QueryInterface(SVGFEImageFrameBase::mContent);
+  nsFrame::Init(aContent, aParent, aPrevInFlow);
 
+  // We assume that feImage's are always visible.
+  // This call must happen before the FrameCreated. This is because the
+  // primary frame pointer on our content node isn't set until after this
+  // function ends, so there is no way for the resulting OnVisibilityChange
+  // notification to get a frame. FrameCreated has a workaround for this in
+  // that it passes our frame around so it can be accessed. OnVisibilityChange
+  // doesn't have that workaround.
+  IncApproximateVisibleCount();
+
+  nsCOMPtr<nsIImageLoadingContent> imageLoader =
+    do_QueryInterface(nsFrame::mContent);
   if (imageLoader) {
-    // We assume that feImage's are always visible.
-    // Increment the visible count before calling FrameCreated so that
-    // FrameCreated will actually track the image correctly.
-    imageLoader->IncrementVisibleCount();
     imageLoader->FrameCreated(this);
   }
 }
 
-nsIAtom *
-SVGFEImageFrame::GetType() const
-{
-  return nsGkAtoms::svgFEImageFrame;
-}
-
 nsresult
 SVGFEImageFrame::AttributeChanged(int32_t  aNameSpaceID,
-                                  nsIAtom* aAttribute,
+                                  nsAtom* aAttribute,
                                   int32_t  aModType)
 {
-  SVGFEImageElement *element = static_cast<SVGFEImageElement*>(mContent);
+  SVGFEImageElement* element = static_cast<SVGFEImageElement*>(GetContent());
   if (element->AttributeAffectsRendering(aNameSpaceID, aAttribute)) {
-    MOZ_ASSERT(GetParent()->GetType() == nsGkAtoms::svgFilterFrame,
+    MOZ_ASSERT(GetParent()->IsSVGFilterFrame(),
                "Observers observe the filter, so that's what we must invalidate");
-    nsSVGEffects::InvalidateDirectRenderingObservers(GetParent());
+    SVGObserverUtils::InvalidateDirectRenderingObservers(GetParent());
   }
-  if (aNameSpaceID == kNameSpaceID_XLink &&
-      aAttribute == nsGkAtoms::href) {
-    if (element->mStringAttributes[SVGFEImageElement::HREF].IsExplicitlySet()) {
+
+  // Currently our SMIL implementation does not modify the DOM attributes. Once
+  // we implement the SVG 2 SMIL behaviour this can be removed
+  // SVGFEImageElement::AfterSetAttr's implementation will be sufficient.
+  if (aModType == nsIDOMMutationEvent::SMIL &&
+      aAttribute == nsGkAtoms::href &&
+      (aNameSpaceID == kNameSpaceID_XLink ||
+       aNameSpaceID == kNameSpaceID_None)) {
+    bool hrefIsSet =
+      element->mStringAttributes[SVGFEImageElement::HREF].IsExplicitlySet() ||
+      element->mStringAttributes[SVGFEImageElement::XLINK_HREF]
+        .IsExplicitlySet();
+    if (hrefIsSet) {
       element->LoadSVGImage(true, true);
     } else {
       element->CancelImageRequests(true);
     }
   }
 
-  return SVGFEImageFrameBase::AttributeChanged(aNameSpaceID,
-                                               aAttribute, aModType);
+  return nsFrame::AttributeChanged(aNameSpaceID, aAttribute, aModType);
+}
+
+void
+SVGFEImageFrame::OnVisibilityChange(Visibility aNewVisibility,
+                                    const Maybe<OnNonvisible>& aNonvisibleAction)
+{
+  nsCOMPtr<nsIImageLoadingContent> imageLoader =
+    do_QueryInterface(nsFrame::mContent);
+  if (!imageLoader) {
+    MOZ_ASSERT_UNREACHABLE("Should have an nsIImageLoadingContent");
+    nsFrame::OnVisibilityChange(aNewVisibility, aNonvisibleAction);
+    return;
+  }
+
+  imageLoader->OnVisibilityChange(aNewVisibility, aNonvisibleAction);
+
+  nsFrame::OnVisibilityChange(aNewVisibility, aNonvisibleAction);
 }

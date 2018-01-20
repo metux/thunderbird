@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -21,12 +22,12 @@ public:
     pthread_create(&mThread, nullptr, ThreadCallback, static_cast<WorkerThread*>(this));
   }
 
-  ~WorkerThreadPosix()
+  ~WorkerThreadPosix() override
   {
     pthread_join(mThread, nullptr);
   }
 
-  virtual void SetName(const char*) override
+  void SetName(const char*) override
   {
 // XXX - temporarily disabled, see bug 1209039
 //
@@ -79,7 +80,7 @@ bool
 MultiThreadedJobQueue::PopJob(Job*& aOutJobs, AccessType aAccess)
 {
   for (;;) {
-    MutexAutoLock lock(&mMutex);
+    CriticalSectionAutoEnter lock(&mMutex);
 
     while (aAccess == BLOCKING && !mShuttingDown && mJobs.empty()) {
       mAvailableCondvar.Wait(&mMutex);
@@ -110,7 +111,7 @@ void
 MultiThreadedJobQueue::SubmitJob(Job* aJobs)
 {
   MOZ_ASSERT(aJobs);
-  MutexAutoLock lock(&mMutex);
+  CriticalSectionAutoEnter lock(&mMutex);
   mJobs.push_back(aJobs);
   mAvailableCondvar.Broadcast();
 }
@@ -118,21 +119,21 @@ MultiThreadedJobQueue::SubmitJob(Job* aJobs)
 size_t
 MultiThreadedJobQueue::NumJobs()
 {
-  MutexAutoLock lock(&mMutex);
+  CriticalSectionAutoEnter lock(&mMutex);
   return mJobs.size();
 }
 
 bool
 MultiThreadedJobQueue::IsEmpty()
 {
-  MutexAutoLock lock(&mMutex);
+  CriticalSectionAutoEnter lock(&mMutex);
   return mJobs.empty();
 }
 
 void
 MultiThreadedJobQueue::ShutDown()
 {
-  MutexAutoLock lock(&mMutex);
+  CriticalSectionAutoEnter lock(&mMutex);
   mShuttingDown = true;
   while (mThreadsCount) {
     mAvailableCondvar.Broadcast();
@@ -149,7 +150,7 @@ MultiThreadedJobQueue::RegisterThread()
 void
 MultiThreadedJobQueue::UnregisterThread()
 {
-  MutexAutoLock lock(&mMutex);
+  CriticalSectionAutoEnter lock(&mMutex);
   mThreadsCount -= 1;
   if (mThreadsCount == 0) {
     mShutdownCondvar.Broadcast();
@@ -160,20 +161,19 @@ EventObject::EventObject()
 : mIsSet(false)
 {}
 
-EventObject::~EventObject()
-{}
+EventObject::~EventObject() = default;
 
 bool
 EventObject::Peak()
 {
-  MutexAutoLock lock(&mMutex);
+  CriticalSectionAutoEnter lock(&mMutex);
   return mIsSet;
 }
 
 void
 EventObject::Set()
 {
-  MutexAutoLock lock(&mMutex);
+  CriticalSectionAutoEnter lock(&mMutex);
   if (!mIsSet) {
     mIsSet = true;
     mCond.Broadcast();
@@ -183,7 +183,7 @@ EventObject::Set()
 void
 EventObject::Wait()
 {
-  MutexAutoLock lock(&mMutex);
+  CriticalSectionAutoEnter lock(&mMutex);
   if (mIsSet) {
     return;
   }

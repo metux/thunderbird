@@ -16,20 +16,15 @@ test();
 
 function test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
  
   expect = '2,2,2,2,2,';
   actual = '';
 
-  jit(true);
 
   for (var i=0;i<5;++i) actual += (true << true) + ',';
 
-  jit(false);
 
   reportCompare(expect, actual, summary);
-
-  exitFunc ('test');
 }

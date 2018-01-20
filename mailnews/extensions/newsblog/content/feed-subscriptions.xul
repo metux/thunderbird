@@ -10,8 +10,12 @@
 <?xml-stylesheet href="chrome://messenger-newsblog/skin/feed-subscriptions.css" type="text/css"?>
 
 <!DOCTYPE window [
-<!ENTITY % feedDTD SYSTEM "chrome://messenger-newsblog/locale/feed-subscriptions.dtd">
-  %feedDTD;
+  <!ENTITY % feedDTD SYSTEM "chrome://messenger-newsblog/locale/feed-subscriptions.dtd">
+    %feedDTD;
+  <!ENTITY % newsblogDTD SYSTEM "chrome://messenger-newsblog/locale/am-newsblog.dtd">
+    %newsblogDTD;
+  <!ENTITY % certDTD SYSTEM "chrome://pippki/locale/certManager.dtd">
+    %certDTD;
 ]>
 
 <window id="subscriptionsDialog"
@@ -27,6 +31,8 @@
         onkeypress="FeedSubscriptions.onKeyPress(event);"
         onmousedown="FeedSubscriptions.onMouseDown(event);">
 
+  <script type="application/javascript"
+          src="chrome://messenger/content/specialTabs.js"/>
   <script type="application/javascript"
           src="chrome://messenger-newsblog/content/feed-subscriptions.js"/>
 
@@ -96,20 +102,22 @@
                        control="locationValue"
                        value="&feedLocation.label;"/>
               </hbox>
-              <hbox align="center">
+              <hbox>
                 <textbox id="locationValue"
                          flex="1"
                          class="uri-element"
                          placeholder="&feedLocation.placeholder;"
                          clickSelectsAll="true"
-                         onfocus="FeedSubscriptions.setSummaryFocus();"
-                         onblur="FeedSubscriptions.setSummaryFocus();"/>
-                <label id="locationValidate"
-                       collapsed="true"
-                       class="text-link"
-                       crop="end"
-                       value="&locationValidate.label;"
-                       onclick="FeedSubscriptions.checkValidation(event);"/>
+                         onfocus="FeedSubscriptions.setFocus();"
+                         onblur="FeedSubscriptions.setFocus();"/>
+                <hbox align="center">
+                  <label id="locationValidate"
+                         collapsed="true"
+                         class="text-link"
+                         crop="end"
+                         value="&locationValidate.label;"
+                         onclick="FeedSubscriptions.checkValidation(event);"/>
+                </hbox>
               </hbox>
             </row>
             <row>
@@ -130,7 +138,7 @@
                              mode="feeds"
                              showFileHereLabel="true"
                              showAccountsFileHere="true"
-                             oncommand="FeedSubscriptions.setNewFolder(event.target._folder)"/>
+                             oncommand="FeedSubscriptions.setNewFolder(event)"/>
                 </menulist>
                 <textbox id="selectFolderValue"
                          flex="1"
@@ -141,6 +149,46 @@
             </row>
           </rows>
         </grid>
+
+        <hbox align="center">
+          <checkbox id="updateEnabled"
+                    label="&biffStart.label;"
+                    accesskey="&biffStart.accesskey;"
+                    oncommand="FeedSubscriptions.setPrefs(this)"/>
+          <textbox id="updateValue"
+                   type="number"
+                   size="3"
+                   min="1"
+                   increment="1"
+                   aria-labelledby="updateEnabled updateValue biffMinutes biffDays recommendedUnits recommendedUnitsVal"/>
+          <radiogroup id="biffUnits"
+                      orient="horizontal"
+                      oncommand="FeedSubscriptions.setPrefs(this)">
+            <radio id="biffMinutes" value="min" label="&biffMinutes.label;"
+                   accesskey="&biffMinutes.accesskey;">
+              <observes element="updateValue" attribute="disabled"/>
+            </radio>
+            <radio id="biffDays" value="d" label="&biffDays.label;"
+                   accesskey="&biffDays.accesskey;">
+              <observes element="updateValue" attribute="disabled"/>
+            </radio>
+          </radiogroup>
+          <hbox id="recommendedBox">
+            <label id="recommendedUnits"
+                   value="&recommendedUnits.label;"
+                   hidden="true"
+                   control="updateMinutes">
+              <observes element="updateValue" attribute="disabled"/>
+            </label>
+            <label id="recommendedUnitsVal"
+                   value=""
+                   hidden="true"
+                   control="updateMinutes">
+              <observes element="updateValue" attribute="disabled"/>
+              <observes element="recommendedUnits" attribute="hidden"/>
+            </label>
+          </hbox>
+        </hbox>
         <checkbox id="quickMode"
                   accesskey="&quickMode.accesskey;"
                   label="&quickMode.label;"
@@ -148,13 +196,13 @@
         <checkbox id="autotagEnable"
                   accesskey="&autotagEnable.accesskey;"
                   label="&autotagEnable.label;"
-                  oncommand="FeedSubscriptions.setCategoryPrefs(this)"/>
+                  oncommand="FeedSubscriptions.setPrefs(this)"/>
         <hbox>
             <checkbox id="autotagUsePrefix"
                       class="indent"
                       accesskey="&autotagUsePrefix.accesskey;"
                       label="&autotagUsePrefix.label;"
-                      oncommand="FeedSubscriptions.setCategoryPrefs(this)"/>
+                      oncommand="FeedSubscriptions.setPrefs(this)"/>
             <textbox id="autotagPrefix"
                      placeholder="&autoTagPrefix.placeholder;"
                      clickSelectsAll="true"/>
@@ -176,6 +224,11 @@
              crop="end"
              value="&validateText.label;"
              onclick="FeedSubscriptions.checkValidation(event);"/>
+      <button id="addCertException"
+              collapsed="true"
+              label="&certmgr.addException.label;"
+              accesskey="&certmgr.addException.accesskey;"
+              oncommand="FeedSubscriptions.addCertExceptionDialog();"/>
       <progressmeter id="progressMeter"
                      collapsed="true"
                      mode="determined"
@@ -191,8 +244,8 @@
 
         <button id="editFeed"
                 disabled="true"
-                label="&button.editFeed.label;"
-                accesskey="&button.editFeed.accesskey;"
+                label="&button.updateFeed.label;"
+                accesskey="&button.updateFeed.accesskey;"
                 oncommand="FeedSubscriptions.editFeed();"/>
 
         <button id="removeFeed"

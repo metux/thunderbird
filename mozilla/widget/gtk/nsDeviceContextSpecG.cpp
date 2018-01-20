@@ -3,18 +3,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "nsDeviceContextSpecG.h"
+
+#include "mozilla/gfx/PrintTargetPDF.h"
+#include "mozilla/gfx/PrintTargetPS.h"
 #include "mozilla/Logging.h"
 
 #include "plstr.h"
-
-#include "nsDeviceContextSpecG.h"
-
 #include "prenv.h" /* for PR_GetEnv */
 
 #include "nsPrintfCString.h"
 #include "nsReadableUtils.h"
 #include "nsStringEnumerator.h"
 #include "nsIServiceManager.h" 
+#include "nsThreadUtils.h"
 
 #include "nsPSPrinters.h"
 #include "nsPaperPS.h"  /* Paper size list */
@@ -24,6 +26,7 @@
 #include "nsIFileStreams.h"
 #include "nsIFile.h"
 #include "nsTArray.h"
+#include "nsThreadUtils.h"
 
 #include "mozilla/Preferences.h"
 
@@ -33,16 +36,14 @@
 
 using namespace mozilla;
 
-static PRLogModuleInfo *
-GetDeviceContextSpecGTKLog()
-{
-  static PRLogModuleInfo *sLog;
-  if (!sLog)
-    sLog = PR_NewLogModule("DeviceContextSpecGTK");
-  return sLog;
-}
+using mozilla::gfx::IntSize;
+using mozilla::gfx::PrintTarget;
+using mozilla::gfx::PrintTargetPDF;
+using mozilla::gfx::PrintTargetPS;
+
+static LazyLogModule sDeviceContextSpecGTKLog("DeviceContextSpecGTK");
 /* Macro to make lines shorter */
-#define DO_PR_DEBUG_LOG(x) MOZ_LOG(GetDeviceContextSpecGTKLog(), mozilla::LogLevel::Debug, x)
+#define DO_PR_DEBUG_LOG(x) MOZ_LOG(sDeviceContextSpecGTKLog, mozilla::LogLevel::Debug, x)
 
 //----------------------------------------------------------------------------------
 // The printer data is shared between the PrinterEnumerator and the nsDeviceContextSpecGTK
@@ -62,7 +63,7 @@ public:
   uint32_t  GetNumPrinters()
     { return mGlobalPrinterList ? mGlobalPrinterList->Length() : 0; }
   nsString* GetStringAt(int32_t aInx)    { return &mGlobalPrinterList->ElementAt(aInx); }
-  void      GetDefaultPrinterName(char16_t **aDefaultPrinterName);
+  void      GetDefaultPrinterName(nsAString& aDefaultPrinterName);
 
 protected:
   GlobalPrinters() {}
@@ -100,12 +101,8 @@ nsDeviceContextSpecGTK::~nsDeviceContextSpecGTK()
 NS_IMPL_ISUPPORTS(nsDeviceContextSpecGTK,
                   nsIDeviceContextSpec)
 
-#include "gfxPDFSurface.h"
-#include "gfxPSSurface.h"
-NS_IMETHODIMP nsDeviceContextSpecGTK::GetSurfaceForPrinter(gfxASurface **aSurface)
+already_AddRefed<PrintTarget> nsDeviceContextSpecGTK::MakePrintTarget()
 {
-  *aSurface = nullptr;
-
   double width, height;
   mPrintSettings->GetEffectivePageSize(&width, &height);
 
@@ -113,7 +110,7 @@ NS_IMETHODIMP nsDeviceContextSpecGTK::GetSurfaceForPrinter(gfxASurface **aSurfac
   width  /= TWIPS_PER_POINT_FLOAT;
   height /= TWIPS_PER_POINT_FLOAT;
 
-  DO_PR_DEBUG_LOG(("\"%s\", %f, %f\n", mPath, width, height));
+  DO_PR_DEBUG_LOG(("Making PrintTarget: width = %f, height = %f\n", width, height));
   nsresult rv;
 
   // We shouldn't be attempting to get a surface if we've already got a spool
@@ -125,14 +122,14 @@ NS_IMETHODIMP nsDeviceContextSpecGTK::GetSurfaceForPrinter(gfxASurface **aSurfac
   gchar *buf;
   gint fd = g_file_open_tmp("XXXXXX.tmp", &buf, nullptr);
   if (-1 == fd)
-    return NS_ERROR_GFX_PRINTER_COULD_NOT_OPEN_FILE;
+    return nullptr;
   close(fd);
 
   rv = NS_NewNativeLocalFile(nsDependentCString(buf), false,
                              getter_AddRefs(mSpoolFile));
   if (NS_FAILED(rv)) {
     unlink(buf);
-    return NS_ERROR_GFX_PRINTER_COULD_NOT_OPEN_FILE;
+    return nullptr;
   }
 
   mSpoolName = buf;
@@ -143,13 +140,10 @@ NS_IMETHODIMP nsDeviceContextSpecGTK::GetSurfaceForPrinter(gfxASurface **aSurfac
   nsCOMPtr<nsIFileOutputStream> stream = do_CreateInstance("@mozilla.org/network/file-output-stream;1");
   rv = stream->Init(mSpoolFile, -1, -1, 0);
   if (NS_FAILED(rv))
-    return rv;
+    return nullptr;
 
   int16_t format;
   mPrintSettings->GetOutputFormat(&format);
-
-  RefPtr<gfxASurface> surface;
-  gfxSize surfaceSize(width, height);
 
   // Determine the real format with some GTK magic
   if (format == nsIPrintSettings::kOutputFormatNative) {
@@ -157,28 +151,23 @@ NS_IMETHODIMP nsDeviceContextSpecGTK::GetSurfaceForPrinter(gfxASurface **aSurfac
       // There is nothing to detect on Print Preview, use PS.
       format = nsIPrintSettings::kOutputFormatPS;
     } else {
-      return NS_ERROR_FAILURE;
+      return nullptr;
     }
   }
+
+  IntSize size = IntSize::Truncate(width, height);
 
   if (format == nsIPrintSettings::kOutputFormatPDF) {
-    surface = new gfxPDFSurface(stream, surfaceSize);
-  } else {
-    int32_t orientation;
-    mPrintSettings->GetOrientation(&orientation);
-    if (nsIPrintSettings::kPortraitOrientation == orientation) {
-      surface = new gfxPSSurface(stream, surfaceSize, gfxPSSurface::PORTRAIT);
-    } else {
-      surface = new gfxPSSurface(stream, surfaceSize, gfxPSSurface::LANDSCAPE);
-    }
+    return PrintTargetPDF::CreateOrNull(stream, size);
   }
 
-  if (!surface)
-    return NS_ERROR_OUT_OF_MEMORY;
-
-  surface.swap(*aSurface);
-
-  return NS_OK;
+  int32_t orientation;
+  mPrintSettings->GetOrientation(&orientation);
+  return PrintTargetPS::CreateOrNull(stream,
+                                     size,
+                                     orientation == nsIPrintSettings::kPortraitOrientation
+                                       ? PrintTargetPS::PORTRAIT
+                                       : PrintTargetPS::LANDSCAPE);
 }
 
 /** -------------------------------------------------------
@@ -255,10 +244,10 @@ gboolean nsDeviceContextSpecGTK::PrinterEnumerator(GtkPrinter *aPrinter,
   nsDeviceContextSpecGTK *spec = (nsDeviceContextSpecGTK*)aData;
 
   // Find the printer whose name matches the one inside the settings.
-  nsXPIDLString printerName;
+  nsString printerName;
   nsresult rv =
-    spec->mPrintSettings->GetPrinterName(getter_Copies(printerName));
-  if (NS_SUCCEEDED(rv) && printerName) {
+    spec->mPrintSettings->GetPrinterName(printerName);
+  if (NS_SUCCEEDED(rv) && !printerName.IsVoid()) {
     NS_ConvertUTF16toUTF8 requestedName(printerName);
     const char* currentName = gtk_printer_get_name(aPrinter);
     if (requestedName.Equals(currentName)) {
@@ -269,9 +258,10 @@ gboolean nsDeviceContextSpecGTK::PrinterEnumerator(GtkPrinter *aPrinter,
       // misunderstanding what the capabilities of the printer are due to a
       // GTK bug (https://bugzilla.gnome.org/show_bug.cgi?id=753041). We
       // sidestep this by deferring the print to the next tick.
-      nsCOMPtr<nsIRunnable> event =
-        NS_NewRunnableMethod(spec, &nsDeviceContextSpecGTK::StartPrintJob);
-      NS_DispatchToCurrentThread(event);
+      NS_DispatchToCurrentThread(
+        NewRunnableMethod("nsDeviceContextSpecGTK::StartPrintJob",
+                          spec,
+                          &nsDeviceContextSpecGTK::StartPrintJob));
       return TRUE;
     }
   }
@@ -300,11 +290,19 @@ nsDeviceContextSpecGTK::EnumeratePrinters()
                          nullptr, TRUE);
 }
 
-NS_IMETHODIMP nsDeviceContextSpecGTK::BeginDocument(const nsAString& aTitle, char16_t * aPrintToFileName,
-                                                    int32_t aStartPage, int32_t aEndPage)
+NS_IMETHODIMP
+nsDeviceContextSpecGTK::BeginDocument(const nsAString& aTitle,
+                                      const nsAString& aPrintToFileName,
+                                      int32_t aStartPage, int32_t aEndPage)
 {
-  mTitle.Truncate();
-  AppendUTF16toUTF8(aTitle, mTitle);
+  // Print job names exceeding 255 bytes are safe with GTK version 3.18.2 or
+  // newer. This is a workaround for old GTK.
+  if (gtk_check_version(3,18,2) != nullptr) {
+    PrintTarget::AdjustPrintJobNameForIPP(aTitle, mTitle);
+  } else {
+    CopyUTF16toUTF8(aTitle, mTitle);
+  }
+
   return NS_OK;
 }
 
@@ -327,18 +325,18 @@ NS_IMETHODIMP nsDeviceContextSpecGTK::EndDocument()
     } else {
       // We don't have a printer. We have to enumerate the printers and find
       // one with a matching name.
-      nsCOMPtr<nsIRunnable> event =
-        NS_NewRunnableMethod(this, &nsDeviceContextSpecGTK::EnumeratePrinters);
-      NS_DispatchToCurrentThread(event);
+      NS_DispatchToCurrentThread(
+        NewRunnableMethod("nsDeviceContextSpecGTK::EnumeratePrinters",
+                          this,
+                          &nsDeviceContextSpecGTK::EnumeratePrinters));
     }
   } else {
     // Handle print-to-file ourselves for the benefit of embedders
-    nsXPIDLString targetPath;
+    nsString targetPath;
     nsCOMPtr<nsIFile> destFile;
-    mPrintSettings->GetToFileName(getter_Copies(targetPath));
+    mPrintSettings->GetToFileName(targetPath);
 
-    nsresult rv = NS_NewNativeLocalFile(NS_ConvertUTF16toUTF8(targetPath),
-                                        false, getter_AddRefs(destFile));
+    nsresult rv = NS_NewLocalFile(targetPath, false, getter_AddRefs(destFile));
     NS_ENSURE_SUCCESS(rv, rv);
 
     nsAutoString destLeafName;
@@ -396,46 +394,48 @@ NS_IMETHODIMP nsPrinterEnumeratorGTK::GetPrinterNameList(nsIStringEnumerator **a
   return NS_NewAdoptingStringEnumerator(aPrinterNameList, printers);
 }
 
-NS_IMETHODIMP nsPrinterEnumeratorGTK::GetDefaultPrinterName(char16_t **aDefaultPrinterName)
+NS_IMETHODIMP nsPrinterEnumeratorGTK::GetDefaultPrinterName(nsAString& aDefaultPrinterName)
 {
   DO_PR_DEBUG_LOG(("nsPrinterEnumeratorGTK::GetDefaultPrinterName()\n"));
-  NS_ENSURE_ARG_POINTER(aDefaultPrinterName);
 
   GlobalPrinters::GetInstance()->GetDefaultPrinterName(aDefaultPrinterName);
 
-  DO_PR_DEBUG_LOG(("GetDefaultPrinterName(): default printer='%s'.\n", NS_ConvertUTF16toUTF8(*aDefaultPrinterName).get()));
+  DO_PR_DEBUG_LOG(("GetDefaultPrinterName(): default printer='%s'.\n", NS_ConvertUTF16toUTF8(aDefaultPrinterName).get()));
   return NS_OK;
 }
 
-NS_IMETHODIMP nsPrinterEnumeratorGTK::InitPrintSettingsFromPrinter(const char16_t *aPrinterName, nsIPrintSettings *aPrintSettings)
+NS_IMETHODIMP
+nsPrinterEnumeratorGTK::InitPrintSettingsFromPrinter(const nsAString& aPrinterName,
+                                                     nsIPrintSettings *aPrintSettings)
 {
   DO_PR_DEBUG_LOG(("nsPrinterEnumeratorGTK::InitPrintSettingsFromPrinter()"));
 
   NS_ENSURE_ARG_POINTER(aPrintSettings);
 
-  /* Set filename */
-  nsAutoCString filename;
-  const char *path;
-  
-  if (!(path = PR_GetEnv("PWD")))
-    path = PR_GetEnv("HOME");
-  
-  if (path)
-    filename = nsPrintfCString("%s/mozilla.pdf", path);
-  else
-    filename.AssignLiteral("mozilla.pdf");
+  // Set a default file name.
+  nsAutoString filename;
+  nsresult rv = aPrintSettings->GetToFileName(filename);
+  if (NS_FAILED(rv) || filename.IsEmpty()) {
+    const char* path = PR_GetEnv("PWD");
+    if (!path) {
+      path = PR_GetEnv("HOME");
+    }
 
-  DO_PR_DEBUG_LOG(("Setting default filename to '%s'\n", filename.get()));
-  aPrintSettings->SetToFileName(NS_ConvertUTF8toUTF16(filename).get());
+    if (path) {
+      CopyUTF8toUTF16(path, filename);
+      filename.AppendLiteral("/mozilla.pdf");
+    } else {
+      filename.AssignLiteral("mozilla.pdf");
+    }
+
+    DO_PR_DEBUG_LOG(("Setting default filename to '%s'\n",
+                     NS_ConvertUTF16toUTF8(filename).get()));
+    aPrintSettings->SetToFileName(filename);
+  }
 
   aPrintSettings->SetIsInitializedFromPrinter(true);
 
   return NS_OK;    
-}
-
-NS_IMETHODIMP nsPrinterEnumeratorGTK::DisplayPropertiesDlg(const char16_t *aPrinter, nsIPrintSettings *aPrintSettings)
-{
-  return NS_OK;
 }
 
 //----------------------------------------------------------------------
@@ -483,9 +483,9 @@ void GlobalPrinters::FreeGlobalPrinters()
 }
 
 void 
-GlobalPrinters::GetDefaultPrinterName(char16_t **aDefaultPrinterName)
+GlobalPrinters::GetDefaultPrinterName(nsAString& aDefaultPrinterName)
 {
-  *aDefaultPrinterName = nullptr;
+  aDefaultPrinterName.Truncate();
   
   bool allocate = !GlobalPrinters::GetInstance()->PrintersAreAllocated();
   
@@ -500,7 +500,7 @@ GlobalPrinters::GetDefaultPrinterName(char16_t **aDefaultPrinterName)
   if (GlobalPrinters::GetInstance()->GetNumPrinters() == 0)
     return;
   
-  *aDefaultPrinterName = ToNewUnicode(*GlobalPrinters::GetInstance()->GetStringAt(0));
+  aDefaultPrinterName = *GlobalPrinters::GetInstance()->GetStringAt(0);
 
   if (allocate) {  
     GlobalPrinters::GetInstance()->FreeGlobalPrinters();

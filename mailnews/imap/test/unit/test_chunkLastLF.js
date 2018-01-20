@@ -56,7 +56,7 @@ function run_test()
   async_run_tests([verifyContentLength, endTest]);
 }
 
-function verifyContentLength()
+function* verifyContentLength()
 {
   dump("adding message to server\n");
   // Add a message to the IMAP server
@@ -74,7 +74,7 @@ function verifyContentLength()
                                                null,
                                                Services.scriptSecurityManager.getSystemPrincipal(),
                                                null,
-                                               Ci.nsILoadInfo.SEC_NORMAL,
+                                               Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
                                                Ci.nsIContentPolicy.TYPE_OTHER);
 
   dump(channel + "\n");
@@ -96,7 +96,7 @@ function verifyContentLength()
   //                                                        null,
   //                                                        Services.scriptSecurityManager.getSystemPrincipal(),
   //                                                        null,
-  //                                                        Ci.nsILoadInfo.SEC_NORMAL,
+  //                                                        Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
   //                                                        Ci.nsIContentPolicy.TYPE_OTHER);
   // Currently attachments have their content length set to the length of the
   // entire message
@@ -105,7 +105,7 @@ function verifyContentLength()
   yield true;
 }
 
-function endTest()
+function* endTest()
 {
   gIMAPIncomingServer.closeCachedConnections();
   gIMAPServer.stop();

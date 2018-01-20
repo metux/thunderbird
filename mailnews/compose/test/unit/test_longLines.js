@@ -118,6 +118,7 @@ function* testBodyWithLongLine() {
   );
 
   // Again, but this time as plain text.
+  fields.body = htmlMessage;
   fields.forcePlainText = true;
   fields.useMultipartAlternative = false;
   yield richCreateMessage(fields, [], identity);
@@ -145,6 +146,7 @@ function* testBodyWithLongLine() {
   );
 
   // Again, but this time as plain text.
+  fields.body = htmlMessage;
   fields.forcePlainText = true;
   fields.useMultipartAlternative = false;
   yield richCreateMessage(fields, [], identity);
@@ -175,6 +177,7 @@ function* testBodyWithLongLine() {
   );
 
   // Again, but this time as plain text.
+  fields.body = htmlMessage;
   fields.forcePlainText = true;
   fields.useMultipartAlternative = false;
   yield richCreateMessage(fields, [], identity);
@@ -199,6 +202,7 @@ function* testBodyWithLongLine() {
   );
 
   // Again, but this time not flowed.
+  fields.body = htmlMessage;
   Services.prefs.setBoolPref("mailnews.send_plaintext_flowed", false);
 
   yield richCreateMessage(fields, [], identity);
@@ -219,6 +223,6 @@ var tests = [
 function run_test() {
   // Ensure we have at least one mail account
   localAccountUtils.loadLocalMailAccount();
-  tests.forEach(add_task);
+  tests.forEach(x => add_task(x));
   run_next_test();
 }

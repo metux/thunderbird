@@ -96,7 +96,7 @@ nsSVGFE::OutputIsTainted(const nsTArray<bool>& aInputsAreTainted,
 
 bool
 nsSVGFE::AttributeAffectsRendering(int32_t aNameSpaceID,
-                                   nsIAtom* aAttribute) const
+                                   nsAtom* aAttribute) const
 {
   return aNameSpaceID == kNameSpaceID_None &&
          (aAttribute == nsGkAtoms::x ||
@@ -140,12 +140,12 @@ nsSVGFE::Result()
 // nsIContent methods
 
 NS_IMETHODIMP_(bool)
-nsSVGFE::IsAttributeMapped(const nsIAtom* name) const
+nsSVGFE::IsAttributeMapped(const nsAtom* name) const
 {
   static const MappedAttributeEntry* const map[] = {
     sFiltersMap
   };
-  
+
   return FindAttributeDependence(name, map) ||
     nsSVGFEBase::IsAttributeMapped(name);
 }
@@ -257,7 +257,7 @@ NS_INTERFACE_MAP_END_INHERITING(SVGComponentTransferFunctionElementBase)
 
 bool
 SVGComponentTransferFunctionElement::AttributeAffectsRendering(int32_t aNameSpaceID,
-                                                               nsIAtom* aAttribute) const
+                                                               nsAtom* aAttribute) const
 {
   return aNameSpaceID == kNameSpaceID_None &&
          (aAttribute == nsGkAtoms::tableValues ||
@@ -320,7 +320,7 @@ SVGComponentTransferFunctionElement::ComputeAttributes()
   uint32_t type = mEnumAttributes[TYPE].GetAnimValue();
 
   float slope, intercept, amplitude, exponent, offset;
-  GetAnimatedNumberValues(&slope, &intercept, &amplitude, 
+  GetAnimatedNumberValues(&slope, &intercept, &amplitude,
                           &exponent, &offset, nullptr);
 
   const SVGNumberList &tableValues =
@@ -459,14 +459,14 @@ nsSVGElement::StringInfo nsSVGFELightingElement::sStringInfo[2] =
 NS_IMPL_ADDREF_INHERITED(nsSVGFELightingElement,nsSVGFELightingElementBase)
 NS_IMPL_RELEASE_INHERITED(nsSVGFELightingElement,nsSVGFELightingElementBase)
 
-NS_INTERFACE_MAP_BEGIN(nsSVGFELightingElement) 
+NS_INTERFACE_MAP_BEGIN(nsSVGFELightingElement)
 NS_INTERFACE_MAP_END_INHERITING(nsSVGFELightingElementBase)
 
 //----------------------------------------------------------------------
 // Implementation
 
 NS_IMETHODIMP_(bool)
-nsSVGFELightingElement::IsAttributeMapped(const nsIAtom* name) const
+nsSVGFELightingElement::IsAttributeMapped(const nsAtom* name) const
 {
   static const MappedAttributeEntry* const map[] = {
     sLightingEffectsMap
@@ -502,7 +502,7 @@ nsSVGFELightingElement::ComputeLightAttributes(nsSVGFilterInstance* aInstance)
 }
 
 FilterPrimitiveDescription
-nsSVGFELightingElement::AddLightingAttributes(FilterPrimitiveDescription aDescription,
+nsSVGFELightingElement::AddLightingAttributes(const FilterPrimitiveDescription& aDescription,
                                               nsSVGFilterInstance* aInstance)
 {
   nsIFrame* frame = GetPrimaryFrame();
@@ -517,7 +517,13 @@ nsSVGFELightingElement::AddLightingAttributes(FilterPrimitiveDescription aDescri
   Size kernelUnitLength =
     GetKernelUnitLength(aInstance, &mNumberPairAttributes[KERNEL_UNIT_LENGTH]);
 
-  FilterPrimitiveDescription& descr = aDescription;
+  if (kernelUnitLength.width <= 0 || kernelUnitLength.height <= 0) {
+    // According to spec, A negative or zero value is an error. See link below for details.
+    // https://www.w3.org/TR/SVG/filters.html#feSpecularLightingKernelUnitLengthAttribute
+    return FilterPrimitiveDescription(PrimitiveType::Empty);
+  }
+
+  FilterPrimitiveDescription descr = aDescription;
   descr.Attributes().Set(eLightingLight, ComputeLightAttributes(aInstance));
   descr.Attributes().Set(eLightingSurfaceScale, surfaceScale);
   descr.Attributes().Set(eLightingKernelUnitLength, kernelUnitLength);
@@ -527,7 +533,7 @@ nsSVGFELightingElement::AddLightingAttributes(FilterPrimitiveDescription aDescri
 
 bool
 nsSVGFELightingElement::AttributeAffectsRendering(int32_t aNameSpaceID,
-                                                  nsIAtom* aAttribute) const
+                                                  nsAtom* aAttribute) const
 {
   return nsSVGFELightingElementBase::AttributeAffectsRendering(aNameSpaceID, aAttribute) ||
          (aNameSpaceID == kNameSpaceID_None &&

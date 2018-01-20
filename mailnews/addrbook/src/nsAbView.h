@@ -7,14 +7,13 @@
 #define _nsAbView_H_
 
 #include "nsISupports.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsIAbView.h"
 #include "nsITreeView.h"
 #include "nsITreeBoxObject.h"
 #include "nsITreeSelection.h"
 #include "nsTArray.h"
 #include "nsIAbDirectory.h"
-#include "nsIAtom.h"
 #include "nsICollation.h"
 #include "nsIAbListener.h"
 #include "nsIObserver.h"
@@ -43,7 +42,7 @@ public:
   NS_DECL_NSITREEVIEW
   NS_DECL_NSIABLISTENER
   NS_DECL_NSIOBSERVER
-  
+
   int32_t CompareCollationKeys(uint8_t *key1, uint32_t len1, uint8_t *key2, uint32_t len2);
 
 private:

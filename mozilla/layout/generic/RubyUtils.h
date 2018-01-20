@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,8 +7,10 @@
 #ifndef mozilla_RubyUtils_h_
 #define mozilla_RubyUtils_h_
 
-#include "nsTArray.h"
+#include "nsCSSAnonBoxes.h"
 #include "nsGkAtoms.h"
+#include "nsIFrame.h"
+#include "nsTArray.h"
 
 #define RTC_ARRAY_SIZE 1
 
@@ -53,28 +55,37 @@ namespace mozilla {
 class RubyUtils
 {
 public:
-  static inline bool IsRubyContentBox(nsIAtom* aFrameType)
+  static inline bool IsRubyContentBox(LayoutFrameType aFrameType)
   {
-    return aFrameType == nsGkAtoms::rubyBaseFrame ||
-           aFrameType == nsGkAtoms::rubyTextFrame;
+    return aFrameType == mozilla::LayoutFrameType::RubyBase ||
+           aFrameType == mozilla::LayoutFrameType::RubyText;
   }
 
-  static inline bool IsRubyContainerBox(nsIAtom* aFrameType)
+  static inline bool IsRubyContainerBox(LayoutFrameType aFrameType)
   {
-    return aFrameType == nsGkAtoms::rubyBaseContainerFrame ||
-           aFrameType == nsGkAtoms::rubyTextContainerFrame;
+    return aFrameType == mozilla::LayoutFrameType::RubyBaseContainer ||
+           aFrameType == mozilla::LayoutFrameType::RubyTextContainer;
   }
 
-  static inline bool IsRubyBox(nsIAtom* aFrameType)
+  static inline bool IsRubyBox(LayoutFrameType aFrameType)
   {
-    return aFrameType == nsGkAtoms::rubyFrame ||
-      IsRubyContentBox(aFrameType) || IsRubyContainerBox(aFrameType);
+    return aFrameType == mozilla::LayoutFrameType::Ruby ||
+           IsRubyContentBox(aFrameType) || IsRubyContainerBox(aFrameType);
   }
 
   static inline bool IsExpandableRubyBox(nsIFrame* aFrame)
   {
-    nsIAtom* type = aFrame->GetType();
+    mozilla::LayoutFrameType type = aFrame->Type();
     return IsRubyContentBox(type) || IsRubyContainerBox(type);
+  }
+
+  static inline bool IsRubyPseudo(nsAtom* aPseudo)
+  {
+    return aPseudo == nsCSSAnonBoxes::ruby ||
+           aPseudo == nsCSSAnonBoxes::rubyBase ||
+           aPseudo == nsCSSAnonBoxes::rubyText ||
+           aPseudo == nsCSSAnonBoxes::rubyBaseContainer ||
+           aPseudo == nsCSSAnonBoxes::rubyTextContainer;
   }
 
   static void SetReservedISize(nsIFrame* aFrame, nscoord aISize);
@@ -86,8 +97,8 @@ public:
  * This array stores all ruby text containers of the ruby segment
  * of the given ruby base container.
  */
-class MOZ_STACK_CLASS AutoRubyTextContainerArray final
-  : public nsAutoTArray<nsRubyTextContainerFrame*, RTC_ARRAY_SIZE>
+class MOZ_RAII AutoRubyTextContainerArray final
+  : public AutoTArray<nsRubyTextContainerFrame*, RTC_ARRAY_SIZE>
 {
 public:
   explicit AutoRubyTextContainerArray(nsRubyBaseContainerFrame* aBaseContainer);
@@ -121,9 +132,57 @@ private:
 struct MOZ_STACK_CLASS RubyColumn
 {
   nsRubyBaseFrame* mBaseFrame;
-  nsAutoTArray<nsRubyTextFrame*, RTC_ARRAY_SIZE> mTextFrames;
+  AutoTArray<nsRubyTextFrame*, RTC_ARRAY_SIZE> mTextFrames;
   bool mIsIntraLevelWhitespace;
+
   RubyColumn() : mBaseFrame(nullptr), mIsIntraLevelWhitespace(false) { }
+
+  // Helper class to support iteration across the frames within a single
+  // RubyColumn (the column's ruby base and its annotations).
+  class MOZ_STACK_CLASS Iterator
+  {
+  public:
+    nsIFrame* operator*() const;
+
+    Iterator& operator++() { ++mIndex; SkipUntilExistingFrame(); return *this; }
+    Iterator operator++(int) { auto ret = *this; ++*this; return ret; }
+
+    friend bool operator==(const Iterator& aIter1, const Iterator& aIter2)
+    {
+      MOZ_ASSERT(&aIter1.mColumn == &aIter2.mColumn,
+                 "Should only compare iterators of the same ruby column");
+      return aIter1.mIndex == aIter2.mIndex;
+    }
+    friend bool operator!=(const Iterator& aIter1, const Iterator& aIter2)
+    {
+      return !(aIter1 == aIter2);
+    }
+
+  private:
+    Iterator(const RubyColumn& aColumn, int32_t aIndex)
+      : mColumn(aColumn)
+      , mIndex(aIndex)
+    {
+      MOZ_ASSERT(aIndex == -1 ||
+                 (aIndex >= 0 &&
+                  aIndex <= int32_t(aColumn.mTextFrames.Length())));
+      SkipUntilExistingFrame();
+    }
+    friend struct RubyColumn; // for the constructor
+
+    void SkipUntilExistingFrame();
+
+    const RubyColumn& mColumn;
+    // -1 means the ruby base frame,
+    // non-negative means the index of ruby text frame
+    // a value of mTextFrames.Length() means we're done iterating
+    int32_t mIndex = -1;
+  };
+
+  Iterator begin() const { return Iterator(*this, -1); }
+  Iterator end() const { return Iterator(*this, mTextFrames.Length()); }
+  Iterator cbegin() const { return begin(); }
+  Iterator cend() const { return end(); }
 };
 
 /**
@@ -146,9 +205,29 @@ private:
   // Frames in this array are NOT necessary part of the current column.
   // When in doubt, use GetFrameAtLevel to access it.
   // See GetFrameAtLevel() and Next() for more info.
-  nsAutoTArray<nsRubyContentFrame*, RTC_ARRAY_SIZE + 1> mFrames;
+  AutoTArray<nsRubyContentFrame*, RTC_ARRAY_SIZE + 1> mFrames;
   // Whether we are on a column for intra-level whitespaces
   bool mAtIntraLevelWhitespace;
+};
+
+/**
+ * Stores block-axis leadings produced from ruby annotations.
+ */
+struct RubyBlockLeadings
+{
+  nscoord mStart = 0;
+  nscoord mEnd = 0;
+
+  void Reset() {
+    mStart = mEnd = 0;
+  }
+  void Update(nscoord aStart, nscoord aEnd) {
+    mStart = std::max(mStart, aStart);
+    mEnd = std::max(mEnd, aEnd);
+  }
+  void Update(const RubyBlockLeadings& aOther) {
+    Update(aOther.mStart, aOther.mEnd);
+  }
 };
 
 } // namespace mozilla

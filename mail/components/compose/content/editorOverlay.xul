@@ -38,7 +38,7 @@
     <key                           key="&incrementFontSize.key;"    observes="cmd_increaseFontStep"  modifiers="accel, shift"/>
     <key                           key="&incrementFontSize.key2;"   observes="cmd_increaseFontStep"  modifiers="accel"/>
 
-    <key id="insertlinkkb"         key="&insertLinkCmd.key;"           observes="cmd_link"          modifiers="accel"/>
+    <key id="insertlinkkb"         key="&insertLinkCmd2.key;"       observes="cmd_link"              modifiers="accel"/>
   </keyset>
 
   <!-- commands updated when the editor gets created -->
@@ -218,8 +218,8 @@
                 accesskey="&insertTableCmd.accesskey;"
                 observes="cmd_InsertTable"/>
       <menuitem id="insertLink"
-                label="&insertLinkCmd.label;"
-                accesskey="&insertLinkCmd.accesskey;"
+                label="&insertLinkCmd2.label;"
+                accesskey="&insertLinkCmd2.accesskey;"
                 key="insertlinkkb"
                 observes="cmd_link"/>
       <menuitem id="insertAnchor"
@@ -875,11 +875,11 @@
   <menulist id="FontFaceSelect"
             class="toolbar-focustarget"
             oncommand="doStatefulCommand('cmd_fontFace', event.target.value)"
-            crop="right">
+            crop="center"
+            sizetopopup="pref">
     <observes element="font-face-select-container" attribute="disabled"/>
     <observes element="cmd_fontFace" attribute="state" onbroadcast="onFontFaceChange(this.parentNode, 'cmd_fontFace')"/>
-    <menupopup id="FontFacePopup"
-               class="noIconPopup">
+    <menupopup id="FontFacePopup">
       <menuitem id="toolbarmenu_fontVarWidth" label="&fontVarWidth.label;" value=""/>
       <menuitem id="toolbarmenu_fontFixedWidth" label="&fontFixedWidth.label;" value="tt"/>
       <menuseparator id="toolbarmenuAfterGenericFontsSeparator"/>

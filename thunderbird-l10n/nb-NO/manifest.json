@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "nb-NO": {
+      "chrome_resources": {
+        "necko": "chrome/nb-NO/locale/nb-NO/necko/", 
+        "global": "chrome/nb-NO/locale/nb-NO/global/", 
+        "messenger-region": "chrome/nb-NO/locale/nb-NO/messenger-region/", 
+        "chat": "chrome/nb-NO/locale/nb-NO/chat/", 
+        "devtools": "chrome/nb-NO/locale/nb-NO/devtools/client/", 
+        "pipnss": "chrome/nb-NO/locale/nb-NO/pipnss/", 
+        "messenger-smime": "chrome/nb-NO/locale/nb-NO/messenger-smime/", 
+        "messenger-newsblog": "chrome/nb-NO/locale/nb-NO/messenger-newsblog/", 
+        "devtools-shim": "chrome/nb-NO/locale/nb-NO/devtools/shim/", 
+        "alerts": "chrome/nb-NO/locale/nb-NO/alerts/", 
+        "messenger": "chrome/nb-NO/locale/nb-NO/messenger/", 
+        "editor": "chrome/nb-NO/locale/nb-NO/editor/", 
+        "branding": "chrome/nb-NO/locale/nb-NO/branding/", 
+        "mozldap": "chrome/nb-NO/locale/nb-NO/mozldap/", 
+        "autoconfig": "chrome/nb-NO/locale/nb-NO/autoconfig/", 
+        "devtools-shared": "chrome/nb-NO/locale/nb-NO/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/nb-NO/locale/nb-NO/global-platform/win/", 
+          "android": "chrome/nb-NO/locale/nb-NO/global-platform/unix/", 
+          "macosx": "chrome/nb-NO/locale/nb-NO/global-platform/mac/", 
+          "linux": "chrome/nb-NO/locale/nb-NO/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/nb-NO/locale/nb-NO/mozapps/", 
+        "pluginproblem": "chrome/nb-NO/locale/nb-NO/pluginproblem/", 
+        "communicator": "chrome/nb-NO/locale/nb-NO/communicator/", 
+        "messenger-mapi": "chrome/nb-NO/locale/nb-NO/messenger-mapi/", 
+        "places": "chrome/nb-NO/locale/nb-NO/places/", 
+        "passwordmgr": "chrome/nb-NO/locale/nb-NO/passwordmgr/", 
+        "pippki": "chrome/nb-NO/locale/nb-NO/pippki/"
+      }, 
+      "version": "20171102223219"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "58.0", 
+      "id": "langpack-nb-NO@firefox.mozilla.org", 
+      "strict_max_version": "58.*"
+    }
+  }, 
+  "langpack_id": "nb-NO", 
+  "version": "58.0", 
+  "name": "Norsk bokmål (NO) Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "firefox.no (contributors: Pascual Strømsnæs, Vidar Braut Haarr, Håvar Henriksen, Reidar Djupvik, Jan-Espen Pettersen, Håvard Mork, Lasse Marøen, Martin Joné, Morten Liljegren)", 
+  "description": "Language pack for Thunderbird for nb-NO"
+}

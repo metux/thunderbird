@@ -10,9 +10,9 @@ function test() {
   Harness.setup();
 
   var triggers = encodeURIComponent(JSON.stringify({
-    "Unsigned XPI": TESTROOT + "unsigned.xpi"
+    "Unsigned XPI": TESTROOT + "amosigned.xpi"
   }));
-  gBrowser.selectedTab = gBrowser.addTab();
+  gBrowser.selectedTab = BrowserTestUtils.addTab(gBrowser);
   gBrowser.loadURI(TESTROOT + "installtrigger.html?" + triggers);
 }
 
@@ -26,8 +26,7 @@ function confirm_install(window) {
   var items = window.document.getElementById("itemList").childNodes;
   is(items.length, 1, "Should only be 1 item listed in the confirmation dialog");
   is(items[0].name, "XPI Test", "Should have seen the name from the trigger list");
-  is(items[0].url, TESTROOT + "unsigned.xpi", "Should have listed the correct url for the item");
-  is(items[0].signed, "false", "Should have listed the item as unsigned");
+  is(items[0].url, TESTROOT + "amosigned.xpi", "Should have listed the correct url for the item");
   return true;
 }
 
@@ -35,12 +34,19 @@ function install_ended(install, addon) {
   install.cancel();
 }
 
-function finish_test(count) {
+const finish_test = async function(count) {
   is(count, 1, "1 Add-on should have been successfully installed");
 
-  var doc = gBrowser.contentDocument;
-  is(doc.getElementById("return").textContent, "false", "installTrigger should seen a failure");
+  const results = await ContentTask.spawn(gBrowser.selectedBrowser, null, () => {
+    return {
+      return: content.document.getElementById("return").textContent,
+      status: content.document.getElementById("status").textContent,
+    };
+  });
+
+  is(results.return, "false", "installTrigger should seen a failure");
+
   gBrowser.removeCurrentTab();
   Harness.finish();
-}
+};
 // ----------------------------------------------------------------------------

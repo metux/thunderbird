@@ -8,8 +8,11 @@
 #include "mozilla/RefPtr.h"
 #include "DOMMediaStream.h"
 #include "MediaStreamGraph.h"
+#include "MediaTrackConstraints.h"
 #include "mozilla/dom/MediaStreamTrackBinding.h"
 #include "mozilla/dom/VideoStreamTrack.h"
+#include "mozilla/ipc/PBackgroundSharedTypes.h"
+#include "mozilla/media/DeviceChangeCallback.h"
 
 namespace mozilla {
 
@@ -27,12 +30,10 @@ enum {
  * Abstract interface for managing audio and video devices. Each platform
  * must implement a concrete class that will map these classes and methods
  * to the appropriate backend. For example, on Desktop platforms, these will
- * correspond to equivalent webrtc (GIPS) calls, and on B2G they will map to
- * a Gonk interface.
+ * correspond to equivalent webrtc (GIPS) calls.
  */
 class MediaEngineVideoSource;
 class MediaEngineAudioSource;
-class MediaEnginePrefs;
 
 enum MediaEngineState {
   kAllocated,
@@ -41,7 +42,7 @@ enum MediaEngineState {
   kReleased
 };
 
-class MediaEngine
+class MediaEngine : public DeviceChangeCallback
 {
 public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaEngine)
@@ -53,11 +54,12 @@ public:
   static const int DEFAULT_169_VIDEO_WIDTH = 1280;
   static const int DEFAULT_169_VIDEO_HEIGHT = 720;
 
-#ifndef MOZ_B2G
   static const int DEFAULT_SAMPLE_RATE = 32000;
-#else
-  static const int DEFAULT_SAMPLE_RATE = 16000;
-#endif
+
+  // This allows using whatever rate the graph is using for the
+  // MediaStreamTrack. This is useful for microphone data, we know it's already
+  // at the correct rate for insertion in the MSG.
+  static const int USE_GRAPH_RATE = -1;
 
   /* Populate an array of video sources in the nsTArray. Also include devices
    * that are currently unavailable. */
@@ -71,138 +73,10 @@ public:
 
   virtual void Shutdown() = 0;
 
+  virtual void SetFakeDeviceChangeEvents() {}
+
 protected:
   virtual ~MediaEngine() {}
-};
-
-/**
- * Common abstract base class for audio and video sources.
- */
-class MediaEngineSource : public nsISupports
-{
-public:
-  // code inside webrtc.org assumes these sizes; don't use anything smaller
-  // without verifying it's ok
-  static const unsigned int kMaxDeviceNameLength = 128;
-  static const unsigned int kMaxUniqueIdLength = 256;
-
-  virtual ~MediaEngineSource() {}
-
-  virtual void Shutdown() = 0;
-
-  /* Populate the human readable name of this device in the nsAString */
-  virtual void GetName(nsAString&) = 0;
-
-  /* Populate the UUID of this device in the nsACString */
-  virtual void GetUUID(nsACString&) = 0;
-
-  /* Release the device back to the system. */
-  virtual nsresult Deallocate() = 0;
-
-  /* Start the device and add the track to the provided SourceMediaStream, with
-   * the provided TrackID. You may start appending data to the track
-   * immediately after. */
-  virtual nsresult Start(SourceMediaStream*, TrackID) = 0;
-
-  /* tell the source if there are any direct listeners attached */
-  virtual void SetDirectListeners(bool) = 0;
-
-  /* Called when the stream wants more data */
-  virtual void NotifyPull(MediaStreamGraph* aGraph,
-                          SourceMediaStream *aSource,
-                          TrackID aId,
-                          StreamTime aDesiredTime) = 0;
-
-  /* Stop the device and release the corresponding MediaStream */
-  virtual nsresult Stop(SourceMediaStream *aSource, TrackID aID) = 0;
-
-  /* Restart with new capability */
-  virtual nsresult Restart(const dom::MediaTrackConstraints& aConstraints,
-                           const MediaEnginePrefs &aPrefs,
-                           const nsString& aDeviceId) = 0;
-
-  /* Change device configuration.  */
-  virtual nsresult Config(bool aEchoOn, uint32_t aEcho,
-                          bool aAgcOn, uint32_t aAGC,
-                          bool aNoiseOn, uint32_t aNoise,
-                          int32_t aPlayoutDelay) = 0;
-
-  /* Returns true if a source represents a fake capture device and
-   * false otherwise
-   */
-  virtual bool IsFake() = 0;
-
-  /* Returns the type of media source (camera, microphone, screen, window, etc) */
-  virtual const dom::MediaSourceEnum GetMediaSource() = 0;
-
-  // Callback interface for TakePhoto(). Either PhotoComplete() or PhotoError()
-  // should be called.
-  class PhotoCallback {
-  public:
-    NS_INLINE_DECL_THREADSAFE_REFCOUNTING(PhotoCallback)
-
-    // aBlob is the image captured by MediaEngineSource. It is
-    // called on main thread.
-    virtual nsresult PhotoComplete(already_AddRefed<dom::Blob> aBlob) = 0;
-
-    // It is called on main thread. aRv is the error code.
-    virtual nsresult PhotoError(nsresult aRv) = 0;
-
-  protected:
-    virtual ~PhotoCallback() {}
-  };
-
-  /* If implementation of MediaEngineSource supports TakePhoto(), the picture
-   * should be return via aCallback object. Otherwise, it returns NS_ERROR_NOT_IMPLEMENTED.
-   * Currently, only Gonk MediaEngineSource implementation supports it.
-   */
-  virtual nsresult TakePhoto(PhotoCallback* aCallback) = 0;
-
-  /* Return false if device is currently allocated or started */
-  bool IsAvailable() {
-    if (mState == kAllocated || mState == kStarted) {
-      return false;
-    } else {
-      return true;
-    }
-  }
-
-  /* It is an error to call Start() before an Allocate(), and Stop() before
-   * a Start(). Only Allocate() may be called after a Deallocate(). */
-
-  void SetHasFakeTracks(bool aHasFakeTracks) {
-    mHasFakeTracks = aHasFakeTracks;
-  }
-
-  /* This call reserves but does not start the device. */
-  virtual nsresult Allocate(const dom::MediaTrackConstraints &aConstraints,
-                            const MediaEnginePrefs &aPrefs,
-                            const nsString& aDeviceId) = 0;
-
-  virtual uint32_t GetBestFitnessDistance(
-      const nsTArray<const dom::MediaTrackConstraintSet*>& aConstraintSets,
-      const nsString& aDeviceId) = 0;
-
-protected:
-  // Only class' own members can be initialized in constructor initializer list.
-  explicit MediaEngineSource(MediaEngineState aState)
-    : mState(aState)
-#ifdef DEBUG
-    , mOwningThread(PR_GetCurrentThread())
-#endif
-    , mHasFakeTracks(false)
-  {}
-
-  void AssertIsOnOwningThread()
-  {
-    MOZ_ASSERT(PR_GetCurrentThread() == mOwningThread);
-  }
-
-  MediaEngineState mState;
-#ifdef DEBUG
-  PRThread* mOwningThread;
-#endif
-  bool mHasFakeTracks;
 };
 
 /**
@@ -210,11 +84,43 @@ protected:
  */
 class MediaEnginePrefs {
 public:
+  MediaEnginePrefs()
+    : mWidth(0)
+    , mHeight(0)
+    , mFPS(0)
+    , mMinFPS(0)
+    , mFreq(0)
+    , mAecOn(false)
+    , mAgcOn(false)
+    , mNoiseOn(false)
+    , mAec(0)
+    , mAgc(0)
+    , mNoise(0)
+    , mPlayoutDelay(0)
+    , mFullDuplex(false)
+    , mExtendedFilter(false)
+    , mDelayAgnostic(false)
+    , mFakeDeviceChangeEventOn(false)
+    , mChannels(0)
+  {}
+
   int32_t mWidth;
   int32_t mHeight;
   int32_t mFPS;
   int32_t mMinFPS;
   int32_t mFreq; // for test tones (fake:true)
+  bool mAecOn;
+  bool mAgcOn;
+  bool mNoiseOn;
+  int32_t mAec;
+  int32_t mAgc;
+  int32_t mNoise;
+  int32_t mPlayoutDelay;
+  bool mFullDuplex;
+  bool mExtendedFilter;
+  bool mDelayAgnostic;
+  bool mFakeDeviceChangeEventOn;
+  int32_t mChannels;
 
   // mWidth and/or mHeight may be zero (=adaptive default), so use functions.
 
@@ -251,6 +157,296 @@ private:
   }
 };
 
+/**
+ * Callback interface for TakePhoto(). Either PhotoComplete() or PhotoError()
+ * should be called.
+ */
+class MediaEnginePhotoCallback {
+public:
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaEnginePhotoCallback)
+
+  // aBlob is the image captured by MediaEngineSource. It is
+  // called on main thread.
+  virtual nsresult PhotoComplete(already_AddRefed<dom::Blob> aBlob) = 0;
+
+  // It is called on main thread. aRv is the error code.
+  virtual nsresult PhotoError(nsresult aRv) = 0;
+
+protected:
+  virtual ~MediaEnginePhotoCallback() {}
+};
+
+/**
+ * Common abstract base class for audio and video sources.
+ *
+ * By default, the base class implements Allocate and Deallocate using its
+ * UpdateSingleSource pattern, which manages allocation handles and calculates
+ * net constraints from competing allocations and updates a single shared device.
+ *
+ * Classes that don't operate as a single shared device can override Allocate
+ * and Deallocate and simply not pass the methods up.
+ */
+class MediaEngineSource : public nsISupports,
+                          protected MediaConstraintsHelper
+{
+public:
+  // code inside webrtc.org assumes these sizes; don't use anything smaller
+  // without verifying it's ok
+  static const unsigned int kMaxDeviceNameLength = 128;
+  static const unsigned int kMaxUniqueIdLength = 256;
+
+  virtual ~MediaEngineSource()
+  {
+    if (!mInShutdown) {
+      Shutdown();
+    }
+  }
+
+  virtual void Shutdown()
+  {
+    mInShutdown = true;
+  };
+
+  /* Populate the human readable name of this device in the nsAString */
+  virtual void GetName(nsAString&) const = 0;
+
+  /* Populate the UUID of this device in the nsACString */
+  virtual void GetUUID(nsACString&) const = 0;
+
+  /* Override w/true if source does end-run around cross origin restrictions. */
+  virtual bool GetScary() const { return false; };
+
+  class AllocationHandle
+  {
+  public:
+    NS_INLINE_DECL_THREADSAFE_REFCOUNTING(AllocationHandle);
+  protected:
+    ~AllocationHandle() {}
+  public:
+    AllocationHandle(const dom::MediaTrackConstraints& aConstraints,
+                     const mozilla::ipc::PrincipalInfo& aPrincipalInfo,
+                     const MediaEnginePrefs& aPrefs,
+                     const nsString& aDeviceId)
+
+    : mConstraints(aConstraints),
+      mPrincipalInfo(aPrincipalInfo),
+      mPrefs(aPrefs),
+      mDeviceId(aDeviceId) {}
+  public:
+    NormalizedConstraints mConstraints;
+    mozilla::ipc::PrincipalInfo mPrincipalInfo;
+    MediaEnginePrefs mPrefs;
+    nsString mDeviceId;
+  };
+
+  /* Release the device back to the system. */
+  virtual nsresult Deallocate(AllocationHandle* aHandle)
+  {
+    MOZ_ASSERT(aHandle);
+    RefPtr<AllocationHandle> handle = aHandle;
+
+    class Comparator {
+    public:
+      static bool Equals(const RefPtr<AllocationHandle>& a,
+                         const RefPtr<AllocationHandle>& b) {
+        return a.get() == b.get();
+      }
+    };
+
+    auto ix = mRegisteredHandles.IndexOf(handle, 0, Comparator());
+    if (ix == mRegisteredHandles.NoIndex) {
+      MOZ_ASSERT(false);
+      return NS_ERROR_FAILURE;
+    }
+
+    mRegisteredHandles.RemoveElementAt(ix);
+    if (mRegisteredHandles.Length() && !mInShutdown) {
+      // Whenever constraints are removed, other parties may get closer to ideal.
+      auto& first = mRegisteredHandles[0];
+      const char* badConstraint = nullptr;
+      return ReevaluateAllocation(nullptr, nullptr, first->mPrefs,
+                                  first->mDeviceId, &badConstraint);
+    }
+    return NS_OK;
+  }
+
+  /* Start the device and add the track to the provided SourceMediaStream, with
+   * the provided TrackID. You may start appending data to the track
+   * immediately after. */
+  virtual nsresult Start(SourceMediaStream*, TrackID, const PrincipalHandle&) = 0;
+
+  /* Called when the stream wants more data */
+  virtual void NotifyPull(MediaStreamGraph* aGraph,
+                          SourceMediaStream *aSource,
+                          TrackID aId,
+                          StreamTime aDesiredTime,
+                          const PrincipalHandle& aPrincipalHandle) = 0;
+
+  /* Stop the device and release the corresponding MediaStream */
+  virtual nsresult Stop(SourceMediaStream *aSource, TrackID aID) = 0;
+
+  /* Restart with new capability */
+  virtual nsresult Restart(AllocationHandle* aHandle,
+                           const dom::MediaTrackConstraints& aConstraints,
+                           const MediaEnginePrefs &aPrefs,
+                           const nsString& aDeviceId,
+                           const char** aOutBadConstraint) = 0;
+
+  /* Returns true if a source represents a fake capture device and
+   * false otherwise
+   */
+  virtual bool IsFake() = 0;
+
+  /* Returns the type of media source (camera, microphone, screen, window, etc) */
+  virtual dom::MediaSourceEnum GetMediaSource() const = 0;
+
+  /* If implementation of MediaEngineSource supports TakePhoto(), the picture
+   * should be return via aCallback object. Otherwise, it returns NS_ERROR_NOT_IMPLEMENTED.
+   */
+  virtual nsresult TakePhoto(MediaEnginePhotoCallback* aCallback) = 0;
+
+  /* Return false if device is currently allocated or started */
+  bool IsAvailable() {
+    if (mState == kAllocated || mState == kStarted) {
+      return false;
+    } else {
+      return true;
+    }
+  }
+
+  /* It is an error to call Start() before an Allocate(), and Stop() before
+   * a Start(). Only Allocate() may be called after a Deallocate(). */
+
+  /* This call reserves but does not start the device. */
+  virtual nsresult Allocate(const dom::MediaTrackConstraints &aConstraints,
+                            const MediaEnginePrefs &aPrefs,
+                            const nsString& aDeviceId,
+                            const mozilla::ipc::PrincipalInfo& aPrincipalInfo,
+                            AllocationHandle** aOutHandle,
+                            const char** aOutBadConstraint)
+  {
+    AssertIsOnOwningThread();
+    MOZ_ASSERT(aOutHandle);
+    RefPtr<AllocationHandle> handle =
+      new AllocationHandle(aConstraints, aPrincipalInfo, aPrefs, aDeviceId);
+    nsresult rv = ReevaluateAllocation(handle, nullptr, aPrefs, aDeviceId,
+                                       aOutBadConstraint);
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
+    mRegisteredHandles.AppendElement(handle);
+    handle.forget(aOutHandle);
+    return NS_OK;
+  }
+
+  virtual uint32_t GetBestFitnessDistance(
+      const nsTArray<const NormalizedConstraintSet*>& aConstraintSets,
+      const nsString& aDeviceId) const = 0;
+
+  void GetSettings(dom::MediaTrackSettings& aOutSettings)
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+    aOutSettings = *mSettings;
+  }
+
+protected:
+  // Only class' own members can be initialized in constructor initializer list.
+  explicit MediaEngineSource(MediaEngineState aState)
+    : mState(aState)
+    , mInShutdown(false)
+    , mSettings(MakeRefPtr<media::Refcountable<dom::MediaTrackSettings>>())
+  {}
+
+  /* UpdateSingleSource - Centralized abstract function to implement in those
+   * cases where a single device is being shared between users. Should apply net
+   * constraints and restart the device as needed.
+   *
+   * aHandle           - New or existing handle, or null to update after removal.
+   * aNetConstraints   - Net constraints to be applied to the single device.
+   * aPrefs            - As passed in (in case of changes in about:config).
+   * aDeviceId         - As passed in (origin dependent).
+   * aOutBadConstraint - Result: nonzero if failed to apply. Name of culprit.
+   */
+
+  virtual nsresult
+  UpdateSingleSource(const AllocationHandle* aHandle,
+                     const NormalizedConstraints& aNetConstraints,
+                     const MediaEnginePrefs& aPrefs,
+                     const nsString& aDeviceId,
+                     const char** aOutBadConstraint) {
+    return NS_ERROR_NOT_IMPLEMENTED;
+  };
+
+  /* ReevaluateAllocation - Call to change constraints for an allocation of
+   * a single device. Manages allocation handles, calculates net constraints
+   * from all competing allocations, and calls UpdateSingleSource with the net
+   * result, to restart the single device as needed.
+   *
+   * aHandle            - New or existing handle, or null to update after removal.
+   * aConstraintsUpdate - Constraints to be applied to existing handle, or null.
+   * aPrefs             - As passed in (in case of changes from about:config).
+   * aDeviceId          - As passed in (origin-dependent id).
+   * aOutBadConstraint  - Result: nonzero if failed to apply. Name of culprit.
+   */
+
+  nsresult
+  ReevaluateAllocation(AllocationHandle* aHandle,
+                       NormalizedConstraints* aConstraintsUpdate,
+                       const MediaEnginePrefs& aPrefs,
+                       const nsString& aDeviceId,
+                       const char** aOutBadConstraint)
+  {
+    // aHandle and/or aConstraintsUpdate may be nullptr (see below)
+
+    AutoTArray<const NormalizedConstraints*, 10> allConstraints;
+    for (auto& registered : mRegisteredHandles) {
+      if (aConstraintsUpdate && registered.get() == aHandle) {
+        continue; // Don't count old constraints
+      }
+      allConstraints.AppendElement(&registered->mConstraints);
+    }
+    if (aConstraintsUpdate) {
+      allConstraints.AppendElement(aConstraintsUpdate);
+    } else if (aHandle) {
+      // In the case of AddShareOfSingleSource, the handle isn't registered yet.
+      allConstraints.AppendElement(&aHandle->mConstraints);
+    }
+
+    NormalizedConstraints netConstraints(allConstraints);
+    if (netConstraints.mBadConstraint) {
+      *aOutBadConstraint = netConstraints.mBadConstraint;
+      return NS_ERROR_FAILURE;
+    }
+
+    nsresult rv = UpdateSingleSource(aHandle, netConstraints, aPrefs, aDeviceId,
+                                     aOutBadConstraint);
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
+    if (aHandle && aConstraintsUpdate) {
+      aHandle->mConstraints = *aConstraintsUpdate;
+    }
+    return NS_OK;
+  }
+
+  void AssertIsOnOwningThread()
+  {
+    NS_ASSERT_OWNINGTHREAD(MediaEngineSource);
+  }
+
+  MediaEngineState mState;
+
+  NS_DECL_OWNINGTHREAD
+
+  nsTArray<RefPtr<AllocationHandle>> mRegisteredHandles;
+  bool mInShutdown;
+
+  // The following is accessed on main-thread only. It has its own ref-count to
+  // avoid ref-counting MediaEngineSource itself in runnables.
+  // (MediaEngineSource subclasses balk on ref-counts too late during shutdown.)
+  RefPtr<media::Refcountable<dom::MediaTrackSettings>> mSettings;
+};
+
 class MediaEngineVideoSource : public MediaEngineSource
 {
 public:
@@ -266,7 +462,8 @@ protected:
 /**
  * Audio source and friends.
  */
-class MediaEngineAudioSource : public MediaEngineSource
+class MediaEngineAudioSource : public MediaEngineSource,
+                               public AudioDataListenerInterface
 {
 public:
   virtual ~MediaEngineAudioSource() {}

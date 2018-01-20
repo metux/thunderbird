@@ -163,35 +163,42 @@ function* testDraftInfo() {
     "FCC": identity.fccFolder,
     "X-Identity-Key": identity.key,
     "X-Mozilla-Draft-Info": "internal/draft; " +
-      "vcard=0; receipt=0; DSN=0; uuencode=0; attachmentreminder=0",
+      "vcard=0; receipt=0; DSN=0; uuencode=0; attachmentreminder=0; deliveryformat=4",
   });
 
   fields.attachVCard = true;
   yield richCreateMessage(fields, [], identity);
   checkDraftHeaders({
     "X-Mozilla-Draft-Info": "internal/draft; " +
-      "vcard=1; receipt=0; DSN=0; uuencode=0; attachmentreminder=0",
+      "vcard=1; receipt=0; DSN=0; uuencode=0; attachmentreminder=0; deliveryformat=4",
   });
 
   fields.returnReceipt = true;
   yield richCreateMessage(fields, [], identity);
   checkDraftHeaders({
     "X-Mozilla-Draft-Info": "internal/draft; " +
-      "vcard=1; receipt=1; DSN=0; uuencode=0; attachmentreminder=0",
+      "vcard=1; receipt=1; DSN=0; uuencode=0; attachmentreminder=0; deliveryformat=4",
   });
 
   fields.DSN = true;
   yield richCreateMessage(fields, [], identity);
   checkDraftHeaders({
     "X-Mozilla-Draft-Info": "internal/draft; " +
-      "vcard=1; receipt=1; DSN=1; uuencode=0; attachmentreminder=0",
+      "vcard=1; receipt=1; DSN=1; uuencode=0; attachmentreminder=0; deliveryformat=4",
   });
 
   fields.attachmentReminder = true;
   yield richCreateMessage(fields, [], identity);
   checkDraftHeaders({
     "X-Mozilla-Draft-Info": "internal/draft; " +
-      "vcard=1; receipt=1; DSN=1; uuencode=0; attachmentreminder=1",
+      "vcard=1; receipt=1; DSN=1; uuencode=0; attachmentreminder=1; deliveryformat=4",
+  });
+
+  fields.deliveryFormat = Components.interfaces.nsIMsgCompSendFormat.Both;
+  yield richCreateMessage(fields, [], identity);
+  checkDraftHeaders({
+    "X-Mozilla-Draft-Info": "internal/draft; " +
+      "vcard=1; receipt=1; DSN=1; uuencode=0; attachmentreminder=1; deliveryformat=3",
   });
 }
 
@@ -368,14 +375,14 @@ function* testContentHeaders() {
   checkDraftHeaders(plainAttachmentHeaders, "2");
 
   let httpAttachment = makeAttachment({
-    url: "data:text/html,",
+    url: "data:text/html,<html></html>",
     name: "attachment.html",
   });
   let httpAttachmentHeaders = {
     "Content-Type": "text/html",
     "Content-Disposition": "attachment; filename=\"attachment.html\"",
-    "Content-Base": '"data:text/html,"',
-    "Content-Location": '"data:text/html,"',
+    "Content-Base": '"data:text/html,<html></html>"',
+    "Content-Location": '"data:text/html,<html></html>"',
   };
   yield richCreateMessage(fields, [httpAttachment], identity);
   checkDraftHeaders({
@@ -542,6 +549,6 @@ var tests = [
 function run_test() {
   // Ensure we have at least one mail account
   localAccountUtils.loadLocalMailAccount();
-  tests.forEach(add_task);
+  tests.forEach(x => add_task(x));
   run_next_test();
 }

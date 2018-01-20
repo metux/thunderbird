@@ -1,13 +1,21 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "MobileViewportManager.h"
 
+#include "gfxPrefs.h"
 #include "LayersLogging.h"
+#include "mozilla/PresShell.h"
+#include "nsIDOMEvent.h"
+#include "nsIFrame.h"
+#include "nsLayoutUtils.h"
 #include "nsViewManager.h"
 #include "nsViewportInfo.h"
+#include "UnitTransforms.h"
+#include "nsIDocument.h"
 
 #define MVM_LOG(...)
 // #define MVM_LOG(...) printf_stderr("MVM: " __VA_ARGS__)
@@ -17,6 +25,7 @@ NS_IMPL_ISUPPORTS(MobileViewportManager, nsIDOMEventListener, nsIObserver)
 static const nsLiteralString DOM_META_ADDED = NS_LITERAL_STRING("DOMMetaAdded");
 static const nsLiteralString DOM_META_CHANGED = NS_LITERAL_STRING("DOMMetaChanged");
 static const nsLiteralString FULL_ZOOM_CHANGE = NS_LITERAL_STRING("FullZoomChange");
+static const nsLiteralString LOAD = NS_LITERAL_STRING("load");
 static const nsLiteralCString BEFORE_FIRST_PAINT = NS_LITERAL_CSTRING("before-first-paint");
 
 using namespace mozilla;
@@ -34,13 +43,14 @@ MobileViewportManager::MobileViewportManager(nsIPresShell* aPresShell,
 
   MVM_LOG("%p: creating with presShell %p document %p\n", this, mPresShell, aDocument);
 
-  if (nsCOMPtr<nsPIDOMWindow> window = mDocument->GetWindow()) {
+  if (nsCOMPtr<nsPIDOMWindowOuter> window = mDocument->GetWindow()) {
     mEventTarget = window->GetChromeEventHandler();
   }
   if (mEventTarget) {
     mEventTarget->AddEventListener(DOM_META_ADDED, this, false);
     mEventTarget->AddEventListener(DOM_META_CHANGED, this, false);
     mEventTarget->AddEventListener(FULL_ZOOM_CHANGE, this, false);
+    mEventTarget->AddEventListener(LOAD, this, true);
   }
 
   nsCOMPtr<nsIObserverService> observerService = mozilla::services::GetObserverService();
@@ -62,6 +72,7 @@ MobileViewportManager::Destroy()
     mEventTarget->RemoveEventListener(DOM_META_ADDED, this, false);
     mEventTarget->RemoveEventListener(DOM_META_CHANGED, this, false);
     mEventTarget->RemoveEventListener(FULL_ZOOM_CHANGE, this, false);
+    mEventTarget->RemoveEventListener(LOAD, this, true);
     mEventTarget = nullptr;
   }
 
@@ -75,6 +86,22 @@ MobileViewportManager::Destroy()
 }
 
 void
+MobileViewportManager::SetRestoreResolution(float aResolution,
+                                            LayoutDeviceIntSize aDisplaySize)
+{
+  SetRestoreResolution(aResolution);
+  ScreenIntSize restoreDisplaySize = ViewAs<ScreenPixel>(aDisplaySize,
+    PixelCastJustification::LayoutDeviceIsScreenForBounds);
+  mRestoreDisplaySize = Some(restoreDisplaySize);
+}
+
+void
+MobileViewportManager::SetRestoreResolution(float aResolution)
+{
+  mRestoreResolution = Some(aResolution);
+}
+
+void
 MobileViewportManager::RequestReflow()
 {
   MVM_LOG("%p: got a reflow request\n", this);
@@ -85,6 +112,11 @@ void
 MobileViewportManager::ResolutionUpdated()
 {
   MVM_LOG("%p: resolution updated\n", this);
+  if (!mPainted) {
+    // Save the value, so our default zoom calculation
+    // can take it into account later on.
+    SetRestoreResolution(mPresShell->GetResolution());
+  }
   RefreshSPCSPS();
 }
 
@@ -103,6 +135,12 @@ MobileViewportManager::HandleEvent(nsIDOMEvent* event)
   } else if (type.Equals(FULL_ZOOM_CHANGE)) {
     MVM_LOG("%p: got a full-zoom-change event\n", this);
     RefreshViewportSize(false);
+  } else if (type.Equals(LOAD)) {
+    MVM_LOG("%p: got a load event\n", this);
+    if (!mPainted) {
+      // Load event got fired before the before-first-paint message
+      SetInitialViewport();
+    }
   }
   return NS_OK;
 }
@@ -112,11 +150,52 @@ MobileViewportManager::Observe(nsISupports* aSubject, const char* aTopic, const 
 {
   if (SameCOMIdentity(aSubject, mDocument) && BEFORE_FIRST_PAINT.EqualsASCII(aTopic)) {
     MVM_LOG("%p: got a before-first-paint event\n", this);
-    mIsFirstPaint = true;
-    mPainted = true;
-    RefreshViewportSize(false);
+    if (!mPainted) {
+      // before-first-paint message arrived before load event
+      SetInitialViewport();
+    }
   }
   return NS_OK;
+}
+
+void
+MobileViewportManager::SetInitialViewport()
+{
+  MVM_LOG("%p: setting initial viewport\n", this);
+  mIsFirstPaint = true;
+  mPainted = true;
+  RefreshViewportSize(false);
+}
+
+CSSToScreenScale
+MobileViewportManager::ClampZoom(const CSSToScreenScale& aZoom,
+                                 const nsViewportInfo& aViewportInfo)
+{
+  CSSToScreenScale zoom = aZoom;
+  if (zoom < aViewportInfo.GetMinZoom()) {
+    zoom = aViewportInfo.GetMinZoom();
+    MVM_LOG("%p: Clamped to %f\n", this, zoom.scale);
+  }
+  if (zoom > aViewportInfo.GetMaxZoom()) {
+    zoom = aViewportInfo.GetMaxZoom();
+    MVM_LOG("%p: Clamped to %f\n", this, zoom.scale);
+  }
+  return zoom;
+}
+
+LayoutDeviceToLayerScale
+MobileViewportManager::ScaleResolutionWithDisplayWidth(const LayoutDeviceToLayerScale& aRes,
+                                                       const float& aDisplayWidthChangeRatio,
+                                                       const CSSSize& aNewViewport,
+                                                       const CSSSize& aOldViewport)
+{
+  float cssViewportChangeRatio = (aOldViewport.width == 0)
+     ? 1.0f : aNewViewport.width / aOldViewport.width;
+  LayoutDeviceToLayerScale newRes(aRes.scale * aDisplayWidthChangeRatio
+    / cssViewportChangeRatio);
+  MVM_LOG("%p: Old resolution was %f, changed by %f/%f to %f\n", this, aRes.scale,
+    aDisplayWidthChangeRatio, cssViewportChangeRatio, newRes.scale);
+  return newRes;
 }
 
 CSSToScreenScale
@@ -130,18 +209,30 @@ MobileViewportManager::UpdateResolution(const nsViewportInfo& aViewportInfo,
   LayoutDeviceToLayerScale res(mPresShell->GetResolution());
 
   if (mIsFirstPaint) {
-    CSSToScreenScale defaultZoom = aViewportInfo.GetDefaultZoom();
-    MVM_LOG("%p: default zoom from viewport is %f\n", this, defaultZoom.scale);
-    if (!aViewportInfo.IsDefaultZoomValid()) {
-      defaultZoom = MaxScaleRatio(ScreenSize(aDisplaySize), aViewport);
-      MVM_LOG("%p: Intrinsic computed zoom is %f\n", this, defaultZoom.scale);
-      if (defaultZoom < aViewportInfo.GetMinZoom()) {
-        defaultZoom = aViewportInfo.GetMinZoom();
-        MVM_LOG("%p: Clamped to %f\n", this, defaultZoom.scale);
+    CSSToScreenScale defaultZoom;
+    if (mRestoreResolution) {
+      LayoutDeviceToLayerScale restoreResolution(mRestoreResolution.value());
+      if (mRestoreDisplaySize) {
+        CSSSize prevViewport = mDocument->GetViewportInfo(mRestoreDisplaySize.value()).GetSize();
+        float restoreDisplayWidthChangeRatio = (mRestoreDisplaySize.value().width > 0)
+          ? (float)aDisplaySize.width / (float)mRestoreDisplaySize.value().width : 1.0f;
+
+        restoreResolution =
+          ScaleResolutionWithDisplayWidth(restoreResolution,
+                                          restoreDisplayWidthChangeRatio,
+                                          aViewport,
+                                          prevViewport);
       }
-      if (defaultZoom > aViewportInfo.GetMaxZoom()) {
-        defaultZoom = aViewportInfo.GetMaxZoom();
-        MVM_LOG("%p: Clamped to %f\n", this, defaultZoom.scale);
+      defaultZoom = CSSToScreenScale(restoreResolution.scale * cssToDev.scale);
+      MVM_LOG("%p: restored zoom is %f\n", this, defaultZoom.scale);
+      defaultZoom = ClampZoom(defaultZoom, aViewportInfo);
+    } else {
+      defaultZoom = aViewportInfo.GetDefaultZoom();
+      MVM_LOG("%p: default zoom from viewport is %f\n", this, defaultZoom.scale);
+      if (!aViewportInfo.IsDefaultZoomValid()) {
+        defaultZoom = MaxScaleRatio(ScreenSize(aDisplaySize), aViewport);
+        MVM_LOG("%p: Intrinsic computed zoom is %f\n", this, defaultZoom.scale);
+        defaultZoom = ClampZoom(defaultZoom, aViewportInfo);
       }
     }
     MOZ_ASSERT(aViewportInfo.GetMinZoom() <= defaultZoom &&
@@ -183,14 +274,9 @@ MobileViewportManager::UpdateResolution(const nsViewportInfo& aViewportInfo,
   //    tag is added or removed)
   // 4. neither screen size nor CSS viewport changes
   if (aDisplayWidthChangeRatio) {
-    float cssViewportChangeRatio = (mMobileViewportSize.width == 0)
-       ? 1.0f : aViewport.width / mMobileViewportSize.width;
-    LayoutDeviceToLayerScale newRes(res.scale * aDisplayWidthChangeRatio.value()
-      / cssViewportChangeRatio);
-    MVM_LOG("%p: Old resolution was %f, changed by %f/%f to %f\n", this, res.scale,
-      aDisplayWidthChangeRatio.value(), cssViewportChangeRatio, newRes.scale);
-    mPresShell->SetResolutionAndScaleTo(newRes.scale);
-    res = newRes;
+    res = ScaleResolutionWithDisplayWidth(res, aDisplayWidthChangeRatio.value(),
+      aViewport, mMobileViewportSize);
+    mPresShell->SetResolutionAndScaleTo(res.scale);
   }
 
   return ViewTargetAs<ScreenPixel>(cssToDev * res / ParentLayerToLayerScale(1),
@@ -222,7 +308,7 @@ void
 MobileViewportManager::UpdateDisplayPortMargins()
 {
   if (nsIFrame* root = mPresShell->GetRootScrollFrame()) {
-    bool hasDisplayPort = nsLayoutUtils::GetDisplayPort(root->GetContent(), nullptr);
+    bool hasDisplayPort = nsLayoutUtils::HasDisplayPort(root->GetContent());
     bool hasResolution = mPresShell->ScaleToResolution() &&
         mPresShell->GetResolution() != 1.0f;
     if (!hasDisplayPort && !hasResolution) {
@@ -231,6 +317,13 @@ MobileViewportManager::UpdateDisplayPortMargins()
       // comment 1).
       return;
     }
+    nsRect displayportBase =
+      nsRect(nsPoint(0, 0), nsLayoutUtils::CalculateCompositionSizeForFrame(root));
+    // We only create MobileViewportManager for root content documents. If that ever changes
+    // we'd need to limit the size of this displayport base rect because non-toplevel documents
+    // have no limit on their size.
+    MOZ_ASSERT(mPresShell->GetPresContext()->IsRootContentDocument());
+    nsLayoutUtils::SetDisplayPortBaseIfNotSet(root->GetContent(), displayportBase);
     nsIScrollableFrame* scrollable = do_QueryFrame(root);
     nsLayoutUtils::CalculateAndSetDisplayPortMargins(scrollable,
       nsLayoutUtils::RepaintMode::DoNotRepaint);
@@ -326,6 +419,8 @@ MobileViewportManager::RefreshViewportSize(bool aForceAdjustResolution)
     UpdateDisplayPortMargins();
   }
 
+  CSSSize oldSize = mMobileViewportSize;
+
   // Update internal state.
   mIsFirstPaint = false;
   mMobileViewportSize = viewport;
@@ -333,5 +428,7 @@ MobileViewportManager::RefreshViewportSize(bool aForceAdjustResolution)
   // Kick off a reflow.
   mPresShell->ResizeReflowIgnoreOverride(
     nsPresContext::CSSPixelsToAppUnits(viewport.width),
-    nsPresContext::CSSPixelsToAppUnits(viewport.height));
+    nsPresContext::CSSPixelsToAppUnits(viewport.height),
+    nsPresContext::CSSPixelsToAppUnits(oldSize.width),
+    nsPresContext::CSSPixelsToAppUnits(oldSize.height));
 }

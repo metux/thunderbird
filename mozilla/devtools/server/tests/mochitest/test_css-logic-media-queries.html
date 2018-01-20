@@ -24,19 +24,22 @@ Test that css-logic handles media-queries correctly
 </head>
 <body>
   <div></div>
-  <script type="application/javascript;version=1.8">
+  <script type="application/javascript">
+  "use strict";
 
-  window.onload = function() {
-    var Cu = Components.utils;
+  window.onload = function () {
+    const { classes: Cc, utils: Cu, interfaces: Ci } = Components;
+    const DOMUtils = Cc["@mozilla.org/inspector/dom-utils;1"]
+      .getService(Ci.inIDOMUtils);
 
-    var {require} = Cu.import("resource://devtools/shared/Loader.jsm", {});
-    Cu.import("resource://gre/modules/Services.jsm");
-    const {CssLogic} = require("devtools/shared/styleinspector/css-logic");
+    const {require} = Cu.import("resource://devtools/shared/Loader.jsm", {});
+    const Services = require("Services");
+    const {CssLogic} = require("devtools/server/css-logic");
 
     SimpleTest.waitForExplicitFinish();
 
     let div = document.querySelector("div");
-    let cssLogic = new CssLogic();
+    let cssLogic = new CssLogic(DOMUtils.isInheritedProperty);
     cssLogic.highlight(div);
     cssLogic.processMatchedSelectors();
 
@@ -53,8 +56,7 @@ Test that css-logic handles media-queries correctly
       "rule.source gives correct output for rule 2");
 
     SimpleTest.finish();
-  }
-
+  };
   </script>
 </body>
 </html>

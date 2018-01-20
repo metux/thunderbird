@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -12,8 +14,8 @@
 
 #include <stdint.h>                     // for uint16_t, uint32_t
 #include <sys/types.h>                  // for int32_t
-#include "gfxPlatform.h"                // for GetTileWidth/GetTileHeight
 #include "LayersLogging.h"              // for print_stderr
+#include "mozilla/gfx/gfxVars.h"
 #include "mozilla/gfx/Logging.h"        // for gfxCriticalError
 #include "mozilla/layers/LayersTypes.h" // for TextureDumpMode
 #include "nsDebug.h"                    // for NS_ASSERTION
@@ -21,10 +23,6 @@
 #include "nsRect.h"                     // for mozilla::gfx::IntRect
 #include "nsRegion.h"                   // for nsIntRegion
 #include "nsTArray.h"                   // for nsTArray
-
-#if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
-#include <ui/Fence.h>
-#endif
 
 namespace mozilla {
 
@@ -142,8 +140,7 @@ public:
   TiledLayerBuffer()
     : mTiles(0, 0, 0, 0)
     , mResolution(1)
-    , mTileSize(gfxPlatform::GetPlatform()->GetTileWidth(),
-                gfxPlatform::GetPlatform()->GetTileHeight())
+    , mTileSize(mozilla::gfx::gfxVars::TileSize())
   {}
 
   ~TiledLayerBuffer() {}
@@ -158,7 +155,7 @@ public:
 
   const gfx::IntSize& GetTileSize() const { return mTileSize; }
 
-  gfx::IntSize GetScaledTileSize() const { return RoundedToInt(gfx::Size(mTileSize) / mResolution); }
+  gfx::IntSize GetScaledTileSize() const { return gfx::IntSize::Round(gfx::Size(mTileSize) / mResolution); }
 
   unsigned int GetTileCount() const { return mRetainedTiles.Length(); }
 

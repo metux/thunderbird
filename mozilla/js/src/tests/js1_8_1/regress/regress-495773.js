@@ -30,15 +30,10 @@ test();
 
 function test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
 
-  jit(true);
   actual = f();
-  jit(false);
 
   reportCompare(expect, actual, summary);
-
-  exitFunc ('test');
 }

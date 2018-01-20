@@ -1,5 +1,4 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- *//* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -22,9 +21,13 @@
 
 #include "nsIDOMWindow.h"
 #include "nsGlobalWindow.h"
+#include "nsRefreshDriver.h"
+#include "nsThreadUtils.h"
 
-#include "mozilla/unused.h"
+#include "mozilla/Unused.h"
 #include "mozilla/ArrayUtils.h"
+#include "mozilla/dom/ScriptSettings.h"
+#include "mozilla/EventStateManager.h"
 #include "mozilla/Services.h"
 #include "mozilla/Telemetry.h"
 
@@ -60,19 +63,19 @@ namespace {
  * @return null if the code is not executed in a window or in
  * case of error, a nsPIDOMWindow otherwise.
  */
-already_AddRefed<nsPIDOMWindow>
+already_AddRefed<nsPIDOMWindowOuter>
 GetPrivateWindow(JSContext* cx) {
-  nsCOMPtr<nsPIDOMWindow> win = xpc::CurrentWindowOrNull(cx);
+  nsGlobalWindowInner* win = xpc::CurrentWindowOrNull(cx);
   if (!win) {
     return nullptr;
   }
 
-  win = win->GetOuterWindow();
-  if (!win) {
+  nsPIDOMWindowOuter* outer = win->AsInner()->GetOuterWindow();
+  if (!outer) {
     return nullptr;
   }
 
-  nsCOMPtr<nsPIDOMWindow> top = win->GetTop();
+  nsCOMPtr<nsPIDOMWindowOuter> top = outer->GetTop();
   if (!top) {
     return nullptr;
   }
@@ -124,16 +127,24 @@ CompartmentName(JSContext* cx, JS::Handle<JSObject*> global, nsAString& name) {
  * Generate a unique-to-the-application identifier for a group.
  */
 void
-GenerateUniqueGroupId(const JSRuntime* rt, uint64_t uid, uint64_t processId, nsAString& groupId) {
-  uint64_t runtimeId = reinterpret_cast<uintptr_t>(rt);
+GenerateUniqueGroupId(uint64_t uid, uint64_t processId, nsAString& groupId)
+{
+  uint64_t threadId = reinterpret_cast<uint64_t>(mozilla::GetCurrentPhysicalThread());
 
   groupId.AssignLiteral("process: ");
   groupId.AppendInt(processId);
   groupId.AppendLiteral(", thread: ");
-  groupId.AppendInt(runtimeId);
+  groupId.AppendInt(threadId);
   groupId.AppendLiteral(", group: ");
   groupId.AppendInt(uid);
 }
+
+static const char* TOPICS[] = {
+  "profile-before-change",
+  "quit-application",
+  "quit-application-granted",
+  "xpcom-will-shutdown"
+};
 
 } // namespace
 
@@ -164,7 +175,9 @@ nsPerformanceObservationTarget::SetTarget(nsPerformanceGroupDetails* details) {
 
 NS_IMETHODIMP
 nsPerformanceObservationTarget::AddJankObserver(nsIPerformanceObserver* observer) {
-  mObservers.append(observer);
+  if (!mObservers.append(observer)) {
+    MOZ_CRASH();
+  }
   return NS_OK;
 };
 
@@ -188,7 +201,9 @@ void
 nsPerformanceObservationTarget::NotifyJankObservers(nsIPerformanceGroupDetails* source, nsIPerformanceAlert* gravity) {
   // Copy the vector to make sure that it won't change under our feet.
   mozilla::Vector<nsCOMPtr<nsIPerformanceObserver>> observers;
-  observers.appendAll(mObservers);
+  if (!observers.appendAll(mObservers)) {
+    MOZ_CRASH();
+  }
 
   // Now actually notify.
   for (auto iter = observers.begin(), end = observers.end(); iter < end; ++iter) {
@@ -257,11 +272,6 @@ nsPerformanceGroupDetails::GroupId() const {
   return mGroupId;
 }
 
-const nsAString&
-nsPerformanceGroupDetails::AddonId() const {
-  return mAddonId;
-}
-
 uint64_t
 nsPerformanceGroupDetails::WindowId() const {
   return mWindowId;
@@ -275,11 +285,6 @@ nsPerformanceGroupDetails::ProcessId() const {
 bool
 nsPerformanceGroupDetails::IsSystem() const {
   return mIsSystem;
-}
-
-bool
-nsPerformanceGroupDetails::IsAddon() const {
-  return mAddonId.Length() != 0;
 }
 
 bool
@@ -303,13 +308,6 @@ nsPerformanceGroupDetails::GetName(nsAString& aName) {
 NS_IMETHODIMP
 nsPerformanceGroupDetails::GetGroupId(nsAString& aGroupId) {
   aGroupId.Assign(GroupId());
-  return NS_OK;
-};
-
-/* readonly attribute AString addonId; */
-NS_IMETHODIMP
-nsPerformanceGroupDetails::GetAddonId(nsAString& aAddonId) {
-  aAddonId.Assign(AddonId());
   return NS_OK;
 };
 
@@ -467,7 +465,7 @@ nsPerformanceSnapshot::GetComponentsData(nsIArray * *aComponents)
   nsCOMPtr<nsIMutableArray> components = do_CreateInstance(NS_ARRAY_CONTRACTID);
   for (size_t i = 0; i < length; ++i) {
     nsCOMPtr<nsIPerformanceStats> stats = mComponentsData[i];
-    mozilla::DebugOnly<nsresult> rv = components->AppendElement(stats, false);
+    mozilla::DebugOnly<nsresult> rv = components->AppendElement(stats);
     MOZ_ASSERT(NS_SUCCEEDED(rv));
   }
   components.forget(aComponents);
@@ -543,7 +541,6 @@ PerformanceAlert::GetReason(uint32_t* result) {
   *result = mReason;
   return NS_OK;
 }
-
 /* ------------------------------------------------------
  *
  * class PendingAlertsCollector
@@ -554,18 +551,23 @@ PerformanceAlert::GetReason(uint32_t* result) {
  * A timer callback in charge of collecting the groups in
  * `mPendingAlerts` and triggering dispatch of performance alerts.
  */
-class PendingAlertsCollector final: public nsITimerCallback {
+class PendingAlertsCollector final :
+  public nsITimerCallback,
+  public nsINamed
+{
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSITIMERCALLBACK
+  NS_DECL_NSINAMED
 
-  PendingAlertsCollector(JSRuntime* runtime, nsPerformanceStatsService* service)
+  explicit PendingAlertsCollector(nsPerformanceStatsService* service)
     : mService(service)
     , mPending(false)
   { }
 
   nsresult Start(uint32_t timerDelayMS);
   nsresult Dispose();
+
 private:
   ~PendingAlertsCollector() {}
 
@@ -573,14 +575,23 @@ private:
   bool mPending;
 
   nsCOMPtr<nsITimer> mTimer;
+
+  mozilla::Vector<uint64_t> mJankLevels;
 };
 
-NS_IMPL_ISUPPORTS(PendingAlertsCollector, nsITimerCallback);
+NS_IMPL_ISUPPORTS(PendingAlertsCollector, nsITimerCallback, nsINamed);
 
 NS_IMETHODIMP
 PendingAlertsCollector::Notify(nsITimer*) {
   mPending = false;
-  mService->NotifyJankObservers();
+  mService->NotifyJankObservers(mJankLevels);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+PendingAlertsCollector::GetName(nsACString& aName)
+{
+  aName.AssignASCII("PendingAlertsCollector_timer");
   return NS_OK;
 }
 
@@ -592,7 +603,7 @@ PendingAlertsCollector::Start(uint32_t timerDelayMS) {
   }
 
   if (!mTimer) {
-    mTimer = do_CreateInstance(NS_TIMER_CONTRACTID);
+    mTimer = NS_NewTimer();
   }
 
   nsresult rv = mTimer->InitWithCallback(this, timerDelayMS, nsITimer::TYPE_ONE_SHOT);
@@ -601,6 +612,11 @@ PendingAlertsCollector::Start(uint32_t timerDelayMS) {
   }
 
   mPending = true;
+  {
+    mozilla::DebugOnly<bool> result = nsRefreshDriver::GetJankLevels(mJankLevels);
+    MOZ_ASSERT(result);
+  }
+
   return NS_OK;
 }
 
@@ -626,49 +642,37 @@ NS_IMPL_ISUPPORTS(nsPerformanceStatsService, nsIPerformanceStatsService, nsIObse
 
 nsPerformanceStatsService::nsPerformanceStatsService()
   : mIsAvailable(false)
+  , mDisposed(false)
 #if defined(XP_WIN)
   , mProcessId(GetCurrentProcessId())
 #else
   , mProcessId(getpid())
 #endif
-  , mRuntime(xpc::GetJSRuntime())
   , mUIdCounter(0)
-  , mTopGroup(nsPerformanceGroup::Make(mRuntime,
-                                       this,
+  , mTopGroup(nsPerformanceGroup::Make(this,
                                        NS_LITERAL_STRING("<process>"), // name
-                                       NS_LITERAL_STRING(""),          // addonid
                                        0,    // windowId
                                        mProcessId,
                                        true, // isSystem
                                        nsPerformanceGroup::GroupScope::RUNTIME // scope
                                      ))
+  , mIsHandlingUserInput(false)
   , mProcessStayed(0)
   , mProcessMoved(0)
   , mProcessUpdateCounter(0)
   , mIsMonitoringPerCompartment(false)
   , mJankAlertThreshold(mozilla::MaxValue<uint64_t>::value) // By default, no alerts
   , mJankAlertBufferingDelay(1000 /* ms */)
+  , mJankLevelVisibilityThreshold(/* 2 ^ */ 8 /* ms */)
+  , mMaxExpectedDurationOfInteractionUS(150 * 1000)
 {
-  mPendingAlertsCollector = new PendingAlertsCollector(mRuntime, this);
-
-  // Attach some artificial group information to the universal listeners, to aid with debugging.
-  nsString groupIdForAddons;
-  GenerateUniqueGroupId(mRuntime, GetNextId(), mProcessId, groupIdForAddons);
-  mUniversalTargets.mAddons->
-    SetTarget(new nsPerformanceGroupDetails(NS_LITERAL_STRING("<universal add-on listener>"),
-                                            groupIdForAddons,
-                                            NS_LITERAL_STRING("<universal add-on listener>"),
-                                            0, // window id
-                                            mProcessId,
-                                            false));
-
+  mPendingAlertsCollector = new PendingAlertsCollector(this);
 
   nsString groupIdForWindows;
-  GenerateUniqueGroupId(mRuntime, GetNextId(), mProcessId, groupIdForWindows);
+  GenerateUniqueGroupId(GetNextId(), mProcessId, groupIdForWindows);
   mUniversalTargets.mWindows->
     SetTarget(new nsPerformanceGroupDetails(NS_LITERAL_STRING("<universal window listener>"),
                                             groupIdForWindows,
-                                            NS_LITERAL_STRING("<universal window listener>"),
                                             0, // window id
                                             mProcessId,
                                             false));
@@ -690,25 +694,32 @@ nsPerformanceStatsService::Dispose()
   RefPtr<nsPerformanceStatsService> kungFuDeathGrip(this);
   mIsAvailable = false;
 
+  if (mDisposed) {
+    // Make sure that we don't double-dispose.
+    return;
+  }
+  mDisposed = true;
+
   // Disconnect from nsIObserverService.
   nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
   if (obs) {
-    obs->RemoveObserver(this, "profile-before-change");
-    obs->RemoveObserver(this, "quit-application");
-    obs->RemoveObserver(this, "quit-application-granted");
-    obs->RemoveObserver(this, "content-child-shutdown");
-    obs->RemoveObserver(this, "xpcom-will-shutdown");
+    for (size_t i = 0; i < mozilla::ArrayLength(TOPICS); ++i) {
+      mozilla::Unused << obs->RemoveObserver(this, TOPICS[i]);
+    }
   }
 
   // Clear up and disconnect from JSAPI.
-  js::DisposePerformanceMonitoring(mRuntime);
+  mozilla::dom::AutoJSAPI jsapi;
+  jsapi.Init();
+  JSContext* cx = jsapi.cx();
+  js::DisposePerformanceMonitoring(cx);
 
-  mozilla::Unused << js::SetStopwatchIsMonitoringCPOW(mRuntime, false);
-  mozilla::Unused << js::SetStopwatchIsMonitoringJank(mRuntime, false);
+  mozilla::Unused << js::SetStopwatchIsMonitoringCPOW(cx, false);
+  mozilla::Unused << js::SetStopwatchIsMonitoringJank(cx, false);
 
-  mozilla::Unused << js::SetStopwatchStartCallback(mRuntime, nullptr, nullptr);
-  mozilla::Unused << js::SetStopwatchCommitCallback(mRuntime, nullptr, nullptr);
-  mozilla::Unused << js::SetGetPerformanceGroupsCallback(mRuntime, nullptr, nullptr);
+  mozilla::Unused << js::SetStopwatchStartCallback(cx, nullptr, nullptr);
+  mozilla::Unused << js::SetStopwatchCommitCallback(cx, nullptr, nullptr);
+  mozilla::Unused << js::SetGetPerformanceGroupsCallback(cx, nullptr, nullptr);
 
   // Clear up and disconnect the alerts collector.
   if (mPendingAlertsCollector) {
@@ -719,7 +730,6 @@ nsPerformanceStatsService::Dispose()
 
   // Disconnect universal observers. Per-group observers will be
   // disconnected below as part of `group->Dispose()`.
-  mUniversalTargets.mAddons = nullptr;
   mUniversalTargets.mWindows = nullptr;
 
   // At this stage, the JS VM may still be holding references to
@@ -733,7 +743,9 @@ nsPerformanceStatsService::Dispose()
   // not modify the hashtable while iterating it.
   GroupVector groups;
   for (auto iter = mGroups.Iter(); !iter.Done(); iter.Next()) {
-    groups.append(iter.Get()->GetKey());
+    if (!groups.append(iter.Get()->GetKey())) {
+      MOZ_CRASH();
+    }
   }
   for (auto iter = groups.begin(), end = groups.end(); iter < end; ++iter) {
     RefPtr<nsPerformanceGroup> group = *iter;
@@ -764,21 +776,22 @@ nsPerformanceStatsService::InitInternal()
   // regular shutdown order.
   nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
   if (obs) {
-    obs->AddObserver(this, "profile-before-change", false);
-    obs->AddObserver(this, "quit-application-granted", false);
-    obs->AddObserver(this, "quit-application", false);
-    obs->AddObserver(this, "content-child-shutdown", false);
-    obs->AddObserver(this, "xpcom-will-shutdown", false);
+    for (size_t i = 0; i < mozilla::ArrayLength(TOPICS); ++i) {
+      mozilla::Unused << obs->AddObserver(this, TOPICS[i], false);
+    }
   }
 
   // Connect to JSAPI.
-  if (!js::SetStopwatchStartCallback(mRuntime, StopwatchStartCallback, this)) {
+  mozilla::dom::AutoJSAPI jsapi;
+  jsapi.Init();
+  JSContext* cx = jsapi.cx();
+  if (!js::SetStopwatchStartCallback(cx, StopwatchStartCallback, this)) {
     return NS_ERROR_UNEXPECTED;
   }
-  if (!js::SetStopwatchCommitCallback(mRuntime, StopwatchCommitCallback, this)) {
+  if (!js::SetStopwatchCommitCallback(cx, StopwatchCommitCallback, this)) {
     return NS_ERROR_UNEXPECTED;
   }
-  if (!js::SetGetPerformanceGroupsCallback(mRuntime, GetPerformanceGroupsCallback, this)) {
+  if (!js::SetGetPerformanceGroupsCallback(cx, GetPerformanceGroupsCallback, this)) {
     return NS_ERROR_UNEXPECTED;
   }
 
@@ -796,11 +809,19 @@ nsPerformanceStatsService::Observe(nsISupports *aSubject, const char *aTopic,
   MOZ_ASSERT(strcmp(aTopic, "profile-before-change") == 0
              || strcmp(aTopic, "quit-application") == 0
              || strcmp(aTopic, "quit-application-granted") == 0
-             || strcmp(aTopic, "content-child-shutdown") == 0
              || strcmp(aTopic, "xpcom-will-shutdown") == 0);
 
   Dispose();
   return NS_OK;
+}
+
+/*static*/ bool
+nsPerformanceStatsService::IsHandlingUserInput() {
+  if (mozilla::EventStateManager::LatestUserInputStart().IsNull()) {
+    return false;
+  }
+  bool result = mozilla::TimeStamp::Now() - mozilla::EventStateManager::LatestUserInputStart() <= mozilla::TimeDuration::FromMicroseconds(mMaxExpectedDurationOfInteractionUS);
+  return result;
 }
 
 /* [implicit_jscontext] attribute bool isMonitoringCPOW; */
@@ -811,8 +832,7 @@ nsPerformanceStatsService::GetIsMonitoringCPOW(JSContext* cx, bool *aIsStopwatch
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  JSRuntime *runtime = JS_GetRuntime(cx);
-  *aIsStopwatchActive = js::GetStopwatchIsMonitoringCPOW(runtime);
+  *aIsStopwatchActive = js::GetStopwatchIsMonitoringCPOW(cx);
   return NS_OK;
 }
 NS_IMETHODIMP
@@ -822,8 +842,7 @@ nsPerformanceStatsService::SetIsMonitoringCPOW(JSContext* cx, bool aIsStopwatchA
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  JSRuntime *runtime = JS_GetRuntime(cx);
-  if (!js::SetStopwatchIsMonitoringCPOW(runtime, aIsStopwatchActive)) {
+  if (!js::SetStopwatchIsMonitoringCPOW(cx, aIsStopwatchActive)) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
   return NS_OK;
@@ -837,8 +856,7 @@ nsPerformanceStatsService::GetIsMonitoringJank(JSContext* cx, bool *aIsStopwatch
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  JSRuntime *runtime = JS_GetRuntime(cx);
-  *aIsStopwatchActive = js::GetStopwatchIsMonitoringJank(runtime);
+  *aIsStopwatchActive = js::GetStopwatchIsMonitoringJank(cx);
   return NS_OK;
 }
 NS_IMETHODIMP
@@ -848,8 +866,7 @@ nsPerformanceStatsService::SetIsMonitoringJank(JSContext* cx, bool aIsStopwatchA
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  JSRuntime *runtime = JS_GetRuntime(cx);
-  if (!js::SetStopwatchIsMonitoringJank(runtime, aIsStopwatchActive)) {
+  if (!js::SetStopwatchIsMonitoringJank(cx, aIsStopwatchActive)) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
   return NS_OK;
@@ -975,7 +992,7 @@ nsPerformanceStatsService::GetSnapshot(JSContext* cx, nsIPerformanceSnapshot * *
     }
   }
 
-  js::GetPerfMonitoringTestCpuRescheduling(JS_GetRuntime(cx), &mProcessStayed, &mProcessMoved);
+  js::GetPerfMonitoringTestCpuRescheduling(cx, &mProcessStayed, &mProcessMoved);
 
   if (++mProcessUpdateCounter % 10 == 0) {
     mozilla::Unused << UpdateTelemetry();
@@ -992,13 +1009,18 @@ nsPerformanceStatsService::GetNextId() {
 }
 
 /* static*/ bool
-nsPerformanceStatsService::GetPerformanceGroupsCallback(JSContext* cx, JSGroupVector& out, void* closure) {
+nsPerformanceStatsService::GetPerformanceGroupsCallback(JSContext* cx,
+                                                        js::PerformanceGroupVector& out,
+                                                        void* closure)
+{
   RefPtr<nsPerformanceStatsService> self = reinterpret_cast<nsPerformanceStatsService*>(closure);
   return self->GetPerformanceGroups(cx, out);
 }
 
 bool
-nsPerformanceStatsService::GetPerformanceGroups(JSContext* cx, JSGroupVector& out) {
+nsPerformanceStatsService::GetPerformanceGroups(JSContext* cx,
+                                                js::PerformanceGroupVector& out)
+{
   JS::RootedObject global(cx, JS::CurrentGlobalOrNull(cx));
   if (!global) {
     // While it is possible for a compartment to have no global
@@ -1007,39 +1029,19 @@ nsPerformanceStatsService::GetPerformanceGroups(JSContext* cx, JSGroupVector& ou
   }
 
   // All compartments belong to the top group.
-  out.append(mTopGroup);
+  if (!out.append(mTopGroup)) {
+    JS_ReportOutOfMemory(cx);
+    return false;
+  }
 
   nsAutoString name;
   CompartmentName(cx, global, name);
   bool isSystem = nsContentUtils::IsSystemPrincipal(nsContentUtils::ObjectPrincipal(global));
 
-  // Find out if the compartment is executed by an add-on. If so, its
-  // duration should count towards the total duration of the add-on.
-  JSAddonId* jsaddonId = AddonIdOfObject(global);
-  nsString addonId;
-  if (jsaddonId) {
-    AssignJSFlatString(addonId, (JSFlatString*)jsaddonId);
-    auto entry = mAddonIdToGroup.PutEntry(addonId);
-    if (!entry->GetGroup()) {
-      nsString addonName = name;
-      addonName.AppendLiteral(" (as addon ");
-      addonName.Append(addonId);
-      addonName.AppendLiteral(")");
-      entry->
-        SetGroup(nsPerformanceGroup::Make(mRuntime, this,
-                                          addonName, addonId, 0,
-                                          mProcessId, isSystem,
-                                          nsPerformanceGroup::GroupScope::ADDON)
-                 );
-    }
-    out.append(entry->GetGroup());
-  }
-
   // Find out if the compartment is executed by a window. If so, its
   // duration should count towards the total duration of the window.
-  nsCOMPtr<nsPIDOMWindow> ptop = GetPrivateWindow(cx);
   uint64_t windowId = 0;
-  if (ptop) {
+  if (nsCOMPtr<nsPIDOMWindowOuter> ptop = GetPrivateWindow(cx)) {
     windowId = ptop->WindowID();
     auto entry = mWindowIdToGroup.PutEntry(windowId);
     if (!entry->GetGroup()) {
@@ -1048,23 +1050,32 @@ nsPerformanceStatsService::GetPerformanceGroups(JSContext* cx, JSGroupVector& ou
       windowName.AppendInt(windowId);
       windowName.AppendLiteral(")");
       entry->
-        SetGroup(nsPerformanceGroup::Make(mRuntime, this,
-                                          windowName, EmptyString(), windowId,
+        SetGroup(nsPerformanceGroup::Make(this,
+                                          windowName, windowId,
                                           mProcessId, isSystem,
                                           nsPerformanceGroup::GroupScope::WINDOW)
                  );
     }
-    out.append(entry->GetGroup());
+    if (!out.append(entry->GetGroup())) {
+      JS_ReportOutOfMemory(cx);
+      return false;
+    }
   }
 
   // All compartments have their own group.
   auto group =
-    nsPerformanceGroup::Make(mRuntime, this,
-                             name, addonId, windowId,
+    nsPerformanceGroup::Make(this,
+                             name, windowId,
                              mProcessId, isSystem,
                              nsPerformanceGroup::GroupScope::COMPARTMENT);
-  out.append(group);
+  if (!out.append(group)) {
+    JS_ReportOutOfMemory(cx);
+    return false;
+  }
 
+  // Returning a vector that is too large would cause allocations all over the
+  // place in the JS engine. We want to be sure that all data is stored inline.
+  MOZ_ASSERT(out.length() <= out.sMaxInlineStorage);
   return true;
 }
 
@@ -1078,6 +1089,9 @@ bool
 nsPerformanceStatsService::StopwatchStart(uint64_t iteration) {
   mIteration = iteration;
 
+  mIsHandlingUserInput = IsHandlingUserInput();
+  mUserInputCount = mozilla::EventStateManager::UserInputCount();
+
   nsresult rv = GetResources(&mUserTimeStart, &mSystemTimeStart);
   if (NS_FAILED(rv)) {
     return false;
@@ -1087,13 +1101,17 @@ nsPerformanceStatsService::StopwatchStart(uint64_t iteration) {
 }
 
 /*static*/ bool
-nsPerformanceStatsService::StopwatchCommitCallback(uint64_t iteration, JSGroupVector& recentGroups, void* closure) {
+nsPerformanceStatsService::StopwatchCommitCallback(uint64_t iteration,
+                                                   js::PerformanceGroupVector& recentGroups,
+                                                   void* closure)
+{
   RefPtr<nsPerformanceStatsService> self = reinterpret_cast<nsPerformanceStatsService*>(closure);
   return self->StopwatchCommit(iteration, recentGroups);
 }
 
 bool
-nsPerformanceStatsService::StopwatchCommit(uint64_t iteration, JSGroupVector& recentGroups)
+nsPerformanceStatsService::StopwatchCommit(uint64_t iteration,
+                                           js::PerformanceGroupVector& recentGroups)
 {
   MOZ_ASSERT(iteration == mIteration);
   MOZ_ASSERT(!recentGroups.empty());
@@ -1117,12 +1135,13 @@ nsPerformanceStatsService::StopwatchCommit(uint64_t iteration, JSGroupVector& re
   MOZ_ASSERT(mTopGroup->isUsedInThisIteration());
   const uint64_t totalRecentCycles = mTopGroup->recentCycles(iteration);
 
+  const bool isHandlingUserInput = mIsHandlingUserInput || mozilla::EventStateManager::UserInputCount() > mUserInputCount;
 
   // We should only reach this stage if `group` has had some activity.
   MOZ_ASSERT(mTopGroup->recentTicks(iteration) > 0);
   for (auto iter = recentGroups.begin(), end = recentGroups.end(); iter != end; ++iter) {
     RefPtr<nsPerformanceGroup> group = nsPerformanceGroup::Get(*iter);
-    CommitGroup(iteration, userTimeDelta, systemTimeDelta, totalRecentCycles, group);
+    CommitGroup(iteration, userTimeDelta, systemTimeDelta, totalRecentCycles, isHandlingUserInput, group);
   }
 
   // Make sure that `group` was treated along with the other items of `recentGroups`.
@@ -1139,7 +1158,9 @@ nsPerformanceStatsService::StopwatchCommit(uint64_t iteration, JSGroupVector& re
 void
 nsPerformanceStatsService::CommitGroup(uint64_t iteration,
                                        uint64_t totalUserTimeDelta, uint64_t totalSystemTimeDelta,
-                                       uint64_t totalCyclesDelta, nsPerformanceGroup* group) {
+                                       uint64_t totalCyclesDelta,
+                                       bool isHandlingUserInput,
+                                       nsPerformanceGroup* group) {
 
   MOZ_ASSERT(group->isUsedInThisIteration());
 
@@ -1187,16 +1208,18 @@ nsPerformanceStatsService::CommitGroup(uint64_t iteration,
 
   group->RecordJank(totalTimeDelta);
   group->RecordCPOW(cpowTimeDelta);
+  if (isHandlingUserInput) {
+    group->RecordUserInput();
+  }
 
   if (totalTimeDelta >= mJankAlertThreshold) {
     if (!group->HasPendingAlert()) {
-      group->SetHasPendingAlert(true);
-      mPendingAlerts.append(group);
+      if (mPendingAlerts.append(group)) {
+        group->SetHasPendingAlert(true);
+      }
       return;
     }
   }
-
-  return;
 }
 
 nsresult
@@ -1278,27 +1301,53 @@ nsPerformanceStatsService::GetResources(uint64_t* userTime,
 }
 
 void
-nsPerformanceStatsService::NotifyJankObservers() {
-  GroupVector alerts;
-  mPendingAlerts.swap(alerts);
+nsPerformanceStatsService::NotifyJankObservers(const mozilla::Vector<uint64_t>& aPreviousJankLevels) {
+
+  // The move operation is generally constant time, unless
+  // `mPendingAlerts.length()` is very small, in which case it's fast anyway.
+  GroupVector alerts(Move(mPendingAlerts));
+  mPendingAlerts = GroupVector(); // Reconstruct after `Move`.
+
   if (!mPendingAlertsCollector) {
     // We are shutting down.
     return;
   }
 
+  // Find out if we have noticed any user-noticeable delay in an
+  // animation recently (i.e. since the start of the execution of JS
+  // code that caused this collector to start). If so, we'll mark any
+  // alert as part of a user-noticeable jank. Note that this doesn't
+  // mean with any certainty that the alert is the only cause of jank,
+  // or even the main cause of jank.
+  mozilla::Vector<uint64_t> latestJankLevels;
+  {
+    mozilla::DebugOnly<bool> result = nsRefreshDriver::GetJankLevels(latestJankLevels);
+    MOZ_ASSERT(result);
+  }
+  MOZ_ASSERT(latestJankLevels.length() == aPreviousJankLevels.length());
+
+  bool isJankInAnimation = false;
+  for (size_t i = mJankLevelVisibilityThreshold; i < latestJankLevels.length(); ++i) {
+    if (latestJankLevels[i] > aPreviousJankLevels[i]) {
+      isJankInAnimation = true;
+      break;
+    }
+  }
+
   MOZ_ASSERT(!alerts.empty());
-  const bool hasUniversalAddonObservers = mUniversalTargets.mAddons->HasObservers();
   const bool hasUniversalWindowObservers = mUniversalTargets.mWindows->HasObservers();
   for (auto iter = alerts.begin(); iter < alerts.end(); ++iter) {
+    MOZ_ASSERT(iter);
     RefPtr<nsPerformanceGroup> group = *iter;
     group->SetHasPendingAlert(false);
 
     RefPtr<nsPerformanceGroupDetails> details = group->Details();
     nsPerformanceObservationTarget* targets[3] = {
-      hasUniversalAddonObservers && details->IsAddon() ? mUniversalTargets.mAddons.get() : nullptr,
       hasUniversalWindowObservers && details->IsWindow() ? mUniversalTargets.mWindows.get() : nullptr,
       group->ObservationTarget()
     };
+
+    bool isJankInInput = group->HasRecentUserInput();
 
     RefPtr<PerformanceAlert> alert;
     for (nsPerformanceObservationTarget* target : targets) {
@@ -1306,27 +1355,18 @@ nsPerformanceStatsService::NotifyJankObservers() {
         continue;
       }
       if (!alert) {
+        const uint32_t reason = nsIPerformanceAlert::REASON_SLOWDOWN
+          | (isJankInAnimation ? nsIPerformanceAlert::REASON_JANK_IN_ANIMATION : 0)
+          | (isJankInInput ? nsIPerformanceAlert::REASON_JANK_IN_INPUT : 0);
         // Wait until we are sure we need to allocate before we allocate.
-        alert = new PerformanceAlert(nsIPerformanceAlert::REASON_JANK, group);
+        alert = new PerformanceAlert(reason, group);
       }
       target->NotifyJankObservers(details, alert);
     }
 
-    group->ResetHighest();
+    group->ResetRecent();
   }
 
-}
-
-NS_IMETHODIMP
-nsPerformanceStatsService::GetObservableAddon(const nsAString& addonId,
-                                              nsIPerformanceObservable** result) {
-  if (addonId.Equals(NS_LITERAL_STRING("*"))) {
-    NS_IF_ADDREF(*result = mUniversalTargets.mAddons);
-  } else {
-    auto entry = mAddonIdToGroup.PutEntry(addonId);
-    NS_IF_ADDREF(*result = entry->ObservationTarget());
-  }
-  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -1341,9 +1381,34 @@ nsPerformanceStatsService::GetObservableWindow(uint64_t windowId,
   return NS_OK;
 }
 
+NS_IMETHODIMP
+nsPerformanceStatsService::GetAnimationJankLevelThreshold(short* result) {
+  *result = mJankLevelVisibilityThreshold;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsPerformanceStatsService::SetAnimationJankLevelThreshold(short value) {
+  mJankLevelVisibilityThreshold = value;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsPerformanceStatsService::GetUserInputDelayThreshold(uint64_t* result) {
+  *result = mMaxExpectedDurationOfInteractionUS;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsPerformanceStatsService::SetUserInputDelayThreshold(uint64_t value) {
+  mMaxExpectedDurationOfInteractionUS = value;
+  return NS_OK;
+}
+
+
+
 nsPerformanceStatsService::UniversalTargets::UniversalTargets()
-  : mAddons(new nsPerformanceObservationTarget())
-  , mWindows(new nsPerformanceObservationTarget())
+  : mWindows(new nsPerformanceObservationTarget())
 { }
 
 /* ------------------------------------------------------
@@ -1353,47 +1418,40 @@ nsPerformanceStatsService::UniversalTargets::UniversalTargets()
  */
 
 /*static*/ nsPerformanceGroup*
-nsPerformanceGroup::Make(JSRuntime* rt,
-                         nsPerformanceStatsService* service,
+nsPerformanceGroup::Make(nsPerformanceStatsService* service,
                          const nsAString& name,
-                         const nsAString& addonId,
                          uint64_t windowId,
                          uint64_t processId,
                          bool isSystem,
                          GroupScope scope)
 {
   nsString groupId;
-  ::GenerateUniqueGroupId(rt, service->GetNextId(), processId, groupId);
-  return new nsPerformanceGroup(service, name, groupId, addonId, windowId, processId, isSystem, scope);
+  ::GenerateUniqueGroupId(service->GetNextId(), processId, groupId);
+  return new nsPerformanceGroup(service, name, groupId, windowId, processId, isSystem, scope);
 }
 
 nsPerformanceGroup::nsPerformanceGroup(nsPerformanceStatsService* service,
                                        const nsAString& name,
                                        const nsAString& groupId,
-                                       const nsAString& addonId,
                                        uint64_t windowId,
                                        uint64_t processId,
                                        bool isSystem,
                                        GroupScope scope)
-  : mDetails(new nsPerformanceGroupDetails(name, groupId, addonId, windowId, processId, isSystem))
+  : mDetails(new nsPerformanceGroupDetails(name, groupId, windowId, processId, isSystem))
   , mService(service)
   , mScope(scope)
   , mHighestJank(0)
   , mHighestCPOW(0)
+  , mHasRecentUserInput(false)
   , mHasPendingAlert(false)
 {
   mozilla::Unused << mService->mGroups.PutEntry(this);
 
 #if defined(DEBUG)
-  if (scope == GroupScope::ADDON) {
-    MOZ_ASSERT(mDetails->IsAddon());
-    MOZ_ASSERT(!mDetails->IsWindow());
-  } else if (scope == GroupScope::WINDOW) {
+  if (scope == GroupScope::WINDOW) {
     MOZ_ASSERT(mDetails->IsWindow());
-    MOZ_ASSERT(!mDetails->IsAddon());
   } else if (scope == GroupScope::RUNTIME) {
     MOZ_ASSERT(!mDetails->IsWindow());
-    MOZ_ASSERT(!mDetails->IsAddon());
   }
 #endif // defined(DEBUG)
   setIsActive(mScope != GroupScope::COMPARTMENT || mService->mIsMonitoringPerCompartment);
@@ -1416,10 +1474,7 @@ nsPerformanceGroup::Dispose() {
   // Remove any dangling pointer to `this`.
   service->mGroups.RemoveEntry(this);
 
-  if (mScope == GroupScope::ADDON) {
-    MOZ_ASSERT(mDetails->IsAddon());
-    service->mAddonIdToGroup.RemoveEntry(mDetails->AddonId());
-  } else if (mScope == GroupScope::WINDOW) {
+  if (mScope == GroupScope::WINDOW) {
     MOZ_ASSERT(mDetails->IsWindow());
     service->mWindowIdToGroup.RemoveEntry(mDetails->WindowId());
   }
@@ -1485,9 +1540,19 @@ nsPerformanceGroup::HighestRecentCPOW() {
   return mHighestCPOW;
 }
 
-void
-nsPerformanceGroup::ResetHighest() {
-  mHighestJank = 0;
-  mHighestCPOW = 0;
+bool
+nsPerformanceGroup::HasRecentUserInput() {
+  return mHasRecentUserInput;
 }
 
+void
+nsPerformanceGroup::RecordUserInput() {
+  mHasRecentUserInput = true;
+}
+
+void
+nsPerformanceGroup::ResetRecent() {
+  mHighestJank = 0;
+  mHighestCPOW = 0;
+  mHasRecentUserInput = false;
+}

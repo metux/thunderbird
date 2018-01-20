@@ -3,28 +3,30 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 function run_test() {
-    testAttachRoundtrip();
+    do_calendar_startup(testAttachRoundtrip);
 }
 
 function testAttachRoundtrip() {
     let storage = getStorageCal();
-    let str = ["BEGIN:VEVENT",
-               "UID:attachItem",
-               "DTSTART:20120101T010101Z",
-               "ATTACH;FMTTYPE=text/calendar;ENCODING=BASE64;FILENAME=test.ics:http://example.com/test.ics",
-               "ATTENDEE;RSVP=TRUE;CUTYPE=INDIVIDUAL;CN=Name;PARTSTAT=ACCEPTED;ROLE=REQ-PARTICIPANT;X-THING=BAR:mailto:test@example.com",
-               "RELATED-TO;RELTYPE=SIBLING;FOO=BAR:VALUE",
-               "RRULE:FREQ=MONTHLY;INTERVAL=2;COUNT=5;BYDAY=MO",
-               "RDATE:20120201T010101Z",
-               "EXDATE:20120301T010101Z",
-               "END:VEVENT"].join("\r\n");
+    let str = [
+        "BEGIN:VEVENT",
+        "UID:attachItem",
+        "DTSTART:20120101T010101Z",
+        "ATTACH;FMTTYPE=text/calendar;ENCODING=BASE64;FILENAME=test.ics:http://example.com/test.ics",
+        "ATTENDEE;RSVP=TRUE;CUTYPE=INDIVIDUAL;CN=Name;PARTSTAT=ACCEPTED;ROLE=REQ-PARTICIPANT;X-THING=BAR:mailto:test@example.com",
+        "RELATED-TO;RELTYPE=SIBLING;FOO=BAR:VALUE",
+        "RRULE:FREQ=MONTHLY;INTERVAL=2;COUNT=5;BYDAY=MO",
+        "RDATE:20120201T010101Z",
+        "EXDATE:20120301T010101Z",
+        "END:VEVENT"
+    ].join("\r\n");
 
-    let item = createEventFromIcalString(str);
+    let storageItem = createEventFromIcalString(str);
 
     do_test_pending();
-    storage.addItem(item, {
-        onOperationComplete: function checkAddedItem(c, s, o, i, addedItem) {
-            do_execute_soon(function() {
+    storage.addItem(storageItem, {
+        onOperationComplete: function(calendar, status, opType, id, addedItem) {
+            do_execute_soon(() => {
                 // Make sure the cache is cleared, otherwise we'll get the cached item.
                 delete storage.wrappedJSObject.mItemCache[addedItem.id];
                 storage.getItem(addedItem.id, retrieveItem);
@@ -34,7 +36,7 @@ function testAttachRoundtrip() {
 
     let retrieveItem = {
         found: false,
-        onGetResult: function(c, s, t, d, c, items) {
+        onGetResult: function(calendar, status, type, detail, count, items) {
             let item = items[0];
 
             // Check start date
@@ -71,7 +73,7 @@ function testAttachRoundtrip() {
             equal(rel.getParameter("FOO"), "BAR");
 
             // Check recurrence item
-            for each (let ritem in item.recurrenceInfo.getRecurrenceItems({})) {
+            for (let ritem of item.recurrenceInfo.getRecurrenceItems({})) {
                 if (ritem instanceof Components.interfaces.calIRecurrenceRule) {
                     equal(ritem.type, "MONTHLY");
                     equal(ritem.interval, 2);
@@ -97,6 +99,7 @@ function testAttachRoundtrip() {
                 do_throw("Could not find item");
             }
             do_test_finished();
+            run_next_test();
         }
     };
 }

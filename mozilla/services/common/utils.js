@@ -6,11 +6,11 @@ var {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
 this.EXPORTED_SYMBOLS = ["CommonUtils"];
 
-Cu.import("resource://gre/modules/Promise.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-Cu.import("resource://gre/modules/osfile.jsm")
 Cu.import("resource://gre/modules/Log.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "OS",
+                                  "resource://gre/modules/osfile.jsm");
 
 this.CommonUtils = {
   /*
@@ -21,7 +21,7 @@ this.CommonUtils = {
   /**
    * Return elements of `a` or `b`.
    */
-  union: function (a, b) {
+  union(a, b) {
     let out = new Set(a);
     for (let x of b) {
       out.add(x);
@@ -32,7 +32,7 @@ this.CommonUtils = {
   /**
    * Return elements of `a` that are not present in `b`.
    */
-  difference: function (a, b) {
+  difference(a, b) {
     let out = new Set(a);
     for (let x of b) {
       out.delete(x);
@@ -43,7 +43,7 @@ this.CommonUtils = {
   /**
    * Return elements of `a` that are also in `b`.
    */
-  intersection: function (a, b) {
+  intersection(a, b) {
     let out = new Set();
     for (let x of a) {
       if (b.has(x)) {
@@ -57,7 +57,7 @@ this.CommonUtils = {
    * Return true if `a` and `b` are the same size, and
    * every element of `a` is in `b`.
    */
-  setEqual: function (a, b) {
+  setEqual(a, b) {
     if (a.size != b.size) {
       return false;
     }
@@ -69,9 +69,22 @@ this.CommonUtils = {
     return true;
   },
 
-  // Import these from Log.jsm for backward compatibility
-  exceptionStr: Log.exceptionStr,
-  stackTrace: Log.stackTrace,
+  /**
+   * Checks elements in two arrays for equality, as determined by the `===`
+   * operator. This function does not perform a deep comparison; see Sync's
+   * `Util.deepEquals` for that.
+   */
+  arrayEqual(a, b) {
+    if (a.length !== b.length) {
+      return false;
+    }
+    for (let i = 0; i < a.length; i++) {
+      if (a[i] !== b[i]) {
+        return false;
+      }
+    }
+    return true;
+  },
 
   /**
    * Encode byte string as base64URL (RFC 4648).
@@ -82,7 +95,7 @@ this.CommonUtils = {
    *        (bool) Whether to include padding characters (=). Defaults
    *        to true for historical reasons.
    */
-  encodeBase64URL: function encodeBase64URL(bytes, pad=true) {
+  encodeBase64URL: function encodeBase64URL(bytes, pad = true) {
     let s = btoa(bytes).replace(/\+/g, "-").replace(/\//g, "_");
 
     if (!pad) {
@@ -99,10 +112,10 @@ this.CommonUtils = {
     if (!URIString)
       return null;
     try {
-      return Services.io.newURI(URIString, null, null);
+      return Services.io.newURI(URIString);
     } catch (e) {
       let log = Log.repository.getLogger("Common.Utils");
-      log.debug("Could not create URI: " + CommonUtils.exceptionStr(e));
+      log.debug("Could not create URI", e);
       return null;
     }
   },
@@ -119,7 +132,7 @@ this.CommonUtils = {
     if (thisObj) {
       callback = callback.bind(thisObj);
     }
-    Services.tm.currentThread.dispatch(callback, Ci.nsIThread.DISPATCH_NORMAL);
+    Services.tm.dispatchToMainThread(callback);
   },
 
   /**
@@ -129,24 +142,10 @@ this.CommonUtils = {
    * accumulation and prevents callers from accidentally relying on
    * same-tick promise resolution.
    */
-  laterTickResolvingPromise: function (value, prototype) {
-    let deferred = Promise.defer(prototype);
-    this.nextTick(deferred.resolve.bind(deferred, value));
-    return deferred.promise;
-  },
-
-  /**
-   * Spin the event loop and return once the next tick is executed.
-   *
-   * This is an evil function and should not be used in production code. It
-   * exists in this module for ease-of-use.
-   */
-  waitForNextTick: function waitForNextTick() {
-    let cb = Async.makeSyncCallback();
-    this.nextTick(cb);
-    Async.waitForSyncCallback(cb);
-
-    return;
+  laterTickResolvingPromise(value) {
+    return new Promise(resolve => {
+      this.nextTick(() => resolve(value));
+    });
   },
 
   /**
@@ -156,13 +155,14 @@ this.CommonUtils = {
    */
   namedTimer: function namedTimer(callback, wait, thisObj, name) {
     if (!thisObj || !name) {
-      throw "You must provide both an object and a property name for the timer!";
+      throw new Error(
+          "You must provide both an object and a property name for the timer!");
     }
 
     // Delay an existing timer if it exists
     if (name in thisObj && thisObj[name] instanceof Ci.nsITimer) {
       thisObj[name].delay = wait;
-      return;
+      return thisObj[name];
     }
 
     // Create a special timer that we can add extra properties
@@ -241,12 +241,10 @@ this.CommonUtils = {
    */
   encodeBase32: function encodeBase32(bytes) {
     const key = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
-    let quanta = Math.floor(bytes.length / 5);
     let leftover = bytes.length % 5;
 
     // Pad the last quantum with zeros so the length is a multiple of 5.
     if (leftover) {
-      quanta += 1;
       for (let i = leftover; i < 5; i++)
         bytes += "\0";
     }
@@ -306,10 +304,10 @@ this.CommonUtils = {
       function advance() {
         c  = str[cOffset++];
         if (!c || c == "" || c == "=") // Easier than range checking.
-          throw "Done";                // Will be caught far away.
+          throw new Error("Done"); // Will be caught far away.
         val = key.indexOf(c);
         if (val == -1)
-          throw "Unknown character in base32: " + c;
+          throw new Error(`Unknown character in base32: ${c}`);
       }
 
       // Handle a left shift, restricted to bytes.
@@ -355,7 +353,7 @@ this.CommonUtils = {
         processBlock(ret, cOff, rOff);
       } catch (ex) {
         // Handle the detection of padding.
-        if (ex == "Done")
+        if (ex.message == "Done")
           break;
         throw ex;
       }
@@ -384,7 +382,7 @@ this.CommonUtils = {
    * @param path the file to read. Will be passed to `OS.File.read()`.
    * @return a promise that resolves to the JSON contents of the named file.
    */
-  readJSON: function(path) {
+  readJSON(path) {
     return OS.File.read(path, { encoding: "utf-8" }).then((data) => {
       return JSON.parse(data);
     });
@@ -397,7 +395,7 @@ this.CommonUtils = {
    * @param path the path of the file to write.
    * @return a promise, as produced by OS.File.writeAtomic.
    */
-  writeJSON: function(contents, path) {
+  writeJSON(contents, path) {
     let data = JSON.stringify(contents);
     return OS.File.writeAtomic(path, data, {encoding: "utf-8", tmpPath: path + ".tmp"});
   },
@@ -496,7 +494,7 @@ this.CommonUtils = {
    * @param log
    *        (Log.Logger) Logger to write warnings to.
    */
-  getEpochPref: function getEpochPref(branch, pref, def=0, log=null) {
+  getEpochPref: function getEpochPref(branch, pref, def = 0, log = null) {
     if (!Number.isInteger(def)) {
       throw new Error("Default value is not a number: " + def);
     }
@@ -541,8 +539,8 @@ this.CommonUtils = {
    * @param oldestYear
    *        (Number) Oldest year to accept in read values.
    */
-  getDatePref: function getDatePref(branch, pref, def=0, log=null,
-                                    oldestYear=2010) {
+  getDatePref: function getDatePref(branch, pref, def = 0, log = null,
+                                    oldestYear = 2010) {
 
     let valueInt = this.getEpochPref(branch, pref, def, log);
     let date = new Date(valueInt);
@@ -576,7 +574,7 @@ this.CommonUtils = {
    * @param oldestYear
    *        (Number) The oldest year to accept for values.
    */
-  setDatePref: function setDatePref(branch, pref, date, oldestYear=2010) {
+  setDatePref: function setDatePref(branch, pref, date, oldestYear = 2010) {
     if (date.getFullYear() < oldestYear) {
       throw new Error("Trying to set " + pref + " to a very old time: " +
                       date + ". The current time is " + new Date() +

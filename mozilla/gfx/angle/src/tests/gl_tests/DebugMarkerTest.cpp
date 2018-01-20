@@ -52,7 +52,7 @@ TEST_P(DebugMarkerTest, BasicValidation)
     glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    glPushGroupMarkerEXT(0, NULL);
+    glPushGroupMarkerEXT(0, nullptr);
     glClearColor(0.0f, 1.0f, 0.0f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
@@ -66,6 +66,6 @@ TEST_P(DebugMarkerTest, BasicValidation)
 }
 
 // Use this to select which configurations (e.g. which renderer, which GLES major version) these tests should be run against.
-ANGLE_INSTANTIATE_TEST(DebugMarkerTest, ES2_D3D9(), ES2_D3D11(), ES2_OPENGL());
+ANGLE_INSTANTIATE_TEST(DebugMarkerTest, ES2_D3D9(), ES2_D3D11(), ES2_OPENGL(), ES2_OPENGLES());
 
 } // namespace

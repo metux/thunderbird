@@ -78,8 +78,14 @@ nrappkit copyright:
    ekr@rtfm.com  Thu Dec 20 20:14:49 2001
 */
 #include "logging.h"
-#include "mozilla/Scoped.h"
+#include "mozilla/UniquePtr.h"
+#include "mozilla/Unused.h"
 #include "databuffer.h"
+
+// mozilla/utils.h defines this as well
+#ifdef UNIMPLEMENTED
+#undef UNIMPLEMENTED
+#endif
 
 extern "C" {
 #include "nr_api.h"
@@ -115,7 +121,7 @@ static int nr_socket_wrapped_destroy(void **objp) {
     return 0;
 
   nr_socket_wrapped *wrapped = static_cast<nr_socket_wrapped *>(*objp);
-  *objp = 0;
+  *objp = nullptr;
 
   delete wrapped;
 
@@ -165,16 +171,16 @@ static nr_socket_vtbl nr_socket_wrapped_vtbl = {
   nr_socket_wrapped_recvfrom,
   nr_socket_wrapped_getfd,
   nr_socket_wrapped_getaddr,
-  0,
-  0,
-  0,
+  nullptr,
+  nullptr,
+  nullptr,
   nr_socket_wrapped_close,
-  0,
-  0
+  nullptr,
+  nullptr
 };
 
 int nr_socket_wrapped_create(nr_socket *inner, nr_socket **outp) {
-  ScopedDeletePtr<nr_socket_wrapped> wrapped(new nr_socket_wrapped());
+  auto wrapped = MakeUnique<nr_socket_wrapped>();
 
   wrapped->sock_ = inner;
 
@@ -182,7 +188,7 @@ int nr_socket_wrapped_create(nr_socket *inner, nr_socket **outp) {
   if (r)
     return r;
 
-  wrapped.forget();
+  Unused << wrapped.release();
   return 0;
 }
 
@@ -262,6 +268,13 @@ int TestStunServer::Initialize(int address_family) {
     return R_INTERNAL;
   }
 
+  // removes duplicates and, based on prefs, loopback and link_local addrs
+  r = nr_stun_filter_local_addresses(addrs, &addr_ct);
+  if (r) {
+    MOZ_MTLOG(ML_ERROR, "Couldn't filter addresses");
+    return R_INTERNAL;
+  }
+
   if (addr_ct < 1) {
     MOZ_MTLOG(ML_ERROR, "No local addresses");
     return R_INTERNAL;
@@ -323,10 +336,10 @@ int TestStunServer::Initialize(int address_family) {
   return 0;
 }
 
-TestStunServer* TestStunServer::Create(int address_family) {
+UniquePtr<TestStunServer> TestStunServer::Create(int address_family) {
   NR_reg_init(NR_REG_MODE_LOCAL);
 
-  ScopedDeletePtr<TestStunServer> server(new TestStunServer());
+  UniquePtr<TestStunServer> server(new TestStunServer());
 
   if (server->Initialize(address_family))
     return nullptr;
@@ -340,7 +353,7 @@ TestStunServer* TestStunServer::Create(int address_family) {
 
   NR_ASYNC_WAIT(fd, NR_ASYNC_WAIT_READ, &TestStunServer::readable_cb, server.get());
 
-  return server.forget();
+  return server;
 }
 
 void TestStunServer::ConfigurePort(uint16_t port) {
@@ -351,13 +364,13 @@ TestStunServer* TestStunServer::GetInstance(int address_family) {
   switch (address_family) {
     case AF_INET:
       if (!instance)
-        instance = Create(address_family);
+        instance = Create(address_family).release();
 
       MOZ_ASSERT(instance);
       return instance;
     case AF_INET6:
       if (!instance6)
-        instance6 = Create(address_family);
+        instance6 = Create(address_family).release();
 
       return instance6;
     default:
@@ -521,6 +534,7 @@ void TestStunServer::Reset() {
   }
   delete response_addr_;
   response_addr_ = nullptr;
+  received_ct_.clear();
 }
 
 
@@ -534,13 +548,13 @@ TestStunTcpServer* TestStunTcpServer::GetInstance(int address_family) {
   switch (address_family) {
     case AF_INET:
       if (!instance)
-        instance = Create(address_family);
+        instance = Create(address_family).release();
 
       MOZ_ASSERT(instance);
       return instance;
     case AF_INET6:
       if (!instance6)
-        instance6 = Create(address_family);
+        instance6 = Create(address_family).release();
 
       return instance6;
     default:
@@ -631,10 +645,10 @@ void TestStunTcpServer::accept_cb(NR_SOCKET s, int how, void *cb_arg) {
   NR_ASYNC_WAIT(fd, NR_ASYNC_WAIT_READ, &TestStunServer::readable_cb, server);
 }
 
-TestStunTcpServer* TestStunTcpServer::Create(int address_family) {
+  UniquePtr<TestStunTcpServer> TestStunTcpServer::Create(int address_family) {
   NR_reg_init(NR_REG_MODE_LOCAL);
 
-  ScopedDeletePtr<TestStunTcpServer> server(new TestStunTcpServer());
+  UniquePtr<TestStunTcpServer> server(new TestStunTcpServer());
 
   if (server->Initialize(address_family)) {
     return nullptr;
@@ -648,7 +662,7 @@ TestStunTcpServer* TestStunTcpServer::Create(int address_family) {
 
   NR_ASYNC_WAIT(fd, NR_ASYNC_WAIT_READ, &TestStunTcpServer::accept_cb, server.get());
 
-  return server.forget();
+  return server;
 }
 
 TestStunTcpServer::~TestStunTcpServer() {

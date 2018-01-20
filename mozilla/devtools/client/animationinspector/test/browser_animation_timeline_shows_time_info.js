@@ -6,12 +6,12 @@
 
 requestLongerTimeout(2);
 
-// Check that the timeline displays animations' duration, delay and iteration
-// counts in tooltips.
+// Check that the timeline displays animations' duration, delay iteration
+// counts and iteration start in tooltips.
 
-add_task(function*() {
-  yield addTab(TEST_URL_ROOT + "doc_simple_animation.html");
-  let {panel} = yield openAnimationInspector();
+add_task(function* () {
+  yield addTab(URL_ROOT + "doc_simple_animation.html");
+  let {panel, controller} = yield openAnimationInspector();
 
   info("Getting the animation element from the panel");
   let timelineEl = panel.animationsTimelineComponent.rootWrapperEl;
@@ -19,12 +19,52 @@ add_task(function*() {
 
   // Verify that each time-block's name element has a tooltip that looks sort of
   // ok. We don't need to test the actual content.
-  for (let el of timeBlockNameEls) {
-    ok(el.hasAttribute("title"), "The tooltip is defined");
+  [...timeBlockNameEls].forEach((el, i) => {
+    ok(el.hasAttribute("title"), "The tooltip is defined for animation " + i);
 
     let title = el.getAttribute("title");
-    ok(title.match(/Delay: [\d.-]+s/), "The tooltip shows the delay");
-    ok(title.match(/Duration: [\d.]+s/), "The tooltip shows the duration");
-    ok(title.match(/Repeats: /), "The tooltip shows the iterations");
-  }
+    let state = controller.animationPlayers[i].state;
+
+    if (state.delay) {
+      ok(title.match(/Delay: [\d.,-]+s/), "The tooltip shows the delay");
+    }
+    ok(title.match(/Duration: [\d.,]+s/), "The tooltip shows the duration");
+    if (state.endDelay) {
+      ok(title.match(/End delay: [\d.,-]+s/), "The tooltip shows the endDelay");
+    }
+    if (state.iterationCount !== 1) {
+      ok(title.match(/Repeats: /), "The tooltip shows the iterations");
+    } else {
+      ok(!title.match(/Repeats: /), "The tooltip doesn't show the iterations");
+    }
+    if (state.easing && state.easing !== "linear") {
+      ok(title.match(/Overall easing: /), "The tooltip shows the easing");
+    } else {
+      ok(!title.match(/Overall easing: /),
+         "The tooltip doesn't show the easing if it is 'linear'");
+    }
+    if (state.animationTimingFunction && state.animationTimingFunction !== "ease") {
+      is(state.type, "cssanimation",
+         "The animation type should be CSS Animations if has animation-timing-function");
+      ok(title.match(/Animation timing function: /),
+         "The tooltip shows animation-timing-function");
+    } else {
+      ok(!title.match(/Animation timing function: /),
+         "The tooltip doesn't show the animation-timing-function if it is 'ease'"
+         + " or not CSS Animations");
+    }
+    if (state.fill) {
+      ok(title.match(/Fill: /), "The tooltip shows the fill");
+    }
+    if (state.direction) {
+      if (state.direction === "normal") {
+        ok(!title.match(/Direction: /),
+          "The tooltip doesn't show the direction if it is 'normal'");
+      } else {
+        ok(title.match(/Direction: /), "The tooltip shows the direction");
+      }
+    }
+    ok(!title.match(/Iteration start:/),
+      "The tooltip doesn't show the iteration start");
+  });
 });

@@ -6,12 +6,12 @@
 package org.mozilla.gecko.tabqueue;
 
 import org.mozilla.gecko.AppConstants;
-import org.mozilla.gecko.GeckoAppShell;
-import org.mozilla.gecko.GeckoEvent;
+import org.mozilla.gecko.EventDispatcher;
 import org.mozilla.gecko.GeckoProfile;
 import org.mozilla.gecko.GeckoSharedPrefs;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.preferences.GeckoPreferences;
+import org.mozilla.gecko.util.GeckoBundle;
 import org.mozilla.gecko.util.ThreadUtils;
 
 import android.app.NotificationManager;
@@ -20,18 +20,25 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Resources;
+import android.graphics.PixelFormat;
 import android.support.v4.app.NotificationCompat;
+import android.support.v4.content.ContextCompat;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.View;
+import android.view.WindowManager;
+
 import org.json.JSONArray;
 import org.json.JSONException;
-import org.json.JSONObject;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class TabQueueHelper {
     private static final String LOGTAG = "Gecko" + TabQueueHelper.class.getSimpleName();
 
     // Disable Tab Queue for API level 10 (GB) - Bug 1206055
-    public static final boolean TAB_QUEUE_ENABLED = AppConstants.Versions.feature11Plus && AppConstants.MOZ_ANDROID_TAB_QUEUE;
+    public static final boolean TAB_QUEUE_ENABLED = true;
 
     public static final String FILE_NAME = "tab_queue_url_list.json";
     public static final String LOAD_URLS_ACTION = "TAB_QUEUE_LOAD_URLS_ACTION";
@@ -43,10 +50,48 @@ public class TabQueueHelper {
 
     public static final int MAX_TIMES_TO_SHOW_PROMPT = 3;
     public static final int EXTERNAL_LAUNCHES_BEFORE_SHOWING_PROMPT = 3;
+    private static final int MAX_NOTIFICATION_DISPLAY_COUNT = 8;
 
     // result codes for returning from the prompt
     public static final int TAB_QUEUE_YES = 201;
     public static final int TAB_QUEUE_NO = 202;
+
+    /**
+     * Checks if the specified context can draw on top of other apps. As of API level 23, an app
+     * cannot draw on top of other apps unless it declares the SYSTEM_ALERT_WINDOW permission in
+     * its manifest, AND the user specifically grants the app this capability.
+     *
+     * @return true if the specified context can draw on top of other apps, false otherwise.
+     */
+    public static boolean canDrawOverlays(Context context) {
+        if (AppConstants.Versions.preMarshmallow) {
+            return true; // We got the permission at install time.
+        }
+
+        // It would be nice to just use Settings.canDrawOverlays() - but this helper is buggy for
+        // apps using sharedUserId (See bug 1244722).
+        // Instead we'll add and remove an invisible view. If this is successful then we seem to
+        // have permission to draw overlays.
+
+        View view = new View(context);
+        view.setVisibility(View.INVISIBLE);
+
+        WindowManager.LayoutParams layoutParams = new WindowManager.LayoutParams(
+                1, 1,
+                WindowManager.LayoutParams.TYPE_PHONE,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
+                PixelFormat.TRANSLUCENT);
+
+        WindowManager windowManager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
+
+        try {
+            windowManager.addView(view, layoutParams);
+            windowManager.removeView(view);
+            return true;
+        } catch (final SecurityException | WindowManager.BadTokenException e) {
+            return false;
+        }
+    }
 
     /**
      * Check if we should show the tab queue prompt
@@ -133,7 +178,7 @@ public class TabQueueHelper {
             } catch (JSONException e) {
                 url = "";
             }
-            if(!TextUtils.isEmpty(url) && !urlToRemove.equals(url)) {
+            if (!TextUtils.isEmpty(url) && !urlToRemove.equals(url)) {
                 newArray.put(url);
             }
         }
@@ -147,13 +192,33 @@ public class TabQueueHelper {
     }
 
     /**
+     * Get up to eight of the last queued URLs for displaying in the notification.
+     */
+    public static List<String> getLastURLs(final Context context, final String filename) {
+        final GeckoProfile profile = GeckoProfile.get(context);
+        final JSONArray jsonArray = profile.readJSONArrayFromFile(filename);
+        final int tabCount = Math.min(MAX_NOTIFICATION_DISPLAY_COUNT, jsonArray.length());
+        final List<String> urls = new ArrayList<>(tabCount);
+
+        for (int i = 0; i < tabCount; i++) {
+            try {
+                urls.add(jsonArray.getString(i));
+            } catch (JSONException e) {
+                Log.w(LOGTAG, "Unable to parse URL from tab queue array", e);
+            }
+        }
+
+        return urls;
+    }
+
+    /**
      * Displays a notification showing the total number of tabs queue.  If there is already a notification displayed, it
      * will be replaced.
      *
      * @param context
      * @param tabsQueued
      */
-    public static void showNotification(final Context context, final int tabsQueued) {
+    public static void showNotification(final Context context, final int tabsQueued, final List<String> urls) {
         ThreadUtils.assertNotOnUiThread();
 
         Intent resultIntent = new Intent();
@@ -170,10 +235,20 @@ public class TabQueueHelper {
             text = resources.getString(R.string.tab_queue_notification_text_plural, tabsQueued);
         }
 
+        NotificationCompat.InboxStyle inboxStyle = new NotificationCompat.InboxStyle();
+        inboxStyle.setBigContentTitle(text);
+        for (String url : urls) {
+            inboxStyle.addLine(url);
+        }
+        inboxStyle.setSummaryText(resources.getString(R.string.tab_queue_notification_title));
+
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context)
                                                      .setSmallIcon(R.drawable.ic_status_logo)
-                                                     .setContentTitle(resources.getString(R.string.tab_queue_notification_title))
-                                                     .setContentText(text)
+                                                     .setContentTitle(text)
+                                                     .setContentText(resources.getString(R.string.tab_queue_notification_title))
+                                                     .setStyle(inboxStyle)
+                                                     .setColor(ContextCompat.getColor(context, R.color.fennec_ui_accent))
+                                                     .setNumber(tabsQueued)
                                                      .setContentIntent(pendingIntent);
 
         NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
@@ -211,16 +286,16 @@ public class TabQueueHelper {
 
         JSONArray jsonArray = profile.readJSONArrayFromFile(filename);
 
-        if (jsonArray.length() > 0) {
-            JSONObject data = new JSONObject();
-            try {
-                data.put("urls", jsonArray);
-                data.put("shouldNotifyTabsOpenedToJava", shouldPerformJavaScriptCallback);
-                GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Tabs:OpenMultiple", data.toString()));
-            } catch (JSONException e) {
-                // Don't exit early as we perform cleanup at the end of this function.
-                Log.e(LOGTAG, "Error sending tab queue data", e);
+        final int len = jsonArray.length();
+        if (len > 0) {
+            final String[] urls = new String[len];
+            for (int i = 0; i < len; i++) {
+                urls[i] = jsonArray.optString(i);
             }
+            final GeckoBundle data = new GeckoBundle(2);
+            data.putStringArray("urls", urls);
+            data.putBoolean("shouldNotifyTabsOpenedToJava", shouldPerformJavaScriptCallback);
+            EventDispatcher.getInstance().dispatch("Tabs:OpenMultiple", data);
         }
 
         try {
@@ -239,7 +314,7 @@ public class TabQueueHelper {
         notificationManager.cancel(TAB_QUEUE_NOTIFICATION_ID);
     }
 
-    public static void processTabQueuePromptResponse(int resultCode, Context context) {
+    public static boolean processTabQueuePromptResponse(int resultCode, Context context) {
         final SharedPreferences prefs = GeckoSharedPrefs.forApp(context);
         final SharedPreferences.Editor editor = prefs.edit();
 
@@ -270,6 +345,8 @@ public class TabQueueHelper {
         }
 
         editor.apply();
+
+        return resultCode == TAB_QUEUE_YES;
     }
 
     public static boolean isTabQueueEnabled(Context context) {

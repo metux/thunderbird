@@ -1,5 +1,6 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
+"use strict";
 
 /**
  * Tests CensusTreeNode with `coarseType` breakdown.
@@ -51,6 +52,7 @@ const EXPECTED = {
           children: undefined,
           id: 9,
           parent: 7,
+          reportLeafIndex: 8,
         },
         {
           name: "js::Shape",
@@ -61,10 +63,12 @@ const EXPECTED = {
           children: undefined,
           id: 8,
           parent: 7,
+          reportLeafIndex: 7,
         },
       ],
       id: 7,
       parent: 1,
+      reportLeafIndex: undefined,
     },
     {
       name: "objects",
@@ -82,6 +86,7 @@ const EXPECTED = {
           children: undefined,
           id: 4,
           parent: 2,
+          reportLeafIndex: 3,
         },
         {
           name: "Function",
@@ -92,10 +97,12 @@ const EXPECTED = {
           children: undefined,
           id: 3,
           parent: 2,
+          reportLeafIndex: 2,
         },
       ],
       id: 2,
       parent: 1,
+      reportLeafIndex: undefined,
     },
     {
       name: "strings",
@@ -106,6 +113,7 @@ const EXPECTED = {
       children: undefined,
       id: 6,
       parent: 1,
+      reportLeafIndex: 5,
     },
     {
       name: "scripts",
@@ -116,10 +124,12 @@ const EXPECTED = {
       children: undefined,
       id: 5,
       parent: 1,
+      reportLeafIndex: 4,
     },
   ],
   id: 1,
   parent: undefined,
+  reportLeafIndex: undefined,
 };
 
 function run_test() {

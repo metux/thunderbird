@@ -126,6 +126,11 @@
        <rdf:Description ID="add-ons:manager"
          nc:name="Add-ons Manager"
          nc:link="customize_help.xhtml#using_the_add-ons_manager"/>
+     </rdf:li>
+     <rdf:li>
+       <rdf:Description ID="add-ons:converter"
+         nc:name="Add-on Converter"
+         nc:link="customize_help.xhtml#using_the_add-on_converter"/>
      </rdf:li></rdf:Seq>
    </nc:subheadings>
 </rdf:Description>
@@ -608,6 +613,16 @@
          nc:link="mailnews_getting_started.xhtml#set_as_default"/>
      </rdf:li>
      <rdf:li>
+       <rdf:Description ID="Developer_Tools"
+         nc:name="Developer Tools"
+         nc:link="developer_tools.xhtml#devtools"/>
+     </rdf:li>
+     <rdf:li>
+       <rdf:Description ID="WebIDE"
+         nc:name="WebIDE"
+         nc:link="developer_tools.xhtml#webide"/>
+     </rdf:li>
+     <rdf:li>
        <rdf:Description ID="device_manager"
          nc:name="Device Manager"
          nc:link="using_certs_help.xhtml#about_security_devices_and_modules"/>
@@ -1003,6 +1018,11 @@
          nc:link="mailnews_addressbooks.xhtml#adding_and_removing_ldap_directories"/>
      </rdf:li>
      <rdf:li>
+       <rdf:Description ID="location_aware_browsing"
+         nc:name="location aware browsing preferences"
+         nc:link="privsec_help.xhtml#location_aware_browsing"/>
+     </rdf:li>
+     <rdf:li>
        <rdf:Description ID="lock_icon"
          nc:name="lock icon"
          nc:link="using_certs_help.xhtml#checking_security_for_a_web_page"/>
@@ -1238,9 +1258,9 @@
          nc:link="mailnews_using_mail.xhtml#saving_attachments"/>
      </rdf:li>
      <rdf:li>
-       <rdf:Description ID="Mail_and_Newsgroups:saving_messages_drafts"
-         nc:name="saving messages drafts"
-         nc:link="mailnews_using_mail.xhtml#saving_and_editing_a_message_draft"/>
+       <rdf:Description ID="Mail_and_Newsgroups:saving_draft_messages"
+         nc:name="saving draft messages"
+         nc:link="mailnews_using_mail.xhtml#saving_and_editing_a_draft_message"/>
      </rdf:li>
      <rdf:li>
        <rdf:Description ID="Mail_and_Newsgroups:sending_messages"
@@ -1312,11 +1332,6 @@
          nc:name="Master Password Preferences"
          nc:link="passwords_help.xhtml#master_passwords"/>
      </rdf:li>
-     <rdf:li>
-       <rdf:Description ID="master_password:timeout"
-         nc:name="Master Password Timeout"
-         nc:link="passwords_help.xhtml#master_password_timeout"/>
-     </rdf:li></rdf:Seq>
    </nc:subheadings>
 </rdf:Description>
 
@@ -1501,11 +1516,6 @@
          nc:name="Remembering Automatically"
          nc:link="using_priv_help.xhtml#using_the_password_manager"/>
      </rdf:li>
-     <rdf:li>
-       <rdf:Description ID="passwords:timeout_for_master_password"
-         nc:name="Timeout for Master Password"
-         nc:link="passwords_help.xhtml#master_password_timeout"/>
-     </rdf:li></rdf:Seq>
    </nc:subheadings>
 </rdf:Description>
 
@@ -1873,11 +1883,6 @@
 <rdf:Description about="#search">
    <nc:subheadings>
      <rdf:Seq><rdf:li>
-       <rdf:Description ID="search:Advanced_mode"
-         nc:name="Sidebar Advanced Search Mode"
-         nc:link="nav_help.xhtml#sidebar_advanced_search_mode"/>
-     </rdf:li>
-     <rdf:li>
        <rdf:Description ID="search:bookmarks"
          nc:name="search bookmarks"
          nc:link="nav_help.xhtml#searching_the_bookmarks_or_history_list"/>
@@ -2130,6 +2135,11 @@
        <rdf:Description ID="toolbar:hiding_a_toolbar"
          nc:name="hiding a toolbar"
          nc:link="customize_help.xhtml#hiding_a_toolbar"/>
+     </rdf:li>
+     <rdf:li>
+       <rdf:Description ID="toolbar:menu_bar"
+         nc:name="menu bar"
+         nc:link="customize_help.xhtml#menu_bar"/>
      </rdf:li>
      <rdf:li>
        <rdf:Description ID="toolbar:navigation_toolbar"

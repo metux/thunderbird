@@ -32,20 +32,22 @@ public:
 
   ChildDNSService();
 
-  static ChildDNSService* GetSingleton();
+  static already_AddRefed<ChildDNSService> GetSingleton();
 
   void NotifyRequestDone(DNSRequestChild *aDnsRequest);
+
+  bool GetOffline() const;
 private:
   virtual ~ChildDNSService();
 
   void MOZ_ALWAYS_INLINE GetDNSRecordHashKey(const nsACString &aHost,
+                                             const OriginAttributes &aOriginAttributes,
                                              uint32_t aFlags,
                                              const nsACString &aNetworkInterface,
                                              nsIDNSListener* aListener,
                                              nsACString &aHashKey);
 
   bool mFirstTime;
-  bool mOffline;
   bool mDisablePrefetch;
 
   // We need to remember pending dns requests to be able to cancel them.

@@ -18,8 +18,10 @@ const {
 
 const TEST_URL = "data:text/html;charset=utf-8,CanvasFrameAnonymousContentHelper test";
 
-add_task(function*() {
-  let doc = yield addTab(TEST_URL);
+add_task(function* () {
+  let browser = yield addTab(TEST_URL);
+  // eslint-disable-next-line mozilla/no-cpows-in-tests
+  let doc = browser.contentDocument;
 
   let nodeBuilder = () => {
     let root = doc.createElement("div");
@@ -96,6 +98,6 @@ function synthesizeMouseDown(x, y, win) {
   // We need to make sure the inserted anonymous content can be targeted by the
   // event right after having been inserted, and so we need to force a sync
   // reflow.
-  let forceReflow = win.document.documentElement.offsetWidth;
+  win.document.documentElement.offsetWidth;
   EventUtils.synthesizeMouseAtPoint(x, y, {type: "mousedown"}, win);
 }

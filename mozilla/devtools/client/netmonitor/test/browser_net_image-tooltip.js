@@ -1,77 +1,100 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
+"use strict";
+
+const IMAGE_TOOLTIP_URL = EXAMPLE_URL + "html_image-tooltip-test-page.html";
+const IMAGE_TOOLTIP_REQUESTS = 1;
+
 /**
  * Tests if image responses show a popup in the requests menu when hovered.
  */
+add_task(function* test() {
+  let { tab, monitor } = yield initNetMonitor(IMAGE_TOOLTIP_URL);
+  const SELECTOR = ".requests-list-icon[src]";
+  info("Starting test... ");
 
-function test() {
-  initNetMonitor(CONTENT_TYPE_WITHOUT_CACHE_URL).then(([aTab, aDebuggee, aMonitor]) => {
-    info("Starting test... ");
+  let { document, store, windowRequire, connector } = monitor.panelWin;
+  let Actions = windowRequire("devtools/client/netmonitor/src/actions/index");
+  let { triggerActivity } = connector;
+  let { ACTIVITY_TYPE } = windowRequire("devtools/client/netmonitor/src/constants");
+  let toolboxDoc = monitor.panelWin.parent.document;
 
-    let { $, EVENTS, ACTIVITY_TYPE, NetMonitorView, NetMonitorController } = aMonitor.panelWin;
-    let { RequestsMenu } = NetMonitorView;
+  store.dispatch(Actions.batchEnable(false));
 
-    promise.all([
-      waitForNetworkEvents(aMonitor, 7),
-      waitFor(aMonitor.panelWin, EVENTS.RESPONSE_IMAGE_THUMBNAIL_DISPLAYED)
-    ]).then(() => {
-      info("Checking the image thumbnail after a few requests were made...");
-      let requestItem = RequestsMenu.items[5];
-      let requestTooltip = requestItem.attachment.tooltip;
-      ok(requestTooltip, "There should be a tooltip instance for the image request.");
+  let onEvents = waitForNetworkEvents(monitor, IMAGE_TOOLTIP_REQUESTS);
+  yield performRequests();
+  yield onEvents;
+  yield waitUntil(() => !!document.querySelector(SELECTOR));
 
-      let anchor = $(".requests-menu-file", requestItem.target);
-      return showTooltipOn(requestTooltip, anchor);
-    }).then(aTooltip => {
-      ok(true,
-        "An tooltip was successfully opened for the image request.");
-      is(aTooltip.content.querySelector("image").src, TEST_IMAGE_DATA_URI,
-        "The tooltip's image content is displayed correctly.");
+  info("Checking the image thumbnail after a few requests were made...");
+  yield showTooltipAndVerify(document.querySelectorAll(".request-list-item")[0]);
 
-      info("Reloading the debuggee and performing all requests again...");
-      reloadAndPerformRequests();
+  // Hide tooltip before next test, to avoid the situation that tooltip covers
+  // the icon for the request of the next test.
+  info("Checking the image thumbnail gets hidden...");
+  yield hideTooltipAndVerify(document.querySelectorAll(".request-list-item")[0]);
 
-      return promise.all([
-        waitForNetworkEvents(aMonitor, 7), // 6 + 1
-        waitFor(aMonitor.panelWin, EVENTS.RESPONSE_IMAGE_THUMBNAIL_DISPLAYED)
-      ]);
-    }).then(() => {
-      info("Checking the image thumbnail after a reload.");
-      let requestItem = RequestsMenu.items[6];
-      let requestTooltip = requestItem.attachment.tooltip;
-      ok(requestTooltip, "There should be a tooltip instance for the image request.");
+  // +1 extra document reload
+  onEvents = waitForNetworkEvents(monitor, IMAGE_TOOLTIP_REQUESTS + 1);
 
-      let anchor = $(".requests-menu-file", requestItem.target);
-      return showTooltipOn(requestTooltip, anchor);
-    }).then(aTooltip => {
-      ok(true,
-        "An tooltip was successfully opened for the image request.");
-      is(aTooltip.content.querySelector("image").src, TEST_IMAGE_DATA_URI,
-        "The tooltip's image content is displayed correctly.");
+  info("Reloading the debuggee and performing all requests again...");
+  yield triggerActivity(ACTIVITY_TYPE.RELOAD.WITH_CACHE_ENABLED);
+  yield performRequests();
+  yield onEvents;
+  yield waitUntil(() => !!document.querySelector(SELECTOR));
 
-      teardown(aMonitor).then(finish);
+  info("Checking the image thumbnail after a reload.");
+  yield showTooltipAndVerify(document.querySelectorAll(".request-list-item")[1]);
+
+  info("Checking if the image thumbnail is hidden when mouse leaves the menu widget");
+  let requestsListContents = document.querySelector(".requests-list-contents");
+  EventUtils.synthesizeMouse(requestsListContents, 0, 0, { type: "mousemove" },
+                             monitor.panelWin);
+  yield waitUntil(() => !toolboxDoc.querySelector(".tooltip-container.tooltip-visible"));
+
+  yield teardown(monitor);
+
+  function performRequests() {
+    return ContentTask.spawn(tab.linkedBrowser, {}, function* () {
+      content.wrappedJSObject.performRequests();
     });
+  }
 
-    function reloadAndPerformRequests() {
-      NetMonitorController.triggerActivity(ACTIVITY_TYPE.RELOAD.WITH_CACHE_ENABLED).then(() => {
-        aDebuggee.performRequests();
-      });
-    }
+  /**
+   * Show a tooltip on the {target} and verify that it was displayed
+   * with the expected content.
+   */
+  function* showTooltipAndVerify(target) {
+    let anchor = target.querySelector(".requests-list-icon");
+    yield showTooltipOn(anchor);
 
-    /**
-     * @return a promise that resolves when the tooltip is shown
-     */
-    function showTooltipOn(tooltip, element) {
-      return Task.spawn(function*() {
-        let isTarget = yield tooltip.isValidHoverTarget(element);
-        let onShown = tooltip.once("shown");
-        tooltip.show();
-        yield onShown;
-        return tooltip;
-      });
-    }
+    info("Tooltip was successfully opened for the image request.");
+    is(toolboxDoc.querySelector(".tooltip-panel img").src, TEST_IMAGE_DATA_URI,
+      "The tooltip's image content is displayed correctly.");
+  }
 
-    aDebuggee.performRequests();
-  });
-}
+  /**
+   * Trigger a tooltip over an element by sending mousemove event.
+   * @return a promise that resolves when the tooltip is shown
+   */
+  function* showTooltipOn(element) {
+    let win = element.ownerDocument.defaultView;
+    EventUtils.synthesizeMouseAtCenter(element, { type: "mousemove" }, win);
+    yield waitUntil(() => toolboxDoc.querySelector(".tooltip-panel img"));
+  }
+
+  /**
+   * Hide a tooltip on the {target} and verify that it was closed.
+   */
+  function* hideTooltipAndVerify(target) {
+    // Hovering over the "method" column hides the tooltip.
+    let anchor = target.querySelector(".requests-list-method");
+    let win = anchor.ownerDocument.defaultView;
+    EventUtils.synthesizeMouseAtCenter(anchor, { type: "mousemove" }, win);
+
+    yield waitUntil(
+      () => !toolboxDoc.querySelector(".tooltip-container.tooltip-visible"));
+    info("Tooltip was successfully closed.");
+  }
+});

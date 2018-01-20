@@ -10,7 +10,6 @@ scrollbar {
   -moz-binding: url(chrome://global/content/bindings/scrollbar.xml#scrollbar);
   cursor: default;
   background-color: white;
-  pointer-events: auto;
 }
 
 scrollbar[root="true"] {
@@ -42,12 +41,12 @@ slider[orient="vertical"] {
 
 /* ..... thumb ..... */
 
-thumb {
-  -moz-appearance: scrollbarthumb-horizontal;
-}
-
 thumb[orient="vertical"] {
   -moz-appearance: scrollbarthumb-vertical;
+}
+
+thumb[orient="horizontal"] {
+  -moz-appearance: scrollbarthumb-horizontal;
 }
 
 /* ..... increment ..... */

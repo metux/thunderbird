@@ -26,6 +26,8 @@ class GlobalObject;
 class UncaughtRejectionObserver;
 class FlushRejections;
 
+void TriggerFlushRejections();
+
 class PromiseDebugging
 {
 public:
@@ -35,6 +37,9 @@ public:
   static void GetState(GlobalObject&, JS::Handle<JSObject*> aPromise,
                        PromiseDebuggingStateHolder& aState,
                        ErrorResult& aRv);
+
+  static void GetPromiseID(GlobalObject&, JS::Handle<JSObject*>, nsString&,
+                           ErrorResult&);
 
   static void GetAllocationStack(GlobalObject&, JS::Handle<JSObject*> aPromise,
                                  JS::MutableHandle<JSObject*> aStack,
@@ -46,18 +51,6 @@ public:
                                    JS::Handle<JSObject*> aPromise,
                                    JS::MutableHandle<JSObject*> aStack,
                                    ErrorResult& aRv);
-  static void GetDependentPromises(GlobalObject&,
-                                   JS::Handle<JSObject*> aPromise,
-                                   nsTArray<RefPtr<Promise>>& aPromises,
-                                   ErrorResult& aRv);
-  static double GetPromiseLifetime(GlobalObject&,
-                                   JS::Handle<JSObject*> aPromise,
-                                   ErrorResult& aRv);
-  static double GetTimeToSettle(GlobalObject&, JS::Handle<JSObject*> aPromise,
-                                ErrorResult& aRv);
-
-  static void GetPromiseID(GlobalObject&, JS::Handle<JSObject*>, nsString&,
-                           ErrorResult&);
 
   // Mechanism for watching uncaught instances of Promise.
   static void AddUncaughtRejectionObserver(GlobalObject&,
@@ -66,10 +59,10 @@ public:
                                               UncaughtRejectionObserver& aObserver);
 
   // Mark a Promise as having been left uncaught at script completion.
-  static void AddUncaughtRejection(Promise&);
+  static void AddUncaughtRejection(JS::HandleObject);
   // Mark a Promise previously added with `AddUncaughtRejection` as
   // eventually consumed.
-  static void AddConsumedRejection(Promise&);
+  static void AddConsumedRejection(JS::HandleObject);
   // Propagate the informations from AddUncaughtRejection
   // and AddConsumedRejection to observers.
   static void FlushUncaughtRejections();
@@ -77,7 +70,7 @@ public:
 protected:
   static void FlushUncaughtRejectionsInternal();
   friend class FlushRejections;
-  friend class WorkerPrivate;
+  friend class mozilla::dom::workers::WorkerPrivate;
 private:
   // Identity of the process.
   // This property is:

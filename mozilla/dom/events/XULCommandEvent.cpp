@@ -22,7 +22,7 @@ XULCommandEvent::XULCommandEvent(EventTarget* aOwner,
   }
   else {
     mEventIsInternal = true;
-    mEvent->time = PR_Now();
+    mEvent->mTime = PR_Now();
   }
 }
 
@@ -32,7 +32,7 @@ NS_IMPL_RELEASE_INHERITED(XULCommandEvent, UIEvent)
 NS_IMPL_CYCLE_COLLECTION_INHERITED(XULCommandEvent, UIEvent,
                                    mSourceEvent)
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(XULCommandEvent)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(XULCommandEvent)
   NS_INTERFACE_MAP_ENTRY(nsIDOMXULCommandEvent)
 NS_INTERFACE_MAP_END_INHERITING(UIEvent)
 
@@ -92,6 +92,20 @@ XULCommandEvent::GetMetaKey(bool* aIsDown)
   return NS_OK;
 }
 
+uint16_t
+XULCommandEvent::InputSource()
+{
+  return mInputSource;
+}
+
+NS_IMETHODIMP
+XULCommandEvent::GetInputSource(uint16_t* aInputSource)
+{
+  NS_ENSURE_ARG_POINTER(aInputSource);
+  *aInputSource = InputSource();
+  return NS_OK;
+}
+
 NS_IMETHODIMP
 XULCommandEvent::GetSourceEvent(nsIDOMEvent** aSourceEvent)
 {
@@ -105,21 +119,24 @@ NS_IMETHODIMP
 XULCommandEvent::InitCommandEvent(const nsAString& aType,
                                   bool aCanBubble,
                                   bool aCancelable,
-                                  nsIDOMWindow* aView,
+                                  mozIDOMWindow* aView,
                                   int32_t aDetail,
                                   bool aCtrlKey,
                                   bool aAltKey,
                                   bool aShiftKey,
                                   bool aMetaKey,
-                                  nsIDOMEvent* aSourceEvent)
+                                  nsIDOMEvent* aSourceEvent,
+                                  uint16_t aInputSource)
 {
-  nsresult rv = UIEvent::InitUIEvent(aType, aCanBubble, aCancelable,
-                                     aView, aDetail);
-  NS_ENSURE_SUCCESS(rv, rv);
+  NS_ENSURE_TRUE(!mEvent->mFlags.mIsBeingDispatched, NS_OK);
+
+  auto* view = nsGlobalWindowInner::Cast(nsPIDOMWindowInner::From(aView));
+  UIEvent::InitUIEvent(aType, aCanBubble, aCancelable, view, aDetail);
 
   mEvent->AsInputEvent()->InitBasicModifiers(aCtrlKey, aAltKey,
                                              aShiftKey, aMetaKey);
   mSourceEvent = aSourceEvent;
+  mInputSource = aInputSource;
 
   return NS_OK;
 }
@@ -133,7 +150,7 @@ using namespace mozilla::dom;
 already_AddRefed<XULCommandEvent>
 NS_NewDOMXULCommandEvent(EventTarget* aOwner,
                          nsPresContext* aPresContext,
-                         WidgetInputEvent* aEvent) 
+                         WidgetInputEvent* aEvent)
 {
   RefPtr<XULCommandEvent> it =
     new XULCommandEvent(aOwner, aPresContext, aEvent);

@@ -9,7 +9,6 @@
 
 load("../../../resources/POP3pump.js");
 Components.utils.import("resource:///modules/mailServices.js");
-Components.utils.import("resource://gre/modules/Promise.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://testing-common/mailnews/PromiseTestUtils.jsm");
@@ -140,7 +139,7 @@ function run_test()
 {
   for (let store of gPluggableStores) {
     add_task(setup_store(store));
-    gTestArray.forEach(add_task);
+    gTestArray.forEach(x => add_task(x));
   }
 
   add_task(exitTest);

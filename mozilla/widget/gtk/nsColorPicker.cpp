@@ -10,6 +10,7 @@
 #include "nsGtkUtils.h"
 #include "nsIWidget.h"
 #include "WidgetUtils.h"
+#include "nsPIDOMWindow.h"
 
 NS_IMPL_ISUPPORTS(nsColorPicker, nsIColorPicker)
 
@@ -57,10 +58,11 @@ GtkColorSelection* nsColorPicker::WidgetGetColorSelection(GtkWidget* widget)
 }
 #endif
 
-NS_IMETHODIMP nsColorPicker::Init(nsIDOMWindow *parent,
+NS_IMETHODIMP nsColorPicker::Init(mozIDOMWindowProxy *aParent,
                                   const nsAString& title,
                                   const nsAString& initialColor)
 {
+  auto* parent = nsPIDOMWindowOuter::From(aParent);
   mParentWidget = mozilla::widget::WidgetUtils::DOMWindowToWidget(parent);
   mTitle = title;
   mInitialColor = initialColor;
@@ -79,7 +81,7 @@ NS_IMETHODIMP nsColorPicker::Open(nsIColorPickerShownCallback *aColorPickerShown
 
   const nsAString& withoutHash  = StringTail(mInitialColor, 6);
   nscolor color;
-  if (!NS_HexToRGB(withoutHash, &color)) {
+  if (!NS_HexToRGBA(withoutHash, nsHexColorType::NoAlpha, &color)) {
     return NS_ERROR_FAILURE;
   }
 
@@ -90,7 +92,7 @@ NS_IMETHODIMP nsColorPicker::Open(nsIColorPickerShownCallback *aColorPickerShown
   }
   mCallback = aColorPickerShownCallback;
 
-  nsXPIDLCString title;
+  nsCString title;
   title.Adopt(ToNewUTF8String(mTitle));
   GtkWindow *parent_window = GTK_WINDOW(mParentWidget->GetNativeData(NS_NATIVE_SHELLWIDGET));
   
@@ -109,7 +111,7 @@ NS_IMETHODIMP nsColorPicker::Open(nsIColorPickerShownCallback *aColorPickerShown
   g_signal_connect(GTK_COLOR_CHOOSER(color_chooser), "color-activated",
                    G_CALLBACK(OnColorChanged), this);
 #else
-  GtkWidget *color_chooser = gtk_color_selection_dialog_new(title);
+  GtkWidget *color_chooser = gtk_color_selection_dialog_new(title.get());
   
   if (parent_window) {
     GtkWindow *window = GTK_WINDOW(color_chooser);

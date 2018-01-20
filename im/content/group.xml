@@ -110,7 +110,7 @@
        <parameter name="aContactElt"/>
        <body>
        <![CDATA[
-         if (this._pendingReorders.indexOf(aContactElt) != -1)
+         if (this._pendingReorders.includes(aContactElt))
            return;
 
          this._pendingReorders.push(aContactElt);
@@ -184,7 +184,8 @@
 
      <!-- Takes as input two contact elements (imIContact type) and compares
           - their nicknames alphabetically (case insensitive). This method
-          - behaves as a callback that Array.sort accepts as a parameter.
+          - behaves as a callback that Array.prototype.sort accepts as a
+          - parameter.
           -->
      <method name="sortComparator">
       <parameter name="aContactA"/>

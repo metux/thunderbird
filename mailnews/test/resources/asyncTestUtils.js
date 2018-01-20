@@ -153,20 +153,30 @@ function _async_driver() {
   while (asyncGeneratorStack.length) {
     curGenerator = asyncGeneratorStack[asyncGeneratorStack.length-1][0];
     try {
-      while (curGenerator.send(asyncGeneratorSendValue)) {
+      let nextItem;
+      do {
+        nextItem = curGenerator.next(asyncGeneratorSendValue);
+        if (!nextItem.value || nextItem.done)
+          break;
         asyncGeneratorSendValue = undefined;
+      } while (true);
+
+      if (nextItem.done) {
+        asyncGeneratorStack.pop();
+      } else {
+        asyncGeneratorSendValue = undefined;
+        return false;
       }
-      asyncGeneratorSendValue = undefined;
-      return false;
     }
     catch (ex) {
-      if (ex != StopIteration && ex != asyncExpectedEarlyAbort) {
+      if (ex != asyncExpectedEarlyAbort) {
         let asyncStack = [];
         dump("*******************************************\n");
         dump("Generator explosion!\n");
-        dump("Unhappiness at: " + ex.fileName + ":" + ex.lineNumber + "\n");
+        dump("Unhappiness at: " + (ex.fileName || ex.filename) + ":" + ex.lineNumber + "\n");
         dump("Because: " + ex + "\n");
-        dump("Stack:\n  " + ex.stack.replace(/\n/g, "\n  ") + "\n");
+        if (ex.stack)
+          dump("Stack:\n  " + ex.stack.replace(/\n/g, "\n  ") + "\n");
         dump("**** Async Generator Stack source functions:\n");
         for (let i = asyncGeneratorStack.length - 1; i >= 0; i--) {
           dump("  " + asyncGeneratorStack[i][1] + "\n");
@@ -254,7 +264,7 @@ function async_run_tests(aTests, aLongestTestRunTimeConceivableInSecs) {
   async_run({func: _async_test_runner, args: [aTests]});
 }
 
-function _async_test_runner(aTests) {
+function* _async_test_runner(aTests) {
   for (let test of aTests) {
     // parameterized?
     if (test.length) {

@@ -9,7 +9,7 @@ const { require } = Components.utils.import("resource://devtools/shared/Loader.j
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 Object.defineProperty(this, "NetworkHelper", {
-  get: function() {
+  get: function () {
     return require("devtools/shared/webconsole/network-helper");
   },
   configurable: true,
@@ -41,7 +41,8 @@ const MockSecurityInfo = {
   errorCode: 0,
   SSLStatus: {
     cipherSuite: "TLS_ECDH_ECDSA_WITH_AES_128_GCM_SHA256",
-    protocolVersion: 3, // TLS_VERSION_1_2
+    // TLS_VERSION_1_2
+    protocolVersion: 3,
     serverCert: MockCertificate,
   }
 };

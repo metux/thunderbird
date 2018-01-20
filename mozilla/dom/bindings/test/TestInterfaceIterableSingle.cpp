@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -20,10 +22,10 @@ NS_WRAPPERCACHE_INTERFACE_MAP_ENTRY
 NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
-TestInterfaceIterableSingle::TestInterfaceIterableSingle(nsPIDOMWindow* aParent)
+TestInterfaceIterableSingle::TestInterfaceIterableSingle(nsPIDOMWindowInner* aParent)
   : mParent(aParent)
 {
-  for(int i = 0; i < 3; ++i) {
+  for (int i = 0; i < 3; ++i) {
     mValues.AppendElement(i);
   }
 }
@@ -33,7 +35,7 @@ already_AddRefed<TestInterfaceIterableSingle>
 TestInterfaceIterableSingle::Constructor(const GlobalObject& aGlobal,
                                          ErrorResult& aRv)
 {
-  nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(aGlobal.GetAsSupports());
+  nsCOMPtr<nsPIDOMWindowInner> window = do_QueryInterface(aGlobal.GetAsSupports());
   if (!window) {
     aRv.Throw(NS_ERROR_FAILURE);
     return nullptr;
@@ -49,23 +51,28 @@ TestInterfaceIterableSingle::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aG
   return TestInterfaceIterableSingleBinding::Wrap(aCx, this, aGivenProto);
 }
 
-nsPIDOMWindow*
+nsPIDOMWindowInner*
 TestInterfaceIterableSingle::GetParentObject() const
 {
   return mParent;
 }
 
-size_t
-TestInterfaceIterableSingle::GetIterableLength() const
+uint32_t
+TestInterfaceIterableSingle::Length() const
 {
   return mValues.Length();
 }
 
-uint32_t
-TestInterfaceIterableSingle::GetValueAtIndex(uint32_t index) const
+int32_t
+TestInterfaceIterableSingle::IndexedGetter(uint32_t aIndex, bool& aFound) const
 {
-  MOZ_ASSERT(index < mValues.Length());
-  return mValues.ElementAt(index);
+  if (aIndex >= mValues.Length()) {
+    aFound = false;
+    return 0;
+  }
+
+  aFound = true;
+  return mValues[aIndex];
 }
 
 } // namespace dom

@@ -8,7 +8,6 @@
 
 #include "MediaResource.h"
 #include "nsISeekableStream.h"
-#include "nsIPrincipal.h"
 #include <algorithm>
 
 namespace mozilla {
@@ -20,47 +19,22 @@ namespace mozilla {
 class BufferMediaResource : public MediaResource
 {
 public:
-  BufferMediaResource(const uint8_t* aBuffer,
-                      uint32_t aLength,
-                      nsIPrincipal* aPrincipal,
-                      const nsACString& aContentType) :
-    mBuffer(aBuffer),
-    mLength(aLength),
-    mOffset(0),
-    mPrincipal(aPrincipal),
-    mContentType(aContentType)
+  BufferMediaResource(const uint8_t* aBuffer, uint32_t aLength)
+    : mBuffer(aBuffer)
+    , mLength(aLength)
+    , mOffset(0)
   {
-    MOZ_COUNT_CTOR(BufferMediaResource);
   }
 
 protected:
   virtual ~BufferMediaResource()
   {
-    MOZ_COUNT_DTOR(BufferMediaResource);
   }
 
 private:
-  virtual nsresult Close() override { return NS_OK; }
-  virtual void Suspend(bool aCloseImmediately) override {}
-  virtual void Resume() override {}
-  // Get the current principal for the channel
-  virtual already_AddRefed<nsIPrincipal> GetCurrentPrincipal() override
-  {
-    nsCOMPtr<nsIPrincipal> principal = mPrincipal;
-    return principal.forget();
-  }
-  virtual bool CanClone() override { return false; }
-  virtual already_AddRefed<MediaResource> CloneData(MediaResourceCallback*) override
-  {
-    return nullptr;
-  }
-
   // These methods are called off the main thread.
-  // The mode is initially MODE_PLAYBACK.
-  virtual void SetReadMode(MediaCacheStream::ReadMode aMode) override {}
-  virtual void SetPlaybackRate(uint32_t aBytesPerSecond) override {}
-  virtual nsresult ReadAt(int64_t aOffset, char* aBuffer,
-                          uint32_t aCount, uint32_t* aBytes) override
+  nsresult ReadAt(int64_t aOffset, char* aBuffer,
+                  uint32_t aCount, uint32_t* aBytes) override
   {
     if (aOffset < 0 || aOffset > mLength) {
       return NS_ERROR_FAILURE;
@@ -70,20 +44,23 @@ private:
     mOffset = aOffset + *aBytes;
     return NS_OK;
   }
-  virtual int64_t Tell() override { return mOffset; }
+  // Memory-based and no locks, caching discouraged.
+  bool ShouldCacheReads() override { return false; }
 
-  virtual void Pin() override {}
-  virtual void Unpin() override {}
-  virtual double GetDownloadRate(bool* aIsReliable) override { *aIsReliable = false; return 0.; }
-  virtual int64_t GetLength() override { return mLength; }
-  virtual int64_t GetNextCachedData(int64_t aOffset) override { return aOffset; }
-  virtual int64_t GetCachedDataEnd(int64_t aOffset) override { return mLength; }
-  virtual bool IsDataCachedToEndOfResource(int64_t aOffset) override { return true; }
-  virtual bool IsSuspendedByCache() override { return false; }
-  virtual bool IsSuspended() override { return false; }
-  virtual nsresult ReadFromCache(char* aBuffer,
-                                 int64_t aOffset,
-                                 uint32_t aCount) override
+  int64_t Tell() override { return mOffset; }
+
+  void Pin() override {}
+  void Unpin() override {}
+  int64_t GetLength() override { return mLength; }
+  int64_t GetNextCachedData(int64_t aOffset) override { return aOffset; }
+  int64_t GetCachedDataEnd(int64_t aOffset) override
+  {
+    return std::max(aOffset, int64_t(mLength));
+  }
+  bool IsDataCachedToEndOfResource(int64_t aOffset) override { return true; }
+  nsresult ReadFromCache(char* aBuffer,
+                         int64_t aOffset,
+                         uint32_t aCount) override
   {
     if (aOffset < 0) {
       return NS_ERROR_FAILURE;
@@ -94,48 +71,16 @@ private:
     return NS_OK;
   }
 
-  virtual nsresult Open(nsIStreamListener** aStreamListener) override
-  {
-    return NS_ERROR_FAILURE;
-  }
-
-  virtual nsresult GetCachedRanges(MediaByteRangeSet& aRanges) override
+  nsresult GetCachedRanges(MediaByteRangeSet& aRanges) override
   {
     aRanges += MediaByteRange(0, int64_t(mLength));
     return NS_OK;
-  }
-
-  bool IsTransportSeekable() override { return true; }
-
-  virtual const nsCString& GetContentType() const override
-  {
-    return mContentType;
-  }
-
-  virtual size_t SizeOfExcludingThis(
-                        MallocSizeOf aMallocSizeOf) const override
-  {
-    // Not owned:
-    // - mBuffer
-    // - mPrincipal
-    size_t size = MediaResource::SizeOfExcludingThis(aMallocSizeOf);
-    size += mContentType.SizeOfExcludingThisIfUnshared(aMallocSizeOf);
-
-    return size;
-  }
-
-  virtual size_t SizeOfIncludingThis(
-                        MallocSizeOf aMallocSizeOf) const override
-  {
-    return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
   }
 
 private:
   const uint8_t * mBuffer;
   uint32_t mLength;
   uint32_t mOffset;
-  nsCOMPtr<nsIPrincipal> mPrincipal;
-  const nsCString mContentType;
 };
 
 } // namespace mozilla

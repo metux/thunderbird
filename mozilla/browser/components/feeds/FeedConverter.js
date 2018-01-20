@@ -1,4 +1,4 @@
-/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */ 
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -89,18 +89,6 @@ function getPrefReaderForType(t) {
     default:
       return PREF_SELECTED_READER;
   }
-}
-
-function safeGetCharPref(pref, defaultValue) {
-  var prefs =
-      Cc["@mozilla.org/preferences-service;1"].
-      getService(Ci.nsIPrefBranch);
-  try {
-    return prefs.getCharPref(pref);
-  }
-  catch (e) {
-  }
-  return defaultValue;
 }
 
 function FeedConverter() {
@@ -194,11 +182,11 @@ FeedConverter.prototype = {
           getService(Ci.nsIFeedResultService);
       if (!this._forcePreviewPage && result.doc) {
         let feed = result.doc.QueryInterface(Ci.nsIFeed);
-        let handler = safeGetCharPref(getPrefActionForType(feed.type), "ask");
+        let handler = Services.prefs.getCharPref(getPrefActionForType(feed.type), "ask");
 
         if (handler != "ask") {
           if (handler == "reader")
-            handler = safeGetCharPref(getPrefReaderForType(feed.type), "bookmarks");
+            handler = Services.prefs.getCharPref(getPrefReaderForType(feed.type), "bookmarks");
           switch (handler) {
             case "web":
               let wccr =
@@ -224,17 +212,13 @@ FeedConverter.prototype = {
               try {
                 let title = feed.title ? feed.title.plainText() : "";
                 let desc = feed.subtitle ? feed.subtitle.plainText() : "";
-                let feedReader = safeGetCharPref(getPrefActionForType(feedType), "bookmarks");
-                feedService.addToClientReader(result.uri.spec, title, desc, feed.type, feedReader);
+                feedService.addToClientReader(result.uri.spec, title, desc, feed.type, handler);
                 return;
-              } catch(ex) { /* fallback to preview mode */ }
+              } catch (ex) { /* fallback to preview mode */ }
           }
         }
       }
 
-      let ios =
-          Cc["@mozilla.org/network/io-service;1"].
-          getService(Ci.nsIIOService);
       let chromeChannel;
 
       // handling a redirect, hence forwarding the loadInfo from the old channel
@@ -252,19 +236,21 @@ FeedConverter.prototype = {
         feedService.addFeedResult(result);
 
         // Now load the actual XUL document.
-        let aboutFeedsURI = ios.newURI("about:feeds", null, null);
-        chromeChannel = ios.newChannelFromURIWithLoadInfo(aboutFeedsURI, loadInfo);
+        let aboutFeedsURI = Services.io.newURI("about:feeds");
+        chromeChannel = Services.io.newChannelFromURIWithLoadInfo(aboutFeedsURI, loadInfo);
         chromeChannel.originalURI = result.uri;
+
+        // carry the origin attributes from the channel that loaded the feed.
         chromeChannel.owner =
-          Services.scriptSecurityManager.createCodebasePrincipal(aboutFeedsURI, {});
+          Services.scriptSecurityManager.createCodebasePrincipal(aboutFeedsURI,
+                                                                 loadInfo.originAttributes);
       } else {
-        chromeChannel = ios.newChannelFromURIWithLoadInfo(result.uri, loadInfo);
+        chromeChannel = Services.io.newChannelFromURIWithLoadInfo(result.uri, loadInfo);
       }
 
       chromeChannel.loadGroup = this._request.loadGroup;
-      chromeChannel.asyncOpen(this._listener, null);
-    }
-    finally {
+      chromeChannel.asyncOpen2(this._listener);
+    } finally {
       this._releaseHandles();
     }
   },
@@ -296,9 +282,10 @@ FeedConverter.prototype = {
         request.cancel(Cr.NS_BINDING_ABORTED);
         return;
       }
-      let noSniff = httpChannel.getResponseHeader("X-Moz-Is-Feed");
-    }
-    catch (ex) {
+
+      // Note: this throws if the header is not set.
+      httpChannel.getResponseHeader("X-Moz-Is-Feed");
+    } catch (ex) {
       this._sniffed = true;
     }
 
@@ -337,7 +324,7 @@ FeedConverter.prototype = {
     if (iid.equals(Ci.nsIFeedResultListener) ||
         iid.equals(Ci.nsIStreamConverter) ||
         iid.equals(Ci.nsIStreamListener) ||
-        iid.equals(Ci.nsIRequestObserver)||
+        iid.equals(Ci.nsIRequestObserver) ||
         iid.equals(Ci.nsISupports))
       return this;
     throw Cr.NS_ERROR_NO_INTERFACE;
@@ -373,7 +360,7 @@ FeedResultService.prototype = {
       feedReader = "default";
     }
 
-    let handler = safeGetCharPref(getPrefActionForType(feedType), "bookmarks");
+    let handler = Services.prefs.getCharPref(getPrefActionForType(feedType), "bookmarks");
     if (handler == "ask" || handler == "reader")
       handler = feedReader;
 
@@ -476,10 +463,7 @@ function GenericProtocolHandler() {
 }
 GenericProtocolHandler.prototype = {
   _init(scheme) {
-    let ios =
-      Cc["@mozilla.org/network/io-service;1"].
-      getService(Ci.nsIIOService);
-    this._http = ios.getProtocolHandler("http");
+    this._http = Services.io.getProtocolHandler("http");
     this._scheme = scheme;
   },
 
@@ -488,7 +472,9 @@ GenericProtocolHandler.prototype = {
   },
 
   get protocolFlags() {
-    return this._http.protocolFlags;
+    let {URI_DANGEROUS_TO_LOAD, ALLOWS_PROXY_HTTP, ALLOWS_PROXY} =
+      Ci.nsIProtocolHandler;
+    return URI_DANGEROUS_TO_LOAD | ALLOWS_PROXY | ALLOWS_PROXY_HTTP;
   },
 
   get defaultPort() {
@@ -497,6 +483,30 @@ GenericProtocolHandler.prototype = {
 
   allowPort(port, scheme) {
     return this._http.allowPort(port, scheme);
+  },
+
+  _getTelemetrySchemeId() {
+    // Gets a scheme id from 1-8
+    let schemeId;
+    if (!this._telemetrySubScheme) {
+      schemeId = 1;
+    } else {
+      switch (this._telemetryInnerScheme) {
+        case "http":
+          schemeId = 2;
+          break;
+        case "https":
+          schemeId = 3;
+          break;
+        default:
+          // Invalid scheme
+          schemeId = 4;
+      }
+    }
+    if (this._scheme === "pcast") {
+      schemeId += 4;
+    }
+    return schemeId;
   },
 
   newURI(spec, originalCharset, baseURI) {
@@ -508,26 +518,28 @@ GenericProtocolHandler.prototype = {
     if (spec.substr(0, scheme.length) != scheme)
       throw Cr.NS_ERROR_MALFORMED_URI;
 
+    this._telemetrySubScheme = spec.substr(scheme.length, 2) != "//";
+
     let prefix = spec.substr(scheme.length, 2) == "//" ? "http:" : "";
-    let inner = Cc["@mozilla.org/network/io-service;1"].
-                getService(Ci.nsIIOService).newURI(spec.replace(scheme, prefix),
-                                                   originalCharset, baseURI);
-    let netutil = Cc["@mozilla.org/network/util;1"].getService(Ci.nsINetUtil);
-    const URI_INHERITS_SECURITY_CONTEXT = Ci.nsIProtocolHandler
-                                            .URI_INHERITS_SECURITY_CONTEXT;
-    if (netutil.URIChainHasFlags(inner, URI_INHERITS_SECURITY_CONTEXT))
+    let inner = Services.io.newURI(spec.replace(scheme, prefix),
+                                   originalCharset, baseURI);
+    this._telemetryInnerScheme = inner.scheme;
+
+
+    if (!["http", "https"].includes(inner.scheme))
       throw Cr.NS_ERROR_MALFORMED_URI;
 
-    let uri = netutil.newSimpleNestedURI(inner);
+    let uri = Services.io.QueryInterface(Ci.nsINetUtil).newSimpleNestedURI(inner);
     uri.spec = inner.spec.replace(prefix, scheme);
     return uri;
   },
 
   newChannel2(aUri, aLoadInfo) {
     let inner = aUri.QueryInterface(Ci.nsINestedURI).innerURI;
-    let channel = Cc["@mozilla.org/network/io-service;1"].
-                  getService(Ci.nsIIOService).
-                  newChannelFromURIWithLoadInfo(inner, aLoadInfo);
+    let channel = Services.io.newChannelFromURIWithLoadInfo(inner, aLoadInfo);
+
+    const schemeId = this._getTelemetrySchemeId();
+    Services.telemetry.getHistogramById("FEED_PROTOCOL_USAGE").add(schemeId);
 
     if (channel instanceof Components.interfaces.nsIHttpChannel)
       // Set this so we know this is supposed to be a feed
@@ -545,13 +557,13 @@ GenericProtocolHandler.prototype = {
 };
 
 function FeedProtocolHandler() {
-  this._init('feed');
+  this._init("feed");
 }
 FeedProtocolHandler.prototype = new GenericProtocolHandler();
 FeedProtocolHandler.prototype.classID = Components.ID("{4f91ef2e-57ba-472e-ab7a-b4999e42d6c0}");
 
 function PodCastProtocolHandler() {
-  this._init('pcast');
+  this._init("pcast");
 }
 PodCastProtocolHandler.prototype = new GenericProtocolHandler();
 PodCastProtocolHandler.prototype.classID = Components.ID("{1c31ed79-accd-4b94-b517-06e0c81999d5}");

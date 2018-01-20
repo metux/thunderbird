@@ -6,12 +6,12 @@
 
 #include "nsContentUtils.h"
 #include "nsIconChannel.h"
-#include "mozilla/Endian.h"
+#include "mozilla/EndianUtils.h"
 #include "nsIIconURI.h"
 #include "nsIServiceManager.h"
 #include "nsIInterfaceRequestor.h"
 #include "nsIInterfaceRequestorUtils.h"
-#include "nsXPIDLString.h"
+#include "nsString.h"
 #include "nsMimeTypes.h"
 #include "nsMemory.h"
 #include "nsIStringStream.h"
@@ -27,6 +27,7 @@
 #include "nsObjCExceptions.h"
 #include "nsProxyRelease.h"
 #include "nsContentSecurityManager.h"
+#include "nsNetUtil.h"
 
 #include <Cocoa/Cocoa.h>
 
@@ -38,12 +39,8 @@ nsIconChannel::nsIconChannel()
 nsIconChannel::~nsIconChannel()
 {
   if (mLoadInfo) {
-    nsCOMPtr<nsIThread> mainThread;
-    NS_GetMainThread(getter_AddRefs(mainThread));
-
-    nsILoadInfo* forgetableLoadInfo;
-    mLoadInfo.forget(&forgetableLoadInfo);
-    NS_ProxyRelease(mainThread, forgetableLoadInfo, false);
+    NS_ReleaseOnMainThreadSystemGroup(
+      "nsIconChannel::mLoadInfo", mLoadInfo.forget());
   }
 }
 
@@ -235,11 +232,20 @@ nsIconChannel::AsyncOpen(nsIStreamListener* aListener,
 
   nsCOMPtr<nsIInputStream> inStream;
   nsresult rv = MakeInputStream(getter_AddRefs(inStream), true);
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (NS_FAILED(rv)) {
+      mCallbacks = nullptr;
+      return rv;
+  }
 
   // Init our stream pump
-  rv = mPump->Init(inStream, int64_t(-1), int64_t(-1), 0, 0, false);
-  NS_ENSURE_SUCCESS(rv, rv);
+  nsCOMPtr<nsIEventTarget> target =
+      nsContentUtils::GetEventTargetByLoadInfo(mLoadInfo,
+                                               mozilla::TaskCategory::Other);
+  rv = mPump->Init(inStream, 0, 0, false, target);
+  if (NS_FAILED(rv)) {
+      mCallbacks = nullptr;
+      return rv;
+  }
 
   rv = mPump->AsyncRead(this, ctxt);
   if (NS_SUCCEEDED(rv)) {
@@ -249,6 +255,8 @@ nsIconChannel::AsyncOpen(nsIStreamListener* aListener,
     if (mLoadGroup) {
       mLoadGroup->AddRequest(this, nullptr);
     }
+  } else {
+      mCallbacks = nullptr;
   }
 
   return rv;
@@ -259,7 +267,10 @@ nsIconChannel::AsyncOpen2(nsIStreamListener* aListener)
 {
   nsCOMPtr<nsIStreamListener> listener = aListener;
   nsresult rv = nsContentSecurityManager::doContentSecurityCheck(this, listener);
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (NS_FAILED(rv)) {
+      mCallbacks = nullptr;
+      return rv;
+  }
   return AsyncOpen(listener, nullptr);
 }
 
@@ -269,7 +280,7 @@ nsIconChannel::MakeInputStream(nsIInputStream** _retval,
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
 
-  nsXPIDLCString contentType;
+  nsCString contentType;
   nsAutoCString fileExt;
   nsCOMPtr<nsIFile> fileloc; // file we want an icon for
   uint32_t desiredImageSize;
@@ -350,7 +361,7 @@ nsIconChannel::MakeInputStream(nsIInputStream** _retval,
 
   // create our buffer
   int32_t bufferCapacity = 2 + [bitmapRep bytesPerPlane];
-  nsAutoTArray<uint8_t, 3 + 16 * 16 * 5> iconBuffer; // initial size is for
+  AutoTArray<uint8_t, 3 + 16 * 16 * 5> iconBuffer; // initial size is for
                                                      // 16x16
   iconBuffer.SetLength(bufferCapacity);
 
@@ -421,6 +432,12 @@ NS_IMETHODIMP
 nsIconChannel::SetLoadFlags(uint32_t aLoadAttributes)
 {
   return mPump->SetLoadFlags(aLoadAttributes);
+}
+
+NS_IMETHODIMP
+nsIconChannel::GetIsDocument(bool *aIsDocument)
+{
+  return NS_GetIsDocumentChannel(this, aIsDocument);
 }
 
 NS_IMETHODIMP

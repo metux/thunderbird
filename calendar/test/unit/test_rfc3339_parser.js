@@ -5,13 +5,7 @@
 Components.utils.import("resource://calendar/modules/calProviderUtils.jsm");
 
 function run_test() {
-    do_test_pending();
-    cal.getTimezoneService().startup({
-        onResult: function() {
-            really_run_test();
-            do_test_finished();
-        }
-    });
+    do_calendar_startup(really_run_test);
 }
 
 function really_run_test() {
@@ -38,10 +32,11 @@ function really_run_test() {
             do_print("Checking prop: " + prop);
             // Object comparison fails with ical.js, and we only want to check
             // that we have the right timezone.
-            if (prop == "timezone")
-                equal(dateTime[prop].tzid, expectedDateProps[prop].tzid)
-            else
+            if (prop == "timezone") {
+                equal(dateTime[prop].tzid, expectedDateProps[prop].tzid);
+            } else {
                 equal(dateTime[prop], expectedDateProps[prop]);
+            }
         }
 
         // Test round tripping that dateTime object back to an RFC 3339 string.
@@ -74,8 +69,8 @@ function really_run_test() {
     let timezone = getTz("America/New_York");
     let utc = cal.UTC();
     // Timezones used in tests.
-    belize = getTz("America/Belize");
-    dawson = getTz("America/Dawson");
+    let belize = getTz("America/Belize");
+    let dawson = getTz("America/Dawson");
 
     /*
      * Basic tests

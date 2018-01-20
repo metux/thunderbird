@@ -17,14 +17,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "RecentWindow",
 const { interfaces: Ci, classes: Cc } = Components;
 
 this.Feeds = {
-  init() {
-    let mm = Cc["@mozilla.org/globalmessagemanager;1"].getService(Ci.nsIMessageListenerManager);
-    mm.addMessageListener("WCCR:registerProtocolHandler", this);
-
-    Services.ppmm.addMessageListener("WCCR:setAutoHandler", this);
-    Services.ppmm.addMessageListener("FeedConverter:addLiveBookmark", this);
-  },
-
+  // Listeners are added in nsBrowserGlue.js
   receiveMessage(aMessage) {
     let data = aMessage.data;
     switch (aMessage.name) {
@@ -46,7 +39,7 @@ this.Feeds = {
 
       case "WCCR:setAutoHandler": {
         let registrar = Cc["@mozilla.org/embeddor.implemented/web-content-handler-registrar;1"].
-                          getService(Ci.nsIWebContentHandlerRegistrar);
+                          getService(Ci.nsIWebContentConverterService);
         registrar.setAutoHandler(data.contentType, data.handler);
         break;
       }
@@ -71,7 +64,7 @@ this.Feeds = {
    *         Whether this is already a known feed or not, if true only a security
    *         check will be performed.
    */
-  isValidFeed: function(aLink, aPrincipal, aIsFeed) {
+  isValidFeed(aLink, aPrincipal, aIsFeed) {
     if (!aLink || !aPrincipal)
       return false;
 
@@ -82,16 +75,12 @@ this.Feeds = {
     }
 
     if (aIsFeed) {
-      // re-create the principal as it may be a CPOW.
-      let principalURI = BrowserUtils.makeURIFromCPOW(aPrincipal.URI);
-      let principalToCheck =
-        Services.scriptSecurityManager.createCodebasePrincipal(principalURI, {});
       try {
-        BrowserUtils.urlSecurityCheck(aLink.href, principalToCheck,
+        let href = BrowserUtils.makeURI(aLink.href, aLink.ownerDocument.characterSet);
+        BrowserUtils.urlSecurityCheck(href, aPrincipal,
                                       Ci.nsIScriptSecurityManager.DISALLOW_INHERIT_PRINCIPAL);
         return type || "application/rss+xml";
-      }
-      catch(ex) {
+      } catch (ex) {
       }
     }
 

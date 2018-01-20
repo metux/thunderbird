@@ -2,11 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-add_task(function* test() {
+const remoteClientsFixture = [ { id: 1, name: "Foo"}, { id: 2, name: "Bar"} ];
+
+add_task(async function test() {
   // There should be one tab when we start the test
   let [origTab] = gBrowser.visibleTabs;
   is(gBrowser.visibleTabs.length, 1, "there is one visible tab");
-  let testTab = gBrowser.addTab();
+  let testTab = BrowserTestUtils.addTab(gBrowser);
   is(gBrowser.visibleTabs.length, 2, "there are now two visible tabs");
 
   // Check the context menu with two tabs
@@ -18,15 +20,15 @@ add_task(function* test() {
   gBrowser.selectedTab = testTab;
   gBrowser.showOnlyTheseTabs([testTab]);
   is(gBrowser.visibleTabs.length, 1, "now there is only one visible tab");
-  
+
   // Check the context menu with one tab.
   updateTabContextMenu(testTab);
   is(document.getElementById("context_closeTab").disabled, false, "Close Tab is enabled when more than one tab exists");
   is(document.getElementById("context_reloadAllTabs").disabled, true, "Reload All Tabs is disabled");
-  
+
   // Add a tab that will get pinned
   // So now there's one pinned tab, one visible unpinned tab, and one hidden tab
-  let pinned = gBrowser.addTab();
+  let pinned = BrowserTestUtils.addTab(gBrowser);
   gBrowser.pinTab(pinned);
   is(gBrowser.visibleTabs.length, 2, "now there are two visible tabs");
 
@@ -43,7 +45,7 @@ add_task(function* test() {
   updateTabContextMenu(testTab);
   is(document.getElementById("context_closeOtherTabs").disabled, false, "Close Other Tabs is enabled");
   is(document.getElementById("context_closeTabsToTheEnd").disabled, true, "Close Tabs To The End is disabled");
-  
+
   // Check the context menu of the original tab
   // Close Tabs To The End should now be enabled
   updateTabContextMenu(origTab);

@@ -1,6 +1,6 @@
-/* vim: set ft=javascript ts=2 et sw=2 tw=80: */
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
+
 "use strict";
 
 /**
@@ -13,30 +13,25 @@ add_task(function* () {
     "test1.example.com": "security-state-insecure",
     "example.com": "security-state-secure",
     "nocert.example.com": "security-state-broken",
-    "rc4.example.com": "security-state-weak",
     "localhost": "security-state-local",
   };
 
-  yield new promise(resolve => {
-    SpecialPowers.pushPrefEnv({"set": [
-      ["security.tls.insecure_fallback_hosts", "rc4.example.com"]
-    ]}, resolve);
-  });
+  let { tab, monitor } = yield initNetMonitor(CUSTOM_GET_URL);
+  let { document, store, windowRequire } = monitor.panelWin;
+  let Actions = windowRequire("devtools/client/netmonitor/src/actions/index");
 
-  let [tab, debuggee, monitor] = yield initNetMonitor(CUSTOM_GET_URL);
-  let { $, EVENTS, NetMonitorView } = monitor.panelWin;
-  let { RequestsMenu } = NetMonitorView;
-  RequestsMenu.lazyUpdate = false;
+  store.dispatch(Actions.batchEnable(false));
 
   yield performRequests();
 
-  for (let item of RequestsMenu.items) {
-    let domain = $(".requests-menu-domain", item.target).value;
+  for (let subitemNode of Array.from(document.querySelectorAll(
+    "requests-list-column.requests-list-security-and-domain"))) {
+    let domain = subitemNode.querySelector(".requests-list-domain").textContent;
 
     info("Found a request to " + domain);
     ok(domain in EXPECTED_SECURITY_STATES, "Domain " + domain + " was expected.");
 
-    let classes = $(".requests-security-state-icon", item.target).classList;
+    let classes = subitemNode.querySelector(".requests-security-state-icon").classList;
     let expectedClass = EXPECTED_SECURITY_STATES[domain];
 
     info("Classes of security state icon are: " + classes);
@@ -44,24 +39,29 @@ add_task(function* () {
     ok(classes.contains(expectedClass), "Icon contained the correct class name.");
   }
 
-  yield teardown(monitor);
+  return teardown(monitor);
 
   /**
    * A helper that performs requests to
    *  - https://nocert.example.com (broken)
    *  - https://example.com (secure)
    *  - http://test1.example.com (insecure)
-   *  - https://rc4.example.com (partly secure)
    *  - http://localhost (local)
    * and waits until NetworkMonitor has handled all packets sent by the server.
    */
   function* performRequests() {
+    function executeRequests(count, url) {
+      return ContentTask.spawn(tab.linkedBrowser, {count, url}, function* (args) {
+        content.wrappedJSObject.performRequests(args.count, args.url);
+      });
+    }
+
     // waitForNetworkEvents does not work for requests with security errors as
     // those only emit 9/13 events of a successful request.
     let done = waitForSecurityBrokenNetworkEvent();
 
     info("Requesting a resource that has a certificate problem.");
-    debuggee.performRequests(1, "https://nocert.example.com");
+    yield executeRequests(1, "https://nocert.example.com");
 
     // Wait for the request to complete before firing another request. Otherwise
     // the request with security issues interfere with waitForNetworkEvents.
@@ -72,25 +72,23 @@ add_task(function* () {
     // occasionally hangs waiting for event timings that don't seem to appear...
     done = waitForNetworkEvents(monitor, 1);
     info("Requesting a resource over HTTP.");
-    debuggee.performRequests(1, "http://test1.example.com" + CORS_SJS_PATH);
+    yield executeRequests(1, "http://test1.example.com" + CORS_SJS_PATH);
     yield done;
 
     done = waitForNetworkEvents(monitor, 1);
     info("Requesting a resource over HTTPS.");
-    debuggee.performRequests(1, "https://example.com" + CORS_SJS_PATH);
-    yield done;
-
-    done = waitForNetworkEvents(monitor, 1);
-    info("Requesting a resource over HTTPS with RC4.");
-    debuggee.performRequests(1, "https://rc4.example.com" + CORS_SJS_PATH);
+    yield executeRequests(1, "https://example.com" + CORS_SJS_PATH);
     yield done;
 
     done = waitForSecurityBrokenNetworkEvent(true);
     info("Requesting a resource over HTTP to localhost.");
-    debuggee.performRequests(1, "http://localhost" + CORS_SJS_PATH);
+    yield executeRequests(1, "http://localhost" + CORS_SJS_PATH);
     yield done;
 
-    is(RequestsMenu.itemCount, 5, "Five events logged.");
+    const expectedCount = Object.keys(EXPECTED_SECURITY_STATES).length;
+    is(store.getState().requests.requests.size,
+      expectedCount,
+      expectedCount + " events logged.");
   }
 
   /**
@@ -113,7 +111,7 @@ add_task(function* () {
     // If the reason for breakage is a network error, then the
     // STARTED_RECEIVING_RESPONSE event does not fire.
     if (networkError) {
-      awaitedEvents.splice(4, 1);
+      awaitedEvents = awaitedEvents.filter(e => e !== "STARTED_RECEIVING_RESPONSE");
     }
 
     let promises = awaitedEvents.map((event) => {

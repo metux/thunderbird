@@ -103,13 +103,13 @@ nsNetscapeProfileMigratorBase::GetProfileDataFromProfilesIni(nsIFile* aDataDir,
     rootDir->Exists(&exists);
 
     if (exists) {
-      aProfileLocations->AppendElement(rootDir, false);
+      aProfileLocations->AppendElement(rootDir);
 
       nsCOMPtr<nsISupportsString> profileNameString(
         do_CreateInstance("@mozilla.org/supports-string;1"));
 
       profileNameString->SetData(NS_ConvertUTF8toUTF16(buffer));
-      aProfileNames->AppendElement(profileNameString, false);
+      aProfileNames->AppendElement(profileNameString);
     }
   }
   return NS_OK;
@@ -132,7 +132,13 @@ nsNetscapeProfileMigratorBase::GetString(PrefTransform* aTransform,
                                          nsIPrefBranch* aBranch)
 {
   PrefTransform* xform = (PrefTransform*)aTransform;
-  GETPREF(xform, GetCharPref, &xform->stringValue);
+  nsCString str;
+  nsresult rv = aBranch->GetCharPref(xform->sourcePrefName, str);
+  if (NS_SUCCEEDED(rv)) {
+    xform->prefHasValue = true;
+    xform->stringValue = moz_xstrdup(str.get());
+  }
+  return rv;
 }
 
 nsresult
@@ -140,7 +146,7 @@ nsNetscapeProfileMigratorBase::SetString(PrefTransform* aTransform,
                                          nsIPrefBranch* aBranch)
 {
   PrefTransform* xform = (PrefTransform*)aTransform;
-  SETPREF(xform, SetCharPref, xform->stringValue);
+  SETPREF(xform, SetCharPref, nsDependentCString(xform->stringValue));
 }
 
 nsresult
@@ -199,7 +205,7 @@ nsNetscapeProfileMigratorBase::CopyFile(const nsAString& aSourceFileName, const 
 }
 
 nsresult
-nsNetscapeProfileMigratorBase::GetSignonFileName(bool aReplace, char** aFileName)
+nsNetscapeProfileMigratorBase::GetSignonFileName(bool aReplace, nsACString& aFileName)
 {
   nsresult rv;
   if (aReplace) {
@@ -211,7 +217,7 @@ nsNetscapeProfileMigratorBase::GetSignonFileName(bool aReplace, char** aFileName
     nsCOMPtr<nsIFile> sourcePrefsName;
     mSourceProfile->Clone(getter_AddRefs(sourcePrefsName));
     sourcePrefsName->Append(FILE_NAME_PREFS_5X);
-    psvc->ReadUserPrefs(sourcePrefsName);
+    psvc->ReadUserPrefsFromFile(sourcePrefsName);
 
     nsCOMPtr<nsIPrefBranch> branch(do_QueryInterface(psvc));
     rv = branch->GetCharPref("signon.SignonFileName", aFileName);
@@ -222,7 +228,7 @@ nsNetscapeProfileMigratorBase::GetSignonFileName(bool aReplace, char** aFileName
 }
 
 nsresult
-nsNetscapeProfileMigratorBase::LocateSignonsFile(char** aResult)
+nsNetscapeProfileMigratorBase::LocateSignonsFile(nsACString& aResult)
 {
   nsCOMPtr<nsISimpleEnumerator> entries;
   nsresult rv = mSourceProfile->GetDirectoryEntries(getter_AddRefs(entries));
@@ -248,21 +254,14 @@ nsNetscapeProfileMigratorBase::LocateSignonsFile(char** aResult)
     nsAutoCString extn;
     url->GetFileExtension(extn);
 
-#ifdef MOZILLA_INTERNAL_API
     if (extn.EqualsIgnoreCase("s")) {
       url->GetFileName(fileName);
       break;
     }
-#else
-    if (extn.Equals("s", CaseInsensitiveCompare)) {
-      url->GetFileName(fileName);
-      break;
-    }
-#endif
   }
   while (1);
 
-  *aResult = ToNewCString(fileName);
+  aResult = fileName;
 
   return NS_OK;
 }

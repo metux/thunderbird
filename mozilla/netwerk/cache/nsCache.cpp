@@ -8,6 +8,7 @@
 #include "nsReadableUtils.h"
 #include "nsDependentSubstring.h"
 #include "nsString.h"
+#include "mozilla/IntegerPrintfMacros.h"
 
 
 /**
@@ -24,7 +25,8 @@ CacheLogPrintPath(mozilla::LogLevel level, const char * format, nsIFile * item)
     if (NS_SUCCEEDED(rv)) {
         MOZ_LOG(gCacheLog, level, (format, path.get()));
     } else {
-        MOZ_LOG(gCacheLog, level, ("GetNativePath failed: %x", rv));
+        MOZ_LOG(gCacheLog, level, ("GetNativePath failed: %" PRIx32,
+                                   static_cast<uint32_t>(rv)));
     }
 }
 
@@ -47,49 +49,43 @@ PRTimeFromSeconds(uint32_t seconds)
 
 
 nsresult
-ClientIDFromCacheKey(const nsACString&  key, char ** result)
+ClientIDFromCacheKey(const nsACString& key, nsACString& result)
 {
-    nsresult  rv = NS_OK;
-    *result = nullptr;
-
     nsReadingIterator<char> colon;
     key.BeginReading(colon);
-        
+
     nsReadingIterator<char> start;
     key.BeginReading(start);
-        
+
     nsReadingIterator<char> end;
     key.EndReading(end);
-        
+
     if (FindCharInReadable(':', colon, end)) {
-        *result = ToNewCString( Substring(start, colon));
-        if (!*result) rv = NS_ERROR_OUT_OF_MEMORY;
-    } else {
-        NS_ASSERTION(false, "FindCharInRead failed to find ':'");
-        rv = NS_ERROR_UNEXPECTED;
+        result.Assign(Substring(start, colon));
+        return NS_OK;
     }
-    return rv;
+
+    NS_ASSERTION(false, "FindCharInRead failed to find ':'");
+    return NS_ERROR_UNEXPECTED;
 }
 
 
 nsresult
 ClientKeyFromCacheKey(const nsCString& key, nsACString &result)
 {
-    nsresult  rv = NS_OK;
-
     nsReadingIterator<char> start;
     key.BeginReading(start);
-        
+
     nsReadingIterator<char> end;
     key.EndReading(end);
-        
+
     if (FindCharInReadable(':', start, end)) {
         ++start;  // advance past clientID ':' delimiter
         result.Assign(Substring(start, end));
-    } else {
-        NS_ASSERTION(false, "FindCharInRead failed to find ':'");
-        rv = NS_ERROR_UNEXPECTED;
-        result.Truncate(0);
+        return NS_OK;
     }
-    return rv;
+
+    NS_ASSERTION(false, "FindCharInRead failed to find ':'");
+    result.Truncate(0);
+    return NS_ERROR_UNEXPECTED;
 }

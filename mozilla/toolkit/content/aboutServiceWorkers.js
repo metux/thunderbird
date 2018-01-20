@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-'use strict';
+"use strict";
 
 var {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
 Cu.import("resource://gre/modules/Services.jsm");
-Cu.import('resource://gre/modules/XPCOMUtils.jsm');
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 const bundle = Services.strings.createBundle(
   "chrome://global/locale/aboutServiceWorkers.properties");
@@ -46,12 +46,12 @@ function init() {
     return;
   }
 
-  let pns = undefined;
+  let ps = undefined;
   try {
-    pns = Cc["@mozilla.org/push/NotificationService;1"]
-            .getService(Ci.nsIPushNotificationService);
-  } catch(e) {
-    dump("Could not acquire PushNotificationService\n");
+    ps = Cc["@mozilla.org/push/Service;1"]
+           .getService(Ci.nsIPushService);
+  } catch (e) {
+    dump("Could not acquire PushService\n");
   }
 
   for (let i = 0; i < length; ++i) {
@@ -61,41 +61,41 @@ function init() {
       continue;
     }
 
-    display(info, pns);
+    display(info, ps);
   }
 }
 
-function display(info, pushNotificationService) {
+function display(info, pushService) {
   let parent = document.getElementById("serviceworkers");
 
-  let div = document.createElement('div');
+  let div = document.createElement("div");
   parent.appendChild(div);
 
-  let title = document.createElement('h2');
-  let titleStr = bundle.formatStringFromName('title', [info.principal.origin], 1);
+  let title = document.createElement("h2");
+  let titleStr = bundle.formatStringFromName("title", [info.principal.origin], 1);
   title.appendChild(document.createTextNode(titleStr));
   div.appendChild(title);
 
   if (info.principal.appId) {
-    let b2gtitle = document.createElement('h3');
-    let trueFalse = bundle.GetStringFromName(info.principal.isInBrowserElement ? 'true' : 'false');
+    let b2gtitle = document.createElement("h3");
+    let trueFalse = bundle.GetStringFromName(info.principal.isInIsolatedMozBrowserElement ? "true" : "false");
 
     let b2gtitleStr =
-      bundle.formatStringFromName('b2gtitle', [ brandBundle.getString("brandShortName"),
+      bundle.formatStringFromName("b2gtitle", [ brandBundle.getString("brandShortName"),
                                                 info.principal.appId,
                                                 trueFalse], 2);
     b2gtitle.appendChild(document.createTextNode(b2gtitleStr));
     div.appendChild(b2gtitle);
   }
 
-  let list = document.createElement('ul');
+  let list = document.createElement("ul");
   div.appendChild(list);
 
   function createItem(title, value, makeLink) {
-    let item = document.createElement('li');
+    let item = document.createElement("li");
     list.appendChild(item);
 
-    let bold = document.createElement('strong');
+    let bold = document.createElement("strong");
     bold.appendChild(document.createTextNode(title + " "));
     item.appendChild(bold);
 
@@ -114,44 +114,45 @@ function display(info, pushNotificationService) {
     return textNode;
   }
 
-  createItem(bundle.GetStringFromName('scope'), info.scope);
-  createItem(bundle.GetStringFromName('scriptSpec'), info.scriptSpec, true);
+  createItem(bundle.GetStringFromName("scope"), info.scope);
+  createItem(bundle.GetStringFromName("scriptSpec"), info.scriptSpec, true);
   let currentWorkerURL = info.activeWorker ? info.activeWorker.scriptSpec : "";
-  createItem(bundle.GetStringFromName('currentWorkerURL'), currentWorkerURL, true);
+  createItem(bundle.GetStringFromName("currentWorkerURL"), currentWorkerURL, true);
   let activeCacheName = info.activeWorker ? info.activeWorker.cacheName : "";
-  createItem(bundle.GetStringFromName('activeCacheName'), activeCacheName);
+  createItem(bundle.GetStringFromName("activeCacheName"), activeCacheName);
   let waitingCacheName = info.waitingWorker ? info.waitingWorker.cacheName : "";
-  createItem(bundle.GetStringFromName('waitingCacheName'), waitingCacheName);
+  createItem(bundle.GetStringFromName("waitingCacheName"), waitingCacheName);
 
-  let pushItem = createItem(bundle.GetStringFromName('pushEndpoint'), bundle.GetStringFromName('waiting'));
-  if (pushNotificationService) {
-    pushNotificationService.registration(info.scope, info.principal.originAttributes)
-      .then(pushRecord => {
+  let pushItem = createItem(bundle.GetStringFromName("pushEndpoint"), bundle.GetStringFromName("waiting"));
+  if (pushService) {
+    pushService.getSubscription(info.scope, info.principal, (status, pushRecord) => {
+      if (Components.isSuccessCode(status)) {
         pushItem.data = JSON.stringify(pushRecord);
-      }).catch(error => {
+      } else {
         dump("about:serviceworkers - retrieving push registration failed\n");
-      });
+      }
+    });
   }
 
   let updateButton = document.createElement("button");
-  updateButton.appendChild(document.createTextNode(bundle.GetStringFromName('update')));
+  updateButton.appendChild(document.createTextNode(bundle.GetStringFromName("update")));
   updateButton.onclick = function() {
     gSWM.propagateSoftUpdate(info.principal.originAttributes, info.scope);
   };
   div.appendChild(updateButton);
 
   let unregisterButton = document.createElement("button");
-  unregisterButton.appendChild(document.createTextNode(bundle.GetStringFromName('unregister')));
+  unregisterButton.appendChild(document.createTextNode(bundle.GetStringFromName("unregister")));
   div.appendChild(unregisterButton);
 
-  let loadingMessage = document.createElement('span');
-  loadingMessage.appendChild(document.createTextNode(bundle.GetStringFromName('waiting')));
-  loadingMessage.classList.add('inactive');
+  let loadingMessage = document.createElement("span");
+  loadingMessage.appendChild(document.createTextNode(bundle.GetStringFromName("waiting")));
+  loadingMessage.classList.add("inactive");
   div.appendChild(loadingMessage);
 
   unregisterButton.onclick = function() {
     let cb = {
-      unregisterSucceeded: function() {
+      unregisterSucceeded() {
         parent.removeChild(div);
 
         if (!--gSWCount) {
@@ -160,24 +161,23 @@ function display(info, pushNotificationService) {
         }
       },
 
-      unregisterFailed: function() {
-        alert(bundle.GetStringFromName('unregisterError'));
+      unregisterFailed() {
+        alert(bundle.GetStringFromName("unregisterError"));
       },
 
       QueryInterface: XPCOMUtils.generateQI([Ci.nsIServiceWorkerUnregisterCallback])
     };
 
-    loadingMessage.classList.remove('inactive');
+    loadingMessage.classList.remove("inactive");
     gSWM.propagateUnregister(info.principal, cb, info.scope);
   };
 
-  let sep = document.createElement('hr');
+  let sep = document.createElement("hr");
   div.appendChild(sep);
 
   ++gSWCount;
 }
 
-window.addEventListener("DOMContentLoaded", function load() {
-  window.removeEventListener("DOMContentLoaded", load);
+window.addEventListener("DOMContentLoaded", function() {
   init();
-});
+}, {once: true});

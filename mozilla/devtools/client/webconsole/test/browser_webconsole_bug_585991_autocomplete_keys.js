@@ -1,15 +1,19 @@
-/* vim:set ts=2 sw=2 sts=2 et: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
+/* vim: set ft=javascript ts=2 et sw=2 tw=80: */
+/* Any copyright is dedicated to the Public Domain.
+ * http://creativecommons.org/publicdomain/zero/1.0/ */
 
 "use strict";
 
 const TEST_URI = "data:text/html;charset=utf-8,<p>bug 585991 - autocomplete " +
                  "popup keyboard usage test";
+
+// We should turn off auto-multiline editing during these tests
+const PREF_AUTO_MULTILINE = "devtools.webconsole.autoMultiline";
 var HUD, popup, jsterm, inputNode, completeNode;
 
-var test = asyncTest(function*() {
+add_task(function* () {
+  Services.prefs.setBoolPref(PREF_AUTO_MULTILINE, false);
   yield loadTab(TEST_URI);
   let hud = yield openConsole();
 
@@ -23,11 +27,12 @@ var test = asyncTest(function*() {
   yield popupHideAfterCompletionInText();
 
   HUD = popup = jsterm = inputNode = completeNode = null;
+  Services.prefs.setBoolPref(PREF_AUTO_MULTILINE, true);
 });
 
-var consoleOpened = Task.async(function*(aHud) {
-  let deferred = promise.defer();
-  HUD = aHud;
+var consoleOpened = Task.async(function* (hud) {
+  let deferred = defer();
+  HUD = hud;
   info("web console opened");
 
   jsterm = HUD.jsterm;
@@ -46,21 +51,20 @@ var consoleOpened = Task.async(function*(aHud) {
 
   ok(!popup.isOpen, "popup is not open");
 
-  popup._panel.addEventListener("popupshown", function onShown() {
-    popup._panel.removeEventListener("popupshown", onShown, false);
-
+  popup.once("popup-opened", () => {
     ok(popup.isOpen, "popup is open");
 
     // 4 values, and the following properties:
     // __defineGetter__  __defineSetter__ __lookupGetter__ __lookupSetter__
     // __proto__ hasOwnProperty isPrototypeOf propertyIsEnumerable
-    // toLocaleString toString toSource unwatch valueOf watch constructor.
-    is(popup.itemCount, 19, "popup.itemCount is correct");
+    // toLocaleString toString toSource valueOfconstructor.
+    is(popup.itemCount, 17, "popup.itemCount is correct");
 
-    let sameItems = popup.getItems().reverse().map(function(e) {
+    let sameItems = popup.getItems().reverse().map(function (e) {
       return e.label;
     });
-    ok(sameItems.every(function(prop, index) {
+
+    ok(sameItems.every(function (prop, index) {
       return [
         "__defineGetter__",
         "__defineSetter__",
@@ -78,36 +82,34 @@ var consoleOpened = Task.async(function*(aHud) {
         "toLocaleString",
         "toSource",
         "toString",
-        "unwatch",
         "valueOf",
-        "watch",
       ][index] === prop;
     }), "getItems returns the items we expect");
 
-    is(popup.selectedIndex, 18,
+    is(popup.selectedIndex, 16,
        "Index of the first item from bottom is selected.");
     EventUtils.synthesizeKey("VK_DOWN", {});
 
-    let prefix = jsterm.inputNode.value.replace(/[\S]/g, " ");
+    let prefix = jsterm.getInputValue().replace(/[\S]/g, " ");
 
     is(popup.selectedIndex, 0, "index 0 is selected");
-    is(popup.selectedItem.label, "watch", "watch is selected");
-    is(completeNode.value, prefix + "watch",
-        "completeNode.value holds watch");
-
-    EventUtils.synthesizeKey("VK_DOWN", {});
-
-    is(popup.selectedIndex, 1, "index 1 is selected");
     is(popup.selectedItem.label, "valueOf", "valueOf is selected");
     is(completeNode.value, prefix + "valueOf",
         "completeNode.value holds valueOf");
 
+    EventUtils.synthesizeKey("VK_DOWN", {});
+
+    is(popup.selectedIndex, 1, "index 1 is selected");
+    is(popup.selectedItem.label, "toString", "toString is selected");
+    is(completeNode.value, prefix + "toString",
+        "completeNode.value holds toString");
+
     EventUtils.synthesizeKey("VK_UP", {});
 
     is(popup.selectedIndex, 0, "index 0 is selected");
-    is(popup.selectedItem.label, "watch", "watch is selected");
-    is(completeNode.value, prefix + "watch",
-        "completeNode.value holds watch");
+    is(popup.selectedItem.label, "valueOf", "valueOf is selected");
+    is(completeNode.value, prefix + "valueOf",
+        "completeNode.value holds valueOf");
 
     let currentSelectionIndex = popup.selectedIndex;
 
@@ -123,20 +125,18 @@ var consoleOpened = Task.async(function*(aHud) {
        "Index is less after Page UP");
 
     EventUtils.synthesizeKey("VK_END", {});
-    is(popup.selectedIndex, 18, "index is last after End");
+    is(popup.selectedIndex, 16, "index is last after End");
 
     EventUtils.synthesizeKey("VK_HOME", {});
     is(popup.selectedIndex, 0, "index is first after Home");
 
     info("press Tab and wait for popup to hide");
-    popup._panel.addEventListener("popuphidden", function popupHidden() {
-      popup._panel.removeEventListener("popuphidden", popupHidden, false);
+    popup.once("popup-closed", () => {
       deferred.resolve();
-    }, false);
+    });
     EventUtils.synthesizeKey("VK_TAB", {});
-  }, false);
+  });
 
-  info("wait for completion: window.foobarBug585991.");
   jsterm.setInputValue("window.foobarBug585991");
   EventUtils.synthesizeKey(".", {});
 
@@ -144,39 +144,35 @@ var consoleOpened = Task.async(function*(aHud) {
 });
 
 function popupHideAfterTab() {
-  let deferred = promise.defer();
+  let deferred = defer();
 
   // At this point the completion suggestion should be accepted.
   ok(!popup.isOpen, "popup is not open");
 
-  is(inputNode.value, "window.foobarBug585991.watch",
+  is(jsterm.getInputValue(), "window.foobarBug585991.valueOf",
      "completion was successful after VK_TAB");
 
   ok(!completeNode.value, "completeNode is empty");
 
-  popup._panel.addEventListener("popupshown", function onShown() {
-    popup._panel.removeEventListener("popupshown", onShown, false);
-
+  popup.once("popup-opened", function onShown() {
     ok(popup.isOpen, "popup is open");
 
-    is(popup.itemCount, 19, "popup.itemCount is correct");
+    is(popup.itemCount, 17, "popup.itemCount is correct");
 
-    is(popup.selectedIndex, 18, "First index from bottom is selected");
+    is(popup.selectedIndex, 16, "First index from bottom is selected");
     EventUtils.synthesizeKey("VK_DOWN", {});
 
-    let prefix = jsterm.inputNode.value.replace(/[\S]/g, " ");
+    let prefix = jsterm.getInputValue().replace(/[\S]/g, " ");
 
     is(popup.selectedIndex, 0, "index 0 is selected");
-    is(popup.selectedItem.label, "watch", "watch is selected");
-    is(completeNode.value, prefix + "watch",
-        "completeNode.value holds watch");
+    is(popup.selectedItem.label, "valueOf", "valueOf is selected");
+    is(completeNode.value, prefix + "valueOf",
+        "completeNode.value holds valueOf");
 
-    popup._panel.addEventListener("popuphidden", function onHidden() {
-      popup._panel.removeEventListener("popuphidden", onHidden, false);
-
+    popup.once("popup-closed", function onHidden() {
       ok(!popup.isOpen, "popup is not open after VK_ESCAPE");
 
-      is(inputNode.value, "window.foobarBug585991.",
+      is(jsterm.getInputValue(), "window.foobarBug585991.",
          "completion was cancelled");
 
       ok(!completeNode.value, "completeNode is empty");
@@ -185,13 +181,13 @@ function popupHideAfterTab() {
     }, false);
 
     info("press Escape to close the popup");
-    executeSoon(function() {
+    executeSoon(function () {
       EventUtils.synthesizeKey("VK_ESCAPE", {});
     });
   }, false);
 
   info("wait for completion: window.foobarBug585991.");
-  executeSoon(function() {
+  executeSoon(function () {
     jsterm.setInputValue("window.foobarBug585991");
     EventUtils.synthesizeKey(".", {});
   });
@@ -200,38 +196,34 @@ function popupHideAfterTab() {
 }
 
 function testReturnKey() {
-  let deferred = promise.defer();
+  let deferred = defer();
 
-  popup._panel.addEventListener("popupshown", function onShown() {
-    popup._panel.removeEventListener("popupshown", onShown, false);
-
+  popup.once("popup-opened", function onShown() {
     ok(popup.isOpen, "popup is open");
 
-    is(popup.itemCount, 19, "popup.itemCount is correct");
+    is(popup.itemCount, 17, "popup.itemCount is correct");
 
-    is(popup.selectedIndex, 18, "First index from bottom is selected");
+    is(popup.selectedIndex, 16, "First index from bottom is selected");
     EventUtils.synthesizeKey("VK_DOWN", {});
 
-    let prefix = jsterm.inputNode.value.replace(/[\S]/g, " ");
+    let prefix = jsterm.getInputValue().replace(/[\S]/g, " ");
 
     is(popup.selectedIndex, 0, "index 0 is selected");
-    is(popup.selectedItem.label, "watch", "watch is selected");
-    is(completeNode.value, prefix + "watch",
-        "completeNode.value holds watch");
+    is(popup.selectedItem.label, "valueOf", "valueOf is selected");
+    is(completeNode.value, prefix + "valueOf",
+        "completeNode.value holds valueOf");
 
     EventUtils.synthesizeKey("VK_DOWN", {});
 
     is(popup.selectedIndex, 1, "index 1 is selected");
-    is(popup.selectedItem.label, "valueOf", "valueOf is selected");
-    is(completeNode.value, prefix + "valueOf",
-       "completeNode.value holds valueOf");
+    is(popup.selectedItem.label, "toString", "toString is selected");
+    is(completeNode.value, prefix + "toString",
+       "completeNode.value holds toString");
 
-    popup._panel.addEventListener("popuphidden", function onHidden() {
-      popup._panel.removeEventListener("popuphidden", onHidden, false);
-
+    popup.once("popup-closed", function onHidden() {
       ok(!popup.isOpen, "popup is not open after VK_RETURN");
 
-      is(inputNode.value, "window.foobarBug585991.valueOf",
+      is(jsterm.getInputValue(), "window.foobarBug585991.toString",
          "completion was successful after VK_RETURN");
 
       ok(!completeNode.value, "completeNode is empty");
@@ -246,7 +238,7 @@ function testReturnKey() {
 
   info("wait for completion suggestions: window.foobarBug585991.");
 
-  executeSoon(function() {
+  executeSoon(function () {
     jsterm.setInputValue("window.foobarBug58599");
     EventUtils.synthesizeKey("1", {});
     EventUtils.synthesizeKey(".", {});
@@ -255,27 +247,26 @@ function testReturnKey() {
   return deferred.promise;
 }
 
-function dontShowArrayNumbers() {
-  let deferred = promise.defer();
+function* dontShowArrayNumbers() {
+  let deferred = defer();
 
   info("dontShowArrayNumbers");
-  content.wrappedJSObject.foobarBug585991 = ["Sherlock Holmes"];
+  yield ContentTask.spawn(gBrowser.selectedBrowser, {}, function* () {
+    content.wrappedJSObject.foobarBug585991 = ["Sherlock Holmes"];
+  });
 
   jsterm = HUD.jsterm;
   popup = jsterm.autocompletePopup;
 
-  popup._panel.addEventListener("popupshown", function onShown() {
-    popup._panel.removeEventListener("popupshown", onShown, false);
-
-    let sameItems = popup.getItems().map(function(e) {
+  popup.once("popup-opened", function onShown() {
+    let sameItems = popup.getItems().map(function (e) {
       return e.label;
     });
-    ok(!sameItems.some(function(prop) {
+    ok(!sameItems.some(function (prop) {
       prop === "0";
     }), "Completing on an array doesn't show numbers.");
 
-    popup._panel.addEventListener("popuphidden", function popupHidden() {
-      popup._panel.removeEventListener("popuphidden", popupHidden, false);
+    popup.once("popup-closed", function popupHidden() {
       deferred.resolve();
     }, false);
 
@@ -293,20 +284,17 @@ function dontShowArrayNumbers() {
 }
 
 function testReturnWithNoSelection() {
-  let deferred = promise.defer();
+  let deferred = defer();
 
   info("test pressing return with open popup, but no selection, see bug 873250");
 
-  popup._panel.addEventListener("popupshown", function onShown() {
-    popup._panel.removeEventListener("popupshown", onShown);
-
+  popup.once("popup-opened", function onShown() {
     ok(popup.isOpen, "popup is open");
     is(popup.itemCount, 2, "popup.itemCount is correct");
     isnot(popup.selectedIndex, -1, "popup.selectedIndex is correct");
 
     info("press Return and wait for popup to hide");
-    popup._panel.addEventListener("popuphidden", function popupHidden() {
-      popup._panel.removeEventListener("popuphidden", popupHidden);
+    popup.once("popup-closed", function popupHidden() {
       deferred.resolve();
     });
     executeSoon(() => EventUtils.synthesizeKey("VK_RETURN", {}));
@@ -324,7 +312,7 @@ function testReturnWithNoSelection() {
 function popupHideAfterReturnWithNoSelection() {
   ok(!popup.isOpen, "popup is not open after VK_RETURN");
 
-  is(inputNode.value, "", "inputNode is empty after VK_RETURN");
+  is(jsterm.getInputValue(), "", "inputNode is empty after VK_RETURN");
   is(completeNode.value, "", "completeNode is empty");
   is(jsterm.history[jsterm.history.length - 1], "window.testBug",
      "jsterm history is correct");
@@ -335,11 +323,9 @@ function popupHideAfterReturnWithNoSelection() {
 function testCompletionInText() {
   info("test that completion works inside text, see bug 812618");
 
-  let deferred = promise.defer();
+  let deferred = defer();
 
-  popup._panel.addEventListener("popupshown", function onShown() {
-    popup._panel.removeEventListener("popupshown", onShown);
-
+  popup.once("popup-opened", function onShown() {
     ok(popup.isOpen, "popup is open");
     is(popup.itemCount, 2, "popup.itemCount is correct");
 
@@ -353,8 +339,7 @@ function testCompletionInText() {
     ok(sameItems, "getItems returns the items we expect");
 
     info("press Tab and wait for popup to hide");
-    popup._panel.addEventListener("popuphidden", function popupHidden() {
-      popup._panel.removeEventListener("popuphidden", popupHidden);
+    popup.once("popup-closed", function popupHidden() {
       deferred.resolve();
     });
     EventUtils.synthesizeKey("VK_TAB", {});
@@ -369,7 +354,7 @@ function testCompletionInText() {
 function popupHideAfterCompletionInText() {
   // At this point the completion suggestion should be accepted.
   ok(!popup.isOpen, "popup is not open");
-  is(inputNode.value, "dump(window.testBug873250b)",
+  is(jsterm.getInputValue(), "dump(window.testBug873250b)",
      "completion was successful after VK_TAB");
   is(inputNode.selectionStart, 26, "cursor location is correct");
   is(inputNode.selectionStart, inputNode.selectionEnd,

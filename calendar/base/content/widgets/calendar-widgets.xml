@@ -25,7 +25,7 @@
     </content>
   </binding>
 
-   <binding id="category-panel" extends="chrome://global/content/bindings/popup.xml#panel">
+  <binding id="category-panel" extends="chrome://global/content/bindings/popup.xml#panel">
     <resources>
       <stylesheet src="chrome://calendar/skin/widgets/calendar-widgets.css"/>
     </resources>
@@ -46,7 +46,12 @@
       </xul:listbox>
     </content>
     <implementation>
+      <constructor><![CDATA[
+          Components.utils.import("resource://calendar/modules/calUtils.jsm");
+      ]]></constructor>
+
       <field name="_maxCount">0</field>
+
       <property name="categories" readonly="true">
         <getter><![CDATA[
             let categoryListbox = document.getAnonymousElementByAttribute(this, "anonid", "categories-listbox");
@@ -56,11 +61,12 @@
             } else {
                 let checkedNodes = categoryListbox.getElementsByAttribute("checked", "true");
                 let sliceEnd = this.maxCount > 0 ? this.maxCount : checkedNodes.length;
-                return Array.slice(checkedNodes, 0, sliceEnd)
-                            .map(x => x.getAttribute("value"));
+                return Array.from(checkedNodes).slice(0, sliceEnd)
+                                               .map(x => x.getAttribute("value"));
             }
         ]]></getter>
       </property>
+
       <property name="maxCount">
         <getter><![CDATA[
             return this._maxCount;
@@ -72,6 +78,7 @@
             }
         ]]></setter>
       </property>
+
       <method name="selectCategory">
         <body><![CDATA[
             this.setupSelection();
@@ -80,6 +87,7 @@
             }
         ]]></body>
       </method>
+
       <method name="setupSelection">
         <body><![CDATA[
             let categoryListbox = document.getAnonymousElementByAttribute(this, "anonid", "categories-listbox");
@@ -116,6 +124,7 @@
             }
         ]]></body>
       </method>
+
       <method name="insertCategory">
         <parameter name="category" />
         <parameter name="categories" />
@@ -136,64 +145,66 @@
 
             item.setAttribute("checked", "true");
             return item;
-          ]]></body>
-      </method>
-      <method name="addNewCategory">
-      <body><![CDATA[
-          let categoryListbox = document.getAnonymousElementByAttribute(this, "anonid", "categories-listbox");
-          let categoryTextbox = document.getAnonymousElementByAttribute(this, "anonid", "category-textbox");
-          let category = categoryTextbox.value;
-
-          if (!category) {
-            return;
-          }
-
-          let localeCollator = cal.createLocaleCollator();
-          let compare = localeCollator.compareString.bind(localeCollator, 0);
-
-          let children = categoryListbox.childNodes;
-          let categories = [];
-          for (var i = 0; i < children.length; i++) {
-            categories.push(children[i].label);
-          }
-
-          let item = this.insertCategory(category, categories, categoryListbox, compare);
-          categoryTextbox.value = "";
-
-          if (this.maxCount == 1) {
-            categoryListbox.selectedItem = item;
-          } else {
-            this.selectCategory();
-          }
-
-          categoryListbox.ensureElementIsVisible(item);
         ]]></body>
-    </method>
+      </method>
+
+      <method name="addNewCategory">
+        <body><![CDATA[
+            let categoryListbox = document.getAnonymousElementByAttribute(this, "anonid", "categories-listbox");
+            let categoryTextbox = document.getAnonymousElementByAttribute(this, "anonid", "category-textbox");
+            let category = categoryTextbox.value;
+
+            if (!category) {
+                return;
+            }
+
+            let localeCollator = cal.createLocaleCollator();
+            let compare = localeCollator.compareString.bind(localeCollator, 0);
+
+            let children = categoryListbox.childNodes;
+            let categories = [];
+            for (let i = 0; i < children.length; i++) {
+                categories.push(children[i].label);
+            }
+
+            let item = this.insertCategory(category, categories, categoryListbox, compare);
+            categoryTextbox.value = "";
+
+            if (this.maxCount == 1) {
+                categoryListbox.selectedItem = item;
+            } else {
+                this.selectCategory();
+            }
+
+            categoryListbox.ensureElementIsVisible(item);
+        ]]></body>
+      </method>
+
       <method name="loadItem">
         <parameter name="aItem"/>
         <body><![CDATA[
-          let categoryListbox = document.getAnonymousElementByAttribute(this, "anonid", "categories-listbox");
-          let categoryList = getPrefCategoriesArray();
+            let categoryListbox = document.getAnonymousElementByAttribute(this, "anonid", "categories-listbox");
+            let categoryList = cal.getPrefCategoriesArray();
 
-          cal.sortArrayByLocaleCollator(categoryList);
+            cal.sortArrayByLocaleCollator(categoryList);
 
-          removeChildren(categoryListbox);
+            removeChildren(categoryListbox);
 
-          for each (let cat in categoryList) {
-              // First insert all categories from the prefs
-              let item = categoryListbox.appendItem(cat, cat);
-              item.setAttribute("type", "checkbox");
-          }
+            for (let cat of categoryList) {
+                // First insert all categories from the prefs
+                let item = categoryListbox.appendItem(cat, cat);
+                item.setAttribute("type", "checkbox");
+            }
 
-          if (aItem) {
-              let localeCollator = cal.createLocaleCollator();
-              let compare = localeCollator.compareString.bind(localeCollator, 0);
+            if (aItem) {
+                let localeCollator = cal.createLocaleCollator();
+                let compare = localeCollator.compareString.bind(localeCollator, 0);
 
-              // Ensure the item's categories are in the list and they are checked.
-              for each (let cat in aItem.getCategories({})) {
-                this.insertCategory(cat, categoryList, categoryListbox, compare);
-              }
-          }
+                // Ensure the item's categories are in the list and they are checked.
+                for (let cat of aItem.getCategories({})) {
+                    this.insertCategory(cat, categoryList, categoryListbox, compare);
+                }
+            }
         ]]></body>
       </method>
     </implementation>
@@ -203,6 +214,7 @@
     <resources>
       <stylesheet src="chrome://calendar/skin/widgets/calendar-widgets.css"/>
     </resources>
+
     <content>
       <children includes="observes|template|menupopup|tooltip"/>
       <xul:image class="toolbarbutton-icon-begin" xbl:inherits="validate,src-begin=image,toolbarmode,buttonstyle"/>
@@ -223,13 +235,16 @@
                  xbl:inherits="value=label,accesskey,crop,toolbarmode,buttonstyle"/>
       <xul:image class="toolbarbutton-icon-end" xbl:inherits="validate,src-end=image,toolbarmode,buttonstyle"/>
     </content>
+
     <implementation>
       <constructor><![CDATA[
+          Components.utils.import("resource://calendar/modules/calUtils.jsm");
           this.setUpTodayDate();
       ]]></constructor>
+
       <method name="setUpTodayDate">
         <body><![CDATA[
-            let dayNumber = calGetString("dateFormat", "day." + cal.now().day + ".number");
+            let dayNumber = cal.calGetString("dateFormat", "day." + cal.now().day + ".number");
             document.getAnonymousElementByAttribute(this, "anonid", "day-label").value = dayNumber;
         ]]></body>
       </method>
@@ -238,7 +253,7 @@
 
   <!-- this binding directly extends to a checkbox but is visualized as
        a treenode in a treecontrol-->
-  <binding id="treenode-checkbox" extends="chrome://global/content/bindings/checkbox.xml#checkbox-baseline">
+  <binding id="treenode-checkbox" extends="chrome://global/content/bindings/checkbox.xml#checkbox">
     <resources>
       <stylesheet src="chrome://calendar/skin/widgets/calendar-widgets.css"/>
     </resources>
@@ -250,11 +265,12 @@
     <resources>
       <stylesheet src="chrome://calendar/skin/widgets/calendar-widgets.css"/>
     </resources>
+
     <implementation>
       <constructor><![CDATA[
-            this.setAttribute("orient", "vertical");
+          this.setAttribute("orient", "vertical");
       ]]></constructor>
-      </implementation>
+    </implementation>
   </binding>
 
   <!-- this binding directly extends to a xul:box element and automatically
@@ -265,7 +281,7 @@
     </resources>
     <implementation>
       <constructor><![CDATA[
-         this.setAttribute("orient", "horizontal");
+          this.setAttribute("orient", "horizontal");
       ]]></constructor>
     </implementation>
   </binding>
@@ -296,25 +312,26 @@
       <field name="mModHandler">null</field>;
       <field name="mRefControl">null</field>;
       <field name="mControlHandler">null</field>;
+
       <constructor><![CDATA[
-        if (this.hasAttribute("broadcaster")) {
-            this.setAttribute("broadcaster", this.getAttribute("broadcaster"));
-        }
-        if (this.hasAttribute("refcontrol")) {
-            this.mRefControl = document.getElementById(this.getAttribute("refcontrol"));
-            if (this.mRefControl && ((this.mRefControl.localName == "treenode-checkbox") ||
-                                  (this.mRefControl.localName == "checkbox"))){
-                this.mControlHandler = {
-                    binding: this,
-                    handleEvent : function(aEvent, aHandled) {
-                        return this.binding.onCheckboxStateChange(aEvent, this.binding);
-                    }
-                };
-                this.mRefControl.addEventListener("CheckboxStateChange", this.mControlHandler, true);
-            }
-        }
-      ]]>
-      </constructor>
+          if (this.hasAttribute("broadcaster")) {
+              this.setAttribute("broadcaster", this.getAttribute("broadcaster"));
+          }
+          if (this.hasAttribute("refcontrol")) {
+              this.mRefControl = document.getElementById(this.getAttribute("refcontrol"));
+              if (this.mRefControl && ((this.mRefControl.localName == "treenode-checkbox") ||
+                                    (this.mRefControl.localName == "checkbox"))) {
+                  this.mControlHandler = {
+                      binding: this,
+                      handleEvent: function(aEvent, aHandled) {
+                          return this.binding.onCheckboxStateChange(aEvent, this.binding);
+                      }
+                  };
+                  this.mRefControl.addEventListener("CheckboxStateChange", this.mControlHandler, true);
+              }
+          }
+      ]]></constructor>
+
       <destructor><![CDATA[
           if (this.mBroadcaster) {
               this.mBroadcaster.removeEventListener("DOMAttrModified", this.mModHandler, true);
@@ -337,16 +354,16 @@
       <method name="isVisible">
         <parameter name="aMode"/>
         <body><![CDATA[
-            var lMode = aMode || this.currentMode;
+            let lMode = aMode || this.currentMode;
             if (!this.isVisibleInMode(lMode)) {
                 return false;
             }
-            var collapsedModes = this.getAttribute("collapsedinmodes").split(",");
-            return (!collapsedModes.includes(lMode));
+            let collapsedModes = this.getAttribute("collapsedinmodes").split(",");
+            return !collapsedModes.includes(lMode);
         ]]></body>
       </method>
 
-      <method name="setModeAttribute"> 
+      <method name="setModeAttribute">
         <parameter name="aModeAttribute"/>
         <parameter name="aModeValue"/>
         <parameter name="amode"/>
@@ -382,48 +399,46 @@
         <parameter name="aPushModeCollapsedAttribute"/>
         <parameter name="aNotifyRefControl"/>
         <body><![CDATA[
-            var notifyRefControl = ((aNotifyRefControl == null) || (aNotifyRefControl === true))
-            var pushModeCollapsedAttribute = ((aPushModeCollapsedAttribute == null)
-                                                 || (aPushModeCollapsedAttribute === true));
-            var collapsedModes = [];
-            var modeIndex = -1;
-            var display = aVisible;
-            var collapsedInMode = false;
+            let notifyRefControl = aNotifyRefControl == null || aNotifyRefControl === true;
+            let pushModeCollapsedAttribute = aPushModeCollapsedAttribute == null ||
+                                             aPushModeCollapsedAttribute === true;
+            let collapsedModes = [];
+            let modeIndex = -1;
+            let display = aVisible;
+            let collapsedInMode = false;
             if (this.hasAttribute("collapsedinmodes")) {
-                var collapsedModes = this.getAttribute("collapsedinmodes").split(",");
-                var modeIndex = collapsedModes.indexOf(this.currentMode);
-                collapsedInMode = (modeIndex > -1);
+                collapsedModes = this.getAttribute("collapsedinmodes").split(",");
+                modeIndex = collapsedModes.indexOf(this.currentMode);
+                collapsedInMode = modeIndex > -1;
             }
-            if ((aVisible === true) && (pushModeCollapsedAttribute == false)){
+            if (aVisible === true && pushModeCollapsedAttribute == false) {
                 display = (aVisible === true) && (!collapsedInMode);
             }
 
-            setBooleanAttribute(this, "collapsed", (!display || !this.isVisibleInMode()));
+            setBooleanAttribute(this, "collapsed", !display || !this.isVisibleInMode());
             if (pushModeCollapsedAttribute) {
                 if (!display) {
                     if (modeIndex == -1) {
                         collapsedModes.push(this.currentMode);
                         if (this.getAttribute("collapsedinmodes") == ",") {
-                            collapsedModes.splice(0,2);
+                            collapsedModes.splice(0, 2);
                         }
                     }
-                } else {
-                    if (modeIndex > -1) {
-                        collapsedModes.splice(modeIndex, 1);
-                        if (collapsedModes.join(",")  == "") {
-                            collapsedModes[0]=",";
-                        }
+                } else if (modeIndex > -1) {
+                    collapsedModes.splice(modeIndex, 1);
+                    if (collapsedModes.join(",") == "") {
+                        collapsedModes[0] = ",";
                     }
                 }
                 this.setAttribute("collapsedinmodes", collapsedModes.join(","));
-                var id = this.getAttribute("id");
+                let id = this.getAttribute("id");
                 if (id) {
                     document.persist(id, "collapsedinmodes");
                 }
             }
             if (notifyRefControl === true) {
                 if (this.hasAttribute("refcontrol")) {
-                    var command =  document.getElementById(this.getAttribute("refcontrol"))
+                    let command = document.getElementById(this.getAttribute("refcontrol"));
                     if (command) {
                         command.setAttribute("checked", display);
                         setBooleanAttribute(command, "disabled", !this.isVisibleInMode());
@@ -436,11 +451,11 @@
       <method name="isVisibleInMode">
         <parameter name="aMode"/>
         <body><![CDATA[
-            var lMode = aMode || this.currentMode;
-            var display = true;
-            var lModes = new Array();
+            let lMode = aMode || this.currentMode;
+            let display = true;
+            let lModes = [];
             if (this.hasAttribute("mode")) {
-                var modeString = this.getAttribute("mode");
+                let modeString = this.getAttribute("mode");
                 lModes = modeString.split(",");
             }
             if (lModes && lModes.length > 0) {
@@ -455,7 +470,7 @@
         <parameter name="aBinding"/>
         <body><![CDATA[
             if (aEvent.attrName == "mode") {
-                var display = aBinding.isVisibleInMode(aEvent.newValue);
+                let display = aBinding.isVisibleInMode(aEvent.newValue);
                 aBinding.setVisible(display, false, true);
             }
         ]]></body>
@@ -464,8 +479,8 @@
       <method name="togglePane">
         <parameter name="aEvent"/>
         <body><![CDATA[
-            var command = aEvent.target;
-            var newValue = (command.getAttribute("checked") == "true" ? "false" : "true");
+            let command = aEvent.target;
+            let newValue = (command.getAttribute("checked") == "true" ? "false" : "true");
             command.setAttribute("checked", newValue);
             this.setVisible(newValue == "true", true, true);
         ]]></body>
@@ -475,47 +490,51 @@
         <parameter name="aEvent"/>
         <parameter name="aBinding"/>
         <body><![CDATA[
-            var newValue = aEvent.target.checked;
+            let newValue = aEvent.target.checked;
             this.setVisible(newValue, true, true);
         ]]></body>
       </method>
+
       <method name="setAttribute">
         <parameter name="aAttr"/>
         <parameter name="aVal"/>
         <body><![CDATA[
-          if (aAttr == "broadcaster") {
-              this.mBroadcaster = document.getElementById(aVal);
-              if (this.mBroadcaster) {
-                  this.mModHandler = {
-                  binding: this,
-                  handleEvent : function(aEvent, aHandled) {
-                      return this.binding.onModeModified(aEvent, this.binding);
-                  }
-              };
-              this.mBroadcaster.addEventListener("DOMAttrModified", this.mModHandler, true);
+            if (aAttr == "broadcaster") {
+                this.mBroadcaster = document.getElementById(aVal);
+                if (this.mBroadcaster) {
+                    this.mModHandler = {
+                        binding: this,
+                        handleEvent: function(aEvent, aHandled) {
+                            return this.binding.onModeModified(aEvent, this.binding);
+                        }
+                    };
+                    this.mBroadcaster.addEventListener("DOMAttrModified", this.mModHandler, true);
+                }
             }
-          }
-          var ret = XULElement.prototype.setAttribute.call(this, aAttr, aVal);
+            return XULElement.prototype.setAttribute.call(this, aAttr, aVal);
         ]]></body>
       </method>
     </implementation>
   </binding>
 
-<!-- This binding may server as a droptarget container for arbitrary items
-     it contains methods to add DropShadows. This binding is meant to be used
-     as a parent binding. The methods may be overwritten.
--->
-<binding id="dragndropContainer">
+  <!-- This binding may server as a droptarget container for arbitrary items
+       it contains methods to add DropShadows. This binding is meant to be used
+       as a parent binding. The methods may be overwritten. -->
+  <binding id="dragndropContainer">
     <implementation>
       <field name="mDropShadows">[]</field>
       <field name="mCalendarView">null</field>
+
+      <constructor><![CDATA[
+          Components.utils.import("resource://calendar/modules/calUtils.jsm");
+      ]]></constructor>
 
       <!-- The ViewController that supports the interface 'calICalendarView'-->
       <property name="calendarView"
                 onget="return this.mCalendarView;"
                 onset="return (this.mCalendarView = val);"/>
 
-       <!-- method to add individual code e.g to set up the new item during
+      <!-- method to add individual code e.g to set up the new item during
        'ondrop' -->
       <method name="onDropItem">
         <parameter name="aItem"/>
@@ -534,31 +553,31 @@
            are added at the first position of the children -->
       <method name="addDropShadows">
         <body><![CDATA[
-          if (this.mDropShadows) {
-              if (this.getElementsByAttribute("class", "dropshadow").length == 0) {
-                  let offset = this.calendarView.mShadowOffset;
-                  let shadowStartDate = this.date.clone();
-                  shadowStartDate.addDuration(offset);
-                  this.calendarView.mDropShadows = [];
-                  for (let i = 0; i < this.calendarView.mDropShadowsLength; i++) {
-                      let box = this.calendarView.findDayBoxForDate(shadowStartDate);
-                      if (!box) {
-                          // Dragging to the end or beginning of a view
-                          shadowStartDate.day += 1;
-                          continue;
-                      }
-                      let dropshadow = createXULElement("box");
-                      dropshadow.setAttribute("class", "dropshadow");
-                      if (box.hasChildNodes()) {
-                          box.insertBefore(dropshadow, box.firstChild);
-                      } else {
-                          box.appendChild(dropshadow);
-                      }
-                      shadowStartDate.day += 1;
-                      this.calendarView.mDropShadows.push(box);
-                  }
-              }
-          }
+            if (this.mDropShadows) {
+                if (this.getElementsByAttribute("class", "dropshadow").length == 0) {
+                    let offset = this.calendarView.mShadowOffset;
+                    let shadowStartDate = this.date.clone();
+                    shadowStartDate.addDuration(offset);
+                    this.calendarView.mDropShadows = [];
+                    for (let i = 0; i < this.calendarView.mDropShadowsLength; i++) {
+                        let box = this.calendarView.findDayBoxForDate(shadowStartDate);
+                        if (!box) {
+                            // Dragging to the end or beginning of a view
+                            shadowStartDate.day += 1;
+                            continue;
+                        }
+                        let dropshadow = createXULElement("box");
+                        dropshadow.setAttribute("class", "dropshadow");
+                        if (box.hasChildNodes()) {
+                            box.insertBefore(dropshadow, box.firstChild);
+                        } else {
+                            box.appendChild(dropshadow);
+                        }
+                        shadowStartDate.day += 1;
+                        this.calendarView.mDropShadows.push(box);
+                    }
+                }
+            }
         ]]></body>
       </method>
 
@@ -567,8 +586,10 @@
       <method name="removeDropShadows">
         <body><![CDATA[
             // method that may be overwritten by derived bindings...
-            for each (let shadow in this.calendarView.mDropShadows) {
-                cal.removeChildElementsByAttribute(shadow, "class", "dropshadow");
+            if (this.calendarView.mDropShadows) {
+                for (let shadow of this.calendarView.mDropShadows) {
+                    cal.removeChildElementsByAttribute(shadow, "class", "dropshadow");
+                }
             }
             this.calendarView.mDropShadows = null;
         ]]></body>
@@ -580,128 +601,120 @@
         <parameter name="aAttr"/>
         <parameter name="aVal"/>
         <body><![CDATA[
-          if (aAttr == "dropbox") {
-              let session = cal.getDragService().getCurrentSession();
-              let startingDayBox = session.sourceNode.mParentBox;
-              if (session) {
-                  session.canDrop = true;
-                  // no shadows when dragging in the initial position
-                  if (aVal == "true" && this != startingDayBox) {
-                      this.mDropShadows = [session.sourceNode.sourceObject];
-                      this.addDropShadows();
-                  } else {
-                      this.removeDropShadows();
-                  }
-              }
-          }
-          return XULElement.prototype.setAttribute.call(this, aAttr, aVal);
+            if (aAttr == "dropbox") {
+                let session = cal.getDragService().getCurrentSession();
+                let startingDayBox = session.sourceNode.mParentBox;
+                if (session) {
+                    session.canDrop = true;
+                    // no shadows when dragging in the initial position
+                    if (aVal == "true" && this != startingDayBox) {
+                        this.mDropShadows = [session.sourceNode.sourceObject];
+                        this.addDropShadows();
+                    } else {
+                        this.removeDropShadows();
+                    }
+                }
+            }
+            return XULElement.prototype.setAttribute.call(this, aAttr, aVal);
         ]]></body>
       </method>
-
     </implementation>
 
     <handlers>
       <handler event="dragstart" phase="capturing"><![CDATA[
-         let draggedDOMNode = event.target;
-         if (!draggedDOMNode || draggedDOMNode.parentNode != this) {
-             return;
-         }
-         let item = draggedDOMNode.occurrence.clone();
-         let beginMoveDate = draggedDOMNode.mParentBox.date;
-         let itemStartDate = (item.startDate || item.entryDate || item.dueDate).getInTimezone(calendarView.mTimezone);
-         let itemEndDate = (item.endDate || item.dueDate || item.entryDate).getInTimezone(calendarView.mTimezone);
-         let oneMoreDay = (itemEndDate.hour > 0 || itemEndDate.minute > 0);
-         itemStartDate.isDate = true;
-         itemEndDate.isDate = true;
-         let offsetDuration = itemStartDate.subtractDate(beginMoveDate);
-         let lenDuration = itemEndDate.subtractDate(itemStartDate);
-         let len = lenDuration.weeks * 7 + lenDuration.days;
-         this.calendarView.mShadowOffset = offsetDuration;
-         this.calendarView.mDropShadowsLength = oneMoreDay ? len + 1 : len;
+          let draggedDOMNode = event.target;
+          if (!draggedDOMNode || draggedDOMNode.parentNode != this) {
+              return;
+          }
+          let item = draggedDOMNode.occurrence.clone();
+          let beginMoveDate = draggedDOMNode.mParentBox.date;
+          let itemStartDate = (item.startDate || item.entryDate || item.dueDate).getInTimezone(calendarView.mTimezone);
+          let itemEndDate = (item.endDate || item.dueDate || item.entryDate).getInTimezone(calendarView.mTimezone);
+          let oneMoreDay = (itemEndDate.hour > 0 || itemEndDate.minute > 0);
+          itemStartDate.isDate = true;
+          itemEndDate.isDate = true;
+          let offsetDuration = itemStartDate.subtractDate(beginMoveDate);
+          let lenDuration = itemEndDate.subtractDate(itemStartDate);
+          let len = lenDuration.weeks * 7 + lenDuration.days;
+          this.calendarView.mShadowOffset = offsetDuration;
+          this.calendarView.mDropShadowsLength = oneMoreDay ? len + 1 : len;
       ]]></handler>
 
       <handler event="dragover"><![CDATA[
-         let session = cal.getDragService().getCurrentSession();
-         if (!session || !session.sourceNode || !session.sourceNode.sourceObject) {
-            // No source item? Then this is not for us.
-            return;
-         }
+          let session = cal.getDragService().getCurrentSession();
+          if (!session || !session.sourceNode || !session.sourceNode.sourceObject) {
+              // No source item? Then this is not for us.
+              return;
+          }
 
-         // We handled the event
-         event.preventDefault();
+          // We handled the event
+          event.preventDefault();
       ]]></handler>
 
       <handler event="dragenter"><![CDATA[
-       if (event.target.localName == this.localName) {
-           let session = cal.getDragService().getCurrentSession();
-           if (session) {
-               if (!session.sourceNode || !session.sourceNode.sourceObject) {
-                  // No source item? Then this is not for us.
-                  return;
-               }
+          if (event.target.localName == this.localName) {
+              let session = cal.getDragService().getCurrentSession();
+              if (session) {
+                  if (!session.sourceNode || !session.sourceNode.sourceObject) {
+                      // No source item? Then this is not for us.
+                      return;
+                  }
 
-               // We can drop now, tell the drag service.
-               event.preventDefault();
+                  // We can drop now, tell the drag service.
+                  event.preventDefault();
 
-               if (!this.hasAttribute("dropbox") || this.getAttribute("dropbox") == "false") {
-                   // As it turned out it was not possible to remove the remaining dropshadows
-                   // at the "dragleave" or "dragexit" event, majorly because it was not reliably
-                   // fired. As the dragndropcontainer may be anonymous it is further on not
-                   // possible to remove the dropshadows by something like
-                   // "document.getElementsByAttribute('dropbox').removeDropShadows();";
-                   // So we have to remove them at the currentView(). The restriction of course is
-                   // that these containers so far may not be used for drag and drop from/to e.g.
-                   // the today-pane.
-                   currentView().removeDropShadows();
-               }
-               this.setAttribute("dropbox", "true");
-           }
-       }
+                  if (!this.hasAttribute("dropbox") || this.getAttribute("dropbox") == "false") {
+                      // As it turned out it was not possible to remove the remaining dropshadows
+                      // at the "dragleave" or "dragexit" event, majorly because it was not reliably
+                      // fired. As the dragndropcontainer may be anonymous it is further on not
+                      // possible to remove the dropshadows by something like
+                      // "document.getElementsByAttribute('dropbox').removeDropShadows();";
+                      // So we have to remove them at the currentView(). The restriction of course is
+                      // that these containers so far may not be used for drag and drop from/to e.g.
+                      // the today-pane.
+                      currentView().removeDropShadows();
+                  }
+                  this.setAttribute("dropbox", "true");
+              }
+          }
       ]]></handler>
 
       <handler event="drop"><![CDATA[
-         let session = cal.getDragService().getCurrentSession();
-         if (!session || !session.sourceNode || !session.sourceNode.sourceObject) {
-            // No source node? Not our drag.
-            return;
-         }
-         let item = session.sourceNode.sourceObject.clone();
-         this.setAttribute("dropbox", "false");
-         let transfer = Components.classes["@mozilla.org/widget/transferable;1"].
-                        createInstance(Components.interfaces.nsITransferable);
-         transfer.init(null);
+          let session = cal.getDragService().getCurrentSession();
+          if (!session || !session.sourceNode || !session.sourceNode.sourceObject) {
+              // No source node? Not our drag.
+              return;
+          }
+          let item = session.sourceNode.sourceObject.clone();
+          this.setAttribute("dropbox", "false");
+          let transfer = Components.classes["@mozilla.org/widget/transferable;1"]
+                                   .createInstance(Components.interfaces.nsITransferable);
+          transfer.init(null);
 
-         if (isEvent(item)) {
-             transfer.addDataFlavor("application/x-moz-cal-event");
-         } else {
-             transfer.addDataFlavor("application/x-moz-cal-task");
-         }
+          if (cal.isEvent(item)) {
+              transfer.addDataFlavor("application/x-moz-cal-event");
+          } else {
+              transfer.addDataFlavor("application/x-moz-cal-task");
+          }
 
-         session.getData(transfer, 0);
-         let flavor = {};
-         let data = {};
-         // nsITransferable sucks when it comes to trying to add extra flavors.
-         // This will throw NS_ERROR_FAILURE, so as a workaround, we use the
-         // sourceNode property and get the event that way
-         //transfer.getAnyTransferData(flavor, data, {});
+          session.getData(transfer, 0);
+          item = session.sourceNode.sourceObject;
 
-         item = session.sourceNode.sourceObject;
-         let newItem = this.onDropItem(item).clone();
-         let newStart = newItem.startDate || newItem.entryDate || newItem.dueDate;
-         let newEnd = newItem.endDate || newItem.dueDate || newItem.entryDate;
-         let offset = this.calendarView.mShadowOffset;
-         newStart.addDuration(offset);
-         newEnd.addDuration(offset);
-         this.calendarView.controller.modifyOccurrence(item, newStart, newEnd);
+          let newItem = this.onDropItem(item).clone();
+          let newStart = newItem.startDate || newItem.entryDate || newItem.dueDate;
+          let newEnd = newItem.endDate || newItem.dueDate || newItem.entryDate;
+          let offset = this.calendarView.mShadowOffset;
+          newStart.addDuration(offset);
+          newEnd.addDuration(offset);
+          this.calendarView.controller.modifyOccurrence(item, newStart, newEnd);
 
-         // We handled the event
-         event.stopPropagation();
+          // We handled the event
+          event.stopPropagation();
       ]]></handler>
 
       <handler event="dragend"><![CDATA[
           currentView().removeDropShadows();
       ]]></handler>
-
     </handlers>
   </binding>
 
@@ -709,6 +722,7 @@
     <resources>
       <stylesheet src="chrome://calendar/skin/widgets/calendar-widgets.css"/>
     </resources>
+
     <content>
       <xul:hbox class="tab-middle box-inherit" xbl:inherits="align,dir,pack,orient,selected" flex="1">
         <xul:image class="tab-icon" xbl:inherits="validate,src=image"/>

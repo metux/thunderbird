@@ -14,7 +14,6 @@ gPort = gServer.identity.primaryPort;
 
 const PORT            = gPort;
 const BASE_URL        = "http://localhost:" + PORT;
-const DEFAULT_URL     = "about:blank";
 const REQ_URL         = "/data.xml";
 
 // register static file and mark it for interpolation
@@ -255,5 +254,5 @@ function run_test_1() {
 function run_test_2() {
   do_print("Run test 2");
   restartManager();
-  check_compat_status(end_test);  
+  check_compat_status(end_test);
 }

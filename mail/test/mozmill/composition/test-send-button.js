@@ -27,15 +27,9 @@ var setupModule = function (module) {
   // up for this test.
   let server = MailServices.accounts.FindServer("tinderbox", FAKE_SERVER_HOSTNAME, "pop3");
   account = MailServices.accounts.FindAccountForServer(server);
-  let inbox = server.rootFolder.getChildNamed("Inbox");
+  let inbox = get_special_folder(Ci.nsMsgFolderFlags.Inbox, false, server);
   be_in_folder(inbox);
 };
-
-function setupComposeWin(aCwc, aAddr, aSubj, aBody) {
-  aCwc.type(null, aAddr);
-  aCwc.type(aCwc.eid("msgSubject"), aSubj);
-  aCwc.type(aCwc.eid("content-frame"), aBody);
-}
 
 /**
  * Check if the send commands are in the wished state.
@@ -67,13 +61,55 @@ function test_send_enabled_manual_address() {
   check_send_commands_state(cwc, false);
 
   // On valid "To:" addressee input, Send must be enabled.
-  setupComposeWin(cwc, "recipient@fake.invalid", "", "");
+  toggle_recipient_type(cwc, "addr_to");
+  setup_msg_contents(cwc, " recipient@fake.invalid ", "", "");
   check_send_commands_state(cwc, true);
 
   // When the addressee is not in To, Cc, Bcc or Newsgroup, disable Send again.
-  let addrType = cwc.e("addressCol1#1");
-  cwc.click_menus_in_sequence(addrType.menupopup, [ {value: "addr_reply"} ]);
+  toggle_recipient_type(cwc, "addr_reply");
   check_send_commands_state(cwc, false);
+
+  clear_recipient(cwc);
+  check_send_commands_state(cwc, false);
+
+  // Bug 1296535
+  // Try some other invalid and valid recipient strings:
+  // - random string that is no email.
+  setup_msg_contents(cwc, " recipient@", "", "");
+  check_send_commands_state(cwc, false);
+
+  toggle_recipient_type(cwc, "addr_cc");
+  check_send_commands_state(cwc, false);
+
+  // This types additional characters into the recipient.
+  setup_msg_contents(cwc, "domain.invalid", "", "");
+  check_send_commands_state(cwc, true);
+
+  clear_recipient(cwc);
+  check_send_commands_state(cwc, false);
+
+  // - a mailinglist in addressbook
+  // Button is enabled without checking whether it contains valid addresses.
+  let defaultAB = MailServices.ab.getDirectory("moz-abmdbdirectory://abook.mab");
+  let ml = create_mailing_list("emptyList");
+  defaultAB.addMailList(ml);
+
+  setup_msg_contents(cwc, " emptyList", "", "");
+  check_send_commands_state(cwc, true);
+
+  clear_recipient(cwc);
+  check_send_commands_state(cwc, false);
+
+  setup_msg_contents(cwc, "emptyList <list> ", "", "");
+  check_send_commands_state(cwc, true);
+
+  clear_recipient(cwc);
+  check_send_commands_state(cwc, false);
+
+  // - some string as a newsgroup
+  toggle_recipient_type(cwc, "addr_newsgroups");
+  setup_msg_contents(cwc, "newsgroup ", "", "");
+  check_send_commands_state(cwc, true);
 
   close_compose_window(cwc);
 }
@@ -126,11 +162,13 @@ function test_send_enabled_prefilled_address_from_identity() {
   assert_true(account.identities.length >= 2);
   let identityWithoutCC = account.identities.queryElementAt(1, Ci.nsIMsgIdentity);
   assert_false(identityWithoutCC.doCc);
+  cwc.click(cwc.eid("msgIdentity"));
   cwc.click_menus_in_sequence(cwc.e("msgIdentityPopup"),
                               [ { identitykey: identityWithoutCC.key } ]);
   check_send_commands_state(cwc, false);
 
   // Check the first identity again.
+  cwc.click(cwc.eid("msgIdentity"));
   cwc.click_menus_in_sequence(cwc.e("msgIdentityPopup"),
                               [ { identitykey: identityWithCC.key } ]);
   check_send_commands_state(cwc, true);
@@ -170,5 +208,6 @@ function test_send_enabled_address_contacts_sidebar() {
   // The recipient is filled in, Send must be enabled.
   check_send_commands_state(cwc, true);
 
+  cwc.window.toggleAddressPicker();
   close_compose_window(cwc);
 }

@@ -1,5 +1,5 @@
 Cu.import("resource://testing-common/httpd.js");
-Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/NetUtil.jsm");
 
 XPCOMUtils.defineLazyGetter(this, "URL", function() {
   return "http://localhost:" + httpServer.identity.primaryPort;
@@ -11,16 +11,7 @@ var redirects = [];
 const numRedirects = 10;
 
 function make_channel(url, callback, ctx) {
-  var ios = Cc["@mozilla.org/network/io-service;1"].
-            getService(Ci.nsIIOService);
-  return ios.newChannel2(url,
-                         "",
-                         null,
-                         null,      // aLoadingNode
-                         Services.scriptSecurityManager.getSystemPrincipal(),
-                         null,      // aTriggeringPrincipal
-                         Ci.nsILoadInfo.SEC_NORMAL,
-                         Ci.nsIContentPolicy.TYPE_OTHER);
+  return NetUtil.newChannel({uri: url, loadUsingSystemPrincipal: true});
 }
 
 const responseBody = "response body";
@@ -39,8 +30,10 @@ function finish_test(request, buffer)
 
   do_check_eq(numRedirects - 1, redirectChain.length);
   for (let i = 0; i < numRedirects - 1; ++i) {
-    let principal = redirectChain[i];
+    let principal = redirectChain[i].principal;
     do_check_eq(URL + redirects[i], principal.URI.spec);
+    do_check_eq(redirectChain[i].referrerURI.spec, "http://test.com/");
+    do_check_eq(redirectChain[i].remoteAddress, "127.0.0.1");
   }
   httpServer.stop(do_test_finished);
 }
@@ -68,6 +61,9 @@ function run_test()
   httpServer.start(-1);
 
   var chan = make_channel(URL + redirects[0]);
-  chan.asyncOpen(new ChannelListener(finish_test, null), null);
+  var uri = NetUtil.newURI("http://test.com");
+  httpChan = chan.QueryInterface(Components.interfaces.nsIHttpChannel);
+  httpChan.referrer = uri;
+  chan.asyncOpen2(new ChannelListener(finish_test, null));
   do_test_pending();
 }

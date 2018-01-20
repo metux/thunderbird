@@ -214,27 +214,22 @@ UserStatus.prototype = {
   },
 
   get displayName() {
-    return Services.prefs.getComplexValue(kPrefUserDisplayname,
-                                          Ci.nsISupportsString).data;
+    return Services.prefs.getStringPref(kPrefUserDisplayname);
   },
   set displayName(aDisplayName) {
-    let str = Cc["@mozilla.org/supports-string;1"]
-              .createInstance(Ci.nsISupportsString);
-    str.data = aDisplayName;
-    Services.prefs.setComplexValue(kPrefUserDisplayname, Ci.nsISupportsString,
-                                   str);
+    Services.prefs.setStringPref(kPrefUserDisplayname, aDisplayName);
     this._notifyObservers("user-display-name-changed", aDisplayName);
   },
 
   addObserver: function(aObserver) {
-    if (this._observers.indexOf(aObserver) == -1)
+    if (!this._observers.includes(aObserver))
       this._observers.push(aObserver);
   },
   removeObserver: function(aObserver) {
     this._observers = this._observers.filter(o => o !== aObserver);
   },
   _notifyObservers: function(aTopic, aData) {
-    for each (let observer in this._observers)
+    for (let observer of this._observers)
       observer.observe(this, aTopic, aData);
   }
 };

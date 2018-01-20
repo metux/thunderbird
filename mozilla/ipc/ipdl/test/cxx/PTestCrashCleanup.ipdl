@@ -10,12 +10,14 @@ namespace _ipdltest {
 intr protocol PTestCrashCleanup {
 child:
     intr DIEDIEDIE();
-    __delete__();
+    async __delete__();
 
+/*
 state ALIVE:
     call DIEDIEDIE goto CRASH;
 state CRASH:
     send __delete__;
+*/
 };
 
 }

@@ -16,7 +16,7 @@
 #include "nsMsgUtils.h"
 #include "mozilla/Logging.h"
 
-static PRLogModuleInfo *gCopyServiceLog;
+static mozilla::LazyLogModule gCopyServiceLog("MsgCopyService");
 
 // ******************** nsCopySource ******************
 //
@@ -42,7 +42,7 @@ nsCopySource::~nsCopySource()
 
 void nsCopySource::AddMessage(nsIMsgDBHdr* aMsg)
 {
-  m_messageArray->AppendElement(aMsg, false);
+  m_messageArray->AppendElement(aMsg);
 }
 
 // ************ nsCopyRequest *****************
@@ -69,7 +69,7 @@ nsCopyRequest::~nsCopyRequest()
 nsresult
 nsCopyRequest::Init(nsCopyRequestType type, nsISupports* aSupport,
                     nsIMsgFolder* dstFolder,
-                    bool bVal, uint32_t newMsgFlags, 
+                    bool bVal, uint32_t newMsgFlags,
                     const nsACString &newMsgKeywords,
                     nsIMsgCopyServiceListener* listener,
                     nsIMsgWindow* msgWindow, bool allowUndo)
@@ -126,7 +126,6 @@ nsCopyRequest::AddNewCopySource(nsIMsgFolder* srcFolder)
 
 nsMsgCopyService::nsMsgCopyService()
 {
-  gCopyServiceLog = PR_NewLogModule("MsgCopyService");
 }
 
 nsMsgCopyService::~nsMsgCopyService()
@@ -162,7 +161,7 @@ void nsMsgCopyService::LogCopyRequest(const char *logMsg, nsCopyRequest* aReques
       aRequest->m_copySourceArray[0]->m_messageArray)
     aRequest->m_copySourceArray[0]->m_messageArray->GetLength(&numMsgs);
   MOZ_LOG(gCopyServiceLog, mozilla::LogLevel::Info,
-         ("request %lx %s - src %s dest %s numItems %d type=%d",
+         ("request %p %s - src %s dest %s numItems %d type=%d",
          aRequest, logMsg, srcFolderUri.get(),
          destFolderUri.get(), numMsgs, aRequest->m_requestType));
 }
@@ -173,7 +172,7 @@ nsMsgCopyService::ClearRequest(nsCopyRequest* aRequest, nsresult rv)
   if (aRequest)
   {
     if (MOZ_LOG_TEST(gCopyServiceLog, mozilla::LogLevel::Info))
-      LogCopyRequest(NS_SUCCEEDED(rv) ? "Clearing OK request" 
+      LogCopyRequest(NS_SUCCEEDED(rv) ? "Clearing OK request"
                                       : "Clearing failed request", aRequest);
 
     // Send notifications to nsIMsgFolderListeners
@@ -320,8 +319,9 @@ nsMsgCopyService::DoNextCopy()
                    copyRequest->m_msgWindow, copyRequest->m_listener, false, copyRequest->m_allowUndo);   //isFolder operation false
 
           }
-          else if (copyRequest->m_requestType == nsCopyFoldersType )
+          else if (copyRequest->m_requestType == nsCopyFoldersType)
           {
+              NS_ENSURE_STATE(copySource);
               copySource->m_processed = true;
               rv = copyRequest->m_dstFolder->CopyFolder
                   (copySource->m_msgFolder,
@@ -365,7 +365,7 @@ nsMsgCopyService::DoNextCopy()
 }
 
 /**
- * Find a request in m_copyRequests which matches the passed in source 
+ * Find a request in m_copyRequests which matches the passed in source
  * and destination folders.
  *
  * @param aSupport the iSupports of the source folder.
@@ -480,7 +480,7 @@ nsMsgCopyService::CopyMessages(nsIMsgFolder* srcFolder, /* UI src folder */
   aSupport = do_QueryInterface(srcFolder, &rv);
 
   rv = copyRequest->Init(nsCopyMessagesType, aSupport, dstFolder, isMove,
-                        0 /* new msg flags, not used */, EmptyCString(), 
+                        0 /* new msg flags, not used */, EmptyCString(),
                         listener, window, allowUndo);
   if (NS_FAILED(rv))
     goto done;

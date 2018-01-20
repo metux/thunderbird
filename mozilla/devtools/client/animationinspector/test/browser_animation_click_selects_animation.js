@@ -7,8 +7,8 @@
 // Check that animations displayed in the timeline can be selected by clicking
 // them, and that this emits the right events and adds the right classes.
 
-add_task(function*() {
-  yield addTab(TEST_URL_ROOT + "doc_simple_animation.html");
+add_task(function* () {
+  yield addTab(URL_ROOT + "doc_simple_animation.html");
   let {panel} = yield openAnimationInspector();
   let timeline = panel.animationsTimelineComponent;
 
@@ -28,17 +28,18 @@ add_task(function*() {
      "The selected event was emitted with the right animation");
   ok(isTimeBlockSelected(timeline, 1),
      "The second time block has the right selected class");
-
-  info("Click again on the first animation and check if it unselects");
-  yield clickOnAnimation(panel, 0, true);
   ok(!isTimeBlockSelected(timeline, 0),
      "The first time block has been unselected");
+
+  info("Click again on the first animation and check if it unselects");
+  yield clickOnAnimation(panel, 0);
+  ok(isTimeBlockSelected(timeline, 0),
+     "The time block has the right selected class again");
+  ok(!isTimeBlockSelected(timeline, 1),
+     "The second time block has been unselected");
 });
 
 function isTimeBlockSelected(timeline, index) {
   let animation = timeline.rootWrapperEl.querySelectorAll(".animation")[index];
-  let animatedProperties = timeline.rootWrapperEl.querySelectorAll(
-    ".animated-properties")[index];
-  return animation.classList.contains("selected") &&
-         animatedProperties.classList.contains("selected");
+  return animation.classList.contains("selected");
 }

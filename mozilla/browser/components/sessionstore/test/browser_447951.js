@@ -12,17 +12,17 @@ function test() {
   // Make sure the functionality added in bug 943339 doesn't affect the results
   gPrefService.setIntPref("browser.sessionstore.max_serialize_back", -1);
   gPrefService.setIntPref("browser.sessionstore.max_serialize_forward", -1);
-  registerCleanupFunction(function () {
+  registerCleanupFunction(function() {
     gPrefService.clearUserPref("browser.sessionstore.max_serialize_back");
     gPrefService.clearUserPref("browser.sessionstore.max_serialize_forward");
   });
 
-  let tab = gBrowser.addTab();
+  let tab = BrowserTestUtils.addTab(gBrowser);
   promiseBrowserLoaded(tab.linkedBrowser).then(() => {
     let tabState = { entries: [] };
     let max_entries = gPrefService.getIntPref("browser.sessionhistory.max_entries");
     for (let i = 0; i < max_entries; i++)
-      tabState.entries.push({ url: baseURL + i });
+      tabState.entries.push({ url: baseURL + i, triggeringPrincipal_base64});
 
     promiseTabState(tab, tabState).then(() => {
       return TabStateFlusher.flush(tab.linkedBrowser);
@@ -32,9 +32,9 @@ function test() {
       is(tabState.entries[0].url, baseURL + 0, "... but not more");
 
       // visit yet another anchor (appending it to session history)
-      runInContent(tab.linkedBrowser, function(win) {
-        win.document.querySelector("a").click();
-      }, null).then(flushAndCheck);
+      ContentTask.spawn(tab.linkedBrowser, null, function() {
+        content.window.document.querySelector("a").click();
+      }).then(flushAndCheck);
 
       function flushAndCheck() {
         TabStateFlusher.flush(tab.linkedBrowser).then(check);

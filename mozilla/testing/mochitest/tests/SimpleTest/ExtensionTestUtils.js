@@ -1,7 +1,18 @@
 var ExtensionTestUtils = {};
 
-ExtensionTestUtils.loadExtension = function(ext, id = null)
+const {ExtensionTestCommon} = SpecialPowers.Cu.import("resource://testing-common/ExtensionTestCommon.jsm", {});
+
+ExtensionTestUtils.loadExtension = function(ext)
 {
+  // Cleanup functions need to be registered differently depending on
+  // whether we're in browser chrome or plain mochitests.
+  var registerCleanup;
+  if (typeof registerCleanupFunction != "undefined") {
+    registerCleanup = registerCleanupFunction;
+  } else {
+    registerCleanup = SimpleTest.registerCleanupFunction.bind(SimpleTest);
+  }
+
   var testResolve;
   var testDone = new Promise(resolve => { testResolve = resolve; });
 
@@ -10,12 +21,14 @@ ExtensionTestUtils.loadExtension = function(ext, id = null)
 
   var messageQueue = new Set();
 
-  SimpleTest.registerCleanupFunction(() => {
+  registerCleanup(() => {
     if (messageQueue.size) {
-      SimpleTest.is(messageQueue.size, 0, "message queue is empty");
+      let names = Array.from(messageQueue, ([msg]) => msg);
+      SimpleTest.is(JSON.stringify(names), "[]", "message queue is empty");
     }
     if (messageAwaiter.size) {
-      SimpleTest.is(messageAwaiter.size, 0, "no tasks awaiting on messages");
+      let names = Array.from(messageAwaiter.keys());
+      SimpleTest.is(JSON.stringify(names), "[]", "no tasks awaiting on messages");
     }
   });
 
@@ -42,19 +55,19 @@ ExtensionTestUtils.loadExtension = function(ext, id = null)
 
   function testHandler(kind, pass, msg, ...args) {
     if (kind == "test-eq") {
-      var [expected, actual] = args;
-      SimpleTest.ok(pass, `${msg} - Expected: ${expected}, Actual: ${actual}`);
+      let [expected, actual, stack] = args;
+      SimpleTest.ok(pass, `${msg} - Expected: ${expected}, Actual: ${actual}`, undefined, stack);
     } else if (kind == "test-log") {
       SimpleTest.info(msg);
     } else if (kind == "test-result") {
-      SimpleTest.ok(pass, msg);
+      SimpleTest.ok(pass, msg, undefined, args[0]);
     }
   }
 
   var handler = {
     testResult(kind, pass, msg, ...args) {
       if (kind == "test-done") {
-        SimpleTest.ok(pass, msg);
+        SimpleTest.ok(pass, msg, undefined, args[0]);
         return testResolve(msg);
       }
       testHandler(kind, pass, msg, ...args);
@@ -72,7 +85,33 @@ ExtensionTestUtils.loadExtension = function(ext, id = null)
     },
   };
 
-  var extension = SpecialPowers.loadExtension(id, ext, handler);
+  // Mimic serialization of functions as done in `Extension.generateXPI` and
+  // `Extension.generateZipFile` because functions are dropped when `ext` object
+  // is sent to the main process via the message manager.
+  ext = Object.assign({}, ext);
+  if (ext.files) {
+    ext.files = Object.assign({}, ext.files);
+    for (let filename of Object.keys(ext.files)) {
+      let file = ext.files[filename];
+      if (typeof file === "function" || Array.isArray(file)) {
+        ext.files[filename] = ExtensionTestCommon.serializeScript(file);
+      }
+    }
+  }
+  if ("background" in ext) {
+    ext.background = ExtensionTestCommon.serializeScript(ext.background);
+  }
+
+  var extension = SpecialPowers.loadExtension(ext, handler);
+
+  registerCleanup(() => {
+    if (extension.state == "pending" || extension.state == "running") {
+      SimpleTest.ok(false, "Extension left running at test shutdown")
+      return extension.unload();
+    } else if (extension.state == "unloading") {
+      SimpleTest.ok(false, "Extension not fully unloaded at test shutdown")
+    }
+  });
 
   extension.awaitMessage = (msg) => {
     return new Promise(resolve => {

@@ -11,6 +11,7 @@
  * and create derivative works of this document.
  */
 
+[Pref="dom.webcomponents.enabled"]
 interface HTMLContentElement : HTMLElement
 {
   attribute DOMString select;

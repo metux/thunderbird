@@ -1,7 +1,6 @@
-# -*- indent-tabs-mode: nil; js-indent-level: 2 -*-
-# This Source Code Form is subject to the terms of the Mozilla Public
-# License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // Developer edition promo preferences
 pref("devtools.devedition.promo.shown", false);
@@ -14,12 +13,8 @@ pref("devtools.devedition.promo.url", "https://www.mozilla.org/firefox/developer
   pref("devtools.devedition.promo.enabled", false);
 #endif
 
-// Disable the error console
-pref("devtools.errorconsole.enabled", false);
-
 // Developer toolbar preferences
 pref("devtools.toolbar.enabled", true);
-pref("devtools.toolbar.visible", false);
 
 // Enable DevTools WebIDE by default
 pref("devtools.webide.enabled", true);
@@ -30,7 +25,6 @@ pref("devtools.toolbox.sidebar.width", 500);
 pref("devtools.toolbox.host", "bottom");
 pref("devtools.toolbox.previousHost", "side");
 pref("devtools.toolbox.selectedTool", "webconsole");
-pref("devtools.toolbox.toolbarSpec", '["splitconsole", "paintflashing toggle","tilt toggle","scratchpad","resize toggle","eyedropper","screenshot --fullpage", "rulers", "measure"]');
 pref("devtools.toolbox.sideEnabled", true);
 pref("devtools.toolbox.zoomValue", "1");
 pref("devtools.toolbox.splitconsoleEnabled", false);
@@ -41,13 +35,12 @@ pref("devtools.command-button-pick.enabled", true);
 pref("devtools.command-button-frames.enabled", true);
 pref("devtools.command-button-splitconsole.enabled", true);
 pref("devtools.command-button-paintflashing.enabled", false);
-pref("devtools.command-button-tilt.enabled", false);
 pref("devtools.command-button-scratchpad.enabled", false);
 pref("devtools.command-button-responsive.enabled", true);
-pref("devtools.command-button-eyedropper.enabled", false);
 pref("devtools.command-button-screenshot.enabled", false);
 pref("devtools.command-button-rulers.enabled", false);
 pref("devtools.command-button-measure.enabled", false);
+pref("devtools.command-button-noautohide.enabled", false);
 
 // Inspector preferences
 // Enable the Inspector
@@ -63,46 +56,58 @@ pref("devtools.inspector.imagePreviewTooltipSize", 300);
 pref("devtools.inspector.showUserAgentStyles", false);
 // Show all native anonymous content (like controls in <video> tags)
 pref("devtools.inspector.showAllAnonymousContent", false);
-// Enable the MDN docs tooltip
-pref("devtools.inspector.mdnDocsTooltip.enabled", true);
+// Enable the new color widget
+pref("devtools.inspector.colorWidget.enabled", false);
+// Enable the CSS shapes highlighter
+pref("devtools.inspector.shapesHighlighter.enabled", true);
+// Enable the Changes View
+pref("devtools.changesview.enabled", false);
+// Enable the Events View
+pref("devtools.eventsview.enabled", false);
+// Enable the Flexbox Inspector
+pref("devtools.flexboxinspector.enabled", false);
 
-// Collapse attributes that are too long.
-// Use -1 to not collapse attributes at all.
+// Enable the new Animation Inspector
+pref("devtools.new-animationinspector.enabled", false);
+
+// Grid highlighter preferences
+pref("devtools.gridinspector.gridOutlineMaxColumns", 50);
+pref("devtools.gridinspector.gridOutlineMaxRows", 50);
+pref("devtools.gridinspector.showGridAreas", false);
+pref("devtools.gridinspector.showGridLineNumbers", false);
+pref("devtools.gridinspector.showInfiniteLines", false);
+pref("devtools.gridinspector.showNegativeLineNumbers", false);
+
+// Whether or not the box model panel is opened in the computed view
+pref("devtools.computed.boxmodel.opened", true);
+// Whether or not the box model panel is opened in the layout view
+pref("devtools.layout.boxmodel.opened", true);
+// Whether or not the flexbox panel is opened in the layout view
+pref("devtools.layout.flexbox.opened", true);
+// Whether or not the grid inspector panel is opened in the layout view
+pref("devtools.layout.grid.opened", true);
+
+// By how many times eyedropper will magnify pixels
+pref("devtools.eyedropper.zoom", 6);
+
+// Enable to collapse attributes that are too long.
+pref("devtools.markup.collapseAttributes", true);
+
+// Length to collapse attributes
 pref("devtools.markup.collapseAttributeLength", 120);
 
 // DevTools default color unit
 pref("devtools.defaultColorUnit", "authored");
 
-// Enable the Responsive UI tool
-pref("devtools.responsiveUI.no-reload-notification", false);
-
-// Enable the Debugger
-pref("devtools.debugger.enabled", true);
-pref("devtools.debugger.chrome-debugging-host", "localhost");
-pref("devtools.debugger.chrome-debugging-port", 6080);
-pref("devtools.debugger.remote-host", "localhost");
-pref("devtools.debugger.remote-timeout", 20000);
-pref("devtools.debugger.pause-on-exceptions", false);
-pref("devtools.debugger.ignore-caught-exceptions", true);
-pref("devtools.debugger.source-maps-enabled", true);
-pref("devtools.debugger.pretty-print-enabled", true);
-pref("devtools.debugger.auto-pretty-print", false);
-pref("devtools.debugger.auto-black-box", true);
-pref("devtools.debugger.workers", false);
-pref("devtools.debugger.promise", false);
-
-// The default Debugger UI settings
-pref("devtools.debugger.ui.panes-workers-and-sources-width", 200);
-pref("devtools.debugger.ui.panes-instruments-width", 300);
-pref("devtools.debugger.ui.panes-visible-on-startup", false);
-pref("devtools.debugger.ui.variables-sorting-enabled", true);
-pref("devtools.debugger.ui.variables-only-enum-visible", false);
-pref("devtools.debugger.ui.variables-searchbox-visible", false);
-
 // Enable the Memory tools
-pref("devtools.memory.enabled", false);
+pref("devtools.memory.enabled", true);
 
-pref("devtools.memory.custom-breakdowns", "{}");
+pref("devtools.memory.custom-census-displays", "{}");
+pref("devtools.memory.custom-label-displays", "{}");
+pref("devtools.memory.custom-tree-map-displays", "{}");
+
+pref("devtools.memory.max-individuals", 1000);
+pref("devtools.memory.max-retaining-paths", 10);
 
 // Enable the Performance tools
 pref("devtools.performance.enabled", true);
@@ -124,7 +129,7 @@ pref("devtools.performance.ui.show-idle-blocks", true);
 pref("devtools.performance.ui.enable-memory", false);
 pref("devtools.performance.ui.enable-allocations", false);
 pref("devtools.performance.ui.enable-framerate", true);
-pref("devtools.performance.ui.enable-jit-optimizations", false);
+pref("devtools.performance.ui.show-jit-optimizations", false);
 pref("devtools.performance.ui.show-triggers-for-gc-types",
   "TOO_MUCH_MALLOC ALLOC_TRIGGER LAST_DITCH EAGER_ALLOC_TRIGGER");
 
@@ -151,12 +156,14 @@ pref("devtools.netmonitor.enabled", true);
 // The default Network Monitor UI settings
 pref("devtools.netmonitor.panes-network-details-width", 550);
 pref("devtools.netmonitor.panes-network-details-height", 450);
-pref("devtools.netmonitor.statistics", true);
 pref("devtools.netmonitor.filters", "[\"all\"]");
+pref("devtools.netmonitor.visibleColumns",
+  "[\"status\",\"method\",\"file\",\"domain\",\"cause\",\"type\",\"transferred\",\"contentSize\",\"waterfall\"]"
+);
 
 // The default Network monitor HAR export setting
 pref("devtools.netmonitor.har.defaultLogDir", "");
-pref("devtools.netmonitor.har.defaultFileName", "Archive %y-%m-%d %H-%M-%S");
+pref("devtools.netmonitor.har.defaultFileName", "Archive %date");
 pref("devtools.netmonitor.har.jsonp", false);
 pref("devtools.netmonitor.har.jsonpCallback", "");
 pref("devtools.netmonitor.har.includeResponseBodies", true);
@@ -164,11 +171,6 @@ pref("devtools.netmonitor.har.compress", false);
 pref("devtools.netmonitor.har.forceExport", false);
 pref("devtools.netmonitor.har.pageLoadedTimeout", 1500);
 pref("devtools.netmonitor.har.enableAutoExportToFile", false);
-
-// Enable the Tilt inspector
-pref("devtools.tilt.enabled", true);
-pref("devtools.tilt.intro_transition", true);
-pref("devtools.tilt.outro_transition", true);
 
 // Scratchpad settings
 // - recentFileMax: The maximum number of recently-opened files
@@ -188,16 +190,19 @@ pref("devtools.scratchpad.editorFontSize", 12);
 pref("devtools.scratchpad.enableAutocompletion", true);
 
 // Enable the Storage Inspector
-pref("devtools.storage.enabled", false);
+pref("devtools.storage.enabled", true);
 
 // Enable the Style Editor.
 pref("devtools.styleeditor.enabled", true);
-pref("devtools.styleeditor.source-maps-enabled", true);
 pref("devtools.styleeditor.autocompletion-enabled", true);
 pref("devtools.styleeditor.showMediaSidebar", true);
 pref("devtools.styleeditor.mediaSidebarWidth", 238);
 pref("devtools.styleeditor.navSidebarWidth", 245);
 pref("devtools.styleeditor.transitions", true);
+
+// Screenshot Option Settings.
+pref("devtools.screenshot.clipboard.enabled", false);
+pref("devtools.screenshot.audio.enabled", true);
 
 // Enable the Shader Editor.
 pref("devtools.shadereditor.enabled", false);
@@ -208,31 +213,34 @@ pref("devtools.canvasdebugger.enabled", false);
 // Enable the Web Audio Editor
 pref("devtools.webaudioeditor.enabled", false);
 
+// Enable Scratchpad
+pref("devtools.scratchpad.enabled", false);
+
+// Make sure the DOM panel is hidden by default
+pref("devtools.dom.enabled", false);
+
 // Web Audio Editor Inspector Width should be a preference
 pref("devtools.webaudioeditor.inspectorWidth", 300);
 
-// Default theme ("dark" or "light")
-#ifdef MOZ_DEV_EDITION
-sticky_pref("devtools.theme", "dark");
-#else
-sticky_pref("devtools.theme", "light");
-#endif
-
-// Remember the Web Console filters
+// Web console filters
+pref("devtools.webconsole.filter.error", true);
+pref("devtools.webconsole.filter.warn", true);
+pref("devtools.webconsole.filter.info", true);
+pref("devtools.webconsole.filter.log", true);
+pref("devtools.webconsole.filter.debug", true);
+pref("devtools.webconsole.filter.css", false);
+pref("devtools.webconsole.filter.net", false);
+pref("devtools.webconsole.filter.netxhr", false);
+// Deprecated - old console frontend
 pref("devtools.webconsole.filter.network", true);
 pref("devtools.webconsole.filter.networkinfo", false);
 pref("devtools.webconsole.filter.netwarn", true);
-pref("devtools.webconsole.filter.netxhr", false);
 pref("devtools.webconsole.filter.csserror", true);
 pref("devtools.webconsole.filter.cssparser", false);
 pref("devtools.webconsole.filter.csslog", false);
 pref("devtools.webconsole.filter.exception", true);
 pref("devtools.webconsole.filter.jswarn", true);
 pref("devtools.webconsole.filter.jslog", false);
-pref("devtools.webconsole.filter.error", true);
-pref("devtools.webconsole.filter.warn", true);
-pref("devtools.webconsole.filter.info", true);
-pref("devtools.webconsole.filter.log", true);
 pref("devtools.webconsole.filter.secerror", true);
 pref("devtools.webconsole.filter.secwarn", true);
 pref("devtools.webconsole.filter.serviceworkers", true);
@@ -268,32 +276,43 @@ pref("devtools.browserconsole.filter.serverwarn", false);
 pref("devtools.browserconsole.filter.serverinfo", false);
 pref("devtools.browserconsole.filter.serverlog", false);
 
-// Text size in the Web Console. Use 0 for the system default size.
-pref("devtools.webconsole.fontSize", 0);
+// Web console filter settings bar
+pref("devtools.webconsole.ui.filterbar", false);
 
 // Max number of inputs to store in web console history.
 pref("devtools.webconsole.inputHistoryCount", 50);
 
-// Persistent logging: |true| if you want the Web Console to keep all of the
+// Persistent logging: |true| if you want the relevant tool to keep all of the
 // logged messages after reloading the page, |false| if you want the output to
 // be cleared each time page navigation happens.
 pref("devtools.webconsole.persistlog", false);
+pref("devtools.netmonitor.persistlog", false);
 
 // Web Console timestamp: |true| if you want the logs and instructions
 // in the Web Console to display a timestamp, or |false| to not display
 // any timestamps.
 pref("devtools.webconsole.timestampMessages", false);
 
-// The number of lines that are displayed in the web console for the Net,
+// Web Console automatic multiline mode: |true| if you want incomplete statements
+// to automatically trigger multiline editing (equivalent to shift + enter).
+pref("devtools.webconsole.autoMultiline", true);
+
+// Enable the new webconsole frontend
+pref("devtools.webconsole.new-frontend-enabled", true);
+
+// Enable client-side mapping service for source maps
+pref("devtools.source-map.client-service.enabled", true);
+
+// The number of lines that are displayed in the web console.
+pref("devtools.hud.loglimit", 10000);
+
+// The number of lines that are displayed in the old web console for the Net,
 // CSS, JS and Web Developer categories. These defaults should be kept in sync
-// with DEFAULT_LOG_LIMIT in the webconsole frontend.
+// with DEFAULT_LOG_LIMIT in the old webconsole frontend.
 pref("devtools.hud.loglimit.network", 1000);
 pref("devtools.hud.loglimit.cssparser", 1000);
 pref("devtools.hud.loglimit.exception", 1000);
 pref("devtools.hud.loglimit.console", 1000);
-
-// By how many times eyedropper will magnify pixels
-pref("devtools.eyedropper.zoom", 6);
 
 // The developer tools editor configuration:
 // - tabsize: how many spaces to use when a Tab character is displayed.
@@ -310,17 +329,7 @@ pref("devtools.editor.detectindentation", true);
 pref("devtools.editor.enableCodeFolding", true);
 pref("devtools.editor.autocomplete", true);
 
-// Enable the Font Inspector
-pref("devtools.fontinspector.enabled", true);
-
 // Pref to store the browser version at the time of a telemetry ping for an
 // opened developer tool. This allows us to ping telemetry just once per browser
 // version for each user.
 pref("devtools.telemetry.tools.opened.version", "{}");
-
-// Enable the JSON View tool (an inspector for application/json documents)
-#ifdef MOZ_DEV_EDITION
-  pref("devtools.jsonview.enabled", true);
-#else
-  pref("devtools.jsonview.enabled", false);
-#endif

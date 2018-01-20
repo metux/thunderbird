@@ -187,8 +187,7 @@ var ADDONS = [{
   toolkitBlocks: true
 }];
 
-function MockPluginTag(name, version, start, appBlocks, toolkitBlocks)
-{
+function MockPluginTag(name, version, start, appBlocks, toolkitBlocks) {
   this.name = name;
   this.version = version;
   this.start = start;
@@ -236,29 +235,29 @@ var gNewBlocks = [];
 
 // A fake plugin host for the blocklist service to use
 var PluginHost = {
-  getPluginTags: function(countRef) {
+  getPluginTags(countRef) {
     countRef.value = PLUGINS.length;
     return PLUGINS;
   },
 
-  QueryInterface: function(iid) {
+  QueryInterface(iid) {
     if (iid.equals(Ci.nsIPluginHost)
      || iid.equals(Ci.nsISupports))
       return this;
 
     throw Components.results.NS_ERROR_NO_INTERFACE;
   }
-}
+};
 
 // Don't need the full interface, attempts to call other methods will just
 // throw which is just fine
 var WindowWatcher = {
-  openWindow: function(parent, url, name, features, args) {
+  openWindow(parent, url, name, features, args) {
     // Should be called to list the newly blocklisted items
     do_check_eq(url, URI_EXTENSION_BLOCKLIST_DIALOG);
     do_check_neq(gCallback, null);
 
-    var args = args.wrappedJSObject;
+    args = args.wrappedJSObject;
 
     gNewBlocks = [];
     var list = args.list;
@@ -269,14 +268,14 @@ var WindowWatcher = {
     do_timeout(0, gCallback);
   },
 
-  QueryInterface: function(iid) {
+  QueryInterface(iid) {
     if (iid.equals(Ci.nsIWindowWatcher)
      || iid.equals(Ci.nsISupports))
       return this;
 
     throw Components.results.NS_ERROR_NO_INTERFACE;
   }
-}
+};
 
 MockRegistrar.register("@mozilla.org/plugin/host;1", PluginHost);
 MockRegistrar.register("@mozilla.org/embedcomp/window-watcher;1", WindowWatcher);
@@ -392,7 +391,7 @@ function check_test_pt1() {
         do_throw("Addon " + (i + 1) + " did not get installed correctly");
     }
 
-    do_execute_soon(function checkstate1() {check_state("start", null, run_test_pt2);});
+    do_execute_soon(function checkstate1() { check_state("start", null, run_test_pt2); });
   });
 }
 

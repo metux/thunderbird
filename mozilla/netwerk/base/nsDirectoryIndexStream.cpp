@@ -22,8 +22,6 @@
 #ifdef THREADSAFE_I18N
 #include "nsCollationCID.h"
 #include "nsICollation.h"
-#include "nsILocale.h"
-#include "nsILocaleService.h"
 #endif
 #include "nsIFile.h"
 #include "nsURLHelper.h"
@@ -39,7 +37,8 @@
 
 //#define THREADSAFE_I18N
 
-static mozilla::LazyLogModule gLog("nsDirectoryIndexStream");
+using namespace mozilla;
+static LazyLogModule gLog("nsDirectoryIndexStream");
 
 nsDirectoryIndexStream::nsDirectoryIndexStream()
     : mOffset(0), mStatus(NS_OK), mPos(0)
@@ -119,20 +118,12 @@ nsDirectoryIndexStream::Init(nsIFile* aDir)
     }
 
 #ifdef THREADSAFE_I18N
-    nsCOMPtr<nsILocaleService> ls = do_GetService(NS_LOCALESERVICE_CONTRACTID,
-                                                  &rv);
-    if (NS_FAILED(rv)) return rv;
-
-    nsCOMPtr<nsILocale> locale;
-    rv = ls->GetApplicationLocale(getter_AddRefs(locale));
-    if (NS_FAILED(rv)) return rv;
-    
     nsCOMPtr<nsICollationFactory> cf = do_CreateInstance(NS_COLLATIONFACTORY_CONTRACTID,
                                                          &rv);
     if (NS_FAILED(rv)) return rv;
 
     nsCOMPtr<nsICollation> coll;
-    rv = cf->CreateCollation(locale, getter_AddRefs(coll));
+    rv = cf->CreateCollation(getter_AddRefs(coll));
     if (NS_FAILED(rv)) return rv;
 
     mArray.Sort(compare, coll);
@@ -268,24 +259,28 @@ nsDirectoryIndexStream::Read(char* aBuf, uint32_t aCount, uint32_t* aReadCount)
             mBuf.AppendLiteral("201: ");
 
             // The "filename" field
-            char* escaped = nullptr;
             if (!NS_IsNativeUTF8()) {
                 nsAutoString leafname;
                 rv = current->GetLeafName(leafname);
                 if (NS_FAILED(rv)) return rv;
-                if (!leafname.IsEmpty())
-                    escaped = nsEscape(NS_ConvertUTF16toUTF8(leafname).get(), url_Path);
+
+                nsAutoCString escaped;
+                if (!leafname.IsEmpty() &&
+                    NS_Escape(NS_ConvertUTF16toUTF8(leafname), escaped, url_Path)) {
+                    mBuf.Append(escaped);
+                    mBuf.Append(' ');
+                }
             } else {
                 nsAutoCString leafname;
                 rv = current->GetNativeLeafName(leafname);
                 if (NS_FAILED(rv)) return rv;
-                if (!leafname.IsEmpty())
-                    escaped = nsEscape(leafname.get(), url_Path);
-            }
-            if (escaped) {
-                mBuf += escaped;
-                mBuf.Append(' ');
-                free(escaped);
+
+                nsAutoCString escaped;
+                if (!leafname.IsEmpty() &&
+                    NS_Escape(leafname, escaped, url_Path)) {
+                    mBuf.Append(escaped);
+                    mBuf.Append(' ');
+                }
             }
 
             // The "content-length" field
@@ -310,14 +305,14 @@ nsDirectoryIndexStream::Read(char* aBuf, uint32_t aCount, uint32_t* aReadCount)
             else {
                 bool isDir;
                 rv = current->IsDirectory(&isDir);
-                if (NS_FAILED(rv)) return rv; 
+                if (NS_FAILED(rv)) return rv;
                 if (isDir) {
                     mBuf.AppendLiteral("DIRECTORY ");
                 }
                 else {
                     bool isLink;
                     rv = current->IsSymlink(&isLink);
-                    if (NS_FAILED(rv)) return rv; 
+                    if (NS_FAILED(rv)) return rv;
                     if (isLink) {
                         mBuf.AppendLiteral("SYMBOLIC-LINK ");
                     }

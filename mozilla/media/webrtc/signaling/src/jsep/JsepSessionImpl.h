@@ -34,7 +34,9 @@ public:
         mIsOfferer(false),
         mWasOffererLastTime(false),
         mIceControlling(false),
+        mLocalIceIsRestarting(false),
         mRemoteIsIceLite(false),
+        mRemoteIceIsRestarting(false),
         mBundlePolicy(kBundleBalanced),
         mSessionId(0),
         mSessionVersion(0),
@@ -53,12 +55,20 @@ public:
 
   virtual nsresult SetIceCredentials(const std::string& ufrag,
                                      const std::string& pwd) override;
+  virtual const std::string& GetUfrag() const override { return mIceUfrag; }
+  virtual const std::string& GetPwd() const override { return mIcePwd; }
   nsresult SetBundlePolicy(JsepBundlePolicy policy) override;
 
   virtual bool
   RemoteIsIceLite() const override
   {
     return mRemoteIsIceLite;
+  }
+
+  virtual bool
+  RemoteIceIsRestarting() const override
+  {
+    return mRemoteIceIsRestarting;
   }
 
   virtual std::vector<std::string>
@@ -70,11 +80,18 @@ public:
   virtual nsresult AddDtlsFingerprint(const std::string& algorithm,
                                       const std::vector<uint8_t>& value) override;
 
+  nsresult AddRtpExtension(std::vector<SdpExtmapAttributeList::Extmap>& extensions,
+                           const std::string& extensionName,
+                           SdpDirectionAttribute::Direction direction);
   virtual nsresult AddAudioRtpExtension(
-      const std::string& extensionName) override;
+      const std::string& extensionName,
+      SdpDirectionAttribute::Direction direction =
+      SdpDirectionAttribute::Direction::kSendrecv) override;
 
   virtual nsresult AddVideoRtpExtension(
-      const std::string& extensionName) override;
+      const std::string& extensionName,
+      SdpDirectionAttribute::Direction direction =
+      SdpDirectionAttribute::Direction::kSendrecv) override;
 
   virtual std::vector<JsepCodecDescription*>&
   Codecs() override
@@ -86,6 +103,16 @@ public:
                                 const std::string& oldTrackId,
                                 const std::string& newStreamId,
                                 const std::string& newTrackId) override;
+
+  virtual nsresult SetParameters(
+      const std::string& streamId,
+      const std::string& trackId,
+      const std::vector<JsepTrack::JsConstraints>& constraints) override;
+
+  virtual nsresult GetParameters(
+      const std::string& streamId,
+      const std::string& trackId,
+      std::vector<JsepTrack::JsConstraints>* outConstraints) override;
 
   virtual std::vector<RefPtr<JsepTrack>> GetLocalTracks() const override;
 
@@ -103,9 +130,11 @@ public:
   virtual nsresult CreateAnswer(const JsepAnswerOptions& options,
                                 std::string* answer) override;
 
-  virtual std::string GetLocalDescription() const override;
+  virtual std::string GetLocalDescription(JsepDescriptionPendingOrCurrent type)
+                                          const override;
 
-  virtual std::string GetRemoteDescription() const override;
+  virtual std::string GetRemoteDescription(JsepDescriptionPendingOrCurrent type)
+                                           const override;
 
   virtual nsresult SetLocalDescription(JsepSdpType type,
                                        const std::string& sdp) override;
@@ -142,7 +171,7 @@ public:
   }
 
   virtual bool
-  IsOfferer() const
+  IsOfferer() const override
   {
     return mIsOfferer;
   }
@@ -200,6 +229,7 @@ private:
   nsresult SetRemoteDescriptionAnswer(JsepSdpType type, UniquePtr<Sdp> answer);
   nsresult ValidateLocalDescription(const Sdp& description);
   nsresult ValidateRemoteDescription(const Sdp& description);
+  nsresult ValidateOffer(const Sdp& offer);
   nsresult ValidateAnswer(const Sdp& offer, const Sdp& answer);
   nsresult SetRemoteTracksFromDescription(const Sdp* remoteDescription);
   // Non-const because we use our Uuid generator
@@ -212,12 +242,13 @@ private:
   nsresult AddTransportAttributes(SdpMediaSection* msection,
                                   SdpSetupAttribute::Role dtlsRole);
   nsresult CopyPreviousTransportParams(const Sdp& oldAnswer,
+                                       const Sdp& offerersPreviousSdp,
                                        const Sdp& newOffer,
                                        Sdp* newLocal);
   nsresult SetupOfferMSections(const JsepOfferOptions& options, Sdp* sdp);
   // Non-const so it can assign m-line index to tracks
   nsresult SetupOfferMSectionsByType(SdpMediaSection::MediaType type,
-                                     Maybe<size_t> offerToReceive,
+                                     const Maybe<size_t>& offerToReceive,
                                      Sdp* sdp);
   nsresult BindLocalTracks(SdpMediaSection::MediaType mediatype,
                            Sdp* sdp);
@@ -261,8 +292,7 @@ private:
                                    bool usingBundle,
                                    size_t transportLevel,
                                    JsepTrackPair* trackPairOut);
-  void UpdateTransport(const SdpMediaSection& msection,
-                       JsepTransport* transport);
+  void InitTransport(const SdpMediaSection& msection, JsepTransport* transport);
 
   nsresult FinalizeTransport(const SdpAttributeList& remote,
                              const SdpAttributeList& answer,
@@ -272,8 +302,10 @@ private:
 
   nsresult EnableOfferMsection(SdpMediaSection* msection);
 
-  mozilla::Sdp* GetParsedLocalDescription() const;
-  mozilla::Sdp* GetParsedRemoteDescription() const;
+  mozilla::Sdp* GetParsedLocalDescription(JsepDescriptionPendingOrCurrent type)
+                                          const;
+  mozilla::Sdp* GetParsedRemoteDescription(JsepDescriptionPendingOrCurrent type)
+                                           const;
   const Sdp* GetAnswer() const;
 
   std::vector<JsepSendingTrack> mLocalTracks;
@@ -291,7 +323,9 @@ private:
   bool mIceControlling;
   std::string mIceUfrag;
   std::string mIcePwd;
+  bool mLocalIceIsRestarting;
   bool mRemoteIsIceLite;
+  bool mRemoteIceIsRestarting;
   std::vector<std::string> mIceOptions;
   JsepBundlePolicy mBundlePolicy;
   std::vector<JsepDtlsFingerprint> mDtlsFingerprints;

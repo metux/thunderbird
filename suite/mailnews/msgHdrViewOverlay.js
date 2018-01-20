@@ -268,7 +268,7 @@ function OnUnloadMsgHeaderPane()
     { bubbles: false, cancelable: true }));
 }
 
-const MsgHdrViewObserver =
+var MsgHdrViewObserver =
 {
   observe: function(subject, topic, prefName)
   {
@@ -677,7 +677,7 @@ function SetTagHeader()
                    .getService(Components.interfaces.nsIMsgTagService);
   var tagArray = tagService.getAllTags({});
   var tagKeys = {};
-  for each (var tagInfo in tagArray)
+  for (var tagInfo of tagArray)
     if (tagInfo.tag)
       tagKeys[tagInfo.key] = true;
 
@@ -1391,7 +1391,7 @@ createNewAttachmentInfo.prototype.openAttachment = function openAttachment()
       var url = this.url + "&type=application/x-message-display";
       window.openDialog("chrome://messenger/content/messageWindow.xul",
                         "_blank", "all,dialog=no",
-                        Services.io.newURI(url, null, null));
+                        Services.io.newURI(url));
       return;
     case "text/x-moz-deleted":
       return;
@@ -1840,7 +1840,7 @@ function CopyWebsiteAddress(websiteAddressNode)
     var contractid = "@mozilla.org/widget/clipboardhelper;1";
     var iid = Components.interfaces.nsIClipboardHelper;
     var clipboard = Components.classes[contractid].getService(iid);
-    clipboard.copyString(websiteAddress, document);
+    clipboard.copyString(websiteAddress);
   }
 }
 
@@ -1920,7 +1920,7 @@ nsFlavorDataProvider.prototype =
       // now get the destination file location from kFilePromiseDirectoryMime
       var dirPrimitive = {};
       aTransferable.getTransferData("application/x-moz-file-promise-dir", dirPrimitive, dataSize);
-      var destDirectory = dirPrimitive.value.QueryInterface(Components.interfaces.nsILocalFile);
+      var destDirectory = dirPrimitive.value.QueryInterface(Components.interfaces.nsIFile);
 
       // now save the attachment to the specified location
       // XXX: we need more information than just the attachment url to save it, fortunately, we have an array

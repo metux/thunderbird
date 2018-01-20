@@ -7,23 +7,28 @@
 #ifndef mozilla_dom_EventTarget_h_
 #define mozilla_dom_EventTarget_h_
 
+#include "mozilla/dom/BindingDeclarations.h"
 #include "nsIDOMEventTarget.h"
 #include "nsWrapperCache.h"
-#include "nsIAtom.h"
+#include "nsAtom.h"
 
-class nsIDOMWindow;
+class nsPIDOMWindowOuter;
 class nsIGlobalObject;
 
 namespace mozilla {
 
+class AsyncEventDispatcher;
 class ErrorResult;
 class EventListenerManager;
 
 namespace dom {
 
+class AddEventListenerOptionsOrBoolean;
 class Event;
 class EventListener;
+class EventListenerOptionsOrBoolean;
 class EventHandlerNonNull;
+
 template <class T> struct Nullable;
 
 // IID for the dom::EventTarget interface
@@ -43,19 +48,19 @@ public:
   using nsIDOMEventTarget::DispatchEvent;
   virtual void AddEventListener(const nsAString& aType,
                                 EventListener* aCallback,
-                                bool aCapture,
+                                const AddEventListenerOptionsOrBoolean& aOptions,
                                 const Nullable<bool>& aWantsUntrusted,
                                 ErrorResult& aRv) = 0;
   virtual void RemoveEventListener(const nsAString& aType,
                                    EventListener* aCallback,
-                                   bool aCapture,
+                                   const EventListenerOptionsOrBoolean& aOptions,
                                    ErrorResult& aRv);
-  bool DispatchEvent(Event& aEvent, ErrorResult& aRv);
+  bool DispatchEvent(Event& aEvent, CallerType aCallerType, ErrorResult& aRv);
 
   // Note, this takes the type in onfoo form!
   EventHandlerNonNull* GetEventHandler(const nsAString& aType)
   {
-    nsCOMPtr<nsIAtom> type = do_GetAtom(aType);
+    RefPtr<nsAtom> type = NS_Atomize(aType);
     return GetEventHandler(type, EmptyString());
   }
 
@@ -64,13 +69,16 @@ public:
                        ErrorResult& rv);
 
   // Note, for an event 'foo' aType will be 'onfoo'.
-  virtual void EventListenerAdded(nsIAtom* aType) {}
-  virtual void EventListenerRemoved(nsIAtom* aType) {}
+  virtual void EventListenerAdded(nsAtom* aType) {}
+  virtual void EventListenerAdded(const nsAString& aType) {}
+
+  virtual void EventListenerRemoved(nsAtom* aType) {}
+  virtual void EventListenerRemoved(const nsAString& aType) {}
 
   // Returns an outer window that corresponds to the inner window this event
   // target is associated with.  Will return null if the inner window is not the
   // current inner or if there is no window around at all.
-  virtual nsIDOMWindow* GetOwnerGlobalForBindings() = 0;
+  virtual nsPIDOMWindowOuter* GetOwnerGlobalForBindings() = 0;
 
   // The global object this event target is associated with, if any.
   // This may be an inner window or some other global object.  This
@@ -88,12 +96,23 @@ public:
    */
   virtual EventListenerManager* GetExistingListenerManager() const = 0;
 
-  virtual bool HasApzAwareListeners() const;
+  // Called from AsyncEventDispatcher to notify it is running.
+  virtual void AsyncEventRunning(AsyncEventDispatcher* aEvent) {}
+
+  // Used by APZ to determine whether this event target has non-chrome event
+  // listeners for untrusted key events.
+  bool HasNonSystemGroupListenersForUntrustedKeyEvents() const;
+
+  // Used by APZ to determine whether this event target has non-chrome and
+  // non-passive event listeners for untrusted key events.
+  bool HasNonPassiveNonSystemGroupListenersForUntrustedKeyEvents() const;
+
+  virtual bool IsApzAware() const;
 
 protected:
-  EventHandlerNonNull* GetEventHandler(nsIAtom* aType,
+  EventHandlerNonNull* GetEventHandler(nsAtom* aType,
                                        const nsAString& aTypeString);
-  void SetEventHandler(nsIAtom* aType, const nsAString& aTypeString,
+  void SetEventHandler(nsAtom* aType, const nsAString& aTypeString,
                        EventHandlerNonNull* aHandler);
 };
 

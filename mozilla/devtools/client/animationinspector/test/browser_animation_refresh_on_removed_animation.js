@@ -8,8 +8,8 @@ requestLongerTimeout(2);
 
 // Test that the panel content refreshes when animations are removed.
 
-add_task(function*() {
-  yield addTab(TEST_URL_ROOT + "doc_simple_animation.html");
+add_task(function* () {
+  yield addTab(URL_ROOT + "doc_simple_animation.html");
 
   let {inspector, panel} = yield openAnimationInspector();
   yield testRefreshOnRemove(inspector, panel);
@@ -17,7 +17,7 @@ add_task(function*() {
 
 function* testRefreshOnRemove(inspector, panel) {
   info("Select a animated node");
-  yield selectNode(".animated", inspector);
+  yield selectNodeAndWaitForAnimations(".animated", inspector);
 
   assertAnimationsDisplayed(panel, 1);
 
@@ -44,7 +44,6 @@ function* testRefreshOnRemove(inspector, panel) {
     attributeValue: "ball short test-node"
   });
   yield onPanelUpdated;
-  yield waitForAllAnimationTargets(panel);
-
+  yield waitForAnimationSelecting(panel);
   assertAnimationsDisplayed(panel, 1);
 }

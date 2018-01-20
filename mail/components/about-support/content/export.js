@@ -2,6 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+"use strict";
+
+Components.utils.import("resource://gre/modules/AppConstants.jsm");
 
 /**
  * Create warning text to add to any private data.
@@ -16,12 +19,6 @@ function createWarning() {
     document.createTextNode(" "),
     document.createTextNode(bundle.GetStringFromName("warningText")),
   ]);
-}
-
-function getLoadContext() {
-  return window.QueryInterface(Ci.nsIInterfaceRequestor)
-               .getInterface(Ci.nsIWebNavigation)
-               .QueryInterface(Ci.nsILoadContext);
 }
 
 function getClipboardTransferable() {
@@ -53,7 +50,9 @@ function getClipboardTransferable() {
   return transferable;
 }
 
-function copyToClipboard() {
+// This function intentionally has the same name as the one in aboutSupport.js
+// so that the one here is called.
+function copyContentsToClipboard() {
   let transferable = getClipboardTransferable();
   // Store the data into the clipboard.
   Services.clipboard.setData(transferable, null, Services.clipboard.kGlobalClipboard);
@@ -109,8 +108,8 @@ function cleanUpText(aElem, aHidePrivateData) {
   delete aElem.dataset.copyData;
   while (node) {
     let classList = "classList" in node && node.classList;
-    // Delete uionly nodes.
-    if (classList && classList.contains(CLASS_DATA_UIONLY)) {
+    // Delete uionly and no-copy nodes.
+    if (classList && (classList.contains(CLASS_DATA_UIONLY) || classList.contains("no-copy"))) {
       // Advance to the next node before removing the current node, since
       // node.nextSibling is null after remove()
       let nextNode = node.nextSibling;
@@ -169,7 +168,6 @@ function createTextForElement(elem, aHidePrivateData) {
  */
 var gElementsToReplace = {
   "accounts-table": getAccountsText,
-  "extensions-table": getExtensionsText,
 };
 
 function generateTextForElement(elem, aHidePrivateData, indent,
@@ -185,13 +183,13 @@ function generateTextForElement(elem, aHidePrivateData, indent,
     return;
   };
 
-#ifdef MOZ_CRASHREPORTER
-  if (elem.id == "crashes-table")
-  {
-    textFragmentAccumulator.push(getCrashesText(indent));
-    return;
+  if (AppConstants.MOZ_CRASHREPORTER) {
+    if (elem.id == "crashes-table")
+    {
+      textFragmentAccumulator.push(getCrashesText(indent));
+      return;
+    }
   }
-#endif
 
   let childCount = elem.childElementCount;
 
@@ -234,4 +232,20 @@ function generateTextForTextNode(node, indent, textFragmentAccumulator) {
   // any internal line breaks.
   let text = node.textContent.trim().replace(/\n/g, "\n" + indent);
   textFragmentAccumulator.push(text);
+}
+
+/**
+ * Returns a plaintext representation of crashes data.
+ */
+
+function getCrashesText(aIndent) {
+  let crashesData = "";
+  let recentCrashesSubmitted = document.querySelectorAll("#crashes-tbody > tr");
+  for (let i = 0; i < recentCrashesSubmitted.length; i++)
+  {
+    let tds = recentCrashesSubmitted.item(i).querySelectorAll("td");
+    crashesData += aIndent.repeat(2) + tds.item(0).firstChild.href +
+                   " (" + tds.item(1).textContent + ")\n";
+  }
+  return crashesData;
 }

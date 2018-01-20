@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -10,8 +11,6 @@
 #include "mozilla/dom/SVGSVGElement.h"
 #include "mozilla/dom/SVGViewElement.h"
 
-typedef nsFrame SVGViewFrameBase;
-
 using namespace mozilla::dom;
 
 /**
@@ -20,19 +19,19 @@ using namespace mozilla::dom;
  * identifier. The SVGViewFrame class passes on any attribute changes
  * the view receives to the overridden <svg> element (if there is one).
  **/
-class SVGViewFrame : public SVGViewFrameBase
+class SVGViewFrame : public nsFrame
 {
   friend nsIFrame*
   NS_NewSVGViewFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 protected:
   explicit SVGViewFrame(nsStyleContext* aContext)
-    : SVGViewFrameBase(aContext)
+    : nsFrame(aContext, kClassID)
   {
     AddStateBits(NS_FRAME_IS_NONDISPLAY);
   }
 
 public:
-  NS_DECL_FRAMEARENA_HELPERS
+  NS_DECL_FRAMEARENA_HELPERS(SVGViewFrame)
 
 #ifdef DEBUG
   virtual void Init(nsIContent*       aContent,
@@ -42,7 +41,7 @@ public:
 
   virtual bool IsFrameOfType(uint32_t aFlags) const override
   {
-    return SVGViewFrameBase::IsFrameOfType(aFlags & ~(nsIFrame::eSVG));
+    return nsFrame::IsFrameOfType(aFlags & ~(nsIFrame::eSVG));
   }
 
 #ifdef DEBUG_FRAME_DUMP
@@ -52,18 +51,11 @@ public:
   }
 #endif
 
-  /**
-   * Get the "type" of the frame
-   *
-   * @see nsGkAtoms::svgFELeafFrame
-   */
-  virtual nsIAtom* GetType() const override;
-
   virtual nsresult AttributeChanged(int32_t  aNameSpaceID,
-                                    nsIAtom* aAttribute,
+                                    nsAtom* aAttribute,
                                     int32_t  aModType) override;
 
-  virtual bool UpdateOverflow() override {
+  virtual bool ComputeCustomOverflow(nsOverflowAreas& aOverflowAreas) override {
     // We don't maintain a visual overflow rect
     return false;
   }
@@ -86,23 +78,17 @@ SVGViewFrame::Init(nsIContent*       aContent,
   NS_ASSERTION(aContent->IsSVGElement(nsGkAtoms::view),
                "Content is not an SVG view");
 
-  SVGViewFrameBase::Init(aContent, aParent, aPrevInFlow);
+  nsFrame::Init(aContent, aParent, aPrevInFlow);
 }
 #endif /* DEBUG */
 
-nsIAtom *
-SVGViewFrame::GetType() const
-{
-  return nsGkAtoms::svgViewFrame;
-}
-
 nsresult
 SVGViewFrame::AttributeChanged(int32_t  aNameSpaceID,
-                               nsIAtom* aAttribute,
+                               nsAtom* aAttribute,
                                int32_t  aModType)
 {
   // Ignore zoomAndPan as it does not cause the <svg> element to re-render
-    
+
   if (aNameSpaceID == kNameSpaceID_None &&
       (aAttribute == nsGkAtoms::preserveAspectRatio ||
        aAttribute == nsGkAtoms::viewBox ||
@@ -125,6 +111,5 @@ SVGViewFrame::AttributeChanged(int32_t  aNameSpaceID,
     }
   }
 
-  return SVGViewFrameBase::AttributeChanged(aNameSpaceID,
-                                            aAttribute, aModType);
+  return nsFrame::AttributeChanged(aNameSpaceID, aAttribute, aModType);
 }

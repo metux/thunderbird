@@ -1,0 +1,13 @@
+<!ENTITY identitiesListDesc.label "ਬਹੁ-ਪਛਾਣ ਸਹਿਯੋਗ">
+<!ENTITY identitiesListAdd.label  "ਸ਼ਾਮਿਲ...">
+<!ENTITY identitiesListAdd.accesskey  "A">
+<!ENTITY identitiesListEdit.label "ਸੋਧ...">
+<!ENTITY identitiesListEdit.accesskey "E">
+<!ENTITY identitiesListDelete.label "ਹਟਾਓ">
+<!ENTITY identitiesListDelete.accesskey "D">
+
+<!ENTITY identitiesListManageDesc.label "Manage the identities for this account. The first identity is used by default.">
+<!ENTITY identitiesListDefault.label "Set Default">
+<!ENTITY identitiesListDefault.accesskey "S">
+<!ENTITY identitiesListClose.label "Close">
+<!ENTITY identitiesListClose.accesskey "C">

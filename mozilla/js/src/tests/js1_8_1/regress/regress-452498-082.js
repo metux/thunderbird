@@ -16,7 +16,6 @@ test();
 
 function test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
 
@@ -43,34 +42,6 @@ function test()
     f();
   }
   g("for (var x = 0; x < 3; ++x)(new (function(){})());");
-
-// =====
-
-  try
-  {
-    (function(){new (function ({}, x) { yield (x(1e-81) for (x4 in undefined)) })()})();
-  }
-  catch(ex)
-  {
-  }
-// =====
-
-  try
-  {
-    (function(){[(function ([y]) { })() for each (x in [])];})();
-  }
-  catch(ex)
-  {
-  }
-// =====
-
-  try
-  {
-    eval('(function(){for(var x2 = [function(id) { return id } for each (x in []) if ([])] in functional) function(){};})();');
-  }
-  catch(ex)
-  {
-  }
 
 // =====
   try
@@ -106,22 +77,5 @@ function test()
 
 // =====
 
-  try
-  {
-    eval(
-	  'for(let x;' +
-	  '    ([,,,]' +
-	  '     .toExponential(new Function(), (function(){}))); [] = {})' +
-	  '  for(var [x, x] = * in this.__defineSetter__("", function(){}));'
-      );
-  }
-  catch(ex)
-  {
-  }
-
-// =====
-
   reportCompare(expect, actual, summary);
-
-  exitFunc ('test');
 }

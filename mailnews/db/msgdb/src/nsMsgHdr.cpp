@@ -11,6 +11,7 @@
 #include "nsIMsgThread.h"
 #include "nsMsgMimeCID.h"
 #include "nsIMimeConverter.h"
+#include "mozilla/Attributes.h"
 
 using namespace mozilla::mailnews;
 
@@ -28,7 +29,7 @@ nsMsgHdr::nsMsgHdr(nsMsgDatabase *db, nsIMdbRow *dbRow)
   m_mdbRow = dbRow;
   if(m_mdb)
   {
-    m_mdb->AddRef();
+    NS_ADDREF(m_mdb);  // Released in DTOR.
     mdbOid outOid;
     if (dbRow && NS_SUCCEEDED(dbRow->GetOid(m_mdb->GetEnv(), &outOid)))
     {
@@ -660,8 +661,7 @@ NS_IMETHODIMP nsMsgHdr::GetFolder(nsIMsgFolder **result)
 
   if (m_mdb && m_mdb->m_folder)
   {
-    *result = m_mdb->m_folder;
-    NS_ADDREF(*result);
+    NS_ADDREF(*result = m_mdb->m_folder);
   }
   else
     *result = nullptr;
@@ -702,7 +702,7 @@ nsresult nsMsgHdr::GetUInt64Column(mdb_token token, uint64_t *pvalue, uint64_t d
  *  and hand you everything after that.  We change things at all because that
  *  same behaviour does not make sense if we have already seen a proper message
  *  id.  We keep the old behaviour at all because it would seem to have
- *  benefits.  (See jwz's non-zero stats: http://www.jwz.org/doc/threading.html) 
+ *  benefits.  (See jwz's non-zero stats: http://www.jwz.org/doc/threading.html)
  * So, to re-state, if there is a valid message-id in there at all, we only
  *  return valid message-id's (sans bracketing '<' and '>').  If there isn't,
  *  our result (via "references") is a left-trimmed copy of the string.  If
@@ -713,11 +713,11 @@ nsresult nsMsgHdr::GetUInt64Column(mdb_token token, uint64_t *pvalue, uint64_t d
  *  provide "valid-stuff" and an empty string (which you should ignore) as
  *  results.  However "this stuff is invalid" would return itself, allowing
  *  anything relying on that behaviour to keep working.
- * 
+ *
  * Note: We accept anything inside the '<' and '>'; technically, we should want
  *  at least a '@' in there (per rfc 2822).  But since we're going out of our
  *  way to support weird things...
- * 
+ *
  * @param startNextRef The position to start at; this should either be the start
  *     of your references string or our return value from a previous call.
  * @param reference You pass a nsCString by reference, we put the reference we
@@ -731,7 +731,7 @@ nsresult nsMsgHdr::GetUInt64Column(mdb_token token, uint64_t *pvalue, uint64_t d
  *     properly formatted message-ids.
  * @returns The next starting position of this routine, which may be pointing at
  *     a nul '\0' character to indicate termination.
- */ 
+ */
 const char *nsMsgHdr::GetNextReference(const char *startNextRef,
                                        nsCString &reference,
                                        bool acceptNonDelimitedReferences)
@@ -769,6 +769,7 @@ const char *nsMsgHdr::GetNextReference(const char *startNextRef,
         // intentional fallthrough so whitespaceEndedAt will definitely have
         //  a non-NULL value, just in case the message-id is not valid (no '>')
         //  and the old-school support is desired.
+        MOZ_FALLTHROUGH;
       default:
         if (!whitespaceEndedAt)
             whitespaceEndedAt = ptr;
@@ -776,7 +777,7 @@ const char *nsMsgHdr::GetNextReference(const char *startNextRef,
     }
   }
 
-  // keep going until we hit a '>' or hit the end of the string 
+  // keep going until we hit a '>' or hit the end of the string
   for(; *ptr ; ptr++)
   {
     if (*ptr == '>')
@@ -1087,10 +1088,6 @@ void nsMsgPropertyEnumerator::PrefetchNext(void)
 
 NS_IMETHODIMP nsMsgHdr::GetPropertyEnumerator(nsIUTF8StringEnumerator** _result)
 {
-  nsMsgPropertyEnumerator* enumerator = new nsMsgPropertyEnumerator(this);
-  if (!enumerator)
-    return NS_ERROR_OUT_OF_MEMORY;
-
-  NS_ADDREF(*_result = enumerator);
+  NS_ADDREF(*_result = new nsMsgPropertyEnumerator(this));
   return NS_OK;
 }

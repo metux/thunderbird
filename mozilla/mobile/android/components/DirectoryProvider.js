@@ -6,26 +6,26 @@ const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
 
-Cu.import("resource://gre/modules/AppConstants.jsm");
-Cu.import("resource://gre/modules/FileUtils.jsm");
-Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+
+XPCOMUtils.defineLazyModuleGetters(this, {
+  AppConstants: "resource://gre/modules/AppConstants.jsm",
+  EventDispatcher: "resource://gre/modules/Messaging.jsm",
+  FileUtils: "resource://gre/modules/FileUtils.jsm",
+  Services: "resource://gre/modules/Services.jsm",
+});
 
 // -----------------------------------------------------------------------
 // Directory Provider for special browser folders and files
 // -----------------------------------------------------------------------
 
 const NS_APP_CACHE_PARENT_DIR = "cachePDir";
-const NS_APP_SEARCH_DIR       = "SrchPlugns";
-const NS_APP_SEARCH_DIR_LIST  = "SrchPluginsDL";
 const NS_APP_DISTRIBUTION_SEARCH_DIR_LIST = "SrchPluginsDistDL";
-const NS_APP_USER_SEARCH_DIR  = "UsrSrchPlugns";
 const NS_XPCOM_CURRENT_PROCESS_DIR = "XCurProcD";
 const XRE_APP_DISTRIBUTION_DIR = "XREAppDist";
 const XRE_UPDATE_ROOT_DIR     = "UpdRootD";
 const ENVVAR_UPDATE_DIR       = "UPDATES_DIRECTORY";
 const WEBAPPS_DIR             = "webappsDir";
-const DOWNLOAD_DIR            = "DfltDwnld";
 
 const SYSTEM_DIST_PATH = `/system/${AppConstants.ANDROID_PACKAGE_NAME}/distribution`;
 
@@ -50,18 +50,14 @@ DirectoryProvider.prototype = {
       let profile = dirsvc.get("ProfD", Ci.nsIFile);
       return profile.parent;
     } else if (prop == XRE_APP_DISTRIBUTION_DIR) {
-      // First, check to see if there's a distribution in the data directory.
-      let dataDist = FileUtils.getDir(NS_XPCOM_CURRENT_PROCESS_DIR, ["distribution"], false);
-      if (!dataDist.exists()) {
-        // Then check to see if there's distribution in the system directory.
-        let systemDist = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsILocalFile);
-        systemDist.initWithPath(SYSTEM_DIST_PATH);
-        // Only return the system distribution location if it exists.
-        if (systemDist.exists()) {
-          return systemDist;
+      let distributionDirectories =  this._getDistributionDirectories();
+      for (let i = 0; i < distributionDirectories.length; i++) {
+        if (distributionDirectories[i].exists()) {
+          return distributionDirectories[i];
         }
       }
-      return dataDist;
+      // Fallback: Return default data distribution directory
+      return FileUtils.getDir(NS_XPCOM_CURRENT_PROCESS_DIR, ["distribution"], false);
     } else if (prop == XRE_UPDATE_ROOT_DIR) {
       let env = Cc["@mozilla.org/process/environment;1"].getService(Ci.nsIEnvironment);
       if (env.exists(ENVVAR_UPDATE_DIR)) {
@@ -71,15 +67,6 @@ DirectoryProvider.prototype = {
         }
       }
       return new FileUtils.File(env.get("DOWNLOADS_DIRECTORY"));
-    } else if (prop == DOWNLOAD_DIR) {
-      // Downloads.getSystemDownloadsDirectory is asynchronous, but getFile is
-      // synchronous, so just return what the getSystemDownloadsDirectory
-      // implementation would have returned.
-      let env = Cc["@mozilla.org/process/environment;1"].getService(Ci.nsIEnvironment);
-      return new FileUtils.File(env.get("DOWNLOADS_DIRECTORY"));
-    } else if (AppConstants.MOZ_B2GDROID && prop === "coreAppsDir") {
-      let dirsvc = Cc["@mozilla.org/file/directory_service;1"].getService(Ci.nsIProperties);
-      return dirsvc.get("DefRt", Ci.nsIFile);
     }
 
     // We are retuning null to show failure instead for throwing an error. The
@@ -125,13 +112,9 @@ DirectoryProvider.prototype = {
       return;
 
     let curLocale = "";
-    try {
-      curLocale = Services.prefs.getComplexValue("general.useragent.locale", Ci.nsIPrefLocalizedString).data;
-    } catch (e) {
-      try {
-        curLocale = Services.prefs.getCharPref("general.useragent.locale");
-      } catch (ee) {
-      }
+    let reqLocales = Services.locale.getRequestedLocales();
+    if (reqLocales.length > 0) {
+      curLocale = reqLocales[0];
     }
 
     if (curLocale) {
@@ -144,39 +127,22 @@ DirectoryProvider.prototype = {
     }
 
     // We didn't append the locale dir - try the default one.
-    let defLocale = Services.prefs.getCharPref("distribution.searchplugins.defaultLocale");
-    let defLocalePlugins = localePlugins.clone();
-    if (defLocalePlugins.exists())
-      array.push(defLocalePlugins);
+    try {
+      let defLocale = Services.prefs.getCharPref("distribution.searchplugins.defaultLocale");
+      let defLocalePlugins = localePlugins.clone();
+      defLocalePlugins.append(defLocale);
+      if (defLocalePlugins.exists())
+        array.push(defLocalePlugins);
+    } catch (e) {
+    }
   },
 
   getFiles: function(prop) {
-    if (prop != NS_APP_SEARCH_DIR_LIST &&
-        prop != NS_APP_DISTRIBUTION_SEARCH_DIR_LIST)
+    if (prop != NS_APP_DISTRIBUTION_SEARCH_DIR_LIST)
       return null;
 
     let result = [];
-
-    if (prop == NS_APP_DISTRIBUTION_SEARCH_DIR_LIST) {
-      this._appendDistroSearchDirs(result);
-    }
-    else {
-      /**
-       * We want to preserve the following order, since the search service
-       * loads engines in first-loaded-wins order.
-       *   - distro search plugin locations (loaded separately by the search
-       *     service)
-       *   - user search plugin locations (profile)
-       *   - app search plugin location (shipped engines)
-       */
-      let appUserSearchDir = FileUtils.getDir(NS_APP_USER_SEARCH_DIR, [], false);
-      if (appUserSearchDir.exists())
-        result.push(appUserSearchDir);
-
-      let appSearchDir = FileUtils.getDir(NS_APP_SEARCH_DIR, [], false);
-      if (appSearchDir.exists())
-        result.push(appSearchDir);
-    }
+    this._appendDistroSearchDirs(result);
 
     return {
       QueryInterface: XPCOMUtils.generateQI([Ci.nsISimpleEnumerator]),
@@ -187,6 +153,18 @@ DirectoryProvider.prototype = {
         return result.shift();
       }
     };
+  },
+
+  _getDistributionDirectories: function() {
+    let directories = [];
+
+    // Send a synchronous Gecko thread event.
+    EventDispatcher.instance.dispatch("Distribution:GetDirectories", null, {
+      onSuccess: response =>
+        directories = response.map(dir => new FileUtils.File(dir)),
+    });
+
+    return directories;
   }
 };
 

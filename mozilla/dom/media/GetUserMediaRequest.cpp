@@ -13,7 +13,7 @@ namespace mozilla {
 namespace dom {
 
 GetUserMediaRequest::GetUserMediaRequest(
-    nsPIDOMWindow* aInnerWindow,
+    nsPIDOMWindowInner* aInnerWindow,
     const nsAString& aCallID,
     const MediaStreamConstraints& aConstraints,
     bool aIsSecure)
@@ -23,6 +23,18 @@ GetUserMediaRequest::GetUserMediaRequest(
   , mConstraints(new MediaStreamConstraints(aConstraints))
   , mIsSecure(aIsSecure)
 {
+}
+
+GetUserMediaRequest::GetUserMediaRequest(
+    nsPIDOMWindowInner* aInnerWindow,
+    const nsAString& aRawId,
+    const nsAString& aMediaSource)
+  : mRawID(aRawId)
+  , mMediaSource(aMediaSource)
+{
+  if (aInnerWindow && aInnerWindow->GetOuterWindow()) {
+    mOuterWindowID = aInnerWindow->GetOuterWindow()->WindowID();
+  }
 }
 
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE_0(GetUserMediaRequest)
@@ -47,6 +59,16 @@ nsISupports* GetUserMediaRequest::GetParentObject()
 void GetUserMediaRequest::GetCallID(nsString& retval)
 {
   retval = mCallID;
+}
+
+void GetUserMediaRequest::GetRawID(nsString& retval)
+{
+  retval = mRawID;
+}
+
+void GetUserMediaRequest::GetMediaSource(nsString& retval)
+{
+  retval = mMediaSource;
 }
 
 uint64_t GetUserMediaRequest::WindowID()

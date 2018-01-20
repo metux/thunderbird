@@ -16,87 +16,16 @@
  * @see devtools/server/performance/timeline.js
  */
 
-const protocol = require("devtools/server/protocol");
-const { method, Arg, RetVal, Option } = protocol;
-const events = require("sdk/event/core");
+const protocol = require("devtools/shared/protocol");
+const { Option, RetVal } = protocol;
+const { actorBridgeWithSpec } = require("devtools/server/actors/common");
 const { Timeline } = require("devtools/server/performance/timeline");
-const { actorBridge } = require("devtools/server/actors/common");
-
-/**
- * Type representing an array of numbers as strings, serialized fast(er).
- * http://jsperf.com/json-stringify-parse-vs-array-join-split/3
- *
- * XXX: It would be nice if on local connections (only), we could just *give*
- * the array directly to the front, instead of going through all this
- * serialization redundancy.
- */
-protocol.types.addType("array-of-numbers-as-strings", {
-  write: (v) => v.join(","),
-  // In Gecko <= 37, `v` is an array; do not transform in this case.
-  read: (v) => typeof v === "string" ? v.split(",") : v
-});
+const { timelineSpec } = require("devtools/shared/specs/timeline");
 
 /**
  * The timeline actor pops and forwards timeline markers registered in docshells.
  */
-var TimelineActor = exports.TimelineActor = protocol.ActorClass({
-  typeName: "timeline",
-
-  events: {
-    /**
-     * Events emitted when "DOMContentLoaded" and "Load" markers are received.
-     */
-    "doc-loading" : {
-      type: "doc-loading",
-      marker: Arg(0, "json"),
-      endTime: Arg(0, "number")
-    },
-
-    /**
-     * The "markers" events emitted every DEFAULT_TIMELINE_DATA_PULL_TIMEOUT ms
-     * at most, when profile markers are found. The timestamps on each marker
-     * are relative to when recording was started.
-     */
-    "markers" : {
-      type: "markers",
-      markers: Arg(0, "json"),
-      endTime: Arg(1, "number")
-    },
-
-    /**
-     * The "memory" events emitted in tandem with "markers", if this was enabled
-     * when the recording started. The `delta` timestamp on this measurement is
-     * relative to when recording was started.
-     */
-    "memory" : {
-      type: "memory",
-      delta: Arg(0, "number"),
-      measurement: Arg(1, "json")
-    },
-
-    /**
-     * The "ticks" events (from the refresh driver) emitted in tandem with
-     * "markers", if this was enabled when the recording started. All ticks
-     * are timestamps with a zero epoch.
-     */
-    "ticks" : {
-      type: "ticks",
-      delta: Arg(0, "number"),
-      timestamps: Arg(1, "array-of-numbers-as-strings")
-    },
-
-    /**
-     * The "frames" events emitted in tandem with "markers", containing
-     * JS stack frames. The `delta` timestamp on this frames packet is
-     * relative to when recording was started.
-     */
-    "frames" : {
-      type: "frames",
-      delta: Arg(0, "number"),
-      frames: Arg(1, "json")
-    }
-  },
-
+exports.TimelineActor = protocol.ActorClassWithSpec(timelineSpec, {
   /**
    * Initializes this actor with the provided connection and tab actor.
    */
@@ -106,23 +35,14 @@ var TimelineActor = exports.TimelineActor = protocol.ActorClass({
     this.bridge = new Timeline(tabActor);
 
     this._onTimelineEvent = this._onTimelineEvent.bind(this);
-    events.on(this.bridge, "*", this._onTimelineEvent);
-  },
-
-  /**
-   * The timeline actor is the first (and last) in its hierarchy to use protocol.js
-   * so it doesn't have a parent protocol actor that takes care of its lifetime.
-   * So it needs a disconnect method to cleanup.
-   */
-  disconnect: function() {
-    this.destroy();
+    this.bridge.on("*", this._onTimelineEvent);
   },
 
   /**
    * Destroys this actor, stopping recording first.
    */
   destroy: function () {
-    events.off(this.bridge, "*", this._onTimelineEvent);
+    this.bridge.off("*", this._onTimelineEvent);
     this.bridge.destroy();
     this.bridge = null;
     this.tabActor = null;
@@ -130,23 +50,21 @@ var TimelineActor = exports.TimelineActor = protocol.ActorClass({
   },
 
   /**
-   * Propagate events from the Timeline module over
-   * RDP if the event is defined here.
+   * Propagate events from the Timeline module over RDP if the event is defined
+   * here.
    */
   _onTimelineEvent: function (eventName, ...args) {
-    if (this.events[eventName]) {
-      events.emit(this, eventName, ...args);
-    }
+    this.emit(eventName, ...args);
   },
 
-  isRecording: actorBridge("isRecording", {
+  isRecording: actorBridgeWithSpec("isRecording", {
     request: {},
     response: {
       value: RetVal("boolean")
     }
   }),
 
-  start: actorBridge("start", {
+  start: actorBridgeWithSpec("start", {
     request: {
       withMarkers: Option(0, "boolean"),
       withTicks: Option(0, "boolean"),
@@ -160,21 +78,11 @@ var TimelineActor = exports.TimelineActor = protocol.ActorClass({
     }
   }),
 
-  stop: actorBridge("stop", {
+  stop: actorBridgeWithSpec("stop", {
     response: {
       // Set as possibly nullable due to the end time possibly being
       // undefined during destruction
       value: RetVal("nullable:number")
     }
   }),
-});
-
-exports.TimelineFront = protocol.FrontClass(TimelineActor, {
-  initialize: function(client, {timelineActor}) {
-    protocol.Front.prototype.initialize.call(this, client, {actor: timelineActor});
-    this.manage(this);
-  },
-  destroy: function() {
-    protocol.Front.prototype.destroy.call(this);
-  },
 });

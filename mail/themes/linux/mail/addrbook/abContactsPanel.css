@@ -20,8 +20,23 @@
   background-color: transparent;
 }
 
+#abContextMenuButton {
+  margin: -4px 4px 0;
+  list-style-image: url("chrome://messenger/skin/addressbook/icons/menu.svg");
+}
+
+#abContextMenuButton > .toolbarbutton-icon {
+  margin-inline-end: 0;
+  width: 11px;
+  height: 11px;
+}
+
+#abContextMenuButton > .toolbarbutton-text {
+  display: none;
+}
+
 #abResultsTree {
-  -moz-border-end: none;
-  -moz-border-start: 1px solid ThreeDShadow;
+  border-inline-end: none;
+  border-inline-start: 1px solid ThreeDShadow;
   border-bottom: 1px solid ThreeDShadow;
 }

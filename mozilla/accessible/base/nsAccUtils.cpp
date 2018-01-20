@@ -25,7 +25,7 @@ using namespace mozilla::a11y;
 
 void
 nsAccUtils::GetAccAttr(nsIPersistentProperties *aAttributes,
-                       nsIAtom *aAttrName, nsAString& aAttrValue)
+                       nsAtom *aAttrName, nsAString& aAttrValue)
 {
   aAttrValue.Truncate();
 
@@ -34,7 +34,7 @@ nsAccUtils::GetAccAttr(nsIPersistentProperties *aAttributes,
 
 void
 nsAccUtils::SetAccAttr(nsIPersistentProperties *aAttributes,
-                       nsIAtom *aAttrName, const nsAString& aAttrValue)
+                       nsAtom *aAttrName, const nsAString& aAttrValue)
 {
   nsAutoString oldValue;
   aAttributes->SetStringProperty(nsAtomCString(aAttrName), aAttrValue, oldValue);
@@ -42,7 +42,7 @@ nsAccUtils::SetAccAttr(nsIPersistentProperties *aAttributes,
 
 void
 nsAccUtils::SetAccAttr(nsIPersistentProperties *aAttributes,
-                       nsIAtom* aAttrName, nsIAtom* aAttrValue)
+                       nsAtom* aAttrName, nsAtom* aAttrValue)
 {
   nsAutoString oldValue;
   aAttributes->SetStringProperty(nsAtomCString(aAttrName),
@@ -84,7 +84,7 @@ nsAccUtils::GetDefaultLevel(Accessible* aAccessible)
     Accessible* parent = aAccessible->Parent();
     // It is a row inside flatten treegrid. Group level is always 1 until it
     // is overriden by aria-level attribute.
-    if (parent && parent->Role() == roles::TREE_TABLE) 
+    if (parent && parent->Role() == roles::TREE_TABLE)
       return 1;
   }
 
@@ -131,11 +131,11 @@ nsAccUtils::GetLevelForXULContainerItem(nsIContent *aContent)
 
 void
 nsAccUtils::SetLiveContainerAttributes(nsIPersistentProperties *aAttributes,
-                                       nsIContent *aStartContent,
-                                       nsIContent *aTopContent)
+                                       nsIContent* aStartContent,
+                                       dom::Element* aTopEl)
 {
   nsAutoString live, relevant, busy;
-  nsIContent *ancestor = aStartContent;
+  nsIContent* ancestor = aStartContent;
   while (ancestor) {
 
     // container-relevant attribute
@@ -146,10 +146,12 @@ nsAccUtils::SetLiveContainerAttributes(nsIPersistentProperties *aAttributes,
 
     // container-live, and container-live-role attributes
     if (live.IsEmpty()) {
-      nsRoleMapEntry* role = aria::GetRoleMap(ancestor);
+      const nsRoleMapEntry* role = nullptr;
+      if (ancestor->IsElement()) {
+        role = aria::GetRoleMap(ancestor->AsElement());
+      }
       if (HasDefinedARIAToken(ancestor, nsGkAtoms::aria_live)) {
-        ancestor->GetAttr(kNameSpaceID_None, nsGkAtoms::aria_live,
-                          live);
+        ancestor->GetAttr(kNameSpaceID_None, nsGkAtoms::aria_live, live);
       } else if (role) {
         GetLiveAttrValue(role->liveAttRule, live);
       }
@@ -175,17 +177,17 @@ nsAccUtils::SetLiveContainerAttributes(nsIPersistentProperties *aAttributes,
         ancestor->GetAttr(kNameSpaceID_None, nsGkAtoms::aria_busy, busy))
       SetAccAttr(aAttributes, nsGkAtoms::containerBusy, busy);
 
-    if (ancestor == aTopContent)
+    if (ancestor == aTopEl)
       break;
 
     ancestor = ancestor->GetParent();
     if (!ancestor)
-      ancestor = aTopContent; // Use <body>/<frameset>
+      ancestor = aTopEl; // Use <body>/<frameset>
   }
 }
 
 bool
-nsAccUtils::HasDefinedARIAToken(nsIContent *aContent, nsIAtom *aAtom)
+nsAccUtils::HasDefinedARIAToken(nsIContent *aContent, nsAtom *aAtom)
 {
   NS_ASSERTION(aContent, "aContent is null in call to HasDefinedARIAToken!");
 
@@ -199,8 +201,8 @@ nsAccUtils::HasDefinedARIAToken(nsIContent *aContent, nsIAtom *aAtom)
   return true;
 }
 
-nsIAtom*
-nsAccUtils::GetARIAToken(dom::Element* aElement, nsIAtom* aAttr)
+nsAtom*
+nsAccUtils::GetARIAToken(dom::Element* aElement, nsAtom* aAttr)
 {
   if (!HasDefinedARIAToken(aElement, aAttr))
     return nsGkAtoms::_empty;
@@ -390,7 +392,7 @@ nsAccUtils::IsTextInterfaceSupportCorrect(Accessible* aAccessible)
   uint32_t childCount = aAccessible->ChildCount();
   for (uint32_t childIdx = 0; childIdx < childCount; childIdx++) {
     Accessible* child = aAccessible->GetChildAt(childIdx);
-    if (!IsEmbeddedObject(child)) {
+    if (child->IsText()) {
       foundText = true;
       break;
     }
@@ -403,8 +405,9 @@ nsAccUtils::IsTextInterfaceSupportCorrect(Accessible* aAccessible)
 uint32_t
 nsAccUtils::TextLength(Accessible* aAccessible)
 {
-  if (IsEmbeddedObject(aAccessible))
+  if (!aAccessible->IsText()) {
     return 1;
+  }
 
   TextLeafAccessible* textLeaf = aAccessible->AsTextLeaf();
   if (textLeaf)
@@ -412,7 +415,7 @@ nsAccUtils::TextLength(Accessible* aAccessible)
 
   // For list bullets (or anything other accessible which would compute its own
   // text. They don't have their own frame.
-  // XXX In the future, list bullets may have frame and anon content, so 
+  // XXX In the future, list bullets may have frame and anon content, so
   // we should be able to remove this at that point
   nsAutoString text;
   aAccessible->AppendTextTo(text); // Get all the text

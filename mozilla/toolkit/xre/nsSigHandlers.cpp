@@ -37,8 +37,6 @@
 #include <ucontext.h>
 #endif
 
-static char _progname[1024] = "huh?";
-
 // Note: some tests manipulate this value.
 unsigned int _gdb_sleep_duration = 300;
 
@@ -59,6 +57,8 @@ unsigned int _gdb_sleep_duration = 300;
 #include <unistd.h>
 #include "nsISupportsUtils.h"
 #include "mozilla/StackWalk.h"
+
+static const char* gProgname = "huh?";
 
 // NB: keep me up to date with the same variable in
 // ipc/chromium/chrome/common/ipc_channel_posix.cc
@@ -84,17 +84,16 @@ void
 ah_crap_handler(int signum)
 {
   printf("\nProgram %s (pid = %d) received signal %d.\n",
-         _progname,
+         gProgname,
          getpid(),
          signum);
 
   printf("Stack:\n");
-  MozStackWalk(PrintStackFrame, /* skipFrames */ 2, /* maxFrames */ 0,
-               nullptr, 0, nullptr);
+  MozStackWalk(PrintStackFrame, /* skipFrames */ 2, /* maxFrames */ 0, nullptr);
 
   printf("Sleeping for %d seconds.\n",_gdb_sleep_duration);
   printf("Type 'gdb %s %d' to attach your debugger to this thread.\n",
-         _progname,
+         gProgname,
          getpid());
 
   // Allow us to be ptraced by gdb on Linux with Yama restrictions enabled.
@@ -227,9 +226,14 @@ static void fpehandler(int signum, siginfo_t *si, void *context)
 }
 #endif
 
-void InstallSignalHandlers(const char *ProgramName)
+void InstallSignalHandlers(const char *aProgname)
 {
-  PL_strncpy(_progname,ProgramName, (sizeof(_progname)-1) );
+#if defined(CRAWL_STACK_ON_SIGSEGV)
+  const char* tmp = PL_strdup(aProgname);
+  if (tmp) {
+    gProgname = tmp;
+  }
+#endif // CRAWL_STACK_ON_SIGSEGV
 
   const char *gdbSleep = PR_GetEnv("MOZ_GDB_SLEEP");
   if (gdbSleep && *gdbSleep)
@@ -261,7 +265,7 @@ void InstallSignalHandlers(const char *ProgramName)
   sigaction(SIGFPE, &sa, &osa);
 #endif
 
-  if (XRE_IsContentProcess()) {
+  if (!XRE_IsParentProcess()) {
     /*
      * If the user is debugging a Gecko parent process in gdb and hits ^C to
      * suspend, a SIGINT signal will be sent to the child. We ignore this signal
@@ -289,7 +293,7 @@ void InstallSignalHandlers(const char *ProgramName)
     // Boost Solaris file descriptors
     {
 	struct rlimit rl;
-	
+
 	if (getrlimit(RLIMIT_NOFILE, &rl) == 0)
 
 	    if (rl.rlim_cur < NOFILES) {
@@ -383,14 +387,14 @@ LONG __stdcall FpeHandler(PEXCEPTION_POINTERS pe)
   return action;
 }
 
-void InstallSignalHandlers(const char *ProgramName)
+void InstallSignalHandlers(const char *aProgname)
 {
   gFPEPreviousFilter = SetUnhandledExceptionFilter(FpeHandler);
 }
 
 #else
 
-void InstallSignalHandlers(const char *ProgramName)
+void InstallSignalHandlers(const char *aProgname)
 {
 }
 

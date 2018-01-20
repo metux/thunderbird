@@ -15,16 +15,17 @@ enum IDBTransactionMode {
     // |IndexedDatabaseManager::ExperimentalFeaturesEnabled()| function returns
     // true. This mode is not yet part of the standard.
     "readwriteflush",
+    "cleanup",
     "versionchange"
 };
 
-[Exposed=(Window,Worker)]
+[Exposed=(Window,Worker,System)]
 interface IDBTransaction : EventTarget {
     [Throws]
     readonly    attribute IDBTransactionMode mode;
     readonly    attribute IDBDatabase        db;
 
-    readonly    attribute DOMError?          error;
+    readonly    attribute DOMException?      error;
 
     [Throws]
     IDBObjectStore objectStore (DOMString name);

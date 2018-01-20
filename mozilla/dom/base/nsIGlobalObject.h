@@ -7,7 +7,9 @@
 #ifndef nsIGlobalObject_h__
 #define nsIGlobalObject_h__
 
+#include "mozilla/dom/DispatcherTrait.h"
 #include "nsISupports.h"
+#include "nsStringFwd.h"
 #include "nsTArray.h"
 #include "js/TypeDecls.h"
 
@@ -15,12 +17,11 @@
 { 0x11afa8be, 0xd997, 0x4e07, \
 { 0xa6, 0xa3, 0x6f, 0x87, 0x2e, 0xc3, 0xee, 0x7f } }
 
-class nsACString;
-class nsCString;
 class nsCycleCollectionTraversalCallback;
 class nsIPrincipal;
 
-class nsIGlobalObject : public nsISupports
+class nsIGlobalObject : public nsISupports,
+                        public mozilla::dom::DispatcherTrait
 {
   nsTArray<nsCString> mHostObjectURIs;
   bool mIsDying;
@@ -53,6 +54,12 @@ public:
     return mIsDying;
   }
 
+  // GetGlobalJSObject may return a gray object.  If this ever changes so that
+  // it stops doing that, please simplify the code in FindAssociatedGlobal in
+  // BindingUtils.h that does JS::ExposeObjectToActiveJS on the return value of
+  // GetGlobalJSObject.  Also, in that case the JS::ExposeObjectToActiveJS in
+  // AutoJSAPI::InitInternal can probably be removed.  And also the similar
+  // calls in XrayWrapper and nsGlobalWindow.
   virtual JSObject* GetGlobalJSObject() = 0;
 
   // This method is not meant to be overridden.
@@ -66,6 +73,8 @@ public:
   // exposes the URL API.
   void UnlinkHostObjectURIs();
   void TraverseHostObjectURIs(nsCycleCollectionTraversalCallback &aCb);
+
+  virtual bool IsInSyncOperation() { return false; }
 
 protected:
   virtual ~nsIGlobalObject();

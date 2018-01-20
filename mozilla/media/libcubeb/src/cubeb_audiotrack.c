@@ -13,7 +13,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <dlfcn.h>
-#include "android/log.h"
+#include <android/log.h>
 
 #include "cubeb/cubeb.h"
 #include "cubeb-internal.h"
@@ -99,12 +99,11 @@ audiotrack_refill(int event, void* user, void* info)
       return;
     }
 
-    got = stream->data_callback(stream, stream->user_ptr, b->raw, b->frameCount);
+    got = stream->data_callback(stream, stream->user_ptr, NULL, b->raw, b->frameCount);
 
     stream->written += got;
 
     if (got != (long)b->frameCount) {
-      uint32_t p;
       stream->draining = 1;
       /* set a marker so we are notified when the are done draining, that is,
        * when every frame has been played by android. */
@@ -146,9 +145,9 @@ audiotrack_get_min_frame_count(cubeb * ctx, cubeb_stream_params * params, int * 
   status_t status;
   /* Recent Android have a getMinFrameCount method. */
   if (!audiotrack_version_is_gingerbread(ctx)) {
-    status = ctx->klass.get_min_frame_count(min_frame_count, params->stream_type, params->rate);
+    status = ctx->klass.get_min_frame_count(min_frame_count, AUDIO_STREAM_TYPE_MUSIC, params->rate);
   } else {
-    status = ctx->klass.get_min_frame_count_gingerbread(min_frame_count, params->stream_type, params->rate);
+    status = ctx->klass.get_min_frame_count_gingerbread(min_frame_count, AUDIO_STREAM_TYPE_MUSIC, params->rate);
   }
   if (status != 0) {
     ALOG("error getting the min frame count");
@@ -251,9 +250,6 @@ audiotrack_get_min_latency(cubeb * ctx, cubeb_stream_params params, uint32_t * l
     return CUBEB_ERROR;
   }
 
-  /* Convert to milliseconds. */
-  *latency_ms = *latency_ms * 1000 / params.rate;
-
   return CUBEB_OK;
 }
 
@@ -279,7 +275,11 @@ audiotrack_destroy(cubeb * context)
 
 int
 audiotrack_stream_init(cubeb * ctx, cubeb_stream ** stream, char const * stream_name,
-                       cubeb_stream_params stream_params, unsigned int latency,
+                       cubeb_devid input_device,
+                       cubeb_stream_params * input_stream_params,
+                       cubeb_devid output_device,
+                       cubeb_stream_params * output_stream_params,
+                       unsigned int latency,
                        cubeb_data_callback data_callback,
                        cubeb_state_callback state_callback,
                        void * user_ptr)
@@ -290,12 +290,18 @@ audiotrack_stream_init(cubeb * ctx, cubeb_stream ** stream, char const * stream_
 
   assert(ctx && stream);
 
-  if (stream_params.format == CUBEB_SAMPLE_FLOAT32LE ||
-      stream_params.format == CUBEB_SAMPLE_FLOAT32BE) {
+  assert(!input_stream_params && "not supported");
+  if (input_device || output_device) {
+    /* Device selection not yet implemented. */
+    return CUBEB_ERROR_DEVICE_UNAVAILABLE;
+  }
+
+  if (output_stream_params->format == CUBEB_SAMPLE_FLOAT32LE ||
+      output_stream_params->format == CUBEB_SAMPLE_FLOAT32BE) {
     return CUBEB_ERROR_INVALID_FORMAT;
   }
 
-  if (audiotrack_get_min_frame_count(ctx, &stream_params, (int *)&min_frame_count)) {
+  if (audiotrack_get_min_frame_count(ctx, output_stream_params, (int *)&min_frame_count)) {
     return CUBEB_ERROR;
   }
 
@@ -306,7 +312,7 @@ audiotrack_stream_init(cubeb * ctx, cubeb_stream ** stream, char const * stream_
   stm->data_callback = data_callback;
   stm->state_callback = state_callback;
   stm->user_ptr = user_ptr;
-  stm->params = stream_params;
+  stm->params = *output_stream_params;
 
   stm->instance = calloc(SIZE_AUDIOTRACK_INSTANCE, 1);
   (*(uint32_t*)((intptr_t)stm->instance + SIZE_AUDIOTRACK_INSTANCE - 4)) = 0xbaadbaad;
@@ -319,7 +325,7 @@ audiotrack_stream_init(cubeb * ctx, cubeb_stream ** stream, char const * stream_
     channels = stm->params.channels == 2 ? AUDIO_CHANNEL_OUT_STEREO_ICS : AUDIO_CHANNEL_OUT_MONO_ICS;
   }
 
-  ctx->klass.ctor(stm->instance, stm->params.stream_type, stm->params.rate,
+  ctx->klass.ctor(stm->instance, AUDIO_STREAM_TYPE_MUSIC, stm->params.rate,
                   AUDIO_FORMAT_PCM_16_BIT, channels, min_frame_count, 0,
                   audiotrack_refill, stm, 0, 0);
 
@@ -415,17 +421,21 @@ static struct cubeb_ops const audiotrack_ops = {
   .get_max_channel_count = audiotrack_get_max_channel_count,
   .get_min_latency = audiotrack_get_min_latency,
   .get_preferred_sample_rate = audiotrack_get_preferred_sample_rate,
+  .get_preferred_channel_layout = NULL,
   .enumerate_devices = NULL,
+  .device_collection_destroy = NULL,
   .destroy = audiotrack_destroy,
   .stream_init = audiotrack_stream_init,
   .stream_destroy = audiotrack_stream_destroy,
   .stream_start = audiotrack_stream_start,
   .stream_stop = audiotrack_stream_stop,
+  .stream_reset_default_device = NULL,
   .stream_get_position = audiotrack_stream_get_position,
   .stream_get_latency = audiotrack_stream_get_latency,
   .stream_set_volume = audiotrack_stream_set_volume,
   .stream_set_panning = NULL,
   .stream_get_current_device = NULL,
   .stream_device_destroy = NULL,
-  .stream_register_device_changed_callback = NULL
+  .stream_register_device_changed_callback = NULL,
+  .register_device_collection_changed = NULL
 };

@@ -4,6 +4,7 @@
 
 #include "nsDownloader.h"
 #include "nsIInputStream.h"
+#include "nsIOutputStream.h"
 #include "nsDirectoryServiceUtils.h"
 #include "nsDirectoryServiceDefs.h"
 #include "nsNetUtil.h"
@@ -39,7 +40,7 @@ nsDownloader::Init(nsIDownloadObserver *observer, nsIFile *location)
     return NS_OK;
 }
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 nsDownloader::OnStartRequest(nsIRequest *request, nsISupports *ctxt)
 {
     nsresult rv;
@@ -71,7 +72,7 @@ nsDownloader::OnStartRequest(nsIRequest *request, nsISupports *ctxt)
     return NS_OK;
 }
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 nsDownloader::OnStopRequest(nsIRequest  *request,
                             nsISupports *ctxt,
                             nsresult     status)
@@ -87,7 +88,7 @@ nsDownloader::OnStopRequest(nsIRequest  *request,
     return NS_OK;
 }
 
-NS_METHOD
+nsresult
 nsDownloader::ConsumeData(nsIInputStream* in,
                           void* closure,
                           const char* fromRawSegment,
@@ -103,11 +104,11 @@ nsDownloader::ConsumeData(nsIInputStream* in,
     return NS_OK;
 }
 
-NS_IMETHODIMP 
-nsDownloader::OnDataAvailable(nsIRequest *request, nsISupports *ctxt, 
-                              nsIInputStream *inStr, 
+NS_IMETHODIMP
+nsDownloader::OnDataAvailable(nsIRequest *request, nsISupports *ctxt,
+                              nsIInputStream *inStr,
                               uint64_t sourceOffset, uint32_t count)
 {
-    uint32_t n;  
+    uint32_t n;
     return inStr->ReadSegments(ConsumeData, this, count, &n);
 }

@@ -13,6 +13,7 @@
 #include "nsError.h"
 #include "nsIWindowWatcher.h"
 #include "nsPIDOMWindow.h"
+#include "mozIDOMWindow.h"
 #include "nsServiceManagerUtils.h"
 #include "nsComponentManagerUtils.h"
 #include "nsMsgUtils.h"
@@ -35,10 +36,10 @@ nsMsgProgress::~nsMsgProgress()
   (void)ReleaseListeners();
 }
 
-NS_IMETHODIMP nsMsgProgress::OpenProgressDialog(nsIDOMWindow *parentDOMWindow, 
-                                                nsIMsgWindow *aMsgWindow, 
-                                                const char *dialogURL, 
-                                                bool inDisplayModal, 
+NS_IMETHODIMP nsMsgProgress::OpenProgressDialog(mozIDOMWindowProxy *parentDOMWindow,
+                                                nsIMsgWindow *aMsgWindow,
+                                                const char *dialogURL,
+                                                bool inDisplayModal,
                                                 nsISupports *parameters)
 {
   nsresult rv;
@@ -50,8 +51,8 @@ NS_IMETHODIMP nsMsgProgress::OpenProgressDialog(nsIDOMWindow *parentDOMWindow,
   }
 
   NS_ENSURE_ARG_POINTER(dialogURL);
-  nsCOMPtr<nsPIDOMWindow> parent(do_QueryInterface(parentDOMWindow));
-  NS_ENSURE_ARG_POINTER(parent);
+  NS_ENSURE_ARG_POINTER(parentDOMWindow);
+  nsCOMPtr<nsPIDOMWindowOuter> parent = nsPIDOMWindowOuter::From(parentDOMWindow);
   parent = parent->GetOuterWindow();
   NS_ENSURE_ARG_POINTER(parent);
 
@@ -66,11 +67,11 @@ NS_IMETHODIMP nsMsgProgress::OpenProgressDialog(nsIDOMWindow *parentDOMWindow,
   ifptr->SetData(static_cast<nsIMsgProgress*>(this));
   ifptr->SetDataIID(&NS_GET_IID(nsIMsgProgress));
 
-  array->AppendElement(ifptr, false);
-  array->AppendElement(parameters, false);
+  array->AppendElement(ifptr);
+  array->AppendElement(parameters);
 
   // Open the dialog.
-  nsCOMPtr<nsIDOMWindow> newWindow;
+  nsCOMPtr<nsPIDOMWindowOuter> newWindow;
 
   nsString chromeOptions(NS_LITERAL_STRING("chrome,dependent,centerscreen"));
   if (inDisplayModal)
@@ -255,7 +256,7 @@ NS_IMETHODIMP nsMsgProgress::OnStatus(nsIRequest *request, nsISupports* ctxt,
     mozilla::services::GetStringBundleService();
   NS_ENSURE_TRUE(sbs, NS_ERROR_UNEXPECTED);
   nsString str;
-  rv = sbs->FormatStatusMessage(aStatus, aStatusArg, getter_Copies(str));
+  rv = sbs->FormatStatusMessage(aStatus, aStatusArg, str);
   NS_ENSURE_SUCCESS(rv, rv);
   return ShowStatusString(str);
 }

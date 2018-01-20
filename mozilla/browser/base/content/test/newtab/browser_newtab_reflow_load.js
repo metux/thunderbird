@@ -1,5 +1,6 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
+/* eslint-disable mozilla/no-arbitrary-setTimeout */
 
 "use strict";
 
@@ -9,32 +10,29 @@ const ADDITIONAL_WAIT_MS = 2000;
 /*
  * Ensure that loading about:newtab doesn't cause uninterruptible reflows.
  */
-function runTests() {
-  gBrowser.selectedTab = gBrowser.addTab("about:blank", {animate: false});
-  let browser = gBrowser.selectedBrowser;
-  yield whenBrowserLoaded(browser);
+add_task(async function() {
+  await BrowserTestUtils.openNewForegroundTab(gBrowser, () => {
+    return gBrowser.selectedTab = BrowserTestUtils.addTab(gBrowser, "about:blank", {animate: false});
+  }, false);
 
+  let browser = gBrowser.selectedBrowser;
   let mm = browser.messageManager;
   mm.loadFrameScript(FRAME_SCRIPT, true);
   mm.addMessageListener("newtab-reflow", ({data: stack}) => {
     ok(false, `unexpected uninterruptible reflow ${stack}`);
   });
 
+  let browserLoadedPromise = BrowserTestUtils.waitForEvent(browser, "load", true);
   browser.loadURI("about:newtab");
-  yield whenBrowserLoaded(browser);
+  await browserLoadedPromise;
 
   // Wait some more to catch sync reflows after the page has loaded.
-  yield setTimeout(TestRunner.next, ADDITIONAL_WAIT_MS);
+  await new Promise(resolve => {
+    setTimeout(resolve, ADDITIONAL_WAIT_MS);
+  });
 
   // Clean up.
   gBrowser.removeCurrentTab({animate: false});
 
   ok(true, "Each test requires at least one pass, fail or todo so here is a pass.");
-}
-
-function whenBrowserLoaded(browser) {
-  browser.addEventListener("load", function onLoad() {
-    browser.removeEventListener("load", onLoad, true);
-    executeSoon(TestRunner.next);
-  }, true);
-}
+});

@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -25,9 +26,7 @@
 namespace mozilla {
 namespace gfx {
 
-ID2D1Factory* D2DFactory();
-
-ID2D1Factory1* D2DFactory1();
+RefPtr<ID2D1Factory1> D2DFactory();
 
 static inline D2D1_POINT_2F D2DPoint(const Point &aPoint)
 {
@@ -76,20 +75,20 @@ static inline D2D1_EXTEND_MODE D2DExtend(ExtendMode aExtendMode, Axis aAxis)
   return extend;
 }
 
-static inline D2D1_BITMAP_INTERPOLATION_MODE D2DFilter(const Filter &aFilter)
+static inline D2D1_BITMAP_INTERPOLATION_MODE D2DFilter(const SamplingFilter aSamplingFilter)
 {
-  switch (aFilter) {
-  case Filter::POINT:
+  switch (aSamplingFilter) {
+  case SamplingFilter::POINT:
     return D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR;
   default:
     return D2D1_BITMAP_INTERPOLATION_MODE_LINEAR;
   }
 }
 
-static inline D2D1_INTERPOLATION_MODE D2DInterpolationMode(const Filter &aFilter)
+static inline D2D1_INTERPOLATION_MODE D2DInterpolationMode(const SamplingFilter aSamplingFilter)
 {
-  switch (aFilter) {
-  case Filter::POINT:
+  switch (aSamplingFilter) {
+  case SamplingFilter::POINT:
     return D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR;
   default:
     return D2D1_INTERPOLATION_MODE_LINEAR;
@@ -580,7 +579,7 @@ CreatePartialBitmapForSurface(DataSourceSurface *aSurface, const Matrix &aDestin
 
   Rect uploadRect(0, 0, Float(size.width), Float(size.height));
   if (aSourceRect) {
-    uploadRect = Rect(aSourceRect->x, aSourceRect->y, aSourceRect->width, aSourceRect->height);
+    uploadRect = Rect(aSourceRect->x, aSourceRect->y, aSourceRect->Width(), aSourceRect->Height());
   }
 
   // Limit the uploadRect as much as possible without supporting discontiguous uploads 
@@ -596,6 +595,8 @@ CreatePartialBitmapForSurface(DataSourceSurface *aSurface, const Matrix &aDestin
   //
   //
 
+  int Bpp = BytesPerPixel(aSurface->GetFormat());
+
   if (uploadRect.Contains(rect)) {
     // Extend mode is irrelevant, the displayed rect is completely contained
     // by the source bitmap.
@@ -610,14 +611,19 @@ CreatePartialBitmapForSurface(DataSourceSurface *aSurface, const Matrix &aDestin
     // upload rect safely without looking at extend mode.
   } else if (rect.x >= 0 && rect.XMost() < size.width) {
     uploadRect.x = rect.x;
-    uploadRect.width = rect.width;
+    uploadRect.SetWidth(rect.Width());
   } else if (rect.y >= 0 && rect.YMost() < size.height) {
     uploadRect.y = rect.y;
-    uploadRect.height = rect.height;
+    uploadRect.SetHeight(rect.Height());
   }
 
-  if (uploadRect.width <= aRT->GetMaximumBitmapSize() &&
-      uploadRect.height <= aRT->GetMaximumBitmapSize()) {
+  if (uploadRect.IsEmpty()) {
+    // Nothing to be drawn.
+    return nullptr;
+  }
+
+  if (uploadRect.Width() <= aRT->GetMaximumBitmapSize() &&
+      uploadRect.Height() <= aRT->GetMaximumBitmapSize()) {
     {
       // Scope to auto-Unmap() |mapping|.
       DataSourceSurface::ScopedMap mapping(aSurface, DataSourceSurface::READ);
@@ -626,8 +632,8 @@ CreatePartialBitmapForSurface(DataSourceSurface *aSurface, const Matrix &aDestin
       }
 
       // A partial upload will suffice.
-      aRT->CreateBitmap(D2D1::SizeU(uint32_t(uploadRect.width), uint32_t(uploadRect.height)),
-                        mapping.GetData() + int(uploadRect.x) * 4 + int(uploadRect.y) * mapping.GetStride(),
+      aRT->CreateBitmap(D2D1::SizeU(uint32_t(uploadRect.Width()), uint32_t(uploadRect.Height())),
+                        mapping.GetData() + int(uploadRect.x) * Bpp + int(uploadRect.y) * mapping.GetStride(),
                         mapping.GetStride(),
                         D2D1::BitmapProperties(D2DPixelFormat(aSurface->GetFormat())),
                         getter_AddRefs(bitmap));
@@ -637,8 +643,6 @@ CreatePartialBitmapForSurface(DataSourceSurface *aSurface, const Matrix &aDestin
 
     return bitmap.forget();
   } else {
-    int Bpp = BytesPerPixel(aSurface->GetFormat());
-
     if (Bpp != 4) {
       // This shouldn't actually happen in practice!
       MOZ_ASSERT(false);
@@ -654,10 +658,10 @@ CreatePartialBitmapForSurface(DataSourceSurface *aSurface, const Matrix &aDestin
       ImageHalfScaler scaler(mapping.GetData(), mapping.GetStride(), size);
 
       // Calculate the maximum width/height of the image post transform.
-      Point topRight = transform * Point(Float(size.width), 0);
-      Point topLeft = transform * Point(0, 0);
-      Point bottomRight = transform * Point(Float(size.width), Float(size.height));
-      Point bottomLeft = transform * Point(0, Float(size.height));
+      Point topRight = transform.TransformPoint(Point(Float(size.width), 0));
+      Point topLeft = transform.TransformPoint(Point(0, 0));
+      Point bottomRight = transform.TransformPoint(Point(Float(size.width), Float(size.height)));
+      Point bottomLeft = transform.TransformPoint(Point(0, Float(size.height)));
 
       IntSize scaleSize;
 
@@ -695,6 +699,267 @@ CreatePartialBitmapForSurface(DataSourceSurface *aSurface, const Matrix &aDestin
     return bitmap.forget();
   }
 }
+
+static inline void AddRectToSink(ID2D1GeometrySink* aSink, const D2D1_RECT_F& aRect)
+{
+  aSink->BeginFigure(D2D1::Point2F(aRect.left, aRect.top), D2D1_FIGURE_BEGIN_FILLED);
+  aSink->AddLine(D2D1::Point2F(aRect.right, aRect.top));
+  aSink->AddLine(D2D1::Point2F(aRect.right, aRect.bottom));
+  aSink->AddLine(D2D1::Point2F(aRect.left, aRect.bottom));
+  aSink->EndFigure(D2D1_FIGURE_END_CLOSED);
+}
+
+class DCCommandSink : public ID2D1CommandSink
+{
+public:
+  explicit DCCommandSink(ID2D1DeviceContext* aCtx) : mCtx(aCtx)
+  {
+  }
+
+  HRESULT STDMETHODCALLTYPE QueryInterface(const IID &aIID, void **aPtr)
+  {
+    if (!aPtr) {
+      return E_POINTER;
+    }
+
+    if (aIID == IID_IUnknown) {
+      *aPtr = static_cast<IUnknown*>(this);
+      return S_OK;
+    } else if (aIID == IID_ID2D1CommandSink) {
+      *aPtr = static_cast<ID2D1CommandSink*>(this);
+      return S_OK;
+    }
+
+    return E_NOINTERFACE;
+  }
+
+  ULONG STDMETHODCALLTYPE AddRef()
+  {
+    return 1;
+  }
+
+  ULONG STDMETHODCALLTYPE Release()
+  {
+    return 1;
+  }
+
+  STDMETHODIMP BeginDraw()
+  {
+    // We don't want to do anything here!
+    return S_OK;
+  }
+  STDMETHODIMP EndDraw()
+  {
+    // We don't want to do anything here!
+    return S_OK;
+  }
+
+  STDMETHODIMP SetAntialiasMode(
+    D2D1_ANTIALIAS_MODE antialiasMode
+    )
+  {
+    mCtx->SetAntialiasMode(antialiasMode);
+    return S_OK;
+  }
+
+  STDMETHODIMP SetTags(D2D1_TAG tag1, D2D1_TAG tag2)
+  {
+    mCtx->SetTags(tag1, tag2);
+    return S_OK;
+  }
+
+  STDMETHODIMP SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE textAntialiasMode)
+  {
+    mCtx->SetTextAntialiasMode(textAntialiasMode);
+    return S_OK;
+  }
+
+  STDMETHODIMP SetTextRenderingParams(_In_opt_ IDWriteRenderingParams *textRenderingParams)
+  {
+    mCtx->SetTextRenderingParams(textRenderingParams);
+    return S_OK;
+  }
+
+  STDMETHODIMP  SetTransform(_In_ CONST D2D1_MATRIX_3X2_F *transform)
+  {
+    mCtx->SetTransform(transform);
+    return S_OK;
+  }
+
+  STDMETHODIMP SetPrimitiveBlend(D2D1_PRIMITIVE_BLEND primitiveBlend)
+  {
+    mCtx->SetPrimitiveBlend(primitiveBlend);
+    return S_OK;
+  }
+
+  STDMETHODIMP SetUnitMode(D2D1_UNIT_MODE unitMode)
+  {
+    mCtx->SetUnitMode(unitMode);
+    return S_OK;
+  }
+
+  STDMETHODIMP Clear(_In_opt_ CONST D2D1_COLOR_F *color)
+  {
+    mCtx->Clear(color);
+    return S_OK;
+  }
+
+  STDMETHODIMP DrawGlyphRun(
+      D2D1_POINT_2F baselineOrigin,
+      _In_ CONST DWRITE_GLYPH_RUN *glyphRun,
+      _In_opt_ CONST DWRITE_GLYPH_RUN_DESCRIPTION *glyphRunDescription,
+      _In_ ID2D1Brush *foregroundBrush,
+      DWRITE_MEASURING_MODE measuringMode
+    )
+  {
+    mCtx->DrawGlyphRun(baselineOrigin, glyphRun, glyphRunDescription,
+                       foregroundBrush, measuringMode);
+    return S_OK;
+  }
+
+  STDMETHODIMP DrawLine(
+      D2D1_POINT_2F point0,
+      D2D1_POINT_2F point1,
+      _In_ ID2D1Brush *brush,
+      FLOAT strokeWidth,
+      _In_opt_ ID2D1StrokeStyle *strokeStyle
+    )
+  {
+    mCtx->DrawLine(point0, point1, brush, strokeWidth, strokeStyle);
+    return S_OK;
+  }
+
+  STDMETHODIMP DrawGeometry(
+      _In_ ID2D1Geometry *geometry,
+      _In_ ID2D1Brush *brush,
+      FLOAT strokeWidth,
+      _In_opt_ ID2D1StrokeStyle *strokeStyle
+    )
+  {
+    mCtx->DrawGeometry(geometry, brush, strokeWidth, strokeStyle);
+    return S_OK;
+  }
+
+  STDMETHODIMP DrawRectangle(
+      _In_ CONST D2D1_RECT_F *rect,
+      _In_ ID2D1Brush *brush,
+      FLOAT strokeWidth,
+      _In_opt_ ID2D1StrokeStyle *strokeStyle
+    )
+  {
+    mCtx->DrawRectangle(rect, brush, strokeWidth, strokeStyle);
+    return S_OK;
+  }
+
+  STDMETHODIMP DrawBitmap(
+      _In_ ID2D1Bitmap *bitmap,
+      _In_opt_ CONST D2D1_RECT_F *destinationRectangle,
+      FLOAT opacity,
+      D2D1_INTERPOLATION_MODE interpolationMode,
+      _In_opt_ CONST D2D1_RECT_F *sourceRectangle,
+      _In_opt_ CONST D2D1_MATRIX_4X4_F *perspectiveTransform
+    )
+  {
+    mCtx->DrawBitmap(bitmap, destinationRectangle, opacity,
+                     interpolationMode, sourceRectangle,
+                     perspectiveTransform);
+    return S_OK;
+  }
+
+  STDMETHODIMP DrawImage(
+      _In_ ID2D1Image *image,
+      _In_opt_ CONST D2D1_POINT_2F *targetOffset,
+      _In_opt_ CONST D2D1_RECT_F *imageRectangle,
+      D2D1_INTERPOLATION_MODE interpolationMode,
+      D2D1_COMPOSITE_MODE compositeMode
+    )
+  {
+    mCtx->DrawImage(image, targetOffset, imageRectangle,
+                    interpolationMode, compositeMode);
+    return S_OK;
+  }
+
+  STDMETHODIMP DrawGdiMetafile(
+      _In_ ID2D1GdiMetafile *gdiMetafile,
+      _In_opt_ CONST D2D1_POINT_2F *targetOffset
+    )
+  {
+    mCtx->DrawGdiMetafile(gdiMetafile, targetOffset);
+    return S_OK;
+  }
+
+  STDMETHODIMP FillMesh(
+      _In_ ID2D1Mesh *mesh,
+      _In_ ID2D1Brush *brush
+    )
+  {
+    mCtx->FillMesh(mesh, brush);
+    return S_OK;
+  }
+
+  STDMETHODIMP FillOpacityMask(
+      _In_ ID2D1Bitmap *opacityMask,
+      _In_ ID2D1Brush *brush,
+      _In_opt_ CONST D2D1_RECT_F *destinationRectangle,
+      _In_opt_ CONST D2D1_RECT_F *sourceRectangle
+    )
+  {
+    mCtx->FillOpacityMask(opacityMask, brush, destinationRectangle,
+                          sourceRectangle);
+    return S_OK;
+  }
+
+  STDMETHODIMP FillGeometry(
+      _In_ ID2D1Geometry *geometry,
+      _In_ ID2D1Brush *brush,
+      _In_opt_ ID2D1Brush *opacityBrush
+    )
+  {
+    mCtx->FillGeometry(geometry, brush, opacityBrush);
+    return S_OK;
+  }
+
+  STDMETHODIMP FillRectangle(
+      _In_ CONST D2D1_RECT_F *rect,
+      _In_ ID2D1Brush *brush
+    )
+  {
+    mCtx->FillRectangle(rect, brush);
+    return S_OK;
+  }
+
+  STDMETHODIMP PushAxisAlignedClip(
+      _In_ CONST D2D1_RECT_F *clipRect,
+      D2D1_ANTIALIAS_MODE antialiasMode
+    )
+  {
+    mCtx->PushAxisAlignedClip(clipRect, antialiasMode);
+    return S_OK;
+  }
+
+  STDMETHODIMP PushLayer(
+      _In_ CONST D2D1_LAYER_PARAMETERS1 *layerParameters1,
+      _In_opt_ ID2D1Layer *layer
+    )
+  {
+    mCtx->PushLayer(layerParameters1, layer);
+    return S_OK;
+  }
+
+  STDMETHODIMP PopAxisAlignedClip()
+  {
+    mCtx->PopAxisAlignedClip();
+    return S_OK;
+  }
+
+  STDMETHODIMP PopLayer()
+  {
+    mCtx->PopLayer();
+    return S_OK;
+  }
+
+  ID2D1DeviceContext* mCtx;
+};
 
 }
 }

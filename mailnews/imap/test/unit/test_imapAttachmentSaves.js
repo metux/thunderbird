@@ -11,7 +11,7 @@ load("../../../resources/asyncTestUtils.js");
 load("../../../resources/messageGenerator.js");
 
 // javascript mime emitter functions
-mimeMsg = {};
+var mimeMsg = {};
 Components.utils.import("resource:///modules/gloda/mimemsg.js", mimeMsg);
 Components.utils.import("resource:///modules/mailServices.js");
 
@@ -22,13 +22,8 @@ var kAttachFileName = 'bob.txt';
 setupIMAPPump();
 
 // Dummy message window so we can say the inbox is open in a window.
-var dummyMsgWindow =
-{
-  openFolder : IMAPPump.inbox,
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsIMsgWindow,
-                                         Ci.nsISupportsWeakReference])
-  
-};
+var dummyMsgWindow = Cc["@mozilla.org/messenger/msgwindow;1"]
+                       .createInstance(Ci.nsIMsgWindow);
 
 var tests = [
   loadImapMessage,
@@ -39,7 +34,7 @@ var tests = [
 ]
 
 // load and update a message in the imap fake server
-function loadImapMessage()
+function* loadImapMessage()
 {
   let gMessageGenerator = new MessageGenerator();
   // create a synthetic message with attachment
@@ -51,8 +46,7 @@ function loadImapMessage()
 
   let msgURI =
     Services.io.newURI("data:text/plain;base64," +
-                       btoa(smsg.toMessageString()),
-                       null, null);
+                       btoa(smsg.toMessageString()));
   let imapInbox = IMAPPump.daemon.getMailbox("INBOX");
   let message = new imapMessage(msgURI.spec, imapInbox.uidnext++, []);
   IMAPPump.mailbox.addMessage(message);
@@ -66,7 +60,7 @@ function loadImapMessage()
 }
 
 // process the message through mime
-function startMime()
+function* startMime()
 {
   let msgHdr = mailTestUtils.firstMsgHdr(IMAPPump.inbox);
 
@@ -76,7 +70,7 @@ function startMime()
 }
 
 // detach any found attachments
-function startDetach()
+function* startDetach()
 {
   let msgHdr = mailTestUtils.firstMsgHdr(IMAPPump.inbox);
   let msgURI = msgHdr.folder.generateMessageURI(msgHdr.messageKey);
@@ -92,7 +86,7 @@ function startDetach()
 }
 
 // test that the detachment was successful
-function testDetach()
+function* testDetach()
 {
   // This test seems to fail on Linux without the following delay.
   mailTestUtils.do_timeout_function(200, async_driver);
@@ -108,7 +102,7 @@ function testDetach()
 
   // Get the message header - detached copy has UID 2.
   let msgHdr = IMAPPump.inbox.GetMessageHeader(2);
-  do_check_neq(msgHdr, null);
+  do_check_true(msgHdr !== null);
   let messageContent = getContentFromMessage(msgHdr);
   do_check_true(messageContent.includes("AttachmentDetached"));
 }
@@ -141,6 +135,8 @@ function run_test()
   // the append url, in nsImapMailFolder::OnStopRunningUrl, we'll think the
   // Inbox is open in a folder and update it, which the detach code relies
   // on to finish the detach.
+
+  dummyMsgWindow.openFolder = IMAPPump.inbox;
   MailServices.mailSession.AddMsgWindow(dummyMsgWindow);
 
   async_run_tests(tests);
@@ -172,10 +168,12 @@ function getContentFromMessage(aMsgHdr) {
   let sis = Cc["@mozilla.org/scriptableinputstream;1"]
               .createInstance(Ci.nsIScriptableInputStream);
   sis.init(streamListener.inputStream);
-  return sis.read(MAX_MESSAGE_LENGTH);
+  let content = sis.read(MAX_MESSAGE_LENGTH);
+  sis.close();
+  return content;
 }
 
-mfnListener =
+var mfnListener =
 {
   msgsDeleted: function msgsDeleted(aMsgArray)
   {

@@ -75,7 +75,7 @@ XPathExpression::EvaluateWithContext(JSContext* aCx,
                                      JS::Handle<JSObject*> aInResult,
                                      ErrorResult& aRv)
 {
-    XPathResult* inResult = nullptr;
+    RefPtr<XPathResult> inResult;
     if (aInResult) {
         nsresult rv = UNWRAP_OBJECT(XPathResult, aInResult, inResult);
         if (NS_FAILED(rv) && rv != NS_ERROR_XPC_BAD_CONVERT_JS) {
@@ -98,6 +98,11 @@ XPathExpression::EvaluateWithContext(nsINode& aContextNode,
 {
     if (aContextPosition > aContextSize) {
         aRv.Throw(NS_ERROR_FAILURE);
+        return nullptr;
+    }
+
+    if (aType > XPathResultBinding::FIRST_ORDERED_NODE_TYPE) {
+        aRv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
         return nullptr;
     }
 
@@ -199,17 +204,19 @@ XPathExpression::EvaluateWithContext(nsINode& aContextNode,
 
 nsresult
 EvalContextImpl::getVariable(int32_t aNamespace,
-                             nsIAtom* aLName,
+                             nsAtom* aLName,
                              txAExprResult*& aResult)
 {
     aResult = 0;
     return NS_ERROR_INVALID_ARG;
 }
 
-bool
-EvalContextImpl::isStripSpaceAllowed(const txXPathNode& aNode)
+nsresult
+EvalContextImpl::isStripSpaceAllowed(const txXPathNode& aNode, bool& aAllowed)
 {
-    return false;
+    aAllowed = false;
+
+    return NS_OK;
 }
 
 void*

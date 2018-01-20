@@ -19,7 +19,7 @@ var doc = "data:text/html,<html><body onload='load()'>" +
 function test() {
   waitForExplicitFinish();
 
-  let tab = gBrowser.addTab(doc);
+  let tab = BrowserTestUtils.addTab(gBrowser, doc);
   let tabBrowser = tab.linkedBrowser;
 
   BrowserTestUtils.browserLoaded(tab.linkedBrowser).then(() => {
@@ -39,7 +39,7 @@ function test() {
                           .getInterface(Ci.nsIWebNavigation)
                           .sessionHistory;
 
-          is(shistory.count, 1, 'shistory count should be 1.');
+          Assert.equal(shistory.count, 1, "shistory count should be 1.");
           resolve();
         }, true);
       });

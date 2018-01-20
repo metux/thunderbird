@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim:set ts=2 sw=2 sts=2 et cindent: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -77,10 +77,10 @@ void
 SharedThreadPool::SpinUntilEmpty()
 {
   MOZ_ASSERT(NS_IsMainThread());
-  while (!IsEmpty()) {
-    sMonitor->AssertNotCurrentThreadIn();
-    NS_ProcessNextEvent(NS_GetCurrentThread(), true);
-  }
+  SpinEventLoopUntil([]() -> bool {
+      sMonitor->AssertNotCurrentThreadIn();
+      return IsEmpty();
+  });
 }
 
 already_AddRefed<SharedThreadPool>
@@ -90,9 +90,18 @@ SharedThreadPool::Get(const nsCString& aName, uint32_t aThreadLimit)
   ReentrantMonitorAutoEnter mon(*sMonitor);
   SharedThreadPool* pool = nullptr;
   nsresult rv;
-  if (!sPools->Get(aName, &pool)) {
+
+  if (auto entry = sPools->LookupForAdd(aName)) {
+    pool = entry.Data();
+    if (NS_FAILED(pool->EnsureThreadLimitIsAtLeast(aThreadLimit))) {
+      NS_WARNING("Failed to set limits on thread pool");
+    }
+  } else {
     nsCOMPtr<nsIThreadPool> threadPool(CreateThreadPool(aName));
-    NS_ENSURE_TRUE(threadPool, nullptr);
+    if (NS_WARN_IF(!threadPool)) {
+      sPools->Remove(aName); // XXX entry.Remove()
+      return nullptr;
+    }
     pool = new SharedThreadPool(aName, threadPool);
 
     // Set the thread and idle limits. Note that we don't rely on the
@@ -101,14 +110,18 @@ SharedThreadPool::Get(const nsCString& aName, uint32_t aThreadLimit)
     // with 4 threads rather than what we expected; so we'll have unexpected
     // behaviour.
     rv = pool->SetThreadLimit(aThreadLimit);
-    NS_ENSURE_SUCCESS(rv, nullptr);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      sPools->Remove(aName); // XXX entry.Remove()
+      return nullptr;
+    }
 
     rv = pool->SetIdleThreadLimit(aThreadLimit);
-    NS_ENSURE_SUCCESS(rv, nullptr);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      sPools->Remove(aName); // XXX entry.Remove()
+      return nullptr;
+    }
 
-    sPools->Put(aName, pool);
-  } else if (NS_FAILED(pool->EnsureThreadLimitIsAtLeast(aThreadLimit))) {
-    NS_WARNING("Failed to set limits on thread pool");
+    entry.OrInsert([pool] () { return pool; });
   }
 
   MOZ_ASSERT(pool);
@@ -141,10 +154,10 @@ NS_IMETHODIMP_(MozExternalRefCountType) SharedThreadPool::Release(void)
   MOZ_ASSERT(!sPools->Get(mName));
 
   // Dispatch an event to the main thread to call Shutdown() on
-  // the nsIThreadPool. The Runnable here  will add a refcount to the pool,
+  // the nsIThreadPool. The Runnable here will add a refcount to the pool,
   // and when the Runnable releases the nsIThreadPool it will be deleted.
-  nsCOMPtr<nsIRunnable> r = NS_NewRunnableMethod(mPool, &nsIThreadPool::Shutdown);
-  NS_DispatchToMainThread(r);
+  NS_DispatchToMainThread(NewRunnableMethod(
+    "nsIThreadPool::Shutdown", mPool, &nsIThreadPool::Shutdown));
 
   // Stabilize refcount, so that if something in the dtor QIs, it won't explode.
   mRefCnt = 1;
@@ -160,13 +173,11 @@ SharedThreadPool::SharedThreadPool(const nsCString& aName,
   , mPool(aPool)
   , mRefCnt(0)
 {
-  MOZ_COUNT_CTOR(SharedThreadPool);
   mEventTarget = do_QueryInterface(aPool);
 }
 
 SharedThreadPool::~SharedThreadPool()
 {
-  MOZ_COUNT_DTOR(SharedThreadPool);
 }
 
 nsresult

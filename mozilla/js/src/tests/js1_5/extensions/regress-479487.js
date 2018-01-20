@@ -16,11 +16,9 @@ test();
 
 function test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
 
-  jit(true);
 
   Array.prototype[1] = 2;
 
@@ -38,9 +36,6 @@ function test()
 
   f();
 
-  jit(false);
 
   reportCompare(expect, actual, summary);
-
-  exitFunc ('test');
 }

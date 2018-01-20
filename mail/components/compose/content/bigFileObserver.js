@@ -41,28 +41,6 @@ var gBigFileObserver = {
     this.bigFiles = [];
   },
 
-  uninit: function() {
-    let bucket = document.getElementById("attachmentBucket");
-    bucket.removeEventListener("attachments-added", this, false);
-    bucket.removeEventListener("attachments-removed", this, false);
-    bucket.removeEventListener("attachments-uploading", this, false);
-    bucket.removeEventListener("attachment-uploaded", this, false);
-    bucket.removeEventListener("attachment-upload-failed", this, false);
-    bucket.removeEventListener("attachments-converted", this, false);
-
-    let nb = document.getElementById("attachmentNotificationBox");
-
-    let removeValues = [kUploadNotificationValue,
-                        kPrivacyWarningNotificationValue];
-
-    for (let value of removeValues) {
-      let notification = nb.getNotificationWithValue(value);
-      if (notification) {
-        nb.removeNotification(notification);
-      }
-    };
-  },
-
   handleEvent: function(event) {
     if (this.hidden)
       return;
@@ -104,7 +82,7 @@ var gBigFileObserver = {
     let threshold = Services.prefs.getIntPref(
                     "mail.compose.big_attachments.threshold_kb") * 1024;
 
-    for (let attachment in fixIterator(
+    for (let attachment of fixIterator(
          aAttachments, Components.interfaces.nsIMsgAttachment)) {
       if (attachment.size >= threshold && !attachment.sendViaCloud)
         this.bigFiles.push(attachment);
@@ -112,7 +90,7 @@ var gBigFileObserver = {
   },
 
   attachmentsRemoved: function(aAttachments) {
-    for (let attachment in fixIterator(
+    for (let attachment of fixIterator(
          aAttachments, Components.interfaces.nsIMsgAttachment)) {
       let index = this.bigFiles.indexOf(attachment);
       if (index != -1)
@@ -123,7 +101,7 @@ var gBigFileObserver = {
   attachmentsConverted: function(aAttachments) {
     let uploaded = [];
 
-    for (let attachment in fixIterator(
+    for (let attachment of fixIterator(
          aAttachments, Components.interfaces.nsIMsgAttachment)) {
       if (attachment.sendViaCloud) {
         this.attachmentsRemoved([attachment]);
@@ -326,5 +304,3 @@ var gBigFileObserver = {
 
 window.addEventListener("compose-window-init",
   gBigFileObserver.init.bind(gBigFileObserver), true);
-window.addEventListener("compose-window-close",
-  gBigFileObserver.uninit.bind(gBigFileObserver), true);

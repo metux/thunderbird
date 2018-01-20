@@ -2,15 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const {Ci,Cu,Cc} = require("chrome");
+"use strict";
 
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-
+const {Ci, Cc} = require("chrome");
+const {XPCOMUtils} = require("resource://gre/modules/XPCOMUtils.jsm");
 const Services = require("Services");
-var {setTimeout,clearTimeout} = require("sdk/timers");
 
-function MonitorActor(aConnection) {
-  this.conn = aConnection;
+function MonitorActor(connection) {
+  this.conn = connection;
   this._updates = [];
   this._started = false;
 }
@@ -20,7 +19,7 @@ MonitorActor.prototype = {
 
   // Updates.
 
-  _sendUpdate: function() {
+  _sendUpdate: function () {
     if (this._started) {
       this.conn.sendActorEvent(this.actorID, "update", { data: this._updates });
       this._updates = [];
@@ -29,27 +28,27 @@ MonitorActor.prototype = {
 
   // Methods available from the front.
 
-  start: function() {
+  start: function () {
     if (!this._started) {
       this._started = true;
-      Services.obs.addObserver(this, "devtools-monitor-update", false);
-      Services.obs.notifyObservers(null, "devtools-monitor-start", "");
+      Services.obs.addObserver(this, "devtools-monitor-update");
+      Services.obs.notifyObservers(null, "devtools-monitor-start");
       this._agents.forEach(agent => this._startAgent(agent));
     }
     return {};
   },
 
-  stop: function() {
+  stop: function () {
     if (this._started) {
       this._agents.forEach(agent => agent.stop());
-      Services.obs.notifyObservers(null, "devtools-monitor-stop", "");
+      Services.obs.notifyObservers(null, "devtools-monitor-stop");
       Services.obs.removeObserver(this, "devtools-monitor-update");
       this._started = false;
     }
     return {};
   },
 
-  disconnect: function() {
+  destroy: function () {
     this.stop();
   },
 
@@ -59,7 +58,7 @@ MonitorActor.prototype = {
     if (topic == "devtools-monitor-update") {
       try {
         data = JSON.parse(data);
-      } catch(e) {
+      } catch (e) {
         console.error("Observer notification data is not a valid JSON-string:",
                       data, e.message);
         return;
@@ -79,7 +78,7 @@ MonitorActor.prototype = {
 
   _agents: [],
 
-  _startAgent: function(agent) {
+  _startAgent: function (agent) {
     try {
       agent.start();
     } catch (e) {
@@ -87,14 +86,14 @@ MonitorActor.prototype = {
     }
   },
 
-  _addAgent: function(agent) {
+  _addAgent: function (agent) {
     this._agents.push(agent);
     if (this._started) {
       this._startAgent(agent);
     }
   },
 
-  _removeAgent: function(agent) {
+  _removeAgent: function (agent) {
     let index = this._agents.indexOf(agent);
     if (index > -1) {
       this._agents.splice(index, 1);
@@ -118,26 +117,28 @@ var USSAgent = {
     value: null
   },
 
-  start: function() {
-    USSAgent._mgr = Cc["@mozilla.org/memory-reporter-manager;1"].getService(Ci.nsIMemoryReporterManager);
+  start: function () {
+    USSAgent._mgr = Cc["@mozilla.org/memory-reporter-manager;1"].getService(
+      Ci.nsIMemoryReporterManager);
     if (!USSAgent._mgr.residentUnique) {
-      throw "Couldn't get USS.";
+      throw new Error("Couldn't get USS.");
     }
     USSAgent.update();
   },
 
-  update: function() {
+  update: function () {
     if (!USSAgent._mgr) {
       USSAgent.stop();
       return;
     }
     USSAgent._packet.time = Date.now();
     USSAgent._packet.value = USSAgent._mgr.residentUnique;
-    Services.obs.notifyObservers(null, "devtools-monitor-update", JSON.stringify(USSAgent._packet));
+    Services.obs.notifyObservers(null, "devtools-monitor-update",
+      JSON.stringify(USSAgent._packet));
     USSAgent._timeout = setTimeout(USSAgent.update, 300);
   },
 
-  stop: function() {
+  stop: function () {
     clearTimeout(USSAgent._timeout);
     USSAgent._mgr = null;
   }

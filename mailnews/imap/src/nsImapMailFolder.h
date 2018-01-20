@@ -210,7 +210,7 @@ public:
 
   NS_IMETHOD CreateSubfolder(const nsAString& folderName,nsIMsgWindow *msgWindow ) override;
   NS_IMETHOD AddSubfolder(const nsAString& aName, nsIMsgFolder** aChild) override;
-  NS_IMETHODIMP CreateStorageIfMissing(nsIUrlListener* urlListener);
+  NS_IMETHODIMP CreateStorageIfMissing(nsIUrlListener* urlListener) override;
 
   NS_IMETHOD Compact(nsIUrlListener *aListener, nsIMsgWindow *aMsgWindow) override;
   NS_IMETHOD CompactAll(nsIUrlListener *aListener, nsIMsgWindow *aMsgWindow,
@@ -459,7 +459,7 @@ protected:
   nsCOMPtr<nsIMsgFilterPlugin> m_filterPlugin;  // XXX should be a list
   // used with filter plugins to know when we've finished classifying and can playback moves
   bool m_msgMovedByFilter;
-  nsImapMoveCoalescer *m_moveCoalescer; // strictly owned by the nsImapMailFolder
+  RefPtr<nsImapMoveCoalescer> m_moveCoalescer; // strictly owned by the nsImapMailFolder
   nsCOMPtr<nsIMutableArray> m_junkMessagesToMarkAsRead;
   /// list of keys to be moved to the junk folder
   nsTArray<nsMsgKey> mSpamKeysToMove;

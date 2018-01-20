@@ -3,6 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 Components.utils.import("resource:///modules/ABQueryUtils.jsm");
+Components.utils.import("resource:///modules/mailServices.js");
+Components.utils.import("resource://gre/modules/PluralForm.jsm");
+Components.utils.import("resource://gre/modules/Services.jsm");
 
 const nsIAbListener = Components.interfaces.nsIAbListener;
 const kPrefMailAddrBookLastNameFirst = "mail.addr_book.lastnamefirst";
@@ -165,13 +168,13 @@ function UpdateCardView()
   // either no cards, or more than one card is selected, clear the pane.
   if (cards.length == 1)
     OnClickedCard(cards[0])
-  else 
+  else
     ClearCardViewPane();
 }
 
 function OnClickedCard(card)
-{ 
-  if (card) 
+{
+  if (card)
     DisplayCardViewPane(card);
   else
     ClearCardViewPane();
@@ -190,33 +193,25 @@ function AbPrintCardInternal(doPrintPreview, msgType)
   if (!numSelected)
     return;
 
-  var uri = GetSelectedDirectory();
-  if (!uri)
-    return;
+  let statusFeedback;
+  statusFeedback = Components.classes["@mozilla.org/messenger/statusfeedback;1"].createInstance();
+  statusFeedback = statusFeedback.QueryInterface(Components.interfaces.nsIMsgStatusFeedback);
 
-   var statusFeedback;
-   statusFeedback = Components.classes["@mozilla.org/messenger/statusfeedback;1"].createInstance();
-   statusFeedback = statusFeedback.QueryInterface(Components.interfaces.nsIMsgStatusFeedback);
+  let selectionArray = [];
 
-   var selectionArray = new Array(numSelected);
-
-   var totalCard = 0;
-
-   for (var i = 0; i < numSelected; i++)
-   {
-     var card = selectedItems[i];
-     var printCardUrl = CreatePrintCardUrl(card);
-     if (printCardUrl)
-     {
-        selectionArray[totalCard++] = printCardUrl;
-     }
+  for (let i = 0; i < numSelected; i++) {
+    let card = selectedItems[i];
+    let printCardUrl = CreatePrintCardUrl(card);
+    if (printCardUrl) {
+      selectionArray.push(printCardUrl);
+    }
   }
 
   printEngineWindow = window.openDialog("chrome://messenger/content/msgPrintEngine.xul",
                                          "",
                                          "chrome,dialog=no,all",
-                                          totalCard, selectionArray, statusFeedback, 
-                                          doPrintPreview, msgType);
+                                         selectionArray.length, selectionArray,
+                                         statusFeedback, doPrintPreview, msgType);
 
   return;
 }
@@ -238,7 +233,7 @@ function CreatePrintCardUrl(card)
 
 function AbPrintAddressBookInternal(doPrintPreview, msgType)
 {
-  var uri = GetSelectedDirectory();
+  let uri = getSelectedDirectoryURI();
   if (!uri)
     return;
 
@@ -272,13 +267,49 @@ function AbPrintPreviewAddressBook()
   AbPrintAddressBookInternal(true, Components.interfaces.nsIMsgPrintEngine.MNAB_PRINTPREVIEW_ADDRBOOK);
 }
 
-function AbExport()
+/**
+ * Export the currently selected addressbook.
+ */
+function AbExportSelection() {
+  let selectedDirURI = getSelectedDirectoryURI();
+  if (!selectedDirURI)
+    return;
+
+  if (selectedDirURI == (kAllDirectoryRoot + "?"))
+    AbExportAll();
+  else
+    AbExport(selectedDirURI);
+}
+
+/**
+ * Export all found addressbooks, each in a separate file.
+ */
+function AbExportAll()
 {
+  let directories = MailServices.ab.directories;
+
+  while (directories.hasMoreElements()) {
+    let directory = directories.getNext();
+    // Do not export LDAP ABs.
+    if (directory.URI.startsWith(kLdapUrlPrefix))
+      continue;
+
+    AbExport(directory.URI);
+  }
+}
+
+/**
+ * Export the specified addressbook to a file.
+ *
+ * @param aSelectedDirURI  The URI of the addressbook to export.
+ */
+function AbExport(aSelectedDirURI)
+{
+  if (!aSelectedDirURI)
+    return;
+
   try {
-    var selectedABURI = GetSelectedDirectory();
-    if (!selectedABURI) return;
-    
-    var directory = GetDirectoryFromURI(selectedABURI);
+    let directory = GetDirectoryFromURI(aSelectedDirURI);
     MailServices.ab.exportAddressBook(window, directory);
   }
   catch (ex) {
@@ -296,7 +327,7 @@ function AbExport()
     }
 
     Services.prompt.alert(window,
-      gAddressBookBundle.getString("failedToExportTitle"), 
+      gAddressBookBundle.getString("failedToExportTitle"),
       message);
   }
 }
@@ -307,21 +338,19 @@ function SetStatusText(total)
     gStatusText = document.getElementById('statusText');
 
   try {
-    var statusText;
+    let statusText;
 
     if (gSearchInput.value) {
-      if (total == 0)
+      if (total == 0) {
         statusText = gAddressBookBundle.getString("noMatchFound");
-      else
-      {
-        if (total == 1)
-          statusText = gAddressBookBundle.getString("matchFound");
-        else  
-          statusText = gAddressBookBundle.getFormattedString("matchesFound", [total]);
+      } else {
+        statusText = PluralForm
+          .get(total, gAddressBookBundle.getString("matchesFound1"))
+          .replace("#1", total);
       }
-    } 
+    }
     else
-      statusText = gAddressBookBundle.getFormattedString("totalContactStatus", [gAbView.directory.dirName, total]);   
+      statusText = gAddressBookBundle.getFormattedString("totalContactStatus", [gAbView.directory.dirName, total]);
 
     gStatusText.setAttribute("label", statusText);
   }
@@ -337,32 +366,33 @@ function AbResultsPaneDoubleClick(card)
 
 function onAdvancedAbSearch()
 {
-  var selectedABURI = GetSelectedDirectory();
-  if (!selectedABURI) return;
+  let selectedDirURI = getSelectedDirectoryURI();
+  if (!selectedDirURI)
+    return;
 
   var existingSearchWindow = Services.wm.getMostRecentWindow("mailnews:absearch");
   if (existingSearchWindow)
     existingSearchWindow.focus();
   else
-    window.openDialog("chrome://messenger/content/ABSearchDialog.xul", "", 
-                      "chrome,resizable,status,centerscreen,dialog=no", 
-                      {directory: selectedABURI});
+    window.openDialog("chrome://messenger/content/ABSearchDialog.xul", "",
+                      "chrome,resizable,status,centerscreen,dialog=no",
+                      {directory: selectedDirURI});
 }
 
 function onEnterInSearchBar()
 {
-  ClearCardViewPane();  
+  ClearCardViewPane();
 
   if (!gQueryURIFormat) {
     // Get model query from pref, without preceding "?", so we need to add it again
     gQueryURIFormat = "?" + getModelQuery("mail.addr_book.quicksearchquery.format");
   }
-  var searchURI = GetSelectedDirectory();
+  let searchURI = getSelectedDirectoryURI();
   if (!searchURI) return;
 
   /*
    XXX todo, handle the case where the LDAP url
-   already has a query, like 
+   already has a query, like
    moz-abldapdirectory://nsdirectory.netscape.com:389/ou=People,dc=netscape,dc=com?(or(Department,=,Applications))
   */
   if (gSearchInput.value != "") {
@@ -372,9 +402,9 @@ function onEnterInSearchBar()
   }
 
   SetAbView(searchURI);
-  
-  // XXX todo 
-  // this works for synchronous searches of local addressbooks, 
+
+  // XXX todo
+  // this works for synchronous searches of local addressbooks,
   // but not for LDAP searches
   SelectFirstCard();
 }
@@ -398,9 +428,9 @@ function SwitchPaneFocus(event)
       if(cardViewBoxEmail1)
         cardViewBoxEmail1.focus();
       else
-        cardViewBox.focus();    
+        cardViewBox.focus();
     }
-    else 
+    else
       gAbResultsTree.focus();
   }
   else
@@ -412,7 +442,7 @@ function SwitchPaneFocus(event)
       if(cardViewBoxEmail1)
         cardViewBoxEmail1.focus();
       else
-        cardViewBox.focus();    
+        cardViewBox.focus();
     }
     else if (focusedElement != dirTree && !IsDirPaneCollapsed())
       dirTree.focus();
@@ -428,7 +458,7 @@ function WhichPaneHasFocus()
   var cardViewBox       = GetCardViewBox();
   var searchBox         = GetSearchBox();
   var dirTree           = GetDirTree();
-    
+
   var currentNode = top.document.commandDispatcher.focusedElement;
   while (currentNode)
   {

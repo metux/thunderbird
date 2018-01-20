@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -10,26 +11,26 @@
 #include "nsHTMLButtonControlFrame.h"
 #include "nsIAnonymousContentCreator.h"
 
-typedef nsHTMLButtonControlFrame nsColorControlFrameSuper;
+namespace mozilla {
+enum class CSSPseudoElementType : uint8_t;
+} // namespace mozilla
 
 // Class which implements the input type=color
 
-class nsColorControlFrame final : public nsColorControlFrameSuper,
+class nsColorControlFrame final : public nsHTMLButtonControlFrame,
                                   public nsIAnonymousContentCreator
 {
+  typedef mozilla::CSSPseudoElementType CSSPseudoElementType;
   typedef mozilla::dom::Element Element;
 
 public:
   friend nsIFrame* NS_NewColorControlFrame(nsIPresShell* aPresShell,
                                            nsStyleContext* aContext);
 
-  virtual void DestroyFrom(nsIFrame* aDestructRoot) override;
+  virtual void DestroyFrom(nsIFrame* aDestructRoot, PostDestroyData& aPostDestroyData) override;
 
-  NS_DECL_QUERYFRAME_TARGET(nsColorControlFrame)
   NS_DECL_QUERYFRAME
-  NS_DECL_FRAMEARENA_HELPERS
-
-  virtual nsIAtom* GetType() const override;
+  NS_DECL_FRAMEARENA_HELPERS(nsColorControlFrame)
 
 #ifdef DEBUG_FRAME_DUMP
   virtual nsresult GetFrameName(nsAString& aResult) const override;
@@ -42,12 +43,11 @@ public:
 
   // nsIFrame
   virtual nsresult AttributeChanged(int32_t  aNameSpaceID,
-                                    nsIAtom* aAttribute,
+                                    nsAtom* aAttribute,
                                     int32_t  aModType) override;
-  virtual bool IsLeaf() const override { return true; }
   virtual nsContainerFrame* GetContentInsertionFrame() override;
 
-  virtual Element* GetPseudoElement(nsCSSPseudoElements::Type aType) override;
+  virtual Element* GetPseudoElement(CSSPseudoElementType aType) override;
 
   // Refresh the color swatch, using associated input's value
   nsresult UpdateColor();

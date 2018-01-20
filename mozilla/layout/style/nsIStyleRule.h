@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -13,8 +14,10 @@
 
 #include <stdio.h>
 
+#include "nsCSSPropertyID.h"
 #include "nsISupports.h"
 
+class nsCSSValue;
 struct nsRuleData;
 
 // IID for the nsIStyleRule interface {f75f3f70-435d-43a6-a01b-65970489ca26}
@@ -76,6 +79,13 @@ public:
    * properties.
    */
   virtual bool MightMapInheritedStyleData() = 0;
+
+  /**
+   * Gets and sets given aProperty's value to aValue.
+   * Returns true, if aValue is filled in this rule.
+   */
+  virtual bool GetDiscretelyAnimatedCSSValue(nsCSSPropertyID aProperty,
+                                             nsCSSValue* aValue) = 0;
 
 #ifdef DEBUG
   virtual void List(FILE* out = stdout, int32_t aIndent = 0) const = 0;

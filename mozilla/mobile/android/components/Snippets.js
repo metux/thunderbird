@@ -140,7 +140,7 @@ function updateSnippets() {
 function cacheSnippets(response) {
   let data = gEncoder.encode(response);
   let promise = OS.File.writeAtomic(gSnippetsPath, data, { tmpPath: gSnippetsPath + ".tmp" });
-  promise.then(null, e => Cu.reportError("Error caching snippets: " + e));
+  promise.catch(e => Cu.reportError("Error caching snippets: " + e));
 }
 
 /**
@@ -203,8 +203,7 @@ function updateBanner(messages) {
       icon: message.icon,
       weight: message.weight,
       onclick: function() {
-        let parentId = gChromeWin.BrowserApp.selectedTab.id;
-        gChromeWin.BrowserApp.addTab(message.url, { parentId: parentId });
+        gChromeWin.BrowserApp.loadURI(message.url);
         removeSnippet(id, message.id);
         UITelemetry.addEvent("action.1", "banner", null, message.id);
       },
@@ -229,6 +228,7 @@ function updateBanner(messages) {
  * snippet id in a pref so we'll never show it again.
  *
  * @param messageId unique id for home banner message, returned from Home.banner API
+ * @param snippetId unique id for snippet, sent from snippets server
  */
 function removeSnippet(messageId, snippetId) {
   // Remove the message from the home banner rotation.
@@ -257,7 +257,7 @@ function removeSnippet(messageId, snippetId) {
 function writeStat(snippetId, timestamp) {
   let data = gEncoder.encode(snippetId + "," + timestamp + ";");
 
-  Task.spawn(function() {
+  Task.spawn(function*() {
     try {
       let file = yield OS.File.open(gStatsPath, { append: true, write: true });
       try {
@@ -269,7 +269,7 @@ function writeStat(snippetId, timestamp) {
       // If the file doesn't exist yet, create it.
       yield OS.File.writeAtomic(gStatsPath, data, { tmpPath: gStatsPath + ".tmp" });
     }
-  }).then(null, e => Cu.reportError("Error writing snippets stats: " + e));
+  }).catch(e => Cu.reportError("Error writing snippets stats: " + e));
 }
 
 /**
@@ -315,7 +315,7 @@ function sendStatsRequest(data) {
  */
 function removeStats() {
   let promise = OS.File.remove(gStatsPath);
-  promise.then(null, e => Cu.reportError("Error removing snippets stats: " + e));
+  promise.catch(e => Cu.reportError("Error removing snippets stats: " + e));
 }
 
 /**

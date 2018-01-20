@@ -16,11 +16,9 @@ test();
 
 function test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
 
-  jit(true);
  
 // regression test for Bug 452008 - TM: SRP in Clipperz crypto library fails when JIT (TraceMonkey) is enabled. 
 
@@ -142,12 +140,9 @@ function test()
   }
   print(passed);
 
-  jit(false);
 
   expect = true;
   actual = passed;
 
   reportCompare(expect, actual, summary);
-
-  exitFunc ('test');
 }

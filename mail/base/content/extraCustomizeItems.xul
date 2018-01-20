@@ -37,7 +37,6 @@
                  autocompletesearch="gloda"
                  autocompletepopup="PopupGlodaAutocomplete"
                  autocompletesearchparam="global"
-                 enablehistory="false"
                  timeout="200"
                  maxlength="192"
                  placeholder=""
@@ -52,9 +51,7 @@
                clear the box, if people want to clear it that way...
                -->
           <hbox>
-            <image class="gloda-search-icon"
-                   onclick="document.getElementById('searchInput').doSearch();"
-                   />
+            <image class="gloda-search-icon"/>
           </hbox>
         </textbox>
     </toolbaritem>
@@ -79,8 +76,9 @@
                    class="menulist-menupopup"
                    type="folder"
                    flex="1"
+                   mode="notDeferred"
                    showFileHereLabel="true"
-                   oncommand="gFolderTreeView.selectFolder(event.target._folder);"/>
+                   oncommand="gFolderTreeView.selectFolder(event.target._folder, true);"/>
       </menulist>
     </toolbaritem>
     <toolbaritem id="mailviews-container"
@@ -93,7 +91,6 @@
              accesskey="&viewPicker.accesskey;"/>
       <menulist id="viewPicker" oncommand="ViewChangeByMenuitem(event.target);">
         <menupopup id="viewPickerPopup"
-                   class="noIconPopup"
                    onpopupshowing="RefreshViewPopup(this);">
           <menuitem id="viewPickerAll" value="0"
                     label="&viewAll.label;"

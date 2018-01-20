@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "be": {
+      "chrome_resources": {
+        "necko": "chrome/be/locale/be/necko/", 
+        "global": "chrome/be/locale/be/global/", 
+        "messenger-region": "chrome/be/locale/be/messenger-region/", 
+        "chat": "chrome/be/locale/be/chat/", 
+        "devtools": "chrome/be/locale/be/devtools/client/", 
+        "pipnss": "chrome/be/locale/be/pipnss/", 
+        "messenger-smime": "chrome/be/locale/be/messenger-smime/", 
+        "messenger-newsblog": "chrome/be/locale/be/messenger-newsblog/", 
+        "devtools-shim": "chrome/be/locale/be/devtools/shim/", 
+        "alerts": "chrome/be/locale/be/alerts/", 
+        "messenger": "chrome/be/locale/be/messenger/", 
+        "editor": "chrome/be/locale/be/editor/", 
+        "branding": "chrome/be/locale/be/branding/", 
+        "mozldap": "chrome/be/locale/be/mozldap/", 
+        "autoconfig": "chrome/be/locale/be/autoconfig/", 
+        "devtools-shared": "chrome/be/locale/be/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/be/locale/be/global-platform/win/", 
+          "android": "chrome/be/locale/be/global-platform/unix/", 
+          "macosx": "chrome/be/locale/be/global-platform/mac/", 
+          "linux": "chrome/be/locale/be/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/be/locale/be/mozapps/", 
+        "pluginproblem": "chrome/be/locale/be/pluginproblem/", 
+        "communicator": "chrome/be/locale/be/communicator/", 
+        "messenger-mapi": "chrome/be/locale/be/messenger-mapi/", 
+        "places": "chrome/be/locale/be/places/", 
+        "passwordmgr": "chrome/be/locale/be/passwordmgr/", 
+        "pippki": "chrome/be/locale/be/pippki/"
+      }, 
+      "version": "20140812062936"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "58.0", 
+      "id": "langpack-be@firefox.mozilla.org", 
+      "strict_max_version": "58.*"
+    }
+  }, 
+  "langpack_id": "be", 
+  "version": "58.0", 
+  "name": "Беларуская Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "mozilla.org (contributors: mozilla by)", 
+  "description": "Language pack for Thunderbird for be"
+}

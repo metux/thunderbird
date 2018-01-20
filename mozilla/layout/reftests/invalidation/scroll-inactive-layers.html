@@ -1,5 +1,9 @@
 <!DOCTYPE html>
-<html class="reftest-wait">
+<html class="reftest-wait"
+      reftest-displayport-x="0"
+      reftest-displayport-y="0"
+      reftest-displayport-w="800"
+      reftest-displayport-h="1000">
 <title>Scrolling over inactive layers shouldn't repaint their contents</title>
 
 <style>
@@ -72,6 +76,6 @@ function doTest() {
   document.documentElement.scrollTop = 100;
   document.documentElement.removeAttribute("class");
 }
-document.addEventListener("MozReftestInvalidate", doTest, false);
+document.addEventListener("MozReftestInvalidate", doTest);
 
 </script>

@@ -19,10 +19,13 @@
 #include "nsCOMArray.h"
 #include "nsDirectoryServiceUtils.h"
 #include "mozilla/ModuleUtils.h"
+#include "mozilla/intl/LocaleService.h"
 #include "nsServiceManagerUtils.h"
-#include "nsStringAPI.h"
+#include "nsString.h"
 #include "nsXULAppAPI.h"
 #include "nsIPrefLocalizedString.h"
+
+using mozilla::intl::LocaleService;
 
 namespace mozilla {
 namespace browser {
@@ -34,74 +37,7 @@ NS_IMPL_ISUPPORTS(DirectoryProvider,
 NS_IMETHODIMP
 DirectoryProvider::GetFile(const char *aKey, bool *aPersist, nsIFile* *aResult)
 {
-  nsresult rv;
-
-  *aResult = nullptr;
-
-  // NOTE: This function can be reentrant through the NS_GetSpecialDirectory
-  // call, so be careful not to cause infinite recursion.
-
-  nsCOMPtr<nsIFile> file;
-
-  char const* leafName = nullptr;
-
-  if (!strcmp(aKey, NS_APP_BOOKMARKS_50_FILE)) {
-    leafName = "bookmarks.html";
-
-    nsCOMPtr<nsIPrefBranch> prefs(do_GetService(NS_PREFSERVICE_CONTRACTID));
-    if (prefs) {
-      nsCString path;
-      rv = prefs->GetCharPref("browser.bookmarks.file", getter_Copies(path));
-      if (NS_SUCCEEDED(rv)) {
-        NS_NewNativeLocalFile(path, true, getter_AddRefs(file));
-      }
-    }
-  }
-  else {
-    return NS_ERROR_FAILURE;
-  }
-
-  nsDependentCString leafstr(leafName);
-
-  nsCOMPtr<nsIFile> parentDir;
-  if (file) {
-    rv = file->GetParent(getter_AddRefs(parentDir));
-    if (NS_FAILED(rv))
-      return rv;
-  }
-  else {
-    rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR, getter_AddRefs(parentDir));
-    if (NS_FAILED(rv))
-      return rv;
-
-    rv = parentDir->Clone(getter_AddRefs(file));
-    if (NS_FAILED(rv))
-      return rv;
-
-    file->AppendNative(leafstr);
-  }
-
-  *aPersist = true;
-  NS_ADDREF(*aResult = file);
-
-  return NS_OK;
-}
-
-static void
-AppendFileKey(const char *key, nsIProperties* aDirSvc,
-              nsCOMArray<nsIFile> &array)
-{
-  nsCOMPtr<nsIFile> file;
-  nsresult rv = aDirSvc->Get(key, NS_GET_IID(nsIFile), getter_AddRefs(file));
-  if (NS_FAILED(rv))
-    return;
-
-  bool exists;
-  rv = file->Exists(&exists);
-  if (NS_FAILED(rv) || !exists)
-    return;
-
-  array.AppendObject(file);
+  return NS_ERROR_FAILURE;
 }
 
 // Appends the distribution-specific search engine directories to the
@@ -156,38 +92,9 @@ AppendDistroSearchDirs(nsIProperties* aDirSvc, nsCOMArray<nsIFile> &array)
 
     localePlugins->AppendNative(NS_LITERAL_CSTRING("locale"));
 
-    nsCString locale;
-    nsCOMPtr<nsIPrefLocalizedString> prefString;
-    rv = prefs->GetComplexValue("general.useragent.locale",
-                                NS_GET_IID(nsIPrefLocalizedString),
-                                getter_AddRefs(prefString));
-    if (NS_SUCCEEDED(rv)) {
-      nsAutoString wLocale;
-      prefString->GetData(getter_Copies(wLocale));
-      CopyUTF16toUTF8(wLocale, locale);
-    } else {
-      rv = prefs->GetCharPref("general.useragent.locale", getter_Copies(locale));
-    }
-
-    if (NS_SUCCEEDED(rv)) {
-
-      nsCOMPtr<nsIFile> curLocalePlugins;
-      rv = localePlugins->Clone(getter_AddRefs(curLocalePlugins));
-      if (NS_SUCCEEDED(rv)) {
-
-        curLocalePlugins->AppendNative(locale);
-        rv = curLocalePlugins->Exists(&exists);
-        if (NS_SUCCEEDED(rv) && exists) {
-          array.AppendObject(curLocalePlugins);
-          return; // all done
-        }
-      }
-    }
-
-    // we didn't append the locale dir - try the default one
-    nsCString defLocale;
+    nsAutoCString defLocale;
     rv = prefs->GetCharPref("distribution.searchplugins.defaultLocale",
-                            getter_Copies(defLocale));
+                            defLocale);
     if (NS_SUCCEEDED(rv)) {
 
       nsCOMPtr<nsIFile> defLocalePlugins;
@@ -196,8 +103,26 @@ AppendDistroSearchDirs(nsIProperties* aDirSvc, nsCOMArray<nsIFile> &array)
 
         defLocalePlugins->AppendNative(defLocale);
         rv = defLocalePlugins->Exists(&exists);
-        if (NS_SUCCEEDED(rv) && exists)
+        if (NS_SUCCEEDED(rv) && exists) {
           array.AppendObject(defLocalePlugins);
+          return; // all done
+        }
+      }
+    }
+
+    // we didn't have a defaultLocale, use the user agent locale
+    nsAutoCString locale;
+    LocaleService::GetInstance()->GetAppLocaleAsLangTag(locale);
+
+    nsCOMPtr<nsIFile> curLocalePlugins;
+    rv = localePlugins->Clone(getter_AddRefs(curLocalePlugins));
+    if (NS_SUCCEEDED(rv)) {
+
+      curLocalePlugins->AppendNative(locale);
+      rv = curLocalePlugins->Exists(&exists);
+      if (NS_SUCCEEDED(rv) && exists) {
+        array.AppendObject(curLocalePlugins);
+        return; // all done
       }
     }
   }
@@ -206,23 +131,6 @@ AppendDistroSearchDirs(nsIProperties* aDirSvc, nsCOMArray<nsIFile> &array)
 NS_IMETHODIMP
 DirectoryProvider::GetFiles(const char *aKey, nsISimpleEnumerator* *aResult)
 {
-  /**
-   * We want to preserve the following order, since the search service loads
-   * engines in first-loaded-wins order.
-   *   - distro search plugin locations (Loaded by the search service using
-   *     NS_APP_DISTRIBUTION_SEARCH_DIR_LIST)
-   *
-   *   - engines shipped in chrome (Loaded from jar files by the search
-   *     service)
-   *
-   *   Then other locations, from NS_APP_SEARCH_DIR_LIST:
-   *   - extension search plugin locations (prepended below using
-   *     NS_NewUnionEnumerator)
-   *   - user search plugin locations (profile)
-   */
-
-  nsresult rv;
-
   if (!strcmp(aKey, NS_APP_DISTRIBUTION_SEARCH_DIR_LIST)) {
     nsCOMPtr<nsIProperties> dirSvc
       (do_GetService(NS_DIRECTORY_SERVICE_CONTRACTID));
@@ -233,37 +141,6 @@ DirectoryProvider::GetFiles(const char *aKey, nsISimpleEnumerator* *aResult)
     AppendDistroSearchDirs(dirSvc, distroFiles);
 
     return NS_NewArrayEnumerator(aResult, distroFiles);
-  }
-
-  if (!strcmp(aKey, NS_APP_SEARCH_DIR_LIST)) {
-    nsCOMPtr<nsIProperties> dirSvc
-      (do_GetService(NS_DIRECTORY_SERVICE_CONTRACTID));
-    if (!dirSvc)
-      return NS_ERROR_FAILURE;
-
-    nsCOMArray<nsIFile> baseFiles;
-
-    AppendFileKey(NS_APP_USER_SEARCH_DIR, dirSvc, baseFiles);
-
-    nsCOMPtr<nsISimpleEnumerator> baseEnum;
-    rv = NS_NewArrayEnumerator(getter_AddRefs(baseEnum), baseFiles);
-    if (NS_FAILED(rv))
-      return rv;
-
-    nsCOMPtr<nsISimpleEnumerator> list;
-    rv = dirSvc->Get(XRE_EXTENSIONS_DIR_LIST,
-                     NS_GET_IID(nsISimpleEnumerator), getter_AddRefs(list));
-    if (NS_FAILED(rv))
-      return rv;
-
-    static char const *const kAppendSPlugins[] = {"searchplugins", nullptr};
-
-    nsCOMPtr<nsISimpleEnumerator> extEnum =
-      new AppendingEnumerator(list, kAppendSPlugins);
-    if (!extEnum)
-      return NS_ERROR_OUT_OF_MEMORY;
-
-    return NS_NewUnionEnumerator(aResult, extEnum, baseEnum);
   }
 
   return NS_ERROR_FAILURE;

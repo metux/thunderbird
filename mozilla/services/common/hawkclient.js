@@ -28,11 +28,10 @@ this.EXPORTED_SYMBOLS = ["HawkClient"];
 
 var {interfaces: Ci, utils: Cu} = Components;
 
-Cu.import("resource://services-common/utils.js");
 Cu.import("resource://services-crypto/utils.js");
 Cu.import("resource://services-common/hawkrequest.js");
 Cu.import("resource://services-common/observers.js");
-Cu.import("resource://gre/modules/Promise.jsm");
+Cu.import("resource://gre/modules/PromiseUtils.jsm");
 Cu.import("resource://gre/modules/Log.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
@@ -72,7 +71,7 @@ XPCOMUtils.defineLazyGetter(this, "log", function() {
 
 // A boolean to indicate if personally identifiable information (or anything
 // else sensitive, such as credentials) should be logged.
-XPCOMUtils.defineLazyGetter(this, 'logPII', function() {
+XPCOMUtils.defineLazyGetter(this, "logPII", function() {
   try {
     return Services.prefs.getBoolPref(PREF_LOG_SENSITIVE_DETAILS);
   } catch (_) {
@@ -97,9 +96,14 @@ this.HawkClient = function(host) {
   // Clock offset in milliseconds between our client's clock and the date
   // reported in responses from our host.
   this._localtimeOffsetMsec = 0;
-}
+};
 
 this.HawkClient.prototype = {
+
+  /*
+   * A boolean for feature detection.
+   */
+  willUTF8EncodeRequests: HAWKAuthenticatedRESTRequest.prototype.willUTF8EncodeObjectRequests,
 
   /*
    * Construct an error message for a response.  Private.
@@ -110,9 +114,9 @@ this.HawkClient.prototype = {
    * @param error
    *        A string or object describing the error
    */
-  _constructError: function(restResponse, error) {
+  _constructError(restResponse, error) {
     let errorObj = {
-      error: error,
+      error,
       // This object is likely to be JSON.stringify'd, but neither Error()
       // objects nor Components.Exception objects do the right thing there,
       // so we add a new element which is simply the .toString() version of
@@ -152,12 +156,12 @@ this.HawkClient.prototype = {
    * For HAWK clock skew and replay protection, see
    * https://github.com/hueniverse/hawk#replay-protection
    */
-  _updateClockOffset: function(dateString) {
+  _updateClockOffset(dateString) {
     try {
       let serverDateMsec = Date.parse(dateString);
       this._localtimeOffsetMsec = serverDateMsec - this.now();
       log.debug("Clock offset vs " + this.host + ": " + this._localtimeOffsetMsec);
-    } catch(err) {
+    } catch (err) {
       log.warn("Bad date header in server response: " + dateString);
     }
   },
@@ -176,7 +180,7 @@ this.HawkClient.prototype = {
   /*
    * return current time in milliseconds
    */
-  now: function() {
+  now() {
     return Date.now();
   },
 
@@ -199,11 +203,11 @@ this.HawkClient.prototype = {
    *        as JSON and contains an 'error' property, the promise will be
    *        rejected with this JSON-parsed response.
    */
-  request: function(path, method, credentials=null, payloadObj={}, extraHeaders = {},
-                    retryOK=true) {
+  request(path, method, credentials = null, payloadObj = {}, extraHeaders = {},
+                    retryOK = true) {
     method = method.toLowerCase();
 
-    let deferred = Promise.defer();
+    let deferred = PromiseUtils.defer();
     let uri = this.host + path;
     let self = this;
 
@@ -213,6 +217,11 @@ this.HawkClient.prototype = {
       // correctly in the logs by the time it's passed through _constructError.
       if (error) {
         log.warn("hawk request error", error);
+      }
+      // If there's no response there's nothing else to do.
+      if (!this.response) {
+        deferred.reject(error);
+        return;
       }
       let restResponse = this.response;
       let status = restResponse.status;
@@ -231,17 +240,18 @@ this.HawkClient.prototype = {
       if (error) {
         // When things really blow up, reconstruct an error object that follows
         // the general format of the server on error responses.
-        return deferred.reject(self._constructError(restResponse, error));
+        deferred.reject(self._constructError(restResponse, error));
+        return;
       }
 
-      self._updateClockOffset(restResponse.headers["date"]);
+      self._updateClockOffset(restResponse.headers.date);
 
       if (status === 401 && retryOK && !("retry-after" in restResponse.headers)) {
         // Retry once if we were rejected due to a bad timestamp.
         // Clock offset is adjusted already in the top of this function.
         log.debug("Received 401 for " + path + ": retrying");
-        return deferred.resolve(
-            self.request(path, method, credentials, payloadObj, extraHeaders, false));
+        deferred.resolve(self.request(path, method, credentials, payloadObj, extraHeaders, false));
+        return;
       }
 
       // If the server returned a json error message, use it in the rejection
@@ -254,19 +264,21 @@ this.HawkClient.prototype = {
       let jsonResponse = {};
       try {
         jsonResponse = JSON.parse(restResponse.body);
-      } catch(notJSON) {}
+      } catch (notJSON) {}
 
       let okResponse = (200 <= status && status < 300);
       if (!okResponse || jsonResponse.error) {
         if (jsonResponse.error) {
-          return deferred.reject(jsonResponse);
+          deferred.reject(jsonResponse);
+        } else {
+          deferred.reject(self._constructError(restResponse, "Request failed"));
         }
-        return deferred.reject(self._constructError(restResponse, "Request failed"));
+        return;
       }
       // It's up to the caller to know how to decode the response.
       // We just return the whole response.
       deferred.resolve(this.response);
-    };
+    }
 
     function onComplete(error) {
       try {
@@ -274,8 +286,7 @@ this.HawkClient.prototype = {
         // gets the same one.
         _onComplete.call(this, error);
       } catch (ex) {
-        log.error("Unhandled exception processing response:" +
-                  CommonUtils.exceptionStr(ex));
+        log.error("Unhandled exception processing response", ex);
         deferred.reject(ex);
       }
     }
@@ -311,7 +322,7 @@ this.HawkClient.prototype = {
   observerPrefix: null,
 
   // Given an optional header value, notify that a backoff has been requested.
-  _maybeNotifyBackoff: function (response, headerName) {
+  _maybeNotifyBackoff(response, headerName) {
     if (!this.observerPrefix || !response.headers) {
       return;
     }
@@ -331,8 +342,8 @@ this.HawkClient.prototype = {
   },
 
   // override points for testing.
-  newHAWKAuthenticatedRESTRequest: function(uri, credentials, extra) {
+  newHAWKAuthenticatedRESTRequest(uri, credentials, extra) {
     return new HAWKAuthenticatedRESTRequest(uri, credentials, extra);
   },
 
-}
+};

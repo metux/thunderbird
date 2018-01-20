@@ -1,6 +1,7 @@
 /* vim: set ts=2 et sw=2 tw=80: */
 /* Any copyright is dedicated to the Public Domain.
  http://creativecommons.org/publicdomain/zero/1.0/ */
+/* eslint-disable mozilla/no-arbitrary-setTimeout */
 
 "use strict";
 
@@ -12,10 +13,11 @@ requestLongerTimeout(2);
 // reset to 0, and that the scrubber stops moving and is positioned to the
 // start.
 
-add_task(function*() {
-  yield addTab(TEST_URL_ROOT + "doc_simple_animation.html");
+add_task(function* () {
+  yield addTab(URL_ROOT + "doc_simple_animation.html");
 
   let {panel, controller} = yield openAnimationInspector();
+  let players = controller.animationPlayers;
   let btn = panel.rewindTimelineButtonEl;
 
   ok(btn, "The rewind button exists");
@@ -26,9 +28,9 @@ add_task(function*() {
   info("Check that the scrubber has stopped moving");
   yield assertScrubberMoving(panel, false);
 
-  ok(controller.animationPlayers.every(({state}) => state.currentTime === 0),
+  ok(players.every(({state}) => state.currentTime === 0),
      "All animations' currentTimes have been set to 0");
-  ok(controller.animationPlayers.every(({state}) => state.playState === "paused"),
+  ok(players.every(({state}) => state.playState === "paused"),
      "All animations have been paused");
 
   info("Play the animations again");
@@ -43,8 +45,8 @@ add_task(function*() {
   info("Check that the scrubber has stopped moving");
   yield assertScrubberMoving(panel, false);
 
-  ok(controller.animationPlayers.every(({state}) => state.currentTime === 0),
+  ok(players.every(({state}) => state.currentTime === 0),
      "All animations' currentTimes have been set to 0");
-  ok(controller.animationPlayers.every(({state}) => state.playState === "paused"),
+  ok(players.every(({state}) => state.playState === "paused"),
      "All animations have been paused");
 });

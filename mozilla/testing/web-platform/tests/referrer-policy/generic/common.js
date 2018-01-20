@@ -19,22 +19,44 @@ function parseUrlQueryString(queryString) {
   return params;
 };
 
-function appendIframeToBody(url) {
+function appendIframeToBody(url, attributes) {
   var iframe = document.createElement("iframe");
   iframe.src = url;
+  // Extend element with attributes. (E.g. "referrerPolicy" or "rel")
+  if (attributes) {
+    for (var attr in attributes) {
+      iframe[attr] = attributes[attr];
+    }
+  }
   document.body.appendChild(iframe);
 
   return iframe;
 }
 
-function loadImage(src, callback) {
-  var image = new Image();
+function loadImageInWindow(src, callback, attributes, w) {
+  var image = new w.Image();
   image.crossOrigin = "Anonymous";
   image.onload = function() {
     callback(image);
   }
+
+  // Extend element with attributes. (E.g. "referrerPolicy" or "rel")
+  if (attributes) {
+    for (var attr in attributes) {
+      image[attr] = attributes[attr];
+    }
+  }
+
   image.src = src;
-  document.body.appendChild(image)
+  w.document.body.appendChild(image)
+}
+
+function extractImageData(img) {
+    var canvas = document.createElement("canvas");
+    var context = canvas.getContext('2d');
+    context.drawImage(img, 0, 0);
+    var imgData = context.getImageData(0, 0, img.clientWidth, img.clientHeight);
+    return imgData.data;
 }
 
 function decodeImageData(rgba) {
@@ -61,16 +83,6 @@ function decodeImageData(rgba) {
   return JSON.parse(string_data);
 }
 
-function decodeImage(url, callback) {
-  loadImage(url, function(img) {
-    var canvas = document.createElement("canvas");
-    var context = canvas.getContext('2d');
-    context.drawImage(img, 0, 0);
-    var imgData = context.getImageData(0, 0, img.clientWidth, img.clientHeight);
-    callback(decodeImageData(imgData.data))
-  });
-}
-
 function normalizePort(targetPort) {
   var defaultPorts = [80, 443];
   var isDefaultPortForProtocol = (defaultPorts.indexOf(targetPort) >= 0);
@@ -87,8 +99,8 @@ function wrapResult(url, server_data) {
   }
 }
 
-function queryIframe(url, callback) {
-  var iframe = appendIframeToBody(url);
+function queryIframe(url, callback, referrer_policy) {
+  var iframe = appendIframeToBody(url, referrer_policy);
   var listener = function(event) {
     if (event.source != iframe.contentWindow)
       return;
@@ -99,10 +111,52 @@ function queryIframe(url, callback) {
   window.addEventListener("message", listener);
 }
 
-function queryImage(url, callback) {
-  decodeImage(url, function(server_data) {
-    callback(wrapResult(url, server_data), url);
-  })
+function queryImage(url, callback, attributes, referrerPolicy, test) {
+  // For images, we'll test:
+  // - images in a `srcdoc` frame to ensure that it uses the referrer
+  //   policy of its parent,
+  // - images in a top-level document,
+  // - and images in a `srcdoc` frame with its own referrer policy to
+  //   override its parent.
+
+  var noSrcDocPolicy = new Promise((resolve, reject) => {
+    var iframeWithoutOwnPolicy = document.createElement('iframe');
+    iframeWithoutOwnPolicy.srcdoc = "Hello, world.";
+    iframeWithoutOwnPolicy.onload = function () {
+      var nextUrl = url + "&cache_destroyer2=" + (new Date()).getTime();
+      loadImageInWindow(nextUrl, function (img) {
+        resolve(decodeImageData(extractImageData(img)));
+      }, attributes, iframeWithoutOwnPolicy.contentWindow);
+    };
+    document.body.appendChild(iframeWithoutOwnPolicy);
+  });
+
+  // Give a srcdoc iframe a referrer policy different from the top-level page's policy.
+  var iframePolicy = (referrerPolicy === "no-referrer") ? "unsafe-url" : "no-referrer";
+  var srcDocPolicy = new Promise((resolve, reject) => {
+    var iframeWithOwnPolicy = document.createElement('iframe');
+    iframeWithOwnPolicy.srcdoc = "<meta name='referrer' content='" + iframePolicy + "'>Hello world.";
+
+    iframeWithOwnPolicy.onload = function () {
+      var nextUrl = url + "&cache_destroyer3=" + (new Date()).getTime();
+      loadImageInWindow(nextUrl, function (img) {
+        resolve(decodeImageData(extractImageData(img)));
+      }, null, iframeWithOwnPolicy.contentWindow);
+    };
+    document.body.appendChild(iframeWithOwnPolicy);
+  });
+
+  var pagePolicy = new Promise((resolve, reject) => {
+    loadImageInWindow(url, function (img) {
+      resolve(decodeImageData(extractImageData(img)));
+    }, attributes, window);
+  });
+
+  Promise.all([noSrcDocPolicy, srcDocPolicy, pagePolicy]).then(test.step_func(values => {
+    assert_equals(values[0].headers.referer, values[2].headers.referer, "Referrer inside 'srcdoc' without its own policy should be the same as embedder's referrer.");
+    assert_equals((iframePolicy === "no-referrer" ? undefined : document.location.href), values[1].headers.referer, "Referrer inside 'srcdoc' should use the iframe's policy if it has one");
+    callback(wrapResult(url, values[2]), url);
+  }));
 }
 
 function queryXhr(url, callback) {

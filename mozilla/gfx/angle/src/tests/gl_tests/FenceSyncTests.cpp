@@ -145,7 +145,7 @@ TEST_P(FenceNVTest, BasicOperations)
     EXPECT_PIXEL_EQ(0, 0, 255, 0, 255, 255);
 }
 
-// FenceSync objects should respond true to IsSync after they are created with glFenceSync
+// Sync objects should respond true to IsSync after they are created with glFenceSync
 TEST_P(FenceSyncTest, IsSync)
 {
     GLsync sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
@@ -155,7 +155,7 @@ TEST_P(FenceSyncTest, IsSync)
     EXPECT_EQ(GL_FALSE, glIsSync(reinterpret_cast<GLsync>(40)));
 }
 
-// Test error cases for all FenceSync function
+// Test error cases for all Sync function
 TEST_P(FenceSyncTest, Errors)
 {
     GLsync sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
@@ -231,7 +231,7 @@ TEST_P(FenceSyncTest, BasicQueries)
 TEST_P(FenceSyncTest, BasicOperations)
 {
     // TODO(geofflang): Figure out why this is broken on Intel OpenGL
-    if (isIntel() && getPlatformRenderer() == EGL_PLATFORM_ANGLE_TYPE_OPENGL_ANGLE)
+    if (IsIntel() && getPlatformRenderer() == EGL_PLATFORM_ANGLE_TYPE_OPENGL_ANGLE)
     {
         std::cout << "Test skipped on Intel OpenGL." << std::endl;
         return;
@@ -271,5 +271,12 @@ TEST_P(FenceSyncTest, BasicOperations)
 }
 
 // Use this to select which configurations (e.g. which renderer, which GLES major version) these tests should be run against.
-ANGLE_INSTANTIATE_TEST(FenceNVTest, ES2_D3D9(), ES2_D3D11(), ES3_D3D11(), ES2_OPENGL(), ES3_OPENGL());
-ANGLE_INSTANTIATE_TEST(FenceSyncTest, ES3_D3D11(), ES3_OPENGL());
+ANGLE_INSTANTIATE_TEST(FenceNVTest,
+                       ES2_D3D9(),
+                       ES2_D3D11(),
+                       ES3_D3D11(),
+                       ES2_OPENGL(),
+                       ES3_OPENGL(),
+                       ES2_OPENGLES(),
+                       ES3_OPENGLES());
+ANGLE_INSTANTIATE_TEST(FenceSyncTest, ES3_D3D11(), ES3_OPENGL(), ES3_OPENGLES());

@@ -6,8 +6,6 @@
 
 #include "nsArray.h"
 #include "nsArrayEnumerator.h"
-#include "nsIWeakReference.h"
-#include "nsIWeakReferenceUtils.h"
 #include "nsThreadUtils.h"
 
 // used by IndexOf()
@@ -23,12 +21,14 @@ static bool FindElementCallback(void* aElement, void* aClosure);
 
 NS_INTERFACE_MAP_BEGIN(nsArray)
   NS_INTERFACE_MAP_ENTRY(nsIArray)
+  NS_INTERFACE_MAP_ENTRY(nsIArrayExtensions)
   NS_INTERFACE_MAP_ENTRY(nsIMutableArray)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIMutableArray)
 NS_INTERFACE_MAP_END
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsArrayCC)
   NS_INTERFACE_MAP_ENTRY(nsIArray)
+  NS_INTERFACE_MAP_ENTRY(nsIArrayExtensions)
   NS_INTERFACE_MAP_ENTRY(nsIMutableArray)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIMutableArray)
 NS_INTERFACE_MAP_END
@@ -110,23 +110,9 @@ nsArrayBase::Enumerate(nsISimpleEnumerator** aResult)
 // nsIMutableArray implementation
 
 NS_IMETHODIMP
-nsArrayBase::AppendElement(nsISupports* aElement, bool aWeak)
+nsArrayBase::AppendElement(nsISupports* aElement)
 {
-  bool result;
-  if (aWeak) {
-    nsCOMPtr<nsIWeakReference> elementRef = do_GetWeakReference(aElement);
-    NS_ASSERTION(elementRef,
-                 "AppendElement: Trying to use weak references on an object that doesn't support it");
-    if (!elementRef) {
-      return NS_ERROR_FAILURE;
-    }
-    result = mArray.AppendObject(elementRef);
-  }
-
-  else {
-    // add the object directly
-    result = mArray.AppendObject(aElement);
-  }
+  bool result = mArray.AppendObject(aElement);
   return result ? NS_OK : NS_ERROR_FAILURE;
 }
 
@@ -138,45 +124,39 @@ nsArrayBase::RemoveElementAt(uint32_t aIndex)
 }
 
 NS_IMETHODIMP
-nsArrayBase::InsertElementAt(nsISupports* aElement, uint32_t aIndex, bool aWeak)
+nsArrayBase::InsertElementAt(nsISupports* aElement, uint32_t aIndex)
 {
-  nsCOMPtr<nsISupports> elementRef;
-  if (aWeak) {
-    elementRef = do_GetWeakReference(aElement);
-    NS_ASSERTION(elementRef,
-                 "InsertElementAt: Trying to use weak references on an object that doesn't support it");
-    if (!elementRef) {
-      return NS_ERROR_FAILURE;
-    }
-  } else {
-    elementRef = aElement;
-  }
-  bool result = mArray.InsertObjectAt(elementRef, aIndex);
+  bool result = mArray.InsertObjectAt(aElement, aIndex);
   return result ? NS_OK : NS_ERROR_FAILURE;
 }
 
 NS_IMETHODIMP
-nsArrayBase::ReplaceElementAt(nsISupports* aElement, uint32_t aIndex, bool aWeak)
+nsArrayBase::ReplaceElementAt(nsISupports* aElement, uint32_t aIndex)
 {
-  nsCOMPtr<nsISupports> elementRef;
-  if (aWeak) {
-    elementRef = do_GetWeakReference(aElement);
-    NS_ASSERTION(elementRef,
-                 "ReplaceElementAt: Trying to use weak references on an object that doesn't support it");
-    if (!elementRef) {
-      return NS_ERROR_FAILURE;
-    }
-  } else {
-    elementRef = aElement;
-  }
-  bool result = mArray.ReplaceObjectAt(elementRef, aIndex);
-  return result ? NS_OK : NS_ERROR_FAILURE;
+  mArray.ReplaceObjectAt(aElement, aIndex);
+  return NS_OK;
 }
 
 NS_IMETHODIMP
 nsArrayBase::Clear()
 {
   mArray.Clear();
+  return NS_OK;
+}
+
+// nsIArrayExtensions implementation.
+
+NS_IMETHODIMP
+nsArrayBase::Count(uint32_t* aResult)
+{
+  return GetLength(aResult);
+}
+
+NS_IMETHODIMP
+nsArrayBase::GetElementAt(uint32_t aIndex, nsISupports** aResult)
+{
+  nsCOMPtr<nsISupports> obj = mArray.SafeObjectAt(aIndex);
+  obj.forget(aResult);
   return NS_OK;
 }
 

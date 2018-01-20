@@ -15,7 +15,7 @@
 #include "mozilla/Services.h"
 
 nsresult
-nsMsgGetMessageByName(const char16_t* aName, nsString& aResult)
+nsMsgGetMessageByName(const char* aName, nsString& aResult)
 {
   nsresult rv;
   nsCOMPtr<nsIStringBundleService> bundleService =
@@ -28,11 +28,11 @@ nsMsgGetMessageByName(const char16_t* aName, nsString& aResult)
     getter_AddRefs(bundle));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  return bundle->GetStringFromName(aName, getter_Copies(aResult));
+  return bundle->GetStringFromName(aName, aResult);
 }
 
 static nsresult
-nsMsgBuildMessageByName(const char16_t *aName, nsIFile *aFile, nsString& aResult)
+nsMsgBuildMessageByName(const char *aName, nsIFile *aFile, nsString& aResult)
 {
   NS_ENSURE_ARG_POINTER(aFile);
   nsresult rv;
@@ -48,23 +48,23 @@ nsMsgBuildMessageByName(const char16_t *aName, nsIFile *aFile, nsString& aResult
   aFile->GetPath(path);
 
   const char16_t *params[1] = {path.get()};
-  return bundle->FormatStringFromName(aName, params, 1, getter_Copies(aResult));
+  return bundle->FormatStringFromName(aName, params, 1, aResult);
 }
 
 nsresult
 nsMsgBuildMessageWithFile(nsIFile *aFile, nsString& aResult)
 {
-  return nsMsgBuildMessageByName(MOZ_UTF16("unableToOpenFile"), aFile, aResult);
+  return nsMsgBuildMessageByName("unableToOpenFile", aFile, aResult);
 }
 
 nsresult
 nsMsgBuildMessageWithTmpFile(nsIFile *aFile, nsString& aResult)
 {
-  return nsMsgBuildMessageByName(MOZ_UTF16("unableToOpenTmpFile"), aFile, aResult);
+  return nsMsgBuildMessageByName("unableToOpenTmpFile", aFile, aResult);
 }
 
 nsresult
-nsMsgDisplayMessageByName(nsIPrompt *aPrompt, const char16_t* aName, const char16_t *windowTitle)
+nsMsgDisplayMessageByName(nsIPrompt *aPrompt, const char* aName, const char16_t *windowTitle)
 {
   nsString msg;
   nsMsgGetMessageByName(aName, msg);

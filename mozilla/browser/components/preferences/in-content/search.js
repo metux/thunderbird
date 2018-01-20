@@ -2,21 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/* import-globals-from preferences.js */
+
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "AppConstants",
-                                  "resource://gre/modules/AppConstants.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
                                   "resource://gre/modules/PlacesUtils.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "Task",
-                                  "resource://gre/modules/Task.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "ExtensionSettingsStore",
+                                  "resource://gre/modules/ExtensionSettingsStore.jsm");
 
 const ENGINE_FLAVOR = "text/x-moz-search-engine";
-
-document.addEventListener("Initialized", () => {
-  if (!AppConstants.isPlatformAndVersionAtLeast("win", "10")) {
-    document.getElementById("redirectSearchCheckbox").hidden = true;
-  }
-});
+const SEARCH_TYPE = "default_search";
+const SEARCH_KEY = "defaultSearch";
 
 var gEngineView = null;
 
@@ -25,38 +21,31 @@ var gSearchPane = {
   /**
    * Initialize autocomplete to ensure prefs are in sync.
    */
-  _initAutocomplete: function () {
-    let unifiedCompletePref = false;
-    try {
-      unifiedCompletePref =
-        Services.prefs.getBoolPref("browser.urlbar.unifiedcomplete");
-    } catch (ex) {}
-
-    if (unifiedCompletePref) {
-      Components.classes["@mozilla.org/autocomplete/search;1?name=unifiedcomplete"]
-                .getService(Components.interfaces.mozIPlacesAutoComplete);
-    } else {
-      Components.classes["@mozilla.org/autocomplete/search;1?name=history"]
-                .getService(Components.interfaces.mozIPlacesAutoComplete);
-    }
+  _initAutocomplete() {
+    Components.classes["@mozilla.org/autocomplete/search;1?name=unifiedcomplete"]
+              .getService(Components.interfaces.mozIPlacesAutoComplete);
   },
 
-  init: function ()
-  {
+  init() {
     gEngineView = new EngineView(new EngineStore());
     document.getElementById("engineList").view = gEngineView;
     this.buildDefaultEngineDropDown();
 
-    window.addEventListener("click", this, false);
-    window.addEventListener("command", this, false);
-    window.addEventListener("dragstart", this, false);
-    window.addEventListener("keypress", this, false);
-    window.addEventListener("select", this, false);
+    let addEnginesLink = document.getElementById("addEngines");
+    let searchEnginesURL = Services.wm.getMostRecentWindow("navigator:browser")
+                                      .BrowserSearch.searchEnginesURL;
+    addEnginesLink.setAttribute("href", searchEnginesURL);
+
+    window.addEventListener("click", this);
+    window.addEventListener("command", this);
+    window.addEventListener("dragstart", this);
+    window.addEventListener("keypress", this);
+    window.addEventListener("select", this);
     window.addEventListener("blur", this, true);
 
-    Services.obs.addObserver(this, "browser-search-engine-modified", false);
+    Services.obs.addObserver(this, "browser-search-engine-modified");
     window.addEventListener("unload", () => {
-      Services.obs.removeObserver(this, "browser-search-engine-modified", false);
+      Services.obs.removeObserver(this, "browser-search-engine-modified");
     });
 
     this._initAutocomplete();
@@ -70,14 +59,11 @@ var gSearchPane = {
   },
 
   updateSuggestsCheckbox() {
-    let urlbarSuggests = document.getElementById("urlBarSuggestion");
-    urlbarSuggests.hidden =
-      !Services.prefs.getBoolPref("browser.urlbar.unifiedcomplete");
-
     let suggestsPref =
       document.getElementById("browser.search.suggest.enabled");
     let permanentPB =
       Services.prefs.getBoolPref("browser.privatebrowsing.autostart");
+    let urlbarSuggests = document.getElementById("urlBarSuggestion");
     urlbarSuggests.disabled = !suggestsPref.value || permanentPB;
 
     let urlbarSuggestsPref =
@@ -92,7 +78,7 @@ var gSearchPane = {
     permanentPBLabel.hidden = urlbarSuggests.hidden || !permanentPB;
   },
 
-  buildDefaultEngineDropDown: function() {
+  buildDefaultEngineDropDown() {
     // This is called each time something affects the list of engines.
     let list = document.getElementById("defaultEngine");
     // Set selection to the current default engine.
@@ -115,14 +101,38 @@ var gSearchPane = {
       if (e.name == currentEngine)
         list.selectedItem = item;
     });
+
+    handleControllingExtension(SEARCH_TYPE, SEARCH_KEY);
+    let searchEngineListener = {
+      observe(subject, topic, data) {
+        handleControllingExtension(SEARCH_TYPE, SEARCH_KEY);
+      },
+    };
+    Services.obs.addObserver(searchEngineListener, "browser-search-engine-modified");
+    window.addEventListener("unload", () => {
+      Services.obs.removeObserver(searchEngineListener, "browser-search-engine-modified");
+    });
   },
 
-  handleEvent: function(aEvent) {
+  handleEvent(aEvent) {
     switch (aEvent.type) {
       case "click":
-        if (aEvent.target.id == "addEngines" && aEvent.button == 0) {
-          Services.wm.getMostRecentWindow('navigator:browser')
-                     .BrowserSearch.loadAddEngines();
+        if (aEvent.target.id != "engineChildren" &&
+            !aEvent.target.classList.contains("searchEngineAction")) {
+          let engineList = document.getElementById("engineList");
+          // We don't want to toggle off selection while editing keyword
+          // so proceed only when the input field is hidden.
+          // We need to check that engineList.view is defined here
+          // because the "click" event listener is on <window> and the
+          // view might have been destroyed if the pane has been navigated
+          // away from.
+          if (engineList.inputField.hidden && engineList.view) {
+            let selection = engineList.view.selection;
+            if (selection.count > 0) {
+              selection.toggleSelect(selection.currentIndex);
+            }
+            engineList.blur();
+          }
         }
         break;
       case "command":
@@ -138,7 +148,7 @@ var gSearchPane = {
             gSearchPane.onRestoreDefaults();
             break;
           case "removeEngineButton":
-            gSearchPane.remove();
+            Services.search.removeEngine(gEngineView.selectedEngine.originalEngine);
             break;
         }
         break;
@@ -166,7 +176,7 @@ var gSearchPane = {
     }
   },
 
-  observe: function(aEngine, aTopic, aVerb) {
+  observe(aEngine, aTopic, aVerb) {
     if (aTopic == "browser-search-engine-modified") {
       aEngine.QueryInterface(Components.interfaces.nsISearchEngine);
       switch (aVerb) {
@@ -180,7 +190,17 @@ var gSearchPane = {
         gEngineView.invalidate();
         break;
       case "engine-removed":
+        gSearchPane.remove(aEngine);
+        break;
       case "engine-current":
+        // If the user is going through the drop down using up/down keys, the
+        // dropdown may still be open (eg. on Windows) when engine-current is
+        // fired, so rebuilding the list unconditionally would get in the way.
+        let selectedEngine =
+          document.getElementById("defaultEngine").selectedItem.engine;
+        if (selectedEngine.name != aEngine.name)
+          gSearchPane.buildDefaultEngineDropDown();
+        break;
       case "engine-default":
         // Not relevant
         break;
@@ -188,17 +208,22 @@ var gSearchPane = {
     }
   },
 
-  onInputBlur: function() {
+  onInputBlur(aEvent) {
     let tree = document.getElementById("engineList");
-    tree.stopEditing(false);
+    if (!tree.hasAttribute("editing"))
+      return;
+
+    // Accept input unless discarded.
+    let accept = aEvent.charCode != KeyEvent.DOM_VK_ESCAPE;
+    tree.stopEditing(accept);
   },
 
-  onTreeSelect: function() {
+  onTreeSelect() {
     document.getElementById("removeEngineButton").disabled =
-      gEngineView.selectedIndex == -1 || gEngineView.lastIndex == 0;
+      !gEngineView.isEngineSelectedAndRemovable();
   },
 
-  onTreeKeyPress: function(aEvent) {
+  onTreeKeyPress(aEvent) {
     let index = gEngineView.selectedIndex;
     let tree = document.getElementById("engineList");
     if (tree.hasAttribute("editing"))
@@ -209,28 +234,35 @@ var gSearchPane = {
       let newValue = !gEngineView._engineStore.engines[index].shown;
       gEngineView.setCellValue(index, tree.columns.getFirstColumn(),
                                newValue.toString());
-    }
-    else {
+      // Prevent page from scrolling on the space key.
+      aEvent.preventDefault();
+    } else {
       let isMac = Services.appinfo.OS == "Darwin";
       if ((isMac && aEvent.keyCode == KeyEvent.DOM_VK_RETURN) ||
-          (!isMac && aEvent.keyCode == KeyEvent.DOM_VK_F2))
+          (!isMac && aEvent.keyCode == KeyEvent.DOM_VK_F2)) {
         tree.startEditing(index, tree.columns.getLastColumn());
+      } else if (aEvent.keyCode == KeyEvent.DOM_VK_DELETE ||
+                 (isMac && aEvent.shiftKey &&
+                  aEvent.keyCode == KeyEvent.DOM_VK_BACK_SPACE &&
+                  gEngineView.isEngineSelectedAndRemovable())) {
+        // Delete and Shift+Backspace (Mac) removes selected engine.
+        Services.search.removeEngine(gEngineView.selectedEngine.originalEngine);
+     }
     }
   },
 
-  onRestoreDefaults: function() {
+  onRestoreDefaults() {
     let num = gEngineView._engineStore.restoreDefaultEngines();
     gEngineView.rowCountChanged(0, num);
     gEngineView.invalidate();
   },
 
-  showRestoreDefaults: function(aEnable) {
+  showRestoreDefaults(aEnable) {
     document.getElementById("restoreDefaultSearchEngines").disabled = !aEnable;
   },
 
-  remove: function() {
-    gEngineView._engineStore.removeEngine(gEngineView.selectedEngine);
-    let index = gEngineView.selectedIndex;
+  remove(aEngine) {
+    let index = gEngineView._engineStore.removeEngine(aEngine);
     gEngineView.rowCountChanged(index, -1);
     gEngineView.invalidate();
     gEngineView.selection.select(Math.min(index, gEngineView.lastIndex));
@@ -238,18 +270,21 @@ var gSearchPane = {
     document.getElementById("engineList").focus();
   },
 
-  editKeyword: Task.async(function* (aEngine, aNewKeyword) {
-    if (aNewKeyword) {
+  async editKeyword(aEngine, aNewKeyword) {
+    let keyword = aNewKeyword.trim();
+    if (keyword) {
       let eduplicate = false;
       let dupName = "";
 
       // Check for duplicates in Places keywords.
-      let bduplicate = !!(yield PlacesUtils.keywords.fetch(aNewKeyword));
+      let bduplicate = !!(await PlacesUtils.keywords.fetch(keyword));
 
       // Check for duplicates in changes we haven't committed yet
       let engines = gEngineView._engineStore.engines;
+      let lc_keyword = keyword.toLocaleLowerCase();
       for (let engine of engines) {
-        if (engine.alias == aNewKeyword &&
+        if (engine.alias &&
+            engine.alias.toLocaleLowerCase() == lc_keyword &&
             engine.name != aEngine.name) {
           eduplicate = true;
           dupName = engine.name;
@@ -269,12 +304,12 @@ var gSearchPane = {
       }
     }
 
-    gEngineView._engineStore.changeEngine(aEngine, "alias", aNewKeyword);
+    gEngineView._engineStore.changeEngine(aEngine, "alias", keyword);
     gEngineView.invalidate();
     return true;
-  }),
+  },
 
-  saveOneClickEnginesList: function () {
+  saveOneClickEnginesList() {
     let hiddenList = [];
     for (let engine of gEngineView._engineStore.engines) {
       if (!engine.shown)
@@ -284,9 +319,10 @@ var gSearchPane = {
       hiddenList.join(",");
   },
 
-  setDefaultEngine: function () {
+  setDefaultEngine() {
     Services.search.currentEngine =
       document.getElementById("defaultEngine").selectedItem.engine;
+    ExtensionSettingsStore.setByUser(SEARCH_TYPE, SEARCH_KEY);
   }
 };
 
@@ -325,16 +361,16 @@ EngineStore.prototype = {
     return val;
   },
 
-  _getIndexForEngine: function ES_getIndexForEngine(aEngine) {
+  _getIndexForEngine(aEngine) {
     return this._engines.indexOf(aEngine);
   },
 
-  _getEngineByName: function ES_getEngineByName(aName) {
+  _getEngineByName(aName) {
     return this._engines.find(engine => engine.name == aName);
   },
 
-  _cloneEngine: function ES_cloneEngine(aEngine) {
-    var clonedObj={};
+  _cloneEngine(aEngine) {
+    var clonedObj = {};
     for (var i in aEngine)
       clonedObj[i] = aEngine[i];
     clonedObj.originalEngine = aEngine;
@@ -343,15 +379,15 @@ EngineStore.prototype = {
   },
 
   // Callback for Array's some(). A thisObj must be passed to some()
-  _isSameEngine: function ES_isSameEngine(aEngineClone) {
+  _isSameEngine(aEngineClone) {
     return aEngineClone.originalEngine == this.originalEngine;
   },
 
-  addEngine: function ES_addEngine(aEngine) {
+  addEngine(aEngine) {
     this._engines.push(this._cloneEngine(aEngine));
   },
 
-  moveEngine: function ES_moveEngine(aEngine, aNewIndex) {
+  moveEngine(aEngine, aNewIndex) {
     if (aNewIndex < 0 || aNewIndex > this._engines.length - 1)
       throw new Error("ES_moveEngine: invalid aNewIndex!");
     var index = this._getIndexForEngine(aEngine);
@@ -368,20 +404,26 @@ EngineStore.prototype = {
     Services.search.moveEngine(aEngine.originalEngine, aNewIndex);
   },
 
-  removeEngine: function ES_removeEngine(aEngine) {
-    var index = this._getIndexForEngine(aEngine);
+  removeEngine(aEngine) {
+    if (this._engines.length == 1) {
+      throw new Error("Cannot remove last engine!");
+    }
+
+    let engineName = aEngine.name;
+    let index = this._engines.findIndex(element => element.name == engineName);
+
     if (index == -1)
       throw new Error("invalid engine?");
 
-    this._engines.splice(index, 1);
-    Services.search.removeEngine(aEngine.originalEngine);
+    let removedEngine = this._engines.splice(index, 1)[0];
 
-    if (this._defaultEngines.some(this._isSameEngine, aEngine))
+    if (this._defaultEngines.some(this._isSameEngine, removedEngine))
       gSearchPane.showRestoreDefaults(true);
     gSearchPane.buildDefaultEngineDropDown();
+    return index;
   },
 
-  restoreDefaultEngines: function ES_restoreDefaultEngines() {
+  restoreDefaultEngines() {
     var added = 0;
 
     for (var i = 0; i < this._defaultEngines.length; ++i) {
@@ -410,7 +452,7 @@ EngineStore.prototype = {
     return added;
   },
 
-  changeEngine: function ES_changeEngine(aEngine, aProp, aNewValue) {
+  changeEngine(aEngine, aProp, aNewValue) {
     var index = this._getIndexForEngine(aEngine);
     if (index == -1)
       throw new Error("invalid engine?");
@@ -419,8 +461,8 @@ EngineStore.prototype = {
     aEngine.originalEngine[aProp] = aNewValue;
   },
 
-  reloadIcons: function ES_reloadIcons() {
-    this._engines.forEach(function (e) {
+  reloadIcons() {
+    this._engines.forEach(function(e) {
       e.uri = e.originalEngine.uri;
     });
   }
@@ -450,24 +492,28 @@ EngineView.prototype = {
   },
 
   // Helpers
-  rowCountChanged: function (index, count) {
+  rowCountChanged(index, count) {
     this.tree.rowCountChanged(index, count);
   },
 
-  invalidate: function () {
+  invalidate() {
     this.tree.invalidate();
   },
 
-  ensureRowIsVisible: function (index) {
+  ensureRowIsVisible(index) {
     this.tree.ensureRowIsVisible(index);
   },
 
-  getSourceIndexFromDrag: function (dataTransfer) {
+  getSourceIndexFromDrag(dataTransfer) {
     return parseInt(dataTransfer.getData(ENGINE_FLAVOR));
   },
 
-  isCheckBox: function(index, column) {
+  isCheckBox(index, column) {
     return column.id == "engineShown";
+  },
+
+  isEngineSelectedAndRemovable() {
+    return this.selectedIndex != -1 && this.lastIndex != 0;
   },
 
   // nsITreeView
@@ -475,14 +521,20 @@ EngineView.prototype = {
     return this._engineStore.engines.length;
   },
 
-  getImageSrc: function(index, column) {
-    if (column.id == "engineName" && this._engineStore.engines[index].iconURI) {
-      return this._engineStore.engines[index].iconURI.spec;
+  getImageSrc(index, column) {
+    if (column.id == "engineName") {
+      if (this._engineStore.engines[index].iconURI)
+        return this._engineStore.engines[index].iconURI.spec;
+
+      if (window.devicePixelRatio > 1)
+        return "chrome://browser/skin/search-engine-placeholder@2x.png";
+      return "chrome://browser/skin/search-engine-placeholder.png";
     }
+
     return "";
   },
 
-  getCellText: function(index, column) {
+  getCellText(index, column) {
     if (column.id == "engineName")
       return this._engineStore.engines[index].name;
     else if (column.id == "engineKeyword")
@@ -490,18 +542,18 @@ EngineView.prototype = {
     return "";
   },
 
-  setTree: function(tree) {
+  setTree(tree) {
     this.tree = tree;
   },
 
-  canDrop: function(targetIndex, orientation, dataTransfer) {
+  canDrop(targetIndex, orientation, dataTransfer) {
     var sourceIndex = this.getSourceIndexFromDrag(dataTransfer);
     return (sourceIndex != -1 &&
             sourceIndex != targetIndex &&
             sourceIndex != targetIndex + orientation);
   },
 
-  drop: function(dropIndex, orientation, dataTransfer) {
+  drop(dropIndex, orientation, dataTransfer) {
     var sourceIndex = this.getSourceIndexFromDrag(dataTransfer);
     var sourceEngine = this._engineStore.engines[sourceIndex];
 
@@ -509,9 +561,8 @@ EngineView.prototype = {
     if (dropIndex > sourceIndex) {
       if (orientation == nsITreeView.DROP_BEFORE)
         dropIndex--;
-    } else {
-      if (orientation == nsITreeView.DROP_AFTER)
-        dropIndex++;
+    } else if (orientation == nsITreeView.DROP_AFTER) {
+      dropIndex++;
     }
 
     this._engineStore.moveEngine(sourceEngine, dropIndex);
@@ -524,37 +575,37 @@ EngineView.prototype = {
   },
 
   selection: null,
-  getRowProperties: function(index) { return ""; },
-  getCellProperties: function(index, column) { return ""; },
-  getColumnProperties: function(column) { return ""; },
-  isContainer: function(index) { return false; },
-  isContainerOpen: function(index) { return false; },
-  isContainerEmpty: function(index) { return false; },
-  isSeparator: function(index) { return false; },
-  isSorted: function(index) { return false; },
-  getParentIndex: function(index) { return -1; },
-  hasNextSibling: function(parentIndex, index) { return false; },
-  getLevel: function(index) { return 0; },
-  getProgressMode: function(index, column) { },
-  getCellValue: function(index, column) {
+  getRowProperties(index) { return ""; },
+  getCellProperties(index, column) { return ""; },
+  getColumnProperties(column) { return ""; },
+  isContainer(index) { return false; },
+  isContainerOpen(index) { return false; },
+  isContainerEmpty(index) { return false; },
+  isSeparator(index) { return false; },
+  isSorted(index) { return false; },
+  getParentIndex(index) { return -1; },
+  hasNextSibling(parentIndex, index) { return false; },
+  getLevel(index) { return 0; },
+  getProgressMode(index, column) { },
+  getCellValue(index, column) {
     if (column.id == "engineShown")
       return this._engineStore.engines[index].shown;
     return undefined;
   },
-  toggleOpenState: function(index) { },
-  cycleHeader: function(column) { },
-  selectionChanged: function() { },
-  cycleCell: function(row, column) { },
-  isEditable: function(index, column) { return column.id != "engineName"; },
-  isSelectable: function(index, column) { return false; },
-  setCellValue: function(index, column, value) {
+  toggleOpenState(index) { },
+  cycleHeader(column) { },
+  selectionChanged() { },
+  cycleCell(row, column) { },
+  isEditable(index, column) { return column.id != "engineName"; },
+  isSelectable(index, column) { return false; },
+  setCellValue(index, column, value) {
     if (column.id == "engineShown") {
       this._engineStore.engines[index].shown = value == "true";
       gEngineView.invalidate();
       gSearchPane.saveOneClickEnginesList();
     }
   },
-  setCellText: function(index, column, value) {
+  setCellText(index, column, value) {
     if (column.id == "engineKeyword") {
       gSearchPane.editKeyword(this._engineStore.engines[index], value)
                  .then(valid => {
@@ -563,7 +614,7 @@ EngineView.prototype = {
       });
     }
   },
-  performAction: function(action) { },
-  performActionOnRow: function(action, index) { },
-  performActionOnCell: function(action, index, column) { }
+  performAction(action) { },
+  performActionOnRow(action, index) { },
+  performActionOnCell(action, index, column) { }
 };

@@ -7,12 +7,12 @@ const REDIRECT_FROM = "https://example.com/browser/suite/browser/test/browser/" 
 const REDIRECT_TO = "https://www.bank1.com/"; // Bad-cert host.
 
 function isRedirectedURISpec(aURISpec) {
-  return isRedirectedURI(Services.io.newURI(aURISpec, null, null));
+  return isRedirectedURI(Services.io.newURI(aURISpec));
 }
 
 function isRedirectedURI(aURI) {
   // Compare only their before-hash portion.
-  return Services.io.newURI(REDIRECT_TO, null, null)
+  return Services.io.newURI(REDIRECT_TO)
                  .equalsExceptRef(aURI);
 }
 
@@ -82,7 +82,7 @@ var gWebProgressListener = {
     }
 
     ok(gNewTab, "There is a new tab.");
-    ok(isRedirectedURI(aLocation), 
+    ok(isRedirectedURI(aLocation),
        "onLocationChange catches only redirected URI.");
 
     if (aLocation.ref == "BG") {

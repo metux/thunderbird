@@ -14,15 +14,15 @@
 #include "mozilla/storage/StatementCache.h"
 #include "mozilla/Attributes.h"
 #include "nsIEventTarget.h"
+#include "Shutdown.h"
+#include "nsCategoryCache.h"
 
 // This is the schema version. Update it at any schema change and add a
 // corresponding migrateVxx method below.
-#define DATABASE_SCHEMA_VERSION 30
+#define DATABASE_SCHEMA_VERSION 41
 
 // Fired after Places inited.
 #define TOPIC_PLACES_INIT_COMPLETE "places-init-complete"
-// Fired when initialization fails due to a locked database.
-#define TOPIC_DATABASE_LOCKED "places-database-locked"
 // This topic is received when the profile is about to be lost.  Places does
 // initial shutdown work and notifies TOPIC_PLACES_SHUTDOWN to all listeners.
 // Any shutdown work that requires the Places APIs should happen here.
@@ -32,20 +32,12 @@
 // you should only use this notification, next ones are intended only for
 // internal Places use.
 #define TOPIC_PLACES_SHUTDOWN "places-shutdown"
-// For Internal use only.  Fired when connection is about to be closed, only
-// cleanup tasks should run at this stage, nothing should be added to the
-// database, nor APIs should be called.
-#define TOPIC_PLACES_WILL_CLOSE_CONNECTION "places-will-close-connection"
 // Fired when the connection has gone, nothing will work from now on.
 #define TOPIC_PLACES_CONNECTION_CLOSED "places-connection-closed"
 
 // Simulate profile-before-change. This topic may only be used by
 // calling `observe` directly on the database. Used for testing only.
-#define TOPIC_SIMULATE_PLACES_MUST_CLOSE_1 "test-simulate-places-shutdown-phase-1"
-
-// Simulate profile-before-change. This topic may only be used by
-// calling `observe` directly on the database. Used for testing only.
-#define TOPIC_SIMULATE_PLACES_MUST_CLOSE_2 "test-simulate-places-shutdown-phase-2"
+#define TOPIC_SIMULATE_PLACES_SHUTDOWN "test-simulate-places-shutdown"
 
 class nsIRunnable;
 
@@ -64,7 +56,8 @@ enum JournalMode {
 , JOURNAL_WAL
 };
 
-class DatabaseShutdown;
+class ClientsShutdownBlocker;
+class ConnectionShutdownBlocker;
 
 class Database final : public nsIObserver
                      , public nsSupportsWeakReference
@@ -87,6 +80,11 @@ public:
   /**
    * The AsyncShutdown client used by clients of this API to be informed of shutdown.
    */
+  already_AddRefed<nsIAsyncShutdownClient> GetClientsShutdown();
+
+  /**
+   * The AsyncShutdown client used by clients of this API to be informed of connection shutdown.
+   */
   already_AddRefed<nsIAsyncShutdownClient> GetConnectionShutdown();
 
   /**
@@ -97,12 +95,23 @@ public:
   static already_AddRefed<Database> GetDatabase();
 
   /**
+   * Actually initialized the connection on first need.
+   */
+  nsresult EnsureConnection();
+
+  /**
+   * Notifies that the connection has been initialized.
+   */
+  nsresult NotifyConnectionInitalized();
+
+  /**
    * Returns last known database status.
    *
    * @return one of the nsINavHistoryService::DATABASE_STATUS_* constants.
    */
-  uint16_t GetDatabaseStatus() const
+  uint16_t GetDatabaseStatus()
   {
+    mozilla::Unused << EnsureConnection();
     return mDatabaseStatus;
   }
 
@@ -111,8 +120,9 @@ public:
    *
    * @return The connection handle.
    */
-  mozIStorageConnection* MainConn() const
+  mozIStorageConnection* MainConn()
   {
+    mozilla::Unused << EnsureConnection();
     return mMainConn;
   }
 
@@ -123,9 +133,9 @@ public:
    * @param aEvent
    *        The runnable to be dispatched.
    */
-  void DispatchToAsyncThread(nsIRunnable* aEvent) const
+  void DispatchToAsyncThread(nsIRunnable* aEvent)
   {
-    if (mClosed) {
+    if (mClosed || NS_FAILED(EnsureConnection())) {
       return;
     }
     nsCOMPtr<nsIEventTarget> target = do_GetInterface(mMainConn);
@@ -148,7 +158,7 @@ public:
    */
   template<int N>
   already_AddRefed<mozIStorageStatement>
-  GetStatement(const char (&aQuery)[N]) const
+  GetStatement(const char (&aQuery)[N])
   {
     nsDependentCString query(aQuery, N - 1);
     return GetStatement(query);
@@ -163,7 +173,7 @@ public:
    * @note Always null check the result.
    * @note Always use a scoper to reset the statement.
    */
-  already_AddRefed<mozIStorageStatement>  GetStatement(const nsACString& aQuery) const;
+  already_AddRefed<mozIStorageStatement>  GetStatement(const nsACString& aQuery);
 
   /**
    * Gets a cached asynchronous statement.
@@ -176,7 +186,7 @@ public:
    */
   template<int N>
   already_AddRefed<mozIStorageAsyncStatement>
-  GetAsyncStatement(const char (&aQuery)[N]) const
+  GetAsyncStatement(const char (&aQuery)[N])
   {
     nsDependentCString query(aQuery, N - 1);
     return GetAsyncStatement(query);
@@ -191,7 +201,9 @@ public:
    * @note Always null check the result.
    * @note AsyncStatements are automatically reset on execution.
    */
-  already_AddRefed<mozIStorageAsyncStatement> GetAsyncStatement(const nsACString& aQuery) const;
+  already_AddRefed<mozIStorageAsyncStatement> GetAsyncStatement(const nsACString& aQuery);
+
+  uint32_t MaxUrlLength();
 
 protected:
   /**
@@ -216,6 +228,14 @@ protected:
                             bool* aNewDatabaseCreated);
 
   /**
+   * Ensure the favicons database file exists.
+   *
+   * @param aStorage
+   *        mozStorage service instance.
+   */
+  nsresult EnsureFaviconsDatabaseFile(nsCOMPtr<mozIStorageService>& aStorage);
+
+  /**
    * Creates a database backup and replaces the original file with a new
    * one.
    *
@@ -225,7 +245,16 @@ protected:
   nsresult BackupAndReplaceDatabaseFile(nsCOMPtr<mozIStorageService>& aStorage);
 
   /**
-   * Initializes the database.  This performs any necessary migrations for the
+   * Set up the connection environment through PRAGMAs.
+   * Will return NS_ERROR_FILE_CORRUPTED if any critical setting fails.
+   *
+   * @param aStorage
+   *        mozStorage service instance.
+   */
+  nsresult SetupDatabaseConnection(nsCOMPtr<mozIStorageService>& aStorage);
+
+  /**
+   * Initializes the schema.  This performs any necessary migrations for the
    * database.  All migration is done inside a transaction that is rolled back
    * if any error occurs.
    * @param aDatabaseMigrated
@@ -244,32 +273,33 @@ protected:
   nsresult InitFunctions();
 
   /**
-   * Initializes triggers defined in nsPlacesTriggers.h
+   * Initializes temp entities, like triggers, tables, views...
    */
-  nsresult InitTempTriggers();
+  nsresult InitTempEntities();
 
   /**
    * Helpers used by schema upgrades.
    */
-  nsresult MigrateV13Up();
-  nsresult MigrateV15Up();
-  nsresult MigrateV17Up();
-  nsresult MigrateV18Up();
-  nsresult MigrateV19Up();
-  nsresult MigrateV20Up();
-  nsresult MigrateV21Up();
-  nsresult MigrateV22Up();
-  nsresult MigrateV23Up();
-  nsresult MigrateV24Up();
-  nsresult MigrateV25Up();
-  nsresult MigrateV26Up();
-  nsresult MigrateV27Up();
-  nsresult MigrateV28Up();
-  nsresult MigrateV30Up();
+  nsresult MigrateV31Up();
+  nsresult MigrateV32Up();
+  nsresult MigrateV33Up();
+  nsresult MigrateV34Up();
+  nsresult MigrateV35Up();
+  nsresult MigrateV36Up();
+  nsresult MigrateV37Up();
+  nsresult MigrateV38Up();
+  nsresult MigrateV39Up();
+  nsresult MigrateV40Up();
+  nsresult MigrateV41Up();
 
   nsresult UpdateBookmarkRootTitles();
 
-  friend class DatabaseShutdown;
+  friend class ConnectionShutdownBlocker;
+
+  int64_t CreateMobileRoot();
+  nsresult GetItemsWithAnno(const nsACString& aAnnoName, int32_t aItemType,
+                            nsTArray<int64_t>& aItemIds);
+  nsresult DeleteBookmarkItem(int32_t aItemId);
 
 private:
   ~Database();
@@ -290,21 +320,35 @@ private:
   int32_t mDBPageSize;
   uint16_t mDatabaseStatus;
   bool mClosed;
+  // Used to track whether icon payloads should be converted at the end of
+  // schema migration.
+  bool mShouldConvertIconPayloads;
 
   /**
-   * Determine at which shutdown phase we need to start shutting down
-   * the Database.
+   * Phases for shutting down the Database.
+   * See Shutdown.h for further details about the shutdown procedure.
    */
-  already_AddRefed<nsIAsyncShutdownClient> GetShutdownPhase();
+  already_AddRefed<nsIAsyncShutdownClient> GetProfileChangeTeardownPhase();
+  already_AddRefed<nsIAsyncShutdownClient> GetProfileBeforeChangePhase();
 
   /**
-   * A companion object in charge of shutting down the mozStorage
-   * connection once all clients have disconnected.
+   * Blockers in charge of waiting for the Places clients and then shutting
+   * down the mozStorage connection.
+   * See Shutdown.h for further details about the shutdown procedure.
    *
-   * Cycles between `this` and `mConnectionShutdown` are broken
-   * in `Shutdown()`.
+   * Cycles with these are broken in `Shutdown()`.
    */
-  RefPtr<DatabaseShutdown> mConnectionShutdown;
+  RefPtr<ClientsShutdownBlocker> mClientsShutdown;
+  RefPtr<ConnectionShutdownBlocker> mConnectionShutdown;
+
+  // Maximum length of a stored url.
+  // For performance reasons we don't store very long urls in history, since
+  // they are slower to search through and cause abnormal database growth,
+  // affecting the awesomebar fetch time.
+  uint32_t mMaxUrlLength;
+
+  // Used to initialize components on places startup.
+  nsCategoryCache<nsIObserver> mCacheObservers;
 };
 
 } // namespace places

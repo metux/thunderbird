@@ -6,7 +6,9 @@
 #ifndef nsISpellChecker_h__
 #define nsISpellChecker_h__
 
+#include "mozilla/MozPromise.h"
 #include "nsISupports.h"
+#include "nsStringFwd.h"
 #include "nsTArray.h"
 
 #define NS_SPELLCHECKER_CONTRACTID "@mozilla.org/spellchecker;1"
@@ -17,7 +19,6 @@
   { 0x9f, 0x5d, 0xaf, 0x0c, 0xdd, 0x21, 0x18, 0x68 } }
 
 class nsITextServicesDocument;
-class nsString;
 
 /**
  * A generic interface for a spelling checker.
@@ -114,6 +115,13 @@ public:
    * empty string, spellchecker will be disabled.
    */
   NS_IMETHOD SetCurrentDictionary(const nsAString &aDictionary) = 0;
+
+  /**
+   * Tells the spellchecker to use a specific dictionary from list.
+   * @param aList  a preferred dictionary list
+   */
+  NS_IMETHOD_(RefPtr<mozilla::GenericPromise>)
+    SetCurrentDictionaryFromList(const nsTArray<nsString>& aList) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsISpellChecker, NS_ISPELLCHECKER_IID)

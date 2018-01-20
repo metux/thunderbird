@@ -15,11 +15,9 @@ test();
 
 function test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
 
-  jit(true);
 
   (function(){
     var a = [];
@@ -31,9 +29,6 @@ function test()
       typeof a[i];
   })();
 
-  jit(false);
 
   reportCompare(expect, actual, summary);
-
-  exitFunc ('test');
 }

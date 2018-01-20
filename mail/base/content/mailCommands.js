@@ -10,8 +10,12 @@ Components.utils.import("resource:///modules/MailUtils.js");
  * Get the identity that most likely is the best one to use, given the hint.
  * @param identities    nsIArray<nsIMsgIdentity> of identities
  * @param optionalHint  string containing comma separated mailboxes
+ * @param useDefault    If true, use the default identity of the default
+ *                      account as last choice. This is useful when all
+ *                      identities are passed in. Otherwise, use the first
+ *                      entity in the list.
  */
-function getBestIdentity(identities, optionalHint)
+function getBestIdentity(identities, optionalHint, useDefault = false)
 {
   let identityCount = identities.length;
   if (identityCount < 1)
@@ -25,7 +29,7 @@ function getBestIdentity(identities, optionalHint)
     let hints = optionalHint.toLowerCase().split(",");
 
     for (let i = 0 ; i < hints.length; i++) {
-      for (let identity in fixIterator(identities,
+      for (let identity of fixIterator(identities,
                                        Components.interfaces.nsIMsgIdentity)) {
         if (!identity.email)
           continue;
@@ -36,7 +40,16 @@ function getBestIdentity(identities, optionalHint)
     }
   }
 
-  // Still no matches? Give up and pick the first one.
+  // Still no matches? Give up and pick the default or the first one.
+  if (useDefault) {
+    let defaultAccount = null;
+    try {
+      defaultAccount = accountManager.defaultAccount;
+    } catch (ex) {}
+    if (defaultAccount && defaultAccount.defaultIdentity)
+      return defaultAccount.defaultIdentity;
+  }
+
   return identities.queryElementAt(0, Components.interfaces.nsIMsgIdentity);
 }
 
@@ -74,7 +87,7 @@ function getIdentityForHeader(hdr, type)
     deliveredTos.reverse();
 
     for (let i = 0; i < deliveredTos.length; i++) {
-      for (let identity in fixIterator(accountManager.allIdentities,
+      for (let identity of fixIterator(accountManager.allIdentities,
                                        Components.interfaces.nsIMsgIdentity)) {
         if (!identity.email)
           continue;
@@ -109,7 +122,8 @@ function getIdentityForHeader(hdr, type)
   let hintForIdentity = "";
   if (type == Components.interfaces.nsIMsgCompType.ReplyToList)
     hintForIdentity = findDeliveredToIdentityEmail();
-  else if (type == Components.interfaces.nsIMsgCompType.Template)
+  else if (type == Components.interfaces.nsIMsgCompType.Template ||
+           type == Components.interfaces.nsIMsgCompType.EditAsNew)
     hintForIdentity = hdr.author;
   else
     hintForIdentity = hdr.recipients + "," + hdr.ccList + "," +
@@ -119,7 +133,8 @@ function getIdentityForHeader(hdr, type)
     identity = getIdentityForServer(server, hintForIdentity);
 
   if (!identity)
-    identity = getBestIdentity(accountManager.allIdentities, hintForIdentity);
+    identity = getBestIdentity(accountManager.allIdentities,
+                               hintForIdentity, true);
 
   return identity;
 }
@@ -150,26 +165,51 @@ function GetMsgKeyFromURI(uri) {
   return (match) ? match[1] : null;
 }
 
-// type is a nsIMsgCompType and format is a nsIMsgCompFormat
+/**
+ * Compose a message.
+ *
+ * @param type   nsIMsgCompType    Type of composition (new message, reply, draft, etc.)
+ * @param format nsIMsgCompFormat  Requested format (plain text, html, default)
+ * @param folder nsIMsgFolder      Folder where the original message is stored
+ * @param messageArray             Array of messages to process, often only holding one element.
+ */
 function ComposeMessage(type, format, folder, messageArray)
 {
+  let msgComposeType = Components.interfaces.nsIMsgCompType;
+  let ignoreQuote = false;
+  let msgKey;
   if (messageArray && messageArray.length == 1) {
-    if (GetMsgKeyFromURI(messageArray[0]) != gMessageDisplay.keyForCharsetOverride) {
+    msgKey = GetMsgKeyFromURI(messageArray[0]);
+    if (msgKey != gMessageDisplay.keyForCharsetOverride) {
       msgWindow.charsetOverride = false;
+    }
+    if (type == msgComposeType.Reply ||
+        type == msgComposeType.ReplyAll ||
+        type == msgComposeType.ReplyToSender ||
+        type == msgComposeType.ReplyToGroup ||
+        type == msgComposeType.ReplyToSenderAndGroup ||
+        type == msgComposeType.ReplyToList) {
+      let displayKey = (gMessageDisplay.displayedMessage &&
+                        "messageKey" in gMessageDisplay.displayedMessage) ?
+        gMessageDisplay.displayedMessage.messageKey : null;
+      if (msgKey != displayKey) {
+        // Not replying to the displayed message, so remove the selection
+        // in order not to quote from the wrong message.
+        ignoreQuote = true;
+      }
     }
   }
 
   // Check if the draft is already open in another window. If it is, just focus the window.
-  if (type == Components.interfaces.nsIMsgCompType.Draft && messageArray.length == 1) {
+  if (type == msgComposeType.Draft && messageArray.length == 1) {
     // We'll search this uri in the opened windows.
-    let messageKey = GetMsgKeyFromURI(messageArray[0]);
     let wenum = Services.wm.getEnumerator("");
     while (wenum.hasMoreElements()) {
       let w = wenum.getNext();
       // Check if it is a compose window.
       if (w.document.defaultView.gMsgCompose && w.document.defaultView.gMsgCompose.compFields.draftId) {
         let wKey = GetMsgKeyFromURI(w.document.defaultView.gMsgCompose.compFields.draftId);
-        if (wKey == messageKey) {
+        if (wKey == msgKey) {
           // Found ! just focus it...
           w.focus();
           // ...and nothing to do anymore.
@@ -178,7 +218,6 @@ function ComposeMessage(type, format, folder, messageArray)
       }
     }
   }
-  var msgComposeType = Components.interfaces.nsIMsgCompType;
   var identity = null;
   var newsgroup = null;
   var hdr;
@@ -265,7 +304,10 @@ function ComposeMessage(type, format, folder, messageArray)
         }
         else
         {
+          // Replies come here.
           let hdrIdentity = getIdentityForHeader(hdr, type);
+          if (ignoreQuote)
+            type += msgComposeType.ReplyIgnoreQuote;
           MailServices.compose.OpenComposeWindow(null, hdr, messageUri, type,
                                                  format, hdrIdentity, msgWindow);
         }
@@ -287,11 +329,12 @@ function NewMessageToSelectedAddresses(type, format, identity) {
     params.identity = identity;
     var composeFields = Components.classes["@mozilla.org/messengercompose/composefields;1"].createInstance(Components.interfaces.nsIMsgCompFields);
     if (composeFields) {
-      var addressList = "";
-      for (var i = 0; i < addresses.Count(); i++) {
-        addressList = addressList + (i > 0 ? ",":"") + addresses.QueryElementAt(i,Components.interfaces.nsISupportsString).data;
+      let addressList = [];
+      const nsISupportsString = Components.interfaces.nsISupportsString;
+      for (let i = 0; i < addresses.length; i++) {
+        addressList.push(addresses.queryElementAt(i, nsISupportsString).data);
       }
-      composeFields.to = addressList;
+      composeFields.to = addressList.join(",");
       params.composeFields = composeFields;
       MailServices.compose.OpenComposeWindowWithParams(null, params);
     }

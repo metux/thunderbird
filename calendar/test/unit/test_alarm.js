@@ -4,7 +4,7 @@
 
 function run_test() {
     // Initialize the floating timezone without actually starting the service.
-    cal.getTimezoneService().floating;
+    cal.getTimezoneService().floating; // eslint-disable-line no-unused-expressions
 
     test_initial_creation();
 
@@ -29,6 +29,7 @@ function test_initial_creation() {
 
     let passed;
     try {
+        // eslint-disable-next-line no-unused-expressions
         alarm.icalString;
         passed = false;
     } catch (e) {
@@ -59,12 +60,12 @@ function test_display_alarm() {
     let attendee = cal.createAttendee();
     attendee.id = "mailto:horst";
 
-    throws(function() {
+    throws(() => {
         // DISPLAY alarm should not be able to save attendees
         alarm.addAttendee(attendee);
     }, /Alarm type AUDIO\/DISPLAY may not have attendees/);
 
-    throws(function() {
+    throws(() => {
         // DISPLAY alarm should not be able to save attachment
         alarm.addAttachment(cal.createAttachment());
     }, /Alarm type DISPLAY may not have attachments/);
@@ -145,13 +146,15 @@ function test_audio_alarm() {
     try {
         alarm.addAttendee(attendee);
         do_throw("AUDIO alarm should not be able to save attendees");
-    } catch (e) {}
+    } catch (e) {
+        // TODO looks like this test is disabled. Why?
+    }
 
     // Test attachments
     let sound = cal.createAttachment();
-    sound.uri = makeURL("file:///sound.wav");
+    sound.uri = Services.io.newURI("file:///sound.wav");
     let sound2 = cal.createAttachment();
-    sound2.uri = makeURL("file:///sound2.wav");
+    sound2.uri = Services.io.newURI("file:///sound2.wav");
 
     // Adding an attachment should work
     alarm.addAttachment(sound);
@@ -169,7 +172,9 @@ function test_audio_alarm() {
     try {
         alarm.addAttachment(sound2);
         do_throw("Adding a second attachment should fail for type AUDIO");
-    } catch (e) {}
+    } catch (e) {
+        // TODO looks like this test is disabled. Why?
+    }
 
     // Deleting should work
     alarm.deleteAttachment(sound);
@@ -189,7 +194,7 @@ function test_custom_alarm() {
     dump("Testing X-SMS (custom) alarms...");
     let alarm = cal.createAlarm();
     // Set ACTION to a custom value, make sure this was not rejected
-    alarm.action = "X-SMS"
+    alarm.action = "X-SMS";
     equal(alarm.action, "X-SMS");
 
     // There is no restriction on DESCRIPTION for custom alarms
@@ -222,9 +227,9 @@ function test_custom_alarm() {
 
     // Test for attachments
     let attach1 = cal.createAttachment();
-    attach1.uri = makeURL("file:///example.txt");
+    attach1.uri = Services.io.newURI("file:///example.txt");
     let attach2 = cal.createAttachment();
-    attach2.uri = makeURL("file:///example2.txt");
+    attach2.uri = Services.io.newURI("file:///example2.txt");
 
     alarm.addAttachment(attach1);
     alarm.addAttachment(attach2);
@@ -246,7 +251,6 @@ function test_custom_alarm() {
 // Check if any combination of REPEAT and DURATION work as expected.
 function test_repeat() {
     dump("Testing REPEAT and DURATION properties...");
-    let message;
     let alarm = cal.createAlarm();
 
     // Check initial value
@@ -259,7 +263,7 @@ function test_repeat() {
     equal(alarm.repeat, 0);
 
     // Both REPEAT and DURATION should be accessible, when the two are set.
-    alarm.repeatOffset = createDuration();
+    alarm.repeatOffset = cal.createDuration();
     notEqual(alarm.repeatOffset, null);
     notEqual(alarm.repeat, 0);
 
@@ -286,9 +290,9 @@ function test_repeat() {
     alarm.repeatOffset = cal.createDuration();
     alarm.repeatOffset.inSeconds = 3600;
 
-    let dt = alarm.alarmDate.clone();
-    dt.second += 3600;
-    equal(alarm.repeatDate.icalString, dt.icalString);
+    let date = alarm.alarmDate.clone();
+    date.second += 3600;
+    equal(alarm.repeatDate.icalString, date.icalString);
 
     dump("Done\n");
 }
@@ -304,16 +308,16 @@ function test_xprop() {
     equal(alarm.getProperty("X-PROP"), null);
 
     // also check X-MOZ-LASTACK prop
-    let dt = cal.createDateTime();
-    alarm.setProperty("X-MOZ-LASTACK", dt.icalString);
+    let date = cal.createDateTime();
+    alarm.setProperty("X-MOZ-LASTACK", date.icalString);
     alarm.action = "DISPLAY";
     alarm.description = "test";
-    alarm.related = Ci.calIAlarm.ALARM_RELATED_START
-    alarm.offset = createDuration("-PT5M");
-    ok(alarm.icalComponent.serializeToICS().includes(dt.icalString));
+    alarm.related = Ci.calIAlarm.ALARM_RELATED_START;
+    alarm.offset = cal.createDuration("-PT5M");
+    ok(alarm.icalComponent.serializeToICS().includes(date.icalString));
 
     alarm.deleteProperty("X-MOZ-LASTACK");
-    ok(!alarm.icalComponent.serializeToICS().includes(dt.icalString));
+    ok(!alarm.icalComponent.serializeToICS().includes(date.icalString));
     dump("Done\n");
 }
 
@@ -326,13 +330,13 @@ function test_dates() {
     equal(alarm.offset, null);
 
     // Set an offset and check it
-    alarm.related = Ci.calIAlarm.ALARM_RELATED_START
-    let offset = createDuration("-PT5M");
+    alarm.related = Ci.calIAlarm.ALARM_RELATED_START;
+    let offset = cal.createDuration("-PT5M");
     alarm.offset = offset;
     equal(alarm.alarmDate, null);
     equal(alarm.offset, offset);
     try {
-        alarm.alarmDate = createDateTime();
+        alarm.alarmDate = cal.createDateTime();
         passed = false;
     } catch (e) {
         passed = true;
@@ -348,7 +352,7 @@ function test_dates() {
     equal(alarm.alarmDate, alarmDate);
     equal(alarm.offset, null);
     try {
-        alarm.offset = createDuration();
+        alarm.offset = cal.createDuration();
         passed = false;
     } catch (e) {
         passed = true;
@@ -360,24 +364,26 @@ function test_dates() {
     dump("Done\n");
 }
 
-var propMap = { "related": Ci.calIAlarm.ALARM_RELATED_START,
-                "repeat": 1,
-                "action": "X-TEST",
-                "description": "description",
-                "summary": "summary",
-                "offset": createDuration("PT4M"),
-                "repeatOffset": createDuration("PT1M")
+var propMap = {
+    related: Ci.calIAlarm.ALARM_RELATED_START,
+    repeat: 1,
+    action: "X-TEST",
+    description: "description",
+    summary: "summary",
+    offset: cal.createDuration("PT4M"),
+    repeatOffset: cal.createDuration("PT1M")
 };
-var clonePropMap = { "related": Ci.calIAlarm.ALARM_RELATED_END,
-                     "repeat": 2,
-                     "action": "X-CHANGED",
-                     "description": "description-changed",
-                     "summary": "summary-changed",
-                     "offset": createDuration("PT5M"),
-                     "repeatOffset": createDuration("PT2M")
+var clonePropMap = {
+    related: Ci.calIAlarm.ALARM_RELATED_END,
+    repeat: 2,
+    action: "X-CHANGED",
+    description: "description-changed",
+    summary: "summary-changed",
+    offset: cal.createDuration("PT5M"),
+    repeatOffset: cal.createDuration("PT2M")
 };
-function test_immutable() {
 
+function test_immutable() {
     dump("Testing immutable alarms...");
     let alarm = cal.createAlarm();
     // Set up each attribute
@@ -390,7 +396,6 @@ function test_immutable() {
     alarm.setProperty("X-DATEPROP", cal.createDateTime());
     alarm.addAttendee(cal.createAttendee());
 
-    let passed = false;
     // Initial checks
     ok(alarm.isMutable);
     alarm.makeImmutable();
@@ -410,11 +415,11 @@ function test_immutable() {
     }
 
     // Functions
-    throws(function() {
+    throws(() => {
         alarm.setProperty("X-FOO", "changed");
     }, /Can not modify immutable data container/);
 
-    throws(function() {
+    throws(() => {
         alarm.deleteProperty("X-FOO");
     }, /Can not modify immutable data container/);
 
@@ -447,14 +452,12 @@ function test_clone() {
     // the comparisons.
     for (let prop in propMap) {
         if (prop == "item") {
-            equal(alarm.item.icalString, newAlarm.item.icalString)
-        } else {
-            if ((alarm[prop] instanceof Ci.nsISupports &&
-                 alarm[prop].icalString != newAlarm[prop].icalString) ||
-                !(alarm[prop] instanceof Ci.nsISupports) &&
-                  alarm[prop] != newAlarm[prop]) {
-                do_throw(prop + " differs, " + alarm[prop] + " == " + newAlarm[prop]);
-            }
+            equal(alarm.item.icalString, newAlarm.item.icalString);
+        } else if ((alarm[prop] instanceof Ci.nsISupports &&
+                    alarm[prop].icalString != newAlarm[prop].icalString) ||
+                   (!(alarm[prop] instanceof Ci.nsISupports) &&
+                     alarm[prop] != newAlarm[prop])) {
+            do_throw(prop + " differs, " + alarm[prop] + " == " + newAlarm[prop]);
         }
     }
 
@@ -470,8 +473,8 @@ function test_clone() {
     // Check x props
     alarm.setProperty("X-FOO", "BAR");
     equal(alarm.getProperty("X-FOO"), "BAR");
-    let dt = alarm.getProperty("X-DATEPROP");
-    equal(dt.isMutable, true);
+    let date = alarm.getProperty("X-DATEPROP");
+    equal(date.isMutable, true);
 
     // Test xprop params
     alarm.icalString =
@@ -493,11 +496,15 @@ function test_serialize() {
     let alarm = cal.createAlarm();
     let srv = cal.getIcsService();
 
-    throws(function() {
+    throws(() => {
         alarm.icalComponent = srv.createIcalComponent("BARF");
-    }, /0x80070057/ , "Invalid Argument");
+    }, /0x80070057/, "Invalid Argument");
 
-    function addProp(k,v) { let p = srv.createIcalProperty(k); p.value = v; comp.addProperty(p) }
+    function addProp(name, value) {
+        let prop = srv.createIcalProperty(name);
+        prop.value = value;
+        comp.addProperty(prop);
+    }
     function addActionDisplay() { addProp("ACTION", "DISPLAY"); }
     function addActionEmail() { addProp("ACTION", "EMAIL"); }
     function addTrigger() { addProp("TRIGGER", "-PT15M"); }
@@ -509,47 +516,57 @@ function test_serialize() {
 
     // All is there, should not throw
     let comp = srv.createIcalComponent("VALARM");
-    addActionDisplay(); addTrigger(); addDescr(); addDuration(); addRepeat();
+    addActionDisplay();
+    addTrigger();
+    addDescr();
+    addDuration();
+    addRepeat();
     alarm.icalComponent = comp;
     alarm.toString();
 
     // Attachments and attendees
     comp = srv.createIcalComponent("VALARM");
-    addActionEmail(); addTrigger(); addDescr();
-    addAttendee(); addAttachment();
+    addActionEmail();
+    addTrigger();
+    addDescr();
+    addAttendee();
+    addAttachment();
     alarm.icalComponent = comp;
     alarm.toString();
 
     // Missing action
-    throws(function() {
+    throws(() => {
         comp = srv.createIcalComponent("VALARM");
         addTrigger(); addDescr();
         alarm.icalComponent = comp;
     }, /Illegal value/, "Invalid Argument");
 
     // Missing trigger
-    throws(function() {
+    throws(() => {
         comp = srv.createIcalComponent("VALARM");
         addActionDisplay(); addDescr();
         alarm.icalComponent = comp;
     }, /Illegal value/, "Invalid Argument");
 
     // Missing duration with repeat
-    throws(function() {
+    throws(() => {
         comp = srv.createIcalComponent("VALARM");
-        addActionDisplay(); addTrigger(); addDescr();
+        addActionDisplay();
+        addTrigger();
+        addDescr();
         addRepeat();
         alarm.icalComponent = comp;
     }, /Illegal value/, "Invalid Argument");
 
     // Missing repeat with duration
-    throws(function() {
+    throws(() => {
         comp = srv.createIcalComponent("VALARM");
-        addActionDisplay(); addTrigger(); addDescr();
+        addActionDisplay();
+        addTrigger();
+        addDescr();
         addDuration();
         alarm.icalComponent = comp;
     }, /Illegal value/, "Invalid Argument");
-
 }
 
 function test_strings() {

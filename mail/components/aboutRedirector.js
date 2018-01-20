@@ -17,6 +17,8 @@ AboutRedirector.prototype = {
   // value as a record with url and flags entries. Note that each addition here
   // should be coupled with a corresponding addition in mailComponents.manifest.
   _redirMap: {
+    "newserror": {url: "chrome://messenger/content/newsError.xhtml",
+                  flags: Ci.nsIAboutModule.ALLOW_SCRIPT},
     "rights": {url: "chrome://messenger/content/aboutRights.xhtml",
                flags: (Ci.nsIAboutModule.ALLOW_SCRIPT |
                        Ci.nsIAboutModule.URI_SAFE_FOR_UNTRUSTED_CONTENT)},
@@ -33,7 +35,7 @@ AboutRedirector.prototype = {
    */
   _getModuleName: function AboutRedirector__getModuleName(aURI) {
     // Strip out the first ? or #, and anything following it
-    let name = (/[^?#]+/.exec(aURI.path))[0];
+    let name = (/[^?#]+/.exec(aURI.pathQueryRef))[0];
     return name.toLowerCase();
   },
 
@@ -49,12 +51,12 @@ AboutRedirector.prototype = {
     if (!(name in this._redirMap))
       throw Components.results.NS_ERROR_ILLEGAL_VALUE;
 
-    let newURI = Services.io.newURI(this._redirMap[name].url, null, null);
+    let newURI = Services.io.newURI(this._redirMap[name].url);
     let channel = Services.io.newChannelFromURIWithLoadInfo(newURI, aLoadInfo);
     channel.originalURI = aURI;
 
     if (this._redirMap[name].flags & Ci.nsIAboutModule.URI_SAFE_FOR_UNTRUSTED_CONTENT) {
-      let principal = Services.scriptSecurityManager.getNoAppCodebasePrincipal(aURI);
+      let principal = Services.scriptSecurityManager.createCodebasePrincipal(aURI, {});
       channel.owner = principal;
     }
 

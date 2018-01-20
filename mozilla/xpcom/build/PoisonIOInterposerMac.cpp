@@ -13,8 +13,8 @@
 #include "mozilla/IOInterposer.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/ProcessedStack.h"
-#include "mozilla/Scoped.h"
 #include "mozilla/Telemetry.h"
+#include "mozilla/UniquePtrExtensions.h"
 #include "nsPrintfCString.h"
 #include "mozilla/StackWalk.h"
 #include "nsTraceRefcnt.h"
@@ -65,7 +65,6 @@ public:
                                        !IsDebugFile(aFd))
     , mFd(aFd)
     , mHasQueriedFilename(false)
-    , mFilename(nullptr)
   {
   }
 
@@ -76,49 +75,45 @@ public:
                                        IsValidWrite(aFd, aBuf, aCount))
     , mFd(aFd)
     , mHasQueriedFilename(false)
-    , mFilename(nullptr)
   {
   }
 
   // Custom implementation of IOInterposeObserver::Observation::Filename
-  const char16_t* Filename() override;
+  void Filename(nsAString& aFilename) override;
 
   ~MacIOAutoObservation()
   {
     Report();
-    if (mFilename) {
-      free(mFilename);
-      mFilename = nullptr;
-    }
   }
 
 private:
   int                 mFd;
   bool                mHasQueriedFilename;
-  char16_t*           mFilename;
+  nsString            mFilename;
   static const char*  sReference;
 };
 
 const char* MacIOAutoObservation::sReference = "PoisonIOInterposer";
 
 // Get filename for this observation
-const char16_t*
-MacIOAutoObservation::Filename()
+void
+MacIOAutoObservation::Filename(nsAString& aFilename)
 {
   // If mHasQueriedFilename is true, then we already have it
   if (mHasQueriedFilename) {
-    return mFilename;
+    aFilename = mFilename;
+    return;
   }
+
   char filename[MAXPATHLEN];
   if (fcntl(mFd, F_GETPATH, filename) != -1) {
-    mFilename = UTF8ToNewUnicode(nsDependentCString(filename));
+    mFilename = NS_ConvertUTF8toUTF16(filename);
   } else {
-    mFilename = nullptr;
+    mFilename.Truncate();
   }
   mHasQueriedFilename = true;
 
-  // Return filename
-  return mFilename;
+  aFilename = mFilename;
 }
 
 /****************************** Write Validation ******************************/
@@ -181,7 +176,7 @@ IsValidWrite(int aFd, const void* aWbuf, size_t aCount)
   // content. This is needed because dbm doesn't keep track of dirty bits
   // and can end up writing the same data to disk twice. Once when the
   // user (nss) asks it to sync and once when closing the database.
-  ScopedFreePtr<void> wbuf2(malloc(aCount));
+  auto wbuf2 = MakeUniqueFallible<char[]>(aCount);
   if (!wbuf2) {
     return true;
   }
@@ -189,11 +184,11 @@ IsValidWrite(int aFd, const void* aWbuf, size_t aCount)
   if (pos == -1) {
     return true;
   }
-  ssize_t r = read(aFd, wbuf2, aCount);
+  ssize_t r = read(aFd, wbuf2.get(), aCount);
   if (r < 0 || (size_t)r != aCount) {
     return true;
   }
-  int cmp = memcmp(aWbuf, wbuf2, aCount);
+  int cmp = memcmp(aWbuf, wbuf2.get(), aCount);
   if (cmp != 0) {
     return true;
   }

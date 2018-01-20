@@ -54,7 +54,7 @@ function run_test() {
     case "Linux":
       break;
     case "Darwin":
-      gfxInfo.spoofOSVersion(0x1060);
+      gfxInfo.spoofOSVersion(0x1090);
       break;
     case "Android":
       break;
@@ -65,15 +65,16 @@ function run_test() {
 
   do_test_pending();
 
-  function checkBlacklist()
-  {
-    var status = gfxInfo.getFeatureStatus(Ci.nsIGfxInfo.FEATURE_DIRECT2D);
-    do_check_eq(status, Ci.nsIGfxInfo.FEATURE_BLOCKED_DEVICE);
+  function checkBlacklist() {
+    var driverVersion = gfxInfo.adapterDriverVersion;
+    if (driverVersion) {
+      var status = gfxInfo.getFeatureStatus(Ci.nsIGfxInfo.FEATURE_DIRECT2D);
+      do_check_eq(status, Ci.nsIGfxInfo.FEATURE_BLOCKED_DEVICE);
 
-    // Make sure unrelated features aren't affected
-    status = gfxInfo.getFeatureStatus(Ci.nsIGfxInfo.FEATURE_DIRECT3D_9_LAYERS);
-    do_check_eq(status, Ci.nsIGfxInfo.FEATURE_STATUS_OK);
-
+      // Make sure unrelated features aren't affected
+      status = gfxInfo.getFeatureStatus(Ci.nsIGfxInfo.FEATURE_DIRECT3D_9_LAYERS);
+      do_check_eq(status, Ci.nsIGfxInfo.FEATURE_STATUS_OK);
+    }
     gTestserver.stop(do_test_finished);
   }
 
@@ -81,7 +82,7 @@ function run_test() {
     // If we wait until after we go through the event loop, gfxInfo is sure to
     // have processed the gfxItems event.
     do_execute_soon(checkBlacklist);
-  }, "blocklist-data-gfxItems", false);
+  }, "blocklist-data-gfxItems");
 
   load_blocklist("test_gfxBlacklist.xml");
 }

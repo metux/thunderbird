@@ -8,7 +8,7 @@
 #include "nsIURI.h"
 #include "nsNetCID.h"
 #include "nsSmtpUrl.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsMsgUtils.h"
 #include "nsIMimeConverter.h"
 #include "nsMsgMimeCID.h"
@@ -16,6 +16,7 @@
 #include "nsServiceManagerUtils.h"
 #include "nsCRT.h"
 #include "nsAutoPtr.h"
+#include "mozilla/Encoding.h"
 
 /////////////////////////////////////////////////////////////////////////////////////
 // mailto url definition
@@ -95,9 +96,12 @@ nsresult nsMailtoUrl::ParseMailtoUrl(char * searchPart)
       nsCString decodedName;
       MsgUnescapeString(nsDependentCString(token), 0, decodedName);
 
+      if (decodedName.IsEmpty())
+        break;
+
       switch (NS_ToUpper(decodedName.First()))
       {
-        /* DO NOT support attachment= in mailto urls. This poses a security fire hole!!! 
+        /* DO NOT support attachment= in mailto urls. This poses a security fire hole!!!
                           case 'A':
                           if (!PL_strcasecmp (token, "attachment"))
                           m_attachmentPart = value;
@@ -112,7 +116,7 @@ nsresult nsMailtoUrl::ParseMailtoUrl(char * searchPart)
             escapedBccPart += value;
           }
           else
-            escapedBccPart = value; 
+            escapedBccPart = value;
         }
         else if (decodedName.LowerCaseEqualsLiteral("body"))
         {
@@ -125,7 +129,7 @@ nsresult nsMailtoUrl::ParseMailtoUrl(char * searchPart)
             escapedBodyPart = value;
         }
         break;
-      case 'C': 
+      case 'C':
         if (decodedName.LowerCaseEqualsLiteral("cc"))
         {
           if (!escapedCcPart.IsEmpty())
@@ -137,7 +141,7 @@ nsresult nsMailtoUrl::ParseMailtoUrl(char * searchPart)
             escapedCcPart = value;
         }
         break;
-      case 'F': 
+      case 'F':
         if (decodedName.LowerCaseEqualsLiteral("followup-to"))
           escapedFollowUpToPart = value;
         else if (decodedName.LowerCaseEqualsLiteral("from"))
@@ -271,7 +275,7 @@ nsresult nsMailtoUrl::CleanupMailtoState()
     m_ccPart = "";
     m_subjectPart = "";
     m_newsgroupPart = "";
-    m_newsHostPart = ""; 
+    m_newsHostPart = "";
     m_referencePart = "";
     m_bodyPart = "";
     m_bccPart = "";
@@ -288,7 +292,7 @@ nsresult nsMailtoUrl::ParseUrl()
 {
   // we can get the path from the simple url.....
   nsCString escapedPath;
-  m_baseURL->GetPath(escapedPath);
+  m_baseURL->GetPathQueryRef(escapedPath);
 
   int32_t startOfSearchPart = escapedPath.FindChar('?');
   if (startOfSearchPart >= 0)
@@ -446,6 +450,12 @@ NS_IMETHODIMP nsMailtoUrl::SetHostPort(const nsACString &aHostPort)
 	return ParseUrl();
 }
 
+NS_IMETHODIMP nsMailtoUrl::SetHostAndPort(const nsACString &aHostPort)
+{
+	m_baseURL->SetHostAndPort(aHostPort);
+	return ParseUrl();
+}
+
 NS_IMETHODIMP nsMailtoUrl::GetHost(nsACString &aHost)
 {
 	return m_baseURL->GetHost(aHost);
@@ -468,14 +478,14 @@ NS_IMETHODIMP nsMailtoUrl::SetPort(int32_t aPort)
 	return ParseUrl();
 }
 
-NS_IMETHODIMP nsMailtoUrl::GetPath(nsACString &aPath)
+NS_IMETHODIMP nsMailtoUrl::GetPathQueryRef(nsACString &aPath)
 {
-	return m_baseURL->GetPath(aPath);
+	return m_baseURL->GetPathQueryRef(aPath);
 }
 
-NS_IMETHODIMP nsMailtoUrl::SetPath(const nsACString &aPath)
+NS_IMETHODIMP nsMailtoUrl::SetPathQueryRef(const nsACString &aPath)
 {
-	m_baseURL->SetPath(aPath);
+	m_baseURL->SetPathQueryRef(aPath);
 	return ParseUrl();
 }
 
@@ -494,11 +504,6 @@ NS_IMETHODIMP nsMailtoUrl::GetAsciiSpec(nsACString &aSpecA)
 	return m_baseURL->GetAsciiSpec(aSpecA);
 }
 
-NS_IMETHODIMP nsMailtoUrl::GetOriginCharset(nsACString &aOriginCharset)
-{
-    return m_baseURL->GetOriginCharset(aOriginCharset);
-}
-
 NS_IMETHODIMP nsMailtoUrl::SchemeIs(const char *aScheme, bool *_retval)
 {
 	return m_baseURL->SchemeIs(aScheme, _retval);
@@ -515,7 +520,9 @@ NS_IMETHODIMP nsMailtoUrl::Equals(nsIURI *other, bool *_retval)
   return m_baseURL->Equals(other, _retval);
 }
 
-NS_IMETHODIMP nsMailtoUrl::Clone(nsIURI **_retval)
+nsresult
+nsMailtoUrl::CloneInternal(RefHandlingEnum aRefHandlingMode,
+                           const nsACString& newRef, nsIURI** _retval)
 {
   NS_ENSURE_ARG_POINTER(_retval);
 
@@ -523,12 +530,36 @@ NS_IMETHODIMP nsMailtoUrl::Clone(nsIURI **_retval)
 
   NS_ENSURE_TRUE(clone, NS_ERROR_OUT_OF_MEMORY);
 
-  nsresult rv = m_baseURL->Clone(getter_AddRefs(clone->m_baseURL));
+  nsresult rv;
+  if (aRefHandlingMode == eHonorRef) {
+    rv = m_baseURL->Clone(getter_AddRefs(clone->m_baseURL));
+  } else if (aRefHandlingMode == eReplaceRef) {
+    rv = m_baseURL->CloneWithNewRef(newRef, getter_AddRefs(clone->m_baseURL));
+  } else {
+    rv = m_baseURL->CloneIgnoringRef(getter_AddRefs(clone->m_baseURL));
+  }
   NS_ENSURE_SUCCESS(rv, rv);
-
   clone->ParseUrl();
   clone.forget(_retval);
   return NS_OK;
+}
+
+NS_IMETHODIMP
+nsMailtoUrl::Clone(nsIURI **_retval)
+{
+  return CloneInternal(eHonorRef, EmptyCString(), _retval);
+}
+
+NS_IMETHODIMP
+nsMailtoUrl::CloneIgnoringRef(nsIURI** _retval)
+{
+  return CloneInternal(eIgnoreRef, EmptyCString(), _retval);
+}
+
+NS_IMETHODIMP
+nsMailtoUrl::CloneWithNewRef(const nsACString& newRef, nsIURI** _retval)
+{
+  return CloneInternal(eReplaceRef, newRef, _retval);
 }
 
 NS_IMETHODIMP nsMailtoUrl::Resolve(const nsACString &relativePath, nsACString &result)
@@ -559,29 +590,69 @@ NS_IMETHODIMP nsMailtoUrl::EqualsExceptRef(nsIURI *other, bool *result)
 }
 
 NS_IMETHODIMP
-nsMailtoUrl::CloneIgnoringRef(nsIURI** result)
-{
-  nsCOMPtr<nsIURI> clone;
-  nsresult rv = Clone(getter_AddRefs(clone));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  rv = clone->SetRef(EmptyCString());
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  clone.forget(result);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 nsMailtoUrl::GetSpecIgnoringRef(nsACString &result)
 {
   return m_baseURL->GetSpecIgnoringRef(result);
 }
 
 NS_IMETHODIMP
+nsMailtoUrl::GetDisplaySpec(nsACString& aUnicodeSpec)
+{
+  return GetSpec(aUnicodeSpec);
+}
+
+NS_IMETHODIMP
+nsMailtoUrl::GetDisplayHostPort(nsACString& aUnicodeHostPort)
+{
+  return GetHostPort(aUnicodeHostPort);
+}
+
+NS_IMETHODIMP
+nsMailtoUrl::GetDisplayHost(nsACString& aUnicodeHost)
+{
+  return GetHost(aUnicodeHost);
+}
+
+NS_IMETHODIMP
+nsMailtoUrl::GetDisplayPrePath(nsACString& aPrePath)
+{
+  return GetPrePath(aPrePath);
+}
+
+NS_IMETHODIMP
 nsMailtoUrl::GetHasRef(bool *result)
 {
   return m_baseURL->GetHasRef(result);
+}
+
+NS_IMETHODIMP
+nsMailtoUrl::GetFilePath(nsACString &aFilePath)
+{
+  return m_baseURL->GetFilePath(aFilePath);
+}
+
+NS_IMETHODIMP
+nsMailtoUrl::SetFilePath(const nsACString &aFilePath)
+{
+  return m_baseURL->SetFilePath(aFilePath);
+}
+
+NS_IMETHODIMP
+nsMailtoUrl::GetQuery(nsACString &aQuery)
+{
+  return m_baseURL->GetQuery(aQuery);
+}
+
+NS_IMETHODIMP
+nsMailtoUrl::SetQuery(const nsACString &aQuery)
+{
+  return m_baseURL->SetQuery(aQuery);
+}
+
+NS_IMETHODIMP
+nsMailtoUrl::SetQueryWithEncoding(const nsACString &aQuery, const mozilla::Encoding* aEncoding)
+{
+  return m_baseURL->SetQueryWithEncoding(aQuery, aEncoding);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -596,12 +667,12 @@ nsSmtpUrl::nsSmtpUrl() : nsMsgMailNewsUrl()
   m_requestDSN = false;
   m_verifyLogon = false;
 }
- 
+
 nsSmtpUrl::~nsSmtpUrl()
 {
 }
-  
-NS_IMPL_ISUPPORTS_INHERITED(nsSmtpUrl, nsMsgMailNewsUrl, nsISmtpUrl)  
+
+NS_IMPL_ISUPPORTS_INHERITED(nsSmtpUrl, nsMsgMailNewsUrl, nsISmtpUrl)
 
 ////////////////////////////////////////////////////////////////////////////////////
 // Begin nsISmtpUrl specific support
@@ -653,7 +724,7 @@ NS_IMETHODIMP nsSmtpUrl::GetPostMessageFile(nsIFile ** aFile)
 
 NS_IMPL_GETSET(nsSmtpUrl, RequestDSN, bool, m_requestDSN)
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 nsSmtpUrl::SetDsnEnvid(const nsACString &aDsnEnvid)
 {
     m_dsnEnvid = aDsnEnvid;
@@ -671,8 +742,7 @@ NS_IMETHODIMP
 nsSmtpUrl::GetSenderIdentity(nsIMsgIdentity **aSenderIdentity)
 {
   NS_ENSURE_ARG_POINTER(aSenderIdentity);
-  *aSenderIdentity = m_senderIdentity;
-  NS_ADDREF(*aSenderIdentity);
+  NS_ADDREF(*aSenderIdentity = m_senderIdentity);
   return NS_OK;
 }
 
@@ -697,8 +767,7 @@ nsSmtpUrl::GetPrompt(nsIPrompt **aNetPrompt)
 {
     NS_ENSURE_ARG_POINTER(aNetPrompt);
     NS_ENSURE_TRUE(m_netPrompt, NS_ERROR_NULL_POINTER);
-    *aNetPrompt = m_netPrompt;
-    NS_ADDREF(*aNetPrompt);
+    NS_ADDREF(*aNetPrompt = m_netPrompt);
     return NS_OK;
 }
 
@@ -715,8 +784,7 @@ nsSmtpUrl::GetAuthPrompt(nsIAuthPrompt **aNetAuthPrompt)
 {
     NS_ENSURE_ARG_POINTER(aNetAuthPrompt);
     NS_ENSURE_TRUE(m_netAuthPrompt, NS_ERROR_NULL_POINTER);
-    *aNetAuthPrompt = m_netAuthPrompt;
-    NS_ADDREF(*aNetAuthPrompt);
+    NS_ADDREF(*aNetAuthPrompt = m_netAuthPrompt);
     return NS_OK;
 }
 
@@ -733,8 +801,7 @@ nsSmtpUrl::GetNotificationCallbacks(nsIInterfaceRequestor** aCallbacks)
 {
     NS_ENSURE_ARG_POINTER(aCallbacks);
     NS_ENSURE_TRUE(m_callbacks, NS_ERROR_NULL_POINTER);
-    *aCallbacks = m_callbacks;
-    NS_ADDREF(*aCallbacks);
+    NS_ADDREF(*aCallbacks = m_callbacks);
     return NS_OK;
 }
 
@@ -751,7 +818,6 @@ nsSmtpUrl::GetSmtpServer(nsISmtpServer ** aSmtpServer)
 {
     NS_ENSURE_ARG_POINTER(aSmtpServer);
     NS_ENSURE_TRUE(m_smtpServer, NS_ERROR_NULL_POINTER);
-    *aSmtpServer = m_smtpServer;
-    NS_ADDREF(*aSmtpServer);
+    NS_ADDREF(*aSmtpServer = m_smtpServer);
     return NS_OK;
 }

@@ -15,14 +15,14 @@
 #include "nsIPromptService.h"
 #include "nsIAppStartup.h"
 #include "nsIAppShellService.h"
-#include "nsIDOMWindow.h"
+#include "mozIDOMWindow.h"
 #include "nsINativeAppSupport.h"
 #include "nsIMsgAccountManager.h"
 #include "nsMsgBaseCID.h"
 #include "nsIStringBundle.h"
 #include "nsIPrefService.h"
 #include "nsIPrefBranch.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsUnicharUtils.h"
 #include "nsIMsgAttachment.h"
 #include "nsIMsgCompFields.h"
@@ -47,13 +47,11 @@
 #include "nsEmbedCID.h"
 #include "mozilla/Logging.h"
 
-extern PRLogModuleInfo *MAPI;
+static mozilla::LazyLogModule MAPI("MAPI");
 
 class nsMAPISendListener : public nsIMsgSendListener
 {
 public:
-
-    virtual ~nsMAPISendListener() { }
 
     // nsISupports interface
     NS_DECL_THREADSAFE_ISUPPORTS
@@ -96,6 +94,9 @@ protected :
     }
 
     bool            m_done;
+private:
+    virtual ~nsMAPISendListener() { }
+
 };
 
 
@@ -104,12 +105,7 @@ NS_IMPL_ISUPPORTS(nsMAPISendListener, nsIMsgSendListener)
 nsresult nsMAPISendListener::CreateMAPISendListener( nsIMsgSendListener **ppListener)
 {
     NS_ENSURE_ARG_POINTER(ppListener) ;
-
-    *ppListener = new nsMAPISendListener();
-    if (! *ppListener)
-        return NS_ERROR_OUT_OF_MEMORY;
-
-    NS_ADDREF(*ppListener);
+    NS_ADDREF(*ppListener = new nsMAPISendListener());
     return NS_OK;
 }
 
@@ -145,24 +141,19 @@ bool nsMapiHook::DisplayLoginDialog(bool aLogin, char16_t **aUsername,
     if (NS_FAILED(rv)) return false;
 
     nsString brandName;
-    rv = brandBundle->GetStringFromName(
-                       MOZ_UTF16("brandFullName"),
-                       getter_Copies(brandName));
+    rv = brandBundle->GetStringFromName("brandFullName", brandName);
     if (NS_FAILED(rv)) return false;
 
     nsString loginTitle;
     const char16_t *brandStrings[] = { brandName.get() };
-    NS_NAMED_LITERAL_STRING(loginTitlePropertyTag, "loginTitle");
-    const char16_t *dTitlePropertyTag = loginTitlePropertyTag.get();
-    rv = bundle->FormatStringFromName(dTitlePropertyTag, brandStrings, 1,
-                                      getter_Copies(loginTitle));
+    rv = bundle->FormatStringFromName("loginTitle", brandStrings, 1,
+                                      loginTitle);
     if (NS_FAILED(rv)) return false;
 
     if (aLogin)
     {
       nsString loginText;
-      rv = bundle->GetStringFromName(MOZ_UTF16("loginTextwithName"),
-                                     getter_Copies(loginText));
+      rv = bundle->GetStringFromName("loginTextwithName", loginText);
       if (NS_FAILED(rv) || loginText.IsEmpty()) return false;
 
       bool dummyValue = false;
@@ -175,11 +166,8 @@ bool nsMapiHook::DisplayLoginDialog(bool aLogin, char16_t **aUsername,
       //nsString loginString;
       nsString loginText;
       const char16_t *userNameStrings[] = { *aUsername };
-
-      NS_NAMED_LITERAL_STRING(loginTextPropertyTag, "loginText");
-      const char16_t *dpropertyTag = loginTextPropertyTag.get();
-      rv = bundle->FormatStringFromName(dpropertyTag, userNameStrings, 1,
-                                        getter_Copies(loginText));
+      rv = bundle->FormatStringFromName("loginText", userNameStrings, 1,
+                                        loginText);
       if (NS_FAILED(rv)) return false;
 
       bool dummyValue = false;
@@ -255,13 +243,12 @@ nsMapiHook::IsBlindSendAllowed()
   if (NS_FAILED(rv) || !bundle) return false;
 
   nsString warningMsg;
-  rv = bundle->GetStringFromName(MOZ_UTF16("mapiBlindSendWarning"),
-                                      getter_Copies(warningMsg));
+  rv = bundle->GetStringFromName("mapiBlindSendWarning", warningMsg);
   if (NS_FAILED(rv)) return false;
 
   nsString dontShowAgainMessage;
-  rv = bundle->GetStringFromName(MOZ_UTF16("mapiBlindSendDontShowAgain"),
-                                      getter_Copies(dontShowAgainMessage));
+  rv = bundle->GetStringFromName("mapiBlindSendDontShowAgain",
+                                 dontShowAgainMessage);
   if (NS_FAILED(rv)) return false;
 
   nsCOMPtr<nsIPromptService> dlgService(do_GetService(NS_PROMPTSERVICE_CONTRACTID, &rv));
@@ -287,7 +274,7 @@ nsresult nsMapiHook::BlindSendMail (unsigned long aSession, nsIMsgCompFields * a
 
   /** create nsIMsgComposeParams obj and other fields to populate it **/
 
-  nsCOMPtr<nsIDOMWindow>  hiddenWindow;
+  nsCOMPtr<mozIDOMWindowProxy> hiddenWindow;
   // get parent window
   nsCOMPtr<nsIAppShellService> appService = do_GetService( "@mozilla.org/appshell/appShellService;1", &rv);
   if (NS_FAILED(rv)|| (!appService) ) return rv ;
@@ -298,9 +285,6 @@ nsresult nsMapiHook::BlindSendMail (unsigned long aSession, nsIMsgCompFields * a
   nsMAPIConfiguration * pMapiConfig = nsMAPIConfiguration::GetMAPIConfiguration() ;
   if (!pMapiConfig) return NS_ERROR_FAILURE ;  // get the singelton obj
   char16_t * password = pMapiConfig->GetPassword(aSession) ;
-  // password
-  nsAutoCString smtpPassword;
-  LossyCopyUTF16toASCII(password, smtpPassword);
 
   // Id key
   nsCString MsgIdKey;
@@ -331,7 +315,7 @@ nsresult nsMapiHook::BlindSendMail (unsigned long aSession, nsIMsgCompFields * a
   pMsgComposeParams->SetIdentity(pMsgId);
   pMsgComposeParams->SetComposeFields(aCompFields);
   pMsgComposeParams->SetSendListener(sendListener) ;
-  pMsgComposeParams->SetSmtpPassword(smtpPassword.get());
+  pMsgComposeParams->SetSmtpPassword(nsDependentString(password));
 
   // create the nsIMsgCompose object to send the object
   nsCOMPtr<nsIMsgCompose> pMsgCompose (do_CreateInstance(NS_MSGCOMPOSE_CONTRACTID, &rv));
@@ -432,9 +416,11 @@ nsresult nsMapiHook::PopulateCompFields(lpnsMapiMessage aMessage,
   {
       nsString Body;
       CopyASCIItoUTF16(aMessage->lpszNoteText, Body);
-      if (Body.Last() != '\n')
+      if (Body.IsEmpty() || Body.Last() != '\n')
         Body.AppendLiteral(CRLF);
 
+      // This is needed when Simple MAPI is used without a compose window.
+      // See bug 1366196.
       if (Body.Find("<html>") == kNotFound)
         aCompFields->SetForcePlainText(true);
 
@@ -458,7 +444,6 @@ nsresult nsMapiHook::HandleAttachments (nsIMsgCompFields * aCompFields, int32_t 
 
     for (int i=0 ; i < aFileCount ; i++)
     {
-        bool bTempFile = false ;
         if (aFiles[i].lpszPathName)
         {
             // check if attachment exists
@@ -638,9 +623,11 @@ nsresult nsMapiHook::PopulateCompFieldsWithConversion(lpnsMapiMessage aMessage,
       platformCharSet.Assign(nsMsgI18NFileSystemCharset());
     rv = ConvertToUnicode(platformCharSet.get(), (char *) aMessage->lpszNoteText, Body);
     if (NS_FAILED(rv)) return rv ;
-    if (Body.Last() != '\n')
+    if (Body.IsEmpty() || Body.Last() != '\n')
       Body.AppendLiteral(CRLF);
 
+    // This is needed when Simple MAPI is used without a compose window.
+    // See bug 1366196.
     if (Body.Find("<html>") == kNotFound)
       aCompFields->SetForcePlainText(true);
 
@@ -682,7 +669,7 @@ nsresult nsMapiHook::PopulateCompFieldsForSendDocs(nsIMsgCompFields * aCompField
 
   // only 1 file is to be sent, no delim specified
   if (strDelimChars.IsEmpty())
-      strDelimChars.AssignLiteral(";");
+      strDelimChars.Assign(';');
 
   int32_t offset = 0 ;
   int32_t FilePathsLen = strFilePaths.Length() ;
@@ -717,7 +704,7 @@ nsresult nsMapiHook::PopulateCompFieldsForSendDocs(nsIMsgCompFields * aCompField
       if (offset != kNotFound)
       {
         RemainingPaths.SetLength (offset) ;
-        if ((offset + strDelimChars.Length()) < FilePathsLen)
+        if ((offset + (int32_t)strDelimChars.Length()) < FilePathsLen)
           newFilePaths += offset + strDelimChars.Length() ;
         else
           offset = kNotFound;
@@ -799,14 +786,20 @@ nsresult nsMapiHook::ShowComposerWindow (unsigned long aSession, nsIMsgCompField
     nsCOMPtr<nsIMsgComposeParams> pMsgComposeParams (do_CreateInstance(NS_MSGCOMPOSEPARAMS_CONTRACTID, &rv));
     if (NS_FAILED(rv) || (!pMsgComposeParams) ) return rv ;
 
+    // If we found HTML, compose in HTML.
     bool forcePlainText;
     aCompFields->GetForcePlainText(&forcePlainText);
     pMsgComposeParams->SetFormat(forcePlainText ? nsIMsgCompFormat::Default : nsIMsgCompFormat::HTML);
+
     // populate the compose params
     pMsgComposeParams->SetType(nsIMsgCompType::New);
-    pMsgComposeParams->SetFormat(nsIMsgCompFormat::Default);
+
+    // Never force to plain text, the default format will take care of that.
+    // Undo the forcing that happened in PopulateCompFields/PopulateCompFieldsWithConversion.
+    // See bug 1095629 and bug 1366196.
+    aCompFields->SetForcePlainText(false);
     pMsgComposeParams->SetComposeFields(aCompFields);
-    pMsgComposeParams->SetSendListener(sendListener) ;
+    pMsgComposeParams->SetSendListener(sendListener);
 
     /** get the nsIMsgComposeService object to open the compose window **/
     nsCOMPtr <nsIMsgComposeService> compService = do_GetService (NS_MSGCOMPOSESERVICE_CONTRACTID) ;

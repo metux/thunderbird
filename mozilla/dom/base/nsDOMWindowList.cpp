@@ -56,7 +56,7 @@ nsDOMWindowList::EnsureFresh()
     nsCOMPtr<nsIDocument> doc = do_QueryInterface(domdoc);
 
     if (doc) {
-      doc->FlushPendingNotifications(Flush_ContentAndNotify);
+      doc->FlushPendingNotifications(FlushType::ContentAndNotify);
     }
   }
 }
@@ -75,14 +75,14 @@ nsDOMWindowList::GetLength()
   return uint32_t(length);
 }
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 nsDOMWindowList::GetLength(uint32_t* aLength)
 {
   *aLength = GetLength();
   return NS_OK;
 }
 
-already_AddRefed<nsIDOMWindow>
+already_AddRefed<nsPIDOMWindowOuter>
 nsDOMWindowList::IndexedGetter(uint32_t aIndex)
 {
   nsCOMPtr<nsIDocShellTreeItem> item = GetDocShellTreeItemAt(aIndex);
@@ -90,22 +90,22 @@ nsDOMWindowList::IndexedGetter(uint32_t aIndex)
     return nullptr;
   }
 
-  nsCOMPtr<nsIDOMWindow> window = item->GetWindow();
+  nsCOMPtr<nsPIDOMWindowOuter> window = item->GetWindow();
   MOZ_ASSERT(window);
 
   return window.forget();
 }
 
-NS_IMETHODIMP 
-nsDOMWindowList::Item(uint32_t aIndex, nsIDOMWindow** aReturn)
+NS_IMETHODIMP
+nsDOMWindowList::Item(uint32_t aIndex, mozIDOMWindowProxy** aReturn)
 {
-  nsCOMPtr<nsIDOMWindow> window = IndexedGetter(aIndex);
+  nsCOMPtr<nsPIDOMWindowOuter> window = IndexedGetter(aIndex);
   window.forget(aReturn);
   return NS_OK;
 }
 
-NS_IMETHODIMP 
-nsDOMWindowList::NamedItem(const nsAString& aName, nsIDOMWindow** aReturn)
+NS_IMETHODIMP
+nsDOMWindowList::NamedItem(const nsAString& aName, mozIDOMWindowProxy** aReturn)
 {
   nsCOMPtr<nsIDocShellTreeItem> item;
 
@@ -114,8 +114,7 @@ nsDOMWindowList::NamedItem(const nsAString& aName, nsIDOMWindow** aReturn)
   EnsureFresh();
 
   if (mDocShellNode) {
-    mDocShellNode->FindChildWithName(PromiseFlatString(aName).get(),
-                                     false, false, nullptr,
+    mDocShellNode->FindChildWithName(aName, false, false, nullptr,
                                      nullptr, getter_AddRefs(item));
 
     nsCOMPtr<nsIScriptGlobalObject> globalObject(do_GetInterface(item));

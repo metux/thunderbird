@@ -11,12 +11,8 @@
 #include "nsNetCID.h"
 #include "nsObserverService.h"
 #include "nsXPCOMPrivate.h"
-#if !defined(MOZILLA_XPCOMRT_API)
 #include "nsIIOService.h"
 #include "nsIDirectoryService.h"
-#ifdef ACCESSIBILITY
-#include "nsIAccessibilityService.h"
-#endif
 #include "nsIChromeRegistry.h"
 #include "nsIStringBundle.h"
 #include "nsIToolkitChromeRegistry.h"
@@ -26,10 +22,14 @@
 #include "inIDOMUtils.h"
 #include "nsIPermissionManager.h"
 #include "nsIServiceWorkerManager.h"
+#include "nsICacheStorageService.h"
+#include "nsIStreamTransportService.h"
+#include "nsISocketTransportService.h"
+#include "nsIURIClassifier.h"
+#include "nsIHttpActivityObserver.h"
 #include "nsIAsyncShutdown.h"
 #include "nsIUUIDGenerator.h"
 #include "nsIGfxInfo.h"
-#endif // !defined(MOZILLA_XPCOMRT_API)
 
 using namespace mozilla;
 using namespace mozilla::services;
@@ -53,11 +53,6 @@ using namespace mozilla::services;
     }                                                                   \
     nsCOMPtr<TYPE> ret = g##NAME;                                       \
     return ret.forget();                                                \
-  }                                                                     \
-  NS_EXPORT_(already_AddRefed<TYPE>)                                    \
-  mozilla::services::_external_Get##NAME()                              \
-  {                                                                     \
-    return Get##NAME();                                                 \
   }
 
 #include "ServiceList.h"

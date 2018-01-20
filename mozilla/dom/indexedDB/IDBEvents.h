@@ -4,19 +4,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef mozilla_dom_indexeddb_idbevents_h__
-#define mozilla_dom_indexeddb_idbevents_h__
+#ifndef mozilla_dom_idbevents_h__
+#define mozilla_dom_idbevents_h__
 
 #include "js/RootingAPI.h"
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/Event.h"
 #include "mozilla/dom/Nullable.h"
+#include "nsStringFwd.h"
 
 #define IDBVERSIONCHANGEEVENT_IID \
   {0x3b65d4c3, 0x73ad, 0x492e, {0xb1, 0x2d, 0x15, 0xf9, 0xda, 0xc2, 0x08, 0x4b}}
-
-class nsAString;
-class nsDependentString;
 
 namespace mozilla {
 
@@ -47,12 +45,15 @@ extern const char16_t* kErrorEventType;
 extern const char16_t* kSuccessEventType;
 extern const char16_t* kUpgradeNeededEventType;
 extern const char16_t* kVersionChangeEventType;
+extern const char16_t* kCloseEventType;
 
 already_AddRefed<nsIDOMEvent>
 CreateGenericEvent(EventTarget* aOwner,
                    const nsDependentString& aType,
                    Bubbles aBubbles,
                    Cancelable aCancelable);
+
+} // namespace indexedDB
 
 class IDBVersionChangeEvent final : public Event
 {
@@ -120,13 +121,12 @@ private:
   CreateInternal(EventTarget* aOwner,
                  const nsAString& aName,
                  uint64_t aOldVersion,
-                 Nullable<uint64_t> aNewVersion);
+                 const Nullable<uint64_t>& aNewVersion);
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(IDBVersionChangeEvent, IDBVERSIONCHANGEEVENT_IID)
 
-} // namespace indexedDB
 } // namespace dom
 } // namespace mozilla
 
-#endif // mozilla_dom_indexeddb_idbevents_h__
+#endif // mozilla_dom_idbevents_h__

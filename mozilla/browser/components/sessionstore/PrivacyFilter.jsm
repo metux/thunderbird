@@ -11,19 +11,7 @@ const Cu = Components.utils;
 Cu.import("resource://gre/modules/XPCOMUtils.jsm", this);
 
 XPCOMUtils.defineLazyModuleGetter(this, "PrivacyLevel",
-  "resource:///modules/sessionstore/PrivacyLevel.jsm");
-
-/**
- * Returns whether the current privacy level allows saving data for the given
- * |url|.
- *
- * @param url The URL we want to save data for.
- * @return bool
- */
-function checkPrivacyLevel(url) {
-  let isHttps = url.startsWith("https:");
-  return PrivacyLevel.canSave({isHttps});
-}
+  "resource://gre/modules/sessionstore/PrivacyLevel.jsm");
 
 /**
  * A module that provides methods to filter various kinds of data collected
@@ -38,11 +26,11 @@ this.PrivacyFilter = Object.freeze({
    * @param data The session storage data as collected from a tab.
    * @return object
    */
-  filterSessionStorageData: function (data) {
+  filterSessionStorageData(data) {
     let retval = {};
 
     for (let host of Object.keys(data)) {
-      if (checkPrivacyLevel(host)) {
+      if (PrivacyLevel.check(host)) {
         retval[host] = data[host];
       }
     }
@@ -58,12 +46,12 @@ this.PrivacyFilter = Object.freeze({
    * @param data The form data as collected from a tab.
    * @return object
    */
-  filterFormData: function (data) {
+  filterFormData(data) {
     // If the given form data object has an associated URL that we are not
     // allowed to store data for, bail out. We explicitly discard data for any
     // children as well even if storing data for those frames would be allowed.
-    if (data.url && !checkPrivacyLevel(data.url)) {
-      return;
+    if (data.url && !PrivacyLevel.check(data.url)) {
+      return null;
     }
 
     let retval = {};
@@ -93,7 +81,7 @@ this.PrivacyFilter = Object.freeze({
    *        The browser state for which we remove any private windows and tabs.
    *        The given object will be modified.
    */
-  filterPrivateWindowsAndTabs: function (browserState) {
+  filterPrivateWindowsAndTabs(browserState) {
     // Remove private opened windows.
     for (let i = browserState.windows.length - 1; i >= 0; i--) {
       let win = browserState.windows[i];
@@ -125,7 +113,7 @@ this.PrivacyFilter = Object.freeze({
    *        The window state for which we remove any private tabs.
    *        The given object will be modified.
    */
-  filterPrivateTabs: function (winState) {
+  filterPrivateTabs(winState) {
     // Remove open private tabs.
     for (let i = winState.tabs.length - 1; i >= 0 ; i--) {
       let tab = winState.tabs[i];

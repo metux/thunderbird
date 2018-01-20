@@ -16,7 +16,7 @@
 #include "mozilla/dom/MediaKeyStatusMapBinding.h"
 #include "mozilla/CDMCaps.h"
 
-class nsPIDOMWindow;
+class nsPIDOMWindowInner;
 
 namespace mozilla {
 namespace dom {
@@ -34,29 +34,33 @@ public:
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(MediaKeyStatusMap)
 
 public:
-  explicit MediaKeyStatusMap(nsPIDOMWindow* aParent);
+  explicit MediaKeyStatusMap(nsPIDOMWindowInner* aParent);
 
 protected:
   ~MediaKeyStatusMap();
 
 public:
-  nsPIDOMWindow* GetParentObject() const;
+  nsPIDOMWindowInner* GetParentObject() const;
 
-  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
-  MediaKeyStatus Get(const ArrayBufferViewOrArrayBuffer& aKey) const;
+  void Get(JSContext* aCx,
+           const ArrayBufferViewOrArrayBuffer& aKey,
+           JS::MutableHandle<JS::Value> aOutValue,
+           ErrorResult& aOutRv) const;
   bool Has(const ArrayBufferViewOrArrayBuffer& aKey) const;
   uint32_t Size() const;
 
   uint32_t GetIterableLength() const;
   TypedArrayCreator<ArrayBuffer> GetKeyAtIndex(uint32_t aIndex) const;
+  nsString GetKeyIDAsHexString(uint32_t aIndex) const;
   MediaKeyStatus GetValueAtIndex(uint32_t aIndex) const;
 
   void Update(const nsTArray<CDMCaps::KeyStatus>& keys);
 
 private:
 
-  nsCOMPtr<nsPIDOMWindow> mParent;
+  nsCOMPtr<nsPIDOMWindowInner> mParent;
 
   struct KeyStatus {
     KeyStatus(const nsTArray<uint8_t>& aKeyId,

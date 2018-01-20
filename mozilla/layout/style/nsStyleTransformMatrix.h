@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -10,13 +11,21 @@
 #ifndef nsStyleTransformMatrix_h_
 #define nsStyleTransformMatrix_h_
 
+#include "gfxPoint.h"
+#include "mozilla/gfx/Matrix.h"
+#include "mozilla/EnumeratedArray.h"
 #include "nsCSSValue.h"
+#include "nsSize.h"
+
+#include <limits>
 
 class nsIFrame;
 class nsStyleContext;
 class nsPresContext;
+struct gfxQuaternion;
 struct nsRect;
 namespace mozilla {
+class GeckoStyleContext;
 class RuleNodeCacheConditions;
 } // namespace mozilla
 
@@ -24,6 +33,22 @@ class RuleNodeCacheConditions;
  * A helper to generate gfxMatrixes from css transform functions.
  */
 namespace nsStyleTransformMatrix {
+  // The operator passed to Servo backend.
+  enum class MatrixTransformOperator: uint8_t {
+    Interpolate,
+    Accumulate
+  };
+
+  // Function for applying perspective() transform function. We treat
+  // any value smaller than epsilon as perspective(infinity), which
+  // follows CSSWG's resolution on perspective(0). See bug 1316236.
+  inline void ApplyPerspectiveToMatrix(mozilla::gfx::Matrix4x4& aMatrix,
+                                       float aDepth)
+  {
+    if (aDepth >= std::numeric_limits<float>::epsilon()) {
+      aMatrix.Perspective(aDepth);
+    }
+  }
 
   /**
    * This class provides on-demand access to the 'reference box' for CSS
@@ -108,6 +133,10 @@ namespace nsStyleTransformMatrix {
       return mHeight;
     }
 
+    bool IsEmpty() {
+      return !mFrame;
+    }
+
   private:
     // We don't really need to prevent copying, but since none of our consumers
     // currently need to copy, preventing copying may allow us to catch some
@@ -127,8 +156,10 @@ namespace nsStyleTransformMatrix {
    */
   nsCSSKeyword TransformFunctionOf(const nsCSSValue::Array* aData);
 
+  void SetIdentityMatrix(nsCSSValue::Array* aMatrix);
+
   float ProcessTranslatePart(const nsCSSValue& aValue,
-                             nsStyleContext* aContext,
+                             mozilla::GeckoStyleContext* aContext,
                              nsPresContext* aPresContext,
                              mozilla::RuleNodeCacheConditions& aConditions,
                              TransformReferenceBox* aRefBox,
@@ -137,10 +168,20 @@ namespace nsStyleTransformMatrix {
   void
   ProcessInterpolateMatrix(mozilla::gfx::Matrix4x4& aMatrix,
                            const nsCSSValue::Array* aData,
-                           nsStyleContext* aContext,
+                           mozilla::GeckoStyleContext* aContext,
                            nsPresContext* aPresContext,
                            mozilla::RuleNodeCacheConditions& aConditions,
-                           TransformReferenceBox& aBounds);
+                           TransformReferenceBox& aBounds,
+                           bool* aContains3dTransform);
+
+  void
+  ProcessAccumulateMatrix(mozilla::gfx::Matrix4x4& aMatrix,
+                          const nsCSSValue::Array* aData,
+                          mozilla::GeckoStyleContext* aContext,
+                          nsPresContext* aPresContext,
+                          mozilla::RuleNodeCacheConditions& aConditions,
+                          TransformReferenceBox& aBounds,
+                          bool* aContains3dTransform);
 
   /**
    * Given an nsCSSValueList containing -moz-transform functions,
@@ -153,6 +194,9 @@ namespace nsStyleTransformMatrix {
    *   result cannot be cached in the rule tree, otherwise untouched.
    * @param aBounds The frame's bounding rectangle.
    * @param aAppUnitsPerMatrixUnit The number of app units per device pixel.
+   * @param aContains3dTransform [out] Set to true if aList contains at least
+   *   one 3d transform function (as defined in the CSS transforms
+   *   specification), false otherwise.
    *
    * aContext and aPresContext may be null if all of the (non-percent)
    * length values in aData are already known to have been converted to
@@ -163,8 +207,50 @@ namespace nsStyleTransformMatrix {
                                          nsPresContext* aPresContext,
                                          mozilla::RuleNodeCacheConditions& aConditions,
                                          TransformReferenceBox& aBounds,
-                                         float aAppUnitsPerMatrixUnit);
+                                         float aAppUnitsPerMatrixUnit,
+                                         bool* aContains3dTransform);
 
+  /**
+   * Given two nsStyleCoord values, compute the 2d position with respect to the
+   * given TransformReferenceBox that these values describe, in device pixels.
+   */
+  mozilla::gfx::Point Convert2DPosition(nsStyleCoord const (&aValue)[2],
+                                        TransformReferenceBox& aRefBox,
+                                        int32_t aAppUnitsPerDevPixel);
+
+  // Shear type for decomposition.
+  enum class ShearType {
+    XYSHEAR,
+    XZSHEAR,
+    YZSHEAR,
+    Count
+  };
+  using ShearArray =
+    mozilla::EnumeratedArray<ShearType, ShearType::Count, float>;
+
+  /*
+   * Implements the 2d transform matrix decomposition algorithm.
+   */
+  bool Decompose2DMatrix(const mozilla::gfx::Matrix& aMatrix,
+                         mozilla::gfx::Point3D& aScale,
+                         ShearArray& aShear,
+                         gfxQuaternion& aRotate,
+                         mozilla::gfx::Point3D& aTranslate);
+  /*
+   * Implements the 3d transform matrix decomposition algorithm.
+   */
+  bool Decompose3DMatrix(const mozilla::gfx::Matrix4x4& aMatrix,
+                         mozilla::gfx::Point3D& aScale,
+                         ShearArray& aShear,
+                         gfxQuaternion& aRotate,
+                         mozilla::gfx::Point3D& aTranslate,
+                         mozilla::gfx::Point4D& aPerspective);
+
+  mozilla::gfx::Matrix CSSValueArrayTo2DMatrix(nsCSSValue::Array* aArray);
+  mozilla::gfx::Matrix4x4 CSSValueArrayTo3DMatrix(nsCSSValue::Array* aArray);
+
+  gfxSize GetScaleValue(const nsCSSValueSharedList* aList,
+                        const nsIFrame* aForFrame);
 } // namespace nsStyleTransformMatrix
 
 #endif

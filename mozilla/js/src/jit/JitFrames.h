@@ -12,7 +12,7 @@
 #include "jscntxt.h"
 #include "jsfun.h"
 
-#include "jit/JitFrameIterator.h"
+#include "jit/JSJitFrameIter.h"
 #include "jit/Safepoints.h"
 
 namespace js {
@@ -95,10 +95,11 @@ ScriptFromCalleeToken(CalleeToken token)
 // to. The exact mechanism in which frames are laid out is architecture
 // dependent.
 //
-// Two special frame types exist. Entry frames begin an ion activation, and
-// therefore there is exactly one per activation of jit::Cannon. Exit frames
-// are necessary to leave JIT code and enter C++, and thus, C++ code will
-// always begin iterating from the topmost exit frame.
+// Two special frame types exist:
+// - Entry frames begin a JitActivation, and therefore there is exactly one
+// per activation of EnterIon or EnterBaseline. These reuse JitFrameLayout.
+// - Exit frames are necessary to leave JIT code and enter C++, and thus,
+// C++ code will always begin iterating from the topmost exit frame.
 
 class LSafepoint;
 
@@ -185,12 +186,19 @@ class OsiIndex
 //    0 returnAddress
 //   .. locals ..
 
-// The descriptor is organized into three sections:
-// [ frame size | has cached saved frame bit | frame type ]
+// The descriptor is organized into four sections:
+// [ frame size | has cached saved frame bit | frame header size | frame type ]
 // < highest - - - - - - - - - - - - - - lowest >
-static const uintptr_t FRAMESIZE_SHIFT = 5;
-static const uintptr_t HASCACHEDSAVEDFRAME_BIT = 1 << 4;
 static const uintptr_t FRAMETYPE_BITS = 4;
+static const uintptr_t FRAME_HEADER_SIZE_SHIFT = FRAMETYPE_BITS;
+static const uintptr_t FRAME_HEADER_SIZE_BITS = 3;
+static const uintptr_t FRAME_HEADER_SIZE_MASK = (1 << FRAME_HEADER_SIZE_BITS) - 1;
+static const uintptr_t HASCACHEDSAVEDFRAME_BIT = 1 << (FRAMETYPE_BITS + FRAME_HEADER_SIZE_BITS);
+static const uintptr_t FRAMESIZE_SHIFT = FRAMETYPE_BITS +
+                                         FRAME_HEADER_SIZE_BITS +
+                                         1 /* cached saved frame bit */;
+static const uintptr_t FRAMESIZE_BITS = 32 - FRAMESIZE_SHIFT;
+static const uintptr_t FRAMESIZE_MASK = (1 << FRAMESIZE_BITS) - 1;
 
 // Ion frames have a few important numbers associated with them:
 //      Local depth:    The number of bytes required to spill local variables.
@@ -261,6 +269,7 @@ struct ResumeFromException
     static const uint32_t RESUME_FINALLY = 2;
     static const uint32_t RESUME_FORCED_RETURN = 3;
     static const uint32_t RESUME_BAILOUT = 4;
+    static const uint32_t RESUME_WASM = 5;
 
     uint8_t* framePointer;
     uint8_t* stackPointer;
@@ -275,37 +284,45 @@ struct ResumeFromException
 
 void HandleException(ResumeFromException* rfe);
 
-void EnsureExitFrame(CommonFrameLayout* frame);
+void EnsureBareExitFrame(JSContext* cx, JitFrameLayout* frame);
 
-void MarkJitActivations(JSRuntime* rt, JSTracer* trc);
-void MarkIonCompilerRoots(JSTracer* trc);
-
-JSCompartment*
-TopmostIonActivationCompartment(JSRuntime* rt);
+void TraceJitActivations(JSContext* cx, const CooperatingContext& target, JSTracer* trc);
 
 void UpdateJitActivationsForMinorGC(JSRuntime* rt, JSTracer* trc);
 
 static inline uint32_t
-MakeFrameDescriptor(uint32_t frameSize, FrameType type)
+EncodeFrameHeaderSize(size_t headerSize)
 {
-    return 0 | (frameSize << FRAMESIZE_SHIFT) | type;
+    MOZ_ASSERT((headerSize % sizeof(uintptr_t)) == 0);
+
+    uint32_t headerSizeWords = headerSize / sizeof(uintptr_t);
+    MOZ_ASSERT(headerSizeWords <= FRAME_HEADER_SIZE_MASK);
+    return headerSizeWords;
+}
+
+static inline uint32_t
+MakeFrameDescriptor(uint32_t frameSize, FrameType type, uint32_t headerSize)
+{
+    MOZ_ASSERT(headerSize < FRAMESIZE_MASK);
+    headerSize = EncodeFrameHeaderSize(headerSize);
+    return 0 | (frameSize << FRAMESIZE_SHIFT) | (headerSize << FRAME_HEADER_SIZE_SHIFT) | type;
 }
 
 // Returns the JSScript associated with the topmost JIT frame.
 inline JSScript*
 GetTopJitJSScript(JSContext* cx)
 {
-    JitFrameIterator iter(cx);
-    MOZ_ASSERT(iter.type() == JitFrame_Exit);
-    ++iter;
+    JSJitFrameIter frame(cx);
+    MOZ_ASSERT(frame.type() == JitFrame_Exit);
+    ++frame;
 
-    if (iter.isBaselineStub()) {
-        ++iter;
-        MOZ_ASSERT(iter.isBaselineJS());
+    if (frame.isBaselineStub()) {
+        ++frame;
+        MOZ_ASSERT(frame.isBaselineJS());
     }
 
-    MOZ_ASSERT(iter.isScripted());
-    return iter.script();
+    MOZ_ASSERT(frame.isScripted());
+    return frame.script();
 }
 
 #ifdef JS_CODEGEN_MIPS32
@@ -348,8 +365,9 @@ class CommonFrameLayout
     size_t prevFrameLocalSize() const {
         return descriptor_ >> FRAMESIZE_SHIFT;
     }
-    void setFrameDescriptor(size_t size, FrameType type) {
-        descriptor_ = 0 | (size << FRAMESIZE_SHIFT) | type;
+    size_t headerSize() const {
+        return sizeof(uintptr_t) *
+            ((descriptor_ >> FRAME_HEADER_SIZE_SHIFT) & FRAME_HEADER_SIZE_MASK);
     }
     bool hasCachedSavedFrame() const {
         return descriptor_ & HASCACHEDSAVEDFRAME_BIT;
@@ -419,15 +437,6 @@ class JitFrameLayout : public CommonFrameLayout
     }
 };
 
-// this is the layout of the frame that is used when we enter Ion code from platform ABI code
-class EntryFrameLayout : public JitFrameLayout
-{
-  public:
-    static inline size_t Size() {
-        return sizeof(EntryFrameLayout);
-    }
-};
-
 class RectifierFrameLayout : public JitFrameLayout
 {
   public:
@@ -436,7 +445,15 @@ class RectifierFrameLayout : public JitFrameLayout
     }
 };
 
-class IonAccessorICFrameLayout : public CommonFrameLayout
+class WasmToJSJitFrameLayout : public JitFrameLayout
+{
+  public:
+    static inline size_t Size() {
+        return sizeof(WasmToJSJitFrameLayout);
+    }
+};
+
+class IonICCallFrameLayout : public CommonFrameLayout
 {
   protected:
     // Pointer to root the stub's JitCode.
@@ -447,19 +464,7 @@ class IonAccessorICFrameLayout : public CommonFrameLayout
         return &stubCode_;
     }
     static size_t Size() {
-        return sizeof(IonAccessorICFrameLayout);
-    }
-};
-
-// The callee token is now dead.
-class IonUnwoundRectifierFrameLayout : public RectifierFrameLayout
-{
-  public:
-    static inline size_t Size() {
-        // It is not necessary to accout for an extra callee token here because
-        // sizeof(ExitFrameLayout) == sizeof(RectifierFrameLayout) due to
-        // extra padding.
-        return sizeof(IonUnwoundRectifierFrameLayout);
+        return sizeof(IonICCallFrameLayout);
     }
 };
 
@@ -498,19 +503,19 @@ class IonOOLPropertyOpExitFrameLayout;
 class IonOOLProxyExitFrameLayout;
 class IonDOMExitFrameLayout;
 
-enum ExitFrameTokenValues
+enum class ExitFrameToken : uint8_t
 {
-    CallNativeExitFrameLayoutToken        = 0x0,
-    ConstructNativeExitFrameLayoutToken   = 0x1,
-    IonDOMExitFrameLayoutGetterToken      = 0x2,
-    IonDOMExitFrameLayoutSetterToken      = 0x3,
-    IonDOMMethodExitFrameLayoutToken      = 0x4,
-    IonOOLNativeExitFrameLayoutToken      = 0x5,
-    IonOOLPropertyOpExitFrameLayoutToken  = 0x6,
-    IonOOLSetterOpExitFrameLayoutToken    = 0x7,
-    IonOOLProxyExitFrameLayoutToken       = 0x8,
-    LazyLinkExitFrameLayoutToken          = 0xFE,
-    ExitFrameLayoutBareToken              = 0xFF
+    CallNative        = 0x0,
+    ConstructNative   = 0x1,
+    IonDOMGetter      = 0x2,
+    IonDOMSetter      = 0x3,
+    IonDOMMethod      = 0x4,
+    IonOOLNative      = 0x5,
+    IonOOLPropertyOp  = 0x6,
+    IonOOLSetterOp    = 0x7,
+    IonOOLProxy       = 0x8,
+    LazyLink          = 0xFE,
+    Bare              = 0xFF
 };
 
 // this is the frame layout when we are exiting ion code, and about to enter platform ABI code
@@ -522,8 +527,8 @@ class ExitFrameLayout : public CommonFrameLayout
 
   public:
     // Pushed for "bare" fake exit frames that have no GC things on stack to be
-    // marked.
-    static JitCode* BareToken() { return (JitCode*)ExitFrameLayoutBareToken; }
+    // traced.
+    static JitCode* BareToken() { return (JitCode*)ExitFrameToken::Bare; }
 
     static inline size_t Size() {
         return sizeof(ExitFrameLayout);
@@ -595,13 +600,13 @@ class NativeExitFrameLayout
 class CallNativeExitFrameLayout : public NativeExitFrameLayout
 {
   public:
-    static JitCode* Token() { return (JitCode*)CallNativeExitFrameLayoutToken; }
+    static JitCode* Token() { return (JitCode*)ExitFrameToken::CallNative; }
 };
 
 class ConstructNativeExitFrameLayout : public NativeExitFrameLayout
 {
   public:
-    static JitCode* Token() { return (JitCode*)ConstructNativeExitFrameLayoutToken; }
+    static JitCode* Token() { return (JitCode*)ExitFrameToken::ConstructNative; }
 };
 
 template<>
@@ -632,7 +637,7 @@ class IonOOLNativeExitFrameLayout
     uint32_t hiThis_;
 
   public:
-    static JitCode* Token() { return (JitCode*)IonOOLNativeExitFrameLayoutToken; }
+    static JitCode* Token() { return (JitCode*)ExitFrameToken::IonOOLNative; }
 
     static inline size_t Size(size_t argc) {
         // The frame accounts for the callee/result and |this|, so we only need args.
@@ -678,7 +683,7 @@ class IonOOLPropertyOpExitFrameLayout
     JitCode* stubCode_;
 
   public:
-    static JitCode* Token() { return (JitCode*)IonOOLPropertyOpExitFrameLayoutToken; }
+    static JitCode* Token() { return (JitCode*)ExitFrameToken::IonOOLPropertyOp; }
 
     static inline size_t Size() {
         return sizeof(IonOOLPropertyOpExitFrameLayout);
@@ -716,7 +721,7 @@ class IonOOLSetterOpExitFrameLayout : public IonOOLPropertyOpExitFrameLayout
     JS::ObjectOpResult result_;
 
   public:
-    static JitCode* Token() { return (JitCode*)IonOOLSetterOpExitFrameLayoutToken; }
+    static JitCode* Token() { return (JitCode*)ExitFrameToken::IonOOLSetterOp; }
 
     static size_t offsetOfObjectOpResult() {
         return offsetof(IonOOLSetterOpExitFrameLayout, result_);
@@ -752,7 +757,7 @@ class IonOOLProxyExitFrameLayout
     JitCode* stubCode_;
 
   public:
-    static JitCode* Token() { return (JitCode*)IonOOLProxyExitFrameLayoutToken; }
+    static JitCode* Token() { return (JitCode*)ExitFrameToken::IonOOLProxy; }
 
     static inline size_t Size() {
         return sizeof(IonOOLProxyExitFrameLayout);
@@ -789,8 +794,8 @@ class IonDOMExitFrameLayout
     uint32_t hiCalleeResult_;
 
   public:
-    static JitCode* GetterToken() { return (JitCode*)IonDOMExitFrameLayoutGetterToken; }
-    static JitCode* SetterToken() { return (JitCode*)IonDOMExitFrameLayoutSetterToken; }
+    static JitCode* GetterToken() { return (JitCode*)ExitFrameToken::IonDOMGetter; }
+    static JitCode* SetterToken() { return (JitCode*)ExitFrameToken::IonDOMSetter; }
 
     static inline size_t Size() {
         return sizeof(IonDOMExitFrameLayout);
@@ -829,7 +834,7 @@ class IonDOMMethodExitFrameLayout
     friend struct IonDOMMethodExitFrameLayoutTraits;
 
   public:
-    static JitCode* Token() { return (JitCode*)IonDOMMethodExitFrameLayoutToken; }
+    static JitCode* Token() { return (JitCode*)ExitFrameToken::IonDOMMethod; }
 
     static inline size_t Size() {
         return sizeof(IonDOMMethodExitFrameLayout);
@@ -894,7 +899,7 @@ class LazyLinkExitFrameLayout
     JitFrameLayout exit_;
 
   public:
-    static JitCode* Token() { return (JitCode*) LazyLinkExitFrameLayoutToken; }
+    static JitCode* Token() { return (JitCode*)ExitFrameToken::LazyLink; }
 
     static inline size_t Size() {
         return sizeof(LazyLinkExitFrameLayout);
@@ -1026,13 +1031,10 @@ void
 GetPcScript(JSContext* cx, JSScript** scriptRes, jsbytecode** pcRes);
 
 CalleeToken
-MarkCalleeToken(JSTracer* trc, CalleeToken token);
+TraceCalleeToken(JSTracer* trc, CalleeToken token);
 
-// The minimum stack size is two. Two slots are needed because INITGLEXICAL
-// (stack depth 1) is compiled as a SETPROP (stack depth 2) on the global
-// lexical scope. Baseline also requires one slot for this/argument type
-// checks.
-static const uint32_t MinJITStackSize = 2;
+// Baseline requires one slot for this/argument type checks.
+static const uint32_t MinJITStackSize = 1;
 
 } /* namespace jit */
 } /* namespace js */

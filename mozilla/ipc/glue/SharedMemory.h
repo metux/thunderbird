@@ -1,6 +1,5 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * vim: sw=2 ts=8 et :
- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -11,6 +10,9 @@
 #include "nsDebug.h"
 #include "nsISupportsImpl.h"    // NS_INLINE_DECL_REFCOUNTING
 #include "mozilla/Attributes.h"
+
+#include "base/process.h"
+#include "chrome/common/ipc_message_utils.h"
 
 //
 // This is a low-level wrapper around platform shared memory.  Don't
@@ -44,8 +46,12 @@ protected:
 public:
   enum SharedMemoryType {
     TYPE_BASIC,
-    TYPE_SYSV,
     TYPE_UNKNOWN
+  };
+
+  enum OpenRights {
+    RightsReadOnly = RightsRead,
+    RightsReadWrite = RightsRead | RightsWrite,
   };
 
   size_t Size() const { return mMappedSize; }
@@ -55,24 +61,29 @@ public:
   virtual bool Create(size_t size) = 0;
   virtual bool Map(size_t nBytes) = 0;
 
+  virtual void CloseHandle() = 0;
+
   virtual SharedMemoryType Type() const = 0;
+
+  virtual bool ShareHandle(base::ProcessId aProcessId, IPC::Message* aMessage) = 0;
+  virtual bool ReadHandle(const IPC::Message* aMessage, PickleIterator* aIter) = 0;
 
   void
   Protect(char* aAddr, size_t aSize, int aRights)
   {
     char* memStart = reinterpret_cast<char*>(memory());
     if (!memStart)
-      NS_RUNTIMEABORT("SharedMemory region points at NULL!");
+      MOZ_CRASH("SharedMemory region points at NULL!");
     char* memEnd = memStart + Size();
 
     char* protStart = aAddr;
     if (!protStart)
-      NS_RUNTIMEABORT("trying to Protect() a NULL region!");
+      MOZ_CRASH("trying to Protect() a NULL region!");
     char* protEnd = protStart + aSize;
 
     if (!(memStart <= protStart
           && protEnd <= memEnd))
-      NS_RUNTIMEABORT("attempt to Protect() a region outside this SharedMemory");
+      MOZ_CRASH("attempt to Protect() a region outside this SharedMemory");
 
     // checks alignment etc.
     SystemProtect(aAddr, aSize, aRights);
@@ -108,6 +119,35 @@ protected:
   // The size of the region mapped in Map(), if successful.  All
   // SharedMemorys that are mapped have a non-zero mapped size.
   size_t mMappedSize;
+};
+
+template<typename HandleImpl>
+class SharedMemoryCommon : public SharedMemory
+{
+public:
+  typedef HandleImpl Handle;
+
+  virtual bool ShareToProcess(base::ProcessId aProcessId, Handle* aHandle) = 0;
+  virtual bool IsHandleValid(const Handle& aHandle) const = 0;
+  virtual bool SetHandle(const Handle& aHandle, OpenRights aRights) = 0;
+
+  virtual bool ShareHandle(base::ProcessId aProcessId, IPC::Message* aMessage) override
+  {
+    Handle handle;
+    if (!ShareToProcess(aProcessId, &handle)) {
+      return false;
+    }
+    IPC::WriteParam(aMessage, handle);
+    return true;
+  }
+
+  virtual bool ReadHandle(const IPC::Message* aMessage, PickleIterator* aIter) override
+  {
+    Handle handle;
+    return IPC::ReadParam(aMessage, aIter, &handle) &&
+           IsHandleValid(handle) &&
+           SetHandle(handle, RightsReadWrite);
+  }
 };
 
 } // namespace ipc

@@ -16,7 +16,7 @@ function modifySelection(s) {
   g.removeAllRanges();
   g.addRange(a);
   window.setTimeout(function () {
-      e.parentNode.removeChild(e);
+      e.remove();
       g.removeAllRanges();
       g.addRange(l);
   }, 0)
@@ -122,7 +122,7 @@ function testCopyPaste (isXHTML) {
   function testPasteHTML(id, expected) {
     var contentEditable = $(id);
     contentEditable.focus();
-    synthesizeKey("v", {accelKey: 1});
+    synthesizeKey("v", {accelKey: true});
     is(contentEditable.innerHTML, expected, id+".innerHtml after the paste");
   }
   function testSelectionToString(expected) {

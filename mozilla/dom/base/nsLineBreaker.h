@@ -11,7 +11,7 @@
 #include "nsTArray.h"
 #include "nsILineBreaker.h"
 
-class nsIAtom;
+class nsAtom;
 class nsHyphenator;
 
 /**
@@ -31,7 +31,7 @@ public:
    *    FLAG_BREAK_TYPE_HYPHEN   - a hyphenation point
    */
   virtual void SetBreaks(uint32_t aStart, uint32_t aLength, uint8_t* aBreakBefore) = 0;
-  
+
   /**
    * Indicates which characters should be capitalized. Only called if
    * BREAK_NEED_CAPITALIZATION was requested.
@@ -48,15 +48,15 @@ public:
  * with each text chunk, which might happen during the corresponding AppendText
  * call, or might happen during a later AppendText call or even a Reset()
  * call.
- * 
+ *
  * The linebreak results MUST NOT depend on how the text is broken up
  * into AppendText calls.
- * 
+ *
  * The current strategy is that we break the overall text into
  * whitespace-delimited "words". Then those words are passed to the nsILineBreaker
  * service for deeper analysis if they contain a "complex" character as described
  * below.
- * 
+ *
  * This class also handles detection of which characters should be capitalized
  * for text-transform:capitalize. This is a good place to handle that because
  * we have all the context we need.
@@ -65,7 +65,7 @@ class nsLineBreaker {
 public:
   nsLineBreaker();
   ~nsLineBreaker();
-  
+
   static inline bool IsSpace(char16_t u) { return NS_IsSpace(u); }
 
   static inline bool IsComplexASCIIChar(char16_t u)
@@ -148,14 +148,14 @@ public:
    * @param aSink can be null if the breaks are not actually needed (we may
    * still be setting up state for later breaks)
    */
-  nsresult AppendText(nsIAtom* aHyphenationLanguage, const char16_t* aText, uint32_t aLength,
+  nsresult AppendText(nsAtom* aHyphenationLanguage, const char16_t* aText, uint32_t aLength,
                       uint32_t aFlags, nsILineBreakSink* aSink);
   /**
    * Feed 8-bit text into the linebreaker for analysis. aLength must be nonzero.
    * @param aSink can be null if the breaks are not actually needed (we may
    * still be setting up state for later breaks)
    */
-  nsresult AppendText(nsIAtom* aHyphenationLanguage, const uint8_t* aText, uint32_t aLength,
+  nsresult AppendText(nsAtom* aHyphenationLanguage, const uint8_t* aText, uint32_t aLength,
                       uint32_t aFlags, nsILineBreakSink* aSink);
   /**
    * Reset all state. This means the current run has ended; any outstanding
@@ -199,17 +199,17 @@ private:
   // appropriate sink(s). Then we clear the current word state.
   nsresult FlushCurrentWord();
 
-  void UpdateCurrentWordLanguage(nsIAtom *aHyphenationLanguage);
+  void UpdateCurrentWordLanguage(nsAtom *aHyphenationLanguage);
 
   void FindHyphenationPoints(nsHyphenator *aHyphenator,
                              const char16_t *aTextStart,
                              const char16_t *aTextLimit,
                              uint8_t *aBreakState);
 
-  nsAutoTArray<char16_t,100> mCurrentWord;
+  AutoTArray<char16_t,100> mCurrentWord;
   // All the items that contribute to mCurrentWord
-  nsAutoTArray<TextItem,2>    mTextItems;
-  nsIAtom*                    mCurrentWordLanguage;
+  AutoTArray<TextItem,2>    mTextItems;
+  nsAtom*                    mCurrentWordLanguage;
   bool                        mCurrentWordContainsMixedLang;
   bool                        mCurrentWordContainsComplexChar;
 

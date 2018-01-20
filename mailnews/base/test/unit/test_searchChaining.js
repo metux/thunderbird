@@ -25,8 +25,7 @@ function *setupFolder()
 
   let msgURI =
     Services.io.newURI("data:text/plain;base64," +
-                       btoa(synthMessage.toMessageString()),
-                       null, null);
+                       btoa(synthMessage.toMessageString()));
   let message = new imapMessage(msgURI.spec, IMAPPump.mailbox.uidnext++, []);
   IMAPPump.mailbox.addMessage(message);
 
@@ -87,6 +86,6 @@ var tests = [
 ];
 
 function run_test() {
-  tests.forEach(add_task);
+  tests.forEach(x => add_task(x));
   run_next_test();
 }

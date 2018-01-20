@@ -6,19 +6,21 @@
 // implementing the commands field before we register them.
 this.EXPORTED_SYMBOLS = ["commands"];
 
-var {classes: Cc, interfaces: Ci, utils: Cu} = Components;
+var {interfaces: Ci, utils: Cu} = Components;
 
 Cu.import("resource:///modules/imXPCOMUtils.jsm");
 Cu.import("resource:///modules/ircUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Task",
+  "resource://gre/modules/Task.jsm");
 
 // Shortcut to get the JavaScript conversation object.
-function getConv(aConv) { return aConv.wrappedJSObject; };
+function getConv(aConv) { return aConv.wrappedJSObject; }
 
 // Shortcut to get the JavaScript account object.
-function getAccount(aConv) { return getConv(aConv)._account; };
+function getAccount(aConv) { return getConv(aConv)._account; }
 
 // Trim leading and trailing spaces and split a string by any type of space.
-function splitInput(aString) { return aString.trim().split(/\s+/); };
+function splitInput(aString) { return aString.trim().split(/\s+/); }
 
 function OutgoingMessage(aMsg, aConversation, aAction) {
   this.message = aMsg;
@@ -160,6 +162,12 @@ var commands = [
     run: actionCommand
   },
   {
+    name: "ban",
+    get helpString() { return _("command.ban", "ban"); },
+    usageContext: Ci.imICommand.CMD_CONTEXT_CHAT,
+    run: (aMsg, aConv) => setMode(aMsg, aConv, "b", true)
+  },
+  {
     name: "ctcp",
     get helpString() { return _("command.ctcp", "ctcp"); },
     run: function(aMsg, aConv) {
@@ -269,14 +277,27 @@ var commands = [
       let account = getAccount(aConv);
       let serverName = account._currentServerName;
       let serverConv = account.getConversation(serverName);
+      let pendingChats = [];
       account.requestRoomInfo({onRoomInfoAvailable: function(aRooms) {
-        aRooms.forEach(function(aRoom) {
-          serverConv.writeMessage(serverName,
-                                  aRoom.name +
-                                  " (" + aRoom.participantCount + ") " +
-                                  aRoom.topic,
-                                  {incoming: true, noLog: true});
-        });
+        if (!pendingChats.length) {
+          Task.spawn(function*() {
+            // pendingChats has no rooms added yet, so ensure we wait a tick.
+            let t = 0;
+            const kMaxBlockTime = 10; // Unblock every 10ms.
+            do {
+              if (Date.now() > t) {
+                yield Promise.resolve();
+                t = Date.now() + kMaxBlockTime;
+              }
+              let name = pendingChats.pop();
+              let roomInfo = account.getRoomInfo(name);
+              serverConv.writeMessage(serverName,
+                name + " (" + roomInfo.participantCount + ") " + roomInfo.topic,
+                {incoming: true, noLog: true});
+            } while (pendingChats.length);
+          });
+        }
+        pendingChats = pendingChats.concat(aRooms);
       }}, true);
       if (aReturnedConv)
         aReturnedConv.value = serverConv;
@@ -296,49 +317,23 @@ var commands = [
   {
     name: "mode",
     get helpString() {
-      return _("command.modeUser", "mode") + "\n" +
-             _("command.modeChannel", "mode");
+      return _("command.modeUser2", "mode") + "\n" +
+             _("command.modeChannel2", "mode");
     },
     run: function(aMsg, aConv) {
       function isMode(aString) { return "+-".includes(aString[0]); }
       let params = splitInput(aMsg);
+      let channel = aConv.name;
+      // Add the channel as parameter when the target is not specified. i.e
+      // 1. message is empty.
+      // 2. the first parameter is a mode.
+      if (!aMsg)
+        params = [channel];
+      else if (isMode(params[0]))
+        params.unshift(channel);
 
-      // Check if we have any params, we can't just check params.length, since
-      // that will always be at least 1 (but params[0] would be empty).
-      let hasParams = !/^\s*$/.test(aMsg);
-      let account = getAccount(aConv);
-      // These must be false if we don't have any paramters!
-      let isChannelName = hasParams && account.isMUCName(params[0]);
-      let isOwnNick =
-        account.normalize(params[0]) == account.normalize(account._nickname);
-
-      // If no parameters are given, the user is requesting their own mode.
-      if (!hasParams)
-        params = [aConv.nick];
-      else if (params.length == 1) {
-        // Only a mode is given, therefore the user is trying to set their own
-        // mode. We need to provide the user's nick.
-        if (isMode(params[0]))
-          params.unshift(aConv.nick);
-        // Alternately if the user gives a channel name, they're requesting a
-        // channel's mode. If they give their own nick, they're requesting their
-        // own mode. Otherwise, this is nonsensical.
-        else if (!isChannelName && !isOwnNick)
-          return false;
-      }
-      else if (params.length == 2) {
-        // If a new mode and a nick are given, then we need to provide the
-        // current conversation's name.
-        if (isMode(params[0]) && !isMode(params[1]))
-          params = [aConv.name, params[0], params[1]];
-        // Otherwise, the input must be a channel name or the user's own nick
-        // and a mode.
-        else if ((!isChannelName && !isOwnNick) || !isMode(params[1]))
-          return false;
-      }
-      // Otherwise a channel name, new mode, and at least one parameter
-      // was given. If this is not true, return false.
-      else if (!(isChannelName && isMode(params[1])))
+      // Ensure mode string to be the second argument.
+      if (params.length >= 2 && !isMode(params[1]))
         return false;
 
       return simpleCommand(aConv, "MODE", params);
@@ -357,7 +352,7 @@ var commands = [
       if (newNick.indexOf(/\s+/) != -1)
         return false;
 
-      let account = getAccount(aConv)
+      let account = getAccount(aConv);
       // The user wants to change their nick, so overwrite the account
       // nickname for this session.
       account._requestedNickname = newNick;
@@ -474,7 +469,11 @@ var commands = [
   {
     name: "umode",
     get helpString() { return _("command.umode", "umode"); },
-    run: (aMsg, aConv) => simpleCommand(aConv, "MODE", aMsg)
+    run: function(aMsg, aConv) {
+      let params = aMsg ? splitInput(aMsg) : [];
+      params.unshift(getAccount(aConv)._nickname);
+      return simpleCommand(aConv, "MODE", params);
+    }
   },
   {
     name: "version",

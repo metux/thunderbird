@@ -10,23 +10,19 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/PodOperations.h"
 
+#include <string.h>
+
 #include "frontend/ParseNode.h"
 #include "frontend/SharedContext.h"
 
 namespace js {
 namespace frontend {
 
-template <typename ParseHandler>
-class Parser;
-
-class SyntaxParseHandler;
-
 // Parse handler used when generating a full parse tree for all code which the
 // parser encounters.
 class FullParseHandler
 {
     ParseNodeAllocator allocator;
-    TokenStream& tokenStream;
 
     ParseNode* allocParseNode(size_t size) {
         MOZ_ASSERT(size == sizeof(ParseNode));
@@ -46,31 +42,15 @@ class FullParseHandler
      * was previously lazily parsed, that lazy function and the current index
      * into its inner functions. We do not want to reparse the inner functions.
      */
-    LazyScript * const lazyOuterFunction_;
+    const Rooted<LazyScript*> lazyOuterFunction_;
     size_t lazyInnerFunctionIndex;
-
-    const TokenPos& pos() {
-        return tokenStream.currentToken().pos;
-    }
-
-    inline ParseNode* makeAssignmentFromArg(ParseNode* arg, ParseNode* lhs, ParseNode* rhs);
-    inline void replaceLastFunctionArgument(ParseNode* funcpn, ParseNode* pn);
+    size_t lazyClosedOverBindingIndex;
 
   public:
-
-    /*
-     * If non-nullptr, points to a syntax parser which can be used for inner
-     * functions. Cleared if language features not handled by the syntax parser
-     * are encountered, in which case all future activity will use the full
-     * parser.
-     */
-    Parser<SyntaxParseHandler>* syntaxParser;
-
     /* new_ methods for creating parse nodes. These report OOM on context. */
     JS_DECLARE_NEW_METHODS(new_, allocParseNode, inline)
 
     typedef ParseNode* Node;
-    typedef Definition* DefinitionNode;
 
     bool isPropertyAccess(ParseNode* node) {
         return node->isKind(PNK_DOT) || node->isKind(PNK_ELEM);
@@ -98,41 +78,26 @@ class FullParseHandler
                isParenthesizedDestructuringPattern(node);
     }
 
-    FullParseHandler(ExclusiveContext* cx, LifoAlloc& alloc,
-                     TokenStream& tokenStream, Parser<SyntaxParseHandler>* syntaxParser,
-                     LazyScript* lazyOuterFunction)
+    FullParseHandler(JSContext* cx, LifoAlloc& alloc, LazyScript* lazyOuterFunction)
       : allocator(cx, alloc),
-        tokenStream(tokenStream),
-        lazyOuterFunction_(lazyOuterFunction),
+        lazyOuterFunction_(cx, lazyOuterFunction),
         lazyInnerFunctionIndex(0),
-        syntaxParser(syntaxParser)
+        lazyClosedOverBindingIndex(0)
     {}
 
     static ParseNode* null() { return nullptr; }
 
     ParseNode* freeTree(ParseNode* pn) { return allocator.freeTree(pn); }
     void prepareNodeForMutation(ParseNode* pn) { return allocator.prepareNodeForMutation(pn); }
-    const Token& currentToken() { return tokenStream.currentToken(); }
 
-    ParseNode* newName(PropertyName* name, uint32_t blockid, const TokenPos& pos,
-                       ExclusiveContext* cx)
+    ParseNode* newName(PropertyName* name, const TokenPos& pos, JSContext* cx)
     {
-        return new_<NameNode>(PNK_NAME, JSOP_GETNAME, name, blockid, pos);
+        return new_<NameNode>(PNK_NAME, JSOP_GETNAME, name, pos);
     }
 
     ParseNode* newComputedName(ParseNode* expr, uint32_t begin, uint32_t end) {
         TokenPos pos(begin, end);
-        return new_<UnaryNode>(PNK_COMPUTED_NAME, JSOP_NOP, pos, expr);
-    }
-
-    Definition* newPlaceholder(JSAtom* atom, uint32_t blockid, const TokenPos& pos) {
-        Definition* dn =
-            (Definition*) new_<NameNode>(PNK_NAME, JSOP_NOP, atom, blockid, pos);
-        if (!dn)
-            return nullptr;
-        dn->setDefn(true);
-        dn->pn_dflags |= PND_PLACEHOLDER;
-        return dn;
+        return new_<UnaryNode>(PNK_COMPUTED_NAME, pos, expr);
     }
 
     ParseNode* newObjectLiteralPropertyName(JSAtom* atom, const TokenPos& pos) {
@@ -164,7 +129,7 @@ class FullParseHandler
         if (!callSite)
             return null();
 
-        Node propExpr = newArrayLiteral(getPosition(callSite).begin);
+        Node propExpr = newArrayLiteral(callSite->pn_pos.begin);
         if (!propExpr)
             return null();
 
@@ -173,7 +138,7 @@ class FullParseHandler
         return callSite;
     }
 
-    bool addToCallSiteObject(ParseNode* callSiteObj, ParseNode* rawNode, ParseNode* cookedNode) {
+    void addToCallSiteObject(ParseNode* callSiteObj, ParseNode* rawNode, ParseNode* cookedNode) {
         MOZ_ASSERT(callSiteObj->isKind(PNK_CALLSITEOBJ));
 
         addArrayElement(callSiteObj, cookedNode);
@@ -184,7 +149,6 @@ class FullParseHandler
          * don't want to deal with this outside this method
          */
         setEndPosition(callSiteObj, callSiteObj->pn_head);
-        return true;
     }
 
     ParseNode* newThisLiteral(const TokenPos& pos, ParseNode* thisName) {
@@ -193,6 +157,10 @@ class FullParseHandler
 
     ParseNode* newNullLiteral(const TokenPos& pos) {
         return new_<NullLiteral>(pos);
+    }
+
+    ParseNode* newRawUndefinedLiteral(const TokenPos& pos) {
+        return new_<RawUndefinedLiteral>(pos);
     }
 
     // The Boxer object here is any object that can allocate ObjectBoxes.
@@ -210,87 +178,62 @@ class FullParseHandler
         return new_<ConditionalExpression>(cond, thenExpr, elseExpr);
     }
 
-    void markAsSetCall(ParseNode* pn) {
-        pn->pn_xflags |= PNX_SETCALL;
-    }
-
     ParseNode* newDelete(uint32_t begin, ParseNode* expr) {
         if (expr->isKind(PNK_NAME)) {
-            expr->pn_dflags |= PND_DEOPTIMIZED;
             expr->setOp(JSOP_DELNAME);
-            return newUnary(PNK_DELETENAME, JSOP_NOP, begin, expr);
+            return newUnary(PNK_DELETENAME, begin, expr);
         }
 
         if (expr->isKind(PNK_DOT))
-            return newUnary(PNK_DELETEPROP, JSOP_NOP, begin, expr);
+            return newUnary(PNK_DELETEPROP, begin, expr);
 
         if (expr->isKind(PNK_ELEM))
-            return newUnary(PNK_DELETEELEM, JSOP_NOP, begin, expr);
+            return newUnary(PNK_DELETEELEM, begin, expr);
 
-        return newUnary(PNK_DELETEEXPR, JSOP_NOP, begin, expr);
+        return newUnary(PNK_DELETEEXPR, begin, expr);
     }
 
     ParseNode* newTypeof(uint32_t begin, ParseNode* kid) {
+        return newUnary(kid->isKind(PNK_NAME) ? PNK_TYPEOFNAME : PNK_TYPEOFEXPR, begin, kid);
+    }
+
+    ParseNode* newUnary(ParseNodeKind kind, uint32_t begin, ParseNode* kid) {
         TokenPos pos(begin, kid->pn_pos.end);
-        ParseNodeKind kind = kid->isKind(PNK_NAME) ? PNK_TYPEOFNAME : PNK_TYPEOFEXPR;
-        return new_<UnaryNode>(kind, JSOP_NOP, pos, kid);
+        return new_<UnaryNode>(kind, pos, kid);
     }
 
-    ParseNode* newNullary(ParseNodeKind kind, JSOp op, const TokenPos& pos) {
-        return new_<NullaryNode>(kind, op, pos);
+    ParseNode* newUpdate(ParseNodeKind kind, uint32_t begin, ParseNode* kid) {
+        TokenPos pos(begin, kid->pn_pos.end);
+        return new_<UnaryNode>(kind, pos, kid);
     }
 
-    ParseNode* newUnary(ParseNodeKind kind, JSOp op, uint32_t begin, ParseNode* kid) {
-        TokenPos pos(begin, kid ? kid->pn_pos.end : begin + 1);
-        return new_<UnaryNode>(kind, op, pos, kid);
+    ParseNode* newSpread(uint32_t begin, ParseNode* kid) {
+        TokenPos pos(begin, kid->pn_pos.end);
+        return new_<UnaryNode>(PNK_SPREAD, pos, kid);
     }
 
-    ParseNode* newBinary(ParseNodeKind kind, JSOp op = JSOP_NOP) {
-        return new_<BinaryNode>(kind, op, pos(), (ParseNode*) nullptr, (ParseNode*) nullptr);
-    }
-    ParseNode* newBinary(ParseNodeKind kind, ParseNode* left,
-                         JSOp op = JSOP_NOP) {
-        return new_<BinaryNode>(kind, op, left->pn_pos, left, (ParseNode*) nullptr);
-    }
+  private:
     ParseNode* newBinary(ParseNodeKind kind, ParseNode* left, ParseNode* right,
-                         JSOp op = JSOP_NOP) {
+                         JSOp op = JSOP_NOP)
+    {
         TokenPos pos(left->pn_pos.begin, right->pn_pos.end);
         return new_<BinaryNode>(kind, op, pos, left, right);
     }
-    ParseNode* appendOrCreateList(ParseNodeKind kind, ParseNode* left, ParseNode* right,
-                                  ParseContext<FullParseHandler>* pc, JSOp op = JSOP_NOP)
-    {
-        return ParseNode::appendOrCreateList(kind, op, left, right, this, pc);
-    }
 
-    ParseNode* newTernary(ParseNodeKind kind,
-                          ParseNode* first, ParseNode* second, ParseNode* third,
-                          JSOp op = JSOP_NOP)
+  public:
+    ParseNode* appendOrCreateList(ParseNodeKind kind, ParseNode* left, ParseNode* right,
+                                  ParseContext* pc)
     {
-        return new_<TernaryNode>(kind, op, first, second, third);
+        return ParseNode::appendOrCreateList(kind, left, right, this, pc);
     }
 
     // Expressions
 
-    ParseNode* newArrayComprehension(ParseNode* body, const TokenPos& pos) {
-        MOZ_ASSERT(pos.begin <= body->pn_pos.begin);
-        MOZ_ASSERT(body->pn_pos.end <= pos.end);
-        ParseNode* pn = new_<ListNode>(PNK_ARRAYCOMP, pos);
-        if (!pn)
-            return nullptr;
-        pn->append(body);
-        return pn;
-    }
-
     ParseNode* newArrayLiteral(uint32_t begin) {
-        ParseNode* literal = new_<ListNode>(PNK_ARRAY, TokenPos(begin, begin + 1));
-        // Later in this stack: remove dependency on this opcode.
-        if (literal)
-            literal->setOp(JSOP_NEWINIT);
-        return literal;
+        return new_<ListNode>(PNK_ARRAY, TokenPos(begin, begin + 1));
     }
 
-    bool addElision(ParseNode* literal, const TokenPos& pos) {
+    MOZ_MUST_USE bool addElision(ParseNode* literal, const TokenPos& pos) {
         ParseNode* elision = new_<NullaryNode>(PNK_ELISION, pos);
         if (!elision)
             return false;
@@ -299,11 +242,10 @@ class FullParseHandler
         return true;
     }
 
-    bool addSpreadElement(ParseNode* literal, uint32_t begin, ParseNode* inner) {
-        TokenPos pos(begin, inner->pn_pos.end);
-        ParseNode* spread = new_<UnaryNode>(PNK_SPREAD, JSOP_NOP, pos, inner);
+    MOZ_MUST_USE bool addSpreadElement(ParseNode* literal, uint32_t begin, ParseNode* inner) {
+        ParseNode* spread = newSpread(begin, inner);
         if (!spread)
-            return null();
+            return false;
         literal->append(spread);
         literal->pn_xflags |= PNX_ARRAYHOLESPREAD | PNX_NONCONST;
         return true;
@@ -315,24 +257,26 @@ class FullParseHandler
         literal->append(element);
     }
 
-    ParseNode* newCall() {
-        return newList(PNK_CALL, JSOP_CALL);
+    ParseNode* newCall(const TokenPos& pos) {
+        return new_<ListNode>(PNK_CALL, JSOP_CALL, pos);
     }
 
-    ParseNode* newTaggedTemplate() {
-        return newList(PNK_TAGGED_TEMPLATE, JSOP_CALL);
+    ParseNode* newSuperCall(ParseNode* callee) {
+        return new_<ListNode>(PNK_SUPERCALL, JSOP_SUPERCALL, callee);
+    }
+
+    ParseNode* newTaggedTemplate(const TokenPos& pos) {
+        return new_<ListNode>(PNK_TAGGED_TEMPLATE, JSOP_CALL, pos);
     }
 
     ParseNode* newObjectLiteral(uint32_t begin) {
-        ParseNode* literal = new_<ListNode>(PNK_OBJECT, TokenPos(begin, begin + 1));
-        // Later in this stack: remove dependency on this opcode.
-        if (literal)
-            literal->setOp(JSOP_NEWINIT);
-        return literal;
+        return new_<ListNode>(PNK_OBJECT, TokenPos(begin, begin + 1));
     }
 
-    ParseNode* newClass(ParseNode* name, ParseNode* heritage, ParseNode* methodBlock) {
-        return new_<ClassNode>(name, heritage, methodBlock);
+    ParseNode* newClass(ParseNode* name, ParseNode* heritage, ParseNode* methodBlock,
+                        const TokenPos& pos)
+    {
+        return new_<ClassNode>(name, heritage, methodBlock, pos);
     }
     ParseNode* newClassMethodList(uint32_t begin) {
         return new_<ListNode>(PNK_CLASSMETHODLIST, TokenPos(begin, begin + 1));
@@ -347,22 +291,22 @@ class FullParseHandler
         return new_<NullaryNode>(PNK_POSHOLDER, pos);
     }
     ParseNode* newSuperBase(ParseNode* thisName, const TokenPos& pos) {
-        return new_<UnaryNode>(PNK_SUPERBASE, JSOP_NOP, pos, thisName);
+        return new_<UnaryNode>(PNK_SUPERBASE, pos, thisName);
     }
 
-    bool addPrototypeMutation(ParseNode* literal, uint32_t begin, ParseNode* expr) {
+    MOZ_MUST_USE bool addPrototypeMutation(ParseNode* literal, uint32_t begin, ParseNode* expr) {
         // Object literals with mutated [[Prototype]] are non-constant so that
         // singleton objects will have Object.prototype as their [[Prototype]].
         setListFlag(literal, PNX_NONCONST);
 
-        ParseNode* mutation = newUnary(PNK_MUTATEPROTO, JSOP_NOP, begin, expr);
+        ParseNode* mutation = newUnary(PNK_MUTATEPROTO, begin, expr);
         if (!mutation)
             return false;
         literal->append(mutation);
         return true;
     }
 
-    bool addPropertyDefinition(ParseNode* literal, ParseNode* key, ParseNode* val) {
+    MOZ_MUST_USE bool addPropertyDefinition(ParseNode* literal, ParseNode* key, ParseNode* val) {
         MOZ_ASSERT(literal->isKind(PNK_OBJECT));
         MOZ_ASSERT(literal->isArity(PN_LIST));
         MOZ_ASSERT(key->isKind(PNK_NUMBER) ||
@@ -377,7 +321,7 @@ class FullParseHandler
         return true;
     }
 
-    bool addShorthand(ParseNode* literal, ParseNode* name, ParseNode* expr) {
+    MOZ_MUST_USE bool addShorthand(ParseNode* literal, ParseNode* name, ParseNode* expr) {
         MOZ_ASSERT(literal->isKind(PNK_OBJECT));
         MOZ_ASSERT(literal->isArity(PN_LIST));
         MOZ_ASSERT(name->isKind(PNK_OBJECT_PROPERTY_NAME));
@@ -392,7 +336,20 @@ class FullParseHandler
         return true;
     }
 
-    bool addObjectMethodDefinition(ParseNode* literal, ParseNode* key, ParseNode* fn, JSOp op)
+    MOZ_MUST_USE bool addSpreadProperty(ParseNode* literal, uint32_t begin, ParseNode* inner) {
+        MOZ_ASSERT(literal->isKind(PNK_OBJECT));
+        MOZ_ASSERT(literal->isArity(PN_LIST));
+
+        setListFlag(literal, PNX_NONCONST);
+        ParseNode* spread = newSpread(begin, inner);
+        if (!spread)
+            return false;
+        literal->append(spread);
+        return true;
+    }
+
+    MOZ_MUST_USE bool addObjectMethodDefinition(ParseNode* literal, ParseNode* key, ParseNode* fn,
+                                                AccessorType atype)
     {
         MOZ_ASSERT(literal->isArity(PN_LIST));
         MOZ_ASSERT(key->isKind(PNK_NUMBER) ||
@@ -401,15 +358,15 @@ class FullParseHandler
                    key->isKind(PNK_COMPUTED_NAME));
         literal->pn_xflags |= PNX_NONCONST;
 
-        ParseNode* propdef = newBinary(PNK_COLON, key, fn, op);
+        ParseNode* propdef = newBinary(PNK_COLON, key, fn, AccessorTypeToJSOp(atype));
         if (!propdef)
             return false;
         literal->append(propdef);
         return true;
     }
 
-    bool addClassMethodDefinition(ParseNode* methodList, ParseNode* key, ParseNode* fn, JSOp op,
-                                  bool isStatic)
+    MOZ_MUST_USE bool addClassMethodDefinition(ParseNode* methodList, ParseNode* key, ParseNode* fn,
+                                               AccessorType atype, bool isStatic)
     {
         MOZ_ASSERT(methodList->isKind(PNK_CLASSMETHODLIST));
         MOZ_ASSERT(key->isKind(PNK_NUMBER) ||
@@ -417,54 +374,75 @@ class FullParseHandler
                    key->isKind(PNK_STRING) ||
                    key->isKind(PNK_COMPUTED_NAME));
 
-        ParseNode* classMethod = new_<ClassMethod>(key, fn, op, isStatic);
+        ParseNode* classMethod = new_<ClassMethod>(key, fn, AccessorTypeToJSOp(atype), isStatic);
         if (!classMethod)
             return false;
         methodList->append(classMethod);
         return true;
     }
 
-    ParseNode* newYieldExpression(uint32_t begin, ParseNode* value, ParseNode* gen,
-                                  JSOp op = JSOP_YIELD) {
-        TokenPos pos(begin, value ? value->pn_pos.end : begin + 1);
-        return new_<BinaryNode>(PNK_YIELD, op, pos, value, gen);
+    ParseNode* newInitialYieldExpression(uint32_t begin, ParseNode* gen) {
+        TokenPos pos(begin, begin + 1);
+        return new_<UnaryNode>(PNK_INITIALYIELD, pos, gen);
     }
 
-    ParseNode* newYieldStarExpression(uint32_t begin, ParseNode* value, ParseNode* gen) {
+    ParseNode* newYieldExpression(uint32_t begin, ParseNode* value) {
+        TokenPos pos(begin, value ? value->pn_pos.end : begin + 1);
+        return new_<UnaryNode>(PNK_YIELD, pos, value);
+    }
+
+    ParseNode* newYieldStarExpression(uint32_t begin, ParseNode* value) {
         TokenPos pos(begin, value->pn_pos.end);
-        return new_<BinaryNode>(PNK_YIELD_STAR, JSOP_NOP, pos, value, gen);
+        return new_<UnaryNode>(PNK_YIELD_STAR, pos, value);
+    }
+
+    ParseNode* newAwaitExpression(uint32_t begin, ParseNode* value) {
+        TokenPos pos(begin, value ? value->pn_pos.end : begin + 1);
+        return new_<UnaryNode>(PNK_AWAIT, pos, value);
     }
 
     // Statements
 
-    ParseNode* newStatementList(unsigned blockid, const TokenPos& pos) {
-        ParseNode* pn = new_<ListNode>(PNK_STATEMENTLIST, pos);
-        if (pn)
-            pn->pn_blockid = blockid;
-        return pn;
+    ParseNode* newStatementList(const TokenPos& pos) {
+        return new_<ListNode>(PNK_STATEMENTLIST, pos);
     }
 
-    template <typename PC>
-    void addStatementToList(ParseNode* list, ParseNode* stmt, PC* pc) {
+    MOZ_MUST_USE bool isFunctionStmt(ParseNode* stmt) {
+        while (stmt->isKind(PNK_LABEL))
+            stmt = stmt->as<LabeledStatement>().statement();
+        return stmt->isKind(PNK_FUNCTION);
+    }
+
+    void addStatementToList(ParseNode* list, ParseNode* stmt) {
         MOZ_ASSERT(list->isKind(PNK_STATEMENTLIST));
 
-        if (stmt->isKind(PNK_FUNCTION)) {
-            if (pc->atBodyLevel()) {
-                // PNX_FUNCDEFS notifies the emitter that the block contains
-                // body-level function definitions that should be processed
-                // before the rest of nodes.
-                list->pn_xflags |= PNX_FUNCDEFS;
-            } else {
-                // General deoptimization was done in Parser::functionDef.
-                MOZ_ASSERT_IF(pc->sc->isFunctionBox(),
-                              pc->sc->asFunctionBox()->hasExtensibleScope());
-            }
-        }
-
         list->append(stmt);
+
+        if (isFunctionStmt(stmt)) {
+            // PNX_FUNCDEFS notifies the emitter that the block contains
+            // body-level function definitions that should be processed
+            // before the rest of nodes.
+            list->pn_xflags |= PNX_FUNCDEFS;
+        }
     }
 
-    bool prependInitialYield(ParseNode* stmtList, ParseNode* genName) {
+    void setListEndPosition(ParseNode* list, const TokenPos& pos) {
+        MOZ_ASSERT(list->isKind(PNK_STATEMENTLIST));
+        list->pn_pos.end = pos.end;
+    }
+
+    void addCaseStatementToList(ParseNode* list, ParseNode* casepn) {
+        MOZ_ASSERT(list->isKind(PNK_STATEMENTLIST));
+        MOZ_ASSERT(casepn->isKind(PNK_CASE));
+        MOZ_ASSERT(casepn->pn_right->isKind(PNK_STATEMENTLIST));
+
+        list->append(casepn);
+
+        if (casepn->pn_right->pn_xflags & PNX_FUNCDEFS)
+            list->pn_xflags |= PNX_FUNCDEFS;
+    }
+
+    MOZ_MUST_USE bool prependInitialYield(ParseNode* stmtList, ParseNode* genName) {
         MOZ_ASSERT(stmtList->isKind(PNK_STATEMENTLIST));
 
         TokenPos yieldPos(stmtList->pn_pos.begin, stmtList->pn_pos.begin + 1);
@@ -474,13 +452,11 @@ class FullParseHandler
 
         MOZ_ASSERT(genName->getOp() == JSOP_GETNAME);
         genName->setOp(JSOP_SETNAME);
-        genName->markAsAssigned();
         ParseNode* genInit = newBinary(PNK_ASSIGN, genName, makeGen);
         if (!genInit)
             return false;
 
-        ParseNode* initialYield = newYieldExpression(yieldPos.begin, nullptr, genInit,
-                                                     JSOP_INITIALYIELD);
+        ParseNode* initialYield = newInitialYieldExpression(yieldPos.begin, genInit);
         if (!initialYield)
             return false;
 
@@ -491,12 +467,11 @@ class FullParseHandler
     ParseNode* newSetThis(ParseNode* thisName, ParseNode* val) {
         MOZ_ASSERT(thisName->getOp() == JSOP_GETNAME);
         thisName->setOp(JSOP_SETNAME);
-        thisName->markAsAssigned();
         return newBinary(PNK_SETTHIS, thisName, val);
     }
 
     ParseNode* newEmptyStatement(const TokenPos& pos) {
-        return new_<UnaryNode>(PNK_SEMI, JSOP_NOP, pos, (ParseNode*) nullptr);
+        return new_<UnaryNode>(PNK_SEMI, pos, nullptr);
     }
 
     ParseNode* newImportDeclaration(ParseNode* importSpecSet,
@@ -509,8 +484,12 @@ class FullParseHandler
         return pn;
     }
 
+    ParseNode* newImportSpec(ParseNode* importNameNode, ParseNode* bindingName) {
+        return newBinary(PNK_IMPORT_SPEC, importNameNode, bindingName);
+    }
+
     ParseNode* newExportDeclaration(ParseNode* kid, const TokenPos& pos) {
-        return new_<UnaryNode>(PNK_EXPORT, JSOP_NOP, pos, kid);
+        return new_<UnaryNode>(PNK_EXPORT, pos, kid);
     }
 
     ParseNode* newExportFromDeclaration(uint32_t begin, ParseNode* exportSpecSet,
@@ -528,15 +507,23 @@ class FullParseHandler
         return new_<BinaryNode>(PNK_EXPORT_DEFAULT, JSOP_NOP, pos, kid, maybeBinding);
     }
 
+    ParseNode* newExportSpec(ParseNode* bindingName, ParseNode* exportName) {
+        return newBinary(PNK_EXPORT_SPEC, bindingName, exportName);
+    }
+
+    ParseNode* newExportBatchSpec(const TokenPos& pos) {
+        return new_<NullaryNode>(PNK_EXPORT_BATCH_SPEC, JSOP_NOP, pos);
+    }
+
     ParseNode* newExprStatement(ParseNode* expr, uint32_t end) {
         MOZ_ASSERT(expr->pn_pos.end <= end);
-        return new_<UnaryNode>(PNK_SEMI, JSOP_NOP, TokenPos(expr->pn_pos.begin, end), expr);
+        return new_<UnaryNode>(PNK_SEMI, TokenPos(expr->pn_pos.begin, end), expr);
     }
 
     ParseNode* newIfStatement(uint32_t begin, ParseNode* cond, ParseNode* thenBranch,
                               ParseNode* elseBranch)
     {
-        ParseNode* pn = new_<TernaryNode>(PNK_IF, JSOP_NOP, cond, thenBranch, elseBranch);
+        ParseNode* pn = new_<TernaryNode>(PNK_IF, cond, thenBranch, elseBranch);
         if (!pn)
             return null();
         pn->pn_pos.begin = begin;
@@ -565,24 +552,17 @@ class FullParseHandler
         return pn;
     }
 
-    ParseNode* newComprehensionFor(uint32_t begin, ParseNode* forHead, ParseNode* body) {
-        // A PNK_COMPREHENSIONFOR node is binary: left is loop control, right
-        // is the body.
-        MOZ_ASSERT(forHead->isKind(PNK_FORIN) || forHead->isKind(PNK_FOROF));
-        JSOp op = forHead->isKind(PNK_FORIN) ? JSOP_ITER : JSOP_NOP;
-        BinaryNode* pn = new_<BinaryNode>(PNK_COMPREHENSIONFOR, op,
-                                          TokenPos(begin, body->pn_pos.end), forHead, body);
-        if (!pn)
-            return null();
-        pn->pn_iflags = JSOP_ITER;
-        return pn;
-    }
-
-    ParseNode* newForHead(ParseNodeKind kind, ParseNode* pn1, ParseNode* pn2, ParseNode* pn3,
+    ParseNode* newForHead(ParseNode* init, ParseNode* test, ParseNode* update,
                           const TokenPos& pos)
     {
-        MOZ_ASSERT(kind == PNK_FORIN || kind == PNK_FOROF || kind == PNK_FORHEAD);
-        return new_<TernaryNode>(kind, JSOP_NOP, pn1, pn2, pn3, pos);
+        return new_<TernaryNode>(PNK_FORHEAD, init, test, update, pos);
+    }
+
+    ParseNode* newForInOrOfHead(ParseNodeKind kind, ParseNode* target, ParseNode* iteratedExpr,
+                                const TokenPos& pos)
+    {
+        MOZ_ASSERT(kind == PNK_FORIN || kind == PNK_FOROF);
+        return new_<TernaryNode>(kind, target, nullptr, iteratedExpr, pos);
     }
 
     ParseNode* newSwitchStatement(uint32_t begin, ParseNode* discriminant, ParseNode* caseList) {
@@ -604,13 +584,16 @@ class FullParseHandler
 
     ParseNode* newReturnStatement(ParseNode* expr, const TokenPos& pos) {
         MOZ_ASSERT_IF(expr, pos.encloses(expr->pn_pos));
-        return new_<UnaryNode>(PNK_RETURN, JSOP_RETURN, pos, expr);
+        return new_<UnaryNode>(PNK_RETURN, pos, expr);
     }
 
-    ParseNode* newWithStatement(uint32_t begin, ParseNode* expr, ParseNode* body,
-                                ObjectBox* staticWith) {
-        return new_<BinaryObjNode>(PNK_WITH, JSOP_NOP, TokenPos(begin, body->pn_pos.end),
-                                   expr, body, staticWith);
+    ParseNode* newExpressionBody(ParseNode* expr) {
+        return new_<UnaryNode>(PNK_RETURN, expr->pn_pos, expr);
+    }
+
+    ParseNode* newWithStatement(uint32_t begin, ParseNode* expr, ParseNode* body) {
+        return new_<BinaryNode>(PNK_WITH, JSOP_NOP, TokenPos(begin, body->pn_pos.end),
+                                expr, body);
     }
 
     ParseNode* newLabeledStatement(PropertyName* label, ParseNode* stmt, uint32_t begin) {
@@ -619,13 +602,13 @@ class FullParseHandler
 
     ParseNode* newThrowStatement(ParseNode* expr, const TokenPos& pos) {
         MOZ_ASSERT(pos.encloses(expr->pn_pos));
-        return new_<UnaryNode>(PNK_THROW, JSOP_THROW, pos, expr);
+        return new_<UnaryNode>(PNK_THROW, pos, expr);
     }
 
     ParseNode* newTryStatement(uint32_t begin, ParseNode* body, ParseNode* catchList,
                                ParseNode* finallyBlock) {
         TokenPos pos(begin, (finallyBlock ? finallyBlock : catchList)->pn_pos.end);
-        return new_<TernaryNode>(PNK_TRY, JSOP_NOP, body, catchList, finallyBlock, pos);
+        return new_<TernaryNode>(PNK_TRY, body, catchList, finallyBlock, pos);
     }
 
     ParseNode* newDebuggerStatement(const TokenPos& pos) {
@@ -640,57 +623,67 @@ class FullParseHandler
         return new_<PropertyByValue>(lhs, index, lhs->pn_pos.begin, end);
     }
 
-    inline bool addCatchBlock(ParseNode* catchList, ParseNode* letBlock,
-                              ParseNode* catchName, ParseNode* catchGuard, ParseNode* catchBody);
+    inline MOZ_MUST_USE bool addCatchBlock(ParseNode* catchList, ParseNode* lexicalScope,
+                                           ParseNode* catchName, ParseNode* catchGuard,
+                                           ParseNode* catchBody);
 
-    inline bool setLastFunctionArgumentDefault(ParseNode* funcpn, ParseNode* pn);
-    inline void setLastFunctionArgumentDestructuring(ParseNode* funcpn, ParseNode* pn);
+    inline MOZ_MUST_USE bool setLastFunctionFormalParameterDefault(ParseNode* funcpn,
+                                                                   ParseNode* pn);
+    inline void setLastFunctionFormalParameterDestructuring(ParseNode* funcpn, ParseNode* pn);
 
-    ParseNode* newFunctionDefinition() {
-        return new_<CodeNode>(PNK_FUNCTION, pos());
+    void checkAndSetIsDirectRHSAnonFunction(ParseNode* pn) {
+        if (IsAnonymousFunctionDefinition(pn))
+            pn->setDirectRHSAnonFunction(true);
     }
-    void setFunctionBody(ParseNode* pn, ParseNode* kid) {
+
+    ParseNode* newFunctionStatement(const TokenPos& pos) {
+        return new_<CodeNode>(PNK_FUNCTION, JSOP_NOP, pos);
+    }
+
+    ParseNode* newFunctionExpression(const TokenPos& pos) {
+        return new_<CodeNode>(PNK_FUNCTION, JSOP_LAMBDA, pos);
+    }
+
+    ParseNode* newArrowFunction(const TokenPos& pos) {
+        return new_<CodeNode>(PNK_FUNCTION, JSOP_LAMBDA_ARROW, pos);
+    }
+
+    void setFunctionFormalParametersAndBody(ParseNode* pn, ParseNode* kid) {
+        MOZ_ASSERT_IF(kid, kid->isKind(PNK_PARAMSBODY));
         pn->pn_body = kid;
     }
     void setFunctionBox(ParseNode* pn, FunctionBox* funbox) {
         MOZ_ASSERT(pn->isKind(PNK_FUNCTION));
         pn->pn_funbox = funbox;
+        funbox->functionNode = pn;
     }
-    void addFunctionArgument(ParseNode* pn, ParseNode* argpn) {
+    void addFunctionFormalParameter(ParseNode* pn, ParseNode* argpn) {
         pn->pn_body->append(argpn);
     }
-    void setDerivedClassConstructor(ParseNode* pn) {
-        MOZ_ASSERT(pn->isKind(PNK_FUNCTION));
-        pn->pn_funbox->setDerivedClassConstructor();
+    void setFunctionBody(ParseNode* fn, ParseNode* body) {
+        MOZ_ASSERT(fn->pn_body->isKind(PNK_PARAMSBODY));
+        fn->pn_body->append(body);
     }
 
-    ParseNode* newModule() {
-        return new_<CodeNode>(PNK_MODULE, pos());
-    }
-    void setModuleBox(ParseNode* pn, ModuleBox* modulebox) {
-        MOZ_ASSERT(pn->isKind(PNK_MODULE));
-        pn->pn_modulebox = modulebox;
+    ParseNode* newModule(const TokenPos& pos) {
+        return new_<CodeNode>(PNK_MODULE, JSOP_NOP, pos);
     }
 
-    ParseNode* newLexicalScope(ObjectBox* blockBox) {
-        return new_<LexicalScopeNode>(blockBox, pos());
-    }
-    void setLexicalScopeBody(ParseNode* block, ParseNode* body) {
-        block->pn_expr = body;
+    ParseNode* newLexicalScope(LexicalScope::Data* bindings, ParseNode* body) {
+        return new_<LexicalScopeNode>(bindings, body);
     }
 
-    ParseNode* newLetBlock(ParseNode* vars, ParseNode* block, const TokenPos& pos) {
-        ParseNode* letBlock = newBinary(PNK_LETBLOCK, vars, block);
-        if (!letBlock)
+    Node newNewExpression(uint32_t begin, ParseNode* ctor) {
+        ParseNode* newExpr = new_<ListNode>(PNK_NEW, JSOP_NEW, TokenPos(begin, begin + 1));
+        if (!newExpr)
             return nullptr;
-        letBlock->pn_pos = pos;
-        return letBlock;
+
+        addList(newExpr, ctor);
+        return newExpr;
     }
 
-    ParseNode* newAssignment(ParseNodeKind kind, ParseNode* lhs, ParseNode* rhs,
-                             ParseContext<FullParseHandler>* pc, JSOp op)
-    {
-        return newBinary(kind, lhs, rhs, op);
+    ParseNode* newAssignment(ParseNodeKind kind, ParseNode* lhs, ParseNode* rhs) {
+        return newBinary(kind, lhs, rhs);
     }
 
     bool isUnparenthesizedYieldExpression(ParseNode* node) {
@@ -713,6 +706,15 @@ class FullParseHandler
         return false;
     }
 
+    bool isUnparenthesizedUnaryExpression(ParseNode* node) {
+        if (!node->isInParens()) {
+            ParseNodeKind kind = node->getKind();
+            return kind == PNK_VOID || kind == PNK_NOT || kind == PNK_BITNOT || kind == PNK_POS ||
+                   kind == PNK_NEG || IsTypeofKind(kind) || IsDeleteKind(kind);
+        }
+        return false;
+    }
+
     bool isReturnStatement(ParseNode* node) {
         return node->isKind(PNK_RETURN);
     }
@@ -727,8 +729,7 @@ class FullParseHandler
         return node->isKind(PNK_SUPERBASE);
     }
 
-    inline bool finishInitializerAssignment(ParseNode* pn, ParseNode* init, JSOp op);
-    inline void setLexicalDeclarationOp(ParseNode* pn, JSOp op);
+    inline MOZ_MUST_USE bool finishInitializerAssignment(ParseNode* pn, ParseNode* init);
 
     void setBeginPosition(ParseNode* pn, ParseNode* oth) {
         setBeginPosition(pn, oth->pn_pos.begin);
@@ -746,41 +747,54 @@ class FullParseHandler
         MOZ_ASSERT(pn->pn_pos.begin <= pn->pn_pos.end);
     }
 
-    void setPosition(ParseNode* pn, const TokenPos& pos) {
-        pn->pn_pos = pos;
-    }
-    TokenPos getPosition(ParseNode* pn) {
-        return pn->pn_pos;
+    uint32_t getFunctionNameOffset(ParseNode* func, TokenStreamAnyChars& ts) {
+        return func->pn_pos.begin;
     }
 
-    ParseNode* newList(ParseNodeKind kind, JSOp op = JSOP_NOP) {
-        MOZ_ASSERT(kind != PNK_VAR);
-        return new_<ListNode>(kind, op, pos());
-    }
-    ParseNode* newList(ParseNodeKind kind, uint32_t begin, JSOp op = JSOP_NOP) {
-        return new_<ListNode>(kind, op, TokenPos(begin, begin + 1));
-    }
-    ParseNode* newDeclarationList(ParseNodeKind kind, JSOp op = JSOP_NOP) {
-        MOZ_ASSERT(kind == PNK_VAR || kind == PNK_CONST || kind == PNK_LET);
-        return new_<ListNode>(kind, op, pos());
+    bool isDeclarationKind(ParseNodeKind kind) {
+        return kind == PNK_VAR || kind == PNK_LET || kind == PNK_CONST;
     }
 
-    /* New list with one initial child node. kid must be non-null. */
-    ParseNode* newList(ParseNodeKind kind, ParseNode* kid, JSOp op = JSOP_NOP) {
-        MOZ_ASSERT(kind != PNK_VAR);
-        return new_<ListNode>(kind, op, kid);
-    }
-    ParseNode* newDeclarationList(ParseNodeKind kind, ParseNode* kid, JSOp op = JSOP_NOP) {
-        MOZ_ASSERT(kind == PNK_VAR || kind == PNK_CONST || kind == PNK_LET);
-        return new_<ListNode>(kind, op, kid);
+    ParseNode* newList(ParseNodeKind kind, const TokenPos& pos) {
+        MOZ_ASSERT(!isDeclarationKind(kind));
+        return new_<ListNode>(kind, JSOP_NOP, pos);
     }
 
-    ParseNode* newCatchList() {
-        return new_<ListNode>(PNK_CATCHLIST, JSOP_NOP, pos());
+  private:
+    ParseNode* newList(ParseNodeKind kind, uint32_t begin) {
+        return newList(kind, TokenPos(begin, begin + 1));
+    }
+
+    template<typename T>
+    ParseNode* newList(ParseNodeKind kind, const T& begin) = delete;
+
+  public:
+    ParseNode* newList(ParseNodeKind kind, ParseNode* kid) {
+        MOZ_ASSERT(!isDeclarationKind(kind));
+        return new_<ListNode>(kind, JSOP_NOP, kid);
+    }
+
+    ParseNode* newDeclarationList(ParseNodeKind kind, const TokenPos& pos) {
+        MOZ_ASSERT(isDeclarationKind(kind));
+        return new_<ListNode>(kind, JSOP_NOP, pos);
+    }
+
+    bool isDeclarationList(ParseNode* node) {
+        return isDeclarationKind(node->getKind());
+    }
+
+    ParseNode* singleBindingFromDeclaration(ParseNode* decl) {
+        MOZ_ASSERT(isDeclarationList(decl));
+        MOZ_ASSERT(decl->pn_count == 1);
+        return decl->pn_head;
+    }
+
+    ParseNode* newCatchList(const TokenPos& pos) {
+        return new_<ListNode>(PNK_CATCHLIST, JSOP_NOP, pos);
     }
 
     ParseNode* newCommaExpressionList(ParseNode* kid) {
-        return newList(PNK_COMMA, kid, JSOP_NOP);
+        return new_<ListNode>(PNK_COMMA, JSOP_NOP, kid);
     }
 
     void addList(ParseNode* list, ParseNode* kid) {
@@ -790,24 +804,18 @@ class FullParseHandler
     void setOp(ParseNode* pn, JSOp op) {
         pn->setOp(op);
     }
-    void setBlockId(ParseNode* pn, unsigned blockid) {
-        pn->pn_blockid = blockid;
-    }
-    void setFlag(ParseNode* pn, unsigned flag) {
-        pn->pn_dflags |= flag;
-    }
     void setListFlag(ParseNode* pn, unsigned flag) {
         MOZ_ASSERT(pn->isArity(PN_LIST));
         pn->pn_xflags |= flag;
     }
-    MOZ_WARN_UNUSED_RESULT ParseNode* parenthesize(ParseNode* pn) {
+    MOZ_MUST_USE ParseNode* parenthesize(ParseNode* pn) {
         pn->setInParens(true);
         return pn;
     }
-    MOZ_WARN_UNUSED_RESULT ParseNode* setLikelyIIFE(ParseNode* pn) {
+    MOZ_MUST_USE ParseNode* setLikelyIIFE(ParseNode* pn) {
         return parenthesize(pn);
     }
-    void setPrologue(ParseNode* pn) {
+    void setInDirectivePrologue(ParseNode* pn) {
         pn->pn_prologue = true;
     }
 
@@ -815,22 +823,37 @@ class FullParseHandler
         return pn->isConstant();
     }
 
-    PropertyName* maybeUnparenthesizedName(ParseNode* pn) {
-        if (!pn->isInParens() && pn->isKind(PNK_NAME))
-            return pn->pn_atom->asPropertyName();
+    bool isUnparenthesizedName(ParseNode* node) {
+        return node->isKind(PNK_NAME) && !node->isInParens();
+    }
+
+    bool isNameAnyParentheses(ParseNode* node) {
+        return node->isKind(PNK_NAME);
+    }
+
+    bool isArgumentsAnyParentheses(ParseNode* node, JSContext* cx) {
+        return node->isKind(PNK_NAME) && node->pn_atom == cx->names().arguments;
+    }
+
+    bool isEvalAnyParentheses(ParseNode* node, JSContext* cx) {
+        return node->isKind(PNK_NAME) && node->pn_atom == cx->names().eval;
+    }
+
+    const char* nameIsArgumentsEvalAnyParentheses(ParseNode* node, JSContext* cx) {
+        MOZ_ASSERT(isNameAnyParentheses(node),
+                   "must only call this function on known names");
+
+        if (isEvalAnyParentheses(node, cx))
+            return js_eval_str;
+        if (isArgumentsAnyParentheses(node, cx))
+            return js_arguments_str;
         return nullptr;
     }
 
-    PropertyName* maybeParenthesizedName(ParseNode* pn) {
-        if (pn->isInParens() && pn->isKind(PNK_NAME))
-            return pn->pn_atom->asPropertyName();
-        return nullptr;
-    }
-
-    PropertyName* maybeNameAnyParentheses(ParseNode* node) {
-        if (PropertyName* name = maybeUnparenthesizedName(node))
-            return name;
-        return maybeParenthesizedName(node);
+    bool isAsyncKeyword(ParseNode* node, JSContext* cx) {
+        return node->isKind(PNK_NAME) &&
+               node->pn_pos.begin + strlen("async") == node->pn_pos.end &&
+               node->pn_atom == cx->names().async;
     }
 
     bool isCall(ParseNode* pn) {
@@ -847,74 +870,16 @@ class FullParseHandler
         return nullptr;
     }
 
-    void markAsAssigned(ParseNode* node) { node->markAsAssigned(); }
     void adjustGetToSet(ParseNode* node) {
         node->setOp(node->isOp(JSOP_GETLOCAL) ? JSOP_SETLOCAL : JSOP_SETNAME);
     }
-    void maybeDespecializeSet(ParseNode* node) {
-        if (!(CodeSpec[node->getOp()].format & JOF_SET))
-            node->setOp(JSOP_SETNAME);
-    }
 
-    inline ParseNode* makeAssignment(ParseNode* pn, ParseNode* rhs);
-
-    static Definition* getDefinitionNode(Definition* dn) {
-        return dn;
+    bool canSkipLazyInnerFunctions() {
+        return !!lazyOuterFunction_;
     }
-    static Definition::Kind getDefinitionKind(Definition* dn) {
-        return dn->kind();
+    bool canSkipLazyClosedOverBindings() {
+        return !!lazyOuterFunction_;
     }
-    static bool isPlaceholderDefinition(Definition* dn) {
-        return dn->isPlaceholder();
-    }
-    void linkUseToDef(ParseNode* pn, Definition* dn)
-    {
-        MOZ_ASSERT(!pn->isUsed());
-        MOZ_ASSERT(!pn->isDefn());
-        MOZ_ASSERT(pn != dn->dn_uses);
-        MOZ_ASSERT(dn->isDefn());
-        pn->pn_link = dn->dn_uses;
-        dn->dn_uses = pn;
-        dn->pn_dflags |= pn->pn_dflags & PND_USE2DEF_FLAGS;
-        pn->setUsed(true);
-        pn->pn_lexdef = dn;
-    }
-    Definition* resolve(Definition* dn) {
-        return dn->resolve();
-    }
-    void deoptimizeUsesWithin(Definition* dn, const TokenPos& pos)
-    {
-        for (ParseNode* pnu = dn->dn_uses; pnu; pnu = pnu->pn_link) {
-            MOZ_ASSERT(pnu->isUsed());
-            MOZ_ASSERT(!pnu->isDefn());
-            if (pnu->pn_pos.begin >= pos.begin && pnu->pn_pos.end <= pos.end)
-                pnu->pn_dflags |= PND_DEOPTIMIZED;
-        }
-    }
-    bool dependencyCovered(ParseNode* pn, unsigned blockid, bool functionScope) {
-        return pn->pn_blockid >= blockid;
-    }
-    void markMaybeUninitializedLexicalUseInSwitch(ParseNode* pn, Definition* dn,
-                                                  uint16_t firstDominatingLexicalSlot)
-    {
-        MOZ_ASSERT(pn->isUsed());
-        if (dn->isLexical() && dn->pn_scopecoord.slot() < firstDominatingLexicalSlot)
-            pn->pn_dflags |= PND_LEXICAL;
-    }
-
-    static uintptr_t definitionToBits(Definition* dn) {
-        return uintptr_t(dn);
-    }
-    static Definition* definitionFromBits(uintptr_t bits) {
-        return (Definition*) bits;
-    }
-    static Definition* nullDefinition() {
-        return nullptr;
-    }
-    void disableSyntaxParser() {
-        syntaxParser = nullptr;
-    }
-
     LazyScript* lazyOuterFunction() {
         return lazyOuterFunction_;
     }
@@ -922,30 +887,36 @@ class FullParseHandler
         MOZ_ASSERT(lazyInnerFunctionIndex < lazyOuterFunction()->numInnerFunctions());
         return lazyOuterFunction()->innerFunctions()[lazyInnerFunctionIndex++];
     }
+    JSAtom* nextLazyClosedOverBinding() {
+        MOZ_ASSERT(lazyClosedOverBindingIndex < lazyOuterFunction()->numClosedOverBindings());
+        return lazyOuterFunction()->closedOverBindings()[lazyClosedOverBindingIndex++];
+    }
 };
 
 inline bool
-FullParseHandler::addCatchBlock(ParseNode* catchList, ParseNode* letBlock,
-                                ParseNode* catchName, ParseNode* catchGuard, ParseNode* catchBody)
+FullParseHandler::addCatchBlock(ParseNode* catchList, ParseNode* lexicalScope,
+                                ParseNode* catchName, ParseNode* catchGuard,
+                                ParseNode* catchBody)
 {
-    ParseNode* catchpn = newTernary(PNK_CATCH, catchName, catchGuard, catchBody);
+    ParseNode* catchpn = new_<TernaryNode>(PNK_CATCH, catchName, catchGuard, catchBody);
     if (!catchpn)
         return false;
-
-    catchList->append(letBlock);
-    letBlock->pn_expr = catchpn;
+    catchList->append(lexicalScope);
+    lexicalScope->setScopeBody(catchpn);
     return true;
 }
 
-inline ParseNode*
-FullParseHandler::makeAssignmentFromArg(ParseNode* arg, ParseNode* lhs, ParseNode* rhs)
+inline bool
+FullParseHandler::setLastFunctionFormalParameterDefault(ParseNode* funcpn,
+                                                        ParseNode* defaultValue)
 {
-    return newBinary(PNK_ASSIGN, lhs, rhs, JSOP_NOP);
-}
+    ParseNode* arg = funcpn->pn_body->last();
+    ParseNode* pn = newBinary(PNK_ASSIGN, arg, defaultValue);
+    if (!pn)
+        return false;
 
-inline void
-FullParseHandler::replaceLastFunctionArgument(ParseNode* funcpn, ParseNode* pn)
-{
+    checkAndSetIsDirectRHSAnonFunction(defaultValue);
+
     funcpn->pn_body->pn_pos.end = pn->pn_pos.end;
     ParseNode* pnchild = funcpn->pn_body->pn_head;
     ParseNode* pnlast = funcpn->pn_body->last();
@@ -960,99 +931,19 @@ FullParseHandler::replaceLastFunctionArgument(ParseNode* funcpn, ParseNode* pn)
         pnchild->pn_next = pn;
     }
     funcpn->pn_body->pn_tail = &pn->pn_next;
-}
 
-inline bool
-FullParseHandler::setLastFunctionArgumentDefault(ParseNode* funcpn, ParseNode* defaultValue)
-{
-    ParseNode* arg = funcpn->pn_body->last();
-    MOZ_ASSERT(arg->isKind(PNK_NAME));
-    ParseNode* lhs = arg->pn_expr ? arg->pn_expr : arg;
-    ParseNode* pn = makeAssignmentFromArg(arg, lhs, defaultValue);
-    if (!pn)
-        return false;
-
-    if (arg->pn_expr)
-        arg->pn_expr = pn;
-    else
-        replaceLastFunctionArgument(funcpn, pn);
     return true;
 }
 
-inline void
-FullParseHandler::setLastFunctionArgumentDestructuring(ParseNode* funcpn, ParseNode* destruct)
-{
-    ParseNode* arg = funcpn->pn_body->last();
-    MOZ_ASSERT(arg->isKind(PNK_NAME));
-    MOZ_ASSERT(!arg->isUsed());
-    MOZ_ASSERT(arg->isDefn());
-    arg->pn_expr = destruct;
-}
-
 inline bool
-FullParseHandler::finishInitializerAssignment(ParseNode* pn, ParseNode* init, JSOp op)
+FullParseHandler::finishInitializerAssignment(ParseNode* pn, ParseNode* init)
 {
-    if (pn->isUsed()) {
-        pn = makeAssignment(pn, init);
-        if (!pn)
-            return false;
-    } else {
-        pn->pn_expr = init;
-    }
-
-    if (pn->pn_dflags & PND_BOUND)
-        pn->setOp(JSOP_SETLOCAL);
-    else
-        pn->setOp(JSOP_SETNAME);
-
-    pn->markAsAssigned();
+    pn->pn_expr = init;
+    pn->setOp(JSOP_SETNAME);
 
     /* The declarator's position must include the initializer. */
     pn->pn_pos.end = init->pn_pos.end;
     return true;
-}
-
-inline void
-FullParseHandler::setLexicalDeclarationOp(ParseNode* pn, JSOp op)
-{
-    if (op == JSOP_DEFLET || op == JSOP_DEFCONST) {
-        // Subtlety here. Lexical definitions that are PND_BOUND but whose
-        // scope coordinates are free are global lexicals. They cannot use
-        // scope coordinate lookup because we rely on being able to clone
-        // scripts to run on multiple globals. However, they always go on the
-        // global lexical scope, so in that sense they are bound.
-        pn->setOp(pn->pn_scopecoord.isFree() ? JSOP_INITGLEXICAL : JSOP_INITLEXICAL);
-    }
-}
-
-inline ParseNode*
-FullParseHandler::makeAssignment(ParseNode* pn, ParseNode* rhs)
-{
-    ParseNode* lhs = cloneNode(*pn);
-    if (!lhs)
-        return nullptr;
-
-    if (pn->isUsed()) {
-        Definition* dn = pn->pn_lexdef;
-        ParseNode** pnup = &dn->dn_uses;
-
-        while (*pnup != pn)
-            pnup = &(*pnup)->pn_link;
-        *pnup = lhs;
-        lhs->pn_link = pn->pn_link;
-        pn->pn_link = nullptr;
-    }
-
-    pn->setKind(PNK_ASSIGN);
-    pn->setOp(JSOP_NOP);
-    pn->setArity(PN_BINARY);
-    pn->setInParens(false);
-    pn->setUsed(false);
-    pn->setDefn(false);
-    pn->pn_left = lhs;
-    pn->pn_right = rhs;
-    pn->pn_pos.end = rhs->pn_pos.end;
-    return lhs;
 }
 
 } // namespace frontend

@@ -15,7 +15,9 @@
 #include "SharedSurfaceGL.h"
 #include "mozilla/layers/CompositorTypes.h"
 #include "mozilla/layers/TextureClientSharedSurface.h"
-#include "mozilla/unused.h"
+#include "mozilla/layers/TextureForwarder.h"
+#include "mozilla/Unused.h"
+#include "VRManagerChild.h"
 
 namespace mozilla {
 namespace gl {
@@ -63,11 +65,12 @@ SharedSurface::ProdCopy(SharedSurface* src, SharedSurface* dest,
             GLuint destTex = dest->ProdTexture();
             GLenum destTarget = dest->ProdTextureTarget();
 
-            gl->BlitHelper()->BlitFramebufferToTexture(0, destTex,
+            const ScopedBindFramebuffer bindFB(gl, 0);
+
+            gl->BlitHelper()->BlitFramebufferToTexture(destTex,
                                                        src->mSize,
                                                        dest->mSize,
-                                                       destTarget,
-                                                       true);
+                                                       destTarget);
         } else if (dest->mAttachType == AttachmentType::GLRenderbuffer) {
             GLuint destRB = dest->ProdRenderbuffer();
             ScopedFramebufferForRenderbuffer destWrapper(gl, destRB);
@@ -75,8 +78,7 @@ SharedSurface::ProdCopy(SharedSurface* src, SharedSurface* dest,
             gl->BlitHelper()->BlitFramebufferToFramebuffer(0,
                                                            destWrapper.FB(),
                                                            src->mSize,
-                                                           dest->mSize,
-                                                           true);
+                                                           dest->mSize);
         } else {
             MOZ_CRASH("GFX: Unhandled dest->mAttachType 1.");
         }
@@ -108,11 +110,12 @@ SharedSurface::ProdCopy(SharedSurface* src, SharedSurface* dest,
             GLuint srcTex = src->ProdTexture();
             GLenum srcTarget = src->ProdTextureTarget();
 
-            gl->BlitHelper()->BlitTextureToFramebuffer(srcTex, 0,
+            const ScopedBindFramebuffer bindFB(gl, 0);
+
+            gl->BlitHelper()->BlitTextureToFramebuffer(srcTex,
                                                        src->mSize,
                                                        dest->mSize,
-                                                       srcTarget,
-                                                       true);
+                                                       srcTarget);
         } else if (src->mAttachType == AttachmentType::GLRenderbuffer) {
             GLuint srcRB = src->ProdRenderbuffer();
             ScopedFramebufferForRenderbuffer srcWrapper(gl, srcRB);
@@ -120,8 +123,7 @@ SharedSurface::ProdCopy(SharedSurface* src, SharedSurface* dest,
             gl->BlitHelper()->BlitFramebufferToFramebuffer(srcWrapper.FB(),
                                                            0,
                                                            src->mSize,
-                                                           dest->mSize,
-                                                           true);
+                                                           dest->mSize);
         } else {
             MOZ_CRASH("GFX: Unhandled src->mAttachType 2.");
         }
@@ -156,9 +158,9 @@ SharedSurface::ProdCopy(SharedSurface* src, SharedSurface* dest,
         if (dest->mAttachType == AttachmentType::GLRenderbuffer) {
             GLuint destRB = dest->ProdRenderbuffer();
             ScopedFramebufferForRenderbuffer destWrapper(gl, destRB);
-
-            gl->BlitHelper()->BlitTextureToFramebuffer(srcTex, destWrapper.FB(),
-                                                       src->mSize, dest->mSize, srcTarget);
+            const ScopedBindFramebuffer bindFB(gl, destWrapper.FB());
+            gl->BlitHelper()->BlitTextureToFramebuffer(srcTex, src->mSize, dest->mSize,
+                                                       srcTarget);
 
             return;
         }
@@ -173,9 +175,10 @@ SharedSurface::ProdCopy(SharedSurface* src, SharedSurface* dest,
         if (dest->mAttachType == AttachmentType::GLTexture) {
             GLuint destTex = dest->ProdTexture();
             GLenum destTarget = dest->ProdTextureTarget();
+            const ScopedBindFramebuffer bindFB(gl, srcWrapper.FB());
 
-            gl->BlitHelper()->BlitFramebufferToTexture(srcWrapper.FB(), destTex,
-                                                       src->mSize, dest->mSize, destTarget);
+            gl->BlitHelper()->BlitFramebufferToTexture(destTex, src->mSize, dest->mSize,
+                                                       destTarget);
 
             return;
         }
@@ -214,10 +217,6 @@ SharedSurface::SharedSurface(SharedSurfaceType type,
     , mCanRecycle(canRecycle)
     , mIsLocked(false)
     , mIsProducerAcquired(false)
-    , mIsConsumerAcquired(false)
-#ifdef DEBUG
-    , mOwningThread(NS_GetCurrentThread())
-#endif
 { }
 
 layers::TextureFlags
@@ -247,27 +246,6 @@ SharedSurface::UnlockProd()
 
     mGL->UnlockSurface(this);
     mIsLocked = false;
-}
-
-void
-SharedSurface::Fence_ContentThread()
-{
-    MOZ_ASSERT(NS_GetCurrentThread() == mOwningThread);
-    Fence_ContentThread_Impl();
-}
-
-bool
-SharedSurface::WaitSync_ContentThread()
-{
-    MOZ_ASSERT(NS_GetCurrentThread() == mOwningThread);
-    return WaitSync_ContentThread_Impl();
-}
-
-bool
-SharedSurface::PollSync_ContentThread()
-{
-    MOZ_ASSERT(NS_GetCurrentThread() == mOwningThread);
-    return PollSync_ContentThread_Impl();
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -309,7 +287,7 @@ ChooseBufferBits(const SurfaceCaps& caps,
 
 SurfaceFactory::SurfaceFactory(SharedSurfaceType type, GLContext* gl,
                                const SurfaceCaps& caps,
-                               const RefPtr<layers::ISurfaceAllocator>& allocator,
+                               const RefPtr<layers::LayersIPCChannel>& allocator,
                                const layers::TextureFlags& flags)
     : mType(type)
     , mGL(gl)
@@ -325,10 +303,12 @@ SurfaceFactory::SurfaceFactory(SharedSurfaceType type, GLContext* gl,
 SurfaceFactory::~SurfaceFactory()
 {
     while (!mRecycleTotalPool.empty()) {
-        StopRecycling(*mRecycleTotalPool.begin());
+        RefPtr<layers::SharedSurfaceTextureClient> tex = *mRecycleTotalPool.begin();
+        StopRecycling(tex);
+        tex->CancelWaitForRecycle();
     }
 
-    MOZ_RELEASE_ASSERT(mRecycleTotalPool.empty());
+    MOZ_RELEASE_ASSERT(mRecycleTotalPool.empty(),"GFX: Surface recycle pool not empty.");
 
     // If we mRecycleFreePool.clear() before StopRecycling(), we may try to recycle it,
     // fail, call StopRecycling(), then return here and call it again.
@@ -368,7 +348,7 @@ SurfaceFactory::StartRecycling(layers::SharedSurfaceTextureClient* tc)
     tc->SetRecycleCallback(&SurfaceFactory::RecycleCallback, static_cast<void*>(this));
 
     bool didInsert = mRecycleTotalPool.insert(tc);
-    MOZ_RELEASE_ASSERT(didInsert);
+    MOZ_RELEASE_ASSERT(didInsert, "GFX: Shared surface texture client was not inserted to recycle.");
     mozilla::Unused << didInsert;
 }
 
@@ -380,7 +360,7 @@ SurfaceFactory::StopRecycling(layers::SharedSurfaceTextureClient* tc)
     tc->ClearRecycleCallback();
 
     bool didErase = mRecycleTotalPool.erase(tc);
-    MOZ_RELEASE_ASSERT(didErase);
+    MOZ_RELEASE_ASSERT(didErase, "GFX: Shared texture surface client was not erased.");
     mozilla::Unused << didErase;
 }
 
@@ -588,7 +568,11 @@ ReadbackSharedSurface(SharedSurface* src, gfx::DrawTarget* dst)
             size_t alignment = 8;
             if (dstStride % 4 == 0)
                 alignment = 4;
-            ScopedPackAlignment autoAlign(gl, alignment);
+
+            ScopedPackState scopedPackState(gl);
+            if (alignment != 4) {
+                gl->fPixelStorei(LOCAL_GL_PACK_ALIGNMENT, alignment);
+            }
 
             gl->raw_fReadPixels(0, 0, width, height, readGLFormat, readType,
                                 dstBytes);
@@ -620,7 +604,7 @@ ReadPixel(SharedSurface* src)
 
     ScopedReadbackFB a(src);
     {
-        ScopedPackAlignment autoAlign(gl, 4);
+        ScopedPackState scopedPackState(gl);
 
         UniquePtr<uint8_t[]> bytes(new uint8_t[4]);
         gl->raw_fReadPixels(0, 0, 1, 1, LOCAL_GL_RGBA, LOCAL_GL_UNSIGNED_BYTE,

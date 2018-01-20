@@ -1,5 +1,6 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
+"use strict";
 
 /**
  * Test inverting CensusTreeNode with a non-allocation stack breakdown.
@@ -55,11 +56,13 @@ function run_test() {
             totalCount: 40,
             children: undefined,
             id: 9,
-            parent: 8
+            parent: 8,
+            reportLeafIndex: 8,
           }
         ],
         id: 8,
-        parent: 1
+        parent: 1,
+        reportLeafIndex: undefined,
       },
       {
         name: "http://example.com/trackers.js",
@@ -76,11 +79,13 @@ function run_test() {
             totalCount: 30,
             children: undefined,
             id: 7,
-            parent: 6
+            parent: 6,
+            reportLeafIndex: 6,
           }
         ],
         id: 6,
-        parent: 1
+        parent: 1,
+        reportLeafIndex: undefined,
       },
       {
         name: "http://example.com/ads.js",
@@ -97,11 +102,13 @@ function run_test() {
             totalCount: 20,
             children: undefined,
             id: 5,
-            parent: 4
+            parent: 4,
+            reportLeafIndex: 4,
           }
         ],
         id: 4,
-        parent: 1
+        parent: 1,
+        reportLeafIndex: undefined,
       },
       {
         name: "http://example.com/app.js",
@@ -118,15 +125,18 @@ function run_test() {
             totalCount: 10,
             children: undefined,
             id: 3,
-            parent: 2
+            parent: 2,
+            reportLeafIndex: 2,
           }
         ],
         id: 2,
-        parent: 1
+        parent: 1,
+        reportLeafIndex: undefined,
       }
     ],
     id: 1,
     parent: undefined,
+    reportLeafIndex: undefined,
   };
 
   compareCensusViewData(BREAKDOWN, REPORT, EXPECTED);

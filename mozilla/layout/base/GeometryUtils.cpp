@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -12,6 +13,7 @@
 #include "mozilla/dom/DOMPoint.h"
 #include "mozilla/dom/DOMQuad.h"
 #include "mozilla/dom/DOMRect.h"
+#include "nsContentUtils.h"
 #include "nsIFrame.h"
 #include "nsGenericDOMDataNode.h"
 #include "nsCSSFrameConstructor.h"
@@ -33,18 +35,18 @@ static nsIFrame*
 GetFrameForNode(nsINode* aNode, GeometryNodeType aType)
 {
   nsIDocument* doc = aNode->OwnerDoc();
-  doc->FlushPendingNotifications(Flush_Layout);
-  switch (aType) {
-  case GEOMETRY_NODE_ELEMENT:
-    return aNode->AsContent()->GetPrimaryFrame();
-  case GEOMETRY_NODE_TEXT: {
-    nsIPresShell* presShell = doc->GetShell();
-    if (presShell) {
-      return presShell->FrameConstructor()->EnsureFrameForTextNode(
+  if (aType == GEOMETRY_NODE_TEXT) {
+    if (nsIPresShell* shell = doc->GetShell()) {
+      shell->FrameConstructor()->EnsureFrameForTextNodeIsCreatedAfterFlush(
           static_cast<nsGenericDOMDataNode*>(aNode));
     }
-    return nullptr;
   }
+  doc->FlushPendingNotifications(FlushType::Layout);
+
+  switch (aType) {
+  case GEOMETRY_NODE_TEXT:
+  case GEOMETRY_NODE_ELEMENT:
+    return aNode->AsContent()->GetPrimaryFrame();
   case GEOMETRY_NODE_DOCUMENT: {
     nsIPresShell* presShell = doc->GetShell();
     return presShell ? presShell->GetRootFrame() : nullptr;
@@ -139,8 +141,8 @@ GetBoxRectForFrame(nsIFrame** aFrame, CSSBoxType aType)
 {
   nsRect r;
   nsIFrame* f = nsSVGUtils::GetOuterSVGFrameAndCoveredRegion(*aFrame, &r);
-  if (f) {
-    // For SVG, the BoxType is ignored.
+  if (f && f != *aFrame) {
+    // For non-outer SVG frames, the BoxType is ignored.
     *aFrame = f;
     return r;
   }
@@ -174,11 +176,21 @@ public:
     , mRelativeToBoxTopLeft(aRelativeToBoxTopLeft)
     , mBoxType(aBoxType)
   {
+    if (mBoxType == CSSBoxType::Margin) {
+      // Don't include the caption margin when computing margins for a
+      // table
+      mIncludeCaptionBoxForTable = false;
+    }
   }
 
   virtual void AddBox(nsIFrame* aFrame) override
   {
     nsIFrame* f = aFrame;
+    if (mBoxType == CSSBoxType::Margin && f->IsTableFrame()) {
+      // Margin boxes for table frames should be taken from the table wrapper
+      // frame, since that has the margin.
+      f = f->GetParent();
+    }
     nsRect box = GetBoxRectForFrame(&f, mBoxType);
     nsPoint appUnits[4] =
       { box.TopLeft(), box.TopRight(), box.BottomRight(), box.BottomLeft() };
@@ -223,14 +235,15 @@ FindTopLevelPresContext(nsPresContext* aPC)
 }
 
 static bool
-CheckFramesInSameTopLevelBrowsingContext(nsIFrame* aFrame1, nsIFrame* aFrame2)
+CheckFramesInSameTopLevelBrowsingContext(nsIFrame* aFrame1, nsIFrame* aFrame2,
+                                         CallerType aCallerType)
 {
   nsPresContext* pc1 = aFrame1->PresContext();
   nsPresContext* pc2 = aFrame2->PresContext();
   if (pc1 == pc2) {
     return true;
   }
-  if (nsContentUtils::IsCallerChrome()) {
+  if (aCallerType == CallerType::System) {
     return true;
   }
   if (FindTopLevelPresContext(pc1) == FindTopLevelPresContext(pc2)) {
@@ -242,6 +255,7 @@ CheckFramesInSameTopLevelBrowsingContext(nsIFrame* aFrame1, nsIFrame* aFrame2)
 void GetBoxQuads(nsINode* aNode,
                  const dom::BoxQuadOptions& aOptions,
                  nsTArray<RefPtr<DOMQuad> >& aResult,
+                 CallerType aCallerType,
                  ErrorResult& aRv)
 {
   nsIFrame* frame = GetFrameForNode(aNode);
@@ -249,7 +263,7 @@ void GetBoxQuads(nsINode* aNode,
     // No boxes to return
     return;
   }
-  nsWeakFrame weakFrame(frame);
+  AutoWeakFrame weakFrame(frame);
   nsIDocument* ownerDoc = aNode->OwnerDoc();
   nsIFrame* relativeToFrame =
     GetFirstNonAnonymousFrameForGeometryNode(aOptions.mRelativeTo, ownerDoc);
@@ -267,7 +281,8 @@ void GetBoxQuads(nsINode* aNode,
     aRv.Throw(NS_ERROR_DOM_NOT_FOUND_ERR);
     return;
   }
-  if (!CheckFramesInSameTopLevelBrowsingContext(frame, relativeToFrame)) {
+  if (!CheckFramesInSameTopLevelBrowsingContext(frame, relativeToFrame,
+                                                aCallerType)) {
     aRv.Throw(NS_ERROR_DOM_NOT_FOUND_ERR);
     return;
   }
@@ -282,10 +297,11 @@ void GetBoxQuads(nsINode* aNode,
 static void
 TransformPoints(nsINode* aTo, const GeometryNode& aFrom,
                 uint32_t aPointCount, CSSPoint* aPoints,
-                const ConvertCoordinateOptions& aOptions, ErrorResult& aRv)
+                const ConvertCoordinateOptions& aOptions,
+                CallerType aCallerType, ErrorResult& aRv)
 {
   nsIFrame* fromFrame = GetFirstNonAnonymousFrameForGeometryNode(aFrom);
-  nsWeakFrame weakFrame(fromFrame);
+  AutoWeakFrame weakFrame(fromFrame);
   nsIFrame* toFrame = GetFirstNonAnonymousFrameForNode(aTo);
   // The first frame might be destroyed now if the above call lead to an
   // EnsureFrameForTextNode call.  We need to get the first frame again
@@ -297,7 +313,7 @@ TransformPoints(nsINode* aTo, const GeometryNode& aFrom,
     aRv.Throw(NS_ERROR_DOM_NOT_FOUND_ERR);
     return;
   }
-  if (!CheckFramesInSameTopLevelBrowsingContext(fromFrame, toFrame)) {
+  if (!CheckFramesInSameTopLevelBrowsingContext(fromFrame, toFrame, aCallerType)) {
     aRv.Throw(NS_ERROR_DOM_NOT_FOUND_ERR);
     return;
   }
@@ -326,6 +342,7 @@ already_AddRefed<DOMQuad>
 ConvertQuadFromNode(nsINode* aTo, dom::DOMQuad& aQuad,
                     const GeometryNode& aFrom,
                     const dom::ConvertCoordinateOptions& aOptions,
+                    CallerType aCallerType,
                     ErrorResult& aRv)
 {
   CSSPoint points[4];
@@ -337,7 +354,7 @@ ConvertQuadFromNode(nsINode* aTo, dom::DOMQuad& aQuad,
     }
     points[i] = CSSPoint(p->X(), p->Y());
   }
-  TransformPoints(aTo, aFrom, 4, points, aOptions, aRv);
+  TransformPoints(aTo, aFrom, 4, points, aOptions, aCallerType, aRv);
   if (aRv.Failed()) {
     return nullptr;
   }
@@ -349,6 +366,7 @@ already_AddRefed<DOMQuad>
 ConvertRectFromNode(nsINode* aTo, dom::DOMRectReadOnly& aRect,
                     const GeometryNode& aFrom,
                     const dom::ConvertCoordinateOptions& aOptions,
+                    CallerType aCallerType,
                     ErrorResult& aRv)
 {
   CSSPoint points[4];
@@ -357,7 +375,7 @@ ConvertRectFromNode(nsINode* aTo, dom::DOMRectReadOnly& aRect,
   points[1] = CSSPoint(x + w, y);
   points[2] = CSSPoint(x + w, y + h);
   points[3] = CSSPoint(x, y + h);
-  TransformPoints(aTo, aFrom, 4, points, aOptions, aRv);
+  TransformPoints(aTo, aFrom, 4, points, aOptions, aCallerType, aRv);
   if (aRv.Failed()) {
     return nullptr;
   }
@@ -369,6 +387,7 @@ already_AddRefed<DOMPoint>
 ConvertPointFromNode(nsINode* aTo, const dom::DOMPointInit& aPoint,
                      const GeometryNode& aFrom,
                      const dom::ConvertCoordinateOptions& aOptions,
+                     CallerType aCallerType,
                      ErrorResult& aRv)
 {
   if (aPoint.mW != 1.0 || aPoint.mZ != 0.0) {
@@ -376,7 +395,7 @@ ConvertPointFromNode(nsINode* aTo, const dom::DOMPointInit& aPoint,
     return nullptr;
   }
   CSSPoint point(aPoint.mX, aPoint.mY);
-  TransformPoints(aTo, aFrom, 1, &point, aOptions, aRv);
+  TransformPoints(aTo, aFrom, 1, &point, aOptions, aCallerType, aRv);
   if (aRv.Failed()) {
     return nullptr;
   }

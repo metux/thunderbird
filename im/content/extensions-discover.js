@@ -8,7 +8,7 @@ Cu.import("resource://gre/modules/Services.jsm");
 
 var defaultOpen = window.open;
 window.open = function(aUrl) {
-  let uri = Services.io.newURI(aUrl, null, null);
+  let uri = Services.io.newURI(aUrl);
 
   // http and https are the only schemes that are exposed even
   // though we don't handle them internally.
@@ -16,6 +16,6 @@ window.open = function(aUrl) {
     defaultOpen.apply(this, arguments);
   else {
     Cc["@mozilla.org/uriloader/external-protocol-service;1"]
-      .getService(Ci.nsIExternalProtocolService).loadUrl(uri);
+      .getService(Ci.nsIExternalProtocolService).loadURI(uri);
   }
 };

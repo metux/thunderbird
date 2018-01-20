@@ -3,6 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 function run_test() {
+    do_calendar_startup(really_run_test);
+}
+
+function really_run_test() {
     test_iterator();
     test_icalcomponent();
     test_icsservice();
@@ -10,7 +14,9 @@ function run_test() {
     test_param();
 
     // Only supported with ical.js
-    if (Preferences.get("calendar.icaljs", false)) test_icalproperty();
+    if (Preferences.get("calendar.icaljs", false)) {
+        test_icalproperty();
+    }
 }
 
 function test_icalstring() {
@@ -37,26 +43,36 @@ function test_icalstring() {
     }
 
     let attach = checkComp(cal.createAttachment.bind(cal),
-                           "ATTACH;ENCODING=BASE64;FMTTYPE=text/calendar;FILENAME=test.ics:http://example.com/test.ics",
-                           { formatType: "text/calendar", encoding: "BASE64" },
-                           { FILENAME: "test.ics" });
+        "ATTACH;ENCODING=BASE64;FMTTYPE=text/calendar;FILENAME=test.ics:http://example.com/test.ics",
+        { formatType: "text/calendar", encoding: "BASE64" },
+        { FILENAME: "test.ics" }
+    );
     equal(attach.uri.spec, "http://example.com/test.ics");
 
     checkComp(cal.createAttendee.bind(cal),
-              "ATTENDEE;RSVP=TRUE;CN=Name;PARTSTAT=ACCEPTED;CUTYPE=RESOURCE;ROLE=REQ-PARTICIPANT;X-THING=BAR:mailto:test@example.com",
-              { id: "mailto:test@example.com", commonName: "Name", rsvp: "TRUE",
-                isOrganizer: false, role: "REQ-PARTICIPANT", participationStatus: "ACCEPTED",
-                userType: "RESOURCE" },
-              { "X-THING": "BAR" });
+        "ATTENDEE;RSVP=TRUE;CN=Name;PARTSTAT=ACCEPTED;CUTYPE=RESOURCE;ROLE=REQ-PARTICIPANT;X-THING=BAR:mailto:test@example.com",
+        {
+            id: "mailto:test@example.com",
+            commonName: "Name",
+            rsvp: "TRUE",
+            isOrganizer: false,
+            role: "REQ-PARTICIPANT",
+            participationStatus: "ACCEPTED",
+            userType: "RESOURCE"
+        },
+        { "X-THING": "BAR" }
+    );
 
     checkComp(cal.createRelation.bind(cal),
-              "RELATED-TO;RELTYPE=SIBLING;FOO=BAR:VALUE",
-              { relType: "SIBLING", relId: "VALUE" },
-              { FOO: "BAR" });
+        "RELATED-TO;RELTYPE=SIBLING;FOO=BAR:VALUE",
+        { relType: "SIBLING", relId: "VALUE" },
+        { FOO: "BAR" }
+    );
 
     let rrule = checkComp(cal.createRecurrenceRule.bind(cal),
-                          "RRULE:FREQ=WEEKLY;COUNT=5;INTERVAL=2;BYDAY=MO",
-                          { count: 5, isByCount: true, type: "WEEKLY", interval: 2 });
+        "RRULE:FREQ=WEEKLY;COUNT=5;INTERVAL=2;BYDAY=MO",
+        { count: 5, isByCount: true, type: "WEEKLY", interval: 2 }
+    );
     equal(rrule.getComponent("BYDAY", {}).toString(), [2].toString());
 
     if (Preferences.get("calendar.icaljs", false)) {
@@ -102,14 +118,19 @@ function test_icsservice() {
 
     // Test ::createIcalPropertyFromString
     checkProp(svc.createIcalPropertyFromString.bind(svc),
-              "ATTACH;ENCODING=BASE64;FMTTYPE=text/calendar;FILENAME=test.ics:http://example.com/test.ics",
-              { value: "http://example.com/test.ics", propertyName: "ATTACH" },
-              { ENCODING: "BASE64", FMTTYPE: "text/calendar", FILENAME: "test.ics" });
+        "ATTACH;ENCODING=BASE64;FMTTYPE=text/calendar;FILENAME=test.ics:http://example.com/test.ics",
+        { value: "http://example.com/test.ics", propertyName: "ATTACH" },
+        { ENCODING: "BASE64", FMTTYPE: "text/calendar", FILENAME: "test.ics" }
+    );
 
     checkProp(svc.createIcalPropertyFromString.bind(svc),
-              "DESCRIPTION:new\\nlines\\nare\\ngreat\\,eh?",
-              { value: "new\nlines\nare\ngreat,eh?",
-                valueAsIcalString: "new\\nlines\\nare\\ngreat\\,eh?" }, {});
+        "DESCRIPTION:new\\nlines\\nare\\ngreat\\,eh?",
+        {
+            value: "new\nlines\nare\ngreat,eh?",
+            valueAsIcalString: "new\\nlines\\nare\\ngreat\\,eh?"
+        },
+        {}
+    );
 
     // Test ::createIcalProperty
     let attach2 = svc.createIcalProperty("ATTACH");
@@ -128,19 +149,19 @@ function test_icalproperty() {
     equal(prop.parent.toString(), comp.toString());
     equal(prop.valueAsDatetime, null);
 
-    prop = svc.createIcalProperty("PROP");
+    prop = svc.createIcalProperty("DESCRIPTION");
     prop.value = "A\nB";
     equal(prop.value, "A\nB");
     equal(prop.valueAsIcalString, "A\\nB");
     equal(prop.valueAsDatetime, null);
 
-    prop = svc.createIcalProperty("PROP");
+    prop = svc.createIcalProperty("DESCRIPTION");
     prop.valueAsIcalString = "A\\nB";
     equal(prop.value, "A\nB");
     equal(prop.valueAsIcalString, "A\\nB");
     equal(prop.valueAsDatetime, null);
 
-    prop = svc.createIcalProperty("PROP");
+    prop = svc.createIcalProperty("DESCRIPTION");
     prop.value = "A\\nB";
     equal(prop.value, "A\\nB");
     equal(prop.valueAsIcalString, "A\\\\nB");
@@ -150,7 +171,6 @@ function test_icalproperty() {
 function test_icalcomponent() {
     let svc = cal.getIcsService();
     let event = svc.createIcalComponent("VEVENT");
-    let todo = svc.createIcalComponent("VTODO");
     let alarm = svc.createIcalComponent("VALARM");
     event.addSubcomponent(alarm);
 
@@ -159,14 +179,14 @@ function test_icalcomponent() {
     equal(alarm.parent.toString(), event.toString());
     equal(alarm2.parent, null);
 
-    function check_getset(k, v) {
-        dump("Checking " + k + " = " + v + "\n");
-        event[k] = v;
-        vstring = v.icalString || v;
-        equal(event[k].icalString || event[k], vstring);
-        equal(event.serializeToICS().match(new RegExp(vstring, "g")).length, 1);
-        event[k] = v;
-        equal(event.serializeToICS().match(new RegExp(vstring, "g")).length, 1);
+    function check_getset(key, value) {
+        dump("Checking " + key + " = " + value + "\n");
+        event[key] = value;
+        let valuestring = value.icalString || value;
+        equal(event[key].icalString || event[key], valuestring);
+        equal(event.serializeToICS().match(new RegExp(valuestring, "g")).length, 1);
+        event[key] = value;
+        equal(event.serializeToICS().match(new RegExp(valuestring, "g")).length, 1);
     }
 
     let props = [
@@ -192,8 +212,8 @@ function test_icalcomponent() {
        ["recurrenceId", cal.createDateTime("20120101T010108")]
     ];
 
-    for each (let prop in props) {
-        check_getset.apply(null, prop);
+    for (let prop of props) {
+        check_getset(...prop);
     }
 }
 
@@ -211,7 +231,6 @@ function test_param() {
     equal(prop.icalString, "DTSTART;X-FOO=BAR:20120101T010101\r\n");
     prop.removeParameter("X-FOO", "BAR");
     equal(prop.icalString, "DTSTART:20120101T010101\r\n");
-
 }
 
 function test_iterator() {
@@ -222,22 +241,22 @@ function test_iterator() {
     let propNames = ["X-ONE", "X-TWO"];
     for (let i = 0; i < propNames.length; i++) {
         let prop = svc.createIcalProperty(propNames[i]);
-        prop.value = "" + (i+1);
+        prop.value = "" + (i + 1);
         comp.addProperty(prop);
     }
 
-    for (let p = comp.getFirstProperty("ANY");
-         p;
-         p = comp.getNextProperty("ANY")) {
-        equal(p.propertyName, propNames.shift());
-        equal(p.parent.toString(), comp.toString());
+    for (let prop = comp.getFirstProperty("ANY");
+         prop;
+         prop = comp.getNextProperty("ANY")) {
+        equal(prop.propertyName, propNames.shift());
+        equal(prop.parent.toString(), comp.toString());
     }
     propNames = ["X-ONE", "X-TWO"];
-    for (let p = comp.getNextProperty("ANY");
-         p;
-         p = comp.getNextProperty("ANY")) {
-        equal(p.propertyName, propNames.shift());
-        equal(p.parent.toString(), comp.toString());
+    for (let prop = comp.getNextProperty("ANY");
+         prop;
+         prop = comp.getNextProperty("ANY")) {
+        equal(prop.propertyName, propNames.shift());
+        equal(prop.parent.toString(), comp.toString());
     }
 
     // Property iterator with multiple values
@@ -245,32 +264,32 @@ function test_iterator() {
                         "CATEGORIES:a,b,c\r\n" +
                         "END:VEVENT", null);
     let propValues = ["a", "b", "c"];
-    for (let p = comp.getFirstProperty("CATEGORIES");
-         p;
-         p = comp.getNextProperty("CATEGORIES")) {
-        equal(p.propertyName, "CATEGORIES");
-        equal(p.value, propValues.shift());
-        equal(p.parent.toString(), comp.toString());
+    for (let prop = comp.getFirstProperty("CATEGORIES");
+         prop;
+         prop = comp.getNextProperty("CATEGORIES")) {
+        equal(prop.propertyName, "CATEGORIES");
+        equal(prop.value, propValues.shift());
+        equal(prop.parent.toString(), comp.toString());
     }
 
     // Param iterator
-    let prop = svc.createIcalProperty("DTSTART");
+    let dtstart = svc.createIcalProperty("DTSTART");
     let params = ["X-ONE", "X-TWO"];
     for (let i = 0; i < params.length; i++) {
-        prop.setParameter(params[i], "" + (i+1));
+        dtstart.setParameter(params[i], "" + (i + 1));
     }
 
-    for (let p = prop.getFirstParameterName();
-         p;
-         p = prop.getNextParameterName()) {
-        equal(p, params.shift());
+    for (let prop = dtstart.getFirstParameterName();
+         prop;
+         prop = dtstart.getNextParameterName()) {
+        equal(prop, params.shift());
     }
 
     // Now try again, but start with next. Should act like first
     params = ["X-ONE", "X-TWO"];
-    for (let p = prop.getNextParameterName();
-         p;
-         p = prop.getNextParameterName()) {
-        equal(p, params.shift());
+    for (let param = dtstart.getNextParameterName();
+         param;
+         param = dtstart.getNextParameterName()) {
+        equal(param, params.shift());
     }
 }

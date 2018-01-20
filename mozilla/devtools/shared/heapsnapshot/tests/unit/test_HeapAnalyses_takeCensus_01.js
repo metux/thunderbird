@@ -1,11 +1,8 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
+"use strict";
 
 // Test that the HeapAnalyses{Client,Worker} can take censuses.
-
-function run_test() {
-  run_next_test();
-}
 
 add_task(function* () {
   const client = new HeapAnalysesClient();
@@ -14,7 +11,7 @@ add_task(function* () {
   yield client.readHeapSnapshot(snapshotFilePath);
   ok(true, "Should have read the heap snapshot");
 
-  const report = yield client.takeCensus(snapshotFilePath);
+  const { report } = yield client.takeCensus(snapshotFilePath);
   ok(report, "Should get a report");
   equal(typeof report, "object", "report should be an object");
 

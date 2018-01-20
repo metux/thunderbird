@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -6,15 +7,15 @@
 #define nsStyleUtil_h___
 
 #include "nsCoord.h"
-#include "nsCSSProperty.h"
+#include "nsCSSPropertyID.h"
 #include "nsString.h"
 #include "nsTArrayForwardDeclare.h"
 #include "gfxFontFamilyList.h"
+#include "nsStringFwd.h"
 #include "nsStyleStruct.h"
 #include "nsCRT.h"
 
 class nsCSSValue;
-class nsStringComparator;
 class nsStyleCoord;
 class nsIContent;
 class nsIPrincipal;
@@ -31,6 +32,10 @@ public:
                                 const nsAString& aSelectorValue,
                                 const nsStringComparator& aComparator);
 
+ static bool ValueIncludes(const nsAString& aValueList,
+                           const nsAString& aValue,
+                           const nsStringComparator& aComparator);
+
   // Append a quoted (with 'quoteChar') and escaped version of aString
   // to aResult.  'quoteChar' must be ' or ".
   static void AppendEscapedCSSString(const nsAString& aString,
@@ -39,18 +44,29 @@ public:
 
   // Append the identifier given by |aIdent| to |aResult|, with
   // appropriate escaping so that it can be reparsed to the same
-  // identifier.
-  // Returns false if |aIdent| contains U+0000
-  // Returns true for all other cases
-  static bool AppendEscapedCSSIdent(const nsAString& aIdent,
+  // identifier.  An exception is if aIdent contains U+0000, which
+  // will be escaped as U+FFFD and then reparsed back to U+FFFD.
+  static void AppendEscapedCSSIdent(const nsAString& aIdent,
                                     nsAString& aResult);
 
   static void
   AppendEscapedCSSFontFamilyList(const mozilla::FontFamilyList& aFamilyList,
                                  nsAString& aResult);
+  static void
+  AppendEscapedCSSFontFamilyList(mozilla::SharedFontList* aFontlist,
+                                 nsAString& aResult)
+  {
+    AppendEscapedCSSFontFamilyList(aFontlist->mNames, aResult);
+  }
 
+private:
+  static void
+  AppendEscapedCSSFontFamilyList(const nsTArray<mozilla::FontFamilyName>& aNames,
+                                 nsAString& aResult);
+
+public:
   // Append a bitmask-valued property's value(s) (space-separated) to aResult.
-  static void AppendBitmaskCSSValue(nsCSSProperty aProperty,
+  static void AppendBitmaskCSSValue(nsCSSPropertyID aProperty,
                                     int32_t aMaskedValue,
                                     int32_t aFirstMask,
                                     int32_t aLastMask,
@@ -60,11 +76,19 @@ public:
 
   static void AppendPaintOrderValue(uint8_t aValue, nsAString& aResult);
 
+  static void AppendFontTagAsString(uint32_t aTag, nsAString& aResult);
+
   static void AppendFontFeatureSettings(const nsTArray<gfxFontFeature>& aFeatures,
                                         nsAString& aResult);
 
   static void AppendFontFeatureSettings(const nsCSSValue& src,
                                         nsAString& aResult);
+
+  static void AppendFontVariationSettings(const nsTArray<gfxFontVariation>& aVariations,
+                                          nsAString& aResult);
+
+  static void AppendFontVariationSettings(const nsCSSValue& src,
+                                          nsAString& aResult);
 
   static void AppendUnicodeRange(const nsCSSValue& aValue, nsAString& aResult);
 
@@ -75,8 +99,9 @@ public:
 
   static void AppendStepsTimingFunction(nsTimingFunction::Type aType,
                                         uint32_t aSteps,
-                                        nsTimingFunction::StepSyntax aSyntax,
                                         nsAString& aResult);
+  static void AppendFramesTimingFunction(uint32_t aFrames,
+                                         nsAString& aResult);
   static void AppendCubicBezierTimingFunction(float aX1, float aY1,
                                               float aX2, float aY2,
                                               nsAString& aResult);
@@ -126,6 +151,13 @@ public:
   static bool IsSignificantChild(nsIContent* aChild,
                                    bool aTextIsSignificant,
                                    bool aWhitespaceIsSignificant);
+
+  /*
+   * Thread-safe version of IsSignificantChild()
+   */
+  static bool ThreadSafeIsSignificantChild(const nsIContent* aChild,
+                                           bool aTextIsSignificant,
+                                           bool aWhitespaceIsSignificant);
   /**
    * Returns true if our object-fit & object-position properties might cause
    * a replaced element's contents to overflow its content-box (requiring
@@ -173,7 +205,7 @@ public:
                                    nsIPrincipal* aPrincipal,
                                    nsIURI* aSourceURI,
                                    uint32_t aLineNumber,
-                                   const nsSubstring& aStyleText,
+                                   const nsAString& aStyleText,
                                    nsresult* aRv);
 
   template<size_t N>
@@ -185,7 +217,7 @@ public:
   }
 
   template<size_t N>
-  static bool MatchesLanguagePrefix(const nsIAtom* aLang,
+  static bool MatchesLanguagePrefix(const nsAtom* aLang,
                                     const char16_t (&aPrefix)[N])
   {
     MOZ_ASSERT(aLang);

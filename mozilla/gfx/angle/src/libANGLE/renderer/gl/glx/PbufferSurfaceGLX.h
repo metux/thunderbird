@@ -9,34 +9,37 @@
 #ifndef LIBANGLE_RENDERER_GL_GLX_PBUFFERSURFACEGLX_H_
 #define LIBANGLE_RENDERER_GL_GLX_PBUFFERSURFACEGLX_H_
 
-#include "libANGLE/renderer/gl/SurfaceGL.h"
 #include "libANGLE/renderer/gl/glx/platform_glx.h"
+#include "libANGLE/renderer/gl/glx/SurfaceGLX.h"
 
 namespace rx
 {
 
-class DisplayGLX;
 class FunctionsGLX;
 
-class PbufferSurfaceGLX : public SurfaceGL
+class PbufferSurfaceGLX : public SurfaceGLX
 {
   public:
-    PbufferSurfaceGLX(RendererGL *renderer,
+    PbufferSurfaceGLX(const egl::SurfaceState &state,
+                      RendererGL *renderer,
                       EGLint width,
                       EGLint height,
                       bool largest,
                       const FunctionsGLX &glx,
-                      glx::Context context,
                       glx::FBConfig fbConfig);
     ~PbufferSurfaceGLX() override;
 
-    egl::Error initialize() override;
+    egl::Error initialize(const egl::Display *display) override;
     egl::Error makeCurrent() override;
 
-    egl::Error swap() override;
-    egl::Error postSubBuffer(EGLint x, EGLint y, EGLint width, EGLint height) override;
+    egl::Error swap(const gl::Context *context) override;
+    egl::Error postSubBuffer(const gl::Context *context,
+                             EGLint x,
+                             EGLint y,
+                             EGLint width,
+                             EGLint height) override;
     egl::Error querySurfacePointerANGLE(EGLint attribute, void **value) override;
-    egl::Error bindTexImage(EGLint buffer) override;
+    egl::Error bindTexImage(gl::Texture *texture, EGLint buffer) override;
     egl::Error releaseTexImage(EGLint buffer) override;
     void setSwapInterval(EGLint interval) override;
 
@@ -46,17 +49,19 @@ class PbufferSurfaceGLX : public SurfaceGL
     EGLint isPostSubBufferSupported() const override;
     EGLint getSwapBehavior() const override;
 
+    egl::Error checkForResize() override;
+    glx::Drawable getDrawable() const override;
+
   private:
     unsigned mWidth;
     unsigned mHeight;
     bool mLargest;
 
     const FunctionsGLX &mGLX;
-    glx::Context mContext;
     glx::FBConfig mFBConfig;
     glx::Pbuffer mPbuffer;
 };
 
-}
+}  // namespace rx
 
 #endif // LIBANGLE_RENDERER_GL_GLX_PBUFFERSURFACEGLX_H_

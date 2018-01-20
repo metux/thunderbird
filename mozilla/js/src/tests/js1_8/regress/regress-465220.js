@@ -16,17 +16,15 @@ test();
 
 function test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   expect = 'TypeError: can\'t convert o to primitive type';
 
-  jit(true);
  
   try
   {
-    var o = {toString: function()(i > 2) ? this : "foo"};
+    var o = {toString: function() { return (i > 2) ? this : "foo"; }};
     var s = "";
     for (var i = 0; i < 5; i++)
       s += o + o;
@@ -37,9 +35,6 @@ function test()
   {
     actual = 'TypeError: can\'t convert o to primitive type';
   }
-  jit(false);
 
   reportCompare(expect, actual, summary);
-
-  exitFunc ('test');
 }

@@ -1,7 +1,8 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-* This Source Code Form is subject to the terms of the Mozilla Public
-* License, v. 2.0. If a copy of the MPL was not distributed with this
-* file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef MOZILLA_GFX_COMPOSITOR_H
 #define MOZILLA_GFX_COMPOSITOR_H
@@ -9,13 +10,17 @@
 #include "Units.h"                      // for ScreenPoint
 #include "mozilla/Assertions.h"         // for MOZ_ASSERT, etc
 #include "mozilla/RefPtr.h"             // for already_AddRefed, RefCounted
-#include "mozilla/gfx/MatrixFwd.h"      // for Matrix4x4
+#include "mozilla/gfx/2D.h"             // for DrawTarget
+#include "mozilla/gfx/MatrixFwd.h"      // for Matrix, Matrix4x4
 #include "mozilla/gfx/Point.h"          // for IntSize, Point
+#include "mozilla/gfx/Polygon.h"        // for Polygon
 #include "mozilla/gfx/Rect.h"           // for Rect, IntRect
 #include "mozilla/gfx/Types.h"          // for Float
+#include "mozilla/gfx/Triangle.h"       // for Triangle, TexturedTriangle
 #include "mozilla/layers/CompositorTypes.h"  // for DiagnosticTypes, etc
-#include "mozilla/layers/FenceUtils.h"  // for FenceHandle
 #include "mozilla/layers/LayersTypes.h"  // for LayersBackend
+#include "mozilla/layers/TextureSourceProvider.h"
+#include "mozilla/widget/CompositorWidget.h"
 #include "nsISupportsImpl.h"            // for MOZ_COUNT_CTOR, etc
 #include "nsRegion.h"
 #include <vector>
@@ -110,8 +115,8 @@ class nsIWidget;
 
 namespace mozilla {
 namespace gfx {
-class Matrix;
 class DrawTarget;
+class DataSourceSurface;
 } // namespace gfx
 
 namespace layers {
@@ -123,8 +128,13 @@ class Layer;
 class TextureSource;
 class DataTextureSource;
 class CompositingRenderTarget;
-class PCompositorParent;
+class CompositorBridgeParent;
 class LayerManagerComposite;
+class CompositorOGL;
+class CompositorD3D11;
+class BasicCompositor;
+class TextureReadLock;
+struct GPUStats;
 
 enum SurfaceInitMode
 {
@@ -162,10 +172,6 @@ enum SurfaceInitMode
  *    construct an EffectChain for the quad,
  *    call DrawQuad,
  *  call EndFrame.
- * If the compositor is usually used for compositing but compositing is
- * temporarily done without the compositor, call EndFrameForExternalComposition
- * after compositing each frame so the compositor can remain internally
- * consistent.
  *
  * By default, the compositor will render to the screen, to render to a target,
  * call SetTargetContext or SetRenderTarget, the latter with a target created
@@ -174,34 +180,20 @@ enum SurfaceInitMode
  * The target and viewport methods can be called before any DrawQuad call and
  * affect any subsequent DrawQuad calls.
  */
-class Compositor
+class Compositor : public TextureSourceProvider
 {
 protected:
-  virtual ~Compositor() {}
+  virtual ~Compositor();
 
 public:
-  NS_INLINE_DECL_REFCOUNTING(Compositor)
+  explicit Compositor(widget::CompositorWidget* aWidget,
+                      CompositorBridgeParent* aParent = nullptr);
 
-  explicit Compositor(PCompositorParent* aParent = nullptr)
-    : mCompositorID(0)
-    , mDiagnosticTypes(DiagnosticTypes::NO_DIAGNOSTIC)
-    , mParent(aParent)
-    , mScreenRotation(ROTATION_0)
-  {
-  }
+  virtual bool Initialize(nsCString* const out_failureReason) = 0;
+  virtual void Destroy() override;
+  bool IsDestroyed() const { return mIsDestroyed; }
 
-  virtual already_AddRefed<DataTextureSource> CreateDataTextureSource(TextureFlags aFlags = TextureFlags::NO_FLAGS) = 0;
-  virtual bool Initialize() = 0;
-  virtual void Destroy() = 0;
-
-  /**
-   * Return true if the effect type is supported.
-   *
-   * By default Compositor implementations should support all effects but in
-   * some rare cases it is not possible to support an effect efficiently.
-   * This is the case for BasicCompositor with EffectYCbCr.
-   */
-  virtual bool SupportsEffect(EffectTypes aEffect) { return true; }
+  virtual void DetachWidget() { mWidget = nullptr; }
 
   /**
    * Request a texture host identifier that may be used for creating textures
@@ -214,7 +206,6 @@ public:
    * Properties of the compositor.
    */
   virtual bool CanUseCanvasLayerForSize(const gfx::IntSize& aSize) = 0;
-  virtual int32_t GetMaxTextureSize() const = 0;
 
   /**
    * Set the target for rendering. Results will have been written to aTarget by
@@ -295,6 +286,25 @@ public:
    */
   virtual void SetScreenRenderOffset(const ScreenPoint& aOffset) = 0;
 
+  void DrawGeometry(const gfx::Rect& aRect,
+                    const gfx::IntRect& aClipRect,
+                    const EffectChain &aEffectChain,
+                    gfx::Float aOpacity,
+                    const gfx::Matrix4x4& aTransform,
+                    const gfx::Rect& aVisibleRect,
+                    const Maybe<gfx::Polygon>& aGeometry);
+
+  void DrawGeometry(const gfx::Rect& aRect,
+                    const gfx::IntRect& aClipRect,
+                    const EffectChain &aEffectChain,
+                    gfx::Float aOpacity,
+                    const gfx::Matrix4x4& aTransform,
+                    const Maybe<gfx::Polygon>& aGeometry)
+  {
+    DrawGeometry(aRect, aClipRect, aEffectChain, aOpacity,
+                 aTransform, aRect, aGeometry);
+  }
+
   /**
    * Tell the compositor to draw a quad. What to do draw and how it is
    * drawn is specified by aEffectChain. aRect is the quad to draw, in user space.
@@ -303,7 +313,7 @@ public:
    * aVisibleRect is used to determine which edges should be antialiased,
    * without applying the effect to the inner edges of a tiled layer.
    */
-  virtual void DrawQuad(const gfx::Rect& aRect, const gfx::Rect& aClipRect,
+  virtual void DrawQuad(const gfx::Rect& aRect, const gfx::IntRect& aClipRect,
                         const EffectChain& aEffectChain,
                         gfx::Float aOpacity, const gfx::Matrix4x4& aTransform,
                         const gfx::Rect& aVisibleRect) = 0;
@@ -313,17 +323,32 @@ public:
    * Use this when you are drawing a single quad that is not part of a tiled
    * layer.
    */
-  void DrawQuad(const gfx::Rect& aRect, const gfx::Rect& aClipRect,
+  void DrawQuad(const gfx::Rect& aRect, const gfx::IntRect& aClipRect,
                         const EffectChain& aEffectChain,
                         gfx::Float aOpacity, const gfx::Matrix4x4& aTransform) {
       DrawQuad(aRect, aClipRect, aEffectChain, aOpacity, aTransform, aRect);
+  }
+
+  virtual void DrawTriangle(const gfx::TexturedTriangle& aTriangle,
+                            const gfx::IntRect& aClipRect,
+                            const EffectChain& aEffectChain,
+                            gfx::Float aOpacity,
+                            const gfx::Matrix4x4& aTransform,
+                            const gfx::Rect& aVisibleRect)
+  {
+    MOZ_CRASH("Compositor::DrawTriangle is not implemented for the current platform!");
+  }
+
+  virtual bool SupportsLayerGeometry() const
+  {
+    return false;
   }
 
   /**
    * Draw an unfilled solid color rect. Typically used for debugging overlays.
    */
   void SlowDrawRect(const gfx::Rect& aRect, const gfx::Color& color,
-                const gfx::Rect& aClipRect = gfx::Rect(),
+                const gfx::IntRect& aClipRect = gfx::IntRect(),
                 const gfx::Matrix4x4& aTransform = gfx::Matrix4x4(),
                 int aStrokeWidth = 1);
 
@@ -331,8 +356,20 @@ public:
    * Draw a solid color filled rect. This is a simple DrawQuad helper.
    */
   void FillRect(const gfx::Rect& aRect, const gfx::Color& color,
-                    const gfx::Rect& aClipRect = gfx::Rect(),
+                    const gfx::IntRect& aClipRect = gfx::IntRect(),
                     const gfx::Matrix4x4& aTransform = gfx::Matrix4x4());
+
+  void SetClearColor(const gfx::Color& aColor) {
+    mClearColor = aColor;
+  }
+
+  void SetDefaultClearColor(const gfx::Color& aColor) {
+    mDefaultClearColor = aColor;
+  }
+
+  void SetClearColorToDefault() {
+    mClearColor = mDefaultClearColor;
+  }
 
   /*
    * Clear aRect on current render target.
@@ -357,28 +394,33 @@ public:
    * If aRenderBoundsOut is non-null, it will be set to the render bounds
    * actually used by the compositor in window space. If aRenderBoundsOut
    * is returned empty, composition should be aborted.
+   *
+   * If aOpaque is true, then all of aInvalidRegion will be drawn to with
+   * opaque content.
    */
   virtual void BeginFrame(const nsIntRegion& aInvalidRegion,
-                          const gfx::Rect* aClipRectIn,
-                          const gfx::Rect& aRenderBounds,
-                          gfx::Rect* aClipRectOut = nullptr,
-                          gfx::Rect* aRenderBoundsOut = nullptr) = 0;
+                          const gfx::IntRect* aClipRectIn,
+                          const gfx::IntRect& aRenderBounds,
+                          const nsIntRegion& aOpaqueRegion,
+                          gfx::IntRect* aClipRectOut = nullptr,
+                          gfx::IntRect* aRenderBoundsOut = nullptr) = 0;
+
+  /**
+   * Notification that we've finished issuing draw commands for normal
+   * layers (as opposed to the diagnostic overlay which comes after).
+   */
+  virtual void NormalDrawingDone() {}
 
   /**
    * Flush the current frame to the screen and tidy up.
+   *
+   * Derived class overriding this should call Compositor::EndFrame.
    */
-  virtual void EndFrame() = 0;
+  virtual void EndFrame();
 
-  virtual void SetDispAcquireFence(Layer* aLayer, nsIWidget* aWidget);
+  virtual void CancelFrame(bool aNeedFlush = true) { ReadUnlockTextures(); }
 
-  virtual FenceHandle GetReleaseFence();
-
-  /**
-   * Post-rendering stuff if the rendering is done outside of this Compositor
-   * e.g., by Composer2D.
-   * aTransform is the transform from user space to window space.
-   */
-  virtual void EndFrameForExternalComposition(const gfx::Matrix& aTransform) = 0;
+  virtual void SetDispAcquireFence(Layer* aLayer);
 
   /**
    * Whether textures created by this compositor can receive partial updates.
@@ -397,13 +439,13 @@ public:
 
   void DrawDiagnostics(DiagnosticFlags aFlags,
                        const gfx::Rect& visibleRect,
-                       const gfx::Rect& aClipRect,
+                       const gfx::IntRect& aClipRect,
                        const gfx::Matrix4x4& transform,
                        uint32_t aFlashCounter = DIAGNOSTIC_FLASH_COUNTER_MAX);
 
   void DrawDiagnostics(DiagnosticFlags aFlags,
                        const nsIntRegion& visibleRegion,
-                       const gfx::Rect& aClipRect,
+                       const gfx::IntRect& aClipRect,
                        const gfx::Matrix4x4& transform,
                        uint32_t aFlashCounter = DIAGNOSTIC_FLASH_COUNTER_MAX);
 
@@ -413,22 +455,20 @@ public:
 
   virtual LayersBackend GetBackendType() const = 0;
 
-  /**
-   * Each Compositor has a unique ID.
-   * This ID is used to keep references to each Compositor in a map accessed
-   * from the compositor thread only, so that async compositables can find
-   * the right compositor parent and schedule compositing even if the compositor
-   * changed.
-   */
-  uint32_t GetCompositorID() const
-  {
-    return mCompositorID;
+  virtual CompositorOGL* AsCompositorOGL() { return nullptr; }
+  virtual CompositorD3D11* AsCompositorD3D11() { return nullptr; }
+  virtual BasicCompositor* AsBasicCompositor() { return nullptr; }
+
+  virtual Compositor* AsCompositor() override {
+    return this;
   }
-  void SetCompositorID(uint32_t aID)
-  {
-    MOZ_ASSERT(mCompositorID == 0, "The compositor ID must be set only once.");
-    mCompositorID = aID;
+
+  TimeStamp GetLastCompositionEndTime() const override {
+    return mLastCompositionEndTime;
   }
+
+  void UnlockAfterComposition(TextureHost* aTexture) override;
+  bool NotifyNotUsedAfterComposition(TextureHost* aTextureHost) override;
 
   /**
    * Notify the compositor that composition is being paused. This allows the
@@ -449,9 +489,13 @@ public:
    */
   virtual bool Ready() { return true; }
 
-  // XXX I expect we will want to move mWidget into this class and implement
-  // these methods properly.
-  virtual nsIWidget* GetWidget() const { return nullptr; }
+  virtual void ForcePresent() { }
+
+  virtual bool IsPendingComposite() { return false; }
+
+  virtual void FinishPendingComposite() {}
+
+  widget::CompositorWidget* GetWidget() const { return mWidget; }
 
   /**
    * Debug-build assertion that can be called to ensure code is running on the
@@ -459,16 +503,8 @@ public:
    */
   static void AssertOnCompositorThread();
 
-  size_t GetFillRatio() {
-    float fillRatio = 0;
-    if (mPixelsFilled > 0 && mPixelsPerFrame > 0) {
-      fillRatio = 100.0f * float(mPixelsFilled) / float(mPixelsPerFrame);
-      if (fillRatio > 999.0f) {
-        fillRatio = 999.0f;
-      }
-    }
-    return fillRatio;
-  }
+  // Return statistics for the most recent frame we computed statistics for.
+  virtual void GetFrameStats(GPUStats* aStats);
 
   ScreenRotation GetScreenRotation() const {
     return mScreenRotation;
@@ -477,50 +513,66 @@ public:
     mScreenRotation = aRotation;
   }
 
-  TimeStamp GetCompositionTime() const {
-    return mCompositionTime;
-  }
-  void SetCompositionTime(TimeStamp aTimeStamp) {
-    mCompositionTime = aTimeStamp;
-    if (!mCompositionTime.IsNull() && !mCompositeUntilTime.IsNull() &&
-        mCompositionTime >= mCompositeUntilTime) {
-      mCompositeUntilTime = TimeStamp();
-    }
-  }
-
-  void CompositeUntil(TimeStamp aTimeStamp) {
-    if (mCompositeUntilTime.IsNull() ||
-        mCompositeUntilTime < aTimeStamp) {
-      mCompositeUntilTime = aTimeStamp;
-    }
-  }
-  TimeStamp GetCompositeUntilTime() const {
-    return mCompositeUntilTime;
+  // A stale Compositor has no CompositorBridgeParent; it will not process
+  // frames and should not be used.
+  void SetInvalid();
+  virtual bool IsValid() const override;
+  CompositorBridgeParent* GetCompositorBridgeParent() const {
+    return mParent;
   }
 
 protected:
   void DrawDiagnosticsInternal(DiagnosticFlags aFlags,
                                const gfx::Rect& aVisibleRect,
-                               const gfx::Rect& aClipRect,
+                               const gfx::IntRect& aClipRect,
                                const gfx::Matrix4x4& transform,
                                uint32_t aFlashCounter);
 
   bool ShouldDrawDiagnostics(DiagnosticFlags);
 
   /**
-   * Render time for the current composition.
+   * Given a layer rect, clip, and transform, compute the area of the backdrop that
+   * needs to be copied for mix-blending. The output transform translates from 0..1
+   * space into the backdrop rect space.
+   *
+   * The transformed layer quad is also optionally returned - this is the same as
+   * the result rect, before rounding.
    */
-  TimeStamp mCompositionTime;
-  /**
-   * When nonnull, during rendering, some compositable indicated that it will
-   * change its rendering at this time. In order not to miss it, we composite
-   * on every vsync until this time occurs (this is the latest such time).
-   */
-  TimeStamp mCompositeUntilTime;
+  gfx::IntRect ComputeBackdropCopyRect(const gfx::Rect& aRect,
+                                       const gfx::IntRect& aClipRect,
+                                       const gfx::Matrix4x4& aTransform,
+                                       gfx::Matrix4x4* aOutTransform,
+                                       gfx::Rect* aOutLayerQuad = nullptr);
 
-  uint32_t mCompositorID;
+  gfx::IntRect ComputeBackdropCopyRect(const gfx::Triangle& aTriangle,
+                                       const gfx::IntRect& aClipRect,
+                                       const gfx::Matrix4x4& aTransform,
+                                       gfx::Matrix4x4* aOutTransform,
+                                       gfx::Rect* aOutLayerQuad = nullptr);
+
+  virtual void DrawTriangles(const nsTArray<gfx::TexturedTriangle>& aTriangles,
+                             const gfx::Rect& aRect,
+                             const gfx::IntRect& aClipRect,
+                             const EffectChain& aEffectChain,
+                             gfx::Float aOpacity,
+                             const gfx::Matrix4x4& aTransform,
+                             const gfx::Rect& aVisibleRect);
+
+  virtual void DrawPolygon(const gfx::Polygon& aPolygon,
+                           const gfx::Rect& aRect,
+                           const gfx::IntRect& aClipRect,
+                           const EffectChain& aEffectChain,
+                           gfx::Float aOpacity,
+                           const gfx::Matrix4x4& aTransform,
+                           const gfx::Rect& aVisibleRect);
+
+  /**
+   * Last Composition end time.
+   */
+  TimeStamp mLastCompositionEndTime;
+
   DiagnosticTypes mDiagnosticTypes;
-  PCompositorParent* mParent;
+  CompositorBridgeParent* mParent;
 
   /**
    * We keep track of the total number of pixels filled as we composite the
@@ -532,14 +584,15 @@ protected:
 
   ScreenRotation mScreenRotation;
 
-  virtual gfx::IntSize GetWidgetSize() const = 0;
-
   RefPtr<gfx::DrawTarget> mTarget;
   gfx::IntRect mTargetBounds;
 
-#if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
-  FenceHandle mReleaseFenceHandle;
-#endif
+  widget::CompositorWidget* mWidget;
+
+  bool mIsDestroyed;
+
+  gfx::Color mClearColor;
+  gfx::Color mDefaultClearColor;
 
 private:
   static LayersBackend sBackend;
@@ -552,6 +605,40 @@ size_t DecomposeIntoNoRepeatRects(const gfx::Rect& aRect,
                                   const gfx::Rect& aTexCoordRect,
                                   decomposedRectArrayT* aLayerRects,
                                   decomposedRectArrayT* aTextureRects);
+
+static inline bool
+BlendOpIsMixBlendMode(gfx::CompositionOp aOp)
+{
+  switch (aOp) {
+  case gfx::CompositionOp::OP_MULTIPLY:
+  case gfx::CompositionOp::OP_SCREEN:
+  case gfx::CompositionOp::OP_OVERLAY:
+  case gfx::CompositionOp::OP_DARKEN:
+  case gfx::CompositionOp::OP_LIGHTEN:
+  case gfx::CompositionOp::OP_COLOR_DODGE:
+  case gfx::CompositionOp::OP_COLOR_BURN:
+  case gfx::CompositionOp::OP_HARD_LIGHT:
+  case gfx::CompositionOp::OP_SOFT_LIGHT:
+  case gfx::CompositionOp::OP_DIFFERENCE:
+  case gfx::CompositionOp::OP_EXCLUSION:
+  case gfx::CompositionOp::OP_HUE:
+  case gfx::CompositionOp::OP_SATURATION:
+  case gfx::CompositionOp::OP_COLOR:
+  case gfx::CompositionOp::OP_LUMINOSITY:
+    return true;
+  default:
+    return false;
+  }
+}
+
+struct TexturedVertex
+{
+  float position[2];
+  float texCoords[2];
+};
+
+nsTArray<TexturedVertex>
+TexturedTrianglesToVertexArray(const nsTArray<gfx::TexturedTriangle>& aTriangles);
 
 } // namespace layers
 } // namespace mozilla

@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+Components.utils.import("resource://gre/modules/Services.jsm");
 
 const nsISupports              = Components.interfaces.nsISupports;
 
@@ -26,8 +27,7 @@ const nsISimpleEnumerator      = Components.interfaces.nsISimpleEnumerator;
  * It doesn't do anything if the pref "toolkit.defaultChromeURI" is unset.
  */
 
-function getDirectoryService()
-{
+function getDirectoryService() {
   return Components.classes["@mozilla.org/file/directory_service;1"]
                    .getService(nsIProperties);
 }
@@ -38,18 +38,17 @@ nsDefaultCLH.prototype = {
 
   /* nsISupports */
 
-  QueryInterface : XPCOMUtils.generateQI([nsICommandLineHandler]),
+  QueryInterface: XPCOMUtils.generateQI([nsICommandLineHandler]),
 
   /* nsICommandLineHandler */
 
-  handle : function clh_handle(cmdLine) {
+  handle: function clh_handle(cmdLine) {
     var printDir;
     while ((printDir = cmdLine.handleFlagWithParam("print-xpcom-dir", false))) {
       var out = "print-xpcom-dir(\"" + printDir + "\"): ";
       try {
         out += getDirectoryService().get(printDir, nsIFile).path;
-      }
-      catch (e) {
+      } catch (e) {
         out += "<Not Provided>";
       }
 
@@ -66,15 +65,14 @@ nsDefaultCLH.prototype = {
                                              nsISimpleEnumerator);
         while (list.hasMoreElements())
           out += list.getNext().QueryInterface(nsIFile).path + ";";
-      }
-      catch (e) {
+      } catch (e) {
         out += "<Not Provided>";
       }
 
       dump(out + "\n");
       Components.utils.reportError(out);
     }
-    
+
     if (cmdLine.handleFlag("silent", false)) {
       cmdLine.preventDefault = true;
     }
@@ -88,38 +86,29 @@ nsDefaultCLH.prototype = {
     try {
       var singletonWindowType =
                               prefs.getCharPref("toolkit.singletonWindowType");
-      var windowMediator =
-                Components.classes["@mozilla.org/appshell/window-mediator;1"]
-                          .getService(Components.interfaces.nsIWindowMediator);
 
-      var win = windowMediator.getMostRecentWindow(singletonWindowType);
+      var win = Services.wm.getMostRecentWindow(singletonWindowType);
       if (win) {
         win.focus();
-    	cmdLine.preventDefault = true;
-	  return;
+        cmdLine.preventDefault = true;
+        return;
       }
-    }
-    catch (e) { }
+    } catch (e) { }
 
-    // if the pref is missing, ignore the exception 
+    // if the pref is missing, ignore the exception
     try {
       var chromeURI = prefs.getCharPref("toolkit.defaultChromeURI");
 
-      var flags = "chrome,dialog=no,all";
-      try {
-        flags = prefs.getCharPref("toolkit.defaultChromeFeatures");
-      }
-      catch (e) { }
+      var flags = prefs.getCharPref("toolkit.defaultChromeFeatures", "chrome,dialog=no,all");
 
       var wwatch = Components.classes["@mozilla.org/embedcomp/window-watcher;1"]
                             .getService(nsIWindowWatcher);
       wwatch.openWindow(null, chromeURI, "_blank",
                         flags, cmdLine);
-    }
-    catch (e) { }
+    } catch (e) { }
   },
 
-  helpInfo : "",
+  helpInfo: "",
 };
 
 this.NSGetFactory = XPCOMUtils.generateNSGetFactory([nsDefaultCLH]);

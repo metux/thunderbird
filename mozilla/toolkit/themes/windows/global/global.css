@@ -13,12 +13,16 @@
 
 /* ::::: XBL bindings ::::: */
 
-radio {
-  -moz-binding: url("chrome://global/skin/globalBindings.xml#radio");
-}
-
 menulist > menupopup {
   -moz-binding: url("chrome://global/content/bindings/popup.xml#popup-scrollbars");
+}
+
+/* ::::: Variables ::::: */
+:root {
+  --arrowpanel-padding: 10px;
+  --arrowpanel-background: -moz-field;
+  --arrowpanel-color: -moz-FieldText;
+  --arrowpanel-border-color: ThreeDShadow;
 }
 
 /* ::::: root elements ::::: */
@@ -38,8 +42,8 @@ prefwindow {
 window.dialog {
   padding-top: 8px;
   padding-bottom: 10px;
-  -moz-padding-start: 8px;
-  -moz-padding-end: 10px;
+  padding-inline-start: 8px;
+  padding-inline-end: 10px;
 }
 
 /* ::::: alert icons :::::*/
@@ -53,7 +57,7 @@ window.dialog {
 }
 
 .message-icon {
-  list-style-image: url("chrome://global/skin/icons/information-32.png");
+  list-style-image: url("chrome://global/skin/icons/info.svg");
 }
 
 .alert-dialog #info\.icon,
@@ -106,7 +110,7 @@ statusbarpanel:not(.statusbar-resizerpanel):-moz-lwtheme {
   -moz-appearance: none;
   border-top-style: none;
   border-bottom-style: none;
-  -moz-border-start-style: none;
+  border-inline-start-style: none;
 }
 
 .statusbar-resizerpanel {
@@ -126,15 +130,12 @@ statusbarpanel:not(.statusbar-resizerpanel):-moz-lwtheme {
 /* XXXBlake yeah, shoot me -- these don't belong here.  I'll move them later. */
 
 sidebarheader {
-  height: 25px;
-  background-color: -moz-Dialog;
-  -moz-appearance: toolbox;
-  border-bottom: 1px solid ThreeDShadow;
-  border-top: 1px solid ThreeDHighlight;
+  min-height: 25px;
+  text-shadow: none;
 }
 
 sidebarheader > label {
-  -moz-padding-start: 4px;
+  padding-inline-start: 4px;
 }
 
 .toolbar-focustarget {
@@ -148,11 +149,6 @@ toolbar[mode="text"] .toolbarbutton-text {
 
 /* ::::: miscellaneous formatting ::::: */
 
-:root:-moz-lwtheme,
-[lwthemefooter="true"] {
-  -moz-appearance: none;
-}
-
 :root:-moz-lwtheme-darktext {
   text-shadow: 0 -0.5px 1.5px white;
 }
@@ -161,8 +157,7 @@ toolbar[mode="text"] .toolbarbutton-text {
   text-shadow: 1px 1px 1.5px black;
 }
 
-statusbar:-moz-lwtheme,
-sidebarheader:-moz-lwtheme {
+statusbar:-moz-lwtheme {
   -moz-appearance: none;
   background: none;
   border-style: none;
@@ -227,8 +222,8 @@ label {
   cursor: default;
   margin-top: 1px;
   margin-bottom: 2px;
-  -moz-margin-start: 6px;
-  -moz-margin-end: 5px;
+  margin-inline-start: 6px;
+  margin-inline-end: 5px;
 }
 
 description {
@@ -239,9 +234,11 @@ label[disabled="true"] {
   color: GrayText;
 }
 
-label[disabled="true"]:-moz-system-metric(windows-classic) {
-  color: ThreeDShadow;
-  text-shadow: 1px 1px ThreeDHighlight;
+@media (-moz-windows-classic) {
+  label[disabled="true"] {
+    color: ThreeDShadow;
+    text-shadow: 1px 1px ThreeDHighlight;
+  }
 }
 
 .tooltip-label {
@@ -257,7 +254,7 @@ label[disabled="true"]:-moz-system-metric(windows-classic) {
 }
 
 .indent {
-  -moz-margin-start: 23px;
+  margin-inline-start: 23px;
 }
 
 .box-padded {
@@ -289,6 +286,8 @@ popupnotificationcontent {
   margin-top: .5em;
 }
 
+%include ../../shared/notification-popup.inc.css
+
 /* :::::: autoscroll popup ::::: */
 
 .autoscroller {
@@ -297,100 +296,21 @@ popupnotificationcontent {
   border: none;
   margin: -14px;
   padding: 0;
-  background-image: url("chrome://global/skin/icons/autoscroll.png");
+  background-image: url("chrome://global/skin/icons/autoscroll.svg");
+  background-size: contain;
   background-color: transparent;
-%ifdef XP_WIN
-  background-position: right top;
-%endif
+  background-repeat: no-repeat;
   -moz-appearance: none;
 }
 
 .autoscroller[scrolldir="NS"] {
-%ifdef XP_WIN
-  background-position: right center;
-%else
-  background-position: left center;
-%endif
+  background-image: url("chrome://global/skin/icons/autoscroll-vertical.svg");
 }
 
 .autoscroller[scrolldir="EW"] {
-%ifdef XP_WIN
-  background-position: right bottom;
-%else
-  background-position: left bottom;
-%endif
+  background-image: url("chrome://global/skin/icons/autoscroll-horizontal.svg");
 }
 
 /* :::::: Close button icons ::::: */
 
-.close-icon {
-  list-style-image: url("chrome://global/skin/icons/close.png");
-  -moz-image-region: rect(0, 20px, 20px, 0);
-}
-
-.close-icon:hover {
-  -moz-image-region: rect(0, 40px, 20px, 20px);
-}
-
-.close-icon:hover:active {
-  -moz-image-region: rect(0, 60px, 20px, 40px);
-}
-
-.close-icon > .button-icon,
-.close-icon > .button-box > .button-icon,
-.close-icon > .toolbarbutton-icon {
-  width: 20px;
-}
-
-@media (-moz-os-version: windows-xp),
-       (-moz-os-version: windows-vista),
-       (-moz-os-version: windows-win7) {
-  .close-icon {
-    -moz-image-region: rect(0, 16px, 16px, 0);
-  }
-
-  .close-icon:hover {
-    -moz-image-region: rect(0, 32px, 16px, 16px);
-  }
-
-  .close-icon:hover:active {
-    -moz-image-region: rect(0, 48px, 16px, 32px);
-  }
-
-  .close-icon > .button-icon,
-  .close-icon > .button-box > .button-icon,
-  .close-icon > .toolbarbutton-icon {
-    width: 16px;
-  }
-}
-
-@media (min-resolution: 1.1dppx) {
-  .close-icon {
-    list-style-image: url("chrome://global/skin/icons/close@2x.png");
-    -moz-image-region: rect(0, 40px, 40px, 0);
-  }
-
-  .close-icon:hover {
-    -moz-image-region: rect(0, 80px, 40px, 40px);
-  }
-
-  .close-icon:hover:active {
-    -moz-image-region: rect(0, 120px, 40px, 80px);
-  }
-
-  @media (-moz-os-version: windows-xp),
-         (-moz-os-version: windows-vista),
-         (-moz-os-version: windows-win7) {
-    .close-icon {
-      -moz-image-region: rect(0, 32px, 32px, 0);
-    }
-
-    .close-icon:hover {
-      -moz-image-region: rect(0, 64px, 32px, 32px);
-    }
-
-    .close-icon:hover:active {
-      -moz-image-region: rect(0, 96px, 32px, 64px);
-    }
-  }
-}
+%include ../../shared/close-icon.inc.css

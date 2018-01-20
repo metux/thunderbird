@@ -113,11 +113,12 @@ function subscribeServer(incomingServer) {
 }
 
 // Sets up the client-side portion of fakeserver
-function setupLocalServer(port) {
+function setupLocalServer(port, host="localhost") {
   if (_server != null)
     return _server;
   let serverAndAccount =
-    localAccountUtils.create_incoming_server_and_account("nntp", port, null, null);
+    localAccountUtils.create_incoming_server_and_account("nntp", port, null,
+      null, host);
   let server = serverAndAccount.server;
   subscribeServer(server);
 
@@ -135,7 +136,7 @@ function setupProtocolTest(port, newsUrl, incomingServer) {
   if (newsUrl instanceof Ci.nsIMsgMailNewsUrl) {
     url = newsUrl;
   } else {
-    url = URLCreator.newURI(newsUrl, null, null);
+    url = URLCreator.newURI(newsUrl);
   }
 
   var newsServer = incomingServer;
@@ -165,7 +166,7 @@ function setupProtocolTest(port, newsUrl, incomingServer) {
 }
 
 function create_post(baseURL, file) {
-  var url = URLCreator.newURI(baseURL, null, null);
+  var url = URLCreator.newURI(baseURL);
   url.QueryInterface(Ci.nsINntpUrl);
 
   var post = Cc["@mozilla.org/messenger/nntpnewsgrouppost;1"]
@@ -248,3 +249,8 @@ var articleTextListener = {
     this.data += scriptStream.read(aCount);
   }
 };
+
+do_register_cleanup(function() {
+  load("../../../resources/mailShutdown.js");
+});
+

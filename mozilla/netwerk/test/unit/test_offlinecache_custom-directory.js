@@ -11,28 +11,24 @@
 
 Cu.import("resource://testing-common/httpd.js");
 Cu.import('resource://gre/modules/Services.jsm');
+Cu.import("resource://gre/modules/NetUtil.jsm");
+
 
 var httpServer = null;
 var cacheUpdateObserver = null;
 var systemPrincipal = Services.scriptSecurityManager.getSystemPrincipal();
 
 function make_channel(url, callback, ctx) {
-  var ios = Cc["@mozilla.org/network/io-service;1"].
-            getService(Ci.nsIIOService);
-  return ios.newChannel2(url,
-                         "",
-                         null,
-                         null,      // aLoadingNode
-                         systemPrincipal,
-                         null,      // aTriggeringPrincipal
-                         Ci.nsILoadInfo.SEC_NORMAL,
-                         Ci.nsIContentPolicy.TYPE_OTHER);
+  return NetUtil.newChannel({
+    uri: url,
+    loadUsingSystemPrincipal: true
+  });
 }
 
 function make_uri(url) {
   var ios = Cc["@mozilla.org/network/io-service;1"].
             getService(Ci.nsIIOService);
-  return ios.newURI(url, null, null);
+  return ios.newURI(url);
 }
 
 // start the test with loading this master entry referencing the manifest
@@ -119,7 +115,7 @@ function run_test()
     .getService(Ci.nsIPrefBranch);
   ps.setBoolPref("browser.cache.offline.enable", true);
   // Set this pref to mimic the default browser behavior.
-  ps.setComplexValue("browser.cache.offline.parent_directory", Ci.nsILocalFile, profileDir);
+  ps.setComplexValue("browser.cache.offline.parent_directory", Ci.nsIFile, profileDir);
 
   var us = Cc["@mozilla.org/offlinecacheupdate-service;1"].
            getService(Ci.nsIOfflineCacheUpdateService);
@@ -127,7 +123,6 @@ function run_test()
       make_uri("http://localhost:4444/manifest"),
       make_uri("http://localhost:4444/masterEntry"),
       systemPrincipal,
-      0 /* no AppID */, false /* not in browser*/,
       customDir);
 
   var expectedStates = [
@@ -150,7 +145,7 @@ function run_test()
     applicationCacheAvailable: function(appCache)
     {
     }
-  }, false);
+  });
 
   do_test_pending();
 }

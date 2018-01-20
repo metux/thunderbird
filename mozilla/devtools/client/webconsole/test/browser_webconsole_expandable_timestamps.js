@@ -1,3 +1,5 @@
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
+/* vim: set ft=javascript ts=2 et sw=2 tw=80: */
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
@@ -6,19 +8,23 @@
 
 "use strict";
 
+const {PrefObserver} = require("devtools/client/shared/prefs");
+
 const TEST_URI = "data:text/html;charset=utf-8,Web Console test for " +
                  "bug 722267 - preference for toggling timestamps in messages";
 const PREF_MESSAGE_TIMESTAMP = "devtools.webconsole.timestampMessages";
 var hud;
 
-var test = asyncTest(function* () {
+add_task(function* () {
   yield loadTab(TEST_URI);
 
   hud = yield openConsole();
   let panel = yield consoleOpened();
 
-  yield onOptionsPanelSelected(panel);
+  let observer = new PrefObserver("");
+  yield onOptionsPanelSelected(panel, observer);
   onPrefChanged();
+  observer.destroy();
 
   Services.prefs.clearUserPref(PREF_MESSAGE_TIMESTAMP);
   hud = null;
@@ -35,10 +41,10 @@ function consoleOpened() {
   return toolbox.selectTool("options");
 }
 
-function onOptionsPanelSelected(panel) {
+function onOptionsPanelSelected(panel, observer) {
   info("options panel opened");
 
-  let prefChanged = gDevTools.once("pref-changed", onPrefChanged);
+  let prefChanged = observer.once(PREF_MESSAGE_TIMESTAMP, () => {});
 
   let checkbox = panel.panelDoc.getElementById("webconsole-timestamp-messages");
   checkbox.click();

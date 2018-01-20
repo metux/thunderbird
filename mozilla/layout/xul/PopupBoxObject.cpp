@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -232,6 +233,7 @@ PopupBoxObject::GetPopupState(nsString& aState)
         aState.AssignLiteral("open");
         break;
       case ePopupShowing:
+      case ePopupPositioning:
       case ePopupOpening:
       case ePopupVisible:
         aState.AssignLiteral("showing");
@@ -283,8 +285,7 @@ PopupBoxObject::GetOuterScreenRect()
   if (view) {
     nsIWidget* widget = view->GetWidget();
     if (widget) {
-      LayoutDeviceIntRect screenRect;
-      widget->GetScreenBounds(screenRect);
+      LayoutDeviceIntRect screenRect = widget->GetScreenBounds();
 
       int32_t pp = menuPopupFrame->PresContext()->AppUnitsPerDevPixel();
       rect->SetLayoutRect(LayoutDeviceIntRect::ToAppUnits(screenRect, pp));
@@ -335,6 +336,9 @@ PopupBoxObject::GetAlignmentPosition(nsString& positionStr)
     case POPUPPOSITION_AFTERPOINTER:
       positionStr.AssignLiteral("after_pointer");
       break;
+    case POPUPPOSITION_SELECTION:
+      positionStr.AssignLiteral("selection");
+      break;
     default:
       // Leave as an empty string.
       break;
@@ -355,6 +359,16 @@ PopupBoxObject::AlignmentOffset()
   nsPoint appOffset(menuPopupFrame->GetAlignmentOffset(), 0);
   nsIntPoint popupOffset = appOffset.ToNearestPixels(pp);
   return popupOffset.x;
+}
+
+void
+PopupBoxObject::SetConstraintRect(dom::DOMRectReadOnly& aRect)
+{
+  nsMenuPopupFrame *menuPopupFrame = do_QueryFrame(GetFrame(false));
+  if (menuPopupFrame) {
+    menuPopupFrame->SetOverrideConstraintRect(
+      LayoutDeviceIntRect::Truncate(aRect.Left(), aRect.Top(), aRect.Width(), aRect.Height()));
+  }
 }
 
 } // namespace dom

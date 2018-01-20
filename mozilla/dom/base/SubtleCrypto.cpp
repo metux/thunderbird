@@ -9,6 +9,7 @@
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/SubtleCryptoBinding.h"
 #include "mozilla/dom/WebCryptoTask.h"
+#include "mozilla/Telemetry.h"
 
 namespace mozilla {
 namespace dom {
@@ -25,6 +26,7 @@ NS_INTERFACE_MAP_END
 
 SubtleCrypto::SubtleCrypto(nsIGlobalObject* aParent)
   : mParent(aParent)
+  , mRecordedTelemetry(false)
 {
 }
 
@@ -34,14 +36,32 @@ SubtleCrypto::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
   return SubtleCryptoBinding::Wrap(aCx, this, aGivenProto);
 }
 
+void
+SubtleCrypto::RecordTelemetryOnce() {
+  if (mRecordedTelemetry) {
+    return;
+  }
+
+  mRecordedTelemetry = true;
+  JSObject* global = mParent->GetGlobalJSObject();
+  bool isSecure = JS_GetIsSecureContext(js::GetObjectCompartment(global));
+  Telemetry::Accumulate(Telemetry::WEBCRYPTO_METHOD_SECURE, isSecure);
+}
+
 #define SUBTLECRYPTO_METHOD_BODY(Operation, aRv, ...)                   \
   MOZ_ASSERT(mParent);                                                  \
-  RefPtr<Promise> p = Promise::Create(mParent, aRv);                  \
+  RefPtr<Promise> p = Promise::Create(mParent, aRv);                    \
   if (aRv.Failed()) {                                                   \
     return nullptr;                                                     \
   }                                                                     \
-  RefPtr<WebCryptoTask> task = WebCryptoTask::Create ## Operation ## Task(__VA_ARGS__); \
-  task->DispatchWithPromise(p); \
+  RecordTelemetryOnce();                                                \
+  RefPtr<WebCryptoTask> task =                                          \
+    WebCryptoTask::Create ## Operation ## Task(__VA_ARGS__);            \
+  if (!task) {                                                          \
+    aRv.Throw(NS_ERROR_NULL_POINTER);                                   \
+    return nullptr;                                                     \
+  }                                                                     \
+  task->DispatchWithPromise(p);                                         \
   return p.forget();
 
 already_AddRefed<Promise>
@@ -104,8 +124,8 @@ SubtleCrypto::ImportKey(JSContext* cx,
                         const Sequence<nsString>& keyUsages,
                         ErrorResult& aRv)
 {
-  SUBTLECRYPTO_METHOD_BODY(ImportKey, aRv, cx, format, keyData, algorithm,
-                           extractable, keyUsages)
+  SUBTLECRYPTO_METHOD_BODY(ImportKey, aRv, mParent, cx, format, keyData,
+                           algorithm, extractable, keyUsages)
 }
 
 already_AddRefed<Promise>
@@ -121,7 +141,8 @@ SubtleCrypto::GenerateKey(JSContext* cx, const ObjectOrString& algorithm,
                           bool extractable, const Sequence<nsString>& keyUsages,
                           ErrorResult& aRv)
 {
-  SUBTLECRYPTO_METHOD_BODY(GenerateKey, aRv, cx, algorithm, extractable, keyUsages)
+  SUBTLECRYPTO_METHOD_BODY(GenerateKey, aRv, mParent, cx, algorithm,
+                           extractable, keyUsages)
 }
 
 already_AddRefed<Promise>
@@ -132,7 +153,7 @@ SubtleCrypto::DeriveKey(JSContext* cx,
                         bool extractable, const Sequence<nsString>& keyUsages,
                         ErrorResult& aRv)
 {
-  SUBTLECRYPTO_METHOD_BODY(DeriveKey, aRv, cx, algorithm, baseKey,
+  SUBTLECRYPTO_METHOD_BODY(DeriveKey, aRv, mParent, cx, algorithm, baseKey,
                            derivedKeyType, extractable, keyUsages)
 }
 
@@ -168,9 +189,9 @@ SubtleCrypto::UnwrapKey(JSContext* cx,
                         const Sequence<nsString>& keyUsages,
                         ErrorResult& aRv)
 {
-  SUBTLECRYPTO_METHOD_BODY(UnwrapKey, aRv, cx, format, wrappedKey, unwrappingKey,
-                           unwrapAlgorithm, unwrappedKeyAlgorithm,
-                           extractable, keyUsages)
+  SUBTLECRYPTO_METHOD_BODY(UnwrapKey, aRv, mParent, cx, format, wrappedKey,
+                           unwrappingKey, unwrapAlgorithm,
+                           unwrappedKeyAlgorithm, extractable, keyUsages)
 }
 
 } // namespace dom

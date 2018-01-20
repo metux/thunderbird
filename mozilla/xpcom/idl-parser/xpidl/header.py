@@ -47,10 +47,13 @@ def attributeNativeName(a, getter):
 
 def attributeReturnType(a, macro):
     """macro should be NS_IMETHOD or NS_IMETHODIMP"""
-    if (a.nostdcall):
-        return macro == "NS_IMETHOD" and "virtual nsresult" or "nsresult"
+    if a.nostdcall:
+        ret = macro == "NS_IMETHOD" and "virtual nsresult" or "nsresult"
     else:
-        return macro
+        ret = macro
+    if a.must_use:
+        ret = "MOZ_MUST_USE " + ret
+    return ret
 
 
 def attributeParamlist(a, getter):
@@ -63,12 +66,10 @@ def attributeParamlist(a, getter):
 
 
 def attributeAsNative(a, getter, declType = 'NS_IMETHOD'):
-        deprecated = a.deprecated and "NS_DEPRECATED " or ""
-        params = {'deprecated': deprecated,
-                  'returntype': attributeReturnType(a, declType),
+        params = {'returntype': attributeReturnType(a, declType),
                   'binaryname': attributeNativeName(a, getter),
                   'paramlist': attributeParamlist(a, getter)}
-        return "%(deprecated)s%(returntype)s %(binaryname)s(%(paramlist)s)" % params
+        return "%(returntype)s %(binaryname)s(%(paramlist)s)" % params
 
 
 def methodNativeName(m):
@@ -78,14 +79,17 @@ def methodNativeName(m):
 def methodReturnType(m, macro):
     """macro should be NS_IMETHOD or NS_IMETHODIMP"""
     if m.nostdcall and m.notxpcom:
-        return "%s%s" % (macro == "NS_IMETHOD" and "virtual " or "",
-                         m.realtype.nativeType('in').strip())
+        ret = "%s%s" % (macro == "NS_IMETHOD" and "virtual " or "",
+                        m.realtype.nativeType('in').strip())
     elif m.nostdcall:
-        return "%snsresult" % (macro == "NS_IMETHOD" and "virtual " or "")
+        ret = "%snsresult" % (macro == "NS_IMETHOD" and "virtual " or "")
     elif m.notxpcom:
-        return "%s_(%s)" % (macro, m.realtype.nativeType('in').strip())
+        ret = "%s_(%s)" % (macro, m.realtype.nativeType('in').strip())
     else:
-        return macro
+        ret = macro
+    if m.must_use:
+        ret = "MOZ_MUST_USE " + ret
+    return ret
 
 
 def methodAsNative(m, declType = 'NS_IMETHOD'):
@@ -131,8 +135,12 @@ def paramlistAsNative(m, empty='void'):
 
 
 def paramAsNative(p):
-    return "%s%s" % (p.nativeType(),
-                     p.name)
+    default_spec = ''
+    if p.default_value:
+        default_spec = " = " + p.default_value
+    return "%s%s%s" % (p.nativeType(),
+                       p.name,
+                       default_spec)
 
 
 def paramlistNames(m):
@@ -284,53 +292,6 @@ iface_forward_safe = """
 /* Use this macro to declare functions that forward the behavior of this interface to another object in a safe way. */
 #define NS_FORWARD_SAFE_%(macroname)s(_to) """
 
-iface_template_prolog = """
-
-#if 0
-/* Use the code below as a template for the implementation class for this interface. */
-
-/* Header file */
-class %(implclass)s : public %(name)s
-{
-public:
-  NS_DECL_ISUPPORTS
-  NS_DECL_%(macroname)s
-
-  %(implclass)s();
-
-private:
-  ~%(implclass)s();
-
-protected:
-  /* additional members */
-};
-
-/* Implementation file */
-NS_IMPL_ISUPPORTS(%(implclass)s, %(name)s)
-
-%(implclass)s::%(implclass)s()
-{
-  /* member initializers and constructor code */
-}
-
-%(implclass)s::~%(implclass)s()
-{
-  /* destructor code */
-}
-
-"""
-
-example_tmpl = """%(returntype)s %(implclass)s::%(nativeName)s(%(paramList)s)
-{
-    return NS_ERROR_NOT_IMPLEMENTED;
-}
-"""
-
-iface_template_epilog = """/* End of implementation class template. */
-#endif
-
-"""
-
 attr_infallible_tmpl = """\
   inline %(realtype)s%(nativename)s(%(args)s)
   {
@@ -345,6 +306,21 @@ attr_infallible_tmpl = """\
 def write_interface(iface, fd):
     if iface.namemap is None:
         raise Exception("Interface was not resolved.")
+
+    # Confirm that no names of methods will overload in this interface
+    names = set()
+    def record_name(name):
+        if name in names:
+            raise Exception("Unexpected overloaded virtual method %s in interface %s"
+                            % (name, iface.name))
+        names.add(name)
+    for m in iface.members:
+        if type(m) == xpidl.Attribute:
+            record_name(attributeNativeName(m, getter=True))
+            if not m.readonly:
+                record_name(attributeNativeName(m, getter=False))
+        elif type(m) == xpidl.Method:
+            record_name(methodNativeName(m))
 
     def write_const_decls(g):
         fd.write("  enum {\n")
@@ -415,8 +391,6 @@ def write_interface(iface, fd):
     if not foundcdata:
         fd.write("NS_NO_VTABLE ")
 
-    if iface.attributes.deprecated:
-        fd.write("MOZ_DEPRECATED ")
     fd.write(iface.name)
     if iface.base:
         fd.write(" : public %s" % iface.base)
@@ -439,7 +413,7 @@ def write_interface(iface, fd):
     fd.write(iface_epilog % names)
 
     def writeDeclaration(fd, iface, virtual):
-        declType = "NS_IMETHOD" if virtual else "NS_METHOD"
+        declType = "NS_IMETHOD" if virtual else "nsresult"
         suffix = " override" if virtual else ""
         for member in iface.members:
             if isinstance(member, xpidl.Attribute):
@@ -500,100 +474,23 @@ def write_interface(iface, fd):
                  "\\\n  %(asNative)s override { return !_to ? NS_ERROR_NULL_POINTER : _to->%(nativeName)s(%(paramList)s); } ",
                  "\\\n  %(asNative)s override; ")
 
-    fd.write(iface_template_prolog % names)
-
-    for member in iface.members:
-        if isinstance(member, xpidl.ConstMember) or isinstance(member, xpidl.CDATA):
-            continue
-        fd.write("/* %s */\n" % member.toIDL())
-        if isinstance(member, xpidl.Attribute):
-            fd.write(example_tmpl % {'implclass': implclass,
-                                     'returntype': attributeReturnType(member, 'NS_IMETHODIMP'),
-                                     'nativeName': attributeNativeName(member, True),
-                                     'paramList': attributeParamlist(member, True)})
-            if not member.readonly:
-                fd.write(example_tmpl % {'implclass': implclass,
-                                         'returntype': attributeReturnType(member, 'NS_IMETHODIMP'),
-                                         'nativeName': attributeNativeName(member, False),
-                                         'paramList': attributeParamlist(member, False)})
-        elif isinstance(member, xpidl.Method):
-            fd.write(example_tmpl % {'implclass': implclass,
-                                     'returntype': methodReturnType(member, 'NS_IMETHODIMP'),
-                                     'nativeName': methodNativeName(member),
-                                     'paramList': paramlistAsNative(member, empty='')})
-        fd.write('\n')
-
-    fd.write(iface_template_epilog)
+    fd.write('\n\n')
 
 
-def main():
-    from optparse import OptionParser
-    o = OptionParser()
-    o.add_option('-I', action='append', dest='incdirs', default=['.'],
-                 help="Directory to search for imported files")
-    o.add_option('--cachedir', dest='cachedir', default=None,
-                 help="Directory in which to cache lex/parse tables.")
-    o.add_option('-o', dest='outfile', default=None,
-                 help="Output file (default is stdout)")
-    o.add_option('-d', dest='depfile', default=None,
-                 help="Generate a make dependency file")
-    o.add_option('--regen', action='store_true', dest='regen', default=False,
-                 help="Regenerate IDL Parser cache")
-    options, args = o.parse_args()
-    file = args[0] if args else None
+def main(outputfile):
+    cachedir = os.path.dirname(outputfile.name if outputfile else '') or '.'
+    if not os.path.isdir(cachedir):
+        os.mkdir(cachedir)
+    sys.path.append(cachedir)
 
-    if options.cachedir is not None:
-        if not os.path.isdir(options.cachedir):
-            os.mkdir(options.cachedir)
-        sys.path.append(options.cachedir)
-
-    # The only thing special about a regen is that there are no input files.
-    if options.regen:
-        if options.cachedir is None:
-            print >>sys.stderr, "--regen useless without --cachedir"
-        # Delete the lex/yacc files.  Ply is too stupid to regenerate them
-        # properly
-        for fileglobs in [os.path.join(options.cachedir, f) for f in ["xpidllex.py*", "xpidlyacc.py*"]]:
-            for filename in glob.glob(fileglobs):
-                os.remove(filename)
+    # Delete the lex/yacc files.  Ply is too stupid to regenerate them
+    # properly
+    for fileglobs in [os.path.join(cachedir, f) for f in ["xpidllex.py*", "xpidlyacc.py*"]]:
+        for filename in glob.glob(fileglobs):
+            os.remove(filename)
 
     # Instantiate the parser.
-    p = xpidl.IDLParser(outputdir=options.cachedir)
-
-    if options.regen:
-        sys.exit(0)
-
-    if options.depfile is not None and options.outfile is None:
-        print >>sys.stderr, "-d requires -o"
-        sys.exit(1)
-
-    if options.outfile is not None:
-        outfd = open(options.outfile, 'w')
-        closeoutfd = True
-    else:
-        outfd = sys.stdout
-        closeoutfd = False
-
-    idl = p.parse(open(file).read(), filename=file)
-    idl.resolve(options.incdirs, p)
-    print_header(idl, outfd, file)
-
-    if closeoutfd:
-        outfd.close()
-
-    if options.depfile is not None:
-        dirname = os.path.dirname(options.depfile)
-        if dirname:
-            try:
-                os.makedirs(dirname)
-            except:
-                pass
-        depfd = open(options.depfile, 'w')
-        deps = [dep.replace('\\', '/') for dep in idl.deps]
-
-        print >>depfd, "%s: %s" % (options.outfile, " ".join(deps))
-        for dep in deps:
-            print >>depfd, "%s:" % dep
+    p = xpidl.IDLParser(outputdir=cachedir)
 
 if __name__ == '__main__':
-    main()
+    main(None)

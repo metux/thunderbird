@@ -10,7 +10,7 @@
 #include "nsIMsgNewsFolder.h"
 #include "nsNNTPNewsgroupPost.h"
 #include "nsIMsgIdentity.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsNewsUtils.h"
 #include "nsNewsDatabase.h"
 #include "nsMsgDBCID.h"
@@ -30,7 +30,7 @@
 #include "nsIDocShellLoadInfo.h"
 #include "nsIMessengerWindowService.h"
 #include "nsIWindowMediator.h"
-#include "nsIDOMWindow.h"
+#include "mozIDOMWindow.h"
 #include "nsIMsgSearchSession.h"
 #include "nsMailDirServiceDefs.h"
 #include "nsIWebNavigation.h"
@@ -39,8 +39,10 @@
 #include "nsIPrompt.h"
 #include "nsNewsDownloader.h"
 #include "prprf.h"
-#include "nsICacheService.h"
-#include "nsICacheEntryDescriptor.h"
+#include "nsICacheStorage.h"
+#include "nsICacheStorageService.h"
+#include "nsILoadContextInfo.h"
+#include "nsICacheEntry.h"
 #include "nsMsgUtils.h"
 #include "nsNetUtil.h"
 #include "nsIWindowWatcher.h"
@@ -51,6 +53,7 @@
 #include "nsArrayUtils.h"
 #include "nsIStreamListener.h"
 #include "nsIInputStream.h"
+#include "../../base/src/MailnewsLoadContextInfo.h"
 
 #undef GetPort  // XXX Windows!
 #undef SetPort  // XXX Windows!
@@ -219,7 +222,7 @@ nsNntpService::DisplayMessage(const char* aMessageURI, nsISupports * aDisplayCon
   // rhp: If we are displaying this message for the purposes of printing, append
   // the magic operand.
   if (mPrintingOperation)
-    urlStr.Append("?header=print");
+    urlStr.AppendLiteral("?header=print");
 
   nsNewsAction action = nsINntpUrl::ActionFetchArticle;
   if (mOpenAttachmentOperation)
@@ -242,7 +245,7 @@ nsNntpService::DisplayMessage(const char* aMessageURI, nsISupports * aDisplayCon
   if (folder)
   {
     nsCOMPtr<nsIMsgIncomingServer> server;
-    // We need to set the port on the url, just like 
+    // We need to set the port on the url, just like
     // nsNNTPProtocol::Initialize does, so the specs will be the same.
     // we can ignore errors here - worst case, we'll display the
     // "message not available" message.
@@ -277,7 +280,7 @@ nsNntpService::DisplayMessage(const char* aMessageURI, nsISupports * aDisplayCon
     // Now look in the memory cache
     if (!hasMsgOffline)
     {
-      rv = IsMsgInMemCache(url, folder, nullptr, &hasMsgOffline);
+      rv = IsMsgInMemCache(url, folder, &hasMsgOffline);
       NS_ENSURE_SUCCESS(rv, rv);
     }
 
@@ -292,10 +295,10 @@ nsNntpService::DisplayMessage(const char* aMessageURI, nsISupports * aDisplayCon
     newsFolder->SetSaveArticleOffline(shouldStoreMsgOffline);
   }
 
+  rv = GetMessageFromUrl(url, aMsgWindow, aDisplayConsumer);
   if (aURL)
-    NS_IF_ADDREF(*aURL = url);
-
-  return GetMessageFromUrl(url, aMsgWindow, aDisplayConsumer);
+    url.forget(aURL);
+  return rv;
 }
 
 nsresult nsNntpService::GetMessageFromUrl(nsIURI *aUrl,
@@ -380,7 +383,7 @@ nsNntpService::FetchMessage(nsIMsgFolder *folder, nsMsgKey key, nsIMsgWindow *aM
   NS_ENSURE_SUCCESS(rv,rv);
 
   if (aURL)
-    url.swap(*aURL);
+    url.forget(aURL);
   return rv;
 }
 
@@ -393,16 +396,17 @@ NS_IMETHODIMP nsNntpService::FetchMimePart(nsIURI *aURI, const char *aMessageURI
   msgUrl->SetMsgWindow(aMsgWindow);
 
   // set up the url listener
-    if (aUrlListener)
-      msgUrl->RegisterListener(aUrlListener);
+  if (aUrlListener)
+    msgUrl->RegisterListener(aUrlListener);
 
-    nsCOMPtr<nsIMsgMessageUrl> msgMessageUrl = do_QueryInterface(aURI);
 // this code isn't ready yet, but it helps getting opening attachments
 // while offline working
+//    nsCOMPtr<nsIMsgMessageUrl> msgMessageUrl = do_QueryInterface(aURI);
 //    if (msgMessageUrl)
 //    {
 //      nsAutoCString spec;
-//      aURI->GetSpec(spec);
+//      rv = aURI->GetSpec(spec);
+//      NS_ENSURE_SUCCESS(rv, rv);
 //      msgMessageUrl->SetOriginalSpec(spec.get());
 //    }
   return RunNewsUrl(msgUrl, aMsgWindow, aDisplayConsumer);
@@ -555,7 +559,7 @@ nsNntpService::GetFolderFromUri(const char *aUri, nsIMsgFolder **aFolder)
   NS_ENSURE_SUCCESS(rv,rv);
 
   nsAutoCString path;
-  rv = uri->GetPath(path);
+  rv = uri->GetPathQueryRef(path);
   NS_ENSURE_SUCCESS(rv,rv);
 
   nsCOMPtr <nsIMsgAccountManager> accountManager = do_GetService(NS_MSGACCOUNTMANAGER_CONTRACTID, &rv);
@@ -573,7 +577,7 @@ nsNntpService::GetFolderFromUri(const char *aUri, nsIMsgFolder **aFolder)
   // if so, use the root folder
   if (path.Length() == 1)
   {
-    NS_ADDREF(*aFolder = rootFolder);
+    rootFolder.forget(aFolder);
     return NS_OK;
   }
 
@@ -589,7 +593,7 @@ nsNntpService::GetFolderFromUri(const char *aUri, nsIMsgFolder **aFolder)
                                  getter_AddRefs(subFolder));
   NS_ENSURE_SUCCESS(rv,rv);
 
-  subFolder.swap(*aFolder);
+  subFolder.forget(aFolder);
   return NS_OK;
 }
 
@@ -683,7 +687,7 @@ nsNntpService::SetUpNntpUrlForPosting(const char *aAccountKey, char **newsUrlSpe
   nsresult rv = NS_OK;
 
   nsCString host;
-  int32_t port;
+  int32_t port = -1;
 
   nsCOMPtr<nsIMsgIncomingServer> nntpServer;
   rv = GetNntpServerByAccount(aAccountKey, getter_AddRefs(nntpServer));
@@ -691,6 +695,10 @@ nsNntpService::SetUpNntpUrlForPosting(const char *aAccountKey, char **newsUrlSpe
   {
     nntpServer->GetHostName(host);
     nntpServer->GetPort(&port);
+  }
+  else
+  {
+    NS_WARNING("Failure to obtain host and port");
   }
 
   *newsUrlSpec = PR_smprintf("%s/%s:%d",kNewsRootURI, host.IsEmpty() ? "news" : host.get(), port);
@@ -877,12 +885,12 @@ nsNntpService::ConstructNntpUrl(const char *urlString, nsIUrlListener *aUrlListe
 {
   nsresult rv = NS_OK;
 
-  nsCOMPtr <nsINntpUrl> nntpUrl = do_CreateInstance(NS_NNTPURL_CONTRACTID,&rv);
+  nsCOMPtr<nsINntpUrl> nntpUrl = do_CreateInstance(NS_NNTPURL_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv,rv);
 
-  nsCOMPtr <nsIMsgMailNewsUrl> mailnewsurl = do_QueryInterface(nntpUrl);
+  nsCOMPtr<nsIMsgMailNewsUrl> mailnewsurl = do_QueryInterface(nntpUrl);
   mailnewsurl->SetMsgWindow(aMsgWindow);
-  nsCOMPtr <nsIMsgMessageUrl> msgUrl = do_QueryInterface(nntpUrl);
+  nsCOMPtr<nsIMsgMessageUrl> msgUrl = do_QueryInterface(nntpUrl);
   msgUrl->SetUri(originalMessageUri);
   rv = mailnewsurl->SetSpec(nsDependentCString(urlString));
   NS_ENSURE_SUCCESS(rv, rv);
@@ -898,8 +906,7 @@ nsNntpService::ConstructNntpUrl(const char *urlString, nsIUrlListener *aUrlListe
   if (aUrlListener) // register listener if there is one...
     mailnewsurl->RegisterListener(aUrlListener);
 
-  (*aUrl) = mailnewsurl;
-  NS_IF_ADDREF(*aUrl);
+  mailnewsurl.forget(aUrl);
   return rv;
 }
 
@@ -969,7 +976,7 @@ nsNntpService::GetServerForUri(nsIURI *aUri, nsINntpIncomingServer **aServer)
   rv = aUri->GetAsciiHost(hostName);
   rv = aUri->GetScheme(scheme);
   rv = aUri->GetPort(&port);
-  rv = aUri->GetPath(path);
+  rv = aUri->GetPathQueryRef(path);
 
   nsCOMPtr <nsIMsgAccountManager> accountManager = do_GetService(NS_MSGACCOUNTMANAGER_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv,rv);
@@ -1019,7 +1026,7 @@ nsNntpService::GetServerForUri(nsIURI *aUri, nsINntpIncomingServer **aServer)
   if (!nntpServer || NS_FAILED(rv))
     return rv;
 
-  NS_IF_ADDREF(*aServer = nntpServer);
+  nntpServer.forget(aServer);
 
   nsAutoCString spec;
   rv = aUri->GetSpec(spec);
@@ -1091,25 +1098,25 @@ NS_IMETHODIMP nsNntpService::GetNewNews(nsINntpIncomingServer *nntpServer, const
   /* double check that it is a "news:/" url */
   if (strncmp(uri, kNewsRootURI, kNewsRootURILen) == 0)
   {
-    nsCOMPtr<nsIURI> aUrl;
-    rv = ConstructNntpUrl(uri, aUrlListener, aMsgWindow, nullptr, nsINntpUrl::ActionGetNewNews, getter_AddRefs(aUrl));
+    nsCOMPtr<nsIURI> url;
+    rv = ConstructNntpUrl(uri, aUrlListener, aMsgWindow, nullptr, nsINntpUrl::ActionGetNewNews, getter_AddRefs(url));
     if (NS_FAILED(rv)) return rv;
 
-    nsCOMPtr<nsINntpUrl> nntpUrl = do_QueryInterface(aUrl);
+    nsCOMPtr<nsINntpUrl> nntpUrl = do_QueryInterface(url);
     if (nntpUrl)
     {
       rv = nntpUrl->SetGetOldMessages(aGetOld);
       if (NS_FAILED(rv)) return rv;
     }
 
-    nsCOMPtr<nsIMsgMailNewsUrl> mailNewsUrl = do_QueryInterface(aUrl);
+    nsCOMPtr<nsIMsgMailNewsUrl> mailNewsUrl = do_QueryInterface(url);
     if (mailNewsUrl)
       mailNewsUrl->SetUpdatingFolder(true);
 
-    rv = RunNewsUrl(aUrl, aMsgWindow, nullptr);
+    rv = RunNewsUrl(url, aMsgWindow, nullptr);
 
     if (_retval)
-      NS_IF_ADDREF(*_retval = aUrl);
+      url.forget(_retval);
   }
   else
   {
@@ -1136,10 +1143,7 @@ nsNntpService::CancelMessage(const char *cancelURL, const char *messageURI, nsIS
   NS_ENSURE_SUCCESS(rv,rv);
 
   if (aURL)
-  {
-    *aURL = url;
-    NS_IF_ADDREF(*aURL);
-  }
+    url.forget(aURL);
 
   return rv;
 }
@@ -1194,7 +1198,7 @@ NS_IMETHODIMP nsNntpService::GetProtocolFlags(uint32_t *aUritype)
       | ORIGIN_IS_FULL_SPEC
 #endif
     ;
-  
+
     return NS_OK;
 }
 
@@ -1220,7 +1224,7 @@ NS_IMETHODIMP nsNntpService::NewURI(const nsACString &aSpec,
     }
     NS_ENSURE_SUCCESS(rv,rv);
 
-    NS_ADDREF(*_retval = nntpUri);
+    nntpUri.forget(_retval);
     return NS_OK;
 }
 
@@ -1284,7 +1288,7 @@ nsNntpService::GetDefaultLocalPath(nsIFile ** aResult)
         NS_ASSERTION(NS_SUCCEEDED(rv), "Failed to set root dir pref.");
     }
 
-    NS_IF_ADDREF(*aResult = localFile);
+    localFile.forget(aResult);
     return NS_OK;
 }
 
@@ -1440,7 +1444,7 @@ nsNntpService::StreamMessage(const char *aMessageURI, nsISupports *aConsumer,
         url->SetPort((socketType == nsMsgSocketType::SSL) ?
                      nsINntpUrl::DEFAULT_NNTPS_PORT : nsINntpUrl::DEFAULT_NNTP_PORT);
 
-        rv = IsMsgInMemCache(url, folder, nullptr, &hasMsgOffline);
+        rv = IsMsgInMemCache(url, folder, &hasMsgOffline);
         NS_ENSURE_SUCCESS(rv, rv);
       }
 
@@ -1451,10 +1455,10 @@ nsNntpService::StreamMessage(const char *aMessageURI, nsISupports *aConsumer,
       msgUrl->SetMsgIsInLocalCache(true);
     }
 
+    rv = GetMessageFromUrl(url, aMsgWindow, aConsumer);
     if (aURL)
-      NS_IF_ADDREF(*aURL = url);
-
-    return GetMessageFromUrl(url, aMsgWindow, aConsumer);
+      url.forget(aURL);
+    return rv;
 }
 
 NS_IMETHODIMP nsNntpService::StreamHeaders(const char *aMessageURI,
@@ -1489,23 +1493,6 @@ NS_IMETHODIMP nsNntpService::StreamHeaders(const char *aMessageURI,
   rv = CreateMessageIDURL(folder, key, getter_Copies(urlStr));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsNewsAction action = nsINntpUrl::ActionFetchArticle;
-
-  nsCOMPtr<nsIURI> url;
-  rv = ConstructNntpUrl(urlStr.get(), aUrlListener, nullptr, aMessageURI,
-                        action, getter_AddRefs(url));
-  NS_ENSURE_SUCCESS(rv, rv);
-  nsCOMPtr<nsICacheEntryDescriptor> cacheEntry;
-  bool msgInMemCache = false;
-  rv = IsMsgInMemCache(url, folder, getter_AddRefs(cacheEntry), &msgInMemCache);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (msgInMemCache)
-  {
-    rv = cacheEntry->OpenInputStream(0, getter_AddRefs(inputStream));
-    if (NS_SUCCEEDED(rv))
-      return MsgStreamMsgHeaders(inputStream, aConsumer);
-  }
   if (aLocalOnly)
     return NS_ERROR_FAILURE;
   return rv;
@@ -1513,31 +1500,28 @@ NS_IMETHODIMP nsNntpService::StreamHeaders(const char *aMessageURI,
 
 NS_IMETHODIMP nsNntpService::IsMsgInMemCache(nsIURI *aUrl,
                                              nsIMsgFolder *aFolder,
-                                             nsICacheEntryDescriptor **aCacheEntry,
                                              bool *aResult)
 {
   NS_ENSURE_ARG_POINTER(aUrl);
-  NS_ENSURE_ARG_POINTER(aFolder);
   *aResult = false;
+  nsresult rv;
 
-  if (mCacheSession)
+  if (mCacheStorage)
   {
-    // check if message is in memory cache
-    nsAutoCString cacheKey;
-    aUrl->GetAsciiSpec(cacheKey);
-    // nntp urls are truncated at the query part when used as cache keys
-    int32_t pos = cacheKey.FindChar('?');
-    if (pos != -1)
-      cacheKey.SetLength(pos);
-
-    nsCOMPtr<nsICacheEntryDescriptor> cacheEntry;
-    if (NS_SUCCEEDED(mCacheSession->OpenCacheEntry(cacheKey,
-                     nsICache::ACCESS_READ, false,
-                     getter_AddRefs(cacheEntry))))
-    {
+    // NNTP urls are truncated at the query part when used as cache keys.
+    nsCOMPtr <nsIURI> newUri;
+    aUrl->Clone(getter_AddRefs(newUri));
+    nsAutoCString path;
+    newUri->GetPathQueryRef(path);
+    int32_t pos = path.FindChar('?');
+    if (pos != kNotFound) {
+      path.SetLength(pos);
+      newUri->SetPathQueryRef(path);
+    }
+    bool exists;
+    rv = mCacheStorage->Exists(newUri, EmptyCString(), &exists);
+    if (NS_SUCCEEDED(rv) && exists) {
       *aResult = true;
-      if (aCacheEntry)
-        NS_IF_ADDREF(*aCacheEntry = cacheEntry);
     }
   }
 
@@ -1620,7 +1604,7 @@ nsNntpService::Handle(nsICommandLine* aCmdLine)
     nsCOMPtr<nsIWindowWatcher> wwatch (do_GetService(NS_WINDOWWATCHER_CONTRACTID));
     NS_ENSURE_TRUE(wwatch, NS_ERROR_FAILURE);
 
-    nsCOMPtr<nsIDOMWindow> opened;
+    nsCOMPtr<mozIDOMWindowProxy> opened;
     wwatch->OpenWindow(nullptr, "chrome://messenger/content/", "_blank",
                        "chrome,extrachrome,menubar,resizable,scrollbars,status,toolbar",
                        nullptr, getter_AddRefs(opened));
@@ -1633,7 +1617,7 @@ nsNntpService::Handle(nsICommandLine* aCmdLine)
 NS_IMETHODIMP
 nsNntpService::GetHelpInfo(nsACString& aResult)
 {
-  aResult.Assign(NS_LITERAL_CSTRING("  -news              Open the news client.\n"));
+  aResult.AssignLiteral("  -news              Open the news client.\n");
   return NS_OK;
 }
 
@@ -1694,7 +1678,7 @@ nsNntpService::HandleContent(const char * aContentType, nsIInterfaceRequestor* a
             do_CreateInstance(NS_SUPPORTS_CSTRING_CONTRACTID);
           arg->SetData(folderURL);
 
-          nsCOMPtr<nsIDOMWindow> newWindow;
+          nsCOMPtr<mozIDOMWindowProxy> newWindow;
           rv = wwatcher->OpenWindow(nullptr, "chrome://messenger/content/",
             "_blank", "chome,all,dialog=no", arg, getter_AddRefs(newWindow));
           NS_ENSURE_SUCCESS(rv, rv);
@@ -1737,29 +1721,27 @@ nsNntpService::MessageURIToMsgHdr(const char *uri, nsIMsgDBHdr **_retval)
 NS_IMETHODIMP
 nsNntpService::DownloadNewsgroupsForOffline(nsIMsgWindow *aMsgWindow, nsIUrlListener *aListener)
 {
-  nsresult rv = NS_OK;
-  nsMsgDownloadAllNewsgroups *newsgroupDownloader = new nsMsgDownloadAllNewsgroups(aMsgWindow, aListener);
-  if (newsgroupDownloader)
-    rv = newsgroupDownloader->ProcessNextGroup();
-  else
-    rv = NS_ERROR_OUT_OF_MEMORY;
-  return rv;
+  RefPtr<nsMsgDownloadAllNewsgroups> newsgroupDownloader =
+    new nsMsgDownloadAllNewsgroups(aMsgWindow, aListener);
+  return newsgroupDownloader->ProcessNextGroup();
 }
 
-NS_IMETHODIMP nsNntpService::GetCacheSession(nsICacheSession **result)
+NS_IMETHODIMP nsNntpService::GetCacheStorage(nsICacheStorage **result)
 {
   nsresult rv = NS_OK;
-  if (!mCacheSession)
+  if (!mCacheStorage)
   {
-    nsCOMPtr<nsICacheService> serv = do_GetService(NS_CACHESERVICE_CONTRACTID, &rv);
+    nsCOMPtr<nsICacheStorageService> cacheStorageService =
+      do_GetService("@mozilla.org/netwerk/cache-storage-service;1", &rv);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    rv = serv->CreateSession("NNTP-memory-only", nsICache::STORE_IN_MEMORY, nsICache::STREAM_BASED, getter_AddRefs(mCacheSession));
+    RefPtr<MailnewsLoadContextInfo> lci =
+      new MailnewsLoadContextInfo(false, false, mozilla::OriginAttributes());
+
+    rv = cacheStorageService->MemoryCacheStorage(lci, getter_AddRefs(mCacheStorage));
     NS_ENSURE_SUCCESS(rv, rv);
-    rv = mCacheSession->SetDoomEntriesIfExpired(false);
   }
 
-  *result = mCacheSession;
-  NS_IF_ADDREF(*result);
+  NS_IF_ADDREF(*result = mCacheStorage);
   return rv;
 }

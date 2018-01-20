@@ -24,6 +24,7 @@
 
 #include "pkixder.h"
 #include "pkixgtest.h"
+#include "pkixtestutil.h"
 
 using namespace mozilla::pkix;
 using namespace mozilla::pkix::test;
@@ -75,7 +76,7 @@ private:
     return Success;
   }
 
-  Result IsChainValid(const DERArray&, Time) override
+  Result IsChainValid(const DERArray&, Time, const CertPolicyId&) override
   {
     return Success;
   }
@@ -115,18 +116,16 @@ static const uint8_t tlv_id_pkix_ocsp_nocheck[] = {
   0x06, 0x09, 0x2b, 0x06, 0x01, 0x05, 0x05, 0x07, 0x30, 0x01, 0x05
 };
 
-template <size_t L>
-inline ByteString
-BytesToByteString(const uint8_t (&bytes)[L])
-{
-  return ByteString(bytes, L);
-}
-
 struct ExtensionTestcase
 {
   ByteString extension;
   Result expectedResult;
 };
+
+::std::ostream& operator<<(::std::ostream& os, const ExtensionTestcase&)
+{
+  return os << "TODO (bug 1318770)";
+}
 
 static const ExtensionTestcase EXTENSION_TESTCASES[] =
 {

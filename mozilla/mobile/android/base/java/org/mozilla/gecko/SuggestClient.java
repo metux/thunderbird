@@ -7,6 +7,7 @@ package org.mozilla.gecko;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -15,12 +16,13 @@ import java.util.ArrayList;
 import org.json.JSONArray;
 import org.mozilla.gecko.annotation.RobocopTarget;
 import org.mozilla.gecko.util.HardwareUtils;
+import org.mozilla.gecko.util.ProxySelector;
 
 import android.content.Context;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.text.TextUtils;
 import android.util.Log;
+import org.mozilla.gecko.util.NetworkUtils;
+import org.mozilla.gecko.util.StringUtils;
 
 /**
  * Use network-based search suggestions.
@@ -58,6 +60,10 @@ public class SuggestClient {
         mCheckNetwork = checkNetwork;
     }
 
+    public String getSuggestTemplate() {
+        return mSuggestTemplate;
+    }
+
     /**
      * Queries for a given search term and returns an ArrayList of suggestions.
      */
@@ -70,7 +76,7 @@ public class SuggestClient {
             return suggestions;
         }
 
-        if (!isNetworkConnected() && mCheckNetwork) {
+        if (!NetworkUtils.isConnected(mContext) && mCheckNetwork) {
             Log.i(LOGTAG, "Not connected to network");
             return suggestions;
         }
@@ -84,7 +90,7 @@ public class SuggestClient {
             HttpURLConnection urlConnection = null;
             InputStream in = null;
             try {
-                urlConnection = (HttpURLConnection) url.openConnection();
+                urlConnection = (HttpURLConnection) ProxySelector.openConnectionWithProxy(url.toURI());
                 urlConnection.setConnectTimeout(mTimeout);
                 urlConnection.setRequestProperty("User-Agent", USER_AGENT);
                 in = new BufferedInputStream(urlConnection.getInputStream());
@@ -129,22 +135,9 @@ public class SuggestClient {
         return suggestions;
     }
 
-    private boolean isNetworkConnected() {
-        NetworkInfo networkInfo = getActiveNetworkInfo();
-        return networkInfo != null && networkInfo.isConnected();
-    }
-
-    private NetworkInfo getActiveNetworkInfo() {
-        ConnectivityManager connectivity = (ConnectivityManager) mContext
-                .getSystemService(Context.CONNECTIVITY_SERVICE);
-        if (connectivity == null)
-            return null;
-        return connectivity.getActiveNetworkInfo();
-    }
-
     private String convertStreamToString(java.io.InputStream is) {
         try {
-            return new java.util.Scanner(is).useDelimiter("\\A").next();
+            return new java.util.Scanner(new InputStreamReader(is, StringUtils.UTF_8)).useDelimiter("\\A").next();
         } catch (java.util.NoSuchElementException e) {
             return "";
         }

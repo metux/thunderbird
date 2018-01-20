@@ -1,17 +1,16 @@
-/* vim:set ts=2 sw=2 sts=2 et: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
+/* vim: set ft=javascript ts=2 et sw=2 tw=80: */
+/* Any copyright is dedicated to the Public Domain.
+ * http://creativecommons.org/publicdomain/zero/1.0/ */
 
 "use strict";
 
 const PREF = "devtools.webconsole.persistlog";
 const TEST_FILE = "test-network.html";
-const TEST_URI = "data:text/html;charset=utf8,<p>test file URI";
 
 var hud;
 
-var test = asyncTest(function* () {
+add_task(function* () {
   Services.prefs.setBoolPref(PREF, true);
 
   let jar = getJar(getRootDirectory(gTestPath));
@@ -22,13 +21,17 @@ var test = asyncTest(function* () {
   dir.append(TEST_FILE);
   let uri = Services.io.newFileURI(dir);
 
-  let { browser } = yield loadTab(TEST_URI);
+  // Open tab with correct remote type so we don't switch processes when we load
+  // the file:// URI, otherwise we won't get the same web console.
+  let remoteType = E10SUtils.getRemoteTypeForURI(uri.spec,
+                                                 gMultiProcessBrowser);
+  let { browser } = yield loadTab("about:blank", remoteType);
 
   hud = yield openConsole();
   hud.jsterm.clearOutput();
 
   let loaded = loadBrowser(browser);
-  content.location = uri.spec;
+  BrowserTestUtils.loadURI(gBrowser.selectedBrowser, uri.spec);
   yield loaded;
 
   yield testMessages();

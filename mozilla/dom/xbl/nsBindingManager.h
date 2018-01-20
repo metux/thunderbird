@@ -7,6 +7,7 @@
 #ifndef nsBindingManager_h_
 #define nsBindingManager_h_
 
+#include "nsAutoPtr.h"
 #include "nsIContent.h"
 #include "nsStubMutationObserver.h"
 #include "nsHashKeys.h"
@@ -17,10 +18,12 @@
 #include "nsXBLBinding.h"
 #include "nsTArray.h"
 #include "nsThreadUtils.h"
+#include "mozilla/StyleSheet.h"
+#include "mozilla/EventStates.h"
 
 struct ElementDependentRuleProcessorData;
 class nsIXPConnectWrappedJS;
-class nsIAtom;
+class nsAtom;
 class nsIDOMNodeList;
 class nsIDocument;
 class nsIURI;
@@ -30,10 +33,6 @@ class nsXBLBinding;
 typedef nsTArray<RefPtr<nsXBLBinding> > nsBindingList;
 class nsIPrincipal;
 class nsITimer;
-
-namespace mozilla {
-class CSSStyleSheet;
-} // namespace mozilla
 
 class nsBindingManager final : public nsStubMutationObserver
 {
@@ -48,7 +47,7 @@ public:
 
   explicit nsBindingManager(nsIDocument* aDocument);
 
-  nsXBLBinding* GetBindingWithContent(nsIContent* aContent);
+  nsXBLBinding* GetBindingWithContent(const nsIContent* aContent);
 
   void AddBoundContent(nsIContent* aContent);
   void RemoveBoundContent(nsIContent* aContent);
@@ -62,17 +61,26 @@ public:
    * @param aContent the element that's being moved
    * @param aOldDocument the old document in which the
    *   content resided.
+   * @param aDestructorHandling whether or not to run the possible XBL
+   *        destructor.
    */
-  void RemovedFromDocument(nsIContent* aContent, nsIDocument* aOldDocument)
+
+ enum DestructorHandling {
+   eRunDtor,
+   eDoNotRunDtor
+ };
+  void RemovedFromDocument(nsIContent* aContent, nsIDocument* aOldDocument,
+                           DestructorHandling aDestructorHandling)
   {
     if (aContent->HasFlag(NODE_MAY_BE_IN_BINDING_MNGR)) {
-      RemovedFromDocumentInternal(aContent, aOldDocument);
+      RemovedFromDocumentInternal(aContent, aOldDocument, aDestructorHandling);
     }
   }
   void RemovedFromDocumentInternal(nsIContent* aContent,
-                                   nsIDocument* aOldDocument);
+                                   nsIDocument* aOldDocument,
+                                   DestructorHandling aDestructorHandling);
 
-  nsIAtom* ResolveTag(nsIContent* aContent, int32_t* aNameSpaceID);
+  nsAtom* ResolveTag(nsIContent* aContent, int32_t* aNameSpaceID);
 
   /**
    * Return the nodelist of "anonymous" kids for this node.  This might
@@ -83,13 +91,24 @@ public:
   nsresult GetAnonymousNodesFor(nsIContent* aContent, nsIDOMNodeList** aResult);
   nsINodeList* GetAnonymousNodesFor(nsIContent* aContent);
 
-  nsresult ClearBinding(nsIContent* aContent);
+  nsresult ClearBinding(mozilla::dom::Element* aElement);
   nsresult LoadBindingDocument(nsIDocument* aBoundDoc, nsIURI* aURL,
                                nsIPrincipal* aOriginPrincipal);
 
   nsresult AddToAttachedQueue(nsXBLBinding* aBinding);
   void RemoveFromAttachedQueue(nsXBLBinding* aBinding);
-  void ProcessAttachedQueue(uint32_t aSkipSize = 0);
+  void ProcessAttachedQueue(uint32_t aSkipSize = 0)
+  {
+    if (mProcessingAttachedStack || mAttachedStack.Length() <= aSkipSize) {
+      return;
+    }
+
+    ProcessAttachedQueueInternal(aSkipSize);
+  }
+private:
+  void ProcessAttachedQueueInternal(uint32_t aSkipSize);
+
+public:
 
   void ExecuteDetachedHandlers();
 
@@ -112,15 +131,18 @@ public:
 
   void WalkAllRules(nsIStyleRuleProcessor::EnumFunc aFunc,
                     ElementDependentRuleProcessorData* aData);
-  /**
-   * Do any processing that needs to happen as a result of a change in
-   * the characteristics of the medium, and return whether this rule
-   * processor's rules have changed (e.g., because of media queries).
-   */
-  nsresult MediumFeaturesChanged(nsPresContext* aPresContext,
-                                 bool* aRulesChanged);
 
-  void AppendAllSheets(nsTArray<mozilla::CSSStyleSheet*>& aArray);
+  // Do any processing that needs to happen as a result of a change in the
+  // characteristics of the medium, and return whether this rule processor's
+  // rules or the servo style set have changed (e.g., because of media
+  // queries).
+  bool MediumFeaturesChanged(nsPresContext* aPresContext);
+
+  // Update the content bindings in mBoundContentSet due to medium features
+  // changed.
+  void UpdateBoundContentBindingsForServo(nsPresContext* aPresContext);
+
+  void AppendAllSheets(nsTArray<mozilla::StyleSheet*>& aArray);
 
   void Traverse(nsIContent *aContent,
                             nsCycleCollectionTraversalCallback &cb);
@@ -129,8 +151,18 @@ public:
 
   // Notify the binding manager when an outermost update begins and
   // ends.  The end method can execute script.
-  void BeginOutermostUpdate();
-  void EndOutermostUpdate();
+  void BeginOutermostUpdate()
+  {
+    mAttachedStackSizeOnOutermost = mAttachedStack.Length();
+  }
+
+  void EndOutermostUpdate()
+  {
+    if (!mProcessingAttachedStack) {
+      ProcessAttachedQueue(mAttachedStackSizeOnOutermost);
+      mAttachedStackSizeOnOutermost = 0;
+    }
+  }
 
   // When removing an insertion point or a parent of one, clear the insertion
   // points and their insertion parents.
@@ -144,16 +176,17 @@ public:
 
   nsIContent* FindNestedSingleInsertionPoint(nsIContent* aContainer, bool* aMulti);
 
+  bool AnyBindingHasDocumentStateDependency(mozilla::EventStates aStateMask);
+
 protected:
   nsIXPConnectWrappedJS* GetWrappedJS(nsIContent* aContent);
   nsresult SetWrappedJS(nsIContent* aContent, nsIXPConnectWrappedJS* aResult);
 
   // Called by ContentAppended and ContentInserted to handle a single child
   // insertion.  aChild must not be null.  aContainer may be null.
-  // aIndexInContainer is the index of the child in the parent.  aAppend is
-  // true if this child is being appended, not inserted.
+  // aAppend is true if this child is being appended, not inserted.
   void HandleChildInsertion(nsIContent* aContainer, nsIContent* aChild,
-                            uint32_t aIndexInContainer, bool aAppend);
+                            bool aAppend);
 
   // Same as ProcessAttachedQueue, but also nulls out
   // mProcessAttachedQueueEvent
@@ -164,6 +197,12 @@ protected:
 
   // Call PostProcessAttachedQueueEvent() on a timer.
   static void PostPAQEventCallback(nsITimer* aTimer, void* aClosure);
+
+  // Enumerate each bound content's bindings (including its base bindings)
+  // in mBoundContentSet. Return false from the callback to stop enumeration.
+  using BoundContentBindingCallback = std::function<bool (nsXBLBinding*)>;
+  bool EnumerateBoundContentBindings(
+    const BoundContentBindingCallback& aCallback) const;
 
 // MEMBER VARIABLES
 protected:

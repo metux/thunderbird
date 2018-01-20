@@ -22,6 +22,8 @@ namespace dom {
 
 class GlobalObject;
 class DOMMatrix;
+class DOMPoint;
+struct DOMPointInit;
 
 class DOMMatrixReadOnly : public nsWrapperCache
 {
@@ -39,6 +41,12 @@ public:
     } else {
       mMatrix3D = new gfx::Matrix4x4(*other.mMatrix3D);
     }
+  }
+
+  DOMMatrixReadOnly(nsISupports* aParent, const gfx::Matrix4x4& aMatrix)
+    : mParent(aParent)
+  {
+    mMatrix3D = new gfx::Matrix4x4(aMatrix);
   }
 
   NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(DOMMatrixReadOnly)
@@ -142,7 +150,7 @@ private:
   DOMMatrixReadOnly& operator=(const DOMMatrixReadOnly&) = delete;
 };
 
-class DOMMatrix final : public DOMMatrixReadOnly
+class DOMMatrix : public DOMMatrixReadOnly
 {
 public:
   explicit DOMMatrix(nsISupports* aParent)
@@ -151,6 +159,10 @@ public:
 
   DOMMatrix(nsISupports* aParent, const DOMMatrixReadOnly& other)
     : DOMMatrixReadOnly(aParent, other)
+  {}
+
+  DOMMatrix(nsISupports* aParent, const gfx::Matrix4x4& aMatrix)
+    : DOMMatrixReadOnly(aParent, aMatrix)
   {}
 
   static already_AddRefed<DOMMatrix>
@@ -244,8 +256,10 @@ public:
   DOMMatrix* SkewYSelf(double aSy);
   DOMMatrix* InvertSelf();
   DOMMatrix* SetMatrixValue(const nsAString& aTransformList, ErrorResult& aRv);
-private:
+protected:
   void Ensure3DMatrix();
+
+  virtual ~DOMMatrix() {}
 };
 
 } // namespace dom

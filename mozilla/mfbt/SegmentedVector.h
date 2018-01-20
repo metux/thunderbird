@@ -121,9 +121,9 @@ class SegmentedVector : private AllocPolicy
     ? (IdealSegmentSize - kSingleElementSegmentSize) / sizeof(T) + 1
     : 1;
 
+public:
   typedef SegmentImpl<kSegmentCapacity> Segment;
 
-public:
   // The |aIdealSegmentSize| is only for sanity checking. If it's specified, we
   // check that the actual segment size is as close as possible to it. This
   // serves as a sanity check for SegmentedVectorCapacity's capacity
@@ -159,7 +159,7 @@ public:
   // Returns false if the allocation failed. (If you are using an infallible
   // allocation policy, use InfallibleAppend() instead.)
   template<typename U>
-  MOZ_WARN_UNUSED_RESULT bool Append(U&& aU)
+  MOZ_MUST_USE bool Append(U&& aU)
   {
     Segment* last = mSegments.getLast();
     if (!last || last->Length() == kSegmentCapacity) {
@@ -218,6 +218,55 @@ public:
     }
   }
 
+  // Equivalent to calling |PopLast| |aNumElements| times, but potentially
+  // more efficient.
+  void PopLastN(uint32_t aNumElements)
+  {
+    MOZ_ASSERT(aNumElements <= Length());
+
+    Segment* last;
+
+    // Pop full segments for as long as we can.  Note that this loop
+    // cleanly handles the case when the initial last segment is not
+    // full and we are popping more elements than said segment contains.
+    do {
+      last = mSegments.getLast();
+
+      // The list is empty.  We're all done.
+      if (!last) {
+        return;
+      }
+
+      // Check to see if the list contains too many elements.  Handle
+      // that in the epilogue.
+      uint32_t segmentLen = last->Length();
+      if (segmentLen > aNumElements) {
+        break;
+      }
+
+      // Destroying the segment destroys all elements contained therein.
+      mSegments.popLast();
+      last->~Segment();
+      this->free_(last);
+
+      MOZ_ASSERT(aNumElements >= segmentLen);
+      aNumElements -= segmentLen;
+      if (aNumElements == 0) {
+        return;
+      }
+    } while (true);
+
+    // Handle the case where the last segment contains more elements
+    // than we want to pop.
+    MOZ_ASSERT(last);
+    MOZ_ASSERT(last == mSegments.getLast());
+    MOZ_ASSERT(aNumElements < last->Length());
+    for (uint32_t i = 0; i < aNumElements; ++i) {
+      last->PopLast();
+    }
+    MOZ_ASSERT(last->Length() != 0);
+  }
+
   // Use this class to iterate over a SegmentedVector, like so:
   //
   //  for (auto iter = v.Iter(); !iter.Done(); iter.Next()) {
@@ -225,6 +274,10 @@ public:
   //    f(elem);
   //  }
   //
+  // Note, adding new entries to the SegmentedVector while using iterators
+  // is supported, but removing is not!
+  // If an iterator has entered Done() state, adding more entries to the
+  // vector doesn't affect it.
   class IterImpl
   {
     friend class SegmentedVector;
@@ -232,10 +285,14 @@ public:
     Segment* mSegment;
     size_t mIndex;
 
-    explicit IterImpl(SegmentedVector* aVector)
-      : mSegment(aVector->mSegments.getFirst())
-      , mIndex(0)
-    {}
+    explicit IterImpl(SegmentedVector* aVector, bool aFromFirst)
+      : mSegment(aFromFirst ? aVector->mSegments.getFirst() :
+                              aVector->mSegments.getLast())
+      , mIndex(aFromFirst ? 0 :
+                            (mSegment ? mSegment->Length() - 1 : 0))
+    {
+      MOZ_ASSERT_IF(mSegment, mSegment->Length() > 0);
+    }
 
   public:
     bool Done() const { return !mSegment; }
@@ -261,9 +318,23 @@ public:
         mIndex = 0;
       }
     }
+
+    void Prev()
+    {
+      MOZ_ASSERT(!Done());
+      if (mIndex == 0) {
+        mSegment = mSegment->getPrevious();
+        if (mSegment) {
+          mIndex = mSegment->Length() - 1;
+        }
+      } else {
+        --mIndex;
+      }
+    }
   };
 
-  IterImpl Iter() { return IterImpl(this); }
+  IterImpl Iter() { return IterImpl(this, true); }
+  IterImpl IterFromLast() { return IterImpl(this, false); }
 
   // Measure the memory consumption of the vector excluding |this|. Note that
   // it only measures the vector itself. If the vector elements contain

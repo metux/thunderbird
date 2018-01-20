@@ -1,0 +1,25 @@
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+<!-- Title -->
+<!-- Labels -->
+<!ENTITY addToAddressBook.label         "Tambahkan ke: ">
+
+<!ENTITY ListName.label                 "Nama Milis: ">
+<!ENTITY ListNickName.label             "Daftar Alias: ">
+<!ENTITY ListDescription.label          "Keterangan: ">
+<!-- See bug 58485, when we implement drag and drop, add 'or drag addresses' back in -->
+<!ENTITY AddressTitle.label             "Masukkan alamat email untuk ditambahkan ke milis:">
+<!ENTITY UpButton.label                 "Geser Atas">
+<!ENTITY DownButton.label               "Geser Bawah">
+<!-- Access Keys -->
+
+<!ENTITY addToAddressBook.accesskey     "a">
+<!ENTITY ListName.accesskey             "m">
+<!ENTITY ListNickName.accesskey         "a">
+<!ENTITY ListDescription.accesskey      "e">
+
+
+<!ENTITY mailListWindowAdd.title        "New Mailing List">
+
+<!ENTITY AddressTitle.accesskey         "m">

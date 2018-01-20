@@ -1,5 +1,5 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set sw=2 ts=8 et tw=80 : */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -8,13 +8,16 @@
 #define mozilla_layers_OverscrollHandoffChain_h
 
 #include <vector>
-#include "nsAutoPtr.h"
-#include "nsISupportsImpl.h"  // for NS_INLINE_DECL_REFCOUNTING
+#include "mozilla/RefPtr.h"   // for RefPtr
+#include "nsISupportsImpl.h"  // for NS_INLINE_DECL_THREADSAFE_REFCOUNTING
 #include "APZUtils.h"         // for CancelAnimationFlags
-#include "Layers.h"           // for Layer::ScrollDirection
+#include "mozilla/layers/LayersTypes.h" // for Layer::ScrollDirection
 #include "Units.h"            // for ScreenPoint
 
 namespace mozilla {
+
+class InputData;
+
 namespace layers {
 
 class AsyncPanZoomController;
@@ -78,10 +81,10 @@ public:
   // Determine whether the given APZC, or any APZC further in the chain,
   // can scroll in the given direction.
   bool CanScrollInDirection(const AsyncPanZoomController* aApzc,
-                            Layer::ScrollDirection aDirection) const;
+                            ScrollDirection aDirection) const;
 
-  // Determine whether any APZC along this handoff chain is panned into overscroll.
-  bool HasApzcPannedIntoOverscroll() const;
+  // Determine whether any APZC along this handoff chain is overscrolled.
+  bool HasOverscrolledApzc() const;
 
   // Determine whether any APZC along this handoff chain has been flung fast.
   bool HasFastFlungApzc() const;
@@ -127,8 +130,28 @@ struct OverscrollHandoffState {
 
   ScrollSource mScrollSource;
 };
-// Don't pollute other files with this macro for now.
-#undef NS_INLINE_DECL_THREADSAFE_MUTABLE_REFCOUNTING
+
+/*
+ * This class groups the state maintained during fling handoff.
+ */
+struct FlingHandoffState {
+  // The velocity of the fling being handed off.
+  ParentLayerPoint mVelocity;
+
+  // The chain of APZCs along which we hand off the fling.
+  // Unlike in OverscrollHandoffState, this is stored by RefPtr because
+  // otherwise it may not stay alive for the entire handoff.
+  RefPtr<const OverscrollHandoffChain> mChain;
+
+  // Whether handoff has happened by this point, or we're still process
+  // the original fling.
+  bool mIsHandoff;
+
+  // The single APZC that was scrolled by the pan that started this fling.
+  // The fling is only allowed to scroll this APZC, too.
+  // Used only if immediate scroll handoff is disallowed.
+  RefPtr<const AsyncPanZoomController> mScrolledApzc;
+};
 
 } // namespace layers
 } // namespace mozilla

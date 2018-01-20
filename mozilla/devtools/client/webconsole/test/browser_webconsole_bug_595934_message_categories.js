@@ -1,12 +1,7 @@
-/* vim:set ts=2 sw=2 sts=2 et: */
-/* ***** BEGIN LICENSE BLOCK *****
- * Any copyright is dedicated to the Public Domain.
- * http://creativecommons.org/publicdomain/zero/1.0/
- *
- * Contributor(s):
- *  Mihai Șucan <mihai.sucan@gmail.com>
- *
- * ***** END LICENSE BLOCK ***** */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
+/* vim: set ft=javascript ts=2 et sw=2 tw=80: */
+/* Any copyright is dedicated to the Public Domain.
+ * http://creativecommons.org/publicdomain/zero/1.0/ */
 
 "use strict";
 
@@ -32,7 +27,7 @@ const TESTS = [
     file: "test-bug-595934-html.html",
     category: "HTML",
     matchString: "multipart/form-data",
-    onload: function() {
+    onload: function () {
       let form = content.document.querySelector("form");
       form.submit();
     },
@@ -47,7 +42,7 @@ const TESTS = [
     // #4
     file: "test-bug-595934-malformedxml.xhtml",
     category: "malformed-xml",
-    matchString: "no element found",
+    matchString: "no root element found",
   },
   {
     // #5
@@ -167,11 +162,10 @@ function testNext() {
       test.onload && test.onload(evt);
 
       if (test.expectError) {
-        content.addEventListener("error", function _onError() {
-          content.removeEventListener("error", _onError);
+        content.addEventListener("error", function () {
           pageError = true;
           startNextTest();
-        });
+        }, {once: true});
         // On e10s, the exception is triggered in child process
         // and is ignored by test harness
         if (!Services.appinfo.browserTabsRemoteAutostart) {
@@ -184,7 +178,7 @@ function testNext() {
       startNextTest();
     }, true);
 
-    content.location = testLocation;
+    BrowserTestUtils.loadURI(gBrowser.selectedBrowser, testLocation);
   } else {
     testEnded = true;
     finishTest();

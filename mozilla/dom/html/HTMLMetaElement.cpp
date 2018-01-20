@@ -27,28 +27,10 @@ HTMLMetaElement::~HTMLMetaElement()
 }
 
 
-NS_IMPL_ISUPPORTS_INHERITED(HTMLMetaElement, nsGenericHTMLElement,
-                            nsIDOMHTMLMetaElement)
+NS_IMPL_ISUPPORTS_INHERITED0(HTMLMetaElement, nsGenericHTMLElement)
 
 NS_IMPL_ELEMENT_CLONE(HTMLMetaElement)
 
-
-NS_IMPL_STRING_ATTR(HTMLMetaElement, Content, content)
-NS_IMPL_STRING_ATTR(HTMLMetaElement, HttpEquiv, httpEquiv)
-NS_IMPL_STRING_ATTR(HTMLMetaElement, Name, name)
-NS_IMPL_STRING_ATTR(HTMLMetaElement, Scheme, scheme)
-
-void
-HTMLMetaElement::GetItemValueText(DOMString& aValue)
-{
-  GetContent(aValue);
-}
-
-void
-HTMLMetaElement::SetItemValueText(const nsAString& aValue)
-{
-  SetContent(aValue);
-}
 
 nsresult
 HTMLMetaElement::SetMetaReferrer(nsIDocument* aDocument)
@@ -71,8 +53,11 @@ HTMLMetaElement::SetMetaReferrer(nsIDocument* aDocument)
 }
 
 nsresult
-HTMLMetaElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
-                              const nsAttrValue* aValue, bool aNotify)
+HTMLMetaElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
+                              const nsAttrValue* aValue,
+                              const nsAttrValue* aOldValue,
+                              nsIPrincipal* aSubjectPrincipal,
+                              bool aNotify)
 {
   if (aNameSpaceID == kNameSpaceID_None) {
     nsIDocument *document = GetUncomposedDoc();
@@ -94,7 +79,7 @@ HTMLMetaElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
   }
 
   return nsGenericHTMLElement::AfterSetAttr(aNameSpaceID, aName, aValue,
-                                            aNotify);
+                                            aOldValue, aSubjectPrincipal, aNotify);
 }
 
 nsresult
@@ -114,14 +99,14 @@ HTMLMetaElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
     nsContentUtils::ProcessViewportInfo(aDocument, content);
   }
 
-  if (CSPService::sCSPEnabled && aDocument &&
+  if (CSPService::sCSPEnabled && aDocument && !aDocument->IsLoadedAsData() &&
       AttrValueIs(kNameSpaceID_None, nsGkAtoms::httpEquiv, nsGkAtoms::headerCSP, eIgnoreCase)) {
 
     // only accept <meta http-equiv="Content-Security-Policy" content=""> if it appears
     // in the <head> element.
     Element* headElt = aDocument->GetHeadElement();
     if (headElt && nsContentUtils::ContentIsDescendantOf(this, headElt)) {
-      
+
       nsAutoString content;
       rv = GetContent(content);
       NS_ENSURE_SUCCESS(rv, rv);
@@ -129,32 +114,18 @@ HTMLMetaElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
 
       nsIPrincipal* principal = aDocument->NodePrincipal();
       nsCOMPtr<nsIContentSecurityPolicy> csp;
-      rv = principal->GetCsp(getter_AddRefs(csp));
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      // Multiple CSPs (delivered through either header of meta tag) need to be
-      // joined together, see:
-      // https://w3c.github.io/webappsec/specs/content-security-policy/#delivery-html-meta-element
-      if (!csp) {
-        csp = do_CreateInstance("@mozilla.org/cspcontext;1", &rv);
+      nsCOMPtr<nsIDOMDocument> domDoc = do_QueryInterface(aDocument);
+      principal->EnsureCSP(domDoc, getter_AddRefs(csp));
+      if (csp) {
+        // Multiple CSPs (delivered through either header of meta tag) need to be
+        // joined together, see:
+        // https://w3c.github.io/webappsec/specs/content-security-policy/#delivery-html-meta-element
+        rv = csp->AppendPolicy(content,
+                               false, // csp via meta tag can not be report only
+                               true); // delivered through the meta tag
         NS_ENSURE_SUCCESS(rv, rv);
-
-        // Store the request context so CSP can resolve 'self'
-        nsCOMPtr<nsIDOMDocument> domDoc = do_QueryInterface(aDocument);
-        rv = csp->SetRequestContext(domDoc, nullptr);
-        NS_ENSURE_SUCCESS(rv, rv);
-
-        // set the new CSP
-        rv = principal->SetCsp(csp);
-        NS_ENSURE_SUCCESS(rv, rv);
+        aDocument->ApplySettingsFromCSP(false);
       }
-
-      rv = csp->AppendPolicy(content,
-                             false, // csp via meta tag can not be report only
-                             true); // delivered through the meta tag
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      aDocument->ApplySettingsFromCSP(false);
     }
   }
 

@@ -4,23 +4,38 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsISupports.idl"
-#include "nsIContentPolicyBase.idl"
+#include "nsIContentPolicy.idl"
 
 interface nsIChannel;
 interface nsIConsoleReportCollector;
+interface nsIInputStream;
 interface nsIOutputStream;
 interface nsIURI;
 
 %{C++
 #include "nsIConsoleReportCollector.h"
 namespace mozilla {
+class TimeStamp;
+
 namespace dom {
 class ChannelInfo;
 }
 }
 %}
 
+native TimeStamp(mozilla::TimeStamp);
+
 [ptr] native ChannelInfo(mozilla::dom::ChannelInfo);
+
+/**
+ * Interface allowing the nsIInterceptedChannel to callback when it is
+ * done reading from the body stream.
+ */
+[scriptable, uuid(51039eb6-bea0-40c7-b523-ccab56cc4fde)]
+interface nsIInterceptedBodyCallback : nsISupports
+{
+  void bodyComplete(in nsresult aRv);
+};
 
 /**
  * Interface to allow implementors of nsINetworkInterceptController to control the behaviour
@@ -29,7 +44,7 @@ class ChannelInfo;
  * which do not implement nsIChannel.
  */
 
-[scriptable, uuid(64439e24-eda5-4f39-9a7e-162c4b5e0150)]
+[scriptable, uuid(f4b82975-6a86-4cc4-87fe-9a1fd430c86d)]
 interface nsIInterceptedChannel : nsISupports
 {
     /**
@@ -51,30 +66,46 @@ interface nsIInterceptedChannel : nsISupports
     void synthesizeHeader(in ACString name, in ACString value);
 
     /**
-     * Instruct a channel that has been intercepted that a response has been
-     * synthesized and can now be read. No further header modification is allowed
-     * after this point. The caller may optionally pass a spec for a URL that
-     * this response originates from; an empty string will cause the original
-     * intercepted request's URL to be used instead.
+     * Instruct a channel that has been intercepted that a response is
+     * starting to be synthesized.  No further header modification is allowed
+     * after this point.  There are a few parameters:
+     * - A body stream may be optionally passed.  If nullptr, then an
+     *   empty body is assumed.
+     * - A callback may be optionally passed.  It will be invoked
+     *   when the body is complete.  For a nullptr body this may be
+     *   synchronously on the current thread.  Otherwise it will be invoked
+     *   asynchronously on the current thread.
+     * - The caller may optionally pass a spec for a URL that this response
+     *   originates from; an empty string will cause the original
+     *   intercepted request's URL to be used instead.
      */
-    void finishSynthesizedResponse(in ACString finalURLSpec);
+    void startSynthesizedResponse(in nsIInputStream body,
+                                  in nsIInterceptedBodyCallback callback,
+                                  in ACString finalURLSpec);
+
+    /**
+     * Instruct a channel that has been intercepted that response synthesis
+     * has completed and all outstanding resources can be closed.
+     */
+    void finishSynthesizedResponse();
 
     /**
      * Cancel the pending intercepted request.
      * @return NS_ERROR_FAILURE if the response has already been synthesized or
      *         the original request has been instructed to continue.
      */
-    void cancel(in nsresult status);
-
-    /**
-     * The synthesized response body to be produced.
-     */
-    readonly attribute nsIOutputStream responseBody;
+    void cancelInterception(in nsresult status);
 
     /**
      * The underlying channel object that was intercepted.
      */
     readonly attribute nsIChannel channel;
+
+    /**
+     * The URL of the underlying channel object, corrected for a potential
+     * secure upgrade.
+     */
+    readonly attribute nsIURI secureUpgradedChannelURI;
 
     /**
      * This method allows to override the channel info for the channel.
@@ -90,6 +121,50 @@ interface nsIInterceptedChannel : nsISupports
 
     [noscript]
     readonly attribute nsIConsoleReportCollector consoleReportCollector;
+
+    /**
+     * Save the timestamps of various service worker interception phases.
+     */
+    [noscript]
+    void SetLaunchServiceWorkerStart(in TimeStamp aTimeStamp);
+
+    // A hack to get sw launch start time for telemetry.
+    [noscript]
+    void GetLaunchServiceWorkerStart(out TimeStamp aTimeStamp);
+
+    [noscript]
+    void SetLaunchServiceWorkerEnd(in TimeStamp aTimeStamp);
+
+    // A hack to get sw launch end time for telemetry.
+    [noscript]
+    void GetLaunchServiceWorkerEnd(out TimeStamp aTimeStamp);
+
+    [noscript]
+    void SetDispatchFetchEventStart(in TimeStamp aTimeStamp);
+
+    [noscript]
+    void SetDispatchFetchEventEnd(in TimeStamp aTimeStamp);
+
+    [noscript]
+    void SetHandleFetchEventStart(in TimeStamp aTimeStamp);
+
+    [noscript]
+    void SetHandleFetchEventEnd(in TimeStamp aTimeStamp);
+
+    // Depending on the outcome we measure the time difference between
+    // |FinishResponseStart| and either |FinishSynthesizedResponseEnd| or
+    // |ChannelResetEnd|.
+    [noscript]
+    void SetFinishResponseStart(in TimeStamp aTimeStamp);
+
+    [noscript]
+    void SetFinishSynthesizedResponseEnd(in TimeStamp aTimeStamp);
+
+    [noscript]
+    void SetChannelResetEnd(in TimeStamp aTimeStamp);
+
+    [noscript]
+    void SaveTimeStamps();
 
 %{C++
     already_AddRefed<nsIConsoleReportCollector>
@@ -111,28 +186,12 @@ interface nsIInterceptedChannel : nsISupports
 };
 
 /**
- * Interface to allow consumers to dispatch the fetch event asynchronously.
- * Consumers get access to this interface by calling channelIntercepted(),
- * and they can choose to either dispatch() immediately or do that at some
- * later time.
- */
-
-[scriptable, uuid(799504e4-36f8-4ab5-b9d2-53f0c0c40c04)]
-interface nsIFetchEventDispatcher : nsISupports
-{
-  /**
-   * Actually dispatches the fetch event to the service worker.
-   */
-  void dispatch();
-};
-
-/**
  * Interface to allow consumers to attach themselves to a channel's
  * notification callbacks/loadgroup and determine if a given channel
  * request should be intercepted before any network request is initiated.
  */
 
-[scriptable, uuid(49eb1997-90fb-49d6-a25d-41f51c7c99e8)]
+[scriptable, uuid(70d2b4fe-a552-48cd-8d93-1d8437a56b53)]
 interface nsINetworkInterceptController : nsISupports
 {
     /**
@@ -150,5 +209,5 @@ interface nsINetworkInterceptController : nsISupports
      *
      * @param aChannel the controlling interface for a channel that has been intercepted
      */
-    nsIFetchEventDispatcher channelIntercepted(in nsIInterceptedChannel aChannel);
+    void channelIntercepted(in nsIInterceptedChannel aChannel);
 };

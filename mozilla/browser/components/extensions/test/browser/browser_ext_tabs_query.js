@@ -4,9 +4,9 @@
 
 requestLongerTimeout(2);
 
-add_task(function* () {
-  let tab1 = yield BrowserTestUtils.openNewForegroundTab(gBrowser, "about:robots");
-  let tab2 = yield BrowserTestUtils.openNewForegroundTab(gBrowser, "about:config");
+add_task(async function() {
+  let tab1 = await BrowserTestUtils.openNewForegroundTab(gBrowser, "about:robots");
+  let tab2 = await BrowserTestUtils.openNewForegroundTab(gBrowser, "about:config");
 
   gBrowser.selectedTab = tab1;
 
@@ -45,16 +45,16 @@ add_task(function* () {
     },
   });
 
-  yield extension.startup();
-  yield extension.awaitFinish("tabs.query");
-  yield extension.unload();
+  await extension.startup();
+  await extension.awaitFinish("tabs.query");
+  await extension.unload();
 
-  yield BrowserTestUtils.removeTab(tab1);
-  yield BrowserTestUtils.removeTab(tab2);
+  await BrowserTestUtils.removeTab(tab1);
+  await BrowserTestUtils.removeTab(tab2);
 
-  tab1 = yield BrowserTestUtils.openNewForegroundTab(gBrowser, "http://example.com/");
-  tab2 = yield BrowserTestUtils.openNewForegroundTab(gBrowser, "http://example.net/");
-  let tab3 = yield BrowserTestUtils.openNewForegroundTab(gBrowser, "http://test1.example.org/MochiKit/");
+  tab1 = await BrowserTestUtils.openNewForegroundTab(gBrowser, "http://example.com/");
+  tab2 = await BrowserTestUtils.openNewForegroundTab(gBrowser, "http://example.net/");
+  let tab3 = await BrowserTestUtils.openNewForegroundTab(gBrowser, "http://test1.example.org/MochiKit/");
 
   // test simple queries
   extension = ExtensionTestUtils.loadExtension({
@@ -79,9 +79,9 @@ add_task(function* () {
     },
   });
 
-  yield extension.startup();
-  yield extension.awaitFinish("tabs.query");
-  yield extension.unload();
+  await extension.startup();
+  await extension.awaitFinish("tabs.query");
+  await extension.unload();
 
   // match pattern
   extension = ExtensionTestUtils.loadExtension({
@@ -102,9 +102,9 @@ add_task(function* () {
     },
   });
 
-  yield extension.startup();
-  yield extension.awaitFinish("tabs.query");
-  yield extension.unload();
+  await extension.startup();
+  await extension.awaitFinish("tabs.query");
+  await extension.unload();
 
   // match array of patterns
   extension = ExtensionTestUtils.loadExtension({
@@ -128,11 +128,97 @@ add_task(function* () {
     },
   });
 
-  yield extension.startup();
-  yield extension.awaitFinish("tabs.query");
-  yield extension.unload();
+  await extension.startup();
+  await extension.awaitFinish("tabs.query");
+  await extension.unload();
 
-  yield BrowserTestUtils.removeTab(tab1);
-  yield BrowserTestUtils.removeTab(tab2);
-  yield BrowserTestUtils.removeTab(tab3);
+  // test width and height
+  extension = ExtensionTestUtils.loadExtension({
+    manifest: {
+      "permissions": ["tabs"],
+    },
+
+    background: function() {
+      browser.test.onMessage.addListener(async msg => {
+        let tabs = await browser.tabs.query({active: true});
+
+        browser.test.assertEq(tabs.length, 1, "should have one tab");
+        browser.test.sendMessage("dims", {width: tabs[0].width, height: tabs[0].height});
+      });
+      browser.test.sendMessage("ready");
+    },
+  });
+
+  const RESOLUTION_PREF = "layout.css.devPixelsPerPx";
+  registerCleanupFunction(() => {
+    SpecialPowers.clearUserPref(RESOLUTION_PREF);
+  });
+
+  await Promise.all([extension.startup(), extension.awaitMessage("ready")]);
+
+  for (let resolution of [2, 1]) {
+    SpecialPowers.setCharPref(RESOLUTION_PREF, String(resolution));
+    is(window.devicePixelRatio, resolution, "window has the required resolution");
+
+    let {clientHeight, clientWidth} = gBrowser.selectedBrowser;
+
+    extension.sendMessage("check-size");
+    let dims = await extension.awaitMessage("dims");
+    is(dims.width, clientWidth, "tab reports expected width");
+    is(dims.height, clientHeight, "tab reports expected height");
+  }
+
+  await extension.unload();
+
+  await BrowserTestUtils.removeTab(tab1);
+  await BrowserTestUtils.removeTab(tab2);
+  await BrowserTestUtils.removeTab(tab3);
+  SpecialPowers.clearUserPref(RESOLUTION_PREF);
+});
+
+add_task(async function testQueryPermissions() {
+  let extension = ExtensionTestUtils.loadExtension({
+    manifest: {
+      "permissions": [],
+    },
+
+    async background() {
+      try {
+        let tabs = await browser.tabs.query({currentWindow: true, active: true});
+        browser.test.assertEq(tabs.length, 1, "Expect query to return tabs");
+        browser.test.notifyPass("queryPermissions");
+      } catch (e) {
+        browser.test.notifyFail("queryPermissions");
+      }
+    },
+  });
+
+  await extension.startup();
+
+  await extension.awaitFinish("queryPermissions");
+
+  await extension.unload();
+});
+
+add_task(async function testQueryWithURLPermissions() {
+  let extension = ExtensionTestUtils.loadExtension({
+    manifest: {
+      "permissions": [],
+    },
+
+    async background() {
+      await browser.test.assertRejects(
+        browser.tabs.query({"url": "http://www.bbc.com/"}),
+        'The "tabs" permission is required to use the query API with the "url" parameter',
+        "Expected tabs.query with 'url' to fail with permissions error message");
+
+      browser.test.notifyPass("queryWithURLPermissions");
+    },
+  });
+
+  await extension.startup();
+
+  await extension.awaitFinish("queryWithURLPermissions");
+
+  await extension.unload();
 });

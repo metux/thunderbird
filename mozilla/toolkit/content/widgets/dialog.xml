@@ -8,7 +8,7 @@
           xmlns="http://www.mozilla.org/xbl"
           xmlns:xul="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
           xmlns:xbl="http://www.mozilla.org/xbl">
-  
+
   <binding id="dialog" extends="chrome://global/content/bindings/general.xml#root-element">
     <resources>
       <stylesheet src="chrome://global/skin/dialog.css"/>
@@ -17,7 +17,7 @@
       <xul:vbox class="box-inherit dialog-content-box" flex="1">
         <children/>
       </xul:vbox>
-          
+
       <xul:hbox class="dialog-button-box" anonid="buttons"
                 xbl:inherits="pack=buttonpack,align=buttonalign,dir=buttondir,orient=buttonorient"
 #ifdef XP_UNIX
@@ -58,8 +58,7 @@
         <![CDATA[
           if (this.hasAttribute("defaultButton"))
             return this.getAttribute("defaultButton");
-          else // default to the accept button
-            return "accept";
+          return "accept";  // default to the accept button
         ]]>
         </getter>
         <setter>
@@ -77,7 +76,7 @@
         ]]>
         </body>
       </method>
-      
+
       <method name="cancelDialog">
         <body>
         <![CDATA[
@@ -85,7 +84,7 @@
         ]]>
         </body>
       </method>
-      
+
       <method name="getButton">
         <parameter name="aDlgType"/>
         <body>
@@ -134,9 +133,9 @@
       <method name="centerWindowOnScreen">
         <body>
         <![CDATA[
-          var xOffset = screen.availWidth/2 - window.outerWidth/2;
-          var yOffset = screen.availHeight/2 - window.outerHeight/2; //(opener.outerHeight *2)/10;
-  
+          var xOffset = screen.availWidth / 2 - window.outerWidth / 2;
+          var yOffset = screen.availHeight / 2 - window.outerHeight / 2;
+
           xOffset = xOffset > 0 ? xOffset : 0;
           yOffset = yOffset > 0 ? yOffset : 0;
           window.moveTo(xOffset, yOffset);
@@ -149,10 +148,10 @@
         this._configureButtons(this.buttons);
 
         // listen for when window is closed via native close buttons
-        window.addEventListener("close", this._closeHandler, false);
+        window.addEventListener("close", this._closeHandler);
 
         // for things that we need to initialize after onload fires
-        window.addEventListener("load", this.postLoadInit, false);
+        window.addEventListener("load", this.postLoadInit);
 
         window.moveToAlertPosition = this.moveToAlertPosition;
         window.centerWindowOnScreen = this.centerWindowOnScreen;
@@ -177,8 +176,12 @@
                        focusedElt.getAttribute("noinitialfocus") == "true") {
                   document.commandDispatcher.advanceFocusIntoSubtree(focusedElt);
                   focusedElt = document.commandDispatcher.focusedElement;
-                  if (focusedElt == initialFocusedElt)
+                  if (focusedElt == initialFocusedElt) {
+                    if (focusedElt.getAttribute("noinitialfocus") == "true") {
+                      focusedElt.blur();
+                    }
                     break;
+                  }
                 }
 
                 if (initialFocusedElt.localName == "tab") {
@@ -187,12 +190,10 @@
                     // so return focus to the tab itself
                     initialFocusedElt.focus();
                   }
-                }
-#ifndef XP_MACOSX
-                else if (focusedElt.hasAttribute("dlgtype") && focusedElt != defaultButton) {
+                } else if (!/Mac/.test(navigator.platform) &&
+                           focusedElt.hasAttribute("dlgtype") && focusedElt != defaultButton) {
                   defaultButton.focus();
                 }
-#endif
               }
             }
 
@@ -206,7 +207,7 @@
           setTimeout(focusInit, 0);
         ]]>
         </body>
-      </method>                
+      </method>
 
       <property name="mStrBundle">
         <getter>
@@ -221,7 +222,7 @@
           return this._mStrBundle;
         ]]></getter>
       </property>
-      
+
       <method name="_configureButtons">
         <parameter name="aButtons"/>
         <body>
@@ -254,13 +255,13 @@
             // don't override custom labels with pre-defined labels on explicit buttons
             if (!button.hasAttribute("label")) {
               // dialog attributes override the default labels in dialog.properties
-              if (this.hasAttribute("buttonlabel"+dlgtype)) {
-                button.setAttribute("label", this.getAttribute("buttonlabel"+dlgtype));
-                if (this.hasAttribute("buttonaccesskey"+dlgtype))
-                  button.setAttribute("accesskey", this.getAttribute("buttonaccesskey"+dlgtype));
+              if (this.hasAttribute("buttonlabel" + dlgtype)) {
+                button.setAttribute("label", this.getAttribute("buttonlabel" + dlgtype));
+                if (this.hasAttribute("buttonaccesskey" + dlgtype))
+                  button.setAttribute("accesskey", this.getAttribute("buttonaccesskey" + dlgtype));
               } else if (dlgtype != "extra1" && dlgtype != "extra2") {
-                button.setAttribute("label", this.mStrBundle.GetStringFromName("button-"+dlgtype));
-                var accessKey = this.mStrBundle.GetStringFromName("accesskey-"+dlgtype);
+                button.setAttribute("label", this.mStrBundle.GetStringFromName("button-" + dlgtype));
+                var accessKey = this.mStrBundle.GetStringFromName("accesskey-" + dlgtype);
                 if (accessKey)
                   button.setAttribute("accesskey", accessKey);
               }
@@ -268,22 +269,22 @@
             // allow specifying alternate icons in the dialog header
             if (!button.hasAttribute("icon")) {
               // if there's an icon specified, use that
-              if (this.hasAttribute("buttonicon"+dlgtype))
-                button.setAttribute("icon", this.getAttribute("buttonicon"+dlgtype));
+              if (this.hasAttribute("buttonicon" + dlgtype))
+                button.setAttribute("icon", this.getAttribute("buttonicon" + dlgtype));
               // otherwise set defaults
               else
                 switch (dlgtype) {
                   case "accept":
-                    button.setAttribute("icon","accept");
+                    button.setAttribute("icon", "accept");
                     break;
                   case "cancel":
-                    button.setAttribute("icon","cancel");
+                    button.setAttribute("icon", "cancel");
                     break;
                   case "disclosure":
-                    button.setAttribute("icon","properties");
+                    button.setAttribute("icon", "properties");
                     break;
                   case "help":
-                    button.setAttribute("icon","help");
+                    button.setAttribute("icon", "help");
                     break;
                   default:
                     break;
@@ -293,7 +294,7 @@
 
           // ensure that hitting enter triggers the default button command
           this.defaultButton = this.defaultButton;
-          
+
           // if there is a special button configuration, use it
           if (aButtons) {
             // expect a comma delimited list of dlgtype values
@@ -306,16 +307,15 @@
               shown[list[i].replace(/ /g, "")] = true;
 
             // hide/show the buttons we want
-            for (dlgtype in buttons) 
+            for (dlgtype in buttons)
               buttons[dlgtype].hidden = !shown[dlgtype];
 
-#ifdef XP_WIN
-#           show the spacer on Windows only when the extra2 button is present
-            var spacer = document.getAnonymousElementByAttribute(this, "anonid", "spacer");
-            spacer.removeAttribute("hidden");
-            spacer.setAttribute("flex", shown["extra2"]?"1":"0");
-#endif
-
+            // show the spacer on Windows only when the extra2 button is present
+            if (/Win/.test(navigator.platform)) {
+              var spacer = document.getAnonymousElementByAttribute(this, "anonid", "spacer");
+              spacer.removeAttribute("hidden");
+              spacer.setAttribute("flex", shown.extra2 ? "1" : "0");
+            }
           }
         ]]>
         </body>
@@ -334,11 +334,10 @@
           if (newDefaultButton) {
             this.setAttribute("defaultButton", aNewDefault);
             newDefaultButton.setAttribute("default", "true");
-          }
-          else {
+          } else {
             this.setAttribute("defaultButton", "none");
             if (aNewDefault != "none")
-              dump("invalid new default button: " +  aNewDefault + ", assuming: none\n");
+              dump("invalid new default button: " + aNewDefault + ", assuming: none\n");
           }
         ]]>
         </body>
@@ -353,7 +352,7 @@
         ]]>
         </body>
       </method>
-      
+
       <method name="_doButtonCommand">
         <parameter name="aDlgType"/>
         <body>
@@ -377,26 +376,26 @@
         ]]>
         </body>
       </method>
-      
+
       <method name="_fireButtonEvent">
         <parameter name="aDlgType"/>
         <body>
         <![CDATA[
           var event = document.createEvent("Events");
-          event.initEvent("dialog"+aDlgType, true, true);
-          
+          event.initEvent("dialog" + aDlgType, true, true);
+
           // handle dom event handlers
           var noCancel = this.dispatchEvent(event);
-          
+
           // handle any xml attribute event handlers
-          var handler = this.getAttribute("ondialog"+aDlgType);
+          var handler = this.getAttribute("ondialog" + aDlgType);
           if (handler != "") {
             var fn = new Function("event", handler);
             var returned = fn(event);
             if (returned == false)
               noCancel = false;
           }
-          
+
           return noCancel;
         ]]>
         </body>
@@ -417,7 +416,7 @@
       </method>
 
     </implementation>
-    
+
     <handlers>
       <handler event="keypress" keycode="VK_RETURN"
                group="system" action="this._hitEnter(event);"/>

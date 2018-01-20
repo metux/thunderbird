@@ -7,7 +7,8 @@
 var { Cc, Ci } = require("chrome");
 
 loader.lazyGetter(this, "ppmm", () => {
-  return Cc["@mozilla.org/parentprocessmessagemanager;1"].getService(Ci.nsIMessageBroadcaster);
+  return Cc["@mozilla.org/parentprocessmessagemanager;1"].getService(
+    Ci.nsIMessageBroadcaster);
 });
 
 function ProcessActorList() {
@@ -24,9 +25,13 @@ ProcessActorList.prototype = {
     let processes = [];
     for (let i = 0; i < ppmm.childCount; i++) {
       processes.push({
-        id: i, // XXX: may not be a perfect id, but process message manager doesn't expose anything...
-        parent: i == 0, // XXX Weak, but appear to be stable
-        tabCount: undefined, // TODO: exposes process message manager on frameloaders in order to compute this
+        // XXX: may not be a perfect id, but process message manager doesn't
+        // expose anything...
+        id: i,
+        // XXX Weak, but appear to be stable
+        parent: i == 0,
+        // TODO: exposes process message manager on frameloaders in order to compute this
+        tabCount: undefined,
       });
     }
     this._mustNotify = true;
@@ -57,10 +62,10 @@ ProcessActorList.prototype = {
       for (let i = 0; i < ppmm.childCount; i++) {
         this._knownProcesses.push(ppmm.getChildAt(i));
       }
-      ppmm.addMessageListener('debug:new-process', this._onMessage);
+      ppmm.addMessageListener("debug:new-process", this._onMessage);
       ppmm.loadProcessScript(this._processScript, true);
     } else {
-      ppmm.removeMessageListener('debug:new-process', this._onMessage);
+      ppmm.removeMessageListener("debug:new-process", this._onMessage);
       ppmm.removeDelayedProcessScript(this._processScript);
     }
   },

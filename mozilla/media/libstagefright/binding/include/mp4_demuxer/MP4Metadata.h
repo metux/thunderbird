@@ -5,29 +5,31 @@
 #ifndef MP4METADATA_H_
 #define MP4METADATA_H_
 
-#include "mozilla/Monitor.h"
+#include "mozilla/TypeTraits.h"
 #include "mozilla/UniquePtr.h"
-#include "mp4_demuxer/Index.h"
 #include "mp4_demuxer/DecoderData.h"
-#include "nsAutoPtr.h"
-#include "nsTArray.h"
+#include "mp4_demuxer/Index.h"
+#include "MediaData.h"
 #include "MediaInfo.h"
-#include "MediaResource.h"
-
-#ifdef MOZ_RUST_MP4PARSE
+#include "MediaResult.h"
+#include "Stream.h"
 #include "mp4parse.h"
-#endif
 
-namespace stagefright { class MetaData; }
+namespace mp4_demuxer {
 
-namespace mp4_demuxer
-{
+class MP4MetadataStagefright;
+class MP4MetadataRust;
 
-struct StageFrightPrivate;
+class IndiceWrapper {
+public:
+  virtual size_t Length() const = 0;
 
-#ifdef MOZ_RUST_MP4PARSE
-struct FreeMP4ParseState { void operator()(mp4parse_state* aPtr) { mp4parse_free(aPtr); } };
-#endif
+  // TODO: Index::Indice is from stagefright, we should use another struct once
+  //       stagefrigth is removed.
+  virtual bool GetIndice(size_t aIndex, Index::Indice& aIndice) const = 0;
+
+  virtual ~IndiceWrapper() {}
+};
 
 class MP4Metadata
 {
@@ -35,33 +37,56 @@ public:
   explicit MP4Metadata(Stream* aSource);
   ~MP4Metadata();
 
-  static bool HasCompleteMetadata(Stream* aSource);
-  static already_AddRefed<mozilla::MediaByteBuffer> Metadata(Stream* aSource);
-  uint32_t GetNumberTracks(mozilla::TrackInfo::TrackType aType) const;
-  mozilla::UniquePtr<mozilla::TrackInfo> GetTrackInfo(mozilla::TrackInfo::TrackType aType,
-                                                      size_t aTrackNumber) const;
+  // Simple template class containing a MediaResult and another type.
+  template <typename T>
+  class ResultAndType
+  {
+  public:
+    template <typename M2, typename T2>
+    ResultAndType(M2&& aM, T2&& aT)
+      : mResult(Forward<M2>(aM)), mT(Forward<T2>(aT))
+    {
+    }
+    ResultAndType(const ResultAndType&) = default;
+    ResultAndType& operator=(const ResultAndType&) = default;
+    ResultAndType(ResultAndType&&) = default;
+    ResultAndType& operator=(ResultAndType&&) = default;
+
+    mozilla::MediaResult& Result() { return mResult; }
+    T& Ref() { return mT; }
+
+  private:
+    mozilla::MediaResult mResult;
+    typename mozilla::Decay<T>::Type mT;
+  };
+
+  using ResultAndByteBuffer = ResultAndType<RefPtr<mozilla::MediaByteBuffer>>;
+  static ResultAndByteBuffer Metadata(Stream* aSource);
+
+  static constexpr uint32_t NumberTracksError() { return UINT32_MAX; }
+  using ResultAndTrackCount = ResultAndType<uint32_t>;
+  ResultAndTrackCount GetNumberTracks(mozilla::TrackInfo::TrackType aType) const;
+
+  using ResultAndTrackInfo =
+    ResultAndType<mozilla::UniquePtr<mozilla::TrackInfo>>;
+  ResultAndTrackInfo GetTrackInfo(mozilla::TrackInfo::TrackType aType,
+                                  size_t aTrackNumber) const;
+
   bool CanSeek() const;
 
-  const CryptoFile& Crypto() const
-  {
-    return mCrypto;
-  }
+  using ResultAndCryptoFile = ResultAndType<const CryptoFile*>;
+  ResultAndCryptoFile Crypto() const;
 
-  bool ReadTrackIndex(FallibleTArray<Index::Indice>& aDest, mozilla::TrackID aTrackID);
+  using ResultAndIndice = ResultAndType<mozilla::UniquePtr<IndiceWrapper>>;
+  ResultAndIndice GetTrackIndice(mozilla::TrackID aTrackID);
 
 private:
-  int32_t GetTrackNumber(mozilla::TrackID aTrackID);
-  void UpdateCrypto(const stagefright::MetaData* aMetaData);
-  mozilla::UniquePtr<mozilla::TrackInfo> CheckTrack(const char* aMimeType,
-                                                    stagefright::MetaData* aMetaData,
-                                                    int32_t aIndex) const;
-  nsAutoPtr<StageFrightPrivate> mPrivate;
-  CryptoFile mCrypto;
-  RefPtr<Stream> mSource;
-
-#ifdef MOZ_RUST_MP4PARSE
-  mutable mozilla::UniquePtr<mp4parse_state, FreeMP4ParseState> mRustState;
-#endif
+  UniquePtr<MP4MetadataStagefright> mStagefright;
+  UniquePtr<MP4MetadataRust> mRust;
+  mutable bool mDisableRust;
+  mutable bool mReportedAudioTrackTelemetry;
+  mutable bool mReportedVideoTrackTelemetry;
+  bool ShouldPreferRust() const;
 };
 
 } // namespace mp4_demuxer

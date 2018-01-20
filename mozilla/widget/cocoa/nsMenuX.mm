@@ -14,7 +14,6 @@
 #include "nsObjCExceptions.h"
 
 #include "nsToolkit.h"
-#include "nsCocoaFeatures.h"
 #include "nsCocoaUtils.h"
 #include "nsCOMPtr.h"
 #include "prinrval.h"
@@ -37,6 +36,7 @@
 #include "nsIServiceManager.h"
 #include "nsXULPopupManager.h"
 #include "mozilla/dom/ScriptSettings.h"
+#include "mozilla/EventDispatcher.h"
 
 #include "jsapi.h"
 #include "nsIScriptGlobalObject.h"
@@ -120,7 +120,7 @@ nsMenuX::nsMenuX()
   }
 
   mMenuDelegate = [[MenuDelegate alloc] initWithGeckoMenu:this];
-    
+
   if (!nsMenuBarX::sNativeEventTarget)
     nsMenuBarX::sNativeEventTarget = [[NativeMenuItemTarget alloc] init];
 
@@ -235,30 +235,31 @@ nsresult nsMenuX::AddMenuItem(nsMenuItemX* aMenuItem)
   NS_OBJC_END_TRY_ABORT_BLOCK_NSRESULT;
 }
 
-nsresult nsMenuX::AddMenu(nsMenuX* aMenu)
+nsMenuX* nsMenuX::AddMenu(UniquePtr<nsMenuX> aMenu)
 {
-  NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
+  NS_OBJC_BEGIN_TRY_ABORT_BLOCK_RETURN;
 
-  // Add a submenu
-  if (!aMenu)
-    return NS_ERROR_NULL_POINTER;
+  // aMenu transfers ownership to mMenuObjectsArray and becomes nullptr, so
+  // we need to keep a raw pointer to access it conveniently.
+  nsMenuX* menu = aMenu.get();
+  mMenuObjectsArray.AppendElement(Move(aMenu));
 
-  mMenuObjectsArray.AppendElement(aMenu);
-  if (nsMenuUtilsX::NodeIsHiddenOrCollapsed(aMenu->Content()))
-    return NS_OK;
+  if (nsMenuUtilsX::NodeIsHiddenOrCollapsed(menu->Content())) {
+    return menu;
+  }
+
   ++mVisibleItemsCount;
 
   // We have to add a menu item and then associate the menu with it
-  NSMenuItem* newNativeMenuItem = aMenu->NativeMenuItem();
-  if (!newNativeMenuItem)
-    return NS_ERROR_FAILURE;
-  [mNativeMenu addItem:newNativeMenuItem];
+  NSMenuItem* newNativeMenuItem = menu->NativeMenuItem();
+  if (newNativeMenuItem) {
+    [mNativeMenu addItem:newNativeMenuItem];
+    [newNativeMenuItem setSubmenu:(NSMenu*)menu->NativeData()];
+  }
 
-  [newNativeMenuItem setSubmenu:(NSMenu*)aMenu->NativeData()];
+  return menu;
 
-  return NS_OK;
-
-  NS_OBJC_END_TRY_ABORT_BLOCK_NSRESULT;
+  NS_OBJC_END_TRY_ABORT_BLOCK_RETURN(nullptr);
 }
 
 // Includes all items, including hidden/collapsed ones
@@ -273,7 +274,7 @@ nsMenuObjectX* nsMenuX::GetItemAt(uint32_t aPos)
   if (aPos >= (uint32_t)mMenuObjectsArray.Length())
     return NULL;
 
-  return mMenuObjectsArray[aPos];
+  return mMenuObjectsArray[aPos].get();
 }
 
 // Only includes visible items
@@ -287,20 +288,20 @@ nsresult nsMenuX::GetVisibleItemCount(uint32_t &aCount)
 // If you need to iterate or search, consider using GetItemAt and doing your own filtering
 nsMenuObjectX* nsMenuX::GetVisibleItemAt(uint32_t aPos)
 {
-  
+
   uint32_t count = mMenuObjectsArray.Length();
   if (aPos >= mVisibleItemsCount || aPos >= count)
     return NULL;
 
   // If there are no invisible items, can provide direct access
   if (mVisibleItemsCount == count)
-    return mMenuObjectsArray[aPos];
+    return mMenuObjectsArray[aPos].get();
 
   // Otherwise, traverse the array until we find the the item we're looking for.
   nsMenuObjectX* item;
   uint32_t visibleNodeIndex = 0;
   for (uint32_t i = 0; i < count; i++) {
-    item = mMenuObjectsArray[i];
+    item = mMenuObjectsArray[i].get();
     if (!nsMenuUtilsX::NodeIsHiddenOrCollapsed(item->Content())) {
       if (aPos == visibleNodeIndex) {
         // we found the visible node we're looking for, return it
@@ -361,8 +362,8 @@ nsEventStatus nsMenuX::MenuOpened()
   nsCOMPtr<nsIContent> popupContent;
   GetMenuPopupContent(getter_AddRefs(popupContent));
   nsIContent* dispatchTo = popupContent ? popupContent : mContent;
-  dispatchTo->DispatchDOMEvent(&event, nullptr, nullptr, &status);
-  
+  EventDispatcher::Dispatch(dispatchTo, nullptr, &event, nullptr, &status);
+
   return nsEventStatus_eConsumeNoDefault;
 }
 
@@ -385,7 +386,7 @@ void nsMenuX::MenuClosed()
     nsCOMPtr<nsIContent> popupContent;
     GetMenuPopupContent(getter_AddRefs(popupContent));
     nsIContent* dispatchTo = popupContent ? popupContent : mContent;
-    dispatchTo->DispatchDOMEvent(&event, nullptr, nullptr, &status);
+    EventDispatcher::Dispatch(dispatchTo, nullptr, &event, nullptr, &status);
 
     mDestroyHandlerCalled = true;
     mConstructed = false;
@@ -396,7 +397,7 @@ void nsMenuX::MenuConstruct()
 {
   mConstructed = false;
   gConstructingMenu = true;
-  
+
   // reset destroy handler flag so that we'll know to fire it next time this menu goes away.
   mDestroyHandlerCalled = false;
 
@@ -421,7 +422,6 @@ void nsMenuX::MenuConstruct()
       if (ownerDoc && jsapi.Init(ownerDoc->GetInnerWindow())) {
         JSContext* cx = jsapi.cx();
         JS::RootedObject ignoredObj(cx);
-        nsCOMPtr<nsIXPConnectJSObjectHolder> wrapper;
         xpconnect->WrapNative(cx, JS::CurrentGlobalOrNull(cx), menuPopup,
                               NS_GET_IID(nsISupports), ignoredObj.address());
         mXBLAttached = true;
@@ -451,8 +451,13 @@ void nsMenuX::MenuConstruct()
 
 void nsMenuX::SetRebuild(bool aNeedsRebuild)
 {
-  if (!gConstructingMenu)
+  if (!gConstructingMenu) {
     mNeedsRebuild = aNeedsRebuild;
+    if (mParent->MenuObjectType() == eMenuBarObjectType) {
+      nsMenuBarX* mb = static_cast<nsMenuBarX*>(mParent);
+      mb->SetNeedsRebuild();
+    }
+  }
 }
 
 nsresult nsMenuX::SetEnabled(bool aIsEnabled)
@@ -538,7 +543,7 @@ void nsMenuX::LoadMenuItem(nsIContent* inMenuItemContent)
 
 void nsMenuX::LoadSubMenu(nsIContent* inMenuContent)
 {
-  nsAutoPtr<nsMenuX> menu(new nsMenuX());
+  auto menu = MakeUnique<nsMenuX>();
   if (!menu)
     return;
 
@@ -546,13 +551,15 @@ void nsMenuX::LoadSubMenu(nsIContent* inMenuContent)
   if (NS_FAILED(rv))
     return;
 
-  AddMenu(menu);
+  // |menu|'s ownership is transfer to AddMenu but, if it is successfully
+  // added, we can access it via the returned raw pointer.
+  nsMenuX* menu_ptr = AddMenu(Move(menu));
 
   // This needs to happen after the nsIMenu object is inserted into
   // our item array in AddMenu()
-  menu->SetupIcon();
-
-  menu.forget();
+  if (menu_ptr) {
+    menu_ptr->SetupIcon();
+  }
 }
 
 // This menu is about to open. Returns TRUE if we should keep processing the event,
@@ -562,13 +569,13 @@ bool nsMenuX::OnOpen()
   nsEventStatus status = nsEventStatus_eIgnore;
   WidgetMouseEvent event(true, eXULPopupShowing, nullptr,
                          WidgetMouseEvent::eReal);
-  
+
   nsCOMPtr<nsIContent> popupContent;
   GetMenuPopupContent(getter_AddRefs(popupContent));
-  
+
   nsresult rv = NS_OK;
   nsIContent* dispatchTo = popupContent ? popupContent : mContent;
-  rv = dispatchTo->DispatchDOMEvent(&event, nullptr, nullptr, &status);
+  rv = EventDispatcher::Dispatch(dispatchTo, nullptr, &event, nullptr, &status);
   if (NS_FAILED(rv) || status == nsEventStatus_eConsumeNoDefault)
     return false;
 
@@ -606,13 +613,13 @@ bool nsMenuX::OnClose()
 
   nsresult rv = NS_OK;
   nsIContent* dispatchTo = popupContent ? popupContent : mContent;
-  rv = dispatchTo->DispatchDOMEvent(&event, nullptr, nullptr, &status);
-  
+  rv = EventDispatcher::Dispatch(dispatchTo, nullptr, &event, nullptr, &status);
+
   mDestroyHandlerCalled = true;
-  
+
   if (NS_FAILED(rv) || status == nsEventStatus_eConsumeNoDefault)
     return false;
-  
+
   return true;
 }
 
@@ -624,11 +631,11 @@ void nsMenuX::GetMenuPopupContent(nsIContent** aResult)
   if (!aResult)
     return;
   *aResult = nullptr;
-  
+
   // Check to see if we are a "menupopup" node (if we are a native menu).
   {
     int32_t dummy;
-    nsCOMPtr<nsIAtom> tag = mContent->OwnerDoc()->BindingManager()->ResolveTag(mContent, &dummy);
+    RefPtr<nsAtom> tag = mContent->OwnerDoc()->BindingManager()->ResolveTag(mContent, &dummy);
     if (tag == nsGkAtoms::menupopup) {
       *aResult = mContent;
       NS_ADDREF(*aResult);
@@ -637,13 +644,13 @@ void nsMenuX::GetMenuPopupContent(nsIContent** aResult)
   }
 
   // Otherwise check our child nodes.
-  
+
   uint32_t count = mContent->GetChildCount();
 
   for (uint32_t i = 0; i < count; i++) {
     int32_t dummy;
     nsIContent *child = mContent->GetChildAt(i);
-    nsCOMPtr<nsIAtom> tag = child->OwnerDoc()->BindingManager()->ResolveTag(child, &dummy);
+    RefPtr<nsAtom> tag = child->OwnerDoc()->BindingManager()->ResolveTag(child, &dummy);
     if (tag == nsGkAtoms::menupopup) {
       *aResult = child;
       NS_ADDREF(*aResult);
@@ -674,7 +681,7 @@ bool nsMenuX::IsXULHelpMenu(nsIContent* aMenuContent)
 //
 
 void nsMenuX::ObserveAttributeChanged(nsIDocument *aDocument, nsIContent *aContent,
-                                      nsIAtom *aAttribute)
+                                      nsAtom *aAttribute)
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
 
@@ -702,7 +709,7 @@ void nsMenuX::ObserveAttributeChanged(nsIDocument *aDocument, nsIContent *aConte
     }
     else if (parentType == eSubmenuObjectType) {
       static_cast<nsMenuX*>(mParent)->SetRebuild(true);
-    }    
+    }
     else if (parentType == eStandaloneNativeMenuObjectType) {
       static_cast<nsStandaloneNativeMenu*>(mParent)->GetMenuXObject()->SetRebuild(true);
     }
@@ -754,8 +761,10 @@ void nsMenuX::ObserveAttributeChanged(nsIDocument *aDocument, nsIContent *aConte
   NS_OBJC_END_TRY_ABORT_BLOCK;
 }
 
-void nsMenuX::ObserveContentRemoved(nsIDocument *aDocument, nsIContent *aChild,
-                                    int32_t aIndexInContainer)
+void nsMenuX::ObserveContentRemoved(nsIDocument* aDocument,
+                                    nsIContent* aContainer,
+                                    nsIContent* aChild,
+                                    nsIContent* aPreviousSibling)
 {
   if (gConstructingMenu)
     return;
@@ -900,7 +909,7 @@ static NSMutableDictionary *gShadowKeyEquivDB = nil;
 - (id)initWithItem:(NSMenuItem *)aItem table:(NSMapTable *)aTable
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NIL;
-  
+
   if (!gShadowKeyEquivDB)
     gShadowKeyEquivDB = [[NSMutableDictionary alloc] init];
   self = [super init];

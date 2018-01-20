@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -22,11 +23,16 @@ namespace gfx {
  */
 template <class T, class Sub, class Coord = T>
 struct BasePoint {
-  T x, y;
+  union {
+    struct {
+      T x, y;
+    };
+    T components[2];
+  };
 
   // Constructors
-  MOZ_CONSTEXPR BasePoint() : x(0), y(0) {}
-  MOZ_CONSTEXPR BasePoint(Coord aX, Coord aY) : x(aX), y(aY) {}
+  constexpr BasePoint() : x(0), y(0) {}
+  constexpr BasePoint(Coord aX, Coord aY) : x(aX), y(aY) {}
 
   void MoveTo(T aX, T aY) { x = aX; y = aY; }
   void MoveBy(T aDx, T aDy) { x += aDx; y += aDy; }
@@ -73,8 +79,12 @@ struct BasePoint {
       return x * aPoint.x + y * aPoint.y;
   }
 
-  T Length() const {
+  Coord Length() const {
     return hypot(x, y);
+  }
+
+  T LengthSquare() const {
+    return x * x + y * y;
   }
 
   // Round() is *not* rounding to nearest integer if the values are negative.

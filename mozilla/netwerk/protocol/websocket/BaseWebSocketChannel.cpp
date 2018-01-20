@@ -8,6 +8,7 @@
 #include "BaseWebSocketChannel.h"
 #include "MainThreadUtils.h"
 #include "nsILoadGroup.h"
+#include "nsINode.h"
 #include "nsIInterfaceRequestor.h"
 #include "nsAutoPtr.h"
 #include "nsProxyRelease.h"
@@ -15,6 +16,7 @@
 #include "LoadInfo.h"
 #include "nsIDOMNode.h"
 #include "mozilla/dom/ContentChild.h"
+#include "nsITransportProvider.h"
 
 using mozilla::dom::ContentChild;
 
@@ -38,6 +40,7 @@ BaseWebSocketChannel::BaseWebSocketChannel()
   , mClientSetPingTimeout(0)
   , mEncrypted(0)
   , mPingForced(0)
+  , mIsServerSide(false)
   , mPingInterval(0)
   , mPingResponseTimeout(10000)
 {
@@ -242,6 +245,17 @@ BaseWebSocketChannel::SetSerial(uint32_t aSerial)
   return NS_OK;
 }
 
+NS_IMETHODIMP
+BaseWebSocketChannel::SetServerParameters(nsITransportProvider* aProvider,
+                                          const nsACString& aNegotiatedExtensions)
+{
+  MOZ_ASSERT(aProvider);
+  mServerTransportProvider = aProvider;
+  mNegotiatedExtensions = aNegotiatedExtensions;
+  mIsServerSide = true;
+  return NS_OK;
+}
+
 //-----------------------------------------------------------------------------
 // BaseWebSocketChannel::nsIProtocolHandler
 //-----------------------------------------------------------------------------
@@ -276,7 +290,7 @@ BaseWebSocketChannel::GetProtocolFlags(uint32_t *aProtocolFlags)
 {
   LOG(("BaseWebSocketChannel::GetProtocolFlags() %p\n", this));
 
-  *aProtocolFlags = URI_NORELATIVE | URI_NON_PERSISTABLE | ALLOWS_PROXY | 
+  *aProtocolFlags = URI_NORELATIVE | URI_NON_PERSISTABLE | ALLOWS_PROXY |
       ALLOWS_PROXY_HTTP | URI_DOES_NOT_RETURN_DATA | URI_DANGEROUS_TO_LOAD;
   return NS_OK;
 }
@@ -345,6 +359,19 @@ BaseWebSocketChannel::RetargetDeliveryTo(nsIEventTarget* aTargetThread)
   return NS_OK;
 }
 
+NS_IMETHODIMP
+BaseWebSocketChannel::GetDeliveryTarget(nsIEventTarget** aTargetThread)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  nsCOMPtr<nsIEventTarget> target = mTargetThread;
+  if (!target) {
+    target = GetCurrentThreadEventTarget();
+  }
+  target.forget(aTargetThread);
+  return NS_OK;
+}
+
 BaseWebSocketChannel::ListenerAndContextContainer::ListenerAndContextContainer(
                                                nsIWebSocketListener* aListener,
                                                nsISupports* aContext)
@@ -359,11 +386,12 @@ BaseWebSocketChannel::ListenerAndContextContainer::~ListenerAndContextContainer(
 {
   MOZ_ASSERT(mListener);
 
-  nsCOMPtr<nsIThread> mainThread;
-  NS_GetMainThread(getter_AddRefs(mainThread));
-
-  NS_ProxyRelease(mainThread, mListener, false);
-  NS_ProxyRelease(mainThread, mContext, false);
+  NS_ReleaseOnMainThreadSystemGroup(
+    "BaseWebSocketChannel::ListenerAndContextContainer::mListener",
+    mListener.forget());
+  NS_ReleaseOnMainThreadSystemGroup(
+    "BaseWebSocketChannel::ListenerAndContextContainer::mContext",
+    mContext.forget());
 }
 
 } // namespace net

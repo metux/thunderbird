@@ -20,6 +20,7 @@ class DelayNodeEngine;
 struct AudioTimelineEvent;
 } // namespace dom
 
+class AbstractThread;
 class AudioBlock;
 class AudioNodeStream;
 
@@ -46,6 +47,12 @@ public:
    */
   static already_AddRefed<ThreadSharedFloatArrayBufferList>
   Create(uint32_t aChannelCount, size_t aLength, const mozilla::fallible_t&);
+
+  ThreadSharedFloatArrayBufferList*
+  AsThreadSharedFloatArrayBufferList() override
+  {
+    return this;
+  };
 
   struct Storage final
   {
@@ -111,7 +118,7 @@ public:
    */
   void Clear() { mContents.Clear(); }
 
-  virtual size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const override
+  size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const override
   {
     size_t amount = ThreadSharedObject::SizeOfExcludingThis(aMallocSizeOf);
     amount += mContents.ShallowSizeOfExcludingThis(aMallocSizeOf);
@@ -122,13 +129,13 @@ public:
     return amount;
   }
 
-  virtual size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const override
+  size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const override
   {
     return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
   }
 
 private:
-  nsAutoTArray<Storage, 2> mContents;
+  AutoTArray<Storage, 2> mContents;
 };
 
 /**
@@ -253,16 +260,10 @@ class AudioNodeEngine
 {
 public:
   // This should be compatible with AudioNodeStream::OutputChunks.
-  typedef nsAutoTArray<AudioBlock, 1> OutputChunks;
+  typedef AutoTArray<AudioBlock, 1> OutputChunks;
 
-  explicit AudioNodeEngine(dom::AudioNode* aNode)
-    : mNode(aNode)
-    , mInputCount(aNode ? aNode->NumberOfInputs() : 1)
-    , mOutputCount(aNode ? aNode->NumberOfOutputs() : 0)
-  {
-    MOZ_ASSERT(NS_IsMainThread());
-    MOZ_COUNT_CTOR(AudioNodeEngine);
-  }
+  explicit AudioNodeEngine(dom::AudioNode* aNode);
+
   virtual ~AudioNodeEngine()
   {
     MOZ_ASSERT(!mNode, "The node reference must be already cleared");
@@ -293,7 +294,7 @@ public:
   {
     NS_ERROR("Invalid SetThreeDPointParameter index");
   }
-  virtual void SetBuffer(already_AddRefed<ThreadSharedFloatArrayBufferList> aBuffer)
+  virtual void SetBuffer(AudioChunk&& aBuffer)
   {
     NS_ERROR("SetBuffer called on engine that doesn't support it");
   }
@@ -394,16 +395,18 @@ public:
                            AudioNodeSizes& aUsage) const
   {
     aUsage.mEngine = SizeOfIncludingThis(aMallocSizeOf);
-    if (mNode) {
-      aUsage.mDomNode = mNode->SizeOfIncludingThis(aMallocSizeOf);
-      aUsage.mNodeType = mNode->NodeType();
-    }
+    aUsage.mNodeType = mNodeType;
   }
 
 private:
-  dom::AudioNode* mNode;
+  // This is cleared from AudioNode::DestroyMediaStream()
+  dom::AudioNode* MOZ_NON_OWNING_REF mNode; // main thread only
+  const char* const mNodeType;
   const uint16_t mInputCount;
   const uint16_t mOutputCount;
+
+protected:
+  const RefPtr<AbstractThread> mAbstractMainThread;
 };
 
 } // namespace mozilla

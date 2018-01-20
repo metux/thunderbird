@@ -17,7 +17,7 @@ function mockAddonProvider(name) {
     },
     getAddonByID(id, callback) {
       if (!this.hasStarted) {
-        unsafeAccess = true;
+        this.unsafeAccess = true;
       }
       callback(null);
     },
@@ -28,19 +28,15 @@ function mockAddonProvider(name) {
   };
 
   return mockProvider;
-};
-
-function run_test() {
-  run_next_test();
 }
 
-add_task(function* unsafeProviderStartup() {
+add_task(async function unsafeProviderStartup() {
   let secondProvider = null;
 
-  yield new Promise(resolve => {
+  await new Promise(resolve => {
     let firstProvider = mockAddonProvider("Mock1");
     firstProvider.startupCallback = function() {
-      AddonManager.getAddonByID("does-not-exist", resolve);
+      resolve(AddonManager.getAddonByID("does-not-exist"));
     };
     AddonManagerPrivate.registerProvider(firstProvider);
 

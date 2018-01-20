@@ -12,16 +12,16 @@
 #include "vm/Stack-inl.h"
 
 /* static */ inline bool
-js::Debugger::onLeaveFrame(JSContext* cx, AbstractFramePtr frame, bool ok)
+js::Debugger::onLeaveFrame(JSContext* cx, AbstractFramePtr frame, jsbytecode* pc, bool ok)
 {
     MOZ_ASSERT_IF(frame.isInterpreterFrame(), frame.asInterpreterFrame() == cx->interpreterFrame());
-    MOZ_ASSERT_IF(frame.script()->isDebuggee(), frame.isDebuggee());
+    MOZ_ASSERT_IF(frame.hasScript() && frame.script()->isDebuggee(), frame.isDebuggee());
     /* Traps must be cleared from eval frames, see slowPathOnLeaveFrame. */
     mozilla::DebugOnly<bool> evalTraps = frame.isEvalFrame() &&
                                          frame.script()->hasAnyBreakpointsOrStepMode();
     MOZ_ASSERT_IF(evalTraps, frame.isDebuggee());
     if (frame.isDebuggee())
-        ok = slowPathOnLeaveFrame(cx, frame, ok);
+        ok = slowPathOnLeaveFrame(cx, frame, pc, ok);
     MOZ_ASSERT(!inFrameMaps(frame));
     return ok;
 }
@@ -29,14 +29,22 @@ js::Debugger::onLeaveFrame(JSContext* cx, AbstractFramePtr frame, bool ok)
 /* static */ inline js::Debugger*
 js::Debugger::fromJSObject(const JSObject* obj)
 {
-    MOZ_ASSERT(js::GetObjectClass(obj) == &jsclass);
+    MOZ_ASSERT(js::GetObjectClass(obj) == &class_);
     return (Debugger*) obj->as<NativeObject>().getPrivate();
+}
+
+/* static */ inline bool
+js::Debugger::checkNoExecute(JSContext* cx, HandleScript script)
+{
+    if (!cx->compartment()->isDebuggee() || !cx->noExecuteDebuggerTop)
+        return true;
+    return slowPathCheckNoExecute(cx, script);
 }
 
 /* static */ JSTrapStatus
 js::Debugger::onEnterFrame(JSContext* cx, AbstractFramePtr frame)
 {
-    MOZ_ASSERT_IF(frame.script()->isDebuggee(), frame.isDebuggee());
+    MOZ_ASSERT_IF(frame.hasScript() && frame.script()->isDebuggee(), frame.isDebuggee());
     if (!frame.isDebuggee())
         return JSTRAP_CONTINUE;
     return slowPathOnEnterFrame(cx, frame);
@@ -58,27 +66,67 @@ js::Debugger::onExceptionUnwind(JSContext* cx, AbstractFramePtr frame)
     return slowPathOnExceptionUnwind(cx, frame);
 }
 
-/* static */ bool
-js::Debugger::observesIonCompilation(JSContext* cx)
+/* static */ void
+js::Debugger::onNewWasmInstance(JSContext* cx, Handle<WasmInstanceObject*> wasmInstance)
 {
-    // If the current compartment is observed by any Debugger.
-    if (!cx->compartment()->isDebuggee())
-        return false;
-
-    // If any attached Debugger watch for Jit compilation results.
-    if (!Debugger::hasLiveHook(cx->global(), Debugger::OnIonCompilation))
-        return false;
-
-    return true;
+    if (cx->compartment()->isDebuggee())
+        slowPathOnNewWasmInstance(cx, wasmInstance);
 }
 
 /* static */ void
-js::Debugger::onIonCompilation(JSContext* cx, Handle<ScriptVector> scripts, LSprinter& graph)
+js::Debugger::onNewPromise(JSContext* cx, Handle<PromiseObject*> promise)
 {
-    if (!observesIonCompilation(cx))
-        return;
+    if (MOZ_UNLIKELY(cx->compartment()->isDebuggee()))
+        slowPathPromiseHook(cx, Debugger::OnNewPromise, promise);
+}
 
-    slowPathOnIonCompilation(cx, scripts, graph);
+/* static */ void
+js::Debugger::onPromiseSettled(JSContext* cx, Handle<PromiseObject*> promise)
+{
+    if (MOZ_UNLIKELY(cx->compartment()->isDebuggee()))
+        slowPathPromiseHook(cx, Debugger::OnPromiseSettled, promise);
+}
+
+inline bool
+js::Debugger::getScriptFrame(JSContext* cx, const FrameIter& iter,
+                             MutableHandle<DebuggerFrame*> result)
+{
+    return getScriptFrameWithIter(cx, iter.abstractFramePtr(), &iter, result);
+}
+
+inline js::Debugger*
+js::DebuggerEnvironment::owner() const
+{
+    JSObject* dbgobj = &getReservedSlot(OWNER_SLOT).toObject();
+    return Debugger::fromJSObject(dbgobj);
+}
+
+inline js::Debugger*
+js::DebuggerFrame::owner() const
+{
+    JSObject* dbgobj = &getReservedSlot(OWNER_SLOT).toObject();
+    return Debugger::fromJSObject(dbgobj);
+}
+
+inline js::Debugger*
+js::DebuggerObject::owner() const
+{
+    JSObject* dbgobj = &getReservedSlot(OWNER_SLOT).toObject();
+    return Debugger::fromJSObject(dbgobj);
+}
+
+inline js::PromiseObject*
+js::DebuggerObject::promise() const
+{
+    MOZ_ASSERT(isPromise());
+
+    JSObject* referent = this->referent();
+    if (IsCrossCompartmentWrapper(referent)) {
+        referent = CheckedUnwrap(referent);
+        MOZ_ASSERT(referent);
+    }
+
+    return &referent->as<PromiseObject>();
 }
 
 #endif /* vm_Debugger_inl_h */

@@ -18,6 +18,9 @@
 #include "mozilla/CondVar.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/ErrorNames.h"
+#include "mozilla/Unused.h"
+#include "mozilla/dom/quota/QuotaObject.h"
+#include "mozilla/ScopeExit.h"
 
 #include "mozIStorageAggregateFunction.h"
 #include "mozIStorageCompletionCallback.h"
@@ -39,7 +42,7 @@
 #include "GeckoProfiler.h"
 
 #include "mozilla/Logging.h"
-#include "prprf.h"
+#include "mozilla/Printf.h"
 #include "nsProxyRelease.h"
 #include <algorithm>
 
@@ -48,7 +51,7 @@
 // Maximum size of the pages cache per connection.
 #define MAX_CACHE_SIZE_KIBIBYTES 2048 // 2 MiB
 
-PRLogModuleInfo* gStorageLog = nullptr;
+mozilla::LazyLogModule gStorageLog("mozStorage");
 
 // Checks that the protected code is running on the main-thread only if the
 // connection was also opened on it.
@@ -56,8 +59,10 @@ PRLogModuleInfo* gStorageLog = nullptr;
 #define CHECK_MAINTHREAD_ABUSE() \
   do { \
     nsCOMPtr<nsIThread> mainThread = do_GetMainThread(); \
-    NS_WARN_IF_FALSE(threadOpenedOn == mainThread || !NS_IsMainThread(), \
-               "Using Storage synchronous API on main-thread, but the connection was opened on another thread."); \
+    NS_WARNING_ASSERTION( \
+      threadOpenedOn == mainThread || !NS_IsMainThread(), \
+      "Using Storage synchronous API on main-thread, but the connection was " \
+      "opened on another thread."); \
   } while(0)
 #else
 #define CHECK_MAINTHREAD_ABUSE() do { /* Nothing */ } while(0)
@@ -65,6 +70,10 @@ PRLogModuleInfo* gStorageLog = nullptr;
 
 namespace mozilla {
 namespace storage {
+
+using mozilla::dom::quota::QuotaObject;
+
+const char *GetVFSName();
 
 namespace {
 
@@ -188,10 +197,39 @@ Module gModules[] = {
 ////////////////////////////////////////////////////////////////////////////////
 //// Local Functions
 
-void tracefunc (void *aClosure, const char *aStmt)
+int tracefunc (unsigned aReason, void *aClosure, void *aP, void *aX)
 {
-  MOZ_LOG(gStorageLog, LogLevel::Debug, ("sqlite3_trace on %p for '%s'", aClosure,
-                                     aStmt));
+  switch (aReason) {
+    case SQLITE_TRACE_STMT: {
+      // aP is a pointer to the prepared statement.
+      sqlite3_stmt* stmt = static_cast<sqlite3_stmt*>(aP);
+      // aX is a pointer to a string containing the unexpanded SQL or a comment,
+      // starting with "--"" in case of a trigger.
+      char* expanded = static_cast<char*>(aX);
+      // Simulate what sqlite_trace was doing.
+      if (!::strncmp(expanded, "--", 2)) {
+        MOZ_LOG(gStorageLog, LogLevel::Debug,
+          ("TRACE_STMT on %p: '%s'", aClosure, expanded));
+      } else {
+        char* sql = ::sqlite3_expanded_sql(stmt);
+        MOZ_LOG(gStorageLog, LogLevel::Debug,
+          ("TRACE_STMT on %p: '%s'", aClosure, sql));
+        ::sqlite3_free(sql);
+      }
+      break;
+    }
+    case SQLITE_TRACE_PROFILE: {
+      // aX is pointer to a 64bit integer containing nanoseconds it took to
+      // execute the last command.
+      sqlite_int64 time = *(static_cast<sqlite_int64*>(aX)) / 1000000;
+      if (time > 0) {
+        MOZ_LOG(gStorageLog, LogLevel::Debug,
+          ("TRACE_TIME on %p: %lldms", aClosure, time));
+      }
+      break;
+    }
+  }
+  return 0;
 }
 
 void
@@ -333,39 +371,31 @@ WaitForUnlockNotify(sqlite3* aDatabase)
   return srv;
 }
 
-} // namespace
-
 ////////////////////////////////////////////////////////////////////////////////
 //// Local Classes
 
-namespace {
-
-class AsyncCloseConnection final: public nsRunnable
+class AsyncCloseConnection final: public Runnable
 {
 public:
   AsyncCloseConnection(Connection *aConnection,
                        sqlite3 *aNativeConnection,
-                       nsIRunnable *aCallbackEvent,
-                       already_AddRefed<nsIThread> aAsyncExecutionThread)
-  : mConnection(aConnection)
+                       nsIRunnable *aCallbackEvent)
+  : Runnable("storage::AsyncCloseConnection")
+  , mConnection(aConnection)
   , mNativeConnection(aNativeConnection)
   , mCallbackEvent(aCallbackEvent)
-  , mAsyncExecutionThread(aAsyncExecutionThread)
   {
   }
 
-  NS_METHOD Run()
+  NS_IMETHOD Run() override
   {
-#ifdef DEBUG
     // This code is executed on the background thread
-    bool onAsyncThread = false;
-    (void)mAsyncExecutionThread->IsOnCurrentThread(&onAsyncThread);
-    MOZ_ASSERT(onAsyncThread);
-#endif // DEBUG
+    MOZ_ASSERT(NS_GetCurrentThread() != mConnection->threadOpenedOn);
 
-    nsCOMPtr<nsIRunnable> event = NS_NewRunnableMethodWithArg<nsCOMPtr<nsIThread>>
-      (mConnection, &Connection::shutdownAsyncThread, mAsyncExecutionThread);
-    (void)NS_DispatchToMainThread(event);
+    nsCOMPtr<nsIRunnable> event =
+      NewRunnableMethod("storage::Connection::shutdownAsyncThread",
+                        mConnection, &Connection::shutdownAsyncThread);
+    MOZ_ALWAYS_SUCCEEDS(NS_DispatchToMainThread(event));
 
     // Internal close.
     (void)mConnection->internalClose(mNativeConnection);
@@ -380,22 +410,16 @@ public:
     return NS_OK;
   }
 
-  ~AsyncCloseConnection() {
-    nsCOMPtr<nsIThread> thread;
-    (void)NS_GetMainThread(getter_AddRefs(thread));
-    // Handle ambiguous nsISupports inheritance.
-    Connection *rawConnection = nullptr;
-    mConnection.swap(rawConnection);
-    (void)NS_ProxyRelease(thread,
-                          NS_ISUPPORTS_CAST(mozIStorageConnection *,
-                                            rawConnection));
-    (void)NS_ProxyRelease(thread, mCallbackEvent);
+  ~AsyncCloseConnection() override {
+    NS_ReleaseOnMainThreadSystemGroup(
+      "AsyncCloseConnection::mConnection", mConnection.forget());
+    NS_ReleaseOnMainThreadSystemGroup(
+      "AsyncCloseConnection::mCallbackEvent", mCallbackEvent.forget());
   }
 private:
   RefPtr<Connection> mConnection;
   sqlite3 *mNativeConnection;
   nsCOMPtr<nsIRunnable> mCallbackEvent;
-  nsCOMPtr<nsIThread> mAsyncExecutionThread;
 };
 
 /**
@@ -403,7 +427,7 @@ private:
  *
  * Must be executed on the clone's async execution thread.
  */
-class AsyncInitializeClone final: public nsRunnable
+class AsyncInitializeClone final: public Runnable
 {
 public:
   /**
@@ -418,7 +442,8 @@ public:
                        Connection* aClone,
                        const bool aReadOnly,
                        mozIStorageCompletionCallback* aCallback)
-    : mConnection(aConnection)
+    : Runnable("storage::AsyncInitializeClone")
+    , mConnection(aConnection)
     , mClone(aClone)
     , mReadOnly(aReadOnly)
     , mCallback(aCallback)
@@ -426,9 +451,8 @@ public:
     MOZ_ASSERT(NS_IsMainThread());
   }
 
-  NS_IMETHOD Run() {
-    MOZ_ASSERT (NS_GetCurrentThread() == mClone->getAsyncExecutionTarget());
-
+  NS_IMETHOD Run() override {
+    MOZ_ASSERT(!NS_IsMainThread());
     nsresult rv = mConnection->initializeClone(mClone, mReadOnly);
     if (NS_FAILED(rv)) {
       return Dispatch(rv, nullptr);
@@ -445,28 +469,22 @@ private:
     return mClone->threadOpenedOn->Dispatch(event, NS_DISPATCH_NORMAL);
   }
 
-  ~AsyncInitializeClone() {
+  ~AsyncInitializeClone() override {
     nsCOMPtr<nsIThread> thread;
     DebugOnly<nsresult> rv = NS_GetMainThread(getter_AddRefs(thread));
     MOZ_ASSERT(NS_SUCCEEDED(rv));
 
     // Handle ambiguous nsISupports inheritance.
-    Connection *rawConnection = nullptr;
-    mConnection.swap(rawConnection);
-    (void)NS_ProxyRelease(thread, NS_ISUPPORTS_CAST(mozIStorageConnection *,
-                                                    rawConnection));
-
-    Connection *rawClone = nullptr;
-    mClone.swap(rawClone);
-    (void)NS_ProxyRelease(thread, NS_ISUPPORTS_CAST(mozIStorageConnection *,
-                                                    rawClone));
+    NS_ProxyRelease(
+      "AsyncInitializeClone::mConnection", thread, mConnection.forget());
+    NS_ProxyRelease(
+        "AsyncInitializeClone::mClone", thread, mClone.forget());
 
     // Generally, the callback will be released by CallbackComplete.
     // However, if for some reason Run() is not executed, we still
     // need to ensure that it is released here.
-    mozIStorageCompletionCallback *rawCallback = nullptr;
-    mCallback.swap(rawCallback);
-    (void)NS_ProxyRelease(thread, rawCallback);
+    NS_ProxyRelease(
+      "AsyncInitializeClone::mCallback", thread, mCallback.forget());
   }
 
   RefPtr<Connection> mConnection;
@@ -475,6 +493,32 @@ private:
   nsCOMPtr<mozIStorageCompletionCallback> mCallback;
 };
 
+/**
+ * A listener for async connection closing.
+ */
+class CloseListener final :  public mozIStorageCompletionCallback
+{
+public:
+  NS_DECL_ISUPPORTS
+  CloseListener()
+    : mClosed(false)
+  {
+  }
+
+  NS_IMETHOD Complete(nsresult, nsISupports*) override
+  {
+    mClosed = true;
+    return NS_OK;
+  }
+
+  bool mClosed;
+
+private:
+  ~CloseListener() = default;
+};
+
+NS_IMPL_ISUPPORTS(CloseListener, mozIStorageCompletionCallback)
+
 } // namespace
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -482,31 +526,31 @@ private:
 
 Connection::Connection(Service *aService,
                        int aFlags,
-                       bool aAsyncOnly)
+                       bool aAsyncOnly,
+                       bool aIgnoreLockingMode)
 : sharedAsyncExecutionMutex("Connection::sharedAsyncExecutionMutex")
 , sharedDBMutex("Connection::sharedDBMutex")
 , threadOpenedOn(do_GetCurrentThread())
 , mDBConn(nullptr)
 , mAsyncExecutionThreadShuttingDown(false)
-, mAsyncExecutionThreadIsAlive(false)
 , mConnectionClosed(false)
 , mTransactionInProgress(false)
 , mProgressHandler(nullptr)
 , mFlags(aFlags)
+, mIgnoreLockingMode(aIgnoreLockingMode)
 , mStorageService(aService)
 , mAsyncOnly(aAsyncOnly)
 {
+  MOZ_ASSERT(!mIgnoreLockingMode || mFlags & SQLITE_OPEN_READONLY,
+             "Can't ignore locking for a non-readonly connection!");
   mStorageService->registerConnection(this);
 }
 
 Connection::~Connection()
 {
-  (void)Close();
-
+  Unused << Close();
   MOZ_ASSERT(!mAsyncExecutionThread,
-             "AsyncClose has not been invoked on this connection!");
-  MOZ_ASSERT(!mAsyncExecutionThreadIsAlive,
-             "The async execution thread should have been shutdown!");
+             "The async thread has not been shutdown properly!");
 }
 
 NS_IMPL_ADDREF(Connection)
@@ -556,25 +600,24 @@ Connection::getSqliteRuntimeStatus(int32_t aStatusOption, int32_t* aMaxValue)
 nsIEventTarget *
 Connection::getAsyncExecutionTarget()
 {
-  MutexAutoLock lockedScope(sharedAsyncExecutionMutex);
+  NS_ENSURE_TRUE(threadOpenedOn == NS_GetCurrentThread(), nullptr);
 
-  // If we are shutting down the asynchronous thread, don't hand out any more
-  // references to the thread.
-  if (mAsyncExecutionThreadShuttingDown)
+  // Don't return the asynchronous thread if we are shutting down.
+  if (mAsyncExecutionThreadShuttingDown) {
     return nullptr;
+  }
 
+  // Create the async thread if there's none yet.
   if (!mAsyncExecutionThread) {
-    nsresult rv = ::NS_NewThread(getter_AddRefs(mAsyncExecutionThread));
+    static nsThreadPoolNaming naming;
+    nsresult rv = NS_NewNamedThread(naming.GetNextThreadName("mozStorage"),
+                                    getter_AddRefs(mAsyncExecutionThread));
     if (NS_FAILED(rv)) {
       NS_WARNING("Failed to create async thread.");
       return nullptr;
     }
-    static nsThreadPoolNaming naming;
-    naming.SetThreadPoolName(NS_LITERAL_CSTRING("mozStorage"),
-                             mAsyncExecutionThread);
   }
 
-  mAsyncExecutionThreadIsAlive = true;
   return mAsyncExecutionThread;
 }
 
@@ -582,11 +625,11 @@ nsresult
 Connection::initialize()
 {
   NS_ASSERTION (!mDBConn, "Initialize called on already opened database!");
-  PROFILER_LABEL("mozStorageConnection", "initialize",
-    js::ProfileEntry::Category::STORAGE);
+  MOZ_ASSERT(!mIgnoreLockingMode, "Can't ignore locking on an in-memory db.");
+  AUTO_PROFILER_LABEL("Connection::initialize", STORAGE);
 
   // in memory database requested, sqlite uses a magic file name
-  int srv = ::sqlite3_open_v2(":memory:", &mDBConn, mFlags, nullptr);
+  int srv = ::sqlite3_open_v2(":memory:", &mDBConn, mFlags, GetVFSName());
   if (srv != SQLITE_OK) {
     mDBConn = nullptr;
     return convertResultCode(srv);
@@ -606,8 +649,7 @@ Connection::initialize(nsIFile *aDatabaseFile)
 {
   NS_ASSERTION (aDatabaseFile, "Passed null file!");
   NS_ASSERTION (!mDBConn, "Initialize called on already opened database!");
-  PROFILER_LABEL("mozStorageConnection", "initialize",
-    js::ProfileEntry::Category::STORAGE);
+  AUTO_PROFILER_LABEL("Connection::initialize", STORAGE);
 
   mDatabaseFile = aDatabaseFile;
 
@@ -615,8 +657,15 @@ Connection::initialize(nsIFile *aDatabaseFile)
   nsresult rv = aDatabaseFile->GetPath(path);
   NS_ENSURE_SUCCESS(rv, rv);
 
+#ifdef XP_WIN
+  static const char* sIgnoreLockingVFS = "win32-none";
+#else
+  static const char* sIgnoreLockingVFS = "unix-none";
+#endif
+  const char* vfs = mIgnoreLockingMode ? sIgnoreLockingVFS : GetVFSName();
+
   int srv = ::sqlite3_open_v2(NS_ConvertUTF16toUTF8(path).get(), &mDBConn,
-                              mFlags, nullptr);
+                              mFlags, vfs);
   if (srv != SQLITE_OK) {
     mDBConn = nullptr;
     return convertResultCode(srv);
@@ -637,8 +686,7 @@ Connection::initialize(nsIFileURL *aFileURL)
 {
   NS_ASSERTION (aFileURL, "Passed null file URL!");
   NS_ASSERTION (!mDBConn, "Initialize called on already opened database!");
-  PROFILER_LABEL("mozStorageConnection", "initialize",
-    js::ProfileEntry::Category::STORAGE);
+  AUTO_PROFILER_LABEL("Connection::initialize", STORAGE);
 
   nsCOMPtr<nsIFile> databaseFile;
   nsresult rv = aFileURL->GetFile(getter_AddRefs(databaseFile));
@@ -648,7 +696,7 @@ Connection::initialize(nsIFileURL *aFileURL)
   rv = aFileURL->GetSpec(spec);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  int srv = ::sqlite3_open_v2(spec.get(), &mDBConn, mFlags, nullptr);
+  int srv = ::sqlite3_open_v2(spec.get(), &mDBConn, mFlags, GetVFSName());
   if (srv != SQLITE_OK) {
     mDBConn = nullptr;
     return convertResultCode(srv);
@@ -668,6 +716,16 @@ nsresult
 Connection::initializeInternal()
 {
   MOZ_ASSERT(mDBConn);
+
+  auto guard = MakeScopeExit([&]() {
+    {
+      MutexAutoLock lockedScope(sharedAsyncExecutionMutex);
+      mConnectionClosed = true;
+    }
+    MOZ_ALWAYS_TRUE(::sqlite3_close(mDBConn) == SQLITE_OK);
+    mDBConn = nullptr;
+    sharedDBMutex.destroy();
+  });
 
   if (mFileURL) {
     const char* dbPath = ::sqlite3_db_filename(mDBConn, "main");
@@ -691,13 +749,12 @@ Connection::initializeInternal()
   // Properly wrap the database handle's mutex.
   sharedDBMutex.initWithMutex(sqlite3_db_mutex(mDBConn));
 
-  if (!gStorageLog)
-    gStorageLog = ::PR_NewLogModule("mozStorage");
-
   // SQLite tracing can slow down queries (especially long queries)
   // significantly. Don't trace unless the user is actively monitoring SQLite.
   if (MOZ_LOG_TEST(gStorageLog, LogLevel::Debug)) {
-    ::sqlite3_trace(mDBConn, tracefunc, this);
+    ::sqlite3_trace_v2(mDBConn,
+                       SQLITE_TRACE_STMT | SQLITE_TRACE_PROFILE,
+                       tracefunc, this);
 
     MOZ_LOG(gStorageLog, LogLevel::Debug, ("Opening connection to '%s' (%p)",
                                         mTelemetryFilename.get(), this));
@@ -711,8 +768,10 @@ Connection::initializeInternal()
   nsAutoCString pageSizeQuery(MOZ_STORAGE_UNIQUIFY_QUERY_STR
                               "PRAGMA page_size = ");
   pageSizeQuery.AppendInt(pageSize);
-  nsresult rv = ExecuteSimpleSQL(pageSizeQuery);
-  NS_ENSURE_SUCCESS(rv, rv);
+  int srv = executeSql(mDBConn, pageSizeQuery.get());
+  if (srv != SQLITE_OK) {
+    return convertResultCode(srv);
+  }
 
   // Setting the cache_size forces the database open, verifying if it is valid
   // or corrupt.  So this is executed regardless it being actually needed.
@@ -720,26 +779,24 @@ Connection::initializeInternal()
   nsAutoCString cacheSizeQuery(MOZ_STORAGE_UNIQUIFY_QUERY_STR
                                "PRAGMA cache_size = ");
   cacheSizeQuery.AppendInt(-MAX_CACHE_SIZE_KIBIBYTES);
-  int srv = executeSql(mDBConn, cacheSizeQuery.get());
+  srv = executeSql(mDBConn, cacheSizeQuery.get());
   if (srv != SQLITE_OK) {
-    ::sqlite3_close(mDBConn);
-    mDBConn = nullptr;
     return convertResultCode(srv);
   }
+
+#if defined(MOZ_MEMORY_TEMP_STORE_PRAGMA)
+  (void)ExecuteSimpleSQL(NS_LITERAL_CSTRING("PRAGMA temp_store = 2;"));
+#endif
 
   // Register our built-in SQL functions.
   srv = registerFunctions(mDBConn);
   if (srv != SQLITE_OK) {
-    ::sqlite3_close(mDBConn);
-    mDBConn = nullptr;
     return convertResultCode(srv);
   }
 
   // Register our built-in SQL collating sequences.
   srv = registerCollations(mDBConn, mStorageService);
   if (srv != SQLITE_OK) {
-    ::sqlite3_close(mDBConn);
-    mDBConn = nullptr;
     return convertResultCode(srv);
   }
 
@@ -760,7 +817,26 @@ Connection::initializeInternal()
       break;
   }
 
+  // Initialization succeeded, we can stop guarding for failures.
+  guard.release();
   return NS_OK;
+}
+
+nsresult
+Connection::initializeOnAsyncThread(nsIFile* aStorageFile) {
+  MOZ_ASSERT(threadOpenedOn != NS_GetCurrentThread());
+  nsresult rv = aStorageFile ? initialize(aStorageFile)
+                             : initialize();
+  if (NS_FAILED(rv)) {
+    // Shutdown the async thread, since initialization failed.
+    MutexAutoLock lockedScope(sharedAsyncExecutionMutex);
+    mAsyncExecutionThreadShuttingDown = true;
+    nsCOMPtr<nsIRunnable> event =
+      NewRunnableMethod("Connection::shutdownAsyncThread",
+                        this, &Connection::shutdownAsyncThread);
+    Unused << NS_DispatchToMainThread(event);
+  }
+  return rv;
 }
 
 nsresult
@@ -869,12 +945,11 @@ Connection::setClosedState()
     MutexAutoLock lockedScope(sharedAsyncExecutionMutex);
     NS_ENSURE_FALSE(mAsyncExecutionThreadShuttingDown, NS_ERROR_UNEXPECTED);
     mAsyncExecutionThreadShuttingDown = true;
+
+    // Set the property to null before closing the connection, otherwise the other
+    // functions in the module may try to use the connection after it is closed.
+    mDBConn = nullptr;
   }
-
-  // Set the property to null before closing the connection, otherwise the other
-  // functions in the module may try to use the connection after it is closed.
-  mDBConn = nullptr;
-
   return NS_OK;
 }
 
@@ -885,14 +960,21 @@ Connection::connectionReady()
 }
 
 bool
+Connection::isConnectionReadyOnThisThread()
+{
+  MOZ_ASSERT_IF(mDBConn, !mConnectionClosed);
+  if (mAsyncExecutionThread &&
+      mAsyncExecutionThread->IsOnCurrentThread()) {
+    return true;
+  }
+  return  connectionReady();
+}
+
+bool
 Connection::isClosing()
 {
-  bool shuttingDown = false;
-  {
-    MutexAutoLock lockedScope(sharedAsyncExecutionMutex);
-    shuttingDown = mAsyncExecutionThreadShuttingDown;
-  }
-  return shuttingDown && !isClosed();
+  MutexAutoLock lockedScope(sharedAsyncExecutionMutex);
+  return mAsyncExecutionThreadShuttingDown && !mConnectionClosed;
 }
 
 bool
@@ -902,30 +984,38 @@ Connection::isClosed()
   return mConnectionClosed;
 }
 
+bool
+Connection::isClosed(MutexAutoLock& lock)
+{
+  return mConnectionClosed;
+}
+
+bool
+Connection::isAsyncExecutionThreadAvailable()
+{
+  MOZ_ASSERT(threadOpenedOn == NS_GetCurrentThread());
+  return mAsyncExecutionThread && !mAsyncExecutionThreadShuttingDown;
+}
+
 void
-Connection::shutdownAsyncThread(nsIThread *aThread) {
-  MOZ_ASSERT(!mAsyncExecutionThread);
-  MOZ_ASSERT(mAsyncExecutionThreadIsAlive);
+Connection::shutdownAsyncThread() {
+  MOZ_ASSERT(threadOpenedOn == NS_GetCurrentThread());
+  MOZ_ASSERT(mAsyncExecutionThread);
   MOZ_ASSERT(mAsyncExecutionThreadShuttingDown);
 
-  DebugOnly<nsresult> rv = aThread->Shutdown();
-  MOZ_ASSERT(NS_SUCCEEDED(rv));
-  mAsyncExecutionThreadIsAlive = false;
+  MOZ_ALWAYS_SUCCEEDS(mAsyncExecutionThread->Shutdown());
+  mAsyncExecutionThread = nullptr;
 }
 
 nsresult
 Connection::internalClose(sqlite3 *aNativeConnection)
 {
-  // Sanity checks to make sure we are in the proper state before calling this.
-  // aNativeConnection can be null if OpenAsyncDatabase failed and is now just
-  // cleaning up the async thread.
-  MOZ_ASSERT(!isClosed());
-
 #ifdef DEBUG
   { // Make sure we have marked our async thread as shutting down.
     MutexAutoLock lockedScope(sharedAsyncExecutionMutex);
-    NS_ASSERTION(mAsyncExecutionThreadShuttingDown,
-                 "Did not call setClosedState!");
+    MOZ_ASSERT(mAsyncExecutionThreadShuttingDown,
+               "Did not call setClosedState!");
+    MOZ_ASSERT(!isClosed(lockedScope), "Unexpected closed state");
   }
 #endif // DEBUG
 
@@ -952,53 +1042,58 @@ Connection::internalClose(sqlite3 *aNativeConnection)
   if (!aNativeConnection)
     return NS_OK;
 
-  int srv = sqlite3_close(aNativeConnection);
+  int srv = ::sqlite3_close(aNativeConnection);
 
   if (srv == SQLITE_BUSY) {
-    // We still have non-finalized statements. Finalize them.
-
-    sqlite3_stmt *stmt = nullptr;
-    while ((stmt = ::sqlite3_next_stmt(aNativeConnection, stmt))) {
-      MOZ_LOG(gStorageLog, LogLevel::Debug,
-             ("Auto-finalizing SQL statement '%s' (%x)",
-              ::sqlite3_sql(stmt),
-              stmt));
-
-#ifdef DEBUG
-      char *msg = ::PR_smprintf("SQL statement '%s' (%x) should have been finalized before closing the connection",
-                                ::sqlite3_sql(stmt),
-                                stmt);
-      NS_WARNING(msg);
-      ::PR_smprintf_free(msg);
-#endif // DEBUG
-
-      srv = ::sqlite3_finalize(stmt);
+    {
+      // Nothing else should change the connection or statements status until we
+      // are done here.
+      SQLiteMutexAutoLock lockedScope(sharedDBMutex);
+      // We still have non-finalized statements. Finalize them.
+      sqlite3_stmt *stmt = nullptr;
+      while ((stmt = ::sqlite3_next_stmt(aNativeConnection, stmt))) {
+        MOZ_LOG(gStorageLog, LogLevel::Debug,
+              ("Auto-finalizing SQL statement '%s' (%p)",
+                ::sqlite3_sql(stmt),
+                stmt));
 
 #ifdef DEBUG
-      if (srv != SQLITE_OK) {
-        char *msg = ::PR_smprintf("Could not finalize SQL statement '%s' (%x)",
-                                  ::sqlite3_sql(stmt),
-                                  stmt);
-        NS_WARNING(msg);
-        ::PR_smprintf_free(msg);
-      }
+        SmprintfPointer msg = ::mozilla::Smprintf("SQL statement '%s' (%p) should have been finalized before closing the connection",
+                                          ::sqlite3_sql(stmt),
+                                          stmt);
+        NS_WARNING(msg.get());
 #endif // DEBUG
 
-      // Ensure that the loop continues properly, whether closing has succeeded
-      // or not.
-      if (srv == SQLITE_OK) {
-        stmt = nullptr;
+        srv = ::sqlite3_finalize(stmt);
+
+#ifdef DEBUG
+        if (srv != SQLITE_OK) {
+          SmprintfPointer msg = ::mozilla::Smprintf("Could not finalize SQL statement (%p)",
+                                              stmt);
+          NS_WARNING(msg.get());
+        }
+#endif // DEBUG
+
+        // Ensure that the loop continues properly, whether closing has succeeded
+        // or not.
+        if (srv == SQLITE_OK) {
+          stmt = nullptr;
+        }
       }
+      // Scope exiting will unlock the mutex before we invoke sqlite3_close()
+      // again, since Sqlite will try to acquire it.
     }
 
     // Now that all statements have been finalized, we
     // should be able to close.
     srv = ::sqlite3_close(aNativeConnection);
-
+    MOZ_ASSERT(false, "Had to forcibly close the database connection because not all the statements have been finalized.");
   }
 
-  if (srv != SQLITE_OK) {
-    MOZ_ASSERT(srv == SQLITE_OK,
+  if (srv == SQLITE_OK) {
+    sharedDBMutex.destroy();
+  } else {
+    MOZ_ASSERT(false,
                "sqlite3_close failed. There are probably outstanding statements that are listed above!");
   }
 
@@ -1027,7 +1122,7 @@ Connection::stepStatement(sqlite3 *aNativeConnection, sqlite3_stmt *aStatement)
   // sqlite3_close().  This usually happens when other tasks using cached
   // statements are asynchronously scheduled for execution and any of them ends
   // up after asyncClose. See bug 728653 for details.
-  if (isClosed())
+  if (!isConnectionReadyOnThisThread())
     return SQLITE_MISUSE;
 
   (void)::sqlite3_extended_result_codes(aNativeConnection, 1);
@@ -1072,7 +1167,7 @@ Connection::prepareStatement(sqlite3 *aNativeConnection, const nsCString &aSQL,
 {
   // We should not even try to prepare statements after the connection has
   // been closed.
-  if (isClosed())
+  if (!isConnectionReadyOnThisThread())
     return SQLITE_MISUSE;
 
   bool checkedMainThread = false;
@@ -1129,7 +1224,7 @@ Connection::prepareStatement(sqlite3 *aNativeConnection, const nsCString &aSQL,
 int
 Connection::executeSql(sqlite3 *aNativeConnection, const char *aSqlString)
 {
-  if (isClosed())
+  if (!isConnectionReadyOnThisThread())
     return SQLITE_MISUSE;
 
   TimeStamp startTime = TimeStamp::Now();
@@ -1175,13 +1270,31 @@ Connection::Close()
   if (!mDBConn)
     return NS_ERROR_NOT_INITIALIZED;
 
-  { // Make sure we have not executed any asynchronous statements.
-    // If this fails, the mDBConn will be left open, resulting in a leak.
-    // Ideally we'd schedule some code to destroy the mDBConn once all its
-    // async statements have finished executing;  see bug 704030.
-    MutexAutoLock lockedScope(sharedAsyncExecutionMutex);
-    bool asyncCloseWasCalled = !mAsyncExecutionThread;
-    NS_ENSURE_TRUE(asyncCloseWasCalled, NS_ERROR_UNEXPECTED);
+#ifdef DEBUG
+  // Since we're accessing mAsyncExecutionThread, we need to be on the opener thread.
+  // We make this check outside of debug code below in setClosedState, but this is
+  // here to be explicit.
+  bool onOpenerThread = false;
+  (void)threadOpenedOn->IsOnCurrentThread(&onOpenerThread);
+  MOZ_ASSERT(onOpenerThread);
+#endif // DEBUG
+
+  // Make sure we have not executed any asynchronous statements.
+  // If this fails, the mDBConn may be left open, resulting in a leak.
+  // We'll try to finalize the pending statements and close the connection.
+  if (isAsyncExecutionThreadAvailable()) {
+#ifdef DEBUG
+    if (NS_IsMainThread()) {
+      nsCOMPtr<nsIXPConnect> xpc = do_GetService(nsIXPConnect::GetCID());
+      Unused << xpc->DebugDumpJSStack(false, false, false);
+    }
+#endif
+    MOZ_ASSERT(false,
+               "Close() was invoked on a connection that executed asynchronous statements. "
+               "Should have used asyncClose().");
+    // Try to close the database regardless, to free up resources.
+    Unused << SpinningSynchronousClose();
+    return NS_ERROR_UNEXPECTED;
   }
 
   // setClosedState nullifies our connection pointer, so we take a raw pointer
@@ -1194,19 +1307,115 @@ Connection::Close()
 }
 
 NS_IMETHODIMP
-Connection::AsyncClose(mozIStorageCompletionCallback *aCallback)
+Connection::SpinningSynchronousClose()
 {
-  if (!NS_IsMainThread()) {
+  if (threadOpenedOn != NS_GetCurrentThread()) {
     return NS_ERROR_NOT_SAME_THREAD;
   }
 
-  // It's possible to get here with a null mDBConn but a non-null async
-  // execution target if OpenAsyncDatabase failed somehow, so don't exit early
-  // in that case.
+  // As currently implemented, we can't spin to wait for an existing AsyncClose.
+  // Our only existing caller will never have called close; assert if misused
+  // so that no new callers assume this works after an AsyncClose.
+  MOZ_DIAGNOSTIC_ASSERT(connectionReady());
+  if (!connectionReady()) {
+    return NS_ERROR_UNEXPECTED;
+  }
+
+  RefPtr<CloseListener> listener = new CloseListener();
+  nsresult rv = AsyncClose(listener);
+  NS_ENSURE_SUCCESS(rv, rv);
+  MOZ_ALWAYS_TRUE(SpinEventLoopUntil([&]() {
+    return listener->mClosed;
+  }));
+  MOZ_ASSERT(isClosed(), "The connection should be closed at this point");
+
+  return rv;
+}
+
+NS_IMETHODIMP
+Connection::AsyncClose(mozIStorageCompletionCallback *aCallback)
+{
+  NS_ENSURE_TRUE(NS_IsMainThread(), NS_ERROR_NOT_SAME_THREAD);
+  // Check if AsyncClose or Close were already invoked.
+  if (!mDBConn) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
+
+  // The two relevant factors at this point are whether we have a database
+  // connection and whether we have an async execution thread.  Here's what the
+  // states mean and how we handle them:
+  //
+  // - (mDBConn && asyncThread): The expected case where we are either an
+  //   async connection or a sync connection that has been used asynchronously.
+  //   Either way the caller must call us and not Close().  Nothing surprising
+  //   about this.  We'll dispatch AsyncCloseConnection to the already-existing
+  //   async thread.
+  //
+  // - (mDBConn && !asyncThread): A somewhat unusual case where the caller
+  //   opened the connection synchronously and was planning to use it
+  //   asynchronously, but never got around to using it asynchronously before
+  //   needing to shutdown.  This has been observed to happen for the cookie
+  //   service in a case where Firefox shuts itself down almost immediately
+  //   after startup (for unknown reasons).  In the Firefox shutdown case,
+  //   we may also fail to create a new async execution thread if one does not
+  //   already exist.  (nsThreadManager will refuse to create new threads when
+  //   it has already been told to shutdown.)  As such, we need to handle a
+  //   failure to create the async execution thread by falling back to
+  //   synchronous Close() and also dispatching the completion callback because
+  //   at least Places likes to spin a nested event loop that depends on the
+  //   callback being invoked.
+  //
+  //   Note that we have considered not trying to spin up the async execution
+  //   thread in this case if it does not already exist, but the overhead of
+  //   thread startup (if successful) is significantly less expensive than the
+  //   worst-case potential I/O hit of synchronously closing a database when we
+  //   could close it asynchronously.
+  //
+  // - (!mDBConn && asyncThread): This happens in some but not all cases where
+  //   OpenAsyncDatabase encountered a problem opening the database.  If it
+  //   happened in all cases AsyncInitDatabase would just shut down the thread
+  //   directly and we would avoid this case.  But it doesn't, so for simplicity
+  //   and consistency AsyncCloseConnection knows how to handle this and we
+  //   act like this was the (mDBConn && asyncThread) case in this method.
+  //
+  // - (!mDBConn && !asyncThread): The database was never successfully opened or
+  //   Close() or AsyncClose() has already been called (at least) once.  This is
+  //   undeniably a misuse case by the caller.  We could optimize for this
+  //   case by adding an additional check of mAsyncExecutionThread without using
+  //   getAsyncExecutionTarget() to avoid wastefully creating a thread just to
+  //   shut it down.  But this complicates the method for broken caller code
+  //   whereas we're still correct and safe without the special-case.
   nsIEventTarget *asyncThread = getAsyncExecutionTarget();
 
-  if (!mDBConn && !asyncThread)
-    return NS_ERROR_NOT_INITIALIZED;
+  // Create our callback event if we were given a callback.  This will
+  // eventually be dispatched in all cases, even if we fall back to Close() and
+  // the database wasn't open and we return an error.  The rationale is that
+  // no existing consumer checks our return value and several of them like to
+  // spin nested event loops until the callback fires.  Given that, it seems
+  // preferable for us to dispatch the callback in all cases.  (Except the
+  // wrong thread misuse case we bailed on up above.  But that's okay because
+  // that is statically wrong whereas these edge cases are dynamic.)
+  nsCOMPtr<nsIRunnable> completeEvent;
+  if (aCallback) {
+    completeEvent = newCompletionEvent(aCallback);
+  }
+
+  if (!asyncThread) {
+    // We were unable to create an async thread, so we need to fall back to
+    // using normal Close().  Since there is no async thread, Close() will
+    // not complain about that.  (Close() may, however, complain if the
+    // connection is closed, but that's okay.)
+    if (completeEvent) {
+      // Closing the database is more important than returning an error code
+      // about a failure to dispatch, especially because all existing native
+      // callers ignore our return value.
+      Unused << NS_DispatchToMainThread(completeEvent.forget());
+    }
+    MOZ_ALWAYS_SUCCEEDS(Close());
+    // Return a success inconditionally here, since Close() is unlikely to fail
+    // and we want to reassure the consumer that its callback will be invoked.
+    return NS_OK;
+  }
 
   // setClosedState nullifies our connection pointer, so we take a raw pointer
   // off it, to pass it through the close procedure.
@@ -1214,23 +1423,10 @@ Connection::AsyncClose(mozIStorageCompletionCallback *aCallback)
   nsresult rv = setClosedState();
   NS_ENSURE_SUCCESS(rv, rv);
 
-  // Create our callback event if we were given a callback.
-  nsCOMPtr<nsIRunnable> completeEvent;
-  if (aCallback) {
-    completeEvent = newCompletionEvent(aCallback);
-  }
-
   // Create and dispatch our close event to the background thread.
-  nsCOMPtr<nsIRunnable> closeEvent;
-  {
-    // We need to lock because we're modifying mAsyncExecutionThread
-    MutexAutoLock lockedScope(sharedAsyncExecutionMutex);
-    closeEvent = new AsyncCloseConnection(this,
-                                          nativeConn,
-                                          completeEvent,
-                                          mAsyncExecutionThread.forget());
-  }
-
+  nsCOMPtr<nsIRunnable> closeEvent = new AsyncCloseConnection(this,
+                                                              nativeConn,
+                                                              completeEvent);
   rv = asyncThread->Dispatch(closeEvent, NS_DISPATCH_NORMAL);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -1241,12 +1437,9 @@ NS_IMETHODIMP
 Connection::AsyncClone(bool aReadOnly,
                        mozIStorageCompletionCallback *aCallback)
 {
-  PROFILER_LABEL("mozStorageConnection", "AsyncClone",
-    js::ProfileEntry::Category::STORAGE);
+  AUTO_PROFILER_LABEL("Connection::AsyncClone", STORAGE);
 
-  if (!NS_IsMainThread()) {
-    return NS_ERROR_NOT_SAME_THREAD;
-  }
+  NS_ENSURE_TRUE(NS_IsMainThread(), NS_ERROR_NOT_SAME_THREAD);
   if (!mDBConn)
     return NS_ERROR_NOT_INITIALIZED;
   if (!mDatabaseFile)
@@ -1260,12 +1453,15 @@ Connection::AsyncClone(bool aReadOnly,
     flags = (~SQLITE_OPEN_CREATE & flags);
   }
 
-  RefPtr<Connection> clone = new Connection(mStorageService, flags,
-                                              mAsyncOnly);
+  // Force the cloned connection to only implement the async connection API.
+  RefPtr<Connection> clone = new Connection(mStorageService, flags, true);
 
   RefPtr<AsyncInitializeClone> initEvent =
     new AsyncInitializeClone(this, clone, aReadOnly, aCallback);
-  nsCOMPtr<nsIEventTarget> target = clone->getAsyncExecutionTarget();
+  // Dispatch to our async thread, since the originating connection must remain
+  // valid and open for the whole cloning process.  This also ensures we are
+  // properly serialized with a `close` operation, rather than race with it.
+  nsCOMPtr<nsIEventTarget> target = getAsyncExecutionTarget();
   if (!target) {
     return NS_ERROR_UNEXPECTED;
   }
@@ -1281,7 +1477,40 @@ Connection::initializeClone(Connection* aClone, bool aReadOnly)
     return rv;
   }
 
+  // Re-attach on-disk databases that were attached to the original connection.
+  {
+    nsCOMPtr<mozIStorageStatement> stmt;
+    rv = CreateStatement(NS_LITERAL_CSTRING("PRAGMA database_list"),
+                         getter_AddRefs(stmt));
+    MOZ_ASSERT(NS_SUCCEEDED(rv));
+    bool hasResult = false;
+    while (stmt && NS_SUCCEEDED(stmt->ExecuteStep(&hasResult)) && hasResult) {
+      nsAutoCString name;
+      rv = stmt->GetUTF8String(1, name);
+      if (NS_SUCCEEDED(rv) && !name.EqualsLiteral("main") &&
+                              !name.EqualsLiteral("temp")) {
+        nsCString path;
+        rv = stmt->GetUTF8String(2, path);
+        if (NS_SUCCEEDED(rv) && !path.IsEmpty()) {
+          nsCOMPtr<mozIStorageStatement> attachStmt;
+          rv = aClone->CreateStatement(
+            NS_LITERAL_CSTRING("ATTACH DATABASE :path AS ") + name,
+            getter_AddRefs(attachStmt));
+          MOZ_ASSERT(NS_SUCCEEDED(rv));
+          rv = attachStmt->BindUTF8StringByName(NS_LITERAL_CSTRING("path"),
+                                                path);
+          MOZ_ASSERT(NS_SUCCEEDED(rv));
+          rv = attachStmt->Execute();
+          MOZ_ASSERT(NS_SUCCEEDED(rv), "couldn't re-attach database to cloned connection");
+        }
+      }
+    }
+  }
+
   // Copy over pragmas from the original connection.
+  // LIMITATION WARNING!  Many of these pragmas are actually scoped to the
+  // schema ("main" and any other attached databases), and this implmentation
+  // fails to propagate them.  This is being addressed on trunk.
   static const char * pragmas[] = {
     "cache_size",
     "temp_store",
@@ -1291,15 +1520,15 @@ Connection::initializeClone(Connection* aClone, bool aReadOnly)
     "wal_autocheckpoint",
     "busy_timeout"
   };
-  for (uint32_t i = 0; i < ArrayLength(pragmas); ++i) {
+  for (auto& pragma : pragmas) {
     // Read-only connections just need cache_size and temp_store pragmas.
-    if (aReadOnly && ::strcmp(pragmas[i], "cache_size") != 0 &&
-                     ::strcmp(pragmas[i], "temp_store") != 0) {
+    if (aReadOnly && ::strcmp(pragma, "cache_size") != 0 &&
+                     ::strcmp(pragma, "temp_store") != 0) {
       continue;
     }
 
     nsAutoCString pragmaQuery("PRAGMA ");
-    pragmaQuery.Append(pragmas[i]);
+    pragmaQuery.Append(pragma);
     nsCOMPtr<mozIStorageStatement> stmt;
     rv = CreateStatement(pragmaQuery, getter_AddRefs(stmt));
     MOZ_ASSERT(NS_SUCCEEDED(rv));
@@ -1349,8 +1578,7 @@ Connection::Clone(bool aReadOnly,
 {
   MOZ_ASSERT(threadOpenedOn == NS_GetCurrentThread());
 
-  PROFILER_LABEL("mozStorageConnection", "Clone",
-    js::ProfileEntry::Category::STORAGE);
+  AUTO_PROFILER_LABEL("Connection::Clone", STORAGE);
 
   if (!mDBConn)
     return NS_ERROR_NOT_INITIALIZED;
@@ -1365,8 +1593,7 @@ Connection::Clone(bool aReadOnly,
     flags = (~SQLITE_OPEN_CREATE & flags);
   }
 
-  RefPtr<Connection> clone = new Connection(mStorageService, flags,
-                                              mAsyncOnly);
+  RefPtr<Connection> clone = new Connection(mStorageService, flags, mAsyncOnly);
 
   nsresult rv = initializeClone(clone, aReadOnly);
   if (NS_FAILED(rv)) {
@@ -1374,6 +1601,20 @@ Connection::Clone(bool aReadOnly,
   }
 
   NS_IF_ADDREF(*_connection = clone);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+Connection::Interrupt()
+{
+  MOZ_ASSERT(threadOpenedOn == NS_GetCurrentThread());
+  if (!mDBConn) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
+  if (!mAsyncOnly || !(mFlags & SQLITE_OPEN_READONLY)) {
+    return NS_ERROR_INVALID_ARG;
+  }
+  ::sqlite3_interrupt(mDBConn);
   return NS_OK;
 }
 
@@ -1387,6 +1628,7 @@ Connection::GetDefaultPageSize(int32_t *_defaultPageSize)
 NS_IMETHODIMP
 Connection::GetConnectionReady(bool *_ready)
 {
+  MOZ_ASSERT(threadOpenedOn == NS_GetCurrentThread());
   *_ready = connectionReady();
   return NS_OK;
 }
@@ -1528,7 +1770,7 @@ Connection::ExecuteAsync(mozIStorageBaseStatement **aStatements,
 {
   nsTArray<StatementData> stmts(aNumStatements);
   for (uint32_t i = 0; i < aNumStatements; i++) {
-    nsCOMPtr<StorageBaseStatementInternal> stmt = 
+    nsCOMPtr<StorageBaseStatementInternal> stmt =
       do_QueryInterface(aStatements[i]);
 
     // Obtain our StatementData.
@@ -1553,9 +1795,7 @@ Connection::ExecuteSimpleSQLAsync(const nsACString &aSQLStatement,
                                   mozIStorageStatementCallback *aCallback,
                                   mozIStoragePendingStatement **_handle)
 {
-  if (!NS_IsMainThread()) {
-    return NS_ERROR_NOT_SAME_THREAD;
-  }
+  NS_ENSURE_TRUE(NS_IsMainThread(), NS_ERROR_NOT_SAME_THREAD);
 
   nsCOMPtr<mozIStorageAsyncStatement> stmt;
   nsresult rv = CreateAsyncStatement(aSQLStatement, getter_AddRefs(stmt));
@@ -1688,12 +1928,11 @@ Connection::CreateTable(const char *aTableName,
 {
   if (!mDBConn) return NS_ERROR_NOT_INITIALIZED;
 
-  char *buf = ::PR_smprintf("CREATE TABLE %s (%s)", aTableName, aTableSchema);
+  SmprintfPointer buf = ::mozilla::Smprintf("CREATE TABLE %s (%s)", aTableName, aTableSchema);
   if (!buf)
     return NS_ERROR_OUT_OF_MEMORY;
 
-  int srv = executeSql(mDBConn, buf);
-  ::PR_smprintf_free(buf);
+  int srv = executeSql(mDBConn, buf.get());
 
   return convertResultCode(srv);
 }
@@ -1853,8 +2092,8 @@ Connection::EnableModule(const nsACString& aModuleName)
 {
   if (!mDBConn) return NS_ERROR_NOT_INITIALIZED;
 
-  for (size_t i = 0; i < ArrayLength(gModules); i++) {
-    struct Module* m = &gModules[i];
+  for (auto& gModule : gModules) {
+    struct Module* m = &gModule;
     if (aModuleName.Equals(m->name)) {
       int srv = m->registerFunc(mDBConn, m->name);
       if (srv != SQLITE_OK)
@@ -1865,6 +2104,47 @@ Connection::EnableModule(const nsACString& aModuleName)
   }
 
   return NS_ERROR_FAILURE;
+}
+
+// Implemented in TelemetryVFS.cpp
+already_AddRefed<QuotaObject>
+GetQuotaObjectForFile(sqlite3_file *pFile);
+
+NS_IMETHODIMP
+Connection::GetQuotaObjects(QuotaObject** aDatabaseQuotaObject,
+                            QuotaObject** aJournalQuotaObject)
+{
+  MOZ_ASSERT(aDatabaseQuotaObject);
+  MOZ_ASSERT(aJournalQuotaObject);
+
+  if (!mDBConn) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
+
+  sqlite3_file* file;
+  int srv = ::sqlite3_file_control(mDBConn,
+                                   nullptr,
+                                   SQLITE_FCNTL_FILE_POINTER,
+                                   &file);
+  if (srv != SQLITE_OK) {
+    return convertResultCode(srv);
+  }
+
+  RefPtr<QuotaObject> databaseQuotaObject = GetQuotaObjectForFile(file);
+
+  srv = ::sqlite3_file_control(mDBConn,
+                               nullptr,
+                               SQLITE_FCNTL_JOURNAL_POINTER,
+                               &file);
+  if (srv != SQLITE_OK) {
+    return convertResultCode(srv);
+  }
+
+  RefPtr<QuotaObject> journalQuotaObject = GetQuotaObjectForFile(file);
+
+  databaseQuotaObject.forget(aDatabaseQuotaObject);
+  journalQuotaObject.forget(aJournalQuotaObject);
+  return NS_OK;
 }
 
 } // namespace storage

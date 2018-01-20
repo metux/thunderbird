@@ -17,11 +17,9 @@ test();
 
 function test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
 
-  jit(true);
 
   if (typeof gcparam != 'undefined')
   {
@@ -122,9 +120,6 @@ function test()
   var imagRange = { min: -2, max: 2 };
   createMandelSet(realRange, imagRange);
 
-  jit(false);
 
   reportCompare(expect, actual, summary);
-
-  exitFunc ('test');
 }

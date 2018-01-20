@@ -88,7 +88,7 @@ function openURI(uri)
                                                null,
                                                Services.scriptSecurityManager.getSystemPrincipal(),
                                                null,
-                                               Components.interfaces.nsILoadInfo.SEC_NORMAL,
+                                               Components.interfaces.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
                                                Components.interfaces.nsIContentPolicy.TYPE_OTHER);
   var loader = Components.classes["@mozilla.org/uriloader;1"]
                          .getService(Components.interfaces.nsIURILoader);
@@ -367,20 +367,22 @@ var nsMailDefaultHandler = {
         // A VCard! Be smart and open the "add contact" dialog.
         let file = cmdLine.resolveFile(uri);
         if (file.exists() && file.fileSize > 0) {
-          NetUtil.asyncFetch(file, function(inputStream, status) {
-            if (!Components.isSuccessCode(status)) {
-              return;
-            }
+          let uriSpec = Services.io.newFileURI(file).spec;
+          NetUtil.asyncFetch({uri: uriSpec, loadUsingSystemPrincipal: true},
+            function(inputStream, status) {
+              if (!Components.isSuccessCode(status)) {
+                return;
+              }
 
-            let data = NetUtil.readInputStreamToString(
-              inputStream, inputStream.available());
-            let card = MailServices.ab.escapedVCardToAbCard(data);
-            Services.ww.openWindow(
-              null,
-              "chrome://messenger/content/addressbook/abNewCardDialog.xul",
-              "_blank",
-              "chrome,resizable=no,titlebar,modal,centerscreen",
-              card);
+              let data = NetUtil.readInputStreamToString(
+                inputStream, inputStream.available());
+              let card = MailServices.ab.escapedVCardToAbCard(data);
+              Services.ww.openWindow(
+                null,
+                "chrome://messenger/content/addressbook/abNewCardDialog.xul",
+                "_blank",
+                "chrome,resizable=no,titlebar,modal,centerscreen",
+                card);
           });
         }
       }
@@ -393,7 +395,7 @@ var nsMailDefaultHandler = {
         let attachment = Components.classes["@mozilla.org/messengercompose/attachment;1"]
                                    .createInstance(Components.interfaces.nsIMsgAttachment);
         let localFile = Components.classes["@mozilla.org/file/local;1"]
-                                  .createInstance(Components.interfaces.nsILocalFile);
+                                  .createInstance(Components.interfaces.nsIFile);
         let fileHandler = Services.io.getProtocolHandler("file")
                                      .QueryInterface(Components.interfaces.nsIFileProtocolHandler);
 

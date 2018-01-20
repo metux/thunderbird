@@ -16,7 +16,6 @@ test();
 
 function test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
 
@@ -44,14 +43,10 @@ function test()
       }
   }
 
-  jit(true);
   gc();
   print("Size\t\Rep.\t\Literal\tnew Arr\tArray()");
   print("====\t=====\t=======\t=======\t=======");
   main();
-  jit(false);
 
   reportCompare(expect, actual, summary);
-
-  exitFunc ('test');
 }

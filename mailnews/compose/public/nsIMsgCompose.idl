@@ -9,14 +9,14 @@
 #include "nsIMsgSendListener.idl"
 
 %{C++
-#include "nsStringGlue.h"
+#include "nsString.h"
 %}
 
 interface nsIMsgSend;
 interface nsIMsgIdentity;
 interface nsIMsgProgress;
 interface nsIDocShell;
-interface nsIDOMWindow;
+interface mozIDOMWindowProxy;
 interface nsIEditor;
 interface nsIMsgWindow;
 
@@ -91,14 +91,7 @@ interface nsIMsgComposeNotificationType
 native nsString(nsString);
 [ref] native nsStringRef(nsString);
 
-/* recycling listener interface */
-[scriptable, uuid(0b28cc56-1dd2-11b2-bbe4-99e6a314f8ba)]
-interface nsIMsgComposeRecyclingListener : nsISupports {
-  void onClose();
-  void onReopen(in nsIMsgComposeParams params);
-};
-
-[scriptable, uuid(d06ca5af-66b5-4a08-961f-5b47e88cee98)]
+[scriptable, uuid(c6544b6b-06dd-43ac-89b5-949d7c81bb7b)]
 interface nsIMsgCompose : nsIMsgSendListener {
 
   /**
@@ -111,7 +104,7 @@ interface nsIMsgCompose : nsIMsgSendListener {
    *                  for composing.
    */
   void initialize(in nsIMsgComposeParams aParams,
-                  [optional] in nsIDOMWindow aWindow,
+                  [optional] in mozIDOMWindowProxy aWindow,
                   [optional] in nsIDocShell aDocShell); 
 
   /* ... */
@@ -140,7 +133,7 @@ interface nsIMsgCompose : nsIMsgSendListener {
                        in string accountKey);
 
   /* ... */
-  void CloseWindow(in boolean reclycleIt);
+  void CloseWindow();
 
   /* ... */
   void abort();
@@ -209,7 +202,7 @@ interface nsIMsgCompose : nsIMsgSendListener {
   attribute nsIEditor editor;
 
 	/* ... */
-  readonly attribute nsIDOMWindow domWindow;
+  readonly attribute mozIDOMWindowProxy domWindow;
 
 	/* ... */
   readonly attribute nsIMsgCompFields compFields;
@@ -241,7 +234,7 @@ interface nsIMsgCompose : nsIMsgSendListener {
    *  The completion of document loading is detected by observing 
    *  the "obs_documentCreated" command
    */
-  void initEditor(in nsIEditor editor, in nsIDOMWindow contentWindow);
+  void initEditor(in nsIEditor editor, in mozIDOMWindowProxy contentWindow);
 
   /* The following functions are for internal use, essentially for the listener */
 
@@ -284,12 +277,6 @@ interface nsIMsgCompose : nsIMsgSendListener {
  	/* ... */
   [noscript] void getQuotingToFollow(out boolean quotingToFollow);
 
- 	/* ... */
-  attribute nsIMsgComposeRecyclingListener recyclingListener;
-  
-  /* ... */
-  attribute boolean recycledWindow;
-  
   readonly attribute string originalMsgURI;
 
   attribute boolean deleteDraft;

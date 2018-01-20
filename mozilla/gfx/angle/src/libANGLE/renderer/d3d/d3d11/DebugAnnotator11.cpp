@@ -68,7 +68,7 @@ void DebugAnnotator11::setMarker(const wchar_t *markerName)
 bool DebugAnnotator11::getStatus()
 {
 #if defined(ANGLE_ENABLE_WINDOWS_STORE)
-#if (NTDDI_VERSION == NTDDI_WIN10)
+    static_assert(NTDDI_VERSION >= NTDDI_WIN10, "GetStatus only works on Win10 and above");
     initializeDevice();
 
     if (mUserDefinedAnnotation != nullptr)
@@ -77,38 +77,6 @@ bool DebugAnnotator11::getStatus()
     }
 
     return true;  // Default if initializeDevice() failed
-#elif defined(_DEBUG)
-    static bool underCapture = true;
-
-    // ID3DUserDefinedAnnotation::GetStatus doesn't work with the Graphics Diagnostics tools in
-    // Windows 8.1/Visual Studio 2013. We can use IDXGraphicsAnalysis, though.
-    // The call to GetDebugInterface1 only succeeds if the app is under capture.
-    // This should only be called in DEBUG mode.
-    // If an app links against DXGIGetDebugInterface1 in release mode then it will fail Windows
-    // Store ingestion checks.
-
-    // Cache the result to reduce the number of calls to DXGIGetDebugInterface1
-    static bool triedIDXGraphicsAnalysis = false;
-
-    if (!triedIDXGraphicsAnalysis)
-    {
-        IDXGraphicsAnalysis *graphicsAnalysis = nullptr;
-
-        HRESULT result = DXGIGetDebugInterface1(0, IID_PPV_ARGS(&graphicsAnalysis));
-        if (SUCCEEDED(result))
-        {
-            underCapture = (graphicsAnalysis != nullptr);
-        }
-
-        SafeRelease(graphicsAnalysis);
-        triedIDXGraphicsAnalysis = true;
-    }
-
-    return underCapture;
-#else
-    // We can't detect GetStatus() on release WinRT 8.1 builds, so always return true.
-    return true;
-#endif  // (NTDDI_VERSION == NTDDI_WIN10) or _DEBUG
 #else
     // We can't detect GetStatus() on desktop ANGLE builds so always return true.
     return true;
@@ -133,7 +101,8 @@ void DebugAnnotator11::initializeDevice()
         HRESULT hr = E_FAIL;
 
         // Create a D3D_DRIVER_TYPE_NULL device, which is much cheaper than other types of device.
-        hr = D3D11CreateDevice(NULL, D3D_DRIVER_TYPE_NULL, nullptr, 0, nullptr, 0, D3D11_SDK_VERSION, &device, nullptr, &context);
+        hr = D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_NULL, nullptr, 0, nullptr, 0,
+                               D3D11_SDK_VERSION, &device, nullptr, &context);
         ASSERT(SUCCEEDED(hr));
         if (SUCCEEDED(hr))
         {

@@ -1,4 +1,4 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -30,12 +30,11 @@ XPIDL_SOURCES += [
     'nsICaptivePortalService.idl',
     'nsIChannel.idl',
     'nsIChannelEventSink.idl',
+    'nsIChannelWithDivertableParentListener.idl',
     'nsIChildChannel.idl',
+    'nsIClassifiedChannel.idl',
     'nsIClassOfService.idl',
     'nsIContentSniffer.idl',
-    'nsICryptoFIPSInfo.idl',
-    'nsICryptoHash.idl',
-    'nsICryptoHMAC.idl',
     'nsIDashboard.idl',
     'nsIDashboardEventNotifier.idl',
     'nsIDeprecationWarner.idl',
@@ -46,13 +45,14 @@ XPIDL_SOURCES += [
     'nsIFileStreams.idl',
     'nsIFileURL.idl',
     'nsIForcePendingChannel.idl',
+    'nsIFormPOSTActionChannel.idl',
+    'nsIHttpAuthenticatorCallback.idl',
     'nsIHttpPushListener.idl',
     'nsIIncrementalDownload.idl',
     'nsIIncrementalStreamLoader.idl',
     'nsIInputStreamChannel.idl',
     'nsIInputStreamPump.idl',
     'nsIIOService.idl',
-    'nsIIOService2.idl',
     'nsILoadContextInfo.idl',
     'nsILoadGroup.idl',
     'nsILoadGroupChild.idl',
@@ -62,18 +62,13 @@ XPIDL_SOURCES += [
     'nsINestedURI.idl',
     'nsINetAddr.idl',
     'nsINetUtil.idl',
+    'nsINetworkInfoService.idl',
     'nsINetworkInterceptController.idl',
     'nsINetworkLinkService.idl',
     'nsINetworkPredictor.idl',
     'nsINetworkPredictorVerifier.idl',
     'nsINetworkProperties.idl',
-    'nsINSSErrorsService.idl',
     'nsINullChannel.idl',
-    'nsIPACGenerator.idl',
-    'nsIPackagedAppChannelListener.idl',
-    'nsIPackagedAppService.idl',
-    'nsIPackagedAppUtils.idl',
-    'nsIPackagedAppVerifier.idl',
     'nsIParentChannel.idl',
     'nsIParentRedirectingChannel.idl',
     'nsIPermission.idl',
@@ -91,15 +86,14 @@ XPIDL_SOURCES += [
     'nsIProxyInfo.idl',
     'nsIRandomGenerator.idl',
     'nsIRedirectChannelRegistrar.idl',
+    'nsIRedirectHistoryEntry.idl',
     'nsIRedirectResultListener.idl',
     'nsIRequest.idl',
+    'nsIRequestContext.idl',
     'nsIRequestObserver.idl',
     'nsIRequestObserverProxy.idl',
-    'nsIResponseHeadProvider.idl',
     'nsIResumableChannel.idl',
-    'nsISchedulingContext.idl',
     'nsISecCheckWrapChannel.idl',
-    'nsISecretDecoderRing.idl',
     'nsISecureBrowserUI.idl',
     'nsISecurityEventSink.idl',
     'nsISecurityInfoProvider.idl',
@@ -107,12 +101,11 @@ XPIDL_SOURCES += [
     'nsISerializationHelper.idl',
     'nsIServerSocket.idl',
     'nsISimpleStreamListener.idl',
+    'nsISocketFilter.idl',
     'nsISocketTransport.idl',
     'nsISocketTransportService.idl',
     'nsISpeculativeConnect.idl',
     'nsIStandardURL.idl',
-    'nsIStreamingProtocolController.idl',
-    'nsIStreamingProtocolService.idl',
     'nsIStreamListener.idl',
     'nsIStreamListenerTee.idl',
     'nsIStreamLoader.idl',
@@ -121,17 +114,18 @@ XPIDL_SOURCES += [
     'nsISystemProxySettings.idl',
     'nsIThreadRetargetableRequest.idl',
     'nsIThreadRetargetableStreamListener.idl',
+    'nsIThrottledInputChannel.idl',
     'nsITimedChannel.idl',
     'nsITLSServerSocket.idl',
     'nsITraceableChannel.idl',
     'nsITransport.idl',
     'nsIUDPSocket.idl',
-    'nsIUDPSocketFilter.idl',
     'nsIUnicharStreamLoader.idl',
     'nsIUploadChannel.idl',
     'nsIUploadChannel2.idl',
     'nsIURI.idl',
     'nsIURIClassifier.idl',
+    'nsIURIWithBlobImpl.idl',
     'nsIURIWithPrincipal.idl',
     'nsIURL.idl',
     'nsIURLParser.idl',
@@ -154,21 +148,22 @@ EXPORTS += [
     'nsInputStreamPump.h',
     'nsMIMEInputStream.h',
     'nsNetUtil.h',
-    'nsNetUtil.inl',
     'nsReadLine.h',
     'nsSerializationHelper.h',
     'nsSimpleNestedURI.h',
     'nsSimpleURI.h',
     'nsStreamListenerWrapper.h',
-    'nsTemporaryFileInputStream.h',
     'nsURIHashKey.h',
     'nsURLHelper.h',
     'nsURLParsers.h',
+    'SimpleChannel.h',
 ]
 
 EXPORTS.mozilla += [
+    'LoadContextInfo.h',
     'LoadInfo.h',
     'LoadTainting.h',
+    'nsRedirectHistoryEntry.h',
 ]
 
 EXPORTS.mozilla.net += [
@@ -178,14 +173,13 @@ EXPORTS.mozilla.net += [
     'Dashboard.h',
     'DashboardTypes.h',
     'MemoryDownloader.h',
-    'OfflineObserver.h',
+    'MozURL.h',
+    'PartiallySeekableInputStream.h',
+    'Predictor.h',
     'ReferrerPolicy.h',
+    'SimpleChannelParent.h',
+    'TCPFastOpen.h',
 ]
-
-if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk':
-    EXPORTS += [
-        'NetStatistics.h',
-    ]
 
 UNIFIED_SOURCES += [
     'ArrayBufferInputStream.cpp',
@@ -193,12 +187,12 @@ UNIFIED_SOURCES += [
     'CaptivePortalService.cpp',
     'ChannelDiverterChild.cpp',
     'ChannelDiverterParent.cpp',
-    'ClosingService.cpp',
     'Dashboard.cpp',
     'EventTokenBucket.cpp',
     'LoadContextInfo.cpp',
     'LoadInfo.cpp',
     'MemoryDownloader.cpp',
+    'MozURL.cpp',
     'NetworkActivityMonitor.cpp',
     'nsAsyncRedirectVerifyHelper.cpp',
     'nsAsyncStreamCopier.cpp',
@@ -226,6 +220,7 @@ UNIFIED_SOURCES += [
     'nsPreloadedStream.cpp',
     'nsProtocolProxyService.cpp',
     'nsProxyInfo.cpp',
+    'nsRedirectHistoryEntry.cpp',
     'nsRequestObserverProxy.cpp',
     'nsSecCheckWrapChannel.cpp',
     'nsSerializationHelper.cpp',
@@ -241,27 +236,30 @@ UNIFIED_SOURCES += [
     'nsStreamLoader.cpp',
     'nsStreamTransportService.cpp',
     'nsSyncStreamListener.cpp',
-    'nsTemporaryFileInputStream.cpp',
     'nsTransportUtils.cpp',
     'nsUDPSocket.cpp',
     'nsUnicharStreamLoader.cpp',
     'nsURLHelper.cpp',
     'nsURLParsers.cpp',
-    'OfflineObserver.cpp',
+    'PartiallySeekableInputStream.cpp',
+    'PollableEvent.cpp',
     'Predictor.cpp',
     'ProxyAutoConfig.cpp',
     'RedirectChannelRegistrar.cpp',
-    'SchedulingContextService.cpp',
-    'StreamingProtocolService.cpp',
+    'RequestContextService.cpp',
+    'SimpleBuffer.cpp',
+    'SimpleChannel.cpp',
+    'SimpleChannelParent.cpp',
+    'TCPFastOpenLayer.cpp',
+    'ThrottleQueue.cpp',
     'Tickler.cpp',
     'TLSServerSocket.cpp',
 ]
 
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
     SOURCES += [
-        'nsAutodialWin.cpp',
-        'nsNativeConnectionHelper.cpp',
         'nsURLHelperWin.cpp',
+        'ShutdownLayer.cpp',
     ]
 elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
     SOURCES += [
@@ -272,15 +270,22 @@ else:
         'nsURLHelperUnix.cpp',
     ]
 
-if CONFIG['MOZ_ENABLE_QTNETWORK']:
+# nsINetworkInfoService support.
+if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
     SOURCES += [
-        'nsAutodialQt.cpp',
+        'NetworkInfoServiceWindows.cpp',
+        'nsNetworkInfoService.cpp',
     ]
-
-EXTRA_COMPONENTS += [
-    'PACGenerator.js',
-    'PACGenerator.manifest'
-]
+elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
+    SOURCES += [
+        'NetworkInfoServiceCocoa.cpp',
+        'nsNetworkInfoService.cpp',
+    ]
+elif CONFIG['OS_ARCH'] == 'Linux':
+    SOURCES += [
+        'NetworkInfoServiceLinux.cpp',
+        'nsNetworkInfoService.cpp',
+    ]
 
 EXTRA_JS_MODULES += [
     'NetUtil.jsm',
@@ -291,23 +296,12 @@ include('/ipc/chromium/chromium-config.mozbuild')
 FINAL_LIBRARY = 'xul'
 
 LOCAL_INCLUDES += [
+    '/docshell/base',
     '/dom/base',
-    '/netwerk/protocol/http'
+    '/netwerk/protocol/http',
+    '/netwerk/socket',
+    '/security/pkix/include'
 ]
 
-if 'rtsp' in CONFIG['NECKO_PROTOCOLS']:
-    LOCAL_INCLUDES += [
-        '/netwerk/protocol/rtsp/controller',
-        '/netwerk/protocol/rtsp/rtsp',
-    ]
-
-if CONFIG['MOZ_ENABLE_QTNETWORK']:
-    LOCAL_INCLUDES += [
-        '/netwerk/system/qt',
-    ]
-
-if CONFIG['ENABLE_TESTS']:
-    DEFINES['PREDICTOR_TESTS'] = True
-
-if CONFIG['MOZ_ENABLE_QTNETWORK']:
-    CXXFLAGS += CONFIG['MOZ_QT_CFLAGS']
+if CONFIG['GNU_CXX']:
+    CXXFLAGS += ['-Wno-error=shadow']

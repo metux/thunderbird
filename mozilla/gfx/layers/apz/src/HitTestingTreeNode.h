@@ -1,5 +1,5 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set sw=2 ts=8 et tw=80 : */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -74,36 +74,54 @@ public:
   HitTestingTreeNode* GetPrevSibling() const;
   HitTestingTreeNode* GetParent() const;
 
+  bool IsAncestorOf(const HitTestingTreeNode* aOther) const;
+
   /* APZC related methods */
 
   AsyncPanZoomController* GetApzc() const;
   AsyncPanZoomController* GetNearestContainingApzc() const;
-  AsyncPanZoomController* GetNearestContainingApzcWithSameLayersId() const;
   bool IsPrimaryHolder() const;
   uint64_t GetLayersId() const;
 
   /* Hit test related methods */
 
   void SetHitTestData(const EventRegions& aRegions,
-                      const gfx::Matrix4x4& aTransform,
+                      const LayerIntRegion& aVisibleRegion,
+                      const CSSTransformMatrix& aTransform,
                       const Maybe<ParentLayerIntRegion>& aClipRegion,
                       const EventRegionsOverride& aOverride);
   bool IsOutsideClip(const ParentLayerPoint& aPoint) const;
 
   /* Scrollbar info */
 
-  void SetScrollbarData(FrameMetrics::ViewID aScrollViewId, Layer::ScrollDirection aDir, int32_t aScrollSize);
+  void SetScrollbarData(FrameMetrics::ViewID aScrollViewId,
+                        const uint64_t& aScrollbarAnimationId,
+                        const ScrollThumbData& aThumbData,
+                        bool aIsScrollContainer);
   bool MatchesScrollDragMetrics(const AsyncDragMetrics& aDragMetrics) const;
-  int32_t GetScrollSize() const;
+  bool IsScrollbarNode() const;  // Scroll thumb or scrollbar container layer.
+  bool IsScrollThumbNode() const;  // Scroll thumb container layer.
+  FrameMetrics::ViewID GetScrollTargetId() const;
+  const ScrollThumbData& GetScrollThumbData() const;
+  const uint64_t& GetScrollbarAnimationId() const;
 
-  /* Convert aPoint into the LayerPixel space for the layer corresponding to
+  /* Fixed pos info */
+
+  void SetFixedPosData(FrameMetrics::ViewID aFixedPosTarget);
+  FrameMetrics::ViewID GetFixedPosTarget() const;
+
+  /* Convert |aPoint| into the LayerPixel space for the layer corresponding to
+   * this node. |aTransform| is the complete (content + async) transform for
    * this node. */
-  Maybe<LayerPoint> Untransform(const ParentLayerPoint& aPoint) const;
+  Maybe<LayerPoint> Untransform(const ParentLayerPoint& aPoint,
+                                const LayerToParentLayerMatrix4x4& aTransform) const;
   /* Assuming aPoint is inside the clip region for this node, check which of the
    * event region spaces it falls inside. */
-  HitTestResult HitTest(const ParentLayerPoint& aPoint) const;
+  HitTestResult HitTest(const LayerPoint& aPoint) const;
   /* Returns the mOverride flag. */
   EventRegionsOverride GetEventRegionsOverride() const;
+  const CSSTransformMatrix& GetTransform() const;
+  const LayerIntRegion& GetVisibleRegion() const;
 
   /* Debug helpers */
   void Dump(const char* aPrefix = "") const;
@@ -120,9 +138,22 @@ private:
 
   uint64_t mLayersId;
 
+  // This is set for both scroll track and scroll thumb Container layers, and
+  // represents the scroll id of the scroll frame scrolled by the scrollbar.
   FrameMetrics::ViewID mScrollViewId;
-  Layer::ScrollDirection mScrollDir;
-  int32_t mScrollSize;
+
+  // This is only set to non-zero if WebRender is enabled, and only for HTTNs
+  // where IsScrollThumbNode() returns true. It holds the animation id that we
+  // use to move the thumb node to reflect async scrolling.
+  uint64_t mScrollbarAnimationId;
+
+  // This is set for scroll thumb Container layers only.
+  ScrollThumbData mScrollThumbData;
+
+  // This is set for scroll track Container layers only.
+  bool mIsScrollbarContainer;
+
+  FrameMetrics::ViewID mFixedPosTarget;
 
   /* Let {L,M} be the {layer, scrollable metrics} pair that this node
    * corresponds to in the layer tree. mEventRegions contains the event regions
@@ -133,9 +164,11 @@ private:
    */
   EventRegions mEventRegions;
 
+  LayerIntRegion mVisibleRegion;
+
   /* This is the transform from layer L. This does NOT include any async
    * transforms. */
-  gfx::Matrix4x4 mTransform;
+  CSSTransformMatrix mTransform;
 
   /* This is clip rect for L that we wish to use for hit-testing purposes. Note
    * that this may not be exactly the same as the clip rect on layer L because

@@ -1,6 +1,7 @@
 /* vim: set ts=2 et sw=2 tw=80: */
 /* Any copyright is dedicated to the Public Domain.
  http://creativecommons.org/publicdomain/zero/1.0/ */
+/* eslint-disable mozilla/no-arbitrary-setTimeout */
 
 "use strict";
 
@@ -10,8 +11,8 @@ requestLongerTimeout(2);
 // changes when animations are playing, gets back to 0 when animations are
 // rewound, and stops when animations are paused.
 
-add_task(function*() {
-  yield addTab(TEST_URL_ROOT + "doc_simple_animation.html");
+add_task(function* () {
+  yield addTab(URL_ROOT + "doc_simple_animation.html");
 
   let {panel} = yield openAnimationInspector();
   let label = panel.timelineCurrentTimeEl;

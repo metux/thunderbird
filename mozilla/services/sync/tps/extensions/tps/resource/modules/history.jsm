@@ -13,17 +13,11 @@ const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/PlacesUtils.jsm");
+Cu.import("resource://gre/modules/PlacesSyncUtils.jsm");
 Cu.import("resource://tps/logger.jsm");
 Cu.import("resource://services-common/async.js");
 
-var DumpHistory = function TPS_History__DumpHistory() {
-  let writer = {
-    value: "",
-    write: function PlacesItem__dump__write(aStr, aLen) {
-      this.value += aStr;
-    }
-  };
-
+var DumpHistory = async function TPS_History__DumpHistory() {
   let query = PlacesUtils.history.getNewQuery();
   let options = PlacesUtils.history.getNewQueryOptions();
   let root = PlacesUtils.history.executeQuery(query, options).root;
@@ -32,7 +26,7 @@ var DumpHistory = function TPS_History__DumpHistory() {
   for (var i = 0; i < root.childCount; i++) {
     let node = root.getChild(i);
     let uri = node.uri;
-    let curvisits = HistoryEntry._getVisits(uri);
+    let curvisits = await PlacesSyncUtils.history.fetchVisitsForURL(uri);
     for (var visit of curvisits) {
       Logger.logInfo("URI: " + uri + ", type=" + visit.type + ", date=" + visit.date, true);
     }
@@ -48,50 +42,6 @@ var DumpHistory = function TPS_History__DumpHistory() {
  */
 var HistoryEntry = {
   /**
-   * _db
-   *
-   * Returns the DBConnection object for the history service.
-   */
-  get _db() {
-    return PlacesUtils.history.QueryInterface(Ci.nsPIPlacesDatabase).DBConnection;
-  },
-
-  /**
-   * _visitStm
-   *
-   * Return the SQL statement for getting history visit information
-   * from the moz_historyvisits table.  Borrowed from Weave's
-   * history.js.
-   */
-  get _visitStm() {
-    let stm = this._db.createStatement(
-      "SELECT visit_type type, visit_date date " +
-      "FROM moz_historyvisits " +
-      "WHERE place_id = (" +
-        "SELECT id " +
-        "FROM moz_places " +
-        "WHERE url = :url) " +
-      "ORDER BY date DESC LIMIT 20");
-    this.__defineGetter__("_visitStm", () => stm);
-    return stm;
-  },
-
-  /**
-   * _getVisits
-   *
-   * Gets history information about visits to a given uri.
-   *
-   * @param uri The uri to get visits for
-   * @return an array of objects with 'date' and 'type' properties,
-   * corresponding to the visits in the history database for the
-   * given uri
-   */
-  _getVisits: function HistStore__getVisits(uri) {
-    this._visitStm.params.url = uri;
-    return Async.querySpinningly(this._visitStm, ["date", "type"]);
-  },
-
-  /**
    * Add
    *
    * Adds visits for a uri to the history database.  Throws on error.
@@ -101,13 +51,13 @@ var HistoryEntry = {
    *        the time the current Crossweave run was started
    * @return nothing
    */
-  Add: function(item, usSinceEpoch) {
+  Add(item, usSinceEpoch) {
     Logger.AssertTrue("visits" in item && "uri" in item,
       "History entry in test file must have both 'visits' " +
       "and 'uri' properties");
-    let uri = Services.io.newURI(item.uri, null, null);
+    let uri = Services.io.newURI(item.uri);
     let place = {
-      uri: uri,
+      uri,
       visits: []
     };
     for (let visit of item.visits) {
@@ -145,11 +95,11 @@ var HistoryEntry = {
    *        the time the current Crossweave run was started
    * @return true if all the visits for the uri are found, otherwise false
    */
-  Find: function(item, usSinceEpoch) {
+  async Find(item, usSinceEpoch) {
     Logger.AssertTrue("visits" in item && "uri" in item,
       "History entry in test file must have both 'visits' " +
       "and 'uri' properties");
-    let curvisits = this._getVisits(item.uri);
+    let curvisits = await PlacesSyncUtils.history.fetchVisitsForURL(item.uri);
     for (let visit of curvisits) {
       for (let itemvisit of item.visits) {
         let expectedDate = itemvisit.date * 60 * 60 * 1000 * 1000
@@ -161,7 +111,7 @@ var HistoryEntry = {
     }
 
     let all_items_found = true;
-    for (let itemvisit in item.visits) {
+    for (let itemvisit of item.visits) {
       all_items_found = all_items_found && "found" in itemvisit;
       Logger.logInfo("History entry for " + item.uri + ", type:" +
               itemvisit.type + ", date:" + itemvisit.date +
@@ -180,20 +130,23 @@ var HistoryEntry = {
    *        the time the current Crossweave run was started
    * @return nothing
    */
-  Delete: function(item, usSinceEpoch) {
+  Delete(item, usSinceEpoch) {
     if ("uri" in item) {
-      let uri = Services.io.newURI(item.uri, null, null);
-      PlacesUtils.history.removePage(uri);
-    }
-    else if ("host" in item) {
+      Async.promiseSpinningly(PlacesUtils.history.remove(item.uri));
+    } else if ("host" in item) {
       PlacesUtils.history.removePagesFromHost(item.host, false);
-    }
-    else if ("begin" in item && "end" in item) {
-      PlacesUtils.history.removeVisitsByTimeframe(
-          usSinceEpoch + (item.begin * 60 * 60 * 1000 * 1000),
-          usSinceEpoch + (item.end * 60 * 60 * 1000 * 1000));
-    }
-    else {
+    } else if ("begin" in item && "end" in item) {
+      let cb = Async.makeSpinningCallback();
+      let msSinceEpoch = parseInt(usSinceEpoch / 1000);
+      let filter = {
+        beginDate: new Date(msSinceEpoch + (item.begin * 60 * 60 * 1000)),
+        endDate: new Date(msSinceEpoch + (item.end * 60 * 60 * 1000))
+      };
+      PlacesUtils.history.removeVisitsByFilter(filter)
+      .catch(ex => Logger.AssertTrue(false, "An error occurred while deleting history: " + ex.message))
+      .then(result => { cb(null, result); }, err => { cb(err); });
+      Async.waitForSyncCallback(cb);
+    } else {
       Logger.AssertTrue(false, "invalid entry in delete history");
     }
   },

@@ -15,19 +15,17 @@
 #include "nsIDOMElement.h"
 #include "nsIContent.h"
 #include "nsIDocument.h"
+#include "nsElementTable.h"
 #include "nsNameSpaceManager.h"
 #include "nsString.h"
 #include "nsUnicharUtils.h"
-#include "nsXPIDLString.h"
 #include "nsIServiceManager.h"
 #include "nsIDocumentEncoder.h"
 #include "nsGkAtoms.h"
 #include "nsIURI.h"
 #include "nsNetUtil.h"
 #include "nsEscape.h"
-#include "nsITextToSubURI.h"
 #include "nsCRT.h"
-#include "nsIParserService.h"
 #include "nsContentUtils.h"
 #include "nsLWBrkCIID.h"
 #include "nsIScriptElement.h"
@@ -70,7 +68,7 @@ nsHTMLContentSerializer::SerializeHTMLAttributes(nsIContent* aContent,
                                                  nsIContent *aOriginalElement,
                                                  nsAString& aTagPrefix,
                                                  const nsAString& aTagNamespaceURI,
-                                                 nsIAtom* aTagName,
+                                                 nsAtom* aTagName,
                                                  int32_t aNamespace,
                                                  nsAString& aStr)
 {
@@ -82,11 +80,10 @@ nsHTMLContentSerializer::SerializeHTMLAttributes(nsIContent* aContent,
   nsAutoString valueStr;
   NS_NAMED_LITERAL_STRING(_mozStr, "_moz");
 
-  for (int32_t index = count; index > 0;) {
-    --index;
+  for (int32_t index = 0; index < count; index++) {
     const nsAttrName* name = aContent->GetAttrNameAt(index);
     int32_t namespaceID = name->NamespaceID();
-    nsIAtom* attrName = name->LocalName();
+    nsAtom* attrName = name->LocalName();
 
     // Filter out any attribute starting with [-|_]moz
     nsDependentAtomString attrNameStr(attrName);
@@ -96,7 +93,7 @@ nsHTMLContentSerializer::SerializeHTMLAttributes(nsIContent* aContent,
     }
     aContent->GetAttr(namespaceID, attrName, valueStr);
 
-    // 
+    //
     // Filter out special case of <br type="_moz"> or <br _moz*>,
     // used by the editor.  Bug 16988.  Yuck.
     //
@@ -113,17 +110,16 @@ nsHTMLContentSerializer::SerializeHTMLAttributes(nsIContent* aContent,
       continue;
     }
     bool isJS = IsJavaScript(aContent, attrName, namespaceID, valueStr);
-    
+
     if (((attrName == nsGkAtoms::href &&
           (namespaceID == kNameSpaceID_None ||
            namespaceID == kNameSpaceID_XLink)) ||
          (attrName == nsGkAtoms::src && namespaceID == kNameSpaceID_None))) {
       // Make all links absolute when converting only the selection:
       if (mFlags & nsIDocumentEncoder::OutputAbsoluteLinks) {
-        // Would be nice to handle OBJECT and APPLET tags,
-        // but that gets more complicated since we have to
-        // search the tag list for CODEBASE as well.
-        // For now, just leave them relative.
+        // Would be nice to handle OBJECT tags, but that gets more complicated
+        // since we have to search the tag list for CODEBASE as well. For now,
+        // just leave them relative.
         nsCOMPtr<nsIURI> uri = aContent->GetBaseURI();
         if (uri) {
           nsAutoString absURI;
@@ -133,10 +129,6 @@ nsHTMLContentSerializer::SerializeHTMLAttributes(nsIContent* aContent,
           }
         }
       }
-      // Need to escape URI.
-      nsAutoString tempURI(valueStr);
-      if (!isJS && NS_FAILED(EscapeURI(aContent, tempURI, valueStr)))
-        valueStr = tempURI;
     }
 
     if (mRewriteEncodingDeclaration && aTagName == nsGkAtoms::meta &&
@@ -155,9 +147,9 @@ nsHTMLContentSerializer::SerializeHTMLAttributes(nsIContent* aContent,
     nsDependentAtomString nameStr(attrName);
     nsAutoString prefix;
     if (namespaceID == kNameSpaceID_XML) {
-      prefix.AssignLiteral(MOZ_UTF16("xml"));
+      prefix.AssignLiteral(u"xml");
     } else if (namespaceID == kNameSpaceID_XLink) {
-      prefix.AssignLiteral(MOZ_UTF16("xlink"));
+      prefix.AssignLiteral(u"xlink");
     }
 
     // Expand shorthand attribute.
@@ -186,12 +178,16 @@ nsHTMLContentSerializer::AppendElementStart(Element* aElement,
   bool forceFormat = false;
   nsresult rv = NS_OK;
   if (!CheckElementStart(content, forceFormat, aStr, rv)) {
+    // When we go to AppendElementEnd for this element, we're going to
+    // MaybeLeaveFromPreContent().  So make sure to MaybeEnterInPreContent()
+    // now, so our PreLevel() doesn't get confused.
+    MaybeEnterInPreContent(content);
     return rv;
   }
 
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsIAtom *name = content->NodeInfo()->NameAtom();
+  nsAtom *name = content->NodeInfo()->NameAtom();
   int32_t ns = content->GetNameSpaceID();
 
   bool lineBreakBeforeOpen = LineBreakBeforeOpen(ns, name);
@@ -234,7 +230,7 @@ nsHTMLContentSerializer::AppendElementStart(Element* aElement,
   if ((mDoFormat || forceFormat) && !mDoRaw && !PreLevel())
     NS_ENSURE_TRUE(IncrIndentation(name), NS_ERROR_OUT_OF_MEMORY);
 
-  // Need to keep track of OL and LI elements in order to get ordinal number 
+  // Need to keep track of OL and LI elements in order to get ordinal number
   // for the LI.
   if (mIsCopying && name == nsGkAtoms::ol && ns == kNameSpaceID_XHTML){
     // We are copying and current node is an OL;
@@ -250,7 +246,7 @@ nsHTMLContentSerializer::AppendElementStart(Element* aElement,
       //Therefore subtracting 1 as all the LI elements are incrementing it before using it;
       //In failure of ToInteger(), default StartAttrValue to 0.
       if (NS_SUCCEEDED(rv))
-        startAttrVal--; 
+        startAttrVal--;
       else
         startAttrVal = 0;
     }
@@ -265,7 +261,7 @@ nsHTMLContentSerializer::AppendElementStart(Element* aElement,
     }
   }
 
-  // Even LI passed above have to go through this 
+  // Even LI passed above have to go through this
   // for serializing attributes other than "value".
   nsAutoString dummyPrefix;
   NS_ENSURE_TRUE(SerializeHTMLAttributes(content,
@@ -295,8 +291,8 @@ nsHTMLContentSerializer::AppendElementStart(Element* aElement,
 
   return NS_OK;
 }
-  
-NS_IMETHODIMP 
+
+NS_IMETHODIMP
 nsHTMLContentSerializer::AppendElementEnd(Element* aElement,
                                           nsAString& aStr)
 {
@@ -304,7 +300,7 @@ nsHTMLContentSerializer::AppendElementEnd(Element* aElement,
 
   nsIContent* content = aElement;
 
-  nsIAtom *name = content->NodeInfo()->NameAtom();
+  nsAtom *name = content->NodeInfo()->NameAtom();
   int32_t ns = content->GetNameSpaceID();
 
   if (ns == kNameSpaceID_XHTML &&
@@ -335,25 +331,21 @@ nsHTMLContentSerializer::AppendElementEnd(Element* aElement,
   }
   else if (mIsCopying && name == nsGkAtoms::ol && ns == kNameSpaceID_XHTML) {
     NS_ASSERTION((!mOLStateStack.IsEmpty()), "Cannot have an empty OL Stack");
-    /* Though at this point we must always have an state to be deleted as all 
+    /* Though at this point we must always have an state to be deleted as all
     the OL opening tags are supposed to push an olState object to the stack*/
     if (!mOLStateStack.IsEmpty()) {
       mOLStateStack.RemoveElementAt(mOLStateStack.Length() -1);
     }
   }
-  
+
   if (ns == kNameSpaceID_XHTML) {
-    nsIParserService* parserService = nsContentUtils::GetParserService();
-
-    if (parserService) {
-      bool isContainer;
-
-      parserService->
-        IsContainer(parserService->HTMLCaseSensitiveAtomTagToId(name),
-                    isContainer);
-      if (!isContainer) {
-        return NS_OK;
-      }
+    bool isContainer =
+      nsHTMLElement::IsContainer(nsHTMLTags::CaseSensitiveAtomTagToId(name));
+    if (!isContainer) {
+      // Keep this in sync with the cleanup at the end of this method.
+      MOZ_ASSERT(name != nsGkAtoms::body);
+      MaybeLeaveFromPreContent(content);
+      return NS_OK;
     }
   }
 
@@ -383,6 +375,7 @@ nsHTMLContentSerializer::AppendElementEnd(Element* aElement,
   NS_ENSURE_TRUE(AppendToString(nsDependentAtomString(name), aStr), NS_ERROR_OUT_OF_MEMORY);
   NS_ENSURE_TRUE(AppendToString(kGreaterThan, aStr), NS_ERROR_OUT_OF_MEMORY);
 
+  // Keep this cleanup in sync with the IsContainer() early return above.
   MaybeLeaveFromPreContent(content);
 
   if ((mDoFormat || forceFormat)&& !mDoRaw  && !PreLevel()
@@ -401,50 +394,66 @@ nsHTMLContentSerializer::AppendElementEnd(Element* aElement,
 }
 
 static const uint16_t kValNBSP = 160;
-static const char* kEntities[] = {
-  nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-  nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-  nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-  nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, "&amp;", nullptr,
-  nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-  nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-  "&lt;", nullptr, "&gt;", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-  nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-  nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-  nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-  nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-  nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-  nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-  nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-  nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-  nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-  "&nbsp;"
+
+#define _ 0
+
+// This table indexes into kEntityStrings[].
+static const uint8_t kEntities[] = {
+  _, _, _, _, _, _, _, _, _, _,
+  _, _, _, _, _, _, _, _, _, _,
+  _, _, _, _, _, _, _, _, _, _,
+  _, _, _, _, _, _, _, _, 2, _,
+  _, _, _, _, _, _, _, _, _, _,
+  _, _, _, _, _, _, _, _, _, _,
+  3, _, 4, _, _, _, _, _, _, _,
+  _, _, _, _, _, _, _, _, _, _,
+  _, _, _, _, _, _, _, _, _, _,
+  _, _, _, _, _, _, _, _, _, _,
+  _, _, _, _, _, _, _, _, _, _,
+  _, _, _, _, _, _, _, _, _, _,
+  _, _, _, _, _, _, _, _, _, _,
+  _, _, _, _, _, _, _, _, _, _,
+  _, _, _, _, _, _, _, _, _, _,
+  _, _, _, _, _, _, _, _, _, _,
+  5
 };
 
-static const char* kAttrEntities[] = {
-  nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-  nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-  nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-  nullptr, nullptr, nullptr, nullptr, "&quot;", nullptr, nullptr, nullptr, "&amp;", nullptr,
-  nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-  nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-  "&lt;", nullptr, "&gt;", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-  nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-  nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-  nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-  nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-  nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-  nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-  nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-  nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-  nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-  "&nbsp;"
+// This table indexes into kEntityStrings[].
+static const uint8_t kAttrEntities[] = {
+  _, _, _, _, _, _, _, _, _, _,
+  _, _, _, _, _, _, _, _, _, _,
+  _, _, _, _, _, _, _, _, _, _,
+  _, _, _, _, 1, _, _, _, 2, _,
+  _, _, _, _, _, _, _, _, _, _,
+  _, _, _, _, _, _, _, _, _, _,
+  3, _, 4, _, _, _, _, _, _, _,
+  _, _, _, _, _, _, _, _, _, _,
+  _, _, _, _, _, _, _, _, _, _,
+  _, _, _, _, _, _, _, _, _, _,
+  _, _, _, _, _, _, _, _, _, _,
+  _, _, _, _, _, _, _, _, _, _,
+  _, _, _, _, _, _, _, _, _, _,
+  _, _, _, _, _, _, _, _, _, _,
+  _, _, _, _, _, _, _, _, _, _,
+  _, _, _, _, _, _, _, _, _, _,
+  5
+};
+
+#undef _
+
+static const char* const kEntityStrings[] = {
+  /* 0 */ nullptr,
+  /* 1 */ "&quot;",
+  /* 2 */ "&amp;",
+  /* 3 */ "&lt;",
+  /* 4 */ "&gt;",
+  /* 5 */ "&nbsp;"
 };
 
 uint32_t FindNextBasicEntity(const nsAString& aStr,
                              const uint32_t aLen,
                              uint32_t aIndex,
-                             const char** aEntityTable,
+                             const uint8_t* aEntityTable,
                              const char** aEntity)
 {
   for (; aIndex < aLen; ++aIndex) {
@@ -452,7 +461,7 @@ uint32_t FindNextBasicEntity(const nsAString& aStr,
     // needs to be replaced
     char16_t val = aStr[aIndex];
     if (val <= kValNBSP && aEntityTable[val]) {
-      *aEntity = aEntityTable[val];
+      *aEntity = kEntityStrings[aEntityTable[val]];
       return aIndex;
     }
   }
@@ -471,20 +480,14 @@ nsHTMLContentSerializer::AppendAndTranslateEntities(const nsAString& aStr,
     return aOutputStr.Append(aStr, mozilla::fallible);
   }
 
-  bool nonBasicEntities =
-    !!(mFlags & (nsIDocumentEncoder::OutputEncodeLatin1Entities |
-                 nsIDocumentEncoder::OutputEncodeHTMLEntities   |
-                 nsIDocumentEncoder::OutputEncodeW3CEntities));
-
-  if (!nonBasicEntities &&
-      (mFlags & (nsIDocumentEncoder::OutputEncodeBasicEntities))) {
-    const char **entityTable = mInAttribute ? kAttrEntities : kEntities;
+  if (mFlags & (nsIDocumentEncoder::OutputEncodeBasicEntities)) {
+    const uint8_t* entityTable = mInAttribute ? kAttrEntities : kEntities;
     uint32_t start = 0;
     const uint32_t len = aStr.Length();
     for (uint32_t i = 0; i < len; ++i) {
       const char* entity = nullptr;
       i = FindNextBasicEntity(aStr, len, i, entityTable, &entity);
-      uint32_t normalTextLen = i - start; 
+      uint32_t normalTextLen = i - start;
       if (normalTextLen) {
         NS_ENSURE_TRUE(aOutputStr.Append(Substring(aStr, start, normalTextLen),
                                          mozilla::fallible), false);
@@ -495,102 +498,6 @@ nsHTMLContentSerializer::AppendAndTranslateEntities(const nsAString& aStr,
       }
     }
     return true;
-  } else if (nonBasicEntities) {
-    nsIParserService* parserService = nsContentUtils::GetParserService();
-
-    if (!parserService) {
-      NS_ERROR("Can't get parser service");
-      return true;
-    }
-
-    nsReadingIterator<char16_t> done_reading;
-    aStr.EndReading(done_reading);
-
-    // for each chunk of |aString|...
-    uint32_t advanceLength = 0;
-    nsReadingIterator<char16_t> iter;
-
-    const char **entityTable = mInAttribute ? kAttrEntities : kEntities;
-    nsAutoCString entityReplacement;
-
-    for (aStr.BeginReading(iter);
-         iter != done_reading;
-         iter.advance(int32_t(advanceLength))) {
-      uint32_t fragmentLength = iter.size_forward();
-      uint32_t lengthReplaced = 0; // the number of UTF-16 codepoints
-                                    //  replaced by a particular entity
-      const char16_t* c = iter.get();
-      const char16_t* fragmentStart = c;
-      const char16_t* fragmentEnd = c + fragmentLength;
-      const char* entityText = nullptr;
-      const char* fullConstEntityText = nullptr;
-      char* fullEntityText = nullptr;
-
-      advanceLength = 0;
-      // for each character in this chunk, check if it
-      // needs to be replaced
-      for (; c < fragmentEnd; c++, advanceLength++) {
-        char16_t val = *c;
-        if (val <= kValNBSP && entityTable[val]) {
-          fullConstEntityText = entityTable[val];
-          break;
-        } else if (val > 127 &&
-                  ((val < 256 &&
-                    mFlags & nsIDocumentEncoder::OutputEncodeLatin1Entities) ||
-                    mFlags & nsIDocumentEncoder::OutputEncodeHTMLEntities)) {
-          entityReplacement.Truncate();
-          parserService->HTMLConvertUnicodeToEntity(val, entityReplacement);
-
-          if (!entityReplacement.IsEmpty()) {
-            entityText = entityReplacement.get();
-            break;
-          }
-        }
-        else if (val > 127 &&
-                  mFlags & nsIDocumentEncoder::OutputEncodeW3CEntities &&
-                  mEntityConverter) {
-          if (NS_IS_HIGH_SURROGATE(val) &&
-              c + 1 < fragmentEnd &&
-              NS_IS_LOW_SURROGATE(*(c + 1))) {
-            uint32_t valUTF32 = SURROGATE_TO_UCS4(val, *(++c));
-            if (NS_SUCCEEDED(mEntityConverter->ConvertUTF32ToEntity(valUTF32,
-                              nsIEntityConverter::entityW3C, &fullEntityText))) {
-              lengthReplaced = 2;
-              break;
-            }
-            else {
-              advanceLength++;
-            }
-          }
-          else if (NS_SUCCEEDED(mEntityConverter->ConvertToEntity(val,
-                                nsIEntityConverter::entityW3C, 
-                                &fullEntityText))) {
-            lengthReplaced = 1;
-            break;
-          }
-        }
-      }
-
-      bool result = aOutputStr.Append(fragmentStart, advanceLength, mozilla::fallible);
-      if (entityText) {
-        NS_ENSURE_TRUE(aOutputStr.Append(char16_t('&'), mozilla::fallible), false);
-        NS_ENSURE_TRUE(AppendASCIItoUTF16(entityText, aOutputStr, mozilla::fallible), false);
-        NS_ENSURE_TRUE(aOutputStr.Append(char16_t(';'), mozilla::fallible), false);
-        advanceLength++;
-      }
-      else if (fullConstEntityText) {
-        NS_ENSURE_TRUE(aOutputStr.AppendASCII(fullConstEntityText, mozilla::fallible), false);
-        ++advanceLength;
-      }
-      // if it comes from nsIEntityConverter, it already has '&' and ';'
-      else if (fullEntityText) {
-        bool ok = AppendASCIItoUTF16(fullEntityText, aOutputStr, mozilla::fallible);
-        free(fullEntityText);
-        advanceLength += lengthReplaced;
-        NS_ENSURE_TRUE(ok, false);
-      }
-      NS_ENSURE_TRUE(result, false);
-    }
   } else {
     NS_ENSURE_TRUE(nsXMLContentSerializer::AppendAndTranslateEntities(aStr, aOutputStr), false);
   }

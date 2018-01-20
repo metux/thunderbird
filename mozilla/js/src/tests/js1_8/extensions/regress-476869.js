@@ -17,7 +17,6 @@ test();
 
 function test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
  
@@ -26,7 +25,6 @@ function test()
     gczeal = (function (){});
   }
 
-  jit(true);
 
   function f()
   {
@@ -35,13 +33,10 @@ function test()
   __proto__.__iterator__ = this.__defineGetter__("", function(){})
     f();
 
-  jit(false);
 
   delete __proto__.__iterator__;
 
   gczeal(0);
 
   reportCompare(expect, actual, summary);
-
-  exitFunc ('test');
 }

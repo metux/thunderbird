@@ -14,18 +14,25 @@
 
 #include "nsIXPCScriptable.h"
 
-#define DOMCI_CLASS(_dom_class)                                               \
-  eDOMClassInfo_##_dom_class##_id,
+enum nsDOMClassInfoID
+{
+  eDOMClassInfo_DOMPrototype_id,
+  eDOMClassInfo_DOMConstructor_id,
 
-enum nsDOMClassInfoID {
+  eDOMClassInfo_ContentFrameMessageManager_id,
+  eDOMClassInfo_ContentProcessMessageManager_id,
+  eDOMClassInfo_ChromeMessageBroadcaster_id,
+  eDOMClassInfo_ChromeMessageSender_id,
 
-#include "nsDOMClassInfoClasses.h"
+  eDOMClassInfo_XULControlElement_id,
+  eDOMClassInfo_XULLabeledControlElement_id,
+  eDOMClassInfo_XULButtonElement_id,
+  eDOMClassInfo_XULCheckboxElement_id,
+  eDOMClassInfo_XULPopupElement_id,
 
   // This one better be the last one in this list
   eDOMClassInfoIDCount
 };
-
-#undef DOMCI_CLASS
 
 /**
  * nsIClassInfo helper macros
@@ -59,10 +66,6 @@ NS_GetDOMClassInfoInstance(nsDOMClassInfoID aID);
       return NS_ERROR_OUT_OF_MEMORY;                                          \
     }                                                                         \
   } else
-
-#else
-
-// See nsIDOMClassInfo.h
 
 #endif // MOZILLA_INTERNAL_API
 

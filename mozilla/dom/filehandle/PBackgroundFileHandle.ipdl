@@ -4,7 +4,12 @@
 
 include protocol PBackgroundFileRequest;
 include protocol PBackgroundMutableFile;
-include protocol PBlob;
+include protocol PChildToParentStream; // FIXME: bug 792908
+include protocol PFileDescriptorSet; // FIXME: bug 792908
+include protocol PIPCBlobInputStream; // FIXME: bug 792908
+include protocol PParentToChildStream; // FIXME: bug 792908
+
+include IPCBlob;
 
 namespace mozilla {
 namespace dom {
@@ -28,7 +33,7 @@ struct FileRequestStringData
 
 struct FileRequestBlobData
 {
-  PBlob blob;
+  IPCBlob blob;
 };
 
 union FileRequestData
@@ -74,17 +79,17 @@ protocol PBackgroundFileHandle
   manages PBackgroundFileRequest;
 
 parent:
-  DeleteMe();
+  async DeleteMe();
 
-  Finish();
-  Abort();
+  async Finish();
+  async Abort();
 
-  PBackgroundFileRequest(FileRequestParams params);
+  async PBackgroundFileRequest(FileRequestParams params);
 
 child:
-  __delete__();
+  async __delete__();
 
-  Complete(bool aborted);
+  async Complete(bool aborted);
 };
 
 } // namespace dom

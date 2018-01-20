@@ -140,7 +140,7 @@ var accountWizard = {
       vbox.lastChild.remove();
 
     let splits = [];
-    for (let split in this.getProtoUserSplits())
+    for (let split of this.getProtoUserSplits())
       splits.push(split);
 
     let label = bundle.getString("accountUsername");
@@ -235,87 +235,11 @@ var accountWizard = {
     document.getElementById("proxyDescription").textContent = result;
   },
 
-  createTextbox: function aw_createTextbox(aType, aValue, aLabel, aName) {
-    let row = document.createElement("row");
-    row.setAttribute("align", "center");
-
-    let label = document.createElement("label");
-    label.textContent = aLabel;
-    label.setAttribute("control", aName);
-    row.appendChild(label);
-
-    let textbox = document.createElement("textbox");
-    if (aType)
-      textbox.setAttribute("type", aType);
-    textbox.setAttribute("value", aValue);
-    textbox.setAttribute("id", aName);
-    textbox.setAttribute("flex", "1");
-
-    row.appendChild(textbox);
-    return row;
-  },
-
-  createMenulist: function aw_createMenulist(aList, aLabel, aName) {
-    let vbox = document.createElement("vbox");
-    vbox.setAttribute("flex", "1");
-
-    let label = document.createElement("label");
-    label.setAttribute("value", aLabel);
-    label.setAttribute("control", aName);
-    vbox.appendChild(label);
-
-    aList.QueryInterface(Ci.nsISimpleEnumerator);
-    let menulist = document.createElement("menulist");
-    menulist.setAttribute("id", aName);
-    let popup = menulist.appendChild(document.createElement("menupopup"));
-    while (aList.hasMoreElements()) {
-      let elt = aList.getNext();
-      let item = document.createElement("menuitem");
-      item.setAttribute("label", elt.name);
-      item.setAttribute("value", elt.value);
-      popup.appendChild(item);
-    }
-    vbox.appendChild(menulist);
-    return vbox;
-  },
-
   populateProtoSpecificBox: function aw_populate() {
-    let id = this.proto.id;
-    let rows = document.getElementById("protoSpecific");
-    let child;
-    while (rows.hasChildNodes())
-      rows.lastChild.remove();
-    let visible = false;
-    for (let opt in this.getProtoOptions()) {
-      let text = opt.label;
-      let name = id + "-" + opt.name;
-      switch (opt.type) {
-      case opt.typeBool:
-        let chk = document.createElement("checkbox");
-        chk.setAttribute("label", text);
-        chk.setAttribute("id", name);
-        if (opt.getBool())
-          chk.setAttribute("checked", "true");
-        rows.appendChild(chk);
-        break;
-      case opt.typeInt:
-        rows.appendChild(this.createTextbox("number", opt.getInt(),
-                                            text, name));
-        break;
-      case opt.typeString:
-        rows.appendChild(this.createTextbox(null, opt.getString(), text, name));
-        break;
-      case opt.typeList:
-        rows.appendChild(this.createMenulist(opt.getList(), text, name));
-        document.getElementById(name).value = opt.getListDefault();
-        break;
-      default:
-        throw "unknown preference type " + opt.type;
-      }
-      visible = true;
-    }
-    document.getElementById("protoSpecificGroupbox").hidden = !visible;
-    if (visible) {
+    let haveOptions =
+      accountOptionsHelper.addOptions(this.proto.id + "-", this.getProtoOptions());
+    document.getElementById("protoSpecificGroupbox").hidden = !haveOptions;
+    if (haveOptions) {
       let bundle = document.getElementById("accountsBundle");
       document.getElementById("protoSpecificCaption").label =
         bundle.getFormattedString("protoOptions", [this.proto.name]);
@@ -380,7 +304,7 @@ var accountWizard = {
 
     let id = this.proto.id;
     this.prefs = [ ];
-    for (let opt in this.getProtoOptions()) {
+    for (let opt of this.getProtoOptions()) {
       let name = opt.name;
       let eltName = id + "-" + name;
       let val = this.getValue(eltName);
@@ -481,7 +405,7 @@ var accountWizard = {
     return undefined;
   },
 
-  getIter: function(aEnumerator) {
+  getIter: function*(aEnumerator) {
     while (aEnumerator.hasMoreElements())
       yield aEnumerator.getNext();
   },
@@ -534,9 +458,9 @@ var accountWizard = {
     let prefURL = PREF_EXTENSIONS_GETMOREPROTOCOLSURL;
     let getMore = document.getElementById("getMoreProtocols");
     let showGetMore = false;
-    const nsIPrefBranch2 = Components.interfaces.nsIPrefBranch2;
+    const nsIPrefBranch = Components.interfaces.nsIPrefBranch;
 
-    if (Services.prefs.getPrefType(prefURL) != nsIPrefBranch2.PREF_INVALID) {
+    if (Services.prefs.getPrefType(prefURL) != nsIPrefBranch.PREF_INVALID) {
       try {
         let getMoreURL = Components.classes["@mozilla.org/toolkit/URLFormatterService;1"]
                                    .getService(Components.interfaces.nsIURLFormatter)
@@ -552,7 +476,7 @@ var accountWizard = {
   openURL: function (aURL) {
     Components.classes["@mozilla.org/uriloader/external-protocol-service;1"]
               .getService(Components.interfaces.nsIExternalProtocolService)
-              .loadUrl(Services.io.newURI(aURL, null, null));
+              .loadURI(Services.io.newURI(aURL));
   },
 
   advanceTopProtocolPage: function() {
@@ -580,7 +504,7 @@ var accountWizard = {
 
     accountWizard.setGetMoreProtocols();
     let protos = [];
-    for (let proto in accountWizard.getProtocols())
+    for (let proto of accountWizard.getProtocols())
       protos.push(proto);
     protos.sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
 

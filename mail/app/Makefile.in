@@ -4,18 +4,8 @@
 
 AB_CD = $(MOZ_UI_LOCALE)
 
-GRE_MILESTONE = $(shell $(PYTHON) $(MOZILLA_SRCDIR)/config/printconfigsetting.py $(DIST)/bin/platform.ini Build Milestone)
-GRE_BUILDID = $(shell $(PYTHON) $(MOZILLA_SRCDIR)/config/printconfigsetting.py $(DIST)/bin/platform.ini Build BuildID)
-
-MOZ_SOURCE_STAMP = $(firstword $(shell hg -R $(topsrcdir) parent --template="{node|short}\n" 2>/dev/null))
-ifdef MOZ_SOURCE_STAMP
-DEFINES += -DMOZ_SOURCE_STAMP="$(MOZ_SOURCE_STAMP)"
-endif
-
-SOURCE_REPO := $(shell hg -R $(topsrcdir) showconfig paths.default 2>/dev/null | sed -e "s/^ssh:/http:/")
-ifdef SOURCE_REPO
-DEFINES += -DMOZ_SOURCE_REPO="$(SOURCE_REPO)"
-endif
+GRE_MILESTONE = $(shell $(PYTHON) $(moztopsrcdir)/config/printconfigsetting.py $(DIST)/bin/platform.ini Build Milestone)
+MOZ_BUILDID = $(shell $(PYTHON) $(moztopsrcdir)/config/printconfigsetting.py $(DIST)/bin/platform.ini Build BuildID)
 
 DEFINES += \
   -DTHUNDERBIRD_ICO='"$(DIST)/branding/thunderbird.ico"' \
@@ -35,11 +25,20 @@ endif
 # shouldn't get 755 perms need $(IFLAGS1) for either way of calling nsinstall.
 NSDISTMODE = copy
 
-include $(topsrcdir)/config/config.mk
+include $(moztopsrcdir)/config/config.mk
+
+# If we are trying to show an error dialog about the lack of SSE2 support,
+# make sure that code itself doesn't use SSE2.
+ifdef MOZ_LINUX_32_SSE2_STARTUP_ERROR
+CXXFLAGS := $(filter-out -march=% -msse -msse2 -mfpmath=sse,$(CXXFLAGS))
+CXX := $(filter-out -march=% -msse -msse2 -mfpmath=sse,$(CXX))
+CXXFLAGS += -mno-sse -mno-sse2 -mfpmath=387
+CXX += -march=pentiumpro
+endif
 
 ifeq ($(OS_ARCH),WINNT)
 # Extract the icons we care about embedding into the EXE
-mailtoolbar = $(topsrcdir)/mail/themes/windows/mail/icons/jumplist.png
+mailtoolbar = $(commtopsrcdir)/mail/themes/windows/mail/icons/jumplist.png
 
 # png to ico converter. The function takes 5 arguments, in order: source png
 # file, left, top, size, output ico file.
@@ -63,7 +62,7 @@ GARBAGE += write-message.ico address-book.ico
 EXTRA_DEPS += thunderbird.exe.manifest
 endif
 
-include $(topsrcdir)/config/rules.mk
+include $(moztopsrcdir)/config/rules.mk
 
 ifeq ($(OS_ARCH),WINNT)
 
@@ -102,7 +101,7 @@ libs:: $(addprefix $(DIST)/branding/,$(BRANDED_ICON_FILES))
 	$(INSTALL) $(IFLAGS1) $^ $(DIST)/bin/chrome/icons/default
 endif
 
-ifdef MOZ_WIDGET_GTK
+ifneq (,$(filter gtk%,$(MOZ_WIDGET_TOOLKIT)))
 libs::
 	$(INSTALL) $(IFLAGS1) $(DIST)/branding/default* $(DIST)/bin/chrome/icons/default
 endif
@@ -154,6 +153,11 @@ tools repackage:: $(PROGRAM)
 	$(MKDIR) -p $(DIST)/$(MOZ_MACBUNDLE_NAME)/Contents/Library/Spotlight
 	rsync -a --copy-unsafe-links $(DIST)/package/thunderbird.mdimporter $(DIST)/$(MOZ_MACBUNDLE_NAME)/Contents/Library/Spotlight
 	cp -RL $(DIST)/branding/thunderbird.icns $(DIST)/$(MOZ_MACBUNDLE_NAME)/Contents/Resources/thunderbird.icns
+	$(MKDIR) -p $(DIST)/$(MOZ_MACBUNDLE_NAME)/Contents/Library/LaunchServices
+ifdef MOZ_UPDATER
+	mv -f $(DIST)/$(MOZ_MACBUNDLE_NAME)/Contents/MacOS/updater.app/Contents/MacOS/org.mozilla.updater $(DIST)/$(MOZ_MACBUNDLE_NAME)/Contents/Library/LaunchServices
+	ln -s ../../../../Library/LaunchServices/org.mozilla.updater $(DIST)/$(MOZ_MACBUNDLE_NAME)/Contents/MacOS/updater.app/Contents/MacOS/org.mozilla.updater
+endif
 	printf APPLMOZM > $(DIST)/$(MOZ_MACBUNDLE_NAME)/Contents/PkgInfo
 endif
 

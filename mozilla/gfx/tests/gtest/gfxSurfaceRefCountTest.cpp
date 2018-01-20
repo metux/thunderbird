@@ -1,3 +1,9 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 #include <stdio.h>
 
 #include "gtest/gtest.h"
@@ -44,7 +50,7 @@ TestNewSurface () {
     int failures = 0;
     int destroyed = 0;
 
-    RefPtr<gfxASurface> s = new gfxImageSurface (mozilla::gfx::IntSize(10, 10), gfxImageFormat::ARGB32);
+    RefPtr<gfxASurface> s = new gfxImageSurface (mozilla::gfx::IntSize(10, 10), SurfaceFormat::A8R8G8B8_UINT32);
     cairo_surface_t *cs = s->CairoSurface();
 
     cairo_surface_set_user_data (cs, &destruction_key, &destroyed, SurfaceDestroyNotifier);

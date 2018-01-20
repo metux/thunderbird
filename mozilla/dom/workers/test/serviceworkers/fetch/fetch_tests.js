@@ -121,6 +121,50 @@ fetchXHR('headers.txt', function(xhr) {
   finish();
 }, null, [["X-Test1", "header1"], ["X-Test2", "header2"]]);
 
+fetchXHR('http://user:pass@mochi.test:8888/user-pass', function(xhr) {
+  my_ok(xhr.status == 200, "load should be successful");
+  my_ok(xhr.responseText == 'http://user:pass@mochi.test:8888/user-pass', 'The username and password should be preserved');
+  finish();
+});
+
+fetchXHR('readable-stream.txt', function(xhr) {
+  my_ok(xhr.status == 200, "loading completed");
+  my_ok(xhr.responseText == 'Hello!', "The message is correct!");
+  finish();
+});
+
+fetchXHR('readable-stream-locked.txt', function(xhr) {
+  my_ok(false, "This should not be called!");
+  finish();
+}, function() {
+  my_ok(true, "The exception has been correctly handled!");
+  finish();
+});
+
+fetchXHR('readable-stream-with-exception.txt', function(xhr) {
+  my_ok(false, "This should not be called!");
+  finish();
+}, function() {
+  my_ok(true, "The exception has been correctly handled!");
+  finish();
+});
+
+fetchXHR('readable-stream-with-exception2.txt', function(xhr) {
+  my_ok(false, "This should not be called!");
+  finish();
+}, function() {
+  my_ok(true, "The exception has been correctly handled!");
+  finish();
+});
+
+fetchXHR('readable-stream-already-consumed.txt', function(xhr) {
+  my_ok(false, "This should not be called!");
+  finish();
+}, function() {
+  my_ok(true, "The exception has been correctly handled!");
+  finish();
+});
+
 var expectedUncompressedResponse = "";
 for (var i = 0; i < 10; ++i) {
   expectedUncompressedResponse += "hello";
@@ -271,10 +315,10 @@ fetch('http://example.com/opaque-no-cors', { mode: "no-cors" })
 expectAsyncResult();
 fetch('http://example.com/cors-for-no-cors', { mode: "no-cors" })
 .then(function(res) {
-  my_ok(res.type == "opaque", "intercepted non-opaque response for no-cors request should resolve to opaque response.");
+  my_ok(res.type == "cors", "synthesize CORS response should result in outer CORS response");
   finish();
 }, function(e) {
-  my_ok(false, "intercepted non-opaque response for no-cors request should resolve to opaque response. It should not fail.");
+  my_ok(false, "cors-for-no-cors request should not reject");
   finish();
 });
 
@@ -368,7 +412,11 @@ fetch('interrupt.sjs')
 ['DELETE', 'GET', 'HEAD', 'OPTIONS', 'POST', 'PUT'].forEach(function(method) {
   fetchXHRWithMethod('xhr-method-test.txt', method, function(xhr) {
     my_ok(xhr.status == 200, method + " load should be successful");
-    my_ok(xhr.responseText == ("intercepted " + method), method + " load should have synthesized response");
+    if (method === "HEAD") {
+      my_ok(xhr.responseText == "", method + "load should not have synthesized response");
+    } else {
+      my_ok(xhr.responseText == ("intercepted " + method), method + " load should have synthesized response");
+    }
     finish();
   });
 });
@@ -402,7 +450,7 @@ fetch('fetchevent-request')
 .then(function(res) {
   return res.text();
 }).then(function(body) {
-  my_ok(body == "nullable", "FetchEvent.request must be nullable");
+  my_ok(body == "non-nullable", "FetchEvent.request must be non-nullable");
   finish();
 }, function(err) {
   my_ok(false, "A promise was rejected with " + err);

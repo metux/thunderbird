@@ -7,7 +7,6 @@
 #ifndef jit_RegisterSets_h
 #define jit_RegisterSets_h
 
-#include "mozilla/Alignment.h"
 #include "mozilla/MathAlgorithms.h"
 
 #include "jit/JitAllocPolicy.h"
@@ -26,8 +25,8 @@ struct AnyRegister {
     Code code_;
 
   public:
-    AnyRegister()
-    { }
+    AnyRegister() = default;
+
     explicit AnyRegister(Register gpr) {
         code_ = gpr.code();
     }
@@ -112,7 +111,7 @@ class ValueOperand
     Register payload_;
 
   public:
-    MOZ_CONSTEXPR ValueOperand(Register type, Register payload)
+    constexpr ValueOperand(Register type, Register payload)
       : type_(type), payload_(payload)
     { }
 
@@ -122,7 +121,9 @@ class ValueOperand
     Register payloadReg() const {
         return payload_;
     }
-
+    bool aliases(Register reg) const {
+        return type_ == reg || payload_ == reg;
+    }
     Register scratchReg() const {
         return payloadReg();
     }
@@ -137,14 +138,16 @@ class ValueOperand
     Register value_;
 
   public:
-    explicit MOZ_CONSTEXPR ValueOperand(Register value)
+    explicit constexpr ValueOperand(Register value)
       : value_(value)
     { }
 
     Register valueReg() const {
         return value_;
     }
-
+    bool aliases(Register reg) const {
+        return value_ == reg;
+    }
     Register scratchReg() const {
         return valueReg();
     }
@@ -156,7 +159,7 @@ class ValueOperand
     }
 #endif
 
-    ValueOperand() {}
+    ValueOperand() = default;
 };
 
 // Registers to hold either either a typed or untyped value.
@@ -165,46 +168,25 @@ class TypedOrValueRegister
     // Type of value being stored.
     MIRType type_;
 
-    // Space to hold either an AnyRegister or a ValueOperand.
     union U {
-        mozilla::AlignedStorage2<AnyRegister> typed;
-        mozilla::AlignedStorage2<ValueOperand> value;
+        AnyRegister typed;
+        ValueOperand value;
     } data;
-
-    AnyRegister& dataTyped() {
-        MOZ_ASSERT(hasTyped());
-        return *data.typed.addr();
-    }
-    ValueOperand& dataValue() {
-        MOZ_ASSERT(hasValue());
-        return *data.value.addr();
-    }
-
-    AnyRegister dataTyped() const {
-        MOZ_ASSERT(hasTyped());
-        return *data.typed.addr();
-    }
-    const ValueOperand& dataValue() const {
-        MOZ_ASSERT(hasValue());
-        return *data.value.addr();
-    }
 
   public:
 
-    TypedOrValueRegister()
-      : type_(MIRType_None)
-    {}
+    TypedOrValueRegister() = default;
 
     TypedOrValueRegister(MIRType type, AnyRegister reg)
       : type_(type)
     {
-        dataTyped() = reg;
+        data.typed = reg;
     }
 
     MOZ_IMPLICIT TypedOrValueRegister(ValueOperand value)
-      : type_(MIRType_Value)
+      : type_(MIRType::Value)
     {
-        dataValue() = value;
+        data.value = value;
     }
 
     MIRType type() const {
@@ -212,19 +194,21 @@ class TypedOrValueRegister
     }
 
     bool hasTyped() const {
-        return type() != MIRType_None && type() != MIRType_Value;
+        return type() != MIRType::None && type() != MIRType::Value;
     }
 
     bool hasValue() const {
-        return type() == MIRType_Value;
+        return type() == MIRType::Value;
     }
 
     AnyRegister typedReg() const {
-        return dataTyped();
+        MOZ_ASSERT(hasTyped());
+        return data.typed;
     }
 
     ValueOperand valueReg() const {
-        return dataValue();
+        MOZ_ASSERT(hasValue());
+        return data.value;
     }
 
     AnyRegister scratchReg() {
@@ -242,17 +226,25 @@ class ConstantOrRegister
 
     // Space to hold either a Value or a TypedOrValueRegister.
     union U {
-        mozilla::AlignedStorage2<Value> constant;
-        mozilla::AlignedStorage2<TypedOrValueRegister> reg;
+        Value constant;
+        TypedOrValueRegister reg;
     } data;
 
-    Value& dataValue() {
+    const Value& dataValue() const {
         MOZ_ASSERT(constant());
-        return *data.constant.addr();
+        return data.constant;
     }
-    TypedOrValueRegister& dataReg() {
+    void setDataValue(const Value& value) {
+        MOZ_ASSERT(constant());
+        data.constant = value;
+    }
+    const TypedOrValueRegister& dataReg() const {
         MOZ_ASSERT(!constant());
-        return *data.reg.addr();
+        return data.reg;
+    }
+    void setDataReg(const TypedOrValueRegister& reg) {
+        MOZ_ASSERT(!constant());
+        data.reg = reg;
     }
 
   public:
@@ -260,43 +252,43 @@ class ConstantOrRegister
     ConstantOrRegister()
     {}
 
-    MOZ_IMPLICIT ConstantOrRegister(Value value)
+    MOZ_IMPLICIT ConstantOrRegister(const Value& value)
       : constant_(true)
     {
-        dataValue() = value;
+        setDataValue(value);
     }
 
     MOZ_IMPLICIT ConstantOrRegister(TypedOrValueRegister reg)
       : constant_(false)
     {
-        dataReg() = reg;
+        setDataReg(reg);
     }
 
-    bool constant() {
+    bool constant() const {
         return constant_;
     }
 
-    Value value() {
+    const Value& value() const {
         return dataValue();
     }
 
-    TypedOrValueRegister reg() {
+    const TypedOrValueRegister& reg() const {
         return dataReg();
     }
 };
 
-struct Int32Key {
+struct RegisterOrInt32Constant {
     bool isRegister_;
     union {
         Register reg_;
         int32_t constant_;
     };
 
-    explicit Int32Key(Register reg)
+    explicit RegisterOrInt32Constant(Register reg)
       : isRegister_(true), reg_(reg)
     { }
 
-    explicit Int32Key(int32_t index)
+    explicit RegisterOrInt32Constant(int32_t index)
       : isRegister_(false), constant_(index)
     { }
 
@@ -331,13 +323,13 @@ class TypedRegisterSet
     SetType bits_;
 
   public:
-    explicit MOZ_CONSTEXPR TypedRegisterSet(SetType bits)
+    explicit constexpr TypedRegisterSet(SetType bits)
       : bits_(bits)
     { }
 
-    MOZ_CONSTEXPR TypedRegisterSet() : bits_(0)
+    constexpr TypedRegisterSet() : bits_(0)
     { }
-    MOZ_CONSTEXPR TypedRegisterSet(const TypedRegisterSet<T>& set) : bits_(set.bits_)
+    constexpr TypedRegisterSet(const TypedRegisterSet<T>& set) : bits_(set.bits_)
     { }
 
     static inline TypedRegisterSet All() {
@@ -400,22 +392,22 @@ class TypedRegisterSet
         bits_ &= ~reg.alignedOrDominatedAliasedSet();
     }
 
-    T getAny() const {
-        // The choice of first or last here is mostly arbitrary, as they are
-        // about the same speed on popular architectures. We choose first, as
-        // it has the advantage of using the "lower" registers more often. These
-        // registers are sometimes more efficient (e.g. optimized encodings for
-        // EAX on x86).
-        return getFirst();
+    static constexpr RegTypeName DefaultType = RegType::DefaultType;
+
+    template <RegTypeName Name>
+    SetType allLive() const {
+        return T::template LiveAsIndexableSet<Name>(bits_);
     }
-    T getFirst() const {
-        MOZ_ASSERT(!empty());
-        return T::FromCode(T::FirstBit(bits_));
+    template <RegTypeName Name>
+    SetType allAllocatable() const {
+        return T::template AllocatableAsIndexableSet<Name>(bits_);
     }
-    T getLast() const {
-        MOZ_ASSERT(!empty());
-        int ireg = T::LastBit(bits_);
-        return T::FromCode(ireg);
+
+    static RegType FirstRegister(SetType set) {
+        return RegType::FromCode(RegType::FirstBit(set));
+    }
+    static RegType LastRegister(SetType set) {
+        return RegType::FromCode(RegType::LastBit(set));
     }
 
     SetType bits() const {
@@ -449,7 +441,7 @@ class RegisterSet {
   public:
     RegisterSet()
     { }
-    MOZ_CONSTEXPR RegisterSet(const GeneralRegisterSet& gpr, const FloatRegisterSet& fpu)
+    constexpr RegisterSet(const GeneralRegisterSet& gpr, const FloatRegisterSet& fpu)
       : gpr_(gpr),
         fpu_(fpu)
     { }
@@ -489,13 +481,16 @@ class RegisterSet {
     bool emptyFloat() const {
         return fpu_.empty();
     }
-    MOZ_CONSTEXPR GeneralRegisterSet gprs() const {
+
+    static constexpr RegTypeName DefaultType = RegTypeName::GPR;
+
+    constexpr GeneralRegisterSet gprs() const {
         return gpr_;
     }
     GeneralRegisterSet& gprs() {
         return gpr_;
     }
-    MOZ_CONSTEXPR FloatRegisterSet fpus() const {
+    constexpr FloatRegisterSet fpus() const {
         return fpu_;
     }
     FloatRegisterSet& fpus() {
@@ -548,6 +543,9 @@ class LiveSet;
 // Base accessors classes have the minimal set of raw methods to manipulate the register set
 // given as parameter in a consistent manner.  These methods are:
 //
+//    - all<Type>: Returns a bit-set of all the register of a specific type
+//      which are present.
+//
 //    - has: Returns if all the bits needed to take a register are present.
 //
 //    - takeUnchecked: Subtracts the bits used to represent the register in the
@@ -581,13 +579,23 @@ class AllocatableSetAccessors
   protected:
     RegSet set_;
 
+    template <RegTypeName Name>
+    SetType all() const {
+        return set_.template allAllocatable<Name>();
+    }
+
   public:
     AllocatableSetAccessors() : set_() {}
-    explicit MOZ_CONSTEXPR AllocatableSetAccessors(SetType set) : set_(set) {}
-    explicit MOZ_CONSTEXPR AllocatableSetAccessors(RegSet set) : set_(set) {}
+    explicit constexpr AllocatableSetAccessors(SetType set) : set_(set) {}
+    explicit constexpr AllocatableSetAccessors(RegSet set) : set_(set) {}
 
     bool has(RegType reg) const {
         return set_.hasAllocatable(reg);
+    }
+
+    template <RegTypeName Name>
+    bool hasAny(RegType reg) const {
+        return all<Name>() != 0;
     }
 
     void addUnchecked(RegType reg) {
@@ -611,10 +619,19 @@ class AllocatableSetAccessors<RegisterSet>
   protected:
     RegisterSet set_;
 
+    template <RegTypeName Name>
+    GeneralRegisterSet::SetType allGpr() const {
+        return set_.gprs().allAllocatable<Name>();
+    }
+    template <RegTypeName Name>
+    FloatRegisterSet::SetType allFpu() const {
+        return set_.fpus().allAllocatable<Name>();
+    }
+
   public:
     AllocatableSetAccessors() : set_() {}
-    explicit MOZ_CONSTEXPR AllocatableSetAccessors(SetType) = delete;
-    explicit MOZ_CONSTEXPR AllocatableSetAccessors(RegisterSet set) : set_(set) {}
+    explicit constexpr AllocatableSetAccessors(SetType) = delete;
+    explicit constexpr AllocatableSetAccessors(RegisterSet set) : set_(set) {}
 
     bool has(Register reg) const {
         return set_.gprs().hasAllocatable(reg);
@@ -663,10 +680,15 @@ class LiveSetAccessors
   protected:
     RegSet set_;
 
+    template <RegTypeName Name>
+    SetType all() const {
+        return set_.template allLive<Name>();
+    }
+
   public:
     LiveSetAccessors() : set_() {}
-    explicit MOZ_CONSTEXPR LiveSetAccessors(SetType set) : set_(set) {}
-    explicit MOZ_CONSTEXPR LiveSetAccessors(RegSet set) : set_(set) {}
+    explicit constexpr LiveSetAccessors(SetType set) : set_(set) {}
+    explicit constexpr LiveSetAccessors(RegSet set) : set_(set) {}
 
     bool has(RegType reg) const {
         return set_.hasRegisterIndex(reg);
@@ -693,10 +715,19 @@ class LiveSetAccessors<RegisterSet>
   protected:
     RegisterSet set_;
 
+    template <RegTypeName Name>
+    GeneralRegisterSet::SetType allGpr() const {
+        return set_.gprs().allLive<Name>();
+    }
+    template <RegTypeName Name>
+    FloatRegisterSet::SetType allFpu() const {
+        return set_.fpus().allLive<Name>();
+    }
+
   public:
     LiveSetAccessors() : set_() {}
-    explicit MOZ_CONSTEXPR LiveSetAccessors(SetType) = delete;
-    explicit MOZ_CONSTEXPR LiveSetAccessors(RegisterSet set) : set_(set) {}
+    explicit constexpr LiveSetAccessors(SetType) = delete;
+    explicit constexpr LiveSetAccessors(RegisterSet set) : set_(set) {}
 
     bool has(Register reg) const {
         return set_.gprs().hasRegisterIndex(reg);
@@ -725,9 +756,9 @@ class LiveSetAccessors<RegisterSet>
     typedef typename Parent::RegType RegType;                         \
     typedef typename Parent::SetType SetType;                         \
                                                                       \
-    MOZ_CONSTEXPR_TMPL REGSET() : Parent() {}                         \
-    explicit MOZ_CONSTEXPR_TMPL REGSET(SetType set) : Parent(set) {}  \
-    explicit MOZ_CONSTEXPR_TMPL REGSET(RegSet set) : Parent(set) {}
+    constexpr REGSET() : Parent() {}                                  \
+    explicit constexpr REGSET(SetType set) : Parent(set) {}           \
+    explicit constexpr REGSET(RegSet set) : Parent(set) {}
 
 // This class adds checked accessors on top of the unchecked variants defined by
 // AllocatableSet and LiveSet accessors. Also it defines interface which are
@@ -759,54 +790,84 @@ class SpecializedRegSet : public Accessors
         takeUnchecked(reg);
     }
 
-    RegType getAny() const {
-        return this->Parent::set_.getAny();
-    }
-    RegType getFirst() const {
-        return this->Parent::set_.getFirst();
-    }
-    RegType getLast() const {
-        return this->Parent::set_.getLast();
+    template <RegTypeName Name>
+    bool hasAny() const {
+        return Parent::template all<Name>() != 0;
     }
 
+    template <RegTypeName Name = RegSet::DefaultType>
+    RegType getFirst() const {
+        SetType set = Parent::template all<Name>();
+        MOZ_ASSERT(set);
+        return RegSet::FirstRegister(set);
+    }
+    template <RegTypeName Name = RegSet::DefaultType>
+    RegType getLast() const {
+        SetType set = Parent::template all<Name>();
+        MOZ_ASSERT(set);
+        return RegSet::LastRegister(set);
+    }
+    template <RegTypeName Name = RegSet::DefaultType>
+    RegType getAny() const {
+        // The choice of first or last here is mostly arbitrary, as they are
+        // about the same speed on popular architectures. We choose first, as
+        // it has the advantage of using the "lower" registers more often. These
+        // registers are sometimes more efficient (e.g. optimized encodings for
+        // EAX on x86).
+        return getFirst<Name>();
+    }
+
+    template <RegTypeName Name = RegSet::DefaultType>
     RegType getAnyExcluding(RegType preclude) {
         if (!has(preclude))
-            return getAny();
+            return getAny<Name>();
 
         take(preclude);
-        RegType result = getAny();
+        RegType result = getAny<Name>();
         add(preclude);
         return result;
     }
 
+    template <RegTypeName Name = RegSet::DefaultType>
     RegType takeAny() {
-        RegType reg = getAny();
+        RegType reg = getAny<Name>();
         take(reg);
         return reg;
     }
+    template <RegTypeName Name = RegSet::DefaultType>
     RegType takeFirst() {
-        RegType reg = getFirst();
+        RegType reg = getFirst<Name>();
         take(reg);
         return reg;
     }
+    template <RegTypeName Name = RegSet::DefaultType>
     RegType takeLast() {
-        RegType reg = getLast();
+        RegType reg = getLast<Name>();
         take(reg);
         return reg;
     }
 
     ValueOperand takeAnyValue() {
 #if defined(JS_NUNBOX32)
-        return ValueOperand(takeAny(), takeAny());
+        return ValueOperand(takeAny<RegTypeName::GPR>(), takeAny<RegTypeName::GPR>());
 #elif defined(JS_PUNBOX64)
-        return ValueOperand(takeAny());
+        return ValueOperand(takeAny<RegTypeName::GPR>());
 #else
 #error "Bad architecture"
 #endif
     }
 
+    bool aliases(ValueOperand v) const {
+#ifdef JS_NUNBOX32
+        return has(v.typeReg()) || has(v.payloadReg());
+#else
+        return has(v.valueReg());
+#endif
+    }
+
+    template <RegTypeName Name = RegSet::DefaultType>
     RegType takeAnyExcluding(RegType preclude) {
-        RegType reg = getAnyExcluding(preclude);
+        RegType reg = getAnyExcluding<Name>(preclude);
         take(reg);
         return reg;
     }
@@ -841,12 +902,17 @@ class SpecializedRegSet<Accessors, RegisterSet> : public Accessors
         return this->Parent::set_.emptyFloat();
     }
 
-
     using Parent::has;
     bool has(AnyRegister reg) const {
         return reg.isFloat() ? has(reg.fpu()) : has(reg.gpr());
     }
 
+    template <RegTypeName Name>
+    bool hasAny() const {
+        if (Name == RegTypeName::GPR)
+            return Parent::template allGpr<RegTypeName::GPR>() != 0;
+        return Parent::template allFpu<Name>() != 0;
+    }
 
     using Parent::addUnchecked;
     void addUnchecked(AnyRegister reg) {
@@ -895,10 +961,15 @@ class SpecializedRegSet<Accessors, RegisterSet> : public Accessors
     }
 
     Register getAnyGeneral() const {
-        return this->Parent::set_.gprs().getAny();
+        GeneralRegisterSet::SetType set = Parent::template allGpr<RegTypeName::GPR>();
+        MOZ_ASSERT(set);
+        return GeneralRegisterSet::FirstRegister(set);
     }
+    template <RegTypeName Name = RegTypeName::Float64>
     FloatRegister getAnyFloat() const {
-        return this->Parent::set_.fpus().getAny();
+        FloatRegisterSet::SetType set = Parent::template allFpu<Name>();
+        MOZ_ASSERT(set);
+        return FloatRegisterSet::FirstRegister(set);
     }
 
     Register takeAnyGeneral() {
@@ -906,8 +977,9 @@ class SpecializedRegSet<Accessors, RegisterSet> : public Accessors
         take(reg);
         return reg;
     }
+    template <RegTypeName Name = RegTypeName::Float64>
     FloatRegister takeAnyFloat() {
-        FloatRegister reg = getAnyFloat();
+        FloatRegister reg = getAnyFloat<Name>();
         take(reg);
         return reg;
     }
@@ -959,6 +1031,19 @@ class CommonRegSet : public SpecializedRegSet<Accessors, Set>
 #error "Bad architecture"
 #endif
     }
+
+    using Parent::addUnchecked;
+    void addUnchecked(ValueOperand value) {
+#if defined(JS_NUNBOX32)
+        addUnchecked(value.payloadReg());
+        addUnchecked(value.typeReg());
+#elif defined(JS_PUNBOX64)
+        addUnchecked(value.valueReg());
+#else
+#error "Bad architecture"
+#endif
+    }
+
     void add(TypedOrValueRegister reg) {
         if (reg.hasValue())
             add(reg.valueReg());
@@ -1034,10 +1119,10 @@ class AllocatableSet : public CommonRegSet<AllocatableSetAccessors<Set>, Set>
     typedef Parent::RegType RegType;                                        \
     typedef Parent::SetType SetType;                                        \
                                                                             \
-    MOZ_CONSTEXPR_TMPL REGSET() : Parent() {}                               \
-    explicit MOZ_CONSTEXPR_TMPL REGSET(SetType) = delete;                   \
-    explicit MOZ_CONSTEXPR_TMPL REGSET(RegSet set) : Parent(set) {}         \
-    MOZ_CONSTEXPR_TMPL REGSET(GeneralRegisterSet gpr, FloatRegisterSet fpu) \
+    constexpr REGSET() : Parent() {}                                        \
+    explicit constexpr REGSET(SetType) = delete;                            \
+    explicit constexpr REGSET(RegSet set) : Parent(set) {}                  \
+    constexpr REGSET(GeneralRegisterSet gpr, FloatRegisterSet fpu)          \
       : Parent(RegisterSet(gpr, fpu))                                       \
     {}                                                                      \
     REGSET(REGSET<GeneralRegisterSet> gpr, REGSET<FloatRegisterSet> fpu)    \
@@ -1104,17 +1189,12 @@ class TypedRegisterIterator
     bool more() const {
         return !regset_.empty();
     }
-    TypedRegisterIterator<T> operator ++(int) {
-        TypedRegisterIterator<T> old(*this);
-        regset_.takeAny();
-        return old;
-    }
     TypedRegisterIterator<T>& operator ++() {
-        regset_.takeAny();
+        regset_.template takeAny<RegTypeName::Any>();
         return *this;
     }
     T operator*() const {
-        return regset_.getAny();
+        return regset_.template getAny<RegTypeName::Any>();
     }
 };
 
@@ -1136,17 +1216,12 @@ class TypedRegisterBackwardIterator
     bool more() const {
         return !regset_.empty();
     }
-    TypedRegisterBackwardIterator<T> operator ++(int) {
-        TypedRegisterBackwardIterator<T> old(*this);
-        regset_.takeLast();
-        return old;
-    }
     TypedRegisterBackwardIterator<T>& operator ++() {
-        regset_.takeLast();
+        regset_.template takeLast<RegTypeName::Any>();
         return *this;
     }
     T operator*() const {
-        return regset_.getLast();
+        return regset_.template getLast<RegTypeName::Any>();
     }
 };
 
@@ -1167,17 +1242,12 @@ class TypedRegisterForwardIterator
     bool more() const {
         return !regset_.empty();
     }
-    TypedRegisterForwardIterator<T> operator ++(int) {
-        TypedRegisterForwardIterator<T> old(*this);
-        regset_.takeFirst();
-        return old;
-    }
     TypedRegisterForwardIterator<T>& operator ++() {
-        regset_.takeFirst();
+        regset_.template takeFirst<RegTypeName::Any>();
         return *this;
     }
     T operator*() const {
-        return regset_.getFirst();
+        return regset_.template getFirst<RegTypeName::Any>();
     }
 };
 
@@ -1212,13 +1282,12 @@ class AnyRegisterIterator
     bool more() const {
         return geniter_.more() || floatiter_.more();
     }
-    AnyRegisterIterator operator ++(int) {
-        AnyRegisterIterator old(*this);
+    AnyRegisterIterator& operator ++() {
         if (geniter_.more())
-            geniter_++;
+            ++geniter_;
         else
-            floatiter_++;
-        return old;
+            ++floatiter_;
+        return *this;
     }
     AnyRegister operator*() const {
         if (geniter_.more())
@@ -1275,6 +1344,13 @@ class ABIArg
         MOZ_ASSERT(kind() == GPR);
         return Register::FromCode(u.gpr_);
     }
+    Register64 gpr64() const {
+#ifdef JS_PUNBOX64
+        return Register64(gpr());
+#else
+        return Register64(oddGpr(), evenGpr());
+#endif
+    }
     Register evenGpr() const {
         MOZ_ASSERT(isGeneralRegPair());
         return Register::FromCode(u.gpr_);
@@ -1283,22 +1359,48 @@ class ABIArg
         MOZ_ASSERT(isGeneralRegPair());
         return Register::FromCode(u.gpr_ + 1);
     }
-    FloatRegister fpu() const { MOZ_ASSERT(kind() == FPU); return FloatRegister::FromCode(u.fpu_); }
-    uint32_t offsetFromArgBase() const { MOZ_ASSERT(kind() == Stack); return u.offset_; }
+    FloatRegister fpu() const {
+        MOZ_ASSERT(kind() == FPU);
+        return FloatRegister::FromCode(u.fpu_);
+    }
+    uint32_t offsetFromArgBase() const {
+        MOZ_ASSERT(kind() == Stack);
+        return u.offset_;
+    }
 
     bool argInRegister() const { return kind() != Stack; }
     AnyRegister reg() const { return kind_ == GPR ? AnyRegister(gpr()) : AnyRegister(fpu()); }
+
+    bool operator==(const ABIArg& rhs) const {
+        if (kind_ != rhs.kind_)
+            return false;
+
+        switch((int8_t)kind_) {
+            case GPR:   return u.gpr_ == rhs.u.gpr_;
+#if defined(JS_CODEGEN_REGISTER_PAIR)
+            case GPR_PAIR: return u.gpr_ == rhs.u.gpr_;
+#endif
+            case FPU:   return u.fpu_ == rhs.u.fpu_;
+            case Stack: return u.offset_ == rhs.u.offset_;
+            case -1:    return true;
+            default:    MOZ_CRASH("Invalid value for ABIArg kind");
+        }
+    }
+
+    bool operator!=(const ABIArg& rhs) const {
+        return !(*this == rhs);
+    }
 };
 
 // Get the set of registers which should be saved by a block of code which
 // clobbers all registers besides |unused|, but does not clobber floating point
 // registers.
 inline LiveGeneralRegisterSet
-SavedNonVolatileRegisters(AllocatableGeneralRegisterSet unused)
+SavedNonVolatileRegisters(const AllocatableGeneralRegisterSet& unused)
 {
     LiveGeneralRegisterSet result;
 
-    for (GeneralRegisterIterator iter(GeneralRegisterSet::NonVolatile()); iter.more(); iter++) {
+    for (GeneralRegisterIterator iter(GeneralRegisterSet::NonVolatile()); iter.more(); ++iter) {
         Register reg = *iter;
         if (!unused.has(reg))
             result.add(reg);

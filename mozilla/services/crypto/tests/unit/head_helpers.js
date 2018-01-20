@@ -3,13 +3,14 @@ var Ci = Components.interfaces;
 var Cr = Components.results;
 var Cu = Components.utils;
 
+/* import-globals-from ../../../common/tests/unit/head_helpers.js */
+
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 try {
   // In the context of xpcshell tests, there won't be a default AppInfo
   Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULAppInfo);
-}
-catch(ex) {
+} catch (ex) {
 
 // Make sure to provide the right OS so crypto loads the right binaries
 var OS = "XPCShell";
@@ -20,34 +21,37 @@ else if (mozinfo.os == "mac")
 else
   OS = "Linux";
 
-var XULAppInfo = {
-  vendor: "Mozilla",
+Cu.import("resource://testing-common/AppInfo.jsm", this);
+updateAppInfo({
   name: "XPCShell",
   ID: "{3e3ba16c-1675-4e88-b9c8-afef81b3d2ef}",
   version: "1",
-  appBuildID: "20100621",
   platformVersion: "",
-  platformBuildID: "20100621",
-  inSafeMode: false,
-  logConsoleErrors: true,
-  OS: OS,
-  XPCOMABI: "noarch-spidermonkey",
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsIXULAppInfo, Ci.nsIXULRuntime])
-};
+  OS,
+});
+}
 
-var XULAppInfoFactory = {
-  createInstance: function (outer, iid) {
-    if (outer != null)
-      throw Cr.NS_ERROR_NO_AGGREGATION;
-    return XULAppInfo.QueryInterface(iid);
+function base64UrlDecode(s) {
+  s = s.replace(/-/g, "+");
+  s = s.replace(/_/g, "/");
+
+  // Replace padding if it was stripped by the sender.
+  // See http://tools.ietf.org/html/rfc4648#section-4
+  switch (s.length % 4) {
+    case 0:
+      break; // No pad chars in this case
+    case 2:
+      s += "==";
+      break; // Two pad chars
+    case 3:
+      s += "=";
+      break; // One pad char
+    default:
+      throw new Error("Illegal base64url string!");
   }
-};
 
-var registrar = Components.manager.QueryInterface(Ci.nsIComponentRegistrar);
-registrar.registerFactory(Components.ID("{fbfae60b-64a4-44ef-a911-08ceb70b9f31}"),
-                          "XULAppInfo", "@mozilla.org/xre/app-info;1",
-                          XULAppInfoFactory);
-
+  // With correct padding restored, apply the standard base64 decoder
+  return atob(s);
 }
 
 // Register resource alias. Normally done in SyncComponents.manifest.
@@ -55,8 +59,7 @@ function addResourceAlias() {
   Cu.import("resource://gre/modules/Services.jsm");
   const resProt = Services.io.getProtocolHandler("resource")
                           .QueryInterface(Ci.nsIResProtocolHandler);
-  let uri = Services.io.newURI("resource://gre/modules/services-crypto/",
-                               null, null);
+  let uri = Services.io.newURI("resource://gre/modules/services-crypto/");
   resProt.setSubstitution("services-crypto", uri);
 }
 addResourceAlias();

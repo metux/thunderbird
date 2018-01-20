@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
- 
+
 Components.utils.import("resource://gre/modules/DownloadUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
 
@@ -99,7 +99,7 @@ function _getOfflineAppUsage(aPermission)
 
   var usage = 0;
   for (let i = 0; i < groups.length; i++) {
-    let uri = Services.io.newURI(groups[i], null, null);
+    let uri = Services.io.newURI(groups[i]);
     if (aPermission.matchesURI(uri, true))
       usage += appCache.getActiveCache(groups[i]).usage;
   }
@@ -164,7 +164,7 @@ function RemoveOfflineApp()
                            .getService(Components.interfaces.nsIApplicationCacheService);
   var groups = appCache.getGroups();
   for (let i = 0; i < groups.length; i++) {
-      var uri = Services.io.newURI(groups[i], null, null);
+      var uri = Services.io.newURI(groups[i]);
       if (uri.asciiHost == host)
           appCache.getActiveCache(groups[i]).discard();
   }

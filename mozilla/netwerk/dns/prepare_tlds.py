@@ -4,6 +4,8 @@
 
 import codecs
 import encodings.idna
+import imp
+import os
 import re
 import sys
 
@@ -18,9 +20,9 @@ http://wiki.mozilla.org/Gecko:Effective_TLD_Service
 
 def getEffectiveTLDs(path):
   file = codecs.open(path, "r", "UTF-8")
+  entries = []
   domains = set()
-  while True:
-    line = file.readline()
+  for line in file:
     # line always contains a line terminator unless the file is empty
     if len(line) == 0:
       raise StopIteration
@@ -98,19 +100,37 @@ class EffectiveTLDEntry:
 def main(output, effective_tld_filename):
   """
   effective_tld_filename is the effective TLD file to parse.
-  A C++ array of { domain, exception, wild } entries representing the
+  A C++ array of a binary representation of a DAFSA representing the
   eTLD file is then printed to output.
   """
 
-  def boolStr(b):
-    if b:
-      return "true"
-    return "false"
+  # Find and load the `make_dafsa.py` script under xpcom/ds.
+  tld_dir = os.path.dirname(effective_tld_filename)
+  make_dafsa_py = os.path.join(tld_dir, '../../xpcom/ds/make_dafsa.py')
+  sys.path.append(os.path.dirname(make_dafsa_py))
+  with open(make_dafsa_py, 'r') as fh:
+    make_dafsa = imp.load_module('script', fh, make_dafsa_py,
+                                 ('.py', 'r', imp.PY_SOURCE))
 
-  for etld in getEffectiveTLDs(effective_tld_filename):
-    exception = boolStr(etld.exception())
-    wild = boolStr(etld.wild())
-    output.write('ETLD_ENTRY("%s", %s, %s)\n' % (etld.domain(), exception, wild))
+  def typeEnum(etld):
+    """
+    Maps the flags to the DAFSA's enum types.
+    """
+    if etld.exception():
+      return 1
+    elif etld.wild():
+      return 2
+    else:
+      return 0
+
+  def dafsa_words():
+    """
+    make_dafsa expects lines of the form "<domain_name><enum_value>"
+    """
+    for etld in getEffectiveTLDs(effective_tld_filename):
+      yield "%s%d" % (etld.domain(), typeEnum(etld))
+
+  output.write(make_dafsa.words_to_cxx(dafsa_words()))
 
 if __name__ == '__main__':
     main(sys.stdout, sys.argv[1])

@@ -9,6 +9,7 @@
 #include "mozilla/SyncRunnable.h"
 
 using namespace mozilla::safebrowsing;
+using mozilla::NewRunnableMethod;
 
 static nsresult
 DispatchToWorkerThread(nsIRunnable* r)
@@ -20,8 +21,7 @@ DispatchToWorkerThread(nsIRunnable* r)
   return t->Dispatch(r, NS_DISPATCH_NORMAL);
 }
 
-NS_IMPL_ISUPPORTS(UrlClassifierDBServiceWorkerProxy,
-                  nsIUrlClassifierDBServiceWorker)
+NS_IMPL_ISUPPORTS(UrlClassifierDBServiceWorkerProxy, nsIUrlClassifierDBService)
 
 NS_IMETHODIMP
 UrlClassifierDBServiceWorkerProxy::Lookup(nsIPrincipal* aPrincipal,
@@ -113,8 +113,9 @@ NS_IMETHODIMP
 UrlClassifierDBServiceWorkerProxy::FinishStream()
 {
   nsCOMPtr<nsIRunnable> r =
-    NS_NewRunnableMethod(mTarget,
-                         &nsIUrlClassifierDBServiceWorker::FinishStream);
+    NewRunnableMethod("nsUrlClassifierDBServiceWorker::FinishStream",
+                      mTarget,
+                      &nsUrlClassifierDBServiceWorker::FinishStream);
   return DispatchToWorkerThread(r);
 }
 
@@ -147,8 +148,9 @@ NS_IMETHODIMP
 UrlClassifierDBServiceWorkerProxy::FinishUpdate()
 {
   nsCOMPtr<nsIRunnable> r =
-    NS_NewRunnableMethod(mTarget,
-                         &nsIUrlClassifierDBServiceWorker::FinishUpdate);
+    NewRunnableMethod("nsUrlClassifierDBServiceWorker::FinishUpdate",
+                      mTarget,
+                      &nsUrlClassifierDBServiceWorker::FinishUpdate);
   return DispatchToWorkerThread(r);
 }
 
@@ -156,8 +158,9 @@ NS_IMETHODIMP
 UrlClassifierDBServiceWorkerProxy::CancelUpdate()
 {
   nsCOMPtr<nsIRunnable> r =
-    NS_NewRunnableMethod(mTarget,
-                         &nsIUrlClassifierDBServiceWorker::CancelUpdate);
+    NewRunnableMethod("nsUrlClassifierDBServiceWorker::CancelUpdate",
+                      mTarget,
+                      &nsUrlClassifierDBServiceWorker::CancelUpdate);
   return DispatchToWorkerThread(r);
 }
 
@@ -165,30 +168,63 @@ NS_IMETHODIMP
 UrlClassifierDBServiceWorkerProxy::ResetDatabase()
 {
   nsCOMPtr<nsIRunnable> r =
-    NS_NewRunnableMethod(mTarget,
-                         &nsIUrlClassifierDBServiceWorker::ResetDatabase);
+    NewRunnableMethod("nsUrlClassifierDBServiceWorker::ResetDatabase",
+                      mTarget,
+                      &nsUrlClassifierDBServiceWorker::ResetDatabase);
   return DispatchToWorkerThread(r);
 }
 
 NS_IMETHODIMP
+UrlClassifierDBServiceWorkerProxy::ReloadDatabase()
+{
+  nsCOMPtr<nsIRunnable> r =
+    NewRunnableMethod("nsUrlClassifierDBServiceWorker::ReloadDatabase",
+                      mTarget,
+                      &nsUrlClassifierDBServiceWorker::ReloadDatabase);
+  return DispatchToWorkerThread(r);
+}
+
+NS_IMETHODIMP
+UrlClassifierDBServiceWorkerProxy::ClearCache()
+{
+  nsCOMPtr<nsIRunnable> r =
+    NewRunnableMethod("nsUrlClassifierDBServiceWorker::ClearCache",
+                      mTarget,
+                      &nsUrlClassifierDBServiceWorker::ClearCache);
+  return DispatchToWorkerThread(r);
+}
+
+nsresult
 UrlClassifierDBServiceWorkerProxy::OpenDb()
 {
   nsCOMPtr<nsIRunnable> r =
-    NS_NewRunnableMethod(mTarget,
-                         &nsIUrlClassifierDBServiceWorker::OpenDb);
+    NewRunnableMethod("nsUrlClassifierDBServiceWorker::OpenDb",
+                      mTarget,
+                      &nsUrlClassifierDBServiceWorker::OpenDb);
   return DispatchToWorkerThread(r);
 }
 
-NS_IMETHODIMP
+nsresult
 UrlClassifierDBServiceWorkerProxy::CloseDb()
 {
   nsCOMPtr<nsIRunnable> r =
-    NS_NewRunnableMethod(mTarget,
-                         &nsIUrlClassifierDBServiceWorker::CloseDb);
+    NewRunnableMethod("nsUrlClassifierDBServiceWorker::CloseDb",
+                      mTarget,
+                      &nsUrlClassifierDBServiceWorker::CloseDb);
   return DispatchToWorkerThread(r);
 }
 
-NS_IMETHODIMP
+nsresult
+UrlClassifierDBServiceWorkerProxy::PreShutdown()
+{
+  nsCOMPtr<nsIRunnable> r =
+    NewRunnableMethod("nsUrlClassifierDBServiceWorker::PreShutdown",
+                      mTarget,
+                      &nsUrlClassifierDBServiceWorker::PreShutdown);
+  return DispatchToWorkerThread(r);
+}
+
+nsresult
 UrlClassifierDBServiceWorkerProxy::CacheCompletions(CacheResultArray * aEntries)
 {
   nsCOMPtr<nsIRunnable> r = new CacheCompletionsRunnable(mTarget, aEntries);
@@ -203,32 +239,47 @@ UrlClassifierDBServiceWorkerProxy::CacheCompletionsRunnable::Run()
 }
 
 NS_IMETHODIMP
-UrlClassifierDBServiceWorkerProxy::CacheMisses(PrefixArray * aEntries)
+UrlClassifierDBServiceWorkerProxy::ClearLastResults()
 {
-  nsCOMPtr<nsIRunnable> r = new CacheMissesRunnable(mTarget, aEntries);
+  nsCOMPtr<nsIRunnable> r = new ClearLastResultsRunnable(mTarget);
   return DispatchToWorkerThread(r);
 }
 
 NS_IMETHODIMP
-UrlClassifierDBServiceWorkerProxy::CacheMissesRunnable::Run()
+UrlClassifierDBServiceWorkerProxy::ClearLastResultsRunnable::Run()
 {
-  mTarget->CacheMisses(mEntries);
-  return NS_OK;
+  return mTarget->ClearLastResults();
 }
 
-NS_IMETHODIMP
-UrlClassifierDBServiceWorkerProxy::SetLastUpdateTime(const nsACString& table,
-                                                     uint64_t lastUpdateTime)
+nsresult
+UrlClassifierDBServiceWorkerProxy::GetCacheInfo(const nsACString& aTable,
+                                                nsIUrlClassifierGetCacheCallback* aCallback)
 {
-  nsCOMPtr<nsIRunnable> r =
-    new SetLastUpdateTimeRunnable(mTarget, table, lastUpdateTime);
+  nsCOMPtr<nsIRunnable> r = new GetCacheInfoRunnable(mTarget, aTable, aCallback);
   return DispatchToWorkerThread(r);
 }
 
 NS_IMETHODIMP
-UrlClassifierDBServiceWorkerProxy::SetLastUpdateTimeRunnable::Run()
+UrlClassifierDBServiceWorkerProxy::GetCacheInfoRunnable::Run()
 {
-  mTarget->SetLastUpdateTime(mTable, mUpdateTime);
+  MOZ_ASSERT(mCallback);
+
+  mTarget->GetCacheInfo(mTable, &mCache);
+
+  nsCOMPtr<nsIRunnable> r = new GetCacheInfoCallbackRunnable(mCache, mCallback);
+  return NS_DispatchToMainThread(r);
+}
+
+
+NS_IMETHODIMP
+UrlClassifierDBServiceWorkerProxy::GetCacheInfoCallbackRunnable::Run()
+{
+  MOZ_ASSERT(NS_IsMainThread(), "Must be called on main thread");
+  MOZ_ASSERT(mCallback);
+
+  mCallback->OnGetCacheComplete(mCache);
+  NS_RELEASE(mCache);
+
   return NS_OK;
 }
 

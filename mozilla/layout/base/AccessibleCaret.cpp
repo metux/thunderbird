@@ -7,12 +7,15 @@
 #include "AccessibleCaret.h"
 
 #include "AccessibleCaretLogger.h"
+#include "mozilla/FloatingPoint.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/ToString.h"
 #include "nsCanvasFrame.h"
 #include "nsCaret.h"
+#include "nsCSSFrameConstructor.h"
 #include "nsDOMTokenList.h"
 #include "nsIFrame.h"
+#include "nsPlaceholderFrame.h"
 
 namespace mozilla {
 using namespace dom;
@@ -31,6 +34,10 @@ float AccessibleCaret::sWidth = 0.0f;
 float AccessibleCaret::sHeight = 0.0f;
 float AccessibleCaret::sMarginLeft = 0.0f;
 float AccessibleCaret::sBarWidth = 0.0f;
+
+NS_NAMED_LITERAL_STRING(AccessibleCaret::sTextOverlayElementId, "text-overlay");
+NS_NAMED_LITERAL_STRING(AccessibleCaret::sCaretImageElementId, "image");
+NS_NAMED_LITERAL_STRING(AccessibleCaret::sSelectionBarElementId, "bar");
 
 #define AC_PROCESS_ENUM_TO_STREAM(e) case(e): aStream << #e; break;
 std::ostream&
@@ -116,6 +123,7 @@ AccessibleCaret::SetAppearance(Appearance aAppearance)
   // Need to reset rect since the cached rect will be compared in SetPosition.
   if (mAppearance == Appearance::None) {
     mImaginaryCaretRect = nsRect();
+    mZoomLevel = 0.0f;
   }
 }
 
@@ -126,7 +134,7 @@ AccessibleCaret::SetSelectionBarEnabled(bool aEnabled)
     return;
   }
 
-  AC_LOG("Set selection bar %s", __FUNCTION__, aEnabled ? "Enabled" : "Disabled");
+  AC_LOG("Set selection bar %s", aEnabled ? "Enabled" : "Disabled");
 
   ErrorResult rv;
   CaretElement()->ClassList()->Toggle(NS_LITERAL_STRING("no-bar"),
@@ -136,7 +144,7 @@ AccessibleCaret::SetSelectionBarEnabled(bool aEnabled)
   mSelectionBarEnabled = aEnabled;
 }
 
-/* static */ nsString
+/* static */ nsAutoString
 AccessibleCaret::AppearanceString(Appearance aAppearance)
 {
   nsAutoString string;
@@ -173,16 +181,35 @@ AccessibleCaret::Intersects(const AccessibleCaret& aCaret) const
 }
 
 bool
-AccessibleCaret::Contains(const nsPoint& aPoint) const
+AccessibleCaret::Contains(const nsPoint& aPoint, TouchArea aTouchArea) const
 {
   if (!IsVisuallyVisible()) {
     return false;
   }
 
-  nsRect rect =
+  nsRect textOverlayRect =
+    nsLayoutUtils::GetRectRelativeToFrame(TextOverlayElement(), RootFrame());
+  nsRect caretImageRect =
     nsLayoutUtils::GetRectRelativeToFrame(CaretImageElement(), RootFrame());
 
-  return rect.Contains(aPoint);
+  if (aTouchArea == TouchArea::CaretImage) {
+    return caretImageRect.Contains(aPoint);
+  }
+
+  MOZ_ASSERT(aTouchArea == TouchArea::Full, "Unexpected TouchArea type!");
+  return textOverlayRect.Contains(aPoint) || caretImageRect.Contains(aPoint);
+}
+
+void
+AccessibleCaret::EnsureApzAware()
+{
+  // If the caret element was cloned, the listener might have been lost. So
+  // if that's the case we register a dummy listener if there isn't one on
+  // the element already.
+  if (!CaretElement()->IsApzAware()) {
+    CaretElement()->AddEventListener(NS_LITERAL_STRING("touchstart"),
+                                     mDummyTouchListener, false);
+  }
 }
 
 void
@@ -198,8 +225,7 @@ AccessibleCaret::InjectCaretElement(nsIDocument* aDocument)
   // InsertAnonymousContent will clone the element to make an AnonymousContent.
   // Since event listeners are not being cloned when cloning a node, we need to
   // add the listener here.
-  CaretElement()->AddEventListener(NS_LITERAL_STRING("touchstart"),
-                                   mDummyTouchListener, false);
+  EnsureApzAware();
 }
 
 already_AddRefed<Element>
@@ -207,8 +233,9 @@ AccessibleCaret::CreateCaretElement(nsIDocument* aDocument) const
 {
   // Content structure of AccessibleCaret
   // <div class="moz-accessiblecaret">  <- CaretElement()
-  //   <div class="image">              <- CaretImageElement()
-  //   <div class="bar">                <- SelectionBarElement()
+  //   <div id="text-overlay"           <- TextOverlayElement()
+  //   <div id="image">                 <- CaretImageElement()
+  //   <div id="bar">                   <- SelectionBarElement()
 
   ErrorResult rv;
   nsCOMPtr<Element> parent = aDocument->CreateHTMLElement(nsGkAtoms::div);
@@ -216,13 +243,17 @@ AccessibleCaret::CreateCaretElement(nsIDocument* aDocument) const
   parent->ClassList()->Add(NS_LITERAL_STRING("none"), rv);
   parent->ClassList()->Add(NS_LITERAL_STRING("no-bar"), rv);
 
-  nsCOMPtr<Element> image = aDocument->CreateHTMLElement(nsGkAtoms::div);
-  image->ClassList()->Add(NS_LITERAL_STRING("image"), rv);
-  parent->AppendChildTo(image, false);
+  auto CreateAndAppendChildElement = [aDocument, &parent](
+    const nsLiteralString& aElementId)
+  {
+    nsCOMPtr<Element> child = aDocument->CreateHTMLElement(nsGkAtoms::div);
+    child->SetAttr(kNameSpaceID_None, nsGkAtoms::id, aElementId, true);
+    parent->AppendChildTo(child, false);
+  };
 
-  nsCOMPtr<Element> bar = aDocument->CreateHTMLElement(nsGkAtoms::div);
-  bar->ClassList()->Add(NS_LITERAL_STRING("bar"), rv);
-  parent->AppendChildTo(bar, false);
+  CreateAndAppendChildElement(sTextOverlayElementId);
+  CreateAndAppendChildElement(sCaretImageElementId);
+  CreateAndAppendChildElement(sSelectionBarElementId);
 
   return parent.forget();
 }
@@ -232,6 +263,17 @@ AccessibleCaret::RemoveCaretElement(nsIDocument* aDocument)
 {
   CaretElement()->RemoveEventListener(NS_LITERAL_STRING("touchstart"),
                                       mDummyTouchListener, false);
+
+  if (nsIFrame* frame = CaretElement()->GetPrimaryFrame()) {
+    if (frame->HasAnyStateBits(NS_FRAME_OUT_OF_FLOW)) {
+      frame = frame->GetPlaceholderFrame();
+    }
+    nsAutoScriptBlocker scriptBlocker;
+    nsCSSFrameConstructor* fc = frame->PresShell()->FrameConstructor();
+    fc->BeginUpdate();
+    frame->GetParent()->RemoveFrame(nsIFrame::kPrincipalList, frame);
+    fc->EndUpdate();
+  }
 
   ErrorResult rv;
   aDocument->RemoveAnonymousContent(*mCaretElementHolder, rv);
@@ -255,25 +297,27 @@ AccessibleCaret::SetPosition(nsIFrame* aFrame, int32_t aOffset)
   if (imaginaryCaretRectInFrame.IsEmpty()) {
     // Don't bother to set the caret position since it's invisible.
     mImaginaryCaretRect = nsRect();
+    mZoomLevel = 0.0f;
     return PositionChangedResult::Invisible;
   }
 
   nsRect imaginaryCaretRect = imaginaryCaretRectInFrame;
   nsLayoutUtils::TransformRect(aFrame, RootFrame(), imaginaryCaretRect);
+  float zoomLevel = GetZoomLevel();
 
-  if (imaginaryCaretRect.IsEqualEdges(mImaginaryCaretRect)) {
+  if (imaginaryCaretRect.IsEqualEdges(mImaginaryCaretRect) &&
+      FuzzyEqualsMultiplicative(zoomLevel, mZoomLevel)) {
     return PositionChangedResult::NotChanged;
   }
 
   mImaginaryCaretRect = imaginaryCaretRect;
+  mZoomLevel = zoomLevel;
 
-  // SetCaretElementStyle() and SetSelectionBarElementStyle() require the
-  // input rect relative to container frame.
+  // SetCaretElementStyle() requires the input rect relative to container frame.
   nsRect imaginaryCaretRectInContainerFrame = imaginaryCaretRectInFrame;
   nsLayoutUtils::TransformRect(aFrame, CustomContentContainerFrame(),
                                imaginaryCaretRectInContainerFrame);
-  SetCaretElementStyle(imaginaryCaretRectInContainerFrame);
-  SetSelectionBarElementStyle(imaginaryCaretRectInContainerFrame);
+  SetCaretElementStyle(imaginaryCaretRectInContainerFrame, mZoomLevel);
 
   return PositionChangedResult::Changed;
 }
@@ -288,44 +332,71 @@ AccessibleCaret::CustomContentContainerFrame() const
 }
 
 void
-AccessibleCaret::SetCaretElementStyle(const nsRect& aRect)
+AccessibleCaret::SetCaretElementStyle(const nsRect& aRect, float aZoomLevel)
 {
   nsPoint position = CaretElementPosition(aRect);
   nsAutoString styleStr;
-  styleStr.AppendPrintf("left: %dpx; top: %dpx; padding-top: %dpx;",
+  styleStr.AppendPrintf("left: %dpx; top: %dpx; "
+                        "width: ",
                         nsPresContext::AppUnitsToIntCSSPixels(position.x),
-                        nsPresContext::AppUnitsToIntCSSPixels(position.y),
-                        nsPresContext::AppUnitsToIntCSSPixels(aRect.height));
+                        nsPresContext::AppUnitsToIntCSSPixels(position.y));
+  // We can't use AppendPrintf here, because it does locale-specific
+  // formatting of floating-point values.
+  styleStr.AppendFloat(sWidth/aZoomLevel);
+  styleStr.AppendLiteral("px; height: ");
+  styleStr.AppendFloat(sHeight/aZoomLevel);
+  styleStr.AppendLiteral("px; margin-left: ");
+  styleStr.AppendFloat(sMarginLeft/aZoomLevel);
+  styleStr.AppendLiteral("px");
 
-  float zoomLevel = GetZoomLevel();
-  styleStr.AppendPrintf(" width: %.2fpx; height: %.2fpx; margin-left: %.2fpx",
-                        sWidth / zoomLevel,
-                        sHeight / zoomLevel,
-                        sMarginLeft / zoomLevel);
+  CaretElement()->SetAttr(kNameSpaceID_None, nsGkAtoms::style, styleStr, true);
+  AC_LOG("%s: %s", __FUNCTION__, NS_ConvertUTF16toUTF8(styleStr).get());
 
-  ErrorResult rv;
-  CaretElement()->SetAttribute(NS_LITERAL_STRING("style"), styleStr, rv);
-  MOZ_ASSERT(!rv.Failed());
-
-  AC_LOG("Set caret style: %s", NS_ConvertUTF16toUTF8(styleStr).get());
+  // Set style string for children.
+  SetTextOverlayElementStyle(aRect, aZoomLevel);
+  SetCaretImageElementStyle(aRect, aZoomLevel);
+  SetSelectionBarElementStyle(aRect, aZoomLevel);
 }
 
 void
-AccessibleCaret::SetSelectionBarElementStyle(const nsRect& aRect)
+AccessibleCaret::SetTextOverlayElementStyle(const nsRect& aRect,
+                                            float aZoomLevel)
 {
-  int32_t height = nsPresContext::AppUnitsToIntCSSPixels(aRect.height);
-  nsAutoString barStyleStr;
-  barStyleStr.AppendPrintf("margin-top: -%dpx; height: %dpx;",
-                           height, height);
+  nsAutoString styleStr;
+  styleStr.AppendPrintf("height: %dpx;",
+                        nsPresContext::AppUnitsToIntCSSPixels(aRect.height));
+  TextOverlayElement()->SetAttr(kNameSpaceID_None, nsGkAtoms::style, styleStr,
+                                true);
+  AC_LOG("%s: %s", __FUNCTION__, NS_ConvertUTF16toUTF8(styleStr).get());
+}
 
-  float zoomLevel = GetZoomLevel();
-  barStyleStr.AppendPrintf(" width: %.2fpx;", sBarWidth / zoomLevel);
+void
+AccessibleCaret::SetCaretImageElementStyle(const nsRect& aRect,
+                                           float aZoomLevel)
+{
+  nsAutoString styleStr;
+  styleStr.AppendPrintf("margin-top: %dpx;",
+                        nsPresContext::AppUnitsToIntCSSPixels(aRect.height));
+  CaretImageElement()->SetAttr(kNameSpaceID_None, nsGkAtoms::style, styleStr,
+                               true);
+  AC_LOG("%s: %s", __FUNCTION__, NS_ConvertUTF16toUTF8(styleStr).get());
+}
 
-  ErrorResult rv;
-  SelectionBarElement()->SetAttribute(NS_LITERAL_STRING("style"), barStyleStr, rv);
-  MOZ_ASSERT(!rv.Failed());
+void
+AccessibleCaret::SetSelectionBarElementStyle(const nsRect& aRect,
+                                             float aZoomLevel)
+{
+  nsAutoString styleStr;
+  styleStr.AppendPrintf("height: %dpx; width: ",
+                        nsPresContext::AppUnitsToIntCSSPixels(aRect.height));
+  // We can't use AppendPrintf here, because it does locale-specific
+  // formatting of floating-point values.
+  styleStr.AppendFloat(sBarWidth / aZoomLevel);
+  styleStr.AppendLiteral("px");
 
-  AC_LOG("Set bar style: %s", NS_ConvertUTF16toUTF8(barStyleStr).get());
+  SelectionBarElement()->SetAttr(kNameSpaceID_None, nsGkAtoms::style, styleStr,
+                                 true);
+  AC_LOG("%s: %s", __FUNCTION__, NS_ConvertUTF16toUTF8(styleStr).get());
 }
 
 float
@@ -334,7 +405,7 @@ AccessibleCaret::GetZoomLevel()
   // Full zoom on desktop.
   float fullZoom = mPresShell->GetPresContext()->GetFullZoom();
 
-  // Pinch-zoom on B2G.
+  // Pinch-zoom on fennec.
   float resolution = mPresShell->GetCumulativeResolution();
 
   return fullZoom * resolution;

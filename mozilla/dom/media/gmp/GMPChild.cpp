@@ -9,8 +9,6 @@
 #include "GMPLoader.h"
 #include "GMPVideoDecoderChild.h"
 #include "GMPVideoEncoderChild.h"
-#include "GMPAudioDecoderChild.h"
-#include "GMPDecryptorChild.h"
 #include "GMPVideoHost.h"
 #include "nsDebugImpl.h"
 #include "nsIFile.h"
@@ -18,16 +16,20 @@
 #include "gmp-video-decode.h"
 #include "gmp-video-encode.h"
 #include "GMPPlatform.h"
-#include "mozilla/dom/CrashReporterChild.h"
+#include "mozilla/ipc/CrashReporterClient.h"
+#include "mozilla/ipc/ProcessChild.h"
 #include "GMPUtils.h"
 #include "prio.h"
+#include "base/task.h"
+#include "base/command_line.h"
+#include "ChromiumCDMAdapter.h"
+#include "GMPLog.h"
 
-using mozilla::dom::CrashReporterChild;
-
-static const int MAX_VOUCHER_LENGTH = 500000;
+using namespace mozilla::ipc;
 
 #ifdef XP_WIN
 #include <stdlib.h> // for _exit()
+#include "WinUtils.h"
 #else
 #include <unistd.h> // for _exit()
 #endif
@@ -50,8 +52,7 @@ extern LogModule* GetGMPLog();
 namespace gmp {
 
 GMPChild::GMPChild()
-  : mAsyncShutdown(nullptr)
-  , mGMPMessageLoop(MessageLoop::current())
+  : mGMPMessageLoop(MessageLoop::current())
   , mGMPLoader(nullptr)
 {
   LOGD("GMPChild ctor");
@@ -65,33 +66,29 @@ GMPChild::~GMPChild()
 
 static bool
 GetFileBase(const nsAString& aPluginPath,
-#if defined(XP_MACOSX) && defined(MOZ_GMP_SANDBOX)
             nsCOMPtr<nsIFile>& aLibDirectory,
-#endif
             nsCOMPtr<nsIFile>& aFileBase,
             nsAutoString& aBaseName)
 {
   nsresult rv = NS_NewLocalFile(aPluginPath,
                                 true, getter_AddRefs(aFileBase));
-  if (NS_FAILED(rv)) {
+  if (NS_WARN_IF(NS_FAILED(rv))) {
     return false;
   }
 
-#if defined(XP_MACOSX) && defined(MOZ_GMP_SANDBOX)
-  if (NS_FAILED(aFileBase->Clone(getter_AddRefs(aLibDirectory)))) {
+  if (NS_WARN_IF(NS_FAILED(aFileBase->Clone(getter_AddRefs(aLibDirectory))))) {
     return false;
   }
-#endif
 
   nsCOMPtr<nsIFile> parent;
   rv = aFileBase->GetParent(getter_AddRefs(parent));
-  if (NS_FAILED(rv)) {
+  if (NS_WARN_IF(NS_FAILED(rv))) {
     return false;
   }
 
   nsAutoString parentLeafName;
   rv = parent->GetLeafName(parentLeafName);
-  if (NS_FAILED(rv)) {
+  if (NS_WARN_IF(NS_FAILED(rv))) {
     return false;
   }
 
@@ -103,17 +100,11 @@ GetFileBase(const nsAString& aPluginPath,
 
 static bool
 GetPluginFile(const nsAString& aPluginPath,
-#if defined(XP_MACOSX) && defined(MOZ_GMP_SANDBOX)
               nsCOMPtr<nsIFile>& aLibDirectory,
-#endif
               nsCOMPtr<nsIFile>& aLibFile)
 {
   nsAutoString baseName;
-#if defined(XP_MACOSX) && defined(MOZ_GMP_SANDBOX)
   GetFileBase(aPluginPath, aLibDirectory, aLibFile, baseName);
-#else
-  GetFileBase(aPluginPath, aLibFile, baseName);
-#endif
 
 #if defined(XP_MACOSX)
   nsAutoString binaryName = NS_LITERAL_STRING("lib") + baseName + NS_LITERAL_STRING(".dylib");
@@ -128,20 +119,30 @@ GetPluginFile(const nsAString& aPluginPath,
   return true;
 }
 
-#ifdef XP_WIN
 static bool
-GetInfoFile(const nsAString& aPluginPath,
-            nsCOMPtr<nsIFile>& aInfoFile)
+GetPluginFile(const nsAString& aPluginPath,
+              nsCOMPtr<nsIFile>& aLibFile)
 {
-  nsAutoString baseName;
-  GetFileBase(aPluginPath, aInfoFile, baseName);
-  nsAutoString infoFileName = baseName + NS_LITERAL_STRING(".info");
-  aInfoFile->AppendRelativePath(infoFileName);
-  return true;
+  nsCOMPtr<nsIFile> unusedlibDir;
+  return GetPluginFile(aPluginPath, unusedlibDir, aLibFile);
 }
-#endif
 
-#if defined(XP_MACOSX) && defined(MOZ_GMP_SANDBOX)
+#if defined(XP_MACOSX)
+static nsCString
+GetNativeTarget(nsIFile* aFile)
+{
+  bool isLink;
+  nsCString path;
+  aFile->IsSymlink(&isLink);
+  if (isLink) {
+    aFile->GetNativeTarget(path);
+  } else {
+    aFile->GetNativePath(path);
+  }
+  return path;
+}
+
+#if defined(MOZ_GMP_SANDBOX)
 static bool
 GetPluginPaths(const nsAString& aPluginPath,
                nsCString &aPluginDirectoryPath,
@@ -154,19 +155,11 @@ GetPluginPaths(const nsAString& aPluginPath,
 
   // Mac sandbox rules expect paths to actual files and directories -- not
   // soft links.
-  bool isLink;
-  libDirectory->IsSymlink(&isLink);
-  if (isLink) {
-    libDirectory->GetNativeTarget(aPluginDirectoryPath);
-  } else {
-    libDirectory->GetNativePath(aPluginDirectoryPath);
-  }
-  libFile->IsSymlink(&isLink);
-  if (isLink) {
-    libFile->GetNativeTarget(aPluginFilePath);
-  } else {
-    libFile->GetNativePath(aPluginFilePath);
-  }
+  libDirectory->Normalize();
+  aPluginDirectoryPath = GetNativeTarget(libDirectory);
+
+  libFile->Normalize();
+  aPluginFilePath = GetNativeTarget(libFile);
 
   return true;
 }
@@ -193,34 +186,25 @@ GetAppPaths(nsCString &aAppPath, nsCString &aAppBinaryPath)
   nsCOMPtr<nsIFile> app, appBinary;
   nsresult rv = NS_NewLocalFile(NS_ConvertUTF8toUTF16(appPath),
                                 true, getter_AddRefs(app));
-  if (NS_FAILED(rv)) {
+  if (NS_WARN_IF(NS_FAILED(rv))) {
     return false;
   }
   rv = NS_NewLocalFile(NS_ConvertUTF8toUTF16(appBinaryPath),
                        true, getter_AddRefs(appBinary));
-  if (NS_FAILED(rv)) {
+  if (NS_WARN_IF(NS_FAILED(rv))) {
     return false;
   }
 
-  bool isLink;
-  app->IsSymlink(&isLink);
-  if (isLink) {
-    app->GetNativeTarget(aAppPath);
-  } else {
-    app->GetNativePath(aAppPath);
-  }
-  appBinary->IsSymlink(&isLink);
-  if (isLink) {
-    appBinary->GetNativeTarget(aAppBinaryPath);
-  } else {
-    appBinary->GetNativePath(aAppBinaryPath);
-  }
+  // Mac sandbox rules expect paths to actual files and directories -- not
+  // soft links.
+  aAppPath = GetNativeTarget(app);
+  appBinaryPath = GetNativeTarget(appBinary);
 
   return true;
 }
 
 bool
-GMPChild::SetMacSandboxInfo()
+GMPChild::SetMacSandboxInfo(MacSandboxPluginType aPluginType)
 {
   if (!mGMPLoader) {
     return false;
@@ -236,7 +220,9 @@ GMPChild::SetMacSandboxInfo()
 
   MacSandboxInfo info;
   info.type = MacSandboxType_Plugin;
-  info.pluginInfo.type = MacSandboxPluginType_GMPlugin_Default;
+  info.shouldLog = Preferences::GetBool("security.sandbox.logging.enabled") ||
+                   PR_GetEnv("MOZ_SANDBOX_LOGGING");
+  info.pluginInfo.type = aPluginType;
   info.pluginInfo.pluginPath.assign(pluginDirectoryPath.get());
   info.pluginInfo.pluginBinaryPath.assign(pluginFilePath.get());
   info.appPath.assign(appPath.get());
@@ -245,11 +231,11 @@ GMPChild::SetMacSandboxInfo()
   mGMPLoader->SetSandboxInfo(&info);
   return true;
 }
-#endif // XP_MACOSX && MOZ_GMP_SANDBOX
+#endif // MOZ_GMP_SANDBOX
+#endif // XP_MACOSX
 
 bool
 GMPChild::Init(const nsAString& aPluginPath,
-               const nsAString& aVoucherPath,
                base::ProcessId aParentPid,
                MessageLoop* aIOLoop,
                IPC::Channel* aChannel)
@@ -261,140 +247,74 @@ GMPChild::Init(const nsAString& aPluginPath,
   }
 
 #ifdef MOZ_CRASHREPORTER
-  SendPCrashReporterConstructor(CrashReporter::CurrentThreadId());
+  CrashReporterClient::InitSingleton(this);
 #endif
 
   mPluginPath = aPluginPath;
-  mSandboxVoucherPath = aVoucherPath;
-  return true;
-}
 
-bool
-GMPChild::RecvSetNodeId(const nsCString& aNodeId)
-{
-  LOGD("%s nodeId=%s", __FUNCTION__, aNodeId.Data());
-
-  // Store the per origin salt for the node id. Note: we do this in a
-  // separate message than RecvStartPlugin() so that the string is not
-  // sitting in a string on the IPC code's call stack.
-  mNodeId = aNodeId;
   return true;
 }
 
 GMPErr
-GMPChild::GetAPI(const char* aAPIName, void* aHostAPI, void** aPluginAPI)
+GMPChild::GetAPI(const char* aAPIName,
+                 void* aHostAPI,
+                 void** aPluginAPI,
+                 uint32_t aDecryptorId)
 {
   if (!mGMPLoader) {
     return GMPGenericErr;
   }
-  return mGMPLoader->GetAPI(aAPIName, aHostAPI, aPluginAPI);
+  return mGMPLoader->GetAPI(aAPIName, aHostAPI, aPluginAPI, aDecryptorId);
 }
 
-static bool
-ReadIntoArray(nsIFile* aFile,
-              nsTArray<uint8_t>& aOutDst,
-              size_t aMaxLength)
+mozilla::ipc::IPCResult
+GMPChild::RecvPreloadLibs(const nsCString& aLibs)
 {
-  if (!FileExists(aFile)) {
-    return false;
-  }
-
-  PRFileDesc* fd = nullptr;
-  nsresult rv = aFile->OpenNSPRFileDesc(PR_RDONLY, 0, &fd);
-  if (NS_FAILED(rv)) {
-    return false;
-  }
-
-  int32_t length = PR_Seek(fd, 0, PR_SEEK_END);
-  PR_Seek(fd, 0, PR_SEEK_SET);
-
-  if (length < 0 || (size_t)length > aMaxLength) {
-    NS_WARNING("EME file is longer than maximum allowed length");
-    PR_Close(fd);
-    return false;
-  }
-  aOutDst.SetLength(length);
-  int32_t bytesRead = PR_Read(fd, aOutDst.Elements(), length);
-  PR_Close(fd);
-  return (bytesRead == length);
-}
-
 #ifdef XP_WIN
-static bool
-ReadIntoString(nsIFile* aFile,
-               nsCString& aOutDst,
-               size_t aMaxLength)
-{
-  nsTArray<uint8_t> buf;
-  bool rv = ReadIntoArray(aFile, buf, aMaxLength);
-  if (rv) {
-    buf.AppendElement(0); // Append null terminator, required by nsC*String.
-    aOutDst = nsDependentCString((const char*)buf.Elements(), buf.Length() - 1);
-  }
-  return rv;
-}
-
-// Pre-load DLLs that need to be used by the EME plugin but that can't be
-// loaded after the sandbox has started
-bool
-GMPChild::PreLoadLibraries(const nsAString& aPluginPath)
-{
-  // This must be in sorted order and lowercase!
-  static const char* whitelist[] = {
-    "d3d9.dll", // Create an `IDirect3D9` to get adapter information
+  // Pre-load DLLs that need to be used by the EME plugin but that can't be
+  // loaded after the sandbox has started
+  // Items in this must be lowercase!
+  static const char *const whitelist[] = {
     "dxva2.dll", // Get monitor information
     "evr.dll", // MFGetStrideForBitmapInfoHeader
-    "mfh264dec.dll", // H.264 decoder (on Windows Vista)
-    "mfheaacdec.dll", // AAC decoder (on Windows Vista)
     "mfplat.dll", // MFCreateSample, MFCreateAlignedMemoryBuffer, MFCreateMediaType
-    "msauddecmft.dll", // AAC decoder (on Windows 8)
-    "msmpeg2adec.dll", // AAC decoder (on Windows 7)
     "msmpeg2vdec.dll", // H.264 decoder
+    "psapi.dll", // For GetMappedFileNameW, see bug 1383611
   };
 
-  nsCOMPtr<nsIFile> infoFile;
-  GetInfoFile(aPluginPath, infoFile);
-
-  static const size_t MAX_GMP_INFO_FILE_LENGTH = 5 * 1024;
-  nsAutoCString info;
-  if (!ReadIntoString(infoFile, info, MAX_GMP_INFO_FILE_LENGTH)) {
-    NS_WARNING("Failed to read info file in GMP process.");
-    return false;
-  }
-
-  // Note: we pass "\r\n" to SplitAt so that we'll split lines delimited
-  // by \n (Unix), \r\n (Windows) and \r (old MacOSX).
-  nsTArray<nsCString> lines;
-  SplitAt("\r\n", info, lines);
-  for (nsCString line : lines) {
-    // Make lowercase.
-    std::transform(line.BeginWriting(),
-                   line.EndWriting(),
-                   line.BeginWriting(),
-                   tolower);
-
-    const char* libraries = "libraries:";
-    int32_t offset = line.Find(libraries, false, 0);
-    if (offset == kNotFound) {
-      continue;
-    }
-    // Line starts with "libraries:".
-    nsTArray<nsCString> libs;
-    SplitAt(",", Substring(line, offset + strlen(libraries)), libs);
-    for (nsCString lib : libs) {
-      lib.Trim(" ");
-      for (const char* whiteListedLib : whitelist) {
-        if (lib.EqualsASCII(whiteListedLib)) {
-          LoadLibraryA(lib.get());
-          break;
-        }
+  nsTArray<nsCString> libs;
+  SplitAt(", ", aLibs, libs);
+  for (nsCString lib : libs) {
+    ToLowerCase(lib);
+    for (const char* whiteListedLib : whitelist) {
+      if (lib.EqualsASCII(whiteListedLib)) {
+        LoadLibraryA(lib.get());
+        break;
       }
     }
   }
-
-  return true;
-}
 #endif
+  return IPC_OK();
+}
+
+bool
+GMPChild::ResolveLinks(nsCOMPtr<nsIFile>& aPath)
+{
+#if defined(XP_WIN)
+  return widget::WinUtils::ResolveJunctionPointsAndSymLinks(aPath);
+#elif defined(XP_MACOSX)
+  nsCString targetPath = GetNativeTarget(aPath);
+  nsCOMPtr<nsIFile> newFile;
+  if (NS_WARN_IF(NS_FAILED(
+        NS_NewNativeLocalFile(targetPath, true, getter_AddRefs(newFile))))) {
+    return false;
+  }
+  aPath = newFile;
+  return true;
+#else
+  return true;
+#endif
+}
 
 bool
 GMPChild::GetUTF8LibPath(nsACString& aOutLibPath)
@@ -425,62 +345,252 @@ GMPChild::GetUTF8LibPath(nsACString& aOutLibPath)
 #endif
 }
 
-bool
-GMPChild::AnswerStartPlugin()
+#if defined(XP_WIN)
+#define FIREFOX_FILE NS_LITERAL_STRING("firefox.exe")
+#define XUL_LIB_FILE NS_LITERAL_STRING("xul.dll")
+#elif defined(XP_MACOSX)
+#define FIREFOX_FILE NS_LITERAL_STRING("firefox")
+#define XUL_LIB_FILE NS_LITERAL_STRING("XUL")
+#else
+#define FIREFOX_FILE NS_LITERAL_STRING("firefox")
+#define XUL_LIB_FILE NS_LITERAL_STRING("libxul.so")
+#endif
+
+#if defined(XP_MACOSX)
+static bool
+GetFirefoxAppPath(nsCOMPtr<nsIFile> aPluginContainerPath,
+                  nsCOMPtr<nsIFile>& aOutFirefoxAppPath)
+{
+  // aPluginContainerPath will end with something like:
+  // xxxx/NightlyDebug.app/Contents/MacOS/plugin-container.app/Contents/MacOS/plugin-container
+  MOZ_ASSERT(aPluginContainerPath);
+  nsCOMPtr<nsIFile> path = aPluginContainerPath;
+  for (int i = 0; i < 4; i++) {
+    nsCOMPtr<nsIFile> parent;
+    if (NS_WARN_IF(NS_FAILED(path->GetParent(getter_AddRefs(parent))))) {
+      return false;
+    }
+    path = parent;
+  }
+  MOZ_ASSERT(path);
+  aOutFirefoxAppPath = path;
+  return true;
+}
+
+static bool
+GetSigPath(const int aRelativeLayers,
+           const nsString& aTargetSigFileName,
+           nsCOMPtr<nsIFile> aExecutablePath,
+           nsCOMPtr<nsIFile>& aOutSigPath)
+{
+  // The sig file will be located in
+  // xxxx/NightlyDebug.app/Contents/Resources/XUL.sig
+  // xxxx/NightlyDebug.app/Contents/Resources/firefox.sig
+  // xxxx/NightlyDebug.app/Contents/MacOS/plugin-container.app/Contents/Resources/plugin-container.sig
+  // On MacOS the sig file is a few parent directories up from
+  // its executable file.
+  // Start to search the path from the path of the executable file we provided.
+  MOZ_ASSERT(aExecutablePath);
+  nsCOMPtr<nsIFile> path = aExecutablePath;
+  for (int i = 0; i < aRelativeLayers; i++) {
+    nsCOMPtr<nsIFile> parent;
+    if (NS_WARN_IF(NS_FAILED(path->GetParent(getter_AddRefs(parent))))) {
+      return false;
+    }
+    path = parent;
+  }
+  MOZ_ASSERT(path);
+  aOutSigPath = path;
+  return NS_SUCCEEDED(path->Append(NS_LITERAL_STRING("Resources"))) &&
+         NS_SUCCEEDED(path->Append(aTargetSigFileName));
+}
+#endif
+
+nsTArray<Pair<nsCString, nsCString>>
+GMPChild::MakeCDMHostVerificationPaths()
+{
+  // Record the file path and its sig file path.
+  nsTArray<Pair<nsCString, nsCString>> paths;
+  // Plugin binary path.
+  nsCOMPtr<nsIFile> path;
+  nsString str;
+  if (GetPluginFile(mPluginPath, path) && FileExists(path) &&
+      ResolveLinks(path) && NS_SUCCEEDED(path->GetPath(str))) {
+    paths.AppendElement(
+      MakePair(nsCString(NS_ConvertUTF16toUTF8(str)),
+               nsCString(NS_ConvertUTF16toUTF8(str) + NS_LITERAL_CSTRING(".sig"))));
+  }
+
+  // Plugin-container binary path.
+  // Note: clang won't let us initialize an nsString from a wstring, so we
+  // need to go through UTF8 to get to an nsString.
+  const std::string pluginContainer =
+    WideToUTF8(CommandLine::ForCurrentProcess()->program());
+  path = nullptr;
+  str = NS_ConvertUTF8toUTF16(nsDependentCString(pluginContainer.c_str()));
+  if (NS_SUCCEEDED(NS_NewLocalFile(str,
+                                   true, /* aFollowLinks */
+                                   getter_AddRefs(path))) &&
+      FileExists(path) && ResolveLinks(path) &&
+      NS_SUCCEEDED(path->GetPath(str))) {
+    nsCString filePath = NS_ConvertUTF16toUTF8(str);
+    nsCString sigFilePath;
+#if defined(XP_MACOSX)
+    nsCOMPtr<nsIFile> sigFile;
+    if (GetSigPath(2, NS_LITERAL_STRING("plugin-container.sig"), path, sigFile) &&
+        NS_SUCCEEDED(sigFile->GetPath(str))) {
+      sigFilePath = NS_ConvertUTF16toUTF8(str);
+    } else {
+      // Cannot successfully get the sig file path.
+      // Assume it is located at the same place as plugin-container alternatively.
+      sigFilePath = nsCString(NS_ConvertUTF16toUTF8(str) +
+                              NS_LITERAL_CSTRING(".sig"));
+    }
+#else
+    sigFilePath = nsCString(NS_ConvertUTF16toUTF8(str) +
+                            NS_LITERAL_CSTRING(".sig"));
+#endif
+    paths.AppendElement(
+      MakePair(Move(filePath),
+               Move(sigFilePath)));
+  } else {
+    // Without successfully determining plugin-container's path, we can't
+    // determine libxul's or Firefox's. So give up.
+    return paths;
+  }
+
+  // Firefox application binary path.
+  nsCOMPtr<nsIFile> appDir;
+#if defined(XP_MACOSX)
+  // On MacOS the firefox binary is a few parent directories up from
+  // plugin-container.
+  if (GetFirefoxAppPath(path, appDir) &&
+      NS_SUCCEEDED(appDir->Clone(getter_AddRefs(path))) &&
+      NS_SUCCEEDED(path->Append(FIREFOX_FILE)) && FileExists(path) &&
+      ResolveLinks(path) && NS_SUCCEEDED(path->GetPath(str))) {
+    nsCString filePath = NS_ConvertUTF16toUTF8(str);
+    nsCString sigFilePath;
+    nsCOMPtr<nsIFile> sigFile;
+    if (GetSigPath(2, NS_LITERAL_STRING("firefox.sig"), path, sigFile) &&
+        NS_SUCCEEDED(sigFile->GetPath(str))) {
+      sigFilePath = NS_ConvertUTF16toUTF8(str);
+    } else {
+      // Cannot successfully get the sig file path.
+      // Assume it is located at the same place as firefox alternatively.
+      sigFilePath = nsCString(NS_ConvertUTF16toUTF8(str) +
+                              NS_LITERAL_CSTRING(".sig"));
+    }
+    paths.AppendElement(
+      MakePair(Move(filePath),
+               Move(sigFilePath)));
+  }
+#else
+  // Note: re-using 'path' var here, as on Windows/Linux we assume Firefox
+  // executable is in the same directory as plugin-container.
+  if (NS_SUCCEEDED(path->GetParent(getter_AddRefs(appDir))) &&
+      NS_SUCCEEDED(appDir->Clone(getter_AddRefs(path))) &&
+      NS_SUCCEEDED(path->Append(FIREFOX_FILE)) && FileExists(path) &&
+      ResolveLinks(path) && NS_SUCCEEDED(path->GetPath(str))) {
+    paths.AppendElement(
+      MakePair(nsCString(NS_ConvertUTF16toUTF8(str)),
+               nsCString(NS_ConvertUTF16toUTF8(str) + NS_LITERAL_CSTRING(".sig"))));
+  }
+#endif
+  // Libxul path. Note: re-using 'path' var here, as we assume libxul is in
+  // the same directory as Firefox executable.
+  appDir->GetPath(str);
+  if (NS_SUCCEEDED(appDir->Clone(getter_AddRefs(path))) &&
+      NS_SUCCEEDED(path->Append(XUL_LIB_FILE)) && FileExists(path) &&
+      ResolveLinks(path) && NS_SUCCEEDED(path->GetPath(str))) {
+    nsCString filePath = NS_ConvertUTF16toUTF8(str);
+    nsCString sigFilePath;
+#if defined(XP_MACOSX)
+    nsCOMPtr<nsIFile> sigFile;
+    if (GetSigPath(2, NS_LITERAL_STRING("XUL.sig"), path, sigFile) &&
+        NS_SUCCEEDED(sigFile->GetPath(str))) {
+      sigFilePath = NS_ConvertUTF16toUTF8(str);
+    } else {
+      // Cannot successfully get the sig file path.
+      // Assume it is located at the same place as XUL alternatively.
+      sigFilePath = nsCString(NS_ConvertUTF16toUTF8(str) +
+                              NS_LITERAL_CSTRING(".sig"));
+    }
+#else
+    sigFilePath = nsCString(NS_ConvertUTF16toUTF8(str) +
+                            NS_LITERAL_CSTRING(".sig"));
+#endif
+    paths.AppendElement(
+      MakePair(Move(filePath),
+               Move(sigFilePath)));
+  }
+
+  return paths;
+}
+
+static nsCString
+ToCString(const nsTArray<Pair<nsCString, nsCString>>& aPairs)
+{
+  nsCString result;
+  for (const auto& p : aPairs) {
+    if (!result.IsEmpty()) {
+      result.AppendLiteral(",");
+    }
+    result.Append(nsPrintfCString("(%s,%s)", p.first().get(), p.second().get()));
+  }
+  return result;
+}
+
+mozilla::ipc::IPCResult
+GMPChild::AnswerStartPlugin(const nsString& aAdapter)
 {
   LOGD("%s", __FUNCTION__);
 
-#if defined(XP_WIN)
-  PreLoadLibraries(mPluginPath);
-#endif
-  if (!PreLoadPluginVoucher()) {
-    NS_WARNING("Plugin voucher failed to load!");
-    return false;
-  }
-  PreLoadSandboxVoucher();
-
   nsCString libPath;
   if (!GetUTF8LibPath(libPath)) {
-    return false;
+    return IPC_FAIL_NO_REASON(this);
   }
 
   auto platformAPI = new GMPPlatformAPI();
   InitPlatformAPI(*platformAPI, this);
 
-  mGMPLoader = GMPProcessChild::GetGMPLoader();
-  if (!mGMPLoader) {
-    NS_WARNING("Failed to get GMPLoader");
+  mGMPLoader = MakeUnique<GMPLoader>();
+#if defined(MOZ_GMP_SANDBOX)
+  if (!mGMPLoader->CanSandbox()) {
+    LOGD("%s Can't sandbox GMP, failing", __FUNCTION__);
     delete platformAPI;
-    return false;
+    return IPC_FAIL_NO_REASON(this);
   }
-
+#endif
+  bool isChromium = aAdapter.EqualsLiteral("chromium");
 #if defined(MOZ_GMP_SANDBOX) && defined(XP_MACOSX)
-  if (!SetMacSandboxInfo()) {
+  MacSandboxPluginType pluginType = MacSandboxPluginType_GMPlugin_Default;
+  if (isChromium) {
+    pluginType = MacSandboxPluginType_GMPlugin_EME_Widevine;
+  }
+  if (!SetMacSandboxInfo(pluginType)) {
     NS_WARNING("Failed to set Mac GMP sandbox info");
     delete platformAPI;
-    return false;
+    return IPC_FAIL_NO_REASON(this);
   }
 #endif
 
+  GMPAdapter* adapter = nullptr;
+  if (isChromium) {
+    auto&& paths = MakeCDMHostVerificationPaths();
+    GMP_LOG("%s CDM host paths=%s", __func__, ToCString(paths).get());
+    adapter = new ChromiumCDMAdapter(Move(paths));
+  }
+
   if (!mGMPLoader->Load(libPath.get(),
                         libPath.Length(),
-                        mNodeId.BeginWriting(),
-                        mNodeId.Length(),
-                        platformAPI)) {
+                        platformAPI,
+                        adapter)) {
     NS_WARNING("Failed to load GMP");
     delete platformAPI;
-    return false;
+    return IPC_FAIL_NO_REASON(this);
   }
 
-  void* sh = nullptr;
-  GMPAsyncShutdownHost* host = static_cast<GMPAsyncShutdownHost*>(this);
-  GMPErr err = GetAPI(GMP_API_ASYNC_SHUTDOWN, host, &sh);
-  if (err == GMPNoErr && sh) {
-    mAsyncShutdown = reinterpret_cast<GMPAsyncShutdown*>(sh);
-    SendAsyncShutdownRequired();
-  }
-
-  return true;
+  return IPC_OK();
 }
 
 MessageLoop*
@@ -504,9 +614,12 @@ GMPChild::ActorDestroy(ActorDestroyReason aWhy)
   }
   if (AbnormalShutdown == aWhy) {
     NS_WARNING("Abnormal shutdown of GMP process!");
-    _exit(0);
+    ProcessChild::QuickExit();
   }
 
+#ifdef MOZ_CRASHREPORTER
+  CrashReporterClient::DestroySingleton();
+#endif
   XRE_ShutdownChildProcess();
 }
 
@@ -531,19 +644,6 @@ GMPChild::ProcessingError(Result aCode, const char* aReason)
     default:
       MOZ_CRASH("not reached");
   }
-}
-
-mozilla::dom::PCrashReporterChild*
-GMPChild::AllocPCrashReporterChild(const NativeThreadId& aThread)
-{
-  return new CrashReporterChild();
-}
-
-bool
-GMPChild::DeallocPCrashReporterChild(PCrashReporterChild* aCrashReporter)
-{
-  delete aCrashReporter;
-  return true;
 }
 
 PGMPTimerChild*
@@ -599,100 +699,29 @@ GMPChild::GetGMPStorage()
   return mStorage;
 }
 
-bool
+mozilla::ipc::IPCResult
 GMPChild::RecvCrashPluginNow()
 {
   MOZ_CRASH();
-  return true;
+  return IPC_OK();
 }
 
-bool
-GMPChild::RecvBeginAsyncShutdown()
-{
-  LOGD("%s AsyncShutdown=%d", __FUNCTION__, mAsyncShutdown!=nullptr);
-
-  MOZ_ASSERT(mGMPMessageLoop == MessageLoop::current());
-  if (mAsyncShutdown) {
-    mAsyncShutdown->BeginShutdown();
-  } else {
-    ShutdownComplete();
-  }
-  return true;
-}
-
-bool
+mozilla::ipc::IPCResult
 GMPChild::RecvCloseActive()
 {
   for (uint32_t i = mGMPContentChildren.Length(); i > 0; i--) {
     mGMPContentChildren[i - 1]->CloseActive();
   }
-  return true;
+  return IPC_OK();
 }
 
-void
-GMPChild::ShutdownComplete()
-{
-  LOGD("%s", __FUNCTION__);
-  MOZ_ASSERT(mGMPMessageLoop == MessageLoop::current());
-  mAsyncShutdown = nullptr;
-  SendAsyncShutdownComplete();
-}
-
-static void
-GetPluginVoucherFile(const nsAString& aPluginPath,
-                     nsCOMPtr<nsIFile>& aOutVoucherFile)
-{
-  nsAutoString baseName;
-#if defined(XP_MACOSX) && defined(MOZ_GMP_SANDBOX)
-  nsCOMPtr<nsIFile> libDir;
-  GetFileBase(aPluginPath, aOutVoucherFile, libDir, baseName);
-#else
-  GetFileBase(aPluginPath, aOutVoucherFile, baseName);
-#endif
-  nsAutoString infoFileName = baseName + NS_LITERAL_STRING(".voucher");
-  aOutVoucherFile->AppendRelativePath(infoFileName);
-}
-
-bool
-GMPChild::PreLoadPluginVoucher()
-{
-  nsCOMPtr<nsIFile> voucherFile;
-  GetPluginVoucherFile(mPluginPath, voucherFile);
-  if (!FileExists(voucherFile)) {
-    // Assume missing file is not fatal; that would break OpenH264.
-    return true;
-  }
-  return ReadIntoArray(voucherFile, mPluginVoucher, MAX_VOUCHER_LENGTH);
-}
-
-void
-GMPChild::PreLoadSandboxVoucher()
-{
-  nsCOMPtr<nsIFile> f;
-  nsresult rv = NS_NewLocalFile(mSandboxVoucherPath, true, getter_AddRefs(f));
-  if (NS_FAILED(rv)) {
-    NS_WARNING("Can't create nsIFile for sandbox voucher");
-    return;
-  }
-  if (!FileExists(f)) {
-    // Assume missing file is not fatal; that would break OpenH264.
-    return;
-  }
-
-  if (!ReadIntoArray(f, mSandboxVoucher, MAX_VOUCHER_LENGTH)) {
-    NS_WARNING("Failed to read sandbox voucher");
-  }
-}
-
-PGMPContentChild*
-GMPChild::AllocPGMPContentChild(Transport* aTransport,
-                                ProcessId aOtherPid)
+mozilla::ipc::IPCResult
+GMPChild::RecvInitGMPContentChild(Endpoint<PGMPContentChild>&& aEndpoint)
 {
   GMPContentChild* child =
     mGMPContentChildren.AppendElement(new GMPContentChild(this))->get();
-  child->Open(aTransport, aOtherPid, XRE_GetIOMessageLoop(), ipc::ChildSide);
-
-  return child;
+  aEndpoint.Bind(child);
+  return IPC_OK();
 }
 
 void
@@ -702,8 +731,9 @@ GMPChild::GMPContentChildActorDestroy(GMPContentChild* aGMPContentChild)
     UniquePtr<GMPContentChild>& toDestroy = mGMPContentChildren[i - 1];
     if (toDestroy.get() == aGMPContentChild) {
       SendPGMPContentChildDestroyed();
-      MessageLoop::current()->PostTask(FROM_HERE,
-                                       new DeleteTask<GMPContentChild>(toDestroy.release()));
+      RefPtr<DeleteTask<GMPContentChild>> task =
+        new DeleteTask<GMPContentChild>(toDestroy.release());
+      MessageLoop::current()->PostTask(task.forget());
       mGMPContentChildren.RemoveElementAt(i - 1);
       break;
     }

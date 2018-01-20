@@ -12,8 +12,8 @@ requestLongerTimeout(2);
 // state.
 // Finally, also check that the scrubber can be moved using the scrubber handle.
 
-add_task(function*() {
-  yield addTab(TEST_URL_ROOT + "doc_simple_animation.html");
+add_task(function* () {
+  yield addTab(URL_ROOT + "doc_simple_animation.html");
 
   let {panel} = yield openAnimationInspector();
   let timeline = panel.animationsTimelineComponent;
@@ -50,6 +50,11 @@ add_task(function*() {
   yield onDataChanged;
 
   checkScrubberIsAt(scrubberEl, timeHeaderEl, 0);
+
+  // Wait for promise of setCurrentTimes if setCurrentTimes is running.
+  if (panel.setCurrentTimeAllPromise) {
+    yield panel.setCurrentTimeAllPromise;
+  }
 });
 
 function* synthesizeInHeaderAndWaitForChange(timeline, x, y, type) {

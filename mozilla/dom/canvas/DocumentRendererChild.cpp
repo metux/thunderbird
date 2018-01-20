@@ -7,6 +7,7 @@
 #include "base/basictypes.h"
 
 #include "gfx2DGlue.h"
+#include "gfxContext.h"
 #include "gfxPattern.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/RefPtr.h"
@@ -19,12 +20,12 @@
 #include "nsPresContext.h"
 #include "nsCOMPtr.h"
 #include "nsColor.h"
-#include "gfxContext.h"
 #include "nsLayoutUtils.h"
 #include "nsContentUtils.h"
 #include "nsCSSValue.h"
 #include "nsRuleNode.h"
 #include "mozilla/gfx/Matrix.h"
+#include "mozilla/ServoCSSParser.h"
 
 using namespace mozilla;
 using namespace mozilla::gfx;
@@ -37,7 +38,7 @@ DocumentRendererChild::~DocumentRendererChild()
 {}
 
 bool
-DocumentRendererChild::RenderDocument(nsIDOMWindow *window,
+DocumentRendererChild::RenderDocument(nsPIDOMWindowOuter* window,
                                       const nsRect& documentRect,
                                       const mozilla::gfx::Matrix& transform,
                                       const nsString& aBGColor,
@@ -50,9 +51,8 @@ DocumentRendererChild::RenderDocument(nsIDOMWindow *window,
         nsContentUtils::FlushLayoutForTree(window);
 
     RefPtr<nsPresContext> presContext;
-    nsCOMPtr<nsPIDOMWindow> win = do_QueryInterface(window);
-    if (win) {
-        nsIDocShell* docshell = win->GetDocShell();
+    if (window) {
+        nsIDocShell* docshell = window->GetDocShell();
         if (docshell) {
             docshell->GetPresContext(getter_AddRefs(presContext));
         }
@@ -60,32 +60,42 @@ DocumentRendererChild::RenderDocument(nsIDOMWindow *window,
     if (!presContext)
         return false;
 
-    nsCSSParser parser;
-    nsCSSValue bgColorValue;
-    if (!parser.ParseColorString(aBGColor, nullptr, 0, bgColorValue)) {
-        return false;
-    }
-
     nscolor bgColor;
-    if (!nsRuleNode::ComputeColor(bgColorValue, presContext, nullptr, bgColor)) {
+
+    ServoStyleSet* servoStyleSet = presContext->StyleSet()
+      ? presContext->StyleSet()->GetAsServo()
+      : nullptr;
+
+    if (servoStyleSet) {
+      if (!ServoCSSParser::ComputeColor(servoStyleSet, NS_RGB(0, 0, 0),
+                                        aBGColor, &bgColor)) {
         return false;
+      }
+    } else {
+      nsCSSParser parser;
+      nsCSSValue bgColorValue;
+      if (!parser.ParseColorString(aBGColor, nullptr, 0, bgColorValue) ||
+          !nsRuleNode::ComputeColor(bgColorValue, presContext, nullptr, bgColor)) {
+        return false;
+      }
     }
 
     // Draw directly into the output array.
     data.SetLength(renderSize.width * renderSize.height * 4);
 
     RefPtr<DrawTarget> dt =
-        Factory::CreateDrawTargetForData(BackendType::CAIRO,
+        Factory::CreateDrawTargetForData(gfxPlatform::GetPlatform()->GetSoftwareBackend(),
                                          reinterpret_cast<uint8_t*>(data.BeginWriting()),
                                          IntSize(renderSize.width, renderSize.height),
                                          4 * renderSize.width,
                                          SurfaceFormat::B8G8R8A8);
-    if (!dt) {
+    if (!dt || !dt->IsValid()) {
         gfxWarning() << "DocumentRendererChild::RenderDocument failed to Factory::CreateDrawTargetForData";
         return false;
     }
-    RefPtr<gfxContext> ctx = new gfxContext(dt);
-    ctx->SetMatrix(mozilla::gfx::ThebesMatrix(transform));
+    RefPtr<gfxContext> ctx = gfxContext::CreateOrNull(dt);
+    MOZ_ASSERT(ctx); // already checked the draw target above
+    ctx->SetMatrix(transform);
 
     nsCOMPtr<nsIPresShell> shell = presContext->PresShell();
     shell->RenderDocument(documentRect, renderFlags, bgColor, ctx);

@@ -7,15 +7,15 @@
 
 "use strict";
 
-const { PromisesFront } = require("devtools/server/actors/promises");
+const { PromisesFront } = require("devtools/shared/fronts/promises");
 
-var events = require("sdk/event/core");
+var EventEmitter = require("devtools/shared/event-emitter");
 
-add_task(function*() {
+add_task(function* () {
   let client = yield startTestDebuggerServer("promises-object-test");
   let chromeActors = yield getChromeActors(client);
 
-  ok(Promise.toString().contains("native code"), "Expect native DOM Promise.");
+  ok(Promise.toString().includes("native code"), "Expect native DOM Promise.");
 
   // We have to attach the chrome TabActor before playing with the PromiseActor
   yield attachTab(client, chromeActors);
@@ -43,7 +43,7 @@ function* testPromiseCreationTimestamp(client, form, makePromise) {
   yield front.listPromises();
 
   let onNewPromise = new Promise(resolve => {
-    events.on(front, "new-promises", promises => {
+    EventEmitter.on(front, "new-promises", promises => {
       for (let p of promises) {
         if (p.promiseState.state === "fulfilled" &&
             p.promiseState.value === resolution) {

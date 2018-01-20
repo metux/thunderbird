@@ -15,10 +15,10 @@
 
 #include "nsIComponentManager.h"
 #include "nsIDOMDocument.h"
-#include "nsIDOMWindow.h"
 #include "nsIWindowMediator.h"
 #include "nsServiceManagerUtils.h"
 #include "mozilla/Services.h"
+#include "nsGlobalWindow.h"
 #include "nsIStringBundle.h"
 
 using namespace mozilla::a11y;
@@ -28,6 +28,7 @@ ApplicationAccessible::ApplicationAccessible() :
 {
   mType = eApplicationType;
   mAppInfo = do_GetService("@mozilla.org/xre/app-info;1");
+  MOZ_ASSERT(mAppInfo, "no application info");
 }
 
 NS_IMPL_ISUPPORTS_INHERITED0(ApplicationAccessible, Accessible)
@@ -53,9 +54,8 @@ ApplicationAccessible::Name(nsString& aName)
   if (NS_FAILED(rv))
     return eNameOK;
 
-  nsXPIDLString appName;
-  rv = bundle->GetStringFromName(MOZ_UTF16("brandShortName"),
-                                 getter_Copies(appName));
+  nsAutoString appName;
+  rv = bundle->GetStringFromName("brandShortName", appName);
   if (NS_FAILED(rv) || appName.IsEmpty()) {
     NS_WARNING("brandShortName not found, using default app name");
     appName.AssignLiteral("Gecko based application");
@@ -150,57 +150,37 @@ ApplicationAccessible::NativeState()
   return 0;
 }
 
-void
-ApplicationAccessible::InvalidateChildren()
-{
-  // Do nothing because application children are kept updated by AppendChild()
-  // and RemoveChild() method calls.
-}
-
 KeyBinding
 ApplicationAccessible::AccessKey() const
 {
   return KeyBinding();
 }
 
-////////////////////////////////////////////////////////////////////////////////
-// Accessible protected methods
-
 void
-ApplicationAccessible::CacheChildren()
+ApplicationAccessible::Init()
 {
-  // CacheChildren is called only once for application accessible when its
-  // children are requested because empty InvalidateChldren() prevents its
-  // repeated calls.
-
   // Basically children are kept updated by Append/RemoveChild method calls.
   // However if there are open windows before accessibility was started
   // then we need to make sure root accessibles for open windows are created so
   // that all root accessibles are stored in application accessible children
   // array.
 
-  nsCOMPtr<nsIWindowMediator> windowMediator =
-    do_GetService(NS_WINDOWMEDIATOR_CONTRACTID);
+  nsGlobalWindowOuter::OuterWindowByIdTable* windowsById =
+    nsGlobalWindowOuter::GetWindowsTable();
 
-  nsCOMPtr<nsISimpleEnumerator> windowEnumerator;
-  nsresult rv = windowMediator->GetEnumerator(nullptr,
-                                              getter_AddRefs(windowEnumerator));
-  if (NS_FAILED(rv))
+  if (!windowsById) {
     return;
+  }
 
-  bool hasMore = false;
-  windowEnumerator->HasMoreElements(&hasMore);
-  while (hasMore) {
-    nsCOMPtr<nsISupports> window;
-    windowEnumerator->GetNext(getter_AddRefs(window));
-    nsCOMPtr<nsPIDOMWindow> DOMWindow = do_QueryInterface(window);
-    if (DOMWindow) {
-      nsCOMPtr<nsIDocument> docNode = DOMWindow->GetDoc();
+  for (auto iter = windowsById->Iter(); !iter.Done(); iter.Next()) {
+    nsGlobalWindowOuter* window = iter.Data();
+    if (window->GetDocShell() && window->IsRootOuterWindow()) {
+      nsCOMPtr<nsIDocument> docNode = window->GetExtantDoc();
+
       if (docNode) {
-        GetAccService()->GetDocAccessible(docNode); // ensure creation
+        GetAccService()->GetDocAccessible(docNode);  // ensure creation
       }
     }
-    windowEnumerator->HasMoreElements(&hasMore);
   }
 }
 

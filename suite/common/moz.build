@@ -4,8 +4,14 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 DIRS += [
+    'console',
     'public',
     'src',
+]
+
+EXTRA_COMPONENTS += [
+    'places/nsPlacesAutoComplete.js',
+    'places/nsPlacesAutoComplete.manifest',
 ]
 
 BROWSER_CHROME_MANIFESTS += [
@@ -22,7 +28,10 @@ MOCHITEST_CHROME_MANIFESTS += [
     'tests/chrome/chrome.ini',
 ]
 
-XPCSHELL_TESTS_MANIFESTS += ['places/tests/unit/xpcshell.ini']
+XPCSHELL_TESTS_MANIFESTS += [
+    'places/tests/autocomplete/xpcshell.ini',
+    'places/tests/unit/xpcshell.ini',
+]
 
 JAR_MANIFESTS += ['jar.mn']
 
@@ -32,5 +41,5 @@ JAR_MANIFESTS += ['jar.mn']
 # chrome://global/content/license.html (about:license)
 DEFINES['APP_LICENSE_BLOCK'] = '%s/app-license.html' % SRCDIR
 
-for var in ('MOZ_APP_NAME', 'MOZ_MACBUNDLE_NAME'):
+for var in ('MOZ_APP_NAME', 'MOZ_MACBUNDLE_NAME', 'mozreltopsrcdir'):
     DEFINES[var] = CONFIG[var]

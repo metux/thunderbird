@@ -45,10 +45,10 @@ function OnMailWindowUnload()
     if (gPreQuickSearchView)     //close the cached pre quick search view
       gPreQuickSearchView.close();
   }
-  
+
   var dbview = GetDBView();
   if (dbview) {
-    dbview.close(); 
+    dbview.close();
   }
 
   var mailSession = Components.classes["@mozilla.org/messenger/services/session;1"]
@@ -61,16 +61,110 @@ function OnMailWindowUnload()
   msgWindow.closeWindow();
 }
 
+/**
+ * When copying/dragging, convert imap/mailbox URLs of images into data URLs so
+ * that the images can be accessed in a paste elsewhere.
+ */
+function onCopyOrDragStart(e) {
+  let sourceDoc = getBrowser().contentDocument;
+  if (e.target.ownerDocument != sourceDoc) {
+    // We're only interested if this is in the message content.
+    return; 
+  }
+
+  let imgMap = new Map(); // Mapping img.src -> dataURL.
+
+  // For copy, the data of what is to be copied is not accessible at this point.
+  // Figure out what images are a) part of the selection and b) visible in
+  // the current document. If their source isn't http or data already, convert
+  // them to data URLs.
+  let selection = sourceDoc.getSelection();
+  let draggedImg = selection.isCollapsed ? e.target : null;
+  for (let img of sourceDoc.images) {
+    if (/^(https?|data):/.test(img.src)) {
+      continue;
+    }
+
+    if (img.naturalWidth == 0) {
+      // Broken/inaccessible image then...
+      continue;
+    }
+
+    if (!draggedImg && !selection.containsNode(img, true)) {
+      continue;
+    }
+
+    let style = window.getComputedStyle(img);
+    if (style.display == "none" || style.visibility == "hidden") {
+      continue;
+    }
+
+    // Do not convert if the image is specifically flagged to not snarf.
+    if (img.getAttribute("moz-do-not-send") == "true") {
+      continue;
+    }
+
+    // We don't need to wait for the image to load. If it isn't already loaded
+    // in the source document, we wouldn't want it anyway.
+    let canvas = sourceDoc.createElement("canvas");
+    canvas.width = img.width;
+    canvas.height = img.height;
+    canvas.getContext("2d").drawImage(img, 0, 0, img.width, img.height);
+
+    let type = /\.jpe?g$/i.test(img.src) ? "image/jpg" : "image/png";
+    imgMap.set(img.src, canvas.toDataURL(type));
+  }
+
+  if (imgMap.size == 0) {
+    // Nothing that needs converting!
+    return;
+  }
+
+  let clonedSelection = draggedImg ? draggedImg.cloneNode(false) :
+                                     selection.getRangeAt(0).cloneContents();
+  let div = sourceDoc.createElement("div");
+  div.appendChild(clonedSelection);
+
+  let images = div.querySelectorAll("img");
+  for (let img of images) {
+    if (!imgMap.has(img.src)) {
+      continue;
+    }
+    img.src = imgMap.get(img.src);
+  }
+
+  let html = div.innerHTML;
+  let parserUtils = Components.classes["@mozilla.org/parserutils;1"]
+                      .getService(Components.interfaces.nsIParserUtils);
+  let plain = 
+    parserUtils.convertToPlainText(html,
+      Components.interfaces.nsIDocumentEncoder.OutputForPlainTextClipboardCopy,
+      0);
+      
+  // Copy operation.
+  if ("clipboardData" in e) { 
+    e.clipboardData.setData("text/html", html);
+    e.clipboardData.setData("text/plain", plain);
+    e.preventDefault();
+  }
+  // Drag operation.
+  else if ("dataTransfer" in e) { 
+    e.dataTransfer.setData("text/html", html);
+    e.dataTransfer.setData("text/plain", plain);
+  }
+}
+
 function CreateMailWindowGlobals()
 {
-  // get the messenger instance
+  // Get the messenger instance.
   messenger = Components.classes["@mozilla.org/messenger;1"]
                         .createInstance(Components.interfaces.nsIMessenger);
-  
-  //Create windows status feedback
+
+  // Create windows status feedback
   // set the JS implementation of status feedback before creating the c++ one..
   window.MsgStatusFeedback = new nsMsgStatusFeedback();
-  // double register the status feedback object as the xul browser window implementation
+  // Double register the status feedback object as the xul browser window 
+  // implementation.
   window.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
         .getInterface(Components.interfaces.nsIWebNavigation)
         .QueryInterface(Components.interfaces.nsIDocShellTreeItem).treeOwner
@@ -120,7 +214,7 @@ function InitMsgWindow()
 {
   msgWindow.windowCommands = new nsMsgWindowCommands();
   // set the domWindow before setting the status feedback and header sink objects
-  msgWindow.domWindow = window;  
+  msgWindow.domWindow = window;
   msgWindow.statusFeedback = statusFeedback;
   msgWindow.msgHeaderSink = messageHeaderSink;
   mailSession.AddMsgWindow(msgWindow);
@@ -132,6 +226,9 @@ function InitMsgWindow()
   msgWindow.rootDocShell.appType = Components.interfaces.nsIDocShell.APP_TYPE_MAIL;
   // Ensure we don't load xul error pages into the main window
   msgWindow.rootDocShell.useErrorPages = false;
+
+  document.addEventListener("copy", onCopyOrDragStart, true);
+  document.addEventListener("dragstart", onCopyOrDragStart, true);
 }
 
 function messagePaneOnResize(event)
@@ -140,7 +237,7 @@ function messagePaneOnResize(event)
   var messagepane = getMessageBrowser();
   var doc = messagepane.contentDocument;
   var imgs = doc.images;
-  for each (var img in imgs)
+  for (var img of imgs)
   {
     if (img.className == "moz-attached-image")
     {
@@ -171,7 +268,7 @@ function messagePaneOnClick(event)
   if (event.button != 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)
     return contentAreaClick(event);
 
-  // try to determine the href for what you are clicking on.  
+  // try to determine the href for what you are clicking on.
   // for example, it might be "" if you aren't left clicking on a link
   var ceParams = hrefAndLinkNodeForClickEvent(event);
   if (!ceParams && !event.button)
@@ -207,14 +304,14 @@ function messagePaneOnClick(event)
   }
   var href = ceParams.href;
 
-  // we know that http://, https://, ftp://, file://, chrome://, 
-  // resource://, and about, should load in a browser.  but if 
-  // we don't have one of those (examples are mailto, imap, news, mailbox, snews, 
-  // nntp, ldap, and externally handled schemes like aim) we may or may not 
-  // want a browser window, in which case we return here and let the normal code 
+  // we know that http://, https://, ftp://, file://, chrome://,
+  // resource://, and about, should load in a browser.  but if
+  // we don't have one of those (examples are mailto, imap, news, mailbox, snews,
+  // nntp, ldap, and externally handled schemes like aim) we may or may not
+  // want a browser window, in which case we return here and let the normal code
   // handle it
   var needABrowser = /(^http(s)?:|^ftp:|^file:|^chrome:|^resource:|^about:)/i;
-  if (href.search(needABrowser) == -1) 
+  if (href.search(needABrowser) == -1)
     return true;
 
   // however, if the protocol should not be loaded internally, then we should
@@ -226,12 +323,12 @@ function messagePaneOnClick(event)
     var scheme = href.substring(0, href.indexOf(":"));
     if (!extProtService.isExposedProtocol(scheme))
       return true;
-  } 
+  }
   catch (ex) {} // ignore errors, and just assume that we can proceed.
 
   // if you get here, the user did a simple left click on a link
   // that we know should be in a browser window.
-  // since we are in the message pane, send it to the top most browser window 
+  // since we are in the message pane, send it to the top most browser window
   // (or open one) right away, instead of waiting for us to get some data and
   // determine the content type, and then open a browser window
   // we want to preventDefault, so that in
@@ -448,17 +545,17 @@ nsMsgWindowCommands.prototype =
       return this;
     throw Components.results.NS_NOINTERFACE;
   },
-  
+
   selectFolder: function(folderUri)
   {
     SelectFolder(folderUri);
   },
-  
+
   selectMessage: function(messageUri)
   {
     SelectMessage(messageUri);
   },
-  
+
   clearMsgPane: function()
   {
     if (gDBView)
@@ -466,7 +563,7 @@ nsMsgWindowCommands.prototype =
     else
       setTitleFromFolder(null,null);
     ClearMessagePane();
-  }  
+  }
 }
 
 function StopUrls()
@@ -500,7 +597,7 @@ function loadStartPage()
 }
 
 // Given the server, open the twisty and the set the selection
-// on inbox of that server. 
+// on inbox of that server.
 // prompt if offline.
 function OpenInboxForServer(server)
 {
@@ -531,9 +628,9 @@ function GetSearchSession()
     return null;
 }
 
-function SetKeywords(aKeywords) 
-{ 
-  // we cache the last keywords.  
+function SetKeywords(aKeywords)
+{
+  // we cache the last keywords.
   // if there is no chagne, we do nothing.
   // most of the time, this will be the case.
   if (aKeywords == gLastKeywords)
@@ -567,7 +664,7 @@ function SetKeywords(aKeywords)
     }
   }
 
-  // cache the keywords 
+  // cache the keywords
   gLastKeywords = aKeywords;
 }
 

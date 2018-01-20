@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -14,6 +15,7 @@
 #include "mozilla/dom/ScreenOrientation.h"  // for ScreenOrientation
 #include "mozilla/gfx/BasePoint.h"      // for BasePoint
 #include "mozilla/gfx/Matrix.h"         // for Matrix4x4
+#include "mozilla/layers/AnimationMetricsTracker.h" // for AnimationMetricsTracker
 #include "mozilla/layers/FrameUniformityData.h" // For FrameUniformityData
 #include "mozilla/layers/LayersMessages.h"  // for TargetConfig
 #include "mozilla/RefPtr.h"                   // for nsRefPtr
@@ -26,34 +28,27 @@ class AsyncPanZoomController;
 class Layer;
 class LayerManagerComposite;
 class AutoResolveRefLayers;
-class CompositorParent;
+class CompositorBridgeParent;
 
-// Represents (affine) transforms that are calculated from a content view.
-struct ViewTransform {
-  explicit ViewTransform(LayerToParentLayerScale aScale = LayerToParentLayerScale(),
-                         ParentLayerPoint aTranslation = ParentLayerPoint())
+// Represents async transforms consisting of a scale and a translation.
+struct AsyncTransform {
+  explicit AsyncTransform(LayerToParentLayerScale aScale = LayerToParentLayerScale(),
+                          ParentLayerPoint aTranslation = ParentLayerPoint())
     : mScale(aScale)
     , mTranslation(aTranslation)
   {}
 
-  operator gfx::Matrix4x4() const
+  operator AsyncTransformComponentMatrix() const
   {
-    return
-      gfx::Matrix4x4::Scaling(mScale.scale, mScale.scale, 1)
-                      .PostTranslate(mTranslation.x, mTranslation.y, 0);
+    return AsyncTransformComponentMatrix::Scaling(mScale.scale, mScale.scale, 1)
+        .PostTranslate(mTranslation.x, mTranslation.y, 0);
   }
 
-  // For convenience, to avoid writing the cumbersome
-  // "gfx::Matrix4x4(a) * gfx::Matrix4x4(b)".
-  friend gfx::Matrix4x4 operator*(const ViewTransform& a, const ViewTransform& b) {
-    return gfx::Matrix4x4(a) * gfx::Matrix4x4(b);
-  }
-
-  bool operator==(const ViewTransform& rhs) const {
+  bool operator==(const AsyncTransform& rhs) const {
     return mTranslation == rhs.mTranslation && mScale == rhs.mScale;
   }
 
-  bool operator!=(const ViewTransform& rhs) const {
+  bool operator!=(const AsyncTransform& rhs) const {
     return !(*this == rhs);
   }
 
@@ -77,14 +72,14 @@ class AsyncCompositionManager final
 public:
   NS_INLINE_DECL_REFCOUNTING(AsyncCompositionManager)
 
-  explicit AsyncCompositionManager(LayerManagerComposite* aManager);
+  explicit AsyncCompositionManager(CompositorBridgeParent* aParent, HostLayerManager* aManager);
 
   /**
    * This forces the is-first-paint flag to true. This is intended to
    * be called by the widget code when it loses its viewport information
    * (or for whatever reason wants to refresh the viewport information).
    * The information refresh happens because the compositor will call
-   * SetFirstPaintViewport on the next frame of composition.
+   * AndroidDynamicToolbarAnimator::FirstPaint() on the next frame of composition.
    */
   void ForceIsFirstPaint() { mIsFirstPaint = true; }
 
@@ -92,22 +87,19 @@ public:
   // another animation frame.
   enum class TransformsToSkip : uint8_t { NoneOfThem = 0, APZ = 1 };
   bool TransformShadowTree(TimeStamp aCurrentFrame,
-    TransformsToSkip aSkip = TransformsToSkip::NoneOfThem);
+                           TimeDuration aVsyncRate,
+                           TransformsToSkip aSkip = TransformsToSkip::NoneOfThem);
 
   // Calculates the correct rotation and applies the transform to
   // our layer manager
   void ComputeRotation();
 
   // Call after updating our layer tree.
-  void Updated(bool isFirstPaint, const TargetConfig& aTargetConfig,
-               int32_t aPaintSyncId)
+  void Updated(bool isFirstPaint, const TargetConfig& aTargetConfig)
   {
     mIsFirstPaint |= isFirstPaint;
     mLayersUpdated = true;
     mTargetConfig = aTargetConfig;
-    if (aPaintSyncId) {
-      mPaintSyncId = aPaintSyncId;
-    }
   }
 
   bool RequiresReorientation(mozilla::dom::ScreenOrientationInternal aOrientation) const
@@ -126,60 +118,95 @@ public:
   // from the recorded data in RecordShadowTransform
   void GetFrameUniformity(FrameUniformityData* aFrameUniformityData);
 
+  // Stores the clip rect of a layer in two parts: a fixed part and a scrolled
+  // part. When a layer is fixed, the clip needs to be adjusted to account for
+  // async transforms. Only the fixed part needs to be adjusted, so we need
+  // to store the two parts separately.
+  struct ClipParts {
+    Maybe<ParentLayerIntRect> mFixedClip;
+    Maybe<ParentLayerIntRect> mScrolledClip;
+
+    Maybe<ParentLayerIntRect> Intersect() const {
+      return IntersectMaybeRects(mFixedClip, mScrolledClip);
+    }
+  };
+
+  typedef std::map<Layer*, ClipParts> ClipPartsCache;
+
+  /**
+   * Compute the updated shadow transform for a scroll thumb layer that
+   * reflects async scrolling of the associated scroll frame.
+   *
+   * @param aCurrentTransform The current shadow transform on the scroll thumb
+   *    layer, as returned by Layer::GetLocalTransform() or similar.
+   * @param aScrollableContentTransform The current content transform on the
+   *    scrollable content, as returned by Layer::GetTransform().
+   * @param aApzc The APZC that scrolls the scroll frame.
+   * @param aMetrics The metrics associated with the scroll frame, reflecting
+   *    the last paint of the associated content. Note: this metrics should
+   *    NOT reflect async scrolling, i.e. they should be the layer tree's
+   *    copy of the metrics, or APZC's last-content-paint metrics.
+   * @param aThumbData The scroll thumb data for the the scroll thumb layer.
+   * @param aScrollbarIsDescendant True iff. the scroll thumb layer is a
+   *    descendant of the layer bearing the scroll frame's metrics.
+   * @param aOutClipTransform If not null, and |aScrollbarIsDescendant| is true,
+   *    this will be populated with a transform that should be applied to the
+   *    clip rects of all layers between the scroll thumb layer and the ancestor
+   *    layer for the scrollable content.
+   * @return The new shadow transform for the scroll thumb layer, including
+   *    any pre- or post-scales.
+   */
+  static LayerToParentLayerMatrix4x4 ComputeTransformForScrollThumb(
+      const LayerToParentLayerMatrix4x4& aCurrentTransform,
+      const gfx::Matrix4x4& aScrollableContentTransform,
+      AsyncPanZoomController* aApzc,
+      const FrameMetrics& aMetrics,
+      const ScrollThumbData& aThumbData,
+      bool aScrollbarIsDescendant,
+      AsyncTransformComponentMatrix* aOutClipTransform);
 private:
-  void TransformScrollableLayer(Layer* aLayer);
   // Return true if an AsyncPanZoomController content transform was
   // applied for |aLayer|. |*aOutFoundRoot| is set to true on Android only, if
   // one of the metrics on one of the layers was determined to be the "root"
   // and its state was synced to the Java front-end. |aOutFoundRoot| must be
   // non-null.
-  bool ApplyAsyncContentTransformToTree(Layer* aLayer, bool* aOutFoundRoot);
+  bool ApplyAsyncContentTransformToTree(Layer* aLayer,
+                                        bool* aOutFoundRoot);
   /**
    * Update the shadow transform for aLayer assuming that is a scrollbar,
    * so that it stays in sync with the content that is being scrolled by APZ.
    */
   void ApplyAsyncTransformToScrollbar(Layer* aLayer);
 
-  void SetFirstPaintViewport(const LayerIntPoint& aOffset,
-                             const CSSToLayerScale& aZoom,
-                             const CSSRect& aCssPageRect);
-  void SetPageRect(const CSSRect& aCssPageRect);
-  void SyncViewportInfo(const LayerIntRect& aDisplayPort,
-                        const CSSToLayerScale& aDisplayResolution,
-                        bool aLayersUpdated,
-                        int32_t aPaintSyncId,
-                        ParentLayerRect& aScrollRect,
-                        CSSToParentLayerScale& aScale,
-                        ScreenMargin& aFixedLayerMargins);
-  void SyncFrameMetrics(const ParentLayerPoint& aScrollOffset,
-                        const CSSToParentLayerScale& aZoom,
-                        const CSSRect& aCssPageRect,
-                        const CSSRect& aDisplayPort,
-                        const CSSToLayerScale& aPaintedResolution,
-                        bool aLayersUpdated,
-                        int32_t aPaintSyncId,
-                        ScreenMargin& aFixedLayerMargins);
-
   /**
    * Adds a translation to the transform of any fixed position (whose parent
    * layer is not fixed) or sticky position layer descendant of
-   * aTransformedSubtreeRoot. The translation is chosen so that the layer's
-   * anchor point relative to aTransformedSubtreeRoot's parent layer is the same
-   * as it was when aTransformedSubtreeRoot's GetLocalTransform() was
-   * aPreviousTransformForRoot. aCurrentTransformForRoot is
-   * aTransformedSubtreeRoot's current GetLocalTransform() modulo any
+   * |aTransformedSubtreeRoot|. The translation is chosen so that the layer's
+   * anchor point relative to |aTransformedSubtreeRoot|'s parent layer is the same
+   * as it was when |aTransformedSubtreeRoot|'s GetLocalTransform() was
+   * |aPreviousTransformForRoot|. |aCurrentTransformForRoot| is
+   * |aTransformedSubtreeRoot|'s current GetLocalTransform() modulo any
    * overscroll-related transform, which we don't want to adjust for.
    * For sticky position layers, the translation is further intersected with
    * the layer's sticky scroll ranges.
    * This function will also adjust layers so that the given content document
    * fixed position margins will be respected during asynchronous panning and
    * zooming.
+   * |aTransformScrollId| is the scroll id of the scroll frame that scrolls
+   * |aTransformedSubtreeRoot|.
+   * |aClipPartsCache| optionally maps layers to separate fixed and scrolled
+   * clips, so we can only adjust the fixed portion.
+   * This function has a recursive implementation; aStartTraversalAt specifies
+   * where to start the current recursion of the traversal. For the initial
+   * call, it should be the same as aTrasnformedSubtreeRoot.
    */
-  void AlignFixedAndStickyLayers(Layer* aLayer, Layer* aTransformedSubtreeRoot,
+  void AlignFixedAndStickyLayers(Layer* aTransformedSubtreeRoot,
+                                 Layer* aStartTraversalAt,
                                  FrameMetrics::ViewID aTransformScrollId,
-                                 const gfx::Matrix4x4& aPreviousTransformForRoot,
-                                 const gfx::Matrix4x4& aCurrentTransformForRoot,
-                                 const ScreenMargin& aFixedLayerMargins);
+                                 const LayerToParentLayerMatrix4x4& aPreviousTransformForRoot,
+                                 const LayerToParentLayerMatrix4x4& aCurrentTransformForRoot,
+                                 const ScreenMargin& aFixedLayerMargins,
+                                 ClipPartsCache* aClipPartsCache);
 
   /**
    * DRAWING PHASE ONLY
@@ -193,7 +220,7 @@ private:
    *  to linux and windows only, may be null. On return value indicates
    *  if any updates occured.
    */
-  void ResolveRefLayers(CompositorParent* aCompositor, bool* aHasRemoteContent,
+  void ResolveRefLayers(CompositorBridgeParent* aCompositor, bool* aHasRemoteContent,
                         bool* aResolvePlugins);
 
   /**
@@ -209,7 +236,7 @@ private:
   TargetConfig mTargetConfig;
   CSSRect mContentRect;
 
-  RefPtr<LayerManagerComposite> mLayerManager;
+  RefPtr<HostLayerManager> mLayerManager;
   // When this flag is set, the next composition will be the first for a
   // particular document (i.e. the document displayed on the screen will change).
   // This happens when loading a new page or switching tabs. We notify the
@@ -221,14 +248,20 @@ private:
   // after a layers update has it set. It is cleared after that first composition.
   bool mLayersUpdated;
 
-  int32_t mPaintSyncId;
-
   bool mReadyForCompose;
 
   gfx::Matrix mWorldTransform;
   LayerTransformRecorder mLayerTransformRecorder;
 
-#ifdef MOZ_ANDROID_APZ
+  TimeStamp mPreviousFrameTimeStamp;
+  AnimationMetricsTracker mAnimationMetricsTracker;
+
+  CompositorBridgeParent* mCompositorBridge;
+
+#ifdef MOZ_WIDGET_ANDROID
+public:
+  void SetFixedLayerMargins(ScreenIntCoord aTop, ScreenIntCoord aBottom);
+private:
   // The following two fields are only needed on Fennec with C++ APZ, because
   // then we need to reposition the gecko scrollbar to deal with the
   // dynamic toolbar shifting content around.
@@ -242,7 +275,7 @@ MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(AsyncCompositionManager::TransformsToSkip)
 class MOZ_STACK_CLASS AutoResolveRefLayers {
 public:
   explicit AutoResolveRefLayers(AsyncCompositionManager* aManager,
-                                CompositorParent* aCompositor = nullptr,
+                                CompositorBridgeParent* aCompositor = nullptr,
                                 bool* aHasRemoteContent = nullptr,
                                 bool* aResolvePlugins = nullptr) :
     mManager(aManager)

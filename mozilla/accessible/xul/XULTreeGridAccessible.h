@@ -97,9 +97,6 @@ public:
 protected:
   virtual ~XULTreeGridRowAccessible();
 
-  // Accessible
-  virtual void CacheChildren() override;
-
   // XULTreeItemAccessibleBase
   mutable nsRefPtrHashtable<nsPtrHashKey<const void>, XULTreeGridCellAccessible>
     mAccessibleCache;
@@ -127,6 +124,7 @@ public:
                                            LeafAccessible)
 
   // Accessible
+  virtual void Shutdown() override;
   virtual TableCellAccessible* AsTableCell() override { return this; }
   virtual nsIntRect Bounds() const override;
   virtual ENameValueFlag Name(nsString& aName) override;

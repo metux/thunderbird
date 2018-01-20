@@ -10,9 +10,9 @@ function GetAbViewListener()
   return null;
 }
 
-function AbPanelLoad() 
+function AbPanelLoad()
 {
-  InitCommonJS(); 
+  InitCommonJS();
 
   UpgradeAddressBookResultsPaneUI("mailnews.ui.addressbook_panel_results.version");
 
@@ -39,19 +39,15 @@ function AbPanelLoad()
   for (var i = 0; i < 4; i++)
     popup.childNodes[i].hidden = !gIsMsgCompose;
   popup.childNodes[4].hidden = gIsMsgCompose;
-
-  if (gIsMsgCompose)
-    parent.addEventListener("compose-window-close", onAbClearSearch, true);
 }
 
 function AbPanelUnload()
 {
-  if (gIsMsgCompose)
-    parent.removeEventListener("compose-window-close", onAbClearSearch, true);
-
   CloseAbView();
 }
 
+// onAbClearSearch is unused. It is maintained here for possible
+// ports of patches from Thunderbird which still has this function.
 function onAbClearSearch()
 {
   gSearchInput.value = "";
@@ -75,27 +71,27 @@ function AbPanelAdd(addrtype)
   }
 }
 
-function AbPanelNewCard() 
+function AbPanelNewCard()
 {
   goNewCardDialog(abList.value);
 }
 
-function AbPanelNewList() 
+function AbPanelNewList()
 {
   goNewListDialog(abList.value);
 }
 
-function ResultsPaneSelectionChanged() 
+function ResultsPaneSelectionChanged()
 {
   // do nothing for ab panel
 }
 
-function OnClickedCard() 
+function OnClickedCard()
 {
   // do nothing for ab panel
 }
 
-function AbResultsPaneDoubleClick(card) 
+function AbResultsPaneDoubleClick(card)
 {
   // double click for ab panel means "send mail to this person / list"
   if (gIsMsgCompose)
@@ -104,7 +100,7 @@ function AbResultsPaneDoubleClick(card)
     AbNewMessage();
 }
 
-function UpdateCardView() 
+function UpdateCardView()
 {
   // do nothing for ab panel
 }

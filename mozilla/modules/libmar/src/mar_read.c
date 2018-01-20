@@ -406,10 +406,12 @@ mar_read_product_info_block(MarFile *mar,
   /* The buffer size is 97 bytes because the MAR channel name < 64 bytes, and 
      product version < 32 bytes + 3 NULL terminator bytes. */
   char buf[97] = { '\0' };
-  int ret = get_mar_file_info_fp(mar->fp, NULL, NULL,
-                                 &hasAdditionalBlocks, 
-                                 &offsetAdditionalBlocks, 
-                                 &numAdditionalBlocks);
+  if (get_mar_file_info_fp(mar->fp, NULL, NULL,
+                           &hasAdditionalBlocks,
+                           &offsetAdditionalBlocks,
+                           &numAdditionalBlocks) != 0) {
+    return -1;
+  }
   for (i = 0; i < numAdditionalBlocks; ++i) {
     /* Read the additional block size */
     if (fread(&additionalBlockSize, 
@@ -461,7 +463,6 @@ mar_read_product_info_block(MarFile *mar,
       /* Extract the version from the buffer */
       len = strlen(location);
       infoBlock->productVersion = location;
-      location += len + 1;
       if (len >= 32) {
         infoBlock->MARChannelID = NULL;
         infoBlock->productVersion = NULL;
@@ -514,7 +515,7 @@ int mar_enum_items(MarFile *mar, MarItemCallback callback, void *closure) {
   return 0;
 }
 
-int mar_read(MarFile *mar, const MarItem *item, int offset, char *buf,
+int mar_read(MarFile *mar, const MarItem *item, int offset, uint8_t *buf,
              int bufsize) {
   int nr;
 

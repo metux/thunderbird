@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+const {PrefObserver} = require("devtools/client/shared/prefs");
+
 /**
  * A collection of `AudioNodeModel`s used throughout the editor
  * to keep track of audio nodes within the audio context.
@@ -42,7 +44,6 @@ var WebAudioEditorController = {
    * Listen for events emitted by the current tab target.
    */
   initialize: Task.async(function* () {
-    telemetry.toolOpened("webaudioeditor");
     this._onTabNavigated = this._onTabNavigated.bind(this);
     this._onThemeChange = this._onThemeChange.bind(this);
 
@@ -59,7 +60,9 @@ var WebAudioEditorController = {
     // Hook into theme change so we can change
     // the graph's marker styling, since we can't do this
     // with CSS
-    gDevTools.on("pref-changed", this._onThemeChange);
+
+    this._prefObserver = new PrefObserver("");
+    this._prefObserver.on("devtools.theme", this._onThemeChange);
 
     // Store the AudioNode definitions from the WebAudioFront, if the method exists.
     // If not, get the JSON directly. Using the actor method is preferable so the client
@@ -70,13 +73,18 @@ var WebAudioEditorController = {
     } else {
       AUDIO_NODE_DEFINITION = require("devtools/server/actors/utils/audionodes.json");
     }
+
+    // Make sure the backend is prepared to handle audio contexts.
+    // Since actors are created lazily on the first request to them, we need to send an
+    // early request to ensure the CallWatcherActor is running and watching for new window
+    // globals.
+    gFront.setup({ reload: false });
   }),
 
   /**
    * Remove events emitted by the current tab target.
    */
-  destroy: function() {
-    telemetry.toolClosed("webaudioeditor");
+  destroy: function () {
     gTarget.off("will-navigate", this._onTabNavigated);
     gTarget.off("navigate", this._onTabNavigated);
     gFront.off("start-context", this._onStartContext);
@@ -86,7 +94,8 @@ var WebAudioEditorController = {
     gFront.off("disconnect-node", this._onDisconnectNode);
     gFront.off("change-param", this._onChangeParam);
     gFront.off("destroy-node", this._onDestroyNode);
-    gDevTools.off("pref-changed", this._onThemeChange);
+    this._prefObserver.off("devtools.theme", this._onThemeChange);
+    this._prefObserver.destroy();
   },
 
   /**
@@ -109,7 +118,7 @@ var WebAudioEditorController = {
 
     if (!node) {
       let { resolve, promise } = defer();
-      gAudioNodes.on("add", function createNodeListener (createdNode) {
+      gAudioNodes.on("add", function createNodeListener(createdNode) {
         if (createdNode.id === id) {
           gAudioNodes.off("add", createNodeListener);
           resolve(createdNode);
@@ -125,8 +134,9 @@ var WebAudioEditorController = {
    * so that the graph can update marker styling, as that
    * cannot currently be done with CSS.
    */
-  _onThemeChange: function (event, data) {
-    window.emit(EVENTS.THEME_CHANGE, data.newValue);
+  _onThemeChange: function () {
+    let newValue = Services.prefs.getCharPref("devtools.theme");
+    window.emit(EVENTS.THEME_CHANGE, newValue);
   },
 
   /**
@@ -135,11 +145,6 @@ var WebAudioEditorController = {
   _onTabNavigated: Task.async(function* (event, {isFrameSwitching}) {
     switch (event) {
       case "will-navigate": {
-        // Make sure the backend is prepared to handle audio contexts.
-        if (!isFrameSwitching) {
-          yield gFront.setup({ reload: false });
-        }
-
         // Clear out current UI.
         this.reset();
 
@@ -174,7 +179,7 @@ var WebAudioEditorController = {
    * Called after the first audio node is created in an audio context,
    * signaling that the audio context is being used.
    */
-  _onStartContext: function() {
+  _onStartContext: function () {
     $("#reload-notice").hidden = true;
     $("#waiting-notice").hidden = true;
     $("#content").hidden = false;

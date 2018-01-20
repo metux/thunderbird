@@ -52,9 +52,9 @@ public:
   // the responsibility of the apprunner.
   nsresult SetProfile(nsIFile* aProfileDir, nsIFile* aProfileLocalDir);
 
-  void DoShutdown();
+  void InitializeUserPrefs();
 
-  nsresult GetProfileDefaultsDir(nsIFile* *aResult);
+  void DoShutdown();
 
   static nsresult GetUserAppDataDirectory(nsIFile* *aFile) {
     return GetUserDataDirectory(aFile, false, nullptr, nullptr, nullptr);
@@ -104,11 +104,11 @@ protected:
   nsresult GetFilesInternal(const char* aProperty, nsISimpleEnumerator** aResult);
   static nsresult GetUserDataDirectoryHome(nsIFile* *aFile, bool aLocal);
   static nsresult GetSysUserExtensionsDirectory(nsIFile* *aFile);
+  static nsresult GetSysUserExtensionsDevDirectory(nsIFile* *aFile);
 #if defined(XP_UNIX) || defined(XP_MACOSX)
   static nsresult GetSystemExtensionsDirectory(nsIFile** aFile);
 #endif
   static nsresult EnsureDirectoryExists(nsIFile* aDirectory);
-  void EnsureProfileFileExists(nsIFile* aFile);
 
   // Determine the profile path within the UAppData directory. This is different
   // on every major platform.
@@ -119,17 +119,15 @@ protected:
                                     bool aLocal);
 
   static nsresult AppendSysUserExtensionPath(nsIFile* aFile);
+  static nsresult AppendSysUserExtensionsDevPath(nsIFile* aFile);
 
   // Internal helper that splits a path into components using the '/' and '\\'
   // delimiters.
   static inline nsresult AppendProfileString(nsIFile* aFile, const char* aPath);
 
-  // Calculate and register extension and theme bundle directories.
-  void LoadExtensionBundleDirectories();
-
-#ifdef MOZ_B2G
-  // Calculate and register app-bundled extension directories.
-  void LoadAppBundleDirs();
+#if (defined(XP_WIN) || defined(XP_MACOSX)) && defined(MOZ_CONTENT_SANDBOX)
+  // Load the temp directory for sandboxed content processes
+  nsresult LoadContentProcessTempDir();
 #endif
 
   void Append(nsIFile* aDirectory);
@@ -144,9 +142,12 @@ protected:
   nsCOMPtr<nsIFile>      mProfileDir;
   nsCOMPtr<nsIFile>      mProfileLocalDir;
   bool                   mProfileNotified;
+  bool                   mPrefsInitialized = false;
+#if (defined(XP_WIN) || defined(XP_MACOSX)) && defined(MOZ_CONTENT_SANDBOX)
+  nsCOMPtr<nsIFile>      mContentTempDir;
+  nsCOMPtr<nsIFile>      mContentProcessSandboxTempDir;
+#endif
   nsCOMArray<nsIFile>    mAppBundleDirectories;
-  nsCOMArray<nsIFile>    mExtensionDirectories;
-  nsCOMArray<nsIFile>    mThemeDirectories;
 };
 
 #endif

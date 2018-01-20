@@ -21,45 +21,35 @@ function PromptService() {
 PromptService.prototype = {
   classID: Components.ID("{9a61149b-2276-4a0a-b79c-be994ad106cf}"),
 
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsIPromptFactory, Ci.nsIPromptService, Ci.nsIPromptService2]),
+  QueryInterface: XPCOMUtils.generateQI([
+      Ci.nsIPromptFactory, Ci.nsIPromptService]),
 
   /* ----------  nsIPromptFactory  ---------- */
   // XXX Copied from nsPrompter.js.
   getPrompt: function getPrompt(domWin, iid) {
-    let doc = this.getDocument();
-    if (!doc) {
-      let fallback = this._getFallbackService();
-      return fallback.QueryInterface(Ci.nsIPromptFactory).getPrompt(domWin, iid);
+    // This is still kind of dumb; the C++ code delegated to login manager
+    // here, which in turn calls back into us via nsIPromptService.
+    if (iid.equals(Ci.nsIAuthPrompt2) || iid.equals(Ci.nsIAuthPrompt)) {
+      try {
+        let pwmgr = Cc["@mozilla.org/passwordmanager/authpromptfactory;1"].getService(Ci.nsIPromptFactory);
+        return pwmgr.getPrompt(domWin, iid);
+      } catch (e) {
+        Cu.reportError("nsPrompter: Delegation to password manager failed: " + e);
+      }
     }
 
-    let p = new InternalPrompt(domWin, doc);
+    let p = new InternalPrompt(domWin);
     p.QueryInterface(iid);
     return p;
   },
 
   /* ----------  private memebers  ---------- */
 
-  _getFallbackService: function _getFallbackService() {
-    return Components.classesByID["{7ad1b327-6dfa-46ec-9234-f2a620ea7e00}"]
-                     .getService(Ci.nsIPromptService);
-  },
-
-  getDocument: function getDocument() {
-    let win = Services.wm.getMostRecentWindow("navigator:browser");
-    return win ? win.document : null;
-  },
-
-  // nsIPromptService and nsIPromptService2 methods proxy to our Prompt class
-  // if we can show in-document popups, or to the fallback service otherwise.
+  // nsIPromptService methods proxy to our Prompt class
   callProxy: function(aMethod, aArguments) {
     let prompt;
-    let doc = this.getDocument();
-    if (!doc) {
-      let fallback = this._getFallbackService();
-      return fallback[aMethod].apply(fallback, aArguments);
-    }
     let domWin = aArguments[0];
-    prompt = new InternalPrompt(domWin, doc);
+    prompt = new InternalPrompt(domWin);
     return prompt[aMethod].apply(prompt, Array.prototype.slice.call(aArguments, 1));
   },
 
@@ -93,7 +83,6 @@ PromptService.prototype = {
     return this.callProxy("select", arguments);
   },
 
-  /* ----------  nsIPromptService2  ---------- */
   promptAuth: function() {
     return this.callProxy("promptAuth", arguments);
   },
@@ -102,14 +91,12 @@ PromptService.prototype = {
   }
 };
 
-function InternalPrompt(aDomWin, aDocument) {
+function InternalPrompt(aDomWin) {
   this._domWin = aDomWin;
-  this._doc = aDocument;
 }
 
 InternalPrompt.prototype = {
   _domWin: null,
-  _doc: null,
 
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIPrompt, Ci.nsIAuthPrompt, Ci.nsIAuthPrompt2]),
 
@@ -173,9 +160,7 @@ InternalPrompt.prototype = {
     });
 
     // Spin this thread while we wait for a result
-    let thread = Services.tm.currentThread;
-    while (retval == null)
-      thread.processNextEvent(true);
+    Services.tm.spinEventLoopUntil(() => retval != null);
 
     if (this._domWin) {
       let winUtils = this._domWin.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
@@ -203,24 +188,21 @@ InternalPrompt.prototype = {
     // also, the nsIPrompt flavor has 5 args instead of 6.
     if (typeof arguments[2] == "object")
       return this.nsIPrompt_prompt.apply(this, arguments);
-    else
-      return this.nsIAuthPrompt_prompt.apply(this, arguments);
+    return this.nsIAuthPrompt_prompt.apply(this, arguments);
   },
 
   promptUsernameAndPassword: function promptUsernameAndPassword() {
     // Both have 6 args, so use types.
     if (typeof arguments[2] == "object")
       return this.nsIPrompt_promptUsernameAndPassword.apply(this, arguments);
-    else
-      return this.nsIAuthPrompt_promptUsernameAndPassword.apply(this, arguments);
+    return this.nsIAuthPrompt_promptUsernameAndPassword.apply(this, arguments);
   },
 
   promptPassword: function promptPassword() {
     // Both have 5 args, so use types.
     if (typeof arguments[2] == "object")
       return this.nsIPrompt_promptPassword.apply(this, arguments);
-    else
-      return this.nsIAuthPrompt_promptPassword.apply(this, arguments);
+    return this.nsIAuthPrompt_promptPassword.apply(this, arguments);
   },
 
   /* ----------  nsIPrompt  ---------- */
@@ -366,18 +348,18 @@ InternalPrompt.prototype = {
 
   /* ----------  nsIAuthPrompt  ---------- */
 
-  nsIAuthPrompt_prompt : function (title, text, passwordRealm, savePassword, defaultText, result) {
+  nsIAuthPrompt_prompt: function(title, text, passwordRealm, savePassword, defaultText, result) {
     // TODO: Port functions from nsLoginManagerPrompter.js to here
     if (defaultText)
       result.value = defaultText;
     return this.nsIPrompt_prompt(title, text, result, null, {});
   },
 
-  nsIAuthPrompt_promptUsernameAndPassword : function (aTitle, aText, aPasswordRealm, aSavePassword, aUser, aPass) {
+  nsIAuthPrompt_promptUsernameAndPassword: function(aTitle, aText, aPasswordRealm, aSavePassword, aUser, aPass) {
     return this.nsIAuthPrompt_loginPrompt(aTitle, aText, aPasswordRealm, aSavePassword, aUser, aPass);
   },
 
-  nsIAuthPrompt_promptPassword : function (aTitle, aText, aPasswordRealm, aSavePassword, aPass) {
+  nsIAuthPrompt_promptPassword: function(aTitle, aText, aPasswordRealm, aSavePassword, aPass) {
     return this.nsIAuthPrompt_loginPrompt(aTitle, aText, aPasswordRealm, aSavePassword, null, aPass);
   },
 
@@ -448,7 +430,7 @@ InternalPrompt.prototype = {
   _asyncPrompts: {},
   _asyncPromptInProgress: false,
 
-  _doAsyncPrompt : function() {
+  _doAsyncPrompt: function() {
     if (this._asyncPromptInProgress)
       return;
 
@@ -502,9 +484,9 @@ InternalPrompt.prototype = {
         }
         self._doAsyncPrompt();
       }
-    }
+    };
 
-    Services.tm.mainThread.dispatch(runnable, Ci.nsIThread.DISPATCH_NORMAL);
+    Services.tm.dispatchToMainThread(runnable);
   },
 
   asyncPromptAuth: function asyncPromptAuth(aChannel, aCallback, aContext, aLevel, aAuthInfo) {
@@ -513,7 +495,7 @@ InternalPrompt.prototype = {
       // If the user submits a login but it fails, we need to remove the
       // notification bar that was displayed. Conveniently, the user will
       // be prompted for authentication again, which brings us here.
-      //this._removeLoginNotifications();
+      // this._removeLoginNotifications();
 
       cancelable = {
         QueryInterface: XPCOMUtils.generateQI([Ci.nsICancelable]),
@@ -538,9 +520,9 @@ InternalPrompt.prototype = {
         channel: aChannel,
         authInfo: aAuthInfo,
         level: aLevel,
-        inProgress : false,
+        inProgress: false,
         prompter: this
-      }
+      };
 
       this._asyncPrompts[hashKey] = asyncPrompt;
       this._doAsyncPrompt();
@@ -597,20 +579,20 @@ var PromptUtils = {
     if (httpRealm.test(aRealmString))
       return [null, null, null];
 
-    let uri = Services.io.newURI(aRealmString, null, null);
+    let uri = Services.io.newURI(aRealmString);
     let pathname = "";
 
-    if (uri.path != "/")
-      pathname = uri.path;
+    if (uri.pathQueryRef != "/")
+      pathname = uri.pathQueryRef;
 
     let formattedHostname = this._getFormattedHostname(uri);
     return [formattedHostname, formattedHostname + pathname, uri.username];
   },
 
   canSaveLogin: function pu_canSaveLogin(aHostname, aSavePassword) {
-    let canSave = !this._inPrivateBrowsing && this.pwmgr.getLoginSavingEnabled(aHostname)
+    let canSave = !this._inPrivateBrowsing && this.pwmgr.getLoginSavingEnabled(aHostname);
     if (aSavePassword)
-      canSave = canSave && (aSavePassword == Ci.nsIAuthPrompt.SAVE_PASSWORD_PERMANENTLY)
+      canSave = canSave && (aSavePassword == Ci.nsIAuthPrompt.SAVE_PASSWORD_PERMANENTLY);
     return canSave;
   },
 
@@ -685,10 +667,12 @@ var PromptUtils = {
     this.pwmgr.modifyLogin(aLogin, propBag);
   },
 
-  // JS port of http://mxr.mozilla.org/mozilla-central/source/embedding/components/windowwatcher/nsPrompt.cpp#388
+  // JS port of http://mxr.mozilla.org/mozilla-central/source/toolkit/components/windowwatcher/nsPrompt.cpp#388
   makeDialogText: function pu_makeDialogText(aChannel, aAuthInfo) {
     let isProxy    = (aAuthInfo.flags & Ci.nsIAuthInformation.AUTH_PROXY);
     let isPassOnly = (aAuthInfo.flags & Ci.nsIAuthInformation.ONLY_PASSWORD);
+    let isCrossOrig = (aAuthInfo.flags &
+                       Ci.nsIAuthInformation.CROSS_ORIGIN_SUB_RESOURCE);
 
     let username = aAuthInfo.username;
     let [displayHost, realm] = this.getAuthTarget(aChannel, aAuthInfo);
@@ -705,19 +689,22 @@ var PromptUtils = {
     }
 
     let text;
-    if (isProxy)
-      text = this.bundle.formatStringFromName("EnterLoginForProxy", [realm, displayHost], 2);
-    else if (isPassOnly)
+    if (isProxy) {
+      text = this.bundle.formatStringFromName("EnterLoginForProxy3", [realm, displayHost], 2);
+    } else if (isPassOnly) {
       text = this.bundle.formatStringFromName("EnterPasswordFor", [username, displayHost], 2);
-    else if (!realm)
-      text = this.bundle.formatStringFromName("EnterUserPasswordFor", [displayHost], 1);
-    else
-      text = this.bundle.formatStringFromName("EnterLoginForRealm", [realm, displayHost], 2);
+    } else if (isCrossOrig) {
+      text = this.bundle.formatStringFromName("EnterUserPasswordForCrossOrigin2", [displayHost], 1);
+    } else if (!realm) {
+      text = this.bundle.formatStringFromName("EnterUserPasswordFor2", [displayHost], 1);
+    } else {
+      text = this.bundle.formatStringFromName("EnterLoginForRealm3", [realm, displayHost], 2);
+    }
 
     return text;
   },
 
-  // JS port of http://mxr.mozilla.org/mozilla-central/source/embedding/components/windowwatcher/nsPromptUtils.h#89
+  // JS port of http://mxr.mozilla.org/mozilla-central/source/toolkit/components/windowwatcher/nsPromptUtils.h#89
   getAuthHostPort: function pu_getAuthHostPort(aChannel, aAuthInfo) {
     let uri = aChannel.URI;
     let res = { host: null, port: -1 };
@@ -732,7 +719,7 @@ var PromptUtils = {
     return res;
   },
 
-  getAuthTarget : function pu_getAuthTarget(aChannel, aAuthInfo) {
+  getAuthTarget: function pu_getAuthTarget(aChannel, aAuthInfo) {
     let hostname, realm;
     // If our proxy is demanding authentication, don't use the
     // channel's actual destination.
@@ -766,7 +753,7 @@ var PromptUtils = {
     return [hostname, realm];
   },
 
-  getAuthInfo : function pu_getAuthInfo(aAuthInfo) {
+  getAuthInfo: function pu_getAuthInfo(aAuthInfo) {
     let flags = aAuthInfo.flags;
     let username = {value: ""};
     let password = {value: ""};
@@ -776,12 +763,12 @@ var PromptUtils = {
     else
       username.value = aAuthInfo.username;
 
-    password.value = aAuthInfo.password
+    password.value = aAuthInfo.password;
 
     return [username, password];
   },
 
-  setAuthInfo : function (aAuthInfo, username, password) {
+  setAuthInfo: function(aAuthInfo, username, password) {
     var flags = aAuthInfo.flags;
     if (flags & Ci.nsIAuthInformation.NEED_DOMAIN) {
       // Domain is separated from username by a backslash
@@ -790,7 +777,7 @@ var PromptUtils = {
         aAuthInfo.username = username;
       } else {
         aAuthInfo.domain   =  username.substring(0, idx);
-        aAuthInfo.username =  username.substring(idx+1);
+        aAuthInfo.username =  username.substring(idx + 1);
       }
     } else {
       aAuthInfo.username = username;
@@ -801,8 +788,8 @@ var PromptUtils = {
   /**
    * Strip out things like userPass and path for display.
    */
-  getFormattedHostname : function pu_getFormattedHostname(uri) {
-    return uri.scheme + "://" + uri.hostPort;
+  getFormattedHostname: function pu_getFormattedHostname(uri) {
+    return uri.scheme + "://" + uri.displayHostPort;
   },
 
   fireDialogEvent: function(aDomWin, aEventName) {
@@ -815,17 +802,72 @@ var PromptUtils = {
       let winUtils = aDomWin.QueryInterface(Ci.nsIInterfaceRequestor)
                            .getInterface(Ci.nsIDOMWindowUtils);
       winUtils.dispatchEventToChromeOnly(aDomWin, event);
-    } catch(ex) {
+    } catch (ex) {
     }
   }
 };
 
-XPCOMUtils.defineLazyGetter(PromptUtils, "passwdBundle", function () {
-  return Services.strings.createBundle("chrome://passwordmgr/locale/passwordmgr.properties");
+XPCOMUtils.defineLazyGetter(PromptUtils, "passwdBundle", function() {
+  return Services.strings.createBundle("chrome://browser/locale/passwordmgr.properties");
 });
 
-XPCOMUtils.defineLazyGetter(PromptUtils, "bundle", function () {
+XPCOMUtils.defineLazyGetter(PromptUtils, "bundle", function() {
   return Services.strings.createBundle("chrome://global/locale/commonDialogs.properties");
 });
 
-this.NSGetFactory = XPCOMUtils.generateNSGetFactory([PromptService]);
+
+// Factory for wrapping nsIAuthPrompt interfaces to make them usable via an nsIAuthPrompt2 interface.
+// XXX Copied from nsPrompter.js.
+function AuthPromptAdapterFactory() {
+}
+
+AuthPromptAdapterFactory.prototype = {
+  classID: Components.ID("{80dae1e9-e0d2-4974-915f-f97050fa8068}"),
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIAuthPromptAdapterFactory]),
+
+  /* ----------  nsIAuthPromptAdapterFactory ---------- */
+
+  createAdapter: function(aPrompt) {
+    return new AuthPromptAdapter(aPrompt);
+  }
+};
+
+
+// Takes an nsIAuthPrompt implementation, wraps it with a nsIAuthPrompt2 shell.
+// XXX Copied from nsPrompter.js.
+function AuthPromptAdapter(aPrompt) {
+  this.prompt = aPrompt;
+}
+
+AuthPromptAdapter.prototype = {
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIAuthPrompt2]),
+  prompt: null,
+
+  /* ----------  nsIAuthPrompt2 ---------- */
+
+  promptAuth: function(aChannel, aLevel, aAuthInfo, aCheckLabel, aCheckValue) {
+    let message = PromptUtils.makeDialogText(aChannel, aAuthInfo);
+
+    let [username, password] = PromptUtils.getAuthInfo(aAuthInfo);
+    let [host, realm]  = PromptUtils.getAuthTarget(aChannel, aAuthInfo);
+    let authTarget = host + " (" + realm + ")";
+
+    let ok;
+    if (aAuthInfo.flags & Ci.nsIAuthInformation.ONLY_PASSWORD) {
+      ok = this.prompt.promptPassword(null, message, authTarget, Ci.nsIAuthPrompt.SAVE_PASSWORD_PERMANENTLY, password);
+    } else {
+      ok = this.prompt.promptUsernameAndPassword(null, message, authTarget, Ci.nsIAuthPrompt.SAVE_PASSWORD_PERMANENTLY, username, password);
+    }
+
+    if (ok) {
+      PromptUtils.setAuthInfo(aAuthInfo, username.value, password.value);
+    }
+    return ok;
+  },
+
+  asyncPromptAuth: function(aChannel, aCallback, aContext, aLevel, aAuthInfo, aCheckLabel, aCheckValue) {
+    throw Cr.NS_ERROR_NOT_IMPLEMENTED;
+  }
+};
+
+this.NSGetFactory = XPCOMUtils.generateNSGetFactory([PromptService, AuthPromptAdapterFactory]);

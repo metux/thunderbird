@@ -15,18 +15,21 @@ namespace rx
 {
 class FunctionsGL;
 struct WorkaroundsGL;
+enum class MultiviewImplementationTypeGL;
 
 class ShaderGL : public ShaderImpl
 {
   public:
-    ShaderGL(const gl::Shader::Data &data,
+    ShaderGL(const gl::ShaderState &data,
              const FunctionsGL *functions,
-             const WorkaroundsGL &workarounds);
+             const WorkaroundsGL &workarounds,
+             bool isWebGL,
+             MultiviewImplementationTypeGL multiviewImplementationType);
     ~ShaderGL() override;
 
     // ShaderImpl implementation
-    int prepareSourceAndReturnOptions(std::stringstream *sourceStream,
-                                      std::string *sourcePath) override;
+    ShCompileOptions prepareSourceAndReturnOptions(std::stringstream *sourceStream,
+                                                   std::string *sourcePath) override;
     bool postTranslateCompile(gl::Compiler *compiler, std::string *infoLog) override;
     std::string getDebugInfo() const override;
 
@@ -37,6 +40,8 @@ class ShaderGL : public ShaderImpl
     const WorkaroundsGL &mWorkarounds;
 
     GLuint mShaderID;
+    bool mIsWebGL;
+    MultiviewImplementationTypeGL mMultiviewImplementationType;
 };
 
 }

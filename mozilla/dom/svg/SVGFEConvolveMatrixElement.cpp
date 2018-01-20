@@ -6,6 +6,8 @@
 
 #include "mozilla/dom/SVGFEConvolveMatrixElement.h"
 #include "mozilla/dom/SVGFEConvolveMatrixElementBinding.h"
+#include "mozilla/UniquePtr.h"
+#include "mozilla/UniquePtrExtensions.h"
 #include "DOMSVGAnimatedNumberList.h"
 #include "nsSVGUtils.h"
 #include "nsSVGFilterInstance.h"
@@ -203,7 +205,7 @@ SVGFEConvolveMatrixElement::GetPrimitiveDescription(nsSVGFilterInstance* aInstan
   if (orderX > NS_SVG_OFFSCREEN_MAX_DIMENSION ||
       orderY > NS_SVG_OFFSCREEN_MAX_DIMENSION)
     return failureDescription;
-  nsAutoArrayPtr<float> kernel(new (fallible) float[orderX * orderY]);
+  UniquePtr<float[]> kernel = MakeUniqueFallible<float[]>(orderX * orderY);
   if (!kernel)
     return failureDescription;
   for (uint32_t i = 0; i < kmLength; i++) {
@@ -230,6 +232,12 @@ SVGFEConvolveMatrixElement::GetPrimitiveDescription(nsSVGFilterInstance* aInstan
   Size kernelUnitLength =
     GetKernelUnitLength(aInstance, &mNumberPairAttributes[KERNEL_UNIT_LENGTH]);
 
+  if (kernelUnitLength.width <= 0 || kernelUnitLength.height <= 0) {
+    // According to spec, A negative or zero value is an error. See link below for details.
+    // https://www.w3.org/TR/SVG/filters.html#feConvolveMatrixElementKernelUnitLengthAttribute
+    return failureDescription;
+  }
+
   FilterPrimitiveDescription descr(PrimitiveType::ConvolveMatrix);
   AttributeMap& atts = descr.Attributes();
   atts.Set(eConvolveMatrixKernelSize, IntSize(orderX, orderY));
@@ -246,7 +254,7 @@ SVGFEConvolveMatrixElement::GetPrimitiveDescription(nsSVGFilterInstance* aInstan
 
 bool
 SVGFEConvolveMatrixElement::AttributeAffectsRendering(int32_t aNameSpaceID,
-                                                      nsIAtom* aAttribute) const
+                                                      nsAtom* aAttribute) const
 {
   return SVGFEConvolveMatrixElementBase::AttributeAffectsRendering(aNameSpaceID, aAttribute) ||
          (aNameSpaceID == kNameSpaceID_None &&

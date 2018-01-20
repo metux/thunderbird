@@ -10,7 +10,7 @@
 // of Decimal.cpp under the Mozilla source without blink core dependencies. Do
 // not include it into any file other than Decimal.cpp.
 
-#include "../double-conversion/double-conversion.h"
+#include "../double-conversion/double-conversion/double-conversion.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Casting.h"
 #include "mozilla/FloatingPoint.h"
@@ -32,6 +32,8 @@
 #define ASSERT MOZ_ASSERT
 
 #define ASSERT_NOT_REACHED() MOZ_ASSERT_UNREACHABLE("moz-decimal-utils.h")
+
+#define STACK_ALLOCATED() DISALLOW_NEW()
 
 #define WTF_MAKE_NONCOPYABLE(ClassName) \
   private: \

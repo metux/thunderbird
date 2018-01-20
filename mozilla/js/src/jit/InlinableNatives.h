@@ -10,24 +10,30 @@
 #define INLINABLE_NATIVE_LIST(_)    \
     _(Array)                        \
     _(ArrayIsArray)                 \
+    _(ArrayJoin)                    \
     _(ArrayPop)                     \
     _(ArrayShift)                   \
     _(ArrayPush)                    \
-    _(ArrayConcat)                  \
     _(ArraySlice)                   \
-    _(ArraySplice)                  \
                                     \
     _(AtomicsCompareExchange)       \
     _(AtomicsExchange)              \
     _(AtomicsLoad)                  \
     _(AtomicsStore)                 \
-    _(AtomicsFence)                 \
     _(AtomicsAdd)                   \
     _(AtomicsSub)                   \
     _(AtomicsAnd)                   \
     _(AtomicsOr)                    \
     _(AtomicsXor)                   \
     _(AtomicsIsLockFree)            \
+                                    \
+    _(Boolean)                      \
+                                    \
+    _(IntlIsCollator)               \
+    _(IntlIsDateTimeFormat)         \
+    _(IntlIsNumberFormat)           \
+    _(IntlIsPluralRules)            \
+    _(IntlIsRelativeTimeFormat)     \
                                     \
     _(MathAbs)                      \
     _(MathFloor)                    \
@@ -65,22 +71,41 @@
     _(MathTrunc)                    \
     _(MathCbrt)                     \
                                     \
-    _(RegExpExec)                   \
-    _(RegExpTest)                   \
+    _(ReflectGetPrototypeOf)        \
+                                    \
+    _(RegExpMatcher)                \
+    _(RegExpSearcher)               \
+    _(RegExpTester)                 \
+    _(IsRegExpObject)               \
+    _(RegExpPrototypeOptimizable)   \
+    _(RegExpInstanceOptimizable)    \
+    _(GetFirstDollarIndex)          \
                                     \
     _(String)                       \
-    _(StringSplit)                  \
     _(StringCharCodeAt)             \
     _(StringFromCharCode)           \
+    _(StringFromCodePoint)          \
     _(StringCharAt)                 \
-    _(StringReplace)                \
+    _(StringToLowerCase)            \
+    _(StringToUpperCase)            \
                                     \
+    _(IntrinsicStringReplaceString) \
+    _(IntrinsicStringSplitString)   \
+                                    \
+    _(Object)                       \
     _(ObjectCreate)                 \
-                                    \
-    _(CallBoundFunction)            \
+    _(ObjectToString)               \
                                     \
     _(SimdInt32x4)                  \
+    _(SimdUint32x4)                 \
+    _(SimdInt16x8)                  \
+    _(SimdUint16x8)                 \
+    _(SimdInt8x16)                  \
+    _(SimdUint8x16)                 \
     _(SimdFloat32x4)                \
+    _(SimdBool32x4)                 \
+    _(SimdBool16x8)                 \
+    _(SimdBool8x16)                 \
                                     \
     _(TestBailout)                  \
     _(TestAssertFloat32)            \
@@ -94,22 +119,40 @@
     _(IntrinsicUnsafeGetBooleanFromReservedSlot) \
                                     \
     _(IntrinsicIsCallable)          \
+    _(IntrinsicIsConstructor)       \
     _(IntrinsicToObject)            \
     _(IntrinsicIsObject)            \
+    _(IntrinsicIsWrappedArrayConstructor) \
     _(IntrinsicToInteger)           \
     _(IntrinsicToString)            \
     _(IntrinsicIsConstructing)      \
     _(IntrinsicSubstringKernel)     \
-    _(IntrinsicDefineDataProperty)  \
+    _(IntrinsicObjectHasPrototype)  \
+    _(IntrinsicFinishBoundFunctionInit) \
+    _(IntrinsicIsPackedArray)       \
                                     \
     _(IntrinsicIsArrayIterator)     \
     _(IntrinsicIsMapIterator)       \
+    _(IntrinsicIsSetIterator)       \
     _(IntrinsicIsStringIterator)    \
-    _(IntrinsicIsListIterator)      \
                                     \
+    _(IntrinsicIsMapObject)         \
+    _(IntrinsicGetNextMapEntryForIterator) \
+                                    \
+    _(IntrinsicIsSetObject)         \
+    _(IntrinsicGetNextSetEntryForIterator) \
+                                    \
+    _(IntrinsicNewArrayIterator)    \
+    _(IntrinsicNewStringIterator)   \
+                                    \
+    _(IntrinsicArrayBufferByteLength) \
+    _(IntrinsicPossiblyWrappedArrayBufferByteLength) \
+                                    \
+    _(TypedArrayConstructor)        \
     _(IntrinsicIsTypedArray)        \
     _(IntrinsicIsPossiblyWrappedTypedArray) \
     _(IntrinsicTypedArrayLength)    \
+    _(IntrinsicPossiblyWrappedTypedArrayLength)    \
     _(IntrinsicSetDisjointTypedElements) \
                                     \
     _(IntrinsicObjectIsTypedObject) \
@@ -129,6 +172,7 @@ enum class InlinableNative : uint16_t {
 #define ADD_NATIVE(native) native,
     INLINABLE_NATIVE_LIST(ADD_NATIVE)
 #undef ADD_NATIVE
+    Limit
 };
 
 #define ADD_NATIVE(native) extern const JSJitInfo JitInfo_##native;

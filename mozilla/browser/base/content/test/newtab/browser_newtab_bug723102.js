@@ -1,19 +1,24 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
-function runTests() {
+add_task(async function() {
   // create a new tab page and hide it.
-  yield setLinks("0,1,2,3,4,5,6,7,8");
+  await setLinks("0,1,2,3,4,5,6,7,8");
   setPinnedLinks("");
 
-  yield addNewTabPageTab();
+  await addNewTabPageTab();
   let firstTab = gBrowser.selectedTab;
 
-  yield addNewTabPageTab();
-  gBrowser.removeTab(firstTab);
+  await addNewTabPageTab();
+  await BrowserTestUtils.removeTab(firstTab);
 
   ok(NewTabUtils.allPages.enabled, "page is enabled");
   NewTabUtils.allPages.enabled = false;
-  ok(getGrid().node.hasAttribute("page-disabled"), "page is disabled");
+
+  await ContentTask.spawn(gBrowser.selectedBrowser, null, async function() {
+    Assert.ok(content.gGrid.node.hasAttribute("page-disabled"), "page is disabled");
+  });
+
   NewTabUtils.allPages.enabled = true;
-}
+});
+

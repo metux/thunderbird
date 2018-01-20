@@ -1,11 +1,11 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
+"use strict";
 
 var gPort;
 var gExtraListener;
 
-function run_test()
-{
+function run_test() {
   do_print("Starting test at " + new Date().toTimeString());
   initTestDebuggerServer();
 
@@ -16,8 +16,7 @@ function run_test()
   run_next_test();
 }
 
-function* test_socket_conn()
-{
+function* test_socket_conn() {
   do_check_eq(DebuggerServer.listeningSockets, 0);
   let AuthenticatorType = DebuggerServer.Authenticators.get("PROMPT");
   let authenticator = new AuthenticatorType.Server();
@@ -26,7 +25,7 @@ function* test_socket_conn()
   };
   let listener = DebuggerServer.createListener();
   do_check_true(listener);
-  listener.portOrPath = -1 /* any available port */;
+  listener.portOrPath = -1;
   listener.authenticator = authenticator;
   listener.open();
   do_check_eq(DebuggerServer.listeningSockets, 1);
@@ -45,22 +44,28 @@ function* test_socket_conn()
     host: "127.0.0.1",
     port: gPort
   });
-  let closedDeferred = promise.defer();
+
+  // Assert that connection settings are available on transport object
+  let settings = transport.connectionSettings;
+  do_check_eq(settings.host, "127.0.0.1");
+  do_check_eq(settings.port, gPort);
+
+  let closedDeferred = defer();
   transport.hooks = {
-    onPacket: function(aPacket) {
-      this.onPacket = function(aPacket) {
-        do_check_eq(aPacket.unicode, unicodeString);
+    onPacket: function (packet) {
+      this.onPacket = function ({unicode}) {
+        do_check_eq(unicode, unicodeString);
         transport.close();
-      }
+      };
       // Verify that things work correctly when bigger than the output
       // transport buffers and when transporting unicode...
       transport.send({to: "root",
                       type: "echo",
                       reallylong: really_long(),
                       unicode: unicodeString});
-      do_check_eq(aPacket.from, "root");
+      do_check_eq(packet.from, "root");
     },
-    onClosed: function(aStatus) {
+    onClosed: function (status) {
       closedDeferred.resolve();
     },
   };
@@ -68,8 +73,7 @@ function* test_socket_conn()
   return closedDeferred.promise;
 }
 
-function* test_socket_shutdown()
-{
+function* test_socket_shutdown() {
   do_check_eq(DebuggerServer.listeningSockets, 2);
   gExtraListener.close();
   do_check_eq(DebuggerServer.listeningSockets, 1);
@@ -81,7 +85,7 @@ function* test_socket_shutdown()
 
   do_print("Connecting to a server socket at " + new Date().toTimeString());
   try {
-    let transport = yield DebuggerClient.socketConnect({
+    yield DebuggerClient.socketConnect({
       host: "127.0.0.1",
       port: gPort
     });
@@ -92,24 +96,22 @@ function* test_socket_shutdown()
       // machines it may just time out.
       do_check_true(true);
       return;
-    } else {
-      throw e;
     }
+    throw e;
   }
 
   // Shouldn't reach this, should never connect.
   do_check_true(false);
 }
 
-function test_pipe_conn()
-{
+function test_pipe_conn() {
   let transport = DebuggerServer.connectPipe();
   transport.hooks = {
-    onPacket: function(aPacket) {
-      do_check_eq(aPacket.from, "root");
+    onPacket: function (packet) {
+      do_check_eq(packet.from, "root");
       transport.close();
     },
-    onClosed: function(aStatus) {
+    onClosed: function (status) {
       run_next_test();
     }
   };

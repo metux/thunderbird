@@ -8,13 +8,12 @@
 
 #include "mozilla/Attributes.h"
 #include "msgCore.h"
-#include "nsIMsgFolder.h" 
+#include "nsIMsgFolder.h"
 #include "nsRDFResource.h"
 #include "nsIDBFolderInfo.h"
 #include "nsIMsgDatabase.h"
 #include "nsIMsgIncomingServer.h"
 #include "nsCOMPtr.h"
-#include "nsStaticAtom.h"
 #include "nsIDBChangeListener.h"
 #include "nsIMsgPluggableStore.h"
 #include "nsIURL.h"
@@ -31,14 +30,52 @@
 #include "nsMsgKeySet.h"
 #include "nsMsgMessageFlags.h"
 #include "nsIMsgFilterPlugin.h"
+
+// We declare strings for folder properties and events.
+// Properties:
+extern const nsLiteralCString kBiffState;
+extern const nsLiteralCString kCanFileMessages;
+extern const nsLiteralCString kDefaultServer;
+extern const nsLiteralCString kFlagged;
+extern const nsLiteralCString kFolderFlag;
+extern const nsLiteralCString kFolderSize;
+extern const nsLiteralCString kInVFEditSearchScope;
+extern const nsLiteralCString kIsDeferred;
+extern const nsLiteralCString kIsSecure;
+extern const nsLiteralCString kJunkStatusChanged;
+extern const nsLiteralCString kKeywords;
+extern const nsLiteralCString kMRMTimeChanged;
+extern const nsLiteralCString kMsgLoaded;
+extern const nsLiteralCString kName;
+extern const nsLiteralCString kNewMailReceived;
+extern const nsLiteralCString kNewMessages;
+extern const nsLiteralCString kOpen;
+extern const nsLiteralCString kSortOrder;
+extern const nsLiteralCString kStatus;
+extern const nsLiteralCString kSynchronize;
+extern const nsLiteralCString kTotalMessages;
+extern const nsLiteralCString kTotalUnreadMessages;
+
+// Events:
+extern const nsLiteralCString kAboutToCompact;
+extern const nsLiteralCString kCompactCompleted;
+extern const nsLiteralCString kDeleteOrMoveMsgCompleted;
+extern const nsLiteralCString kDeleteOrMoveMsgFailed;
+extern const nsLiteralCString kFiltersApplied;
+extern const nsLiteralCString kFolderCreateCompleted;
+extern const nsLiteralCString kFolderCreateFailed;
+extern const nsLiteralCString kFolderLoaded;
+extern const nsLiteralCString kNumNewBiffMessages;
+extern const nsLiteralCString kRenameCompleted;
+
 class nsIMsgFolderCacheElement;
 class nsICollation;
 class nsMsgKeySetU;
 
- /* 
+ /*
   * nsMsgDBFolder
   * class derived from nsMsgFolder for those folders that use an nsIMsgDatabase
-  */ 
+  */
 
 #undef IMETHOD_VISIBILITY
 #define IMETHOD_VISIBILITY NS_VISIBILITY_DEFAULT
@@ -51,7 +88,7 @@ class NS_MSG_BASE nsMsgDBFolder: public nsRDFResource,
                                  public nsIJunkMailClassificationListener,
                                  public nsIMsgTraitClassificationListener
 {
-public: 
+public:
   nsMsgDBFolder(void);
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_NSIMSGFOLDER
@@ -59,32 +96,22 @@ public:
   NS_DECL_NSIURLLISTENER
   NS_DECL_NSIJUNKMAILCLASSIFICATIONLISTENER
   NS_DECL_NSIMSGTRAITCLASSIFICATIONLISTENER
-  
+
   NS_IMETHOD WriteToFolderCacheElem(nsIMsgFolderCacheElement *element);
   NS_IMETHOD ReadFromFolderCacheElem(nsIMsgFolderCacheElement *element);
 
   // nsRDFResource overrides
   NS_IMETHOD Init(const char* aURI) override;
 
-  // These functions are used for tricking the front end into thinking that we have more 
-  // messages than are really in the DB.  This is usually after and IMAP message copy where
-  // we don't want to do an expensive select until the user actually opens that folder
-  // These functions are called when MSG_Master::GetFolderLineById is populating a MSG_FolderLine
-  // struct used by the FE
-  int32_t GetNumPendingUnread();
-  int32_t GetNumPendingTotalMessages();
-
-  void ChangeNumPendingUnread(int32_t delta);
-  void ChangeNumPendingTotalMessages(int32_t delta);
-
   nsresult CreateDirectoryForFolder(nsIFile **result);
   nsresult CreateBackupDirectory(nsIFile **result);
   nsresult GetBackupSummaryFile(nsIFile **result, const nsACString& newName);
   nsresult GetMsgPreviewTextFromStream(nsIMsgDBHdr *msgHdr, nsIInputStream *stream);
   nsresult HandleAutoCompactEvent(nsIMsgWindow *aMsgWindow);
+
 protected:
   virtual ~nsMsgDBFolder();
-  
+
   virtual nsresult CreateBaseMessageURI(const nsACString& aURI);
 
   void compressQuotesInMsgSnippet(const nsString& aMessageText, nsAString& aCompressedQuotesStr);
@@ -99,7 +126,6 @@ protected:
   nsresult SetWarnFilterChanged(bool aVal);
   nsresult CreateCollationKey(const nsString &aSource,  uint8_t **aKey, uint32_t *aLength);
 
-protected:
   // all children will override this to create the right class of object.
   virtual nsresult CreateChildFromURI(const nsCString &uri, nsIMsgFolder **folder) = 0;
   virtual nsresult ReadDBFolderInfo(bool force);
@@ -163,7 +189,6 @@ protected:
                               nsIMsgFolder *srcFolder,
                               nsIMutableArray* messages);
 
-protected:
   nsCOMPtr<nsIMsgDatabase> mDatabase;
   nsCOMPtr<nsIMsgDatabase> mBackupDatabase;
   nsCString mCharset;
@@ -183,7 +208,6 @@ protected:
   nsCOMPtr <nsIMsgDownloadSettings> m_downloadSettings;
   static NS_MSG_BASE_STATIC_MEMBER_(nsrefcnt) mInstanceCount;
 
-protected:
   uint32_t mFlags;
   nsWeakPtr mParent;     //This won't be refcounted for ownership reasons.
   int32_t mNumUnreadMessages;        /* count of unread messages (-1 means unknown; -2 means unknown but we already tried to find out.) */
@@ -200,7 +224,7 @@ protected:
 
   nsWeakPtr mServer;
 
-  // These values are used for tricking the front end into thinking that we have more 
+  // These values are used for tricking the front end into thinking that we have more
   // messages than are really in the DB.  This is usually after and IMAP message copy where
   // we don't want to do an expensive select until the user actually opens that folder
   int32_t mNumPendingUnreadMessages;
@@ -216,7 +240,7 @@ protected:
   nsTArray<nsMsgKey> m_saveNewMsgs;
 
   // These are the set of new messages for a folder who has had
-  // its db closed, without the user reading the folder. This 
+  // its db closed, without the user reading the folder. This
   // happens with pop3 mail filtered to a different local folder.
   nsTArray<nsMsgKey> m_newMsgs;
 
@@ -238,24 +262,19 @@ protected:
   static nsresult initializeStrings();
   static nsresult createCollationKeyGenerator();
 
-  static NS_MSG_BASE_STATIC_MEMBER_(char16_t*) kLocalizedInboxName;
-  static NS_MSG_BASE_STATIC_MEMBER_(char16_t*) kLocalizedTrashName;
-  static NS_MSG_BASE_STATIC_MEMBER_(char16_t*) kLocalizedSentName;
-  static NS_MSG_BASE_STATIC_MEMBER_(char16_t*) kLocalizedDraftsName;
-  static NS_MSG_BASE_STATIC_MEMBER_(char16_t*) kLocalizedTemplatesName;
-  static NS_MSG_BASE_STATIC_MEMBER_(char16_t*) kLocalizedUnsentName;
-  static NS_MSG_BASE_STATIC_MEMBER_(char16_t*) kLocalizedJunkName;
-  static NS_MSG_BASE_STATIC_MEMBER_(char16_t*) kLocalizedArchivesName;
+  static NS_MSG_BASE_STATIC_MEMBER_(nsString) kLocalizedInboxName;
+  static NS_MSG_BASE_STATIC_MEMBER_(nsString) kLocalizedTrashName;
+  static NS_MSG_BASE_STATIC_MEMBER_(nsString) kLocalizedSentName;
+  static NS_MSG_BASE_STATIC_MEMBER_(nsString) kLocalizedDraftsName;
+  static NS_MSG_BASE_STATIC_MEMBER_(nsString) kLocalizedTemplatesName;
+  static NS_MSG_BASE_STATIC_MEMBER_(nsString) kLocalizedUnsentName;
+  static NS_MSG_BASE_STATIC_MEMBER_(nsString) kLocalizedJunkName;
+  static NS_MSG_BASE_STATIC_MEMBER_(nsString) kLocalizedArchivesName;
 
-  static NS_MSG_BASE_STATIC_MEMBER_(char16_t*) kLocalizedBrandShortName;
-  
-#define MSGDBFOLDER_ATOM(name_, value) static NS_MSG_BASE_STATIC_MEMBER_(nsIAtom*) name_;
-#include "nsMsgDBFolderAtomList.h"
-#undef MSGDBFOLDER_ATOM
+  static NS_MSG_BASE_STATIC_MEMBER_(nsString) kLocalizedBrandShortName;
 
   static NS_MSG_BASE_STATIC_MEMBER_(nsICollation*) gCollationKeyGenerator;
 
-  static const NS_MSG_BASE_STATIC_MEMBER_(nsStaticAtom) folder_atoms[];
 
   // store of keys that have a processing flag set
   struct

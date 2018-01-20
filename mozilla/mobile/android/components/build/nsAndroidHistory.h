@@ -9,6 +9,7 @@
 #include "IHistory.h"
 #include "nsDataHashtable.h"
 #include "nsTPriorityQueue.h"
+#include "nsINamed.h"
 #include "nsIRunnable.h"
 #include "nsIURI.h"
 #include "nsITimer.h"
@@ -25,19 +26,21 @@
 
 class nsAndroidHistory final : public mozilla::IHistory,
                                public nsIRunnable,
-                               public nsITimerCallback
+                               public nsITimerCallback,
+                               public nsINamed
 {
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_IHISTORY
   NS_DECL_NSIRUNNABLE
   NS_DECL_NSITIMERCALLBACK
+  NS_DECL_NSINAMED
 
   /**
    * Obtains a pointer that has had AddRef called on it.  Used by the service
    * manager only.
    */
-  static nsAndroidHistory* GetSingleton();
+  static already_AddRefed<nsAndroidHistory> GetSingleton();
 
   nsAndroidHistory();
 
@@ -65,7 +68,7 @@ private:
    * need to cache the pending visit and make sure it doesn't redirect.
    */
   RefPtr<nsITimer> mTimer;
-  typedef nsAutoTArray<nsCOMPtr<nsIURI>, RECENTLY_VISITED_URI_SIZE> PendingVisitArray;
+  typedef AutoTArray<nsCOMPtr<nsIURI>, RECENTLY_VISITED_URI_SIZE> PendingVisitArray;
   PendingVisitArray mPendingVisitURIs;
 
   bool RemovePendingVisitURI(nsIURI* aURI);
@@ -75,7 +78,7 @@ private:
    * mRecentlyVisitedURIs remembers URIs which are recently added to the DB,
    * to avoid saving these locations repeatedly in a short period.
    */
-  typedef nsAutoTArray<nsCOMPtr<nsIURI>, RECENTLY_VISITED_URI_SIZE> RecentlyVisitedArray;
+  typedef AutoTArray<nsCOMPtr<nsIURI>, RECENTLY_VISITED_URI_SIZE> RecentlyVisitedArray;
   RecentlyVisitedArray mRecentlyVisitedURIs;
   RecentlyVisitedArray::index_type mRecentlyVisitedURIsNextIndex;
 
@@ -86,7 +89,7 @@ private:
    * mEmbedURIs remembers URIs which are explicitly not added to the DB,
    * to avoid wasting time on these locations.
    */
-  typedef nsAutoTArray<nsCOMPtr<nsIURI>, EMBED_URI_SIZE> EmbedArray;
+  typedef AutoTArray<nsCOMPtr<nsIURI>, EMBED_URI_SIZE> EmbedArray;
   EmbedArray::index_type mEmbedURIsNextIndex;
   EmbedArray mEmbedURIs;
 

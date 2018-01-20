@@ -5,7 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "ldap.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsILDAPURL.h"
 #include "nsCOMPtr.h"
 
@@ -39,11 +39,18 @@ public:
   nsLDAPURL();
 
 protected:
+  enum RefHandlingEnum {
+    eIgnoreRef,
+    eHonorRef,
+    eReplaceRef
+  };
   virtual ~nsLDAPURL();
 
   void GetPathInternal(nsCString &aPath);
   nsresult SetPathInternal(const nsCString &aPath);
   nsresult SetAttributeArray(char** aAttributes);
+  nsresult CloneInternal(RefHandlingEnum aRefHandlingMode,
+                        const nsACString& newRef, nsIURI** aResult);
 
   nsCString mDN;                // Base Distinguished Name (Base DN)
   int32_t mScope;               // Search scope (base, one or sub)

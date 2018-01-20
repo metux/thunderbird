@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 Components.utils.import("resource://gre/modules/Services.jsm");
+Components.utils.import("resource://gre/modules/AppConstants.jsm");
 
 /**** NAMESPACES ****/
 const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
@@ -13,27 +14,18 @@ const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 // Object to attach commonly-used widgets (all dialogs should use this)
 var gDialog = {};
 
-const kOutputEncodeBasicEntities = Components.interfaces.nsIDocumentEncoder.OutputEncodeBasicEntities;
-const kOutputEncodeHTMLEntities = Components.interfaces.nsIDocumentEncoder.OutputEncodeHTMLEntities;
-const kOutputEncodeLatin1Entities = Components.interfaces.nsIDocumentEncoder.OutputEncodeLatin1Entities;
-const kOutputEncodeW3CEntities = Components.interfaces.nsIDocumentEncoder.OutputEncodeW3CEntities;
-const kOutputFormatted = Components.interfaces.nsIDocumentEncoder.OutputFormatted;
-const kOutputLFLineBreak = Components.interfaces.nsIDocumentEncoder.OutputLFLineBreak;
-const kOutputSelectionOnly = Components.interfaces.nsIDocumentEncoder.OutputSelectionOnly;
-const kOutputWrap = Components.interfaces.nsIDocumentEncoder.OutputWrap;
+var kOutputEncodeBasicEntities = Components.interfaces.nsIDocumentEncoder.OutputEncodeBasicEntities;
+var kOutputEncodeHTMLEntities = Components.interfaces.nsIDocumentEncoder.OutputEncodeHTMLEntities;
+var kOutputEncodeLatin1Entities = Components.interfaces.nsIDocumentEncoder.OutputEncodeLatin1Entities;
+var kOutputEncodeW3CEntities = Components.interfaces.nsIDocumentEncoder.OutputEncodeW3CEntities;
+var kOutputFormatted = Components.interfaces.nsIDocumentEncoder.OutputFormatted;
+var kOutputLFLineBreak = Components.interfaces.nsIDocumentEncoder.OutputLFLineBreak;
+var kOutputSelectionOnly = Components.interfaces.nsIDocumentEncoder.OutputSelectionOnly;
+var kOutputWrap = Components.interfaces.nsIDocumentEncoder.OutputWrap;
 
 var gStringBundle;
 var gFilePickerDirectory;
 
-var gOS = "";
-const gWin = "Win";
-const gUNIX = "UNIX";
-const gMac = "Mac";
-
-const kWebComposerWindowID = "editorWindow";
-const kMailComposerWindowID = "msgcomposeWindow";
-
-var gIsHTMLEditor;
 /************* Message dialogs ***************/
 
 // Optional: Caller may supply text to substitue for "Ok" and/or "Cancel"
@@ -331,7 +323,7 @@ function SetDocumentTitle(title)
 {
 
   try {
-    GetCurrentEditor().setDocumentTitle(title);
+    GetCurrentEditorElement().contentDocument.title = title;
 
     // Update window title (doesn't work if called from a dialog)
     if ("UpdateWindowTitle" in window)
@@ -339,19 +331,10 @@ function SetDocumentTitle(title)
   } catch (e) {}
 }
 
-var gAtomService;
-function GetAtomService()
-{
-  gAtomService = Components.classes["@mozilla.org/atom-service;1"].getService(Components.interfaces.nsIAtomService);
-}
-
 function EditorGetTextProperty(property, attribute, value, firstHas, anyHas, allHas)
 {
   try {
-    if (!gAtomService) GetAtomService();
-    var propAtom = gAtomService.getAtom(property);
-
-    return GetCurrentEditor().getInlinePropertyWithAttrValue(propAtom,
+    return GetCurrentEditor().getInlinePropertyWithAttrValue(property,
                                 attribute, value, firstHas, anyHas, allHas);
   }
   catch(e) {}
@@ -360,10 +343,7 @@ function EditorGetTextProperty(property, attribute, value, firstHas, anyHas, all
 function EditorSetTextProperty(property, attribute, value)
 {
   try {
-    if (!gAtomService) GetAtomService();
-    var propAtom = gAtomService.getAtom(property);
-
-    GetCurrentEditor().setInlineProperty(propAtom, attribute, value);
+    GetCurrentEditor().setInlineProperty(property, attribute, value);
     if ("gContentWindow" in window)
       window.gContentWindow.focus();
   }
@@ -373,10 +353,7 @@ function EditorSetTextProperty(property, attribute, value)
 function EditorRemoveTextProperty(property, attribute)
 {
   try {
-    if (!gAtomService) GetAtomService();
-    var propAtom = gAtomService.getAtom(property);
-
-    GetCurrentEditor().removeInlineProperty(propAtom, attribute);
+    GetCurrentEditor().removeInlineProperty(property, attribute);
     if ("gContentWindow" in window)
       window.gContentWindow.focus();
   }
@@ -419,7 +396,7 @@ function GetFileProtocolHandler()
 function GetStringPref(name)
 {
   try {
-    return Services.prefs.getComplexValue(name, Components.interfaces.nsISupportsString).data;
+    return Services.prefs.getStringPref(name);
   } catch (e) {}
   return "";
 }
@@ -427,10 +404,7 @@ function GetStringPref(name)
 function SetStringPref(aPrefName, aPrefValue)
 {
   try {
-    let str = Components.classes["@mozilla.org/supports-string;1"]
-                        .createInstance(Components.interfaces.nsISupportsString);
-    str.data = aPrefValue;
-    Services.prefs.setComplexValue(aPrefName, Components.interfaces.nsISupportsString, str);
+    Services.prefs.setStringPref(aPrefName, aPrefValue);
   }
   catch(e) {}
 }
@@ -445,7 +419,7 @@ function SetFilePickerDirectory(filePicker, fileType)
       gFilePickerDirectory = filePicker.displayDirectory;
 
       let location = Services.prefs.getComplexValue("editor.lastFileLocation."+fileType,
-                                                    Components.interfaces.nsILocalFile);
+                                                    Components.interfaces.nsIFile);
       if (location)
         filePicker.displayDirectory = location;
     }
@@ -461,10 +435,10 @@ function SaveFilePickerDirectory(filePicker, fileType)
     try {
       var fileDir;
       if (filePicker.file.parent)
-        fileDir = filePicker.file.parent.QueryInterface(Components.interfaces.nsILocalFile);
+        fileDir = filePicker.file.parent.QueryInterface(Components.interfaces.nsIFile);
 
         Services.prefs.setComplexValue("editor.lastFileLocation." + fileType,
-                                       Components.interfaces.nsILocalFile, fileDir);
+                                       Components.interfaces.nsIFile, fileDir);
 
         Services.prefs.savePrefFile(null);
     } catch (e) {}
@@ -546,13 +520,13 @@ function MakeRelativeUrl(url)
 
   // Get just the file path part of the urls
   // XXX Should we use GetCurrentEditor().documentCharacterSet for 2nd param ?
-  let docPath = Services.io.newURI(docUrl, GetCurrentEditor().documentCharacterSet, null).path;
-  let urlPath = Services.io.newURI(inputUrl, GetCurrentEditor().documentCharacterSet, null).path;
+  let docPath = Services.io.newURI(docUrl, GetCurrentEditor().documentCharacterSet).pathQueryRef;
+  let urlPath = Services.io.newURI(inputUrl, GetCurrentEditor().documentCharacterSet).pathQueryRef;
 
-  // We only return "urlPath", so we can convert
-  //  the entire docPath for case-insensitive comparisons
-  var os = GetOS();
-  var doCaseInsensitive = (docScheme == "file" && os == gWin);
+  // We only return "urlPath", so we can convert the entire docPath for
+  // case-insensitive comparisons.
+  var doCaseInsensitive = (docScheme == "file" &&
+                           AppConstants.platform == "win");
   if (doCaseInsensitive)
     docPath = docPath.toLowerCase();
 
@@ -602,23 +576,23 @@ function MakeRelativeUrl(url)
 
       if (urlDir == docDir)
       {
-
         // Remove matching dir+"/" from each path
-        //  and continue to next dir
+        // and continue to next dir.
         docPath = docPath.slice(nextDocSlash+1);
         urlPath = urlPath.slice(nextUrlSlash+1);
       }
       else
       {
-        // No match, we're done
+        // No match, we're done.
         done = true;
 
         // Be sure we are on the same local drive or volume
         //   (the first "dir" in the path) because we can't
         //   relativize to different drives/volumes.
         // UNIX doesn't have volumes, so we must not do this else
-        //  the first directory will be misinterpreted as a volume name
-        if (firstDirTest && docScheme == "file" && os != gUNIX)
+        // the first directory will be misinterpreted as a volume name.
+        if (firstDirTest && docScheme == "file" &&
+            AppConstants.platform != "unix")
           return inputUrl;
       }
     }
@@ -659,7 +633,7 @@ function MakeAbsoluteUrl(url)
 
   // Make a URI object to use its "resolve" method
   let absoluteUrl = resultUrl;
-  let docUri = Services.io.newURI(docUrl, GetCurrentEditor().documentCharacterSet, null);
+  let docUri = Services.io.newURI(docUrl, GetCurrentEditor().documentCharacterSet);
 
   try {
     absoluteUrl = docUri.resolve(resultUrl);
@@ -725,7 +699,7 @@ function GetHost(urlspec)
 
   var host = "";
   try {
-    host = Services.io.newURI(urlspec, null, null).host;
+    host = Services.io.newURI(urlspec).host;
    } catch (e) {}
 
   return host;
@@ -738,7 +712,7 @@ function GetUsername(urlspec)
 
   var username = "";
   try {
-    username = Services.io.newURI(urlspec, null, null).username;
+    username = Services.io.newURI(urlspec).username;
   } catch (e) {}
 
   return username;
@@ -752,7 +726,7 @@ function GetFilename(urlspec)
   var filename;
 
   try {
-    let uri = Services.io.newURI(urlspec, null, null);
+    let uri = Services.io.newURI(urlspec);
     if (uri)
     {
       let url = uri.QueryInterface(Components.interfaces.nsIURL);
@@ -783,7 +757,7 @@ function StripUsernamePassword(urlspec, usernameObj, passwordObj)
   if (atIndex > 0)
   {
     try {
-      let uri = Services.io.newURI(urlspec, null, null);
+      let uri = Services.io.newURI(urlspec);
       let username = uri.username;
       let password = uri.password;
 
@@ -816,7 +790,7 @@ function StripPassword(urlspec, passwordObj)
   if (atIndex > 0)
   {
     try {
-      let password = Services.io.newURI(urlspec, null, null).password;
+      let password = Services.io.newURI(urlspec).password;
 
       if (passwordObj && password)
         passwordObj.value = password;
@@ -860,32 +834,12 @@ function InsertUsernameIntoUrl(urlspec, username)
     return urlspec;
 
   try {
-    let URI = Services.io.newURI(urlspec, GetCurrentEditor().documentCharacterSet, null);
+    let URI = Services.io.newURI(urlspec, GetCurrentEditor().documentCharacterSet);
     URI.username = username;
     return URI.spec;
   } catch (e) {}
 
   return urlspec;
-}
-
-function GetOS()
-{
-  if (gOS)
-    return gOS;
-
-  var platform = navigator.platform.toLowerCase();
-
-  if (platform.includes("win"))
-    gOS = gWin;
-  else if (platform.includes("mac"))
-    gOS = gMac;
-  else if (platform.includes("unix") || platform.includes("linux") || platform.includes("sun"))
-    gOS = gUNIX;
-  else
-    gOS = "";
-  // Add other tests?
-
-  return gOS;
 }
 
 function ConvertRGBColorIntoHEXColor(color)
@@ -935,4 +889,82 @@ function Clone(obj)
       clone[i] = obj[i];
   }
   return clone;
+}
+
+/**
+ * Utility funtions to handle shortended data: URLs in EdColorProps.js and EdImageOverlay.js.
+ */
+
+/**
+ * Is the passed in image URI a shortened data URI?
+ * @return {bool}
+ */
+function isImageDataShortened(aImageData) {
+  return (/^data:/i.test(aImageData) && aImageData.includes("…"));
+}
+
+/**
+ * Event handler for Copy or Cut
+ * @param aEvent  the event
+ */
+function onCopyOrCutShortened(aEvent) {
+  // Put the original data URI onto the clipboard in case the value
+  // is a shortened data URI.
+  let field = aEvent.target;
+  let startPos = field.selectionStart;
+  if (startPos == undefined)
+    return;
+  let endPos = field.selectionEnd;
+  let selection = field.value.substring(startPos, endPos).trim();
+
+  // Test that a) the user selected the whole value,
+  //           b) the value is a data URI,
+  //           c) it contains the ellipsis we added. Otherwise it could be
+  //              a new value that the user pasted in.
+  if (selection == field.value.trim() && isImageDataShortened(selection)) {
+    aEvent.clipboardData.setData("text/plain", field.fullDataURI);
+    if (aEvent.type == "cut") {
+      // We have to cut the selection manually. Since we tested that
+      // everything was selected, we can just reset the field.
+      field.value = "";
+    }
+    aEvent.preventDefault();
+  }
+}
+
+/**
+ * Set up element showing an image URI with a shortened version.
+ * and add event handler for Copy or Cut.
+ *
+ * @param aImageData    the data: URL of the image to be shortened.
+ *                      Note: Original stored in 'aDialogField.fullDataURI'.
+ * @param aDialogField  The field of the dialog to contain the data.
+ * @return {bool}       URL was shortened?
+ */
+function shortenImageData(aImageData, aDialogField) {
+  let shortened = false;
+  aDialogField.value = aImageData.replace(/^(data:.+;base64,)(.*)/i,
+    function(match, nonDataPart, dataPart) {
+      if (dataPart.length <= 35)
+        return match;
+
+      shortened = true;
+      aDialogField.addEventListener("copy", onCopyOrCutShortened);
+      aDialogField.addEventListener("cut", onCopyOrCutShortened);
+      aDialogField.fullDataURI = aImageData;
+      aDialogField.removeAttribute("tooltiptext");
+      aDialogField.setAttribute("tooltip", "shortenedDataURI");
+      return nonDataPart + dataPart.substring(0, 5) + "…" +
+                           dataPart.substring(dataPart.length - 30);
+    });
+  return shortened;
+}
+
+/**
+ * Return full data URIs for a shortened element.
+ *
+ * @param aDialogField  The field of the dialog containing the data.
+ */
+function restoredImageData(aDialogField) {
+  return aDialogField.fullDataURI;
 }

@@ -16,12 +16,12 @@ using namespace js;
 
 template <typename CharT, class Buffer>
 static CharT*
-ExtractWellSized(ExclusiveContext* cx, Buffer& cb)
+ExtractWellSized(JSContext* cx, Buffer& cb)
 {
     size_t capacity = cb.capacity();
     size_t length = cb.length();
 
-    CharT* buf = cb.extractRawBuffer();
+    CharT* buf = cb.extractOrCopyRawBuffer();
     if (!buf)
         return nullptr;
 
@@ -74,7 +74,7 @@ StringBuffer::inflateChars()
 
 template <typename CharT, class Buffer>
 static JSFlatString*
-FinishStringFlat(ExclusiveContext* cx, StringBuffer& sb, Buffer& cb)
+FinishStringFlat(JSContext* cx, StringBuffer& sb, Buffer& cb)
 {
     size_t len = sb.length();
     if (!sb.append('\0'))
@@ -92,7 +92,7 @@ FinishStringFlat(ExclusiveContext* cx, StringBuffer& sb, Buffer& cb)
      * The allocation was made on a TempAllocPolicy, so account for the string
      * data on the string's zone.
      */
-    str->zone()->updateMallocCounter(sizeof(CharT) * len);
+    cx->updateMallocCounter(sizeof(CharT) * len);
 
     buf.forget();
     return str;
@@ -162,7 +162,7 @@ js::ValueToStringBufferSlow(JSContext* cx, const Value& arg, StringBuffer& sb)
     if (v.isNull())
         return sb.append(cx->names().null);
     if (v.isSymbol()) {
-        JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_SYMBOL_TO_STRING);
+        JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_SYMBOL_TO_STRING);
         return false;
     }
     MOZ_ASSERT(v.isUndefined());

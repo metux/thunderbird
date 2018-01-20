@@ -12,6 +12,10 @@ function snapshotWindow(win, withCaret) {
   return SpecialPowers.snapshotWindow(win, withCaret);
 }
 
+function snapshotRect(win, rect) {
+  return SpecialPowers.snapshotRect(win, rect);
+}
+
 // If the two snapshots don't compare as expected (true for equal, false for
 // unequal), returns their serializations as data URIs.  In all cases, returns
 // whether the comparison was as expected.
@@ -58,10 +62,14 @@ function assertSnapshots(s1, s2, expectEqual, fuzz, s1name, s2name) {
   var sym = expectEqual ? "==" : "!=";
   ok(passed, "reftest comparison: " + sym + " " + s1name + " " + s2name);
   if (!passed) {
+    let status = "TEST-UNEXPECTED-FAIL";
+    if (usesFailurePatterns() && recordIfMatchesFailurePattern(s1name)) {
+      status = "TEST-KNOWN-FAIL";
+    }
     // The language / format in this message should match the failure messages
     // displayed by reftest.js's "RecordResult()" method so that log output
     // can be parsed by reftest-analyzer.xhtml
-    var report = "REFTEST TEST-UNEXPECTED-FAIL | " + s1name +
+    var report = "REFTEST " + status + " | " + s1name +
                  " | image comparison (" + sym + "), max difference: " +
                  maxDifference + ", number of differing pixels: " +
                  numDifferentPixels + "\n";
@@ -74,4 +82,15 @@ function assertSnapshots(s1, s2, expectEqual, fuzz, s1name, s2name) {
     dump(report);
   }
   return passed;
+}
+
+function assertWindowPureColor(win, color) {
+  const snapshot = SpecialPowers.snapshotRect(win);
+  const canvas = document.createElement("canvas");
+  canvas.width = snapshot.width;
+  canvas.height = snapshot.height;
+  const context = canvas.getContext("2d");
+  context.fillStyle = color;
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  assertSnapshots(snapshot, canvas, true, null, "snapshot", color);
 }

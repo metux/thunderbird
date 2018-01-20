@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -31,21 +32,19 @@ inline Float ComputeKappaFactor(Float aAngle)
  */
 template <typename T>
 inline void PartialArcToBezier(T* aSink,
-                               const Size& aRadius,
-                               const Point& aStartPoint, const Point& aEndPoint,
                                const Point& aStartOffset, const Point& aEndOffset,
+                               const Matrix& aTransform,
                                Float aKappaFactor = kKappaFactor)
 {
-  Float kappaX = aKappaFactor * aRadius.width;
-  Float kappaY = aKappaFactor * aRadius.height;
-
   Point cp1 =
-    aStartPoint + Point(-aStartOffset.y * kappaX, aStartOffset.x * kappaY);
+    aStartOffset + Point(-aStartOffset.y, aStartOffset.x) * aKappaFactor;
 
   Point cp2 =
-    aEndPoint + Point(aEndOffset.y * kappaX, -aEndOffset.x * kappaY);
+    aEndOffset + Point(aEndOffset.y, -aEndOffset.x) * aKappaFactor;
 
-  aSink->BezierTo(cp1, cp2, aEndPoint);
+  aSink->BezierTo(aTransform.TransformPoint(cp1),
+                  aTransform.TransformPoint(cp2),
+                  aTransform.TransformPoint(aEndOffset));
 }
 
 /**
@@ -60,16 +59,13 @@ inline void AcuteArcToBezier(T* aSink,
 {
   aSink->LineTo(aStartPoint);
   if (!aRadius.IsEmpty()) {
+    Float kappaX = aKappaFactor * aRadius.width / aRadius.height;
+    Float kappaY = aKappaFactor * aRadius.height / aRadius.width;
     Point startOffset = aStartPoint - aOrigin;
-    startOffset.x /= aRadius.width;
-    startOffset.y /= aRadius.height;
     Point endOffset = aEndPoint - aOrigin;
-    endOffset.x /= aRadius.width;
-    endOffset.y /= aRadius.height;
-    PartialArcToBezier(aSink, aRadius,
-                       aStartPoint, aEndPoint,
-                       startOffset, endOffset,
-                       aKappaFactor);
+    aSink->BezierTo(aStartPoint + Point(-startOffset.y * kappaX, startOffset.x * kappaY),
+                    aEndPoint + Point(endOffset.y * kappaX, -endOffset.x * kappaY),
+                    aEndPoint);
   } else if (aEndPoint != aStartPoint) {
     aSink->LineTo(aEndPoint);
   }
@@ -90,7 +86,8 @@ inline void AcuteArcToBezier(T* aSink,
 
 template <typename T>
 void ArcToBezier(T* aSink, const Point &aOrigin, const Size &aRadius,
-                 float aStartAngle, float aEndAngle, bool aAntiClockwise)
+                 float aStartAngle, float aEndAngle, bool aAntiClockwise,
+                 float aRotation = 0.0f)
 {
   Float sweepDirection = aAntiClockwise ? -1.0f : 1.0f;
 
@@ -111,22 +108,19 @@ void ArcToBezier(T* aSink, const Point &aOrigin, const Size &aRadius,
 
   Float currentStartAngle = aStartAngle;
   Point currentStartOffset(cosf(aStartAngle), sinf(aStartAngle));
-  Point currentStartPoint(aOrigin.x + currentStartOffset.x * aRadius.width,
-                          aOrigin.y + currentStartOffset.y * aRadius.height);
-
-  aSink->LineTo(currentStartPoint);
+  Matrix transform = Matrix::Scaling(aRadius.width, aRadius.height);
+  if (aRotation != 0.0f) {
+    transform *= Matrix::Rotation(aRotation);
+  }
+  transform.PostTranslate(aOrigin);
+  aSink->LineTo(transform.TransformPoint(currentStartOffset));
 
   while (arcSweepLeft > 0) {
     Float currentEndAngle =
       currentStartAngle + std::min(arcSweepLeft, Float(M_PI / 2.0f)) * sweepDirection;
-
     Point currentEndOffset(cosf(currentEndAngle), sinf(currentEndAngle));
-    Point currentEndPoint(aOrigin.x + currentEndOffset.x * aRadius.width,
-                          aOrigin.y + currentEndOffset.y * aRadius.height);
 
-    PartialArcToBezier(aSink, aRadius,
-                       currentStartPoint, currentEndPoint,
-                       currentStartOffset, currentEndOffset,
+    PartialArcToBezier(aSink, currentStartOffset, currentEndOffset, transform,
                        ComputeKappaFactor(currentEndAngle - currentStartAngle));
 
     // We guarantee here the current point is the start point of the next
@@ -134,7 +128,6 @@ void ArcToBezier(T* aSink, const Point &aOrigin, const Size &aRadius,
     arcSweepLeft -= Float(M_PI / 2.0f);
     currentStartAngle = currentEndAngle;
     currentStartOffset = currentEndOffset;
-    currentStartPoint = currentEndPoint;
   }
 }
 
@@ -144,26 +137,21 @@ void ArcToBezier(T* aSink, const Point &aOrigin, const Size &aRadius,
 template <typename T>
 void EllipseToBezier(T* aSink, const Point &aOrigin, const Size &aRadius)
 {
+  Matrix transform(aRadius.width, 0, 0, aRadius.height, aOrigin.x, aOrigin.y);
   Point currentStartOffset(1, 0);
-  Point currentStartPoint(aOrigin.x + aRadius.width, aOrigin.y);
 
-  aSink->LineTo(currentStartPoint);
+  aSink->LineTo(transform.TransformPoint(currentStartOffset));
 
   for (int i = 0; i < 4; i++) {
     // cos(x+pi/2) == -sin(x)
     // sin(x+pi/2) == cos(x)
     Point currentEndOffset(-currentStartOffset.y, currentStartOffset.x);
-    Point currentEndPoint(aOrigin.x + currentEndOffset.x * aRadius.width,
-                          aOrigin.y + currentEndOffset.y * aRadius.height);
 
-    PartialArcToBezier(aSink, aRadius,
-                       currentStartPoint, currentEndPoint,
-                       currentStartOffset, currentEndOffset);
+    PartialArcToBezier(aSink, currentStartOffset, currentEndOffset, transform);
 
     // We guarantee here the current point is the start point of the next
     // curve segment.
     currentStartOffset = currentEndOffset;
-    currentStartPoint = currentEndPoint;
   }
 }
 
@@ -191,35 +179,35 @@ inline already_AddRefed<Path> MakePathForRect(const DrawTarget& aDrawTarget,
 }
 
 struct RectCornerRadii {
-  Size radii[RectCorner::Count];
+  Size radii[eCornerCount];
 
   RectCornerRadii() {}
 
   explicit RectCornerRadii(Float radius) {
-    for (int i = 0; i < RectCorner::Count; i++) {
+    NS_FOR_CSS_FULL_CORNERS(i) {
       radii[i].SizeTo(radius, radius);
     }
   }
 
   explicit RectCornerRadii(Float radiusX, Float radiusY) {
-    for (int i = 0; i < RectCorner::Count; i++) {
+    NS_FOR_CSS_FULL_CORNERS(i) {
       radii[i].SizeTo(radiusX, radiusY);
     }
   }
 
   RectCornerRadii(Float tl, Float tr, Float br, Float bl) {
-    radii[RectCorner::TopLeft].SizeTo(tl, tl);
-    radii[RectCorner::TopRight].SizeTo(tr, tr);
-    radii[RectCorner::BottomRight].SizeTo(br, br);
-    radii[RectCorner::BottomLeft].SizeTo(bl, bl);
+    radii[eCornerTopLeft].SizeTo(tl, tl);
+    radii[eCornerTopRight].SizeTo(tr, tr);
+    radii[eCornerBottomRight].SizeTo(br, br);
+    radii[eCornerBottomLeft].SizeTo(bl, bl);
   }
 
   RectCornerRadii(const Size& tl, const Size& tr,
                   const Size& br, const Size& bl) {
-    radii[RectCorner::TopLeft] = tl;
-    radii[RectCorner::TopRight] = tr;
-    radii[RectCorner::BottomRight] = br;
-    radii[RectCorner::BottomLeft] = bl;
+    radii[eCornerTopLeft] = tl;
+    radii[eCornerTopRight] = tr;
+    radii[eCornerBottomRight] = br;
+    radii[eCornerBottomLeft] = bl;
   }
 
   const Size& operator[](size_t aCorner) const {
@@ -231,29 +219,40 @@ struct RectCornerRadii {
   }
 
   bool operator==(const RectCornerRadii& aOther) const {
-    for (size_t i = 0; i < RectCorner::Count; i++) {
-      if (radii[i] != aOther.radii[i]) return false;
-    }
-    return true;
+    return TopLeft() == aOther.TopLeft() &&
+           TopRight() == aOther.TopRight() &&
+           BottomRight() == aOther.BottomRight() &&
+           BottomLeft() == aOther.BottomLeft();
+  }
+
+  bool AreRadiiSame() const {
+    return TopLeft() == TopRight() &&
+           TopLeft() == BottomRight() &&
+           TopLeft() == BottomLeft();
   }
 
   void Scale(Float aXScale, Float aYScale) {
-    for (int i = 0; i < RectCorner::Count; i++) {
+    NS_FOR_CSS_FULL_CORNERS(i) {
       radii[i].Scale(aXScale, aYScale);
     }
   }
 
-  const Size TopLeft() const { return radii[RectCorner::TopLeft]; }
-  Size& TopLeft() { return radii[RectCorner::TopLeft]; }
+  const Size TopLeft() const { return radii[eCornerTopLeft]; }
+  Size& TopLeft() { return radii[eCornerTopLeft]; }
 
-  const Size TopRight() const { return radii[RectCorner::TopRight]; }
-  Size& TopRight() { return radii[RectCorner::TopRight]; }
+  const Size TopRight() const { return radii[eCornerTopRight]; }
+  Size& TopRight() { return radii[eCornerTopRight]; }
 
-  const Size BottomRight() const { return radii[RectCorner::BottomRight]; }
-  Size& BottomRight() { return radii[RectCorner::BottomRight]; }
+  const Size BottomRight() const { return radii[eCornerBottomRight]; }
+  Size& BottomRight() { return radii[eCornerBottomRight]; }
 
-  const Size BottomLeft() const { return radii[RectCorner::BottomLeft]; }
-  Size& BottomLeft() { return radii[RectCorner::BottomLeft]; }
+  const Size BottomLeft() const { return radii[eCornerBottomLeft]; }
+  Size& BottomLeft() { return radii[eCornerBottomLeft]; }
+
+  bool IsEmpty() const {
+    return TopLeft().IsEmpty() && TopRight().IsEmpty() &&
+           BottomRight().IsEmpty() && BottomLeft().IsEmpty();
+  }
 };
 
 /**
@@ -378,9 +377,9 @@ inline bool UserToDevicePixelSnapped(Rect& aRect, const DrawTarget& aDrawTarget,
   }
 #undef WITHIN_E
 
-  Point p1 = mat * aRect.TopLeft();
-  Point p2 = mat * aRect.TopRight();
-  Point p3 = mat * aRect.BottomRight();
+  Point p1 = mat.TransformPoint(aRect.TopLeft());
+  Point p2 = mat.TransformPoint(aRect.TopRight());
+  Point p3 = mat.TransformPoint(aRect.BottomRight());
 
   // Check that the rectangle is axis-aligned. For an axis-aligned rectangle,
   // two opposite corners define the entire rectangle. So check if

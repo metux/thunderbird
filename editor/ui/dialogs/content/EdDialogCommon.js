@@ -387,6 +387,9 @@ function SwitchToValidatePanel()
 
 const nsIFilePicker = Components.interfaces.nsIFilePicker;
 
+/**
+ * @return {Promise} URL spec of the file chosen, or null
+ */
 function GetLocalFileURL(filterType)
 {
   var fp = Components.classes["@mozilla.org/filepicker;1"].createInstance(nsIFilePicker);
@@ -419,22 +422,17 @@ function GetLocalFileURL(filterType)
 
   // set the file picker's current directory to last-opened location saved in prefs
   SetFilePickerDirectory(fp, fileType);
-
-
-  /* doesn't handle *.shtml files */
-  try {
-    var ret = fp.show();
-    if (ret == nsIFilePicker.returnCancel)
-      return null;
-  }
-  catch (ex) {
-    dump("filePicker.chooseInputFile threw an exception\n");
-    return null;
-  }
-  SaveFilePickerDirectory(fp, fileType);
   
-  var fileHandler = GetFileProtocolHandler();
-  return fp.file ? fileHandler.getURLSpecFromFile(fp.file) : null;
+  return new Promise(resolve => {
+    fp.open(rv => {
+      if (rv != nsIFilePicker.returnOK || !fp.file) {
+        resolve(null);
+        return;
+      }
+      SaveFilePickerDirectory(fp, fileType);
+      resolve(fp.fileURL.spec);
+    });
+  });
 }
 
 function GetMetaElementByAttribute(name, value)
@@ -660,38 +658,39 @@ function MakeInputValueRelativeOrAbsolute(checkbox)
   }
 }
 
-var IsBlockParent = {
-  APPLET: true,
-  BLOCKQUOTE: true,
-  BODY: true,
-  CENTER: true,
-  DD: true,
-  DIV: true,
-  FORM: true,
-  LI: true,
-  NOSCRIPT: true,
-  OBJECT: true,
-  TD: true,
-  TH: true
-};
+var IsBlockParent = [
+  "applet",
+  "blockquote",
+  "body",
+  "center",
+  "dd",
+  "div",
+  "form",
+  "li",
+  "noscript",
+  "object",
+  "td",
+  "th",
+];
 
-var NotAnInlineParent = {
-  COL: true,
-  COLGROUP: true,
-  DL: true,
-  DIR: true,
-  MENU: true,
-  OL: true,
-  TABLE: true,
-  TBODY: true,
-  TFOOT: true,
-  THEAD: true,
-  TR: true,
-  UL: true
-};
+var NotAnInlineParent = [
+  "col",
+  "colgroup",
+  "dl",
+  "dir",
+  "menu",
+  "ol",
+  "table",
+  "tbody",
+  "tfoot",
+  "thead",
+  "tr",
+  "ul",
+];
 
 function nodeIsBreak(editor, node)
 {
+  // XXX This doesn't work because .localName is lowercase (see bug 1306060).
   return !node || node.localName == 'BR' || editor.nodeIsBlock(node);
 }
 
@@ -723,17 +722,17 @@ function InsertElementAroundSelection(element)
 
     if (editor.nodeIsBlock(element))
       // Block element parent must be a valid block
-      while (!(range.commonAncestorContainer.localName in IsBlockParent))
+      while (!IsBlockParent.includes(range.commonAncestorContainer.localName))
         range.selectNode(range.commonAncestorContainer);
     else
     {
       // Fail if we're not inserting a block (use setInlineProperty instead)
       if (!nodeIsBreak(editor, range.commonAncestorContainer))
         return false;
-      else if (range.commonAncestorContainer.localName in NotAnInlineParent)
+      else if (NotAnInlineParent.includes(range.commonAncestorContainer.localName))
         // Inline element parent must not be an invalid block
         do range.selectNode(range.commonAncestorContainer);
-        while (range.commonAncestorContainer.localName in NotAnInlineParent);
+        while (NotAnInlineParent.includes(range.commonAncestorContainer.localName));
       else
         // Further insert block check
         for (var i = range.startOffset; ; i++)
@@ -782,6 +781,7 @@ function InsertElementAroundSelection(element)
     else
     {
       // Also move a trailing <br>
+      // XXX This doesn't work because .localName is lowercase (see bug 1306060).
       if (start && start.localName == 'BR')
       {
         editor.deleteNode(start);
@@ -979,21 +979,16 @@ function createMenuItem(aMenuPopup, aLabel)
 // Shared by Image and Link dialogs for the "Choose" button for links
 function chooseLinkFile()
 {
-  // Get a local file, converted into URL format
-  var fileName = GetLocalFileURL("html, img");
-  if (fileName) 
-  {
+  GetLocalFileURL("html, img").then(fileURL => {
     // Always try to relativize local file URLs
     if (gHaveDocumentUrl)
-      fileName = MakeRelativeUrl(fileName);
+      fileURL = MakeRelativeUrl(fileURL);
 
-    gDialog.hrefInput.value = fileName;
+    gDialog.hrefInput.value = fileURL;
 
     // Do stuff specific to a particular dialog
     // (This is defined separately in Image and Link dialogs)
     ChangeLinkLocation();
-  }
-  // Put focus into the input field
-  SetTextboxFocus(gDialog.hrefInput);
+  });
 }
 

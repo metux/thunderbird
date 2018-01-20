@@ -38,9 +38,14 @@ function installInto(module) {
   module.open_compose_with_reply_to_list = open_compose_with_reply_to_list;
   module.open_compose_with_forward = open_compose_with_forward;
   module.open_compose_with_forward_as_attachments = open_compose_with_forward_as_attachments;
+  module.open_compose_with_edit_as_new = open_compose_with_edit_as_new;
   module.open_compose_with_element_click = open_compose_with_element_click;
+  module.open_compose_from_draft = open_compose_from_draft;
   module.close_compose_window = close_compose_window;
   module.wait_for_compose_window = wait_for_compose_window;
+  module.setup_msg_contents = setup_msg_contents;
+  module.clear_recipient = clear_recipient;
+  module.toggle_recipient_type = toggle_recipient_type;
   module.create_msg_attachment = create_msg_attachment;
   module.add_attachments = add_attachments;
   module.add_attachment = add_attachments;
@@ -48,6 +53,7 @@ function installInto(module) {
   module.get_compose_body = get_compose_body;
   module.type_in_composer = type_in_composer;
   module.assert_previous_text = assert_previous_text;
+  module.get_msg_source = get_msg_source;
 }
 
 /**
@@ -139,6 +145,23 @@ function open_compose_with_forward_as_attachments(aController) {
 }
 
 /**
+ * Opens the compose window by editing the selected message as new
+ * and waits for it to load.
+ *
+ * @return The loaded window of type "msgcompose" wrapped in a MozmillController
+ *         that is augmented using augment_controller.
+ */
+function open_compose_with_edit_as_new(aController) {
+  if (aController === undefined)
+    aController = mc;
+
+  windowHelper.plan_for_new_window("msgcompose");
+  aController.click(aController.eid("menu_editMsgAsNew"));
+
+  return wait_for_compose_window();
+}
+
+/**
  * Opens the compose window by forwarding the selected message and waits for it
  * to load.
  *
@@ -172,6 +195,24 @@ function open_compose_with_element_click(aElement, aController) {
   windowHelper.plan_for_new_window("msgcompose");
   aController.click(new elib.ID(mc.window.document, aElement));
 
+  return wait_for_compose_window();
+}
+
+
+/**
+ * Open draft editing by clicking the "Edit" on the draft notification bar
+ * of the selected message.
+ *
+ * @return The loaded window of type "msgcompose" wrapped in a MozmillController
+ *         that is augmented using augment_controller.
+ */
+function open_compose_from_draft(aController) {
+  if (aController === undefined)
+    aController = mc;
+
+  windowHelper.plan_for_new_window("msgcompose");
+  aController.click(aController.eid("msgNotificationBar",
+                                    {tagName: "button", label: "Edit"}));
   return wait_for_compose_window();
 }
 
@@ -255,6 +296,46 @@ function wait_for_compose_window(aController) {
 }
 
 /**
+ * Fills in the given message recipient/subject/body into the right widgets.
+ *
+ * @param aCwc   Compose window controller.
+ * @param aAddr  Recipient to fill in.
+ * @param aSubj  Subject to fill in.
+ * @param aBody  Message body to fill in.
+ */
+function setup_msg_contents(aCwc, aAddr, aSubj, aBody) {
+  aCwc.type(aCwc.eid("addressCol2#1"), aAddr);
+  aCwc.type(aCwc.eid("msgSubject"), aSubj);
+  aCwc.type(aCwc.eid("content-frame"), aBody);
+}
+
+/**
+ * Remove the recipient by typing backspaces.
+ *
+ * @param aController    Compose window controller.
+ * @param aRecipientRow  The compose widget row containing recipient to remove.
+ */
+function clear_recipient(aController, aRecipientRow = 1) {
+  let recipientElem = aController.window.awGetInputElement(aRecipientRow);
+  while (recipientElem.value != "") {
+    aController.keypress(new elib.Elem(recipientElem), 'VK_BACK_SPACE', {});
+  }
+}
+
+/**
+ * Change recipient type in compose widget.
+ *
+ * @param aController    Compose window controller.
+ * @param aType          The recipient type, e.g. "addr_to".
+ * @param aRecipientRow  The compose widget row containing recipient to remove.
+ */
+function toggle_recipient_type(aController, aType, aRecipientRow = 1) {
+  let addrType = aController.window.awGetPopupElement(aRecipientRow);
+  aController.click(new elib.Elem(addrType));
+  aController.click_menus_in_sequence(addrType.menupopup, [ { value: aType } ]);
+}
+
+/**
  * Create and return an nsIMsgAttachment for the passed URL.
  * @param aUrl the URL for this attachment (either a file URL or a web URL)
  * @param aSize (optional) the file size of this attachment, in bytes
@@ -285,7 +366,7 @@ function add_attachments(aComposeWindow, aUrls, aSizes) {
 
   let attachments = [];
 
-  for (let [i, url] in Iterator(aUrls)) {
+  for (let [i, url] of aUrls.entries()) {
     attachments.push(create_msg_attachment(url, aSizes[i]));
   }
 
@@ -367,4 +448,42 @@ function assert_previous_text(aStart, aText) {
     }
   }
   return textNode;
+}
+
+/**
+ * Helper to get the raw contents of a message. It only reads the first 64KiB.
+ *
+ * @param aMsgHdr  nsIMsgDBHdr addressing a message which will be returned as text.
+ * @param aUTF8    True if the contents should be returned in UTF-8.
+ *
+ * @return         String with the message source.
+ */
+function get_msg_source(aMsgHdr, aUTF8 = false) {
+  let msgUri = aMsgHdr.folder.getUriForMsg(aMsgHdr);
+
+  let messenger = Cc["@mozilla.org/messenger;1"]
+                    .createInstance(Ci.nsIMessenger);
+  let streamListener = Cc["@mozilla.org/network/sync-stream-listener;1"]
+                         .createInstance(Ci.nsISyncStreamListener);
+  messenger.messageServiceFromURI(msgUri).streamMessage(msgUri,
+                                                        streamListener,
+                                                        null,
+                                                        null,
+                                                        false,
+                                                        "",
+                                                        false);
+
+  let sis = Cc["@mozilla.org/scriptableinputstream;1"]
+              .createInstance(Ci.nsIScriptableInputStream);
+  sis.init(streamListener.inputStream);
+  const MAX_MESSAGE_LENGTH = 65536;
+  let content = sis.read(MAX_MESSAGE_LENGTH);
+  sis.close();
+
+  if (!aUTF8)
+    return content;
+
+  return Cc["@mozilla.org/intl/utf8converterservice;1"]
+           .getService(Ci.nsIUTF8ConverterService)
+           .convertURISpecToUTF8(content, "UTF-8");
 }

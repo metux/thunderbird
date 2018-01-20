@@ -2,6 +2,8 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
+"use strict";
+
 // Test DevToolsUtils.safeErrorString
 
 function run_test() {
@@ -17,7 +19,7 @@ function test_with_error() {
   // Got the message.
   do_check_true(s.includes("foo bar"));
   // Got the stack.
-  do_check_true(s.includes("test_with_error"))
+  do_check_true(s.includes("test_with_error"));
   do_check_true(s.includes("test_safeErrorString.js"));
   // Got the lineNumber and columnNumber.
   do_check_true(s.includes("Line"));

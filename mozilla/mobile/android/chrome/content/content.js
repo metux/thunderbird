@@ -16,25 +16,83 @@ var dump = Cu.import("resource://gre/modules/AndroidLog.jsm", {}).AndroidLog.d.b
 
 var global = this;
 
+var AboutBlockedSiteListener = {
+  init(chromeGlobal) {
+    addEventListener("AboutBlockedLoaded", this, false, true);
+  },
+
+  get isBlockedSite() {
+    return content.document.documentURI.startsWith("about:blocked");
+  },
+
+  handleEvent(aEvent) {
+    if (!this.isBlockedSite) {
+      return;
+    }
+
+    if (aEvent.type != "AboutBlockedLoaded") {
+      return;
+    }
+
+    let provider = "";
+    if (docShell.failedChannel) {
+      let classifiedChannel = docShell.failedChannel.
+                              QueryInterface(Ci.nsIClassifiedChannel);
+      if (classifiedChannel) {
+        provider = classifiedChannel.matchedProvider;
+      }
+    }
+
+    let advisoryUrl = Services.prefs.getCharPref(
+      "browser.safebrowsing.provider." + provider + ".advisoryURL", "");
+    if (!advisoryUrl) {
+      let el = content.document.getElementById("advisoryDesc");
+      el.remove();
+      return;
+    }
+
+    let advisoryLinkText = Services.prefs.getCharPref(
+      "browser.safebrowsing.provider." + provider + ".advisoryName", "");
+    if (!advisoryLinkText) {
+      let el = content.document.getElementById("advisoryDesc");
+      el.remove();
+      return;
+    }
+
+    let anchorEl = content.document.getElementById("advisory_provider");
+    anchorEl.setAttribute("href", advisoryUrl);
+    anchorEl.textContent = advisoryLinkText;
+  },
+};
+AboutBlockedSiteListener.init();
+
 // This is copied from desktop's tab-content.js. See bug 1153485 about sharing this code somehow.
 var AboutReaderListener = {
 
   _articlePromise: null,
+
+  _isLeavingReaderableReaderMode: false,
 
   init: function() {
     addEventListener("AboutReaderContentLoaded", this, false, true);
     addEventListener("DOMContentLoaded", this, false);
     addEventListener("pageshow", this, false);
     addEventListener("pagehide", this, false);
-    addMessageListener("Reader:ParseDocument", this);
+    addMessageListener("Reader:ToggleReaderMode", this);
     addMessageListener("Reader:PushState", this);
   },
 
   receiveMessage: function(message) {
     switch (message.name) {
-      case "Reader:ParseDocument":
-        this._articlePromise = ReaderMode.parseDocument(content.document).catch(Cu.reportError);
-        content.document.location = "about:reader?url=" + encodeURIComponent(message.data.url);
+      case "Reader:ToggleReaderMode":
+        let url = content.document.location.href;
+        if (!this.isAboutReader) {
+          this._articlePromise = ReaderMode.parseDocument(content.document).catch(Cu.reportError);
+          ReaderMode.enterReaderMode(docShell, content);
+        } else {
+          this._isLeavingReaderableReaderMode = this.isReaderableAboutReader;
+          ReaderMode.leaveReaderMode(docShell, content);
+        }
         break;
 
       case "Reader:PushState":
@@ -45,6 +103,17 @@ var AboutReaderListener = {
 
   get isAboutReader() {
     return content.document.documentURI.startsWith("about:reader");
+  },
+
+  get isReaderableAboutReader() {
+    return this.isAboutReader &&
+      !content.document.documentElement.dataset.isError;
+  },
+
+  get isErrorPage() {
+    return content.document.documentURI.startsWith("about:neterror") ||
+        content.document.documentURI.startsWith("about:certerror") ||
+        content.document.documentURI.startsWith("about:blocked");
   },
 
   handleEvent: function(aEvent) {
@@ -69,7 +138,13 @@ var AboutReaderListener = {
         break;
 
       case "pagehide":
-        sendAsyncMessage("Reader:UpdateReaderButton", { isArticle: false });
+        // this._isLeavingReaderableReaderMode is used here to keep the Reader Mode icon
+        // visible in the location bar when transitioning from reader-mode page
+        // back to the source page.
+        sendAsyncMessage("Reader:UpdateReaderButton", { isArticle: this._isLeavingReaderableReaderMode });
+        if (this._isLeavingReaderableReaderMode) {
+          this._isLeavingReaderableReaderMode = false;
+        }
         break;
 
       case "pageshow":
@@ -85,11 +160,47 @@ var AboutReaderListener = {
     }
   },
   updateReaderButton: function(forceNonArticle) {
-    if (!ReaderMode.isEnabledForParseOnLoad || this.isAboutReader ||
+    // Do not show Reader View icon on error pages (bug 1320900)
+    if (this.isErrorPage) {
+        sendAsyncMessage("Reader:UpdateReaderButton", { isArticle: false });
+    } else if (!ReaderMode.isEnabledForParseOnLoad || this.isAboutReader ||
         !(content.document instanceof content.HTMLDocument) ||
         content.document.mozSyntheticDocument) {
+
+    } else {
+        this.scheduleReadabilityCheckPostPaint(forceNonArticle);
+    }
+  },
+
+  cancelPotentialPendingReadabilityCheck: function() {
+    if (this._pendingReadabilityCheck) {
+      removeEventListener("MozAfterPaint", this._pendingReadabilityCheck);
+      delete this._pendingReadabilityCheck;
+    }
+  },
+
+  scheduleReadabilityCheckPostPaint: function(forceNonArticle) {
+    if (this._pendingReadabilityCheck) {
+      // We need to stop this check before we re-add one because we don't know
+      // if forceNonArticle was true or false last time.
+      this.cancelPotentialPendingReadabilityCheck();
+    }
+    this._pendingReadabilityCheck = this.onPaintWhenWaitedFor.bind(this, forceNonArticle);
+    addEventListener("MozAfterPaint", this._pendingReadabilityCheck);
+  },
+
+  onPaintWhenWaitedFor: function(forceNonArticle, event) {
+    // In non-e10s, we'll get called for paints other than ours, and so it's
+    // possible that this page hasn't been laid out yet, in which case we
+    // should wait until we get an event that does relate to our layout. We
+    // determine whether any of our content got painted by checking if there
+    // are any painted rects.
+    if (!event.clientRects.length) {
       return;
     }
+
+    this.cancelPotentialPendingReadabilityCheck();
+
     // Only send updates when there are articles; there's no point updating with
     // |false| all the time.
     if (ReaderMode.isProbablyReaderable(content.document)) {
@@ -104,3 +215,5 @@ AboutReaderListener.init();
 addMessageListener("RemoteLogins:fillForm", function(message) {
   LoginManagerContent.receiveMessage(message, content);
 });
+
+Services.obs.notifyObservers(this, "tab-content-frameloader-created");

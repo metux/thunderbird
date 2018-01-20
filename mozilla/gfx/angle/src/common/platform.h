@@ -27,7 +27,9 @@
       defined(__sun) || \
       defined(__GLIBC__) || \
       defined(__GNU__) || \
-      defined(__QNX__)
+      defined(__QNX__) || \
+      defined(__Fuchsia__) || \
+      defined(__HAIKU__)
 #   define ANGLE_PLATFORM_POSIX 1
 #else
 #   error Unsupported platform.
@@ -57,13 +59,17 @@
 #   endif
 
 #   if defined(ANGLE_ENABLE_D3D11)
-#       include <d3d10_1.h>
-#       include <d3d11.h>
-#       include <d3d11_1.h>
-#       include <dxgi.h>
-#       include <dxgi1_2.h>
-#       include <d3dcompiler.h>
+#include <d3d10_1.h>
+#include <d3d11.h>
+#include <d3d11_3.h>
+#include <d3dcompiler.h>
+#include <dxgi.h>
+#include <dxgi1_2.h>
 #   endif
+
+#if defined(ANGLE_ENABLE_D3D9) || defined(ANGLE_ENABLE_D3D11)
+#include <wrl.h>
+#endif
 
 #   if defined(ANGLE_ENABLE_WINDOWS_STORE)
 #       include <dxgi1_3.h>
@@ -77,8 +83,16 @@
 #   undef far
 #endif
 
-#if !defined(_M_ARM) && !defined(ANGLE_PLATFORM_ANDROID)
-#   define ANGLE_USE_SSE
+#if defined(_MSC_VER) && !defined(_M_ARM)
+#include <intrin.h>
+#define ANGLE_USE_SSE
+#elif defined(__GNUC__) && (defined(__x86_64__) || defined(__i386__))
+#include <x86intrin.h>
+#define ANGLE_USE_SSE
 #endif
+
+// The MemoryBarrier function name collides with a macro under Windows
+// We will undef the macro so that the function name does not get replaced
+#undef MemoryBarrier
 
 #endif // COMMON_PLATFORM_H_

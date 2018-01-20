@@ -3,6 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 function run_test() {
+    do_calendar_startup(really_run_test);
+}
+
+function really_run_test() {
     // Check that Bug 356207 doesn't regress:
     // Freeze (hang) on RRULE which has BYMONTHDAY and BYDAY
 
@@ -30,8 +34,8 @@ function run_test() {
         "END:VCALENDAR";
 
     let event = createEventFromIcalString(icalString);
-    let start = createDate(2009,  0,  1);
-    let end   = createDate(2009, 11, 31);
+    let start = createDate(2009, 0, 1);
+    let end = createDate(2009, 11, 31);
 
     // the following call caused a never ending loop:
     let occurrenceDates = event.recurrenceInfo.getOccurrenceDates(start, end, 0, {});

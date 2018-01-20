@@ -6,6 +6,7 @@
 #ifndef nsdirectoryviewer__h____
 #define nsdirectoryviewer__h____
 
+#include "nsCOMPtr.h"
 #include "nsIStreamListener.h"
 #include "nsIContentViewer.h"
 #include "nsIHTTPIndex.h"
@@ -14,13 +15,14 @@
 #include "nsIRDFLiteral.h"
 #include "nsIDocumentLoaderFactory.h"
 #include "nsITimer.h"
-#include "nsISupportsArray.h"
-#include "nsXPIDLString.h"
+#include "nsString.h"
 #include "nsIDirIndexListener.h"
 #include "nsIFTPChannel.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsIInterfaceRequestor.h"
 #include "nsIURI.h"
+
+class nsIMutableArray;
 
 class nsDirectoryViewerFactory : public nsIDocumentLoaderFactory
 {
@@ -70,8 +72,8 @@ protected:
     // an OnStartRequest() notification
 
     nsCOMPtr<nsIRDFDataSource>   mInner;
-    nsCOMPtr<nsISupportsArray>   mConnectionList;
-    nsCOMPtr<nsISupportsArray>   mNodeList;
+    nsCOMPtr<nsIMutableArray>    mConnectionList;
+    nsCOMPtr<nsIMutableArray>    mNodeList;
     nsCOMPtr<nsITimer>           mTimer;
     nsCOMPtr<nsIDirIndexParser>  mParser;
     nsCString mBaseURL;
@@ -83,7 +85,7 @@ protected:
     explicit nsHTTPIndex(nsIInterfaceRequestor* aRequestor);
     nsresult CommonInit(void);
     nsresult Init(nsIURI* aBaseURL);
-    void        GetDestination(nsIRDFResource* r, nsXPIDLCString& dest);
+    void        GetDestination(nsIRDFResource* r, nsACString& dest);
     bool        isWellknownContainerURI(nsIRDFResource *r);
     nsresult    AddElement(nsIRDFResource *parent, nsIRDFResource *prop,
                            nsIRDFNode *child);
@@ -107,7 +109,7 @@ public:
 
     NS_DECL_NSIREQUESTOBSERVER
     NS_DECL_NSISTREAMLISTENER
-    
+
     NS_DECL_NSIDIRINDEXLISTENER
     NS_DECL_NSIINTERFACEREQUESTOR
     NS_DECL_NSIFTPEVENTSINK

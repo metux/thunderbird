@@ -4,11 +4,11 @@
 
 const {interfaces: Ci, classes: Cc, utils: Cu, manager: Cm, results: Cr} = Components;
 
-Cu.import("resource:///modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 function getConsoleMessages() {
   let consoleService = Cc["@mozilla.org/consoleservice;1"].getService(Ci.nsIConsoleService);
-  let messages = [m.toString() for (m of consoleService.getMessageArray())];
+  let messages = consoleService.getMessageArray().map((m) => m.toString());
   // reset ready for the next call.
   consoleService.reset();
   return messages;
@@ -16,7 +16,7 @@ function getConsoleMessages() {
 
 function run_test() {
   // Load the component manifests.
-  registerAppManifest(do_get_file('../components/native/chrome.manifest'));
+  registerXPCTestComponents();
   registerAppManifest(do_get_file('../components/js/xpctest.manifest'));
 
   // and the tests.

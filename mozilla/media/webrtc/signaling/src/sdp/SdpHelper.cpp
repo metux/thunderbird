@@ -51,7 +51,7 @@ SdpHelper::CopyTransportParams(size_t numComponents,
         candidateAttrs->mValues.push_back(candidate);
       }
     }
-    if (candidateAttrs->mValues.size()) {
+    if (!candidateAttrs->mValues.empty()) {
       newLocalAttrs.SetAttribute(candidateAttrs.release());
     }
   }
@@ -67,6 +67,7 @@ SdpHelper::CopyTransportParams(size_t numComponents,
 
 bool
 SdpHelper::AreOldTransportParamsValid(const Sdp& oldAnswer,
+                                      const Sdp& offerersPreviousSdp,
                                       const Sdp& newOffer,
                                       size_t level)
 {
@@ -90,10 +91,27 @@ SdpHelper::AreOldTransportParamsValid(const Sdp& oldAnswer,
     return false;
   }
 
-  // TODO(bug 906986): Check for ICE restart (will need to pass the offerer's
-  // old SDP to compare it against |newOffer|)
+  if (IceCredentialsDiffer(newOffer.GetMediaSection(level),
+                           offerersPreviousSdp.GetMediaSection(level))) {
+    return false;
+  }
 
   return true;
+}
+
+bool
+SdpHelper::IceCredentialsDiffer(const SdpMediaSection& msection1,
+                                const SdpMediaSection& msection2)
+{
+  const SdpAttributeList& attrs1(msection1.GetAttributeList());
+  const SdpAttributeList& attrs2(msection2.GetAttributeList());
+
+  if ((attrs1.GetIceUfrag() != attrs2.GetIceUfrag()) ||
+      (attrs1.GetIcePwd() != attrs2.GetIcePwd())) {
+    return true;
+  }
+
+  return false;
 }
 
 nsresult
@@ -120,9 +138,11 @@ SdpHelper::MsectionIsDisabled(const SdpMediaSection& msection) const
 void
 SdpHelper::DisableMsection(Sdp* sdp, SdpMediaSection* msection)
 {
+  std::string mid;
+
   // Make sure to remove the mid from any group attributes
   if (msection->GetAttributeList().HasAttribute(SdpAttribute::kMidAttribute)) {
-    std::string mid = msection->GetAttributeList().GetMid();
+    mid = msection->GetAttributeList().GetMid();
     if (sdp->GetAttributeList().HasAttribute(SdpAttribute::kGroupAttribute)) {
       UniquePtr<SdpGroupAttributeList> newGroupAttr(new SdpGroupAttributeList(
             sdp->GetAttributeList().GetGroup()));
@@ -139,6 +159,12 @@ SdpHelper::DisableMsection(Sdp* sdp, SdpMediaSection* msection)
   msection->GetAttributeList().SetAttribute(direction);
   msection->SetPort(0);
 
+  // maintain the mid for easier identification on other side
+  if (!mid.empty()) {
+    msection->GetAttributeList().SetAttribute(new SdpStringAttribute(
+          SdpAttribute::kMidAttribute, mid));
+  }
+
   msection->ClearCodecs();
 
   auto mediaType = msection->GetMediaType();
@@ -150,7 +176,7 @@ SdpHelper::DisableMsection(Sdp* sdp, SdpMediaSection* msection)
       msection->AddCodec("120", "VP8", 90000, 1);
       break;
     case SdpMediaSection::kApplication:
-      msection->AddDataChannel("5000", "rejected", 0);
+      msection->AddDataChannel("rejected", 0, 0, 0);
       break;
     default:
       // We need to have something here to fit the grammar, this seems safe
@@ -181,8 +207,7 @@ SdpHelper::GetBundledMids(const Sdp& sdp, BundledMids* bundledMids)
 
   for (SdpGroupAttributeList::Group& group : bundleGroups) {
     if (group.tags.empty()) {
-      SDP_SET_ERROR("Empty BUNDLE group");
-      return NS_ERROR_INVALID_ARG;
+      continue;
     }
 
     const SdpMediaSection* masterBundleMsection(
@@ -406,14 +431,19 @@ SdpHelper::SetDefaultAddresses(const std::string& defaultCandidateAddr,
                                SdpMediaSection* msection)
 {
   msection->GetConnection().SetAddress(defaultCandidateAddr);
-  msection->SetPort(defaultCandidatePort);
+  SdpAttributeList& attrList = msection->GetAttributeList();
+
+  // only set the port if there is no bundle-only attribute
+  if (!attrList.HasAttribute(SdpAttribute::kBundleOnlyAttribute)) {
+    msection->SetPort(defaultCandidatePort);
+  }
 
   if (!defaultRtcpCandidateAddr.empty()) {
     sdp::AddrType ipVersion = sdp::kIPv4;
     if (defaultRtcpCandidateAddr.find(':') != std::string::npos) {
       ipVersion = sdp::kIPv6;
     }
-    msection->GetAttributeList().SetAttribute(new SdpRtcpAttribute(
+    attrList.SetAttribute(new SdpRtcpAttribute(
           defaultRtcpCandidatePort,
           sdp::kInternet,
           ipVersion,
@@ -467,10 +497,9 @@ SdpHelper::GetIdsFromMsid(const Sdp& sdp,
         *trackId = i->appdata;
         found = true;
       } else if ((*streamId != i->identifier) || (*trackId != i->appdata)) {
-        SDP_SET_ERROR("Found multiple different webrtc msids in m-section "
-                       << msection.GetLevel() << ". The behavior here is "
-                       "undefined.");
-        return NS_ERROR_INVALID_ARG;
+        MOZ_MTLOG(ML_WARNING, "Found multiple different webrtc msids in "
+                       "m-section " << msection.GetLevel() << ". The "
+                       "behavior w/o transceivers is undefined.");
       }
     }
   }
@@ -670,8 +699,9 @@ SdpHelper::HasRtcp(SdpMediaSection::Protocol proto) const
     case SdpMediaSection::kPstn:
     case SdpMediaSection::kUdpTlsUdptl:
     case SdpMediaSection::kSctp:
-    case SdpMediaSection::kSctpDtls:
     case SdpMediaSection::kDtlsSctp:
+    case SdpMediaSection::kUdpDtlsSctp:
+    case SdpMediaSection::kTcpDtlsSctp:
       return false;
   }
   MOZ_CRASH("Unknown protocol, probably corruption.");
@@ -682,6 +712,8 @@ SdpHelper::GetProtocolForMediaType(SdpMediaSection::MediaType type)
 {
   if (type == SdpMediaSection::kApplication) {
     return SdpMediaSection::kDtlsSctp;
+    // TODO switch to offer the new SCTP SDP (Bug 1335206)
+    //return SdpMediaSection::kUdpDtlsSctp;
   }
 
   return SdpMediaSection::kUdpTlsRtpSavpf;
@@ -726,18 +758,29 @@ SdpHelper::AddCommonExtmaps(
 
   UniquePtr<SdpExtmapAttributeList> localExtmap(new SdpExtmapAttributeList);
   auto& theirExtmap = remoteMsection.GetAttributeList().GetExtmap().mExtmaps;
-  for (auto i = theirExtmap.begin(); i != theirExtmap.end(); ++i) {
-    for (auto j = localExtensions.begin(); j != localExtensions.end(); ++j) {
-      if (i->extensionname == j->extensionname) {
-        localExtmap->mExtmaps.push_back(*i);
-
-        // RFC 5285 says that ids >= 4096 can be used by the offerer to
-        // force the answerer to pick, otherwise the value in the offer is
-        // used.
-        if (localExtmap->mExtmaps.back().entry >= 4096) {
-          localExtmap->mExtmaps.back().entry = j->entry;
-        }
+  for (const auto& theirExt : theirExtmap) {
+    for (const auto& ourExt : localExtensions) {
+      if (theirExt.extensionname != ourExt.extensionname) {
+        continue;
       }
+
+      auto negotiatedExt = theirExt;
+
+      negotiatedExt.direction =
+        reverse(negotiatedExt.direction) & ourExt.direction;
+      if (negotiatedExt.direction ==
+            SdpDirectionAttribute::Direction::kInactive) {
+        continue;
+      }
+
+      // RFC 5285 says that ids >= 4096 can be used by the offerer to
+      // force the answerer to pick, otherwise the value in the offer is
+      // used.
+      if (negotiatedExt.entry >= 4096) {
+        negotiatedExt.entry = ourExt.entry;
+      }
+
+      localExtmap->mExtmaps.push_back(negotiatedExt);
     }
   }
 

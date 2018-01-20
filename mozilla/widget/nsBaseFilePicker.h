@@ -12,17 +12,19 @@
 #include "nsISimpleEnumerator.h"
 #include "nsArrayEnumerator.h"
 #include "nsCOMPtr.h"
+#include "nsString.h"
 
-class nsPIDOMWindow;
+class nsPIDOMWindowOuter;
 class nsIWidget;
 
 class nsBaseFilePicker : public nsIFilePicker
 {
+  class AsyncShowFilePicker;
 public:
   nsBaseFilePicker(); 
   virtual ~nsBaseFilePicker();
 
-  NS_IMETHOD Init(nsIDOMWindow *aParent,
+  NS_IMETHOD Init(mozIDOMWindowProxy* aParent,
                   const nsAString& aTitle,
                   int16_t aMode);
 
@@ -33,23 +35,29 @@ public:
   NS_IMETHOD GetFiles(nsISimpleEnumerator **aFiles);
   NS_IMETHOD GetDisplayDirectory(nsIFile * *aDisplayDirectory);
   NS_IMETHOD SetDisplayDirectory(nsIFile * aDisplayDirectory);
+  NS_IMETHOD GetDisplaySpecialDirectory(nsAString& aDisplayDirectory);
+  NS_IMETHOD SetDisplaySpecialDirectory(const nsAString& aDisplayDirectory);
   NS_IMETHOD GetAddToRecentDocs(bool *aFlag);
   NS_IMETHOD SetAddToRecentDocs(bool aFlag);
   NS_IMETHOD GetMode(int16_t *aMode);
+  NS_IMETHOD SetOkButtonLabel(const nsAString& aLabel);
+  NS_IMETHOD GetOkButtonLabel(nsAString& aLabel);
 
-  NS_IMETHOD GetDomfile(nsISupports** aDomfile);
-  NS_IMETHOD GetDomfiles(nsISimpleEnumerator** aDomfiles);
+  NS_IMETHOD GetDomFileOrDirectory(nsISupports** aValue);
+  NS_IMETHOD GetDomFileOrDirectoryEnumerator(nsISimpleEnumerator** aValue);
 
 protected:
 
   virtual void InitNative(nsIWidget *aParent, const nsAString& aTitle) = 0;
+  virtual nsresult Show(int16_t *_retval) = 0;
 
   bool mAddToRecentDocs;
   nsCOMPtr<nsIFile> mDisplayDirectory;
+  nsString mDisplaySpecialDirectory;
 
-  // This is an innerWindow.
-  nsCOMPtr<nsPIDOMWindow> mParent;
+  nsCOMPtr<nsPIDOMWindowOuter> mParent;
   int16_t mMode;
+  nsString mOkButtonLabel;
 };
 
 #endif // nsBaseFilePicker_h__

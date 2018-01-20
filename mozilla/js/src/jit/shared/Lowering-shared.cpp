@@ -79,32 +79,49 @@ LIRGeneratorShared::visitConstant(MConstant* ins)
         return;
     }
 
-    const Value& v = ins->value();
     switch (ins->type()) {
-      case MIRType_Double:
-        define(new(alloc()) LDouble(v.toDouble()), ins);
+      case MIRType::Double:
+        define(new(alloc()) LDouble(ins->toDouble()), ins);
         break;
-      case MIRType_Float32:
-        define(new(alloc()) LFloat32(v.toDouble()), ins);
+      case MIRType::Float32:
+        define(new(alloc()) LFloat32(ins->toFloat32()), ins);
         break;
-      case MIRType_Boolean:
-        define(new(alloc()) LInteger(v.toBoolean()), ins);
+      case MIRType::Boolean:
+        define(new(alloc()) LInteger(ins->toBoolean()), ins);
         break;
-      case MIRType_Int32:
-        define(new(alloc()) LInteger(v.toInt32()), ins);
+      case MIRType::Int32:
+        define(new(alloc()) LInteger(ins->toInt32()), ins);
         break;
-      case MIRType_String:
-        define(new(alloc()) LPointer(v.toString()), ins);
+      case MIRType::Int64:
+        defineInt64(new(alloc()) LInteger64(ins->toInt64()), ins);
         break;
-      case MIRType_Symbol:
-        define(new(alloc()) LPointer(v.toSymbol()), ins);
+      case MIRType::String:
+        define(new(alloc()) LPointer(ins->toString()), ins);
         break;
-      case MIRType_Object:
-        define(new(alloc()) LPointer(&v.toObject()), ins);
+      case MIRType::Symbol:
+        define(new(alloc()) LPointer(ins->toSymbol()), ins);
+        break;
+      case MIRType::Object:
+        define(new(alloc()) LPointer(&ins->toObject()), ins);
         break;
       default:
         // Constants of special types (undefined, null) should never flow into
         // here directly. Operations blindly consuming them require a Box.
+        MOZ_CRASH("unexpected constant type");
+    }
+}
+
+void
+LIRGeneratorShared::visitWasmFloatConstant(MWasmFloatConstant* ins)
+{
+    switch (ins->type()) {
+      case MIRType::Double:
+        define(new(alloc()) LDouble(ins->toDouble()), ins);
+        break;
+      case MIRType::Float32:
+        define(new(alloc()) LFloat32(ins->toFloat32()), ins);
+        break;
+      default:
         MOZ_CRASH("unexpected constant type");
     }
 }
@@ -152,7 +169,7 @@ LRecoverInfo::OperandIter::canOptimizeOutIfUnused()
     // We check ins->type() in addition to ins->isUnused() because
     // EliminateDeadResumePointOperands may replace nodes with the constant
     // MagicValue(JS_OPTIMIZED_OUT).
-    if ((ins->isUnused() || ins->type() == MIRType_MagicOptimizedOut) &&
+    if ((ins->isUnused() || ins->type() == MIRType::MagicOptimizedOut) &&
         (*it_)->isResumePoint())
     {
         return !(*it_)->toResumePoint()->isObservableOperand(op_);
@@ -207,7 +224,7 @@ LIRGeneratorShared::buildSnapshot(LInstruction* ins, MResumePoint* rp, BailoutKi
         if (ins->isConstant() || ins->isUnused()) {
             *type = LAllocation();
             *payload = LAllocation();
-        } else if (ins->type() != MIRType_Value) {
+        } else if (ins->type() != MIRType::Value) {
             *type = LAllocation();
             *payload = use(ins, LUse(LUse::KEEPALIVE));
         } else {
@@ -278,7 +295,7 @@ LIRGeneratorShared::assignSnapshot(LInstruction* ins, BailoutKind kind)
     if (snapshot)
         ins->assignSnapshot(snapshot);
     else
-        gen->abort("buildSnapshot failed");
+        abort(AbortReason::Alloc, "buildSnapshot failed");
 }
 
 void
@@ -292,13 +309,13 @@ LIRGeneratorShared::assignSafepoint(LInstruction* ins, MInstruction* mir, Bailou
     MResumePoint* mrp = mir->resumePoint() ? mir->resumePoint() : lastResumePoint_;
     LSnapshot* postSnapshot = buildSnapshot(ins, mrp, kind);
     if (!postSnapshot) {
-        gen->abort("buildSnapshot failed");
+        abort(AbortReason::Alloc, "buildSnapshot failed");
         return;
     }
 
     osiPoint_ = new(alloc()) LOsiPoint(ins->safepoint(), postSnapshot);
 
     if (!lirGraph_.noteNeedsSafepoint(ins))
-        gen->abort("noteNeedsSafepoint failed");
+        abort(AbortReason::Alloc, "noteNeedsSafepoint failed");
 }
 

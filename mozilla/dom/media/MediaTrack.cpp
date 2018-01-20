@@ -5,7 +5,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "MediaTrack.h"
+#include "AudioTrack.h"
 #include "MediaTrackList.h"
+#include "VideoTrack.h"
 
 namespace mozilla {
 namespace dom {
@@ -30,7 +32,7 @@ NS_IMPL_CYCLE_COLLECTION_INHERITED(MediaTrack, DOMEventTargetHelper, mList)
 
 NS_IMPL_ADDREF_INHERITED(MediaTrack, DOMEventTargetHelper)
 NS_IMPL_RELEASE_INHERITED(MediaTrack, DOMEventTargetHelper)
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(MediaTrack)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(MediaTrack)
 NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
 void
@@ -40,7 +42,7 @@ MediaTrack::SetTrackList(MediaTrackList* aList)
 }
 
 void
-MediaTrack::Init(nsPIDOMWindow* aOwnerWindow)
+MediaTrack::Init(nsPIDOMWindowInner* aOwnerWindow)
 {
   BindToOwner(aOwnerWindow);
 }

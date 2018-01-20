@@ -11,7 +11,6 @@
 #include "nsIDOMClientRectList.h"
 #include "nsTArray.h"
 #include "nsCOMPtr.h"
-#include "nsAutoPtr.h"
 #include "nsWrapperCache.h"
 #include "nsCycleCollectionParticipant.h"
 #include "mozilla/Attributes.h"
@@ -89,7 +88,7 @@ public:
     , mHeight(aHeight)
   {
   }
-  
+
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_NSIDOMCLIENTRECT
 
@@ -161,7 +160,7 @@ public:
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(DOMRectList)
 
   NS_DECL_NSIDOMCLIENTRECTLIST
-  
+
   virtual JSObject* WrapObject(JSContext *cx, JS::Handle<JSObject*> aGivenProto) override;
 
   nsISupports* GetParentObject()

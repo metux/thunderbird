@@ -1,11 +1,13 @@
+"use strict";
+
 const {Cc, Ci} = require("chrome");
-const cpmm = Cc["@mozilla.org/childprocessmessagemanager;1"].
-  getService(Ci.nsIMessageListenerManager);
+const cpmm = Cc["@mozilla.org/childprocessmessagemanager;1"]
+             .getService(Ci.nsIMessageListenerManager);
 const { DebuggerServer } = require("devtools/server/main");
 
 exports.setupChild = function (a, b, c) {
   cpmm.sendAsyncMessage("test:setupChild", [a, b, c]);
-}
+};
 
 exports.callParent = function () {
   // Hack! Fetch DebuggerServerConnection objects directly within DebuggerServer guts.
@@ -17,4 +19,4 @@ exports.callParent = function () {
       args: [{one: true}, 2, "three"]
     });
   }
-}
+};

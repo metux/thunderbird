@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -9,9 +10,6 @@
 #include "nsIPageSequenceFrame.h"
 #include "nsContainerFrame.h"
 #include "nsIPrintSettings.h"
-#include "nsIPrintOptions.h"
-
-class nsIDateTimeFormat;
 
 namespace mozilla {
 namespace dom {
@@ -22,7 +20,7 @@ class HTMLCanvasElement;
 } // namespace mozilla
 
 //-----------------------------------------------
-// This class maintains all the data that 
+// This class maintains all the data that
 // is used by all the page frame
 // It lives while the nsSimplePageSequenceFrame lives
 class nsSharedPageData {
@@ -40,13 +38,12 @@ public:
 
   nsSize      mReflowSize;
   nsMargin    mReflowMargin;
-  // Margin for headers and footers; it defaults to 4/100 of an inch on UNIX 
+  // Margin for headers and footers; it defaults to 4/100 of an inch on UNIX
   // and 0 elsewhere; I think it has to do with some inconsistency in page size
   // computations
   nsMargin    mEdgePaperMargin;
 
   nsCOMPtr<nsIPrintSettings> mPrintSettings;
-  nsCOMPtr<nsIPrintOptions> mPrintOptions;
 
   // The scaling ratio we need to apply to make all pages fit horizontally.  It's
   // the minimum "ComputedWidth / OverflowWidth" ratio of all page content frames
@@ -55,30 +52,31 @@ public:
 };
 
 // Simple page sequence frame class. Used when we're in paginated mode
-class nsSimplePageSequenceFrame : public nsContainerFrame,
-                                  public nsIPageSequenceFrame {
+class nsSimplePageSequenceFrame final
+  : public nsContainerFrame
+  , public nsIPageSequenceFrame
+{
 public:
   friend nsSimplePageSequenceFrame* NS_NewSimplePageSequenceFrame(nsIPresShell* aPresShell,
                                                                   nsStyleContext* aContext);
 
   NS_DECL_QUERYFRAME
-  NS_DECL_FRAMEARENA_HELPERS
+  NS_DECL_FRAMEARENA_HELPERS(nsSimplePageSequenceFrame)
 
   // nsIFrame
-  virtual void Reflow(nsPresContext*      aPresContext,
-                      nsHTMLReflowMetrics& aDesiredSize,
-                      const nsHTMLReflowState& aMaxSize,
-                      nsReflowStatus&      aStatus) override;
+  void Reflow(nsPresContext* aPresContext,
+              ReflowOutput& aDesiredSize,
+              const ReflowInput& aReflowInput,
+              nsReflowStatus& aStatus) override;
 
-  virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                                const nsRect&           aDirtyRect,
-                                const nsDisplayListSet& aLists) override;
+  void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
+                        const nsDisplayListSet& aLists) override;
 
   // nsIPageSequenceFrame
   NS_IMETHOD SetPageNo(int32_t aPageNo) { return NS_OK;}
   NS_IMETHOD SetSelectionHeight(nscoord aYOffset, nscoord aHeight) override { mYSelOffset = aYOffset; mSelectionHeight = aHeight; return NS_OK; }
   NS_IMETHOD SetTotalNumPages(int32_t aTotal) override { mTotalPages = aTotal; return NS_OK; }
-  
+
   // For Shrink To Fit
   NS_IMETHOD GetSTFPercent(float& aSTFPercent) override;
 
@@ -98,19 +96,17 @@ public:
 
   // We must allow Print Preview UI to have a background, no matter what the
   // user's settings
-  virtual bool HonorPrintBackgroundSettings() override { return false; }
+  bool HonorPrintBackgroundSettings() override { return false; }
 
-  virtual bool HasTransformGetter() const override { return true; }
+  bool HasTransformGetter() const override { return true; }
 
   /**
-   * Get the "type" of the frame
-   *
-   * @see nsGkAtoms::sequenceFrame
+   * Return our first page frame.
    */
-  virtual nsIAtom* GetType() const override;
+  void AppendDirectlyOwnedAnonBoxes(nsTArray<OwnedAnonBox>& aResult) override;
 
 #ifdef DEBUG_FRAME_DUMP
-  virtual nsresult  GetFrameName(nsAString& aResult) const override;
+  nsresult GetFrameName(nsAString& aResult) const override;
 #endif
 
 protected:
@@ -125,8 +121,8 @@ protected:
 
   // Sets the frame desired size to the size of the viewport, or the given
   // nscoords, whichever is larger. Print scaling is applied in this function.
-  void SetDesiredSize(nsHTMLReflowMetrics& aDesiredSize,
-                      const nsHTMLReflowState& aReflowState,
+  void SetDesiredSize(ReflowOutput& aDesiredSize,
+                      const ReflowInput& aReflowInput,
                       nscoord aWidth, nscoord aHeight);
 
   // Helper function to compute the offset needed to center a child
@@ -140,9 +136,6 @@ protected:
   nsIFrame* GetCurrentPageFrame();
 
   nsMargin mMargin;
-
-  // I18N date formatter service which we'll want to cache locally.
-  nsCOMPtr<nsIDateTimeFormat> mDateFormatter;
 
   nsSize       mSize;
   nsSharedPageData* mPageData; // data shared by all the nsPageFrames

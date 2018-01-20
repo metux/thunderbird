@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 /*
  * Test Chunked-Encoded response parsing.
  */
@@ -5,8 +9,10 @@
 ////////////////////////////////////////////////////////////////////////////////
 // Test infrastructure
 
+"use strict";
+
 Cu.import("resource://testing-common/httpd.js");
-Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/NetUtil.jsm");
 
 XPCOMUtils.defineLazyGetter(this, "URL", function() {
   return "http://localhost:" + httpserver.identity.primaryPort;
@@ -27,27 +33,21 @@ function run_test()
 
 function run_test_number(num)
 {
-  testPath = testPathBase + num;
+  var testPath = testPathBase + num;
   httpserver.registerPathHandler(testPath, eval("handler" + num));
 
   var channel = setupChannel(testPath);
-  flags = test_flags[num];   // OK if flags undefined for test
-  channel.asyncOpen(new ChannelListener(eval("completeTest" + num),
-                                        channel, flags), null);
+  var flags = test_flags[num];   // OK if flags undefined for test
+  channel.asyncOpen2(new ChannelListener(eval("completeTest" + num),
+                                        channel, flags));
 }
 
 function setupChannel(url)
 {
-  var ios = Components.classes["@mozilla.org/network/io-service;1"].
-                       getService(Ci.nsIIOService);
-  var chan = ios.newChannel2(URL + url,
-                             "",
-                             null,
-                             null,      // aLoadingNode
-                             Services.scriptSecurityManager.getSystemPrincipal(),
-                             null,      // aTriggeringPrincipal
-                             Ci.nsILoadInfo.SEC_NORMAL,
-                             Ci.nsIContentPolicy.TYPE_OTHER);
+  var chan = NetUtil.newChannel({
+    uri: URL + url,
+    loadUsingSystemPrincipal: true
+  });
   var httpChan = chan.QueryInterface(Components.interfaces.nsIHttpChannel);
   return httpChan;
 }

@@ -4,6 +4,21 @@
 
 %include ../../../shared/incontentprefs/preferences.inc.css
 
+html *,
+page *,
+window * {
+  font-size: 1.11rem;
+}
+
+caption label:not(.dialogTitle) {
+  font-size: 1.27rem;
+}
+
+.tip-caption,
+.help-label {
+  font-size: 1rem;
+}
+
 .treecol-sortdirection {
   /* override the Linux only toolkit rule */
   -moz-appearance: none;
@@ -17,28 +32,14 @@
 
 .actionsMenu > .menulist-label-box > .menulist-icon {
   margin-top: 1px;
-  -moz-margin-start: 1px;
-  -moz-margin-end: 6px;
+  margin-inline-start: 1px;
+  margin-inline-end: 6px;
 }
 
 .actionsMenu > .menulist-label-box > .menulist-label {
   margin-top: 2px !important;
 }
 
-menulist.actionsMenu > .menulist-dropmarker {
-  margin-top: 11px;
-  margin-bottom: 11px;
-}
-
-textbox + button,
 filefield + button {
-  -moz-margin-start: -4px;
-}
-
-/**
- * Dialog
- */
-
-#dialogTitle {
-  font-size: 1em;
+  margin-inline-start: -4px;
 }

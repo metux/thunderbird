@@ -10,7 +10,7 @@
 #include "nsImapProtocol.h"
 #include "nsMsgImapCID.h"
 #include "nsImapUrl.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsServiceManagerUtils.h"
 
 //////////////////// nsIMAPNamespace  /////////////////////////////////////////////////////////////
@@ -42,20 +42,20 @@ void nsIMAPNamespace::SetDelimiter(char delimiter, bool delimiterFilledIn)
 // or the length of the prefix if it is part of this namespace
 int nsIMAPNamespace::MailboxMatchesNamespace(const char *boxname)
 {
-	if (!boxname) return -1;
+    if (!boxname) return -1;
 
-	// If the namespace is part of the boxname
+    // If the namespace is part of the boxname
     if (!m_prefix || !*m_prefix)
         return 0;
 
-	if (PL_strstr(boxname, m_prefix) == boxname)
-		return PL_strlen(m_prefix);
+    if (PL_strstr(boxname, m_prefix) == boxname)
+        return PL_strlen(m_prefix);
 
-	// If the boxname is part of the prefix
-	// (Used for matching Personal mailbox with Personal/ namespace, etc.)
-	if (PL_strstr(m_prefix, boxname) == m_prefix)
-		return PL_strlen(boxname);
-	return -1;
+    // If the boxname is part of the prefix
+    // (Used for matching Personal mailbox with Personal/ namespace, etc.)
+    if (PL_strstr(m_prefix, boxname) == m_prefix)
+        return PL_strlen(boxname);
+    return -1;
 }
 
 
@@ -299,11 +299,11 @@ nsresult nsIMAPNamespaceList::SerializeNamespaces(char **prefixes, int len,
   for (int i = 0; i < len; i++)
   {
     if (i > 0)
-      serializedNamespaces.AppendLiteral(",");
+      serializedNamespaces.Append(',');
 
-    serializedNamespaces.AppendLiteral("\"");
+    serializedNamespaces.Append('"');
     serializedNamespaces.Append(prefixes[i]);
-    serializedNamespaces.AppendLiteral("\"");
+    serializedNamespaces.Append('"');
   }
   return NS_OK;
 }
@@ -321,61 +321,51 @@ int nsIMAPNamespaceList::UnserializeNamespaces(const char *str, char **prefixes,
   {
     if (str[0] != '"')
       return 1;
-    else
+
+    int count = 0;
+    char *ourstr = PL_strdup(str);
+    char *origOurStr = ourstr;
+    if (ourstr)
     {
-      int count = 0;
-      char *ourstr = PL_strdup(str);
-      char *origOurStr = ourstr;
-      if (ourstr)
+      char *token = NS_strtok(SERIALIZER_SEPARATORS, &ourstr );
+      while (token != nullptr)
       {
-        char *token = NS_strtok(SERIALIZER_SEPARATORS, &ourstr );
-        while (token != nullptr)
-        {
-          token = NS_strtok(SERIALIZER_SEPARATORS, &ourstr );
-          count++;
-        }
-        PR_Free(origOurStr);
+        token = NS_strtok(SERIALIZER_SEPARATORS, &ourstr );
+        count++;
       }
-      return count;
+      PR_Free(origOurStr);
     }
+    return count;
   }
-  else
+
+  if ((str[0] != '"') && (len >= 1))
   {
-    if ((str[0] != '"') && (len >= 1))
-    {
-      prefixes[0] = PL_strdup(str);
-      return 1;
-    }
-    else
-    {
-      int count = 0;
-      char *ourstr = PL_strdup(str);
-      char *origOurStr = ourstr;
-      if (ourstr)
-      {
-        char *token = NS_strtok(SERIALIZER_SEPARATORS, &ourstr );
-        while ((count < len) && (token != nullptr))
-        {
-          
-          char *current = PL_strdup(token), *where = current;
-          if (where[0] == '"')
-            where++;
-          if (where[PL_strlen(where)-1] == '"')
-            where[PL_strlen(where)-1] = 0;
-          prefixes[count] = PL_strdup(where);
-          PR_FREEIF(current);
-          token = NS_strtok(SERIALIZER_SEPARATORS, &ourstr );
-          count++;
-        }
-        PR_Free(origOurStr);
-      }
-      return count;
-    }
+    prefixes[0] = PL_strdup(str);
+    return 1;
   }
+
+  int count = 0;
+  char *ourstr = PL_strdup(str);
+  char *origOurStr = ourstr;
+  if (ourstr)
+  {
+    char *token = NS_strtok(SERIALIZER_SEPARATORS, &ourstr );
+    while ((count < len) && (token != nullptr))
+    {
+      char *current = PL_strdup(token), *where = current;
+      if (where[0] == '"')
+        where++;
+      if (where[PL_strlen(where)-1] == '"')
+        where[PL_strlen(where)-1] = 0;
+      prefixes[count] = PL_strdup(where);
+      PR_FREEIF(current);
+      token = NS_strtok(SERIALIZER_SEPARATORS, &ourstr );
+      count++;
+    }
+    PR_Free(origOurStr);
+  }
+  return count;
 }
-
-
-
 
 char *nsIMAPNamespaceList::AllocateCanonicalFolderName(const char *onlineFolderName, char delimiter)
 {
@@ -398,8 +388,6 @@ char *nsIMAPNamespaceList::AllocateCanonicalFolderName(const char *onlineFolderN
   
   return canonicalPath;
 }
-
-
 
 /*
   GetFolderNameWithoutNamespace takes as input a folder name
@@ -454,7 +442,6 @@ nsIMAPNamespace* nsIMAPNamespaceList::GetNamespaceForFolder(const char *hostName
 
   if (convertedFolderName)
   {
-
     nsCOMPtr<nsIImapHostSessionList> hostSessionList = 
              do_GetService(kCImapHostSessionListCID, &rv);
     if (NS_FAILED(rv)) 
@@ -475,8 +462,7 @@ char *nsIMAPNamespaceList::AllocateServerFolderName(const char *canonicalFolderN
 {
   if (delimiter)
     return nsImapUrl::ReplaceCharsInCopiedString(canonicalFolderName, '/', delimiter);
-  else
-    return NS_strdup(canonicalFolderName);
+  return NS_strdup(canonicalFolderName);
 }
 
 /*
@@ -643,8 +629,7 @@ char *nsIMAPNamespaceList::GenerateFullFolderNameWithDefaultNamespace(const char
   else
   {
     // Could not find other users namespace on the given host
-    NS_ASSERTION(false, "couldn't find namespace for given host");
+    NS_WARNING("couldn't find namespace for given host");
   }
   return (fullFolderName);
 }
-

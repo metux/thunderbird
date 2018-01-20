@@ -4,57 +4,27 @@
 
 %include ../../../shared/incontentprefs/preferences.inc.css
 
-@media not all and (-moz-windows-default-theme) {
-  #category-general > .category-icon {
-    list-style-image: url("chrome://browser/skin/preferences/in-content/icons.svg#general-native");
-  }
+html *,
+page *,
+window * {
+  font-size: 1.25rem;
+}
 
-  #category-search > .category-icon {
-    list-style-image: url("chrome://browser/skin/preferences/in-content/icons.svg#search-native");
-  }
+caption label:not(.dialogTitle) {
+  font-size: 1.42rem;
+}
 
-  #category-content > .category-icon {
-    list-style-image: url("chrome://browser/skin/preferences/in-content/icons.svg#content-native");
-  }
-
-  #category-application > .category-icon {
-    list-style-image: url("chrome://browser/skin/preferences/in-content/icons.svg#applications-native");
-  }
-
-  #category-privacy > .category-icon {
-    list-style-image: url("chrome://browser/skin/preferences/in-content/icons.svg#privacy-native");
-  }
-
-  #category-security > .category-icon {
-    list-style-image: url("chrome://browser/skin/preferences/in-content/icons.svg#security-native");
-  }
-
-  #category-sync > .category-icon {
-    list-style-image: url("chrome://browser/skin/preferences/in-content/icons.svg#sync-native");
-  }
-
-  #category-advanced > .category-icon {
-    list-style-image: url("chrome://browser/skin/preferences/in-content/icons.svg#advanced-native");
-  }
+.tip-caption,
+.help-label {
+  font-size: 1.08rem;
 }
 
 .actionsMenu > .menulist-label-box > .menulist-icon {
-  -moz-margin-end: 9px;
+  margin-inline-end: 9px;
 }
 
-textbox + button,
 filefield + button {
-  -moz-margin-start: -4px;
-}
-
-#advancedPrefs {
-  padding-bottom: 0; /* override padding from normal preferences.css */
-}
-
-/**
- * Dialog
- */
-
-#dialogTitle {
-  font-size: 1em;
+  margin-inline-start: -4px;
+  margin-top: 4px;
+  margin-bottom: 4px;
 }

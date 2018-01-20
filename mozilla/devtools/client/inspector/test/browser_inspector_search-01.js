@@ -3,10 +3,12 @@
    http://creativecommons.org/publicdomain/zero/1.0/ */
 "use strict";
 
+requestLongerTimeout(2);
+
 // Test that searching for nodes in the search field actually selects those
 // nodes.
 
-const TEST_URL = TEST_URL_ROOT + "doc_inspector_search.html";
+const TEST_URL = URL_ROOT + "doc_inspector_search.html";
 
 // The various states of the inspector: [key, id, isValid]
 // [
@@ -72,7 +74,7 @@ add_task(function* () {
     info("Got processing-done event");
 
     if (key === "VK_RETURN") {
-      info ("Waiting for " + (isValid ? "NO " : "") + "results");
+      info("Waiting for " + (isValid ? "NO " : "") + "results");
       yield inspector.search.once("search-result");
     }
 
@@ -85,7 +87,7 @@ add_task(function* () {
     is(inspector.selection.nodeFront, nodeFront,
        "Correct node is selected for state " + index);
 
-    is(!searchBox.classList.contains("devtools-no-search-result"), isValid,
+    is(!searchBox.classList.contains("devtools-style-searchbox-no-match"), isValid,
        "Correct searchbox result state for state " + index);
 
     index++;

@@ -26,6 +26,7 @@
 #include "nsSerializationHelper.h"
 #include "nsThreadUtils.h"
 #include "mozilla/Telemetry.h"
+#include "mozilla/IntegerPrintfMacros.h"
 #include <math.h>
 #include <algorithm>
 
@@ -48,8 +49,6 @@ NS_IMPL_ISUPPORTS(CacheEntryHandle, nsICacheEntry)
 CacheEntryHandle::CacheEntryHandle(CacheEntry* aEntry)
 : mEntry(aEntry)
 {
-  MOZ_COUNT_CTOR(CacheEntryHandle);
-
 #ifdef DEBUG
   if (!mEntry->HandlesCount()) {
     // CacheEntry.mHandlesCount must go from zero to one only under
@@ -68,8 +67,6 @@ CacheEntryHandle::~CacheEntryHandle()
 {
   mEntry->ReleaseHandleRef();
   mEntry->OnHandleClosed(this);
-
-  MOZ_COUNT_DTOR(CacheEntryHandle);
 }
 
 // CacheEntry::Callback
@@ -80,7 +77,7 @@ CacheEntry::Callback::Callback(CacheEntry* aEntry,
                                bool aSecret)
 : mEntry(aEntry)
 , mCallback(aCallback)
-, mTargetThread(do_GetCurrentThread())
+, mTarget(GetCurrentThreadEventTarget())
 , mReadOnly(aReadOnly)
 , mRevalidating(false)
 , mCheckOnAnyThread(aCheckOnAnyThread)
@@ -117,7 +114,7 @@ CacheEntry::Callback::Callback(CacheEntry* aEntry, bool aDoomWhenFoundInPinStatu
 CacheEntry::Callback::Callback(CacheEntry::Callback const &aThat)
 : mEntry(aThat.mEntry)
 , mCallback(aThat.mCallback)
-, mTargetThread(aThat.mTargetThread)
+, mTarget(aThat.mTarget)
 , mReadOnly(aThat.mReadOnly)
 , mRevalidating(aThat.mRevalidating)
 , mCheckOnAnyThread(aThat.mCheckOnAnyThread)
@@ -137,7 +134,7 @@ CacheEntry::Callback::Callback(CacheEntry::Callback const &aThat)
 
 CacheEntry::Callback::~Callback()
 {
-  ProxyRelease(mCallback, mTargetThread);
+  ProxyRelease("CacheEntry::Callback::mCallback", mCallback, mTarget);
 
   mEntry->ReleaseHandleRef();
   MOZ_COUNT_DTOR(CacheEntry::Callback);
@@ -174,7 +171,7 @@ nsresult CacheEntry::Callback::OnCheckThread(bool *aOnCheckThread) const
 {
   if (!mCheckOnAnyThread) {
     // Check we are on the target
-    return mTargetThread->IsOnCurrentThread(aOnCheckThread);
+    return mTarget->IsOnCurrentThread(aOnCheckThread);
   }
 
   // We can invoke check anywhere
@@ -184,7 +181,7 @@ nsresult CacheEntry::Callback::OnCheckThread(bool *aOnCheckThread) const
 
 nsresult CacheEntry::Callback::OnAvailThread(bool *aOnAvailThread) const
 {
-  return mTargetThread->IsOnCurrentThread(aOnAvailThread);
+  return mTarget->IsOnCurrentThread(aOnAvailThread);
 }
 
 // CacheEntry
@@ -194,8 +191,15 @@ NS_IMPL_ISUPPORTS(CacheEntry,
                   nsIRunnable,
                   CacheFileListener)
 
+/* static */
+uint64_t CacheEntry::GetNextId()
+{
+  static Atomic<uint64_t, Relaxed> id(0);
+  return ++id;
+}
+
 CacheEntry::CacheEntry(const nsACString& aStorageID,
-                       nsIURI* aURI,
+                       const nsACString& aURI,
                        const nsACString& aEnhanceID,
                        bool aUseDisk,
                        bool aSkipSizeCheck,
@@ -209,20 +213,20 @@ CacheEntry::CacheEntry(const nsACString& aStorageID,
 , mStorageID(aStorageID)
 , mUseDisk(aUseDisk)
 , mSkipSizeCheck(aSkipSizeCheck)
+, mIsDoomed(false)
 , mSecurityInfoLoaded(false)
 , mPreventCallbacks(false)
 , mHasData(false)
 , mPinned(aPin)
 , mPinningKnown(false)
-, mIsDoomed(false)
 , mState(NOTLOADED)
 , mRegistration(NEVERREGISTERED)
 , mWriter(nullptr)
 , mPredictedDataSize(0)
 , mUseCount(0)
-, mReleaseThread(NS_GetCurrentThread())
+, mCacheEntryId(GetNextId())
 {
-  MOZ_COUNT_CTOR(CacheEntry);
+  LOG(("CacheEntry::CacheEntry [this=%p]", this));
 
   mService = CacheStorageService::Self();
 
@@ -232,10 +236,7 @@ CacheEntry::CacheEntry(const nsACString& aStorageID,
 
 CacheEntry::~CacheEntry()
 {
-  ProxyRelease(mURI, mReleaseThread);
-
   LOG(("CacheEntry::~CacheEntry [this=%p]", this));
-  MOZ_COUNT_DTOR(CacheEntry);
 }
 
 char const * CacheEntry::StateString(uint32_t aState)
@@ -263,8 +264,8 @@ nsresult CacheEntry::HashingKey(nsACString &aResult) const
 }
 
 // static
-nsresult CacheEntry::HashingKey(nsCSubstring const& aStorageID,
-                                nsCSubstring const& aEnhanceID,
+nsresult CacheEntry::HashingKey(const nsACString& aStorageID,
+                                const nsACString& aEnhanceID,
                                 nsIURI* aURI,
                                 nsACString &aResult)
 {
@@ -276,9 +277,9 @@ nsresult CacheEntry::HashingKey(nsCSubstring const& aStorageID,
 }
 
 // static
-nsresult CacheEntry::HashingKey(nsCSubstring const& aStorageID,
-                                nsCSubstring const& aEnhanceID,
-                                nsCSubstring const& aURISpec,
+nsresult CacheEntry::HashingKey(const nsACString& aStorageID,
+                                const nsACString& aEnhanceID,
+                                const nsACString& aURISpec,
                                 nsACString &aResult)
 {
   /**
@@ -457,8 +458,8 @@ bool CacheEntry::Load(bool aTruncate, bool aPriority)
 
 NS_IMETHODIMP CacheEntry::OnFileReady(nsresult aResult, bool aIsNew)
 {
-  LOG(("CacheEntry::OnFileReady [this=%p, rv=0x%08x, new=%d]",
-      this, aResult, aIsNew));
+  LOG(("CacheEntry::OnFileReady [this=%p, rv=0x%08" PRIx32 ", new=%d]",
+       this, static_cast<uint32_t>(aResult), aIsNew));
 
   MOZ_ASSERT(!mLoadStart.IsNull());
 
@@ -545,16 +546,17 @@ already_AddRefed<CacheEntryHandle> CacheEntry::ReopenTruncated(bool aMemoryOnly,
       mUseDisk && !aMemoryOnly,
       mSkipSizeCheck,
       mPinned,
-      true, // always create
       true, // truncate existing (this one)
       getter_AddRefs(handle));
 
     if (NS_SUCCEEDED(rv)) {
       newEntry = handle->Entry();
-      LOG(("  exchanged entry %p by entry %p, rv=0x%08x", this, newEntry.get(), rv));
+      LOG(("  exchanged entry %p by entry %p, rv=0x%08" PRIx32,
+           this, newEntry.get(), static_cast<uint32_t>(rv)));
       newEntry->AsyncOpen(aCallback, nsICacheStorage::OPEN_TRUNCATE);
     } else {
-      LOG(("  exchanged of entry %p failed, rv=0x%08x", this, rv));
+      LOG(("  exchanged of entry %p failed, rv=0x%08" PRIx32,
+           this, static_cast<uint32_t>(rv)));
       AsyncDoom(nullptr);
     }
   }
@@ -591,7 +593,7 @@ void CacheEntry::TransferCallbacks(CacheEntry & aFromEntry)
 
   uint32_t callbacksLength = mCallbacks.Length();
   if (callbacksLength) {
-    // Carry the entry reference (unfortunatelly, needs to be done manually...)
+    // Carry the entry reference (unfortunately, needs to be done manually...)
     for (uint32_t i = 0; i < callbacksLength; ++i)
       mCallbacks[i].ExchangeEntry(this);
 
@@ -669,10 +671,10 @@ bool CacheEntry::InvokeCallbacks(bool aReadOnly)
 
     if (NS_SUCCEEDED(rv) && !onCheckThread) {
       // Redispatch to the target thread
-      RefPtr<nsRunnableMethod<CacheEntry> > event =
-        NS_NewRunnableMethod(this, &CacheEntry::InvokeCallbacksLock);
-
-      rv = mCallbacks[i].mTargetThread->Dispatch(event, nsIEventTarget::DISPATCH_NORMAL);
+      rv = mCallbacks[i].mTarget->Dispatch(NewRunnableMethod("net::CacheEntry::InvokeCallbacksLock",
+                                                             this,
+                                                             &CacheEntry::InvokeCallbacksLock),
+                                           nsIEventTarget::DISPATCH_NORMAL);
       if (NS_SUCCEEDED(rv)) {
         LOG(("  re-dispatching to target thread"));
         return false;
@@ -755,7 +757,8 @@ bool CacheEntry::InvokeCallback(Callback & aCallback)
 
           nsresult rv = aCallback.mCallback->OnCacheEntryCheck(
             this, nullptr, &checkResult);
-          LOG(("  OnCacheEntryCheck: rv=0x%08x, result=%d", rv, checkResult));
+          LOG(("  OnCacheEntryCheck: rv=0x%08" PRIx32 ", result=%" PRId32,
+               static_cast<uint32_t>(rv), static_cast<uint32_t>(checkResult)));
 
           if (NS_FAILED(rv))
             checkResult = ENTRY_NOT_WANTED;
@@ -845,14 +848,9 @@ void CacheEntry::InvokeAvailableCallback(Callback const & aCallback)
     RefPtr<AvailableCallbackRunnable> event =
       new AvailableCallbackRunnable(this, aCallback);
 
-    rv = aCallback.mTargetThread->Dispatch(event, nsIEventTarget::DISPATCH_NORMAL);
-    LOG(("  redispatched, (rv = 0x%08x)", rv));
+    rv = aCallback.mTarget->Dispatch(event, nsIEventTarget::DISPATCH_NORMAL);
+    LOG(("  redispatched, (rv = 0x%08" PRIx32 ")", static_cast<uint32_t>(rv)));
     return;
-  }
-
-  if (NS_SUCCEEDED(mFileStatus) && !aCallback.mSecret) {
-    // Let the last-fetched and fetch-count properties be updated.
-    mFile->OnFetched();
   }
 
   if (mIsDoomed || aCallback.mNotWanted) {
@@ -870,6 +868,8 @@ void CacheEntry::InvokeAvailableCallback(Callback const & aCallback)
       mozilla::MutexAutoLock lock(mLock);
       BackgroundOp(Ops::FRECENCYUPDATE);
     }
+
+    OnFetched(aCallback);
 
     RefPtr<CacheEntryHandle> handle = NewHandle();
     aCallback.mCallback->OnCacheEntryAvailable(
@@ -892,12 +892,14 @@ void CacheEntry::InvokeAvailableCallback(Callback const & aCallback)
 
   // Consumer will be responsible to fill or validate the entry metadata and data.
 
+  OnFetched(aCallback);
+
   RefPtr<CacheEntryHandle> handle = NewWriteHandle();
   rv = aCallback.mCallback->OnCacheEntryAvailable(
     handle, state == WRITING, nullptr, NS_OK);
 
   if (NS_FAILED(rv)) {
-    LOG(("  writing/revalidating failed (0x%08x)", rv));
+    LOG(("  writing/revalidating failed (0x%08" PRIx32 ")", static_cast<uint32_t>(rv)));
 
     // Consumer given a new entry failed to take care of the entry.
     OnHandleClosed(handle);
@@ -905,6 +907,14 @@ void CacheEntry::InvokeAvailableCallback(Callback const & aCallback)
   }
 
   LOG(("  writing/revalidating"));
+}
+
+void CacheEntry::OnFetched(Callback const & aCallback)
+{
+  if (NS_SUCCEEDED(mFileStatus) && !aCallback.mSecret) {
+    // Let the last-fetched and fetch-count properties be updated.
+    mFile->OnFetched();
+  }
 }
 
 CacheEntryHandle* CacheEntry::NewHandle()
@@ -927,56 +937,67 @@ void CacheEntry::OnHandleClosed(CacheEntryHandle const* aHandle)
 {
   LOG(("CacheEntry::OnHandleClosed [this=%p, state=%s, handle=%p]", this, StateString(mState), aHandle));
 
-  nsCOMPtr<nsIOutputStream> outputStream;
+  mozilla::MutexAutoLock lock(mLock);
 
-  {
-    mozilla::MutexAutoLock lock(mLock);
-
-    if (mWriter != aHandle) {
-      LOG(("  not the writer"));
-      return;
-    }
-
-    if (mOutputStream) {
-      // No one took our internal output stream, so there are no data
-      // and output stream has to be open symultaneously with input stream
-      // on this entry again.
-      mHasData = false;
-    }
-
-    outputStream.swap(mOutputStream);
-    mWriter = nullptr;
-
-    if (mState == WRITING) {
-      LOG(("  reverting to state EMPTY - write failed"));
-      mState = EMPTY;
-    }
-    else if (mState == REVALIDATING) {
-      LOG(("  reverting to state READY - reval failed"));
-      mState = READY;
-    }
-
-    if (mState == READY && !mHasData) {
-      // We may get to this state when following steps happen:
-      // 1. a new entry is given to a consumer
-      // 2. the consumer calls MetaDataReady(), we transit to READY
-      // 3. abandons the entry w/o opening the output stream, mHasData left false
-      //
-      // In this case any following consumer will get a ready entry (with metadata)
-      // but in state like the entry data write was still happening (was in progress)
-      // and will indefinitely wait for the entry data or even the entry itself when
-      // RECHECK_AFTER_WRITE is returned from onCacheEntryCheck.
-      LOG(("  we are in READY state, pretend we have data regardless it"
-            " has actully been never touched"));
-      mHasData = true;
-    }
-
-    InvokeCallbacks();
+  if (IsDoomed() && NS_SUCCEEDED(mFileStatus) &&
+      // Note: mHandlesCount is dropped before this method is called
+      (mHandlesCount == 0 ||
+       (mHandlesCount == 1 && mWriter && mWriter != aHandle))
+      ) {
+    // This entry is no longer referenced from outside and is doomed.
+    // We can do this also when there is just reference from the writer,
+    // no one else could ever reach the written data.
+    // Tell the file to kill the handle, i.e. bypass any I/O operations
+    // on it except removing the file.
+    mFile->Kill();
   }
 
-  if (outputStream) {
+  if (mWriter != aHandle) {
+    LOG(("  not the writer"));
+    return;
+  }
+
+  if (mOutputStream) {
     LOG(("  abandoning phantom output stream"));
-    outputStream->Close();
+    // No one took our internal output stream, so there are no data
+    // and output stream has to be open symultaneously with input stream
+    // on this entry again.
+    mHasData = false;
+    // This asynchronously ends up invoking callbacks on this entry
+    // through OnOutputClosed() call.
+    mOutputStream->Close();
+    mOutputStream = nullptr;
+  } else {
+    // We must always redispatch, otherwise there is a risk of stack
+    // overflow.  This code can recurse deeply.  It won't execute sooner
+    // than we release mLock.
+    BackgroundOp(Ops::CALLBACKS, true);
+  }
+
+  mWriter = nullptr;
+
+  if (mState == WRITING) {
+    LOG(("  reverting to state EMPTY - write failed"));
+    mState = EMPTY;
+  }
+  else if (mState == REVALIDATING) {
+    LOG(("  reverting to state READY - reval failed"));
+    mState = READY;
+  }
+
+  if (mState == READY && !mHasData) {
+    // We may get to this state when following steps happen:
+    // 1. a new entry is given to a consumer
+    // 2. the consumer calls MetaDataReady(), we transit to READY
+    // 3. abandons the entry w/o opening the output stream, mHasData left false
+    //
+    // In this case any following consumer will get a ready entry (with metadata)
+    // but in state like the entry data write was still happening (was in progress)
+    // and will indefinitely wait for the entry data or even the entry itself when
+    // RECHECK_AFTER_WRITE is returned from onCacheEntryCheck.
+    LOG(("  we are in READY state, pretend we have data regardless it"
+          " has actully been never touched"));
+    mHasData = true;
   }
 }
 
@@ -1031,7 +1052,14 @@ NS_IMETHODIMP CacheEntry::GetPersistent(bool *aPersistToDisk)
 
 NS_IMETHODIMP CacheEntry::GetKey(nsACString & aKey)
 {
-  return mURI->GetAsciiSpec(aKey);
+  aKey.Assign(mURI);
+  return NS_OK;
+}
+
+NS_IMETHODIMP CacheEntry::GetCacheEntryId(uint64_t *aCacheEntryId)
+{
+  *aCacheEntryId = mCacheEntryId;
+  return NS_OK;
 }
 
 NS_IMETHODIMP CacheEntry::GetFetchCount(int32_t *aFetchCount)
@@ -1062,6 +1090,26 @@ NS_IMETHODIMP CacheEntry::GetExpirationTime(uint32_t *aExpirationTime)
   return mFile->GetExpirationTime(aExpirationTime);
 }
 
+nsresult CacheEntry::GetOnStartTime(uint64_t *aTime)
+{
+  NS_ENSURE_SUCCESS(mFileStatus, NS_ERROR_NOT_AVAILABLE);
+  return mFile->GetOnStartTime(aTime);
+}
+
+nsresult CacheEntry::GetOnStopTime(uint64_t *aTime)
+{
+  NS_ENSURE_SUCCESS(mFileStatus, NS_ERROR_NOT_AVAILABLE);
+  return mFile->GetOnStopTime(aTime);
+}
+
+nsresult CacheEntry::SetNetworkTimes(uint64_t aOnStartTime, uint64_t aOnStopTime)
+{
+  if (NS_SUCCEEDED(mFileStatus)) {
+    return mFile->SetNetworkTimes(aOnStartTime, aOnStopTime);
+  }
+  return NS_ERROR_NOT_AVAILABLE;
+}
+
 NS_IMETHODIMP CacheEntry::GetIsForcedValid(bool *aIsForcedValid)
 {
   NS_ENSURE_ARG(aIsForcedValid);
@@ -1074,13 +1122,12 @@ NS_IMETHODIMP CacheEntry::GetIsForcedValid(bool *aIsForcedValid)
   }
 
   nsAutoCString key;
-
-  nsresult rv = HashingKeyWithStorage(key);
+  nsresult rv = HashingKey(key);
   if (NS_FAILED(rv)) {
     return rv;
   }
 
-  *aIsForcedValid = CacheStorageService::Self()->IsForcedValidEntry(key);
+  *aIsForcedValid = CacheStorageService::Self()->IsForcedValidEntry(mStorageID, key);
   LOG(("CacheEntry::GetIsForcedValid [this=%p, IsForcedValid=%d]", this, *aIsForcedValid));
 
   return NS_OK;
@@ -1091,12 +1138,12 @@ NS_IMETHODIMP CacheEntry::ForceValidFor(uint32_t aSecondsToTheFuture)
   LOG(("CacheEntry::ForceValidFor [this=%p, aSecondsToTheFuture=%d]", this, aSecondsToTheFuture));
 
   nsAutoCString key;
-  nsresult rv = HashingKeyWithStorage(key);
+  nsresult rv = HashingKey(key);
   if (NS_FAILED(rv)) {
     return rv;
   }
 
-  CacheStorageService::Self()->ForceEntryValidFor(key, aSecondsToTheFuture);
+  CacheStorageService::Self()->ForceEntryValidFor(mStorageID, key, aSecondsToTheFuture);
 
   return NS_OK;
 }
@@ -1116,14 +1163,40 @@ NS_IMETHODIMP CacheEntry::SetExpirationTime(uint32_t aExpirationTime)
 NS_IMETHODIMP CacheEntry::OpenInputStream(int64_t offset, nsIInputStream * *_retval)
 {
   LOG(("CacheEntry::OpenInputStream [this=%p]", this));
+  return OpenInputStreamInternal(offset, nullptr, _retval);
+}
+
+NS_IMETHODIMP CacheEntry::OpenAlternativeInputStream(const nsACString & type, nsIInputStream * *_retval)
+{
+  LOG(("CacheEntry::OpenAlternativeInputStream [this=%p, type=%s]", this,
+       PromiseFlatCString(type).get()));
+  return OpenInputStreamInternal(0, PromiseFlatCString(type).get(), _retval);
+}
+
+nsresult CacheEntry::OpenInputStreamInternal(int64_t offset, const char *aAltDataType, nsIInputStream * *_retval)
+{
+  LOG(("CacheEntry::OpenInputStreamInternal [this=%p]", this));
 
   NS_ENSURE_SUCCESS(mFileStatus, NS_ERROR_NOT_AVAILABLE);
 
   nsresult rv;
 
+  RefPtr<CacheEntryHandle> selfHandle = NewHandle();
+
   nsCOMPtr<nsIInputStream> stream;
-  rv = mFile->OpenInputStream(getter_AddRefs(stream));
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (aAltDataType) {
+    rv = mFile->OpenAlternativeInputStream(selfHandle, aAltDataType,
+                                           getter_AddRefs(stream));
+    if (NS_FAILED(rv)) {
+      // Failure of this method may be legal when the alternative data requested
+      // is not avaialble or of a different type.  Console error logs are ensured
+      // by CacheFile::OpenAlternativeInputStream.
+      return rv;
+    }
+  } else {
+    rv = mFile->OpenInputStream(selfHandle, getter_AddRefs(stream));
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 
   nsCOMPtr<nsISeekableStream> seekable =
     do_QueryInterface(stream, &rv);
@@ -1171,6 +1244,30 @@ NS_IMETHODIMP CacheEntry::OpenOutputStream(int64_t offset, nsIOutputStream * *_r
   // Invoke any pending readers now.
   InvokeCallbacks();
 
+  return NS_OK;
+}
+
+NS_IMETHODIMP CacheEntry::OpenAlternativeOutputStream(const nsACString & type, nsIOutputStream * *_retval)
+{
+  LOG(("CacheEntry::OpenAlternativeOutputStream [this=%p, type=%s]", this,
+       PromiseFlatCString(type).get()));
+
+  nsresult rv;
+
+  mozilla::MutexAutoLock lock(mLock);
+
+  if (!mHasData || mState < READY || mOutputStream || mIsDoomed) {
+    LOG(("  entry not in state to write alt-data"));
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  nsCOMPtr<nsIOutputStream> stream;
+  rv = mFile->OpenAlternativeOutputStream(nullptr,
+                                          PromiseFlatCString(type).get(),
+                                          getter_AddRefs(stream));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  stream.swap(*_retval);
   return NS_OK;
 }
 
@@ -1250,14 +1347,14 @@ NS_IMETHODIMP CacheEntry::GetSecurityInfo(nsISupports * *aSecurityInfo)
 
   NS_ENSURE_SUCCESS(mFileStatus, NS_ERROR_NOT_AVAILABLE);
 
-  nsXPIDLCString info;
+  nsCString info;
   nsCOMPtr<nsISupports> secInfo;
   nsresult rv;
 
   rv = mFile->GetElement("security-info", getter_Copies(info));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (info) {
+  if (!info.IsVoid()) {
     rv = NS_DeserializeObject(info, getter_AddRefs(secInfo));
     NS_ENSURE_SUCCESS(rv, rv);
   }
@@ -1326,6 +1423,8 @@ NS_IMETHODIMP CacheEntry::AsyncDoom(nsICacheEntryDoomCallback *aCallback)
 
     if (mIsDoomed || mDoomCallback)
       return NS_ERROR_IN_PROGRESS; // to aggregate have DOOMING state
+
+    RemoveForcedValidity();
 
     mIsDoomed = true;
     mDoomCallback = aCallback;
@@ -1419,7 +1518,7 @@ NS_IMETHODIMP CacheEntry::Recreate(bool aMemoryOnly,
   }
 
   BackgroundOp(Ops::CALLBACKS, true);
-  return NS_OK;
+  return NS_ERROR_NOT_AVAILABLE;
 }
 
 NS_IMETHODIMP CacheEntry::GetDataSize(int64_t *aDataSize)
@@ -1444,9 +1543,20 @@ NS_IMETHODIMP CacheEntry::GetDataSize(int64_t *aDataSize)
     return NS_ERROR_IN_PROGRESS;
   }
 
-  LOG(("  size=%lld", *aDataSize));
+  LOG(("  size=%" PRId64, *aDataSize));
   return NS_OK;
 }
+
+
+NS_IMETHODIMP CacheEntry::GetAltDataSize(int64_t *aDataSize)
+{
+  LOG(("CacheEntry::GetAltDataSize [this=%p]", this));
+  if (NS_FAILED(mFileStatus)) {
+    return mFileStatus;
+  }
+  return mFile->GetAltDataSize(aDataSize);
+}
+
 
 NS_IMETHODIMP CacheEntry::MarkValid()
 {
@@ -1469,6 +1579,27 @@ NS_IMETHODIMP CacheEntry::HasWriteAccess(bool aWriteAllowed, bool *aWriteAccess)
 NS_IMETHODIMP CacheEntry::Close()
 {
   // NOT IMPLEMENTED ACTUALLY
+  return NS_OK;
+}
+
+NS_IMETHODIMP CacheEntry::GetDiskStorageSizeInKB(uint32_t *aDiskStorageSize)
+{
+  if (NS_FAILED(mFileStatus)) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  return mFile->GetDiskStorageSizeInKB(aDiskStorageSize);
+}
+
+NS_IMETHODIMP CacheEntry::GetLoadContextInfo(nsILoadContextInfo** aInfo)
+{
+  nsCOMPtr<nsILoadContextInfo> info = CacheFileUtils::ParseKey(mStorageID);
+  if (!info) {
+    return NS_ERROR_FAILURE;
+  }
+
+  info.forget(aInfo);
+
   return NS_OK;
 }
 
@@ -1625,6 +1756,8 @@ void CacheEntry::DoomAlreadyRemoved()
 
   mozilla::MutexAutoLock lock(mLock);
 
+  RemoveForcedValidity();
+
   mIsDoomed = true;
 
   // Pretend pinning is know.  This entry is now doomed for good, so don't
@@ -1648,13 +1781,24 @@ void CacheEntry::DoomFile()
   nsresult rv = NS_ERROR_NOT_AVAILABLE;
 
   if (NS_SUCCEEDED(mFileStatus)) {
+    if (mHandlesCount == 0 ||
+        (mHandlesCount == 1 && mWriter)) {
+      // We kill the file also when there is just reference from the writer,
+      // no one else could ever reach the written data.  Obvisouly also
+      // when there is no reference at all (should we ever end up here
+      // in that case.)
+      // Tell the file to kill the handle, i.e. bypass any I/O operations
+      // on it except removing the file.
+      mFile->Kill();
+    }
+
     // Always calls the callback asynchronously.
     rv = mFile->Doom(mDoomCallback ? this : nullptr);
     if (NS_SUCCEEDED(rv)) {
       LOG(("  file doomed"));
       return;
     }
-    
+
     if (NS_ERROR_FILE_NOT_FOUND == rv) {
       // File is set to be just memory-only, notify the callbacks
       // and pretend dooming has succeeded.  From point of view of
@@ -1666,6 +1810,25 @@ void CacheEntry::DoomFile()
 
   // Always posts to the main thread.
   OnFileDoomed(rv);
+}
+
+void CacheEntry::RemoveForcedValidity()
+{
+  mLock.AssertCurrentThreadOwns();
+
+  nsresult rv;
+
+  if (mIsDoomed) {
+    return;
+  }
+
+  nsAutoCString entryKey;
+  rv = HashingKey(entryKey);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return;
+  }
+
+  CacheStorageService::Self()->RemoveEntryForceValid(mStorageID, entryKey);
 }
 
 void CacheEntry::BackgroundOp(uint32_t aOperations, bool aForceAsync)
@@ -1711,9 +1874,11 @@ void CacheEntry::BackgroundOp(uint32_t aOperations, bool aForceAsync)
 
       // Because CacheFile::Set*() are not thread-safe to use (uses WeakReference that
       // is not thread-safe) we must post to the main thread...
-      RefPtr<nsRunnableMethod<CacheEntry> > event =
-        NS_NewRunnableMethodWithArg<double>(this, &CacheEntry::StoreFrecency, mFrecency);
-      NS_DispatchToMainThread(event);
+      NS_DispatchToMainThread(
+        NewRunnableMethod<double>("net::CacheEntry::StoreFrecency",
+                                  this,
+                                  &CacheEntry::StoreFrecency,
+                                  mFrecency));
     }
 
     if (aOperations & Ops::REGISTER) {
@@ -1748,14 +1913,13 @@ void CacheEntry::StoreFrecency(double aFrecency)
 // CacheOutputCloseListener
 
 CacheOutputCloseListener::CacheOutputCloseListener(CacheEntry* aEntry)
-: mEntry(aEntry)
+  : Runnable("net::CacheOutputCloseListener")
+  , mEntry(aEntry)
 {
-  MOZ_COUNT_CTOR(CacheOutputCloseListener);
 }
 
 CacheOutputCloseListener::~CacheOutputCloseListener()
 {
-  MOZ_COUNT_DTOR(CacheOutputCloseListener);
 }
 
 void CacheOutputCloseListener::OnOutputClosed()
@@ -1777,25 +1941,20 @@ NS_IMETHODIMP CacheOutputCloseListener::Run()
 size_t CacheEntry::SizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const
 {
   size_t n = 0;
-  nsCOMPtr<nsISizeOf> sizeOf;
 
   n += mCallbacks.ShallowSizeOfExcludingThis(mallocSizeOf);
   if (mFile) {
     n += mFile->SizeOfIncludingThis(mallocSizeOf);
   }
 
-  sizeOf = do_QueryInterface(mURI);
-  if (sizeOf) {
-    n += sizeOf->SizeOfIncludingThis(mallocSizeOf);
-  }
-
+  n += mURI.SizeOfExcludingThisIfUnshared(mallocSizeOf);
   n += mEnhanceID.SizeOfExcludingThisIfUnshared(mallocSizeOf);
   n += mStorageID.SizeOfExcludingThisIfUnshared(mallocSizeOf);
 
   // mDoomCallback is an arbitrary class that is probably reported elsewhere.
   // mOutputStream is reported in mFile.
   // mWriter is one of many handles we create, but (intentionally) not keep
-  // any reference to, so those unfortunatelly cannot be reported.  Handles are
+  // any reference to, so those unfortunately cannot be reported.  Handles are
   // small, though.
   // mSecurityInfo doesn't impl nsISizeOf.
 

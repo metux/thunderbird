@@ -15,7 +15,8 @@
 #include "nsIMsgDatabase.h"
 #include "nsMemory.h"
 #include <ctype.h>
-#include "nsISupportsArray.h"
+#include "nsIArray.h"
+#include "nsArrayUtils.h"
 
 // Implementation of search for IMAP mail folders
 
@@ -33,8 +34,9 @@ const char *nsMsgSearchNews::m_kNntpSubject = "SUBJECT ";
 const char *nsMsgSearchNews::m_kTermSeparator = "/";
 
 
-nsMsgSearchNews::nsMsgSearchNews (nsMsgSearchScopeTerm *scope, nsISupportsArray *termList) : nsMsgSearchAdapter (scope, termList)
+nsMsgSearchNews::nsMsgSearchNews (nsMsgSearchScopeTerm *scope, nsIArray *termList) : nsMsgSearchAdapter (scope, termList)
 {
+  m_searchType = ST_UNINITIALIZED;
 }
 
 
@@ -216,7 +218,7 @@ nsresult nsMsgSearchNews::Encode (nsCString *outEncoding)
 
   uint32_t numTerms;
 
-  m_searchTerms->Count(&numTerms);
+  m_searchTerms->GetLength(&numTerms);
   char **intermediateEncodings = new char * [numTerms];
   if (intermediateEncodings)
   {
@@ -225,14 +227,12 @@ nsresult nsMsgSearchNews::Encode (nsCString *outEncoding)
     uint32_t i;
     for (i = 0; i < numTerms; i++)
     {
-      nsCOMPtr<nsIMsgSearchTerm> pTerm;
-      m_searchTerms->QueryElementAt(i, NS_GET_IID(nsIMsgSearchTerm),
-                               (void **)getter_AddRefs(pTerm));
+      nsCOMPtr<nsIMsgSearchTerm> pTerm = do_QueryElementAt(m_searchTerms, i);
       // set boolean OR term if any of the search terms are an OR...this only works if we are using
       // homogeneous boolean operators.
       bool isBooleanOpAnd;
       pTerm->GetBooleanAnd(&isBooleanOpAnd);
-      m_ORSearch = !isBooleanOpAnd;
+      m_searchType = isBooleanOpAnd ? ST_AND_SEARCH : ST_OR_SEARCH;
 
       intermediateEncodings[i] = EncodeTerm (pTerm);
       if (intermediateEncodings[i])
@@ -245,7 +245,7 @@ nsresult nsMsgSearchNews::Encode (nsCString *outEncoding)
     {
       PL_strcpy (encoding, "?search");
 
-      m_searchTerms->Count(&numTerms);
+      m_searchTerms->GetLength(&numTerms);
 
       for (i = 0; i < numTerms; i++)
       {
@@ -321,18 +321,19 @@ void nsMsgSearchNews::CollateHits()
 
   // For an OR search we only need to count the first occurrence of a candidate.
   uint32_t termCount = 1;
-  if (!m_ORSearch)
+  MOZ_ASSERT(m_searchType != ST_UNINITIALIZED, "m_searchType accessed without being set");
+  if (m_searchType == ST_AND_SEARCH)
   {
     // We have a traditional AND search which must be collated. In order to
     // get promoted into the hits list, a candidate article number must appear
     // in the results of each XPAT command. So if we fire 3 XPAT commands (one
     // per search term), the article number must appear 3 times. If it appears
     // fewer than 3 times, it matched some search terms, but not all.
-    m_searchTerms->Count(&termCount);
+    m_searchTerms->GetLength(&termCount);
   }
   uint32_t candidateCount = 0;
   uint32_t candidate = m_candidateHits[0];
-  for (uint32_t index = 0; index < size; ++index)   
+  for (uint32_t index = 0; index < size; ++index)
   {
     uint32_t possibleCandidate = m_candidateHits[index];
     if (candidate == possibleCandidate)
@@ -420,7 +421,7 @@ nsresult nsMsgSearchValidityManager::InitNewsTable()
     m_newsTable->SetAvailable (nsMsgSearchAttrib::Size, nsMsgSearchOp::IsLessThan, 1);
     m_newsTable->SetEnabled   (nsMsgSearchAttrib::Size, nsMsgSearchOp::IsLessThan, 1);
 #endif
-    
+
     m_newsTable->SetAvailable (nsMsgSearchAttrib::OtherHeader, nsMsgSearchOp::Contains, 1);
     m_newsTable->SetEnabled   (nsMsgSearchAttrib::OtherHeader, nsMsgSearchOp::Contains, 1);
     m_newsTable->SetAvailable (nsMsgSearchAttrib::OtherHeader, nsMsgSearchOp::Is, 1);

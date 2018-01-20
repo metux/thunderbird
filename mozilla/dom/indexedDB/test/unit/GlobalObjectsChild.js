@@ -3,6 +3,8 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
+/* import-globals-from xpcshell-head-parent-process.js */
+
 function ok(cond, msg) {
   dump("ok(" + cond + ", \"" + msg + "\")");
   do_check_true(!!cond, Components.stack.caller);
@@ -29,10 +31,10 @@ function run_test() {
   request.onerror = function(event) {
     ok(false, "indexedDB error, '" + event.target.error.name + "'");
     finishTest();
-  }
+  };
   request.onsuccess = function(event) {
     let db = event.target.result;
     ok(db, "Got database");
     finishTest();
-  }
+  };
 }

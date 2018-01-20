@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -11,7 +12,9 @@
 #include "nscore.h"
 #include "nsISupports.h"
 #include "nsIFrame.h"
-class nsIAtom;
+class nsComboboxControlFrame;
+class nsCheckboxRadioFrame;
+class nsAtom;
 class nsNodeInfoManager;
 class nsIContent;
 class nsIDocument;
@@ -23,12 +26,14 @@ class nsIURI;
 class nsIPresShell;
 class nsIChannel;
 class nsTableColFrame;
+namespace mozilla {
+class ViewportFrame;
+} // namespace mozilla
 
 // These are all the block specific frame bits, they are copied from
 // the prev-in-flow to a newly created next-in-flow, except for the
 // NS_BLOCK_FLAGS_NON_INHERITED_MASK bits below.
-#define NS_BLOCK_FLAGS_MASK (NS_BLOCK_MARGIN_ROOT              | \
-                             NS_BLOCK_FLOAT_MGR                | \
+#define NS_BLOCK_FLAGS_MASK (NS_BLOCK_FORMATTING_CONTEXT_STATE_BITS | \
                              NS_BLOCK_CLIP_PAGINATED_OVERFLOW  | \
                              NS_BLOCK_HAS_FIRST_LETTER_STYLE   | \
                              NS_BLOCK_FRAME_HAS_OUTSIDE_BULLET | \
@@ -48,29 +53,25 @@ class nsTableColFrame;
 // Create a frame that supports "display: block" layout behavior
 class nsBlockFrame;
 nsBlockFrame*
-NS_NewBlockFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, nsFrameState aFlags = nsFrameState(0));
+NS_NewBlockFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 
 // Special Generated Content Node. It contains text taken from an
-// attribute of its *grandparent* content node. 
+// attribute of its *grandparent* content node.
 nsresult
 NS_NewAttributeContent(nsNodeInfoManager *aNodeInfoManager,
-                       int32_t aNameSpaceID, nsIAtom* aAttrName,
+                       int32_t aNameSpaceID, nsAtom* aAttrName,
                        nsIContent** aResult);
 
 // Create a basic area frame but the GetFrameForPoint is overridden to always
-// return the option frame 
+// return the option frame
 // By default, area frames will extend
 // their height to cover any children that "stick out".
 nsContainerFrame*
 NS_NewSelectsAreaFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, nsFrameState aFlags);
 
 // Create a block formatting context blockframe
-inline nsBlockFrame* NS_NewBlockFormattingContext(nsIPresShell* aPresShell,
-                                                  nsStyleContext* aStyleContext)
-{
-  return NS_NewBlockFrame(aPresShell, aStyleContext,
-                          NS_BLOCK_FLOAT_MGR | NS_BLOCK_MARGIN_ROOT);
-}
+nsBlockFrame*
+NS_NewBlockFormattingContext(nsIPresShell* aPresShell, nsStyleContext* aStyleContext);
 
 nsIFrame*
 NS_NewBRFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
@@ -78,15 +79,14 @@ NS_NewBRFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 nsIFrame*
 NS_NewCommentFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 
-// <frame> and <iframe> 
+// <frame> and <iframe>
 nsIFrame*
 NS_NewSubDocumentFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 // <frameset>
 nsIFrame*
 NS_NewHTMLFramesetFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 
-class ViewportFrame;
-ViewportFrame*
+mozilla::ViewportFrame*
 NS_NewViewportFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 class nsCanvasFrame;
 nsCanvasFrame*
@@ -133,16 +133,12 @@ NS_NewFirstLineFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 // forms
 nsContainerFrame*
 NS_NewGfxButtonControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
-nsIFrame*
-NS_NewNativeButtonControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
+nsCheckboxRadioFrame*
+NS_NewCheckboxRadioFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 nsIFrame*
 NS_NewImageControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 nsContainerFrame*
 NS_NewHTMLButtonControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
-nsIFrame*
-NS_NewGfxCheckboxControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
-nsIFrame*
-NS_NewNativeCheckboxControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 nsContainerFrame*
 NS_NewFieldSetFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 nsIFrame*
@@ -152,20 +148,10 @@ NS_NewColorControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 nsIFrame*
 NS_NewLegendFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 nsIFrame*
-NS_NewNativeTextControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
-nsIFrame*
 NS_NewTextControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
-nsIFrame*
-NS_NewGfxAutoTextControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
-nsIFrame*
-NS_NewGfxRadioControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
-nsIFrame*
-NS_NewNativeRadioControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
-nsIFrame*
-NS_NewNativeSelectControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 nsContainerFrame*
 NS_NewListControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
-nsContainerFrame*
+nsComboboxControlFrame*
 NS_NewComboboxControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, nsFrameState aFlags);
 nsIFrame*
 NS_NewProgressFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
@@ -175,11 +161,15 @@ nsIFrame*
 NS_NewRangeFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 nsIFrame*
 NS_NewNumberControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
+nsIFrame*
+NS_NewDateTimeControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
+nsBlockFrame*
+NS_NewDetailsFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 
 // Table frame factories
-class nsTableOuterFrame;
-nsTableOuterFrame*
-NS_NewTableOuterFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
+class nsTableWrapperFrame;
+nsTableWrapperFrame*
+NS_NewTableWrapperFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 class nsTableFrame;
 nsTableFrame*
 NS_NewTableFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);

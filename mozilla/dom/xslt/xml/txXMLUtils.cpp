@@ -22,8 +22,8 @@
 
 // static
 nsresult
-XMLUtils::splitExpatName(const char16_t *aExpatName, nsIAtom **aPrefix,
-                         nsIAtom **aLocalName, int32_t* aNameSpaceID)
+XMLUtils::splitExpatName(const char16_t *aExpatName, nsAtom **aPrefix,
+                         nsAtom **aLocalName, int32_t* aNameSpaceID)
 {
     /**
      *  Expat can send the following:
@@ -58,7 +58,7 @@ XMLUtils::splitExpatName(const char16_t *aExpatName, nsIAtom **aPrefix,
         nameStart = (uriEnd + 1);
         if (nameEnd)  {
             const char16_t *prefixStart = nameEnd + 1;
-            *aPrefix = NS_NewAtom(Substring(prefixStart, pos)).take();
+            *aPrefix = NS_Atomize(Substring(prefixStart, pos)).take();
             if (!*aPrefix) {
                 return NS_ERROR_OUT_OF_MEMORY;
             }
@@ -75,16 +75,16 @@ XMLUtils::splitExpatName(const char16_t *aExpatName, nsIAtom **aPrefix,
         *aPrefix = nullptr;
     }
 
-    *aLocalName = NS_NewAtom(Substring(nameStart, nameEnd)).take();
+    *aLocalName = NS_Atomize(Substring(nameStart, nameEnd)).take();
 
     return *aLocalName ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
 }
 
 nsresult
-XMLUtils::splitQName(const nsAString& aName, nsIAtom** aPrefix,
-                     nsIAtom** aLocalName)
+XMLUtils::splitQName(const nsAString& aName, nsAtom** aPrefix,
+                     nsAtom** aLocalName)
 {
-    const nsAFlatString& qName = PromiseFlatString(aName);
+    const nsString& qName = PromiseFlatString(aName);
     const char16_t* colon;
     bool valid = XMLUtils::isValidQName(qName, &colon);
     if (!valid) {
@@ -95,12 +95,12 @@ XMLUtils::splitQName(const nsAString& aName, nsIAtom** aPrefix,
         const char16_t *end;
         qName.EndReading(end);
 
-        *aPrefix = NS_NewAtom(Substring(qName.get(), colon)).take();
-        *aLocalName = NS_NewAtom(Substring(colon + 1, end)).take();
+        *aPrefix = NS_Atomize(Substring(qName.get(), colon)).take();
+        *aLocalName = NS_Atomize(Substring(colon + 1, end)).take();
     }
     else {
         *aPrefix = nullptr;
-        *aLocalName = NS_NewAtom(aName).take();
+        *aLocalName = NS_Atomize(aName).take();
     }
 
     return NS_OK;
@@ -109,9 +109,9 @@ XMLUtils::splitQName(const nsAString& aName, nsIAtom** aPrefix,
 /**
  * Returns true if the given string has only whitespace characters
  */
-bool XMLUtils::isWhitespace(const nsAFlatString& aText)
+bool XMLUtils::isWhitespace(const nsString& aText)
 {
-    nsAFlatString::const_char_iterator start, end;
+    nsString::const_char_iterator start, end;
     aText.BeginReading(start);
     aText.EndReading(end);
     for ( ; start != end; ++start) {
@@ -155,8 +155,7 @@ void XMLUtils::normalizePIValue(nsAString& piValue)
 }
 
 //static
-bool XMLUtils::isValidQName(const nsAFlatString& aQName,
-                            const char16_t** aColon)
+bool XMLUtils::isValidQName(const nsString& aQName, const char16_t** aColon)
 {
   return NS_SUCCEEDED(nsContentUtils::CheckQName(aQName, true, aColon));
 }

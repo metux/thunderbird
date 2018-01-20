@@ -5,22 +5,25 @@
 
 #include "nsHtml5PlainTextUtils.h"
 #include "nsHtml5AttributeName.h"
+#include "nsHtml5Portability.h"
 #include "nsIServiceManager.h"
 #include "nsIStringBundle.h"
 #include "mozilla/Preferences.h"
+#include "nsHtml5String.h"
 
 // static
 nsHtml5HtmlAttributes*
 nsHtml5PlainTextUtils::NewLinkAttributes()
 {
   nsHtml5HtmlAttributes* linkAttrs = new nsHtml5HtmlAttributes(0);
-  nsString* rel = new nsString(NS_LITERAL_STRING("alternate stylesheet"));
-  linkAttrs->addAttribute(nsHtml5AttributeName::ATTR_REL, rel);
-  nsString* type = new nsString(NS_LITERAL_STRING("text/css"));
-  linkAttrs->addAttribute(nsHtml5AttributeName::ATTR_TYPE, type);
-  nsString* href = new nsString(
-      NS_LITERAL_STRING("resource://gre-resources/plaintext.css"));
-  linkAttrs->addAttribute(nsHtml5AttributeName::ATTR_HREF, href);
+  nsHtml5String rel =
+    nsHtml5Portability::newStringFromLiteral("alternate stylesheet");
+  linkAttrs->addAttribute(nsHtml5AttributeName::ATTR_REL, rel, -1);
+  nsHtml5String type = nsHtml5Portability::newStringFromLiteral("text/css");
+  linkAttrs->addAttribute(nsHtml5AttributeName::ATTR_TYPE, type, -1);
+  nsHtml5String href = nsHtml5Portability::newStringFromLiteral(
+    "resource://content-accessible/plaintext.css");
+  linkAttrs->addAttribute(nsHtml5AttributeName::ATTR_HREF, href, -1);
 
   nsresult rv;
   nsCOMPtr<nsIStringBundleService> bundleService = do_GetService(NS_STRINGBUNDLE_CONTRACTID, &rv);
@@ -29,12 +32,12 @@ nsHtml5PlainTextUtils::NewLinkAttributes()
   rv = bundleService->CreateBundle("chrome://global/locale/browser.properties",
                                    getter_AddRefs(bundle));
   NS_ASSERTION(NS_SUCCEEDED(rv) && bundle, "chrome://global/locale/browser.properties could not be loaded");
-  nsXPIDLString title;
+  nsAutoString title;
   if (bundle) {
-    bundle->GetStringFromName(MOZ_UTF16("plainText.wordWrap"), getter_Copies(title));
+    bundle->GetStringFromName("plainText.wordWrap", title);
   }
 
-  nsString* titleCopy = new nsString(title);
-  linkAttrs->addAttribute(nsHtml5AttributeName::ATTR_TITLE, titleCopy);
+  linkAttrs->addAttribute(
+    nsHtml5AttributeName::ATTR_TITLE, nsHtml5String::FromString(title), -1);
   return linkAttrs;
 }

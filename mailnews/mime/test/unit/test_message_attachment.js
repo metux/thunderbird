@@ -53,7 +53,7 @@ var messages = [
     bodyPart: new SyntheticPartMultiMixed([
       new SyntheticPartLeaf('plain body text'),
       msgGen.makeMessage({
-        subject: '=?UTF-8?B?dGVzdFN1YmplY3Q?=', // This string is 'testSubject'.
+        subject: '=?UTF-8?B?dGVzdFN1YmplY3Q=?=', // This string is 'testSubject'.
         charset: 'UTF-8',
       }),
     ])},
@@ -75,7 +75,7 @@ var gStreamListener = {
     // here because it's simple.
     let regex = /<legend class="mimeAttachmentHeaderName">(.*?)<\/legend>/gi;
 
-    for (let [,attachment] in Iterator(messages[this.index].attachments)) {
+    for (let attachment of messages[this.index].attachments) {
       let match = regex.exec(this.contents);
       do_check_neq(match, null);
       do_check_eq(match[1], attachment.expectedFilename || attachment.filename);
@@ -120,7 +120,7 @@ var msgWindow = Cc["@mozilla.org/messenger/msgwindow;1"]
                   .createInstance(Ci.nsIMsgWindow);
 msgWindow.msgHeaderSink = gMessageHeaderSink;
 
-function test_message_attachments(info) {
+function* test_message_attachments(info) {
   let synMsg = gMessageGenerator.makeMessage(info);
   let synSet = new SyntheticMessageSet([synMsg]);
   yield add_sets_to_folder(gInbox, [synSet]);

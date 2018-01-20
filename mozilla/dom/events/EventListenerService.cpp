@@ -10,6 +10,7 @@
 #include "mozilla/EventListenerManager.h"
 #include "mozilla/JSEventHandler.h"
 #include "mozilla/Maybe.h"
+#include "nsArrayUtils.h"
 #include "nsCOMArray.h"
 #include "nsDOMClassInfoID.h"
 #include "nsIXPConnect.h"
@@ -36,13 +37,12 @@ EventListenerChange::~EventListenerChange()
 EventListenerChange::EventListenerChange(dom::EventTarget* aTarget) :
   mTarget(aTarget)
 {
-  mChangedListenerNames = nsArrayBase::Create();
 }
 
 void
-EventListenerChange::AddChangedListenerName(nsIAtom* aEventName)
+EventListenerChange::AddChangedListenerName(nsAtom* aEventName)
 {
-  mChangedListenerNames->AppendElement(aEventName, false);
+  mChangedListenerNames.AppendElement(aEventName);
 }
 
 NS_IMETHODIMP
@@ -54,10 +54,24 @@ EventListenerChange::GetTarget(nsIDOMEventTarget** aTarget)
 }
 
 NS_IMETHODIMP
-EventListenerChange::GetChangedListenerNames(nsIArray** aEventNames)
+EventListenerChange::GetCountOfEventListenerChangesAffectingAccessibility(
+  uint32_t* aCount)
 {
-  NS_ENSURE_ARG_POINTER(aEventNames);
-  NS_ADDREF(*aEventNames = mChangedListenerNames);
+  *aCount = 0;
+
+  size_t length = mChangedListenerNames.Length();
+  for (size_t i = 0; i < length; i++) {
+    RefPtr<nsAtom> listenerName = mChangedListenerNames[i];
+
+    // These are the event listener changes which may make an element
+    // accessible or inaccessible.
+    if (listenerName == nsGkAtoms::onclick ||
+        listenerName == nsGkAtoms::onmousedown ||
+        listenerName == nsGkAtoms::onmouseup) {
+      *aCount += 1;
+    }
+  }
+
   return NS_OK;
 }
 
@@ -138,7 +152,7 @@ EventListenerInfo::GetJSVal(JSContext* aCx,
   nsCOMPtr<JSEventHandler> jsHandler = do_QueryInterface(mListener);
   if (jsHandler && jsHandler->GetTypedEventHandler().HasEventHandler()) {
     JS::Handle<JSObject*> handler =
-      jsHandler->GetTypedEventHandler().Ptr()->Callable();
+      jsHandler->GetTypedEventHandler().Ptr()->CallableOrNull();
     if (handler) {
       aAc.emplace(aCx, handler);
       aJSVal.setObject(*handler);
@@ -206,20 +220,14 @@ EventListenerService::GetListenerInfoFor(nsIDOMEventTarget* aEventTarget,
     return NS_OK;
   }
 
-  *aOutArray =
-    static_cast<nsIEventListenerInfo**>(
-      moz_xmalloc(sizeof(nsIEventListenerInfo*) * count));
-  NS_ENSURE_TRUE(*aOutArray, NS_ERROR_OUT_OF_MEMORY);
-
-  for (int32_t i = 0; i < count; ++i) {
-    NS_ADDREF((*aOutArray)[i] = listenerInfos[i]);
-  }
+  listenerInfos.Forget(aOutArray);
   *aCount = count;
   return NS_OK;
 }
 
 NS_IMETHODIMP
 EventListenerService::GetEventTargetChainFor(nsIDOMEventTarget* aEventTarget,
+                                             bool aComposed,
                                              uint32_t* aCount,
                                              nsIDOMEventTarget*** aOutArray)
 {
@@ -227,6 +235,7 @@ EventListenerService::GetEventTargetChainFor(nsIDOMEventTarget* aEventTarget,
   *aOutArray = nullptr;
   NS_ENSURE_ARG(aEventTarget);
   WidgetEvent event(true, eVoidEvent);
+  event.SetComposed(aComposed);
   nsTArray<EventTarget*> targets;
   nsresult rv = EventDispatcher::Dispatch(aEventTarget, nullptr, &event,
                                           nullptr, nullptr, nullptr, &targets);
@@ -362,26 +371,35 @@ EventListenerService::RemoveListenerChangeListener(nsIListenerChangeListener* aL
 
 void
 EventListenerService::NotifyAboutMainThreadListenerChangeInternal(dom::EventTarget* aTarget,
-                                                                  nsIAtom* aName)
+                                                                  nsAtom* aName)
 {
   MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(aTarget);
   if (mChangeListeners.IsEmpty()) {
     return;
   }
 
   if (!mPendingListenerChanges) {
     mPendingListenerChanges = nsArrayBase::Create();
-    nsCOMPtr<nsIRunnable> runnable = NS_NewRunnableMethod(this,
-      &EventListenerService::NotifyPendingChanges);
-    NS_DispatchToCurrentThread(runnable);
+    nsCOMPtr<nsIRunnable> runnable =
+      NewRunnableMethod("EventListenerService::NotifyPendingChanges",
+                        this, &EventListenerService::NotifyPendingChanges);
+    if (nsCOMPtr<nsIGlobalObject> global = aTarget->GetOwnerGlobal()) {
+      global->Dispatch(TaskCategory::Other, runnable.forget());
+    } else if (nsCOMPtr<nsINode> node = do_QueryInterface(aTarget)) {
+      node->OwnerDoc()->Dispatch(TaskCategory::Other, runnable.forget());
+    } else {
+      NS_DispatchToCurrentThread(runnable);
+    }
   }
 
-  RefPtr<EventListenerChange> changes = mPendingListenerChangesSet.Get(aTarget);
-  if (!changes) {
-    changes = new EventListenerChange(aTarget);
-    mPendingListenerChanges->AppendElement(changes, false);
-    mPendingListenerChangesSet.Put(aTarget, changes);
-  }
+  RefPtr<EventListenerChange> changes =
+    mPendingListenerChangesSet.LookupForAdd(aTarget).OrInsert(
+      [this, aTarget] () {
+        EventListenerChange* c = new EventListenerChange(aTarget);
+        mPendingListenerChanges->AppendElement(c);
+        return c;
+      });
   changes->AddChangedListenerName(aName);
 }
 

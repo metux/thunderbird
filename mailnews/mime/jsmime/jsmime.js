@@ -58,6 +58,8 @@ function decode_qp(buffer, more) {
 function decode_base64(buffer, more) {
   // Drop all non-base64 characters
   let sanitize = buffer.replace(/[^A-Za-z0-9+\/=]/g,'');
+  // Remove harmful `=' chars in the middle.
+  sanitize = sanitize.replace(/=+([A-Za-z0-9+\/])/g, '$1');
   // We need to encode in groups of 4 chars. If we don't have enough, leave the
   // excess for later. If there aren't any more, drop enough to make it 4.
   let excess = sanitize.length % 4;
@@ -615,7 +617,7 @@ function decodeRFC2047Words(headerValue) {
    * easily close over the lastCharset/currentDecoder variables, needed for
    * handling bad RFC 2047 productions properly.
    */
-  function decode2047Token(token) {
+  function decode2047Token(token, isLastToken) {
     let tokenParts = token.split("?");
 
     // If it's obviously not a valid token, return false immediately.
@@ -635,12 +637,6 @@ function decodeRFC2047Words(headerValue) {
       if (/[^A-Za-z0-9+\/=]/.exec(text))
         return false;
 
-      // Base64 strings must be a length of multiple 4, but it seems that some
-      // mailers accidentally insert one too many `=' chars. Gracefully handle
-      // this case; see bug 227290 for more information.
-      if (text.length % 4 == 1 && text.charAt(text.length - 1) == '=')
-        text = text.slice(0, -1);
-
       // Decode the string
       buffer = mimeutils.decode_base64(text, false)[0];
     } else if (encoding == 'Q' || encoding == 'q') {
@@ -659,6 +655,7 @@ function decodeRFC2047Words(headerValue) {
     }
 
     // Make the buffer be a typed array for what follows
+    let stringBuffer = buffer;
     buffer = mimeutils.stringToTypedArray(buffer);
 
     // If we cannot reuse the last decoder, flush out whatever remains.
@@ -683,7 +680,17 @@ function decodeRFC2047Words(headerValue) {
     // RFC 2047 tokens aren't supposed to break in the middle of a multibyte
     // character, a lot of software messes up and does so because it's hard not
     // to (see headeremitter.js for exactly how hard!).
-    return output + currentDecoder.decode(buffer, {stream: true});
+    // We must not stream ISO-2022-JP if the buffer switches back to
+    // the ASCII state, that is, ends in "ESC(B".
+    // Also, we shouldn't do streaming on the last token.
+    let doStreaming;
+    if (isLastToken ||
+        (charset.toUpperCase() == "ISO-2022-JP" &&
+         stringBuffer.endsWith("\x1B(B")))
+      doStreaming = {stream: false};
+    else
+      doStreaming = {stream: true};
+    return output + currentDecoder.decode(buffer, doStreaming);
   }
 
   // The first step of decoding is to split the string into RFC 2047 and
@@ -692,9 +699,16 @@ function decodeRFC2047Words(headerValue) {
   // some amount of semantic checking, so that malformed RFC 2047 tokens will
   // get ignored earlier.
   let components = headerValue.split(/(=\?[^?]*\?[BQbq]\?[^?]*\?=)/);
+
+  // Find last RFC 2047 token.
+  let lastRFC2047Index = -1;
+  for (let i = 0; i < components.length; i++) {
+    if (components[i].substring(0, 2) == "=?")
+      lastRFC2047Index = i;
+  }
   for (let i = 0; i < components.length; i++) {
     if (components[i].substring(0, 2) == "=?") {
-      let decoded = decode2047Token(components[i]);
+      let decoded = decode2047Token(components[i], i == lastRFC2047Index);
       if (decoded !== false) {
         // If 2047 decoding succeeded for this bit, rewrite the original value
         // with the proper decoding.
@@ -1214,7 +1228,7 @@ var kKnownTZs = {
  *                        above.
  */
 function parseDateHeader(header) {
-  let tokens = [for (x of getHeaderTokens(header, ",:", {})) x.toString()];
+  let tokens = getHeaderTokens(header, ",:", {}).map(x => x.toString());
   // What does a Date header look like? In practice, most date headers devolve
   // into Date: [dow ,] dom mon year hh:mm:ss tzoff [(abbrev)], with the day of
   // week mostly present and the timezone abbreviation mostly absent.
@@ -2513,10 +2527,12 @@ for (let [header, encoder] of structuredHeaders.encoders) {
   addStructuredEncoder(header, encoder);
 }
 
-/// Clamp a value in the range [min, max], defaulting to def if it is undefined.
-function clamp(value, min, max, def) {
-  if (value === undefined)
+/// Clamp a value in the range [min, max], defaulting to def
+/// if the object[property] does not contain the value.
+function clamp(object, property, min, max, def) {
+  if (!(property in object))
     return def;
+  let value = object[property];
   if (value < min)
     return min;
   if (value > max)
@@ -2589,8 +2605,8 @@ function HeaderEmitter(handler, options) {
   // allow for breathing room as well. The default of 78 for the soft margin is
   // recommended by RFC 5322; the default of 332 for the hard margin ensures
   // that UTF-8 encoding the output never violates the 998 octet limit.
-  this._softMargin = clamp(options.softMargin, 30, 900, 78);
-  this._hardMargin = clamp(options.hardMargin, this._softMargin, 998, 332);
+  this._softMargin = clamp(options, "softMargin", 30, 900, 78);
+  this._hardMargin = clamp(options, "hardMargin", this._softMargin, 998, 332);
 
   /**
    * The index of the last preferred breakable position in the current line.
@@ -3021,7 +3037,7 @@ HeaderEmitter.prototype.addAddress = function (addr) {
   if (addr.name) {
     // This is a simple estimate that keeps names on one line if possible.
     this._reserveTokenSpace(addr.name.length + addr.email.length + 3);
-    this.addPhrase(addr.name, ",()<>[]:;.\"", true);
+    this.addPhrase(addr.name, ",()<>[]:;@.\"", true);
 
     // If we don't have an email address, don't write out the angle brackets for
     // the address. It's already an abnormal situation should this appear, and
@@ -3076,7 +3092,7 @@ HeaderEmitter.prototype.addAddresses = function (addresses) {
     } else {
       // A group has format name: member, member;
       // Note that we still add a comma after the group is completed.
-      this.addPhrase(addr.name, ",()<>[]:;.\"", false);
+      this.addPhrase(addr.name, ",()<>[]:;@.\"", false);
       this.addText(":", true);
 
       this.addAddresses(addr.group);

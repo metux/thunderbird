@@ -39,7 +39,7 @@ function createURI(urispec)
 {
   var ioServ = Components.classes["@mozilla.org/network/io-service;1"]
                          .getService(Components.interfaces.nsIIOService);
-  return ioServ.newURI(urispec, null, null);
+  return ioServ.newURI(urispec);
 }
 
 function getCacheStorage(where, lci, appcache)
@@ -97,7 +97,7 @@ function asyncOpenCacheEntry(key, where, flags, lci, callback, appcache)
 
 function syncWithCacheIOThread(callback, force)
 {
-  if (!newCacheBackEndUsed() || force) {
+  if (force) {
     asyncOpenCacheEntry(
       "http://nonexistententry/", "disk", Ci.nsICacheStorage.OPEN_READONLY, null,
       function(status, entry) {

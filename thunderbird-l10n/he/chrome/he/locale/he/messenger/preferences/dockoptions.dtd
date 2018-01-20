@@ -1,0 +1,18 @@
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+
+<!ENTITY dockOptionsDialog.title               "אפשרויות סמל יישום">
+
+<!ENTITY bounceSystemDockIcon.label            "הנפשת סמל היישום כשהודעה חדשה מגיעה">
+
+<!ENTITY window.macWidth                       "35em">
+
+<!ENTITY bounceSystemDockIcon.accesskey        "i">
+<!ENTITY newMessagesCountDock.label            "Count of new messages">
+<!ENTITY newMessagesCountDock.accesskey        "n">
+<!ENTITY showAllUnreadMessagesCount.label      "Count of unread messages">
+<!ENTITY showAllUnreadMessagesCount.accesskey  "u">
+<!ENTITY dockIconBadge.label                   "App icon badge">
+<!ENTITY dockIconShow.label                    "Badge app icon with:">
+<!ENTITY directNotificationSettings.label      "You can disable the badge on the Notification pane of System Preferences.">

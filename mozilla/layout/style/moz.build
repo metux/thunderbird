@@ -1,4 +1,4 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -22,13 +22,8 @@ with Files('nsDOM*'):
 DIRS += ['xbl-marquee']
 TEST_DIRS += ['test']
 
-XPIDL_SOURCES += [
-    'nsICSSUnprefixingService.idl',
-]
-
-XPIDL_MODULE = 'layout_base'
-
 EXPORTS += [
+    '!nsStyleStructList.h',
     'AnimationCommon.h',
     'CounterStyleManager.h',
     'nsAnimationManager.h',
@@ -36,13 +31,15 @@ EXPORTS += [
     'nsCSSAnonBoxes.h',
     'nsCSSAnonBoxList.h',
     'nsCSSCounterDescList.h',
+    'nsCSSCounterStyleRule.h',
     'nsCSSFontDescList.h',
+    'nsCSSFontFaceRule.h',
     'nsCSSKeywordList.h',
     'nsCSSKeywords.h',
     'nsCSSParser.h',
     'nsCSSPropAliasList.h',
-    'nsCSSProperty.h',
-    'nsCSSPropertySet.h',
+    'nsCSSPropertyID.h',
+    'nsCSSPropertyIDSet.h',
     'nsCSSPropList.h',
     'nsCSSPropLogicalGroupList.h',
     'nsCSSProps.h',
@@ -58,17 +55,20 @@ EXPORTS += [
     'nsDOMCSSRGBColor.h',
     'nsICSSDeclaration.h',
     'nsICSSLoaderObserver.h',
-    'nsICSSPseudoComparator.h',
     'nsICSSStyleRuleDOMWrapper.h',
     'nsIStyleRule.h',
     'nsIStyleRuleProcessor.h',
     'nsLayoutStylesheetCache.h',
+    'nsMediaFeatures.h',
+    'nsMediaList.h',
     'nsRuleData.h',
     'nsRuleNode.h',
     'nsRuleProcessorData.h',
     'nsRuleWalker.h',
+    'nsStyleAutoArray.h',
     'nsStyleConsts.h',
     'nsStyleContext.h',
+    'nsStyleContextInlines.h',
     'nsStyleCoord.h',
     'nsStyleSet.h',
     'nsStyleStruct.h',
@@ -79,26 +79,85 @@ EXPORTS += [
 ]
 
 EXPORTS.mozilla += [
+    'AnimationCollection.h',
+    'BindingStyleRule.h',
+    'CSSEnabledState.h',
     'CSSStyleSheet.h',
     'CSSVariableDeclarations.h',
     'CSSVariableResolver.h',
     'CSSVariableValues.h',
+    'DeclarationBlock.h',
+    'DeclarationBlockInlines.h',
+    'DocumentStyleRootIterator.h',
+    'GeckoStyleContext.h',
+    'GenericSpecifiedValues.h',
+    'GenericSpecifiedValuesInlines.h',
+    'HandleRefPtr.h',
     'IncrementalClearCOMRuleArray.h',
     'LayerAnimationInfo.h',
+    'PostTraversalTask.h',
+    'PreloadedStyleSheet.h',
     'RuleNodeCacheConditions.h',
     'RuleProcessorCache.h',
+    'ServoArcTypeList.h',
+    'ServoBindingList.h',
+    'ServoBindings.h',
+    'ServoBindingTypes.h',
+    'ServoCSSParser.h',
+    'ServoCSSRuleList.h',
+    'ServoDeclarationBlock.h',
+    'ServoDocumentRule.h',
+    'ServoElementSnapshot.h',
+    'ServoElementSnapshotTable.h',
+    'ServoFontFeatureValuesRule.h',
+    'ServoImportRule.h',
+    'ServoKeyframeRule.h',
+    'ServoKeyframesRule.h',
+    'ServoMediaList.h',
+    'ServoMediaRule.h',
+    'ServoNamespaceRule.h',
+    'ServoPageRule.h',
+    'ServoPropPrefList.h',
+    'ServoSpecifiedValues.h',
+    'ServoStyleContext.h',
+    'ServoStyleContextInlines.h',
+    'ServoStyleRule.h',
+    'ServoStyleSet.h',
+    'ServoStyleSheet.h',
+    'ServoSupportsRule.h',
+    'ServoTypes.h',
+    'ServoUtils.h',
     'SheetType.h',
     'StyleAnimationValue.h',
+    'StyleBackendType.h',
+    'StyleComplexColor.h',
+    'StylePrefs.h',
+    'StyleSetHandle.h',
+    'StyleSetHandleInlines.h',
+    'StyleSheet.h',
+    'StyleSheetInfo.h',
+    'StyleSheetInlines.h',
+    'URLExtraData.h',
 ]
 
 EXPORTS.mozilla.dom += [
     'CSS.h',
+    'CSSFontFeatureValuesRule.h',
+    'CSSImportRule.h',
+    'CSSKeyframeRule.h',
+    'CSSKeyframesRule.h',
     'CSSLexer.h',
+    'CSSMediaRule.h',
+    'CSSMozDocumentRule.h',
+    'CSSNamespaceRule.h',
+    'CSSPageRule.h',
     'CSSRuleList.h',
+    'CSSSupportsRule.h',
     'CSSValue.h',
     'FontFace.h',
     'FontFaceSet.h',
     'FontFaceSetIterator.h',
+    'MediaList.h',
     'MediaQueryList.h',
 ]
 
@@ -111,28 +170,45 @@ EXPORTS.mozilla.css += [
     'Loader.h',
     'NameSpaceRule.h',
     'Rule.h',
+    'SheetLoadData.h',
+    'SheetParsingMode.h',
+    'StreamLoader.h',
     'StyleRule.h',
+    'URLMatchingFunction.h',
 ]
 
 UNIFIED_SOURCES += [
-    'AnimationCommon.cpp',
+    'AnimationCollection.cpp',
+    'BindingStyleRule.cpp',
     'CounterStyleManager.cpp',
     'CSS.cpp',
+    'CSSFontFeatureValuesRule.cpp',
+    'CSSImportRule.cpp',
+    'CSSKeyframeRule.cpp',
+    'CSSKeyframesRule.cpp',
     'CSSLexer.cpp',
+    'CSSMediaRule.cpp',
+    'CSSMozDocumentRule.cpp',
+    'CSSPageRule.cpp',
     'CSSRuleList.cpp',
     'CSSStyleSheet.cpp',
+    'CSSSupportsRule.cpp',
     'CSSVariableDeclarations.cpp',
     'CSSVariableResolver.cpp',
     'CSSVariableValues.cpp',
     'Declaration.cpp',
+    'DocumentStyleRootIterator.cpp',
     'ErrorReporter.cpp',
     'FontFace.cpp',
     'FontFaceSet.cpp',
     'FontFaceSetIterator.cpp',
+    'GeckoStyleContext.cpp',
+    'GroupRule.cpp',
     'ImageLoader.cpp',
     'IncrementalClearCOMRuleArray.cpp',
     'LayerAnimationInfo.cpp',
     'Loader.cpp',
+    'MediaList.cpp',
     'MediaQueryList.cpp',
     'nsAnimationManager.cpp',
     'nsComputedDOMStyle.cpp',
@@ -142,7 +218,7 @@ UNIFIED_SOURCES += [
     'nsCSSParser.cpp',
     'nsCSSProps.cpp',
     'nsCSSPseudoClasses.cpp',
-    'nsCSSPseudoElements.cpp',
+    'nsCSSRuleProcessor.cpp',
     'nsCSSRules.cpp',
     'nsCSSScanner.cpp',
     'nsCSSValue.cpp',
@@ -155,8 +231,8 @@ UNIFIED_SOURCES += [
     'nsFontFaceUtils.cpp',
     'nsHTMLCSSStyleSheet.cpp',
     'nsHTMLStyleSheet.cpp',
-    'nsLayoutStylesheetCache.cpp',
     'nsMediaFeatures.cpp',
+    'nsMediaList.cpp',
     'nsNthIndexCache.cpp',
     'nsROCSSPrimitiveValue.cpp',
     'nsRuleData.cpp',
@@ -168,21 +244,45 @@ UNIFIED_SOURCES += [
     'nsStyleTransformMatrix.cpp',
     'nsStyleUtil.cpp',
     'nsTransitionManager.cpp',
+    'PostTraversalTask.cpp',
+    'PreloadedStyleSheet.cpp',
     'RuleNodeCacheConditions.cpp',
     'RuleProcessorCache.cpp',
+    'ServoBindings.cpp',
+    'ServoCSSParser.cpp',
+    'ServoCSSRuleList.cpp',
+    'ServoDeclarationBlock.cpp',
+    'ServoDocumentRule.cpp',
+    'ServoElementSnapshot.cpp',
+    'ServoFontFeatureValuesRule.cpp',
+    'ServoImportRule.cpp',
+    'ServoKeyframeRule.cpp',
+    'ServoKeyframesRule.cpp',
+    'ServoMediaList.cpp',
+    'ServoMediaRule.cpp',
+    'ServoNamespaceRule.cpp',
+    'ServoPageRule.cpp',
+    'ServoSpecifiedValues.cpp',
+    'ServoStyleContext.cpp',
+    'ServoStyleRule.cpp',
+    'ServoStyleSet.cpp',
+    'ServoStyleSheet.cpp',
+    'ServoSupportsRule.cpp',
+    'StreamLoader.cpp',
     'StyleAnimationValue.cpp',
+    'StylePrefs.cpp',
     'StyleRule.cpp',
-    'SVGAttrAnimationRuleProcessor.cpp',
+    'StyleSheet.cpp',
+    'URLExtraData.cpp',
 ]
 
-# nsCSSRuleProcessor.cpp needs to be built separately because it uses plarena.h.
 SOURCES += [
-    'nsCSSRuleProcessor.cpp',
-]
-
-EXTRA_COMPONENTS += [
-    'CSSUnprefixingService.js',
-    'CSSUnprefixingService.manifest',
+    # Both nsCSSPseudoElements.cpp and nsCSSPseudoClasses.cpp defined a
+    # 'mozPlaceholder' static atom.
+    'nsCSSPseudoElements.cpp',
+    # nsLayoutStylesheetCache.cpp uses nsExceptionHandler.h, which includes
+    # windows.h.
+    'nsLayoutStylesheetCache.cpp',
 ]
 
 include('/ipc/chromium/chromium-config.mozbuild')
@@ -206,22 +306,34 @@ JAR_MANIFESTS += ['jar.mn']
 RESOURCE_FILES += [
     'contenteditable.css',
     'designmode.css',
+]
+
+CONTENT_ACCESSIBLE_FILES += [
     'ImageDocument.css',
+    'res/plaintext.css',
+    'res/viewsource.css',
     'TopLevelImageDocument.css',
     'TopLevelVideoDocument.css',
 ]
 
-# nsCSSPropsGenerated.inc is generated from nsCSSPropsGenerated.inc.in by
-# GenerateCSSPropsGenerated.py; see the corresponding rules in Makefile.in.
-
 GENERATED_FILES += [
-    'nsCSSPropsGenerated.inc',
     'nsStyleStructList.h',
 ]
 
 style_struct_list = GENERATED_FILES['nsStyleStructList.h']
 style_struct_list.script = 'generate-stylestructlist.py'
 
-if CONFIG['GNU_CC']:
-    CFLAGS += ['-Wshadow']
-    CXXFLAGS += ['-Wshadow']
+if CONFIG['COMPILE_ENVIRONMENT']:
+    GENERATED_FILES += [
+        'nsCSSPropsGenerated.inc',
+    ]
+    css_props = GENERATED_FILES['nsCSSPropsGenerated.inc']
+    css_props.script = 'GenerateCSSPropsGenerated.py:generate'
+    css_props.inputs = [
+        'nsCSSPropsGenerated.inc.in',
+        'PythonCSSProps.h',
+    ]
+
+    CONFIGURE_SUBST_FILES += [
+        'bindgen.toml',
+    ]

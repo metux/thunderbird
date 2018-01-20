@@ -1,4 +1,4 @@
-/** ***** BEGIN LICENSE BLOCK *****
+/**
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -8,6 +8,7 @@
 Components.utils.import("resource:///modules/jsTreeSelection.js");
 Components.utils.import("resource:///modules/MailUtils.js");
 Components.utils.import("resource://gre/modules/Services.jsm");
+Components.utils.import("resource://gre/modules/AppConstants.jsm");
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource:///modules/MsgHdrSyntheticView.js");
 
@@ -75,7 +76,9 @@ StandaloneFolderDisplayWidget.prototype = {
   onCreatedView:
       function StandaloneMessageDisplayWidget_onCreatedView() {
     this._fakeTreeBox.view = this.view.dbView;
+    // Need to clear out this reference later.
     this._magicTreeSelection.view = this.view.dbView;
+
     // only if we're not dealing with a dummy message (from .eml file /
     //  attachment should we try and hook up the selection object.)  Otherwise
     //  the view will not operate in stand alone message mode.
@@ -224,13 +227,13 @@ StandaloneMessageDisplayWidget.prototype = {
 
     // If the tab hasn't got a title, or we're on Mac, don't display
     // the separator.
-    if (docTitle && !Application.platformIsMac)
+    if (docTitle && (AppConstants.platform != "macosx"))
         docTitle += document.documentElement
                             .getAttribute("titlemenuseparator");
 
     // If we haven't got a title at this stage add the modifier, or if
     // we are on a non-mac platform, add the modifier.
-    if (!docTitle || !Application.platformIsMac)
+    if (!docTitle || (AppConstants.platform != "macosx"))
          docTitle += document.documentElement
                              .getAttribute("titlemodifier");
 
@@ -245,6 +248,10 @@ StandaloneMessageDisplayWidget.prototype = {
   },
 
   onSelectedMessagesChanged: function () {
+    // When switching folders, we won't have any selection for a while.
+    if (!this.folderDisplay.view.dbView)
+      return true;
+
     // If the message we're displaying is deleted, we won't have any selection
     // for a while, but we'll soon select a new message. So don't test the
     // selection count -- instead see if there are any messages in the db view
@@ -766,7 +773,9 @@ function HideMenus()
 function OnUnloadMessageWindow()
 {
   if (gFolderDisplay._magicTreeSelection) {
+    // Avoid cycle leaks.
     gFolderDisplay._magicTreeSelection.tree = null;
+    gFolderDisplay._magicTreeSelection.view = null;
     gFolderDisplay._magicTreeSelection = null;
   }
   gFolderDisplay.close();
@@ -885,6 +894,8 @@ var MessageWindowController =
       case "cmd_forwardInline":
       case "cmd_forwardAttachment":
       case "cmd_editAsNew":
+      case "cmd_editDraftMsg":
+      case "cmd_newMsgFromTemplate":
       case "cmd_getNextNMessages":
       case "cmd_find":
       case "cmd_findAgain":
@@ -959,6 +970,7 @@ var MessageWindowController =
       case "button_replylist":
         return gFolderDisplay.selectedMessage && IsReplyListEnabled();
       case "cmd_newMessage":
+        return CanComposeMessages();
       case "cmd_replySender":
       case "cmd_replyGroup":
       case "button_followup":
@@ -967,6 +979,8 @@ var MessageWindowController =
       case "cmd_forwardInline":
       case "cmd_forwardAttachment":
       case "cmd_editAsNew":
+      case "cmd_editDraftMsg":
+      case "cmd_newMsgFromTemplate":
       case "cmd_print":
       case "cmd_printpreview":
       case "button_print":
@@ -1133,7 +1147,13 @@ var MessageWindowController =
         MsgForwardAsAttachment(null);
         break;
       case "cmd_editAsNew":
-        MsgEditMessageAsNew();
+        MsgEditMessageAsNew(null);
+        break;
+      case "cmd_editDraftMsg":
+        MsgEditDraftMessage(null);
+        break;
+      case "cmd_newMsgFromTemplate":
+        MsgNewMessageFromTemplate(null);
         break;
       case "cmd_moveToFolderAgain":
         var folder = MailUtils.getFolderForURI(

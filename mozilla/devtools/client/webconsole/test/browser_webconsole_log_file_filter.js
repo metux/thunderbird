@@ -1,4 +1,5 @@
-/* vim:set ts=2 sw=2 sts=2 et: */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
+/* vim: set ft=javascript ts=2 et sw=2 tw=80: */
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
@@ -12,7 +13,7 @@ const TEST_URI = "http://example.com/browser/devtools/client/webconsole/" +
 
 var hud;
 
-var test = asyncTest(function* () {
+add_task(function* () {
   yield loadTab(TEST_URI);
 
   hud = yield openConsole();
@@ -66,7 +67,7 @@ function countMessageNodes() {
   let displayedMessageNodes = 0;
   let view = hud.iframeWindow;
   for (let i = 0; i < messageNodes.length; i++) {
-    let computedStyle = view.getComputedStyle(messageNodes[i], null);
+    let computedStyle = view.getComputedStyle(messageNodes[i]);
     if (computedStyle.display !== "none") {
       displayedMessageNodes++;
     }

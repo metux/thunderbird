@@ -14,7 +14,7 @@ interface nsIMsgFolder;
 interface nsIMsgSearchSession;
 interface nsIMsgDBHdr;
 interface nsIStreamConverter;
-interface nsICacheEntryDescriptor;
+interface nsICacheEntry;
 
 %{C++
 #include "MailNewsTypes.h"
@@ -212,16 +212,16 @@ interface nsIMsgMessageService : nsISupports {
   /**
    * Determines whether a message is in the memory cache. Local folders
    * don't implement this.
+   * The URL needs to address a message, not a message part, all query
+   * qualifiers will be stripped before looking up the entry in the cache.
    *
    * @param aUrl The URL of the message, possibly with an appropriate command in it
    * @param aFolder The folder this message is in
-   * @param aCacheEntry If a cache entry is found, then a pointer to it
    * 
    * @return TRUE if the message is in mem cache; FALSE if it is not.
    */
   boolean isMsgInMemCache(in nsIURI aUrl,
-                          in nsIMsgFolder aFolder,
-                          out nsICacheEntryDescriptor aCacheEntry);
+                          in nsIMsgFolder aFolder);
 
   /**
    * now the the message datasource is going away

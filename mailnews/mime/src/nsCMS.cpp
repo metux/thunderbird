@@ -6,10 +6,13 @@
 #include "nsCMS.h"
 
 #include "CertVerifier.h"
-#include "cms.h"
 #include "CryptoTask.h"
+#include "ScopedNSSTypes.h"
+#include "cms.h"
+#include "mozilla/Logging.h"
+#include "mozilla/RefPtr.h"
 #include "nsArrayUtils.h"
-#include "nsCertVerificationThread.h"
+#include "nsDependentSubstring.h"
 #include "nsIArray.h"
 #include "nsICMSMessageErrors.h"
 #include "nsICryptoHash.h"
@@ -19,19 +22,16 @@
 #include "nsNSSComponent.h"
 #include "nsNSSHelper.h"
 #include "nsServiceManagerUtils.h"
-#include "mozilla/RefPtr.h"
+#include "pkix/Result.h"
 #include "pkix/pkixtypes.h"
-#include "ScopedNSSTypes.h"
 #include "smime.h"
-
-#include "mozilla/Logging.h"
 
 using namespace mozilla;
 using namespace mozilla::psm;
 using namespace mozilla::pkix;
 
 #ifdef PR_LOGGING
-extern PRLogModuleInfo* gPIPNSSLog;
+extern mozilla::LazyLogModule gPIPNSSLog;
 #endif
 
 NS_IMPL_ISUPPORTS(nsCMSMessage, nsICMSMessage, nsICMSMessage2)
@@ -52,7 +52,7 @@ nsCMSMessage::~nsCMSMessage()
     return;
   }
   destructorSafeDestroyNSSReference();
-  shutdown(calledFromObject);
+  shutdown(ShutdownCalledFrom::Object);
 }
 
 nsresult nsCMSMessage::Init()
@@ -186,9 +186,11 @@ NS_IMETHODIMP nsCMSMessage::GetSignerCert(nsIX509Cert **scert)
     MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("nsCMSMessage::GetSignerCert got signer cert\n"));
 
     nsCOMPtr<nsIX509CertDB> certdb = do_GetService(NS_X509CERTDB_CONTRACTID);
-    certdb->ConstructX509(reinterpret_cast<const char *>(si->cert->derCert.data),
-                          si->cert->derCert.len,
-                          getter_AddRefs(cert));
+    nsDependentCSubstring certDER(
+      reinterpret_cast<char*>(si->cert->derCert.data),
+      si->cert->derCert.len);
+    nsresult rv = certdb->ConstructX509(certDER, getter_AddRefs(cert));
+    NS_ENSURE_SUCCESS(rv, rv);
   }
   else {
     MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("nsCMSMessage::GetSignerCert no signer cert, do we have a cert list? %s\n",
@@ -202,13 +204,9 @@ NS_IMETHODIMP nsCMSMessage::GetSignerCert(nsIX509Cert **scert)
   return NS_OK;
 }
 
-NS_IMETHODIMP nsCMSMessage::GetEncryptionCert(nsIX509Cert **ecert)
+NS_IMETHODIMP nsCMSMessage::GetEncryptionCert(nsIX509Cert**)
 {
-  nsNSSShutDownPreventionLock locker;
-  if (isAlreadyShutDown())
-    return NS_ERROR_NOT_AVAILABLE;
-
-    return NS_ERROR_NOT_IMPLEMENTED;
+  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP nsCMSMessage::VerifyDetachedSignature(unsigned char* aDigestData, uint32_t aDigestDataLen)
@@ -236,14 +234,14 @@ nsresult nsCMSMessage::CommonVerifySignature(unsigned char* aDigestData, uint32_
   if (!NSS_CMSMessage_IsSigned(m_cmsMsg)) {
     MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("nsCMSMessage::CommonVerifySignature - not signed\n"));
     return NS_ERROR_CMS_VERIFY_NOT_SIGNED;
-  } 
+  }
 
   cinfo = NSS_CMSMessage_ContentLevel(m_cmsMsg, 0);
   if (cinfo) {
     // I don't like this hard cast. We should check in some way, that we really have this type.
     sigd = (NSSCMSSignedData*)NSS_CMSContentInfo_GetContent(cinfo);
   }
-  
+
   if (!sigd) {
     MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("nsCMSMessage::CommonVerifySignature - no content info\n"));
     rv = NS_ERROR_CMS_VERIFY_NO_CONTENT_INFO;
@@ -273,18 +271,22 @@ nsresult nsCMSMessage::CommonVerifySignature(unsigned char* aDigestData, uint32_
   NS_ENSURE_TRUE(nsigners > 0, NS_ERROR_UNEXPECTED);
   si = NSS_CMSSignedData_GetSignerInfo(sigd, 0);
 
-  // See bug 324474. We want to make sure the signing cert is 
+  // See bug 324474. We want to make sure the signing cert is
   // still valid at the current time.
 
   certVerifier = GetDefaultCertVerifier();
   NS_ENSURE_TRUE(certVerifier, NS_ERROR_UNEXPECTED);
 
   {
-    SECStatus srv = certVerifier->VerifyCert(si->cert,
-                                             certificateUsageEmailSigner,
-                                             Now(), nullptr /*XXX pinarg*/,
-                                             nullptr /*hostname*/);
-    if (srv != SECSuccess) {
+    UniqueCERTCertList builtChain;
+    mozilla::pkix::Result result =
+      certVerifier->VerifyCert(si->cert,
+                               certificateUsageEmailSigner,
+                               Now(),
+                               nullptr /*XXX pinarg*/,
+                               nullptr /*hostname*/,
+                               builtChain);
+    if (result != mozilla::pkix::Success) {
       MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
              ("nsCMSMessage::CommonVerifySignature - signing cert not trusted now\n"));
       rv = NS_ERROR_CMS_VERIFY_UNTRUSTED;
@@ -424,7 +426,7 @@ public:
   :mCerts(nullptr), mPoolp(nullptr), mSize(0)
   {
   }
-  
+
   ~nsZeroTerminatedCertArray()
   {
     nsNSSShutDownPreventionLock locker;
@@ -432,7 +434,7 @@ public:
       return;
     }
     destructorSafeDestroyNSSReference();
-    shutdown(calledFromObject);
+    shutdown(ShutdownCalledFrom::Object);
   }
 
   void virtualDestroyNSSReference()
@@ -460,12 +462,12 @@ public:
     // only allow allocation once
     if (mPoolp)
       return false;
-  
+
     mSize = count;
 
     if (!mSize)
       return false;
-  
+
     mPoolp = PORT_NewArena(1024);
     if (!mPoolp)
       return false;
@@ -483,7 +485,7 @@ public:
 
     return true;
   }
-  
+
   void set(uint32_t i, CERTCertificate *c)
   {
     nsNSSShutDownPreventionLock locker;
@@ -492,14 +494,14 @@ public:
 
     if (i >= mSize)
       return;
-    
+
     if (mCerts[i]) {
       CERT_DestroyCertificate(mCerts[i]);
     }
-    
+
     mCerts[i] = CERT_DupCertificate(c);
   }
-  
+
   CERTCertificate *get(uint32_t i)
   {
     nsNSSShutDownPreventionLock locker;
@@ -508,7 +510,7 @@ public:
 
     if (i >= mSize)
       return nullptr;
-    
+
     return CERT_DupCertificate(mCerts[i]);
   }
 
@@ -558,10 +560,10 @@ NS_IMETHODIMP nsCMSMessage::CreateEncrypted(nsIArray * aRecipientCerts)
     if (!x509cert)
       return NS_ERROR_FAILURE;
 
-    mozilla::ScopedCERTCertificate c(x509cert->GetCert());
+    UniqueCERTCertificate c(x509cert->GetCert());
     recipientCerts.set(i, c.get());
   }
-  
+
   // Find a bulk key algorithm //
   if (NSS_SMIMEUtil_FindBulkAlgForRecipients(recipientCerts.getRawArray(), &bulkAlgTag,
                                             &keySize) != SECSuccess) {
@@ -596,7 +598,7 @@ NS_IMETHODIMP nsCMSMessage::CreateEncrypted(nsIArray * aRecipientCerts)
 
   // Create and attach recipient information //
   for (i=0; i < recipientCertCount; i++) {
-    mozilla::ScopedCERTCertificate rc(recipientCerts.get(i));
+    UniqueCERTCertificate rc(recipientCerts.get(i));
     if ((recipientInfo = NSS_CMSRecipientInfo_Create(m_cmsMsg, rc.get())) == nullptr) {
       MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("nsCMSMessage::CreateEncrypted - can't create recipient info\n"));
       goto loser;
@@ -631,8 +633,8 @@ nsCMSMessage::CreateSigned(nsIX509Cert* aSigningCert, nsIX509Cert* aEncryptCert,
   NSSCMSContentInfo *cinfo;
   NSSCMSSignedData *sigd;
   NSSCMSSignerInfo *signerinfo;
-  mozilla::ScopedCERTCertificate scert(aSigningCert->GetCert());
-  mozilla::ScopedCERTCertificate ecert;
+  UniqueCERTCertificate scert(aSigningCert->GetCert());
+  UniqueCERTCertificate ecert;
   nsresult rv = NS_ERROR_FAILURE;
 
   if (!scert) {
@@ -640,7 +642,7 @@ nsCMSMessage::CreateSigned(nsIX509Cert* aSigningCert, nsIX509Cert* aEncryptCert,
   }
 
   if (aEncryptCert) {
-    ecert = aEncryptCert->GetCert();
+    ecert = UniqueCERTCertificate(aEncryptCert->GetCert());
   }
 
   SECOidTag digestType;
@@ -679,7 +681,7 @@ nsCMSMessage::CreateSigned(nsIX509Cert* aSigningCert, nsIX509Cert* aEncryptCert,
     goto loser;
   }
   cinfo = NSS_CMSMessage_GetContentInfo(m_cmsMsg);
-  if (NSS_CMSContentInfo_SetContent_SignedData(m_cmsMsg, cinfo, sigd) 
+  if (NSS_CMSContentInfo_SetContent_SignedData(m_cmsMsg, cinfo, sigd)
           != SECSuccess) {
     MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("nsCMSMessage::CreateSigned - can't set content signed data\n"));
     goto loser;
@@ -688,13 +690,13 @@ nsCMSMessage::CreateSigned(nsIX509Cert* aSigningCert, nsIX509Cert* aEncryptCert,
   cinfo = NSS_CMSSignedData_GetContentInfo(sigd);
 
   /* we're always passing data in and detaching optionally */
-  if (NSS_CMSContentInfo_SetContent_Data(m_cmsMsg, cinfo, nullptr, true) 
+  if (NSS_CMSContentInfo_SetContent_Data(m_cmsMsg, cinfo, nullptr, true)
           != SECSuccess) {
     MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("nsCMSMessage::CreateSigned - can't set content data\n"));
     goto loser;
   }
 
-  /* 
+  /*
    * create & attach signer information
    */
   signerinfo = NSS_CMSSignerInfo_Create(m_cmsMsg, scert.get(), digestType);
@@ -704,14 +706,14 @@ nsCMSMessage::CreateSigned(nsIX509Cert* aSigningCert, nsIX509Cert* aEncryptCert,
   }
 
   /* we want the cert chain included for this one */
-  if (NSS_CMSSignerInfo_IncludeCerts(signerinfo, NSSCMSCM_CertChain, 
-                                       certUsageEmailSigner) 
+  if (NSS_CMSSignerInfo_IncludeCerts(signerinfo, NSSCMSCM_CertChain,
+                                       certUsageEmailSigner)
           != SECSuccess) {
     MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("nsCMSMessage::CreateSigned - can't include signer cert chain\n"));
     goto loser;
   }
 
-  if (NSS_CMSSignerInfo_AddSigningTime(signerinfo, PR_Now()) 
+  if (NSS_CMSSignerInfo_AddSigningTime(signerinfo, PR_Now())
 	      != SECSuccess) {
     MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("nsCMSMessage::CreateSigned - can't add signing time\n"));
     goto loser;
@@ -789,7 +791,7 @@ nsCMSDecoder::~nsCMSDecoder()
     return;
   }
   destructorSafeDestroyNSSReference();
-  shutdown(calledFromObject);
+  shutdown(ShutdownCalledFrom::Object);
 }
 
 nsresult nsCMSDecoder::Init()
@@ -859,8 +861,7 @@ NS_IMETHODIMP nsCMSDecoder::Finish(nsICMSMessage ** aCMSMsg)
     // we gave it on construction.
     // Make sure the context will live long enough.
     obj->referenceContext(m_ctx);
-    *aCMSMsg = obj;
-    NS_ADDREF(*aCMSMsg);
+    NS_ADDREF(*aCMSMsg = obj);
   }
   return NS_OK;
 }
@@ -879,7 +880,7 @@ nsCMSEncoder::~nsCMSEncoder()
     return;
   }
   destructorSafeDestroyNSSReference();
-  shutdown(calledFromObject);
+  shutdown(ShutdownCalledFrom::Object);
 }
 
 nsresult nsCMSEncoder::Init()

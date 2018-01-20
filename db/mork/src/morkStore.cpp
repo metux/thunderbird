@@ -114,8 +114,6 @@ morkStore::CloseMorkNode(morkEnv* ev) // ClosePort() only if open
 /*public non-poly*/ void
 morkStore::ClosePort(morkEnv* ev) // called by CloseMorkNode();
 {
-  if ( this )
-  {
     if ( this->IsNode() )
     {
       morkFactory::SlotWeakFactory((morkFactory*) 0, ev, &mPort_Factory);
@@ -125,15 +123,11 @@ morkStore::ClosePort(morkEnv* ev) // called by CloseMorkNode();
     }
     else
       this->NonNodeError(ev);
-  }
-  else
-    ev->NilPointerError();
 }
 
 /*public virtual*/
 morkStore::~morkStore() // assert CloseStore() executed earlier
 {
-  MOZ_COUNT_DTOR(morkStore);
   if (IsOpenNode())
     CloseMorkNode(mMorkEnv);
   MORK_ASSERT(this->IsShutNode());
@@ -183,7 +177,6 @@ morkStore::morkStore(morkEnv* ev, const morkUsage& inUsage,
 , mStore_CanDirty( morkBool_kFalse ) // not until the store is open
 , mStore_CanWriteIncremental( morkBool_kTrue ) // always with few exceptions
 {
-  MOZ_COUNT_CTOR(morkStore);
   if ( ev->Good() )
   {
     if ( inFactory && ioPortHeap )
@@ -208,8 +201,6 @@ NS_IMPL_ISUPPORTS_INHERITED(morkStore, morkObject, nsIMdbStore)
 /*public non-poly*/ void
 morkStore::CloseStore(morkEnv* ev) // called by CloseMorkNode();
 {
-  if ( this )
-  {
     if ( this->IsNode() )
     {
 
@@ -243,9 +234,6 @@ morkStore::CloseStore(morkEnv* ev) // called by CloseMorkNode();
     }
     else
       this->NonNodeError(ev);
-  }
-  else
-    ev->NilPointerError();
 }
 
 // } ===== end morkNode methods =====
@@ -666,12 +654,12 @@ morkStore::CopyAtom(morkEnv* ev, const morkAtom* inAtom)
   if ( inAtom )
   {
     mdbYarn yarn;
-    if ( inAtom->AliasYarn(&yarn) )
+    if ( morkAtom::AliasYarn(inAtom, &yarn) )
       outAtom = this->YarnToAtom(ev, &yarn, true /* create */);
   }
   return outAtom;
 }
- 
+
 morkAtom*
 morkStore::YarnToAtom(morkEnv* ev, const mdbYarn* inYarn, bool createIfMissing /* = true */)
 {
@@ -1313,12 +1301,18 @@ morkStore::AddWeakRef(nsIMdbEnv* mev)
   // XXX Casting mork_refs to nsresult
   return static_cast<nsresult>(morkNode::AddWeakRef(ev));
 }
+#ifndef _MSC_VER
+NS_IMETHODIMP_(mork_uses)
+morkStore::AddStrongRef(morkEnv* mev)
+{
+  return AddRef();
+}
+#endif
 NS_IMETHODIMP_(mork_uses)
 morkStore::AddStrongRef(nsIMdbEnv* mev)
 {
   return AddRef();
 }
-
 NS_IMETHODIMP
 morkStore::CutWeakRef(nsIMdbEnv* mev)
 {
@@ -1326,6 +1320,13 @@ morkStore::CutWeakRef(nsIMdbEnv* mev)
   // XXX Casting mork_refs to nsresult
   return static_cast<nsresult>(morkNode::CutWeakRef(ev));
 }
+#ifndef _MSC_VER
+NS_IMETHODIMP_(mork_uses)
+morkStore::CutStrongRef(morkEnv* mev)
+{
+  return Release();
+}
+#endif
 NS_IMETHODIMP
 morkStore::CutStrongRef(nsIMdbEnv* mev)
 {

@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import os
 import sys
 import unittest
@@ -20,7 +22,8 @@ class ProcTest(unittest.TestCase):
             proc -- the processhandler instance
             isalive -- Use True to indicate we pass if the process exists; however, by default
                        the test will pass if the process does not exist (isalive == False)
-            expectedfail -- Defaults to [], used to indicate a list of fields that are expected to fail
+            expectedfail -- Defaults to [], used to indicate a list of fields
+                            that are expected to fail
         """
         returncode = proc.proc.returncode
         didtimeout = proc.didTimeout
@@ -44,6 +47,8 @@ class ProcTest(unittest.TestCase):
             self.assertTrue(not didtimeout, "Detected that process timed out")
 
         if isalive:
-            self.assertTrue(detected, "Detected process is not running, process output: %s" % output)
+            self.assertTrue(detected, "Detected process is not running, "
+                            "process output: %s" % output)
         else:
-            self.assertTrue(not detected, "Detected process is still running, process output: %s" % output)
+            self.assertTrue(not detected, "Detected process is still running, "
+                            "process output: %s" % output)

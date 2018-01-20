@@ -15,11 +15,10 @@ function test()
 {
   waitForExplicitFinish();
 
-  gBrowser.selectedTab = gBrowser.addTab();
-  gBrowser.selectedBrowser.addEventListener("load", function onLoad() {
-    gBrowser.selectedBrowser.removeEventListener("load", onLoad, true);
+  gBrowser.selectedTab = BrowserTestUtils.addTab(gBrowser);
+  gBrowser.selectedBrowser.addEventListener("load", function () {
     openScratchpad(runTests);
-  }, true);
+  }, {capture: true, once: true});
 
   content.location = "data:text/html,<p>test file open and save in Scratchpad";
 }
@@ -28,12 +27,12 @@ function runTests()
 {
   gScratchpad = gScratchpadWindow.Scratchpad;
 
-  createTempFile("fileForBug636725.tmp", gFileContent, function(aStatus, aFile) {
+  createTempFile("fileForBug636725.tmp", gFileContent, function (aStatus, aFile) {
     ok(Components.isSuccessCode(aStatus),
       "The temporary file was saved successfully");
 
-      gFile = aFile;
-      gScratchpad.importFromFile(gFile.QueryInterface(Ci.nsILocalFile), true,
+    gFile = aFile;
+    gScratchpad.importFromFile(gFile.QueryInterface(Ci.nsIFile), true,
         fileImported);
   });
 }
@@ -56,7 +55,7 @@ function fileImported(aStatus, aFileContent)
   gFileContent += "// omg, saved!";
   gScratchpad.editor.setText(gFileContent);
 
-  gScratchpad.exportToFile(gFile.QueryInterface(Ci.nsILocalFile), true, true,
+  gScratchpad.exportToFile(gFile.QueryInterface(Ci.nsIFile), true, true,
                           fileExported);
 }
 
@@ -73,12 +72,12 @@ function fileExported(aStatus)
 
   let oldConfirm = gScratchpadWindow.confirm;
   let askedConfirmation = false;
-  gScratchpadWindow.confirm = function() {
+  gScratchpadWindow.confirm = function () {
     askedConfirmation = true;
     return false;
   };
 
-  gScratchpad.exportToFile(gFile.QueryInterface(Ci.nsILocalFile), false, true,
+  gScratchpad.exportToFile(gFile.QueryInterface(Ci.nsIFile), false, true,
                           fileExported2);
 
   gScratchpadWindow.confirm = oldConfirm;
@@ -107,7 +106,7 @@ function fileRead(aInputStream, aStatus)
      "the temporary file was read back successfully");
 
   let updatedContent =
-    NetUtil.readInputStreamToString(aInputStream, aInputStream.available());;
+    NetUtil.readInputStreamToString(aInputStream, aInputStream.available());
 
   is(updatedContent, gFileContent, "file properly updated");
 

@@ -63,7 +63,7 @@ nsMsgAccount::GetIncomingServer(nsIMsgIncomingServer **aIncomingServer)
     mTriedToGetServer = true;
     // ignore the error (and return null), but it's still bad so warn
     mozilla::DebugOnly<nsresult> rv = createIncomingServer();
-    NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "couldn't lazily create the server\n");
+    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "couldn't lazily create the server\n");
   }
 
   NS_IF_ADDREF(*aIncomingServer = m_incomingServer);
@@ -92,7 +92,7 @@ nsMsgAccount::createIncomingServer()
 
   // get the "server" pref
   nsCString serverKey;
-  rv = m_prefs->GetCharPref("server", getter_Copies(serverKey));
+  rv = m_prefs->GetCharPref("server", serverKey);
   NS_ENSURE_SUCCESS(rv, rv);
 
   // get the server from the account manager
@@ -123,7 +123,7 @@ nsMsgAccount::SetIncomingServer(nsIMsgIncomingServer *aIncomingServer)
   if (NS_SUCCEEDED(rv)) {
     rv = getPrefService();
     NS_ENSURE_SUCCESS(rv, rv);
-    m_prefs->SetCharPref("server", key.get());
+    m_prefs->SetCharPref("server", key);
   }
 
   m_incomingServer = aIncomingServer;
@@ -200,7 +200,7 @@ nsMsgAccount::createIdentities()
   rv = getPrefService();
   NS_ENSURE_SUCCESS(rv, rv);
 
-  m_prefs->GetCharPref("identities", getter_Copies(identityKey));
+  m_prefs->GetCharPref("identities", identityKey);
   if (identityKey.IsEmpty())    // not an error if no identities, but
     return NS_OK;               // strtok will be unhappy
   // get the server from the account manager
@@ -251,7 +251,7 @@ nsMsgAccount::GetDefaultIdentity(nsIMsgIdentity **aDefaultIdentity)
     return NS_OK;
 
   nsCOMPtr<nsIMsgIdentity> identity = do_QueryElementAt(m_identities, 0, &rv);
-  identity.swap(*aDefaultIdentity);
+  identity.forget(aDefaultIdentity);
   return rv;
 }
 
@@ -268,7 +268,7 @@ nsMsgAccount::SetDefaultIdentity(nsIMsgIdentity *aDefaultIdentity)
   NS_ENSURE_SUCCESS(rv, rv);
 
   // The passed in identity is in the list, so we have at least one element.
-  rv = m_identities->InsertElementAt(aDefaultIdentity, 0, false);
+  rv = m_identities->InsertElementAt(aDefaultIdentity, 0);
   NS_ENSURE_SUCCESS(rv, rv);
 
   return saveIdentitiesPref();
@@ -282,7 +282,7 @@ nsMsgAccount::addIdentityInternal(nsIMsgIdentity *identity)
 {
   NS_ENSURE_TRUE(m_identities, NS_ERROR_FAILURE);
 
-  return m_identities->AppendElement(identity, false);
+  return m_identities->AppendElement(identity);
 }
 
 /* void addIdentity (in nsIMsgIdentity identity); */
@@ -299,7 +299,7 @@ nsMsgAccount::AddIdentity(nsIMsgIdentity *identity)
 
   if (NS_SUCCEEDED(rv)) {
     nsCString identityList;
-    m_prefs->GetCharPref("identities", getter_Copies(identityList));
+    m_prefs->GetCharPref("identities", identityList);
 
     nsAutoCString newIdentityList(identityList);
 
@@ -332,7 +332,7 @@ nsMsgAccount::AddIdentity(nsIMsgIdentity *identity)
       }
     }
 
-    m_prefs->SetCharPref("identities", newIdentityList.get());
+    m_prefs->SetCharPref("identities", newIdentityList);
   }
 
   // now add it to the in-memory list
@@ -395,7 +395,7 @@ nsMsgAccount::saveIdentitiesPref()
   }
 
   // Save the pref.
-  m_prefs->SetCharPref("identities", newIdentityList.get());
+  m_prefs->SetCharPref("identities", newIdentityList);
 
   return NS_OK;
 }
@@ -421,7 +421,7 @@ nsMsgAccount::ToString(nsAString& aResult)
   nsAutoString val;
   aResult.AssignLiteral("[nsIMsgAccount: ");
   aResult.Append(NS_ConvertASCIItoUTF16(m_accountKey));
-  aResult.AppendLiteral("]");
+  aResult.Append(']');
   return NS_OK;
 }
 

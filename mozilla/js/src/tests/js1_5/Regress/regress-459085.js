@@ -18,19 +18,14 @@ test();
 
 function test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
   
-  jit(true);
 
   var m = new Number(3);
   function foo() { for (var i=0; i<20;i++) m.toString(); } 
   foo();
 
-  jit(false);
 
   reportCompare(expect, actual, summary);
-
-  exitFunc ('test');
 }

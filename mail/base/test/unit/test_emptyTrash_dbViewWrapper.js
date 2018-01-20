@@ -8,7 +8,7 @@ load("../../../../mailnews/resources/messageInjection.js");
 load("resources/viewWrapperTestUtils.js");
 initViewWrapperTestUtils({mode: "imap", offline: false});
 
-function test_real_folder_load_and_move_to_trash() {
+function* test_real_folder_load_and_move_to_trash() {
   let viewWrapper = make_view_wrapper();
   let [msgFolder, msgSet] = make_folder_with_sets([{count: 1}]);
 
@@ -20,7 +20,7 @@ function test_real_folder_load_and_move_to_trash() {
   verify_empty_view(viewWrapper);
 }
 
-function test_empty_trash() {
+function* test_empty_trash() {
   let viewWrapper = make_view_wrapper();
   let trashHandle = get_trash_folder();
 
@@ -32,7 +32,7 @@ function test_empty_trash() {
   yield async_empty_trash();
   verify_empty_view(viewWrapper);
 
-  do_check_neq(null, viewWrapper.displayedFolder);
+  do_check_true(viewWrapper.displayedFolder !== null);
 
   let [msgSet] = make_new_sets_in_folders([trashHandle], [{count: 1}]);
   yield wait_for_message_injection();

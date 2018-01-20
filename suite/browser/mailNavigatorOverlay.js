@@ -62,9 +62,9 @@ function openExternalMailer(url, title) {
   var mailto = url ? "mailto:?body=" + encodeURIComponent(url)
                                      + "&subject="
                                      + encodeURIComponent(title) : "mailto:";
-  var uri = Services.io.newURI(mailto, null, null);
+  var uri = Services.io.newURI(mailto);
 
-  extProtocolSvc.loadUrl(uri);
+  extProtocolSvc.loadURI(uri);
 }
 
 function openNewCardDialog()
@@ -129,7 +129,7 @@ function sendPage(aDocument)
 {
   if (!aDocument)
     aDocument = window.content.document;
-    
+
   try
   {
     var charset = getCharsetforSave(aDocument);
@@ -151,7 +151,7 @@ function initMailContextMenuItems(aEvent)
 
   gContextMenu.showItem("context-sep-apps", gContextMenu.shouldShowSeparator("context-sep-apps"));
 }
-  
+
 function initMailContextMenuPopupListener(aEvent)
 {
   var popup = document.getElementById("contentAreaContextMenu");

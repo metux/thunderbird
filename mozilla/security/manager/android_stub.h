@@ -13,23 +13,17 @@
 #define _SYS_SYSINFO_H_
 
 #include <sys/cdefs.h>
-#include <linux/kernel.h>
-
-#if ANDROID_VERSION >= 21
 #include <sys/resource.h>
+#include <linux/kernel.h>
 #include <unistd.h>
 
-static int getdtablesize(void)
-{
-    struct rlimit r;
-    if (getrlimit(RLIMIT_NOFILE, &r) < 0) {
-        return sysconf(_SC_OPEN_MAX);
-    }
-    return r.rlim_cur;
-}
-#else
+#ifndef ANDROID_VERSION
+#include <android/api-level.h>
+#define ANDROID_VERSION __ANDROID_API__
+#endif
+
+#if ANDROID_VERSION < 21
 #define RTLD_NOLOAD 0
-extern int getdtablesize(void);
 #endif
 
 #define sysinfo(foo) -1

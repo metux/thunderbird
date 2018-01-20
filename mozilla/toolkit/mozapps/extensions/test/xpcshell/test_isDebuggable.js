@@ -17,13 +17,13 @@ var IDS = [
 
 function run_test() {
   do_test_pending();
-  
+
   createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "2", "2");
 
   startupManager();
   AddonManager.checkCompatibility = false;
 
-  installAllFiles(ADDONS.map(do_get_addon), function () {
+  installAllFiles(ADDONS.map(do_get_addon), function() {
     restartManager();
 
     AddonManager.getAddonsByIDs(IDS, function([a1, a2, a3]) {

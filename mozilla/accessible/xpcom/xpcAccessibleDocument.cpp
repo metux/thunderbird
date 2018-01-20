@@ -9,32 +9,36 @@
 #include "xpcAccessibleTable.h"
 #include "xpcAccessibleTableCell.h"
 
+#include "mozilla/a11y/DocAccessibleParent.h"
 #include "DocAccessible-inl.h"
 #include "nsIDOMDocument.h"
 
+using namespace mozilla;
 using namespace mozilla::a11y;
 
 ////////////////////////////////////////////////////////////////////////////////
-// nsISupports and cycle collection
+// nsISupports
 
-NS_IMPL_CYCLE_COLLECTION_CLASS(xpcAccessibleDocument)
-
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(xpcAccessibleDocument,
-                                                  xpcAccessibleGeneric)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mCache)
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
-
-NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(xpcAccessibleDocument,
-                                                xpcAccessibleGeneric)
-  tmp->mCache.Clear();
-NS_IMPL_CYCLE_COLLECTION_UNLINK_END
-
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(xpcAccessibleDocument)
-  NS_INTERFACE_MAP_ENTRY(nsIAccessibleDocument)
-NS_INTERFACE_MAP_END_INHERITING(xpcAccessibleHyperText)
-
+NS_IMPL_QUERY_INTERFACE_INHERITED(xpcAccessibleDocument, xpcAccessibleHyperText,
+                                  nsIAccessibleDocument)
 NS_IMPL_ADDREF_INHERITED(xpcAccessibleDocument, xpcAccessibleHyperText)
-NS_IMPL_RELEASE_INHERITED(xpcAccessibleDocument, xpcAccessibleHyperText)
+NS_IMETHODIMP_(MozExternalRefCountType) xpcAccessibleDocument::Release(void)
+{
+  nsrefcnt r = xpcAccessibleHyperText::Release();
+  NS_LOG_RELEASE(this, r, "xpcAccessibleDocument");
+
+  // The only reference to the xpcAccessibleDocument is in DocManager's cache.
+  if (r == 1 && !mIntl.IsNull() && mCache.Count() == 0) {
+    if (mIntl.IsAccessible()) {
+      GetAccService()->RemoveFromXPCDocumentCache(
+        mIntl.AsAccessible()->AsDoc());
+    } else {
+      GetAccService()->RemoveFromRemoteXPCDocumentCache(
+        mIntl.AsProxy()->AsDoc());
+    }
+  }
+  return r;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // nsIAccessibleDocument
@@ -97,7 +101,7 @@ xpcAccessibleDocument::GetDOMDocument(nsIDOMDocument** aDOMDocument)
 }
 
 NS_IMETHODIMP
-xpcAccessibleDocument::GetWindow(nsIDOMWindow** aDOMWindow)
+xpcAccessibleDocument::GetWindow(mozIDOMWindowProxy** aDOMWindow)
 {
   NS_ENSURE_ARG_POINTER(aDOMWindow);
   *aDOMWindow = nullptr;
@@ -168,6 +172,7 @@ xpcAccessibleDocument::GetVirtualCursor(nsIAccessiblePivot** aVirtualCursor)
 xpcAccessibleGeneric*
 xpcAccessibleDocument::GetAccessible(Accessible* aAccessible)
 {
+  MOZ_ASSERT(!mRemote);
   if (ToXPCDocument(aAccessible->Document()) != this) {
     NS_ERROR("This XPCOM document is not related with given internal accessible!");
     return nullptr;
@@ -176,7 +181,7 @@ xpcAccessibleDocument::GetAccessible(Accessible* aAccessible)
   if (aAccessible->IsDoc())
     return this;
 
-  xpcAccessibleGeneric* xpcAcc = mCache.GetWeak(aAccessible);
+  xpcAccessibleGeneric* xpcAcc = mCache.Get(aAccessible);
   if (xpcAcc)
     return xpcAcc;
 
@@ -195,6 +200,44 @@ xpcAccessibleDocument::GetAccessible(Accessible* aAccessible)
   return xpcAcc;
 }
 
+xpcAccessibleGeneric*
+xpcAccessibleDocument::GetXPCAccessible(ProxyAccessible* aProxy)
+{
+  MOZ_ASSERT(mRemote);
+  MOZ_ASSERT(aProxy->Document() == mIntl.AsProxy());
+  if (aProxy->IsDoc()) {
+    return this;
+  }
+
+  xpcAccessibleGeneric* acc = mCache.Get(aProxy);
+  if (acc) {
+    return acc;
+  }
+
+  // XXX support exposing optional interfaces.
+  uint8_t interfaces = 0;
+  if (aProxy->mHasValue) {
+    interfaces |= eValue;
+  }
+
+  if (aProxy->mIsHyperLink) {
+    interfaces |= eHyperLink;
+  }
+
+  if (aProxy->mIsHyperText) {
+    interfaces |= eText;
+    acc = new xpcAccessibleHyperText(aProxy, interfaces);
+    mCache.Put(aProxy, acc);
+
+    return acc;
+  }
+
+  acc = new xpcAccessibleGeneric(aProxy, interfaces);
+  mCache.Put(aProxy, acc);
+
+  return acc;
+}
+
 void
 xpcAccessibleDocument::Shutdown()
 {
@@ -203,4 +246,19 @@ xpcAccessibleDocument::Shutdown()
     iter.Remove();
   }
   xpcAccessibleGeneric::Shutdown();
+}
+
+xpcAccessibleGeneric*
+a11y::ToXPC(AccessibleOrProxy aAcc)
+{
+  if (aAcc.IsNull()) {
+    return nullptr;
+  }
+
+  if (aAcc.IsAccessible()) {
+    return ToXPC(aAcc.AsAccessible());
+  }
+
+ xpcAccessibleDocument* doc = ToXPCDocument(aAcc.AsProxy()->Document());
+ return doc->GetXPCAccessible(aAcc.AsProxy());
 }

@@ -7,9 +7,10 @@
 #ifndef mozilla_dom_TabContext_h
 #define mozilla_dom_TabContext_h
 
-#include "mozIApplication.h"
 #include "nsCOMPtr.h"
 #include "mozilla/BasePrincipal.h"
+#include "nsPIDOMWindow.h"
+#include "nsPIWindowRoot.h"
 
 namespace mozilla {
 namespace dom {
@@ -17,9 +18,7 @@ namespace dom {
 class IPCTabContext;
 
 /**
- * TabContext encapsulates information about an iframe that may be a mozbrowser
- * or mozapp.  You can ask whether a TabContext corresponds to a mozbrowser or
- * mozapp, get the app that contains the browser, and so on.
+ * TabContext encapsulates information about an iframe that may be a mozbrowser.
  *
  * TabParent and TabChild both inherit from TabContext, and you can also have
  * standalone TabContext objects.
@@ -36,85 +35,52 @@ public:
   /* (The implicit copy-constructor and operator= are fine.) */
 
   /**
-   * Generates IPCTabContext of type BrowserFrameIPCTabContext or
-   * AppFrameIPCTabContext from this TabContext's information.
+   * Generates IPCTabContext of type BrowserFrameIPCTabContext from this
+   * TabContext's information.
    */
   IPCTabContext AsIPCTabContext() const;
 
   /**
-   * Does this TabContext correspond to a mozbrowser?  (<iframe mozbrowser
-   * mozapp> is not a browser.)
+   * Does this TabContext correspond to a mozbrowser?
    *
-   * If IsBrowserElement() is true, HasOwnApp() and HasAppOwnerApp() are
-   * guaranteed to be false.
+   * <iframe mozbrowser> is a mozbrowser element, but <xul:browser> is not.
+   */
+  bool IsMozBrowserElement() const;
+
+  /**
+   * Does this TabContext correspond to an isolated mozbrowser?
    *
-   * If IsBrowserElement() is false, HasBrowserOwnerApp() is guaranteed to be
-   * false.
+   * <iframe mozbrowser> is a mozbrowser element, but <xul:browser> is not.
+   * <iframe mozbrowser noisolation> does not count as isolated since isolation
+   * is disabled.  Isolation can only be disabled by chrome pages.
    */
-  bool IsBrowserElement() const;
+  bool IsIsolatedMozBrowserElement() const;
 
   /**
-   * Does this TabContext correspond to a mozbrowser or mozapp?  This is
-   * equivalent to IsBrowserElement() || HasOwnApp().
+   * Does this TabContext correspond to a mozbrowser?  This is equivalent to
+   * IsMozBrowserElement().  Returns false for <xul:browser>, which isn't a
+   * mozbrowser.
    */
-  bool IsBrowserOrApp() const;
+  bool IsMozBrowser() const;
+
+  bool IsJSPlugin() const;
+  int32_t JSPluginId() const;
 
   /**
-   * OwnAppId() returns the id of the app which directly corresponds to this
-   * context's frame.  GetOwnApp() returns the corresponding app object, and
-   * HasOwnApp() returns true iff GetOwnApp() would return a non-null value.
-   *
-   * If HasOwnApp() is true, IsBrowserElement() is guaranteed to be false.
+   * OriginAttributesRef() returns the OriginAttributes of this frame to
+   * the caller. This is used to store any attribute associated with the frame's
+   * docshell.
    */
-  uint32_t OwnAppId() const;
-  already_AddRefed<mozIApplication> GetOwnApp() const;
-  bool HasOwnApp() const;
+  const OriginAttributes& OriginAttributesRef() const;
 
   /**
-   * BrowserOwnerAppId() gets the ID of the app which contains this browser
-   * frame.  If this is not a browser frame (i.e., if !IsBrowserElement()), then
-   * BrowserOwnerAppId() is guaranteed to return NO_APP_ID.
-   *
-   * Even if we are a browser frame, BrowserOwnerAppId() may still return
-   * NO_APP_ID, if this browser frame is not contained inside an app.
+   * Returns the presentation URL associated with the tab if this tab is
+   * created for presented content
    */
-  uint32_t BrowserOwnerAppId() const;
-  already_AddRefed<mozIApplication> GetBrowserOwnerApp() const;
-  bool HasBrowserOwnerApp() const;
+  const nsAString& PresentationURL() const;
 
-  /**
-   * AppOwnerAppId() gets the ID of the app which contains this app frame.  If
-   * this is not an app frame (i.e., if !HasOwnApp()), then AppOwnerAppId() is
-   * guaranteed to return NO_APP_ID.
-   *
-   * Even if we are an app frame, AppOwnerAppId() may still return NO_APP_ID, if
-   * this app frame is not contained inside an app.
-   */
-  uint32_t AppOwnerAppId() const;
-  already_AddRefed<mozIApplication> GetAppOwnerApp() const;
-  bool HasAppOwnerApp() const;
-
-  /**
-   * OwnOrContainingAppId() gets the ID of this frame, if HasOwnApp().  If this
-   * frame does not have its own app, it gets the ID of the app which contains
-   * this frame (i.e., the result of {Browser,App}OwnerAppId(), as applicable).
-   */
-  uint32_t OwnOrContainingAppId() const;
-  already_AddRefed<mozIApplication> GetOwnOrContainingApp() const;
-  bool HasOwnOrContainingApp() const;
-
-  /**
-   * OriginAttributesRef() returns the DocShellOriginAttributes of this frame to the
-   * caller. This is used to store any attribute associated with the frame's
-   * docshell, such as the AppId.
-   */
-  const DocShellOriginAttributes& OriginAttributesRef() const;
-
-  /**
-   * Returns the origin associated with the tab (w/o suffix) if this tab owns
-   * a signed packaged content.
-   */
-  const nsACString& SignedPkgOriginNoSuffix() const;
+  UIStateChangeType ShowAccelerators() const;
+  UIStateChangeType ShowFocusRings() const;
 
 protected:
   friend class MaybeInvalidTabContext;
@@ -134,16 +100,40 @@ protected:
   bool SetTabContext(const TabContext& aContext);
 
   /**
-   * Set the TabContext for this frame. This can either be:
-   *  - an app frame (with the given own app) inside the given owner app. Either
-   *    apps can be null.
-   *  - a browser frame inside the given owner app (which may be null).
-   *  - a non-browser, non-app frame. Both own app and owner app should be null.
+   * Set the tab context's origin attributes to a private browsing value.
    */
-  bool SetTabContext(mozIApplication* aOwnApp,
-                     mozIApplication* aAppFrameOwnerApp,
-                     const DocShellOriginAttributes& aOriginAttributes,
-                     const nsACString& aSignedPkgOriginNoSuffix);
+  void SetPrivateBrowsingAttributes(bool aIsPrivateBrowsing);
+
+  bool SetTabContext(bool aIsMozBrowserElement,
+                     bool aIsPrerendered,
+                     UIStateChangeType aShowAccelerators,
+                     UIStateChangeType aShowFocusRings,
+                     const OriginAttributes& aOriginAttributes,
+                     const nsAString& aPresentationURL);
+
+  /**
+   * Modify this TabContext to match the given TabContext.  This is a special
+   * case triggered by nsFrameLoader::SwapWithOtherRemoteLoader which may have
+   * caused the owner content to change.
+   *
+   * This special case only allows the field `mIsMozBrowserElement` to be
+   * changed.  If any other fields have changed, the update is ignored and
+   * returns false.
+   */
+  bool UpdateTabContextAfterSwap(const TabContext& aContext);
+
+  /**
+   * Whether this TabContext is in prerender mode.
+   */
+  bool mIsPrerendered;
+
+  /**
+   * Set this TabContext to be for a JS plugin. aPluginID is the id of the JS plugin
+   * (@see nsFakePlugin::mId).
+   * As with the other protected mutator methods, this lets you modify a TabContext once.
+   * (@see TabContext::SetTabContext above for more details).
+   */
+  bool SetTabContextForJSPluginFrame(int32_t aJSPluginID);
 
 private:
   /**
@@ -152,35 +142,30 @@ private:
   bool mInitialized;
 
   /**
-   * This TabContext's own app.  If this is non-null, then this
-   * TabContext corresponds to an app, and mIsBrowser must be false.
+   * Whether this TabContext corresponds to a mozbrowser.
+   *
+   * <iframe mozbrowser> and <xul:browser> are not considered to be
+   * mozbrowser elements.
    */
-  nsCOMPtr<mozIApplication> mOwnApp;
+  bool mIsMozBrowserElement;
+
+  int32_t mJSPluginID;
 
   /**
-   * This TabContext's containing app.  If mIsBrowser, this corresponds to the
-   * app which contains the browser frame; otherwise, this corresponds to the
-   * app which contains the app frame.
+   * OriginAttributes of the top level tab docShell
    */
-  nsCOMPtr<mozIApplication> mContainingApp;
-
-  /*
-   * Cache of mContainingApp->GetLocalId().
-   */
-  uint32_t mContainingAppId;
+  OriginAttributes mOriginAttributes;
 
   /**
-   * DocShellOriginAttributes of the top level tab docShell
+   * The requested presentation URL.
    */
-  DocShellOriginAttributes mOriginAttributes;
+  nsString mPresentationURL;
 
   /**
-   * The signed package origin without suffix. Since the signed packaged
-   * web content is always loaded in a separate process, it makes sense
-   * that we store this immutable value in TabContext. If the TabContext
-   * doesn't own a signed package, this value would be empty.
+   * Keyboard indicator state (focus rings, accelerators).
    */
-  nsCString mSignedPkgOriginNoSuffix;
+  UIStateChangeType mShowAccelerators;
+  UIStateChangeType mShowFocusRings;
 };
 
 /**
@@ -196,26 +181,36 @@ public:
     return TabContext::SetTabContext(aContext);
   }
 
-  bool SetTabContext(mozIApplication* aOwnApp,
-                     mozIApplication* aAppFrameOwnerApp,
-                     const DocShellOriginAttributes& aOriginAttributes,
-                     const nsACString& aSignedPkgOriginNoSuffix = EmptyCString())
+  bool
+  SetTabContext(bool aIsMozBrowserElement,
+                bool aIsPrerendered,
+                UIStateChangeType aShowAccelerators,
+                UIStateChangeType aShowFocusRings,
+                const OriginAttributes& aOriginAttributes,
+                const nsAString& aPresentationURL = EmptyString())
   {
-    return TabContext::SetTabContext(aOwnApp,
-                                     aAppFrameOwnerApp,
+    return TabContext::SetTabContext(aIsMozBrowserElement,
+                                     aIsPrerendered,
+                                     aShowAccelerators,
+                                     aShowFocusRings,
                                      aOriginAttributes,
-                                     aSignedPkgOriginNoSuffix);
+                                     aPresentationURL);
   }
+
+  bool SetTabContextForJSPluginFrame(uint32_t aJSPluginID)
+  {
+    return TabContext::SetTabContextForJSPluginFrame(aJSPluginID);
+  }
+
 };
 
 /**
  * MaybeInvalidTabContext is a simple class that lets you transform an
  * IPCTabContext into a TabContext.
  *
- * The issue is that an IPCTabContext is not necessarily valid; for example, it
- * might specify an app-id which doesn't exist.  So to convert an IPCTabContext
- * into a TabContext, you construct a MaybeInvalidTabContext, check whether it's
- * valid, and, if so, read out your TabContext.
+ * The issue is that an IPCTabContext is not necessarily valid.  So to convert
+ * an IPCTabContext into a TabContext, you construct a MaybeInvalidTabContext,
+ * check whether it's valid, and, if so, read out your TabContext.
  *
  * Example usage:
  *

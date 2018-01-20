@@ -33,21 +33,7 @@ DocumentFragment::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aGivenProto)
 bool
 DocumentFragment::IsNodeOfType(uint32_t aFlags) const
 {
-  return !(aFlags & ~(eCONTENT | eDOCUMENT_FRAGMENT));
-}
-
-NS_IMETHODIMP
-DocumentFragment::QuerySelector(const nsAString& aSelector,
-                                nsIDOMElement **aReturn)
-{
-  return nsINode::QuerySelector(aSelector, aReturn);
-}
-
-NS_IMETHODIMP
-DocumentFragment::QuerySelectorAll(const nsAString& aSelector,
-                                   nsIDOMNodeList **aReturn)
-{
-  return nsINode::QuerySelectorAll(aSelector, aReturn);
+  return !(aFlags & ~eDOCUMENT_FRAGMENT);
 }
 
 #ifdef DEBUG
@@ -116,7 +102,7 @@ DocumentFragment::DumpContent(FILE* out, int32_t aIndent,
 DocumentFragment::Constructor(const GlobalObject& aGlobal,
                               ErrorResult& aRv)
 {
-  nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(aGlobal.GetAsSupports());
+  nsCOMPtr<nsPIDOMWindowInner> window = do_QueryInterface(aGlobal.GetAsSupports());
   if (!window || !window->GetDoc()) {
     aRv.Throw(NS_ERROR_FAILURE);
     return nullptr;
@@ -124,6 +110,8 @@ DocumentFragment::Constructor(const GlobalObject& aGlobal,
 
   return window->GetDoc()->CreateDocumentFragment();
 }
+
+NS_IMPL_CYCLE_COLLECTION_INHERITED(DocumentFragment, FragmentOrElement, mHost)
 
 // QueryInterface implementation for DocumentFragment
 NS_INTERFACE_MAP_BEGIN(DocumentFragment)

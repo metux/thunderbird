@@ -14,19 +14,13 @@
 
 ////////////////////////////////////////////////////////////////////////
 
-NS_METHOD nsImportFieldMap::Create(nsIStringBundle *aBundle, nsISupports *aOuter, REFNSIID aIID, void **aResult)
+nsresult nsImportFieldMap::Create(nsIStringBundle *aBundle, nsISupports *aOuter, REFNSIID aIID, void **aResult)
 {
   if (aOuter)
     return NS_ERROR_NO_AGGREGATION;
 
-  nsImportFieldMap *it = new nsImportFieldMap(aBundle);
-  if (it == nullptr)
-    return NS_ERROR_OUT_OF_MEMORY;
-
-  NS_ADDREF(it);
-  nsresult rv = it->QueryInterface(aIID, aResult);
-  NS_RELEASE(it);
-  return rv;
+  RefPtr<nsImportFieldMap> it = new nsImportFieldMap(aBundle);
+  return it->QueryInterface(aIID, aResult);
 }
 
 NS_IMPL_ISUPPORTS(nsImportFieldMap, nsIImportFieldMap)
@@ -340,7 +334,7 @@ NS_IMETHODIMP nsImportFieldMap::SetFieldValue(nsIAddrDatabase *database, nsIMdbR
     }
   }
 
-  NS_Free(pVal);
+  free(pVal);
 
   return rv;
 }

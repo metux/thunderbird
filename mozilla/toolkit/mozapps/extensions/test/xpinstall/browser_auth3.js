@@ -3,14 +3,6 @@
 // canceled
 // This verifies bug 312473
 
-///////////////////
-//
-// Whitelisting this test.
-// As part of bug 1077403, the leaking uncaught rejection should be fixed.
-//
-thisTestLeaksUncaughtRejectionsAndShouldBeFixed("TypeError: this.docShell is null");
-
-
 function test() {
   Harness.authenticationCallback = get_auth_info;
   Harness.downloadFailedCallback = download_failed;
@@ -22,9 +14,9 @@ function test() {
   pm.add(makeURI("http://example.com/"), "install", pm.ALLOW_ACTION);
 
   var triggers = encodeURIComponent(JSON.stringify({
-    "Unsigned XPI": TESTROOT + "authRedirect.sjs?" + TESTROOT + "unsigned.xpi"
+    "Unsigned XPI": TESTROOT + "authRedirect.sjs?" + TESTROOT + "amosigned.xpi"
   }));
-  gBrowser.selectedTab = gBrowser.addTab();
+  gBrowser.selectedTab = BrowserTestUtils.addTab(gBrowser);
   gBrowser.loadURI(TESTROOT + "installtrigger.html?" + triggers);
 }
 
@@ -43,7 +35,7 @@ function install_ended(install, addon) {
 
 function finish_test(count) {
   is(count, 0, "No add-ons should have been installed");
-  var authMgr = Components.classes['@mozilla.org/network/http-auth-manager;1']
+  var authMgr = Components.classes["@mozilla.org/network/http-auth-manager;1"]
                           .getService(Components.interfaces.nsIHttpAuthManager);
   authMgr.clearAll();
 

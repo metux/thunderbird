@@ -29,66 +29,147 @@ test_data_path = mozpath.join(test_data_path, 'data')
 
 
 CONFIGS = defaultdict(lambda: {
-    'defines': [],
+    'defines': {},
     'non_global_defines': [],
-    'substs': [('OS_TARGET', 'WINNT')],
+    'substs': {'OS_TARGET': 'WINNT'},
 }, {
-    'android_eclipse': {
-        'defines': [
-            ('MOZ_ANDROID_MIN_SDK_VERSION', '9'),
-        ],
-        'non_global_defines': [],
-        'substs': [
-            ('ANDROID_TARGET_SDK', '16'),
-        ],
-    },
     'binary-components': {
-        'defines': [],
+        'defines': {},
         'non_global_defines': [],
-        'substs': [
-            ('LIB_PREFIX', 'lib'),
-            ('LIB_SUFFIX', 'a'),
-        ],
+        'substs': {
+            'LIB_PREFIX': 'lib',
+            'RUST_LIB_PREFIX': 'lib',
+            'LIB_SUFFIX': 'a',
+            'RUST_LIB_SUFFIX': 'a',
+            'COMPILE_ENVIRONMENT': '1',
+        },
+    },
+    'rust-library': {
+        'defines': {},
+        'non_global_defines': [],
+        'substs': {
+            'COMPILE_ENVIRONMENT': '1',
+            'RUST_TARGET': 'x86_64-unknown-linux-gnu',
+            'LIB_PREFIX': 'lib',
+            'RUST_LIB_PREFIX': 'lib',
+            'LIB_SUFFIX': 'a',
+            'RUST_LIB_SUFFIX': 'a',
+        },
+    },
+    'host-rust-library': {
+        'defines': {},
+        'non_global_defines': [],
+        'substs': {
+            'COMPILE_ENVIRONMENT': '1',
+            'RUST_HOST_TARGET': 'x86_64-unknown-linux-gnu',
+            'RUST_TARGET': 'armv7-linux-androideabi',
+            'LIB_PREFIX': 'lib',
+            'RUST_LIB_PREFIX': 'lib',
+            'LIB_SUFFIX': 'a',
+            'RUST_LIB_SUFFIX': 'a',
+        },
+    },
+    'host-rust-library-features': {
+        'defines': {},
+        'non_global_defines': [],
+        'substs': {
+            'COMPILE_ENVIRONMENT': '1',
+            'RUST_HOST_TARGET': 'x86_64-unknown-linux-gnu',
+            'RUST_TARGET': 'armv7-linux-androideabi',
+            'LIB_PREFIX': 'lib',
+            'RUST_LIB_PREFIX': 'lib',
+            'LIB_SUFFIX': 'a',
+            'RUST_LIB_SUFFIX': 'a',
+        },
+    },
+    'rust-library-features': {
+        'defines': {},
+        'non_global_defines': [],
+        'substs': {
+            'COMPILE_ENVIRONMENT': '1',
+            'RUST_TARGET': 'x86_64-unknown-linux-gnu',
+            'LIB_PREFIX': 'lib',
+            'RUST_LIB_PREFIX': 'lib',
+            'LIB_SUFFIX': 'a',
+            'RUST_LIB_SUFFIX': 'a',
+        },
+    },
+    'rust-programs': {
+        'defines': {},
+        'non_global_defines': [],
+        'substs': {
+            'COMPILE_ENVIRONMENT': '1',
+            'RUST_TARGET': 'i686-pc-windows-msvc',
+            'RUST_HOST_TARGET': 'i686-pc-windows-msvc',
+            'BIN_SUFFIX': '.exe',
+            'HOST_BIN_SUFFIX': '.exe',
+        },
+    },
+    'test-support-binaries-tracked': {
+        'defines': {},
+        'non_global_defines': [],
+        'substs': {
+            'COMPILE_ENVIRONMENT': '1',
+            'LIB_SUFFIX': 'dll',
+            'BIN_SUFFIX': '.exe',
+        },
+    },
+    'sources': {
+        'defines': {},
+        'non_global_defines': [],
+        'substs': {
+            'LIB_PREFIX': 'lib',
+            'LIB_SUFFIX': 'a',
+        },
     },
     'stub0': {
-        'defines': [
-            ('MOZ_TRUE_1', '1'),
-            ('MOZ_TRUE_2', '1'),
-        ],
+        'defines': {
+            'MOZ_TRUE_1': '1',
+            'MOZ_TRUE_2': '1',
+        },
         'non_global_defines': [
-            ('MOZ_NONGLOBAL_1', '1'),
-            ('MOZ_NONGLOBAL_2', '1'),
+            'MOZ_NONGLOBAL_1',
+            'MOZ_NONGLOBAL_2',
         ],
-        'substs': [
-            ('MOZ_FOO', 'foo'),
-            ('MOZ_BAR', 'bar'),
-        ],
+        'substs': {
+            'MOZ_FOO': 'foo',
+            'MOZ_BAR': 'bar',
+        },
     },
     'substitute_config_files': {
-        'defines': [],
+        'defines': {},
         'non_global_defines': [],
-        'substs': [
-            ('MOZ_FOO', 'foo'),
-            ('MOZ_BAR', 'bar'),
-        ],
+        'substs': {
+            'MOZ_FOO': 'foo',
+            'MOZ_BAR': 'bar',
+        },
     },
     'test_config': {
-        'defines': [
-            ('foo', 'baz qux'),
-            ('baz', 1)
-        ],
+        'defines': {
+            'foo': 'baz qux',
+            'baz': 1,
+        },
         'non_global_defines': [],
-        'substs': [
-            ('foo', 'bar baz'),
-        ],
+        'substs': {
+            'foo': 'bar baz',
+        },
     },
     'visual-studio': {
-        'defines': [],
+        'defines': {},
         'non_global_defines': [],
-        'substs': [
-            ('MOZ_APP_NAME', 'my_app'),
-        ],
+        'substs': {
+            'MOZ_APP_NAME': 'my_app',
+        },
     },
+    'prog-lib-c-only': {
+        'defines': {},
+        'non_global_defines': [],
+        'substs': {
+            'COMPILE_ENVIRONMENT': '1',
+            'LIB_SUFFIX': '.a',
+            'BIN_SUFFIX': '',
+        },
+    }
 })
 
 
@@ -113,7 +194,7 @@ class BackendTester(unittest.TestCase):
         self.addCleanup(rmtree, objdir)
 
         srcdir = mozpath.join(test_data_path, name)
-        config['substs'].append(('top_srcdir', srcdir))
+        config['substs']['top_srcdir'] = srcdir
         return ConfigEnvironment(srcdir, objdir, **config)
 
     def _emit(self, name, env=None):

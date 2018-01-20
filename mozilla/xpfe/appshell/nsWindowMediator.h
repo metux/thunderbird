@@ -10,9 +10,9 @@
 #include "nsIWindowMediator.h"
 #include "nsIObserver.h"
 #include "nsTArray.h"
-#include "nsXPIDLString.h"
+#include "nsString.h"
 #include "nsWeakReference.h"
-#include "nsCOMArray.h"
+#include "nsTObserverArray.h"
 
 class nsAppShellWindowEnumerator;
 class nsASXULWindowEarlyToLateEnumerator;
@@ -51,7 +51,7 @@ public:
   NS_DECL_NSIOBSERVER
 
   static nsresult GetDOMWindow(nsIXULWindow* inWindow,
-                               nsCOMPtr<nsIDOMWindow>& outDOMWindow);
+                               nsCOMPtr<nsPIDOMWindowOuter>& outDOMWindow);
 
 private:
   int32_t AddEnumerator(nsAppShellWindowEnumerator* inEnumerator);
@@ -72,7 +72,8 @@ private:
   bool          mSortingZOrder;
   bool          mReady;
 
-  nsCOMArray<nsIWindowMediatorListener> mListeners;
+  typedef nsTObserverArray<nsCOMPtr<nsIWindowMediatorListener>> ListenerArray;
+  ListenerArray mListeners;
 };
 
 #endif

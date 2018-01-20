@@ -3,6 +3,8 @@
 <html>
 <head>
 <script type="text/javascript">
+/* global addMessageListener, sendAsyncMessage, removeMessageListener */
+
 addMessageListener("Ping", function(message) {
   sendAsyncMessage("Pong", {
     str: message.data.str,
@@ -24,7 +26,7 @@ function testData(data) {
   var response = {
     result: true,
     status: "All data correctly received"
-  }
+  };
 
   function compare(prop, expected) {
     if (uneval(data[prop]) == uneval(expected))

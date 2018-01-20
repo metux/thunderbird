@@ -5,10 +5,10 @@
 ifndef COMM_BUILD
 
 ifndef MOZILLA_DIR
-MOZILLA_DIR = $(topsrcdir)
+MOZILLA_DIR = $(moztopsrcdir)
 endif
 # included to get $(BUILDID), which needs $(MOZILLA_DIR)
-include $(topsrcdir)/toolkit/mozapps/installer/package-name.mk
+include $(moztopsrcdir)/toolkit/mozapps/installer/package-name.mk
 
 BUILD_YEAR = $(shell echo $(BUILDID) | cut -c 1-4)
 BUILD_MONTH = $(shell echo $(BUILDID) | cut -c 5-6)
@@ -22,7 +22,7 @@ else
 ifeq ($(OS_ARCH),WINNT)
 PKG_SUFFIX = .zip
 else
-ifdef MOZ_WIDGET_GTK
+ifneq (,$(filter gtk%,$(MOZ_WIDGET_TOOLKIT)))
 PKG_SUFFIX = .tar.bz2
 else
 PKG_SUFFIX = .tar.gz
@@ -71,18 +71,15 @@ FORCE_UPDATE := components/components.list|Contents/MacOS/components/components.
 # SYMBOL_SERVER_USER=buildbot
 
 distribution:
-	@$(MAKE) MAKE_SYM_STORE_PATH=$(MAKE_SYM_STORE_PATH) SYM_STORE_SOURCE_DIRS='$(topsrcdir)/mozilla/extensions/purple $(topsrcdir)/mozilla $(topsrcdir)' buildsymbols
+	@$(MAKE) MAKE_SYM_STORE_PATH=$(MAKE_SYM_STORE_PATH) SYM_STORE_SOURCE_DIRS='$(moztopsrcdir)/extensions/purple $(moztopsrcdir) $(commtopsrcdir)' buildsymbols
 	@$(MAKE) -C im/installer libs installer
 ifdef ENABLE_TESTS
 	$(MAKE) xpcshell-tests
 endif
-ifdef MOZ_UPDATE_PACKAGING
 	$(MAKE) -C tools/update-packaging complete-patch PKG_INST_PATH=
-endif
 ifdef L10NBASEDIR
-	$(foreach locale,$(SHIPPED_LOCALES),$(MAKE) -C im/locales/ repack-$(locale) LOCALE_MERGEDIR=mergedir MOZ_MAKE_COMPLETE_MAR=$(MOZ_UPDATE_PACKAGING) ;)
+	$(foreach locale,$(SHIPPED_LOCALES),$(MAKE) -C im/locales/ repack-$(locale) LOCALE_MERGEDIR=mergedir MOZ_MAKE_COMPLETE_MAR=1 ;)
 endif
-ifdef MOZ_UPDATE_PACKAGING
 ifdef LIST_PREVIOUS_MAR_CMD
 	rm -rf $(PREVIOUS_MAR_DIR) $(PATCH_FILE)
 	mkdir $(PREVIOUS_MAR_DIR)
@@ -94,8 +91,7 @@ ifdef LIST_PREVIOUS_MAR_CMD
 		mkdir -p $(PREVIOUS_MAR_DIR)/$(buildid) ; \
 	        $(DOWNLOAD_MAR_CMD) ; \
 		echo "$(MAR_FILE_DEST),$(DIST)/$(COMPLETE_MAR),$(DIST)/$(PKG_UPDATE_PATH)$(PKG_UPDATE_BASENAME).partial.from-$(buildid).mar,$(FORCE_UPDATE)" >> $(PATCH_FILE) ;))))
-	PATH="$(realpath $(DIST)/host/bin):$(PATH)" $(PYTHON) $(topsrcdir)/tools/update-packaging/make_incremental_updates.py -f $(PATCH_FILE)
-endif
+	PATH="$(realpath $(DIST)/host/bin):$(PATH)" $(PYTHON) $(moztopsrcdir)/tools/update-packaging/make_incremental_updates.py -f $(PATCH_FILE)
 endif
 ifdef SYMBOL_SERVER_HOST
 	@$(MAKE) uploadsymbols
@@ -107,7 +103,7 @@ endif
 installer:
 	@$(MAKE) -C im/installer installer
 
-SHIPPED_LOCALES_FILE = $(topsrcdir)/im/locales/shipped-locales
+SHIPPED_LOCALES_FILE = $(commtopsrcdir)/im/locales/shipped-locales
 SHIPPED_LOCALES := $(shell if test -f $(SHIPPED_LOCALES_FILE); then cat $(SHIPPED_LOCALES_FILE); fi)
 
 package:

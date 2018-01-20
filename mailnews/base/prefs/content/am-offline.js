@@ -270,7 +270,6 @@ function onLockPreference()
       { prefstring:"retainBy", id:"retention.keepMsg"},
       { prefstring:"daysToKeepHdrs", id:"retention.keepOldMsgMin"},
       { prefstring:"numHdrsToKeep", id:"retention.keepNewMsgMin"},
-      { prefstring:"keepUnreadOnly", id:"retention.keepUnread"},
       { prefstring:"daysToKeepBodies", id:"nntp.removeBodyMin"},
       { prefstring:"cleanupBodies", id:"nntp.removeBody" },
       { prefstring:"applyToFlagged", id:"retention.applyToFlagged"},
@@ -300,7 +299,7 @@ function toggleOffline()
 {
     let offline = document.getElementById("offline.folders").checked;
     let allFolders = gIncomingServer.rootFolder.descendants;
-    for (let folder in fixIterator(allFolders, Components.interfaces.nsIMsgFolder)) {
+    for (let folder of fixIterator(allFolders, Components.interfaces.nsIMsgFolder)) {
       if (offline)
         folder.setFlag(Components.interfaces.nsMsgFolderFlags.Offline);
       else
@@ -312,7 +311,7 @@ function collectOfflineFolders()
 {
     let offlineFolderMap = {};
     let allFolders = gIncomingServer.rootFolder.descendants;
-    for (let folder in fixIterator(allFolders, Components.interfaces.nsIMsgFolder))
+    for (let folder of fixIterator(allFolders, Components.interfaces.nsIMsgFolder))
       offlineFolderMap[folder.folderURL] = folder.getFlag(Components.interfaces.nsMsgFolderFlags.Offline);
 
     return offlineFolderMap;
@@ -321,7 +320,7 @@ function collectOfflineFolders()
 function restoreOfflineFolders(offlineFolderMap)
 {
     let allFolders = gIncomingServer.rootFolder.descendants;
-    for (let folder in fixIterator(allFolders, Components.interfaces.nsIMsgFolder)) {
+    for (let folder of fixIterator(allFolders, Components.interfaces.nsIMsgFolder)) {
       if (offlineFolderMap[folder.folderURL])
         folder.setFlag(Components.interfaces.nsMsgFolderFlags.Offline);
       else
@@ -330,14 +329,16 @@ function restoreOfflineFolders(offlineFolderMap)
 }
 
 /**
- * Checks if the user selected a permanent removal of messages from server and
- * warns about it.
+ * Checks if the user selected a permanent removal of messages from a server
+ * listed in the confirmfor attribute and warns about it.
  *
  * @param aRadio  The radiogroup element containing the retention options.
  */
 function warnServerRemove(aRadio)
 {
-  if (aRadio.value != 1) {
+  let confirmFor = aRadio.getAttribute("confirmfor");
+
+  if (confirmFor && confirmFor.split(',').includes(gServerType) && aRadio.value != 1) {
     let prefBundle = document.getElementById("bundle_prefs");
     let title = prefBundle.getString("removeFromServerTitle");
     let question = prefBundle.getString("removeFromServer");

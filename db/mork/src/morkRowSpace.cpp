@@ -120,8 +120,6 @@ morkRowSpace::morkRowSpace(morkEnv* ev,
 /*public non-poly*/ void
 morkRowSpace::CloseRowSpace(morkEnv* ev) // called by CloseMorkNode();
 {
-  if ( this )
-  {
     if ( this->IsNode() )
     {
       morkAtomRowMap** cache = mRowSpace_IndexCache;
@@ -144,9 +142,6 @@ morkRowSpace::CloseRowSpace(morkEnv* ev) // called by CloseMorkNode();
     }
     else
       this->NonNodeError(ev);
-  }
-  else
-    ev->NilPointerError();
 }
 
 // } ===== end morkNode methods =====
@@ -199,12 +194,11 @@ morkRowSpace::CutAllRows(morkEnv* ev, morkPool* ioPool)
   if ( this->IsRowSpaceClean() )
     this->MaybeDirtyStoreAndSpace();
   
-  mork_num outSlots = mRowSpace_Rows.MapFill();
-
 #ifdef MORK_ENABLE_ZONE_ARENAS
   MORK_USED_2(ev, ioPool);
   return 0;
 #else /*MORK_ENABLE_ZONE_ARENAS*/
+  mork_num outSlots = mRowSpace_Rows.MapFill();
   morkZone* zone = &mSpace_Store->mStore_Zone;
   morkRow* r = 0; // old key row in the map
   mork_change* c = 0;
@@ -241,10 +235,9 @@ morkRowSpace::CutAllRows(morkEnv* ev, morkPool* ioPool)
     i.CutHereRow(ev, /*key*/ (morkRow**) 0);
 #endif /*MORK_ENABLE_PROBE_MAPS*/
   }
-#endif /*MORK_ENABLE_ZONE_ARENAS*/
-  
-  
+
   return outSlots;
+#endif /*MORK_ENABLE_ZONE_ARENAS*/
 }
 
 morkTable*

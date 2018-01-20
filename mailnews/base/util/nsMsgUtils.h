@@ -7,15 +7,14 @@
 #define _NSMSGUTILS_H
 
 #include "nsIURL.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "msgCore.h"
 #include "nsCOMPtr.h"
 #include "MailNewsTypes2.h"
 #include "nsTArray.h"
 #include "nsInterfaceRequestorAgg.h"
 #include "nsILoadGroup.h"
-#include "nsISupportsArray.h"
-#include "nsIAtom.h"
+#include "nsIArray.h"
 #include "nsINetUtil.h"
 #include "nsIRequest.h"
 #include "nsILoadInfo.h"
@@ -35,9 +34,11 @@ class nsIMsgDatabase;
 class nsIMutableArray;
 class nsIProxyInfo;
 class nsIMsgWindow;
-class nsISupportsArray;
 class nsIStreamListener;
+class nsICancelable;
+class nsIProtocolProxyCallback;
 
+#define FILE_IO_BUFFER_SIZE (16*1024)
 #define MSGS_URL    "chrome://messenger/locale/messenger.properties"
 
 //These are utility functions that can used throughout the mailnews code
@@ -76,7 +77,7 @@ NS_MSG_BASE nsresult FormatFileSize(int64_t size, bool useKB, nsAString &formatt
  * @param aScheme scheme of the uri
  * @param[optional] aIsNewsFolder is this a news folder?
  */
-NS_MSG_BASE nsresult 
+NS_MSG_BASE nsresult
 NS_MsgCreatePathStringFromFolderURI(const char *aFolderURI,
                                     nsCString& aPathString,
                                     const nsCString &aScheme,
@@ -90,12 +91,12 @@ NS_MsgCreatePathStringFromFolderURI(const char *aFolderURI,
  *
  * @return true if it made a change (in which case the caller should look to
  *         modifiedSubject for the result) and false otherwise (in which
- *         case the caller should look at stringp/length for the result) 
+ *         case the caller should look at stringp/length for the result)
  *
  * @note In the case of a true return value, the string is not altered:
  *       the pointer to its head is merely advanced, and the length
  *       correspondingly decreased.
- * 
+ *
  * @note This API is insane and should be fixed.
  */
 NS_MSG_BASE bool NS_MsgStripRE(const char **stringP, uint32_t *lengthP, char **modifiedSubject=nullptr);
@@ -190,10 +191,10 @@ NS_MSG_BASE nsresult MsgGetFileStream(nsIFile *file, nsIOutputStream **fileStrea
 
 NS_MSG_BASE nsresult MsgReopenFileStream(nsIFile *file, nsIInputStream *fileStream);
 
-// Automatically creates an output stream with a 4K buffer
+// Automatically creates an output stream with a suitable buffer
 NS_MSG_BASE nsresult MsgNewBufferedFileOutputStream(nsIOutputStream **aResult, nsIFile *aFile, int32_t aIOFlags = -1, int32_t aPerm = -1);
 
-// Automatically creates an output stream with a 4K buffer, but write to a temporary file first, then rename to aFile
+// Automatically creates an output stream with a suitable buffer, but write to a temporary file first, then rename to aFile
 NS_MSG_BASE nsresult MsgNewSafeBufferedFileOutputStream(nsIOutputStream **aResult, nsIFile *aFile, int32_t aIOFlags = -1, int32_t aPerm = -1);
 
 // fills in the position of the passed in keyword in the passed in keyword list
@@ -205,7 +206,7 @@ NS_MSG_BASE bool MsgHostDomainIsTrusted(nsCString &host, nsCString &trustedMailD
 // gets an nsIFile from a UTF-8 file:// path
 NS_MSG_BASE nsresult MsgGetLocalFileFromURI(const nsACString &aUTF8Path, nsIFile **aFile);
 
-NS_MSG_BASE void MsgStripQuotedPrintable (unsigned char *src);
+NS_MSG_BASE void MsgStripQuotedPrintable (nsCString& aSrc);
 
 /*
  * Utility function copied from nsReadableUtils
@@ -219,7 +220,7 @@ NS_MSG_BASE bool MsgIsUTF8(const nsACString& aString);
 NS_MSG_BASE nsresult MsgEscapeString(const nsACString &aStr,
                                      uint32_t aType, nsACString &aResult);
 
-NS_MSG_BASE nsresult MsgUnescapeString(const nsACString &aStr, 
+NS_MSG_BASE nsresult MsgUnescapeString(const nsACString &aStr,
                                        uint32_t aFlags, nsACString &aResult);
 
 NS_MSG_BASE nsresult MsgEscapeURL(const nsACString &aStr, uint32_t aFlags,
@@ -235,8 +236,9 @@ NS_MSG_BASE nsresult MsgGetHdrsFromKeys(nsIMsgDatabase *aDB,
                                         uint32_t aNumKeys,
                                         nsIMutableArray **aHeaders);
 
-NS_MSG_BASE nsresult MsgExamineForProxy(nsIChannel *channel,
-                                        nsIProxyInfo **proxyInfo);
+NS_MSG_BASE nsresult MsgExamineForProxyAsync(nsIChannel *channel,
+                                             nsIProtocolProxyCallback *listener,
+                                             nsICancelable **result);
 
 NS_MSG_BASE int32_t MsgFindCharInSet(const nsCString &aString,
                                      const char* aChars, uint32_t aOffset = 0);
@@ -263,7 +265,9 @@ NS_MSG_BASE bool MsgAdvanceToNextLine(const char *buffer, uint32_t &bufferOffset
  *                   creating the dialog.
  */
 NS_MSG_BASE nsresult MsgPromptLoginFailed(nsIMsgWindow *aMsgWindow,
-                                          const nsCString &aHostname,
+                                          const nsACString &aHostname,
+                                          const nsACString &aUsername,
+                                          const nsAString &aAccountname,
                                           int32_t *aResult);
 
 /**
@@ -279,7 +283,7 @@ NS_MSG_BASE PRTime MsgConvertAgeInDaysToCutoffDate(int32_t ageInDays);
  * @param[out] aOutString   result representation of search terms.
  *
  */
-NS_MSG_BASE nsresult MsgTermListToString(nsISupportsArray *aTermList, nsCString &aOutString);
+NS_MSG_BASE nsresult MsgTermListToString(nsIArray *aTermList, nsCString &aOutString);
 
 NS_MSG_BASE nsresult
 MsgStreamMsgHeaders(nsIInputStream *aInputStream, nsIStreamListener *aConsumer);
@@ -315,19 +319,8 @@ NS_MSG_BASE nsresult
 ConvertBufToPlainText(nsString &aConBuf, bool formatFlowed, bool delsp,
                                          bool formatOutput, bool disallowBreaks);
 
-/**
- * The following definitons exist for compatibility between the internal and
- * external APIs. Where possible they just forward to the existing API.
- */
-
-#ifdef MOZILLA_INTERNAL_API
 #include "nsEscape.h"
 
-/**
- * The internal API expects nsCaseInsensitiveC?StringComparator() and true.
- * Redefine CaseInsensitiveCompare so that Find works.
- */
-#define CaseInsensitiveCompare true
 /**
  * The following methods are not exposed to the external API, but when we're
  * using the internal API we can simply redirect the calls appropriately.
@@ -338,10 +331,6 @@ ConvertBufToPlainText(nsString &aConBuf, bool formatFlowed, bool delsp,
         (str).RFindChar(ch, len)
 #define MsgCompressWhitespace(str) \
         (str).CompressWhitespace()
-#define MsgEscapeHTML(str) \
-        nsEscapeHTML(str)
-#define MsgEscapeHTML2(buffer, len) \
-        nsEscapeHTML2(buffer, len)
 #define MsgReplaceSubstring(str, what, replacement) \
         (str).ReplaceSubstring(what, replacement)
 #define MsgIsUTF8(str) \
@@ -350,200 +339,12 @@ ConvertBufToPlainText(nsString &aConBuf, bool formatFlowed, bool delsp,
         NS_NewInterfaceRequestorAggregation(aFirst, aSecond, aResult)
 #define MsgNewNotificationCallbacksAggregation(aCallbacks, aLoadGroup, aResult) \
         NS_NewNotificationCallbacksAggregation(aCallbacks, aLoadGroup, aResult)
-#define MsgGetAtom(aString) \
-        do_GetAtom(aString)
-#define MsgNewAtom(aString) \
-        NS_NewAtom(aString)
 #define MsgReplaceChar(aString, aNeedle, aReplacement) \
         (aString).ReplaceChar(aNeedle, aReplacement)
 #define MsgFind(str, what, ignore_case, offset) \
         (str).Find(what, ignore_case, offset)
 #define MsgCountChar(aString, aChar) \
         (aString).CountChar(aChar)
-
-#else
-
-/**
- * The external API expects CaseInsensitiveCompare. Redefine
- * nsCaseInsensitiveC?StringComparator() so that Equals works.
- */
-#define nsCaseInsensitiveCStringComparator() \
-        CaseInsensitiveCompare
-#define nsCaseInsensitiveStringComparator() \
-        CaseInsensitiveCompare
-/// The external API does not provide kNotFound.
-#define kNotFound -1
-/**
- * The external API does not provide the following methods. While we can
- * reasonably easily define them in terms of existing methods, we only want
- * to do this when using the external API.
- */
-#define AppendASCII \
-        AppendLiteral
-#define AppendUTF16toUTF8(source, dest) \
-        (dest).Append(NS_ConvertUTF16toUTF8(source))
-#define AppendUTF8toUTF16(source, dest) \
-        (dest).Append(NS_ConvertUTF8toUTF16(source))
-#define AppendASCIItoUTF16(source, dest) \
-        (dest).Append(NS_ConvertASCIItoUTF16(source))
-#define Compare(str1, str2, comp) \
-        (str1).Compare(str2, comp)
-#define CaseInsensitiveFindInReadable(what, str) \
-        ((str).Find(what, CaseInsensitiveCompare) != kNotFound)
-#define LossyAppendUTF16toASCII(source, dest) \
-        (dest).Append(NS_LossyConvertUTF16toASCII(source))
-#define Last() \
-        EndReading()[-1]
-#define SetCharAt(ch, index) \
-        Replace(index, 1, ch)
-#define NS_NewISupportsArray(result) \
-        CallCreateInstance(NS_SUPPORTSARRAY_CONTRACTID, static_cast<nsISupportsArray**>(result))
-/**
- * The internal and external methods expect the parameters in a different order.
- * The internal API also always expects a flag rather than a comparator.
- */
-inline int32_t MsgFind(nsAString &str, const char *what, bool ignore_case, uint32_t offset)
-{
-  return str.Find(what, offset, ignore_case);
-}
-
-inline int32_t MsgFind(nsACString &str, const char *what, bool ignore_case, int32_t offset)
-{
-  /* See Find_ComputeSearchRange from nsStringObsolete.cpp */
-  if (offset < 0) {
-    offset = 0;
-  }
-  if (ignore_case)
-    return str.Find(nsDependentCString(what), offset, CaseInsensitiveCompare);
-  return str.Find(nsDependentCString(what), offset);
-}
-
-inline int32_t MsgFind(nsACString &str, const nsACString &what, bool ignore_case, int32_t offset)
-{
-  /* See Find_ComputeSearchRange from nsStringObsolete.cpp */
-  if (offset < 0) {
-    offset = 0;
-  }
-  if (ignore_case)
-    return str.Find(what, offset, CaseInsensitiveCompare);
-  return str.Find(what, offset);
-}
-
-/**
- * The following methods are not exposed to the external API so we define
- * equivalent versions here.
- */
-/// Equivalent of LowerCaseEqualsLiteral(literal)
-#define MsgLowerCaseEqualsLiteral(str, literal) \
-        (str).Equals(literal, CaseInsensitiveCompare)
-/// Equivalent of RFindChar(ch, len)
-#define MsgRFindChar(str, ch, len) \
-        StringHead(str, len).RFindChar(ch)
-/// Equivalent of aString.CompressWhitespace()
-NS_MSG_BASE void MsgCompressWhitespace(nsCString& aString);
-/// Equivalent of nsEscapeHTML(aString)
-NS_MSG_BASE char *MsgEscapeHTML(const char *aString);
-/// Equivalent of nsEscapeHTML2(aBuffer, aLen)
-NS_MSG_BASE char16_t *MsgEscapeHTML2(const char16_t *aBuffer, int32_t aLen);
-// Existing replacement for IsUTF8
-NS_MSG_BASE bool MsgIsUTF8(const nsACString& aString);
-/// Equivalent of NS_NewAtom(aUTF8String)
-NS_MSG_BASE already_AddRefed<nsIAtom> MsgNewAtom(const char* aString);
-/// Replacement of NS_RegisterStaticAtoms
-NS_MSG_BASE nsIAtom* MsgNewPermanentAtom(const char* aString);
-/// Equivalent of do_GetAtom(aUTF8String)
-inline already_AddRefed<nsIAtom> MsgGetAtom(const char* aUTF8String)
-{
-  return MsgNewAtom(aUTF8String);
-}
-/// Equivalent of ns(C)String::ReplaceSubstring(what, replacement)
-NS_MSG_BASE void MsgReplaceSubstring(nsAString &str, const nsAString &what, const nsAString &replacement);
-NS_MSG_BASE void MsgReplaceSubstring(nsACString &str, const char *what, const char *replacement);
-/// Equivalent of ns(C)String::ReplaceChar(what, replacement)
-NS_MSG_BASE void MsgReplaceChar(nsString& str, const char *set, const char16_t replacement);
-NS_MSG_BASE void MsgReplaceChar(nsCString& str, const char needle, const char replacement);
-// Equivalent of NS_NewInterfaceRequestorAggregation(aFirst, aSecond, aResult)
-NS_MSG_BASE nsresult MsgNewInterfaceRequestorAggregation(nsIInterfaceRequestor *aFirst,
-                                                         nsIInterfaceRequestor *aSecond,
-                                                         nsIInterfaceRequestor **aResult);
-
-/**
- * This function is based on NS_NewNotificationCallbacksAggregation from
- * nsNetUtil.h
- *
- * This function returns a nsIInterfaceRequestor instance that returns the
- * same result as NS_QueryNotificationCallbacks when queried.
- */
-inline nsresult
-MsgNewNotificationCallbacksAggregation(nsIInterfaceRequestor  *callbacks,
-                                       nsILoadGroup           *loadGroup,
-                                       nsIInterfaceRequestor **result)
-{
-    nsCOMPtr<nsIInterfaceRequestor> cbs;
-    if (loadGroup)
-        loadGroup->GetNotificationCallbacks(getter_AddRefs(cbs));
-    return MsgNewInterfaceRequestorAggregation(callbacks, cbs, result);
-}
-
-/**
- * Helper class for do_QueryElementAt
- */
-class NS_MSG_BASE MsgQueryElementAt : public nsCOMPtr_helper
-  {
-    public:
-      MsgQueryElementAt( nsISupportsArray* anArray, uint32_t aIndex, nsresult* aErrorPtr )
-          : mArray(anArray),
-            mIndex(aIndex),
-            mErrorPtr(aErrorPtr)
-        {
-          // nothing else to do here
-        }
-      virtual nsresult NS_FASTCALL operator()( const nsIID& aIID, void** ) const;
-    private:
-      nsISupportsArray*  mArray;
-      uint32_t           mIndex;
-      nsresult*          mErrorPtr;
-  };
-
-/**
- * Overload function for nsISupportsArray. The do_QueryElementAt which belongs to
- * internal API only accepts nsICollection* aCollection.
- */
-inline
-const MsgQueryElementAt
-do_QueryElementAt( nsISupportsArray* array, uint32_t aIndex, nsresult* aErrorPtr = 0 )
-{
-    return MsgQueryElementAt(array, aIndex, aErrorPtr);
-}
-/**
- * Count occurences of specified character in string.
- *
- */
-inline
-uint32_t MsgCountChar(nsACString &aString, char16_t aChar) {
-  const char *begin, *end;
-  uint32_t num_chars = 0;
-  aString.BeginReading(&begin, &end);
-  for (const char *current = begin; current < end; ++current) {
-      if (*current == aChar)
-        ++num_chars;
-  }
-  return num_chars;
-}
-
-inline
-uint32_t MsgCountChar(nsAString &aString, char16_t aChar) {
-  const char16_t *begin, *end;
-  uint32_t num_chars = 0;
-  aString.BeginReading(&begin, &end);
-  for (const char16_t *current = begin; current < end; ++current) {
-      if (*current == aChar)
-        ++num_chars;
-  }
-  return num_chars;
-}
-
-#endif
 
 /**
  * Converts a hex string into an integer.
@@ -569,6 +370,11 @@ NS_MSG_BASE nsMsgKey msgKeyFromInt(uint32_t aValue);
 NS_MSG_BASE nsMsgKey msgKeyFromInt(uint64_t aValue);
 
 /**
+ * Helper function to extract query part from URL spec.
+ */
+nsCString MsgExtractQueryPart(const nsACString& spec, const char* queryToExtract);
+
+/**
  * Helper macro for defining getter/setters. Ported from nsISupportsObsolete.h
  */
 #define NS_IMPL_GETSET(clazz, attr, type, member) \
@@ -585,3 +391,30 @@ NS_MSG_BASE nsMsgKey msgKeyFromInt(uint64_t aValue);
   }
 
 #endif
+
+ /**
+ * Macro and helper function for reporting an error, warning or
+ * informational message to the Error Console
+ *
+ * This will require the inclusion of the following files in the source file
+ * #include "nsIScriptError.h"
+ * #include "nsIConsoleService.h"
+ *
+ */
+
+NS_MSG_BASE
+void MsgLogToConsole4(const nsAString &aErrorText, const nsAString &aFilename,
+                      uint32_t aLine, uint32_t flags);
+
+// Macro with filename and line number
+#define MSG_LOG_TO_CONSOLE(_text, _flag) MsgLogToConsole4(NS_LITERAL_STRING(_text), NS_LITERAL_STRING(__FILE__), __LINE__, _flag)
+#define MSG_LOG_ERR_TO_CONSOLE(_text) MSG_LOG_TO_CONSOLE(_text, nsIScriptError::errorFlag)
+#define MSG_LOG_WARN_TO_CONSOLE(_text) MSG_LOG_TO_CONSOLE(_text, nsIScriptError::warningFlag)
+#define MSG_LOG_INFO_TO_CONSOLE(_text) MSG_LOG_TO_CONSOLE(_text, nsIScriptError::infoFlag)
+
+// Helper macros to cope with shoddy I/O error reporting (or lack thereof)
+#define MSG_NS_ERROR(_txt) do { NS_ERROR(_txt); MSG_LOG_ERR_TO_CONSOLE(_txt); } while(0)
+#define MSG_NS_WARNING(_txt) do { NS_WARNING(_txt); MSG_LOG_WARN_TO_CONSOLE(_txt); } while (0)
+#define MSG_NS_WARN_IF_FALSE(_val, _txt) do { if (!(_val)) { NS_WARNING(_txt); MSG_LOG_WARN_TO_CONSOLE(_txt); } } while (0)
+#define MSG_NS_INFO(_txt) do { MSG_LOCAL_INFO_TO_CONSOLE(_txt); \
+  fprintf(stderr,"(info) %s (%s:%d)\n", _txt, __FILE__, __LINE__); } while(0)

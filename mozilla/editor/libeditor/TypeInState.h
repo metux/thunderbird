@@ -3,9 +3,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef TypeInState_h__
-#define TypeInState_h__
+#ifndef TypeInState_h
+#define TypeInState_h
 
+#include "mozilla/UniquePtr.h"
 #include "nsCOMPtr.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsISelectionListener.h"
@@ -14,75 +15,87 @@
 #include "nsTArray.h"
 #include "nscore.h"
 
-class nsIAtom;
+// Workaround for windows headers
+#ifdef SetProp
+#undef SetProp
+#endif
+
+class nsAtom;
 class nsIDOMNode;
+
 namespace mozilla {
+
+class HTMLEditRules;
 namespace dom {
 class Selection;
 } // namespace dom
-} // namespace mozilla
 
 struct PropItem
 {
-  nsIAtom *tag;
+  nsAtom* tag;
   nsString attr;
   nsString value;
 
   PropItem();
-  PropItem(nsIAtom *aTag, const nsAString &aAttr, const nsAString &aValue);
+  PropItem(nsAtom* aTag, const nsAString& aAttr, const nsAString& aValue);
   ~PropItem();
 };
 
-class TypeInState : public nsISelectionListener
+class TypeInState final : public nsISelectionListener
 {
 public:
-
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_CLASS(TypeInState)
 
   TypeInState();
   void Reset();
 
-  nsresult UpdateSelState(mozilla::dom::Selection* aSelection);
+  nsresult UpdateSelState(dom::Selection* aSelection);
 
   // nsISelectionListener
   NS_DECL_NSISELECTIONLISTENER
 
-  void SetProp(nsIAtom* aProp, const nsAString& aAttr, const nsAString& aValue);
+  void SetProp(nsAtom* aProp, const nsAString& aAttr, const nsAString& aValue);
 
   void ClearAllProps();
-  void ClearProp(nsIAtom* aProp, const nsAString& aAttr);
+  void ClearProp(nsAtom* aProp, const nsAString& aAttr);
 
-  //**************************************************************************
-  //    TakeClearProperty: hands back next property item on the clear list.
-  //                       caller assumes ownership of PropItem and must delete it.
-  PropItem* TakeClearProperty();
+  /**
+   * TakeClearProperty() hands back next property item on the clear list.
+   * Caller assumes ownership of PropItem and must delete it.
+   */
+  UniquePtr<PropItem> TakeClearProperty();
 
-  //**************************************************************************
-  //    TakeSetProperty: hands back next property item on the set list.
-  //                     caller assumes ownership of PropItem and must delete it.
-  PropItem* TakeSetProperty();
+  /**
+   * TakeSetProperty() hands back next property item on the set list.
+   * Caller assumes ownership of PropItem and must delete it.
+   */
+  UniquePtr<PropItem> TakeSetProperty();
 
-  //**************************************************************************
-  //    TakeRelativeFontSize: hands back relative font value, which is then
-  //                          cleared out.
+  /**
+   * TakeRelativeFontSize() hands back relative font value, which is then
+   * cleared out.
+   */
   int32_t TakeRelativeFontSize();
 
-  void GetTypingState(bool &isSet, bool &theSetting, nsIAtom *aProp);
-  void GetTypingState(bool &isSet, bool &theSetting, nsIAtom *aProp,
-                      const nsString &aAttr, nsString* outValue);
+  void GetTypingState(bool& isSet, bool& theSetting, nsAtom* aProp);
+  void GetTypingState(bool& isSet, bool& theSetting, nsAtom* aProp,
+                      const nsString& aAttr, nsString* outValue);
 
-  static   bool FindPropInList(nsIAtom *aProp, const nsAString &aAttr, nsAString *outValue, nsTArray<PropItem*> &aList, int32_t &outIndex);
+  static bool FindPropInList(nsAtom* aProp, const nsAString& aAttr,
+                             nsAString* outValue, nsTArray<PropItem*>& aList,
+                             int32_t& outIndex);
 
 protected:
   virtual ~TypeInState();
 
-  void RemovePropFromSetList(nsIAtom* aProp, const nsAString& aAttr);
-  void RemovePropFromClearedList(nsIAtom* aProp, const nsAString& aAttr);
-  bool IsPropSet(nsIAtom* aProp, const nsAString& aAttr, nsAString* outValue);
-  bool IsPropSet(nsIAtom* aProp, const nsAString& aAttr, nsAString* outValue, int32_t& outIndex);
-  bool IsPropCleared(nsIAtom* aProp, const nsAString& aAttr);
-  bool IsPropCleared(nsIAtom* aProp, const nsAString& aAttr, int32_t& outIndex);
+  void RemovePropFromSetList(nsAtom* aProp, const nsAString& aAttr);
+  void RemovePropFromClearedList(nsAtom* aProp, const nsAString& aAttr);
+  bool IsPropSet(nsAtom* aProp, const nsAString& aAttr, nsAString* outValue);
+  bool IsPropSet(nsAtom* aProp, const nsAString& aAttr, nsAString* outValue,
+                 int32_t& outIndex);
+  bool IsPropCleared(nsAtom* aProp, const nsAString& aAttr);
+  bool IsPropCleared(nsAtom* aProp, const nsAString& aAttr, int32_t& outIndex);
 
   nsTArray<PropItem*> mSetArray;
   nsTArray<PropItem*> mClearedArray;
@@ -90,10 +103,10 @@ protected:
   nsCOMPtr<nsIDOMNode> mLastSelectionContainer;
   int32_t mLastSelectionOffset;
 
-  friend class nsHTMLEditRules;
+  friend class HTMLEditRules;
 };
 
+} // namespace mozilla
 
-
-#endif  // TypeInState_h__
+#endif  // #ifndef TypeInState_h
 

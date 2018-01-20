@@ -19,6 +19,7 @@ imcontact {
 .startChatBubble, .closeConversationButton {
   cursor: pointer;
   -moz-user-focus: ignore;
+  color: initial;
   display: none;
 }
 
@@ -41,7 +42,7 @@ tooltip[type="im"] {
   -moz-binding: url("chrome://chat/content/imtooltip.xml#tooltip");
 }
 
-browser[type="content-conversation"] {
+browser[browser-type="conversation"] {
   -moz-binding: url("chrome://chat/content/convbrowser.xml#browser");
 }
 
@@ -98,15 +99,10 @@ toolbar[mode="text"] #button-chat {
   min-width: 11px;
   text-align: center;
   margin-top: -1px;
-  -moz-margin-start: 5px;
-  -moz-margin-end: 0;
+  margin-inline-start: 5px;
+  margin-inline-end: 0;
   margin-bottom: 5px;
   padding: 0 2px;
-}
-
-toolbar[iconsize="large"] .badgeButton-badge {
-  -moz-margin-start: 13px;
-  margin-bottom: 13px;
 }
 
 toolbar[mode="text"] .badgeButton-badge {

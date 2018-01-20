@@ -37,7 +37,7 @@ function Startup()
   Services.prefs.addObserver("browser.visited_color", browserPrefsObserver, false);
 
   // Add event listener so we can remove our observers
-  window.addEventListener("unload", WindowOnUnload, false);
+  window.addEventListener("unload", WindowOnUnload, {capture: false, once: true});
   UpdateDependent(document.getElementById("editor.use_custom_colors").value);
 }
 
@@ -165,12 +165,15 @@ function ChooseImageFile()
   var title = editorBundle.getString("SelectImageFile");
   fp.init(window, title, nsIFilePicker.modeOpen);
   fp.appendFilters(nsIFilePicker.filterImages);
-  if (fp.show() == nsIFilePicker.returnOK)
+  fp.open(rv => {
+    if (rv != nsIFilePicker.returnOK || !fp.file) {
+      return;
+    }
     document.getElementById("editor.default_background_image").value = fp.fileURL.spec;
-
-  var textbox = document.getElementById("backgroundImageInput");
-  textbox.focus();
-  textbox.select();
+    let textbox = document.getElementById("backgroundImageInput");
+    textbox.focus();
+    textbox.select();
+  });
 }
 
 function WindowOnUnload()
@@ -181,5 +184,4 @@ function WindowOnUnload()
   Services.prefs.removeObserver("browser.anchor_color", browserPrefsObserver, false);
   Services.prefs.removeObserver("browser.active_color", browserPrefsObserver, false);
   Services.prefs.removeObserver("browser.visited_color", browserPrefsObserver, false);
-  window.removeEventListener("unload", WindowOnUnload, false);
 }

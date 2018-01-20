@@ -34,23 +34,23 @@
   list-style-image: url("chrome://mozapps/skin/extensions/extensionGeneric.svg");
   max-width: 64px;
   max-height: 64px;
-  -moz-margin-end: 6px;
+  margin-inline-end: 6px;
 }
 
 #genericAbout[addontype="theme"] #extensionIcon {
-  list-style-image: url("chrome://mozapps/skin/extensions/themeGeneric.png");
+  list-style-image: url("chrome://mozapps/skin/extensions/themeGeneric.svg");
 }
 
 #genericAbout[addontype="locale"] #extensionIcon {
-  list-style-image: url("chrome://mozapps/skin/extensions/localeGeneric.png");
+  list-style-image: url("chrome://mozapps/skin/extensions/localeGeneric.svg");
 }
 
 #genericAbout[addontype="plugin"] #extensionIcon {
-  list-style-image: url("chrome://mozapps/skin/plugins/pluginGeneric.png");
+  list-style-image: url("chrome://mozapps/skin/plugins/pluginGeneric.svg");
 }
 
 #genericAbout[addontype="dictionary"] #extensionIcon {
-  list-style-image: url("chrome://mozapps/skin/extensions/dictionaryGeneric.png");
+  list-style-image: url("chrome://mozapps/skin/extensions/dictionaryGeneric.svg");
 }
 
 #extensionName {
@@ -76,7 +76,7 @@
 }
 
 .boxIndent {
-  -moz-margin-start: 18px;
+  margin-inline-start: 18px;
 }
 
 #extensionCreator, .contributor {

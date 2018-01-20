@@ -1,7 +1,9 @@
 // Tests that toolbars have proper visibility when opening a new window
 // in either content or chrome context.
 
-const CONTENT_PAGE = "http://www.example.com/browser/dom/tests/browser/test_new_window_from_content_child.html";
+const ROOT = "http://www.example.com/browser/dom/tests/browser/";
+const CONTENT_PAGE = ROOT + "test_new_window_from_content_child.html";
+const TARGET_PAGE = ROOT + "dummy.html";
 
 /**
  * This function retrieves the visibility state of the toolbars of a
@@ -15,7 +17,7 @@ const CONTENT_PAGE = "http://www.example.com/browser/dom/tests/browser/test_new_
  *        the visibility state of the toolbars
  */
 function getToolbarsFromBrowserContent(aBrowser) {
-  return ContentTask.spawn(aBrowser, {}, function*() {
+  return ContentTask.spawn(aBrowser, {}, async function() {
     return {
       toolbar: content.toolbar.visible,
       menubar: content.menubar.visible,
@@ -98,15 +100,15 @@ function testNonDefaultContentToolbars(toolbars) {
 function testNonDefaultChromeToolbars(toolbars) {
   // None of the toolbars should be visible if hidden with chrome privileges
   ok(!toolbars.locationbar,
-     "locationbar should be visible on default window.open()");
+     "locationbar should not be visible with location=no");
   ok(!toolbars.menubar,
-     "menubar be visible on default window.open()");
+     "menubar should not be visible with menubar=no");
   ok(!toolbars.personalbar,
-     "personalbar should be visible on default window.open()");
+     "personalbar should not be visible with personalbar=no");
   ok(!toolbars.statusbar,
-     "statusbar should be visible on default window.open()");
+     "statusbar should not be visible with status=no");
   ok(!toolbars.toolbar,
-     "toolbar should be visible on default window.open()");
+     "toolbar should not be visible with toolbar=no");
 }
 
 /**
@@ -118,37 +120,72 @@ function testNonDefaultChromeToolbars(toolbars) {
  * A window opened with "location=no, personalbar=no, toolbar=no, scrollbars=no,
  * menubar=no, status=no", should only have location visible.
  */
-add_task(function*() {
-  yield BrowserTestUtils.withNewTab({
+add_task(async function() {
+  await BrowserTestUtils.withNewTab({
     gBrowser,
     url: CONTENT_PAGE,
-  }, function*(browser) {
+  }, async function(browser) {
     // First, call the default window.open() which will open a new tab
     let newTabPromise = BrowserTestUtils.waitForNewTab(gBrowser);
-    yield BrowserTestUtils.synthesizeMouseAtCenter("#winOpenDefault", {}, browser);
-    let tab = yield newTabPromise;
+    await BrowserTestUtils.synthesizeMouseAtCenter("#winOpenDefault", {}, browser);
+    let tab = await newTabPromise;
 
     // Check that all toolbars are visible
-    let toolbars = yield getToolbarsFromBrowserContent(gBrowser.selectedBrowser);
+    let toolbars = await getToolbarsFromBrowserContent(gBrowser.selectedBrowser);
     testDefaultToolbars(toolbars);
 
     // Cleanup
-    yield BrowserTestUtils.removeTab(tab);
+    await BrowserTestUtils.removeTab(tab);
 
     // Now let's open a window with toolbars hidden
     let winPromise = BrowserTestUtils.waitForNewWindow();
-    yield BrowserTestUtils.synthesizeMouseAtCenter("#winOpenNonDefault", {}, browser);
-    let popupWindow = yield winPromise;
+    await BrowserTestUtils.synthesizeMouseAtCenter("#winOpenNonDefault", {}, browser);
+    let popupWindow = await winPromise;
 
     let popupBrowser = popupWindow.gBrowser.selectedBrowser;
-    yield BrowserTestUtils.browserLoaded(popupBrowser);
+    await BrowserTestUtils.browserLoaded(popupBrowser);
 
     // Test toolbars visibility
-    let popupToolbars = yield getToolbarsFromBrowserContent(popupBrowser);
+    let popupToolbars = await getToolbarsFromBrowserContent(popupBrowser);
     testNonDefaultContentToolbars(popupToolbars);
 
-    // Cleanup
-    yield BrowserTestUtils.closeWindow(popupWindow);
+    // Ensure that chrome toolbars agree with content
+    let chromeToolbars = getToolbarsFromWindowChrome(popupWindow);
+    testNonDefaultContentToolbars(chromeToolbars);
+
+    // Close the new window
+    await BrowserTestUtils.closeWindow(popupWindow);
+  });
+});
+
+/**
+ * Ensure that toolbars of a window opened to about:blank in the content context
+ * have the correct visibility.
+ *
+ * A window opened with "location=no, personalbar=no, toolbar=no, scrollbars=no,
+ * menubar=no, status=no", should only have location visible.
+ */
+add_task(async function() {
+  await BrowserTestUtils.withNewTab({
+    gBrowser,
+    url: CONTENT_PAGE,
+  }, async function(browser) {
+    // Open a blank window with toolbars hidden
+    let winPromise = BrowserTestUtils.waitForNewWindow();
+    await BrowserTestUtils.synthesizeMouseAtCenter("#winOpenNoURLNonDefault", {}, browser);
+    let popupWindow = await winPromise;
+
+    // No need to wait for this window to load, since it's loading about:blank
+    let popupBrowser = popupWindow.gBrowser.selectedBrowser;
+    let popupToolbars = await getToolbarsFromBrowserContent(popupBrowser);
+    testNonDefaultContentToolbars(popupToolbars);
+
+    // Ensure that chrome toolbars agree with content
+    let chromeToolbars = getToolbarsFromWindowChrome(popupWindow);
+    testNonDefaultContentToolbars(chromeToolbars);
+
+    // Close the new window
+    await BrowserTestUtils.closeWindow(popupWindow);
   });
 });
 
@@ -161,11 +198,11 @@ add_task(function*() {
  * A window opened with "location=no, personalbar=no, toolbar=no, scrollbars=no,
  * menubar=no, status=no", should not have any toolbar visible.
  */
-add_task(function* () {
+add_task(async function() {
   // First open a default window from this chrome context
   let defaultWindowPromise = BrowserTestUtils.waitForNewWindow();
-  window.open("about:robots", "_blank");
-  let defaultWindow = yield defaultWindowPromise;
+  window.open(TARGET_PAGE, "_blank");
+  let defaultWindow = await defaultWindowPromise;
 
   // Check that all toolbars are visible
   let toolbars = getToolbarsFromWindowChrome(defaultWindow);
@@ -174,14 +211,14 @@ add_task(function* () {
   // Now lets open a window with toolbars hidden from this chrome context
   let features = "location=no, personalbar=no, toolbar=no, scrollbars=no, menubar=no, status=no";
   let popupWindowPromise = BrowserTestUtils.waitForNewWindow();
-  window.open("about:robots", "_blank", features);
-  let popupWindow = yield popupWindowPromise;
+  window.open(TARGET_PAGE, "_blank", features);
+  let popupWindow = await popupWindowPromise;
 
   // Test none of the tooolbars are visible
   let hiddenToolbars = getToolbarsFromWindowChrome(popupWindow);
   testNonDefaultChromeToolbars(hiddenToolbars);
 
   // Cleanup
-  yield BrowserTestUtils.closeWindow(defaultWindow);
-  yield BrowserTestUtils.closeWindow(popupWindow);
+  await BrowserTestUtils.closeWindow(defaultWindow);
+  await BrowserTestUtils.closeWindow(popupWindow);
 });

@@ -11,7 +11,6 @@ config = {
         'build',
         'upload-files',
         'sendchange',
-        # 'generate-build-stats',
         'update',  # decided by query_is_nightly()
     ],
     'stage_platform': 'macosx64-debug',
@@ -21,7 +20,6 @@ config = {
     #### 64 bit build specific #####
     'env': {
         'MOZBUILD_STATE_PATH': os.path.join(os.getcwd(), '.mozbuild'),
-        'MOZ_AUTOMATION': '1',
         'HG_SHARE_BASE_DIR': '/builds/hg-shared',
         'MOZ_OBJDIR': 'obj-firefox',
         'TINDERBOX_OUTPUT': '1',
@@ -34,11 +32,11 @@ config = {
         'LC_ALL': 'C',
         'XPCOM_DEBUG_BREAK': 'stack-and-abort',
         ## 64 bit specific
-        'PATH': '/tools/python/bin:/tools/buildbot/bin:/opt/local/bin:/usr/bin:'
+        'PATH': '/tools/python/bin:/opt/local/bin:/usr/bin:'
                 '/bin:/usr/sbin:/sbin:/usr/local/bin:/usr/X11/bin',
         ##
     },
     'src_mozconfig': 'browser/config/mozconfigs/macosx64/debug',
-    'purge_minsize': 10,
+    'artifact_flag_build_variant_in_try': 'cross-debug-artifact',
     #######################
 }

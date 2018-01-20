@@ -13,34 +13,17 @@
 
 #include "nsIMessengerOSIntegration.h"
 #include "nsIFolderListener.h"
-#include "nsIAtom.h"
 #include "nsITimer.h"
 #include "nsCOMPtr.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsIMutableArray.h"
 #include "nsIObserver.h"
-
-typedef enum tagMOZ_QUERY_USER_NOTIFICATION_STATE {
-    QUNS_NOT_PRESENT = 1,
-    QUNS_BUSY = 2,
-    QUNS_RUNNING_D3D_FULL_SCREEN = 3,
-    QUNS_PRESENTATION_MODE = 4,
-    QUNS_ACCEPTS_NOTIFICATIONS = 5,
-    QUNS_QUIET_TIME = 6
-} MOZ_QUERY_USER_NOTIFICATION_STATE;
-
-// this function is exported by shell32.dll on Windows Vista or later
-extern "C"
-{
-// Vista or later
-typedef HRESULT (__stdcall *fnSHQueryUserNotificationState)(MOZ_QUERY_USER_NOTIFICATION_STATE *pquns);
-}
 
 #define NS_MESSENGERWININTEGRATION_CID \
   {0xf62f3d3a, 0x1dd1, 0x11b2, \
     {0xa5, 0x16, 0xef, 0xad, 0xb1, 0x31, 0x61, 0x5c}}
 
-class nsIStringBundle; 
+class nsIStringBundle;
 
 class nsMessengerWinIntegration : public nsIMessengerOSIntegration,
                                   public nsIFolderListener,
@@ -68,7 +51,7 @@ private:
   nsresult AlertClickedSimple();
 #endif
 
-  void InitializeBiffStatusIcon(); 
+  void InitializeBiffStatusIcon();
   void FillToolTipInfo();
   void GenericShellNotify(DWORD aMessage);
   void DestroyBiffIcon();
@@ -77,15 +60,14 @@ private:
 
   nsresult GetStringBundle(nsIStringBundle **aBundle);
   nsCOMPtr<nsIMutableArray> mFoldersWithNewMail;  // keep track of all the root folders with pending new mail
-  nsCOMPtr<nsIAtom> mBiffStateAtom;
   uint32_t mCurrentBiffState;
 
   bool mBiffIconVisible;
   bool mBiffIconInitialized;
   bool mSuppressBiffIcon;
   bool mAlertInProgress;
-  
-  // "might" because we don't know until we check 
+
+  // "might" because we don't know until we check
   // what type of server is associated with the default account
   bool            mDefaultAccountMightHaveAnInbox;
 
@@ -101,11 +83,7 @@ private:
   static void OnUnreadCountUpdateTimer(nsITimer *timer, void *osIntegration);
   nsresult UpdateUnreadCount();
 
-  nsCOMPtr <nsIAtom> mDefaultServerAtom;
-  nsCOMPtr <nsIAtom> mTotalUnreadMessagesAtom;
   nsCOMPtr <nsITimer> mUnreadCountUpdateTimer;
-
-  fnSHQueryUserNotificationState mSHQueryUserNotificationState;
 
   nsCString mInboxURI;
   nsCString mEmail;

@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "ja": {
+      "chrome_resources": {
+        "necko": "chrome/ja/locale/ja/necko/", 
+        "global": "chrome/ja/locale/ja/global/", 
+        "messenger-region": "chrome/ja/locale/ja/messenger-region/", 
+        "chat": "chrome/ja/locale/ja/chat/", 
+        "devtools": "chrome/ja/locale/ja/devtools/client/", 
+        "pipnss": "chrome/ja/locale/ja/pipnss/", 
+        "messenger-smime": "chrome/ja/locale/ja/messenger-smime/", 
+        "messenger-newsblog": "chrome/ja/locale/ja/messenger-newsblog/", 
+        "devtools-shim": "chrome/ja/locale/ja/devtools/shim/", 
+        "alerts": "chrome/ja/locale/ja/alerts/", 
+        "messenger": "chrome/ja/locale/ja/messenger/", 
+        "editor": "chrome/ja/locale/ja/editor/", 
+        "branding": "chrome/ja/locale/ja/branding/", 
+        "mozldap": "chrome/ja/locale/ja/mozldap/", 
+        "autoconfig": "chrome/ja/locale/ja/autoconfig/", 
+        "devtools-shared": "chrome/ja/locale/ja/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/ja/locale/ja/global-platform/win/", 
+          "android": "chrome/ja/locale/ja/global-platform/unix/", 
+          "macosx": "chrome/ja/locale/ja/global-platform/mac/", 
+          "linux": "chrome/ja/locale/ja/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/ja/locale/ja/mozapps/", 
+        "pluginproblem": "chrome/ja/locale/ja/pluginproblem/", 
+        "communicator": "chrome/ja/locale/ja/communicator/", 
+        "messenger-mapi": "chrome/ja/locale/ja/messenger-mapi/", 
+        "places": "chrome/ja/locale/ja/places/", 
+        "passwordmgr": "chrome/ja/locale/ja/passwordmgr/", 
+        "pippki": "chrome/ja/locale/ja/pippki/"
+      }, 
+      "version": "20171102110106"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "58.0", 
+      "id": "langpack-ja@firefox.mozilla.org", 
+      "strict_max_version": "58.*"
+    }
+  }, 
+  "langpack_id": "ja", 
+  "version": "58.0", 
+  "name": "Japanese Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "Mozilla Japanese L10N Community (contributors: Makoto Arai, Tomoya Asai, Hideyuki EMURA, Shaw Hosaka, Joji Ikeda, Masahiko Imanaka, Kosuke Kaizuka, Hidehiro Kozawa, Teiji Matsuba, Shigeki Narisawa, Takeshi Nishimura, Atsushi Sakai, Hiroshi Sekiya, Youhei Tooyama, Satoru Yamaguchi)", 
+  "description": "Language pack for Thunderbird for ja"
+}

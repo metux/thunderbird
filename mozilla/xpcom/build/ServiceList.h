@@ -5,11 +5,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 // IWYU pragma: private, include "mozilla/Services.h"
 
-#if !defined(MOZILLA_XPCOMRT_API)
-#ifdef ACCESSIBILITY
-MOZ_SERVICE(AccessibilityService, nsIAccessibilityService,
-            "@mozilla.org/accessibilityService;1")
-#endif
 MOZ_SERVICE(ChromeRegistryService, nsIChromeRegistry,
             "@mozilla.org/chrome/chrome-registry;1")
 MOZ_SERVICE(ToolkitChromeRegistryService, nsIToolkitChromeRegistry,
@@ -20,10 +15,8 @@ MOZ_SERVICE(XULOverlayProviderService, nsIXULOverlayProvider,
             "@mozilla.org/chrome/chrome-registry;1")
 MOZ_SERVICE(IOService, nsIIOService,
             "@mozilla.org/network/io-service;1")
-#endif // !defined(MOZILLA_XPCOMRT_API)
 MOZ_SERVICE(ObserverService, nsIObserverService,
             "@mozilla.org/observer-service;1")
-#if !defined(MOZILLA_XPCOMRT_API)
 MOZ_SERVICE(StringBundleService, nsIStringBundleService,
             "@mozilla.org/intl/stringbundle;1")
 MOZ_SERVICE(XPConnect, nsIXPConnect,
@@ -40,6 +33,16 @@ MOZ_SERVICE(UUIDGenerator, nsIUUIDGenerator,
             "@mozilla.org/uuid-generator;1");
 MOZ_SERVICE(GfxInfo, nsIGfxInfo,
             "@mozilla.org/gfx/info;1");
+MOZ_SERVICE(SocketTransportService, nsISocketTransportService,
+            "@mozilla.org/network/socket-transport-service;1");
+MOZ_SERVICE(StreamTransportService, nsIStreamTransportService,
+            "@mozilla.org/network/stream-transport-service;1");
+MOZ_SERVICE(CacheStorageService, nsICacheStorageService,
+            "@mozilla.org/netwerk/cache-storage-service;1");
+MOZ_SERVICE(URIClassifier, nsIURIClassifier,
+            "@mozilla.org/uriclassifierservice");
+MOZ_SERVICE(ActivityDistributor, nsIHttpActivityDistributor,
+            "@mozilla.org/network/http-activity-distributor;1");
 
 #ifdef MOZ_USE_NAMESPACE
 namespace mozilla {
@@ -51,4 +54,3 @@ MOZ_SERVICE(HistoryService, IHistory,
 #ifdef MOZ_USE_NAMESPACE
 } // namespace mozilla
 #endif
-#endif // !defined(MOZILLA_XPCOMRT_API)

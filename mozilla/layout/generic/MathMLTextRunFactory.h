@@ -1,11 +1,13 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef MATHMLTEXTRUNFACTORY_H_
 #define MATHMLTEXTRUNFACTORY_H_
 
+#include "mozilla/UniquePtr.h"
 #include "nsTextRunTransformations.h"
 
 /**
@@ -13,16 +15,16 @@
  */
 class MathMLTextRunFactory : public nsTransformingTextRunFactory {
 public:
-  MathMLTextRunFactory(nsTransformingTextRunFactory* aInnerTransformingTextRunFactory,
+  MathMLTextRunFactory(mozilla::UniquePtr<nsTransformingTextRunFactory> aInnerTransformingTextRunFactory,
                        uint32_t aFlags, uint8_t aSSTYScriptLevel,
                        float aFontInflation)
-    : mInnerTransformingTextRunFactory(aInnerTransformingTextRunFactory),
+    : mInnerTransformingTextRunFactory(Move(aInnerTransformingTextRunFactory)),
       mFlags(aFlags),
       mFontInflation(aFontInflation),
       mSSTYScriptLevel(aSSTYScriptLevel) {}
 
   virtual void RebuildTextRun(nsTransformedTextRun* aTextRun,
-                              gfxContext* aRefContext,
+                              mozilla::gfx::DrawTarget* aRefDrawTarget,
                               gfxMissingFontRecorder* aMFR) override;
   enum {
     // Style effects which may override single character <mi> behaviour
@@ -32,7 +34,7 @@ public:
   };
 
 protected:
-  nsAutoPtr<nsTransformingTextRunFactory> mInnerTransformingTextRunFactory;
+  mozilla::UniquePtr<nsTransformingTextRunFactory> mInnerTransformingTextRunFactory;
   uint32_t mFlags;
   float mFontInflation;
   uint8_t mSSTYScriptLevel;

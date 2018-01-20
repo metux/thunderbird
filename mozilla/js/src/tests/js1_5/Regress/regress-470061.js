@@ -16,11 +16,9 @@ test();
 
 function test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
 
-  jit(true);
  
   function x (w, z) {
     var h = 0;
@@ -37,9 +35,6 @@ function test()
 
   x(false, 40);
 
-  jit(false);
 
   reportCompare(expect, actual, summary);
-
-  exitFunc ('test');
 }

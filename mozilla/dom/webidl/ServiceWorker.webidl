@@ -19,14 +19,16 @@ interface ServiceWorker : EventTarget {
 
   attribute EventHandler onstatechange;
 
-  // FIXME(catalinb): Should inherit this from Worker.
   [Throws]
-  void postMessage(any message, optional sequence<Transferable> transferable);
+  void postMessage(any message, optional sequence<object> transferable = []);
 };
 
 ServiceWorker implements AbstractWorker;
 
 enum ServiceWorkerState {
+  // https://github.com/w3c/ServiceWorker/issues/1162
+  "parsed",
+
   "installing",
   "installed",
   "activating",

@@ -15,11 +15,9 @@ test();
 
 function test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
 
-  jit(true);
 
   function f() {
     var a = 1;
@@ -37,29 +35,5 @@ function test()
   expect = 10;
   actual  = f();
 
-  var recorderStarted;
-  var recorderAborted;
-  var traceCompleted;
-  var skip = true;
-  
-  if (this.tracemonkey && !this.tracemonkey.adaptive)
-  {
-    recorderStarted = this.tracemonkey.recorderStarted;
-    recorderAborted = this.tracemonkey.recorderAborted;
-    traceCompleted  = this.tracemonkey.traceCompleted;
-    skip = false;
-  }
-
-  jit(false);
-
   reportCompare(expect, actual, summary + ': return value 10');
-
-  if (!skip)
-  {
-    expect = 'recorderStarted=1, recorderAborted=0, traceCompleted=1';
-    actual = 'recorderStarted=' + recorderStarted + ', recorderAborted=' + recorderAborted + ', traceCompleted=' + traceCompleted;
-    reportCompare(expect, actual, summary + ': trace');
-  }
-
-  exitFunc ('test');
 }

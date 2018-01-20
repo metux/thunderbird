@@ -1,7 +1,9 @@
-/* -*- js-indent-level: 2; indent-tabs-mode: nil -*- */
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
+"use strict";
+
+const { devtools } = Cu.import("resource://devtools/shared/Loader.jsm", {});
 // Test devtools.lazyRequireGetter
 
 function run_test() {
@@ -18,6 +20,11 @@ function run_test() {
   // as it would via a direct |require|.
   const o2 = {};
   let loader = new DevToolsLoader();
+
+  // We have to init the loader by loading any module before
+  // lazyRequireGetter is available
+  loader.require("devtools/shared/DevToolsUtils");
+
   loader.lazyRequireGetter(o2, name, path);
   do_check_true(o2.asyncUtils !== asyncUtils);
 

@@ -48,7 +48,7 @@
 }
 
 .conv-textbox {
-  -moz-margin-start: 1px;
+  margin-inline-start: 1px;
   -moz-appearance: none;
 }
 
@@ -61,13 +61,13 @@
 .conv-logs-header-label {
   color: -moz-DialogText;
   background-color: -moz-Dialog;
-  -moz-padding-start: 3px;
+  padding-inline-start: 3px;
 }
 
 imconv,
 imcontact {
-  -moz-padding-start: 2px;
-  -moz-padding-end: 2px;
+  padding-inline-start: 2px;
+  padding-inline-end: 2px;
 }
 
 :-moz-any(imconv, imcontact, imgroup) {
@@ -87,30 +87,6 @@ imcontact {
 
 .conv-hbox {
   -moz-box-align: center;
-}
-
-#button-add-buddy {
-  list-style-image: url("chrome://messenger/skin/icons/chat-toolbar.svg#add");
-}
-
-#button-join-chat {
-  list-style-image: url("chrome://messenger/skin/icons/chat-toolbar.svg#join");
-}
-
-#button-chat-accounts {
-  list-style-image: url("chrome://messenger/skin/icons/chat-toolbar.svg#accounts");
-}
-
-toolbar[brighttext] #button-add-buddy {
-  list-style-image: url("chrome://messenger/skin/icons/chat-toolbar.svg#add-inverted");
-}
-
-toolbar[brighttext] #button-join-chat {
-  list-style-image: url("chrome://messenger/skin/icons/chat-toolbar.svg#join-inverted");
-}
-
-toolbar[brighttext] #button-chat-accounts {
-  list-style-image: url("chrome://messenger/skin/icons/chat-toolbar.svg#accounts-inverted");
 }
 
 #statusTypeIcon[status="available"],
@@ -170,19 +146,4 @@ richlistitem[state="disconnected"] .accountStateIcon {
 #imAccountsStatus .menu-iconic-icon,
 #appmenu_imAccountsStatus .menu-iconic-icon {
   visibility: visible;
-}
-
-.tabmail-tab[type="chat"],
-.alltabs-item[type="chat"] {
-  list-style-image: url("chrome://messenger/skin/icons/mail-toolbar.svg#chat");
-  -moz-image-region: auto;
-}
-
-.tabmail-tab[type="chat"] > .tab-stack > .tab-content > .tab-icon-image {
-  width: 18px;
-  height: 18px;
-  margin-top: 0;
-  -moz-margin-end: 5px;
-  margin-bottom: -1px;
-  -moz-margin-start: -1px;
 }

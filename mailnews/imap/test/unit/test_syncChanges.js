@@ -15,7 +15,7 @@ var gSynthMessage;
 
 var tests = [
   setup,
-  function switchAwayFromInbox() {
+  function* switchAwayFromInbox() {
     let rootFolder = IMAPPump.incomingServer.rootFolder;
     gSecondFolder =  rootFolder.getChildNamed("secondFolder")
                            .QueryInterface(Ci.nsIMsgImapMailFolder);
@@ -29,7 +29,7 @@ var tests = [
     gSecondFolder.updateFolderWithListener(null, asyncUrlListener);
     yield false;
   },
-  function simulateMailboxEmptied() {
+  function* simulateMailboxEmptied() {
     gMessage.setFlag("\\Deleted");
     IMAPPump.inbox.expunge(asyncUrlListener, null);
     yield false;
@@ -43,7 +43,7 @@ var tests = [
   teardown
 ];
 
-function setup() {
+function* setup() {
   /*
    * Set up an IMAP server.
    */
@@ -58,8 +58,7 @@ function setup() {
 
   let msgURI =
     Services.io.newURI("data:text/plain;base64," +
-                       btoa(gSynthMessage.toMessageString()),
-                       null, null);
+                       btoa(gSynthMessage.toMessageString()));
   gMessage = new imapMessage(msgURI.spec, IMAPPump.mailbox.uidnext++, []);
   IMAPPump.mailbox.addMessage(gMessage);
 

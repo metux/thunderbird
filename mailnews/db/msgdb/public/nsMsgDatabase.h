@@ -10,7 +10,7 @@
 #include "mozilla/MemoryReporting.h"
 #include "nsIMsgDatabase.h"
 #include "nsMsgHdr.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsAutoPtr.h"
 #include "nsIDBChangeListener.h"
 #include "nsIDBChangeAnnouncer.h"
@@ -68,7 +68,7 @@ protected:
 
   nsCOMArray <nsIMsgFolder> m_foldersPendingListeners;
   nsCOMArray <nsIDBChangeListener> m_pendingListeners;
-  nsAutoTArray<nsMsgDatabase*, kInitialMsgDBCacheSize> m_dbCache;
+  AutoTArray<nsMsgDatabase*, kInitialMsgDBCacheSize> m_dbCache;
 };
 
 class nsMsgDBEnumerator : public nsISimpleEnumerator {
@@ -203,6 +203,7 @@ public:
   nsresult        GetPropertyAsNSString(nsIMdbRow *row, const char *propertyName, nsAString &result);
   nsresult        SetPropertyFromNSString(nsIMdbRow *row, const char *propertyName, const nsAString &propertyVal);
   nsresult        GetUint32Property(nsIMdbRow *row, const char *propertyName, uint32_t *result, uint32_t defaultValue = 0);
+  nsresult        GetUint64Property(nsIMdbRow *row, const char *propertyName, uint64_t *result, uint64_t defaultValue = 0);
   nsresult        SetUint32Property(nsIMdbRow *row, const char *propertyName, uint32_t propertyVal);
   nsresult        SetUint64Property(nsIMdbRow *row, const char *propertyName, uint64_t propertyVal);
   nsresult        GetBooleanProperty(nsIMdbRow *row, const char *propertyName,
@@ -288,11 +289,9 @@ protected:
   nsCOMPtr <nsIMsgDownloadSettings> m_downloadSettings;
 
   nsresult PurgeMessagesOlderThan(uint32_t daysToKeepHdrs,
-                                  bool keepUnreadMessagesOnly,
                                   bool applyToFlaggedMessages,
                                   nsIMutableArray *hdrsToDelete);
   nsresult PurgeExcessMessages(uint32_t numHeadersToKeep,
-                               bool keepUnreadMessagesOnly,
                                bool applyToFlaggedMessages,
                                nsIMutableArray *hdrsToDelete);
 
@@ -302,7 +301,7 @@ protected:
   virtual nsresult      InitMDBInfo();
 
   nsCOMPtr <nsIMsgFolder> m_folder;
-  nsDBFolderInfo      *m_dbFolderInfo;
+  RefPtr<nsDBFolderInfo>  m_dbFolderInfo;
   nsMsgKey      m_nextPseudoMsgKey;
   nsIMdbEnv     *m_mdbEnv;  // to be used in all the db calls.
   nsIMdbStore   *m_mdbStore;
@@ -378,8 +377,8 @@ protected:
   void          ClearEnumerators();
   // all instantiated headers, but doesn't hold refs.
   PLDHashTable  *m_headersInUse;
-  static PLDHashNumber HashKey(PLDHashTable* aTable, const void* aKey);
-  static bool MatchEntry(PLDHashTable* aTable, const PLDHashEntryHdr* aEntry, const void* aKey);
+  static PLDHashNumber HashKey(const void* aKey);
+  static bool MatchEntry(const PLDHashEntryHdr* aEntry, const void* aKey);
   static void MoveEntry(PLDHashTable* aTable, const PLDHashEntryHdr* aFrom, PLDHashEntryHdr* aTo);
   static void ClearEntry(PLDHashTable* aTable, PLDHashEntryHdr* aEntry);
   static PLDHashTableOps gMsgDBHashTableOps;
@@ -439,7 +438,6 @@ protected:
   nsMsgRetainByPreference m_retainByPreference;
   uint32_t                m_daysToKeepHdrs;
   uint32_t                m_numHeadersToKeep;
-  bool                    m_keepUnreadMessagesOnly;
   bool                    m_useServerDefaults;
   bool                    m_cleanupBodiesByDays;
   uint32_t                m_daysToKeepBodies;

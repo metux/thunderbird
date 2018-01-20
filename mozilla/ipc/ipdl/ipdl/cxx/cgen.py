@@ -38,8 +38,18 @@ class CxxCodeGen(CodePrinter, Visitor):
 
         if t.T is not None:
             self.write('<')
-            t.T.accept(self)
+            if type(t.T) is list:
+                t.T[0].accept(self)
+                for tt in t.T[1:]:
+                    self.write(', ')
+                    tt.accept(self)
+            else:
+                t.T.accept(self)
             self.write('>')
+
+        if t.inner is not None:
+            self.write('::')
+            t.inner.accept(self)
 
         ts = ''
         if t.ptr:            ts += '*'
@@ -84,11 +94,24 @@ class CxxCodeGen(CodePrinter, Visitor):
 
         self.printdent('}')
 
+    def visitTypeFunction(self, fn):
+        self.write('std::function<')
+        fn.ret.accept(self)
+        self.write('(')
+        self.writeDeclList(fn.params)
+        self.write(')>')
 
     def visitTypedef(self, td):
-        self.printdent('typedef ')
-        td.fromtype.accept(self)
-        self.println(' '+ td.totypename +';')
+        if td.templateargs:
+            formals = ', '.join([ 'class ' + T for T in td.templateargs ])
+            args = ', '.join(td.templateargs)
+            self.printdent('template<' + formals + '> using ' + td.totypename + ' = ')
+            td.fromtype.accept(self)
+            self.println('<' + args + '>;')
+        else:
+            self.printdent('typedef ')
+            td.fromtype.accept(self)
+            self.println(' '+ td.totypename +';')
 
     def visitUsing(self, us):
         self.printdent('using ')
@@ -178,7 +201,7 @@ class CxxCodeGen(CodePrinter, Visitor):
             self.printdent()
 
         if md.warn_unused:
-            self.write('MOZ_WARN_UNUSED_RESULT ')
+            self.write('MOZ_MUST_USE ')
         if md.inline:
             self.write('inline ')
         if md.never_inline:
@@ -338,7 +361,8 @@ class CxxCodeGen(CodePrinter, Visitor):
         self.write('(')
         es.obj.accept(self)
         self.write(')')
-        self.write(es.op + es.field)
+        self.write(es.op)
+        es.field.accept(self)
 
     def visitExprAssn(self, ea):
         ea.lhs.accept(self)
@@ -370,6 +394,24 @@ class CxxCodeGen(CodePrinter, Visitor):
         self.write('delete ')
         ed.obj.accept(self)
 
+    def visitExprLambda(self, l):
+        self.write('[')
+        ncaptures = len(l.captures)
+        for i, c in enumerate(l.captures):
+            c.accept(self)
+            if i != (ncaptures-1):
+                self.write(', ')
+        self.write('](')
+        self.writeDeclList(l.params)
+        self.write(')')
+        if l.ret:
+            self.write(' -> ')
+            l.ret.accept(self)
+        self.println(' {')
+        self.indent()
+        self.visitBlock(l)
+        self.dedent()
+        self.printdent('}')
 
     def visitStmtBlock(self, b):
         self.printdentln('{')
@@ -425,6 +467,19 @@ class CxxCodeGen(CodePrinter, Visitor):
 
         self.indent()
         self.visitBlock(sf)
+        self.dedent()
+        self.printdentln('}')
+
+
+    def visitStmtRangedFor(self, rf):
+        self.printdent('for (auto& ')
+        rf.var.accept(self)
+        self.write(' : ')
+        rf.iteree.accept(self)
+        self.println(') {')
+
+        self.indent()
+        self.visitBlock(rf)
         self.dedent()
         self.printdentln('}')
 

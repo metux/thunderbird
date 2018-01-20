@@ -164,6 +164,10 @@
                 onget="return this.docShell.contentViewer;"
                 readonly="true"/>
 
+      <property name="contentChatNode"
+                onget="return this.contentDocument.getElementById('Chat');"
+                readonly="true"/>
+
       <property name="fullZoom">
         <getter><![CDATA[
           return this.markupDocumentViewer.fullZoom;
@@ -280,6 +284,8 @@
             Components.utils.import("resource:///modules/imSmileys.jsm");
           if (!("getCurrentTheme" in window))
             Components.utils.import("resource:///modules/imThemes.jsm");
+
+          this.onContentElementLoad = this._onContentElementLoad.bind(this);
         ]]>
       </constructor>
 
@@ -311,6 +317,12 @@
             }
 
             this.uninitMagicCopy();
+
+            if (this.contentChatNode) {
+              // Remove the listener only if the conversation was initialized.
+              this.contentChatNode
+                  .removeEventListener("load", this.onContentElementLoad, true);
+            }
           ]]>
         </body>
       </method>
@@ -353,7 +365,7 @@
         <parameter name="aModifier"/>
         <body>
           <![CDATA[
-            if (this._textModifiers.indexOf(aModifier) == -1)
+            if (!this._textModifiers.includes(aModifier))
               this._textModifiers.push(aModifier);
           ]]>
         </body>
@@ -386,8 +398,7 @@
               return;
             this._messageDisplayPending = true;
             this.contentWindow.messageInsertPending = true;
-            Services.tm.mainThread.dispatch(this.displayPendingMessages.bind(this),
-                                            Ci.nsIEventTarget.DISPATCH_NORMAL);
+            requestIdleCallback(this.displayPendingMessages.bind(this));
           ]]>
         </body>
       </method>
@@ -406,12 +417,18 @@
       <method name="getNextPendingMessage">
         <body>
           <![CDATA[
-            if (this._nextPendingMessageIndex == this._pendingMessages.length) {
+            let length = this._pendingMessages.length;
+            if (this._nextPendingMessageIndex == length)
+              return null;
+
+            let result = this._pendingMessages[this._nextPendingMessageIndex++];
+
+            if (this._nextPendingMessageIndex == length) {
               this._pendingMessages = [];
               this._nextPendingMessageIndex = 0;
-              return null;
             }
-            return this._pendingMessages[this._nextPendingMessageIndex++];
+
+            return result;
           ]]>
         </body>
       </method>
@@ -427,20 +444,23 @@
       <field name="_pendingMessagesDisplayed">0</field>
       <field name="_displayPendingMessagesCalls">0</field>
       <method name="displayPendingMessages">
+        <parameter name="timing"/>
         <body>
           <![CDATA[
             if (!this._messageDisplayPending)
               return;
 
             let max = this.getPendingMessagesCount();
-            for (let begin = Date.now(); Date.now() - begin < 40; ) {
+            do {
+              // One message takes less than 2ms on average.
               let msg = this.getNextPendingMessage();
               if (!msg)
                 break;
               this.displayMessage(msg.msg, msg.context,
                                   ++this._pendingMessagesDisplayed < max,
                                   msg.firstUnread);
-            }
+            } while (timing.timeRemaining() > 2);
+
             let event = document.createEvent("UIEvents");
             event.initUIEvent("MessagesDisplayed", false, false, window, 0);
             if (this._pendingMessagesDisplayed < max) {
@@ -453,8 +473,7 @@
                 this.progressBar.max = max;
                 this.progressBar.value = this._pendingMessagesDisplayed;
               }
-              Services.tm.mainThread.dispatch(this.displayPendingMessages.bind(this),
-                                              Ci.nsIEventTarget.DISPATCH_NORMAL);
+              requestIdleCallback(this.displayPendingMessages.bind(this));
               this.dispatchEvent(event);
               return;
             }
@@ -486,7 +505,7 @@
               if (this._lastMessage) {
                 let ruler = doc.createElement("hr");
                 ruler.className = "sessionstart-ruler";
-                doc.getElementById("Chat").appendChild(ruler);
+                this.contentChatNode.appendChild(ruler);
                 this._sessions.push(ruler);
                 // Close any open bubble.
                 this._lastMessage = null;
@@ -597,10 +616,9 @@
           // Remove any existing ruler (occurs when the window has lost focus).
           this.removeUnreadRuler();
 
-          let doc = this.contentDocument;
-          let ruler = doc.createElement("hr");
+          let ruler = this.contentDocument.createElement("hr");
           ruler.id = "unread-ruler";
-          doc.getElementById("Chat").appendChild(ruler);
+          this.contentChatNode.appendChild(ruler);
        ]]>
         </body>
       </method>
@@ -759,6 +777,13 @@
               return;
             }
 
+            // If images higher than one line of text load they will trigger a
+            // scroll event, which shouldn't disable auto-scroll while messages
+            // are being appended without being scrolled.
+            if (this._messageDisplayPending) {
+              return;
+            }
+
             // Enable or disable auto-scroll based on the scrollbar position.
             this._updateAutoScrollEnabled();
           ]]>
@@ -772,6 +797,25 @@
             if (this._autoScrollEnabled && this._lastElement) {
               // The content area was resized and auto-scroll is enabled,
               // make sure the last inserted element is still visible
+              this._scrollToElement(this._lastElement);
+            }
+          ]]>
+        </body>
+      </method>
+
+      <!-- This field holds a bound version of _onContentElementLoad, so it can
+           be used as an event listener on the content 'Chat' node. -->
+      <field name="onContentElementLoad">null</field>
+      <method name="_onContentElementLoad">
+        <parameter name="event"/>
+        <body>
+          <![CDATA[
+            if (event.target.localName == "img" &&
+                this._autoScrollEnabled && !this._messageDisplayPending &&
+                this._lastElement) {
+              // An image loaded while auto-scroll is enabled and no further
+              // messages are currently being appended. So we need to scroll
+              // the last element fully back into view.
               this._scrollToElement(this._lastElement);
             }
           ]]>
@@ -855,6 +899,17 @@
         </body>
       </method>
 
+      <method name="_exposeMethodsToContent">
+        <body>
+          <![CDATA[
+            // Expose scrollToElement and autoScrollEnabled to the
+            // message styles.
+            this.contentWindow.scrollToElement = this._scrollToElement.bind(this);
+            this.contentWindow.autoScrollEnabled = this.autoScrollEnabled.bind(this);
+          ]]>
+        </body>
+      </method>
+
       <!-- nsIWebProgressListener implementation -->
       <method name="onStateChange">
         <parameter name="aProgress"/>
@@ -874,10 +929,8 @@
                 }
                 this._loadState = 1;
 
-                // Expose scrollToElement and autoScrollEnabled to the
-                // message styles.
-                this.contentWindow.scrollToElement = this._scrollToElement.bind(this);
-                this.contentWindow.autoScrollEnabled = this.autoScrollEnabled.bind(this);
+                this._exposeMethodsToContent();
+
                 // A common use case is to click somewhere in the conversation and
                 // start typing a command (often /me). If quick find is enabled, it
                 // will pick up the "/" keypress and open the findbar. See bug 1161930.
@@ -904,6 +957,9 @@
               this._sessions = [];
               if (this.progressBar)
                 this.progressBar.hidden = true;
+
+              this.contentChatNode
+                  .addEventListener("load", this.onContentElementLoad, true);
 
               Services.obs.notifyObservers(this, "conversation-loaded", null);
             }
@@ -1185,18 +1241,24 @@
 
           var ourFieldValues = {};
           var otherFieldValues = {};
-          for each (var field in fieldsToSwap) {
+          for (var field of fieldsToSwap) {
             ourFieldValues[field] = this[field];
             otherFieldValues[field] = aOtherBrowser[field];
           }
           this.QueryInterface(Components.interfaces.nsIFrameLoaderOwner)
               .swapFrameLoaders(aOtherBrowser);
-          for each (var field in fieldsToSwap) {
+          for (var field of fieldsToSwap) {
             this[field] = otherFieldValues[field];
             aOtherBrowser[field] = ourFieldValues[field];
           }
 
+          this._exposeMethodsToContent();
+
           this.initMagicCopy();
+
+          // The listener from the other browser is gone and we need a new one.
+          this.contentChatNode
+              .addEventListener("load", this.onContentElementLoad, true);
         ]]>
         </body>
       </method>
@@ -1222,7 +1284,7 @@
             }
           }
           if (url) {
-            let uri = Services.io.newURI(url, null, null);
+            let uri = Services.io.newURI(url);
 
             // http and https are the only schemes that are both
             // allowed by our IM filters and exposed.
@@ -1232,10 +1294,10 @@
             event.preventDefault();
             event.stopPropagation();
 
-            // loadUrl can throw if the default browser is misconfigured.
+            // loadURI can throw if the default browser is misconfigured.
             Components.classes["@mozilla.org/uriloader/external-protocol-service;1"]
                       .getService(Components.interfaces.nsIExternalProtocolService)
-                      .loadUrl(uri);
+                      .loadURI(uri);
           }
         ]]>
       </handler>

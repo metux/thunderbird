@@ -19,10 +19,9 @@
 #include "mozilla/TextRange.h"
 #include "mozilla/dom/TabParent.h"
 
-class nsIEditor;
-
 namespace mozilla {
 
+class EditorBase;
 class EventDispatchingCallback;
 class IMEStateManager;
 
@@ -61,6 +60,10 @@ public:
   // Note that mString and mLastData are different between dispatcing
   // compositionupdate and compositionchange event handled by focused editor.
   const nsString& String() const { return mString; }
+  // The latest clauses range of the composition string.
+  // During compositionupdate event, GetRanges() returns old ranges.
+  // So if getting on compositionupdate, Use GetLastRange instead of GetRange().
+  TextRangeArray* GetLastRanges() const { return mLastRanges; }
   // Returns the clauses and/or caret range of the composition string.
   // This is modified at a call of EditorWillHandleCompositionChangeEvent().
   // This may return null if there is no clauses and caret.
@@ -71,6 +74,11 @@ public:
   nsIWidget* GetWidget() const
   {
     return mPresContext ? mPresContext->GetRootWidget() : nullptr;
+  }
+  // Returns the tab parent which has this composition in its remote process.
+  TabParent* GetTabParent() const
+  {
+    return mTabParent;
   }
   // Returns true if the composition is started with synthesized event which
   // came from nsDOMWindowUtils.
@@ -93,6 +101,15 @@ public:
   nsresult RequestToCommit(nsIWidget* aWidget, bool aDiscard);
 
   /**
+   * IsRequestingCommitOrCancelComposition() returns true if the instance is
+   * requesting widget to commit or cancel composition.
+   */
+  bool IsRequestingCommitOrCancelComposition() const
+  {
+    return mIsRequestingCancel || mIsRequestingCommit;
+  }
+
+  /**
    * Send a notification to IME.  It depends on the IME or platform spec what
    * will occur (or not occur).
    */
@@ -107,9 +124,12 @@ public:
   }
 
   /**
-   * the offset of first selected clause or start of of compositon
+   * the offset of first selected clause or start of composition
    */
-  uint32_t OffsetOfTargetClause() const { return mCompositionTargetOffset; }
+  uint32_t NativeOffsetOfTargetClause() const
+  {
+    return mCompositionStartOffset + mTargetClauseOffsetInComposition;
+  }
 
   /**
    * Returns true if there is non-empty composition string and it's not fixed.
@@ -130,8 +150,8 @@ public:
    * StartHandlingComposition() and EndHandlingComposition() are called by
    * editor when it holds a TextComposition instance and release it.
    */
-  void StartHandlingComposition(nsIEditor* aEditor);
-  void EndHandlingComposition(nsIEditor* aEditor);
+  void StartHandlingComposition(EditorBase* aEditorBase);
+  void EndHandlingComposition(EditorBase* aEditorBase);
 
   /**
    * OnEditorDestroyed() is called when the editor is destroyed but there is
@@ -191,13 +211,17 @@ private:
   // This is the clause and caret range information which is managed by
   // the focused editor.  This may be null if there is no clauses or caret.
   RefPtr<TextRangeArray> mRanges;
+  // Same as mRange, but mRange will have old data during compositionupdate.
+  // So this will be valied during compositionupdate.
+  RefPtr<TextRangeArray> mLastRanges;
 
   // mNativeContext stores a opaque pointer.  This works as the "ID" for this
   // composition.  Don't access the instance, it may not be available.
   widget::NativeIMEContext mNativeContext;
 
-  // mEditorWeak is a weak reference to the focused editor handling composition.
-  nsWeakPtr mEditorWeak;
+  // mEditorBaseWeak is a weak reference to the focused editor handling
+  // composition.
+  nsWeakPtr mEditorBaseWeak;
 
   // mLastData stores the data attribute of the latest composition event (except
   // the compositionstart event).
@@ -209,9 +233,9 @@ private:
 
   // Offset of the composition string from start of the editor
   uint32_t mCompositionStartOffset;
-  // Offset of the selected clause of the composition string from start of the
-  // editor
-  uint32_t mCompositionTargetOffset;
+  // Offset of the selected clause of the composition string from
+  // mCompositionStartOffset
+  uint32_t mTargetClauseOffsetInComposition;
 
   // See the comment for IsSynthesizedForTests().
   bool mIsSynthesizedForTests;
@@ -232,9 +256,13 @@ private:
   // mRequestedToCommitOrCancel is true *after* we requested IME to commit or
   // cancel the composition.  In other words, we already requested of IME that
   // it commits or cancels current composition.
-  // NOTE: Before this is set true, both mIsRequestingCommit and
-  //       mIsRequestingCancel are set false.
+  // NOTE: Before this is set to true, both mIsRequestingCommit and
+  //       mIsRequestingCancel are set to false.
   bool mRequestedToCommitOrCancel;
+
+  // Before this dispatches commit event into the tree, this is set to true.
+  // So, this means if native IME already commits the composition.
+  bool mHasReceivedCommitEvent;
 
   // mWasNativeCompositionEndEventDiscarded is true if this composition was
   // requested commit or cancel itself but native compositionend event is
@@ -248,18 +276,51 @@ private:
   // and compositionend events.
   bool mAllowControlCharacters;
 
+  // mWasCompositionStringEmpty is true if the composition string was empty
+  // when DispatchCompositionEvent() is called.
+  bool mWasCompositionStringEmpty;
+
   // Hide the default constructor and copy constructor.
-  TextComposition() {}
+  TextComposition()
+    : mPresContext(nullptr)
+    , mNativeContext(nullptr)
+    , mCompositionStartOffset(0)
+    , mTargetClauseOffsetInComposition(0)
+    , mIsSynthesizedForTests(false)
+    , mIsComposing(false)
+    , mIsEditorHandlingEvent(false)
+    , mIsRequestingCommit(false)
+    , mIsRequestingCancel(false)
+    , mRequestedToCommitOrCancel(false)
+    , mHasReceivedCommitEvent(false)
+    , mWasNativeCompositionEndEventDiscarded(false)
+    , mAllowControlCharacters(false)
+    , mWasCompositionStringEmpty(true)
+  {}
   TextComposition(const TextComposition& aOther);
 
   /**
-   * GetEditor() returns nsIEditor pointer of mEditorWeak.
+   * If we're requesting IME to commit or cancel composition, or we've already
+   * requested it, or we've already known this composition has been ended in
+   * IME, we don't need to request commit nor cancel composition anymore and
+   * shouldn't do so if we're in content process for not committing/canceling
+   * "current" composition in native IME.  So, when this returns true,
+   * RequestIMEToCommit() does nothing.
    */
-  already_AddRefed<nsIEditor> GetEditor() const;
+  bool CanRequsetIMEToCommitOrCancelComposition() const
+  {
+    return !mIsRequestingCommit && !mIsRequestingCancel &&
+           !mRequestedToCommitOrCancel && !mHasReceivedCommitEvent;
+  }
 
   /**
-   * HasEditor() returns true if mEditorWeak holds nsIEditor instance which is
-   * alive.  Otherwise, false.
+   * GetEditorBase() returns EditorBase pointer of mEditorBaseWeak.
+   */
+  already_AddRefed<EditorBase> GetEditorBase() const;
+
+  /**
+   * HasEditor() returns true if mEditorBaseWeak holds EditorBase instance
+   * which is alive.  Otherwise, false.
    */
   bool HasEditor() const;
 
@@ -292,6 +353,15 @@ private:
                                 nsEventStatus* aStatus,
                                 EventDispatchingCallback* aCallBack,
                                 bool aIsSynthesized);
+
+  /**
+   * Simply calling EventDispatcher::Dispatch() with plugin event.
+   * If dispatching event has no orginal clone, aOriginalEvent can be null.
+   */
+  void DispatchEvent(WidgetCompositionEvent* aDispatchEvent,
+                     nsEventStatus* aStatus,
+                     EventDispatchingCallback* aCallback,
+                     const WidgetCompositionEvent *aOriginalEvent = nullptr);
 
   /**
    * HandleSelectionEvent() sends the selection event to ContentEventHandler
@@ -343,15 +413,41 @@ private:
   void OnCompositionEventDiscarded(WidgetCompositionEvent* aCompositionEvent);
 
   /**
-   * Calculate composition offset then notify composition update to widget
+   * OnCompositionEventDispatched() is called after a composition event is
+   * dispatched.
    */
-  void NotityUpdateComposition(const WidgetCompositionEvent* aCompositionEvent);
+  void OnCompositionEventDispatched(
+         const WidgetCompositionEvent* aDispatchEvent);
+
+  /**
+   * MaybeNotifyIMEOfCompositionEventHandled() notifies IME of composition
+   * event handled.  This should be called after dispatching a composition
+   * event which came from widget.
+   */
+  void MaybeNotifyIMEOfCompositionEventHandled(
+         const WidgetCompositionEvent* aCompositionEvent);
+
+  /**
+   * GetSelectionStartOffset() returns normal selection start offset in the
+   * editor which has this composition.
+   * If it failed or lost focus, this would return 0.
+   */
+  uint32_t GetSelectionStartOffset();
+
+  /**
+   * OnStartOffsetUpdatedInChild() is called when composition start offset
+   * is updated in the child process.  I.e., this is called and never called
+   * if the composition is in this process.
+   * @param aStartOffset        New composition start offset with native
+   *                            linebreaks.
+   */
+  void OnStartOffsetUpdatedInChild(uint32_t aStartOffset);
 
   /**
    * CompositionEventDispatcher dispatches the specified composition (or text)
    * event.
    */
-  class CompositionEventDispatcher : public nsRunnable
+  class CompositionEventDispatcher : public Runnable
   {
   public:
     CompositionEventDispatcher(TextComposition* aTextComposition,
@@ -368,7 +464,9 @@ private:
     EventMessage mEventMessage;
     bool mIsSynthesizedEvent;
 
-    CompositionEventDispatcher() {};
+    CompositionEventDispatcher()
+      : Runnable("TextComposition::CompositionEventDispatcher")
+      , mIsSynthesizedEvent(false){};
   };
 
   /**
@@ -400,7 +498,7 @@ private:
  */
 
 class TextCompositionArray final :
-  public nsAutoTArray<RefPtr<TextComposition>, 2>
+  public AutoTArray<RefPtr<TextComposition>, 2>
 {
 public:
   // Looking for per native IME context.

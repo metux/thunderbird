@@ -4,7 +4,7 @@
   <meta charset="utf8">
   <title>Test for the network actor (GET request)</title>
   <script type="text/javascript" src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
-  <script type="text/javascript;version=1.8" src="common.js"></script>
+  <script type="text/javascript" src="common.js"></script>
   <!-- Any copyright is dedicated to the Public Domain.
      - http://creativecommons.org/publicdomain/zero/1.0/ -->
 </head>
@@ -13,7 +13,7 @@
 
 <iframe src="http://example.com/chrome/devtools/shared/webconsole/test/network_requests_iframe.html"></iframe>
 
-<script class="testbody" type="text/javascript;version=1.8">
+<script class="testbody" type="text/javascript">
 SimpleTest.waitForExplicitFinish();
 
 function startTest()
@@ -87,7 +87,7 @@ function onNetworkEventUpdate(aState, aType, aPacket)
           status: "200",
           statusText: "OK",
           headersSize: /^\d+$/,
-          discardResponseBody: true,
+          discardResponseBody: false,
         },
       };
       break;
@@ -104,8 +104,8 @@ function onNetworkEventUpdate(aState, aType, aPacket)
     case "responseContent":
       expectedPacket = {
         mimeType: "application/json",
-        contentSize: 0,
-        discardResponseBody: true,
+        contentSize: 1070,
+        discardResponseBody: false,
       };
       break;
     case "eventTimings":
@@ -180,7 +180,7 @@ function onRequestPostData(aState, aResponse)
   info("checking request POST data");
 
   ok(!aResponse.postData.text, "no request POST data");
-  ok(aResponse.postDataDiscarded, "request POST data was discarded");
+  ok(!aResponse.postDataDiscarded, "request POST data was not discarded");
 
   onResponseHeaders = onResponseHeaders.bind(null, aState);
   aState.client.getResponseHeaders(aState.netActor,
@@ -196,13 +196,13 @@ function onResponseHeaders(aState, aResponse)
   ok(!!aResponse.rawHeaders, "response rawHeaders available");
 
   checkHeadersOrCookies(aResponse.headers, {
-    "Content-Type": /^application\/(json|octet-stream)$/,
-    "Content-Length": /^\d+$/,
+    "content-type": /^application\/(json|octet-stream)$/,
+    "content-length": /^\d+$/,
   });
 
   checkRawHeaders(aResponse.rawHeaders, {
-    "Content-Type": /^application\/(json|octet-stream)$/,
-    "Content-Length": /^\d+$/,
+    "content-type": /^application\/(json|octet-stream)$/,
+    "content-length": /^\d+$/,
   });
 
   onResponseCookies = onResponseCookies.bind(null, aState);
@@ -225,8 +225,8 @@ function onResponseContent(aState, aResponse)
 {
   info("checking response content");
 
-  ok(!aResponse.content.text, "no response content");
-  ok(aResponse.contentDiscarded, "response content was discarded");
+  ok(aResponse.content.text, "response content text");
+  ok(!aResponse.contentDiscarded, "response content was not discarded");
 
   onEventTimings = onEventTimings.bind(null, aState);
   aState.client.getEventTimings(aState.netActor,

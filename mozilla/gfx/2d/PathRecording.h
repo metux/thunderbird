@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -9,6 +10,8 @@
 #include "2D.h"
 #include <vector>
 #include <ostream>
+
+#include "PathHelpers.h"
 
 namespace mozilla {
 namespace gfx {
@@ -63,7 +66,11 @@ public:
   virtual void Close();
 
   /* Add an arc to the current figure */
-  virtual void Arc(const Point &, float, float, float, bool) { }
+  virtual void Arc(const Point &aOrigin, float aRadius, float aStartAngle,
+                   float aEndAngle, bool aAntiClockwise) {
+    ArcToBezier(this, aOrigin, Size(aRadius, aRadius), aStartAngle, aEndAngle,
+                aAntiClockwise);
+  }
 
   /* Point the current subpath is at - or where the next subpath will start
    * if there is no active subpath.
@@ -94,9 +101,9 @@ public:
   ~PathRecording();
 
   virtual BackendType GetBackendType() const { return BackendType::RECORDING; }
-  virtual already_AddRefed<PathBuilder> CopyToBuilder(FillRule aFillRule = FillRule::FILL_WINDING) const;
+  virtual already_AddRefed<PathBuilder> CopyToBuilder(FillRule aFillRule) const;
   virtual already_AddRefed<PathBuilder> TransformedCopyToBuilder(const Matrix &aTransform,
-                                                             FillRule aFillRule = FillRule::FILL_WINDING) const;
+                                                             FillRule aFillRule) const;
   virtual bool ContainsPoint(const Point &aPoint, const Matrix &aTransform) const
   { return mPath->ContainsPoint(aPoint, aTransform); }
   virtual bool StrokeContainsPoint(const StrokeOptions &aStrokeOptions,
@@ -119,6 +126,7 @@ public:
   static void ReadPathToBuilder(std::istream &aStream, PathBuilder *aBuilder);
 
 private:
+  friend class DrawTargetWrapAndRecord;
   friend class DrawTargetRecording;
   friend class RecordedPathCreation;
 
@@ -127,7 +135,7 @@ private:
   FillRule mFillRule;
 
   // Event recorders that have this path in their event stream.
-  std::vector<DrawEventRecorderPrivate*> mStoredRecorders;
+  std::vector<RefPtr<DrawEventRecorderPrivate>> mStoredRecorders;
 };
 
 } // namespace gfx

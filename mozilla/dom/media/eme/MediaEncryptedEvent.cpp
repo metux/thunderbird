@@ -31,7 +31,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(MediaEncryptedEvent, Event)
   mozilla::DropJSObjects(this);
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(MediaEncryptedEvent)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(MediaEncryptedEvent)
 NS_INTERFACE_MAP_END_INHERITING(Event)
 
 MediaEncryptedEvent::MediaEncryptedEvent(EventTarget* aOwner)
@@ -121,9 +121,6 @@ MediaEncryptedEvent::GetInitData(JSContext* cx,
       return;
     }
     mRawInitData.Clear();
-  }
-  if (mInitData) {
-    JS::ExposeObjectToActiveJS(mInitData);
   }
   aData.set(mInitData);
 }

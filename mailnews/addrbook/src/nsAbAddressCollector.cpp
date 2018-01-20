@@ -11,7 +11,7 @@
 #include "nsAbAddressCollector.h"
 #include "nsIPrefService.h"
 #include "nsIPrefBranch.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "prmem.h"
 #include "nsServiceManagerUtils.h"
 #include "nsComponentManagerUtils.h"
@@ -206,15 +206,15 @@ nsAbAddressCollector::AutoCollectScreenName(nsIAbCard *aCard,
 
   if (domain.IsEmpty())
     return;
-  // username in 
+  // username in
   // username@aol.com (America Online)
   // username@cs.com (Compuserve)
   // username@netscape.net (Netscape webmail)
   // are all AIM screennames.  autocollect that info.
-  if (domain.Equals("aol.com") || domain.Equals("cs.com") ||
-      domain.Equals("netscape.net"))
+  if (domain.EqualsLiteral("aol.com") || domain.EqualsLiteral("cs.com") ||
+      domain.EqualsLiteral("netscape.net"))
     aCard->SetPropertyAsAUTF8String(kScreenNameProperty, Substring(aEmail, 0, atPos));
-  else if (domain.Equals("gmail.com") || domain.Equals("googlemail.com"))
+  else if (domain.EqualsLiteral("gmail.com") || domain.EqualsLiteral("googlemail.com"))
     aCard->SetPropertyAsAUTF8String(kGtalkProperty, Substring(aEmail, 0, atPos));
 }
 
@@ -297,8 +297,7 @@ void
 nsAbAddressCollector::SetUpAbFromPrefs(nsIPrefBranch *aPrefBranch)
 {
   nsCString abURI;
-  aPrefBranch->GetCharPref(PREF_MAIL_COLLECT_ADDRESSBOOK,
-                           getter_Copies(abURI));
+  aPrefBranch->GetCharPref(PREF_MAIL_COLLECT_ADDRESSBOOK, abURI);
 
   if (abURI.IsEmpty())
     abURI.AssignLiteral(kPersonalAddressbookUri);

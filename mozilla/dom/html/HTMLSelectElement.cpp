@@ -12,14 +12,15 @@
 #include "mozilla/EventDispatcher.h"
 #include "mozilla/EventStates.h"
 #include "mozilla/dom/Element.h"
+#include "mozilla/dom/HTMLFormSubmission.h"
 #include "mozilla/dom/HTMLOptGroupElement.h"
 #include "mozilla/dom/HTMLOptionElement.h"
 #include "mozilla/dom/HTMLSelectElementBinding.h"
 #include "mozilla/dom/UnionTypes.h"
+#include "mozilla/GenericSpecifiedValuesInlines.h"
 #include "nsContentCreatorFunctions.h"
 #include "nsContentList.h"
 #include "nsError.h"
-#include "nsFormSubmission.h"
 #include "nsGkAtoms.h"
 #include "nsIComboboxControlFrame.h"
 #include "nsIDocument.h"
@@ -32,7 +33,6 @@
 #include "nsLayoutUtils.h"
 #include "nsMappedAttributes.h"
 #include "nsPresState.h"
-#include "nsRuleData.h"
 #include "nsServiceManagerUtils.h"
 #include "nsStyleConsts.h"
 #include "nsTextNode.h"
@@ -57,8 +57,11 @@ SafeOptionListMutation::SafeOptionListMutation(nsIContent* aSelect,
   : mSelect(HTMLSelectElement::FromContentOrNull(aSelect))
   , mTopLevelMutation(false)
   , mNeedsRebuild(false)
+  , mNotify(aNotify)
+  , mInitialSelectedIndex(-1)
 {
   if (mSelect) {
+    mInitialSelectedIndex = mSelect->SelectedIndex();
     mTopLevelMutation = !mSelect->mMutating;
     if (mTopLevelMutation) {
       mSelect->mMutating = true;
@@ -67,13 +70,13 @@ SafeOptionListMutation::SafeOptionListMutation(nsIContent* aSelect,
       // option list must be up-to-date before inserting or removing options.
       // Fortunately this is called only if mutation event listener
       // adds or removes options.
-      mSelect->RebuildOptionsArray(aNotify);
+      mSelect->RebuildOptionsArray(mNotify);
     }
     nsresult rv;
     if (aKid) {
-      rv = mSelect->WillAddOptions(aKid, aParent, aIndex, aNotify);
+      rv = mSelect->WillAddOptions(aKid, aParent, aIndex, mNotify);
     } else {
-      rv = mSelect->WillRemoveOptions(aParent, aIndex, aNotify);
+      rv = mSelect->WillRemoveOptions(aParent, aIndex, mNotify);
     }
     mNeedsRebuild = NS_FAILED(rv);
   }
@@ -87,6 +90,16 @@ SafeOptionListMutation::~SafeOptionListMutation()
     }
     if (mTopLevelMutation) {
       mSelect->mMutating = false;
+    }
+    if (mSelect->SelectedIndex() != mInitialSelectedIndex) {
+      // We must have triggered the SelectSomething() codepath, which can cause
+      // our validity to change.  Unfortunately, our attempt to update validity
+      // in that case may not have worked correctly, because we actually call it
+      // before we have inserted the new <option>s into the DOM!  Go ahead and
+      // update validity here as needed, because by now we know our <option>s
+      // are where they should be.
+      mSelect->UpdateValueMissingValidityState();
+      mSelect->UpdateState(mNotify);
     }
 #ifdef DEBUG
     mSelect->VerifyOptionsArray();
@@ -104,9 +117,10 @@ SafeOptionListMutation::~SafeOptionListMutation()
 
 HTMLSelectElement::HTMLSelectElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo,
                                      FromParser aFromParser)
-  : nsGenericHTMLFormElementWithState(aNodeInfo),
+  : nsGenericHTMLFormElementWithState(aNodeInfo, NS_FORM_SELECT),
     mOptions(new HTMLOptionsCollection(this)),
     mAutocompleteAttrState(nsContentUtils::eAutocompleteAttrState_Unknown),
+    mAutocompleteInfoState(nsContentUtils::eAutocompleteAttrState_Unknown),
     mIsDoneAddingChildren(!aFromParser),
     mDisabledChanged(false),
     mMutating(false),
@@ -151,15 +165,9 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(HTMLSelectElement,
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mSelectedOptions)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
-NS_IMPL_ADDREF_INHERITED(HTMLSelectElement, Element)
-NS_IMPL_RELEASE_INHERITED(HTMLSelectElement, Element)
-
-// QueryInterface implementation for HTMLSelectElement
-NS_INTERFACE_TABLE_HEAD_CYCLE_COLLECTION_INHERITED(HTMLSelectElement)
-  NS_INTERFACE_TABLE_INHERITED(HTMLSelectElement,
-                               nsIDOMHTMLSelectElement,
-                               nsIConstraintValidation)
-NS_INTERFACE_TABLE_TAIL_INHERITING(nsGenericHTMLFormElementWithState)
+NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED(HTMLSelectElement,
+                                             nsGenericHTMLFormElementWithState,
+                                             nsIConstraintValidation)
 
 
 // nsIDOMHTMLSelectElement
@@ -167,17 +175,12 @@ NS_INTERFACE_TABLE_TAIL_INHERITING(nsGenericHTMLFormElementWithState)
 
 NS_IMPL_ELEMENT_CLONE(HTMLSelectElement)
 
-// nsIConstraintValidation
-NS_IMPL_NSICONSTRAINTVALIDATION_EXCEPT_SETCUSTOMVALIDITY(HTMLSelectElement)
-
-NS_IMETHODIMP
+void
 HTMLSelectElement::SetCustomValidity(const nsAString& aError)
 {
   nsIConstraintValidation::SetCustomValidity(aError);
 
   UpdateState(true);
-
-  return NS_OK;
 }
 
 void
@@ -190,10 +193,14 @@ HTMLSelectElement::GetAutocomplete(DOMString& aValue)
                                                    mAutocompleteAttrState);
 }
 
-NS_IMETHODIMP
-HTMLSelectElement::GetForm(nsIDOMHTMLFormElement** aForm)
+void
+HTMLSelectElement::GetAutocompleteInfo(AutocompleteInfo& aInfo)
 {
-  return nsGenericHTMLFormElementWithState::GetForm(aForm);
+  const nsAttrValue* attributeVal = GetParsedAttr(nsGkAtoms::autocomplete);
+  mAutocompleteInfoState =
+    nsContentUtils::SerializeAutocompleteAttribute(attributeVal, aInfo,
+                                                   mAutocompleteInfoState,
+                                                   true);
 }
 
 nsresult
@@ -265,7 +272,7 @@ HTMLSelectElement::InsertOptionsIntoList(nsIContent* aOptions,
     // since if there's no frame for the select yet the select will
     // get into the right state once it's created.
     nsISelectControlFrame* selectFrame = nullptr;
-    nsWeakFrame weakSelectFrame;
+    AutoWeakFrame weakSelectFrame;
     bool didGetFrame = false;
 
     // Actually select the options if the added options warrant it
@@ -506,7 +513,7 @@ HTMLSelectElement::GetFirstOptionIndex(nsIContent* aOptions)
   int32_t listIndex = -1;
   HTMLOptionElement* optElement = HTMLOptionElement::FromContent(aOptions);
   if (optElement) {
-    GetOptionIndex(optElement, 0, true, &listIndex);
+    mOptions->GetOptionIndex(optElement->AsElement(), 0, true, &listIndex);
     return listIndex;
   }
 
@@ -587,78 +594,22 @@ HTMLSelectElement::Add(nsGenericHTMLElement& aElement,
 
   // If the before parameter is not null, we are equivalent to the
   // insertBefore method on the parent of before.
-  parent->InsertBefore(aElement, aBefore, aError);
+  nsCOMPtr<nsINode> refNode = aBefore;
+  parent->InsertBefore(aElement, refNode, aError);
 }
 
-NS_IMETHODIMP
-HTMLSelectElement::Add(nsIDOMHTMLElement* aElement,
-                       nsIVariant* aBefore)
-{
-  uint16_t dataType;
-  nsresult rv = aBefore->GetDataType(&dataType);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsCOMPtr<nsIContent> element = do_QueryInterface(aElement);
-  nsGenericHTMLElement* htmlElement =
-    nsGenericHTMLElement::FromContentOrNull(element);
-  if (!htmlElement) {
-    return NS_ERROR_NULL_POINTER;
-  }
-
-  // aBefore is omitted, undefined or null
-  if (dataType == nsIDataType::VTYPE_EMPTY ||
-      dataType == nsIDataType::VTYPE_VOID) {
-    ErrorResult error;
-    Add(*htmlElement, (nsGenericHTMLElement*)nullptr, error);
-    return error.StealNSResult();
-  }
-
-  nsCOMPtr<nsISupports> supports;
-  nsCOMPtr<nsIDOMHTMLElement> beforeElement;
-
-  // whether aBefore is nsIDOMHTMLElement...
-  if (NS_SUCCEEDED(aBefore->GetAsISupports(getter_AddRefs(supports)))) {
-    nsCOMPtr<nsIContent> beforeElement = do_QueryInterface(supports);
-    nsGenericHTMLElement* beforeHTMLElement =
-      nsGenericHTMLElement::FromContentOrNull(beforeElement);
-
-    NS_ENSURE_TRUE(beforeHTMLElement, NS_ERROR_DOM_SYNTAX_ERR);
-
-    ErrorResult error;
-    Add(*htmlElement, beforeHTMLElement, error);
-    return error.StealNSResult();
-  }
-
-  // otherwise, whether aBefore is long
-  int32_t index;
-  NS_ENSURE_SUCCESS(aBefore->GetAsInt32(&index), NS_ERROR_DOM_SYNTAX_ERR);
-
-  ErrorResult error;
-  Add(*htmlElement, index, error);
-  return error.StealNSResult();
-}
-
-NS_IMETHODIMP
+void
 HTMLSelectElement::Remove(int32_t aIndex)
 {
   nsCOMPtr<nsINode> option = Item(static_cast<uint32_t>(aIndex));
   if (!option) {
-    return NS_OK;
+    return;
   }
 
   option->Remove();
-  return NS_OK;
 }
 
-NS_IMETHODIMP
-HTMLSelectElement::GetOptions(nsIDOMHTMLOptionsCollection** aValue)
-{
-  NS_IF_ADDREF(*aValue = GetOptions());
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
+void
 HTMLSelectElement::GetType(nsAString& aType)
 {
   if (HasAttr(kNameSpaceID_None, nsGkAtoms::multiple)) {
@@ -667,25 +618,9 @@ HTMLSelectElement::GetType(nsAString& aType)
   else {
     aType.AssignLiteral("select-one");
   }
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-HTMLSelectElement::GetLength(uint32_t* aLength)
-{
-  return mOptions->GetLength(aLength);
 }
 
 #define MAX_DYNAMIC_SELECT_LENGTH 10000
-
-NS_IMETHODIMP
-HTMLSelectElement::SetLength(uint32_t aLength)
-{
-  ErrorResult rv;
-  SetLength(aLength, rv);
-  return rv.StealNSResult();
-}
 
 void
 HTMLSelectElement::SetLength(uint32_t aLength, ErrorResult& aRv)
@@ -694,7 +629,7 @@ HTMLSelectElement::SetLength(uint32_t aLength, ErrorResult& aRv)
 
   if (curlen > aLength) { // Remove extra options
     for (uint32_t i = curlen; i > aLength; --i) {
-      MOZ_ALWAYS_TRUE(NS_SUCCEEDED(Remove(i - 1)));
+      Remove(i - 1);
     }
   } else if (aLength > curlen) {
     if (aLength > MAX_DYNAMIC_SELECT_LENGTH) {
@@ -704,8 +639,8 @@ HTMLSelectElement::SetLength(uint32_t aLength, ErrorResult& aRv)
 
     RefPtr<mozilla::dom::NodeInfo> nodeInfo;
 
-    nsContentUtils::NameChanged(mNodeInfo, nsGkAtoms::option,
-                                getter_AddRefs(nodeInfo));
+    nsContentUtils::QNameChanged(mNodeInfo, nsGkAtoms::option,
+                                 getter_AddRefs(nodeInfo));
 
     nsCOMPtr<nsINode> node = NS_NewHTMLOptionElement(nodeInfo.forget());
 
@@ -735,12 +670,12 @@ HTMLSelectElement::SetLength(uint32_t aLength, ErrorResult& aRv)
 
 /* static */
 bool
-HTMLSelectElement::MatchSelectedOptions(nsIContent* aContent,
+HTMLSelectElement::MatchSelectedOptions(Element* aElement,
                                         int32_t /* unused */,
-                                        nsIAtom* /* unused */,
+                                        nsAtom* /* unused */,
                                         void* /* unused*/)
 {
-  HTMLOptionElement* option = HTMLOptionElement::FromContent(aContent);
+  HTMLOptionElement* option = HTMLOptionElement::FromContent(aElement);
   return option && option->Selected();
 }
 
@@ -752,23 +687,6 @@ HTMLSelectElement::SelectedOptions()
                                          nullptr, /* deep */ true);
   }
   return mSelectedOptions;
-}
-
-NS_IMETHODIMP
-HTMLSelectElement::GetSelectedOptions(nsIDOMHTMLCollection** aSelectedOptions)
-{
-  NS_ADDREF(*aSelectedOptions = SelectedOptions());
-  return NS_OK;
-}
-
-//NS_IMPL_INT_ATTR(HTMLSelectElement, SelectedIndex, selectedindex)
-
-NS_IMETHODIMP
-HTMLSelectElement::GetSelectedIndex(int32_t* aValue)
-{
-  *aValue = SelectedIndex();
-
-  return NS_OK;
 }
 
 nsresult
@@ -791,21 +709,6 @@ HTMLSelectElement::SetSelectedIndexInternal(int32_t aIndex, bool aNotify)
   SetSelectionChanged(true, aNotify);
 
   return rv;
-}
-
-NS_IMETHODIMP
-HTMLSelectElement::SetSelectedIndex(int32_t aIndex)
-{
-  return SetSelectedIndexInternal(aIndex, true);
-}
-
-NS_IMETHODIMP
-HTMLSelectElement::GetOptionIndex(nsIDOMHTMLOptionElement* aOption,
-                                  int32_t aStartIndex, bool aForward,
-                                  int32_t* aIndex)
-{
-  nsCOMPtr<nsINode> option = do_QueryInterface(aOption);
-  return mOptions->GetOptionIndex(option->AsElement(), aStartIndex, aForward, aIndex);
 }
 
 bool
@@ -918,7 +821,7 @@ HTMLSelectElement::SetOptionsSelectedByIndex(int32_t aStartIndex,
 
   nsISelectControlFrame* selectFrame = nullptr;
   bool didGetFrame = false;
-  nsWeakFrame weakSelectFrame;
+  AutoWeakFrame weakSelectFrame;
 
   if (aOptionsMask & IS_SELECTED) {
     // Setting selectedIndex to an out-of-bounds index means -1. (HTML5)
@@ -1048,7 +951,7 @@ HTMLSelectElement::SetOptionsSelectedByIndex(int32_t aStartIndex,
   }
 
   // Make sure something is selected unless we were set to -1 (none)
-  if (optionsDeselected && aStartIndex != -1) {
+  if (optionsDeselected && aStartIndex != -1 && !(aOptionsMask & NO_RESELECT)) {
     optionsSelected =
       CheckSelectSomething(aOptionsMask & NOTIFY) || optionsSelected;
   }
@@ -1069,7 +972,7 @@ HTMLSelectElement::IsOptionDisabled(int32_t aIndex, bool* aIsDisabled)
 }
 
 bool
-HTMLSelectElement::IsOptionDisabled(HTMLOptionElement* aOption)
+HTMLSelectElement::IsOptionDisabled(HTMLOptionElement* aOption) const
 {
   MOZ_ASSERT(aOption);
   if (aOption->Disabled()) {
@@ -1105,15 +1008,6 @@ HTMLSelectElement::IsOptionDisabled(HTMLOptionElement* aOption)
   return false;
 }
 
-NS_IMETHODIMP
-HTMLSelectElement::GetValue(nsAString& aValue)
-{
-  DOMString value;
-  GetValue(value);
-  value.ToString(aValue);
-  return NS_OK;
-}
-
 void
 HTMLSelectElement::GetValue(DOMString& aValue)
 {
@@ -1129,11 +1023,10 @@ HTMLSelectElement::GetValue(DOMString& aValue)
     return;
   }
 
-  DebugOnly<nsresult> rv = option->GetValue(aValue);
-  MOZ_ASSERT(NS_SUCCEEDED(rv));
+  option->GetValue(aValue);
 }
 
-NS_IMETHODIMP
+void
 HTMLSelectElement::SetValue(const nsAString& aValue)
 {
   uint32_t length = Length();
@@ -1148,19 +1041,12 @@ HTMLSelectElement::SetValue(const nsAString& aValue)
     option->GetValue(optionVal);
     if (optionVal.Equals(aValue)) {
       SetSelectedIndexInternal(int32_t(i), true);
-      break;
+      return;
     }
   }
-  return NS_OK;
+  // No matching option was found.
+  SetSelectedIndexInternal(-1, true);
 }
-
-
-NS_IMPL_BOOL_ATTR(HTMLSelectElement, Autofocus, autofocus)
-NS_IMPL_BOOL_ATTR(HTMLSelectElement, Disabled, disabled)
-NS_IMPL_BOOL_ATTR(HTMLSelectElement, Multiple, multiple)
-NS_IMPL_STRING_ATTR(HTMLSelectElement, Name, name)
-NS_IMPL_BOOL_ATTR(HTMLSelectElement, Required, required)
-NS_IMPL_UINT_ATTR(HTMLSelectElement, Size, size)
 
 int32_t
 HTMLSelectElement::TabIndexDefault()
@@ -1183,18 +1069,6 @@ HTMLSelectElement::IsHTMLFocusable(bool aWithMouse,
   return false;
 }
 
-NS_IMETHODIMP
-HTMLSelectElement::Item(uint32_t aIndex, nsIDOMNode** aReturn)
-{
-  return mOptions->Item(aIndex, aReturn);
-}
-
-NS_IMETHODIMP
-HTMLSelectElement::NamedItem(const nsAString& aName, nsIDOMNode** aReturn)
-{
-  return mOptions->NamedItem(aName, aReturn);
-}
-
 bool
 HTMLSelectElement::CheckSelectSomething(bool aNotify)
 {
@@ -1214,8 +1088,7 @@ HTMLSelectElement::SelectSomething(bool aNotify)
     return false;
   }
 
-  uint32_t count;
-  GetLength(&count);
+  uint32_t count = Length();
   for (uint32_t i = 0; i < count; i++) {
     bool disabled;
     nsresult rv = IsOptionDisabled(i, &disabled);
@@ -1271,13 +1144,26 @@ HTMLSelectElement::UnbindFromTree(bool aDeep, bool aNullParent)
 }
 
 nsresult
-HTMLSelectElement::BeforeSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
-                                 nsAttrValueOrString* aValue,
+HTMLSelectElement::BeforeSetAttr(int32_t aNameSpaceID, nsAtom* aName,
+                                 const nsAttrValueOrString* aValue,
                                  bool aNotify)
 {
-  if (aNotify && aName == nsGkAtoms::disabled &&
-      aNameSpaceID == kNameSpaceID_None) {
-    mDisabledChanged = true;
+  if (aNameSpaceID == kNameSpaceID_None) {
+    if (aName == nsGkAtoms::disabled) {
+      if (aNotify) {
+        mDisabledChanged = true;
+      }
+    } else if (aName == nsGkAtoms::multiple) {
+      if (!aValue && aNotify && mSelectedIndex >= 0) {
+        // We're changing from being a multi-select to a single-select.
+        // Make sure we only have one option selected before we do that.
+        // Note that this needs to come before we really unset the attr,
+        // since SetOptionsSelectedByIndex does some bail-out type
+        // optimization for cases when the select is not multiple that
+        // would lead to only a single option getting deselected.
+        SetSelectedIndexInternal(mSelectedIndex, aNotify);
+      }
+    }
   }
 
   return nsGenericHTMLFormElementWithState::BeforeSetAttr(aNameSpaceID, aName,
@@ -1285,55 +1171,45 @@ HTMLSelectElement::BeforeSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
 }
 
 nsresult
-HTMLSelectElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
-                                const nsAttrValue* aValue, bool aNotify)
+HTMLSelectElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
+                                const nsAttrValue* aValue,
+                                const nsAttrValue* aOldValue,
+                                nsIPrincipal* aSubjectPrincipal,
+                                bool aNotify)
 {
   if (aNameSpaceID == kNameSpaceID_None) {
     if (aName == nsGkAtoms::disabled) {
+      // This *has* to be called *before* validity state check because
+      // UpdateBarredFromConstraintValidation and
+      // UpdateValueMissingValidityState depend on our disabled state.
+      UpdateDisabledState(aNotify);
+
+      UpdateValueMissingValidityState();
       UpdateBarredFromConstraintValidation();
     } else if (aName == nsGkAtoms::required) {
+      // This *has* to be called *before* UpdateValueMissingValidityState
+      // because UpdateValueMissingValidityState depends on our required
+      // state.
+      UpdateRequiredState(!!aValue, aNotify);
+
       UpdateValueMissingValidityState();
     } else if (aName == nsGkAtoms::autocomplete) {
-      // Clear the cached @autocomplete attribute state
+      // Clear the cached @autocomplete attribute and autocompleteInfo state.
       mAutocompleteAttrState = nsContentUtils::eAutocompleteAttrState_Unknown;
+      mAutocompleteInfoState = nsContentUtils::eAutocompleteAttrState_Unknown;
+    } else if (aName == nsGkAtoms::multiple) {
+      if (!aValue && aNotify) {
+        // We might have become a combobox; make sure _something_ gets
+        // selected in that case
+        CheckSelectSomething(aNotify);
+      }
     }
-
-    UpdateState(aNotify);
   }
 
   return nsGenericHTMLFormElementWithState::AfterSetAttr(aNameSpaceID, aName,
-                                                         aValue, aNotify);
-}
-
-nsresult
-HTMLSelectElement::UnsetAttr(int32_t aNameSpaceID, nsIAtom* aAttribute,
-                             bool aNotify)
-{
-  if (aNotify && aNameSpaceID == kNameSpaceID_None &&
-      aAttribute == nsGkAtoms::multiple) {
-    // We're changing from being a multi-select to a single-select.
-    // Make sure we only have one option selected before we do that.
-    // Note that this needs to come before we really unset the attr,
-    // since SetOptionsSelectedByIndex does some bail-out type
-    // optimization for cases when the select is not multiple that
-    // would lead to only a single option getting deselected.
-    if (mSelectedIndex >= 0) {
-      SetSelectedIndexInternal(mSelectedIndex, aNotify);
-    }
-  }
-
-  nsresult rv = nsGenericHTMLFormElementWithState::UnsetAttr(aNameSpaceID, aAttribute,
-                                                             aNotify);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (aNotify && aNameSpaceID == kNameSpaceID_None &&
-      aAttribute == nsGkAtoms::multiple) {
-    // We might have become a combobox; make sure _something_ gets
-    // selected in that case
-    CheckSelectSomething(aNotify);
-  }
-
-  return rv;
+                                                         aValue, aOldValue,
+                                                         aSubjectPrincipal,
+                                                         aNotify);
 }
 
 void
@@ -1379,7 +1255,7 @@ HTMLSelectElement::DoneAddingChildren(bool aHaveNotified)
 
 bool
 HTMLSelectElement::ParseAttribute(int32_t aNamespaceID,
-                                  nsIAtom* aAttribute,
+                                  nsAtom* aAttribute,
                                   const nsAString& aValue,
                                   nsAttrValue& aResult)
 {
@@ -1397,27 +1273,27 @@ HTMLSelectElement::ParseAttribute(int32_t aNamespaceID,
 
 void
 HTMLSelectElement::MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
-                                         nsRuleData* aData)
+                                         GenericSpecifiedValues* aData)
 {
   nsGenericHTMLFormElementWithState::MapImageAlignAttributeInto(aAttributes, aData);
   nsGenericHTMLFormElementWithState::MapCommonAttributesInto(aAttributes, aData);
 }
 
 nsChangeHint
-HTMLSelectElement::GetAttributeChangeHint(const nsIAtom* aAttribute,
+HTMLSelectElement::GetAttributeChangeHint(const nsAtom* aAttribute,
                                           int32_t aModType) const
 {
   nsChangeHint retval =
       nsGenericHTMLFormElementWithState::GetAttributeChangeHint(aAttribute, aModType);
   if (aAttribute == nsGkAtoms::multiple ||
       aAttribute == nsGkAtoms::size) {
-    NS_UpdateHint(retval, NS_STYLE_HINT_FRAMECHANGE);
+    retval |= nsChangeHint_ReconstructFrame;
   }
   return retval;
 }
 
 NS_IMETHODIMP_(bool)
-HTMLSelectElement::IsAttributeMapped(const nsIAtom* aAttribute) const
+HTMLSelectElement::IsAttributeMapped(const nsAtom* aAttribute) const
 {
   static const MappedAttributeEntry* const map[] = {
     sCommonAttributeMap,
@@ -1445,14 +1321,14 @@ HTMLSelectElement::IsDisabledForEvents(EventMessage aMessage)
 }
 
 nsresult
-HTMLSelectElement::PreHandleEvent(EventChainPreVisitor& aVisitor)
+HTMLSelectElement::GetEventTargetParent(EventChainPreVisitor& aVisitor)
 {
   aVisitor.mCanHandle = false;
   if (IsDisabledForEvents(aVisitor.mEvent->mMessage)) {
     return NS_OK;
   }
 
-  return nsGenericHTMLFormElementWithState::PreHandleEvent(aVisitor);
+  return nsGenericHTMLFormElementWithState::GetEventTargetParent(aVisitor);
 }
 
 nsresult
@@ -1514,12 +1390,6 @@ HTMLSelectElement::IntrinsicState() const
     }
   }
 
-  if (HasAttr(kNameSpaceID_None, nsGkAtoms::required)) {
-    state |= NS_EVENT_STATE_REQUIRED;
-  } else {
-    state |= NS_EVENT_STATE_OPTIONAL;
-  }
-
   return state;
 }
 
@@ -1528,6 +1398,11 @@ HTMLSelectElement::IntrinsicState() const
 NS_IMETHODIMP
 HTMLSelectElement::SaveState()
 {
+  nsPresState* presState = GetPrimaryPresState();
+  if (!presState) {
+    return NS_OK;
+  }
+
   RefPtr<SelectState> state = new SelectState();
 
   uint32_t len = Length();
@@ -1541,15 +1416,12 @@ HTMLSelectElement::SaveState()
     }
   }
 
-  nsPresState* presState = GetPrimaryPresState();
-  if (presState) {
-    presState->SetStateProperty(state);
+  presState->SetStateProperty(state);
 
-    if (mDisabledChanged) {
-      // We do not want to save the real disabled state but the disabled
-      // attribute.
-      presState->SetDisabled(HasAttr(kNameSpaceID_None, nsGkAtoms::disabled));
-    }
+  if (mDisabledChanged) {
+    // We do not want to save the real disabled state but the disabled
+    // attribute.
+    presState->SetDisabled(HasAttr(kNameSpaceID_None, nsGkAtoms::disabled));
   }
 
   return NS_OK;
@@ -1570,8 +1442,9 @@ HTMLSelectElement::RestoreState(nsPresState* aState)
     DispatchContentReset();
   }
 
-  if (aState->IsDisabledSet()) {
-    SetDisabled(aState->GetDisabled());
+  if (aState->IsDisabledSet() && !aState->GetDisabled()) {
+    IgnoredErrorResult rv;
+    SetDisabled(false, rv);
   }
 
   return false;
@@ -1596,8 +1469,8 @@ HTMLSelectElement::RestoreStateTo(SelectState* aNewSelected)
     HTMLOptionElement* option = Item(i);
     if (option) {
       nsAutoString value;
-      nsresult rv = option->GetValue(value);
-      if (NS_SUCCEEDED(rv) && aNewSelected->ContainsOption(i, value)) {
+      option->GetValue(value);
+      if (aNewSelected->ContainsOption(i, value)) {
         SetOptionsSelectedByIndex(i, i, IS_SELECTED | SET_DISABLED | NOTIFY);
       }
     }
@@ -1621,13 +1494,14 @@ HTMLSelectElement::Reset()
       // Reset the option to its default value
       //
 
-      uint32_t mask = SET_DISABLED | NOTIFY;
+      uint32_t mask = SET_DISABLED | NOTIFY | NO_RESELECT;
       if (option->DefaultSelected()) {
         mask |= IS_SELECTED;
         numSelected++;
       }
 
       SetOptionsSelectedByIndex(i, i, mask);
+      option->SetSelectedChanged(false);
     }
   }
 
@@ -1654,7 +1528,7 @@ HTMLSelectElement::Reset()
 static NS_DEFINE_CID(kFormProcessorCID, NS_FORMPROCESSOR_CID);
 
 NS_IMETHODIMP
-HTMLSelectElement::SubmitNamesValues(nsFormSubmission* aFormSubmission)
+HTMLSelectElement::SubmitNamesValues(HTMLFormSubmission* aFormSubmission)
 {
   // Disabled elements don't submit
   if (IsDisabled()) {
@@ -1695,7 +1569,7 @@ HTMLSelectElement::SubmitNamesValues(nsFormSubmission* aFormSubmission)
     }
 
     nsString value;
-    MOZ_ALWAYS_TRUE(NS_SUCCEEDED(option->GetValue(value)));
+    option->GetValue(value);
 
     if (keyGenProcessor) {
       nsString tmp(value);
@@ -1762,7 +1636,7 @@ HTMLSelectElement::RebuildOptionsArray(bool aNotify)
 }
 
 bool
-HTMLSelectElement::IsValueMissing()
+HTMLSelectElement::IsValueMissing() const
 {
   if (!Required()) {
     return false;
@@ -1772,6 +1646,15 @@ HTMLSelectElement::IsValueMissing()
 
   for (uint32_t i = 0; i < length; ++i) {
     RefPtr<HTMLOptionElement> option = Item(i);
+    // Check for a placeholder label option, don't count it as a valid value.
+    if (i == 0 && !Multiple() && Size() <= 1 && option->GetParent() == this) {
+      nsAutoString value;
+      option->GetValue(value);
+      if (value.IsEmpty()) {
+        continue;
+      }
+    }
+
     if (!option->Selected()) {
       continue;
     }
@@ -1780,11 +1663,7 @@ HTMLSelectElement::IsValueMissing()
       continue;
     }
 
-    nsAutoString value;
-    MOZ_ALWAYS_TRUE(NS_SUCCEEDED(option->GetValue(value)));
-    if (!value.IsEmpty()) {
-      return false;
-    }
+    return false;
   }
 
   return true;
@@ -1802,7 +1681,7 @@ HTMLSelectElement::GetValidationMessage(nsAString& aValidationMessage,
 {
   switch (aType) {
     case VALIDITY_STATE_VALUE_MISSING: {
-      nsXPIDLString message;
+      nsAutoString message;
       nsresult rv = nsContentUtils::GetLocalizedString(nsContentUtils::eDOM_PROPERTIES,
                                                        "FormValidationSelectMissing",
                                                        message);
@@ -1853,9 +1732,14 @@ HTMLSelectElement::UpdateBarredFromConstraintValidation()
 void
 HTMLSelectElement::FieldSetDisabledChanged(bool aNotify)
 {
-  UpdateBarredFromConstraintValidation();
-
+  // This *has* to be called before UpdateBarredFromConstraintValidation and
+  // UpdateValueMissingValidityState because these two functions depend on our
+  // disabled state.
   nsGenericHTMLFormElementWithState::FieldSetDisabledChanged(aNotify);
+
+  UpdateValueMissingValidityState();
+  UpdateBarredFromConstraintValidation();
+  UpdateState(aNotify);
 }
 
 void
@@ -1880,6 +1764,40 @@ HTMLSelectElement::UpdateSelectedOptions()
 {
   if (mSelectedOptions) {
     mSelectedOptions->SetDirty();
+  }
+}
+
+bool
+HTMLSelectElement::OpenInParentProcess()
+{
+  nsIFormControlFrame* formControlFrame = GetFormControlFrame(false);
+  nsIComboboxControlFrame* comboFrame = do_QueryFrame(formControlFrame);
+  if (comboFrame) {
+    return comboFrame->IsOpenInParentProcess();
+  }
+
+  return false;
+}
+
+void
+HTMLSelectElement::SetOpenInParentProcess(bool aVal)
+{
+  nsIFormControlFrame* formControlFrame = GetFormControlFrame(false);
+  nsIComboboxControlFrame* comboFrame = do_QueryFrame(formControlFrame);
+  if (comboFrame) {
+    comboFrame->SetOpenInParentProcess(aVal);
+  }
+}
+
+void
+HTMLSelectElement::SetPreviewValue(const nsAString& aValue)
+{
+  mPreviewValue = aValue;
+  nsContentUtils::RemoveNewlines(mPreviewValue);
+  nsIFormControlFrame* formControlFrame = GetFormControlFrame(false);
+  nsIComboboxControlFrame* comboFrame = do_QueryFrame(formControlFrame);
+  if (comboFrame) {
+    comboFrame->RedisplaySelectedText();
   }
 }
 

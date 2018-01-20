@@ -1,5 +1,5 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set sw=2 ts=8 et tw=80 : */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -8,6 +8,8 @@
 #define mozilla_layers_APZUtils_h
 
 #include <stdint.h>                     // for uint32_t
+#include "LayersTypes.h"
+#include "UnitTransforms.h"
 #include "mozilla/gfx/Point.h"
 #include "mozilla/FloatingPoint.h"
 
@@ -17,13 +19,20 @@ namespace layers {
 enum HitTestResult {
   HitNothing,
   HitLayer,
+  HitLayerTouchActionNone,
+  HitLayerTouchActionPanX,
+  HitLayerTouchActionPanY,
+  HitLayerTouchActionPanXY,
   HitDispatchToContentRegion,
 };
 
 enum CancelAnimationFlags : uint32_t {
-  Default = 0x0,            /* Cancel all animations */
-  ExcludeOverscroll = 0x1,  /* Don't clear overscroll */
-  RequestSnap = 0x2         /* Request snapping to snap points */
+  Default = 0x0,             /* Cancel all animations */
+  ExcludeOverscroll = 0x1,   /* Don't clear overscroll */
+  ScrollSnap = 0x2,          /* Snap to snap points */
+  ExcludeWheel = 0x4,        /* Don't stop wheel smooth-scroll animations */
+  TriggeredExternally = 0x8, /* Cancellation was not triggered by APZ in
+                                response to an input event */
 };
 
 inline CancelAnimationFlags
@@ -41,7 +50,10 @@ enum class ScrollSource {
   Touch,
 
   // Mouse wheel.
-  Wheel
+  Wheel,
+
+  // Keyboard
+  Keyboard,
 };
 
 typedef uint32_t TouchBehaviorFlags;
@@ -59,6 +71,16 @@ static bool IsZero(const gfx::PointTyped<Units>& aPoint)
 {
   return FuzzyEqualsAdditive(aPoint.x, 0.0f, COORDINATE_EPSILON)
       && FuzzyEqualsAdditive(aPoint.y, 0.0f, COORDINATE_EPSILON);
+}
+
+// Deem an AsyncTransformComponentMatrix (obtained by multiplying together
+// one or more AsyncTransformComponentMatrix objects) as constituting a
+// complete async transform.
+inline AsyncTransformMatrix
+CompleteAsyncTransform(const AsyncTransformComponentMatrix& aMatrix)
+{
+  return ViewAs<AsyncTransformMatrix>(aMatrix,
+      PixelCastJustification::MultipleAsyncTransforms);
 }
 
 } // namespace layers

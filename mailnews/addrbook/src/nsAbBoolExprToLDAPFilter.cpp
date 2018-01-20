@@ -5,7 +5,7 @@
 
 #include "nsIAbLDAPAttributeMap.h"
 #include "nsAbBoolExprToLDAPFilter.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsIArray.h"
 #include "nsArrayUtils.h"
 
@@ -35,7 +35,7 @@ nsresult nsAbBoolExprToLDAPFilter::FilterExpression (
     nsCOMPtr<nsIArray> childExpressions;
     nsresult rv = expression->GetExpressions(getter_AddRefs(childExpressions));
     NS_ENSURE_SUCCESS(rv, rv);
-    
+
     uint32_t count;
     rv = childExpressions->GetLength(&count);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -48,16 +48,16 @@ nsresult nsAbBoolExprToLDAPFilter::FilterExpression (
     NS_ENSURE_SUCCESS(rv, rv);
 
     /*
-     * 3rd party query integration with Mozilla is achieved 
+     * 3rd party query integration with Mozilla is achieved
      * by calling nsAbLDAPDirectoryQuery::DoQuery(). Thus
      * we can arrive here with a query asking for all the
      * ldap attributes using the card:nsIAbCard interface.
      *
-     * So we need to check that we are not creating a condition 
-     * filter against this expression otherwise we will end up with an invalid 
+     * So we need to check that we are not creating a condition
+     * filter against this expression otherwise we will end up with an invalid
      * filter equal to "(|)".
     */
-    
+
     if (count == 1 )
     {
         nsCOMPtr<nsIAbBooleanConditionString>
@@ -68,32 +68,32 @@ nsresult nsAbBoolExprToLDAPFilter::FilterExpression (
             rv = childCondition->GetName (getter_Copies (name));
             NS_ENSURE_SUCCESS(rv, rv);
 
-            if(name.Equals("card:nsIAbCard"))
+            if (name.EqualsLiteral("card:nsIAbCard"))
                 return NS_OK;
         }
     }
 
-    filter.AppendLiteral("(");
+    filter.Append('(');
     switch (operation)
     {
         case nsIAbBooleanOperationTypes::AND:
-            filter.AppendLiteral("&");
+            filter.Append('&');
             rv = FilterExpressions (map, childExpressions, filter, flags);
             break;
         case nsIAbBooleanOperationTypes::OR:
-            filter.AppendLiteral("|");
+            filter.Append('|');
             rv = FilterExpressions (map, childExpressions, filter, flags);
             break;
         case nsIAbBooleanOperationTypes::NOT:
             if (count > 1)
                 return NS_ERROR_FAILURE;
-            filter.AppendLiteral("!");
+            filter.Append('!');
             rv = FilterExpressions (map, childExpressions, filter, flags);
             break;
         default:
             break;
     }
-    filter.AppendLiteral(")");
+    filter.Append(')');
 
     return rv;
 }
@@ -146,7 +146,7 @@ nsresult nsAbBoolExprToLDAPFilter::FilterCondition (
     if (flags & TRANSLATE_CARD_PROPERTY)
     {
         rv = map->GetFirstAttribute (name, ldapAttr);
-        if (!(flags & ALLOW_NON_CONVERTABLE_CARD_PROPERTY) && 
+        if (!(flags & ALLOW_NON_CONVERTABLE_CARD_PROPERTY) &&
             !ATTRMAP_FOUND_ATTR(rv, ldapAttr))
             return NS_OK;
     }
@@ -163,19 +163,19 @@ nsresult nsAbBoolExprToLDAPFilter::FilterCondition (
     switch (conditionType)
     {
         case nsIAbBooleanConditionTypes::DoesNotExist:
-            filter.AppendLiteral("(!("); 
+            filter.AppendLiteral("(!(");
             filter.Append(ldapAttr);
             filter.AppendLiteral("=*))");
             break;
         case nsIAbBooleanConditionTypes::Exists:
-            filter.AppendLiteral("("); 
+            filter.Append('(');
             filter.Append(ldapAttr);
             filter.AppendLiteral("=*)");
             break;
         case nsIAbBooleanConditionTypes::Contains:
-            filter.AppendLiteral("(");
+            filter.Append('(');
             filter.Append(ldapAttr);
-            filter.Append("=*");
+            filter.AppendLiteral("=*");
             filter.Append(vUTF8);
             filter.AppendLiteral("*)");
             break;
@@ -187,53 +187,53 @@ nsresult nsAbBoolExprToLDAPFilter::FilterCondition (
             filter.AppendLiteral("*))");
             break;
         case nsIAbBooleanConditionTypes::Is:
-            filter.AppendLiteral("(");
+            filter.Append('(');
             filter.Append(ldapAttr);
-            filter.AppendLiteral("=");
+            filter.Append('=');
             filter.Append(vUTF8);
-            filter.AppendLiteral(")");
+            filter.Append(')');
             break;
         case nsIAbBooleanConditionTypes::IsNot:
             filter.AppendLiteral("(!(");
             filter.Append(ldapAttr);
-            filter.AppendLiteral("=");
+            filter.Append('=');
             filter.Append(vUTF8);
             filter.AppendLiteral("))");
             break;
         case nsIAbBooleanConditionTypes::BeginsWith:
-            filter.AppendLiteral("(");
+            filter.Append('(');
             filter.Append(ldapAttr);
-            filter.AppendLiteral("=");
+            filter.Append('=');
             filter.Append(vUTF8);
             filter.AppendLiteral("*)");
             break;
         case nsIAbBooleanConditionTypes::EndsWith:
-            filter.AppendLiteral("(");
+            filter.Append('(');
             filter.Append(ldapAttr);
             filter.AppendLiteral("=*");
             filter.Append(vUTF8);
-            filter.AppendLiteral(")");
+            filter.Append(')');
             break;
         case nsIAbBooleanConditionTypes::LessThan:
-            filter.AppendLiteral("(");
+            filter.Append('(');
             filter.Append(ldapAttr);
             filter.AppendLiteral("<=");
             filter.Append(vUTF8);
-            filter.AppendLiteral(")");
+            filter.Append(')');
             break;
         case nsIAbBooleanConditionTypes::GreaterThan:
-            filter.AppendLiteral("(");
+            filter.Append('(');
             filter.Append(ldapAttr);
             filter.AppendLiteral(">=");
             filter.Append(vUTF8);
-            filter.AppendLiteral(")");
+            filter.Append(')');
             break;
         case nsIAbBooleanConditionTypes::SoundsLike:
-            filter.AppendLiteral("(");
+            filter.Append('(');
             filter.Append(ldapAttr);
             filter.AppendLiteral("~=");
             filter.Append(vUTF8);
-            filter.AppendLiteral(")");
+            filter.Append(')');
             break;
         case nsIAbBooleanConditionTypes::RegExp:
             break;

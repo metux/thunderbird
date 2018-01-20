@@ -13,33 +13,43 @@ namespace mozilla {
 namespace dom {
 
 class AudioContext;
+struct ChannelMergerOptions;
 
 class ChannelMergerNode final : public AudioNode
 {
 public:
-  ChannelMergerNode(AudioContext* aContext,
-                    uint16_t aInputCount);
+  static already_AddRefed<ChannelMergerNode>
+  Create(AudioContext& aAudioContext, const ChannelMergerOptions& aOptions,
+         ErrorResult& aRv);
 
   NS_DECL_ISUPPORTS_INHERITED
 
-  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+  static already_AddRefed<ChannelMergerNode>
+  Constructor(const GlobalObject& aGlobal, AudioContext& aAudioContext,
+              const ChannelMergerOptions& aOptions, ErrorResult& aRv)
+  {
+    return Create(aAudioContext, aOptions, aRv);
+  }
 
-  virtual uint16_t NumberOfInputs() const override { return mInputCount; }
+  JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
-  virtual const char* NodeType() const override
+  uint16_t NumberOfInputs() const override { return mInputCount; }
+
+  const char* NodeType() const override
   {
     return "ChannelMergerNode";
   }
 
-  virtual size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const override
+  size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const override
   {
     return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
   }
 
-protected:
-  virtual ~ChannelMergerNode();
-
 private:
+  ChannelMergerNode(AudioContext* aContext,
+                    uint16_t aInputCount);
+  ~ChannelMergerNode() = default;
+
   const uint16_t mInputCount;
 };
 
@@ -47,4 +57,3 @@ private:
 } // namespace mozilla
 
 #endif
-

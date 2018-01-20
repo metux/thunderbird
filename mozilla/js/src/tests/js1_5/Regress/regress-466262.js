@@ -16,11 +16,9 @@ test();
 
 function test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
 
-  jit(true);
 
   var e = 1;
   for (var d = 0; d < 3; ++d) {
@@ -28,9 +26,6 @@ function test()
       e = "";
     }
   }
-  jit(false);
 
   reportCompare(expect, actual, summary);
-
-  exitFunc ('test');
 }

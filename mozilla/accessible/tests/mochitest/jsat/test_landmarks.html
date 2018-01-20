@@ -10,6 +10,8 @@
           src="../common.js"></script>
   <script type="application/javascript"
           src="output.js"></script>
+  <script type="application/javascript"
+          src="jsatcommon.js"></script>
   <script type="application/javascript">
 
     function doTest() {
@@ -45,34 +47,34 @@
       }, {
         accOrElmOrID: "article_header",
         expectedUtterance: [
-          [{"string": "header"}, "a header within an article"],
-          ["a header within an article", {"string": "header"}]],
+          ["a header within an article"],
+          ["a header within an article"]],
         expectedBraille: [
-          [{"string": "headerAbbr"}, "a header within an article"],
-          ["a header within an article", {"string": "headerAbbr"}]],
+          ["a header within an article"],
+          ["a header within an article"]],
       }, {
         accOrElmOrID: "article_footer",
         expectedUtterance: [
-          [{"string": "footer"}, "a footer within an article"],
-          ["a footer within an article", {"string": "footer"}]],
+          ["a footer within an article"],
+          ["a footer within an article"]],
         expectedBraille: [
-          [{"string": "footerAbbr"}, "a footer within an article"],
-          ["a footer within an article", {"string": "footerAbbr"}]]
+          ["a footer within an article"],
+          ["a footer within an article"]]
       }, {
         accOrElmOrID: "section_header",
-        expectedUtterance: [[{"string":"header"}, "a header within a section"],
-                            ["a header within a section", {"string":"header"}]],
+        expectedUtterance: [["a header within a section"],
+                            ["a header within a section"]],
         expectedBraille: [
-          [{"string":"headerAbbr"}, "a header within a section"],
-          ["a header within a section", {"string":"headerAbbr"}]]
+          ["a header within a section"],
+          ["a header within a section"]]
       }, {
         accOrElmOrID: "section_footer",
         expectedUtterance: [
-          [{"string": "footer"}, "a footer within a section"],
-          ["a footer within a section", {"string": "footer"}]],
+          ["a footer within a section"],
+          ["a footer within a section"]],
         expectedBraille: [
-          [{"string": "footerAbbr"}, "a footer within a section"],
-          ["a footer within a section", {"string": "footerAbbr"}]]
+          ["a footer within a section"],
+          ["a footer within a section"]]
       }, {
         accOrElmOrID: "aside",
         expectedUtterance: [
@@ -117,20 +119,26 @@
       }];
 
       // Test outputs (utterance and braille) for landmarks.
-      tests.forEach(function run(test) {
-        var outputOrderValues = [0, 1];
-        outputOrderValues.forEach(function testOutputOrder(outputOrder) {
-          SpecialPowers.setIntPref(PREF_UTTERANCE_ORDER, outputOrder);
-          testOutput(test.expectedUtterance[outputOrder], test.accOrElmOrID,
-            test.oldAccOrElmOrID, 1);
-          testOutput(test.expectedBraille[outputOrder], test.accOrElmOrID,
-            test.oldAccOrElmOrID, 0);
-        });
-      });
+      function testOutputOrder(aOutputOrder) {
+        return function() {
+          SpecialPowers.pushPrefEnv({
+            "set": [[PREF_UTTERANCE_ORDER, aOutputOrder]]
+          }, function() {
+            tests.forEach(function run(test) {
+              testOutput(test.expectedUtterance[aOutputOrder], test.accOrElmOrID,
+                test.oldAccOrElmOrID, 1);
+              testOutput(test.expectedBraille[aOutputOrder], test.accOrElmOrID,
+                test.oldAccOrElmOrID, 0);
+            });
+            AccessFuTest.nextTest();
+          });
+        };
+      }
 
-      // If there was an original utterance order preference, revert to it.
-      SpecialPowers.clearUserPref(PREF_UTTERANCE_ORDER);
-      SimpleTest.finish();
+      AccessFuTest.addFunc(testOutputOrder(0));
+      AccessFuTest.addFunc(testOutputOrder(1));
+      AccessFuTest.waitForExplicitFinish();
+      AccessFuTest.runTests();
     }
 
     SimpleTest.waitForExplicitFinish();

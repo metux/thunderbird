@@ -3,12 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 "use strict";
 
-const { Cc, Ci, Cu } = require("chrome");
-const { Task } = require("resource://gre/modules/Task.jsm");
+const { Cc, Ci } = require("chrome");
+const { Task } = require("devtools/shared/task");
 
 loader.lazyRequireGetter(this, "Services");
 loader.lazyRequireGetter(this, "promise");
-loader.lazyRequireGetter(this, "OS", "resource://gre/modules/commonjs/node/os.js");
+loader.lazyRequireGetter(this, "defer", "devtools/shared/defer");
 loader.lazyRequireGetter(this, "DebuggerServer", "devtools/server/main", true);
 loader.lazyRequireGetter(this, "AppConstants",
   "resource://gre/modules/AppConstants.jsm", true);
@@ -18,6 +18,21 @@ loader.lazyGetter(this, "screenManager", () => {
 loader.lazyGetter(this, "oscpu", () => {
   return Cc["@mozilla.org/network/protocol;1?name=http"]
            .getService(Ci.nsIHttpProtocolHandler).oscpu;
+});
+loader.lazyGetter(this, "hostname", () => {
+  try {
+    // On some platforms (Linux according to try), this service does not exist and fails.
+    return Cc["@mozilla.org/network/dns-service;1"]
+              .getService(Ci.nsIDNSService).myHostName;
+  } catch (e) {
+    return "";
+  }
+});
+loader.lazyGetter(this, "endianness", () => {
+  if ((new Uint32Array((new Uint8Array([1, 2, 3, 4])).buffer))[0] === 0x04030201) {
+    return "LE";
+  }
+  return "BE";
 });
 
 const APP_MAP = {
@@ -32,7 +47,7 @@ const APP_MAP = {
 
 var CACHED_INFO = null;
 
-function *getSystemInfo() {
+function* getSystemInfo() {
   if (CACHED_INFO) {
     return CACHED_INFO;
   }
@@ -40,7 +55,14 @@ function *getSystemInfo() {
   let appInfo = Services.appinfo;
   let win = Services.wm.getMostRecentWindow(DebuggerServer.chromeWindowType);
   let [processor, compiler] = appInfo.XPCOMABI.split("-");
-  let dpi, useragent, width, height, os, brandName;
+  let dpi,
+    useragent,
+    width,
+    height,
+    physicalWidth,
+    physicalHeight,
+    os,
+    brandName;
   let appid = appInfo.ID;
   let apptype = APP_MAP[appid];
   let geckoVersion = appInfo.platformVersion;
@@ -56,10 +78,10 @@ function *getSystemInfo() {
       hardware = yield exports.getSetting("deviceinfo.hardware");
       version = yield exports.getSetting("deviceinfo.os");
     } catch (e) {
+      // Ignore.
     }
-  }
-  // Not B2G
-  else {
+  } else {
+    // Not B2G
     os = appInfo.OS;
     version = appInfo.version;
   }
@@ -72,11 +94,14 @@ function *getSystemInfo() {
   }
 
   if (win) {
-    let utils = win.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
+    let utils = win.QueryInterface(Ci.nsIInterfaceRequestor)
+                   .getInterface(Ci.nsIDOMWindowUtils);
     dpi = utils.displayDPI;
     useragent = win.navigator.userAgent;
     width = win.screen.width;
     height = win.screen.height;
+    physicalWidth = win.screen.width * win.devicePixelRatio;
+    physicalHeight = win.screen.height * win.devicePixelRatio;
   }
 
   let info = {
@@ -121,17 +146,17 @@ function *getSystemInfo() {
     geckoversion: geckoVersion,
 
     // Locale used in this build
-    locale: Cc["@mozilla.org/chrome/chrome-registry;1"].getService(Ci.nsIXULChromeRegistry).getSelectedLocale("global"),
+    locale: Services.locale.getAppLocaleAsLangTag(),
 
     /**
      * Information regarding the operating system.
      */
 
     // Returns the endianness of the architecture: either "LE" or "BE"
-    endianness: OS.endianness(),
+    endianness: endianness,
 
     // Returns the hostname of the machine
-    hostname: OS.hostname(),
+    hostname: hostname,
 
     // Name of the OS type. Typically the same as `uname -s`. Possible values:
     // https://developer.mozilla.org/en/OS_TARGET
@@ -163,6 +188,8 @@ function *getSystemInfo() {
     useragent,
     width,
     height,
+    physicalWidth,
+    physicalHeight,
     brandName,
   };
 
@@ -170,16 +197,17 @@ function *getSystemInfo() {
   return info;
 }
 
-function getProfileLocation () {
+function getProfileLocation() {
   // In child processes, we cannot access the profile location.
   try {
-    let profd = Services.dirsvc.get("ProfD", Ci.nsILocalFile);
-    let profservice = Cc["@mozilla.org/toolkit/profile-service;1"].getService(Ci.nsIToolkitProfileService);
-    var profiles = profservice.profiles;
+    let profd = Services.dirsvc.get("ProfD", Ci.nsIFile);
+    let profservice = Cc["@mozilla.org/toolkit/profile-service;1"]
+                        .getService(Ci.nsIToolkitProfileService);
+    let profiles = profservice.profiles;
     while (profiles.hasMoreElements()) {
       let profile = profiles.getNext().QueryInterface(Ci.nsIToolkitProfile);
       if (profile.rootDir.path == profd.path) {
-        return profile = profile.name;
+        return profile.name;
       }
     }
 
@@ -202,7 +230,8 @@ function getAppIniString(section, key) {
     return undefined;
   }
 
-  let iniParser = Cc["@mozilla.org/xpcom/ini-parser-factory;1"].getService(Ci.nsIINIParserFactory).createINIParser(inifile);
+  let iniParser = Cc["@mozilla.org/xpcom/ini-parser-factory;1"]
+                    .getService(Ci.nsIINIParserFactory).createINIParser(inifile);
   try {
     return iniParser.getString(section, key);
   } catch (e) {
@@ -296,7 +325,7 @@ function getOSCPU() {
 }
 
 function getSetting(name) {
-  let deferred = promise.defer();
+  let deferred = defer();
 
   if ("@mozilla.org/settingsService;1" in Cc) {
     let settingsService;
@@ -304,13 +333,14 @@ function getSetting(name) {
     // settingsService fails in b2g child processes
     // TODO bug 1205797, make this work in child processes.
     try {
-      settingsService = Cc["@mozilla.org/settingsService;1"].getService(Ci.nsISettingsService);
+      settingsService = Cc["@mozilla.org/settingsService;1"]
+                          .getService(Ci.nsISettingsService);
     } catch (e) {
       return promise.reject(e);
     }
 
-    let req = settingsService.createLock().get(name, {
-      handle: (name, value) => deferred.resolve(value),
+    settingsService.createLock().get(name, {
+      handle: (_, value) => deferred.resolve(value),
       handleError: (error) => deferred.reject(error),
     });
   } else {
@@ -319,7 +349,6 @@ function getSetting(name) {
   return deferred.promise;
 }
 
-exports.is64Bit = Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULAppInfo).is64Bit;
 exports.getSystemInfo = Task.async(getSystemInfo);
 exports.getAppIniString = getAppIniString;
 exports.getSetting = getSetting;

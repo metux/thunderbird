@@ -8,17 +8,25 @@
 
 #import <Cocoa/Cocoa.h>
 
+#include "mozilla/UniquePtr.h"
 #include "nsMenuBaseX.h"
 #include "nsMenuGroupOwnerX.h"
 #include "nsChangeObserver.h"
 #include "nsINativeMenuService.h"
-#include "nsAutoPtr.h"
 #include "nsString.h"
 
-class nsMenuX;
 class nsMenuBarX;
+class nsMenuX;
 class nsIWidget;
 class nsIContent;
+
+// ApplicationMenuDelegate is used to receive Cocoa notifications.
+@interface ApplicationMenuDelegate : NSObject<NSMenuDelegate>
+{
+  nsMenuBarX* mApplicationMenu; // weak ref
+}
+- (id)initWithApplicationMenu:(nsMenuBarX*)aApplicationMenu;
+@end
 
 // The native menu service for creating native menu bars.
 class nsNativeMenuServiceX : public nsINativeMenuService
@@ -34,26 +42,12 @@ protected:
   virtual ~nsNativeMenuServiceX() {}
 };
 
-@interface NSMenu (Undocumented)
-// Undocumented method, present unchanged since OS X 10.6, used to temporarily
-// highlight a top-level menu item when an appropriate Cmd+key combination is
-// pressed.
-- (void)_performActionWithHighlightingForItemAtIndex:(NSInteger)index;
-@end
-
 // Objective-C class used to allow us to intervene with keyboard event handling.
 // We allow mouse actions to work normally.
 @interface GeckoNSMenu : NSMenu
 {
-@private
-  nsMenuBarX *mMenuBarOwner; // Weak -- if non-null it owns us
-  bool mDelayResignMainMenu;
 }
-- (id)initWithTitle:(NSString *)aTitle andMenuBarOwner:(nsMenuBarX *)aMenuBarOwner;
-- (void)resetMenuBarOwner;
-- (bool)delayResignMainMenu;
-- (void)setDelayResignMainMenu:(bool)aShouldDelay;
-- (void)delayedPaintMenuBar:(id)unused;
+- (BOOL)performSuperKeyEquivalent:(NSEvent*)theEvent;
 @end
 
 // Objective-C class used as action target for menu items
@@ -97,7 +91,6 @@ public:
 
   static NativeMenuItemTarget* sNativeEventTarget;
   static nsMenuBarX*           sLastGeckoMenuBarPainted;
-  static nsMenuBarX*           sCurrentPaintDelayedMenuBar;
 
   // The following content nodes have been removed from the menu system.
   // We save them here for use in command handling.
@@ -120,13 +113,14 @@ public:
   nsMenuX*          GetMenuAt(uint32_t aIndex);
   nsMenuX*          GetXULHelpMenu();
   void              SetSystemHelpMenu();
-  nsresult          Paint(bool aDelayed = false);
-  void              PaintMenuBarAfterDelay();
-  void              ResetAwaitingDelayedPaint() { mAwaitingDelayedPaint = false; }
+  nsresult          Paint();
   void              ForceUpdateNativeMenuAt(const nsAString& indexString);
   void              ForceNativeMenuReload(); // used for testing
   static char       GetLocalizedAccelKey(const char *shortcutID);
   static void       ResetNativeApplicationMenu();
+  void              SetNeedsRebuild();
+  void              ApplicationMenuOpened();
+  bool              PerformKeyEquivalent(NSEvent* theEvent);
 
 protected:
   void              ConstructNativeMenus();
@@ -139,11 +133,11 @@ protected:
                                             int tag, NativeMenuItemTarget* target);
   nsresult          CreateApplicationMenu(nsMenuX* inMenu);
 
-  nsTArray< nsAutoPtr<nsMenuX> > mMenuArray;
+  nsTArray<mozilla::UniquePtr<nsMenuX>> mMenuArray;
   nsIWidget*         mParentWindow;        // [weak]
   GeckoNSMenu*       mNativeMenu;            // root menu, representing entire menu bar
-
-  bool               mAwaitingDelayedPaint;
+  bool               mNeedsRebuild;
+  ApplicationMenuDelegate* mApplicationMenuDelegate;
 };
 
 #endif // nsMenuBarX_h_

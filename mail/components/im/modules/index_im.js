@@ -15,6 +15,7 @@ Cu.import("resource:///modules/iteratorUtils.jsm");
 Cu.import("resource:///modules/mailServices.js");
 Cu.import("resource://gre/modules/FileUtils.jsm");
 Cu.import("resource://gre/modules/NetUtil.jsm");
+Cu.import("resource://gre/modules/Services.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "OS", "resource://gre/modules/osfile.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Task", "resource://gre/modules/Task.jsm");
@@ -69,7 +70,7 @@ GlodaIMConversation.prototype = {
 
     // Find the nsIIncomingServer for the current imIAccount.
     let mgr = MailServices.accounts;
-    for (let account in fixIterator(mgr.accounts, Ci.nsIMsgAccount)) {
+    for (let account of fixIterator(mgr.accounts, Ci.nsIMsgAccount)) {
       let incomingServer = account.incomingServer;
       if (!incomingServer || incomingServer.type != "im")
         continue;
@@ -115,7 +116,7 @@ GlodaIMConversation.prototype = {
 // FIXME
 var WidgetProvider = {
   providerName: "widget",
-  process: function () {
+  process: function*() {
     //XXX What is this supposed to do?
     yield Gloda.kWorkDone;
   }
@@ -388,7 +389,7 @@ var GlodaIMIndexer = {
       // have been started since we last got them.
       let logFiles =
         yield Services.logs.getLogPathsForConversation(aConversation);
-      if (!logFiles.length) {
+      if (!logFiles || !logFiles.length) {
         // No log files exist yet, nothing to do!
         return;
       }
@@ -521,7 +522,7 @@ var GlodaIMIndexer = {
   _getIdFromPath: function(aPath) {
     let selectStatement = GlodaDatastore._createAsyncStatement(
       "SELECT id FROM imConversations WHERE path = ?1");
-    selectStatement.bindStringParameter(0, aPath);
+    selectStatement.bindByIndex(0, aPath);
     let id;
     return new Promise((resolve, reject) => {
       selectStatement.executeAsync({
@@ -615,7 +616,7 @@ var GlodaIMIndexer = {
     return rv;
   }),
 
-  _worker_indexIMConversation: function(aJob, aCallbackHandle) {
+  _worker_indexIMConversation: function*(aJob, aCallbackHandle) {
     let glodaConv = {};
     let existingGlodaConv = aJob.conversation.glodaConv;
     if (existingGlodaConv &&
@@ -639,10 +640,12 @@ var GlodaIMIndexer = {
     yield Gloda.kWorkDone;
   },
 
-  _worker_logsFolderSweep: function(aJob) {
+  _worker_logsFolderSweep: function*(aJob) {
     let dir = FileUtils.getFile("ProfD", ["logs"]);
-    if (!dir.exists() || !dir.isDirectory())
-      return;
+    if (!dir.exists() || !dir.isDirectory()) {
+      // If the folder does not exist, then we are done.
+      yield GlodaIndexer.kWorkDone;
+    }
 
     // Sweep the logs directory for log files, adding any new entries to the
     // _knownFiles tree as we traverse.
@@ -679,9 +682,11 @@ var GlodaIMIndexer = {
         }
       }
     }
+
+    yield GlodaIndexer.kWorkDone;
   },
 
-  _worker_convFolderSweep: function(aJob, aCallbackHandle) {
+  _worker_convFolderSweep: function*(aJob, aCallbackHandle) {
     let folder = aJob.folder;
 
     let sessions = folder.directoryEntries;
@@ -745,8 +750,8 @@ var GlodaIMIndexer = {
           // so this should work.
           let pathComponents = OS.Path.split(row.getString(1)).components;
           if (pathComponents.length > 4) {
-            updateStatement.bindInt64Parameter(1, row.getInt64(0)); // id
-            updateStatement.bindStringParameter(0,
+            updateStatement.bindByIndex(1, row.getInt64(0)); // id
+            updateStatement.bindByIndex(0,
               pathComponents.slice(-4).join("/")); // Last 4 path components
             updateStatement.executeAsync({
               handleResult: () => {},

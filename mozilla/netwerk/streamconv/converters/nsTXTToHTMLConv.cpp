@@ -12,7 +12,9 @@
 
 #include "mozilla/UniquePtrExtensions.h"
 
-#define TOKEN_DELIMITERS MOZ_UTF16("\t\r\n ")
+#define TOKEN_DELIMITERS u"\t\r\n "
+
+using namespace mozilla;
 
 // nsISupports methods
 NS_IMPL_ISUPPORTS(nsTXTToHTMLConv,
@@ -71,7 +73,8 @@ nsTXTToHTMLConv::OnStartRequest(nsIRequest* request, nsISupports *aContext)
     if (NS_FAILED(rv)) return rv;
 
     nsCOMPtr<nsIInputStream> inputData;
-    rv = NS_NewStringInputStream(getter_AddRefs(inputData), mBuffer);
+    NS_LossyConvertUTF16toASCII asciiData(mBuffer);
+    rv = NS_NewCStringInputStream(getter_AddRefs(inputData), asciiData);
     if (NS_FAILED(rv)) return rv;
 
     rv = mListener->OnDataAvailable(request, aContext,
@@ -100,8 +103,8 @@ nsTXTToHTMLConv::OnStopRequest(nsIRequest* request, nsISupports *aContext,
     mBuffer.AppendLiteral("\n</body></html>");
 
     nsCOMPtr<nsIInputStream> inputData;
-
-    rv = NS_NewStringInputStream(getter_AddRefs(inputData), mBuffer);
+    NS_LossyConvertUTF16toASCII asciiData(mBuffer);
+    rv = NS_NewCStringInputStream(getter_AddRefs(inputData), asciiData);
     if (NS_FAILED(rv)) return rv;
 
     rv = mListener->OnDataAvailable(request, aContext,
@@ -177,8 +180,8 @@ nsTXTToHTMLConv::OnDataAvailable(nsIRequest* request, nsISupports *aContext,
 
         if (!pushBuffer.IsEmpty()) {
             nsCOMPtr<nsIInputStream> inputData;
-
-            rv = NS_NewStringInputStream(getter_AddRefs(inputData), pushBuffer);
+            NS_LossyConvertUTF16toASCII asciiData(pushBuffer);
+            rv = NS_NewCStringInputStream(getter_AddRefs(inputData), asciiData);
             if (NS_FAILED(rv))
                 return rv;
 
@@ -282,7 +285,7 @@ nsTXTToHTMLConv::CatHTML(int32_t front, int32_t back)
         // href is implied
         mBuffer.Mid(linkText, front, back-front);
 
-        mBuffer.Insert(NS_LITERAL_STRING("<a href=\""), front);
+        mBuffer.InsertLiteral(u"<a href=\"", front);
         cursor += front+9;
         if (modLen) {
             mBuffer.Insert(mToken->modText, cursor);
@@ -299,11 +302,11 @@ nsTXTToHTMLConv::CatHTML(int32_t front, int32_t back)
         }
 
         cursor += back-front;
-        mBuffer.Insert(NS_LITERAL_STRING("\">"), cursor);
+        mBuffer.InsertLiteral(u"\">", cursor);
         cursor += 2;
         mBuffer.Insert(linkText, cursor);
         cursor += linkText.Length();
-        mBuffer.Insert(NS_LITERAL_STRING("</a>"), cursor);
+        mBuffer.InsertLiteral(u"</a>", cursor);
         cursor += 4;
     }
     mToken = nullptr; // indicates completeness

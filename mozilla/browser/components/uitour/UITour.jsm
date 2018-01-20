@@ -4,17 +4,15 @@
 
 "use strict";
 
-this.EXPORTED_SYMBOLS = ["UITour", "UITourMetricsProvider"];
+this.EXPORTED_SYMBOLS = ["UITour"];
 
 const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
 Cu.import("resource://gre/modules/AppConstants.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-Cu.import("resource://gre/modules/Promise.jsm");
-Cu.import("resource:///modules/RecentWindow.jsm");
-Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/TelemetryController.jsm");
+Cu.import("resource://gre/modules/Timer.jsm");
 
 Cu.importGlobalProperties(["URL"]);
 
@@ -28,22 +26,22 @@ XPCOMUtils.defineLazyModuleGetter(this, "UITelemetry",
   "resource://gre/modules/UITelemetry.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "BrowserUITelemetry",
   "resource:///modules/BrowserUITelemetry.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "Metrics",
-  "resource://gre/modules/Metrics.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils",
   "resource://gre/modules/PrivateBrowsingUtils.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "ReaderMode",
-  "resource://gre/modules/ReaderMode.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "ProfileAge",
+  "resource://gre/modules/ProfileAge.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "ReaderParent",
   "resource:///modules/ReaderParent.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "PageActions",
+  "resource:///modules/PageActions.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "fxAccounts",
+  "resource://gre/modules/FxAccounts.jsm");
 
 // See LOG_LEVELS in Console.jsm. Common examples: "All", "Info", "Warn", & "Error".
 const PREF_LOG_LEVEL      = "browser.uitour.loglevel";
 const PREF_SEENPAGEIDS    = "browser.uitour.seenPageIDs";
-const PREF_READERVIEW_TRIGGER = "browser.uitour.readerViewTrigger";
 
 const BACKGROUND_PAGE_ACTIONS_ALLOWED = new Set([
-  "endUrlbarCapture",
   "forceShowReaderIcon",
   "getConfiguration",
   "getTreatmentTag",
@@ -90,9 +88,12 @@ this.UITour = {
   pageIDSourceBrowsers: new WeakMap(),
   /* Map from browser chrome windows to a Set of <browser>s in which a tour is open (both visible and hidden) */
   tourBrowsersByWindow: new WeakMap(),
-  urlbarCapture: new WeakMap(),
-  appMenuOpenForAnnotation: new Set(),
+  // Menus opened by api users explictly through `Mozilla.UITour.showMenu` call
+  noautohideMenus: new Set(),
   availableTargetsCache: new WeakMap(),
+  clearAvailableTargetsCache() {
+    this.availableTargetsCache = new WeakMap();
+  },
 
   _annotationPanelMutationObservers: new WeakMap(),
 
@@ -101,112 +102,67 @@ this.UITour = {
     ["accountStatus", {
       query: (aDocument) => {
         // If the user is logged in, use the avatar element.
-        let fxAFooter = aDocument.getElementById("PanelUI-footer-fxa");
+        let fxAFooter = aDocument.getElementById("appMenu-fxa-container");
         if (fxAFooter.getAttribute("fxastatus")) {
-          return aDocument.getElementById("PanelUI-fxa-avatar");
+          return aDocument.getElementById("appMenu-fxa-avatar");
         }
 
         // Otherwise use the sync setup icon.
-        let statusButton = aDocument.getElementById("PanelUI-fxa-label");
+        let statusButton = aDocument.getElementById("appMenu-fxa-label");
         return aDocument.getAnonymousElementByAttribute(statusButton,
                                                         "class",
                                                         "toolbarbutton-icon");
       },
-      // This is a fake widgetName starting with the "PanelUI-" prefix so we know
+      // This is a fake widgetName starting with the "appMenu-" prefix so we know
       // to automatically open the appMenu when annotating this target.
-      widgetName: "PanelUI-fxa-label",
+      widgetName: "appMenu-fxa-label",
     }],
-    ["addons",      {query: "#add-ons-button"}],
+    ["addons",      {query: "#appMenu-addons-button"}],
     ["appMenu",     {
       addTargetListener: (aDocument, aCallback) => {
-        let panelPopup = aDocument.getElementById("PanelUI-popup");
+        let panelPopup = aDocument.defaultView.PanelUI.panel;
         panelPopup.addEventListener("popupshown", aCallback);
       },
       query: "#PanelUI-button",
       removeTargetListener: (aDocument, aCallback) => {
-        let panelPopup = aDocument.getElementById("PanelUI-popup");
+        let panelPopup = aDocument.defaultView.PanelUI.panel;
         panelPopup.removeEventListener("popupshown", aCallback);
       },
     }],
-    ["backForward", {
-      query: "#back-button",
-      widgetName: "urlbar-container",
-    }],
+    ["backForward", {query: "#back-button"}],
     ["bookmarks",   {query: "#bookmarks-menu-button"}],
     ["controlCenter-trackingUnblock", controlCenterTrackingToggleTarget(true)],
     ["controlCenter-trackingBlock", controlCenterTrackingToggleTarget(false)],
     ["customize",   {
-      query: (aDocument) => {
-        let customizeButton = aDocument.getElementById("PanelUI-customize");
-        return aDocument.getAnonymousElementByAttribute(customizeButton,
-                                                        "class",
-                                                        "toolbarbutton-icon");
-      },
-      widgetName: "PanelUI-customize",
+      query: "#appMenu-customize-button",
+      widgetName: "appMenu-customize-button",
     }],
-    ["devtools",    {query: "#developer-button"}],
-    ["help",        {query: "#PanelUI-help"}],
-    ["home",        {query: "#home-button"}],
+    ["devtools",    {
+      query: "#appMenu-developer-button",
+      widgetName: "appMenu-developer-button",
+    }],
     ["forget", {
       allowAdd: true,
       query: "#panic-button",
       widgetName: "panic-button",
     }],
-    ["loop",        {
-      allowAdd: true,
-      query: "#loop-button",
-      widgetName: "loop-button",
-    }],
-    ["loop-newRoom", {
-      infoPanelPosition: "leftcenter topright",
-      query: (aDocument) => {
-        let loopUI = aDocument.defaultView.LoopUI;
-        // Use the parentElement full-width container of the button so our arrow
-        // doesn't overlap the panel contents much.
-        return loopUI.browser.contentDocument.querySelector(".new-room-button").parentElement;
-      },
-    }],
-    ["loop-roomList", {
-      infoPanelPosition: "leftcenter topright",
-      query: (aDocument) => {
-        let loopUI = aDocument.defaultView.LoopUI;
-        return loopUI.browser.contentDocument.querySelector(".room-list");
-      },
-    }],
-    ["loop-selectedRoomButtons", {
-      infoPanelOffsetY: -20,
-      infoPanelPosition: "start_after",
-      query: (aDocument) => {
-        let chatbox = aDocument.querySelector("chatbox[src^='about\:loopconversation'][selected]");
-
-        // Check that the real target actually exists
-        if (!chatbox || !chatbox.contentDocument ||
-            !chatbox.contentDocument.querySelector(".call-action-group")) {
-          return null;
-        }
-
-        // But anchor on the <browser> in the chatbox so the panel doesn't jump to undefined
-        // positions when the copy/email buttons disappear e.g. when the feedback form opens or
-        // somebody else joins the room.
-        return chatbox.content;
-      },
-    }],
-    ["loop-signInUpLink", {
-      query: (aDocument) => {
-        let loopBrowser = aDocument.defaultView.LoopUI.browser;
-        if (!loopBrowser) {
-          return null;
-        }
-        return loopBrowser.contentDocument.querySelector(".signin-link");
-      },
-    }],
+    ["help",        {query: "#appMenu-help-button"}],
+    ["home",        {query: "#home-button"}],
+    ["library",     {query: "#appMenu-library-button"}],
     ["pocket", {
       allowAdd: true,
-      query: "#pocket-button",
-      widgetName: "pocket-button",
+      query: (aDocument) => {
+        // The pocket's urlbar page action button is pre-defined in the DOM.
+        // It would be hidden if toggled off from the urlbar.
+        let node = aDocument.getElementById("pocket-button-box");
+        if (node && node.hidden == false) {
+          return node;
+        }
+        return aDocument.getElementById("pageAction-panel-pocket");
+      },
     }],
-    ["privateWindow",  {query: "#privatebrowsing-button"}],
-    ["quit",        {query: "#PanelUI-quit"}],
+    ["privateWindow", {query: "#appMenu-private-window-button"}],
+    ["quit",        {query: "#appMenu-quit-button"}],
     ["readerMode-urlBar", {query: "#reader-mode-button"}],
     ["search",      {
       infoPanelOffsetX: 18,
@@ -226,7 +182,6 @@ this.UITour = {
     ["searchPrefsLink", {
       query: (aDocument) => {
         let element = null;
-        let searchbar = aDocument.getElementById("searchbar");
         let popup = aDocument.getElementById("PopupSearchAutoComplete");
         if (popup.state != "open")
           return null;
@@ -258,10 +213,47 @@ this.UITour = {
       query: "#urlbar",
       widgetName: "urlbar-container",
     }],
-    ["webide",      {query: "#webide-button"}],
+    ["pageActionButton", {
+      query: "#pageActionButton"
+    }],
+    ["pageAction-bookmark", {
+      query: (aDocument) => {
+        // The bookmark's urlbar page action button is pre-defined in the DOM.
+        // It would be hidden if toggled off from the urlbar.
+        let node = aDocument.getElementById("star-button-box");
+        if (node && node.hidden == false) {
+          return node;
+        }
+        return aDocument.getElementById("pageAction-panel-bookmark");
+      },
+    }],
+    ["pageAction-copyURL", {
+      query: (aDocument) => {
+        return aDocument.getElementById("pageAction-urlbar-copyURL") ||
+               aDocument.getElementById("pageAction-panel-copyURL");
+      },
+    }],
+    ["pageAction-emailLink", {
+      query: (aDocument) => {
+        return aDocument.getElementById("pageAction-urlbar-emailLink") ||
+               aDocument.getElementById("pageAction-panel-emailLink");
+      },
+    }],
+    ["pageAction-sendToDevice", {
+      query: (aDocument) => {
+        return aDocument.getElementById("pageAction-urlbar-sendToDevice") ||
+               aDocument.getElementById("pageAction-panel-sendToDevice");
+      },
+    }],
+    ["screenshots", {
+      query: (aDocument) => {
+        return aDocument.getElementById("pageAction-urlbar-screenshots") ||
+               aDocument.getElementById("pageAction-panel-screenshots");
+      },
+    }]
   ]),
 
-  init: function() {
+  init() {
     log.debug("Initializing UITour");
     // Lazy getter is initialized here so it can be replicated any time
     // in a test.
@@ -272,7 +264,7 @@ this.UITour = {
     });
 
     delete this.url;
-    XPCOMUtils.defineLazyGetter(this, "url", function () {
+    XPCOMUtils.defineLazyGetter(this, "url", function() {
       return Services.urlFormatter.formatURLPref("browser.uitour.url");
     });
 
@@ -285,12 +277,12 @@ this.UITour = {
       "onAreaReset",
     ];
     CustomizableUI.addListener(listenerMethods.reduce((listener, method) => {
-      listener[method] = () => this.availableTargetsCache.clear();
+      listener[method] = () => this.clearAvailableTargetsCache();
       return listener;
     }, {}));
   },
 
-  restoreSeenPageIDs: function() {
+  restoreSeenPageIDs() {
     delete this.seenPageIDs;
 
     if (UITelemetry.enabled) {
@@ -323,7 +315,7 @@ this.UITour = {
     return this.seenPageIDs;
   },
 
-  addSeenPageID: function(aPageID) {
+  addSeenPageID(aPageID) {
     if (!UITelemetry.enabled)
       return;
 
@@ -334,7 +326,7 @@ this.UITour = {
     this.persistSeenIDs();
   },
 
-  persistSeenIDs: function() {
+  persistSeenIDs() {
     if (this.seenPageIDs.size === 0) {
       Services.prefs.clearUserPref(PREF_SEENPAGEIDS);
       return;
@@ -344,26 +336,9 @@ this.UITour = {
                                JSON.stringify([...this.seenPageIDs]));
   },
 
-  get _readerViewTriggerRegEx() {
-    delete this._readerViewTriggerRegEx;
-    let readerViewUITourTrigger = Services.prefs.getCharPref(PREF_READERVIEW_TRIGGER);
-    return this._readerViewTriggerRegEx = new RegExp(readerViewUITourTrigger, "i");
-  },
-
-  onLocationChange: function(aLocation) {
-    // The ReaderView tour page is expected to run in Reader View,
-    // which disables JavaScript on the page. To get around that, we
-    // automatically start a pre-defined tour on page load (for hysterical
-    // raisins the ReaderView tour is known as "readinglist")
-    let originalUrl = ReaderMode.getOriginalUrl(aLocation);
-    if (this._readerViewTriggerRegEx.test(originalUrl)) {
-      this.startSubTour("readinglist");
-    }
-  },
-
-  onPageEvent: function(aMessage, aEvent) {
+  onPageEvent(aMessage, aEvent) {
     let browser = aMessage.target;
-    let window = browser.ownerDocument.defaultView;
+    let window = browser.ownerGlobal;
 
     // Does the window have tabs? We need to make sure since windowless browsers do
     // not have tabs.
@@ -427,42 +402,6 @@ this.UITour = {
         this.pageIDSourceBrowsers.set(browser, data.pageID);
         this.setTelemetryBucket(data.pageID);
 
-        break;
-      }
-
-      case "showHeartbeat": {
-        // Validate the input parameters.
-        if (typeof data.message !== "string" || data.message === "") {
-          log.error("showHeartbeat: Invalid message specified.");
-          return false;
-        }
-
-        if (typeof data.thankyouMessage !== "string" || data.thankyouMessage === "") {
-          log.error("showHeartbeat: Invalid thank you message specified.");
-          return false;
-        }
-
-        if (typeof data.flowId !== "string" || data.flowId === "") {
-          log.error("showHeartbeat: Invalid flowId specified.");
-          return false;
-        }
-
-        if (data.engagementButtonLabel && typeof data.engagementButtonLabel != "string") {
-          log.error("showHeartbeat: Invalid engagementButtonLabel specified");
-          return false;
-        }
-
-        let heartbeatWindow = window;
-        if (data.privateWindowsOnly && !PrivateBrowsingUtils.isWindowPrivate(heartbeatWindow)) {
-          heartbeatWindow = RecentWindow.getMostRecentBrowserWindow({ private: true });
-          if (!heartbeatWindow) {
-            log.debug("showHeartbeat: No private window found");
-            return false;
-          }
-        }
-
-        // Finally show the Heartbeat UI.
-        this.showHeartbeat(heartbeatWindow, data);
         break;
       }
 
@@ -530,13 +469,18 @@ this.UITour = {
           }
 
           let infoOptions = {};
+          if (typeof data.closeButtonCallbackID == "string") {
+            infoOptions.closeButtonCallback = () => {
+              this.sendPageCallback(messageManager, data.closeButtonCallbackID);
+            };
+          }
+          if (typeof data.targetCallbackID == "string") {
+            infoOptions.targetCallback = details => {
+              this.sendPageCallback(messageManager, data.targetCallbackID, details);
+            };
+          }
 
-          if (typeof data.closeButtonCallbackID == "string")
-            infoOptions.closeButtonCallbackID = data.closeButtonCallbackID;
-          if (typeof data.targetCallbackID == "string")
-            infoOptions.targetCallbackID = data.targetCallbackID;
-
-          this.showInfo(window, messageManager, target, data.title, data.text, iconURL, buttons, infoOptions);
+          this.showInfo(window, target, data.title, data.text, iconURL, buttons, infoOptions);
         }).catch(log.error);
         break;
       }
@@ -557,6 +501,7 @@ this.UITour = {
       }
 
       case "showMenu": {
+        this.noautohideMenus.add(data.name);
         this.showMenu(window, data.name, () => {
           if (typeof data.showCallbackID == "string")
             this.sendPageCallback(messageManager, data.showCallbackID);
@@ -565,42 +510,13 @@ this.UITour = {
       }
 
       case "hideMenu": {
+        this.noautohideMenus.delete(data.name);
         this.hideMenu(window, data.name);
         break;
       }
 
-      case "startUrlbarCapture": {
-        if (typeof data.text != "string" || !data.text ||
-            typeof data.url != "string" || !data.url) {
-          log.warn("startUrlbarCapture: Text or URL not specified");
-          return false;
-        }
-
-        let uri = null;
-        try {
-          uri = Services.io.newURI(data.url, null, null);
-        } catch (e) {
-          log.warn("startUrlbarCapture: Malformed URL specified");
-          return false;
-        }
-
-        let secman = Services.scriptSecurityManager;
-        let contentDocument = browser.contentWindow.document;
-        let principal = contentDocument.nodePrincipal;
-        let flags = secman.DISALLOW_INHERIT_PRINCIPAL;
-        try {
-          secman.checkLoadURIWithPrincipal(principal, uri, flags);
-        } catch (e) {
-          log.warn("startUrlbarCapture: Orginating page doesn't have permission to open specified URL");
-          return false;
-        }
-
-        this.startUrlbarCapture(window, data.text, data.url);
-        break;
-      }
-
-      case "endUrlbarCapture": {
-        this.endUrlbarCapture(window);
+      case "showNewTab": {
+        this.showNewTab(window, browser);
         break;
       }
 
@@ -629,22 +545,33 @@ this.UITour = {
           log.warn("openPreferences: Invalid pane specified");
           return false;
         }
-
-        window.openPreferences(data.pane);
+        window.openPreferences(data.pane, { origin: "UITour" });
         break;
       }
 
       case "showFirefoxAccounts": {
-        // 'signup' is the only action that makes sense currently, so we don't
-        // accept arbitrary actions just to be safe...
-        // We want to replace the current tab.
-        browser.loadURI("about:accounts?action=signup&entrypoint=uitour");
+        Promise.resolve().then(() => {
+          return data.email ? fxAccounts.promiseAccountsEmailURI(data.email, "uitour") :
+                              fxAccounts.promiseAccountsSignUpURI("uitour");
+        }).then(uri => {
+          const url = new URL(uri);
+          // Call our helper to validate extraURLCampaignParams and populate URLSearchParams
+          if (!this._populateCampaignParams(url, data.extraURLCampaignParams)) {
+            log.warn("showFirefoxAccounts: invalid campaign args specified");
+            return;
+          }
+
+          // We want to replace the current tab.
+          browser.loadURI(url.href);
+        });
         break;
       }
 
       case "resetFirefox": {
         // Open a reset profile dialog window.
-        ResetProfile.openConfirmationDialog(window);
+        if (ResetProfile.resetSupported()) {
+          ResetProfile.openConfirmationDialog(window);
+        }
         break;
       }
 
@@ -666,11 +593,10 @@ this.UITour = {
       case "setTreatmentTag": {
         let name = data.name;
         let value = data.value;
-        let string = Cc["@mozilla.org/supports-string;1"].createInstance(Ci.nsISupportsString);
-        string.data = value;
-        Services.prefs.setComplexValue("browser.uitour.treatment." + name,
-                                       Ci.nsISupportsString, string);
-        UITourHealthReport.recordTreatmentTag(name, value);
+        Services.prefs.setStringPref("browser.uitour.treatment." + name, value);
+        // The notification is only meant to be used in tests.
+        UITourHealthReport.recordTreatmentTag(name, value)
+                          .then(() => this.notify("TreatmentTag:TelemetrySent"));
         break;
       }
 
@@ -678,10 +604,9 @@ this.UITour = {
         let name = data.name;
         let value;
         try {
-          value = Services.prefs.getComplexValue("browser.uitour.treatment." + name,
-                                                 Ci.nsISupportsString).data;
+          value = Services.prefs.getStringPref("browser.uitour.treatment." + name);
         } catch (ex) {}
-        this.sendPageCallback(messageManager, data.callbackID, { value: value });
+        this.sendPageCallback(messageManager, data.callbackID, { value });
         break;
       }
 
@@ -690,8 +615,8 @@ this.UITour = {
         targetPromise.then(target => {
           let searchbar = target.node;
           searchbar.value = data.term;
-          searchbar.inputChanged();
-        }).then(null, Cu.reportError);
+          searchbar.updateGoButtonVisibility();
+        });
         break;
       }
 
@@ -711,7 +636,7 @@ this.UITour = {
             searchbar.textbox.popup.addEventListener("popupshown", onPopupShown);
             searchbar.openSuggestionsPanel();
           }
-        }).then(null, Cu.reportError);
+        }).catch(Cu.reportError);
         break;
       }
 
@@ -733,9 +658,26 @@ this.UITour = {
         });
         break;
       }
+
+      case "closeTab": {
+        // Find the <tabbrowser> element of the <browser> for which the event
+        // was generated originally. If the browser where the UI tour is loaded
+        // is windowless, just ignore the request to close the tab. The request
+        // is also ignored if this is the only tab in the window.
+        let tabBrowser = browser.ownerGlobal.gBrowser;
+        if (tabBrowser && tabBrowser.browsers.length > 1) {
+          tabBrowser.removeTab(tabBrowser.getTabForBrowser(browser));
+        }
+        break;
+      }
     }
 
-    this.initForBrowser(browser, window);
+    // For performance reasons, only call initForBrowser if we did something
+    // that will require a teardownTourForBrowser call later.
+    // getConfiguration (called from about:home) doesn't require any future
+    // uninitialization.
+    if (action != "getConfiguration")
+      this.initForBrowser(browser, window);
 
     return true;
   },
@@ -752,22 +694,16 @@ this.UITour = {
     }
     this.tourBrowsersByWindow.get(window).add(aBrowser);
 
-    Services.obs.addObserver(this, "message-manager-close", false);
+    Services.obs.addObserver(this, "message-manager-close");
 
     window.addEventListener("SSWindowClosing", this);
   },
 
-  handleEvent: function(aEvent) {
+  handleEvent(aEvent) {
     log.debug("handleEvent: type =", aEvent.type, "event =", aEvent);
     switch (aEvent.type) {
-      case "pagehide": {
-        let window = this.getChromeWindow(aEvent.target);
-        this.teardownTourForWindow(window);
-        break;
-      }
-
       case "TabSelect": {
-        let window = aEvent.target.ownerDocument.defaultView;
+        let window = aEvent.target.ownerGlobal;
 
         // Teardown the browser of the tab we just switched away from.
         if (aEvent.detail && aEvent.detail.previousTab) {
@@ -786,18 +722,10 @@ this.UITour = {
         this.teardownTourForWindow(window);
         break;
       }
-
-      case "input": {
-        if (aEvent.target.id == "urlbar") {
-          let window = aEvent.target.ownerDocument.defaultView;
-          this.handleUrlbarInput(window);
-        }
-        break;
-      }
     }
   },
 
-  observe: function(aSubject, aTopic, aData) {
+  observe(aSubject, aTopic, aData) {
     log.debug("observe: aTopic =", aTopic);
     switch (aTopic) {
       // The browser message manager is disconnected when the <browser> is
@@ -828,12 +756,58 @@ this.UITour = {
     }
   },
 
-  setTelemetryBucket: function(aPageID) {
+  // Given a string that is a JSONified represenation of an object with
+  // additional utm_* URL params that should be appended, validate and append
+  // them to the passed URL object. Returns true if the params
+  // were validated and appended, and false if the request should be ignored.
+  _populateCampaignParams(url, extraURLCampaignParams) {
+    // We are extra paranoid about what params we allow to be appended.
+    if (typeof extraURLCampaignParams == "undefined") {
+      // no params, so it's all good.
+      return true;
+    }
+    if (typeof extraURLCampaignParams != "string") {
+      log.warn("_populateCampaignParams: extraURLCampaignParams is not a string");
+      return false;
+    }
+    let campaignParams;
+    try {
+      if (extraURLCampaignParams) {
+        campaignParams = JSON.parse(extraURLCampaignParams);
+        if (typeof campaignParams != "object") {
+          log.warn("_populateCampaignParams: extraURLCampaignParams is not a stringified object");
+          return false;
+        }
+      }
+    } catch (ex) {
+      log.warn("_populateCampaignParams: extraURLCampaignParams is not a JSON object");
+      return false;
+    }
+    if (campaignParams) {
+      // The regex that the name of each param must match - there's no
+      // character restriction on the value - they will be escaped as necessary.
+      let reSimpleString = /^[-_a-zA-Z0-9]*$/;
+      for (let name in campaignParams) {
+        let value = campaignParams[name];
+        if (typeof name != "string" || typeof value != "string" ||
+            !name.startsWith("utm_") ||
+            value.length == 0 ||
+            !reSimpleString.test(name)) {
+          log.warn("_populateCampaignParams: invalid campaign param specified");
+          return false;
+        }
+        url.searchParams.append(name, value);
+      }
+    }
+    return true;
+  },
+
+  setTelemetryBucket(aPageID) {
     let bucket = BUCKET_NAME + BrowserUITelemetry.BUCKET_SEPARATOR + aPageID;
     BrowserUITelemetry.setBucket(bucket);
   },
 
-  setExpiringTelemetryBucket: function(aPageID, aType) {
+  setExpiringTelemetryBucket(aPageID, aType) {
     let bucket = BUCKET_NAME + BrowserUITelemetry.BUCKET_SEPARATOR + aPageID +
                  BrowserUITelemetry.BUCKET_SEPARATOR + aType;
 
@@ -843,7 +817,7 @@ this.UITour = {
 
   // This is registered with UITelemetry by BrowserUITelemetry, so that UITour
   // can remain lazy-loaded on-demand.
-  getTelemetry: function() {
+  getTelemetry() {
     return {
       seenPageIDs: [...this.seenPageIDs.keys()],
     };
@@ -852,7 +826,7 @@ this.UITour = {
   /**
    * Tear down a tour from a tab e.g. upon switching/closing tabs.
    */
-  teardownTourForBrowser: function(aWindow, aBrowser, aTourPageClosing = false) {
+  async teardownTourForBrowser(aWindow, aBrowser, aTourPageClosing = false) {
     log.debug("teardownTourForBrowser: aBrowser = ", aBrowser, aTourPageClosing);
 
     if (this.pageIDSourceBrowsers.has(aBrowser)) {
@@ -867,23 +841,49 @@ this.UITour = {
 
     this.hideHighlight(aWindow);
     this.hideInfo(aWindow);
-    // Ensure the menu panel is hidden before calling recreatePopup so popup events occur.
-    this.hideMenu(aWindow, "appMenu");
-    this.hideMenu(aWindow, "loop");
-    this.hideMenu(aWindow, "controlCenter");
 
-    // Clean up panel listeners after calling hideMenu above.
-    aWindow.PanelUI.panel.removeEventListener("popuphiding", this.hideAppMenuAnnotations);
-    aWindow.PanelUI.panel.removeEventListener("ViewShowing", this.hideAppMenuAnnotations);
-    aWindow.PanelUI.panel.removeEventListener("popuphidden", this.onPanelHidden);
-    let loopPanel = aWindow.document.getElementById("loop-notification-panel");
-    loopPanel.removeEventListener("popuphidden", this.onPanelHidden);
-    loopPanel.removeEventListener("popuphiding", this.hideLoopPanelAnnotations);
-    let controlCenterPanel = aWindow.gIdentityHandler._identityPopup;
-    controlCenterPanel.removeEventListener("popuphidden", this.onPanelHidden);
-    controlCenterPanel.removeEventListener("popuphiding", this.hideControlCenterAnnotations);
+    let panels = [
+      {
+        name: "appMenu",
+        node: aWindow.PanelUI.panel,
+        events: [
+          [ "popuphidden", this.onPanelHidden ],
+          [ "popuphiding", this.onAppMenuHiding ],
+          [ "ViewShowing", this.onAppMenuSubviewShowing ]
+        ]
+      },
+      {
+        name: "pageActionPanel",
+        node: aWindow.BrowserPageActions.panelNode,
+        events: [
+          [ "popuphidden", this.onPanelHidden ],
+          [ "popuphiding", this.onPageActionPanelHiding ],
+          [ "ViewShowing", this.onPageActionPanelSubviewShowing ]
+        ]
+      },
+      {
+        name: "controlCenter",
+        node: aWindow.gIdentityHandler._identityPopup,
+        events: [
+          [ "popuphidden", this.onPanelHidden ],
+          [ "popuphiding", this.onControlCenterHiding ]
+        ]
+      },
+    ];
+    for (let panel of panels) {
+      // Ensure the menu panel is hidden and clean up panel listeners after calling hideMenu.
+      if (panel.node.state != "closed") {
+        await new Promise(resolve => {
+          panel.node.addEventListener("popuphidden", resolve, { once: true });
+          this.hideMenu(aWindow, panel.name);
+        });
+      }
+      for (let [ name, listener ] of panel.events) {
+        panel.node.removeEventListener(name, listener);
+      }
+    }
 
-    this.endUrlbarCapture(aWindow);
+    this.noautohideMenus.clear();
     this.resetTheme();
 
     // If there are no more tour tabs left in the window, teardown the tour for the whole window.
@@ -895,7 +895,7 @@ this.UITour = {
   /**
    * Tear down all tours for a ChromeWindow.
    */
-  teardownTourForWindow: function(aWindow) {
+  teardownTourForWindow(aWindow) {
     log.debug("teardownTourForWindow");
     aWindow.gBrowser.tabContainer.removeEventListener("TabSelect", this);
     aWindow.removeEventListener("SSWindowClosing", this);
@@ -913,20 +913,8 @@ this.UITour = {
     this.tourBrowsersByWindow.delete(aWindow);
   },
 
-  getChromeWindow: function(aContentDocument) {
-    return aContentDocument.defaultView
-                           .window
-                           .QueryInterface(Ci.nsIInterfaceRequestor)
-                           .getInterface(Ci.nsIWebNavigation)
-                           .QueryInterface(Ci.nsIDocShellTreeItem)
-                           .rootTreeItem
-                           .QueryInterface(Ci.nsIInterfaceRequestor)
-                           .getInterface(Ci.nsIDOMWindow)
-                           .wrappedJSObject;
-  },
-
   // This function is copied to UITourListener.
-  isSafeScheme: function(aURI) {
+  isSafeScheme(aURI) {
     let allowedSchemes = new Set(["https", "about"]);
     if (!Services.prefs.getBoolPref("browser.uitour.requireSecure"))
       allowedSchemes.add("http");
@@ -939,7 +927,7 @@ this.UITour = {
     return true;
   },
 
-  resolveURL: function(aBrowser, aURL) {
+  resolveURL(aBrowser, aURL) {
     try {
       let uri = Services.io.newURI(aURL, null, aBrowser.currentURI);
 
@@ -952,335 +940,171 @@ this.UITour = {
     return null;
   },
 
-  sendPageCallback: function(aMessageManager, aCallbackID, aData = {}) {
+  sendPageCallback(aMessageManager, aCallbackID, aData = {}) {
     let detail = {data: aData, callbackID: aCallbackID};
     log.debug("sendPageCallback", detail);
     aMessageManager.sendAsyncMessage("UITour:SendPageCallback", detail);
   },
 
-  isElementVisible: function(aElement) {
-    let targetStyle = aElement.ownerDocument.defaultView.getComputedStyle(aElement);
+  isElementVisible(aElement) {
+    let targetStyle = aElement.ownerGlobal.getComputedStyle(aElement);
     return !aElement.ownerDocument.hidden &&
              targetStyle.display != "none" &&
              targetStyle.visibility == "visible";
   },
 
-  getTarget: function(aWindow, aTargetName, aSticky = false) {
+  getTarget(aWindow, aTargetName, aSticky = false) {
     log.debug("getTarget:", aTargetName);
-    let deferred = Promise.defer();
     if (typeof aTargetName != "string" || !aTargetName) {
       log.warn("getTarget: Invalid target name specified");
-      deferred.reject("Invalid target name specified");
-      return deferred.promise;
+      return Promise.reject("Invalid target name specified");
     }
 
     let targetObject = this.targets.get(aTargetName);
     if (!targetObject) {
       log.warn("getTarget: The specified target name is not in the allowed set");
-      deferred.reject("The specified target name is not in the allowed set");
-      return deferred.promise;
+      return Promise.reject("The specified target name is not in the allowed set");
     }
 
-    let targetQuery = targetObject.query;
-    aWindow.PanelUI.ensureReady().then(() => {
-      let node;
-      if (typeof targetQuery == "function") {
-        try {
-          node = targetQuery(aWindow.document);
-        } catch (ex) {
-          log.warn("getTarget: Error running target query:", ex);
-          node = null;
+    return new Promise(resolve => {
+      let targetQuery = targetObject.query;
+      aWindow.PanelUI.ensureReady().then(() => {
+        let node;
+        if (typeof targetQuery == "function") {
+          try {
+            node = targetQuery(aWindow.document);
+          } catch (ex) {
+            log.warn("getTarget: Error running target query:", ex);
+            node = null;
+          }
+        } else {
+          node = aWindow.document.querySelector(targetQuery);
         }
-      } else {
-        node = aWindow.document.querySelector(targetQuery);
-      }
 
-      deferred.resolve({
-        addTargetListener: targetObject.addTargetListener,
-        infoPanelOffsetX: targetObject.infoPanelOffsetX,
-        infoPanelOffsetY: targetObject.infoPanelOffsetY,
-        infoPanelPosition: targetObject.infoPanelPosition,
-        node: node,
-        removeTargetListener: targetObject.removeTargetListener,
-        targetName: aTargetName,
-        widgetName: targetObject.widgetName,
-        allowAdd: targetObject.allowAdd,
-      });
-    }).catch(log.error);
-    return deferred.promise;
+        resolve({
+          addTargetListener: targetObject.addTargetListener,
+          infoPanelOffsetX: targetObject.infoPanelOffsetX,
+          infoPanelOffsetY: targetObject.infoPanelOffsetY,
+          infoPanelPosition: targetObject.infoPanelPosition,
+          node,
+          removeTargetListener: targetObject.removeTargetListener,
+          targetName: aTargetName,
+          widgetName: targetObject.widgetName,
+          allowAdd: targetObject.allowAdd,
+        });
+      }).catch(log.error);
+    });
   },
 
-  targetIsInAppMenu: function(aTarget) {
-    let placement = CustomizableUI.getPlacementOfWidget(aTarget.widgetName || aTarget.node.id);
-    if (placement && placement.area == CustomizableUI.AREA_PANEL) {
-      return true;
-    }
-
+  targetIsInAppMenu(aTarget) {
     let targetElement = aTarget.node;
     // Use the widget for filtering if it exists since the target may be the icon inside.
     if (aTarget.widgetName) {
       targetElement = aTarget.node.ownerDocument.getElementById(aTarget.widgetName);
     }
 
-    // Handle the non-customizable buttons at the bottom of the menu which aren't proper widgets.
-    return targetElement.id.startsWith("PanelUI-")
-             && targetElement.id != "PanelUI-button";
+    return targetElement.id.startsWith("appMenu-");
+  },
+
+  targetIsInPageActionPanel(aTarget) {
+    return aTarget.node.id.startsWith("pageAction-panel-");
   },
 
   /**
-   * Called before opening or after closing a highlight or info panel to see if
-   * we need to open or close the appMenu to see the annotation's anchor.
+   * Called before opening or after closing a highlight or an info tooltip to see if
+   * we need to open or close the menu to see the annotation's anchor.
+   *
+   * @param {ChromeWindow} aWindow the chrome window
+   * @param {bool} aShouldOpen true means we should open the menu, otherwise false
+   * @param {String} aMenuName "appMenu" or "pageActionPanel"
    */
-  _setAppMenuStateForAnnotation: function(aWindow, aAnnotationType, aShouldOpenForHighlight, aCallback = null) {
-    log.debug("_setAppMenuStateForAnnotation:", aAnnotationType);
-    log.debug("_setAppMenuStateForAnnotation: Menu is expected to be:", aShouldOpenForHighlight ? "open" : "closed");
+  _setMenuStateForAnnotation(aWindow, aShouldOpen, aMenuName) {
+    log.debug("_setMenuStateForAnnotation: Menu is ", aMenuName);
+    log.debug("_setMenuStateForAnnotation: Menu is expected to be:", aShouldOpen ? "open" : "closed");
+    let menu = aMenuName == "appMenu" ? aWindow.PanelUI.panel : aWindow.BrowserPageActions.panelNode;
 
     // If the panel is in the desired state, we're done.
-    let panelIsOpen = aWindow.PanelUI.panel.state != "closed";
-    if (aShouldOpenForHighlight == panelIsOpen) {
-      log.debug("_setAppMenuStateForAnnotation: Panel already in expected state");
-      if (aCallback)
-        aCallback();
-      return;
-    }
-
-    // Don't close the menu if it wasn't opened by us (e.g. via showmenu instead).
-    if (!aShouldOpenForHighlight && !this.appMenuOpenForAnnotation.has(aAnnotationType)) {
-      log.debug("_setAppMenuStateForAnnotation: Menu not opened by us, not closing");
-      if (aCallback)
-        aCallback();
-      return;
-    }
-
-    if (aShouldOpenForHighlight) {
-      this.appMenuOpenForAnnotation.add(aAnnotationType);
-    } else {
-      this.appMenuOpenForAnnotation.delete(aAnnotationType);
+    let panelIsOpen = menu.state != "closed";
+    if (aShouldOpen == panelIsOpen) {
+      log.debug("_setMenuStateForAnnotation: Menu already in expected state");
+      return Promise.resolve();
     }
 
     // Actually show or hide the menu
-    if (this.appMenuOpenForAnnotation.size) {
-      log.debug("_setAppMenuStateForAnnotation: Opening the menu");
-      this.showMenu(aWindow, "appMenu", aCallback);
-    } else {
-      log.debug("_setAppMenuStateForAnnotation: Closing the menu");
-      this.hideMenu(aWindow, "appMenu");
-      if (aCallback)
-        aCallback();
+    let promise = null;
+    if (aShouldOpen) {
+      log.debug("_setMenuStateForAnnotation: Opening the menu");
+      promise = new Promise(resolve => {
+        this.showMenu(aWindow, aMenuName, resolve);
+      });
+    } else if (!this.noautohideMenus.has(aMenuName)) {
+      // If the menu was opened explictly by api user through `Mozilla.UITour.showMenu`,
+      // it should be closed explictly by api user through `Mozilla.UITour.hideMenu`.
+      // So we shouldn't get to here to close it for the highlight/info annotation.
+      log.debug("_setMenuStateForAnnotation: Closing the menu");
+      promise = new Promise(resolve => {
+        menu.addEventListener("popuphidden", resolve, { once: true });
+        this.hideMenu(aWindow, aMenuName);
+      });
     }
-
+    return promise;
   },
 
-  previewTheme: function(aTheme) {
+  /**
+   * Ensure the target's visibility and the open/close states of menus for the target.
+   *
+   * @param {ChromeWindow} aChromeWindow The chrome window
+   * @param {Object} aTarget The target on which we show highlight or show info.
+   */
+  async _ensureTarget(aChromeWindow, aTarget) {
+    let shouldOpenAppMenu = false;
+    let shouldOpenPageActionPanel = false;
+    if (this.targetIsInAppMenu(aTarget)) {
+      shouldOpenAppMenu = true;
+    } else if (this.targetIsInPageActionPanel(aTarget)) {
+      shouldOpenPageActionPanel = true;
+      // Ensure the panel visibility so as to ensure the visibility of the target
+      // element inside the panel otherwise we would be rejected in the below
+      // `isElementVisible` checking.
+      aChromeWindow.BrowserPageActions.panelNode.hidden = false;
+    }
+
+    // Prevent showing a panel at an undefined position, but when it's tucked
+    // away inside a panel, we skip this check.
+    if (!aTarget.node.closest("panelview") && !this.isElementVisible(aTarget.node)) {
+      return Promise.reject(`_ensureTarget: Reject the ${aTarget.name || aTarget.targetName} target since it isn't visible.`);
+    }
+
+    let menuToOpen = null;
+    let menuClosePromises = [];
+    if (shouldOpenAppMenu) {
+      menuToOpen = "appMenu";
+      menuClosePromises.push(this._setMenuStateForAnnotation(aChromeWindow, false, "pageActionPanel"));
+    } else if (shouldOpenPageActionPanel) {
+      menuToOpen = "pageActionPanel";
+      menuClosePromises.push(this._setMenuStateForAnnotation(aChromeWindow, false, "appMenu"));
+    } else {
+      menuClosePromises.push(this._setMenuStateForAnnotation(aChromeWindow, false, "appMenu"));
+      menuClosePromises.push(this._setMenuStateForAnnotation(aChromeWindow, false, "pageActionPanel"));
+    }
+
+    let promise = Promise.all(menuClosePromises);
+    await promise;
+    if (menuToOpen) {
+      promise = this._setMenuStateForAnnotation(aChromeWindow, true, menuToOpen);
+    }
+    return promise;
+  },
+
+  previewTheme(aTheme) {
     let origin = Services.prefs.getCharPref("browser.uitour.themeOrigin");
     let data = LightweightThemeManager.parseTheme(aTheme, origin);
     if (data)
       LightweightThemeManager.previewTheme(data);
   },
 
-  resetTheme: function() {
+  resetTheme() {
     LightweightThemeManager.resetPreview();
-  },
-
-  /**
-   * Show the Heartbeat UI to request user feedback. This function reports back to the
-   * caller using |notify|. The notification event name reflects the current status the UI
-   * is in (either "Heartbeat:NotificationOffered", "Heartbeat:NotificationClosed",
-   * "Heartbeat:LearnMore", "Heartbeat:Engaged" or "Heartbeat:Voted").
-   * When a "Heartbeat:Voted" event is notified
-   * the data payload contains a |score| field which holds the rating picked by the user.
-   * Please note that input parameters are already validated by the caller.
-   *
-   * @param aChromeWindow
-   *        The chrome window that the heartbeat notification is displayed in.
-   * @param {Object} aOptions Options object.
-   * @param {String} aOptions.message
-   *        The message, or question, to display on the notification.
-   * @param {String} aOptions.thankyouMessage
-   *        The thank you message to display after user votes.
-   * @param {String} aOptions.flowId
-   *        An identifier for this rating flow. Please note that this is only used to
-   *        identify the notification box.
-   * @param {String} [aOptions.engagementButtonLabel=null]
-   *        The text of the engagement button to use instad of stars. If this is null
-   *        or invalid, rating stars are used.
-   * @param {String} [aOptions.engagementURL=null]
-   *        The engagement URL to open in a new tab once user has engaged. If this is null
-   *        or invalid, no new tab is opened.
-   * @param {String} [aOptions.learnMoreLabel=null]
-   *        The label of the learn more link. No link will be shown if this is null.
-   * @param {String} [aOptions.learnMoreURL=null]
-   *        The learn more URL to open when clicking on the learn more link. No learn more
-   *        will be shown if this is an invalid URL.
-   * @param {String} [aOptions.privateWindowsOnly=false]
-   *        Whether the heartbeat UI should only be targeted at a private window (if one exists).
-   *        No notifications should be fired when this is true.
-   */
-  showHeartbeat(aChromeWindow, aOptions) {
-    let maybeNotifyHeartbeat = (...aParams) => {
-      if (aOptions.privateWindowsOnly) {
-        return;
-      }
-      this.notify(...aParams);
-    };
-
-    let nb = aChromeWindow.document.getElementById("high-priority-global-notificationbox");
-    let buttons = null;
-
-    if (aOptions.engagementButtonLabel) {
-      buttons = [{
-        label: aOptions.engagementButtonLabel,
-        callback: () => {
-          // Let the consumer know user engaged.
-          maybeNotifyHeartbeat("Heartbeat:Engaged", { flowId: aOptions.flowId, timestamp: Date.now() });
-
-          userEngaged(new Map([
-            ["type", "button"],
-            ["flowid", aOptions.flowId]
-          ]));
-
-          // Return true so that the notification bar doesn't close itself since
-          // we have a thank you message to show.
-          return true;
-        },
-      }];
-    }
-    // Create the notification. Prefix its ID to decrease the chances of collisions.
-    let notice = nb.appendNotification(aOptions.message, "heartbeat-" + aOptions.flowId,
-      "chrome://browser/skin/heartbeat-icon.svg", nb.PRIORITY_INFO_HIGH, buttons, function() {
-        // Let the consumer know the notification bar was closed. This also happens
-        // after voting.
-        maybeNotifyHeartbeat("Heartbeat:NotificationClosed", { flowId: aOptions.flowId, timestamp: Date.now() });
-    }.bind(this));
-
-    // Get the elements we need to style.
-    let messageImage =
-      aChromeWindow.document.getAnonymousElementByAttribute(notice, "anonid", "messageImage");
-    let messageText =
-      aChromeWindow.document.getAnonymousElementByAttribute(notice, "anonid", "messageText");
-
-    function userEngaged(aEngagementParams) {
-      // Make the heartbeat icon pulse twice.
-      notice.label = aOptions.thankyouMessage;
-      messageImage.classList.remove("pulse-onshow");
-      messageImage.classList.add("pulse-twice");
-
-      // Remove all the children of the notice (rating container
-      // and the flex).
-      while (notice.firstChild) {
-        notice.removeChild(notice.firstChild);
-      }
-
-      // Make sure that we have a valid URL. If we haven't, do not open the engagement page.
-      let engagementURL = null;
-      try {
-        engagementURL = new URL(aOptions.engagementURL);
-      } catch (error) {
-        log.error("showHeartbeat: Invalid URL specified.");
-      }
-
-      // Just open the engagement tab if we have a valid engagement URL.
-      if (engagementURL) {
-        for (let [param, value] of aEngagementParams) {
-          engagementURL.searchParams.append(param, value);
-        }
-
-        // Open the engagement URL in a new tab.
-        aChromeWindow.gBrowser.selectedTab =
-          aChromeWindow.gBrowser.addTab(engagementURL.toString(), {
-            owner: aChromeWindow.gBrowser.selectedTab,
-            relatedToCurrent: true
-          });
-      }
-
-      // Remove the notification bar after 3 seconds.
-      aChromeWindow.setTimeout(() => {
-        nb.removeNotification(notice);
-      }, 3000);
-    }
-
-    // Create the fragment holding the rating UI.
-    let frag = aChromeWindow.document.createDocumentFragment();
-
-    // Build the Heartbeat star rating.
-    const numStars = aOptions.engagementButtonLabel ? 0 : 5;
-    let ratingContainer = aChromeWindow.document.createElement("hbox");
-    ratingContainer.id = "star-rating-container";
-
-    for (let i = 0; i < numStars; i++) {
-      // Create a star rating element.
-      let ratingElement = aChromeWindow.document.createElement("toolbarbutton");
-
-      // Style it.
-      let starIndex = numStars - i;
-      ratingElement.className = "plain star-x";
-      ratingElement.id = "star" + starIndex;
-      ratingElement.setAttribute("data-score", starIndex);
-
-      // Add the click handler.
-      ratingElement.addEventListener("click", function (evt) {
-        let rating = Number(evt.target.getAttribute("data-score"), 10);
-
-        // Let the consumer know user voted.
-        maybeNotifyHeartbeat("Heartbeat:Voted", {
-          flowId: aOptions.flowId,
-          score: rating,
-          timestamp: Date.now(),
-        });
-
-        // Append the score data to the engagement URL.
-        userEngaged(new Map([
-          ["type", "stars"],
-          ["score", rating],
-          ["flowid", aOptions.flowId]
-        ]));
-      }.bind(this));
-
-      // Add it to the container.
-      ratingContainer.appendChild(ratingElement);
-    }
-
-    frag.appendChild(ratingContainer);
-
-    // Make sure the stars are not pushed to the right by the spacer.
-    let rightSpacer = aChromeWindow.document.createElement("spacer");
-    rightSpacer.flex = 20;
-    frag.appendChild(rightSpacer);
-
-    messageText.flex = 0; // Collapse the space before the stars.
-    let leftSpacer = messageText.nextSibling;
-    leftSpacer.flex = 0;
-
-    // Make sure that we have a valid learn more URL.
-    let learnMoreURL = null;
-    try {
-      learnMoreURL = new URL(aOptions.learnMoreURL);
-    } catch (error) {
-      log.error("showHeartbeat: Invalid learnMore URL specified.");
-    }
-
-    // Add the learn more link.
-    if (aOptions.learnMoreLabel && learnMoreURL) {
-      let learnMore = aChromeWindow.document.createElement("label");
-      learnMore.className = "text-link";
-      learnMore.href = learnMoreURL.toString();
-      learnMore.setAttribute("value", aOptions.learnMoreLabel);
-      learnMore.addEventListener("click", () => maybeNotifyHeartbeat("Heartbeat:LearnMore",
-        { flowId: aOptions.flowId, timestamp: Date.now() }));
-      frag.appendChild(learnMore);
-    }
-
-    // Append the fragment and apply the styling.
-    notice.appendChild(frag);
-    notice.classList.add("heartbeat");
-    messageImage.classList.add("heartbeat", "pulse-onshow");
-    messageText.classList.add("heartbeat");
-
-    // Let the consumer know the notification was shown.
-    maybeNotifyHeartbeat("Heartbeat:NotificationOffered", {
-      flowId: aOptions.flowId,
-      timestamp: Date.now(),
-    });
   },
 
   /**
@@ -1288,19 +1112,22 @@ this.UITour = {
    * obscured because it may be inside an overflow menu. This function should figure
    * that out and offer the overflow chevron as an alternative.
    *
-   * @param {Node} aAnchor The element that's supposed to be the anchor
+   * @param {ChromeWindow} aChromeWindow The chrome window
+   * @param {Object} aTarget The target object whose node is supposed to be the anchor
    * @type {Node}
    */
-  _correctAnchor: function(aAnchor) {
+  async _correctAnchor(aChromeWindow, aTarget) {
+    // PanelMultiView's like the AppMenu might shuffle the DOM, which might result
+    // in our anchor being invalidated if it was anonymous content (since the XBL
+    // binding it belonged to got destroyed). We work around this by re-querying for
+    // the node and stuffing it into the old anchor structure.
+    let refreshedTarget = await this.getTarget(aChromeWindow, aTarget.targetName);
+    let node = aTarget.node = refreshedTarget.node;
     // If the target is in the overflow panel, just return the overflow button.
-    if (aAnchor.getAttribute("overflowedItem")) {
-      let doc = aAnchor.ownerDocument;
-      let placement = CustomizableUI.getPlacementOfWidget(aAnchor.id);
-      let areaNode = doc.getElementById(placement.area);
-      return areaNode.overflowable._chevron;
+    if (node.closest("#widget-overflow-mainView")) {
+      return CustomizableUI.getWidget(node.id).forWindow(aChromeWindow).anchor;
     }
-
-    return aAnchor;
+    return node;
   },
 
   /**
@@ -1311,8 +1138,8 @@ this.UITour = {
    * @param aEffect    (optional) The effect to use from UITour.highlightEffects or "none".
    * @see UITour.highlightEffects
    */
-  showHighlight: function(aChromeWindow, aTarget, aEffect = "none") {
-    function showHighlightPanel() {
+  async showHighlight(aChromeWindow, aTarget, aEffect = "none") {
+    let showHighlightElement = (aAnchorEl) => {
       let highlighter = aChromeWindow.document.getElementById("UITourHighlight");
 
       let effect = aEffect;
@@ -1330,20 +1157,23 @@ this.UITour = {
       highlighter.parentElement.setAttribute("targetName", aTarget.targetName);
       highlighter.parentElement.hidden = false;
 
-      let highlightAnchor = this._correctAnchor(aTarget.node);
+      let highlightAnchor = aAnchorEl;
       let targetRect = highlightAnchor.getBoundingClientRect();
       let highlightHeight = targetRect.height;
       let highlightWidth = targetRect.width;
-      let minDimension = Math.min(highlightHeight, highlightWidth);
-      let maxDimension = Math.max(highlightHeight, highlightWidth);
 
-      // If the dimensions are within 200% of each other (to include the bookmarks button),
-      // make the highlight a circle with the largest dimension as the diameter.
-      if (maxDimension / minDimension <= 3.0) {
-        highlightHeight = highlightWidth = maxDimension;
-        highlighter.style.borderRadius = "100%";
+      if (this.targetIsInAppMenu(aTarget) || this.targetIsInPageActionPanel(aTarget)) {
+        highlighter.classList.remove("rounded-highlight");
       } else {
-        highlighter.style.borderRadius = "";
+        highlighter.classList.add("rounded-highlight");
+      }
+      if (highlightAnchor.classList.contains("toolbarbutton-1") &&
+          highlightAnchor.getAttribute("cui-areatype") === "toolbar" &&
+          highlightAnchor.getAttribute("overflowedItem") !== "true") {
+        // A toolbar button in navbar has its clickable area an
+        // inner-contained square while the button component itself is a tall
+        // rectangle. We adjust the highlight area to a square as well.
+        highlightHeight = highlightWidth;
       }
 
       highlighter.style.height = highlightHeight + "px";
@@ -1357,56 +1187,53 @@ this.UITour = {
       /* The "overlap" position anchors from the top-left but we want to centre highlights at their
          minimum size. */
       let highlightWindow = aChromeWindow;
-      let containerStyle = highlightWindow.getComputedStyle(highlighter.parentElement);
-      let paddingTopPx = 0 - parseFloat(containerStyle.paddingTop);
-      let paddingLeftPx = 0 - parseFloat(containerStyle.paddingLeft);
       let highlightStyle = highlightWindow.getComputedStyle(highlighter);
       let highlightHeightWithMin = Math.max(highlightHeight, parseFloat(highlightStyle.minHeight));
       let highlightWidthWithMin = Math.max(highlightWidth, parseFloat(highlightStyle.minWidth));
-      let offsetX = paddingTopPx
-                      - (Math.max(0, highlightWidthWithMin - targetRect.width) / 2);
-      let offsetY = paddingLeftPx
-                      - (Math.max(0, highlightHeightWithMin - targetRect.height) / 2);
+      let offsetX = (targetRect.width - highlightWidthWithMin) / 2;
+      let offsetY = (targetRect.height - highlightHeightWithMin) / 2;
       this._addAnnotationPanelMutationObserver(highlighter.parentElement);
       highlighter.parentElement.openPopup(highlightAnchor, "overlap", offsetX, offsetY);
-    }
+    };
 
-    // Prevent showing a panel at an undefined position.
-    if (!this.isElementVisible(aTarget.node)) {
-      log.warn("showHighlight: Not showing a highlight since the target isn't visible", aTarget);
-      return;
+    try {
+      await this._ensureTarget(aChromeWindow, aTarget);
+      let anchorEl = await this._correctAnchor(aChromeWindow, aTarget);
+      showHighlightElement(anchorEl);
+    } catch (e) {
+      log.warn(e);
     }
-
-    this._setAppMenuStateForAnnotation(aChromeWindow, "highlight",
-                                       this.targetIsInAppMenu(aTarget),
-                                       showHighlightPanel.bind(this));
   },
 
-  hideHighlight: function(aWindow) {
+  _hideHighlightElement(aWindow) {
     let highlighter = aWindow.document.getElementById("UITourHighlight");
     this._removeAnnotationPanelMutationObserver(highlighter.parentElement);
     highlighter.parentElement.hidePopup();
     highlighter.removeAttribute("active");
+  },
 
-    this._setAppMenuStateForAnnotation(aWindow, "highlight", false);
+  hideHighlight(aWindow) {
+    this._hideHighlightElement(aWindow);
+    this._setMenuStateForAnnotation(aWindow, false, "appMenu");
+    this._setMenuStateForAnnotation(aWindow, false, "pageActionPanel");
   },
 
   /**
    * Show an info panel.
    *
    * @param {ChromeWindow} aChromeWindow
-   * @param {nsIMessageSender} aMessageManager
    * @param {Node}     aAnchor
    * @param {String}   [aTitle=""]
    * @param {String}   [aDescription=""]
    * @param {String}   [aIconURL=""]
    * @param {Object[]} [aButtons=[]]
    * @param {Object}   [aOptions={}]
-   * @param {String}   [aOptions.closeButtonCallbackID]
+   * @param {String}   [aOptions.closeButtonCallback]
+   * @param {String}   [aOptions.targetCallback]
    */
-  showInfo: function(aChromeWindow, aMessageManager, aAnchor, aTitle = "", aDescription = "", aIconURL = "",
-                     aButtons = [], aOptions = {}) {
-    function showInfoPanel(aAnchorEl) {
+  async showInfo(aChromeWindow, aAnchor, aTitle = "", aDescription = "",
+           aIconURL = "", aButtons = [], aOptions = {}) {
+    let showInfoElement = (aAnchorEl) => {
       aAnchorEl.focus();
 
       let document = aChromeWindow.document;
@@ -1414,7 +1241,6 @@ this.UITour = {
       let tooltipTitle = document.getElementById("UITourTooltipTitle");
       let tooltipDesc = document.getElementById("UITourTooltipDescription");
       let tooltipIcon = document.getElementById("UITourTooltipIcon");
-      let tooltipIconContainer = document.getElementById("UITourTooltipIconContainer");
       let tooltipButtons = document.getElementById("UITourTooltipButtons");
 
       if (tooltip.state == "showing" || tooltip.state == "open") {
@@ -1424,7 +1250,7 @@ this.UITour = {
       tooltipTitle.textContent = aTitle || "";
       tooltipDesc.textContent = aDescription || "";
       tooltipIcon.src = aIconURL || "";
-      tooltipIconContainer.hidden = !aIconURL;
+      tooltipIcon.hidden = !aIconURL;
 
       while (tooltipButtons.firstChild)
         tooltipButtons.firstChild.remove();
@@ -1461,8 +1287,9 @@ this.UITour = {
       let tooltipClose = document.getElementById("UITourTooltipClose");
       let closeButtonCallback = (event) => {
         this.hideInfo(document.defaultView);
-        if (aOptions && aOptions.closeButtonCallbackID)
-          this.sendPageCallback(aMessageManager, aOptions.closeButtonCallbackID);
+        if (aOptions && aOptions.closeButtonCallback) {
+          aOptions.closeButtonCallback();
+        }
       };
       tooltipClose.addEventListener("command", closeButtonCallback);
 
@@ -1471,19 +1298,18 @@ this.UITour = {
           target: aAnchor.targetName,
           type: event.type,
         };
-        this.sendPageCallback(aMessageManager, aOptions.targetCallbackID, details);
+        aOptions.targetCallback(details);
       };
-      if (aOptions.targetCallbackID && aAnchor.addTargetListener) {
+      if (aOptions.targetCallback && aAnchor.addTargetListener) {
         aAnchor.addTargetListener(document, targetCallback);
       }
 
-      tooltip.addEventListener("popuphiding", function tooltipHiding(event) {
-        tooltip.removeEventListener("popuphiding", tooltipHiding);
+      tooltip.addEventListener("popuphiding", function(event) {
         tooltipClose.removeEventListener("command", closeButtonCallback);
-        if (aOptions.targetCallbackID && aAnchor.removeTargetListener) {
+        if (aOptions.targetCallback && aAnchor.removeTargetListener) {
           aAnchor.removeTargetListener(document, targetCallback);
         }
-      });
+      }, {once: true});
 
       tooltip.setAttribute("targetName", aAnchor.targetName);
       tooltip.hidden = false;
@@ -1497,22 +1323,19 @@ this.UITour = {
       this._addAnnotationPanelMutationObserver(tooltip);
       tooltip.openPopup(aAnchorEl, alignment, xOffset || 0, yOffset || 0);
       if (tooltip.state == "closed") {
-        document.defaultView.addEventListener("endmodalstate", function endModalStateHandler() {
-          document.defaultView.removeEventListener("endmodalstate", endModalStateHandler);
+        document.defaultView.addEventListener("endmodalstate", function() {
           tooltip.openPopup(aAnchorEl, alignment);
-        }, false);
+        }, {once: true});
       }
-    }
+    };
 
-    // Prevent showing a panel at an undefined position.
-    if (!this.isElementVisible(aAnchor.node)) {
-      log.warn("showInfo: Not showing since the target isn't visible", aAnchor);
-      return;
+    try {
+      await this._ensureTarget(aChromeWindow, aAnchor);
+      let anchorEl = await this._correctAnchor(aChromeWindow, aAnchor);
+      showInfoElement(anchorEl);
+    } catch (e) {
+      log.warn(e);
     }
-
-    this._setAppMenuStateForAnnotation(aChromeWindow, "info",
-                                       this.targetIsInAppMenu(aAnchor),
-                                       showInfoPanel.bind(this, this._correctAnchor(aAnchor.node)));
   },
 
   isInfoOnTarget(aChromeWindow, aTargetName) {
@@ -1521,20 +1344,23 @@ this.UITour = {
     return tooltip.getAttribute("targetName") == aTargetName && tooltip.state != "closed";
   },
 
-  hideInfo: function(aWindow) {
+  _hideInfoElement(aWindow) {
     let document = aWindow.document;
-
     let tooltip = document.getElementById("UITourTooltip");
     this._removeAnnotationPanelMutationObserver(tooltip);
     tooltip.hidePopup();
-    this._setAppMenuStateForAnnotation(aWindow, "info", false);
-
     let tooltipButtons = document.getElementById("UITourTooltipButtons");
     while (tooltipButtons.firstChild)
       tooltipButtons.firstChild.remove();
   },
 
-  showMenu: function(aWindow, aMenuName, aOpenCallback = null) {
+  hideInfo(aWindow) {
+    this._hideInfoElement(aWindow);
+    this._setMenuStateForAnnotation(aWindow, false, "appMenu");
+    this._setMenuStateForAnnotation(aWindow, false, "pageActionPanel");
+  },
+
+  showMenu(aWindow, aMenuName, aOpenCallback = null) {
     log.debug("showMenu:", aMenuName);
     function openMenuButton(aMenuBtn) {
       if (!aMenuBtn || !aMenuBtn.boxObject || aMenuBtn.open) {
@@ -1543,27 +1369,38 @@ this.UITour = {
         return;
       }
       if (aOpenCallback)
-        aMenuBtn.addEventListener("popupshown", onPopupShown);
+        aMenuBtn.addEventListener("popupshown", aOpenCallback, { once: true });
       aMenuBtn.boxObject.openMenu(true);
     }
-    function onPopupShown(event) {
-      this.removeEventListener("popupshown", onPopupShown);
-      aOpenCallback(event);
-    }
 
-    if (aMenuName == "appMenu") {
-      aWindow.PanelUI.panel.setAttribute("noautohide", "true");
+    if (aMenuName == "appMenu" || aMenuName == "pageActionPanel") {
+      let menu = {
+        onPanelHidden: this.onPanelHidden
+      };
+      if (aMenuName == "appMenu") {
+        menu.node = aWindow.PanelUI.panel;
+        menu.onPopupHiding = this.onAppMenuHiding;
+        menu.onViewShowing = this.onAppMenuSubviewShowing;
+        menu.show = () => aWindow.PanelUI.show();
+      } else {
+        menu.node = aWindow.BrowserPageActions.panelNode;
+        menu.onPopupHiding = this.onPageActionPanelHiding;
+        menu.onViewShowing = this.onPageActionPanelSubviewShowing;
+        menu.show = () => aWindow.BrowserPageActions.showPanel();
+      }
+
+      menu.node.setAttribute("noautohide", "true");
       // If the popup is already opened, don't recreate the widget as it may cause a flicker.
-      if (aWindow.PanelUI.panel.state != "open") {
-        this.recreatePopup(aWindow.PanelUI.panel);
+      if (menu.node.state != "open") {
+        this.recreatePopup(menu.node);
       }
-      aWindow.PanelUI.panel.addEventListener("popuphiding", this.hideAppMenuAnnotations);
-      aWindow.PanelUI.panel.addEventListener("ViewShowing", this.hideAppMenuAnnotations);
-      aWindow.PanelUI.panel.addEventListener("popuphidden", this.onPanelHidden);
       if (aOpenCallback) {
-        aWindow.PanelUI.panel.addEventListener("popupshown", onPopupShown);
+        menu.node.addEventListener("popupshown", aOpenCallback, { once: true });
       }
-      aWindow.PanelUI.show();
+      menu.node.addEventListener("popuphidden", menu.onPanelHidden);
+      menu.node.addEventListener("popuphiding", menu.onPopupHiding);
+      menu.node.addEventListener("ViewShowing", menu.onViewShowing);
+      menu.show();
     } else if (aMenuName == "bookmarks") {
       let menuBtn = aWindow.document.getElementById("bookmarks-menu-button");
       openMenuButton(menuBtn);
@@ -1572,11 +1409,11 @@ this.UITour = {
 
       // Add the listener even if the panel is already open since it will still
       // only get registered once even if it was UITour that opened it.
-      popup.addEventListener("popuphiding", this.hideControlCenterAnnotations);
+      popup.addEventListener("popuphiding", this.onControlCenterHiding);
       popup.addEventListener("popuphidden", this.onPanelHidden);
 
-      popup.setAttribute("noautohide", true);
-      this.availableTargetsCache.clear();
+      popup.setAttribute("noautohide", "true");
+      this.clearAvailableTargetsCache();
 
       if (popup.state == "open") {
         if (aOpenCallback) {
@@ -1589,78 +1426,37 @@ this.UITour = {
 
       // Open the control center
       if (aOpenCallback) {
-        popup.addEventListener("popupshown", onPopupShown);
+        popup.addEventListener("popupshown", aOpenCallback, { once: true });
       }
       aWindow.document.getElementById("identity-box").click();
-    } else if (aMenuName == "loop") {
-      let toolbarButton = aWindow.LoopUI.toolbarButton;
-      // It's possible to have a node that isn't placed anywhere
-      if (!toolbarButton || !toolbarButton.node ||
-          !CustomizableUI.getPlacementOfWidget(toolbarButton.node.id)) {
-        log.debug("Can't show the Loop menu since the toolbarButton isn't placed");
+    } else if (aMenuName == "pocket") {
+      let pageAction = PageActions.actionForID("pocket");
+      if (!pageAction) {
+        log.error("Can't open the pocket menu without a page action");
         return;
       }
-
-      let panel = aWindow.document.getElementById("loop-notification-panel");
-      panel.setAttribute("noautohide", true);
-      if (panel.state != "open") {
-        this.recreatePopup(panel);
-        this.availableTargetsCache.clear();
-      }
-
-      // An event object is expected but we don't want to toggle the panel with a click if the panel
-      // is already open.
-      aWindow.LoopUI.openCallPanel({ target: toolbarButton.node, }, "rooms").then(() => {
+      pageAction.doCommand(aWindow);
+    } else if (aMenuName == "urlbar") {
+      this.getTarget(aWindow, "urlbar").then(target => {
+        let urlbar = target.node;
         if (aOpenCallback) {
-          aOpenCallback();
+          urlbar.popup.addEventListener("popupshown", aOpenCallback, { once: true });
         }
-      });
-      panel.addEventListener("popuphidden", this.onPanelHidden);
-      panel.addEventListener("popuphiding", this.hideLoopPanelAnnotations);
-    } else if (aMenuName == "pocket") {
-      this.getTarget(aWindow, "pocket").then(Task.async(function* onPocketTarget(target) {
-        let widgetGroupWrapper = CustomizableUI.getWidget(target.widgetName);
-        if (widgetGroupWrapper.type != "view" || !widgetGroupWrapper.viewId) {
-          log.error("Can't open the pocket menu without a view");
-          return;
-        }
-        let placement = CustomizableUI.getPlacementOfWidget(target.widgetName);
-        if (!placement || !placement.area) {
-          log.error("Can't open the pocket menu without a placement");
-          return;
-        }
-
-        if (placement.area == CustomizableUI.AREA_PANEL) {
-          // Open the appMenu and wait for it if it's not already opened or showing a subview.
-          yield new Promise((resolve, reject) => {
-            if (aWindow.PanelUI.panel.state != "closed") {
-              if (aWindow.PanelUI.multiView.showingSubView) {
-                reject("A subview is already showing");
-                return;
-              }
-
-              resolve();
-              return;
-            }
-
-            aWindow.PanelUI.panel.addEventListener("popupshown", function onShown() {
-              aWindow.PanelUI.panel.removeEventListener("popupshown", onShown);
-              resolve();
-            });
-
-            aWindow.PanelUI.show();
-          });
-        }
-
-        let widgetWrapper = widgetGroupWrapper.forWindow(aWindow);
-        aWindow.PanelUI.showSubView(widgetGroupWrapper.viewId,
-                                    widgetWrapper.anchor,
-                                    placement.area);
-      })).catch(log.error);
+        urlbar.focus();
+        // To demonstrate the ability of searching, we type "Firefox" in advance
+        // for URLBar's dropdown. To limit the search results on browser-related
+        // items, we use "Firefox" hard-coded rather than l10n brandShortName
+        // entity to avoid unrelated or unpredicted results for, like, Nightly
+        // or translated entites.
+        const SEARCH_STRING = "Firefox";
+        urlbar.value = SEARCH_STRING;
+        urlbar.select();
+        urlbar.controller.startSearch(SEARCH_STRING);
+      }).catch(Cu.reportError);
     }
   },
 
-  hideMenu: function(aWindow, aMenuName) {
+  hideMenu(aWindow, aMenuName) {
     log.debug("hideMenu:", aMenuName);
     function closeMenuButton(aMenuBtn) {
       if (aMenuBtn && aMenuBtn.boxObject)
@@ -1675,18 +1471,33 @@ this.UITour = {
     } else if (aMenuName == "controlCenter") {
       let panel = aWindow.gIdentityHandler._identityPopup;
       panel.hidePopup();
-    } else if (aMenuName == "loop") {
-      let panel = aWindow.document.getElementById("loop-notification-panel");
-      panel.hidePopup();
+    } else if (aMenuName == "urlbar") {
+      aWindow.gURLBar.closePopup();
+    } else if (aMenuName == "pageActionPanel") {
+      aWindow.BrowserPageActions.panelNode.hidePopup();
     }
   },
 
-  hideAnnotationsForPanel: function(aEvent, aTargetPositionCallback) {
-    let win = aEvent.target.ownerDocument.defaultView;
+  showNewTab(aWindow, aBrowser) {
+    aWindow.openLinkIn("about:newtab", "current", {targetBrowser: aBrowser});
+  },
+
+  _hideAnnotationsForPanel(aEvent, aShouldClosePanel, aTargetPositionCallback) {
+    let win = aEvent.target.ownerGlobal;
+    let hideHighlightMethod = null;
+    let hideInfoMethod = null;
+    if (aShouldClosePanel) {
+      hideHighlightMethod = aWin => this.hideHighlight(aWin);
+      hideInfoMethod = aWin => this.hideInfo(aWin);
+    } else {
+      // Don't have to close panel, let's only hide annotation elements
+      hideHighlightMethod = aWin => this._hideHighlightElement(aWin);
+      hideInfoMethod = aWin => this._hideInfoElement(aWin);
+    }
     let annotationElements = new Map([
       // [annotationElement (panel), method to hide the annotation]
-      [win.document.getElementById("UITourHighlightContainer"), UITour.hideHighlight.bind(UITour)],
-      [win.document.getElementById("UITourTooltip"), UITour.hideInfo.bind(UITour)],
+      [win.document.getElementById("UITourHighlightContainer"), hideHighlightMethod],
+      [win.document.getElementById("UITourTooltip"), hideInfoMethod],
     ]);
     annotationElements.forEach((hideMethod, annotationElement) => {
       if (annotationElement.state != "closed") {
@@ -1703,32 +1514,37 @@ this.UITour = {
         }).catch(log.error);
       }
     });
-    UITour.appMenuOpenForAnnotation.clear();
   },
 
-  hideAppMenuAnnotations: function(aEvent) {
-    UITour.hideAnnotationsForPanel(aEvent, UITour.targetIsInAppMenu);
+  onAppMenuHiding(aEvent) {
+    UITour._hideAnnotationsForPanel(aEvent, true, UITour.targetIsInAppMenu);
   },
 
-  hideLoopPanelAnnotations: function(aEvent) {
-    UITour.hideAnnotationsForPanel(aEvent, (aTarget) => {
-      return aTarget.targetName.startsWith("loop-") && aTarget.targetName != "loop-selectedRoomButtons";
-    });
+  onAppMenuSubviewShowing(aEvent) {
+    UITour._hideAnnotationsForPanel(aEvent, false, UITour.targetIsInAppMenu);
   },
 
-  hideControlCenterAnnotations(aEvent) {
-    UITour.hideAnnotationsForPanel(aEvent, (aTarget) => {
+  onPageActionPanelHiding(aEvent) {
+    UITour._hideAnnotationsForPanel(aEvent, true, UITour.targetIsInPageActionPanel);
+  },
+
+  onPageActionPanelSubviewShowing(aEvent) {
+    UITour._hideAnnotationsForPanel(aEvent, false, UITour.targetIsInPageActionPanel);
+  },
+
+  onControlCenterHiding(aEvent) {
+    UITour._hideAnnotationsForPanel(aEvent, true, (aTarget) => {
       return aTarget.targetName.startsWith("controlCenter-");
     });
   },
 
-  onPanelHidden: function(aEvent) {
+  onPanelHidden(aEvent) {
     aEvent.target.removeAttribute("noautohide");
     UITour.recreatePopup(aEvent.target);
-    UITour.availableTargetsCache.clear();
+    UITour.clearAvailableTargetsCache();
   },
 
-  recreatePopup: function(aPanel) {
+  recreatePopup(aPanel) {
     // After changing popup attributes that relate to how the native widget is created
     // (e.g. @noautohide) we need to re-create the frame/widget for it to take effect.
     if (aPanel.hidden) {
@@ -1742,81 +1558,13 @@ this.UITour = {
     aPanel.hidden = false;
   },
 
-  startUrlbarCapture: function(aWindow, aExpectedText, aUrl) {
-    let urlbar = aWindow.document.getElementById("urlbar");
-    this.urlbarCapture.set(aWindow, {
-      expected: aExpectedText.toLocaleLowerCase(),
-      url: aUrl
-    });
-    urlbar.addEventListener("input", this);
-  },
-
-  endUrlbarCapture: function(aWindow) {
-    let urlbar = aWindow.document.getElementById("urlbar");
-    urlbar.removeEventListener("input", this);
-    this.urlbarCapture.delete(aWindow);
-  },
-
-  handleUrlbarInput: function(aWindow) {
-    if (!this.urlbarCapture.has(aWindow))
-      return;
-
-    let urlbar = aWindow.document.getElementById("urlbar");
-
-    let {expected, url} = this.urlbarCapture.get(aWindow);
-
-    if (urlbar.value.toLocaleLowerCase().localeCompare(expected) != 0)
-      return;
-
-    urlbar.handleRevert();
-
-    let tab = aWindow.gBrowser.addTab(url, {
-      owner: aWindow.gBrowser.selectedTab,
-      relatedToCurrent: true
-    });
-    aWindow.gBrowser.selectedTab = tab;
-  },
-
-  getConfiguration: function(aMessageManager, aWindow, aConfiguration, aCallbackID) {
+  getConfiguration(aMessageManager, aWindow, aConfiguration, aCallbackID) {
     switch (aConfiguration) {
       case "appinfo":
-        let props = ["defaultUpdateChannel", "version"];
-        let appinfo = {};
-        props.forEach(property => appinfo[property] = Services.appinfo[property]);
-        let isDefaultBrowser = null;
-        try {
-          let shell = aWindow.getShellService();
-          if (shell) {
-            isDefaultBrowser = shell.isDefaultBrowser(false);
-          }
-        } catch (e) {}
-        appinfo["defaultBrowser"] = isDefaultBrowser;
-
-        let canSetDefaultBrowserInBackground = true;
-        if (AppConstants.isPlatformAndVersionAtLeast("win", "6.2") ||
-            AppConstants.isPlatformAndVersionAtLeast("macosx", "10.10")) {
-          canSetDefaultBrowserInBackground = false;
-        } else if (AppConstants.platform == "linux") {
-          // The ShellService may not exist on some versions of Linux.
-          try {
-            let shell = aWindow.getShellService();
-          } catch (e) {
-            canSetDefaultBrowserInBackground = null;
-          }
-        }
-
-        appinfo["canSetDefaultBrowserInBackground"] =
-          canSetDefaultBrowserInBackground;
-
-        this.sendPageCallback(aMessageManager, aCallbackID, appinfo);
+        this.getAppInfo(aMessageManager, aWindow, aCallbackID);
         break;
       case "availableTargets":
         this.getAvailableTargets(aMessageManager, aWindow, aCallbackID);
-        break;
-      case "loop":
-        this.sendPageCallback(aMessageManager, aCallbackID, {
-          gettingStartedSeen: Services.prefs.getBoolPref("loop.gettingStarted.seen"),
-        });
         break;
       case "search":
       case "selectedSearchEngine":
@@ -1826,9 +1574,8 @@ this.UITour = {
             let engines = Services.search.getVisibleEngines();
             data = {
               searchEngineIdentifier: Services.search.defaultEngine.identifier,
-              engines: [TARGET_SEARCHENGINE_PREFIX + engine.identifier
-                        for (engine of engines)
-                          if (engine.identifier)]
+              engines: engines.filter((engine) => engine.identifier)
+                              .map((engine) => TARGET_SEARCHENGINE_PREFIX + engine.identifier)
             };
           } else {
             data = {engines: [], searchEngineIdentifier: ""};
@@ -1839,7 +1586,13 @@ this.UITour = {
       case "sync":
         this.sendPageCallback(aMessageManager, aCallbackID, {
           setup: Services.prefs.prefHasUserValue("services.sync.username"),
+          desktopDevices: Services.prefs.getIntPref("services.sync.clients.devices.desktop", 0),
+          mobileDevices: Services.prefs.getIntPref("services.sync.clients.devices.mobile", 0),
+          totalDevices: Services.prefs.getIntPref("services.sync.numClients", 0),
         });
+        break;
+      case "canReset":
+        this.sendPageCallback(aMessageManager, aCallbackID, ResetProfile.resetSupported());
         break;
       default:
         log.error("getConfiguration: Unknown configuration requested: " + aConfiguration);
@@ -1847,7 +1600,7 @@ this.UITour = {
     }
   },
 
-  setConfiguration: function(aWindow, aConfiguration, aValue) {
+  setConfiguration(aWindow, aConfiguration, aValue) {
     switch (aConfiguration) {
       case "defaultBrowser":
         // Ignore aValue in this case because the default browser can only
@@ -1859,18 +1612,72 @@ this.UITour = {
           }
         } catch (e) {}
         break;
-      case "Loop:ResumeTourOnFirstJoin":
-        // Ignore aValue in this case to avoid accidentally setting it to false.
-        Services.prefs.setBoolPref("loop.gettingStarted.resumeOnFirstJoin", true);
-        break;
       default:
         log.error("setConfiguration: Unknown configuration requested: " + aConfiguration);
         break;
     }
   },
 
-  getAvailableTargets: function(aMessageManager, aChromeWindow, aCallbackID) {
-    Task.spawn(function*() {
+  getAppInfo(aMessageManager, aWindow, aCallbackID) {
+    (async() => {
+      let props = ["defaultUpdateChannel", "version"];
+      let appinfo = {};
+      props.forEach(property => appinfo[property] = Services.appinfo[property]);
+
+      // Identifier of the partner repack, as stored in preference "distribution.id"
+      // and included in Firefox and other update pings. Note this is not the same as
+      // Services.appinfo.distributionID (value of MOZ_DISTRIBUTION_ID is set at build time).
+      let distribution =
+          Services.prefs.getDefaultBranch("distribution.").getCharPref("id", "default");
+      appinfo.distribution = distribution;
+
+      let isDefaultBrowser = null;
+      try {
+        let shell = aWindow.getShellService();
+        if (shell) {
+          isDefaultBrowser = shell.isDefaultBrowser(false);
+        }
+      } catch (e) {}
+      appinfo.defaultBrowser = isDefaultBrowser;
+
+      let canSetDefaultBrowserInBackground = true;
+      if (AppConstants.isPlatformAndVersionAtLeast("win", "6.2") ||
+          AppConstants.isPlatformAndVersionAtLeast("macosx", "10.10")) {
+        canSetDefaultBrowserInBackground = false;
+      } else if (AppConstants.platform == "linux") {
+        // The ShellService may not exist on some versions of Linux.
+        try {
+          aWindow.getShellService();
+        } catch (e) {
+          canSetDefaultBrowserInBackground = null;
+        }
+      }
+
+      appinfo.canSetDefaultBrowserInBackground =
+        canSetDefaultBrowserInBackground;
+
+      // Expose Profile creation and last reset dates in weeks.
+      const ONE_WEEK = 7 * 24 * 60 * 60 * 1000;
+      let profileAge = new ProfileAge(null, null);
+      let createdDate = await profileAge.created;
+      let resetDate = await profileAge.reset;
+      let createdWeeksAgo = Math.floor((Date.now() - createdDate) / ONE_WEEK);
+      let resetWeeksAgo = null;
+      if (resetDate) {
+        resetWeeksAgo = Math.floor((Date.now() - resetDate) / ONE_WEEK);
+      }
+      appinfo.profileCreatedWeeksAgo = createdWeeksAgo;
+      appinfo.profileResetWeeksAgo = resetWeeksAgo;
+
+      this.sendPageCallback(aMessageManager, aCallbackID, appinfo);
+    })().catch(err => {
+      log.error(err);
+      this.sendPageCallback(aMessageManager, aCallbackID, {});
+    });
+  },
+
+  getAvailableTargets(aMessageManager, aChromeWindow, aCallbackID) {
+    (async () => {
       let window = aChromeWindow;
       let data = this.availableTargetsCache.get(window);
       if (data) {
@@ -1883,7 +1690,7 @@ this.UITour = {
       for (let targetName of this.targets.keys()) {
         promises.push(this.getTarget(window, targetName));
       }
-      let targetObjects = yield Promise.all(promises);
+      let targetObjects = await Promise.all(promises);
 
       let targetNames = [];
       for (let targetObject of targetObjects) {
@@ -1896,7 +1703,7 @@ this.UITour = {
       };
       this.availableTargetsCache.set(window, data);
       this.sendPageCallback(aMessageManager, aCallbackID, data);
-    }.bind(this)).catch(err => {
+    })().catch(err => {
       log.error(err);
       this.sendPageCallback(aMessageManager, aCallbackID, {
         targets: [],
@@ -1904,21 +1711,7 @@ this.UITour = {
     });
   },
 
-  startSubTour: function (aFeature) {
-    if (aFeature != "string") {
-      log.error("startSubTour: No feature option specified");
-      return;
-    }
-
-    if (aFeature == "readinglist") {
-      ReaderParent.showReaderModeInfoPanel(browser);
-    } else {
-      log.error("startSubTour: Unknown feature option specified");
-      return;
-    }
-  },
-
-  addNavBarWidget: function (aTarget, aMessageManager, aCallbackID) {
+  addNavBarWidget(aTarget, aMessageManager, aCallbackID) {
     if (aTarget.node) {
       log.error("addNavBarWidget: can't add a widget already present:", aTarget);
       return;
@@ -1936,13 +1729,13 @@ this.UITour = {
     this.sendPageCallback(aMessageManager, aCallbackID);
   },
 
-  _addAnnotationPanelMutationObserver: function(aPanelEl) {
+  _addAnnotationPanelMutationObserver(aPanelEl) {
     if (AppConstants.platform == "linux") {
       let observer = this._annotationPanelMutationObservers.get(aPanelEl);
       if (observer) {
         return;
       }
-      let win = aPanelEl.ownerDocument.defaultView;
+      let win = aPanelEl.ownerGlobal;
       observer = new win.MutationObserver(this._annotationMutationCallback);
       this._annotationPanelMutationObservers.set(aPanelEl, observer);
       let observerOptions = {
@@ -1953,7 +1746,7 @@ this.UITour = {
     }
   },
 
-  _removeAnnotationPanelMutationObserver: function(aPanelEl) {
+  _removeAnnotationPanelMutationObserver(aPanelEl) {
     if (AppConstants.platform == "linux") {
       let observer = this._annotationPanelMutationObservers.get(aPanelEl);
       if (observer) {
@@ -1968,7 +1761,7 @@ this.UITour = {
  * nsXULPopupManager::PopupResized and lead to incorrect width and height attributes getting
  * set on the panel.
  */
-  _annotationMutationCallback: function(aMutations) {
+  _annotationMutationCallback(aMutations) {
     for (let mutation of aMutations) {
       // Remove both attributes at once and ignore remaining mutations to be proccessed.
       mutation.target.removeAttribute("width");
@@ -1989,7 +1782,8 @@ this.UITour = {
         for (let engine of engines) {
           if (engine.identifier == aID) {
             Services.search.defaultEngine = engine;
-            return resolve();
+            resolve();
+            return;
           }
         }
         reject("selectSearchEngine could not find engine with given ID");
@@ -2016,7 +1810,7 @@ this.UITour = {
         }
         let detail = {
           event: eventName,
-          params: params,
+          params,
         };
         messageManager.sendAsyncMessage("UITour:SendPageNotification", detail);
       }
@@ -2057,111 +1851,16 @@ this.UITour.init();
  * Public API to be called by the UITour code
  */
 const UITourHealthReport = {
-  recordTreatmentTag: function(tag, value) {
-  TelemetryController.submitExternalPing("uitour-tag",
-    {
-      version: 1,
-      tagName: tag,
-      tagValue: value,
-    },
-    {
-      addClientId: true,
-      addEnvironment: true,
-    });
-
-    if (AppConstants.MOZ_SERVICES_HEALTHREPORT) {
-      Task.spawn(function*() {
-        let reporter = Cc["@mozilla.org/datareporting/service;1"]
-                         .getService()
-                         .wrappedJSObject
-                         .healthReporter;
-
-        // This can happen if the FHR component of the data reporting service is
-        // disabled. This is controlled by a pref that most will never use.
-        if (!reporter) {
-          return;
-        }
-
-        yield reporter.onInit();
-
-        // Get the UITourMetricsProvider instance from the Health Reporter
-        reporter.getProvider("org.mozilla.uitour").recordTreatmentTag(tag, value);
+  recordTreatmentTag(tag, value) {
+    return TelemetryController.submitExternalPing("uitour-tag",
+      {
+        version: 1,
+        tagName: tag,
+        tagValue: value,
+      },
+      {
+        addClientId: true,
+        addEnvironment: true,
       });
-    }
   }
 };
-
-function UITourTreatmentMeasurement1() {
-  Metrics.Measurement.call(this);
-
-  this._serializers = {};
-  this._serializers[this.SERIALIZE_JSON] = {
-    //singular: We don't need a singular serializer because we have none of this data
-    daily: this._serializeJSONDaily.bind(this)
-  };
-
-}
-
-if (AppConstants.MOZ_SERVICES_HEALTHREPORT) {
-
-  const DAILY_DISCRETE_TEXT_FIELD = Metrics.Storage.FIELD_DAILY_DISCRETE_TEXT;
-
-  this.UITourMetricsProvider = function() {
-    Metrics.Provider.call(this);
-  }
-
-  UITourMetricsProvider.prototype = Object.freeze({
-    __proto__: Metrics.Provider.prototype,
-
-    name: "org.mozilla.uitour",
-
-    measurementTypes: [
-      UITourTreatmentMeasurement1,
-    ],
-
-    recordTreatmentTag: function(tag, value) {
-      let m = this.getMeasurement(UITourTreatmentMeasurement1.prototype.name,
-                                  UITourTreatmentMeasurement1.prototype.version);
-      let field = tag;
-
-      if (this.storage.hasFieldFromMeasurement(m.id, field,
-                                               DAILY_DISCRETE_TEXT_FIELD)) {
-        let fieldID = this.storage.fieldIDFromMeasurement(m.id, field);
-        return this.enqueueStorageOperation(function recordKnownField() {
-          return this.storage.addDailyDiscreteTextFromFieldID(fieldID, value);
-        }.bind(this));
-      }
-
-      // Otherwise, we first need to create the field.
-      return this.enqueueStorageOperation(function recordField() {
-        // This function has to return a promise.
-        return Task.spawn(function () {
-          let fieldID = yield this.storage.registerField(m.id, field,
-                                                         DAILY_DISCRETE_TEXT_FIELD);
-          yield this.storage.addDailyDiscreteTextFromFieldID(fieldID, value);
-        }.bind(this));
-      }.bind(this));
-    },
-  });
-
-  UITourTreatmentMeasurement1.prototype = Object.freeze({
-    __proto__: Metrics.Measurement.prototype,
-
-    name: "treatment",
-    version: 1,
-
-    // our fields are dynamic
-    fields: { },
-
-    // We need a custom serializer because the default one doesn't accept unknown fields
-    _serializeJSONDaily: function(data) {
-      let result = {_v: this.version };
-
-      for (let [field, value] of data) {
-        result[field] = value;
-      }
-
-      return result;
-    }
-  });
-}

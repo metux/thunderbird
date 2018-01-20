@@ -23,6 +23,7 @@
 #include "mozilla/Atomics.h"
 #include "mozilla/TimeStamp.h"
 #include "nsITimer.h"
+#include "nsClassHashtable.h"
 
 class nsNotifyAddrListener : public nsINetworkLinkService,
                              public nsIRunnable,
@@ -40,11 +41,14 @@ public:
     nsresult Init(void);
 
 private:
-    class ChangeEvent : public nsRunnable {
+    class ChangeEvent : public mozilla::Runnable {
     public:
         NS_DECL_NSIRUNNABLE
-        ChangeEvent(nsINetworkLinkService *aService, const char *aEventID)
-            : mService(aService), mEventID(aEventID) {
+        ChangeEvent(nsINetworkLinkService* aService, const char* aEventID)
+          : mozilla::Runnable("nsNotifyAddrListener::ChangeEvent")
+          , mService(aService)
+          , mEventID(aEventID)
+        {
         }
     private:
         nsCOMPtr<nsINetworkLinkService> mService;
@@ -59,6 +63,10 @@ private:
 
     // Sends the network event.
     nsresult SendEvent(const char *aEventID);
+
+    // Figure out the current "network identification"
+    void calculateNetworkId(void);
+    nsCString mNetworkId;
 
     // Checks if there's a network "link"
     void checkLink(void);
@@ -80,14 +88,16 @@ private:
     // Network changed events are enabled
     bool mAllowChangedEvent;
 
-    // Flag to signal child thread kill with
-    mozilla::Atomic<bool, mozilla::Relaxed> mChildThreadShutdown;
-
     // Flag set while coalescing change events
     bool mCoalescingActive;
 
     // Time stamp for first event during coalescing
     mozilla::TimeStamp mChangeTime;
+
+    // Seen Ip addresses. For Ipv6 addresses some time router renews their
+    // lifetime and we should not detect this as a network link change, so we
+    // keep info about all seen addresses.
+     nsClassHashtable<nsCStringHashKey, struct ifaddrmsg> mAddressInfo;
  };
 
 #endif /* NSNOTIFYADDRLISTENER_LINUX_H_ */

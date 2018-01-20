@@ -6,7 +6,7 @@
     'variables':
     {
         # These file lists are shared with the GN build.
-        'angle_translator_lib_sources':
+        'angle_translator_sources':
         [
             '../include/EGL/egl.h',
             '../include/EGL/eglext.h',
@@ -22,33 +22,50 @@
             '../include/GLSLANG/ShaderVars.h',
             '../include/KHR/khrplatform.h',
             '../include/angle_gl.h',
+            'compiler/translator/AddAndTrueToLoopCondition.cpp',
+            'compiler/translator/AddAndTrueToLoopCondition.h',
             'compiler/translator/BaseTypes.h',
             'compiler/translator/BuiltInFunctionEmulator.cpp',
             'compiler/translator/BuiltInFunctionEmulator.h',
-            'compiler/translator/BuiltInFunctionEmulatorGLSL.cpp',
-            'compiler/translator/BuiltInFunctionEmulatorGLSL.h',
+            'compiler/translator/BreakVariableAliasingInInnerLoops.cpp',
+            'compiler/translator/BreakVariableAliasingInInnerLoops.h',
             'compiler/translator/Cache.cpp',
             'compiler/translator/Cache.h',
             'compiler/translator/CallDAG.cpp',
             'compiler/translator/CallDAG.h',
+            'compiler/translator/ClampPointSize.cpp',
+            'compiler/translator/ClampPointSize.h',
             'compiler/translator/CodeGen.cpp',
+            'compiler/translator/CollectVariables.cpp',
+            'compiler/translator/CollectVariables.h',
             'compiler/translator/Common.h',
             'compiler/translator/Compiler.cpp',
             'compiler/translator/Compiler.h',
+            'compiler/translator/ConstantUnion.cpp',
             'compiler/translator/ConstantUnion.h',
+            'compiler/translator/DeclareAndInitBuiltinsForInstancedMultiview.h',
+            'compiler/translator/DeclareAndInitBuiltinsForInstancedMultiview.cpp',
+            'compiler/translator/DeferGlobalInitializers.cpp',
+            'compiler/translator/DeferGlobalInitializers.h',
             'compiler/translator/Diagnostics.cpp',
             'compiler/translator/Diagnostics.h',
             'compiler/translator/DirectiveHandler.cpp',
             'compiler/translator/DirectiveHandler.h',
+            'compiler/translator/EmulateGLFragColorBroadcast.cpp',
+            'compiler/translator/EmulateGLFragColorBroadcast.h',
             'compiler/translator/EmulatePrecision.cpp',
             'compiler/translator/EmulatePrecision.h',
+            'compiler/translator/ExpandIntegerPowExpressions.cpp',
+            'compiler/translator/ExpandIntegerPowExpressions.h',
+            'compiler/translator/ExtensionBehavior.cpp',
             'compiler/translator/ExtensionBehavior.h',
-            'compiler/translator/ExtensionGLSL.cpp',
-            'compiler/translator/ExtensionGLSL.h',
+            'compiler/translator/FindMain.cpp',
+            'compiler/translator/FindMain.h',
+            'compiler/translator/FindSymbolNode.cpp',
+            'compiler/translator/FindSymbolNode.h',
             'compiler/translator/FlagStd140Structs.cpp',
             'compiler/translator/FlagStd140Structs.h',
-            'compiler/translator/ForLoopUnroll.cpp',
-            'compiler/translator/ForLoopUnroll.h',
+            'compiler/translator/HashNames.cpp',
             'compiler/translator/HashNames.h',
             'compiler/translator/InfoSink.cpp',
             'compiler/translator/InfoSink.h',
@@ -57,27 +74,24 @@
             'compiler/translator/InitializeDll.cpp',
             'compiler/translator/InitializeDll.h',
             'compiler/translator/InitializeGlobals.h',
-            'compiler/translator/InitializeParseContext.cpp',
-            'compiler/translator/InitializeParseContext.h',
             'compiler/translator/InitializeVariables.cpp',
             'compiler/translator/InitializeVariables.h',
             'compiler/translator/IntermNode.h',
             'compiler/translator/IntermNode.cpp',
+            'compiler/translator/IntermNodePatternMatcher.cpp',
+            'compiler/translator/IntermNodePatternMatcher.h',
+            'compiler/translator/IntermNode_util.cpp',
+            'compiler/translator/IntermNode_util.h',
             'compiler/translator/IntermTraverse.cpp',
-            'compiler/translator/Intermediate.h',
-            'compiler/translator/Intermediate.cpp',
-            'compiler/translator/LoopInfo.cpp',
-            'compiler/translator/LoopInfo.h',
-            'compiler/translator/MMap.h',
+            'compiler/translator/IntermTraverse.h',
+            'compiler/translator/IsASTDepthBelowLimit.cpp',
+            'compiler/translator/IsASTDepthBelowLimit.h',
             'compiler/translator/NodeSearch.h',
             'compiler/translator/Operator.cpp',
             'compiler/translator/Operator.h',
-            'compiler/translator/OutputESSL.cpp',
-            'compiler/translator/OutputESSL.h',
-            'compiler/translator/OutputGLSL.cpp',
-            'compiler/translator/OutputGLSL.h',
-            'compiler/translator/OutputGLSLBase.cpp',
-            'compiler/translator/OutputGLSLBase.h',
+            'compiler/translator/OutputTree.cpp',
+            'compiler/translator/OutputTree.h',
+            'compiler/translator/ParamType.h',
             'compiler/translator/ParseContext.cpp',
             'compiler/translator/ParseContext.h',
             'compiler/translator/PoolAlloc.cpp',
@@ -85,71 +99,105 @@
             'compiler/translator/Pragma.h',
             'compiler/translator/PruneEmptyDeclarations.cpp',
             'compiler/translator/PruneEmptyDeclarations.h',
+            'compiler/translator/PrunePureLiteralStatements.cpp',
+            'compiler/translator/PrunePureLiteralStatements.h',
+            'compiler/translator/QualifierTypes.h',
+            'compiler/translator/QualifierTypes.cpp',
             'compiler/translator/RecordConstantPrecision.cpp',
             'compiler/translator/RecordConstantPrecision.h',
             'compiler/translator/RegenerateStructNames.cpp',
             'compiler/translator/RegenerateStructNames.h',
+            'compiler/translator/RemoveArrayLengthMethod.cpp',
+            'compiler/translator/RemoveArrayLengthMethod.h',
+            'compiler/translator/RemoveInvariantDeclaration.cpp',
+            'compiler/translator/RemoveInvariantDeclaration.h',
             'compiler/translator/RemovePow.cpp',
             'compiler/translator/RemovePow.h',
             'compiler/translator/RewriteDoWhile.cpp',
             'compiler/translator/RewriteDoWhile.h',
-            'compiler/translator/RenameFunction.h',
+            'compiler/translator/RewriteTexelFetchOffset.cpp',
+            'compiler/translator/RewriteTexelFetchOffset.h',
+            'compiler/translator/RewriteUnaryMinusOperatorFloat.cpp',
+            'compiler/translator/RewriteUnaryMinusOperatorFloat.h',
+            'compiler/translator/RewriteUnaryMinusOperatorInt.cpp',
+            'compiler/translator/RewriteUnaryMinusOperatorInt.h',
+            'compiler/translator/RunAtTheEndOfShader.cpp',
+            'compiler/translator/RunAtTheEndOfShader.h',
             'compiler/translator/ScalarizeVecAndMatConstructorArgs.cpp',
             'compiler/translator/ScalarizeVecAndMatConstructorArgs.h',
             'compiler/translator/SearchSymbol.cpp',
             'compiler/translator/SearchSymbol.h',
+            'compiler/translator/SeparateDeclarations.cpp',
+            'compiler/translator/SeparateDeclarations.h',
+            'compiler/translator/Severity.h',
+            'compiler/translator/ShaderLang.cpp',
+            'compiler/translator/ShaderVars.cpp',
+            'compiler/translator/SimplifyLoopConditions.cpp',
+            'compiler/translator/SimplifyLoopConditions.h',
+            'compiler/translator/SplitSequenceOperator.cpp',
+            'compiler/translator/SplitSequenceOperator.h',
             'compiler/translator/SymbolTable.cpp',
             'compiler/translator/SymbolTable.h',
-            'compiler/translator/TranslatorESSL.cpp',
-            'compiler/translator/TranslatorESSL.h',
-            'compiler/translator/TranslatorGLSL.cpp',
-            'compiler/translator/TranslatorGLSL.h',
             'compiler/translator/Types.cpp',
             'compiler/translator/Types.h',
             'compiler/translator/UnfoldShortCircuitAST.cpp',
             'compiler/translator/UnfoldShortCircuitAST.h',
+            'compiler/translator/UseInterfaceBlockFields.cpp',
+            'compiler/translator/UseInterfaceBlockFields.h',
             'compiler/translator/ValidateGlobalInitializer.cpp',
             'compiler/translator/ValidateGlobalInitializer.h',
             'compiler/translator/ValidateLimitations.cpp',
             'compiler/translator/ValidateLimitations.h',
+            'compiler/translator/ValidateMaxParameters.h',
+            'compiler/translator/ValidateMaxParameters.cpp',
             'compiler/translator/ValidateOutputs.cpp',
             'compiler/translator/ValidateOutputs.h',
             'compiler/translator/ValidateSwitch.cpp',
             'compiler/translator/ValidateSwitch.h',
-            'compiler/translator/VariableInfo.cpp',
-            'compiler/translator/VariableInfo.h',
+            'compiler/translator/ValidateVaryingLocations.cpp',
+            'compiler/translator/ValidateVaryingLocations.h',
             'compiler/translator/VariablePacker.cpp',
             'compiler/translator/VariablePacker.h',
-            'compiler/translator/VersionGLSL.cpp',
-            'compiler/translator/VersionGLSL.h',
             'compiler/translator/blocklayout.cpp',
             'compiler/translator/blocklayout.h',
-            'compiler/translator/depgraph/DependencyGraph.cpp',
-            'compiler/translator/depgraph/DependencyGraph.h',
-            'compiler/translator/depgraph/DependencyGraphBuilder.cpp',
-            'compiler/translator/depgraph/DependencyGraphBuilder.h',
-            'compiler/translator/depgraph/DependencyGraphOutput.cpp',
-            'compiler/translator/depgraph/DependencyGraphOutput.h',
-            'compiler/translator/depgraph/DependencyGraphTraverse.cpp',
             'compiler/translator/glslang.h',
             'compiler/translator/glslang.l',
             'compiler/translator/glslang.y',
             'compiler/translator/glslang_lex.cpp',
             'compiler/translator/glslang_tab.cpp',
             'compiler/translator/glslang_tab.h',
-            'compiler/translator/intermOut.cpp',
             'compiler/translator/length_limits.h',
-            'compiler/translator/timing/RestrictFragmentShaderTiming.cpp',
-            'compiler/translator/timing/RestrictFragmentShaderTiming.h',
-            'compiler/translator/timing/RestrictVertexShaderTiming.cpp',
-            'compiler/translator/timing/RestrictVertexShaderTiming.h',
             'compiler/translator/util.cpp',
             'compiler/translator/util.h',
             'third_party/compiler/ArrayBoundsClamper.cpp',
             'third_party/compiler/ArrayBoundsClamper.h',
         ],
-        'angle_translator_lib_hlsl_sources':
+        'angle_translator_essl_sources':
         [
+            'compiler/translator/OutputESSL.cpp',
+            'compiler/translator/OutputESSL.h',
+            'compiler/translator/TranslatorESSL.cpp',
+            'compiler/translator/TranslatorESSL.h',
+        ],
+        'angle_translator_glsl_sources':
+        [
+            'compiler/translator/BuiltInFunctionEmulatorGLSL.cpp',
+            'compiler/translator/BuiltInFunctionEmulatorGLSL.h',
+            'compiler/translator/ExtensionGLSL.cpp',
+            'compiler/translator/ExtensionGLSL.h',
+            'compiler/translator/OutputGLSL.cpp',
+            'compiler/translator/OutputGLSL.h',
+            'compiler/translator/OutputGLSLBase.cpp',
+            'compiler/translator/OutputGLSLBase.h',
+            'compiler/translator/TranslatorGLSL.cpp',
+            'compiler/translator/TranslatorGLSL.h',
+            'compiler/translator/VersionGLSL.cpp',
+            'compiler/translator/VersionGLSL.h',
+        ],
+        'angle_translator_hlsl_sources':
+        [
+            'compiler/translator/AddDefaultReturnStatements.cpp',
+            'compiler/translator/AddDefaultReturnStatements.h',
             'compiler/translator/ArrayReturnValueToOutParameter.cpp',
             'compiler/translator/ArrayReturnValueToOutParameter.h',
             'compiler/translator/ASTMetadataHLSL.cpp',
@@ -168,12 +216,12 @@
             'compiler/translator/RewriteElseBlocks.h',
             'compiler/translator/SeparateArrayInitialization.cpp',
             'compiler/translator/SeparateArrayInitialization.h',
-            'compiler/translator/SeparateDeclarations.cpp',
-            'compiler/translator/SeparateDeclarations.h',
             'compiler/translator/SeparateExpressionsReturningArrays.cpp',
             'compiler/translator/SeparateExpressionsReturningArrays.h',
             'compiler/translator/StructureHLSL.cpp',
             'compiler/translator/StructureHLSL.h',
+            'compiler/translator/TextureFunctionHLSL.cpp',
+            'compiler/translator/TextureFunctionHLSL.h',
             'compiler/translator/TranslatorHLSL.cpp',
             'compiler/translator/TranslatorHLSL.h',
             'compiler/translator/UnfoldShortCircuitToIf.cpp',
@@ -182,6 +230,14 @@
             'compiler/translator/UniformHLSL.h',
             'compiler/translator/UtilsHLSL.cpp',
             'compiler/translator/UtilsHLSL.h',
+            'compiler/translator/emulated_builtin_functions_hlsl_autogen.cpp',
+        ],
+        'angle_translator_lib_vulkan_sources':
+        [
+            'compiler/translator/OutputVulkanGLSL.cpp',
+            'compiler/translator/OutputVulkanGLSL.h',
+            'compiler/translator/TranslatorVulkan.cpp',
+            'compiler/translator/TranslatorVulkan.h',
         ],
         'angle_preprocessor_sources':
         [
@@ -211,7 +267,6 @@
             'compiler/preprocessor/Tokenizer.h',
             'compiler/preprocessor/Tokenizer.l',
             'compiler/preprocessor/numeric_lex.h',
-            'compiler/preprocessor/pp_utils.h',
         ],
     },
     # Everything below this is duplicated in the GN build. If you change
@@ -221,28 +276,23 @@
         {
             'target_name': 'preprocessor',
             'type': 'static_library',
-            'includes': [ '../build/common_defines.gypi', ],
+            'dependencies': [ 'angle_common' ],
+            'includes': [ '../gyp/common_defines.gypi', ],
             'sources': [ '<@(angle_preprocessor_sources)', ],
         },
         {
-            'target_name': 'translator_lib',
+            'target_name': 'translator',
             'type': 'static_library',
             'dependencies': [ 'preprocessor', 'angle_common' ],
-            'includes': [ '../build/common_defines.gypi', ],
+            'includes': [ '../gyp/common_defines.gypi', ],
             'include_dirs':
             [
                 '.',
                 '../include',
             ],
-            'defines':
-            [
-                # define the static translator to indicate exported
-                # classes are (in fact) locally defined
-                'ANGLE_TRANSLATOR_STATIC',
-            ],
             'sources':
             [
-                '<@(angle_translator_lib_sources)',
+                '<@(angle_translator_sources)',
             ],
             'msvs_settings':
             {
@@ -253,6 +303,42 @@
             },
             'conditions':
             [
+                ['angle_enable_essl==1',
+                {
+                    'defines':
+                    [
+                        'ANGLE_ENABLE_ESSL',
+                    ],
+                    'direct_dependent_settings':
+                    {
+                        'defines':
+                        [
+                            'ANGLE_ENABLE_ESSL',
+                        ],
+                    },
+                    'sources':
+                    [
+                        '<@(angle_translator_essl_sources)',
+                    ],
+                }],
+                ['angle_enable_glsl==1',
+                {
+                    'defines':
+                    [
+                        'ANGLE_ENABLE_GLSL',
+                    ],
+                    'direct_dependent_settings':
+                    {
+                        'defines':
+                        [
+                            'ANGLE_ENABLE_GLSL',
+                        ],
+                    },
+                    'sources':
+                    [
+                        '<@(angle_translator_glsl_sources)',
+                    ],
+                }],
                 ['angle_enable_hlsl==1',
                 {
                     'defines':
@@ -268,58 +354,27 @@
                     },
                     'sources':
                     [
-                        '<@(angle_translator_lib_hlsl_sources)',
+                        '<@(angle_translator_hlsl_sources)',
                     ],
                 }],
-            ],
-        },
-
-        {
-            'target_name': 'translator',
-            'type': '<(component)',
-            'dependencies': [ 'translator_lib', 'angle_common' ],
-            'includes': [ '../build/common_defines.gypi', ],
-            'include_dirs':
-            [
-                '.',
-                '../include',
-            ],
-            'defines':
-            [
-                'ANGLE_TRANSLATOR_IMPLEMENTATION',
-            ],
-            'sources':
-            [
-                'compiler/translator/ShaderLang.cpp',
-                'compiler/translator/ShaderVars.cpp'
-            ],
-        },
-
-        {
-            'target_name': 'translator_static',
-            'type': 'static_library',
-            'dependencies': [ 'translator_lib' ],
-            'includes': [ '../build/common_defines.gypi', ],
-            'include_dirs':
-            [
-                '.',
-                '../include',
-            ],
-            'defines':
-            [
-                'ANGLE_TRANSLATOR_STATIC',
-            ],
-            'direct_dependent_settings':
-            {
-                'defines':
-                [
-                    'ANGLE_TRANSLATOR_STATIC',
-                ],
-            },
-            'sources':
-            [
-                'compiler/translator/ShaderLang.cpp',
-                'compiler/translator/ShaderVars.cpp'
+                ['angle_enable_vulkan==1',
+                {
+                    'defines':
+                    [
+                        'ANGLE_ENABLE_VULKAN',
+                    ],
+                    'direct_dependent_settings':
+                    {
+                        'defines':
+                        [
+                            'ANGLE_ENABLE_VULKAN',
+                        ],
+                    },
+                    'sources':
+                    [
+                        '<@(angle_translator_lib_vulkan_sources)',
+                    ],
+                }],
             ],
         },
     ],

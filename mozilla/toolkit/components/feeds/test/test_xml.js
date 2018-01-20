@@ -14,7 +14,7 @@
  *      |
  *      - head.js
  *      |
- *      - xml/ -- rss1/... 
+ *      - xml/ -- rss1/...
  *             |
  *             -- rss2/...
  *             |
@@ -32,31 +32,32 @@ function FeedListener(testcase) {
 }
 
 FeedListener.prototype = {
-  handleResult: function(result) {
+  handleResult(result) {
     var feed = result.doc;
     try {
       do_print("Testing feed " + this.testcase.file.path);
       Assert.ok(isIID(feed, Ci.nsIFeed), "Has feed interface");
 
+      // eslint-disable-next-line no-eval
       if (!eval(this.testcase.expect)) {
         Assert.ok(false, "expect failed for " + this.testcase.desc);
       } else {
         Assert.ok(true, "expect passed for " + this.testcase.desc);
       }
-    } catch(e) {
+    } catch (e) {
       Assert.ok(false, "expect failed for " + this.testcase.desc + " ---- " + e.message);
     }
 
     run_next_test();
   }
-}
+};
 
 function createTest(data) {
   return function() {
     var uri;
 
     if (data.base == null) {
-      uri = NetUtil.newURI('http://example.org/' + data.path);
+      uri = NetUtil.newURI("http://example.org/" + data.path);
     } else {
       uri = data.base;
     }
@@ -70,14 +71,14 @@ function createTest(data) {
 
     try {
       parser.parseFromStream(stream, uri);
-    } catch(e) {
+    } catch (e) {
       Assert.ok(false, "parse failed for " + data.file.leafName + " ---- " + e.message);
       // If the parser failed, the listener won't be notified, run the next test here.
       run_next_test();
     } finally {
       stream.close();
     }
-  }
+  };
 }
 
 function run_test() {

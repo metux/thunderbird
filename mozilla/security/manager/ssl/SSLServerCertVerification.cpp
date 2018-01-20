@@ -96,44 +96,50 @@
 
 #include <cstring>
 
-#include "pkix/pkix.h"
-#include "pkix/pkixnss.h"
+#include "BRNameMatchingPolicy.h"
 #include "CertVerifier.h"
 #include "CryptoTask.h"
 #include "ExtendedValidation.h"
 #include "NSSCertDBTrustDomain.h"
+#include "PSMRunnable.h"
+#include "RootCertificateTelemetryUtils.h"
+#include "ScopedNSSTypes.h"
+#include "SharedCertVerifier.h"
+#include "SharedSSLState.h"
+#include "TransportSecurityInfo.h" // For RememberCertErrorsTable
+#include "cert.h"
+#include "mozilla/Assertions.h"
+#include "mozilla/Casting.h"
+#include "mozilla/RefPtr.h"
+#include "mozilla/Telemetry.h"
+#include "mozilla/UniquePtr.h"
+#include "mozilla/Unused.h"
+#include "mozilla/net/DNS.h"
+#include "nsComponentManagerUtils.h"
+#include "nsContentUtils.h"
 #include "nsIBadCertListener2.h"
 #include "nsICertOverrideService.h"
 #include "nsISiteSecurityService.h"
+#include "nsISocketProvider.h"
+#include "nsIThreadPool.h"
+#include "nsNSSCertificate.h"
 #include "nsNSSComponent.h"
 #include "nsNSSIOLayer.h"
 #include "nsNSSShutDown.h"
-
-#include "mozilla/Assertions.h"
-#include "mozilla/Mutex.h"
-#include "mozilla/Telemetry.h"
-#include "mozilla/net/DNS.h"
-#include "mozilla/UniquePtr.h"
-#include "mozilla/unused.h"
-#include "nsIThreadPool.h"
-#include "nsISocketProvider.h"
-#include "nsXPCOMCIDInternal.h"
-#include "nsComponentManagerUtils.h"
+#include "nsSSLStatus.h"
 #include "nsServiceManagerUtils.h"
-#include "PSMRunnable.h"
-#include "RootCertificateTelemetryUtils.h"
-#include "SharedSSLState.h"
-#include "nsContentUtils.h"
+#include "nsString.h"
 #include "nsURLHelper.h"
-
-#include "ssl.h"
-#include "cert.h"
+#include "nsXPCOMCIDInternal.h"
+#include "pkix/pkix.h"
+#include "pkix/pkixnss.h"
 #include "secerr.h"
 #include "secoidt.h"
 #include "secport.h"
+#include "ssl.h"
 #include "sslerr.h"
 
-extern PRLogModuleInfo* gPIPNSSLog;
+extern mozilla::LazyLogModule gPIPNSSLog;
 
 using namespace mozilla::pkix;
 
@@ -143,14 +149,6 @@ namespace {
 
 // do not use a nsCOMPtr to avoid static initializer/destructor
 nsIThreadPool* gCertVerificationThreadPool = nullptr;
-
-// We avoid using a mutex for the success case to avoid lock-related
-// performance issues. However, we do use a lock in the error case to simplify
-// the code, since performance in the error case is not important.
-Mutex* gSSLVerificationTelemetryMutex = nullptr;
-
-// We add a mutex to serialize PKCS11 database operations
-Mutex* gSSLVerificationPK11Mutex = nullptr;
 
 } // unnamed namespace
 
@@ -167,8 +165,6 @@ Mutex* gSSLVerificationPK11Mutex = nullptr;
 void
 InitializeSSLServerCertVerificationThreads()
 {
-  gSSLVerificationTelemetryMutex = new Mutex("SSLVerificationTelemetryMutex");
-  gSSLVerificationPK11Mutex = new Mutex("SSLVerificationPK11Mutex");
   // TODO: tuning, make parameters preferences
   // XXX: instantiate nsThreadPool directly, to make this more bulletproof.
   // Currently, the nsThreadPool.h header isn't exported for us to do so.
@@ -201,14 +197,6 @@ void StopSSLServerCertVerificationThreads()
     gCertVerificationThreadPool->Shutdown();
     NS_RELEASE(gCertVerificationThreadPool);
   }
-  if (gSSLVerificationTelemetryMutex) {
-    delete gSSLVerificationTelemetryMutex;
-    gSSLVerificationTelemetryMutex = nullptr;
-  }
-  if (gSSLVerificationPK11Mutex) {
-    delete gSSLVerificationPK11Mutex;
-    gSSLVerificationPK11Mutex = nullptr;
-  }
 }
 
 namespace {
@@ -231,17 +219,17 @@ LogInvalidCertError(nsNSSSocketInfo* socketInfo,
 // This will cause the PR_Poll in the STS thread to return, so things work
 // correctly even if the STS thread is blocked polling (only) on the file
 // descriptor that is waiting for this result.
-class SSLServerCertVerificationResult : public nsRunnable
+class SSLServerCertVerificationResult : public Runnable
 {
 public:
   NS_DECL_NSIRUNNABLE
 
   SSLServerCertVerificationResult(nsNSSSocketInfo* infoObject,
                                   PRErrorCode errorCode,
-                                  Telemetry::ID telemetryID = Telemetry::HistogramCount,
+                                  Telemetry::HistogramID telemetryID = Telemetry::HistogramCount,
                                   uint32_t telemetryValue = -1,
                                   SSLErrorMessageType errorMessageType =
-                                      PlainErrorMessage);
+                                    SSLErrorMessageType::Plain);
 
   void Dispatch();
 private:
@@ -249,7 +237,7 @@ private:
 public:
   const PRErrorCode mErrorCode;
   const SSLErrorMessageType mErrorMessageType;
-  const Telemetry::ID mTelemetryID;
+  const Telemetry::HistogramID mTelemetryID;
   const uint32_t mTelemetryValue;
 };
 
@@ -279,6 +267,7 @@ class CertErrorRunnable : public SyncRunnableBase
   RefPtr<SSLServerCertVerificationResult> mResult; // out
 private:
   SSLServerCertVerificationResult* CheckCertOverrides();
+  nsresult OverrideAllowedForHost(/*out*/ bool& overrideAllowed);
 
   const void* const mFdForLogging; // may become an invalid pointer; do not dereference
   const nsCOMPtr<nsIX509Cert> mCert;
@@ -313,6 +302,7 @@ MapOverridableErrorToProbeValue(PRErrorCode errorCode)
     case mozilla::pkix::MOZILLA_PKIX_ERROR_NOT_YET_VALID_ISSUER_CERTIFICATE:
       return 15;
     case SEC_ERROR_INVALID_TIME: return 16;
+    case mozilla::pkix::MOZILLA_PKIX_ERROR_EMPTY_ISSUER_NAME: return 17;
   }
   NS_WARNING("Unknown certificate error code. Does MapOverridableErrorToProbeValue "
              "handle everything in DetermineCertOverrideErrors?");
@@ -348,7 +338,8 @@ MapCertErrorToProbeValue(PRErrorCode errorCode)
 }
 
 SECStatus
-DetermineCertOverrideErrors(CERTCertificate* cert, const char* hostName,
+DetermineCertOverrideErrors(const UniqueCERTCertificate& cert,
+                            const nsACString& hostName,
                             PRTime now, PRErrorCode defaultErrorCodeToReport,
                             /*out*/ uint32_t& collectedErrors,
                             /*out*/ PRErrorCode& errorCodeTrust,
@@ -356,7 +347,6 @@ DetermineCertOverrideErrors(CERTCertificate* cert, const char* hostName,
                             /*out*/ PRErrorCode& errorCodeTime)
 {
   MOZ_ASSERT(cert);
-  MOZ_ASSERT(hostName);
   MOZ_ASSERT(collectedErrors == 0);
   MOZ_ASSERT(errorCodeTrust == 0);
   MOZ_ASSERT(errorCodeMismatch == 0);
@@ -374,11 +364,13 @@ DetermineCertOverrideErrors(CERTCertificate* cert, const char* hostName,
     case mozilla::pkix::MOZILLA_PKIX_ERROR_INADEQUATE_KEY_SIZE:
     case mozilla::pkix::MOZILLA_PKIX_ERROR_V1_CERT_USED_AS_CA:
     case mozilla::pkix::MOZILLA_PKIX_ERROR_NOT_YET_VALID_ISSUER_CERTIFICATE:
+    case mozilla::pkix::MOZILLA_PKIX_ERROR_EMPTY_ISSUER_NAME:
     {
       collectedErrors = nsICertOverrideService::ERROR_UNTRUSTED;
       errorCodeTrust = defaultErrorCodeToReport;
 
-      SECCertTimeValidity validity = CERT_CheckCertValidTimes(cert, now, false);
+      SECCertTimeValidity validity = CERT_CheckCertValidTimes(cert.get(), now,
+                                                              false);
       if (validity == secCertTimeUndetermined) {
         // This only happens if cert is null. CERT_CheckCertValidTimes will
         // have set the error code to SEC_ERROR_INVALID_ARGS. We should really
@@ -426,25 +418,110 @@ DetermineCertOverrideErrors(CERTCertificate* cert, const char* hostName,
       return SECFailure;
     }
     Input hostnameInput;
-    Result result = hostnameInput.Init(uint8_t_ptr_cast(hostName),
-                                       strlen(hostName));
+    Result result = hostnameInput.Init(
+      BitwiseCast<const uint8_t*, const char*>(hostName.BeginReading()),
+      hostName.Length());
     if (result != Success) {
       PR_SetError(SEC_ERROR_INVALID_ARGS, 0);
       return SECFailure;
     }
-    result = CheckCertHostname(certInput, hostnameInput);
+    // Use a lax policy so as to not generate potentially spurious name
+    // mismatch "hints".
+    BRNameMatchingPolicy nameMatchingPolicy(
+      BRNameMatchingPolicy::Mode::DoNotEnforce);
+    // CheckCertHostname expects that its input represents a certificate that
+    // has already been successfully validated by BuildCertChain. This is
+    // obviously not the case, however, because we're in the error path of
+    // certificate verification. Thus, this is problematic. In the future, it
+    // would be nice to remove this optimistic additional error checking and
+    // simply punt to the front-end, which can more easily (and safely) perform
+    // extra checks to give the user hints as to why verification failed.
+    result = CheckCertHostname(certInput, hostnameInput, nameMatchingPolicy);
     // Treat malformed name information as a domain mismatch.
     if (result == Result::ERROR_BAD_DER ||
         result == Result::ERROR_BAD_CERT_DOMAIN) {
       collectedErrors |= nsICertOverrideService::ERROR_MISMATCH;
       errorCodeMismatch = SSL_ERROR_BAD_CERT_DOMAIN;
-    } else if (result != Success) {
+    } else if (IsFatalError(result)) {
+      // Because its input has not been validated by BuildCertChain,
+      // CheckCertHostname can return an error that is less important than the
+      // original certificate verification error. Only return an error result
+      // from this function if we've encountered a fatal error.
       PR_SetError(MapResultToPRErrorCode(result), 0);
       return SECFailure;
     }
   }
 
   return SECSuccess;
+}
+
+// Helper function to determine if overrides are allowed for this host.
+// Overrides are not allowed for known HSTS or HPKP hosts. However, an IP
+// address is never considered an HSTS or HPKP host.
+nsresult
+CertErrorRunnable::OverrideAllowedForHost(/*out*/ bool& overrideAllowed)
+{
+  overrideAllowed = false;
+
+  // If this is an IP address, overrides are allowed, because an IP address is
+  // never an HSTS or HPKP host. nsISiteSecurityService takes this into account
+  // already, but the real problem here is that calling NS_NewURI with an IPv6
+  // address fails. We do this to avoid that. A more comprehensive fix would be
+  // to have Necko provide an nsIURI to PSM and to use that here (and
+  // everywhere). However, that would be a wide-spanning change.
+  const nsACString& hostname = mInfoObject->GetHostName();
+  if (net_IsValidIPv6Addr(hostname.BeginReading(), hostname.Length())) {
+    overrideAllowed = true;
+    return NS_OK;
+  }
+
+  // If this is an HTTP Strict Transport Security host or a pinned host and the
+  // certificate is bad, don't allow overrides (RFC 6797 section 12.1,
+  // HPKP draft spec section 2.6).
+  bool strictTransportSecurityEnabled = false;
+  bool hasPinningInformation = false;
+  nsCOMPtr<nsISiteSecurityService> sss(do_GetService(NS_SSSERVICE_CONTRACTID));
+  if (!sss) {
+    MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
+            ("[%p][%p] couldn't get nsISiteSecurityService to check HSTS/HPKP",
+            mFdForLogging, this));
+    return NS_ERROR_FAILURE;
+  }
+  nsCOMPtr<nsIURI> uri;
+  nsresult rv = NS_NewURI(getter_AddRefs(uri),
+                          NS_LITERAL_CSTRING("https://") + hostname);
+  if (NS_FAILED(rv)) {
+    MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
+            ("[%p][%p] Creating new URI failed", mFdForLogging, this));
+    return rv;
+  }
+  rv = sss->IsSecureURI(nsISiteSecurityService::HEADER_HSTS,
+                        uri,
+                        mProviderFlags,
+                        mInfoObject->GetOriginAttributes(),
+                        nullptr,
+                        nullptr,
+                        &strictTransportSecurityEnabled);
+  if (NS_FAILED(rv)) {
+    MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
+            ("[%p][%p] checking for HSTS failed", mFdForLogging, this));
+    return rv;
+  }
+  rv = sss->IsSecureURI(nsISiteSecurityService::HEADER_HPKP,
+                        uri,
+                        mProviderFlags,
+                        mInfoObject->GetOriginAttributes(),
+                        nullptr,
+                        nullptr,
+                        &hasPinningInformation);
+  if (NS_FAILED(rv)) {
+    MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
+            ("[%p][%p] checking for HPKP failed", mFdForLogging, this));
+    return rv;
+  }
+
+  overrideAllowed = !strictTransportSecurityEnabled && !hasPinningInformation;
+  return NS_OK;
 }
 
 SSLServerCertVerificationResult*
@@ -462,8 +539,7 @@ CertErrorRunnable::CheckCertOverrides()
                                                mDefaultErrorCodeToReport);
   }
 
-  int32_t port;
-  mInfoObject->GetPort(&port);
+  int32_t port = mInfoObject->GetPort();
 
   nsAutoCString hostWithPortString(mInfoObject->GetHostName());
   hostWithPortString.Append(':');
@@ -471,42 +547,13 @@ CertErrorRunnable::CheckCertOverrides()
 
   uint32_t remaining_display_errors = mCollectedErrors;
 
-
-  // If this is an HTTP Strict Transport Security host or a pinned host and the
-  // certificate is bad, don't allow overrides (RFC 6797 section 12.1,
-  // HPKP draft spec section 2.6).
-  bool strictTransportSecurityEnabled = false;
-  bool hasPinningInformation = false;
-  nsCOMPtr<nsISiteSecurityService> sss(do_GetService(NS_SSSERVICE_CONTRACTID));
-  if (!sss) {
-    MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
-           ("[%p][%p] couldn't get nsISiteSecurityService to check for HSTS/HPKP\n",
-            mFdForLogging, this));
-    return new SSLServerCertVerificationResult(mInfoObject,
-                                               mDefaultErrorCodeToReport);
-  }
-  nsresult nsrv = sss->IsSecureHost(nsISiteSecurityService::HEADER_HSTS,
-                                    mInfoObject->GetHostNameRaw(),
-                                    mProviderFlags,
-                                    &strictTransportSecurityEnabled);
-  if (NS_FAILED(nsrv)) {
-    MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
-           ("[%p][%p] checking for HSTS failed\n", mFdForLogging, this));
-    return new SSLServerCertVerificationResult(mInfoObject,
-                                               mDefaultErrorCodeToReport);
-  }
-  nsrv = sss->IsSecureHost(nsISiteSecurityService::HEADER_HPKP,
-                           mInfoObject->GetHostNameRaw(),
-                           mProviderFlags,
-                           &hasPinningInformation);
-  if (NS_FAILED(nsrv)) {
-    MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
-           ("[%p][%p] checking for HPKP failed\n", mFdForLogging, this));
+  bool overrideAllowed;
+  if (NS_FAILED(OverrideAllowedForHost(overrideAllowed))) {
     return new SSLServerCertVerificationResult(mInfoObject,
                                                mDefaultErrorCodeToReport);
   }
 
-  if (!strictTransportSecurityEnabled && !hasPinningInformation) {
+  if (overrideAllowed) {
     MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
            ("[%p][%p] no HSTS or HPKP - overrides allowed\n",
             mFdForLogging, this));
@@ -516,18 +563,16 @@ CertErrorRunnable::CheckCertOverrides()
 
     uint32_t overrideBits = 0;
 
-    if (overrideService)
-    {
+    if (overrideService) {
       bool haveOverride;
       bool isTemporaryOverride; // we don't care
       const nsACString& hostString(mInfoObject->GetHostName());
-      nsrv = overrideService->HasMatchingOverride(hostString, port,
-                                                  mCert,
-                                                  &overrideBits,
-                                                  &isTemporaryOverride,
-                                                  &haveOverride);
-      if (NS_SUCCEEDED(nsrv) && haveOverride)
-      {
+      nsresult rv = overrideService->HasMatchingOverride(hostString, port,
+                                                         mCert,
+                                                         &overrideBits,
+                                                         &isTemporaryOverride,
+                                                         &haveOverride);
+      if (NS_SUCCEEDED(rv) && haveOverride) {
        // remove the errors that are already overriden
         remaining_display_errors &= ~overrideBits;
       }
@@ -581,8 +626,8 @@ CertErrorRunnable::CheckCertOverrides()
         nsIInterfaceRequestor* csi
           = static_cast<nsIInterfaceRequestor*>(mInfoObject);
         bool suppressMessage = false; // obsolete, ignored
-        nsrv = bcl->NotifyCertProblem(csi, mInfoObject->SSLStatus(),
-                                      hostWithPortString, &suppressMessage);
+        Unused << bcl->NotifyCertProblem(csi, mInfoObject->SSLStatus(),
+                                         hostWithPortString, &suppressMessage);
       }
     }
   }
@@ -598,7 +643,7 @@ CertErrorRunnable::CheckCertOverrides()
                                         errorCodeToReport,
                                         Telemetry::HistogramCount,
                                         -1,
-                                        OverridableCertErrorMessage);
+                                        SSLErrorMessageType::OverridableCert);
 
   LogInvalidCertError(mInfoObject,
                       result->mErrorCode,
@@ -623,7 +668,7 @@ CertErrorRunnable*
 CreateCertErrorRunnable(CertVerifier& certVerifier,
                         PRErrorCode defaultErrorCodeToReport,
                         nsNSSSocketInfo* infoObject,
-                        CERTCertificate* cert,
+                        const UniqueCERTCertificate& cert,
                         const void* fdForLogging,
                         uint32_t providerFlags,
                         PRTime now)
@@ -638,7 +683,7 @@ CreateCertErrorRunnable(CertVerifier& certVerifier,
   PRErrorCode errorCodeTrust = 0;
   PRErrorCode errorCodeMismatch = 0;
   PRErrorCode errorCodeTime = 0;
-  if (DetermineCertOverrideErrors(cert, infoObject->GetHostNameRaw(), now,
+  if (DetermineCertOverrideErrors(cert, infoObject->GetHostName(), now,
                                   defaultErrorCodeToReport, collected_errors,
                                   errorCodeTrust, errorCodeMismatch,
                                   errorCodeTime) != SECSuccess) {
@@ -652,7 +697,7 @@ CreateCertErrorRunnable(CertVerifier& certVerifier,
     return nullptr;
   }
 
-  RefPtr<nsNSSCertificate> nssCert(nsNSSCertificate::Create(cert));
+  RefPtr<nsNSSCertificate> nssCert(nsNSSCertificate::Create(cert.get()));
   if (!nssCert) {
     NS_ERROR("nsNSSCertificate::Create failed");
     PR_SetError(SEC_ERROR_NO_MEMORY, 0);
@@ -687,15 +732,16 @@ CreateCertErrorRunnable(CertVerifier& certVerifier,
 // TransportSecurityInfo::mCallbacks. nsHttpConnection::GetInterface must always
 // execute on the main thread, with the socket transport service thread
 // blocked.
-class CertErrorRunnableRunnable : public nsRunnable
+class CertErrorRunnableRunnable : public Runnable
 {
 public:
   explicit CertErrorRunnableRunnable(CertErrorRunnable* certErrorRunnable)
-    : mCertErrorRunnable(certErrorRunnable)
+    : Runnable("psm::CertErrorRunnableRunnable")
+    , mCertErrorRunnable(certErrorRunnable)
   {
   }
 private:
-  NS_IMETHOD Run()
+  NS_IMETHOD Run() override
   {
     nsresult rv = mCertErrorRunnable->DispatchToMainThreadAndWait();
     // The result must run on the socket transport thread, which we are already
@@ -709,16 +755,17 @@ private:
   RefPtr<CertErrorRunnable> mCertErrorRunnable;
 };
 
-class SSLServerCertVerificationJob : public nsRunnable
+class SSLServerCertVerificationJob : public Runnable
 {
 public:
   // Must be called only on the socket transport thread
   static SECStatus Dispatch(const RefPtr<SharedCertVerifier>& certVerifier,
                             const void* fdForLogging,
                             nsNSSSocketInfo* infoObject,
-                            CERTCertificate* serverCert,
-                            ScopedCERTCertList& peerCertChain,
-                            SECItem* stapledOCSPResponse,
+                            const UniqueCERTCertificate& serverCert,
+                            const UniqueCERTCertList& peerCertChain,
+                            const SECItem* stapledOCSPResponse,
+                            const SECItem* sctsFromTLSExtension,
                             uint32_t providerFlags,
                             Time time,
                             PRTime prtime);
@@ -729,39 +776,49 @@ private:
   SSLServerCertVerificationJob(const RefPtr<SharedCertVerifier>& certVerifier,
                                const void* fdForLogging,
                                nsNSSSocketInfo* infoObject,
-                               CERTCertificate* cert,
-                               CERTCertList* peerCertChain,
-                               SECItem* stapledOCSPResponse,
+                               const UniqueCERTCertificate& cert,
+                               UniqueCERTCertList peerCertChain,
+                               const SECItem* stapledOCSPResponse,
+                               const SECItem* sctsFromTLSExtension,
                                uint32_t providerFlags,
                                Time time,
                                PRTime prtime);
   const RefPtr<SharedCertVerifier> mCertVerifier;
   const void* const mFdForLogging;
   const RefPtr<nsNSSSocketInfo> mInfoObject;
-  const ScopedCERTCertificate mCert;
-  ScopedCERTCertList mPeerCertChain;
+  const UniqueCERTCertificate mCert;
+  UniqueCERTCertList mPeerCertChain;
   const uint32_t mProviderFlags;
   const Time mTime;
   const PRTime mPRTime;
   const TimeStamp mJobStartTime;
-  const ScopedSECItem mStapledOCSPResponse;
+  const UniqueSECItem mStapledOCSPResponse;
+  const UniqueSECItem mSCTsFromTLSExtension;
 };
 
 SSLServerCertVerificationJob::SSLServerCertVerificationJob(
-    const RefPtr<SharedCertVerifier>& certVerifier, const void* fdForLogging,
-    nsNSSSocketInfo* infoObject, CERTCertificate* cert,
-    CERTCertList* peerCertChain, SECItem* stapledOCSPResponse,
-    uint32_t providerFlags, Time time, PRTime prtime)
-  : mCertVerifier(certVerifier)
+  const RefPtr<SharedCertVerifier>& certVerifier,
+  const void* fdForLogging,
+  nsNSSSocketInfo* infoObject,
+  const UniqueCERTCertificate& cert,
+  UniqueCERTCertList peerCertChain,
+  const SECItem* stapledOCSPResponse,
+  const SECItem* sctsFromTLSExtension,
+  uint32_t providerFlags,
+  Time time,
+  PRTime prtime)
+  : Runnable("psm::SSLServerCertVerificationJob")
+  , mCertVerifier(certVerifier)
   , mFdForLogging(fdForLogging)
   , mInfoObject(infoObject)
-  , mCert(CERT_DupCertificate(cert))
-  , mPeerCertChain(peerCertChain)
+  , mCert(CERT_DupCertificate(cert.get()))
+  , mPeerCertChain(Move(peerCertChain))
   , mProviderFlags(providerFlags)
   , mTime(time)
   , mPRTime(prtime)
   , mJobStartTime(TimeStamp::Now())
   , mStapledOCSPResponse(SECITEM_DupItem(stapledOCSPResponse))
+  , mSCTsFromTLSExtension(SECITEM_DupItem(sctsFromTLSExtension))
 {
 }
 
@@ -778,7 +835,7 @@ SSLServerCertVerificationJob::SSLServerCertVerificationJob(
 // in order to support SPDY's cross-origin connection pooling.
 static SECStatus
 BlockServerCertChangeForSpdy(nsNSSSocketInfo* infoObject,
-                             CERTCertificate* serverCert)
+                             const UniqueCERTCertificate& serverCert)
 {
   // Get the existing cert. If there isn't one, then there is
   // no cert change to worry about.
@@ -794,8 +851,7 @@ BlockServerCertChangeForSpdy(nsNSSSocketInfo* infoObject,
 
   status->GetServerCert(getter_AddRefs(cert));
   if (!cert) {
-    NS_NOTREACHED("every nsSSLStatus must have a cert"
-                  "that implements nsIX509Cert");
+    MOZ_ASSERT_UNREACHABLE("nsSSLStatus must have a cert implementing nsIX509Cert");
     PR_SetError(SEC_ERROR_LIBRARY_FAILURE, 0);
     return SECFailure;
   }
@@ -803,8 +859,7 @@ BlockServerCertChangeForSpdy(nsNSSSocketInfo* infoObject,
   // Filter out sockets that did not neogtiate SPDY via NPN
   nsAutoCString negotiatedNPN;
   nsresult rv = infoObject->GetNegotiatedNPN(negotiatedNPN);
-  NS_ASSERTION(NS_SUCCEEDED(rv),
-               "GetNegotiatedNPN() failed during renegotiation");
+  MOZ_ASSERT(NS_SUCCEEDED(rv), "GetNegotiatedNPN() failed during renegotiation");
 
   if (NS_SUCCEEDED(rv) && !StringBeginsWith(negotiatedNPN,
                                             NS_LITERAL_CSTRING("spdy/"))) {
@@ -818,9 +873,9 @@ BlockServerCertChangeForSpdy(nsNSSSocketInfo* infoObject,
   }
 
   // Check to see if the cert has actually changed
-  ScopedCERTCertificate c(cert->GetCert());
-  NS_ASSERTION(c, "very bad and hopefully impossible state");
-  bool sameCert = CERT_CompareCerts(c, serverCert);
+  UniqueCERTCertificate c(cert->GetCert());
+  MOZ_ASSERT(c, "Somehow couldn't get underlying cert from nsIX509Cert");
+  bool sameCert = CERT_CompareCerts(c.get(), serverCert.get());
   if (sameCert) {
     return SECSuccess;
   }
@@ -876,41 +931,40 @@ TryMatchingWildcardSubjectAltName(const char* commonName,
 // certList consists of a validated certificate chain. The end-entity
 // certificate is first and the root (trust anchor) is last.
 void
-GatherBaselineRequirementsTelemetry(const ScopedCERTCertList& certList)
+GatherBaselineRequirementsTelemetry(const UniqueCERTCertList& certList)
 {
   CERTCertListNode* endEntityNode = CERT_LIST_HEAD(certList);
   CERTCertListNode* rootNode = CERT_LIST_TAIL(certList);
-  PR_ASSERT(!(CERT_LIST_END(endEntityNode, certList) ||
-              CERT_LIST_END(rootNode, certList)));
+  MOZ_ASSERT(!(CERT_LIST_END(endEntityNode, certList) ||
+               CERT_LIST_END(rootNode, certList)));
   if (CERT_LIST_END(endEntityNode, certList) ||
       CERT_LIST_END(rootNode, certList)) {
     return;
   }
   CERTCertificate* cert = endEntityNode->cert;
-  PR_ASSERT(cert);
+  MOZ_ASSERT(cert);
   if (!cert) {
     return;
   }
-  UniquePtr<char, void(&)(void*)>
-    commonName(CERT_GetCommonName(&cert->subject), PORT_Free);
+  UniquePORTString commonName(CERT_GetCommonName(&cert->subject));
   // This only applies to certificates issued by authorities in our root
   // program.
   CERTCertificate* rootCert = rootNode->cert;
-  PR_ASSERT(rootCert);
+  MOZ_ASSERT(rootCert);
   if (!rootCert) {
     return;
   }
   bool isBuiltIn = false;
-  SECStatus rv = IsCertBuiltInRoot(rootCert, isBuiltIn);
-  if (rv != SECSuccess || !isBuiltIn) {
+  Result result = IsCertBuiltInRoot(rootCert, isBuiltIn);
+  if (result != Success || !isBuiltIn) {
     MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
            ("BR telemetry: root certificate for '%s' is not a built-in root "
             "(or IsCertBuiltInRoot failed)\n", commonName.get()));
     return;
   }
-  SECItem altNameExtension;
-  rv = CERT_FindCertExtension(cert, SEC_OID_X509_SUBJECT_ALT_NAME,
-                              &altNameExtension);
+  ScopedAutoSECItem altNameExtension;
+  SECStatus rv = CERT_FindCertExtension(cert, SEC_OID_X509_SUBJECT_ALT_NAME,
+                                        &altNameExtension);
   if (rv != SECSuccess) {
     MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
            ("BR telemetry: no subject alt names extension for '%s'\n",
@@ -921,14 +975,9 @@ GatherBaselineRequirementsTelemetry(const ScopedCERTCertList& certList)
     return;
   }
 
-  ScopedPLArenaPool arena(PORT_NewArena(DER_DEFAULT_CHUNKSIZE));
+  UniquePLArenaPool arena(PORT_NewArena(DER_DEFAULT_CHUNKSIZE));
   CERTGeneralName* subjectAltNames =
-    CERT_DecodeAltNameExtension(arena, &altNameExtension);
-  // CERT_FindCertExtension takes a pointer to a SECItem and allocates memory
-  // in its data field. This is a bad way to do this because we can't use a
-  // ScopedSECItem and neither is that memory tracked by an arena. We have to
-  // manually reach in and free the memory.
-  PORT_Free(altNameExtension.data);
+    CERT_DecodeAltNameExtension(arena.get(), &altNameExtension);
   if (!subjectAltNames) {
     MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
            ("BR telemetry: could not decode subject alt names for '%s'\n",
@@ -947,7 +996,8 @@ GatherBaselineRequirementsTelemetry(const ScopedCERTCertList& certList)
   do {
     nsAutoCString altName;
     if (currentName->type == certDNSName) {
-      altName.Assign(reinterpret_cast<char*>(currentName->name.other.data),
+      altName.Assign(BitwiseCast<char*, unsigned char*>(
+                       currentName->name.other.data),
                      currentName->name.other.len);
       nsDependentCString altNameWithoutWildcard(altName, 0);
       if (StringBeginsWith(altNameWithoutWildcard, NS_LITERAL_CSTRING("*."))) {
@@ -1041,31 +1091,31 @@ GatherBaselineRequirementsTelemetry(const ScopedCERTCertList& certList)
 // Gather telemetry on whether the end-entity cert for a server has the
 // required TLS Server Authentication EKU, or any others
 void
-GatherEKUTelemetry(const ScopedCERTCertList& certList)
+GatherEKUTelemetry(const UniqueCERTCertList& certList)
 {
   CERTCertListNode* endEntityNode = CERT_LIST_HEAD(certList);
   CERTCertListNode* rootNode = CERT_LIST_TAIL(certList);
-  PR_ASSERT(!(CERT_LIST_END(endEntityNode, certList) ||
-              CERT_LIST_END(rootNode, certList)));
+  MOZ_ASSERT(!(CERT_LIST_END(endEntityNode, certList) ||
+               CERT_LIST_END(rootNode, certList)));
   if (CERT_LIST_END(endEntityNode, certList) ||
       CERT_LIST_END(rootNode, certList)) {
     return;
   }
   CERTCertificate* endEntityCert = endEntityNode->cert;
-  PR_ASSERT(endEntityCert);
+  MOZ_ASSERT(endEntityCert);
   if (!endEntityCert) {
     return;
   }
 
   // Only log telemetry if the root CA is built-in
   CERTCertificate* rootCert = rootNode->cert;
-  PR_ASSERT(rootCert);
+  MOZ_ASSERT(rootCert);
   if (!rootCert) {
     return;
   }
   bool isBuiltIn = false;
-  SECStatus rv = IsCertBuiltInRoot(rootCert, isBuiltIn);
-  if (rv != SECSuccess || !isBuiltIn) {
+  Result rv = IsCertBuiltInRoot(rootCert, isBuiltIn);
+  if (rv != Success || !isBuiltIn) {
     return;
   }
 
@@ -1088,7 +1138,7 @@ GatherEKUTelemetry(const ScopedCERTCertList& certList)
   }
 
   // Parse the EKU extension
-  ScopedCERTOidSequence ekuSequence(
+  UniqueCERTOidSequence ekuSequence(
     CERT_DecodeOidSequence(&ekuExtension->value));
   if (!ekuSequence) {
     return;
@@ -1123,19 +1173,19 @@ GatherEKUTelemetry(const ScopedCERTCertList& certList)
 // If the root is a built-in root, then the telemetry makes a count
 // by root.  Roots that are not built-in are counted in one bin.
 void
-GatherRootCATelemetry(const ScopedCERTCertList& certList)
+GatherRootCATelemetry(const UniqueCERTCertList& certList)
 {
   CERTCertListNode* rootNode = CERT_LIST_TAIL(certList);
-  PR_ASSERT(rootNode);
+  MOZ_ASSERT(rootNode);
   if (!rootNode) {
     return;
   }
-  PR_ASSERT(!CERT_LIST_END(rootNode, certList));
+  MOZ_ASSERT(!CERT_LIST_END(rootNode, certList));
   if (CERT_LIST_END(rootNode, certList)) {
     return;
   }
   CERTCertificate* rootCert = rootNode->cert;
-  PR_ASSERT(rootCert);
+  MOZ_ASSERT(rootCert);
   if (!rootCert) {
     return;
   }
@@ -1149,16 +1199,16 @@ const uint64_t ONE_YEAR_IN_WEEKS   = 52;
 
 // Gathers telemetry on the certificate lifetimes we observe in the wild
 void
-GatherEndEntityTelemetry(const ScopedCERTCertList& certList)
+GatherEndEntityTelemetry(const UniqueCERTCertList& certList)
 {
   CERTCertListNode* endEntityNode = CERT_LIST_HEAD(certList);
-  PR_ASSERT(endEntityNode);
-  if (!endEntityNode) {
+  MOZ_ASSERT(endEntityNode && !CERT_LIST_END(endEntityNode, certList));
+  if (!endEntityNode || CERT_LIST_END(endEntityNode, certList)) {
     return;
   }
 
-  CERTCertificate * endEntityCert = endEntityNode->cert;
-  PR_ASSERT(endEntityCert);
+  CERTCertificate* endEntityCert = endEntityNode->cert;
+  MOZ_ASSERT(endEntityCert);
   if (!endEntityCert) {
     return;
   }
@@ -1170,7 +1220,7 @@ GatherEndEntityTelemetry(const ScopedCERTCertList& certList)
     return;
   }
 
-  PR_ASSERT(notAfter > notBefore);
+  MOZ_ASSERT(notAfter > notBefore);
   if (notAfter <= notBefore) {
     return;
   }
@@ -1190,7 +1240,7 @@ GatherEndEntityTelemetry(const ScopedCERTCertList& certList)
 // There are various things that we want to measure about certificate
 // chains that we accept.  This is a single entry point for all of them.
 void
-GatherSuccessfulValidationTelemetry(const ScopedCERTCertList& certList)
+GatherSuccessfulValidationTelemetry(const UniqueCERTCertList& certList)
 {
   GatherBaselineRequirementsTelemetry(certList);
   GatherEKUTelemetry(certList);
@@ -1198,19 +1248,145 @@ GatherSuccessfulValidationTelemetry(const ScopedCERTCertList& certList)
   GatherEndEntityTelemetry(certList);
 }
 
+void
+GatherTelemetryForSingleSCT(const ct::VerifiedSCT& verifiedSct)
+{
+  // See SSL_SCTS_ORIGIN in Histograms.json.
+  uint32_t origin = 0;
+  switch (verifiedSct.origin) {
+    case ct::VerifiedSCT::Origin::Embedded:
+      origin = 1;
+      break;
+    case ct::VerifiedSCT::Origin::TLSExtension:
+      origin = 2;
+      break;
+    case ct::VerifiedSCT::Origin::OCSPResponse:
+      origin = 3;
+      break;
+    default:
+      MOZ_ASSERT_UNREACHABLE("Unexpected VerifiedSCT::Origin type");
+  }
+  Telemetry::Accumulate(Telemetry::SSL_SCTS_ORIGIN, origin);
+
+  // See SSL_SCTS_VERIFICATION_STATUS in Histograms.json.
+  uint32_t verificationStatus = 0;
+  switch (verifiedSct.status) {
+    case ct::VerifiedSCT::Status::Valid:
+      verificationStatus = 1;
+      break;
+    case ct::VerifiedSCT::Status::UnknownLog:
+      verificationStatus = 2;
+      break;
+    case ct::VerifiedSCT::Status::InvalidSignature:
+      verificationStatus = 3;
+      break;
+    case ct::VerifiedSCT::Status::InvalidTimestamp:
+      verificationStatus = 4;
+      break;
+    case ct::VerifiedSCT::Status::ValidFromDisqualifiedLog:
+      verificationStatus = 5;
+      break;
+    default:
+      MOZ_ASSERT_UNREACHABLE("Unexpected VerifiedSCT::Status type");
+  }
+  Telemetry::Accumulate(Telemetry::SSL_SCTS_VERIFICATION_STATUS,
+                        verificationStatus);
+}
+
+void
+GatherCertificateTransparencyTelemetry(const UniqueCERTCertList& certList,
+                                       bool isEV,
+                                       const CertificateTransparencyInfo& info)
+{
+  if (!info.enabled) {
+    // No telemetry is gathered when CT is disabled.
+    return;
+  }
+
+  for (const ct::VerifiedSCT& sct : info.verifyResult.verifiedScts) {
+    GatherTelemetryForSingleSCT(sct);
+  }
+
+  // Decoding errors are reported to the 0th bucket
+  // of the SSL_SCTS_VERIFICATION_STATUS enumerated probe.
+  for (size_t i = 0; i < info.verifyResult.decodingErrors; ++i) {
+    Telemetry::Accumulate(Telemetry::SSL_SCTS_VERIFICATION_STATUS, 0);
+  }
+
+  // Handle the histogram of SCTs counts.
+  uint32_t sctsCount =
+    static_cast<uint32_t>(info.verifyResult.verifiedScts.length());
+  // Note that sctsCount can also be 0 in case we've received SCT binary data,
+  // but it failed to parse (e.g. due to unsupported CT protocol version).
+  Telemetry::Accumulate(Telemetry::SSL_SCTS_PER_CONNECTION, sctsCount);
+
+  // Report CT Policy compliance of EV certificates.
+  if (isEV) {
+    uint32_t evCompliance = 0;
+    switch (info.policyCompliance) {
+      case ct::CTPolicyCompliance::Compliant:
+        evCompliance = 1;
+        break;
+      case ct::CTPolicyCompliance::NotEnoughScts:
+        evCompliance = 2;
+        break;
+      case ct::CTPolicyCompliance::NotDiverseScts:
+        evCompliance = 3;
+        break;
+      case ct::CTPolicyCompliance::Unknown:
+      default:
+        MOZ_ASSERT_UNREACHABLE("Unexpected CTPolicyCompliance type");
+    }
+    Telemetry::Accumulate(Telemetry::SSL_CT_POLICY_COMPLIANCE_OF_EV_CERTS,
+                          evCompliance);
+  }
+
+  // Get the root cert.
+  CERTCertListNode* rootNode = CERT_LIST_TAIL(certList);
+  MOZ_ASSERT(rootNode);
+  if (!rootNode) {
+    return;
+  }
+  MOZ_ASSERT(!CERT_LIST_END(rootNode, certList));
+  if (CERT_LIST_END(rootNode, certList)) {
+    return;
+  }
+  CERTCertificate* rootCert = rootNode->cert;
+  MOZ_ASSERT(rootCert);
+  if (!rootCert) {
+    return;
+  }
+
+  // Report CT Policy compliance by CA.
+  switch (info.policyCompliance) {
+    case ct::CTPolicyCompliance::Compliant:
+      AccumulateTelemetryForRootCA(
+        Telemetry::SSL_CT_POLICY_COMPLIANT_CONNECTIONS_BY_CA, rootCert);
+      break;
+    case ct::CTPolicyCompliance::NotEnoughScts:
+    case ct::CTPolicyCompliance::NotDiverseScts:
+      AccumulateTelemetryForRootCA(
+        Telemetry::SSL_CT_POLICY_NON_COMPLIANT_CONNECTIONS_BY_CA, rootCert);
+      break;
+    case ct::CTPolicyCompliance::Unknown:
+    default:
+      MOZ_ASSERT_UNREACHABLE("Unexpected CTPolicyCompliance type");
+  }
+}
+
+// Note: Takes ownership of |peerCertChain| if SECSuccess is not returned.
 SECStatus
 AuthCertificate(CertVerifier& certVerifier,
                 nsNSSSocketInfo* infoObject,
-                CERTCertificate* cert,
-                ScopedCERTCertList& peerCertChain,
-                SECItem* stapledOCSPResponse,
+                const UniqueCERTCertificate& cert,
+                UniqueCERTCertList& peerCertChain,
+                const SECItem* stapledOCSPResponse,
+                const SECItem* sctsFromTLSExtension,
                 uint32_t providerFlags,
                 Time time)
 {
   MOZ_ASSERT(infoObject);
   MOZ_ASSERT(cert);
-
-  SECStatus rv;
 
   // We want to avoid storing any intermediate cert information when browsing
   // in private, transient contexts.
@@ -1218,12 +1394,13 @@ AuthCertificate(CertVerifier& certVerifier,
     !(providerFlags & nsISocketProvider::NO_PERMANENT_STORAGE);
 
   SECOidTag evOidPolicy;
-  ScopedCERTCertList certList;
+  UniqueCERTCertList certList;
   CertVerifier::OCSPStaplingStatus ocspStaplingStatus =
     CertVerifier::OCSP_STAPLING_NEVER_CHECKED;
   KeySizeStatus keySizeStatus = KeySizeStatus::NeverChecked;
-  SignatureDigestStatus sigDigestStatus = SignatureDigestStatus::NeverChecked;
+  SHA1ModeResult sha1ModeResult = SHA1ModeResult::NeverChecked;
   PinningTelemetryInfo pinningTelemetryInfo;
+  CertificateTransparencyInfo certificateTransparencyInfo;
 
   int flags = 0;
   if (!infoObject->SharedState().IsOCSPStaplingEnabled() ||
@@ -1231,17 +1408,23 @@ AuthCertificate(CertVerifier& certVerifier,
     flags |= CertVerifier::FLAG_TLS_IGNORE_STATUS_REQUEST;
   }
 
-  rv = certVerifier.VerifySSLServerCert(cert, stapledOCSPResponse,
-                                        time, infoObject,
-                                        infoObject->GetHostNameRaw(),
-                                        saveIntermediates, flags, &certList,
-                                        &evOidPolicy, &ocspStaplingStatus,
-                                        &keySizeStatus, &sigDigestStatus,
-                                        &pinningTelemetryInfo);
-  PRErrorCode savedErrorCode;
-  if (rv != SECSuccess) {
-    savedErrorCode = PR_GetError();
-  }
+  Result rv = certVerifier.VerifySSLServerCert(cert, stapledOCSPResponse,
+                                               sctsFromTLSExtension, time,
+                                               infoObject,
+                                               infoObject->GetHostName(),
+                                               certList, saveIntermediates,
+                                               flags, infoObject->
+                                                      GetOriginAttributes(),
+                                               &evOidPolicy,
+                                               &ocspStaplingStatus,
+                                               &keySizeStatus, &sha1ModeResult,
+                                               &pinningTelemetryInfo,
+                                               &certificateTransparencyInfo);
+
+  uint32_t evStatus = (rv != Success) ? 0                   // 0 = Failure
+                    : (evOidPolicy == SEC_OID_UNKNOWN) ? 1  // 1 = DV
+                    : 2;                                    // 2 = EV
+  Telemetry::Accumulate(Telemetry::CERT_EV_STATUS, evStatus);
 
   if (ocspStaplingStatus != CertVerifier::OCSP_STAPLING_NEVER_CHECKED) {
     Telemetry::Accumulate(Telemetry::SSL_OCSP_STAPLING, ocspStaplingStatus);
@@ -1250,9 +1433,9 @@ AuthCertificate(CertVerifier& certVerifier,
     Telemetry::Accumulate(Telemetry::CERT_CHAIN_KEY_SIZE_STATUS,
                           static_cast<uint32_t>(keySizeStatus));
   }
-  if (sigDigestStatus != SignatureDigestStatus::NeverChecked) {
-    Telemetry::Accumulate(Telemetry::CERT_CHAIN_SIGNATURE_DIGEST_STATUS,
-                          static_cast<uint32_t>(sigDigestStatus));
+  if (sha1ModeResult != SHA1ModeResult::NeverChecked) {
+    Telemetry::Accumulate(Telemetry::CERT_CHAIN_SHA1_POLICY_STATUS,
+                          static_cast<uint32_t>(sha1ModeResult));
   }
 
   if (pinningTelemetryInfo.accumulateForRoot) {
@@ -1265,68 +1448,51 @@ AuthCertificate(CertVerifier& certVerifier,
                           pinningTelemetryInfo.certPinningResultBucket);
   }
 
-  // We want to remember the CA certs in the temp db, so that the application can find the
-  // complete chain at any time it might need it.
-  // But we keep only those CA certs in the temp db, that we didn't already know.
-
-  RefPtr<nsSSLStatus> status(infoObject->SSLStatus());
-  RefPtr<nsNSSCertificate> nsc;
-
-  if (!status || !status->HasServerCert()) {
-    if( rv == SECSuccess ){
-      nsc = nsNSSCertificate::Create(cert, &evOidPolicy);
-    }
-    else {
-      nsc = nsNSSCertificate::Create(cert);
-    }
-  }
-
-  if (rv == SECSuccess) {
+  if (rv == Success) {
+    // Certificate verification succeeded. Delete any potential record of
+    // certificate error bits.
+    RememberCertErrorsTable::GetInstance().RememberCertHasError(infoObject,
+                                                                nullptr,
+                                                                SECSuccess);
     GatherSuccessfulValidationTelemetry(certList);
+    GatherCertificateTransparencyTelemetry(certList,
+                                  /*isEV*/ evOidPolicy != SEC_OID_UNKNOWN,
+                                           certificateTransparencyInfo);
 
     // The connection may get terminated, for example, if the server requires
     // a client cert. Let's provide a minimal SSLStatus
     // to the caller that contains at least the cert and its status.
+    RefPtr<nsSSLStatus> status(infoObject->SSLStatus());
     if (!status) {
       status = new nsSSLStatus();
       infoObject->SetSSLStatus(status);
     }
 
-    if (rv == SECSuccess) {
-      // Certificate verification succeeded delete any potential record
-      // of certificate error bits.
-      RememberCertErrorsTable::GetInstance().RememberCertHasError(infoObject,
-                                                                  nullptr, rv);
-    }
-    else {
-      // Certificate verification failed, update the status' bits.
-      RememberCertErrorsTable::GetInstance().LookupCertErrorBits(
-        infoObject, status);
+    EVStatus evStatus;
+    if (evOidPolicy == SEC_OID_UNKNOWN) {
+      evStatus = EVStatus::NotEV;
+    } else {
+      evStatus = EVStatus::EV;
     }
 
-    if (status && !status->HasServerCert()) {
-      nsNSSCertificate::EVStatus evStatus;
-      if (evOidPolicy == SEC_OID_UNKNOWN || rv != SECSuccess) {
-        evStatus = nsNSSCertificate::ev_status_invalid;
-      } else {
-        evStatus = nsNSSCertificate::ev_status_valid;
-      }
+    RefPtr<nsNSSCertificate> nsc = nsNSSCertificate::Create(cert.get());
+    status->SetServerCert(nsc, evStatus);
 
-      status->SetServerCert(nsc, evStatus);
-      MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
-             ("AuthCertificate setting NEW cert %p\n", nsc.get()));
-    }
+    status->SetSucceededCertChain(Move(certList));
+    MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
+        ("AuthCertificate setting NEW cert %p", nsc.get()));
+
+    status->SetCertificateTransparencyInfo(certificateTransparencyInfo);
   }
 
-  if (rv != SECSuccess) {
+  if (rv != Success) {
     // Certificate validation failed; store the peer certificate chain on
-    // infoObject so it can be used for error reporting. Note: infoObject
-    // indirectly takes ownership of peerCertChain.
-    infoObject->SetFailedCertChain(peerCertChain);
-    PR_SetError(savedErrorCode, 0);
+    // infoObject so it can be used for error reporting.
+    infoObject->SetFailedCertChain(Move(certList));
+    PR_SetError(MapResultToPRErrorCode(rv), 0);
   }
 
-  return rv;
+  return rv == Success ? SECSuccess : SECFailure;
 }
 
 /*static*/ SECStatus
@@ -1334,9 +1500,10 @@ SSLServerCertVerificationJob::Dispatch(
   const RefPtr<SharedCertVerifier>& certVerifier,
   const void* fdForLogging,
   nsNSSSocketInfo* infoObject,
-  CERTCertificate* serverCert,
-  ScopedCERTCertList& peerCertChain,
-  SECItem* stapledOCSPResponse,
+  const UniqueCERTCertificate& serverCert,
+  const UniqueCERTCertList& peerCertChain,
+  const SECItem* stapledOCSPResponse,
+  const SECItem* sctsFromTLSExtension,
   uint32_t providerFlags,
   Time time,
   PRTime prtime)
@@ -1348,41 +1515,45 @@ SSLServerCertVerificationJob::Dispatch(
     return SECFailure;
   }
 
+  if (!gCertVerificationThreadPool) {
+    PR_SetError(PR_INVALID_STATE_ERROR, 0);
+    return SECFailure;
+  }
+
   // Copy the certificate list so the runnable can take ownership of it in the
   // constructor.
   // We can safely skip checking if NSS has already shut down here since we're
   // in the middle of verifying a certificate.
   nsNSSShutDownPreventionLock lock;
-  CERTCertList* peerCertChainCopy = nsNSSCertList::DupCertList(peerCertChain, lock);
+  UniqueCERTCertList peerCertChainCopy =
+    nsNSSCertList::DupCertList(peerCertChain, lock);
+  if (!peerCertChainCopy) {
+    PR_SetError(SEC_ERROR_NO_MEMORY, 0);
+    return SECFailure;
+  }
 
   RefPtr<SSLServerCertVerificationJob> job(
     new SSLServerCertVerificationJob(certVerifier, fdForLogging, infoObject,
-                                     serverCert, peerCertChainCopy,
-                                     stapledOCSPResponse, providerFlags,
-                                     time, prtime));
+                                     serverCert, Move(peerCertChainCopy),
+                                     stapledOCSPResponse, sctsFromTLSExtension,
+                                     providerFlags, time, prtime));
 
-  nsresult nrv;
-  if (!gCertVerificationThreadPool) {
-    nrv = NS_ERROR_NOT_INITIALIZED;
-  } else {
-    nrv = gCertVerificationThreadPool->Dispatch(job, NS_DISPATCH_NORMAL);
-  }
+  nsresult nrv = gCertVerificationThreadPool->Dispatch(job, NS_DISPATCH_NORMAL);
   if (NS_FAILED(nrv)) {
     // We can't call SetCertVerificationResult here to change
     // mCertVerificationState because SetCertVerificationResult will call
     // libssl functions that acquire SSL locks that are already being held at
-    // this point. infoObject->mCertVerificationState will be stuck at
-    // waiting_for_cert_verification here, but that is OK because we already
-    // have to be able to handle cases where we encounter non-cert errors while
-    // in that state.
+    // this point. However, we can set an error with PR_SetError and return
+    // SECFailure, and the correct thing will happen (the error will be
+    // propagated and this connection will be terminated).
     PRErrorCode error = nrv == NS_ERROR_OUT_OF_MEMORY
-                      ? SEC_ERROR_NO_MEMORY
+                      ? PR_OUT_OF_MEMORY_ERROR
                       : PR_INVALID_STATE_ERROR;
-    PORT_SetError(error);
+    PR_SetError(error, 0);
     return SECFailure;
   }
 
-  PORT_SetError(PR_WOULD_BLOCK_ERROR);
+  PR_SetError(PR_WOULD_BLOCK_ERROR, 0);
   return SECWouldBlock;
 }
 
@@ -1400,17 +1571,20 @@ SSLServerCertVerificationJob::Run()
   if (mInfoObject->isAlreadyShutDown()) {
     error = SEC_ERROR_USER_CANCELLED;
   } else {
-    Telemetry::ID successTelemetry
+    Telemetry::HistogramID successTelemetry
       = Telemetry::SSL_SUCCESFUL_CERT_VALIDATION_TIME_MOZILLAPKIX;
-    Telemetry::ID failureTelemetry
+    Telemetry::HistogramID failureTelemetry
       = Telemetry::SSL_INITIAL_FAILED_CERT_VALIDATION_TIME_MOZILLAPKIX;
 
     // Reset the error code here so we can detect if AuthCertificate fails to
     // set the error code if/when it fails.
     PR_SetError(0, 0);
-    SECStatus rv = AuthCertificate(*mCertVerifier, mInfoObject, mCert.get(),
-                                   mPeerCertChain, mStapledOCSPResponse,
+    SECStatus rv = AuthCertificate(*mCertVerifier, mInfoObject, mCert,
+                                   mPeerCertChain, mStapledOCSPResponse.get(),
+                                   mSCTsFromTLSExtension.get(),
                                    mProviderFlags, mTime);
+    MOZ_ASSERT(mPeerCertChain || rv != SECSuccess,
+               "AuthCertificate() should take ownership of chain on failure");
     if (rv == SECSuccess) {
       uint32_t interval = (uint32_t) ((TimeStamp::Now() - mJobStartTime).ToMilliseconds());
       RefPtr<SSLServerCertVerificationResult> restart(
@@ -1424,16 +1598,14 @@ SSLServerCertVerificationJob::Run()
     // Note: the interval is not calculated once as PR_GetError MUST be called
     // before any other  function call
     error = PR_GetError();
-    {
-      TimeStamp now = TimeStamp::Now();
-      MutexAutoLock telemetryMutex(*gSSLVerificationTelemetryMutex);
-      Telemetry::AccumulateTimeDelta(failureTelemetry, mJobStartTime, now);
-    }
+
+    TimeStamp now = TimeStamp::Now();
+    Telemetry::AccumulateTimeDelta(failureTelemetry, mJobStartTime, now);
+
     if (error != 0) {
       RefPtr<CertErrorRunnable> runnable(
-          CreateCertErrorRunnable(*mCertVerifier, error, mInfoObject,
-                                  mCert.get(), mFdForLogging, mProviderFlags,
-                                  mPRTime));
+          CreateCertErrorRunnable(*mCertVerifier, error, mInfoObject, mCert,
+                                  mFdForLogging, mProviderFlags, mPRTime));
       if (!runnable) {
         // CreateCertErrorRunnable set a new error code
         error = PR_GetError();
@@ -1465,7 +1637,7 @@ SSLServerCertVerificationJob::Run()
   }
 
   if (error == 0) {
-    NS_NOTREACHED("no error set during certificate validation failure");
+    MOZ_ASSERT_UNREACHABLE("No error set during certificate validation failure");
     error = PR_INVALID_STATE_ERROR;
   }
 
@@ -1496,15 +1668,15 @@ AuthCertificateHook(void* arg, PRFileDesc* fd, PRBool checkSig, PRBool isServer)
 
   // Modern libssl always passes PR_TRUE for checkSig, and we have no means of
   // doing verification without checking signatures.
-  NS_ASSERTION(checkSig, "AuthCertificateHook: checkSig unexpectedly false");
+  MOZ_ASSERT(checkSig, "AuthCertificateHook: checkSig unexpectedly false");
 
   // PSM never causes libssl to call this function with PR_TRUE for isServer,
   // and many things in PSM assume that we are a client.
-  NS_ASSERTION(!isServer, "AuthCertificateHook: isServer unexpectedly true");
+  MOZ_ASSERT(!isServer, "AuthCertificateHook: isServer unexpectedly true");
 
   nsNSSSocketInfo* socketInfo = static_cast<nsNSSSocketInfo*>(arg);
 
-  ScopedCERTCertificate serverCert(SSL_PeerCertificate(fd));
+  UniqueCERTCertificate serverCert(SSL_PeerCertificate(fd));
 
   if (!checkSig || isServer || !socketInfo || !serverCert) {
       PR_SetError(PR_INVALID_STATE_ERROR, 0);
@@ -1512,7 +1684,11 @@ AuthCertificateHook(void* arg, PRFileDesc* fd, PRBool checkSig, PRBool isServer)
   }
 
   // Get the peer certificate chain for error reporting
-  ScopedCERTCertList peerCertChain(SSL_PeerCertificateChain(fd));
+  UniqueCERTCertList peerCertChain(SSL_PeerCertificateChain(fd));
+  if (!peerCertChain) {
+    PR_SetError(PR_INVALID_STATE_ERROR, 0);
+    return SECFailure;
+  }
 
   socketInfo->SetFullHandshake();
 
@@ -1555,6 +1731,14 @@ AuthCertificateHook(void* arg, PRFileDesc* fd, PRBool checkSig, PRBool isServer)
     stapledOCSPResponse = &csa->items[0];
   }
 
+  const SECItem* sctsFromTLSExtension = SSL_PeerSignedCertTimestamps(fd);
+  if (sctsFromTLSExtension && sctsFromTLSExtension->len == 0) {
+    // SSL_PeerSignedCertTimestamps returns null on error and empty item
+    // when no extension was returned by the server. We always use null when
+    // no extension was received (for whatever reason), ignoring errors.
+    sctsFromTLSExtension = nullptr;
+  }
+
   uint32_t providerFlags = 0;
   socketInfo->GetProviderFlags(&providerFlags);
 
@@ -1568,7 +1752,7 @@ AuthCertificateHook(void* arg, PRFileDesc* fd, PRBool checkSig, PRBool isServer)
     SECStatus rv = SSLServerCertVerificationJob::Dispatch(
                      certVerifier, static_cast<const void*>(fd), socketInfo,
                      serverCert, peerCertChain, stapledOCSPResponse,
-                     providerFlags, now, prnow);
+                     sctsFromTLSExtension, providerFlags, now, prnow);
     return rv;
   }
 
@@ -1579,7 +1763,9 @@ AuthCertificateHook(void* arg, PRFileDesc* fd, PRBool checkSig, PRBool isServer)
 
   SECStatus rv = AuthCertificate(*certVerifier, socketInfo, serverCert,
                                  peerCertChain, stapledOCSPResponse,
-                                 providerFlags, now);
+                                 sctsFromTLSExtension, providerFlags, now);
+  MOZ_ASSERT(peerCertChain || rv != SECSuccess,
+             "AuthCertificate() should take ownership of chain on failure");
   if (rv == SECSuccess) {
     Telemetry::Accumulate(Telemetry::SSL_CERT_ERROR_OVERRIDES, 1);
     return SECSuccess;
@@ -1617,7 +1803,7 @@ AuthCertificateHook(void* arg, PRFileDesc* fd, PRBool checkSig, PRBool isServer)
       }
 
       // We must call SetCanceled here to set the error message type
-      // in case it isn't PlainErrorMessage, which is what we would
+      // in case it isn't SSLErrorMessageType::Plain, which is what we would
       // default to if we just called
       // PR_SetError(runnable->mResult->mErrorCode, 0) and returned
       // SECFailure without doing this.
@@ -1636,42 +1822,14 @@ AuthCertificateHook(void* arg, PRFileDesc* fd, PRBool checkSig, PRBool isServer)
   return SECFailure;
 }
 
-#ifndef MOZ_NO_EV_CERTS
-class InitializeIdentityInfo : public CryptoTask
-{
-  virtual nsresult CalculateResult() override
-  {
-    EnsureIdentityInfoLoaded();
-    return NS_OK;
-  }
-
-  virtual void ReleaseNSSResources() override { } // no-op
-  virtual void CallCallback(nsresult rv) override { } // no-op
-};
-#endif
-
-void EnsureServerVerificationInitialized()
-{
-#ifndef MOZ_NO_EV_CERTS
-  // Should only be called from socket transport thread due to the static
-  // variable and the reference to gCertVerificationThreadPool
-
-  static bool triggeredCertVerifierInit = false;
-  if (triggeredCertVerifierInit)
-    return;
-  triggeredCertVerifierInit = true;
-
-  RefPtr<InitializeIdentityInfo> initJob = new InitializeIdentityInfo();
-  if (gCertVerificationThreadPool)
-    gCertVerificationThreadPool->Dispatch(initJob, NS_DISPATCH_NORMAL);
-#endif
-}
-
 SSLServerCertVerificationResult::SSLServerCertVerificationResult(
-        nsNSSSocketInfo* infoObject, PRErrorCode errorCode,
-        Telemetry::ID telemetryID, uint32_t telemetryValue,
-        SSLErrorMessageType errorMessageType)
-  : mInfoObject(infoObject)
+  nsNSSSocketInfo* infoObject,
+  PRErrorCode errorCode,
+  Telemetry::HistogramID telemetryID,
+  uint32_t telemetryValue,
+  SSLErrorMessageType errorMessageType)
+  : Runnable("psm::SSLServerCertVerificationResult")
+  , mInfoObject(infoObject)
   , mErrorCode(errorCode)
   , mErrorMessageType(errorMessageType)
   , mTelemetryID(telemetryID)
@@ -1690,11 +1848,11 @@ SSLServerCertVerificationResult::Dispatch()
   nsresult rv;
   nsCOMPtr<nsIEventTarget> stsTarget
     = do_GetService(NS_SOCKETTRANSPORTSERVICE_CONTRACTID, &rv);
-  NS_ASSERTION(stsTarget,
-               "Failed to get socket transport service event target");
+  MOZ_ASSERT(stsTarget,
+             "Failed to get socket transport service event target");
   rv = stsTarget->Dispatch(this, NS_DISPATCH_NORMAL);
-  NS_ASSERTION(NS_SUCCEEDED(rv),
-               "Failed to dispatch SSLServerCertVerificationResult");
+  MOZ_ASSERT(NS_SUCCEEDED(rv),
+             "Failed to dispatch SSLServerCertVerificationResult");
 }
 
 NS_IMETHODIMP
@@ -1704,9 +1862,7 @@ SSLServerCertVerificationResult::Run()
   if (mTelemetryID != Telemetry::HistogramCount) {
      Telemetry::Accumulate(mTelemetryID, mTelemetryValue);
   }
-  // XXX: This cast will be removed by the next patch
-  ((nsNSSSocketInfo*) mInfoObject.get())
-    ->SetCertVerificationResult(mErrorCode, mErrorMessageType);
+  mInfoObject->SetCertVerificationResult(mErrorCode, mErrorMessageType);
   return NS_OK;
 }
 

@@ -10,21 +10,21 @@ const certdb  = Cc["@mozilla.org/security/x509certdb;1"]
                   .getService(Ci.nsIX509CertDB);
 // This is the list of certificates needed for the test.
 var certList = [
-  'ee',
-  'ca-1',
-  'ca-2',
+  "ee",
+  "ca-1",
+  "ca-2",
 ];
 
 // Since all the ca's are identical expect for the serial number
 // I have to grab them by enumerating all the certs and then finding
 // the ones that I am interested in.
 function get_ca_array() {
-  let ret_array = new Array();
+  let ret_array = [];
   let allCerts = certdb.getCerts();
   let enumerator = allCerts.getEnumerator();
   while (enumerator.hasMoreElements()) {
     let cert = enumerator.getNext().QueryInterface(Ci.nsIX509Cert);
-    if (cert.commonName == 'ca') {
+    if (cert.commonName == "ca") {
       ret_array[parseInt(cert.serialNumber, 16)] = cert;
     }
   }
@@ -44,7 +44,7 @@ function check_matching_issuer_and_getchain(expected_issuer_serial, cert) {
         "Serial numbers via cert.issuer and via getChain() should match");
 }
 
-function check_getchain(ee_cert, ssl_ca, email_ca){
+function check_getchain(ee_cert, ssl_ca, email_ca) {
   // A certificate should first build a chain/issuer to
   // a SSL trust domain, then an EMAIL trust domain and then
   // an object signer trust domain.
@@ -67,12 +67,15 @@ function run_test() {
   clearOCSPCache();
   clearSessionCache();
 
+  let ee_cert = null;
   for (let cert of certList) {
-    addCertFromFile(certdb, `test_getchain/${cert}.pem`, ",,");
+    let result = addCertFromFile(certdb, `test_getchain/${cert}.pem`, ",,");
+    if (cert == "ee") {
+      ee_cert = result;
+    }
   }
 
-  let ee_cert = certdb.findCertByNickname(null, 'ee');
-  notEqual(ee_cert, null, "EE cert should be in the cert DB");
+  notEqual(ee_cert, null, "EE cert should have successfully loaded");
 
   let ca = get_ca_array();
 

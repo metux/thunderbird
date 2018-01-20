@@ -3,7 +3,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const nsIWindowDataSource = Components.interfaces.nsIWindowDataSource;
+Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+Components.utils.import("resource://gre/modules/Services.jsm");
 
 function toNavigator()
 {
@@ -27,19 +28,23 @@ function ExpirePassword()
 
 function toDownloadManager()
 {
-  //Ported extensions may only implement the Basic toolkit Interface
-  //and not our progress dialogs.
-  var dlUI = Components.classes["@mozilla.org/download-manager-ui;1"]
-                       .getService(Components.interfaces.nsIDownloadManagerUI);
-  if (dlUI instanceof Components.interfaces.nsISuiteDownloadManagerUI) {
-    dlUI.showManager(window);
-  } else {
-    dlUI.show(window);
-  }
+  Components.classes["@mozilla.org/suite/suiteglue;1"]
+            .getService(Components.interfaces.nsISuiteGlue)
+            .showDownloadManager();
 }
 
 function toDataManager(aView)
 {
+  var useDlg = Services.prefs.getBoolPref("suite.manager.dataman.openAsDialog");
+
+  if (useDlg) {
+    var url = "chrome://communicator/content/dataman/dataman.xul";
+    var win = toOpenWindowByType("data:manager", url, "", aView);
+    if (win && aView)
+      win.gDataman.loadView(aView);
+    return;
+  }
+
   switchToTabHavingURI("about:data", true, function(browser) {
     if (aView)
       browser.contentWindow.wrappedJSObject.gDataman.loadView(aView);
@@ -48,6 +53,17 @@ function toDataManager(aView)
 
 function toEM(aView)
 {
+  var useDlg = Services.prefs.getBoolPref("suite.manager.addons.openAsDialog");
+
+  if (useDlg) {
+    var view = aView ? { view: aView } : null;
+    var url = "chrome://mozapps/content/extensions/extensions.xul";
+    var win = toOpenWindowByType("Addons:Manager", url, "", view);
+    if (win && aView)
+      win.loadView(aView);
+    return;
+  }
+
   switchToTabHavingURI("about:addons", true, function(browser) {
     if (aView)
       browser.contentWindow.wrappedJSObject.loadView(aView);
@@ -62,7 +78,7 @@ function toBookmarksManager()
 
 function toJavaScriptConsole()
 {
-    toOpenWindowByType("global:console", "chrome://global/content/console.xul");
+    toOpenWindowByType("suite:console", "chrome://communicator/content/console/console.xul");
 }
 
 function toOpenWindow( aWindow )
@@ -76,7 +92,7 @@ function toOpenWindow( aWindow )
   }
 }
 
-function toOpenWindowByType( inType, uri, features )
+function toOpenWindowByType(inType, uri, features, args)
 {
   // don't do several loads in parallel
   if (uri in window)
@@ -84,7 +100,10 @@ function toOpenWindowByType( inType, uri, features )
 
   var topWindow = Services.wm.getMostRecentWindow(inType);
   if ( topWindow )
+  {
     toOpenWindow( topWindow );
+    return topWindow;
+  }
   else
   {
     // open the requested window, but block it until it's fully loaded
@@ -95,12 +114,24 @@ function toOpenWindowByType( inType, uri, features )
       window[uri].removeEventListener("load", newWindowLoaded, false);
       delete window[uri];
     }
-    // remember the newly loading window until it's fully loaded
-    // or until the current window passes away
-    window[uri] = openDialog(uri, "", features || "non-private,all,dialog=no");
+
+    // Remember the newly loading window until it's fully loaded
+    // or until the current window passes away.
+    // Only pass args if they exist and have a value (see Bug 1279738).
+    if (typeof args != "undefined" && args) {
+      window[uri] = openDialog(uri, "",
+                               features || "non-private,all,dialog=no",
+                               args || null);
+    }
+    else {
+      window[uri] = openDialog(uri, "",
+                               features || "non-private,all,dialog=no");
+    }
+
     window[uri].addEventListener("load", newWindowLoaded, false);
     window.addEventListener("unload", newWindowLoaded, false);
   }
+  return;
 }
 
 function OpenBrowserWindow()
@@ -174,42 +205,26 @@ function CycleWindow( aType )
   return firstWindow;
 }
 
+XPCOMUtils.defineLazyServiceGetter(Services, "windowManagerDS",
+                                   "@mozilla.org/rdf/datasource;1?name=window-mediator",
+                                   "nsIWindowDataSource");
+
 function ShowWindowFromResource( node )
 {
-	var windowManagerDS = Components.classes['@mozilla.org/rdf/datasource;1?name=window-mediator'].getService(nsIWindowDataSource);
-    
-    var desiredWindow = null;
-    var url = node.getAttribute('id');
-	desiredWindow = windowManagerDS.getWindowForResource( url );
-	if ( desiredWindow )
-	{
-		toOpenWindow(desiredWindow);
-	}
-}
-
-function OpenTaskURL( inURL )
-{
-	
-	window.open( inURL );
-}
-
-function ShowUpdateFromResource( node )
-{
-	var url = node.getAttribute('url');
-        // hack until I get a new interface on xpiflash to do a 
-        // look up on the name/url pair.
-	OpenTaskURL( "http://www.mozilla.org/binaries.html");
+  var desiredWindow = null;
+  var url = node.getAttribute("id");
+  desiredWindow = Services.windowManagerDS.getWindowForResource(url);
+  if (desiredWindow)
+    toOpenWindow(desiredWindow);
 }
 
 function checkFocusedWindow()
 {
-  var windowManagerDS = Components.classes['@mozilla.org/rdf/datasource;1?name=window-mediator'].getService(nsIWindowDataSource);
-
   var sep = document.getElementById("sep-window-list");
   // Using double parens to avoid warning
   while ((sep = sep.nextSibling)) {
-    var url = sep.getAttribute('id');
-    var win = windowManagerDS.getWindowForResource(url);
+    var url = sep.getAttribute("id");
+    var win = Services.windowManagerDS.getWindowForResource(url);
     if (win == window) {
       sep.setAttribute("checked", "true");
       break;
@@ -225,12 +240,12 @@ function toProfileManager()
   } else {
     var params = Components.classes["@mozilla.org/embedcomp/dialogparam;1"]
                  .createInstance(Components.interfaces.nsIDialogParamBlock);
-  
+
     params.SetNumberStrings(1);
     params.SetString(0, "menu");
     window.openDialog("chrome://communicator/content/profile/profileSelection.xul",
                 "",
-                "centerscreen,chrome,titlebar",
+                "centerscreen,chrome,titlebar,resizable",
                 params);
   }
   // Here, we don't care about the result code

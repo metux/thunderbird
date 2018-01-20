@@ -27,22 +27,8 @@ Cu.import("resource:///modules/ircHandlers.jsm");
 Cu.import("resource:///modules/ircUtils.jsm");
 Cu.import("resource:///modules/jsProtoHelper.jsm");
 
-function ircRoomInfo(aName, aTopic, aParticipantCount, aAccount) {
-  this.name = aName;
-  this.topic = aTopic;
-  this.participantCount = aParticipantCount;
-  this._account = aAccount;
-}
-ircRoomInfo.prototype = {
-  __proto__: ClassInfo("prplIRoomInfo", "IRC RoomInfo Object"),
-  get accountId() { return this._account.imAccount.id; },
-  get chatRoomFieldValues() {
-    return this._account.getChatRoomDefaultFieldValues(this.name);
-  }
-}
-
 function privmsg(aAccount, aMessage, aIsNotification) {
-  let params = {incoming: true};
+  let params = {incoming: true, tags: aMessage.tags};
   if (aIsNotification)
     params.notification = true;
   aAccount.getConversation(aAccount.isMUCName(aMessage.params[0]) ?
@@ -69,11 +55,11 @@ function leftRoom(aAccount, aNicks, aChannels, aSource, aReason, aKicked) {
     return _(msgId2, aNick, reason);
   }
 
-  for each (let channelName in aChannels) {
+  for (let channelName of aChannels) {
     if (!aAccount.conversations.has(channelName))
       continue; // Handle when we closed the window
     let conversation = aAccount.getConversation(channelName);
-    for each (let nick in aNicks) {
+    for (let nick of aNicks) {
       let msg;
       if (aAccount.normalize(nick) == aAccount.normalize(aAccount._nickname)) {
         msg = __(nick, true);
@@ -93,6 +79,7 @@ function leftRoom(aAccount, aNicks, aChannels, aSource, aReason, aKicked) {
 function writeMessage(aAccount, aMessage, aString, aType) {
   let type = {};
   type[aType] = true;
+  type.tags = aMessage.tags;
   aAccount.getConversation(aMessage.origin)
           .writeMessage(aMessage.origin, aString, type);
   return true;
@@ -114,7 +101,7 @@ function serverErrorMessage(aAccount, aMessage, aError) {
   if (!aAccount._showServerTab)
     return true;
 
-  return writeMessage(aAccount, aMessage, aError, "error")
+  return writeMessage(aAccount, aMessage, aError, "error");
 }
 
 function addMotd(aAccount, aMessage) {
@@ -138,7 +125,7 @@ function addMotd(aAccount, aMessage) {
   // Oh, also some servers don't send a RPL_ENDOFMOTD (e.g. irc.ppy.sh), so if
   // we don't receive another MOTD message after 1 second, consider it to be
   // RPL_ENDOFMOTD.
-  clearTimeout(aAccount._motdTimer)
+  clearTimeout(aAccount._motdTimer);
   aAccount._motdTimer = setTimeout(ircBase.commands["376"].bind(aAccount),
                                    1000, aMessage);
 
@@ -368,6 +355,13 @@ var ircBase = {
       // Clear user mode.
       this._modes = new Set();
       this._userModeReceived = false;
+
+      // Check if autoUserMode is set in the account preferences. If it is set,
+      // then notify the server that the user wants a specific mode.
+      if (this.prefs.prefHasUserValue("autoUserMode")) {
+        this.sendMessage("MODE",
+                         [this._nickname, this.getString("autoUserMode")]);
+      }
 
       // Check if our nick has changed.
       if (aMessage.params[0] != this._nickname)
@@ -697,10 +691,10 @@ var ircBase = {
         receivedBuddyNames = aMessage.params[1].trim().split(" ");
 
       // This was received in response to the last ISON message sent.
-      for each (let buddyName in this.pendingIsOnQueue) {
+      for (let buddyName of this.pendingIsOnQueue) {
         // If the buddy name is in the list returned from the server, they're
         // online.
-        let status = (receivedBuddyNames.indexOf(buddyName) == -1) ?
+        let status = !receivedBuddyNames.includes(buddyName) ?
                        Ci.imIStatusInfo.STATUS_OFFLINE :
                        Ci.imIStatusInfo.STATUS_AVAILABLE;
 
@@ -811,14 +805,16 @@ var ircBase = {
       // 1058584. This hack can be removed when bug 1058653 is fixed.
       topic = topic ? topic.normalize() : "";
 
-      this._channelList.push(new ircRoomInfo(name, topic, participantCount, this));
+      this._channelList.set(name,
+                            {topic: topic, participantCount: participantCount});
+      this._currentBatch.push(name);
       // Give callbacks a batch of channels of length _channelsPerBatch.
-      if (this._channelList.length % this._channelsPerBatch == 0) {
-        let channelBatch = this._channelList.slice(-this._channelsPerBatch);
+      if (this._currentBatch.length == this._channelsPerBatch) {
         for (let callback of this._roomInfoCallbacks) {
-          callback.onRoomInfoAvailable(channelBatch, this, false,
+          callback.onRoomInfoAvailable(this._currentBatch, false,
                                        this._channelsPerBatch);
         }
+        this._currentBatch = [];
       }
       return true;
     },
@@ -993,7 +989,7 @@ var ircBase = {
     "367": function(aMessage) { // RPL_BANLIST
       // <channel> <banmask>
       let conv = this.getConversation(aMessage.params[1]);
-      if (conv.banMasks.indexOf(aMessage.params[2]) == -1)
+      if (!conv.banMasks.includes(aMessage.params[2]))
         conv.banMasks.push(aMessage.params[2]);
       return true;
     },
@@ -1052,7 +1048,7 @@ var ircBase = {
       // No reason to keep the MOTD in memory.
       delete this._motd;
       // Clear the MOTD timer.
-      clearTimeout(this._motdTimer)
+      clearTimeout(this._motdTimer);
       delete this._motdTimer;
 
       return true;
@@ -1432,8 +1428,8 @@ var ircBase = {
     },
     "501": function(aMessage) { // ERR_UMODEUNKNOWNFLAGS
       // :Unknown MODE flag
-      // TODO Display error?
-      return false;
+      return serverErrorMessage(this, aMessage,
+                                _("error.unknownMode", aMessage.params[1]));
     },
     "502": function(aMessage) { // ERR_USERSDONTMATCH
       // :Cannot change mode for other users

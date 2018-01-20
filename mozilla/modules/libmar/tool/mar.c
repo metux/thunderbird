@@ -20,6 +20,7 @@
 
 #if !defined(NO_SIGN_VERIFY) && (!defined(XP_WIN) || defined(MAR_NSS))
 #include "cert.h"
+#include "nss.h"
 #include "pk11pub.h"
 int NSSInitCryptoContext(const char *NSSConfigDir);
 #endif
@@ -125,7 +126,10 @@ int main(int argc, char **argv) {
 #if !defined(NO_SIGN_VERIFY)
   uint32_t fileSizes[MAX_SIGNATURES];
   const uint8_t* certBuffers[MAX_SIGNATURES];
+#if ((!defined(MAR_NSS) && defined(XP_WIN)) || defined(XP_MACOSX)) || \
+    ((defined(XP_WIN) || defined(XP_MACOSX)) && !defined(MAR_NSS))
   char* DERFilePaths[MAX_SIGNATURES];
+#endif
 #if (!defined(XP_WIN) && !defined(XP_MACOSX)) || defined(MAR_NSS)
   CERTCertificate* certs[MAX_SIGNATURES];
 #endif
@@ -152,21 +156,22 @@ int main(int argc, char **argv) {
   }
 
   while (argc > 0) {
-    if (argv[1][0] == '-' && (argv[1][1] == 'c' || 
-        argv[1][1] == 't' || argv[1][1] == 'x' || 
+    if (argv[1][0] == '-' && (argv[1][1] == 'c' ||
+        argv[1][1] == 't' || argv[1][1] == 'x' ||
         argv[1][1] == 'v' || argv[1][1] == 's' ||
         argv[1][1] == 'i' || argv[1][1] == 'T' ||
         argv[1][1] == 'r' || argv[1][1] == 'X' ||
         argv[1][1] == 'I')) {
       break;
     /* -C workingdirectory */
-    } else if (argv[1][0] == '-' && argv[1][1] == 'C') {
+    }
+    if (argv[1][0] == '-' && argv[1][1] == 'C') {
       if (chdir(argv[2]) != 0) {
         return -1;
       }
       argv += 2;
       argc -= 2;
-    } 
+    }
 #if !defined(NO_SIGN_VERIFY) && ((!defined(MAR_NSS) && defined(XP_WIN)) || \
                                  defined(XP_MACOSX))
     /* -D DERFilePath, also matches -D[index] DERFilePath
@@ -343,6 +348,11 @@ int main(int argc, char **argv) {
 #if (defined(XP_WIN) || defined(XP_MACOSX)) && !defined(MAR_NSS)
       rv = mar_read_entire_file(DERFilePaths[k], MAR_MAX_CERT_SIZE,
                                 &certBuffers[k], &fileSizes[k]);
+
+      if (rv) {
+        fprintf(stderr, "ERROR: could not read file %s", DERFilePaths[k]);
+        break;
+      }
 #else
       /* It is somewhat circuitous to look up a CERTCertificate and then pass
        * in its DER encoding just so we can later re-create that
@@ -358,12 +368,10 @@ int main(int argc, char **argv) {
         fileSizes[k] = certs[k]->derCert.len;
       } else {
         rv = -1;
-      }
-#endif
-      if (rv) {
-        fprintf(stderr, "ERROR: could not read file %s", DERFilePaths[k]);
+        fprintf(stderr, "ERROR: could not find cert from nickname %s", certNames[k]);
         break;
       }
+#endif
     }
 
     if (!rv) {
@@ -394,9 +402,11 @@ int main(int argc, char **argv) {
         fprintf(stderr, "ERROR: The MAR file is in the old format so has"
                         " no signature to verify.\n");
       }
-      return -1;
     }
-    return 0;
+#if (!defined(XP_WIN) && !defined(XP_MACOSX)) || defined(MAR_NSS)
+    (void) NSS_Shutdown();
+#endif
+    return rv ? -1 : 0;
 
   case 's':
     if (!NSSConfigDir || certCount == 0 || argc < 4) {

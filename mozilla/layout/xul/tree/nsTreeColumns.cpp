@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -54,7 +55,6 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsTreeColumn)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mContent)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mNext)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 NS_IMPL_CYCLE_COLLECTION_TRACE_WRAPPERCACHE(nsTreeColumn)
 
@@ -203,13 +203,6 @@ nsTreeColumn::GetIdConst(const char16_t** aIdConst)
 }
 
 NS_IMETHODIMP
-nsTreeColumn::GetAtom(nsIAtom** aAtom)
-{
-  NS_IF_ADDREF(*aAtom = GetAtom());
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 nsTreeColumn::GetIndex(int32_t* aIndex)
 {
   *aIndex = GetIndex();
@@ -276,7 +269,7 @@ nsTreeColumn::Invalidate()
 
   // If we have an Id, cache the Id as an atom.
   if (!mId.IsEmpty()) {
-    mAtom = do_GetAtom(mId);
+    mAtom = NS_Atomize(mId);
   }
 
   // Cache our index.
@@ -288,13 +281,13 @@ nsTreeColumn::Invalidate()
   const nsStyleText* textStyle = frame->StyleText();
 
   mTextAlignment = textStyle->mTextAlign;
-  // DEFAULT or END alignment sometimes means RIGHT
-  if ((mTextAlignment == NS_STYLE_TEXT_ALIGN_DEFAULT &&
+  // START or END alignment sometimes means RIGHT
+  if ((mTextAlignment == NS_STYLE_TEXT_ALIGN_START &&
        vis->mDirection == NS_STYLE_DIRECTION_RTL) ||
       (mTextAlignment == NS_STYLE_TEXT_ALIGN_END &&
        vis->mDirection == NS_STYLE_DIRECTION_LTR)) {
     mTextAlignment = NS_STYLE_TEXT_ALIGN_RIGHT;
-  } else if (mTextAlignment == NS_STYLE_TEXT_ALIGN_DEFAULT ||
+  } else if (mTextAlignment == NS_STYLE_TEXT_ALIGN_START ||
              mTextAlignment == NS_STYLE_TEXT_ALIGN_END) {
     mTextAlignment = NS_STYLE_TEXT_ALIGN_LEFT;
   }
@@ -412,7 +405,7 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsTreeColumns)
   NS_INTERFACE_MAP_ENTRY(nsITreeColumns)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
-                                                                                
+
 NS_IMPL_CYCLE_COLLECTING_ADDREF(nsTreeColumns)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(nsTreeColumns)
 
@@ -545,7 +538,7 @@ nsTreeColumns::GetKeyColumn()
 
     if (!first)
       first = currCol;
-    
+
     if (nsContentUtils::HasNonEmptyAttr(currCol->mContent, kNameSpaceID_None,
                                         nsGkAtoms::sortDirection)) {
       // Use sorted column as the key.
@@ -606,12 +599,6 @@ nsTreeColumns::NamedGetter(const nsAString& aId, bool& aFound)
   return nullptr;
 }
 
-bool
-nsTreeColumns::NameIsEnumerable(const nsAString& aName)
-{
-  return true;
-}
-
 nsTreeColumn*
 nsTreeColumns::GetNamedColumn(const nsAString& aId)
 {
@@ -627,7 +614,7 @@ nsTreeColumns::GetNamedColumn(const nsAString& aId, nsITreeColumn** _retval)
 }
 
 void
-nsTreeColumns::GetSupportedNames(unsigned, nsTArray<nsString>& aNames)
+nsTreeColumns::GetSupportedNames(nsTArray<nsString>& aNames)
 {
   for (nsTreeColumn* currCol = mFirstColumn; currCol; currCol = currCol->GetNext()) {
     aNames.AppendElement(currCol->GetId());
@@ -738,7 +725,7 @@ nsTreeColumns::EnsureColumns()
     if (!colFrame)
       return;
 
-    colFrame = colFrame->GetFirstPrincipalChild();
+    colFrame = colFrame->PrincipalChildList().FirstChild();
     if (!colFrame)
       return;
 

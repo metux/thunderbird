@@ -2,24 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://gdata-provider/modules/shim/Loader.jsm").shimIt(this);
 Components.utils.import("resource://gdata-provider/modules/OAuth2.jsm");
 Components.utils.import("resource://gdata-provider/modules/gdataUtils.jsm");
 Components.utils.import("resource://gdata-provider/modules/gdataLogging.jsm");
 Components.utils.import("resource://gdata-provider/modules/gdataRequest.jsm");
 
-CuImport("resource://gre/modules/XPCOMUtils.jsm", this);
-CuImport("resource://gre/modules/Preferences.jsm", this);
-CuImport("resource://gre/modules/Services.jsm", this);
-CuImport("resource://gre/modules/Promise.jsm", this);
-CuImport("resource://gre/modules/PromiseUtils.jsm", this);
-CuImport("resource://gre/modules/Task.jsm", this);
-CuImport("resource://gre/modules/Timer.jsm", this);
+Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+Components.utils.import("resource://gre/modules/Preferences.jsm");
+Components.utils.import("resource://gre/modules/Services.jsm");
+Components.utils.import("resource://gre/modules/PromiseUtils.jsm");
+Components.utils.import("resource://gre/modules/Timer.jsm");
 
-CuImport("resource:///modules/iteratorUtils.jsm", this);
+Components.utils.import("resource:///modules/iteratorUtils.jsm");
 
-CuImport("resource://calendar/modules/calUtils.jsm", this);
-CuImport("resource://calendar/modules/calProviderUtils.jsm", this);
+Components.utils.import("resource://calendar/modules/calUtils.jsm");
+Components.utils.import("resource://calendar/modules/calProviderUtils.jsm");
 
 var cIFBI = Components.interfaces.calIFreeBusyInterval;
 var nIPM = Components.interfaces.nsIPermissionManager;
@@ -50,9 +47,9 @@ var calGoogleSessionManager = {
         }
 
         if (uri.schemeIs("googleapi")) {
-            let [fullUser, path] = uri.path.substr(2).split("/", 2);
+            let [fullUser, path] = uri.pathQueryRef.substr(2).split("/", 2);
             id = fullUser || cal.getUUID();
-        } else if (host == "www.google.com" && uri.path.startsWith("/calendar/feeds") && protocols.some(function(s) { return uri.schemeIs(s); })) {
+        } else if (host == "www.google.com" && uri.pathQueryRef.startsWith("/calendar/feeds") && protocols.some(function(s) { return uri.schemeIs(s); })) {
             let googleCalendarName = aCalendar.getProperty("googleCalendarName");
             let googleUser = Preferences.get("calendar.google.calPrefs." + googleCalendarName  + ".googleUser");
             id = googleUser || googleCalendarName || cal.getUUID();
@@ -129,15 +126,14 @@ calGoogleSession.prototype = {
     setupOAuth: function setupOAuth() {
         let sessionId = this.mId;
         let authDescr = getProviderString("requestWindowDescription", sessionId);
-        let authTitle = cal.calGetString("commonDialogs", "EnterUserPasswordFor",
-                                         [sessionId], "global");
+        let authTitle = getProviderString("requestWindowTitle", sessionId);
 
         // Set up a new OAuth2 instance for logging in.
         this.oauth = new OAuth2(OAUTH_BASE_URI, OAUTH_SCOPE, OAUTH_CLIENT_ID, OAUTH_CLIENT_SECRET);
         this.oauth.extraAuthParams = [
           ["login_hint", sessionId],
           // Use application locale for login dialog
-          ["hl", Preferences.get("general.useragent.locale", "en-US")]
+          ["hl", Services.locale.getRequestedLocale()]
         ];
         this.oauth.requestWindowURI = "chrome://gdata-provider/content/browserRequest.xul";
         this.oauth.requestWindowFeatures = "chrome,private,centerscreen,width=430,height=600";
@@ -152,9 +148,13 @@ calGoogleSession.prototype = {
                 if (!this.mRefreshToken) {
                     let pass = { value: null };
                     try {
-                        cal.auth.passwordManagerGet(sessionId, pass, sessionId, pwMgrId);
-                    } catch (e if e.result == Components.results.NS_ERROR_ABORT) {
+                        let origin = "oauth:" + sessionId;
+                        cal.auth.passwordManagerGet(sessionId, pass, origin, pwMgrId);
+                    } catch (e) {
                         // User might have cancelled the master password prompt, thats ok
+                        if (e.result != Components.results.NS_ERROR_ABORT) {
+                            throw e;
+                        }
                     }
                     this.mRefreshToken = pass.value;
                 }
@@ -162,13 +162,17 @@ calGoogleSession.prototype = {
             },
             set: function setRefreshToken(val) {
                 try {
-                    if (!val) {
-                        cal.auth.passwordManagerRemove(sessionId, sessionId, pwMgrId);
+                    let origin = "oauth:" + sessionId;
+                    if (val) {
+                        cal.auth.passwordManagerSave(sessionId, val, origin, pwMgrId);
                     } else {
-                        cal.auth.passwordManagerSave(sessionId, val, sessionId, pwMgrId);
+                        cal.auth.passwordManagerRemove(sessionId, origin, pwMgrId);
                     }
-                } catch (e if e.result == Components.results.NS_ERROR_ABORT) {
+                } catch (e) {
                     // User might have cancelled the master password prompt, thats ok
+                    if (e.result != Components.results.NS_ERROR_ABORT) {
+                        throw e;
+                    }
                 }
                 return (this.mRefreshToken = val);
             },
@@ -180,7 +184,7 @@ calGoogleSession.prototype = {
         // google.com then we won't overwrite the rule though.
         if (Preferences.get("network.cookie.cookieBehavior") == 2) {
             let found = null;
-            for (let perm in fixIterator(Services.perms.enumerator, Components.interfaces.nsIPermission)) {
+            for (let perm of fixIterator(Services.perms.enumerator, Components.interfaces.nsIPermission)) {
                 if (perm.type == "cookie" && perm.host == "google.com") {
                     found = perm;
                     break;
@@ -188,7 +192,7 @@ calGoogleSession.prototype = {
             }
 
             if (!found || found.capability != nIPM.DENY_ACTION) {
-                let uri = Services.io.newURI("http://google.com", null, null);
+                let uri = Services.io.newURI("http://google.com");
                 if (Services.vc.compare(Services.appinfo.platformVersion, 42) >= 0) {
                     Services.perms.remove(uri, "cookie");
                 } else {
@@ -367,25 +371,23 @@ calGoogleSession.prototype = {
         }
     },
 
-    asyncPaginatedRequest: function(aRequest, onFirst, onEach, onLast) {
-        return Task.spawn(function() {
-            let data = yield this.asyncItemRequest(aRequest);
+    asyncPaginatedRequest: async function(aRequest, onFirst, onEach, onLast) {
+        let data = await this.asyncItemRequest(aRequest);
 
-            if (onFirst) {
-                yield onFirst(data);
-            }
+        if (onFirst) {
+            await onFirst(data);
+        }
 
-            if (onEach) {
-                yield onEach(data);
-            }
+        if (onEach) {
+            await onEach(data);
+        }
 
-            if (data.nextPageToken) {
-                aRequest.addQueryParameter("pageToken", data.nextPageToken);
-                throw new Task.Result(yield this.asyncPaginatedRequest(aRequest, null, onEach, onLast));
-            } else if (onLast) {
-                throw new Task.Result(yield onLast(data));
-            }
-        }.bind(this));
+        if (data.nextPageToken) {
+            aRequest.addQueryParameter("pageToken", data.nextPageToken);
+            return await this.asyncPaginatedRequest(aRequest, null, onEach, onLast);
+        } else if (onLast) {
+            return await onLast(data);
+        }
     },
 
     /**
@@ -501,20 +503,23 @@ calGoogleSession.prototype = {
     }
 };
 
-// Before you spend time trying to find out what this means, please note
-// that doing so and using the information WILL cause Google to revoke
-// this extension's privileges, which means not one Lightning user will
-// be able to connect to Google Calendar using Lightning. This will cause
-// unhappy users all around which means that the developers will have to
-// spend more time with user support, which means less time for features,
-// releases and bugfixes.  For a paid developer this would actually mean
-// financial harm.
+// Before you spend time trying to find out what this means, please note that
+// doing so and using the information WILL cause Google to revoke this
+// extension's privileges, which means not one Lightning user will be able to
+// connect to Google Calendar using Lightning. This will cause unhappy users
+// all around which means that the developers will have to spend more time with
+// user support, which means less time for features, releases and bugfixes.
+// For a paid developer this would actually mean financial harm.
+//
 // Do you really want all of this to be your fault? Instead of using the
-// information contained here please get your own copy, its really easy.
-this["\x65\x76\x61\x6C"]([String["\x66\x72\x6F\x6D\x43\x68\x61\x72\x43\x6F"+
-"\x64\x65"](("wbs!!!PBVUI`CBTF`VSJ>#iuuqt;00bddpvout/hpphmf/dpn0p0#<wbs!!!"+
-"PBVUI`TDPQF>#iuuqt;00xxx/hpphmfbqjt/dpn0bvui0dbmfoebs!iuuqt;00xxx/hpphmfb"+
-"qjt/dpn0bvui0ubtlt#<wbs!!!PBVUI`DMJFOU`JE>#758881386533.o8m3pwsucmb9kh3ru"+
-"qd4cpw2opkdukrq/bqqt/hpphmfvtfsdpoufou/dpn#<wbs!!!PBVUI`DMJFOU`TFDSFU>#f1"+
-"Un{fzChWpEMPSUB8TsDFJV#<")["\x63\x68\x61\x72\x43\x6F\x64\x65\x41\x74"](i)-1)
-for(i in (function(){let x=303; while (x--) yield x})())].reverse().join(""));
+// information contained here please get your own copy, it's really easy.
+(zqdx=>{zqdx["\x65\x76\x61\x6C"](zqdx["\x41\x72\x72\x61\x79"]["\x70\x72\x6F\x74"+
+"\x6F\x74\x79\x70\x65"]["\x6D\x61\x70"]["\x63\x61\x6C\x6C"]("uijt/PBVUI`CBTF`VS"+
+"J>#iuuqt;00bddpvout/hpphmf/dpn0p0#<uijt/PBVUI`TDPQF>#iuuqt;00xxx/hpphmfbqjt/dp"+
+"n0bvui0dbmfoebs!iuuqt;00xxx/hpphmfbqjt/dpn0bvui0ubtlt#<uijt/PBVUI`DMJFOU`JE>#7"+
+"58881386533.g41njwn7g3omj8rv5nqu31b4md94u2ww/bqqt/hpphmfvtfsdpoufou/dpn#<uijt/"+
+"PBVUI`DMJFOU`TFDSFU>#V{noooRzeIWvZVi`DJb3Gr4W#<",_=>zqdx["\x53\x74\x72\x69\x6E"+
+"\x67"]["\x66\x72\x6F\x6D\x43\x68\x61\x72\x43\x6F\x64\x65"](_["\x63\x68\x61\x72"+
+"\x43\x6F\x64\x65\x41\x74"](0)-1),this)[""+"\x6A\x6F\x69\x6E"](""))})["\x63\x61"+
+"\x6C\x6C"]((this),Components["\x75\x74\x69\x6c\x73"]["\x67\x65\x74\x47\x6c\x6f"+
+"\x62\x61\x6c\x46\x6f\x72\x4f\x62\x6a\x65\x63\x74"](this));

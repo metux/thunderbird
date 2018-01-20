@@ -1,7 +1,6 @@
 Components.utils.import("resource://gre/modules/Services.jsm");
 Components.utils.import("resource:///modules/mailServices.js");
 Components.utils.import("resource:///modules/IOUtils.js");
-Components.utils.import("resource://gre/modules/Promise.jsm");
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://testing-common/mailnews/mailTestUtils.js");
 Components.utils.import("resource://testing-common/mailnews/localAccountUtils.js");
@@ -40,8 +39,9 @@ function setupServerDaemon(handler) {
   return server;
 }
 
-function getBasicSmtpServer(port=1) {
-  let server = localAccountUtils.create_outgoing_server(port, "user", "password");
+function getBasicSmtpServer(port=1, hostname="localhost") {
+  let server = localAccountUtils.create_outgoing_server(port, "user",
+    "password", hostname);
 
   // Override the default greeting so we get something predicitable
   // in the ELHO message
@@ -139,7 +139,7 @@ function createMessage(aAttachment) {
       attachment.contentType = 'text/plain';
       attachment.name = aAttachment.leafName;
     } else {
-      attachment.url = "data:,";
+      attachment.url = "data:,sometext";
       attachment.name = aAttachment;
     }
     attachments = [attachment];
@@ -170,7 +170,7 @@ function richCreateMessage(fields, attachments=[], identity=null,
   let array = Cc["@mozilla.org/array;1"].createInstance(Ci.nsIMutableArray);
   let enumerator = gDraftFolder.msgDatabase.EnumerateMessages();
   while (enumerator.hasMoreElements())
-    array.appendElement(enumerator.getNext(), false);
+    array.appendElement(enumerator.getNext());
   if (array.length)
     gDraftFolder.deleteMessages(array, null, true, false, null, false);
 
@@ -211,3 +211,6 @@ function getAttachmentFromContent(aContent) {
   return attachments[1];
 }
 
+do_register_cleanup(function() {
+  load(gDEPTH + "mailnews/resources/mailShutdown.js");
+});

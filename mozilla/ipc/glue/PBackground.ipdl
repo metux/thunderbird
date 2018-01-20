@@ -5,24 +5,37 @@
 include protocol PAsmJSCacheEntry;
 include protocol PBackgroundIDBFactory;
 include protocol PBackgroundIndexedDBUtils;
+include protocol PBackgroundStorage;
 include protocol PBackgroundTest;
-include protocol PBlob;
 include protocol PBroadcastChannel;
 include protocol PCache;
 include protocol PCacheStorage;
 include protocol PCacheStreamControl;
+include protocol PClientManager;
 include protocol PFileDescriptorSet;
+include protocol PFileSystemRequest;
+include protocol PGamepadEventChannel;
+include protocol PGamepadTestChannel;
+include protocol PHttpBackgroundChannel;
+include protocol PIPCBlobInputStream;
+include protocol PPendingIPCBlob;
+include protocol PTemporaryIPCBlob;
 include protocol PMessagePort;
 include protocol PCameras;
-include protocol PNuwa;
 include protocol PQuota;
+include protocol PChildToParentStream;
+include protocol PParentToChildStream;
 include protocol PServiceWorkerManager;
+include protocol PWebAuthnTransaction;
 include protocol PUDPSocket;
 include protocol PVsync;
 
 include DOMTypes;
+include IPCBlob;
 include PBackgroundSharedTypes;
 include PBackgroundIDBSharedTypes;
+include PFileSystemParams;
+include ProtocolTypes;
 
 include "mozilla/dom/cache/IPCUtils.h";
 
@@ -43,63 +56,111 @@ sync protocol PBackground
   manages PAsmJSCacheEntry;
   manages PBackgroundIDBFactory;
   manages PBackgroundIndexedDBUtils;
+  manages PBackgroundStorage;
   manages PBackgroundTest;
-  manages PBlob;
   manages PBroadcastChannel;
   manages PCache;
   manages PCacheStorage;
   manages PCacheStreamControl;
+  manages PClientManager;
   manages PFileDescriptorSet;
+  manages PFileSystemRequest;
+  manages PGamepadEventChannel;
+  manages PGamepadTestChannel;
+  manages PHttpBackgroundChannel;
+  manages PIPCBlobInputStream;
+  manages PPendingIPCBlob;
+  manages PTemporaryIPCBlob;
   manages PMessagePort;
   manages PCameras;
-  manages PNuwa;
   manages PQuota;
+  manages PChildToParentStream;
+  manages PParentToChildStream;
   manages PServiceWorkerManager;
+  manages PWebAuthnTransaction;
   manages PUDPSocket;
   manages PVsync;
 
 parent:
   // Only called at startup during mochitests to check the basic infrastructure.
-  PBackgroundTest(nsCString testArg);
+  async PBackgroundTest(nsCString testArg);
 
-  PBackgroundIDBFactory(LoggingInfo loggingInfo);
+  async PBackgroundIDBFactory(LoggingInfo loggingInfo);
 
-  PBackgroundIndexedDBUtils();
+  async PBackgroundIndexedDBUtils();
 
-  PVsync();
+  // Use only for testing!
+  async FlushPendingFileDeletions();
 
-  PCameras();
+  async PBackgroundStorage(nsString profilePath);
 
-  PUDPSocket(OptionalPrincipalInfo pInfo, nsCString filter);
-  PBroadcastChannel(PrincipalInfo pInfo, nsCString origin, nsString channel,
-                    bool privateBrowsing);
+  async BroadcastLocalStorageChange(nsString documentURI,
+                                    nsString key,
+                                    nsString oldValue,
+                                    nsString newValue,
+                                    PrincipalInfo principalInfo,
+                                    bool isPrivate);
 
-  PServiceWorkerManager();
+  async PVsync();
 
-  ShutdownServiceWorkerRegistrar();
+  async PCameras();
 
-  PCacheStorage(Namespace aNamespace, PrincipalInfo aPrincipalInfo);
+  async PUDPSocket(OptionalPrincipalInfo pInfo, nsCString filter);
+  async PBroadcastChannel(PrincipalInfo pInfo, nsCString origin, nsString channel);
 
-  PMessagePort(nsID uuid, nsID destinationUuid, uint32_t sequenceId);
+  async PServiceWorkerManager();
 
-  PNuwa();
+  async ShutdownServiceWorkerRegistrar();
 
-  MessagePortForceClose(nsID uuid, nsID destinationUuid, uint32_t sequenceId);
+  async PCacheStorage(Namespace aNamespace, PrincipalInfo aPrincipalInfo);
 
-  PAsmJSCacheEntry(OpenMode openMode,
-                   WriteParams write,
-                   PrincipalInfo principalInfo);
+  async PMessagePort(nsID uuid, nsID destinationUuid, uint32_t sequenceId);
 
-  PQuota();
+  async PChildToParentStream();
+
+  async MessagePortForceClose(nsID uuid, nsID destinationUuid, uint32_t sequenceId);
+
+  async PAsmJSCacheEntry(OpenMode openMode,
+                         WriteParams write,
+                         PrincipalInfo principalInfo);
+
+  async PQuota();
+
+  async PFileSystemRequest(FileSystemParams params);
+
+  async PGamepadEventChannel();
+
+  async PGamepadTestChannel();
+
+  async PHttpBackgroundChannel(uint64_t channelId);
+
+  async PWebAuthnTransaction();
+
+  async PTemporaryIPCBlob();
+
+  async PClientManager();
 
 child:
-  PCache();
-  PCacheStreamControl();
+  async PCache();
+  async PCacheStreamControl();
+
+  async PParentToChildStream();
+
+  async PPendingIPCBlob(IPCBlob blob);
+
+  async DispatchLocalStorageChange(nsString documentURI,
+                                   nsString key,
+                                   nsString oldValue,
+                                   nsString newValue,
+                                   PrincipalInfo principalInfo,
+                                   bool isPrivate);
 
 both:
-  PBlob(BlobConstructorParams params);
+  // PIPCBlobInputStream is created on the parent side only if the child starts
+  // a migration.
+  async PIPCBlobInputStream(nsID aID, uint64_t aSize);
 
-  PFileDescriptorSet(FileDescriptor fd);
+  async PFileDescriptorSet(FileDescriptor fd);
 };
 
 } // namespace ipc

@@ -17,7 +17,6 @@ test();
 
 function test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
  
@@ -32,7 +31,13 @@ function test()
   expect = '({get h() {[native code]}})';
   actual = uneval(a);      
 
-  compareSource(expect, actual, summary);
+  // Native function syntax:
+  // `function IdentifierName_opt ( FormalParameters ) { [ native code ] }`
 
-  exitFunc ('test');
+  // The placement of whitespace characters in the native function's body is
+  // implementation-dependent, so we need to replace those for this test.
+  var re = new RegExp(["\\{", "\\[", "native", "code", "\\]", "\\}"].join("\\s*"));
+  actual = actual.replace(re, "{[native code]}");
+
+  compareSource(expect, actual, summary);
 }

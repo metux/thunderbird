@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -11,11 +12,9 @@
 #include "nsITreeView.h"
 #include "nsString.h"
 #include "nsIDOMElement.h"
-#include "nsDOMClassInfoID.h"
 #include "nsIContent.h"
 #include "nsNameSpaceManager.h"
 #include "nsGkAtoms.h"
-#include "nsAutoPtr.h"
 #include "nsComponentManagerUtils.h"
 
 using namespace mozilla;
@@ -33,7 +32,7 @@ struct nsTreeRange
 
   nsTreeRange(nsTreeSelection* aSel, int32_t aSingleVal)
     :mSelection(aSel), mPrev(nullptr), mNext(nullptr), mMin(aSingleVal), mMax(aSingleVal) {}
-  nsTreeRange(nsTreeSelection* aSel, int32_t aMin, int32_t aMax) 
+  nsTreeRange(nsTreeSelection* aSel, int32_t aMin, int32_t aMax)
     :mSelection(aSel), mPrev(nullptr), mNext(nullptr), mMin(aMin), mMax(aMax) {}
 
   ~nsTreeRange() { delete mNext; }
@@ -186,7 +185,7 @@ struct nsTreeRange
       cur = cur->mNext;
     }
   }
-  
+
   static void InvalidateRanges(nsITreeBoxObject* aTree,
                                nsTArray<int32_t>& aRanges)
   {
@@ -202,7 +201,7 @@ struct nsTreeRange
     nsTArray<int32_t> ranges;
     CollectRanges(this, ranges);
     InvalidateRanges(mSelection->mTree, ranges);
-    
+
   }
 
   void RemoveAllBut(int32_t aIndex) {
@@ -214,14 +213,14 @@ struct nsTreeRange
 
       mMin = aIndex;
       mMax = aIndex;
-      
+
       nsTreeRange* first = mSelection->mFirstRange;
       if (mPrev)
         mPrev->mNext = mNext;
       if (mNext)
         mNext->mPrev = mPrev;
       mNext = mPrev = nullptr;
-      
+
       if (first != this) {
         delete mSelection->mFirstRange;
         mSelection->mFirstRange = this;
@@ -237,7 +236,7 @@ struct nsTreeRange
       aRange->Connect(mPrev, this);
     else if (mNext)
       mNext->Insert(aRange);
-    else 
+    else
       aRange->Connect(this, nullptr);
   }
 };
@@ -267,7 +266,6 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsTreeSelection)
   NS_INTERFACE_MAP_ENTRY(nsITreeSelection)
   NS_INTERFACE_MAP_ENTRY(nsINativeTreeSelection)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
-  NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(TreeSelection)
 NS_INTERFACE_MAP_END
 
 NS_IMETHODIMP nsTreeSelection::GetTree(nsITreeBoxObject * *aTree)
@@ -292,18 +290,13 @@ NS_IMETHODIMP nsTreeSelection::SetTree(nsITreeBoxObject * aTree)
 
 NS_IMETHODIMP nsTreeSelection::GetSingle(bool* aSingle)
 {
-  if (!mTree)
-    return NS_ERROR_NULL_POINTER;
-
-  nsCOMPtr<nsIBoxObject> boxObject = do_QueryInterface(mTree);
-
-  nsCOMPtr<nsIDOMElement> element;
-  boxObject->GetElement(getter_AddRefs(element));
-
-  nsCOMPtr<nsIContent> content = do_QueryInterface(element);
-
   static nsIContent::AttrValuesArray strings[] =
     {&nsGkAtoms::single, &nsGkAtoms::cell, &nsGkAtoms::text, nullptr};
+
+  nsCOMPtr<nsIContent> content = GetContent();
+  if (!content) {
+    return NS_ERROR_NULL_POINTER;
+  }
 
   *aSingle = content->FindAttrValueIn(kNameSpaceID_None,
                                       nsGkAtoms::seltype,
@@ -338,9 +331,15 @@ NS_IMETHODIMP nsTreeSelection::TimedSelect(int32_t aIndex, int32_t aMsec)
       if (mSelectTimer)
         mSelectTimer->Cancel();
 
-      mSelectTimer = do_CreateInstance("@mozilla.org/timer;1");
-      mSelectTimer->InitWithFuncCallback(SelectCallback, this, aMsec, 
-                                         nsITimer::TYPE_ONE_SHOT);
+      nsIEventTarget* target = nullptr;
+      if (nsCOMPtr<nsIContent> content = GetContent()) {
+        target = content->OwnerDoc()->EventTargetFor(TaskCategory::Other);
+      }
+      NS_NewTimerWithFuncCallback(getter_AddRefs(mSelectTimer),
+                                  SelectCallback, this, aMsec,
+                                  nsITimer::TYPE_ONE_SHOT,
+                                  "nsTreeSelection::SelectCallback",
+                                  target);
     }
   }
 
@@ -455,7 +454,7 @@ NS_IMETHODIMP nsTreeSelection::RangedSelect(int32_t aStartIndex, int32_t aEndInd
   rv = SetCurrentIndex(aEndIndex);
   if (NS_FAILED(rv))
     return rv;
-  
+
   int32_t start = aStartIndex < aEndIndex ? aStartIndex : aEndIndex;
   int32_t end = aStartIndex < aEndIndex ? aEndIndex : aStartIndex;
 
@@ -498,7 +497,7 @@ NS_IMETHODIMP nsTreeSelection::ClearRange(int32_t aStartIndex, int32_t aEndIndex
     if (mTree)
       mTree->InvalidateRange(start, end);
   }
-  
+
   return NS_OK;
 }
 
@@ -543,7 +542,7 @@ NS_IMETHODIMP nsTreeSelection::SelectAll()
 
   mShiftSelectPivot = -1;
 
-  // Invalidate not necessary when clearing selection, since 
+  // Invalidate not necessary when clearing selection, since
   // we're going to invalidate the world on the SelectAll.
   delete mFirstRange;
 
@@ -592,7 +591,7 @@ NS_IMETHODIMP nsTreeSelection::GetCount(int32_t *count)
     *count = mFirstRange->Count();
   else // No range available, so there's no selected row.
     *count = 0;
-  
+
   return NS_OK;
 }
 
@@ -626,11 +625,11 @@ NS_IMETHODIMP nsTreeSelection::SetCurrentIndex(int32_t aIndex)
   }
   if (mCurrentIndex != -1 && mTree)
     mTree->InvalidateRow(mCurrentIndex);
-  
+
   mCurrentIndex = aIndex;
   if (!mTree)
     return NS_OK;
-  
+
   if (aIndex != -1)
     mTree->InvalidateRow(aIndex);
 
@@ -677,9 +676,9 @@ NS_IMETHODIMP nsTreeSelection::SetCurrentColumn(nsITreeColumn* aCurrentColumn)
     if (mCurrentIndex != -1)
       mTree->InvalidateCell(mCurrentIndex, mCurrentColumn);
   }
-  
+
   mCurrentColumn = aCurrentColumn;
-  
+
   if (mCurrentColumn) {
     if (mFirstRange)
       mTree->InvalidateCell(mFirstRange->mMin, mCurrentColumn);
@@ -746,7 +745,7 @@ nsTreeSelection::AdjustSelection(int32_t aIndex, int32_t aCount)
         // adjustment happens after the range, so no change
         ADD_NEW_RANGE(mFirstRange, this, curr->mMin, curr->mMax);
       }
-      else if (aIndex <= curr->mMin) {  
+      else if (aIndex <= curr->mMin) {
         // adjustment happens before the start of the range, so shift down
         ADD_NEW_RANGE(mFirstRange, this, curr->mMin + aCount, curr->mMax + aCount);
         selChanged = true;
@@ -852,6 +851,22 @@ nsTreeSelection::SelectCallback(nsITimer *aTimer, void *aClosure)
     aTimer->Cancel();
     self->mSelectTimer = nullptr;
   }
+}
+
+already_AddRefed<nsIContent>
+nsTreeSelection::GetContent()
+{
+  if (!mTree) {
+    return nullptr;
+  }
+
+  nsCOMPtr<nsIBoxObject> boxObject = do_QueryInterface(mTree);
+
+  nsCOMPtr<nsIDOMElement> element;
+  boxObject->GetElement(getter_AddRefs(element));
+
+  nsCOMPtr<nsIContent> content = do_QueryInterface(element);
+  return content.forget();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////

@@ -16,11 +16,9 @@ test();
 
 function test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
 
-  jit(false);
   function f(foo) {
     if (a % 2 == 1) {
       try {
@@ -33,6 +31,4 @@ function test()
   f("x");
 
   reportCompare(expect, actual, summary);
-
-  exitFunc ('test');
 }

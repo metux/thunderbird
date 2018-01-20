@@ -4,11 +4,16 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
+from __future__ import absolute_import, print_function
+
 import unittest
+
+import mozunit
+
 from mozprocess import processhandler
 
-class ParamTests(unittest.TestCase):
 
+class ParamTests(unittest.TestCase):
 
     def test_process_outputline_handler(self):
         """Parameter processOutputLine is accepted with a single function"""
@@ -16,7 +21,7 @@ class ParamTests(unittest.TestCase):
             print("output " + str(line))
         err = None
         try:
-            processhandler.ProcessHandler(['ls','-l'], processOutputLine=output)
+            processhandler.ProcessHandler(['ls', '-l'], processOutputLine=output)
         except (TypeError, AttributeError) as e:
             err = e
         self.assertFalse(err)
@@ -27,11 +32,10 @@ class ParamTests(unittest.TestCase):
             print("output " + str(line))
         err = None
         try:
-            processhandler.ProcessHandler(['ls','-l'], processOutputLine=[output])
+            processhandler.ProcessHandler(['ls', '-l'], processOutputLine=[output])
         except (TypeError, AttributeError) as e:
             err = e
         self.assertFalse(err)
-
 
     def test_process_ontimeout_handler(self):
         """Parameter onTimeout is accepted with a single function"""
@@ -78,9 +82,5 @@ class ParamTests(unittest.TestCase):
         self.assertFalse(err)
 
 
-def main():
-    unittest.main()
-
 if __name__ == '__main__':
-    main()
-
+    mozunit.main()

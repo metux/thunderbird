@@ -5,8 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 var gTreeUtils = {
-  deleteAll: function (aTree, aView, aItems, aDeletedItems)
-  {
+  deleteAll(aTree, aView, aItems, aDeletedItems) {
     for (var i = 0; i < aItems.length; ++i)
       aDeletedItems.push(aItems[i]);
     aItems.splice(0, aItems.length);
@@ -15,8 +14,7 @@ var gTreeUtils = {
     aTree.treeBoxObject.rowCountChanged(0, -oldCount);
   },
 
-  deleteSelectedItems: function (aTree, aView, aItems, aDeletedItems)
-  {
+  deleteSelectedItems(aTree, aView, aItems, aDeletedItems) {
     var selection = aTree.view.selection;
     selection.selectEventsSuppressed = true;
 
@@ -24,7 +22,7 @@ var gTreeUtils = {
     for (var i = 0; i < rc; ++i) {
       var min = { }; var max = { };
       selection.getRangeAt(i, min, max);
-      for (var j = min.value; j <= max.value; ++j) {
+      for (let j = min.value; j <= max.value; ++j) {
         aDeletedItems.push(aItems[j]);
         aItems[j] = null;
       }
@@ -33,7 +31,7 @@ var gTreeUtils = {
     var nextSelection = 0;
     for (i = 0; i < aItems.length; ++i) {
       if (!aItems[i]) {
-        var j = i;
+        let j = i;
         while (j < aItems.length && !aItems[j])
           ++j;
         aItems.splice(i, j - i);
@@ -51,17 +49,15 @@ var gTreeUtils = {
     selection.selectEventsSuppressed = false;
   },
 
-  sort: function (aTree, aView, aDataSet, aColumn, aComparator,
-                  aLastSortColumn, aLastSortAscending)
-  {
+  sort(aTree, aView, aDataSet, aColumn, aComparator,
+                 aLastSortColumn, aLastSortAscending) {
     var ascending = (aColumn == aLastSortColumn) ? !aLastSortAscending : true;
     if (aDataSet.length == 0)
       return ascending;
 
-    var numericSort = !isNaN(aDataSet[0][aColumn]);
     var sortFunction = null;
     if (aComparator) {
-      sortFunction = function (a, b) { return aComparator(a[aColumn], b[aColumn]); };
+      sortFunction = function(a, b) { return aComparator(a[aColumn], b[aColumn]); };
     }
     aDataSet.sort(sortFunction);
     if (!ascending)
@@ -75,4 +71,3 @@ var gTreeUtils = {
     return ascending;
   }
 };
-

@@ -1,5 +1,16 @@
 // Helpers for Media Source Extensions tests
 
+var gMSETestPrefs = [
+  [ "media.mediasource.enabled", true ],
+  ['media.audio-max-decode-error', 0],
+  ['media.video-max-decode-error', 0],
+];
+
+// Called before runWithMSE() to set the prefs before running MSE tests.
+function addMSEPrefs(...prefs) {
+  gMSETestPrefs = gMSETestPrefs.concat(prefs);
+}
+
 function runWithMSE(testFunction) {
   function bootstrapTest() {
     var ms = new MediaSource();
@@ -10,17 +21,16 @@ function runWithMSE(testFunction) {
 
     document.body.appendChild(el);
     SimpleTest.registerCleanupFunction(function () {
-      el.parentNode.removeChild(el);
+      el.remove();
+      el.removeAttribute("src");
+      el.load();
     });
 
     testFunction(ms, el);
   }
 
   addLoadEvent(function () {
-    SpecialPowers.pushPrefEnv({"set": [
-      [ "media.mediasource.enabled", true ],
-    ]},
-                              bootstrapTest);
+    SpecialPowers.pushPrefEnv({"set": gMSETestPrefs}, bootstrapTest);
   });
 }
 
@@ -54,9 +64,8 @@ function range(start, end) {
 function once(target, name, cb) {
   var p = new Promise(function(resolve, reject) {
     target.addEventListener(name, function() {
-      target.removeEventListener(name, arguments.callee);
       resolve();
-    });
+    }, {once: true});
   });
   if (cb) {
     p.then(cb);
@@ -103,5 +112,28 @@ function fetchAndLoad(sb, prefix, chunks, suffix) {
       rv = rv.then(loadSegment.bind(null, sb, buffers[chunk]));
     }
     return rv;
+  });
+}
+
+//Register timeout function to dump debugging logs.
+SimpleTest.registerTimeoutFunction(function() {
+  for (var v of document.getElementsByTagName("video")) {
+    v.mozDumpDebugInfo();
+  }
+  for (var a of document.getElementsByTagName("audio")) {
+    a.mozDumpDebugInfo();
+  }
+});
+
+function waitUntilTime(target, targetTime) {
+  return new Promise(function(resolve, reject) {
+    target.addEventListener("waiting", function onwaiting() {
+      info("Got a waiting event at " + target.currentTime);
+      if (target.currentTime >= targetTime) {
+        ok(true, "Reached target time of: " + targetTime);
+        target.removeEventListener("waiting", onwaiting);
+        resolve();
+      }
+    });
   });
 }

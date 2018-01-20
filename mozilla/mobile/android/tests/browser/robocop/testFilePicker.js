@@ -31,14 +31,15 @@ add_test(function filepicker_open() {
         is(file.path, "/mnt/sdcard/my-favorite-martian.png", "Retrieve the right martian file from array!");
       }
 
-      do_print("DOMFile: " + fp.domfile.mozFullPath);
-      is(fp.domfile.mozFullPath, "/mnt/sdcard/my-favorite-martian.png", "Retrieve the right martian domfile!");
+      let file = fp.domFileOrDirectory;
+      do_print("DOMFile: " + file.mozFullPath);
+      is(file.mozFullPath, "/mnt/sdcard/my-favorite-martian.png", "Retrieve the right martian DOM File!");
 
-      let domfiles = fp.domfiles;
-      while (domfiles.hasMoreElements()) {
-        let domfile = domfiles.getNext();
-        do_print("DOMFile: " + domfile.mozFullPath);
-        is(domfile.mozFullPath, "/mnt/sdcard/my-favorite-martian.png", "Retrieve the right martian file from domfile array!");
+      let e = fp.domFileOrDirectoryEnumerator;
+      while (e.hasMoreElements()) {
+        let domFile = e.getNext();
+        do_print("DOMFile: " + domFile.mozFullPath);
+        is(domFile.mozFullPath, "/mnt/sdcard/my-favorite-martian.png", "Retrieve the right martian file from domFileOrDirectoryEnumerator array!");
       }
 
       do_test_finished();
@@ -49,7 +50,7 @@ add_test(function filepicker_open() {
 
   try {
     fp.init(chromeWin, "Open", Ci.nsIFilePicker.modeOpen);
-  } catch(ex) {
+  } catch (ex) {
     ok(false, "Android should support FilePicker.modeOpen: " + ex);
   }
   fp.open(fpCallback);
@@ -60,7 +61,7 @@ add_test(function filepicker_save() {
   let fp = Cc["@mozilla.org/filepicker;1"].createInstance(Ci.nsIFilePicker);
   try {
     fp.init(null, "Save", Ci.nsIFilePicker.modeSave);
-  } catch(ex) {
+  } catch (ex) {
     failed = true;
   }
   ok(failed, "Android does not support FilePicker.modeSave");

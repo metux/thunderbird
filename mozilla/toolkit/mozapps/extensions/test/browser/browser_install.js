@@ -31,7 +31,7 @@ function end_test() {
   close_manager(gManagerWindow, function() {
     Services.prefs.clearUserPref("extensions.checkUpdateSecurity");
 
-    AddonManager.getAddonByID("addon1@tests.mozilla.org", function(aAddon) {
+    AddonManager.getAddonByID("install1@tests.mozilla.org", function(aAddon) {
       aAddon.uninstall();
       finish();
     });
@@ -46,7 +46,7 @@ function installAddon(aCallback) {
   AddonManager.getInstallForURL(TESTROOT + "addons/browser_install1_2.xpi",
                                 function(aInstall) {
     aInstall.addListener({
-      onInstallEnded: function() {
+      onInstallEnded() {
         executeSoon(aCallback);
       }
     });
@@ -55,16 +55,16 @@ function installAddon(aCallback) {
 }
 
 function installUpgrade(aCallback) {
-  AddonManager.getAddonByID("addon1@tests.mozilla.org", function(aAddon) {
+  AddonManager.getAddonByID("install1@tests.mozilla.org", function(aAddon) {
     aAddon.findUpdates({
-      onUpdateAvailable: function(aAddon, aInstall) {
+      onUpdateAvailable(aAddon, aInstall) {
         is(get_list_item_count(), 1, "Should be only one item in the list");
 
         aInstall.addListener({
-          onDownloadEnded: function() {
+          onDownloadEnded() {
             is(get_list_item_count(), 1, "Should be only one item in the list once the update has started");
           },
-          onInstallEnded: function() {
+          onInstallEnded() {
             executeSoon(aCallback);
           }
         });
@@ -78,7 +78,7 @@ function cancelInstall(aCallback) {
   AddonManager.getInstallForURL(TESTROOT + "addons/browser_install1_2.xpi",
                                 function(aInstall) {
     aInstall.addListener({
-      onDownloadEnded: function(aInstall) {
+      onDownloadEnded(aInstall) {
         executeSoon(function() {
           aInstall.cancel();
           aCallback();
@@ -100,19 +100,19 @@ function installSearchResult(aCallback) {
   EventUtils.synthesizeKey("VK_RETURN", { }, gManagerWindow);
 
   wait_for_view_load(gManagerWindow, function() {
-    let remote = gManagerWindow.document.getElementById("search-filter-remote")
+    let remote = gManagerWindow.document.getElementById("search-filter-remote");
     EventUtils.synthesizeMouseAtCenter(remote, { }, gManagerWindow);
 
-    let item = get_addon_element(gManagerWindow, "addon1@tests.mozilla.org");
+    let item = get_addon_element(gManagerWindow, "install1@tests.mozilla.org");
     ok(!!item, "Should see the search result in the list");
 
     let status = get_node(item, "install-status");
     EventUtils.synthesizeMouseAtCenter(get_node(status, "install-remote-btn"), {}, gManagerWindow);
 
     item.mInstall.addListener({
-      onInstallEnded: function() {
+      onInstallEnded() {
         executeSoon(aCallback);
-      }
+      },
     });
   });
 }
@@ -124,7 +124,7 @@ function get_list_item_count() {
 function check_undo_install() {
   is(get_list_item_count(), 1, "Should be only one item in the list");
 
-  let item = get_addon_element(gManagerWindow, "addon1@tests.mozilla.org");
+  let item = get_addon_element(gManagerWindow, "install1@tests.mozilla.org");
   ok(!!item, "Should see the pending install in the list");
   // Force XBL to apply
   item.clientTop;
@@ -135,14 +135,14 @@ function check_undo_install() {
 
   is(get_list_item_count(), 0, "Should be no items in the list");
 
-  item = get_addon_element(gManagerWindow, "addon1@tests.mozilla.org");
+  item = get_addon_element(gManagerWindow, "install1@tests.mozilla.org");
   ok(!item, "Should no longer see the pending install");
 }
 
 function check_undo_upgrade() {
   is(get_list_item_count(), 1, "Should be only one item in the list");
 
-  let item = get_addon_element(gManagerWindow, "addon1@tests.mozilla.org");
+  let item = get_addon_element(gManagerWindow, "install1@tests.mozilla.org");
   ok(!!item, "Should see the pending upgrade in the list");
   // Force XBL to apply
   item.clientTop;
@@ -153,7 +153,7 @@ function check_undo_upgrade() {
 
   is(get_list_item_count(), 1, "Should be only one item in the list");
 
-  item = get_addon_element(gManagerWindow, "addon1@tests.mozilla.org");
+  item = get_addon_element(gManagerWindow, "install1@tests.mozilla.org");
   ok(!!item, "Should still see installed item in the list");
   is_element_hidden(get_node(item, "pending"), "Pending message should be hidden");
 }
@@ -285,7 +285,7 @@ add_test(function() {
 add_test(function() {
   cancelInstall(function() {
     is(get_list_item_count(), 1, "Should be no items in the list");
-    let item = get_addon_element(gManagerWindow, "addon1@tests.mozilla.org");
+    let item = get_addon_element(gManagerWindow, "install1@tests.mozilla.org");
     ok(!!item, "Should still see installed item in the list");
     is_element_hidden(get_node(item, "pending"), "Pending message should be hidden");
 
@@ -301,7 +301,7 @@ add_test(function() {
         gManagerWindow = aWindow;
         gCategoryUtilities = new CategoryUtilities(gManagerWindow);
         is(get_list_item_count(), 1, "Should be no items in the list");
-        let item = get_addon_element(gManagerWindow, "addon1@tests.mozilla.org");
+        let item = get_addon_element(gManagerWindow, "install1@tests.mozilla.org");
         ok(!!item, "Should still see installed item in the list");
         is_element_hidden(get_node(item, "pending"), "Pending message should be hidden");
 

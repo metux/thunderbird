@@ -19,8 +19,7 @@
 class nsPerformanceGroup;
 class nsPerformanceGroupDetails;
 
-typedef mozilla::Vector<RefPtr<js::PerformanceGroup>> JSGroupVector;
-typedef mozilla::Vector<RefPtr<nsPerformanceGroup>> GroupVector;
+typedef mozilla::Vector<RefPtr<nsPerformanceGroup>, 8> GroupVector;
 
 /**
  * A data structure for registering observers interested in
@@ -28,7 +27,7 @@ typedef mozilla::Vector<RefPtr<nsPerformanceGroup>> GroupVector;
  *
  * Each performance group owns a single instance of this class.
  * Additionally, the service owns instances designed to observe the
- * performance alerts in all add-ons (respectively webpages).
+ * performance alerts in all webpages.
  */
 class nsPerformanceObservationTarget final: public nsIPerformanceObservable {
 public:
@@ -65,16 +64,14 @@ private:
 };
 
 /**
- * The base class for entries of maps from addon id/window id to
+ * The base class for entries of maps from window id to
  * performance group.
  *
  * Performance observers may be registered before their group is
- * created (e.g., one may register an observer for an add-on before
- * all its modules are loaded, or even before the add-on is loaded at
- * all or for an observer for a webpage before all its iframes are
- * loaded). This class serves to hold the observation target until the
- * performance group may be created, and then to associate the
- * observation target and the performance group.
+ * created (e.g., one may register an observer for a webpage before all
+ * its iframes are loaded). This class serves to hold the observation
+ * target until the performance group may be created, and then to
+ * associate the observation target and the performance group.
  */
 class nsGroupHolder {
 public:
@@ -143,16 +140,16 @@ protected:
   bool mIsAvailable;
 
   /**
+   * `true` once we have called `Dispose()`.
+   */
+  bool mDisposed;
+
+  /**
    * A unique identifier for the process.
    *
    * Process HANDLE under Windows, pid under Unix.
    */
   const uint64_t mProcessId;
-
-  /**
-   * The JS Runtime for the main thread.
-   */
-  JSRuntime* const mRuntime;
 
   /**
    * Generate unique identifiers.
@@ -177,8 +174,6 @@ protected:
    * - the top group, shared by the entire process;
    * - the window group, if the code is executed in a window, shared
    *     by all compartments for that window (typically, all frames);
-   * - the add-on group, if the code is executed as an add-on, shared
-   *     by all compartments for that add-on (typically, all modules);
    * - the compartment's own group.
    *
    * Pre-condition: the VM must have entered the JS compartment.
@@ -187,8 +182,8 @@ protected:
    * calling it more than once may not return the same instances of
    * performance groups.
    */
-  bool GetPerformanceGroups(JSContext* cx, JSGroupVector&);
-  static bool GetPerformanceGroupsCallback(JSContext* cx, JSGroupVector&, void* closure);
+  bool GetPerformanceGroups(JSContext* cx, js::PerformanceGroupVector&);
+  static bool GetPerformanceGroupsCallback(JSContext* cx, js::PerformanceGroupVector&, void* closure);
 
 
 
@@ -206,19 +201,6 @@ protected:
    * associated. It may also temporarily be kept alive by the JS
    * stack, in particular in case of nested event loops.
    */
-
-  /**
-   * Set of performance groups associated to add-ons, indexed
-   * by add-on id. Each item is shared by all the compartments
-   * that belong to the add-on.
-   */
-  struct AddonIdToGroup: public nsStringHashKey,
-                         public nsGroupHolder {
-    explicit AddonIdToGroup(const nsAString* key)
-      : nsStringHashKey(key)
-    { }
-  };
-  nsTHashtable<AddonIdToGroup> mAddonIdToGroup;
 
   /**
    * Set of performance groups associated to windows, indexed by outer
@@ -274,6 +256,14 @@ protected:
   uint64_t mUserTimeStart;
   uint64_t mSystemTimeStart;
 
+  bool mIsHandlingUserInput;
+
+  /**
+   * The number of user inputs since the start of the process. Used to
+   * determine whether the current iteration has triggered a
+   * (JS-implemented) user input.
+   */
+  uint64_t mUserInputCount;
 
   /**********************************************************
    *
@@ -316,8 +306,10 @@ protected:
    * @param recentGroups The groups that have seen activity during this
    * event.
    */
-  static bool StopwatchCommitCallback(uint64_t iteration, JSGroupVector& recentGroups, void* closure);
-  bool StopwatchCommit(uint64_t iteration, JSGroupVector& recentGroups);
+  static bool StopwatchCommitCallback(uint64_t iteration,
+                                      js::PerformanceGroupVector& recentGroups,
+                                      void* closure);
+  bool StopwatchCommit(uint64_t iteration, js::PerformanceGroupVector& recentGroups);
 
   /**
    * The number of times we have started executing JavaScript code.
@@ -339,10 +331,13 @@ protected:
    *   calls to `StopwatchStart` and `StopwatchCommit`.
    * @param cycles The total number of cycles for this thread
    *   between the calls to `StopwatchStart` and `StopwatchCommit`.
+   * @param isJankVisible If `true`, expect that the user will notice
+   *   any slowdown.
    * @param group The group containing the data to commit.
    */
   void CommitGroup(uint64_t iteration,
                    uint64_t userTime, uint64_t systemTime,  uint64_t cycles,
+                   bool isJankVisible,
                    nsPerformanceGroup* group);
 
 
@@ -374,6 +369,23 @@ protected:
   bool mIsMonitoringPerCompartment;
 
 
+  /**********************************************************
+   *
+   * Determining whether jank is user-visible.
+   */
+
+  /**
+   * `true` if we believe that any slowdown can cause a noticeable
+   * delay in handling user-input.
+   *
+   * In the current implementation, we return `true` if the latest
+   * user input was less than MAX_DURATION_OF_INTERACTION_MS ago. This
+   * includes all inputs (mouse, keyboard, other devices), with the
+   * exception of mousemove.
+   */
+  bool IsHandlingUserInput();
+
+
 public:
   /**********************************************************
    *
@@ -393,7 +405,7 @@ public:
    * Clear the set of pending alerts and dispatch the pending alerts
    * to observers.
    */
-  void NotifyJankObservers();
+  void NotifyJankObservers(const mozilla::Vector<uint64_t>& previousJankLevels);
 
 private:
   /**
@@ -419,11 +431,6 @@ private:
   struct UniversalTargets {
     UniversalTargets();
     /**
-     * A target for observers interested in watching all addons.
-     */
-    RefPtr<nsPerformanceObservationTarget> mAddons;
-
-    /**
      * A target for observers interested in watching all windows.
      */
     RefPtr<nsPerformanceObservationTarget> mWindows;
@@ -444,6 +451,27 @@ private:
    * performance.
    */
   uint32_t mJankAlertBufferingDelay;
+
+  /**
+   * The threshold above which jank, as reported by the refresh drivers,
+   * is considered user-visible.
+   *
+   * A value of n means that any jank above 2^n ms will be considered
+   * user visible.
+   */
+  short mJankLevelVisibilityThreshold;
+
+  /**
+   * The number of microseconds during which we assume that a
+   * user-interaction can keep the code jank-critical. Any user
+   * interaction that lasts longer than this duration is expected to
+   * either have already caused jank or have caused a nested event
+   * loop.
+   *
+   * In either case, we consider that monitoring
+   * jank-during-interaction after this duration is useless.
+   */
+  uint64_t mMaxExpectedDurationOfInteractionUS;
 };
 
 
@@ -500,13 +528,11 @@ public:
 
   nsPerformanceGroupDetails(const nsAString& aName,
                             const nsAString& aGroupId,
-                            const nsAString& aAddonId,
                             const uint64_t aWindowId,
                             const uint64_t aProcessId,
                             const bool aIsSystem)
     : mName(aName)
     , mGroupId(aGroupId)
-    , mAddonId(aAddonId)
     , mWindowId(aWindowId)
     , mProcessId(aProcessId)
     , mIsSystem(aIsSystem)
@@ -514,10 +540,8 @@ public:
 public:
   const nsAString& Name() const;
   const nsAString& GroupId() const;
-  const nsAString& AddonId() const;
   uint64_t WindowId() const;
   uint64_t ProcessId() const;
-  bool IsAddon() const;
   bool IsWindow() const;
   bool IsSystem() const;
   bool IsContentProcess() const;
@@ -526,7 +550,6 @@ private:
 
   const nsString mName;
   const nsString mGroupId;
-  const nsString mAddonId;
   const uint64_t mWindowId;
   const uint64_t mProcessId;
   const bool mIsSystem;
@@ -547,11 +570,6 @@ enum class PerformanceGroupScope {
   WINDOW,
 
   /**
-   * This group represents all the compartments provided by an addon.
-   */
-  ADDON,
-
-  /**
    * This group represents a single compartment.
    */
   COMPARTMENT,
@@ -560,7 +578,7 @@ enum class PerformanceGroupScope {
 /**
  * A concrete implementation of `js::PerformanceGroup`, also holding
  * performance data. Instances may represent individual compartments,
- * windows, addons or the entire runtime.
+ * windows or the entire runtime.
  *
  * This class is intended to be the sole implementation of
  * `js::PerformanceGroup`.
@@ -575,13 +593,11 @@ public:
   /**
    * Construct a performance group.
    *
-   * @param rt The container runtime. Used to generate a unique identifier.
+   * @param cx The container context. Used to generate a unique identifier.
    * @param service The performance service. Used during destruction to
    *   cleanup the hash tables.
    * @param name A name for the group, designed mostly for debugging purposes,
    *   so it should be at least somewhat human-readable.
-   * @param addonId The identifier of the add-on. Should be "" when the
-   *   group is not part of an add-on,
    * @param windowId The identifier of the window. Should be 0 when the
    *   group is not part of a window.
    * @param processId A unique identifier for the process.
@@ -590,10 +606,8 @@ public:
    * @param scope the scope of this group.
    */
   static nsPerformanceGroup*
-    Make(JSRuntime* rt,
-         nsPerformanceStatsService* service,
+    Make(nsPerformanceStatsService* service,
          const nsAString& name,
-         const nsAString& addonId,
          uint64_t windowId,
          uint64_t processId,
          bool isSystem,
@@ -651,7 +665,6 @@ protected:
   nsPerformanceGroup(nsPerformanceStatsService* service,
                      const nsAString& name,
                      const nsAString& groupId,
-                     const nsAString& addonId,
                      uint64_t windowId,
                      uint64_t processId,
                      bool isSystem,
@@ -712,9 +725,18 @@ public:
   uint64_t HighestRecentCPOW();
 
   /**
-   * Reset highest recent CPOW/jank to 0.
+   * Record that this group has recently been involved in handling
+   * user input. Note that heuristics are involved here, so the
+   * result is not 100% accurate.
    */
-  void ResetHighest();
+  void RecordUserInput();
+  bool HasRecentUserInput();
+
+  /**
+   * Reset recent values (recent highest CPOW and jank, involvement in
+   * user input).
+   */
+  void ResetRecent();
 private:
   /**
    * The target used by observers to register for watching slow
@@ -735,6 +757,16 @@ private:
    * were last called, in microseconds.
    */
   uint64_t mHighestCPOW;
+
+  /**
+   * `true` if this group has been involved in handling user input,
+   * `false` otherwise.
+   *
+   * Note that we use heuristics to determine whether a group is
+   * involved in handling user input, so this value is not 100%
+   * accurate.
+   */
+  bool mHasRecentUserInput;
 
   /**
    * `true` if this group has caused a performance alert and this alert

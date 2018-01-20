@@ -11,7 +11,7 @@
 
 #include "nsITheme.h"
 #include "nsCOMPtr.h"
-#include "nsIAtom.h"
+#include "nsAtom.h"
 #include "nsNativeTheme.h"
 
 @class CellDrawView;
@@ -40,6 +40,9 @@ public:
     eThemeGeometryTypeVibrancyDark,
     eThemeGeometryTypeTooltip,
     eThemeGeometryTypeSheet,
+    eThemeGeometryTypeSourceList,
+    eThemeGeometryTypeSourceListSelection,
+    eThemeGeometryTypeActiveSourceListSelection
   };
 
   nsNativeThemeCocoa();
@@ -47,7 +50,7 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   // The nsITheme interface.
-  NS_IMETHOD DrawWidgetBackground(nsRenderingContext* aContext,
+  NS_IMETHOD DrawWidgetBackground(gfxContext* aContext,
                                   nsIFrame* aFrame,
                                   uint8_t aWidgetType,
                                   const nsRect& aRect,
@@ -69,7 +72,8 @@ public:
                                   uint8_t aWidgetType,
                                   mozilla::LayoutDeviceIntSize* aResult, bool* aIsOverridable) override;
   NS_IMETHOD WidgetStateChanged(nsIFrame* aFrame, uint8_t aWidgetType, 
-                                nsIAtom* aAttribute, bool* aShouldRepaint) override;
+                                nsAtom* aAttribute, bool* aShouldRepaint,
+                                const nsAttrValue* aOldValue) override;
   NS_IMETHOD ThemeChanged() override;
   bool ThemeSupportsWidget(nsPresContext* aPresContext, nsIFrame* aFrame, uint8_t aWidgetType) override;
   bool WidgetIsContainer(uint8_t aWidgetType) override;
@@ -78,8 +82,6 @@ public:
   virtual bool WidgetAppearanceDependsOnWindowFocus(uint8_t aWidgetType) override;
   virtual bool NeedToClearBackgroundBehindWidget(nsIFrame* aFrame,
                                                  uint8_t aWidgetType) override;
-  virtual bool WidgetProvidesFontSmoothingBackgroundColor(nsIFrame* aFrame, uint8_t aWidgetType,
-                                                          nscolor* aColor) override;
   virtual ThemeGeometryType ThemeGeometryTypeForWidget(nsIFrame* aFrame,
                                                        uint8_t aWidgetType) override;
   virtual Transparency GetWidgetTransparency(nsIFrame* aFrame, uint8_t aWidgetType) override;
@@ -121,7 +123,7 @@ protected:
                        nsIFrame* aFrame, mozilla::EventStates inState);
   void DrawPushButton(CGContextRef cgContext, const HIRect& inBoxRect,
                       mozilla::EventStates inState, uint8_t aWidgetType,
-                      nsIFrame* aFrame);
+                      nsIFrame* aFrame, float aOriginalHeight);
   void DrawMenuIcon(CGContextRef cgContext, const CGRect& aRect,
                     mozilla::EventStates inState, nsIFrame* aFrame,
                     const NSSize& aIconSize, NSString* aImageName,
@@ -152,11 +154,8 @@ protected:
   void DrawResizer(CGContextRef cgContext, const HIRect& aRect, nsIFrame *aFrame);
 
   // Scrollbars
-  void DrawScrollbar(CGContextRef aCGContext, const HIRect& aBoxRect, nsIFrame *aFrame);
   void GetScrollbarPressStates(nsIFrame *aFrame,
                                mozilla::EventStates aButtonStates[]);
-  void GetScrollbarDrawInfo (HIThemeTrackDrawInfo& aTdi, nsIFrame *aFrame, 
-                             const CGSize& aSize, bool aShouldGetButtonStates);
   nsIFrame* GetParentScrollbarFrame(nsIFrame *aFrame);
   bool IsParentScrollbarRolledOver(nsIFrame* aFrame);
 

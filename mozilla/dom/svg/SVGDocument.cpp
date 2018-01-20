@@ -19,7 +19,8 @@
 #include "nsIDOMSVGElement.h"
 #include "mozilla/dom/Element.h"
 #include "nsSVGElement.h"
-#include "mozilla/dom/SVGDocumentBinding.h"
+#include "mozilla/StyleSheet.h"
+#include "mozilla/StyleSheetInlines.h"
 
 using namespace mozilla::css;
 using namespace mozilla::dom;
@@ -32,39 +33,6 @@ namespace dom {
 
 //----------------------------------------------------------------------
 // nsISupports methods:
-
-void
-SVGDocument::GetDomain(nsAString& aDomain, ErrorResult& aRv)
-{
-  SetDOMStringToNull(aDomain);
-
-  if (mDocumentURI) {
-    nsAutoCString domain;
-    nsresult rv = mDocumentURI->GetHost(domain);
-    if (NS_FAILED(rv)) {
-      aRv.Throw(rv);
-      return;
-    }
-    if (domain.IsEmpty()) {
-      return;
-    }
-    CopyUTF8toUTF16(domain, aDomain);
-  }
-}
-
-nsSVGElement*
-SVGDocument::GetRootElement(ErrorResult& aRv)
-{
-  Element* root = nsDocument::GetRootElement();
-  if (!root) {
-    return nullptr;
-  }
-  if (!root->IsSVGElement()) {
-    aRv.Throw(NS_NOINTERFACE);
-    return nullptr;
-  }
-  return static_cast<nsSVGElement*>(root);
-}
 
 nsresult
 SVGDocument::InsertChildAt(nsIContent* aKid, uint32_t aIndex, bool aNotify)
@@ -83,13 +51,14 @@ SVGDocument::InsertChildAt(nsIContent* aKid, uint32_t aIndex, bool aNotify)
 }
 
 nsresult
-SVGDocument::Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult) const
+SVGDocument::Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult,
+                   bool aPreallocateChildren) const
 {
   NS_ASSERTION(aNodeInfo->NodeInfoManager() == mNodeInfoManager,
                "Can't import this document into another document!");
 
   RefPtr<SVGDocument> clone = new SVGDocument();
-  nsresult rv = CloneDocHelper(clone.get());
+  nsresult rv = CloneDocHelper(clone.get(), aPreallocateChildren);
   NS_ENSURE_SUCCESS(rv, rv);
 
   return CallQueryInterface(clone.get(), aResult);
@@ -146,7 +115,7 @@ SVGDocument::EnsureNonSVGUserAgentStyleSheetsLoaded()
           nsAutoCString name;
           icStr->GetData(name);
 
-          nsXPIDLCString spec;
+          nsCString spec;
           catMan->GetCategoryEntry("agent-style-sheets", name.get(),
                                    getter_Copies(spec));
 
@@ -155,12 +124,12 @@ SVGDocument::EnsureNonSVGUserAgentStyleSheetsLoaded()
             nsCOMPtr<nsIURI> uri;
             NS_NewURI(getter_AddRefs(uri), spec);
             if (uri) {
-              RefPtr<CSSStyleSheet> cssSheet;
+              RefPtr<StyleSheet> sheet;
               cssLoader->LoadSheetSync(uri,
                                        mozilla::css::eAgentSheetFeatures,
-                                       true, getter_AddRefs(cssSheet));
-              if (cssSheet) {
-                EnsureOnDemandBuiltInUASheet(cssSheet);
+                                       true, &sheet);
+              if (sheet) {
+                EnsureOnDemandBuiltInUASheet(sheet);
               }
             }
           }
@@ -169,29 +138,25 @@ SVGDocument::EnsureNonSVGUserAgentStyleSheetsLoaded()
     }
   }
 
-  CSSStyleSheet* sheet = nsLayoutStylesheetCache::NumberControlSheet();
+  auto cache = nsLayoutStylesheetCache::For(GetStyleBackendType());
+
+  StyleSheet* sheet = cache->NumberControlSheet();
   if (sheet) {
     // number-control.css can be behind a pref
     EnsureOnDemandBuiltInUASheet(sheet);
   }
-  EnsureOnDemandBuiltInUASheet(nsLayoutStylesheetCache::FormsSheet());
-  EnsureOnDemandBuiltInUASheet(nsLayoutStylesheetCache::CounterStylesSheet());
-  EnsureOnDemandBuiltInUASheet(nsLayoutStylesheetCache::HTMLSheet());
+  EnsureOnDemandBuiltInUASheet(cache->FormsSheet());
+  EnsureOnDemandBuiltInUASheet(cache->CounterStylesSheet());
+  EnsureOnDemandBuiltInUASheet(cache->HTMLSheet());
   if (nsLayoutUtils::ShouldUseNoFramesSheet(this)) {
-    EnsureOnDemandBuiltInUASheet(nsLayoutStylesheetCache::NoFramesSheet());
+    EnsureOnDemandBuiltInUASheet(cache->NoFramesSheet());
   }
   if (nsLayoutUtils::ShouldUseNoScriptSheet(this)) {
-    EnsureOnDemandBuiltInUASheet(nsLayoutStylesheetCache::NoScriptSheet());
+    EnsureOnDemandBuiltInUASheet(cache->NoScriptSheet());
   }
-  EnsureOnDemandBuiltInUASheet(nsLayoutStylesheetCache::UASheet());
+  EnsureOnDemandBuiltInUASheet(cache->UASheet());
 
   EndUpdate(UPDATE_STYLE);
-}
-
-JSObject*
-SVGDocument::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aGivenProto)
-{
-  return SVGDocumentBinding::Wrap(aCx, this, aGivenProto);
 }
 
 } // namespace dom

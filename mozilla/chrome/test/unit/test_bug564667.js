@@ -17,13 +17,12 @@ var gCR = Cc["@mozilla.org/chrome/chrome-registry;1"].
  * Checks that a mapping was added
  */
 function test_mapping(chromeURL, target) {
-  var uri = gIOS.newURI(chromeURL, null, null);
+  var uri = gIOS.newURI(chromeURL);
 
   try {
     var result = gCR.convertChromeURL(uri);
     do_check_eq(result.spec, target);
-  }
-  catch (ex) {
+  } catch (ex) {
     do_throw(chromeURL + " not Registered");
   }
 }
@@ -32,12 +31,11 @@ function test_mapping(chromeURL, target) {
  * Checks that a mapping was removed
  */
 function test_removed_mapping(chromeURL, target) {
-  var uri = gIOS.newURI(chromeURL, null, null);
+  var uri = gIOS.newURI(chromeURL);
   try {
-    var result = gCR.convertChromeURL(uri);
+    gCR.convertChromeURL(uri);
     do_throw(chromeURL + " not removed");
-  }
-  catch (ex) {
+  } catch (ex) {
     // This should throw
   }
 }
@@ -48,11 +46,8 @@ function test_removed_mapping(chromeURL, target) {
  *
  * @param type The type of overlay: overlay|style
  */
-function test_no_overlays(chromeURL, target, type) {
-  var type = type || "overlay";
-  var uri = gIOS.newURI(chromeURL, null, null);
-  var present = false, elem;
-
+function test_no_overlays(chromeURL, target, type = "overlay") {
+  var uri = gIOS.newURI(chromeURL);
   var overlays = (type == "overlay") ?
       gCR.getXULOverlays(uri) : gCR.getStyleOverlays(uri);
 
@@ -84,7 +79,7 @@ function testManifest(manifestPath, baseURI) {
   test_mapping("chrome://test2/locale", baseURI + "test/test2.dtd");
 
   // Test Adding Override
-  test_mapping("chrome://testOverride/content", 'file:///test1/override')
+  test_mapping("chrome://testOverride/content", "file:///test1/override")
 
   // Test Not-Adding Overlays
   test_no_overlays("chrome://test1/content/overlay.xul",

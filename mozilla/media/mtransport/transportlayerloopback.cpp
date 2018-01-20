@@ -19,6 +19,7 @@
 #include "nsIServiceManager.h"
 #include "nsISocketTransportService.h"
 #include "nsServiceManagerUtils.h"
+#include "nsString.h"
 
 #include "transportflow.h"
 #include "transportlayerloopback.h"
@@ -28,18 +29,16 @@ namespace mozilla {
 MOZ_MTLOG_MODULE("mtransport")
 
 nsresult TransportLayerLoopback::Init() {
-  timer_ = do_CreateInstance(NS_TIMER_CONTRACTID);
-  MOZ_ASSERT(timer_);
-  if (!timer_)
-    return NS_ERROR_FAILURE;
-
   nsresult rv;
   target_ = do_GetService(NS_SOCKETTRANSPORTSERVICE_CONTRACTID, &rv);
   MOZ_ASSERT(NS_SUCCEEDED(rv));
   if (!NS_SUCCEEDED(rv))
     return rv;
 
-  timer_->SetTarget(target_);
+  timer_ = NS_NewTimer(target_);
+  MOZ_ASSERT(timer_);
+  if (!timer_)
+    return NS_ERROR_FAILURE;
 
   packets_lock_ = PR_NewLock();
   MOZ_ASSERT(packets_lock_);
@@ -78,13 +77,23 @@ TransportLayerLoopback::SendPacket(const unsigned char *data, size_t len) {
 
 nsresult TransportLayerLoopback::QueuePacket(const unsigned char *data,
                                          size_t len) {
-  MOZ_MTLOG(ML_DEBUG, LAYER_INFO << " Enqueuing packet of length " << len);
   MOZ_ASSERT(packets_lock_);
 
   PR_Lock(packets_lock_);
 
-  packets_.push(new QueuedPacket());
-  packets_.back()->Assign(data, len);
+  if (combinePackets_ && !packets_.empty()) {
+    QueuedPacket *packet = packets_.front();
+    packets_.pop();
+
+    MOZ_MTLOG(ML_DEBUG, LAYER_INFO << " Enqueuing combined packets of length " << packet->len() << " and " << len);
+    packets_.push(new QueuedPacket());
+    packets_.back()->Assign(packet->data(), packet->len(),
+                            data, len);
+  } else {
+    MOZ_MTLOG(ML_DEBUG, LAYER_INFO << " Enqueuing packet of length " << len);
+    packets_.push(new QueuedPacket());
+    packets_.back()->Assign(data, len);
+  }
 
   PRStatus r = PR_Unlock(packets_lock_);
   MOZ_ASSERT(r == PR_SUCCESS);
@@ -108,7 +117,7 @@ void TransportLayerLoopback::DeliverPackets() {
   }
 }
 
-NS_IMPL_ISUPPORTS(TransportLayerLoopback::Deliverer, nsITimerCallback)
+NS_IMPL_ISUPPORTS(TransportLayerLoopback::Deliverer, nsITimerCallback, nsINamed)
 
 NS_IMETHODIMP TransportLayerLoopback::Deliverer::Notify(nsITimer *timer) {
   if (!layer_)
@@ -118,4 +127,10 @@ NS_IMETHODIMP TransportLayerLoopback::Deliverer::Notify(nsITimer *timer) {
 
   return NS_OK;
 }
+
+NS_IMETHODIMP TransportLayerLoopback::Deliverer::GetName(nsACString& aName) {
+  aName.AssignLiteral("TransportLayerLoopback::Deliverer");
+  return NS_OK;
+}
+
 }  // close namespace

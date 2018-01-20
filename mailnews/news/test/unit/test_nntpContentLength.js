@@ -45,26 +45,25 @@ function run_test() {
     messageService.GetUrlForUri(messageUri, neckoURL, null);
     // Don't use the necko URL directly. Instead, get the spec and create a new
     // URL using the IO service
-    let urlToRun = Services.io.newURI(neckoURL.value.spec, null, null);
+    let urlToRun = Services.io.newURI(neckoURL.value.spec);
 
     // Get a channel from this URI, and check its content length
     let channel = Services.io.newChannelFromURI2(urlToRun,
                                                  null,
                                                  Services.scriptSecurityManager.getSystemPrincipal(),
                                                  null,
-                                                 Ci.nsILoadInfo.SEC_NORMAL,
+                                                 Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
                                                  Ci.nsIContentPolicy.TYPE_OTHER);
     do_check_eq(channel.contentLength, kSimpleNewsArticle.length);
 
     // Now try an attachment. &part=1.2
     // XXX the message doesn't really have an attachment
-    let attachmentURL = Services.io.newURI(neckoURL.value.spec + "&part=1.2",
-                                           null, null);
+    let attachmentURL = Services.io.newURI(neckoURL.value.spec + "&part=1.2");
     let attachmentChannel = Services.io.newChannelFromURI2(attachmentURL,
                                                            null,
                                                            Services.scriptSecurityManager.getSystemPrincipal(),
                                                            null,
-                                                           Ci.nsILoadInfo.SEC_NORMAL,
+                                                           Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
                                                            Ci.nsIContentPolicy.TYPE_OTHER);
     // Currently attachments have their content length set to the length of the
     // entire message

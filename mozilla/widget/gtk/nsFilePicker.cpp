@@ -352,7 +352,7 @@ nsFilePicker::GetFiles(nsISimpleEnumerator **aFiles)
   return NS_ERROR_FAILURE;
 }
 
-NS_IMETHODIMP
+nsresult
 nsFilePicker::Show(int16_t *aReturn)
 {
   NS_ENSURE_ARG_POINTER(aReturn);
@@ -376,17 +376,25 @@ nsFilePicker::Open(nsIFilePickerShownCallback *aCallback)
   if (mRunning)
     return NS_ERROR_NOT_AVAILABLE;
 
-  nsXPIDLCString title;
+  nsCString title;
   title.Adopt(ToNewUTF8String(mTitle));
 
   GtkWindow *parent_widget =
     GTK_WINDOW(mParentWidget->GetNativeData(NS_NATIVE_SHELLWIDGET));
 
   GtkFileChooserAction action = GetGtkFileChooserAction(mMode);
-  const gchar *accept_button = (action == GTK_FILE_CHOOSER_ACTION_SAVE)
-                               ? GTK_STOCK_SAVE : GTK_STOCK_OPEN;
+
+  const gchar* accept_button;
+  NS_ConvertUTF16toUTF8 buttonLabel(mOkButtonLabel);
+  if (!mOkButtonLabel.IsEmpty()) {
+    accept_button = buttonLabel.get();
+  } else {
+    accept_button = (action == GTK_FILE_CHOOSER_ACTION_SAVE) ?
+                    GTK_STOCK_SAVE : GTK_STOCK_OPEN;
+  }
+
   GtkWidget *file_chooser =
-      gtk_file_chooser_dialog_new(title, parent_widget, action,
+      gtk_file_chooser_dialog_new(title.get(), parent_widget, action,
                                   GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
                                   accept_button, GTK_RESPONSE_ACCEPT,
                                   nullptr);

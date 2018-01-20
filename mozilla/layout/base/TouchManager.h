@@ -1,6 +1,6 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * vim: set ts=2 sw=2 et tw=78:
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
@@ -12,8 +12,15 @@
 #ifndef TouchManager_h_
 #define TouchManager_h_
 
-class PresShell;
+#include "mozilla/BasicEvents.h"
+#include "mozilla/dom/Touch.h"
+#include "mozilla/TouchEvents.h"
+#include "nsRefPtrHashtable.h"
+
 class nsIDocument;
+
+namespace mozilla {
+class PresShell;
 
 class TouchManager {
 public:
@@ -30,13 +37,29 @@ public:
                       bool& aIsHandlingUserInput,
                       nsCOMPtr<nsIContent>& aCurrentEventContent);
 
-  static nsRefPtrHashtable<nsUint32HashKey, mozilla::dom::Touch>* gCaptureTouchList;
-
+  static already_AddRefed<nsIContent> GetAnyCapturedTouchTarget();
+  static bool HasCapturedTouch(int32_t aId);
+  static already_AddRefed<dom::Touch> GetCapturedTouch(int32_t aId);
+  static bool ShouldConvertTouchToPointer(const dom::Touch* aTouch,
+                                          const WidgetTouchEvent* aEvent);
 private:
   void EvictTouches();
+  static void EvictTouchPoint(RefPtr<dom::Touch>& aTouch,
+                              nsIDocument* aLimitToDocument = nullptr);
+  static void AppendToTouchList(WidgetTouchEvent::TouchArray* aTouchList);
 
   RefPtr<PresShell>   mPresShell;
   nsCOMPtr<nsIDocument> mDocument;
+
+  struct TouchInfo
+  {
+    RefPtr<mozilla::dom::Touch> mTouch;
+    nsCOMPtr<nsIContent> mNonAnonymousTarget;
+    bool mConvertToPointer;
+  };
+  static nsDataHashtable<nsUint32HashKey, TouchInfo>* sCaptureTouchList;
 };
+
+} // namespace mozilla
 
 #endif /* !defined(TouchManager_h_) */

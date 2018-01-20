@@ -24,7 +24,9 @@
 #include "nsMsgLineBuffer.h"
 #include "nsIStringBundle.h"
 #include "nsITimer.h"
-#include "nsICacheListener.h"
+#include "nsICacheEntryOpenCallback.h"
+#include "nsIProtocolProxyCallback.h"
+#include "nsIProtocolProxyService.h"
 
 // this is only needed as long as our libmime hack is in place
 #include "prio.h"
@@ -118,20 +120,22 @@ NEWS_FREE,
 NNTP_SUSPENDED
 } StatesEnum;
 
-class nsICacheEntryDescriptor;
+class nsICacheEntry;
 
 class nsNNTPProtocol : public nsMsgProtocol,
                        public nsINNTPProtocol,
                        public nsITimerCallback,
-                       public nsICacheListener,
-                       public nsIMsgAsyncPromptListener
+                       public nsICacheEntryOpenCallback,
+                       public nsIMsgAsyncPromptListener,
+                       public nsIProtocolProxyCallback
 {
 public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_NSINNTPPROTOCOL
-  NS_DECL_NSICACHELISTENER
+  NS_DECL_NSICACHEENTRYOPENCALLBACK
   NS_DECL_NSITIMERCALLBACK
   NS_DECL_NSIMSGASYNCPROMPTLISTENER
+  NS_DECL_NSIPROTOCOLPROXYCALLBACK
 
   // Creating a protocol instance requires the URL
   // need to call Initialize after we do a new of nsNNTPProtocol
@@ -139,18 +143,19 @@ public:
                  nsIMsgWindow *aMsgWindow);
 
   // stop binding is a "notification" informing us that the stream associated with aURL is going away.
-  NS_IMETHOD OnStopRequest(nsIRequest *request, nsISupports * aCtxt, nsresult aStatus);
+  NS_IMETHOD OnStopRequest(nsIRequest *request, nsISupports * aCtxt, nsresult aStatus) override;
 
   char * m_ProxyServer;    /* proxy server hostname */
 
-  NS_IMETHOD Cancel(nsresult status);  // handle stop button
-  NS_IMETHOD GetContentType(nsACString &aContentType);
-  NS_IMETHOD AsyncOpen(nsIStreamListener *listener, nsISupports *ctxt);
-  NS_IMETHOD AsyncOpen2(nsIStreamListener *listener);
-  NS_IMETHOD GetOriginalURI(nsIURI* *aURI);
-  NS_IMETHOD SetOriginalURI(nsIURI* aURI);
+  NS_IMETHOD Cancel(nsresult status) override;  // handle stop button
+  NS_IMETHOD GetContentType(nsACString &aContentType) override;
+  NS_IMETHOD AsyncOpen(nsIStreamListener *listener, nsISupports *ctxt) override;
+  NS_IMETHOD AsyncOpen2(nsIStreamListener *listener) override;
+  NS_IMETHOD GetOriginalURI(nsIURI* *aURI) override;
+  NS_IMETHOD SetOriginalURI(nsIURI* aURI) override;
+  void PostLoadAssertions();
 
-  nsresult LoadUrl(nsIURI * aURL, nsISupports * aConsumer);
+  nsresult LoadUrl(nsIURI * aURL, nsISupports * aConsumer) override;
 
 private:
   virtual ~nsNNTPProtocol();
@@ -173,19 +178,20 @@ private:
    * advised to suspend the request before using this state.
    */
   virtual nsresult ProcessProtocolState(nsIURI * url, nsIInputStream * inputStream,
-                                        uint64_t sourceOffset, uint32_t length);
-  virtual nsresult CloseSocket();
+                                        uint64_t sourceOffset, uint32_t length) override;
+  virtual nsresult CloseSocket() override;
 
   // we have our own implementation of SendData which writes to the nntp log
   // and then calls the base class to transmit the data
-  nsresult SendData(const char * dataBuffer, bool aSuppressLogging = false);
+  nsresult SendData(const char * dataBuffer, bool aSuppressLogging = false) override;
 
+  nsresult LoadUrlInternal(nsIProxyInfo* aProxyInfo);
   nsresult CleanupAfterRunningUrl();
   void Cleanup(); //free char* member variables
 
   void ParseHeaderForCancel(char *buf);
 
-  virtual const char* GetType() {return "nntp";}
+  virtual const char* GetType() override { return "nntp"; }
 
   static void CheckIfAuthor(nsIMsgIdentity *aIdentity, const nsCString &aOldFrom, nsCString &aFrom);
 
@@ -204,6 +210,7 @@ private:
   bool        m_fromCache;  // is this connection from the cache?
   PRTime      m_lastActiveTimeStamp;
   nsNewsAction m_newsAction;
+  nsCOMPtr <nsISupports> m_consumer;
 
   // Generic state information -- What state are we in? What state do we want to go to
   // after the next response? What was the last response code? etc.
@@ -360,7 +367,7 @@ private:
   // XHDR, XOVER, HEAD filtering process handlers
   // These are ordered by the rough order of usage
   /////////////////////////////////////////////////////////////////////////////
- 
+
   /**
    * The first step in the filtering process, the state NNTP_XOVER_BEGIN.
    * This method sets up m_newsgroupList.
@@ -421,14 +428,14 @@ private:
    * This state, NNTP_READ_GROUP, is the control for the HEAD processor.
    * It sends the HEAD command and increments the article number until it is
    * finished. WARNING: HEAD is REALLY SLOW.
-   * Followed by: NNTP_FIGURE_NEXT_CHUNK   when it is finished 
+   * Followed by: NNTP_FIGURE_NEXT_CHUNK   when it is finished
    *              NNTP_READ_GROUP_RESPONSE when it is not
    */
   nsresult ReadHeaders();
   /**
    * This state, NNTP_READ_GROUP_RESPONSE, checks if the article exists.
    * Because it is required by NNTP, if it doesn't work, the only problem would
-   * be that the article doesn't exist. Passes off article number data to 
+   * be that the article doesn't exist. Passes off article number data to
    * nsNNTPNewsgroupList.
    * Followed by: NNTP_READ_GROUP_BODY     if the article exists
    *              NNTP_READ_GROUP          if it doesn't.
@@ -502,7 +509,7 @@ private:
   nsresult OpenCacheEntry(); // makes a request to the cache service for a cache entry for a url
   bool ReadFromLocalCache(); // attempts to read the url out of our local (offline) cache....
   nsresult ReadFromNewsConnection(); // creates a new news connection to read the url
-  nsresult ReadFromMemCache(nsICacheEntryDescriptor *entry); // attempts to read the url out of our memory cache
+  nsresult ReadFromMemCache(nsICacheEntry *entry); // attempts to read the url out of our memory cache
   nsresult SetupPartExtractorListener(nsIStreamListener * aConsumer);
 };
 

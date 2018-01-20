@@ -11,7 +11,7 @@
 #include "nsIContentViewer.h"
 
 #include "nsIServiceManager.h"
-#include "nsIAtom.h"
+#include "nsAtom.h"
 #include "nsQuickSort.h"
 
 #include "nsIContent.h"
@@ -97,16 +97,16 @@ nsLayoutDebuggingTools::~nsLayoutDebuggingTools()
 NS_IMPL_ISUPPORTS(nsLayoutDebuggingTools, nsILayoutDebuggingTools)
 
 NS_IMETHODIMP
-nsLayoutDebuggingTools::Init(nsIDOMWindow *aWin)
+nsLayoutDebuggingTools::Init(mozIDOMWindow* aWin)
 {
     if (!Preferences::GetService()) {
         return NS_ERROR_UNEXPECTED;
     }
 
     {
-        nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(aWin);
-        if (!window)
+        if (!aWin)
             return NS_ERROR_UNEXPECTED;
+        auto* window = nsPIDOMWindowInner::From(aWin);
         mDocShell = window->GetDocShell();
     }
     NS_ENSURE_TRUE(mDocShell, NS_ERROR_UNEXPECTED);
@@ -289,7 +289,7 @@ NS_IMETHODIMP
 nsLayoutDebuggingTools::SetReflowCounts(bool aShow)
 {
     NS_ENSURE_TRUE(mDocShell, NS_ERROR_NOT_INITIALIZED);
-    nsCOMPtr<nsIPresShell> shell(pres_shell(mDocShell)); 
+    nsCOMPtr<nsIPresShell> shell(pres_shell(mDocShell));
     if (shell) {
 #ifdef MOZ_REFLOW_PERF
         shell->SetPaintFrameCount(aShow);
@@ -465,7 +465,7 @@ nsLayoutDebuggingTools::DumpStyleSheets()
     NS_ENSURE_TRUE(mDocShell, NS_ERROR_NOT_INITIALIZED);
 #ifdef DEBUG
     FILE *out = stdout;
-    nsCOMPtr<nsIPresShell> shell(pres_shell(mDocShell)); 
+    nsCOMPtr<nsIPresShell> shell(pres_shell(mDocShell));
     if (shell)
         shell->ListStyleSheets(out);
     else
@@ -480,14 +480,9 @@ nsLayoutDebuggingTools::DumpStyleContexts()
     NS_ENSURE_TRUE(mDocShell, NS_ERROR_NOT_INITIALIZED);
 #ifdef DEBUG
     FILE *out = stdout;
-    nsCOMPtr<nsIPresShell> shell(pres_shell(mDocShell)); 
+    nsCOMPtr<nsIPresShell> shell(pres_shell(mDocShell));
     if (shell) {
-        nsIFrame* root = shell->GetRootFrame();
-        if (!root) {
-            fputs("null root frame\n", out);
-        } else {
-            shell->ListStyleContexts(root, out);
-        }
+        shell->ListStyleContexts(out);
     } else {
         fputs("null pres shell\n", out);
     }
@@ -500,7 +495,7 @@ nsLayoutDebuggingTools::DumpReflowStats()
 {
     NS_ENSURE_TRUE(mDocShell, NS_ERROR_NOT_INITIALIZED);
 #ifdef DEBUG
-    nsCOMPtr<nsIPresShell> shell(pres_shell(mDocShell)); 
+    nsCOMPtr<nsIPresShell> shell(pres_shell(mDocShell));
     if (shell) {
 #ifdef MOZ_REFLOW_PERF
         shell->DumpReflows();

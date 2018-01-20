@@ -15,10 +15,6 @@ function AutoCompleteInput(aSearches) {
 }
 AutoCompleteInput.prototype = Object.create(AutoCompleteInputBase.prototype);
 
-function run_test() {
-  run_next_test();
-}
-
 add_test(function test_handleEnterWithDirectMatchCompleteSelectedIndex() {
   doSearch("moz", "mozilla.com", "http://www.mozilla.com",
     { forceComplete: true, completeSelectedIndex: true }, function(aController) {
@@ -79,8 +75,8 @@ function doSearch(aSearchString, aResultValue, aFinalCompleteValue,
   registerAutoCompleteSearch(search);
 
   let controller = Cc["@mozilla.org/autocomplete/controller;1"].
-                   getService(Ci.nsIAutoCompleteController);  
-  
+                   getService(Ci.nsIAutoCompleteController);
+
   // Make an AutoCompleteInput that uses our searches and confirms results.
   let input = new AutoCompleteInput([ search.name ]);
   for (var p in aInputProps) {

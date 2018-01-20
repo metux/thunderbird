@@ -5,7 +5,7 @@
 
 #include "mozilla/chrome/RegistryMessageUtils.h"
 #include "mozilla/dom/ContentParent.h"
-#include "mozilla/unused.h"
+#include "mozilla/Unused.h"
 
 #include "nsResProtocolHandler.h"
 #include "nsIIOService.h"
@@ -21,45 +21,26 @@ using mozilla::dom::ContentParent;
 using mozilla::LogLevel;
 using mozilla::Unused;
 
-#define kAPP           NS_LITERAL_CSTRING("app")
-#define kGRE           NS_LITERAL_CSTRING("gre")
+#define kAPP           "app"
+#define kGRE           "gre"
 
 nsresult
 nsResProtocolHandler::Init()
 {
     nsresult rv;
-    nsAutoCString appURI, greURI;
-    rv = mozilla::Omnijar::GetURIString(mozilla::Omnijar::APP, appURI);
+    rv = mozilla::Omnijar::GetURIString(mozilla::Omnijar::APP, mAppURI);
     NS_ENSURE_SUCCESS(rv, rv);
-    rv = mozilla::Omnijar::GetURIString(mozilla::Omnijar::GRE, greURI);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    //
-    // make resource:/// point to the application directory or omnijar
-    //
-    nsCOMPtr<nsIURI> uri;
-    rv = NS_NewURI(getter_AddRefs(uri), appURI.Length() ? appURI : greURI);
+    rv = mozilla::Omnijar::GetURIString(mozilla::Omnijar::GRE, mGREURI);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    rv = SetSubstitution(EmptyCString(), uri);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    //
-    // make resource://app/ point to the application directory or omnijar
-    //
-    rv = SetSubstitution(kAPP, uri);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    //
-    // make resource://gre/ point to the GRE directory
-    //
-    if (appURI.Length()) { // We already have greURI in uri if appURI.Length() is 0.
-        rv = NS_NewURI(getter_AddRefs(uri), greURI);
-        NS_ENSURE_SUCCESS(rv, rv);
+    // mozilla::Omnijar::GetURIString always returns a string ending with /,
+    // and we want to remove it.
+    mGREURI.Truncate(mGREURI.Length() - 1);
+    if (mAppURI.Length()) {
+      mAppURI.Truncate(mAppURI.Length() - 1);
+    } else {
+      mAppURI = mGREURI;
     }
-
-    rv = SetSubstitution(kGRE, uri);
-    NS_ENSURE_SUCCESS(rv, rv);
 
     //XXXbsmedberg Neil wants a resource://pchrome/ for the profile chrome dir...
     // but once I finish multiple chrome registration I'm not sure that it is needed
@@ -80,23 +61,71 @@ NS_IMPL_QUERY_INTERFACE(nsResProtocolHandler, nsIResProtocolHandler,
 NS_IMPL_ADDREF_INHERITED(nsResProtocolHandler, SubstitutingProtocolHandler)
 NS_IMPL_RELEASE_INHERITED(nsResProtocolHandler, SubstitutingProtocolHandler)
 
-nsresult
-nsResProtocolHandler::GetSubstitutionInternal(const nsACString& root, nsIURI **result)
+NS_IMETHODIMP
+nsResProtocolHandler::AllowContentToAccess(nsIURI *aURI, bool *aResult)
 {
-    // try invoking the directory service for "resource:root"
+    *aResult = false;
 
-    nsAutoCString key;
-    key.AssignLiteral("resource:");
-    key.Append(root);
+    nsAutoCString host;
+    nsresult rv = aURI->GetAsciiHost(host);
+    NS_ENSURE_SUCCESS(rv, rv);
 
-    nsCOMPtr<nsIFile> file;
-    nsresult rv = NS_GetSpecialDirectory(key.get(), getter_AddRefs(file));
-    if (NS_FAILED(rv))
-        return NS_ERROR_NOT_AVAILABLE;
-        
-    rv = IOService()->NewFileURI(file, result);
-    if (NS_FAILED(rv))
-        return NS_ERROR_NOT_AVAILABLE;
+    uint32_t flags;
+    rv = GetSubstitutionFlags(host, &flags);
+    NS_ENSURE_SUCCESS(rv, rv);
 
+    *aResult = flags & nsISubstitutingProtocolHandler::ALLOW_CONTENT_ACCESS;
     return NS_OK;
+}
+
+nsresult
+nsResProtocolHandler::GetSubstitutionInternal(const nsACString& aRoot,
+                                              nsIURI** aResult,
+                                              uint32_t* aFlags)
+{
+    nsAutoCString uri;
+
+    if (!ResolveSpecialCases(aRoot, NS_LITERAL_CSTRING("/"), NS_LITERAL_CSTRING("/"), uri)) {
+        return NS_ERROR_NOT_AVAILABLE;
+    }
+
+    *aFlags = 0; // No content access.
+    return NS_NewURI(aResult, uri);
+}
+
+bool
+nsResProtocolHandler::ResolveSpecialCases(const nsACString& aHost,
+                                          const nsACString& aPath,
+                                          const nsACString& aPathname,
+                                          nsACString& aResult)
+{
+    if (aHost.EqualsLiteral("") || aHost.EqualsLiteral(kAPP)) {
+        aResult.Assign(mAppURI);
+    } else if (aHost.Equals(kGRE)) {
+        aResult.Assign(mGREURI);
+    } else {
+        return false;
+    }
+    aResult.Append(aPath);
+    return true;
+}
+
+nsresult
+nsResProtocolHandler::SetSubstitution(const nsACString& aRoot, nsIURI* aBaseURI)
+{
+    MOZ_ASSERT(!aRoot.EqualsLiteral(""));
+    MOZ_ASSERT(!aRoot.EqualsLiteral(kAPP));
+    MOZ_ASSERT(!aRoot.EqualsLiteral(kGRE));
+    return SubstitutingProtocolHandler::SetSubstitution(aRoot, aBaseURI);
+}
+
+nsresult
+nsResProtocolHandler::SetSubstitutionWithFlags(const nsACString& aRoot,
+                                               nsIURI* aBaseURI,
+                                               uint32_t aFlags)
+{
+    MOZ_ASSERT(!aRoot.EqualsLiteral(""));
+    MOZ_ASSERT(!aRoot.EqualsLiteral(kAPP));
+    MOZ_ASSERT(!aRoot.EqualsLiteral(kGRE));
+    return SubstitutingProtocolHandler::SetSubstitutionWithFlags(aRoot, aBaseURI, aFlags);
 }

@@ -85,7 +85,7 @@ nsWindowInfo::~nsWindowInfo()
 // return true if the window described by this WindowInfo has a type
 // equal to the given type
 bool nsWindowInfo::TypeEquals(const nsAString &aType)
-{ 
+{
   nsAutoString rtnString;
   GetWindowType(mWindow, rtnString);
   return rtnString == aType;
@@ -211,7 +211,7 @@ NS_IMETHODIMP nsASDOMWindowEnumerator::GetNext(nsISupports **retval)
 
   *retval = nullptr;
   while (mCurrentPosition) {
-    nsCOMPtr<nsIDOMWindow> domWindow;
+    nsCOMPtr<nsPIDOMWindowOuter> domWindow;
     nsWindowMediator::GetDOMWindow(mCurrentPosition->mWindow, domWindow);
     mCurrentPosition = FindNext();
     if (domWindow)

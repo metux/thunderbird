@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -6,7 +8,7 @@
 
 #include "nsDOMCSSValueList.h"
 #include "mozilla/dom/CSSValueListBinding.h"
-#include "nsAutoPtr.h"
+#include "mozilla/Move.h"
 
 using namespace mozilla;
 
@@ -39,9 +41,10 @@ nsDOMCSSValueList::WrapObject(JSContext *cx, JS::Handle<JSObject*> aGivenProto)
 }
 
 void
-nsDOMCSSValueList::AppendCSSValue(CSSValue* aValue)
+nsDOMCSSValueList::AppendCSSValue(already_AddRefed<CSSValue> aValue)
 {
-  mCSSValues.AppendElement(aValue);
+  RefPtr<CSSValue> val = aValue;
+  mCSSValues.AppendElement(Move(val));
 }
 
 // nsIDOMCSSValue
@@ -103,7 +106,7 @@ nsDOMCSSValueList::SetCssText(const nsAString& aCssText)
     return NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR;
   }
 
-  NS_NOTYETIMPLEMENTED("Can't SetCssText yet: please write me!");
+  MOZ_ASSERT_UNREACHABLE("Can't SetCssText yet: please write me!");
   return NS_OK;
 }
 

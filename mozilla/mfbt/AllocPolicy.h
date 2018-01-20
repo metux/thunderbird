@@ -12,6 +12,8 @@
 #ifndef mozilla_AllocPolicy_h
 #define mozilla_AllocPolicy_h
 
+#include "mozilla/Attributes.h"
+#include "mozilla/Assertions.h"
 #include "mozilla/TemplateLib.h"
 
 #include <stddef.h>
@@ -121,7 +123,68 @@ public:
   {
   }
 
-  bool checkSimulatedOOM() const
+  MOZ_MUST_USE bool checkSimulatedOOM() const
+  {
+    return true;
+  }
+};
+
+/*
+ * A policy which always fails to allocate memory, returning nullptr. Methods
+ * which expect an existing allocation assert.
+ *
+ * This type should be used in situations where you want to use a MFBT type with
+ * inline storage, and don't want to allow it to allocate on the heap.
+ */
+class NeverAllocPolicy
+{
+public:
+  template <typename T>
+  T* maybe_pod_malloc(size_t aNumElems)
+  {
+    return nullptr;
+  }
+
+  template <typename T>
+  T* maybe_pod_calloc(size_t aNumElems)
+  {
+    return nullptr;
+  }
+
+  template <typename T>
+  T* maybe_pod_realloc(T* aPtr, size_t aOldSize, size_t aNewSize)
+  {
+    MOZ_CRASH("NeverAllocPolicy::maybe_pod_realloc");
+  }
+
+  template <typename T>
+  T* pod_malloc(size_t aNumElems)
+  {
+    return nullptr;
+  }
+
+  template <typename T>
+  T* pod_calloc(size_t aNumElems)
+  {
+    return nullptr;
+  }
+
+  template <typename T>
+  T* pod_realloc(T* aPtr, size_t aOldSize, size_t aNewSize)
+  {
+    MOZ_CRASH("NeverAllocPolicy::pod_realloc");
+  }
+
+  void free_(void* aPtr)
+  {
+    MOZ_CRASH("NeverAllocPolicy::free_");
+  }
+
+  void reportAllocOverflow() const
+  {
+  }
+
+  MOZ_MUST_USE bool checkSimulatedOOM() const
   {
     return true;
   }

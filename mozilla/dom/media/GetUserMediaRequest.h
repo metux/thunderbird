@@ -20,22 +20,26 @@ struct MediaStreamConstraints;
 class GetUserMediaRequest : public nsISupports, public nsWrapperCache
 {
 public:
-  GetUserMediaRequest(nsPIDOMWindow* aInnerWindow,
+  GetUserMediaRequest(nsPIDOMWindowInner* aInnerWindow,
                       const nsAString& aCallID,
                       const MediaStreamConstraints& aConstraints,
                       bool aIsSecure);
+  GetUserMediaRequest(nsPIDOMWindowInner* aInnerWindow,
+                      const nsAString& aRawId,
+                      const nsAString& aMediaSource);
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(GetUserMediaRequest)
 
-  virtual JSObject* WrapObject(JSContext* cx, JS::Handle<JSObject*> aGivenProto)
-    override;
+  JSObject* WrapObject(JSContext* cx, JS::Handle<JSObject*> aGivenProto) override;
   nsISupports* GetParentObject();
 
   uint64_t WindowID();
   uint64_t InnerWindowID();
   bool IsSecure();
   void GetCallID(nsString& retval);
+  void GetRawID(nsString& retval);
+  void GetMediaSource(nsString& retval);
   void GetConstraints(MediaStreamConstraints &result);
 
 private:
@@ -43,6 +47,8 @@ private:
 
   uint64_t mInnerWindowID, mOuterWindowID;
   const nsString mCallID;
+  const nsString mRawID;
+  const nsString mMediaSource;
   nsAutoPtr<MediaStreamConstraints> mConstraints;
   bool mIsSecure;
 };

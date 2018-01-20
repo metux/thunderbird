@@ -4,8 +4,6 @@
 // Here we are testing the "migration" from the isUS pref being true but when
 // no country-code exists.
 function run_test() {
-  installTestEngine();
-
   // Set the pref we care about.
   Services.prefs.setBoolPref("browser.search.isUS", true);
   // And the geoip request that will return *not* US.
@@ -21,7 +19,7 @@ function run_test() {
                      "SEARCH_SERVICE_COUNTRY_FETCH_CAUSED_SYNC_INIT"]) {
       let histogram = Services.telemetry.getHistogramById(hid);
       let snapshot = histogram.snapshot();
-      deepEqual(snapshot.counts, [1,0,0]); // boolean probe so 3 buckets, expect 1 result for |0|.
+      deepEqual(snapshot.counts, [1, 0, 0]); // boolean probe so 3 buckets, expect 1 result for |0|.
     }
     do_test_finished();
     run_next_test();

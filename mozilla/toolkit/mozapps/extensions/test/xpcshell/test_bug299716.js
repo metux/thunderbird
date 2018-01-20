@@ -23,7 +23,7 @@ const checkListener = {
     if (--this.pendingCount == 0)
       next_test();
   }
-}
+};
 
 // Get the HTTP server.
 Components.utils.import("resource://testing-common/httpd.js");
@@ -105,9 +105,8 @@ function do_check_item(aItem, aVersion, aAddonsEntry) {
       do_throw("Addon " + aAddonsEntry.id + " wasn't detected");
     if (aItem.version != aVersion)
       do_throw("Addon " + aAddonsEntry.id + " was version " + aItem.version + " instead of " + aVersion);
-  } else {
-    if (aItem != null)
-      do_throw("Addon " + aAddonsEntry.id + " was detected");
+  } else if (aItem != null) {
+    do_throw("Addon " + aAddonsEntry.id + " was detected");
   }
 }
 
@@ -136,7 +135,7 @@ function run_test() {
   // Make sure we can fetch the files over HTTP.
   const Ci = Components.interfaces;
   const xhr = Components.classes["@mozilla.org/xmlextras/xmlhttprequest;1"]
-                        .createInstance(Ci.nsIXMLHttpRequest)
+                        .createInstance(Ci.nsIXMLHttpRequest);
   xhr.open("GET", "http://localhost:4444/addons/test_bug299716_a_2.xpi", false);
   xhr.send(null);
   do_check_true(xhr.status == 200);

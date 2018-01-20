@@ -10,6 +10,7 @@
 #include "nsString.h"
 #include "nsCOMPtr.h"
 
+class nsIEventTarget;
 class nsITimer;
 namespace JS {
 class CallArgs;
@@ -17,7 +18,7 @@ class CallArgs;
 
 namespace mozilla { namespace net {
 
-class JSRuntimeWrapper;
+class JSContextWrapper;
 union NetAddr;
 
 // The ProxyAutoConfig class is meant to be created and run on a
@@ -30,14 +31,14 @@ public:
   ~ProxyAutoConfig();
 
   nsresult Init(const nsCString &aPACURI,
-                const nsCString &aPACScript);
+                const nsCString &aPACScript,
+                bool aIncludePath,
+                uint32_t aExtraHeapSize,
+                nsIEventTarget *aEventTarget);
   void     SetThreadLocalIndex(uint32_t index);
   void     Shutdown();
   void     GC();
   bool     MyIPAddress(const JS::CallArgs &aArgs);
-  bool     MyAppId(const JS::CallArgs &aArgs);
-  bool     MyAppOrigin(const JS::CallArgs &aArgs);
-  bool     IsInBrowser(const JS::CallArgs &aArgs);
   bool     ResolveAddress(const nsCString &aHostName,
                           NetAddr *aNetAddr, unsigned int aTimeout);
 
@@ -71,21 +72,12 @@ public:
    *        The URI as an ASCII string to test.
    * @param aTestHost
    *        The ASCII hostname to test.
-   * @param aAppId
-   *        The id of the app requesting connection.
-   * @param aAppOrigin
-   *        The origin of the app requesting connection.
-   * @param aIsInBrowser
-   *        True if the iframe has mozbrowser but has no mozapp attribute.
    *
    * @param result
    *        result string as defined above.
    */
   nsresult GetProxyForURI(const nsCString &aTestURI,
                           const nsCString &aTestHost,
-                          uint32_t aAppId,
-                          const nsString &aAppOrigin,
-                          bool aIsInBrowser,
                           nsACString &result);
 
 private:
@@ -99,16 +91,16 @@ private:
   bool MyIPAddressTryHost(const nsCString &hostName, unsigned int timeout,
                           const JS::CallArgs &aArgs, bool* aResult);
 
-  JSRuntimeWrapper *mJSRuntime;
+  JSContextWrapper *mJSContext;
   bool              mJSNeedsSetup;
   bool              mShutdown;
   nsCString         mPACScript;
   nsCString         mPACURI;
+  bool              mIncludePath;
+  uint32_t          mExtraHeapSize;
   nsCString         mRunningHost;
-  uint32_t          mRunningAppId;
-  nsString          mRunningAppOrigin;
-  bool              mRunningIsInBrowser;
   nsCOMPtr<nsITimer> mTimer;
+  nsCOMPtr<nsIEventTarget> mMainThreadEventTarget;
 };
 
 } // namespace net

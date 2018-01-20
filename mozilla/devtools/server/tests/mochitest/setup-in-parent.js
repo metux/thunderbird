@@ -1,3 +1,5 @@
+"use strict";
+
 var {Ci} = require("chrome");
 var Services = require("Services");
 
@@ -7,4 +9,4 @@ exports.setupParent = function ({mm, prefix}) {
     prefix
   ];
   Services.obs.notifyObservers(null, "test:setupParent", JSON.stringify(args));
-}
+};

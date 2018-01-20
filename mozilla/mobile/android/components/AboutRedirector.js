@@ -23,7 +23,7 @@ var modules = {
     hide: true
   },
   get firefox() {
-    return this.fennec
+    return this.fennec;
   },
 
   // about:blank has some bad loading behavior we can avoid, if we use an alias
@@ -58,7 +58,6 @@ var modules = {
   reader: {
     uri: "chrome://global/content/reader/aboutReader.html",
     privileged: false,
-    dontLink: true,
     hide: true
   },
   feedback: {
@@ -80,14 +79,8 @@ var modules = {
 };
 
 if (AppConstants.MOZ_SERVICES_HEALTHREPORT) {
-  modules['healthreport'] = {
+  modules.healthreport = {
     uri: "chrome://browser/content/aboutHealthReport.xhtml",
-    privileged: true
-  };
-}
-if (AppConstants.MOZ_DEVICES) {
-  modules['devices'] = {
-    uri: "chrome://browser/content/aboutDevices.xhtml",
     privileged: true
   };
 }
@@ -97,8 +90,8 @@ AboutRedirector.prototype = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIAboutModule]),
   classID: Components.ID("{322ba47e-7047-4f71-aebf-cb7d69325cd9}"),
 
-  _getModuleInfo: function (aURI) {
-    let moduleName = aURI.path.replace(/[?#].*/, "").toLowerCase();
+  _getModuleInfo: function(aURI) {
+    let moduleName = aURI.pathQueryRef.replace(/[?#].*/, "").toLowerCase();
     return modules[moduleName];
   },
 
@@ -108,8 +101,6 @@ AboutRedirector.prototype = {
     let moduleInfo = this._getModuleInfo(aURI);
     if (moduleInfo.hide)
       flags = Ci.nsIAboutModule.HIDE_FROM_ABOUTABOUT;
-    if (moduleInfo.dontLink)
-      flags = flags | Ci.nsIAboutModule.MAKE_UNLINKABLE;
 
     return flags | Ci.nsIAboutModule.ALLOW_SCRIPT;
   },
@@ -120,7 +111,7 @@ AboutRedirector.prototype = {
     var ios = Cc["@mozilla.org/network/io-service;1"].
               getService(Ci.nsIIOService);
 
-    var newURI = ios.newURI(moduleInfo.uri, null, null);
+    var newURI = ios.newURI(moduleInfo.uri);
 
     var channel = ios.newChannelFromURIWithLoadInfo(newURI, aLoadInfo);
 

@@ -3,27 +3,18 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 include protocol PBackground;
-include protocol PBlob;
+include protocol PChildToParentStream; // FIXME: bug 792908
+include protocol PFileDescriptorSet; // FIXME: bug 792908
+include protocol PIPCBlobInputStream; // FIXME: bug 792908
+include protocol PParentToChildStream; // FIXME: bug 792908
 
-using struct nsID from "nsID.h";
+include DOMTypes;
+
+using struct mozilla::SerializedStructuredCloneBuffer
+  from "ipc/IPCMessageUtils.h";
 
 namespace mozilla {
 namespace dom {
-
-struct MessagePortIdentifier
-{
-  nsID uuid;
-  nsID destinationUuid;
-  uint32_t sequenceId;
-  bool neutered;
-};
-
-struct MessagePortMessage
-{
-  MessagePortIdentifier[] transferredPorts;
-  uint8_t[] data;
-  PBlob[] blobs;
-};
 
 // This protocol is used for the MessageChannel/MessagePort API
 protocol PMessagePort
@@ -44,19 +35,18 @@ protocol PMessagePort
      4. Recv__delete__(); */
 
 parent:
-  PostMessages(MessagePortMessage[] messages);
-  Disentangle(MessagePortMessage[] messages);
-  StopSendingData();
-  Close();
+  async PostMessages(ClonedMessageData[] messages);
+  async Disentangle(ClonedMessageData[] messages);
+  async StopSendingData();
+  async Close();
 
 child:
-  Entangled(MessagePortMessage[] messages);
-  ReceiveData(MessagePortMessage[] messages);
-  StopSendingDataConfirmed();
+  async Entangled(ClonedMessageData[] messages);
+  async ReceiveData(ClonedMessageData[] messages);
+  async StopSendingDataConfirmed();
 
-  __delete__();
+  async __delete__();
 };
 
 } // namespace dom
 } // namespace mozilla
-

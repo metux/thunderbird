@@ -19,7 +19,8 @@ var descriptorNames = {
   stretch: "font-stretch",
   unicodeRange: "unicode-range",
   variant: "font-variant",
-  featureSettings: "font-feature-settings"
+  featureSettings: "font-feature-settings",
+  display: "font-display"
 };
 
 // Default values for the FontFace descriptor attributes other than family, as
@@ -30,7 +31,8 @@ var defaultValues = {
   stretch: "normal",
   unicodeRange: "U+0-10FFFF",
   variant: "normal",
-  featureSettings: "normal"
+  featureSettings: "normal",
+  display: "auto"
 };
 
 // Non-default values for the FontFace descriptor attributes other than family
@@ -42,7 +44,8 @@ var nonDefaultValues = {
   stretch: ["Ultra-Condensed", "ultra-condensed"],
   unicodeRange: ["U+3??", "U+300-3FF"],
   variant: ["Small-Caps", "small-caps"],
-  featureSettings: ["'dlig' on", "\"dlig\""]
+  featureSettings: ["'dlig' on", "\"dlig\""],
+  display: ["Block", "block"]
 };
 
 // Invalid values for the FontFace descriptor attributes other than family.
@@ -52,7 +55,8 @@ var invalidValues = {
   stretch: "wider",
   unicodeRange: "U+1????-2????",
   variant: "inherit",
-  featureSettings: "dlig"
+  featureSettings: "dlig",
+  display: "normal"
 };
 
 // Invalid font family names.
@@ -158,9 +162,11 @@ function awaitRefresh() {
   return awaitOneRefresh().then(awaitOneRefresh);
 }
 
-function runTest() {
-  SimpleTest.waitForExplicitFinish();
+function flushStyles() {
+  getComputedStyle(document.body).width;
+}
 
+function runTest() {
   // Document and window from inside the display:none iframe.
   var nframe = document.getElementById("n");
   var ndocument = nframe.contentDocument;
@@ -954,6 +960,7 @@ function runTest() {
     is(document.fonts.status, "loading", "FontFaceSet.status after adding a loading FontFace (TEST 32)");
 
     document.fonts.clear();
+    flushStyles();
 
     is(document.fonts.status, "loaded", "FontFaceSet.status after clearing (TEST 32)");
 
@@ -1122,14 +1129,18 @@ function runTest() {
     var p = Promise.resolve();
     sources.forEach(function({ win, doc, what}, i) {
       p = p.then(function() {
+        return setTimeoutZero();  // wait for any previous events to be dispatched
+      }).then(function() {
         var events = [], face, face2;
 
-        doc.fonts.onloadingdone = function(e) {
-          events.push(e);
-        };
-        doc.fonts.onloadingerror = function(e) {
-          events.push(e);
-        };
+        var awaitEvents = new Promise(function(aResolve, aReject) {
+          doc.fonts.onloadingdone = doc.fonts.onloadingerror = function(e) {
+            events.push(e);
+            if (events.length == 2) {
+              aResolve();
+            }
+          };
+        });
 
         is(doc.fonts.status, "loaded", "document.fonts.status should have status \"loaded\" (TEST 37) (" + what + ")");
 
@@ -1149,6 +1160,8 @@ function runTest() {
             is(doc.fonts.status, "loading", "document.fonts.status should have status \"loading\" after second font added (TEST 37) (" + what + ")");
 
             return doc.fonts.ready;
+          }).then(function() {
+            return awaitEvents;
           }).then(function() {
             is(doc.fonts.status, "loaded", "document.fonts.status should have status \"loaded\" after second font loaded (TEST 37) (" + what + ")");
             is(face2.status, "loaded", "second FontFace should have status \"loaded\" (TEST 37) (" + what + ")");
@@ -1180,14 +1193,18 @@ function runTest() {
     var p = Promise.resolve();
     sources.forEach(function({ win, doc, what }) {
       p = p.then(function() {
+        return setTimeoutZero();  // wait for any previous events to be dispatched
+      }).then(function() {
         var events = [], face, face2;
 
-        doc.fonts.onloadingdone = function(e) {
-          events.push(e);
-        };
-        doc.fonts.onloadingerror = function(e) {
-          events.push(e);
-        };
+        var awaitEvents = new Promise(function(aResolve, aReject) {
+          doc.fonts.onloadingdone = doc.fonts.onloadingerror = function(e) {
+            events.push(e);
+            if (events.length == 4) {
+              aResolve();
+            }
+          };
+        });
 
         is(doc.fonts.status, "loaded", "document.fonts.status should have status \"loaded\" (TEST 38) (" + what + ")");
 
@@ -1207,6 +1224,8 @@ function runTest() {
             is(doc.fonts.status, "loading", "document.fonts.status should have status \"loading\" after second font added (TEST 38) (" + what + ")");
 
             return doc.fonts.ready;
+          }).then(function() {
+            return awaitEvents;
           }).then(function() {
             is(doc.fonts.status, "loaded", "document.fonts.status should have status \"loaded\" after second font failed to load (TEST 38) (" + what + ")");
             is(face2.status, "error", "second FontFace should have status \"error\" (TEST 38) (" + what + ")");
@@ -1241,29 +1260,35 @@ function runTest() {
     // (TEST 39) Test that a FontFace for an @font-face rule only has one
     // loadingdone event dispatched at the FontFaceSet containing it.
 
-    var style = document.querySelector("style");
-    var ruleText = "@font-face { font-family: test; src: url(BitPattern.woff?test39a); } " +
-                   "@font-face { font-family: test2; src: url(BitPattern.woff?test39b); }";
+    var style, all, events, awaitEvents;
 
-    style.textContent = ruleText;
-
-    var all = Array.from(document.fonts);
-    var events = [];
-
-    document.fonts.onloadingdone = function(e) {
-      events.push(e);
-    };
-    document.fonts.onloadingerror = function(e) {
-      events.push(e);
-    };
-
-    is(document.fonts.status, "loaded", "document.fonts.status should have status \"loaded\" (TEST 39)");
-
-    all[0].load();
-    is(document.fonts.status, "loading", "document.fonts.status should have status \"loading\" after first font loading (TEST 39)");
-
-    return document.fonts.ready
+    return setTimeoutZero()  // wait for any previous events to be dispatched
       .then(function() {
+        style = document.querySelector("style");
+        var ruleText = "@font-face { font-family: test; src: url(BitPattern.woff?test39a); } " +
+                       "@font-face { font-family: test2; src: url(BitPattern.woff?test39b); }";
+
+        style.textContent = ruleText;
+
+        all = Array.from(document.fonts);
+        events = [];
+
+        awaitEvents = new Promise(function(aResolve, aReject) {
+          document.fonts.onloadingdone = document.fonts.onloadingerror = function(e) {
+            events.push(e);
+            if (events.length == 2) {
+              aResolve();
+            }
+          };
+        });
+
+        is(document.fonts.status, "loaded", "document.fonts.status should have status \"loaded\" (TEST 39)");
+
+        all[0].load();
+        is(document.fonts.status, "loading", "document.fonts.status should have status \"loading\" after first font loading (TEST 39)");
+
+        return document.fonts.ready
+      }).then(function() {
         is(document.fonts.status, "loaded", "document.fonts.status should have status \"loaded\" after first font loaded (TEST 39)");
         is(all[0].status, "loaded", "first FontFace should have status \"loaded\" (TEST 39)");
         is(all[1].status, "unloaded", "second FontFace should have status \"unloaded\" (TEST 39)");
@@ -1272,6 +1297,8 @@ function runTest() {
         is(document.fonts.status, "loading", "document.fonts.status should have status \"loading\" after second font loading (TEST 39)");
 
         return document.fonts.ready;
+      }).then(function() {
+        return awaitEvents;
       }).then(function() {
         is(document.fonts.status, "loaded", "document.fonts.status should have status \"loaded\" after second font loaded (TEST 39)");
         is(all[1].status, "loaded", "second FontFace should have status \"loaded\" (TEST 39)");
@@ -1859,11 +1886,16 @@ function runTest() {
 
 function start() {
   if (SpecialPowers.getBoolPref("layout.css.font-loading-api.enabled")) {
-    runTest();
+    SpecialPowers.pushPrefEnv({ set: [["layout.css.font-display.enabled", true]] },
+                              runTest);
   } else {
     ok(true, "CSS Font Loading API is not enabled.");
   }
 }
+
+SimpleTest.waitForExplicitFinish();
+SimpleTest.requestLongerTimeout(5);
+
 </script>
 
 <style></style>

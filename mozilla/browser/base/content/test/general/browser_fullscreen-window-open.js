@@ -1,3 +1,4 @@
+/* eslint-disable mozilla/no-arbitrary-setTimeout */
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
 
@@ -5,39 +6,40 @@ var Cc = Components.classes;
 var Ci = Components.interfaces;
 
 const PREF_DISABLE_OPEN_NEW_WINDOW = "browser.link.open_newwindow.disabled_in_fullscreen";
+const PREF_BLOCK_TOPLEVEL_DATA = "security.data_uri.block_toplevel_data_uri_navigations";
 const isOSX = (Services.appinfo.OS === "Darwin");
 
 const TEST_FILE = "file_fullscreen-window-open.html";
 const gHttpTestRoot = getRootDirectory(gTestPath).replace("chrome://mochitests/content/",
                                                           "http://127.0.0.1:8888/");
 
-function test () {
+var newWin;
+var newBrowser;
+
+async function test() {
   waitForExplicitFinish();
 
   Services.prefs.setBoolPref(PREF_DISABLE_OPEN_NEW_WINDOW, true);
+  Services.prefs.setBoolPref(PREF_BLOCK_TOPLEVEL_DATA, false);
 
-  let newTab = gBrowser.addTab();
-  gBrowser.selectedTab = newTab;
+  newWin = await BrowserTestUtils.openNewBrowserWindow();
+  newBrowser = newWin.gBrowser;
+  await promiseTabLoadEvent(newBrowser.selectedTab, gHttpTestRoot + TEST_FILE);
 
-  let gTestBrowser = gBrowser.selectedBrowser;
-  gTestBrowser.addEventListener("load", function onLoad(){
-    gTestBrowser.removeEventListener("load", onLoad, true, true);
+  // Enter browser fullscreen mode.
+  newWin.BrowserFullScreen();
 
-    // Enter browser fullscreen mode.
-    BrowserFullScreen();
-
-    runNextTest();
-  }, true, true);
-  gTestBrowser.contentWindow.location.href = gHttpTestRoot + TEST_FILE;
+  runNextTest();
 }
 
-registerCleanupFunction(function(){
+registerCleanupFunction(async function() {
   // Exit browser fullscreen mode.
-  BrowserFullScreen();
+  newWin.BrowserFullScreen();
 
-  gBrowser.removeCurrentTab();
+  await BrowserTestUtils.closeWindow(newWin);
 
   Services.prefs.clearUserPref(PREF_DISABLE_OPEN_NEW_WINDOW);
+  Services.prefs.clearUserPref(PREF_BLOCK_TOPLEVEL_DATA);
 });
 
 var gTests = [
@@ -52,12 +54,11 @@ var gTests = [
   test_open_from_chrome,
 ];
 
-function runNextTest () {
-  let test = gTests.shift();
-  if (test) {
-    executeSoon(test);
-  }
-  else {
+function runNextTest() {
+  let testCase = gTests.shift();
+  if (testCase) {
+    executeSoon(testCase);
+  } else {
     finish();
   }
 }
@@ -70,7 +71,7 @@ function test_open() {
       title: "test_open",
       param: "",
     },
-    finalizeFn: function () {},
+    finalizeFn() {},
   });
 }
 
@@ -81,7 +82,7 @@ function test_open_with_size() {
       title: "test_open_with_size",
       param: "width=400,height=400",
     },
-    finalizeFn: function () {},
+    finalizeFn() {},
   });
 }
 
@@ -92,39 +93,39 @@ function test_open_with_pos() {
       title: "test_open_with_pos",
       param: "top=200,left=200",
     },
-    finalizeFn: function () {},
+    finalizeFn() {},
   });
 }
 
 // Test for window.open() with outerWidth/Height.
 function test_open_with_outerSize() {
-  let [outerWidth, outerHeight] = [window.outerWidth, window.outerHeight];
+  let [outerWidth, outerHeight] = [newWin.outerWidth, newWin.outerHeight];
   waitForTabOpen({
     message: {
       title: "test_open_with_outerSize",
       param: "outerWidth=200,outerHeight=200",
     },
-    successFn: function () {
-      is(window.outerWidth, outerWidth, "Don't change window.outerWidth.");
-      is(window.outerHeight, outerHeight, "Don't change window.outerHeight.");
+    successFn() {
+      is(newWin.outerWidth, outerWidth, "Don't change window.outerWidth.");
+      is(newWin.outerHeight, outerHeight, "Don't change window.outerHeight.");
     },
-    finalizeFn: function () {},
+    finalizeFn() {},
   });
 }
 
 // Test for window.open() with innerWidth/Height.
 function test_open_with_innerSize() {
-  let [innerWidth, innerHeight] = [window.innerWidth, window.innerHeight];
+  let [innerWidth, innerHeight] = [newWin.innerWidth, newWin.innerHeight];
   waitForTabOpen({
     message: {
       title: "test_open_with_innerSize",
       param: "innerWidth=200,innerHeight=200",
     },
-    successFn: function () {
-      is(window.innerWidth, innerWidth, "Don't change window.innerWidth.");
-      is(window.innerHeight, innerHeight, "Don't change window.innerHeight.");
+    successFn() {
+      is(newWin.innerWidth, innerWidth, "Don't change window.innerWidth.");
+      is(newWin.innerHeight, innerHeight, "Don't change window.innerHeight.");
     },
-    finalizeFn: function () {},
+    finalizeFn() {},
   });
 }
 
@@ -135,7 +136,7 @@ function test_open_with_dialog() {
       title: "test_open_with_dialog",
       param: "dialog=yes",
     },
-    finalizeFn: function () {},
+    finalizeFn() {},
   });
 }
 
@@ -152,7 +153,7 @@ function test_open_when_open_new_window_by_pref() {
       title: "test_open_when_open_new_window_by_pref",
       param: "width=400,height=400",
     },
-    finalizeFn: function () {
+    finalizeFn() {
       Services.prefs.clearUserPref(PREF_NAME);
     },
   });
@@ -167,7 +168,7 @@ function test_open_with_pref_to_disable_in_fullscreen() {
       title: "test_open_with_pref_disabled_in_fullscreen",
       param: "width=400,height=400",
     },
-    finalizeFn: function () {
+    finalizeFn() {
       Services.prefs.setBoolPref(PREF_DISABLE_OPEN_NEW_WINDOW, true);
     },
   });
@@ -181,12 +182,11 @@ function test_open_from_chrome() {
       title: "test_open_from_chrome",
       param: "",
     },
-    finalizeFn: function () {}
+    finalizeFn() {}
   });
 }
 
 function waitForTabOpen(aOptions) {
-  let start = Date.now();
   let message = aOptions.message;
 
   if (!message.title) {
@@ -199,33 +199,30 @@ function waitForTabOpen(aOptions) {
   info("Running test: " + message.title);
 
   let onTabOpen = function onTabOpen(aEvent) {
-    gBrowser.tabContainer.removeEventListener("TabOpen", onTabOpen, true);
+    newBrowser.tabContainer.removeEventListener("TabOpen", onTabOpen, true);
 
     let tab = aEvent.target;
-    tab.linkedBrowser.addEventListener("load", function onLoad(ev){
-      let browser = ev.currentTarget;
-      browser.removeEventListener("load", onLoad, true, true);
-
-      is(browser.contentWindow.document.title, message.title,
+    whenTabLoaded(tab, function() {
+      is(tab.linkedBrowser.contentTitle, message.title,
          "Opened Tab is expected: " + message.title);
 
       if (aOptions.successFn) {
         aOptions.successFn();
       }
 
-      gBrowser.removeTab(tab);
+      newBrowser.removeTab(tab);
       finalize();
-    }, true, true);
-  }
-  gBrowser.tabContainer.addEventListener("TabOpen", onTabOpen, true);
+    });
+  };
+  newBrowser.tabContainer.addEventListener("TabOpen", onTabOpen, true);
 
-  let finalize = function () {
+  let finalize = function() {
     aOptions.finalizeFn();
     info("Finished: " + message.title);
     runNextTest();
   };
 
-  const URI = "data:text/html;charset=utf-8,<!DOCTYPE html><html><head><title>"+
+  const URI = "data:text/html;charset=utf-8,<!DOCTYPE html><html><head><title>" +
               message.title +
               "<%2Ftitle><%2Fhead><body><%2Fbody><%2Fhtml>";
 
@@ -238,9 +235,8 @@ function waitForTabOpen(aOptions) {
 
 
 function waitForWindowOpen(aOptions) {
-  let start = Date.now();
   let message = aOptions.message;
-  let url = aOptions.url || getBrowserURL();
+  let url = aOptions.url || "about:blank";
 
   if (!message.title) {
     ok(false, "Can't get message.title");
@@ -251,40 +247,37 @@ function waitForWindowOpen(aOptions) {
 
   info("Running test: " + message.title);
 
-  let onFinalize = function () {
+  let onFinalize = function() {
     aOptions.finalizeFn();
 
     info("Finished: " + message.title);
     runNextTest();
   };
 
-  let listener = new WindowListener(message.title, url, {
+  let listener = new WindowListener(message.title, getBrowserURL(), {
     onSuccess: aOptions.successFn,
-    onFinalize: onFinalize,
+    onFinalize,
   });
   Services.wm.addListener(listener);
 
-  const URI = aOptions.url || "about:blank";
-
   executeWindowOpenInContent({
-    uri: URI,
+    uri: url,
     title: message.title,
     option: message.param,
   });
 }
 
 function executeWindowOpenInContent(aParam) {
-  var testWindow = gBrowser.selectedBrowser.contentWindow;
-  var testElm = testWindow.document.getElementById("test");
-
-  testElm.setAttribute("data-test-param", JSON.stringify(aParam));
-  EventUtils.synthesizeMouseAtCenter(testElm, {}, testWindow);
+  ContentTask.spawn(newBrowser.selectedBrowser, JSON.stringify(aParam), async function(dataTestParam) {
+    let testElm = content.document.getElementById("test");
+    testElm.setAttribute("data-test-param", dataTestParam);
+    testElm.click();
+  });
 }
 
 function waitForWindowOpenFromChrome(aOptions) {
-  let start = Date.now();
   let message = aOptions.message;
-  let url = aOptions.url || getBrowserURL();
+  let url = aOptions.url || "about:blank";
 
   if (!message.title) {
     ok(false, "Can't get message.title");
@@ -295,23 +288,20 @@ function waitForWindowOpenFromChrome(aOptions) {
 
   info("Running test: " + message.title);
 
-  let onFinalize = function () {
+  let onFinalize = function() {
     aOptions.finalizeFn();
 
     info("Finished: " + message.title);
     runNextTest();
   };
 
-  let listener = new WindowListener(message.title, url, {
+  let listener = new WindowListener(message.title, getBrowserURL(), {
     onSuccess: aOptions.successFn,
-    onFinalize: onFinalize,
+    onFinalize,
   });
   Services.wm.addListener(listener);
 
-
-  const URI = aOptions.url || "about:blank";
-
-  let testWindow = window.open(URI, message.title, message.option);
+  newWin.open(url, message.title, message.option);
 }
 
 function WindowListener(aTitle, aUrl, aCallBackObj) {
@@ -327,14 +317,14 @@ WindowListener.prototype = {
   callback_onSuccess: null,
   callBack_onFinalize: null,
 
-  onOpenWindow: function(aXULWindow) {
+  onOpenWindow(aXULWindow) {
     Services.wm.removeListener(this);
 
     let domwindow = aXULWindow.QueryInterface(Ci.nsIInterfaceRequestor)
                     .getInterface(Ci.nsIDOMWindow);
     let onLoad = aEvent => {
       is(domwindow.document.location.href, this.test_url,
-        "Opened Window is expected: "+ this.test_title);
+        "Opened Window is expected: " + this.test_title);
       if (this.callback_onSuccess) {
         this.callback_onSuccess();
       }
@@ -343,20 +333,19 @@ WindowListener.prototype = {
 
       // wait for trasition to fullscreen on OSX Lion later
       if (isOSX) {
-        setTimeout(function(){
+        setTimeout(() => {
           domwindow.close();
           executeSoon(this.callBack_onFinalize);
-        }.bind(this), 3000);
-      }
-      else {
+        }, 3000);
+      } else {
         domwindow.close();
         executeSoon(this.callBack_onFinalize);
       }
     };
     domwindow.addEventListener("load", onLoad, true);
   },
-  onCloseWindow: function(aXULWindow) {},
-  onWindowTitleChange: function(aXULWindow, aNewTitle) {},
+  onCloseWindow(aXULWindow) {},
+  onWindowTitleChange(aXULWindow, aNewTitle) {},
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIWindowMediatorListener,
                                          Ci.nsISupports]),
 };

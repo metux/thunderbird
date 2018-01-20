@@ -8,6 +8,7 @@
 
 #include "nsError.h"
 #include "nsIDocument.h"
+#include "nsStringFwd.h"
 #include "mozilla/EventForwards.h"
 
 class nsINode;
@@ -16,8 +17,6 @@ class nsIDocument;
 class nsIImageLoadingContent;
 class nsIContent;
 class nsITransferable;
-class nsACString;
-class nsAString;
 class nsIPresShell;
 class nsILoadContext;
 
@@ -25,6 +24,7 @@ class nsCopySupport
 {
   // class of static helper functions for copy support
   public:
+    static nsresult ClearSelectionCache();
     static nsresult HTMLCopy(nsISelection *aSel, nsIDocument *aDoc,
                              int16_t aClipboardID, bool aWithRubyAnnotation);
     static nsresult DoHooks(nsIDocument *aDoc, nsITransferable *aTrans,
@@ -34,7 +34,7 @@ class nsCopySupport
     // (text/html or text/plain). If aSel is non-null, use it, otherwise get the entire
     // doc.
     static nsresult GetContents(const nsACString& aMimeType, uint32_t aFlags, nsISelection *aSel, nsIDocument *aDoc, nsAString& outdata);
-    
+
     static nsresult ImageCopy(nsIImageLoadingContent* aImageElement,
                               nsILoadContext* aLoadContext,
                               int32_t aCopyFlags);

@@ -12,15 +12,19 @@
 
 #include "common/debug.h"
 #include "libANGLE/AttributeMap.h"
-#include "libANGLE/Data.h"
+#include "libANGLE/Context.h"
+#include "libANGLE/ContextState.h"
+#include "libANGLE/Path.h"
 #include "libANGLE/Surface.h"
 #include "libANGLE/renderer/gl/BlitGL.h"
 #include "libANGLE/renderer/gl/BufferGL.h"
+#include "libANGLE/renderer/gl/ClearMultiviewGL.h"
 #include "libANGLE/renderer/gl/CompilerGL.h"
+#include "libANGLE/renderer/gl/ContextGL.h"
 #include "libANGLE/renderer/gl/FenceNVGL.h"
-#include "libANGLE/renderer/gl/FenceSyncGL.h"
 #include "libANGLE/renderer/gl/FramebufferGL.h"
 #include "libANGLE/renderer/gl/FunctionsGL.h"
+#include "libANGLE/renderer/gl/PathGL.h"
 #include "libANGLE/renderer/gl/ProgramGL.h"
 #include "libANGLE/renderer/gl/QueryGL.h"
 #include "libANGLE/renderer/gl/RenderbufferGL.h"
@@ -28,300 +32,550 @@
 #include "libANGLE/renderer/gl/ShaderGL.h"
 #include "libANGLE/renderer/gl/StateManagerGL.h"
 #include "libANGLE/renderer/gl/SurfaceGL.h"
+#include "libANGLE/renderer/gl/SyncGL.h"
 #include "libANGLE/renderer/gl/TextureGL.h"
 #include "libANGLE/renderer/gl/TransformFeedbackGL.h"
 #include "libANGLE/renderer/gl/VertexArrayGL.h"
 #include "libANGLE/renderer/gl/renderergl_utils.h"
+#include "libANGLE/renderer/renderer_utils.h"
 
-#ifndef NDEBUG
-static void INTERNAL_GL_APIENTRY LogGLDebugMessage(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
-                                                   const GLchar *message, const void *userParam)
+namespace
+{
+
+std::vector<GLuint> GatherPaths(const std::vector<gl::Path *> &paths)
+{
+    std::vector<GLuint> ret;
+    ret.reserve(paths.size());
+
+    for (const auto *p : paths)
+    {
+        const auto *pathObj = rx::GetImplAs<rx::PathGL>(p);
+        ret.push_back(pathObj->getPathID());
+    }
+    return ret;
+}
+
+}  // namespace
+
+static void INTERNAL_GL_APIENTRY LogGLDebugMessage(GLenum source,
+                                                   GLenum type,
+                                                   GLuint id,
+                                                   GLenum severity,
+                                                   GLsizei length,
+                                                   const GLchar *message,
+                                                   const void *userParam)
 {
     std::string sourceText;
     switch (source)
     {
-      case GL_DEBUG_SOURCE_API:             sourceText = "OpenGL";          break;
-      case GL_DEBUG_SOURCE_WINDOW_SYSTEM:   sourceText = "Windows";         break;
-      case GL_DEBUG_SOURCE_SHADER_COMPILER: sourceText = "Shader Compiler"; break;
-      case GL_DEBUG_SOURCE_THIRD_PARTY:     sourceText = "Third Party";     break;
-      case GL_DEBUG_SOURCE_APPLICATION:     sourceText = "Application";     break;
-      case GL_DEBUG_SOURCE_OTHER:           sourceText = "Other";           break;
-      default:                              sourceText = "UNKNOWN";         break;
+        case GL_DEBUG_SOURCE_API:
+            sourceText = "OpenGL";
+            break;
+        case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
+            sourceText = "Windows";
+            break;
+        case GL_DEBUG_SOURCE_SHADER_COMPILER:
+            sourceText = "Shader Compiler";
+            break;
+        case GL_DEBUG_SOURCE_THIRD_PARTY:
+            sourceText = "Third Party";
+            break;
+        case GL_DEBUG_SOURCE_APPLICATION:
+            sourceText = "Application";
+            break;
+        case GL_DEBUG_SOURCE_OTHER:
+            sourceText = "Other";
+            break;
+        default:
+            sourceText = "UNKNOWN";
+            break;
     }
 
     std::string typeText;
     switch (type)
     {
-      case GL_DEBUG_TYPE_ERROR:               typeText = "Error";               break;
-      case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: typeText = "Deprecated behavior"; break;
-      case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:  typeText = "Undefined behavior";  break;
-      case GL_DEBUG_TYPE_PORTABILITY:         typeText = "Portability";         break;
-      case GL_DEBUG_TYPE_PERFORMANCE:         typeText = "Performance";         break;
-      case GL_DEBUG_TYPE_OTHER:               typeText = "Other";               break;
-      case GL_DEBUG_TYPE_MARKER:              typeText = "Marker";              break;
-      default:                                typeText = "UNKNOWN";             break;
+        case GL_DEBUG_TYPE_ERROR:
+            typeText = "Error";
+            break;
+        case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
+            typeText = "Deprecated behavior";
+            break;
+        case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
+            typeText = "Undefined behavior";
+            break;
+        case GL_DEBUG_TYPE_PORTABILITY:
+            typeText = "Portability";
+            break;
+        case GL_DEBUG_TYPE_PERFORMANCE:
+            typeText = "Performance";
+            break;
+        case GL_DEBUG_TYPE_OTHER:
+            typeText = "Other";
+            break;
+        case GL_DEBUG_TYPE_MARKER:
+            typeText = "Marker";
+            break;
+        default:
+            typeText = "UNKNOWN";
+            break;
     }
 
     std::string severityText;
     switch (severity)
     {
-      case GL_DEBUG_SEVERITY_HIGH:         severityText = "High";         break;
-      case GL_DEBUG_SEVERITY_MEDIUM:       severityText = "Medium";       break;
-      case GL_DEBUG_SEVERITY_LOW:          severityText = "Low";          break;
-      case GL_DEBUG_SEVERITY_NOTIFICATION: severityText = "Notification"; break;
-      default:                             severityText = "UNKNOWN";      break;
+        case GL_DEBUG_SEVERITY_HIGH:
+            severityText = "High";
+            break;
+        case GL_DEBUG_SEVERITY_MEDIUM:
+            severityText = "Medium";
+            break;
+        case GL_DEBUG_SEVERITY_LOW:
+            severityText = "Low";
+            break;
+        case GL_DEBUG_SEVERITY_NOTIFICATION:
+            severityText = "Notification";
+            break;
+        default:
+            severityText = "UNKNOWN";
+            break;
     }
 
-    ERR("\n\tSource: %s\n\tType: %s\n\tID: %d\n\tSeverity: %s\n\tMessage: %s", sourceText.c_str(), typeText.c_str(), id,
-        severityText.c_str(), message);
+    if (type == GL_DEBUG_TYPE_ERROR)
+    {
+        ERR() << std::endl
+              << "\tSource: " << sourceText << std::endl
+              << "\tType: " << typeText << std::endl
+              << "\tID: " << gl::Error(id) << std::endl
+              << "\tSeverity: " << severityText << std::endl
+              << "\tMessage: " << message;
+    }
+    else
+    {
+        // TODO(ynovikov): filter into WARN and INFO if INFO is ever implemented
+        WARN() << std::endl
+               << "\tSource: " << sourceText << std::endl
+               << "\tType: " << typeText << std::endl
+               << "\tID: " << gl::Error(id) << std::endl
+               << "\tSeverity: " << severityText << std::endl
+               << "\tMessage: " << message;
+    }
 }
-#endif
 
 namespace rx
 {
 
 RendererGL::RendererGL(const FunctionsGL *functions, const egl::AttributeMap &attribMap)
-    : Renderer(),
-      mMaxSupportedESVersion(0, 0),
+    : mMaxSupportedESVersion(0, 0),
       mFunctions(functions),
       mStateManager(nullptr),
       mBlitter(nullptr),
-      mHasDebugOutput(false),
-      mSkipDrawCalls(false)
+      mMultiviewClearer(nullptr),
+      mUseDebugOutput(false),
+      mSkipDrawCalls(false),
+      mCapsInitialized(false),
+      mMultiviewImplementationType(MultiviewImplementationTypeGL::UNSPECIFIED)
 {
     ASSERT(mFunctions);
-    mStateManager = new StateManagerGL(mFunctions, getRendererCaps());
     nativegl_gl::GenerateWorkarounds(mFunctions, &mWorkarounds);
-    mBlitter = new BlitGL(functions, mWorkarounds, mStateManager);
+    mStateManager = new StateManagerGL(mFunctions, getNativeCaps(), getNativeExtensions());
+    mBlitter      = new BlitGL(functions, mWorkarounds, mStateManager);
+    mMultiviewClearer = new ClearMultiviewGL(functions, mStateManager);
 
-    mHasDebugOutput = mFunctions->isAtLeastGL(gl::Version(4, 3)) ||
-                      mFunctions->hasGLExtension("GL_KHR_debug") ||
-                      mFunctions->isAtLeastGLES(gl::Version(3, 2)) ||
-                      mFunctions->hasGLESExtension("GL_KHR_debug");
-#ifndef NDEBUG
-    if (mHasDebugOutput)
+    bool hasDebugOutput = mFunctions->isAtLeastGL(gl::Version(4, 3)) ||
+                          mFunctions->hasGLExtension("GL_KHR_debug") ||
+                          mFunctions->isAtLeastGLES(gl::Version(3, 2)) ||
+                          mFunctions->hasGLESExtension("GL_KHR_debug");
+
+    mUseDebugOutput = hasDebugOutput && ShouldUseDebugLayers(attribMap);
+
+    if (mUseDebugOutput)
     {
+        mFunctions->enable(GL_DEBUG_OUTPUT);
         mFunctions->enable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-        mFunctions->debugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_HIGH, 0, nullptr, GL_TRUE);
-        mFunctions->debugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_MEDIUM, 0, nullptr, GL_TRUE);
-        mFunctions->debugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_LOW, 0, nullptr, GL_FALSE);
-        mFunctions->debugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, nullptr, GL_FALSE);
+        mFunctions->debugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_HIGH, 0,
+                                        nullptr, GL_TRUE);
+        mFunctions->debugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_MEDIUM, 0,
+                                        nullptr, GL_TRUE);
+        mFunctions->debugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_LOW, 0,
+                                        nullptr, GL_FALSE);
+        mFunctions->debugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION,
+                                        0, nullptr, GL_FALSE);
         mFunctions->debugMessageCallback(&LogGLDebugMessage, nullptr);
     }
-#endif
 
-    EGLint deviceType = attribMap.get(EGL_PLATFORM_ANGLE_DEVICE_TYPE_ANGLE, EGL_NONE);
+    EGLint deviceType =
+        static_cast<EGLint>(attribMap.get(EGL_PLATFORM_ANGLE_DEVICE_TYPE_ANGLE, EGL_NONE));
     if (deviceType == EGL_PLATFORM_ANGLE_DEVICE_TYPE_NULL_ANGLE)
     {
         mSkipDrawCalls = true;
+    }
+
+    if (mWorkarounds.initializeCurrentVertexAttributes)
+    {
+        GLint maxVertexAttribs = 0;
+        mFunctions->getIntegerv(GL_MAX_VERTEX_ATTRIBS, &maxVertexAttribs);
+
+        for (GLint i = 0; i < maxVertexAttribs; ++i)
+        {
+            mFunctions->vertexAttrib4f(i, 0.0f, 0.0f, 0.0f, 1.0f);
+        }
     }
 }
 
 RendererGL::~RendererGL()
 {
     SafeDelete(mBlitter);
+    SafeDelete(mMultiviewClearer);
     SafeDelete(mStateManager);
 }
 
 gl::Error RendererGL::flush()
 {
     mFunctions->flush();
-    return gl::Error(GL_NO_ERROR);
+    return gl::NoError();
 }
 
 gl::Error RendererGL::finish()
 {
-#ifdef NDEBUG
-    if (mWorkarounds.finishDoesNotCauseQueriesToBeAvailable && mHasDebugOutput)
+    if (mWorkarounds.finishDoesNotCauseQueriesToBeAvailable && mUseDebugOutput)
     {
         mFunctions->enable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
     }
-#endif
 
     mFunctions->finish();
 
-#ifdef NDEBUG
-    if (mWorkarounds.finishDoesNotCauseQueriesToBeAvailable && mHasDebugOutput)
+    if (mWorkarounds.finishDoesNotCauseQueriesToBeAvailable && mUseDebugOutput)
     {
         mFunctions->disable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
     }
-#endif
 
-    return gl::Error(GL_NO_ERROR);
+    return gl::NoError();
 }
 
-gl::Error RendererGL::drawArrays(const gl::Data &data, GLenum mode, GLint first, GLsizei count)
+gl::Error RendererGL::drawArrays(const gl::Context *context,
+                                 GLenum mode,
+                                 GLint first,
+                                 GLsizei count)
 {
-    gl::Error error = mStateManager->setDrawArraysState(data, first, count, 0);
-    if (error.isError())
-    {
-        return error;
-    }
+    const gl::Program *program  = context->getGLState().getProgram();
+    const bool usesMultiview    = program->usesMultiview();
+    const GLsizei instanceCount = usesMultiview ? program->getNumViews() : 0;
 
+    ANGLE_TRY(mStateManager->setDrawArraysState(context, first, count, instanceCount));
     if (!mSkipDrawCalls)
     {
-        mFunctions->drawArrays(mode, first, count);
+        if (!usesMultiview)
+        {
+            mFunctions->drawArrays(mode, first, count);
+        }
+        else
+        {
+            mFunctions->drawArraysInstanced(mode, first, count, instanceCount);
+        }
     }
-
-    return gl::Error(GL_NO_ERROR);
+    return gl::NoError();
 }
 
-gl::Error RendererGL::drawArraysInstanced(const gl::Data &data,
+gl::Error RendererGL::drawArraysInstanced(const gl::Context *context,
                                           GLenum mode,
                                           GLint first,
                                           GLsizei count,
                                           GLsizei instanceCount)
 {
-    gl::Error error = mStateManager->setDrawArraysState(data, first, count, instanceCount);
-    if (error.isError())
+    GLsizei adjustedInstanceCount = instanceCount;
+    const gl::Program *program    = context->getGLState().getProgram();
+    if (program->usesMultiview())
     {
-        return error;
+        adjustedInstanceCount *= program->getNumViews();
     }
 
+    ANGLE_TRY(mStateManager->setDrawArraysState(context, first, count, adjustedInstanceCount));
     if (!mSkipDrawCalls)
     {
-        mFunctions->drawArraysInstanced(mode, first, count, instanceCount);
+        mFunctions->drawArraysInstanced(mode, first, count, adjustedInstanceCount);
     }
-
-    return gl::Error(GL_NO_ERROR);
+    return gl::NoError();
 }
 
-gl::Error RendererGL::drawElements(const gl::Data &data,
+gl::Error RendererGL::drawElements(const gl::Context *context,
                                    GLenum mode,
                                    GLsizei count,
                                    GLenum type,
-                                   const GLvoid *indices,
-                                   const gl::IndexRange &indexRange)
+                                   const void *indices)
 {
-    const GLvoid *drawIndexPointer = nullptr;
-    gl::Error error =
-        mStateManager->setDrawElementsState(data, count, type, indices, 0, &drawIndexPointer);
-    if (error.isError())
-    {
-        return error;
-    }
+    const gl::Program *program  = context->getGLState().getProgram();
+    const bool usesMultiview    = program->usesMultiview();
+    const GLsizei instanceCount = usesMultiview ? program->getNumViews() : 0;
+    const void *drawIndexPtr = nullptr;
 
+    ANGLE_TRY(mStateManager->setDrawElementsState(context, count, type, indices, instanceCount,
+                                                  &drawIndexPtr));
     if (!mSkipDrawCalls)
     {
-        mFunctions->drawElements(mode, count, type, drawIndexPointer);
+        if (!usesMultiview)
+        {
+            mFunctions->drawElements(mode, count, type, drawIndexPtr);
+        }
+        else
+        {
+            mFunctions->drawElementsInstanced(mode, count, type, drawIndexPtr, instanceCount);
+        }
     }
-
-    return gl::Error(GL_NO_ERROR);
+    return gl::NoError();
 }
 
-gl::Error RendererGL::drawElementsInstanced(const gl::Data &data,
+gl::Error RendererGL::drawElementsInstanced(const gl::Context *context,
                                             GLenum mode,
                                             GLsizei count,
                                             GLenum type,
-                                            const GLvoid *indices,
-                                            GLsizei instances,
-                                            const gl::IndexRange &indexRange)
+                                            const void *indices,
+                                            GLsizei instances)
 {
-    const GLvoid *drawIndexPointer = nullptr;
-    gl::Error error = mStateManager->setDrawElementsState(data, count, type, indices, instances,
-                                                          &drawIndexPointer);
-    if (error.isError())
+    GLsizei adjustedInstanceCount = instances;
+    const gl::Program *program    = context->getGLState().getProgram();
+    if (program->usesMultiview())
     {
-        return error;
+        adjustedInstanceCount *= program->getNumViews();
     }
+    const void *drawIndexPointer = nullptr;
 
+    ANGLE_TRY(mStateManager->setDrawElementsState(context, count, type, indices,
+                                                  adjustedInstanceCount, &drawIndexPointer));
     if (!mSkipDrawCalls)
     {
-        mFunctions->drawElementsInstanced(mode, count, type, drawIndexPointer, instances);
+        mFunctions->drawElementsInstanced(mode, count, type, drawIndexPointer,
+                                          adjustedInstanceCount);
     }
-
-    return gl::Error(GL_NO_ERROR);
+    return gl::NoError();
 }
 
-gl::Error RendererGL::drawRangeElements(const gl::Data &data,
+gl::Error RendererGL::drawRangeElements(const gl::Context *context,
                                         GLenum mode,
                                         GLuint start,
                                         GLuint end,
                                         GLsizei count,
                                         GLenum type,
-                                        const GLvoid *indices,
-                                        const gl::IndexRange &indexRange)
+                                        const void *indices)
 {
-    const GLvoid *drawIndexPointer = nullptr;
-    gl::Error error =
-        mStateManager->setDrawElementsState(data, count, type, indices, 0, &drawIndexPointer);
-    if (error.isError())
+    const gl::Program *program   = context->getGLState().getProgram();
+    const bool usesMultiview     = program->usesMultiview();
+    const GLsizei instanceCount  = usesMultiview ? program->getNumViews() : 0;
+    const void *drawIndexPointer = nullptr;
+
+    ANGLE_TRY(mStateManager->setDrawElementsState(context, count, type, indices, instanceCount,
+                                                  &drawIndexPointer));
+    if (!mSkipDrawCalls)
     {
-        return error;
+        if (!usesMultiview)
+        {
+            mFunctions->drawRangeElements(mode, start, end, count, type, drawIndexPointer);
+        }
+        else
+        {
+            mFunctions->drawElementsInstanced(mode, count, type, drawIndexPointer, instanceCount);
+        }
     }
+    return gl::NoError();
+}
+
+gl::Error RendererGL::drawArraysIndirect(const gl::Context *context,
+                                         GLenum mode,
+                                         const void *indirect)
+{
+    ANGLE_TRY(mStateManager->setDrawIndirectState(context, GL_NONE));
 
     if (!mSkipDrawCalls)
     {
-        mFunctions->drawRangeElements(mode, start, end, count, type, drawIndexPointer);
+        mFunctions->drawArraysIndirect(mode, indirect);
     }
-
-    return gl::Error(GL_NO_ERROR);
+    return gl::NoError();
 }
 
-CompilerImpl *RendererGL::createCompiler()
+gl::Error RendererGL::drawElementsIndirect(const gl::Context *context,
+                                           GLenum mode,
+                                           GLenum type,
+                                           const void *indirect)
 {
-    return new CompilerGL(mFunctions);
+    ANGLE_TRY(mStateManager->setDrawIndirectState(context, type));
+
+    if (!mSkipDrawCalls)
+    {
+        mFunctions->drawElementsIndirect(mode, type, indirect);
+    }
+    return gl::NoError();
 }
 
-ShaderImpl *RendererGL::createShader(const gl::Shader::Data &data)
+void RendererGL::stencilFillPath(const gl::ContextState &state,
+                                 const gl::Path *path,
+                                 GLenum fillMode,
+                                 GLuint mask)
 {
-    return new ShaderGL(data, mFunctions, mWorkarounds);
+    const auto *pathObj = GetImplAs<PathGL>(path);
+
+    mFunctions->stencilFillPathNV(pathObj->getPathID(), fillMode, mask);
+
+    ASSERT(mFunctions->getError() == GL_NO_ERROR);
 }
 
-ProgramImpl *RendererGL::createProgram(const gl::Program::Data &data)
+void RendererGL::stencilStrokePath(const gl::ContextState &state,
+                                   const gl::Path *path,
+                                   GLint reference,
+                                   GLuint mask)
 {
-    return new ProgramGL(data, mFunctions, mStateManager);
+    const auto *pathObj = GetImplAs<PathGL>(path);
+
+    mFunctions->stencilStrokePathNV(pathObj->getPathID(), reference, mask);
+
+    ASSERT(mFunctions->getError() == GL_NO_ERROR);
 }
 
-FramebufferImpl *RendererGL::createFramebuffer(const gl::Framebuffer::Data &data)
+void RendererGL::coverFillPath(const gl::ContextState &state,
+                               const gl::Path *path,
+                               GLenum coverMode)
 {
-    return new FramebufferGL(data, mFunctions, mStateManager, mWorkarounds, false);
+
+    const auto *pathObj = GetImplAs<PathGL>(path);
+    mFunctions->coverFillPathNV(pathObj->getPathID(), coverMode);
+
+    ASSERT(mFunctions->getError() == GL_NO_ERROR);
 }
 
-TextureImpl *RendererGL::createTexture(GLenum target)
+void RendererGL::coverStrokePath(const gl::ContextState &state,
+                                 const gl::Path *path,
+                                 GLenum coverMode)
 {
-    return new TextureGL(target, mFunctions, mWorkarounds, mStateManager, mBlitter);
+    const auto *pathObj = GetImplAs<PathGL>(path);
+    mFunctions->coverStrokePathNV(pathObj->getPathID(), coverMode);
+
+    ASSERT(mFunctions->getError() == GL_NO_ERROR);
 }
 
-RenderbufferImpl *RendererGL::createRenderbuffer()
+void RendererGL::stencilThenCoverFillPath(const gl::ContextState &state,
+                                          const gl::Path *path,
+                                          GLenum fillMode,
+                                          GLuint mask,
+                                          GLenum coverMode)
 {
-    return new RenderbufferGL(mFunctions, mWorkarounds, mStateManager, getRendererTextureCaps());
+
+    const auto *pathObj = GetImplAs<PathGL>(path);
+    mFunctions->stencilThenCoverFillPathNV(pathObj->getPathID(), fillMode, mask, coverMode);
+
+    ASSERT(mFunctions->getError() == GL_NO_ERROR);
 }
 
-BufferImpl *RendererGL::createBuffer()
+void RendererGL::stencilThenCoverStrokePath(const gl::ContextState &state,
+                                            const gl::Path *path,
+                                            GLint reference,
+                                            GLuint mask,
+                                            GLenum coverMode)
 {
-    return new BufferGL(mFunctions, mStateManager);
+
+    const auto *pathObj = GetImplAs<PathGL>(path);
+    mFunctions->stencilThenCoverStrokePathNV(pathObj->getPathID(), reference, mask, coverMode);
+
+    ASSERT(mFunctions->getError() == GL_NO_ERROR);
 }
 
-VertexArrayImpl *RendererGL::createVertexArray(const gl::VertexArray::Data &data)
+void RendererGL::coverFillPathInstanced(const gl::ContextState &state,
+                                        const std::vector<gl::Path *> &paths,
+                                        GLenum coverMode,
+                                        GLenum transformType,
+                                        const GLfloat *transformValues)
 {
-    return new VertexArrayGL(data, mFunctions, mStateManager);
+    const auto &pathObjs = GatherPaths(paths);
+
+    mFunctions->coverFillPathInstancedNV(static_cast<GLsizei>(pathObjs.size()), GL_UNSIGNED_INT,
+                                         &pathObjs[0], 0, coverMode, transformType,
+                                         transformValues);
+
+    ASSERT(mFunctions->getError() == GL_NO_ERROR);
+}
+void RendererGL::coverStrokePathInstanced(const gl::ContextState &state,
+                                          const std::vector<gl::Path *> &paths,
+                                          GLenum coverMode,
+                                          GLenum transformType,
+                                          const GLfloat *transformValues)
+{
+    const auto &pathObjs = GatherPaths(paths);
+
+    mFunctions->coverStrokePathInstancedNV(static_cast<GLsizei>(pathObjs.size()), GL_UNSIGNED_INT,
+                                           &pathObjs[0], 0, coverMode, transformType,
+                                           transformValues);
+
+    ASSERT(mFunctions->getError() == GL_NO_ERROR);
+}
+void RendererGL::stencilFillPathInstanced(const gl::ContextState &state,
+                                          const std::vector<gl::Path *> &paths,
+                                          GLenum fillMode,
+                                          GLuint mask,
+                                          GLenum transformType,
+                                          const GLfloat *transformValues)
+{
+    const auto &pathObjs = GatherPaths(paths);
+
+    mFunctions->stencilFillPathInstancedNV(static_cast<GLsizei>(pathObjs.size()), GL_UNSIGNED_INT,
+                                           &pathObjs[0], 0, fillMode, mask, transformType,
+                                           transformValues);
+
+    ASSERT(mFunctions->getError() == GL_NO_ERROR);
+}
+void RendererGL::stencilStrokePathInstanced(const gl::ContextState &state,
+                                            const std::vector<gl::Path *> &paths,
+                                            GLint reference,
+                                            GLuint mask,
+                                            GLenum transformType,
+                                            const GLfloat *transformValues)
+{
+    const auto &pathObjs = GatherPaths(paths);
+
+    mFunctions->stencilStrokePathInstancedNV(static_cast<GLsizei>(pathObjs.size()), GL_UNSIGNED_INT,
+                                             &pathObjs[0], 0, reference, mask, transformType,
+                                             transformValues);
+
+    ASSERT(mFunctions->getError() == GL_NO_ERROR);
 }
 
-QueryImpl *RendererGL::createQuery(GLenum type)
+void RendererGL::stencilThenCoverFillPathInstanced(const gl::ContextState &state,
+                                                   const std::vector<gl::Path *> &paths,
+                                                   GLenum coverMode,
+                                                   GLenum fillMode,
+                                                   GLuint mask,
+                                                   GLenum transformType,
+                                                   const GLfloat *transformValues)
 {
-    return new QueryGL(type, mFunctions, mStateManager);
+    const auto &pathObjs = GatherPaths(paths);
+
+    mFunctions->stencilThenCoverFillPathInstancedNV(
+        static_cast<GLsizei>(pathObjs.size()), GL_UNSIGNED_INT, &pathObjs[0], 0, fillMode, mask,
+        coverMode, transformType, transformValues);
+
+    ASSERT(mFunctions->getError() == GL_NO_ERROR);
+}
+void RendererGL::stencilThenCoverStrokePathInstanced(const gl::ContextState &state,
+                                                     const std::vector<gl::Path *> &paths,
+                                                     GLenum coverMode,
+                                                     GLint reference,
+                                                     GLuint mask,
+                                                     GLenum transformType,
+                                                     const GLfloat *transformValues)
+{
+    const auto &pathObjs = GatherPaths(paths);
+
+    mFunctions->stencilThenCoverStrokePathInstancedNV(
+        static_cast<GLsizei>(pathObjs.size()), GL_UNSIGNED_INT, &pathObjs[0], 0, reference, mask,
+        coverMode, transformType, transformValues);
+
+    ASSERT(mFunctions->getError() == GL_NO_ERROR);
 }
 
-FenceNVImpl *RendererGL::createFenceNV()
+GLenum RendererGL::getResetStatus()
 {
-    return new FenceNVGL(mFunctions);
+    return mFunctions->getGraphicsResetStatus();
 }
 
-FenceSyncImpl *RendererGL::createFenceSync()
+ContextImpl *RendererGL::createContext(const gl::ContextState &state)
 {
-    return new FenceSyncGL(mFunctions);
-}
-
-TransformFeedbackImpl *RendererGL::createTransformFeedback()
-{
-    return new TransformFeedbackGL(mFunctions, mStateManager,
-                                   getRendererCaps().maxTransformFeedbackSeparateComponents);
-}
-
-SamplerImpl *RendererGL::createSampler()
-{
-    return new SamplerGL(mFunctions, mStateManager);
+    return new ContextGL(state, this);
 }
 
 void RendererGL::insertEventMarker(GLsizei length, const char *marker)
@@ -340,44 +594,17 @@ void RendererGL::popGroupMarker()
     mFunctions->popDebugGroup();
 }
 
-void RendererGL::notifyDeviceLost()
-{
-    UNIMPLEMENTED();
-}
-
-bool RendererGL::isDeviceLost() const
-{
-    UNIMPLEMENTED();
-    return bool();
-}
-
-bool RendererGL::testDeviceLost()
-{
-    UNIMPLEMENTED();
-    return bool();
-}
-
-bool RendererGL::testDeviceResettable()
-{
-    UNIMPLEMENTED();
-    return bool();
-}
-
-VendorID RendererGL::getVendorId() const
-{
-    UNIMPLEMENTED();
-    return VendorID();
-}
-
 std::string RendererGL::getVendorString() const
 {
-    return std::string(reinterpret_cast<const char*>(mFunctions->getString(GL_VENDOR)));
+    return std::string(reinterpret_cast<const char *>(mFunctions->getString(GL_VENDOR)));
 }
 
 std::string RendererGL::getRendererDescription() const
 {
-    std::string nativeVendorString(reinterpret_cast<const char*>(mFunctions->getString(GL_VENDOR)));
-    std::string nativeRendererString(reinterpret_cast<const char*>(mFunctions->getString(GL_RENDERER)));
+    std::string nativeVendorString(
+        reinterpret_cast<const char *>(mFunctions->getString(GL_VENDOR)));
+    std::string nativeRendererString(
+        reinterpret_cast<const char *>(mFunctions->getString(GL_RENDERER)));
 
     std::ostringstream rendererString;
     rendererString << nativeVendorString << " " << nativeRendererString << " OpenGL";
@@ -406,20 +633,86 @@ std::string RendererGL::getRendererDescription() const
 const gl::Version &RendererGL::getMaxSupportedESVersion() const
 {
     // Force generation of caps
-    getRendererCaps();
+    getNativeCaps();
 
     return mMaxSupportedESVersion;
 }
 
-void RendererGL::generateCaps(gl::Caps *outCaps, gl::TextureCapsMap* outTextureCaps,
+void RendererGL::generateCaps(gl::Caps *outCaps,
+                              gl::TextureCapsMap *outTextureCaps,
                               gl::Extensions *outExtensions,
                               gl::Limitations * /* outLimitations */) const
 {
-    nativegl_gl::GenerateCaps(mFunctions, outCaps, outTextureCaps, outExtensions, &mMaxSupportedESVersion);
+    nativegl_gl::GenerateCaps(mFunctions, mWorkarounds, outCaps, outTextureCaps, outExtensions,
+                              &mMaxSupportedESVersion, &mMultiviewImplementationType);
 }
 
-void RendererGL::syncState(const gl::State &state, const gl::State::DirtyBits &dirtyBits)
+GLint RendererGL::getGPUDisjoint()
 {
-    mStateManager->syncState(state, dirtyBits);
+    // TODO(ewell): On GLES backends we should find a way to reliably query disjoint events
+    return 0;
 }
+
+GLint64 RendererGL::getTimestamp()
+{
+    GLint64 result = 0;
+    mFunctions->getInteger64v(GL_TIMESTAMP, &result);
+    return result;
 }
+
+void RendererGL::ensureCapsInitialized() const
+{
+    if (!mCapsInitialized)
+    {
+        generateCaps(&mNativeCaps, &mNativeTextureCaps, &mNativeExtensions, &mNativeLimitations);
+        mCapsInitialized = true;
+    }
+}
+
+const gl::Caps &RendererGL::getNativeCaps() const
+{
+    ensureCapsInitialized();
+    return mNativeCaps;
+}
+
+const gl::TextureCapsMap &RendererGL::getNativeTextureCaps() const
+{
+    ensureCapsInitialized();
+    return mNativeTextureCaps;
+}
+
+const gl::Extensions &RendererGL::getNativeExtensions() const
+{
+    ensureCapsInitialized();
+    return mNativeExtensions;
+}
+
+const gl::Limitations &RendererGL::getNativeLimitations() const
+{
+    ensureCapsInitialized();
+    return mNativeLimitations;
+}
+
+MultiviewImplementationTypeGL RendererGL::getMultiviewImplementationType() const
+{
+    ensureCapsInitialized();
+    return mMultiviewImplementationType;
+}
+
+void RendererGL::applyNativeWorkarounds(gl::Workarounds *workarounds) const
+{
+    ensureCapsInitialized();
+    nativegl_gl::ApplyWorkarounds(mFunctions, workarounds);
+}
+
+gl::Error RendererGL::dispatchCompute(const gl::Context *context,
+                                      GLuint numGroupsX,
+                                      GLuint numGroupsY,
+                                      GLuint numGroupsZ)
+{
+    ANGLE_TRY(mStateManager->setDispatchComputeState(context));
+    mFunctions->dispatchCompute(numGroupsX, numGroupsY, numGroupsZ);
+    return gl::NoError();
+}
+
+}  // namespace rx

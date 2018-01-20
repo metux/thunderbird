@@ -6,6 +6,7 @@ Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
 Components.utils.import("resource://gre/modules/AddonManager.jsm");
 Components.utils.import("resource:///modules/StringBundle.js");
+Components.utils.import("resource://gre/modules/BrowserUtils.jsm");
 
 function tabProgressListener(aTab, aStartsBlank) {
   this.mTab = aTab;
@@ -284,11 +285,13 @@ var contentTabBaseType = {
   },
 
   saveTabState: function onSaveTabState(aTab) {
-    aTab.browser.setAttribute("type", "content-targetable");
+    aTab.browser.setAttribute("type", "content");
+    aTab.browser.removeAttribute("primary");
   },
 
   showTab: function onShowTab(aTab) {
-    aTab.browser.setAttribute("type", "content-primary");
+    aTab.browser.setAttribute("type", "content");
+    aTab.browser.setAttribute("primary", "true");
   },
 
   getBrowser: function getBrowser(aTab) {
@@ -458,6 +461,104 @@ var specialTabs = {
                 .getService(Components.interfaces.nsIFaviconService);
   },
 
+  /**
+   * We use an html image node to test the favicon, errors are well returned.
+   * Returning a url for nsITreeView.getImageSrc() will not indicate any
+   * error, and setAndFetchFaviconForPage() can't be used to detect
+   * failed icons due to Bug 740457. This also ensures 301 Moved or
+   * redirected urls will work (they won't otherwise in getImageSrc).
+   *
+   * @param  function successFunc - caller's success function.
+   * @param  function errorFunc   - caller's error function.
+   * @param  string iconUrl       - url to load.
+   * @return HTMLImageElement imageNode
+   */
+  loadFaviconImageNode: function(successFunc, errorFunc, iconUrl) {
+    let HTMLNS = "http://www.w3.org/1999/xhtml";
+    let imageNode = document.createElementNS(HTMLNS, "img");
+    imageNode.style.visibility = "collapse";
+    imageNode.addEventListener("load", event => successFunc(event, iconUrl),
+                               {capture: false, once: true});
+    imageNode.addEventListener("error", event => errorFunc(event, iconUrl),
+                               {capture: false, once: true});
+    imageNode.src = iconUrl;
+    return imageNode;
+  },
+
+  /**
+   * Favicon request timeout, 20 seconds.
+   */
+  REQUEST_TIMEOUT: 20 * 1000,
+
+  /**
+   * Get the favicon by parsing for <link rel=""> with "icon" from the page's
+   * dom <head>.
+   *
+   * @param  string aUrl          - a url from whose homepage to get a favicon.
+   * @param  function aCallback   - callback.
+   */
+  getFaviconFromPage: function(aUrl, aCallback) {
+    let url, uri;
+    try {
+      url = Services.io.newURI(aUrl).prePath;
+      uri = Services.io.newURI(url);
+    }
+    catch (ex) {
+      if (aCallback)
+        aCallback("");
+      return;
+    }
+
+    let onLoadSuccess = (aEvent => {
+      let iconUri = Services.io.newURI(aEvent.target.src);
+      specialTabs.mFaviconService.setAndFetchFaviconForPage(
+        uri, iconUri, false,
+        specialTabs.mFaviconService.FAVICON_LOAD_NON_PRIVATE,
+        null, Services.scriptSecurityManager.getSystemPrincipal());
+
+      if (aCallback)
+        aCallback(iconUri.spec);
+    });
+
+    let onDownloadError = (aEvent => {
+      if (aCallback)
+        aCallback("");
+    });
+
+    let onDownload = (aEvent => {
+      let request = aEvent.target;
+      let dom = request.response;
+      if (request.status != 200 || !(dom instanceof Ci.nsIDOMHTMLDocument)) {
+        onDownloadError(aEvent);
+        return;
+      }
+
+      let iconUri;
+      let linkNode = dom.head.querySelector('link[rel="shortcut icon"],' +
+                                            'link[rel="icon"]');
+      let href = linkNode ? linkNode.href : null;
+      try {
+        iconUri = Services.io.newURI(href);
+      }
+      catch (ex) {
+        onDownloadError(aEvent);
+        return;
+      }
+
+      specialTabs.loadFaviconImageNode(onLoadSuccess, onDownloadError,
+                                       iconUri.spec);
+    });
+
+    let request = new XMLHttpRequest();
+    request.open("GET", url, true);
+    request.responseType = "document";
+    request.onload = onDownload;
+    request.onerror = onDownloadError;
+    request.timeout = this.REQUEST_TIMEOUT;
+    request.ontimeout = onDownloadError;
+    request.send(null);
+  },
+
   // This will open any special tabs if necessary on startup.
   openSpecialTabsOnStartup: function() {
     window.addEventListener("unload", specialTabs.onunload, false);
@@ -577,8 +678,11 @@ var specialTabs = {
       // As we're opening this tab, showTab may not get called, so set
       // the type according to if we're opening in background or not.
       let background = ("background" in aArgs) && aArgs.background;
-      aTab.browser.setAttribute("type", background ? "content-targetable" :
-                                                     "content-primary");
+      aTab.browser.setAttribute("type", "content");
+      if (background)
+        aTab.browser.removeAttribute("primary");
+      else
+        aTab.browser.setAttribute("primary", "true");
 
       aTab.browser.setAttribute("id", "contentTabBrowser" + this.lastBrowserId);
 
@@ -698,7 +802,7 @@ var specialTabs = {
       savedAppVersion = Services.prefs.getCharPref(prefstring);
     } catch (ex) {}
 
-    let currentApplicationVersion = Application.version;
+    let currentApplicationVersion = Services.appinfo.version;
 
     if (savedAppVersion == "ignore")
       return [null, this.splitVersion(currentApplicationVersion)];
@@ -1232,13 +1336,13 @@ var specialTabs = {
       let brandBundle = document.getElementById("bundle_brand");
       let messengerBundle = document.getElementById("bundle_messenger");
 
-      let installInfo = aSubject.QueryInterface(Ci.amIWebInstallInfo);
+      let installInfo = aSubject.wrappedJSObject;
       let browser = installInfo.browser;
       let notificationBox = getNotificationBox(browser.contentWindow);
       let notificationID = aTopic;
       let brandShortName = brandBundle.getString("brandShortName");
       let notificationName, messageString, buttons;
-      const iconURL = "chrome://messenger/skin/icons/update.png";
+      const iconURL = "chrome://mozapps/skin/extensions/extensionGeneric-16.svg";
 
       switch (aTopic) {
       case "addon-install-disabled":
@@ -1291,7 +1395,7 @@ var specialTabs = {
         break;
       case "addon-install-failed":
         // XXX TODO This isn't terribly ideal for the multiple failure case
-        for (let [, install] in Iterator(installInfo.installs)) {
+        for (let install of installInfo.installs) {
           let host = (installInfo.originatingURI instanceof Ci.nsIStandardURL) &&
                       installInfo.originatingURI.host;
           if (!host)
@@ -1335,7 +1439,7 @@ var specialTabs = {
             accessKey: messengerBundle.getString("addonInstallRestartButton.accesskey"),
             popup: null,
             callback: function() {
-              Application.restart();
+              BrowserUtils.restartApplication();
             }
           }];
         }
@@ -1350,7 +1454,7 @@ var specialTabs = {
               // installs.
               let types = {};
               let bestType = null;
-              for (let [, install] in Iterator(installInfo.installs)) {
+              for (let install of installInfo.installs) {
                 if (install.type in types)
                   types[install.type]++;
                 else
@@ -1388,8 +1492,8 @@ var specialTabs = {
    */
   _shouldLoadFavIcon: function shouldLoadFavIcon(aURI) {
     return (aURI &&
-            Application.prefs.getValue("browser.chrome.site_icons", false) &&
-            Application.prefs.getValue("browser.chrome.favicons", false) &&
+            Services.prefs.getBoolPref("browser.chrome.site_icons") &&
+            Services.prefs.getBoolPref("browser.chrome.favicons") &&
             ("schemeIs" in aURI) &&
             (aURI.schemeIs("http") || aURI.schemeIs("https")));
   },

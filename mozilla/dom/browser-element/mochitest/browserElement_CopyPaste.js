@@ -1,16 +1,15 @@
 /* Any copyright is dedicated to the public domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
-// Test that "cut, copy, paste, selectall" and selectionstatechanged event works from inside an <iframe mozbrowser>.
+// Test that "cut, copy, paste, selectall" and caretstatechanged event works from inside an <iframe mozbrowser>.
 "use strict";
 
 SimpleTest.waitForExplicitFinish();
 SimpleTest.requestFlakyTimeout("untriaged");
-SimpleTest.requestLongerTimeout(2); // slow on android
 browserElementTestHelpers.setEnabledPref(true);
-browserElementTestHelpers.setSelectionChangeEnabledPref(false);
-browserElementTestHelpers.setAccessibleCaretEnabledPref(true);
+browserElementTestHelpers.setupAccessibleCaretPref();
 browserElementTestHelpers.addPermission();
+browserElementTestHelpers.allowTopLevelDataURINavigation();
 const { Services } = SpecialPowers.Cu.import('resource://gre/modules/Services.jsm');
 
 var gTextarea = null;
@@ -62,9 +61,7 @@ function runTest() {
   gTextarea = document.createElement('textarea');
   document.body.appendChild(gTextarea);
 
-  iframeOuter.addEventListener("mozbrowserloadend", function onloadend(e) {
-    iframeOuter.removeEventListener("mozbrowserloadend", onloadend);
-
+  iframeOuter.addEventListener("mozbrowserloadend", function(e) {
     if (createEmbededFrame) {
       var contentWin = SpecialPowers.wrap(iframeOuter)
                              .QueryInterface(SpecialPowers.Ci.nsIFrameLoaderOwner)
@@ -74,38 +71,34 @@ function runTest() {
       iframeInner.setAttribute('mozbrowser', true);
       iframeInner.setAttribute('remote', 'false');
       contentDoc.body.appendChild(iframeInner);
-      iframeInner.addEventListener("mozbrowserloadend", function onloadendinner(e) {
-        iframeInner.removeEventListener("mozbrowserloadend", onloadendinner);
+      iframeInner.addEventListener("mozbrowserloadend", function(e) {
         mm = SpecialPowers.getBrowserFrameMessageManager(iframeInner);
         dispatchTest(e);
-      });
+      }, {once: true});
     } else {
       iframeInner = iframeOuter;
       mm = SpecialPowers.getBrowserFrameMessageManager(iframeInner);
       dispatchTest(e);
     }
-  });
+  }, {once: true});
 }
 
 function doCommand(cmd) {
-  Services.obs.notifyObservers({wrappedJSObject: SpecialPowers.unwrap(iframeInner)},
-                               'copypaste-docommand', cmd);
-}
-
-function rerunTest() {
-  // clean up and run test again.
-  document.body.removeChild(iframeOuter);
-  document.body.removeChild(gTextarea);
-  state = 0;
-  runTest();
+  var COMMAND_MAP = {
+    'cut': 'cmd_cut',
+    'copy': 'cmd_copyAndCollapseToEnd',
+    'paste': 'cmd_paste',
+    'selectall': 'cmd_selectAll'
+  };
+  var script = 'data:,docShell.doCommand("' + COMMAND_MAP[cmd] + '");';
+  mm.loadFrameScript(script, false);
 }
 
 function dispatchTest(e) {
-  iframeInner.addEventListener("mozbrowserloadend", function onloadend2(e) {
-    iframeInner.removeEventListener("mozbrowserloadend", onloadend2);
+  iframeInner.addEventListener("mozbrowserloadend", function(e) {
     iframeInner.focus();
     SimpleTest.executeSoon(function() { testSelectAll(e); });
-  });
+  }, {once: true});
 
   switch (state) {
     case 0: // test for textarea
@@ -171,23 +164,15 @@ function dispatchTest(e) {
       break;
     default:
       if (createEmbededFrame || browserElementTestHelpers.getOOPByDefaultPref()) {
-        if (testSelectionChange) {
-          SimpleTest.finish();
-          return;
-        } else {
-          testSelectionChange = true;
-          createEmbededFrame = false;
-          SpecialPowers.pushPrefEnv(
-            {'set':
-              [['selectioncaret.enabled', true],
-               ['layout.accessiblecaret.enabled', false]]},
-            function() {
-              rerunTest();
-          });
-        }
+        SimpleTest.finish();
       } else {
         createEmbededFrame = true;
-        rerunTest();
+
+        // clean up and run test again.
+        document.body.removeChild(iframeOuter);
+        document.body.removeChild(gTextarea);
+        state = 0;
+        runTest();
       }
       break;
   }
@@ -202,25 +187,19 @@ function isChildProcess() {
 function testSelectAll(e) {
   // Skip mozbrowser test if we're at child process.
   if (!isChildProcess()) {
-    let eventName = testSelectionChange ? "mozbrowserselectionstatechanged" : "mozbrowsercaretstatechanged";
-    iframeOuter.addEventListener(eventName, function selectchangeforselectall(e) {
-      if (!e.detail.states || e.detail.states.indexOf('selectall') == 0) {
-        iframeOuter.removeEventListener(eventName, selectchangeforselectall, true);
-        ok(true, "got mozbrowserselectionstatechanged event." + stateMeaning);
-        ok(e.detail, "event.detail is not null." + stateMeaning);
-        ok(e.detail.width != 0, "event.detail.width is not zero" + stateMeaning);
-        ok(e.detail.height != 0, "event.detail.height is not zero" + stateMeaning);
-        if (testSelectionChange) {
-          ok(e.detail.states, "event.detail.state " + e.detail.states);
-        }
-        SimpleTest.executeSoon(function() { testCopy1(e); });
-      }
-    }, true);
+    let eventName = "mozbrowsercaretstatechanged";
+    iframeOuter.addEventListener(eventName, function(e) {
+      ok(true, "got mozbrowsercaretstatechanged event." + stateMeaning);
+      ok(e.detail, "event.detail is not null." + stateMeaning);
+      ok(e.detail.width != 0, "event.detail.width is not zero" + stateMeaning);
+      ok(e.detail.height != 0, "event.detail.height is not zero" + stateMeaning);
+      SimpleTest.executeSoon(function() { testCopy1(e); });
+    }, {capture: true, once: true});
   }
 
   mm.addMessageListener('content-focus', function messageforfocus(msg) {
     mm.removeMessageListener('content-focus', messageforfocus);
-    // test selectall command, after calling this the selectionstatechanged event should be fired.
+    // test selectall command, after calling this the caretstatechanged event should be fired.
     doCommand('selectall');
     if (isChildProcess()) {
       SimpleTest.executeSoon(function() { testCopy1(e); });
@@ -346,7 +325,7 @@ var principal = SpecialPowers.wrap(document).nodePrincipal;
 var context = { url: SpecialPowers.wrap(principal.URI).spec,
                 originAttributes: {
                   appId: principal.appId,
-                  inBrowser: true }};
+                  inIsolatedMozBrowser: true }};
 
 addEventListener('testready', function() {
   SpecialPowers.pushPermissions([

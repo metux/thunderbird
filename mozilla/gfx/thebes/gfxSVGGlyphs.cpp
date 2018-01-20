@@ -4,6 +4,7 @@
 
 #include "gfxSVGGlyphs.h"
 
+#include "mozilla/SVGContextPaint.h"
 #include "nsError.h"
 #include "nsIDOMDocument.h"
 #include "nsString.h"
@@ -15,6 +16,7 @@
 #include "nsServiceManagerUtils.h"
 #include "nsIPresShell.h"
 #include "nsNetUtil.h"
+#include "NullPrincipal.h"
 #include "nsIInputStream.h"
 #include "nsStringStream.h"
 #include "nsStreamUtils.h"
@@ -29,6 +31,7 @@
 #include "nsSMILAnimationController.h"
 #include "gfxContext.h"
 #include "harfbuzz/hb.h"
+#include "mozilla/dom/ImageTracker.h"
 
 #define SVG_CONTENT_TYPE NS_LITERAL_CSTRING("image/svg+xml")
 #define UTF8_CHARSET NS_LITERAL_CSTRING("utf-8")
@@ -36,8 +39,6 @@
 using namespace mozilla;
 
 typedef mozilla::dom::Element Element;
-
-mozilla::gfx::UserDataKey gfxTextContextPaint::sUserDataKey;
 
 /* static */ const Color SimpleTextContextPaint::sZero = Color();
 
@@ -135,11 +136,12 @@ nsresult
 gfxSVGGlyphsDocument::SetupPresentation()
 {
     nsCOMPtr<nsICategoryManager> catMan = do_GetService(NS_CATEGORYMANAGER_CONTRACTID);
-    nsXPIDLCString contractId;
+    nsCString contractId;
     nsresult rv = catMan->GetCategoryEntry("Gecko-Content-Viewers", "image/svg+xml", getter_Copies(contractId));
     NS_ENSURE_SUCCESS(rv, rv);
 
-    nsCOMPtr<nsIDocumentLoaderFactory> docLoaderFactory = do_GetService(contractId);
+    nsCOMPtr<nsIDocumentLoaderFactory> docLoaderFactory =
+      do_GetService(contractId.get());
     NS_ASSERTION(docLoaderFactory, "Couldn't get DocumentLoaderFactory");
 
     nsCOMPtr<nsIContentViewer> viewer;
@@ -164,13 +166,13 @@ gfxSVGGlyphsDocument::SetupPresentation()
         NS_ENSURE_SUCCESS(rv, rv);
     }
 
-    mDocument->FlushPendingNotifications(Flush_Layout);
+    mDocument->FlushPendingNotifications(FlushType::Layout);
 
-    nsSMILAnimationController* controller = mDocument->GetAnimationController();
-    if (controller) {
-      controller->Resume(nsSMILTimeContainer::PAUSE_IMAGE);
+    if (mDocument->HasAnimationController()) {
+      mDocument->GetAnimationController()
+               ->Resume(nsSMILTimeContainer::PAUSE_IMAGE);
     }
-    mDocument->SetImagesNeedAnimating(true);
+    mDocument->ImageTracker()->SetAnimatingState(true);
 
     mViewer = viewer;
     mPresShell = presShell;
@@ -209,23 +211,20 @@ gfxSVGGlyphsDocument::FindGlyphElements(Element *aElem)
  * If no such glyph exists, or in the case of an error return false
  * @param aContext The thebes aContext to draw to
  * @param aGlyphId The glyph id
- * @param aDrawMode Whether to fill or stroke or both (see |DrawMode|)
  * @return true iff rendering succeeded
  */
-bool
+void
 gfxSVGGlyphs::RenderGlyph(gfxContext *aContext, uint32_t aGlyphId,
-                          DrawMode aDrawMode, gfxTextContextPaint *aContextPaint)
+                          SVGContextPaint* aContextPaint)
 {
-    if (aDrawMode == DrawMode::GLYPH_PATH) {
-        return false;
-    }
-
     gfxContextAutoSaveRestore aContextRestorer(aContext);
 
     Element *glyph = mGlyphIdMap.Get(aGlyphId);
-    NS_ASSERTION(glyph, "No glyph element. Should check with HasSVGGlyph() first!");
+    MOZ_ASSERT(glyph, "No glyph element. Should check with HasSVGGlyph() first!");
 
-    return nsSVGUtils::PaintSVGGlyph(glyph, aContext, aDrawMode, aContextPaint);
+    AutoSetRestoreSVGContextPaint autoSetRestore(aContextPaint, glyph->OwnerDoc());
+
+    nsSVGUtils::PaintSVGGlyph(glyph, aContext);
 }
 
 bool
@@ -258,6 +257,22 @@ bool
 gfxSVGGlyphs::HasSVGGlyph(uint32_t aGlyphId)
 {
     return !!GetGlyphElement(aGlyphId);
+}
+
+size_t
+gfxSVGGlyphs::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const
+{
+    // We don't include the size of mSVGData here, because (depending on the
+    // font backend implementation) it will either wrap a block of data owned
+    // by the system (and potentially shared), or a table that's in our font
+    // table cache and therefore already counted.
+    size_t result = aMallocSizeOf(this)
+                    + mGlyphDocs.ShallowSizeOfExcludingThis(aMallocSizeOf)
+                    + mGlyphIdMap.ShallowSizeOfExcludingThis(aMallocSizeOf);
+    for (auto iter = mGlyphDocs.ConstIter(); !iter.Done(); iter.Next()) {
+        result += iter.Data()->SizeOfIncludingThis(aMallocSizeOf);
+    }
+    return result;
 }
 
 Element *
@@ -295,15 +310,13 @@ gfxSVGGlyphsDocument::gfxSVGGlyphsDocument(const uint8_t *aBuffer,
 gfxSVGGlyphsDocument::~gfxSVGGlyphsDocument()
 {
     if (mDocument) {
-        nsSMILAnimationController* controller = mDocument->GetAnimationController();
-        if (controller) {
-            controller->Pause(nsSMILTimeContainer::PAUSE_PAGEHIDE);
-        }
+        mDocument->OnPageHide(false, nullptr);
     }
     if (mPresShell) {
         mPresShell->RemovePostRefreshObserver(this);
     }
     if (mViewer) {
+        mViewer->Close(nullptr);
         mViewer->Destroy();
     }
 }
@@ -320,7 +333,8 @@ CreateBufferedStream(const uint8_t *aBuffer, uint32_t aBufLen,
 
     nsCOMPtr<nsIInputStream> aBufferedStream;
     if (!NS_InputStreamIsBuffered(stream)) {
-        rv = NS_NewBufferedInputStream(getter_AddRefs(aBufferedStream), stream, 4096);
+        rv = NS_NewBufferedInputStream(getter_AddRefs(aBufferedStream),
+                                       stream.forget(), 4096);
         NS_ENSURE_SUCCESS(rv, rv);
         stream = aBufferedStream;
     }
@@ -347,12 +361,10 @@ gfxSVGGlyphsDocument::ParseDocument(const uint8_t *aBuffer, uint32_t aBufLen)
     rv = NS_NewURI(getter_AddRefs(uri), mSVGGlyphsDocumentURI);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    // TODO: Bug 1225053 - gfxSVGGlyphs.cpp should use correct principal
-    PrincipalOriginAttributes attrs;
-    nsCOMPtr<nsIPrincipal> principal =
-        BasePrincipal::CreateCodebasePrincipal(uri, attrs);
-    NS_ENSURE_TRUE(principal, NS_ERROR_FAILURE);
+    nsCOMPtr<nsIPrincipal> principal = NullPrincipal::Create();
 
+    auto styleBackend = nsLayoutUtils::StyloEnabled() ? StyleBackendType::Servo
+                                                      : StyleBackendType::Gecko;
     nsCOMPtr<nsIDOMDocument> domDoc;
     rv = NS_NewDOMDocument(getter_AddRefs(domDoc),
                            EmptyString(),   // aNamespaceURI
@@ -361,7 +373,8 @@ gfxSVGGlyphsDocument::ParseDocument(const uint8_t *aBuffer, uint32_t aBufLen)
                            uri, uri, principal,
                            false,           // aLoadedAsData
                            nullptr,          // aEventObject
-                           DocumentFlavorSVG);
+                           DocumentFlavorSVG,
+                           styleBackend);
     NS_ENSURE_SUCCESS(rv, rv);
 
     nsCOMPtr<nsIDocument> document(do_QueryInterface(domDoc));
@@ -445,14 +458,11 @@ gfxSVGGlyphsDocument::InsertGlyphId(Element *aGlyphElement)
     mGlyphIdMap.Put(id, aGlyphElement);
 }
 
-void
-gfxTextContextPaint::InitStrokeGeometry(gfxContext *aContext,
-                                        float devUnitsPerSVGUnit)
+size_t
+gfxSVGGlyphsDocument::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
 {
-    mStrokeWidth = aContext->CurrentLineWidth() / devUnitsPerSVGUnit;
-    aContext->CurrentDash(mDashes, &mDashOffset);
-    for (uint32_t i = 0; i < mDashes.Length(); i++) {
-        mDashes[i] /= devUnitsPerSVGUnit;
-    }
-    mDashOffset /= devUnitsPerSVGUnit;
+    return aMallocSizeOf(this)
+           + mGlyphIdMap.ShallowSizeOfExcludingThis(aMallocSizeOf)
+           + mSVGGlyphsDocumentURI.SizeOfExcludingThisIfUnshared(aMallocSizeOf);
+
 }

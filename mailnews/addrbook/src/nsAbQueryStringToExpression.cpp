@@ -8,7 +8,7 @@
 #include "nsComponentManagerUtils.h"
 #include "nsServiceManagerUtils.h"
 #include "nsCOMPtr.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsITextToSubURI.h"
 #include "nsAbBooleanExpression.h"
 #include "nsAbBaseCID.h"
@@ -50,7 +50,7 @@ nsresult nsAbQueryStringToExpression::Convert (
     nsCOMPtr<nsIAbBooleanExpression> e(do_QueryInterface(s, &rv));
     NS_ENSURE_SUCCESS(rv, rv);
 
-    NS_IF_ADDREF(*expression = e);
+    e.forget(expression);
     return rv;
 }
 
@@ -98,7 +98,7 @@ nsresult nsAbQueryStringToExpression::ParseExpression (
         rv = ParseExpressions (index, e);
         NS_ENSURE_SUCCESS(rv, rv);
 
-        NS_IF_ADDREF(*expression = e);
+        e.forget(expression);
     }
     // Case" "(*)"
     else if (*indexBracket == ')')
@@ -110,7 +110,7 @@ nsresult nsAbQueryStringToExpression::ParseExpression (
             getter_AddRefs(conditionString));
         NS_ENSURE_SUCCESS(rv, rv);
 
-        NS_IF_ADDREF(*expression = conditionString);
+        conditionString.forget(expression);
     }
 
     if (**index != ')')
@@ -140,7 +140,7 @@ nsresult nsAbQueryStringToExpression::ParseExpressions (
         rv = ParseExpression(index, getter_AddRefs (childExpression));
         NS_ENSURE_SUCCESS(rv, rv);
 
-        expressions->AppendElement(childExpression, false);
+        expressions->AppendElement(childExpression);
     }
 
     if (**index == 0)
@@ -176,7 +176,7 @@ nsresult nsAbQueryStringToExpression::ParseCondition (
         if (*index == indexBracketClose)
             break;
     }
-    
+
     if (*index != indexBracketClose)
         return NS_ERROR_FAILURE;
 
@@ -188,7 +188,7 @@ nsresult nsAbQueryStringToExpression::ParseCondition (
         getter_AddRefs (c));
     NS_ENSURE_SUCCESS(rv, rv);
 
-    NS_IF_ADDREF(*conditionString = c);
+    c.forget(conditionString);
     return NS_OK;
 }
 
@@ -204,7 +204,7 @@ nsresult nsAbQueryStringToExpression::ParseConditionEntry (
 
     int entryLength = indexDeliminator - *index;
     if (entryLength)
-      *entry = PL_strndup (*index, entryLength); 
+      *entry = PL_strndup (*index, entryLength);
     else
         *entry = 0;
 
@@ -224,7 +224,7 @@ nsresult nsAbQueryStringToExpression::ParseOperationEntry (
     int operationLength = indexBracketOpen2 - indexBracketOpen1 - 1;
     if (operationLength)
         *operation = PL_strndup (indexBracketOpen1 + 1,
-            operationLength); 
+            operationLength);
     else
         *operation = 0;
 
@@ -250,9 +250,8 @@ nsresult nsAbQueryStringToExpression::CreateBooleanExpression(
     nsCOMPtr <nsIAbBooleanExpression> expr = do_CreateInstance(NS_BOOLEANEXPRESSION_CONTRACTID, &rv);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    NS_IF_ADDREF(*expression = expr);
-    
     rv = expr->SetOperation (op);
+    expr.forget(expression);
     return rv;
 }
 
@@ -298,18 +297,18 @@ nsresult nsAbQueryStringToExpression::CreateBooleanConditionString (
     rv = cs->SetCondition (c);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    nsCOMPtr<nsITextToSubURI> textToSubURI = do_GetService(NS_ITEXTTOSUBURI_CONTRACTID,&rv); 
+    nsCOMPtr<nsITextToSubURI> textToSubURI = do_GetService(NS_ITEXTTOSUBURI_CONTRACTID,&rv);
     if (NS_SUCCEEDED(rv))
     {
         nsString attributeUCS2;
         nsString valueUCS2;
 
-        rv = textToSubURI->UnEscapeAndConvert("UTF-8",
-            attribute, getter_Copies(attributeUCS2));
+        rv = textToSubURI->UnEscapeAndConvert(nsDependentCString("UTF-8"),
+            nsDependentCString(attribute), attributeUCS2);
         NS_ENSURE_SUCCESS(rv, rv);
 
-        rv = textToSubURI->UnEscapeAndConvert("UTF-8",
-            value, getter_Copies(valueUCS2));
+        rv = textToSubURI->UnEscapeAndConvert(nsDependentCString("UTF-8"),
+            nsDependentCString(value), valueUCS2);
         NS_ENSURE_SUCCESS(rv, rv);
 
         NS_ConvertUTF16toUTF8 attributeUTF8(attributeUCS2);
@@ -328,10 +327,7 @@ nsresult nsAbQueryStringToExpression::CreateBooleanConditionString (
         rv = cs->SetValue (valueUCS2.get ());
         NS_ENSURE_SUCCESS(rv, rv);
     }
-            
 
-    NS_IF_ADDREF(*conditionString = cs);
+    cs.forget(conditionString);
     return NS_OK;
 }
-
-

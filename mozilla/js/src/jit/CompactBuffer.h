@@ -87,6 +87,14 @@ class CompactBufferReader
         return result;
     }
 
+    void* readRawPointer() {
+        uintptr_t ptrWord = 0;
+        for (unsigned i = 0; i < sizeof(uintptr_t); i++) {
+            ptrWord |= static_cast<uintptr_t>(readByte()) << (i*8);
+        }
+        return reinterpret_cast<void*>(ptrWord);
+    }
+
     bool more() const {
         MOZ_ASSERT(buffer_ <= end_);
         return buffer_ < end_;
@@ -175,6 +183,12 @@ class CompactBufferWriter
         uint8_t* endPtr = buffer() + length();
         reinterpret_cast<uint32_t*>(endPtr)[-1] = value;
     }
+    void writeRawPointer(void* ptr) {
+        uintptr_t ptrWord = reinterpret_cast<uintptr_t>(ptr);
+        for (unsigned i = 0; i < sizeof(uintptr_t); i++) {
+            writeByte((ptrWord >> (i*8)) & 0xFF);
+        }
+    }
     size_t length() const {
         return buffer_.length();
     }
@@ -188,6 +202,9 @@ class CompactBufferWriter
     }
     bool oom() const {
         return !enoughMemory_;
+    }
+    void propagateOOM(bool success) {
+        enoughMemory_ &= success;
     }
 };
 

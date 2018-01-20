@@ -1,6 +1,5 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * vim: sw=2 ts=8 et :
- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -10,6 +9,10 @@
 
 #include "base/shared_memory.h"
 #include "SharedMemory.h"
+
+#ifdef FUZZING
+#include "SharedMemoryFuzzer.h"
+#endif
 
 #include "nsDebug.h"
 
@@ -21,18 +24,15 @@
 namespace mozilla {
 namespace ipc {
 
-class SharedMemoryBasic final : public SharedMemory
+class SharedMemoryBasic final : public SharedMemoryCommon<base::SharedMemoryHandle>
 {
 public:
-  typedef base::SharedMemoryHandle Handle;
-
   SharedMemoryBasic()
   {
   }
 
-  explicit SharedMemoryBasic(const Handle& aHandle)
-    : mSharedMemory(aHandle, false)
-  {
+  virtual bool SetHandle(const Handle& aHandle, OpenRights aRights) override {
+    return mSharedMemory.SetHandle(aHandle, aRights == RightsReadOnly);
   }
 
   virtual bool Create(size_t aNbytes) override
@@ -53,9 +53,19 @@ public:
     return ok;
   }
 
+  virtual void CloseHandle() override
+  {
+    mSharedMemory.Close(false);
+  }
+
   virtual void* memory() const override
   {
+#ifdef FUZZING
+    return SharedMemoryFuzzer::MutateSharedMemory(mSharedMemory.memory(),
+                                                  mAllocSize);
+#else
     return mSharedMemory.memory();
+#endif
   }
 
   virtual SharedMemoryType Type() const override
@@ -68,13 +78,13 @@ public:
     return base::SharedMemory::NULLHandle();
   }
 
-  static bool IsHandleValid(const Handle &aHandle)
+  virtual bool IsHandleValid(const Handle &aHandle) const override
   {
     return base::SharedMemory::IsHandleValid(aHandle);
   }
 
-  bool ShareToProcess(base::ProcessId aProcessId,
-                      Handle* new_handle)
+  virtual bool ShareToProcess(base::ProcessId aProcessId,
+                              Handle* new_handle) override
   {
     base::SharedMemoryHandle handle;
     bool ret = mSharedMemory.ShareToProcess(aProcessId, &handle);

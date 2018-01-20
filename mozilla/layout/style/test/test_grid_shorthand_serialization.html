@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset=utf-8>
-  <title>Test serialization of CSS Grid shorthand properties</title>
+  <title>Test serialization of CSS 'grid' shorthand property</title>
   <link rel="author" title="Simon Sapin" href="mailto:simon.sapin@exyr.org">
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
@@ -17,34 +17,44 @@ var isGridTemplateSubgridValueEnabled =
 
 var initial_values = {
     gridTemplateAreas: "none",
-    gridTemplateColumns: "none",
     gridTemplateRows: "none",
+    gridTemplateColumns: "none",
     gridAutoFlow: "row",
-    gridAutoColumns: "auto",
     gridAutoRows: "auto",
+    gridAutoColumns: "auto",
     gridRowGap: "0px",
     gridColumnGap: "0px",
 };
+
+const isStylo = SpecialPowers.DOMWindowUtils.isStyledByServo;
 
 // For various specified values of the grid-template subproperties,
 // test the serialization of the shorthand.
 var grid_template_test_cases = [
     {
-        gridTemplateRows: "100px",
+        gridTemplateColumns: "100px",
         shorthand: "none / 100px",
     },
     {
-        gridTemplateColumns: "40px",
+        gridTemplateRows: "minmax(auto,1fr)",
+        shorthand: "1fr / none",
+    },
+    {
+        gridTemplateColumns: "minmax(auto,1fr)",
+        shorthand: "none / 1fr",
+    },
+    {
+        gridTemplateRows: "40px",
         shorthand: "40px / none",
     },
     {
-        gridTemplateColumns: "40px",
-        gridTemplateRows: "subgrid",
+        gridTemplateRows: "40px",
+        gridTemplateColumns: "subgrid",
         shorthand: isGridTemplateSubgridValueEnabled ? "40px / subgrid" : "",
     },
     {
-        gridTemplateColumns: "[foo] 40px [bar]",
-        gridTemplateRows: "[baz] 100px [fizz]",
+        gridTemplateRows: "[foo] 40px [bar]",
+        gridTemplateColumns: "[baz] 100px [fizz]",
         shorthand: "[foo] 40px [bar] / [baz] 100px [fizz]",
     },
     {
@@ -56,6 +66,17 @@ var grid_template_test_cases = [
         gridTemplateAreas: "\"a\"",
         gridTemplateRows: "[foo] 20px [bar]",
         shorthand: "[foo] \"a\" 20px [bar]",
+    },
+    {
+        gridTemplateAreas: "\"a\"",
+        gridTemplateRows: "[foo] repeat(1, 20px) [bar]",
+        shorthand: isStylo ? "" : "[foo] \"a\" 20px [bar]",
+    },
+    {
+        gridTemplateAreas: "\"a a\"",
+        gridTemplateColumns: "repeat(2, 100px)",
+        gridTemplateRows: "auto",
+        shorthand: isStylo ? "" : "\"a a\" auto / 100px 100px",
     },
     // Combinations of longhands that make the shorthand non-serializable:
     {
@@ -84,59 +105,81 @@ var grid_template_test_cases = [
         gridTemplateColumns: "subgrid",
         shorthand: "",
     },
+    {
+        gridTemplateAreas: "\"a\"",
+        gridTemplateRows: "repeat(auto-fill, 20px)",
+        shorthand: "",
+    },
+    {
+        gridTemplateAreas: "\"a\"",
+        gridTemplateColumns: "repeat(auto-fill, 100px)",
+        gridTemplateRows: "auto",
+        shorthand: "",
+    },
 ];
 
 grid_test_cases = grid_template_test_cases.concat([
     {
         gridAutoFlow: "row",
-        shorthand: "row auto / auto",
+        shorthand: "none / none",
     },
     {
-        gridAutoColumns: "40px",
-        shorthand: "row 40px / auto",
+        gridAutoRows: "40px",
+        shorthand: "auto-flow 40px / none",
+    },
+    {
+        gridAutoRows: "minmax(auto,1fr)",
+        shorthand: "auto-flow 1fr / none",
+    },
+    {
+        gridAutoFlow: "column dense",
+        gridAutoRows: "minmax(min-content, max-content)",
+        shorthand: "",
     },
     {
         gridAutoFlow: "column dense",
         gridAutoColumns: "minmax(min-content, max-content)",
-        shorthand: "column dense minmax(min-content, max-content) / auto",
+        shorthand: "none / auto-flow dense minmax(min-content, max-content)",
+    },
+    {
+        gridAutoFlow: "column",
+        gridAutoColumns: "minmax(auto,1fr)",
+        shorthand: "none / auto-flow 1fr",
+    },
+    {
+        gridAutoFlow: "row dense",
+        gridAutoColumns: "minmax(min-content, 2fr)",
+        shorthand: "",
     },
     {
         gridAutoFlow: "row dense",
         gridAutoRows: "minmax(min-content, 2fr)",
-        shorthand: "row dense auto / minmax(min-content, 2fr)",
+        shorthand: "auto-flow dense minmax(min-content, 2fr) / none",
     },
     {
         gridAutoFlow: "row",
-        gridAutoColumns: "40px",
-        gridAutoRows: "100px",
-        shorthand: "row 40px / 100px",
+        gridAutoRows: "40px",
+        gridTemplateColumns: "100px",
+        shorthand: "auto-flow 40px / 100px",
     },
     {
         gridAutoFlow: "row",
-        gridRowGap: "0px",
-        shorthand: "row auto / auto",
+        shorthand: "none / none",
     },
+    // Test that grid-gap properties don't affect serialization.
     {
-        gridAutoFlow: "row",
         gridRowGap: "1px",
-        shorthand: "",
+        shorthand: "none / none",
     },
     {
-        gridAutoFlow: "row",
         gridColumnGap: "1px",
-        shorthand: "",
+        shorthand: "none / none",
     },
 ]);
 
 var grid_important_test_cases = [
     {
         "grid-auto-flow": "row",
-        "grid-row-gap": "0px",
-        shorthand: "",
-    },
-    {
-        "grid-auto-flow": "row",
-        "grid-column-gap": "1px",
         shorthand: "",
     },
 ];
@@ -176,11 +219,11 @@ run_tests(grid_template_test_cases, "gridTemplate", [
 
 run_tests(grid_test_cases, "grid", [
     "gridTemplateAreas", "gridTemplateColumns", "gridTemplateRows",
-    "gridAutoFlow", "gridAutoColumns", "gridAutoRows", "gridColumnGap", "gridRowGap"]);
+    "gridAutoFlow", "gridAutoColumns", "gridAutoRows"]);
 
 run_important_tests(grid_important_test_cases, "grid", [
     "grid-template-areas", "grid-template-columns", "grid-template-rows",
-    "grid-auto-flow", "grid-auto-columns", "grid-auto-rows", "grid-column-gap", "grid-row-gap"]);
+    "grid-auto-flow", "grid-auto-columns", "grid-auto-rows"]);
 
 </script>
 </body>

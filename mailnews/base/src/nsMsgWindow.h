@@ -10,15 +10,16 @@
 #include "nsIMsgStatusFeedback.h"
 #include "nsITransactionManager.h"
 #include "nsIMsgFolder.h"
+#include "nsCOMPtr.h"
 #include "nsIDocShell.h"
 #include "nsIURIContentListener.h"
 #include "nsIMimeMiscStatus.h"
 #include "nsWeakReference.h"
 #include "nsIInterfaceRequestor.h"
-#include "nsCOMPtr.h"
 
 class nsMsgWindow : public nsIMsgWindow,
                     public nsIURIContentListener,
+                    public nsIMsgWindowTest,
                     public nsSupportsWeakReference
 {
 
@@ -30,6 +31,7 @@ public:
   nsresult Init();
   NS_DECL_NSIMSGWINDOW
   NS_DECL_NSIURICONTENTLISTENER
+  NS_DECL_NSIMSGWINDOWTEST
 
 protected:
   virtual ~nsMsgWindow();
@@ -41,11 +43,15 @@ protected:
   // These are used by the backend protocol code to attach
   // notification callbacks to channels, e.g., nsIBadCertListner2.
   nsCOMPtr<nsIInterfaceRequestor> mNotificationCallbacks;
+  // prompt dialog used during testing only
+  nsCOMPtr<nsIPrompt> mPromptDialog;
+  // authorization prompt used during testing only
+  nsCOMPtr<nsIAuthPrompt> mAuthPrompt;
 
   // let's not make this a strong ref - we don't own it.
   nsWeakPtr mRootDocShellWeak;
   nsWeakPtr mMessageWindowDocShellWeak;
-  nsWeakPtr mDomWindow; 
+  nsWeakPtr mDomWindow;
 
   nsCString mMailCharacterSet;
   bool      mCharsetOverride;

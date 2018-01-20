@@ -57,7 +57,7 @@ nsDownloadManagerUI.prototype = {
 
   getAttention: function getAttention()
   {
-    var window = this.recentWindow;
+    var window = Services.wm.getMostRecentWindow("Download:Manager");
     if (!window)
       throw Cr.NS_ERROR_UNEXPECTED;
 
@@ -72,17 +72,10 @@ nsDownloadManagerUI.prototype = {
 
   //////////////////////////////////////////////////////////////////////////////
   //// nsISuiteDownloadManagerUI
-
-  get recentWindow() {
-    var wm = Cc["@mozilla.org/appshell/window-mediator;1"].
-             getService(Ci.nsIWindowMediator);
-    return wm.getMostRecentWindow("Download:Manager");
-  },
-
   showManager: function showManager(aWindowContext, aDownload, aReason)
   {
     // First we see if it is already visible
-    let window = this.recentWindow;
+    let window = Services.wm.getMostRecentWindow("Download:Manager");
     if (window) {
       var prefs = Cc["@mozilla.org/preferences-service;1"].
                   getService(Ci.nsIPrefBranch);
@@ -106,13 +99,13 @@ nsDownloadManagerUI.prototype = {
     // We pass the download manager and the nsIDownload we want selected (if any)
     var params = Cc["@mozilla.org/array;1"].
                  createInstance(Ci.nsIMutableArray);
-    params.appendElement(aDownload, false);
+    params.appendElement(aDownload);
 
     // Pass in the reason as well
     let reason = Cc["@mozilla.org/supports-PRInt16;1"].
                  createInstance(Ci.nsISupportsPRInt16);
     reason.data = aReason;
-    params.appendElement(reason, false);
+    params.appendElement(reason);
 
     var manager = DOWNLOAD_MANAGER_URL;
     try {
@@ -120,13 +113,11 @@ nsDownloadManagerUI.prototype = {
         manager = TOOLKIT_MANAGER_URL;
     } catch(ex) {}
 
-    var ww = Cc["@mozilla.org/embedcomp/window-watcher;1"].
-             getService(Ci.nsIWindowWatcher);
-    ww.openWindow(parent,
-                  manager,
-                  null,
-                  "all,dialog=no",
-                  params);
+    Services.ww.openWindow(parent,
+                           manager,
+                           null,
+                           "all,dialog=no",
+                           params);
   },
 
   showProgress: function showProgress(aWindowContext, aDownload, aReason)
@@ -145,21 +136,19 @@ nsDownloadManagerUI.prototype = {
     } catch (e) { /* it's OK to not have a parent window */ }
 
     var params = Cc["@mozilla.org/array;1"].createInstance(Ci.nsIMutableArray);
-    params.appendElement(aDownload, false);
+    params.appendElement(aDownload);
 
     // Pass in the reason as well
     let reason = Cc["@mozilla.org/supports-PRInt16;1"].
                  createInstance(Ci.nsISupportsPRInt16);
     reason.data = aReason;
-    params.appendElement(reason, false);
+    params.appendElement(reason);
 
-    var ww = Cc["@mozilla.org/embedcomp/window-watcher;1"].
-             getService(Ci.nsIWindowWatcher);
-    ww.openWindow(parent,
-                  "chrome://communicator/content/downloads/progressDialog.xul",
-                  null,
-                  "chrome,titlebar,centerscreen,minimizable=yes,dialog=no",
-                  params);
+    Services.ww.openWindow(parent,
+      "chrome://communicator/content/downloads/progressDialog.xul",
+      null,
+      "chrome,titlebar,centerscreen,minimizable=yes,dialog=no",
+      params);
   },
   //////////////////////////////////////////////////////////////////////////////
   //// nsISupports

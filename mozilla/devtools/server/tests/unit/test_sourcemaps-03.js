@@ -1,6 +1,8 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
+"use strict";
+
 /**
  * Check setting breakpoints in source mapped sources.
  */
@@ -11,74 +13,61 @@ var gThreadClient;
 
 const {SourceNode} = require("source-map");
 
-function run_test()
-{
+function run_test() {
   initTestDebuggerServer();
   gDebuggee = addTestGlobal("test-source-map");
   gClient = new DebuggerClient(DebuggerServer.connectPipe());
-  gClient.connect(function() {
-    attachTestTabAndResume(gClient, "test-source-map", function(aResponse, aTabClient, aThreadClient) {
-      gThreadClient = aThreadClient;
-      test_simple_source_map();
-    });
+  gClient.connect().then(function () {
+    attachTestTabAndResume(gClient, "test-source-map",
+                           function (response, tabClient, threadClient) {
+                             gThreadClient = threadClient;
+                             test_simple_source_map();
+                           });
   });
   do_test_pending();
 }
 
-function testBreakpointMapping(aName, aCallback)
-{
-  // Pause so we can set a breakpoint.
-  gThreadClient.addOneTimeListener("paused", function (aEvent, aPacket) {
-    do_check_true(!aPacket.error);
-    do_check_eq(aPacket.why.type, "debuggerStatement");
+function testBreakpointMapping(name, callback) {
+  Task.spawn(function* () {
+    let response = yield waitForPause(gThreadClient);
+    do_check_eq(response.why.type, "debuggerStatement");
 
-    getSource(gThreadClient, "http://example.com/www/js/" + aName + ".js").then(source => {
-      source.setBreakpoint({
-        // Setting the breakpoint on an empty line so that it is pushed down one
-        // line and we can check the source mapped actualLocation later.
-        line: 3
-      }, function (aResponse) {
-        do_check_true(!aResponse.error);
-
-        // Actual location should come back source mapped still so that
-        // breakpoints are displayed in the UI correctly, etc.
-        do_check_eq(aResponse.actualLocation.line, 4);
-        do_check_eq(aResponse.actualLocation.source.url,
-                    "http://example.com/www/js/" + aName + ".js");
-
-        // The eval will cause us to resume, then we get an unsolicited pause
-        // because of our breakpoint, we resume again to finish the eval, and
-        // finally receive our last pause which has the result of the client
-        // evaluation.
-        gThreadClient.eval(null, aName + "()", function (aResponse) {
-          do_check_true(!aResponse.error, "Shouldn't be an error resuming to eval");
-          do_check_eq(aResponse.type, "resumed");
-
-          gThreadClient.addOneTimeListener("paused", function (aEvent, aPacket) {
-            do_check_eq(aPacket.why.type, "breakpoint");
-            // Assert that we paused because of the breakpoint at the correct
-            // location in the code by testing that the value of `ret` is still
-            // undefined.
-            do_check_eq(aPacket.frame.environment.bindings.variables.ret.value.type,
-                        "undefined");
-
-            gThreadClient.resume(function (aResponse) {
-              do_check_true(!aResponse.error);
-
-              gThreadClient.addOneTimeListener("paused", function (aEvent, aPacket) {
-                do_check_eq(aPacket.why.type, "clientEvaluated");
-                do_check_eq(aPacket.why.frameFinished.return, aName);
-
-                gThreadClient.resume(function (aResponse) {
-                  do_check_true(!aResponse.error);
-                  aCallback();
-                });
-              });
-            });
-          });
-        });
-      });
+    const source = yield getSource(gThreadClient, "http://example.com/www/js/" + name + ".js");
+    response = yield setBreakpoint(source, {
+      // Setting the breakpoint on an empty line so that it is pushed down one
+      // line and we can check the source mapped actualLocation later.
+      line: 3
     });
+
+    // Should not slide breakpoints for sourcemapped sources
+    do_check_true(!response.actualLocation);
+
+    yield setBreakpoint(source, { line: 4 });
+
+    // The eval will cause us to resume, then we get an unsolicited pause
+    // because of our breakpoint, we resume again to finish the eval, and
+    // finally receive our last pause which has the result of the client
+    // evaluation.
+    response = yield gThreadClient.eval(null, name + "()");
+    do_check_eq(response.type, "resumed");
+
+    response = yield waitForPause(gThreadClient);
+    do_check_eq(response.why.type, "breakpoint");
+    // Assert that we paused because of the breakpoint at the correct
+    // location in the code by testing that the value of `ret` is still
+    // undefined.
+    do_check_eq(response.frame.environment.bindings.variables.ret.value.type,
+                "undefined");
+
+    response = yield resume(gThreadClient);
+
+    response = yield waitForPause(gThreadClient);
+    do_check_eq(response.why.type, "clientEvaluated");
+    do_check_eq(response.why.frameFinished.return, name);
+
+    response = yield resume(gThreadClient);
+
+    callback();
   });
 
   gDebuggee.eval("(" + function () {
@@ -86,26 +75,27 @@ function testBreakpointMapping(aName, aCallback)
   } + "());");
 }
 
-function test_simple_source_map()
-{
+function test_simple_source_map() {
   let expectedSources = new Set([
     "http://example.com/www/js/a.js",
     "http://example.com/www/js/b.js",
     "http://example.com/www/js/c.js"
   ]);
 
-  gThreadClient.addListener("newSource", function _onNewSource(aEvent, aPacket) {
-    expectedSources.delete(aPacket.source.url);
+  gThreadClient.addListener("newSource", function _onNewSource(event, packet) {
+    expectedSources.delete(packet.source.url);
     if (expectedSources.size > 0) {
       return;
     }
     gThreadClient.removeListener("newSource", _onNewSource);
 
+    function finish() {
+      finishClient(gClient);
+    }
+
     testBreakpointMapping("a", function () {
       testBreakpointMapping("b", function () {
-        testBreakpointMapping("c", function () {
-          finishClient(gClient);
-        });
+        testBreakpointMapping("c", finish);
       });
     });
   });

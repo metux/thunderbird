@@ -48,7 +48,7 @@ function run_test()
   async_run_tests(tests);
 }
 
-function streamMessages() {
+function* streamMessages() {
   let inbox = gIMAPDaemon.getMailbox("INBOX");
   let imapS = Cc["@mozilla.org/messenger/messageservice;1?type=imap"]
                 .getService(Ci.nsIMsgMessageService);
@@ -85,7 +85,7 @@ function streamMessages() {
                                                    null,
                                                    Services.scriptSecurityManager.getSystemPrincipal(),
                                                    null,
-                                                   Ci.nsILoadInfo.SEC_NORMAL,
+                                                   Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
                                                    Ci.nsIContentPolicy.TYPE_OTHER);
       channel.asyncOpen(gStreamListener, null);
       yield false;
@@ -124,7 +124,7 @@ var gStreamListener = {
   },
 };
 
-function endTest() {
+function* endTest() {
   gIMAPIncomingServer.closeCachedConnections();
   gServer.stop();
   let thread = Services.tm.currentThread;

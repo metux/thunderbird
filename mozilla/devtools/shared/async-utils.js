@@ -13,9 +13,7 @@
  * See Task documentation at https://developer.mozilla.org/en-US/docs/Mozilla/JavaScript_code_modules/Task.jsm.
  */
 
-var {Cu} = require("chrome");
-var {Task} = require("resource://gre/modules/Task.jsm");
-var Promise = require("promise");
+var {Task} = require("devtools/shared/task");
 
 /**
  * Create an async function that only executes once per instance of an object.
@@ -29,7 +27,7 @@ var Promise = require("promise");
  */
 exports.asyncOnce = function asyncOnce(func) {
   const promises = new WeakMap();
-  return function(...args) {
+  return function (...args) {
     let promise = promises.get(this);
     if (!promise) {
       promise = Task.spawn(func.apply(this, args));
@@ -53,11 +51,11 @@ exports.asyncOnce = function asyncOnce(func) {
  *         happens
  */
 exports.listenOnce = function listenOnce(element, event, useCapture) {
-  return new Promise(function(resolve, reject) {
-    var onEvent = function(ev) {
+  return new Promise(function (resolve, reject) {
+    let onEvent = function (ev) {
       element.removeEventListener(event, onEvent, useCapture);
       resolve(ev);
-    }
+    };
     element.addEventListener(event, onEvent, useCapture);
   });
 };

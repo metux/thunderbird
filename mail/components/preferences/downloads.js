@@ -1,7 +1,7 @@
-# -*- Mode: Java; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
-# This Source Code Form is subject to the terms of the Mozilla Public
-# License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 var gDownloadDirSection = {
   chooseFolder: function ()
@@ -13,18 +13,22 @@ var gDownloadDirSection = {
     var title = bundlePreferences.getString("chooseAttachmentsFolderTitle");
     fp.init(window, title, nsIFilePicker.modeGetFolder);
 
-    const nsILocalFile = Components.interfaces.nsILocalFile;
+    const nsIFile = Components.interfaces.nsIFile;
     var customDirPref = document.getElementById("browser.download.dir");
     if (customDirPref.value)
       fp.displayDirectory = customDirPref.value;
     fp.appendFilters(nsIFilePicker.filterAll);
-    if (fp.show() == nsIFilePicker.returnOK) {
-      var file = fp.file.QueryInterface(nsILocalFile);
-      var currentDirPref = document.getElementById("browser.download.downloadDir");
+    fp.open(rv => {
+      if (rv != nsIFilePicker.returnOK || !fp.file) {
+        return;
+      }
+
+      let file = fp.file.QueryInterface(nsIFile);
+      let currentDirPref = document.getElementById("browser.download.downloadDir");
       customDirPref.value = currentDirPref.value = file;
-      var folderListPref = document.getElementById("browser.download.folderList");
+      let folderListPref = document.getElementById("browser.download.folderList");
       folderListPref.value = this._fileToIndex(file);
-    }
+    });
   },
 
   onReadUseDownloadDir: function ()
@@ -66,21 +70,19 @@ var gDownloadDirSection = {
     if (aFolderType != "Downloads")
       throw "ASSERTION FAILED: folder type should be 'Desktop' or 'Downloads'";
 
-#ifdef XP_WIN
-    return "Pers";
-#else
-#ifdef XP_MACOSX
-    return "UsrDocs";
-#else
+    if (AppConstants.platform == "win")
+      return "Pers";
+
+    if (AppConstants.platform == "macosx")
+      return "UsrDocs";
+
     return "Home";
-#endif
-#endif
   },
 
   _getDownloadsFolder: function (aFolder)
   {
     let dir = Services.dirsvc.get(this._getSpecialFolderKey(aFolder),
-                                  Components.interfaces.nsILocalFile);
+                                  Components.interfaces.nsIFile);
     if (aFolder != "Desktop")
       dir.append("My Downloads");
 

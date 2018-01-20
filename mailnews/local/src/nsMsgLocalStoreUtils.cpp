@@ -2,7 +2,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
- 
+
 #include "msgCore.h"    // precompiled header...
 #include "nsMsgLocalStoreUtils.h"
 #include "nsIFile.h"
@@ -58,7 +58,7 @@ nsMsgLocalStoreUtils::nsShouldIgnoreFile(nsAString& name)
 
   // The .mozmsgs dir is for spotlight support
     return (StringEndsWith(name, NS_LITERAL_STRING(".mozmsgs")) ||
-            StringEndsWith(name, NS_LITERAL_STRING(".sbd")) ||
+            StringEndsWith(name, NS_LITERAL_STRING(FOLDER_SUFFIX)) ||
             StringEndsWith(name, NS_LITERAL_STRING(SUMMARY_SUFFIX)));
 }
 
@@ -302,7 +302,7 @@ nsMsgLocalStoreUtils::DiskSpaceAvailableInStore(nsIFile *aFile, uint64_t aSpaceR
   nsresult rv = aFile->GetDiskSpaceAvailable(&diskFree);
   if (NS_SUCCEEDED(rv)) {
 #ifdef DEBUG
-    printf("GetDiskSpaceAvailable returned: %lld bytes\n", diskFree);
+    printf("GetDiskSpaceAvailable returned: %lld bytes\n", (long long)diskFree);
 #endif
     // When checking for disk space available, take into consideration
     // possible database changes, therefore ask for a little more
@@ -310,17 +310,20 @@ nsMsgLocalStoreUtils::DiskSpaceAvailableInStore(nsIFile *aFile, uint64_t aSpaceR
     // sector sizes, allocation blocks, etc. The space "available" may be greater
     // than the actual space usable.
     return ((aSpaceRequested + EXTRA_SAFETY_SPACE) < (uint64_t) diskFree);
-  } else {
-    // The call to GetDiskSpaceAvailable FAILED!
+  } else if (rv == NS_ERROR_NOT_IMPLEMENTED) {
+    // The call to GetDiskSpaceAvailable is not implemented!
     // This will happen on certain platforms where GetDiskSpaceAvailable
     // is not implemented. Since people on those platforms still need
     // to download mail, we will simply bypass the disk-space check.
     //
     // We'll leave a debug message to warn people.
 #ifdef DEBUG
-    printf("Call to GetDiskSpaceAvailable FAILED! \n");
+    printf("Call to GetDiskSpaceAvailable FAILED because it is not implemented!\n");
 #endif
     return true;
+  } else {
+    printf("Call to GetDiskSpaceAvailable FAILED!\n");
+    return false;
   }
 }
 

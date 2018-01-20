@@ -1,6 +1,8 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
+"use strict";
+
 var test_generator = do_run_test();
 
 function run_test()
@@ -24,7 +26,7 @@ function repeat_test()
   gShortExpiry *= 2;
 
   do_execute_soon(function() {
-    test_generator.close();
+    test_generator.return();
     test_generator = do_run_test();
     do_run_generator(test_generator);
   });
@@ -51,7 +53,7 @@ function get_expiry_delay()
   return gShortExpiry * 1000 + 100;
 }
 
-function do_run_test()
+function* do_run_test()
 {
   // Set up a profile.
   let profile = do_get_profile();
@@ -197,7 +199,7 @@ function set_cookies(begin, end, expiry)
   for (let i = begin; i < end; ++i) {
     let host = "eviction." + i + ".tests";
     Services.cookiemgr.add(host, "", "test", "eviction", false, false, false,
-      expiry);
+      expiry, {});
 
     if (i == begin)
       beginTime = get_creationTime(i);
@@ -217,7 +219,7 @@ function set_cookies(begin, end, expiry)
 function get_creationTime(i)
 {
   let host = "eviction." + i + ".tests";
-  let enumerator = Services.cookiemgr.getCookiesFromHost(host);
+  let enumerator = Services.cookiemgr.getCookiesFromHost(host, {});
   do_check_true(enumerator.hasMoreElements());
   let cookie = enumerator.getNext().QueryInterface(Ci.nsICookie2);
   return cookie.creationTime;
@@ -231,7 +233,7 @@ function get_creationTime(i)
 function check_remaining_cookies(aNumberTotal, aNumberOld, aNumberToExpect) {
   var enumerator = Services.cookiemgr.enumerator;
 
-  i = 0;
+  let i = 0;
   while (enumerator.hasMoreElements()) {
     var cookie = enumerator.getNext().QueryInterface(Ci.nsICookie2);
     ++i;

@@ -89,7 +89,7 @@ this.ServerBSO = function ServerBSO(id, payload, modified) {
 
   this.payload = payload;
   this.modified = modified || new_timestamp();
-}
+};
 ServerBSO.prototype = {
   FIELDS: [
     "id",
@@ -184,11 +184,13 @@ ServerBSO.prototype = {
     try {
       parsed = JSON.parse(input);
     } catch (ex) {
-      return sendMozSvcError(request, response, "8");
+      sendMozSvcError(request, response, "8");
+      return;
     }
 
     if (typeof(parsed) != "object") {
-      return sendMozSvcError(request, response, "8");
+      sendMozSvcError(request, response, "8");
+      return;
     }
 
     // Don't update if a conditional request fails preconditions.
@@ -211,12 +213,12 @@ ServerBSO.prototype = {
     }
 
     // Alert when we see unrecognized fields.
-    for (let [key, value] in Iterator(parsed)) {
+    for (let [key, value] of Object.entries(parsed)) {
       switch (key) {
         case "payload":
           if (typeof(value) != "string") {
             sendMozSvcError(request, response, "8");
-            return true;
+            return;
           }
 
           this.payload = value;
@@ -225,7 +227,7 @@ ServerBSO.prototype = {
         case "ttl":
           if (!isInteger(value)) {
             sendMozSvcError(request, response, "8");
-            return true;
+            return;
           }
           this.ttl = parseInt(value, 10);
           break;
@@ -233,7 +235,7 @@ ServerBSO.prototype = {
         case "sortindex":
           if (!isInteger(value) || value.length > 9) {
             sendMozSvcError(request, response, "8");
-            return true;
+            return;
           }
           this.sortindex = parseInt(value, 10);
           break;
@@ -244,7 +246,7 @@ ServerBSO.prototype = {
         default:
           this._log.warn("Unexpected field in BSO record: " + key);
           sendMozSvcError(request, response, "8");
-          return true;
+          return;
       }
     }
 
@@ -275,7 +277,7 @@ ServerBSO.prototype = {
  *        collection. This should be in the format returned by new_timestamp().
  */
 this.StorageServerCollection =
- function StorageServerCollection(bsos, acceptNew, timestamp=new_timestamp()) {
+ function StorageServerCollection(bsos, acceptNew, timestamp = new_timestamp()) {
   this._bsos = bsos || {};
   this.acceptNew = acceptNew || false;
 
@@ -288,7 +290,7 @@ this.StorageServerCollection =
   this._timestamp = timestamp;
 
   this._log = Log.repository.getLogger(STORAGE_HTTP_LOGGER);
-}
+};
 StorageServerCollection.prototype = {
   BATCH_MAX_COUNT: 100,         // # of records.
   BATCH_MAX_SIZE: 1024 * 1024,  // # bytes.
@@ -324,8 +326,13 @@ StorageServerCollection.prototype = {
    * @return an array of IDs.
    */
   keys: function keys(filter) {
-    return [id for ([id, bso] in Iterator(this._bsos))
-               if (!bso.deleted && (!filter || filter(id, bso)))];
+    let ids = [];
+    for (let [id, bso] of Object.entries(this._bsos)) {
+      if (!bso.deleted && (!filter || filter(id, bso))) {
+        ids.push(id);
+      }
+    }
+    return ids;
   },
 
   /**
@@ -339,8 +346,12 @@ StorageServerCollection.prototype = {
    * @return an array of ServerBSOs.
    */
   bsos: function bsos(filter) {
-    let os = [bso for ([id, bso] in Iterator(this._bsos))
-              if (!bso.deleted)];
+    let os = [];
+    for (let bso of Object.values(this._bsos)) {
+      if (!bso.deleted) {
+        os.push(bso);
+      }
+    }
 
     if (!filter) {
       return os;
@@ -431,7 +442,7 @@ StorageServerCollection.prototype = {
   count: function count(options) {
     options = options || {};
     let c = 0;
-    for (let [id, bso] in Iterator(this._bsos)) {
+    for (let bso of Object.values(this._bsos)) {
       if (bso.modified && this._inResultSet(bso, options)) {
         c++;
       }
@@ -564,12 +575,11 @@ StorageServerCollection.prototype = {
           failed[record.id] = "no bso configured";
         }
       } catch (ex) {
-        this._log.info("Exception when processing BSO: " +
-                       CommonUtils.exceptionStr(ex));
+        this._log.info("Exception when processing BSO", ex);
         failed[record.id] = "Exception when processing.";
       }
     }
-    return {success: success, failed: failed};
+    return {success, failed};
   },
 
   delete: function delete_(options) {
@@ -590,7 +600,7 @@ StorageServerCollection.prototype = {
     }
 
     let deleted = [];
-    for (let [id, bso] in Iterator(this._bsos)) {
+    for (let bso of Object.values(this._bsos)) {
       if (this._inResultSet(bso, options)) {
         this._log.debug("Deleting " + JSON.stringify(bso));
         deleted.push(bso.id);
@@ -722,8 +732,6 @@ StorageServerCollection.prototype = {
   },
 
   postHandler: function postHandler(request, response) {
-    let options = this.parseOptions(request);
-
     if (!request.hasHeader("content-type")) {
       this._log.info("No Content-Type request header!");
       throw HTTP_400;
@@ -744,7 +752,8 @@ StorageServerCollection.prototype = {
 
       if (!Array.isArray(input)) {
         this._log.info("Input JSON type not an array!");
-        return sendMozSvcError(request, response, "8");
+        sendMozSvcError(request, response, "8");
+        return;
       }
     } else if (inputMediaType == "application/newlines") {
       for (let line of inputBody.split("\n")) {
@@ -753,7 +762,8 @@ StorageServerCollection.prototype = {
           record = JSON.parse(line);
         } catch (ex) {
           this._log.info("JSON parse error on line!");
-          return sendMozSvcError(request, response, "8");
+          sendMozSvcError(request, response, "8");
+          return;
         }
 
         input.push(record);
@@ -797,15 +807,18 @@ StorageServerCollection.prototype = {
     let self = this;
 
     return function(request, response) {
-      switch(request.method) {
+      switch (request.method) {
         case "GET":
-          return self.getHandler(request, response);
+          self.getHandler(request, response);
+          return;
 
         case "POST":
-          return self.postHandler(request, response);
+          self.postHandler(request, response);
+          return;
 
         case "DELETE":
-          return self.deleteHandler(request, response);
+          self.deleteHandler(request, response);
+          return;
 
       }
 
@@ -837,9 +850,9 @@ StorageServerCollection.prototype = {
 };
 
 
-//===========================================================================//
+// ===========================================================================//
 // httpd.js-based Storage server.                                            //
-//===========================================================================//
+// ===========================================================================//
 
 /**
  * In general, the preferred way of using StorageServer is to directly
@@ -879,7 +892,7 @@ this.StorageServer = function StorageServer(callback) {
   // whole URL space.
   let handler = this.server._handler;
   handler._handleDefault = this.handleDefault.bind(this, handler);
-}
+};
 StorageServer.prototype = {
   DEFAULT_QUOTA: 1024 * 1024, // # bytes.
 
@@ -922,12 +935,12 @@ StorageServer.prototype = {
         cb();
       }
     } catch (ex) {
-      _("==========================================");
-      _("Got exception starting Storage HTTP server on port " + this.port);
-      _("Error: " + CommonUtils.exceptionStr(ex));
-      _("Is there a process already listening on port " + this.port + "?");
-      _("==========================================");
-      do_throw(ex);
+      this._log.error("==========================================");
+      this._log.error("Got exception starting Storage HTTP server on port " + this.port);
+      this._log.error("Error: " + Log.exceptionStr(ex));
+      this._log.error("Is there a process already listening on port " + this.port + "?");
+      this._log.error("==========================================");
+      throw ex;
     }
   },
 
@@ -938,7 +951,7 @@ StorageServer.prototype = {
    *        The numeric port on which to start. The default is to choose
    *        any available port.
    */
-  startSynchronous: function startSynchronous(port=-1) {
+  startSynchronous: function startSynchronous(port = -1) {
     let cb = Async.makeSpinningCallback();
     this.start(port, cb);
     cb.wait();
@@ -988,7 +1001,7 @@ StorageServer.prototype = {
 
     this._log.info("Registering new user with server: " + username);
     this.users[username] = {
-      password: password,
+      password,
       collections: {},
       quota: this.DEFAULT_QUOTA,
     };
@@ -1044,10 +1057,10 @@ StorageServer.prototype = {
       throw new Error("Unknown user.");
     }
     let userCollections = this.users[username].collections;
-    for (let [id, contents] in Iterator(collections)) {
+    for (let [id, contents] of Object.entries(collections)) {
       let coll = userCollections[id] ||
                  this._insertCollection(userCollections, id);
-      for (let [bsoID, payload] in Iterator(contents)) {
+      for (let [bsoID, payload] of Object.entries(contents)) {
         coll.insert(bsoID, payload);
       }
     }
@@ -1128,7 +1141,7 @@ StorageServer.prototype = {
   infoCounts: function infoCounts(username) {
     let data = {};
     let collections = this.users[username].collections;
-    for (let [k, v] in Iterator(collections)) {
+    for (let [k, v] of Object.entries(collections)) {
       let count = v.count();
       if (!count) {
         continue;
@@ -1143,7 +1156,7 @@ StorageServer.prototype = {
   infoUsage: function infoUsage(username) {
     let data = {};
     let collections = this.users[username].collections;
-    for (let [k, v] in Iterator(collections)) {
+    for (let [k, v] of Object.entries(collections)) {
       data[k] = v.totalPayloadSize;
     }
 
@@ -1178,18 +1191,18 @@ StorageServer.prototype = {
     let collection       = this.getCollection.bind(this, username);
     let createCollection = this.createCollection.bind(this, username);
     let createContents   = this.createContents.bind(this, username);
-    let modified         = function (collectionName) {
+    let modified         = function(collectionName) {
       return collection(collectionName).timestamp;
-    }
+    };
     let deleteCollections = this.deleteCollections.bind(this, username);
     let quota             = this.getQuota.bind(this, username);
     return {
-      collection:        collection,
-      createCollection:  createCollection,
-      createContents:    createContents,
-      deleteCollections: deleteCollections,
-      modified:          modified,
-      quota:             quota,
+      collection,
+      createCollection,
+      createContents,
+      deleteCollections,
+      modified,
+      quota,
     };
   },
 
@@ -1279,7 +1292,7 @@ StorageServer.prototype = {
       if (e instanceof HttpError) {
         this.respond(req, resp, e.code, e.description, "", {}, timestamp);
       } else {
-        this._log.warn(CommonUtils.exceptionStr(e));
+        this._log.warn("StorageServer: handleDefault caught an error", e);
         throw e;
       }
     }
@@ -1311,7 +1324,7 @@ StorageServer.prototype = {
       throw HTTP_404;
     }
 
-    let [all, version, userPath, first, rest] = parts;
+    let [, version, userPath, first, rest] = parts;
     if (version != STORAGE_API_VERSION) {
       this._log.debug("StorageServer: Unknown version.");
       throw HTTP_404;
@@ -1333,14 +1346,14 @@ StorageServer.prototype = {
         return;
       }
 
-      let ensureUserExists = function ensureUserExists(username) {
+      let ensureUserExists = username => {
         if (this.userExists(username)) {
           return;
         }
 
         this._log.info("StorageServer: Unknown user: " + username);
         throw HTTP_401;
-      }.bind(this);
+      };
 
       let auth = req.getHeader("authorization");
       this._log.debug("Authorization: " + auth);
@@ -1382,10 +1395,10 @@ StorageServer.prototype = {
     if (first in this.toplevelHandlers) {
       let handler = this.toplevelHandlers[first];
       try {
-        return handler.call(this, handler, req, resp, version, username, rest);
+        handler.call(this, handler, req, resp, version, username, rest);
+        return;
       } catch (ex) {
-        this._log.warn("Got exception during request: " +
-                       CommonUtils.exceptionStr(ex));
+        this._log.warn("Got exception during request", ex);
         throw ex;
       }
     }
@@ -1420,7 +1433,7 @@ StorageServer.prototype = {
         this._log.warn("StorageServer: Unknown storage operation " + rest);
         throw HTTP_404;
       }
-      let [all, collection, bsoID] = match;
+      let [, collection, bsoID] = match;
       let coll = this.getCollection(username, collection);
       let collectionExisted = !!coll;
 
@@ -1434,7 +1447,8 @@ StorageServer.prototype = {
 
           // No BSO URL parameter goes to collection handler.
           if (!bsoID) {
-            return coll.collectionHandler(req, resp);
+            coll.collectionHandler(req, resp);
+            return;
           }
 
           // Handle non-existent BSO.
@@ -1445,7 +1459,8 @@ StorageServer.prototype = {
           }
 
           // Proxy to BSO handler.
-          return bso.getHandler(req, resp);
+          bso.getHandler(req, resp);
+          return;
 
         case "DELETE":
           // Collection doesn't exist.
@@ -1529,17 +1544,19 @@ StorageServer.prototype = {
                 try {
                   bso = coll.insert(bsoID);
                 } catch (ex) {
-                  return sendMozSvcError(req, resp, "8");
+                  sendMozSvcError(req, resp, "8");
+                  return;
                 }
               }
 
               bso.putHandler(req, resp);
 
               coll.timestamp = req.timestamp;
-              return resp;
+              return;
             }
 
-            return coll.collectionHandler(req, resp);
+            coll.collectionHandler(req, resp);
+            return;
           } catch (ex) {
             if (ex instanceof HttpError) {
               if (!collectionExisted) {
@@ -1558,16 +1575,20 @@ StorageServer.prototype = {
     "info": function handleInfo(handler, req, resp, version, username, rest) {
       switch (rest) {
         case "collections":
-          return this.handleInfoCollections(req, resp, username);
+          this.handleInfoCollections(req, resp, username);
+          return;
 
         case "collection_counts":
-          return this.handleInfoCounts(req, resp, username);
+          this.handleInfoCounts(req, resp, username);
+          return;
 
         case "collection_usage":
-          return this.handleInfoUsage(req, resp, username);
+          this.handleInfoUsage(req, resp, username);
+          return;
 
         case "quota":
-          return this.handleInfoQuota(req, resp, username);
+          this.handleInfoQuota(req, resp, username);
+          return;
 
         default:
           this._log.warn("StorageServer: Unknown info operation " + rest);
@@ -1661,10 +1682,10 @@ StorageServer.prototype = {
 this.storageServerForUsers =
  function storageServerForUsers(users, contents, callback) {
   let server = new StorageServer(callback);
-  for (let [user, pass] in Iterator(users)) {
+  for (let [user, pass] of Object.entries(users)) {
     server.registerUser(user, pass);
     server.createContents(user, contents);
   }
   server.start();
   return server;
-}
+};

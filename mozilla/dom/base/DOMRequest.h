@@ -10,7 +10,7 @@
 #include "nsIDOMDOMRequest.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/DOMEventTargetHelper.h"
-#include "mozilla/dom/DOMError.h"
+#include "mozilla/dom/DOMException.h"
 #include "mozilla/dom/DOMRequestBinding.h"
 
 #include "nsCOMPtr.h"
@@ -29,7 +29,7 @@ class DOMRequest : public DOMEventTargetHelper,
 {
 protected:
   JS::Heap<JS::Value> mResult;
-  RefPtr<DOMError> mError;
+  RefPtr<DOMException> mError;
   RefPtr<Promise> mPromise;
   bool mDone;
 
@@ -42,7 +42,7 @@ public:
                                                          DOMEventTargetHelper)
 
   // WrapperCache
-  nsPIDOMWindow* GetParentObject() const
+  nsPIDOMWindowInner* GetParentObject() const
   {
     return GetOwner();
   }
@@ -60,11 +60,10 @@ public:
   {
     NS_ASSERTION(mDone || mResult.isUndefined(),
                  "Result should be undefined when pending");
-    JS::ExposeValueToActiveJS(mResult);
     aRetval.set(mResult);
   }
 
-  DOMError* GetError() const
+  DOMException* GetError() const
   {
     NS_ASSERTION(mDone || !mError,
                  "Error should be null when pending");
@@ -83,9 +82,9 @@ public:
   void FireSuccess(JS::Handle<JS::Value> aResult);
   void FireError(const nsAString& aError);
   void FireError(nsresult aError);
-  void FireDetailedError(DOMError* aError);
+  void FireDetailedError(DOMException* aError);
 
-  explicit DOMRequest(nsPIDOMWindow* aWindow);
+  explicit DOMRequest(nsPIDOMWindowInner* aWindow);
   explicit DOMRequest(nsIGlobalObject* aGlobal);
 
 protected:
@@ -104,12 +103,10 @@ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIDOMREQUESTSERVICE
 
-  // Returns an owning reference! No one should call this but the factory.
-  static DOMRequestService* FactoryCreate()
+  // No one should call this but the factory.
+  static already_AddRefed<DOMRequestService> FactoryCreate()
   {
-    DOMRequestService* res = new DOMRequestService;
-    NS_ADDREF(res);
-    return res;
+    return MakeAndAddRef<DOMRequestService>();
   }
 };
 

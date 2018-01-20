@@ -12,55 +12,52 @@
 #include "mozilla/HashFunctions.h"
 #include "nsISupportsImpl.h"
 
-#define PL_ARENA_CONST_ALIGN_MASK 3
 #include "nsStaticNameTable.h"
 
 using namespace mozilla;
 
 struct NameTableKey
 {
-  explicit NameTableKey(const nsAFlatCString* aKeyStr)
-    : mIsUnichar(false)
+  NameTableKey(const nsDependentCString aNameArray[],
+               const nsCString* aKeyStr)
+    : mNameArray(aNameArray)
+    , mIsUnichar(false)
   {
     mKeyStr.m1b = aKeyStr;
   }
 
-  explicit NameTableKey(const nsAFlatString* aKeyStr)
-    : mIsUnichar(true)
+  NameTableKey(const nsDependentCString aNameArray[],
+               const nsString* aKeyStr)
+    : mNameArray(aNameArray)
+    , mIsUnichar(true)
   {
     mKeyStr.m2b = aKeyStr;
   }
 
-  bool mIsUnichar;
+  const nsDependentCString* mNameArray;
   union
   {
-    const nsAFlatCString* m1b;
-    const nsAFlatString* m2b;
+    const nsCString* m1b;
+    const nsString* m2b;
   } mKeyStr;
+  bool mIsUnichar;
 };
 
 struct NameTableEntry : public PLDHashEntryHdr
 {
-  // no ownership here!
-  const nsAFlatCString* mString;
   int32_t mIndex;
 };
 
 static bool
-matchNameKeysCaseInsensitive(PLDHashTable*, const PLDHashEntryHdr* aHdr,
-                             const void* aKey)
+matchNameKeysCaseInsensitive(const PLDHashEntryHdr* aHdr, const void* aVoidKey)
 {
-  const NameTableEntry* entry = static_cast<const NameTableEntry*>(aHdr);
-  const NameTableKey* keyValue = static_cast<const NameTableKey*>(aKey);
-  const nsAFlatCString* entryKey = entry->mString;
+  auto entry = static_cast<const NameTableEntry*>(aHdr);
+  auto key = static_cast<const NameTableKey*>(aVoidKey);
+  const nsDependentCString* name = &key->mNameArray[entry->mIndex];
 
-  if (keyValue->mIsUnichar) {
-    return keyValue->mKeyStr.m2b->LowerCaseEqualsASCII(entryKey->get(),
-                                                       entryKey->Length());
-  }
-
-  return keyValue->mKeyStr.m1b->LowerCaseEqualsASCII(entryKey->get(),
-                                                     entryKey->Length());
+  return key->mIsUnichar
+       ? key->mKeyStr.m2b->LowerCaseEqualsASCII(name->get(), name->Length())
+       : key->mKeyStr.m1b->LowerCaseEqualsASCII(name->get(), name->Length());
 }
 
 /*
@@ -72,7 +69,7 @@ matchNameKeysCaseInsensitive(PLDHashTable*, const PLDHashEntryHdr* aHdr,
  * matter.
  */
 static PLDHashNumber
-caseInsensitiveStringHashKey(PLDHashTable* aTable, const void* aKey)
+caseInsensitiveStringHashKey(const void* aKey)
 {
   PLDHashNumber h = 0;
   const NameTableKey* tableKey = static_cast<const NameTableKey*>(aKey);
@@ -134,16 +131,20 @@ nsStaticCaseInsensitiveNameTable::nsStaticCaseInsensitiveNameTable(
     nsDependentCString* strPtr = &mNameArray[index];
     new (strPtr) nsDependentCString(raw);
 
-    NameTableKey key(strPtr);
+    NameTableKey key(mNameArray, strPtr);
 
     auto entry = static_cast<NameTableEntry*>(mNameTable.Add(&key, fallible));
     if (!entry) {
       continue;
     }
 
-    NS_ASSERTION(entry->mString == 0, "Entry already exists!");
+    // If the entry already exists it's unlikely but possible that its index is
+    // zero, in which case this assertion won't fail. But if the index is
+    // non-zero (highly likely) then it will fail. In other words, this
+    // assertion is likely but not guaranteed to detect if an entry is already
+    // used.
+    MOZ_ASSERT(entry->mIndex == 0, "Entry already exists!");
 
-    entry->mString = strPtr;      // not owned!
     entry->mIndex = index;
   }
 #ifdef DEBUG
@@ -166,9 +167,9 @@ nsStaticCaseInsensitiveNameTable::Lookup(const nsACString& aName)
 {
   NS_ASSERTION(mNameArray, "not inited");
 
-  const nsAFlatCString& str = PromiseFlatCString(aName);
+  const nsCString& str = PromiseFlatCString(aName);
 
-  NameTableKey key(&str);
+  NameTableKey key(mNameArray, &str);
   auto entry = static_cast<NameTableEntry*>(mNameTable.Search(&key));
 
   return entry ? entry->mIndex : nsStaticCaseInsensitiveNameTable::NOT_FOUND;
@@ -179,15 +180,15 @@ nsStaticCaseInsensitiveNameTable::Lookup(const nsAString& aName)
 {
   NS_ASSERTION(mNameArray, "not inited");
 
-  const nsAFlatString& str = PromiseFlatString(aName);
+  const nsString& str = PromiseFlatString(aName);
 
-  NameTableKey key(&str);
+  NameTableKey key(mNameArray, &str);
   auto entry = static_cast<NameTableEntry*>(mNameTable.Search(&key));
 
   return entry ? entry->mIndex : nsStaticCaseInsensitiveNameTable::NOT_FOUND;
 }
 
-const nsAFlatCString&
+const nsCString&
 nsStaticCaseInsensitiveNameTable::GetStringValue(int32_t aIndex)
 {
   NS_ASSERTION(mNameArray, "not inited");

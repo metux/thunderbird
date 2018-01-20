@@ -16,13 +16,11 @@ test();
 
 function test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
  
   expect = 'bgcolor="dummy" quality="dummy" allowScriptAccess="dummy" ';
 
-  jit(true);
 
   print((function(x) {
         var ja = "";
@@ -33,9 +31,6 @@ function test()
         return actual = ja;
       })("dummy"));
 
-  jit(false);
 
   reportCompare(expect, actual, summary);
-
-  exitFunc ('test');
 }

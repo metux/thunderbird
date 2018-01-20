@@ -25,7 +25,6 @@
 #include "nsIMimeHeaders.h"
 #include "nsIMsgWindow.h"
 #include "nsIMsgMailNewsUrl.h"
-#include "nsDateTimeFormatCID.h"
 #include "nsServiceManagerUtils.h"
 #include "nsComponentManagerUtils.h"
 #include "nsMsgUtils.h"
@@ -33,7 +32,7 @@
 #include "mozilla/Services.h"
 #include <algorithm>
 
-static PRLogModuleInfo * gMimeEmitterLogModule = nullptr;
+static mozilla::LazyLogModule gMimeEmitterLogModule("MIME");
 
 #define   MIME_HEADER_URL      "chrome://messenger/locale/mimeheader.properties"
 #define   MIME_URL             "chrome://messenger/locale/mime.properties"
@@ -80,9 +79,6 @@ nsMimeBaseEmitter::nsMimeBaseEmitter()
   // This is needed for conversion of I18N Strings...
   mUnicodeConverter = do_GetService(NS_MIME_CONVERTER_CONTRACTID);
 
-  if (!gMimeEmitterLogModule)
-    gMimeEmitterLogModule = PR_NewLogModule("MIME");
-
   // Do prefs last since we can live without this if it fails...
   nsCOMPtr<nsIPrefBranch> pPrefBranch(do_GetService(NS_PREFSERVICE_CONTRACTID));
   if (pPrefBranch)
@@ -109,7 +105,7 @@ nsMimeBaseEmitter::~nsMimeBaseEmitter(void)
 
       PR_FREEIF(attachInfo->contentType);
       if (attachInfo->displayName)
-        NS_Free(attachInfo->displayName);
+        free(attachInfo->displayName);
       PR_FREEIF(attachInfo->urlSpec);
       PR_FREEIF(attachInfo);
     }
@@ -212,8 +208,7 @@ nsMimeBaseEmitter::MimeGetStringByName(const char *aHeaderName)
   {
     nsString val;
 
-    res = m_headerStringBundle->GetStringFromName(NS_ConvertASCIItoUTF16(aHeaderName).get(),
-                                                  getter_Copies(val));
+    res = m_headerStringBundle->GetStringFromName(aHeaderName, val);
 
     if (NS_FAILED(res))
       return nullptr;
@@ -248,8 +243,7 @@ nsMimeBaseEmitter::MimeGetStringByID(int32_t aID)
   if (m_stringBundle)
   {
     nsString val;
-
-    res = m_stringBundle->GetStringFromID(aID, getter_Copies(val));
+    res = m_stringBundle->GetStringFromID(aID, val);
 
     if (NS_FAILED(res))
       return nullptr;
@@ -563,9 +557,7 @@ nsMimeBaseEmitter::StartHeader(bool rootMailHeader, bool headerOnly, const char 
 NS_IMETHODIMP
 nsMimeBaseEmitter::UpdateCharacterSet(const char *aCharset)
 {
-  if ( (aCharset) && (PL_strcasecmp(aCharset, "US-ASCII")) &&
-        (PL_strcasecmp(aCharset, "ISO-8859-1")) &&
-        (PL_strcasecmp(aCharset, "UTF-8")) )
+  if (aCharset)
   {
     nsAutoCString contentType;
 
@@ -595,7 +587,11 @@ nsMimeBaseEmitter::UpdateCharacterSet(const char *aCharset)
 
       // have to set content-type since it could have an embedded null byte
       mChannel->SetContentType(nsDependentCString(cBegin));
-      mChannel->SetContentCharset(nsDependentCString(aCharset));
+      if (PL_strcasecmp(aCharset, "US-ASCII") == 0) {
+        mChannel->SetContentCharset(NS_LITERAL_CSTRING("ISO-8859-1"));
+      } else {
+        mChannel->SetContentCharset(nsDependentCString(aCharset));
+      }
     }
   }
 
@@ -661,11 +657,6 @@ nsMimeBaseEmitter::GenerateDateString(const char * dateString,
 {
   nsresult rv = NS_OK;
 
-  if (!mDateFormatter) {
-    mDateFormatter = do_CreateInstance(NS_DATETIMEFORMAT_CONTRACTID, &rv);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
   /**
    * See if the user wants to have the date displayed in the senders
    * timezone (including the timezone offset).
@@ -689,9 +680,13 @@ nsMimeBaseEmitter::GenerateDateString(const char * dateString,
     dateFormatPrefs->SetBoolPref("date_senders_timezone", true);
 
   PRExplodedTime explodedMsgTime;
-  // XXX Casting PRStatus to nsresult
-  rv = static_cast<nsresult>(
-    PR_ParseTimeStringToExplodedTime(dateString, false, &explodedMsgTime));
+
+  // Bogus date string may leave some fields uninitialized, so take precaution.
+  memset(&explodedMsgTime, 0, sizeof (PRExplodedTime));
+
+  if (PR_ParseTimeStringToExplodedTime(dateString, false, &explodedMsgTime) != PR_SUCCESS)
+    return NS_ERROR_FAILURE;
+
   /**
    * To determine the date format to use, comparison of current and message
    * time has to be made. If displaying in local time, both timestamps have
@@ -712,43 +707,39 @@ nsMimeBaseEmitter::GenerateDateString(const char * dateString,
 
   // If we want short dates, check if the message is from today, and if so
   // only show the time (e.g. 3:15 pm).
-  nsDateFormatSelector dateFormat = kDateFormatShort;
+  mozilla::nsDateFormatSelector dateFormat = mozilla::kDateFormatShort;
   if (!showDateForToday &&
       explodedCurrentTime.tm_year == explodedCompTime.tm_year &&
       explodedCurrentTime.tm_month == explodedCompTime.tm_month &&
       explodedCurrentTime.tm_mday == explodedCompTime.tm_mday)
   {
     // same day...
-    dateFormat = kDateFormatNone;
+    dateFormat = mozilla::kDateFormatNone;
   }
 
   nsAutoString formattedDateString;
+
+  rv = mozilla::DateTimeFormat::FormatPRExplodedTime(dateFormat,
+                                                     mozilla::kTimeFormatNoSeconds,
+                                                     &explodedCompTime,
+                                                     formattedDateString);
+
   if (NS_SUCCEEDED(rv))
   {
-    rv = mDateFormatter->FormatPRExplodedTime(nullptr /* nsILocale* locale */,
-                                              dateFormat,
-                                              kTimeFormatNoSeconds,
-                                              &explodedCompTime,
-                                              formattedDateString);
-
-    if (NS_SUCCEEDED(rv))
+    if (displaySenderTimezone)
     {
-      if (displaySenderTimezone)
-      {
-        // offset of local time from UTC in minutes
-        int32_t senderoffset = (explodedMsgTime.tm_params.tp_gmt_offset +
-                                explodedMsgTime.tm_params.tp_dst_offset) / 60;
-        // append offset to date string
-        char16_t *tzstring =
-          nsTextFormatter::smprintf(MOZ_UTF16(" %+05d"),
-                                    (senderoffset / 60 * 100) +
-                                    (senderoffset % 60));
-        formattedDateString.Append(tzstring);
-        nsTextFormatter::smprintf_free(tzstring);
-      }
-
-      CopyUTF16toUTF8(formattedDateString, formattedDate);
+      // offset of local time from UTC in minutes
+      int32_t senderoffset = (explodedMsgTime.tm_params.tp_gmt_offset +
+                              explodedMsgTime.tm_params.tp_dst_offset) / 60;
+      // append offset to date string
+      nsString tzstring;
+      nsTextFormatter::ssprintf(tzstring, u" %+05d",
+                                (senderoffset / 60 * 100) +
+                                (senderoffset % 60));
+      formattedDateString.Append(tzstring);
     }
+
+    CopyUTF16toUTF8(formattedDateString, formattedDate);
   }
 
   return rv;
@@ -784,7 +775,7 @@ nsMimeBaseEmitter::GetLocalizedDateString(const char * dateString)
 nsresult
 nsMimeBaseEmitter::WriteHeaderFieldHTML(const char *field, const char *value)
 {
-  char *newValue = nullptr;
+  nsCString newValue;
   char *i18nValue = nullptr;
 
   if ( (!field) || (!value) )
@@ -814,27 +805,27 @@ nsMimeBaseEmitter::WriteHeaderFieldHTML(const char *field, const char *value)
     nsresult rv = mUnicodeConverter->DecodeMimeHeaderToUTF8(
       nsDependentCString(i18nValue), nullptr, false, true, tValue);
     if (NS_SUCCEEDED(rv) && !tValue.IsEmpty())
-      newValue = MsgEscapeHTML(tValue.get());
+      nsAppendEscapedHTML(tValue, newValue);
     else
-      newValue = MsgEscapeHTML(i18nValue);
+      nsAppendEscapedHTML(nsDependentCString(i18nValue), newValue);
   }
   else
   {
-    newValue = MsgEscapeHTML(i18nValue);
+    nsAppendEscapedHTML(nsDependentCString(i18nValue), newValue);
   }
 
   free(i18nValue);
 
-  if (!newValue)
+  if (newValue.IsEmpty())
     return NS_OK;
 
-  mHTMLHeaders.Append("<tr>");
-  mHTMLHeaders.Append("<td>");
+  mHTMLHeaders.AppendLiteral("<tr>");
+  mHTMLHeaders.AppendLiteral("<td>");
 
   if (mFormat == nsMimeOutput::nsMimeMessageSaveAs)
-    mHTMLHeaders.Append("<b>");
+    mHTMLHeaders.AppendLiteral("<b>");
   else
-    mHTMLHeaders.Append("<div class=\"headerdisplayname\" style=\"display:inline;\">");
+    mHTMLHeaders.AppendLiteral("<div class=\"headerdisplayname\" style=\"display:inline;\">");
 
   // Here is where we are going to try to L10N the tagName so we will always
   // get a field name next to an emitted header value. Note: Default will always
@@ -853,20 +844,19 @@ nsMimeBaseEmitter::WriteHeaderFieldHTML(const char *field, const char *value)
     PR_FREEIF(l10nTagName);
   }
 
-  mHTMLHeaders.Append(": ");
+  mHTMLHeaders.AppendLiteral(": ");
   if (mFormat == nsMimeOutput::nsMimeMessageSaveAs)
-    mHTMLHeaders.Append("</b>");
+    mHTMLHeaders.AppendLiteral("</b>");
   else
-    mHTMLHeaders.Append("</div>");
+    mHTMLHeaders.AppendLiteral("</div>");
 
   // Now write out the actual value itself and move on!
   //
   mHTMLHeaders.Append(newValue);
-  mHTMLHeaders.Append("</td>");
+  mHTMLHeaders.AppendLiteral("</td>");
 
-  mHTMLHeaders.Append("</tr>");
+  mHTMLHeaders.AppendLiteral("</tr>");
 
-  PR_FREEIF(newValue);
   return NS_OK;
 }
 
@@ -880,15 +870,13 @@ nsMimeBaseEmitter::WriteHeaderFieldHTMLPrefix(const nsACString &name)
      /* DO NOTHING */ ;   // rhp: Do nothing...leaving the conditional like this so its
                           //      easier to see the logic of what is going on.
   else {
-    mHTMLHeaders.Append("<br><fieldset class=\"mimeAttachmentHeader\">");
+    mHTMLHeaders.AppendLiteral("<br><fieldset class=\"mimeAttachmentHeader\">");
     if (!name.IsEmpty()) {
-      mHTMLHeaders.Append("<legend class=\"mimeAttachmentHeaderName\">");
-      nsCString escapedName;
-      escapedName.Adopt(MsgEscapeHTML(nsCString(name).get()));
-      mHTMLHeaders.Append(escapedName);
-      mHTMLHeaders.Append("</legend>");
+      mHTMLHeaders.AppendLiteral("<legend class=\"mimeAttachmentHeaderName\">");
+      nsAppendEscapedHTML(name, mHTMLHeaders);
+      mHTMLHeaders.AppendLiteral("</legend>");
     }
-    mHTMLHeaders.Append("</fieldset>");
+    mHTMLHeaders.AppendLiteral("</fieldset>");
   }
 
   mFirstHeaders = false;
@@ -898,7 +886,7 @@ nsMimeBaseEmitter::WriteHeaderFieldHTMLPrefix(const nsACString &name)
 nsresult
 nsMimeBaseEmitter::WriteHeaderFieldHTMLPostfix()
 {
-  mHTMLHeaders.Append("<br>");
+  mHTMLHeaders.AppendLiteral("<br>");
   return NS_OK;
 }
 
@@ -932,7 +920,7 @@ nsMimeBaseEmitter::WriteHTMLHeaders(const nsACString &name)
 nsresult
 nsMimeBaseEmitter::DumpSubjectFromDate()
 {
-  mHTMLHeaders.Append("<table border=0 cellspacing=0 cellpadding=0 width=\"100%\" class=\"header-part1\">");
+  mHTMLHeaders.AppendLiteral("<table border=0 cellspacing=0 cellpadding=0 width=\"100%\" class=\"header-part1\">");
 
     // This is the envelope information
     OutputGenericHeader(HEADER_SUBJECT);
@@ -944,7 +932,7 @@ nsMimeBaseEmitter::DumpSubjectFromDate()
          ( mFormat == nsMimeOutput::nsMimeMessageBodyQuoting ) )
       OutputGenericHeader(HEADER_TO);
 
-  mHTMLHeaders.Append("</table>");
+  mHTMLHeaders.AppendLiteral("</table>");
 
   return NS_OK;
 }
@@ -962,7 +950,7 @@ nsMimeBaseEmitter::DumpToCC()
   // which looked weird.
   if (toField || ccField || bccField || newsgroupField)
   {
-    mHTMLHeaders.Append("<table border=0 cellspacing=0 cellpadding=0 width=\"100%\" class=\"header-part2\">");
+    mHTMLHeaders.AppendLiteral("<table border=0 cellspacing=0 cellpadding=0 width=\"100%\" class=\"header-part2\">");
 
     if (toField)
       WriteHeaderFieldHTML(HEADER_TO, toField);
@@ -973,7 +961,7 @@ nsMimeBaseEmitter::DumpToCC()
     if (newsgroupField)
       WriteHeaderFieldHTML(HEADER_NEWSGROUPS, newsgroupField);
 
-    mHTMLHeaders.Append("</table>");
+    mHTMLHeaders.AppendLiteral("</table>");
   }
 
   return NS_OK;
@@ -984,7 +972,7 @@ nsMimeBaseEmitter::DumpRestOfHeaders()
 {
   nsTArray<headerInfoType*> *array = mDocHeader? mHeaderArray : mEmbeddedHeaderArray;
 
-  mHTMLHeaders.Append("<table border=0 cellspacing=0 cellpadding=0 width=\"100%\" class=\"header-part3\">");
+  mHTMLHeaders.AppendLiteral("<table border=0 cellspacing=0 cellpadding=0 width=\"100%\" class=\"header-part3\">");
 
   for (size_t i = 0; i < array->Length(); i++)
   {
@@ -1003,7 +991,7 @@ nsMimeBaseEmitter::DumpRestOfHeaders()
     WriteHeaderFieldHTML(headerInfo->name, headerInfo->value);
   }
 
-  mHTMLHeaders.Append("</table>");
+  mHTMLHeaders.AppendLiteral("</table>");
   return NS_OK;
 }
 

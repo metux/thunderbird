@@ -6,10 +6,15 @@
 
 #include "ServiceWorkerEvents.h"
 
+#include "nsAutoPtr.h"
+#include "nsContentUtils.h"
 #include "nsIConsoleReportCollector.h"
 #include "nsIHttpChannelInternal.h"
 #include "nsINetworkInterceptController.h"
 #include "nsIOutputStream.h"
+#include "nsIScriptError.h"
+#include "nsITimedChannel.h"
+#include "mozilla/Encoding.h"
 #include "nsContentPolicyUtils.h"
 #include "nsContentUtils.h"
 #include "nsComponentManagerUtils.h"
@@ -19,28 +24,24 @@
 #include "nsNetUtil.h"
 #include "nsSerializationHelper.h"
 #include "nsQueryObject.h"
+#include "ServiceWorkerClient.h"
+#include "ServiceWorkerManager.h"
 
 #include "mozilla/ErrorResult.h"
+#include "mozilla/LoadInfo.h"
 #include "mozilla/Preferences.h"
-#include "mozilla/dom/DOMException.h"
-#include "mozilla/dom/DOMExceptionBinding.h"
+#include "mozilla/dom/BodyUtil.h"
 #include "mozilla/dom/FetchEventBinding.h"
 #include "mozilla/dom/MessagePort.h"
-#include "mozilla/dom/MessagePortList.h"
 #include "mozilla/dom/PromiseNativeHandler.h"
+#include "mozilla/dom/PushEventBinding.h"
+#include "mozilla/dom/PushMessageDataBinding.h"
+#include "mozilla/dom/PushUtil.h"
 #include "mozilla/dom/Request.h"
+#include "mozilla/dom/TypedArray.h"
 #include "mozilla/dom/Response.h"
 #include "mozilla/dom/WorkerScope.h"
 #include "mozilla/dom/workers/bindings/ServiceWorker.h"
-
-#ifndef MOZ_SIMPLEPUSH
-#include "nsIUnicodeDecoder.h"
-#include "nsIUnicodeEncoder.h"
-
-#include "mozilla/dom/EncodingUtils.h"
-#include "mozilla/dom/FetchUtil.h"
-#include "mozilla/dom/TypedArray.h"
-#endif
 
 #include "js/Conversions.h"
 #include "js/TypeDecls.h"
@@ -48,64 +49,7 @@
 #include "xpcpublic.h"
 
 using namespace mozilla::dom;
-
-BEGIN_WORKERS_NAMESPACE
-
-CancelChannelRunnable::CancelChannelRunnable(nsMainThreadPtrHandle<nsIInterceptedChannel>& aChannel,
-                                             nsresult aStatus)
-  : mChannel(aChannel)
-  , mStatus(aStatus)
-{
-}
-
-NS_IMETHODIMP
-CancelChannelRunnable::Run()
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  nsresult rv = mChannel->Cancel(mStatus);
-  NS_ENSURE_SUCCESS(rv, rv);
-  return NS_OK;
-}
-
-FetchEvent::FetchEvent(EventTarget* aOwner)
-  : ExtendableEvent(aOwner)
-  , mPreventDefaultLineNumber(0)
-  , mPreventDefaultColumnNumber(0)
-  , mIsReload(false)
-  , mWaitToRespond(false)
-{
-}
-
-FetchEvent::~FetchEvent()
-{
-}
-
-void
-FetchEvent::PostInit(nsMainThreadPtrHandle<nsIInterceptedChannel>& aChannel,
-                     const nsACString& aScriptSpec)
-{
-  mChannel = aChannel;
-  mScriptSpec.Assign(aScriptSpec);
-}
-
-/*static*/ already_AddRefed<FetchEvent>
-FetchEvent::Constructor(const GlobalObject& aGlobal,
-                        const nsAString& aType,
-                        const FetchEventInit& aOptions,
-                        ErrorResult& aRv)
-{
-  RefPtr<EventTarget> owner = do_QueryObject(aGlobal.GetAsSupports());
-  MOZ_ASSERT(owner);
-  RefPtr<FetchEvent> e = new FetchEvent(owner);
-  bool trusted = e->Init(owner);
-  e->InitEvent(aType, aOptions.mBubbles, aOptions.mCancelable);
-  e->SetTrusted(trusted);
-  e->mRequest = aOptions.mRequest.WasPassed() ?
-      &aOptions.mRequest.Value() : nullptr;
-  e->mClientId = aOptions.mClientId;
-  e->mIsReload = aOptions.mIsReload;
-  return e.forget();
-}
+using namespace mozilla::dom::workers;
 
 namespace {
 
@@ -146,30 +90,209 @@ AsyncLog(nsIInterceptedChannel* aInterceptedChannel,
            aRespondWithColumnNumber, aMessageName, paramsList);
 }
 
-class FinishResponse final : public nsRunnable
+} // anonymous namespace
+
+BEGIN_WORKERS_NAMESPACE
+
+CancelChannelRunnable::CancelChannelRunnable(
+  nsMainThreadPtrHandle<nsIInterceptedChannel>& aChannel,
+  nsMainThreadPtrHandle<ServiceWorkerRegistrationInfo>& aRegistration,
+  nsresult aStatus)
+  : Runnable("dom::workers::CancelChannelRunnable")
+  , mChannel(aChannel)
+  , mRegistration(aRegistration)
+  , mStatus(aStatus)
+{
+}
+
+NS_IMETHODIMP
+CancelChannelRunnable::Run()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  // TODO: When bug 1204254 is implemented, this time marker should be moved to
+  // the point where the body of the network request is complete.
+  mChannel->SetHandleFetchEventEnd(TimeStamp::Now());
+  mChannel->SaveTimeStamps();
+
+  mChannel->CancelInterception(mStatus);
+  mRegistration->MaybeScheduleUpdate();
+  return NS_OK;
+}
+
+FetchEvent::FetchEvent(EventTarget* aOwner)
+  : ExtendableEvent(aOwner)
+  , mPreventDefaultLineNumber(0)
+  , mPreventDefaultColumnNumber(0)
+  , mIsReload(false)
+  , mWaitToRespond(false)
+{
+}
+
+FetchEvent::~FetchEvent()
+{
+}
+
+void
+FetchEvent::PostInit(nsMainThreadPtrHandle<nsIInterceptedChannel>& aChannel,
+                     nsMainThreadPtrHandle<ServiceWorkerRegistrationInfo>& aRegistration,
+                     const nsACString& aScriptSpec)
+{
+  mChannel = aChannel;
+  mRegistration = aRegistration;
+  mScriptSpec.Assign(aScriptSpec);
+}
+
+/*static*/ already_AddRefed<FetchEvent>
+FetchEvent::Constructor(const GlobalObject& aGlobal,
+                        const nsAString& aType,
+                        const FetchEventInit& aOptions,
+                        ErrorResult& aRv)
+{
+  RefPtr<EventTarget> owner = do_QueryObject(aGlobal.GetAsSupports());
+  MOZ_ASSERT(owner);
+  RefPtr<FetchEvent> e = new FetchEvent(owner);
+  bool trusted = e->Init(owner);
+  e->InitEvent(aType, aOptions.mBubbles, aOptions.mCancelable);
+  e->SetTrusted(trusted);
+  e->SetComposed(aOptions.mComposed);
+  e->mRequest = aOptions.mRequest;
+  e->mClientId = aOptions.mClientId;
+  e->mIsReload = aOptions.mIsReload;
+  return e.forget();
+}
+
+namespace {
+
+struct RespondWithClosure
+{
+  nsMainThreadPtrHandle<nsIInterceptedChannel> mInterceptedChannel;
+  nsMainThreadPtrHandle<ServiceWorkerRegistrationInfo> mRegistration;
+  const nsString mRequestURL;
+  const nsCString mRespondWithScriptSpec;
+  const uint32_t mRespondWithLineNumber;
+  const uint32_t mRespondWithColumnNumber;
+
+  RespondWithClosure(nsMainThreadPtrHandle<nsIInterceptedChannel>& aChannel,
+                     nsMainThreadPtrHandle<ServiceWorkerRegistrationInfo>& aRegistration,
+                     const nsAString& aRequestURL,
+                     const nsACString& aRespondWithScriptSpec,
+                     uint32_t aRespondWithLineNumber,
+                     uint32_t aRespondWithColumnNumber)
+    : mInterceptedChannel(aChannel)
+    , mRegistration(aRegistration)
+    , mRequestURL(aRequestURL)
+    , mRespondWithScriptSpec(aRespondWithScriptSpec)
+    , mRespondWithLineNumber(aRespondWithLineNumber)
+    , mRespondWithColumnNumber(aRespondWithColumnNumber)
+  {
+  }
+};
+
+class FinishResponse final : public Runnable
+{
+  nsMainThreadPtrHandle<nsIInterceptedChannel> mChannel;
+
+public:
+  explicit FinishResponse(nsMainThreadPtrHandle<nsIInterceptedChannel>& aChannel)
+    : Runnable("dom::workers::FinishResponse")
+    , mChannel(aChannel)
+  {
+  }
+
+  NS_IMETHOD
+  Run() override
+  {
+    AssertIsOnMainThread();
+
+    nsresult rv = mChannel->FinishSynthesizedResponse();
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      mChannel->CancelInterception(NS_ERROR_INTERCEPTION_FAILED);
+      return NS_OK;
+    }
+
+    TimeStamp timeStamp = TimeStamp::Now();
+    mChannel->SetHandleFetchEventEnd(timeStamp);
+    mChannel->SetFinishSynthesizedResponseEnd(timeStamp);
+    mChannel->SaveTimeStamps();
+
+    return rv;
+  }
+};
+
+class BodyCopyHandle final : public nsIInterceptedBodyCallback
+{
+  UniquePtr<RespondWithClosure> mClosure;
+
+  ~BodyCopyHandle()
+  {
+  }
+
+public:
+  NS_DECL_THREADSAFE_ISUPPORTS
+
+  explicit BodyCopyHandle(UniquePtr<RespondWithClosure>&& aClosure)
+    : mClosure(Move(aClosure))
+  {
+  }
+
+  NS_IMETHOD
+  BodyComplete(nsresult aRv) override
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+
+    nsCOMPtr<nsIRunnable> event;
+    if (NS_WARN_IF(NS_FAILED(aRv))) {
+      AsyncLog(mClosure->mInterceptedChannel, mClosure->mRespondWithScriptSpec,
+               mClosure->mRespondWithLineNumber,
+               mClosure->mRespondWithColumnNumber,
+               NS_LITERAL_CSTRING("InterceptionFailedWithURL"),
+               mClosure->mRequestURL);
+      event = new CancelChannelRunnable(mClosure->mInterceptedChannel,
+                                        mClosure->mRegistration,
+                                        NS_ERROR_INTERCEPTION_FAILED);
+    } else {
+      event = new FinishResponse(mClosure->mInterceptedChannel);
+    }
+
+    mClosure.reset();
+
+    event->Run();
+
+    return NS_OK;
+  }
+};
+
+NS_IMPL_ISUPPORTS(BodyCopyHandle, nsIInterceptedBodyCallback)
+
+class StartResponse final : public Runnable
 {
   nsMainThreadPtrHandle<nsIInterceptedChannel> mChannel;
   RefPtr<InternalResponse> mInternalResponse;
   ChannelInfo mWorkerChannelInfo;
   const nsCString mScriptSpec;
   const nsCString mResponseURLSpec;
+  UniquePtr<RespondWithClosure> mClosure;
 
 public:
-  FinishResponse(nsMainThreadPtrHandle<nsIInterceptedChannel>& aChannel,
-                 InternalResponse* aInternalResponse,
-                 const ChannelInfo& aWorkerChannelInfo,
-                 const nsACString& aScriptSpec,
-                 const nsACString& aResponseURLSpec)
-    : mChannel(aChannel)
+  StartResponse(nsMainThreadPtrHandle<nsIInterceptedChannel>& aChannel,
+                InternalResponse* aInternalResponse,
+                const ChannelInfo& aWorkerChannelInfo,
+                const nsACString& aScriptSpec,
+                const nsACString& aResponseURLSpec,
+                UniquePtr<RespondWithClosure>&& aClosure)
+    : Runnable("dom::workers::StartResponse")
+    , mChannel(aChannel)
     , mInternalResponse(aInternalResponse)
     , mWorkerChannelInfo(aWorkerChannelInfo)
     , mScriptSpec(aScriptSpec)
     , mResponseURLSpec(aResponseURLSpec)
+    , mClosure(Move(aClosure))
   {
   }
 
   NS_IMETHOD
-  Run()
+  Run() override
   {
     AssertIsOnMainThread();
 
@@ -179,8 +302,8 @@ public:
     NS_ENSURE_TRUE(underlyingChannel, NS_ERROR_UNEXPECTED);
     nsCOMPtr<nsILoadInfo> loadInfo = underlyingChannel->GetLoadInfo();
 
-    if (!CSPPermitsResponse(loadInfo)) {
-      mChannel->Cancel(NS_ERROR_CONTENT_BLOCKED);
+    if (!loadInfo || !CSPPermitsResponse(loadInfo)) {
+      mChannel->CancelInterception(NS_ERROR_CONTENT_BLOCKED);
       return NS_OK;
     }
 
@@ -194,22 +317,43 @@ public:
     }
     rv = mChannel->SetChannelInfo(&channelInfo);
     if (NS_WARN_IF(NS_FAILED(rv))) {
-      return rv;
+      mChannel->CancelInterception(NS_ERROR_INTERCEPTION_FAILED);
+      return NS_OK;
     }
 
-    mChannel->SynthesizeStatus(mInternalResponse->GetUnfilteredStatus(),
-                               mInternalResponse->GetUnfilteredStatusText());
+    rv = mChannel->SynthesizeStatus(mInternalResponse->GetUnfilteredStatus(),
+                                    mInternalResponse->GetUnfilteredStatusText());
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      mChannel->CancelInterception(NS_ERROR_INTERCEPTION_FAILED);
+      return NS_OK;
+    }
 
-    nsAutoTArray<InternalHeaders::Entry, 5> entries;
+    AutoTArray<InternalHeaders::Entry, 5> entries;
     mInternalResponse->UnfilteredHeaders()->GetEntries(entries);
     for (uint32_t i = 0; i < entries.Length(); ++i) {
        mChannel->SynthesizeHeader(entries[i].mName, entries[i].mValue);
     }
 
-    loadInfo->MaybeIncreaseTainting(mInternalResponse->GetTainting());
+    auto castLoadInfo = static_cast<LoadInfo*>(loadInfo.get());
+    castLoadInfo->SynthesizeServiceWorkerTainting(mInternalResponse->GetTainting());
 
-    rv = mChannel->FinishSynthesizedResponse(mResponseURLSpec);
-    NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "Failed to finish synthesized response");
+    nsCOMPtr<nsIInputStream> body;
+    mInternalResponse->GetUnfilteredBody(getter_AddRefs(body));
+    RefPtr<BodyCopyHandle> copyHandle;
+    copyHandle = new BodyCopyHandle(Move(mClosure));
+
+    rv = mChannel->StartSynthesizedResponse(body, copyHandle,
+                                            mResponseURLSpec);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      mChannel->CancelInterception(NS_ERROR_INTERCEPTION_FAILED);
+      return NS_OK;
+    }
+
+    nsCOMPtr<nsIObserverService> obsService = services::GetObserverService();
+    if (obsService) {
+      obsService->NotifyObservers(underlyingChannel, "service-worker-synthesized-response", nullptr);
+    }
+
     return rv;
   }
 
@@ -217,21 +361,19 @@ public:
   {
     AssertIsOnMainThread();
     MOZ_ASSERT(aLoadInfo);
-
     nsresult rv;
     nsCOMPtr<nsIURI> uri;
-    nsAutoCString url;
-    mInternalResponse->GetUnfilteredUrl(url);
+    nsCString url = mInternalResponse->GetUnfilteredURL();
     if (url.IsEmpty()) {
       // Synthetic response. The buck stops at the worker script.
       url = mScriptSpec;
     }
     rv = NS_NewURI(getter_AddRefs(uri), url, nullptr, nullptr);
     NS_ENSURE_SUCCESS(rv, false);
-
     int16_t decision = nsIContentPolicy::ACCEPT;
     rv = NS_CheckContentLoadPolicy(aLoadInfo->InternalContentPolicyType(), uri,
                                    aLoadInfo->LoadingPrincipal(),
+                                   aLoadInfo->TriggeringPrincipal(),
                                    aLoadInfo->LoadingNode(), EmptyCString(),
                                    nullptr, &decision);
     NS_ENSURE_SUCCESS(rv, false);
@@ -242,9 +384,12 @@ public:
 class RespondWithHandler final : public PromiseNativeHandler
 {
   nsMainThreadPtrHandle<nsIInterceptedChannel> mInterceptedChannel;
+  nsMainThreadPtrHandle<ServiceWorkerRegistrationInfo> mRegistration;
   const RequestMode mRequestMode;
-  const DebugOnly<bool> mIsClientRequest;
-  const bool mIsNavigationRequest;
+  const RequestRedirect mRequestRedirectMode;
+#ifdef DEBUG
+  const bool mIsClientRequest;
+#endif
   const nsCString mScriptSpec;
   const nsString mRequestURL;
   const nsCString mRespondWithScriptSpec;
@@ -255,17 +400,21 @@ public:
   NS_DECL_ISUPPORTS
 
   RespondWithHandler(nsMainThreadPtrHandle<nsIInterceptedChannel>& aChannel,
+                     nsMainThreadPtrHandle<ServiceWorkerRegistrationInfo>& aRegistration,
                      RequestMode aRequestMode, bool aIsClientRequest,
-                     bool aIsNavigationRequest,
+                     RequestRedirect aRedirectMode,
                      const nsACString& aScriptSpec,
                      const nsAString& aRequestURL,
                      const nsACString& aRespondWithScriptSpec,
                      uint32_t aRespondWithLineNumber,
                      uint32_t aRespondWithColumnNumber)
     : mInterceptedChannel(aChannel)
+    , mRegistration(aRegistration)
     , mRequestMode(aRequestMode)
+    , mRequestRedirectMode(aRedirectMode)
+#ifdef DEBUG
     , mIsClientRequest(aIsClientRequest)
-    , mIsNavigationRequest(aIsNavigationRequest)
+#endif
     , mScriptSpec(aScriptSpec)
     , mRequestURL(aRequestURL)
     , mRespondWithScriptSpec(aRespondWithScriptSpec)
@@ -306,131 +455,6 @@ private:
   }
 };
 
-struct RespondWithClosure
-{
-  nsMainThreadPtrHandle<nsIInterceptedChannel> mInterceptedChannel;
-  RefPtr<InternalResponse> mInternalResponse;
-  ChannelInfo mWorkerChannelInfo;
-  const nsCString mScriptSpec;
-  const nsCString mResponseURLSpec;
-  const nsString mRequestURL;
-  const nsCString mRespondWithScriptSpec;
-  const uint32_t mRespondWithLineNumber;
-  const uint32_t mRespondWithColumnNumber;
-
-  RespondWithClosure(nsMainThreadPtrHandle<nsIInterceptedChannel>& aChannel,
-                     InternalResponse* aInternalResponse,
-                     const ChannelInfo& aWorkerChannelInfo,
-                     const nsCString& aScriptSpec,
-                     const nsACString& aResponseURLSpec,
-                     const nsAString& aRequestURL,
-                     const nsACString& aRespondWithScriptSpec,
-                     uint32_t aRespondWithLineNumber,
-                     uint32_t aRespondWithColumnNumber)
-    : mInterceptedChannel(aChannel)
-    , mInternalResponse(aInternalResponse)
-    , mWorkerChannelInfo(aWorkerChannelInfo)
-    , mScriptSpec(aScriptSpec)
-    , mResponseURLSpec(aResponseURLSpec)
-    , mRequestURL(aRequestURL)
-    , mRespondWithScriptSpec(aRespondWithScriptSpec)
-    , mRespondWithLineNumber(aRespondWithLineNumber)
-    , mRespondWithColumnNumber(aRespondWithColumnNumber)
-  {
-  }
-};
-
-void RespondWithCopyComplete(void* aClosure, nsresult aStatus)
-{
-  nsAutoPtr<RespondWithClosure> data(static_cast<RespondWithClosure*>(aClosure));
-  nsCOMPtr<nsIRunnable> event;
-  if (NS_SUCCEEDED(aStatus)) {
-    event = new FinishResponse(data->mInterceptedChannel,
-                               data->mInternalResponse,
-                               data->mWorkerChannelInfo,
-                               data->mScriptSpec,
-                               data->mResponseURLSpec);
-  } else {
-    AsyncLog(data->mInterceptedChannel, data->mRespondWithScriptSpec,
-             data->mRespondWithLineNumber, data->mRespondWithColumnNumber,
-             NS_LITERAL_CSTRING("InterceptionFailedWithURL"),
-             data->mRequestURL);
-    event = new CancelChannelRunnable(data->mInterceptedChannel,
-                                      NS_ERROR_INTERCEPTION_FAILED);
-  }
-  MOZ_ALWAYS_TRUE(NS_SUCCEEDED(NS_DispatchToMainThread(event)));
-}
-
-namespace {
-
-void
-ExtractErrorValues(JSContext* aCx, JS::Handle<JS::Value> aValue,
-                  nsACString& aSourceSpecOut, uint32_t *aLineOut,
-                  uint32_t *aColumnOut, nsString& aMessageOut)
-{
-  MOZ_ASSERT(aLineOut);
-  MOZ_ASSERT(aColumnOut);
-
-  if (aValue.isObject()) {
-    JS::Rooted<JSObject*> obj(aCx, &aValue.toObject());
-    RefPtr<DOMException> domException;
-
-    // Try to process as an Error object.  Use the file/line/column values
-    // from the Error as they will be more specific to the root cause of
-    // the problem.
-    JSErrorReport* err = obj ? JS_ErrorFromException(aCx, obj) : nullptr;
-    if (err) {
-      // Use xpc to extract the error message only.  We don't actually send
-      // this report anywhere.
-      RefPtr<xpc::ErrorReport> report = new xpc::ErrorReport();
-      report->Init(err,
-                   "<unknown>", // fallback message
-                   false,       // chrome
-                   0);          // window ID
-
-      if (!report->mFileName.IsEmpty()) {
-        CopyUTF16toUTF8(report->mFileName, aSourceSpecOut);
-        *aLineOut = report->mLineNumber;
-        *aColumnOut = report->mColumn;
-      }
-      aMessageOut.Assign(report->mErrorMsg);
-    }
-
-    // Next, try to unwrap the rejection value as a DOMException.
-    else if(NS_SUCCEEDED(UNWRAP_OBJECT(DOMException, obj, domException))) {
-
-      nsAutoString filename;
-      domException->GetFilename(filename);
-      if (!filename.IsEmpty()) {
-        CopyUTF16toUTF8(filename, aSourceSpecOut);
-        *aLineOut = domException->LineNumber();
-        *aColumnOut = domException->ColumnNumber();
-      }
-
-      domException->GetName(aMessageOut);
-      aMessageOut.AppendLiteral(": ");
-
-      nsAutoString message;
-      domException->GetMessageMoz(message);
-      aMessageOut.Append(message);
-    }
-  }
-
-  // If we could not unwrap a specific error type, then perform default safe
-  // string conversions on primitives.  Objects will result in "[Object]"
-  // unfortunately.
-  if (aMessageOut.IsEmpty()) {
-    nsAutoJSString jsString;
-    if (jsString.init(aCx, aValue)) {
-      aMessageOut = jsString;
-    } else {
-      JS_ClearPendingException(aCx);
-    }
-  }
-}
-
-} // anonymous namespace
-
 class MOZ_STACK_CLASS AutoCancel
 {
   RefPtr<RespondWithHandler> mOwner;
@@ -460,6 +484,44 @@ public:
       }
       mOwner->CancelRequest(NS_ERROR_INTERCEPTION_FAILED);
     }
+  }
+
+  // This function steals the error message from a ErrorResult.
+  void
+  SetCancelErrorResult(JSContext* aCx, ErrorResult& aRv)
+  {
+    MOZ_DIAGNOSTIC_ASSERT(aRv.Failed());
+    MOZ_DIAGNOSTIC_ASSERT(!JS_IsExceptionPending(aCx));
+
+    // Storing the error as exception in the JSContext.
+    if (!aRv.MaybeSetPendingException(aCx)) {
+      return;
+    }
+
+    MOZ_ASSERT(!aRv.Failed());
+
+    // Let's take the pending exception.
+    JS::Rooted<JS::Value> exn(aCx);
+    if (!JS_GetPendingException(aCx, &exn)) {
+      return;
+    }
+
+    JS_ClearPendingException(aCx);
+
+    // Converting the exception in a js::ErrorReport.
+    js::ErrorReport report(aCx);
+    if (!report.init(aCx, exn, js::ErrorReport::WithSideEffects)) {
+      JS_ClearPendingException(aCx);
+      return;
+    }
+
+    MOZ_ASSERT(mOwner);
+    MOZ_ASSERT(mMessageName.EqualsLiteral("InterceptionFailedWithURL"));
+    MOZ_ASSERT(mParams.Length() == 1);
+
+    // Let's store the error message here.
+    mMessageName.Assign(report.toStringResult().c_str());
+    mParams.Clear();
   }
 
   template<typename... Params>
@@ -506,6 +568,7 @@ void
 RespondWithHandler::ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue)
 {
   AutoCancel autoCancel(this, mRequestURL);
+  mInterceptedChannel->SetFinishResponseStart(TimeStamp::Now());
 
   if (!aValue.isObject()) {
     NS_WARNING("FetchEvent::RespondWith was passed a promise resolved to a non-Object value");
@@ -514,7 +577,8 @@ RespondWithHandler::ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValu
     uint32_t line = 0;
     uint32_t column = 0;
     nsString valueString;
-    ExtractErrorValues(aCx, aValue, sourceSpec, &line, &column, valueString);
+    nsContentUtils::ExtractErrorValues(aCx, aValue, sourceSpec, &line, &column,
+                                       valueString);
 
     autoCancel.SetCancelMessageAndLocation(sourceSpec, line, column,
                                            NS_LITERAL_CSTRING("InterceptedNonResponseWithURL"),
@@ -529,7 +593,8 @@ RespondWithHandler::ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValu
     uint32_t line = 0;
     uint32_t column = 0;
     nsString valueString;
-    ExtractErrorValues(aCx, aValue, sourceSpec, &line, &column, valueString);
+    nsContentUtils::ExtractErrorValues(aCx, aValue, sourceSpec, &line, &column,
+                                       valueString);
 
     autoCancel.SetCancelMessageAndLocation(sourceSpec, line, column,
                                            NS_LITERAL_CSTRING("InterceptedNonResponseWithURL"),
@@ -541,21 +606,14 @@ RespondWithHandler::ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValu
   MOZ_ASSERT(worker);
   worker->AssertIsOnWorkerThread();
 
-  // Allow opaque response interception to be disabled until we can ensure the
-  // security implications are not a complete disaster.
-  if (response->Type() == ResponseType::Opaque &&
-      !worker->OpaqueInterceptionEnabled()) {
-    autoCancel.SetCancelMessage(
-      NS_LITERAL_CSTRING("OpaqueInterceptionDisabledWithURL"), mRequestURL);
-    return;
-  }
-
-  // Section "HTTP Fetch", step 2.2:
+  // Section "HTTP Fetch", step 3.3:
   //  If one of the following conditions is true, return a network error:
   //    * response's type is "error".
   //    * request's mode is not "no-cors" and response's type is "opaque".
-  //    * request is not a navigation request and response's type is
+  //    * request's redirect mode is not "manual" and response's type is
   //      "opaqueredirect".
+  //    * request's redirect mode is not "follow" and response's url list
+  //      has more than one item.
 
   if (response->Type() == ResponseType::Error) {
     autoCancel.SetCancelMessage(
@@ -563,7 +621,8 @@ RespondWithHandler::ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValu
     return;
   }
 
-  MOZ_ASSERT_IF(mIsClientRequest, mRequestMode == RequestMode::Same_origin);
+  MOZ_ASSERT_IF(mIsClientRequest, mRequestMode == RequestMode::Same_origin ||
+                                  mRequestMode == RequestMode::Navigate);
 
   if (response->Type() == ResponseType::Opaque && mRequestMode != RequestMode::No_cors) {
     uint32_t mode = static_cast<uint32_t>(mRequestMode);
@@ -576,9 +635,16 @@ RespondWithHandler::ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValu
     return;
   }
 
-  if (!mIsNavigationRequest && response->Type() == ResponseType::Opaqueredirect) {
+  if (mRequestRedirectMode != RequestRedirect::Manual &&
+      response->Type() == ResponseType::Opaqueredirect) {
     autoCancel.SetCancelMessage(
       NS_LITERAL_CSTRING("BadOpaqueRedirectInterceptionWithURL"), mRequestURL);
+    return;
+  }
+
+  if (mRequestRedirectMode != RequestRedirect::Follow && response->Redirected()) {
+    autoCancel.SetCancelMessage(
+      NS_LITERAL_CSTRING("BadRedirectModeInterceptionWithURL"), mRequestURL);
     return;
   }
 
@@ -592,53 +658,51 @@ RespondWithHandler::ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValu
   if (NS_WARN_IF(!ir)) {
     return;
   }
-
   // When an opaque response is encountered, we need the original channel's principal
   // to reflect the final URL. Non-opaque responses are either same-origin or CORS-enabled
   // cross-origin responses, which are treated as same-origin by consumers.
   nsCString responseURL;
   if (response->Type() == ResponseType::Opaque) {
-    ir->GetUnfilteredUrl(responseURL);
+    responseURL = ir->GetUnfilteredURL();
     if (NS_WARN_IF(responseURL.IsEmpty())) {
       return;
     }
   }
 
-  nsAutoPtr<RespondWithClosure> closure(new RespondWithClosure(mInterceptedChannel, ir,
-                                                               worker->GetChannelInfo(),
-                                                               mScriptSpec,
-                                                               responseURL,
+  Telemetry::ScalarAdd(Telemetry::ScalarID::SW_SYNTHESIZED_RES_COUNT, 1);
+
+  if (mRequestMode == RequestMode::Same_origin &&
+      response->Type() == ResponseType::Cors) {
+    Telemetry::ScalarAdd(Telemetry::ScalarID::SW_CORS_RES_FOR_SO_REQ_COUNT, 1);
+  }
+
+  UniquePtr<RespondWithClosure> closure(new RespondWithClosure(mInterceptedChannel,
+                                                               mRegistration,
                                                                mRequestURL,
                                                                mRespondWithScriptSpec,
                                                                mRespondWithLineNumber,
                                                                mRespondWithColumnNumber));
+
+  nsCOMPtr<nsIRunnable> startRunnable = new StartResponse(mInterceptedChannel,
+                                                          ir,
+                                                          worker->GetChannelInfo(),
+                                                          mScriptSpec,
+                                                          responseURL,
+                                                          Move(closure));
+
   nsCOMPtr<nsIInputStream> body;
   ir->GetUnfilteredBody(getter_AddRefs(body));
   // Errors and redirects may not have a body.
   if (body) {
-    response->SetBodyUsed();
-
-    nsCOMPtr<nsIOutputStream> responseBody;
-    rv = mInterceptedChannel->GetResponseBody(getter_AddRefs(responseBody));
-    if (NS_WARN_IF(NS_FAILED(rv))) {
+    IgnoredErrorResult error;
+    response->SetBodyUsed(aCx, error);
+    if (NS_WARN_IF(error.Failed())) {
+      autoCancel.SetCancelErrorResult(aCx, error);
       return;
     }
-
-    nsCOMPtr<nsIEventTarget> stsThread = do_GetService(NS_STREAMTRANSPORTSERVICE_CONTRACTID, &rv);
-    if (NS_WARN_IF(!stsThread)) {
-      return;
-    }
-
-    // XXXnsm, Fix for Bug 1141332 means that if we decide to make this
-    // streaming at some point, we'll need a different solution to that bug.
-    rv = NS_AsyncCopy(body, responseBody, stsThread, NS_ASYNCCOPY_VIA_READSEGMENTS, 4096,
-                      RespondWithCopyComplete, closure.forget());
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return;
-    }
-  } else {
-    RespondWithCopyComplete(closure.forget(), NS_OK);
   }
+
+  MOZ_ALWAYS_SUCCEEDS(worker->DispatchToMainThread(startRunnable.forget()));
 
   MOZ_ASSERT(!closure);
   autoCancel.Reset();
@@ -653,7 +717,10 @@ RespondWithHandler::RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValu
   uint32_t column = mRespondWithColumnNumber;
   nsString valueString;
 
-  ExtractErrorValues(aCx, aValue, sourceSpec, &line, &column, valueString);
+  mInterceptedChannel->SetFinishResponseStart(TimeStamp::Now());
+
+  nsContentUtils::ExtractErrorValues(aCx, aValue, sourceSpec, &line, &column,
+                                     valueString);
 
   ::AsyncLog(mInterceptedChannel, sourceSpec, line, column,
              NS_LITERAL_CSTRING("InterceptionRejectedResponseWithURL"),
@@ -666,8 +733,14 @@ void
 RespondWithHandler::CancelRequest(nsresult aStatus)
 {
   nsCOMPtr<nsIRunnable> runnable =
-    new CancelChannelRunnable(mInterceptedChannel, aStatus);
-  NS_DispatchToMainThread(runnable);
+    new CancelChannelRunnable(mInterceptedChannel, mRegistration, aStatus);
+  // Note, this may run off the worker thread during worker termination.
+  WorkerPrivate* worker = GetCurrentThreadWorkerPrivate();
+  if (worker) {
+    MOZ_ALWAYS_SUCCEEDS(worker->DispatchToMainThread(runnable.forget()));
+  } else {
+    MOZ_ALWAYS_SUCCEEDS(NS_DispatchToMainThread(runnable.forget()));
+  }
   mRequestWasHandled = true;
 }
 
@@ -698,21 +771,23 @@ FetchEvent::RespondWith(JSContext* aCx, Promise& aArg, ErrorResult& aRv)
   StopImmediatePropagation();
   mWaitToRespond = true;
   RefPtr<RespondWithHandler> handler =
-    new RespondWithHandler(mChannel, mRequest->Mode(), ir->IsClientRequest(),
-                           ir->IsNavigationRequest(), mScriptSpec,
-                           NS_ConvertUTF8toUTF16(requestURL),
+    new RespondWithHandler(mChannel, mRegistration, mRequest->Mode(),
+                           ir->IsClientRequest(), mRequest->Redirect(),
+                           mScriptSpec, NS_ConvertUTF8toUTF16(requestURL),
                            spec, line, column);
   aArg.AppendNativeHandler(handler);
 
-  // Append directly to the lifecycle promises array.  Don't call WaitUntil()
-  // because that will lead to double-reporting any errors.
-  mPromises.AppendElement(&aArg);
+  if (!WaitOnPromise(aArg)) {
+    aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
+  }
 }
 
 void
-FetchEvent::PreventDefault(JSContext* aCx)
+FetchEvent::PreventDefault(JSContext* aCx, CallerType aCallerType)
 {
   MOZ_ASSERT(aCx);
+  MOZ_ASSERT(aCallerType != CallerType::System,
+             "Since when do we support system-principal service workers?");
 
   if (mPreventDefaultScriptSpec.IsEmpty()) {
     // Note when the FetchEvent might have been canceled by script, but don't
@@ -725,7 +800,7 @@ FetchEvent::PreventDefault(JSContext* aCx)
                                   &mPreventDefaultColumnNumber);
   }
 
-  Event::PreventDefault(aCx);
+  Event::PreventDefault(aCx, aCallerType);
 }
 
 void
@@ -768,7 +843,7 @@ public:
 
   WaitUntilHandler(WorkerPrivate* aWorkerPrivate, JSContext* aCx)
     : mWorkerPrivate(aWorkerPrivate)
-    , mScope(mWorkerPrivate->WorkerName())
+    , mScope(mWorkerPrivate->ServiceWorkerScope())
     , mLine(0)
     , mColumn(0)
   {
@@ -791,7 +866,8 @@ public:
     nsCString spec;
     uint32_t line = 0;
     uint32_t column = 0;
-    ExtractErrorValues(aCx, aValue, spec, &line, &column, mRejectValue);
+    nsContentUtils::ExtractErrorValues(aCx, aValue, spec, &line, &column,
+                                       mRejectValue);
 
     // only use the extracted location if we found one
     if (!spec.IsEmpty()) {
@@ -800,10 +876,9 @@ public:
       mColumn = column;
     }
 
-    nsCOMPtr<nsIRunnable> runnable =
-      NS_NewRunnableMethod(this, &WaitUntilHandler::ReportOnMainThread);
-    MOZ_ALWAYS_TRUE(NS_SUCCEEDED(
-      NS_DispatchToMainThread(runnable.forget())));
+    MOZ_ALWAYS_SUCCEEDS(mWorkerPrivate->DispatchToMainThread(
+                          NewRunnableMethod("WaitUntilHandler::ReportOnMainThread",
+                                            this, &WaitUntilHandler::ReportOnMainThread)));
   }
 
   void
@@ -811,6 +886,10 @@ public:
   {
     AssertIsOnMainThread();
     RefPtr<ServiceWorkerManager> swm = ServiceWorkerManager::GetInstance();
+    if (!swm) {
+      // browser shutdown
+      return;
+    }
 
     // TODO: Make the error message a localized string. (bug 1222720)
     nsString message;
@@ -839,7 +918,7 @@ NS_IMPL_ISUPPORTS0(WaitUntilHandler)
 NS_IMPL_ADDREF_INHERITED(FetchEvent, ExtendableEvent)
 NS_IMPL_RELEASE_INHERITED(FetchEvent, ExtendableEvent)
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(FetchEvent)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(FetchEvent)
 NS_INTERFACE_MAP_END_INHERITING(ExtendableEvent)
 
 NS_IMPL_CYCLE_COLLECTION_INHERITED(FetchEvent, ExtendableEvent, mRequest)
@@ -849,12 +928,31 @@ ExtendableEvent::ExtendableEvent(EventTarget* aOwner)
 {
 }
 
+bool
+ExtendableEvent::WaitOnPromise(Promise& aPromise)
+{
+  if (!mExtensionsHandler) {
+    return false;
+  }
+  return mExtensionsHandler->WaitOnPromise(aPromise);
+}
+
+void
+ExtendableEvent::SetKeepAliveHandler(ExtensionsHandler* aExtensionsHandler)
+{
+  MOZ_ASSERT(!mExtensionsHandler);
+  WorkerPrivate* worker = GetCurrentThreadWorkerPrivate();
+  MOZ_ASSERT(worker);
+  worker->AssertIsOnWorkerThread();
+  mExtensionsHandler = aExtensionsHandler;
+}
+
 void
 ExtendableEvent::WaitUntil(JSContext* aCx, Promise& aPromise, ErrorResult& aRv)
 {
   MOZ_ASSERT(!NS_IsMainThread());
 
-  if (EventPhase() == nsIDOMEvent::NONE) {
+  if (!WaitOnPromise(aPromise)) {
     aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return;
   }
@@ -864,85 +962,34 @@ ExtendableEvent::WaitUntil(JSContext* aCx, Promise& aPromise, ErrorResult& aRv)
   RefPtr<WaitUntilHandler> handler =
     new WaitUntilHandler(GetCurrentThreadWorkerPrivate(), aCx);
   aPromise.AppendNativeHandler(handler);
-
-  mPromises.AppendElement(&aPromise);
-}
-
-already_AddRefed<Promise>
-ExtendableEvent::GetPromise()
-{
-  WorkerPrivate* worker = GetCurrentThreadWorkerPrivate();
-  MOZ_ASSERT(worker);
-  worker->AssertIsOnWorkerThread();
-
-  GlobalObject global(worker->GetJSContext(), worker->GlobalScope()->GetGlobalJSObject());
-
-  ErrorResult result;
-  RefPtr<Promise> p = Promise::All(global, Move(mPromises), result);
-  if (NS_WARN_IF(result.Failed())) {
-    return nullptr;
-  }
-
-  return p.forget();
 }
 
 NS_IMPL_ADDREF_INHERITED(ExtendableEvent, Event)
 NS_IMPL_RELEASE_INHERITED(ExtendableEvent, Event)
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(ExtendableEvent)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(ExtendableEvent)
 NS_INTERFACE_MAP_END_INHERITING(Event)
 
-NS_IMPL_CYCLE_COLLECTION_INHERITED(ExtendableEvent, Event, mPromises)
-
-#ifndef MOZ_SIMPLEPUSH
-
 namespace {
-nsresult
-ExtractBytesFromArrayBufferView(const ArrayBufferView& aView, nsTArray<uint8_t>& aBytes)
-{
-  MOZ_ASSERT(aBytes.IsEmpty());
-  aView.ComputeLengthAndData();
-  aBytes.InsertElementsAt(0, aView.Data(), aView.Length());
-  return NS_OK;
-}
-
-nsresult
-ExtractBytesFromArrayBuffer(const ArrayBuffer& aBuffer, nsTArray<uint8_t>& aBytes)
-{
-  MOZ_ASSERT(aBytes.IsEmpty());
-  aBuffer.ComputeLengthAndData();
-  aBytes.InsertElementsAt(0, aBuffer.Data(), aBuffer.Length());
-  return NS_OK;
-}
-
 nsresult
 ExtractBytesFromUSVString(const nsAString& aStr, nsTArray<uint8_t>& aBytes)
 {
   MOZ_ASSERT(aBytes.IsEmpty());
-  nsCOMPtr<nsIUnicodeEncoder> encoder = EncodingUtils::EncoderForEncoding("UTF-8");
-  if (!encoder) {
+  auto encoder = UTF_8_ENCODING->NewEncoder();
+  CheckedInt<size_t> needed =
+    encoder->MaxBufferLengthFromUTF16WithoutReplacement(aStr.Length());
+  if (NS_WARN_IF(!needed.isValid() ||
+                 !aBytes.SetLength(needed.value(), fallible))) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
-
-  int32_t srcLen = aStr.Length();
-  int32_t destBufferLen;
-  nsresult rv = encoder->GetMaxLength(aStr.BeginReading(), srcLen, &destBufferLen);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-
-  aBytes.SetLength(destBufferLen);
-
-  char* destBuffer = reinterpret_cast<char*>(aBytes.Elements());
-  int32_t outLen = destBufferLen;
-  rv = encoder->Convert(aStr.BeginReading(), &srcLen, destBuffer, &outLen);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-
-  MOZ_ASSERT(outLen <= destBufferLen);
-  aBytes.SetLength(outLen);
-
+  uint32_t result;
+  size_t read;
+  size_t written;
+  Tie(result, read, written) =
+    encoder->EncodeFromUTF16WithoutReplacement(aStr, aBytes, true);
+  MOZ_ASSERT(result == kInputEmpty);
+  MOZ_ASSERT(read == aStr.Length());
+  aBytes.TruncateLength(written);
   return NS_OK;
 }
 
@@ -951,11 +998,19 @@ ExtractBytesFromData(const OwningArrayBufferViewOrArrayBufferOrUSVString& aDataI
 {
   if (aDataInit.IsArrayBufferView()) {
     const ArrayBufferView& view = aDataInit.GetAsArrayBufferView();
-    return ExtractBytesFromArrayBufferView(view, aBytes);
-  } else if (aDataInit.IsArrayBuffer()) {
+    if (NS_WARN_IF(!PushUtil::CopyArrayBufferViewToArray(view, aBytes))) {
+      return NS_ERROR_OUT_OF_MEMORY;
+    }
+    return NS_OK;
+  }
+  if (aDataInit.IsArrayBuffer()) {
     const ArrayBuffer& buffer = aDataInit.GetAsArrayBuffer();
-    return ExtractBytesFromArrayBuffer(buffer, aBytes);
-  } else if (aDataInit.IsUSVString()) {
+    if (NS_WARN_IF(!PushUtil::CopyArrayBufferToArray(buffer, aBytes))) {
+      return NS_ERROR_OUT_OF_MEMORY;
+    }
+    return NS_OK;
+  }
+  if (aDataInit.IsUSVString()) {
     return ExtractBytesFromUSVString(aDataInit.GetAsUSVString(), aBytes);
   }
   NS_NOTREACHED("Unexpected push message data");
@@ -964,8 +1019,8 @@ ExtractBytesFromData(const OwningArrayBufferViewOrArrayBufferOrUSVString& aDataI
 }
 
 PushMessageData::PushMessageData(nsISupports* aOwner,
-                                 const nsTArray<uint8_t>& aBytes)
-  : mOwner(aOwner), mBytes(aBytes) {}
+                                 nsTArray<uint8_t>&& aBytes)
+  : mOwner(aOwner), mBytes(Move(aBytes)) {}
 
 PushMessageData::~PushMessageData()
 {
@@ -981,6 +1036,12 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(PushMessageData)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
+JSObject*
+PushMessageData::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
+{
+  return mozilla::dom::PushMessageDataBinding::Wrap(aCx, this, aGivenProto);
+}
+
 void
 PushMessageData::Json(JSContext* cx, JS::MutableHandle<JS::Value> aRetval,
                       ErrorResult& aRv)
@@ -989,7 +1050,7 @@ PushMessageData::Json(JSContext* cx, JS::MutableHandle<JS::Value> aRetval,
     aRv.Throw(NS_ERROR_DOM_UNKNOWN_ERR);
     return;
   }
-  FetchUtil::ConsumeJson(cx, aRetval, mDecodedText, aRv);
+  BodyUtil::ConsumeJson(cx, aRetval, mDecodedText, aRv);
 }
 
 void
@@ -1007,7 +1068,7 @@ PushMessageData::ArrayBuffer(JSContext* cx,
 {
   uint8_t* data = GetContentsCopy();
   if (data) {
-    FetchUtil::ConsumeArrayBuffer(cx, aRetval, mBytes.Length(), data, aRv);
+    BodyUtil::ConsumeArrayBuffer(cx, aRetval, mBytes.Length(), data, aRv);
   }
 }
 
@@ -1016,7 +1077,7 @@ PushMessageData::Blob(ErrorResult& aRv)
 {
   uint8_t* data = GetContentsCopy();
   if (data) {
-    RefPtr<mozilla::dom::Blob> blob = FetchUtil::ConsumeBlob(
+    RefPtr<mozilla::dom::Blob> blob = BodyUtil::ConsumeBlob(
       mOwner, EmptyString(), mBytes.Length(), data, aRv);
     if (blob) {
       return blob.forget();
@@ -1025,13 +1086,13 @@ PushMessageData::Blob(ErrorResult& aRv)
   return nullptr;
 }
 
-NS_METHOD
+nsresult
 PushMessageData::EnsureDecodedText()
 {
   if (mBytes.IsEmpty() || !mDecodedText.IsEmpty()) {
     return NS_OK;
   }
-  nsresult rv = FetchUtil::ConsumeText(
+  nsresult rv = BodyUtil::ConsumeText(
     mBytes.Length(),
     reinterpret_cast<uint8_t*>(mBytes.Elements()),
     mDecodedText
@@ -1070,6 +1131,7 @@ PushEvent::Constructor(mozilla::dom::EventTarget* aOwner,
   bool trusted = e->Init(aOwner);
   e->InitEvent(aType, aOptions.mBubbles, aOptions.mCancelable);
   e->SetTrusted(trusted);
+  e->SetComposed(aOptions.mComposed);
   if(aOptions.mData.WasPassed()){
     nsTArray<uint8_t> bytes;
     nsresult rv = ExtractBytesFromData(aOptions.mData.Value(), bytes);
@@ -1077,7 +1139,7 @@ PushEvent::Constructor(mozilla::dom::EventTarget* aOwner,
       aRv.Throw(rv);
       return nullptr;
     }
-    e->mData = new PushMessageData(aOwner, bytes);
+    e->mData = new PushMessageData(aOwner, Move(bytes));
   }
   return e.forget();
 }
@@ -1085,12 +1147,16 @@ PushEvent::Constructor(mozilla::dom::EventTarget* aOwner,
 NS_IMPL_ADDREF_INHERITED(PushEvent, ExtendableEvent)
 NS_IMPL_RELEASE_INHERITED(PushEvent, ExtendableEvent)
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(PushEvent)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(PushEvent)
 NS_INTERFACE_MAP_END_INHERITING(ExtendableEvent)
 
 NS_IMPL_CYCLE_COLLECTION_INHERITED(PushEvent, ExtendableEvent, mData)
 
-#endif /* ! MOZ_SIMPLEPUSH */
+JSObject*
+PushEvent::WrapObjectInternal(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
+{
+  return mozilla::dom::PushEventBinding::Wrap(aCx, this, aGivenProto);
+}
 
 ExtendableMessageEvent::ExtendableMessageEvent(EventTarget* aOwner)
   : ExtendableEvent(aOwner)
@@ -1110,7 +1176,6 @@ ExtendableMessageEvent::GetData(JSContext* aCx,
                                 JS::MutableHandle<JS::Value> aData,
                                 ErrorResult& aRv)
 {
-  JS::ExposeValueToActiveJS(mData);
   aData.set(mData);
   if (!JS_WrapValue(aCx, aData)) {
     aRv.Throw(NS_ERROR_FAILURE);
@@ -1127,7 +1192,8 @@ ExtendableMessageEvent::GetSource(Nullable<OwningClientOrServiceWorkerOrMessageP
   } else if (mMessagePort) {
     aValue.SetValue().SetAsMessagePort() = mMessagePort;
   } else {
-    MOZ_CRASH("Unexpected source value");
+    // nullptr source is possible for manually constructed event
+    aValue.SetNull();
   }
 }
 
@@ -1157,53 +1223,24 @@ ExtendableMessageEvent::Constructor(mozilla::dom::EventTarget* aEventTarget,
   event->mOrigin = aOptions.mOrigin;
   event->mLastEventId = aOptions.mLastEventId;
 
-  if (aOptions.mSource.WasPassed() && !aOptions.mSource.Value().IsNull()) {
-    if (aOptions.mSource.Value().Value().IsClient()) {
-      event->mClient = aOptions.mSource.Value().Value().GetAsClient();
-    } else if (aOptions.mSource.Value().Value().IsServiceWorker()){
-      event->mServiceWorker = aOptions.mSource.Value().Value().GetAsServiceWorker();
-    } else if (aOptions.mSource.Value().Value().IsServiceWorker()){
-      event->mMessagePort = aOptions.mSource.Value().Value().GetAsMessagePort();
+  if (!aOptions.mSource.IsNull()) {
+    if (aOptions.mSource.Value().IsClient()) {
+      event->mClient = aOptions.mSource.Value().GetAsClient();
+    } else if (aOptions.mSource.Value().IsServiceWorker()){
+      event->mServiceWorker = aOptions.mSource.Value().GetAsServiceWorker();
+    } else if (aOptions.mSource.Value().IsMessagePort()){
+      event->mMessagePort = aOptions.mSource.Value().GetAsMessagePort();
     }
-    MOZ_ASSERT(event->mClient || event->mServiceWorker || event->mMessagePort);
   }
 
-  if (aOptions.mPorts.WasPassed() && !aOptions.mPorts.Value().IsNull()) {
-    nsTArray<RefPtr<MessagePort>> ports;
-    const Sequence<OwningNonNull<MessagePort>>& portsParam =
-      aOptions.mPorts.Value().Value();
-    for (uint32_t i = 0, len = portsParam.Length(); i < len; ++i) {
-      ports.AppendElement(portsParam[i].get());
-    }
-    event->mPorts = new MessagePortList(static_cast<EventBase*>(event), ports);
-  }
-
+  event->mPorts.AppendElements(aOptions.mPorts);
   return event.forget();
 }
 
-MessagePortList*
-ExtendableMessageEvent::GetPorts() const
-{
-  return mPorts;
-}
-
 void
-ExtendableMessageEvent::SetPorts(MessagePortList* aPorts)
+ExtendableMessageEvent::GetPorts(nsTArray<RefPtr<MessagePort>>& aPorts)
 {
-  MOZ_ASSERT(!mPorts && aPorts);
-  mPorts = aPorts;
-}
-
-void
-ExtendableMessageEvent::SetSource(ServiceWorkerClient* aClient)
-{
-  mClient = aClient;
-}
-
-void
-ExtendableMessageEvent::SetSource(ServiceWorker* aServiceWorker)
-{
-  mServiceWorker = aServiceWorker;
+  aPorts = mPorts;
 }
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(ExtendableMessageEvent)
@@ -1224,10 +1261,10 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(ExtendableMessageEvent, Event)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN_INHERITED(ExtendableMessageEvent, Event)
-  NS_IMPL_CYCLE_COLLECTION_TRACE_JSVAL_MEMBER_CALLBACK(mData)
+  NS_IMPL_CYCLE_COLLECTION_TRACE_JS_MEMBER_CALLBACK(mData)
 NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(ExtendableMessageEvent)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(ExtendableMessageEvent)
 NS_INTERFACE_MAP_END_INHERITING(Event)
 
 NS_IMPL_ADDREF_INHERITED(ExtendableMessageEvent, Event)

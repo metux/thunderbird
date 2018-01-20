@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 sts=2 et sw=2 tw=80: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -17,8 +17,8 @@
 
 namespace mozilla {
 
-NS_DECLARE_FRAME_PROPERTY(StickyScrollContainerProperty,
-                          DeleteValue<StickyScrollContainer>)
+NS_DECLARE_FRAME_PROPERTY_DELETABLE(StickyScrollContainerProperty,
+                                    StickyScrollContainer)
 
 StickyScrollContainer::StickyScrollContainer(nsIScrollableFrame* aScrollFrame)
   : mScrollFrame(aScrollFrame)
@@ -45,13 +45,12 @@ StickyScrollContainer::GetStickyScrollContainerForFrame(nsIFrame* aFrame)
     // <html style="position: fixed">
     return nullptr;
   }
-  FrameProperties props = static_cast<nsIFrame*>(do_QueryFrame(scrollFrame))->
-    Properties();
-  StickyScrollContainer* s = static_cast<StickyScrollContainer*>
-    (props.Get(StickyScrollContainerProperty()));
+  auto frame = static_cast<nsIFrame*>(do_QueryFrame(scrollFrame));
+  StickyScrollContainer* s =
+    frame->GetProperty(StickyScrollContainerProperty());
   if (!s) {
     s = new StickyScrollContainer(scrollFrame);
-    props.Set(StickyScrollContainerProperty(), s);
+    frame->SetProperty(StickyScrollContainerProperty(), s);
   }
   return s;
 }
@@ -70,10 +69,10 @@ StickyScrollContainer::NotifyReparentedFrameAcrossScrollFrameBoundary(nsIFrame* 
     // we aren't going to handle that.
     return;
   }
-  FrameProperties props = static_cast<nsIFrame*>(do_QueryFrame(oldScrollFrame))->
-    Properties();
-  StickyScrollContainer* oldSSC = static_cast<StickyScrollContainer*>
-    (props.Get(StickyScrollContainerProperty()));
+
+  StickyScrollContainer* oldSSC =
+    static_cast<nsIFrame*>(do_QueryFrame(oldScrollFrame))->
+      GetProperty(StickyScrollContainerProperty());
   if (!oldSSC) {
     // aOldParent had no sticky descendants, so aFrame doesn't have any sticky
     // descendants, and we're done here.
@@ -97,9 +96,7 @@ StickyScrollContainer::NotifyReparentedFrameAcrossScrollFrameBoundary(nsIFrame* 
 StickyScrollContainer*
 StickyScrollContainer::GetStickyScrollContainerForScrollFrame(nsIFrame* aFrame)
 {
-  FrameProperties props = aFrame->Properties();
-  return static_cast<StickyScrollContainer*>
-    (props.Get(StickyScrollContainerProperty()));
+  return aFrame->GetProperty(StickyScrollContainerProperty());
 }
 
 static nscoord
@@ -144,14 +141,12 @@ StickyScrollContainer::ComputeStickyOffsets(nsIFrame* aFrame)
                                                    scrollContainerSize.height);
 
   // Store the offset
-  FrameProperties props = aFrame->Properties();
-  nsMargin* offsets = static_cast<nsMargin*>
-    (props.Get(nsIFrame::ComputedOffsetProperty()));
+  nsMargin* offsets = aFrame->GetProperty(nsIFrame::ComputedOffsetProperty());
   if (offsets) {
     *offsets = computedOffsets;
   } else {
-    props.Set(nsIFrame::ComputedOffsetProperty(),
-              new nsMargin(computedOffsets));
+    aFrame->SetProperty(nsIFrame::ComputedOffsetProperty(),
+                        new nsMargin(computedOffsets));
   }
 }
 
@@ -165,8 +160,8 @@ StickyScrollContainer::ComputeStickyLimits(nsIFrame* aFrame, nsRect* aStick,
   aStick->SetRect(nscoord_MIN/2, nscoord_MIN/2, nscoord_MAX, nscoord_MAX);
   aContain->SetRect(nscoord_MIN/2, nscoord_MIN/2, nscoord_MAX, nscoord_MAX);
 
-  const nsMargin* computedOffsets = static_cast<nsMargin*>(
-    aFrame->Properties().Get(nsIFrame::ComputedOffsetProperty()));
+  const nsMargin* computedOffsets =
+    aFrame->GetProperty(nsIFrame::ComputedOffsetProperty());
   if (!computedOffsets) {
     // We haven't reflowed the scroll frame yet, so offsets haven't been
     // computed. Bail.
@@ -274,9 +269,9 @@ void
 StickyScrollContainer::GetScrollRanges(nsIFrame* aFrame, nsRect* aOuter,
                                        nsRect* aInner) const
 {
-  // We need to use the first in flow; ComputeStickyLimits requires
-  // this, at the very least because its call to
-  // nsLayoutUtils::GetAllInFlowRectsUnion requires it.
+  // We need to use the first in flow; continuation frames should not move
+  // relative to each other and should get identical scroll ranges.
+  // Also, ComputeStickyLimits requires this.
   nsIFrame *firstCont =
     nsLayoutUtils::FirstContinuationOrIBSplitSibling(aFrame);
 
@@ -287,10 +282,10 @@ StickyScrollContainer::GetScrollRanges(nsIFrame* aFrame, nsRect* aOuter,
   aOuter->SetRect(nscoord_MIN/2, nscoord_MIN/2, nscoord_MAX, nscoord_MAX);
   aInner->SetRect(nscoord_MIN/2, nscoord_MIN/2, nscoord_MAX, nscoord_MAX);
 
-  const nsPoint normalPosition = aFrame->GetNormalPosition();
+  const nsPoint normalPosition = firstCont->GetNormalPosition();
 
   // Bottom and top
-  if (stick.YMost() != nscoord_MAX/2) {
+  if (stick.YMost() != (nscoord_MAX + (nscoord_MIN/2))) {
     aOuter->SetTopEdge(contain.y - stick.YMost());
     aInner->SetTopEdge(normalPosition.y - stick.YMost());
   }
@@ -301,7 +296,7 @@ StickyScrollContainer::GetScrollRanges(nsIFrame* aFrame, nsRect* aOuter,
   }
 
   // Right and left
-  if (stick.XMost() != nscoord_MAX/2) {
+  if (stick.XMost() != (nscoord_MAX + (nscoord_MIN/2))) {
     aOuter->SetLeftEdge(contain.x - stick.XMost());
     aInner->SetLeftEdge(normalPosition.x - stick.XMost());
   }
@@ -310,6 +305,17 @@ StickyScrollContainer::GetScrollRanges(nsIFrame* aFrame, nsRect* aOuter,
     aInner->SetRightEdge(normalPosition.x - stick.x);
     aOuter->SetRightEdge(contain.XMost() - stick.x);
   }
+
+  // Make sure |inner| does not extend outside of |outer|. (The consumers of
+  // the Layers API, to which this information is propagated, expect this
+  // invariant to hold.) The calculated value of |inner| can sometimes extend
+  // outside of |outer|, for example due to margin collapsing, since
+  // GetNormalPosition() returns the actual position after margin collapsing,
+  // while |contain| is calculated based on the frame's GetUsedMargin() which
+  // is pre-collapsing.
+  // Note that this doesn't necessarily solve all problems stemming from
+  // comparing pre- and post-collapsing margins (TODO: find a proper solution).
+  *aInner = aInner->Intersect(*aOuter);
 }
 
 void

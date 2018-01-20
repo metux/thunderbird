@@ -4,7 +4,7 @@
 "use strict";
 
 var {classes: Cc, interfaces: Ci, utils: Cu} = Components;
-var GMPScope = Cu.import("resource://gre/modules/addons/GMPProvider.jsm");
+var GMPScope = Cu.import("resource://gre/modules/addons/GMPProvider.jsm", {});
 Cu.import("resource://gre/modules/AppConstants.jsm");
 Cu.import("resource://gre/modules/UpdateUtils.jsm");
 
@@ -28,7 +28,8 @@ for (let plugin of GMPScope.GMP_PLUGINS) {
       missingFilesKey: plugin.missingFilesKey,
   });
   gMockAddons.set(mockAddon.id, mockAddon);
-  if (mockAddon.id.indexOf("gmp-eme-") == 0) {
+  if (mockAddon.id == "gmp-widevinecdm" ||
+      mockAddon.id.indexOf("gmp-eme-") == 0) {
     gMockEmeAddons.set(mockAddon.id, mockAddon);
   }
 }
@@ -41,7 +42,10 @@ function MockGMPInstallManager() {
 }
 
 MockGMPInstallManager.prototype = {
-  checkForAddons: () => Promise.resolve([...gMockAddons.values()]),
+  checkForAddons: () => Promise.resolve({
+    usedFallback: true,
+    gmpAddons: [...gMockAddons.values()]
+  }),
 
   installAddon: addon => {
     gInstalledAddonId = addon.id;
@@ -58,22 +62,27 @@ function run_test() {
   gPrefs.setIntPref(GMPScope.GMPPrefs.KEY_LOGGING_LEVEL, 0);
   gPrefs.setBoolPref(GMPScope.GMPPrefs.KEY_EME_ENABLED, true);
   for (let addon of gMockAddons.values()) {
-    gPrefs.setBoolPref(gGetKey(GMPScope.GMPPrefs.KEY_PLUGIN_FORCEVISIBLE, addon.id),
+    gPrefs.setBoolPref(gGetKey(GMPScope.GMPPrefs.KEY_PLUGIN_VISIBLE, addon.id),
+                       true);
+    gPrefs.setBoolPref(gGetKey(GMPScope.GMPPrefs.KEY_PLUGIN_FORCE_SUPPORTED, addon.id),
                        true);
   }
-  GMPScope.GMPProvider.shutdown();
-  GMPScope.GMPProvider.startup();
 
   run_next_test();
 }
 
-add_task(function* test_notInstalled() {
+add_task(async function init() {
+  await GMPScope.GMPProvider.shutdown();
+  GMPScope.GMPProvider.startup();
+});
+
+add_task(async function test_notInstalled() {
   for (let addon of gMockAddons.values()) {
     gPrefs.setCharPref(gGetKey(GMPScope.GMPPrefs.KEY_PLUGIN_VERSION, addon.id), "");
     gPrefs.setBoolPref(gGetKey(GMPScope.GMPPrefs.KEY_PLUGIN_ENABLED, addon.id), false);
   }
 
-  let addons = yield promiseAddonsByIDs([...gMockAddons.keys()]);
+  let addons = await promiseAddonsByIDs([...gMockAddons.keys()]);
   Assert.equal(addons.length, gMockAddons.size);
 
   for (let addon of addons) {
@@ -119,12 +128,12 @@ add_task(function* test_notInstalled() {
   }
 });
 
-add_task(function* test_installed() {
+add_task(async function test_installed() {
   const TEST_DATE = new Date(2013, 0, 1, 12);
   const TEST_VERSION = "1.2.3.4";
   const TEST_TIME_SEC = Math.round(TEST_DATE.getTime() / 1000);
 
-  let addons = yield promiseAddonsByIDs([...gMockAddons.keys()]);
+  let addons = await promiseAddonsByIDs([...gMockAddons.keys()]);
   Assert.equal(addons.length, gMockAddons.size);
 
   for (let addon of addons) {
@@ -135,8 +144,8 @@ add_task(function* test_installed() {
     file.append(addon.id);
     file.append(TEST_VERSION);
     gPrefs.setBoolPref(gGetKey(GMPScope.GMPPrefs.KEY_PLUGIN_ENABLED, mockAddon.id), false);
-    gPrefs.setCharPref(gGetKey(GMPScope.GMPPrefs.KEY_PLUGIN_LAST_UPDATE, mockAddon.id),
-                      "" + TEST_TIME_SEC);
+    gPrefs.setIntPref(gGetKey(GMPScope.GMPPrefs.KEY_PLUGIN_LAST_UPDATE, mockAddon.id),
+                      TEST_TIME_SEC);
     gPrefs.setCharPref(gGetKey(GMPScope.GMPPrefs.KEY_PLUGIN_VERSION, mockAddon.id),
                       TEST_VERSION);
 
@@ -168,8 +177,8 @@ add_task(function* test_installed() {
   }
 });
 
-add_task(function* test_enable() {
-  let addons = yield promiseAddonsByIDs([...gMockAddons.keys()]);
+add_task(async function test_enable() {
+  let addons = await promiseAddonsByIDs([...gMockAddons.keys()]);
   Assert.equal(addons.length, gMockAddons.size);
 
   for (let addon of addons) {
@@ -184,12 +193,12 @@ add_task(function* test_enable() {
   }
 });
 
-add_task(function* test_globalEmeDisabled() {
-  let addons = yield promiseAddonsByIDs([...gMockEmeAddons.keys()]);
+add_task(async function test_globalEmeDisabled() {
+  let addons = await promiseAddonsByIDs([...gMockEmeAddons.keys()]);
   Assert.equal(addons.length, gMockEmeAddons.size);
 
   gPrefs.setBoolPref(GMPScope.GMPPrefs.KEY_EME_ENABLED, false);
-  GMPScope.GMPProvider.shutdown();
+  await GMPScope.GMPProvider.shutdown();
   GMPScope.GMPProvider.startup();
   for (let addon of addons) {
     Assert.ok(!addon.isActive);
@@ -199,12 +208,12 @@ add_task(function* test_globalEmeDisabled() {
     Assert.equal(addon.permissions, 0);
   }
   gPrefs.setBoolPref(GMPScope.GMPPrefs.KEY_EME_ENABLED, true);
-  GMPScope.GMPProvider.shutdown();
+  await GMPScope.GMPProvider.shutdown();
   GMPScope.GMPProvider.startup();
 });
 
-add_task(function* test_autoUpdatePrefPersistance() {
-  let addons = yield promiseAddonsByIDs([...gMockAddons.keys()]);
+add_task(async function test_autoUpdatePrefPersistance() {
+  let addons = await promiseAddonsByIDs([...gMockAddons.keys()]);
   Assert.equal(addons.length, gMockAddons.size);
 
   for (let addon of addons) {
@@ -230,13 +239,17 @@ function createMockPluginFilesIfNeeded(aFile, aPluginId) {
     if (!f.exists()) {
       f.create(Ci.nsIFile.NORMAL_FILE_TYPE, FileUtils.PERMS_FILE);
     }
-  };
+  }
 
   let id = aPluginId.substring(4);
   let libName = AppConstants.DLL_PREFIX + id + AppConstants.DLL_SUFFIX;
 
   createFile(libName);
-  createFile(id + ".info");
+  if (aPluginId == "gmp-widevinecdm") {
+    createFile("manifest.json");
+  } else {
+    createFile(id + ".info");
+  }
   if (aPluginId == "gmp-eme-adobe")
     createFile(id + ".voucher");
 }
@@ -246,10 +259,10 @@ function createMockPluginFilesIfNeeded(aFile, aPluginId) {
 if (![].includes) {
   Array.prototype.includes = function(element) {
     return Object(this).indexOf(element) != -1;
-  }
+  };
 }
 
-add_task(function* test_pluginRegistration() {
+add_task(async function test_pluginRegistration() {
   const TEST_VERSION = "1.2.3.4";
 
   let profD = do_get_profile();
@@ -260,7 +273,7 @@ add_task(function* test_pluginRegistration() {
 
     let addedPaths = [];
     let removedPaths = [];
-    let clearPaths = () => { addedPaths = []; removedPaths = []; }
+    let clearPaths = () => { addedPaths = []; removedPaths = []; };
 
     let MockGMPService = {
       addPluginDirectory: path => {
@@ -279,21 +292,8 @@ add_task(function* test_pluginRegistration() {
         }
       },
     };
-
-    let reportedKeys = {};
-
-    let MockTelemetry = {
-      getHistogramById: key => {
-        return {
-          add: value => {
-            reportedKeys[key] = value;
-          }
-        }
-      }
-    };
-
     GMPScope.gmpService = MockGMPService;
-    GMPScope.telemetryService = MockTelemetry;
+
     gPrefs.setBoolPref(gGetKey(GMPScope.GMPPrefs.KEY_PLUGIN_ENABLED, addon.id), true);
 
     // Test that plugin registration fails if the plugin dynamic library and
@@ -301,17 +301,9 @@ add_task(function* test_pluginRegistration() {
     gPrefs.setCharPref(gGetKey(GMPScope.GMPPrefs.KEY_PLUGIN_VERSION, addon.id),
                        TEST_VERSION);
     clearPaths();
-    yield promiseRestartManager();
+    await promiseRestartManager();
     Assert.equal(addedPaths.indexOf(file.path), -1);
     Assert.deepEqual(removedPaths, [file.path]);
-
-    // Test that the GMPProvider tried to report via telemetry that the
-    // addon's lib files are missing.
-    Assert.strictEqual(reportedKeys[addon.missingKey], true);
-    Assert.strictEqual(reportedKeys[addon.missingFilesKey],
-                       addon.missingFilesKey != "VIDEO_ADOBE_GMP_MISSING_FILES"
-                       ? (1+2) : (1+2+4));
-    reportedKeys = {};
 
     // Create dummy GMP library/info files, and test that plugin registration
     // succeeds during startup, now that we've added GMP info/lib files.
@@ -320,18 +312,14 @@ add_task(function* test_pluginRegistration() {
     gPrefs.setCharPref(gGetKey(GMPScope.GMPPrefs.KEY_PLUGIN_VERSION, addon.id),
                        TEST_VERSION);
     clearPaths();
-    yield promiseRestartManager();
+    await promiseRestartManager();
     Assert.notEqual(addedPaths.indexOf(file.path), -1);
     Assert.deepEqual(removedPaths, []);
-
-    // Test that the GMPProvider tried to report via telemetry that the
-    // addon's lib files are NOT missing.
-    Assert.strictEqual(reportedKeys[addon.missingFilesKey], 0);
 
     // Setting the ABI to something invalid should cause plugin to be removed at startup.
     clearPaths();
     gPrefs.setCharPref(gGetKey(GMPScope.GMPPrefs.KEY_PLUGIN_ABI, addon.id), "invalid-ABI");
-    yield promiseRestartManager();
+    await promiseRestartManager();
     Assert.equal(addedPaths.indexOf(file.path), -1);
     Assert.deepEqual(removedPaths, [file.path]);
 
@@ -340,7 +328,7 @@ add_task(function* test_pluginRegistration() {
     gPrefs.setCharPref(gGetKey(GMPScope.GMPPrefs.KEY_PLUGIN_VERSION, addon.id),
                        TEST_VERSION);
     gPrefs.setCharPref(gGetKey(GMPScope.GMPPrefs.KEY_PLUGIN_ABI, addon.id), UpdateUtils.ABI);
-    yield promiseRestartManager();
+    await promiseRestartManager();
     Assert.notEqual(addedPaths.indexOf(file.path), -1);
     Assert.deepEqual(removedPaths, []);
 
@@ -352,7 +340,7 @@ add_task(function* test_pluginRegistration() {
 
     // Restarting with no version set should not trigger registration.
     clearPaths();
-    yield promiseRestartManager();
+    await promiseRestartManager();
     Assert.equal(addedPaths.indexOf(file.path), -1);
     Assert.equal(removedPaths.indexOf(file.path), -1);
 
@@ -379,7 +367,7 @@ add_task(function* test_pluginRegistration() {
 
     // Restarting with the plugin disabled should not cause registration.
     clearPaths();
-    yield promiseRestartManager();
+    await promiseRestartManager();
     Assert.equal(addedPaths.indexOf(file.path), -1);
     Assert.equal(removedPaths.indexOf(file.path), -1);
 
@@ -392,7 +380,7 @@ add_task(function* test_pluginRegistration() {
   }
 });
 
-add_task(function* test_periodicUpdate() {
+add_task(async function test_periodicUpdate() {
   Object.defineProperty(GMPScope, "GMPInstallManager", {
     value: MockGMPInstallManager,
     writable: true,
@@ -400,7 +388,7 @@ add_task(function* test_periodicUpdate() {
     configurable: true
   });
 
-  let addons = yield promiseAddonsByIDs([...gMockAddons.keys()]);
+  let addons = await promiseAddonsByIDs([...gMockAddons.keys()]);
   Assert.equal(addons.length, gMockAddons.size);
 
   for (let addon of addons) {
@@ -409,20 +397,20 @@ add_task(function* test_periodicUpdate() {
     addon.applyBackgroundUpdates = AddonManager.AUTOUPDATE_DISABLE;
     gPrefs.setIntPref(GMPScope.GMPPrefs.KEY_UPDATE_LAST_CHECK, 0);
     let result =
-      yield addon.findUpdates({}, AddonManager.UPDATE_WHEN_PERIODIC_UPDATE);
+      await addon.findUpdates({}, AddonManager.UPDATE_WHEN_PERIODIC_UPDATE);
     Assert.strictEqual(result, false);
 
     addon.applyBackgroundUpdates = AddonManager.AUTOUPDATE_ENABLE;
     gPrefs.setIntPref(GMPScope.GMPPrefs.KEY_UPDATE_LAST_CHECK, Date.now() / 1000 - 60);
     result =
-      yield addon.findUpdates({}, AddonManager.UPDATE_WHEN_PERIODIC_UPDATE);
+      await addon.findUpdates({}, AddonManager.UPDATE_WHEN_PERIODIC_UPDATE);
     Assert.strictEqual(result, false);
 
     gPrefs.setIntPref(GMPScope.GMPPrefs.KEY_UPDATE_LAST_CHECK,
                      Date.now() / 1000 - 2 * GMPScope.SEC_IN_A_DAY);
     gInstalledAddonId = "";
     result =
-      yield addon.findUpdates({}, AddonManager.UPDATE_WHEN_PERIODIC_UPDATE);
+      await addon.findUpdates({}, AddonManager.UPDATE_WHEN_PERIODIC_UPDATE);
     Assert.strictEqual(result, true);
     Assert.equal(gInstalledAddonId, addon.id);
   }

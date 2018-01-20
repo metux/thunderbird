@@ -68,7 +68,6 @@
 
   function esc(str) {
     return str.replace('&', '&amp;').replace('<', '&lt;').replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-;
   }
 
   function compare(text, expected, mode) {
@@ -129,7 +128,9 @@
           (st.indentFailures || (st.indentFailures = [])).push(
             "Indentation of line " + (i + 1) + " is " + indent + " (expected " + ws.length + ")");
       }
-      var stream = new CodeMirror.StringStream(line);
+      var stream = new CodeMirror.StringStream(line, 4, {
+        lookAhead: function(n) { return lines[i + n] }
+      });
       if (line == "" && mode.blankLine) mode.blankLine(state);
       /* Start copied code from CodeMirror.highlight */
       while (!stream.eol()) {
@@ -170,7 +171,7 @@
     for (var i = 0; i < output.length; ++i) {
       var style = output[i].style, val = output[i].text;
       s +=
-      '<td class="mt-token"' + (i == diffAt * 2 ? " style='background: pink'" : "") + '>' +
+      '<td class="mt-token"' + (i == diffAt ? " style='background: pink'" : "") + '>' +
         '<span class="cm-' + esc(String(style)) + '">' +
         esc(val.replace(/ /g,'\xb7')) +  // · MIDDLE DOT
         '</span>' +

@@ -2,9 +2,9 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-include $(topsrcdir)/config/config.mk
+include $(moztopsrcdir)/config/config.mk
 
-_ABS_SRCDIR := $(abspath $(topsrcdir))
+_ABS_SRCDIR := $(abspath $(commtopsrcdir))
 
 SUBMAKEFILES += \
 	$(DEPTH)/$(MOZ_BRANDING_DIRECTORY)/Makefile \
@@ -17,14 +17,16 @@ SUBMAKEFILES += \
 PWD := $(CURDIR)
 
 # These are defaulted to be compatible with the files the wget-en-US target
-# pulls. You may override them if you provide your own files. You _must_
-# override them when MOZ_PKG_PRETTYNAMES is defined - the defaults will not
-# work in that case.
-ZIP_IN ?= $(_ABS_DIST)/$(PACKAGE)
-WIN32_INSTALLER_IN ?= $(_ABS_DIST)/$(PKG_INST_PATH)$(PKG_INST_BASENAME).exe
+# pulls. You may override them if you provide your own files.
+ZIP_IN ?= $(ABS_DIST)/$(PACKAGE)
+WIN32_INSTALLER_IN ?= $(ABS_DIST)/$(PKG_INST_PATH)$(PKG_INST_BASENAME).exe
 RETRIEVE_WINDOWS_INSTALLER = 1
 
 MOZ_LANGPACK_EID=langpack-$(AB_CD)@thunderbird.mozilla.org
+# For Nightly, we know where to get the builds from to do local repacks
+ifdef NIGHTLY_BUILD
+export EN_US_BINARY_URL ?= https://archive.mozilla.org/pub/thunderbird/nightly/latest-comm-central
+endif
 
 L10N_PREF_JS_EXPORTS = $(call MERGE_FILE,all-l10n.js)
 L10N_PREF_JS_EXPORTS_PATH = $(FINAL_TARGET)/$(PREF_DIR)
@@ -32,59 +34,70 @@ L10N_PREF_JS_EXPORTS_FLAGS = $(PREF_PPFLAGS) --silence-missing-directive-warning
 PP_TARGETS += L10N_PREF_JS_EXPORTS
 
 ifeq (cocoa,$(MOZ_WIDGET_TOOLKIT))
-MOZ_PKG_MAC_DSSTORE=$(_ABS_DIST)/branding/dsstore
-MOZ_PKG_MAC_BACKGROUND=$(_ABS_DIST)/branding/background.png
-MOZ_PKG_MAC_ICON=$(_ABS_DIST)/branding/disk.icns
+MOZ_PKG_MAC_DSSTORE=$(ABS_DIST)/branding/dsstore
+MOZ_PKG_MAC_BACKGROUND=$(ABS_DIST)/branding/background.png
+MOZ_PKG_MAC_ICON=$(ABS_DIST)/branding/disk.icns
 MOZ_PKG_MAC_EXTRA=--symlink '/Applications:/ '
 endif
+
+MOZ_SFX_PACKAGE=$(commtopsrcdir)/other-licenses/7zstub/thunderbird/7zSD.sfx
+MOZ_INSTALLER_PATH=$(commtopsrcdir)/mail/installer/windows
 
 ifeq (WINNT,$(OS_ARCH))
 UNINSTALLER_PACKAGE_HOOK = $(RM) -r $(STAGEDIST)/uninstall; \
     $(NSINSTALL) -D $(STAGEDIST)/uninstall; \
     cp ../installer/windows/l10ngen/helper.exe $(STAGEDIST)/uninstall; \
-    $(RM) $(_ABS_DIST)/l10n-stage/setup.exe; \
-    cp ../installer/windows/l10ngen/setup.exe $(_ABS_DIST)/l10n-stage; \
+    $(RM) $(ABS_DIST)/l10n-stage/setup.exe; \
+    cp ../installer/windows/l10ngen/setup.exe $(ABS_DIST)/l10n-stage; \
     $(NULL)
 endif
 
 NON_OMNIJAR_FILES = defaults/messenger/mailViews.dat
 
-SEARCHPLUGINS_NAMES = $(shell cat $(call MERGE_FILE,/searchplugins/list.txt))
-SEARCHPLUGINS_FILENAMES = $(subst :hidden,,$(SEARCHPLUGINS_NAMES))
+SEARCHPLUGINS_FILENAMES := $(shell $(call py_action,output_searchplugins_list,$(srcdir)/search/list.json $(AB_CD)))
 SEARCHPLUGINS_PATH := .deps/generated_$(AB_CD)
 SEARCHPLUGINS_TARGET := libs searchplugins
-SEARCHPLUGINS := $(foreach plugin,$(addsuffix .xml,$(SEARCHPLUGINS_FILENAMES)),$(or $(wildcard $(call EN_US_OR_L10N_FILE,searchplugins/$(plugin))),$(info Missing searchplugin: $(plugin))))
+SEARCHPLUGINS := $(foreach plugin,$(addsuffix .xml,$(SEARCHPLUGINS_FILENAMES)),$(or $(wildcard $(call EN_US_OR_L10N_FILE,searchplugins/$(plugin))),$(warning Missing searchplugin: $(plugin))))
 # Some locale-specific search plugins may have preprocessor directives, but the
 # default en-US ones do not.
 SEARCHPLUGINS_FLAGS := --silence-missing-directive-warnings
 PP_TARGETS += SEARCHPLUGINS
 
-list-txt = $(SEARCHPLUGINS_PATH)/list.txt
-GARBAGE += $(list-txt)
+list-json = $(SEARCHPLUGINS_PATH)/list.json
+GARBAGE += $(list-json)
 
 libs:: searchplugins
 
-include $(topsrcdir)/config/rules.mk
+# Required for l10n.mk - defines a list of app sub dirs that should
+# be included in langpack xpis.
+DIST_SUBDIRS = $(DIST_SUBDIR)
 
-include $(topsrcdir)/mozilla/toolkit/locales/l10n.mk
+include $(moztopsrcdir)/config/rules.mk
 
-$(list-txt): $(call mkdir_deps,$(SEARCHPLUGINS_PATH)) $(if $(IS_LANGUAGE_REPACK),FORCE)
-	$(RM) $(list-txt)
-	$(foreach plugin,$(SEARCHPLUGINS_NAMES),printf '$(plugin)\n' >> $(list-txt);)
-searchplugins:: $(list-txt)
+include $(moztopsrcdir)/toolkit/locales/l10n.mk
 
-$(STAGEDIST): $(DIST)/branding
+$(list-json): $(call mkdir_deps,$(SEARCHPLUGINS_PATH)) $(if $(IS_LANGUAGE_REPACK),FORCE)
+	$(call py_action,generate_searchjson,$(srcdir)/search/list.json $(AB_CD) $(list-json))
+searchplugins:: $(list-json)
 
 $(DIST)/branding:
 	$(NSINSTALL) -D $@
 
+libs-%: AB_CD=$*
 libs-%:
+# merge if we're not en-US. Conditional function because
+# we need the current value of AB_CD.
+	$(if $(filter en-US,$(AB_CD)),, @$(MAKE) merge-$*)
+ifdef MOZ_CALENDAR
+	$(if $(filter en-US,$(AB_CD)),, @$(MAKE) -C ../../calendar/lightning merge-$*)
+endif
 	$(NSINSTALL) -D $(DIST)/install
-	@$(MAKE) -C $(DEPTH)/toolkit/locales libs-$*
+	@$(MAKE) -C $(DEPTH)/toolkit/locales libs-$*  XPI_ROOT_APPID='$(XPI_ROOT_APPID)'
+	@$(MAKE) -C $(DEPTH)/devtools/client/locales AB_CD=$* XPI_NAME=locale-$* XPI_ROOT_APPID='$(XPI_ROOT_APPID)'
+	@$(MAKE) -C $(DEPTH)/devtools/shim/locales AB_CD=$* XPI_NAME=locale-$* XPI_ROOT_APPID='$(XPI_ROOT_APPID)'
 	@$(MAKE) -C ../../chat/locales AB_CD=$* XPI_NAME=locale-$*
 	@$(MAKE) -C ../../editor/ui/locales AB_CD=$* XPI_NAME=locale-$*
 	@$(MAKE) -C $(DEPTH)/extensions/spellcheck/locales AB_CD=$* XPI_NAME=locale-$*
-	@$(MAKE) -C $(DEPTH)/intl/locales AB_CD=$* XPI_NAME=locale-$*
 	@$(MAKE) -B searchplugins AB_CD=$* XPI_NAME=locale-$*
 	@$(MAKE) libs AB_CD=$* XPI_NAME=locale-$* PREF_DIR=defaults/pref
 	@$(MAKE) -C $(DEPTH)/$(MOZ_BRANDING_DIRECTORY)/locales AB_CD=$* XPI_NAME=locale-$*
@@ -93,7 +106,7 @@ libs-%:
 # Note the funny extra '../' in SFX_HEADER is because the repackage-zip command
 # is actually run effectively from within the mozilla/ part of the objdir, so
 # topsrcdir points to the wrong place and we have to go one directory higher.
-repackage-win32-installer: WIN32_INSTALLER_OUT=$(_ABS_DIST)/$(PKG_INST_PATH)$(PKG_INST_BASENAME).exe
+repackage-win32-installer: WIN32_INSTALLER_OUT=$(ABS_DIST)/$(PKG_INST_PATH)$(PKG_INST_BASENAME).exe
 repackage-win32-installer: $(call ESCAPE_WILDCARD,$(WIN32_INSTALLER_IN)) $(SUBMAKEFILES) libs-$(AB_CD)
 	@echo 'Repackaging $(WIN32_INSTALLER_IN) into $(WIN32_INSTALLER_OUT).'
 	$(MAKE) -C $(DEPTH)/$(MOZ_BRANDING_DIRECTORY) export
@@ -107,22 +120,13 @@ repackage-win32-installer: $(call ESCAPE_WILDCARD,$(WIN32_INSTALLER_IN)) $(SUBMA
 	              $(_ABS_SRCDIR)/mail/installer/windows/app.tag'
 
 ifeq (WINNT,$(OS_ARCH))
-repackage-win32-installer-%: $(STAGEDIST)
+repackage-win32-installer-%: unpack
 	@$(MAKE) repackage-win32-installer AB_CD=$* WIN32_INSTALLER_IN='$(WIN32_INSTALLER_IN)'
 
 repackage-zip-%: repackage-win32-installer-%
 else
 repackage-win32-installer-%: ;
 endif
-
-clobber-zip:
-	$(RM) $(STAGEDIST)/chrome/$(AB_CD).jar \
-	  $(STAGEDIST)/chrome/$(AB_CD).manifest \
-	  $(STAGEDIST)/defaults/pref/all-l10n.js
-	$(RM) -rf $(STAGEDIST)/dictionaries \
-	  $(STAGEDIST)/hyphenation/$(AB_CD) \
-	  $(STAGEDIST)/isp/$(AB_CD) \
-	  $(STAGEDIST)/chrome/$(AB_CD)
 
 langpack: langpack-$(AB_CD)
 
@@ -143,13 +147,13 @@ endif
 
 ident:
 	@printf 'comm_revision '
-	@$(PYTHON) $(MOZILLA_SRCDIR)/config/printconfigsetting.py \
+	@$(PYTHON) $(moztopsrcdir)/config/printconfigsetting.py \
 	    $(STAGEDIST)/application.ini App SourceStamp
 	@printf 'moz_revision '
-	@$(PYTHON) $(MOZILLA_SRCDIR)/config/printconfigsetting.py \
+	@$(PYTHON) $(moztopsrcdir)/config/printconfigsetting.py \
 	    $(STAGEDIST)/platform.ini Build SourceStamp
 	@printf 'buildid '
-	@$(PYTHON) $(MOZILLA_SRCDIR)/config/printconfigsetting.py \
+	@$(PYTHON) $(moztopsrcdir)/config/printconfigsetting.py \
 	    $(STAGEDIST)/application.ini App BuildID
 
 #These make targets call prepare-repackages by setting different UPLOAD_DIR
@@ -186,39 +190,32 @@ endif
 # Set the permissions that the folders will have in ftp once uploaded
 	chmod -vR 775 $(UPLOAD_DIR)
 
-merge-%:
-ifdef LOCALE_MERGEDIR
-	$(RM) -rf $(LOCALE_MERGEDIR)
-	MACOSX_DEPLOYMENT_TARGET= compare-locales -m $(LOCALE_MERGEDIR) $(srcdir)/l10n.ini $(L10NBASEDIR) $*
-endif
-	@echo
-
 # test target, depends on make package
 # try to repack x-test, with just toolkit/defines.inc being there
 l10n-check::
 	$(RM) -rf x-test
 	$(NSINSTALL) -D x-test/toolkit
 	echo '#define MOZ_LANG_TITLE Just testing' > x-test/toolkit/defines.inc
-	$(MAKE) installers-x-test L10NBASEDIR='$(PWD)' LOCALE_MERGEDIR='$(PWD)/mergedir'
+	$(MAKE) installers-x-test L10NBASEDIR='$(PWD)'
 
 ifdef MOZ_CALENDAR
-LIGHTNING_PATH=$(DEPTH)/calendar/lightning
-GDATA_PATH=$(DEPTH)/calendar/providers/gdata
+LIGHTNING_PATH=$(commtopobjdir)/calendar/lightning
+GDATA_PATH=$(commtopobjdir)/calendar/providers/gdata
 
 define run-calendar-rule
-$(MAKE) -C $(LIGHTNING_PATH) LOCALE_MERGEDIR=$(LOCALE_MERGEDIR) $(subst calendar-,,$@)
-$(MAKE) -C $(GDATA_PATH) LOCALE_MERGEDIR=$(LOCALE_MERGEDIR) $(subst calendar-,,$@)
+$(MAKE) -C $(LIGHTNING_PATH) $(subst calendar-,,$@) AB_CD=$(AB_CD)
+$(MAKE) -C $(GDATA_PATH) $(subst calendar-,,$@) AB_CD=$(AB_CD)
 endef
 
 # Add calendar targets for pattern rules. Unfortunately multiple pattern rules
 # on the left hand side do something different with make, therefore we need to
 # write a line for each target.
-calendar-merge-%:
-	$(run-calendar-rule)
 calendar-clobber-%:
 	$(run-calendar-rule)
+calendar-langpack-%: AB_CD=$*
 calendar-langpack-%:
 	$(run-calendar-rule)
+calendar-repackage-zip-%: AB_CD=$*
 calendar-repackage-zip-%:
 	$(run-calendar-rule)
 calendar-wget-en-US:
@@ -241,12 +238,13 @@ unpack: calendar-unpack
 upload: calendar-upload
 
 # Hook into the pattern rules, this will be used later on in the installers-% target.
-CALENDAR_INSTALLERS_TARGETS = calendar-merge-% calendar-clobber-% calendar-langpack-% calendar-repackage-zip-%
+CALENDAR_INSTALLERS_TARGETS = calendar-clobber-% calendar-langpack-% calendar-repackage-zip-%
 endif
 
 # This is a generic target that will make a langpack, repack ZIP (+tarball)
 # builds, and repack and installer if applicable. It is called from the
 # tinderbox scripts. Alter it with caution.
 INSTALLERS_TARGETS = clobber-% $(CALENDAR_INSTALLERS_TARGETS) langpack-% repackage-win32-installer-% repackage-zip-%
+installers-%: IS_LANGUAGE_REPACK=1
 installers-%: $(INSTALLERS_TARGETS)
 	@echo 'repackaging done'

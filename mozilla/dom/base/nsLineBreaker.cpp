@@ -59,10 +59,10 @@ nsresult
 nsLineBreaker::FlushCurrentWord()
 {
   uint32_t length = mCurrentWord.Length();
-  nsAutoTArray<uint8_t,4000> breakState;
+  AutoTArray<uint8_t,4000> breakState;
   if (!breakState.AppendElements(length))
     return NS_ERROR_OUT_OF_MEMORY;
-  
+
   nsTArray<bool> capitalizationState;
 
   if (!mCurrentWordContainsComplexChar) {
@@ -134,7 +134,7 @@ nsLineBreaker::FlushCurrentWord()
                                      capitalizationState.Elements() + offset);
       }
     }
-    
+
     offset += ti->mLength;
   }
 
@@ -154,7 +154,7 @@ nsLineBreaker::FlushCurrentWord()
                                 BREAK_SKIP_SETTING_NO_BREAKS)
 
 nsresult
-nsLineBreaker::AppendText(nsIAtom* aHyphenationLanguage, const char16_t* aText, uint32_t aLength,
+nsLineBreaker::AppendText(nsAtom* aHyphenationLanguage, const char16_t* aText, uint32_t aLength,
                           uint32_t aFlags, nsILineBreakSink* aSink)
 {
   NS_ASSERTION(aLength > 0, "Appending empty text...");
@@ -187,7 +187,7 @@ nsLineBreaker::AppendText(nsIAtom* aHyphenationLanguage, const char16_t* aText, 
       return rv;
   }
 
-  nsAutoTArray<uint8_t,4000> breakState;
+  AutoTArray<uint8_t,4000> breakState;
   if (aSink) {
     if (!breakState.AppendElements(aLength))
       return NS_ERROR_OUT_OF_MEMORY;
@@ -243,7 +243,7 @@ nsLineBreaker::AppendText(nsIAtom* aHyphenationLanguage, const char16_t* aText, 
     mBreakHere = false;
     mAfterBreakableSpace = isBreakableSpace;
 
-    if (isSpace) {
+    if (isSpace || ch == '\n') {
       if (offset > wordStart && aSink) {
         if (!(aFlags & BREAK_SUPPRESS_INSIDE)) {
           if (wordHasComplexChar) {
@@ -313,7 +313,7 @@ nsLineBreaker::FindHyphenationPoints(nsHyphenator *aHyphenator,
                                      uint8_t *aBreakState)
 {
   nsDependentSubstring string(aTextStart, aTextLimit);
-  AutoFallibleTArray<bool,200> hyphens;
+  AutoTArray<bool,200> hyphens;
   if (NS_SUCCEEDED(aHyphenator->Hyphenate(string, hyphens))) {
     for (uint32_t i = 0; i + 1 < string.Length(); ++i) {
       if (hyphens[i]) {
@@ -325,7 +325,7 @@ nsLineBreaker::FindHyphenationPoints(nsHyphenator *aHyphenator,
 }
 
 nsresult
-nsLineBreaker::AppendText(nsIAtom* aHyphenationLanguage, const uint8_t* aText, uint32_t aLength,
+nsLineBreaker::AppendText(nsAtom* aHyphenationLanguage, const uint8_t* aText, uint32_t aLength,
                           uint32_t aFlags, nsILineBreakSink* aSink)
 {
   NS_ASSERTION(aLength > 0, "Appending empty text...");
@@ -368,7 +368,7 @@ nsLineBreaker::AppendText(nsIAtom* aHyphenationLanguage, const uint8_t* aText, u
       return rv;
   }
 
-  nsAutoTArray<uint8_t,4000> breakState;
+  AutoTArray<uint8_t,4000> breakState;
   if (aSink) {
     if (!breakState.AppendElements(aLength))
       return NS_ERROR_OUT_OF_MEMORY;
@@ -460,7 +460,7 @@ nsLineBreaker::AppendText(nsIAtom* aHyphenationLanguage, const uint8_t* aText, u
 }
 
 void
-nsLineBreaker::UpdateCurrentWordLanguage(nsIAtom *aHyphenationLanguage)
+nsLineBreaker::UpdateCurrentWordLanguage(nsAtom *aHyphenationLanguage)
 {
   if (mCurrentWordLanguage && mCurrentWordLanguage != aHyphenationLanguage) {
     mCurrentWordContainsMixedLang = true;

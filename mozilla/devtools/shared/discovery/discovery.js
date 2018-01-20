@@ -32,8 +32,8 @@
  */
 
 const { Cu, CC, Cc, Ci } = require("chrome");
-const EventEmitter = require("devtools/shared/event-emitter");
-const { setTimeout, clearTimeout } = require("sdk/timers");
+const EventEmitter = require("devtools/shared/old-event-emitter");
+const Services = require("Services");
 
 const UDPSocket = CC("@mozilla.org/network/udp-socket;1",
                      "nsIUDPSocket",
@@ -45,11 +45,10 @@ const ADDRESS = "224.0.0.115";
 const REPLY_TIMEOUT = 5000;
 
 const { XPCOMUtils } = Cu.import("resource://gre/modules/XPCOMUtils.jsm", {});
-const { Services } = Cu.import("resource://gre/modules/Services.jsm", {});
 
 XPCOMUtils.defineLazyGetter(this, "converter", () => {
-  let conv = Cc["@mozilla.org/intl/scriptableunicodeconverter"].
-             createInstance(Ci.nsIScriptableUnicodeConverter);
+  let conv = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
+             .createInstance(Ci.nsIScriptableUnicodeConverter);
   conv.charset = "utf8";
   return conv;
 });
@@ -59,7 +58,7 @@ XPCOMUtils.defineLazyGetter(this, "sysInfo", () => {
 });
 
 XPCOMUtils.defineLazyGetter(this, "libcutils", function () {
-  Cu.import("resource://gre/modules/systemlibs.js");
+  let { libcutils } = Cu.import("resource://gre/modules/systemlibs.js", {});
   return libcutils;
 });
 
@@ -78,10 +77,11 @@ function log(msg) {
 function Transport(port) {
   EventEmitter.decorate(this);
   try {
-    this.socket = new UDPSocket(port, false, Services.scriptSecurityManager.getSystemPrincipal());
+    this.socket = new UDPSocket(port, false,
+                                Services.scriptSecurityManager.getSystemPrincipal());
     this.socket.joinMulticast(ADDRESS);
     this.socket.asyncListen(this);
-  } catch(e) {
+  } catch (e) {
     log("Failed to start new socket: " + e);
   }
 }
@@ -95,7 +95,7 @@ Transport.prototype = {
    * @param port integer
    *        UDP port to send the message to
    */
-  send: function(object, port) {
+  send: function (object, port) {
     if (logging) {
       log("Send to " + port + ":\n" + JSON.stringify(object, null, 2));
     }
@@ -103,18 +103,18 @@ Transport.prototype = {
     let rawMessage = converter.convertToByteArray(message);
     try {
       this.socket.send(ADDRESS, port, rawMessage, rawMessage.length);
-    } catch(e) {
+    } catch (e) {
       log("Failed to send message: " + e);
     }
   },
 
-  destroy: function() {
+  destroy: function () {
     this.socket.close();
   },
 
   // nsIUDPSocketListener
 
-  onPacketReceived: function(socket, message) {
+  onPacketReceived: function (socket, message) {
     let messageData = message.data;
     let object = JSON.parse(messageData);
     object.from = message.fromAddr.address;
@@ -130,93 +130,44 @@ Transport.prototype = {
     this.emit("message", object);
   },
 
-  onStopListening: function() {}
+  onStopListening: function () {}
 
 };
 
 /**
  * Manages the local device's name.  The name can be generated in serveral
  * platform-specific ways (see |_generate|).  The aim is for each device on the
- * same local network to have a unique name.  If the Settings API is available,
- * the name is saved there to persist across reboots.
+ * same local network to have a unique name.
  */
 function LocalDevice() {
   this._name = LocalDevice.UNKNOWN;
-  if ("@mozilla.org/settingsService;1" in Cc) {
-    this._settings =
-      Cc["@mozilla.org/settingsService;1"].getService(Ci.nsISettingsService);
-    Services.obs.addObserver(this, "mozsettings-changed", false);
-  }
-  this._get(); // Trigger |_get| to load name eagerly
+  // Trigger |_get| to load name eagerly
+  this._get();
 }
 
-LocalDevice.SETTING = "devtools.discovery.device";
 LocalDevice.UNKNOWN = "unknown";
 
 LocalDevice.prototype = {
 
-  _get: function() {
-    if (!this._settings) {
-      // Without Settings API, just generate a name and stop, since the value
-      // can't be persisted.
-      this._generate();
-      return;
-    }
-    // Initial read of setting value
-    this._settings.createLock().get(LocalDevice.SETTING, {
-      handle: (_, name) => {
-        if (name && name !== LocalDevice.UNKNOWN) {
-          this._name = name;
-          log("Device: " + this._name);
-          return;
-        }
-        // No existing name saved, so generate one.
-        this._generate();
-      },
-      handleError: () => log("Failed to get device name setting")
-    });
+  _get: function () {
+    // Without Settings API, just generate a name and stop, since the value
+    // can't be persisted.
+    this._generate();
   },
 
   /**
    * Generate a new device name from various platform-specific properties.
    * Triggers the |name| setter to persist if needed.
    */
-  _generate: function() {
-    if (Services.appinfo.widgetToolkit == "gonk") {
-      // For Firefox OS devices, create one from the device name plus a little
-      // randomness.  The goal is just to distinguish devices in an office
-      // environment where many people may have the same device model for
-      // testing purposes (which would otherwise all report the same name).
-      let name = libcutils.property_get("ro.product.device");
-      // Pick a random number from [0, 2^32)
-      let randomID = Math.floor(Math.random() * Math.pow(2, 32));
-      // To hex and zero pad
-      randomID = ("00000000" + randomID.toString(16)).slice(-8);
-      this.name = name + "-" + randomID;
-    } else if (Services.appinfo.widgetToolkit == "android") {
+  _generate: function () {
+    if (Services.appinfo.widgetToolkit == "android") {
       // For Firefox for Android, use the device's model name.
       // TODO: Bug 1180997: Find the right way to expose an editable name
       this.name = sysInfo.get("device");
     } else {
-      this.name = sysInfo.get("host");
+      this.name = Cc["@mozilla.org/network/dns-service;1"].getService(Ci.nsIDNSService)
+                                                          .myHostName;
     }
-  },
-
-  /**
-   * Observe any changes that might be made via the Settings app
-   */
-  observe: function(subject, topic, data) {
-    if (topic !== "mozsettings-changed") {
-      return;
-    }
-    if ("wrappedJSObject" in subject) {
-      subject = subject.wrappedJSObject;
-    }
-    if (subject.key !== LocalDevice.SETTING) {
-      return;
-    }
-    this._name = subject.value;
-    log("Device: " + this._name);
   },
 
   get name() {
@@ -224,17 +175,8 @@ LocalDevice.prototype = {
   },
 
   set name(name) {
-    if (!this._settings) {
-      this._name = name;
-      log("Device: " + this._name);
-      return;
-    }
-    // Persist to Settings API
-    // The new value will be seen and stored by the observer above
-    this._settings.createLock().set(LocalDevice.SETTING, name, {
-      handle: () => {},
-      handleError: () => log("Failed to set device name setting")
-    });
+    this._name = name;
+    log("Device: " + this._name);
   }
 
 };
@@ -261,8 +203,6 @@ function Discovery() {
   this._onRemoteScan = this._onRemoteScan.bind(this);
   this._onRemoteUpdate = this._onRemoteUpdate.bind(this);
   this._purgeMissingDevices = this._purgeMissingDevices.bind(this);
-
-  Services.obs.addObserver(this, "network-active-changed", false);
 }
 
 Discovery.prototype = {
@@ -274,7 +214,7 @@ Discovery.prototype = {
    * @param info object
    *        Arbitrary data about the service to announce to scanning devices
    */
-  addService: function(service, info) {
+  addService: function (service, info) {
     log("ADDING LOCAL SERVICE");
     if (Object.keys(this.localServices).length === 0) {
       this._startListeningForScan();
@@ -287,7 +227,7 @@ Discovery.prototype = {
    * @param service string
    *        Name of the service
    */
-  removeService: function(service) {
+  removeService: function (service) {
     delete this.localServices[service];
     if (Object.keys(this.localServices).length === 0) {
       this._stopListeningForScan();
@@ -297,7 +237,7 @@ Discovery.prototype = {
   /**
    * Scan for service updates from other devices.
    */
-  scan: function() {
+  scan: function () {
     this._startListeningForUpdate();
     this._waitForReplies();
     // TODO Bug 1027457: Use timer to debounce
@@ -307,7 +247,7 @@ Discovery.prototype = {
   /**
    * Get a list of all remote devices currently offering some service.:w
    */
-  getRemoteDevices: function() {
+  getRemoteDevices: function () {
     let devices = new Set();
     for (let service in this.remoteServices) {
       for (let device in this.remoteServices[service]) {
@@ -320,7 +260,7 @@ Discovery.prototype = {
   /**
    * Get a list of all remote devices currently offering a particular service.
    */
-  getRemoteDevicesWithService: function(service) {
+  getRemoteDevicesWithService: function (service) {
     let devicesWithService = this.remoteServices[service] || {};
     return Object.keys(devicesWithService);
   },
@@ -329,12 +269,12 @@ Discovery.prototype = {
    * Get service info (any details registered by the remote device) for a given
    * service on a device.
    */
-  getRemoteService: function(service, device) {
+  getRemoteService: function (service, device) {
     let devicesWithService = this.remoteServices[service] || {};
     return devicesWithService[device];
   },
 
-  _waitForReplies: function() {
+  _waitForReplies: function () {
     clearTimeout(this._expectingReplies.timer);
     this._expectingReplies.from = new Set(this.getRemoteDevices());
     this._expectingReplies.timer =
@@ -345,61 +285,47 @@ Discovery.prototype = {
     return this._factories.Transport;
   },
 
-  _startListeningForScan: function() {
+  _startListeningForScan: function () {
     if (this._transports.scan) {
-      return; // Already listening
+      // Already listening
+      return;
     }
     log("LISTEN FOR SCAN");
     this._transports.scan = new this.Transport(SCAN_PORT);
     this._transports.scan.on("message", this._onRemoteScan);
   },
 
-  _stopListeningForScan: function() {
+  _stopListeningForScan: function () {
     if (!this._transports.scan) {
-      return; // Not listening
+      // Not listening
+      return;
     }
     this._transports.scan.off("message", this._onRemoteScan);
     this._transports.scan.destroy();
     this._transports.scan = null;
   },
 
-  _startListeningForUpdate: function() {
+  _startListeningForUpdate: function () {
     if (this._transports.update) {
-      return; // Already listening
+      // Already listening
+      return;
     }
     log("LISTEN FOR UPDATE");
     this._transports.update = new this.Transport(UPDATE_PORT);
     this._transports.update.on("message", this._onRemoteUpdate);
   },
 
-  _stopListeningForUpdate: function() {
+  _stopListeningForUpdate: function () {
     if (!this._transports.update) {
-      return; // Not listening
+      // Not listening
+      return;
     }
     this._transports.update.off("message", this._onRemoteUpdate);
     this._transports.update.destroy();
     this._transports.update = null;
   },
 
-  observe: function(subject, topic, data) {
-    if (topic !== "network-active-changed") {
-      return;
-    }
-    let activeNetworkInfo = subject;
-    if (!activeNetworkInfo) {
-      log("No active network info");
-      return;
-    }
-    activeNetworkInfo = activeNetworkInfo.QueryInterface(Ci.nsINetworkInfo);
-    log("Active network changed to: " + activeNetworkInfo.type);
-    // UDP sockets go down when the device goes offline, so we'll restart them
-    // when the active network goes back to WiFi.
-    if (activeNetworkInfo.type === Ci.nsINetworkInfo.NETWORK_TYPE_WIFI) {
-      this._restartListening();
-    }
-  },
-
-  _restartListening: function() {
+  _restartListening: function () {
     if (this._transports.scan) {
       this._stopListeningForScan();
       this._startListeningForScan();
@@ -424,7 +350,7 @@ Discovery.prototype = {
     return null;
   },
 
-  _sendStatusTo: function(port) {
+  _sendStatusTo: function (port) {
     let status = {
       device: this.device.name,
       services: this.localServices
@@ -432,13 +358,13 @@ Discovery.prototype = {
     this._outgoingTransport.send(status, port);
   },
 
-  _onRemoteScan: function() {
+  _onRemoteScan: function () {
     // Send my own status in response
     log("GOT SCAN REQUEST");
     this._sendStatusTo(UPDATE_PORT);
   },
 
-  _onRemoteUpdate: function(e, update) {
+  _onRemoteUpdate: function (e, update) {
     log("GOT REMOTE UPDATE");
 
     let remoteDevice = update.device;
@@ -494,7 +420,7 @@ Discovery.prototype = {
     }
   },
 
-  _purgeMissingDevices: function() {
+  _purgeMissingDevices: function () {
     log("PURGING MISSING DEVICES");
     for (let service in this.remoteServices) {
       let devicesWithService = this.remoteServices[service];

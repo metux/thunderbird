@@ -9,6 +9,10 @@
 # read from the Unicode Character Database and compiled into multi-level arrays
 # for efficient lookup.
 #
+# Note that for most properties, we now rely on ICU; this tool and the tables
+# it generates are used only for a couple of properties not readily exposed
+# via ICU APIs.
+#
 # To regenerate the tables in nsUnicodePropertyData.cpp:
 #
 # (1) Download the current Unicode data files from
@@ -17,10 +21,6 @@
 #
 #     NB: not all the files are actually needed; currently, we require
 #       - UnicodeData.txt
-#       - Scripts.txt
-#       - BidiMirroring.txt
-#       - BidiBrackets.txt
-#       - HangulSyllableType.txt
 #       - ReadMe.txt (to record version/date of the UCD)
 #       - Unihan_Variants.txt (from Unihan.zip)
 #     though this may change if we find a need for additional properties.
@@ -28,20 +28,20 @@
 #     The Unicode data files listed above should be together in one directory.
 #
 #     We also require the file
-#        http://www.unicode.org/Public/security/latest/xidmodifications.txt
+#        http://www.unicode.org/Public/security/latest/IdentifierStatus.txt
 #     This file should be in a sub-directory "security" immediately below the
 #        directory containing the other Unicode data files.
 #
-#     We also require the latest data file for UTR50, currently revision-13:
-#        http://www.unicode.org/Public/vertical/revision-13/VerticalOrientation-13.txt
+#     We also require the latest data file for UTR50, currently revision-17:
+#        http://www.unicode.org/Public/vertical/revision-17/VerticalOrientation-17.txt
 #     This file should be in a sub-directory "vertical" immediately below the
 #        directory containing the other Unicode data files.
 #
 #
 # (2) Run this tool using a command line of the form
 #
-#         perl genUnicodePropertyData.pl \
-#                 /path/to/harfbuzz/src  \
+#         perl genUnicodePropertyData.pl      \
+#                 /path/to/icu/common/unicode \
 #                 /path/to/UCD-directory
 #
 #     This will generate (or overwrite!) the files
@@ -58,11 +58,11 @@ if ($#ARGV != 1) {
     print <<__EOT;
 # Run this tool using a command line of the form
 #
-#     perl genUnicodePropertyData.pl \\
-#             /path/to/harfbuzz/src  \\
+#     perl genUnicodePropertyData.pl      \\
+#             /path/to/icu/common/unicode \\
 #             /path/to/UCD-directory
 #
-# where harfbuzz/src is the directory containing harfbuzz .cc and .hh files,
+# where icu/common/unicode is the directory containing ICU 'common' headers,
 # and UCD-directory is a directory containing the current Unicode Character
 # Database files (UnicodeData.txt, etc), available from
 # http://www.unicode.org/Public/UNIDATA/, with additional resources as
@@ -78,249 +78,64 @@ __EOT
     exit 0;
 }
 
-# load HB_Script and HB_Category constants
+my $ICU = $ARGV[0];
+my $UNICODE = $ARGV[1];
 
-# NOTE that HB_SCRIPT_* constants are now "tag" values, NOT sequentially-allocated
-# script codes as used by Glib/Pango/etc.
-# We therefore define a set of MOZ_SCRIPT_* constants that are script _codes_
-# compatible with those libraries, and map these to HB_SCRIPT_* _tags_ as needed.
-
-# CHECK that this matches Pango source (as found for example at 
-# http://git.gnome.org/browse/pango/tree/pango/pango-script.h)
-# for as many codes as that defines (currently up through Unicode 5.1)
-# and the GLib enumeration
-# http://developer.gnome.org/glib/2.30/glib-Unicode-Manipulation.html#GUnicodeScript
-# (currently defined up through Unicode 6.0).
-# Constants beyond these may be regarded as unstable for now, but we don't actually
-# depend on the specific values.
-my %scriptCode = (
-  INVALID => -1,
-  COMMON => 0,
-  INHERITED => 1,
-  ARABIC => 2,
-  ARMENIAN => 3,
-  BENGALI => 4,
-  BOPOMOFO => 5,
-  CHEROKEE => 6,
-  COPTIC => 7,
-  CYRILLIC => 8,
-  DESERET => 9,
-  DEVANAGARI => 10,
-  ETHIOPIC => 11,
-  GEORGIAN => 12,
-  GOTHIC => 13,
-  GREEK => 14,
-  GUJARATI => 15,
-  GURMUKHI => 16,
-  HAN => 17,
-  HANGUL => 18,
-  HEBREW => 19,
-  HIRAGANA => 20,
-  KANNADA => 21,
-  KATAKANA => 22,
-  KHMER => 23,
-  LAO => 24,
-  LATIN => 25,
-  MALAYALAM => 26,
-  MONGOLIAN => 27,
-  MYANMAR => 28,
-  OGHAM => 29,
-  OLD_ITALIC => 30,
-  ORIYA => 31,
-  RUNIC => 32,
-  SINHALA => 33,
-  SYRIAC => 34,
-  TAMIL => 35,
-  TELUGU => 36,
-  THAANA => 37,
-  THAI => 38,
-  TIBETAN => 39,
-  CANADIAN_ABORIGINAL => 40,
-  YI => 41,
-  TAGALOG => 42,
-  HANUNOO => 43,
-  BUHID => 44,
-  TAGBANWA => 45,
-# unicode 4.0 additions
-  BRAILLE => 46,
-  CYPRIOT => 47,
-  LIMBU => 48,
-  OSMANYA => 49,
-  SHAVIAN => 50,
-  LINEAR_B => 51,
-  TAI_LE => 52,
-  UGARITIC => 53,
-# unicode 4.1 additions
-  NEW_TAI_LUE => 54,
-  BUGINESE => 55,
-  GLAGOLITIC => 56,
-  TIFINAGH => 57,
-  SYLOTI_NAGRI => 58,
-  OLD_PERSIAN => 59,
-  KHAROSHTHI => 60,
-# unicode 5.0 additions
-  UNKNOWN => 61,
-  BALINESE => 62,
-  CUNEIFORM => 63,
-  PHOENICIAN => 64,
-  PHAGS_PA => 65,
-  NKO => 66,
-# unicode 5.1 additions
-  KAYAH_LI => 67,
-  LEPCHA => 68,
-  REJANG => 69,
-  SUNDANESE => 70,
-  SAURASHTRA => 71,
-  CHAM => 72,
-  OL_CHIKI => 73,
-  VAI => 74,
-  CARIAN => 75,
-  LYCIAN => 76,
-  LYDIAN => 77,
-# unicode 5.2 additions
-  AVESTAN => 78,
-  BAMUM => 79,
-  EGYPTIAN_HIEROGLYPHS => 80,
-  IMPERIAL_ARAMAIC => 81,
-  INSCRIPTIONAL_PAHLAVI => 82,
-  INSCRIPTIONAL_PARTHIAN => 83,
-  JAVANESE => 84,
-  KAITHI => 85,
-  LISU => 86,
-  MEETEI_MAYEK => 87,
-  OLD_SOUTH_ARABIAN => 88,
-  OLD_TURKIC => 89,
-  SAMARITAN => 90,
-  TAI_THAM => 91,
-  TAI_VIET => 92,
-# unicode 6.0 additions
-  BATAK => 93,
-  BRAHMI => 94,
-  MANDAIC => 95,
-# unicode 6.1 additions
-  CHAKMA => 96,
-  MEROITIC_CURSIVE => 97,
-  MEROITIC_HIEROGLYPHS => 98,
-  MIAO => 99,
-  SHARADA => 100,
-  SORA_SOMPENG => 101,
-  TAKRI => 102,
-# unicode 7.0 additions
-  BASSA_VAH => 103,
-  CAUCASIAN_ALBANIAN => 104,
-  DUPLOYAN => 105,
-  ELBASAN => 106,
-  GRANTHA => 107,
-  KHOJKI => 108,
-  KHUDAWADI => 109,
-  LINEAR_A => 110,
-  MAHAJANI => 111,
-  MANICHAEAN => 112,
-  MENDE_KIKAKUI => 113,
-  MODI => 114,
-  MRO => 115,
-  NABATAEAN => 116,
-  OLD_NORTH_ARABIAN => 117,
-  OLD_PERMIC => 118,
-  PAHAWH_HMONG => 119,
-  PALMYRENE => 120,
-  PAU_CIN_HAU => 121,
-  PSALTER_PAHLAVI => 122,
-  SIDDHAM => 123,
-  TIRHUTA => 124,
-  WARANG_CITI => 125,
-# unicode 8.0 additions
-  AHOM => 126,
-  ANATOLIAN_HIEROGLYPHS => 127,
-  HATRAN => 128,
-  MULTANI => 129,
-  OLD_HUNGARIAN => 130,
-  SIGNWRITING => 131,
-
-# additional "script" code, not from Unicode (but matches ISO 15924's Zmth tag)
-  MATHEMATICAL_NOTATION => 132,
-);
+my @scriptCodeToName;
+my @idtype;
 
 my $sc = -1;
-my $cc = -1;
-my %catCode;
-my @scriptCodeToTag;
-my @scriptCodeToName;
 
-sub readHarfBuzzHeader
+sub readIcuHeader
 {
     my $file = shift;
-    open FH, "< $ARGV[0]/$file" or die "can't open harfbuzz header $ARGV[0]/$file\n";
+    open FH, "< $ICU/$file" or die "can't open ICU header $ICU/$file\n";
     while (<FH>) {
-        s/CANADIAN_SYLLABICS/CANADIAN_ABORIGINAL/; # harfbuzz and unicode disagree on this name :(
-        if (m/HB_SCRIPT_([A-Z_]+)\s*=\s*HB_TAG\s*\(('.','.','.','.')\)\s*,/) {
-            unless (exists $scriptCode{$1}) {
-                warn "unknown script name $1 found in $file\n";
-                next;
-            }
-            $sc = $scriptCode{$1};
-            $scriptCodeToTag[$sc] = $2;
+        # adjust for ICU vs UCD naming discrepancies
+        s/LANNA/TAI_THAM/;
+        s/MEITEI_MAYEK/MEETEI_MAYEK/;
+        s/ORKHON/OLD_TURKIC/;
+        s/MENDE/MENDE_KIKAKUI/;
+        s/SIGN_WRITING/SIGNWRITING/;
+        if (m|USCRIPT_([A-Z_]+)\s*=\s*([0-9]+),\s*/\*\s*([A-Z][a-z]{3})\s*\*/|) {
+            $sc = $2;
             $scriptCodeToName[$sc] = $1;
-        }
-        if (m/HB_UNICODE_GENERAL_CATEGORY_([A-Z_]+)/) {
-            $cc++;
-            $catCode{$1} = $cc;
         }
     }
     close FH;
 }
 
-&readHarfBuzzHeader("hb-common.h");
-&readHarfBuzzHeader("hb-unicode.h");
+&readIcuHeader("uscript.h");
 
-die "didn't find HarfBuzz script codes\n" if $sc == -1;
-die "didn't find HarfBuzz category codes\n" if $cc == -1;
+die "didn't find ICU script codes\n" if $sc == -1;
 
-# Additional code not present in HarfBuzz headers:
-$sc = $scriptCode{"MATHEMATICAL_NOTATION"};
-$scriptCodeToTag[$sc] = "'Z','m','t','h'";
-$scriptCodeToName[$sc] = "MATHEMATICAL_NOTATION";
-
-my %xidmodCode = (
-'Recommended'       => 0,
-'Inclusion'         => 1,
-'Uncommon_Use'      => 2,
-'Technical'         => 3,
-'Obsolete'          => 4,
-'Aspirational'      => 5,
-'Limited_Use'       => 6,
-'Exclusion'         => 7,
-'Not_XID'           => 8,
-'Not_NFKC'          => 9,
-'Default_Ignorable' => 10,
-'Deprecated'        => 11,
-'not-chars'         => 12
+# We don't currently store these values; %idType is used only to check that
+# properties listed in the IdentifierType.txt file are recognized. We record
+# only the %mappedIdType values that are used by nsIDNService::isLabelSafe.
+# In practice, it would be sufficient for us to read only the last value in
+# IdentifierType.txt, but we check that all values are known so that we'll get
+# a warning if future updates introduce new ones, and can consider whether
+# they need to be taken into account.
+my %idType = (
+  "Not_Character"     => 0,
+  "Recommended"       => 1,
+  "Inclusion"         => 2,
+  "Uncommon_Use"      => 3,
+  "Technical"         => 4,
+  "Obsolete"          => 5,
+  "Aspirational"      => 6,
+  "Limited_Use"       => 7,
+  "Exclusion"         => 8,
+  "Not_XID"           => 9,
+  "Not_NFKC"          => 10,
+  "Default_Ignorable" => 11,
+  "Deprecated"        => 12
 );
 
-my %bidicategoryCode = (
-  "L"   =>  "0", # Left-to-Right
-  "R"   =>  "1", # Right-to-Left
-  "EN"  =>  "2", # European Number
-  "ES"  =>  "3", # European Number Separator
-  "ET"  =>  "4", # European Number Terminator
-  "AN"  =>  "5", # Arabic Number
-  "CS"  =>  "6", # Common Number Separator
-  "B"   =>  "7", # Paragraph Separator
-  "S"   =>  "8", # Segment Separator
-  "WS"  =>  "9", # Whitespace
-  "ON"  => "10", # Other Neutrals
-  "LRE" => "11", # Left-to-Right Embedding
-  "LRO" => "12", # Left-to-Right Override
-  "AL"  => "13", # Right-to-Left Arabic
-  "RLE" => "14", # Right-to-Left Embedding
-  "RLO" => "15", # Right-to-Left Override
-  "PDF" => "16", # Pop Directional Format
-  "NSM" => "17", # Non-Spacing Mark
-  "BN"  => "18", # Boundary Neutral
-  "LRI" => "19", # Left-to-Right Isolate
-  "RLI" => "20", # Right-to-left Isolate
-  "FSI" => "21", # First Strong Isolate
-  "PDI" => "22"  # Pop Direcitonal Isolate
+# These match the IdentifierType enum in nsUnicodeProperties.h.
+my %mappedIdType = (
+  "Restricted"   => 0,
+  "Allowed"      => 1
 );
 
 my %verticalOrientationCode = (
@@ -331,94 +146,28 @@ my %verticalOrientationCode = (
 );
 
 # initialize default properties
-my @script;
-my @category;
-my @combining;
-my @mirror;
-my @pairedBracketType;
-my @hangul;
-my @casemap;
-my @xidmod;
-my @numericvalue;
 my @hanVariant;
-my @bidicategory;
 my @fullWidth;
+my @fullWidthInverse;
 my @verticalOrientation;
 for (my $i = 0; $i < 0x110000; ++$i) {
-    $script[$i] = $scriptCode{"UNKNOWN"};
-    $category[$i] = $catCode{"UNASSIGNED"};
-    $combining[$i] = 0;
-    $pairedBracketType[$i] = 0;
-    $casemap[$i] = 0;
-    $xidmod[$i] = $xidmodCode{"not-chars"};
-    $numericvalue[$i] = -1;
     $hanVariant[$i] = 0;
-    $bidicategory[$i] = $bidicategoryCode{"L"};
     $fullWidth[$i] = 0;
+    $fullWidthInverse[$i] = 0;
     $verticalOrientation[$i] = 1; # default for unlisted codepoints is 'R'
 }
 
-# blocks where the default for bidi category is not L
-for my $i (0x0600..0x07BF, 0x08A0..0x08FF, 0xFB50..0xFDCF, 0xFDF0..0xFDFF, 0xFE70..0xFEFF, 0x1EE00..0x0001EEFF) {
-  $bidicategory[$i] = $bidicategoryCode{"AL"};
-}
-for my $i (0x0590..0x05FF, 0x07C0..0x089F, 0xFB1D..0xFB4F, 0x00010800..0x00010FFF, 0x0001E800..0x0001EDFF, 0x0001EF00..0x0001EFFF) {
-  $bidicategory[$i] = $bidicategoryCode{"R"};
-}
-for my $i (0x20A0..0x20CF) {
-  $bidicategory[$i] = $bidicategoryCode{"ET"};
-}
-
-my %ucd2hb = (
-'Cc' => 'CONTROL',
-'Cf' => 'FORMAT',
-'Cn' => 'UNASSIGNED',
-'Co' => 'PRIVATE_USE',
-'Cs' => 'SURROGATE',
-'Ll' => 'LOWERCASE_LETTER',
-'Lm' => 'MODIFIER_LETTER',
-'Lo' => 'OTHER_LETTER',
-'Lt' => 'TITLECASE_LETTER',
-'Lu' => 'UPPERCASE_LETTER',
-'Mc' => 'SPACING_MARK',
-'Me' => 'ENCLOSING_MARK',
-'Mn' => 'NON_SPACING_MARK',
-'Nd' => 'DECIMAL_NUMBER',
-'Nl' => 'LETTER_NUMBER',
-'No' => 'OTHER_NUMBER',
-'Pc' => 'CONNECT_PUNCTUATION',
-'Pd' => 'DASH_PUNCTUATION',
-'Pe' => 'CLOSE_PUNCTUATION',
-'Pf' => 'FINAL_PUNCTUATION',
-'Pi' => 'INITIAL_PUNCTUATION',
-'Po' => 'OTHER_PUNCTUATION',
-'Ps' => 'OPEN_PUNCTUATION',
-'Sc' => 'CURRENCY_SYMBOL',
-'Sk' => 'MODIFIER_SYMBOL',
-'Sm' => 'MATH_SYMBOL',
-'So' => 'OTHER_SYMBOL',
-'Zl' => 'LINE_SEPARATOR',
-'Zp' => 'PARAGRAPH_SEPARATOR',
-'Zs' => 'SPACE_SEPARATOR'
-);
-
 # read ReadMe.txt
 my @versionInfo;
-open FH, "< $ARGV[1]/ReadMe.txt" or die "can't open Unicode ReadMe.txt file\n";
+open FH, "< $UNICODE/ReadMe.txt" or die "can't open Unicode ReadMe.txt file\n";
 while (<FH>) {
     chomp;
     push @versionInfo, $_;
 }
 close FH;
 
-my $kTitleToUpper = 0x80000000;
-my $kUpperToLower = 0x40000000;
-my $kLowerToTitle = 0x20000000;
-my $kLowerToUpper = 0x10000000;
-my $kCaseMapCharMask = 0x001fffff;
-
 # read UnicodeData.txt
-open FH, "< $ARGV[1]/UnicodeData.txt" or die "can't open UCD file UnicodeData.txt\n";
+open FH, "< $UNICODE/UnicodeData.txt" or die "can't open UCD file UnicodeData.txt\n";
 while (<FH>) {
     chomp;
     my @fields = split /;/;
@@ -429,12 +178,6 @@ while (<FH>) {
         if ($fields[1] =~ /Last/) {
             my $last = hex "0x$fields[0]";
             do {
-                $category[$first] = $catCode{$ucd2hb{$fields[2]}};
-                $combining[$first] = $fields[3];
-                $bidicategory[$first] = $bidicategoryCode{$fields[4]};
-                unless (length($fields[7]) == 0) {
-                  $numericvalue[$first] = $fields[7];
-                }
                 if ($fields[1] =~ /CJK/) {
                   @hanVariant[$first] = 3;
                 }
@@ -445,33 +188,6 @@ while (<FH>) {
         }
     } else {
         my $usv = hex "0x$fields[0]";
-        $category[$usv] = $catCode{$ucd2hb{$fields[2]}};
-        $combining[$usv] = $fields[3];
-        my $upper = hex $fields[12];
-        my $lower = hex $fields[13];
-        my $title = hex $fields[14];
-        # we only store one mapping for each character,
-        # but also record what kind of mapping it is
-        if ($upper && $lower) {
-            $casemap[$usv] |= $kTitleToUpper;
-            $casemap[$usv] |= ($usv ^ $upper);
-        }
-        elsif ($lower) {
-            $casemap[$usv] |= $kUpperToLower;
-            $casemap[$usv] |= ($usv ^ $lower);
-        }
-        elsif ($title && ($title != $upper)) {
-            $casemap[$usv] |= $kLowerToTitle;
-            $casemap[$usv] |= ($usv ^ $title);
-        }
-        elsif ($upper) {
-            $casemap[$usv] |= $kLowerToUpper;
-            $casemap[$usv] |= ($usv ^ $upper);
-        }
-        $bidicategory[$usv] = $bidicategoryCode{$fields[4]};
-        unless (length($fields[7]) == 0) {
-          $numericvalue[$usv] = $fields[7];
-        }
         if ($fields[1] =~ /CJK/) {
           @hanVariant[$usv] = 3;
         }
@@ -479,144 +195,39 @@ while (<FH>) {
           my $wideChar = hex(substr($fields[5], 9));
           die "didn't expect supplementary-plane values here" if $usv > 0xffff || $wideChar > 0xffff;
           $fullWidth[$usv] = $wideChar;
+          $fullWidthInverse[$wideChar] = $usv;
         }
         elsif ($fields[5] =~ /^<wide>/) {
           my $narrowChar = hex(substr($fields[5], 7));
           die "didn't expect supplementary-plane values here" if $usv > 0xffff || $narrowChar > 0xffff;
           $fullWidth[$narrowChar] = $usv;
+          $fullWidthInverse[$usv] = $narrowChar;
         }
     }
 }
 close FH;
 
-# read Scripts.txt
-open FH, "< $ARGV[1]/Scripts.txt" or die "can't open UCD file Scripts.txt\n";
-push @versionInfo, "";
-while (<FH>) {
-    chomp;
-    push @versionInfo, $_;
-    last if /Date:/;
-}
-while (<FH>) {
-    if (m/([0-9A-F]{4,6})(?:\.\.([0-9A-F]{4,6}))*\s+;\s+([^ ]+)/) {
-        my $script = uc($3);
-        warn "unknown script $script" unless exists $scriptCode{$script};
-        $script = $scriptCode{$script};
-        my $start = hex "0x$1";
-        my $end = (defined $2) ? hex "0x$2" : $start;
-        for (my $i = $start; $i <= $end; ++$i) {
-            $script[$i] = $script;
-        }
-    }
-}
-close FH;
-
-# read BidiMirroring.txt
-my @offsets = ();
-push @offsets, 0;
-
-open FH, "< $ARGV[1]/BidiMirroring.txt" or die "can't open UCD file BidiMirroring.txt\n";
-push @versionInfo, "";
-while (<FH>) {
-    chomp;
-    push @versionInfo, $_;
-    last if /Date:/;
-}
-while (<FH>) {
-    s/#.*//;
-    if (m/([0-9A-F]{4,6});\s*([0-9A-F]{4,6})/) {
-        my $mirrorOffset = hex("0x$2") - hex("0x$1");
-        my $offsetIndex = first { $offsets[$_] eq $mirrorOffset } 0..$#offsets;
-        if ($offsetIndex == undef) {
-            die "too many offset codes\n" if scalar @offsets == 31;
-            push @offsets, $mirrorOffset;
-            $offsetIndex = $#offsets;
-        }
-        $mirror[hex "0x$1"] = $offsetIndex;
-    }
-}
-close FH;
-
-# read BidiBrackets.txt
-my %pairedBracketTypeCode = (
-  'N' => 0,
-  'O' => 1,
-  'C' => 2
-);
-open FH, "< $ARGV[1]/BidiBrackets.txt" or die "can't open UCD file BidiBrackets.txt\n";
-push @versionInfo, "";
-while (<FH>) {
-    chomp;
-    push @versionInfo, $_;
-    last if /Date:/;
-}
-while (<FH>) {
-    s/#.*//;
-    if (m/([0-9A-F]{4,6});\s*([0-9A-F]{4,6});\s*(.)/) {
-        my $mirroredChar = $offsets[$mirror[hex "0x$1"]] + hex "0x$1";
-        die "bidi bracket does not match mirrored char\n" unless $mirroredChar == hex "0x$2";
-        my $pbt = uc($3);
-        warn "unknown Bidi Bracket type" unless exists $pairedBracketTypeCode{$pbt};
-        $pairedBracketType[hex "0x$1"] = $pairedBracketTypeCode{$pbt};
-    }
-}
-close FH;
-
-# read HangulSyllableType.txt
-my %hangulType = (
-  'L'   => 0x01,
-  'V'   => 0x02,
-  'T'   => 0x04,
-  'LV'  => 0x03,
-  'LVT' => 0x07
-);
-open FH, "< $ARGV[1]/HangulSyllableType.txt" or die "can't open UCD file HangulSyllableType.txt\n";
-push @versionInfo, "";
-while (<FH>) {
-    chomp;
-    push @versionInfo, $_;
-    last if /Date:/;
-}
-while (<FH>) {
-    s/#.*//;
-    if (m/([0-9A-F]{4,6})(?:\.\.([0-9A-F]{4,6}))*\s*;\s*([^ ]+)/) {
-        my $hangul = uc($3);
-        warn "unknown Hangul syllable type" unless exists $hangulType{$hangul};
-        $hangul = $hangulType{$hangul};
-        my $start = hex "0x$1";
-        my $end = (defined $2) ? hex "0x$2" : $start;
-        for (my $i = $start; $i <= $end; ++$i) {
-            $hangul[$i] = $hangul;
-        }
-    }
-}
-close FH;
-
-# read xidmodifications.txt
-open FH, "< $ARGV[1]/security/xidmodifications.txt" or die "can't open UCD file xidmodifications.txt\n";
+# read IdentifierStatus.txt
+open FH, "< $UNICODE/security/IdentifierStatus.txt" or die "can't open UCD file IdentifierStatus.txt\n";
 push @versionInfo, "";
 while (<FH>) {
   chomp;
-  unless (/\xef\xbb\xbf/) {
-    push @versionInfo, $_;
-  }
-  last if /Generated:/;
+  s/\xef\xbb\xbf//;
+  push @versionInfo, $_;
+  last if /Date:/;
 }
 while (<FH>) {
-  if (m/([0-9A-F]{4,6})(?:\.\.([0-9A-F]{4,6}))*\s+;\s+[^ ]+\s+;\s+([^ ]+)/) {
-    my $xidmod = $3;
-    warn "unknown Identifier Modification $xidmod" unless exists $xidmodCode{$xidmod};
-    $xidmod = $xidmodCode{$xidmod};
+  if (m/([0-9A-F]{4,6})(?:\.\.([0-9A-F]{4,6}))*\s+;\s+Allowed/) {
     my $start = hex "0x$1";
     my $end = (defined $2) ? hex "0x$2" : $start;
     for (my $i = $start; $i <= $end; ++$i) {
-      $xidmod[$i] = $xidmod;
+      $idtype[$i] = $mappedIdType{'Allowed'};
     }
   }
 }
 close FH;
 
-open FH, "< $ARGV[1]/Unihan_Variants.txt" or die "can't open UCD file Unihan_Variants.txt (from Unihan.zip)\n";
+open FH, "< $UNICODE/Unihan_Variants.txt" or die "can't open UCD file Unihan_Variants.txt (from Unihan.zip)\n";
 push @versionInfo, "";
 while (<FH>) {
   chomp;
@@ -652,8 +263,8 @@ while (<FH>) {
 }
 close FH;
 
-# read VerticalOrientation-13.txt
-open FH, "< $ARGV[1]/vertical/VerticalOrientation-13.txt" or die "can't open UTR50 data file VerticalOrientation-13.txt\n";
+# read VerticalOrientation-17.txt
+open FH, "< $UNICODE/vertical/VerticalOrientation-17.txt" or die "can't open UTR50 data file VerticalOrientation-17.txt\n";
 push @versionInfo, "";
 while (<FH>) {
     chomp;
@@ -732,60 +343,26 @@ $versionInfo
 
 __END
 
-print DATA_TABLES "static const uint32_t sScriptCodeToTag[] = {\n";
-for (my $i = 0; $i < scalar @scriptCodeToTag; ++$i) {
-  printf DATA_TABLES "  HB_TAG(%s)", $scriptCodeToTag[$i];
-  print DATA_TABLES $i < $#scriptCodeToTag ? ",\n" : "\n";
-}
-print DATA_TABLES "};\n\n";
-
 our $totalData = 0;
-
-print DATA_TABLES "static const int16_t sMirrorOffsets[] = {\n";
-for (my $i = 0; $i < scalar @offsets; ++$i) {
-    printf DATA_TABLES "  $offsets[$i]";
-    print DATA_TABLES $i < $#offsets ? ",\n" : "\n";
-}
-print DATA_TABLES "};\n\n";
 
 print HEADER "#pragma pack(1)\n\n";
 
-sub sprintCharProps1
+sub sprintCharProps2_short
 {
   my $usv = shift;
-  return sprintf("{%d,%d,%d}, ", $mirror[$usv], $hangul[$usv], $combining[$usv]);
+  return sprintf("{%d,%d},",
+                 $verticalOrientation[$usv], $idtype[$usv]);
 }
-my $type = q/
-struct nsCharProps1 {
-  unsigned char mMirrorOffsetIndex:5;
-  unsigned char mHangulType:3;
-  unsigned char mCombiningClass:8;
-};
-/;
-print DATA_TABLES "#ifndef ENABLE_INTL_API\n";
-&genTables("CharProp1", $type, "nsCharProps1", 11, 5, \&sprintCharProps1, 1, 2, 1);
-print DATA_TABLES "#endif\n\n";
-
-sub sprintCharProps2
-{
-  my $usv = shift;
-  return sprintf("{%d,%d,%d,%d,%d,%d,%d},",
-                 $script[$usv], $pairedBracketType[$usv], $category[$usv],
-                 $bidicategory[$usv], $xidmod[$usv], $numericvalue[$usv],
-                 $verticalOrientation[$usv]);
-}
-$type = q|
+my $type = q|
 struct nsCharProps2 {
-  unsigned char mScriptCode:8;
-  unsigned char mPairedBracketType:3; // only 2 bits actually needed
-  unsigned char mCategory:5;
-  unsigned char mBidiCategory:5;
-  unsigned char mXidmod:4;
-  signed char   mNumericValue:5;
+  // Currently only 4 bits are defined here, so 4 more could be added without
+  // affecting the storage requirements for this struct. Or we could pack two
+  // records per byte, at the cost of a slightly more complex accessor.
   unsigned char mVertOrient:2;
+  unsigned char mIdType:2;
 };
 |;
-&genTables("CharProp2", $type, "nsCharProps2", 11, 5, \&sprintCharProps2, 16, 4, 1);
+&genTables("CharProp2", $type, "nsCharProps2", 9, 7, \&sprintCharProps2_short, 16, 1, 1);
 
 print HEADER "#pragma pack()\n\n";
 
@@ -800,7 +377,8 @@ sub sprintHanVariants
   }
   return sprintf("0x%02x,", $val);
 }
-&genTables("HanVariant", "", "uint8_t", 9, 7, \&sprintHanVariants, 2, 1, 4);
+## Han Variant data currently unused but may be needed in future, see bug 857481
+## &genTables("HanVariant", "", "uint8_t", 9, 7, \&sprintHanVariants, 2, 1, 4);
 
 sub sprintFullWidth
 {
@@ -809,24 +387,22 @@ sub sprintFullWidth
 }
 &genTables("FullWidth", "", "uint16_t", 10, 6, \&sprintFullWidth, 0, 2, 1);
 
-sub sprintCasemap
+sub sprintFullWidthInverse
 {
   my $usv = shift;
-  return sprintf("0x%08x,", $casemap[$usv]);
+  return sprintf("0x%04x,", $fullWidthInverse[$usv]);
 }
-&genTables("CaseMap", "", "uint32_t", 11, 5, \&sprintCasemap, 1, 4, 1);
+&genTables("FullWidthInverse", "", "uint16_t", 10, 6, \&sprintFullWidthInverse, 0, 2, 1);
 
 print STDERR "Total data = $totalData\n";
-
-printf DATA_TABLES "const uint32_t kTitleToUpper = 0x%08x;\n", $kTitleToUpper;
-printf DATA_TABLES "const uint32_t kUpperToLower = 0x%08x;\n", $kUpperToLower;
-printf DATA_TABLES "const uint32_t kLowerToTitle = 0x%08x;\n", $kLowerToTitle;
-printf DATA_TABLES "const uint32_t kLowerToUpper = 0x%08x;\n", $kLowerToUpper;
-printf DATA_TABLES "const uint32_t kCaseMapCharMask = 0x%08x;\n\n", $kCaseMapCharMask;
 
 sub genTables
 {
   my ($prefix, $typedef, $type, $indexBits, $charBits, $func, $maxPlane, $bytesPerEntry, $charsPerEntry) = @_;
+
+  if ($typedef ne '') {
+    print HEADER "$typedef\n";
+  }
 
   print DATA_TABLES "#define k${prefix}MaxPlane  $maxPlane\n";
   print DATA_TABLES "#define k${prefix}IndexBits $indexBits\n";
@@ -888,8 +464,6 @@ sub genTables
   }
   print DATA_TABLES "};\n\n";
 
-  print HEADER "$typedef\n\n" if $typedef ne '';
-
   my $pageLen = $charsPerPage / $charsPerEntry;
   print DATA_TABLES "static const $type s${prefix}Values[$chCount][$pageLen] = {\n";
   for (my $i = 0; $i < scalar @char; ++$i) {
@@ -897,7 +471,7 @@ sub genTables
     print DATA_TABLES $char[$i];
     print DATA_TABLES $i < $#char ? "},\n" : "}\n";
   }
-  print DATA_TABLES "};\n\n";
+  print DATA_TABLES "};\n";
 
   my $dataSize = $pmCount * $indexLen * $pmBits/8 +
                  $chCount * $pageLen * $bytesPerEntry + 
@@ -915,13 +489,17 @@ __END
 
 close DATA_TABLES;
 
-print HEADER "enum {\n";
+print HEADER "namespace mozilla {\n";
+print HEADER "namespace unicode {\n";
+print HEADER "enum class Script : int16_t {\n";
 for (my $i = 0; $i < scalar @scriptCodeToName; ++$i) {
-  print HEADER "  MOZ_SCRIPT_", $scriptCodeToName[$i], " = ", $i, ",\n";
+  print HEADER "  ", $scriptCodeToName[$i], " = ", $i, ",\n";
 }
-print HEADER "\n  MOZ_NUM_SCRIPT_CODES = ", scalar @scriptCodeToName, ",\n";
-print HEADER "\n  MOZ_SCRIPT_INVALID = -1\n";
-print HEADER "};\n\n";
+print HEADER "\n  NUM_SCRIPT_CODES = ", scalar @scriptCodeToName, ",\n";
+print HEADER "\n  INVALID = -1\n";
+print HEADER "};\n";
+print HEADER "} // namespace unicode\n";
+print HEADER "} // namespace mozilla\n\n";
 
 print HEADER <<__END;
 #endif

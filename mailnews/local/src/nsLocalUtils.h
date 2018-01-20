@@ -6,7 +6,7 @@
 #ifndef NS_LOCALUTILS_H
 #define NS_LOCALUTILS_H
 
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsIMsgIncomingServer.h"
 
 static const char kMailboxRootURI[] = "mailbox:/";
@@ -18,7 +18,7 @@ nsLocalURI2Path(const char* rootURI, const char* uriStr, nsCString& pathResult);
 nsresult
 nsParseLocalMessageURI(const char* uri, nsCString& folderURI, nsMsgKey *key);
 
-nsresult 
+nsresult
 nsBuildLocalMessageURI(const char* baseURI, nsMsgKey key, nsCString& uri);
 
 nsresult

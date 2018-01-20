@@ -1,5 +1,6 @@
 Cu.import("resource://testing-common/httpd.js");
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/NetUtil.jsm");
 
 var httpServer = null;
 // Need to randomize, because apparently no one clears our cache
@@ -10,25 +11,15 @@ XPCOMUtils.defineLazyGetter(this, "randomURI", function() {
 });
 
 var cacheUpdateObserver = null;
-var systemPrincipal = Services.scriptSecurityManager.getSystemPrincipal();
 
 function make_channel(url, callback, ctx) {
-  var ios = Cc["@mozilla.org/network/io-service;1"].
-            getService(Ci.nsIIOService);
-  return ios.newChannel2(url,
-                         "",
-                         null,
-                         null,      // aLoadingNode
-                         systemPrincipal,
-                         null,      // aTriggeringPrincipal
-                         Ci.nsILoadInfo.SEC_NORMAL,
-                         Ci.nsIContentPolicy.TYPE_OTHER);
+  return NetUtil.newChannel({uri: url, loadUsingSystemPrincipal: true});
 }
 
 function make_uri(url) {
   var ios = Cc["@mozilla.org/network/io-service;1"].
             getService(Ci.nsIIOService);
-  return ios.newURI(url, null, null);
+  return ios.newURI(url);
 }
 
 var responseBody = "Content body";
@@ -94,7 +85,7 @@ function run_test()
     .getService(Ci.nsIPrefBranch);
   dump(ps.getBoolPref("browser.cache.offline.enable"));
   ps.setBoolPref("browser.cache.offline.enable", true);
-  ps.setComplexValue("browser.cache.offline.parent_directory", Ci.nsILocalFile, do_get_profile());
+  ps.setComplexValue("browser.cache.offline.parent_directory", Ci.nsIFile, do_get_profile());
 
   cacheUpdateObserver = {observe: function() {
     dump("got offline-cache-update-completed\n");
@@ -108,14 +99,14 @@ function run_test()
       chan.notificationCallbacks = new ChannelEventSink(ES_ABORT_REDIRECT);
       var chanac = chan.QueryInterface(Ci.nsIApplicationCacheChannel);
       chanac.chooseApplicationCache = true;
-      chan.asyncOpen(new ChannelListener(finish_test, null, CL_EXPECT_FAILURE), null);
+      chan.asyncOpen2(new ChannelListener(finish_test, null, CL_EXPECT_FAILURE));
     });
   }}
 
 
   var os = Cc["@mozilla.org/observer-service;1"].
            getService(Ci.nsIObserverService);
-  os.addObserver(cacheUpdateObserver, "offline-cache-update-completed", false);
+  os.addObserver(cacheUpdateObserver, "offline-cache-update-completed");
 
   var us = Cc["@mozilla.org/offlinecacheupdate-service;1"].
            getService(Ci.nsIOfflineCacheUpdateService);
@@ -123,7 +114,7 @@ function run_test()
                              httpServer.identity.primaryPort + "/manifest"),
                     make_uri("http://localhost:" +
                              httpServer.identity.primaryPort + "/masterEntry"),
-                    systemPrincipal,
+                    Services.scriptSecurityManager.getSystemPrincipal(),
                     null);
 
   do_test_pending();

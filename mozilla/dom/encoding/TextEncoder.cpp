@@ -5,35 +5,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/dom/TextEncoder.h"
-#include "mozilla/dom/EncodingUtils.h"
-#include "nsContentUtils.h"
+#include "mozilla/Encoding.h"
 
 namespace mozilla {
 namespace dom {
 
 void
-TextEncoder::Init(const nsAString& aEncoding, ErrorResult& aRv)
+TextEncoder::Init()
 {
-  nsAutoString label(aEncoding);
-  EncodingUtils::TrimSpaceCharacters(label);
-
-  // Let encoding be the result of getting an encoding from label.
-  // If encoding is failure, or is none of utf-8, utf-16, and utf-16be,
-  // throw a RangeError (https://encoding.spec.whatwg.org/#dom-textencoder).
-  if (!EncodingUtils::FindEncodingForLabel(label, mEncoding)) {
-    aRv.ThrowRangeError<MSG_ENCODING_NOT_SUPPORTED>(label);
-    return;
-  }
-
-  if (!mEncoding.EqualsLiteral("UTF-8") &&
-      !mEncoding.EqualsLiteral("UTF-16LE") &&
-      !mEncoding.EqualsLiteral("UTF-16BE")) {
-    aRv.ThrowRangeError<MSG_DOM_ENCODING_NOT_UTF>();
-    return;
-  }
-
-  // Create an encoder object for mEncoding.
-  mEncoder = EncodingUtils::EncoderForEncoding(mEncoding);
 }
 
 void
@@ -43,56 +22,30 @@ TextEncoder::Encode(JSContext* aCx,
                     JS::MutableHandle<JSObject*> aRetval,
                     ErrorResult& aRv)
 {
-  // Run the steps of the encoding algorithm.
-  int32_t srcLen = aString.Length();
-  int32_t maxLen;
-  const char16_t* data = aString.BeginReading();
-  nsresult rv = mEncoder->GetMaxLength(data, srcLen, &maxLen);
+  nsAutoCString utf8;
+  nsresult rv;
+  const Encoding* ignored;
+  Tie(rv, ignored) = UTF_8_ENCODING->Encode(aString, utf8);
   if (NS_FAILED(rv)) {
     aRv.Throw(rv);
     return;
   }
-  // Need a fallible allocator because the caller may be a content
-  // and the content can specify the length of the string.
-  nsAutoArrayPtr<char> buf(new (fallible) char[maxLen + 1]);
-  if (!buf) {
+
+  JSAutoCompartment ac(aCx, aObj);
+  JSObject* outView = Uint8Array::Create(
+    aCx, utf8.Length(), reinterpret_cast<const uint8_t*>(utf8.BeginReading()));
+  if (!outView) {
     aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
     return;
   }
 
-  int32_t dstLen = maxLen;
-  rv = mEncoder->Convert(data, &srcLen, buf, &dstLen);
-
-  // Now reset the encoding algorithm state to the default values for encoding.
-  int32_t finishLen = maxLen - dstLen;
-  rv = mEncoder->Finish(buf + dstLen, &finishLen);
-  if (NS_SUCCEEDED(rv)) {
-    dstLen += finishLen;
-  }
-
-  JSObject* outView = nullptr;
-  if (NS_SUCCEEDED(rv)) {
-    buf[dstLen] = '\0';
-    JSAutoCompartment ac(aCx, aObj);
-    outView = Uint8Array::Create(aCx, dstLen,
-                                 reinterpret_cast<uint8_t*>(buf.get()));
-    if (!outView) {
-      aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
-      return;
-    }
-  }
-
-  if (NS_FAILED(rv)) {
-    aRv.Throw(rv);
-  }
   aRetval.set(outView);
 }
 
 void
 TextEncoder::GetEncoding(nsAString& aEncoding)
 {
-  CopyASCIItoUTF16(mEncoding, aEncoding);
-  nsContentUtils::ASCIIToLower(aEncoding);
+  aEncoding.AssignLiteral("utf-8");
 }
 
 } // namespace dom

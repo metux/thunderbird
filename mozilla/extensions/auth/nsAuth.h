@@ -16,11 +16,11 @@ enum pType {
 
 //
 // in order to do logging, the following environment variables need to be set:
-// 
+//
 //      set NSPR_LOG_MODULES=negotiateauth:4
 //      set NSPR_LOG_FILE=negotiateauth.log
 //
-extern PRLogModuleInfo* gNegotiateLog;
+extern mozilla::LazyLogModule gNegotiateLog;
 
 #define LOG(args) MOZ_LOG(gNegotiateLog, mozilla::LogLevel::Debug, args)
 

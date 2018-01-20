@@ -12,18 +12,16 @@ var quotaURI;
 var permURI;
 
 function visitURI(uri, timestamp) {
-  return addVisit({
+  return PlacesTestUtils.addVisits({
     uri: uri,
     title: uri.spec,
-    visits: [{
-      visitDate: timestamp * 1000,
-      transitionType: Ci.nsINavHistoryService.TRANSITION_LINK,
-    }],
+    visitDate: timestamp * 1000,
+    transition: Ci.nsINavHistoryService.TRANSITION_LINK
   });
 }
 
-var putRecord = Task.async(function* ({scope, perm, quota, lastPush, lastVisit}) {
-  let uri = Services.io.newURI(scope, null, null);
+var putRecord = async function({scope, perm, quota, lastPush, lastVisit}) {
+  let uri = Services.io.newURI(scope);
 
   Services.perms.add(uri, 'desktop-notification',
     Ci.nsIPermissionManager[perm]);
@@ -31,11 +29,11 @@ var putRecord = Task.async(function* ({scope, perm, quota, lastPush, lastVisit})
     Services.perms.remove(uri, 'desktop-notification');
   });
 
-  yield visitURI(uri, lastVisit);
+  await visitURI(uri, lastVisit);
 
-  yield db.put({
-    channelID: uri.path,
-    pushEndpoint: 'https://example.org/push' + uri.path,
+  await db.put({
+    channelID: uri.pathQueryRef,
+    pushEndpoint: 'https://example.org/push' + uri.pathQueryRef,
     scope: uri.spec,
     pushCount: 0,
     lastPush: lastPush,
@@ -45,7 +43,7 @@ var putRecord = Task.async(function* ({scope, perm, quota, lastPush, lastVisit})
   });
 
   return uri;
-});
+};
 
 function run_test() {
   do_get_profile();
@@ -59,11 +57,11 @@ function run_test() {
   run_next_test();
 }
 
-add_task(function* setUp() {
+add_task(async function setUp() {
   // An expired registration that should be evicted on startup. Permission is
   // granted for this origin, and the last visit is more recent than the last
   // push message.
-  yield putRecord({
+  await putRecord({
     scope: 'https://example.com/expired-quota-restored',
     perm: 'ALLOW_ACTION',
     quota: 0,
@@ -73,7 +71,7 @@ add_task(function* setUp() {
 
   // An expired registration that we should evict when the origin is visited
   // again.
-  quotaURI = yield putRecord({
+  quotaURI = await putRecord({
     scope: 'https://example.xyz/expired-quota-exceeded',
     perm: 'ALLOW_ACTION',
     quota: 0,
@@ -83,7 +81,7 @@ add_task(function* setUp() {
 
   // An expired registration that we should evict when permission is granted
   // again.
-  permURI = yield putRecord({
+  permURI = await putRecord({
     scope: 'https://example.info/expired-perm-revoked',
     perm: 'DENY_ACTION',
     quota: 0,
@@ -92,7 +90,7 @@ add_task(function* setUp() {
   });
 
   // An active registration that we should leave alone.
-  yield putRecord({
+  await putRecord({
     scope: 'https://example.ninja/active',
     perm: 'ALLOW_ACTION',
     quota: 16,
@@ -101,13 +99,12 @@ add_task(function* setUp() {
   });
 
   let subChangePromise = promiseObserverNotification(
-    'push-subscription-change',
+    PushServiceComponent.subscriptionChangeTopic,
     (subject, data) => data == 'https://example.com/expired-quota-restored'
   );
 
   PushService.init({
     serverURI: 'wss://push.example.org/',
-    networkInfo: new MockDesktopNetworkInfo(),
     db,
     makeWebSocket(uri) {
       return new MockWebSocket(uri, {
@@ -118,36 +115,40 @@ add_task(function* setUp() {
             uaid: userAgentID,
           }));
         },
+        onUnregister(request) {
+          this.serverSendMsg(JSON.stringify({
+            messageType: 'unregister',
+            channelID: request.channelID,
+            status: 200,
+          }));
+        },
       });
     },
   });
 
-  yield waitForPromise(subChangePromise, DEFAULT_TIMEOUT,
-    'Timed out waiting for subscription change event on startup');
+  await subChangePromise;
 });
 
-add_task(function* test_site_visited() {
+add_task(async function test_site_visited() {
   let subChangePromise = promiseObserverNotification(
-    'push-subscription-change',
+    PushServiceComponent.subscriptionChangeTopic,
     (subject, data) => data == 'https://example.xyz/expired-quota-exceeded'
   );
 
-  yield visitURI(quotaURI, Date.now());
+  await visitURI(quotaURI, Date.now());
   PushService.observe(null, 'idle-daily', '');
 
-  yield waitForPromise(subChangePromise, DEFAULT_TIMEOUT,
-    'Timed out waiting for subscription change event after visit');
+  await subChangePromise;
 });
 
-add_task(function* test_perm_restored() {
+add_task(async function test_perm_restored() {
   let subChangePromise = promiseObserverNotification(
-    'push-subscription-change',
+    PushServiceComponent.subscriptionChangeTopic,
     (subject, data) => data == 'https://example.info/expired-perm-revoked'
   );
 
   Services.perms.add(permURI, 'desktop-notification',
     Ci.nsIPermissionManager.ALLOW_ACTION);
 
-  yield waitForPromise(subChangePromise, DEFAULT_TIMEOUT,
-    'Timed out waiting for subscription change event after permission');
+  await subChangePromise;
 });

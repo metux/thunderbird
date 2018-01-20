@@ -4,12 +4,12 @@
 
 function testContent(text) {
   return ContentTask.spawn(gBrowser.selectedBrowser, text, text => {
-    is(content.document.getElementById("testpar").innerHTML, text,
-       "<p> contains expected text");
-    is(content.document.getElementById("testtextarea").innerHTML, text,
-       "<textarea> contains expected text");
-    is(content.document.getElementById("testinput").value, text,
-       "<input> contains expected text");
+    Assert.equal(content.document.getElementById("testpar").innerHTML, text,
+      "<p> contains expected text");
+    Assert.equal(content.document.getElementById("testtextarea").innerHTML, text,
+      "<textarea> contains expected text");
+    Assert.equal(content.document.getElementById("testinput").value, text,
+      "<input> contains expected text");
   });
 }
 
@@ -49,6 +49,6 @@ function test() {
               getChromeDir(getResolvedURI(gTestPath));
   var rootDir = Services.io.newFileURI(dir).spec;
 
-  gBrowser.selectedTab = gBrowser.addTab(rootDir + "test-form_sjis.html");
+  gBrowser.selectedTab = BrowserTestUtils.addTab(gBrowser, rootDir + "test-form_sjis.html");
   BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser).then(afterOpen);
 }

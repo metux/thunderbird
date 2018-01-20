@@ -41,7 +41,7 @@ namespace mozilla {
  * Dispatch or Skip.
  *
  */
-class CryptoTask : public nsRunnable,
+class CryptoTask : public Runnable,
                    public nsNSSShutDownObject
 {
 public:
@@ -62,8 +62,9 @@ public:
 
 protected:
   CryptoTask()
-    : mRv(NS_ERROR_NOT_INITIALIZED),
-      mReleasedNSSResources(false)
+    : Runnable("CryptoTask")
+    , mRv(NS_ERROR_NOT_INITIALIZED)
+    , mReleasedNSSResources(false)
   {
   }
 

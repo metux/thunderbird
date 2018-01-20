@@ -7,7 +7,7 @@
 const I                    = Components.interfaces;
 const C                    = Components.classes;
 
-const nsILocalFile         = I.nsILocalFile;
+const nsIFile         = I.nsIFile;
 const nsIProperties        = I.nsIProperties;
 const nsIFileInputStream   = I.nsIFileInputStream;
 const nsIInputStream       = I.nsIInputStream;
@@ -41,12 +41,12 @@ function ParseFile(file) {
     file = fileObj;
   }
 
-  do_check_eq(file instanceof nsILocalFile, true);
+  do_check_eq(file instanceof nsIFile, true);
 
   var fileStr = C["@mozilla.org/network/file-input-stream;1"]
                  .createInstance(nsIFileInputStream);
   // Init for readonly reading
-  fileStr.init(file,  0x01, 0400, nsIFileInputStream.CLOSE_ON_EOF);
+  fileStr.init(file,  0x01, 0o400, nsIFileInputStream.CLOSE_ON_EOF);
   return ParseXML(fileStr);
 }
 

@@ -353,7 +353,7 @@ function SwitchView(command)
 
   // clear the QS text, if we need to
   ClearQSIfNecessary();
-  
+
   // now switch views
   var oldSortType = gDBView ? gDBView.sortType : nsMsgViewSortType.byThread;
   var oldSortOrder = gDBView ? gDBView.sortOrder : nsMsgViewSortOrder.ascending;
@@ -362,7 +362,7 @@ function SwitchView(command)
   // close existing view.
   if (gDBView) {
     gDBView.close();
-    gDBView = null; 
+    gDBView = null;
   }
 
   switch(command)
@@ -419,7 +419,7 @@ function SetSentFolderColumns(isSentFolder)
   {
     var senderColumn = document.getElementById("senderCol");
     var recipientColumn = document.getElementById("recipientCol");
-    
+
     var saveHidden = senderColumn.getAttribute("hidden");
     senderColumn.setAttribute("hidden", senderColumn.getAttribute("swappedhidden"));
     senderColumn.setAttribute("swappedhidden", saveHidden);
@@ -667,7 +667,7 @@ function CreateBareDBView(originalView, msgFolder, viewType, viewFlags, sortType
       gViewSearchListener = gDBView.QueryInterface(Components.interfaces.nsIMsgSearchNotify);
       gSearchSession.registerListener(gViewSearchListener);
     }
-  } 
+  }
   else {
     gDBView = originalView.cloneDBView(messenger, msgWindow, gThreadPaneCommandUpdater);
   }
@@ -744,9 +744,9 @@ function FolderPaneSelectionChange()
             gCurrentVirtualFolderUri = null;
             // don't get the db if this folder is a server
             // we're going to be display account central
-            if (!(msgFolder.isServer)) 
+            if (!(msgFolder.isServer))
             {
-              try 
+              try
               {
                 var msgDatabase = msgFolder.msgDatabase;
                 if (msgDatabase)
@@ -786,7 +786,7 @@ function FolderPaneSelectionChange()
                       realFolder = GetMsgFolderFromUri(uriToLoad);
                       msgDatabase = realFolder.msgDatabase;
 //                      dump("search term string = " + searchTermString + "\n");
-                    
+
                       gVirtualFolderTerms = CreateGroupedSearchTerms(tempFilter.searchTerms);
                     }
                   }
@@ -805,10 +805,10 @@ function FolderPaneSelectionChange()
               if (gPreQuickSearchView) //close cached view before quick search
               {
                 gPreQuickSearchView.close();
-                gPreQuickSearchView = null;  
+                gPreQuickSearchView = null;
               }
               var searchInput = document.getElementById("searchInput");  //reset the search input on folder switch
-              if (searchInput) 
+              if (searchInput)
                 searchInput.value = "";
             }
             ClearMessagePane();
@@ -844,14 +844,14 @@ function FolderPaneSelectionChange()
         loadStartPage();
         gDisplayStartupPage = false;
         UpdateMailToolbar("gDisplayStartupPage");
-    }    
+    }
 }
 
 function ClearThreadPane()
 {
   if (gDBView) {
     gDBView.close();
-    gDBView = null; 
+    gDBView = null;
   }
 }
 
@@ -863,7 +863,7 @@ var mailOfflineObserver = {
   }
 }
 
-function AddMailOfflineObserver() 
+function AddMailOfflineObserver()
 {
   Services.obs.addObserver(mailOfflineObserver, "network:offline-status-changed", false);
 }
@@ -880,11 +880,11 @@ function getSearchTermString(searchTerms)
   var count = searchTerms.Count();
   for (searchIndex = 0; searchIndex < count; )
   {
-    var term = searchTerms.QueryElementAt(searchIndex++, Components.interfaces.nsIMsgSearchTerm);
-    
+    var term = searchTerms.queryElementAt(searchIndex++, Components.interfaces.nsIMsgSearchTerm);
+
     if (condition.length > 1)
       condition += ' ';
-    
+
     if (term.matchAll)
     {
         condition = "ALL";
@@ -899,7 +899,7 @@ function getSearchTermString(searchTerms)
 function  CreateVirtualFolder(newName, parentFolder, searchFolderURIs, searchTerms, searchOnline)
 {
   // ### need to make sure view/folder doesn't exist.
-  if (searchFolderURIs && (searchFolderURIs != "") && newName && (newName != "")) 
+  if (searchFolderURIs && (searchFolderURIs != "") && newName && (newName != ""))
   {
     var newFolder;
     try
@@ -929,10 +929,10 @@ function  CreateVirtualFolder(newName, parentFolder, searchFolderURIs, searchTer
       dump ("Exception : creating virtual folder \n");
     }
   }
-  else 
+  else
   {
     dump("no name or nothing selected\n");
-  }   
+  }
 }
 
 var searchSessionContractID = "@mozilla.org/messenger/searchSession;1";
@@ -956,7 +956,7 @@ var gViewSearchListener;
 
 var gMailSession;
 
-function GetScopeForFolder(folder) 
+function GetScopeForFolder(folder)
 {
   return folder.server.searchScope;
 }
@@ -978,26 +978,33 @@ function setupXFVirtualFolderSearch(folderUrisToSearch, searchTerms, searchOnlin
         gSearchSession.addScopeTerm(!searchOnline ? nsMsgSearchScope.offlineMail : GetScopeForFolder(realFolder), realFolder);
     }
 
-    var termsArray = searchTerms.QueryInterface(Components.interfaces.nsISupportsArray);
     const nsIMsgSearchTerm = Components.interfaces.nsIMsgSearchTerm;
-    for (let term in fixIterator(termsArray, nsIMsgSearchTerm)) {
+    for (let term of fixIterator(searchTerms, nsIMsgSearchTerm)) {
       gSearchSession.appendTerm(term);
     }
 }
 
+/**
+ * Uses an array of search terms to produce a new list usable from quick search.
+ *
+ * @param searchTermsArray  A nsIArray of terms to copy.
+ *
+ * @return nsIMutableArray of search terms
+ */
 function CreateGroupedSearchTerms(searchTermsArray)
 {
 
-  var searchSession = gSearchSession || 
+  var searchSession = gSearchSession ||
     Components.classes[searchSessionContractID].createInstance(Components.interfaces.nsIMsgSearchSession);
 
-  // create a temporary isupports array to store our search terms
-  // since we will be modifying the terms so they work with quick search
-  var searchTermsArrayForQS = Components.classes["@mozilla.org/supports-array;1"].createInstance(Components.interfaces.nsISupportsArray);
-  
-  var numEntries = searchTermsArray.Count();
-  for (var i = 0; i < numEntries; i++) {
-    var searchTerm = searchTermsArray.GetElementAt(i).QueryInterface(Components.interfaces.nsIMsgSearchTerm); 
+  // Create a temporary nsIMutableArray to store our search terms
+  // since we will be modifying the terms so they work with quick search.
+  var searchTermsArrayForQS = Components.classes["@mozilla.org/array;1"]
+                                        .createInstance(Components.interfaces.nsIMutableArray);
+
+  var numEntries = searchTermsArray.length;
+  for (let i = 0; i < numEntries; i++) {
+    let searchTerm = searchTermsArray.queryElementAt(i, Components.interfaces.nsIMsgSearchTerm);
 
     // clone the term, since we might be modifying it
     var searchTermForQS = searchSession.createTerm();
@@ -1015,9 +1022,9 @@ function CreateGroupedSearchTerms(searchTermsArray)
       searchTermForQS.endsGrouping = true;
 
     // turn the first term to true to work with quick search...
-    searchTermForQS.booleanAnd = i ? searchTerm.booleanAnd : true; 
-    
-    searchTermsArrayForQS.AppendElement(searchTermForQS);
+    searchTermForQS.booleanAnd = i ? searchTerm.booleanAnd : true;
+
+    searchTermsArrayForQS.appendElement(searchTermForQS);
   }
   return searchTermsArrayForQS;
 }

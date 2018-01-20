@@ -125,8 +125,7 @@ var folderListener =
     // handle the currently visible folder
     if (item == gMsgFolderSelected)
     {
-      let prop = property.toString();
-      if (prop == "TotalMessages" || prop == "TotalUnreadMessages")
+      if (property == "TotalMessages" || property == "TotalUnreadMessages")
       {
         UpdateStatusMessageCounts(gMsgFolderSelected);
         item = item.QueryInterface(Components.interfaces.nsIRDFResource);
@@ -154,8 +153,7 @@ var folderListener =
   },
 
     OnItemEvent: function(folder, event) {
-      var eventType = event.toString();
-      if (eventType == "FolderLoaded") {
+      if (event == "FolderLoaded") {
         if (folder) {
           const nsMsgFolderFlags = Components.interfaces.nsMsgFolderFlags;
           var scrolled = false;
@@ -263,7 +261,7 @@ var folderListener =
           }
         }
       }
-      else if (eventType == "ImapHdrDownloaded") {
+      else if (event == "ImapHdrDownloaded") {
         if (folder) {
           var imapFolder = folder.QueryInterface(Components.interfaces.nsIMsgImapMailFolder);
           if (imapFolder) {
@@ -285,23 +283,23 @@ var folderListener =
           }
         }
       }
-      else if (eventType == "DeleteOrMoveMsgCompleted") {
+      else if (event == "DeleteOrMoveMsgCompleted") {
         HandleDeleteOrMoveMsgCompleted(folder);
       }
-      else if (eventType == "DeleteOrMoveMsgFailed") {
+      else if (event == "DeleteOrMoveMsgFailed") {
         HandleDeleteOrMoveMsgFailed(folder);
       }
-      else if (eventType == "AboutToCompact") {
+      else if (event == "AboutToCompact") {
         if (gDBView)
           gCurrentlyDisplayedMessage = gDBView.currentlyDisplayedMessage;
       }
-      else if (eventType == "CompactCompleted") {
+      else if (event == "CompactCompleted") {
         HandleCompactCompleted(folder);
       }
-      else if (eventType == "RenameCompleted") {
+      else if (event == "RenameCompleted") {
         SelectFolder(folder.URI);
       }
-      else if (eventType == "JunkStatusChanged") {
+      else if (event == "JunkStatusChanged") {
         HandleJunkStatusChanged(folder);
       }
     }
@@ -675,6 +673,28 @@ function OnLoadMessenger()
   Create3PaneGlobals();
   verifyAccounts(null, false);
   msgDBCacheManager.init();
+
+  // set the messenger default window size relative to the screen size
+  // initial default dimensions are 2/3 and 1/2 of the screen dimensions
+  if (!document.documentElement.hasAttribute("width")) {
+    let screenHeight  = window.screen.availHeight;
+    let screenWidth   = window.screen.availWidth;
+    let defaultHeight = Math.floor(screenHeight * 2 / 3);
+    let defaultWidth  = Math.floor(screenWidth / 2);
+
+    // minimum dimensions are 1024x768 less padding unless restrained by screen
+    const minHeight = 768;
+    const minWidth = 1024;
+
+    if (defaultHeight < minHeight)
+       defaultHeight = Math.min(minHeight, screenHeight);
+    if (defaultWidth < minWidth)
+       defaultWidth = Math.min(minWidth, screenWidth);
+
+    // keep some distance to the borders, accounting for window decoration
+    document.documentElement.setAttribute("height", defaultHeight - 48);
+    document.documentElement.setAttribute("width",  defaultWidth  - 24);
+  }
 
   // initialize tabmail system - see tabmail.js and tabmail.xml for details
   let tabmail = GetTabMail();

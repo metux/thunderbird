@@ -5,10 +5,6 @@ var {classes: Cc, interfaces: Ci, results: Cr, utils: Cu, manager: Cm} = Compone
 
 Cu.import("resource://gre/modules/Preferences.jsm");
 
-function run_test() {
-  run_next_test();
-}
-
 add_test(function test_set_get_pref() {
   Preferences.set("test_set_get_pref.integer", 1);
   do_check_eq(Preferences.get("test_set_get_pref.integer"), 1);
@@ -91,8 +87,7 @@ add_test(function test_set_null_pref() {
     Preferences.set("test_set_null_pref", null);
     // We expect this to throw, so the test is designed to fail if it doesn't.
     do_check_true(false);
-  }
-  catch(ex) {}
+  } catch (ex) {}
 
   run_next_test();
 });
@@ -102,26 +97,22 @@ add_test(function test_set_undefined_pref() {
     Preferences.set("test_set_undefined_pref");
     // We expect this to throw, so the test is designed to fail if it doesn't.
     do_check_true(false);
-  }
-  catch(ex) {}
+  } catch (ex) {}
 
   run_next_test();
 });
 
 add_test(function test_set_unsupported_pref() {
   try {
-    Preferences.set("test_set_unsupported_pref", new Array());
+    Preferences.set("test_set_unsupported_pref", []);
     // We expect this to throw, so the test is designed to fail if it doesn't.
     do_check_true(false);
-  }
-  catch(ex) {}
+  } catch (ex) {}
 
   run_next_test();
 });
 
-// Make sure that we can get a string pref that we didn't set ourselves
-// (i.e. that the way we get a string pref using getComplexValue doesn't
-// hork us getting a string pref that wasn't set using setComplexValue).
+// Make sure that we can get a string pref that we didn't set ourselves.
 add_test(function test_get_string_pref() {
   let svc = Cc["@mozilla.org/preferences-service;1"].
             getService(Ci.nsIPrefService).
@@ -166,8 +157,7 @@ add_test(function test_set_get_number_pref() {
     Preferences.set("test_set_get_number_pref", Math.pow(2, 31));
     // We expect this to throw, so the test is designed to fail if it doesn't.
     do_check_true(false);
-  }
-  catch(ex) {}
+  } catch (ex) {}
 
   // Clean up.
   Preferences.reset("test_set_get_number_pref");
@@ -211,9 +201,11 @@ add_test(function test_reset_nonexistent_pref_branch() {
 
 add_test(function test_observe_prefs_function() {
   let observed = false;
-  let observer = function() { observed = !observed };
+  let observer = function() { observed = !observed; };
 
   Preferences.observe("test_observe_prefs_function", observer);
+  Preferences.set("test_observe_prefs_function.subpref", "something");
+  do_check_false(observed);
   Preferences.set("test_observe_prefs_function", "something");
   do_check_true(observed);
 
@@ -223,6 +215,7 @@ add_test(function test_observe_prefs_function() {
 
   // Clean up.
   Preferences.reset("test_observe_prefs_function");
+  Preferences.reset("test_observe_prefs_function.subpref");
 
   run_next_test();
 });
@@ -230,12 +223,14 @@ add_test(function test_observe_prefs_function() {
 add_test(function test_observe_prefs_object() {
   let observer = {
     observed: false,
-    observe: function() {
+    observe() {
       this.observed = !this.observed;
     }
   };
 
   Preferences.observe("test_observe_prefs_object", observer.observe, observer);
+  Preferences.set("test_observe_prefs_object.subpref", "something");
+  do_check_false(observer.observed);
   Preferences.set("test_observe_prefs_object", "something");
   do_check_true(observer.observed);
 
@@ -245,6 +240,7 @@ add_test(function test_observe_prefs_object() {
 
   // Clean up.
   Preferences.reset("test_observe_prefs_object");
+  Preferences.reset("test_observe_prefs_object.subpref");
 
   run_next_test();
 });
@@ -252,7 +248,7 @@ add_test(function test_observe_prefs_object() {
 add_test(function test_observe_prefs_nsIObserver() {
   let observer = {
     observed: false,
-    observe: function(subject, topic, data) {
+    observe(subject, topic, data) {
       this.observed = !this.observed;
       do_check_true(subject instanceof Ci.nsIPrefBranch);
       do_check_eq(topic, "nsPref:changed");
@@ -261,6 +257,7 @@ add_test(function test_observe_prefs_nsIObserver() {
   };
 
   Preferences.observe("test_observe_prefs_nsIObserver", observer);
+  Preferences.set("test_observe_prefs_nsIObserver.subpref", "something");
   Preferences.set("test_observe_prefs_nsIObserver", "something");
   do_check_true(observer.observed);
 
@@ -270,14 +267,20 @@ add_test(function test_observe_prefs_nsIObserver() {
 
   // Clean up.
   Preferences.reset("test_observe_prefs_nsIObserver");
+  Preferences.reset("test_observe_prefs_nsIObserver.subpref");
 
   run_next_test();
 });
 
-/*
+// This should not need to be said, but *DO NOT DISABLE THIS TEST*.
+//
+// Existing consumers of the observer API depend on the observer only
+// being triggered for the exact preference they are observing. This is
+// expecially true for consumers of the function callback variant which
+// passes the preference's new value but not its name.
 add_test(function test_observe_exact_pref() {
   let observed = false;
-  let observer = function() { observed = !observed };
+  let observer = function() { observed = !observed; };
 
   Preferences.observe("test_observe_exact_pref", observer);
   Preferences.set("test_observe_exact_pref.sub-pref", "something");
@@ -289,23 +292,24 @@ add_test(function test_observe_exact_pref() {
 
   run_next_test();
 });
-*/
 
 add_test(function test_observe_value_of_set_pref() {
-  let observer = function(newVal) { do_check_eq(newVal, "something") };
+  let observer = function(newVal) { do_check_eq(newVal, "something"); };
 
   Preferences.observe("test_observe_value_of_set_pref", observer);
+  Preferences.set("test_observe_value_of_set_pref.subpref", "somethingelse");
   Preferences.set("test_observe_value_of_set_pref", "something");
 
   // Clean up.
   Preferences.ignore("test_observe_value_of_set_pref", observer);
   Preferences.reset("test_observe_value_of_set_pref");
+  Preferences.reset("test_observe_value_of_set_pref.subpref");
 
   run_next_test();
 });
 
 add_test(function test_observe_value_of_reset_pref() {
-  let observer = function(newVal) { do_check_true(typeof newVal == "undefined") };
+  let observer = function(newVal) { do_check_true(typeof newVal == "undefined"); };
 
   Preferences.set("test_observe_value_of_reset_pref", "something");
   Preferences.observe("test_observe_value_of_reset_pref", observer);

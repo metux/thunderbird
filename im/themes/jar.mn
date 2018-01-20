@@ -31,8 +31,6 @@ instantbird.jar:
 	skin/classic/instantbird/menus.css
 *	skin/classic/instantbird/viewlog.css
 	skin/classic/instantbird/newMessage.png
-	skin/classic/instantbird/expand.png
-	skin/classic/instantbird/collapse.png
 	skin/classic/instantbird/userIcon.png
 	skin/classic/instantbird/userIcon.svg
 	skin/classic/instantbird/multiUserIcon.png
@@ -96,8 +94,6 @@ instantbird.jar:
 	skin/classic/instantbird/tabbrowser/tab-top-selected-active@2x.png (tabbrowser-pinstripe/tab-top-selected-active@2x.png)
 	skin/classic/instantbird/tabbrowser/tabDragIndicator.png	(tabbrowser-pinstripe/tabDragIndicator.png)
 	skin/classic/instantbird/tabbrowser/tabDragIndicator@2x.png	(tabbrowser-pinstripe/tabDragIndicator@2x.png)
-	skin/classic/instantbird/tabbrowser/tabbar-top-bg-active.png    (tabbrowser-pinstripe/tabbar-top-bg-active.png)
-	skin/classic/instantbird/tabbrowser/tabbar-top-bg-inactive.png  (tabbrowser-pinstripe/tabbar-top-bg-inactive.png)
 	skin/classic/instantbird/tabbrowser/alltabs-box-bkgnd-icon.png	(tabbrowser-pinstripe/alltabs-box-bkgnd-icon.png)
 	skin/classic/instantbird/lion/tabbrowser/alltabs-box-bkgnd-icon.png	(tabbrowser-pinstripe/alltabs-box-bkgnd-icon-lion.png)
 	skin/classic/instantbird/tabbrowser/alltabs-box-bkgnd-icon@2x.png	(tabbrowser-pinstripe/alltabs-box-bkgnd-icon-lion@2x.png)
@@ -190,7 +186,7 @@ instantbird.jar:
 	skin/classic/instantbird/smileys/straight_face.png     (smileys/straight_face.png)
 	skin/classic/instantbird/smileys/tongue.png            (smileys/tongue.png)
 	skin/classic/instantbird/smileys/wink.png              (smileys/wink.png)
-% skin instantbird-messagestyles classic/1.0 %skin/classic/instantbird/messages/
+% skin messenger-messagestyles classic/1.0 %skin/classic/instantbird/messages/
 	skin/classic/instantbird/messages/bubbles/Bitmaps/indicator_0.png       (messages/bubbles/Bitmaps/indicator_0.png)
 	skin/classic/instantbird/messages/bubbles/Bitmaps/indicator_0_alt.png   (messages/bubbles/Bitmaps/indicator_0_alt.png)
 	skin/classic/instantbird/messages/bubbles/Bitmaps/indicator_10.png      (messages/bubbles/Bitmaps/indicator_10.png)
@@ -268,7 +264,6 @@ instantbird.jar:
 	skin/classic/instantbird/messages/bubbles/Bitmaps/minus.png             (messages/bubbles/Bitmaps/minus.png)
 	skin/classic/instantbird/messages/bubbles/Bitmaps/plus-hover.png        (messages/bubbles/Bitmaps/plus-hover.png)
 	skin/classic/instantbird/messages/bubbles/Bitmaps/plus.png              (messages/bubbles/Bitmaps/plus.png)
-	skin/classic/instantbird/messages/bubbles/bubbles.svg                   (messages/bubbles/bubbles.svg)
 	skin/classic/instantbird/messages/bubbles/Footer.html                   (messages/bubbles/Footer.html)
 	skin/classic/instantbird/messages/bubbles/Incoming/Content.html         (messages/bubbles/Incoming/Content.html)
 	skin/classic/instantbird/messages/bubbles/Incoming/Context.html         (messages/bubbles/Incoming/Context.html)

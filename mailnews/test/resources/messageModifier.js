@@ -124,10 +124,10 @@ SyntheticMessageSet.prototype = {
    * @return a JS iterator of the message headers for all messages inserted into
    *     a folder.
    */
-  get msgHdrs() {
+  msgHdrs: function*() {
     // get the databases
     let msgDatabases = this.msgFolders.map(folder => folder.msgDatabase);
-    for (let [iMsg, synMsg] in Iterator(this.synMessages)) {
+    for (let [iMsg, synMsg] of this.synMessages.entries()) {
       let folderIndex = this.folderIndices[iMsg];
       if (folderIndex != null)
         yield msgDatabases[folderIndex].getMsgHdrForMessageID(synMsg.messageId);
@@ -138,14 +138,14 @@ SyntheticMessageSet.prototype = {
    *     folder.
    */
   get msgHdrList() {
-    return Array.from(this.msgHdrs);
+    return Array.from(this.msgHdrs());
   },
   /**
    * @return an nsIMutableArray of the message headers for all messages inserted
    *     into a folder.
    */
   get xpcomHdrArray() {
-    return toXPCOMArray(this.msgHdrs,
+    return toXPCOMArray(this.msgHdrs(),
                         Components.interfaces.nsIMutableArray);
   },
   /**
@@ -155,7 +155,7 @@ SyntheticMessageSet.prototype = {
    */
   get foldersWithMsgHdrs() {
     let results = this.msgFolders.map(folder => [folder, []]);
-    for (let [iMsg, synMsg] in Iterator(this.synMessages)) {
+    for (let [iMsg, synMsg] of this.synMessages.entries()) {
       let folderIndex = this.folderIndices[iMsg];
       if (folderIndex != null) {
         let [folder, msgHdrs] = results[folderIndex];
@@ -168,8 +168,8 @@ SyntheticMessageSet.prototype = {
    * @return a generator that yields [nsIMsgFolder, nsIMutableArray of the
    *     messages from the set in that folder].
    */
-  get foldersWithXpcomHdrArrays() {
-    for (let [, [folder, msgHdrs]] in Iterator(this.foldersWithMsgHdrs)) {
+  foldersWithXpcomHdrArrays: function*() {
+    for (let [folder, msgHdrs] of this.foldersWithMsgHdrs) {
       yield [folder, toXPCOMArray(msgHdrs,
                                   Components.interfaces.nsIMutableArray)];
     }
@@ -188,17 +188,17 @@ SyntheticMessageSet.prototype = {
     }
   },
   setStarred: function(aStarred) {
-    for (let msgHdr of this.msgHdrs) {
+    for (let msgHdr of this.msgHdrs()) {
       msgHdr.markFlagged(aStarred);
     }
   },
   addTag: function(aTagName) {
-    for (let [folder, xpcomHdrArray] in this.foldersWithXpcomHdrArrays) {
+    for (let [folder, xpcomHdrArray] of this.foldersWithXpcomHdrArrays()) {
       folder.addKeywordsToMessages(xpcomHdrArray, aTagName);
     }
   },
   removeTag: function(aTagName) {
-    for (let [folder, xpcomHdrArray] in this.foldersWithXpcomHdrArrays) {
+    for (let [folder, xpcomHdrArray] of this.foldersWithXpcomHdrArrays()) {
       folder.removeKeywordsFromMessages(xpcomHdrArray, aTagName);
     }
   },
@@ -221,18 +221,16 @@ SyntheticMessageSet.prototype = {
       msgHdr.setStringProperty("junkscore", junkscore);
     };
 
-    let atomService = Cc["@mozilla.org/atom-service;1"].
-                        getService(Ci.nsIAtomService);
-    let atom = atomService.getAtom(aIsJunk ? "junk" : "notjunk");
+    let str = aIsJunk ? "junk" : "notjunk";
     let xpcomHdrArray = toXPCOMArray(msgHdrs, Ci.nsIMutableArray);
     MailServices.mfn.notifyItemEvent(xpcomHdrArray,
                                      "JunkStatusChanged",
-                                     atom);
+                                     null, str);
   },
 
   /**
-   * Slice the message set using the exact Array.slice semantics (because we
-   *  call Array.slice).
+   * Slice the message set using the exact Array.prototype.slice semantics
+   * (because we call Array.prototype.slice).
    */
   slice: function() {
     let slicedMessages = this.synMessages.slice.apply(this.synMessages,

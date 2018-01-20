@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -12,7 +13,7 @@
 #include "GLDefs.h"                     // for GLuint
 #include "mozilla/RefPtr.h"             // for already_AddRefed, RefCounted
 #include "mozilla/TimeStamp.h"          // for TimeStamp, TimeDuration
-#include "nsTArray.h"                   // for nsAutoTArray, nsTArray_Impl, etc
+#include "nsTArray.h"                   // for AutoTArray, nsTArray_Impl, etc
 #include "prio.h"                       // for NSPR file i/o
 
 namespace mozilla {
@@ -87,25 +88,11 @@ private:
    * read at an offset except our latest write
    * we don't need an explicit read pointer.
    */
-  nsAutoTArray<TimeStamp, kMaxFrames> mFrameTimestamps;
+  AutoTArray<TimeStamp, kMaxFrames> mFrameTimestamps;
   int mWriteIndex;      // points to next open write slot
   int mIteratorIndex;   // used only when iterating
   const char* mFPSName;
   TimeStamp mLastInterval;
-};
-
-struct FPSState {
-  FPSState();
-  void DrawFPS(TimeStamp, int offsetX, int offsetY, unsigned, Compositor* aCompositor);
-  void NotifyShadowTreeTransaction() {
-    mTransactionFps.AddFrame(TimeStamp::Now());
-  }
-
-  FPSCounter mCompositionFps;
-  FPSCounter mTransactionFps;
-
-private:
-  RefPtr<DataTextureSource> mFPSTextureSource;
 };
 
 } // namespace layers

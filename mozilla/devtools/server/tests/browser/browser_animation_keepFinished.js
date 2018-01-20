@@ -1,6 +1,7 @@
 /* vim: set ft=javascript ts=2 et sw=2 tw=80: */
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
+/* eslint-disable mozilla/no-arbitrary-setTimeout */
 
 "use strict";
 
@@ -9,7 +10,7 @@
 // still, so we want the AnimationsActor to preserve the corresponding
 // AnimationPlayerActor.
 
-add_task(function*() {
+add_task(function* () {
   let {client, walker, animations} =
     yield initAnimationsFrontForUrl(MAIN_DOMAIN + "animation.html");
 
@@ -35,12 +36,15 @@ add_task(function*() {
   info("Wait for longer than the animation's duration");
   yield wait(2000);
 
+  players = yield animations.getAnimationPlayersForNode(node);
+  is(players.length, 0, "The added animation is surely finished");
+
   is(reportedMutations.length, 1, "Only one mutation was reported");
   is(reportedMutations[0].type, "added", "The mutation was an addition");
 
   animations.off("mutations", onMutations);
 
-  yield closeDebuggerClient(client);
+  yield client.close();
   gBrowser.removeCurrentTab();
 });
 

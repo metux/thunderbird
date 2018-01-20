@@ -17,16 +17,18 @@
 #include "nsIIOService.h"
 #include "nsNetCID.h"
 #include "prprf.h"
-#include "nsAutoPtr.h"
+#include "mozilla/UniquePtr.h"
 #include "prmem.h"
 #include "MailNewsTypes.h"
 #include "nsComponentManagerUtils.h"
 #include "nsServiceManagerUtils.h"
 #include "nsMemory.h"
 #include "nsMsgMessageFlags.h"
-#include "nsISupportsArray.h"
+#include "nsIArray.h"
+#include "nsArrayUtils.h"
 #include "nsAlgorithm.h"
 #include <algorithm>
+#include "mozilla/Attributes.h"
 
 // This stuff lives in the base class because the IMAP search syntax
 // is used by the Dredd SEARCH command as well as IMAP itself
@@ -81,7 +83,7 @@ NS_IMETHODIMP nsMsgSearchAdapter::OpenResultElement(nsMsgResultElement *)
 
 NS_IMPL_ISUPPORTS(nsMsgSearchAdapter, nsIMsgSearchAdapter)
 
-nsMsgSearchAdapter::nsMsgSearchAdapter(nsIMsgSearchScopeTerm *scope, nsISupportsArray *searchTerms)
+nsMsgSearchAdapter::nsMsgSearchAdapter(nsIMsgSearchScopeTerm *scope, nsIArray *searchTerms)
   : m_searchTerms(searchTerms)
 {
   m_scope = scope;
@@ -154,7 +156,7 @@ nsMsgSearchAdapter::GetImapCharsetParam(const char16_t *destCharset)
   char *result = nullptr;
 
   // Specify a character set unless we happen to be US-ASCII.
-  if (NS_strcmp(destCharset, MOZ_UTF16("us-ascii")))
+  if (NS_strcmp(destCharset, u"us-ascii"))
       result = PR_smprintf("%s%s", nsMsgSearchAdapter::m_kImapCharset, NS_ConvertUTF16toUTF8(destCharset).get());
 
   return result;
@@ -229,10 +231,10 @@ nsresult
 nsMsgSearchAdapter::GetSearchCharsets(nsAString &srcCharset, nsAString &dstCharset)
 {
   nsresult rv;
+  bool forceAsciiSearch = false;
 
   if (m_defaultCharset.IsEmpty())
   {
-    m_forceAsciiSearch = false;  // set the default value in case of error
     nsCOMPtr<nsIPrefBranch> prefs(do_GetService(NS_PREFSERVICE_CONTRACTID, &rv));
     if (NS_SUCCEEDED(rv))
     {
@@ -240,9 +242,9 @@ nsMsgSearchAdapter::GetSearchCharsets(nsAString &srcCharset, nsAString &dstChars
       rv = prefs->GetComplexValue("mailnews.view_default_charset", NS_GET_IID(nsIPrefLocalizedString),
                                   getter_AddRefs(localizedstr));
       if (NS_SUCCEEDED(rv))
-        localizedstr->GetData(getter_Copies(m_defaultCharset));
+        localizedstr->GetData(m_defaultCharset);
 
-      prefs->GetBoolPref("mailnews.force_ascii_search", &m_forceAsciiSearch);
+      prefs->GetBoolPref("mailnews.force_ascii_search", &forceAsciiSearch);
     }
   }
   srcCharset = m_defaultCharset.IsEmpty() ?
@@ -277,7 +279,7 @@ nsMsgSearchAdapter::GetSearchCharsets(nsAString &srcCharset, nsAString &dstChars
     dstCharset.Assign(srcCharset);
   }
 
-  if (m_forceAsciiSearch)
+  if (forceAsciiSearch)
   {
     // Special cases to use in order to force US-ASCII searching with Latin1
     // or MacRoman text. Eurgh. This only has to happen because IMAP
@@ -326,6 +328,7 @@ nsresult nsMsgSearchAdapter::EncodeImapTerm (nsIMsgSearchTerm *term, bool really
   case nsMsgSearchAttrib::ToOrCC:
     orHeaderMnemonic = m_kImapCC;
     // fall through to case nsMsgSearchAttrib::To:
+    MOZ_FALLTHROUGH;
   case nsMsgSearchAttrib::To:
     whichMnemonic = m_kImapTo;
     break;
@@ -552,10 +555,10 @@ nsresult nsMsgSearchAdapter::EncodeImapTerm (nsIMsgSearchTerm *term, bool really
         {
           const char *vptr = valueStr.get();
           // max escaped length is one extra character for every character in the cmd.
-          nsAutoArrayPtr<char> newValue(new char[2*strlen(vptr) + 1]);
+          mozilla::UniquePtr<char[]> newValue = mozilla::MakeUnique<char[]>(2*strlen(vptr) + 1);
           if (newValue)
           {
-            char *p = newValue;
+            char *p = newValue.get();
             while (1)
             {
               char ch = *vptr++;
@@ -566,12 +569,12 @@ nsresult nsMsgSearchAdapter::EncodeImapTerm (nsIMsgSearchTerm *term, bool really
               *p++ = ch;
             }
             *p = '\0';
-            value = strdup(newValue); // realloc down to smaller size
+            value = strdup(newValue.get()); // realloc down to smaller size
           }
         }
         else
           value = strdup("");
-        NS_Free(convertedValue);
+        free(convertedValue);
         valueWasAllocated = true;
 
       }
@@ -621,7 +624,7 @@ nsresult nsMsgSearchAdapter::EncodeImapTerm (nsIMsgSearchTerm *term, bool really
     }
 
     if (value && valueWasAllocated)
-      NS_Free (value);
+      free (value);
 
     *ppOutTerm = encoding;
 
@@ -658,7 +661,7 @@ nsresult nsMsgSearchAdapter::EncodeImapValue(char *encoding, const char *value, 
 }
 
 
-nsresult nsMsgSearchAdapter::EncodeImap (char **ppOutEncoding, nsISupportsArray *searchTerms, const char16_t *srcCharset, const char16_t *destCharset, bool reallyDredd)
+nsresult nsMsgSearchAdapter::EncodeImap (char **ppOutEncoding, nsIArray *searchTerms, const char16_t *srcCharset, const char16_t *destCharset, bool reallyDredd)
 {
   // i've left the old code (before using CBoolExpression for debugging purposes to make sure that
   // the new code generates the same encoding string as the old code.....
@@ -667,7 +670,7 @@ nsresult nsMsgSearchAdapter::EncodeImap (char **ppOutEncoding, nsISupportsArray 
   *ppOutEncoding = nullptr;
 
   uint32_t termCount;
-  searchTerms->Count(&termCount);
+  searchTerms->GetLength(&termCount);
   uint32_t i = 0;
 
   // create our expression
@@ -679,9 +682,7 @@ nsresult nsMsgSearchAdapter::EncodeImap (char **ppOutEncoding, nsISupportsArray 
   {
     char *termEncoding;
     bool matchAll;
-    nsCOMPtr<nsIMsgSearchTerm> pTerm;
-    searchTerms->QueryElementAt(i, NS_GET_IID(nsIMsgSearchTerm),
-      (void **)getter_AddRefs(pTerm));
+    nsCOMPtr<nsIMsgSearchTerm> pTerm = do_QueryElementAt(searchTerms, i);
     pTerm->GetMatchAll(&matchAll);
     if (matchAll)
       continue;
@@ -814,38 +815,38 @@ nsMsgSearchValidityTable::GetNumAvailAttribs(int32_t *aResult)
 }
 
 nsresult
-nsMsgSearchValidityTable::ValidateTerms (nsISupportsArray *searchTerms)
+nsMsgSearchValidityTable::ValidateTerms (nsIArray *searchTerms)
 {
-  nsresult err = NS_OK;
+  nsresult rv = NS_OK;
   uint32_t count;
 
-  NS_ENSURE_ARG(searchTerms);
+  NS_ENSURE_ARG_POINTER(searchTerms);
 
-  searchTerms->Count(&count);
+  searchTerms->GetLength(&count);
   for (uint32_t i = 0; i < count; i++)
   {
-    nsCOMPtr<nsIMsgSearchTerm> pTerm;
-    searchTerms->QueryElementAt(i, NS_GET_IID(nsIMsgSearchTerm),
-                             (void **)getter_AddRefs(pTerm));
+    nsCOMPtr<nsIMsgSearchTerm> pTerm = do_QueryElementAt(searchTerms, i);
 
     nsIMsgSearchTerm *iTerm = pTerm;
     nsMsgSearchTerm *term = static_cast<nsMsgSearchTerm *>(iTerm);
 //    XP_ASSERT(term->IsValid());
-        bool enabled;
-        bool available;
-        GetEnabled(term->m_attribute, term->m_operator, &enabled);
-        GetAvailable(term->m_attribute, term->m_operator, &available);
+    bool enabled;
+    bool available;
+    rv = GetEnabled(term->m_attribute, term->m_operator, &enabled);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = GetAvailable(term->m_attribute, term->m_operator, &available);
+    NS_ENSURE_SUCCESS(rv, rv);
     if (!enabled || !available)
     {
-            bool validNotShown;
-            GetValidButNotShown(term->m_attribute, term->m_operator,
-                                &validNotShown);
-            if (!validNotShown)
-        err = NS_MSG_ERROR_INVALID_SEARCH_SCOPE;
+      bool validNotShown;
+      rv = GetValidButNotShown(term->m_attribute, term->m_operator, &validNotShown);
+      NS_ENSURE_SUCCESS(rv, rv);
+      if (!validNotShown)
+        return NS_MSG_ERROR_INVALID_SEARCH_SCOPE;
     }
   }
 
-  return err;
+  return rv;
 }
 
 nsresult
@@ -962,7 +963,7 @@ NS_IMETHODIMP nsMsgSearchValidityManager::GetTable (int whichTable, nsIMsgSearch
   nsCOMPtr<nsIPrefBranch> pref(do_GetService(NS_PREFSERVICE_CONTRACTID, &rv));
   nsCString customHeaders;
   if (NS_SUCCEEDED(rv))
-    pref->GetCharPref(PREF_CUSTOM_HEADERS, getter_Copies(customHeaders));
+    pref->GetCharPref(PREF_CUSTOM_HEADERS, customHeaders);
 
   switch (whichTable)
   {
@@ -1069,7 +1070,7 @@ NS_IMETHODIMP nsMsgSearchValidityManager::GetTable (int whichTable, nsIMsgSearch
     rv = NS_MSG_ERROR_INVALID_SEARCH_TERM;
   }
 
-  NS_IF_ADDREF(*ppOutTable);
+  NS_IF_ADDREF(*ppOutTable); // Was populated from member variable.
   return rv;
 }
 
@@ -1141,10 +1142,7 @@ nsresult
 nsMsgSearchValidityManager::NewTable(nsIMsgSearchValidityTable **aTable)
 {
   NS_ENSURE_ARG_POINTER(aTable);
-  *aTable = new nsMsgSearchValidityTable;
-  if (!*aTable)
-    return NS_ERROR_OUT_OF_MEMORY;
-  NS_ADDREF(*aTable);
+  NS_ADDREF(*aTable = new nsMsgSearchValidityTable);
   return NS_OK;
 }
 

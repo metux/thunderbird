@@ -1,18 +1,8 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * vim:cindent:ts=2:et:sw=2:
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- *
- * This Original Code has been modified by IBM Corporation. Modifications made
- * by IBM described herein are Copyright (c) International Business Machines
- * Corporation, 2000. Modifications to Mozilla code or documentation identified
- * per MPL Section 3.3
- *
- * Date             Modified by     Description of modification
- * 04/20/2000       IBM Corp.      OS/2 VisualAge build.
- */
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /* storage of the frame tree and information about it */
 
@@ -21,7 +11,6 @@
 
 #include "nsFrameManagerBase.h"
 
-#include "nsAutoPtr.h"
 #include "nsFrameList.h"
 #include "nsIContent.h"
 #include "nsStyleContext.h"
@@ -34,40 +23,25 @@ namespace mozilla {
  * Node in a linked list, containing the style for an element that
  * does not have a frame but whose parent does have a frame.
  */
-struct UndisplayedNode {
+struct UndisplayedNode : public LinkedListElement<UndisplayedNode>
+{
   UndisplayedNode(nsIContent* aContent, nsStyleContext* aStyle)
-    : mContent(aContent),
-      mStyle(aStyle),
-      mNext(nullptr)
+    : mContent(aContent)
+    , mStyle(aStyle)
   {
     MOZ_COUNT_CTOR(mozilla::UndisplayedNode);
   }
 
-  ~UndisplayedNode()
-  {
-    MOZ_COUNT_DTOR(mozilla::UndisplayedNode);
+  ~UndisplayedNode() { MOZ_COUNT_DTOR(mozilla::UndisplayedNode); }
 
-    // Delete mNext iteratively to avoid blowing up the stack (bug 460461).
-    UndisplayedNode* cur = mNext;
-    while (cur) {
-      UndisplayedNode* next = cur->mNext;
-      cur->mNext = nullptr;
-      delete cur;
-      cur = next;
-    }
-  }
-
-  nsCOMPtr<nsIContent>      mContent;
-  RefPtr<nsStyleContext>  mStyle;
-  UndisplayedNode*          mNext;
+  nsCOMPtr<nsIContent> mContent;
+  RefPtr<nsStyleContext> mStyle;
 };
 
 } // namespace mozilla
 
 /**
- * Frame manager interface. The frame manager serves two purposes:
- * <li>provides a service for mapping from content to frame and from
- * out-of-flow frame to placeholder frame.
+ * Frame manager interface. The frame manager serves one purpose:
  * <li>handles structural modifications to the frame model. If the frame model
  * lock can be acquired, then the changes are processed immediately; otherwise,
  * they're queued and processed later.
@@ -76,10 +50,10 @@ struct UndisplayedNode {
  * else you'll break the validity of the reinterpret_cast in nsIPresShell's
  * FrameManager() method.
  */
-
 class nsFrameManager : public nsFrameManagerBase
 {
   typedef mozilla::layout::FrameChildListID ChildListID;
+  typedef mozilla::UndisplayedNode UndisplayedNode;
 
 public:
   explicit nsFrameManager(nsIPresShell* aPresShell) {
@@ -95,43 +69,57 @@ public:
    */
   void Destroy();
 
-  // Placeholder frame functions
-  nsPlaceholderFrame* GetPlaceholderFrameFor(const nsIFrame* aFrame);
-  nsresult
-    RegisterPlaceholderFrame(nsPlaceholderFrame* aPlaceholderFrame);
 
-  void
-    UnregisterPlaceholderFrame(nsPlaceholderFrame* aPlaceholderFrame);
+  // display:none and display:contents content does not get an nsIFrame.  To
+  // enable the style context for such content to be obtained we store the
+  // contexts in a couple of hash tables.  The following methods provide the
+  // API that's used to set, reset, obtain and clear these style contexts.
 
-  void      ClearPlaceholderFrameMap();
+  /**
+   * Register the style context for the display:none content, aContent.
+   */
+  void RegisterDisplayNoneStyleFor(nsIContent* aContent,
+                                   nsStyleContext* aStyleContext);
 
-  // Mapping undisplayed content
-  nsStyleContext* GetUndisplayedContent(nsIContent* aContent)
+  /**
+   * Register the style context for the display:contents content, aContent.
+   */
+  void RegisterDisplayContentsStyleFor(nsIContent* aContent,
+                                       nsStyleContext* aStyleContext);
+
+  /**
+   * Change the style context for the display:none content, aContent.
+   */
+  void ChangeRegisteredDisplayNoneStyleFor(nsIContent* aContent,
+                                           nsStyleContext* aStyleContext)
   {
-    if (!mUndisplayedMap) {
+    ChangeStyleContextInMap(mDisplayNoneMap, aContent, aStyleContext);
+  }
+
+  /**
+   * Change the style context for the display:contents content, aContent.
+   */
+  void ChangeRegisteredDisplayContentsStyleFor(nsIContent* aContent,
+                                               nsStyleContext* aStyleContext)
+  {
+    ChangeStyleContextInMap(mDisplayContentsMap, aContent, aStyleContext);
+  }
+
+  /**
+   * Get the style context for the display:none content, aContent, if any.
+   */
+  nsStyleContext* GetDisplayNoneStyleFor(const nsIContent* aContent)
+  {
+    if (!mDisplayNoneMap) {
       return nullptr;
     }
-    return GetStyleContextInMap(mUndisplayedMap, aContent);
-  }
-  mozilla::UndisplayedNode*
-    GetAllUndisplayedContentIn(nsIContent* aParentContent);
-  void SetUndisplayedContent(nsIContent* aContent,
-                             nsStyleContext* aStyleContext);
-  void ChangeUndisplayedContent(nsIContent* aContent,
-                                nsStyleContext* aStyleContext)
-  {
-    ChangeStyleContextInMap(mUndisplayedMap, aContent, aStyleContext);
+    return GetStyleContextInMap(mDisplayNoneMap, aContent);
   }
 
-  void ClearUndisplayedContentIn(nsIContent* aContent,
-                                 nsIContent* aParentContent);
-  void ClearAllUndisplayedContentIn(nsIContent* aParentContent);
-
-  // display:contents related methods:
   /**
-   * Return the registered display:contents style context for aContent, if any.
+   * Get the style context for the display:contents content, aContent, if any.
    */
-  nsStyleContext* GetDisplayContentsStyleFor(nsIContent* aContent)
+  nsStyleContext* GetDisplayContentsStyleFor(const nsIContent* aContent)
   {
     if (!mDisplayContentsMap) {
       return nullptr;
@@ -140,51 +128,55 @@ public:
   }
 
   /**
-   * Return the linked list of UndisplayedNodes containing the registered
-   * display:contents children of aParentContent, if any.
+   * Return the linked list of UndisplayedNodes that contain the style contexts
+   * that have been registered for the display:none children of
+   * aParentContent.
    */
-  mozilla::UndisplayedNode* GetAllDisplayContentsIn(nsIContent* aParentContent);
-  /**
-   * Register aContent having a display:contents style context.
-   */
-  void SetDisplayContents(nsIContent* aContent,
-                          nsStyleContext* aStyleContext);
-  /**
-   * Change the registered style context for aContent to aStyleContext.
-   */
-  void ChangeDisplayContents(nsIContent* aContent,
-                             nsStyleContext* aStyleContext)
-  {
-    ChangeStyleContextInMap(mDisplayContentsMap, aContent, aStyleContext);
-  }
+  UndisplayedNode*
+  GetAllRegisteredDisplayNoneStylesIn(nsIContent* aParentContent);
 
   /**
-   * Unregister the display:contents style context for aContent, if any.
-   * If found, then also unregister any display:contents and display:none
-   * style contexts for its descendants.
+   * Return the linked list of UndisplayedNodes that contain the style contexts
+   * that have been registered for the display:contents children of
+   * aParentContent.
    */
-  void ClearDisplayContentsIn(nsIContent* aContent,
-                              nsIContent* aParentContent);
-  void ClearAllDisplayContentsIn(nsIContent* aParentContent);
+  UndisplayedNode*
+  GetAllRegisteredDisplayContentsStylesIn(nsIContent* aParentContent);
+
+  /**
+   * Unregister the style context for the display:none content, aContent,
+   * if any.  If found, then this method also unregisters the style contexts
+   * for any display:contents and display:none descendants of aContent.
+   */
+  void UnregisterDisplayNoneStyleFor(nsIContent* aContent,
+                                     nsIContent* aParentContent);
+
+  /**
+   * Unregister the style context for the display:contents content, aContent,
+   * if any.  If found, then this method also unregisters the style contexts
+   * for any display:contents and display:none descendants of aContent.
+   */
+  void UnregisterDisplayContentsStyleFor(nsIContent* aContent,
+                                         nsIContent* aParentContent);
+
 
   // Functions for manipulating the frame model
   void AppendFrames(nsContainerFrame* aParentFrame,
-                    ChildListID       aListID,
-                    nsFrameList&      aFrameList);
+                    ChildListID aListID,
+                    nsFrameList& aFrameList);
 
   void InsertFrames(nsContainerFrame* aParentFrame,
-                    ChildListID       aListID,
-                    nsIFrame*         aPrevFrame,
-                    nsFrameList&      aFrameList);
+                    ChildListID aListID,
+                    nsIFrame* aPrevFrame,
+                    nsFrameList& aFrameList);
 
-  void RemoveFrame(ChildListID     aListID,
-                   nsIFrame*       aOldFrame);
+  void RemoveFrame(ChildListID aListID, nsIFrame* aOldFrame);
 
   /*
    * Notification that a frame is about to be destroyed. This allows any
    * outstanding references to the frame to be cleaned up.
    */
-  void     NotifyDestroyingFrame(nsIFrame* aFrame);
+  void NotifyDestroyingFrame(nsIFrame* aFrame);
 
   /*
    * Capture/restore frame state for the frame subtree rooted at aFrame.
@@ -195,23 +187,29 @@ public:
    * of aFrame.
    */
 
-  void CaptureFrameState(nsIFrame*              aFrame,
-                                     nsILayoutHistoryState* aState);
+  void CaptureFrameState(nsIFrame* aFrame, nsILayoutHistoryState* aState);
 
-  void RestoreFrameState(nsIFrame*              aFrame,
-                                     nsILayoutHistoryState* aState);
+  void RestoreFrameState(nsIFrame* aFrame, nsILayoutHistoryState* aState);
 
   /*
    * Add/restore state for one frame
    */
-  void CaptureFrameStateFor(nsIFrame*              aFrame,
-                                        nsILayoutHistoryState* aState);
+  void CaptureFrameStateFor(nsIFrame* aFrame, nsILayoutHistoryState* aState);
 
-  void RestoreFrameStateFor(nsIFrame*              aFrame,
-                                        nsILayoutHistoryState* aState);
+  void RestoreFrameStateFor(nsIFrame* aFrame, nsILayoutHistoryState* aState);
+
+  void DestroyAnonymousContent(already_AddRefed<nsIContent> aContent);
+
 protected:
+  static nsIContent* ParentForUndisplayedMap(const nsIContent* aContent);
+
+  void ClearAllMapsFor(nsIContent* aParentContent);
+
   static nsStyleContext* GetStyleContextInMap(UndisplayedMap* aMap,
-                                              nsIContent* aContent);
+                                              const nsIContent* aContent);
+  static mozilla::UndisplayedNode*
+    GetUndisplayedNodeInMapFor(UndisplayedMap* aMap,
+                               const nsIContent* aContent);
   static mozilla::UndisplayedNode*
     GetAllUndisplayedNodesInMapFor(UndisplayedMap* aMap,
                                    nsIContent* aParentContent);

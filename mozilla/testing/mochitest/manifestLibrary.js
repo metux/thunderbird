@@ -8,7 +8,7 @@ function parseTestManifest(testManifest, params, callback) {
   var links = {};
   var paths = [];
 
-  // Support --test-manifest format for mobile/b2g
+  // Support --test-manifest format for mobile
   if ("runtests" in testManifest || "excludetests" in testManifest) {
     callback(testManifest);
     return;
@@ -48,11 +48,11 @@ function getTestManifest(url, params, callback) {
         try {
           parseTestManifest(JSON.parse(req.responseText), params, callback);
         } catch (e) {
-          dump("TEST-UNEXPECTED-FAIL: setup.js | error parsing " + url + " (" + e + ")\n");
+          dump("TEST-UNEXPECTED-FAIL: manifestLibrary.js | error parsing " + url + " (" + e + ")\n");
           throw e;
         }
       } else {
-        dump("TEST-UNEXPECTED-FAIL: setup.js | error loading " + url + "\n");
+        dump("TEST-UNEXPECTED-FAIL: manifestLibrary.js | error loading " + url + " (HTTP " + req.status + ")\n");
         callback({});
       }
     }

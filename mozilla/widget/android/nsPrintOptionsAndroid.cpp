@@ -12,8 +12,7 @@ public:
   {
     // The aim here is to set up the objects enough that silent printing works
     SetOutputFormat(nsIPrintSettings::kOutputFormatPDF);
-    SetPrinterName(MOZ_UTF16("PDF printer"));
-    
+    SetPrinterName(NS_LITERAL_STRING("PDF printer"));
   }
 };
 
@@ -25,7 +24,8 @@ nsPrintOptionsAndroid::~nsPrintOptionsAndroid()
 {
 }
 
-NS_IMETHODIMP nsPrintOptionsAndroid::CreatePrintSettings(nsIPrintSettings **_retval)
+nsresult
+nsPrintOptionsAndroid::_CreatePrintSettings(nsIPrintSettings** _retval)
 {
   nsPrintSettings * printSettings = new nsPrintSettingsAndroid();
   NS_ENSURE_TRUE(printSettings, NS_ERROR_OUT_OF_MEMORY);

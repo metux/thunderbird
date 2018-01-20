@@ -12,6 +12,8 @@
 #include "mozilla/Move.h"
 #include "mozilla/Maybe.h"
 
+#include <ostream>
+
 class nsCycleCollectionTraversalCallback;
 
 namespace mozilla {
@@ -29,13 +31,17 @@ public:
     : mValue()
   {}
 
+  MOZ_IMPLICIT Nullable(const decltype(nullptr)&)
+    : mValue()
+  {}
+
   explicit Nullable(const T& aValue)
     : mValue()
   {
     mValue.emplace(aValue);
   }
 
-  explicit Nullable(T&& aValue)
+  MOZ_IMPLICIT Nullable(T&& aValue)
     : mValue()
   {
     mValue.emplace(mozilla::Move(aValue));
@@ -105,6 +111,11 @@ public:
   bool operator!=(const Nullable<T>& aOtherNullable) const
   {
     return !Equals(aOtherNullable);
+  }
+
+  friend std::ostream& operator<<(std::ostream& aStream,
+                                  const Nullable& aNullable) {
+    return aStream << aNullable.mValue;
   }
 };
 

@@ -6,6 +6,7 @@
 #define CellData_h__
 
 #include "nsISupports.h"
+#include "nsITableCellLayout.h" // for MAX_COLSPAN / MAX_ROWSPAN
 #include "nsCoord.h"
 #include "mozilla/gfx/Types.h"
 #include "mozilla/WritingModes.h"
@@ -15,10 +16,6 @@ class nsTableCellFrame;
 class nsCellMap;
 class BCCellData;
 
-
-#define MAX_ROWSPAN 65534 // the cellmap can not handle more.
-#define MAX_COLSPAN 1000 // limit as IE and opera do.  If this ever changes,
-                         // change COL_SPAN_OFFSET/COL_SPAN_SHIFT accordingly.
 
 /**
   * Data stored by nsCellMap to rationalize rowspan and colspan cells.
@@ -79,19 +76,6 @@ public:
     * @return    is true if the entry is spanned by a colspan
     */
   bool IsColSpan() const;
-
-  /** is the entry spanned by a zero colspan
-    * zero colspans span all cells starting from the originating cell towards
-    * the end of the colgroup or a cell originating in the same row
-    * or a rowspanned entry
-    * @return    is true if the entry is spanned by a zero colspan
-    */
-  bool IsZeroColSpan() const;
-
-  /** mark the current entry as spanned by a zero colspan
-    * @param aIsZero    if true mark the entry as covered by a zero colspan
-    */
-  void SetZeroColSpan(bool aIsZero);
 
   /** get the distance from the current entry to the corresponding origin of the colspan
     * @return    containing the distance in the row to the originating cell
@@ -160,6 +144,7 @@ enum BCBorderOwner
   eAjaCellOwner      = 10  // cell to the top or to the left
 };
 
+// BCPixelSize is in device pixels.
 typedef uint16_t BCPixelSize;
 
 // These are the max sizes that are stored. If they are exceeded, then the max is stored and
@@ -209,14 +194,25 @@ public:
                  mozilla::LogicalSide aOwner,
                  bool                 aBevel);
 
-  bool IsIStartStart() const;
+  inline bool IsIStartStart() const
+  {
+    return (bool)mIStartStart;
+  }
 
-  void SetIStartStart(bool aValue);
+  inline void SetIStartStart(bool aValue)
+  {
+    mIStartStart = aValue;
+  }
 
-  bool IsBStartStart() const;
+  inline bool IsBStartStart() const
+  {
+    return (bool)mBStartStart;
+  }
 
-  void SetBStartStart(bool aValue);
-
+  inline void SetBStartStart(bool aValue)
+  {
+    mBStartStart = aValue;
+  }
 
 protected:
   BCPixelSize mIStartSize;    // size in pixels of iStart border
@@ -250,7 +246,9 @@ public:
 
 // The layout of a celldata is as follows.  The top 10 bits are the colspan
 // offset (which is enough to represent our allowed values 1-1000 for colspan).
-// Then there are three bits of flags.  Then 16 bits of rowspan offset (which
+// Then there are two bits of flags.
+// XXXmats Then one unused bit that we should decide how to use in bug 862624.
+// Then 16 bits of rowspan offset (which
 // lets us represent numbers up to 65535.  Then another 3 bits of flags.
 
 // num bits to shift right to get right aligned col span
@@ -267,8 +265,7 @@ public:
 #define SPAN             0x00000001 // there a row or col span
 #define ROW_SPAN         0x00000002 // there is a row span
 #define ROW_SPAN_0       0x00000004 // the row span is 0
-#define COL_SPAN         (1 << (COL_SPAN_SHIFT - 3)) // there is a col span
-#define COL_SPAN_0       (1 << (COL_SPAN_SHIFT - 2)) // the col span is 0
+#define COL_SPAN         (1 << (COL_SPAN_SHIFT - 2)) // there is a col span
 #define OVERLAP          (1 << (COL_SPAN_SHIFT - 1)) // there is a row span and
                                                      // col span but not by
                                                      // same cell
@@ -348,25 +345,6 @@ inline bool CellData::IsColSpan() const
          (COL_SPAN == (COL_SPAN & mBits));
 }
 
-inline bool CellData::IsZeroColSpan() const
-{
-  return (SPAN       == (SPAN & mBits))     &&
-         (COL_SPAN   == (COL_SPAN & mBits)) &&
-         (COL_SPAN_0 == (COL_SPAN_0 & mBits));
-}
-
-inline void CellData::SetZeroColSpan(bool aIsZeroSpan)
-{
-  if (SPAN == (SPAN & mBits)) {
-    if (aIsZeroSpan) {
-      mBits |= COL_SPAN_0;
-    }
-    else {
-      mBits &= ~COL_SPAN_0;
-    }
-  }
-}
-
 inline uint32_t CellData::GetColSpanOffset() const
 {
   if ((SPAN == (SPAN & mBits)) && ((COL_SPAN == (COL_SPAN & mBits)))) {
@@ -404,7 +382,8 @@ inline void CellData::SetOverlap(bool aOverlap)
 inline BCData::BCData()
 {
   mIStartOwner = mBStartOwner = eCellOwner;
-  mIStartStart = mBStartStart = 1;
+  SetBStartStart(true);
+  SetIStartStart(true);
   mIStartSize = mCornerSubSize = mBStartSize = 0;
   mCornerSide = mozilla::eLogicalSideBStart;
   mCornerBevel = false;
@@ -418,7 +397,7 @@ inline nscoord BCData::GetIStartEdge(BCBorderOwner& aOwner,
                                      bool&          aStart) const
 {
   aOwner = (BCBorderOwner)mIStartOwner;
-  aStart = (bool)mIStartStart;
+  aStart = IsIStartStart();
 
   return (nscoord)mIStartSize;
 }
@@ -429,14 +408,14 @@ inline void BCData::SetIStartEdge(BCBorderOwner  aOwner,
 {
   mIStartOwner = aOwner;
   mIStartSize  = (aSize > MAX_BORDER_WIDTH) ? MAX_BORDER_WIDTH : aSize;
-  mIStartStart = aStart;
+  SetIStartStart(aStart);
 }
 
 inline nscoord BCData::GetBStartEdge(BCBorderOwner& aOwner,
                                      bool&          aStart) const
 {
   aOwner = (BCBorderOwner)mBStartOwner;
-  aStart = (bool)mBStartStart;
+  aStart = IsBStartStart();
 
   return (nscoord)mBStartSize;
 }
@@ -447,7 +426,7 @@ inline void BCData::SetBStartEdge(BCBorderOwner  aOwner,
 {
   mBStartOwner = aOwner;
   mBStartSize  = (aSize > MAX_BORDER_WIDTH) ? MAX_BORDER_WIDTH : aSize;
-  mBStartStart = aStart;
+  SetBStartStart(aStart);
 }
 
 inline BCPixelSize BCData::GetCorner(mozilla::LogicalSide& aOwnerSide,
@@ -465,26 +444,6 @@ inline void BCData::SetCorner(BCPixelSize          aSubSize,
   mCornerSubSize = aSubSize;
   mCornerSide    = aOwnerSide;
   mCornerBevel   = aBevel;
-}
-
-inline bool BCData::IsIStartStart() const
-{
-  return (bool)mIStartStart;
-}
-
-inline void BCData::SetIStartStart(bool aValue)
-{
-  mIStartStart = aValue;
-}
-
-inline bool BCData::IsBStartStart() const
-{
-  return (bool)mBStartStart;
-}
-
-inline void BCData::SetBStartStart(bool aValue)
-{
-  mBStartStart = aValue;
 }
 
 #endif

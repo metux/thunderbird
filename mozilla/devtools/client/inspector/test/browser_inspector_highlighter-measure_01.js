@@ -19,7 +19,7 @@ const HIGHLIGHTER_TYPE = "MeasuringToolHighlighter";
 const X = 32;
 const Y = 20;
 
-add_task(function*() {
+add_task(function* () {
   let helper = yield openInspectorForURL(TEST_URL)
                        .then(getHighlighterHelperFor(HIGHLIGHTER_TYPE));
 
@@ -37,7 +37,7 @@ add_task(function*() {
 function* isHiddenByDefault({isElementHidden}) {
   info("Checking the highlighter is hidden by default");
 
-  let hidden = yield isElementHidden("elements");
+  let hidden = yield isElementHidden("root");
   ok(hidden, "highlighter's root is hidden by default");
 
   hidden = yield isElementHidden("label-size");

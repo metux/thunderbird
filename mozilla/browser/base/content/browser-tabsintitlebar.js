@@ -7,9 +7,17 @@
 // this one on platforms which don't have CAN_DRAW_IN_TITLEBAR defined.
 
 var TabsInTitlebar = {
-  init: function () {
+  init() {
+    if (this._initialized) {
+      return;
+    }
     this._readPref();
-    Services.prefs.addObserver(this._prefName, this, false);
+    Services.prefs.addObserver(this._prefName, this);
+
+    // Always disable on unsupported GTK versions.
+    if (AppConstants.MOZ_WIDGET_TOOLKIT == "gtk3") {
+      this.allowedBy("gtk", window.matchMedia("(-moz-gtk-csd-available)"));
+    }
 
     // We need to update the appearance of the titlebar when the menu changes
     // from the active to the inactive state. We can't, however, rely on
@@ -35,20 +43,26 @@ var TabsInTitlebar = {
     };
     CustomizableUI.addListener(this);
 
+    addEventListener("resolutionchange", this, false);
+
     this._initialized = true;
+    if (this._updateOnInit) {
+      // We don't need to call this with 'true', even if original calls
+      // (before init()) did, because this will be the first call and so
+      // we will update anyway.
+      this._update();
+    }
   },
 
-  allowedBy: function (condition, allow) {
+  allowedBy(condition, allow) {
     if (allow) {
       if (condition in this._disallowed) {
         delete this._disallowed[condition];
         this._update(true);
       }
-    } else {
-      if (!(condition in this._disallowed)) {
-        this._disallowed[condition] = null;
-        this._update(true);
-      }
+    } else if (!(condition in this._disallowed)) {
+      this._disallowed[condition] = null;
+      this._update(true);
     }
   },
 
@@ -60,12 +74,18 @@ var TabsInTitlebar = {
     return document.documentElement.getAttribute("tabsintitlebar") == "true";
   },
 
-  observe: function (subject, topic, data) {
+  observe(subject, topic, data) {
     if (topic == "nsPref:changed")
       this._readPref();
   },
 
-  _onMenuMutate: function (aMutations) {
+  handleEvent(aEvent) {
+    if (aEvent.type == "resolutionchange" && aEvent.target == window) {
+      this._update(true);
+    }
+  },
+
+  _onMenuMutate(aMutations) {
     for (let mutation of aMutations) {
       if (mutation.attributeName == "inactive" ||
           mutation.attributeName == "autohide") {
@@ -76,24 +96,30 @@ var TabsInTitlebar = {
   },
 
   _initialized: false,
+  _updateOnInit: false,
   _disallowed: {},
   _prefName: "browser.tabs.drawInTitlebar",
   _lastSizeMode: null,
 
-  _readPref: function () {
+  _readPref() {
     this.allowedBy("pref",
                    Services.prefs.getBoolPref(this._prefName));
   },
 
-  _update: function (aForce=false) {
+  _update(aForce = false) {
     let $ = id => document.getElementById(id);
     let rect = ele => ele.getBoundingClientRect();
     let verticalMargins = cstyle => parseFloat(cstyle.marginBottom) + parseFloat(cstyle.marginTop);
 
-    if (!this._initialized || window.fullScreen)
+    if (window.fullScreen)
       return;
 
-    let allowed = true;
+    // In some edgecases it is possible for this to fire before we've initialized.
+    // Don't run now, but don't forget to run it when we do initialize.
+    if (!this._initialized) {
+      this._updateOnInit = true;
+      return;
+    }
 
     if (!aForce) {
       // _update is called on resize events, because the window is not ready
@@ -115,10 +141,7 @@ var TabsInTitlebar = {
       }
     }
 
-    for (let something in this._disallowed) {
-      allowed = false;
-      break;
-    }
+    let allowed = (Object.keys(this._disallowed)).length == 0;
 
     let titlebar = $("titlebar");
     let titlebarContent = $("titlebar-content");
@@ -130,15 +153,22 @@ var TabsInTitlebar = {
       document.documentElement.setAttribute("tabsintitlebar", "true");
       updateTitlebarDisplay();
 
+      // Reset the custom titlebar height if the menubar is shown,
+      // because we will want to calculate its original height.
+      if (AppConstants.isPlatformAndVersionAtLeast("win", "10.0") &&
+          (menubar.getAttribute("inactive") != "true" ||
+          menubar.getAttribute("autohide") != "true")) {
+        $("titlebar-buttonbox").style.removeProperty("height");
+      }
+
       // Try to avoid reflows in this code by calculating dimensions first and
       // then later set the properties affecting layout together in a batch.
 
-      // Get the full height of the tabs toolbar:
-      let tabsToolbar = $("TabsToolbar");
-      let tabsStyles = window.getComputedStyle(tabsToolbar);
-      let fullTabsHeight = rect(tabsToolbar).height + verticalMargins(tabsStyles);
+      // Get the height of the tabs toolbar:
+      let fullTabsHeight = rect($("TabsToolbar")).height;
+
       // Buttons first:
-      let captionButtonsBoxWidth = rect($("titlebar-buttonbox-container")).width;
+      let captionButtonsBoxWidth = rect($("titlebar-buttonbox")).width;
 
       let secondaryButtonsWidth, menuHeight, fullMenuHeight, menuStyles;
       if (AppConstants.platform == "macosx") {
@@ -157,6 +187,14 @@ var TabsInTitlebar = {
       let titlebarContentHeight = rect(titlebarContent).height;
 
       // Begin setting CSS properties which will cause a reflow
+
+      // On Windows 10, adjust the window controls to span the entire
+      // tab strip height if we're not showing a menu bar.
+      if (AppConstants.isPlatformAndVersionAtLeast("win", "10.0") &&
+          !menuHeight) {
+        titlebarContentHeight = fullTabsHeight;
+        $("titlebar-buttonbox").style.height = titlebarContentHeight + "px";
+      }
 
       // If the menubar is around (menuHeight is non-zero), try to adjust
       // its full height (i.e. including margins) to match the titlebar,
@@ -202,9 +240,10 @@ var TabsInTitlebar = {
         titlebarContent.style.removeProperty("margin-bottom");
       }
 
-      // Then we bring up the titlebar by the same amount, but we add any negative margin:
-      titlebar.style.marginBottom = "-" + titlebarContentHeight + "px";
-
+      // Then add a negative margin to the titlebar, so that the following elements
+      // will overlap it by the greater of the titlebar height or the tabstrip+menu.
+      let maxTitlebarOrTabsHeight = Math.max(titlebarContentHeight, tabAndMenuHeight);
+      titlebar.style.marginBottom = "-" + maxTitlebarOrTabsHeight + "px";
 
       // Finally, size the placeholders:
       if (AppConstants.platform == "macosx") {
@@ -212,21 +251,6 @@ var TabsInTitlebar = {
       }
       this._sizePlaceholder("caption-buttons", captionButtonsBoxWidth);
 
-      if (!this._draghandles) {
-        this._draghandles = {};
-        let tmp = {};
-        Components.utils.import("resource://gre/modules/WindowDraggingUtils.jsm", tmp);
-
-        let mouseDownCheck = function () {
-          return !this._dragBindingAlive && TabsInTitlebar.enabled;
-        };
-
-        this._draghandles.tabsToolbar = new tmp.WindowDraggingElement(tabsToolbar);
-        this._draghandles.tabsToolbar.mouseDownCheck = mouseDownCheck;
-
-        this._draghandles.navToolbox = new tmp.WindowDraggingElement(gNavToolbox);
-        this._draghandles.navToolbox.mouseDownCheck = mouseDownCheck;
-      }
     } else {
       document.documentElement.removeAttribute("tabsintitlebar");
       updateTitlebarDisplay();
@@ -243,19 +267,21 @@ var TabsInTitlebar = {
       menubar.style.paddingBottom = "";
     }
 
-    ToolbarIconColor.inferFromText();
-    if (CustomizationHandler.isCustomizing()) {
+    ToolbarIconColor.inferFromText("tabsintitlebar", TabsInTitlebar.enabled);
+
+    if (document.documentElement.hasAttribute("customizing")) {
       gCustomizeMode.updateLWTStyling();
     }
   },
 
-  _sizePlaceholder: function (type, width) {
-    Array.forEach(document.querySelectorAll(".titlebar-placeholder[type='"+ type +"']"),
-                  function (node) { node.width = width; });
+  _sizePlaceholder(type, width) {
+    Array.forEach(document.querySelectorAll(".titlebar-placeholder[type='" + type + "']"),
+                  function(node) { node.width = width; });
   },
 
-  uninit: function () {
+  uninit() {
     this._initialized = false;
+    removeEventListener("resolutionchange", this);
     Services.prefs.removeObserver(this._prefName, this);
     this._menuObserver.disconnect();
     CustomizableUI.removeListener(this);
@@ -264,33 +290,18 @@ var TabsInTitlebar = {
 
 function updateTitlebarDisplay() {
   if (AppConstants.platform == "macosx") {
-    // OS X and the other platforms differ enough to necessitate this kind of
-    // special-casing. Like the other platforms where we CAN_DRAW_IN_TITLEBAR,
-    // we draw in the OS X titlebar when putting the tabs up there. However, OS X
-    // also draws in the titlebar when a lightweight theme is applied, regardless
-    // of whether or not the tabs are drawn in the titlebar.
     if (TabsInTitlebar.enabled) {
-      document.documentElement.setAttribute("chromemargin-nonlwtheme", "0,-1,-1,-1");
       document.documentElement.setAttribute("chromemargin", "0,-1,-1,-1");
       document.documentElement.removeAttribute("drawtitle");
     } else {
-      // We set chromemargin-nonlwtheme to "" instead of removing it as a way of
-      // making sure that LightweightThemeConsumer doesn't take it upon itself to
-      // detect this value again if and when we do a lwtheme state change.
-      document.documentElement.setAttribute("chromemargin-nonlwtheme", "");
-      let isCustomizing = document.documentElement.hasAttribute("customizing");
-      let hasLWTheme = document.documentElement.hasAttribute("lwtheme");
-      let isPrivate = PrivateBrowsingUtils.isWindowPrivate(window);
-      if ((!hasLWTheme || isCustomizing) && !isPrivate) {
-        document.documentElement.removeAttribute("chromemargin");
-      }
+      document.documentElement.removeAttribute("chromemargin");
       document.documentElement.setAttribute("drawtitle", "true");
     }
-  } else { // not OS X
-    if (TabsInTitlebar.enabled)
-      document.documentElement.setAttribute("chromemargin", "0,2,2,2");
-    else
-      document.documentElement.removeAttribute("chromemargin");
+  } else if (TabsInTitlebar.enabled) {
+    // not OS X
+    document.documentElement.setAttribute("chromemargin", "0,2,2,2");
+  } else {
+    document.documentElement.removeAttribute("chromemargin");
   }
 }
 

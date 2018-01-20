@@ -12,23 +12,15 @@ var prefs;
 var serverPort = -1;
 
 function run_test() {
-  var env = Cc["@mozilla.org/process/environment;1"].getService(Ci.nsIEnvironment);
-  serverPort = env.get("MOZHTTP2_PORT");
-  do_check_neq(serverPort, null);
+  serverPort = getTestServerPort();
 
   do_get_profile();
   prefs = Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefBranch);
 
-  disableServiceWorkerEvents(
-    'https://example.net/a',
-    'https://example.net/b',
-    'https://example.net/c'
-  );
-
   run_next_test();
 }
 
-add_task(function* test_pushNotifications() {
+add_task(async function test_pushNotifications() {
 
   let db = PushServiceHttp2.newPushDB();
   do_register_cleanup(() => {
@@ -42,26 +34,29 @@ add_task(function* test_pushNotifications() {
     pushEndpoint: serverURL + '/pushEndpointA',
     pushReceiptEndpoint: serverURL + '/pushReceiptEndpointA',
     scope: 'https://example.net/a',
-    originAttributes: ChromeUtils.originAttributesToSuffix({ appId: Ci.nsIScriptSecurityManager.NO_APP_ID, inBrowser: false }),
+    originAttributes: ChromeUtils.originAttributesToSuffix(
+      { appId: Ci.nsIScriptSecurityManager.NO_APP_ID, inIsolatedMozBrowser: false }),
     quota: Infinity,
   }, {
     subscriptionUri: serverURL + '/subscriptionB',
     pushEndpoint: serverURL + '/pushEndpointB',
     pushReceiptEndpoint: serverURL + '/pushReceiptEndpointB',
     scope: 'https://example.net/b',
-    originAttributes: ChromeUtils.originAttributesToSuffix({ appId: Ci.nsIScriptSecurityManager.NO_APP_ID, inBrowser: false }),
+    originAttributes: ChromeUtils.originAttributesToSuffix(
+      { appId: Ci.nsIScriptSecurityManager.NO_APP_ID, inIsolatedMozBrowser: false }),
     quota: Infinity,
   }, {
     subscriptionUri: serverURL + '/subscriptionC',
     pushEndpoint: serverURL + '/pushEndpointC',
     pushReceiptEndpoint: serverURL + '/pushReceiptEndpointC',
     scope: 'https://example.net/c',
-    originAttributes: ChromeUtils.originAttributesToSuffix({ appId: Ci.nsIScriptSecurityManager.NO_APP_ID, inBrowser: false }),
+    originAttributes: ChromeUtils.originAttributesToSuffix(
+      { appId: Ci.nsIScriptSecurityManager.NO_APP_ID, inIsolatedMozBrowser: false }),
     quota: Infinity,
   }];
 
   for (let record of records) {
-    yield db.put(record);
+    await db.put(record);
   }
 
   PushService.init({
@@ -69,11 +64,13 @@ add_task(function* test_pushNotifications() {
     db
   });
 
-  let registration = yield PushNotificationService.registration(
-    'https://example.net/a',
-    ChromeUtils.originAttributesToSuffix({ appId: Ci.nsIScriptSecurityManager.NO_APP_ID, inBrowser: false }));
+  let registration = await PushService.registration({
+    scope: 'https://example.net/a',
+    originAttributes: ChromeUtils.originAttributesToSuffix(
+      { appId: Ci.nsIScriptSecurityManager.NO_APP_ID, inIsolatedMozBrowser: false }),
+  });
   equal(
-    registration.pushEndpoint,
+    registration.endpoint,
     serverURL + '/pushEndpointA',
     'Wrong push endpoint for scope'
   );

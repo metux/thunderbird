@@ -8,21 +8,25 @@ requestLongerTimeout(2);
 
 // Test that the panel content refreshes when new animations are added.
 
-add_task(function*() {
-  yield addTab(TEST_URL_ROOT + "doc_simple_animation.html");
+add_task(function* () {
+  yield addTab(URL_ROOT + "doc_simple_animation.html");
   let {inspector, panel} = yield openAnimationInspector();
 
   info("Select a non animated node");
-  yield selectNode(".still", inspector);
+  yield selectNodeAndWaitForAnimations(".still", inspector);
 
   assertAnimationsDisplayed(panel, 0);
 
   info("Start an animation on the node");
+  let onRendered = waitForAnimationTimelineRendering(panel);
   yield changeElementAndWait({
     selector: ".still",
     attributeName: "class",
     attributeValue: "ball animated"
   }, panel, inspector);
+
+  yield onRendered;
+  yield waitForAllAnimationTargets(panel);
 
   assertAnimationsDisplayed(panel, 1);
 
@@ -42,6 +46,5 @@ function* changeElementAndWait(options, panel, inspector) {
 
   yield executeInContent("devtools:test:setAttribute", options);
 
-  yield promise.all([
-    onInspectorUpdated, onPanelUpdated, waitForAllAnimationTargets(panel)]);
+  yield promise.all([onInspectorUpdated, onPanelUpdated]);
 }

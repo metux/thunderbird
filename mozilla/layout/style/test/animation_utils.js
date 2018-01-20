@@ -46,9 +46,9 @@ function advance_clock(milliseconds) {
     function listener(event) {
       gEventsReceived.push(event);
     }
-    gElem.addEventListener("animationstart", listener, false);
-    gElem.addEventListener("animationiteration", listener, false);
-    gElem.addEventListener("animationend", listener, false);
+    gElem.addEventListener("animationstart", listener);
+    gElem.addEventListener("animationiteration", listener);
+    gElem.addEventListener("animationend", listener);
   }
 
   function check_events(eventsExpected, desc) {
@@ -248,8 +248,8 @@ function runOMTATest(aTestFunction, aOnSkip, specialPowersForPrefs) {
 
     // Common clean up code
     var cleanUp = function() {
-      div.parentNode.removeChild(div);
-      style.parentNode.removeChild(style);
+      div.remove();
+      style.remove();
       if (utils.isTestControllingRefreshes) {
         utils.restoreNormalRefresh();
       }
@@ -371,9 +371,12 @@ function runOMTATest(aTestFunction, aOnSkip, specialPowersForPrefs) {
     SpecialPowers.DOMWindowUtils.advanceTimeAndRefresh(0);
 
     // Run test
-    generator = aTestFunc();
-    return step()
-    .catch(function(err) {
+    var promise = aTestFunc();
+    if (!promise.then) {
+      generator = promise;
+      promise = step();
+    }
+    return promise.catch(function(err) {
       ok(false, err.message);
       if (typeof aOnAbort == "function") {
         aOnAbort();
@@ -505,7 +508,7 @@ const ExpectComparisonTo = {
                   " - got " + computedStr);
         return;
       }
-      okOrTodo(compare(computedValue, actualValue, 0),
+      okOrTodo(compare(computedValue, actualValue, 0.0),
                desc + ": OMTA style and computed style should be equal" +
                " - OMTA " + actualStr + ", computed " + computedStr);
     }
@@ -587,30 +590,35 @@ const ExpectComparisonTo = {
     }
   }
 
+  // Return the first defined value in args.
+  function defined(...args) {
+    return args.find(arg => typeof arg !== 'undefined');
+  }
+
   // Takes an object of the form { a: 1.1, e: 23 } and builds up a 3d matrix
   // with unspecified values filled in with identity values.
   function convertObjectTo3dMatrix(obj) {
     return [
       [
-        obj.a || obj.sx || obj.m11 || 1,
+        defined(obj.a, obj.sx, obj.m11, 1),
         obj.b || obj.m12 || 0,
         obj.m13 || 0,
         obj.m14 || 0
       ], [
         obj.c || obj.m21 || 0,
-        obj.d || obj.sy || obj.m22 || 1,
+        defined(obj.d, obj.sy, obj.m22, 1),
         obj.m23 || 0,
         obj.m24 || 0
       ], [
         obj.m31 || 0,
         obj.m32 || 0,
-        obj.sz || obj.m33 || 1,
+        defined(obj.sz, obj.m33, 1),
         obj.m34 || 0
       ], [
         obj.e || obj.tx || obj.m41 || 0,
         obj.f || obj.ty || obj.m42 || 0,
         obj.tz || obj.m43 || 0,
-        obj.m44 || 1
+        defined(obj.m44, 1),
       ]
     ];
   }

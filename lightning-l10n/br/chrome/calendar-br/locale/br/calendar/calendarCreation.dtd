@@ -1,0 +1,22 @@
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+
+<!ENTITY wizard.title             "Krouiñ un deiziataer nevez" >
+<!ENTITY wizard.label             "Krouiñ un deiziataer nevez" >
+<!ENTITY wizard.description       "Lec'hiañ ho teiziataer" >
+
+<!ENTITY initialpage.description    "Gallout a ra ho teiziataer bezañ kadavet war hoc'h urzhiataer pe war un dafariad evit e haeziñ a-bell pe rannañ anezhañ gant ho mignoned pe genseurted." >
+<!ENTITY initialpage.computer.label  "War va urzhiataer">
+<!ENTITY initialpage.network.label  "War ar rouedad">
+
+<!ENTITY locationpage.description         "Enlakait ar pezh a zo ezhomm evit haeziñ ho teiziataer a-bell" >
+<!ENTITY locationpage.login.description   "Diret : enlakait un anv implijer hag ur ger-tremen" >
+<!ENTITY locationpage.username.label      "Anv implijer :" >
+<!ENTITY locationpage.password.label      "Anv implijer :" >
+
+<!ENTITY custompage.shortdescription  "Personelait ho teiziataer" >
+<!ENTITY custompage.longdescription   "Gallout a rit reiñ ul lesanv d'ho teiziataer ha livañ an darvoudoù o tont dioutañ. " >
+
+<!ENTITY finishpage.shortdescription  "Krouet an deiziataer" >
+<!ENTITY finishpage.longdescription   "Krouet eo bet ho teiziataer." >

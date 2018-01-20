@@ -42,8 +42,6 @@ GLBlitTextureImageHelper::BlitTextureImage(TextureImage *aSrc, const gfx::IntRec
                                            TextureImage *aDst, const gfx::IntRect& aDstRect)
 {
     GLContext *gl = mCompositor->gl();
-    NS_ASSERTION(!aSrc->InUpdate(), "Source texture is in update!");
-    NS_ASSERTION(!aDst->InUpdate(), "Destination texture is in update!");
 
     if (!aSrc || !aDst || aSrcRect.IsEmpty() || aDstRect.IsEmpty())
         return;
@@ -55,8 +53,8 @@ GLBlitTextureImageHelper::BlitTextureImage(TextureImage *aSrc, const gfx::IntRec
     ScopedGLState scopedBlendState(gl, LOCAL_GL_BLEND, false);
 
     // 2.0 means scale up by two
-    float blitScaleX = float(aDstRect.width) / float(aSrcRect.width);
-    float blitScaleY = float(aDstRect.height) / float(aSrcRect.height);
+    float blitScaleX = float(aDstRect.Width()) / float(aSrcRect.Width());
+    float blitScaleY = float(aDstRect.Height()) / float(aSrcRect.Height());
 
     // We start iterating over all destination tiles
     aDst->BeginBigImageIteration();
@@ -118,16 +116,16 @@ GLBlitTextureImageHelper::BlitTextureImage(TextureImage *aSrc, const gfx::IntRec
 
             float dx0 = 2.0f * float(srcSubInDstRect.x) / float(dstSize.width) - 1.0f;
             float dy0 = 2.0f * float(srcSubInDstRect.y) / float(dstSize.height) - 1.0f;
-            float dx1 = 2.0f * float(srcSubInDstRect.x + srcSubInDstRect.width) / float(dstSize.width) - 1.0f;
-            float dy1 = 2.0f * float(srcSubInDstRect.y + srcSubInDstRect.height) / float(dstSize.height) - 1.0f;
+            float dx1 = 2.0f * float(srcSubInDstRect.x + srcSubInDstRect.Width()) / float(dstSize.width) - 1.0f;
+            float dy1 = 2.0f * float(srcSubInDstRect.y + srcSubInDstRect.Height()) / float(dstSize.height) - 1.0f;
             ScopedViewportRect autoViewportRect(gl, 0, 0, dstSize.width, dstSize.height);
 
             RectTriangles rects;
 
             gfx::IntSize realTexSize = srcSize;
             if (!CanUploadNonPowerOfTwo(gl)) {
-                realTexSize = gfx::IntSize(gfx::NextPowerOfTwo(srcSize.width),
-                                           gfx::NextPowerOfTwo(srcSize.height));
+                realTexSize = gfx::IntSize(RoundUpPow2(srcSize.width),
+                                           RoundUpPow2(srcSize.height));
             }
 
             if (aSrc->GetWrapMode() == LOCAL_GL_REPEAT) {
@@ -191,7 +189,7 @@ GLBlitTextureImageHelper::SetBlitFramebufferForDestTexture(GLuint aTexture)
         // your texture is not texture complete -- that is, you
         // allocated a texture name, but didn't actually define its
         // size via a call to TexImage2D.
-        NS_RUNTIMEABORT(msg.get());
+        MOZ_CRASH_UNSAFE_OOL(msg.get());
     }
 }
 

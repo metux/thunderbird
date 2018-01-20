@@ -3,7 +3,7 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 include protocol PBackgroundFileHandle;
-include protocol PBlob;
+include protocol PPendingIPCBlob;
 
 using struct mozilla::void_t
   from "ipc/IPCMessageUtils.h";
@@ -53,7 +53,7 @@ struct FileRequestFlushResponse
 
 struct FileRequestGetFileResponse
 {
-  PBlob file;
+  PPendingIPCBlob file;
   FileRequestMetadata metadata;
 };
 
@@ -73,10 +73,10 @@ protocol PBackgroundFileRequest
   manager PBackgroundFileHandle;
 
 child:
-  __delete__(FileRequestResponse response);
+  async __delete__(FileRequestResponse response);
 
-  Progress(uint64_t progress,
-           uint64_t progressMax);
+  async Progress(uint64_t progress,
+                 uint64_t progressMax);
 };
 
 } // namespace dom

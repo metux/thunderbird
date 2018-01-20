@@ -3,8 +3,8 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to Firefox for Android's documentation!
-===============================================
+Firefox for Android
+===================
 
 Contents:
 
@@ -13,8 +13,13 @@ Contents:
 
    localeswitching
    uitelemetry
+   activitystreamtelemetry
+   downloadcontenttelemetry
    adjust
-   gradle
+   mma
+   defaultdomains
+   shutdown
+   push
 
 Indices and tables
 ==================
@@ -22,4 +27,3 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-

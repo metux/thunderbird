@@ -29,7 +29,7 @@
 
 class nsFormHistory;
 class nsINode;
-class nsPIDOMWindow;
+class nsPIDOMWindowOuter;
 
 class nsFormFillController final : public nsIFormFillController,
                                    public nsIAutoCompleteInput,
@@ -58,8 +58,8 @@ public:
 protected:
   virtual ~nsFormFillController();
 
-  void AddWindowListeners(nsPIDOMWindow *aWindow);
-  void RemoveWindowListeners(nsPIDOMWindow *aWindow);
+  void AddWindowListeners(nsPIDOMWindowOuter* aWindow);
+  void RemoveWindowListeners(nsPIDOMWindowOuter* aWindow);
 
   void AddKeyListener(nsINode* aInput);
   void RemoveKeyListener();
@@ -79,13 +79,16 @@ protected:
   bool RowMatch(nsFormHistory *aHistory, uint32_t aIndex, const nsAString &aInputName, const nsAString &aInputValue);
 
   inline nsIDocShell *GetDocShellForInput(nsIDOMHTMLInputElement *aInput);
-  inline nsPIDOMWindow *GetWindowForDocShell(nsIDocShell *aDocShell);
+  inline nsPIDOMWindowOuter *GetWindowForDocShell(nsIDocShell *aDocShell);
   inline int32_t GetIndexOfDocShell(nsIDocShell *aDocShell);
 
   void MaybeRemoveMutationObserver(nsINode* aNode);
 
   void RemoveForDocument(nsIDocument* aDoc);
   bool IsEventTrusted(nsIDOMEvent *aEvent);
+
+  bool IsTextControl(nsINode* aNode);
+
   // members //////////////////////////////////////////
 
   nsCOMPtr<nsIAutoCompleteController> mController;
@@ -110,10 +113,13 @@ protected:
   nsString mLastSearchString;
 
   nsDataHashtable<nsPtrHashKey<const nsINode>, bool> mPwmgrInputs;
+  nsDataHashtable<nsPtrHashKey<const nsINode>, bool> mAutofillInputs;
 
+  uint16_t mFocusAfterRightClickThreshold;
   uint32_t mTimeout;
   uint32_t mMinResultsForPopup;
   uint32_t mMaxRows;
+  mozilla::TimeStamp mLastRightClickTimeStamp;
   bool mDisableAutoComplete;
   bool mCompleteDefaultIndex;
   bool mCompleteSelectedIndex;

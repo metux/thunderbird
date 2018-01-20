@@ -4,21 +4,20 @@
 package org.mozilla.gecko.tests;
 
 import org.mozilla.gecko.AppConstants;
-import org.mozilla.gecko.preferences.GeckoPreferences;
 import org.mozilla.mozstumbler.service.AppGlobals;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 
-import com.jayway.android.robotium.solo.Condition;
+import com.robotium.solo.Condition;
 
 /*
  * This test enables (checkbox checked) the Fennec setting to contribute to MLS, then waits for
  * a response Intent from the stumbler service to confirm it has started. Then, it disables the
  * service in the setting, and waits for confirmation that the servie has stopped.
  */
-public class testStumblerSetting extends BaseTest {
+public class testStumblerSetting extends OldBaseTest {
     boolean mIsEnabled;
 
     public void testStumblerSetting() {

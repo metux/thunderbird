@@ -16,11 +16,9 @@ test();
 
 function test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
 
-  jit(true);
 
   try
   { 
@@ -40,15 +38,11 @@ function test()
       var x; while (x = popArrs[a].pop()) {  }
     }
 
-    jit(false);
   }
   catch(ex)
   {
-    jit(false);
     actual = ex + '';
   }
 
   reportCompare(expect, actual, summary);
-
-  exitFunc ('test');
 }

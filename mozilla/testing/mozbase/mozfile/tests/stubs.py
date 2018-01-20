@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import os
 import shutil
 import tempfile
@@ -29,9 +31,9 @@ def create_stub():
             f.write(contents)
             f.close()
         return tempdir
-    except Exception, e:
+    except Exception:
         try:
             shutil.rmtree(tempdir)
         except:
             pass
-        raise e
+        raise

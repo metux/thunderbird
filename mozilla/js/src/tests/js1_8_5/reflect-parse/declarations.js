@@ -4,7 +4,7 @@ function test() {
 // Bug 632056: constant-folding
 program([exprStmt(ident("f")),
          ifStmt(lit(1),
-                funDecl(ident("f"), [], blockStmt([])),
+                blockStmt([funDecl(ident("f"), [], blockStmt([]))]),
                 null)]).assert(Reflect.parse("f; if (1) function f(){}"));
 // declarations
 
@@ -58,7 +58,7 @@ assertDecl("function f(a,[x,y]) { function a() { } }",
 // redeclarations (TOK_NAME nodes with lexdef)
 
 assertStmt("function f() { function g() { } function g() { } }",
-           funDecl(ident("f"), [], blockStmt([emptyStmt,
+           funDecl(ident("f"), [], blockStmt([funDecl(ident("g"), [], blockStmt([])),
                                               funDecl(ident("g"), [], blockStmt([]))])));
 
 // Fails due to parser quirks (bug 638577)
@@ -78,12 +78,20 @@ assertDecl("var {x} = foo;", varDecl([{ id: objPatt([assignProp("x")]),
 
 // Bug 632030: redeclarations between var and funargs, var and function
 assertStmt("function g(x) { var x }",
-           funDecl(ident("g"), [ident("x")], blockStmt([varDecl[{ id: ident("x"), init: null }]])));
+           funDecl(ident("g"), [ident("x")], blockStmt([varDecl([{ id: ident("x"), init: null }])])));
 assertProg("f.p = 1; var f; f.p; function f(){}",
            [exprStmt(aExpr("=", dotExpr(ident("f"), ident("p")), lit(1))),
             varDecl([{ id: ident("f"), init: null }]),
             exprStmt(dotExpr(ident("f"), ident("p"))),
             funDecl(ident("f"), [], blockStmt([]))]);
 }
+
+assertBlockStmt("{ function f(x) {} }",
+                blockStmt([funDecl(ident("f"), [ident("x")], blockStmt([]))]));
+
+// Annex B semantics should not change parse tree.
+assertBlockStmt("{ let f; { function f(x) {} } }",
+                blockStmt([letDecl([{ id: ident("f"), init: null }]),
+                           blockStmt([funDecl(ident("f"), [ident("x")], blockStmt([]))])]));
 
 runtest(test);

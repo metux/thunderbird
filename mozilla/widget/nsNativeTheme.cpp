@@ -38,7 +38,7 @@ nsNativeTheme::nsNativeTheme()
 {
 }
 
-NS_IMPL_ISUPPORTS(nsNativeTheme, nsITimerCallback)
+NS_IMPL_ISUPPORTS(nsNativeTheme, nsITimerCallback, nsINamed)
 
 nsIPresShell *
 nsNativeTheme::GetPresShell(nsIFrame* aFrame)
@@ -119,7 +119,7 @@ nsNativeTheme::GetContentState(nsIFrame* aFrame, uint8_t aWidgetType)
 #endif    
 #if defined(XP_MACOSX) || defined(XP_WIN)
   nsIDocument* doc = aFrame->GetContent()->OwnerDoc();
-  nsPIDOMWindow* window = doc->GetWindow();
+  nsPIDOMWindowOuter* window = doc->GetWindow();
   if (window && !window->ShouldShowFocusRing())
     flags &= ~NS_EVENT_STATE_FOCUS;
 #endif
@@ -129,7 +129,7 @@ nsNativeTheme::GetContentState(nsIFrame* aFrame, uint8_t aWidgetType)
 
 /* static */
 bool
-nsNativeTheme::CheckBooleanAttr(nsIFrame* aFrame, nsIAtom* aAtom)
+nsNativeTheme::CheckBooleanAttr(nsIFrame* aFrame, nsAtom* aAtom)
 {
   if (!aFrame)
     return false;
@@ -150,7 +150,7 @@ nsNativeTheme::CheckBooleanAttr(nsIFrame* aFrame, nsIAtom* aAtom)
 
 /* static */
 int32_t
-nsNativeTheme::CheckIntAttr(nsIFrame* aFrame, nsIAtom* aAtom, int32_t defaultValue)
+nsNativeTheme::CheckIntAttr(nsIFrame* aFrame, nsAtom* aAtom, int32_t defaultValue)
 {
   if (!aFrame)
     return defaultValue;
@@ -224,14 +224,15 @@ nsNativeTheme::IsButtonTypeMenu(nsIFrame* aFrame)
     return false;
 
   nsIContent* content = aFrame->GetContent();
-  return content->AttrValueIs(kNameSpaceID_None, nsGkAtoms::type,
+  return content->IsXULElement(nsGkAtoms::button) &&
+         content->AttrValueIs(kNameSpaceID_None, nsGkAtoms::type,
                               NS_LITERAL_STRING("menu"), eCaseMatters);
 }
 
 bool
 nsNativeTheme::IsPressedButton(nsIFrame* aFrame)
 {
-  EventStates eventState = GetContentState(aFrame, NS_THEME_TOOLBAR_BUTTON);
+  EventStates eventState = GetContentState(aFrame, NS_THEME_TOOLBARBUTTON);
   if (IsDisabled(aFrame, eventState))
     return false;
 
@@ -280,7 +281,7 @@ nsNativeTheme::IsWidgetStyled(nsPresContext* aPresContext, nsIFrame* aFrame,
   // fall through and return false.
   if (aWidgetType == NS_THEME_RESIZER) {
     nsIFrame* parentFrame = aFrame->GetParent();
-    if (parentFrame && parentFrame->GetType() == nsGkAtoms::scrollFrame) {
+    if (parentFrame && parentFrame->IsScrollFrame()) {
       // if the parent is a scrollframe, the resizer should be native themed
       // only if the scrollable area doesn't override the widget style.
       parentFrame = parentFrame->GetParent();
@@ -295,9 +296,9 @@ nsNativeTheme::IsWidgetStyled(nsPresContext* aPresContext, nsIFrame* aFrame,
    * Progress bar appearance should be the same for the bar and the container
    * frame. nsProgressFrame owns the logic and will tell us what we should do.
    */
-  if (aWidgetType == NS_THEME_PROGRESSBAR_CHUNK ||
+  if (aWidgetType == NS_THEME_PROGRESSCHUNK ||
       aWidgetType == NS_THEME_PROGRESSBAR) {
-    nsProgressFrame* progressFrame = do_QueryFrame(aWidgetType == NS_THEME_PROGRESSBAR_CHUNK
+    nsProgressFrame* progressFrame = do_QueryFrame(aWidgetType == NS_THEME_PROGRESSCHUNK
                                        ? aFrame->GetParent() : aFrame);
     if (progressFrame) {
       return !progressFrame->ShouldUseNativeStyle();
@@ -308,9 +309,9 @@ nsNativeTheme::IsWidgetStyled(nsPresContext* aPresContext, nsIFrame* aFrame,
    * Meter bar appearance should be the same for the bar and the container
    * frame. nsMeterFrame owns the logic and will tell us what we should do.
    */
-  if (aWidgetType == NS_THEME_METERBAR_CHUNK ||
+  if (aWidgetType == NS_THEME_METERCHUNK ||
       aWidgetType == NS_THEME_METERBAR) {
-    nsMeterFrame* meterFrame = do_QueryFrame(aWidgetType == NS_THEME_METERBAR_CHUNK
+    nsMeterFrame* meterFrame = do_QueryFrame(aWidgetType == NS_THEME_METERCHUNK
                                        ? aFrame->GetParent() : aFrame);
     if (meterFrame) {
       return !meterFrame->ShouldUseNativeStyle();
@@ -332,8 +333,8 @@ nsNativeTheme::IsWidgetStyled(nsPresContext* aPresContext, nsIFrame* aFrame,
     }
   }
 
-  if (aWidgetType == NS_THEME_SPINNER_UP_BUTTON ||
-      aWidgetType == NS_THEME_SPINNER_DOWN_BUTTON) {
+  if (aWidgetType == NS_THEME_SPINNER_UPBUTTON ||
+      aWidgetType == NS_THEME_SPINNER_DOWNBUTTON) {
     nsNumberControlFrame* numberControlFrame =
       nsNumberControlFrame::GetNumberControlFrameForSpinButton(aFrame);
     if (numberControlFrame) {
@@ -346,7 +347,7 @@ nsNativeTheme::IsWidgetStyled(nsPresContext* aPresContext, nsIFrame* aFrame,
           aWidgetType == NS_THEME_TEXTFIELD ||
           aWidgetType == NS_THEME_TEXTFIELD_MULTILINE ||
           aWidgetType == NS_THEME_LISTBOX ||
-          aWidgetType == NS_THEME_DROPDOWN) &&
+          aWidgetType == NS_THEME_MENULIST) &&
          aFrame->GetContent()->IsHTMLElement() &&
          aPresContext->HasAuthorSpecifiedRules(aFrame,
                                                NS_AUTHOR_SPECIFIED_BORDER |
@@ -376,7 +377,7 @@ nsNativeTheme::IsDisabled(nsIFrame* aFrame, EventStates aEventStates)
                               NS_LITERAL_STRING("true"), eCaseMatters);
 }
 
-bool
+/* static */ bool
 nsNativeTheme::IsFrameRTL(nsIFrame* aFrame)
 {
   if (!aFrame) {
@@ -486,12 +487,10 @@ nsNativeTheme::IsFirstTab(nsIFrame* aFrame)
   if (!aFrame)
     return false;
 
-  nsIFrame* first = aFrame->GetParent()->GetFirstPrincipalChild();
-  while (first) {
+  for (nsIFrame* first : aFrame->GetParent()->PrincipalChildList()) {
     if (first->GetRect().width > 0 &&
         first->GetContent()->IsXULElement(nsGkAtoms::tab))
       return (first == aFrame);
-    first = first->GetNextSibling();
   }
   return false;
 }
@@ -518,7 +517,7 @@ nsNativeTheme::IsNextToSelectedTab(nsIFrame* aFrame, int32_t aOffset)
 
   int32_t thisTabIndex = -1, selectedTabIndex = -1;
 
-  nsIFrame* currentTab = aFrame->GetParent()->GetFirstPrincipalChild();
+  nsIFrame* currentTab = aFrame->GetParent()->PrincipalChildList().FirstChild();
   for (int32_t i = 0; currentTab; currentTab = currentTab->GetNextSibling()) {
     if (currentTab->GetRect().width == 0)
       continue;
@@ -566,13 +565,13 @@ nsNativeTheme::IsVerticalMeter(nsIFrame* aFrame)
 {
   NS_PRECONDITION(aFrame, "You have to pass a non-null aFrame");
   switch (aFrame->StyleDisplay()->mOrient) {
-    case NS_STYLE_ORIENT_HORIZONTAL:
+    case StyleOrient::Horizontal:
       return false;
-    case NS_STYLE_ORIENT_VERTICAL:
+    case StyleOrient::Vertical:
       return true;
-    case NS_STYLE_ORIENT_INLINE:
+    case StyleOrient::Inline:
       return aFrame->GetWritingMode().IsVertical();
-    case NS_STYLE_ORIENT_BLOCK:
+    case StyleOrient::Block:
       return !aFrame->GetWritingMode().IsVertical();
   }
   NS_NOTREACHED("unexpected -moz-orient value");
@@ -595,8 +594,8 @@ nsNativeTheme::IsSubmenu(nsIFrame* aFrame, bool* aLeftOfParent)
     if (parent->GetContent() == parentContent) {
       if (aLeftOfParent) {
         LayoutDeviceIntRect selfBounds, parentBounds;
-        aFrame->GetNearestWidget()->GetScreenBounds(selfBounds);
-        parent->GetNearestWidget()->GetScreenBounds(parentBounds);
+        selfBounds = aFrame->GetNearestWidget()->GetScreenBounds();
+        parentBounds = parent->GetNearestWidget()->GetScreenBounds();
         *aLeftOfParent = selfBounds.x < parentBounds.x;
       }
       return true;
@@ -637,7 +636,7 @@ nsNativeTheme::QueueAnimatedContentForRefresh(nsIContent* aContent,
   timeout = std::min(mAnimatedContentTimeout, timeout);
 
   if (!mAnimatedContentTimer) {
-    mAnimatedContentTimer = do_CreateInstance(NS_TIMER_CONTRACTID);
+    mAnimatedContentTimer = NS_NewTimer();
     NS_ENSURE_TRUE(mAnimatedContentTimer, false);
   }
 
@@ -648,6 +647,9 @@ nsNativeTheme::QueueAnimatedContentForRefresh(nsIContent* aContent,
       NS_ENSURE_SUCCESS(rv, false);
     }
 
+    if (XRE_IsContentProcess() && NS_IsMainThread()) {
+      mAnimatedContentTimer->SetTarget(aContent->OwnerDoc()->EventTargetFor(TaskCategory::Other));
+    }
     rv = mAnimatedContentTimer->InitWithCallback(this, timeout,
                                                  nsITimer::TYPE_ONE_SHOT);
     NS_ENSURE_SUCCESS(rv, false);
@@ -684,6 +686,13 @@ nsNativeTheme::Notify(nsITimer* aTimer)
   return NS_OK;
 }
 
+NS_IMETHODIMP
+nsNativeTheme::GetName(nsACString& aName)
+{
+  aName.AssignLiteral("nsNativeTheme");
+  return NS_OK;
+}
+
 nsIFrame*
 nsNativeTheme::GetAdjacentSiblingFrameWithSameAppearance(nsIFrame* aFrame,
                                                          bool aNextSibling)
@@ -710,11 +719,11 @@ bool
 nsNativeTheme::IsRangeHorizontal(nsIFrame* aFrame)
 {
   nsIFrame* rangeFrame = aFrame;
-  if (rangeFrame->GetType() != nsGkAtoms::rangeFrame) {
+  if (!rangeFrame->IsRangeFrame()) {
     // If the thumb's frame is passed in, get its range parent:
     rangeFrame = aFrame->GetParent();
   }
-  if (rangeFrame->GetType() == nsGkAtoms::rangeFrame) {
+  if (rangeFrame->IsRangeFrame()) {
     return static_cast<nsRangeFrame*>(rangeFrame)->IsHorizontal();
   }
   // Not actually a range frame - just use the ratio of the frame's size to
@@ -761,12 +770,12 @@ nsNativeTheme::IsDarkBackground(nsIFrame* aFrame)
   }
   nsStyleContext* bgSC = nullptr;
   if (!nsCSSRendering::FindBackground(frame, &bgSC) ||
-      bgSC->StyleBackground()->IsTransparent()) {
+      bgSC->StyleBackground()->IsTransparent(bgSC)) {
     nsIFrame* backgroundFrame = nsCSSRendering::FindNonTransparentBackgroundFrame(frame, true);
     nsCSSRendering::FindBackground(backgroundFrame, &bgSC);
   }
   if (bgSC) {
-    nscolor bgColor = bgSC->StyleBackground()->mBackgroundColor;
+    nscolor bgColor = bgSC->StyleBackground()->BackgroundColor(bgSC);
     // Consider the background color dark if the sum of the r, g and b values is
     // less than 384 in a semi-transparent document.  This heuristic matches what
     // WebKit does, and we can improve it later if needed.

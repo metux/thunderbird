@@ -9,64 +9,15 @@
 @import url("chrome://messenger/skin/");
 @import url("chrome://messenger/skin/shared/addressbook.css");
 
+#ab-toolbox {
+  -moz-appearance: none;
+  background-color: var(--toolbar-bgcolor);
+  border-bottom: 1px solid hsl(0, 0%, 60%);
+}
+
 #ab-toolbox > toolbar {
   /* force iconsize="small" on these toolbars */
   counter-reset: smallicons;
-}
-
-/* ::::: primary toolbar buttons ::::: */
-
-#button-newcard {
-  list-style-image: url("chrome://messenger/skin/addressbook/icons/addressbook-toolbar.svg#newcard");
-}
-
-#button-newlist {
-  list-style-image: url("chrome://messenger/skin/addressbook/icons/addressbook-toolbar.svg#newlist");
-}
-
-#button-editcard {
-  list-style-image: url("chrome://messenger/skin/addressbook/icons/addressbook-toolbar.svg#editcard");
-}
-
-#button-newmessage {
-  list-style-image: url("chrome://messenger/skin/addressbook/icons/addressbook-toolbar.svg#newmessage");
-}
-
-#button-newim {
-  list-style-image: url("chrome://messenger/skin/addressbook/icons/addressbook-toolbar.svg#newim");
-}
-
-#button-abdelete {
-  list-style-image: url("chrome://messenger/skin/addressbook/icons/addressbook-toolbar.svg#abdelete");
-}
-
-#ab-bar2[brighttext] #button-newcard {
-  list-style-image: url("chrome://messenger/skin/addressbook/icons/addressbook-toolbar.svg#newcard-inverted");
-}
-
-#ab-bar2[brighttext] #button-newlist {
-  list-style-image: url("chrome://messenger/skin/addressbook/icons/addressbook-toolbar.svg#newlist-inverted");
-}
-
-#ab-bar2[brighttext] #button-editcard {
-  list-style-image: url("chrome://messenger/skin/addressbook/icons/addressbook-toolbar.svg#editcard-inverted");
-}
-
-#ab-bar2[brighttext] #button-newmessage {
-  list-style-image: url("chrome://messenger/skin/addressbook/icons/addressbook-toolbar.svg#newmessage-inverted");
-}
-
-#ab-bar2[brighttext] #button-newim {
-  list-style-image: url("chrome://messenger/skin/addressbook/icons/addressbook-toolbar.svg#newim-inverted");
-}
-
-#ab-bar2[brighttext] #button-abdelete {
-  list-style-image: url("chrome://messenger/skin/addressbook/icons/addressbook-toolbar.svg#abdelete-inverted");
-}
-
-#abContent {
-  text-shadow: none;
-  background-color: -moz-Dialog;
 }
 
 /* ::::: directory pane adjustments ::::: */
@@ -76,7 +27,7 @@
 }
 
 #abDirTreeHeader-title {
-  -moz-padding-start: 4px;
+  padding-inline-start: 4px;
 }
 
 #dirTree {
@@ -87,11 +38,11 @@
 
 #dirTree-splitter {
   -moz-appearance: none;
-  -moz-border-end: 1px solid ThreeDShadow;
+  border-inline-end: 1px solid ThreeDShadow;
   /* splitter grip area */
   width: 4px;
   /* make only the splitter border visible */
-  -moz-margin-start: -4px;
+  margin-inline-start: -4px;
   /* because of the negative margin needed to make the splitter visible */
   position: relative;
   z-index: 10;
@@ -116,7 +67,7 @@
 }
 
 #GeneratedName {
-  -moz-padding-start: 26px;
+  padding-inline-start: 26px;
 }
 
 /* ::::: card view pane ::::: */
@@ -155,7 +106,7 @@
 
 .CardViewHeading {
   padding: 1px;
-  -moz-padding-start: 5px;
+  padding-inline-start: 5px;
   background-color: Highlight;
   color: HighlightText;
   font-weight: bold;

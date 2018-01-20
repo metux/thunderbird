@@ -1,3 +1,4 @@
+// |reftest| skip-if(xulRuntime.shell)
 /* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -17,20 +18,10 @@ test();
 
 function test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
 
-  if (typeof window == 'undefined')
-  {
-    expect = actual = 'Test skipped: browser only';
-    reportCompare(expect, actual, summary);
-  }
-  else
-  {
-    gDelayTestDriverEnd = true;
-
-    jit(true);
+  gDelayTestDriverEnd = true;
 
     function newScriptWithLoop(m)
     {
@@ -47,15 +38,11 @@ function test()
       div.appendChild(newScriptWithLoop(1));
       document.body.appendChild(div);
 
-      jit(false);
 
       reportCompare(expect, actual, summary);
       gDelayTestDriverEnd = false;
       jsTestDriverEnd();
     }
 
-    window.addEventListener('load', boom, false);
-  }
-
-  exitFunc ('test');
+  window.addEventListener('load', boom, false);
 }

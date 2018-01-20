@@ -17,8 +17,7 @@ Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
  *
  * Implements only the methods needed for this test.
  */
-function AutoCompleteInput(aSearches)
-{
+function AutoCompleteInput(aSearches) {
   this.searches = aSearches;
 }
 AutoCompleteInput.prototype = {
@@ -27,64 +26,59 @@ AutoCompleteInput.prototype = {
   timeout: 10,
   searchParam: "",
   textValue: "hello",
-  disableAutoComplete: false, 
+  disableAutoComplete: false,
   completeDefaultIndex: false,
   set popupOpen(val) { return val; }, // ignore
   get popupOpen() { return false; },
   get searchCount() { return this.searches.length; },
-  getSearchAt: function(aIndex) { return this.searches[aIndex]; },
-  onSearchBegin: function() {},
-  onSearchComplete: function() {},
-  onTextReverted: function () {},
-  onTextEntered: function () {},
+  getSearchAt(aIndex) { return this.searches[aIndex]; },
+  onSearchBegin() {},
+  onSearchComplete() {},
+  onTextReverted() {},
+  onTextEntered() {},
   popup: {
-    selectBy: function() {},
-    invalidate: function() {},
+    selectBy() {},
+    invalidate() {},
     set selectedIndex(val) { return val; }, // ignore
-    get selectedIndex() { return -1 },
+    get selectedIndex() { return -1; },
     QueryInterface: XPCOMUtils.generateQI([Ci.nsIAutoCompletePopup])
   },
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIAutoCompleteInput])
-}
+};
 
 
 /**
  * nsIAutoCompleteSearch implementation.
  */
-function AutoCompleteSearch(aName)
-{
+function AutoCompleteSearch(aName) {
   this.name = aName;
 }
 AutoCompleteSearch.prototype = {
   constructor: AutoCompleteSearch,
   stopSearchInvoked: true,
-  startSearch: function(aSearchString, aSearchParam, aPreviousResult, aListener)
-  {
+  startSearch(aSearchString, aSearchParam, aPreviousResult, aListener) {
     print("Check stop search has been called");
     do_check_true(this.stopSearchInvoked);
     this.stopSearchInvoked = false;
   },
-  stopSearch: function()
-  {
+  stopSearch() {
     this.stopSearchInvoked = true;
   },
   QueryInterface: XPCOMUtils.generateQI([
-    Ci.nsIFactory
-  , Ci.nsIAutoCompleteSearch
+    Ci.nsIFactory,
+    Ci.nsIAutoCompleteSearch
   ]),
-  createInstance: function(outer, iid)
-  {
+  createInstance(outer, iid) {
     return this.QueryInterface(iid);
   }
-}
+};
 
 
-/** 
+/**
  * Helper to register an AutoCompleteSearch with the given name.
  * Allows the AutoCompleteController to find the search.
  */
-function registerAutoCompleteSearch(aSearch)
-{
+function registerAutoCompleteSearch(aSearch) {
   let name = "@mozilla.org/autocomplete/search;1?name=" + aSearch.name;
   let uuidGenerator = Cc["@mozilla.org/uuid-generator;1"].
                       getService(Ci.nsIUUIDGenerator);
@@ -94,16 +88,16 @@ function registerAutoCompleteSearch(aSearch)
                                    .QueryInterface(Ci.nsIComponentRegistrar);
   componentManager.registerFactory(cid, desc, name, aSearch);
   // Keep the id on the object so we can unregister later
-  aSearch.cid = cid; 
+  aSearch.cid = cid;
 }
 
 
-/** 
- * Helper to unregister an AutoCompleteSearch. 
+/**
+ * Helper to unregister an AutoCompleteSearch.
  */
 function unregisterAutoCompleteSearch(aSearch) {
   let componentManager = Components.manager
-                                   .QueryInterface(Ci.nsIComponentRegistrar);  
+                                   .QueryInterface(Ci.nsIComponentRegistrar);
   componentManager.unregisterFactory(aSearch.cid, aSearch);
 }
 
@@ -165,7 +159,7 @@ function run_test() {
   };
   input.onSearchComplete = function() {
     run_next_test(controller);
-  }
+  };
 
   // Search is asynchronous, so don't let the test finish immediately
   do_test_pending();

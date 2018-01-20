@@ -5,7 +5,7 @@
 // Test that various combinations of icon details specs, for both paths
 // and ImageData objects, result in the correct image being displayed in
 // all display resolutions.
-add_task(function* testDetailsObjects() {
+add_task(async function testDetailsObjects() {
   function background() {
     function getImageData(color) {
       let canvas = document.createElement("canvas");
@@ -28,103 +28,145 @@ add_task(function* testDetailsObjects() {
       green: getImageData("green"),
     };
 
-    /* eslint-disable comma-dangle, indent */
+    /* eslint-disable comma-dangle, indent, indent-legacy */
     let iconDetails = [
       // Only paths.
-      { details: { "path": "a.png" },
+      {details: {"path": "a.png"},
         resolutions: {
           "1": browser.runtime.getURL("data/a.png"),
-          "2": browser.runtime.getURL("data/a.png"), } },
-      { details: { "path": "/a.png" },
+          "2": browser.runtime.getURL("data/a.png")}},
+      {details: {"path": "/a.png"},
         resolutions: {
           "1": browser.runtime.getURL("a.png"),
-          "2": browser.runtime.getURL("a.png"), } },
-      { details: { "path": { "19": "a.png" } },
+          "2": browser.runtime.getURL("a.png")}},
+      {details: {"path": {"19": "a.png"}},
         resolutions: {
           "1": browser.runtime.getURL("data/a.png"),
-          "2": browser.runtime.getURL("data/a.png"), } },
-      { details: { "path": { "38": "a.png" } },
+          "2": browser.runtime.getURL("data/a.png")}},
+      {details: {"path": {"38": "a.png"}},
         resolutions: {
           "1": browser.runtime.getURL("data/a.png"),
-          "2": browser.runtime.getURL("data/a.png"), } },
-      { details: { "path": { "19": "a.png", "38": "a-x2.png" } },
+          "2": browser.runtime.getURL("data/a.png")}},
+      {details: {"path": {"19": "a.png", "38": "a-x2.png"}},
         resolutions: {
           "1": browser.runtime.getURL("data/a.png"),
-          "2": browser.runtime.getURL("data/a-x2.png"), } },
+          "2": browser.runtime.getURL("data/a-x2.png")}},
+
+      // Test that CSS strings are escaped properly.
+      {details: {"path": 'a.png#" \\'},
+        resolutions: {
+          "1": browser.runtime.getURL("data/a.png#%22%20%5C"),
+          "2": browser.runtime.getURL("data/a.png#%22%20%5C")}},
 
       // Only ImageData objects.
-      { details: { "imageData": imageData.red.imageData },
+      {details: {"imageData": imageData.red.imageData},
         resolutions: {
           "1": imageData.red.url,
-          "2": imageData.red.url, } },
-      { details: { "imageData": { "19": imageData.red.imageData } },
+          "2": imageData.red.url}},
+      {details: {"imageData": {"19": imageData.red.imageData}},
         resolutions: {
           "1": imageData.red.url,
-          "2": imageData.red.url, } },
-      { details: { "imageData": { "38": imageData.red.imageData } },
+          "2": imageData.red.url}},
+      {details: {"imageData": {"38": imageData.red.imageData}},
         resolutions: {
           "1": imageData.red.url,
-          "2": imageData.red.url, } },
-      { details: { "imageData": {
+          "2": imageData.red.url}},
+      {details: {"imageData": {
           "19": imageData.red.imageData,
-          "38": imageData.green.imageData } },
+          "38": imageData.green.imageData}},
         resolutions: {
           "1": imageData.red.url,
-          "2": imageData.green.url, } },
+          "2": imageData.green.url}},
 
       // Mixed path and imageData objects.
       //
       // The behavior is currently undefined if both |path| and
       // |imageData| specify icons of the same size.
-      { details: {
-          "path": { "19": "a.png" },
-          "imageData": { "38": imageData.red.imageData } },
+      {details: {
+          "path": {"19": "a.png"},
+          "imageData": {"38": imageData.red.imageData}},
         resolutions: {
           "1": browser.runtime.getURL("data/a.png"),
-          "2": imageData.red.url, } },
-      { details: {
-          "path": { "38": "a.png" },
-          "imageData": { "19": imageData.red.imageData } },
+          "2": imageData.red.url}},
+      {details: {
+          "path": {"38": "a.png"},
+          "imageData": {"19": imageData.red.imageData}},
         resolutions: {
           "1": imageData.red.url,
-          "2": browser.runtime.getURL("data/a.png"), } },
+          "2": browser.runtime.getURL("data/a.png")}},
 
       // A path or ImageData object by itself is treated as a 19px icon.
-      { details: {
+      {details: {
           "path": "a.png",
-          "imageData": { "38": imageData.red.imageData } },
+          "imageData": {"38": imageData.red.imageData}},
         resolutions: {
           "1": browser.runtime.getURL("data/a.png"),
-          "2": imageData.red.url, } },
-      { details: {
-          "path": { "38": "a.png" },
-          "imageData": imageData.red.imageData, },
+          "2": imageData.red.url}},
+      {details: {
+          "path": {"38": "a.png"},
+          "imageData": imageData.red.imageData},
         resolutions: {
           "1": imageData.red.url,
-          "2": browser.runtime.getURL("data/a.png"), } },
+          "2": browser.runtime.getURL("data/a.png")}},
 
       // Various resolutions
-      { details: { "path": { "18": "a.png", "32": "a-x2.png" } },
+      {details: {"path": {"18": "a.png", "36": "a-x2.png"}},
+        legacy: true,
         resolutions: {
           "1": browser.runtime.getURL("data/a.png"),
-          "2": browser.runtime.getURL("data/a-x2.png"), } },
-      { details: { "path": { "16": "16.png", "100": "100.png" } },
+          "2": browser.runtime.getURL("data/a-x2.png")}},
+      {details: {"path": {"16": "a.png", "30": "a-x2.png"}},
         resolutions: {
-          "1": browser.runtime.getURL("data/100.png"),
-          "2": browser.runtime.getURL("data/100.png"), } },
-      { details: { "path": { "2": "2.png"} },
+          "1": browser.runtime.getURL("data/a.png"),
+          "2": browser.runtime.getURL("data/a-x2.png")}},
+      {details: {"path": {"16": "16.png", "100": "100.png"}},
+        resolutions: {
+          "1": browser.runtime.getURL("data/16.png"),
+          "2": browser.runtime.getURL("data/100.png")}},
+      {details: {"path": {"2": "2.png"}},
         resolutions: {
           "1": browser.runtime.getURL("data/2.png"),
-          "2": browser.runtime.getURL("data/2.png"), } },
-      { details: { "path": {
+          "2": browser.runtime.getURL("data/2.png")}},
+      {details: {"path": {
+        "16": "16.svg",
+        "18": "18.svg"}},
+        resolutions: {
+          "1": browser.runtime.getURL("data/16.svg"),
+          "2": browser.runtime.getURL("data/18.svg")}},
+      {details: {"path": {
         "6": "6.png",
+        "18": "18.png",
+        "36": "36.png",
+        "48": "48.png",
+        "128": "128.png"}},
+        legacy: true,
+        resolutions: {
+          "1": browser.runtime.getURL("data/18.png"),
+          "2": browser.runtime.getURL("data/36.png")},
+        menuResolutions: {
+          "1": browser.runtime.getURL("data/36.png"),
+          "2": browser.runtime.getURL("data/128.png")}},
+      {details: {"path": {
+        "16": "16.png",
         "18": "18.png",
         "32": "32.png",
         "48": "48.png",
-        "128": "128.png" } },
+        "64": "64.png",
+        "128": "128.png"}},
         resolutions: {
-          "1": browser.runtime.getURL("data/18.png"),
-          "2": browser.runtime.getURL("data/48.png"), } },
+          "1": browser.runtime.getURL("data/16.png"),
+          "2": browser.runtime.getURL("data/32.png")},
+        menuResolutions: {
+          "1": browser.runtime.getURL("data/32.png"),
+          "2": browser.runtime.getURL("data/64.png")}},
+      {details: {"path": {
+        "18": "18.png",
+        "32": "32.png",
+        "48": "48.png",
+        "128": "128.png"}},
+        resolutions: {
+          "1": browser.runtime.getURL("data/32.png"),
+          "2": browser.runtime.getURL("data/32.png")}},
     ];
 
     // Allow serializing ImageData objects for logging.
@@ -138,15 +180,16 @@ add_task(function* testDetailsObjects() {
       }
 
       let details = iconDetails[test.index];
-      let expectedURL = details.resolutions[test.resolution];
 
       let detailString = JSON.stringify(details);
-      browser.test.log(`Setting browerAction/pageAction to ${detailString} expecting URL ${expectedURL}`);
+      browser.test.log(`Setting browerAction/pageAction to ${detailString} expecting URLs ${JSON.stringify(details.resolutions)}`);
 
-      browser.browserAction.setIcon(Object.assign({tabId}, details.details));
-      browser.pageAction.setIcon(Object.assign({tabId}, details.details));
-
-      browser.test.sendMessage("imageURL", expectedURL);
+      Promise.all([
+        browser.browserAction.setIcon(Object.assign({tabId}, details.details)),
+        browser.pageAction.setIcon(Object.assign({tabId}, details.details)),
+      ]).then(() => {
+        browser.test.sendMessage("iconSet");
+      });
     });
 
     // Generate a list of tests and resolutions to send back to the test
@@ -161,20 +204,23 @@ add_task(function* testDetailsObjects() {
     // correctly.
     let tests = [];
     for (let [idx, icon] of iconDetails.entries()) {
-      for (let res of Object.keys(icon.resolutions)) {
-        tests.push({ index: idx, resolution: Number(res) });
-      }
+      tests.push({
+        index: idx,
+        legacy: !!icon.legacy,
+        menuResolutions: icon.menuResolutions,
+        resolutions: icon.resolutions,
+      });
     }
 
     // Sort by resolution, so we don't needlessly switch back and forth
     // between each test.
     tests.sort(test => test.resolution);
 
-    browser.tabs.query({ active: true, currentWindow: true }, tabs => {
+    browser.tabs.query({active: true, currentWindow: true}, tabs => {
       tabId = tabs[0].id;
-      browser.pageAction.show(tabId);
-
-      browser.test.sendMessage("ready", tests);
+      browser.pageAction.show(tabId).then(() => {
+        browser.test.sendMessage("ready", tests);
+      });
     });
   }
 
@@ -190,234 +236,140 @@ add_task(function* testDetailsObjects() {
     files: {
       "data/background.html": `<script src="background.js"></script>`,
       "data/background.js": background,
+
+      "data/16.svg": imageBuffer,
+      "data/18.svg": imageBuffer,
+
+      "data/16.png": imageBuffer,
+      "data/18.png": imageBuffer,
+      "data/32.png": imageBuffer,
+      "data/36.png": imageBuffer,
+      "data/48.png": imageBuffer,
+      "data/64.png": imageBuffer,
+      "data/128.png": imageBuffer,
+
+      "a.png": imageBuffer,
+      "data/2.png": imageBuffer,
+      "data/100.png": imageBuffer,
+      "data/a.png": imageBuffer,
+      "data/a-x2.png": imageBuffer,
     },
   });
 
   const RESOLUTION_PREF = "layout.css.devPixelsPerPx";
-  registerCleanupFunction(() => {
-    SpecialPowers.clearUserPref(RESOLUTION_PREF);
-  });
 
-  let browserActionId = makeWidgetId(extension.id) + "-browser-action";
-  let pageActionId = makeWidgetId(extension.id) + "-page-action";
+  await extension.startup();
 
-  let [, tests] = yield Promise.all([extension.startup(), extension.awaitMessage("ready")]);
+  let pageActionId = BrowserPageActions.urlbarButtonNodeIDForActionID(makeWidgetId(extension.id));
+  let browserActionWidget = getBrowserActionWidget(extension);
+
+  let tests = await extension.awaitMessage("ready");
+
+  // The initial icon should be the default icon since no icon is in the manifest.
+  const DEFAULT_ICON = "chrome://browser/content/extension.svg";
+  let browserActionButton = browserActionWidget.forWindow(window).node;
+  let pageActionImage = document.getElementById(pageActionId);
+  is(getListStyleImage(browserActionButton), DEFAULT_ICON, `browser action has the correct default image`);
+  is(getListStyleImage(pageActionImage), DEFAULT_ICON, `page action has the correct default image`);
 
   for (let test of tests) {
-    SpecialPowers.setCharPref(RESOLUTION_PREF, String(test.resolution));
-    is(window.devicePixelRatio, test.resolution, "window has the required resolution");
-
     extension.sendMessage("setIcon", test);
+    await extension.awaitMessage("iconSet");
 
-    let imageURL = yield extension.awaitMessage("imageURL");
+    await promiseAnimationFrame();
 
-    let browserActionButton = document.getElementById(browserActionId);
-    is(browserActionButton.getAttribute("image"), imageURL, "browser action has the correct image");
+    // Test icon sizes in the toolbar/urlbar.
+    for (let resolution of Object.keys(test.resolutions)) {
+      await SpecialPowers.pushPrefEnv({set: [[RESOLUTION_PREF, resolution]]});
 
-    let pageActionImage = document.getElementById(pageActionId);
-    is(pageActionImage.src, imageURL, "page action has the correct image");
-  }
+      is(window.devicePixelRatio, +resolution, "window has the required resolution");
 
-  yield extension.unload();
-});
+      let imageURL = test.resolutions[resolution];
+      is(getListStyleImage(browserActionButton), imageURL, `browser action has the correct image at ${resolution}x resolution`);
+      is(getListStyleImage(pageActionImage), imageURL, `page action has the correct image at ${resolution}x resolution`);
 
-// Test that an error is thrown when providing invalid icon sizes
-add_task(function* testInvalidIconSizes() {
-  let extension = ExtensionTestUtils.loadExtension({
-    manifest: {
-      "browser_action": {},
-      "page_action": {},
-    },
+      let isLegacy = browserActionButton.classList.contains("toolbarbutton-legacy-addon");
+      is(isLegacy, test.legacy, "Legacy class should be present?");
 
-    background: function() {
-      browser.tabs.query({ active: true, currentWindow: true }, tabs => {
-        let tabId = tabs[0].id;
-
-        for (let api of ["pageAction", "browserAction"]) {
-          // helper function to run setIcon and check if it fails
-          let assertSetIconThrows = function(detail, error, message) {
-            try {
-              detail.tabId = tabId;
-              browser[api].setIcon(detail);
-
-              browser.test.fail("Expected an error on invalid icon size.");
-              browser.test.notifyFail("setIcon with invalid icon size");
-              return;
-            } catch (e) {
-              browser.test.succeed("setIcon with invalid icon size");
-            }
-          };
-
-          // test invalid icon size inputs
-          for (let type of ["path", "imageData"]) {
-            assertSetIconThrows({ [type]: { "abcdef": "test.png" } });
-            assertSetIconThrows({ [type]: { "48px": "test.png" } });
-            assertSetIconThrows({ [type]: { "20.5": "test.png" } });
-            assertSetIconThrows({ [type]: { "5.0": "test.png" } });
-            assertSetIconThrows({ [type]: { "-300": "test.png" } });
-            assertSetIconThrows({ [type]: {
-              "abc": "test.png",
-              "5": "test.png"
-            }});
-          }
-
-          assertSetIconThrows({ imageData: { "abcdef": "test.png" }, path: {"5": "test.png"} });
-          assertSetIconThrows({ path: { "abcdef": "test.png" }, imageData: {"5": "test.png"} });
-        }
-
-        browser.test.notifyPass("setIcon with invalid icon size");
-      });
+      await SpecialPowers.popPrefEnv();
     }
-  });
 
-  yield Promise.all([extension.startup(), extension.awaitFinish("setIcon with invalid icon size")]);
-
-  yield extension.unload();
-});
-
-
-// Test that default icon details in the manifest.json file are handled
-// correctly.
-add_task(function* testDefaultDetails() {
-  // TODO: Test localized variants.
-  let icons = [
-    "foo/bar.png",
-    "/foo/bar.png",
-    { "19": "foo/bar.png" },
-    { "38": "foo/bar.png" },
-    { "19": "foo/bar.png", "38": "baz/quux.png" },
-  ];
-
-  let expectedURL = new RegExp(String.raw`^moz-extension://[^/]+/foo/bar\.png$`);
-
-  for (let icon of icons) {
-    let extension = ExtensionTestUtils.loadExtension({
-      manifest: {
-        "browser_action": { "default_icon": icon },
-        "page_action": { "default_icon": icon },
-      },
-
-      background: function() {
-        browser.tabs.query({ active: true, currentWindow: true }, tabs => {
-          let tabId = tabs[0].id;
-
-          browser.pageAction.show(tabId);
-          browser.test.sendMessage("ready");
-        });
-      }
-    });
-
-    yield Promise.all([extension.startup(), extension.awaitMessage("ready")]);
-
-    let browserActionId = makeWidgetId(extension.id) + "-browser-action";
-    let pageActionId = makeWidgetId(extension.id) + "-page-action";
-
-    let browserActionButton = document.getElementById(browserActionId);
-    let image = browserActionButton.getAttribute("image");
-
-    ok(expectedURL.test(image), `browser action image ${image} matches ${expectedURL}`);
-
-    let pageActionImage = document.getElementById(pageActionId);
-    image = pageActionImage.src;
-
-    ok(expectedURL.test(image), `page action image ${image} matches ${expectedURL}`);
-
-    yield extension.unload();
-
-    let node = document.getElementById(pageActionId);
-    is(node, null, "pageAction image removed from document");
+    if (!test.menuResolutions) {
+      continue;
+    }
   }
+
+  await extension.unload();
 });
 
+// NOTE: The current goal of this test is ensuring that Bug 1397196 has been fixed,
+// and so this test extension manifest has a browser action which specify
+// a theme based icon and a pageAction, both the pageAction and the browserAction
+// have a common default_icon.
+//
+// Once Bug 1398156 will be fixed, this test should be converted into testing that
+// the browserAction and pageAction themed icons (as well as any other cached icon,
+// e.g. the sidebar and devtools panel icons) can be specified in the same extension
+// and do not conflict with each other.
+//
+// This test currently fails without the related fix, but only if the browserAction
+// API has been already loaded before the pageAction, otherwise the icons will be cached
+// in the opposite order and the test is not able to reproduce the issue anymore.
+add_task(async function testPageActionIconLoadingOnBrowserActionThemedIcon() {
+  async function background() {
+    const tabs = await browser.tabs.query({active: true});
+    await browser.pageAction.show(tabs[0].id);
 
-// Check that attempts to load a privileged URL as an icon image fail.
-add_task(function* testSecureURLsDenied() {
-  // Test URLs passed to setIcon.
+    browser.test.sendMessage("ready");
+  }
 
-  let extension = ExtensionTestUtils.loadExtension({
+  const extension = ExtensionTestUtils.loadExtension({
+    background,
     manifest: {
-      "browser_action": {},
-      "page_action": {},
-    },
+      "name": "Foo Extension",
 
-    background: function() {
-      browser.tabs.query({ active: true, currentWindow: true }, tabs => {
-        let tabId = tabs[0].id;
-
-        let urls = ["chrome://browser/content/browser.xul",
-                    "javascript:true"];
-
-        for (let url of urls) {
-          for (let api of ["pageAction", "browserAction"]) {
-            try {
-              browser[api].setIcon({tabId, path: url});
-
-              browser.test.fail(`Load of '${url}' succeeded. Expected failure.`);
-              browser.test.notifyFail("setIcon security tests");
-              return;
-            } catch (e) {
-              // We can't actually inspect the error here, since the
-              // error object belongs to the privileged scope of the API,
-              // rather than to the extension scope that calls into it.
-              // Just assume it's the expected security error, for now.
-              browser.test.succeed(`Load of '${url}' failed. Expected failure.`);
-            }
-          }
-        }
-
-        browser.test.notifyPass("setIcon security tests");
-      });
-    },
-  });
-
-  yield extension.startup();
-
-  yield extension.awaitFinish("setIcon security tests");
-  yield extension.unload();
-
-
-  // Test URLs included in the manifest.
-
-  let urls = ["chrome://browser/content/browser.xul",
-              "javascript:true"];
-
-  let matchURLForbidden = url => ({
-    message: new RegExp(`Loading extension.*Invalid icon data: NS_ERROR_DOM_BAD_URI`),
-  });
-
-  // Because the underlying method throws an error on invalid data,
-  // only the first invalid URL of each component will be logged.
-  let messages = [matchURLForbidden(urls[0]),
-                  matchURLForbidden(urls[1])];
-
-  let waitForConsole = new Promise(resolve => {
-    // Not necessary in browser-chrome tests, but monitorConsole gripes
-    // if we don't call it.
-    SimpleTest.waitForExplicitFinish();
-
-    SimpleTest.monitorConsole(resolve, messages);
-  });
-
-  extension = ExtensionTestUtils.loadExtension({
-    manifest: {
       "browser_action": {
-        "default_icon": {
-          "19": urls[0],
-          "38": urls[1],
-        },
+        "default_icon": "common_cached_icon.png",
+        "default_popup": "default_popup.html",
+        "default_title": "BrowserAction title",
+        "theme_icons": [
+          {
+            "dark": "1.png",
+            "light": "2.png",
+            "size": 16
+          }
+        ],
       },
+
       "page_action": {
-        "default_icon": {
-          "19": urls[1],
-          "38": urls[0],
-        },
+        "default_icon": "common_cached_icon.png",
+        "default_popup": "default_popup.html",
+        "default_title": "PageAction title",
       },
+
+      "permissions": ["tabs"],
+    },
+
+    "files": {
+      "common_cached_icon.png": imageBuffer,
+      "1.png": imageBuffer,
+      "2.png": imageBuffer,
+      "default_popup.html": "<!DOCTYPE html><html><body>popup</body></html>",
     },
   });
 
-  yield extension.startup();
-  yield extension.unload();
+  await extension.startup();
 
-  SimpleTest.endMonitorConsole();
-  yield waitForConsole;
+  await extension.awaitMessage("ready");
+
+  await promiseAnimationFrame();
+
+  let pageActionId = BrowserPageActions.urlbarButtonNodeIDForActionID(makeWidgetId(extension.id));
+  let pageActionImage = document.getElementById(pageActionId);
+
+  const iconURL = new URL(getListStyleImage(pageActionImage));
+
+  is(iconURL.pathname, "/common_cached_icon.png", "Got the expected pageAction icon url");
+
+  await extension.unload();
 });

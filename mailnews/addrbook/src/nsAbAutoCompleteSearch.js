@@ -333,9 +333,9 @@ nsAbAutoCompleteSearch.prototype = {
    */
   startSearch: function startSearch(aSearchString, aSearchParam,
                                     aPreviousResult, aListener) {
-    let params = JSON.parse(aSearchParam);
+    let params = aSearchParam ? JSON.parse(aSearchParam) : {};
     var result = new nsAbAutoCompleteResult(aSearchString);
-    if (params.type && !this.applicableHeaders.has(params.type)) {
+    if (("type" in params) && !this.applicableHeaders.has(params.type)) {
       result.searchResult = ACR.RESULT_IGNORED;
       aListener.onSearchResult(this, result);
       return;
@@ -423,7 +423,7 @@ nsAbAutoCompleteSearch.prototype = {
       while (allABs.hasMoreElements()) {
         let dir = allABs.getNext();
         if (dir instanceof Components.interfaces.nsIAbDirectory &&
-            dir.useForAutocomplete(params.idKey)) {
+            dir.useForAutocomplete(("idKey" in params) ? params.idKey : null)) {
           this._searchCards(searchQuery, dir, result);
         }
       }

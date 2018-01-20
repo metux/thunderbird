@@ -16,17 +16,12 @@ test();
 
 function test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
  
-  jit(true);
 
   for (let a = 0; a < 7; ++a) { let e = 8; if (a > 3) { let x; } }
 
-  jit(false);
 
   reportCompare(expect, actual, summary);
-
-  exitFunc ('test');
 }

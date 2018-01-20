@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -6,14 +7,15 @@
 #include "ScrollbarActivity.h"
 #include "nsIScrollbarMediator.h"
 #include "nsIContent.h"
+#include "nsICSSDeclaration.h"
 #include "nsIDOMEvent.h"
-#include "nsIDOMElementCSSInlineStyle.h"
 #include "nsIDOMCSSStyleDeclaration.h"
 #include "nsIFrame.h"
 #include "nsContentUtils.h"
 #include "nsAString.h"
 #include "nsQueryFrame.h"
 #include "nsComponentManagerUtils.h"
+#include "nsStyledElement.h"
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/Preferences.h"
 
@@ -85,7 +87,12 @@ ScrollbarActivity::ActivityStarted()
 void
 ScrollbarActivity::ActivityStopped()
 {
-  NS_ASSERTION(IsActivityOngoing(), "activity stopped while none was going on");
+  if (!IsActivityOngoing()) {
+    // This can happen if there was a frame reconstruction while the activity
+    // was ongoing. In this case we just do nothing. We should probably handle
+    // this case better.
+    return;
+  }
   NS_ASSERTION(mIsActive, "need to be active during activity");
   NS_ASSERTION(!mIsFading, "must not be fading during ongoing activity");
 
@@ -302,7 +309,7 @@ ScrollbarActivity::RegisterWithRefreshDriver()
 {
   nsRefreshDriver* refreshDriver = GetRefreshDriver();
   if (refreshDriver) {
-    refreshDriver->AddRefreshObserver(this, Flush_Style);
+    refreshDriver->AddRefreshObserver(this, FlushType::Style);
   }
 }
 
@@ -311,12 +318,12 @@ ScrollbarActivity::UnregisterFromRefreshDriver()
 {
   nsRefreshDriver* refreshDriver = GetRefreshDriver();
   if (refreshDriver) {
-    refreshDriver->RemoveRefreshObserver(this, Flush_Style);
+    refreshDriver->RemoveRefreshObserver(this, FlushType::Style);
   }
 }
 
 static void
-SetBooleanAttribute(nsIContent* aContent, nsIAtom* aAttribute, bool aValue)
+SetBooleanAttribute(nsIContent* aContent, nsAtom* aAttribute, bool aValue)
 {
   if (aContent) {
     if (aValue) {
@@ -347,16 +354,13 @@ ScrollbarActivity::SetIsActive(bool aNewActive)
 static void
 SetOpacityOnElement(nsIContent* aContent, double aOpacity)
 {
-  nsCOMPtr<nsIDOMElementCSSInlineStyle> inlineStyleContent =
+  nsCOMPtr<nsStyledElement> inlineStyleContent =
     do_QueryInterface(aContent);
   if (inlineStyleContent) {
-    nsCOMPtr<nsIDOMCSSStyleDeclaration> decl;
-    inlineStyleContent->GetStyle(getter_AddRefs(decl));
-    if (decl) {
-      nsAutoString str;
-      str.AppendFloat(aOpacity);
-      decl->SetProperty(NS_LITERAL_STRING("opacity"), str, EmptyString());
-    }
+    nsICSSDeclaration* decl = inlineStyleContent->Style();
+    nsAutoString str;
+    str.AppendFloat(aOpacity);
+    decl->SetProperty(NS_LITERAL_STRING("opacity"), str, EmptyString());
   }
 }
 
@@ -371,7 +375,7 @@ ScrollbarActivity::UpdateOpacity(TimeStamp aTime)
   double opacity = 1.0 - std::max(0.0, std::min(1.0, progress));
 
   // 'this' may be getting destroyed during SetOpacityOnElement calls.
-  nsWeakFrame weakFrame((do_QueryFrame(mScrollableFrame)));
+  AutoWeakFrame weakFrame((do_QueryFrame(mScrollableFrame)));
   SetOpacityOnElement(GetHorizontalScrollbar(), opacity);
   if (!weakFrame.IsAlive()) {
     return false;
@@ -386,15 +390,12 @@ ScrollbarActivity::UpdateOpacity(TimeStamp aTime)
 static void
 UnsetOpacityOnElement(nsIContent* aContent)
 {
-  nsCOMPtr<nsIDOMElementCSSInlineStyle> inlineStyleContent =
+  nsCOMPtr<nsStyledElement> inlineStyleContent =
     do_QueryInterface(aContent);
   if (inlineStyleContent) {
-    nsCOMPtr<nsIDOMCSSStyleDeclaration> decl;
-    inlineStyleContent->GetStyle(getter_AddRefs(decl));
-    if (decl) {
-      nsAutoString dummy;
-      decl->RemoveProperty(NS_LITERAL_STRING("opacity"), dummy);
-    }
+    nsICSSDeclaration* decl = inlineStyleContent->Style();
+    nsAutoString dummy;
+    decl->RemoveProperty(NS_LITERAL_STRING("opacity"), dummy);
   }
 }
 
@@ -408,7 +409,7 @@ ScrollbarActivity::SetIsFading(bool aNewFading)
   if (!mIsFading) {
     mFadeBeginTime = TimeStamp();
     // 'this' may be getting destroyed during UnsetOpacityOnElement calls.
-    nsWeakFrame weakFrame((do_QueryFrame(mScrollableFrame)));
+    AutoWeakFrame weakFrame((do_QueryFrame(mScrollableFrame)));
     UnsetOpacityOnElement(GetHorizontalScrollbar());
     if (!weakFrame.IsAlive()) {
       return false;
@@ -428,7 +429,7 @@ ScrollbarActivity::StartFadeBeginTimer()
     return;
   }
   if (!mFadeBeginTimer) {
-    mFadeBeginTimer = do_CreateInstance("@mozilla.org/timer;1");
+    mFadeBeginTimer = NS_NewTimer();
   }
   mFadeBeginTimer->InitWithNamedFuncCallback(
     FadeBeginTimerFired, this, mScrollbarFadeBeginDelay,

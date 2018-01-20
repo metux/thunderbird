@@ -9,49 +9,46 @@
 
 #include "mozilla/Attributes.h"
 #include "mozilla/DOMEventTargetHelper.h"
-#include "nsIIPCBackgroundChildCreateCallback.h"
+#include "nsAutoPtr.h"
 #include "nsTArray.h"
 
 #ifdef XP_WIN
 #undef PostMessage
 #endif
 
-class nsPIDOMWindow;
+class nsIGlobalObject;
 
 namespace mozilla {
 namespace dom {
 
-class DispatchEventRunnable;
+class ClonedMessageData;
 class MessagePortChild;
 class MessagePortIdentifier;
-class MessagePortMessage;
 class PostMessageRunnable;
 class SharedMessagePortMessage;
 
 namespace workers {
-class WorkerFeature;
+class WorkerHolder;
 } // namespace workers
 
 class MessagePort final : public DOMEventTargetHelper
-                        , public nsIIPCBackgroundChildCreateCallback
                         , public nsIObserver
 {
-  friend class DispatchEventRunnable;
   friend class PostMessageRunnable;
 
 public:
-  NS_DECL_NSIIPCBACKGROUNDCHILDCREATECALLBACK
   NS_DECL_NSIOBSERVER
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(MessagePort,
                                            DOMEventTargetHelper)
 
   static already_AddRefed<MessagePort>
-  Create(nsPIDOMWindow* aWindow, const nsID& aUUID,
+  Create(nsIGlobalObject* aGlobal, const nsID& aUUID,
          const nsID& aDestinationUUID, ErrorResult& aRv);
 
   static already_AddRefed<MessagePort>
-  Create(nsPIDOMWindow* aWindow, const MessagePortIdentifier& aIdentifier,
+  Create(nsIGlobalObject* aGlobal,
+         const MessagePortIdentifier& aIdentifier,
          ErrorResult& aRv);
 
   // For IPC.
@@ -63,7 +60,7 @@ public:
 
   void
   PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
-              const Optional<Sequence<JS::Value>>& aTransferable,
+              const Sequence<JSObject*>& aTransferable,
               ErrorResult& aRv);
 
   void Start();
@@ -73,6 +70,8 @@ public:
   EventHandlerNonNull* GetOnmessage();
 
   void SetOnmessage(EventHandlerNonNull* aCallback);
+
+  IMPL_EVENT_HANDLER(messageerror)
 
   // Non WebIDL methods
 
@@ -84,13 +83,13 @@ public:
 
   // These methods are useful for MessagePortChild
 
-  void Entangled(nsTArray<MessagePortMessage>& aMessages);
-  void MessagesReceived(nsTArray<MessagePortMessage>& aMessages);
+  void Entangled(nsTArray<ClonedMessageData>& aMessages);
+  void MessagesReceived(nsTArray<ClonedMessageData>& aMessages);
   void StopSendingDataConfirmed();
   void Closed();
 
 private:
-  explicit MessagePort(nsPIDOMWindow* aWindow);
+  explicit MessagePort(nsIGlobalObject* aGlobal);
   ~MessagePort();
 
   enum State {
@@ -142,10 +141,12 @@ private:
                   uint32_t aSequenceID, bool mNeutered, State aState,
                   ErrorResult& aRv);
 
-  void ConnectToPBackground();
+  bool ConnectToPBackground();
 
   // Dispatch events from the Message Queue using a nsRunnable.
   void Dispatch();
+
+  void DispatchError();
 
   void StartDisentangling();
   void Disentangle();
@@ -164,9 +165,9 @@ private:
     return mIsKeptAlive;
   }
 
-  nsAutoPtr<workers::WorkerFeature> mWorkerFeature;
+  nsAutoPtr<workers::WorkerHolder> mWorkerHolder;
 
-  RefPtr<DispatchEventRunnable> mDispatchRunnable;
+  RefPtr<PostMessageRunnable> mPostMessageRunnable;
 
   RefPtr<MessagePortChild> mActor;
 

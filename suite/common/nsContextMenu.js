@@ -17,11 +17,22 @@ Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 var gContextMenuContentData = null;
 
+XPCOMUtils.defineLazyGetter(this, "InlineSpellCheckerUI", function() {
+  let tmp = {};
+  Components.utils.import("resource://gre/modules/InlineSpellChecker.jsm", tmp);
+  return new tmp.InlineSpellChecker();
+});
+
 XPCOMUtils.defineLazyGetter(this, "PageMenuParent", function() {
   let tmp = {};
   Components.utils.import("resource://gre/modules/PageMenu.jsm", tmp);
   return new tmp.PageMenuParent();
 });
+
+XPCOMUtils.defineLazyModuleGetter(this, "DevToolsShim",
+  "chrome://devtools-shim/content/DevToolsShim.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "findCssSelector",
+  "resource://gre/modules/css-selector.js");
 
 function nsContextMenu(aXulMenu, aIsShift, aEvent) {
   this.shouldDisplay = true;
@@ -214,6 +225,12 @@ nsContextMenu.prototype = {
     this.showItem("context-viewsource", showView);
     this.showItem("context-viewinfo", showView);
 
+    var showInspect = DevToolsShim.isInstalled() &&
+                      "gDevTools" in window &&
+                      Services.prefs.getBoolPref("devtools.inspector.enabled", false);
+    this.showItem("inspect-separator", showInspect);
+    this.showItem("context-inspect", showInspect);
+
     this.showItem("context-sep-properties",
                   !(this.inDirList || this.isContentSelected || this.onTextInput ||
                     this.onCanvas || this.onVideo || this.onAudio));
@@ -272,7 +289,7 @@ nsContextMenu.prototype = {
 
     // Block image depends on whether an image was clicked on.
     if (this.onImage) {
-      var uri = Services.io.newURI(this.mediaURL, null, null);
+      var uri = Services.io.newURI(this.mediaURL);
       if (uri instanceof Components.interfaces.nsIURL && uri.host) {
         var serverLabel = uri.host;
         // Limit length to max 15 characters.
@@ -436,10 +453,13 @@ nsContextMenu.prototype = {
                   onMedia && !this.target.paused && !this.target.ended);
     this.showItem("context-media-mute", onMedia && !this.target.muted);
     this.showItem("context-media-unmute", onMedia && this.target.muted);
-    this.showItem("context-media-playbackrate", onMedia);
+    this.showItem("context-media-playbackrate",
+                  onMedia && this.target.duration != Number.POSITIVE_INFINITY);
+    this.showItem("context-media-loop", onMedia);
     this.showItem("context-media-showcontrols", onMedia && !this.target.controls);
     this.showItem("context-media-hidecontrols", onMedia && this.target.controls);
-    this.showItem("context-video-fullscreen", this.onVideo);
+    this.showItem("context-video-fullscreen", this.onVideo &&
+                  !this.target.ownerDocument.fullscreenElement);
 
     var statsShowing = this.onVideo && this.target.mozMediaStatisticsShowing;
     this.showItem("context-video-showstats",
@@ -451,8 +471,10 @@ nsContextMenu.prototype = {
     if (onMedia) {
       this.setItemAttr("context-media-playbackrate-050", "checked", this.target.playbackRate == 0.5);
       this.setItemAttr("context-media-playbackrate-100", "checked", this.target.playbackRate == 1.0);
+      this.setItemAttr("context-media-playbackrate-125", "checked", this.target.playbackRate == 1.25);
       this.setItemAttr("context-media-playbackrate-150", "checked", this.target.playbackRate == 1.5);
       this.setItemAttr("context-media-playbackrate-200", "checked", this.target.playbackRate == 2.0);
+      this.setItemAttr("context-media-loop", "checked", this.target.loop);
       var hasError = this.target.error != null ||
                      this.target.networkState == this.target.NETWORK_NO_SOURCE;
       this.setItemAttr("context-media-play", "disabled", hasError);
@@ -473,8 +495,40 @@ nsContextMenu.prototype = {
     this.showItem("context-media-sep-commands", onMedia);
   },
 
+  /**
+   * Retrieve the array of CSS selectors corresponding to the provided node. The first item
+   * of the array is the selector of the node in its owner document. Additional items are
+   * used if the node is inside a frame, each representing the CSS selector for finding the
+   * frame element in its parent document.
+   *
+   * This format is expected by DevTools in order to handle the Inspect Node context menu
+   * item.
+   *
+   * @param  {Node}
+   *         The node for which the CSS selectors should be computed
+   * @return {Array} array of css selectors (strings).
+   */
+  getNodeSelectors: function(node) {
+    let selectors = [];
+    while (node) {
+      selectors.push(findCssSelector(node));
+      node = node.ownerGlobal.frameElement;
+    }
+
+    return selectors;
+  },
+
+  inspectNode: function() {
+    let gBrowser = this.browser.ownerDocument.defaultView.gBrowser;
+    return DevToolsShim.inspectNode(gBrowser.selectedTab,
+                                    this.getNodeSelectors(this.target));
+  },
+
   // Set various context menu attributes based on the state of the world.
   setTarget: function(aNode, aRangeParent, aRangeOffset) {
+    // Currently "isRemote" is always false.
+    //this.isRemote = gContextMenuContentData && gContextMenuContentData.isRemote;
+
     const xulNS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 
     // Initialize contextual info.
@@ -794,7 +848,7 @@ nsContextMenu.prototype = {
 
   // Block/Unblock image from loading in the future.
   toggleImageBlocking: function(aBlock) {
-  const uri = Services.io.newURI(this.mediaURL, null, null);
+  const uri = Services.io.newURI(this.mediaURL);
   if (aBlock)
     Services.perms.add(uri, "image", Services.perms.DENY_ACTION);
   else
@@ -917,7 +971,7 @@ nsContextMenu.prototype = {
     saveImageURL(canvas.toDataURL("image/jpeg", ""), name, "SaveImageTitle",
                                   true, true,
                                   this.target.ownerDocument.documentURIObject,
-                                  this.target.ownerDocument);
+                                  null, null, null, (gPrivate ? true : false));
   },
 
   // Full screen video playback
@@ -1050,7 +1104,7 @@ nsContextMenu.prototype = {
     var channel = ios.newChannel2(linkURL, null, null, null,
                                   Services.scriptSecurityManager.getSystemPrincipal(),
                                   null,
-                                  Components.interfaces.nsILoadInfo.SEC_NORMAL,
+                                  Components.interfaces.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
                                   Components.interfaces.nsIContentPolicy.TYPE_OTHER);
     channel.notificationCallbacks = new Callbacks();
 
@@ -1078,19 +1132,25 @@ nsContextMenu.prototype = {
     var timer = setTimeout(timerCallback, timeToWait);
 
     // kick off the channel with our proxy object as the listener
-    channel.asyncOpen(new SaveAsListener(), null);
+    channel.asyncOpen2(new SaveAsListener());
   },
 
   // Save URL of clicked-on image, video, or audio.
   saveMedia: function() {
     var doc = this.target.ownerDocument;
+    let referrerURI = doc.documentURIObject;
+
     if (this.onCanvas)
       // Bypass cache, since it's a data: URL.
       saveImageURL(this.target.toDataURL(), "canvas.png", "SaveImageTitle",
-                   true, true, null, doc);
-    else if (this.onImage)
-      saveImageURL(this.mediaURL, null, "SaveImageTitle", false, true,
-                   doc.documentURIObject, doc);
+                   true, false, referrerURI, null, null, null,
+                   (gPrivate ? true : false));
+    else if (this.onImage) {
+      saveImageURL(this.mediaURL, null, "SaveImageTitle", false,
+                   false, referrerURI, null, gContextMenuContentData.contentType,
+                   gContextMenuContentData.contentDisposition,
+                   (gPrivate ? true : false));
+    }
     else if (this.onVideo || this.onAudio) {
       var dialogTitle = this.onVideo ? "SaveVideoTitle" : "SaveAudioTitle";
       this.saveHelper(this.mediaURL, null, dialogTitle, false, doc);
@@ -1127,7 +1187,7 @@ nsContextMenu.prototype = {
   copyEmail: function() {
     var clipboard = this.getService("@mozilla.org/widget/clipboardhelper;1",
                                     Components.interfaces.nsIClipboardHelper);
-    clipboard.copyString(this.getEmail(), this.target.ownerDocument);
+    clipboard.copyString(this.getEmail());
   },
 
   bookmarkThisPage : function() {
@@ -1439,6 +1499,9 @@ nsContextMenu.prototype = {
       case "pause":
         media.pause();
         break;
+      case "loop":
+        media.loop = !media.loop;
+        break;
       case "mute":
         media.muted = true;
         break;
@@ -1467,7 +1530,7 @@ nsContextMenu.prototype = {
   copyMediaLocation: function() {
     var clipboard = Components.classes["@mozilla.org/widget/clipboardhelper;1"]
                     .getService(Components.interfaces.nsIClipboardHelper);
-    clipboard.copyString(this.mediaURL, this.target.ownerDocument);
+    clipboard.copyString(this.mediaURL);
   },
 
   get imageURL() {

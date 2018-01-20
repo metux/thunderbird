@@ -8,7 +8,6 @@
 #define mozilla_a11y_TextRange_h__
 
 #include "mozilla/Move.h"
-#include "nsAutoPtr.h"
 #include "nsCaseTreatment.h"
 #include "nsRect.h"
 #include "nsTArray.h"
@@ -48,7 +47,7 @@ public:
   TextRange(HyperTextAccessible* aRoot,
             HyperTextAccessible* aStartContainer, int32_t aStartOffset,
             HyperTextAccessible* aEndContainer, int32_t aEndOffset);
-  TextRange() {}
+  TextRange() : mStartOffset{0}, mEndOffset{0} {}
   TextRange(TextRange&& aRange) :
     mRoot(mozilla::Move(aRange.mRoot)),
     mStartContainer(mozilla::Move(aRange.mStartContainer)),
@@ -130,6 +129,12 @@ public:
    * Move the range points to the closest unit boundaries.
    */
   void Normalize(ETextUnit aUnit);
+
+  /**
+   * Crops the range if it overlaps the given accessible element boundaries,
+   * returns true if the range was cropped successfully.
+   */
+  bool Crop(Accessible* aContainer);
 
   enum EDirection {
     eBackward,
@@ -242,6 +247,14 @@ private:
                     HyperTextAccessible& aContainer, int32_t aOffset,
                     HyperTextAccessible* aStopContainer = nullptr,
                     int32_t aStopOffset = 0);
+
+  /**
+   * A helper method returning a common parent for two given accessible
+   * elements.
+   */
+  Accessible* CommonParent(Accessible* aAcc1, Accessible* aAcc2,
+                           nsTArray<Accessible*>* aParents1, uint32_t* aPos1,
+                           nsTArray<Accessible*>* aParents2, uint32_t* aPos2) const;
 
   RefPtr<HyperTextAccessible> mRoot;
   RefPtr<HyperTextAccessible> mStartContainer;

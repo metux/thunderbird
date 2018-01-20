@@ -17,14 +17,25 @@
 namespace mozilla {
 namespace dom {
 
-NS_IMPL_CYCLE_COLLECTION_INHERITED(DocumentTimeline, AnimationTimeline,
-                                   mDocument)
+NS_IMPL_CYCLE_COLLECTION_CLASS(DocumentTimeline)
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(DocumentTimeline,
+                                                AnimationTimeline)
+  tmp->UnregisterFromRefreshDriver();
+  if (tmp->isInList()) {
+    tmp->remove();
+  }
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mDocument)
+NS_IMPL_CYCLE_COLLECTION_UNLINK_END
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(DocumentTimeline,
+                                                  AnimationTimeline)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mDocument)
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN_INHERITED(DocumentTimeline,
                                                AnimationTimeline)
 NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(DocumentTimeline)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(DocumentTimeline)
 NS_INTERFACE_MAP_END_INHERITING(AnimationTimeline)
 
 NS_IMPL_ADDREF_INHERITED(DocumentTimeline, AnimationTimeline)
@@ -34,6 +45,30 @@ JSObject*
 DocumentTimeline::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
 {
   return DocumentTimelineBinding::Wrap(aCx, this, aGivenProto);
+}
+
+/* static */ already_AddRefed<DocumentTimeline>
+DocumentTimeline::Constructor(const GlobalObject& aGlobal,
+                              const DocumentTimelineOptions& aOptions,
+                              ErrorResult& aRv)
+{
+  nsIDocument* doc = AnimationUtils::GetCurrentRealmDocument(aGlobal.Context());
+  if (!doc) {
+    aRv.Throw(NS_ERROR_FAILURE);
+    return nullptr;
+  }
+  TimeDuration originTime =
+    TimeDuration::FromMilliseconds(aOptions.mOriginTime);
+
+  if (originTime == TimeDuration::Forever() ||
+      originTime == -TimeDuration::Forever()) {
+    aRv.ThrowTypeError<dom::MSG_TIME_VALUE_OUT_OF_RANGE>(
+      NS_LITERAL_STRING("Origin time"));
+    return nullptr;
+  }
+  RefPtr<DocumentTimeline> timeline = new DocumentTimeline(doc, originTime);
+
+  return timeline.forget();
 }
 
 Nullable<TimeDuration>
@@ -58,7 +93,7 @@ DocumentTimeline::GetCurrentTimeStamp() const
   // If we don't have a refresh driver and we've never had one use the
   // timeline's zero time.
   if (result.IsNull()) {
-    RefPtr<nsDOMNavigationTiming> timing = mDocument->GetNavigationTiming();
+    nsDOMNavigationTiming* timing = mDocument->GetNavigationTiming();
     if (timing) {
       result = timing->GetNavigationStartTimeStamp();
       // Also, let this time represent the current refresh time. This way
@@ -83,12 +118,14 @@ DocumentTimeline::ToTimelineTime(const TimeStamp& aTimeStamp) const
     return result;
   }
 
-  RefPtr<nsDOMNavigationTiming> timing = mDocument->GetNavigationTiming();
+  nsDOMNavigationTiming* timing = mDocument->GetNavigationTiming();
   if (MOZ_UNLIKELY(!timing)) {
     return result;
   }
 
-  result.SetValue(aTimeStamp - timing->GetNavigationStartTimeStamp());
+  result.SetValue(aTimeStamp
+                  - timing->GetNavigationStartTimeStamp()
+                  - mOriginTime);
   return result;
 }
 
@@ -100,7 +137,10 @@ DocumentTimeline::NotifyAnimationUpdated(Animation& aAnimation)
   if (!mIsObservingRefreshDriver) {
     nsRefreshDriver* refreshDriver = GetRefreshDriver();
     if (refreshDriver) {
-      refreshDriver->AddRefreshObserver(this, Flush_Style);
+      MOZ_ASSERT(isInList(),
+                "We should not register with the refresh driver if we are not"
+                " in the document's list of timelines");
+      refreshDriver->AddRefreshObserver(this, FlushType::Style);
       mIsObservingRefreshDriver = true;
     }
   }
@@ -152,8 +192,7 @@ DocumentTimeline::WillRefresh(mozilla::TimeStamp aTime)
     // of mDocument's PresShell.
     MOZ_ASSERT(GetRefreshDriver(),
                "Refresh driver should still be valid at end of WillRefresh");
-    GetRefreshDriver()->RemoveRefreshObserver(this, Flush_Style);
-    mIsObservingRefreshDriver = false;
+    UnregisterFromRefreshDriver();
   }
 }
 
@@ -165,7 +204,10 @@ DocumentTimeline::NotifyRefreshDriverCreated(nsRefreshDriver* aDriver)
              " it is created");
 
   if (!mAnimationOrder.isEmpty()) {
-    aDriver->AddRefreshObserver(this, Flush_Style);
+    MOZ_ASSERT(isInList(),
+               "We should not register with the refresh driver if we are not"
+               " in the document's list of timelines");
+    aDriver->AddRefreshObserver(this, FlushType::Style);
     mIsObservingRefreshDriver = true;
   }
 }
@@ -177,8 +219,18 @@ DocumentTimeline::NotifyRefreshDriverDestroying(nsRefreshDriver* aDriver)
     return;
   }
 
-  aDriver->RemoveRefreshObserver(this, Flush_Style);
+  aDriver->RemoveRefreshObserver(this, FlushType::Style);
   mIsObservingRefreshDriver = false;
+}
+
+void
+DocumentTimeline::RemoveAnimation(Animation* aAnimation)
+{
+  AnimationTimeline::RemoveAnimation(aAnimation);
+
+  if (mIsObservingRefreshDriver && mAnimations.IsEmpty()) {
+    UnregisterFromRefreshDriver();
+  }
 }
 
 TimeStamp
@@ -190,7 +242,8 @@ DocumentTimeline::ToTimeStamp(const TimeDuration& aTimeDuration) const
     return result;
   }
 
-  result = timing->GetNavigationStartTimeStamp() + aTimeDuration;
+  result =
+    timing->GetNavigationStartTimeStamp() + (aTimeDuration + mOriginTime);
   return result;
 }
 
@@ -208,6 +261,22 @@ DocumentTimeline::GetRefreshDriver() const
   }
 
   return presContext->RefreshDriver();
+}
+
+void
+DocumentTimeline::UnregisterFromRefreshDriver()
+{
+  if (!mIsObservingRefreshDriver) {
+    return;
+  }
+
+  nsRefreshDriver* refreshDriver = GetRefreshDriver();
+  if (!refreshDriver) {
+    return;
+  }
+
+  refreshDriver->RemoveRefreshObserver(this, FlushType::Style);
+  mIsObservingRefreshDriver = false;
 }
 
 } // namespace dom

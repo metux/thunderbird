@@ -6,59 +6,43 @@
 
 var {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 
-Cu.import("resource://gre/modules/Preferences.jsm");
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 
-const prefs = new Preferences("datareporting.healthreport.");
-
-const PREF_UNIFIED = "toolkit.telemetry.unified";
-const PREF_UNIFIED_OPTIN = "toolkit.telemetry.unifiedIsOptIn";
-
-// Whether v4 behavior is enabled, i.e. unified Telemetry features are on by default.
-const IS_V4 = Preferences.get(PREF_UNIFIED, false) &&
-              !Preferences.get(PREF_UNIFIED_OPTIN, false);
+const PREF_REPORTING_URL = "datareporting.healthreport.about.reportUrl";
 
 var healthReportWrapper = {
-  init: function () {
+  init() {
     let iframe = document.getElementById("remote-report");
-    iframe.addEventListener("load", healthReportWrapper.initRemotePage, false);
+    iframe.addEventListener("load", healthReportWrapper.initRemotePage);
     iframe.src = this._getReportURI().spec;
-    iframe.onload = () => {
-      MozSelfSupport.getHealthReportPayload().then(this.updatePayload,
-                                                   this.handleInitFailure);
-    };
-    prefs.observe("uploadEnabled", this.updatePrefState, healthReportWrapper);
+    XPCOMUtils.defineLazyPreferenceGetter(this, /* unused */ "_isUploadEnabled",
+                                          "datareporting.healthreport.uploadEnabled",
+                                          false, () => this.updatePrefState());
   },
 
-  uninit: function () {
-    prefs.ignore("uploadEnabled", this.updatePrefState, healthReportWrapper);
+  _getReportURI() {
+    let url = Services.urlFormatter.formatURLPref(PREF_REPORTING_URL);
+    return Services.io.newURI(url);
   },
 
-  _getReportURI: function () {
-    const pref = IS_V4 ? "datareporting.healthreport.about.reportUrl"
-                       : "datareporting.healthreport.about.reportUrlUnified";
-    let url = Services.urlFormatter.formatURLPref(pref);
-    return Services.io.newURI(url, null, null);
-  },
-
-  setDataSubmission: function (enabled) {
+  setDataSubmission(enabled) {
     MozSelfSupport.healthReportDataSubmissionEnabled = enabled;
     this.updatePrefState();
   },
 
-  updatePrefState: function () {
+  updatePrefState() {
     try {
-      let prefs = {
+      let prefsObj = {
         enabled: MozSelfSupport.healthReportDataSubmissionEnabled,
       };
-      healthReportWrapper.injectData("prefs", prefs);
-    }
-    catch (ex) {
+      healthReportWrapper.injectData("prefs", prefsObj);
+    } catch (ex) {
       healthReportWrapper.reportFailure(healthReportWrapper.ERROR_PREFS_FAILED);
     }
   },
 
-  sendTelemetryPingList: function () {
+  sendTelemetryPingList() {
     console.log("AboutHealthReport: Collecting Telemetry ping list.");
     MozSelfSupport.getTelemetryPingList().then((list) => {
       console.log("AboutHealthReport: Sending Telemetry ping list.");
@@ -68,7 +52,7 @@ var healthReportWrapper = {
     });
   },
 
-  sendTelemetryPingData: function (pingId) {
+  sendTelemetryPingData(pingId) {
     console.log("AboutHealthReport: Collecting Telemetry ping data.");
     MozSelfSupport.getTelemetryPing(pingId).then((ping) => {
       console.log("AboutHealthReport: Sending Telemetry ping data.");
@@ -85,7 +69,7 @@ var healthReportWrapper = {
     });
   },
 
-  sendCurrentEnvironment: function () {
+  sendCurrentEnvironment() {
     console.log("AboutHealthReport: Sending Telemetry environment data.");
     MozSelfSupport.getCurrentTelemetryEnvironment().then((environment) => {
       this.injectData("telemetry-current-environment-data", environment);
@@ -94,7 +78,7 @@ var healthReportWrapper = {
     });
   },
 
-  sendCurrentPingData: function () {
+  sendCurrentPingData() {
     console.log("AboutHealthReport: Sending current Telemetry ping data.");
     MozSelfSupport.getCurrentTelemetrySubsessionPing().then((ping) => {
       this.injectData("telemetry-current-ping-data", ping);
@@ -103,16 +87,7 @@ var healthReportWrapper = {
     });
   },
 
-  refreshPayload: function () {
-    MozSelfSupport.getHealthReportPayload().then(this.updatePayload,
-                                                 this.handlePayloadFailure);
-  },
-
-  updatePayload: function (payload) {
-    healthReportWrapper.injectData("payload", JSON.stringify(payload));
-  },
-
-  injectData: function (type, content) {
+  injectData(type, content) {
     let report = this._getReportURI();
 
     // file URIs can't be used for targetOrigin, so we use "*" for this special case
@@ -120,15 +95,24 @@ var healthReportWrapper = {
     let reportUrl = report.scheme == "file" ? "*" : report.spec;
 
     let data = {
-      type: type,
-      content: content
-    }
+      type,
+      content
+    };
 
     let iframe = document.getElementById("remote-report");
     iframe.contentWindow.postMessage(data, reportUrl);
   },
 
-  handleRemoteCommand: function (evt) {
+  handleRemoteCommand(evt) {
+    // Do an origin check to harden against the frame content being loaded from unexpected locations.
+    let allowedPrincipal = Services.scriptSecurityManager.createCodebasePrincipal(this._getReportURI(), {});
+    let targetPrincipal = evt.target.nodePrincipal;
+    if (!allowedPrincipal.equals(targetPrincipal)) {
+      Cu.reportError(`Origin check failed for message "${evt.detail.command}": ` +
+                     `target origin is "${targetPrincipal.origin}", expected "${allowedPrincipal.origin}"`);
+      return;
+    }
+
     switch (evt.detail.command) {
       case "DisableDataSubmission":
         this.setDataSubmission(false);
@@ -138,9 +122,6 @@ var healthReportWrapper = {
         break;
       case "RequestCurrentPrefs":
         this.updatePrefState();
-        break;
-      case "RequestCurrentPayload":
-        this.refreshPayload();
         break;
       case "RequestTelemetryPingList":
         this.sendTelemetryPingList();
@@ -160,11 +141,10 @@ var healthReportWrapper = {
     }
   },
 
-  initRemotePage: function () {
+  initRemotePage() {
     let iframe = document.getElementById("remote-report").contentDocument;
     iframe.addEventListener("RemoteHealthReportCommand",
-                            function onCommand(e) {healthReportWrapper.handleRemoteCommand(e);},
-                            false);
+                            function onCommand(e) { healthReportWrapper.handleRemoteCommand(e); });
     healthReportWrapper.updatePrefState();
   },
 
@@ -173,21 +153,20 @@ var healthReportWrapper = {
   ERROR_PAYLOAD_FAILED: 2,
   ERROR_PREFS_FAILED:   3,
 
-  reportFailure: function (error) {
+  reportFailure(error) {
     let details = {
       errorType: error,
-    }
+    };
     healthReportWrapper.injectData("error", details);
   },
 
-  handleInitFailure: function () {
+  handleInitFailure() {
     healthReportWrapper.reportFailure(healthReportWrapper.ERROR_INIT_FAILED);
   },
 
-  handlePayloadFailure: function () {
+  handlePayloadFailure() {
     healthReportWrapper.reportFailure(healthReportWrapper.ERROR_PAYLOAD_FAILED);
   },
-}
+};
 
-window.addEventListener("load", function () { healthReportWrapper.init(); });
-window.addEventListener("unload", function () { healthReportWrapper.uninit(); });
+window.addEventListener("load", function() { healthReportWrapper.init(); });

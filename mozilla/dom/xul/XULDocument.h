@@ -6,12 +6,14 @@
 #ifndef mozilla_dom_XULDocument_h
 #define mozilla_dom_XULDocument_h
 
+#include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
 #include "nsXULPrototypeDocument.h"
 #include "nsXULPrototypeCache.h"
 #include "nsTArray.h"
 
 #include "mozilla/dom/XMLDocument.h"
+#include "mozilla/StyleSheet.h"
 #include "nsForwardReference.h"
 #include "nsIContent.h"
 #include "nsIDOMXULCommandDispatcher.h"
@@ -19,13 +21,13 @@
 #include "nsCOMArray.h"
 #include "nsIURI.h"
 #include "nsIXULDocument.h"
-#include "nsScriptLoader.h"
 #include "nsIStreamListener.h"
 #include "nsIStreamLoader.h"
 #include "nsICSSLoaderObserver.h"
 #include "nsIXULStore.h"
 
 #include "mozilla/Attributes.h"
+#include "mozilla/dom/ScriptLoader.h"
 
 #include "js/TracingAPI.h"
 #include "js/TypeDecls.h"
@@ -136,7 +138,8 @@ public:
     bool OnDocumentParserError() override;
 
     // nsINode interface overrides
-    virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult) const override;
+    virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult,
+                           bool aPreallocateChildren) const override;
 
     // nsIDOMNode interface
     NS_FORWARD_NSIDOMNODE_TO_NSINODE
@@ -151,7 +154,6 @@ public:
     using nsDocument::SetTitle;
     using nsDocument::GetLastStyleSheetSet;
     using nsDocument::MozSetImageElement;
-    using nsDocument::GetMozFullScreenElement;
     using nsIDocument::GetLocation;
 
     // nsDocument interface overrides
@@ -161,7 +163,7 @@ public:
     NS_DECL_NSIDOMXULDOCUMENT
 
     // nsICSSLoaderObserver
-    NS_IMETHOD StyleSheetLoaded(CSSStyleSheet* aSheet,
+    NS_IMETHOD StyleSheetLoaded(mozilla::StyleSheet* aSheet,
                                 bool aWasAlternate,
                                 nsresult aStatus) override;
 
@@ -171,16 +173,17 @@ public:
 
     virtual void ResetDocumentDirection() override;
 
-    virtual int GetDocumentLWTheme() override;
+    virtual nsIDocument::DocumentTheme GetDocumentLWTheme() override;
+    virtual nsIDocument::DocumentTheme ThreadSafeGetDocumentLWTheme() const override;
 
     virtual void ResetDocumentLWTheme() override { mDocLWTheme = Doc_Theme_Uninitialized; }
 
     NS_IMETHOD OnScriptCompileComplete(JSScript* aScript, nsresult aStatus) override;
 
     static bool
-    MatchAttribute(nsIContent* aContent,
+    MatchAttribute(Element* aContent,
                    int32_t aNameSpaceID,
-                   nsIAtom* aAttrName,
+                   nsAtom* aAttrName,
                    void* aData);
 
     NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(XULDocument, XMLDocument)
@@ -252,7 +255,7 @@ protected:
                            nsIPrincipal* aDocumentPrincipal,
                            nsIParser** aResult);
 
-    nsresult 
+    nsresult
     LoadOverlayInternal(nsIURI* aURI, bool aIsDynamic, bool* aShouldReturn,
                         bool* aFailureFromContent);
 
@@ -270,13 +273,13 @@ protected:
     nsresult
     ExecuteOnBroadcastHandlerFor(Element* aBroadcaster,
                                  Element* aListener,
-                                 nsIAtom* aAttr);
+                                 nsAtom* aAttr);
 
     nsresult
     BroadcastAttributeChangeFromOverlay(nsIContent* aNode,
                                         int32_t aNameSpaceID,
-                                        nsIAtom* aAttribute,
-                                        nsIAtom* aPrefix,
+                                        nsAtom* aAttribute,
+                                        nsAtom* aPrefix,
                                         const nsAString& aValue);
 
     already_AddRefed<nsPIWindowRoot> GetWindowRoot();
@@ -286,8 +289,6 @@ protected:
     // pseudo constants
     static int32_t gRefCnt;
 
-    static nsIAtom** kIdentityAttrs[];
-
     static nsIRDFService* gRDFService;
     static nsIRDFResource* kNC_persist;
     static nsIRDFResource* kNC_attribute;
@@ -296,10 +297,10 @@ protected:
     static LazyLogModule gXULLog;
 
     nsresult
-    Persist(nsIContent* aElement, int32_t aNameSpaceID, nsIAtom* aAttribute);
+    Persist(nsIContent* aElement, int32_t aNameSpaceID, nsAtom* aAttribute);
     // Just like Persist but ignores the return value so we can use it
     // as a runnable method.
-    void DoPersist(nsIContent* aElement, int32_t aNameSpaceID, nsIAtom* aAttribute)
+    void DoPersist(nsIContent* aElement, int32_t aNameSpaceID, nsAtom* aAttribute)
     {
         Persist(aElement, aNameSpaceID, aAttribute);
     }
@@ -342,7 +343,7 @@ protected:
      * An array of style sheets, that will be added (preserving order) to the
      * document after all of them are loaded (in DoneWalking).
      */
-    nsTArray<RefPtr<CSSStyleSheet>> mOverlaySheets;
+    nsTArray<RefPtr<StyleSheet>> mOverlaySheets;
 
     nsCOMPtr<nsIDOMXULCommandDispatcher>     mCommandDispatcher; // [OWNER] of the focus tracker
 
@@ -472,7 +473,7 @@ protected:
      * Create a XUL template builder on the specified node.
      */
     static nsresult
-    CreateTemplateBuilder(nsIContent* aElement);
+    CreateTemplateBuilder(Element* aElement);
 
     /**
      * Add the current prototype's style sheets (currently it's just
@@ -482,7 +483,7 @@ protected:
 
 
 protected:
-    /* Declarations related to forward references. 
+    /* Declarations related to forward references.
      *
      * Forward references are declarations which are added to the temporary
      * list (mForwardReferences) during the document (or overlay) load and
@@ -564,10 +565,10 @@ protected:
     class TemplateBuilderHookup : public nsForwardReference
     {
     protected:
-        nsCOMPtr<nsIContent> mElement; // [OWNER]
+        nsCOMPtr<Element> mElement; // [OWNER]
 
     public:
-        explicit TemplateBuilderHookup(nsIContent* aElement)
+        explicit TemplateBuilderHookup(Element* aElement)
             : mElement(aElement) {}
 
         virtual Phase GetPhase() override { return eHookup; }
@@ -601,7 +602,7 @@ protected:
     nsresult
     InsertElement(nsINode* aParent, nsIContent* aChild, bool aNotify);
 
-    static 
+    static
     nsresult
     RemoveElement(nsINode* aParent, nsINode* aChild);
 
@@ -742,7 +743,7 @@ protected:
 
       nsDelayedBroadcastUpdate(Element* aBroadcaster,
                                Element* aListener,
-                               nsIAtom* aAttrName,
+                               nsAtom* aAttrName,
                                const nsAString &aAttr,
                                bool aSetAttr,
                                bool aNeedsAttrChange)
@@ -760,7 +761,7 @@ protected:
       // Note if mAttrName isn't used, this is the name of the attr, otherwise
       // this is the value of the attribute.
       nsString                mAttr;
-      nsCOMPtr<nsIAtom>       mAttrName;
+      RefPtr<nsAtom>       mAttrName;
       bool                    mSetAttr;
       bool                    mNeedsAttrChange;
 

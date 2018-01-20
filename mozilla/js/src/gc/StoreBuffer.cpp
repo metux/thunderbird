@@ -4,11 +4,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "gc/StoreBuffer.h"
+#include "gc/StoreBuffer-inl.h"
 
 #include "mozilla/Assertions.h"
-
-#include "jscompartment.h"
 
 #include "gc/Statistics.h"
 #include "vm/ArgumentsObject.h"
@@ -28,11 +26,9 @@ StoreBuffer::GenericBuffer::trace(StoreBuffer* owner, JSTracer* trc)
         return;
 
     for (LifoAlloc::Enum e(*storage_); !e.empty();) {
-        unsigned size = *e.get<unsigned>();
-        e.popFront<unsigned>();
-        BufferableRef* edge = e.get<BufferableRef>(size);
+        unsigned size = *e.read<unsigned>();
+        BufferableRef* edge = e.read<BufferableRef>(size);
         edge->trace(trc);
-        e.popFront(size);
     }
 }
 
@@ -45,7 +41,6 @@ StoreBuffer::enable()
     if (!bufferVal.init() ||
         !bufferCell.init() ||
         !bufferSlot.init() ||
-        !bufferWholeCell.init() ||
         !bufferGeneric.init())
     {
         return false;
@@ -66,11 +61,11 @@ StoreBuffer::disable()
     enabled_ = false;
 }
 
-bool
+void
 StoreBuffer::clear()
 {
     if (!enabled_)
-        return true;
+        return;
 
     aboutToOverflow_ = false;
     cancelIonCompilations_ = false;
@@ -78,20 +73,21 @@ StoreBuffer::clear()
     bufferVal.clear();
     bufferCell.clear();
     bufferSlot.clear();
-    bufferWholeCell.clear();
     bufferGeneric.clear();
 
-    return true;
+    for (ArenaCellSet* set = bufferWholeCell; set; set = set->next)
+        set->arena->bufferedCells() = nullptr;
+    bufferWholeCell = nullptr;
 }
 
 void
-StoreBuffer::setAboutToOverflow()
+StoreBuffer::setAboutToOverflow(JS::gcreason::Reason reason)
 {
     if (!aboutToOverflow_) {
         aboutToOverflow_ = true;
-        runtime_->gc.stats.count(gcstats::STAT_STOREBUFFER_OVERFLOW);
+        runtime_->gc.stats().count(gcstats::STAT_STOREBUFFER_OVERFLOW);
     }
-    runtime_->gc.requestMinorGC(JS::gcreason::FULL_STORE_BUFFER);
+    nursery_.requestMinorGC(reason);
 }
 
 void
@@ -101,11 +97,50 @@ StoreBuffer::addSizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf, JS::GCSi
     sizes->storeBufferVals       += bufferVal.sizeOfExcludingThis(mallocSizeOf);
     sizes->storeBufferCells      += bufferCell.sizeOfExcludingThis(mallocSizeOf);
     sizes->storeBufferSlots      += bufferSlot.sizeOfExcludingThis(mallocSizeOf);
-    sizes->storeBufferWholeCells += bufferWholeCell.sizeOfExcludingThis(mallocSizeOf);
     sizes->storeBufferGenerics   += bufferGeneric.sizeOfExcludingThis(mallocSizeOf);
+
+    for (ArenaCellSet* set = bufferWholeCell; set; set = set->next)
+        sizes->storeBufferWholeCells += sizeof(ArenaCellSet);
+}
+
+void
+StoreBuffer::addToWholeCellBuffer(ArenaCellSet* set)
+{
+    set->next = bufferWholeCell;
+    bufferWholeCell = set;
+}
+
+ArenaCellSet ArenaCellSet::Empty(nullptr);
+
+ArenaCellSet::ArenaCellSet(Arena* arena)
+  : arena(arena), next(nullptr)
+{
+    bits.clear(false);
+}
+
+ArenaCellSet*
+js::gc::AllocateWholeCellSet(Arena* arena)
+{
+    Zone* zone = arena->zone;
+    if (!zone->group()->nursery().isEnabled())
+        return nullptr;
+
+    AutoEnterOOMUnsafeRegion oomUnsafe;
+    Nursery& nursery = zone->group()->nursery();
+    void* data = nursery.allocateBuffer(zone, sizeof(ArenaCellSet));
+    if (!data)
+        oomUnsafe.crash("Failed to allocate WholeCellSet");
+
+    if (nursery.freeSpace() < ArenaCellSet::NurseryFreeThresholdBytes)
+        zone->group()->storeBuffer().setAboutToOverflow(JS::gcreason::FULL_WHOLE_CELL_BUFFER);
+
+    auto cells = static_cast<ArenaCellSet*>(data);
+    new (cells) ArenaCellSet(arena);
+    arena->bufferedCells() = cells;
+    zone->group()->storeBuffer().addToWholeCellBuffer(cells);
+    return cells;
 }
 
 template struct StoreBuffer::MonoTypeBuffer<StoreBuffer::ValueEdge>;
 template struct StoreBuffer::MonoTypeBuffer<StoreBuffer::CellPtrEdge>;
 template struct StoreBuffer::MonoTypeBuffer<StoreBuffer::SlotsEdge>;
-template struct StoreBuffer::MonoTypeBuffer<StoreBuffer::WholeCellEdges>;

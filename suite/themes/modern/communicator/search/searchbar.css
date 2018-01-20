@@ -7,6 +7,17 @@
   min-width: 6em;
 }
 
+/* ::::: search bar ::::: */
+
+.autocomplete-treebody::-moz-tree-cell-text(datalist-first, treecolAutoCompleteComment) {
+  color: #999999;
+  font-size: smaller;
+}
+
+.autocomplete-treebody::-moz-tree-cell(datalist-first) {
+  border-top: 1px solid #999999;
+}
+
 /* ::::: searchbar-engine-button ::::: */
 
 .toolbarbutton-icon {
@@ -36,8 +47,10 @@
   list-style-image: url("chrome://global/skin/icons/search.gif");
 }
 
-.search-go-button:-moz-system-metric(touch-enabled) {
-  padding: 0px 5px;
+@media (touch-enabled) {
+  .search-go-button {
+    padding: 0px 5px;
+  }
 }
 
 .search-go-button:-moz-locale-dir(rtl) {

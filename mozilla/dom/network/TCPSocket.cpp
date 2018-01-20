@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -7,7 +8,6 @@
 #include "TCPSocket.h"
 #include "TCPServerSocket.h"
 #include "TCPSocketChild.h"
-#include "mozilla/dom/DOMError.h"
 #include "mozilla/dom/TCPSocketBinding.h"
 #include "mozilla/dom/TCPSocketErrorEvent.h"
 #include "mozilla/dom/TCPSocketErrorEventBinding.h"
@@ -33,11 +33,6 @@
 #include "nsStringStream.h"
 #include "secerr.h"
 #include "sslerr.h"
-#ifdef MOZ_WIDGET_GONK
-#include "nsINetworkStatsServiceProxy.h"
-#include "nsINetworkManager.h"
-#include "nsINetworkInterface.h"
-#endif
 
 #define BUFFER_SIZE 65536
 #define NETWORK_STATS_THRESHOLD 65536
@@ -52,7 +47,7 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(LegacyMozTCPSocket)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
-LegacyMozTCPSocket::LegacyMozTCPSocket(nsPIDOMWindow* aWindow)
+LegacyMozTCPSocket::LegacyMozTCPSocket(nsPIDOMWindowInner* aWindow)
 : mGlobal(do_QueryInterface(aWindow))
 {
 }
@@ -137,7 +132,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 NS_IMPL_ADDREF_INHERITED(TCPSocket, DOMEventTargetHelper)
 NS_IMPL_RELEASE_INHERITED(TCPSocket, DOMEventTargetHelper)
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(TCPSocket)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(TCPSocket)
   NS_INTERFACE_MAP_ENTRY(nsITransportEventSink)
   NS_INTERFACE_MAP_ENTRY(nsIRequestObserver)
   NS_INTERFACE_MAP_ENTRY(nsIStreamListener)
@@ -162,18 +157,10 @@ TCPSocket::TCPSocket(nsIGlobalObject* aGlobal, const nsAString& aHost, uint16_t 
   , mSuspendCount(0)
   , mTrackingNumber(0)
   , mWaitingForStartTLS(false)
-#ifdef MOZ_WIDGET_GONK
-  , mTxBytes(0)
-  , mRxBytes(0)
-  , mAppId(nsIScriptSecurityManager::UNKNOWN_APP_ID)
-  , mInBrowser(false)
-#endif
+  , mObserversActive(false)
 {
   if (aGlobal) {
-    nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(aGlobal);
-    if (window && window->IsOuterWindow()) {
-      window = window->GetCurrentInnerWindow();
-    }
+    nsCOMPtr<nsPIDOMWindowInner> window = do_QueryInterface(aGlobal);
     if (window) {
       mInnerWindowID = window->WindowID();
     }
@@ -182,6 +169,13 @@ TCPSocket::TCPSocket(nsIGlobalObject* aGlobal, const nsAString& aHost, uint16_t 
 
 TCPSocket::~TCPSocket()
 {
+  if (mObserversActive) {
+    nsCOMPtr<nsIObserverService> obs = do_GetService("@mozilla.org/observer-service;1");
+    if (obs) {
+      obs->RemoveObserver(this, "inner-window-destroyed");
+      obs->RemoveObserver(this, "profile-change-net-teardown");
+    }
+  }
 }
 
 nsresult
@@ -198,10 +192,8 @@ TCPSocket::CreateStream()
   nsCOMPtr<nsIAsyncInputStream> asyncStream = do_QueryInterface(mSocketInputStream);
   NS_ENSURE_TRUE(asyncStream, NS_ERROR_NOT_AVAILABLE);
 
-  nsCOMPtr<nsIThread> mainThread;
-  NS_GetMainThread(getter_AddRefs(mainThread));
-
-  rv = asyncStream->AsyncWait(this, nsIAsyncInputStream::WAIT_CLOSURE_ONLY, 0, mainThread);
+  nsCOMPtr<nsIEventTarget> mainTarget = GetMainThreadEventTarget();
+  rv = asyncStream->AsyncWait(this, nsIAsyncInputStream::WAIT_CLOSURE_ONLY, 0, mainTarget);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (mUseArrayBuffers) {
@@ -218,6 +210,7 @@ TCPSocket::CreateStream()
 
   mMultiplexStream = do_CreateInstance("@mozilla.org/io/multiplex-input-stream;1", &rv);
   NS_ENSURE_SUCCESS(rv, rv);
+  nsCOMPtr<nsIInputStream> stream = do_QueryInterface(mMultiplexStream);
 
   mMultiplexStreamCopier = do_CreateInstance("@mozilla.org/network/async-stream-copier;1", &rv);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -226,7 +219,7 @@ TCPSocket::CreateStream()
       do_GetService("@mozilla.org/network/socket-transport-service;1");
 
   nsCOMPtr<nsIEventTarget> target = do_QueryInterface(sts);
-  rv = mMultiplexStreamCopier->Init(mMultiplexStream,
+  rv = mMultiplexStreamCopier->Init(stream,
                                     mSocketOutputStream,
                                     target,
                                     true, /* source buffered */
@@ -246,9 +239,8 @@ TCPSocket::InitWithUnconnectedTransport(nsISocketTransport* aTransport)
 
   MOZ_ASSERT(XRE_GetProcessType() != GeckoProcessType_Content);
 
-  nsCOMPtr<nsIThread> mainThread;
-  NS_GetMainThread(getter_AddRefs(mainThread));
-  mTransport->SetEventSink(this, mainThread);
+  nsCOMPtr<nsIEventTarget> mainTarget = GetMainThreadEventTarget();
+  mTransport->SetEventSink(this, mainTarget);
 
   nsresult rv = CreateStream();
   NS_ENSURE_SUCCESS(rv, rv);
@@ -261,12 +253,19 @@ TCPSocket::Init()
 {
   nsCOMPtr<nsIObserverService> obs = do_GetService("@mozilla.org/observer-service;1");
   if (obs) {
-    obs->AddObserver(this, "inner-window-destroyed", true);
+    mObserversActive = true;
+    obs->AddObserver(this, "inner-window-destroyed", true); // weak reference
+    obs->AddObserver(this, "profile-change-net-teardown", true); // weak ref
   }
 
   if (XRE_GetProcessType() == GeckoProcessType_Content) {
     mReadyState = TCPReadyState::Connecting;
-    mSocketBridgeChild = new TCPSocketChild(mHost, mPort);
+
+    nsCOMPtr<nsIEventTarget> target;
+    if (nsCOMPtr<nsIGlobalObject> global = GetOwnerGlobal()) {
+      target = global->EventTargetFor(TaskCategory::Other);
+    }
+    mSocketBridgeChild = new TCPSocketChild(mHost, mPort, target);
     mSocketBridgeChild->SendOpen(this, mSsl, mUseArrayBuffers);
     return NS_OK;
   }
@@ -315,13 +314,6 @@ TCPSocket::InitWithTransport(nsISocketTransport* aTransport)
   int32_t port;
   mTransport->GetPort(&port);
   mPort = port;
-
-#ifdef MOZ_WIDGET_GONK
-  nsCOMPtr<nsINetworkManager> networkManager = do_GetService("@mozilla.org/network/manager;1");
-  if (networkManager) {
-    networkManager->GetActiveNetworkInfo(getter_AddRefs(mActiveNetworkInfo));
-  }
-#endif
 
   return NS_OK;
 }
@@ -379,6 +371,7 @@ NS_IMETHODIMP
 CopierCallbacks::OnStopRequest(nsIRequest* aRequest, nsISupports* aContext, nsresult aStatus)
 {
   mOwner->NotifyCopyComplete(aStatus);
+  mOwner = nullptr;
   return NS_OK;
 }
 } // unnamed namespace
@@ -399,7 +392,21 @@ void
 TCPSocket::NotifyCopyComplete(nsresult aStatus)
 {
   mAsyncCopierActive = false;
-  mMultiplexStream->RemoveStream(0);
+
+  uint32_t countRemaining;
+  nsresult rvRemaining = mMultiplexStream->GetCount(&countRemaining);
+  NS_ENSURE_SUCCESS_VOID(rvRemaining);
+
+  while (countRemaining--) {
+    mMultiplexStream->RemoveStream(0);
+  }
+
+  while (!mPendingDataWhileCopierActive.IsEmpty()) {
+      nsCOMPtr<nsIInputStream> stream = mPendingDataWhileCopierActive[0];
+      mMultiplexStream->AppendStream(stream);
+      mPendingDataWhileCopierActive.RemoveElementAt(0);
+  }
+
   if (mSocketBridgeParent) {
     mozilla::Unused << mSocketBridgeParent->SendUpdateBufferedAmount(BufferedAmount(),
                                                                      mTrackingNumber);
@@ -445,7 +452,10 @@ TCPSocket::NotifyCopyComplete(nsresult aStatus)
   }
 
   if (mReadyState == TCPReadyState::Closing) {
-    mSocketOutputStream->Close();
+    if (mSocketOutputStream) {
+      mSocketOutputStream->Close();
+      mSocketOutputStream = nullptr;
+    }
     mReadyState = TCPReadyState::Closed;
     FireEvent(NS_LITERAL_STRING("close"));
   }
@@ -537,7 +547,7 @@ TCPSocket::FireDataStringEvent(const nsAString& aType,
   return NS_ERROR_FAILURE;
 }
 
-NS_IMETHODIMP
+nsresult
 TCPSocket::FireDataEvent(JSContext* aCx, const nsAString& aType, JS::Handle<JS::Value> aData)
 {
   MOZ_ASSERT(!mSocketBridgeParent);
@@ -587,7 +597,8 @@ TCPSocket::BufferedAmount()
   }
   if (mMultiplexStream) {
     uint64_t available = 0;
-    mMultiplexStream->Available(&available);
+    nsCOMPtr<nsIInputStream> stream(do_QueryInterface(mMultiplexStream));
+    stream->Available(&available);
     return available;
   }
   return 0;
@@ -626,17 +637,14 @@ TCPSocket::Resume(mozilla::ErrorResult& aRv)
 
 nsresult
 TCPSocket::MaybeReportErrorAndCloseIfOpen(nsresult status) {
-#ifdef MOZ_WIDGET_GONK
-  // Save network statistics once the connection is closed.
-  // For now this function is Gonk-specific.
-  SaveNetworkStats(true);
-#endif
-
   // If we're closed, we've already reported the error or just don't need to
   // report the error.
   if (mReadyState == TCPReadyState::Closed) {
     return NS_OK;
   }
+
+  // go through ::Closing state and then mark ::Closed
+  Close();
   mReadyState = TCPReadyState::Closed;
 
   if (NS_FAILED(status)) {
@@ -740,7 +748,7 @@ TCPSocket::MaybeReportErrorAndCloseIfOpen(nsresult status) {
       }
     }
 
-    NS_WARN_IF(NS_FAILED(FireErrorEvent(errName, errorType)));
+    Unused << NS_WARN_IF(NS_FAILED(FireErrorEvent(errName, errorType)));
   }
 
   return FireEvent(NS_LITERAL_STRING("close"));
@@ -748,6 +756,18 @@ TCPSocket::MaybeReportErrorAndCloseIfOpen(nsresult status) {
 
 void
 TCPSocket::Close()
+{
+  CloseHelper(true);
+}
+
+void
+TCPSocket::CloseImmediately()
+{
+  CloseHelper(false);
+}
+
+void
+TCPSocket::CloseHelper(bool waitForUnsentData)
 {
   if (mReadyState == TCPReadyState::Closed || mReadyState == TCPReadyState::Closing) {
     return;
@@ -761,11 +781,20 @@ TCPSocket::Close()
   }
 
   uint32_t count = 0;
-  mMultiplexStream->GetCount(&count);
-  if (!count) {
-    mSocketOutputStream->Close();
+  if (mMultiplexStream) {
+    mMultiplexStream->GetCount(&count);
   }
-  mSocketInputStream->Close();
+  if (!count || !waitForUnsentData) {
+    if (mSocketOutputStream) {
+      mSocketOutputStream->Close();
+      mSocketOutputStream = nullptr;
+    }
+  }
+
+  if (mSocketInputStream) {
+    mSocketInputStream->Close();
+    mSocketInputStream = nullptr;
+  }
 }
 
 void
@@ -883,17 +912,14 @@ TCPSocket::Send(nsIInputStream* aStream, uint32_t aByteLength)
     // When we are waiting for starttls, newStream is added to pendingData
     // and will be appended to multiplexStream after tls had been set up.
     mPendingDataAfterStartTLS.AppendElement(aStream);
+  } else if (mAsyncCopierActive) {
+    // While the AsyncCopier is still active..
+    mPendingDataWhileCopierActive.AppendElement(aStream);
   } else {
     mMultiplexStream->AppendStream(aStream);
   }
 
   EnsureCopying();
-
-#ifdef MOZ_WIDGET_GONK
-  // Collect transmitted amount for network statistics.
-  mTxBytes += aByteLength;
-  SaveNetworkStats(false);
-#endif
 
   return !bufferFull;
 }
@@ -958,11 +984,14 @@ TCPSocket::Constructor(const GlobalObject& aGlobal,
 nsresult
 TCPSocket::CreateInputStreamPump()
 {
+  if (!mSocketInputStream) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
   nsresult rv;
   mInputStreamPump = do_CreateInstance("@mozilla.org/network/input-stream-pump;1", &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = mInputStreamPump->Init(mSocketInputStream, -1, -1, 0, 0, false);
+  rv = mInputStreamPump->Init(mSocketInputStream, 0, 0, false, nullptr);
   NS_ENSURE_SUCCESS(rv, rv);
 
   uint64_t suspendCount = mSuspendCount;
@@ -1014,12 +1043,6 @@ NS_IMETHODIMP
 TCPSocket::OnDataAvailable(nsIRequest* aRequest, nsISupports* aContext, nsIInputStream* aStream,
                            uint64_t aOffset, uint32_t aCount)
 {
-#ifdef MOZ_WIDGET_GONK
-  // Collect received amount for network statistics.
-  mRxBytes += aCount;
-  SaveNetworkStats(false);
-#endif
-
   if (mUseArrayBuffers) {
     nsTArray<uint8_t> buffer;
     buffer.SetCapacity(aCount);
@@ -1102,15 +1125,6 @@ TCPSocket::SetSocketBridgeParent(TCPSocketParent* aBridgeParent)
   mSocketBridgeParent = aBridgeParent;
 }
 
-void
-TCPSocket::SetAppIdAndBrowser(uint32_t aAppId, bool aInBrowser)
-{
-#ifdef MOZ_WIDGET_GONK
-  mAppId = aAppId;
-  mInBrowser = aInBrowser;
-#endif
-}
-
 NS_IMETHODIMP
 TCPSocket::UpdateReadyState(uint32_t aReadyState)
 {
@@ -1135,37 +1149,6 @@ TCPSocket::UpdateBufferedAmount(uint32_t aBufferedAmount, uint32_t aTrackingNumb
   return NS_OK;
 }
 
-#ifdef MOZ_WIDGET_GONK
-void
-TCPSocket::SaveNetworkStats(bool aEnforce)
-{
-  if (!mTxBytes && !mRxBytes) {
-    // There is no traffic at all. No need to save statistics.
-    return;
-  }
-
-  // If "enforce" is false, the traffic amount is saved to NetworkStatsServiceProxy
-  // only when the total amount exceeds the predefined threshold value.
-  // The purpose is to avoid too much overhead for collecting statistics.
-  uint32_t totalBytes = mTxBytes + mRxBytes;
-  if (!aEnforce && totalBytes < NETWORK_STATS_THRESHOLD) {
-    return;
-  }
-
-  nsCOMPtr<nsINetworkStatsServiceProxy> nssProxy =
-    do_GetService("@mozilla.org/networkstatsServiceProxy;1");
-  if (!nssProxy) {
-    return;
-  }
-
-  nssProxy->SaveAppStats(mAppId, mInBrowser, mActiveNetworkInfo, PR_Now(),
-                         mRxBytes, mTxBytes, false, nullptr);
-
-  // Reset the counters once the statistics is saved to NetworkStatsServiceProxy.
-  mTxBytes = mRxBytes = 0;
-}
-#endif
-
 NS_IMETHODIMP
 TCPSocket::Observe(nsISupports* aSubject, const char* aTopic, const char16_t* aData)
 {
@@ -1179,13 +1162,10 @@ TCPSocket::Observe(nsISupports* aSubject, const char* aTopic, const char16_t* aD
     }
 
     if (innerID == mInnerWindowID) {
-      nsCOMPtr<nsIObserverService> obs = do_GetService("@mozilla.org/observer-service;1");
-      if (obs) {
-        obs->RemoveObserver(this, "inner-window-destroyed");
-      }
-
       Close();
     }
+  } else if (!strcmp(aTopic, "profile-change-net-teardown")) {
+    Close();
   }
 
   return NS_OK;
@@ -1196,11 +1176,5 @@ bool
 TCPSocket::ShouldTCPSocketExist(JSContext* aCx, JSObject* aGlobal)
 {
   JS::Rooted<JSObject*> global(aCx, aGlobal);
-  if (nsContentUtils::IsSystemPrincipal(nsContentUtils::ObjectPrincipal(global))) {
-    return true;
-  }
-
-  const char* const perms[] = { "tcp-socket", nullptr };
-  return Preferences::GetBool("dom.mozTCPSocket.enabled") &&
-      CheckAnyPermissions(aCx, global, perms);
+  return nsContentUtils::IsSystemPrincipal(nsContentUtils::ObjectPrincipal(global));
 }

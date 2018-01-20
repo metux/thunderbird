@@ -90,13 +90,25 @@ TEST(HandleAllocatorTest, Reallocation)
     EXPECT_EQ(finalResult, 1);
 }
 
-// The following test covers reserving a handle with max uint value.
-// See http://anglebug.com/1052
+// The following test covers reserving a handle with max uint value. See http://anglebug.com/1052
 TEST(HandleAllocatorTest, ReserveMaxUintHandle)
 {
     gl::HandleAllocator allocator;
 
     GLuint maxUintHandle = std::numeric_limits<GLuint>::max();
+    allocator.reserve(maxUintHandle);
+
+    GLuint normalHandle = allocator.allocate();
+    EXPECT_EQ(1u, normalHandle);
+}
+
+// The following test covers reserving a handle with max uint value minus one then max uint value.
+TEST(HandleAllocatorTest, ReserveMaxUintHandle2)
+{
+    gl::HandleAllocator allocator;
+
+    GLuint maxUintHandle = std::numeric_limits<GLuint>::max();
+    allocator.reserve(maxUintHandle - 1);
     allocator.reserve(maxUintHandle);
 
     GLuint normalHandle = allocator.allocate();
@@ -123,4 +135,19 @@ TEST(HandleAllocatorTest, SortedOrderHandle)
     EXPECT_EQ(6u, allocatedList[4]);
 }
 
+// Tests the reset method.
+TEST(HandleAllocatorTest, Reset)
+{
+    gl::HandleAllocator allocator;
+
+    for (int iteration = 0; iteration < 1; ++iteration)
+    {
+        allocator.reserve(3);
+        EXPECT_EQ(1u, allocator.allocate());
+        EXPECT_EQ(2u, allocator.allocate());
+        EXPECT_EQ(4u, allocator.allocate());
+        allocator.reset();
+    }
 }
+
+}  // anonymous namespace

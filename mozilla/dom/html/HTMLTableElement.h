@@ -14,8 +14,6 @@
 namespace mozilla {
 namespace dom {
 
-#define TABLE_ATTRS_DIRTY ((nsMappedAttributes*)0x1)
-
 class TableRowsCollection;
 
 class HTMLTableElement final : public nsGenericHTMLElement
@@ -32,12 +30,12 @@ public:
   {
     return static_cast<HTMLTableCaptionElement*>(GetChild(nsGkAtoms::caption));
   }
-  void SetCaption(HTMLTableCaptionElement* aCaption)
+  void SetCaption(HTMLTableCaptionElement* aCaption, ErrorResult& aError)
   {
     DeleteCaption();
     if (aCaption) {
-      mozilla::ErrorResult rv;
-      nsINode::AppendChild(*aCaption, rv);
+      nsCOMPtr<nsINode> firstChild = nsINode::GetFirstChild();
+      nsINode::InsertBefore(*aCaption, firstChild, aError);
     }
   }
 
@@ -60,7 +58,19 @@ public:
 
     DeleteTHead();
     if (aTHead) {
-      nsINode::InsertBefore(*aTHead, nsINode::GetFirstChild(), aError);
+
+      nsCOMPtr<nsIContent> refNode = nullptr;
+      for (refNode = nsINode::GetFirstChild();
+           refNode;
+           refNode = refNode->GetNextSibling()) {
+        if (refNode->IsHTMLElement() &&
+            !refNode->IsHTMLElement(nsGkAtoms::caption) &&
+            !refNode->IsHTMLElement(nsGkAtoms::colgroup)) {
+          break;
+        }
+      }
+
+      nsINode::InsertBefore(*aTHead, refNode, aError);
     }
   }
   already_AddRefed<nsGenericHTMLElement> CreateTHead();
@@ -173,13 +183,14 @@ public:
   }
 
   virtual bool ParseAttribute(int32_t aNamespaceID,
-                                nsIAtom* aAttribute,
+                                nsAtom* aAttribute,
                                 const nsAString& aValue,
                                 nsAttrValue& aResult) override;
   virtual nsMapRuleToAttributesFunc GetAttributeMappingFunction() const override;
-  NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* aAttribute) const override;
+  NS_IMETHOD_(bool) IsAttributeMapped(const nsAtom* aAttribute) const override;
 
-  virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult) const override;
+  virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult,
+                         bool aPreallocateChildren) const override;
 
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                               nsIContent* aBindingParent,
@@ -189,14 +200,17 @@ public:
   /**
    * Called when an attribute is about to be changed
    */
-  virtual nsresult BeforeSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
-                                 nsAttrValueOrString* aValue,
+  virtual nsresult BeforeSetAttr(int32_t aNameSpaceID, nsAtom* aName,
+                                 const nsAttrValueOrString* aValue,
                                  bool aNotify) override;
   /**
    * Called when an attribute has just been changed
    */
-  virtual nsresult AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
-                                const nsAttrValue* aValue, bool aNotify) override;
+  virtual nsresult AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
+                                const nsAttrValue* aValue,
+                                const nsAttrValue* aOldValue,
+                                nsIPrincipal* aSubjectPrincipal,
+                                bool aNotify) override;
 
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(HTMLTableElement,
                                            nsGenericHTMLElement)
@@ -207,7 +221,7 @@ protected:
 
   virtual JSObject* WrapNode(JSContext *aCx, JS::Handle<JSObject*> aGivenProto) override;
 
-  nsIContent* GetChild(nsIAtom *aTag) const
+  nsIContent* GetChild(nsAtom *aTag) const
   {
     for (nsIContent* cur = nsINode::GetFirstChild(); cur;
          cur = cur->GetNextSibling()) {
@@ -220,15 +234,13 @@ protected:
 
   RefPtr<nsContentList> mTBodies;
   RefPtr<TableRowsCollection> mRows;
-  // Sentinel value of TABLE_ATTRS_DIRTY indicates that this is dirty and needs
-  // to be recalculated.
   nsMappedAttributes *mTableInheritedAttributes;
   void BuildInheritedAttributes();
   void ReleaseInheritedAttributes();
 
 private:
   static void MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
-                                    nsRuleData* aData);
+                                    GenericSpecifiedValues* aGenericData);
 };
 
 } // namespace dom

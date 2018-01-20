@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -14,11 +15,12 @@
 #include "nsThreadUtils.h"
 
 class nsPrintEngine;
+class nsIDocument;
 
 //---------------------------------------------------
 //-- Page Timer Class
 //---------------------------------------------------
-class nsPagePrintTimer final : public nsRunnable,
+class nsPagePrintTimer final : public mozilla::Runnable,
                                public nsITimerCallback
 {
 public:
@@ -27,15 +29,19 @@ public:
 
   nsPagePrintTimer(nsPrintEngine* aPrintEngine,
                    nsIDocumentViewerPrint* aDocViewerPrint,
+                   nsIDocument* aDocument,
                    uint32_t aDelay)
-    : mPrintEngine(aPrintEngine)
+    : Runnable("nsPagePrintTimer")
+    , mPrintEngine(aPrintEngine)
     , mDocViewerPrint(aDocViewerPrint)
+    , mDocument(aDocument)
     , mDelay(aDelay)
     , mFiringCount(0)
     , mPrintObj(nullptr)
     , mWatchDogCount(0)
     , mDone(false)
   {
+    MOZ_ASSERT(aDocument);
     mDocViewerPrint->IncrementDestroyRefCount();
   }
 
@@ -47,6 +53,15 @@ public:
 
   void Stop();
 
+  void WaitForRemotePrint();
+  void RemotePrintFinished();
+
+  void Disconnect()
+  {
+    mPrintEngine = nullptr;
+    mPrintObj = nullptr;
+  }
+
 private:
   ~nsPagePrintTimer();
 
@@ -57,8 +72,10 @@ private:
 
   nsPrintEngine*             mPrintEngine;
   nsCOMPtr<nsIDocumentViewerPrint> mDocViewerPrint;
+  nsCOMPtr<nsIDocument>      mDocument;
   nsCOMPtr<nsITimer>         mTimer;
   nsCOMPtr<nsITimer>         mWatchDogTimer;
+  nsCOMPtr<nsITimer>         mWaitingForRemotePrint;
   uint32_t                   mDelay;
   uint32_t                   mFiringCount;
   nsPrintObject *            mPrintObj;
@@ -66,11 +83,14 @@ private:
   bool                       mDone;
 
   static const uint32_t WATCH_DOG_INTERVAL  = 1000;
-  static const uint32_t WATCH_DOG_MAX_COUNT = 10;
+  static const uint32_t WATCH_DOG_MAX_COUNT =
+#ifdef DEBUG
+    // Debug builds are very slow (on Mac at least) and can need extra time
+                                              30
+#else
+                                              10
+#endif
+  ;
 };
-
-
-nsresult
-NS_NewPagePrintTimer(nsPagePrintTimer **aResult);
 
 #endif /* nsPagePrintTimer_h___ */

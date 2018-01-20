@@ -4,6 +4,7 @@
 
 Components.utils.import("resource:///modules/ABQueryUtils.jsm");
 Components.utils.import("resource:///modules/mailServices.js");
+Components.utils.import("resource://gre/modules/PluralForm.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
 
 var searchSessionContractID = "@mozilla.org/messenger/searchSession;1";
@@ -29,19 +30,16 @@ var gSearchAbViewListener = {
   onSelectionChanged: function() {
     UpdateCardView();
   },
-  onCountChanged: function(total) {
-    var statusText;
-    switch (total) {
-      case 0:
-        statusText = gAddressBookBundle.getString("noMatchFound");
-        break;
-      case 1:
-        statusText = gAddressBookBundle.getString("matchFound");
-        break;
-      default:
-        statusText = gAddressBookBundle.getFormattedString("matchesFound", [total]);
-        break;
+  onCountChanged: function(aTotal) {
+    let statusText;
+    if (aTotal == 0) {
+      statusText = gAddressBookBundle.getString("noMatchFound");
+    } else {
+      statusText = PluralForm
+        .get(aTotal, gAddressBookBundle.getString("matchesFound1"))
+        .replace("#1", aTotal);
     }
+
     gStatusText.setAttribute("label", statusText);
   }
 };
@@ -179,11 +177,8 @@ function onSearch()
     saveSearchTerms(gSearchSession.searchTerms, gSearchSession);
 
     var searchUri = currentAbURI + "?(";
-
-    var count = gSearchSession.searchTerms.Count();
-
-    for (var i=0; i<count; i++) {
-      var searchTerm = gSearchSession.searchTerms.GetElementAt(i).QueryInterface(nsIMsgSearchTerm);
+    for (let i = 0; i < gSearchSession.searchTerms.length; i++) {
+      let searchTerm = gSearchSession.searchTerms.queryElementAt(i, nsIMsgSearchTerm);
 
       // get the "and" / "or" value from the first term
       if (i == 0) {
@@ -356,7 +351,9 @@ function UpdateCardView()
   if (!numSelected)
     return;
 
-  gComposeCmd.removeAttribute("disabled");
+  if (MailServices.accounts.allIdentities.length > 0)
+    gComposeCmd.removeAttribute("disabled");
+
   gDeleteCmd.removeAttribute("disabled");
   if (numSelected == 1)
     gPropertiesCmd.removeAttribute("disabled");

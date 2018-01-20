@@ -19,18 +19,18 @@ public class testAboutPage extends PixelTest {
         String url = mStringHelper.ABOUT_SCHEME;
         loadAndPaint(url);
 
-        verifyUrlBarTitle(url);
+        verifyUrlInContentDescription(url);
 
         // Open a new page to remove the about: page from the current tab.
         url = getAbsoluteUrl(mStringHelper.ROBOCOP_BLANK_PAGE_01_URL);
         loadUrlAndWait(url);
 
         // At this point the page title should have been set.
-        verifyUrlBarTitle(url);
+        verifyUrlInContentDescription(url);
 
         // Set up listeners to catch the page load we're about to do.
-        Actions.EventExpecter tabEventExpecter = mActions.expectGeckoEvent("Tab:Added");
-        Actions.EventExpecter contentEventExpecter = mActions.expectGeckoEvent("DOMContentLoaded");
+        Actions.EventExpecter tabEventExpecter = mActions.expectGlobalEvent(Actions.EventType.UI, "Tab:Added");
+        Actions.EventExpecter contentEventExpecter = mActions.expectGlobalEvent(Actions.EventType.GECKO, "Content:DOMContentLoaded");
 
         selectSettingsItem(mStringHelper.MOZILLA_SECTION_LABEL, mStringHelper.ABOUT_LABEL);
 
@@ -42,6 +42,6 @@ public class testAboutPage extends PixelTest {
         contentEventExpecter.unregisterListener();
 
         // Make sure the about: page was loaded.
-        verifyUrlBarTitle(mStringHelper.ABOUT_SCHEME);
+        verifyUrlInContentDescription(mStringHelper.ABOUT_SCHEME);
     }
 }

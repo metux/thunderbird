@@ -7,11 +7,10 @@ function test()
 {
   waitForExplicitFinish();
 
-  gBrowser.selectedTab = gBrowser.addTab();
-  gBrowser.selectedBrowser.addEventListener("load", function onLoad() {
-    gBrowser.selectedBrowser.removeEventListener("load", onLoad, true);
+  gBrowser.selectedTab = BrowserTestUtils.addTab(gBrowser);
+  gBrowser.selectedBrowser.addEventListener("load", function () {
     openScratchpad(testThrowOutput);
-  }, true);
+  }, {capture: true, once: true});
 
   content.location = "data:text/html;charset=utf8,<p>Test throw outputs in Scratchpad</p>";
 }
@@ -22,7 +21,7 @@ function testThrowOutput()
 
   let falsyValues = ["false", "0", "-0", "null", "undefined", "Infinity",
                       "-Infinity", "NaN"];
-  falsyValues.forEach(function(value) {
+  falsyValues.forEach(function (value) {
     tests.push({
       method: "display",
       code: "throw " + value + ";",
@@ -46,7 +45,7 @@ function testThrowOutput()
     label: "Correct exception message for a longString is shown"
   });
 
-  runAsyncTests(scratchpad, tests).then(function() {
+  runAsyncTests(scratchpad, tests).then(function () {
     finish();
   });
 }

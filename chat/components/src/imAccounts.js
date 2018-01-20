@@ -129,17 +129,12 @@ function imAccount(aKey, aName, aPrplId)
 
   if (aName) {
     this.name = aName;
-    let str = Cc["@mozilla.org/supports-string;1"]
-              .createInstance(Ci.nsISupportsString);
-    str.data = aName;
-    this.prefBranch.setComplexValue(kPrefAccountName, Ci.nsISupportsString,
-                                    str);
+    this.prefBranch.setStringPref(kPrefAccountName, aName);
 
     this.firstConnectionState = Ci.imIAccount.FIRST_CONNECTION_UNKNOWN;
   }
   else {
-    this.name = this.prefBranch.getComplexValue(kPrefAccountName,
-                                                Ci.nsISupportsString).data;
+    this.name = this.prefBranch.getStringPref(kPrefAccountName);
   }
 
   let prplId = aPrplId;
@@ -176,8 +171,7 @@ function imAccount(aKey, aName, aPrplId)
     // we don't want to display several of theses prompts at startup.
     if (gConvertingOldPasswords && !this.protocol.noPassword) {
       try {
-        let password = this.prefBranch.getComplexValue(kPrefAccountPassword,
-                                                       Ci.nsISupportsString).data;
+        let password = this.prefBranch.getStringPref(kPrefAccountPassword);
         if (password && !this.password)
           this.password = password;
       } catch (e) { /* No password saved in the prefs for this account. */ }
@@ -238,10 +232,9 @@ imAccount.prototype = {
 
       if (this.canJoinChat &&
           this.prefBranch.prefHasUserValue(kPrefAccountAutoJoin)) {
-        let autojoin = this.prefBranch.getComplexValue(
-          kPrefAccountAutoJoin, Ci.nsISupportsString).data;
+        let autojoin = this.prefBranch.getStringPref(kPrefAccountAutoJoin);
         if (autojoin) {
-          for each (let room in autojoin.trim().split(/,\s*/)) {
+          for (let room of autojoin.trim().split(/,\s*/)) {
             if (room)
               this.joinChat(this.getChatRoomDefaultFieldValues(room));
           }
@@ -480,11 +473,7 @@ imAccount.prototype = {
 
   set alias(val) {
     if (val) {
-      let str = Cc["@mozilla.org/supports-string;1"]
-                .createInstance(Ci.nsISupportsString);
-      str.data = val;
-      this.prefBranch.setComplexValue(kPrefAccountAlias, Ci.nsISupportsString,
-                                      str);
+      this.prefBranch.setStringPref(kPrefAccountAlias, val);
     }
     else
       this.prefBranch.deleteBranch(kPrefAccountAlias);
@@ -492,8 +481,7 @@ imAccount.prototype = {
   },
   get alias() {
     try {
-      return this.prefBranch.getComplexValue(kPrefAccountAlias,
-                                             Ci.nsISupportsString).data;
+      return this.prefBranch.getStringPref(kPrefAccountAlias);
     } catch (e) {
       return "";
     }
@@ -517,7 +505,7 @@ imAccount.prototype = {
       return "";
     }
     let normalizedName = this.normalizedName;
-    for each (let login in logins) {
+    for (let login of logins) {
       if (login.username == normalizedName) {
         this._password = login.password;
         if (this._connectionErrorReason == Ci.imIAccount.ERROR_MISSING_PASSWORD) {
@@ -555,7 +543,7 @@ imAccount.prototype = {
     try {
       let logins = Services.logins.findLogins({}, passwordURI, null, passwordURI);
       let saved = false;
-      for each (let login in logins) {
+      for (let login of logins) {
         if (newLogin.matches(login, true)) {
           if (aPassword)
             Services.logins.modifyLogin(login, newLogin);
@@ -633,7 +621,7 @@ imAccount.prototype = {
     // protocol plugin is missing.
     login.init(passwordURI, null, passwordURI, this.normalizedName, "", "", "");
     let logins = Services.logins.findLogins({}, passwordURI, null, passwordURI);
-    for each (let l in logins) {
+    for (let l of logins) {
       if (login.matches(l, true)) {
         Services.logins.removeLogin(l);
         break;
@@ -803,11 +791,7 @@ imAccount.prototype = {
     SavePrefTimer.initTimer();
   },
   setString: function(aName, aVal) {
-    let str = Cc["@mozilla.org/supports-string;1"]
-              .createInstance(Ci.nsISupportsString);
-    str.data = aVal;
-    this.prefBranch.setComplexValue(kAccountOptionPrefPrefix + aName,
-                                    Ci.nsISupportsString, str);
+    this.prefBranch.setStringPref(kAccountOptionPrefPrefix + aName, aVal);
     this._connectionInfoChanged();
     if (this.prplAccount)
       this.prplAccount.setString(aName, aVal);
@@ -843,7 +827,7 @@ AccountsService.prototype = {
     gConvertingOldPasswords =
       Services.prefs.getBoolPref(kPrefConvertOldPasswords);
     let accountList = this._accountList;
-    for each (let account in (accountList ? accountList.split(",") : [])) {
+    for (let account of (accountList ? accountList.split(",") : [])) {
       try {
         account.trim();
         if (!account)
@@ -872,7 +856,7 @@ AccountsService.prototype = {
       return;
 
     this._accounts =
-      this._accountList.split(",").map(String.trim)
+      this._accountList.split(",").map(account => account.trim())
           .filter(k => k.startsWith(kAccountKeyPrefix))
           .map(k => parseInt(k.substr(kAccountKeyPrefix.length)))
           .map(this.getAccountByNumericId, this)
@@ -889,7 +873,7 @@ AccountsService.prototype = {
   },
 
   unInitAccounts: function() {
-    for each (let account in this._accounts)
+    for (let account of this._accounts)
       account.unInit();
     gAccountsService = null;
     delete this._accounts;
@@ -939,7 +923,7 @@ AccountsService.prototype = {
       let lastCrashTime = 0;
 
       /* Locate the LastCrash file */
-      let lastCrash = Services.dirsvc.get("UAppData", Ci.nsILocalFile);
+      let lastCrash = Services.dirsvc.get("UAppData", Ci.nsIFile);
       lastCrash.append("Crash Reports");
       lastCrash.append("LastCrash");
       if (lastCrash.exists()) {
@@ -988,7 +972,10 @@ AccountsService.prototype = {
   },
 
   processAutoLogin: function() {
-    for each (let account in this._accounts)
+    if (!this._accounts)  // if we're already shutting down
+      return;
+
+    for (let account of this._accounts)
       account.checkAutoLogin();
 
     // Make sure autologin is now enabled, so that we don't display a
@@ -1008,7 +995,7 @@ AccountsService.prototype = {
       return;
 
     this._checkingIfPasswordStillMissing = true;
-    for each (let account in this._accounts)
+    for (let account of this._accounts)
       account._checkIfPasswordStillMissing();
     delete this._checkingIfPasswordStillMissing;
   },

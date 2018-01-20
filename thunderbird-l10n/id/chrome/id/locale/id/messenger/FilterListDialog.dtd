@@ -1,0 +1,54 @@
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+
+<!ENTITY window.title "Filter Pesan">
+<!ENTITY nameColumn.label "Nama Filter">
+<!ENTITY activeColumn.label "Aktifkan">
+<!ENTITY newButton.label "Baru…">
+<!ENTITY newButton.accesskey "B">
+
+
+<!ENTITY editButton.label "Ubah…">
+<!ENTITY editButton.accesskey "U">
+<!ENTITY deleteButton.label "Hapus">
+<!ENTITY deleteButton.accesskey "H">
+
+
+
+<!ENTITY reorderUpButton.label "Naikkan">
+<!ENTITY reorderUpButton.accesskey "N">
+<!ENTITY reorderDownButton.label "Turunkan">
+<!ENTITY reorderDownButton.accesskey "T">
+
+
+
+<!ENTITY filterHeader.label "Filter yang aktif akan dijalankan secara otomatis sesuai urutan di bawah ini.">
+<!ENTITY filtersForPrefix.label "Filter untuk:">
+<!ENTITY filtersForPrefix.accesskey "F">
+<!ENTITY viewLogButton.label "Log Filter">
+<!ENTITY viewLogButton.accesskey "L">
+<!ENTITY runFilters.label "Jalankan Sekarang">
+<!ENTITY runFilters.accesskey "J">
+<!ENTITY stopFilters.label "Hentikan">
+<!ENTITY stopFilters.accesskey "H">
+<!ENTITY folderPickerPrefix.label "Jalankan Filter yang Terpilih pada:">
+<!ENTITY folderPickerPrefix.accesskey "a">
+<!ENTITY helpButton.label "Bantuan">
+<!ENTITY helpButton.accesskey "B">
+<!ENTITY closeCmd.key "W"> 
+
+
+
+<!ENTITY newButton.popupCopy.label "Copy…">
+<!ENTITY newButton.popupCopy.accesskey "C">
+<!ENTITY reorderTopButton "Move to Top">
+<!ENTITY reorderTopButton.accessKey "o">
+<!ENTITY reorderTopButton.toolTip "Rearrange filter so it executes before all others">
+<!ENTITY reorderBottomButton "Move to Bottom">
+<!ENTITY reorderBottomButton.accessKey "B">
+<!ENTITY reorderBottomButton.toolTip "Rearrange filter so it executes after all others">
+<!ENTITY searchBox.emptyText "Search filters by name…">
+
+
+

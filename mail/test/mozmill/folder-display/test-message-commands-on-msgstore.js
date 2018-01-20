@@ -16,7 +16,7 @@ var MODULE_REQUIRES = ["folder-display-helpers",
                          "window-helpers"];
 
 Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/mailServices.js");
+Cu.import("resource:///modules/mailServices.js");
 Cu.import("resource:///modules/IOUtils.js");
 
 var statusHeader = "X-Mozilla-Status: ";
@@ -34,7 +34,7 @@ function setupModule(module) {
   gAutoRead = Services.prefs.getBoolPref("mailnews.mark_message_read.auto");
   Services.prefs.setBoolPref("mailnews.mark_message_read.auto", false);
 
-  gOutbox = MailServices.accounts.localFoldersServer.rootFolder.getChildNamed("Outbox");
+  gOutbox = get_special_folder(Ci.nsMsgFolderFlags.Queue);
   gInbox = create_folder("MsgStoreChecks");
   make_new_sets_in_folder(gInbox, [ {count: 6} ]);
 
@@ -152,9 +152,8 @@ function test_mark_messages_flagged() {
 
 function subtest_check_queued_message() {
   // Always check the last message in the Outbox for the correct flag.
-  let outbox = MailServices.accounts.localFoldersServer.rootFolder.getChildNamed("Outbox");
-  be_in_folder(outbox);
-  let queued = outbox.messages;
+  be_in_folder(gOutbox);
+  let queued = gOutbox.messages;
   while (queued.hasMoreElements()) {
     let msg = queued.getNext().QueryInterface(Ci.nsIMsgDBHdr);
     if (!queued.hasMoreElements()) {
@@ -226,20 +225,11 @@ function test_mark_messages_forwarded() {
                nsMsgMessageFlags.Read);
 }
 
-function clear_folder(aFolder) {
-  be_in_folder(aFolder);
-  let msgCount = 0;
-  while ((msgCount = aFolder.getTotalMessages(false)) > 0) {
-    let curMessage = select_click_row(0);
-    press_delete(mc)
-  }
-}
-
 function teardownModule(module) {
   Services.prefs.setBoolPref("mailnews.mark_message_read.auto", gAutoRead);
   // Clear all the created messages.
   be_in_folder(gInbox.parent);
-  clear_folder(gInbox);
-  clear_folder(gOutbox);
+  empty_folder(gInbox);
+  empty_folder(gOutbox);
   gInbox.server.rootFolder.emptyTrash(null, null);
 }

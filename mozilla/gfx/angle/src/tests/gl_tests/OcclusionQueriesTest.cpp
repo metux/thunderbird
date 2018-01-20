@@ -13,7 +13,7 @@ using namespace angle;
 class OcclusionQueriesTest : public ANGLETest
 {
   protected:
-    OcclusionQueriesTest()
+    OcclusionQueriesTest() : mProgram(0), mRNG(1)
     {
         setWindowWidth(128);
         setWindowHeight(128);
@@ -22,40 +22,31 @@ class OcclusionQueriesTest : public ANGLETest
         setConfigBlueBits(8);
         setConfigAlphaBits(8);
         setConfigDepthBits(24);
-
-        mProgram = 0;
     }
 
-    virtual void SetUp()
+    void SetUp() override
     {
         ANGLETest::SetUp();
 
-        const std::string passthroughVS = SHADER_SOURCE
-        (
-            attribute highp vec4 position;
+        const std::string passthroughVS =
+            R"(attribute highp vec4 position;
             void main(void)
             {
                 gl_Position = position;
-            }
-        );
+            })";
 
-        const std::string passthroughPS = SHADER_SOURCE
-        (
-            precision highp float;
+        const std::string passthroughPS =
+            R"(precision highp float;
             void main(void)
             {
                gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
-            }
-        );
+            })";
 
         mProgram = CompileProgram(passthroughVS, passthroughPS);
-        if (mProgram == 0)
-        {
-            FAIL() << "shader compilation failed.";
-        }
+        ASSERT_NE(0u, mProgram);
     }
 
-    virtual void TearDown()
+    void TearDown() override
     {
         glDeleteProgram(mProgram);
 
@@ -63,11 +54,12 @@ class OcclusionQueriesTest : public ANGLETest
     }
 
     GLuint mProgram;
+    RNG mRNG;
 };
 
 TEST_P(OcclusionQueriesTest, IsOccluded)
 {
-    if (getClientVersion() < 3 && !extensionEnabled("GL_EXT_occlusion_query_boolean"))
+    if (getClientMajorVersion() < 3 && !extensionEnabled("GL_EXT_occlusion_query_boolean"))
     {
         std::cout << "Test skipped because ES3 or GL_EXT_occlusion_query_boolean are not available."
                   << std::endl;
@@ -114,7 +106,7 @@ TEST_P(OcclusionQueriesTest, IsOccluded)
 
 TEST_P(OcclusionQueriesTest, IsNotOccluded)
 {
-    if (getClientVersion() < 3 && !extensionEnabled("GL_EXT_occlusion_query_boolean"))
+    if (getClientMajorVersion() < 3 && !extensionEnabled("GL_EXT_occlusion_query_boolean"))
     {
         std::cout << "Test skipped because ES3 or GL_EXT_occlusion_query_boolean are not available."
                   << std::endl;
@@ -148,7 +140,7 @@ TEST_P(OcclusionQueriesTest, IsNotOccluded)
 
 TEST_P(OcclusionQueriesTest, Errors)
 {
-    if (getClientVersion() < 3 && !extensionEnabled("GL_EXT_occlusion_query_boolean"))
+    if (getClientMajorVersion() < 3 && !extensionEnabled("GL_EXT_occlusion_query_boolean"))
     {
         std::cout << "Test skipped because ES3 or GL_EXT_occlusion_query_boolean are not available."
                   << std::endl;
@@ -212,7 +204,7 @@ TEST_P(OcclusionQueriesTest, Errors)
 // result for each query.  Helps expose bugs in ANGLE's virtual contexts.
 TEST_P(OcclusionQueriesTest, MultiContext)
 {
-    if (getClientVersion() < 3 && !extensionEnabled("GL_EXT_occlusion_query_boolean"))
+    if (getClientMajorVersion() < 3 && !extensionEnabled("GL_EXT_occlusion_query_boolean"))
     {
         std::cout << "Test skipped because ES3 or GL_EXT_occlusion_query_boolean are not available."
                   << std::endl;
@@ -292,23 +284,19 @@ TEST_P(OcclusionQueriesTest, MultiContext)
 
         eglMakeCurrent(display, surface, surface, context.context);
 
-        const std::string passthroughVS = SHADER_SOURCE
-        (
-            attribute highp vec4 position;
+        const std::string passthroughVS =
+            R"(attribute highp vec4 position;
             void main(void)
             {
                 gl_Position = position;
-            }
-        );
+            })";
 
-        const std::string passthroughPS = SHADER_SOURCE
-        (
-            precision highp float;
+        const std::string passthroughPS =
+            R"(precision highp float;
             void main(void)
             {
                gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
-            }
-        );
+            })";
 
         context.program = CompileProgram(passthroughVS, passthroughPS);
         ASSERT_NE(context.program, 0u);
@@ -328,8 +316,8 @@ TEST_P(OcclusionQueriesTest, MultiContext)
         {
             eglMakeCurrent(display, surface, surface, context.context);
 
-            float depth =
-                context.visiblePasses[pass] ? RandomBetween(0.0f, 0.4f) : RandomBetween(0.6f, 1.0f);
+            float depth = context.visiblePasses[pass] ? mRNG.randomFloatBetween(0.0f, 0.4f)
+                                                      : mRNG.randomFloatBetween(0.6f, 1.0f);
             drawQuad(context.program, "position", depth);
 
             EXPECT_GL_NO_ERROR();
@@ -365,4 +353,6 @@ ANGLE_INSTANTIATE_TEST(OcclusionQueriesTest,
                        ES2_D3D11(),
                        ES3_D3D11(),
                        ES2_OPENGL(),
-                       ES3_OPENGL());
+                       ES3_OPENGL(),
+                       ES2_OPENGLES(),
+                       ES3_OPENGLES());

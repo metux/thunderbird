@@ -4,100 +4,45 @@
 
 /* Global Styles */
 
-@media (-moz-os-version: windows-xp) {
-  .paneSelector {
-    background-color: rgb(90, 116, 164);
-    color: white;
-    background-image: url("chrome://messenger/skin/preferences/background.png");
-    background-position: center bottom;
-    background-repeat: repeat-x;
-    -moz-padding-start: 0;
-  }
+.paneSelector {
+  padding-inline-start: 0;
+}
 
-  radio[pane] {
-    background-color: transparent;
-    background-position: center bottom;
-    background-repeat: repeat-x;
-    min-width: 80px;
-  }
+radio[pane] {
+  padding-top: 5px;
+  min-width: 80px;
+}
 
-  radio[pane]:hover {
-    background-color: rgb(94, 138, 188);
-    background-image: url("chrome://messenger/skin/preferences/hover.png");
-    color: white;
-  }
-
-  radio[pane][selected="true"] {
-    background-color: rgb(174, 198, 226);
-    background-image: none;
-    background-image: url("chrome://messenger/skin/preferences/selected.png");
-    color: black;
+@media (-moz-windows-default-theme) {
+  menulist > .menulist-label-box > .menulist-icon[src] {
+    margin-inline-start: 7px;
+    margin-inline-end: 10px;
   }
 }
 
-@media not all and (-moz-os-version: windows-xp) {
-  .paneSelector {
-    -moz-padding-start: 0;
-  }
-
-  radio[pane] {
-    padding-top: 5px;
-    min-width: 80px;
-  }
+radio[pane=paneGeneral] {
+  list-style-image: url("chrome://messenger/skin/preferences/general.png");
 }
-
-@media (-moz-os-version: windows-xp) {
-  radio[pane=paneGeneral] {
-    list-style-image: url("chrome://messenger/skin/preferences/general-XP.png");
-  }
-  radio[pane=paneDisplay] {
-    list-style-image: url("chrome://messenger/skin/preferences/display-XP.png");
-  }
-  radio[pane=paneCompose] {
-    list-style-image: url("chrome://messenger/skin/preferences/composition-XP.png");
-  }
-  radio[pane=paneChat] {
-    list-style-image: url("chrome://messenger/skin/preferences/chat-XP.png");
-  }
-  radio[pane=panePrivacy] {
-    list-style-image: url("chrome://messenger/skin/preferences/privacy-XP.png");
-  }
-  radio[pane=paneSecurity] {
-    list-style-image: url("chrome://messenger/skin/preferences/security-XP.png");
-  }
-  radio[pane=paneApplications] {
-    list-style-image: url("chrome://messenger/skin/preferences/attachments-XP.png");
-  }
-  radio[pane=paneAdvanced] {
-    list-style-image: url("chrome://messenger/skin/preferences/advanced-XP.png");
-  }
+radio[pane=paneDisplay] {
+  list-style-image: url("chrome://messenger/skin/preferences/display.png");
 }
-
-@media not all and (-moz-os-version: windows-xp) {
-  radio[pane=paneGeneral] {
-    list-style-image: url("chrome://messenger/skin/preferences/general.png");
-  }
-  radio[pane=paneDisplay] {
-    list-style-image: url("chrome://messenger/skin/preferences/display.png");
-  }
-  radio[pane=paneCompose] {
-    list-style-image: url("chrome://messenger/skin/preferences/composition.png");
-  }
-  radio[pane=paneChat] {
-    list-style-image: url("chrome://messenger/skin/preferences/chat.png");
-  }
-  radio[pane=panePrivacy] {
-    list-style-image: url("chrome://messenger/skin/preferences/privacy.png");
-  }
-  radio[pane=paneSecurity] {
-    list-style-image: url("chrome://messenger/skin/preferences/security.png");
-  }
-  radio[pane=paneApplications] {
-    list-style-image: url("chrome://messenger/skin/preferences/attachments.png");
-  }
-  radio[pane=paneAdvanced] {
-    list-style-image: url("chrome://messenger/skin/preferences/advanced.png");
-  }
+radio[pane=paneCompose] {
+  list-style-image: url("chrome://messenger/skin/preferences/composition.png");
+}
+radio[pane=paneChat] {
+  list-style-image: url("chrome://messenger/skin/preferences/chat.png");
+}
+radio[pane=panePrivacy] {
+  list-style-image: url("chrome://messenger/skin/preferences/privacy.png");
+}
+radio[pane=paneSecurity] {
+  list-style-image: url("chrome://messenger/skin/preferences/security.png");
+}
+radio[pane=paneApplications] {
+  list-style-image: url("chrome://messenger/skin/preferences/attachments.png");
+}
+radio[pane=paneAdvanced] {
+  list-style-image: url("chrome://messenger/skin/preferences/advanced.png");
 }
 
 /* Attachments Pane */
@@ -156,7 +101,7 @@
   width: 16px;
   height: 16px;
   margin: 0 2px;
-  list-style-image: url("chrome://mozapps/skin/places/defaultFavicon.png");
+  list-style-image: url("chrome://mozapps/skin/places/defaultFavicon.svg");
 }
 
 #cookiesChildren::-moz-tree-image(domainCol, container) {
@@ -249,7 +194,7 @@ a {
   height: 1em;
   border: 1px solid rgba(0,0,0,0.5);
   border-radius: 2px;
-  -moz-margin-start: 0.5ch;
+  margin-inline-start: 0.5ch;
   box-sizing: border-box;
 }
 
@@ -276,7 +221,7 @@ a {
 }
 
 #provider-space label {
-  -moz-margin-end: 0.5ch;
+  margin-inline-end: 0.5ch;
   vertical-align: middle;
 }
 
@@ -294,4 +239,21 @@ a {
 
 #provider-account-settings {
   -moz-box-flex: 0;
+}
+
+#version {
+  margin-inline-start: 0;
+}
+
+.update-throbber {
+  width: 16px;
+  min-height: 16px;
+  margin-inline-start: 6px;
+  list-style-image: url("chrome://global/skin/icons/loading.png");
+}
+
+@media (min-resolution: 1.1dppx) {
+  .update-throbber {
+    list-style-image: url("chrome://global/skin/icons/loading@2x.png");
+  }
 }

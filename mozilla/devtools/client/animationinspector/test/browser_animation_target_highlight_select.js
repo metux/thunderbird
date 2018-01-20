@@ -9,22 +9,20 @@ requestLongerTimeout(2);
 // Test that the DOM element targets displayed in animation player widgets can
 // be used to highlight elements in the DOM and select them in the inspector.
 
-add_task(function*() {
-  yield addTab(TEST_URL_ROOT + "doc_simple_animation.html");
+add_task(function* () {
+  yield addTab(URL_ROOT + "doc_simple_animation.html");
 
   let {toolbox, inspector, panel} = yield openAnimationInspector();
 
   info("Select the simple animated node");
-  let onPanelUpdated = panel.once(panel.UI_UPDATED_EVENT);
-  yield selectNode(".animated", inspector);
-  yield onPanelUpdated;
+  yield selectNodeAndWaitForAnimations(".animated", inspector);
 
-  let targets = yield waitForAllAnimationTargets(panel);
+  let targets = getAnimationTargetNodes(panel);
   // Arbitrary select the first one
   let targetNodeComponent = targets[0];
 
   info("Retrieve the part of the widget that highlights the node on hover");
-  let highlightingEl = targetNodeComponent.previewEl;
+  let highlightingEl = targetNodeComponent.previewer.previewEl;
 
   info("Listen to node-highlight event and mouse over the widget");
   let onHighlight = toolbox.once("node-highlight");
@@ -39,7 +37,7 @@ add_task(function*() {
                              highlightingEl.ownerDocument.defaultView);
 
   ok(true, "The node-highlight event was fired");
-  is(targetNodeComponent.nodeFront, nodeFront,
+  is(targetNodeComponent.previewer.nodeFront, nodeFront,
     "The highlighted node is the one stored on the animation widget");
   is(nodeFront.tagName, "DIV",
     "The highlighted node has the correct tagName");
@@ -49,25 +47,22 @@ add_task(function*() {
     "The highlighted node has the correct class");
 
   info("Select the body node in order to have the list of all animations");
-  onPanelUpdated = panel.once(panel.UI_UPDATED_EVENT);
-  yield selectNode("body", inspector);
-  yield onPanelUpdated;
+  yield selectNodeAndWaitForAnimations("body", inspector);
 
-  targets = yield waitForAllAnimationTargets(panel);
+  targets = getAnimationTargetNodes(panel);
   targetNodeComponent = targets[0];
 
   info("Click on the first animated node component and wait for the " +
        "selection to change");
   let onSelection = inspector.selection.once("new-node-front");
-  onPanelUpdated = panel.once(panel.UI_UPDATED_EVENT);
-  let nodeEl = targetNodeComponent.previewEl;
+  let onRendered = waitForAnimationTimelineRendering(panel);
+  let nodeEl = targetNodeComponent.previewer.previewEl;
   EventUtils.sendMouseEvent({type: "click"}, nodeEl,
                             nodeEl.ownerDocument.defaultView);
   yield onSelection;
 
-  is(inspector.selection.nodeFront, targetNodeComponent.nodeFront,
+  is(inspector.selection.nodeFront, targetNodeComponent.previewer.nodeFront,
     "The selected node is the one stored on the animation widget");
 
-  yield onPanelUpdated;
-  yield waitForAllAnimationTargets(panel);
+  yield onRendered;
 });

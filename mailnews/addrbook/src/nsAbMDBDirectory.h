@@ -4,16 +4,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /********************************************************************************************************
- 
+
    Interface for representing Address Book Directory
- 
+
 *********************************************************************************************************/
 
 #ifndef nsAbMDBDirectory_h__
 #define nsAbMDBDirectory_h__
 
 #include "mozilla/Attributes.h"
-#include "nsAbMDBDirProperty.h"  
+#include "nsAbMDBDirProperty.h"
 #include "nsIAbCard.h"
 #include "nsCOMArray.h"
 #include "nsCOMPtr.h"
@@ -23,17 +23,17 @@
 #include "nsInterfaceHashtable.h"
 #include "nsIAddrDBListener.h"
 
-/* 
+/*
  * Address Book Directory
- */ 
+ */
 
 class nsAbMDBDirectory:
   public nsAbMDBDirProperty,	// nsIAbDirectory, nsIAbMDBDirectory
   public nsIAbDirSearchListener,
-  public nsIAddrDBListener, 
+  public nsIAddrDBListener,
   public nsIAbDirectorySearch
 {
-public: 
+public:
   nsAbMDBDirectory(void);
 
   NS_DECL_ISUPPORTS_INHERITED
@@ -60,6 +60,7 @@ public:
   NS_IMETHOD DeleteCards(nsIArray *cards) override;
   NS_IMETHOD HasCard(nsIAbCard *cards, bool *hasCard) override;
   NS_IMETHOD HasDirectory(nsIAbDirectory *dir, bool *hasDir) override;
+  NS_IMETHOD HasMailListWithName(const char16_t *aName, bool *aHasList) override;
   NS_IMETHOD AddMailList(nsIAbDirectory *list, nsIAbDirectory **addedList) override;
   NS_IMETHOD AddCard(nsIAbCard *card, nsIAbCard **addedCard) override;
   NS_IMETHOD ModifyCard(nsIAbCard *aModifiedCard) override;
@@ -90,7 +91,7 @@ protected:
   nsresult RemoveCardFromAddressList(nsIAbCard* card);
 
   nsresult GetAbDatabase();
-  nsCOMPtr<nsIAddrDatabase> mDatabase;  
+  nsCOMPtr<nsIAddrDatabase> mDatabase;
 
   nsCOMArray<nsIAbDirectory> mSubDirectories;
 

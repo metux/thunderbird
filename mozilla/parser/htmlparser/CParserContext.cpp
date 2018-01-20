@@ -5,9 +5,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 
-#include "nsIAtom.h"
+#include "nsAtom.h"
 #include "CParserContext.h"
-#include "nsToken.h"
 #include "prenv.h"  
 #include "nsIHTMLContentSink.h"
 #include "nsHTMLTokenizer.h"
@@ -58,6 +57,7 @@ CParserContext::SetMimeType(const nsACString& aMimeType)
            mMimeType.EqualsLiteral(IMAGE_SVG_XML)         ||
            mMimeType.EqualsLiteral(APPLICATION_MATHML_XML) ||
            mMimeType.EqualsLiteral(APPLICATION_RDF_XML)   ||
+           mMimeType.EqualsLiteral(APPLICATION_WAPXHTML_XML) ||
            mMimeType.EqualsLiteral(TEXT_RDF))
     mDocType = eXML;
 }

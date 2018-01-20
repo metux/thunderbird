@@ -15,7 +15,7 @@ load("../../../../resources/messageInjection.js");
 
 var msgGen = gMessageGenerator = new MessageGenerator();
 
-Components.utils.import("resource:///modules/FileUtils.jsm");
+Components.utils.import("resource://gre/modules/FileUtils.jsm");
 Components.utils.import("resource:///modules/gloda/mimemsg.js");
 
 function initNSS() {
@@ -34,7 +34,7 @@ function initNSS() {
 }
 
 var gInbox;
-function test_smime_mimemsg() {
+function* test_smime_mimemsg() {
   let msg = msgGen.makeEncryptedSMimeMessage({
     from: ["Tinderbox", "tinderbox@foo.invalid"],
     to: [["Tinderbox", "tinderbox@foo.invalid"]],

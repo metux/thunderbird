@@ -4,7 +4,6 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 <?xml-stylesheet href="chrome://messenger/skin/mailWindow1.css" type="text/css"?>
 
-<?xul-overlay href="chrome://global/content/globalOverlay.xul"?>
 <?xul-overlay href="chrome://communicator/content/utilityOverlay.xul"?>
 <?xul-overlay href="chrome://messenger/content/threadPane.xul"?>
 <?xul-overlay href="chrome://messenger/content/folderPane.xul"?>
@@ -27,7 +26,6 @@
         onload="OnLoadMessenger()"
         onunload="OnUnloadMessenger()"
         onclose="return MailWindowIsClosing();"
-        style="width: 60em; height: 40em;"
         screenX="10" screenY="10"
         persist="width height screenX screenY sizemode"
         toggletoolbar="true"
@@ -260,7 +258,8 @@
                            disablesecurity="true"
                            disablehistory="true"
                            autofind="false"
-                           type="content-primary"
+                           type="content"
+                           primary="true"
                            onresize="return messagePaneOnResize(event);"
                            onclick="return messagePaneOnClick(event);"/>
                 </hbox>

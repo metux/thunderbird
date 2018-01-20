@@ -1,17 +1,14 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef _MOZILLA_GFX_SOURCESURFACESKIA_H
 #define _MOZILLA_GFX_SOURCESURFACESKIA_H
 
-#ifdef USE_SKIA_GPU
-#include "skia/include/gpu/GrContext.h"
-#include "skia/include/gpu/gl/GrGLInterface.h"
-#endif
-
 #include "skia/include/core/SkCanvas.h"
+#include "skia/include/core/SkSurface.h"
 
 #include "2D.h"
 #include "HelpersSkia.h"
@@ -20,10 +17,15 @@
 #include <sstream>
 #include <vector>
 
+#ifdef MOZ_WIDGET_COCOA
+#include <ApplicationServices/ApplicationServices.h>
+#endif
+
 namespace mozilla {
 namespace gfx {
 
 class SourceSurfaceSkia;
+class BorrowedCGContext;
 
 class DrawTargetSkia : public DrawTarget
 {
@@ -37,7 +39,8 @@ public:
   virtual already_AddRefed<SourceSurface> Snapshot() override;
   virtual IntSize GetSize() override { return mSize; }
   virtual bool LockBits(uint8_t** aData, IntSize* aSize,
-                        int32_t* aStride, SurfaceFormat* aFormat) override;
+                        int32_t* aStride, SurfaceFormat* aFormat,
+                        IntPoint* aOrigin = nullptr) override;
   virtual void ReleaseBits(uint8_t* aData) override;
   virtual void Flush() override;
   virtual void DrawSurface(SourceSurface *aSurface,
@@ -78,11 +81,16 @@ public:
   virtual void Fill(const Path *aPath,
                     const Pattern &aPattern,
                     const DrawOptions &aOptions = DrawOptions()) override;
+
   virtual void FillGlyphs(ScaledFont *aFont,
                           const GlyphBuffer &aBuffer,
                           const Pattern &aPattern,
-                          const DrawOptions &aOptions = DrawOptions(),
-                          const GlyphRenderingOptions *aRenderingOptions = nullptr) override;
+                          const DrawOptions &aOptions = DrawOptions()) override;
+  virtual void StrokeGlyphs(ScaledFont* aFont,
+                            const GlyphBuffer& aBuffer,
+                            const Pattern& aPattern,
+                            const StrokeOptions& aStrokeOptions = StrokeOptions(),
+                            const DrawOptions& aOptions = DrawOptions()) override;
   virtual void Mask(const Pattern &aSource,
                     const Pattern &aMask,
                     const DrawOptions &aOptions = DrawOptions()) override;
@@ -90,14 +98,25 @@ public:
                            SourceSurface *aMask,
                            Point aOffset,
                            const DrawOptions &aOptions = DrawOptions()) override;
+  virtual bool Draw3DTransformedSurface(SourceSurface* aSurface,
+                                        const Matrix4x4& aMatrix) override;
   virtual void PushClip(const Path *aPath) override;
   virtual void PushClipRect(const Rect& aRect) override;
+  virtual void PushDeviceSpaceClipRects(const IntRect* aRects, uint32_t aCount) override;
   virtual void PopClip() override;
+  virtual void PushLayer(bool aOpaque, Float aOpacity,
+                         SourceSurface* aMask,
+                         const Matrix& aMaskTransform,
+                         const IntRect& aBounds = IntRect(),
+                         bool aCopyBackground = false) override;
+  virtual void PopLayer() override;
+  virtual void Blur(const AlphaBoxBlur& aBlur) override;
   virtual already_AddRefed<SourceSurface> CreateSourceSurfaceFromData(unsigned char *aData,
                                                             const IntSize &aSize,
                                                             int32_t aStride,
                                                             SurfaceFormat aFormat) const override;
   virtual already_AddRefed<SourceSurface> OptimizeSourceSurface(SourceSurface *aSurface) const override;
+  virtual already_AddRefed<SourceSurface> OptimizeSourceSurfaceForUnknownAlpha(SourceSurface *aSurface) const override;
   virtual already_AddRefed<SourceSurface>
     CreateSourceSurfaceFromNativeSurface(const NativeSurface &aSurface) const override;
   virtual already_AddRefed<DrawTarget>
@@ -107,14 +126,25 @@ public:
   virtual already_AddRefed<FilterNode> CreateFilter(FilterType aType) override;
   virtual void SetTransform(const Matrix &aTransform) override;
   virtual void *GetNativeSurface(NativeSurfaceType aType) override;
+  virtual void DetachAllSnapshots() override { MarkChanged(); }
 
   bool Init(const IntSize &aSize, SurfaceFormat aFormat);
-  void Init(unsigned char* aData, const IntSize &aSize, int32_t aStride, SurfaceFormat aFormat);
+  bool Init(unsigned char* aData, const IntSize &aSize, int32_t aStride, SurfaceFormat aFormat, bool aUninitialized = false);
+  bool Init(SkCanvas* aCanvas);
 
 #ifdef USE_SKIA_GPU
   bool InitWithGrContext(GrContext* aGrContext,
                          const IntSize &aSize,
-                         SurfaceFormat aFormat) override;
+                         SurfaceFormat aFormat,
+                         bool aCached);
+  virtual bool
+    InitWithGrContext(GrContext* aGrContext,
+                      const IntSize &aSize,
+                      SurfaceFormat aFormat) override {
+    return InitWithGrContext(aGrContext, aSize, aFormat, false);
+  }
+
+  already_AddRefed<SourceSurface> OptimizeGPUSourceSurface(SourceSurface *aSurface) const;
 #endif
 
   // Skia assumes that texture sizes fit in 16-bit signed integers.
@@ -130,24 +160,69 @@ public:
 
 private:
   friend class SourceSurfaceSkia;
-  void SnapshotDestroyed();
 
   void MarkChanged();
 
   bool ShouldLCDRenderText(FontType aFontType, AntialiasMode aAntialiasMode);
 
-  SkRect SkRectCoveringWholeSurface() const;
+  void DrawGlyphs(ScaledFont* aFont,
+                  const GlyphBuffer& aBuffer,
+                  const Pattern& aPattern,
+                  const StrokeOptions* aStrokeOptions = nullptr,
+                  const DrawOptions& aOptions = DrawOptions());
 
   bool UsingSkiaGPU() const;
 
+  struct PushedLayer
+  {
+    PushedLayer(bool aOldPermitSubpixelAA,
+                bool aOpaque,
+                Float aOpacity,
+                SourceSurface* aMask,
+                const Matrix& aMaskTransform,
+                SkBaseDevice* aPreviousDevice)
+      : mOldPermitSubpixelAA(aOldPermitSubpixelAA),
+        mOpaque(aOpaque),
+        mOpacity(aOpacity),
+        mMask(aMask),
+        mMaskTransform(aMaskTransform),
+        mPreviousDevice(aPreviousDevice)
+    {}
+    bool mOldPermitSubpixelAA;
+    bool mOpaque;
+    Float mOpacity;
+    RefPtr<SourceSurface> mMask;
+    Matrix mMaskTransform;
+    SkBaseDevice* mPreviousDevice;
+  };
+  std::vector<PushedLayer> mPushedLayers;
+
 #ifdef USE_SKIA_GPU
-  RefPtrSkia<GrContext> mGrContext;
-  uint32_t mTexture;
+  sk_sp<GrContext> mGrContext;
 #endif
 
   IntSize mSize;
-  RefPtrSkia<SkCanvas> mCanvas;
-  SourceSurfaceSkia* mSnapshot;
+  sk_sp<SkSurface> mSurface;
+  SkCanvas* mCanvas;
+  RefPtr<SourceSurfaceSkia> mSnapshot;
+  Mutex mSnapshotLock;
+
+#ifdef MOZ_WIDGET_COCOA
+  friend class BorrowedCGContext;
+
+  CGContextRef BorrowCGContext(const DrawOptions &aOptions);
+  void ReturnCGContext(CGContextRef);
+  bool FillGlyphsWithCG(ScaledFont* aFont,
+                        const GlyphBuffer& aBuffer,
+                        const Pattern& aPattern,
+                        const DrawOptions& aOptions = DrawOptions());
+
+  CGContextRef mCG;
+  CGColorSpaceRef mColorSpace;
+  uint8_t* mCanvasData;
+  IntSize mCGSize;
+  bool mNeedLayer;
+#endif
 };
 
 } // namespace gfx

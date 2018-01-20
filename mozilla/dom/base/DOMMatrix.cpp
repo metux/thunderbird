@@ -16,7 +16,6 @@
 #include "SVGTransformListParser.h"
 #include "SVGTransform.h"
 
-#include "nsAutoPtr.h"
 #include <math.h>
 
 namespace mozilla {
@@ -208,7 +207,7 @@ DOMMatrixReadOnly::TransformPoint(const DOMPointInit& point) const
     transformedPoint.z = point.mZ;
     transformedPoint.w = point.mW;
 
-    transformedPoint = *mMatrix3D * transformedPoint;
+    transformedPoint = mMatrix3D->TransformPoint(transformedPoint);
 
     retval->SetX(transformedPoint.x);
     retval->SetY(transformedPoint.y);
@@ -223,7 +222,7 @@ DOMMatrixReadOnly::TransformPoint(const DOMPointInit& point) const
     transformedPoint.z = point.mZ;
     transformedPoint.w = point.mW;
 
-    transformedPoint = tempMatrix * transformedPoint;
+    transformedPoint = tempMatrix.TransformPoint(transformedPoint);
 
     retval->SetX(transformedPoint.x);
     retval->SetY(transformedPoint.y);
@@ -234,7 +233,7 @@ DOMMatrixReadOnly::TransformPoint(const DOMPointInit& point) const
     transformedPoint.x = point.mX;
     transformedPoint.y = point.mY;
 
-    transformedPoint = *mMatrix2D * transformedPoint;
+    transformedPoint = mMatrix2D->TransformPoint(transformedPoint);
 
     retval->SetX(transformedPoint.x);
     retval->SetY(transformedPoint.y);
@@ -267,7 +266,7 @@ template <typename T> void GetDataFromMatrix(const DOMMatrixReadOnly* aMatrix, T
 void
 DOMMatrixReadOnly::ToFloat32Array(JSContext* aCx, JS::MutableHandle<JSObject*> aResult, ErrorResult& aRv) const
 {
-  nsAutoTArray<float, 16> arr;
+  AutoTArray<float, 16> arr;
   arr.SetLength(16);
   GetDataFromMatrix(this, arr.Elements());
   JS::Rooted<JS::Value> value(aCx);
@@ -281,7 +280,7 @@ DOMMatrixReadOnly::ToFloat32Array(JSContext* aCx, JS::MutableHandle<JSObject*> a
 void
 DOMMatrixReadOnly::ToFloat64Array(JSContext* aCx, JS::MutableHandle<JSObject*> aResult, ErrorResult& aRv) const
 {
-  nsAutoTArray<double, 16> arr;
+  AutoTArray<double, 16> arr;
   arr.SetLength(16);
   GetDataFromMatrix(this, arr.Elements());
   JS::Rooted<JS::Value> value(aCx);
@@ -292,18 +291,52 @@ DOMMatrixReadOnly::ToFloat64Array(JSContext* aCx, JS::MutableHandle<JSObject*> a
   aResult.set(&value.toObject());
 }
 
+// Convenient way to append things as floats, not doubles.  We use this because
+// we only want to output about 6 digits of precision for our matrix()
+// functions, to preserve the behavior we used to have when we used
+// AppendPrintf.
+static void
+AppendFloat(nsAString& aStr, float f)
+{
+  aStr.AppendFloat(f);
+}
+
 void
 DOMMatrixReadOnly::Stringify(nsAString& aResult)
 {
   nsAutoString matrixStr;
   if (mMatrix3D) {
-    matrixStr.AppendPrintf("matrix3d(%g, %g, %g, %g, %g, %g, %g, %g, %g, %g, %g, %g, %g, %g, %g, %g)",
-      M11(), M12(), M13(), M14(),
-      M21(), M22(), M23(), M24(),
-      M31(), M32(), M33(), M34(),
-      M41(), M42(), M43(), M44());
+    // We can't use AppendPrintf here, because it does locale-specific
+    // formatting of floating-point values.
+    matrixStr.AssignLiteral("matrix3d(");
+    AppendFloat(matrixStr, M11()); matrixStr.AppendLiteral(", ");
+    AppendFloat(matrixStr, M12()); matrixStr.AppendLiteral(", ");
+    AppendFloat(matrixStr, M13()); matrixStr.AppendLiteral(", ");
+    AppendFloat(matrixStr, M14()); matrixStr.AppendLiteral(", ");
+    AppendFloat(matrixStr, M21()); matrixStr.AppendLiteral(", ");
+    AppendFloat(matrixStr, M22()); matrixStr.AppendLiteral(", ");
+    AppendFloat(matrixStr, M23()); matrixStr.AppendLiteral(", ");
+    AppendFloat(matrixStr, M24()); matrixStr.AppendLiteral(", ");
+    AppendFloat(matrixStr, M31()); matrixStr.AppendLiteral(", ");
+    AppendFloat(matrixStr, M32()); matrixStr.AppendLiteral(", ");
+    AppendFloat(matrixStr, M33()); matrixStr.AppendLiteral(", ");
+    AppendFloat(matrixStr, M34()); matrixStr.AppendLiteral(", ");
+    AppendFloat(matrixStr, M41()); matrixStr.AppendLiteral(", ");
+    AppendFloat(matrixStr, M42()); matrixStr.AppendLiteral(", ");
+    AppendFloat(matrixStr, M43()); matrixStr.AppendLiteral(", ");
+    AppendFloat(matrixStr, M44());
+    matrixStr.AppendLiteral(")");
   } else {
-    matrixStr.AppendPrintf("matrix(%g, %g, %g, %g, %g, %g)", A(), B(), C(), D(), E(), F());
+    // We can't use AppendPrintf here, because it does locale-specific
+    // formatting of floating-point values.
+    matrixStr.AssignLiteral("matrix(");
+    AppendFloat(matrixStr, A()); matrixStr.AppendLiteral(", ");
+    AppendFloat(matrixStr, B()); matrixStr.AppendLiteral(", ");
+    AppendFloat(matrixStr, C()); matrixStr.AppendLiteral(", ");
+    AppendFloat(matrixStr, D()); matrixStr.AppendLiteral(", ");
+    AppendFloat(matrixStr, E()); matrixStr.AppendLiteral(", ");
+    AppendFloat(matrixStr, F());
+    matrixStr.AppendLiteral(")");
   }
 
   aResult = matrixStr;
@@ -552,22 +585,10 @@ DOMMatrix::RotateAxisAngleSelf(double aX, double aY,
   }
 
   aAngle *= radPerDegree;
-  // sin(aAngle / 2) * cos(aAngle / 2)
-  double sc = sin(aAngle) / 2;
-  // pow(sin(aAngle / 2), 2)
-  double sq = (1 - cos(aAngle)) / 2;
 
   Ensure3DMatrix();
   gfx::Matrix4x4 m;
-  m._11 = 1 - 2 * (aY * aY + aZ * aZ) * sq;
-  m._12 = 2 * (aX * aY * sq + aZ * sc);
-  m._13 = 2 * (aX * aZ * sq - aY * sc);
-  m._21 = 2 * (aX * aY * sq - aZ * sc);
-  m._22 = 1 - 2 * (aX * aX + aZ * aZ) * sq;
-  m._23 = 2 * (aY * aZ * sq + aX * sc);
-  m._31 = 2 * (aX * aZ * sq + aY * sc);
-  m._32 = 2 * (aY * aZ * sq - aX * sc);
-  m._33 = 1 - 2 * (aX * aX + aY * aY) * sq;
+  m.SetRotateAxisAngle(aX, aY, aZ, aAngle);
 
   *mMatrix3D = m * *mMatrix3D;
 

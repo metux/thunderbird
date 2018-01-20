@@ -4,27 +4,28 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 Components.utils.import("resource:///modules/editorUtilities.jsm");
+Components.utils.import("resource://services-common/async.js");
+Components.utils.import("resource://gre/modules/AppConstants.jsm");
 
 /* Main Composer window UI control */
 
 var gComposerWindowControllerID = 0;
 var prefAuthorString = "";
 
-const kDisplayModeNormal = 0;
-const kDisplayModeAllTags = 1;
-const kDisplayModeSource = 2;
-const kDisplayModePreview = 3;
+var kDisplayModeNormal = 0;
+var kDisplayModeAllTags = 1;
+var kDisplayModeSource = 2;
+var kDisplayModePreview = 3;
+
 const kDisplayModeMenuIDs = ["viewNormalMode", "viewAllTagsMode", "viewSourceMode", "viewPreviewMode"];
 const kDisplayModeTabIDS = ["NormalModeButton", "TagModeButton", "SourceModeButton", "PreviewModeButton"];
 const kNormalStyleSheet = "chrome://editor/content/EditorContent.css";
 const kAllTagsStyleSheet = "chrome://editor/content/EditorAllTags.css";
 const kContentEditableStyleSheet = "resource://gre/res/contenteditable.css";
 
-const kTextMimeType = "text/plain";
-const kHTMLMimeType = "text/html";
-const kXHTMLMimeType = "application/xhtml+xml";
-
-const nsIWebNavigation = Components.interfaces.nsIWebNavigation;
+var kTextMimeType = "text/plain";
+var kHTMLMimeType = "text/html";
+var kXHTMLMimeType = "application/xhtml+xml";
 
 var gPreviousNonSourceDisplayMode = 1;
 var gEditorDisplayMode = -1;
@@ -55,11 +56,11 @@ var gLastFocusNodeWasSelected = false;
 // These must be kept in synch with the XUL <options> lists
 var gFontSizeNames = ["xx-small","x-small","small","medium","large","x-large","xx-large"];
 
-const nsIFilePicker = Components.interfaces.nsIFilePicker;
+var nsIFilePicker = Components.interfaces.nsIFilePicker;
 
-const kEditorToolbarPrefs = "editor.toolbars.showbutton.";
-const kUseCssPref         = "editor.use_css";
-const kCRInParagraphsPref = "editor.CR_creates_new_p";
+var kEditorToolbarPrefs = "editor.toolbars.showbutton.";
+var kUseCssPref         = "editor.use_css";
+var kCRInParagraphsPref = "editor.CR_creates_new_p";
 
 function ShowHideToolbarSeparators(toolbar) {
   // Make sure the toolbar actually exists.
@@ -186,8 +187,7 @@ const gSourceTextObserver =
   }
 };
 
-// This should be called by all editor users when they close their window
-//  or other similar "done with editor" actions, like recycling a Mail Composer window.
+// This should be called by all editor users when they close their window.
 function EditorCleanup()
 {
   SwitchInsertCharToAnotherEditorOrClose();
@@ -406,11 +406,11 @@ function EditorLoadUrl(url)
 {
   try {
     if (url)
-      GetCurrentEditorElement().webNavigation.loadURI(url, // uri string
-             nsIWebNavigation.LOAD_FLAGS_BYPASS_CACHE,     // load flags
-             null,                                         // referrer
-             null,                                         // post-data stream
-             null);
+      GetCurrentEditorElement().webNavigation.loadURI(url,                // uri string
+         Components.interfaces.nsIWebNavigation.LOAD_FLAGS_BYPASS_CACHE,  // load flags
+         null,                                                            // referrer
+         null,                                                            // post-data stream
+         null);
   } catch (e) { dump(" EditorLoadUrl failed: "+e+"\n"); }
 }
 
@@ -446,7 +446,7 @@ function EditorSharedStartup()
     commandManager.addCommandObserver(gEditorDocumentObserver, "cmd_bold");
   } catch (e) { dump(e); }
 
-  var isMac = (GetOS() == gMac);
+  var isMac = AppConstants.platform == "macosx";
 
   // Set platform-specific hints for how to select cells
   // Mac uses "Cmd", all others use "Ctrl"
@@ -482,26 +482,6 @@ function EditorSharedStartup()
   gColorObj.LastHighlightColor = "";
 }
 
-// This method is only called by Message composer when recycling a compose window
-function EditorResetFontAndColorAttributes()
-{
-  try {  
-    var editor = GetCurrentEditor();
-    editor.rebuildDocumentFromSource("");
-    // Because the selection is now collapsed, the following line
-    // clears the typing state to discontinue all inline styles
-    editor.removeAllInlineProperties();
-    document.getElementById("cmd_fontFace").setAttribute("state", "");
-    ClearUsedFonts();
-    gColorObj.LastTextColor = "";
-    gColorObj.LastBackgroundColor = "";
-    gColorObj.LastHighlightColor = "";
-    document.getElementById("cmd_fontColor").setAttribute("state", "");
-    document.getElementById("cmd_backgroundColor").setAttribute("state", "");
-    UpdateDefaultColors();
-  } catch (e) {}
-}
-
 function SafeSetAttribute(nodeID, attributeName, attributeValue)
 {
     var theNode = document.getElementById(nodeID);
@@ -525,7 +505,7 @@ function DocumentHasBeenSaved()
   return true;
 }
 
-function CheckAndSaveDocument(command, allowDontSave)
+async function CheckAndSaveDocument(command, allowDontSave)
 {
   var document;
   try {
@@ -611,7 +591,7 @@ function CheckAndSaveDocument(command, allowDontSave)
     }
 
     // Save to local disk
-    return SaveDocument(false, false, editor.contentsMIMEType);
+    return await SaveDocument(false, false, editor.contentsMIMEType);
   }
 
   if (result == 2) // "Don't Save"
@@ -1088,7 +1068,7 @@ function initLocalFontFaceMenu(menuPopup)
  * Creates a menuitem element for the font faces menulist. Returns the menuitem
  * but does not add it automatically to the menupopup.
  *
- * @param aFontLabel  Label to be displayed for the item
+ * @param aFontLabel  Label to be displayed for the item.
  * @param aFontName   The font face value to be used for the item.
  *                    Will be used in <font face="value"> in the edited document.
  * @param aMenuPopup  The menupopup for which this menuitem is created.
@@ -1099,6 +1079,7 @@ function createFontFaceMenuitem(aFontLabel, aFontName, aMenuPopup)
   itemNode.setAttribute("label", aFontLabel);
   itemNode.setAttribute("value", aFontName);
   itemNode.setAttribute("value_parsed", aFontName.toLowerCase().replace(/, /g, ","));
+  itemNode.setAttribute("tooltiptext", aFontLabel);
   if (aMenuPopup.getAttribute("useRadios") == "true") {
     itemNode.setAttribute("type", "radio");
     itemNode.setAttribute("observes", "cmd_renderedHTMLEnabler");
@@ -1612,15 +1593,8 @@ function EditorDblClick(event)
     // Only bring up properties if clicked on an element or selected link
     var element;
     try {
-      if (gEditorDisplayMode == kDisplayModeAllTags)
-        element = event.explicitOriginalTarget.QueryInterface(
+      element = event.explicitOriginalTarget.QueryInterface(
                     Components.interfaces.nsIDOMElement);
-      else
-        element = event.rangeParent.childNodes[event.rangeOffset];
-
-      // Don't fire for <br>, it counts as double-clicking text.
-      if (element.nodeName.toLowerCase() == 'br')
-        element = null;
     } catch (e) {}
 
      //  We use "href" instead of "a" to not be fooled by named anchor
@@ -1629,7 +1603,12 @@ function EditorDblClick(event)
         element = GetCurrentEditor().getSelectedElement("href");
       } catch (e) {}
 
-    if (element)
+    // Don't fire for body/p and other block elements.
+    // It's common that people try to double-click
+    // to select a word, but the click hits an empty area.
+    if (element &&
+        !["body","p","h1","h2","h3","h4","h5","h6","blockquote","div","pre"]
+         .includes(element.nodeName.toLowerCase()))
     {
       goDoCommand("cmd_objectProperties");  
       event.preventDefault();
@@ -1650,9 +1629,8 @@ function EditorClick(event)
       // be a textnode (bug 193689)
       var element = event.explicitOriginalTarget.QueryInterface(
                         Components.interfaces.nsIDOMElement);
-      var name = element.localName.toLowerCase();
-      if (name != "body" && name != "table" &&
-          name != "td" && name != "th" && name != "caption" && name != "tr")
+      var name = element.localName;
+      if (!["body", "caption", "table", "td", "th", "tr"].includes(name))
       {          
         GetCurrentEditor().selectElement(event.explicitOriginalTarget);
         event.preventDefault();
@@ -2337,14 +2315,8 @@ function EditorSetDefaultPrefsAndDoctype()
     // hitting other 8-bit char in other meta tags
     // grab charset pref and make it the default charset
     var element;
-    var prefCharsetString = 0;
-    try
-    {
-      prefCharsetString = Services.prefs.getComplexValue("intl.charset.default",
-                                                         Components.interfaces.nsIPrefLocalizedString).data;
-    }
-    catch (ex) {}
-    if ( prefCharsetString && prefCharsetString != 0)
+    var prefCharsetString = Services.prefs.getCharPref("intl.charset.fallback.override");
+    if (prefCharsetString)
       editor.documentCharacterSet = prefCharsetString;
 
     // let's start by assuming we have an author in case we don't have the pref
@@ -2353,8 +2325,7 @@ function EditorSetDefaultPrefsAndDoctype()
     let authorFound = domdoc.querySelector('meta[name="author"]');
     try
     {
-      prefAuthorString = Services.prefs.getComplexValue("editor.author",
-                                                        Components.interfaces.nsISupportsString).data;
+      prefAuthorString = Services.prefs.getStringPref("editor.author");
     }
     catch (ex) {}
     if (prefAuthorString && prefAuthorString != 0 && !authorFound && headelement)
@@ -3197,7 +3168,7 @@ function FillInHTMLTooltipEditor(tooltip)
     }
   } else {
     for (node = document.tooltipNode; node; node = node.parentNode) {
-      if (node instanceof Components.interfaces.nsIDOMHTMLImageElement ||
+      if (ChromeUtils.getClassName(node) === "HTMLImageElement" ||
           node instanceof Components.interfaces.nsIDOMHTMLInputElement)
         tooltipText = node.getAttribute("src");
       else if (node instanceof Components.interfaces.nsIDOMHTMLAnchorElement)

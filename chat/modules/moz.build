@@ -8,6 +8,7 @@ XPCSHELL_TESTS_MANIFESTS += ['test/xpcshell.ini']
 EXTRA_JS_MODULES += [
     'ArrayBufferUtils.jsm',
     'BigInteger.jsm',
+    'DNS.jsm',
     'imContentSink.jsm',
     'imServices.jsm',
     'imSmileys.jsm',
@@ -17,13 +18,10 @@ EXTRA_JS_MODULES += [
     'jsProtoHelper.jsm',
     'NormalizedMap.jsm',
     'socket.jsm',
+    'ToLocaleFormat.jsm',
 ]
 
 EXTRA_PP_JS_MODULES += [
     'hiddenWindow.jsm',
     'imTextboxUtils.jsm',
-]
-
-TESTING_JS_MODULES += [
-    'test/appInfoUtils.jsm',
 ]

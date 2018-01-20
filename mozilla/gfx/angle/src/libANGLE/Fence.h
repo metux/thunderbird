@@ -4,12 +4,13 @@
 // found in the LICENSE file.
 //
 
-// Fence.h: Defines the gl::FenceNV and gl::FenceSync classes, which support the GL_NV_fence
+// Fence.h: Defines the gl::FenceNV and gl::Sync classes, which support the GL_NV_fence
 // extension and GLES3 sync objects.
 
 #ifndef LIBANGLE_FENCE_H_
 #define LIBANGLE_FENCE_H_
 
+#include "libANGLE/Debug.h"
 #include "libANGLE/Error.h"
 #include "libANGLE/RefCountObject.h"
 
@@ -18,7 +19,7 @@
 namespace rx
 {
 class FenceNVImpl;
-class FenceSyncImpl;
+class SyncImpl;
 }
 
 namespace gl
@@ -47,11 +48,16 @@ class FenceNV final : angle::NonCopyable
     GLenum mCondition;
 };
 
-class FenceSync final : public RefCountObject
+class Sync final : public RefCountObject, public LabeledObject
 {
   public:
-    explicit FenceSync(rx::FenceSyncImpl *impl, GLuint id);
-    virtual ~FenceSync();
+    Sync(rx::SyncImpl *impl, GLuint id);
+    virtual ~Sync();
+
+    Error onDestroy(const Context *context) override { return NoError(); }
+
+    void setLabel(const std::string &label) override;
+    const std::string &getLabel() const override;
 
     Error set(GLenum condition, GLbitfield flags);
     Error clientWait(GLbitfield flags, GLuint64 timeout, GLenum *outResult);
@@ -62,12 +68,14 @@ class FenceSync final : public RefCountObject
     GLbitfield getFlags() const { return mFlags; }
 
   private:
-    rx::FenceSyncImpl *mFence;
+    rx::SyncImpl *mFence;
+
+    std::string mLabel;
 
     GLenum mCondition;
     GLbitfield mFlags;
 };
 
-}
+}  // namespace gl
 
 #endif   // LIBANGLE_FENCE_H_

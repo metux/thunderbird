@@ -13,10 +13,13 @@
 #include "nsTArray.h"
 #include "nsIWidget.h"
 #include "mozilla/EventForwards.h"
+#include "mozilla/TextEventDispatcher.h"
 #include "nsRect.h"
 #include "WritingModes.h"
+#include "npapi.h"
 
 class nsWindow;
+class nsWindowBase;
 
 namespace mozilla {
 namespace widget {
@@ -33,7 +36,7 @@ public:
   }
 
   explicit IMEContext(HWND aWnd);
-  explicit IMEContext(nsWindow* aWindow);
+  explicit IMEContext(nsWindowBase* aWindowBase);
 
   ~IMEContext()
   {
@@ -46,7 +49,7 @@ public:
   }
 
   void Init(HWND aWnd);
-  void Init(nsWindow* aWindow);
+  void Init(nsWindowBase* aWindowBase);
   void Clear();
 
   bool IsValid() const
@@ -118,7 +121,7 @@ public:
                              MSGResult& aResult);
   static bool IsComposing()
   {
-    return IsComposingOnOurEditor() || IsComposingOnPlugin();
+    return IsComposingOnOurEditor();
   }
   static bool IsComposingOn(nsWindow* aWindow)
   {
@@ -144,12 +147,36 @@ public:
                                 const IMENotification& aIMENotification,
                                 bool aIsIMMActive);
 
-  static nsIMEUpdatePreference GetIMEUpdatePreference();
+  static IMENotificationRequests GetIMENotificationRequests();
 
   // Returns NS_SUCCESS_EVENT_CONSUMED if the mouse button event is consumed by
   // IME.  Otherwise, NS_OK.
   static nsresult OnMouseButtonEvent(nsWindow* aWindow,
                                      const IMENotification& aIMENotification);
+  static void SetCandidateWindow(nsWindow* aWindow, CANDIDATEFORM* aForm);
+  static void DefaultProcOfPluginEvent(nsWindow* aWindow,
+                                       const NPEvent* aEvent);
+
+#define DECL_IS_IME_ACTIVE(aReadableName)                                      \
+  static bool Is ## aReadableName ## Active();                                 \
+
+  // Japanese IMEs
+  DECL_IS_IME_ACTIVE(ATOK2006)
+  DECL_IS_IME_ACTIVE(ATOK2007)
+  DECL_IS_IME_ACTIVE(ATOK2008)
+  DECL_IS_IME_ACTIVE(ATOK2009)
+  DECL_IS_IME_ACTIVE(ATOK2010)
+  DECL_IS_IME_ACTIVE(GoogleJapaneseInput)
+  DECL_IS_IME_ACTIVE(Japanist2003)
+
+#undef DECL_IS_IME_ACTIVE
+
+  /**
+   * IsActiveIMEInBlockList() returns true if we know active keyboard layout's
+   * IME has some crash bugs or something which make some damage to us.  When
+   * this returns true, IMC shouldn't be associated with any windows.
+   */
+  static bool IsActiveIMEInBlockList();
 
 protected:
   static void EnsureHandlerInstance();
@@ -157,9 +184,6 @@ protected:
   static bool IsComposingOnOurEditor();
   static bool IsComposingOnPlugin();
   static bool IsComposingWindow(nsWindow* aWindow);
-
-  static bool IsJapanist2003Active();
-  static bool IsGoogleJapaneseInputActive();
 
   static bool ShouldDrawCompositionStringOurselves();
   static bool IsVerticalWritingSupported();
@@ -180,7 +204,7 @@ protected:
                                               MSGResult& aResult);
   static bool ProcessMessageForPlugin(nsWindow* aWindow, UINT msg,
                                         WPARAM &wParam, LPARAM &lParam,
-                                        MSGResult& aResult);
+                                        bool &aRet, MSGResult& aResult);
 
   IMMHandler();
   ~IMMHandler();
@@ -191,16 +215,15 @@ protected:
                              MSGResult& aResult);
 
   bool OnIMEStartComposition(nsWindow* aWindow, MSGResult& aResult);
-  bool OnIMEStartCompositionOnPlugin(nsWindow* aWindow,
-                                     WPARAM wParam, LPARAM lParam,
-                                     MSGResult& aResult);
+  void OnIMEStartCompositionOnPlugin(nsWindow* aWindow,
+                                     WPARAM wParam, LPARAM lParam);
   bool OnIMEComposition(nsWindow* aWindow, WPARAM wParam, LPARAM lParam,
                         MSGResult& aResult);
-  bool OnIMECompositionOnPlugin(nsWindow* aWindow, WPARAM wParam, LPARAM lParam,
-                                MSGResult& aResult);
+  void OnIMECompositionOnPlugin(nsWindow* aWindow, WPARAM wParam,
+                                LPARAM lParam);
   bool OnIMEEndComposition(nsWindow* aWindow, MSGResult& aResult);
-  bool OnIMEEndCompositionOnPlugin(nsWindow* aWindow, WPARAM wParam,
-                                   LPARAM lParam, MSGResult& aResult);
+  void OnIMEEndCompositionOnPlugin(nsWindow* aWindow, WPARAM wParam,
+                                   LPARAM lParam);
   bool OnIMERequest(nsWindow* aWindow, WPARAM wParam, LPARAM lParam,
                     MSGResult& aResult);
   bool OnIMECharOnPlugin(nsWindow* aWindow, WPARAM wParam, LPARAM lParam,
@@ -273,7 +296,7 @@ protected:
                           nsIWidget* aNewOriginWidget,
                           mozilla::LayoutDeviceIntRect& aOutRect);
 
-  bool ConvertToANSIString(const nsAFlatString& aStr,
+  bool ConvertToANSIString(const nsString& aStr,
                              UINT aCodePage,
                              nsACString& aANSIStr);
 
@@ -326,7 +349,8 @@ protected:
    * If aForceUpdate is true, it will update composition font even if writing
    * mode isn't being changed.
    */
-  void AdjustCompositionFont(const IMEContext& aContext,
+  void AdjustCompositionFont(nsWindow* aWindow,
+                             const IMEContext& aContext,
                              const mozilla::WritingMode& aWritingMode,
                              bool aForceUpdate = false);
 
@@ -370,7 +394,6 @@ protected:
    */
   void DispatchCompositionChangeEvent(nsWindow* aWindow,
                                       const IMEContext& aContext);
-  already_AddRefed<mozilla::TextRangeArray> CreateTextRangeArray();
 
   nsresult EnsureClauseArray(int32_t aCount);
   nsresult EnsureAttributeArray(int32_t aCount);
@@ -410,7 +433,10 @@ protected:
     mPassedIMEChar.AppendElement(msg);
   }
 
+  TextEventDispatcher* GetTextEventDispatcherFor(nsWindow* aWindow);
+
   nsWindow* mComposingWindow;
+  RefPtr<TextEventDispatcher> mDispatcher;
   nsString  mCompositionString;
   InfallibleTArray<uint32_t> mClauseArray;
   InfallibleTArray<uint8_t> mAttributeArray;
@@ -478,6 +504,7 @@ protected:
   static DWORD sIMEUIProperty;
   static bool sAssumeVerticalWritingModeNotSupported;
   static bool sHasFocus;
+  static bool sNativeCaretIsCreatedForPlugin;
 };
 
 } // namespace widget

@@ -31,7 +31,7 @@ var cloudFileAccounts = {
     let accountKeySet = {};
     let branch = Services.prefs.getBranch(ACCOUNT_ROOT);
     let children = branch.getChildList("", {});
-    for (let [,child] in Iterator(children)) {
+    for (let child of children) {
       let subbranch = child.substr(0, child.indexOf("."));
       accountKeySet[subbranch] = 1;
     }
@@ -85,11 +85,12 @@ var cloudFileAccounts = {
       let className = categoryManager.getCategoryEntry(CATEGORY, aType);
       let provider = Cc[className].createInstance(Ci.nsIMsgCloudFileProvider);
       return provider;
-    } catch (e if e.result == Cr.NS_ERROR_NOT_AVAILABLE) {
-      // If a provider is not available we swallow the error message.
     } catch (e) {
-      // Otherwise at least notify, so developers can fix things.
-      Cu.reportError("Getting provider for type=" + aType + " FAILED; " + e);
+      if (e.result != Cr.NS_ERROR_NOT_AVAILABLE) {
+        // If a provider is not available we swallow the error message.
+        // Otherwise at least notify, so developers can fix things.
+        Cu.reportError("Getting provider for type=" + aType + " FAILED; " + e);
+      }
     }
     return null;
   },
@@ -141,9 +142,8 @@ var cloudFileAccounts = {
     }
   },
 
-  enumerateProviders: function() {
-    let providerList = [];
-    for (let entry in fixIterator(categoryManager.enumerateCategory(CATEGORY),
+  enumerateProviders: function*() {
+    for (let entry of fixIterator(categoryManager.enumerateCategory(CATEGORY),
                                   Ci.nsISupportsCString)) {
       let provider = this.getProviderForType(entry.data);
       yield [entry.data, provider];
@@ -179,9 +179,8 @@ var cloudFileAccounts = {
   getAccountsForType: function CFA_getAccountsForType(aType) {
     let result = [];
 
-    for (let [, accountKey] in Iterator(this._accountKeys)) {
-      let type = Services.prefs.getCharPref(ACCOUNT_ROOT + accountKey
-                                            + ".type");
+    for (let accountKey of this._accountKeys) {
+      let type = Services.prefs.getCharPref(ACCOUNT_ROOT + accountKey + ".type");
       if (type === aType)
         result.push(this.getAccount(accountKey));
     }

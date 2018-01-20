@@ -7,8 +7,8 @@
 function run_test() {
   do_test_pending();
 
-  Task.spawn(function*() {
-    let backupFolder = yield PlacesBackups.getBackupFolder();
+  (async function() {
+    let backupFolder = await PlacesBackups.getBackupFolder();
     let bookmarksBackupDir = new FileUtils.File(backupFolder);
     // Remove all files from backups folder.
     let files = bookmarksBackupDir.directoryEntries;
@@ -31,17 +31,16 @@ function run_test() {
 
     let futureBackupFile = bookmarksBackupDir.clone();
     futureBackupFile.append(name);
-    futureBackupFile.create(Ci.nsILocalFile.NORMAL_FILE_TYPE, 0600);
+    futureBackupFile.create(Ci.nsIFile.NORMAL_FILE_TYPE, 0o600);
     do_check_true(futureBackupFile.exists());
 
-    do_check_eq((yield PlacesBackups.getBackupFiles()).length, 0);
+    do_check_eq((await PlacesBackups.getBackupFiles()).length, 0);
 
-    yield PlacesBackups.create();
+    await PlacesBackups.create();
     // Check that a backup for today has been created.
-    do_check_eq((yield PlacesBackups.getBackupFiles()).length, 1);
-    let mostRecentBackupFile = yield PlacesBackups.getMostRecentBackup();
+    do_check_eq((await PlacesBackups.getBackupFiles()).length, 1);
+    let mostRecentBackupFile = await PlacesBackups.getMostRecentBackup();
     do_check_neq(mostRecentBackupFile, null);
-    let todayFilename = PlacesBackups.getFilenameForDate();
     do_check_true(PlacesBackups.filenamesRegex.test(OS.Path.basename(mostRecentBackupFile)));
 
     // Check that future backup has been removed.
@@ -52,6 +51,6 @@ function run_test() {
     mostRecentBackupFile.remove(false);
     do_check_false(mostRecentBackupFile.exists());
 
-    do_test_finished()
-  });
+    do_test_finished();
+  })();
 }

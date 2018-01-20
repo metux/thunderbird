@@ -397,7 +397,8 @@ extern int MimeObject_output_init(MimeObject *obj, const char *content_type);
  */
 extern int MimeObject_write(MimeObject *, const char *data, int32_t length,
                             bool user_visible_p);
-extern int MimeOptions_write(MimeDisplayOptions *, nsCString &name,
+extern int MimeOptions_write(MimeHeaders *,
+                             MimeDisplayOptions *,
                              const char *data, int32_t length,
                              bool user_visible_p);
 
@@ -405,13 +406,6 @@ extern int MimeOptions_write(MimeDisplayOptions *, nsCString &name,
 extern int MimeObject_write_separator(MimeObject *);
 
 extern bool MimeObjectIsMessageBody(MimeObject *obj);
-
-/* This is the data tagged to contexts and the declaration needs to be
-   in a header file since more than mimemoz.c needs to see it now...
-   */
-#ifdef HAVE_MIME_DATA_SLOT
-# define LOCK_LAST_CACHED_MESSAGE
-#endif
 
 struct MimeDisplayData {            /* This struct is what we hang off of
                                        (context)->mime_data, to remember info
@@ -421,10 +415,6 @@ struct MimeDisplayData {            /* This struct is what we hang off of
                                      */
   MimeObject *last_parsed_object;
   char *last_parsed_url;
-
-#ifdef LOCK_LAST_CACHED_MESSAGE
-  char *previous_locked_url;
-#endif /* LOCK_LAST_CACHED_MESSAGE */
 };
 
 #endif /* _MIMEI_H_ */

@@ -2,14 +2,15 @@
  * Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
+/* eslint-disable mozilla/no-arbitrary-setTimeout */
 
 var testGenerator = testSteps();
 
-function testSteps()
+function* testSteps()
 {
   let uri = Cc["@mozilla.org/network/io-service;1"].
             getService(Ci.nsIIOService).
-            newURI("https://www.example.com", null, null);
+            newURI("https://www.example.com");
   let ssm = Cc["@mozilla.org/scriptsecuritymanager;1"]
               .getService(Ci.nsIScriptSecurityManager);
   let principal = ssm.createCodebasePrincipal(uri, {});
@@ -34,6 +35,31 @@ function testSteps()
 
   let quotaManagerService = Cc["@mozilla.org/dom/quota-manager-service;1"].
                             getService(Ci.nsIQuotaManagerService);
+
+  // Keep at least one database open.
+  let req = indexedDB.open("foo-a", 1);
+  req.onerror = errorHandler;
+  req.onsuccess = grabEventAndContinueHandler;
+  let event = yield undefined;
+
+  // Keep at least one factory operation alive by deleting a database that is
+  // stil open.
+  req = indexedDB.open("foo-b", 1);
+  req.onerror = errorHandler;
+  req.onsuccess = grabEventAndContinueHandler;
+  event = yield undefined;
+
+  indexedDB.deleteDatabase("foo-b");
+
+  // Create a database which we will later try to open while maintenance is
+  // performed.
+  req = indexedDB.open("foo-c", 1);
+  req.onerror = errorHandler;
+  req.onsuccess = grabEventAndContinueHandler;
+  event = yield undefined;
+
+  let dbC = event.target.result;
+  dbC.close();
 
   let dbCount = 0;
 
@@ -93,8 +119,9 @@ function testSteps()
   let usageBeforeMaintenance;
 
   quotaManagerService.getUsageForPrincipal(principal, (request) => {
-    ok(request.usage > 0, "Usage is non-zero");
-    usageBeforeMaintenance = request.usage;
+    let usage = request.result.usage;
+    ok(usage > 0, "Usage is non-zero");
+    usageBeforeMaintenance = usage;
     continueToNextStep();
   });
   yield undefined;
@@ -103,6 +130,13 @@ function testSteps()
 
   let observer = quotaManagerService.QueryInterface(Ci.nsIObserver);
   observer.observe(null, "idle-daily", "");
+
+  info("Opening database while maintenance is performed");
+
+  req = indexedDB.open("foo-c", 1);
+  req.onerror = errorHandler;
+  req.onsuccess = grabEventAndContinueHandler;
+  yield undefined;
 
   info("Waiting for maintenance to start");
 
@@ -119,8 +153,9 @@ function testSteps()
   let usageAfterMaintenance;
 
   quotaManagerService.getUsageForPrincipal(principal, (request) => {
-    ok(request.usage > 0, "Usage is non-zero");
-    usageAfterMaintenance = request.usage;
+    let usage = request.result.usage;
+    ok(usage > 0, "Usage is non-zero");
+    usageAfterMaintenance = usage;
     continueToNextStep();
   });
   yield undefined;

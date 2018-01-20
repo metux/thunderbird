@@ -4,8 +4,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef mozilla_dom_workers_filereadersync_h__
-#define mozilla_dom_workers_filereadersync_h__
+#ifndef mozilla_dom_filereadersync_h__
+#define mozilla_dom_filereadersync_h__
 
 #include "Workers.h"
 
@@ -18,10 +18,6 @@ namespace dom {
 class Blob;
 class GlobalObject;
 template<typename> class Optional;
-} // namespace dom
-} // namespace mozilla
-
-BEGIN_WORKERS_NAMESPACE
 
 class FileReaderSync final
 {
@@ -35,6 +31,13 @@ private:
 
   nsresult ConvertStream(nsIInputStream *aStream, const char *aCharset,
                          nsAString &aResult);
+
+  nsresult ConvertAsyncToSyncStream(uint64_t aStreamSize,
+                                    already_AddRefed<nsIInputStream> aAsyncStream,
+                                    nsIInputStream** aSyncStream);
+
+  nsresult SyncRead(nsIInputStream* aStream, char* aBuffer,
+                    uint32_t aBufferSize, uint32_t* aRead);
 
 public:
   static already_AddRefed<FileReaderSync>
@@ -51,6 +54,7 @@ public:
   void ReadAsDataURL(Blob& aBlob, nsAString& aResult, ErrorResult& aRv);
 };
 
-END_WORKERS_NAMESPACE
+} // namespace dom
+} // namespace mozilla
 
-#endif // mozilla_dom_workers_filereadersync_h__
+#endif // mozilla_dom_filereadersync_h__

@@ -118,7 +118,7 @@ GlodaAttributeDBDef.prototype = {
 };
 
 var GlodaHasAttributesMixIn = {
-  enumerateAttributes: function gloda_attrix_enumerateAttributes() {
+  enumerateAttributes: function* gloda_attrix_enumerateAttributes() {
     let nounDef = this.NOUN_DEF;
     for (let key in this) {
       let value = this[key];
@@ -154,7 +154,7 @@ var GlodaHasAttributesMixIn = {
 
 function MixIn(aConstructor, aMixIn) {
   let proto = aConstructor.prototype;
-  for (let [name, func] in Iterator(aMixIn)) {
+  for (let [name, func] of Object.entries(aMixIn)) {
     if (name.startsWith("get_"))
       proto.__defineGetter__(name.substring(4), func);
     else
@@ -349,8 +349,8 @@ GlodaFolder.prototype = {
     let xpcomFolder = this.getXPCOMFolder(this.kActivityFolderOnlyNoData);
     if (!xpcomFolder)
       return this._prettyName;
-    return xpcomFolder.prettiestName +
-      " (" + xpcomFolder.rootFolder.prettiestName + ")";
+    return xpcomFolder.prettyName +
+      " (" + xpcomFolder.rootFolder.prettyName + ")";
   },
 
   get indexingPriority() {

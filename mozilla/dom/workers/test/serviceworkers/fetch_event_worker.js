@@ -99,6 +99,78 @@ onfetch = function(ev) {
     ));
   }
 
+  else if (ev.request.url.includes("readable-stream.txt")) {
+    ev.respondWith(
+      new Response(
+        new ReadableStream({
+          start: function(controller) {
+            controller.enqueue(new Uint8Array([0x48, 0x65, 0x6c, 0x6c, 0x6f, 0x21]));
+            controller.close();
+          }
+        })
+    ));
+  }
+
+  else if (ev.request.url.includes("readable-stream-locked.txt")) {
+    let stream = new ReadableStream({
+          start(controller) {
+            controller.enqueue(new Uint8Array([0x48, 0x65, 0x6c, 0x6c, 0x6f, 0x21]));
+            controller.close();
+          }
+        });
+
+    ev.respondWith(new Response(stream));
+
+    // This locks the stream.
+    stream.getReader();
+  }
+
+  else if (ev.request.url.includes("readable-stream-with-exception.txt")) {
+    ev.respondWith(
+      new Response(
+        new ReadableStream({
+          start(controller) {},
+          pull() {
+            throw "EXCEPTION!";
+          }
+        })
+    ));
+  }
+
+  else if (ev.request.url.includes("readable-stream-with-exception2.txt")) {
+    ev.respondWith(
+      new Response(
+        new ReadableStream({
+          _controller: null,
+          _count: 0,
+
+          start(controller) { this._controller = controller; },
+          pull() {
+            if (++this._count == 5) { throw "EXCEPTION 2!"; }
+            this._controller.enqueue(new Uint8Array([this._count]));
+          }
+        })
+    ));
+  }
+
+  else if (ev.request.url.includes("readable-stream-already-consumed.txt")) {
+    let r = new Response(
+        new ReadableStream({
+          start(controller) {
+            controller.enqueue(new Uint8Array([0x48, 0x65, 0x6c, 0x6c, 0x6f, 0x21]));
+            controller.close();
+          }
+        }));
+
+    r.blob();
+
+    ev.respondWith(r);
+  }
+
+  else if (ev.request.url.includes('user-pass')) {
+    ev.respondWith(new Response(ev.request.url));
+  }
+
   else if (ev.request.url.includes("nonexistent_image.gif")) {
     var imageAsBinaryString = atob("R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs");
     var imageLength = imageAsBinaryString.length;
@@ -134,6 +206,24 @@ onfetch = function(ev) {
   }
 
   else if (ev.request.url.includes("nonexistent_page.html")) {
+    ev.respondWith(Promise.resolve(
+      new Response("<script>window.frameElement.test_result = true;</script>", {
+        headers : {
+          "Content-Type": "text/html"
+        }
+      })
+    ));
+  }
+
+  else if (ev.request.url.includes("navigate.html")) {
+    var requests = [ // should not throw
+      new Request(ev.request),
+      new Request(ev.request, undefined),
+      new Request(ev.request, null),
+      new Request(ev.request, {}),
+      new Request(ev.request, {someUnrelatedProperty: 42}),
+      new Request(ev.request, {method: "GET"}),
+    ];
     ev.respondWith(Promise.resolve(
       new Response("<script>window.frameElement.test_result = true;</script>", {
         headers : {
@@ -294,10 +384,15 @@ onfetch = function(ev) {
   }
 
   else if (ev.request.url.includes('fetchevent-request')) {
-    if ((new FetchEvent("foo")).request === null) {
-      ev.respondWith(new Response("nullable"));
-    } else {
-      ev.respondWith(Promise.reject());
+    var threw = false;
+    try {
+      new FetchEvent("foo");
+    } catch(e) {
+      if (e.name == "TypeError") {
+        threw = true;
+      }
+    } finally {
+      ev.respondWith(new Response(threw ? "non-nullable" : "nullable"));
     }
   }
 };

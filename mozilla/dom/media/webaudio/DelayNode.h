@@ -14,37 +14,46 @@ namespace mozilla {
 namespace dom {
 
 class AudioContext;
+struct DelayOptions;
 
 class DelayNode final : public AudioNode
 {
 public:
-  DelayNode(AudioContext* aContext, double aMaxDelay);
+  static already_AddRefed<DelayNode>
+  Create(AudioContext& aAudioContext, const DelayOptions& aOptions,
+         ErrorResult& aRv);
 
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(DelayNode, AudioNode)
 
-  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+  static already_AddRefed<DelayNode>
+  Constructor(const GlobalObject& aGlobal, AudioContext& aAudioContext,
+              const DelayOptions& aOptions, ErrorResult& aRv)
+  {
+    return Create(aAudioContext, aOptions, aRv);
+  }
+
+  JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
   AudioParam* DelayTime() const
   {
     return mDelay;
   }
 
-  virtual const char* NodeType() const override
+  const char* NodeType() const override
   {
     return "DelayNode";
   }
 
-  virtual size_t SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const override;
-  virtual size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const override;
-
-protected:
-  virtual ~DelayNode();
+  size_t SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const override;
+  size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const override;
 
 private:
+  DelayNode(AudioContext* aContext, double aMaxDelay);
+  ~DelayNode() = default;
+
   friend class DelayNodeEngine;
 
-private:
   RefPtr<AudioParam> mDelay;
 };
 
@@ -52,4 +61,3 @@ private:
 } // namespace mozilla
 
 #endif
-

@@ -17,11 +17,10 @@ test();
 
 function test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
 
-  expect = 'TypeError: redeclaration of var e';
+  expect = 'SyntaxError: redeclaration of var e';
   try
   {
     eval('{ var e = 3; let e = ""; } print(typeof e);');
@@ -32,6 +31,4 @@ function test()
   }
 
   reportCompare(expect, actual, summary);
-
-  exitFunc ('test');
 }

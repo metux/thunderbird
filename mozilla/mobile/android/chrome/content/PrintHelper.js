@@ -4,19 +4,16 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 "use strict";
 
-var PrintHelper = {
-  init: function() {
-    Services.obs.addObserver(this, "Print:PDF", false);
-  },
+XPCOMUtils.defineLazyModuleGetter(this, "Snackbars", "resource://gre/modules/Snackbars.jsm");
 
-  observe: function (aSubject, aTopic, aData) {
+var PrintHelper = {
+  onEvent: function(event, data, callback) {
     let browser = BrowserApp.selectedBrowser;
 
-    switch (aTopic) {
+    switch (event) {
       case "Print:PDF":
-        Messaging.handleRequest(aTopic, aData, (data) => {
-          return this.generatePDF(browser);
-        });
+        this.generatePDF(browser).then((data) => callback.onSuccess(data),
+                                       (error) => callback.onError(error));
         break;
     }
   },
@@ -48,7 +45,7 @@ var PrintHelper = {
           // We get two STATE_START calls, one for STATE_IS_DOCUMENT and one for STATE_IS_NETWORK
           if (stateFlags & Ci.nsIWebProgressListener.STATE_START && stateFlags & Ci.nsIWebProgressListener.STATE_IS_NETWORK) {
             // Let the user know something is happening. Generating the PDF can take some time.
-            NativeWindow.toast.show(Strings.browser.GetStringFromName("alertPrintjobToast"), "long");
+            Snackbars.show(Strings.browser.GetStringFromName("alertPrintjobToast"), Snackbars.LENGTH_LONG);
           }
 
           // We get two STATE_STOP calls, one for STATE_IS_DOCUMENT and one for STATE_IS_NETWORK
@@ -61,10 +58,10 @@ var PrintHelper = {
             }
           }
         },
-        onProgressChange: function () {},
-        onLocationChange: function () {},
-        onStatusChange: function () {},
-        onSecurityChange: function () {},
+        onProgressChange: function() {},
+        onLocationChange: function() {},
+        onStatusChange: function() {},
+        onSecurityChange: function() {},
       });
     });
   }

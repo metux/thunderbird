@@ -2,20 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/* import-globals-from pageInfo.js */
+
 Components.utils.import("resource:///modules/SitePermissions.jsm");
 Components.utils.import("resource://gre/modules/BrowserUtils.jsm");
 
-const nsIQuotaManagerService = Components.interfaces.nsIQuotaManagerService;
-
 var gPermURI;
+var gPermPrincipal;
 var gUsageRequest;
 
-var gPermissions = SitePermissions.listPermissions();
+// Array of permissionIDs sorted alphabetically by label.
+var gPermissions = SitePermissions.listPermissions().sort((a, b) => {
+  let firstLabel = SitePermissions.getPermissionLabel(a);
+  let secondLabel = SitePermissions.getPermissionLabel(b);
+  return firstLabel.localeCompare(secondLabel);
+});
 gPermissions.push("plugins");
 
 var permissionObserver = {
-  observe: function (aSubject, aTopic, aData)
-  {
+  observe(aSubject, aTopic, aData) {
     if (aTopic == "perm-changed") {
       var permission = aSubject.QueryInterface(Components.interfaces.nsIPermission);
       if (permission.matchesURI(gPermURI, true)) {
@@ -28,28 +33,26 @@ var permissionObserver = {
   }
 };
 
-function onLoadPermission(uri)
-{
+function onLoadPermission(uri, principal) {
   var permTab = document.getElementById("permTab");
   if (SitePermissions.isSupportedURI(uri)) {
     gPermURI = uri;
+    gPermPrincipal = principal;
     var hostText = document.getElementById("hostText");
-    hostText.value = gPermURI.prePath;
+    hostText.value = gPermURI.displayPrePath;
 
     for (var i of gPermissions)
       initRow(i);
     var os = Components.classes["@mozilla.org/observer-service;1"]
                        .getService(Components.interfaces.nsIObserverService);
-    os.addObserver(permissionObserver, "perm-changed", false);
+    os.addObserver(permissionObserver, "perm-changed");
     onUnloadRegistry.push(onUnloadPermission);
     permTab.hidden = false;
-  }
-  else
+  } else
     permTab.hidden = true;
 }
 
-function onUnloadPermission()
-{
+function onUnloadPermission() {
   var os = Components.classes["@mozilla.org/observer-service;1"]
                      .getService(Components.interfaces.nsIObserverService);
   os.removeObserver(permissionObserver, "perm-changed");
@@ -60,8 +63,7 @@ function onUnloadPermission()
   }
 }
 
-function initRow(aPartId)
-{
+function initRow(aPartId) {
   if (aPartId == "plugins") {
     initPluginsRow();
     return;
@@ -71,22 +73,17 @@ function initRow(aPartId)
 
   var checkbox = document.getElementById(aPartId + "Def");
   var command  = document.getElementById("cmd_" + aPartId + "Toggle");
-  var perm = SitePermissions.get(gPermURI, aPartId);
+  var {state} = SitePermissions.get(gPermURI, aPartId);
+  let defaultState = SitePermissions.getDefault(aPartId);
 
-  if (perm) {
+  if (state != defaultState) {
     checkbox.checked = false;
     command.removeAttribute("disabled");
-  }
-  else {
+  } else {
     checkbox.checked = true;
     command.setAttribute("disabled", "true");
-    perm = SitePermissions.getDefault(aPartId);
   }
-  setRadioState(aPartId, perm);
-
-  if (aPartId == "indexedDB") {
-    initIndexedDBRow();
-  }
+  setRadioState(aPartId, state);
 }
 
 function createRow(aPartId) {
@@ -134,7 +131,7 @@ function createRow(aPartId) {
   for (let state of SitePermissions.getAvailableStates(aPartId)) {
     let radio = document.createElement("radio");
     radio.setAttribute("id", aPartId + "#" + state);
-    radio.setAttribute("label", SitePermissions.getStateLabel(aPartId, state));
+    radio.setAttribute("label", SitePermissions.getMultichoiceStateLabel(state));
     radio.setAttribute("command", commandId);
     radiogroup.appendChild(radio);
   }
@@ -145,8 +142,7 @@ function createRow(aPartId) {
   document.getElementById("permList").appendChild(row);
 }
 
-function onCheckboxClick(aPartId)
-{
+function onCheckboxClick(aPartId) {
   var command  = document.getElementById("cmd_" + aPartId + "Toggle");
   var checkbox = document.getElementById(aPartId + "Def");
   if (checkbox.checked) {
@@ -154,94 +150,27 @@ function onCheckboxClick(aPartId)
     command.setAttribute("disabled", "true");
     var perm = SitePermissions.getDefault(aPartId);
     setRadioState(aPartId, perm);
-  }
-  else {
+  } else {
     onRadioClick(aPartId);
     command.removeAttribute("disabled");
   }
 }
 
 function onPluginRadioClick(aEvent) {
-  onRadioClick(aEvent.originalTarget.getAttribute("id").split('#')[0]);
+  onRadioClick(aEvent.originalTarget.getAttribute("id").split("#")[0]);
 }
 
-function onRadioClick(aPartId)
-{
+function onRadioClick(aPartId) {
   var radioGroup = document.getElementById(aPartId + "RadioGroup");
   var id = radioGroup.selectedItem.id;
-  var permission = id.split('#')[1];
+  var permission = parseInt(id.split("#")[1]);
   SitePermissions.set(gPermURI, aPartId, permission);
 }
 
-function setRadioState(aPartId, aValue)
-{
+function setRadioState(aPartId, aValue) {
   var radio = document.getElementById(aPartId + "#" + aValue);
-  radio.radioGroup.selectedItem = radio;
-}
-
-function initIndexedDBRow()
-{
-  let row = document.getElementById("perm-indexedDB-row");
-  let extras = document.getElementById("perm-indexedDB-extras");
-
-  row.appendChild(extras);
-
-  var quotaManagerService =
-    Components.classes["@mozilla.org/dom/quota-manager-service;1"]
-              .getService(nsIQuotaManagerService);
-  let principal = Components.classes["@mozilla.org/scriptsecuritymanager;1"]
-                            .getService(Components.interfaces.nsIScriptSecurityManager)
-                            .createCodebasePrincipal(gPermURI, {});
-  gUsageRequest =
-    quotaManagerService.getUsageForPrincipal(principal,
-                                             onIndexedDBUsageCallback);
-
-  var status = document.getElementById("indexedDBStatus");
-  var button = document.getElementById("indexedDBClear");
-
-  status.value = "";
-  status.setAttribute("hidden", "true");
-  button.setAttribute("hidden", "true");
-}
-
-function onIndexedDBClear()
-{
-  let principal = Components.classes["@mozilla.org/scriptsecuritymanager;1"]
-                            .getService(Components.interfaces.nsIScriptSecurityManager)
-                            .createCodebasePrincipal(gPermURI, {});
-
-  Components.classes["@mozilla.org/dom/quota-manager-service;1"]
-            .getService(nsIQuotaManagerService)
-            .clearStoragesForPrincipal(principal);
-
-  Components.classes["@mozilla.org/serviceworkers/manager;1"]
-            .getService(Components.interfaces.nsIServiceWorkerManager)
-            .removeAndPropagate(gPermURI.host);
-
-  SitePermissions.remove(gPermURI, "indexedDB");
-  initIndexedDBRow();
-}
-
-function onIndexedDBUsageCallback(request)
-{
-  let uri = request.principal.URI;
-  if (!uri.equals(gPermURI)) {
-    throw new Error("Callback received for bad URI: " + uri);
-  }
-
-  if (request.usage) {
-    if (!("DownloadUtils" in window)) {
-      Components.utils.import("resource://gre/modules/DownloadUtils.jsm");
-    }
-
-    var status = document.getElementById("indexedDBStatus");
-    var button = document.getElementById("indexedDBClear");
-
-    status.value =
-      gBundle.getFormattedString("indexedDBUsage",
-                                 DownloadUtils.convertByteUnits(request.usage));
-    status.removeAttribute("hidden");
-    button.removeAttribute("hidden");
+  if (radio) {
+    radio.radioGroup.selectedItem = radio;
   }
 }
 
@@ -254,6 +183,8 @@ function fillInPluginPermissionTemplate(aPluginName, aPermissionString) {
     [ ".permPluginTemplateRadioDefault", "id", aPermissionString + "#0" ],
     [ ".permPluginTemplateRadioAsk", "id", aPermissionString + "#3" ],
     [ ".permPluginTemplateRadioAllow", "id", aPermissionString + "#1" ],
+    // #8 comes from Ci.nsIObjectLoadingContent.PLUGIN_PERMISSION_PROMPT_ACTION_QUIET
+    [ ".permPluginTemplateRadioHide", "id", aPermissionString + "#8"],
     [ ".permPluginTemplateRadioBlock", "id", aPermissionString + "#2" ]
   ];
 
@@ -300,7 +231,7 @@ function initPluginsRow() {
   let entries = Array.from(permissionMap, item => ({ name: item[1], permission: item[0] }));
 
   entries.sort(function(a, b) {
-    return a.name < b.name ? -1 : (a.name == b.name ? 0 : 1);
+    return a.name.localeCompare(b.name);
   });
 
   let permissionEntries = entries.map(p => fillInPluginPermissionTemplate(p.name, p.permission));
@@ -325,7 +256,7 @@ function setPluginsRadioState() {
     if (permissionEntry.hasAttribute("permString")) {
       let permString = permissionEntry.getAttribute("permString");
       let permission = SitePermissions.get(gPermURI, permString);
-      setRadioState(permString, permission);
+      setRadioState(permString, permission.state);
     }
   }
 }

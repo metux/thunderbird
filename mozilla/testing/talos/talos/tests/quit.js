@@ -40,105 +40,101 @@
   These files did not have a license
 */
 
-function canQuitApplication()
-{
+function canQuitApplication() {
   var os = Components.classes["@mozilla.org/observer-service;1"]
     .getService(Components.interfaces.nsIObserverService);
-  if (!os) 
-  {
+  if (!os) {
     return true;
   }
 
-  try 
-  {
+  try {
     var cancelQuit = Components.classes["@mozilla.org/supports-PRBool;1"]
       .createInstance(Components.interfaces.nsISupportsPRBool);
-    os.notifyObservers(cancelQuit, "quit-application-requested", null);
-    
-    // Something aborted the quit process. 
-    if (cancelQuit.data)
-    {
+    os.notifyObservers(cancelQuit, "quit-application-requested");
+
+    // Something aborted the quit process.
+    if (cancelQuit.data) {
       return false;
     }
+  } catch (ex) {
   }
-  catch (ex) 
-  {
-  }
-  os.notifyObservers(null, "quit-application-granted", null);
+  os.notifyObservers(null, "quit-application-granted");
   return true;
 }
 
-function goQuitApplication()
-{
-  const privs = 'UniversalPreferencesRead UniversalPreferencesWrite ' +
-    'UniversalXPConnect';
+function goQuitApplication(waitForSafeBrowsing) {
+  const privs = "UniversalPreferencesRead UniversalPreferencesWrite " +
+    "UniversalXPConnect";
 
-  try
-  {
+  try {
     netscape.security.PrivilegeManager.enablePrivilege(privs);
-  }
-  catch(ex)
-  {
-    throw('goQuitApplication: privilege failure ' + ex);
+  } catch (ex) {
+    throw ("goQuitApplication: privilege failure " + ex);
   }
 
-  if (!canQuitApplication())
-  {
+  var xulRuntime = Components.classes["@mozilla.org/xre/app-info;1"]
+                 .getService(Components.interfaces.nsIXULRuntime);
+  if (xulRuntime.processType == xulRuntime.PROCESS_TYPE_CONTENT) {
+    // If we're running in a remote browser, emit an event for a
+    // frame script to pick up to quit the whole browser.
+    var event = new CustomEvent("TalosQuitApplication", {bubbles: true, detail: {waitForSafeBrowsing}});
+    document.dispatchEvent(event);
     return false;
   }
 
-  const kAppStartup = '@mozilla.org/toolkit/app-startup;1';
-  const kAppShell   = '@mozilla.org/appshell/appShellService;1';
-  var   appService;
-  var   forceQuit;
+  if (waitForSafeBrowsing) {
+    var SafeBrowsing = Components.utils.
+      import("resource://gre/modules/SafeBrowsing.jsm", {}).SafeBrowsing;
 
-  if (kAppStartup in Components.classes)
-  {
+    var whenDone = () => {
+      goQuitApplication(false);
+    };
+
+    SafeBrowsing.addMozEntriesFinishedPromise.then(whenDone, whenDone);
+    // Speed things up in case nobody else called this:
+    SafeBrowsing.init();
+    return false;
+  }
+
+  if (!canQuitApplication()) {
+    return false;
+  }
+
+  const kAppStartup = "@mozilla.org/toolkit/app-startup;1";
+  const kAppShell   = "@mozilla.org/appshell/appShellService;1";
+  var appService;
+
+  if (kAppStartup in Components.classes) {
     appService = Components.classes[kAppStartup].
       getService(Components.interfaces.nsIAppStartup);
-    forceQuit  = Components.interfaces.nsIAppStartup.eForceQuit;
 
-  }
-  else if (kAppShell in Components.classes)
-  {
+  } else if (kAppShell in Components.classes) {
     appService = Components.classes[kAppShell].
       getService(Components.interfaces.nsIAppShellService);
-    forceQuit = Components.interfaces.nsIAppShellService.eForceQuit;
-  }
-  else
-  {
-    throw 'goQuitApplication: no AppStartup/appShell';
+  } else {
+    throw "goQuitApplication: no AppStartup/appShell";
   }
 
   var windowManager = Components.
-    classes['@mozilla.org/appshell/window-mediator;1'].getService();
+    classes["@mozilla.org/appshell/window-mediator;1"].getService();
 
   var windowManagerInterface = windowManager.
     QueryInterface(Components.interfaces.nsIWindowMediator);
 
   var enumerator = windowManagerInterface.getEnumerator(null);
 
-  while (enumerator.hasMoreElements())
-  {
+  while (enumerator.hasMoreElements()) {
     var domWindow = enumerator.getNext();
-    if (("tryToClose" in domWindow) && !domWindow.tryToClose())
-    {
+    if (("tryToClose" in domWindow) && !domWindow.tryToClose()) {
       return false;
     }
     domWindow.close();
   }
 
-  try
-  {
-    appService.quit(forceQuit);
-    // If we're running in a remote browser, emit an event for a
-    // frame script to pick up to quit the whole browser.
-    var event = new CustomEvent("TalosQuitApplication", {bubbles:true});
-    document.dispatchEvent(event);
-  }
-  catch(ex)
-  {
-    throw('goQuitApplication: ' + ex);
+  try {
+    appService.quit(appService.eForceQuit);
+  } catch (ex) {
+    throw ("goQuitApplication: " + ex);
   }
 
   return true;

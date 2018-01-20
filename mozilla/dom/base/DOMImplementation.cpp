@@ -36,21 +36,12 @@ DOMImplementation::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
   return DOMImplementationBinding::Wrap(aCx, this, aGivenProto);
 }
 
-bool
-DOMImplementation::HasFeature(const nsAString& aFeature,
-                              const nsAString& aVersion)
-{
-  return nsContentUtils::InternalIsSupported(
-           static_cast<nsIDOMDOMImplementation*>(this),
-           aFeature, aVersion);
-}
-
 NS_IMETHODIMP
 DOMImplementation::HasFeature(const nsAString& aFeature,
                               const nsAString& aVersion,
                               bool* aReturn)
 {
-  *aReturn = HasFeature(aFeature, aVersion);
+  *aReturn = true;
   return NS_OK;
 }
 
@@ -70,7 +61,7 @@ DOMImplementation::CreateDocumentType(const nsAString& aQualifiedName,
     return nullptr;
   }
 
-  nsCOMPtr<nsIAtom> name = do_GetAtom(aQualifiedName);
+  RefPtr<nsAtom> name = NS_Atomize(aQualifiedName);
   if (!name) {
     aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
     return nullptr;
@@ -79,7 +70,7 @@ DOMImplementation::CreateDocumentType(const nsAString& aQualifiedName,
   // Indicate that there is no internal subset (not just an empty one)
   RefPtr<DocumentType> docType =
     NS_NewDOMDocumentType(mOwner->NodeInfoManager(), name, aPublicId,
-                          aSystemId, NullString(), aRv);
+                          aSystemId, VoidString(), aRv);
   return docType.forget();
 }
 
@@ -107,7 +98,7 @@ DOMImplementation::CreateDocument(const nsAString& aNamespaceURI,
 
   nsresult rv;
   if (!aQualifiedName.IsEmpty()) {
-    const nsAFlatString& qName = PromiseFlatString(aQualifiedName);
+    const nsString& qName = PromiseFlatString(aQualifiedName);
     const char16_t *colon;
     rv = nsContentUtils::CheckQName(qName, true, &colon);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -132,15 +123,21 @@ DOMImplementation::CreateDocument(const nsAString& aNamespaceURI,
                          mDocumentURI, mBaseURI,
                          mOwner->NodePrincipal(),
                          true, scriptHandlingObject,
-                         DocumentFlavorLegacyGuess);
+                         DocumentFlavorLegacyGuess,
+                         mOwner->GetStyleBackendType());
   NS_ENSURE_SUCCESS(rv, rv);
 
   // When DOMImplementation's createDocument method is invoked with
   // namespace set to HTML Namespace use the registry of the associated
   // document to the new instance.
   nsCOMPtr<nsIDocument> doc = do_QueryInterface(document);
+
   if (aNamespaceURI.EqualsLiteral("http://www.w3.org/1999/xhtml")) {
-    doc->UseRegistryFromDocument(mOwner);
+    doc->SetContentType(NS_LITERAL_STRING("application/xhtml+xml"));
+  } else if (aNamespaceURI.EqualsLiteral("http://www.w3.org/2000/svg")) {
+    doc->SetContentType(NS_LITERAL_STRING("image/svg+xml"));
+  } else {
+    doc->SetContentType(NS_LITERAL_STRING("application/xml"));
   }
 
   doc->SetReadyStateInternal(nsIDocument::READYSTATE_COMPLETE);
@@ -191,7 +188,7 @@ DOMImplementation::CreateHTMLDocument(const nsAString& aTitle,
                                       nsGkAtoms::html, // aName
                                       EmptyString(), // aPublicId
                                       EmptyString(), // aSystemId
-                                      NullString()); // aInternalSubset
+                                      VoidString()); // aInternalSubset
   NS_ENSURE_SUCCESS(rv, rv);
 
 
@@ -206,7 +203,8 @@ DOMImplementation::CreateHTMLDocument(const nsAString& aTitle,
                          doctype, mDocumentURI, mBaseURI,
                          mOwner->NodePrincipal(),
                          true, scriptHandlingObject,
-                         DocumentFlavorLegacyGuess);
+                         DocumentFlavorLegacyGuess,
+                         mOwner->GetStyleBackendType());
   NS_ENSURE_SUCCESS(rv, rv);
   nsCOMPtr<nsIDocument> doc = do_QueryInterface(document);
 
@@ -238,10 +236,6 @@ DOMImplementation::CreateHTMLDocument(const nsAString& aTitle,
   rv = root->AppendChildTo(body, false);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  // When the createHTMLDocument method is invoked,
-  // use the registry of the associated document to the new instance.
-  doc->UseRegistryFromDocument(mOwner);
-
   doc->SetReadyStateInternal(nsIDocument::READYSTATE_COMPLETE);
 
   doc.forget(aDocument);
@@ -255,8 +249,7 @@ DOMImplementation::CreateHTMLDocument(const Optional<nsAString>& aTitle,
 {
   nsCOMPtr<nsIDocument> document;
   nsCOMPtr<nsIDOMDocument> domDocument;
-  aRv = CreateHTMLDocument(aTitle.WasPassed() ? aTitle.Value()
-                                              : NullString(),
+  aRv = CreateHTMLDocument(aTitle.WasPassed() ? aTitle.Value() : VoidString(),
                            getter_AddRefs(document),
                            getter_AddRefs(domDocument));
   return document.forget();

@@ -6,16 +6,12 @@
 
 "use strict";
 
-const {Cc, Ci, Cu, Cr} = require("chrome");
-const {setTimeout, clearTimeout} = require('sdk/timers');
-const EventEmitter = require("devtools/shared/event-emitter");
-const DevToolsUtils = require("devtools/shared/DevToolsUtils");
+const {Cc, Ci, Cr} = require("chrome");
+const EventEmitter = require("devtools/shared/old-event-emitter");
 const { DebuggerServer } = require("devtools/server/main");
-const { DebuggerClient } = require("devtools/shared/client/main");
-
-Cu.import("resource://gre/modules/Services.jsm");
-DevToolsUtils.defineLazyModuleGetter(this, "Task",
-  "resource://gre/modules/Task.jsm");
+const { DebuggerClient } = require("devtools/shared/client/debugger-client");
+const Services = require("Services");
+const { Task } = require("devtools/shared/task");
 
 const REMOTE_TIMEOUT = "devtools.debugger.remote-timeout";
 
@@ -73,8 +69,10 @@ const REMOTE_TIMEOUT = "devtools.debugger.remote-timeout";
  *  . Connection.Events.CONNECTING      Trying to connect to host:port
  *  . Connection.Events.CONNECTED       Connection is successful
  *  . Connection.Events.DISCONNECTING   Trying to disconnect from server
- *  . Connection.Events.DISCONNECTED    Disconnected (at client request, or because of a timeout or connection error)
- *  . Connection.Events.STATUS_CHANGED  The connection status (connection.status) has changed
+ *  . Connection.Events.DISCONNECTED    Disconnected (at client request,
+ *                                      or because of a timeout or connection error)
+ *  . Connection.Events.STATUS_CHANGED  The connection status (connection.status)
+ *                                      has changed
  *  . Connection.Events.TIMEOUT         Connection timeout
  *  . Connection.Events.HOST_CHANGED    Host has changed
  *  . Connection.Events.PORT_CHANGED    Port has changed
@@ -84,14 +82,14 @@ const REMOTE_TIMEOUT = "devtools.debugger.remote-timeout";
 
 var ConnectionManager = {
   _connections: new Set(),
-  createConnection: function(host, port) {
+  createConnection: function (host, port) {
     let c = new Connection(host, port);
     c.once("destroy", (event) => this.destroyConnection(c));
     this._connections.add(c);
     this.emit("new", c);
     return c;
   },
-  destroyConnection: function(connection) {
+  destroyConnection: function (connection) {
     if (this._connections.has(connection)) {
       this._connections.delete(connection);
       if (connection.status != Connection.Status.DESTROYED) {
@@ -103,14 +101,14 @@ var ConnectionManager = {
     return [...this._connections];
   },
   getFreeTCPPort: function () {
-    let serv = Cc['@mozilla.org/network/server-socket;1']
+    let serv = Cc["@mozilla.org/network/server-socket;1"]
                  .createInstance(Ci.nsIServerSocket);
     serv.init(-1, true, -1);
     let port = serv.port;
     serv.close();
     return port;
   },
-}
+};
 
 EventEmitter.decorate(ConnectionManager);
 
@@ -134,7 +132,7 @@ Connection.Status = {
   CONNECTING: "connecting",
   DISCONNECTING: "disconnecting",
   DESTROYED: "destroyed",
-}
+};
 
 Connection.Events = {
   CONNECTED: Connection.Status.CONNECTED,
@@ -147,43 +145,45 @@ Connection.Events = {
   HOST_CHANGED: "host-changed",
   PORT_CHANGED: "port-changed",
   NEW_LOG: "new_log"
-}
+};
 
 Connection.prototype = {
   logs: "",
-  log: function(str) {
+  log: function (str) {
     let d = new Date();
     let hours = ("0" + d.getHours()).slice(-2);
     let minutes = ("0" + d.getMinutes()).slice(-2);
     let seconds = ("0" + d.getSeconds()).slice(-2);
     let timestamp = [hours, minutes, seconds].join(":") + ": ";
     str = timestamp + str;
-    this.logs +=  "\n" + str;
+    this.logs += "\n" + str;
     this.emit(Connection.Events.NEW_LOG, str);
   },
 
   get client() {
-    return this._client
+    return this._client;
   },
 
   get host() {
-    return this._host
+    return this._host;
   },
 
   set host(value) {
-    if (this._host && this._host == value)
+    if (this._host && this._host == value) {
       return;
+    }
     this._host = value;
     this.emit(Connection.Events.HOST_CHANGED);
   },
 
   get port() {
-    return this._port
+    return this._port;
   },
 
   set port(value) {
-    if (this._port && this._port == value)
+    if (this._port && this._port == value) {
       return;
+    }
     this._port = value;
     this.emit(Connection.Events.PORT_CHANGED);
   },
@@ -247,7 +247,7 @@ Connection.prototype = {
     this.advertisement = null;
   },
 
-  disconnect: function(force) {
+  disconnect: function (force) {
     if (this.status == Connection.Status.DESTROYED) {
       return;
     }
@@ -262,7 +262,7 @@ Connection.prototype = {
     }
   },
 
-  connect: function(transport) {
+  connect: function (transport) {
     if (this.status == Connection.Status.DESTROYED) {
       return;
     }
@@ -286,7 +286,7 @@ Connection.prototype = {
     }
   },
 
-  destroy: function() {
+  destroy: function () {
     this.log("killing connection");
     clearTimeout(this._timeoutID);
     this.keepConnecting = false;
@@ -297,7 +297,7 @@ Connection.prototype = {
     this._setStatus(Connection.Status.DESTROYED);
   },
 
-  _getTransport: Task.async(function*() {
+  _getTransport: Task.async(function* () {
     if (this._customTransport) {
       return this._customTransport;
     }
@@ -316,7 +316,7 @@ Connection.prototype = {
       }
       this._client = new DebuggerClient(transport);
       this._client.addOneTimeListener("closed", this._onDisconnected);
-      this._client.connect(this._onConnected);
+      this._client.connect().then(this._onConnected);
     }, e => {
       // If we're continuously trying to connect, we expect the connection to be
       // rejected a couple times, so don't log these.
@@ -333,18 +333,19 @@ Connection.prototype = {
   },
 
   get status() {
-    return this._status
+    return this._status;
   },
 
-  _setStatus: function(value) {
-    if (this._status && this._status == value)
+  _setStatus: function (value) {
+    if (this._status && this._status == value) {
       return;
+    }
     this._status = value;
     this.emit(value);
     this.emit(Connection.Events.STATUS_CHANGED, value);
   },
 
-  _onDisconnected: function() {
+  _onDisconnected: function () {
     this._client = null;
     this._customTransport = null;
 
@@ -360,7 +361,9 @@ Connection.prototype = {
         this.log("disconnected (unexpected)");
         break;
       case Connection.Status.CONNECTING:
-        this.log("connection error. Possible causes: USB port not connected, port not forwarded (adb forward), wrong host or port, remote debugging not enabled on the device.");
+        this.log("connection error. Possible causes: USB port not connected, port not " +
+                 "forwarded (adb forward), wrong host or port, remote debugging not " +
+                 "enabled on the device.");
         break;
       default:
         this.log("disconnected");
@@ -368,18 +371,18 @@ Connection.prototype = {
     this._setStatus(Connection.Status.DISCONNECTED);
   },
 
-  _onConnected: function() {
+  _onConnected: function () {
     this.log("connected");
     clearTimeout(this._timeoutID);
     this._setStatus(Connection.Status.CONNECTED);
   },
 
-  _onTimeout: function() {
+  _onTimeout: function () {
     this.log("connection timeout. Possible causes: didn't click on 'accept' (prompt).");
     this.emit(Connection.Events.TIMEOUT);
     this.disconnect();
   },
-}
+};
 
 exports.ConnectionManager = ConnectionManager;
 exports.Connection = Connection;

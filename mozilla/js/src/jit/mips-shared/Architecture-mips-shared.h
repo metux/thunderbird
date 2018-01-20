@@ -12,6 +12,8 @@
 #include <limits.h>
 #include <stdint.h>
 
+#include "jit/shared/Architecture-shared.h"
+
 #include "js/Utility.h"
 
 // gcc appears to use _mips_hard_float to denote
@@ -30,6 +32,9 @@
 
 namespace js {
 namespace jit {
+
+// How far forward/back can a jump go? Provide a generous buffer for thunks.
+static const uint32_t JumpImmediateRange = UINT32_MAX;
 
 class Registers
 {
@@ -177,6 +182,7 @@ class Registers
         (1 << Registers::s5) |
         (1 << Registers::s6) |
         (1 << Registers::s7) |
+        (1 << Registers::fp) |
         (1 << Registers::ra);
 
     static const SetType WrapperMask =
@@ -193,7 +199,6 @@ class Registers
         (1 << Registers::k1) |
         (1 << Registers::gp) |
         (1 << Registers::sp) |
-        (1 << Registers::fp) |
         (1 << Registers::ra);
 
     // Registers that can be allocated without being saved, generally.
@@ -305,8 +310,17 @@ class FloatRegisterMIPSShared
     }
 };
 
-uint32_t GetMIPSFlags();
-bool hasFPU();
+namespace mips_private {
+    extern uint32_t Flags;
+    extern bool hasFPU;
+    extern bool isLoongson;
+    extern bool hasR2;
+}
+
+inline uint32_t GetMIPSFlags() { return mips_private::Flags; }
+inline bool hasFPU() { return mips_private::hasFPU; }
+inline bool isLoongson() { return mips_private::isLoongson; }
+inline bool hasR2() { return mips_private::hasR2; }
 
 // MIPS doesn't have double registers that can NOT be treated as float32.
 inline bool
@@ -321,12 +335,6 @@ inline bool
 hasMultiAlias() {
     return true;
 }
-
-// See the comments above AsmJSMappedSize in AsmJSValidate.h for more info.
-// TODO: Implement this for MIPS. Note that it requires Codegen to respect the
-// offset field of AsmJSHeapAccess.
-static const size_t AsmJSCheckedImmediateRange = 0;
-static const size_t AsmJSImmediateRange = 0;
 
 } // namespace jit
 } // namespace js

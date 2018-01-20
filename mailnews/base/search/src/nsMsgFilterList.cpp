@@ -13,7 +13,7 @@
 #include "nsIMsgFilterHitNotify.h"
 #include "nsMsgUtils.h"
 #include "nsMsgSearchTerm.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsMsgBaseCID.h"
 #include "nsIMsgFilterService.h"
 #include "nsMsgSearchScopeTerm.h"
@@ -33,7 +33,7 @@ static const char16_t unicodeFormatter[] = {
 };
 
 // Marker for EOF or failure during read
-#define EOF_CHAR (char) 0xFF
+#define EOF_CHAR -1
 
 nsMsgFilterList::nsMsgFilterList() :
     m_fileVersion(0)
@@ -52,13 +52,10 @@ NS_IMETHODIMP nsMsgFilterList::CreateFilter(const nsAString &name,class nsIMsgFi
 {
   NS_ENSURE_ARG_POINTER(aFilter);
 
-  nsMsgFilter *filter = new nsMsgFilter;
-  NS_ENSURE_TRUE(filter, NS_ERROR_OUT_OF_MEMORY);
+  NS_ADDREF(*aFilter = new nsMsgFilter);
 
-  NS_ADDREF(*aFilter = filter);
-
-  filter->SetFilterName(name);
-  filter->SetFilterList(this);
+  (*aFilter)->SetFilterName(name);
+  (*aFilter)->SetFilterList(this);
 
   return NS_OK;
 }
@@ -69,8 +66,7 @@ NS_IMETHODIMP nsMsgFilterList::GetFolder(nsIMsgFolder **aFolder)
 {
   NS_ENSURE_ARG_POINTER(aFolder);
 
-  *aFolder = m_folder;
-  NS_IF_ADDREF(*aFolder);
+  NS_IF_ADDREF(*aFolder = m_folder);
   return NS_OK;
 }
 
@@ -183,7 +179,7 @@ nsMsgFilterList::GetLogFile(nsIFile **aFile)
   // mcom.test.msf
   // since the log is an html file we make it
   // mcom.test.htm
-  if (type.Equals("nntp") && !isServer)
+  if (type.EqualsLiteral("nntp") && !isServer)
   {
     nsCOMPtr<nsIFile> thisFolder;
     rv = m_folder->GetFilePath(getter_AddRefs(thisFolder));
@@ -201,12 +197,12 @@ nsMsgFilterList::GetLogFile(nsIFile **aFile)
     rv = filterLogFile->GetLeafName(filterLogName);
     NS_ENSURE_SUCCESS(rv,rv);
 
-    filterLogName.Append(NS_LITERAL_STRING(".htm"));
+    filterLogName.AppendLiteral(u".htm");
 
     rv = filterLogFile->SetLeafName(filterLogName);
     NS_ENSURE_SUCCESS(rv,rv);
 
-    NS_IF_ADDREF(*aFile = filterLogFile);
+    filterLogFile.forget(aFile);
   }
   else {
     rv = server->GetLocalPath(aFile);
@@ -287,9 +283,8 @@ nsMsgFilterList::ApplyFiltersToHdr(nsMsgFilterTypeType filterType,
   nsresult rv = GetFilterCount(&filterCount);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsMsgSearchScopeTerm* scope = new nsMsgSearchScopeTerm(nullptr, nsMsgSearchScope::offlineMail, folder);
-  scope->AddRef();
-  if (!scope) return NS_ERROR_OUT_OF_MEMORY;
+  RefPtr<nsMsgSearchScopeTerm> scope =
+    new nsMsgSearchScopeTerm(nullptr, nsMsgSearchScope::offlineMail, folder);
 
   for (uint32_t filterIndex = 0; filterIndex < filterCount; filterIndex++)
   {
@@ -322,7 +317,6 @@ nsMsgFilterList::ApplyFiltersToHdr(nsMsgFilterTypeType filterType,
       }
     }
   }
-  scope->Release();
   return rv;
 }
 
@@ -379,7 +373,7 @@ static const unsigned int sNumFilterFileAttribTable =
   MOZ_ARRAY_LENGTH(FilterFileAttribTable);
 
 // If we want to buffer file IO, wrap it in here.
-char nsMsgFilterList::ReadChar(nsIInputStream *aStream)
+int nsMsgFilterList::ReadChar(nsIInputStream *aStream)
 {
   char  newChar;
   uint32_t bytesRead;
@@ -394,13 +388,13 @@ char nsMsgFilterList::ReadChar(nsIInputStream *aStream)
   {
     if (m_startWritingToBuffer)
       m_unparsedFilterBuffer.Append(newChar);
-    return newChar;
+    return (unsigned char)newChar; // Make sure the char is unsigned.
   }
 }
 
-char nsMsgFilterList::SkipWhitespace(nsIInputStream *aStream)
+int nsMsgFilterList::SkipWhitespace(nsIInputStream *aStream)
 {
-  char ch;
+  int ch;
   do
   {
     ch = ReadChar(aStream);
@@ -411,13 +405,13 @@ char nsMsgFilterList::SkipWhitespace(nsIInputStream *aStream)
 
 bool nsMsgFilterList::StrToBool(nsCString &str)
 {
-  return str.Equals("yes") ;
+  return str.EqualsLiteral("yes");
 }
 
-char nsMsgFilterList::LoadAttrib(nsMsgFilterFileAttribValue &attrib, nsIInputStream *aStream)
+int nsMsgFilterList::LoadAttrib(nsMsgFilterFileAttribValue &attrib, nsIInputStream *aStream)
 {
   char  attribStr[100];
-  char  curChar;
+  int curChar;
   attrib = nsIMsgFilterList::attribNone;
 
   curChar = SkipWhitespace(aStream);
@@ -454,7 +448,7 @@ const char *nsMsgFilterList::GetStringForAttrib(nsMsgFilterFileAttribValue attri
 nsresult nsMsgFilterList::LoadValue(nsCString &value, nsIInputStream *aStream)
 {
   nsAutoCString  valueStr;
-  char  curChar;
+  int curChar;
   value = "";
   curChar = SkipWhitespace(aStream);
   if (curChar != '"')
@@ -467,7 +461,7 @@ nsresult nsMsgFilterList::LoadValue(nsCString &value, nsIInputStream *aStream)
   {
     if (curChar == '\\')
     {
-      char nextChar = ReadChar(aStream);
+      int nextChar = ReadChar(aStream);
       if (nextChar == '"')
         curChar = '"';
       else if (nextChar == '\\')  // replace "\\" with "\"
@@ -496,13 +490,14 @@ nsresult nsMsgFilterList::LoadValue(nsCString &value, nsIInputStream *aStream)
   return NS_OK;
 }
 
-nsresult nsMsgFilterList::LoadTextFilters(nsIInputStream *aStream)
+nsresult nsMsgFilterList::LoadTextFilters(already_AddRefed<nsIInputStream> aStream)
 {
   nsresult  err = NS_OK;
   uint64_t bytesAvailable;
 
   nsCOMPtr<nsIInputStream> bufStream;
-  err = NS_NewBufferedInputStream(getter_AddRefs(bufStream), aStream, 10240);
+  nsCOMPtr<nsIInputStream> stream = mozilla::Move(aStream);
+  err = NS_NewBufferedInputStream(getter_AddRefs(bufStream), stream.forget(), FILE_IO_BUFFER_SIZE);
   NS_ENSURE_SUCCESS(err, err);
 
   nsMsgFilterFileAttribValue attrib;
@@ -513,7 +508,7 @@ nsresult nsMsgFilterList::LoadTextFilters(nsIInputStream *aStream)
     nsAutoCString value;
     nsresult intToStringResult;
 
-    char curChar;
+    int curChar;
     curChar = LoadAttrib(attrib, bufStream);
     if (curChar == EOF_CHAR)  //reached eof
       break;
@@ -579,10 +574,10 @@ nsresult nsMsgFilterList::LoadTextFilters(nsIInputStream *aStream)
         else
         {
           // ### fix me - this is silly.
-          char16_t *unicodeString =
-            nsTextFormatter::smprintf(unicodeFormatter, value.get());
-          filter->SetFilterName(nsDependentString(unicodeString));
-          nsTextFormatter::smprintf_free(unicodeString);
+          nsString unicodeString;
+          nsTextFormatter::ssprintf(unicodeString, unicodeFormatter,
+                                    value.get());
+          filter->SetFilterName(unicodeString);
         }
         m_curFilter = filter;
         m_filters.AppendElement(filter);
@@ -951,12 +946,11 @@ nsMsgFilterList::GetFilterNamed(const nsAString &aName, nsIMsgFilter **aResult)
         filter->GetFilterName(filterName);
         if (filterName.Equals(aName))
         {
-            *aResult = filter;
+            filter.forget(aResult);
             break;
         }
     }
 
-    NS_IF_ADDREF(*aResult);
     return NS_OK;
 }
 
@@ -1146,11 +1140,11 @@ nsresult nsMsgFilterList::ComputeArbitraryHeaders()
     rv = GetFilterAt(index, getter_AddRefs(filter));
     if (!(NS_SUCCEEDED(rv) && filter)) continue;
 
-    nsCOMPtr <nsISupportsArray> searchTerms;
-    uint32_t numSearchTerms=0;
+    nsCOMPtr<nsIMutableArray> searchTerms;
+    uint32_t numSearchTerms = 0;
     filter->GetSearchTerms(getter_AddRefs(searchTerms));
     if (searchTerms)
-      searchTerms->Count(&numSearchTerms);
+      searchTerms->GetLength(&numSearchTerms);
     for (uint32_t i = 0; i < numSearchTerms; i++)
     {
       filter->GetTerm(i, &attrib, nullptr, nullptr, nullptr, arbitraryHeader);
@@ -1158,9 +1152,9 @@ nsresult nsMsgFilterList::ComputeArbitraryHeaders()
       {
         if (m_arbitraryHeaders.IsEmpty())
           m_arbitraryHeaders.Assign(arbitraryHeader);
-        else if (m_arbitraryHeaders.Find(arbitraryHeader, CaseInsensitiveCompare) == -1)
+        else if (m_arbitraryHeaders.Find(arbitraryHeader, /* ignoreCase = */ true) == -1)
         {
-          m_arbitraryHeaders.Append(" ");
+          m_arbitraryHeaders.Append(' ');
           m_arbitraryHeaders.Append(arbitraryHeader);
         }
       }

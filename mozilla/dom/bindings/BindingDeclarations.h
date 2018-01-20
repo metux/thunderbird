@@ -17,15 +17,16 @@
 #include "js/Value.h"
 
 #include "mozilla/Maybe.h"
-#include "mozilla/OwningNonNull.h"
+#include "mozilla/RootedOwningNonNull.h"
+#include "mozilla/RootedRefPtr.h"
 
 #include "mozilla/dom/DOMString.h"
 
-#include "nsAutoPtr.h" // for nsRefPtr member variables
 #include "nsCOMPtr.h"
 #include "nsStringGlue.h"
 #include "nsTArray.h"
 
+class nsIPrincipal;
 class nsWrapperCache;
 
 namespace mozilla {
@@ -40,7 +41,7 @@ protected:
                  JS::MutableHandle<JS::Value> aVal);
 
   bool StringifyToJSON(JSContext* aCx,
-                       JS::MutableHandle<JS::Value> aValue,
+                       JS::Handle<JSObject*> aObj,
                        nsAString& aJSON) const;
 
   // Struct used as a way to force a dictionary constructor to not init the
@@ -50,11 +51,19 @@ protected:
   struct FastDictionaryInitializer {
   };
 
+  bool mIsAnyMemberPresent = false;
+
 private:
   // aString is expected to actually be an nsAString*.  Should only be
   // called from StringifyToJSON.
   static bool AppendJSONToString(const char16_t* aJSONData,
                                  uint32_t aDataLength, void* aString);
+
+public:
+  bool IsAnyMemberPresent() const
+  {
+    return mIsAnyMemberPresent;
+  }
 };
 
 // Struct that serves as a base class for all typed arrays and array buffers and
@@ -74,6 +83,8 @@ struct EnumEntry {
   const char* value;
   size_t length;
 };
+
+enum class CallerType : uint32_t;
 
 class MOZ_STACK_CLASS GlobalObject
 {
@@ -99,6 +110,14 @@ public:
   {
     return !Get();
   }
+
+  // It returns the subjectPrincipal if called on the main-thread, otherwise
+  // a nullptr is returned.
+  nsIPrincipal* GetSubjectPrincipal() const;
+
+  // Get the caller type.  Note that this needs to be called before anyone has
+  // had a chance to mess with the JSContext.
+  dom::CallerType CallerType() const;
 
 protected:
   JS::Rooted<JSObject*> mGlobalJSObject;
@@ -266,7 +285,7 @@ class Optional<JS::Value>
 private:
   Optional() = delete;
 
-  explicit Optional(JS::Value aValue) = delete;
+  explicit Optional(const JS::Value& aValue) = delete;
 };
 
 // A specialization of Optional for NonNull that lets us get a T& from Value()
@@ -326,18 +345,19 @@ template<>
 class Optional<nsAString>
 {
 public:
-  Optional() : mPassed(false) {}
+  Optional()
+    : mStr(nullptr)
+  {}
 
   bool WasPassed() const
   {
-    return mPassed;
+    return !!mStr;
   }
 
   void operator=(const nsAString* str)
   {
     MOZ_ASSERT(str);
     mStr = str;
-    mPassed = true;
   }
 
   // If this code ever goes away, remove the comment pointing to it in the
@@ -346,7 +366,6 @@ public:
   {
     MOZ_ASSERT(str);
     mStr = reinterpret_cast<const nsString*>(str);
-    mPassed = true;
   }
 
   const nsAString& Value() const
@@ -360,7 +379,6 @@ private:
   Optional(const Optional& other) = delete;
   const Optional &operator=(const Optional &other) = delete;
 
-  bool mPassed;
   const nsAString* mStr;
 };
 
@@ -369,8 +387,9 @@ class NonNull
 {
 public:
   NonNull()
+    : ptr(nullptr)
 #ifdef DEBUG
-    : inited(false)
+    , inited(false)
 #endif
   {}
 
@@ -490,6 +509,38 @@ struct MOZ_STACK_CLASS ParentObject {
   nsISupports* const MOZ_NON_OWNING_REF mObject;
   nsWrapperCache* const mWrapperCache;
   bool mUseXBLScope;
+};
+
+namespace binding_detail {
+
+// Class for simple sequence arguments, only used internally by codegen.
+template<typename T>
+class AutoSequence : public AutoTArray<T, 16>
+{
+public:
+  AutoSequence() : AutoTArray<T, 16>()
+  {}
+
+  // Allow converting to const sequences as needed
+  operator const Sequence<T>&() const {
+    return *reinterpret_cast<const Sequence<T>*>(this);
+  }
+};
+
+} // namespace binding_detail
+
+// Enum to represent a system or non-system caller type.
+enum class CallerType : uint32_t {
+  System,
+  NonSystem
+};
+
+// A class that can be passed (by value or const reference) to indicate that the
+// caller is always a system caller.  This can be used as the type of an
+// argument to force only system callers to call a function.
+class SystemCallerGuarantee {
+public:
+  operator CallerType() const { return CallerType::System; }
 };
 
 } // namespace dom

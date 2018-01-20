@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "it": {
+      "chrome_resources": {
+        "necko": "chrome/it/locale/it/necko/", 
+        "global": "chrome/it/locale/it/global/", 
+        "messenger-region": "chrome/it/locale/it/messenger-region/", 
+        "chat": "chrome/it/locale/it/chat/", 
+        "devtools": "chrome/it/locale/it/devtools/client/", 
+        "pipnss": "chrome/it/locale/it/pipnss/", 
+        "messenger-smime": "chrome/it/locale/it/messenger-smime/", 
+        "messenger-newsblog": "chrome/it/locale/it/messenger-newsblog/", 
+        "devtools-shim": "chrome/it/locale/it/devtools/shim/", 
+        "alerts": "chrome/it/locale/it/alerts/", 
+        "messenger": "chrome/it/locale/it/messenger/", 
+        "editor": "chrome/it/locale/it/editor/", 
+        "branding": "chrome/it/locale/it/branding/", 
+        "mozldap": "chrome/it/locale/it/mozldap/", 
+        "autoconfig": "chrome/it/locale/it/autoconfig/", 
+        "devtools-shared": "chrome/it/locale/it/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/it/locale/it/global-platform/win/", 
+          "android": "chrome/it/locale/it/global-platform/unix/", 
+          "macosx": "chrome/it/locale/it/global-platform/mac/", 
+          "linux": "chrome/it/locale/it/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/it/locale/it/mozapps/", 
+        "pluginproblem": "chrome/it/locale/it/pluginproblem/", 
+        "communicator": "chrome/it/locale/it/communicator/", 
+        "messenger-mapi": "chrome/it/locale/it/messenger-mapi/", 
+        "places": "chrome/it/locale/it/places/", 
+        "passwordmgr": "chrome/it/locale/it/passwordmgr/", 
+        "pippki": "chrome/it/locale/it/pippki/"
+      }, 
+      "version": "20171102070400"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "58.0", 
+      "id": "langpack-it@firefox.mozilla.org", 
+      "strict_max_version": "58.*"
+    }
+  }, 
+  "langpack_id": "it", 
+  "version": "58.0", 
+  "name": "Italiano (IT) Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "mozilla.org (contributors: Roberto Principiano)", 
+  "description": "Language pack for Thunderbird for it"
+}

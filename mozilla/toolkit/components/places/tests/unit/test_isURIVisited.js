@@ -23,35 +23,22 @@ const SCHEMES = {
   "javascript:": false,
 };
 
-const TRANSITIONS = [
-  TRANSITION_LINK,
-  TRANSITION_TYPED,
-  TRANSITION_BOOKMARK,
-  TRANSITION_EMBED,
-  TRANSITION_FRAMED_LINK,
-  TRANSITION_REDIRECT_PERMANENT,
-  TRANSITION_REDIRECT_TEMPORARY,
-  TRANSITION_DOWNLOAD,
-];
-
 var gRunner;
-function run_test()
-{
+function run_test() {
   do_test_pending();
   gRunner = step();
   gRunner.next();
 }
 
-function* step()
-{
+function* step() {
   let history = Cc["@mozilla.org/browser/history;1"]
                   .getService(Ci.mozIAsyncHistory);
 
   for (let scheme in SCHEMES) {
     do_print("Testing scheme " + scheme);
-    for (let i = 0; i < TRANSITIONS.length; i++) {
-      let transition = TRANSITIONS[i];
-      do_print("With transition " + transition);
+    for (let t in PlacesUtils.history.TRANSITIONS) {
+      do_print("With transition " + t);
+      let transition = PlacesUtils.history.TRANSITIONS[t];
 
       let uri = NetUtil.newURI(scheme + "mozilla.org/");
 
@@ -60,20 +47,20 @@ function* step()
         do_check_false(aIsVisited);
 
         let callback = {
-          handleError:  function () {},
-          handleResult: function () {},
-          handleCompletion: function () {
+          handleError() {},
+          handleResult() {},
+          handleCompletion() {
             do_print("Added visit to " + uri.spec);
 
-            history.isURIVisited(uri, function (aURI, aIsVisited) {
-              do_check_true(uri.equals(aURI));
+            history.isURIVisited(uri, function(aURI2, aIsVisited2) {
+              do_check_true(uri.equals(aURI2));
               let checker = SCHEMES[scheme] ? do_check_true : do_check_false;
-              checker(aIsVisited);
+              checker(aIsVisited2);
 
-              PlacesTestUtils.clearHistory().then(function () {
-                history.isURIVisited(uri, function(aURI, aIsVisited) {
-                  do_check_true(uri.equals(aURI));
-                  do_check_false(aIsVisited);
+              PlacesTestUtils.clearHistory().then(function() {
+                history.isURIVisited(uri, function(aURI3, aIsVisited3) {
+                  do_check_true(uri.equals(aURI3));
+                  do_check_false(aIsVisited3);
                   gRunner.next();
                 });
               });
@@ -81,9 +68,9 @@ function* step()
           },
         };
 
-        history.updatePlaces({ uri:    uri
-                             , visits: [ { transitionType: transition
-                                         , visitDate:      Date.now() * 1000
+        history.updatePlaces({ uri,
+                               visits: [ { transitionType: transition,
+                                           visitDate:      Date.now() * 1000
                                          } ]
                              }, callback);
       });

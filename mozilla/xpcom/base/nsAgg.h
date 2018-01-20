@@ -78,9 +78,14 @@ class NS_CYCLE_COLLECTION_INNERCLASS                                        \
  : public nsXPCOMCycleCollectionParticipant                                 \
 {                                                                           \
 public:                                                                     \
-  NS_IMETHOD_(void) Unlink(void *p);                                        \
-  NS_IMETHOD Traverse(void *p, nsCycleCollectionTraversalCallback &cb);     \
-  NS_IMETHOD_(void) DeleteCycleCollectable(void* p)                         \
+  constexpr explicit NS_CYCLE_COLLECTION_INNERCLASS (bool aSkip = false)    \
+    : nsXPCOMCycleCollectionParticipant(aSkip) {}                           \
+                                                                            \
+  NS_IMETHOD_(void) Unlink(void *p) override;                               \
+  NS_IMETHOD TraverseNative(void *p, nsCycleCollectionTraversalCallback &cb)\
+    override;                                                               \
+  NS_DECL_CYCLE_COLLECTION_CLASS_NAME_METHOD(_class)                        \
+  NS_IMETHOD_(void) DeleteCycleCollectable(void* p) override                \
   {                                                                         \
     NS_CYCLE_COLLECTION_CLASSNAME(_class)::                                 \
       Downcast(static_cast<nsISupports*>(p))->DeleteCycleCollectable();     \
@@ -103,9 +108,9 @@ static NS_CYCLE_COLLECTION_INNERCLASS NS_CYCLE_COLLECTION_INNERNAME;
 
 // Put this in your class's constructor:
 #define NS_INIT_AGGREGATED(outer)                                           \
-  PR_BEGIN_MACRO                                                            \
+  do {                                                                      \
     fOuter = outer ? outer : &fAggregated;                                  \
-  PR_END_MACRO
+  } while(0)
 
 
 // Put this in your class's implementation file:
@@ -247,8 +252,23 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsAggregatedCycleCollectionParticipant,
 #define NS_INTERFACE_MAP_BEGIN_AGGREGATED(_class)                           \
   NS_IMPL_AGGREGATED_QUERY_HEAD(_class)
 
+#define NS_IMPL_QUERY_CYCLE_COLLECTION(_class)                              \
+  if ( aIID.Equals(NS_GET_IID(nsXPCOMCycleCollectionParticipant)) ) {       \
+    *aInstancePtr = NS_CYCLE_COLLECTION_PARTICIPANT(_class);                \
+    return NS_OK;                                                           \
+  } else
+
 #define NS_INTERFACE_MAP_ENTRY_CYCLE_COLLECTION_AGGREGATED(_class)          \
   NS_IMPL_QUERY_CYCLE_COLLECTION(_class)
+
+#define NS_IMPL_QUERY_CYCLE_COLLECTION_ISUPPORTS(_class)                    \
+  if ( aIID.Equals(NS_GET_IID(nsCycleCollectionISupports)) ) {              \
+    *aInstancePtr = NS_CYCLE_COLLECTION_CLASSNAME(_class)::Upcast(this);    \
+    return NS_OK;                                                           \
+  } else
+
+#define NS_INTERFACE_MAP_ENTRY_CYCLE_COLLECTION_ISUPPORTS(_class)           \
+  NS_IMPL_QUERY_CYCLE_COLLECTION_ISUPPORTS(_class)
 
 #define NS_INTERFACE_MAP_ENTRIES_CYCLE_COLLECTION_AGGREGATED(_class)        \
   NS_INTERFACE_MAP_ENTRY_CYCLE_COLLECTION_AGGREGATED(_class)                \
@@ -276,7 +296,7 @@ _class::AggregatedQueryInterface(REFNSIID aIID, void** aInstancePtr)        \
 
 #define NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_AGGREGATED(_class)          \
   NS_IMETHODIMP                                                             \
-  NS_CYCLE_COLLECTION_CLASSNAME(_class)::Traverse                           \
+  NS_CYCLE_COLLECTION_CLASSNAME(_class)::TraverseNative                     \
                          (void *p, nsCycleCollectionTraversalCallback &cb)  \
   {                                                                         \
     nsISupports *s = static_cast<nsISupports*>(p);                          \
@@ -295,16 +315,13 @@ _InstanceClass##Constructor(nsISupports *aOuter, REFNSIID aIID,             \
     if (NS_WARN_IF(aOuter && !aIID.Equals(NS_GET_IID(nsISupports))))        \
         return NS_ERROR_INVALID_ARG;                                        \
                                                                             \
-    _InstanceClass* inst = new _InstanceClass(aOuter);                      \
+    RefPtr<_InstanceClass> inst = new _InstanceClass(aOuter);               \
     if (!inst) {                                                            \
         return NS_ERROR_OUT_OF_MEMORY;                                      \
     }                                                                       \
                                                                             \
     nsISupports* inner = inst->InnerObject();                               \
     nsresult rv = inner->QueryInterface(aIID, aResult);                     \
-    if (NS_FAILED(rv)) {                                                    \
-        delete inst;                                                        \
-    }                                                                       \
                                                                             \
     return rv;                                                              \
 }                                                                           \
@@ -318,7 +335,7 @@ _InstanceClass##Constructor(nsISupports *aOuter, REFNSIID aIID,             \
     if (NS_WARN_IF(aOuter && !aIID.Equals(NS_GET_IID(nsISupports))))        \
         return NS_ERROR_INVALID_ARG;                                        \
                                                                             \
-    _InstanceClass* inst = new _InstanceClass(aOuter);                      \
+    RefPtr<_InstanceClass> inst = new _InstanceClass(aOuter);               \
     if (!inst) {                                                            \
         return NS_ERROR_OUT_OF_MEMORY;                                      \
     }                                                                       \

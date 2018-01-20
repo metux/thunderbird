@@ -12,7 +12,8 @@ const MOUSE_SCROLL_ZOOM = 3;
  * Controls the "full zoom" setting and its site-specific preferences.
  */
 var FullZoom = FullZoom || {
-  contentPrefs: Services.contentPrefs.QueryInterface(Components.interfaces.nsIContentPrefService2),
+  contentPrefs: Components.classes["@mozilla.org/content-pref/service;1"]
+                          .getService(Components.interfaces.nsIContentPrefService2),
 
   // Identifies the setting in the content prefs database.
   name: "browser.content.full-zoom",
@@ -364,6 +365,16 @@ function registerZoomManager() {
     else if (thisFactor == 200) {
       label = zoomBundle.getString("zoom.200.label");
       accessKey = zoomBundle.getString("zoom.200.accesskey");
+    }
+    else if (thisFactor == Math.round(ZoomManager.MIN * 100)) {
+      label = zoomBundle.getString("zoom.min.label")
+                        .replace(/%zoom%/, thisFactor);
+      accessKey = zoomBundle.getString("zoom.min.accesskey");
+    }
+    else if (thisFactor == Math.round(ZoomManager.MAX * 100)) {
+      label = zoomBundle.getString("zoom.max.label")
+                        .replace(/%zoom%/, thisFactor);
+      accessKey = zoomBundle.getString("zoom.max.accesskey");
     }
     else {
       label = zoomBundle.getString("zoom.value.label")

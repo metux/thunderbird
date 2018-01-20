@@ -8,11 +8,18 @@
 #ifndef mozilla_net_ChannelEventQueue_h
 #define mozilla_net_ChannelEventQueue_h
 
-#include <nsTArray.h>
-#include <nsAutoPtr.h>
+#include "nsTArray.h"
+#include "nsAutoPtr.h"
+#include "nsIEventTarget.h"
+#include "nsThreadUtils.h"
+#include "nsXULAppAPI.h"
+#include "mozilla/DebugOnly.h"
+#include "mozilla/Mutex.h"
+#include "mozilla/RecursiveMutex.h"
+#include "mozilla/UniquePtr.h"
+#include "mozilla/Unused.h"
 
 class nsISupports;
-class nsIEventTarget;
 
 namespace mozilla {
 namespace net {
@@ -23,6 +30,54 @@ class ChannelEvent
   ChannelEvent() { MOZ_COUNT_CTOR(ChannelEvent); }
   virtual ~ChannelEvent() { MOZ_COUNT_DTOR(ChannelEvent); }
   virtual void Run() = 0;
+  virtual already_AddRefed<nsIEventTarget> GetEventTarget() = 0;
+};
+
+// Note that MainThreadChannelEvent should not be used in child process since
+// GetEventTarget() directly returns an unlabeled event target.
+class MainThreadChannelEvent : public ChannelEvent
+{
+ public:
+  MainThreadChannelEvent() { MOZ_COUNT_CTOR(MainThreadChannelEvent); }
+  virtual ~MainThreadChannelEvent() { MOZ_COUNT_DTOR(MainThreadChannelEvent); }
+
+  already_AddRefed<nsIEventTarget>
+  GetEventTarget() override
+  {
+    MOZ_ASSERT(XRE_IsParentProcess());
+
+    return do_AddRef(GetMainThreadEventTarget());
+  }
+};
+
+// This event is designed to be only used for e10s child channels.
+// The goal is to force the child channel to implement GetNeckoTarget()
+// which should return a labeled main thread event target so that this
+// channel event can be dispatched correctly.
+template<typename T>
+class NeckoTargetChannelEvent : public ChannelEvent
+{
+public:
+  explicit NeckoTargetChannelEvent(T *aChild)
+    : mChild(aChild)
+  {
+    MOZ_COUNT_CTOR(NeckoTargetChannelEvent);
+  }
+  virtual ~NeckoTargetChannelEvent()
+  {
+    MOZ_COUNT_DTOR(NeckoTargetChannelEvent);
+  }
+
+  already_AddRefed<nsIEventTarget>
+  GetEventTarget() override
+  {
+    MOZ_ASSERT(mChild);
+
+    return mChild->GetNeckoTarget();
+  }
+
+protected:
+  T *mChild;
 };
 
 // Workaround for Necko re-entrancy dangers. We buffer IPDL messages in a
@@ -40,37 +95,41 @@ class ChannelEventQueue final
   explicit ChannelEventQueue(nsISupports *owner)
     : mSuspendCount(0)
     , mSuspended(false)
-    , mForced(false)
+    , mForcedCount(0)
     , mFlushing(false)
-    , mOwner(owner) {}
-
-  // Checks to determine if an IPDL-generated channel event can be processed
-  // immediately, or needs to be queued using Enqueue().
-  inline bool ShouldEnqueue();
+    , mOwner(owner)
+    , mMutex("ChannelEventQueue::mMutex")
+    , mRunningMutex("ChannelEventQueue::mRunningMutex")
+  {}
 
   // Puts IPDL-generated channel event into queue, to be run later
   // automatically when EndForcedQueueing and/or Resume is called.
-  inline void Enqueue(ChannelEvent* callback);
-  inline nsresult PrependEvents(nsTArray<nsAutoPtr<ChannelEvent> >& aEvents);
+  //
+  // @param aCallback - the ChannelEvent
+  // @param aAssertionWhenNotQueued - this optional param will be used in an
+  //   assertion when the event is executed directly.
+  inline void RunOrEnqueue(ChannelEvent* aCallback,
+                           bool aAssertionWhenNotQueued = false);
 
-  // After StartForcedQueueing is called, ShouldEnqueue() will return true and
-  // no events will be run/flushed until EndForcedQueueing is called.
+  // Append ChannelEvent in front of the event queue.
+  inline nsresult PrependEvent(UniquePtr<ChannelEvent>& aEvent);
+  inline nsresult PrependEvents(nsTArray<UniquePtr<ChannelEvent>>& aEvents);
+
+  // After StartForcedQueueing is called, RunOrEnqueue() will start enqueuing
+  // events that will be run/flushed when EndForcedQueueing is called.
   // - Note: queueing may still be required after EndForcedQueueing() (if the
-  //   queue is suspended, etc):  always call ShouldEnqueue() to determine
-  //   whether queueing is needed.
+  //   queue is suspended, etc):  always call RunOrEnqueue() to avoid race
+  //   conditions.
   inline void StartForcedQueueing();
   inline void EndForcedQueueing();
 
-  // Suspend/resume event queue.  ShouldEnqueue() will return true and no events
-  // will be run/flushed until resume is called.  These should be called when
-  // the channel owning the event queue is suspended/resumed.
-  inline void Suspend();
+  // Suspend/resume event queue.  RunOrEnqueue() will start enqueuing
+  // events and they will be run/flushed when resume is called.  These should be
+  // called when the channel owning the event queue is suspended/resumed.
+  void Suspend();
   // Resume flushes the queue asynchronously, i.e. items in queue will be
   // dispatched in a new event on the current thread.
   void Resume();
-
-  // Retargets delivery of events to the target thread specified.
-  nsresult RetargetDeliveryTo(nsIEventTarget* aTargetThread);
 
  private:
   // Private destructor, to discourage deletion outside of Release():
@@ -78,85 +137,172 @@ class ChannelEventQueue final
   {
   }
 
+  void SuspendInternal();
+  void ResumeInternal();
+
   inline void MaybeFlushQueue();
   void FlushQueue();
   inline void CompleteResume();
 
-  nsTArray<nsAutoPtr<ChannelEvent> > mEventQueue;
+  ChannelEvent* TakeEvent();
+
+  nsTArray<UniquePtr<ChannelEvent>> mEventQueue;
 
   uint32_t mSuspendCount;
-  bool     mSuspended;
-  bool mForced;
+  bool mSuspended;
+  uint32_t mForcedCount; // Support ForcedQueueing on multiple thread.
   bool mFlushing;
 
   // Keep ptr to avoid refcount cycle: only grab ref during flushing.
   nsISupports *mOwner;
 
-  // EventTarget for delivery of events to the correct thread.
-  nsCOMPtr<nsIEventTarget> mTargetThread;
+  // For atomic mEventQueue operation and state update
+  Mutex mMutex;
+
+  // To guarantee event execution order among threads
+  RecursiveMutex mRunningMutex;
 
   friend class AutoEventEnqueuer;
 };
 
-inline bool
-ChannelEventQueue::ShouldEnqueue()
-{
-  bool answer =  mForced || mSuspended || mFlushing;
-
-  MOZ_ASSERT(answer == true || mEventQueue.IsEmpty(),
-             "Should always enqueue if ChannelEventQueue not empty");
-
-  return answer;
-}
-
 inline void
-ChannelEventQueue::Enqueue(ChannelEvent* callback)
+ChannelEventQueue::RunOrEnqueue(ChannelEvent* aCallback,
+                                bool aAssertionWhenNotQueued)
 {
-  mEventQueue.AppendElement(callback);
+  MOZ_ASSERT(aCallback);
+
+  // Events execution could be a destruction of the channel (and our own
+  // destructor) unless we make sure its refcount doesn't drop to 0 while this
+  // method is running.
+  nsCOMPtr<nsISupports> kungFuDeathGrip(mOwner);
+  Unused << kungFuDeathGrip; // Not used in this function
+
+  // To avoid leaks.
+  UniquePtr<ChannelEvent> event(aCallback);
+
+  // To guarantee that the running event and all the events generated within
+  // it will be finished before events on other threads.
+  RecursiveMutexAutoLock lock(mRunningMutex);
+
+  {
+    MutexAutoLock lock(mMutex);
+
+    bool enqueue =  !!mForcedCount || mSuspended || mFlushing || !mEventQueue.IsEmpty();
+
+    if (enqueue) {
+      mEventQueue.AppendElement(Move(event));
+      return;
+    }
+
+    nsCOMPtr<nsIEventTarget> target = event->GetEventTarget();
+    MOZ_ASSERT(target);
+
+    bool isCurrentThread = false;
+    DebugOnly<nsresult> rv = target->IsOnCurrentThread(&isCurrentThread);
+    MOZ_ASSERT(NS_SUCCEEDED(rv));
+
+    if (!isCurrentThread) {
+      // Leverage Suspend/Resume mechanism to trigger flush procedure without
+      // creating a new one.
+      SuspendInternal();
+      mEventQueue.AppendElement(Move(event));
+      ResumeInternal();
+      return;
+    }
+  }
+
+  MOZ_RELEASE_ASSERT(!aAssertionWhenNotQueued);
+  event->Run();
 }
 
 inline void
 ChannelEventQueue::StartForcedQueueing()
 {
-  mForced = true;
+  MutexAutoLock lock(mMutex);
+  ++mForcedCount;
 }
 
 inline void
 ChannelEventQueue::EndForcedQueueing()
 {
-  mForced = false;
-  MaybeFlushQueue();
+  bool tryFlush = false;
+  {
+    MutexAutoLock lock(mMutex);
+    MOZ_ASSERT(mForcedCount > 0);
+    if(!--mForcedCount) {
+      tryFlush = true;
+    }
+  }
+
+  if (tryFlush) {
+    MaybeFlushQueue();
+  }
 }
 
 inline nsresult
-ChannelEventQueue::PrependEvents(nsTArray<nsAutoPtr<ChannelEvent> >& aEvents)
+ChannelEventQueue::PrependEvent(UniquePtr<ChannelEvent>& aEvent)
 {
-  if (!mEventQueue.InsertElementsAt(0, aEvents.Length())) {
+  MutexAutoLock lock(mMutex);
+
+  // Prepending event while no queue flush foreseen might cause the following
+  // channel events not run. This assertion here guarantee there must be a
+  // queue flush, either triggered by Resume or EndForcedQueueing, to execute
+  // the added event.
+  MOZ_ASSERT(mSuspended || !!mForcedCount);
+
+  UniquePtr<ChannelEvent>* newEvent =
+    mEventQueue.InsertElementAt(0, Move(aEvent));
+
+  if (!newEvent) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  return NS_OK;
+}
+
+inline nsresult
+ChannelEventQueue::PrependEvents(nsTArray<UniquePtr<ChannelEvent>>& aEvents)
+{
+  MutexAutoLock lock(mMutex);
+
+  // Prepending event while no queue flush foreseen might cause the following
+  // channel events not run. This assertion here guarantee there must be a
+  // queue flush, either triggered by Resume or EndForcedQueueing, to execute
+  // the added events.
+  MOZ_ASSERT(mSuspended || !!mForcedCount);
+
+  UniquePtr<ChannelEvent>* newEvents =
+    mEventQueue.InsertElementsAt(0, aEvents.Length());
+  if (!newEvents) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
   for (uint32_t i = 0; i < aEvents.Length(); i++) {
-    mEventQueue.ReplaceElementAt(i, aEvents[i].forget());
+    newEvents[i] = Move(aEvents[i]);
   }
-  return NS_OK;
-}
 
-inline void
-ChannelEventQueue::Suspend()
-{
-  mSuspended = true;
-  mSuspendCount++;
+  return NS_OK;
 }
 
 inline void
 ChannelEventQueue::CompleteResume()
 {
-  // channel may have been suspended again since Resume fired event to call this.
-  if (!mSuspendCount) {
-    // we need to remain logically suspended (for purposes of queuing incoming
-    // messages) until this point, else new incoming messages could run before
-    // queued ones.
-    mSuspended = false;
+  bool tryFlush = false;
+  {
+    MutexAutoLock lock(mMutex);
+
+    // channel may have been suspended again since Resume fired event to call
+    // this.
+    if (!mSuspendCount) {
+      // we need to remain logically suspended (for purposes of queuing incoming
+      // messages) until this point, else new incoming messages could run before
+      // queued ones.
+      mSuspended = false;
+      tryFlush = true;
+    }
+  }
+
+  if (tryFlush) {
     MaybeFlushQueue();
   }
 }
@@ -166,17 +312,29 @@ ChannelEventQueue::MaybeFlushQueue()
 {
   // Don't flush if forced queuing on, we're already being flushed, or
   // suspended, or there's nothing to flush
-  if (!mForced && !mFlushing && !mSuspended && !mEventQueue.IsEmpty())
+  bool flushQueue = false;
+
+  {
+    MutexAutoLock lock(mMutex);
+    flushQueue = !mForcedCount && !mFlushing && !mSuspended &&
+                 !mEventQueue.IsEmpty();
+  }
+
+  if (flushQueue) {
     FlushQueue();
+  }
 }
 
-// Ensures that ShouldEnqueue() will be true during its lifetime (letting
-// caller know incoming IPDL msgs should be queued). Flushes the queue when it
-// goes out of scope.
+// Ensures that RunOrEnqueue() will be collecting events during its lifetime
+// (letting caller know incoming IPDL msgs should be queued). Flushes the queue
+// when it goes out of scope.
 class MOZ_STACK_CLASS AutoEventEnqueuer
 {
  public:
-  explicit AutoEventEnqueuer(ChannelEventQueue *queue) : mEventQueue(queue) {
+  explicit AutoEventEnqueuer(ChannelEventQueue *queue)
+    : mEventQueue(queue)
+    , mOwner(queue->mOwner)
+  {
     mEventQueue->StartForcedQueueing();
   }
   ~AutoEventEnqueuer() {
@@ -184,6 +342,8 @@ class MOZ_STACK_CLASS AutoEventEnqueuer
   }
  private:
   RefPtr<ChannelEventQueue> mEventQueue;
+  // Ensure channel object lives longer than ChannelEventQueue.
+  nsCOMPtr<nsISupports> mOwner;
 };
 
 } // namespace net

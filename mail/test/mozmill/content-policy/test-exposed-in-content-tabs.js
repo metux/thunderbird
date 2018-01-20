@@ -1,22 +1,17 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 /**
  * The purpose of this test is to ensure that remote content can't gain access
  * to messages by loading their URIs.
  */
-
-//
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 var MODULE_NAME = 'test-exposed-in-content-tabs';
 
 var RELATIVE_ROOT = '../shared-modules';
 var MODULE_REQUIRES = ['folder-display-helpers', 'compose-helpers',
                        'content-tab-helpers'];
-var jumlib = {};
-Components.utils.import("resource://mozmill/modules/jum.js", jumlib);
-var elib = {};
-Components.utils.import('resource://mozmill/modules/elementslib.js', elib);
 
 var folder = null;
 var composeHelper = null;

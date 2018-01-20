@@ -4,54 +4,44 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef mozilla_ScopedNSSTypes_h
-#define mozilla_ScopedNSSTypes_h
+// This header provides smart pointers and various helpers for code that needs
+// to interact with NSS.
+
+#ifndef ScopedNSSTypes_h
+#define ScopedNSSTypes_h
 
 #include <limits>
+#include <memory>
 
-#include "NSSErrorsService.h"
+#include "cert.h"
+#include "cms.h"
+#include "cryptohi.h"
+#include "keyhi.h"
 #include "mozilla/Likely.h"
+#include "mozilla/UniquePtr.h"
+#include "nsDebug.h"
+#include "nsError.h"
+#include "NSSErrorsService.h"
+#include "pk11pub.h"
+#include "pkcs12.h"
+#include "prerror.h"
+#include "prio.h"
+#include "prmem.h"
+#include "sechash.h"
+#include "secmod.h"
+#include "secpkcs7.h"
+#include "secport.h"
+
 #ifndef MOZ_NO_MOZALLOC
 #include "mozilla/mozalloc_oom.h"
 #endif
-#include "mozilla/Scoped.h"
-#include "nsError.h"
-#include "nsDebug.h"
-#include "prio.h"
-#include "cert.h"
-#include "cms.h"
-#include "keyhi.h"
-#include "cryptohi.h"
-#include "pk11pub.h"
-#include "pkcs12.h"
-#include "sechash.h"
-#include "secpkcs7.h"
-#include "secport.h"
-#include "prerror.h"
-#include "secmod.h"
 
 namespace mozilla {
 
-// It is very common to cast between char* and uint8_t* when doing crypto stuff.
-// Here, we provide more type-safe wrappers around reinterpret_cast so you don't
-// shoot yourself in the foot by reinterpret_casting completely unrelated types.
-
-inline char *
-char_ptr_cast(uint8_t * p) { return reinterpret_cast<char *>(p); }
-
-inline const char *
-char_ptr_cast(const uint8_t * p) { return reinterpret_cast<const char *>(p); }
-
-inline uint8_t *
-uint8_t_ptr_cast(char * p) { return reinterpret_cast<uint8_t*>(p); }
-
-inline const uint8_t *
-uint8_t_ptr_cast(const char * p) { return reinterpret_cast<const uint8_t*>(p); }
-
 // NSPR APIs use PRStatus/PR_GetError and NSS APIs use SECStatus/PR_GetError to
-// report success/failure. This funtion makes it more convenient and *safer*
+// report success/failure. This function makes it more convenient and *safer*
 // to translate NSPR/NSS results to nsresult. It is safer because it
-// refuses to traslate any bad PRStatus/SECStatus into an NS_OK, even when the
+// refuses to translate any bad PRStatus/SECStatus into an NS_OK, even when the
 // NSPR/NSS function forgot to call PR_SetError. The actual enforcement of
 // this happens in mozilla::psm::GetXPCOMFromNSSError.
 // IMPORTANT: This must be called immediately after the function returning the
@@ -67,73 +57,26 @@ MapSECStatus(SECStatus rv)
   return mozilla::psm::GetXPCOMFromNSSError(PR_GetError());
 }
 
-// Alphabetical order by NSS type
-MOZ_TYPE_SPECIFIC_SCOPED_POINTER_TEMPLATE(ScopedPRFileDesc,
-                                          PRFileDesc,
-                                          PR_Close)
-MOZ_TYPE_SPECIFIC_SCOPED_POINTER_TEMPLATE(ScopedCERTCertificate,
-                                          CERTCertificate,
-                                          CERT_DestroyCertificate)
-MOZ_TYPE_SPECIFIC_SCOPED_POINTER_TEMPLATE(ScopedCERTCertificateList,
-                                          CERTCertificateList,
-                                          CERT_DestroyCertificateList)
-MOZ_TYPE_SPECIFIC_SCOPED_POINTER_TEMPLATE(ScopedCERTCertificateRequest,
-                                          CERTCertificateRequest,
-                                          CERT_DestroyCertificateRequest)
-MOZ_TYPE_SPECIFIC_SCOPED_POINTER_TEMPLATE(ScopedCERTCertList,
-                                          CERTCertList,
-                                          CERT_DestroyCertList)
-MOZ_TYPE_SPECIFIC_SCOPED_POINTER_TEMPLATE(ScopedCERTName,
-                                          CERTName,
-                                          CERT_DestroyName)
-MOZ_TYPE_SPECIFIC_SCOPED_POINTER_TEMPLATE(ScopedCERTOidSequence,
-                                          CERTOidSequence,
-                                          CERT_DestroyOidSequence)
-MOZ_TYPE_SPECIFIC_SCOPED_POINTER_TEMPLATE(ScopedCERTCertNicknames,
-                                          CERTCertNicknames,
-                                          CERT_FreeNicknames)
-MOZ_TYPE_SPECIFIC_SCOPED_POINTER_TEMPLATE(ScopedCERTSubjectPublicKeyInfo,
-                                          CERTSubjectPublicKeyInfo,
-                                          SECKEY_DestroySubjectPublicKeyInfo)
-MOZ_TYPE_SPECIFIC_SCOPED_POINTER_TEMPLATE(ScopedCERTValidity,
-                                          CERTValidity,
-                                          CERT_DestroyValidity)
-
-MOZ_TYPE_SPECIFIC_SCOPED_POINTER_TEMPLATE(ScopedNSSCMSMessage,
-                                          NSSCMSMessage,
-                                          NSS_CMSMessage_Destroy)
-MOZ_TYPE_SPECIFIC_SCOPED_POINTER_TEMPLATE(ScopedNSSCMSSignedData,
-                                          NSSCMSSignedData,
-                                          NSS_CMSSignedData_Destroy)
-
-namespace psm {
+namespace internal {
 
 inline void
 PK11_DestroyContext_true(PK11Context * ctx) {
   PK11_DestroyContext(ctx, true);
 }
 
-inline void
-SGN_DestroyContext_true(SGNContext* ctx) {
-  SGN_DestroyContext(ctx, true);
-}
+} // namespace internal
 
-inline void
-VFY_DestroyContext_true(VFYContext * ctx) {
-  VFY_DestroyContext(ctx, true);
-}
+// Emulates MOZ_TYPE_SPECIFIC_SCOPED_POINTER_TEMPLATE, but for UniquePtrs.
+#define MOZ_TYPE_SPECIFIC_UNIQUE_PTR_TEMPLATE(name, Type, Deleter) \
+struct name##DeletePolicy \
+{ \
+  void operator()(Type* aValue) { Deleter(aValue); } \
+}; \
+typedef std::unique_ptr<Type, name##DeletePolicy> name;
 
-} // namespace mozilla::psm
-
-MOZ_TYPE_SPECIFIC_SCOPED_POINTER_TEMPLATE(ScopedPK11Context,
-                                          PK11Context,
-                                          mozilla::psm::PK11_DestroyContext_true)
-MOZ_TYPE_SPECIFIC_SCOPED_POINTER_TEMPLATE(ScopedSGNContext,
-                                          SGNContext,
-                                          mozilla::psm::SGN_DestroyContext_true)
-MOZ_TYPE_SPECIFIC_SCOPED_POINTER_TEMPLATE(ScopedVFYContext,
-                                          VFYContext,
-                                          mozilla::psm::VFY_DestroyContext_true)
+MOZ_TYPE_SPECIFIC_UNIQUE_PTR_TEMPLATE(UniquePK11Context,
+                                      PK11Context,
+                                      internal::PK11_DestroyContext_true)
 
 /** A more convenient way of dealing with digests calculated into
  *  stack-allocated buffers. NSS must be initialized on the main thread before
@@ -151,25 +94,26 @@ MOZ_TYPE_SPECIFIC_SCOPED_POINTER_TEMPLATE(ScopedVFYContext,
  * Less typical usage, for digesting while doing streaming I/O and similar:
  *
  *   Digest digest;
- *   ScopedPK11Context digestContext(PK11_CreateDigestContext(SEC_OID_SHA1));
+ *   UniquePK11Context digestContext(PK11_CreateDigestContext(SEC_OID_SHA256));
  *   NS_ENSURE_TRUE(digestContext, NS_ERROR_OUT_OF_MEMORY);
- *   rv = MapSECStatus(PK11_DigestBegin(digestContext));
+ *   rv = MapSECStatus(PK11_DigestBegin(digestContext.get()));
  *   NS_ENSURE_SUCCESS(rv, rv);
  *   for (...) {
- *      rv = MapSECStatus(PK11_DigestOp(digestContext, ...));
+ *      rv = MapSECStatus(PK11_DigestOp(digestContext.get(), ...));
  *      NS_ENSURE_SUCCESS(rv, rv);
  *   }
- *   rv = digest.End(SEC_OID_SHA1, digestContext);
+ *   rv = digest.End(SEC_OID_SHA256, digestContext);
  *   NS_ENSURE_SUCCESS(rv, rv)
  */
 class Digest
 {
 public:
   Digest()
+  : mItemBuf()
   {
-    item.type = siBuffer;
-    item.data = buf;
-    item.len = 0;
+    mItem.type = siBuffer;
+    mItem.data = mItemBuf;
+    mItem.len = 0;
   }
 
   nsresult DigestBuf(SECOidTag hashAlg, const uint8_t * buf, uint32_t len)
@@ -179,23 +123,24 @@ public:
     }
     nsresult rv = SetLength(hashAlg);
     NS_ENSURE_SUCCESS(rv, rv);
-    return MapSECStatus(PK11_HashBuf(hashAlg, item.data, buf,
+    return MapSECStatus(PK11_HashBuf(hashAlg, mItem.data, buf,
                                      static_cast<int32_t>(len)));
   }
 
-  nsresult End(SECOidTag hashAlg, ScopedPK11Context & context)
+  nsresult End(SECOidTag hashAlg, UniquePK11Context& context)
   {
     nsresult rv = SetLength(hashAlg);
     NS_ENSURE_SUCCESS(rv, rv);
     uint32_t len;
-    rv = MapSECStatus(PK11_DigestFinal(context, item.data, &len, item.len));
+    rv = MapSECStatus(PK11_DigestFinal(context.get(), mItem.data, &len,
+                                       mItem.len));
     NS_ENSURE_SUCCESS(rv, rv);
     context = nullptr;
-    NS_ENSURE_TRUE(len == item.len, NS_ERROR_UNEXPECTED);
+    NS_ENSURE_TRUE(len == mItem.len, NS_ERROR_UNEXPECTED);
     return NS_OK;
   }
 
-  const SECItem & get() const { return item; }
+  const SECItem & get() const { return mItem; }
 
 private:
   nsresult SetLength(SECOidTag hashType)
@@ -208,10 +153,10 @@ private:
 #endif
     switch (hashType)
     {
-      case SEC_OID_SHA1:   item.len = SHA1_LENGTH;   break;
-      case SEC_OID_SHA256: item.len = SHA256_LENGTH; break;
-      case SEC_OID_SHA384: item.len = SHA384_LENGTH; break;
-      case SEC_OID_SHA512: item.len = SHA512_LENGTH; break;
+      case SEC_OID_SHA1:   mItem.len = SHA1_LENGTH;   break;
+      case SEC_OID_SHA256: mItem.len = SHA256_LENGTH; break;
+      case SEC_OID_SHA384: mItem.len = SHA384_LENGTH; break;
+      case SEC_OID_SHA512: mItem.len = SHA512_LENGTH; break;
       default:
         return NS_ERROR_INVALID_ARG;
     }
@@ -222,30 +167,10 @@ private:
     return NS_OK;
   }
 
-  uint8_t buf[HASH_LENGTH_MAX];
-  SECItem item;
+  uint8_t mItemBuf[HASH_LENGTH_MAX];
+  SECItem mItem;
 };
 
-MOZ_TYPE_SPECIFIC_SCOPED_POINTER_TEMPLATE(ScopedPK11SlotInfo,
-                                          PK11SlotInfo,
-                                          PK11_FreeSlot)
-MOZ_TYPE_SPECIFIC_SCOPED_POINTER_TEMPLATE(ScopedPK11SlotList,
-                                          PK11SlotList,
-                                          PK11_FreeSlotList)
-MOZ_TYPE_SPECIFIC_SCOPED_POINTER_TEMPLATE(ScopedPK11SymKey,
-                                          PK11SymKey,
-                                          PK11_FreeSymKey)
-MOZ_TYPE_SPECIFIC_SCOPED_POINTER_TEMPLATE(ScopedPK11GenericObject,
-                                          PK11GenericObject,
-                                          PK11_DestroyGenericObject)
-
-MOZ_TYPE_SPECIFIC_SCOPED_POINTER_TEMPLATE(ScopedSEC_PKCS7ContentInfo,
-                                          SEC_PKCS7ContentInfo,
-                                          SEC_PKCS7DestroyContentInfo)
-
-MOZ_TYPE_SPECIFIC_SCOPED_POINTER_TEMPLATE(ScopedSEC_PKCS12DecoderContext,
-                                          SEC_PKCS12DecoderContext,
-                                          SEC_PKCS12DecoderFinish)
 namespace internal {
 
 inline void
@@ -257,10 +182,6 @@ PORT_FreeArena_false(PLArenaPool* arena)
 }
 
 } // namespace internal
-
-MOZ_TYPE_SPECIFIC_SCOPED_POINTER_TEMPLATE(ScopedPLArenaPool,
-                                          PLArenaPool,
-                                          internal::PORT_FreeArena_false)
 
 // Wrapper around NSS's SECItem_AllocItem that handles OOM the same way as
 // other allocators.
@@ -301,6 +222,25 @@ public:
   }
 };
 
+class MOZ_RAII AutoSECMODListReadLock final
+{
+public:
+  AutoSECMODListReadLock()
+    : mLock(SECMOD_GetDefaultModuleListLock())
+  {
+    MOZ_ASSERT(mLock, "should have SECMOD lock (has NSS been initialized?)");
+    SECMOD_GetReadLock(mLock);
+  }
+
+  ~AutoSECMODListReadLock()
+  {
+    SECMOD_ReleaseReadLock(mLock);
+  }
+
+private:
+  SECMODListLock* mLock;
+};
+
 namespace internal {
 
 inline void SECITEM_FreeItem_true(SECItem * s)
@@ -318,28 +258,104 @@ inline void SECKEYEncryptedPrivateKeyInfo_true(SECKEYEncryptedPrivateKeyInfo * e
   return SECKEY_DestroyEncryptedPrivateKeyInfo(epki, PR_TRUE);
 }
 
+inline void VFY_DestroyContext_true(VFYContext * ctx)
+{
+  VFY_DestroyContext(ctx, true);
+}
+
 } // namespace internal
 
-MOZ_TYPE_SPECIFIC_SCOPED_POINTER_TEMPLATE(ScopedSECItem,
-                                          SECItem,
-                                          internal::SECITEM_FreeItem_true)
+MOZ_TYPE_SPECIFIC_UNIQUE_PTR_TEMPLATE(UniqueCERTCertificate,
+                                      CERTCertificate,
+                                      CERT_DestroyCertificate)
+MOZ_TYPE_SPECIFIC_UNIQUE_PTR_TEMPLATE(UniqueCERTCertificateList,
+                                      CERTCertificateList,
+                                      CERT_DestroyCertificateList)
+MOZ_TYPE_SPECIFIC_UNIQUE_PTR_TEMPLATE(UniqueCERTCertificatePolicies,
+                                      CERTCertificatePolicies,
+                                      CERT_DestroyCertificatePoliciesExtension)
+MOZ_TYPE_SPECIFIC_UNIQUE_PTR_TEMPLATE(UniqueCERTCertificateRequest,
+                                      CERTCertificateRequest,
+                                      CERT_DestroyCertificateRequest)
+MOZ_TYPE_SPECIFIC_UNIQUE_PTR_TEMPLATE(UniqueCERTCertList,
+                                      CERTCertList,
+                                      CERT_DestroyCertList)
+MOZ_TYPE_SPECIFIC_UNIQUE_PTR_TEMPLATE(UniqueCERTName,
+                                      CERTName,
+                                      CERT_DestroyName)
+MOZ_TYPE_SPECIFIC_UNIQUE_PTR_TEMPLATE(UniqueCERTOidSequence,
+                                      CERTOidSequence,
+                                      CERT_DestroyOidSequence)
+MOZ_TYPE_SPECIFIC_UNIQUE_PTR_TEMPLATE(UniqueCERTSubjectPublicKeyInfo,
+                                      CERTSubjectPublicKeyInfo,
+                                      SECKEY_DestroySubjectPublicKeyInfo)
+MOZ_TYPE_SPECIFIC_UNIQUE_PTR_TEMPLATE(UniqueCERTUserNotice,
+                                      CERTUserNotice,
+                                      CERT_DestroyUserNotice)
+MOZ_TYPE_SPECIFIC_UNIQUE_PTR_TEMPLATE(UniqueCERTValidity,
+                                      CERTValidity,
+                                      CERT_DestroyValidity)
 
-MOZ_TYPE_SPECIFIC_SCOPED_POINTER_TEMPLATE(ScopedSECKEYPrivateKey,
-                                          SECKEYPrivateKey,
-                                          SECKEY_DestroyPrivateKey)
-MOZ_TYPE_SPECIFIC_SCOPED_POINTER_TEMPLATE(ScopedSECKEYEncryptedPrivateKeyInfo,
-                                          SECKEYEncryptedPrivateKeyInfo,
-                                          internal::SECKEYEncryptedPrivateKeyInfo_true)
-MOZ_TYPE_SPECIFIC_SCOPED_POINTER_TEMPLATE(ScopedSECKEYPublicKey,
-                                          SECKEYPublicKey,
-                                          SECKEY_DestroyPublicKey)
-MOZ_TYPE_SPECIFIC_SCOPED_POINTER_TEMPLATE(ScopedSECAlgorithmID,
-                                          SECAlgorithmID,
-                                          internal::SECOID_DestroyAlgorithmID_true)
-MOZ_TYPE_SPECIFIC_SCOPED_POINTER_TEMPLATE(ScopedSECMODModule, SECMODModule,
-                                          SECMOD_DestroyModule)
+MOZ_TYPE_SPECIFIC_UNIQUE_PTR_TEMPLATE(UniqueHASHContext,
+                                      HASHContext,
+                                      HASH_Destroy)
 
+MOZ_TYPE_SPECIFIC_UNIQUE_PTR_TEMPLATE(UniqueNSSCMSMessage,
+                                      NSSCMSMessage,
+                                      NSS_CMSMessage_Destroy)
+MOZ_TYPE_SPECIFIC_UNIQUE_PTR_TEMPLATE(UniqueNSSCMSSignedData,
+                                      NSSCMSSignedData,
+                                      NSS_CMSSignedData_Destroy)
 
+MOZ_TYPE_SPECIFIC_UNIQUE_PTR_TEMPLATE(UniquePK11GenericObject,
+                                      PK11GenericObject,
+                                      PK11_DestroyGenericObject)
+MOZ_TYPE_SPECIFIC_UNIQUE_PTR_TEMPLATE(UniquePK11SlotInfo,
+                                      PK11SlotInfo,
+                                      PK11_FreeSlot)
+MOZ_TYPE_SPECIFIC_UNIQUE_PTR_TEMPLATE(UniquePK11SlotList,
+                                      PK11SlotList,
+                                      PK11_FreeSlotList)
+MOZ_TYPE_SPECIFIC_UNIQUE_PTR_TEMPLATE(UniquePK11SymKey,
+                                      PK11SymKey,
+                                      PK11_FreeSymKey)
+
+MOZ_TYPE_SPECIFIC_UNIQUE_PTR_TEMPLATE(UniquePLArenaPool,
+                                      PLArenaPool,
+                                      internal::PORT_FreeArena_false)
+MOZ_TYPE_SPECIFIC_UNIQUE_PTR_TEMPLATE(UniquePORTString,
+                                      char,
+                                      PORT_Free)
+MOZ_TYPE_SPECIFIC_UNIQUE_PTR_TEMPLATE(UniquePRFileDesc,
+                                      PRFileDesc,
+                                      PR_Close)
+MOZ_TYPE_SPECIFIC_UNIQUE_PTR_TEMPLATE(UniquePRString,
+                                      char,
+                                      PR_Free)
+
+MOZ_TYPE_SPECIFIC_UNIQUE_PTR_TEMPLATE(UniqueSECAlgorithmID,
+                                      SECAlgorithmID,
+                                      internal::SECOID_DestroyAlgorithmID_true)
+MOZ_TYPE_SPECIFIC_UNIQUE_PTR_TEMPLATE(UniqueSECItem,
+                                      SECItem,
+                                      internal::SECITEM_FreeItem_true)
+MOZ_TYPE_SPECIFIC_UNIQUE_PTR_TEMPLATE(UniqueSECKEYPrivateKey,
+                                      SECKEYPrivateKey,
+                                      SECKEY_DestroyPrivateKey)
+MOZ_TYPE_SPECIFIC_UNIQUE_PTR_TEMPLATE(UniqueSECKEYPublicKey,
+                                      SECKEYPublicKey,
+                                      SECKEY_DestroyPublicKey)
+MOZ_TYPE_SPECIFIC_UNIQUE_PTR_TEMPLATE(UniqueSECMODModule,
+                                      SECMODModule,
+                                      SECMOD_DestroyModule)
+
+MOZ_TYPE_SPECIFIC_UNIQUE_PTR_TEMPLATE(UniqueSGNDigestInfo,
+                                      SGNDigestInfo,
+                                      SGN_DestroyDigestInfo)
+
+MOZ_TYPE_SPECIFIC_UNIQUE_PTR_TEMPLATE(UniqueVFYContext,
+                                      VFYContext,
+                                      internal::VFY_DestroyContext_true)
 } // namespace mozilla
 
-#endif // mozilla_ScopedNSSTypes_h
+#endif // ScopedNSSTypes_h

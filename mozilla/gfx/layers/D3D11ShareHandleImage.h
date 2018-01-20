@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -8,7 +9,6 @@
 
 #include "mozilla/RefPtr.h"
 #include "ImageContainer.h"
-#include "nsAutoPtr.h"
 #include "d3d11.h"
 #include "mozilla/layers/TextureClient.h"
 #include "mozilla/layers/TextureD3D11.h"
@@ -20,7 +20,7 @@ namespace layers {
 class D3D11RecycleAllocator : public TextureClientRecycleAllocator
 {
 public:
-  explicit D3D11RecycleAllocator(CompositableForwarder* aAllocator,
+  explicit D3D11RecycleAllocator(KnowsCompositor* aAllocator,
                                  ID3D11Device* aDevice)
     : TextureClientRecycleAllocator(aAllocator)
     , mDevice(aDevice)
@@ -51,11 +51,11 @@ public:
                         const gfx::IntRect& aRect);
   ~D3D11ShareHandleImage() override {}
 
-  bool AllocateTexture(D3D11RecycleAllocator* aAllocator);
+  bool AllocateTexture(D3D11RecycleAllocator* aAllocator, ID3D11Device* aDevice);
 
   gfx::IntSize GetSize() override;
   virtual already_AddRefed<gfx::SourceSurface> GetAsSourceSurface() override;
-  virtual TextureClient* GetTextureClient(CompositableClient* aClient) override;
+  virtual TextureClient* GetTextureClient(KnowsCompositor* aForwarder) override;
   virtual gfx::IntRect GetPictureRect() override { return mPictureRect; }
 
   ID3D11Texture2D* GetTexture() const;
@@ -64,6 +64,7 @@ private:
   gfx::IntSize mSize;
   gfx::IntRect mPictureRect;
   RefPtr<TextureClient> mTextureClient;
+  RefPtr<ID3D11Texture2D> mTexture;
 };
 
 } // namepace layers

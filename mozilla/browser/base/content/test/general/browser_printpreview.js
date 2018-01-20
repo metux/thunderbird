@@ -1,19 +1,28 @@
+let ourTab;
+
 function test() {
   waitForExplicitFinish();
 
-  ok(!gInPrintPreviewMode,
-     "Should NOT be in print preview mode at starting this tests");
-  // Skip access key test on platforms which don't support access key.
-  if (!/Win|Linux/.test(navigator.platform)) {
-    openPrintPreview(testClosePrintPreviewWithEscKey);
-  } else {
-    openPrintPreview(testClosePrintPreviewWithAccessKey);
-  }
+  BrowserTestUtils.openNewForegroundTab(gBrowser, "about:home", true).then(function(tab) {
+    ourTab = tab;
+    ok(!gInPrintPreviewMode,
+       "Should NOT be in print preview mode at starting this tests");
+    // Skip access key test on platforms which don't support access key.
+    if (!/Win|Linux/.test(navigator.platform)) {
+      openPrintPreview(testClosePrintPreviewWithEscKey);
+    } else {
+      openPrintPreview(testClosePrintPreviewWithAccessKey);
+    }
+  });
+}
+
+function tidyUp() {
+  BrowserTestUtils.removeTab(ourTab).then(finish);
 }
 
 function testClosePrintPreviewWithAccessKey() {
   EventUtils.synthesizeKey("c", { altKey: true });
-  checkPrintPreviewClosed(function (aSucceeded) {
+  checkPrintPreviewClosed(function(aSucceeded) {
     ok(aSucceeded,
        "print preview mode should be finished by access key");
     openPrintPreview(testClosePrintPreviewWithEscKey);
@@ -22,7 +31,7 @@ function testClosePrintPreviewWithAccessKey() {
 
 function testClosePrintPreviewWithEscKey() {
   EventUtils.synthesizeKey("VK_ESCAPE", {});
-  checkPrintPreviewClosed(function (aSucceeded) {
+  checkPrintPreviewClosed(function(aSucceeded) {
     ok(aSucceeded,
        "print preview mode should be finished by Esc key press");
     openPrintPreview(testClosePrintPreviewWithClosingWindowShortcutKey);
@@ -31,35 +40,35 @@ function testClosePrintPreviewWithEscKey() {
 
 function testClosePrintPreviewWithClosingWindowShortcutKey() {
   EventUtils.synthesizeKey("w", { accelKey: true });
-  checkPrintPreviewClosed(function (aSucceeded) {
+  checkPrintPreviewClosed(function(aSucceeded) {
     ok(aSucceeded,
        "print preview mode should be finished by closing window shortcut key");
-    finish();
+    tidyUp();
   });
 }
 
 function openPrintPreview(aCallback) {
   document.getElementById("cmd_printPreview").doCommand();
-  executeSoon(function () {
+  executeSoon(function waitForPrintPreview() {
     if (gInPrintPreviewMode) {
       executeSoon(aCallback);
       return;
     }
-    executeSoon(arguments.callee);
+    executeSoon(waitForPrintPreview);
   });
 }
 
 function checkPrintPreviewClosed(aCallback) {
   let count = 0;
-  executeSoon(function () {
+  executeSoon(function waitForPrintPreviewClosed() {
     if (!gInPrintPreviewMode) {
-      executeSoon(function () { aCallback(count < 1000); });
+      executeSoon(function() { aCallback(count < 1000); });
       return;
     }
     if (++count == 1000) {
       // The test might fail.
       PrintUtils.exitPrintPreview();
     }
-    executeSoon(arguments.callee);
+    executeSoon(waitForPrintPreviewClosed);
   });
 }

@@ -4,18 +4,16 @@
 
 "use strict";
 
-const cssAutoCompleter  = require("devtools/client/sourceeditor/css-autocompleter");
-const {InspectorFront} = require("devtools/server/actors/inspector");
-const {TargetFactory} = require("devtools/client/framework/target");
-const { Cc, Ci } = require("chrome");
+const CSSCompleter = require("devtools/client/sourceeditor/css-autocompleter");
+const {InspectorFront} = require("devtools/shared/fronts/inspector");
 
 const CSS_URI = "http://mochi.test:8888/browser/devtools/client/sourceeditor" +
                 "/test/css_statemachine_testcases.css";
-const TESTS_URI = "http://mochi.test:8888/browser/devtools/client/sourceeditor" +
-                  "/test/css_autocompletion_tests.json";
+const TESTS_URI = "http://mochi.test:8888/browser/devtools/client" +
+                  "/sourceeditor/test/css_autocompletion_tests.json";
 
 const source = read(CSS_URI);
-const tests = eval(read(TESTS_URI));
+const {tests} = JSON.parse(read(TESTS_URI));
 
 const TEST_URI = "data:text/html;charset=UTF-8," + encodeURIComponent(
   ["<!DOCTYPE html>",
@@ -62,7 +60,9 @@ const TEST_URI = "data:text/html;charset=UTF-8," + encodeURIComponent(
    "  <div class='hidden-labels-box devtools-toolbarbutton devtools-menulist'></div>",
    "  <div class='devtools-menulist'></div>",
    "  <div class='devtools-menulist'></div>",
+   /* eslint-disable max-len */
    "  <tabs class='devtools-toolbarbutton'><tab></tab><tab></tab><tab></tab></tabs><tabs></tabs>",
+   /* eslint-enable max-len */
    "  <button class='category-name visible'></button>",
    "  <div class='devtools-toolbarbutton' label='true'>",
    "   <hbox class='toolbarbutton-menubutton-button'></hbox></div>",
@@ -70,22 +70,21 @@ const TEST_URI = "data:text/html;charset=UTF-8," + encodeURIComponent(
    " </html>"
   ].join("\n"));
 
-var doc = null;
-var index = 0;
-var completer = null;
-var progress;
-var progressDiv;
-var inspector;
+let doc = null;
+let index = 0;
+let completer = null;
+let progress;
+let progressDiv;
+let inspector;
 
 function test() {
   waitForExplicitFinish();
-  gBrowser.selectedTab = gBrowser.addTab();
-  gBrowser.selectedBrowser.addEventListener("load", function onload() {
-    gBrowser.selectedBrowser.removeEventListener("load", onload, true);
+  addTab(TEST_URI).then(function () {
+    /* eslint-disable mozilla/no-cpows-in-tests */
     doc = content.document;
+    /* eslint-enable mozilla/no-cpows-in-tests */
     runTests();
-  }, true);
-  content.location = TEST_URI;
+  });
 }
 
 function runTests() {
@@ -95,7 +94,8 @@ function runTests() {
   target.makeRemote().then(() => {
     inspector = InspectorFront(target.client, target.form);
     inspector.getWalker().then(walker => {
-      completer = new cssAutoCompleter({walker: walker});
+      completer = new CSSCompleter({walker: walker,
+                                    cssProperties: getClientCssProperties()});
       checkStateAndMoveOn();
     });
   });
@@ -107,13 +107,15 @@ function checkStateAndMoveOn() {
     return;
   }
 
-  let test = tests[index];
+  let [lineCh, expectedSuggestions] = tests[index];
+  let [line, ch] = lineCh;
+
   progress.dataset.progress = ++index;
-  progressDiv.style.width = 100*index/tests.length + "%";
-  completer.complete(limit(source, test[0]),
-                     {line: test[0][0], ch: test[0][1]}).then(suggestions => {
-    checkState(test[1], suggestions);
-  }).then(checkStateAndMoveOn);
+  progressDiv.style.width = 100 * index / tests.length + "%";
+
+  completer.complete(limit(source, lineCh), {line, ch})
+           .then(actualSuggestions => checkState(expectedSuggestions, actualSuggestions))
+           .then(checkStateAndMoveOn);
 }
 
 function checkState(expected, actual) {
@@ -126,7 +128,7 @@ function checkState(expected, actual) {
 
   for (let i = 0; i < actual.length; i++) {
     if (expected[i] != actual[i].label) {
-      ok (false, "Suggestion " + i + " of state " + index + " did not match up" +
+      ok(false, "Suggestion " + i + " of state " + index + " did not match up" +
                  ". Expected: " + expected[i] + ". Actual: " + actual[i].label);
       return;
     }

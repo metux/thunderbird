@@ -9,17 +9,15 @@
 #include <stdio.h>
 #include "nsCOMPtr.h"
 #include "nsIMsgFilterPlugin.h"
-#include "nsISemanticUnitScanner.h"
 #include "PLDHashTable.h"
 #include "nsITimer.h"
 #include "nsTArray.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsWeakReference.h"
 #include "nsIObserver.h"
+#include "nsIWordBreaker.h"
 
-// XXX can't simply byte align arenas, must at least 2-byte align.
-#define PL_ARENA_CONST_ALIGN_MASK 1
-#include "plarena.h"
+#include "mozilla/ArenaAllocator.h"
 
 #define DEFAULT_MIN_INTERVAL_BETWEEN_WRITES             15*60*1000
 
@@ -35,8 +33,8 @@ struct CorpusToken;
 /**
  * Helper class to enumerate Token objects in a PLDHashTable
  * safely and without copying (see bugzilla #174859). The
- * enumeration is safe to use until a PL_DHASH_ADD
- * or PL_DHASH_REMOVE is performed on the table.
+ * enumeration is safe to use until an Add()
+ * or Remove() is performed on the table.
  */
 class TokenEnumeration {
 public:
@@ -97,7 +95,7 @@ public:
 
 protected:
     TokenHash(uint32_t entrySize);
-    PLArenaPool mWordPool;
+    mozilla::ArenaAllocator<16384, 2> mWordPool;
     uint32_t mEntrySize;
     PLDHashTable mTokenTable;
     char* copyWord(const char* word, uint32_t len);
@@ -151,9 +149,9 @@ private:
     nsresult stripHTML(const nsAString& inString, nsAString& outString);
     // helper function to escape \n, \t, etc from a CString
     void UnescapeCString(nsCString& aCString);
-
-private:
-    nsCOMPtr<nsISemanticUnitScanner> mScanner;
+    nsresult ScannerNext(const char16_t *text, int32_t length, int32_t pos,
+                         bool isLastBuffer, int32_t *begin, int32_t *end, bool *_retval);
+    nsCOMPtr<nsIWordBreaker> mWordBreaker;
 };
 
 /**

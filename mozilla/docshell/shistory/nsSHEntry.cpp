@@ -5,18 +5,21 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsSHEntry.h"
+
+#include <algorithm>
+
+#include "nsDocShellEditorData.h"
+#include "nsIContentViewer.h"
 #include "nsIDocShellLoadInfo.h"
 #include "nsIDocShellTreeItem.h"
-#include "nsDocShellEditorData.h"
-#include "nsSHEntryShared.h"
-#include "nsILayoutHistoryState.h"
-#include "nsIContentViewer.h"
-#include "nsISupportsArray.h"
-#include "nsIStructuredCloneContainer.h"
 #include "nsIInputStream.h"
+#include "nsILayoutHistoryState.h"
+#include "nsIStructuredCloneContainer.h"
 #include "nsIURI.h"
+#include "nsSHEntryShared.h"
+#include "nsSHistory.h"
+
 #include "mozilla/net/ReferrerPolicy.h"
-#include <algorithm>
 
 namespace dom = mozilla::dom;
 
@@ -24,15 +27,17 @@ static uint32_t gEntryID = 0;
 
 nsSHEntry::nsSHEntry()
   : mShared(new nsSHEntryShared())
-  , mLoadReplace(false)
-  , mReferrerPolicy(mozilla::net::RP_Default)
+  , mReferrerPolicy(mozilla::net::RP_Unset)
   , mLoadType(0)
   , mID(gEntryID++)
   , mScrollPositionX(0)
   , mScrollPositionY(0)
   , mParent(nullptr)
+  , mLoadReplace(false)
   , mURIWasModified(false)
   , mIsSrcdocEntry(false)
+  , mScrollRestorationIsManual(false)
+  , mLoadedInThisProcess(false)
 {
 }
 
@@ -40,7 +45,7 @@ nsSHEntry::nsSHEntry(const nsSHEntry& aOther)
   : mShared(aOther.mShared)
   , mURI(aOther.mURI)
   , mOriginalURI(aOther.mOriginalURI)
-  , mLoadReplace(aOther.mLoadReplace)
+  , mResultPrincipalURI(aOther.mResultPrincipalURI)
   , mReferrerURI(aOther.mReferrerURI)
   , mReferrerPolicy(aOther.mReferrerPolicy)
   , mTitle(aOther.mTitle)
@@ -50,27 +55,25 @@ nsSHEntry::nsSHEntry(const nsSHEntry& aOther)
   , mScrollPositionX(0)  // XXX why not copy?
   , mScrollPositionY(0)  // XXX why not copy?
   , mParent(aOther.mParent)
-  , mURIWasModified(aOther.mURIWasModified)
   , mStateData(aOther.mStateData)
-  , mIsSrcdocEntry(aOther.mIsSrcdocEntry)
   , mSrcdocData(aOther.mSrcdocData)
   , mBaseURI(aOther.mBaseURI)
+  , mLoadReplace(aOther.mLoadReplace)
+  , mURIWasModified(aOther.mURIWasModified)
+  , mIsSrcdocEntry(aOther.mIsSrcdocEntry)
+  , mScrollRestorationIsManual(false)
+  , mLoadedInThisProcess(aOther.mLoadedInThisProcess)
 {
-}
-
-static bool
-ClearParentPtr(nsISHEntry* aEntry, void* /* aData */)
-{
-  if (aEntry) {
-    aEntry->SetParent(nullptr);
-  }
-  return true;
 }
 
 nsSHEntry::~nsSHEntry()
 {
   // Null out the mParent pointers on all our kids.
-  mChildren.EnumerateForwards(ClearParentPtr, nullptr);
+  for (nsISHEntry* entry : mChildren) {
+    if (entry) {
+      entry->SetParent(nullptr);
+    }
+  }
 }
 
 NS_IMPL_ISUPPORTS(nsSHEntry, nsISHContainer, nsISHEntry, nsISHEntryInternal)
@@ -132,6 +135,21 @@ NS_IMETHODIMP
 nsSHEntry::SetOriginalURI(nsIURI* aOriginalURI)
 {
   mOriginalURI = aOriginalURI;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsSHEntry::GetResultPrincipalURI(nsIURI** aResultPrincipalURI)
+{
+  *aResultPrincipalURI = mResultPrincipalURI;
+  NS_IF_ADDREF(*aResultPrincipalURI);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsSHEntry::SetResultPrincipalURI(nsIURI* aResultPrincipalURI)
+{
+  mResultPrincipalURI = aResultPrincipalURI;
   return NS_OK;
 }
 
@@ -297,6 +315,19 @@ nsSHEntry::SetLayoutHistoryState(nsILayoutHistoryState* aState)
 }
 
 NS_IMETHODIMP
+nsSHEntry::InitLayoutHistoryState(nsILayoutHistoryState** aState)
+{
+  if (!mShared->mLayoutHistoryState) {
+    nsCOMPtr<nsILayoutHistoryState> historyState;
+    historyState = NS_NewLayoutHistoryState();
+    nsresult rv = SetLayoutHistoryState(historyState);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  return GetLayoutHistoryState(aState);
+}
+
+NS_IMETHODIMP
 nsSHEntry::GetLoadType(uint32_t* aResult)
 {
   *aResult = mLoadType;
@@ -410,9 +441,14 @@ nsSHEntry::Create(nsIURI* aURI, const nsAString& aTitle,
                   nsIInputStream* aInputStream,
                   nsILayoutHistoryState* aLayoutHistoryState,
                   nsISupports* aCacheKey, const nsACString& aContentType,
-                  nsISupports* aOwner, uint64_t aDocShellID,
+                  nsIPrincipal* aTriggeringPrincipal,
+                  nsIPrincipal* aPrincipalToInherit,
+                  const nsID& aDocShellID,
                   bool aDynamicCreation)
 {
+  MOZ_ASSERT(aTriggeringPrincipal,
+             "need a valid triggeringPrincipal to create a session history entry");
+
   mURI = aURI;
   mTitle = aTitle;
   mPostData = aInputStream;
@@ -422,7 +458,8 @@ nsSHEntry::Create(nsIURI* aURI, const nsAString& aTitle,
 
   mShared->mCacheKey = aCacheKey;
   mShared->mContentType = aContentType;
-  mShared->mOwner = aOwner;
+  mShared->mTriggeringPrincipal = aTriggeringPrincipal;
+  mShared->mPrincipalToInherit = aPrincipalToInherit;
   mShared->mDocShellID = aDocShellID;
   mShared->mDynamicallyCreated = aDynamicCreation;
 
@@ -439,7 +476,9 @@ nsSHEntry::Create(nsIURI* aURI, const nsAString& aTitle,
   mShared->mExpired = false;
 
   mIsSrcdocEntry = false;
-  mSrcdocData = NullString();
+  mSrcdocData = VoidString();
+
+  mLoadedInThisProcess = true;
 
   return NS_OK;
 }
@@ -502,16 +541,30 @@ nsSHEntry::GetViewerBounds(nsIntRect& aBounds)
 }
 
 NS_IMETHODIMP
-nsSHEntry::GetOwner(nsISupports** aOwner)
+nsSHEntry::GetTriggeringPrincipal(nsIPrincipal** aTriggeringPrincipal)
 {
-  NS_IF_ADDREF(*aOwner = mShared->mOwner);
+  NS_IF_ADDREF(*aTriggeringPrincipal = mShared->mTriggeringPrincipal);
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsSHEntry::SetOwner(nsISupports* aOwner)
+nsSHEntry::SetTriggeringPrincipal(nsIPrincipal* aTriggeringPrincipal)
 {
-  mShared->mOwner = aOwner;
+  mShared->mTriggeringPrincipal = aTriggeringPrincipal;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsSHEntry::GetPrincipalToInherit(nsIPrincipal** aPrincipalToInherit)
+{
+  NS_IF_ADDREF(*aPrincipalToInherit = mShared->mPrincipalToInherit);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsSHEntry::SetPrincipalToInherit(nsIPrincipal* aPrincipalToInherit)
+{
+  mShared->mPrincipalToInherit = aPrincipalToInherit;
   return NS_OK;
 }
 
@@ -595,6 +648,27 @@ NS_IMETHODIMP
 nsSHEntry::SetBaseURI(nsIURI* aBaseURI)
 {
   mBaseURI = aBaseURI;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsSHEntry::GetScrollRestorationIsManual(bool* aIsManual)
+{
+  *aIsManual = mScrollRestorationIsManual;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsSHEntry::SetScrollRestorationIsManual(bool aIsManual)
+{
+  mScrollRestorationIsManual = aIsManual;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsSHEntry::GetLoadedInThisProcess(bool* aLoadedInThisProcess)
+{
+  *aLoadedInThisProcess = mLoadedInThisProcess;
   return NS_OK;
 }
 
@@ -699,11 +773,7 @@ nsSHEntry::AddChild(nsISHEntry* aChild, int32_t aOffset)
       }
     }
 
-    if (!mChildren.ReplaceObjectAt(aChild, aOffset)) {
-      NS_WARNING("Adding a child failed!");
-      aChild->SetParent(nullptr);
-      return NS_ERROR_FAILURE;
-    }
+    mChildren.ReplaceObjectAt(aChild, aOffset);
   }
 
   return NS_OK;
@@ -721,7 +791,10 @@ nsSHEntry::RemoveChild(nsISHEntry* aChild)
   } else {
     int32_t index = mChildren.IndexOfObject(aChild);
     if (index >= 0) {
-      childRemoved = mChildren.ReplaceObjectAt(nullptr, index);
+      // Other alive non-dynamic child docshells still keep mChildOffset,
+      // so we don't want to change the indices here.
+      mChildren.ReplaceObjectAt(nullptr, index);
+      childRemoved = true;
     }
   }
   if (childRemoved) {
@@ -756,17 +829,13 @@ nsSHEntry::ReplaceChild(nsISHEntry* aNewEntry)
 {
   NS_ENSURE_STATE(aNewEntry);
 
-  uint64_t docshellID;
-  aNewEntry->GetDocshellID(&docshellID);
+  nsID docshellID = aNewEntry->DocshellID();
 
-  uint64_t otherID;
   for (int32_t i = 0; i < mChildren.Count(); ++i) {
-    if (mChildren[i] && NS_SUCCEEDED(mChildren[i]->GetDocshellID(&otherID)) &&
-        docshellID == otherID) {
+    if (mChildren[i] && docshellID == mChildren[i]->DocshellID()) {
       mChildren[i]->SetParent(nullptr);
-      if (mChildren.ReplaceObjectAt(aNewEntry, i)) {
-        return aNewEntry->SetParent(this);
-      }
+      mChildren.ReplaceObjectAt(aNewEntry, i);
+      return aNewEntry->SetParent(this);
     }
   }
   return NS_ERROR_FAILURE;
@@ -795,14 +864,14 @@ nsSHEntry::ClearChildShells()
 }
 
 NS_IMETHODIMP
-nsSHEntry::GetRefreshURIList(nsISupportsArray** aList)
+nsSHEntry::GetRefreshURIList(nsIMutableArray** aList)
 {
   NS_IF_ADDREF(*aList = mShared->mRefreshURIList);
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsSHEntry::SetRefreshURIList(nsISupportsArray* aList)
+nsSHEntry::SetRefreshURIList(nsIMutableArray* aList)
 {
   mShared->mRefreshURIList = aList;
   return NS_OK;
@@ -888,16 +957,22 @@ nsSHEntry::HasDynamicallyAddedChild(bool* aAdded)
 }
 
 NS_IMETHODIMP
-nsSHEntry::GetDocshellID(uint64_t* aID)
+nsSHEntry::GetDocshellID(nsID** aID)
 {
-  *aID = mShared->mDocShellID;
+  *aID = mShared->mDocShellID.Clone();
   return NS_OK;
 }
 
-NS_IMETHODIMP
-nsSHEntry::SetDocshellID(uint64_t aID)
+const nsID
+nsSHEntry::DocshellID()
 {
-  mShared->mDocShellID = aID;
+  return mShared->mDocShellID;
+}
+
+NS_IMETHODIMP
+nsSHEntry::SetDocshellID(const nsID* aID)
+{
+  mShared->mDocShellID = *aID;
   return NS_OK;
 }
 
@@ -912,5 +987,23 @@ NS_IMETHODIMP
 nsSHEntry::SetLastTouched(uint32_t aLastTouched)
 {
   mShared->mLastTouched = aLastTouched;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsSHEntry::GetSHistory(nsISHistory** aSHistory)
+{
+  nsCOMPtr<nsISHistory> shistory(do_QueryReferent(mShared->mSHistory));
+  shistory.forget(aSHistory);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsSHEntry::SetSHistory(nsISHistory* aSHistory)
+{
+  nsWeakPtr shistory = do_GetWeakReference(aSHistory);
+  // mSHistory can not be changed once it's set
+  MOZ_ASSERT(!mShared->mSHistory || (mShared->mSHistory == shistory));
+  mShared->mSHistory = shistory;
   return NS_OK;
 }

@@ -47,19 +47,19 @@ function run_test() {
 
         let file = rootUri + "install.rdf";
         do_check_true(a1.hasResource("install.rdf"));
-        uri = a1.getResourceURI("install.rdf")
+        uri = a1.getResourceURI("install.rdf");
         do_check_eq(uri.spec, file);
 
         file = rootUri + "icon.png";
         do_check_true(a1.hasResource("icon.png"));
-        uri = a1.getResourceURI("icon.png")
+        uri = a1.getResourceURI("icon.png");
         do_check_eq(uri.spec, file);
 
         do_check_false(a1.hasResource("missing.txt"));
 
         file = rootUri + "subdir/subfile.txt";
         do_check_true(a1.hasResource("subdir/subfile.txt"));
-        uri = a1.getResourceURI("subdir/subfile.txt")
+        uri = a1.getResourceURI("subdir/subfile.txt");
         do_check_eq(uri.spec, file);
 
         do_check_false(a1.hasResource("subdir/missing.txt"));
@@ -76,9 +76,9 @@ function run_test() {
         }
 
         AddonManager.getInstallForFile(do_get_addon("test_getresource"),
-            callback_soon(function(aInstall) {
+            callback_soon(function(aInstall_2) {
           do_check_false(a1.hasResource("icon.png"));
-          do_check_true(aInstall.addon.hasResource("icon.png"));
+          do_check_true(aInstall_2.addon.hasResource("icon.png"));
 
           restartManager();
 

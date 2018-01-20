@@ -1,11 +1,14 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
+"use strict";
+
 // Test that we compute census diffs.
 
 const {
   diffingState,
-  snapshotState
+  snapshotState,
+  viewState
 } = require("devtools/client/memory/constants");
 const {
   toggleDiffing,
@@ -15,18 +18,15 @@ const {
   takeSnapshot,
   readSnapshot
 } = require("devtools/client/memory/actions/snapshot");
-const { breakdownEquals } = require("devtools/client/memory/utils");
+const { changeView } = require("devtools/client/memory/actions/view");
 
-function run_test() {
-  run_next_test();
-}
-
-add_task(function *() {
+add_task(function* () {
   let front = new StubbedMemoryFront();
   let heapWorker = new HeapAnalysesClient();
   yield front.attach();
   let store = Store();
   const { getState, dispatch } = store;
+  dispatch(changeView(viewState.CENSUS));
 
   equal(getState().diffing, null, "not diffing by default");
 
@@ -36,9 +36,8 @@ add_task(function *() {
   dispatch(readSnapshot(heapWorker, s1));
   dispatch(readSnapshot(heapWorker, s2));
   dispatch(readSnapshot(heapWorker, s3));
-  yield waitUntilSnapshotState(store, [snapshotState.READ,
-                                       snapshotState.READ,
-                                       snapshotState.READ]);
+  yield waitUntilSnapshotState(store,
+    [snapshotState.READ, snapshotState.READ, snapshotState.READ]);
 
   dispatch(toggleDiffing());
   dispatch(selectSnapshotForDiffingAndRefresh(heapWorker,
@@ -63,11 +62,12 @@ add_task(function *() {
   ok(true, "And then the diff should complete.");
   ok(getState().diffing.census, "And we should have a census.");
   ok(getState().diffing.census.report, "And that census should have a report.");
-  ok(breakdownEquals(getState().diffing.census.breakdown, getState().breakdown),
-     "And that census should have the correct breakdown");
+  equal(getState().diffing.census.display, getState().censusDisplay,
+        "And that census should have the correct display");
   equal(getState().diffing.census.filter, getState().filter,
         "And that census should have the correct filter");
-  equal(getState().diffing.census.inverted, getState().inverted,
+  equal(getState().diffing.census.display.inverted,
+        getState().censusDisplay.inverted,
         "And that census should have the correct inversion");
 
   heapWorker.destroy();

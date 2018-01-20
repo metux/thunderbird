@@ -2,29 +2,31 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-(function load_gdata_manifest() {
-  Components.utils.import("resource:///modules/Services.jsm");
-  Services.prefs.setBoolPref("javascript.options.showInConsole", true);
-  Services.prefs.setBoolPref("browser.dom.window.dump.enabled", true);
-  Services.prefs.setBoolPref("calendar.debug.log", true);
-  Services.prefs.setBoolPref("calendar.debug.log.verbose", true);
+(function() {
+    Components.utils.import("resource://gre/modules/Services.jsm");
+    Services.prefs.setBoolPref("javascript.options.showInConsole", true);
+    Services.prefs.setBoolPref("browser.dom.window.dump.enabled", true);
+    Services.prefs.setBoolPref("calendar.debug.log", true);
+    Services.prefs.setBoolPref("calendar.debug.log.verbose", true);
 
-  let bindir = Services.dirsvc.get("CurProcD", Components.interfaces.nsIFile);
-  bindir.append("extensions");
-  bindir.append("{a62ef8ec-5fdc-40c2-873c-223b8a6925cc}");
-  bindir.append("chrome.manifest");
-  dump("Loading" + bindir.path + "\n");
-  Components.manager.autoRegister(bindir);
+    let bindir = Services.dirsvc.get("CurProcD", Components.interfaces.nsIFile);
+    bindir.append("extensions");
+    bindir.append("{a62ef8ec-5fdc-40c2-873c-223b8a6925cc}");
+    bindir.append("chrome.manifest");
+    dump("Loading" + bindir.path + "\n");
+    Components.manager.autoRegister(bindir);
 })();
 
 Components.utils.import("resource://testing-common/httpd.js");
 Components.utils.import("resource://gre/modules/NetUtil.jsm");
 Components.utils.import("resource://gre/modules/Preferences.jsm");
+Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 Components.utils.import("resource://gdata-provider/modules/gdataSession.jsm");
 Components.utils.import("resource://gdata-provider/modules/gdataUtils.jsm");
 Components.utils.import("resource://calendar/modules/calAsyncUtils.jsm");
 Components.utils.import("resource://calendar/modules/calProviderUtils.jsm");
+Components.utils.import("resource://testing-common/MockRegistrar.jsm");
 
 var gServer;
 
@@ -47,6 +49,25 @@ var MockConflictPrompt = {
         }
     }
 };
+
+function MockAlertsService() {}
+
+MockAlertsService.prototype = {
+    showAlertNotification: function() {
+    },
+    QueryInterface: XPCOMUtils.generateQI([
+        Ci.nsISupports,
+        Ci.nsIAlertsService
+    ])
+};
+
+function replaceAlertsService() {
+    let originalAlertsServiceCID =
+        MockRegistrar.register("@mozilla.org/alerts-service;1", MockAlertsService);
+    do_register_cleanup(() => {
+        MockRegistrar.unregister(originalAlertsServiceCID);
+    });
+}
 
 function GDataServer(calendarId, tasksId) {
     this.server = new HttpServer();
@@ -74,9 +95,9 @@ function GDataServer(calendarId, tasksId) {
         accessToken: "accessToken",
         refreshToken: "refreshToken",
         tokenExpires: Number.MAX_VALUE,
-        connect: function(succ, fail, ui, refresh) {
+        connect: function(success, failure, withUi, refresh) {
             this.accessToken = "accessToken";
-            succ();
+            success();
         }
     };
 }
@@ -105,58 +126,64 @@ GDataServer.prototype = {
         this.nextEventStatus = [];
 
         this.creator = {
-            "email": this.calendarId,
-            "self": true,
-            "displayName": "Eggs P. Seashell"
+            email: this.calendarId,
+            self: true,
+            displayName: "Eggs P. Seashell"
         };
 
         this.eventsData = {
-           "kind": "calendar#events",
-           "etag": "\"1410880601360000\"",
-           "nextSyncToken": generateID(),
-           "updated": "2014-09-16T15:16:41.360Z",
-           "accessRole": "owner",
-           "summary": "xpcshell",
-           "timeZone": "Europe/Berlin",
-           "defaultReminders": [],
-           "items": []
+            kind: "calendar#events",
+            etag: "\"1410880601360000\"",
+            nextSyncToken: generateID(),
+            updated: "2014-09-16T15:16:41.360Z",
+            accessRole: "owner",
+            summary: "xpcshell",
+            timeZone: "Europe/Berlin",
+            defaultReminders: [],
+            items: []
         };
 
         this.tasksData = {
-            "kind": "tasks#tasks",
-            "etag": "\"1410880601360000\"",
-            "items": []
+            kind: "tasks#tasks",
+            etag: "\"1410880601360000\"",
+            items: []
         };
 
         this.calendarListData = {
-            "kind": "calendar#calendarListEntry",
-            "etag": "\"1410084814736000\"",
-            "id": this.calendarId,
-            "summary": "xpcshell",
-            "timeZone": "Europe/Berlin",
-            "colorId": "17",
-            "backgroundColor": "#9a9cff",
-            "foregroundColor": "#000000",
-            "primary": true,
-            "selected": true,
-            "accessRole": "owner",
-            "defaultReminders": [],
-            "notificationSettings": {
-                "notifications": [
-                    { "type": "eventCreation", "method": "email" },
-                    { "type": "eventChange", "method": "email" },
-                    { "type": "eventCancellation",  "method": "email" }
+            kind: "calendar#calendarListEntry",
+            etag: "\"1410084814736000\"",
+            id: this.calendarId,
+            summary: "xpcshell",
+            timeZone: "Europe/Berlin",
+            colorId: "17",
+            backgroundColor: "#9a9cff",
+            foregroundColor: "#000000",
+            primary: true,
+            selected: true,
+            accessRole: "owner",
+            defaultReminders: [],
+            notificationSettings: {
+                notifications: [
+                    { type: "eventCreation", method: "email" },
+                    { type: "eventChange", method: "email" },
+                    { type: "eventCancellation", method: "email" }
                 ]
             }
         };
     },
 
     waitForLoad: function(aCalendar) {
-        return new Promise(function(resolve, reject) {
+        return new Promise((resolve, reject) => {
             let observer = cal.createAdapter(Components.interfaces.calIObserver, {
                 onLoad: function() {
+                    let uncached = aCalendar.wrappedJSObject.mUncachedCalendar.wrappedJSObject;
                     aCalendar.removeObserver(observer);
-                    resolve(aCalendar);
+
+                    if (Components.isSuccessCode(uncached._lastStatus)) {
+                        resolve(aCalendar);
+                    } else {
+                        reject(uncached._lastMessage);
+                    }
                 }
             });
             aCalendar.addObserver(observer);
@@ -169,10 +196,23 @@ GDataServer.prototype = {
                   (this.calendarId ? "&calendar=" + encodeURIComponent(this.calendarId) : "") +
                   (this.tasksId ? "&tasks=" + encodeURIComponent(this.tasksId) : "");
         let calmgr = cal.getCalendarManager();
-        let client = calmgr.createCalendar("gdata", Services.io.newURI(uri, null, null));
+        let client = calmgr.createCalendar("gdata", Services.io.newURI(uri));
+        let uclient = client.wrappedJSObject;
         client.name = "xpcshell";
+
+        // Make sure we catch the last error message in case sync fails
+        monkeyPatch(uclient, "replayChangesOn", (protofunc, aListener) => {
+            protofunc({
+                onResult: function(operation, detail) {
+                    uclient._lastStatus = operation.status;
+                    uclient._lastMessage = detail;
+                    aListener.onResult(operation, detail);
+                }
+            });
+        });
+
         calmgr.registerCalendar(client);
-        client.wrappedJSObject.mThrottleLimits = {};
+        uclient.mThrottleLimits = {};
         MockConflictPrompt.register();
 
         let cachedCalendar = calmgr.getCalendarById(client.id);
@@ -181,21 +221,24 @@ GDataServer.prototype = {
 
     router: function(nextHandler, request, response) {
         try {
-            let method = request.hasHeader("X-HTTP-Method-Override") ?
-                         request.getHeader("X-HTTP-Method-Override") :
-                         request.method;
-            let parameters = new Map([ p.split("=", 2) for (p of request.queryString.split("&")) ]);
+            let method = request.hasHeader("X-HTTP-Method-Override")
+                         ? request.getHeader("X-HTTP-Method-Override")
+                         : request.method;
+            let parameters = new Map(request.queryString.split("&").map(part => part.split("=", 2)));
 
             let body;
             try {
                 body = JSON.parse(NetUtil.readInputStreamToString(request.bodyInputStream,
                                   request.bodyInputStream.available()));
-            } catch (e) {}
+            } catch (e) {
+                // Don't bail if json parsing failed.
+            }
 
             this.lastMethod = method;
             return nextHandler(request, response, method, parameters, body);
         } catch (e) {
             do_print("Server Error: " + e.fileName + ":" + e.lineNumber + ": " + e + "\n");
+            return null;
         }
     },
 
@@ -231,14 +274,14 @@ GDataServer.prototype = {
                 this.paginateRequest(parameters, this.events, data);
             }
             response.write(JSON.stringify(data));
-         } else if (method == "POST") {
+        } else if (method == "POST") {
             // Add an event
             let isImport = request.path.endsWith("/events/import");
             let data = this.processAddEvent(body, isImport);
             this.events.push(data);
             response.setStatusLine(null, 201, "Created");
             response.write(JSON.stringify(data));
-         } else if ((method == "PUT" || method == "PATCH") && request.path.match(/\/events\/([a-z0-9_TZ]+)$/)) {
+        } else if ((method == "PUT" || method == "PATCH") && request.path.match(/\/events\/([a-z0-9_TZ]+)$/)) {
             // Modify an event
             let eventId = RegExp.$1;
             this.handleModify(request, response, body, this.events, eventId,
@@ -308,7 +351,7 @@ GDataServer.prototype = {
         } else if (body.recurringEventId) {
             // Special case for events, won't happen on tasks.  This is an
             // exception that doesn't exist yet. Allow creation in this case.
-            let [foundParentIndex, foundParent] = findKey(items, "id", body.recurringEventId);
+            let [, foundParent] = findKey(items, "id", body.recurringEventId);
             if (!matchTag || foundParent.etag == matchTag) {
                 let data = modifyFunc(body, itemId);
                 items.push(data);
@@ -324,7 +367,8 @@ GDataServer.prototype = {
     },
 
     handleDelete: function(request, response, items, itemId) {
-        let [foundIndex, foundItem] = findKey(items, "id", itemId);
+        // eslint-disable-next-line array-bracket-spacing
+        let [foundIndex, ] = findKey(items, "id", itemId);
 
         let matchTag = request.hasHeader("If-Match") ?
                        request.getHeader("If-Match") : null;
@@ -349,12 +393,22 @@ GDataServer.prototype = {
         jsonData.kind = "calendar#event";
         jsonData.etag = this.nextEtag || '"' + (new Date()).getTime() + '"';
         jsonData.id = generateID();
-        if (!isImport) jsonData.htmlLink = this.baseUri + "/calendar/event?eid=" + jsonData.id;
-        if (!isImport || !jsonData.iCalUID) jsonData.iCalUID = jsonData.id + "@google.com";
-        if (!isImport || !jsonData.created) jsonData.created = cal.toRFC3339(cal.now());
-        if (!isImport || !jsonData.updated) jsonData.updated = cal.toRFC3339(cal.now());
-        if (!isImport || !jsonData.creator) jsonData.creator = this.creator;
-        if (!isImport || !jsonData.organizer) jsonData.organizer = this.creator;
+        if (!isImport) { jsonData.htmlLink = this.baseUri + "/calendar/event?eid=" + jsonData.id; }
+        if (!isImport || !jsonData.iCalUID) {
+            jsonData.iCalUID = jsonData.id + "@google.com";
+        }
+        if (!isImport || !jsonData.created) {
+            jsonData.created = cal.toRFC3339(cal.now());
+        }
+        if (!isImport || !jsonData.updated) {
+            jsonData.updated = cal.toRFC3339(cal.now());
+        }
+        if (!isImport || !jsonData.creator) {
+            jsonData.creator = this.creator;
+        }
+        if (!isImport || !jsonData.organizer) {
+            jsonData.organizer = this.creator;
+        }
         this.nextEtag = null;
         return jsonData;
     },
@@ -362,11 +416,15 @@ GDataServer.prototype = {
     processModifyEvent: function(jsonData, id) {
         jsonData.kind = "calendar#event";
         jsonData.etag = this.nextEtag || '"' + (new Date()).getTime() + '"';
-        jsonData.updated  = cal.toRFC3339(cal.now());
+        jsonData.updated = cal.toRFC3339(cal.now());
         jsonData.id = id;
         jsonData.iCalUID = (jsonData.recurringEventId || jsonData.id) + "@google.com";
-        if (!jsonData.creator) jsonData.creator = this.creator;
-        if (!jsonData.organizer) jsonData.organizer = this.creator;
+        if (!jsonData.creator) {
+            jsonData.creator = this.creator;
+        }
+        if (!jsonData.organizer) {
+            jsonData.organizer = this.creator;
+        }
 
         this.nextEtag = null;
         return jsonData;
@@ -377,8 +435,12 @@ GDataServer.prototype = {
         jsonData.etag = this.nextEtag || '"' + (new Date()).getTime() + '"';
         jsonData.id = generateID();
         jsonData.position = generateID(); // Not a real position, but we don't really use this at the moment
-        if (!jsonData.status) jsonData.status = "needsAction";
-        if (!jsonData.updated) jsonData.updated = cal.toRFC3339(cal.now());
+        if (!jsonData.status) {
+            jsonData.status = "needsAction";
+        }
+        if (!jsonData.updated) {
+            jsonData.updated = cal.toRFC3339(cal.now());
+        }
 
         this.nextEtag = null;
         return jsonData;
@@ -387,9 +449,13 @@ GDataServer.prototype = {
     processModifyTask: function(jsonData) {
         jsonData.kind = "tasks#task";
         jsonData.etag = this.nextEtag || '"' + (new Date()).getTime() + '"';
-        jsonData.updated  = cal.toRFC3339(cal.now());
-        if (!jsonData.status) jsonData.status = "needsAction";
-        if (!jsonData.updated) jsonData.updated = cal.toRFC3339(cal.now());
+        jsonData.updated = cal.toRFC3339(cal.now());
+        if (!jsonData.status) {
+            jsonData.status = "needsAction";
+        }
+        if (!jsonData.updated) {
+            jsonData.updated = cal.toRFC3339(cal.now());
+        }
 
         this.nextEtag = null;
         return jsonData;
@@ -410,68 +476,77 @@ function findKey(container, key, searchKey) {
 }
 
 function generateID() {
-    let c = "abcdefghijklmnopqrstuvwxyz0123456789"
-    let s = "";
+    let chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+    let str = "";
     for (let i = 26; i; i--) {
-      s += c[Math.floor(Math.random() * c.length)];
+        str += chars[Math.floor(Math.random() * chars.length)];
     }
-    return s;
+    return str;
 }
 
 function getAllMeta(calendar) {
     let keys = {}, values = {};
     calendar.getAllMetaData({}, keys, values);
-    return new Map(keys.value.map((k,i) => [k,values.value[i]]));
+    return new Map(keys.value.map((k, i) => [k, values.value[i]]));
 }
 
 function run_test() {
+    replaceAlertsService();
+
+    // TODO: make do_calendar_startup to work with this test and replace the startup code here
     do_get_profile();
-    cal.getCalendarManager().startup({onResult: function() {
-        gServer = new GDataServer("xpcshell@example.com", "tasksId");
-        gServer.start();
-        cal.getTimezoneService().startup({onResult: function() {
-            run_next_test();
-        }});
-    }});
+    do_test_pending();
+    cal.getCalendarManager().startup({
+        onResult: function() {
+            gServer = new GDataServer("xpcshell@example.com", "tasksId");
+            gServer.start();
+            cal.getTimezoneService().startup({
+                onResult: function() {
+                    run_next_test();
+                    do_test_finished();
+                }
+            });
+        }
+    });
 }
 
 add_task(function* test_migrate_cache() {
     let uriString = "googleapi://xpcshell/?calendar=xpcshell%40example.com";
-    let uri = Services.io.newURI(uriString, null, null);
+    let uri = Services.io.newURI(uriString);
     let client = cal.getCalendarManager().createCalendar("gdata", uri);
     let unwrapped = client.wrappedJSObject;
     let migrateStorageCache = unwrapped.migrateStorageCache.bind(unwrapped);
 
-    monkeyPatch(unwrapped, "resetSync", function(protofunc) {
+    monkeyPatch(unwrapped, "resetSync", (protofunc) => {
         return Promise.resolve();
     });
 
     // No version, should not reset
-    equal((yield migrateStorageCache()), false);
+    equal(yield migrateStorageCache(), false);
     equal(client.getProperty("cache.version"), 3);
 
     // Check migrate 1 -> 2
     unwrapped.CACHE_DB_VERSION = 2;
     client.setProperty("cache.version", 1);
-    equal((yield migrateStorageCache()), true);
+    equal(yield migrateStorageCache(), true);
     equal(client.getProperty("cache.version"), 2);
 
     // Check migrate 2 -> 3 normal calendar
     unwrapped.CACHE_DB_VERSION = 3;
     client.setProperty("cache.version", 2);
-    equal((yield migrateStorageCache()), false);
+    equal(yield migrateStorageCache(), false);
 
     // Check migrate 2 -> 3 birthday calendar
     unwrapped.CACHE_DB_VERSION = 3;
     uri = "googleapi://xpcshell/?calendar=%23contacts%40group.v.calendar.google.com";
-    unwrapped.uri = Services.io.newURI(uri, null, null);
+    unwrapped.uri = Services.io.newURI(uri);
     client.setProperty("cache.version", 2);
-    equal((yield migrateStorageCache()), true);
+    equal(yield migrateStorageCache(), true);
 });
 
 add_test(function test_migrate_uri() {
     function checkMigrate(fromUri, session, calendarId, tasksId) {
-        let uri = Services.io.newURI(fromUri, null, null);
+        let uri = Services.io.newURI(fromUri);
         let client = cal.getCalendarManager().createCalendar("gdata", uri);
 
         if (session) {
@@ -535,107 +610,112 @@ add_task(function* test_dateToJSON() {
         return items[0].startDate;
     }
 
-    let tzProvider = cal.getTimezoneService();
-    let dt, vtimezone;
+    let date;
 
     // no timezone
-    dt = _createDateTime(cal.floating());
-    deepEqual(dateToJSON(dt), { "dateTime": "2015-01-30T12:00:00-00:00" });
+    date = _createDateTime(cal.floating());
+    deepEqual(dateToJSON(date), { dateTime: "2015-01-30T12:00:00-00:00" });
 
     // valid non-Olson tz name
-    dt = _createDateTime("Eastern Standard Time");
-    deepEqual(dateToJSON(dt), {"dateTime": "2015-01-30T12:00:00", "timeZone": "America/New_York"});
+    date = _createDateTime("Eastern Standard Time");
+    deepEqual(dateToJSON(date), { dateTime: "2015-01-30T12:00:00", timeZone: "America/New_York" });
 
     // valid continent/city Olson tz
-    dt = _createDateTime("America/New_York");
-    deepEqual(dateToJSON(dt), {"dateTime": "2015-01-30T12:00:00", "timeZone": "America/New_York"});
+    date = _createDateTime("America/New_York");
+    deepEqual(dateToJSON(date), { dateTime: "2015-01-30T12:00:00", timeZone: "America/New_York" });
 
     // valid continent/region/city Olson tz
-    dt = _createDateTime("America/Argentina/Buenos_Aires");
-    deepEqual(dateToJSON(dt), {"dateTime": "2015-01-30T12:00:00", "timeZone": "America/Argentina/Buenos_Aires"});
+    date = _createDateTime("America/Argentina/Buenos_Aires");
+    deepEqual(dateToJSON(date), { dateTime: "2015-01-30T12:00:00", timeZone: "America/Argentina/Buenos_Aires" });
 
     // ical.js and libical currently have slightly different timezone handling.
     if (Preferences.get("calendar.icaljs", false)) {
         // unknown but formal valid Olson tz. ical.js assumes floating
-        dt = _createDateTime("Unknown/Olson/Timezone");
-        deepEqual(dateToJSON(dt), {"dateTime": "2015-01-30T12:00:00-00:00" });
+        date = _createDateTime("Unknown/Olson/Timezone");
+        deepEqual(dateToJSON(date), { dateTime: "2015-01-30T12:00:00-00:00" });
 
         // Etc with offset. ical.js doesn't understand third party zones and uses floating
-        dt = _createDateTime("ThirdPartyZone", 5);
-        deepEqual(dateToJSON(dt), {"dateTime": "2015-01-30T12:00:00-00:00" });
+        date = _createDateTime("ThirdPartyZone", 5);
+        deepEqual(dateToJSON(date), { dateTime: "2015-01-30T12:00:00-00:00" });
 
         // Etc with zero offset. ical.js doesn't understand third party zones and uses floating
-        dt = _createDateTime("ThirdPartyZone", 0);
-        deepEqual(dateToJSON(dt), {"dateTime": "2015-01-30T12:00:00-00:00" });
+        date = _createDateTime("ThirdPartyZone", 0);
+        deepEqual(dateToJSON(date), { dateTime: "2015-01-30T12:00:00-00:00" });
     } else {
-        // unknown but formal valid Olson tz
-        dt = _createDateTime("Unknown/Olson/Timezone");
-        deepEqual(dateToJSON(dt), {"dateTime": "2015-01-30T12:00:00", "timeZone": "Unknown/Olson/Timezone"});
+        // This causes an assertion failure.
+        if (!mozinfo.debug) {
+            // unknown but formal valid Olson tz
+            date = _createDateTime("Unknown/Olson/Timezone");
+            deepEqual(dateToJSON(date), { dateTime: "2015-01-30T12:00:00", timeZone: "Unknown/Olson/Timezone" });
+        }
 
         // Etc with offset
-        dt = _createDateTime("ThirdPartyZone", 5);
-        deepEqual(dateToJSON(dt), {"dateTime": "2015-01-30T12:00:00", "timeZone": "Etc/GMT-5"});
+        date = _createDateTime("ThirdPartyZone", 5);
+        deepEqual(dateToJSON(date), { dateTime: "2015-01-30T12:00:00", timeZone: "Etc/GMT-5" });
 
         // Etc with zero offset
-        dt = _createDateTime("ThirdPartyZone", 0);
-        deepEqual(dateToJSON(dt), {"dateTime": "2015-01-30T12:00:00Z", "timeZone": "UTC"});
+        date = _createDateTime("ThirdPartyZone", 0);
+        deepEqual(dateToJSON(date), { dateTime: "2015-01-30T12:00:00Z", timeZone: "UTC" });
     }
 
-    // invalid non-Olson tz
-    dt = _createDateTime("InvalidTimeZone");
-    notEqual(dateToJSON(dt), {"dateTime": "2015-01-30T12:00:00", "timeZone": "InvalidTimeZone"});
+    // This causes an assertion failure.
+    if (!mozinfo.debug) {
+        // invalid non-Olson tz
+        date = _createDateTime("InvalidTimeZone");
+        notEqual(dateToJSON(date), { dateTime: "2015-01-30T12:00:00", timeZone: "InvalidTimeZone" });
+    }
 
     // Zone with 0 offset but not UTC
-    dt = _createDateTime("Europe/London");
-    deepEqual(dateToJSON(dt), {"dateTime": "2015-01-30T12:00:00", "timeZone": "Europe/London"});
+    date = _createDateTime("Europe/London");
+    deepEqual(dateToJSON(date), { dateTime: "2015-01-30T12:00:00", timeZone: "Europe/London" });
 
     // date only
-    dt.isDate = true;
-    deepEqual(dateToJSON(dt), {"date": "2015-01-30"});
+    date.isDate = true;
+    deepEqual(dateToJSON(date), { date: "2015-01-30" });
 });
 
 add_task(function* test_JSONToDate() {
     function convert(aEntry, aTimezone="Europe/Berlin") {
         let tzs = cal.getTimezoneService();
         let calendarTz = tzs.getTimezone(aTimezone);
-        let dt = JSONToDate(aEntry, calendarTz);
-        return dt ? dt.icalString + " in " + dt.timezone.tzid : null;
+        let date = JSONToDate(aEntry, calendarTz);
+        return date ? date.icalString + " in " + date.timezone.tzid : null;
     }
 
     // A date, using the passed in default timezone
-    equal(convert({ "date": "2015-01-02" }), "20150102 in Europe/Berlin");
+    equal(convert({ date: "2015-01-02" }), "20150102 in Europe/Berlin");
 
     // A date, with a timezone that has zero offset
-    equal(convert({ "date": "2015-01-02", "timeZone": "Africa/Accra" }), "20150102 in Africa/Accra");
+    equal(convert({ date: "2015-01-02", timeZone: "Africa/Accra" }), "20150102 in Africa/Accra");
 
     // A date, using a timezone with a nonzero offset that is not the default timezone
-    equal(convert({ "date": "2015-01-02", "timeZone": "Asia/Baku" }), "20150102 in Asia/Baku");
+    equal(convert({ date: "2015-01-02", timeZone: "Asia/Baku" }), "20150102 in Asia/Baku");
 
     // UTC date with and without timezone specified, with a calendar in a timezone without DST
-    equal(convert({ "dateTime": "2015-01-02T03:04:05Z", "timeZone": "UTC" }, "Africa/Accra"), "20150102T030405Z in UTC");
-    equal(convert({ "dateTime": "2015-01-02T03:04:05Z" }, "Africa/Accra"), "20150102T030405 in Africa/Accra");
+    equal(convert({ dateTime: "2015-01-02T03:04:05Z", timeZone: "UTC" }, "Africa/Accra"), "20150102T030405Z in UTC");
+    equal(convert({ dateTime: "2015-01-02T03:04:05Z" }, "Africa/Accra"), "20150102T030405 in Africa/Accra");
 
     // An America/Los_Angeles date-time viewed in Europe/Berlin
-    equal(convert({ "dateTime": "2015-12-01T21:13:14+01:00", "timeZone": "America/Los_Angeles" }), "20151201T121314 in America/Los_Angeles");
-    equal(convert({ "dateTime": "2015-07-01T21:13:14+02:00", "timeZone": "America/Los_Angeles" }), "20150701T121314 in America/Los_Angeles");
+    equal(convert({ dateTime: "2015-12-01T21:13:14+01:00", timeZone: "America/Los_Angeles" }), "20151201T121314 in America/Los_Angeles");
+    equal(convert({ dateTime: "2015-07-01T21:13:14+02:00", timeZone: "America/Los_Angeles" }), "20150701T121314 in America/Los_Angeles");
 
     // A timezone that is sometimes in GMT, get ready for: Europe/London!
-    equal(convert({ "dateTime": "2015-12-01T12:13:14Z", "timeZone": "Europe/London"}, "Europe/London"), "20151201T121314 in Europe/London");
-    equal(convert({ "dateTime": "2015-07-01T12:13:14+01:00", "timeZone": "Europe/London" }, "Europe/London"), "20150701T121314 in Europe/London");
+    equal(convert({ dateTime: "2015-12-01T12:13:14Z", timeZone: "Europe/London" }, "Europe/London"), "20151201T121314 in Europe/London");
+    equal(convert({ dateTime: "2015-07-01T12:13:14+01:00", timeZone: "Europe/London" }, "Europe/London"), "20150701T121314 in Europe/London");
 
     // An event in Los Angeles, with a calendar set to Asia/Baku
-    equal(convert({ "dateTime": "2015-07-01T12:13:14+05:00", "timeZone": "America/Los_Angeles" }, "Asia/Baku"), "20150701T001314 in America/Los_Angeles");
-    equal(convert({ "dateTime": "2015-12-01T12:13:14+04:00", "timeZone": "America/Los_Angeles" }, "Asia/Baku"), "20151201T001314 in America/Los_Angeles");
+    equal(convert({ dateTime: "2015-07-01T12:13:14+05:00", timeZone: "America/Los_Angeles" }, "Asia/Baku"), "20150701T001314 in America/Los_Angeles");
+    equal(convert({ dateTime: "2015-12-01T12:13:14+04:00", timeZone: "America/Los_Angeles" }, "Asia/Baku"), "20151201T001314 in America/Los_Angeles");
 
     // An event without specified timezone, with a calendar set to Asia/Baku
-    equal(convert({ "dateTime": "2015-07-01T12:13:14+04:00" }, "Asia/Baku"), "20150701T121314 in Asia/Baku");
+    equal(convert({ dateTime: "2015-07-01T12:13:14+04:00" }, "Asia/Baku"), "20150701T121314 in Asia/Baku");
 
     // An offset matching the passed in calendar timezone. This should NOT be Africa/Algiers
-    equal(convert({ "dateTime": "2015-01-02T03:04:05+01:00" }), "20150102T030405 in Europe/Berlin");
+    equal(convert({ dateTime: "2015-01-02T03:04:05+01:00" }), "20150102T030405 in Europe/Berlin");
 
     // An offset that doesn't match the calendar timezone, will use the first timezone in that offset
     do_print("The following warning is expected: 2015-01-02T03:04:05+04:00 does not match timezone offset for Europe/Berlin");
-    equal(convert({ "dateTime": "2015-01-02T03:04:05+05:00" }), "20150102T030405 in Antarctica/Mawson");
+    equal(convert({ dateTime: "2015-01-02T03:04:05+05:00" }), "20150102T030405 in Antarctica/Mawson");
 });
 
 add_task(function* test_organizerCN() {
@@ -645,17 +725,17 @@ add_task(function* test_organizerCN() {
     gServer.resetClient(client);
 
     gServer.events = [{
-       "kind": "calendar#event",
-       "etag": "\"2299601498276000\"",
-       "id": "go6ijb0b46hlpbu4eeu92njevo",
-       "created": "2006-06-08T21:04:52.000Z",
-       "updated": "2006-06-08T21:05:49.138Z",
-       "summary": "New Event",
-       "creator": gServer.creator,
-       "organizer": gServer.creator,
-       "start": { "dateTime": "2006-06-10T18:00:00+02:00" },
-       "end": {"dateTime": "2006-06-10T20:00:00+02:00" },
-       "iCalUID": "go6ijb0b46hlpbu4eeu92njevo@google.com"
+        kind: "calendar#event",
+        etag: "\"2299601498276000\"",
+        id: "go6ijb0b46hlpbu4eeu92njevo",
+        created: "2006-06-08T21:04:52.000Z",
+        updated: "2006-06-08T21:05:49.138Z",
+        summary: "New Event",
+        creator: gServer.creator,
+        organizer: gServer.creator,
+        start: { dateTime: "2006-06-10T18:00:00+02:00" },
+        end: { dateTime: "2006-06-10T20:00:00+02:00" },
+        iCalUID: "go6ijb0b46hlpbu4eeu92njevo@google.com"
     }];
     client = yield gServer.getClient();
     equal(client.getProperty("organizerCN"), gServer.creator.displayName);
@@ -664,24 +744,24 @@ add_task(function* test_organizerCN() {
 
 add_task(function* test_always_readOnly() {
     gServer.events = [{
-       "kind": "calendar#event",
-       "etag": "\"2299601498276000\"",
-       "id": "go6ijb0b46hlpbu4eeu92njevo",
-       "created": "2006-06-08T21:04:52.000Z",
-       "updated": "2006-06-08T21:05:49.138Z",
-       "summary": "New Event",
-       "creator": gServer.creator,
-       "organizer": gServer.creator,
-       "start": { "dateTime": "2006-06-10T18:00:00+02:00" },
-       "end": {"dateTime": "2006-06-10T20:00:00+02:00" },
-       "iCalUID": "go6ijb0b46hlpbu4eeu92njevo@google.com"
+        kind: "calendar#event",
+        etag: "\"2299601498276000\"",
+        id: "go6ijb0b46hlpbu4eeu92njevo",
+        created: "2006-06-08T21:04:52.000Z",
+        updated: "2006-06-08T21:05:49.138Z",
+        summary: "New Event",
+        creator: gServer.creator,
+        organizer: gServer.creator,
+        start: { dateTime: "2006-06-10T18:00:00+02:00" },
+        end: { dateTime: "2006-06-10T20:00:00+02:00" },
+        iCalUID: "go6ijb0b46hlpbu4eeu92njevo@google.com"
     }];
     gServer.calendarListData.accessRole = "freeBusyReader";
     let client = yield gServer.getClient();
     let pclient = cal.async.promisifyCalendar(client);
-    ok(client.readOnly)
+    ok(client.readOnly);
     client.readOnly = false;
-    ok(client.readOnly)
+    ok(client.readOnly);
 
     let items = yield pclient.getAllItems();
     equal(items.length, 1);
@@ -690,58 +770,56 @@ add_task(function* test_always_readOnly() {
 
     gServer.calendarListData.accessRole = "reader";
     client = yield gServer.getClient();
-    ok(client.readOnly)
+    ok(client.readOnly);
     client.readOnly = false;
-    ok(client.readOnly)
+    ok(client.readOnly);
     gServer.resetClient(client);
 });
 
 add_task(function* test_reset_sync() {
-    gServer.tasks = [
-       {
-        "kind": "tasks#task",
-        "id": "MTEyMDE2MDE5NzE0NjYzMDk4ODI6MDo0MDI1NDg2NjU",
-        "etag": "\"Lck7VNWFJuXdzMtOmrYPx0KFV2s/LTIwNjA4MDcyNDM\"",
-        "title": "New Task",
-        "updated": "2014-09-08T16:30:27.000Z",
-        "selfLink": gServer.baseUri + "/tasks/v1/lists/MTEyMDE2MDE5NzE0NjYzMDk4ODI6MDow/tasks/MTEyMDE2MDE5NzE0NjYzMDk4ODI6MDo0MDI1NDg2NjU",
-        "position": "00000000000000130998",
-        "status": "needsAction"
-      },{
-        "kind": "tasks#task",
-        "id": "MTEyMDE2MDE5NzE0NjYzMDk4ODI6MDo5OTU0Mjk2MzQ",
-        "etag": "\"Lck7VNWFJuXdzMtOmrYPx0KFV2s/LTQyNTY0MjUwOQ\"",
-        "title": "New Task 2",
-        "updated": "2014-09-08T16:30:27.000Z",
-        "selfLink": gServer.baseUri + "/tasks/v1/lists/MTEyMDE2MDE5NzE0NjYzMDk4ODI6MDow/tasks/MTEyMDE2MDE5NzE0NjYzMDk4ODI6MDo5OTU0Mjk2MzQ",
-        "position": "00000000000000130993",
-        "status": "needsAction"
-      }
-    ];
+    gServer.tasks = [{
+        kind: "tasks#task",
+        id: "MTEyMDE2MDE5NzE0NjYzMDk4ODI6MDo0MDI1NDg2NjU",
+        etag: "\"Lck7VNWFJuXdzMtOmrYPx0KFV2s/LTIwNjA4MDcyNDM\"",
+        title: "New Task",
+        updated: "2014-09-08T16:30:27.000Z",
+        selfLink: gServer.baseUri + "/tasks/v1/lists/MTEyMDE2MDE5NzE0NjYzMDk4ODI6MDow/tasks/MTEyMDE2MDE5NzE0NjYzMDk4ODI6MDo0MDI1NDg2NjU",
+        position: "00000000000000130998",
+        status: "needsAction"
+    }, {
+        kind: "tasks#task",
+        id: "MTEyMDE2MDE5NzE0NjYzMDk4ODI6MDo5OTU0Mjk2MzQ",
+        etag: "\"Lck7VNWFJuXdzMtOmrYPx0KFV2s/LTQyNTY0MjUwOQ\"",
+        title: "New Task 2",
+        updated: "2014-09-08T16:30:27.000Z",
+        selfLink: gServer.baseUri + "/tasks/v1/lists/MTEyMDE2MDE5NzE0NjYzMDk4ODI6MDow/tasks/MTEyMDE2MDE5NzE0NjYzMDk4ODI6MDo5OTU0Mjk2MzQ",
+        position: "00000000000000130993",
+        status: "needsAction"
+    }];
     gServer.events = [{
-       "kind": "calendar#event",
-       "etag": "\"1\"",
-       "id": "go6ijb0b46hlpbu4eeu92njevo",
-       "created": "2006-06-08T21:04:52.000Z",
-       "updated": "2006-06-08T21:05:49.138Z",
-       "summary": "New Event",
-       "creator": gServer.creator,
-       "organizer": gServer.creator,
-       "start": { "dateTime": "2006-06-10T18:00:00+02:00" },
-       "end": {"dateTime": "2006-06-10T20:00:00+02:00" },
-       "iCalUID": "go6ijb0b46hlpbu4eeu92njevo@google.com"
-    },{
-       "kind": "calendar#event",
-       "etag": "\"2\"",
-       "id": "fepf8uf6n7n04w7feukucs9n8e",
-       "created": "2006-06-08T21:04:52.000Z",
-       "updated": "2006-06-08T21:05:49.138Z",
-       "summary": "New Event 2",
-       "creator": gServer.creator,
-       "organizer": gServer.creator,
-       "start": { "dateTime": "2006-06-10T18:00:00+02:00" },
-       "end": {"dateTime": "2006-06-10T20:00:00+02:00" },
-       "iCalUID": "fepf8uf6n7n04w7feukucs9n8e@google.com"
+        kind: "calendar#event",
+        etag: "\"1\"",
+        id: "go6ijb0b46hlpbu4eeu92njevo",
+        created: "2006-06-08T21:04:52.000Z",
+        updated: "2006-06-08T21:05:49.138Z",
+        summary: "New Event",
+        creator: gServer.creator,
+        organizer: gServer.creator,
+        start: { dateTime: "2006-06-10T18:00:00+02:00" },
+        end: { dateTime: "2006-06-10T20:00:00+02:00" },
+        iCalUID: "go6ijb0b46hlpbu4eeu92njevo@google.com"
+    }, {
+        kind: "calendar#event",
+        etag: "\"2\"",
+        id: "fepf8uf6n7n04w7feukucs9n8e",
+        created: "2006-06-08T21:04:52.000Z",
+        updated: "2006-06-08T21:05:49.138Z",
+        summary: "New Event 2",
+        creator: gServer.creator,
+        organizer: gServer.creator,
+        start: { dateTime: "2006-06-10T18:00:00+02:00" },
+        end: { dateTime: "2006-06-10T20:00:00+02:00" },
+        iCalUID: "fepf8uf6n7n04w7feukucs9n8e@google.com"
     }];
     let client = yield gServer.getClient();
     let uncached = client.wrappedJSObject.mUncachedCalendar.wrappedJSObject;
@@ -764,74 +842,68 @@ add_task(function* test_reset_sync() {
 });
 
 add_task(function* test_basicItems() {
-    gServer.events = [
-      {
-         "kind": "calendar#event",
-         "etag": "\"2299601498276000\"",
-         "id": "go6ijb0b46hlpbu4eeu92njevo",
-         "status": "confirmed",
-         "htmlLink": gServer.baseUri + "/calendar/event?eid=eventhash",
-         "created": "2006-06-08T21:04:52.000Z",
-         "updated": "2006-06-08T21:05:49.138Z",
-         "summary": "New Event",
-         "description": "description",
-         "location": "Hard Drive",
-         "colorId": 17,
-         "creator": gServer.creator,
-         "organizer": gServer.creator,
-         "start": { "dateTime": "2006-06-10T18:00:00+02:00" },
-         "end": {"dateTime": "2006-06-10T20:00:00+02:00" },
-         "transparency": "transparent",
-         "visibility": "private",
-         "iCalUID": "go6ijb0b46hlpbu4eeu92njevo@google.com",
-         "sequence": 1,
-         "reminders": {
-            "useDefault": false,
-            "overrides": [{
-                "method": "email",
-                "minutes": 20
-             }]
-         },
-         "attendees": [{
-            "displayName": "attendee name",
-            "email": "attendee@example.com",
-            "optional": true,
-            "responseStatus": "tentative"
+    gServer.events = [{
+        kind: "calendar#event",
+        etag: "\"2299601498276000\"",
+        id: "go6ijb0b46hlpbu4eeu92njevo",
+        status: "confirmed",
+        htmlLink: gServer.baseUri + "/calendar/event?eid=eventhash",
+        created: "2006-06-08T21:04:52.000Z",
+        updated: "2006-06-08T21:05:49.138Z",
+        summary: "New Event",
+        description: "description",
+        location: "Hard Drive",
+        colorId: 17,
+        creator: gServer.creator,
+        organizer: gServer.creator,
+        start: { dateTime: "2006-06-10T18:00:00+02:00" },
+        end: { dateTime: "2006-06-10T20:00:00+02:00" },
+        transparency: "transparent",
+        visibility: "private",
+        iCalUID: "go6ijb0b46hlpbu4eeu92njevo@google.com",
+        sequence: 1,
+        reminders: {
+            useDefault: false,
+            overrides: [{
+                method: "email",
+                minutes: 20
+            }]
+        },
+        attendees: [{
+            displayName: "attendee name",
+            email: "attendee@example.com",
+            optional: true,
+            responseStatus: "tentative"
         }],
 
-        "extendedProperties": {
-          "shared": {
-            "X-MOZ-CATEGORIES": "foo,bar"
-          },
-          "private": {
-            "X-MOZ-LASTACK": "2014-01-01T01:01:01Z",
-            "X-MOZ-SNOOZE-TIME": "2014-01-01T02:02:02Z"
-          }
+        extendedProperties: {
+            "shared": { "X-MOZ-CATEGORIES": "foo,bar" },
+            "private": {
+                "X-MOZ-LASTACK": "2014-01-01T01:01:01Z",
+                "X-MOZ-SNOOZE-TIME": "2014-01-01T02:02:02Z"
+            }
         }
-      }
-    ];
+    }];
 
-    gServer.tasks = [
-       {
-        "kind": "tasks#task",
-        "id": "MTEyMDE2MDE5NzE0NjYzMDk4ODI6MDo0MDI1NDg2NjU",
-        "etag": "\"Lck7VNWFJuXdzMtOmrYPx0KFV2s/LTIwNjA4MDcyNDM\"",
-        "title": "New Task",
-        "updated": "2014-09-08T16:30:27.000Z",
-        "selfLink": gServer.baseUri + "/tasks/v1/lists/MTEyMDE2MDE5NzE0NjYzMDk4ODI6MDow/tasks/MTEyMDE2MDE5NzE0NjYzMDk4ODI6MDo0MDI1NDg2NjU",
-        "position": "00000000000000130998",
-        "status": "completed",
-        "due": "2014-09-04T00:00:00.000Z",
-        "completed": "2014-09-01T17:00:00.000Z",
-        "notes": "description",
-        "parent": "MTEyMDE2MDE5NzE0NjYzMDk4ODI6MDo4MDIzOTU2NDc",
-        "links": [{
-          "link": "mailto:something@example.com",
-          "description": "link description",
-          "type": "email"
+    gServer.tasks = [{
+        kind: "tasks#task",
+        id: "MTEyMDE2MDE5NzE0NjYzMDk4ODI6MDo0MDI1NDg2NjU",
+        etag: "\"Lck7VNWFJuXdzMtOmrYPx0KFV2s/LTIwNjA4MDcyNDM\"",
+        title: "New Task",
+        updated: "2014-09-08T16:30:27.000Z",
+        selfLink: gServer.baseUri + "/tasks/v1/lists/MTEyMDE2MDE5NzE0NjYzMDk4ODI6MDow/tasks/MTEyMDE2MDE5NzE0NjYzMDk4ODI6MDo0MDI1NDg2NjU",
+        position: "00000000000000130998",
+        status: "completed",
+        due: "2014-09-04T00:00:00.000Z",
+        completed: "2014-09-01T17:00:00.000Z",
+        notes: "description",
+        parent: "MTEyMDE2MDE5NzE0NjYzMDk4ODI6MDo4MDIzOTU2NDc",
+        links: [{
+            link: "mailto:something@example.com",
+            description: "link description",
+            type: "email"
         }]
-      }
-    ];
+    }];
 
     let client = yield gServer.getClient();
     let pclient = cal.async.promisifyCalendar(client);
@@ -839,7 +911,7 @@ add_task(function* test_basicItems() {
     let items = yield pclient.getAllItems();
     equal(items.length, 2);
 
-    let event = cal.isEvent(items[0]) ? items[0]: items[1];
+    let event = cal.isEvent(items[0]) ? items[0] : items[1];
     equal(event.id, "go6ijb0b46hlpbu4eeu92njevo@google.com");
     equal(event.getProperty("STATUS"), "CONFIRMED");
     equal(event.getProperty("URL"), gServer.baseUri + "/calendar/event?eid=eventhash");
@@ -955,7 +1027,7 @@ add_task(function* test_addModifyDeleteItem() {
     equal(items[0].id, addedEvent.id);
     equal(items[0].organizer.id, "mailto:xpcshell@example.com");
 
-    equal(gServer.events.length, 1)
+    equal(gServer.events.length, 1);
     equal(gServer.tasks.length, 0);
 
     // Add a task
@@ -966,7 +1038,7 @@ add_task(function* test_addModifyDeleteItem() {
     equal(items.length, 2);
     equal(items[1].id, addedTask.id);
 
-    equal(gServer.events.length, 1)
+    equal(gServer.events.length, 1);
     equal(gServer.tasks.length, 1);
 
     // Modify an event
@@ -1051,44 +1123,44 @@ add_task(function* test_recurring_exception() {
     gServer.syncs = [{
         token: "1",
         events: [{
-            "kind": "calendar#event",
-            "etag": "\"1\"",
-            "id": "go6ijb0b46hlpbu4eeu92njevo",
-            "created": "2006-06-08T21:04:52.000Z",
-            "updated": "2006-06-08T21:05:49.138Z",
-            "summary": "New Event",
-            "creator": gServer.creator,
-            "organizer": gServer.creator,
-            "start": { "dateTime": "2006-06-10T18:00:00+02:00" },
-            "end": {"dateTime": "2006-06-10T20:00:00+02:00" },
-            "iCalUID": "go6ijb0b46hlpbu4eeu92njevo@google.com",
-            "recurrence": [
+            kind: "calendar#event",
+            etag: "\"1\"",
+            id: "go6ijb0b46hlpbu4eeu92njevo",
+            created: "2006-06-08T21:04:52.000Z",
+            updated: "2006-06-08T21:05:49.138Z",
+            summary: "New Event",
+            creator: gServer.creator,
+            organizer: gServer.creator,
+            start: { dateTime: "2006-06-10T18:00:00+02:00" },
+            end: { dateTime: "2006-06-10T20:00:00+02:00" },
+            iCalUID: "go6ijb0b46hlpbu4eeu92njevo@google.com",
+            recurrence: [
                 "RRULE:FREQ=WEEKLY"
             ]
-        },{
-            "kind": "calendar#event",
-            "etag": "\"2\"",
-            "id": "go6ijb0b46hlpbu4eeu92njevo_20060617T160000Z",
-            "summary": "New Event changed",
-            "start": { "dateTime": "2006-06-17T18:00:00+02:00" },
-            "end": {"dateTime": "2006-06-17T20:00:00+02:00" },
-            "recurringEventId": "go6ijb0b46hlpbu4eeu92njevo",
-            "originalStartTime": { "dateTime": "2006-06-17T18:00:00+02:00" }
+        }, {
+            kind: "calendar#event",
+            etag: "\"2\"",
+            id: "go6ijb0b46hlpbu4eeu92njevo_20060617T160000Z",
+            summary: "New Event changed",
+            start: { dateTime: "2006-06-17T18:00:00+02:00" },
+            end: { dateTime: "2006-06-17T20:00:00+02:00" },
+            recurringEventId: "go6ijb0b46hlpbu4eeu92njevo",
+            originalStartTime: { dateTime: "2006-06-17T18:00:00+02:00" }
         }]
-    },{
+    }, {
         // This sync run tests an exception where the master item is not part
         // of the item stream.
         token: "2",
         events: [{
-            "kind": "calendar#event",
-            "etag": "\"3\"",
-            "id": "go6ijb0b46hlpbu4eeu92njevo_20060617T160000Z",
-            "summary": "New Event changed",
-            "start": { "dateTime": "2006-06-17T18:00:00+02:00" },
-            "end": {"dateTime": "2006-06-17T20:00:00+02:00" },
-            "status": "cancelled",
-            "recurringEventId": "go6ijb0b46hlpbu4eeu92njevo",
-            "originalStartTime": { "dateTime": "2006-06-17T18:00:00+02:00" }
+            kind: "calendar#event",
+            etag: "\"3\"",
+            id: "go6ijb0b46hlpbu4eeu92njevo_20060617T160000Z",
+            summary: "New Event changed",
+            start: { dateTime: "2006-06-17T18:00:00+02:00" },
+            end: { dateTime: "2006-06-17T20:00:00+02:00" },
+            status: "cancelled",
+            recurringEventId: "go6ijb0b46hlpbu4eeu92njevo",
+            originalStartTime: { dateTime: "2006-06-17T18:00:00+02:00" }
         }]
     }];
 
@@ -1112,6 +1184,33 @@ add_task(function* test_recurring_exception() {
 
     exIds = items[0].recurrenceInfo.getExceptionIds({});
     equal(exIds.length, 0);
+
+    gServer.resetClient(client);
+});
+
+add_task(function* test_recurring_cancelled_exception() {
+    gServer.syncs = [{
+        token: "1",
+        events: [{
+            kind: "calendar#event",
+            etag: "\"1\"",
+            id: "go6ijb0b46hlpbu4eeu92njevo",
+            status: "cancelled",
+        }, {
+            kind: "calendar#event",
+            etag: "\"2\"",
+            id: "go6ijb0b46hlpbu4eeu92njevo_20060617T160000Z",
+            status: "cancelled",
+            recurringEventId: "go6ijb0b46hlpbu4eeu92njevo",
+            originalStartTime: { dateTime: "2006-06-17T18:00:00+02:00" }
+        }]
+    }];
+
+    let client = yield gServer.getClient();
+    let pclient = cal.async.promisifyCalendar(client.wrappedJSObject);
+
+    let items = yield pclient.getAllItems();
+    equal(items.length, 0);
 
     gServer.resetClient(client);
 });
@@ -1149,38 +1248,36 @@ add_task(function* test_import_invitation() {
 add_task(function* test_modify_invitation() {
     Preferences.set("calendar.google.enableAttendees", true);
     let organizer = {
-        "displayName": "organizer name",
-        "email": "organizer@example.com",
-        "organizer": true,
-        "responseStatus": "tentative"
+        displayName: "organizer name",
+        email: "organizer@example.com",
+        organizer: true,
+        responseStatus: "tentative"
     };
     let attendee = Object.assign({}, gServer.creator);
     attendee.responseStatus = "needsAction";
 
-    gServer.events = [
-      {
-         "kind": "calendar#event",
-         "etag": "\"2299601498276000\"",
-         "id": "go6ijb0b46hlpbu4eeu92njevo",
-         "status": "confirmed",
-         "htmlLink": gServer.baseUri + "/calendar/event?eid=eventhash",
-         "created": "2006-06-08T21:04:52.000Z",
-         "updated": "2006-06-08T21:05:49.138Z",
-         "summary": "New Event",
-         "description": "description",
-         "location": "Hard Drive",
-         "colorId": 17,
-         "creator": organizer,
-         "organizer": organizer,
-         "start": { "dateTime": "2006-06-10T18:00:00+02:00" },
-         "end": {"dateTime": "2006-06-10T20:00:00+02:00" },
-         "transparency": "transparent",
-         "visibility": "private",
-         "iCalUID": "go6ijb0b46hlpbu4eeu92njevo@google.com",
-         "sequence": 1,
-         "attendees": [organizer, attendee],
-      }
-    ];
+    gServer.events = [{
+        kind: "calendar#event",
+        etag: "\"2299601498276000\"",
+        id: "go6ijb0b46hlpbu4eeu92njevo",
+        status: "confirmed",
+        htmlLink: gServer.baseUri + "/calendar/event?eid=eventhash",
+        created: "2006-06-08T21:04:52.000Z",
+        updated: "2006-06-08T21:05:49.138Z",
+        summary: "New Event",
+        description: "description",
+        location: "Hard Drive",
+        colorId: 17,
+        creator: organizer,
+        organizer: organizer,
+        start: { dateTime: "2006-06-10T18:00:00+02:00" },
+        end: { dateTime: "2006-06-10T20:00:00+02:00" },
+        transparency: "transparent",
+        visibility: "private",
+        iCalUID: "go6ijb0b46hlpbu4eeu92njevo@google.com",
+        sequence: 1,
+        attendees: [organizer, attendee],
+    }];
 
     // Case #1: User is attendee
     let client = yield gServer.getClient();
@@ -1202,7 +1299,7 @@ add_task(function* test_modify_invitation() {
     att.participationStatus = "ACCEPTED";
     newItem.addAttendee(att);
 
-    let modifiedItem = yield pclient.modifyItem(newItem, items[0]);
+    yield pclient.modifyItem(newItem, items[0]);
     equal(gServer.lastMethod, "PATCH");
 
     // Case #2: User is organizer
@@ -1214,9 +1311,9 @@ add_task(function* test_modify_invitation() {
     organizer.responseStatus = "accepted";
     organizer.organizer = true;
     attendee = {
-        "displayName": "attendee name",
-        "email": "attendee@example.com",
-        "responseStatus": "tentative"
+        displayName: "attendee name",
+        email: "attendee@example.com",
+        responseStatus: "tentative"
     };
 
     gServer.events[0].organizer = gServer.creator;
@@ -1250,32 +1347,27 @@ add_task(function* test_modify_invitation() {
 
 add_task(function* test_metadata() {
     gServer.events = [{
-        "kind": "calendar#event",
-        "etag": "\"1\"",
-        "id": "go6ijb0b46hlpbu4eeu92njevo",
-        "created": "2006-06-08T21:04:52.000Z",
-        "updated": "2006-06-08T21:05:49.138Z",
-        "summary": "New Event",
-        "creator": gServer.creator,
-        "organizer": gServer.creator,
-        "start": { "dateTime": "2006-06-10T18:00:00+02:00" },
-        "end": {"dateTime": "2006-06-10T20:00:00+02:00" },
-        "iCalUID": "go6ijb0b46hlpbu4eeu92njevo@google.com"
+        kind: "calendar#event",
+        etag: "\"1\"",
+        id: "go6ijb0b46hlpbu4eeu92njevo",
+        created: "2006-06-08T21:04:52.000Z",
+        updated: "2006-06-08T21:05:49.138Z",
+        summary: "New Event",
+        creator: gServer.creator,
+        organizer: gServer.creator,
+        start: { dateTime: "2006-06-10T18:00:00+02:00" },
+        end: { dateTime: "2006-06-10T20:00:00+02:00" },
+        iCalUID: "go6ijb0b46hlpbu4eeu92njevo@google.com"
     }];
     gServer.tasks = [{
-        "kind": "tasks#task",
-        "id": "MTEyMDE2MDE5NzE0NjYzMDk4ODI6MDo0MDI1NDg2NjU",
-        "etag": "\"2\"",
-        "title": "New Task",
-        "updated": "2014-09-08T16:30:27.000Z",
-        "selfLink": gServer.baseUri + "/tasks/v1/lists/MTEyMDE2MDE5NzE0NjYzMDk4ODI6MDow/tasks/MTEyMDE2MDE5NzE0NjYzMDk4ODI6MDo0MDI1NDg2NjU",
-        "notes": "description"
+        kind: "tasks#task",
+        id: "MTEyMDE2MDE5NzE0NjYzMDk4ODI6MDo0MDI1NDg2NjU",
+        etag: "\"2\"",
+        title: "New Task",
+        updated: "2014-09-08T16:30:27.000Z",
+        selfLink: gServer.baseUri + "/tasks/v1/lists/MTEyMDE2MDE5NzE0NjYzMDk4ODI6MDow/tasks/MTEyMDE2MDE5NzE0NjYzMDk4ODI6MDo0MDI1NDg2NjU",
+        notes: "description"
     }];
-
-    let idToEtag = {
-        "go6ijb0b46hlpbu4eeu92njevo@google.com": '"1"',
-        "MTEyMDE2MDE5NzE0NjYzMDk4ODI6MDo0MDI1NDg2NjU": '"2"'
-    }
 
     let client = yield gServer.getClient();
     let offline = client.wrappedJSObject.mCachedCalendar;
@@ -1353,38 +1445,38 @@ add_task(function* test_metadata() {
 
 add_task(function* test_metadata_recurring() {
     gServer.events = [{
-        "kind": "calendar#event",
-        "etag": "\"1\"",
-        "id": "go6ijb0b46hlpbu4eeu92njevo",
-        "created": "2006-06-08T21:04:52.000Z",
-        "updated": "2006-06-08T21:05:49.138Z",
-        "summary": "New Event",
-        "creator": gServer.creator,
-        "organizer": gServer.creator,
-        "start": { "dateTime": "2006-06-10T18:00:00+02:00" },
-        "end": {"dateTime": "2006-06-10T20:00:00+02:00" },
-        "iCalUID": "go6ijb0b46hlpbu4eeu92njevo@google.com",
-        "recurrence": [
+        kind: "calendar#event",
+        etag: "\"1\"",
+        id: "go6ijb0b46hlpbu4eeu92njevo",
+        created: "2006-06-08T21:04:52.000Z",
+        updated: "2006-06-08T21:05:49.138Z",
+        summary: "New Event",
+        creator: gServer.creator,
+        organizer: gServer.creator,
+        start: { dateTime: "2006-06-10T18:00:00+02:00" },
+        end: { dateTime: "2006-06-10T20:00:00+02:00" },
+        iCalUID: "go6ijb0b46hlpbu4eeu92njevo@google.com",
+        recurrence: [
             "RRULE:FREQ=WEEKLY"
         ]
-    },{
-        "kind": "calendar#event",
-        "etag": "\"2\"",
-        "id": "go6ijb0b46hlpbu4eeu92njevo_20060610T160000Z",
-        "summary": "New Event changed",
-        "start": { "dateTime": "2006-06-10T18:00:00+02:00" },
-        "end": {"dateTime": "2006-06-10T20:00:00+02:00" },
-        "recurringEventId": "go6ijb0b46hlpbu4eeu92njevo",
-        "originalStartTime": { "dateTime": "2006-06-10T18:00:00+02:00" }
-    },{
-        "kind": "calendar#event",
-        "etag": "\"3\"",
-        "id": "go6ijb0b46hlpbu4eeu92njevo_20060617T160000Z",
-        "summary": "New Event next week",
-        "start": { "dateTime": "2006-06-17T18:00:00+02:00" },
-        "end": {"dateTime": "2006-06-17T20:00:00+02:00" },
-        "recurringEventId": "go6ijb0b46hlpbu4eeu92njevo",
-        "originalStartTime": { "dateTime": "2006-06-17T18:00:00+02:00" }
+    }, {
+        kind: "calendar#event",
+        etag: "\"2\"",
+        id: "go6ijb0b46hlpbu4eeu92njevo_20060610T160000Z",
+        summary: "New Event changed",
+        start: { dateTime: "2006-06-10T18:00:00+02:00" },
+        end: { dateTime: "2006-06-10T20:00:00+02:00" },
+        recurringEventId: "go6ijb0b46hlpbu4eeu92njevo",
+        originalStartTime: { dateTime: "2006-06-10T18:00:00+02:00" }
+    }, {
+        kind: "calendar#event",
+        etag: "\"3\"",
+        id: "go6ijb0b46hlpbu4eeu92njevo_20060617T160000Z",
+        summary: "New Event next week",
+        start: { dateTime: "2006-06-17T18:00:00+02:00" },
+        end: { dateTime: "2006-06-17T20:00:00+02:00" },
+        recurringEventId: "go6ijb0b46hlpbu4eeu92njevo",
+        originalStartTime: { dateTime: "2006-06-17T18:00:00+02:00" }
     }];
 
     let client = yield gServer.getClient();
@@ -1432,17 +1524,17 @@ add_task(function* test_conflict_modify() {
     // skip adding tests for tasks here, but it probably wouldn't hurt to
     // create them at some point.
     gServer.events = [{
-       "kind": "calendar#event",
-       "etag": "\"1\"",
-       "id": "go6ijb0b46hlpbu4eeu92njevo",
-       "created": "2006-06-08T21:04:52.000Z",
-       "updated": "2006-06-08T21:05:49.138Z",
-       "summary": "New Event",
-       "creator": gServer.creator,
-       "organizer": gServer.creator,
-       "start": { "dateTime": "2006-06-10T18:00:00+02:00" },
-       "end": {"dateTime": "2006-06-10T20:00:00+02:00" },
-       "iCalUID": "go6ijb0b46hlpbu4eeu92njevo@google.com"
+        kind: "calendar#event",
+        etag: "\"1\"",
+        id: "go6ijb0b46hlpbu4eeu92njevo",
+        created: "2006-06-08T21:04:52.000Z",
+        updated: "2006-06-08T21:05:49.138Z",
+        summary: "New Event",
+        creator: gServer.creator,
+        organizer: gServer.creator,
+        start: { dateTime: "2006-06-10T18:00:00+02:00" },
+        end: { dateTime: "2006-06-10T20:00:00+02:00" },
+        iCalUID: "go6ijb0b46hlpbu4eeu92njevo@google.com"
     }];
     let client = yield gServer.getClient();
     let pclient = cal.async.promisifyCalendar(client.wrappedJSObject);
@@ -1457,7 +1549,7 @@ add_task(function* test_conflict_modify() {
     let modifiedItem = yield pclient.modifyItem(newItem, item);
     item = (yield pclient.getAllItems())[0];
     equal(gServer.events[0].summary, "local change");
-    notEqual(gServer.events[0].etag, '"2"')
+    notEqual(gServer.events[0].etag, '"2"');
     equal(item.title, "local change");
     equal(modifiedItem.title, "local change");
     equal(gServer.events.length, 1);
@@ -1469,15 +1561,18 @@ add_task(function* test_conflict_modify() {
     try {
         modifiedItem = yield pclient.modifyItem(newItem, item);
         do_throw("Expected modifyItem to be cancelled");
-    } catch (e if e == Components.interfaces.calIErrors.OPERATION_CANCELLED) {
+    } catch (e) {
         // Swallow cancelling the request
+        if (e != Components.interfaces.calIErrors.OPERATION_CANCELLED) {
+            throw e;
+        }
     }
 
     yield gServer.waitForLoad(client);
 
     item = (yield pclient.getAllItems())[0];
     equal(gServer.events[0].summary, "remote change");
-    equal(gServer.events[0].etag, '"3"')
+    equal(gServer.events[0].etag, '"3"');
     equal(item.title, "remote change");
 
     // Case #3: Modified on server, delete locally, don't overwrite conflict
@@ -1487,15 +1582,18 @@ add_task(function* test_conflict_modify() {
     try {
         yield pclient.deleteItem(item);
         do_throw("Expected deleteItem to be cancelled");
-    } catch (e if e == Components.interfaces.calIErrors.OPERATION_CANCELLED) {
+    } catch (e) {
         // Swallow cancelling the request
+        if (e != Components.interfaces.calIErrors.OPERATION_CANCELLED) {
+            throw e;
+        }
     }
 
     yield gServer.waitForLoad(client);
 
     item = (yield pclient.getAllItems())[0];
     equal(gServer.events[0].summary, "remote change");
-    equal(gServer.events[0].etag, '"4"')
+    equal(gServer.events[0].etag, '"4"');
     equal(item.title, "remote change");
 
     // Case #4: Modified on server, delete locally, overwrite conflict
@@ -1514,17 +1612,17 @@ add_task(function* test_conflict_delete() {
     // skip adding tests for tasks here, but it probably wouldn't hurt to
     // create them at some point.
     let coreEvent = {
-       "kind": "calendar#event",
-       "etag": "\"2\"",
-       "id": "go6ijb0b46hlpbu4eeu92njevo",
-       "created": "2006-06-08T21:04:52.000Z",
-       "updated": "2006-06-08T21:05:49.138Z",
-       "summary": "New Event",
-       "creator": gServer.creator,
-       "organizer": gServer.creator,
-       "start": { "dateTime": "2006-06-10T18:00:00+02:00" },
-       "end": {"dateTime": "2006-06-10T20:00:00+02:00" },
-       "iCalUID": "go6ijb0b46hlpbu4eeu92njevo@google.com"
+        kind: "calendar#event",
+        etag: "\"2\"",
+        id: "go6ijb0b46hlpbu4eeu92njevo",
+        created: "2006-06-08T21:04:52.000Z",
+        updated: "2006-06-08T21:05:49.138Z",
+        summary: "New Event",
+        creator: gServer.creator,
+        organizer: gServer.creator,
+        start: { dateTime: "2006-06-10T18:00:00+02:00" },
+        end: { dateTime: "2006-06-10T20:00:00+02:00" },
+        iCalUID: "go6ijb0b46hlpbu4eeu92njevo@google.com"
     };
 
     // Load intial event to server
@@ -1541,7 +1639,7 @@ add_task(function* test_conflict_delete() {
     let modifiedItem = yield pclient.modifyItem(newItem, item);
     item = (yield pclient.getAllItems())[0];
     equal(gServer.events[0].summary, "local change");
-    notEqual(gServer.events[0].etag, '"2"')
+    notEqual(gServer.events[0].etag, '"2"');
     equal(item.title, "local change");
     equal(modifiedItem.title, "local change");
     equal(gServer.events.length, 1);
@@ -1552,8 +1650,11 @@ add_task(function* test_conflict_delete() {
     try {
         modifiedItem = yield pclient.modifyItem(newItem, item);
         do_throw("Expected modifyItem to be cancelled");
-    } catch (e if e == Components.interfaces.calIErrors.OPERATION_CANCELLED) {
+    } catch (e) {
         // Swallow cancelling the request
+        if (e != Components.interfaces.calIErrors.OPERATION_CANCELLED) {
+            throw e;
+        }
     }
     // The next synchronize should cause the event to be deleted locally.
     coreEvent.status = "cancelled";
@@ -1578,8 +1679,11 @@ add_task(function* test_conflict_delete() {
     try {
         yield pclient.deleteItem(item);
         do_throw("Expected deleteItem to be cancelled");
-    } catch (e if e == Components.interfaces.calIErrors.OPERATION_CANCELLED) {
+    } catch (e) {
         // Swallow cancelling the request
+        if (e != Components.interfaces.calIErrors.OPERATION_CANCELLED) {
+            throw e;
+        }
     }
     // The next synchronize should cause the event to be deleted locally.
     coreEvent.status = "cancelled";
@@ -1614,18 +1718,18 @@ add_task(function* test_default_alarms() {
     gServer.calendarListData.defaultReminders = defaultReminders;
     gServer.eventsData.defaultReminders = defaultReminders;
     gServer.events = [{
-       "kind": "calendar#event",
-       "etag": "\"2\"",
-       "id": "go6ijb0b46hlpbu4eeu92njevo",
-       "created": "2006-06-08T21:04:52.000Z",
-       "updated": "2006-06-08T21:05:49.138Z",
-       "summary": "Default Reminder",
-       "creator": gServer.creator,
-       "organizer": gServer.creator,
-       "start": { "dateTime": "2006-06-10T18:00:00+02:00" },
-       "end": {"dateTime": "2006-06-10T20:00:00+02:00" },
-       "iCalUID": "go6ijb0b46hlpbu4eeu92njevo@google.com",
-       "reminders": { "useDefault": true }
+        kind: "calendar#event",
+        etag: "\"2\"",
+        id: "go6ijb0b46hlpbu4eeu92njevo",
+        created: "2006-06-08T21:04:52.000Z",
+        updated: "2006-06-08T21:05:49.138Z",
+        summary: "Default Reminder",
+        creator: gServer.creator,
+        organizer: gServer.creator,
+        start: { dateTime: "2006-06-10T18:00:00+02:00" },
+        end: { dateTime: "2006-06-10T20:00:00+02:00" },
+        iCalUID: "go6ijb0b46hlpbu4eeu92njevo@google.com",
+        reminders: { useDefault: true }
     }];
 
     // Case #1: read default alarms from event stream
@@ -1724,52 +1828,50 @@ add_task(function* test_default_alarms() {
 
 add_task(function* test_paginate() {
     gServer.events = [{
-       "kind": "calendar#event",
-       "etag": "\"1\"",
-       "id": "go6ijb0b46hlpbu4eeu92njevo",
-       "created": "2006-06-08T21:04:52.000Z",
-       "updated": "2006-06-08T21:05:49.138Z",
-       "summary": "New Event",
-       "creator": gServer.creator,
-       "organizer": gServer.creator,
-       "start": { "dateTime": "2006-06-10T18:00:00+02:00" },
-       "end": {"dateTime": "2006-06-10T20:00:00+02:00" },
-       "iCalUID": "go6ijb0b46hlpbu4eeu92njevo@google.com"
-    },{
-       "kind": "calendar#event",
-       "etag": "\"2\"",
-       "id": "fepf8uf6n7n04w7feukucs9n8e",
-       "created": "2006-06-08T21:04:52.000Z",
-       "updated": "2006-06-08T21:05:49.138Z",
-       "summary": "New Event 2",
-       "creator": gServer.creator,
-       "organizer": gServer.creator,
-       "start": { "dateTime": "2006-06-10T18:00:00+02:00" },
-       "end": {"dateTime": "2006-06-10T20:00:00+02:00" },
-       "iCalUID": "fepf8uf6n7n04w7feukucs9n8e@google.com"
+        kind: "calendar#event",
+        etag: "\"1\"",
+        id: "go6ijb0b46hlpbu4eeu92njevo",
+        created: "2006-06-08T21:04:52.000Z",
+        updated: "2006-06-08T21:05:49.138Z",
+        summary: "New Event",
+        creator: gServer.creator,
+        organizer: gServer.creator,
+        start: { dateTime: "2006-06-10T18:00:00+02:00" },
+        end: { dateTime: "2006-06-10T20:00:00+02:00" },
+        iCalUID: "go6ijb0b46hlpbu4eeu92njevo@google.com"
+    }, {
+        kind: "calendar#event",
+        etag: "\"2\"",
+        id: "fepf8uf6n7n04w7feukucs9n8e",
+        created: "2006-06-08T21:04:52.000Z",
+        updated: "2006-06-08T21:05:49.138Z",
+        summary: "New Event 2",
+        creator: gServer.creator,
+        organizer: gServer.creator,
+        start: { dateTime: "2006-06-10T18:00:00+02:00" },
+        end: { dateTime: "2006-06-10T20:00:00+02:00" },
+        iCalUID: "fepf8uf6n7n04w7feukucs9n8e@google.com"
     }];
 
-    gServer.tasks = [
-       {
-        "kind": "tasks#task",
-        "id": "MTEyMDE2MDE5NzE0NjYzMDk4ODI6MDo0MDI1NDg2NjU",
-        "etag": "\"Lck7VNWFJuXdzMtOmrYPx0KFV2s/LTIwNjA4MDcyNDM\"",
-        "title": "New Task",
-        "updated": "2014-09-08T16:30:27.000Z",
-        "selfLink": gServer.baseUri + "/tasks/v1/lists/MTEyMDE2MDE5NzE0NjYzMDk4ODI6MDow/tasks/MTEyMDE2MDE5NzE0NjYzMDk4ODI6MDo0MDI1NDg2NjU",
-        "position": "00000000000000130998",
-        "status": "needsAction"
-      },{
-        "kind": "tasks#task",
-        "id": "MTEyMDE2MDE5NzE0NjYzMDk4ODI6MDo5OTU0Mjk2MzQ",
-        "etag": "\"Lck7VNWFJuXdzMtOmrYPx0KFV2s/LTQyNTY0MjUwOQ\"",
-        "title": "New Task 2",
-        "updated": "2014-09-08T16:30:27.000Z",
-        "selfLink": gServer.baseUri + "/tasks/v1/lists/MTEyMDE2MDE5NzE0NjYzMDk4ODI6MDow/tasks/MTEyMDE2MDE5NzE0NjYzMDk4ODI6MDo5OTU0Mjk2MzQ",
-        "position": "00000000000000130993",
-        "status": "needsAction"
-      }
-    ];
+    gServer.tasks = [{
+        kind: "tasks#task",
+        id: "MTEyMDE2MDE5NzE0NjYzMDk4ODI6MDo0MDI1NDg2NjU",
+        etag: "\"Lck7VNWFJuXdzMtOmrYPx0KFV2s/LTIwNjA4MDcyNDM\"",
+        title: "New Task",
+        updated: "2014-09-08T16:30:27.000Z",
+        selfLink: gServer.baseUri + "/tasks/v1/lists/MTEyMDE2MDE5NzE0NjYzMDk4ODI6MDow/tasks/MTEyMDE2MDE5NzE0NjYzMDk4ODI6MDo0MDI1NDg2NjU",
+        position: "00000000000000130998",
+        status: "needsAction"
+    }, {
+        kind: "tasks#task",
+        id: "MTEyMDE2MDE5NzE0NjYzMDk4ODI6MDo5OTU0Mjk2MzQ",
+        etag: "\"Lck7VNWFJuXdzMtOmrYPx0KFV2s/LTQyNTY0MjUwOQ\"",
+        title: "New Task 2",
+        updated: "2014-09-08T16:30:27.000Z",
+        selfLink: gServer.baseUri + "/tasks/v1/lists/MTEyMDE2MDE5NzE0NjYzMDk4ODI6MDow/tasks/MTEyMDE2MDE5NzE0NjYzMDk4ODI6MDo5OTU0Mjk2MzQ",
+        position: "00000000000000130993",
+        status: "needsAction"
+    }];
 
     Preferences.set("calendar.google.maxResultsPerRequest", 1);
 
@@ -1795,35 +1897,35 @@ add_task(function* test_incremental_reset() {
     gServer.syncs = [{
         token: "1",
         events: [{
-            "kind": "calendar#event",
-            "etag": "\"1\"",
-            "id": "go6ijb0b46hlpbu4eeu92njevo",
-            "created": "2006-06-08T21:04:52.000Z",
-            "updated": "2006-06-08T21:05:49.138Z",
-            "summary": "New Event",
-            "creator": gServer.creator,
-            "organizer": gServer.creator,
-            "start": { "dateTime": "2006-06-10T18:00:00+02:00" },
-            "end": {"dateTime": "2006-06-10T20:00:00+02:00" },
-            "iCalUID": "go6ijb0b46hlpbu4eeu92njevo@google.com"
+            kind: "calendar#event",
+            etag: "\"1\"",
+            id: "go6ijb0b46hlpbu4eeu92njevo",
+            created: "2006-06-08T21:04:52.000Z",
+            updated: "2006-06-08T21:05:49.138Z",
+            summary: "New Event",
+            creator: gServer.creator,
+            organizer: gServer.creator,
+            start: { dateTime: "2006-06-10T18:00:00+02:00" },
+            end: { dateTime: "2006-06-10T20:00:00+02:00" },
+            iCalUID: "go6ijb0b46hlpbu4eeu92njevo@google.com"
         }]
-    },{
+    }, {
         token: "2",
         reset: true
-    },{
+    }, {
         token: "3",
         events: [{
-            "kind": "calendar#event",
-            "etag": "\"2\"",
-            "id": "fepf8uf6n7n04w7feukucs9n8e",
-            "created": "2006-06-08T21:04:52.000Z",
-            "updated": "2006-06-08T21:05:49.138Z",
-            "summary": "New Event 2",
-            "creator": gServer.creator,
-            "organizer": gServer.creator,
-            "start": { "dateTime": "2006-06-10T18:00:00+02:00" },
-            "end": {"dateTime": "2006-06-10T20:00:00+02:00" },
-            "iCalUID": "fepf8uf6n7n04w7feukucs9n8e@google.com"
+            kind: "calendar#event",
+            etag: "\"2\"",
+            id: "fepf8uf6n7n04w7feukucs9n8e",
+            created: "2006-06-08T21:04:52.000Z",
+            updated: "2006-06-08T21:05:49.138Z",
+            summary: "New Event 2",
+            creator: gServer.creator,
+            organizer: gServer.creator,
+            start: { dateTime: "2006-06-10T18:00:00+02:00" },
+            end: { dateTime: "2006-06-10T20:00:00+02:00" },
+            iCalUID: "fepf8uf6n7n04w7feukucs9n8e@google.com"
         }]
     }];
     let client = yield gServer.getClient();

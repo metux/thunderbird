@@ -2,6 +2,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+#filter substitution
+
 instantbird.jar:
 % content instantbird %content/instantbird/
 #ifdef XP_MACOSX
@@ -12,14 +14,12 @@ instantbird.jar:
 *	content/instantbird/aboutDialog.xul
 	content/instantbird/aboutPanel.xml
 	content/instantbird/account.js
-	content/instantbird/accounts.css
 	content/instantbird/accounts.js
 *	content/instantbird/accounts.xul
 	content/instantbird/accountWizard.css
 	content/instantbird/accountWizard.js
 	content/instantbird/accountWizard.xul
 	content/instantbird/accountWizard.xml
-	content/instantbird/account.xml
 	content/instantbird/account.xul
 	content/instantbird/addbuddy.js
 	content/instantbird/addbuddy.xul
@@ -99,8 +99,12 @@ instantbird.jar:
 	content/instantbird/preferences/smiley.css		(preferences/smiley.css)
 	content/instantbird/preferences/smiley.xml		(preferences/smiley.xml)
 # override the toolkit license.html file
-*+	content/instantbird/license.html			(/mozilla/toolkit/content/license.html)
+* 	content/instantbird/license.html                        (/@mozreltopsrcdir@/toolkit/content/license.html)
 % override chrome://global/content/license.html chrome://instantbird/content/license.html
+
+toolkit.jar:
+# toolkit dropped nsDragAndDrop.js in bug 1162050, ship a copy until we can remove it.
+	content/global/nsDragAndDrop.js 			(../../mail/base/content/nsDragAndDrop.js)
 
 #ifdef DEBUG
 debug.jar:

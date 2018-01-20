@@ -47,6 +47,22 @@ class LIRGeneratorShared : public MDefinitionVisitor
         return gen;
     }
 
+    // Needed to capture the abort error out of the visitInstruction methods.
+    bool errored() {
+        return gen->getOffThreadStatus().isErr();
+    }
+    void abort(AbortReason r, const char* message, ...) MOZ_FORMAT_PRINTF(3, 4) {
+        va_list ap;
+        va_start(ap, message);
+        auto reason_ = gen->abortFmt(r, message, ap);
+        va_end(ap);
+        gen->setOffThreadStatus(reason_);
+    }
+    void abort(AbortReason r) {
+        auto reason_ = gen->abort(r);
+        gen->setOffThreadStatus(reason_);
+    }
+
   protected:
 
     static void ReorderCommutative(MDefinition** lhsp, MDefinition** rhsp, MInstruction* ins);
@@ -92,6 +108,7 @@ class LIRGeneratorShared : public MDefinitionVisitor
     inline LUse useFixed(MDefinition* mir, FloatRegister reg);
     inline LUse useFixed(MDefinition* mir, AnyRegister reg);
     inline LUse useFixedAtStart(MDefinition* mir, Register reg);
+    inline LUse useFixedAtStart(MDefinition* mir, AnyRegister reg);
     inline LAllocation useOrConstant(MDefinition* mir);
     inline LAllocation useOrConstantAtStart(MDefinition* mir);
     // "Any" is architecture dependent, and will include registers and stack
@@ -108,6 +125,7 @@ class LIRGeneratorShared : public MDefinitionVisitor
     inline LAllocation useRegisterOrConstant(MDefinition* mir);
     inline LAllocation useRegisterOrConstantAtStart(MDefinition* mir);
     inline LAllocation useRegisterOrZeroAtStart(MDefinition* mir);
+    inline LAllocation useRegisterOrZero(MDefinition* mir);
     inline LAllocation useRegisterOrNonDoubleConstant(MDefinition* mir);
 
     inline LUse useRegisterForTypedLoad(MDefinition* mir, MIRType type);
@@ -127,6 +145,7 @@ class LIRGeneratorShared : public MDefinitionVisitor
     // These create temporary register requests.
     inline LDefinition temp(LDefinition::Type type = LDefinition::GENERAL,
                             LDefinition::Policy policy = LDefinition::REGISTER);
+    inline LInt64Definition tempInt64(LDefinition::Policy policy = LDefinition::REGISTER);
     inline LDefinition tempFloat32();
     inline LDefinition tempDouble();
     inline LDefinition tempCopy(MDefinition* input, uint32_t reusedInput);
@@ -138,9 +157,17 @@ class LIRGeneratorShared : public MDefinitionVisitor
     inline void defineFixed(LInstructionHelper<1, Ops, Temps>* lir, MDefinition* mir,
                             const LAllocation& output);
 
+    template <size_t Temps>
+    inline void defineBox(details::LInstructionFixedDefsTempsHelper<BOX_PIECES, Temps>* lir,
+                          MDefinition* mir, LDefinition::Policy policy = LDefinition::REGISTER);
+
     template <size_t Ops, size_t Temps>
-    inline void defineBox(LInstructionHelper<BOX_PIECES, Ops, Temps>* lir, MDefinition* mir,
-                          LDefinition::Policy policy = LDefinition::REGISTER);
+    inline void defineInt64(LInstructionHelper<INT64_PIECES, Ops, Temps>* lir, MDefinition* mir,
+                            LDefinition::Policy policy = LDefinition::REGISTER);
+
+    template <size_t Ops, size_t Temps>
+    inline void defineInt64Fixed(LInstructionHelper<INT64_PIECES, Ops, Temps>* lir, MDefinition* mir,
+                                 const LInt64Allocation& output);
 
     template <size_t Ops, size_t Temps>
     inline void defineSinCos(LInstructionHelper<2, Ops, Temps> *lir, MDefinition *mir,
@@ -157,16 +184,41 @@ class LIRGeneratorShared : public MDefinitionVisitor
                        const LDefinition& def);
 
     template <size_t Ops, size_t Temps>
-    inline void defineReuseInput(LInstructionHelper<1, Ops, Temps>* lir, MDefinition* mir, uint32_t operand);
+    inline void defineReuseInput(LInstructionHelper<1, Ops, Temps>* lir, MDefinition* mir,
+                                 uint32_t operand);
 
-    // Adds a use at operand |n| of a value-typed insturction.
-    inline void useBox(LInstruction* lir, size_t n, MDefinition* mir,
-                       LUse::Policy policy = LUse::REGISTER, bool useAtStart = false);
+    template <size_t Ops, size_t Temps>
+    inline void defineInt64ReuseInput(LInstructionHelper<INT64_PIECES, Ops, Temps>* lir,
+                                      MDefinition* mir, uint32_t operand);
 
-    // Adds a use at operand |n|. The use is either typed, a Value, or a
-    // constant (if useConstant is true).
-    inline void useBoxOrTypedOrConstant(LInstruction* lir, size_t n, MDefinition* mir,
-                                        bool useConstant);
+    // Returns a box allocation for a Value-typed instruction.
+    inline LBoxAllocation useBox(MDefinition* mir, LUse::Policy policy = LUse::REGISTER,
+                                 bool useAtStart = false);
+
+    // Returns a box allocation. The use is either typed, a Value, or
+    // a constant (if useConstant is true).
+    inline LBoxAllocation useBoxOrTypedOrConstant(MDefinition* mir, bool useConstant);
+    inline LBoxAllocation useBoxOrTyped(MDefinition* mir);
+
+    // Returns an int64 allocation for an Int64-typed instruction.
+    inline LInt64Allocation useInt64(MDefinition* mir, LUse::Policy policy, bool useAtStart);
+    inline LInt64Allocation useInt64(MDefinition* mir, bool useAtStart = false);
+    inline LInt64Allocation useInt64AtStart(MDefinition* mir);
+    inline LInt64Allocation useInt64OrConstant(MDefinition* mir, bool useAtStart = false);
+    inline LInt64Allocation useInt64Register(MDefinition* mir, bool useAtStart = false);
+    inline LInt64Allocation useInt64RegisterOrConstant(MDefinition* mir, bool useAtStart = false);
+    inline LInt64Allocation useInt64Fixed(MDefinition* mir, Register64 regs, bool useAtStart = false);
+    inline LInt64Allocation useInt64FixedAtStart(MDefinition* mir, Register64 regs);
+
+    LInt64Allocation useInt64RegisterAtStart(MDefinition* mir) {
+        return useInt64Register(mir, /* useAtStart = */ true);
+    }
+    LInt64Allocation useInt64RegisterOrConstantAtStart(MDefinition* mir) {
+        return useInt64RegisterOrConstant(mir, /* useAtStart = */ true);
+    }
+    LInt64Allocation useInt64OrConstantAtStart(MDefinition* mir) {
+        return useInt64OrConstant(mir, /* useAtStart = */ true);
+    }
 
     // Rather than defining a new virtual register, sets |ins| to have the same
     // virtual register as |as|.
@@ -186,7 +238,7 @@ class LIRGeneratorShared : public MDefinitionVisitor
         // failed and return a dummy vreg. Include a + 1 here for NUNBOX32
         // platforms that expect Value vregs to be adjacent.
         if (vreg + 1 >= MAX_VIRTUAL_REGISTERS) {
-            gen->abort("max virtual registers");
+            abort(AbortReason::Alloc, "max virtual registers");
             return 1;
         }
         return vreg;
@@ -228,7 +280,8 @@ class LIRGeneratorShared : public MDefinitionVisitor
         define(new(alloc()) LFloat32(f), mir);
     }
 
-    void visitConstant(MConstant* ins);
+    void visitConstant(MConstant* ins) override;
+    void visitWasmFloatConstant(MWasmFloatConstant* ins) override;
 
     // Whether to generate typed reads for element accesses with hole checks.
     static bool allowTypedElementHoleCheck() {
@@ -240,6 +293,21 @@ class LIRGeneratorShared : public MDefinitionVisitor
         return false;
     }
 
+    // Provide NYI default implementations of the SIMD visitor functions.
+    // Many targets don't implement SIMD at all, and we don't want to duplicate
+    // these stubs in the specific sub-classes.
+    // Some SIMD visitors are implemented in LIRGenerator in Lowering.cpp. These
+    // shared implementations are not included here.
+    void visitSimdInsertElement(MSimdInsertElement*) override { MOZ_CRASH("NYI"); }
+    void visitSimdExtractElement(MSimdExtractElement*) override { MOZ_CRASH("NYI"); }
+    void visitSimdBinaryArith(MSimdBinaryArith*) override { MOZ_CRASH("NYI"); }
+    void visitSimdSelect(MSimdSelect*) override { MOZ_CRASH("NYI"); }
+    void visitSimdSplat(MSimdSplat*) override { MOZ_CRASH("NYI"); }
+    void visitSimdValueX4(MSimdValueX4*) override { MOZ_CRASH("NYI"); }
+    void visitSimdBinarySaturating(MSimdBinarySaturating*) override { MOZ_CRASH("NYI"); }
+    void visitSimdSwizzle(MSimdSwizzle*) override { MOZ_CRASH("NYI"); }
+    void visitSimdShuffle(MSimdShuffle*) override { MOZ_CRASH("NYI"); }
+    void visitSimdGeneralShuffle(MSimdGeneralShuffle*) override { MOZ_CRASH("NYI"); }
 };
 
 } // namespace jit

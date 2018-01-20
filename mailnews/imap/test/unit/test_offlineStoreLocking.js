@@ -29,8 +29,7 @@ function addGeneratedMessagesToServer(messages, mailbox)
   messages.forEach(function (message)
   {
     let dataUri = Services.io.newURI("data:text/plain;base64," +
-                                     btoa(message.toMessageString()),
-                                     null, null);
+                                     btoa(message.toMessageString()));
     mailbox.addMessage(new imapMessage(dataUri.spec, mailbox.uidnext++, []));
   });
 }
@@ -61,21 +60,21 @@ function checkOfflineStore(prevOfflineStoreSize) {
 
 var tests = [
   setup,
-  function downloadForOffline() {
+  function* downloadForOffline() {
     // ...and download for offline use.
     dump("Downloading for offline use\n");
     IMAPPump.inbox.downloadAllForOffline(asyncUrlListener, null);
     yield false;
   },
-  function deleteOneMsg() {
+  function* deleteOneMsg() {
     let enumerator = IMAPPump.inbox.msgDatabase.EnumerateMessages();
     let msgHdr = enumerator.getNext().QueryInterface(Ci.nsIMsgDBHdr);
     let array = Cc["@mozilla.org/array;1"].createInstance(Ci.nsIMutableArray);
-    array.appendElement(msgHdr, false);
+    array.appendElement(msgHdr);
     IMAPPump.inbox.deleteMessages(array, null, false, true, CopyListener, false);
     yield false;
   },
-  function compactOneFolder() {
+  function* compactOneFolder() {
     let enumerator = IMAPPump.inbox.msgDatabase.EnumerateMessages();
     let msgHdr = enumerator.getNext().QueryInterface(Ci.nsIMsgDBHdr);
     gStreamedHdr = msgHdr;
@@ -103,22 +102,22 @@ var tests = [
 
     yield false;
   },
-  function deleteAnOtherMsg() {
+  function* deleteAnOtherMsg() {
     let enumerator = IMAPPump.inbox.msgDatabase.EnumerateMessages();
     let msgHdr = enumerator.getNext();
     let array = Cc["@mozilla.org/array;1"].createInstance(Ci.nsIMutableArray);
-    array.appendElement(msgHdr, false);
+    array.appendElement(msgHdr);
     IMAPPump.inbox.deleteMessages(array, null, false, true, CopyListener, false);
     yield false;
   },
-  function updateTrash() {
+  function* updateTrash() {
     gIMAPTrashFolder = IMAPPump.incomingServer.rootFolder.getChildNamed("Trash")
                          .QueryInterface(Ci.nsIMsgImapMailFolder);
     // hack to force uid validity to get initialized for trash.
     gIMAPTrashFolder.updateFolderWithListener(null, asyncUrlListener);
     yield false;
   },
-  function downloadTrashForOffline() {
+  function* downloadTrashForOffline() {
     // ...and download for offline use.
     dump("Downloading for offline use\n");
     gIMAPTrashFolder.downloadAllForOffline(asyncUrlListener, null);
@@ -136,12 +135,12 @@ var tests = [
     let msgHdr = enumerator.getNext().QueryInterface(Ci.nsIMsgDBHdr);
     gMovedMsgId = msgHdr.messageId;
     let array = Cc["@mozilla.org/array;1"].createInstance(Ci.nsIMutableArray);
-    array.appendElement(msgHdr, false);
+    array.appendElement(msgHdr);
     IMAPPump.inbox.compact(asyncUrlListener, gDummyMsgWindow);
     MailServices.copy.CopyMessages(gIMAPTrashFolder, array, IMAPPump.inbox, true,
                                    CopyListener, null, true);
   },
-  function verifyNoOfflineMsg() {
+  function* verifyNoOfflineMsg() {
     try {
     let movedMsg = IMAPPump.inbox.msgDatabase.getMsgHdrForMessageID(gMovedMsgId);
     do_check_false(movedMsg.flags & Ci.nsMsgMessageFlags.Offline);
@@ -172,7 +171,7 @@ function setup() {
   let messageGenerator = new MessageGenerator();
   let messages = [];
   let bodyString = "";
-  for (i = 0; i < 100; i++)
+  for (let i = 0; i < 100; i++)
     bodyString += "1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890\r\n";
 
   for (let i = 0; i < 50; i++)

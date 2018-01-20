@@ -2,21 +2,7 @@
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- *
- *
- * This Original Code has been modified by IBM Corporation.
- * Modifications made by IBM described herein are
- * Copyright (c) International Business Machines
- * Corporation, 2000
- *
- * Modifications to Mozilla code or documentation
- * identified per MPL Section 3.3
- *
- * Date         Modified by     Description of modification
- * 03/27/2000   IBM Corp.       Added PR_CALLBACK for Optlink
- *                               use in OS2
- */
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 
 /*
@@ -27,6 +13,7 @@
 
 #include "mozilla/ArrayUtils.h"
 
+#include "DateTimeFormat.h"
 #include "nsCOMPtr.h"
 #include "nsIContent.h"
 #include "nsIDocument.h"
@@ -42,19 +29,13 @@
 #include "nsNameSpaceManager.h"
 #include "nsRDFCID.h"
 #include "nsString.h"
-#include "nsXPIDLString.h"
 #include "nsGkAtoms.h"
 #include "mozilla/Logging.h"
 #include "prtime.h"
 #include "rdf.h"
 #include "nsContentUtils.h"
-#include "nsIDateTimeFormat.h"
-#include "nsDateTimeFormatCID.h"
-#include "nsIScriptableDateFormat.h"
 #include "nsICollation.h"
 #include "nsCollationCID.h"
-#include "nsILocale.h"
-#include "nsILocaleService.h"
 #include "nsIConsoleService.h"
 #include "nsEscape.h"
 
@@ -63,7 +44,6 @@ using namespace mozilla;
 //------------------------------------------------------------------------
 
 nsIRDFService* nsXULContentUtils::gRDF;
-nsIDateTimeFormat* nsXULContentUtils::gFormat;
 nsICollation *nsXULContentUtils::gCollation;
 
 extern LazyLogModule gXULTemplateLog;
@@ -95,18 +75,13 @@ nsXULContentUtils::Init()
 
 #define XUL_LITERAL(ident, val)                                   \
   PR_BEGIN_MACRO                                                  \
-   rv = gRDF->GetLiteral(MOZ_UTF16(val), &(ident));               \
+   rv = gRDF->GetLiteral(val, &(ident));                          \
    if (NS_FAILED(rv)) return rv;                                  \
   PR_END_MACRO
 
 #include "nsXULResourceList.h"
 #undef XUL_RESOURCE
 #undef XUL_LITERAL
-
-    rv = CallCreateInstance(NS_DATETIMEFORMAT_CONTRACTID, &gFormat);
-    if (NS_FAILED(rv)) {
-        return rv;
-    }
 
     return NS_OK;
 }
@@ -123,7 +98,6 @@ nsXULContentUtils::Finish()
 #undef XUL_RESOURCE
 #undef XUL_LITERAL
 
-    NS_IF_RELEASE(gFormat);
     NS_IF_RELEASE(gCollation);
 
     return NS_OK;
@@ -133,27 +107,14 @@ nsICollation*
 nsXULContentUtils::GetCollation()
 {
     if (!gCollation) {
-        nsresult rv;
-
-        // get a locale service 
-        nsCOMPtr<nsILocaleService> localeService =
-            do_GetService(NS_LOCALESERVICE_CONTRACTID, &rv);
-        if (NS_SUCCEEDED(rv)) {
-            nsCOMPtr<nsILocale> locale;
-            rv = localeService->GetApplicationLocale(getter_AddRefs(locale));
-            if (NS_SUCCEEDED(rv) && locale) {
-                nsCOMPtr<nsICollationFactory> colFactory =
-                    do_CreateInstance(NS_COLLATIONFACTORY_CONTRACTID);
-                if (colFactory) {
-                    rv = colFactory->CreateCollation(locale, &gCollation);
-                    NS_ASSERTION(NS_SUCCEEDED(rv),
-                                 "couldn't create collation instance");
-                } else
-                    NS_ERROR("couldn't create instance of collation factory");
-            } else
-                NS_ERROR("unable to get application locale");
+        nsCOMPtr<nsICollationFactory> colFactory =
+            do_CreateInstance(NS_COLLATIONFACTORY_CONTRACTID);
+        if (colFactory) {
+            DebugOnly<nsresult> rv = colFactory->CreateCollation(&gCollation);
+            NS_ASSERTION(NS_SUCCEEDED(rv),
+                         "couldn't create collation instance");
         } else
-            NS_ERROR("couldn't get locale factory");
+            NS_ERROR("couldn't create instance of collation factory");
     }
 
     return gCollation;
@@ -164,7 +125,7 @@ nsXULContentUtils::GetCollation()
 nsresult
 nsXULContentUtils::FindChildByTag(nsIContent* aElement,
                                   int32_t aNameSpaceID,
-                                  nsIAtom* aTag,
+                                  nsAtom* aTag,
                                   nsIContent** aResult)
 {
     for (nsIContent* child = aElement->GetFirstChild();
@@ -215,11 +176,11 @@ nsXULContentUtils::GetTextForNode(nsIRDFNode* aNode, nsAString& aResult)
         if (NS_FAILED(rv)) return rv;
 
         nsAutoString str;
-        rv = gFormat->FormatPRTime(nullptr /* nsILocale* locale */,
-                                  kDateFormatShort,
-                                  kTimeFormatSeconds,
-                                  value,
-                                  str);
+        rv = DateTimeFormat::FormatPRTime(kDateFormatShort,
+                                          kTimeFormatSeconds,
+                                          value,
+                                          str);
+
         aResult.Assign(str);
 
         if (NS_FAILED(rv)) return rv;
@@ -255,7 +216,7 @@ nsXULContentUtils::GetTextForNode(nsIRDFNode* aNode, nsAString& aResult)
 }
 
 nsresult
-nsXULContentUtils::GetResource(int32_t aNameSpaceID, nsIAtom* aAttribute, nsIRDFResource** aResult)
+nsXULContentUtils::GetResource(int32_t aNameSpaceID, nsAtom* aAttribute, nsIRDFResource** aResult)
 {
     // construct a fully-qualified URI from the namespace/tag pair.
     NS_PRECONDITION(aAttribute != nullptr, "null ptr");
@@ -279,8 +240,7 @@ nsXULContentUtils::GetResource(int32_t aNameSpaceID, const nsAString& aAttribute
 
     nsresult rv;
 
-    char16_t buf[256];
-    nsFixedString uri(buf, ArrayLength(buf), 0);
+    nsAutoStringN<256> uri;
     if (aNameSpaceID != kNameSpaceID_Unknown && aNameSpaceID != kNameSpaceID_None) {
         rv = nsContentUtils::NameSpaceManager()->GetNameSpaceURI(aNameSpaceID, uri);
         // XXX ignore failure; treat as "no namespace"

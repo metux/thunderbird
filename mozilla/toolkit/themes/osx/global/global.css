@@ -14,13 +14,23 @@ menulist > menupopup {
   -moz-binding: url("chrome://global/content/bindings/popup.xml#popup-scrollbars");
 }
 
+/* ::::: Variables ::::: */
+:root {
+  --arrowpanel-padding: 16px;
+  --arrowpanel-background: linear-gradient(hsla(0,0%,99%,1), hsla(0,0%,99%,.975) 10%, hsla(0,0%,98%,.975));
+  --arrowpanel-color: hsl(0,0%,10%);
+  --arrowpanel-border-color: hsla(210,4%,10%,.05);
+  --arrowpanel-border-radius: 3.5px;
+  --focus-ring-box-shadow: @focusRingShadow@;
+}
+
 /* ::::: root elements ::::: */
 
 window,
 page,
 dialog,
 wizard,
-prefwindow { 
+prefwindow {
   -moz-appearance: dialog;
   background-color: #FFFFFF;
   color: -moz-DialogText;
@@ -30,16 +40,16 @@ prefwindow {
 prefwindow[type="child"] {
   padding-top: 18px;
   padding-bottom: 15px;
-  -moz-padding-start: 18px;
-  -moz-padding-end: 20px;
+  padding-inline-start: 18px;
+  padding-inline-end: 20px;
 }
 
 /* deprecated */
 window.dialog {
   padding-top: 8px;
   padding-bottom: 10px;
-  -moz-padding-start: 8px;
-  -moz-padding-end: 10px;
+  padding-inline-start: 8px;
+  padding-inline-end: 10px;
 }
 
 /* ::::: alert icons :::::*/
@@ -51,11 +61,11 @@ window.dialog {
   width: 64px;
   height: 64px;
   margin: 6px;
-  -moz-margin-end: 20px;
+  margin-inline-end: 20px;
 }
 
 .message-icon {
-  list-style-image: url("chrome://global/skin/icons/information-64.png");
+  list-style-image: url("chrome://global/skin/icons/info.svg");
 }
 
 .alert-dialog #info\.icon,
@@ -88,7 +98,7 @@ statusbar {
   Prevents hiding of scrollbars in browser when window is made smaller.*/
   min-height: 15px !important;
   margin: 0px !important;
-  /* need to use -moz-padding-end when/if bug 631729 gets fixed: */
+  /* need to use padding-inline-end when/if bug 631729 gets fixed: */
   padding: 0px 16px 1px 1px;
   -moz-appearance: statusbar;
   text-shadow: rgba(255, 255, 255, 0.4) 0 1px;
@@ -102,12 +112,17 @@ statusbarpanel {
 
 .statusbarpanel-iconic {
   padding: 0px;
-}    
+}
 
 /* ::::: miscellaneous formatting ::::: */
 
-:root:-moz-lwtheme,
-[lwthemefooter="true"] {
+sidebarheader {
+  background-color: -moz-Dialog;
+  color: -moz-dialogText;
+  text-shadow: none;
+}
+
+:root:-moz-lwtheme {
   -moz-appearance: none;
 }
 
@@ -132,7 +147,7 @@ statusbar:-moz-lwtheme {
   border-bottom-color: ThreeDHighlight;
   margin: 0 5px 5px;
 }
-  
+
 .outset {
   border: 1px solid ThreeDShadow;
   border-left-color: ThreeDHighlight;
@@ -148,7 +163,7 @@ separator[orient="vertical"] {
 
 separator.thin:not([orient="vertical"]) {
   height: 0.5em;
-}  
+}
 separator.thin[orient="vertical"] {
   width: 0.5em;
 }
@@ -165,7 +180,7 @@ separator.groove[orient="vertical"] {
   margin-left: 0.4em;
   margin-right: 0.4em;
 }
-    
+
 .plain {
   -moz-appearance: none;
   margin: 0 !important;
@@ -178,8 +193,8 @@ label {
   cursor: default;
   margin-top: 1px;
   margin-bottom: 2px;
-  -moz-margin-start: 6px;
-  -moz-margin-end: 5px;
+  margin-inline-start: 6px;
+  margin-inline-end: 5px;
 }
 
 description {
@@ -203,7 +218,7 @@ label[disabled="true"] {
 }
 
 .indent {
-  -moz-margin-start: 23px;
+  margin-inline-start: 23px;
 }
 
 .box-padded {
@@ -226,9 +241,9 @@ label[disabled="true"] {
 .text-link:hover {
   text-decoration: underline;
 }
-  
+
 .text-link:-moz-focusring {
-  box-shadow: @focusRingShadow@;
+  box-shadow: var(--focus-ring-box-shadow);
 }
 
 .toolbar-focustarget {
@@ -244,21 +259,23 @@ notification > button {
   border-radius: 10000px;
   border: @roundButtonBorder@;
   text-shadow: @loweredShadow@;
+  color: @roundButtonColor@;
   background: @roundButtonBackground@;
   box-shadow: @roundButtonShadow@;
 }
 
 notification > button:active:hover {
+  color: @roundButtonColor@;
   background: @roundButtonPressedBackground@;
   box-shadow: @roundButtonPressedShadow@;
 }
 
 notification > button:-moz-focusring {
-  box-shadow: @focusRingShadow@, @roundButtonShadow@;
+  box-shadow: var(--focus-ring-box-shadow), @roundButtonShadow@;
 }
 
 notification > button:active:hover:-moz-focusring {
-  box-shadow: @focusRingShadow@, @roundButtonPressedShadow@;
+  box-shadow: var(--focus-ring-box-shadow), @roundButtonPressedShadow@;
 }
 
 notification > button > .button-box > .button-text {
@@ -269,6 +286,8 @@ popupnotificationcontent {
   margin-top: .5em;
 }
 
+%include ../../shared/notification-popup.inc.css
+
 /* :::::: autoscroll popup ::::: */
 
 .autoscroller {
@@ -277,19 +296,21 @@ popupnotificationcontent {
   border: none;
   margin: -14px;
   padding: 0;
-  background-image: url("chrome://global/skin/icons/autoscroll.png");
+  background-image: url("chrome://global/skin/icons/autoscroll.svg");
+  background-size: contain;
   background-color: transparent;
   background-position: right top;
+  background-repeat: no-repeat;
   -moz-appearance: none;
   -moz-window-shadow: none;
 }
 
 .autoscroller[scrolldir="NS"] {
-  background-position: right center;
+  background-image: url("chrome://global/skin/icons/autoscroll-vertical.svg");
 }
 
 .autoscroller[scrolldir="EW"] {
-  background-position: right bottom;
+  background-image: url("chrome://global/skin/icons/autoscroll-horizontal.svg");
 }
 
 /* autorepeatbuttons in menus */
@@ -334,36 +355,4 @@ popupnotificationcontent {
 
 /* :::::: Close button icons ::::: */
 
-.close-icon {
-  list-style-image: url("chrome://global/skin/icons/close.png");
-  -moz-image-region: rect(0, 16px, 16px, 0);
-}
-
-.close-icon:hover {
-  -moz-image-region: rect(0, 32px, 16px, 16px);
-}
-
-.close-icon:hover:active {
-  -moz-image-region: rect(0, 48px, 16px, 32px);
-}
-
-@media (min-resolution: 2dppx) {
-  .close-icon > .button-icon,
-  .close-icon > .button-box > .button-icon,
-  .close-icon > .toolbarbutton-icon {
-    width: 16px;
-  }
-
-  .close-icon {
-    list-style-image: url("chrome://global/skin/icons/close@2x.png");
-    -moz-image-region: rect(0, 32px, 32px, 0);
-  }
-
-  .close-icon:hover {
-    -moz-image-region: rect(0, 64px, 32px, 32px);
-  }
-
-  .close-icon:hover:active {
-    -moz-image-region: rect(0, 96px, 32px, 64px);
-  }
-}
+%include ../../shared/close-icon.inc.css

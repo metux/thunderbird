@@ -8,30 +8,40 @@
 #define mozilla_dom_AnimationUtils_h
 
 #include "mozilla/TimeStamp.h"
+#include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/Nullable.h"
+#include "nsRFPService.h"
 #include "nsStringFwd.h"
 
 class nsIContent;
+class nsIDocument;
+class nsIFrame;
+struct JSContext;
 
 namespace mozilla {
+
+class ComputedTimingFunction;
+class EffectSet;
 
 class AnimationUtils
 {
 public:
   static dom::Nullable<double>
-    TimeDurationToDouble(const dom::Nullable<TimeDuration>& aTime)
+  TimeDurationToDouble(const dom::Nullable<TimeDuration>& aTime)
   {
     dom::Nullable<double> result;
 
     if (!aTime.IsNull()) {
-      result.SetValue(aTime.Value().ToMilliseconds());
+      result.SetValue(
+        nsRFPService::ReduceTimePrecisionAsMSecs(aTime.Value().ToMilliseconds())
+      );
     }
 
     return result;
   }
 
   static dom::Nullable<TimeDuration>
-    DoubleToTimeDuration(const dom::Nullable<double>& aTime)
+  DoubleToTimeDuration(const dom::Nullable<double>& aTime)
   {
     dom::Nullable<TimeDuration> result;
 
@@ -44,6 +54,37 @@ public:
 
   static void LogAsyncAnimationFailure(nsCString& aMessage,
                                        const nsIContent* aContent = nullptr);
+
+  /**
+   * Get the document from the JS context to use when parsing CSS properties.
+   */
+  static nsIDocument*
+  GetCurrentRealmDocument(JSContext* aCx);
+
+  /**
+   * Checks if offscreen animation throttling is enabled.
+   */
+  static bool
+  IsOffscreenThrottlingEnabled();
+
+  /**
+   * Returns true if the preference to enable the core Web Animations API is
+   * true.
+   */
+  static bool IsCoreAPIEnabled();
+
+  /**
+   * Returns true if the preference to enable the core Web Animations API is
+   * true or the caller is chrome.
+   */
+  static bool IsCoreAPIEnabledForCaller(dom::CallerType aCallerType);
+
+  /**
+   * Returns true if the given EffectSet contains a current effect that animates
+   * scale. |aFrame| is used for calculation of scale values.
+   */
+  static bool EffectSetContainsAnimatedScale(EffectSet& aEffects,
+                                             const nsIFrame* aFrame);
 };
 
 } // namespace mozilla

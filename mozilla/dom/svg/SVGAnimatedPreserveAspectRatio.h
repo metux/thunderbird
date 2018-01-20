@@ -7,13 +7,13 @@
 #ifndef MOZILLA_SVGANIMATEDPRESERVEASPECTRATIO_H__
 #define MOZILLA_SVGANIMATEDPRESERVEASPECTRATIO_H__
 
-#include "nsAutoPtr.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsError.h"
 #include "nsISMILAttr.h"
 #include "nsSVGElement.h"
 #include "SVGPreserveAspectRatio.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/UniquePtr.h"
 
 class nsSMILValue;
 
@@ -29,7 +29,6 @@ public:
   void Init() {
     mBaseVal.mAlign = SVG_PRESERVEASPECTRATIO_XMIDYMID;
     mBaseVal.mMeetOrSlice = SVG_MEETORSLICE_MEET;
-    mBaseVal.mDefer = false;
     mAnimVal = mBaseVal;
     mIsAnimated = false;
     mIsBaseSet = false;
@@ -47,8 +46,7 @@ public:
       return NS_ERROR_FAILURE;
     }
     SetBaseValue(SVGPreserveAspectRatio(
-                   static_cast<SVGAlign>(aAlign), mBaseVal.GetMeetOrSlice(),
-                   mBaseVal.GetDefer()),
+                   static_cast<SVGAlign>(aAlign), mBaseVal.GetMeetOrSlice()),
                  aSVGElement);
     return NS_OK;
   }
@@ -58,8 +56,7 @@ public:
       return NS_ERROR_FAILURE;
     }
     SetBaseValue(SVGPreserveAspectRatio(
-                   mBaseVal.GetAlign(), static_cast<SVGMeetOrSlice>(aMeetOrSlice),
-                   mBaseVal.GetDefer()),
+                   mBaseVal.GetAlign(), static_cast<SVGMeetOrSlice>(aMeetOrSlice)),
                  aSVGElement);
     return NS_OK;
   }
@@ -76,8 +73,7 @@ public:
 
   already_AddRefed<mozilla::dom::DOMSVGAnimatedPreserveAspectRatio>
   ToDOMAnimatedPreserveAspectRatio(nsSVGElement* aSVGElement);
-  // Returns a new nsISMILAttr object that the caller must delete
-  nsISMILAttr* ToSMILAttr(nsSVGElement* aSVGElement);
+  UniquePtr<nsISMILAttr> ToSMILAttr(nsSVGElement* aSVGElement);
 
 private:
 

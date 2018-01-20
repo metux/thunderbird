@@ -1,17 +1,14 @@
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
+/* vim: set ft=javascript ts=2 et sw=2 tw=80: */
 /* Any copyright is dedicated to the Public Domain.
-   http://creativecommons.org/publicdomain/zero/1.0/ */
+ * http://creativecommons.org/publicdomain/zero/1.0/ */
 
 "use strict";
 
-/**
- * Whitelisting this test.
- * As part of bug 1077403, the leaking uncaught rejection should be fixed.
- */
-thisTestLeaksUncaughtRejectionsAndShouldBeFixed("Error: Shader Editor is " +
-  "still waiting for a WebGL context to be created.");
+requestLongerTimeout(5);
 
 function performChecks(target) {
-  return Task.spawn(function*() {
+  return Task.spawn(function* () {
     let toolIds = gDevTools.getToolDefinitionArray()
                            .filter(def => def.isTargetSupported(target))
                            .map(def => def.id);
@@ -34,7 +31,7 @@ function performChecks(target) {
 }
 
 function test() {
-  Task.spawn(function*() {
+  Task.spawn(function* () {
     toggleAllTools(true);
     let tab = yield addTab("about:blank");
     let target = TargetFactory.forTab(tab);

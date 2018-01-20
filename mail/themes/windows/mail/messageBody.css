@@ -90,6 +90,17 @@ img[overflowing][shrinktofit] {
   height: auto !important;
 }
 
+@media print {
+  img[shrinktofit] {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+}
+
+.moz-attached-image-container {
+  text-align: center;
+}
+
 /* ::::: vcard ::::: */
 
 .moz-vcard-table {
@@ -143,6 +154,8 @@ img[overflowing][shrinktofit] {
 .mimeAttachmentHeader {
   border-style: none;
   border-top: 1px solid GrayText;
+  padding-block-start: 0.625em;
+  padding-block-end: 0.2em;
 }
 
 .mimeAttachmentHeaderName {
@@ -163,6 +176,7 @@ img[overflowing][shrinktofit] {
 
 .mimeAttachmentTable tr + tr > td {
   border-top: 1px solid GrayText;
+  padding-top: 0.25em;
 }
 
 .mimeAttachmentFile {
@@ -177,5 +191,5 @@ img[overflowing][shrinktofit] {
 
 .mimeAttachmentFile,
 .mimeAttachmentSize {
-  padding: 0.25em 0;
+  padding: 0 0 0.25em;
 }

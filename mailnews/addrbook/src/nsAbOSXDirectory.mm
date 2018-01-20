@@ -13,6 +13,7 @@
 #include "nsEnumeratorUtils.h"
 #include "nsIAbDirectoryQueryProxy.h"
 #include "nsIAbManager.h"
+#include "nsObjCExceptions.h"
 #include "nsServiceManagerUtils.h"
 #include "nsIMutableArray.h"
 #include "nsArrayUtils.h"
@@ -49,6 +50,8 @@ GetOrCreateGroup(NSString *aUid, nsIAbDirectory **aResult)
 static nsresult
 GetCard(ABRecord *aRecord, nsIAbCard **aResult, nsIAbOSXDirectory *osxDirectory)
 {
+  NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
+
   NSString *uid = [aRecord uniqueId];
   NS_ASSERTION(uid, "No UID for card!.");
   if (!uid)
@@ -65,11 +68,15 @@ GetCard(ABRecord *aRecord, nsIAbCard **aResult, nsIAbOSXDirectory *osxDirectory)
 
   NS_IF_ADDREF(*aResult = card);
   return NS_OK;
+
+  NS_OBJC_END_TRY_ABORT_BLOCK_NSRESULT;
 }
 
 static nsresult
 CreateCard(ABRecord *aRecord, nsIAbCard **aResult)
 {
+  NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
+
   NSString *uid = [aRecord uniqueId];
   NS_ASSERTION(uid, "No UID for card!.");
   if (!uid)
@@ -90,11 +97,15 @@ CreateCard(ABRecord *aRecord, nsIAbCard **aResult)
 
   NS_IF_ADDREF(*aResult = card);
   return NS_OK;
+
+  NS_OBJC_END_TRY_ABORT_BLOCK_NSRESULT;
 }
 
 static nsresult
 Sync(NSString *aUid)
 {
+  NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
+
   ABAddressBook *addressBook = [ABAddressBook sharedAddressBook];
   ABRecord *card = [addressBook recordForUniqueId:aUid];
   if ([card isKindOfClass:[ABGroup class]])
@@ -131,6 +142,8 @@ Sync(NSString *aUid)
     osxCard->Update(true);
   }
   return NS_OK;
+
+  NS_OBJC_END_TRY_ABORT_BLOCK_NSRESULT;
 }
 
 @interface ABChangedMonitor : NSObject
@@ -459,6 +472,8 @@ NS_IMPL_ISUPPORTS_INHERITED(nsAbOSXDirectory,
 NS_IMETHODIMP
 nsAbOSXDirectory::Init(const char *aUri)
 {
+  NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
+
   nsresult rv;
   rv = nsAbDirProperty::Init(aUri);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -555,6 +570,8 @@ nsAbOSXDirectory::Init(const char *aUri)
   }
 
   return NS_OK;
+
+  NS_OBJC_END_TRY_ABORT_BLOCK_NSRESULT;
 }
 
 NS_IMETHODIMP
@@ -633,6 +650,8 @@ nsAbOSXDirectory::GetRootOSXDirectory(nsIAbOSXDirectory **aResult)
 nsresult
 nsAbOSXDirectory::Update()
 {
+  NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
+
   nsresult rv;
   nsCOMPtr<nsIAbManager> abManager = do_GetService(NS_ABMANAGER_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -762,11 +781,15 @@ nsAbOSXDirectory::Update()
   }
   
   return NS_OK;
+
+  NS_OBJC_END_TRY_ABORT_BLOCK_NSRESULT;
 }
 
 nsresult
 nsAbOSXDirectory::AssertChildNodes()
 {
+  NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
+
   // Queries and mailing lists can't have childnodes.
   if (mIsQueryURI || m_IsMailList) {
     return NS_OK;
@@ -797,6 +820,8 @@ nsAbOSXDirectory::AssertChildNodes()
   }
   
   return NS_OK;
+
+  NS_OBJC_END_TRY_ABORT_BLOCK_NSRESULT;
 }
 
 nsresult
@@ -815,7 +840,7 @@ nsAbOSXDirectory::AssertDirectory(nsIAbManager *aManager,
     NS_ENSURE_SUCCESS(rv, rv);
   }
   
-  rv = m_AddressList->AppendElement(aDirectory, false);
+  rv = m_AddressList->AppendElement(aDirectory);
   NS_ENSURE_SUCCESS(rv, rv);
 
   return aManager->NotifyDirectoryItemAdded(this, aDirectory);
@@ -829,8 +854,8 @@ nsAbOSXDirectory::AssertCard(nsIAbManager *aManager,
   GetUuid(ourUuid);
   aCard->SetDirectoryId(ourUuid);
 
-  nsresult rv = m_IsMailList ? m_AddressList->AppendElement(aCard, false) :
-                               mCardList->AppendElement(aCard, false);
+  nsresult rv = m_IsMailList ? m_AddressList->AppendElement(aCard) :
+                               mCardList->AppendElement(aCard);
   NS_ENSURE_SUCCESS(rv, rv);
 
   // Get the card's URI and add it to our card store
@@ -892,6 +917,8 @@ nsAbOSXDirectory::GetChildNodes(nsISimpleEnumerator **aNodes)
 NS_IMETHODIMP
 nsAbOSXDirectory::GetChildCards(nsISimpleEnumerator **aCards)
 {
+  NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
+
   NS_ENSURE_ARG_POINTER(aCards);
   
   nsresult rv;
@@ -938,7 +965,7 @@ nsAbOSXDirectory::GetChildCards(nsISimpleEnumerator **aCards)
       NS_ENSURE_SUCCESS(rv, rv);
       card->SetDirectoryId(ourUuid);
 
-      mCardList->AppendElement(card, false);
+      mCardList->AppendElement(card);
     }
 
     return NS_NewArrayEnumerator(aCards, mCardList);
@@ -947,6 +974,8 @@ nsAbOSXDirectory::GetChildCards(nsISimpleEnumerator **aCards)
   // Not a search, so just return the appropriate list of items.
   return m_IsMailList ? NS_NewArrayEnumerator(aCards, m_AddressList) :
          NS_NewArrayEnumerator(aCards, mCardList);
+
+  NS_OBJC_END_TRY_ABORT_BLOCK_NSRESULT;
 }
 
 NS_IMETHODIMP
@@ -1031,13 +1060,8 @@ nsAbOSXDirectory::GetCardFromProperty(const char *aProperty,
       rv = card->GetPropertyAsAUTF8String(aProperty, cardValue);
       if (NS_SUCCEEDED(rv))
       {
-#ifdef MOZILLA_INTERNAL_API
         bool equal = aCaseSensitive ? cardValue.Equals(aValue) :
           cardValue.Equals(aValue, nsCaseInsensitiveCStringComparator());
-#else
-        bool equal = aCaseSensitive ? cardValue.Equals(aValue) :
-          cardValue.Equals(aValue, CaseInsensitiveCompare);
-#endif
         if (equal)
           NS_IF_ADDREF(*aResult = card);
       }
@@ -1080,13 +1104,8 @@ nsAbOSXDirectory::GetCardsFromProperty(const char *aProperty,
       rv = card->GetPropertyAsAUTF8String(aProperty, cardValue);
       if (NS_SUCCEEDED(rv))
       {
-#ifdef MOZILLA_INTERNAL_API
         bool equal = aCaseSensitive ? cardValue.Equals(aValue) :
           cardValue.Equals(aValue, nsCaseInsensitiveCStringComparator());
-#else
-        bool equal = aCaseSensitive ? cardValue.Equals(aValue) :
-          cardValue.Equals(aValue, CaseInsensitiveCompare);
-#endif
         if (equal)
           resultArray.AppendObject(card);
       }
@@ -1190,10 +1209,10 @@ nsAbOSXDirectory::OnSearchFoundCard(nsIAbCard *aCard)
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  rv = m_AddressList->AppendElement(aCard, false);
+  rv = m_AddressList->AppendElement(aCard);
   NS_ENSURE_SUCCESS(rv, rv);
   
-  rv = mCardList->AppendElement(aCard, false);
+  rv = mCardList->AppendElement(aCard);
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsAutoCString ourUuid;

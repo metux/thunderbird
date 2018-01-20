@@ -3,71 +3,42 @@
 
 /* Ensure that clicking the button in the Offline mode neterror page makes the browser go online. See bug 435325. */
 
-var proxyPrefValue;
-
-function test() {
-  waitForExplicitFinish();
-
-  let tab = gBrowser.selectedTab = gBrowser.addTab();
+add_task(async function checkSwitchPageToOnlineMode() {
 
   // Go offline and disable the proxy and cache, then try to load the test URL.
   Services.io.offline = true;
 
   // Tests always connect to localhost, and per bug 87717, localhost is now
   // reachable in offline mode.  To avoid this, disable any proxy.
-  proxyPrefValue = Services.prefs.getIntPref("network.proxy.type");
-  Services.prefs.setIntPref("network.proxy.type", 0);
+  let proxyPrefValue = SpecialPowers.getIntPref("network.proxy.type");
+  await SpecialPowers.pushPrefEnv({"set": [
+    ["network.proxy.type", 0],
+    ["browser.cache.disk.enable", false],
+    ["browser.cache.memory.enable", false],
+  ]});
 
-  Services.prefs.setBoolPref("browser.cache.disk.enable", false);
-  Services.prefs.setBoolPref("browser.cache.memory.enable", false);
-  content.location = "http://example.com/";
+  await BrowserTestUtils.withNewTab("about:blank", async function(browser) {
+    let netErrorLoaded = BrowserTestUtils.waitForErrorPage(browser);
 
-  window.addEventListener("DOMContentLoaded", function load() {
-    if (content.location == "about:blank") {
-      info("got about:blank, which is expected once, so return");
-      return;
-    }
-    window.removeEventListener("DOMContentLoaded", load, false);
+    await BrowserTestUtils.loadURI(browser, "http://example.com/");
+    await netErrorLoaded;
 
-    let observer = new MutationObserver(function (mutations) {
-      for (let mutation of mutations) {
-        if (mutation.attributeName == "hasBrowserHandlers") {
-          observer.disconnect();
-          checkPage();
-          return;
-        }
-      }
+    // Re-enable the proxy so example.com is resolved to localhost, rather than
+    // the actual example.com.
+    await SpecialPowers.pushPrefEnv({"set": [["network.proxy.type", proxyPrefValue]]});
+    let changeObserved = TestUtils.topicObserved("network:offline-status-changed");
+
+    // Click on the 'Try again' button.
+    await ContentTask.spawn(browser, null, async function() {
+      ok(content.document.documentURI.startsWith("about:neterror?e=netOffline"), "Should be showing error page");
+      content.document.getElementById("errorTryAgain").click();
     });
-    let docElt = tab.linkedBrowser.contentDocument.documentElement;
-    observer.observe(docElt, { attributes: true });
-  }, false);
-}
 
-function checkPage() {
-  ok(Services.io.offline, "Setting Services.io.offline to true.");
-  is(gBrowser.contentDocument.documentURI.substring(0,27),
-    "about:neterror?e=netOffline", "Loading the Offline mode neterror page.");
-
-  // Now press the "Try Again" button
-  ok(gBrowser.contentDocument.getElementById("errorTryAgain"),
-    "The error page has got a #errorTryAgain element");
-
-  // Re-enable the proxy so example.com is resolved to localhost, rather than
-  // the actual example.com.
-  Services.prefs.setIntPref("network.proxy.type", proxyPrefValue);
-
-  Services.obs.addObserver(function observer(aSubject, aTopic) {
-    ok(!Services.io.offline, "After clicking the Try Again button, we're back " +
-                             "online.");
-    Services.obs.removeObserver(observer, "network:offline-status-changed", false);
-    finish();
-  }, "network:offline-status-changed", false);
-  gBrowser.contentDocument.getElementById("errorTryAgain").click();
-}
+    await changeObserved;
+    ok(!Services.io.offline, "After clicking the 'Try Again' button, we're back online.");
+  });
+});
 
 registerCleanupFunction(function() {
-  Services.prefs.setBoolPref("browser.cache.disk.enable", true);
-  Services.prefs.setBoolPref("browser.cache.memory.enable", true);
   Services.io.offline = false;
-  gBrowser.removeCurrentTab();
 });

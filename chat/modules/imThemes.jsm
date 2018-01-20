@@ -28,7 +28,7 @@ var kCombineConsecutivePref = "combineConsecutive";
 var kCombineConsecutiveIntervalPref = "combineConsecutiveInterval";
 
 var DEFAULT_THEME = "bubbles";
-var DEFAULT_THEMES = ["bubbles", "dark", "papersheets", "simple"];
+var DEFAULT_THEMES = ["bubbles", "dark", "mail", "papersheets", "simple"];
 
 var kLineBreak = "@mozilla.org/windows-registry-key;1" in Cc ? "\r\n" : "\n";
 
@@ -41,6 +41,9 @@ XPCOMUtils.defineLazyGetter(this, "TXTToHTML", function() {
   return aTXT => cs.scanTXT(aTXT, cs.kEntities);
 });
 
+XPCOMUtils.defineLazyModuleGetter(this,
+  "ToLocaleFormat", "resource:///modules/ToLocaleFormat.jsm");
+
 var gCurrentTheme = null;
 
 function getChromeFile(aURI)
@@ -49,7 +52,7 @@ function getChromeFile(aURI)
     let channel = Services.io.newChannel2(aURI, null, null, null,
                                           Services.scriptSecurityManager.getSystemPrincipal(),
                                           null,
-                                          Ci.nsILoadInfo.SEC_NORMAL,
+                                          Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
                                           Ci.nsIContentPolicy.TYPE_OTHER);
     let stream = channel.open();
     let sstream = Components.classes["@mozilla.org/scriptableinputstream;1"]
@@ -158,7 +161,7 @@ function getInfoPlistContent(aBaseURI)
     let channel = Services.io.newChannel2(aBaseURI + "Info.plist", null, null, null,
                                           Services.scriptSecurityManager.getSystemPrincipal(),
                                           null,
-                                          Ci.nsILoadInfo.SEC_NORMAL,
+                                          Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
                                           Ci.nsIContentPolicy.TYPE_OTHER);
     let stream = channel.open();
     let parser = Components.classes["@mozilla.org/xmlextras/domparser;1"]
@@ -180,8 +183,8 @@ function getInfoPlistContent(aBaseURI)
 
 function getChromeBaseURI(aThemeName)
 {
-  if (DEFAULT_THEMES.indexOf(aThemeName) != -1)
-    return "chrome://instantbird-messagestyles/skin/" + aThemeName + "/";
+  if (DEFAULT_THEMES.includes(aThemeName))
+    return "chrome://messenger-messagestyles/skin/" + aThemeName + "/";
   return "chrome://" + aThemeName + "/skin/";
 }
 
@@ -227,7 +230,7 @@ function getCurrentTheme()
 function getDirectoryEntries(aDir)
 {
   let ios = Services.io;
-  let uri = ios.newURI(aDir, null, null);
+  let uri = ios.newURI(aDir);
   let cr = Components.classes["@mozilla.org/chrome/chrome-registry;1"]
                      .getService(Ci.nsIXULChromeRegistry);
   while (uri.scheme == "chrome")
@@ -235,7 +238,7 @@ function getDirectoryEntries(aDir)
 
   // remove any trailing file name added by convertChromeURL
   let spec = uri.spec.replace(/[^\/]+$/, "");
-  uri = ios.newURI(spec, null, null);
+  uri = ios.newURI(spec);
 
   let results = [];
   if (uri.scheme == "jar") {
@@ -338,9 +341,11 @@ var headerFooterReplacements = {
   timeOpened: function(aConv, aFormat) {
     let date = new Date(aConv.startDate / 1000);
     if (aFormat)
-      return date.toLocaleFormat(aFormat);
-    else
-      return date.toLocaleTimeString();
+      return ToLocaleFormat(aFormat, date);
+    const timeFormatter = Services.intl.createDateTimeFormat(undefined, {
+      timeStyle: "long"
+    });
+    return timeFormatter.format(date);
   }
 };
 
@@ -357,11 +362,19 @@ var statusMessageReplacements = {
   time: function(aMsg, aFormat) {
     let date = new Date(aMsg.time * 1000);
     if (aFormat)
-      return date.toLocaleFormat(aFormat);
-    return date.toLocaleTimeString();
+      return ToLocaleFormat(aFormat, date);
+    const timeFormatter = Services.intl.createDateTimeFormat(undefined, {
+      timeStyle: "long"
+    });
+    return timeFormatter.format(date);
   },
   timestamp: aMsg => aMsg.time,
-  shortTime: aMsg => (new Date(aMsg.time * 1000)).toLocaleTimeString(),
+  shortTime: function(aMsg) {
+    const timeFormatter = Services.intl.createDateTimeFormat(undefined, {
+      timeStyle: "long"
+    });
+    return timeFormatter.format(new Date(aMsg.time * 1000));
+  },
   messageClasses: function(aMsg) {
     let msgClass = [];
 

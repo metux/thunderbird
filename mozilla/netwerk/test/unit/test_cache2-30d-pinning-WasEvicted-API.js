@@ -22,10 +22,7 @@ function log_(msg) { if (true) dump(">>>>>>>>>>>>> " + msg + "\n"); }
 function run_test()
 {
   do_get_profile();
-  if (!newCacheBackEndUsed()) {
-    do_check_true(true, "This test checks only cache2 specific behavior.");
-    return;
-  }
+
   var lci = LoadContextInfo.default;
   var testingInterface = get_cache_service().QueryInterface(Ci.nsICacheTesting);
   do_check_true(testingInterface);
@@ -76,7 +73,7 @@ function run_test()
       log_("after purge");
       // Prevent the I/O thread from evicting physically the data.  We first want to re-open the entries.
       // This deterministically emulates a slow hard drive.
-      testingInterface.suspendCacheIOThread(8);
+      testingInterface.suspendCacheIOThread(7);
 
       log_("clearing");
       // Now clear everything except pinned.  Stores the "ce_*" file and schedules background eviction.
@@ -106,7 +103,7 @@ function run_test()
 
       mc.fired(); // Finishes this test
     }
-  }, "cacheservice:purge-memory-pools", false);
+  }, "cacheservice:purge-memory-pools");
 
 
   do_test_pending();

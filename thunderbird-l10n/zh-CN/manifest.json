@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "zh-CN": {
+      "chrome_resources": {
+        "necko": "chrome/zh-CN/locale/zh-CN/necko/", 
+        "global": "chrome/zh-CN/locale/zh-CN/global/", 
+        "messenger-region": "chrome/zh-CN/locale/zh-CN/messenger-region/", 
+        "chat": "chrome/zh-CN/locale/zh-CN/chat/", 
+        "devtools": "chrome/zh-CN/locale/zh-CN/devtools/client/", 
+        "pipnss": "chrome/zh-CN/locale/zh-CN/pipnss/", 
+        "messenger-smime": "chrome/zh-CN/locale/zh-CN/messenger-smime/", 
+        "messenger-newsblog": "chrome/zh-CN/locale/zh-CN/messenger-newsblog/", 
+        "devtools-shim": "chrome/zh-CN/locale/zh-CN/devtools/shim/", 
+        "alerts": "chrome/zh-CN/locale/zh-CN/alerts/", 
+        "messenger": "chrome/zh-CN/locale/zh-CN/messenger/", 
+        "editor": "chrome/zh-CN/locale/zh-CN/editor/", 
+        "branding": "chrome/zh-CN/locale/zh-CN/branding/", 
+        "mozldap": "chrome/zh-CN/locale/zh-CN/mozldap/", 
+        "autoconfig": "chrome/zh-CN/locale/zh-CN/autoconfig/", 
+        "devtools-shared": "chrome/zh-CN/locale/zh-CN/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/zh-CN/locale/zh-CN/global-platform/win/", 
+          "android": "chrome/zh-CN/locale/zh-CN/global-platform/unix/", 
+          "macosx": "chrome/zh-CN/locale/zh-CN/global-platform/mac/", 
+          "linux": "chrome/zh-CN/locale/zh-CN/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/zh-CN/locale/zh-CN/mozapps/", 
+        "pluginproblem": "chrome/zh-CN/locale/zh-CN/pluginproblem/", 
+        "communicator": "chrome/zh-CN/locale/zh-CN/communicator/", 
+        "messenger-mapi": "chrome/zh-CN/locale/zh-CN/messenger-mapi/", 
+        "places": "chrome/zh-CN/locale/zh-CN/places/", 
+        "passwordmgr": "chrome/zh-CN/locale/zh-CN/passwordmgr/", 
+        "pippki": "chrome/zh-CN/locale/zh-CN/pippki/"
+      }, 
+      "version": "20171102221154"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "58.0", 
+      "id": "langpack-zh-CN@firefox.mozilla.org", 
+      "strict_max_version": "58.*"
+    }
+  }, 
+  "langpack_id": "zh-CN", 
+  "version": "58.0", 
+  "name": "Chinese Simplified (zh-CN) Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "mozilla.org (contributors: Wen Shaohua)", 
+  "description": "Language pack for Thunderbird for zh-CN"
+}

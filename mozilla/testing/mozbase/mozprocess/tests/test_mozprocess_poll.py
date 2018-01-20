@@ -1,8 +1,11 @@
 #!/usr/bin/env python
 
+from __future__ import absolute_import
+
 import os
 import signal
-import unittest
+
+import mozunit
 
 from mozprocess import processhandler
 
@@ -19,7 +22,7 @@ class ProcTestPoll(proctest.ProcTest):
         """Process is not started, and poll() is called"""
 
         p = processhandler.ProcessHandler([self.python, self.proclaunch,
-                                          "process_normal_finish_python.ini"],
+                                           "process_normal_finish_python.ini"],
                                           cwd=here)
         self.assertRaises(RuntimeError, p.poll)
 
@@ -27,7 +30,7 @@ class ProcTestPoll(proctest.ProcTest):
         """Process is started, and poll() is called"""
 
         p = processhandler.ProcessHandler([self.python, self.proclaunch,
-                                          "process_normal_finish_python.ini"],
+                                           "process_normal_finish_python.ini"],
                                           cwd=here)
         p.run()
         returncode = p.poll()
@@ -41,7 +44,7 @@ class ProcTestPoll(proctest.ProcTest):
         """Process is killed, and poll() is called"""
 
         p = processhandler.ProcessHandler([self.python, self.proclaunch,
-                                          "process_normal_finish_python.ini"],
+                                           "process_normal_finish_python.ini"],
                                           cwd=here)
         p.run()
         returncode = p.kill()
@@ -56,7 +59,7 @@ class ProcTestPoll(proctest.ProcTest):
         """Process (no group) is killed, and poll() is called"""
 
         p = processhandler.ProcessHandler([self.python, self.proclaunch,
-                                          "process_normal_finish_no_process_group.ini"],
+                                           "process_normal_finish_no_process_group.ini"],
                                           cwd=here,
                                           ignore_children=True
                                           )
@@ -73,7 +76,7 @@ class ProcTestPoll(proctest.ProcTest):
         """Process is killed twice, and poll() is called"""
 
         p = processhandler.ProcessHandler([self.python, self.proclaunch,
-                                          "process_normal_finish_python.ini"],
+                                           "process_normal_finish_python.ini"],
                                           cwd=here)
         p.run()
         p.kill()
@@ -89,7 +92,7 @@ class ProcTestPoll(proctest.ProcTest):
         """Process is killed externally, and poll() is called"""
 
         p = processhandler.ProcessHandler([self.python, self.proclaunch,
-                                          "process_normal_finish_python.ini"],
+                                           "process_normal_finish_python.ini"],
                                           cwd=here)
         p.run()
         os.kill(p.pid, signal.SIGTERM)
@@ -103,4 +106,4 @@ class ProcTestPoll(proctest.ProcTest):
 
 
 if __name__ == '__main__':
-    unittest.main()
+    mozunit.main()

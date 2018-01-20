@@ -280,13 +280,13 @@ MOZ_BEGIN_EXTERN_C
 #include "malloc_decls.h"
 
 #define MALLOC_DECL(name, return_type, ...) \
-  return_type name ## _impl(__VA_ARGS__);
+  return_type name(__VA_ARGS__);
 #define MALLOC_FUNCS MALLOC_FUNCS_JEMALLOC
 #include "malloc_decls.h"
 
 /* mozjemalloc relies on DllMain to initialize, but DllMain is not invoked
  * for executables, so manually invoke mozjemalloc initialization. */
-#if defined(_WIN32) && !defined(MOZ_JEMALLOC4)
+#if defined(_WIN32)
 void malloc_init_hard(void);
 #endif
 
@@ -304,18 +304,6 @@ pthread_atfork(void (*aPrepare)(void), void (*aParent)(void),
                void (*aChild)(void))
 {
   return 0;
-}
-#endif
-
-#ifdef MOZ_NUWA_PROCESS
-#include <pthread.h>
-
-/* NUWA builds have jemalloc built with
- * -Dpthread_mutex_lock=__real_pthread_mutex_lock */
-int
-__real_pthread_mutex_lock(pthread_mutex_t* aMutex)
-{
-  return pthread_mutex_lock(aMutex);
 }
 #endif
 
@@ -458,7 +446,7 @@ public:
       die("Malformed input");
     }
     jemalloc_stats_t stats;
-    ::jemalloc_stats_impl(&stats);
+    ::jemalloc_stats(&stats);
     FdPrintf(mStdErr,
              "#%zu mapped: %zu; allocated: %zu; waste: %zu; dirty: %zu; "
              "bookkeep: %zu; binunused: %zu\n", mOps, stats.mapped,
@@ -487,7 +475,7 @@ main()
   FdReader reader(0);
   Replay replay;
 
-#if defined(_WIN32) && !defined(MOZ_JEMALLOC4)
+#if defined(_WIN32)
   malloc_init_hard();
 #endif
 
@@ -521,6 +509,10 @@ main()
       continue;
     }
 
+    /* The log contains thread ids for manual analysis, but we just ignore them
+     * for now. */
+    parseNumber(line.SplitChar(' '));
+
     Buffer func = line.SplitChar('(');
     Buffer args = line.SplitChar(')');
 
@@ -528,7 +520,8 @@ main()
     if (func == Buffer("jemalloc_stats")) {
       replay.jemalloc_stats(args);
       continue;
-    } else if (func == Buffer("free")) {
+    }
+    if (func == Buffer("free")) {
       replay.free(args);
       continue;
     }

@@ -9,9 +9,9 @@
 #include "nsSystemInfo.h"
 #include "prsystem.h"
 #include "prio.h"
-#include "prprf.h"
 #include "mozilla/SSE.h"
 #include "mozilla/arm.h"
+#include "mozilla/Sprintf.h"
 
 #ifdef XP_WIN
 #include <time.h>
@@ -32,6 +32,9 @@
 #ifdef MOZ_WIDGET_GTK
 #include <gtk/gtk.h>
 #include <dlfcn.h>
+#endif
+
+#if defined (XP_LINUX) && !defined (ANDROID)
 #include <unistd.h>
 #include <fstream>
 #include "mozilla/Tokenizer.h"
@@ -44,12 +47,6 @@
 #ifdef MOZ_WIDGET_ANDROID
 #include "AndroidBridge.h"
 #include "mozilla/dom/ContentChild.h"
-#endif
-
-#ifdef MOZ_WIDGET_GONK
-#include <sys/system_properties.h>
-#include "mozilla/Preferences.h"
-#include "nsPrintfCString.h"
 #endif
 
 #ifdef ANDROID
@@ -73,7 +70,9 @@ NS_EXPORT int android_sdk_version;
 // only happens well after that point.
 uint32_t nsSystemInfo::gUserUmask = 0;
 
-#if defined (MOZ_WIDGET_GTK)
+using namespace mozilla::dom;
+
+#if defined (XP_LINUX) && !defined (ANDROID)
 static void
 SimpleParseKeyValuePairs(const std::string& aFilename,
                          std::map<nsCString, nsCString>& aKeyValuePairs)
@@ -178,9 +177,7 @@ nsresult GetInstallYear(uint32_t& aYear)
 {
   HKEY hKey;
   LONG status = RegOpenKeyExW(HKEY_LOCAL_MACHINE,
-                              NS_LITERAL_STRING(
-                              "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion"
-                              ).get(),
+                              L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion",
                               0, KEY_READ | KEY_WOW64_64KEY, &hKey);
 
   if (status != ERROR_SUCCESS) {
@@ -226,7 +223,7 @@ nsresult GetCountryCode(nsAString& aCountryCode)
   }
   // Now get the string for real
   aCountryCode.SetLength(numChars);
-  numChars = GetGeoInfoW(geoid, GEO_ISO2, wwc(aCountryCode.BeginWriting()),
+  numChars = GetGeoInfoW(geoid, GEO_ISO2, char16ptr_t(aCountryCode.BeginWriting()),
                          aCountryCode.Length(), 0);
   if (!numChars) {
     return NS_ERROR_FAILURE;
@@ -239,6 +236,26 @@ nsresult GetCountryCode(nsAString& aCountryCode)
 
 } // namespace
 #endif // defined(XP_WIN)
+
+#ifdef XP_MACOSX
+static nsresult GetAppleModelId(nsAutoCString& aModelId)
+{
+  size_t numChars = 0;
+  size_t result = sysctlbyname("hw.model", nullptr, &numChars, nullptr, 0);
+  if (result != 0 || !numChars) {
+    return NS_ERROR_FAILURE;
+  }
+  aModelId.SetLength(numChars);
+  result = sysctlbyname("hw.model", aModelId.BeginWriting(), &numChars, nullptr,
+                        0);
+  if (result != 0) {
+    return NS_ERROR_FAILURE;
+  }
+  // numChars includes null terminator
+  aModelId.Truncate(numChars - 1);
+  return NS_OK;
+}
+#endif
 
 using namespace mozilla;
 
@@ -265,6 +282,9 @@ static const struct PropItems
   { "hasSSE4A", mozilla::supports_sse4a },
   { "hasSSE4_1", mozilla::supports_sse4_1 },
   { "hasSSE4_2", mozilla::supports_sse4_2 },
+  { "hasAVX", mozilla::supports_avx },
+  { "hasAVX2", mozilla::supports_avx2 },
+  { "hasAES", mozilla::supports_aes },
   // ARM-specific bits.
   { "hasEDSP", mozilla::supports_edsp },
   { "hasARMv6", mozilla::supports_armv6 },
@@ -335,6 +355,10 @@ GetProcessorInformation(int* physical_cpus, int* cache_size_L2, int* cache_size_
 nsresult
 nsSystemInfo::Init()
 {
+  // This uses the observer service on Windows, so for simplicity
+  // check that it is called from the main thread on all platforms.
+  MOZ_ASSERT(NS_IsMainThread());
+
   nsresult rv;
 
   static const struct
@@ -343,7 +367,6 @@ nsSystemInfo::Init()
     const char* name;
   } items[] = {
     { PR_SI_SYSNAME, "name" },
-    { PR_SI_HOSTNAME, "host" },
     { PR_SI_ARCHITECTURE, "arch" },
     { PR_SI_RELEASE, "version" }
   };
@@ -495,7 +518,7 @@ nsSystemInfo::Init()
   }
   MOZ_ASSERT(sizeof(sysctlValue32) == len);
 
-#elif defined (MOZ_WIDGET_GTK)
+#elif defined (XP_LINUX) && !defined (ANDROID)
   // Get vendor, family, model, stepping, physical cores, L3 cache size
   // from /proc/cpuinfo file
   {
@@ -620,7 +643,7 @@ nsSystemInfo::Init()
 #ifdef XP_WIN
   BOOL isWow64;
   BOOL gotWow64Value = IsWow64Process(GetCurrentProcess(), &isWow64);
-  NS_WARN_IF_FALSE(gotWow64Value, "IsWow64Process failed");
+  NS_WARNING_ASSERTION(gotWow64Value, "IsWow64Process failed");
   if (gotWow64Value) {
     rv = SetPropertyAsBool(NS_LITERAL_STRING("isWow64"), !!isWow64);
     if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -677,6 +700,12 @@ nsSystemInfo::Init()
     rv = SetPropertyAsAString(NS_LITERAL_STRING("countryCode"), countryCode);
     NS_ENSURE_SUCCESS(rv, rv);
   }
+
+  nsAutoCString modelId;
+  if (NS_SUCCEEDED(GetAppleModelId(modelId))) {
+    rv = SetPropertyAsACString(NS_LITERAL_STRING("appleModelId"), modelId);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 #endif
 
 #if defined(MOZ_WIDGET_GTK)
@@ -698,13 +727,12 @@ nsSystemInfo::Init()
 #endif
 
   if (gtkver_len <= 0) {
-    gtkver_len = snprintf(gtkver, sizeof(gtkver), "GTK %u.%u.%u",
-                          gtk_major_version, gtk_minor_version,
-                          gtk_micro_version);
+    gtkver_len = SprintfLiteral(gtkver, "GTK %u.%u.%u", gtk_major_version,
+                                gtk_minor_version, gtk_micro_version);
   }
 
   nsAutoCString secondaryLibrary;
-  if (gtkver_len > 0) {
+  if (gtkver_len > 0 && gtkver_len < int(sizeof(gtkver))) {
     secondaryLibrary.Append(nsDependentCSubstring(gtkver, gtkver_len));
   }
 
@@ -746,44 +774,6 @@ nsSystemInfo::Init()
   }
 #endif
 
-#ifdef MOZ_WIDGET_GONK
-  char sdk[PROP_VALUE_MAX];
-  if (__system_property_get("ro.build.version.sdk", sdk)) {
-    android_sdk_version = atoi(sdk);
-    SetPropertyAsInt32(NS_LITERAL_STRING("sdk_version"), android_sdk_version);
-
-    SetPropertyAsACString(NS_LITERAL_STRING("secondaryLibrary"),
-                          nsPrintfCString("SDK %u", android_sdk_version));
-  }
-
-  char characteristics[PROP_VALUE_MAX];
-  if (__system_property_get("ro.build.characteristics", characteristics)) {
-    if (!strcmp(characteristics, "tablet")) {
-      SetPropertyAsBool(NS_LITERAL_STRING("tablet"), true);
-    } else if (!strcmp(characteristics, "tv")) {
-      SetPropertyAsBool(NS_LITERAL_STRING("tv"), true);
-    }
-  }
-
-  nsAutoString str;
-  rv = GetPropertyAsAString(NS_LITERAL_STRING("version"), str);
-  if (NS_SUCCEEDED(rv)) {
-    SetPropertyAsAString(NS_LITERAL_STRING("kernel_version"), str);
-  }
-
-  const nsAdoptingString& b2g_os_name =
-    mozilla::Preferences::GetString("b2g.osName");
-  if (b2g_os_name) {
-    SetPropertyAsAString(NS_LITERAL_STRING("name"), b2g_os_name);
-  }
-
-  const nsAdoptingString& b2g_version =
-    mozilla::Preferences::GetString("b2g.version");
-  if (b2g_version) {
-    SetPropertyAsAString(NS_LITERAL_STRING("version"), b2g_version);
-  }
-#endif
-
 #if defined(XP_LINUX) && defined(MOZ_SANDBOX)
   SandboxInfo sandInfo = SandboxInfo::Get();
 
@@ -811,6 +801,15 @@ nsSystemInfo::Init()
 }
 
 #ifdef MOZ_WIDGET_ANDROID
+// Prerelease versions of Android use a letter instead of version numbers.
+// Unfortunately this breaks websites due to the user agent.
+// Chrome works around this by hardcoding an Android version when a
+// numeric version can't be obtained. We're doing the same.
+// This version will need to be updated whenever there is a new official
+// Android release.
+// See: https://cs.chromium.org/chromium/src/base/sys_info_android.cc?l=61
+#define DEFAULT_ANDROID_VERSION "6.0.99"
+
 /* static */
 void
 nsSystemInfo::GetAndroidSystemInfo(AndroidSystemInfo* aInfo)
@@ -833,7 +832,15 @@ nsSystemInfo::GetAndroidSystemInfo(AndroidSystemInfo* aInfo)
   }
   if (mozilla::AndroidBridge::Bridge()->GetStaticStringField(
       "android/os/Build$VERSION", "RELEASE", str)) {
-    aInfo->release_version() = str;
+    int major_version;
+    int minor_version;
+    int bugfix_version;
+    int num_read = sscanf(NS_ConvertUTF16toUTF8(str).get(), "%d.%d.%d", &major_version, &minor_version, &bugfix_version);
+    if (num_read == 0) {
+      aInfo->release_version() = NS_LITERAL_STRING(DEFAULT_ANDROID_VERSION);
+    } else {
+      aInfo->release_version() = str;
+    }
   }
   if (mozilla::AndroidBridge::Bridge()->GetStaticStringField(
       "android/os/Build", "HARDWARE", str)) {
@@ -845,7 +852,7 @@ nsSystemInfo::GetAndroidSystemInfo(AndroidSystemInfo* aInfo)
     sdk_version = 0;
   }
   aInfo->sdk_version() = sdk_version;
-  aInfo->isTablet() = mozilla::widget::GeckoAppShell::IsTablet();
+  aInfo->isTablet() = java::GeckoAppShell::IsTablet();
 }
 
 void
@@ -883,13 +890,13 @@ void
 nsSystemInfo::SetInt32Property(const nsAString& aPropertyName,
                                const int32_t aValue)
 {
-  NS_WARN_IF_FALSE(aValue > 0, "Unable to read system value");
+  NS_WARNING_ASSERTION(aValue > 0, "Unable to read system value");
   if (aValue > 0) {
 #ifdef DEBUG
     nsresult rv =
 #endif
       SetPropertyAsInt32(aPropertyName, aValue);
-    NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "Unable to set property");
+    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "Unable to set property");
   }
 }
 
@@ -903,20 +910,20 @@ nsSystemInfo::SetUint32Property(const nsAString& aPropertyName,
   nsresult rv =
 #endif
     SetPropertyAsUint32(aPropertyName, aValue);
-  NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "Unable to set property");
+  NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "Unable to set property");
 }
 
 void
 nsSystemInfo::SetUint64Property(const nsAString& aPropertyName,
                                 const uint64_t aValue)
 {
-  NS_WARN_IF_FALSE(aValue > 0, "Unable to read system value");
+  NS_WARNING_ASSERTION(aValue > 0, "Unable to read system value");
   if (aValue > 0) {
 #ifdef DEBUG
     nsresult rv =
 #endif
       SetPropertyAsUint64(aPropertyName, aValue);
-    NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "Unable to set property");
+    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "Unable to set property");
   }
 }
 

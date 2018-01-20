@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "rm": {
+      "chrome_resources": {
+        "necko": "chrome/rm/locale/rm/necko/", 
+        "global": "chrome/rm/locale/rm/global/", 
+        "messenger-region": "chrome/rm/locale/rm/messenger-region/", 
+        "chat": "chrome/rm/locale/rm/chat/", 
+        "devtools": "chrome/rm/locale/rm/devtools/client/", 
+        "pipnss": "chrome/rm/locale/rm/pipnss/", 
+        "messenger-smime": "chrome/rm/locale/rm/messenger-smime/", 
+        "messenger-newsblog": "chrome/rm/locale/rm/messenger-newsblog/", 
+        "devtools-shim": "chrome/rm/locale/rm/devtools/shim/", 
+        "alerts": "chrome/rm/locale/rm/alerts/", 
+        "messenger": "chrome/rm/locale/rm/messenger/", 
+        "editor": "chrome/rm/locale/rm/editor/", 
+        "branding": "chrome/rm/locale/rm/branding/", 
+        "mozldap": "chrome/rm/locale/rm/mozldap/", 
+        "autoconfig": "chrome/rm/locale/rm/autoconfig/", 
+        "devtools-shared": "chrome/rm/locale/rm/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/rm/locale/rm/global-platform/win/", 
+          "android": "chrome/rm/locale/rm/global-platform/unix/", 
+          "macosx": "chrome/rm/locale/rm/global-platform/mac/", 
+          "linux": "chrome/rm/locale/rm/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/rm/locale/rm/mozapps/", 
+        "pluginproblem": "chrome/rm/locale/rm/pluginproblem/", 
+        "communicator": "chrome/rm/locale/rm/communicator/", 
+        "messenger-mapi": "chrome/rm/locale/rm/messenger-mapi/", 
+        "places": "chrome/rm/locale/rm/places/", 
+        "passwordmgr": "chrome/rm/locale/rm/passwordmgr/", 
+        "pippki": "chrome/rm/locale/rm/pippki/"
+      }, 
+      "version": "20171102110757"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "58.0", 
+      "id": "langpack-rm@firefox.mozilla.org", 
+      "strict_max_version": "58.*"
+    }
+  }, 
+  "langpack_id": "rm", 
+  "version": "58.0", 
+  "name": "Rumantsch Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "mozilla.org (contributors: Joe Solon, Suzy Solon)", 
+  "description": "Language pack for Thunderbird for rm"
+}

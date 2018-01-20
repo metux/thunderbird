@@ -8,7 +8,7 @@
 
 #include "mozilla/Attributes.h"
 #include "nscore.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsIImportABDescriptor.h"
 #include "nsIFile.h"
 #include "nsCOMPtr.h"
@@ -87,7 +87,7 @@ public:
 
   nsImportABDescriptor();
 
-  static NS_METHOD Create(nsISupports *aOuter, REFNSIID aIID, void **aResult);
+  static nsresult Create(nsISupports *aOuter, REFNSIID aIID, void **aResult);
 
 private:
   virtual ~nsImportABDescriptor() {}

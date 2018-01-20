@@ -1,8 +1,8 @@
 var rootDir = getRootDirectory(gTestPath);
 const gTestRoot = rootDir.replace("chrome://mochitests/content/", "http://127.0.0.1:8888/");
 
-add_task(function* () {
-  registerCleanupFunction(function () {
+add_task(async function() {
+  registerCleanupFunction(function() {
     clearAllPluginPermissions();
     setTestPluginEnabledState(Ci.nsIPluginTag.STATE_ENABLED, "Test Plug-in");
     setTestPluginEnabledState(Ci.nsIPluginTag.STATE_ENABLED, "Second Test Plug-in");
@@ -13,32 +13,26 @@ add_task(function* () {
   });
 });
 
-add_task(function* () {
+add_task(async function() {
   Services.prefs.setBoolPref("extensions.blocklist.suppressUI", true);
 
-  gBrowser.selectedTab = gBrowser.addTab();
+  gBrowser.selectedTab = BrowserTestUtils.addTab(gBrowser);
 
   Services.prefs.setBoolPref("plugins.click_to_play", true);
   setTestPluginEnabledState(Ci.nsIPluginTag.STATE_CLICKTOPLAY, "Test Plug-in");
 
-  yield promiseTabLoadEvent(gBrowser.selectedTab, gTestRoot + "plugin_iframe.html");
+  await promiseTabLoadEvent(gBrowser.selectedTab, gTestRoot + "plugin_iframe.html");
 
   // Tests that the overlays are visible and actionable if the plugin is in an iframe.
 
-  let result = yield ContentTask.spawn(gBrowser.selectedBrowser, {}, function* () {
+  await ContentTask.spawn(gBrowser.selectedBrowser, null, async function() {
     let frame = content.document.getElementById("frame");
     let doc = frame.contentDocument;
     let plugin = doc.getElementById("test");
     let overlay = doc.getAnonymousElementByAttribute(plugin, "anonid", "main");
-    return plugin && overlay.classList.contains("visible");
-  });
-  ok(result, "Test 1, Plugin overlay should exist, not be hidden");
+    Assert.ok(plugin && overlay.classList.contains("visible"),
+      "Test 1, Plugin overlay should exist, not be hidden");
 
-  result = yield ContentTask.spawn(gBrowser.selectedBrowser, {}, function* () {
-    let frame = content.document.getElementById("frame");
-    let doc = frame.contentDocument;
-    let plugin = doc.getElementById("test");
-    let overlay = doc.getAnonymousElementByAttribute(plugin, "anonid", "main");
     let closeIcon = doc.getAnonymousElementByAttribute(plugin, "anonid", "closeIcon");
     let bounds = closeIcon.getBoundingClientRect();
     let left = (bounds.left + bounds.right) / 2;
@@ -47,8 +41,8 @@ add_task(function* () {
                        .getInterface(Components.interfaces.nsIDOMWindowUtils);
     utils.sendMouseEvent("mousedown", left, top, 0, 1, 0, false, 0, 0);
     utils.sendMouseEvent("mouseup", left, top, 0, 1, 0, false, 0, 0);
-    return overlay.classList.contains("visible");
+    Assert.ok(!overlay.classList.contains("visible"),
+      "Test 1, Plugin overlay should exist, be hidden");
   });
-  ok(!result, "Test 1, Plugin overlay should exist, be hidden");
 });
 

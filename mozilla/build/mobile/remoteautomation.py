@@ -7,14 +7,16 @@ import glob
 import time
 import re
 import os
+import posixpath
 import tempfile
 import shutil
 import subprocess
 import sys
 
 from automation import Automation
-from devicemanager import DMError, DeviceManager
+from mozdevice import DMError, DeviceManager
 from mozlog import get_default_logger
+from mozscreenshot import dump_screen
 import mozcrash
 
 # signatures for logcat messages that we don't care about much
@@ -58,7 +60,7 @@ class RemoteAutomation(Automation):
         self._remoteLog = logfile
 
     # Set up what we need for the remote environment
-    def environment(self, env=None, xrePath=None, crashreporter=True, debugger=False, dmdPath=None, lsanPath=None):
+    def environment(self, env=None, xrePath=None, crashreporter=True, debugger=False, dmdPath=None, lsanPath=None, ubsanPath=None):
         # Because we are running remote, we don't want to mimic the local env
         # so no copying of os.environ
         if env is None:
@@ -85,6 +87,13 @@ class RemoteAutomation(Automation):
         # Don't override the user's choice here.  See bug 1049688.
         env.setdefault('MOZ_DISABLE_NONLOCAL_CONNECTIONS', '1')
 
+        # Send an env var noting that we are in automation. Passing any
+        # value except the empty string will declare the value to exist.
+        #
+        # This may be used to disabled network connections during testing, e.g.
+        # Switchboard & telemetry uploads.
+        env.setdefault('MOZ_IN_AUTOMATION', '1')
+
         # Set WebRTC logging in case it is not set yet.
         # On Android, environment variables cannot contain ',' so the
         # standard WebRTC setting for NSPR_LOG_MODULES is not available.
@@ -95,17 +104,19 @@ class RemoteAutomation(Automation):
 
         return env
 
-    def waitForFinish(self, proc, utilityPath, timeout, maxTime, startTime, debuggerInfo, symbolsPath):
+    def waitForFinish(self, proc, utilityPath, timeout, maxTime, startTime, debuggerInfo, symbolsPath, outputHandler=None):
         """ Wait for tests to finish.
             If maxTime seconds elapse or no output is detected for timeout
             seconds, kill the process and fail the test.
         """
+        proc.utilityPath = utilityPath
         # maxTime is used to override the default timeout, we should honor that
         status = proc.wait(timeout = maxTime, noOutputTimeout = timeout)
         self.lastTestSeen = proc.getLastTestSeen
 
         topActivity = self._devicemanager.getTopActivity()
         if topActivity == proc.procName:
+            print "Browser unexpectedly found running. Killing..."
             proc.kill(True)
         if status == 1:
             if maxTime:
@@ -203,7 +214,7 @@ class RemoteAutomation(Automation):
 
         logcat = self._devicemanager.getLogcat(filterOutRegexps=fennecLogcatFilters)
 
-        javaException = mozcrash.check_for_java_exception(logcat)
+        javaException = mozcrash.check_for_java_exception(logcat, test_name=self.lastTestSeen)
         if javaException:
             return True
 
@@ -214,7 +225,7 @@ class RemoteAutomation(Automation):
 
         try:
             dumpDir = tempfile.mkdtemp()
-            remoteCrashDir = self._remoteProfile + '/minidumps/'
+            remoteCrashDir = posixpath.join(self._remoteProfile, 'minidumps')
             if not self._devicemanager.dirExists(remoteCrashDir):
                 # If crash reporting is enabled (MOZ_CRASHREPORTER=1), the
                 # minidumps directory is automatically created when Fennec
@@ -276,6 +287,7 @@ class RemoteAutomation(Automation):
             self.lastTestSeen = "remoteautomation.py"
             self.proc = dm.launchProcess(cmd, stdout, cwd, env, True)
             self.messageLogger = messageLogger
+            self.utilityPath = None
 
             if (self.proc is None):
                 if cmd[0] == 'am':
@@ -307,20 +319,18 @@ class RemoteAutomation(Automation):
             return pid
 
         def read_stdout(self):
-            """ Fetch the full remote log file using devicemanager and return just
-                the new log entries since the last call (as a list of messages or lines).
+            """
+            Fetch the full remote log file using devicemanager, process them and
+            return whether there were any new log entries since the last call.
             """
             if not self.dm.fileExists(self.proc):
-                return []
+                return False
             try:
                 newLogContent = self.dm.pullFile(self.proc, self.stdoutlen)
             except DMError:
-                # we currently don't retry properly in the pullFile
-                # function in dmSUT, so an error here is not necessarily
-                # the end of the world
-                return []
+                return False
             if not newLogContent:
-                return []
+                return False
 
             self.stdoutlen += len(newLogContent)
 
@@ -329,26 +339,31 @@ class RemoteAutomation(Automation):
                 if testStartFilenames:
                     self.lastTestSeen = testStartFilenames[-1]
                 print newLogContent
-                return [newLogContent]
+                return True
 
             self.logBuffer += newLogContent
             lines = self.logBuffer.split('\n')
-            if not lines:
-                return
+            lines = [l for l in lines if l]
 
-            # We only keep the last (unfinished) line in the buffer
-            self.logBuffer = lines[-1]
-            del lines[-1]
-            messages = []
+            if lines:
+                if self.logBuffer.endswith('\n'):
+                    # all lines are complete; no need to buffer
+                    self.logBuffer = ""
+                else:
+                    # keep the last (unfinished) line in the buffer
+                    self.logBuffer = lines[-1]
+                    del lines[-1]
+
+            if not lines:
+                return False
+
             for line in lines:
                 # This passes the line to the logger (to be logged or buffered)
-                # and returns a list of structured messages (dict)
                 parsed_messages = self.messageLogger.write(line)
                 for message in parsed_messages:
-                    if message['action'] == 'test_start':
+                    if isinstance(message, dict) and message.get('action') == 'test_start':
                         self.lastTestSeen = message['test']
-                messages += parsed_messages
-            return messages
+            return True
 
         @property
         def getLastTestSeen(self):
@@ -369,31 +384,44 @@ class RemoteAutomation(Automation):
             status = 0
             top = self.procName
             slowLog = False
+            endTime = datetime.datetime.now() + datetime.timedelta(seconds = timeout)
             while (top == self.procName):
                 # Get log updates on each interval, but if it is taking
                 # too long, only do it every 60 seconds
+                hasOutput = False
                 if (not slowLog) or (timer % 60 == 0):
                     startRead = datetime.datetime.now()
-                    messages = self.read_stdout()
+                    hasOutput = self.read_stdout()
                     if (datetime.datetime.now() - startRead) > datetime.timedelta(seconds=5):
                         slowLog = True
-                    if messages:
+                    if hasOutput:
                         noOutputTimer = 0
                 time.sleep(interval)
                 timer += interval
                 noOutputTimer += interval
-                if (timer > timeout):
+                if datetime.datetime.now() > endTime:
                     status = 1
                     break
                 if (noOutputTimeout and noOutputTimer > noOutputTimeout):
                     status = 2
                     break
-                top = self.dm.getTopActivity()
+                if not hasOutput:
+                    top = self.dm.getTopActivity()
+                    if top == "":
+                        print "Failed to get top activity, retrying, once..."
+                        top = self.dm.getTopActivity()
             # Flush anything added to stdout during the sleep
             self.read_stdout()
             return status
 
         def kill(self, stagedShutdown = False):
+            if self.utilityPath:
+                # Take a screenshot to capture the screen state just before
+                # the application is killed. There are on-device screenshot
+                # options but they rarely work well with Firefox on the
+                # Android emulator. dump_screen provides an effective
+                # screenshot of the emulator and its host desktop.
+                dump_screen(self.utilityPath, get_default_logger())
             if stagedShutdown:
                 # Trigger an ANR report with "kill -3" (SIGQUIT)
                 self.dm.killProcess(self.procName, 3)

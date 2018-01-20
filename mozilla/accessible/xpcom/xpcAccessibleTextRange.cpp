@@ -6,7 +6,7 @@
 
 #include "xpcAccessibleTextRange.h"
 
-#include "TextRange.h"
+#include "TextRange-inl.h"
 #include "xpcAccessibleDocument.h"
 
 #include "nsIMutableArray.h"
@@ -87,7 +87,7 @@ xpcAccessibleTextRange::GetEmbeddedChildren(nsIArray** aList)
 
   uint32_t len = objects.Length();
   for (uint32_t idx = 0; idx < len; idx++)
-    xpcList->AppendElement(static_cast<nsIAccessible*>(ToXPC(objects[idx])), false);
+    xpcList->AppendElement(static_cast<nsIAccessible*>(ToXPC(objects[idx])));
 
   xpcList.forget(aList);
 
@@ -167,6 +167,16 @@ xpcAccessibleTextRange::MoveEnd(uint32_t aUnit, int32_t aCount)
 NS_IMETHODIMP
 xpcAccessibleTextRange::Normalize(uint32_t aUnit)
 {
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+xpcAccessibleTextRange::Crop(nsIAccessible* aContainer, bool* aSuccess)
+{
+  Accessible* container = aContainer->ToInternalAccessible();
+  NS_ENSURE_TRUE(container, NS_ERROR_INVALID_ARG);
+
+  *aSuccess = mRange.Crop(container);
   return NS_OK;
 }
 

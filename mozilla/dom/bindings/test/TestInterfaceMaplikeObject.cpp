@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -21,7 +23,7 @@ NS_WRAPPERCACHE_INTERFACE_MAP_ENTRY
 NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
-TestInterfaceMaplikeObject::TestInterfaceMaplikeObject(nsPIDOMWindow* aParent)
+TestInterfaceMaplikeObject::TestInterfaceMaplikeObject(nsPIDOMWindowInner* aParent)
 : mParent(aParent)
 {
 }
@@ -31,7 +33,7 @@ already_AddRefed<TestInterfaceMaplikeObject>
 TestInterfaceMaplikeObject::Constructor(const GlobalObject& aGlobal,
                                         ErrorResult& aRv)
 {
-  nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(aGlobal.GetAsSupports());
+  nsCOMPtr<nsPIDOMWindowInner> window = do_QueryInterface(aGlobal.GetAsSupports());
   if (!window) {
     aRv.Throw(NS_ERROR_FAILURE);
     return nullptr;
@@ -49,7 +51,7 @@ TestInterfaceMaplikeObject::WrapObject(JSContext* aCx,
   return TestInterfaceMaplikeObjectBinding::Wrap(aCx, this, aGivenProto);
 }
 
-nsPIDOMWindow*
+nsPIDOMWindowInner*
 TestInterfaceMaplikeObject::GetParentObject() const
 {
   return mParent;

@@ -3,16 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+Components.utils.import("resource://calendar/modules/calUtils.jsm");
 
 function calFreeBusyListener(numOperations, finalListener) {
     this.mFinalListener = finalListener;
     this.mNumOperations = numOperations;
 
-    var this_ = this;
-    function cancelFunc() { // operation group has been cancelled
-        this_.notifyResult(null);
-    }
-    this.opGroup = new calOperationGroup(cancelFunc);
+    this.opGroup = new cal.calOperationGroup(() => {
+        this.notifyResult(null);
+    });
 }
 calFreeBusyListener.prototype = {
     mFinalListener: null,
@@ -21,8 +20,8 @@ calFreeBusyListener.prototype = {
 
     QueryInterface: XPCOMUtils.generateQI([Components.interfaces.calIGenericOperationListener]),
 
-    notifyResult: function calFreeBusyListener_notifyResult(result) {
-        var listener = this.mFinalListener
+    notifyResult: function(result) {
+        let listener = this.mFinalListener;
         if (listener) {
             if (!this.opGroup.isPending) {
                 this.mFinalListener = null;
@@ -32,7 +31,7 @@ calFreeBusyListener.prototype = {
     },
 
     // calIGenericOperationListener:
-    onResult: function calFreeBusyListener_onResult(aOperation, aResult) {
+    onResult: function(aOperation, aResult) {
         if (this.mFinalListener) {
             if (!aOperation || !aOperation.isPending) {
                 --this.mNumOperations;
@@ -53,7 +52,7 @@ calFreeBusyListener.prototype = {
 
 function calFreeBusyService() {
     this.wrappedJSObject = this;
-    this.mProviders = new calInterfaceBag(Components.interfaces.calIFreeBusyProvider);
+    this.mProviders = new cal.calInterfaceBag(Components.interfaces.calIFreeBusyProvider);
 }
 var calFreeBusyServiceClassID = Components.ID("{29c56cd5-d36e-453a-acde-0083bd4fe6d3}");
 var calFreeBusyServiceInterfaces = [
@@ -74,12 +73,8 @@ calFreeBusyService.prototype = {
     }),
 
     // calIFreeBusyProvider:
-    getFreeBusyIntervals: function calFreeBusyService_getFreeBusyIntervals(aCalId,
-                                                                           aRangeStart,
-                                                                           aRangeEnd,
-                                                                           aBusyTypes,
-                                                                           aListener) {
-        var groupListener = new calFreeBusyListener(this.mProviders.size, aListener);
+    getFreeBusyIntervals: function(aCalId, aRangeStart, aRangeEnd, aBusyTypes, aListener) {
+        let groupListener = new calFreeBusyListener(this.mProviders.size, aListener);
         for (let provider of this.mProviders) {
             let operation = provider.getFreeBusyIntervals(aCalId, aRangeStart,
                                                           aRangeEnd,
@@ -91,10 +86,10 @@ calFreeBusyService.prototype = {
     },
 
     // calIFreeBusyService:
-    addProvider: function calFreeBusyListener_addProvider(aProvider) {
+    addProvider: function(aProvider) {
         this.mProviders.add(aProvider);
     },
-    removeProvider: function calFreeBusyListener_removeProvider(aProvider) {
+    removeProvider: function(aProvider) {
         this.mProviders.remove(aProvider);
     }
 };

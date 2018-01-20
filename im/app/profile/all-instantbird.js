@@ -167,19 +167,16 @@ pref("app.update.nagTimer.download", 86400);
 //           download (in seconds) default=30 minutes
 pref("app.update.nagTimer.restart", 1800);
 
-// Whether or not we show a dialog box informing the user that the update was
-// successfully applied. This is off in Firefox by default since we show a
-// upgrade start page instead! Other apps may wish to show this UI, and supply
-// a whatsNewURL field in their brand.properties that contains a link to a page
-// which tells users what's new in this new update.
-pref("app.update.showInstalledUI", false);
-
 // 0 = suppress prompting for incompatibilities if there are updates available
 //     to newer versions of installed addons that resolve them.
 // 1 = suppress prompting for incompatibilities only if there are VersionInfo
 //     updates available to installed addons that resolve them, not newer
 //     versions.
 pref("app.update.incompatible.mode", 0);
+
+// The time interval between the downloading of mar file chunks in the
+// background (in seconds)
+pref("app.update.download.backgroundInterval", 60);
 
 // base URL for web-based support pages (used by toolkit)
 pref("app.support.baseURL", "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/");
@@ -210,13 +207,33 @@ pref("browser.search.update.log", false);
 // Check whether we need to perform engine updates every 6 hours
 pref("browser.search.updateinterval", 6);
 
+// Developer Tools related preferences
+pref("devtools.debugger.log", false);
+pref("devtools.chrome.enabled", true);
+pref("devtools.selfxss.count", 5);
+
+// Blocklist preferences
+pref("extensions.blocklist.enabled", true);
+// Controls what level the blocklist switches from warning about items to forcibly
+// blocking them.
+pref("extensions.blocklist.level", 2);
+
+// Kinto blocklist preferences
+pref("services.kinto.update_enabled", false);
+
+// Block insecure active content on https pages
+pref("security.mixed_content.block_active_content", true);
+
+// 1 = allow "Man In The Middle" (local proxy, web filter, etc.) for certificate
+//     pinning checks.
+pref("security.cert_pinning.enforcement_level", 1);
+
 /* Extension manager */
 pref("xpinstall.dialog.confirm", "chrome://mozapps/content/xpinstall/xpinstallConfirm.xul");
 pref("xpinstall.dialog.progress.skin", "chrome://mozapps/content/extensions/extensions.xul");
 pref("xpinstall.dialog.progress.chrome", "chrome://mozapps/content/extensions/extensions.xul");
 pref("xpinstall.dialog.progress.type.skin", "Extension:Manager");
 pref("xpinstall.dialog.progress.type.chrome", "Extension:Manager");
-pref("extensions.dss.enabled", false);
 pref("extensions.dss.switchPending", false);
 pref("extensions.ignoreMTimeChanges", false);
 pref("extensions.logging.enabled", false);
@@ -243,6 +260,20 @@ pref("extensions.getMorePluginsURL", "https://add-ons.instantbird.org/%LOCALE%/%
 pref("extensions.getMoreMessageStylesURL", "https://add-ons.instantbird.org/%LOCALE%/%APP%/%VERSION%/messagestyles/");
 pref("extensions.getMoreEmoticonsURL", "https://add-ons.instantbird.org/%LOCALE%/%APP%/%VERSION%/emoticons/");
 pref("extensions.getMoreProtocolsURL", "https://add-ons.instantbird.org/%LOCALE%/%APP%/%VERSION%/protocols/");
+
+// Click-to-play has not been ported yet, see bug 814168.
+// The default plugin state should be changed to "ask to activate" when this
+// has been done.
+pref("plugins.click_to_play", false);
+// Disable by default.
+pref("plugin.default.state", 0);
+
+// Plugins bundled in XPIs are disabled by default.
+pref("plugin.defaultXpi.state", 0);
+
+// Flash and Java disabled by default.
+pref("plugin.state.flash", 0);
+pref("plugin.state.java", 0);
 
 // suppress external-load warning for standard browser schemes
 pref("network.protocol-handler.warn-external.http", false);
@@ -307,7 +338,7 @@ pref("chat.twitter.consumerSecret", "DKtKaSf5a7pBNhdBsSZHTnI5Y03hRlPFYWmb4xXBlkU
 
 // Comma separated list of prpl ids that should use libpurple even if there is
 // a JS implementation. This is used to land JS-prpls pref'ed off in nightlies.
-pref("chat.prpls.forcePurple", "prpl-jabber");
+pref("chat.prpls.forcePurple", "");
 
 // Whether to parse log files for conversation statistics.
 pref("statsService.parseLogsForStats", true);

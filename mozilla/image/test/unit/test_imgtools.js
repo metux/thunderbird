@@ -19,7 +19,7 @@ function dumpToFile(aData) {
     var outputStream = Cc["@mozilla.org/network/file-output-stream;1"].
                        createInstance(Ci.nsIFileOutputStream);
     // WR_ONLY|CREAT|TRUNC
-    outputStream.init(outputFile, 0x02 | 0x08 | 0x20, 0644, null);
+    outputStream.init(outputFile, 0x02 | 0x08 | 0x20, 0o644, null);
 
     var bos = Cc["@mozilla.org/binaryoutputstream;1"].
               createInstance(Ci.nsIBinaryOutputStream);
@@ -145,11 +145,7 @@ var imgFile = do_get_file(imgName);
 var istream = getFileInputStream(imgFile);
 do_check_eq(istream.available(), 8415);
 
-// Use decodeImageData for this test even though it's deprecated to ensure that
-// it correctly forwards to decodeImage and continues to work.
-var outParam = { value: null };
-imgTools.decodeImageData(istream, inMimeType, outParam);
-var container = outParam.value;
+var container = imgTools.decodeImage(istream, inMimeType);
 
 // It's not easy to look at the pixel values from JS, so just
 // check the container's size.

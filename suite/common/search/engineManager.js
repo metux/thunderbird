@@ -2,8 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
+Components.utils.import("resource://gre/modules/AppConstants.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
+                                  "resource://gre/modules/PlacesUtils.jsm");
 const Ci = Components.interfaces;
 const Cc = Components.classes;
 
@@ -105,60 +109,50 @@ var gEngineManagerDialog = {
     document.getElementById("engineList").focus();
   },
 
-  editKeyword: function engineManager_editKeyword() {
-    var selectedEngine = gEngineView.selectedEngine;
-    if (!selectedEngine)
+  selectEditKeyword: function engineManager_selectEditKeyword() {
+    let index = gEngineView.selectedIndex;
+    // No engine selected.
+    if (index == -1)
       return;
 
-    var alias = { value: selectedEngine.alias };
-    var strings = document.getElementById("engineManagerBundle");
-    var title = strings.getString("editTitle");
-    var msg = strings.getFormattedString("editMsg", [selectedEngine.name]);
-
-    while (Services.prompt.prompt(window, title, msg, alias, null, {})) {
-      if (this.updateKeyword(selectedEngine, alias.value))
-        break;
-    }
+    let tree = document.getElementById("engineList");
+    let column = tree.columns.getColumnFor(document.getElementById("engineKeyword"));
+    tree.startEditing(index, column);
   },
 
-  updateKeyword: function(aEngine, aKeyword) {
-    var bduplicate = false;
-    var eduplicate = false;
-    var dupName = "";
+  async editKeyword(aEngine, aNewKeyword) {
+    let keyword = aNewKeyword.trim();
+    if (keyword) {
+      let eduplicate = false;
+      let dupName = "";
 
-    if (aKeyword) {
-      try {
-        let bmserv =
-          Components.classes["@mozilla.org/browser/nav-bookmarks-service;1"]
-                    .getService(Components.interfaces.nsINavBookmarksService);
-        if (bmserv.getURIForKeyword(aKeyword))
-          bduplicate = true;
-      } catch(ex) {}
+      // Check for duplicates in Places keywords.
+      let bduplicate = !!(await PlacesUtils.keywords.fetch(keyword));
 
       // Check for duplicates in changes we haven't committed yet
       let engines = gEngineView._engineStore.engines;
       for (let engine of engines) {
-        if (engine.alias == aKeyword &&
+        if (engine.alias == keyword &&
             engine.name != aEngine.name) {
           eduplicate = true;
           dupName = engine.name;
           break;
         }
       }
+
+      // Notify the user if they have chosen an existing engine/bookmark keyword
+      if (eduplicate || bduplicate) {
+        let strings = document.getElementById("engineManagerBundle");
+        let dtitle = strings.getString("duplicateTitle");
+        let bmsg = strings.getString("duplicateBookmarkMsg");
+        let emsg = strings.getFormattedString("duplicateEngineMsg", [dupName]);
+
+        Services.prompt.alert(window, dtitle, eduplicate ? emsg : bmsg);
+        return false;
+      }
     }
 
-    // Notify the user if they have chosen an existing engine/bookmark keyword
-    if (eduplicate || bduplicate) {
-      var strings = document.getElementById("engineManagerBundle");
-      var dtitle = strings.getString("duplicateTitle");
-      var bmsg = strings.getString("duplicateBookmarkMsg");
-      var emsg = strings.getFormattedString("duplicateEngineMsg", [dupName]);
-
-      Services.prompt.alert(window, dtitle, eduplicate ? emsg : bmsg);
-      return false;
-    }
-
-    gEngineView._engineStore.changeEngine(aEngine, "alias", aKeyword);
+    gEngineView._engineStore.changeEngine(aEngine, "alias", keyword);
     gEngineView.invalidate();
     return true;
   },
@@ -189,8 +183,8 @@ var gEngineManagerDialog = {
     if (tree.editingColumn)
       return;
 
-    var isMac = Application.platformIsMac;
-    if (aEvent.keyCode == (isMac ? KeyEvent.DOM_VK_RETURN : KeyEvent.DOM_VK_F2))
+    if (aEvent.keyCode == (AppConstants.platform == "macosx" ?
+                           KeyEvent.DOM_VK_RETURN : KeyEvent.DOM_VK_F2))
       if (tree.startEditing(gEngineView.selectedIndex,
                             tree.columns.engineKeyword))
         aEvent.preventDefault();
@@ -292,7 +286,7 @@ EngineStore.prototype = {
   },
 
   _getEngineByName: function ES_getEngineByName(aName) {
-    for each (var engine in this._engines)
+    for (var engine of this._engines)
       if (engine.name == aName)
         return engine;
 
@@ -452,11 +446,13 @@ EngineView.prototype = {
   },
 
   setCellText: function(index, column, value) {
-    if (column.id != "engineKeyword")
-      return;
-    gEngineManagerDialog.updateKeyword(this._engineStore.engines[index], value);
-    document.getElementById("engineList").stopEditing(false);
-    return;
+    if (column.id == "engineKeyword") {
+      gEngineManagerDialog.editKeyword(this._engineStore.engines[index], value)
+                          .then(valid => {
+        if (!valid)
+          document.getElementById("engineList").startEditing(index, column);
+      });
+    }
   },
 
   setTree: function(tree) {

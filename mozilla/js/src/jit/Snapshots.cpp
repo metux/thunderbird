@@ -381,20 +381,10 @@ RValueAllocation::write(CompactBufferWriter& writer) const
 
 HashNumber
 RValueAllocation::hash() const {
-    CompactBufferWriter writer;
-    write(writer);
-
-    // We should never oom because the compact buffer writer has 32 inlined
-    // bytes, and in the worse case scenario, only encode 12 bytes
-    // (12 == mode + signed + signed + pad).
-    MOZ_ASSERT(!writer.oom());
-    MOZ_ASSERT(writer.length() <= 12);
-
     HashNumber res = 0;
-    for (size_t i = 0; i < writer.length(); i++) {
-        res = ((res << 8) | (res >> (sizeof(res) - 1)));
-        res ^= writer.buffer()[i];
-    }
+    res = HashNumber(mode_);
+    res = arg1_.index + (res << 6) + (res << 16) - res;
+    res = arg2_.index + (res << 6) + (res << 16) - res;
     return res;
 }
 
@@ -459,27 +449,6 @@ RValueAllocation::dump(GenericPrinter& out) const
     dumpPayload(out, layout.type2, arg2_);
     if (layout.type1 != PAYLOAD_NONE)
         out.printf(")");
-}
-
-bool
-RValueAllocation::equalPayloads(PayloadType type, Payload lhs, Payload rhs)
-{
-    switch (type) {
-      case PAYLOAD_NONE:
-        return true;
-      case PAYLOAD_INDEX:
-        return lhs.index == rhs.index;
-      case PAYLOAD_STACK_OFFSET:
-        return lhs.stackOffset == rhs.stackOffset;
-      case PAYLOAD_GPR:
-        return lhs.gpr == rhs.gpr;
-      case PAYLOAD_FPU:
-        return lhs.fpu == rhs.fpu;
-      case PAYLOAD_PACKED_TAG:
-        return lhs.type == rhs.type;
-    }
-
-    return false;
 }
 
 SnapshotReader::SnapshotReader(const uint8_t* snapshots, uint32_t offset,
@@ -590,13 +559,36 @@ SnapshotWriter::init()
 RecoverReader::RecoverReader(SnapshotReader& snapshot, const uint8_t* recovers, uint32_t size)
   : reader_(nullptr, nullptr),
     numInstructions_(0),
-    numInstructionsRead_(0)
+    numInstructionsRead_(0),
+    resumeAfter_(false)
 {
     if (!recovers)
         return;
     reader_ = CompactBufferReader(recovers + snapshot.recoverOffset(), recovers + size);
     readRecoverHeader();
     readInstruction();
+}
+
+RecoverReader::RecoverReader(const RecoverReader& rr)
+  : reader_(rr.reader_),
+    numInstructions_(rr.numInstructions_),
+    numInstructionsRead_(rr.numInstructionsRead_),
+    resumeAfter_(rr.resumeAfter_)
+{
+    if (reader_.currentPosition())
+        rr.instruction()->cloneInto(&rawData_);
+}
+
+RecoverReader&
+RecoverReader::operator=(const RecoverReader& rr)
+{
+    reader_ = rr.reader_;
+    numInstructions_ = rr.numInstructions_;
+    numInstructionsRead_ = rr.numInstructionsRead_;
+    resumeAfter_ = rr.resumeAfter_;
+    if (reader_.currentPosition())
+        rr.instruction()->cloneInto(&rawData_);
+    return *this;
 }
 
 void

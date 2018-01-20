@@ -56,7 +56,13 @@
     {
       this.invoke = function loadOneTab_invoke()
       {
-        tabBrowser().loadOneTab(aURI, null, null, null, false);
+        tabBrowser().loadOneTab(aURI, {
+          referrerURI: null,
+          charset: null,
+          postData: null,
+          inBackground: false,
+          triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
+        });
       }
 
       this.eventSeq = [
@@ -86,7 +92,7 @@
       testRelation(browserDocument(), RELATION_EMBEDS,
                    getAccessible(currentTabDocument()));
 
-      //enableLogging("docload");
+      enableLogging("docload");
       gQueue = new eventQueue();
 
       gQueue.push(new loadURI("about:about"));
@@ -94,7 +100,7 @@
 
       gQueue.onFinish = function()
       {
-        //disableLogging();
+        disableLogging();
         closeBrowserWindow();
       }
       gQueue.invoke();

@@ -34,13 +34,14 @@ protected:
 
 public:
   NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(SVGAElement, SVGAElementBase)
 
   // nsINode interface methods
-  virtual nsresult PreHandleEvent(EventChainPreVisitor& aVisitor) override;
+  virtual nsresult GetEventTargetParent(
+                     EventChainPreVisitor& aVisitor) override;
   virtual nsresult PostHandleEvent(
                      EventChainPostVisitor& aVisitor) override;
-  virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult) const override;
+  virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult,
+                         bool aPreallocateChildren) const override;
 
   // nsIContent
   virtual nsresult BindToTree(nsIDocument *aDocument, nsIContent *aParent,
@@ -48,22 +49,23 @@ public:
                               bool aCompileEventHandlers) override;
   virtual void UnbindFromTree(bool aDeep = true,
                               bool aNullParent = true) override;
-  NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* aAttribute) const override;
-  virtual bool IsFocusableInternal(int32_t* aTabIndex, bool aWithMouse) override;
+  NS_IMETHOD_(bool) IsAttributeMapped(const nsAtom* aAttribute) const override;
+  virtual int32_t TabIndexDefault() override;
+  virtual bool IsSVGFocusable(bool* aIsFocusable, int32_t* aTabIndex) override;
   virtual bool IsLink(nsIURI** aURI) const override;
   virtual void GetLinkTarget(nsAString& aTarget) override;
   virtual already_AddRefed<nsIURI> GetHrefURI() const override;
   virtual EventStates IntrinsicState() const override;
-  nsresult SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
-                   const nsAString& aValue, bool aNotify)
-  {
-    return SetAttr(aNameSpaceID, aName, nullptr, aValue, aNotify);
-  }
-  virtual nsresult SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
-                           nsIAtom* aPrefix, const nsAString& aValue,
+  using nsIContent::SetAttr;
+  virtual nsresult SetAttr(int32_t aNameSpaceID, nsAtom* aName,
+                           nsAtom* aPrefix, const nsAString& aValue,
+                           nsIPrincipal* aSubjectPrincipal,
                            bool aNotify) override;
-  virtual nsresult UnsetAttr(int32_t aNameSpaceID, nsIAtom* aAttribute,
+  virtual nsresult UnsetAttr(int32_t aNameSpaceID, nsAtom* aAttribute,
                              bool aNotify) override;
+
+  // Link
+  virtual bool ElementHasHref() const override;
 
   // WebIDL
   already_AddRefed<SVGAnimatedString> Href();
@@ -71,14 +73,20 @@ public:
   void GetDownload(nsAString & aDownload);
   void SetDownload(const nsAString & aDownload, ErrorResult& rv);
 
+  virtual void NodeInfoChanged(nsIDocument* aOldDoc) final override
+  {
+    ClearHasPendingLinkUpdate();
+    SVGAElementBase::NodeInfoChanged(aOldDoc);
+  }
+
 protected:
   virtual ~SVGAElement();
 
   virtual StringAttributesInfo GetStringInfo() override;
 
-  enum { HREF, TARGET };
-  nsSVGString mStringAttributes[2];
-  static StringInfo sStringInfo[2];
+  enum { HREF, XLINK_HREF, TARGET };
+  nsSVGString mStringAttributes[3];
+  static StringInfo sStringInfo[3];
 };
 
 } // namespace dom

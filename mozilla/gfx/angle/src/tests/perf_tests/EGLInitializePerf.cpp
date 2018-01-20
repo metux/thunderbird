@@ -17,56 +17,43 @@ using namespace testing;
 
 namespace
 {
-
 // Only applies to D3D11
-class CapturePlatform : public angle::Platform
+struct Captures final : private angle::NonCopyable
 {
-  public:
-    CapturePlatform()
-        : mTimer(CreateTimer()),
-          mLoadDLLsMS(0),
-          mCreateDeviceMS(0),
-          mInitResourcesMS(0)
-    {
-        mTimer->start();
-    }
-
-    double currentTime() override;
-    void histogramCustomCounts(
-        const char *name, int sample, int min, int max, int bucketCount) override;
-
-    size_t getLoadDLLsMS() const { return mLoadDLLsMS; }
-    size_t getCreateDeviceMS() const { return mCreateDeviceMS; }
-    size_t getInitResourcesMS() const { return mInitResourcesMS; }
-
-  private:
-    Timer *mTimer;
-    size_t mLoadDLLsMS;
-    size_t mCreateDeviceMS;
-    size_t mInitResourcesMS;
+    Timer *timer           = CreateTimer();
+    size_t loadDLLsMS      = 0;
+    size_t createDeviceMS  = 0;
+    size_t initResourcesMS = 0;
 };
 
-double CapturePlatform::currentTime()
+double CapturePlatform_currentTime(angle::PlatformMethods *platformMethods)
 {
-    return mTimer->getElapsedTime();
+    Captures *captures = static_cast<Captures *>(platformMethods->context);
+    return captures->timer->getElapsedTime();
 }
 
-void CapturePlatform::histogramCustomCounts(
-    const char *name, int sample, int /*min*/, int /*max*/, int /*bucketCount*/)
+void CapturePlatform_histogramCustomCounts(angle::PlatformMethods *platformMethods,
+                                           const char *name,
+                                           int sample,
+                                           int /*min*/,
+                                           int /*max*/,
+                                           int /*bucketCount*/)
 {
+    Captures *captures = static_cast<Captures *>(platformMethods->context);
+
     // These must match the names of the histograms.
     if (strcmp(name, "GPU.ANGLE.Renderer11InitializeDLLsMS") == 0)
     {
-        mLoadDLLsMS += static_cast<size_t>(sample);
+        captures->loadDLLsMS += static_cast<size_t>(sample);
     }
     // Note: not captured in debug, due to creating a debug device
     else if (strcmp(name, "GPU.ANGLE.D3D11CreateDeviceMS") == 0)
     {
-        mCreateDeviceMS += static_cast<size_t>(sample);
+        captures->createDeviceMS += static_cast<size_t>(sample);
     }
     else if (strcmp(name, "GPU.ANGLE.Renderer11InitializeDeviceMS") == 0)
     {
-        mInitResourcesMS += static_cast<size_t>(sample);
+        captures->initResourcesMS += static_cast<size_t>(sample);
     }
 }
 
@@ -77,13 +64,14 @@ class EGLInitializePerfTest : public ANGLEPerfTest,
     EGLInitializePerfTest();
     ~EGLInitializePerfTest();
 
-    void step(float dt, double totalTime) override;
+    void step() override;
+    void SetUp() override;
     void TearDown() override;
 
   private:
     OSWindow *mOSWindow;
     EGLDisplay mDisplay;
-    CapturePlatform mCapturePlatform;
+    Captures mCaptures;
 };
 
 EGLInitializePerfTest::EGLInitializePerfTest()
@@ -121,10 +109,20 @@ EGLInitializePerfTest::EGLInitializePerfTest()
     }
 
     mDisplay = eglGetPlatformDisplayEXT(EGL_PLATFORM_ANGLE_ANGLE,
-                                        mOSWindow->getNativeDisplay(),
+                                        reinterpret_cast<void *>(mOSWindow->getNativeDisplay()),
                                         &displayAttributes[0]);
+}
 
-    ANGLEPlatformInitialize(&mCapturePlatform);
+void EGLInitializePerfTest::SetUp()
+{
+    ANGLEPerfTest::SetUp();
+
+    angle::PlatformMethods *platformMethods = nullptr;
+    ASSERT_TRUE(ANGLEGetDisplayPlatform(mDisplay, angle::g_PlatformMethodNames,
+                                        angle::g_NumPlatformMethods, &mCaptures, &platformMethods));
+
+    platformMethods->currentTime           = CapturePlatform_currentTime;
+    platformMethods->histogramCustomCounts = CapturePlatform_histogramCustomCounts;
 }
 
 EGLInitializePerfTest::~EGLInitializePerfTest()
@@ -132,28 +130,23 @@ EGLInitializePerfTest::~EGLInitializePerfTest()
     SafeDelete(mOSWindow);
 }
 
-void EGLInitializePerfTest::step(float dt, double totalTime)
+void EGLInitializePerfTest::step()
 {
-    ASSERT_TRUE(mDisplay != EGL_NO_DISPLAY);
+    ASSERT_NE(EGL_NO_DISPLAY, mDisplay);
 
     EGLint majorVersion, minorVersion;
-    ASSERT_TRUE(eglInitialize(mDisplay, &majorVersion, &minorVersion) == EGL_TRUE);
-    ASSERT_TRUE(eglTerminate(mDisplay) == EGL_TRUE);
-
-    if (mTimer->getElapsedTime() >= 5.0)
-    {
-        mRunning = false;
-    }
+    ASSERT_EQ(static_cast<EGLBoolean>(EGL_TRUE), eglInitialize(mDisplay, &majorVersion, &minorVersion));
+    ASSERT_EQ(static_cast<EGLBoolean>(EGL_TRUE), eglTerminate(mDisplay));
 }
 
 void EGLInitializePerfTest::TearDown()
 {
     ANGLEPerfTest::TearDown();
-    printResult("LoadDLLs", normalizedTime(mCapturePlatform.getLoadDLLsMS()), "ms", true);
-    printResult("D3D11CreateDevice", normalizedTime(mCapturePlatform.getCreateDeviceMS()), "ms", true);
-    printResult("InitResources", normalizedTime(mCapturePlatform.getInitResourcesMS()), "ms", true);
+    printResult("LoadDLLs", normalizedTime(mCaptures.loadDLLsMS), "ms", true);
+    printResult("D3D11CreateDevice", normalizedTime(mCaptures.createDeviceMS), "ms", true);
+    printResult("InitResources", normalizedTime(mCaptures.initResourcesMS), "ms", true);
 
-    ANGLEPlatformShutdown();
+    ANGLEResetDisplayPlatform(mDisplay);
 }
 
 TEST_P(EGLInitializePerfTest, Run)

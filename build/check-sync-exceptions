@@ -5,6 +5,7 @@ pymake
 client.py-args
 client.py-l10n-args
 configobj.py
+mozconfig.comm-support
 
 # Ignore detritus left lying around by editing tools.
 *~
@@ -15,3 +16,8 @@ configobj.py
 
 # Ignore "compiled" python files
 *.pyc
+
+# Disable Stylo - Bug 1380171
+# Until we can depend on taskcluster toolchain dependencies,
+# we don't have a good way to access LLVM.
+mozconfig.stylo

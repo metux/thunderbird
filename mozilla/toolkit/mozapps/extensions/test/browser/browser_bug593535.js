@@ -9,11 +9,11 @@ const PREF_GETADDONS_GETSEARCHRESULTS = "extensions.getAddons.search.url";
 const SEARCH_URL = TESTROOT + "browser_bug593535.xml";
 const QUERY = "NOTFOUND";
 
-var gProvider;
+var gManagerWindow;
 
 function test() {
   waitForExplicitFinish();
-  
+
   // Turn on searching for this test
   Services.prefs.setIntPref(PREF_SEARCH_MAXRESULTS, 15);
 
@@ -85,12 +85,12 @@ function getAnonymousElementByAttribute(aElement, aName, aValue) {
 // Tests that a failed install for a remote add-on will ask to retry the install
 add_test(function() {
   var remoteItem;
-  
+
   var listener = {
-    onDownloadFailed: function(aInstall) {
+    onDownloadFailed(aInstall) {
       aInstall.removeListener(this);
       ok(true, "Install failed as expected");
-      
+
       executeSoon(function() {
         is(remoteItem.getAttribute("notification"), "warning", "Item should have notification attribute set to 'warning'");
         is_element_visible(remoteItem._warning, "Warning text should be visible");
@@ -99,11 +99,11 @@ add_test(function() {
         run_next_test();
       });
     },
-    
-    onInstallEnded: function() {
+
+    onInstallEnded() {
       ok(false, "Install should have failed");
     }
-  }
+  };
 
   search(QUERY, function() {
     var list = gManagerWindow.document.getElementById("search-list");
@@ -111,7 +111,7 @@ add_test(function() {
     list.ensureElementIsVisible(remoteItem);
 
     remoteItem.mAddon.install.addListener(listener);
-    
+
     var installBtn = get_install_button(remoteItem);
     EventUtils.synthesizeMouseAtCenter(installBtn, { }, gManagerWindow);
   });

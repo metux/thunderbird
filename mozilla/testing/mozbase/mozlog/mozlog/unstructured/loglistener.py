@@ -2,16 +2,21 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
+from __future__ import absolute_import
+
 import SocketServer
 import socket
 import json
 
+
 class LogMessageServer(SocketServer.TCPServer):
+
     def __init__(self, server_address, logger, message_callback=None, timeout=3):
         SocketServer.TCPServer.__init__(self, server_address, LogMessageHandler)
         self._logger = logger
         self._message_callback = message_callback
         self.timeout = timeout
+
 
 class LogMessageHandler(SocketServer.BaseRequestHandler):
     """Processes output from a connected log source, logging to an

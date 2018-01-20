@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from __future__ import absolute_import
+
 import os
 import stat
 import shutil
@@ -8,6 +10,8 @@ import time
 import unittest
 import errno
 from contextlib import contextmanager
+
+import mozunit
 
 import mozfile
 import mozinfo
@@ -26,6 +30,7 @@ def mark_readonly(path):
 
 class FileOpenCloseThread(threading.Thread):
     """Helper thread for asynchronous file handling"""
+
     def __init__(self, path, delay, delete=False):
         threading.Thread.__init__(self)
         self.file_opened = threading.Event()
@@ -194,13 +199,14 @@ class MozfileRemoveTestCase(unittest.TestCase):
         not_existing_path = os.path.join(self.tempdir, 'I_do_not_not_exists')
         try:
             mozfile.remove(not_existing_path)
-        except OSError, exc:
+        except OSError as exc:
             if exc.errno == errno.ENOENT:
                 self.fail("removing non existing path must not raise error")
             raise
 
 
 class MozFileMoveTestCase(unittest.TestCase):
+
     def setUp(self):
         # Generate a stub
         self.tempdir = stubs.create_stub()
@@ -227,4 +233,4 @@ class MozFileMoveTestCase(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main()
+    mozunit.main()

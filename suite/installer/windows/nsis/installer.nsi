@@ -19,13 +19,9 @@ CRCCheck on
 
 RequestExecutionLevel user
 
-; The commands inside this ifdef require NSIS 3.0a2 or greater so the ifdef can
-; be removed after we require NSIS 3.0a2 or greater.
-!ifdef NSIS_PACKEDVERSION
-  Unicode true
-  ManifestSupportedOS all
-  ManifestDPIAware true
-!endif
+Unicode true
+ManifestSupportedOS all
+ManifestDPIAware true
 
 !addplugindir ./
 
@@ -33,6 +29,7 @@ Var TmpVal
 Var StartMenuDir
 Var InstallType
 Var AddStartMenuSC
+Var AddTaskbarSC
 Var AddQuickLaunchSC
 Var AddDesktopSC
 Var InstallMaintenanceService
@@ -68,7 +65,7 @@ VIAddVersionKey "OriginalFilename" "setup.exe"
 ; Most commonly used macros for managing shortcuts
 !insertmacro _LoggingShortcutsCommon
 
-!insertmacro AddDDEHandlerValues
+!insertmacro AddDisabledDDEHandlerValues
 !insertmacro AddHandlerValues
 !insertmacro ChangeMUIHeaderImage
 !insertmacro CheckForFilesInUse
@@ -248,7 +245,7 @@ Section "-InstallStartCleanup"
   ; setup the application model id registration value
   ${InitHashAppModelId} "$INSTDIR" "Software\Mozilla\${AppName}\TaskBarIDs"
 
-  ; Remove the updates directory for Vista and above
+  ; Remove the updates directory for Windows 7 and above
   ${CleanUpdateDirectories} "Mozilla\SeaMonkey" "Mozilla\updates"
 
   ${InstallStartCleanupCommon}
@@ -257,7 +254,7 @@ SectionEnd
 Section "-Application" APP_IDX
   ${StartUninstallLog}
 
-  SetDetailsPrint both 
+  SetDetailsPrint both
   DetailPrint $(STATUS_INSTALL_APP)
   SetDetailsPrint none
 
@@ -302,13 +299,25 @@ Section "-Application" APP_IDX
   ; application installed is uninstalled AccessibleMarshal.dll will no longer be
   ; registered. bug 338878
   ${LogHeader} "DLL Registration"
+
   ClearErrors
+
   ${RegisterDLL} "$INSTDIR\AccessibleMarshal.dll"
   ${If} ${Errors}
     ${LogMsg} "** ERROR Registering: $INSTDIR\AccessibleMarshal.dll **"
   ${Else}
     ${LogUninstall} "DLLReg: \AccessibleMarshal.dll"
     ${LogMsg} "Registered: $INSTDIR\AccessibleMarshal.dll"
+  ${EndIf}
+
+  ClearErrors
+
+  ${RegisterDLL} "$INSTDIR\AccessibleHandler.dll"
+  ${If} ${Errors}
+    ${LogMsg} "** ERROR Registering: $INSTDIR\AccessibleHandler.dll **"
+  ${Else}
+    ${LogUninstall} "DLLReg: \AccessibleHandler.dll"
+    ${LogMsg} "Registered: $INSTDIR\AccessibleHandler.dll"
   ${EndIf}
 
   ; Write extra files created by the application to the uninstall log so they
@@ -323,12 +332,16 @@ Section "-Application" APP_IDX
   ${LogUninstall} "File: \install_wizard.log"
   ${LogUninstall} "File: \updates.xml"
 
-  ClearErrors
-
   ; Default for creating Start Menu folder and shortcuts
   ; (1 = create, 0 = don't create)
   ${If} $AddStartMenuSC == ""
     StrCpy $AddStartMenuSC "1"
+  ${EndIf}
+
+; Default for creating Task Bar shortcuts
+  ; (1 = create, 0 = don't create)
+  ${If} $AddTaskbarSC == ""
+    StrCpy $AddTaskbarSC "1"
   ${EndIf}
 
   ; Default for creating Quick Launch shortcut (1 = create, 0 = don't create)
@@ -373,7 +386,7 @@ Section "-Application" APP_IDX
   ${FixClassKeys}
 
   StrCpy $1 "$\"$8$\" -requestPending -osint -url $\"%1$\""
-  StrCpy $2 "$\"%1$\",,0,0,,,," 
+  StrCpy $2 "$\"%1$\",,0,0,,,,"
   StrCpy $3 "$\"$8$\"  -url $\"%1$\""
   ${GetLongPath} "$INSTDIR\${FileMainEXE}" $8
 
@@ -382,8 +395,8 @@ Section "-Application" APP_IDX
   ${AddHandlerValues} "SOFTWARE\Classes\SeaMonkeyHTML" "$3" \
                       "$INSTDIR\chrome\icons\default\html-file.ico,0" \
                       "${AppRegName} Document" "" ""
-  ${AddDDEHandlerValues} "SeaMonkeyURL" "$1" "$8,0" "${AppRegName} URL" "" \
-                         "${DDEApplication}" "$2" "WWW_OpenURL"
+  ${AddDisabledDDEHandlerValues} "SeaMonkeyURL" "$1" "$8,0" \
+                                 "${AppRegName} URL" ""
 
   ${FixShellIconHandler}
 
@@ -392,15 +405,17 @@ Section "-Application" APP_IDX
     ; Uninstall keys can only exist under HKLM on some versions of windows.
     ${SetUninstallKeys}
 
-    ; Set the Start Menu Internet and Vista Registered App HKLM registry keys.
+    ; Set the Start Menu Internet and Windows 7 Registered App HKLM registry keys.
     ${SetStartMenuInternet}
     ${SetClientsMail}
 
     ; If we are writing to HKLM and create the quick launch and the desktop
     ; shortcuts set IconsVisible to 1 otherwise to 0.
+    ; Taskbar shortcuts imply having a start menu shortcut.
     ${StrFilter} "${FileMainEXE}" "+" "" "" $R9
     ${If} $AddQuickLaunchSC == 1
     ${OrIf} $AddDesktopSC == 1
+    ${OrIf} $AddTaskbarSC == 1
       StrCpy $0 "Software\Clients\StartMenuInternet\$R9\InstallInfo"
       WriteRegDWORD HKLM "$0" "IconsVisible" 1
       StrCpy $0 "Software\Clients\Mail\${BrandFullNameInternal}\InstallInfo"
@@ -447,14 +462,12 @@ Section "-Application" APP_IDX
       ${LogMsg} "Added Start Menu Directory: $SMPROGRAMS\$StartMenuDir"
     ${EndUnless}
     CreateShortCut "$SMPROGRAMS\$StartMenuDir\${BrandFullName}.lnk" "$INSTDIR\${FileMainEXE}" "" "$INSTDIR\${FileMainEXE}" 0
-    ${If} ${AtLeastWin7}
-    ${AndIf} "$AppUserModelID" != ""
+    ${If} "$AppUserModelID" != ""
       ApplicationID::Set "$SMPROGRAMS\$StartMenuDir\${BrandFullName}.lnk" "$AppUserModelID"
     ${EndIf}
     ${LogMsg} "Added Shortcut: $SMPROGRAMS\$StartMenuDir\${BrandFullName}.lnk"
     CreateShortCut "$SMPROGRAMS\$StartMenuDir\${BrandFullName} ($(SAFE_MODE)).lnk" "$INSTDIR\${FileMainEXE}" "-safe-mode" "$INSTDIR\${FileMainEXE}" 0
-    ${If} ${AtLeastWin7}
-    ${AndIf} "$AppUserModelID" != ""
+    ${If} "$AppUserModelID" != ""
       ApplicationID::Set "$SMPROGRAMS\$StartMenuDir\${BrandFullName} ($(SAFE_MODE)).lnk" "$AppUserModelID"
     ${EndIf}
     ${LogMsg} "Added Shortcut: $SMPROGRAMS\$StartMenuDir\${BrandFullName} ($(SAFE_MODE)).lnk"
@@ -466,8 +479,7 @@ Section "-Application" APP_IDX
 
   ${If} $AddQuickLaunchSC == 1
     CreateShortCut "$QUICKLAUNCH\${BrandFullName}.lnk" "$INSTDIR\${FileMainEXE}" "" "$INSTDIR\${FileMainEXE}" 0
-    ${If} ${AtLeastWin7}
-    ${AndIf} "$AppUserModelID" != ""
+    ${If} "$AppUserModelID" != ""
       ApplicationID::Set "$QUICKLAUNCH\${BrandFullName}.lnk" "$AppUserModelID"
     ${EndIf}
     ${LogMsg} "Added Shortcut: $QUICKLAUNCH\${BrandFullName}.lnk"
@@ -475,8 +487,7 @@ Section "-Application" APP_IDX
 
   ${If} $AddDesktopSC == 1
     CreateShortCut "$DESKTOP\${BrandFullName}.lnk" "$INSTDIR\${FileMainEXE}" "" "$INSTDIR\${FileMainEXE}" 0
-    ${If} ${AtLeastWin7}
-    ${AndIf} "$AppUserModelID" != ""
+    ${If} "$AppUserModelID" != ""
       ApplicationID::Set "$DESKTOP\${BrandFullName}.lnk" "$AppUserModelID"
     ${EndIf}
     ${LogMsg} "Added Shortcut: $DESKTOP\${BrandFullName}.lnk"
@@ -485,9 +496,9 @@ Section "-Application" APP_IDX
   !insertmacro MUI_STARTMENU_WRITE_END
 SectionEnd
 
-Section /o "IRC Client" CZ_IDX 
+Section /o "IRC Client" CZ_IDX
   ${If} ${FileExists} "$EXEDIR\optional\distribution\extensions\{59c81df5-4b7a-477b-912d-4e0fdf64e5f2}.xpi"
-    SetDetailsPrint both 
+    SetDetailsPrint both
     DetailPrint $(STATUS_INSTALL_OPTIONAL)
     SetDetailsPrint none
 
@@ -508,9 +519,9 @@ Section /o "IRC Client" CZ_IDX
   ${EndIf}
 SectionEnd
 
-Section /o "Developer Tools" DOMI_IDX 
+Section /o "Developer Tools" DOMI_IDX
   ${If} ${FileExists} "$EXEDIR\optional\distribution\extensions\inspector@mozilla.org.xpi"
-    SetDetailsPrint both 
+    SetDetailsPrint both
     DetailPrint $(STATUS_INSTALL_OPTIONAL)
     SetDetailsPrint none
 
@@ -521,12 +532,12 @@ Section /o "Developer Tools" DOMI_IDX
     ${LogHeader} "Installing Developer Tools"
     CopyFiles /SILENT "$EXEDIR\optional\distribution\extensions\inspector@mozilla.org.xpi" \
                       "$INSTDIR\distribution\extensions\"
-  ${EndIf} 
+  ${EndIf}
 SectionEnd
 
-Section /o "Debug and QA Tools" DEBUG_IDX 
+Section /o "Debug and QA Tools" DEBUG_IDX
   ${If} ${FileExists} "$EXEDIR\optional\distribution\extensions\debugQA@mozilla.org.xpi"
-    SetDetailsPrint both 
+    SetDetailsPrint both
     DetailPrint $(STATUS_INSTALL_OPTIONAL)
     SetDetailsPrint none
 
@@ -578,8 +589,8 @@ Section "-InstallEndCleanup"
       Rename "$INSTDIR\helper.exe" "$INSTDIR\${FileMainEXE}"
     ${EndUnless}
   ${EndIf}
-SectionEnd    
-    
+SectionEnd
+
 Function CheckExistingInstall
   ; If there is a pending file copy from a previous uninstall don't allow
   ; installing until after the system has rebooted.
@@ -679,7 +690,7 @@ Function leaveOptions
   ${EndIf}
   ${MUI_INSTALLOPTIONS_READ} $R0 "options.ini" "Field 2" "State"
   StrCmp $R0 "1" +1 +2
-  StrCpy $InstallType ${INSTALLTYPE_BASIC} 
+  StrCpy $InstallType ${INSTALLTYPE_BASIC}
   ${MUI_INSTALLOPTIONS_READ} $R0 "options.ini" "Field 3" "State"
   StrCmp $R0 "1" +1 +2
   StrCpy $InstallType ${INSTALLTYPE_CUSTOM}
@@ -892,7 +903,41 @@ Function .onInit
   StrCpy $LANGUAGE 0
   ${SetBrandNameVars} "$EXEDIR\core\distribution\setup.ini"
 
-  ${InstallOnInitCommon} "$(WARN_UNSUPPORTED_MSG)"
+  ; Don't install on systems that don't support SSE2. The parameter value of
+  ; 10 is for PF_XMMI64_INSTRUCTIONS_AVAILABLE which will check whether the
+  ; SSE2 instruction set is available. Result returned in $R7.
+  System::Call "kernel32::IsProcessorFeaturePresent(i 10)i .R7"
+
+  ; Windows NT 6.0 (Vista/Server 2008) and lower are not supported.
+  ${Unless} ${AtLeastWin7}
+    ${If} "$R7" == "0"
+      strCpy $R7 "$(WARN_MIN_SUPPORTED_OSVER_CPU_MSG)"
+    ${Else}
+      strCpy $R7 "$(WARN_MIN_SUPPORTED_OSVER_MSG)"
+    ${EndIf}
+    MessageBox MB_OKCANCEL|MB_ICONSTOP "$R7" IDCANCEL +2
+    ExecShell "open" "${URLSystemRequirements}"
+    Quit
+  ${EndUnless}
+
+  ; SSE2 CPU support
+  ${If} "$R7" == "0"
+    MessageBox MB_OKCANCEL|MB_ICONSTOP "$(WARN_MIN_SUPPORTED_CPU_MSG)" IDCANCEL +2
+    ExecShell "open" "${URLSystemRequirements}"
+    Quit
+  ${EndIf}
+
+!ifdef HAVE_64BIT_BUILD
+  ${Unless} ${RunningX64}
+    MessageBox MB_OKCANCEL|MB_ICONSTOP "$(WARN_MIN_SUPPORTED_OSVER_MSG)" IDCANCEL +2
+    ExecShell "open" "${URLSystemRequirements}"
+    Quit
+  ${EndUnless}
+  SetRegView 64
+!endif
+
+  ${InstallOnInitCommon} "$(WARN_MIN_SUPPORTED_OSVER_CPU_MSG)"
+
 
   !insertmacro InitInstallOptionsFile "options.ini"
   !insertmacro InitInstallOptionsFile "components.ini"

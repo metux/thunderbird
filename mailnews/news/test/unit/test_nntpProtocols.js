@@ -8,7 +8,8 @@ var defaultProtocolFlags =
   Ci.nsIProtocolHandler.URI_LOADABLE_BY_ANYONE |
   Ci.nsIProtocolHandler.ALLOWS_PROXY |
   Ci.nsIProtocolHandler.URI_FORBIDS_AUTOMATIC_DOCUMENT_REPLACEMENT |
-  Ci.nsIProtocolHandler.URI_FORBIDS_COOKIE_ACCESS;
+  Ci.nsIProtocolHandler.URI_FORBIDS_COOKIE_ACCESS |
+  Ci.nsIProtocolHandler.ORIGIN_IS_FULL_SPEC;
 
 var protocols =
   [ { protocol: "news",
@@ -40,7 +41,7 @@ function run_test() {
       do_check_true(pH.allowPort(i, ""));
 
     // Check we get a URI when we ask for one
-    var uri = pH.newURI(protocols[part].urlSpec, "", null);
+    var uri = pH.newURI(protocols[part].urlSpec, "");
 
     uri.QueryInterface(Ci.nsINntpUrl);
 

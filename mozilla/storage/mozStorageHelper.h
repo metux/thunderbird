@@ -9,12 +9,15 @@
 #include "nsAutoPtr.h"
 #include "nsStringGlue.h"
 #include "mozilla/DebugOnly.h"
+#include "nsIConsoleService.h"
+#include "nsIScriptError.h"
 
 #include "mozIStorageAsyncConnection.h"
 #include "mozIStorageConnection.h"
 #include "mozIStorageStatement.h"
 #include "mozIStoragePendingStatement.h"
 #include "nsError.h"
+#include "nsIXPConnect.h"
 
 /**
  * This class wraps a transaction inside a given C++ scope, guaranteeing that
@@ -94,13 +97,13 @@ public:
     if (mConnection && mHasTransaction && !mCompleted) {
       if (mCommitOnComplete) {
         mozilla::DebugOnly<nsresult> rv = Commit();
-        NS_WARN_IF_FALSE(NS_SUCCEEDED(rv),
-                         "A transaction didn't commit correctly");
+        NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
+                             "A transaction didn't commit correctly");
       }
       else {
         mozilla::DebugOnly<nsresult> rv = Rollback();
-        NS_WARN_IF_FALSE(NS_SUCCEEDED(rv),
-                         "A transaction didn't rollback correctly");
+        NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
+                             "A transaction didn't rollback correctly");
       }
     }
   }

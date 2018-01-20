@@ -3,9 +3,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/* The prefs in this file are specific to the seamonkey (toolkit) browser.
- * Generic default prefs that would be useful to embedders belong in
- * modules/libpref/src/init/all.js
+/* The prefs in this file are specific to the SeaMonkey browser.
+ * Generic default prefs are in (mozilla/)modules/libpref/src/init/all.js
  */
 
 /* filter substitution
@@ -42,8 +41,6 @@ pref("general.autoScroll", true);
 
 pref("general.useragent.compatMode.firefox", true);
 
-pref("general.useragent.complexOverride.moodle", false); // bug 797703; bug 815801
-
 // 0 = blank, 1 = home (browser.startup.homepage), 2 = last visited page, 3 = resume previous browser session
 pref("browser.startup.page",                1);
 pref("browser.startup.homepage",	   "chrome://navigator-region/locale/region.properties");
@@ -56,7 +53,7 @@ pref("browser.warnOnRestart", true);
 pref("browser.send_pings", false);
 
 pref("browser.chrome.site_icons", true);
-pref("browser.chrome.favicons", false);
+pref("browser.chrome.favicons", true);
 
 pref("browser.download.finished_download_sound", false);
 pref("browser.download.finished_sound_url", "");
@@ -224,11 +221,9 @@ pref("browser.bookmarks.autoExportHTML", false);
 //  0: no backups created (and deletes all existing backups)
 pref("browser.bookmarks.max_backups", 10);
 
-// Don't try to alter these prefs, they'll be reset the next time you use the
+// Don't try to alter this pref. It will be reset the next time you use the
 // bookmarking dialog.
 pref("browser.bookmarks.editDialog.firstEditField", "namePicker");
-pref("browser.bookmarks.editDialog.expandTags", false);
-pref("browser.bookmarks.editDialog.expandFolders", false);
 
 // Tabbed browser
 pref("browser.tabs.loadDivertedInBackground", false);
@@ -248,6 +243,9 @@ pref("browser.tabs.maxOpenBeforeWarn", 15);
 pref("browser.tabs.insertRelatedAfterCurrent", true);
 // 0 = append, 1 = replace
 pref("browser.tabs.loadGroup", 1);
+
+// No e10s in SeaMonkey for now.
+pref("browser.tabs.remote.autostart", false);
 
 // how many browsers can be saved in the DOM (by the tabbed browser)
 pref("browser.tabs.max_tabs_undo", 3);
@@ -317,9 +315,12 @@ pref("browser.zoom.siteSpecific", true);
 pref("browser.zoom.updateBackgroundTabs", true);
 
 // Zoom levels for View > Zoom and Ctrl +/- keyboard shortcuts
-pref("toolkit.zoomManager.zoomValues", "0.5,0.67,0.8,0.9,1,1.1,1.2,1.33,1.5,1.7,2,2.4");
+pref("toolkit.zoomManager.zoomValues", "0.2,0.3,0.5,0.67,0.8,0.9,1,1.1,1.2,1.33,1.5,1.7,2,2.4,3,4,5,6,7,8");
 
 pref("javascript.options.showInConsole",    true);
+
+pref("suite.manager.addons.openAsDialog", false);
+pref("suite.manager.dataman.openAsDialog", true);
 
 pref("offline.startup_state",            0);
 pref("offline.send.unsent_messages",            0);
@@ -418,43 +419,30 @@ pref("browser.feeds.handler", "ask");
 pref("browser.videoFeeds.handler", "ask");
 pref("browser.audioFeeds.handler", "ask");
 
-pref("browser.safebrowsing.enabled", true);
-pref("browser.safebrowsing.malware.enabled", true);
-pref("browser.safebrowsing.debug", false);
+// Overriding defaults defined in all.js (no UI yet covering these cases)
+pref("browser.safebrowsing.downloads.remote.block_potentially_unwanted", false);
+pref("browser.safebrowsing.downloads.remote.block_uncommon", false);
 
-// Normally the "client ID" sent in updates is appinfo.name, but
-// official Firefox releases from Mozilla use a special identifier.
-// This is currently unused as we are using the apikey method.
-pref("browser.safebrowsing.id", "SeaMonkey");
+// Overriding defaults defined in all.js (use full version 2.x, bypassing bug 1077874)
+pref("browser.safebrowsing.provider.google.updateURL", "https://safebrowsing.google.com/safebrowsing/downloads?client=SAFEBROWSING_ID&appver=%VERSION%&pver=2.2&key=%GOOGLE_API_KEY%");
+pref("browser.safebrowsing.provider.google.gethashURL", "https://safebrowsing.google.com/safebrowsing/gethash?client=SAFEBROWSING_ID&appver=%VERSION%&pver=2.2");
+pref("browser.safebrowsing.provider.mozilla.updateURL", "https://shavar.services.mozilla.com/downloads?client=SAFEBROWSING_ID&appver=%VERSION%&pver=2.2");
+pref("browser.safebrowsing.provider.mozilla.gethashURL", "https://shavar.services.mozilla.com/gethash?client=SAFEBROWSING_ID&appver=%VERSION%&pver=2.2");
 
-pref("browser.safebrowsing.updateURL", "http://safebrowsing.clients.google.com/safebrowsing/downloads?client=api&apikey=ABQIAAAALT_LuARPWqUj7bX2mqWTJRQt2QEr-yGktcva5ZhZnWk7HItT7w&appver=%VERSION%&pver=2.2");
-pref("browser.safebrowsing.keyURL", "https://sb-ssl.google.com/safebrowsing/newkey?client=api&apikey=ABQIAAAALT_LuARPWqUj7bX2mqWTJRQt2QEr-yGktcva5ZhZnWk7HItT7w&appver=%VERSION%&pver=2.2");
-pref("browser.safebrowsing.gethashURL", "http://safebrowsing.clients.google.com/safebrowsing/gethash?client=api&apikey=ABQIAAAALT_LuARPWqUj7bX2mqWTJRQt2QEr-yGktcva5ZhZnWk7HItT7w&appver=%VERSION%&pver=2.2");
-pref("browser.safebrowsing.reportURL", "http://safebrowsing.clients.google.com/safebrowsing/report?");
-pref("browser.safebrowsing.reportGenericURL", "http://%LOCALE%.phish-generic.mozilla.com/?hl=%LOCALE%");
-pref("browser.safebrowsing.reportErrorURL", "http://%LOCALE%.phish-error.mozilla.com/?hl=%LOCALE%");
-pref("browser.safebrowsing.reportPhishURL", "http://%LOCALE%.phish-report.mozilla.com/?hl=%LOCALE%");
-pref("browser.safebrowsing.reportMalwareURL", "http://%LOCALE%.malware-report.mozilla.com/?hl=%LOCALE%");
-pref("browser.safebrowsing.reportMalwareErrorURL", "http://%LOCALE%.malware-error.mozilla.com/?hl=%LOCALE%");
+//Theoretically the "client ID" sent in updates should be appinfo.name but
+//anything except "Firefox" or "navclient-auto-ffox" will cause safebrowsing
+//updates to fail. So we pretend to be Firefox here.
+pref("browser.safebrowsing.id", "navclient-auto-ffox");
 
-pref("browser.safebrowsing.warning.infoURL", "http://www.mozilla.org/%LOCALE%/firefox/phishing-protection/");
-pref("browser.safebrowsing.malware.reportURL", "http://safebrowsing.clients.google.com/safebrowsing/diagnostic?client=Firefox&hl=%LOCALE%&site=");
+// Those are only used in our utilityOverlay.js (see bug 1270168)
+pref("browser.safebrowsing.warning.infoURL", "https://www.mozilla.org/%LOCALE%/firefox/phishing-protection/");
+pref("browser.safebrowsing.controlledAccess.infoURL", "https://support.mozilla.org/kb/controlledaccess/");
 
-// Name of the about: page contributed by safebrowsing to handle display of error
-// pages on phishing/malware hits.  (bug 399233)
-pref("urlclassifier.alternate_error_page", "blocked");
-
-// The number of random entries to send with a gethash request.
-pref("urlclassifier.gethashnoise", 4);
-
-// The list of tables that use the gethash request to confirm partial results.
-// pref("urlclassifier.gethashtables", "goog-phish-shavar,goog-malware-shavar");
-pref("urlclassifier.gethashtables", "googpub-phish-shavar,goog-malware-shavar");
-
-// If an urlclassifier table has not been updated in this number of seconds,
-// a gethash request will be forced to check that the result is still in
-// the database.
-pref("urlclassifier.max-complete-age", 2700);
+// Enable safebrowsing v4 tables (suffixed by "-proto") update.
+#if defined(NIGHTLY_BUILD)
+pref("urlclassifier.malwareTable", "goog-malware-shavar,goog-unwanted-shavar,goog-malware-proto,goog-unwanted-proto,test-malware-simple,test-unwanted-simple");
+pref("urlclassifier.phishTable", "goog-phish-shavar,goog-phish-proto,test-phish-simple");
+#endif
 
 pref("browser.sessionstore.resume_from_crash", true);
 pref("browser.sessionstore.resume_session_once", false);
@@ -484,7 +472,7 @@ pref("browser.sessionstore.max_windows_undo", 3);
 pref("browser.sessionstore.max_concurrent_tabs", 3);
 
 pref("shell.checkDefaultClient", true);
-// We want to check if we are the default client for browser and mail. See 
+// We want to check if we are the default client for browser and mail. See
 // suite/shell/public/nsIShellService.idl for the possible constants you can use
 pref("shell.checkDefaultApps", 3);
 
@@ -498,38 +486,25 @@ pref("app.support.baseURL", "http://www.seamonkey-project.org/doc/");
 
 // Whether or not app updates are enabled
 pref("app.update.enabled", true);
- 
-// This preference turns on app.update.mode and allows automatic download and
-// install to take place. We use a separate boolean toggle for this to make
-// the UI easier to construct.
-pref("app.update.auto", true);
 
-// Defines how the Application Update Service notifies the user about updates:
-//
-// AUM Set to:        Minor Releases:     Major Releases:
-// 0                  download no prompt  download no prompt
-// 1                  download no prompt  download no prompt if no incompatibilities
-// 2                  download no prompt  prompt
-//
-// See chart in nsUpdateService.js for more details
-//
-pref("app.update.mode", 1);
+// This preference allows automatic download and install to take place.
+pref("app.update.auto", true);
 
 // If set to true, the Update Service will present no UI for any event.
 pref("app.update.silent", false);
 
 // Update service URL:
-pref("app.update.url", "https://aus2-community.mozilla.org/update/3/%PRODUCT%/%VERSION%/%BUILD_ID%/%BUILD_TARGET%/%LOCALE%/%CHANNEL%/%OS_VERSION%/%DISTRIBUTION%/%DISTRIBUTION_VERSION%/update.xml");
+pref("app.update.url", "https://aus2-community.mozilla.org/update/3/%PRODUCT%/%VERSION%/%BUILD_ID%/%BUILD_TARGET%/%LOCALE%/%CHANNEL%/%OS_VERSION%/%SYSTEM_CAPABILITIES%/%DISTRIBUTION%/%DISTRIBUTION_VERSION%/update.xml");
 // URL user can browse to manually if for some reason all update installation
 // attempts fail.
 pref("app.update.url.manual", "http://www.seamonkey-project.org/");
 // A default value for the "More information about this update" link
-// supplied in the "An update is available" page of the update wizard. 
+// supplied in the "An update is available" page of the update wizard.
 pref("app.update.url.details", "chrome://communicator-region/locale/region.properties");
- 
+
 // User-settable override to app.update.url for testing purposes.
 //pref("app.update.url.override", "");
- 
+
 // Enables some extra Application Update Logging (can reduce performance)
 pref("app.update.log", false);
 
@@ -578,22 +553,15 @@ pref("app.update.interval", 86400);
 // The minimum delay in seconds for the timer to fire.
 // default=2 minutes
 pref("app.update.timerMinimumDelay", 120);
-// Give the user x seconds to react before showing the big UI. default=12 hrs
+#ifdef RELEASE_OR_BETA
+// Give the user x seconds to react before showing the big UI. default=8 days
+pref("app.update.promptWaitTime", 691200);
+#else
+// For nightly builds, before showing the big UI, default=12 hrs
 pref("app.update.promptWaitTime", 43200);
+#endif
 // Show the Update Checking/Ready UI when the user was idle for x seconds
 pref("app.update.idletime", 60);
- 
-// Whether or not we show a dialog box informing the user that the update was
-// successfully applied. At the moment suite doesn't want this dialog by
-// default
-pref("app.update.showInstalledUI", false);
-
-// 0 = suppress prompting for incompatibilities if there are updates available
-//     to newer versions of installed addons that resolve them.
-// 1 = suppress prompting for incompatibilities only if there are VersionInfo
-//     updates available to installed addons that resolve them, not newer
-//     versions.
-pref("app.update.incompatible.mode", 0);
 
 // Extension preferences
 
@@ -607,15 +575,6 @@ pref("extensions.strictCompatibility", false);
 // for it to be compatible by default.
 pref("extensions.minCompatibleAppVersion", "2.1");
 
-// Blocklist preferences
-pref("extensions.blocklist.enabled", true);
-pref("extensions.blocklist.interval", 86400);
-// Controls what level the blocklist switches from warning about items to forcibly
-// blocking them.
-pref("extensions.blocklist.level", 2);
-pref("extensions.blocklist.url", "https://blocklist.addons.mozilla.org/blocklist/3/%APP_ID%/%APP_VERSION%/%PRODUCT%/%BUILD_ID%/%BUILD_TARGET%/%LOCALE%/%CHANNEL%/%OS_VERSION%/%DISTRIBUTION%/%DISTRIBUTION_VERSION%/%PING_COUNT%/%TOTAL_PING_COUNT%/%DAYS_SINCE_LAST_PING%/");
-pref("extensions.blocklist.detailsURL", "https://www.mozilla.com/%LOCALE%/blocklist/");
-pref("extensions.blocklist.itemURL", "https://blocklist.addons.mozilla.org/%LOCALE%/%APP%/blocked/%blockID%");
 
 // Update preferences for installed Extensions and Themes.
 // Symmetric (can be overridden by individual extensions),
@@ -636,6 +595,16 @@ pref("extensions.update.autoUpdateDefault", true); // Download and install autom
 // constants in AddonManager.jsm for values to use here.
 pref("extensions.autoDisableScopes", 15);
 
+// Enable add-ons installed and owned by the application, like the default theme.
+pref("extensions.startupScanScopes", 4);
+
+pref("extensions.legacy.enabled", true);
+// Extensions that should not be flagged as legacy in about:addons
+// {972ce4c6-7e08-4474-a285-3208198ce6fd} default theme
+// {59c81df5-4b7a-477b-912d-4e0fdf64e5f2} chatZilla
+// {e2fda1a4-762b-4020-b5ad-a41df1933103} calendar
+pref("extensions.legacy.exceptions", "{972ce4c6-7e08-4474-a285-3208198ce6fd},debugQA@mozilla.org,modern@themes.mozilla.org,inspector@mozilla.org,{59c81df5-4b7a-477b-912d-4e0fdf64e5f2},{e2fda1a4-762b-4020-b5ad-a41df1933103}");
+
 // Preferences for AMO integration
 pref("extensions.getAddons.cache.enabled", true);  // also toggles personalized recommendations
 pref("extensions.getAddons.maxResults", 15);
@@ -650,7 +619,6 @@ pref("extensions.webservice.discoverURL", "https://services.addons.mozilla.org/%
 // getMoreThemes is used by our UI under our switch theme menu
 pref("extensions.getMoreThemesURL", "chrome://branding/locale/brand.properties");
 pref("extensions.getPersonasURL", "chrome://branding/locale/brand.properties");
-pref("extensions.dss.enabled", false);          // Dynamic Skin Switching
 pref("extensions.dss.switchPending", false);    // Non-dynamic switch pending after next
                                                 // restart.
 
@@ -661,6 +629,7 @@ pref("extensions.modern@themes.mozilla.org.name", "chrome://navigator/locale/nav
 pref("extensions.modern@themes.mozilla.org.description", "chrome://navigator/locale/navigator.properties");
 
 pref("xpinstall.enabled", true);
+pref("xpinstall.signatures.required", false);
 // Built-in default permissions.
 pref("permissions.manager.defaultsUrl", "resource:///defaults/permissions");
 
@@ -670,6 +639,9 @@ pref("lightweightThemes.update.enabled", true);
 pref("custtoolbar.personal_toolbar_folder", "");
 // Use a popup window for the customize toolbar UI
 pref("toolbar.customization.usesheet", false);
+
+// Show the toolbar and menu grippies.
+pref("browser.toolbars.grippyhidden", false);
 
 #ifdef XP_WIN
 pref("browser.taskbar.lists.enabled", true);
@@ -683,21 +655,20 @@ pref("browser.taskbar.previews.max", 20);
 pref("browser.taskbar.previews.cachetime", 5);
 #endif
 
-pref("sidebar.customize.all_panels.url", "http://sidebar-rdf.netscape.com/%LOCALE%/sidebar-rdf/%SIDEBAR_VERSION%/all-panels.rdf");
-pref("sidebar.customize.directory.url", "http://dmoz.org/Netscape/Sidebar/");
-pref("sidebar.customize.more_panels.url", "http://dmoz.org/Netscape/Sidebar/");
+pref("sidebar.customize.directory.url", "https://edmullen.net/mozilla/moz_sidebar.php");
+pref("sidebar.customize.more_panels.url", "https://edmullen.net/mozilla/moz_sidebar.php");
 pref("sidebar.num_tabs_in_view", 8);
 
 pref("browser.throbber.url","chrome://navigator-region/locale/region.properties");
 
-// pref to control the alert notification 
+// pref to control the alert notification
 pref("alerts.slideIncrement", 1);
 pref("alerts.slideIncrementTime", 10);
 pref("alerts.totalOpenTime", 10000);
 
 // 0 opens the download manager
 // 1 opens a progress dialog
-// 2 and other values, no download manager, no progress dialog. 
+// 2 and other values, no download manager, no progress dialog.
 pref("browser.download.manager.behavior", 0);
 
 pref("privacy.popups.sound_enabled",              false);
@@ -723,6 +694,11 @@ pref("privacy.sanitize.sanitizeOnShutdown", false);
 pref("privacy.sanitize.promptOnSanitize", true);
 
 pref("privacy.warn_tracking_content", true);
+
+// Switching this on will also spoof our user agent and other potentially
+// fingerprintable preferences to generic Firefox ones (see nsRFPService
+// introduced by bug 1330890 and meta-bug 1329996 dependencies).
+pref("privacy.resistFingerprinting", false);
 
 // Show XUL error pages instead of alerts for errors
 pref("browser.xul.error_pages.enabled", true);
@@ -822,7 +798,19 @@ pref("security.mixed_content.block_active_content", true);
 // Turn on the CSP 1.0 parser for Content Security Policy headers
 pref("security.csp.speccompliant", true);
 
-pref("geo.wifi.uri", "https://location.services.mozilla.com/v1/geolocate?key=%MOZILLA_API_KEY%");
+pref("geo.wifi.uri", "https://www.googleapis.com/geolocation/v1/geolocate?key=%GOOGLE_API_KEY%");
+
+// Some of these prefs are specified even though they may be redundant; they are given
+// here for clarity and end-user experiments with platform-provided geolocation.
+#ifdef XP_MACOSX
+pref("geo.provider.use_corelocation", false);
+#endif
+#ifdef XP_WIN
+pref("geo.provider.ms-windows-location", false);
+#endif
+#ifdef MOZ_WIDGET_GTK
+pref("geo.provider.use_gpsd", false);
+#endif
 
 // FAQ URLs
 pref("browser.geolocation.warning.infoURL", "http://www.seamonkey-project.org/doc/2.0/geolocation");
@@ -852,7 +840,6 @@ pref("services.sync.prefs.sync.addons.ignoreUserEnabledChanges", true);
 // could weaken the pref locally, install an add-on from an untrusted
 // source, and this would propagate automatically to other,
 // uncompromised Sync-connected devices.
-pref("services.sync.prefs.sync.app.update.mode", true);
 pref("services.sync.prefs.sync.browser.download.manager.behavior", true);
 pref("services.sync.prefs.sync.browser.download.manager.closeWhenDone", true);
 pref("services.sync.prefs.sync.browser.download.manager.retention", true);
@@ -862,8 +849,8 @@ pref("services.sync.prefs.sync.browser.formfill.enable", true);
 pref("services.sync.prefs.sync.browser.link.open_external", true);
 pref("services.sync.prefs.sync.browser.link.open_newwindow", true);
 pref("services.sync.prefs.sync.browser.offline-apps.notify", true);
-pref("services.sync.prefs.sync.browser.safebrowsing.enabled", true);
 pref("services.sync.prefs.sync.browser.safebrowsing.malware.enabled", true);
+pref("services.sync.prefs.sync.browser.safebrowsing.phishing.enabled", true);
 pref("services.sync.prefs.sync.browser.search.update", true);
 pref("services.sync.prefs.sync.browser.sessionstore.max_concurrent_tabs", true);
 pref("services.sync.prefs.sync.browser.startup.homepage", true);
@@ -979,6 +966,108 @@ pref("services.sync.prefs.sync.xpinstall.whitelist.required", true);
 // Enable the DOM fullscreen API.
 pref("full-screen-api.enabled", true);
 
-// Disable cache v2 since migration has not been done, it is pending in bug 1021843.
-pref("browser.cache.use_new_backend",       0);
-pref("browser.cache.use_new_backend_temp",  false);
+// Most DevTools prefs are set from the shared file
+// devtools/client/preferences/devtools.js, but this one is currently set
+// per-app or per-channel.
+// Number of usages of the web console or scratchpad. If this is less than 5,
+// then pasting code into the web console or scratchpad is disabled
+pref("devtools.selfxss.count", 5);
+
+#if defined(XP_WIN) && defined(MOZ_SANDBOX)
+// When this pref is true the Windows process sandbox will set up dummy
+// interceptions and log to the browser console when calls fail in the sandboxed
+// process and also if they are subsequently allowed by the broker process.
+// This will require a restart.
+pref("security.sandbox.windows.log", false);
+
+// Controls whether and how the Windows NPAPI plugin process is sandboxed.
+// To get a different setting for a particular plugin replace "default", with
+// the plugin's nice file name, see: nsPluginTag::GetNiceFileName.
+// On windows these levels are:
+// 0 - no sandbox
+// 1 - sandbox with USER_NON_ADMIN access token level
+// 2 - a more strict sandbox, which might cause functionality issues. This now
+//     includes running at low integrity.
+// 3 - the strongest settings we seem to be able to use without breaking
+//     everything, but will probably cause some functionality restrictions
+pref("dom.ipc.plugins.sandbox-level.default", 0);
+#if defined(_AMD64_)
+// The lines in PluginModuleParent.cpp should be changed in line with this.
+pref("dom.ipc.plugins.sandbox-level.flash", 2);
+#else
+pref("dom.ipc.plugins.sandbox-level.flash", 0);
+#endif
+
+#if defined(MOZ_CONTENT_SANDBOX)
+// This controls the strength of the Windows content process sandbox for testing
+// purposes. This will require a restart.
+// On windows these levels are:
+// See - security/sandbox/win/src/sandboxbroker/sandboxBroker.cpp
+// SetSecurityLevelForContentProcess() for what the different settings mean.
+#if defined(NIGHTLY_BUILD)
+pref("security.sandbox.content.level", 2);
+#else
+pref("security.sandbox.content.level", 1);
+#endif
+
+#if defined(MOZ_STACKWALKING)
+// This controls the depth of stack trace that is logged when Windows sandbox
+// logging is turned on.  This is only currently available for the content
+// process because the only other sandbox (for GMP) has too strict a policy to
+// allow stack tracing.  This does not require a restart to take effect.
+pref("security.sandbox.windows.log.stackTraceDepth", 0);
+#endif
+#endif
+#endif
+
+#if defined(XP_MACOSX) && defined(MOZ_SANDBOX) && defined(MOZ_CONTENT_SANDBOX)
+// This pref is discussed in bug 1083344, the naming is inspired from its
+// Windows counterpart, but on Mac it's an integer which means:
+// 0 -> "no sandbox"
+// 1 -> "preliminary content sandboxing enabled: write access to
+//       home directory is prevented"
+// 2 -> "preliminary content sandboxing enabled with profile protection:
+//       write access to home directory is prevented, read and write access
+//       to ~/Library and profile directories are prevented (excluding
+//       $PROFILE/{extensions,weave})"
+// This setting is read when the content process is started. On Mac the content
+// process is killed when all windows are closed, so a change will take effect
+// when the 1st window is opened.
+#if defined(NIGHTLY_BUILD)
+pref("security.sandbox.content.level", 2);
+#else
+pref("security.sandbox.content.level", 1);
+#endif
+#endif
+
+#if defined(XP_LINUX) && defined(MOZ_SANDBOX) && defined(MOZ_CONTENT_SANDBOX)
+// This pref is introduced as part of bug 742434, the naming is inspired from
+// its Windows/Mac counterpart, but on Linux it's an integer which means:
+// 0 -> "no sandbox"
+// 1 -> "content sandbox using seccomp-bpf when available"
+// 2 -> "seccomp-bpf + file broker"
+// Content sandboxing on Linux is currently in the stage of
+// 'just getting it enabled', which includes a very permissive whitelist. We
+// enable seccomp-bpf on nightly to see if everything is running, or if we need
+// to whitelist more system calls.
+//
+// So the purpose of this setting is to allow nightly users to disable the
+// sandbox while we fix their problems. This way, they won't have to wait for
+// another nightly release which disables seccomp-bpf again.
+//
+// This setting may not be required anymore once we decide to permanently
+// enable the content sandbox.
+pref("security.sandbox.content.level", 2);
+#endif
+
+#if defined(XP_MACOSX) || defined(XP_WIN)
+#if defined(MOZ_SANDBOX) && defined(MOZ_CONTENT_SANDBOX)
+// ID (a UUID when set by gecko) that is used to form the name of a
+// sandbox-writable temporary directory to be used by content processes
+// when a temporary writable file is required in a level 1 sandbox.
+pref("security.sandbox.content.tempDirSuffix", "");
+#endif
+#endif
+
+// Url shown when you type moz://a
+pref("toolkit.mozprotocol.url", "http://www.seamonkey-project.org/");

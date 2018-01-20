@@ -70,7 +70,7 @@ nsresult nsRssIncomingServer::FillInDataSourcePath(const nsAString& aDataSourceN
 
   // Append the name of the subscriptions data source.
   rv = localFile->Append(aDataSourceName);
-  NS_IF_ADDREF(*aLocation = localFile);
+  localFile.forget(aLocation);
   return rv;
 }
 
@@ -231,7 +231,8 @@ NS_IMETHODIMP nsRssIncomingServer::FolderRenamed(nsIMsgFolder *aOrigFolder,
 
 NS_IMETHODIMP nsRssIncomingServer::ItemEvent(nsISupports *aItem,
                                              const nsACString &aEvent,
-                                             nsISupports *aData)
+                                             nsISupports *aData,
+                                             const nsACString &aString)
 {
   return NS_ERROR_NOT_IMPLEMENTED;
 }

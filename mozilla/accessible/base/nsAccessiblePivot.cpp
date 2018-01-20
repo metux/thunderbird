@@ -20,8 +20,9 @@ using namespace mozilla::a11y;
 class RuleCache
 {
 public:
-  explicit RuleCache(nsIAccessibleTraversalRule* aRule) : mRule(aRule),
-                                                          mAcceptRoles(nullptr) { }
+  explicit RuleCache(nsIAccessibleTraversalRule* aRule) :
+    mRule(aRule), mAcceptRoles(nullptr),
+    mAcceptRolesLength{0}, mPreFilter{0} { }
   ~RuleCache () {
     if (mAcceptRoles)
       free(mAcceptRoles);
@@ -393,7 +394,7 @@ nsAccessiblePivot::MoveNextByText(TextBoundaryType aBoundary,
     Accessible* childAtOffset = nullptr;
     for (int32_t i = tempStart; i < tempEnd; i++) {
       childAtOffset = text->GetChildAtOffset(i);
-      if (childAtOffset && nsAccUtils::IsEmbeddedObject(childAtOffset)) {
+      if (childAtOffset && !childAtOffset->IsText()) {
         tempEnd = i;
         break;
       }
@@ -401,7 +402,7 @@ nsAccessiblePivot::MoveNextByText(TextBoundaryType aBoundary,
     // If there's an embedded character at the very start of the range, we
     // instead want to traverse into it. So restart the movement with
     // the child as the starting point.
-    if (childAtOffset && nsAccUtils::IsEmbeddedObject(childAtOffset) &&
+    if (childAtOffset && !childAtOffset->IsText() &&
         tempStart == static_cast<int32_t>(childAtOffset->StartOffset())) {
       tempPosition = childAtOffset;
       tempStart = tempEnd = -1;
@@ -524,7 +525,7 @@ nsAccessiblePivot::MovePreviousByText(TextBoundaryType aBoundary,
     Accessible* childAtOffset = nullptr;
     for (int32_t i = tempEnd - 1; i >= tempStart; i--) {
       childAtOffset = text->GetChildAtOffset(i);
-      if (childAtOffset && nsAccUtils::IsEmbeddedObject(childAtOffset)) {
+      if (childAtOffset && !childAtOffset->IsText()) {
         tempStart = childAtOffset->EndOffset();
         break;
       }
@@ -532,7 +533,7 @@ nsAccessiblePivot::MovePreviousByText(TextBoundaryType aBoundary,
     // If there's an embedded character at the very end of the range, we
     // instead want to traverse into it. So restart the movement with
     // the child as the starting point.
-    if (childAtOffset && nsAccUtils::IsEmbeddedObject(childAtOffset) &&
+    if (childAtOffset && !childAtOffset->IsText() &&
         tempEnd == static_cast<int32_t>(childAtOffset->EndOffset())) {
       tempPosition = childAtOffset;
       tempStart = tempEnd = childAtOffset->AsHyperText()->CharacterCount();
@@ -901,7 +902,7 @@ RuleCache::ApplyFilter(Accessible* aAccessible, uint16_t* aResult)
     if ((nsIAccessibleTraversalRule::PREFILTER_TRANSPARENT & mPreFilter) &&
         !(state & states::OPAQUE1)) {
       nsIFrame* frame = aAccessible->GetFrame();
-      if (frame->StyleDisplay()->mOpacity == 0.0f) {
+      if (frame->StyleEffects()->mOpacity == 0.0f) {
         *aResult |= nsIAccessibleTraversalRule::FILTER_IGNORE_SUBTREE;
         return NS_OK;
       }

@@ -9,6 +9,7 @@
 
 #include "Units.h"
 #include "mozilla/gfx/Matrix.h"
+#include "mozilla/Maybe.h"
 #include "nsRegion.h"
 
 namespace mozilla {
@@ -47,9 +48,20 @@ enum class PixelCastJustification : uint8_t {
   LayoutDeviceIsScreenForTabDims,
   // A combination of LayoutDeviceIsScreenForBounds and
   // ScreenIsParentLayerForRoot, which is how we're using it.
-  LayoutDeviceIsParentLayerForRCDRSF
+  LayoutDeviceIsParentLayerForRCDRSF,
+  // Used to treat the product of AsyncTransformComponentMatrix objects
+  // as an AsyncTransformMatrix. See the definitions of these matrices in
+  // LayersTypes.h for details.
+  MultipleAsyncTransforms,
+  // We have reason to believe a layer doesn't have a local transform.
+  // Should only be used if we've already checked or asserted this.
+  NoTransformOnLayer
 };
 
+template <class TargetUnits, class SourceUnits>
+gfx::CoordTyped<TargetUnits> ViewAs(const gfx::CoordTyped<SourceUnits>& aCoord, PixelCastJustification) {
+  return gfx::CoordTyped<TargetUnits>(aCoord.value);
+}
 template <class TargetUnits, class SourceUnits>
 gfx::SizeTyped<TargetUnits> ViewAs(const gfx::SizeTyped<SourceUnits>& aSize, PixelCastJustification) {
   return gfx::SizeTyped<TargetUnits>(aSize.width, aSize.height);
@@ -68,11 +80,11 @@ gfx::IntPointTyped<TargetUnits> ViewAs(const gfx::IntPointTyped<SourceUnits>& aP
 }
 template <class TargetUnits, class SourceUnits>
 gfx::RectTyped<TargetUnits> ViewAs(const gfx::RectTyped<SourceUnits>& aRect, PixelCastJustification) {
-  return gfx::RectTyped<TargetUnits>(aRect.x, aRect.y, aRect.width, aRect.height);
+  return gfx::RectTyped<TargetUnits>(aRect.x, aRect.y, aRect.Width(), aRect.Height());
 }
 template <class TargetUnits, class SourceUnits>
 gfx::IntRectTyped<TargetUnits> ViewAs(const gfx::IntRectTyped<SourceUnits>& aRect, PixelCastJustification) {
-  return gfx::IntRectTyped<TargetUnits>(aRect.x, aRect.y, aRect.width, aRect.height);
+  return gfx::IntRectTyped<TargetUnits>(aRect.x, aRect.y, aRect.Width(), aRect.Height());
 }
 template <class TargetUnits, class SourceUnits>
 gfx::MarginTyped<TargetUnits> ViewAs(const gfx::MarginTyped<SourceUnits>& aMargin, PixelCastJustification) {
@@ -92,6 +104,26 @@ gfx::ScaleFactor<SourceUnits, NewTargetUnits> ViewTargetAs(
     PixelCastJustification) {
   return gfx::ScaleFactor<SourceUnits, NewTargetUnits>(aScaleFactor.scale);
 }
+template <class TargetUnits, class SourceUnits>
+Maybe<gfx::IntRectTyped<TargetUnits>> ViewAs(const Maybe<gfx::IntRectTyped<SourceUnits>>& aRect, PixelCastJustification aJustification) {
+  if (aRect.isSome()) {
+    return Some(ViewAs<TargetUnits>(aRect.value(), aJustification));
+  }
+  return Nothing();
+}
+// Unlike the other functions in this category, this function takes the
+// target matrix type, rather than its source and target unit types, as
+// the explicit template argument, so an example invocation is:
+//    ViewAs<ScreenToLayerMatrix4x4>(otherTypedMatrix, justification)
+// The reason is that if it took the source and target unit types as two
+// template arguments, there may be some confusion as to which is the
+// source and which is the target.
+template <class TargetMatrix, class SourceMatrixSourceUnits, class SourceMatrixTargetUnits>
+TargetMatrix ViewAs(
+    const gfx::Matrix4x4Typed<SourceMatrixSourceUnits, SourceMatrixTargetUnits>& aMatrix,
+    PixelCastJustification) {
+  return TargetMatrix::FromUnknownMatrix(aMatrix.ToUnknownMatrix());
+}
 
 // Convenience functions for casting untyped entities to typed entities.
 // Using these functions does not require a justification, but once we convert
@@ -106,7 +138,7 @@ gfx::PointTyped<TargetUnits> ViewAs(const gfx::Point& aPoint) {
 }
 template <class TargetUnits>
 gfx::RectTyped<TargetUnits> ViewAs(const gfx::Rect& aRect) {
-  return gfx::RectTyped<TargetUnits>(aRect.x, aRect.y, aRect.width, aRect.height);
+  return gfx::RectTyped<TargetUnits>(aRect.x, aRect.y, aRect.Width(), aRect.Height());
 }
 template <class TargetUnits>
 gfx::IntSizeTyped<TargetUnits> ViewAs(const nsIntSize& aSize) {
@@ -118,7 +150,7 @@ gfx::IntPointTyped<TargetUnits> ViewAs(const nsIntPoint& aPoint) {
 }
 template <class TargetUnits>
 gfx::IntRectTyped<TargetUnits> ViewAs(const nsIntRect& aRect) {
-  return gfx::IntRectTyped<TargetUnits>(aRect.x, aRect.y, aRect.width, aRect.height);
+  return gfx::IntRectTyped<TargetUnits>(aRect.x, aRect.y, aRect.Width(), aRect.Height());
 }
 template <class TargetUnits>
 gfx::IntRegionTyped<TargetUnits> ViewAs(const nsIntRegion& aRegion) {
@@ -143,7 +175,7 @@ static gfx::PointTyped<TargetUnits>
 TransformBy(const gfx::Matrix4x4Typed<SourceUnits, TargetUnits>& aTransform,
             const gfx::PointTyped<SourceUnits>& aPoint)
 {
-  return aTransform * aPoint;
+  return aTransform.TransformPoint(aPoint);
 }
 template <typename TargetUnits, typename SourceUnits>
 static gfx::IntPointTyped<TargetUnits>

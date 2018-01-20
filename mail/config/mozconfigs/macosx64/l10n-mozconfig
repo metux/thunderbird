@@ -1,13 +1,11 @@
 ac_add_options --enable-application=mail
 ac_add_options --enable-update-channel=${MOZ_UPDATE_CHANNEL}
-ac_add_options --enable-update-packaging
 ac_add_options --disable-install-strip
-ac_add_options --enable-profiling
 ac_add_options --with-l10n-base=../../l10n
+. $topsrcdir/build/mozconfig.no-compile
 
 # Build lightning locales
 ac_add_options --enable-calendar
-mk_add_options MOZ_POSTFLIGHT_ALL+=calendar/lightning/build/universal.mk
 
 # Disable checking that add-ons are signed by the trusted root
 MOZ_ADDON_SIGNING=0

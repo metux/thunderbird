@@ -50,9 +50,9 @@ nsCacheEntry::nsCacheEntry(const nsACString &   key,
 nsCacheEntry::~nsCacheEntry()
 {
     MOZ_COUNT_DTOR(nsCacheEntry);
-    
+
     if (mData)
-        nsCacheService::ReleaseObject_Locked(mData, mThread);
+        nsCacheService::ReleaseObject_Locked(mData, mEventTarget);
 }
 
 
@@ -101,13 +101,13 @@ void
 nsCacheEntry::SetData(nsISupports * data)
 {
     if (mData) {
-        nsCacheService::ReleaseObject_Locked(mData, mThread);
+        nsCacheService::ReleaseObject_Locked(mData, mEventTarget);
         mData = nullptr;
     }
 
     if (data) {
         NS_ADDREF(mData = data);
-        mThread = do_GetCurrentThread();
+        mEventTarget = GetCurrentThreadEventTarget();
     }
 }
 
@@ -272,23 +272,27 @@ NS_IMPL_ISUPPORTS(nsCacheEntryInfo, nsICacheEntryInfo)
 
 
 NS_IMETHODIMP
-nsCacheEntryInfo::GetClientID(char ** clientID)
+nsCacheEntryInfo::GetClientID(nsACString& aClientID)
 {
-    NS_ENSURE_ARG_POINTER(clientID);
-    if (!mCacheEntry)  return NS_ERROR_NOT_AVAILABLE;
+    if (!mCacheEntry) {
+        aClientID.Truncate();
+        return NS_ERROR_NOT_AVAILABLE;
+    }
 
-    return ClientIDFromCacheKey(*mCacheEntry->Key(), clientID);
+    return ClientIDFromCacheKey(*mCacheEntry->Key(), aClientID);
 }
 
 
 NS_IMETHODIMP
-nsCacheEntryInfo::GetDeviceID(char ** deviceID)
+nsCacheEntryInfo::GetDeviceID(nsACString& aDeviceID)
 {
-    NS_ENSURE_ARG_POINTER(deviceID);
-    if (!mCacheEntry)  return NS_ERROR_NOT_AVAILABLE;
+    if (!mCacheEntry) {
+        aDeviceID.Truncate();
+        return NS_ERROR_NOT_AVAILABLE;
+    }
 
-    *deviceID = NS_strdup(mCacheEntry->GetDeviceID());
-    return *deviceID ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
+    aDeviceID.Assign(mCacheEntry->GetDeviceID());
+    return NS_OK;
 }
 
 
@@ -361,7 +365,7 @@ nsCacheEntryInfo::IsStreamBased(bool * result)
 {
     NS_ENSURE_ARG_POINTER(result);
     if (!mCacheEntry)  return NS_ERROR_NOT_AVAILABLE;
-    
+
     *result = mCacheEntry->IsStreamData();
     return NS_OK;
 }
@@ -436,10 +440,11 @@ nsCacheEntryHashTable::AddEntry( nsCacheEntry *cacheEntry)
     if (!cacheEntry)   return NS_ERROR_NULL_POINTER;
 
     hashEntry = table.Add(&(cacheEntry->mKey), fallible);
-#ifndef DEBUG_dougt
+
+    if (!hashEntry)
+        return NS_ERROR_FAILURE;
     NS_ASSERTION(((nsCacheEntryHashTableEntry *)hashEntry)->cacheEntry == 0,
                  "### nsCacheEntryHashTable::AddEntry - entry already used");
-#endif
     ((nsCacheEntryHashTableEntry *)hashEntry)->cacheEntry = cacheEntry;
 
     return NS_OK;
@@ -473,14 +478,13 @@ nsCacheEntryHashTable::Iter()
  */
 
 PLDHashNumber
-nsCacheEntryHashTable::HashKey( PLDHashTable *table, const void *key)
+nsCacheEntryHashTable::HashKey(const void *key)
 {
     return HashString(*static_cast<const nsCString *>(key));
 }
 
 bool
-nsCacheEntryHashTable::MatchEntry(PLDHashTable *       /* table */,
-                                  const PLDHashEntryHdr * hashEntry,
+nsCacheEntryHashTable::MatchEntry(const PLDHashEntryHdr * hashEntry,
                                   const void *            key)
 {
     NS_ASSERTION(key !=  nullptr, "### nsCacheEntryHashTable::MatchEntry : null key");

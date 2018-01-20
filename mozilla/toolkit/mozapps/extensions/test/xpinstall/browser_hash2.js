@@ -11,12 +11,12 @@ function test() {
 
   var triggers = encodeURIComponent(JSON.stringify({
     "Unsigned XPI": {
-      URL: TESTROOT + "unsigned.xpi",
-      Hash: "sha1:3D0DC22E1F394E159B08AAF5F0F97DE4D5C65F4F",
-      toString: function() { return this.URL; }
+      URL: TESTROOT + "amosigned.xpi",
+      Hash: "sha1:36FFB0ACFD9C6E9682473AAEBAAB394D38B473C9",
+      toString() { return this.URL; }
     }
   }));
-  gBrowser.selectedTab = gBrowser.addTab();
+  gBrowser.selectedTab = BrowserTestUtils.addTab(gBrowser);
   gBrowser.loadURI(TESTROOT + "installtrigger.html?" + triggers);
 }
 

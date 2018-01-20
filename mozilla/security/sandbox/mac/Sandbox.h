@@ -8,6 +8,8 @@
 
 #include <string>
 
+#include "SandboxPolicies.h"
+
 enum MacSandboxType {
   MacSandboxType_Default = 0,
   MacSandboxType_Plugin,
@@ -17,9 +19,10 @@ enum MacSandboxType {
 
 enum MacSandboxPluginType {
   MacSandboxPluginType_Default = 0,
-  MacSandboxPluginType_GMPlugin_Default,  // Any Gecko Media Plugin
-  MacSandboxPluginType_GMPlugin_OpenH264, // Gecko Media Plugin, OpenH264
-  MacSandboxPluginType_GMPlugin_EME,      // Gecko Media Plugin, EME
+  MacSandboxPluginType_GMPlugin_Default,      // Any Gecko Media Plugin
+  MacSandboxPluginType_GMPlugin_OpenH264,     // Gecko Media Plugin, OpenH264
+  MacSandboxPluginType_GMPlugin_EME,          // Gecko Media Plugin, EME
+  MacSandboxPluginType_GMPlugin_EME_Widevine, // Gecko Media Plugin, Widevine
   MacSandboxPluginType_Invalid
 };
 
@@ -36,22 +39,33 @@ typedef struct _MacSandboxPluginInfo {
 
 typedef struct _MacSandboxInfo {
   _MacSandboxInfo()
-    : type(MacSandboxType_Default), level(0) {}
-  _MacSandboxInfo(const struct _MacSandboxInfo& other)
-    : type(other.type), level(other.level), pluginInfo(other.pluginInfo),
-      appPath(other.appPath), appBinaryPath(other.appBinaryPath),
-      appDir(other.appDir) {}
+    : type(MacSandboxType_Default), level(0), hasFilePrivileges(false),
+      shouldLog(true) {}
+  _MacSandboxInfo(const struct _MacSandboxInfo& other) = default;
+
   MacSandboxType type;
   int32_t level;
+  bool hasFilePrivileges;
+  bool hasSandboxedProfile;
   MacSandboxPluginInfo pluginInfo;
   std::string appPath;
   std::string appBinaryPath;
   std::string appDir;
+  std::string appTempDir;
+  std::string profileDir;
+  std::string debugWriteDir;
+
+  std::string testingReadPath1;
+  std::string testingReadPath2;
+  std::string testingReadPath3;
+  std::string testingReadPath4;
+
+  bool shouldLog;
 } MacSandboxInfo;
 
 namespace mozilla {
 
-bool StartMacSandbox(MacSandboxInfo aInfo, std::string &aErrorMessage);
+bool StartMacSandbox(MacSandboxInfo const &aInfo, std::string &aErrorMessage);
 
 } // namespace mozilla
 

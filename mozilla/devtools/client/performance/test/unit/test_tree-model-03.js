@@ -1,14 +1,11 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
+"use strict";
 
 /**
  * Tests if a call tree model can be correctly computed from a samples array,
  * while at the same time filtering by duration.
  */
-
-function run_test() {
-  run_next_test();
-}
 
 add_task(function test() {
   let { ThreadNode } = require("devtools/client/performance/modules/logic/tree-model");

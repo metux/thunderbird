@@ -11,17 +11,17 @@ function run_test() {
   do_get_profile();
   setPrefs({
     userAgentID: userAgentID,
-    pingInterval: 10000,
+    pingInterval: 2000,
     retryBaseInterval: 25,
   });
   run_next_test();
 }
 
-add_task(function* test_ws_retry() {
+add_task(async function test_ws_retry() {
   let db = PushServiceWebSocket.newPushDB();
   do_register_cleanup(() => {return db.drop().then(_ => db.close());});
 
-  yield db.put({
+  await db.put({
     channelID: '61770ba9-2d57-4134-b949-d40404630d5b',
     pushEndpoint: 'https://example.org/push/1',
     scope: 'https://example.net/push/1',
@@ -30,23 +30,27 @@ add_task(function* test_ws_retry() {
     quota: Infinity,
   });
 
-  let alarmDelays = [];
-  let setAlarm = PushService.setAlarm;
-  PushService.setAlarm = function(delay) {
-    alarmDelays.push(delay);
-    setAlarm.apply(this, arguments);
+  // Use a mock timer to avoid waiting for the backoff interval.
+  let reconnects = 0;
+  PushServiceWebSocket._backoffTimer = {
+    init(observer, delay, type) {
+      reconnects++;
+      ok(delay >= 5 && delay <= 2000, `Backoff delay ${
+        delay} out of range for attempt ${reconnects}`);
+      observer.observe(this, "timer-callback", null);
+    },
+
+    cancel() {},
   };
 
   let handshakeDone;
   let handshakePromise = new Promise(resolve => handshakeDone = resolve);
   PushService.init({
     serverURI: "wss://push.example.org/",
-    networkInfo: new MockDesktopNetworkInfo(),
     makeWebSocket(uri) {
       return new MockWebSocket(uri, {
         onHello(request) {
-          if (alarmDelays.length == 10) {
-            PushService.setAlarm = setAlarm;
+          if (reconnects == 10) {
             this.serverSendMsg(JSON.stringify({
               messageType: 'hello',
               status: 200,
@@ -61,11 +65,5 @@ add_task(function* test_ws_retry() {
     },
   });
 
-  yield waitForPromise(
-    handshakePromise,
-    45000,
-    'Timed out waiting for successful handshake'
-  );
-  deepEqual(alarmDelays, [25, 50, 100, 200, 400, 800, 1600, 3200, 6400, 10000],
-    'Wrong reconnect alarm delays');
+  await handshakePromise;
 });

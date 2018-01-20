@@ -116,7 +116,7 @@ function safeGetCharPref(pref, defaultValue) {
  */
 function makeURI(aURLSpec, aCharset) {
   try {
-    return Services.io.newURI(aURLSpec, aCharset, null);
+    return Services.io.newURI(aURLSpec, aCharset);
   } catch (ex) {
   }
 
@@ -268,17 +268,22 @@ FeedWriter.prototype = {
    *          A date as extracted from a feed entry. (entry.updated)
    */
   _parseDate: function parseDate(dateString) {
-    // Make sure the date we're given is valid.
-    if (isNaN(Date.parse(dateString)))
-      return null;
-
     // Convert the date into the user's local time zone.
     var dateObj = new Date(dateString);
-    var dateService = Components.classes["@mozilla.org/intl/scriptabledateformat;1"]
-                                .getService(Components.interfaces.nsIScriptableDateFormat);
-    return dateService.FormatDateTime("", dateService.dateFormatLong, dateService.timeFormatNoSeconds,
-                                      dateObj.getFullYear(), dateObj.getMonth()+1, dateObj.getDate(),
-                                      dateObj.getHours(), dateObj.getMinutes(), dateObj.getSeconds());
+    // Make sure the date we're given is valid.
+    if (!dateObj.getTime())
+      return false;
+
+    return this._dateFormatter.format(dateObj);
+  },
+
+  __dateFormatter: null,
+  get _dateFormatter() {
+    if (!this.__dateFormatter) {
+      const dtOptions = { timeStyle: "short", dateStyle: "long" };
+      this.__dateFormatter = Services.intl.createDateTimeFormat(undefined, dtOptions);
+    }
+    return this.__dateFormatter;
   },
 
   /**
@@ -512,8 +517,8 @@ FeedWriter.prototype = {
       if (enc.hasKey("length") && /^[0-9]+$/.test(enc.get("length"))) {
         let enc_size = convertByteUnits(parseInt(enc.get("length")));
 
-        let size_text = this._getFormattedString("enclosureSizeText",
-                             [enc_size[0], this._getString(enc_size[1])]);
+        size_text = this._getFormattedString("enclosureSizeText",
+                         [enc_size[0], this._getString(enc_size[1])]);
       }
 
       let iconimg = this._document.createElementNS(HTML_NS, "img");
@@ -650,7 +655,7 @@ FeedWriter.prototype = {
       if (fp.show() == Components.interfaces.nsIFilePicker.returnOK) {
         this._selectedApp = fp.file;
         if (this._selectedApp) {
-          var file = Services.dirsvc.get("XREExeF", Components.interfaces.nsILocalFile);
+          var file = Services.dirsvc.get("XREExeF", Components.interfaces.nsIFile);
           if (fp.file.leafName != file.leafName) {
             this._initMenuItemWithFile(this._selectedAppMenuItem,
                                        this._selectedApp);
@@ -760,8 +765,7 @@ FeedWriter.prototype = {
     switch (handler) {
       case "web":
         if (this._handlersMenuList) {
-          var url = Services.prefs.getComplexValue(getPrefWebForType(feedType),
-                                                   Components.interfaces.nsISupportsString).data;
+          var url = Services.prefs.getStringPref(getPrefWebForType(feedType));
           var handlers = this._handlersMenuList.getElementsByAttribute("webhandlerurl", url);
           if (handlers.length == 0) {
             LOG("FeedWriter._setSelectedHandler: selected web handler isn't in the menulist");
@@ -775,7 +779,7 @@ FeedWriter.prototype = {
         try {
           this._selectedApp =
             Services.prefs.getComplexValue(getPrefAppForType(feedType),
-                                           Components.interfaces.nsILocalFile);
+                                           Components.interfaces.nsIFile);
         }
         catch(ex) {
           this._selectedApp = null;
@@ -841,7 +845,7 @@ FeedWriter.prototype = {
     menuItem.setAttribute("handlerType", "client");
     try {
       this._selectedApp = Services.prefs.getComplexValue(getPrefAppForType(feedType),
-                                                         Components.interfaces.nsILocalFile);
+                                                         Components.interfaces.nsIFile);
 
       if (this._selectedApp.exists())
         this._initMenuItemWithFile(menuItem, this._selectedApp);
@@ -974,11 +978,13 @@ FeedWriter.prototype = {
                       .getInterface(Components.interfaces.nsIWebNavigation)
                       .QueryInterface(Components.interfaces.nsIDocShell)
                       .currentDocumentChannel;
+    // The following channel is never openend, so it does not matter what
+    // securityFlags we pass; let's follow the principle of least privilege.
     var ios = Services.io;
     var channel = ios.newChannel2(FEEDHANDLER_URI, null, null, null,
                                   this._feedprincipal,
                                   null,
-                                  Components.interfaces.nsILoadInfo.SEC_NORMAL,
+                                  Components.interfaces.nsILoadInfo.SEC_REQUIRE_SAME_ORIGIN_DATA_IS_BLOCKED,
                                   Components.interfaces.nsIContentPolicy.TYPE_OTHER);
     var resolvedURI = channel.URI;
 
@@ -1006,7 +1012,8 @@ FeedWriter.prototype = {
     this._document = aWindow.document;
     this._handlersMenuList = this._getUIElement("handlersMenuList");
 
-    this._feedPrincipal = Services.scriptSecurityManager.getSimpleCodebasePrincipal(this._feedURI);
+    this._feedPrincipal = Services.scriptSecurityManager
+                                  .createCodebasePrincipal(this._feedURI, {});
 
     LOG("Subscribe Preview: feed uri = " + this._window.location.href);
 
@@ -1111,11 +1118,7 @@ FeedWriter.prototype = {
       var webURI = selectedItem.getAttribute("webhandlerurl");
       Services.prefs.setCharPref(getPrefReaderForType(feedType), "web");
 
-      var supportsString = Components.classes["@mozilla.org/supports-string;1"]
-                                     .createInstance(Components.interfaces.nsISupportsString);
-      supportsString.data = webURI;
-      Services.prefs.setComplexValue(getPrefWebForType(feedType), Components.interfaces.nsISupportsString,
-                                     supportsString);
+      Services.prefs.setStringPref(getPrefWebForType(feedType), webURI);
 
       var wccr = Components.classes["@mozilla.org/embeddor.implemented/web-content-handler-registrar;1"]
                            .getService(Components.interfaces.nsIWebContentConverterService);
@@ -1130,12 +1133,12 @@ FeedWriter.prototype = {
     else {
       switch (selectedItem.getAttribute("anonid")) {
         case "selectedAppMenuItem":
-          Services.prefs.setComplexValue(getPrefAppForType(feedType), Components.interfaces.nsILocalFile,
+          Services.prefs.setComplexValue(getPrefAppForType(feedType), Components.interfaces.nsIFile,
                                          this._selectedApp);
           Services.prefs.setCharPref(getPrefReaderForType(feedType), "client");
           break;
         case "defaultHandlerMenuItem":
-          Services.prefs.setComplexValue(getPrefAppForType(feedType), Components.interfaces.nsILocalFile,
+          Services.prefs.setComplexValue(getPrefAppForType(feedType), Components.interfaces.nsIFile,
                                          this._defaultSystemReader);
           Services.prefs.setCharPref(getPrefReaderForType(feedType), "client");
           break;
@@ -1224,14 +1227,18 @@ FeedWriter.prototype = {
                    .usePrivateBrowsing;
     var flags = isPB ? this._faviconService.FAVICON_LOAD_PRIVATE :
                        this._faviconService.FAVICON_LOAD_NON_PRIVATE;
-    this._faviconService.setAndFetchFaviconForPage(readerURI, faviconURI, false, flags,
+    var nullPrincipal = Components.classes["@mozilla.org/nullprincipal;1"]
+                                  .createInstance(Components.interfaces.nsIPrincipal);
+    this._faviconService.setAndFetchFaviconForPage(
+      readerURI, faviconURI, false, flags,
       function(aURI, aDataLen, aData, aMimeType) {
         if (aDataLen > 0) {
           let dataURL = "data:" + aMimeType + ";base64," +
                         btoa(String.fromCharCode.apply(null, aData));
           aMenuItem.setAttribute("image", dataURL);
         }
-      });
+      },
+      nullPrincipal);
   },
 
   classID: FEEDWRITER_CID,

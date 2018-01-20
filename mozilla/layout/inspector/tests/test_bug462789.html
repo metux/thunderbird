@@ -10,7 +10,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=462789
 </head>
 <body>
 <a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=462789">Mozilla Bug 462789</a>
-<p id="display"><iframe id="bug462789_iframe" src="data:text/html,<html><head><style>*{color:black;}</style></head><body>xxx" style="display: none;"></iframe></p>
+<p id="display"><iframe id="bug462789_iframe" srcdoc="<html><head><style>*{color:black;}</style></head><body>xxx" style="display: none;"></iframe></p>
 <div id="content" style="display: none">
   
 </div>
@@ -20,7 +20,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=462789
 /** Test for Bug 462789 **/
 
 function do_test() {
-  const ERROR_FAILURE = 0x80004005;
+  const ERROR_INVALID_ARG = 0x80070057;
   const DOCUMENT_NODE_TYPE = 9;
 
   var utils = SpecialPowers.Cc["@mozilla.org/inspector/dom-utils;1"]
@@ -79,7 +79,7 @@ function do_test() {
   }
   catch(e) {
     e = SpecialPowers.wrap(e);
-    is(e.result, ERROR_FAILURE, "got the expected exception");
+    is(e.result, ERROR_INVALID_ARG, "got the expected exception");
   }
 
   SimpleTest.finish();

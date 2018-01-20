@@ -21,7 +21,7 @@ var CustomChromeProtocol = {
   },
 
   newChannel2: function CCP_newChannel2(aURI, aLoadInfo) {
-    let url = Services.io.newURI("chrome:" + aURI.path, null, null);
+    let url = Services.io.newURI("chrome:" + aURI.pathQueryRef);
     let ch = Services.io.newChannelFromURIWithLoadInfo(url, aLoadInfo);
     ch.originalURI = aURI;
     return ch;
@@ -75,7 +75,7 @@ var CustomChromeProtocol = {
       Ci.nsIFactory
     ])
   }
-}
+};
 
 function test() {
   waitForExplicitFinish();
@@ -116,13 +116,13 @@ function test() {
         case "domwindowclosed":
           // Give the preference window a chance to finish closing before
           // closing the add-ons manager.
-          waitForFocus(function () {
+          waitForFocus(function() {
             test_next_addon();
           });
           break;
         case "domwindowopened":
           let win = aSubject.QueryInterface(Ci.nsIDOMEventTarget);
-          waitForFocus(function () {
+          waitForFocus(function() {
             // If the openDialog privileges are wrong a new browser window
             // will open, let the test proceed (and fail) rather than timeout.
             if (win.location != currentAddon.optionsURL &&
@@ -160,7 +160,7 @@ function test() {
       let optionsBtn =
         aManager.document.getAnonymousElementByAttribute(addonItem, "anonid",
                                                          "preferences-btn");
-      is(optionsBtn.hidden, false, "Prefs button should be visible.")
+      is(optionsBtn.hidden, false, "Prefs button should be visible.");
 
       addonList.ensureElementIsVisible(addonItem);
       EventUtils.synthesizeMouseAtCenter(optionsBtn, { }, aManager);

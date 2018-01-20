@@ -86,9 +86,9 @@ NS_INTERFACE_MAP_BEGIN(nsMsgRDFDataSource)
   NS_INTERFACE_MAP_ENTRIES_CYCLE_COLLECTION(nsMsgRDFDataSource)
 NS_INTERFACE_MAP_END
 
-/* readonly attribute string URI; */
+/* readonly attribute ACString URI; */
 NS_IMETHODIMP
-nsMsgRDFDataSource::GetURI(char * *aURI)
+nsMsgRDFDataSource::GetURI(nsACString& aURI)
 {
     NS_NOTREACHED("should be implemented by a subclass");
     return NS_ERROR_UNEXPECTED;
@@ -237,17 +237,17 @@ nsMsgRDFDataSource::GetAllCmds(nsIRDFResource *aSource, nsISimpleEnumerator **_r
 }
 
 
-/* boolean IsCommandEnabled (in nsISupportsArray aSources, in nsIRDFResource aCommand, in nsISupportsArray aArguments); */
+/* boolean IsCommandEnabled (in nsISupports aSources, in nsIRDFResource aCommand, in nsISupports aArguments); */
 NS_IMETHODIMP
-nsMsgRDFDataSource::IsCommandEnabled(nsISupportsArray *aSources, nsIRDFResource *aCommand, nsISupportsArray *aArguments, bool *_retval)
+nsMsgRDFDataSource::IsCommandEnabled(nsISupports *aSources, nsIRDFResource *aCommand, nsISupports *aArguments, bool *_retval)
 {
     return NS_RDF_NO_VALUE;
 }
 
 
-/* void DoCommand (in nsISupportsArray aSources, in nsIRDFResource aCommand, in nsISupportsArray aArguments); */
+/* void DoCommand (in nsISupports aSources, in nsIRDFResource aCommand, in nsISupports aArguments); */
 NS_IMETHODIMP
-nsMsgRDFDataSource::DoCommand(nsISupportsArray *aSources, nsIRDFResource *aCommand, nsISupportsArray *aArguments)
+nsMsgRDFDataSource::DoCommand(nsISupports *aSources, nsIRDFResource *aCommand, nsISupports *aArguments)
 {
     return NS_RDF_NO_VALUE;
 }
@@ -284,8 +284,7 @@ NS_IMETHODIMP nsMsgRDFDataSource::GetWindow(nsIMsgWindow * *aWindow)
   if(!aWindow)
     return NS_ERROR_NULL_POINTER;
 
-  *aWindow = mWindow;
-  NS_IF_ADDREF(*aWindow);
+  NS_IF_ADDREF(*aWindow = mWindow);
   return NS_OK;
 }
 
@@ -328,12 +327,16 @@ nsresult nsMsgRDFDataSource::NotifyObservers(nsIRDFResource *subject,
   NS_ASSERTION(!(change && assert),
                "Can't change and assert at the same time!\n");
   nsMsgRDFNotification note = { this, subject, property, newObject, oldObject };
-  if(change)
-    mObservers.EnumerateForwards(changeEnumFunc, &note);
-  else if (assert)
-    mObservers.EnumerateForwards(assertEnumFunc, &note);
-  else
-    mObservers.EnumerateForwards(unassertEnumFunc, &note);
+  if (change) {
+    for (nsIRDFObserver* o : mObservers)
+      changeEnumFunc(o, &note);
+  } else if (assert) {
+    for (nsIRDFObserver* o : mObservers)
+      assertEnumFunc(o, &note);
+  } else {
+    for (nsIRDFObserver* o : mObservers)
+      unassertEnumFunc(o, &note);
+  }
   return NS_OK;
 }
 

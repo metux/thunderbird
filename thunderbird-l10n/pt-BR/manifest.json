@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "pt-BR": {
+      "chrome_resources": {
+        "necko": "chrome/pt-BR/locale/pt-BR/necko/", 
+        "global": "chrome/pt-BR/locale/pt-BR/global/", 
+        "messenger-region": "chrome/pt-BR/locale/pt-BR/messenger-region/", 
+        "chat": "chrome/pt-BR/locale/pt-BR/chat/", 
+        "devtools": "chrome/pt-BR/locale/pt-BR/devtools/client/", 
+        "pipnss": "chrome/pt-BR/locale/pt-BR/pipnss/", 
+        "messenger-smime": "chrome/pt-BR/locale/pt-BR/messenger-smime/", 
+        "messenger-newsblog": "chrome/pt-BR/locale/pt-BR/messenger-newsblog/", 
+        "devtools-shim": "chrome/pt-BR/locale/pt-BR/devtools/shim/", 
+        "alerts": "chrome/pt-BR/locale/pt-BR/alerts/", 
+        "messenger": "chrome/pt-BR/locale/pt-BR/messenger/", 
+        "editor": "chrome/pt-BR/locale/pt-BR/editor/", 
+        "branding": "chrome/pt-BR/locale/pt-BR/branding/", 
+        "mozldap": "chrome/pt-BR/locale/pt-BR/mozldap/", 
+        "autoconfig": "chrome/pt-BR/locale/pt-BR/autoconfig/", 
+        "devtools-shared": "chrome/pt-BR/locale/pt-BR/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/pt-BR/locale/pt-BR/global-platform/win/", 
+          "android": "chrome/pt-BR/locale/pt-BR/global-platform/unix/", 
+          "macosx": "chrome/pt-BR/locale/pt-BR/global-platform/mac/", 
+          "linux": "chrome/pt-BR/locale/pt-BR/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/pt-BR/locale/pt-BR/mozapps/", 
+        "pluginproblem": "chrome/pt-BR/locale/pt-BR/pluginproblem/", 
+        "communicator": "chrome/pt-BR/locale/pt-BR/communicator/", 
+        "messenger-mapi": "chrome/pt-BR/locale/pt-BR/messenger-mapi/", 
+        "places": "chrome/pt-BR/locale/pt-BR/places/", 
+        "passwordmgr": "chrome/pt-BR/locale/pt-BR/passwordmgr/", 
+        "pippki": "chrome/pt-BR/locale/pt-BR/pippki/"
+      }, 
+      "version": "20171103015236"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "58.0", 
+      "id": "langpack-pt-BR@firefox.mozilla.org", 
+      "strict_max_version": "58.*"
+    }
+  }, 
+  "langpack_id": "pt-BR", 
+  "version": "58.0", 
+  "name": "Português (pt-BR) Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "mozilla.org (contributors: Jeferson Hultmann, Fernando Pereira Silveira, Marco Aurélio Krause, Maykon Chagas)", 
+  "description": "Language pack for Thunderbird for pt-BR"
+}

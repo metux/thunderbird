@@ -11,7 +11,6 @@
 #include "nsIPrefLocalizedString.h"
 #include "nsIPrefService.h"
 #include "nsIServiceManager.h"
-#include "nsISupportsArray.h"
 #include "nsISupportsPrimitives.h"
 #include "nsNetCID.h"
 #include "nsNetUtil.h"
@@ -156,7 +155,7 @@ nsThunderbirdProfileMigrator::GetMigrateData(const char16_t* aProfile,
                            { FILE_NAME_JUNKTRAINING,
                              nsISuiteProfileMigrator::JUNKTRAINING,
                              true } };
-                                                                  
+
   GetMigrateDataFromArray(data, sizeof(data)/sizeof(MigrationData),
                           aReplace, mSourceProfile, aResult);
 
@@ -201,13 +200,13 @@ nsThunderbirdProfileMigrator::FillProfileDataFromRegistry()
 #elif defined(XP_MACOSX)
   fileLocator->Get(NS_MAC_USER_LIB_DIR, NS_GET_IID(nsIFile),
                    getter_AddRefs(thunderbirdData));
-  
+
   thunderbirdData->Append(NS_LITERAL_STRING("Thunderbird"));
 
 #elif defined(XP_UNIX)
   fileLocator->Get(NS_UNIX_HOME_DIR, NS_GET_IID(nsIFile),
                    getter_AddRefs(thunderbirdData));
-  
+
   thunderbirdData->Append(NS_LITERAL_STRING(".thunderbird"));
 
 #else
@@ -240,7 +239,6 @@ nsThunderbirdProfileMigrator::PrefTransform gTransforms[] = {
   MAKESAMETYPEPREFTRANSFORM("browser.visited_color",                   String),
 
   MAKESAMETYPEPREFTRANSFORM("dom.disable_open_during_load",            Bool),
-  MAKESAMETYPEPREFTRANSFORM("dom.disable_image_src_set",               Bool),
   MAKESAMETYPEPREFTRANSFORM("dom.disable_window_move_resize",          Bool),
   MAKESAMETYPEPREFTRANSFORM("dom.disable_window_flip",                 Bool),
   MAKESAMETYPEPREFTRANSFORM("dom.disable_window_open_feature.status",  Bool),
@@ -252,7 +250,7 @@ nsThunderbirdProfileMigrator::PrefTransform gTransforms[] = {
 
   MAKESAMETYPEPREFTRANSFORM("intl.accept_charsets",                    String),
   MAKESAMETYPEPREFTRANSFORM("intl.accept_languages",                   String),
-  MAKESAMETYPEPREFTRANSFORM("intl.charset.default",                    String),
+  MAKESAMETYPEPREFTRANSFORM("intl.charset.fallback.override",          String),
 
   MAKESAMETYPEPREFTRANSFORM("javascript.enabled",                      Bool),
   MAKESAMETYPEPREFTRANSFORM("javascript.options.relimit",              Bool),
@@ -282,11 +280,8 @@ nsThunderbirdProfileMigrator::PrefTransform gTransforms[] = {
   MAKESAMETYPEPREFTRANSFORM("mail.compose.add_undisclosed_recipients", Bool),
   MAKESAMETYPEPREFTRANSFORM("mail.compose.autosave",                   Bool),
   MAKESAMETYPEPREFTRANSFORM("mail.compose.autosaveinterval",           Int),
-  MAKESAMETYPEPREFTRANSFORM("mail.compose.dont_attach_source_of_local_network_links", Bool),
   MAKESAMETYPEPREFTRANSFORM("mail.compose.dontWarnMail2Newsgroup",     Bool),
-  MAKESAMETYPEPREFTRANSFORM("mail.compose.max_recycled_windows",       Int),
   MAKESAMETYPEPREFTRANSFORM("mail.compose.other.header",               String),
-  MAKESAMETYPEPREFTRANSFORM("mail.compose.wrap_to_window_width",       Bool),
   MAKESAMETYPEPREFTRANSFORM("mail.content_disposition_type",           Int),
 
   MAKESAMETYPEPREFTRANSFORM("mail.default_html_action",                Int),
@@ -408,7 +403,7 @@ nsThunderbirdProfileMigrator::PrefTransform gTransforms[] = {
   MAKESAMETYPEPREFTRANSFORM("news.get_messages_on_select",             Bool),
   MAKESAMETYPEPREFTRANSFORM("news.show_size_in_lines",                 Bool),
   MAKESAMETYPEPREFTRANSFORM("news.update_unread_on_expand",            Bool),
- 
+
   // pdi is the new preference, but nii is the old one - so do nii first, and
   // then do pdi to account for both situations
   MAKEPREFTRANSFORM("network.image.imageBehavior", 0, Int,             Image),
@@ -475,7 +470,7 @@ nsThunderbirdProfileMigrator::TransformPreferences(
   nsCOMPtr<nsIFile> sourcePrefsFile;
   mSourceProfile->Clone(getter_AddRefs(sourcePrefsFile));
   sourcePrefsFile->AppendNative(nsDependentCString(aSourcePrefFileName));
-  psvc->ReadUserPrefs(sourcePrefsFile);
+  psvc->ReadUserPrefsFromFile(sourcePrefsFile);
 
   nsCOMPtr<nsIPrefBranch> branch(do_QueryInterface(psvc));
   for (transform = gTransforms; transform < end; ++transform)
@@ -545,7 +540,7 @@ nsThunderbirdProfileMigrator::TransformPreferences(
   // Don't use nullptr here as we're too early in the cycle for the prefs
   // service to get its default file (because the NS_GetDirectoryService items
   // aren't fully set up yet).
-  psvc->ReadUserPrefs(targetPrefsFile);
+  psvc->ReadUserPrefsFromFile(targetPrefsFile);
 
   for (transform = gTransforms; transform < end; ++transform)
     transform->prefSetterFunc(transform, branch);

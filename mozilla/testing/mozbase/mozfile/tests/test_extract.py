@@ -1,13 +1,19 @@
 #!/usr/bin/env python
 
-import mozfile
+from __future__ import absolute_import, print_function
+
 import os
 import shutil
 import tarfile
 import tempfile
-import stubs
 import unittest
 import zipfile
+
+import mozunit
+
+import mozfile
+
+import stubs
 
 
 class TestExtract(unittest.TestCase):
@@ -19,7 +25,7 @@ class TestExtract(unittest.TestCase):
             path = os.path.join(directory, *f)
             exists = os.path.exists(path)
             if not exists:
-                print "%s does not exist" % (os.path.join(f))
+                print("%s does not exist" % (os.path.join(f)))
             self.assertTrue(exists)
             if exists:
                 contents = file(path).read().strip()
@@ -38,6 +44,25 @@ class TestExtract(unittest.TestCase):
                 shutil.rmtree(dest)
         finally:
             os.remove(_zipfile)
+
+    def test_extract_zipfile_missing_file_attributes(self):
+        """if files do not have attributes set the default permissions have to be inherited."""
+        _zipfile = os.path.join(os.path.dirname(__file__), 'files', 'missing_file_attributes.zip')
+        self.assertTrue(os.path.exists(_zipfile))
+        dest = tempfile.mkdtemp()
+        try:
+            # Get the default file permissions for the user
+            fname = os.path.join(dest, 'foo')
+            with open(fname, 'w'):
+                pass
+            default_stmode = os.stat(fname).st_mode
+
+            files = mozfile.extract_zip(_zipfile, dest)
+            for filename in files:
+                self.assertEqual(os.stat(os.path.join(dest, filename)).st_mode,
+                                 default_stmode)
+        finally:
+            shutil.rmtree(dest)
 
     def test_extract_tarball(self):
         """test extracting a tarball"""
@@ -90,14 +115,14 @@ class TestExtract(unittest.TestCase):
         try:
             dest = tempfile.mkdtemp()
             mozfile.extract(filename, dest)
-        except Exception, exception:
+        except Exception as exception:
             pass
         finally:
             os.remove(filename)
             os.rmdir(dest)
         self.assertTrue(isinstance(exception, Exception))
 
-    ### utility functions
+    # utility functions
 
     def create_tarball(self):
         """create a stub tarball for testing"""
@@ -131,3 +156,7 @@ class TestExtract(unittest.TestCase):
             shutil.rmtree(tempdir)
         archive.close()
         return filename
+
+
+if __name__ == '__main__':
+    mozunit.main()

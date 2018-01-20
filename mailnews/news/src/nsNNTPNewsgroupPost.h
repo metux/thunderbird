@@ -9,7 +9,7 @@
 #include "msgCore.h"
 #include "nsINNTPNewsgroupPost.h"
 #include "nsCOMPtr.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsIFile.h"
 
 #define IDX_HEADER_FROM             0
@@ -42,13 +42,13 @@
 #define HEADER_LAST                 IDX_HEADER_MESSAGEID
 
 class nsNNTPNewsgroupPost : public nsINNTPNewsgroupPost {
-    
+
 public:
     nsNNTPNewsgroupPost();
-    
+
     NS_DECL_ISUPPORTS
     NS_DECL_NSINNTPNEWSGROUPPOST
-    
+
 private:
     virtual ~nsNNTPNewsgroupPost();
 

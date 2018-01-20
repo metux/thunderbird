@@ -13,9 +13,8 @@
 #include "mozilla/EventForwards.h"
 #include "mozilla/TouchEvents.h"
 #include "nsJSEnvironment.h"
+#include "nsStringFwd.h"
 #include "nsWrapperCache.h"
-
-class nsAString;
 
 namespace mozilla {
 namespace dom {
@@ -52,8 +51,7 @@ public:
     return mParent;
   }
 
-  static bool PrefEnabled(JSContext* aCx = nullptr,
-                          JSObject* aGlobal = nullptr);
+  static bool PrefEnabled(JSContext* aCx, JSObject* aGlobal);
 
   uint32_t Length() const
   {
@@ -71,7 +69,6 @@ public:
     }
     return mPoints[aIndex];
   }
-  Touch* IdentifiedTouch(int32_t aIdentifier) const;
 
 protected:
   ~TouchList() {}
@@ -95,6 +92,9 @@ public:
     return TouchEventBinding::Wrap(aCx, this, aGivenProto);
   }
 
+  already_AddRefed<TouchList>
+  CopyTouches(const Sequence<OwningNonNull<Touch>>& aTouches);
+
   TouchList* Touches();
   TouchList* TargetTouches();
   TouchList* ChangedTouches();
@@ -107,7 +107,7 @@ public:
   void InitTouchEvent(const nsAString& aType,
                       bool aCanBubble,
                       bool aCancelable,
-                      nsIDOMWindow* aView,
+                      nsGlobalWindowInner* aView,
                       int32_t aDetail,
                       bool aCtrlKey,
                       bool aAltKey,
@@ -117,8 +117,13 @@ public:
                       TouchList* aTargetTouches,
                       TouchList* aChangedTouches);
 
-  static bool PrefEnabled(JSContext* aCx = nullptr,
-                          JSObject* aGlobal = nullptr);
+  static bool PrefEnabled(JSContext* aCx, JSObject* aGlobal);
+  static bool PrefEnabled(nsIDocShell* aDocShell);
+
+  static already_AddRefed<Event> Constructor(const GlobalObject& aGlobal,
+                                             const nsAString& aType,
+                                             const TouchEventInit& aParam,
+                                             ErrorResult& aRv);
 
 protected:
   ~TouchEvent() {}

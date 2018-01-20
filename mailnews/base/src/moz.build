@@ -11,6 +11,7 @@ EXPORTS += [
 
 SOURCES += [
     'MailNewsDLF.cpp',
+    'MailnewsLoadContextInfo.cpp',
     'nsCidProtocolHandler.cpp',
     'nsCopyMessageStreamListener.cpp',
     'nsMailDirProvider.cpp',
@@ -75,6 +76,9 @@ EXTRA_COMPONENTS += [
 
 EXTRA_JS_MODULES += [
     'virtualFolderWrapper.js',
+]
+LOCAL_INCLUDES += [
+  '/%s/dom/base' % CONFIG['mozreltopsrcdir'],
 ]
 
 FINAL_LIBRARY = 'mail'

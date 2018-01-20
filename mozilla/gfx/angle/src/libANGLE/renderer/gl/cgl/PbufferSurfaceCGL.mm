@@ -18,16 +18,17 @@
 namespace rx
 {
 
-PbufferSurfaceCGL::PbufferSurfaceCGL(RendererGL *renderer,
+PbufferSurfaceCGL::PbufferSurfaceCGL(const egl::SurfaceState &state,
+                                     RendererGL *renderer,
                                      EGLint width,
                                      EGLint height,
                                      const FunctionsGL *functions)
-    : SurfaceGL(renderer),
+    : SurfaceGL(state, renderer),
       mWidth(width),
       mHeight(height),
       mFunctions(functions),
       mStateManager(renderer->getStateManager()),
-      mWorkarounds(renderer->getWorkarounds()),
+      mRenderer(renderer),
       mFramebuffer(0),
       mColorRenderbuffer(0),
       mDSRenderbuffer(0)
@@ -54,7 +55,7 @@ PbufferSurfaceCGL::~PbufferSurfaceCGL()
     }
 }
 
-egl::Error PbufferSurfaceCGL::initialize()
+egl::Error PbufferSurfaceCGL::initialize(const egl::Display *display)
 {
     mFunctions->genRenderbuffers(1, &mColorRenderbuffer);
     mStateManager->bindRenderbuffer(GL_RENDERBUFFER, mColorRenderbuffer);
@@ -71,40 +72,44 @@ egl::Error PbufferSurfaceCGL::initialize()
     mFunctions->framebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT,
                                         GL_RENDERBUFFER, mDSRenderbuffer);
 
-    return egl::Error(EGL_SUCCESS);
+    return egl::NoError();
 }
 
 egl::Error PbufferSurfaceCGL::makeCurrent()
 {
-    return egl::Error(EGL_SUCCESS);
+    return egl::NoError();
 }
 
-egl::Error PbufferSurfaceCGL::swap()
+egl::Error PbufferSurfaceCGL::swap(const gl::Context *context)
 {
-    return egl::Error(EGL_SUCCESS);
+    return egl::NoError();
 }
 
-egl::Error PbufferSurfaceCGL::postSubBuffer(EGLint x, EGLint y, EGLint width, EGLint height)
+egl::Error PbufferSurfaceCGL::postSubBuffer(const gl::Context *context,
+                                            EGLint x,
+                                            EGLint y,
+                                            EGLint width,
+                                            EGLint height)
 {
-    return egl::Error(EGL_SUCCESS);
+    return egl::NoError();
 }
 
 egl::Error PbufferSurfaceCGL::querySurfacePointerANGLE(EGLint attribute, void **value)
 {
     UNIMPLEMENTED();
-    return egl::Error(EGL_SUCCESS);
+    return egl::NoError();
 }
 
-egl::Error PbufferSurfaceCGL::bindTexImage(EGLint buffer)
+egl::Error PbufferSurfaceCGL::bindTexImage(gl::Texture *texture, EGLint buffer)
 {
     UNIMPLEMENTED();
-    return egl::Error(EGL_SUCCESS);
+    return egl::NoError();
 }
 
 egl::Error PbufferSurfaceCGL::releaseTexImage(EGLint buffer)
 {
     UNIMPLEMENTED();
-    return egl::Error(EGL_SUCCESS);
+    return egl::NoError();
 }
 
 void PbufferSurfaceCGL::setSwapInterval(EGLint interval)
@@ -132,10 +137,12 @@ EGLint PbufferSurfaceCGL::getSwapBehavior() const
     return EGL_BUFFER_PRESERVED;
 }
 
-FramebufferImpl *PbufferSurfaceCGL::createDefaultFramebuffer(const gl::Framebuffer::Data &data)
+FramebufferImpl *PbufferSurfaceCGL::createDefaultFramebuffer(const gl::FramebufferState &state)
 {
     // TODO(cwallez) assert it happens only once?
-    return new FramebufferGL(mFramebuffer, data, mFunctions, mWorkarounds, mStateManager);
+    return new FramebufferGL(mFramebuffer, state, mFunctions, mRenderer->getWorkarounds(),
+                             mRenderer->getBlitter(), mRenderer->getMultiviewClearer(),
+                             mStateManager);
 }
 
-}
+}  // namespace rx

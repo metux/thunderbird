@@ -9,9 +9,11 @@
 #ifndef LIBANGLE_RENDERER_D3D_FRAMBUFFERD3D_H_
 #define LIBANGLE_RENDERER_D3D_FRAMBUFFERD3D_H_
 
-#include <vector>
 #include <cstdint>
+#include <vector>
 
+#include "common/Color.h"
+#include "common/Optional.h"
 #include "libANGLE/angletypes.h"
 #include "libANGLE/renderer/FramebufferImpl.h"
 
@@ -21,31 +23,30 @@ class FramebufferAttachment;
 struct PixelPackState;
 
 typedef std::vector<const FramebufferAttachment *> AttachmentList;
-
 }
 
 namespace rx
 {
+class RendererD3D;
 class RenderTargetD3D;
-struct WorkaroundsD3D;
 
 struct ClearParameters
 {
     bool clearColor[gl::IMPLEMENTATION_MAX_DRAW_BUFFERS];
-    gl::ColorF colorFClearValue;
-    gl::ColorI colorIClearValue;
-    gl::ColorUI colorUIClearValue;
-    GLenum colorClearType;
+    gl::ColorF colorF;
+    gl::ColorI colorI;
+    gl::ColorUI colorUI;
+    GLenum colorType;
     bool colorMaskRed;
     bool colorMaskGreen;
     bool colorMaskBlue;
     bool colorMaskAlpha;
 
     bool clearDepth;
-    float depthClearValue;
+    float depthValue;
 
     bool clearStencil;
-    GLint stencilClearValue;
+    GLint stencilValue;
     GLuint stencilWriteMask;
 
     bool scissorEnabled;
@@ -55,56 +56,76 @@ struct ClearParameters
 class FramebufferD3D : public FramebufferImpl
 {
   public:
-    FramebufferD3D(const gl::Framebuffer::Data &data);
+    FramebufferD3D(const gl::FramebufferState &data, RendererD3D *renderer);
     virtual ~FramebufferD3D();
 
-    void onUpdateColorAttachment(size_t index) override;
-    void onUpdateDepthAttachment() override;
-    void onUpdateStencilAttachment() override;
-    void onUpdateDepthStencilAttachment() override;
+    gl::Error clear(const gl::Context *context, GLbitfield mask) override;
+    gl::Error clearBufferfv(const gl::Context *context,
+                            GLenum buffer,
+                            GLint drawbuffer,
+                            const GLfloat *values) override;
+    gl::Error clearBufferuiv(const gl::Context *context,
+                             GLenum buffer,
+                             GLint drawbuffer,
+                             const GLuint *values) override;
+    gl::Error clearBufferiv(const gl::Context *context,
+                            GLenum buffer,
+                            GLint drawbuffer,
+                            const GLint *values) override;
+    gl::Error clearBufferfi(const gl::Context *context,
+                            GLenum buffer,
+                            GLint drawbuffer,
+                            GLfloat depth,
+                            GLint stencil) override;
 
-    void setDrawBuffers(size_t count, const GLenum *buffers) override;
-    void setReadBuffer(GLenum buffer) override;
+    GLenum getImplementationColorReadFormat(const gl::Context *context) const override;
+    GLenum getImplementationColorReadType(const gl::Context *context) const override;
+    gl::Error readPixels(const gl::Context *context,
+                         const gl::Rectangle &area,
+                         GLenum format,
+                         GLenum type,
+                         void *pixels) override;
 
-    gl::Error clear(const gl::Data &data, GLbitfield mask) override;
-    gl::Error clearBufferfv(const gl::State &state, GLenum buffer, GLint drawbuffer, const GLfloat *values) override;
-    gl::Error clearBufferuiv(const gl::State &state, GLenum buffer, GLint drawbuffer, const GLuint *values) override;
-    gl::Error clearBufferiv(const gl::State &state, GLenum buffer, GLint drawbuffer, const GLint *values) override;
-    gl::Error clearBufferfi(const gl::State &state, GLenum buffer, GLint drawbuffer, GLfloat depth, GLint stencil) override;
+    gl::Error blit(const gl::Context *context,
+                   const gl::Rectangle &sourceArea,
+                   const gl::Rectangle &destArea,
+                   GLbitfield mask,
+                   GLenum filter) override;
 
-    GLenum getImplementationColorReadFormat() const override;
-    GLenum getImplementationColorReadType() const override;
-    gl::Error readPixels(const gl::State &state, const gl::Rectangle &area, GLenum format, GLenum type, GLvoid *pixels) const override;
+    bool checkStatus() const override;
 
-    gl::Error blit(const gl::State &state, const gl::Rectangle &sourceArea, const gl::Rectangle &destArea,
-                   GLbitfield mask, GLenum filter, const gl::Framebuffer *sourceFramebuffer) override;
+    void syncState(const gl::Context *context,
+                   const gl::Framebuffer::DirtyBits &dirtyBits) override;
 
-    GLenum checkStatus() const override;
-
-    const gl::AttachmentList &getColorAttachmentsForRender(const WorkaroundsD3D &workarounds) const;
-
-  protected:
-    // Cache variable
-    mutable gl::AttachmentList mColorAttachmentsForRender;
-    mutable bool mInvalidateColorAttachmentCache;
+    const gl::AttachmentList &getColorAttachmentsForRender(const gl::Context *context);
 
   private:
-    virtual gl::Error clear(const gl::State &state, const ClearParameters &clearParams) = 0;
+    virtual gl::Error clearImpl(const gl::Context *context, const ClearParameters &clearParams) = 0;
 
-    virtual gl::Error readPixelsImpl(const gl::Rectangle &area,
+    virtual gl::Error readPixelsImpl(const gl::Context *context,
+                                     const gl::Rectangle &area,
                                      GLenum format,
                                      GLenum type,
                                      size_t outputPitch,
                                      const gl::PixelPackState &pack,
-                                     uint8_t *pixels) const = 0;
+                                     uint8_t *pixels) = 0;
 
-    virtual gl::Error blit(const gl::Rectangle &sourceArea, const gl::Rectangle &destArea, const gl::Rectangle *scissor,
-                           bool blitRenderTarget, bool blitDepth, bool blitStencil, GLenum filter,
-                           const gl::Framebuffer *sourceFramebuffer) = 0;
+    virtual gl::Error blitImpl(const gl::Context *context,
+                               const gl::Rectangle &sourceArea,
+                               const gl::Rectangle &destArea,
+                               const gl::Rectangle *scissor,
+                               bool blitRenderTarget,
+                               bool blitDepth,
+                               bool blitStencil,
+                               GLenum filter,
+                               const gl::Framebuffer *sourceFramebuffer) = 0;
 
     virtual GLenum getRenderTargetImplementationFormat(RenderTargetD3D *renderTarget) const = 0;
-};
 
+    RendererD3D *mRenderer;
+    Optional<gl::AttachmentList> mColorAttachmentsForRender;
+    gl::DrawBufferMask mCurrentActiveProgramOutputs;
+};
 }
 
-#endif // LIBANGLE_RENDERER_D3D_FRAMBUFFERD3D_H_
+#endif  // LIBANGLE_RENDERER_D3D_FRAMBUFFERD3D_H_

@@ -24,21 +24,6 @@ protected:
     }
 };
 
-TEST_P(DiscardFramebufferEXTTest, ExtensionEnabled)
-{
-    EGLPlatformParameters platform = GetParam().eglParameters;
-
-    if (platform.renderer == EGL_PLATFORM_ANGLE_TYPE_D3D11_ANGLE)
-    {
-        EXPECT_TRUE(extensionEnabled("EXT_discard_framebuffer"));
-    }
-    else
-    {
-        // Other platforms don't currently implement this extension
-        EXPECT_FALSE(extensionEnabled("EXT_discard_framebuffer"));
-    }
-}
-
 TEST_P(DiscardFramebufferEXTTest, DefaultFramebuffer)
 {
     if (!extensionEnabled("EXT_discard_framebuffer"))
@@ -95,7 +80,8 @@ TEST_P(DiscardFramebufferEXTTest, NonDefaultFramebuffer)
     glGenFramebuffers(1, &framebuffer);
     glBindTexture(GL_TEXTURE_2D, tex2D);
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, getWindowWidth(), getWindowHeight(), 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, getWindowWidth(), getWindowHeight(), 0, GL_RGB,
+                 GL_UNSIGNED_BYTE, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex2D, 0);
@@ -133,4 +119,11 @@ TEST_P(DiscardFramebufferEXTTest, NonDefaultFramebuffer)
 }
 
 // Use this to select which configurations (e.g. which renderer, which GLES major version) these tests should be run against.
-ANGLE_INSTANTIATE_TEST(DiscardFramebufferEXTTest, ES2_D3D9(), ES2_D3D11(), ES2_D3D11_FL9_3(), ES2_OPENGL(), ES3_OPENGL());
+ANGLE_INSTANTIATE_TEST(DiscardFramebufferEXTTest,
+                       ES2_D3D9(),
+                       ES2_D3D11(),
+                       ES2_D3D11_FL9_3(),
+                       ES2_OPENGL(),
+                       ES3_OPENGL(),
+                       ES2_OPENGLES(),
+                       ES3_OPENGLES());

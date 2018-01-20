@@ -13,7 +13,7 @@ using namespace JS;
 namespace xpc {
 
 static bool
-WaiveAccessors(JSContext* cx, JS::MutableHandle<JSPropertyDescriptor> desc)
+WaiveAccessors(JSContext* cx, MutableHandle<PropertyDescriptor> desc)
 {
     if (desc.hasGetterObject() && desc.getterObject()) {
         RootedValue v(cx, JS::ObjectValue(*desc.getterObject()));
@@ -32,18 +32,16 @@ WaiveAccessors(JSContext* cx, JS::MutableHandle<JSPropertyDescriptor> desc)
 }
 
 bool
-WaiveXrayWrapper::getPropertyDescriptor(JSContext* cx, HandleObject wrapper,
-                                        HandleId id, JS::MutableHandle<JSPropertyDescriptor> desc)
-                                        const
+WaiveXrayWrapper::getPropertyDescriptor(JSContext* cx, HandleObject wrapper, HandleId id,
+                                        MutableHandle<PropertyDescriptor> desc) const
 {
     return CrossCompartmentWrapper::getPropertyDescriptor(cx, wrapper, id, desc) &&
            WrapperFactory::WaiveXrayAndWrap(cx, desc.value()) && WaiveAccessors(cx, desc);
 }
 
 bool
-WaiveXrayWrapper::getOwnPropertyDescriptor(JSContext* cx, HandleObject wrapper,
-                                           HandleId id, JS::MutableHandle<JSPropertyDescriptor> desc)
-                                           const
+WaiveXrayWrapper::getOwnPropertyDescriptor(JSContext* cx, HandleObject wrapper, HandleId id,
+                                           MutableHandle<PropertyDescriptor> desc) const
 {
     return CrossCompartmentWrapper::getOwnPropertyDescriptor(cx, wrapper, id, desc) &&
            WrapperFactory::WaiveXrayAndWrap(cx, desc.value()) && WaiveAccessors(cx, desc);
@@ -57,12 +55,15 @@ WaiveXrayWrapper::get(JSContext* cx, HandleObject wrapper, HandleValue receiver,
            WrapperFactory::WaiveXrayAndWrap(cx, vp);
 }
 
-bool
-WaiveXrayWrapper::enumerate(JSContext* cx, HandleObject proxy,
-                            MutableHandleObject objp) const
+JSObject*
+WaiveXrayWrapper::enumerate(JSContext* cx, HandleObject proxy) const
 {
-    return CrossCompartmentWrapper::enumerate(cx, proxy, objp) &&
-           WrapperFactory::WaiveXrayAndWrap(cx, objp);
+    RootedObject obj(cx, CrossCompartmentWrapper::enumerate(cx, proxy));
+    if (!obj)
+        return nullptr;
+    if (!WrapperFactory::WaiveXrayAndWrap(cx, &obj))
+        return nullptr;
+    return obj;
 }
 
 bool
@@ -93,6 +94,14 @@ bool
 WaiveXrayWrapper::getPrototype(JSContext* cx, HandleObject wrapper, MutableHandleObject protop) const
 {
     return CrossCompartmentWrapper::getPrototype(cx, wrapper, protop) &&
+           (!protop || WrapperFactory::WaiveXrayAndWrap(cx, protop));
+}
+
+bool
+WaiveXrayWrapper::getPrototypeIfOrdinary(JSContext* cx, HandleObject wrapper, bool* isOrdinary,
+                                         MutableHandleObject protop) const
+{
+    return CrossCompartmentWrapper::getPrototypeIfOrdinary(cx, wrapper, isOrdinary, protop) &&
            (!protop || WrapperFactory::WaiveXrayAndWrap(cx, protop));
 }
 

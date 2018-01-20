@@ -35,6 +35,7 @@ static char *RCSSTRING __UNUSED__="$Id: stun_client_ctx.c,v 1.2 2008/04/28 18:21
 
 #include <assert.h>
 #include <string.h>
+#include <math.h>
 
 #include <nr_api.h>
 #include "stun.h"
@@ -251,6 +252,9 @@ static void nr_stun_client_timer_expired_cb(NR_SOCKET s, int b, void *cb_arg)
     if (ctx->state != NR_STUN_CLIENT_STATE_RUNNING)
         ABORT(R_NOT_PERMITTED);
 
+    // track retransmits for ice telemetry
+    nr_ice_accumulate_count(&(ctx->retransmit_ct), 1);
+
     /* as a side effect will reset the timer */
     nr_stun_client_send_request(ctx);
 
@@ -384,8 +388,12 @@ static int nr_stun_client_send_request(nr_stun_client_ctx *ctx)
 
     assert(ctx->my_addr.protocol==ctx->peer_addr.protocol);
 
-    if(r=nr_socket_sendto(ctx->sock, ctx->request->buffer, ctx->request->length, 0, &ctx->peer_addr))
-      ABORT(r);
+    if(r=nr_socket_sendto(ctx->sock, ctx->request->buffer, ctx->request->length, 0, &ctx->peer_addr)) {
+      if (r != R_WOULDBLOCK) {
+        ABORT(r);
+      }
+      r_log(NR_LOG_STUN,LOG_WARNING,"STUN-CLIENT(%s): nr_socket_sendto blocked, treating as dropped packet",ctx->label);
+    }
 
     ctx->request_ct++;
 

@@ -4,7 +4,7 @@
 
 "use strict";
 
-const events = require("sdk/event/core");
+const EventEmitter = require("devtools/shared/event-emitter");
 const { getCurrentZoom,
   setIgnoreLayoutChanges } = require("devtools/shared/layout/utils");
 const {
@@ -41,7 +41,7 @@ RulersHighlighter.prototype = {
 
   ID_CLASS_PREFIX: "rulers-highlighter-",
 
-  _buildMarkup: function() {
+  _buildMarkup: function () {
     let { window } = this.env;
     let prefix = this.ID_CLASS_PREFIX;
 
@@ -150,12 +150,10 @@ RulersHighlighter.prototype = {
           } else {
             dGraduations += `M${i} 0 L${i} ${graduationLength} `;
           }
+        } else if (i % 50 === 0) {
+          dMarkers += `M0 ${i} L${graduationLength} ${i}`;
         } else {
-          if (i % 50 === 0) {
-            dMarkers += `M0 ${i} L${graduationLength} ${i}`;
-          } else {
-            dGraduations += `M0 ${i} L${graduationLength} ${i}`;
-          }
+          dGraduations += `M0 ${i} L${graduationLength} ${i}`;
         }
       }
 
@@ -197,18 +195,22 @@ RulersHighlighter.prototype = {
     return container;
   },
 
-  handleEvent: function(event) {
+  handleEvent: function (event) {
     switch (event.type) {
       case "scroll":
         this._onScroll(event);
         break;
       case "pagehide":
-        this.destroy();
+        // If a page hide event is triggered for current window's highlighter, hide the
+        // highlighter.
+        if (event.target.defaultView === this.env.window) {
+          this.destroy();
+        }
         break;
     }
   },
 
-  _onScroll: function(event) {
+  _onScroll: function (event) {
     let prefix = this.ID_CLASS_PREFIX;
     let { scrollX, scrollY } = event.view;
 
@@ -222,7 +224,7 @@ RulersHighlighter.prototype = {
                         .setAttribute("transform", `translate(0, ${-scrollY})`);
   },
 
-  _update: function() {
+  _update: function () {
     let { window } = this.env;
 
     setIgnoreLayoutChanges(true);
@@ -240,13 +242,13 @@ RulersHighlighter.prototype = {
     this._rafID = window.requestAnimationFrame(() => this._update());
   },
 
-  _cancelUpdate: function() {
+  _cancelUpdate: function () {
     if (this._rafID) {
       this.env.window.cancelAnimationFrame(this._rafID);
       this._rafID = 0;
     }
   },
-  updateViewport: function() {
+  updateViewport: function () {
     let { devicePixelRatio } = this.env.window;
 
     // Because `devicePixelRatio` is affected by zoom (see bug 809788),
@@ -263,19 +265,22 @@ RulersHighlighter.prototype = {
       `stroke-width:${strokeWidth};`);
   },
 
-  destroy: function() {
+  destroy: function () {
     this.hide();
 
     let { pageListenerTarget } = this.env;
-    pageListenerTarget.removeEventListener("scroll", this);
-    pageListenerTarget.removeEventListener("pagehide", this);
+
+    if (pageListenerTarget) {
+      pageListenerTarget.removeEventListener("scroll", this);
+      pageListenerTarget.removeEventListener("pagehide", this);
+    }
 
     this.markup.destroy();
 
-    events.emit(this, "destroy");
+    EventEmitter.emit(this, "destroy");
   },
 
-  show: function() {
+  show: function () {
     this.markup.removeAttributeForElement(this.ID_CLASS_PREFIX + "elements",
       "hidden");
 
@@ -284,7 +289,7 @@ RulersHighlighter.prototype = {
     return true;
   },
 
-  hide: function() {
+  hide: function () {
     this.markup.setAttributeForElement(this.ID_CLASS_PREFIX + "elements",
       "hidden", "true");
 

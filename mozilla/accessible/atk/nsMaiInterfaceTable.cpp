@@ -273,7 +273,7 @@ getSelectedColumnsCB(AtkTable *aTable, gint** aSelected)
 {
   *aSelected = nullptr;
 
-  nsAutoTArray<uint32_t, 10> cols;
+  AutoTArray<uint32_t, 10> cols;
   AccessibleWrap* accWrap = GetAccessibleWrap(ATK_OBJECT(aTable));
   if (accWrap) {
     accWrap->AsTable()->SelectedColIndices(&cols);
@@ -300,7 +300,7 @@ getSelectedColumnsCB(AtkTable *aTable, gint** aSelected)
 static gint
 getSelectedRowsCB(AtkTable *aTable, gint **aSelected)
 {
-  nsAutoTArray<uint32_t, 10> rows;
+  AutoTArray<uint32_t, 10> rows;
   AccessibleWrap* accWrap = GetAccessibleWrap(ATK_OBJECT(aTable));
   if (accWrap) {
     accWrap->AsTable()->SelectedRowIndices(&rows);
@@ -327,7 +327,8 @@ isColumnSelectedCB(AtkTable *aTable, gint aColIdx)
   AccessibleWrap* accWrap = GetAccessibleWrap(ATK_OBJECT(aTable));
   if (accWrap) {
     return static_cast<gboolean>(accWrap->AsTable()->IsColSelected(aColIdx));
-  } else if (ProxyAccessible* proxy = GetProxy(ATK_OBJECT(aTable))) {
+  }
+  if (ProxyAccessible* proxy = GetProxy(ATK_OBJECT(aTable))) {
     return static_cast<gboolean>(proxy->TableColumnSelected(aColIdx));
   }
 
@@ -340,7 +341,8 @@ isRowSelectedCB(AtkTable *aTable, gint aRowIdx)
   AccessibleWrap* accWrap = GetAccessibleWrap(ATK_OBJECT(aTable));
   if (accWrap) {
     return static_cast<gboolean>(accWrap->AsTable()->IsRowSelected(aRowIdx));
-  } else if (ProxyAccessible* proxy = GetProxy(ATK_OBJECT(aTable))) {
+  }
+  if (ProxyAccessible* proxy = GetProxy(ATK_OBJECT(aTable))) {
     return static_cast<gboolean>(proxy->TableRowSelected(aRowIdx));
   }
 
@@ -354,7 +356,8 @@ isCellSelectedCB(AtkTable *aTable, gint aRowIdx, gint aColIdx)
   if (accWrap) {
     return static_cast<gboolean>(accWrap->AsTable()->
       IsCellSelected(aRowIdx, aColIdx));
-  } else if (ProxyAccessible* proxy = GetProxy(ATK_OBJECT(aTable))) {
+  }
+  if (ProxyAccessible* proxy = GetProxy(ATK_OBJECT(aTable))) {
     return static_cast<gboolean>(proxy->TableCellSelected(aRowIdx, aColIdx));
   }
 

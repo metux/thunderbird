@@ -42,22 +42,22 @@ UIEvent::UIEvent(EventTarget* aOwner,
   }
   else {
     mEventIsInternal = true;
-    mEvent->time = PR_Now();
+    mEvent->mTime = PR_Now();
   }
-  
+
   // Fill mDetail and mView according to the mEvent (widget-generated
   // event) we've got
   switch(mEvent->mClass) {
     case eUIEventClass:
     {
-      mDetail = mEvent->AsUIEvent()->detail;
+      mDetail = mEvent->AsUIEvent()->mDetail;
       break;
     }
 
     case eScrollPortEventClass:
     {
       InternalScrollPortEvent* scrollEvent = mEvent->AsScrollPortEvent();
-      mDetail = (int32_t)scrollEvent->orient;
+      mDetail = static_cast<int32_t>(scrollEvent->mOrient);
       break;
     }
 
@@ -87,9 +87,10 @@ UIEvent::Constructor(const GlobalObject& aGlobal,
   nsCOMPtr<EventTarget> t = do_QueryInterface(aGlobal.GetAsSupports());
   RefPtr<UIEvent> e = new UIEvent(t, nullptr, nullptr);
   bool trusted = e->Init(t);
-  aRv = e->InitUIEvent(aType, aParam.mBubbles, aParam.mCancelable, aParam.mView,
-                       aParam.mDetail);
+  e->InitUIEvent(aType, aParam.mBubbles, aParam.mCancelable, aParam.mView,
+                 aParam.mDetail);
   e->SetTrusted(trusted);
+  e->SetComposed(aParam.mComposed);
   return e.forget();
 }
 
@@ -99,7 +100,7 @@ NS_IMPL_CYCLE_COLLECTION_INHERITED(UIEvent, Event,
 NS_IMPL_ADDREF_INHERITED(UIEvent, Event)
 NS_IMPL_RELEASE_INHERITED(UIEvent, Event)
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(UIEvent)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(UIEvent)
   NS_INTERFACE_MAP_ENTRY(nsIDOMUIEvent)
 NS_INTERFACE_MAP_END_INHERITING(Event)
 
@@ -114,29 +115,29 @@ DevPixelsToCSSPixels(const LayoutDeviceIntPoint& aPoint,
 nsIntPoint
 UIEvent::GetMovementPoint()
 {
+  if (mEvent->mFlags.mIsPositionless) {
+    return nsIntPoint(0, 0);
+  }
+
   if (mPrivateDataDuplicated || mEventIsInternal) {
     return mMovementPoint;
   }
 
-  if (!mEvent ||
-      (mEvent->mClass != eMouseEventClass &&
-       mEvent->mClass != eMouseScrollEventClass &&
-       mEvent->mClass != eWheelEventClass &&
-       mEvent->mClass != eDragEventClass &&
-       mEvent->mClass != ePointerEventClass &&
-       mEvent->mClass != eSimpleGestureEventClass) ||
-       !mEvent->AsGUIEvent()->widget) {
+  if (!mEvent || !mEvent->AsGUIEvent()->mWidget ||
+      (mEvent->mMessage != eMouseMove && mEvent->mMessage != ePointerMove)) {
+    // Pointer Lock spec defines that movementX/Y must be zero for all mouse
+    // events except mousemove.
     return nsIntPoint(0, 0);
   }
 
   // Calculate the delta between the last screen point and the current one.
-  nsIntPoint current = DevPixelsToCSSPixels(mEvent->refPoint, mPresContext);
-  nsIntPoint last = DevPixelsToCSSPixels(mEvent->lastRefPoint, mPresContext);
+  nsIntPoint current = DevPixelsToCSSPixels(mEvent->mRefPoint, mPresContext);
+  nsIntPoint last = DevPixelsToCSSPixels(mEvent->mLastRefPoint, mPresContext);
   return current - last;
 }
 
 NS_IMETHODIMP
-UIEvent::GetView(nsIDOMWindow** aView)
+UIEvent::GetView(mozIDOMWindowProxy** aView)
 {
   *aView = mView;
   NS_IF_ADDREF(*aView);
@@ -150,20 +151,31 @@ UIEvent::GetDetail(int32_t* aDetail)
   return NS_OK;
 }
 
+void
+UIEvent::InitUIEvent(const nsAString& typeArg,
+                     bool canBubbleArg,
+                     bool cancelableArg,
+                     nsGlobalWindowInner* viewArg,
+                     int32_t detailArg)
+{
+  auto* view = viewArg ? viewArg->AsInner() : nullptr;
+  InitUIEvent(typeArg, canBubbleArg, cancelableArg, view, detailArg);
+}
+
 NS_IMETHODIMP
 UIEvent::InitUIEvent(const nsAString& typeArg,
                      bool canBubbleArg,
                      bool cancelableArg,
-                     nsIDOMWindow* viewArg,
+                     mozIDOMWindow* viewArg,
                      int32_t detailArg)
 {
-  if (viewArg) {
-    nsCOMPtr<nsPIDOMWindow> view = do_QueryInterface(viewArg);
-    NS_ENSURE_TRUE(view, NS_ERROR_INVALID_ARG);
-  }
+  NS_ENSURE_TRUE(!mEvent->mFlags.mIsBeingDispatched, NS_OK);
+
   Event::InitEvent(typeArg, canBubbleArg, cancelableArg);
+
   mDetail = detailArg;
-  mView = viewArg;
+  mView = viewArg ? nsPIDOMWindowInner::From(viewArg)->GetOuterWindow() :
+                    nullptr;
 
   return NS_OK;
 }
@@ -179,11 +191,15 @@ UIEvent::GetPageX(int32_t* aPageX)
 int32_t
 UIEvent::PageX() const
 {
+  if (mEvent->mFlags.mIsPositionless) {
+    return 0;
+  }
+
   if (mPrivateDataDuplicated) {
     return mPagePoint.x;
   }
 
-  return Event::GetPageCoords(mPresContext, mEvent, mEvent->refPoint,
+  return Event::GetPageCoords(mPresContext, mEvent, mEvent->mRefPoint,
                               mClientPoint).x;
 }
 
@@ -198,11 +214,15 @@ UIEvent::GetPageY(int32_t* aPageY)
 int32_t
 UIEvent::PageY() const
 {
+  if (mEvent->mFlags.mIsPositionless) {
+    return 0;
+  }
+
   if (mPrivateDataDuplicated) {
     return mPagePoint.y;
   }
 
-  return Event::GetPageCoords(mPresContext, mEvent, mEvent->refPoint,
+  return Event::GetPageCoords(mPresContext, mEvent, mEvent->mRefPoint,
                               mClientPoint).y;
 }
 
@@ -220,7 +240,11 @@ UIEvent::GetRangeParent()
   nsIFrame* targetFrame = nullptr;
 
   if (mPresContext) {
-    targetFrame = mPresContext->EventStateManager()->GetEventTarget();
+    nsCOMPtr<nsIPresShell> shell = mPresContext->GetPresShell();
+    if (shell) {
+      shell->FlushPendingNotifications(FlushType::Layout);
+      targetFrame = mPresContext->EventStateManager()->GetEventTarget();
+    }
   }
 
   if (targetFrame) {
@@ -266,6 +290,13 @@ UIEvent::RangeOffset() const
     return 0;
   }
 
+  nsCOMPtr<nsIPresShell> shell = mPresContext->GetPresShell();
+  if (!shell) {
+    return 0;
+  }
+
+  shell->FlushPendingNotifications(FlushType::Layout);
+
   nsIFrame* targetFrame = mPresContext->EventStateManager()->GetEventTarget();
   if (!targetFrame) {
     return 0;
@@ -276,24 +307,13 @@ UIEvent::RangeOffset() const
   return targetFrame->GetContentOffsetsFromPoint(pt).offset;
 }
 
-NS_IMETHODIMP
-UIEvent::GetCancelBubble(bool* aCancelBubble)
-{
-  NS_ENSURE_ARG_POINTER(aCancelBubble);
-  *aCancelBubble = CancelBubble();
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-UIEvent::SetCancelBubble(bool aCancelBubble)
-{
-  mEvent->mFlags.mPropagationStopped = aCancelBubble;
-  return NS_OK;
-}
-
 nsIntPoint
 UIEvent::GetLayerPoint() const
 {
+  if (mEvent->mFlags.mIsPositionless) {
+    return nsIntPoint(0, 0);
+  }
+
   if (!mEvent ||
       (mEvent->mClass != eMouseEventClass &&
        mEvent->mClass != eMouseScrollEventClass &&
@@ -332,38 +352,30 @@ UIEvent::GetLayerY(int32_t* aLayerY)
   return NS_OK;
 }
 
-NS_IMETHODIMP
-UIEvent::GetIsChar(bool* aIsChar)
+mozilla::dom::Event*
+UIEvent::AsEvent(void)
 {
-  *aIsChar = IsChar();
-  return NS_OK;
-}
-
-bool
-UIEvent::IsChar() const
-{
-  WidgetKeyboardEvent* keyEvent = mEvent->AsKeyboardEvent();
-  return keyEvent ? keyEvent->isChar : false;
+  return this;
 }
 
 NS_IMETHODIMP
 UIEvent::DuplicatePrivateData()
 {
   mClientPoint =
-    Event::GetClientCoords(mPresContext, mEvent, mEvent->refPoint,
+    Event::GetClientCoords(mPresContext, mEvent, mEvent->mRefPoint,
                            mClientPoint);
   mMovementPoint = GetMovementPoint();
   mLayerPoint = GetLayerPoint();
   mPagePoint =
-    Event::GetPageCoords(mPresContext, mEvent, mEvent->refPoint, mClientPoint);
-  // GetScreenPoint converts mEvent->refPoint to right coordinates.
+    Event::GetPageCoords(mPresContext, mEvent, mEvent->mRefPoint, mClientPoint);
+  // GetScreenPoint converts mEvent->mRefPoint to right coordinates.
   CSSIntPoint screenPoint =
-    Event::GetScreenCoords(mPresContext, mEvent, mEvent->refPoint);
+    Event::GetScreenCoords(mPresContext, mEvent, mEvent->mRefPoint);
   nsresult rv = Event::DuplicatePrivateData();
   if (NS_SUCCEEDED(rv)) {
     CSSToLayoutDeviceScale scale = mPresContext ? mPresContext->CSSToDevPixelScale()
                                                 : CSSToLayoutDeviceScale(1);
-    mEvent->refPoint = RoundedToInt(screenPoint * scale);
+    mEvent->mRefPoint = RoundedToInt(screenPoint * scale);
   }
   return rv;
 }
@@ -383,7 +395,7 @@ UIEvent::Serialize(IPC::Message* aMsg, bool aSerializeInterfaceType)
 }
 
 NS_IMETHODIMP_(bool)
-UIEvent::Deserialize(const IPC::Message* aMsg, void** aIter)
+UIEvent::Deserialize(const IPC::Message* aMsg, PickleIterator* aIter)
 {
   NS_ENSURE_TRUE(Event::Deserialize(aMsg, aIter), false);
   NS_ENSURE_TRUE(IPC::ReadParam(aMsg, aIter, &mDetail), false);
@@ -453,7 +465,7 @@ UIEvent::GetModifierStateInternal(const nsAString& aKey)
 {
   WidgetInputEvent* inputEvent = mEvent->AsInputEvent();
   MOZ_ASSERT(inputEvent, "mEvent must be WidgetInputEvent or derived class");
-  return ((inputEvent->modifiers & WidgetInputEvent::GetModifier(aKey)) != 0);
+  return ((inputEvent->mModifiers & WidgetInputEvent::GetModifier(aKey)) != 0);
 }
 
 void
@@ -469,11 +481,11 @@ UIEvent::InitModifiers(const EventModifierInit& aParam)
     return;
   }
 
-  inputEvent->modifiers = MODIFIER_NONE;
+  inputEvent->mModifiers = MODIFIER_NONE;
 
 #define SET_MODIFIER(aName, aValue) \
   if (aParam.m##aName) { \
-    inputEvent->modifiers |= aValue; \
+    inputEvent->mModifiers |= aValue; \
   } \
 
   SET_MODIFIER(CtrlKey,                 MODIFIER_CONTROL)
@@ -502,7 +514,7 @@ using namespace mozilla::dom;
 already_AddRefed<UIEvent>
 NS_NewDOMUIEvent(EventTarget* aOwner,
                  nsPresContext* aPresContext,
-                 WidgetGUIEvent* aEvent) 
+                 WidgetGUIEvent* aEvent)
 {
   RefPtr<UIEvent> it = new UIEvent(aOwner, aPresContext, aEvent);
   return it.forget();

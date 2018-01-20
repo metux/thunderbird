@@ -10,6 +10,8 @@
 #include "DocAccessible.h"
 #include "Filters.h"
 
+#include <memory>
+
 class nsITreeView;
 
 namespace mozilla {
@@ -26,7 +28,7 @@ public:
 
 private:
   friend class Relation;
-  nsAutoPtr<AccIterable> mNextIter;
+  std::unique_ptr<AccIterable> mNextIter;
 };
 
 /**
@@ -82,7 +84,7 @@ public:
    *                           pointed by
    */
   RelatedAccIterator(DocAccessible* aDocument, nsIContent* aDependentContent,
-                     nsIAtom* aRelAttr);
+                     nsAtom* aRelAttr);
 
   virtual ~RelatedAccIterator() { }
 
@@ -97,7 +99,7 @@ private:
   RelatedAccIterator& operator = (const RelatedAccIterator&);
 
   DocAccessible* mDocument;
-  nsIAtom* mRelAttr;
+  nsAtom* mRelAttr;
   DocAccessible::AttrRelProviderArray* mProviders;
   nsIContent* mBindingParent;
   uint32_t mIndex;
@@ -217,7 +219,7 @@ class IDRefsIterator : public AccIterable
 {
 public:
   IDRefsIterator(DocAccessible* aDoc, nsIContent* aContent,
-                 nsIAtom* aIDRefsAttr);
+                 nsAtom* aIDRefsAttr);
   virtual ~IDRefsIterator() { }
 
   /**

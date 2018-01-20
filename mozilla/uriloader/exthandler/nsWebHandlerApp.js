@@ -11,7 +11,8 @@ const Cc = Components.classes;
 const Cu = Components.utils;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/NetUtil.jsm");
+Cu.import('resource://gre/modules/Services.jsm');
 
 ////////////////////////////////////////////////////////////////////////////////
 //// nsWebHandler class
@@ -76,7 +77,7 @@ nsWebHandlerApp.prototype = {
     var uriSpecToSend = this.uriTemplate.replace("%s", escapedUriSpecToHandle);
     var ioService = Cc["@mozilla.org/network/io-service;1"].
                     getService(Ci.nsIIOService);
-    var uriToSend = ioService.newURI(uriSpecToSend, null, null);
+    var uriToSend = ioService.newURI(uriSpecToSend);
     
     // if we have a window context, use the URI loader to load there
     if (aWindowContext) {
@@ -86,7 +87,7 @@ nsWebHandlerApp.prototype = {
         // If aWindowContext refers to a remote docshell, send the load
         // request to the correct process.
         aWindowContext.getInterface(Ci.nsIRemoteWindowContext)
-                      .openURI(uriToSend, Ci.nsIURILoader.IS_CONTENT_PREFERRED);
+                      .openURI(uriToSend);
         return;
       } catch (e) {
         if (e.result != Cr.NS_NOINTERFACE) {
@@ -95,12 +96,10 @@ nsWebHandlerApp.prototype = {
       }
 
       // create a channel from this URI
-      var channel = ioService.newChannelFromURI2(uriToSend,
-                                                 null,      // aLoadingNode
-                                                 Services.scriptSecurityManager.getSystemPrincipal(),
-                                                 null,      // aTriggeringPrincipal
-                                                 Ci.nsILoadInfo.SEC_NORMAL,
-                                                 Ci.nsIContentPolicy.TYPE_OTHER);
+      var channel = NetUtil.newChannel({
+        uri: uriToSend,
+        loadUsingSystemPrincipal: true
+      });
       channel.loadFlags = Ci.nsIChannel.LOAD_DOCUMENT_URI;
 
       // load the channel
@@ -143,9 +142,10 @@ nsWebHandlerApp.prototype = {
 
     // openURI
     browserDOMWin.openURI(uriToSend,
-                          null, // no window.opener 
+                          null, // no window.opener
                           Ci.nsIBrowserDOMWindow.OPEN_DEFAULTWINDOW,
-                          Ci.nsIBrowserDOMWindow.OPEN_NEW);
+                          Ci.nsIBrowserDOMWindow.OPEN_NEW,
+                          Services.scriptSecurityManager.getSystemPrincipal());
       
     return;
   },

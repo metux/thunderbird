@@ -3,12 +3,16 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 "use strict";
 
-const { reportException, assert } = require("devtools/shared/DevToolsUtils");
-const { snapshotState: states, actions } = require("../constants");
-const { immutableUpdate, L10N, openFilePicker, createSnapshot } = require("../utils");
-const { readSnapshot, takeCensus, selectSnapshot } = require("./snapshot");
+const { immutableUpdate, reportException, assert } = require("devtools/shared/DevToolsUtils");
+const { snapshotState: states, actions} = require("../constants");
+const { L10N, openFilePicker, createSnapshot } = require("../utils");
 const { OS } = require("resource://gre/modules/osfile.jsm");
-const VALID_EXPORT_STATES = [states.SAVED, states.READ, states.SAVING_CENSUS, states.SAVED_CENSUS];
+const {
+  selectSnapshot,
+  computeSnapshotData,
+  readSnapshot
+} = require("./snapshot");
+const VALID_EXPORT_STATES = [states.SAVED, states.READ];
 
 exports.pickFileAndExportSnapshot = function (snapshot) {
   return function* (dispatch, getState) {
@@ -29,7 +33,6 @@ exports.pickFileAndExportSnapshot = function (snapshot) {
 
 const exportSnapshot = exports.exportSnapshot = function (snapshot, dest) {
   return function* (dispatch, getState) {
-
     dispatch({ type: actions.EXPORT_SNAPSHOT_START, snapshot });
 
     assert(VALID_EXPORT_STATES.includes(snapshot.state),
@@ -46,7 +49,7 @@ const exportSnapshot = exports.exportSnapshot = function (snapshot, dest) {
   };
 };
 
-const pickFileAndImportSnapshotAndCensus = exports.pickFileAndImportSnapshotAndCensus = function (heapWorker) {
+exports.pickFileAndImportSnapshotAndCensus = function (heapWorker) {
   return function* (dispatch, getState) {
     let input = yield openFilePicker({
       title: L10N.getFormatStr("snapshot.io.import.window"),
@@ -62,9 +65,9 @@ const pickFileAndImportSnapshotAndCensus = exports.pickFileAndImportSnapshotAndC
   };
 };
 
-const importSnapshotAndCensus = exports.importSnapshotAndCensus = function (heapWorker, path) {
+const importSnapshotAndCensus = function (heapWorker, path) {
   return function* (dispatch, getState) {
-    const snapshot = immutableUpdate(createSnapshot(), {
+    const snapshot = immutableUpdate(createSnapshot(getState()), {
       path,
       state: states.IMPORTING,
       imported: true,
@@ -76,7 +79,7 @@ const importSnapshotAndCensus = exports.importSnapshotAndCensus = function (heap
 
     try {
       yield dispatch(readSnapshot(heapWorker, id));
-      yield dispatch(takeCensus(heapWorker, id));
+      yield dispatch(computeSnapshotData(heapWorker, id));
     } catch (error) {
       reportException("importSnapshot", error);
       dispatch({ type: actions.IMPORT_SNAPSHOT_ERROR, error, id });
@@ -85,3 +88,4 @@ const importSnapshotAndCensus = exports.importSnapshotAndCensus = function (heap
     dispatch({ type: actions.IMPORT_SNAPSHOT_END, id });
   };
 };
+exports.importSnapshotAndCensus = importSnapshotAndCensus;

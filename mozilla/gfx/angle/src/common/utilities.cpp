@@ -124,24 +124,42 @@ GLenum VariableComponentType(GLenum type)
         return GL_FLOAT;
       case GL_INT:
       case GL_SAMPLER_2D:
+      case GL_SAMPLER_2D_RECT_ANGLE:
       case GL_SAMPLER_3D:
       case GL_SAMPLER_CUBE:
       case GL_SAMPLER_2D_ARRAY:
+      case GL_SAMPLER_EXTERNAL_OES:
+      case GL_SAMPLER_2D_MULTISAMPLE:
       case GL_INT_SAMPLER_2D:
       case GL_INT_SAMPLER_3D:
       case GL_INT_SAMPLER_CUBE:
       case GL_INT_SAMPLER_2D_ARRAY:
+      case GL_INT_SAMPLER_2D_MULTISAMPLE:
       case GL_UNSIGNED_INT_SAMPLER_2D:
       case GL_UNSIGNED_INT_SAMPLER_3D:
       case GL_UNSIGNED_INT_SAMPLER_CUBE:
       case GL_UNSIGNED_INT_SAMPLER_2D_ARRAY:
+      case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE:
       case GL_SAMPLER_2D_SHADOW:
       case GL_SAMPLER_CUBE_SHADOW:
       case GL_SAMPLER_2D_ARRAY_SHADOW:
       case GL_INT_VEC2:
       case GL_INT_VEC3:
       case GL_INT_VEC4:
-        return GL_INT;
+      case GL_IMAGE_2D:
+      case GL_INT_IMAGE_2D:
+      case GL_UNSIGNED_INT_IMAGE_2D:
+      case GL_IMAGE_3D:
+      case GL_INT_IMAGE_3D:
+      case GL_UNSIGNED_INT_IMAGE_3D:
+      case GL_IMAGE_2D_ARRAY:
+      case GL_INT_IMAGE_2D_ARRAY:
+      case GL_UNSIGNED_INT_IMAGE_2D_ARRAY:
+      case GL_IMAGE_CUBE:
+      case GL_INT_IMAGE_CUBE:
+      case GL_UNSIGNED_INT_IMAGE_CUBE:
+      case GL_UNSIGNED_INT_ATOMIC_COUNTER:
+          return GL_INT;
       case GL_UNSIGNED_INT:
       case GL_UNSIGNED_INT_VEC2:
       case GL_UNSIGNED_INT_VEC3:
@@ -211,7 +229,6 @@ int VariableRowCount(GLenum type)
     switch (type)
     {
       case GL_NONE:
-      case GL_STRUCT_ANGLEX:
         return 0;
       case GL_BOOL:
       case GL_FLOAT:
@@ -234,19 +251,35 @@ int VariableRowCount(GLenum type)
       case GL_SAMPLER_CUBE:
       case GL_SAMPLER_2D_ARRAY:
       case GL_SAMPLER_EXTERNAL_OES:
-      case GL_SAMPLER_2D_RECT_ARB:
+      case GL_SAMPLER_2D_RECT_ANGLE:
+      case GL_SAMPLER_2D_MULTISAMPLE:
       case GL_INT_SAMPLER_2D:
       case GL_INT_SAMPLER_3D:
       case GL_INT_SAMPLER_CUBE:
       case GL_INT_SAMPLER_2D_ARRAY:
+      case GL_INT_SAMPLER_2D_MULTISAMPLE:
       case GL_UNSIGNED_INT_SAMPLER_2D:
       case GL_UNSIGNED_INT_SAMPLER_3D:
       case GL_UNSIGNED_INT_SAMPLER_CUBE:
       case GL_UNSIGNED_INT_SAMPLER_2D_ARRAY:
+      case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE:
       case GL_SAMPLER_2D_SHADOW:
       case GL_SAMPLER_CUBE_SHADOW:
       case GL_SAMPLER_2D_ARRAY_SHADOW:
-        return 1;
+      case GL_IMAGE_2D:
+      case GL_INT_IMAGE_2D:
+      case GL_UNSIGNED_INT_IMAGE_2D:
+      case GL_IMAGE_2D_ARRAY:
+      case GL_INT_IMAGE_2D_ARRAY:
+      case GL_UNSIGNED_INT_IMAGE_2D_ARRAY:
+      case GL_IMAGE_3D:
+      case GL_INT_IMAGE_3D:
+      case GL_UNSIGNED_INT_IMAGE_3D:
+      case GL_IMAGE_CUBE:
+      case GL_INT_IMAGE_CUBE:
+      case GL_UNSIGNED_INT_IMAGE_CUBE:
+      case GL_UNSIGNED_INT_ATOMIC_COUNTER:
+          return 1;
       case GL_FLOAT_MAT2:
       case GL_FLOAT_MAT3x2:
       case GL_FLOAT_MAT4x2:
@@ -271,7 +304,6 @@ int VariableColumnCount(GLenum type)
     switch (type)
     {
       case GL_NONE:
-      case GL_STRUCT_ANGLEX:
         return 0;
       case GL_BOOL:
       case GL_FLOAT:
@@ -281,20 +313,36 @@ int VariableColumnCount(GLenum type)
       case GL_SAMPLER_3D:
       case GL_SAMPLER_CUBE:
       case GL_SAMPLER_2D_ARRAY:
+      case GL_SAMPLER_2D_MULTISAMPLE:
       case GL_INT_SAMPLER_2D:
       case GL_INT_SAMPLER_3D:
       case GL_INT_SAMPLER_CUBE:
       case GL_INT_SAMPLER_2D_ARRAY:
+      case GL_INT_SAMPLER_2D_MULTISAMPLE:
       case GL_SAMPLER_EXTERNAL_OES:
-      case GL_SAMPLER_2D_RECT_ARB:
+      case GL_SAMPLER_2D_RECT_ANGLE:
       case GL_UNSIGNED_INT_SAMPLER_2D:
       case GL_UNSIGNED_INT_SAMPLER_3D:
       case GL_UNSIGNED_INT_SAMPLER_CUBE:
       case GL_UNSIGNED_INT_SAMPLER_2D_ARRAY:
+      case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE:
       case GL_SAMPLER_2D_SHADOW:
       case GL_SAMPLER_CUBE_SHADOW:
       case GL_SAMPLER_2D_ARRAY_SHADOW:
-        return 1;
+      case GL_IMAGE_2D:
+      case GL_INT_IMAGE_2D:
+      case GL_UNSIGNED_INT_IMAGE_2D:
+      case GL_IMAGE_3D:
+      case GL_INT_IMAGE_3D:
+      case GL_UNSIGNED_INT_IMAGE_3D:
+      case GL_IMAGE_2D_ARRAY:
+      case GL_INT_IMAGE_2D_ARRAY:
+      case GL_UNSIGNED_INT_IMAGE_2D_ARRAY:
+      case GL_IMAGE_CUBE:
+      case GL_INT_IMAGE_CUBE:
+      case GL_UNSIGNED_INT_IMAGE_CUBE:
+      case GL_UNSIGNED_INT_ATOMIC_COUNTER:
+          return 1;
       case GL_BOOL_VEC2:
       case GL_FLOAT_VEC2:
       case GL_INT_VEC2:
@@ -334,14 +382,19 @@ bool IsSamplerType(GLenum type)
       case GL_SAMPLER_3D:
       case GL_SAMPLER_CUBE:
       case GL_SAMPLER_2D_ARRAY:
+      case GL_SAMPLER_EXTERNAL_OES:
+      case GL_SAMPLER_2D_MULTISAMPLE:
+      case GL_SAMPLER_2D_RECT_ANGLE:
       case GL_INT_SAMPLER_2D:
       case GL_INT_SAMPLER_3D:
       case GL_INT_SAMPLER_CUBE:
       case GL_INT_SAMPLER_2D_ARRAY:
+      case GL_INT_SAMPLER_2D_MULTISAMPLE:
       case GL_UNSIGNED_INT_SAMPLER_2D:
       case GL_UNSIGNED_INT_SAMPLER_3D:
       case GL_UNSIGNED_INT_SAMPLER_CUBE:
       case GL_UNSIGNED_INT_SAMPLER_2D_ARRAY:
+      case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE:
       case GL_SAMPLER_2D_SHADOW:
       case GL_SAMPLER_CUBE_SHADOW:
       case GL_SAMPLER_2D_ARRAY_SHADOW:
@@ -349,6 +402,38 @@ bool IsSamplerType(GLenum type)
     }
 
     return false;
+}
+
+bool IsImageType(GLenum type)
+{
+    switch (type)
+    {
+        case GL_IMAGE_2D:
+        case GL_INT_IMAGE_2D:
+        case GL_UNSIGNED_INT_IMAGE_2D:
+        case GL_IMAGE_3D:
+        case GL_INT_IMAGE_3D:
+        case GL_UNSIGNED_INT_IMAGE_3D:
+        case GL_IMAGE_2D_ARRAY:
+        case GL_INT_IMAGE_2D_ARRAY:
+        case GL_UNSIGNED_INT_IMAGE_2D_ARRAY:
+        case GL_IMAGE_CUBE:
+        case GL_INT_IMAGE_CUBE:
+        case GL_UNSIGNED_INT_IMAGE_CUBE:
+            return true;
+    }
+    return false;
+}
+
+bool IsAtomicCounterType(GLenum type)
+{
+    return type == GL_UNSIGNED_INT_ATOMIC_COUNTER;
+}
+
+bool IsOpaqueType(GLenum type)
+{
+    // ESSL 3.10 section 4.1.7 defines opaque types as: samplers, images and atomic counters.
+    return IsImageType(type) || IsSamplerType(type) || IsAtomicCounterType(type);
 }
 
 GLenum SamplerTypeToTextureType(GLenum samplerType)
@@ -360,6 +445,9 @@ GLenum SamplerTypeToTextureType(GLenum samplerType)
       case GL_UNSIGNED_INT_SAMPLER_2D:
       case GL_SAMPLER_2D_SHADOW:
         return GL_TEXTURE_2D;
+
+      case GL_SAMPLER_EXTERNAL_OES:
+          return GL_TEXTURE_EXTERNAL_OES;
 
       case GL_SAMPLER_CUBE:
       case GL_INT_SAMPLER_CUBE:
@@ -377,6 +465,14 @@ GLenum SamplerTypeToTextureType(GLenum samplerType)
       case GL_INT_SAMPLER_3D:
       case GL_UNSIGNED_INT_SAMPLER_3D:
         return GL_TEXTURE_3D;
+
+      case GL_SAMPLER_2D_MULTISAMPLE:
+      case GL_INT_SAMPLER_2D_MULTISAMPLE:
+      case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE:
+          return GL_TEXTURE_2D_MULTISAMPLE;
+
+      case GL_SAMPLER_2D_RECT_ANGLE:
+          return GL_TEXTURE_RECTANGLE_ANGLE;
 
       default:
         UNREACHABLE();
@@ -531,6 +627,21 @@ bool IsTriangleMode(GLenum drawMode)
     return false;
 }
 
+bool IsIntegerFormat(GLenum unsizedFormat)
+{
+    switch (unsizedFormat)
+    {
+        case GL_RGBA_INTEGER:
+        case GL_RGB_INTEGER:
+        case GL_RG_INTEGER:
+        case GL_RED_INTEGER:
+            return true;
+
+        default:
+            return false;
+    }
+}
+
 // [OpenGL ES SL 3.00.4] Section 11 p. 120
 // Vertex Outs/Fragment Ins packing priorities
 int VariableSortOrder(GLenum type)
@@ -586,21 +697,37 @@ int VariableSortOrder(GLenum type)
       case GL_SAMPLER_2D:
       case GL_SAMPLER_CUBE:
       case GL_SAMPLER_EXTERNAL_OES:
-      case GL_SAMPLER_2D_RECT_ARB:
+      case GL_SAMPLER_2D_RECT_ANGLE:
       case GL_SAMPLER_2D_ARRAY:
+      case GL_SAMPLER_2D_MULTISAMPLE:
       case GL_SAMPLER_3D:
       case GL_INT_SAMPLER_2D:
       case GL_INT_SAMPLER_3D:
       case GL_INT_SAMPLER_CUBE:
       case GL_INT_SAMPLER_2D_ARRAY:
+      case GL_INT_SAMPLER_2D_MULTISAMPLE:
       case GL_UNSIGNED_INT_SAMPLER_2D:
       case GL_UNSIGNED_INT_SAMPLER_3D:
       case GL_UNSIGNED_INT_SAMPLER_CUBE:
       case GL_UNSIGNED_INT_SAMPLER_2D_ARRAY:
+      case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE:
       case GL_SAMPLER_2D_SHADOW:
       case GL_SAMPLER_2D_ARRAY_SHADOW:
       case GL_SAMPLER_CUBE_SHADOW:
-        return 6;
+      case GL_IMAGE_2D:
+      case GL_INT_IMAGE_2D:
+      case GL_UNSIGNED_INT_IMAGE_2D:
+      case GL_IMAGE_3D:
+      case GL_INT_IMAGE_3D:
+      case GL_UNSIGNED_INT_IMAGE_3D:
+      case GL_IMAGE_2D_ARRAY:
+      case GL_INT_IMAGE_2D_ARRAY:
+      case GL_UNSIGNED_INT_IMAGE_2D_ARRAY:
+      case GL_IMAGE_CUBE:
+      case GL_INT_IMAGE_CUBE:
+      case GL_UNSIGNED_INT_IMAGE_CUBE:
+      case GL_UNSIGNED_INT_ATOMIC_COUNTER:
+          return 6;
 
       default:
         UNREACHABLE();
@@ -608,7 +735,7 @@ int VariableSortOrder(GLenum type)
     }
 }
 
-std::string ParseUniformName(const std::string &name, size_t *outSubscript)
+std::string ParseResourceName(const std::string &name, size_t *outSubscript)
 {
     // Strip any trailing array operator and retrieve the subscript
     size_t open = name.find_last_of('[');
@@ -637,6 +764,43 @@ std::string ParseUniformName(const std::string &name, size_t *outSubscript)
     }
 
     return name.substr(0, open);
+}
+
+template <>
+GLuint ConvertToGLuint(GLfloat param)
+{
+    return uiround<GLuint>(param);
+}
+
+template <>
+GLint ConvertToGLint(uint32_t param)
+{
+    uint32_t max = static_cast<uint32_t>(std::numeric_limits<GLint>::max());
+    return static_cast<GLint>(param >= max ? max : param);
+}
+
+template <>
+GLint ConvertToGLint(uint64_t param)
+{
+    uint64_t max = static_cast<uint64_t>(std::numeric_limits<GLint>::max());
+    return static_cast<GLint>(param >= max ? max : param);
+}
+
+template <>
+GLint ConvertToGLint(GLfloat param)
+{
+    return iround<GLint>(param);
+}
+
+template <>
+GLint ConvertFromGLfloat(GLfloat param)
+{
+    return iround<GLint>(param);
+}
+template <>
+GLuint ConvertFromGLfloat(GLfloat param)
+{
+    return uiround<GLuint>(param);
 }
 
 unsigned int ParseAndStripArrayIndex(std::string *name)
@@ -710,7 +874,7 @@ bool IsRenderbufferTarget(EGLenum target)
 {
     return target == EGL_GL_RENDERBUFFER_KHR;
 }
-}
+}  // namespace egl
 
 namespace egl_gl
 {
@@ -748,7 +912,26 @@ GLuint EGLClientBufferToGLObjectHandle(EGLClientBuffer buffer)
 {
     return static_cast<GLuint>(reinterpret_cast<uintptr_t>(buffer));
 }
+}  // namespace egl_gl
+
+namespace gl_egl
+{
+EGLenum GLComponentTypeToEGLColorComponentType(GLenum glComponentType)
+{
+    switch (glComponentType)
+    {
+        case GL_FLOAT:
+            return EGL_COLOR_COMPONENT_TYPE_FLOAT_EXT;
+
+        case GL_UNSIGNED_NORMALIZED:
+            return EGL_COLOR_COMPONENT_TYPE_FIXED_EXT;
+
+        default:
+            UNREACHABLE();
+            return EGL_NONE;
+    }
 }
+}  // namespace gl_egl
 
 #if !defined(ANGLE_ENABLE_WINDOWS_STORE)
 std::string getTempPath()

@@ -15,7 +15,7 @@
 #include "mozilla/dom/NodeInfoInlines.h"
 #include "nsCOMPtr.h"
 #include "nsString.h"
-#include "nsIAtom.h"
+#include "nsAtom.h"
 #include "nsIDocument.h"
 #include "nsIPrincipal.h"
 #include "nsIURI.h"
@@ -29,7 +29,7 @@
 #include "nsCCUncollectableMarker.h"
 #include "nsNameSpaceManager.h"
 #include "nsDocument.h"
-#include "nsNullPrincipal.h"
+#include "NullPrincipal.h"
 
 using namespace mozilla;
 using mozilla::dom::NodeInfo;
@@ -43,9 +43,14 @@ nsNodeInfoManager::GetNodeInfoInnerHashValue(const void *key)
 {
   MOZ_ASSERT(key, "Null key passed to NodeInfo::GetHashValue!");
 
-  auto *node = reinterpret_cast<const NodeInfo::NodeInfoInner*>(key);
+  auto *node = const_cast<NodeInfo::NodeInfoInner*>
+    (reinterpret_cast<const NodeInfo::NodeInfoInner*>(key));
+  if (!node->mHashInitialized) {
+    node->mHash = node->mName ? node->mName->hash() : HashString(*(node->mNameString));
+    node->mHashInitialized = true;
+  }
 
-  return node->mName ? node->mName->hash() : HashString(*(node->mNameString));
+  return node->mHash;
 }
 
 
@@ -111,7 +116,10 @@ nsNodeInfoManager::nsNodeInfoManager()
     mNonDocumentNodeInfos(0),
     mTextNodeInfo(nullptr),
     mCommentNodeInfo(nullptr),
-    mDocumentNodeInfo(nullptr)
+    mDocumentNodeInfo(nullptr),
+    mRecentlyUsedNodeInfos{},
+    mSVGEnabled(eTriUnset),
+    mMathMLEnabled(eTriUnset)
 {
   nsLayoutStatics::AddRef();
 
@@ -181,8 +189,7 @@ nsNodeInfoManager::Init(nsIDocument *aDocument)
   NS_PRECONDITION(!mPrincipal,
                   "Being inited when we already have a principal?");
 
-  mPrincipal = nsNullPrincipal::Create();
-  NS_ENSURE_TRUE(mPrincipal, NS_ERROR_FAILURE);
+  mPrincipal = NullPrincipal::Create();
 
   if (aDocument) {
     mBindingManager = new nsBindingManager(aDocument);
@@ -223,20 +230,28 @@ nsNodeInfoManager::DropDocumentReference()
 
 
 already_AddRefed<mozilla::dom::NodeInfo>
-nsNodeInfoManager::GetNodeInfo(nsIAtom *aName, nsIAtom *aPrefix,
+nsNodeInfoManager::GetNodeInfo(nsAtom *aName, nsAtom *aPrefix,
                                int32_t aNamespaceID, uint16_t aNodeType,
-                               nsIAtom* aExtraName /* = nullptr */)
+                               nsAtom* aExtraName /* = nullptr */)
 {
   CheckValidNodeInfo(aNodeType, aName, aNamespaceID, aExtraName);
 
   NodeInfo::NodeInfoInner tmpKey(aName, aPrefix, aNamespaceID, aNodeType,
                                  aExtraName);
 
+  uint32_t index =
+    GetNodeInfoInnerHashValue(&tmpKey) % RECENTLY_USED_NODEINFOS_SIZE;
+  NodeInfo* ni = mRecentlyUsedNodeInfos[index];
+  if (ni && NodeInfoInnerKeyCompare(&(ni->mInner), &tmpKey)) {
+    RefPtr<NodeInfo> nodeInfo = ni;
+    return nodeInfo.forget();
+  }
+
   void *node = PL_HashTableLookup(mNodeInfoHash, &tmpKey);
 
   if (node) {
     RefPtr<NodeInfo> nodeInfo = static_cast<NodeInfo*>(node);
-
+    mRecentlyUsedNodeInfos[index] = nodeInfo;
     return nodeInfo.forget();
   }
 
@@ -254,35 +269,45 @@ nsNodeInfoManager::GetNodeInfo(nsIAtom *aName, nsIAtom *aPrefix,
     NS_IF_ADDREF(mDocument);
   }
 
+  mRecentlyUsedNodeInfos[index] = newNodeInfo;
   return newNodeInfo.forget();
 }
 
 
 nsresult
-nsNodeInfoManager::GetNodeInfo(const nsAString& aName, nsIAtom *aPrefix,
+nsNodeInfoManager::GetNodeInfo(const nsAString& aName, nsAtom *aPrefix,
                                int32_t aNamespaceID, uint16_t aNodeType,
                                NodeInfo** aNodeInfo)
 {
 #ifdef DEBUG
   {
-    nsCOMPtr<nsIAtom> nameAtom = do_GetAtom(aName);
+    RefPtr<nsAtom> nameAtom = NS_Atomize(aName);
     CheckValidNodeInfo(aNodeType, nameAtom, aNamespaceID, nullptr);
   }
 #endif
 
   NodeInfo::NodeInfoInner tmpKey(aName, aPrefix, aNamespaceID, aNodeType);
 
+  uint32_t index =
+    GetNodeInfoInnerHashValue(&tmpKey) % RECENTLY_USED_NODEINFOS_SIZE;
+  NodeInfo* ni = mRecentlyUsedNodeInfos[index];
+  if (ni && NodeInfoInnerKeyCompare(&(ni->mInner), &tmpKey)) {
+    RefPtr<NodeInfo> nodeInfo = ni;
+    nodeInfo.forget(aNodeInfo);
+    return NS_OK;
+  }
+
   void *node = PL_HashTableLookup(mNodeInfoHash, &tmpKey);
 
   if (node) {
-    NodeInfo* nodeInfo = static_cast<NodeInfo *>(node);
-
-    NS_ADDREF(*aNodeInfo = nodeInfo);
+    RefPtr<NodeInfo> nodeInfo = static_cast<NodeInfo*>(node);
+    mRecentlyUsedNodeInfos[index] = nodeInfo;
+    nodeInfo.forget(aNodeInfo);
 
     return NS_OK;
   }
 
-  nsCOMPtr<nsIAtom> nameAtom = do_GetAtom(aName);
+  RefPtr<nsAtom> nameAtom = NS_Atomize(aName);
   NS_ENSURE_TRUE(nameAtom, NS_ERROR_OUT_OF_MEMORY);
 
   RefPtr<NodeInfo> newNodeInfo =
@@ -298,6 +323,7 @@ nsNodeInfoManager::GetNodeInfo(const nsAString& aName, nsIAtom *aPrefix,
     NS_IF_ADDREF(mDocument);
   }
 
+  mRecentlyUsedNodeInfos[index] = newNodeInfo;
   newNodeInfo.forget(aNodeInfo);
 
   return NS_OK;
@@ -305,7 +331,7 @@ nsNodeInfoManager::GetNodeInfo(const nsAString& aName, nsIAtom *aPrefix,
 
 
 nsresult
-nsNodeInfoManager::GetNodeInfo(const nsAString& aName, nsIAtom *aPrefix,
+nsNodeInfoManager::GetNodeInfo(const nsAString& aName, nsAtom *aPrefix,
                                const nsAString& aNamespaceURI,
                                uint16_t aNodeType,
                                NodeInfo** aNodeInfo)
@@ -391,6 +417,8 @@ nsNodeInfoManager::SetDocumentPrincipal(nsIPrincipal *aPrincipal)
   }
 
   NS_ASSERTION(aPrincipal, "Must have principal by this point!");
+  MOZ_DIAGNOSTIC_ASSERT(!nsContentUtils::IsExpandedPrincipal(aPrincipal),
+                        "Documents shouldn't have an expanded principal");
 
   mPrincipal = aPrincipal;
 }
@@ -420,10 +448,59 @@ nsNodeInfoManager::RemoveNodeInfo(NodeInfo *aNodeInfo)
     }
   }
 
+  uint32_t index =
+    GetNodeInfoInnerHashValue(&aNodeInfo->mInner) % RECENTLY_USED_NODEINFOS_SIZE;
+  if (mRecentlyUsedNodeInfos[index] == aNodeInfo) {
+    mRecentlyUsedNodeInfos[index] = nullptr;
+  }
+
 #ifdef DEBUG
   bool ret =
 #endif
   PL_HashTableRemove(mNodeInfoHash, &aNodeInfo->mInner);
 
-  NS_POSTCONDITION(ret, "Can't find mozilla::dom::NodeInfo to remove!!!");
+  MOZ_ASSERT(ret, "Can't find mozilla::dom::NodeInfo to remove!!!");
+}
+
+bool
+nsNodeInfoManager::InternalSVGEnabled()
+{
+  // If the svg.disabled pref. is true, convert all SVG nodes into
+  // disabled SVG nodes by swapping the namespace.
+  nsNameSpaceManager* nsmgr = nsNameSpaceManager::GetInstance();
+  nsCOMPtr<nsILoadInfo> loadInfo;
+  bool SVGEnabled = false;
+
+  if (nsmgr && !nsmgr->mSVGDisabled) {
+    SVGEnabled = true;
+  } else {
+    nsCOMPtr<nsIChannel> channel = mDocument->GetChannel();
+    // We don't have a channel for SVGs constructed inside a SVG script
+    if (channel) {
+      loadInfo = channel->GetLoadInfo();
+    }
+  }
+  bool conclusion =
+    (SVGEnabled || nsContentUtils::IsSystemPrincipal(mPrincipal) ||
+     (loadInfo &&
+      (loadInfo->GetExternalContentPolicyType() ==
+         nsIContentPolicy::TYPE_IMAGE ||
+       loadInfo->GetExternalContentPolicyType() ==
+         nsIContentPolicy::TYPE_OTHER) &&
+      (nsContentUtils::IsSystemPrincipal(loadInfo->LoadingPrincipal()) ||
+       nsContentUtils::IsSystemPrincipal(loadInfo->TriggeringPrincipal()))));
+  mSVGEnabled = conclusion ? eTriTrue : eTriFalse;
+  return conclusion;
+}
+
+bool
+nsNodeInfoManager::InternalMathMLEnabled()
+{
+  // If the mathml.disabled pref. is true, convert all MathML nodes into
+  // disabled MathML nodes by swapping the namespace.
+  nsNameSpaceManager* nsmgr = nsNameSpaceManager::GetInstance();
+  bool conclusion = ((nsmgr && !nsmgr->mMathMLDisabled) ||
+                     nsContentUtils::IsSystemPrincipal(mPrincipal));
+  mMathMLEnabled = conclusion ? eTriTrue : eTriFalse;
+  return conclusion;
 }

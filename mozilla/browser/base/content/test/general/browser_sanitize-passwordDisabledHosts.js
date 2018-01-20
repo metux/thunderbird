@@ -6,13 +6,14 @@ Cc["@mozilla.org/moz/jssubscript-loader;1"].getService(Ci.mozIJSSubScriptLoader)
                                            .loadSubScript("chrome://browser/content/sanitize.js", tempScope);
 var Sanitizer = tempScope.Sanitizer;
 
-function test() {
+add_task(async function() {
+  // getLoginSavingEnabled always returns false if password capture is disabled.
+  await SpecialPowers.pushPrefEnv({"set": [["signon.rememberSignons", true]]});
 
   var pwmgr = Cc["@mozilla.org/login-manager;1"].getService(Ci.nsILoginManager);
 
   // Add a disabled host
   pwmgr.setLoginSavingEnabled("http://example.com", false);
-  
   // Sanity check
   is(pwmgr.getLoginSavingEnabled("http://example.com"), false,
      "example.com should be disabled for password saving since we haven't cleared that yet.");
@@ -31,11 +32,13 @@ function test() {
   itemPrefs.setBoolPref("passwords", false);
   itemPrefs.setBoolPref("sessions", false);
   itemPrefs.setBoolPref("siteSettings", true);
-  
+
   // Clear it
-  s.sanitize();
-  
+  await s.sanitize();
+
   // Make sure it's gone
   is(pwmgr.getLoginSavingEnabled("http://example.com"), true,
      "example.com should be enabled for password saving again now that we've cleared.");
-}
+
+  await SpecialPowers.popPrefEnv();
+});

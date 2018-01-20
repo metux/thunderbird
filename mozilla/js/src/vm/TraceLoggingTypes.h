@@ -10,6 +10,7 @@
 #include "jsalloc.h"
 #include "jsstr.h"
 
+// Tree items, meaning they have a start and stop and form a nested tree.
 #define TRACELOGGER_TREE_ITEMS(_)                     \
     _(AnnotateScripts)                                \
     _(Baseline)                                       \
@@ -18,26 +19,35 @@
     _(GC)                                             \
     _(GCAllocation)                                   \
     _(GCSweeping)                                     \
-    _(Internal)                                       \
     _(Interpreter)                                    \
     _(InlinedScripts)                                 \
+    _(IonAnalysis)                                    \
     _(IonCompilation)                                 \
-    _(IonCompilationPaused)                           \
     _(IonLinking)                                     \
     _(IonMonkey)                                      \
     _(IrregexpCompile)                                \
     _(IrregexpExecute)                                \
     _(MinorGC)                                        \
-    _(ParserCompileFunction)                          \
-    _(ParserCompileLazy)                              \
-    _(ParserCompileScript)                            \
-    _(ParserCompileModule)                            \
+    _(Frontend)                                       \
+    _(ParsingFull)                                    \
+    _(ParsingSyntax)                                  \
+    _(BytecodeEmission)                               \
+    _(BytecodeFoldConstants)                          \
+    _(BytecodeNameFunctions)                          \
+    _(DecodeScript)                                   \
+    _(DecodeFunction)                                 \
+    _(EncodeScript)                                   \
+    _(EncodeFunction)                                 \
     _(Scripts)                                        \
     _(VM)                                             \
+    _(CompressSource)                                 \
+    _(WasmCompilation)                                \
+    _(Call)                                           \
                                                       \
     /* Specific passes during ion compilation */      \
     _(PruneUnusedBranches)                            \
     _(FoldTests)                                      \
+    _(FoldEmptyBlocks)                                \
     _(SplitCriticalEdges)                             \
     _(RenumberBlocks)                                 \
     _(ScalarReplacement)                              \
@@ -52,6 +62,9 @@
     _(Sincos)                                         \
     _(RangeAnalysis)                                  \
     _(LoopUnrolling)                                  \
+    _(Sink)                                           \
+    _(RemoveUnnecessaryBitops)                        \
+    _(FoldLinearArithConstants)                       \
     _(EffectiveAddressAnalysis)                       \
     _(AlignmentMaskAnalysis)                          \
     _(EliminateDeadCode)                              \
@@ -61,8 +74,11 @@
     _(AddKeepAliveInstructions)                       \
     _(GenerateLIR)                                    \
     _(RegisterAllocation)                             \
-    _(GenerateCode)
+    _(GenerateCode)                                   \
+    _(IonBuilderRestartLoop)                          \
+    _(VMSpecific)
 
+// Log items, with timestamp only.
 #define TRACELOGGER_LOG_ITEMS(_)                      \
     _(Bailout)                                        \
     _(Invalidation)                                   \
@@ -74,6 +90,7 @@
 // without using TraceLogCreateTextId, because there are already created.
 enum TraceLoggerTextId {
     TraceLogger_Error = 0,
+    TraceLogger_Internal,
 #define DEFINE_TEXT_ID(textId) TraceLogger_ ## textId,
     TRACELOGGER_TREE_ITEMS(DEFINE_TEXT_ID)
     TraceLogger_LastTreeItem,
@@ -88,6 +105,8 @@ TLTextIdString(TraceLoggerTextId id)
     switch (id) {
       case TraceLogger_Error:
         return "TraceLogger failed to process text";
+      case TraceLogger_Internal:
+        return "TraceLogger overhead";
 #define NAME(textId) case TraceLogger_ ## textId: return #textId;
         TRACELOGGER_TREE_ITEMS(NAME)
         TRACELOGGER_LOG_ITEMS(NAME)
@@ -100,8 +119,9 @@ TLTextIdString(TraceLoggerTextId id)
 uint32_t
 TLStringToTextId(JSLinearString* str);
 
+// Return whether a given item id can be enabled/disabled.
 inline bool
-TLTextIdIsToggable(uint32_t id)
+TLTextIdIsTogglable(uint32_t id)
 {
     if (id == TraceLogger_Error)
         return false;
@@ -130,14 +150,14 @@ TLTextIdIsTreeEvent(uint32_t id)
            id >= TraceLogger_Last;
 }
 
-// The maximum amount of ram memory a continuous space structure can take (in bytes).
-static const uint32_t CONTINUOUSSPACE_LIMIT = 200 * 1024 * 1024;
-
 template <class T>
 class ContinuousSpace {
     T* data_;
     uint32_t size_;
     uint32_t capacity_;
+
+    // The maximum number of bytes of RAM a continuous space structure can take.
+    static const uint32_t LIMIT = 200 * 1024 * 1024;
 
   public:
     ContinuousSpace ()
@@ -160,23 +180,27 @@ class ContinuousSpace {
         data_ = nullptr;
     }
 
+    static uint32_t maxSize() {
+        return LIMIT / sizeof(T);
+    }
+
     T* data() {
         return data_;
     }
 
-    uint32_t capacity() {
+    uint32_t capacity() const {
         return capacity_;
     }
 
-    uint32_t size() {
+    uint32_t size() const {
         return size_;
     }
 
-    bool empty() {
+    bool empty() const {
         return size_ == 0;
     }
 
-    uint32_t lastEntryId() {
+    uint32_t lastEntryId() const {
         MOZ_ASSERT(!empty());
         return size_ - 1;
     }
@@ -196,14 +220,12 @@ class ContinuousSpace {
         if (hasSpaceForAdd(count))
             return true;
 
-        uint32_t nCapacity = capacity_ * 2;
-        if (size_ + count > nCapacity || nCapacity * sizeof(T) > CONTINUOUSSPACE_LIMIT) {
-            nCapacity = size_ + count;
+        // Limit the size of a continuous buffer.
+        if (size_ + count > maxSize())
+            return false;
 
-            // Limit the size of a continuous buffer.
-            if (nCapacity * sizeof(T) > CONTINUOUSSPACE_LIMIT)
-                return false;
-        }
+        uint32_t nCapacity = capacity_ * 2;
+        nCapacity = (nCapacity < maxSize()) ? nCapacity : maxSize();
 
         T* entries = (T*) js_realloc(data_, nCapacity * sizeof(T));
         if (!entries)
@@ -237,6 +259,10 @@ class ContinuousSpace {
 
     void clear() {
         size_ = 0;
+    }
+
+    size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const {
+        return mallocSizeOf(data_);
     }
 };
 

@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -30,7 +31,7 @@ struct LayerTransforms {
   gfx::Point GetStdDev();
 
   // 60 fps * 5 seconds worth of data
-  nsAutoTArray<gfx::Point, 300> mTransforms;
+  AutoTArray<gfx::Point, 300> mTransforms;
 };
 
 class LayerTransformRecorder {
@@ -62,7 +63,7 @@ struct ParamTraits<mozilla::layers::FrameUniformityData>
     WriteParam(aMsg, aParam.mUniformities);
   }
 
-  static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
+  static bool Read(const Message* aMsg, PickleIterator* aIter, paramType* aResult)
   {
     return ParamTraitsStd<std::map<uintptr_t,float>>::Read(aMsg, aIter, &aResult->mUniformities);
   }

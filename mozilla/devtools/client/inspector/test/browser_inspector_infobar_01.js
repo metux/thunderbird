@@ -6,42 +6,55 @@
 
 // Check the position and text content of the highlighter nodeinfo bar.
 
-const TEST_URI = TEST_URL_ROOT + "doc_inspector_infobar_01.html";
+const TEST_URI = URL_ROOT + "doc_inspector_infobar_01.html";
 
-add_task(function*() {
+add_task(function* () {
   let {inspector, testActor} = yield openInspectorForURL(TEST_URI);
 
   let testData = [
     {
       selector: "#top",
       position: "bottom",
-      tag: "DIV",
+      tag: "div",
       id: "top",
       classes: ".class1.class2",
-      dims: "500" + " \u00D7 " + "100"
+      dims: "500" + " \u00D7 " + "100",
+      arrowed: true
     },
     {
       selector: "#vertical",
-      position: "overlap",
-      tag: "DIV",
+      position: "top",
+      tag: "div",
       id: "vertical",
-      classes: ""
+      classes: "",
+      arrowed: false
       // No dims as they will vary between computers
     },
     {
       selector: "#bottom",
       position: "top",
-      tag: "DIV",
+      tag: "div",
       id: "bottom",
       classes: "",
-      dims: "500" + " \u00D7 " + "100"
+      dims: "500" + " \u00D7 " + "100",
+      arrowed: true
     },
     {
       selector: "body",
       position: "bottom",
-      tag: "BODY",
-      classes: ""
+      tag: "body",
+      classes: "",
+      arrowed: true
       // No dims as they will vary between computers
+    },
+    {
+      selector: "clipPath",
+      position: "bottom",
+      tag: "clipPath",
+      id: "clip",
+      classes: "",
+      arrowed: false
+      // No dims as element is not displayed and we just want to test tag name
     },
   ];
 
@@ -55,22 +68,32 @@ function* testPosition(test, inspector, testActor) {
 
   yield selectAndHighlightNode(test.selector, inspector);
 
-  let position = yield testActor.getHighlighterNodeAttribute("box-model-nodeinfobar-container", "position");
+  let position = yield testActor.getHighlighterNodeAttribute(
+    "box-model-infobar-container", "position");
   is(position, test.position, "Node " + test.selector + ": position matches");
 
-  let tag = yield testActor.getHighlighterNodeTextContent("box-model-nodeinfobar-tagname");
+  let tag = yield testActor.getHighlighterNodeTextContent(
+    "box-model-infobar-tagname");
   is(tag, test.tag, "node " + test.selector + ": tagName matches.");
 
   if (test.id) {
-    let id = yield testActor.getHighlighterNodeTextContent("box-model-nodeinfobar-id");
-    is(id, "#" + test.id, "node " + test.selector  + ": id matches.");
+    let id = yield testActor.getHighlighterNodeTextContent(
+      "box-model-infobar-id");
+    is(id, "#" + test.id, "node " + test.selector + ": id matches.");
   }
 
-  let classes = yield testActor.getHighlighterNodeTextContent("box-model-nodeinfobar-classes");
-  is(classes, test.classes, "node " + test.selector  + ": classes match.");
+  let classes = yield testActor.getHighlighterNodeTextContent(
+    "box-model-infobar-classes");
+  is(classes, test.classes, "node " + test.selector + ": classes match.");
+
+  let arrowed = !(yield testActor.getHighlighterNodeAttribute(
+    "box-model-infobar-container", "hide-arrow"));
+
+  is(arrowed, test.arrowed, "node " + test.selector + ": arrow visibility match.");
 
   if (test.dims) {
-    let dims = yield testActor.getHighlighterNodeTextContent("box-model-nodeinfobar-dimensions");
-    is(dims, test.dims, "node " + test.selector  + ": dims match.");
+    let dims = yield testActor.getHighlighterNodeTextContent(
+      "box-model-infobar-dimensions");
+    is(dims, test.dims, "node " + test.selector + ": dims match.");
   }
 }

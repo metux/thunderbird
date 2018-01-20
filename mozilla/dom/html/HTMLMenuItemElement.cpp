@@ -24,8 +24,8 @@ namespace dom {
 #define NS_MENUITEM_TYPE(bits) ((bits) & ~( \
   NS_CHECKED_IS_TOGGLED | NS_ORIGINAL_CHECKED_VALUE))
 
-enum CmdType                                                                 
-{                                                                            
+enum CmdType : uint8_t
+{
   CMD_TYPE_MENUITEM = 1,
   CMD_TYPE_CHECKBOX,
   CMD_TYPE_RADIO
@@ -35,7 +35,7 @@ static const nsAttrValue::EnumTable kMenuItemTypeTable[] = {
   { "menuitem", CMD_TYPE_MENUITEM },
   { "checkbox", CMD_TYPE_CHECKBOX },
   { "radio", CMD_TYPE_RADIO },
-  { 0 }
+  { nullptr, 0 }
 };
 
 static const nsAttrValue::EnumTable* kMenuItemDefaultType =
@@ -173,18 +173,19 @@ HTMLMenuItemElement::~HTMLMenuItemElement()
 }
 
 
-NS_IMPL_ISUPPORTS_INHERITED(HTMLMenuItemElement, nsGenericHTMLElement,
-                            nsIDOMHTMLMenuItemElement)
+NS_IMPL_ISUPPORTS_INHERITED0(HTMLMenuItemElement, nsGenericHTMLElement)
 
 //NS_IMPL_ELEMENT_CLONE(HTMLMenuItemElement)
+
 nsresult
-HTMLMenuItemElement::Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult) const
+HTMLMenuItemElement::Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult,
+                           bool aPreallocateArrays) const
 {
   *aResult = nullptr;
   already_AddRefed<mozilla::dom::NodeInfo> ni = RefPtr<mozilla::dom::NodeInfo>(aNodeInfo).forget();
   RefPtr<HTMLMenuItemElement> it =
     new HTMLMenuItemElement(ni, NOT_FROM_PARSER);
-  nsresult rv = const_cast<HTMLMenuItemElement*>(this)->CopyInnerTo(it);
+  nsresult rv = const_cast<HTMLMenuItemElement*>(this)->CopyInnerTo(it, aPreallocateArrays);
   if (NS_SUCCEEDED(rv)) {
     switch (mType) {
       case CMD_TYPE_CHECKBOX:
@@ -204,25 +205,13 @@ HTMLMenuItemElement::Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult)
   return rv;
 }
 
-
-NS_IMPL_ENUM_ATTR_DEFAULT_VALUE(HTMLMenuItemElement, Type, type,
-                                kMenuItemDefaultType->tag)
-// GetText returns a whitespace compressed .textContent value.
-NS_IMPL_STRING_ATTR_WITH_FALLBACK(HTMLMenuItemElement, Label, label, GetText)
-NS_IMPL_URI_ATTR(HTMLMenuItemElement, Icon, icon)
-NS_IMPL_BOOL_ATTR(HTMLMenuItemElement, Disabled, disabled)
-NS_IMPL_BOOL_ATTR(HTMLMenuItemElement, DefaultChecked, checked)
-//NS_IMPL_BOOL_ATTR(HTMLMenuItemElement, Checked, checked)
-NS_IMPL_STRING_ATTR(HTMLMenuItemElement, Radiogroup, radiogroup)
-
-NS_IMETHODIMP
-HTMLMenuItemElement::GetChecked(bool* aChecked)
+void
+HTMLMenuItemElement::GetType(DOMString& aValue)
 {
-  *aChecked = mChecked;
-  return NS_OK;
+  GetEnumAttr(nsGkAtoms::type, kMenuItemDefaultType->tag, aValue);
 }
 
-NS_IMETHODIMP
+void
 HTMLMenuItemElement::SetChecked(bool aChecked)
 {
   bool checkedChanged = mChecked != aChecked;
@@ -247,12 +236,10 @@ HTMLMenuItemElement::SetChecked(bool aChecked)
   } else {
     mCheckedDirty = true;
   }
-
-  return NS_OK;
 }
 
 nsresult
-HTMLMenuItemElement::PreHandleEvent(EventChainPreVisitor& aVisitor)
+HTMLMenuItemElement::GetEventTargetParent(EventChainPreVisitor& aVisitor)
 {
   if (aVisitor.mEvent->mMessage == eMouseClick) {
 
@@ -264,8 +251,9 @@ HTMLMenuItemElement::PreHandleEvent(EventChainPreVisitor& aVisitor)
         aVisitor.mItemFlags |= NS_CHECKED_IS_TOGGLED;
         break;
       case CMD_TYPE_RADIO:
-        nsCOMPtr<nsIDOMHTMLMenuItemElement> selectedRadio = GetSelectedRadio();
-        aVisitor.mItemData = selectedRadio;
+        // casting back to Element* here to resolve nsISupports ambiguity.
+        Element* supports = GetSelectedRadio();
+        aVisitor.mItemData = supports;
 
         originalCheckedValue = mChecked;
         if (!originalCheckedValue) {
@@ -283,7 +271,7 @@ HTMLMenuItemElement::PreHandleEvent(EventChainPreVisitor& aVisitor)
     aVisitor.mItemFlags |= mType;
   }
 
-  return nsGenericHTMLElement::PreHandleEvent(aVisitor);
+  return nsGenericHTMLElement::GetEventTargetParent(aVisitor);
 }
 
 nsresult
@@ -297,8 +285,8 @@ HTMLMenuItemElement::PostHandleEvent(EventChainPostVisitor& aVisitor)
       !!(aVisitor.mItemFlags & NS_ORIGINAL_CHECKED_VALUE);
     uint8_t oldType = NS_MENUITEM_TYPE(aVisitor.mItemFlags);
 
-    nsCOMPtr<nsIDOMHTMLMenuItemElement> selectedRadio =
-      do_QueryInterface(aVisitor.mItemData);
+    nsCOMPtr<nsIContent> content(do_QueryInterface(aVisitor.mItemData));
+    RefPtr<HTMLMenuItemElement> selectedRadio = HTMLMenuItemElement::FromContentOrNull(content);
     if (selectedRadio) {
       selectedRadio->SetChecked(true);
       if (mType != CMD_TYPE_RADIO) {
@@ -330,21 +318,14 @@ HTMLMenuItemElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
 
 bool
 HTMLMenuItemElement::ParseAttribute(int32_t aNamespaceID,
-                                    nsIAtom* aAttribute,
+                                    nsAtom* aAttribute,
                                     const nsAString& aValue,
                                     nsAttrValue& aResult)
 {
   if (aNamespaceID == kNameSpaceID_None) {
     if (aAttribute == nsGkAtoms::type) {
-      bool success = aResult.ParseEnumValue(aValue, kMenuItemTypeTable,
-                                              false);
-      if (success) {
-        mType = aResult.GetEnumValue();
-      } else {
-        mType = kMenuItemDefaultType->value;
-      }
-
-      return success;
+      return aResult.ParseEnumValue(aValue, kMenuItemTypeTable, false,
+                                    kMenuItemDefaultType);
     }
 
     if (aAttribute == nsGkAtoms::radiogroup) {
@@ -379,14 +360,27 @@ HTMLMenuItemElement::GetText(nsAString& aText)
 }
 
 nsresult
-HTMLMenuItemElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
-                                  const nsAttrValue* aValue, bool aNotify)
+HTMLMenuItemElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
+                                  const nsAttrValue* aValue,
+                                  const nsAttrValue* aOldValue,
+                                  nsIPrincipal* aSubjectPrincipal,
+                                  bool aNotify)
 {
   if (aNameSpaceID == kNameSpaceID_None) {
+    // Handle type changes first, since some of the later conditions in this
+    // method look at mType and want to see the new value.
+    if (aName == nsGkAtoms::type) {
+      if (aValue) {
+        mType = aValue->GetEnumValue();
+      } else {
+        mType = kMenuItemDefaultType->value;
+      }
+    }
+
     if ((aName == nsGkAtoms::radiogroup || aName == nsGkAtoms::type) &&
         mType == CMD_TYPE_RADIO &&
         !mParserCreating) {
-      if (IsInDoc() && GetParent()) {
+      if (IsInUncomposedDoc() && GetParent()) {
         AddedToRadioGroup();
       }
     }
@@ -404,7 +398,7 @@ HTMLMenuItemElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
   }
 
   return nsGenericHTMLElement::AfterSetAttr(aNameSpaceID, aName, aValue,
-                                            aNotify);
+                                            aOldValue, aSubjectPrincipal, aNotify);
 }
 
 void
@@ -416,7 +410,7 @@ HTMLMenuItemElement::WalkRadioGroup(Visitor* aVisitor)
     return;
   }
 
-  nsAttrInfo info1(GetAttrInfo(kNameSpaceID_None,
+  BorrowedAttrInfo info1(GetAttrInfo(kNameSpaceID_None,
                                nsGkAtoms::radiogroup));
   bool info1Empty = !info1.mValue || info1.mValue->IsEmptyString();
 
@@ -429,7 +423,7 @@ HTMLMenuItemElement::WalkRadioGroup(Visitor* aVisitor)
       continue;
     }
 
-    nsAttrInfo info2(menuitem->GetAttrInfo(kNameSpaceID_None,
+    BorrowedAttrInfo info2(menuitem->GetAttrInfo(kNameSpaceID_None,
                                            nsGkAtoms::radiogroup));
     bool info2Empty = !info2.mValue || info2.mValue->IsEmptyString();
 
@@ -474,8 +468,7 @@ HTMLMenuItemElement::AddedToRadioGroup()
 void
 HTMLMenuItemElement::InitChecked()
 {
-  bool defaultChecked;
-  GetDefaultChecked(&defaultChecked);
+  bool defaultChecked = DefaultChecked();
   mChecked = defaultChecked;
   if (mType == CMD_TYPE_RADIO) {
     ClearCheckedVisitor visitor(this);

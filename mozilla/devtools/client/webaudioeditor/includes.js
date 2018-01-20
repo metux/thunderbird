@@ -5,24 +5,23 @@
 
 var { classes: Cc, interfaces: Ci, utils: Cu, results: Cr } = Components;
 
-Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-Cu.import("resource://devtools/client/shared/widgets/ViewHelpers.jsm");
-Cu.import("resource://devtools/client/framework/gDevTools.jsm");
-
 const { loader, require } = Cu.import("resource://devtools/shared/Loader.jsm", {});
-
-var { console } = Cu.import("resource://gre/modules/Console.jsm", {});
-var { EventTarget } = require("sdk/event/target");
-
-const { Task } = Cu.import("resource://gre/modules/Task.jsm", {});
-const { Class } = require("sdk/core/heritage");
+const { XPCOMUtils } = require("resource://gre/modules/XPCOMUtils.jsm");
+const { Task } = require("devtools/shared/task");
+const OldEventEmitter = require("devtools/shared/old-event-emitter");
 const EventEmitter = require("devtools/shared/event-emitter");
-const STRINGS_URI = "chrome://devtools/locale/webaudioeditor.properties"
-const L10N = new ViewHelpers.L10N(STRINGS_URI);
-const Telemetry = require("devtools/client/shared/telemetry");
-const telemetry = new Telemetry();
 const DevToolsUtils = require("devtools/shared/DevToolsUtils");
+const Services = require("Services");
+const { gDevTools } = require("devtools/client/framework/devtools");
+const { LocalizationHelper } = require("devtools/shared/l10n");
+const { ViewHelpers } = require("devtools/client/shared/widgets/view-helpers");
+
+// Use privileged promise in panel documents to prevent having them to freeze
+// during toolbox destruction. See bug 1402779.
+const Promise = require("Promise");
+
+const STRINGS_URI = "devtools/client/locales/webaudioeditor.properties";
+const L10N = new LocalizationHelper(STRINGS_URI);
 
 loader.lazyRequireGetter(this, "LineGraphWidget",
   "devtools/client/shared/widgets/LineGraphWidget");
@@ -84,7 +83,7 @@ var gToolbox, gTarget, gFront;
 /**
  * Convenient way of emitting events from the panel window.
  */
-EventEmitter.decorate(this);
+OldEventEmitter.decorate(this);
 
 /**
  * DOM query helper.
@@ -98,7 +97,7 @@ function $$(selector, target = document) { return target.querySelectorAll(select
  * From Backbone.Collection#findWhere
  * http://backbonejs.org/#Collection-findWhere
  */
-function findWhere (collection, attrs) {
+function findWhere(collection, attrs) {
   let keys = Object.keys(attrs);
   for (let model of collection) {
     if (keys.every(key => model[key] === attrs[key])) {
@@ -108,7 +107,7 @@ function findWhere (collection, attrs) {
   return void 0;
 }
 
-function mixin (source, ...args) {
+function mixin(source, ...args) {
   args.forEach(obj => Object.keys(obj).forEach(prop => source[prop] = obj[prop]));
   return source;
 }

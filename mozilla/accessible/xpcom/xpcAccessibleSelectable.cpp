@@ -21,7 +21,7 @@ xpcAccessibleSelectable::GetSelectedItems(nsIArray** aSelectedItems)
     return NS_ERROR_FAILURE;
   NS_PRECONDITION(Intl()->IsSelect(), "Called on non selectable widget!");
 
-  nsAutoTArray<Accessible*, 10> items;
+  AutoTArray<Accessible*, 10> items;
   Intl()->SelectedItems(&items);
 
   uint32_t itemCount = items.Length();
@@ -34,7 +34,7 @@ xpcAccessibleSelectable::GetSelectedItems(nsIArray** aSelectedItems)
   NS_ENSURE_SUCCESS(rv, rv);
 
   for (uint32_t idx = 0; idx < itemCount; idx++)
-    xpcItems->AppendElement(static_cast<nsIAccessible*>(ToXPC(items[idx])), false);
+    xpcItems->AppendElement(static_cast<nsIAccessible*>(ToXPC(items[idx])));
 
   NS_ADDREF(*aSelectedItems = xpcItems);
   return NS_OK;

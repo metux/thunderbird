@@ -27,10 +27,6 @@
 #include "nsMsgCopy.h"
 #include "nsUnicharUtils.h"
 #include "nsMsgPrompts.h"
-#include "nsIDOMHTMLBodyElement.h"
-#include "nsIDOMHTMLImageElement.h"
-#include "nsIDOMHTMLLinkElement.h"
-#include "nsIDOMHTMLAnchorElement.h"
 #include "nsCExternalHandlerService.h"
 #include "nsIMIMEService.h"
 #include "nsIDocument.h"
@@ -70,17 +66,26 @@
 #include "nsIMsgHdr.h"
 #include "nsIMsgFolder.h"
 #include "nsComposeStrings.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsMsgUtils.h"
 #include "nsIArray.h"
 #include "nsArrayUtils.h"
 #include "mozilla/Services.h"
+#include "mozilla/Attributes.h"
 #include "mozilla/mailnews/MimeEncoder.h"
 #include "mozilla/mailnews/MimeHeaderParser.h"
+#include "mozilla/dom/HTMLAnchorElement.h"
+#include "mozilla/dom/HTMLBodyElement.h"
+#include "mozilla/dom/HTMLImageElement.h"
+#include "mozilla/dom/HTMLLinkElement.h"
 #include "nsIMutableArray.h"
 #include "nsIMsgFilterService.h"
 #include "nsIMsgProtocolInfo.h"
+#include "mozIDOMWindow.h"
+#include "mozilla/Preferences.h"
 
+using namespace mozilla;
+using namespace mozilla::dom;
 using namespace mozilla::mailnews;
 
 static NS_DEFINE_CID(kRDFServiceCID, NS_RDFSERVICE_CID);
@@ -89,7 +94,6 @@ static NS_DEFINE_CID(kRDFServiceCID, NS_RDFSERVICE_CID);
 #define PREF_MAIL_STRICTLY_MIME "mail.strictly_mime"
 #define PREF_MAIL_MESSAGE_WARNING_SIZE "mailnews.message_warning_size"
 #define PREF_MAIL_COLLECT_EMAIL_ADDRESS_OUTGOING "mail.collect_email_address_outgoing"
-#define PREF_MAIL_DONT_ATTACH_SOURCE "mail.compose.dont_attach_source_of_local_network_links"
 
 #define ATTR_MOZ_DO_NOT_SEND "moz-do-not-send"
 
@@ -171,7 +175,7 @@ static nsresult StripOutGroupNames(char * addresses)
           group = false;
           //end of the group, act like a recipient separator now...
         /* NO BREAK */
-
+        MOZ_FALLTHROUGH;
       case ',':
         if (!quoted)
         {
@@ -369,7 +373,7 @@ nsresult nsMsgComposeAndSend::GetNotificationCallbacks(nsIInterfaceRequestor** a
       ir = aggregrateIR;
     }
     if (ir) {
-      NS_ADDREF(*aCallbacks = ir);
+      ir.forget(aCallbacks);
       return NS_OK;
     }
   }
@@ -536,7 +540,7 @@ nsMsgComposeAndSend::GatherMimeAttachments()
 
     nsAutoCString tempURL;
     rv = NS_GetURLSpecFromFile(mHTMLFile, tempURL);
-    if (NS_FAILED(rv) || NS_FAILED(nsMsgNewURL(getter_AddRefs(m_plaintext->mURL), tempURL.get())))
+    if (NS_FAILED(rv) || NS_FAILED(nsMsgNewURL(getter_AddRefs(m_plaintext->mURL), tempURL)))
     {
       m_plaintext = nullptr;
       goto FAILMEM;
@@ -560,8 +564,7 @@ nsMsgComposeAndSend::GatherMimeAttachments()
 
   NS_ASSERTION (m_attachment_pending_count == 0, "m_attachment_pending_count != 0");
 
-  mComposeBundle->GetStringFromName(MOZ_UTF16("assemblingMessage"),
-                                    getter_Copies(msg));
+  mComposeBundle->GetStringFromName("assemblingMessage", msg);
   SetStatusMessage( msg );
 
   /* First, open the message file.
@@ -927,8 +930,7 @@ nsMsgComposeAndSend::GatherMimeAttachments()
   }
 
   // Tell the user we are creating the message...
-  mComposeBundle->GetStringFromName(MOZ_UTF16("creatingMailMessage"),
-                                    getter_Copies(msg));
+  mComposeBundle->GetStringFromName("creatingMailMessage", msg);
   SetStatusMessage( msg );
 
   // OK, now actually write the structure we've carefully built up.
@@ -940,7 +942,7 @@ nsMsgComposeAndSend::GatherMimeAttachments()
   if (m_crypto_closure)
   {
     status = m_crypto_closure->FinishCryptoEncapsulation(false, mSendReport);
-    m_crypto_closure = 0;
+    m_crypto_closure = nullptr;
     if (NS_FAILED(status)) goto FAIL;
   }
 
@@ -970,8 +972,7 @@ nsMsgComposeAndSend::GatherMimeAttachments()
     }
   }
 
-  mComposeBundle->GetStringFromName(MOZ_UTF16("assemblingMessageDone"),
-                                    getter_Copies(msg));
+  mComposeBundle->GetStringFromName("assemblingMessageDone", msg);
   SetStatusMessage(msg);
 
   if (m_dont_deliver_p && mListener)
@@ -1071,8 +1072,11 @@ nsMsgComposeAndSend::PreProcessPart(nsMsgAttachmentHandler  *ma,
     if (!ma->m_uri.IsEmpty())
       turl = ma->m_uri;
   }
-  else
-    ma->mURL->GetSpec(turl);
+  else {
+    status = ma->mURL->GetSpec(turl);
+    if (NS_FAILED(status))
+      return 0;
+  }
 
   nsCString type(ma->m_type);
   nsCString realName(ma->m_realName);
@@ -1081,7 +1085,7 @@ nsMsgComposeAndSend::PreProcessPart(nsMsgAttachmentHandler  *ma,
   // so we don't show it as an attachment.
   if (ma->mSendViaCloud)
   {
-    type.Assign("application/octet-stream");
+    type.AssignLiteral("application/octet-stream");
     realName.Truncate();
   }
   hdrs = mime_generate_attachment_headers (type.get(),
@@ -1112,7 +1116,10 @@ nsMsgComposeAndSend::PreProcessPart(nsMsgAttachmentHandler  *ma,
   if (ma->mSendViaCloud)
   {
     nsCString urlSpec;
-    ma->mURL->GetSpec(urlSpec);
+    status = ma->mURL->GetSpec(urlSpec);
+    if (NS_FAILED(status))
+      return 0;
+
     // Need to add some headers so that libmime can restore the cloud info
     // when loading a draft message.
     nsCString draftInfo(HEADER_X_MOZILLA_CLOUD_PART": cloudFile; url=");
@@ -1120,12 +1127,12 @@ nsMsgComposeAndSend::PreProcessPart(nsMsgAttachmentHandler  *ma,
     // don't leak user file paths or account keys to recipients.
     if (m_deliver_mode == nsMsgSaveAsDraft)
     {
-      draftInfo.Append("; provider=");
+      draftInfo.AppendLiteral("; provider=");
       draftInfo.Append(ma->mCloudProviderKey.get());
-      draftInfo.Append("; file=");
+      draftInfo.AppendLiteral("; file=");
       draftInfo.Append(urlSpec.get());
     }
-    draftInfo.Append("; name=");
+    draftInfo.AppendLiteral("; name=");
     draftInfo.Append(ma->m_realName.get());
     draftInfo.Append(CRLF);
     part->AppendOtherHeaders(draftInfo.get());
@@ -1226,7 +1233,11 @@ mime_write_message_body(nsIMsgSend *state, const char *buf, uint32_t size)
   state->GetCryptoclosure(getter_AddRefs(crypto_closure));
   if (crypto_closure)
   {
-    return crypto_closure->MimeCryptoWriteBlock (buf, size);
+    // Copy to new null-terminated string so JS glue doesn't crash when
+    // MimeCryptoWriteBlock() is implemented in JS.
+    nsCString bufWithNull;
+    bufWithNull.Assign(buf, size);
+    return crypto_closure->MimeCryptoWriteBlock(bufWithNull.get(), size);
   }
 
   uint32_t n;
@@ -1256,48 +1267,45 @@ nsMsgComposeAndSend::GetEmbeddedObjectInfo(nsIDOMNode *node, nsMsgAttachmentData
   // GetEmbeddedObjectInfo will determine if we need to attach the source of the
   // embedded object with the message. The decision is made automatically unless
   // the attribute moz-do-not-send has been set to true or false.
-  // The default rule is that all image and anchor objects are attached as well
-  // link to a local file
   nsresult rv = NS_OK;
 
   // Reset this structure to null!
   *acceptObject = false;
 
-  // Check if the object has a moz-do-not-send attribute set. If it's true,
-  // we must ignore it, if false set forceToBeAttached to be true.
-
-  bool forceToBeAttached = false;
+  // We're only interested in body, image, link and anchors which are all
+  // elements.
   nsCOMPtr<nsIDOMElement> domElement = do_QueryInterface(node);
-  if (domElement)
-  {
-    nsAutoString attributeValue;
-    if (NS_SUCCEEDED(domElement->GetAttribute(NS_LITERAL_STRING(ATTR_MOZ_DO_NOT_SEND), attributeValue)))
-    {
-      if (attributeValue.LowerCaseEqualsLiteral("true"))
-        return NS_OK;
-      if (attributeValue.LowerCaseEqualsLiteral("false"))
-        forceToBeAttached = true;
-    }
-  }
+  if (!domElement)
+    return NS_OK;
+
+  bool isImage = false;
+  nsAutoString mozDoNotSendAttr;
+  domElement->GetAttribute(NS_LITERAL_STRING(ATTR_MOZ_DO_NOT_SEND), mozDoNotSendAttr);
+
+  // Only empty or moz-do-not-send="false" may be accepted later.
+  if (!(mozDoNotSendAttr.IsEmpty() || mozDoNotSendAttr.LowerCaseEqualsLiteral("false")))
+    return NS_OK;
+
   // Now, we know the types of objects this node can be, so we will do
   // our query interface here and see what we come up with
-  nsCOMPtr<nsIDOMHTMLBodyElement>     body = (do_QueryInterface(node));
-  // XXX convert to use nsIImageLoadingContent?
-  nsCOMPtr<nsIDOMHTMLImageElement>    image = (do_QueryInterface(node));
-  nsCOMPtr<nsIDOMHTMLLinkElement>     link = (do_QueryInterface(node));
-  nsCOMPtr<nsIDOMHTMLAnchorElement>   anchor = (do_QueryInterface(node));
+  nsCOMPtr<Element> nodeAsElement = do_QueryInterface(node);
+  RefPtr<HTMLImageElement>  image  = HTMLImageElement::FromContentOrNull(nodeAsElement);
+  RefPtr<HTMLLinkElement>   link   = HTMLLinkElement::FromContentOrNull(nodeAsElement);
+  RefPtr<HTMLAnchorElement> anchor = HTMLAnchorElement::FromContentOrNull(nodeAsElement);
+  RefPtr<HTMLBodyElement>   body   = HTMLBodyElement::FromContentOrNull(nodeAsElement);
 
   // First, try to see if the body as a background image
   if (body)
   {
-    nsAutoString    tUrl;
-    if (NS_SUCCEEDED(body->GetBackground(tUrl)))
-    {
-      nsAutoCString turlC;
-      CopyUTF16toUTF8(tUrl, turlC);
-      if (NS_FAILED(nsMsgNewURL(getter_AddRefs(attachment->m_url), turlC.get())))
-        return NS_OK;
-     }
+    nsString tUrl;
+    body->GetBackground(tUrl);
+    if (tUrl.IsEmpty())
+      return NS_OK;
+    nsAutoCString turlC;
+    CopyUTF16toUTF8(tUrl, turlC);
+    if (NS_FAILED(nsMsgNewURL(getter_AddRefs(attachment->m_url), turlC)))
+      return NS_OK;
+    isImage = true;
   }
   else if (image)        // Is this an image?
   {
@@ -1306,11 +1314,13 @@ nsMsgComposeAndSend::GetEmbeddedObjectInfo(nsIDOMNode *node, nsMsgAttachmentData
     nsString    tDesc;
 
     // Create the URI
-    if (NS_FAILED(image->GetSrc(tUrl)))
-      return NS_ERROR_FAILURE;
+    image->GetSrc(tUrl);
+    if (tUrl.IsEmpty())
+      return NS_OK;
+
     nsAutoCString turlC;
     CopyUTF16toUTF8(tUrl, turlC);
-    if (NS_FAILED(nsMsgNewURL(getter_AddRefs(attachment->m_url), turlC.get())))
+    if (NS_FAILED(nsMsgNewURL(getter_AddRefs(attachment->m_url), turlC)))
     {
       // Well, the first time failed...which means we probably didn't get
       // the full path name...
@@ -1329,7 +1339,8 @@ nsMsgComposeAndSend::GetEmbeddedObjectInfo(nsIDOMNode *node, nsMsgAttachmentData
         if (!uri)
           return NS_ERROR_OUT_OF_MEMORY;
 
-        uri->GetSpec(spec);
+        rv = uri->GetSpec(spec);
+        NS_ENSURE_SUCCESS(rv, rv);
 
         // Ok, now get the path to the root doc and tack on the name we
         // got from the GetSrc() call....
@@ -1340,18 +1351,16 @@ nsMsgComposeAndSend::GetEmbeddedObjectInfo(nsIDOMNode *node, nsMsgAttachmentData
           workURL.SetLength(loc+1);
         workURL.Append(tUrl);
         NS_ConvertUTF16toUTF8 workurlC(workURL);
-        if (NS_FAILED(nsMsgNewURL(getter_AddRefs(attachment->m_url), workurlC.get())))
-          // rhp - just try to continue and send it without this image.
-          return NS_OK;
+        if (NS_FAILED(nsMsgNewURL(getter_AddRefs(attachment->m_url), workurlC)))
+          return NS_OK; // Continue and send it without this image.
       }
     }
+    isImage = true;
 
-    rv = image->GetName(tName);
-    NS_ENSURE_SUCCESS(rv, rv);
+    image->GetName(tName);
 
     LossyCopyUTF16toASCII(tName, attachment->m_realName);
-    rv = image->GetLongDesc(tDesc);
-    NS_ENSURE_SUCCESS(rv, rv);
+    image->GetLongDesc(tDesc);
     attachment->m_description = NS_LossyConvertUTF16toASCII(tDesc); // XXX i18n
   }
   else if (link)        // Is this a link?
@@ -1359,27 +1368,30 @@ nsMsgComposeAndSend::GetEmbeddedObjectInfo(nsIDOMNode *node, nsMsgAttachmentData
     nsString    tUrl;
 
     // Create the URI
-    rv = link->GetHref(tUrl);
-    NS_ENSURE_SUCCESS(rv, rv);
+    link->GetHref(tUrl);
+    if (tUrl.IsEmpty())
+      return NS_OK;
     nsAutoCString turlC;
     CopyUTF16toUTF8(tUrl, turlC);
-    rv = nsMsgNewURL(getter_AddRefs(attachment->m_url), turlC.get());
-    NS_ENSURE_SUCCESS(rv, rv);
+    if (NS_FAILED(nsMsgNewURL(getter_AddRefs(attachment->m_url), turlC)))
+      return NS_OK;
   }
   else if (anchor)
   {
     nsString    tUrl;
-    nsString    tName;
 
     // Create the URI
-    rv = anchor->GetHref(tUrl);
-    NS_ENSURE_SUCCESS(rv, rv);
+    anchor->GetHref(tUrl);
+    if (tUrl.IsEmpty())
+      return NS_OK;
     nsAutoCString turlC;
     CopyUTF16toUTF8(tUrl, turlC);
-    // ignore errors here.
-    (void) nsMsgNewURL(getter_AddRefs(attachment->m_url), turlC.get());
-    rv = anchor->GetName(tName);
-    NS_ENSURE_SUCCESS(rv, rv);
+    // This can fail since the URL might not be recognised, for example:
+    // <a href="skype:some-name?call" title="Skype">Some Name</a>
+    if (NS_FAILED(nsMsgNewURL(getter_AddRefs(attachment->m_url), turlC)))
+      return NS_OK;
+    nsString tName;
+    anchor->GetName(tName);
     LossyCopyUTF16toASCII(tName, attachment->m_realName);
   }
   else
@@ -1389,63 +1401,39 @@ nsMsgComposeAndSend::GetEmbeddedObjectInfo(nsIDOMNode *node, nsMsgAttachmentData
     return NS_OK;
   }
 
-  //
-  // Before going further, check if we are dealing with a local file and
-  // if it's the case be sure the file exists!
-  bool schemeIsFile = false;
-  if (attachment->m_url)
-    rv = attachment->m_url->SchemeIs("file", &schemeIsFile);
-
-  if (schemeIsFile && NS_SUCCEEDED(rv))
+  // Before going further, check what scheme we're dealing with. Files need to
+  // be converted to data URLs during composition. "Attaching" means
+  // sending as a cid: part instead of original URL.
+  bool isHttp =
+    (NS_SUCCEEDED(attachment->m_url->SchemeIs("http", &isHttp)) && isHttp) ||
+    (NS_SUCCEEDED(attachment->m_url->SchemeIs("https", &isHttp)) && isHttp);
+  // Attach (= create cid: part) http resources if moz-do-not-send is set to
+  // "false". Special processing for images: We attach if the preference says so.
+  // Note that moz-do-not-send="true" is already processed above so the preference
+  // doesn't override this.
+  if (isHttp)
   {
-    nsCOMPtr<nsIFileURL> fileUrl (do_QueryInterface(attachment->m_url));
-    if (fileUrl)
-    {
-      bool isAValidFile = false;
-
-      nsCOMPtr<nsIFile> aFile;
-      rv = fileUrl->GetFile(getter_AddRefs(aFile));
-      if (NS_SUCCEEDED(rv) && aFile)
-      {
-        rv = aFile->IsFile(&isAValidFile);
-        if (NS_FAILED(rv))
-          isAValidFile = false;
-        else
-        {
-          if (anchor)
-          {
-            // One more test, if the anchor points to a local network server, let's check what the pref
-            // mail.compose.dont_attach_source_of_local_network_links tells us to do.
-            nsAutoCString urlSpec;
-            rv = attachment->m_url->GetSpec(urlSpec);
-            if (NS_SUCCEEDED(rv))
-              if (StringBeginsWith(urlSpec, NS_LITERAL_CSTRING("file://///")))
-              {
-                nsCOMPtr<nsIPrefBranch> pPrefBranch(do_GetService(NS_PREFSERVICE_CONTRACTID));
-                if (pPrefBranch)
-                {
-                  bool dontSend = false;
-                  rv = pPrefBranch->GetBoolPref(PREF_MAIL_DONT_ATTACH_SOURCE, &dontSend);
-                  if (dontSend)
-                    isAValidFile = false;
-                }
-              }
-          }
-        }
-      }
-
-      if (! isAValidFile)
-        return NS_OK;
-    }
-  }
-  else //not a file:// url
-  {
-    //if this is an anchor, don't attach remote file unless we have been forced to do it
-    if (anchor && !forceToBeAttached)
-      return NS_OK;
+    *acceptObject =
+      (isImage && Preferences::GetBool("mail.compose.attach_http_images", false)) ||
+      mozDoNotSendAttr.LowerCaseEqualsLiteral("false");
+    return NS_OK;
   }
 
-  *acceptObject = true;
+  bool isData =
+    (NS_SUCCEEDED(attachment->m_url->SchemeIs("data", &isData)) && isData);
+  bool isNews =
+    (NS_SUCCEEDED(attachment->m_url->SchemeIs("news", &isNews)) && isNews) ||
+    (NS_SUCCEEDED(attachment->m_url->SchemeIs("snews", &isNews)) && isNews) ||
+    (NS_SUCCEEDED(attachment->m_url->SchemeIs("nntp", &isNews)) && isNews);
+  // Attach (= create cid: part) data resources if moz-do-not-send is not
+  // specified or set to "false".
+  if (isData || isNews)
+  {
+    *acceptObject = mozDoNotSendAttr.IsEmpty() ||
+      mozDoNotSendAttr.LowerCaseEqualsLiteral("false");
+    return NS_OK;
+  }
+
   return NS_OK;
 }
 
@@ -1474,7 +1462,7 @@ nsMsgComposeAndSend::GetMultipartRelatedCount(bool forceToBeCalculated /*=false*
   if (!mEmbeddedObjectList)
     return 0;
 
-  if (NS_SUCCEEDED(mEmbeddedObjectList->Count(&count)))
+  if (NS_SUCCEEDED(mEmbeddedObjectList->GetLength(&count)))
   {
     if (count > 0)
     {
@@ -1499,7 +1487,7 @@ nsMsgComposeAndSend::GetMultipartRelatedCount(bool forceToBeCalculated /*=false*
         {
           rv = GetEmbeddedObjectInfo(node, attachment, &acceptObject);
         }
-        else // outlook/eudora import case
+        else // outlook import case
         {
           nsCOMPtr<nsIMsgEmbeddedImageData> imageData =
             do_QueryElementAt(mEmbeddedObjectList, i, &rv);
@@ -1595,7 +1583,7 @@ nsMsgComposeAndSend::GetBodyFromEditor()
 
   if (aCharset && *aCharset)
   {
-    rv = nsMsgI18NConvertFromUnicode(aCharset, nsDependentString(bodyText), outCString, false, true);
+    rv = nsMsgI18NConvertFromUnicode(aCharset, nsDependentString(bodyText), outCString, true);
     bool isAsciiOnly = NS_IsAscii(outCString.get()) &&
       !nsMsgI18Nstateful_charset(mCompFields->GetCharacterSet());
     if (mCompFields->GetForceMsgEncoding())
@@ -1638,7 +1626,7 @@ nsMsgComposeAndSend::GetBodyFromEditor()
     {
       nsCString newBody;
       rv = nsMsgI18NConvertFromUnicode(aCharset,
-        nsDependentString(origHTMLBody), newBody, false, true);
+        nsDependentString(origHTMLBody), newBody, true);
       if (NS_SUCCEEDED(rv))
       {
         mOriginalHTMLBody = ToNewCString(newBody);
@@ -1648,7 +1636,7 @@ nsMsgComposeAndSend::GetBodyFromEditor()
       mOriginalHTMLBody = ToNewCString(attachment1_body);
     }
 
-    NS_Free(bodyText);    //Don't need it anymore
+    free(bodyText);    //Don't need it anymore
   }
   else
     return NS_ERROR_FAILURE;
@@ -1693,7 +1681,6 @@ nsMsgComposeAndSend::ProcessMultipartRelated(int32_t *aMailboxCount, int32_t *aN
     memset(domSaveArray, 0, sizeof(domSaveStruct) * multipartCount);
   }
 
-  nsCOMPtr<nsIDOMNode> node;
   for (i = mPreloadedAttachmentCount; i < (mPreloadedAttachmentCount + multipartCount);)
   {
     // Ok, now we need to get the element in the array and do the magic
@@ -1701,7 +1688,7 @@ nsMsgComposeAndSend::ProcessMultipartRelated(int32_t *aMailboxCount, int32_t *aN
     //
 
     locCount++;
-    mEmbeddedObjectList->QueryElementAt(locCount, NS_GET_IID(nsIDOMNode), getter_AddRefs(node));
+    nsCOMPtr<nsIDOMNode> node = do_QueryElementAt(mEmbeddedObjectList, locCount);
     if (node)
     {
       bool acceptObject = false;
@@ -1836,30 +1823,32 @@ nsMsgComposeAndSend::ProcessMultipartRelated(int32_t *aMailboxCount, int32_t *aN
 
       // Now, we know the types of objects this node can be, so we will do
       // our query interface here and see what we come up with
-      nsCOMPtr<nsIDOMHTMLBodyElement>     body = (do_QueryInterface(domSaveArray[j].node));
-      nsCOMPtr<nsIDOMHTMLImageElement>    image = (do_QueryInterface(domSaveArray[j].node));
-      nsCOMPtr<nsIDOMHTMLLinkElement>     link = (do_QueryInterface(domSaveArray[j].node));
-      nsCOMPtr<nsIDOMHTMLAnchorElement>   anchor = (do_QueryInterface(domSaveArray[j].node));
+      nsCOMPtr<Element> nodeAsElement = do_QueryInterface(domSaveArray[j].node);
+      RefPtr<HTMLImageElement>  image  = HTMLImageElement::FromContentOrNull(nodeAsElement);
+      RefPtr<HTMLLinkElement>   link   = HTMLLinkElement::FromContentOrNull(nodeAsElement);
+      RefPtr<HTMLAnchorElement> anchor = HTMLAnchorElement::FromContentOrNull(nodeAsElement);
+      RefPtr<HTMLBodyElement>   body   = HTMLBodyElement::FromContentOrNull(nodeAsElement);
 
+      IgnoredErrorResult rv2;
       if (anchor)
       {
         anchor->GetHref(domURL);
-        anchor->SetHref(newSpec);
+        anchor->SetHref(newSpec, rv2);
       }
       else if (link)
       {
         link->GetHref(domURL);
-        link->SetHref(newSpec);
+        link->SetHref(newSpec, rv2);
       }
       else if (image)
       {
         image->GetSrc(domURL);
-        image->SetSrc(newSpec);
+        image->SetSrc(newSpec, rv2);
       }
       else if (body)
       {
         body->GetBackground(domURL);
-        body->SetBackground(newSpec);
+        body->SetBackground(newSpec, rv2);
       }
 
       if (!domURL.IsEmpty())
@@ -1881,21 +1870,25 @@ nsMsgComposeAndSend::ProcessMultipartRelated(int32_t *aMailboxCount, int32_t *aN
 
     // Now, we know the types of objects this node can be, so we will do
     // our query interface here and see what we come up with
-    nsCOMPtr<nsIDOMHTMLBodyElement>     body = (do_QueryInterface(domSaveArray[i].node));
-    nsCOMPtr<nsIDOMHTMLImageElement>    image = (do_QueryInterface(domSaveArray[i].node));
-    nsCOMPtr<nsIDOMHTMLLinkElement>     link = (do_QueryInterface(domSaveArray[i].node));
-    nsCOMPtr<nsIDOMHTMLAnchorElement>   anchor = (do_QueryInterface(domSaveArray[i].node));
+    nsCOMPtr<Element> nodeAsElement = do_QueryInterface(domSaveArray[i].node);
+    RefPtr<HTMLImageElement>  image  = HTMLImageElement::FromContentOrNull(nodeAsElement);
+    RefPtr<HTMLLinkElement>   link   = HTMLLinkElement::FromContentOrNull(nodeAsElement);
+    RefPtr<HTMLAnchorElement> anchor = HTMLAnchorElement::FromContentOrNull(nodeAsElement);
+    RefPtr<HTMLBodyElement>   body   = HTMLBodyElement::FromContentOrNull(nodeAsElement);
 
       // STRING USE WARNING: hoisting the following conversion might save code-space, since it happens along every path
 
-    if (anchor)
-      anchor->SetHref(NS_ConvertASCIItoUTF16(domSaveArray[i].url));
-    else if (link)
-      link->SetHref(NS_ConvertASCIItoUTF16(domSaveArray[i].url));
-    else if (image)
-      image->SetSrc(NS_ConvertASCIItoUTF16(domSaveArray[i].url));
-    else if (body)
-      body->SetBackground(NS_ConvertASCIItoUTF16(domSaveArray[i].url));
+    IgnoredErrorResult rv2;
+    if (anchor) {
+      anchor->SetHref(NS_ConvertASCIItoUTF16(domSaveArray[i].url), rv2);
+    } else if (link) {
+      link->SetHref(NS_ConvertASCIItoUTF16(domSaveArray[i].url), rv2);
+    } else if (image) {
+      image->SetSrc(NS_ConvertASCIItoUTF16(domSaveArray[i].url), rv2);
+    }
+    else if (body) {
+      body->SetBackground(NS_ConvertASCIItoUTF16(domSaveArray[i].url), rv2);
+    }
 
     free(domSaveArray[i].url);
   }
@@ -2032,7 +2025,7 @@ nsMsgComposeAndSend::AddCompFieldLocalAttachments()
           //
           m_attachments[newLoc]->mDeleteFile = false;
 
-          nsMsgNewURL(getter_AddRefs(m_attachments[newLoc]->mURL), url.get());
+          nsMsgNewURL(getter_AddRefs(m_attachments[newLoc]->mURL), url);
 
           if (m_attachments[newLoc]->mTmpFile)
           {
@@ -2093,7 +2086,7 @@ nsMsgComposeAndSend::AddCompFieldLocalAttachments()
                     nsAutoCString type;
                     mimeFinder->GetTypeFromExtension(fileExt, type);
   #ifndef XP_MACOSX
-                    if (!type.Equals("multipart/appledouble"))  // can't do apple double on non-macs
+                    if (!type.EqualsLiteral("multipart/appledouble"))  // can't do apple double on non-macs
   #endif
                     m_attachments[newLoc]->m_type = type;
                   }
@@ -2110,7 +2103,7 @@ nsMsgComposeAndSend::AddCompFieldLocalAttachments()
                       nsAutoCString type;
                       mimeFinder->GetTypeFromExtension(fileExt, type);
   #ifndef XP_MACOSX
-                    if (!type.Equals("multipart/appledouble"))  // can't do apple double on non-macs
+                    if (!type.EqualsLiteral("multipart/appledouble"))  // can't do apple double on non-macs
   #endif
                       m_attachments[newLoc]->m_type = type;
                     // rtf and vcs files may look like text to sniffers,
@@ -2214,7 +2207,7 @@ nsMsgComposeAndSend::AddCompFieldRemoteAttachments(uint32_t   aStartLocation,
           m_attachments[newLoc]->SetMimeDeliveryState(this);
 
           if (!isAMessageAttachment)
-            nsMsgNewURL(getter_AddRefs(m_attachments[newLoc]->mURL), url.get());
+            nsMsgNewURL(getter_AddRefs(m_attachments[newLoc]->mURL), url);
 
           m_attachments[newLoc]->m_encoding = ENCODING_7BIT;
 
@@ -2509,10 +2502,19 @@ nsMsgComposeAndSend::HackAttachments(nsIArray *attachments,
 
       // Display some feedback to user...
       nsString msg;
+      nsAutoString attachmentFileName;
       NS_ConvertUTF8toUTF16 params(m_attachments[i]->m_realName);
-      const char16_t *formatParams[] = { params.get() };
-      mComposeBundle->FormatStringFromName(MOZ_UTF16("gatheringAttachment"),
-                                           formatParams, 1, getter_Copies(msg));
+      const char16_t *formatParams[1];
+      if (!params.IsEmpty()) {
+        formatParams[0] = params.get();
+      } else if (m_attachments[i]->mURL) {
+        nsCString asciiSpec;
+        m_attachments[i]->mURL->GetAsciiSpec(asciiSpec);
+        attachmentFileName.AssignASCII(asciiSpec.get());
+        formatParams[0] = attachmentFileName.get();
+      }
+      mComposeBundle->FormatStringFromName("gatheringAttachment",
+                                           formatParams, 1, msg);
 
       if (!msg.IsEmpty())
       {
@@ -2528,15 +2530,20 @@ nsMsgComposeAndSend::HackAttachments(nsIArray *attachments,
       if (NS_FAILED(status))
       {
         nsString errorMsg;
-        nsAutoString attachmentFileName;
         nsresult rv = ConvertToUnicode(nsMsgI18NFileSystemCharset(), m_attachments[i]->m_realName, attachmentFileName);
+        if (attachmentFileName.IsEmpty() && m_attachments[i]->mURL) {
+          nsCString asciiSpec;
+          m_attachments[i]->mURL->GetAsciiSpec(asciiSpec);
+          attachmentFileName.AssignASCII(asciiSpec.get());
+          rv = NS_OK;
+        }
         if (NS_SUCCEEDED(rv))
         {
           nsCOMPtr<nsIStringBundle> bundle;
           const char16_t *params[] = { attachmentFileName.get() };
-          mComposeBundle->FormatStringFromName(MOZ_UTF16("errorAttachingFile"),
+          mComposeBundle->FormatStringFromName("errorAttachingFile",
                                                params, 1,
-                                               getter_Copies(errorMsg));
+                                               errorMsg);
           mSendReport->SetMessage(nsIMsgSendReport::process_Current, errorMsg.get(), false);
           mSendReport->SetError(nsIMsgSendReport::process_Current,
                                 NS_MSG_ERROR_ATTACHING_FILE,
@@ -2659,7 +2666,7 @@ nsMsgComposeAndSend::InitCompositionFields(nsMsgCompFields *fields,
                   rv = incomingServer->GetCharValue("type", incomingServerType);
                   // Exclude RSS accounts, as they falsely report
                   // 'canFileMessages' = true
-                  if (NS_SUCCEEDED(rv) && !incomingServerType.Equals("rss"))
+                  if (NS_SUCCEEDED(rv) && !incomingServerType.EqualsLiteral("rss"))
                   {
                     bool fccReplyFollowsParent;
                     rv = mUserIdentity->GetFccReplyFollowsParent(
@@ -2750,6 +2757,8 @@ nsMsgComposeAndSend::InitCompositionFields(nsMsgCompFields *fields,
 
   mCompFields->SetReturnReceipt(fields->GetReturnReceipt());
   mCompFields->SetAttachmentReminder(fields->GetAttachmentReminder());
+  mCompFields->SetDeliveryFormat(fields->GetDeliveryFormat());
+  mCompFields->SetContentLanguage(fields->GetContentLanguage());
   mCompFields->SetReceiptHeaderType(receiptType);
 
   mCompFields->SetDSN(fields->GetDSN());
@@ -3003,7 +3012,7 @@ nsMsgComposeAndSend::Init(
               const nsACString &attachment1_body,
               nsIArray *attachments,
               nsIArray *preloaded_attachments,
-              const char *password,
+              const nsAString &password,
               const nsACString &aOriginalMsgURI,
               MSG_ComposeType aType)
 {
@@ -3024,7 +3033,7 @@ nsMsgComposeAndSend::Init(
   }
 
   // Tell the user we are assembling the message...
-  mComposeBundle->GetStringFromName(MOZ_UTF16("assemblingMailInformation"), getter_Copies(msg));
+  mComposeBundle->GetStringFromName("assemblingMailInformation", msg);
   SetStatusMessage(msg);
   if (mSendReport)
     mSendReport->SetCurrentProcess(nsIMsgSendReport::process_BuildMessage);
@@ -3148,6 +3157,11 @@ NS_IMETHODIMP nsMsgComposeAndSend::SendDeliveryCallback(nsIURI *aUrl, bool inIsN
   {
     if (NS_FAILED(aExitCode))
     {
+#ifdef __GNUC__
+// Temporary workaroung until bug 783526 is fixed.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wswitch"
+#endif
       switch (aExitCode)
       {
         case NS_ERROR_UNKNOWN_HOST:
@@ -3173,6 +3187,9 @@ NS_IMETHODIMP nsMsgComposeAndSend::SendDeliveryCallback(nsIURI *aUrl, bool inIsN
             aExitCode = NS_ERROR_SMTP_SEND_FAILED_UNKNOWN_REASON;
           break;
       }
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
     }
     DeliverAsMailExit(aUrl, aExitCode);
   }
@@ -3219,8 +3236,8 @@ nsMsgComposeAndSend::DeliverMessage()
     nsAutoString formattedFileSize;
     FormatFileSize(fileSize, true, formattedFileSize);
     const char16_t* params[] = { formattedFileSize.get() };
-    mComposeBundle->FormatStringFromName(MOZ_UTF16("largeMessageSendWarning"),
-                                         params, 1, getter_Copies(msg));
+    mComposeBundle->FormatStringFromName("largeMessageSendWarning",
+                                         params, 1, msg);
 
     if (!msg.IsEmpty())
     {
@@ -3243,11 +3260,11 @@ nsMsgComposeAndSend::DeliverMessage()
 
     return DeliverFileAsNews();   /* will call DeliverFileAsMail if it needs to */
   }
-  else if (mail_p)
+
+  if (mail_p)
     return DeliverFileAsMail();
-  else
-    return NS_ERROR_UNEXPECTED;
-  return NS_OK;
+
+  return NS_ERROR_UNEXPECTED;
 }
 
 
@@ -3355,7 +3372,7 @@ nsMsgComposeAndSend::DeliverFileAsMail()
 
   if (!escaped_buf.IsEmpty())
   {
-    NS_Free(buf);
+    free(buf);
     buf = ToNewCString(escaped_buf);
   }
 
@@ -3378,7 +3395,7 @@ nsMsgComposeAndSend::DeliverFileAsMail()
 
     // Tell the user we are sending the message!
     nsString msg;
-    mComposeBundle->GetStringFromName(MOZ_UTF16("sendingMessage"), getter_Copies(msg));
+    mComposeBundle->GetStringFromName("sendingMessage", msg);
     SetStatusMessage(msg);
     nsCOMPtr<nsIMsgStatusFeedback> msgStatus (do_QueryInterface(mSendProgress));
     // if the sendProgress isn't set, let's use the member variable.
@@ -3387,7 +3404,7 @@ nsMsgComposeAndSend::DeliverFileAsMail()
 
     nsCOMPtr<nsIURI> runningUrl;
     rv = smtpService->SendMailMessage(mTempFile, buf, mUserIdentity,
-                                      mSmtpPassword.get(), deliveryListener, msgStatus,
+                                      mSmtpPassword, deliveryListener, msgStatus,
                                       callbacks, mCompFields->GetDSN(),
                                       getter_AddRefs(runningUrl),
                                       getter_AddRefs(mRunningRequest));
@@ -3427,8 +3444,7 @@ nsMsgComposeAndSend::DeliverFileAsNews()
 
     // Tell the user we are posting the message!
     nsString msg;
-    mComposeBundle->GetStringFromName(MOZ_UTF16("postingMessage"),
-                                      getter_Copies(msg));
+    mComposeBundle->GetStringFromName("postingMessage", msg);
     SetStatusMessage(msg);
 
     nsCOMPtr <nsIMsgMailSession> mailSession = do_GetService(NS_MSGMAILSESSION_CONTRACTID, &rv);
@@ -3477,7 +3493,7 @@ nsMsgComposeAndSend::Fail(nsresult aFailureCode, const char16_t *aErrorMsg,
     else
     {
       if (aFailureCode != NS_ERROR_BUT_DONT_SHOW_ALERT)
-        nsMsgDisplayMessageByName(prompt, MOZ_UTF16("sendFailed"));
+        nsMsgDisplayMessageByName(prompt, "sendFailed");
     }
   }
 
@@ -3491,10 +3507,8 @@ nsMsgComposeAndSend::Fail(nsresult aFailureCode, const char16_t *aErrorMsg,
 }
 
 nsresult
-nsMsgComposeAndSend::FormatStringWithSMTPHostNameByName(const char16_t* aMsgName, char16_t **aString)
+nsMsgComposeAndSend::FormatStringWithSMTPHostNameByName(const char* aMsgName, nsAString& aString)
 {
-  NS_ENSURE_ARG(aString);
-
   nsresult rv;
   nsCOMPtr<nsISmtpService> smtpService(do_GetService(NS_SMTPSERVICE_CONTRACTID, &rv));
   NS_ENSURE_SUCCESS(rv,rv);
@@ -3521,7 +3535,7 @@ nsMsgComposeAndSend::DoDeliveryExitProcessing(nsIURI * aUri, nsresult aExitCode,
   // the user and exit.
   if (NS_FAILED(aExitCode))
   {
-    const char16_t* exitString = errorStringNameForErrorCode(aExitCode);
+    const char* exitString = errorStringNameForErrorCode(aExitCode);
     nsString eMsg;
     if (aExitCode == NS_ERROR_SMTP_SEND_FAILED_UNKNOWN_SERVER ||
         aExitCode == NS_ERROR_SMTP_SEND_FAILED_UNKNOWN_REASON ||
@@ -3537,9 +3551,9 @@ nsMsgComposeAndSend::DoDeliveryExitProcessing(nsIURI * aUri, nsresult aExitCode,
         aExitCode == NS_ERROR_SMTP_AUTH_CHANGE_ENCRYPT_TO_PLAIN_SSL ||
         aExitCode == NS_ERROR_SMTP_AUTH_CHANGE_PLAIN_TO_ENCRYPT ||
         aExitCode == NS_ERROR_STARTTLS_FAILED_EHLO_STARTTLS) {
-      FormatStringWithSMTPHostNameByName(exitString, getter_Copies(eMsg));
+      FormatStringWithSMTPHostNameByName(exitString, eMsg);
     } else {
-      mComposeBundle->GetStringFromName(exitString, getter_Copies(eMsg));
+      mComposeBundle->GetStringFromName(exitString, eMsg);
     }
 
     Fail(aExitCode, eMsg.get(), &aExitCode);
@@ -3597,31 +3611,52 @@ nsMsgComposeAndSend::DeliverAsNewsExit(nsIURI *aUrl, nsresult aExitCode)
   return NS_OK;
 }
 
-bool nsMsgComposeAndSend::CanSaveMessagesToFolder(const char *folderURL)
+nsresult
+nsMsgComposeAndSend::GetIncomingServer(const char *folderURL, nsIMsgIncomingServer **aServer)
 {
   nsresult rv;
   nsCOMPtr<nsIRDFService> rdf(do_GetService("@mozilla.org/rdf/rdf-service;1", &rv));
   if (NS_FAILED(rv))
-    return false;
+    return rv;
 
   nsCOMPtr<nsIRDFResource> resource;
   rv = rdf->GetResource(nsDependentCString(folderURL), getter_AddRefs(resource));
   if (NS_FAILED(rv))
-    return false;
+    return rv;
 
   nsCOMPtr <nsIMsgFolder> thisFolder;
   thisFolder = do_QueryInterface(resource, &rv);
   if (NS_FAILED(rv) || !thisFolder)
-    return false;
+    return rv;
 
   nsCOMPtr<nsIMsgIncomingServer> server;
   rv = thisFolder->GetServer(getter_AddRefs(server));
-  if (NS_FAILED(rv) || !server)
+  if (NS_FAILED(rv))
+    return rv;
+  if (!server)
+    return NS_ERROR_NULL_POINTER;
+
+  server.forget(aServer);
+  return NS_OK;
+}
+
+bool
+nsMsgComposeAndSend::CanSaveMessagesToFolder(const char *folderURL)
+{
+  bool canSave = false;
+  // Get pointer to server.
+  nsCOMPtr<nsIMsgIncomingServer> server;
+  nsresult rv = GetIncomingServer(folderURL, getter_AddRefs(server));
+  if (NS_FAILED(rv))
     return false;
 
   // See if we are allowed to save/file msgs to this folder.
-  bool canSave;
-  rv = server->GetCanFileMessagesOnServer(&canSave);
+  if (server)
+  {
+    rv = server->GetCanFileMessagesOnServer(&canSave);
+    if (NS_FAILED(rv))
+      canSave = false;
+  }
   return canSave;
 }
 
@@ -3785,9 +3820,9 @@ nsMsgComposeAndSend::NotifyListenerOnStopCopy(nsresult aStatus)
   // Set a status message...
   nsString msg;
   if (NS_SUCCEEDED(aStatus))
-    mComposeBundle->GetStringFromName(MOZ_UTF16("copyMessageComplete"), getter_Copies(msg));
+    mComposeBundle->GetStringFromName("copyMessageComplete", msg);
   else
-    mComposeBundle->GetStringFromName(MOZ_UTF16("copyMessageFailed"), getter_Copies(msg));
+    mComposeBundle->GetStringFromName("copyMessageFailed", msg);
 
   SetStatusMessage(msg);
   nsCOMPtr<nsIPrompt> prompt;
@@ -3803,26 +3838,113 @@ nsMsgComposeAndSend::NotifyListenerOnStopCopy(nsresult aStatus)
     rv = bundleService->CreateBundle("chrome://messenger/locale/messengercompose/composeMsgs.properties", getter_AddRefs(bundle));
     NS_ENSURE_SUCCESS(rv, rv);
 
-    nsString msg;
-    const char16_t *formatStrings[] = { mSavedToFolderName.get() };
-
-    rv = bundle->FormatStringFromName(MOZ_UTF16("errorSavingMsg"),
-                                      formatStrings, 1,
-                                      getter_Copies(msg));
+    // Obtain account name for local folders.
+    nsString localFoldersAccountName;
+    nsCOMPtr<nsIMsgAccountManager> accountManager =
+      do_GetService(NS_MSGACCOUNTMANAGER_CONTRACTID, &rv);
     if (NS_SUCCEEDED(rv))
     {
-      bool retry = false;
-      nsMsgAskBooleanQuestionByString(prompt, msg.get(), &retry, nullptr);
-      if (retry)
+      nsCOMPtr<nsIMsgIncomingServer> server;
+      rv = accountManager->GetLocalFoldersServer(getter_AddRefs(server));
+      if (NS_SUCCEEDED(rv))
+        rv = server->GetPrettyName(localFoldersAccountName);
+    }
+    if (NS_FAILED(rv) || localFoldersAccountName.IsEmpty())
+    {
+      // Unable to obtain localFoldersAccountName.
+      Fail(NS_OK, nullptr, &aStatus);
+      return NS_ERROR_FAILURE;
+    }
+
+    // Get the user account name where "save to" failed.
+    nsString accountName;
+    const char* fcc = mCompFields->GetFcc();
+    if (fcc && *fcc)
+    {
+      nsCOMPtr<nsIMsgIncomingServer> server;
+      rv = GetIncomingServer(fcc, getter_AddRefs(server));
+      if (NS_SUCCEEDED(rv) && server)
+        rv = server->GetPrettyName(accountName);
+    }
+    else
+      rv = NS_ERROR_FAILURE;
+    if (NS_FAILED(rv) || accountName.IsEmpty())
+    {
+      // Unable to obtain accountName.
+      Fail(NS_OK, nullptr, &aStatus);
+      return NS_ERROR_FAILURE;
+    }
+
+    const char16_t *formatStrings[] = { mSavedToFolderName.get(), accountName.get(),
+                                        localFoldersAccountName.get() };
+
+    nsString msg;
+    switch (m_deliver_mode)
+    {
+      case nsMsgDeliverNow:
+      case nsMsgSendUnsent:
+        rv = bundle->FormatStringFromName("promptToSaveSentLocally",
+                                          formatStrings, 3,
+                                          msg);
+        break;
+      case nsMsgSaveAsDraft:
+        rv = bundle->FormatStringFromName("promptToSaveDraftLocally",
+                                          formatStrings, 3,
+                                          msg);
+        break;
+      case nsMsgSaveAsTemplate:
+        rv = bundle->FormatStringFromName("promptToSaveTemplateLocally",
+                                          formatStrings, 3,
+                                          msg);
+        break;
+      default:
+        rv = NS_ERROR_UNEXPECTED;
+    }
+    NS_ENSURE_SUCCESS(rv, rv);
+    int32_t buttonPressed = 0;
+    bool showCheckBox = false;
+    uint32_t buttonFlags = (nsIPrompt::BUTTON_POS_0 * nsIPrompt::BUTTON_TITLE_IS_STRING) +
+                           (nsIPrompt::BUTTON_POS_1 * nsIPrompt::BUTTON_TITLE_CANCEL) +
+                           (nsIPrompt::BUTTON_POS_2 * nsIPrompt::BUTTON_TITLE_SAVE);
+    nsString dialogTitle, buttonLabelRetry;
+    bundle->GetStringFromName("SaveDialogTitle", dialogTitle);
+    bundle->GetStringFromName("buttonLabelRetry", buttonLabelRetry);
+    prompt->ConfirmEx(dialogTitle.get(), msg.get(), buttonFlags, buttonLabelRetry.get(),
+                      nullptr, nullptr, nullptr, &showCheckBox, &buttonPressed);
+    if (buttonPressed == 0)
+    {
+      // retry button clicked
+      mSendProgress = nullptr; // this was canceled, so we need to clear it.
+      return SendToMagicFolder(m_deliver_mode);
+    }
+
+    bool saveLocally = (buttonPressed == 2);
+
+    if (saveLocally)
+    {
+      // Try to save to Local Folders/<account name>.
+      // Pass in "nsMsgDeliverNow" so draft saves too. Also, fcc pointer
+      // is nullptr to tell function to save to local folders and not the
+      // configured fcc.
+      rv = MimeDoFCC(mTempFile,
+                     nsIMsgSend::nsMsgDeliverNow,
+                     mCompFields->GetBcc(),
+                     nullptr,
+                     mCompFields->GetNewspostUrl());
+
+      if (NS_FAILED(rv))
       {
-        mSendProgress = nullptr; // this was cancelled, so we need to clear it.
-        return SendToMagicFolder(m_deliver_mode);
+        // Save to Local Folders failed. Inform the user.
+        nsCOMPtr<nsIPrompt> prompt;
+        GetDefaultPrompt(getter_AddRefs(prompt));
+        nsMsgDisplayMessageByName(prompt, "saveToLocalFoldersFailed");
       }
     }
 
-    // We failed, and the user decided not to retry. So we're just going to
-    // fail out. However, give Fail a success code so that it doesn't prompt
-    // the user a second time as they already know about the failure.
+    // Failure detected when user saved to default folder and the user did not
+    // retry; instead the user saved to Local Folders or canceled the save. So
+    // just call Fail() with a success code so that it doesn't prompt the user
+    // again since the user already knows about the failure and has reacted.
     Fail(NS_OK, nullptr, &aStatus);
   }
 
@@ -3863,7 +3985,7 @@ nsMsgComposeAndSend::FilterSentMessage()
   if (NS_FAILED(rv))
     return rv;
 
-  rv = msgArray->AppendElement(msgHdr, false);
+  rv = msgArray->AppendElement(msgHdr);
   if (NS_FAILED(rv))
     return rv;
 
@@ -3880,15 +4002,15 @@ nsMsgComposeAndSend::OnStopOperation(nsresult aStatus)
   // Set a status message...
   nsString msg;
   if (NS_SUCCEEDED(aStatus))
-    mComposeBundle->GetStringFromName(MOZ_UTF16("filterMessageComplete"), getter_Copies(msg));
+    mComposeBundle->GetStringFromName("filterMessageComplete", msg);
   else
-    mComposeBundle->GetStringFromName(MOZ_UTF16("filterMessageFailed"), getter_Copies(msg));
+    mComposeBundle->GetStringFromName("filterMessageFailed", msg);
 
   SetStatusMessage(msg);
 
   if (NS_FAILED(aStatus))
   {
-    nsresult rv = mComposeBundle->GetStringFromName(MOZ_UTF16("errorFilteringMsg"), getter_Copies(msg));
+    nsresult rv = mComposeBundle->GetStringFromName("errorFilteringMsg", msg);
     if (NS_SUCCEEDED(rv))
     {
       nsCOMPtr<nsIPrompt> prompt;
@@ -3997,10 +4119,10 @@ nsMsgComposeAndSend::CreateAndSendMessage(
               const nsACString                  &attachment1_body,
               nsIArray *attachments,
               nsIArray *preloaded_attachments,
-              nsIDOMWindow                      *parentWindow,
+              mozIDOMWindowProxy                *parentWindow,
               nsIMsgProgress                    *progress,
               nsIMsgSendListener                *aListener,
-              const char                        *password,
+              const nsAString                   &password,
               const nsACString                  &aOriginalMsgURI,
               MSG_ComposeType                   aType
               )
@@ -4038,7 +4160,7 @@ nsMsgComposeAndSend::CreateRFC822Message(
               const nsACString &aMsgBody,
               bool aIsDraft,
               nsIArray *aAttachments,
-              nsISupportsArray *aEmbeddedObjects,
+              nsIArray *aEmbeddedObjects,
               nsIMsgSendListener *aListener
               )
 {
@@ -4060,7 +4182,7 @@ nsMsgComposeAndSend::CreateRFC822Message(
             aMsgType,
             aMsgBody,
             nullptr, aAttachments,
-            nullptr, EmptyCString(), nsIMsgCompType::New);
+            EmptyString(), EmptyCString(), nsIMsgCompType::New);
 
   if (NS_FAILED(rv) && mSendReport)
     mSendReport->SetError(nsIMsgSendReport::process_Current, rv, false);
@@ -4080,7 +4202,7 @@ nsMsgComposeAndSend::SendMessageFile(
               nsIMsgDBHdr                       *msgToReplace,
               nsIMsgSendListener                *aListener,
               nsIMsgStatusFeedback              *aStatusFeedback,
-              const char                        *password
+              const char16_t                    *password
               )
 {
   NS_ENSURE_ARG_POINTER(fields);
@@ -4114,7 +4236,8 @@ nsMsgComposeAndSend::SendMessageFile(
             digest_p, false, mode, msgToReplace,
             nullptr, EmptyCString(),
             nullptr, nullptr,
-            password, EmptyCString(), nsIMsgCompType::New);
+            password ? nsDependentString(password) : EmptyString(),
+            EmptyCString(), nsIMsgCompType::New);
 
   if (NS_SUCCEEDED(rv))
     rv = DeliverMessage();
@@ -4123,40 +4246,6 @@ nsMsgComposeAndSend::SendMessageFile(
     mSendReport->SetError(nsIMsgSendReport::process_Current, rv, false);
 
   return rv;
-}
-
-nsMsgAttachmentData *
-BuildURLAttachmentData(nsIURI *url)
-{
-  int                 attachCount = 2;  // one entry and one empty entry
-  nsMsgAttachmentData *attachments;
-  const char          *theName = nullptr;
-
-  if (!url)
-    return nullptr;
-
-  attachments = new nsMsgAttachmentData[attachCount];
-  if (!attachments)
-    return nullptr;
-
-  // Now get a readable name...
-  nsAutoCString spec;
-  url->GetSpec(spec);
-  if (!spec.IsEmpty())
-  {
-    theName = strrchr(spec.get(), '/');
-  }
-
-  if (!theName)
-    theName = "Unknown"; // Don't I18N this string...should never happen...
-  else
-    theName++;
-
-  attachments[0].m_url = url; // The URL to attach.
-  attachments[0].m_realName = theName;  // The original name of this document, which will eventually show up in the
-
-  NS_IF_ADDREF(url);
-  return attachments;
 }
 
 //
@@ -4208,6 +4297,7 @@ nsMsgGetEnvelopeLine(void)
   return result;
 }
 
+#define ibuffer_size FILE_IO_BUFFER_SIZE
 nsresult
 nsMsgComposeAndSend::MimeDoFCC(nsIFile          *input_file,
                                nsMsgDeliverMode mode,
@@ -4216,26 +4306,16 @@ nsMsgComposeAndSend::MimeDoFCC(nsIFile          *input_file,
                                const char       *news_url)
 {
   nsresult      status = NS_OK;
-  char          *ibuffer = 0;
-  int32_t       ibuffer_size = TEN_K;
-  char          *obuffer = 0;
+  char          *ibuffer = nullptr;
   uint32_t      n;
   bool          folderIsLocal = true;
-  nsCString     turi;
-  char16_t     *printfString = nullptr;
+  nsCString     tmpUri;
+  nsString      printfString;
   nsString msg;
   nsCOMPtr<nsIMsgFolder> folder;
 
-  // Before continuing, just check the user has not cancel the operation
   if (mSendProgress)
-  {
-    bool canceled = false;
-    mSendProgress->GetProcessCanceledByUser(&canceled);
-    if (canceled)
-      return NS_ERROR_ABORT;
-    else
-      mSendProgress->OnProgressChange(nullptr, nullptr, 0, 0, 0, -1);
-  }
+    mSendProgress->OnProgressChange(nullptr, nullptr, 0, 0, 0, -1);
 
   //
   // Ok, this is here to keep track of this for 2 copy operations...
@@ -4286,14 +4366,7 @@ nsMsgComposeAndSend::MimeDoFCC(nsIFile          *input_file,
   }
 
   // now the buffers...
-  ibuffer = nullptr;
-  while (!ibuffer && (ibuffer_size >= 1024))
-  {
-    ibuffer = (char *) PR_Malloc(ibuffer_size);
-    if (!ibuffer)
-      ibuffer_size /= 2;
-  }
-
+  ibuffer = (char *) PR_Malloc(ibuffer_size);
   if (!ibuffer)
   {
     status = NS_ERROR_OUT_OF_MEMORY;
@@ -4309,36 +4382,112 @@ nsMsgComposeAndSend::MimeDoFCC(nsIFile          *input_file,
     GetExistingFolder(nsDependentCString(fcc_header), getter_AddRefs(folder));
 
   if ((mode == nsMsgDeliverNow || mode == nsMsgSendUnsent) && folder)
-    turi = fcc_header;
+  {
+    tmpUri = fcc_header;
+  }
+  else if (!fcc_header)
+  {
+    // Set fcc_header to a special folder in Local Folders "account" since can't
+    // save to Sent mbox, typically because imap connection is down. This
+    // folder is created if it doesn't yet exist.
+
+    nsCString folder;
+    // First, in folder string, obtain the uri for the local folders account
+    // which is typically "mailbox://nobody@Local%20Folders/"
+    nsCOMPtr<nsIMsgAccountManager> accountManager =
+      do_GetService(NS_MSGACCOUNTMANAGER_CONTRACTID, &rv);
+    if (NS_SUCCEEDED(rv) && accountManager)
+    {
+      nsCOMPtr<nsIMsgIncomingServer> server;
+      rv = accountManager->GetLocalFoldersServer(getter_AddRefs(server));
+      if (NS_SUCCEEDED(rv) && server)
+      {
+        nsCOMPtr<nsIMsgFolder> rootFolder;
+        rv = server->GetRootMsgFolder(getter_AddRefs(rootFolder));
+        if (NS_SUCCEEDED(rv) && rootFolder)
+        {
+          rv = rootFolder->GetURI(folder);
+          folder.Append('/');
+        }
+      }
+    }
+    if (NS_FAILED(rv) || folder.IsEmpty())
+    {
+      status = NS_ERROR_FAILURE;
+      goto FAIL;
+    }
+
+    // Now append the special folder name folder to the local folder uri.
+    switch (m_deliver_mode)
+    {
+      case nsMsgDeliverNow:
+      case nsMsgSendUnsent:
+      case nsMsgSaveAsDraft:
+      case nsMsgSaveAsTemplate:
+        // Typically, this appends "Sent-", "Drafts-" or "Templates-" to folder
+        // and then has the account name appended, e.g., .../Sent-MyImapAccount.
+        folder.Append(NS_ConvertUTF16toUTF8(mSavedToFolderName));
+        folder.Append('-');
+        break;
+      default:
+        status = NS_ERROR_FAILURE;
+        goto FAIL;
+    }
+
+    // Get the account name where the "save to" failed.
+    nsString accountName;
+    const char* fcc = mCompFields->GetFcc();
+    if (fcc && *fcc)
+    {
+      nsCOMPtr<nsIMsgIncomingServer> server;
+      rv = GetIncomingServer(fcc, getter_AddRefs(server));
+      if (NS_SUCCEEDED(rv) && server)
+      {
+        rv = server->GetPrettyName(accountName);
+      }
+    }
+    else
+      rv = NS_ERROR_FAILURE;
+    if (NS_FAILED(rv) || accountName.IsEmpty())
+    {
+      status = NS_ERROR_FAILURE;
+      goto FAIL;
+    }
+
+    // Now append the imap account name (escaped) to the folder uri.
+    nsCString escAccountName;
+    MsgEscapeString(NS_ConvertUTF16toUTF8(accountName), nsINetUtil::ESCAPE_URL_PATH, escAccountName);
+    folder += escAccountName;
+    fcc_header = ToNewCString(folder);
+    tmpUri = fcc_header;
+  }
   else
-    GetFolderURIFromUserPrefs(mode, mUserIdentity, turi);
-  status = MessageFolderIsLocal(mUserIdentity, mode, turi.get(), &folderIsLocal);
+  {
+    GetFolderURIFromUserPrefs(mode, mUserIdentity, tmpUri);
+  }
+  status = MessageFolderIsLocal(mUserIdentity, mode, tmpUri.get(), &folderIsLocal);
   if (NS_FAILED(status))
     goto FAIL;
 
   // Tell the user we are copying the message...
-  mComposeBundle->GetStringFromName(MOZ_UTF16("copyMessageStart"),
-                                    getter_Copies(msg));
+  mComposeBundle->GetStringFromName("copyMessageStart", msg);
   if (!msg.IsEmpty())
   {
     nsCOMPtr<nsIRDFService> rdfService = do_GetService(kRDFServiceCID);
     if (rdfService)
     {
       nsCOMPtr<nsIRDFResource> res;
-      rdfService->GetResource(turi, getter_AddRefs(res));
+      rdfService->GetResource(tmpUri, getter_AddRefs(res));
       nsCOMPtr<nsIMsgFolder> folder = do_QueryInterface(res);
       if (folder)
         folder->GetName(mSavedToFolderName);
     }
     if (!mSavedToFolderName.IsEmpty())
-      printfString = nsTextFormatter::smprintf(msg.get(), mSavedToFolderName.get());
+      nsTextFormatter::ssprintf(printfString, msg.get(),
+                                mSavedToFolderName.get());
     else
-      printfString = nsTextFormatter::smprintf(msg.get(), "?");
-    if (printfString)
-    {
-      SetStatusMessage(nsDependentString(printfString));
-      PR_Free(printfString);
-    }
+      nsTextFormatter::ssprintf(printfString, msg.get(), "?");
+    SetStatusMessage(printfString);
   }
 
   if (folderIsLocal)
@@ -4635,9 +4784,6 @@ nsMsgComposeAndSend::MimeDoFCC(nsIFile          *input_file,
 
 FAIL:
   PR_Free(ibuffer);
-  if (obuffer != ibuffer)
-    PR_Free(obuffer);
-
 
   if (NS_FAILED(tempOutfile->Flush()))
     status = NS_MSG_ERROR_WRITING_FILE;
@@ -4660,7 +4806,7 @@ FAIL:
   if (NS_SUCCEEDED(status))
   {
     // If we are here, time to start the async copy service operation!
-    status = StartMessageCopyOperation(mCopyFile, mode, turi);
+    status = StartMessageCopyOperation(mCopyFile, mode, tmpUri);
   }
   return status;
 }
@@ -4871,6 +5017,10 @@ nsMsgComposeAndSend::GetSendBody(nsAString& aBody)
   nsCString charSet;
   if (mCompFields)
     mCompFields->GetCharacterSet(getter_Copies(charSet));
+  if (!m_attachment1_body) {
+    aBody.Truncate();
+    return NS_OK;
+  }
   return ConvertToUnicode(charSet.get(), m_attachment1_body, aBody);
 }
 
@@ -4886,8 +5036,7 @@ NS_IMETHODIMP
 nsMsgComposeAndSend::GetIdentity(nsIMsgIdentity **aIdentity)
 {
   NS_ENSURE_ARG_POINTER(aIdentity);
-  *aIdentity = mUserIdentity;
-  NS_IF_ADDREF(*aIdentity);
+  NS_IF_ADDREF(*aIdentity = mUserIdentity);
   return NS_OK;
 }
 
@@ -4898,8 +5047,7 @@ nsMsgComposeAndSend::GetAttachment(uint32_t aIndex,
   NS_ENSURE_ARG_POINTER(aAttachment);
   if (aIndex >= m_attachment_count)
     return NS_ERROR_ILLEGAL_VALUE;
-  *aAttachment = m_attachments[aIndex];
-  NS_IF_ADDREF(*aAttachment);
+  NS_IF_ADDREF(*aAttachment = m_attachments[aIndex]);
   return NS_OK;
 }
 
@@ -4933,7 +5081,8 @@ nsMsgComposeAndSend::GetDontDeliver(bool *aDontDeliver)
 
 NS_IMPL_ISUPPORTS(nsMsgAttachmentData, nsIMsgAttachmentData)
 
-nsMsgAttachmentData::nsMsgAttachmentData() :  m_size(0), m_isExternalAttachment(0),
+nsMsgAttachmentData::nsMsgAttachmentData() :  m_size(0), m_sizeExternalStr("-1"),
+  m_isExternalAttachment(false), m_isExternalLinkAttachment(false),
   m_isDownloaded(false), m_hasFilename(false), m_displayableInline(false)
 {
 }

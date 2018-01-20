@@ -7,23 +7,28 @@
 #include "mozilla/DebuggerOnGCRunnable.h"
 
 #include "mozilla/dom/ScriptSettings.h"
-#include "mozilla/CycleCollectedJSRuntime.h"
+#include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/Move.h"
+#include "mozilla/SystemGroup.h"
 #include "js/Debug.h"
 
 namespace mozilla {
 
-/* static */ NS_METHOD
-DebuggerOnGCRunnable::Enqueue(JSRuntime* aRt, const JS::GCDescription& aDesc)
+/* static */ nsresult
+DebuggerOnGCRunnable::Enqueue(JSContext* aCx, const JS::GCDescription& aDesc)
 {
-  auto gcEvent = aDesc.toGCEvent(aRt);
+  auto gcEvent = aDesc.toGCEvent(aCx);
   if (!gcEvent) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
   RefPtr<DebuggerOnGCRunnable> runOnGC =
     new DebuggerOnGCRunnable(Move(gcEvent));
-  return NS_DispatchToCurrentThread(runOnGC);
+  if (NS_IsMainThread()) {
+    return SystemGroup::Dispatch(TaskCategory::GarbageCollection, runOnGC.forget());
+  } else {
+    return NS_DispatchToCurrentThread(runOnGC);
+  }
 }
 
 NS_IMETHODIMP
@@ -37,7 +42,7 @@ DebuggerOnGCRunnable::Run()
   return NS_OK;
 }
 
-NS_IMETHODIMP
+nsresult
 DebuggerOnGCRunnable::Cancel()
 {
   mGCData = nullptr;

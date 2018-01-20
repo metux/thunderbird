@@ -71,7 +71,7 @@ function ircMessage(aData, aOrigin) {
   // here, we want to ignore the first value (which is empty).
   message.params = temp[4] ? temp[4].split(" ").slice(1) : [];
   // Last parameter can contain spaces or be an empty string.
-  if (temp[5] != undefined)
+  if (temp[5] !== undefined)
     message.params.push(temp[5]);
 
   // Handle the prefix part of the message per RFC 2812 Section 2.3.
@@ -142,7 +142,7 @@ function ircMessage(aData, aOrigin) {
 //   aNewModes is an array of mode characters.
 function _setMode(aAddNewMode, aNewModes) {
   // Check each mode being added/removed.
-  for each (let newMode in aNewModes) {
+  for (let newMode of aNewModes) {
     let hasMode = this._modes.has(newMode);
     // If the mode is in the list of modes and we want to remove it.
     if (hasMode && !aAddNewMode)
@@ -151,6 +151,12 @@ function _setMode(aAddNewMode, aNewModes) {
     else if (!hasMode && aAddNewMode)
       this._modes.add(newMode);
   }
+}
+
+function TagMessage(aMessage, aTagName) {
+    this.message = aMessage;
+    this.tagName = aTagName;
+    this.tagValue = aMessage.tags.get(aTagName);
 }
 
 // Properties / methods shared by both ircChannel and ircConversation.
@@ -173,6 +179,37 @@ var GenericIRCConversation = {
                       " :\r\n";
     return this._account.maxMessageLength -
            this._account.countBytes(baseMessage);
+  },
+  /**
+   * @param {string} aWho - Message author's username.
+   * @param {string} aMessage - Message text.
+   * @param {Object} aObject - Other properties to set on the imMessage.
+   */
+  handleTags: function(aWho, aMessage, aObject) {
+    let messageProps = aObject;
+    if ("tags" in aObject && ircHandlers.hasTagHandlers) {
+      // Merge extra info for the handler into the props.
+      messageProps = Object.assign({
+        who: aWho,
+        message: aMessage,
+        get originalMessage() {
+          return aMessage;
+        }
+      }, messageProps);
+      for (let tag of aObject.tags.keys()) {
+        // Unhandled tags may be common, since a tag does not have to be handled
+        // with a tag handler, it may also be handled by a message command handler.
+        ircHandlers.handleTag(this._account, new TagMessage(messageProps, tag));
+      }
+
+      // Remove helper prop for tag handlers. We don't want to remove the other
+      // ones, since they might have been changed and will override aWho and
+      // aMessage in the imMessage constructor.
+      delete messageProps.originalMessage;
+    }
+    // Remove the IRC tags, as those were passed in just for this step.
+    delete messageProps.tags;
+    return messageProps;
   },
   // Apply CTCP formatting before displaying.
   prepareForDisplaying: function(aMsg) {
@@ -419,7 +456,7 @@ ircChannel.prototype = {
       // Since some modes are conflicted between different server
       // implementations, check if a participant with that name exists. If this
       // is true, then update the mode of the ConvChatBuddy.
-      if (this._account.memberStatuses.indexOf(aNewMode[i]) != -1 &&
+      if (this._account.memberStatuses.includes(aNewMode[i]) &&
           aModeParams.length && this._participants.has(peekNextParam())) {
         // Store the new modes for this nick (so each participant's mode is only
         // updated once).
@@ -468,7 +505,7 @@ ircChannel.prototype = {
         }
         this.writeMessage(aSetter, _(msgKey, banMask, aSetter), {system: true});
       }
-      else if (["e", "I", "l"].indexOf(aNewMode[i]) != -1) {
+      else if (["e", "I", "l"].includes(aNewMode[i])) {
         // TODO The following have parameters that must be accounted for.
         getNextParam();
       }
@@ -515,8 +552,10 @@ ircChannel.prototype = {
 
   setModesFromRestriction: function(aRestriction) {
     // First remove all types from the list of modes.
-    for each (let mode in this._account.channelRestrictionToModeMap)
+    for (let key in this._account.channelRestrictionToModeMap) {
+      let mode = this._account.channelRestrictionToModeMap[key];
       this._modes.delete(mode);
+    }
 
     // Add the new mode onto the list.
     if (aRestriction in this._account.channelRestrictionToModeMap) {
@@ -543,6 +582,10 @@ ircChannel.prototype = {
     // If the channel mode is +t, hops and ops can set the topic; otherwise
     // everyone can.
     return !this._modes.has("t") || participant.op || participant.halfOp;
+  },
+  writeMessage: function(aMsg, aWho, aObject) {
+    const messageProps = this.handleTags(aMsg, aWho, aObject);
+    GenericConvChatPrototype.writeMessage.call(this, aMsg, aWho, messageProps);
   }
 };
 Object.assign(ircChannel.prototype, GenericIRCConversation);
@@ -608,6 +651,10 @@ ircConversation.prototype = {
   updateNick: function(aNewNick) {
     this._name = aNewNick;
     this.notifyObservers(null, "update-conv-title");
+  },
+  writeMessage: function(aMsg, aWho, aObject) {
+    const messageProps = this.handleTags(aMsg, aWho, aObject);
+    GenericConvIMPrototype.writeMessage.call(this, aMsg, aWho, messageProps);
   }
 };
 Object.assign(ircConversation.prototype, GenericIRCConversation);
@@ -763,6 +810,21 @@ ircAccountBuddy.prototype = {
   }
 };
 
+function ircRoomInfo(aName, aAccount) {
+  this.name = aName;
+  this._account = aAccount;
+}
+ircRoomInfo.prototype = {
+  __proto__: ClassInfo("prplIRoomInfo", "IRC RoomInfo Object"),
+  get topic() { return this._account._channelList.get(this.name).topic; },
+  get participantCount() {
+    return this._account._channelList.get(this.name).participantCount;
+  },
+  get chatRoomFieldValues() {
+    return this._account.getChatRoomDefaultFieldValues(this.name);
+  }
+};
+
 function ircAccount(aProtocol, aImAccount) {
   this._init(aProtocol, aImAccount);
   this.buddies = new NormalizedMap(this.normalizeNick.bind(this));
@@ -853,7 +915,7 @@ ircAccount.prototype = {
     let str = aStr;
 
     if (aPrefixes) {
-      while (aPrefixes.indexOf(str[0]) != -1)
+      while (aPrefixes.includes(str[0]))
         str = str.slice(1);
     }
 
@@ -863,7 +925,7 @@ ircAccount.prototype = {
   normalizeNick: function(aNick) { return this.normalize(aNick, this.userPrefixes); },
 
   isMUCName: function(aStr) {
-    return (this.channelPrefixes.indexOf(aStr[0]) != -1);
+    return this.channelPrefixes.includes(aStr[0]);
   },
 
   // Tell the server about status changes. IRC is only away or not away;
@@ -928,7 +990,7 @@ ircAccount.prototype = {
     if (this._showServerTab) {
       let msg;
       if (aDisplayFullMode)
-        msg = _("message.yourmode", [mode for (mode of this._modes)].join(""));
+        msg = _("message.yourmode", Array.from(this._modes).join(""));
       else {
         msg = _("message.usermode", aNewModes, aNick,
                 aSetter || this._currentServerName);
@@ -939,13 +1001,14 @@ ircAccount.prototype = {
     return true;
   },
 
-  // Channels are stored as prplIRoomInfo.
-  _channelList: [],
+  // Room info: maps channel names to {topic, participantCount}.
+  _channelList: new Map(),
   _roomInfoCallbacks: new Set(),
   // If true, we have sent the LIST request and are waiting for replies.
   _pendingList: false,
-  // Callbacks receive at most this many channels per call.
-  _channelsPerBatch: 25,
+  // Callbacks receive this many channels per call while results are incoming.
+  _channelsPerBatch: 50,
+  _currentBatch: [],
   _lastListTime: 0,
   get isRoomInfoStale() { return Date.now() - this._lastListTime > kListRefreshInterval; },
   // Called by consumers that want a list of available channels, which are
@@ -960,15 +1023,16 @@ ircAccount.prototype = {
     // Send a LIST request if the channel list is stale and a current request
     // has not been sent.
     if (this.isRoomInfoStale && !this._pendingList) {
-      this._channelList = [];
+      this._channelList = new Map();
+      this._currentBatch = [];
       this._pendingList = true;
       this._lastListTime = Date.now();
       this.sendMessage("LIST");
     }
     // Otherwise, pass channels that have already been received to the callback.
     else {
-      aCallback.onRoomInfoAvailable(this._channelList, this, !this._pendingList,
-                                    this._channelList.length);
+      let rooms = [...this._channelList.keys()];
+      aCallback.onRoomInfoAvailable(rooms, !this._pendingList, rooms.length);
     }
 
     if (this._pendingList)
@@ -976,16 +1040,18 @@ ircAccount.prototype = {
   },
   // Pass room info for any remaining channels to callbacks and clean up.
   _sendRemainingRoomInfo: function() {
-    let remainingChannelCount = this._channelList.length % this._channelsPerBatch;
-    if (remainingChannelCount) {
-      let remainingChannels = this._channelList.slice(-remainingChannelCount);
+    if (this._currentBatch.length) {
       for (let callback of this._roomInfoCallbacks) {
-        callback.onRoomInfoAvailable(remainingChannels, this, true,
-                                     remainingChannelCount);
+        callback.onRoomInfoAvailable(this._currentBatch, true,
+                                     this._currentBatch.length);
       }
     }
     this._roomInfoCallbacks.clear();
     delete this._pendingList;
+    delete this._currentBatch;
+  },
+  getRoomInfo: function(aName) {
+    return new ircRoomInfo(aName, this);
   },
 
   // The last time a buffered command was sent.
@@ -1289,7 +1355,8 @@ ircAccount.prototype = {
       this.conversations.set(aNewNick, conversation);
 
       conversation.updateNick(aNewNick);
-      conversation.writeMessage(aOldNick, msg, {system: true});
+      conversation.writeMessage(aOldNick, _conv("nickSet", aOldNick, aNewNick),
+                                {system: true});
     }
   },
 
@@ -1597,7 +1664,7 @@ ircAccount.prototype = {
     // A channel prefix is required. If the user didn't include one,
     // we prepend # automatically to match the behavior of other
     // clients. Not doing it used to cause user confusion.
-    if (this.channelPrefixes.indexOf(channel[0]) == -1)
+    if (!this.channelPrefixes.includes(channel[0]))
       channel = "#" + channel;
 
     if (this.conversations.has(channel)) {
@@ -1895,6 +1962,7 @@ function ircProtocol() {
   Cu.import("resource:///modules/ircMultiPrefix.jsm", tempScope);
   Cu.import("resource:///modules/ircNonStandard.jsm", tempScope);
   Cu.import("resource:///modules/ircSASL.jsm", tempScope);
+  Cu.import("resource:///modules/ircServerTime.jsm", tempScope);
   Cu.import("resource:///modules/ircWatchMonitor.jsm", tempScope);
 
   // Register default IRC handlers (IRC base, CTCP).
@@ -1921,6 +1989,8 @@ function ircProtocol() {
   ircHandlers.registerISUPPORTHandler(tempScope.isupportMONITOR);
   ircHandlers.registerHandler(tempScope.ircSASL);
   ircHandlers.registerCAPHandler(tempScope.capSASL);
+  ircHandlers.registerCAPHandler(tempScope.capServerTime);
+  ircHandlers.registerTagHandler(tempScope.tagServerTime);
 }
 ircProtocol.prototype = {
   __proto__: GenericProtocolPrototype,

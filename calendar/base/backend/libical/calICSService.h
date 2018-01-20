@@ -21,17 +21,18 @@ class calICSService : public calIICSService,
 {
 protected:
     virtual ~calICSService() {}
-    class ParserWorker : public nsRunnable {
+    class ParserWorker : public mozilla::Runnable {
     public:
       ParserWorker(nsIThread *mainThread,
                    nsIThread *workerThread,
                    const nsACString &icsString,
                    calITimezoneProvider *tzProvider,
                    calIIcsComponentParsingListener *listener) :
+        mozilla::Runnable("ParserWorker"),
         mString(icsString), mProvider(tzProvider),
         mMainThread(mainThread), mWorkerThread(workerThread)
       {
-        mListener = new nsMainThreadPtrHolder<calIIcsComponentParsingListener>(listener);
+        mListener = new nsMainThreadPtrHolder<calIIcsComponentParsingListener>("calICSService::mListener", listener);
       }
 
       NS_DECL_NSIRUNNABLE
@@ -43,12 +44,13 @@ protected:
       nsCOMPtr<nsIThread> mMainThread;
       nsCOMPtr<nsIThread> mWorkerThread;
 
-      class ParserWorkerCompleter : public nsRunnable {
+      class ParserWorkerCompleter : public mozilla::Runnable {
       public:
         ParserWorkerCompleter(nsIThread *workerThread,
                               nsresult status,
                               calIIcalComponent *component,
                               const nsMainThreadPtrHandle<calIIcsComponentParsingListener> &listener) :
+          mozilla::Runnable("ParserWorkerCompleter"),
           mWorkerThread(workerThread), mListener(listener),
           mComp(component), mStatus(status)
         {

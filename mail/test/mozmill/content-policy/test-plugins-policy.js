@@ -1,21 +1,16 @@
-/**
- * Checks if plugins are enabled in messages correctly or not.
- */
-
-//
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/**
+ * Checks if plugins are enabled in messages correctly or not.
+ */
 
 var MODULE_NAME = 'test-plugins-policy';
 
 var RELATIVE_ROOT = '../shared-modules';
 var MODULE_REQUIRES = ['folder-display-helpers', 'window-helpers',
                        'compose-helpers', 'content-tab-helpers'];
-var jumlib = {};
-Components.utils.import("resource://mozmill/modules/jum.js", jumlib);
-var elib = {};
-Components.utils.import('resource://mozmill/modules/elementslib.js', elib);
 
 Components.utils.import("resource://gre/modules/Services.jsm");
 
@@ -201,14 +196,4 @@ function test_checkContentTab() {
 
   if (mc.tabmail.tabContainer.childNodes.length != preCount)
     throw new Error("The content tab didn't close");
-}
-
-function test_3paneWindowAllowed() {
-  Services.prefs.setBoolPref("mailnews.message_display.allow_plugins", true);
-
-  addMsgToFolderAndCheckContent(true);
-}
-
-function test_checkStandaloneMessageWindowAllowed() {
-  checkStandaloneMessageWindow(true);
 }

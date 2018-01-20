@@ -10,7 +10,7 @@
 
 */
 #include "nscore.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsMsgUtils.h"
 #include "nsIServiceManager.h"
 #include "nsIImportService.h"
@@ -34,9 +34,6 @@
 #include "nsUnicharUtils.h"
 
 #include "WMDebugLog.h"
-
-static NS_DEFINE_IID(kISupportsIID, NS_ISUPPORTS_IID);
-PRLogModuleInfo *WMLOGMODULE = nullptr;
 
 class ImportWMMailImpl : public nsIImportMail
 {
@@ -79,9 +76,6 @@ private:
 
 nsWMImport::nsWMImport()
 {
-  // Init logging module.
-  if (!WMLOGMODULE)
-    WMLOGMODULE = PR_NewLogModule("IMPORT");
   IMPORT_LOG0("nsWMImport Module Created\n");
   nsWMStringBundle::GetStringBundle();
 }
@@ -143,12 +137,12 @@ NS_IMETHODIMP nsWMImport::GetImportInterface(const char *pImportType,
   nsresult rv;
 
   if (!strcmp(pImportType, "settings")) {
-    nsIImportSettings *pSettings = nullptr;
-    rv = nsWMSettings::Create(&pSettings);
+    nsCOMPtr<nsIImportSettings> pSettings;
+    rv = nsWMSettings::Create(getter_AddRefs(pSettings));
     if (NS_SUCCEEDED(rv)) {
-      pSettings->QueryInterface(kISupportsIID, (void **)ppInterface);
+      nsCOMPtr<nsISupports> pInterface(do_QueryInterface(pSettings));
+      pInterface.forget(ppInterface);
     }
-    NS_IF_RELEASE(pSettings);
     return rv;
   }
 
@@ -159,9 +153,7 @@ NS_IMETHODIMP nsWMImport::GetImportInterface(const char *pImportType,
 nsresult ImportWMMailImpl::Create(nsIImportMail** aImport)
 {
   NS_ENSURE_ARG_POINTER(aImport);
-  *aImport = new ImportWMMailImpl();
-  NS_ENSURE_TRUE(*aImport, NS_ERROR_OUT_OF_MEMORY);
-  NS_ADDREF(*aImport);
+  NS_ADDREF(*aImport = new ImportWMMailImpl());
   return NS_OK;
 }
 
@@ -204,9 +196,9 @@ void ImportWMMailImpl::ReportSuccess(nsString& name, int32_t count, nsString *pS
     return;
   // load the success string
   char16_t *pFmt = nsWMStringBundle::GetStringByID(WMIMPORT_MAILBOX_SUCCESS);
-  char16_t *pText = nsTextFormatter::smprintf(pFmt, name.get(), count);
+  nsString pText;
+  nsTextFormatter::ssprintf(pText, pFmt, name.get(), count);
   pStream->Append(pText);
-  nsTextFormatter::smprintf_free(pText);
   nsWMStringBundle::FreeString(pFmt);
   AddLinebreak(pStream);
 }
@@ -217,9 +209,9 @@ void ImportWMMailImpl::ReportError(int32_t errorNum, nsString& name, nsString *p
     return;
   // load the error string
   char16_t *pFmt = nsWMStringBundle::GetStringByID(errorNum);
-  char16_t *pText = nsTextFormatter::smprintf(pFmt, name.get());
+  nsString pText;
+  nsTextFormatter::ssprintf(pText, pFmt, name.get());
   pStream->Append(pText);
-  nsTextFormatter::smprintf_free(pText);
   nsWMStringBundle::FreeString(pFmt);
   AddLinebreak(pStream);
 }

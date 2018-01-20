@@ -17,7 +17,6 @@ test();
 
 function test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
 
@@ -49,11 +48,8 @@ function test()
     return stop - start;
   }
 
-  jit(false);
   var timenonjit = loop();
-  jit(true);
   var timejit = loop();
-  jit(false);
 
   print('time: nonjit = ' + timenonjit + ', jit = ' + timejit);
 
@@ -61,6 +57,4 @@ function test()
   actual = timejit < timenonjit/2;
 
   reportCompare(expect, actual, summary);
-
-  exitFunc ('test');
 }

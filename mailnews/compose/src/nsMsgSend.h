@@ -130,15 +130,14 @@
 #include "nsIDOMWindow.h"
 #include "nsIMsgComposeSecure.h"
 #include "nsAutoPtr.h"
-#include "nsISupportsArray.h"
 #include "nsMsgAttachmentData.h"
 #include "nsIMsgFilterService.h"
 #include "nsIMsgOperationListener.h"
+#include "nsMsgIncomingServer.h"
 
 //
 // Some necessary defines...
 //
-#define TEN_K                 10240
 #define MIME_BUFFER_SIZE      4096 // must be greater than 1000
                                    // SMTP (RFC821) limit
 // Maximum number of bytes we allow in a line before we force
@@ -190,7 +189,7 @@ public:
   NS_IMETHOD  DeliverFileAsMail();
   NS_IMETHOD  DeliverFileAsNews();
   void        DoDeliveryExitProcessing(nsIURI * aUrl, nsresult aExitCode, bool aCheckForMail);
-  nsresult    FormatStringWithSMTPHostNameByName(const char16_t* aMsgName, char16_t **aString);
+  nsresult    FormatStringWithSMTPHostNameByName(const char* aMsgName, nsAString& aString);
 
   nsresult    DoFcc();
   nsresult    StartMessageCopyOperation(nsIFile          *aFileSpec,
@@ -199,6 +198,9 @@ public:
 
 
   nsresult SendToMagicFolder(nsMsgDeliverMode flag);
+
+  // For the folderURL return the corresponding pointer to the incoming server.
+  nsresult GetIncomingServer(const char *folderURL, nsIMsgIncomingServer **aServer);
 
   // Check to see if it's ok to save msgs to the configured folder.
   bool CanSaveMessagesToFolder(const char *folderURL);
@@ -228,7 +230,7 @@ public:
                    const nsACString &attachment1_body,
                    nsIArray   *attachments,
                    nsIArray     *preloaded_attachments,
-                   const char       *password,
+                   const nsAString &password,
                    const nsACString &aOriginalMsgURI,
                    MSG_ComposeType  aType);
 
@@ -255,7 +257,7 @@ public:
   nsresult    ProcessMultipartRelated(int32_t *aMailboxCount, int32_t *aNewsCount);
   nsresult    GetEmbeddedObjectInfo(nsIDOMNode *node, nsMsgAttachmentData *attachment, bool *acceptObject);
   uint32_t    GetMultipartRelatedCount(bool forceToBeCalculated = false);
-  nsCOMPtr<nsISupportsArray> mEmbeddedObjectList; // it's initialized when calling GetMultipartRelatedCount
+  nsCOMPtr<nsIArray> mEmbeddedObjectList; // it's initialized when calling GetMultipartRelatedCount
 
   // Body processing
   nsresult    SnarfAndCopyBody(const nsACString &attachment1_body,
@@ -288,7 +290,7 @@ public:
   nsString mSavedToFolderName; // Name of folder we're saving to, used when
                                // displaying error on save.
   // These are needed for callbacks to the FE...
-  nsCOMPtr<nsPIDOMWindow>         mParentWindow;
+  nsCOMPtr<nsPIDOMWindowOuter>    mParentWindow;
   nsCOMPtr<nsIMsgProgress>        mSendProgress;
   nsCOMPtr<nsIMsgSendListener>    mListener;
   nsCOMPtr<nsIMsgStatusFeedback>  mStatusFeedback;
@@ -393,7 +395,7 @@ protected:
   nsresult AddXForwardedMessageIdHeader();
 
   nsCOMPtr<nsIMsgSendReport>  mSendReport;
-  nsCString                   mSmtpPassword;            // store the smtp Password use during a send
+  nsString                    mSmtpPassword;            // store the smtp Password use during a send
 };
 
 //

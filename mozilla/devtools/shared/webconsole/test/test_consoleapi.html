@@ -4,14 +4,14 @@
   <meta charset="utf8">
   <title>Test for the Console API</title>
   <script type="text/javascript" src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
-  <script type="text/javascript;version=1.8" src="common.js"></script>
+  <script type="text/javascript" src="common.js"></script>
   <!-- Any copyright is dedicated to the Public Domain.
      - http://creativecommons.org/publicdomain/zero/1.0/ -->
 </head>
 <body>
 <p>Test for the Console API</p>
 
-<script class="testbody" type="text/javascript;version=1.8">
+<script class="testbody" type="text/javascript">
 SimpleTest.waitForExplicitFinish();
 
 let expectedConsoleCalls = [];
@@ -21,6 +21,11 @@ function doConsoleCalls(aState)
   let longString = (new Array(DebuggerServer.LONG_STRING_LENGTH + 2)).join("a");
 
   top.console.log("foobarBaz-log", undefined);
+
+  top.console.log("Float from not a number: %f", "foo");
+  top.console.log("Float from string: %f", "1.2");
+  top.console.log("Float from number: %f", 1.3);
+
   top.console.info("foobarBaz-info", null);
   top.console.warn("foobarBaz-warn", top.document.documentElement);
   top.console.debug(null);
@@ -51,6 +56,18 @@ function doConsoleCalls(aState)
       functionName: "doConsoleCalls",
       timeStamp: /^\d+$/,
       arguments: ["foobarBaz-log", { type: "undefined" }],
+    },
+    {
+      level: "log",
+      arguments: ["Float from not a number: NaN"],
+    },
+    {
+      level: "log",
+      arguments: ["Float from string: 1.200000"],
+    },
+    {
+      level: "log",
+      arguments: ["Float from number: 1.300000"],
     },
     {
       level: "info",
@@ -132,7 +149,7 @@ function doConsoleCalls(aState)
         {
           type: "object",
           actor: /[a-z]/,
-          class: "Object",
+          class: "InvisibleToDebugger: Object",
         },
       ],
     },

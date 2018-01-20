@@ -58,7 +58,7 @@ function run_test() {
     case "Darwin":
       gfxInfo.spoofVendorID("0xabcd");
       gfxInfo.spoofDeviceID("0x1234");
-      gfxInfo.spoofOSVersion(0x1070);
+      gfxInfo.spoofOSVersion(0x1080);
       break;
     case "Android":
       // On Android, the driver version is used as the OS version (because
@@ -72,8 +72,7 @@ function run_test() {
 
   do_test_pending();
 
-  function checkBlacklist()
-  {
+  function checkBlacklist() {
     var status = gfxInfo.getFeatureStatus(Ci.nsIGfxInfo.FEATURE_DIRECT2D);
     do_check_eq(status, Ci.nsIGfxInfo.FEATURE_STATUS_OK);
 
@@ -87,7 +86,7 @@ function run_test() {
     // If we wait until after we go through the event loop, gfxInfo is sure to
     // have processed the gfxItems event.
     do_execute_soon(checkBlacklist);
-  }, "blocklist-data-gfxItems", false);
+  }, "blocklist-data-gfxItems");
 
   load_blocklist("test_gfxBlacklist.xml");
 }

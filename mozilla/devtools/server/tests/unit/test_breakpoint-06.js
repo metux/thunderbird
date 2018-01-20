@@ -1,5 +1,8 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
+/* eslint-disable no-shadow, max-nested-callbacks */
+
+"use strict";
 
 /**
  * Check that setting a breakpoint in a line without code in a deeply-nested
@@ -11,54 +14,52 @@ var gClient;
 var gThreadClient;
 var gCallback;
 
-function run_test()
-{
+function run_test() {
   run_test_with_server(DebuggerServer, function () {
     run_test_with_server(WorkerDebuggerServer, do_test_finished);
   });
   do_test_pending();
-};
+}
 
-function run_test_with_server(aServer, aCallback)
-{
-  gCallback = aCallback;
-  initTestDebuggerServer(aServer);
-  gDebuggee = addTestGlobal("test-stack", aServer);
-  gClient = new DebuggerClient(aServer.connectPipe());
-  gClient.connect(function () {
-    attachTestTabAndResume(gClient, "test-stack", function (aResponse, aTabClient, aThreadClient) {
-      gThreadClient = aThreadClient;
-      test_nested_breakpoint();
-    });
+function run_test_with_server(server, callback) {
+  gCallback = callback;
+  initTestDebuggerServer(server);
+  gDebuggee = addTestGlobal("test-stack", server);
+  gClient = new DebuggerClient(server.connectPipe());
+  gClient.connect().then(function () {
+    attachTestTabAndResume(gClient, "test-stack",
+                           function (response, tabClient, threadClient) {
+                             gThreadClient = threadClient;
+                             test_nested_breakpoint();
+                           });
   });
 }
 
-function test_nested_breakpoint()
-{
-  gThreadClient.addOneTimeListener("paused", function (aEvent, aPacket) {
-    let source = gThreadClient.source(aPacket.frame.where.source);
+function test_nested_breakpoint() {
+  gThreadClient.addOneTimeListener("paused", function (event, packet) {
+    let source = gThreadClient.source(packet.frame.where.source);
     let location = { line: gDebuggee.line0 + 5 };
 
-    source.setBreakpoint(location, function (aResponse, bpClient) {
+    source.setBreakpoint(location, function (response, bpClient) {
       // Check that the breakpoint has properly skipped forward one line.
-      do_check_eq(aResponse.actualLocation.source.actor, source.actor);
-      do_check_eq(aResponse.actualLocation.line, location.line + 1);
+      do_check_eq(response.actualLocation.source.actor, source.actor);
+      do_check_eq(response.actualLocation.line, location.line + 1);
 
-      gThreadClient.addOneTimeListener("paused", function (aEvent, aPacket) {
+      gThreadClient.addOneTimeListener("paused", function (event, packet) {
         // Check the return value.
-        do_check_eq(aPacket.type, "paused");
-        do_check_eq(aPacket.frame.where.source.actor, source.actor);
-        do_check_eq(aPacket.frame.where.line, location.line + 1);
-        do_check_eq(aPacket.why.type, "breakpoint");
-        do_check_eq(aPacket.why.actors[0], bpClient.actor);
+        do_check_eq(packet.type, "paused");
+        do_check_eq(packet.frame.where.source.actor, source.actor);
+        do_check_eq(packet.frame.where.line, location.line + 1);
+        do_check_eq(packet.why.type, "breakpoint");
+        do_check_eq(packet.why.actors[0], bpClient.actor);
         // Check that the breakpoint worked.
         do_check_eq(gDebuggee.a, 1);
         do_check_eq(gDebuggee.b, undefined);
 
         // Remove the breakpoint.
-        bpClient.remove(function (aResponse) {
+        bpClient.remove(function (response) {
           gThreadClient.resume(function () {
-            gClient.close(gCallback);
+            gClient.close().then(gCallback);
           });
         });
       });
@@ -66,21 +67,25 @@ function test_nested_breakpoint()
       // Continue until the breakpoint is hit.
       gThreadClient.resume();
     });
-
   });
 
-  gDebuggee.eval("var line0 = Error().lineNumber;\n" +
-                 "function foo() {\n" +     // line0 + 1
-                 "  function bar() {\n" +   // line0 + 2
-                 "    function baz() {\n" + // line0 + 3
-                 "      this.a = 1;\n" +    // line0 + 4
-                 "      // A comment.\n" +  // line0 + 5
-                 "      this.b = 2;\n" +    // line0 + 6
-                 "    }\n" +                // line0 + 7
-                 "    baz();\n" +           // line0 + 8
-                 "  }\n" +                  // line0 + 9
-                 "  bar();\n" +             // line0 + 10
-                 "}\n" +                    // line0 + 11
-                 "debugger;\n" +            // line0 + 12
-                 "foo();\n");               // line0 + 13
+  /* eslint-disable */
+  Cu.evalInSandbox(
+    "var line0 = Error().lineNumber;\n" +
+    "function foo() {\n" +     // line0 + 1
+    "  function bar() {\n" +   // line0 + 2
+    "    function baz() {\n" + // line0 + 3
+    "      this.a = 1;\n" +    // line0 + 4
+    "      // A comment.\n" +  // line0 + 5
+    "      this.b = 2;\n" +    // line0 + 6
+    "    }\n" +                // line0 + 7
+    "    baz();\n" +           // line0 + 8
+    "  }\n" +                  // line0 + 9
+    "  bar();\n" +             // line0 + 10
+    "}\n" +                    // line0 + 11
+    "debugger;\n" +            // line0 + 12
+    "foo();\n",               // line0 + 13
+    gDebuggee
+  );
+  /* eslint-enable */
 }

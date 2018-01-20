@@ -10,14 +10,14 @@
 #include "nsISerializable.h"
 #include "nsIFileURL.h"
 #include "nsIStandardURL.h"
-#include "nsIUnicodeEncoder.h"
+#include "mozilla/Encoding.h"
 #include "nsIObserver.h"
 #include "nsCOMPtr.h"
 #include "nsURLHelper.h"
 #include "nsIClassInfo.h"
 #include "nsISizeOf.h"
-#include "prclist.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/LinkedList.h"
 #include "mozilla/MemoryReporting.h"
 #include "nsIIPCSerializableURI.h"
 #include "nsISensitiveInfoHiddenURI.h"
@@ -33,6 +33,10 @@ class nsIPrefBranch;
 class nsIFile;
 class nsIURLParser;
 
+namespace mozilla {
+class Encoding;
+namespace net {
+
 //-----------------------------------------------------------------------------
 // standard URL implementation
 //-----------------------------------------------------------------------------
@@ -44,6 +48,9 @@ class nsStandardURL : public nsIFileURL
                     , public nsISizeOf
                     , public nsIIPCSerializableURI
                     , public nsISensitiveInfoHiddenURI
+#ifdef DEBUG_DUMP_URLS_AT_SHUTDOWN
+                    , public LinkedListElement<nsStandardURL>
+#endif
 {
 protected:
     virtual ~nsStandardURL();
@@ -61,8 +68,8 @@ public:
     NS_DECL_NSISENSITIVEINFOHIDDENURI
 
     // nsISizeOf
-    virtual size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const override;
-    virtual size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const override;
+    virtual size_t SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const override;
+    virtual size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const override;
 
     explicit nsStandardURL(bool aSupportsFileURL = false, bool aTrackURL = true);
 
@@ -80,12 +87,13 @@ public: /* internal -- HPUX compiler can't handle this being private */
 
         URLSegment() : mPos(0), mLen(-1) {}
         URLSegment(uint32_t pos, int32_t len) : mPos(pos), mLen(len) {}
+        URLSegment(const URLSegment& aCopy) : mPos(aCopy.mPos), mLen(aCopy.mLen) {}
         void Reset() { mPos = 0; mLen = -1; }
         // Merge another segment following this one to it if they're contiguous
         // Assumes we have something like "foo;bar" where this object is 'foo' and right
         // is 'bar'.
         void Merge(const nsCString &spec, const char separator, const URLSegment &right) {
-            if (mLen >= 0 && 
+            if (mLen >= 0 &&
                 *(spec.get() + mPos + mLen) == separator &&
                 mPos + mLen + 1 == right.mPos) {
                 mLen += 1 + right.mLen;
@@ -114,7 +122,7 @@ public: /* internal -- HPUX compiler can't handle this being private */
     class nsSegmentEncoder
     {
     public:
-        explicit nsSegmentEncoder(const char *charset);
+        explicit nsSegmentEncoder(const Encoding* encoding = nullptr);
 
         // Encode the given segment if necessary, and return the length of
         // the encoded segment.  The encoded segment is appended to |buf|
@@ -122,30 +130,29 @@ public: /* internal -- HPUX compiler can't handle this being private */
         int32_t EncodeSegmentCount(const char *str,
                                    const URLSegment &segment,
                                    int16_t mask,
-                                   nsAFlatCString &buf,
+                                   nsCString& buf,
                                    bool& appended,
                                    uint32_t extraLen = 0);
-         
+
         // Encode the given string if necessary, and return a reference to
         // the encoded string.  Returns a reference to |buf| if encoding
         // is required.  Otherwise, a reference to |str| is returned.
-        const nsACString &EncodeSegment(const nsASingleFragmentCString &str,
+        const nsACString& EncodeSegment(const nsACString& str,
                                         int16_t mask,
-                                        nsAFlatCString &buf);
+                                        nsCString& buf);
     private:
-        bool InitUnicodeEncoder();
-        
-        const char* mCharset;  // Caller should keep this alive for
-                               // the life of the segment encoder
-        nsCOMPtr<nsIUnicodeEncoder> mEncoder;
+      const Encoding* mEncoding;
     };
     friend class nsSegmentEncoder;
+
+    static nsresult NormalizeIPv4(const nsACString& host, nsCString& result);
 
 protected:
     // enum used in a few places to specify how .ref attribute should be handled
     enum RefHandlingEnum {
         eIgnoreRef,
-        eHonorRef
+        eHonorRef,
+        eReplaceRef
     };
 
     // Helper to share code between Equals and EqualsExceptRef
@@ -158,10 +165,12 @@ protected:
 
     // Helper to share code between Clone methods.
     nsresult CloneInternal(RefHandlingEnum aRefHandlingMode,
+                           const nsACString& newRef,
                            nsIURI** aClone);
     // Helper method that copies member variables from the source StandardURL
-    // if copyCached = true, it will also copy mFile and mHostA
+    // if copyCached = true, it will also copy mFile and mDisplayHost
     nsresult CopyMembers(nsStandardURL * source, RefHandlingEnum mode,
+                         const nsACString& newRef,
                          bool copyCached = false);
 
     // Helper for subclass implementation of GetFile().  Subclasses that map
@@ -173,17 +182,24 @@ protected:
 private:
     int32_t  Port() { return mPort == -1 ? mDefaultPort : mPort; }
 
+    void     ReplacePortInSpec(int32_t aNewPort);
     void     Clear();
     void     InvalidateCache(bool invalidateCachedFile = true);
 
     bool     ValidIPv6orHostname(const char *host, uint32_t aLen);
-    nsresult NormalizeIDN(const nsCSubstring &host, nsCString &result);
+    static bool     IsValidOfBase(unsigned char c, const uint32_t base);
+    nsresult NormalizeIDN(const nsACString& host, nsCString& result);
+    nsresult CheckIfHostIsAscii();
     void     CoalescePath(netCoalesceFlags coalesceFlag, char *path);
 
-    uint32_t AppendSegmentToBuf(char *, uint32_t, const char *, URLSegment &, const nsCString *esc=nullptr, bool useEsc = false);
+    uint32_t AppendSegmentToBuf(char *, uint32_t, const char *,
+                                const URLSegment &input, URLSegment &output,
+                                const nsCString *esc=nullptr,
+                                bool useEsc = false, int32_t* diff = nullptr);
     uint32_t AppendToBuf(char *, uint32_t, const char *, uint32_t);
 
-    nsresult BuildNormalizedSpec(const char *spec);
+    nsresult BuildNormalizedSpec(const char* spec, const Encoding* encoding);
+    nsresult SetSpecWithEncoding(const nsACString &input, const Encoding* encoding);
 
     bool     SegmentIs(const URLSegment &s1, const char *val, bool ignoreCase = false);
     bool     SegmentIs(const char* spec, const URLSegment &s1, const char *val, bool ignoreCase = false);
@@ -219,17 +235,17 @@ private:
     const nsDependentCSubstring Ref()       { return Segment(mRef); }
 
     // shift the URLSegments to the right by diff
-    void ShiftFromAuthority(int32_t diff) { mAuthority.mPos += diff; ShiftFromUsername(diff); }
-    void ShiftFromUsername(int32_t diff)  { mUsername.mPos += diff; ShiftFromPassword(diff); }
-    void ShiftFromPassword(int32_t diff)  { mPassword.mPos += diff; ShiftFromHost(diff); }
-    void ShiftFromHost(int32_t diff)      { mHost.mPos += diff; ShiftFromPath(diff); }
-    void ShiftFromPath(int32_t diff)      { mPath.mPos += diff; ShiftFromFilepath(diff); }
-    void ShiftFromFilepath(int32_t diff)  { mFilepath.mPos += diff; ShiftFromDirectory(diff); }
-    void ShiftFromDirectory(int32_t diff) { mDirectory.mPos += diff; ShiftFromBasename(diff); }
-    void ShiftFromBasename(int32_t diff)  { mBasename.mPos += diff; ShiftFromExtension(diff); }
-    void ShiftFromExtension(int32_t diff) { mExtension.mPos += diff; ShiftFromQuery(diff); }
-    void ShiftFromQuery(int32_t diff)     { mQuery.mPos += diff; ShiftFromRef(diff); }
-    void ShiftFromRef(int32_t diff)       { mRef.mPos += diff; }
+    void ShiftFromAuthority(int32_t diff);
+    void ShiftFromUsername(int32_t diff);
+    void ShiftFromPassword(int32_t diff);
+    void ShiftFromHost(int32_t diff);
+    void ShiftFromPath(int32_t diff);
+    void ShiftFromFilepath(int32_t diff);
+    void ShiftFromDirectory(int32_t diff);
+    void ShiftFromBasename(int32_t diff);
+    void ShiftFromExtension(int32_t diff);
+    void ShiftFromQuery(int32_t diff);
+    void ShiftFromRef(int32_t diff);
 
     // fastload helper functions
     nsresult ReadSegment(nsIBinaryInputStream *, URLSegment &);
@@ -259,15 +275,15 @@ private:
     URLSegment mQuery;
     URLSegment mRef;
 
-    nsCString              mOriginCharset;
     nsCOMPtr<nsIURLParser> mParser;
 
     // mFile is protected so subclasses can access it directly
 protected:
     nsCOMPtr<nsIFile>      mFile;  // cached result for nsIFileURL::GetFile
-    
+
 private:
-    char                  *mHostA; // cached result for nsIURI::GetHostA
+    // cached result for nsIURI::GetDisplayHost
+    nsCString              mDisplayHost;
 
     enum {
         eEncoding_Unknown,
@@ -275,24 +291,23 @@ private:
         eEncoding_UTF8
     };
 
-    uint32_t mHostEncoding    : 2; // eEncoding_xxx
     uint32_t mSpecEncoding    : 2; // eEncoding_xxx
     uint32_t mURLType         : 2; // nsIStandardURL::URLTYPE_xxx
     uint32_t mMutable         : 1; // nsIStandardURL::mutable
     uint32_t mSupportsFileURL : 1; // QI to nsIFileURL?
+    uint32_t mCheckedIfHostA  : 1; // If set to true, it means either that
+                                   // mDisplayHost has a been initialized, or
+                                   // that the hostname is not punycode
 
     // global objects.  don't use COMPtr as its destructor will cause a
     // coredump if we leak it.
     static nsIIDNService               *gIDN;
-    static char                         gHostLimitDigits[];
+    static const char                   gHostLimitDigits[];
     static bool                         gInitialized;
-    static bool                         gEscapeUTF8;
-    static bool                         gAlwaysEncodeInUTF8;
-    static bool                         gEncodeQueryInUTF8;
+    static bool                         gPunycodeHost;
 
 public:
 #ifdef DEBUG_DUMP_URLS_AT_SHUTDOWN
-    PRCList mDebugCList;
     void PrintSpec() const { printf("  %s\n", mSpec.get()); }
 #endif
 };
@@ -383,5 +398,8 @@ nsStandardURL::Filename()
     }
     return Substring(mSpec, pos, len);
 }
+
+} // namespace net
+} // namespace mozilla
 
 #endif // nsStandardURL_h__

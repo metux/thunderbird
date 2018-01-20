@@ -2,24 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://gdata-provider/modules/shim/Loader.jsm").shimIt(this);
-Components.utils.import("resource://gdata-provider/modules/shim/Calendar.jsm");
-Components.utils.import("resource://gdata-provider/modules/shim/PromiseExtras.jsm");
+Components.utils.import("resource://gre/modules/Preferences.jsm");
+Components.utils.import("resource://gre/modules/PromiseUtils.jsm");
+Components.utils.import("resource://gre/modules/Services.jsm");
+Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
-CuImport("resource://gre/modules/Preferences.jsm", this);
-CuImport("resource://gre/modules/Promise.jsm", this);
-CuImport("resource://gre/modules/PromiseUtils.jsm", this);
-CuImport("resource://gre/modules/Services.jsm", this);
-CuImport("resource://gre/modules/Task.jsm", this);
-CuImport("resource://gre/modules/XPCOMUtils.jsm", this);
+Components.utils.import("resource://calendar/modules/calAsyncUtils.jsm");
+Components.utils.import("resource://calendar/modules/calProviderUtils.jsm");
+Components.utils.import("resource://calendar/modules/calUtils.jsm");
 
-CuImport("resource://calendar/modules/calProviderUtils.jsm", this);
-CuImport("resource://calendar/modules/calUtils.jsm", this);
-
-CuImport("resource://gdata-provider/modules/gdataLogging.jsm", this);
-CuImport("resource://gdata-provider/modules/gdataRequest.jsm", this);
-CuImport("resource://gdata-provider/modules/gdataSession.jsm", this);
-CuImport("resource://gdata-provider/modules/gdataUtils.jsm", this);
+Components.utils.import("resource://gdata-provider/modules/gdataLogging.jsm");
+Components.utils.import("resource://gdata-provider/modules/gdataRequest.jsm");
+Components.utils.import("resource://gdata-provider/modules/gdataSession.jsm");
+Components.utils.import("resource://gdata-provider/modules/gdataUtils.jsm");
 
 var cICL = Components.interfaces.calIChangeLog;
 var cIOL = Components.interfaces.calIOperationListener;
@@ -126,7 +121,7 @@ calGoogleCalendar.prototype = {
         this.mUri = aUri;
         if (aUri && aUri.schemeIs("googleapi")) {
             // new format:  googleapi://session-id/?calendar=calhash@group.calendar.google.com&tasks=taskhash
-            let [fullUser, path] = aUri.path.substr(2).split("/", 2);
+            let [fullUser, path] = aUri.pathQueryRef.substr(2).split("/", 2);
             let parameters = new Map(path.substr(1).split("&").filter(Boolean)
                              .map(function(x) { return x.split("=", 2).map(decodeURIComponent); }));
 
@@ -146,7 +141,7 @@ calGoogleCalendar.prototype = {
                 let newUri = "googleapi://" + googleUser + "/" + path;
                 cal.LOG("[calGoogleCalendar] Migrating url format from " + aUri.spec + " to " + newUri);
                 this.setProperty("uri", newUri);
-                this.mUri = Services.io.newURI(newUri, null, null);
+                this.mUri = Services.io.newURI(newUri);
             }
 
             // Unit tests will use a local uri, if the magic parameter is passed.
@@ -163,7 +158,7 @@ calGoogleCalendar.prototype = {
                                 "([^/]+)/(public|private|free-busy)-?([^/]+)?/" +
                                 "(full|basic)(.ics)?$");
 
-            let matches = aUri.path.match(re);
+            let matches = aUri.pathQueryRef.match(re);
             if (matches) {
                 this.mCalendarName = decodeURIComponent(matches[2]);
 
@@ -179,7 +174,7 @@ calGoogleCalendar.prototype = {
                 cal.LOG("[calGoogleCalendar] Migrating url format from " + aUri.spec +
                         " to " + newUri);
                 this.setProperty("uri", newUri);
-                this.mUri = Services.io.newURI(newUri, null, null);
+                this.mUri = Services.io.newURI(newUri);
             }
         }
 
@@ -190,29 +185,26 @@ calGoogleCalendar.prototype = {
         return this.mUri;
     },
 
-    createEventsURI: function (/* ...extraParts */) {
-        let extraParts = Array.slice(arguments);
+    createEventsURI: function (...extraParts) {
         let eventsURI = null;
         if (this.mCalendarName) {
             let encodedName = encodeURIComponent(this.mCalendarName);
-            let parts = ["calendars", encodedName].concat(Array.filter(extraParts, Boolean));
+            let parts = ["calendars", encodedName].concat(extraParts.filter(Boolean));
             eventsURI = API_BASE.EVENTS + parts.join("/");
         }
         return eventsURI;
     },
 
-    createUsersURI: function(/* ...extraParts */) {
-        let extraParts = Array.slice(arguments);
+    createUsersURI: function(...extraParts) {
         let parts = ["users", "me"].concat(extraParts).map(encodeURIComponent);
         return API_BASE.EVENTS + parts.join("/");
     },
 
-    createTasksURI: function(/* ...extraParts */) {
-        let extraParts = Array.slice(arguments);
+    createTasksURI: function(...extraParts) {
         let tasksURI = null;
         if (this.mTasklistName) {
             let encodedName = encodeURIComponent(this.mTasklistName);
-            let parts = ["lists", encodedName].concat(Array.filter(extraParts, Boolean));
+            let parts = ["lists", encodedName].concat(extraParts.filter(Boolean));
             tasksURI = API_BASE.TASKS + parts.join("/");
         }
         return tasksURI;
@@ -337,12 +329,6 @@ calGoogleCalendar.prototype = {
         return this.__proto__.__proto__.setProperty.apply(this, arguments);
     },
 
-    addItemOrUseCache: calendarShim.addItemOrUseCache,
-    adoptItemOrUseCache: calendarShim.adoptItemOrUseCache,
-    modifyItemOrUseCache: calendarShim.modifyItemOrUseCache,
-    deleteItemOrUseCache: calendarShim.deleteItemOrUseCache,
-    notifyPureOperationComplete: calendarShim.notifyPureOperationComplete,
-
     addItem: function(aItem, aListener) { return this.adoptItem(aItem.clone(), aListener); },
     adoptItem: function(aItem, aListener) {
         function stackContains(part, max) {
@@ -364,7 +350,7 @@ calGoogleCalendar.prototype = {
         let isImport = aItem.id && (aItem.id == "xpcshell-import" || stackContains("calItipUtils.jsm"));
         let request = new calGoogleRequest();
 
-        Task.spawn(function() {
+        (async () => {
             let itemData = ItemToJSON(aItem, this.offlineStorage, isImport);
 
             // Add the calendar to the item, for later use.
@@ -398,7 +384,7 @@ calGoogleCalendar.prototype = {
 
             request.setUploadData("application/json; charset=UTF-8",
                                   JSON.stringify(itemData));
-            let data = yield this.session.asyncItemRequest(request);
+            let data = await this.session.asyncItemRequest(request);
 
             // All we need to do now is parse the item and complete the
             // operation. The cache layer will take care of adding the item
@@ -416,11 +402,11 @@ calGoogleCalendar.prototype = {
                 // reset the wrong item. As a hack, delete the item with its
                 // original id and complete the adoptItem call with the new
                 // item. This will add the new item to the calendar.
-                let pcal = promisifyCalendar(this.offlineStorage);
-                yield pcal.deleteItem(aItem);
+                let pcal = cal.async.promisifyCalendar(this.offlineStorage);
+                await pcal.deleteItem(aItem);
             }
-            throw new Task.Result(item);
-        }.bind(this)).then(function(item) {
+            return item;
+        })().then(function(item) {
             cal.LOG("[calGoogleCalendar] Adding " + item.title + " succeeded");
             this.observers.notify("onAddItem", [item]);
             this.notifyOperationComplete(aListener, Components.results.NS_OK,
@@ -441,7 +427,7 @@ calGoogleCalendar.prototype = {
 
         // Set up the request
         let request = new calGoogleRequest();
-        Task.spawn(function() {
+        (async () => {
             request.type = request.MODIFY;
             request.calendar = this;
             if (cal.isEvent(aNewItem)) {
@@ -482,10 +468,14 @@ calGoogleCalendar.prototype = {
 
             let data;
             try {
-                data = yield this.session.asyncItemRequest(request);
-            } catch (e if e.result == calGoogleRequest.CONFLICT_MODIFY ||
-                          e.result == calGoogleRequest.CONFLICT_DELETED) {
-                data = yield checkResolveConflict(request, this, aNewItem);
+                data = await this.session.asyncItemRequest(request);
+            } catch (e) {
+                if (e.result == calGoogleRequest.CONFLICT_MODIFY ||
+                    e.result == calGoogleRequest.CONFLICT_DELETED) {
+                    data = await checkResolveConflict(request, this, aNewItem);
+                } else {
+                    throw e;
+                }
             }
 
             // All we need to do now is parse the item and complete the
@@ -515,8 +505,8 @@ calGoogleCalendar.prototype = {
                 item = modifiedItem;
             }
 
-            throw new Task.Result(item);
-        }.bind(this)).then(function (item) {
+            return item;
+        })().then(function (item) {
             cal.LOG("[calGoogleCalendar] Modifying " + aNewItem.title + " succeeded");
             this.observers.notify("onModifyItem", [item, aOldItem]);
             this.notifyOperationComplete(aListener, Components.results.NS_OK,
@@ -537,7 +527,7 @@ calGoogleCalendar.prototype = {
         cal.LOG("[calGoogleCalendar] Deleting item " + aItem.title + "(" + aItem.id + ")");
 
         let request = new calGoogleRequest();
-        Task.spawn(function() {
+        (async () => {
             request.type = request.DELETE;
             request.calendar = this;
             if (cal.isEvent(aItem)) {
@@ -564,16 +554,20 @@ calGoogleCalendar.prototype = {
             }
 
             try {
-                yield this.session.asyncItemRequest(request);
-            } catch (e if e.result == calGoogleRequest.CONFLICT_MODIFY ||
-                          e.result == calGoogleRequest.CONFLICT_DELETED) {
-                yield checkResolveConflict(request, this, aItem);
+                await this.session.asyncItemRequest(request);
+            } catch (e) {
+                if (e.result == calGoogleRequest.CONFLICT_MODIFY ||
+                    e.result == calGoogleRequest.CONFLICT_DELETED) {
+                    await checkResolveConflict(request, this, aItem);
+                 } else {
+                    throw e;
+                 }
             }
 
             deleteItemMetadata(this.offlineStorage, aItem);
 
-            throw new Task.Result(aItem);
-        }.bind(this)).then(function (item) {
+            return aItem;
+        })().then(function (item) {
             cal.LOG("[calGoogleCalendar] Deleting " + aItem.title + " succeeded");
             this.observers.notify("onDeleteItem", [item]);
             this.notifyOperationComplete(aListener, Components.results.NS_OK,
@@ -709,9 +703,9 @@ calGoogleCalendar.prototype = {
                     this.defaultReminders = [];
                 }
 
-                for each (let k in ["accessRole", "backgroundColor", "description",
-                                    "foregroundColor", "location", "primary",
-                                    "summary", "summaryOverride", "timeZone"]) {
+                for (let k of ["accessRole", "backgroundColor", "description",
+                               "foregroundColor", "location", "primary",
+                               "summary", "summaryOverride", "timeZone"]) {
                     this.setProperty("settings." + k, aData[k]);
                 }
                 this.setProperty("settings.defaultReminders", JSON.stringify(aData.defaultReminders));
@@ -778,7 +772,7 @@ calGoogleCalendar.prototype = {
             }.bind(this));
         }
 
-        return PromiseAll([calendarPromise, eventsPromise, tasksPromise]).then(function() {
+        return Promise.all([calendarPromise, eventsPromise, tasksPromise]).then(function() {
             this.mOfflineStorage.endBatch();
             aListener.onResult({ status: Components.results.NS_OK }, null);
         }.bind(this), function(e) {

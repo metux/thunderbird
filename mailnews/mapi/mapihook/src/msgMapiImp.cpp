@@ -11,7 +11,7 @@
 
 #include "nsIMsgCompFields.h"
 #include "msgMapiHook.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsCOMPtr.h"
 #include "nsISupports.h"
 #include "nsMsgCompCID.h"
@@ -36,14 +36,12 @@
 
 using namespace mozilla::mailnews;
 
-PRLogModuleInfo *MAPI;
+static mozilla::LazyLogModule MAPI("MAPI");
 
 CMapiImp::CMapiImp()
 : m_cRef(1)
 {
     m_Lock = PR_NewLock();
-  if (!MAPI)
-    MAPI = PR_NewLogModule("MAPI");
 }
 
 CMapiImp::~CMapiImp() 
@@ -154,12 +152,13 @@ STDMETHODIMP CMapiImp::Login(unsigned long aUIArg, LOGIN_PW_TYPE aLogin, LOGIN_P
       NS_ENSURE_SUCCESS(rv,MAPI_E_LOGIN_FAILURE);
       nsCOMPtr <nsIMsgAccount> account;
       nsCOMPtr <nsIMsgIdentity> identity;
-       rv = accountManager->GetDefaultAccount(getter_AddRefs(account));
+      rv = accountManager->GetDefaultAccount(getter_AddRefs(account));
       NS_ENSURE_SUCCESS(rv,MAPI_E_LOGIN_FAILURE);
-      account->GetDefaultIdentity(getter_AddRefs(identity));
+      rv = account->GetDefaultIdentity(getter_AddRefs(identity));
       NS_ENSURE_SUCCESS(rv,MAPI_E_LOGIN_FAILURE);
+      if (!identity)
+        return MAPI_E_LOGIN_FAILURE;
       identity->GetKey(id_key);
-
     }
 
     // finally register(create) the session.
@@ -168,7 +167,7 @@ STDMETHODIMP CMapiImp::Login(unsigned long aUIArg, LOGIN_PW_TYPE aLogin, LOGIN_P
 
     nsMAPIConfiguration *pConfig = nsMAPIConfiguration::GetMAPIConfiguration();
     if (pConfig != nullptr)
-        nResult = pConfig->RegisterSession(aUIArg, wwc(aLogin), wwc(aPassWord),
+        nResult = pConfig->RegisterSession(aUIArg, char16ptr_t(aLogin), char16ptr_t(aPassWord),
                                            (aFlags & MAPI_FORCE_DOWNLOAD), bNewSession,
                                            &nSession_Id, id_key.get());
     switch (nResult)
@@ -662,8 +661,8 @@ void MsgMapiListContext::ConvertRecipientsToMapiFormat(
   ExtractAllAddresses(recipients, UTF16ArrayAdapter<>(names),
     UTF16ArrayAdapter<>(addresses));
   
-  uint32_t numAddresses = names.Length();
-  for (int i = 0; i < numAddresses; i++)
+  size_t numAddresses = names.Length();
+  for (size_t i = 0; i < numAddresses; i++)
   {
     if (!names[i].IsEmpty())
     {
@@ -685,7 +684,6 @@ void MsgMapiListContext::ConvertRecipientsToMapiFormat(
 char *MsgMapiListContext::ConvertBodyToMapiFormat (nsIMsgDBHdr *hdr)
 {
   const int kBufLen = 64000; // I guess we only return the first 64K of a message.
-  int bytesUsed = 0;
 #define EMPTY_MESSAGE_LINE(buf) (buf[0] == '\r' || buf[0] == '\n' || buf[0] == '\0')
 
   nsCOMPtr <nsIMsgFolder> folder;
@@ -718,7 +716,6 @@ char *MsgMapiListContext::ConvertBodyToMapiFormat (nsIMsgDBHdr *hdr)
     seekableStream->Seek(PR_SEEK_SET, messageOffset);
     bool hasMore = true;
     nsAutoCString curLine;
-    bool inMessageBody = false;
     nsresult rv = NS_OK;
     while (hasMore) // advance past message headers
     {
@@ -845,7 +842,7 @@ MsgMapiListContext::DeleteMessage(nsMsgKey key)
 #if 0 
   else if ( m_folder->GetIMAPFolderInfoMail() )
   {
-    nsAutoTArray<nsMsgKey, 1> messageKeys;
+    AutoTArray<nsMsgKey, 1> messageKeys;
     messageKeys.AppendElement(key);
 
     (m_folder->GetIMAPFolderInfoMail())->DeleteSpecifiedMessages(pane, messageKeys, nsMsgKey_None);

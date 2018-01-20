@@ -10,9 +10,8 @@ const Ci = Components.interfaces;
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
-XPCOMUtils.defineLazyServiceGetter(this, "cpmm",
-                                   "@mozilla.org/childprocessmessagemanager;1",
-                                   "nsIMessageSender");
+XPCOMUtils.defineLazyModuleGetter(this, "TelemetryController",
+                                  "resource://gre/modules/TelemetryController.jsm");
 
 function ContentProcessSingleton() {}
 ContentProcessSingleton.prototype = {
@@ -20,54 +19,16 @@ ContentProcessSingleton.prototype = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
                                          Ci.nsISupportsWeakReference]),
 
-  observe: function(subject, topic, data) {
+  observe(subject, topic, data) {
     switch (topic) {
     case "app-startup": {
-      Services.obs.addObserver(this, "console-api-log-event", false);
-      Services.obs.addObserver(this, "xpcom-shutdown", false);
-      cpmm.addMessageListener("DevTools:InitDebuggerServer", this);
+      Services.obs.addObserver(this, "xpcom-shutdown");
+      TelemetryController.observe(null, topic, null);
       break;
     }
-    case "console-api-log-event": {
-      let consoleMsg = subject.wrappedJSObject;
-
-      let msgData = {
-        level: consoleMsg.level,
-        filename: consoleMsg.filename,
-        lineNumber: consoleMsg.lineNumber,
-        functionName: consoleMsg.functionName,
-        timeStamp: consoleMsg.timeStamp,
-        arguments: [],
-      };
-
-      // We can't send objects over the message manager, so we sanitize
-      // them out.
-      for (let arg of consoleMsg.arguments) {
-        if ((typeof arg == "object" || typeof arg == "function") && arg !== null) {
-          msgData.arguments.push("<unavailable>");
-        } else {
-          msgData.arguments.push(arg);
-        }
-      }
-
-      cpmm.sendAsyncMessage("Console:Log", msgData);
-      break;
-    }
-
     case "xpcom-shutdown":
-      Services.obs.removeObserver(this, "console-api-log-event");
       Services.obs.removeObserver(this, "xpcom-shutdown");
-      cpmm.removeMessageListener("DevTools:InitDebuggerServer", this);
       break;
-    }
-  },
-
-  receiveMessage: function (message) {
-    // load devtools component on-demand
-    // Only reply if we are in a real content process
-    if (Services.appinfo.processType == Services.appinfo.PROCESS_TYPE_CONTENT) {
-      let {init} = Cu.import("resource://devtools/server/content-server.jsm", {});
-      init(message);
     }
   },
 };

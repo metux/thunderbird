@@ -8,7 +8,7 @@
 
 #include "XPCLog.h"
 #include "mozilla/Logging.h"
-#include "prprf.h"
+#include "mozilla/Sprintf.h"
 #include "mozilla/mozalloc.h"
 #include <string.h>
 #include <stdarg.h>
@@ -25,13 +25,12 @@
 static char*    g_Spaces;
 static int      g_InitState = 0;
 static int      g_Indent = 0;
-static PRLogModuleInfo* g_LogMod = nullptr;
+static mozilla::LazyLogModule g_LogMod("xpclog");
 
 static bool Init()
 {
-    g_LogMod = PR_NewLogModule("xpclog");
     g_Spaces = new char[SPACE_COUNT+1];
-    if (!g_LogMod || !g_Spaces || !MOZ_LOG_TEST(g_LogMod,LogLevel::Error)) {
+    if (!g_Spaces || !MOZ_LOG_TEST(g_LogMod,LogLevel::Error)) {
         g_InitState = 1;
         XPC_Log_Finish();
         return false;
@@ -47,8 +46,6 @@ XPC_Log_Finish()
 {
     if (g_InitState == 1) {
         delete [] g_Spaces;
-        // we'd like to properly cleanup the LogModule, but nspr owns that
-        g_LogMod = nullptr;
     }
     g_InitState = -1;
 }
@@ -60,7 +57,7 @@ XPC_Log_print(const char* fmt, ...)
     char line[LINE_LEN];
 
     va_start(ap, fmt);
-    PR_vsnprintf(line, sizeof(line)-1, fmt, ap);
+    VsprintfLiteral(line, fmt, ap);
     va_end(ap);
     if (g_Indent)
         PR_LogPrint("%s%s",g_Spaces+SPACE_COUNT-(INDENT_FACTOR*g_Indent),line);

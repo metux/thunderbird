@@ -1,8 +1,13 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 //
 //  HTTP Accept-Language header test
 //
 
-Cu.import("resource://gre/modules/Services.jsm");
+"use strict";
+Cu.import("resource://gre/modules/NetUtil.jsm");
 
 var testpath = "/bug672448";
 
@@ -45,11 +50,11 @@ function test_accepted_languages() {
   let acceptedLanguagesLength = acceptedLanguages.length;
 
   for (let i = 0; i < acceptedLanguagesLength; i++) {
-    let acceptedLanguage, qualityValue;
+    let acceptedLanguage, qualityValue, unused;
 
     try {
       // The q-value must conform to the definition in HTTP/1.1 Section 3.9.
-      [_, acceptedLanguage, qualityValue] = acceptedLanguages[i].trim().match(/^([a-z0-9_-]*?)(?:;q=(1(?:\.0{0,3})?|0(?:\.[0-9]{0,3})))?$/i);
+      [unused, acceptedLanguage, qualityValue] = acceptedLanguages[i].trim().match(/^([a-z0-9_-]*?)(?:;q=(1(?:\.0{0,3})?|0(?:\.[0-9]{0,3})))?$/i);
     } catch(e) {
       do_throw("Invalid language tag or quality value: " + e);
     }
@@ -80,15 +85,12 @@ function test_accepted_languages() {
 }
 
 function setupChannel(path) {
-  let ios = Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService);
-  let chan = ios.newChannel2("http://localhost:4444" + path,
-                             "",
-                             null,
-                             null,      // aLoadingNode
-                             Services.scriptSecurityManager.getSystemPrincipal(),
-                             null,      // aTriggeringPrincipal
-                             Ci.nsILoadInfo.SEC_NORMAL,
-                             Ci.nsIContentPolicy.TYPE_OTHER);
+
+  let chan = NetUtil.newChannel ({
+    uri: "http://localhost:4444" + path,
+    loadUsingSystemPrincipal: true
+  });
+
   chan.QueryInterface(Ci.nsIHttpChannel);
   return chan;
 }

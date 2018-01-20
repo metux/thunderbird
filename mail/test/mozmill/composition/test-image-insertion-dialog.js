@@ -13,7 +13,7 @@ var Cu = Components.utils;
 var elib = {};
 Cu.import('resource://mozmill/modules/elementslib.js', elib);
 
-var MODULE_NAME = 'test-dialogs';
+var MODULE_NAME = "test-image-insertion-dialog";
 
 var RELATIVE_ROOT = '../shared-modules';
 var MODULE_REQUIRES = ['folder-display-helpers', 'compose-helpers',
@@ -90,6 +90,9 @@ function test_image_insertion_dialog_persist() {
   cwc.doubleClick(new elib.Elem(img));
   wh.wait_for_modal_dialog();
   wait_for_window_close();
+  // It's not clear why we have to wait here to avoid test failures,
+  // see bug 1246094.
+  cwc.sleep(500);
 
   // Now use some alt text for the edit image dialog
   wh.plan_for_modal_dialog("imageDlg", function insert_image(mwc) {
@@ -107,6 +110,9 @@ function test_image_insertion_dialog_persist() {
   cwc.doubleClick(new elib.Elem(img));
   wh.wait_for_modal_dialog();
   wait_for_window_close();
+  // It's not clear why we have to wait here to avoid test failures,
+  // see bug 1246094.
+  cwc.sleep(500);
 
   // Make sure next time we edit it, we still have "use alt text" selected.
   img = cwc.e("content-frame").contentDocument.querySelector("img");

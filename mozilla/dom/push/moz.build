@@ -3,11 +3,13 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+with Files("**"):
+    BUG_COMPONENT = ("Core", "DOM: Push Notifications")
+
 EXTRA_COMPONENTS += [
     'Push.js',
     'Push.manifest',
-    'PushClient.js',
-    'PushNotificationService.js',
+    'PushComponents.js',
 ]
 
 EXTRA_JS_MODULES += [
@@ -15,10 +17,19 @@ EXTRA_JS_MODULES += [
     'PushDB.jsm',
     'PushRecord.jsm',
     'PushService.jsm',
-    'PushServiceChildPreload.jsm',
-    'PushServiceHttp2.jsm',
-    'PushServiceWebSocket.jsm',
 ]
+
+if CONFIG['MOZ_BUILD_APP'] != 'mobile/android':
+    # Everything but Fennec.
+    EXTRA_JS_MODULES += [
+        'PushServiceHttp2.jsm',
+        'PushServiceWebSocket.jsm',
+    ]
+else:
+    # Fennec only.
+    EXTRA_JS_MODULES += [
+        'PushServiceAndroidGCM.jsm',
+    ]
 
 MOCHITEST_MANIFESTS += [
     'test/mochitest.ini',
@@ -30,16 +41,27 @@ XPCSHELL_TESTS_MANIFESTS += [
 
 EXPORTS.mozilla.dom += [
     'PushManager.h',
+    'PushNotifier.h',
+    'PushSubscription.h',
+    'PushSubscriptionOptions.h',
+    'PushUtil.h',
 ]
 
 UNIFIED_SOURCES += [
     'PushManager.cpp',
+    'PushNotifier.cpp',
+    'PushSubscription.cpp',
+    'PushSubscriptionOptions.cpp',
+    'PushUtil.cpp',
 ]
 
-if CONFIG['GNU_CXX']:
-    CXXFLAGS += ['-Wshadow']
+TEST_DIRS += ['test/xpcshell']
+
+include('/ipc/chromium/chromium-config.mozbuild')
 
 LOCAL_INCLUDES += [
+    '../base',
+    '../ipc',
     '../workers',
 ]
 

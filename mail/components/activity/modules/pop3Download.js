@@ -27,10 +27,10 @@ Components.utils.import("resource:///modules/gloda/log4moz.js");
 var pop3DownloadModule =
 {
   // hash table of most recent download items per folder
-  _mostRecentActivityForFolder: {},
+  _mostRecentActivityForFolder: new Map(),
   // hash table of prev download items per folder, so we can
   // coalesce consecutive no new message events.
-  _prevActivityForFolder: {},
+  _prevActivityForFolder: new Map(),
 
   get log() {
     delete this.log;
@@ -61,12 +61,13 @@ var pop3DownloadModule =
   onDownloadStarted : function(aFolder) {
     this.log.info("in onDownloadStarted");
 
-    let displayText = this.bundle
-                          .formatStringFromName("pop3EventStartDisplayText",
-                                               [aFolder.prettiestName], 1);
+    let displayText =
+      this.bundle.formatStringFromName("pop3EventStartDisplayText2",
+                                       [aFolder.server.prettyName, // account name
+                                        aFolder.prettyName], 2);   // folder name
     // remember the prev activity for this folder, if any.
-    this._prevActivityForFolder[aFolder.URI] =
-      this._mostRecentActivityForFolder[aFolder.URI];
+    this._prevActivityForFolder.set(aFolder.URI,
+      this._mostRecentActivityForFolder.get(aFolder.URI));
     let statusText = aFolder.server.prettyName;
 
     // create an activity event
@@ -80,7 +81,7 @@ var pop3DownloadModule =
 
     let downloadItem = {};
     downloadItem.eventID = this.activityMgr.addActivity(event);
-    this._mostRecentActivityForFolder[aFolder.URI] = downloadItem;
+    this._mostRecentActivityForFolder.set(aFolder.URI, downloadItem);
   },
 
   onDownloadProgress : function(aFolder, aNumMsgsDownloaded, aTotalMsgs) {
@@ -90,7 +91,13 @@ var pop3DownloadModule =
   onDownloadCompleted : function(aFolder, aNumMsgsDownloaded) {
     this.log.info("in onDownloadCompleted");
 
-    this.activityMgr.removeActivity(this._mostRecentActivityForFolder[aFolder.URI].eventID);
+    // Remove activity if there was any.
+    // It can happen that download never started (e.g. couldn't connect to server),
+    // with onDownloadStarted, but we still get a onDownloadCompleted event
+    // when the connection is given up.
+    let recentActivity = this._mostRecentActivityForFolder.get(aFolder.URI);
+    if (recentActivity)
+      this.activityMgr.removeActivity(recentActivity.eventID);
 
     let displayText;
     if (aNumMsgsDownloaded > 0)
@@ -113,13 +120,13 @@ var pop3DownloadModule =
     event.iconClass = "syncMail";
 
     let downloadItem = {numMsgsDownloaded: aNumMsgsDownloaded};
-    this._mostRecentActivityForFolder[aFolder.URI] = downloadItem;
+    this._mostRecentActivityForFolder.set(aFolder.URI, downloadItem);
     downloadItem.eventID = this.activityMgr.addActivity(event);
     if (!aNumMsgsDownloaded) {
-      // if we didn't download any messages this time, and the prev event
+      // If we didn't download any messages this time, and the prev event
       // for this folder also didn't download any messages, remove the
       // prev event from the activity manager.
-      let prevItem = this._prevActivityForFolder[aFolder.URI];
+      let prevItem = this._prevActivityForFolder.get(aFolder.URI);
       if (prevItem != undefined && !prevItem.numMsgsDownloaded) {
         if (this.activityMgr.containsActivity(prevItem.eventID))
           this.activityMgr.removeActivity(prevItem.eventID);

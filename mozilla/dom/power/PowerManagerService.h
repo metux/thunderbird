@@ -10,6 +10,7 @@
 #include "nsDataHashtable.h"
 #include "nsHashKeys.h"
 #include "nsTArray.h"
+#include "nsIDOMWakeLockListener.h"
 #include "nsIPowerManagerService.h"
 #include "mozilla/Observer.h"
 #include "Types.h"
@@ -30,6 +31,8 @@ class PowerManagerService
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIPOWERMANAGERSERVICE
+
+  PowerManagerService() {}
 
   static already_AddRefed<PowerManagerService> GetInstance();
 
@@ -55,7 +58,7 @@ public:
                                ContentParent* aContentParent);
 
   already_AddRefed<WakeLock>
-  NewWakeLock(const nsAString& aTopic, nsIDOMWindow* aWindow,
+  NewWakeLock(const nsAString& aTopic, nsPIDOMWindowInner* aWindow,
               mozilla::ErrorResult& aRv);
 
 private:
@@ -65,13 +68,9 @@ private:
   void ComputeWakeLockState(const hal::WakeLockInformation& aWakeLockInfo,
                             nsAString &aState);
 
-  void SyncProfile();
-
   static StaticRefPtr<PowerManagerService> sSingleton;
 
-  nsTArray<nsCOMPtr<nsIDOMMozWakeLockListener> > mWakeLockListeners;
-  
-  int32_t mWatchdogTimeoutSecs;
+  nsTArray<nsCOMPtr<nsIDOMMozWakeLockListener>> mWakeLockListeners;
 };
 
 } // namespace power

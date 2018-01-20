@@ -7,37 +7,40 @@ config = {
     "update_platform": "WINNT_x86-msvc",
     "mozconfig": "%(branch)s/browser/config/mozconfigs/win32/l10n-mozconfig",
     "bootstrap_env": {
-        "MOZ_OBJDIR": "obj-l10n",
+        "MOZ_OBJDIR": "obj-firefox",
         "EN_US_BINARY_URL": "%(en_us_binary_url)s",
-        "LOCALE_MERGEDIR": "%(abs_merge_dir)s",
         "MOZ_UPDATE_CHANNEL": "%(update_channel)s",
         "DIST": "%(abs_objdir)s",
         "L10NBASEDIR": "../../l10n",
         "MOZ_MAKE_COMPLETE_MAR": "1",
+        "PATH": '%(abs_objdir)s\\..\\xz-5.2.3\\bin_x86-64;'
+                'C:\\mozilla-build\\nsis-3.01;'
+                + '%s' % (os.environ.get('path')),
+        'TOOLTOOL_CACHE': 'c:/builds/tooltool_cache',
+        'TOOLTOOL_HOME': '/c/builds',
+        'EN_US_PACKAGE_NAME': 'target.zip',
+        'EN_US_PKG_INST_BASENAME': 'target.installer',
     },
     "ssh_key_dir": "~/.ssh",
     "log_name": "single_locale",
-    "objdir": "obj-l10n",
+    "objdir": "obj-firefox",
     "js_src_dir": "js/src",
-    "make_dirs": ['config'],
     "vcs_share_base": "c:/builds/hg-shared",
 
     # tooltool
-    'tooltool_url': 'https://api.pub.build.mozilla.org/tooltool/',
+    'tooltool_url': 'https://tooltool.mozilla-releng.net/',
     'tooltool_script': [sys.executable,
                         'C:/mozilla-build/tooltool.py'],
-    'tooltool_bootstrap': "setup.sh",
-    'tooltool_manifest_src': 'browser/config/tooltool-manifests/win32/releng.manifest',
+    'tooltool_manifest_src': 'browser/config/tooltool-manifests/win32/l10n.manifest',
     # balrog credential file:
     'balrog_credentials_file': 'oauth.txt',
 
     # l10n
-    "ignore_locales": ["en-US"],
+    "ignore_locales": ["en-US", "ja-JP-mac"],
     "l10n_dir": "l10n",
     "locales_file": "%(branch)s/browser/locales/all-locales",
     "locales_dir": "browser/locales",
     "hg_l10n_tag": "default",
-    "merge_locales": True,
 
     # MAR
     "previous_mar_dir": "dist\\previous",
@@ -65,13 +68,6 @@ config = {
     # use mozmake?
     "enable_mozmake": True,
     'exes': {
-        'python2.7': sys.executable,
-        'hgtool.py': [
-            sys.executable,
-            os.path.join(
-                os.getcwd(), 'build', 'tools', 'buildfarm', 'utils', 'hgtool.py'
-            )
-        ],
         'virtualenv': [
             sys.executable,
             'c:/mozilla-build/buildbotve/virtualenv.py'

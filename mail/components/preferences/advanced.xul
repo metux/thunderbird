@@ -21,11 +21,18 @@
 %searchIntegrationDefaultDTD;
 #endif
 #endif
+#ifdef MOZ_UPDATER
+<!ENTITY % aboutDialogDTD SYSTEM "chrome://messenger/locale/aboutDialog.dtd" >
+%aboutDialogDTD;
+#endif
 ]>
 
 <overlay id="AdvancedPaneOverlay"
          xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
   <prefpane id="paneAdvanced" onpaneload="gAdvancedPane.init();">
+#ifdef MOZ_UPDATER
+    <script type="application/javascript" src="chrome://messenger/content/aboutDialog-appUpdater.js"/>
+#endif
     <script type="application/javascript" src="chrome://messenger/content/preferences/advanced.js"/>
     <script type="application/javascript" src="chrome://communicator/content/utilityOverlay.js"/>
 
@@ -39,6 +46,9 @@
                   type="bool"/>
       <preference id="general.smoothScroll"
                   name="general.smoothScroll"
+                  type="bool"/>
+      <preference id="intl.regional_prefs.use_os_locales"
+                  name="intl.regional_prefs.use_os_locales"
                   type="bool"/>
 
       <preference id="mailnews.database.global.indexer.enabled"
@@ -91,14 +101,16 @@
                   name="mail.purge_threshhold_mb" type="int"/>
       <preference id="browser.cache.disk.capacity"
                   name="browser.cache.disk.capacity" type="int"/>
+      <preference id="browser.cache.disk.smart_size.enabled"
+                  name="browser.cache.disk.smart_size.enabled"
+                  inverted="true"
+                  type="bool"/>
 #ifdef MOZ_UPDATER
       <!-- Update tab -->
       <preference id="app.update.enabled" name="app.update.enabled"
 type="bool"/>
       <preference id="app.update.auto" name="app.update.auto"
 type="bool"/>
-      <preference id="app.update.mode" name="app.update.mode"
-type="int"/>
       <preference id="app.update.disable_button.showUpdateHistory"
                   name="app.update.disable_button.showUpdateHistory"
                   type="bool"/>
@@ -174,6 +186,29 @@ type="int"/>
                         accesskey="&useSmoothScrolling.accesskey;"
                         preference="general.smoothScroll"/>
               <spacer flex="1"/>
+            </hbox>
+          </groupbox>
+
+          <!-- Date and time formatting -->
+          <groupbox>
+            <caption label="&dateTimeFormatting.label;"/>
+            <hbox>
+            <radiogroup id="formatLocale"
+                        preference="intl.regional_prefs.use_os_locales"
+                        orient="vertical">
+              <hbox>
+                <radio id="appLocale"
+                       value="false"/>
+                       <!-- label and accesskey will be set dynamically -->
+                <spacer flex="1"/>
+              </hbox>
+              <hbox>
+                <radio id="rsLocale"
+                       value="true"/>
+                       <!-- label and accesskey will be set dynamically -->
+                <spacer flex="1"/>
+              </hbox>
+            </radiogroup>
             </hbox>
           </groupbox>
 
@@ -307,6 +342,19 @@ type="int"/>
           <groupbox>
             <caption label="&Diskspace;"/>
             <hbox align="center">
+              <label id="actualDiskCacheSize" flex="1"/>
+              <button id="clearCacheButton" icon="clear"
+                      label="&clearCacheNow.label;" accesskey="&clearCacheNow.accesskey;"
+                      oncommand="gAdvancedPane.clearCache();"/>
+            </hbox>
+            <hbox>
+              <checkbox preference="browser.cache.disk.smart_size.enabled"
+                        id="allowSmartSize"
+                        onsyncfrompreference="return gAdvancedPane.readSmartSizeEnabled();"
+                        label="&overrideSmartCacheSize.label;"
+                        accesskey="&overrideSmartCacheSize.accesskey;"/>
+            </hbox>
+            <hbox align="center" class="indent">
               <label id="useCacheBefore" control="cacheSize"
                      accesskey="&useCacheBefore.accesskey;" value="&useCacheBefore.label;"/>
               <textbox id="cacheSize" type="number" size="4" max="1024"
@@ -315,9 +363,6 @@ type="int"/>
                        onsynctopreference="return gAdvancedPane.writeCacheSize();"
                        aria-labelledby="useCacheBefore cacheSize useCacheAfter"/>
               <label id="useCacheAfter" flex="1">&useCacheAfter.label;</label>
-              <button id="clearCacheButton" icon="clear"
-                      label="&clearCacheNow.label;" accesskey="&clearCacheNow.accesskey;"
-                      oncommand="gAdvancedPane.clearCache();"/>
             </hbox>
             <hbox align="center">
                 <checkbox id="offlineCompactFolder"
@@ -337,43 +382,122 @@ type="int"/>
 
 #ifdef MOZ_UPDATER
         <!-- Update -->
-        <tabpanel orient="vertical" align="start">
+        <tabpanel orient="vertical">
           <groupbox id="updateApp">
-            <caption label="&updateApp.label;"/>
+            <caption label="&updateApp2.label;"/>
+            <hbox align="center">
+              <vbox>
+                <description>
+                  &updateApp.version.pre;<label id="version"/>&updateApp.version.post;
+#ifndef NIGHTLY_BUILD
+#expand           <label id="releasenotes" class="text-link" href="https://www.mozilla.org/thunderbird/__MOZ_APP_VERSION__/releasenotes/">&releaseNotes.link;</label>
+#endif
+                </description>
+                <description id="distribution" class="text-blurb" hidden="true"/>
+                <description id="distributionId" class="text-blurb" hidden="true"/>
+              </vbox>
+              <spacer flex="1"/>
+              <vbox>
+                <button id="showUpdateHistory"
+                        label="&updateHistory.label;"
+                        accesskey="&updateHistory.accesskey;"
+                        preference="app.update.disable_button.showUpdateHistory"
+                        oncommand="gAdvancedPane.showUpdates();"/>
+              </vbox>
+            </hbox>
+            <vbox id="updateBox">
+              <deck id="updateDeck" orient="vertical">
+                <hbox id="checkForUpdates" align="center">
+                  <spacer flex="1"/>
+                  <button id="checkForUpdatesButton" align="start"
+                          label="&update.checkForUpdatesButton.label;"
+                          accesskey="&update.checkForUpdatesButton.accesskey;"
+                          oncommand="gAppUpdater.checkForUpdates();"/>
+                </hbox>
+                <hbox id="downloadAndInstall" align="center">
+                  <spacer flex="1"/>
+                  <button id="downloadAndInstallButton"
+                          oncommand="gAppUpdater.startDownload();"/>
+                          <!-- label and accesskey will be filled by JS -->
+                </hbox>
+                <hbox id="apply" align="center">
+                  <spacer flex="1"/>
+                  <button id="updateButton"
+                          label="&update.updateButton.label3;"
+                          accesskey="&update.updateButton.accesskey;"
+                          oncommand="gAppUpdater.buttonRestartAfterDownload();"/>
+                </hbox>
+                <hbox id="checkingForUpdates" align="center">
+                  <image class="update-throbber"/><label>&update.checkingForUpdates;</label>
+                  <spacer flex="1"/>
+                  <button label="&update.checkForUpdatesButton.label;"
+                          accesskey="&update.checkForUpdatesButton.accesskey;"
+                          disabled="true"/>
+                </hbox>
+                <hbox id="downloading" align="center">
+                  <image class="update-throbber"/><label>&update.downloading.start;</label><label id="downloadStatus"/><label>&update.downloading.end;</label>
+                </hbox>
+                <hbox id="applying" align="center">
+                  <image class="update-throbber"/><label>&update.applying;</label>
+                </hbox>
+               <hbox id="downloadFailed" align="center">
+                  <label>&update.failed.start;</label><label id="failedLink" class="text-link">&update.failed.linkText;</label><label>&update.failed.end;</label>
+                  <spacer flex="1"/>
+                  <button label="&update.checkForUpdatesButton.label;"
+                          accesskey="&update.checkForUpdatesButton.accesskey;"
+                          oncommand="gAppUpdater.checkForUpdates();"/>
+                </hbox>
+                <hbox id="adminDisabled" align="center">
+                  <label>&update.adminDisabled;</label>
+                  <spacer flex="1"/>
+                  <button label="&update.checkForUpdatesButton.label;"
+                          accesskey="&update.checkForUpdatesButton.accesskey;"
+                          disabled="true"/>
+                </hbox>
+                <hbox id="noUpdatesFound" align="center">
+                  <label>&update.noUpdatesFound;</label>
+                  <spacer flex="1"/>
+                  <button label="&update.checkForUpdatesButton.label;"
+                          accesskey="&update.checkForUpdatesButton.accesskey;"
+                          oncommand="gAppUpdater.checkForUpdates();"/>
+                </hbox>
+                <hbox id="otherInstanceHandlingUpdates" align="center">
+                  <label>&update.otherInstanceHandlingUpdates;</label>
+                  <spacer flex="1"/>
+                  <button label="&update.checkForUpdatesButton.label;"
+                          accesskey="&update.checkForUpdatesButton.accesskey;"
+                          disabled="true"/>
+                </hbox>
+                <hbox id="manualUpdate" align="center">
+                  <label>&update.manual.start;</label><label id="manualLink" class="text-link">&update.manual.linkText;</label><label>&update.manual.end;</label>
+                  <spacer flex="1"/>
+                  <button label="&update.checkForUpdatesButton.label;"
+                          accesskey="&update.checkForUpdatesButton.accesskey;"
+                          disabled="true"/>
+                </hbox>
+                <hbox id="unsupportedSystem" align="center">
+                  <label>&update.unsupported.start;</label><label id="unsupportedLink" class="text-link">&update.unsupported.linkText;</label><label>&update.unsupported.end;</label>
+                  <spacer flex="1"/>
+                  <button label="&update.checkForUpdatesButton.label;"
+                          accesskey="&update.checkForUpdatesButton.accesskey;"
+                          disabled="true"/>
+                </hbox>
+              </deck>
+            </vbox>
+            <separator/>
             <radiogroup id="updateRadioGroup"
+                        align="start"
                         oncommand="gAdvancedPane.updateWritePrefs();">
               <radio value="auto"
                      label="&updateAuto.label;"
                      accesskey="&updateAuto.accesskey;"/>
-              <hbox class="indent">
-                <checkbox id="warnIncompatible"
-                          label="&updateAutoAddonWarn.label;"
-                          accesskey="&updateAutoAddonWarn.accesskey;"
-                          preference="app.update.mode"
-                          onsyncfrompreference="return gAdvancedPane.addonWarnSyncFrom();"
-                          onsynctopreference="return gAdvancedPane.addonWarnSyncTo();"/>
-              </hbox>
-              <hbox>
-                <radio value="checkOnly"
-                       label="&updateCheck.label;"
-                       accesskey="&updateCheck.accesskey;"/>
-                <spacer flex="1"/>
-              </hbox>
-              <hbox>
-                <radio value="manual"
-                       label="&updateManual.label;"
-                       accesskey="&updateManual.accesskey;"/>
-                <spacer flex="1"/>
-              </hbox>
+              <radio value="checkOnly"
+                     label="&updateCheck.label;"
+                     accesskey="&updateCheck.accesskey;"/>
+              <radio value="manual"
+                     label="&updateManual.label;"
+                     accesskey="&updateManual.accesskey;"/>
             </radiogroup>
-
-            <hbox>
-              <button id="showUpdateHistory"
-                      label="&updateHistory.label;"
-                      accesskey="&updateHistory.accesskey;"
-                      preference="app.update.disable_button.showUpdateHistory"
-                      oncommand="gAdvancedPane.showUpdates();"/>
-            </hbox>
           </groupbox>
 
 #ifdef MOZ_MAINTENANCE_SERVICE
@@ -420,9 +544,9 @@ type="int"/>
             <separator/>
 
           <hbox>
-            <button id="viewCertificatesButton"
-                    label="&viewCertificates.label;"
-                    accesskey="&viewCertificates.accesskey;"
+            <button id="manageCertificatesButton"
+                    label="&manageCertificates.label;"
+                    accesskey="&manageCertificates.accesskey;"
                     oncommand="gAdvancedPane.showCertificates();"
                     preference="security.disable_button.openCertManager"/>
             <button id="viewSecurityDevicesButton"

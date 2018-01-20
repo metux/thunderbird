@@ -5,7 +5,6 @@
 browser.jar:
 % content branding %content/branding/ contentaccessible=yes
   content/branding/about.png
-  content/branding/about-background.png
   content/branding/about-logo.png
   content/branding/about-logo@2x.png
   content/branding/about-wordmark.svg
@@ -15,5 +14,4 @@ browser.jar:
   content/branding/icon32.png                    (../default32.png)
   content/branding/icon128.png                   (../mozicon128.png)
   content/branding/identity-icons-brand.svg
-  content/branding/silhouette-40.svg
   content/branding/aboutDialog.css

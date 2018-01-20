@@ -2,20 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://gdata-provider/modules/shim/Loader.jsm").shimIt(this);
-Components.utils.import("resource://gdata-provider/modules/shim/Calendar.jsm");
-Components.utils.import("resource://gdata-provider/modules/shim/PromiseExtras.jsm");
 Components.utils.import("resource://gdata-provider/modules/gdataSession.jsm");
 Components.utils.import("resource://gdata-provider/modules/gdataUtils.jsm");
 
-CuImport("resource://gre/modules/Promise.jsm", this);
-
 (function() {
-    function pageorder(anchor /*, ...pages */) {
-        let pages = Array.slice(arguments, 1);
+    function pageorder(anchor, ...pages) {
         let wizard = document.documentElement;
         let page = wizard.getPageById(anchor);
-        for each (let id in pages) {
+        for (let id of pages) {
             page.next = id;
             page = wizard.getPageById(id);
         }
@@ -122,8 +116,9 @@ CuImport("resource://gre/modules/Promise.jsm", this);
         let sessionContainer = document.getElementById("gdata-session-group");
         let newSessionItem = document.getElementById("session-new");
         let calendars = cal.getCalendarManager().getCalendars({});
-        let sessions = new Set([ sessionMgr.getSessionByCalendar(calendar, true)
-                                 for each (calendar in calendars) ]);
+        let sessions = new Set(calendars.map(function(calendar) {
+          return sessionMgr.getSessionByCalendar(calendar, true);
+        }));
 
         while (sessionContainer.firstChild.id != "session-new") {
             sessionContainer.removeChild(sessionContainer.firstChild);
@@ -162,11 +157,11 @@ CuImport("resource://gre/modules/Promise.jsm", this);
             session = sessionMgr.getSessionById(newSessionItem.value, true);
         }
 
-        PromiseAll([session.getTasksList(), session.getCalendarList()])
+        Promise.all([session.getTasksList(), session.getCalendarList()])
                .then(function([tasksLists, calendarList]) {
             let existing = new Set();
             let sessionPrefix = "googleapi://" + session.id;
-            for each (let calendar in calMgr.getCalendars({})) {
+            for (let calendar of calMgr.getCalendars({})) {
                 let spec = calendar.uri.spec;
                 if (calendar.type == "gdata" && spec.substr(0, sessionPrefix.length) == sessionPrefix) {
                     let match;
@@ -181,7 +176,7 @@ CuImport("resource://gre/modules/Promise.jsm", this);
 
             let taskcals = tasksLists.map(function(tasklist) {
                 let uri = "googleapi://" + session.id + "/?tasks=" + encodeURIComponent(tasklist.id);
-                let calendar = calMgr.createCalendar("gdata", Services.io.newURI(uri, null, null));
+                let calendar = calMgr.createCalendar("gdata", Services.io.newURI(uri));
                 calendar.id = cal.getUUID();
                 calendar.setProperty("color", cal.hashColor(tasklist.title));
                 calendar.name = tasklist.title;
@@ -192,7 +187,7 @@ CuImport("resource://gre/modules/Promise.jsm", this);
             });
             let calcals = calendarList.map(function(calendarEntry) {
                 let uri = "googleapi://" + session.id + "/?calendar=" + encodeURIComponent(calendarEntry.id);
-                let calendar = calMgr.createCalendar("gdata", Services.io.newURI(uri, null, null));
+                let calendar = calMgr.createCalendar("gdata", Services.io.newURI(uri));
                 calendar.name = calendarEntry.summary;
                 calendar.id = cal.getUUID();
                 calendar.setProperty("color", calendarEntry.backgroundColor);
@@ -217,14 +212,7 @@ CuImport("resource://gre/modules/Promise.jsm", this);
         let calendarList = document.getElementById("calendar-list");
         let calendars = calendarList.selectedCalendars.filter(function(x) { return !x.getProperty("disabled") && !x.readOnly; });
         let calMgr = cal.getCalendarManager();
-
-        if (Services.vc.compare(Services.appinfo.platformVersion, "9.0") < 0) {
-            // This version didn't allow creating calendars with an id set, we
-            // will have to hack it in.
-            calendars.forEach(gdataRegisterCalendar);
-        } else {
-            calendars.forEach(calMgr.registerCalendar, calMgr);
-        }
+        calendars.forEach(calMgr.registerCalendar, calMgr);
         return true;
     });
 

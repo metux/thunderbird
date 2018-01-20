@@ -12,6 +12,7 @@
 
 #include "nsCOMPtr.h"                   // for already_AddRefed, nsCOMPtr
 #include "nsIDocumentStateListener.h"
+#include "nsINamed.h"
 #include "nsISelectionListener.h"
 #include "nsISupportsImpl.h"            // for NS_DECL_ISUPPORTS
 #include "nsITimer.h"                   // for NS_DECL_NSITIMERCALLBACK, etc
@@ -19,7 +20,7 @@
 #include "nsIWeakReferenceUtils.h"      // for nsWeakPtr
 #include "nscore.h"                     // for NS_IMETHOD, nsresult, etc
 
-class nsIDOMWindow;
+class nsPIDOMWindowOuter;
 class nsITransaction;
 class nsITransactionManager;
 class nsPICommandUpdater;
@@ -27,7 +28,8 @@ class nsPICommandUpdater;
 class nsComposerCommandsUpdater : public nsISelectionListener,
                                   public nsIDocumentStateListener,
                                   public nsITransactionListener,
-                                  public nsITimerCallback
+                                  public nsITimerCallback,
+                                  public nsINamed
 {
 public:
 
@@ -44,6 +46,9 @@ public:
 
   // nsITimerCallback interfaces
   NS_DECL_NSITIMERCALLBACK
+
+  // nsINamed
+  NS_DECL_NSINAMED
 
   /** nsITransactionListener interfaces
     */
@@ -64,7 +69,7 @@ public:
                       bool aDidMerge, nsresult aMergeResult) override;
 
 
-  nsresult   Init(nsIDOMWindow* aDOMWindow);
+  nsresult   Init(nsPIDOMWindowOuter* aDOMWindow);
 
 protected:
 

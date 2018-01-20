@@ -37,15 +37,15 @@ function search_observer(subject, topic, data) {
       do_check_eq(engine, retrievedEngine);
       Services.search.defaultEngine = engine;
       Services.search.currentEngine = engine;
-      do_execute_soon(function () {
+      do_execute_soon(function() {
         Services.search.removeEngine(engine);
       });
       break;
     case "engine-removed":
       let engineNameOutput = " for Test search engine";
       expectedLog = expectedLog.map(logLine => logLine + engineNameOutput);
-      do_print("expectedLog:\n" + expectedLog.join("\n"))
-      do_print("gTestLog:\n" + gTestLog.join("\n"))
+      do_print("expectedLog:\n" + expectedLog.join("\n"));
+      do_print("gTestLog:\n" + gTestLog.join("\n"));
       for (let i = 0; i < expectedLog.length; i++) {
         do_check_eq(gTestLog[i], expectedLog[i]);
       }
@@ -56,8 +56,6 @@ function search_observer(subject, topic, data) {
 }
 
 function run_test() {
-  removeMetadata();
-  updateAppInfo();
   useHttpServer();
 
   do_register_cleanup(function cleanup() {
@@ -66,7 +64,7 @@ function run_test() {
 
   do_test_pending();
 
-  Services.obs.addObserver(search_observer, "browser-search-engine-modified", false);
+  Services.obs.addObserver(search_observer, "browser-search-engine-modified");
 
   Services.search.addEngine(gDataUrl + "engine.xml", null, null, false);
 }

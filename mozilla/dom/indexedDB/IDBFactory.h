@@ -4,10 +4,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef mozilla_dom_indexeddb_idbfactory_h__
-#define mozilla_dom_indexeddb_idbfactory_h__
+#ifndef mozilla_dom_idbfactory_h__
+#define mozilla_dom_idbfactory_h__
 
 #include "mozilla/Attributes.h"
+#include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/StorageTypeBinding.h"
 #include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
@@ -17,9 +18,9 @@
 #include "nsTArray.h"
 #include "nsWrapperCache.h"
 
+class nsIEventTarget;
 class nsIPrincipal;
-class nsPIDOMWindow;
-struct PRThread;
+class nsPIDOMWindowInner;
 
 namespace mozilla {
 
@@ -35,15 +36,16 @@ class PrincipalInfo;
 namespace dom {
 
 struct IDBOpenDBOptions;
+class IDBOpenDBRequest;
 template <typename> class Optional;
 class TabChild;
+enum class CallerType : uint32_t;
 
 namespace indexedDB {
-
 class BackgroundFactoryChild;
 class FactoryRequestParams;
-class IDBOpenDBRequest;
 class LoggingInfo;
+}
 
 class IDBFactory final
   : public nsISupports
@@ -60,20 +62,18 @@ class IDBFactory final
 
   // If this factory lives on a window then mWindow must be non-null. Otherwise
   // mOwningObject must be non-null.
-  nsCOMPtr<nsPIDOMWindow> mWindow;
+  nsCOMPtr<nsPIDOMWindowInner> mWindow;
   JS::Heap<JSObject*> mOwningObject;
 
   // This will only be set if the factory belongs to a window in a child
   // process.
   RefPtr<TabChild> mTabChild;
 
-  nsTArray<nsAutoPtr<PendingRequestInfo>> mPendingRequests;
+  indexedDB::BackgroundFactoryChild* mBackgroundActor;
 
-  BackgroundFactoryChild* mBackgroundActor;
-
-#ifdef DEBUG
-  PRThread* mOwningThread;
-#endif
+  // It is either set to a DocGroup-specific EventTarget if created by
+  // CreateForWindow() or set to GetCurrentThreadEventTarget() otherwise.
+  nsCOMPtr<nsIEventTarget> mEventTarget;
 
   uint64_t mInnerWindowID;
 
@@ -82,18 +82,13 @@ class IDBFactory final
 
 public:
   static nsresult
-  CreateForWindow(nsPIDOMWindow* aWindow,
+  CreateForWindow(nsPIDOMWindowInner* aWindow,
                   IDBFactory** aFactory);
 
   static nsresult
   CreateForMainThreadJS(JSContext* aCx,
                         JS::Handle<JSObject*> aOwningObject,
                         IDBFactory** aFactory);
-
-  static nsresult
-  CreateForDatastore(JSContext* aCx,
-                    JS::Handle<JSObject*> aOwningObject,
-                    IDBFactory** aFactory);
 
   static nsresult
   CreateForWorker(JSContext* aCx,
@@ -103,23 +98,25 @@ public:
                   IDBFactory** aFactory);
 
   static bool
-  AllowedForWindow(nsPIDOMWindow* aWindow);
+  AllowedForWindow(nsPIDOMWindowInner* aWindow);
 
   static bool
   AllowedForPrincipal(nsIPrincipal* aPrincipal,
                       bool* aIsSystemPrincipal = nullptr);
 
-#ifdef DEBUG
-  void
-  AssertIsOnOwningThread() const;
-
-  PRThread*
-  OwningThread() const;
-#else
   void
   AssertIsOnOwningThread() const
-  { }
-#endif
+  {
+    NS_ASSERT_OWNINGTHREAD(IDBFactory);
+  }
+
+  nsIEventTarget*
+  EventTarget() const
+  {
+    AssertIsOnOwningThread();
+    MOZ_RELEASE_ASSERT(mEventTarget);
+    return mEventTarget;
+  }
 
   void
   ClearBackgroundActor()
@@ -129,10 +126,24 @@ public:
     mBackgroundActor = nullptr;
   }
 
+  // Increase/Decrease the number of active transactions for the decision
+  // making of preemption and throttling.
+  // Note: If the state of its actor is not committed or aborted, it could block
+  // IDB operations in other window.
+  void
+  UpdateActiveTransactionCount(int32_t aDelta);
+
+  // Increase/Decrease the number of active databases and IDBOpenRequests for
+  // the decision making of preemption and throttling.
+  // Note: A non-closed database or a pending IDBOpenRequest could block
+  // IDB operations in other window.
+  void
+  UpdateActiveDatabaseCount(int32_t aDelta);
+
   void
   IncrementParentLoggingRequestSerialNumber();
 
-  nsPIDOMWindow*
+  nsPIDOMWindowInner*
   GetParentObject() const
   {
     return mWindow;
@@ -164,18 +175,24 @@ public:
   IsChrome() const;
 
   already_AddRefed<IDBOpenDBRequest>
-  Open(const nsAString& aName,
+  Open(JSContext* aCx,
+       const nsAString& aName,
        uint64_t aVersion,
+       CallerType aCallerType,
        ErrorResult& aRv);
 
   already_AddRefed<IDBOpenDBRequest>
-  Open(const nsAString& aName,
+  Open(JSContext* aCx,
+       const nsAString& aName,
        const IDBOpenDBOptions& aOptions,
+       CallerType aCallerType,
        ErrorResult& aRv);
 
   already_AddRefed<IDBOpenDBRequest>
-  DeleteDatabase(const nsAString& aName,
+  DeleteDatabase(JSContext* aCx,
+                 const nsAString& aName,
                  const IDBOpenDBOptions& aOptions,
+                 CallerType aCallerType,
                  ErrorResult& aRv);
 
   int16_t
@@ -185,21 +202,27 @@ public:
       ErrorResult& aRv);
 
   already_AddRefed<IDBOpenDBRequest>
-  OpenForPrincipal(nsIPrincipal* aPrincipal,
+  OpenForPrincipal(JSContext* aCx,
+                   nsIPrincipal* aPrincipal,
                    const nsAString& aName,
                    uint64_t aVersion,
+                   SystemCallerGuarantee,
                    ErrorResult& aRv);
 
   already_AddRefed<IDBOpenDBRequest>
-  OpenForPrincipal(nsIPrincipal* aPrincipal,
+  OpenForPrincipal(JSContext* aCx,
+                   nsIPrincipal* aPrincipal,
                    const nsAString& aName,
                    const IDBOpenDBOptions& aOptions,
+                   SystemCallerGuarantee,
                    ErrorResult& aRv);
 
   already_AddRefed<IDBOpenDBRequest>
-  DeleteForPrincipal(nsIPrincipal* aPrincipal,
+  DeleteForPrincipal(JSContext* aCx,
+                     nsIPrincipal* aPrincipal,
                      const nsAString& aName,
                      const IDBOpenDBOptions& aOptions,
+                     SystemCallerGuarantee,
                      ErrorResult& aRv);
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -227,31 +250,25 @@ private:
                       IDBFactory** aFactory);
 
   static nsresult
-  AllowedForWindowInternal(nsPIDOMWindow* aWindow,
+  AllowedForWindowInternal(nsPIDOMWindowInner* aWindow,
                            nsIPrincipal** aPrincipal);
 
   already_AddRefed<IDBOpenDBRequest>
-  OpenInternal(nsIPrincipal* aPrincipal,
+  OpenInternal(JSContext* aCx,
+               nsIPrincipal* aPrincipal,
                const nsAString& aName,
                const Optional<uint64_t>& aVersion,
                const Optional<StorageType>& aStorageType,
                bool aDeleting,
+               CallerType aCallerType,
                ErrorResult& aRv);
 
   nsresult
-  BackgroundActorCreated(PBackgroundChild* aBackgroundActor,
-                         const LoggingInfo& aLoggingInfo);
-
-  void
-  BackgroundActorFailed();
-
-  nsresult
   InitiateRequest(IDBOpenDBRequest* aRequest,
-                  const FactoryRequestParams& aParams);
+                  const indexedDB::FactoryRequestParams& aParams);
 };
 
-} // namespace indexedDB
 } // namespace dom
 } // namespace mozilla
 
-#endif // mozilla_dom_indexeddb_idbfactory_h__
+#endif // mozilla_dom_idbfactory_h__

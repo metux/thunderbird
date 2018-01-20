@@ -43,24 +43,24 @@ var PLUGINS = [{
 
 // A fake plugin host for the blocklist service to use
 var PluginHost = {
-  getPluginTags: function(countRef) {
+  getPluginTags(countRef) {
     countRef.value = PLUGINS.length;
     return PLUGINS;
   },
 
-  QueryInterface: function(iid) {
+  QueryInterface(iid) {
     if (iid.equals(Ci.nsIPluginHost)
      || iid.equals(Ci.nsISupports))
       return this;
-  
+
     throw Components.results.NS_ERROR_NO_INTERFACE;
   }
-}
+};
 
 // Don't need the full interface, attempts to call other methods will just
 // throw which is just fine
 var WindowWatcher = {
-  openWindow: function(parent, url, name, features, args) {
+  openWindow(parent, url, name, features, args) {
     // Should be called to list the newly blocklisted items
     do_check_eq(url, URI_EXTENSION_BLOCKLIST_DIALOG);
     // Should only include one item
@@ -74,14 +74,14 @@ var WindowWatcher = {
     do_timeout(0, gNextTestPart);
   },
 
-  QueryInterface: function(iid) {
+  QueryInterface(iid) {
     if (iid.equals(Ci.nsIWindowWatcher)
      || iid.equals(Ci.nsISupports))
       return this;
 
     throw Cr.NS_ERROR_NO_INTERFACE;
   }
-}
+};
 
 MockRegistrar.register("@mozilla.org/plugin/host;1", PluginHost);
 MockRegistrar.register("@mozilla.org/embedcomp/window-watcher;1", WindowWatcher);
@@ -106,13 +106,13 @@ function run_test() {
 
   // initialize the blocklist with no entries
   copyBlocklistToProfile(do_get_file("data/test_bug514327_3_empty.xml"));
-  
+
   gPrefs = Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefBranch);
   gBlocklist = Cc["@mozilla.org/extensions/blocklist;1"].getService(nsIBLS);
-  
+
   // should NOT be marked as outdated by the blocklist
   do_check_true(gBlocklist.getPluginBlocklistState(PLUGINS[0], "1", "1.9") == nsIBLS.STATE_NOT_BLOCKED);
-  
+
   do_test_pending();
 
   // update blocklist with data that marks the plugin as outdated
@@ -122,12 +122,7 @@ function run_test() {
 function test_part_1() {
   // plugin should now be marked as outdated
   do_check_true(gBlocklist.getPluginBlocklistState(PLUGINS[0], "1", "1.9") == nsIBLS.STATE_OUTDATED);
-  // and the notifyUser pref should be set to true
-  do_check_true(gPrefs.getBoolPref("plugins.update.notifyUser"));
-  
-  // preternd the user has been notified, reset the pref
-  gPrefs.setBoolPref("plugins.update.notifyUser", false);
-  
+
   // update blocklist with data that marks the plugin as outdated
   do_update_blocklist("test_bug514327_3_outdated_2.xml", test_part_2);
 }
@@ -135,8 +130,6 @@ function test_part_1() {
 function test_part_2() {
   // plugin should still be marked as outdated
   do_check_true(gBlocklist.getPluginBlocklistState(PLUGINS[0], "1", "1.9") == nsIBLS.STATE_OUTDATED);
-  // and the notifyUser pref should NOT be set to true, as the plugin was already outdated
-  do_check_false(gPrefs.getBoolPref("plugins.update.notifyUser"));
 
   finish();
 }

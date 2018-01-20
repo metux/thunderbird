@@ -1,5 +1,6 @@
 var namespaces = {
   "html":"http://www.w3.org/1999/xhtml",
+  "math":"http://www.w3.org/1998/Math/MathML",
   "mathml":"http://www.w3.org/1998/Math/MathML",
   "svg":"http://www.w3.org/2000/svg",
   "xlink":"http://www.w3.org/1999/xlink",
@@ -94,6 +95,18 @@ function test_serializer(element) {
             lines.push(format("|%s%s=\"%s\"", indent_spaces, attr[0], attr[1]));
           }
         );
+        if ("HTMLTemplateElement" in window &&
+            Object.prototype.toString.call(element) === "[object HTMLTemplateElement]") {
+          indent += 2;
+          indent_spaces = (new Array(indent)).join(" ");
+          lines.push(format("|%scontent", indent_spaces));
+          indent += 2;
+          Array.prototype.forEach.call(element.content.childNodes,
+                                       function(node) {
+                                         serialize_element(node, indent);
+                                       });
+          indent -= 4;
+        }
         break;
     }
     indent += 2;
@@ -127,18 +140,23 @@ function get_type() {
   return run_type;
 };
 
-var test_in_data_uri = get_test_func(function (iframe, uri_encoded_input) {
-                                       iframe.src = "data:text/html;charset=utf8," + uri_encoded_input;
+var test_in_blob_uri = get_test_func(function (iframe, uri_encoded_input, t) {
+                                       var b = new Blob([decodeURIComponent(uri_encoded_input)], { type: "text/html" });
+                                       var blobURL = URL.createObjectURL(b);
+                                       iframe.src = blobURL;
+                                       t.add_cleanup(function() {
+                                         URL.revokeObjectURL(blobURL);
+                                       });
                                      });
 
-var test_document_write = get_test_func(function(iframe, uri_encoded_input) {
+var test_document_write = get_test_func(function(iframe, uri_encoded_input, t) {
                                           iframe.contentDocument.open();
                                           var input = decodeURIComponent(uri_encoded_input);
                                           iframe.contentDocument.write(input);
                                           iframe.contentDocument.close();
                                         });
 
-var test_document_write_single = get_test_func(function(iframe, uri_encoded_input) {
+var test_document_write_single = get_test_func(function(iframe, uri_encoded_input, t) {
                                                  iframe.contentDocument.open();
                                                  var input = decodeURIComponent(uri_encoded_input);
                                                  for (var i=0; i< input.length; i++) {
@@ -166,7 +184,7 @@ function get_test_func(inject_func) {
              }
             );
     };
-    inject_func(iframe, uri_encoded_input);
+    inject_func(iframe, uri_encoded_input, t);
   }
   return test_func;
 }
@@ -248,7 +266,7 @@ function init_tests(test_type) {
   var test_funcs = {
     "write":test_document_write,
     "write_single":test_document_write_single,
-    "uri":test_in_data_uri,
+    "uri":test_in_blob_uri,
     "innerHTML":test_fragment
   };
   var tests_started = 0;
@@ -302,7 +320,7 @@ function init_tests(test_type) {
     var x = tests[test_id];
     var t = x[0];
     iframe_map[t.name] = iframe.id;
-    setTimeout(function() {
+    step_timeout(function() {
                  t.step(function() {
                    var string_uri_encoded_input = x[1];
                    var string_escaped_expected = x[2];

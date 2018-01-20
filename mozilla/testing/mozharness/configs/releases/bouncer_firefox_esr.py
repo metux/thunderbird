@@ -34,6 +34,7 @@ config = {
         "installer-ssl": {
             "product-name": "Firefox-%(version)s-SSL",
             "check_uptake": True,
+            "alias": "firefox-esr-latest-ssl",
             "ssl-only": True,
             "add-locales": True,
             "paths": {
@@ -56,6 +57,20 @@ config = {
                 "win64": {
                     "path": "/firefox/releases/%(version)s/win64/:lang/Firefox%%20Setup%%20%(version)s.exe",
                     "bouncer-platform": "win64",
+                },
+            },
+        },
+        "sha1-installer": {
+            "product-name": "Firefox-%(version)s-sha1",
+            "check_uptake": True,
+            # XP/Vista Release users are redicted to ESR52
+            "alias": "firefox-sha1",
+            "ssl-only": True,
+            "add-locales": True,
+            "paths": {
+                "win32": {
+                    "path": "/firefox/releases/%(version)s/win32-sha1/:lang/Firefox%%20Setup%%20%(version)s.exe",
+                    "bouncer-platform": "win",
                 },
             },
         },
@@ -83,6 +98,34 @@ config = {
                 },
                 "win64": {
                     "path": "/firefox/releases/%(version)s/update/win64/:lang/firefox-%(version)s.complete.mar",
+                    "bouncer-platform": "win64",
+                },
+            },
+        },
+        "complete-mar-bz2": {
+            "product-name": "Firefox-%(version)s-Complete-bz2",
+            "check_uptake": True,
+            "ssl-only": False,
+            "add-locales": True,
+            "paths": {
+                "linux": {
+                    "path": "/firefox/releases/%(version)s/update/linux-i686/:lang/firefox-%(version)s.bz2.complete.mar",
+                    "bouncer-platform": "linux",
+                },
+                "linux64": {
+                    "path": "/firefox/releases/%(version)s/update/linux-x86_64/:lang/firefox-%(version)s.bz2.complete.mar",
+                    "bouncer-platform": "linux64",
+                },
+                "macosx64": {
+                    "path": "/firefox/releases/%(version)s/update/mac/:lang/firefox-%(version)s.bz2.complete.mar",
+                    "bouncer-platform": "osx",
+                },
+                "win32": {
+                    "path": "/firefox/releases/%(version)s/update/win32/:lang/firefox-%(version)s.bz2.complete.mar",
+                    "bouncer-platform": "win",
+                },
+                "win64": {
+                    "path": "/firefox/releases/%(version)s/update/win64/:lang/firefox-%(version)s.bz2.complete.mar",
                     "bouncer-platform": "win64",
                 },
             },

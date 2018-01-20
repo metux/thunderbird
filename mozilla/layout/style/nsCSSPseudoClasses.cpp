@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -8,115 +9,158 @@
 #include "mozilla/ArrayUtils.h"
 
 #include "nsCSSPseudoClasses.h"
+#include "nsCSSPseudoElements.h"
 #include "nsStaticAtom.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/dom/Element.h"
 #include "nsString.h"
+#include "nsAttrValueInlines.h"
+#include "nsIMozBrowserFrame.h"
 
 using namespace mozilla;
 
-// define storage for all atoms
-#define CSS_PSEUDO_CLASS(_name, _value, _flags, _pref) \
-  static nsIAtom* sPseudoClass_##_name;
+#define CSS_PSEUDO_CLASS(name_, value_, flags_, pref_) \
+  static_assert(!((flags_) & CSS_PSEUDO_CLASS_ENABLED_IN_CHROME) || \
+                ((flags_) & CSS_PSEUDO_CLASS_ENABLED_IN_UA_SHEETS), \
+                "Pseudo-class '" #name_ "' is enabled in chrome, so it " \
+                "should also be enabled in UA sheets");
+#include "nsCSSPseudoClassList.h"
+#undef CSS_PSEUDO_CLASS
+
+class CSSPseudoClassAtoms
+{
+public:
+  #define CSS_PSEUDO_CLASS(name_, value_, flags_, pref_) \
+    NS_STATIC_ATOM_DECL(name_)
+  #include "nsCSSPseudoClassList.h"
+  #undef CSS_PSEUDO_CLASS
+};
+
+#define CSS_PSEUDO_CLASS(name_, value_, flags_, pref_) \
+  NS_STATIC_ATOM_DEFN(CSSPseudoClassAtoms, name_)
 #include "nsCSSPseudoClassList.h"
 #undef CSS_PSEUDO_CLASS
 
 #define CSS_PSEUDO_CLASS(name_, value_, flags_, pref_) \
-  NS_STATIC_ATOM_BUFFER(name_##_pseudo_class_buffer, value_)
+  NS_STATIC_ATOM_BUFFER(name_, value_)
 #include "nsCSSPseudoClassList.h"
 #undef CSS_PSEUDO_CLASS
 
-// Array of nsStaticAtom for each of the pseudo-classes.
-static const nsStaticAtom CSSPseudoClasses_info[] = {
-#define CSS_PSEUDO_CLASS(name_, value_, flags_, pref_) \
-  NS_STATIC_ATOM(name_##_pseudo_class_buffer, &sPseudoClass_##name_),
-#include "nsCSSPseudoClassList.h"
-#undef CSS_PSEUDO_CLASS
+static const nsStaticAtomSetup sCSSPseudoClassAtomSetup[] = {
+  #define CSS_PSEUDO_CLASS(name_, value_, flags_, pref_) \
+    NS_STATIC_ATOM_SETUP(CSSPseudoClassAtoms, name_)
+  #include "nsCSSPseudoClassList.h"
+  #undef CSS_PSEUDO_CLASS
 };
 
 // Flags data for each of the pseudo-classes, which must be separate
 // from the previous array since there's no place for it in
-// nsStaticAtom.
-static const uint32_t CSSPseudoClasses_flags[] = {
-#define CSS_PSEUDO_CLASS(name_, value_, flags_, pref_) \
-  flags_,
-#include "nsCSSPseudoClassList.h"
-#undef CSS_PSEUDO_CLASS
+// nsStaticAtomSetup.
+/* static */ const uint32_t
+nsCSSPseudoClasses::kPseudoClassFlags[] = {
+  #define CSS_PSEUDO_CLASS(name_, value_, flags_, pref_) \
+    flags_,
+  #include "nsCSSPseudoClassList.h"
+  #undef CSS_PSEUDO_CLASS
 };
 
-static bool sPseudoClassEnabled[] = {
-#define CSS_PSEUDO_CLASS(name_, value_, flags_, pref_) \
-  true,
-#include "nsCSSPseudoClassList.h"
-#undef CSS_PSEUDO_CLASS
-};  
+/* static */ bool
+nsCSSPseudoClasses::sPseudoClassEnabled[] = {
+  // If the pseudo class has any "ENABLED_IN" flag set, it is disabled by
+  // default. Note that, if a pseudo class has pref, whatever its default
+  // value is, it'll later be changed in nsCSSPseudoClasses::AddRefAtoms()
+  // If the pseudo class has "ENABLED_IN" flags but doesn't have a pref,
+  // it is an internal pseudo class which is disabled elsewhere.
+  #define IS_ENABLED_BY_DEFAULT(flags_) \
+    (!((flags_) & CSS_PSEUDO_CLASS_ENABLED_MASK))
+  #define CSS_PSEUDO_CLASS(name_, value_, flags_, pref_) \
+    IS_ENABLED_BY_DEFAULT(flags_),
+  #include "nsCSSPseudoClassList.h"
+  #undef CSS_PSEUDO_CLASS
+  #undef IS_ENABLED_BY_DEFAULT
+};
 
 void nsCSSPseudoClasses::AddRefAtoms()
 {
-  NS_RegisterStaticAtoms(CSSPseudoClasses_info);
-  
-#define CSS_PSEUDO_CLASS(name_, value_, flags_, pref_)                       \
-  if (pref_[0]) {                                                            \
-    Preferences::AddBoolVarCache(&sPseudoClassEnabled[ePseudoClass_##name_], \
-                                 pref_);                                     \
-  }
-#include "nsCSSPseudoClassList.h"
-#undef CSS_PSEUDO_CLASS
+  NS_RegisterStaticAtoms(sCSSPseudoClassAtomSetup);
+
+  #define CSS_PSEUDO_CLASS(name_, value_, flags_, pref_)                      \
+    if (pref_[0]) {                                                           \
+      auto idx = static_cast<CSSPseudoElementTypeBase>(Type::name_);          \
+      Preferences::AddBoolVarCache(&sPseudoClassEnabled[idx], pref_);         \
+    }
+  #include "nsCSSPseudoClassList.h"
+  #undef CSS_PSEUDO_CLASS
 }
 
 bool
 nsCSSPseudoClasses::HasStringArg(Type aType)
 {
-  return aType == ePseudoClass_lang ||
-         aType == ePseudoClass_mozEmptyExceptChildrenWithLocalname ||
-         aType == ePseudoClass_mozSystemMetric ||
-         aType == ePseudoClass_mozLocaleDir ||
-         aType == ePseudoClass_dir;
+  return aType == Type::lang ||
+         aType == Type::mozLocaleDir ||
+         aType == Type::dir;
 }
 
 bool
 nsCSSPseudoClasses::HasNthPairArg(Type aType)
 {
-  return aType == ePseudoClass_nthChild ||
-         aType == ePseudoClass_nthLastChild ||
-         aType == ePseudoClass_nthOfType ||
-         aType == ePseudoClass_nthLastOfType;
+  return aType == Type::nthChild ||
+         aType == Type::nthLastChild ||
+         aType == Type::nthOfType ||
+         aType == Type::nthLastOfType;
 }
 
 void
 nsCSSPseudoClasses::PseudoTypeToString(Type aType, nsAString& aString)
 {
-  MOZ_ASSERT(aType < ePseudoClass_Count, "Unexpected type");
-  MOZ_ASSERT(aType >= 0, "Very unexpected type");
-  (*CSSPseudoClasses_info[aType].mAtom)->ToString(aString);
+  MOZ_ASSERT(aType < Type::Count, "Unexpected type");
+  auto idx = static_cast<CSSPseudoClassTypeBase>(aType);
+  (*sCSSPseudoClassAtomSetup[idx].mAtom)->ToString(aString);
 }
 
-nsCSSPseudoClasses::Type
-nsCSSPseudoClasses::GetPseudoType(nsIAtom* aAtom)
+/* static */ CSSPseudoClassType
+nsCSSPseudoClasses::GetPseudoType(nsAtom* aAtom, EnabledState aEnabledState)
 {
-  for (uint32_t i = 0; i < ArrayLength(CSSPseudoClasses_info); ++i) {
-    if (*CSSPseudoClasses_info[i].mAtom == aAtom) {
-      return sPseudoClassEnabled[i] ? Type(i) : ePseudoClass_NotPseudoClass;
+  for (uint32_t i = 0; i < ArrayLength(sCSSPseudoClassAtomSetup); ++i) {
+    if (*sCSSPseudoClassAtomSetup[i].mAtom == aAtom) {
+      Type type = Type(i);
+      return IsEnabled(type, aEnabledState) ? type : Type::NotPseudo;
     }
   }
-
-  return nsCSSPseudoClasses::ePseudoClass_NotPseudoClass;
+  return Type::NotPseudo;
 }
 
 /* static */ bool
 nsCSSPseudoClasses::IsUserActionPseudoClass(Type aType)
 {
   // See http://dev.w3.org/csswg/selectors4/#useraction-pseudos
-  return aType == ePseudoClass_hover ||
-         aType == ePseudoClass_active ||
-         aType == ePseudoClass_focus;
+  return aType == Type::hover ||
+         aType == Type::active ||
+         aType == Type::focus;
 }
 
-/* static */ uint32_t
-nsCSSPseudoClasses::FlagsForPseudoClass(const Type aType)
+/* static */ Maybe<bool>
+nsCSSPseudoClasses::MatchesElement(Type aType, const dom::Element* aElement)
 {
-  size_t index = static_cast<size_t>(aType);
-  NS_ASSERTION(index < ArrayLength(CSSPseudoClasses_flags),
-               "argument must be a pseudo-class");
-  return CSSPseudoClasses_flags[index];
+  switch (aType) {
+    case CSSPseudoClassType::mozNativeAnonymous:
+      return Some(aElement->IsInNativeAnonymousSubtree());
+    case CSSPseudoClassType::mozUseShadowTreeRoot:
+      return Some(aElement->IsRootOfUseElementShadowTree());
+    case CSSPseudoClassType::mozTableBorderNonzero: {
+      if (!aElement->IsHTMLElement(nsGkAtoms::table)) {
+        return Some(false);
+      }
+      const nsAttrValue *val = aElement->GetParsedAttr(nsGkAtoms::border);
+      return Some(val && (val->Type() != nsAttrValue::eInteger ||
+                          val->GetIntegerValue() != 0));
+    }
+    case CSSPseudoClassType::mozBrowserFrame: {
+      nsIMozBrowserFrame* browserFrame =
+        const_cast<Element*>(aElement)->GetAsMozBrowserFrame();
+      return Some(browserFrame && browserFrame->GetReallyIsBrowser());
+    }
+    default:
+      return Nothing();
+  }
 }
-

@@ -36,7 +36,7 @@ public:
    * @param aAttrValue - value of attribute
    */
   static void GetAccAttr(nsIPersistentProperties *aAttributes,
-                         nsIAtom *aAttrName,
+                         nsAtom *aAttrName,
                          nsAString& aAttrValue);
 
   /**
@@ -47,12 +47,12 @@ public:
    * @param aAttrValue - new value of attribute
    */
   static void SetAccAttr(nsIPersistentProperties *aAttributes,
-                         nsIAtom *aAttrName,
+                         nsAtom *aAttrName,
                          const nsAString& aAttrValue);
 
   static void SetAccAttr(nsIPersistentProperties *aAttributes,
-                         nsIAtom* aAttrName,
-                         nsIAtom* aAttrValue);
+                         nsAtom* aAttrName,
+                         nsAtom* aAttrValue);
 
   /**
    * Set group attributes ('level', 'setsize', 'posinset').
@@ -85,22 +85,22 @@ public:
    * @param aTopContent    node to end at
    */
   static void SetLiveContainerAttributes(nsIPersistentProperties *aAttributes,
-                                         nsIContent *aStartContent,
-                                         nsIContent *aTopContent);
+                                         nsIContent* aStartContent,
+                                         mozilla::dom::Element* aTopEl);
 
   /**
    * Any ARIA property of type boolean or NMTOKEN is undefined if the ARIA
-   * property is not present, or is "" or "undefined". Do not call 
+   * property is not present, or is "" or "undefined". Do not call
    * this method for properties of type string, decimal, IDREF or IDREFS.
-   * 
+   *
    * Return true if the ARIA property is defined, otherwise false
    */
-  static bool HasDefinedARIAToken(nsIContent *aContent, nsIAtom *aAtom);
+  static bool HasDefinedARIAToken(nsIContent *aContent, nsAtom *aAtom);
 
   /**
    * Return atomic value of ARIA attribute of boolean or NMTOKEN type.
    */
-  static nsIAtom* GetARIAToken(mozilla::dom::Element* aElement, nsIAtom* aAttr);
+  static nsAtom* GetARIAToken(mozilla::dom::Element* aElement, nsAtom* aAttr);
 
   /**
    * Return document accessible for the given DOM node.
@@ -202,17 +202,6 @@ public:
    * Return text length of the given accessible, return 0 on failure.
    */
   static uint32_t TextLength(Accessible* aAccessible);
-
-  /**
-   * Return true if the given accessible is embedded object.
-   */
-  static bool IsEmbeddedObject(Accessible* aAcc)
-  {
-    uint32_t role = aAcc->Role();
-    return role != roles::TEXT_LEAF &&
-           role != roles::WHITESPACE &&
-           role != roles::STATICTEXT;
-  }
 
   /**
    * Transform nsIAccessibleStates constants to internal state constant.

@@ -30,7 +30,6 @@
 #include "nsReadableUtils.h"
 #include "nsCRT.h"
 #include "nsError.h"
-#include "nsDOMClassInfoID.h"
 #include "mozilla/BasicEvents.h"
 #include "mozilla/EventDispatcher.h"
 #include "mozilla/dom/Element.h"
@@ -42,7 +41,7 @@ static LazyLogModule gCommandLog("nsXULCommandDispatcher");
 ////////////////////////////////////////////////////////////////////////
 
 nsXULCommandDispatcher::nsXULCommandDispatcher(nsIDocument* aDocument)
-    : mDocument(aDocument), mUpdaters(nullptr)
+    : mDocument(aDocument), mUpdaters(nullptr), mLocked(false)
 {
 }
 
@@ -57,7 +56,6 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsXULCommandDispatcher)
     NS_INTERFACE_MAP_ENTRY(nsIDOMXULCommandDispatcher)
     NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)
     NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIDOMXULCommandDispatcher)
-    NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(XULCommandDispatcher)
 NS_INTERFACE_MAP_END
 
 NS_IMPL_CYCLE_COLLECTING_ADDREF(nsXULCommandDispatcher)
@@ -93,8 +91,7 @@ already_AddRefed<nsPIWindowRoot>
 nsXULCommandDispatcher::GetWindowRoot()
 {
   if (mDocument) {
-    nsCOMPtr<nsPIDOMWindow> window(mDocument->GetWindow());
-    if (window) {
+    if (nsCOMPtr<nsPIDOMWindowOuter> window = mDocument->GetWindow()) {
       return window->GetTopWindowRoot();
     }
   }
@@ -103,17 +100,20 @@ nsXULCommandDispatcher::GetWindowRoot()
 }
 
 nsIContent*
-nsXULCommandDispatcher::GetRootFocusedContentAndWindow(nsPIDOMWindow** aWindow)
+nsXULCommandDispatcher::GetRootFocusedContentAndWindow(nsPIDOMWindowOuter** aWindow)
 {
   *aWindow = nullptr;
 
-  if (mDocument) {
-    nsCOMPtr<nsPIDOMWindow> win = mDocument->GetWindow();
-    if (win) {
-      nsCOMPtr<nsPIDOMWindow> rootWindow = win->GetPrivateRoot();
-      if (rootWindow) {
-        return nsFocusManager::GetFocusedDescendant(rootWindow, true, aWindow);
-      }
+  if (!mDocument) {
+    return nullptr;
+  }
+
+  if (nsCOMPtr<nsPIDOMWindowOuter> win = mDocument->GetWindow()) {
+    if (nsCOMPtr<nsPIDOMWindowOuter> rootWindow = win->GetPrivateRoot()) {
+      return nsFocusManager::GetFocusedDescendant(
+                               rootWindow,
+                               nsFocusManager::eIncludeAllDescendants,
+                               aWindow);
     }
   }
 
@@ -125,7 +125,7 @@ nsXULCommandDispatcher::GetFocusedElement(nsIDOMElement** aElement)
 {
   *aElement = nullptr;
 
-  nsCOMPtr<nsPIDOMWindow> focusedWindow;
+  nsCOMPtr<nsPIDOMWindowOuter> focusedWindow;
   nsIContent* focusedContent =
     GetRootFocusedContentAndWindow(getter_AddRefs(focusedWindow));
   if (focusedContent) {
@@ -146,11 +146,11 @@ nsXULCommandDispatcher::GetFocusedElement(nsIDOMElement** aElement)
 }
 
 NS_IMETHODIMP
-nsXULCommandDispatcher::GetFocusedWindow(nsIDOMWindow** aWindow)
+nsXULCommandDispatcher::GetFocusedWindow(mozIDOMWindowProxy** aWindow)
 {
   *aWindow = nullptr;
 
-  nsCOMPtr<nsPIDOMWindow> window;
+  nsCOMPtr<nsPIDOMWindowOuter> window;
   GetRootFocusedContentAndWindow(getter_AddRefs(window));
   if (!window)
     return NS_OK;
@@ -178,17 +178,17 @@ nsXULCommandDispatcher::SetFocusedElement(nsIDOMElement* aElement)
     return fm->SetFocus(aElement, 0);
 
   // if aElement is null, clear the focus in the currently focused child window
-  nsCOMPtr<nsPIDOMWindow> focusedWindow;
+  nsCOMPtr<nsPIDOMWindowOuter> focusedWindow;
   GetRootFocusedContentAndWindow(getter_AddRefs(focusedWindow));
   return fm->ClearFocus(focusedWindow);
 }
 
 NS_IMETHODIMP
-nsXULCommandDispatcher::SetFocusedWindow(nsIDOMWindow* aWindow)
+nsXULCommandDispatcher::SetFocusedWindow(mozIDOMWindowProxy* aWindow)
 {
   NS_ENSURE_TRUE(aWindow, NS_OK); // do nothing if set to null
 
-  nsCOMPtr<nsPIDOMWindow> window(do_QueryInterface(aWindow));
+  nsCOMPtr<nsPIDOMWindowOuter> window = nsPIDOMWindowOuter::From(aWindow);
   NS_ENSURE_TRUE(window, NS_ERROR_FAILURE);
 
   nsIFocusManager* fm = nsFocusManager::GetFocusManager();
@@ -215,7 +215,7 @@ nsXULCommandDispatcher::AdvanceFocus()
 NS_IMETHODIMP
 nsXULCommandDispatcher::RewindFocus()
 {
-  nsCOMPtr<nsPIDOMWindow> win;
+  nsCOMPtr<nsPIDOMWindowOuter> win;
   GetRootFocusedContentAndWindow(getter_AddRefs(win));
 
   nsCOMPtr<nsIDOMElement> result;
@@ -229,7 +229,7 @@ nsXULCommandDispatcher::RewindFocus()
 NS_IMETHODIMP
 nsXULCommandDispatcher::AdvanceFocusIntoSubtree(nsIDOMElement* aElt)
 {
-  nsCOMPtr<nsPIDOMWindow> win;
+  nsCOMPtr<nsPIDOMWindowOuter> win;
   GetRootFocusedContentAndWindow(getter_AddRefs(win));
 
   nsCOMPtr<nsIDOMElement> result;
@@ -265,9 +265,9 @@ nsXULCommandDispatcher::AddCommandUpdater(nsIDOMElement* aElement,
 
 #ifdef DEBUG
       if (MOZ_LOG_TEST(gCommandLog, LogLevel::Debug)) {
-        nsAutoCString eventsC, targetsC, aeventsC, atargetsC; 
-        eventsC.AssignWithConversion(updater->mEvents);
-        targetsC.AssignWithConversion(updater->mTargets);
+        nsAutoCString eventsC, targetsC, aeventsC, atargetsC;
+        LossyCopyUTF16toASCII(updater->mEvents, eventsC);
+        LossyCopyUTF16toASCII(updater->mTargets, targetsC);
         CopyUTF16toUTF8(aEvents, aeventsC);
         CopyUTF16toUTF8(aTargets, atargetsC);
         MOZ_LOG(gCommandLog, LogLevel::Debug,
@@ -293,7 +293,7 @@ nsXULCommandDispatcher::AddCommandUpdater(nsIDOMElement* aElement,
   }
 #ifdef DEBUG
   if (MOZ_LOG_TEST(gCommandLog, LogLevel::Debug)) {
-    nsAutoCString aeventsC, atargetsC; 
+    nsAutoCString aeventsC, atargetsC;
     CopyUTF16toUTF8(aEvents, aeventsC);
     CopyUTF16toUTF8(aTargets, atargetsC);
 
@@ -324,9 +324,9 @@ nsXULCommandDispatcher::RemoveCommandUpdater(nsIDOMElement* aElement)
     if (updater->mElement == aElement) {
 #ifdef DEBUG
       if (MOZ_LOG_TEST(gCommandLog, LogLevel::Debug)) {
-        nsAutoCString eventsC, targetsC; 
-        eventsC.AssignWithConversion(updater->mEvents);
-        targetsC.AssignWithConversion(updater->mTargets);
+        nsAutoCString eventsC, targetsC;
+        LossyCopyUTF16toASCII(updater->mEvents, eventsC);
+        LossyCopyUTF16toASCII(updater->mTargets, targetsC);
         MOZ_LOG(gCommandLog, LogLevel::Debug,
                ("xulcmd[%p] remove  %p(events=%s targets=%s)",
                 this, aElement,
@@ -351,6 +351,14 @@ nsXULCommandDispatcher::RemoveCommandUpdater(nsIDOMElement* aElement)
 NS_IMETHODIMP
 nsXULCommandDispatcher::UpdateCommands(const nsAString& aEventName)
 {
+  if (mLocked) {
+    if (!mPendingUpdates.Contains(aEventName)) {
+      mPendingUpdates.AppendElement(aEventName);
+    }
+
+    return NS_OK;
+  }
+
   nsAutoString id;
   nsCOMPtr<nsIDOMElement> element;
   GetFocusedElement(getter_AddRefs(element));
@@ -384,7 +392,7 @@ nsXULCommandDispatcher::UpdateCommands(const nsAString& aEventName)
 
 #ifdef DEBUG
     if (MOZ_LOG_TEST(gCommandLog, LogLevel::Debug)) {
-      nsAutoCString aeventnameC; 
+      nsAutoCString aeventnameC;
       CopyUTF16toUTF8(aEventName, aeventnameC);
       MOZ_LOG(gCommandLog, LogLevel::Debug,
              ("xulcmd[%p] update %p event=%s",
@@ -400,7 +408,7 @@ nsXULCommandDispatcher::UpdateCommands(const nsAString& aEventName)
 }
 
 bool
-nsXULCommandDispatcher::Matches(const nsString& aList, 
+nsXULCommandDispatcher::Matches(const nsString& aList,
                                 const nsAString& aElement)
 {
   if (aList.EqualsLiteral("*"))
@@ -433,7 +441,7 @@ nsXULCommandDispatcher::GetControllers(nsIControllers** aResult)
   nsCOMPtr<nsPIWindowRoot> root = GetWindowRoot();
   NS_ENSURE_TRUE(root, NS_ERROR_FAILURE);
 
-  return root->GetControllers(aResult);
+  return root->GetControllers(false /* for any window */, aResult);
 }
 
 NS_IMETHODIMP
@@ -442,7 +450,8 @@ nsXULCommandDispatcher::GetControllerForCommand(const char *aCommand, nsIControl
   nsCOMPtr<nsPIWindowRoot> root = GetWindowRoot();
   NS_ENSURE_TRUE(root, NS_ERROR_FAILURE);
 
-  return root->GetControllerForCommand(aCommand, _retval);
+  return root->GetControllerForCommand(aCommand, false /* for any window */,
+                                       _retval);
 }
 
 NS_IMETHODIMP
@@ -458,3 +467,30 @@ nsXULCommandDispatcher::SetSuppressFocusScroll(bool aSuppressFocusScroll)
   return NS_OK;
 }
 
+NS_IMETHODIMP
+nsXULCommandDispatcher::Lock()
+{
+  // Since locking is used only as a performance optimization, we don't worry
+  // about nested lock calls. If that does happen, it just means we will unlock
+  // and process updates earlier.
+  mLocked = true;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsXULCommandDispatcher::Unlock()
+{
+  if (mLocked) {
+    mLocked = false;
+
+    // Handle any pending updates one at a time. In the unlikely case where a
+    // lock is added during the update, break out.
+    while (!mLocked && mPendingUpdates.Length() > 0) {
+      nsString name = mPendingUpdates.ElementAt(0);
+      mPendingUpdates.RemoveElementAt(0);
+      UpdateCommands(name);
+    }
+  }
+
+  return NS_OK;
+}

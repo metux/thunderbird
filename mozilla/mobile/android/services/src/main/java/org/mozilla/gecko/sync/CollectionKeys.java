@@ -12,10 +12,10 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.json.simple.JSONArray;
-import org.json.simple.parser.ParseException;
 import org.mozilla.apache.commons.codec.binary.Base64;
 import org.mozilla.gecko.sync.crypto.CryptoException;
 import org.mozilla.gecko.sync.crypto.KeyBundle;
+import org.mozilla.gecko.util.StringUtils;
 
 public class CollectionKeys {
   private KeyBundle                  defaultKeyBundle     = null;
@@ -70,8 +70,8 @@ public class CollectionKeys {
   private static JSONArray keyBundleToArray(KeyBundle bundle) {
     // Generate JSON.
     JSONArray keysArray = new JSONArray();
-    keysArray.add(new String(Base64.encodeBase64(bundle.getEncryptionKey())));
-    keysArray.add(new String(Base64.encodeBase64(bundle.getHMACKey())));
+    keysArray.add(new String(Base64.encodeBase64(bundle.getEncryptionKey()), StringUtils.UTF_8));
+    keysArray.add(new String(Base64.encodeBase64(bundle.getHMACKey()), StringUtils.UTF_8));
     return keysArray;
   }
 
@@ -108,7 +108,7 @@ public class CollectionKeys {
    *          If non-null, the sync key bundle to decrypt <code>keys</code> with.
    */
   public void setKeyPairsFromWBO(CryptoRecord keys, KeyBundle syncKeyBundle)
-      throws CryptoException, IOException, ParseException, NonObjectJSONException {
+      throws CryptoException, IOException, NonObjectJSONException {
     if (keys == null) {
       throw new IllegalArgumentException("cannot set key pairs from null record");
     }

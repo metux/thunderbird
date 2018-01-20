@@ -21,9 +21,9 @@ ProfileMigrator.prototype = {
 
     let params = Components.classes["@mozilla.org/array;1"]
                            .createInstance(Components.interfaces.nsIMutableArray);
-    params.appendElement(this._toString(key), false);
-    params.appendElement(migrator, false);
-    params.appendElement(aStartup, false);
+    params.appendElement(this._toString(key));
+    params.appendElement(migrator);
+    params.appendElement(aStartup);
 
     Services.ww.openWindow(null,
                            "chrome://communicator/content/migration/migration.xul",
@@ -56,7 +56,7 @@ ProfileMigrator.prototype = {
      ["thunderbird"],
 
   _getDefaultMigrator: function PM__getDefaultMigrator() {
-    let migratorsOrdered = Array.slice(this._PLATFORM_FALLBACK_LIST);
+    let migratorsOrdered = Array.from(this._PLATFORM_FALLBACK_LIST);
 #if 0
     let defaultBrowser = "";
 #ifdef XP_WIN
@@ -66,20 +66,20 @@ ProfileMigrator.prototype = {
                              .createInstance(Components.interfaces.nsIWindowsRegKey);
       regKey.open(regKey.ROOT_KEY_LOCAL_MACHINE, REG_KEY,
                   regKey.ACCESS_READ);
-      let value = regKey.readStringValue("").toLowerCase();      
+      let value = regKey.readStringValue("").toLowerCase();
       let pathMatches = value.match(/^"?(.+?\.exe)"?/);
       if (!pathMatches) {
         throw new Error("Could not extract path from " +
                         REG_KEY + "(" + value + ")");
       }
- 
+
       // We want to find out what the default browser is but the path in and of
       // itself isn't enough.  Why? Because sometimes on Windows paths get
       // truncated like so: C:\PROGRA~1\MOZILL~2\MOZILL~1.EXE.  How do we know
       // what product that is? Mozilla's file objects do nothing to 'normalize'
       // the path so we need to attain an actual product descriptor from the
       // file somehow, and in this case it means getting the "InternalName"
-      // field of the file's VERSIONINFO resource. 
+      // field of the file's VERSIONINFO resource.
       //
       // In the file's resource segment there is a VERSIONINFO section that is
       // laid out like this:

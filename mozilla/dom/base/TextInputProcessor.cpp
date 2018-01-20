@@ -5,10 +5,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "gfxPrefs.h"
+#include "mozilla/dom/Event.h"
 #include "mozilla/EventForwards.h"
 #include "mozilla/TextEventDispatcher.h"
 #include "mozilla/TextEvents.h"
 #include "mozilla/TextInputProcessor.h"
+#include "mozilla/widget/IMEData.h"
+#include "nsContentUtils.h"
 #include "nsIDocShell.h"
 #include "nsIWidget.h"
 #include "nsPIDOMWindow.h"
@@ -25,10 +28,33 @@ namespace mozilla {
 class TextInputProcessorNotification final :
         public nsITextInputProcessorNotification
 {
+  typedef IMENotification::SelectionChangeData SelectionChangeData;
+  typedef IMENotification::SelectionChangeDataBase SelectionChangeDataBase;
+  typedef IMENotification::TextChangeData TextChangeData;
+  typedef IMENotification::TextChangeDataBase TextChangeDataBase;
+
 public:
   explicit TextInputProcessorNotification(const char* aType)
     : mType(aType)
   {
+  }
+
+  explicit TextInputProcessorNotification(
+             const TextChangeDataBase& aTextChangeData)
+    : mType("notify-text-change")
+    , mTextChangeData(aTextChangeData)
+  {
+  }
+
+  explicit TextInputProcessorNotification(
+             const SelectionChangeDataBase& aSelectionChangeData)
+    : mType("notify-selection-change")
+    , mSelectionChangeData(aSelectionChangeData)
+  {
+    // SelectionChangeDataBase::mString still refers nsString instance owned
+    // by aSelectionChangeData.  So, this needs to copy the instance.
+    nsString* string = new nsString(aSelectionChangeData.String());
+    mSelectionChangeData.mString = string;
   }
 
   NS_DECL_ISUPPORTS
@@ -39,11 +65,216 @@ public:
     return NS_OK;
   }
 
+  // "notify-text-change" and "notify-selection-change"
+  NS_IMETHOD GetOffset(uint32_t* aOffset) override final
+  {
+    if (NS_WARN_IF(!aOffset)) {
+      return NS_ERROR_INVALID_ARG;
+    }
+    if (IsSelectionChange()) {
+      *aOffset = mSelectionChangeData.mOffset;
+      return NS_OK;
+    }
+    if (IsTextChange()) {
+      *aOffset = mTextChangeData.mStartOffset;
+      return NS_OK;
+    }
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  // "notify-selection-change"
+  NS_IMETHOD GetText(nsAString& aText) override final
+  {
+    if (IsSelectionChange()) {
+      aText = mSelectionChangeData.String();
+      return NS_OK;
+    }
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  NS_IMETHOD GetCollapsed(bool* aCollapsed) override final
+  {
+    if (NS_WARN_IF(!aCollapsed)) {
+      return NS_ERROR_INVALID_ARG;
+    }
+    if (IsSelectionChange()) {
+      *aCollapsed = mSelectionChangeData.IsCollapsed();
+      return NS_OK;
+    }
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  NS_IMETHOD GetLength(uint32_t* aLength) override final
+  {
+    if (NS_WARN_IF(!aLength)) {
+      return NS_ERROR_INVALID_ARG;
+    }
+    if (IsSelectionChange()) {
+      *aLength = mSelectionChangeData.Length();
+      return NS_OK;
+    }
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  NS_IMETHOD GetReversed(bool* aReversed) override final
+  {
+    if (NS_WARN_IF(!aReversed)) {
+      return NS_ERROR_INVALID_ARG;
+    }
+    if (IsSelectionChange()) {
+      *aReversed = mSelectionChangeData.mReversed;
+      return NS_OK;
+    }
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  NS_IMETHOD GetWritingMode(nsACString& aWritingMode) override final
+  {
+    if (IsSelectionChange()) {
+      WritingMode writingMode = mSelectionChangeData.GetWritingMode();
+      if (!writingMode.IsVertical()) {
+        aWritingMode.AssignLiteral("horizontal-tb");
+      } else if (writingMode.IsVerticalLR()) {
+        aWritingMode.AssignLiteral("vertical-lr");
+      } else {
+        aWritingMode.AssignLiteral("vertical-rl");
+      }
+      return NS_OK;
+    }
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  NS_IMETHOD GetCausedByComposition(bool* aCausedByComposition) override final
+  {
+    if (NS_WARN_IF(!aCausedByComposition)) {
+      return NS_ERROR_INVALID_ARG;
+    }
+    if (IsSelectionChange()) {
+      *aCausedByComposition = mSelectionChangeData.mCausedByComposition;
+      return NS_OK;
+    }
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  NS_IMETHOD GetCausedBySelectionEvent(
+               bool* aCausedBySelectionEvent) override final
+  {
+    if (NS_WARN_IF(!aCausedBySelectionEvent)) {
+      return NS_ERROR_INVALID_ARG;
+    }
+    if (IsSelectionChange()) {
+      *aCausedBySelectionEvent = mSelectionChangeData.mCausedBySelectionEvent;
+      return NS_OK;
+    }
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  NS_IMETHOD GetOccurredDuringComposition(
+               bool* aOccurredDuringComposition) override final
+  {
+    if (NS_WARN_IF(!aOccurredDuringComposition)) {
+      return NS_ERROR_INVALID_ARG;
+    }
+    if (IsSelectionChange()) {
+      *aOccurredDuringComposition =
+        mSelectionChangeData.mOccurredDuringComposition;
+      return NS_OK;
+    }
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  // "notify-text-change"
+  NS_IMETHOD GetRemovedLength(uint32_t* aLength) override final
+  {
+    if (NS_WARN_IF(!aLength)) {
+      return NS_ERROR_INVALID_ARG;
+    }
+    if (IsTextChange()) {
+      *aLength = mTextChangeData.OldLength();
+      return NS_OK;
+    }
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  NS_IMETHOD GetAddedLength(uint32_t* aLength) override final
+  {
+    if (NS_WARN_IF(!aLength)) {
+      return NS_ERROR_INVALID_ARG;
+    }
+    if (IsTextChange()) {
+      *aLength = mTextChangeData.NewLength();
+      return NS_OK;
+    }
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  NS_IMETHOD GetCausedOnlyByComposition(
+               bool* aCausedOnlyByComposition) override final
+  {
+    if (NS_WARN_IF(!aCausedOnlyByComposition)) {
+      return NS_ERROR_INVALID_ARG;
+    }
+    if (IsTextChange()) {
+      *aCausedOnlyByComposition = mTextChangeData.mCausedOnlyByComposition;
+      return NS_OK;
+    }
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  NS_IMETHOD GetIncludingChangesDuringComposition(
+               bool* aIncludingChangesDuringComposition) override final
+  {
+    if (NS_WARN_IF(!aIncludingChangesDuringComposition)) {
+      return NS_ERROR_INVALID_ARG;
+    }
+    if (IsTextChange()) {
+      *aIncludingChangesDuringComposition =
+        mTextChangeData.mIncludingChangesDuringComposition;
+      return NS_OK;
+    }
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  NS_IMETHOD GetIncludingChangesWithoutComposition(
+               bool* aIncludingChangesWithoutComposition) override final
+  {
+    if (NS_WARN_IF(!aIncludingChangesWithoutComposition)) {
+      return NS_ERROR_INVALID_ARG;
+    }
+    if (IsTextChange()) {
+      *aIncludingChangesWithoutComposition =
+        mTextChangeData.mIncludingChangesWithoutComposition;
+      return NS_OK;
+    }
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
 protected:
-  ~TextInputProcessorNotification() { }
+  virtual ~TextInputProcessorNotification()
+  {
+    if (IsSelectionChange()) {
+      delete mSelectionChangeData.mString;
+      mSelectionChangeData.mString = nullptr;
+    }
+  }
+
+  bool IsTextChange() const
+  {
+    return mType.EqualsLiteral("notify-text-change");
+  }
+
+  bool IsSelectionChange() const
+  {
+    return mType.EqualsLiteral("notify-selection-change");
+  }
 
 private:
   nsAutoCString mType;
+  union
+  {
+    TextChangeDataBase mTextChangeData;
+    SelectionChangeDataBase mSelectionChangeData;
+  };
 
   TextInputProcessorNotification() { }
 };
@@ -75,7 +306,7 @@ TextInputProcessor::~TextInputProcessor()
     if (NS_SUCCEEDED(IsValidStateForComposition())) {
       RefPtr<TextEventDispatcher> kungFuDeathGrip(mDispatcher);
       nsEventStatus status = nsEventStatus_eIgnore;
-      mDispatcher->CommitComposition(status, &EmptyString());
+      kungFuDeathGrip->CommitComposition(status, &EmptyString());
     }
   }
 }
@@ -97,7 +328,7 @@ TextInputProcessor::GetHasComposition(bool* aHasComposition)
 
 NS_IMETHODIMP
 TextInputProcessor::BeginInputTransaction(
-                      nsIDOMWindow* aWindow,
+                      mozIDOMWindow* aWindow,
                       nsITextInputProcessorCallback* aCallback,
                       bool* aSucceeded)
 {
@@ -112,7 +343,7 @@ TextInputProcessor::BeginInputTransaction(
 
 NS_IMETHODIMP
 TextInputProcessor::BeginInputTransactionForTests(
-                      nsIDOMWindow* aWindow,
+                      mozIDOMWindow* aWindow,
                       nsITextInputProcessorCallback* aCallback,
                       uint8_t aOptionalArgc,
                       bool* aSucceeded)
@@ -126,7 +357,7 @@ TextInputProcessor::BeginInputTransactionForTests(
 
 nsresult
 TextInputProcessor::BeginInputTransactionInternal(
-                      nsIDOMWindow* aWindow,
+                      mozIDOMWindow* aWindow,
                       nsITextInputProcessorCallback* aCallback,
                       bool aForTests,
                       bool& aSucceeded)
@@ -135,7 +366,7 @@ TextInputProcessor::BeginInputTransactionInternal(
   if (NS_WARN_IF(!aWindow)) {
     return NS_ERROR_INVALID_ARG;
   }
-  nsCOMPtr<nsPIDOMWindow> pWindow(do_QueryInterface(aWindow));
+  nsCOMPtr<nsPIDOMWindowInner> pWindow = nsPIDOMWindowInner::From(aWindow);
   if (NS_WARN_IF(!pWindow)) {
     return NS_ERROR_INVALID_ARG;
   }
@@ -197,7 +428,8 @@ TextInputProcessor::BeginInputTransactionInternal(
   }
 
   if (aForTests) {
-    rv = dispatcher->BeginInputTransactionForTests(this);
+    bool isAPZAware = gfxPrefs::TestEventsAsyncEnabled();
+    rv = dispatcher->BeginTestInputTransaction(this, isAPZAware);
   } else {
     rv = dispatcher->BeginInputTransaction(this);
   }
@@ -253,8 +485,9 @@ TextInputProcessor::IsValidEventTypeForComposition(
     return true;
   }
   if (aKeyboardEvent.mMessage == eUnidentifiedEvent &&
-      aKeyboardEvent.userType &&
-      nsDependentAtomString(aKeyboardEvent.userType).EqualsLiteral("on")) {
+      aKeyboardEvent.mSpecifiedEventType &&
+      nsDependentAtomString(
+        aKeyboardEvent.mSpecifiedEventType).EqualsLiteral("on")) {
     return true;
   }
   return false;
@@ -344,7 +577,7 @@ TextInputProcessor::PrepareKeyboardEventForComposition(
 
   aKeyboardEvent =
     aOptionalArgc && aDOMKeyEvent ?
-      aDOMKeyEvent->GetInternalNSEvent()->AsKeyboardEvent() : nullptr;
+      aDOMKeyEvent->AsEvent()->WidgetEventPtr()->AsKeyboardEvent() : nullptr;
   if (!aKeyboardEvent || aOptionalArgc < 2) {
     aKeyFlags = 0;
   }
@@ -370,7 +603,7 @@ TextInputProcessor::StartComposition(nsIDOMKeyEvent* aDOMKeyEvent,
   MOZ_RELEASE_ASSERT(nsContentUtils::IsCallerChrome());
   *aSucceeded = false;
 
-  RefPtr<TextEventDispatcher> kungfuDeathGrip(mDispatcher);
+  RefPtr<TextEventDispatcher> kungFuDeathGrip(mDispatcher);
 
   WidgetKeyboardEvent* keyboardEvent;
   nsresult rv =
@@ -389,9 +622,9 @@ TextInputProcessor::StartComposition(nsIDOMKeyEvent* aDOMKeyEvent,
 
   if (dispatcherResult.mDoDefault) {
     nsEventStatus status = nsEventStatus_eIgnore;
-    rv = mDispatcher->StartComposition(status);
+    rv = kungFuDeathGrip->StartComposition(status);
     *aSucceeded = status != nsEventStatus_eConsumeNoDefault &&
-                    mDispatcher && mDispatcher->IsComposing();
+                    kungFuDeathGrip && kungFuDeathGrip->IsComposing();
   }
 
   MaybeDispatchKeyupForComposition(keyboardEvent, aKeyFlags);
@@ -406,12 +639,12 @@ NS_IMETHODIMP
 TextInputProcessor::SetPendingCompositionString(const nsAString& aString)
 {
   MOZ_RELEASE_ASSERT(nsContentUtils::IsCallerChrome());
-  RefPtr<TextEventDispatcher> kungfuDeathGrip(mDispatcher);
+  RefPtr<TextEventDispatcher> kungFuDeathGrip(mDispatcher);
   nsresult rv = IsValidStateForComposition();
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
-  return mDispatcher->SetPendingCompositionString(aString);
+  return kungFuDeathGrip->SetPendingCompositionString(aString);
 }
 
 NS_IMETHODIMP
@@ -419,12 +652,14 @@ TextInputProcessor::AppendClauseToPendingComposition(uint32_t aLength,
                                                      uint32_t aAttribute)
 {
   MOZ_RELEASE_ASSERT(nsContentUtils::IsCallerChrome());
-  RefPtr<TextEventDispatcher> kungfuDeathGrip(mDispatcher);
+  RefPtr<TextEventDispatcher> kungFuDeathGrip(mDispatcher);
+  TextRangeType textRangeType;
   switch (aAttribute) {
     case ATTR_RAW_CLAUSE:
     case ATTR_SELECTED_RAW_CLAUSE:
     case ATTR_CONVERTED_CLAUSE:
     case ATTR_SELECTED_CLAUSE:
+      textRangeType = ToTextRangeType(aAttribute);
       break;
     default:
       return NS_ERROR_INVALID_ARG;
@@ -433,19 +668,19 @@ TextInputProcessor::AppendClauseToPendingComposition(uint32_t aLength,
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
-  return mDispatcher->AppendClauseToPendingComposition(aLength, aAttribute);
+  return kungFuDeathGrip->AppendClauseToPendingComposition(aLength, textRangeType);
 }
 
 NS_IMETHODIMP
 TextInputProcessor::SetCaretInPendingComposition(uint32_t aOffset)
 {
   MOZ_RELEASE_ASSERT(nsContentUtils::IsCallerChrome());
-  RefPtr<TextEventDispatcher> kungfuDeathGrip(mDispatcher);
+  RefPtr<TextEventDispatcher> kungFuDeathGrip(mDispatcher);
   nsresult rv = IsValidStateForComposition();
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
-  return mDispatcher->SetCaretInPendingComposition(aOffset, 0);
+  return kungFuDeathGrip->SetCaretInPendingComposition(aOffset, 0);
 }
 
 NS_IMETHODIMP
@@ -462,7 +697,7 @@ TextInputProcessor::FlushPendingComposition(nsIDOMKeyEvent* aDOMKeyEvent,
   AutoPendingCompositionResetter resetter(this);
 
   *aSucceeded = false;
-  RefPtr<TextEventDispatcher> kungfuDeathGrip(mDispatcher);
+  RefPtr<TextEventDispatcher> kungFuDeathGrip(mDispatcher);
   bool wasComposing = IsComposing();
 
   WidgetKeyboardEvent* keyboardEvent;
@@ -488,7 +723,7 @@ TextInputProcessor::FlushPendingComposition(nsIDOMKeyEvent* aDOMKeyEvent,
       return NS_OK;
     }
     nsEventStatus status = nsEventStatus_eIgnore;
-    rv = mDispatcher->FlushPendingComposition(status);
+    rv = kungFuDeathGrip->FlushPendingComposition(status);
     *aSucceeded = status != nsEventStatus_eConsumeNoDefault;
   }
 
@@ -550,7 +785,7 @@ TextInputProcessor::CommitCompositionInternal(
   if (aSucceeded) {
     *aSucceeded = false;
   }
-  RefPtr<TextEventDispatcher> kungfuDeathGrip(mDispatcher);
+  RefPtr<TextEventDispatcher> kungFuDeathGrip(mDispatcher);
   bool wasComposing = IsComposing();
 
   EventDispatcherResult dispatcherResult =
@@ -569,7 +804,7 @@ TextInputProcessor::CommitCompositionInternal(
       return NS_OK;
     }
     nsEventStatus status = nsEventStatus_eIgnore;
-    rv = mDispatcher->CommitComposition(status, aCommitString);
+    rv = kungFuDeathGrip->CommitComposition(status, aCommitString);
     if (aSucceeded) {
       *aSucceeded = status != nsEventStatus_eConsumeNoDefault;
     }
@@ -606,7 +841,7 @@ TextInputProcessor::CancelCompositionInternal(
                       const WidgetKeyboardEvent* aKeyboardEvent,
                       uint32_t aKeyFlags)
 {
-  RefPtr<TextEventDispatcher> kungfuDeathGrip(mDispatcher);
+  RefPtr<TextEventDispatcher> kungFuDeathGrip(mDispatcher);
 
   EventDispatcherResult dispatcherResult =
     MaybeDispatchKeydownForComposition(aKeyboardEvent, aKeyFlags);
@@ -616,7 +851,7 @@ TextInputProcessor::CancelCompositionInternal(
   }
 
   nsEventStatus status = nsEventStatus_eIgnore;
-  nsresult rv = mDispatcher->CommitComposition(status, &EmptyString());
+  nsresult rv = kungFuDeathGrip->CommitComposition(status, &EmptyString());
 
   MaybeDispatchKeyupForComposition(aKeyboardEvent, aKeyFlags);
 
@@ -631,8 +866,11 @@ TextInputProcessor::NotifyIME(TextEventDispatcher* aTextEventDispatcher,
                               const IMENotification& aNotification)
 {
   // If This is called while this is being initialized, ignore the call.
+  // In such case, this method should return NS_ERROR_NOT_IMPLEMENTED because
+  // we can say, TextInputProcessor doesn't implement any handlers of the
+  // requests and notifications.
   if (!mDispatcher) {
-    return NS_ERROR_NOT_AVAILABLE;
+    return NS_ERROR_NOT_IMPLEMENTED;
   }
   MOZ_ASSERT(aTextEventDispatcher == mDispatcher,
              "Wrong TextEventDispatcher notifies this");
@@ -658,6 +896,18 @@ TextInputProcessor::NotifyIME(TextEventDispatcher* aTextEventDispatcher,
         break;
       case NOTIFY_IME_OF_BLUR:
         notification = new TextInputProcessorNotification("notify-blur");
+        break;
+      case NOTIFY_IME_OF_TEXT_CHANGE:
+        notification = new TextInputProcessorNotification(
+                             aNotification.mTextChangeData);
+        break;
+      case NOTIFY_IME_OF_SELECTION_CHANGE:
+        notification = new TextInputProcessorNotification(
+                             aNotification.mSelectionChangeData);
+        break;
+      case NOTIFY_IME_OF_POSITION_CHANGE:
+        notification = new TextInputProcessorNotification(
+                             "notify-position-change");
         break;
       default:
         return NS_ERROR_NOT_IMPLEMENTED;
@@ -689,6 +939,15 @@ TextInputProcessor::NotifyIME(TextEventDispatcher* aTextEventDispatcher,
   }
 }
 
+NS_IMETHODIMP_(IMENotificationRequests)
+TextInputProcessor::GetIMENotificationRequests()
+{
+  // TextInputProcessor should support all change notifications.
+  return IMENotificationRequests(
+           IMENotificationRequests::NOTIFY_TEXT_CHANGE |
+           IMENotificationRequests::NOTIFY_POSITION_CHANGE);
+}
+
 NS_IMETHODIMP_(void)
 TextInputProcessor::OnRemovedFrom(TextEventDispatcher* aTextEventDispatcher)
 {
@@ -699,6 +958,17 @@ TextInputProcessor::OnRemovedFrom(TextEventDispatcher* aTextEventDispatcher)
   MOZ_ASSERT(aTextEventDispatcher == mDispatcher,
              "Wrong TextEventDispatcher notifies this");
   UnlinkFromTextEventDispatcher();
+}
+
+NS_IMETHODIMP_(void)
+TextInputProcessor::WillDispatchKeyboardEvent(
+                      TextEventDispatcher* aTextEventDispatcher,
+                      WidgetKeyboardEvent& aKeyboardEvent,
+                      uint32_t aIndexOfKeypress,
+                      void* aData)
+{
+  // TextInputProcessor doesn't set alternative char code nor modify charCode
+  // even when Ctrl key is pressed.
 }
 
 nsresult
@@ -722,13 +992,13 @@ TextInputProcessor::PrepareKeyboardEventToDispatch(
     // If .location is initialized with specific value, using
     // KEY_KEEP_KEY_LOCATION_STANDARD must be a bug of the caller.
     // Let's throw an exception for notifying the developer of this bug.
-    if (NS_WARN_IF(aKeyboardEvent.location)) {
+    if (NS_WARN_IF(aKeyboardEvent.mLocation)) {
       return NS_ERROR_INVALID_ARG;
     }
-  } else if (!aKeyboardEvent.location) {
-    // If KeyboardEvent.location is 0, it may be uninitialized.  If so, we
-    // should compute proper location value from its .code value.
-    aKeyboardEvent.location =
+  } else if (!aKeyboardEvent.mLocation) {
+    // If KeyboardEvent.mLocation is 0, it may be uninitialized.  If so, we
+    // should compute proper mLocation value from its .code value.
+    aKeyboardEvent.mLocation =
       WidgetKeyboardEvent::ComputeLocationFromCodeValue(
         aKeyboardEvent.mCodeNameIndex);
   }
@@ -737,19 +1007,21 @@ TextInputProcessor::PrepareKeyboardEventToDispatch(
     // If .keyCode is initialized with specific value, using
     // KEY_KEEP_KEYCODE_ZERO must be a bug of the caller.  Let's throw an
     // exception for notifying the developer of such bug.
-    if (NS_WARN_IF(aKeyboardEvent.keyCode)) {
+    if (NS_WARN_IF(aKeyboardEvent.mKeyCode)) {
       return NS_ERROR_INVALID_ARG;
     }
-  } else if (!aKeyboardEvent.keyCode &&
+  } else if (!aKeyboardEvent.mKeyCode &&
              aKeyboardEvent.mKeyNameIndex > KEY_NAME_INDEX_Unidentified &&
              aKeyboardEvent.mKeyNameIndex < KEY_NAME_INDEX_USE_STRING) {
     // If KeyboardEvent.keyCode is 0, it may be uninitialized.  If so, we may
     // be able to decide a good .keyCode value if the .key value is a
     // non-printable key.
-    aKeyboardEvent.keyCode =
+    aKeyboardEvent.mKeyCode =
       WidgetKeyboardEvent::ComputeKeyCodeFromKeyNameIndex(
         aKeyboardEvent.mKeyNameIndex);
   }
+
+  aKeyboardEvent.mIsSynthesizedByTIP = (mForTests)? false : true;
 
   return NS_OK;
 }
@@ -769,28 +1041,11 @@ TextInputProcessor::Keydown(nsIDOMKeyEvent* aDOMKeyEvent,
     return NS_ERROR_INVALID_ARG;
   }
   WidgetKeyboardEvent* originalKeyEvent =
-    aDOMKeyEvent->GetInternalNSEvent()->AsKeyboardEvent();
+    aDOMKeyEvent->AsEvent()->WidgetEventPtr()->AsKeyboardEvent();
   if (NS_WARN_IF(!originalKeyEvent)) {
     return NS_ERROR_INVALID_ARG;
   }
   return KeydownInternal(*originalKeyEvent, aKeyFlags, true, *aConsumedFlags);
-}
-
-TextEventDispatcher::DispatchTo
-TextInputProcessor::GetDispatchTo() const
-{
-  // Support asynchronous tests.
-  if (mForTests) {
-    return gfxPrefs::TestEventsAsyncEnabled() ?
-             TextEventDispatcher::eDispatchToParentProcess :
-             TextEventDispatcher::eDispatchToCurrentProcess;
-  }
-
-  // Otherwise, TextInputProcessor supports only keyboard apps on B2G.
-  // Keyboard apps on B2G doesn't want to dispatch keyboard events to
-  // chrome process. Therefore, this should dispatch key events only in
-  // the current process.
-  return TextEventDispatcher::eDispatchToCurrentProcess;
 }
 
 nsresult
@@ -828,9 +1083,9 @@ TextInputProcessor::KeydownInternal(const WidgetKeyboardEvent& aKeyboardEvent,
   } else if (NS_WARN_IF(aKeyFlags & KEY_DONT_DISPATCH_MODIFIER_KEY_EVENT)) {
     return NS_ERROR_INVALID_ARG;
   }
-  keyEvent.modifiers = GetActiveModifiers();
+  keyEvent.mModifiers = GetActiveModifiers();
 
-  RefPtr<TextEventDispatcher> kungfuDeathGrip(mDispatcher);
+  RefPtr<TextEventDispatcher> kungFuDeathGrip(mDispatcher);
   rv = IsValidStateForComposition();
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
@@ -838,8 +1093,7 @@ TextInputProcessor::KeydownInternal(const WidgetKeyboardEvent& aKeyboardEvent,
 
   nsEventStatus status = aConsumedFlags ? nsEventStatus_eConsumeNoDefault :
                                           nsEventStatus_eIgnore;
-  if (!mDispatcher->DispatchKeyboardEvent(eKeyDown, keyEvent, status,
-                                          GetDispatchTo())) {
+  if (!kungFuDeathGrip->DispatchKeyboardEvent(eKeyDown, keyEvent, status)) {
     // If keydown event isn't dispatched, we don't need to dispatch keypress
     // events.
     return NS_OK;
@@ -850,8 +1104,7 @@ TextInputProcessor::KeydownInternal(const WidgetKeyboardEvent& aKeyboardEvent,
                                                   KEYEVENT_NOT_CONSUMED;
 
   if (aAllowToDispatchKeypress &&
-      mDispatcher->MaybeDispatchKeypressEvents(keyEvent, status, 
-                                               GetDispatchTo())) {
+      kungFuDeathGrip->MaybeDispatchKeypressEvents(keyEvent, status)) {
     aConsumedFlags |=
       (status == nsEventStatus_eConsumeNoDefault) ? KEYPRESS_IS_CONSUMED :
                                                     KEYEVENT_NOT_CONSUMED;
@@ -875,7 +1128,7 @@ TextInputProcessor::Keyup(nsIDOMKeyEvent* aDOMKeyEvent,
     return NS_ERROR_INVALID_ARG;
   }
   WidgetKeyboardEvent* originalKeyEvent =
-    aDOMKeyEvent->GetInternalNSEvent()->AsKeyboardEvent();
+    aDOMKeyEvent->AsEvent()->WidgetEventPtr()->AsKeyboardEvent();
   if (NS_WARN_IF(!originalKeyEvent)) {
     return NS_ERROR_INVALID_ARG;
   }
@@ -910,9 +1163,9 @@ TextInputProcessor::KeyupInternal(const WidgetKeyboardEvent& aKeyboardEvent,
   } else if (NS_WARN_IF(aKeyFlags & KEY_DONT_DISPATCH_MODIFIER_KEY_EVENT)) {
     return NS_ERROR_INVALID_ARG;
   }
-  keyEvent.modifiers = GetActiveModifiers();
+  keyEvent.mModifiers = GetActiveModifiers();
 
-  RefPtr<TextEventDispatcher> kungfuDeathGrip(mDispatcher);
+  RefPtr<TextEventDispatcher> kungFuDeathGrip(mDispatcher);
   rv = IsValidStateForComposition();
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
@@ -920,7 +1173,7 @@ TextInputProcessor::KeyupInternal(const WidgetKeyboardEvent& aKeyboardEvent,
 
   nsEventStatus status = aDoDefault ? nsEventStatus_eIgnore :
                                       nsEventStatus_eConsumeNoDefault;
-  mDispatcher->DispatchKeyboardEvent(eKeyUp, keyEvent, status, GetDispatchTo());
+  kungFuDeathGrip->DispatchKeyboardEvent(eKeyUp, keyEvent, status);
   aDoDefault = (status != nsEventStatus_eConsumeNoDefault);
   return NS_OK;
 }

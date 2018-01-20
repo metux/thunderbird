@@ -13,14 +13,13 @@ const SAVE_PATH = "test.css";
 add_task(function* () {
   let { ui } = yield openStyleEditorForURL(FIRST_TEST_PAGE);
 
-  loadCommonFrameScript();
   testIndentifierGeneration(ui);
 
   yield saveFirstInlineStyleSheet(ui);
   yield testFriendlyNamesAfterSave(ui);
-  yield reloadPage(ui);
+  yield reloadPageAndWaitForStyleSheets(ui);
   yield testFriendlyNamesAfterSave(ui);
-  yield navigateToAnotherPage(ui);
+  yield navigateToAndWaitForStyleSheets(SECOND_TEST_PAGE, ui);
   yield testFriendlyNamesAfterNavigation(ui);
 });
 
@@ -47,17 +46,15 @@ function testIndentifierGeneration(ui) {
 }
 
 function saveFirstInlineStyleSheet(ui) {
-  let deferred = promise.defer();
-  let editor = ui.editors[0];
+  return new Promise(resolve => {
+    let editor = ui.editors[0];
+    let destFile = FileUtils.getFile("ProfD", [SAVE_PATH]);
 
-  let destFile = FileUtils.getFile("ProfD", [SAVE_PATH]);
-
-  editor.saveToFile(destFile, function(file) {
-    ok(file, "File was correctly saved.");
-    deferred.resolve();
+    editor.saveToFile(destFile, function (file) {
+      ok(file, "File was correctly saved.");
+      resolve();
+    });
   });
-
-  return deferred.promise;
 }
 
 function testFriendlyNamesAfterSave(ui) {
@@ -72,21 +69,6 @@ function testFriendlyNamesAfterSave(ui) {
     "Friendly name for the second inline sheet isn't the same as the first.");
 
   return promise.resolve(null);
-}
-
-function reloadPage(ui) {
-  info("Reloading page.");
-  executeInContent("devtools:test:reload", {}, {},
-    /* no response */
-    false);
-  return ui.once("stylesheets-reset");
-}
-
-function navigateToAnotherPage(ui) {
-  info("Navigating to another page.");
-  executeInContent("devtools:test:navigate", { location: SECOND_TEST_PAGE },
-    {}, false);
-  return ui.once("stylesheets-reset");
 }
 
 function testFriendlyNamesAfterNavigation(ui) {

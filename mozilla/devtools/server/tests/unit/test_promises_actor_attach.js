@@ -1,14 +1,16 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
+"use strict";
+
 /**
  * Test that we can attach and detach to the PromisesActor under the correct
  * states.
  */
 
-const { PromisesFront } = require("devtools/server/actors/promises");
+const { PromisesFront } = require("devtools/shared/fronts/promises");
 
-add_task(function*() {
+add_task(function* () {
   let client = yield startTestDebuggerServer("promises-actor-test");
   let chromeActors = yield getChromeActors(client);
 
@@ -32,8 +34,8 @@ function* testAttach(client, parent) {
 
   try {
     yield promises.detach();
-    ok(false, "Should not be able to detach when in a detached state.")
-  } catch(e) {
+    ok(false, "Should not be able to detach when in a detached state.");
+  } catch (e) {
     ok(true, "Expected detach to fail when already in a detached state.");
   }
 
@@ -43,7 +45,7 @@ function* testAttach(client, parent) {
   try {
     yield promises.attach();
     ok(false, "Should not be able to attach when in an attached state.");
-  } catch(e) {
+  } catch (e) {
     ok(true, "Expected attach to fail when already in an attached state.");
   }
 

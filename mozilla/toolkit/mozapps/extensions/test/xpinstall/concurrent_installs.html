@@ -7,6 +7,8 @@
   <meta charset="utf-8">
 <title>Concurrent InstallTrigger tests</title>
 <script type="text/javascript">
+/* globals InstallTrigger */
+/* exported startInstall */
 function installCallback(url, status) {
   document.getElementById("status").textContent = status;
 
@@ -18,12 +20,11 @@ function installCallback(url, status) {
 function startInstall() {
   var root = location.href.replace("concurrent_installs.html", "");
   var triggers = {
-    "Unsigned XPI": root + "unsigned.xpi"
+    "Unsigned XPI": root + "amosigned.xpi"
   };
   try {
     document.getElementById("return").textContent = InstallTrigger.install(triggers, installCallback);
-  }
-  catch (e) {
+  } catch (e) {
     document.getElementById("return").textContent = "exception";
     throw e;
   }

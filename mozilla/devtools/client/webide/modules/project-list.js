@@ -7,9 +7,8 @@ const {Cu} = require("chrome");
 const Services = require("Services");
 const {AppProjects} = require("devtools/client/webide/modules/app-projects");
 const {AppManager} = require("devtools/client/webide/modules/app-manager");
-const promise = require("promise");
-const EventEmitter = require("devtools/shared/event-emitter");
-const {Task} = Cu.import("resource://gre/modules/Task.jsm", {});
+const EventEmitter = require("devtools/shared/old-event-emitter");
+const {Task} = require("devtools/shared/task");
 const utils = require("devtools/client/webide/modules/utils");
 const Telemetry = require("devtools/client/shared/telemetry");
 
@@ -17,7 +16,7 @@ const Strings = Services.strings.createBundle("chrome://devtools/locale/webide.p
 
 var ProjectList;
 
-module.exports = ProjectList = function(win, parentWindow) {
+module.exports = ProjectList = function (win, parentWindow) {
   EventEmitter.decorate(this);
   this._doc = win.document;
   this._UI = parentWindow.UI;
@@ -38,7 +37,7 @@ ProjectList.prototype = {
     return this._doc;
   },
 
-  appManagerUpdate: function(event, what, details) {
+  appManagerUpdate: function (event, what, details) {
     // Got a message from app-manager.js
     // See AppManager.update() for descriptions of what these events mean.
     switch (what) {
@@ -52,10 +51,10 @@ ProjectList.prototype = {
         this.updateCommands();
         this.update(details);
         break;
-    };
+    }
   },
 
-  onWebIDEUpdate: function(event, what, details) {
+  onWebIDEUpdate: function (event, what, details) {
     if (what == "busy" || what == "unbusy") {
       this.updateCommands();
     }
@@ -68,10 +67,10 @@ ProjectList.prototype = {
    *   name: String       name of the app
    * }
    */
-  newApp: function(testOptions) {
+  newApp: function (testOptions) {
     let parentWindow = this._parentWindow;
     let self = this;
-    return this._UI.busyUntil(Task.spawn(function*() {
+    return this._UI.busyUntil(Task.spawn(function* () {
       // Open newapp.xul, which will feed ret.location
       let ret = {location: null, testOptions: testOptions};
       parentWindow.openDialog("chrome://webide/content/newapp.xul", "newapp", "chrome,modal", ret);
@@ -88,11 +87,11 @@ ProjectList.prototype = {
     }), "creating new app");
   },
 
-  importPackagedApp: function(location) {
+  importPackagedApp: function (location) {
     let parentWindow = this._parentWindow;
     let UI = this._UI;
-    return UI.busyUntil(Task.spawn(function*() {
-      let directory = utils.getPackagedDirectory(parentWindow, location);
+    return UI.busyUntil(Task.spawn(function* () {
+      let directory = yield utils.getPackagedDirectory(parentWindow, location);
 
       if (!directory) {
         // User cancelled directory selection
@@ -103,10 +102,10 @@ ProjectList.prototype = {
     }), "importing packaged app");
   },
 
-  importHostedApp: function(location) {
+  importHostedApp: function (location) {
     let parentWindow = this._parentWindow;
     let UI = this._UI;
-    return UI.busyUntil(Task.spawn(function*() {
+    return UI.busyUntil(Task.spawn(function* () {
       let url = utils.getHostedURL(parentWindow, location);
 
       if (!url) {
@@ -124,7 +123,7 @@ ProjectList.prototype = {
    *   icon: String       path of the project icon
    * }
    */
-  _renderProjectItem: function(opts) {
+  _renderProjectItem: function (opts) {
     let span = opts.panel.querySelector("span") || this._doc.createElement("span");
     span.textContent = opts.name;
     let icon = opts.panel.querySelector("img") || this._doc.createElement("img");
@@ -135,7 +134,7 @@ ProjectList.prototype = {
     opts.panel.setAttribute("title", opts.name);
   },
 
-  refreshTabs: function() {
+  refreshTabs: function () {
     if (AppManager.connected) {
       return AppManager.listTabs().then(() => {
         this.updateTabs();
@@ -143,7 +142,7 @@ ProjectList.prototype = {
     }
   },
 
-  updateTabs: function() {
+  updateTabs: function () {
     let tabsHeaderNode = this._doc.querySelector("#panel-header-tabs");
     let tabsNode = this._doc.querySelector("#project-panel-tabs");
 
@@ -167,7 +166,7 @@ ProjectList.prototype = {
       try {
         url = new URL(tab.url);
       } catch (e) {
-        // Don't try to handle invalid URLs, especially from Valence.
+        // Don't try to handle invalid URLs
         continue;
       }
       // Wanted to use nsIFaviconService here, but it only works for visited
@@ -200,10 +199,10 @@ ProjectList.prototype = {
       }, true);
     }
 
-    return promise.resolve();
+    return Promise.resolve();
   },
 
-  updateApps: function() {
+  updateApps: function () {
     let doc = this._doc;
     let runtimeappsHeaderNode = doc.querySelector("#panel-header-runtimeapps");
     let sortedApps = [];
@@ -263,10 +262,10 @@ ProjectList.prototype = {
       }, true);
     }
 
-    return promise.resolve();
+    return Promise.resolve();
   },
 
-  updateCommands: function() {
+  updateCommands: function () {
     let doc = this._doc;
     let newAppCmd;
     let packagedAppCmd;
@@ -298,73 +297,71 @@ ProjectList.prototype = {
    *        An |options| object containing a type of |apps| or |tabs| will limit
    *        what is updated to only those sections.
    */
-  update: function(options) {
-    let deferred = promise.defer();
-
+  update: function (options) {
     if (options && options.type === "apps") {
       return this.updateApps();
     } else if (options && options.type === "tabs") {
       return this.updateTabs();
     }
 
-    let doc = this._doc;
-    let projectsNode = doc.querySelector("#project-panel-projects");
+    return new Promise((resolve, reject) => {
+      let doc = this._doc;
+      let projectsNode = doc.querySelector("#project-panel-projects");
 
-    while (projectsNode.hasChildNodes()) {
-      projectsNode.firstChild.remove();
-    }
-
-    AppProjects.load().then(() => {
-      let projects = AppProjects.store.object.projects;
-      for (let i = 0; i < projects.length; i++) {
-        let project = projects[i];
-        let panelItemNode = doc.createElement(this._panelNodeEl);
-        panelItemNode.className = "panel-item";
-        projectsNode.appendChild(panelItemNode);
-        if (!project.validationStatus) {
-          // The result of the validation process (storing names, icons, …) is not stored in
-          // the IndexedDB database when App Manager v1 is used.
-          // We need to run the validation again and update the name and icon of the app.
-          AppManager.validateAndUpdateProject(project).then(() => {
-            this._renderProjectItem({
-              panel: panelItemNode,
-              name: project.name,
-              icon: project.icon
-            });
-          });
-        } else {
-          this._renderProjectItem({
-            panel: panelItemNode,
-            name: project.name || AppManager.DEFAULT_PROJECT_NAME,
-            icon: project.icon || AppManager.DEFAULT_PROJECT_ICON
-          });
-        }
-        panelItemNode.addEventListener("click", () => {
-          AppManager.selectedProject = project;
-        }, true);
+      while (projectsNode.hasChildNodes()) {
+        projectsNode.firstChild.remove();
       }
 
-      deferred.resolve();
-    }, deferred.reject);
+      AppProjects.load().then(() => {
+        let projects = AppProjects.projects;
+        for (let i = 0; i < projects.length; i++) {
+          let project = projects[i];
+          let panelItemNode = doc.createElement(this._panelNodeEl);
+          panelItemNode.className = "panel-item";
+          projectsNode.appendChild(panelItemNode);
+          if (!project.validationStatus) {
+            // The result of the validation process (storing names, icons, …) is not stored in
+            // the IndexedDB database when App Manager v1 is used.
+            // We need to run the validation again and update the name and icon of the app.
+            AppManager.validateAndUpdateProject(project).then(() => {
+              this._renderProjectItem({
+                panel: panelItemNode,
+                name: project.name,
+                icon: project.icon
+              });
+            });
+          } else {
+            this._renderProjectItem({
+              panel: panelItemNode,
+              name: project.name || AppManager.DEFAULT_PROJECT_NAME,
+              icon: project.icon || AppManager.DEFAULT_PROJECT_ICON
+            });
+          }
+          panelItemNode.addEventListener("click", () => {
+            AppManager.selectedProject = project;
+          }, true);
+        }
 
-    // List remote apps and the main process, if they exist
-    this.updateApps();
+        resolve();
+      }, reject);
 
-    // Build the tab list right now, so it's fast...
-    this.updateTabs();
+      // List remote apps and the main process, if they exist
+      this.updateApps();
 
-    // But re-list them and rebuild, in case any tabs navigated since the last
-    // time they were listed.
-    if (AppManager.connected) {
-      AppManager.listTabs().then(() => {
-        this.updateTabs();
-      }).catch(console.error);
-    }
+      // Build the tab list right now, so it's fast...
+      this.updateTabs();
 
-    return deferred.promise;
+      // But re-list them and rebuild, in case any tabs navigated since the last
+      // time they were listed.
+      if (AppManager.connected) {
+        AppManager.listTabs().then(() => {
+          this.updateTabs();
+        }).catch(console.error);
+      }
+    });
   },
 
-  destroy: function() {
+  destroy: function () {
     this._doc = null;
     AppManager.off("app-manager-update", this.appManagerUpdate);
     this._UI.off("webide-update", this.onWebIDEUpdate);

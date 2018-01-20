@@ -10,7 +10,8 @@
  * liability, trademark and document use rules apply.
  */
 
-[Constructor(DOMString type, optional CustomEventInit eventInitDict)]
+[Constructor(DOMString type, optional CustomEventInit eventInitDict),
+ Exposed=(Window, Worker)]
 interface CustomEvent : Event
 {
   readonly attribute any detail;
@@ -18,9 +19,9 @@ interface CustomEvent : Event
   // initCustomEvent is a Gecko specific deprecated method.
   [Throws]
   void initCustomEvent(DOMString type,
-                       boolean canBubble,
-                       boolean cancelable,
-                       any detail);
+                       optional boolean canBubble = false,
+                       optional boolean cancelable = false,
+                       optional any detail = null);
 };
 
 dictionary CustomEventInit : EventInit

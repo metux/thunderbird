@@ -457,7 +457,6 @@ uninstall/uninstall.exe
   @DIR_MACOS@components/nsBadCertHandler.js
   @DIR_MACOS@components/nsBlocklistService.js
   @DIR_MACOS@components/nsContentDispatchChooser.js
-  @DIR_MACOS@components/nsContentPrefService.js
   @DIR_MACOS@components/nsDefaultCLH.js
   @DIR_MACOS@components/nsDownloadManagerUI.js
   #ifdef XP_UNIX
@@ -499,7 +498,6 @@ uninstall/uninstall.exe
   @DIR_MACOS@components/offlineStartup.js
   @DIR_MACOS@components/PlacesCategoriesStarter.js
   @DIR_MACOS@components/smime-service.js
-  @DIR_MACOS@components/steelApplication.js
   @DIR_MACOS@components/storage-Legacy.js
   @DIR_MACOS@components/storage-mozStorage.js
   @DIR_MACOS@components/txEXSLTRegExFunctions.js
@@ -620,12 +618,6 @@ uninstall/uninstall.exe
   @DIR_MACOS@res/designmode.css
   @DIR_MACOS@res/dtd/mathml.dtd
   @DIR_MACOS@res/dtd/xhtml11.dtd
-  @DIR_MACOS@res/entityTables/html40Latin1.properties
-  @DIR_MACOS@res/entityTables/html40Special.properties
-  @DIR_MACOS@res/entityTables/html40Symbols.properties
-  @DIR_MACOS@res/entityTables/htmlEntityVersions.properties
-  @DIR_MACOS@res/entityTables/mathml20.properties
-  @DIR_MACOS@res/entityTables/transliterate.properties
   @DIR_MACOS@res/fonts/mathfont.properties
   @DIR_MACOS@res/fonts/mathfontSTIXNonUnicode.properties
   @DIR_MACOS@res/fonts/mathfontSTIXSize1.properties
@@ -997,7 +989,6 @@ uninstall/uninstall.exe
   components/txtsvc.xpt
   components/uconv.xpt
   components/ucnative.xpt
-  components/unicharutil.xpt
   components/update.xpt
   components/uriloader.xpt
   components/util.xpt
@@ -1080,7 +1071,6 @@ uninstall/uninstall.exe
   @DIR_MACOS@components/embed_base.xpt
   @DIR_MACOS@components/extensions.xpt
   @DIR_MACOS@components/exthandler.xpt
-  @DIR_MACOS@components/exthelper.xpt
   @DIR_MACOS@components/fastfind.xpt
   @DIR_MACOS@components/feeds.xpt
   @DIR_MACOS@components/find.xpt
@@ -1146,13 +1136,11 @@ uninstall/uninstall.exe
   @DIR_MACOS@components/shellservice.xpt
   @DIR_MACOS@components/shistory.xpt
   @DIR_MACOS@components/spellchecker.xpt
-  @DIR_MACOS@components/steel.xpt
   @DIR_MACOS@components/storage.xpt
   @DIR_MACOS@components/toolkitprofile.xpt
   @DIR_MACOS@components/txmgr.xpt
   @DIR_MACOS@components/txtsvc.xpt
   @DIR_MACOS@components/uconv.xpt
-  @DIR_MACOS@components/unicharutil.xpt
   @DIR_MACOS@components/update.xpt
   @DIR_MACOS@components/uriloader.xpt
   @DIR_MACOS@components/url-classifier.xpt
@@ -1178,7 +1166,6 @@ uninstall/uninstall.exe
   @DIR_MACOS@components/xultmpl.xpt
   @DIR_MACOS@components/zipwriter.xpt
   #ifdef XP_MACOSX
-    @DIR_MACOS@components/steel.xpt
     @DIR_MACOS@components/necko_wifi.xpt
     @DIR_MACOS@components/widget_cocoa.xpt
   #else

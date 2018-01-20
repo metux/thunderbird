@@ -26,48 +26,37 @@ function commonDialogOnLoad() {
     let dialog = document.documentElement;
 
     let ui = {
-        prompt             : window,
-        loginContainer     : document.getElementById("loginContainer"),
-        loginTextbox       : document.getElementById("loginTextbox"),
-        loginLabel         : document.getElementById("loginLabel"),
-        password1Container : document.getElementById("password1Container"),
-        password1Textbox   : document.getElementById("password1Textbox"),
-        password1Label     : document.getElementById("password1Label"),
-        infoBody           : document.getElementById("info.body"),
-        infoTitle          : document.getElementById("info.title"),
-        infoIcon           : document.getElementById("info.icon"),
-        checkbox           : document.getElementById("checkbox"),
-        checkboxContainer  : document.getElementById("checkboxContainer"),
-        button3            : dialog.getButton("extra2"),
-        button2            : dialog.getButton("extra1"),
-        button1            : dialog.getButton("cancel"),
-        button0            : dialog.getButton("accept"),
-        focusTarget        : window,
+        prompt: window,
+        loginContainer: document.getElementById("loginContainer"),
+        loginTextbox: document.getElementById("loginTextbox"),
+        loginLabel: document.getElementById("loginLabel"),
+        password1Container: document.getElementById("password1Container"),
+        password1Textbox: document.getElementById("password1Textbox"),
+        password1Label: document.getElementById("password1Label"),
+        infoBody: document.getElementById("info.body"),
+        infoTitle: document.getElementById("info.title"),
+        infoIcon: document.getElementById("info.icon"),
+        checkbox: document.getElementById("checkbox"),
+        checkboxContainer: document.getElementById("checkboxContainer"),
+        button3: dialog.getButton("extra2"),
+        button2: dialog.getButton("extra1"),
+        button1: dialog.getButton("cancel"),
+        button0: dialog.getButton("accept"),
+        focusTarget: window,
     };
 
     // limit the dialog to the screen width
     document.getElementById("filler").maxWidth = screen.availWidth;
-    Services.obs.addObserver(softkbObserver, "softkb-change", false);
 
     Dialog = new CommonDialog(args, ui);
     Dialog.onLoad(dialog);
+    // resize the window to the content
+    window.sizeToContent();
     window.getAttention();
 }
 
 function commonDialogOnUnload() {
-    Services.obs.removeObserver(softkbObserver, "softkb-change");
     // Convert args back into property bag
     for (let propName in args)
         propBag.setProperty(propName, args[propName]);
-}
-
-function softkbObserver(subject, topic, data) {
-    let rect = JSON.parse(data);
-    if (rect) {
-        let height = rect.bottom - rect.top;
-        let width  = rect.right - rect.left;
-        let top    = (rect.top + (height - window.innerHeight) / 2);
-        let left   = (rect.left + (width - window.innerWidth) / 2);
-        window.moveTo(left, top);
-    }
 }

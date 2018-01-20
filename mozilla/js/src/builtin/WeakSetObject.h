@@ -7,16 +7,14 @@
 #ifndef builtin_WeakSetObject_h
 #define builtin_WeakSetObject_h
 
-#include "vm/NativeObject.h"
+#include "builtin/WeakMapObject.h"
 
 namespace js {
 
-class WeakSetObject : public NativeObject
+class WeakSetObject : public WeakCollectionObject
 {
   public:
-    static const unsigned RESERVED_SLOTS = 1;
-
-    static JSObject* initClass(JSContext* cx, JSObject* obj);
+    static JSObject* initClass(JSContext* cx, HandleObject obj);
     static const Class class_;
 
   private:
@@ -24,12 +22,21 @@ class WeakSetObject : public NativeObject
     static const JSFunctionSpec methods[];
 
     static WeakSetObject* create(JSContext* cx, HandleObject proto = nullptr);
-    static bool construct(JSContext* cx, unsigned argc, Value* vp);
+    static MOZ_MUST_USE bool construct(JSContext* cx, unsigned argc, Value* vp);
+
+    static bool isBuiltinAdd(HandleValue add, JSContext* cx);
 };
 
 extern JSObject*
 InitWeakSetClass(JSContext* cx, HandleObject obj);
 
 } // namespace js
+
+template<>
+inline bool
+JSObject::is<js::WeakCollectionObject>() const
+{
+    return is<js::WeakMapObject>() || is<js::WeakSetObject>();
+}
 
 #endif /* builtin_WeakSetObject_h */

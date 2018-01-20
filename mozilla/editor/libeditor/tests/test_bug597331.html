@@ -24,10 +24,6 @@ line3
 
 /** Test for Bug 597331 **/
 
-// Bug 718316: This test fails on Windows 7 and 8
-if (navigator.userAgent.indexOf("Windows NT 6.1") == -1 &&
-    navigator.userAgent.indexOf("Windows NT 6.2") == -1) {
-
 SimpleTest.waitForExplicitFinish();
 addLoadEvent(function() {
   SimpleTest.executeSoon(function() {
@@ -41,8 +37,6 @@ addLoadEvent(function() {
       t.selectionStart = 5;
       t.selectionEnd = 5;
       t.addEventListener("keydown", function() {
-        t.removeEventListener("keydown", arguments.callee, false);
-
         SimpleTest.executeSoon(function() {
           t.style.display = 'block';
           document.body.offsetWidth;
@@ -64,16 +58,11 @@ addLoadEvent(function() {
 
           SimpleTest.finish();
         });
-      }, false);
+      }, {once: true});
       synthesizeKey("VK_LEFT", {});
     });
   });
 });
-
-}
-else {
-  ok(true, "Somebody thought it was a great idea to make me type this.");
-}
 
 </script>
 </pre>

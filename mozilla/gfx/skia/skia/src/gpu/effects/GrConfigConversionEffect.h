@@ -8,46 +8,37 @@
 #ifndef GrConfigConversionEffect_DEFINED
 #define GrConfigConversionEffect_DEFINED
 
-#include "GrSingleTextureEffect.h"
-
-class GrEffectStage;
-class GrGLConfigConversionEffect;
+#include "GrFragmentProcessor.h"
 
 /**
  * This class is used to perform config conversions. Clients may want to read/write data that is
- * unpremultiplied. Also on some systems reading/writing BGRA or RGBA is faster. In those cases we
- * read/write using the faster path and perform an R/B swap in the shader if the client data is in
- * the slower config.
+ * unpremultiplied.
  */
-class GrConfigConversionEffect : public GrSingleTextureEffect {
+class GrConfigConversionEffect : public GrFragmentProcessor {
 public:
     /**
      * The PM->UPM or UPM->PM conversions to apply.
      */
     enum PMConversion {
-        kNone_PMConversion = 0,
-        kMulByAlpha_RoundUp_PMConversion,
+        kMulByAlpha_RoundUp_PMConversion = 0,
         kMulByAlpha_RoundDown_PMConversion,
+        kMulByAlpha_RoundNearest_PMConversion,
+
         kDivByAlpha_RoundUp_PMConversion,
         kDivByAlpha_RoundDown_PMConversion,
+        kDivByAlpha_RoundNearest_PMConversion,
 
         kPMConversionCnt
     };
 
-    // Installs an effect in the GrEffectStage to perform a config conversion.
-    static const GrEffect* Create(GrTexture*,
-                                  bool swapRedAndBlue,
-                                  PMConversion pmConversion,
-                                  const SkMatrix& matrix);
+    /**
+     *  Returns a fragment processor that calls the passed in fragment processor, and then performs
+     *  the requested premul or unpremul conversion.
+     */
+    static sk_sp<GrFragmentProcessor> Make(sk_sp<GrFragmentProcessor>, PMConversion);
 
-    static const char* Name() { return "Config Conversion"; }
-    typedef GrGLConfigConversionEffect GLEffect;
+    const char* name() const override { return "Config Conversion"; }
 
-    virtual const GrBackendEffectFactory& getFactory() const SK_OVERRIDE;
-
-    virtual void getConstantColorComponents(GrColor* color, uint32_t* validFlags) const SK_OVERRIDE;
-
-    bool swapsRedAndBlue() const { return fSwapRedAndBlue; }
     PMConversion  pmConversion() const { return fPMConversion; }
 
     // This function determines whether it is possible to choose PM->UPM and UPM->PM conversions
@@ -58,21 +49,20 @@ public:
     static void TestForPreservingPMConversions(GrContext* context,
                                                PMConversion* PMToUPMRule,
                                                PMConversion* UPMToPMRule);
-
 private:
-    GrConfigConversionEffect(GrTexture*,
-                            bool swapRedAndBlue,
-                            PMConversion pmConversion,
-                            const SkMatrix& matrix);
+    GrConfigConversionEffect(PMConversion);
 
-    virtual bool onIsEqual(const GrEffect&) const SK_OVERRIDE;
+    GrGLSLFragmentProcessor* onCreateGLSLInstance() const override;
 
-    bool            fSwapRedAndBlue;
+    void onGetGLSLProcessorKey(const GrShaderCaps&, GrProcessorKeyBuilder*) const override;
+
+    bool onIsEqual(const GrFragmentProcessor&) const override;
+
     PMConversion    fPMConversion;
 
-    GR_DECLARE_EFFECT_TEST;
+    GR_DECLARE_FRAGMENT_PROCESSOR_TEST;
 
-    typedef GrSingleTextureEffect INHERITED;
+    typedef GrFragmentProcessor INHERITED;
 };
 
 #endif

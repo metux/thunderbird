@@ -8,6 +8,10 @@
 #include "imgINotificationObserver.h"
 
 namespace mozilla {
+
+using gfx::IntSize;
+using gfx::SourceSurface;
+
 namespace image {
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -89,8 +93,6 @@ public:
   }
 
   // Other notifications are ignored.
-  virtual void BlockOnload() override { }
-  virtual void UnblockOnload() override { }
   virtual void SetHasImage() override { }
   virtual bool NotificationsDeferred() const override { return false; }
   virtual void SetNotificationsDeferred(bool) override { }
@@ -171,7 +173,9 @@ FilterProgress(Progress aProgress)
 {
   // Filter out onload blocking notifications, since we don't want to block
   // onload for multipart images.
-  return aProgress & ~(FLAG_ONLOAD_BLOCKED | FLAG_ONLOAD_UNBLOCKED);
+  // Filter out errors, since we don't want errors in one part to error out
+  // the whole stream.
+  return aProgress & ~FLAG_HAS_ERROR;
 }
 
 void

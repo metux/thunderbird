@@ -2,6 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "LoginHelper", "resource://gre/modules/LoginHelper.jsm");
+
 var gPrivacyPane = {
   init: function ()
   {
@@ -33,16 +36,16 @@ var gPrivacyPane = {
   {
     let Cc = Components.classes;
     let Ci = Components.interfaces;
-    
+
     // Log folder is "'profile directory'/logs"
-    var logFolder = Services.dirsvc.get("ProfD", Ci.nsILocalFile);
+    var logFolder = Services.dirsvc.get("ProfD", Ci.nsIFile);
     logFolder.append("logs");
 
     try {
       logFolder.reveal();
     } catch (e) {
       // Adapted the workaround of Firefox' Download Manager for some *ix systems
-      let parent = logFolder.parent.QueryInterface(Ci.nsILocalFile);
+      let parent = logFolder.parent.QueryInterface(Ci.nsIFile);
       if (!parent)
        return;
 
@@ -55,7 +58,7 @@ var gPrivacyPane = {
        let uri = Services.io.newFileURI(parent);
        let protocolSvc = Cc["@mozilla.org/uriloader/external-protocol-service;1"].
                          getService(Ci.nsIExternalProtocolService);
-       protocolSvc.loadUrl(uri);
+       protocolSvc.loadURI(uri);
       }
     }
   },
@@ -68,32 +71,11 @@ var gPrivacyPane = {
    */
   _initMasterPasswordUI: function ()
   {
-    var noMP = !this._masterPasswordSet();
+    var noMP = !LoginHelper.isMasterPasswordSet();
 
     document.getElementById("changeMasterPassword").disabled = noMP;
 
     document.getElementById("useMasterPassword").checked = !noMP;
-  },
-
-
-  /**
-   * Returns true if the user has a master password set and false otherwise.
-   */
-  _masterPasswordSet: function ()
-  {
-    const Cc = Components.classes, Ci = Components.interfaces;
-    var secmodDB = Cc["@mozilla.org/security/pkcs11moduledb;1"].
-                   getService(Ci.nsIPKCS11ModuleDB);
-    var slot = secmodDB.findSlotByName("");
-    if (slot) {
-      var status = slot.status;
-      var hasMP = status != Ci.nsIPKCS11Slot.SLOT_UNINITIALIZED &&
-                  status != Ci.nsIPKCS11Slot.SLOT_READY;
-      return hasMP;
-    } else {
-      // XXX I have no bloody idea what this means
-      return false;
-    }
   },
 
 

@@ -11,7 +11,7 @@
 
 #include "nsCOMPtr.h"
 #include "nscore.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsMsgUtils.h"
 #include "nsWMImport.h"
 #include "nsIComponentManager.h"
@@ -76,16 +76,9 @@ static bool    checkNewMail;    // WM global setting, let's default to false
 ////////////////////////////////////////////////////////////////////////
 nsresult nsWMSettings::Create(nsIImportSettings** aImport)
 {
-    NS_PRECONDITION(aImport != nullptr, "null ptr");
-    if (! aImport)
-        return NS_ERROR_NULL_POINTER;
-
-    *aImport = new nsWMSettings();
-    if (! *aImport)
-        return NS_ERROR_OUT_OF_MEMORY;
-
-    NS_ADDREF(*aImport);
-    return NS_OK;
+  NS_ENSURE_ARG_POINTER(aImport);
+  NS_ADDREF(*aImport = new nsWMSettings());
+  return NS_OK;
 }
 
 nsWMSettings::nsWMSettings()
@@ -607,7 +600,6 @@ void WMSettings::SetIdentities(nsIMsgAccountManager *pMgr, nsIMsgAccount *pAcc,
                                int32_t authMethodIncoming, bool isNNTP)
 {
   // Get the relevant information for an identity
-  // BUG 470587. Don't set this: id->SetIdentityName(fullName);
   nsresult rv;
   nsAutoString value;
 

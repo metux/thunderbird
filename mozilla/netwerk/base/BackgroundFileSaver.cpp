@@ -4,11 +4,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "pk11pub.h"
-#include "mozilla/Logging.h"
-#include "ScopedNSSTypes.h"
-#include "secoidt.h"
+#include "BackgroundFileSaver.h"
 
+#include "ScopedNSSTypes.h"
+#include "mozilla/Casting.h"
+#include "mozilla/Logging.h"
+#include "mozilla/Telemetry.h"
+#include "nsCOMArray.h"
+#include "nsDependentSubstring.h"
 #include "nsIAsyncInputStream.h"
 #include "nsIFile.h"
 #include "nsIMutableArray.h"
@@ -16,12 +19,10 @@
 #include "nsIX509Cert.h"
 #include "nsIX509CertDB.h"
 #include "nsIX509CertList.h"
-#include "nsCOMArray.h"
 #include "nsNetUtil.h"
 #include "nsThreadUtils.h"
-
-#include "BackgroundFileSaver.h"
-#include "mozilla/Telemetry.h"
+#include "pk11pub.h"
+#include "secoidt.h"
 
 #ifdef XP_WIN
 #include <windows.h>
@@ -32,7 +33,7 @@
 namespace mozilla {
 namespace net {
 
-// NSPR_LOG_MODULES=BackgroundFileSaver:5
+// MOZ_LOG=BackgroundFileSaver:5
 static LazyLogModule prlog("BackgroundFileSaver");
 #define LOG(args) MOZ_LOG(prlog, mozilla::LogLevel::Debug, args)
 #define LOG_ENABLED() MOZ_LOG_TEST(prlog, mozilla::LogLevel::Debug)
@@ -62,16 +63,17 @@ static LazyLogModule prlog("BackgroundFileSaver");
  * Runnable object used to notify the control thread that file contents will now
  * be saved to the specified file.
  */
-class NotifyTargetChangeRunnable final : public nsRunnable
+class NotifyTargetChangeRunnable final : public Runnable
 {
 public:
-  NotifyTargetChangeRunnable(BackgroundFileSaver *aSaver, nsIFile *aTarget)
-  : mSaver(aSaver)
-  , mTarget(aTarget)
+  NotifyTargetChangeRunnable(BackgroundFileSaver* aSaver, nsIFile* aTarget)
+    : Runnable("net::NotifyTargetChangeRunnable")
+    , mSaver(aSaver)
+    , mTarget(aTarget)
   {
   }
 
-  NS_IMETHODIMP Run()
+  NS_IMETHOD Run() override
   {
     return mSaver->NotifyTargetChange(mTarget);
   }
@@ -88,7 +90,7 @@ uint32_t BackgroundFileSaver::sThreadCount = 0;
 uint32_t BackgroundFileSaver::sTelemetryMaxThreadCount = 0;
 
 BackgroundFileSaver::BackgroundFileSaver()
-: mControlThread(nullptr)
+: mControlEventTarget(nullptr)
 , mWorkerThread(nullptr)
 , mPipeOutputStream(nullptr)
 , mPipeInputStream(nullptr)
@@ -121,16 +123,13 @@ BackgroundFileSaver::~BackgroundFileSaver()
     return;
   }
   destructorSafeDestroyNSSReference();
-  shutdown(calledFromObject);
+  shutdown(ShutdownCalledFrom::Object);
 }
 
 void
 BackgroundFileSaver::destructorSafeDestroyNSSReference()
 {
-  if (mDigestContext) {
-    mozilla::psm::PK11_DestroyContext_true(mDigestContext.forget());
-    mDigestContext = nullptr;
-  }
+  mDigestContext = nullptr;
 }
 
 void
@@ -152,10 +151,10 @@ BackgroundFileSaver::Init()
                    HasInfiniteBuffer() ? UINT32_MAX : 0);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = NS_GetCurrentThread(getter_AddRefs(mControlThread));
-  NS_ENSURE_SUCCESS(rv, rv);
+  mControlEventTarget = GetCurrentThreadEventTarget();
+  NS_ENSURE_TRUE(mControlEventTarget, NS_ERROR_NOT_INITIALIZED);
 
-  rv = NS_NewThread(getter_AddRefs(mWorkerThread));
+  rv = NS_NewNamedThread("BgFileSaver", getter_AddRefs(mWorkerThread));
   NS_ENSURE_SUCCESS(rv, rv);
 
   sThreadCount++;
@@ -297,7 +296,7 @@ BackgroundFileSaver::GetSignatureInfo(nsIArray** aSignatureInfo)
   }
   nsCOMPtr<nsIMutableArray> sigArray = do_CreateInstance(NS_ARRAY_CONTRACTID);
   for (int i = 0; i < mSignatureInfo.Count(); ++i) {
-    sigArray->AppendElement(mSignatureInfo[i], false);
+    sigArray->AppendElement(mSignatureInfo[i]);
   }
   *aSignatureInfo = sigArray;
   NS_IF_ADDREF(*aSignatureInfo);
@@ -327,11 +326,11 @@ BackgroundFileSaver::GetWorkerThreadAttention(bool aShouldInterruptCopy)
 
   if (!mAsyncCopyContext) {
     // Copy is not in progress, post an event to handle the change manually.
-    nsCOMPtr<nsIRunnable> event =
-      NS_NewRunnableMethod(this, &BackgroundFileSaver::ProcessAttention);
-    NS_ENSURE_TRUE(event, NS_ERROR_FAILURE);
-
-    rv = mWorkerThread->Dispatch(event, NS_DISPATCH_NORMAL);
+    rv = mWorkerThread->Dispatch(
+      NewRunnableMethod("net::BackgroundFileSaver::ProcessAttention",
+                        this,
+                        &BackgroundFileSaver::ProcessAttention),
+      NS_DISPATCH_NORMAL);
     NS_ENSURE_SUCCESS(rv, rv);
   } else if (aShouldInterruptCopy) {
     // Interrupt the copy.  The copy will be resumed, if needed, by the
@@ -527,7 +526,7 @@ BackgroundFileSaver::ProcessStateChange()
       new NotifyTargetChangeRunnable(this, actualTargetToNotify);
     NS_ENSURE_TRUE(event, NS_ERROR_FAILURE);
 
-    rv = mControlThread->Dispatch(event, NS_DISPATCH_NORMAL);
+    rv = mControlEventTarget->Dispatch(event, NS_DISPATCH_NORMAL);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
@@ -556,8 +555,8 @@ BackgroundFileSaver::ProcessStateChange()
   if (sha256Enabled && !mDigestContext) {
     nsNSSShutDownPreventionLock lock;
     if (!isAlreadyShutDown()) {
-      mDigestContext =
-        PK11_CreateDigestContext(static_cast<SECOidTag>(SEC_OID_SHA256));
+      mDigestContext = UniquePK11Context(
+        PK11_CreateDigestContext(SEC_OID_SHA256));
       NS_ENSURE_TRUE(mDigestContext, NS_ERROR_OUT_OF_MEMORY);
     }
   }
@@ -588,9 +587,10 @@ BackgroundFileSaver::ProcessStateChange()
           return NS_ERROR_NOT_AVAILABLE;
         }
 
-        nsresult rv = MapSECStatus(PK11_DigestOp(mDigestContext,
-                                                 uint8_t_ptr_cast(buffer),
-                                                 count));
+        nsresult rv = MapSECStatus(
+          PK11_DigestOp(mDigestContext.get(),
+                        BitwiseCast<unsigned char*, char*>(buffer),
+                        count));
         NS_ENSURE_SUCCESS(rv, rv);
       }
 
@@ -620,10 +620,11 @@ BackgroundFileSaver::ProcessStateChange()
                                    PR_WRONLY | creationIoFlags, 0600);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  outputStream = NS_BufferOutputStream(outputStream, BUFFERED_IO_SIZE);
-  if (!outputStream) {
-    return NS_ERROR_FAILURE;
-  }
+  nsCOMPtr<nsIOutputStream> bufferedStream;
+  rv = NS_NewBufferedOutputStream(getter_AddRefs(bufferedStream),
+                                  outputStream.forget(), BUFFERED_IO_SIZE);
+  NS_ENSURE_SUCCESS(rv, rv);
+  outputStream = bufferedStream;
 
   // Wrap the output stream so that it feeds the digest context if needed.
   if (mDigestContext) {
@@ -634,7 +635,7 @@ BackgroundFileSaver::ProcessStateChange()
     // the outputStream. BackgroundFileSaver is reference-counted before the
     // call to AsyncCopy, and mDigestContext is never destroyed before
     // AsyncCopyCallback.
-    outputStream = new DigestOutputStream(outputStream, mDigestContext);
+    outputStream = new DigestOutputStream(outputStream, mDigestContext.get());
   }
 
   // Start copying our input to the target file.  No errors can be raised past
@@ -729,8 +730,9 @@ BackgroundFileSaver::CheckCompletion()
       rv = d.End(SEC_OID_SHA256, mDigestContext);
       if (NS_SUCCEEDED(rv)) {
         MutexAutoLock lock(mLock);
-        mSha256 = nsDependentCSubstring(char_ptr_cast(d.get().data),
-                                        d.get().len);
+        mSha256 =
+          nsDependentCSubstring(BitwiseCast<char*, unsigned char*>(d.get().data),
+                                d.get().len);
       }
     }
   }
@@ -749,10 +751,10 @@ BackgroundFileSaver::CheckCompletion()
   }
 
   // Post an event to notify that the operation completed.
-  nsCOMPtr<nsIRunnable> event =
-    NS_NewRunnableMethod(this, &BackgroundFileSaver::NotifySaveComplete);
-  if (!event ||
-      NS_FAILED(mControlThread->Dispatch(event, NS_DISPATCH_NORMAL))) {
+  if (NS_FAILED(mControlEventTarget->Dispatch(NewRunnableMethod("BackgroundFileSaver::NotifySaveComplete",
+                                                                this,
+                                                                &BackgroundFileSaver::NotifySaveComplete),
+                                              NS_DISPATCH_NORMAL))) {
     NS_WARNING("Unable to post completion event to the control thread.");
   }
 
@@ -897,17 +899,22 @@ BackgroundFileSaver::ExtractSignatureInfo(const nsAString& filePath)
               continue;
           }
           nsCOMPtr<nsIX509Cert> nssCert = nullptr;
-          rv = certDB->ConstructX509(
+          nsDependentCSubstring certDER(
             reinterpret_cast<char *>(
               certChainElement->pCertContext->pbCertEncoded),
-            certChainElement->pCertContext->cbCertEncoded,
-            getter_AddRefs(nssCert));
+            certChainElement->pCertContext->cbCertEncoded);
+          rv = certDB->ConstructX509(certDER, getter_AddRefs(nssCert));
           if (!nssCert) {
             extractionSuccess = false;
             LOG(("Couldn't create NSS cert [this = %p]", this));
             break;
           }
-          nssCertList->AddCert(nssCert);
+          rv = nssCertList->AddCert(nssCert);
+          if (NS_FAILED(rv)) {
+            extractionSuccess = false;
+            LOG(("Couldn't add NSS cert to cert list [this = %p]", this));
+            break;
+          }
           nsString subjectName;
           nssCert->GetSubjectName(subjectName);
           LOG(("Adding cert %s [this = %p]",
@@ -1156,10 +1163,10 @@ BackgroundFileSaverStreamListener::AsyncCopyProgressCallback(void *aClosure,
       self->mReceivedTooMuchData = false;
 
       // Post an event to verify if the request should be resumed.
-      nsCOMPtr<nsIRunnable> event = NS_NewRunnableMethod(self,
-        &BackgroundFileSaverStreamListener::NotifySuspendOrResume);
-      if (!event || NS_FAILED(self->mControlThread->Dispatch(event,
-                                                    NS_DISPATCH_NORMAL))) {
+      if (NS_FAILED(self->mControlEventTarget->Dispatch(NewRunnableMethod("BackgroundFileSaverStreamListener::NotifySuspendOrResume",
+                                                                          self,
+                                                                          &BackgroundFileSaverStreamListener::NotifySuspendOrResume),
+                                                        NS_DISPATCH_NORMAL))) {
         NS_WARNING("Unable to post resume event to the control thread.");
       }
     }
@@ -1212,7 +1219,11 @@ DigestOutputStream::DigestOutputStream(nsIOutputStream* aStream,
 
 DigestOutputStream::~DigestOutputStream()
 {
-  shutdown(calledFromObject);
+  nsNSSShutDownPreventionLock locker;
+  if (isAlreadyShutDown()) {
+    return;
+  }
+  shutdown(ShutdownCalledFrom::Object);
 }
 
 NS_IMETHODIMP
@@ -1235,8 +1246,10 @@ DigestOutputStream::Write(const char* aBuf, uint32_t aCount, uint32_t* retval)
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  nsresult rv = MapSECStatus(PK11_DigestOp(mDigestContext,
-                                           uint8_t_ptr_cast(aBuf), aCount));
+  nsresult rv = MapSECStatus(
+    PK11_DigestOp(mDigestContext,
+                  BitwiseCast<const unsigned char*, const char*>(aBuf),
+                  aCount));
   NS_ENSURE_SUCCESS(rv, rv);
 
   return mOutputStream->Write(aBuf, aCount, retval);
@@ -1265,6 +1278,8 @@ DigestOutputStream::IsNonBlocking(bool *retval)
 {
   return mOutputStream->IsNonBlocking(retval);
 }
+
+#undef LOG_ENABLED
 
 } // namespace net
 } // namespace mozilla

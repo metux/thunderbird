@@ -1,4 +1,5 @@
 Cu.import("resource://testing-common/httpd.js");
+Cu.import("resource://gre/modules/NetUtil.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 
 var httpserver = new HttpServer();
@@ -6,18 +7,10 @@ var httpserver = new HttpServer();
 var expectedOnStopRequests = 3;
 
 function setupChannel(suffix, xRequest, flags) {
-    var ios = Components.classes["@mozilla.org/network/io-service;1"]
-            .getService(Ci.nsIIOService);
-    var chan = ios.newChannel2("http://localhost:" +
-                               httpserver.identity.primaryPort +
-                               suffix,
-                               "",
-                               null,
-                               null,      // aLoadingNode
-                               Services.scriptSecurityManager.getSystemPrincipal(),
-                               null,      // aTriggeringPrincipal
-                               Ci.nsILoadInfo.SEC_NORMAL,
-                               Ci.nsIContentPolicy.TYPE_OTHER);
+    var chan = NetUtil.newChannel({
+        uri: "http://localhost:" + httpserver.identity.primaryPort + suffix,
+        loadUsingSystemPrincipal: true
+    });
     if (flags)
         chan.loadFlags |= flags;
 
@@ -61,6 +54,8 @@ function run_test() {
     httpserver.registerPathHandler("/bug596443", handler);
     httpserver.start(-1);
 
+    Services.prefs.setBoolPref("network.http.rcwn.enabled", false);
+
     // make sure we have a profile so we can use the disk-cache
     do_get_profile();
 
@@ -68,13 +63,13 @@ function run_test() {
     evict_cache_entries();
 
     var ch0 = setupChannel("/bug596443", "Response0", Ci.nsIRequest.LOAD_BYPASS_CACHE);
-    ch0.asyncOpen(new Listener("Response0"), null);
+    ch0.asyncOpen2(new Listener("Response0"));
 
     var ch1 = setupChannel("/bug596443", "Response1", Ci.nsIRequest.LOAD_BYPASS_CACHE);
-    ch1.asyncOpen(new Listener("Response1"), null);
+    ch1.asyncOpen2(new Listener("Response1"));
 
     var ch2 = setupChannel("/bug596443", "Should not be used");
-    ch2.asyncOpen(new Listener("Response1"), null); // Note param: we expect this to come from cache
+    ch2.asyncOpen2(new Listener("Response1")); // Note param: we expect this to come from cache
 
     do_test_pending();
 }

@@ -1,12 +1,9 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
+"use strict";
 
 // Test that the HeapAnalyses{Client,Worker} can take censuses and return
 // a CensusTreeNode.
-
-function run_test() {
-  run_next_test();
-}
 
 const BREAKDOWN = {
   by: "internalType",
@@ -20,11 +17,11 @@ add_task(function* () {
   yield client.readHeapSnapshot(snapshotFilePath);
   ok(true, "Should have read the heap snapshot");
 
-  const report = yield client.takeCensus(snapshotFilePath, {
+  const { report } = yield client.takeCensus(snapshotFilePath, {
     breakdown: BREAKDOWN
   });
 
-  const treeNode = yield client.takeCensus(snapshotFilePath, {
+  const { report: treeNode } = yield client.takeCensus(snapshotFilePath, {
     breakdown: BREAKDOWN
   }, {
     asTreeNode: true

@@ -11,8 +11,6 @@
 Cu.import("resource://testing-common/httpd.js");
 
 Cu.import("resource://gre/modules/NetUtil.jsm");
-Cu.import("resource://gre/modules/Task.jsm");
-Cu.import("resource://gre/modules/Promise.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 
 // We need the profile directory so the test harness will clean up our test
@@ -68,7 +66,7 @@ function async_write_file(aContractId, aDeferOpen)
              getService(Ci.nsIProperties).
              get("ProfD", Ci.nsIFile);
   file.append("NetUtil-async-test-file.tmp");
-  file.createUnique(Ci.nsIFile.NORMAL_FILE_TYPE, 0666);
+  file.createUnique(Ci.nsIFile.NORMAL_FILE_TYPE, 0o666);
 
   // Then, we need an output stream to our output file.
   let ostream = Cc[aContractId].createInstance(Ci.nsIFileOutputStream);
@@ -123,7 +121,7 @@ function test_async_copy()
       getService(Ci.nsIProperties).
       get("ProfD", Ci.nsIFile);
     file.append("NetUtil-asyncFetch-test-file.tmp");
-    file.createUnique(Ci.nsIFile.NORMAL_FILE_TYPE, 0666);
+    file.createUnique(Ci.nsIFile.NORMAL_FILE_TYPE, 0o666);
 
     let ostream = Cc["@mozilla.org/network/file-output-stream;1"].
       createInstance(Ci.nsIFileOutputStream);
@@ -144,7 +142,7 @@ function test_async_copy()
       getService(Ci.nsIProperties).
       get("ProfD", Ci.nsIFile);
     file.append("NetUtil-asyncFetch-test-file.tmp");
-    file.createUnique(Ci.nsIFile.NORMAL_FILE_TYPE, 0666);
+    file.createUnique(Ci.nsIFile.NORMAL_FILE_TYPE, 0o666);
 
     let ostream = Cc["@mozilla.org/network/file-output-stream;1"].
       createInstance(Ci.nsIFileOutputStream);
@@ -159,7 +157,7 @@ function test_async_copy()
     bstream.init(ostream, 256);
     return {file: file, sink: bstream};
   }
-  Task.spawn(function*() {
+  (async function() {
     do_test_pending();
     for (let bufferedInput of [true, false]) {
       for (let bufferedOutput of [true, false]) {
@@ -171,9 +169,9 @@ function test_async_copy()
         let TEST_DATA = "[" + make_sample(text) + "]";
         let source = make_input(bufferedInput, TEST_DATA);
         let {file, sink} = make_output(bufferedOutput);
-        let deferred = Promise.defer();
-        NetUtil.asyncCopy(source, sink, deferred.resolve);
-        let result = yield deferred.promise;
+        let result = await new Promise(resolve => {
+          NetUtil.asyncCopy(source, sink, resolve);
+        });
 
         // Make sure the copy was successful!
         if (!Components.isSuccessCode(result)) {
@@ -187,7 +185,7 @@ function test_async_copy()
 
     do_test_finished();
     run_next_test();
-  });
+  })();
 }
 
 function test_async_write_file() {
@@ -226,7 +224,7 @@ function test_newURI()
   // Check that we get the same URI back from the IO service and the utility
   // method.
   const TEST_URI = "http://mozilla.org";
-  let iosURI = ios.newURI(TEST_URI, null, null);
+  let iosURI = ios.newURI(TEST_URI);
   let NetUtilURI = NetUtil.newURI(TEST_URI);
   do_check_true(iosURI.equals(NetUtilURI));
 
@@ -358,7 +356,7 @@ function test_asyncFetch_with_nsIURI()
   null,      // aLoadingNode
   Services.scriptSecurityManager.getSystemPrincipal(),
   null,      // aTriggeringPrincipal
-  Ci.nsILoadInfo.SEC_NORMAL,
+  Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
   Ci.nsIContentPolicy.TYPE_OTHER);
 }
 
@@ -396,7 +394,7 @@ function test_asyncFetch_with_string()
   null,      // aLoadingNode
   Services.scriptSecurityManager.getSystemPrincipal(),
   null,      // aTriggeringPrincipal
-  Ci.nsILoadInfo.SEC_NORMAL,
+  Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
   Ci.nsIContentPolicy.TYPE_OTHER);
 }
 
@@ -409,7 +407,7 @@ function test_asyncFetch_with_nsIFile()
              getService(Ci.nsIProperties).
              get("ProfD", Ci.nsIFile);
   file.append("NetUtil-asyncFetch-test-file.tmp");
-  file.createUnique(Ci.nsIFile.NORMAL_FILE_TYPE, 0666);
+  file.createUnique(Ci.nsIFile.NORMAL_FILE_TYPE, 0o666);
 
   // Write the test data to the file.
   let ostream = Cc["@mozilla.org/network/file-output-stream;1"].
@@ -442,7 +440,7 @@ function test_asyncFetch_with_nsIFile()
   null,      // aLoadingNode
   Services.scriptSecurityManager.getSystemPrincipal(),
   null,      // aTriggeringPrincipal
-  Ci.nsILoadInfo.SEC_NORMAL,
+  Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
   Ci.nsIContentPolicy.TYPE_OTHER);
 }
 
@@ -468,7 +466,7 @@ function test_asyncFetch_with_nsIInputString()
   null,      // aLoadingNode
   Services.scriptSecurityManager.getSystemPrincipal(),
   null,      // aTriggeringPrincipal
-  Ci.nsILoadInfo.SEC_NORMAL,
+  Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
   Ci.nsIContentPolicy.TYPE_OTHER);
 }
 
@@ -528,7 +526,7 @@ function test_newChannel_with_string()
                                    null,      // aLoadingNode
                                    Services.scriptSecurityManager.getSystemPrincipal(),
                                    null,      // aTriggeringPrincipal
-                                   Ci.nsILoadInfo.SEC_NORMAL,
+                                   Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
                                    Ci.nsIContentPolicy.TYPE_OTHER);
   let NetUtilChannel = NetUtil.newChannel({
     uri: TEST_SPEC,
@@ -550,7 +548,7 @@ function test_newChannel_with_nsIURI()
                                                         null,      // aLoadingNode
                                                         Services.scriptSecurityManager.getSystemPrincipal(),
                                                         null,      // aTriggeringPrincipal
-                                                        Ci.nsILoadInfo.SEC_NORMAL,
+                                                        Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
                                                         Ci.nsIContentPolicy.TYPE_OTHER);
   let NetUtilChannel = NetUtil.newChannel({
     uri: uri,
@@ -569,7 +567,7 @@ function test_newChannel_with_options()
                                                         null,      // aLoadingNode
                                                         Services.scriptSecurityManager.getSystemPrincipal(),
                                                         null,      // aTriggeringPrincipal
-                                                        Ci.nsILoadInfo.SEC_NORMAL,
+                                                        Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
                                                         Ci.nsIContentPolicy.TYPE_OTHER);
 
   function checkEqualToIOSChannel(channel) {
@@ -630,6 +628,66 @@ function test_newChannel_with_wrong_options()
   }, /does not accept 'loadUsingSystemPrincipal'/);
 
   run_next_test();
+}
+
+function test_deprecated_newChannel_API_with_string() {
+  const TEST_SPEC = "http://mozilla.org";
+  let uri = NetUtil.newURI(TEST_SPEC);
+  let oneArgChannel = NetUtil.newChannel(TEST_SPEC);
+  let threeArgChannel = NetUtil.newChannel(TEST_SPEC, null, null);
+  do_check_true(uri.equals(oneArgChannel.URI));
+  do_check_true(uri.equals(threeArgChannel.URI));
+
+  run_next_test();
+}
+
+function test_deprecated_newChannel_API_with_nsIFile()
+{
+  const TEST_DATA = "this is a test string";
+
+  // First we need a file to read from.
+  let file = Cc["@mozilla.org/file/directory_service;1"].
+             getService(Ci.nsIProperties).
+             get("ProfD", Ci.nsIFile);
+  file.append("NetUtil-deprecated-newchannel-api-test-file.tmp");
+  file.createUnique(Ci.nsIFile.NORMAL_FILE_TYPE, 0o666);
+
+  // Write the test data to the file.
+  let ostream = Cc["@mozilla.org/network/file-output-stream;1"].
+                createInstance(Ci.nsIFileOutputStream);
+  ostream.init(file, -1, -1, 0);
+  ostream.write(TEST_DATA, TEST_DATA.length);
+
+  // Sanity check to make sure the data was written.
+  do_check_eq(TEST_DATA, getFileContents(file));
+
+  // create a channel using the file
+  let channel = NetUtil.newChannel(file);
+
+  // Create a pipe that will create our output stream that we can use once
+  // we have gotten all the data.
+  let pipe = Cc["@mozilla.org/pipe;1"].createInstance(Ci.nsIPipe);
+  pipe.init(true, true, 0, 0, null);
+
+  let listener = Cc["@mozilla.org/network/simple-stream-listener;1"].
+                   createInstance(Ci.nsISimpleStreamListener);
+  listener.init(pipe.outputStream, {
+    onStartRequest: function(aRequest, aContext) {},
+    onStopRequest: function(aRequest, aContext, aStatusCode) {
+      pipe.outputStream.close();
+      do_check_true(Components.isSuccessCode(aContext));
+
+      // Check that we got the right data.
+      do_check_eq(pipe.inputStream.available(), TEST_DATA.length);
+      let is = Cc["@mozilla.org/scriptableinputstream;1"].
+               createInstance(Ci.nsIScriptableInputStream);
+      is.init(pipe.inputStream);
+      let result = is.read(TEST_DATA.length);
+      do_check_eq(TEST_DATA, result);
+      run_next_test();
+    }
+  });
+  channel.asyncOpen2(listener);
 }
 
 function test_readInputStreamToString()
@@ -788,6 +846,8 @@ function test_readInputStreamToString_invalid_sequence()
   test_newChannel_with_nsIURI,
   test_newChannel_with_options,
   test_newChannel_with_wrong_options,
+  test_deprecated_newChannel_API_with_string,
+  test_deprecated_newChannel_API_with_nsIFile,
   test_readInputStreamToString,
   test_readInputStreamToString_no_input_stream,
   test_readInputStreamToString_no_bytes_arg,

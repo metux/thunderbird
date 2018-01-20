@@ -10,166 +10,31 @@ var summary = 'trace-capability math mini-testsuite';
 printBugNumber(BUGNUMBER);
 printStatus (summary);
 
-jit(true);
-
-/**
- * A number of the tests in this file depend on the setting of
- * HOTLOOP.  Define some constants up front, so they're easy to grep
- * for.
- */
-// The HOTLOOP constant we depend on; only readable from our stats
-// object in debug builds.
-const haveTracemonkey = !!(this.tracemonkey)
-const HOTLOOP = haveTracemonkey ? tracemonkey.HOTLOOP : 2;
+// The loop count at which we trace
+const RECORDLOOP = 8;
+// The loop count at which we run the trace
+const RUNLOOP = RECORDLOOP + 1;
 
 var testName = null;
 if ("arguments" in this && arguments.length > 0)
   testName = arguments[0];
-var fails = [], passes=[];
-
-function jitstatHandler(f)
-{
-  if (!haveTracemonkey) 
-    return;
-
-  // XXXbz this is a nasty hack, but I can't figure out a way to
-  // just use jitstats.tbl here
-  f("recorderStarted");
-  f("recorderAborted");
-  f("traceCompleted");
-  f("sideExitIntoInterpreter");
-  f("typeMapMismatchAtEntry");
-  f("returnToDifferentLoopHeader");
-  f("traceTriggered");
-  f("globalShapeMismatchAtEntry");
-  f("treesTrashed");
-  f("slotPromoted");
-  f("unstableLoopVariable");
-  f("noCompatInnerTrees");
-  f("breakLoopExits");
-  f("returnLoopExits");
-}
 
 function test(f)
 {
-  if (!testName || testName == f.name) {
-    // Collect our jit stats
-    var localJITstats = {};
-    jitstatHandler(function(prop, local, global) {
-        localJITstats[prop] = tracemonkey[prop];
-      });
-    check(f.name, f(), f.expected, localJITstats, f.jitstats);
+  if (!testName || testName == f.testname) {
+    check(f.testname, f(), f.expected);
   }
 }
 
-function map_test(t, cases)
+function check(desc, actual, expected)
 {
-  for (var i = 0; i < cases.length; i++) {
-    function c() { return t(cases[i].input); }
-    c.expected = cases[i].expected;
-    c.name = t.name + "(" + uneval(cases[i].input) + ")";
-    test(c);
-  }
-}
-
-// Use this function to compare expected and actual test results.
-// Types must match.
-// For numbers, treat NaN as matching NaN, distinguish 0 and -0, and
-// tolerate a certain degree of error for other values.
-//
-// These are the same criteria used by the tests in js/tests, except that
-// we distinguish 0 and -0.
-function close_enough(expected, actual)
-{
-  if (typeof expected != typeof actual)
-    return false;
-  if (typeof expected != 'number')
-    return actual == expected;
-
-  // Distinguish NaN from other values.  Using x != x comparisons here
-  // works even if tests redefine isNaN.
-  if (actual != actual)
-    return expected != expected
-      if (expected != expected)
-        return false;
-
-  // Tolerate a certain degree of error.
-  if (actual != expected)
-    return Math.abs(actual - expected) <= 1E-10;
-
   // Distinguish 0 and -0.
-  if (actual == 0)
-    return (1 / actual > 0) == (1 / expected > 0);
-
-  return true;
-}
-
-function check(desc, actual, expected, oldJITstats, expectedJITstats)
-{
-  var pass = false;
-  if (close_enough(expected, actual)) {
-    pass = true;
-    jitstatHandler(function(prop) {
-        if (expectedJITstats && prop in expectedJITstats &&
-            expectedJITstats[prop] !=
-            tracemonkey[prop] - oldJITstats[prop]) {
-          pass = false;
-        }
-      });
-    if (pass) {
-      reportCompare(expected, actual, desc);
-      passes.push(desc);
-      return print(desc, ": passed");
-    }
-  }
-
-  if (expected instanceof RegExp) {
-    pass = reportMatch(expected, actual + '', desc);
-    if (pass) {
-      jitstatHandler(function(prop) {
-          if (expectedJITstats && prop in expectedJITstats &&
-              expectedJITstats[prop] !=
-              tracemonkey[prop] - oldJITstats[prop]) {
-            pass = false;
-          }
-        });
-    }
-    if (pass) {
-      passes.push(desc);
-      return print(desc, ": passed");
-    }
+  if (actual === 0 && expected === 0) {
+    actual = (1 / actual > 0) ? "+0" : "-0";
+    expected = (1 / expected > 0) ? "+0" : "-0";
   }
 
   reportCompare(expected, actual, desc);
-
-  fails.push(desc);
-  var expectedStats = "";
-  if (expectedJITstats) {
-    jitstatHandler(function(prop) {
-        if (prop in expectedJITstats) {
-          if (expectedStats)
-            expectedStats += " ";
-          expectedStats +=
-            prop + ": " + expectedJITstats[prop];
-        }
-      });
-  }
-  var actualStats = "";
-  if (expectedJITstats) {
-    jitstatHandler(function(prop) {
-        if (prop in expectedJITstats) {
-          if (actualStats)
-            actualStats += " ";
-          actualStats += prop + ": " + (tracemonkey[prop]-oldJITstats[prop]);
-        }
-      });
-  }
-  print(desc, ": FAILED: expected", typeof(expected), 
-        "(", uneval(expected), ")",
-        (expectedStats ? " [" + expectedStats + "] " : ""),
-        "!= actual",
-        typeof(actual), "(", uneval(actual), ")",
-        (actualStats ? " [" + actualStats + "] " : ""));
 }
 
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
@@ -178,7 +43,6 @@ function check(desc, actual, expected, oldJITstats, expectedJITstats)
 // Expect a loop containing such a call to be traced.
 // FUNCNAME and ARGS are both strings.
 // ARGS has the form of an argument list: a comma-separated list of expressions.
-// Certain Tracemonkey limitations require us to pass FUNCNAME as a string.
 // Passing ARGS as a string allows us to assign better test names:
 // expressions like Math.PI/4 haven't been evaluated to big hairy numbers.
 function testmath(funcname, args, expected) {
@@ -220,18 +84,8 @@ function testmath(funcname, args, expected) {
         mapfunc(dummies_and_input);
         return dummies_and_input[RUNLOOP];
     }
-    testfunc.name = funcname + "(" + args + ")";
+    testfunc.testname = funcname + "(" + args + ")";
     testfunc.expected = expected;
-
-    // Disable jitstats check. This never worked right. The actual part of the
-    // loop we cared about was never traced. We traced the filler parts early
-    // and then took a mismatch side exit on every subequent array read with
-    // a different type (gal, discovered when fixing bug 479110).
-    // testfunc.jitstats = {
-    //   recorderStarted: 1,
-    //   recorderAborted: 0,
-    //   traceTriggered: 1
-    // };
 
     test(testfunc);
 }
@@ -679,11 +533,3 @@ testmath("Math.tan", "Math.PI", -0)
 testmath("Math.tan", "5*Math.PI/4", 1)
 testmath("Math.tan", "7*Math.PI/4", -1)
 testmath("Infinity/Math.tan", "-0", -Infinity)
-
-jit(false);
-
-/* Keep these at the end so that we can see the summary after the trace-debug spew. */
-if (0) {
-  print("\npassed:", passes.length && passes.join(","));
-  print("\nFAILED:", fails.length && fails.join(","));
-}

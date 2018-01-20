@@ -1,6 +1,7 @@
 dump('loaded child cpow test\n');
 
 var Cu = Components.utils;
+var Ci = Components.interfaces;
 
 (function start() {
   [is_remote] = sendRpcMessage("cpows:is_remote");
@@ -20,6 +21,7 @@ var Cu = Components.utils;
     lifetime_test,
     cancel_test,
     cancel_test2,
+    dead_test,
     unsafe_test,
   ];
 
@@ -43,7 +45,6 @@ function ok(condition, message) {
   dump('condition: ' + condition  + ', ' + message + '\n');
   if (!condition) {
     sendAsyncMessage("cpows:fail", { message: message });
-    throw 'failed check: ' + message;
   }
 }
 
@@ -104,7 +105,13 @@ function parent_test(finish)
 
   addMessageListener("cpows:from_parent", (msg) => {
     let obj = msg.objects.obj;
-    ok(obj.a == 1, "correct value from parent");
+    if (is_remote) {
+      ok(obj.a == undefined, "__exposedProps__ should not work");
+    } else {
+      // The same process test is not run as content, so the field can
+      // be accessed even though __exposedProps__ has been removed.
+      ok(obj.a == 1, "correct value from parent");
+    }
 
     // Test that a CPOW reference to a function in the chrome process
     // is callable from unprivileged content. Greasemonkey uses this
@@ -259,11 +266,11 @@ function lifetime_test(finish)
   var obj = {"will_die": {"f": 1}};
   let [result] = sendRpcMessage("cpows:lifetime_test_1", {}, {obj: obj});
   ok(result == 10, "got sync result");
-  ok(obj.wont_die.f == 2, "got reverse CPOW");
+  ok(obj.wont_die.f == undefined, "got reverse CPOW");
   obj.will_die = null;
   Components.utils.schedulePreciseGC(function() {
     addMessageListener("cpows:lifetime_test_3", (msg) => {
-      ok(obj.wont_die.f == 2, "reverse CPOW still works");
+      ok(obj.wont_die.f == undefined, "reverse CPOW still works");
       finish();
     });
     sendRpcMessage("cpows:lifetime_test_2");
@@ -354,4 +361,27 @@ function unsafe_test(finish)
     sendRpcMessage("cpows:safe", null, {f});
     addMessageListener("cpows:safe_done", finish);
   });
+}
+
+function dead_test(finish)
+{
+  if (!is_remote) {
+    // Only run this test when running out-of-process.
+    finish();
+    return;
+  }
+
+  let gcTrigger = function() {
+    // Force the GC to dead-ify the thing.
+    content.QueryInterface(Ci.nsIInterfaceRequestor)
+           .getInterface(Ci.nsIDOMWindowUtils)
+           .garbageCollect();
+  }
+
+  {
+    let thing = { value: "Gonna croak" };
+    sendAsyncMessage("cpows:dead", null, { thing, gcTrigger });
+  }
+
+  addMessageListener("cpows:dead_done", finish);
 }

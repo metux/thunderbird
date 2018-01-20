@@ -47,7 +47,7 @@ gfxPattern::gfxPattern(SourceSurface *aSurface, const Matrix &aPatternToUserSpac
   , mExtend(ExtendMode::CLAMP)
 {
   mGfxPattern.InitSurfacePattern(aSurface, mExtend, Matrix(), // matrix is overridden in GetPattern()
-                                 mozilla::gfx::Filter::GOOD);
+                                 mozilla::gfx::SamplingFilter::GOOD);
 }
 
 void
@@ -106,7 +106,7 @@ gfxPattern::GetInverseMatrix() const
 
 Pattern*
 gfxPattern::GetPattern(const DrawTarget *aTarget,
-                       Matrix *aOriginalUserToDevice)
+                       const Matrix *aOriginalUserToDevice)
 {
   Matrix patternToUser = mPatternToUserSpace;
 
@@ -182,22 +182,22 @@ gfxPattern::IsOpaque()
 }
 
 void
-gfxPattern::SetFilter(gfx::Filter filter)
+gfxPattern::SetSamplingFilter(gfx::SamplingFilter filter)
 {
   if (mGfxPattern.GetPattern()->GetType() != PatternType::SURFACE) {
     return;
   }
 
-  static_cast<SurfacePattern*>(mGfxPattern.GetPattern())->mFilter = filter;
+  static_cast<SurfacePattern*>(mGfxPattern.GetPattern())->mSamplingFilter = filter;
 }
 
-Filter
-gfxPattern::Filter() const
+SamplingFilter
+gfxPattern::SamplingFilter() const
 {
   if (mGfxPattern.GetPattern()->GetType() != PatternType::SURFACE) {
-    return gfx::Filter::GOOD;
+    return gfx::SamplingFilter::GOOD;
   }
-  return static_cast<const SurfacePattern*>(mGfxPattern.GetPattern())->mFilter;
+  return static_cast<const SurfacePattern*>(mGfxPattern.GetPattern())->mSamplingFilter;
 }
 
 bool
@@ -209,10 +209,4 @@ gfxPattern::GetSolidColor(Color& aColorOut)
   }
 
  return false;
-}
-
-int
-gfxPattern::CairoStatus()
-{
-  return CAIRO_STATUS_SUCCESS;
 }

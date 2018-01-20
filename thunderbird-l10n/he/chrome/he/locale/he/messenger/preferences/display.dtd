@@ -1,0 +1,76 @@
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+
+<!ENTITY itemFormatting.label             "עיצוב">
+<!ENTITY itemTags.label                   "תוויות">
+<!ENTITY itemAdvanced.label               "מתקדם">
+
+<!ENTITY style.label                      "סגנון:">
+<!ENTITY style.accesskey                  "ס">
+<!ENTITY regularStyle.label               "רגיל">
+<!ENTITY bold.label                       "מודגש">
+<!ENTITY italic.label                     "נטוי">
+<!ENTITY boldItalic.label                 "נטוי מודגש">
+<!ENTITY size.label                       "גודל:">
+<!ENTITY size.accesskey                   "ד">
+<!ENTITY regularSize.label                "רגיל">
+<!ENTITY bigger.label                     "גדול יותר">
+<!ENTITY smaller.label                    "קטן יותר">
+<!ENTITY displayWidth.label               "הודעות טקסט פשוט">
+<!ENTITY displayText.label                "בעת הצגת הודעות טקסט פשוט מצוטט:">
+
+<!-- LOCALIZATION NOTE : (emoticonsAndStructs.label) 'Emoticons' are also known as 'Smileys', e.g. :-)   -->
+<!ENTITY convertEmoticons.label        "הצג פרצופונים בצורה גרפית">
+<!ENTITY convertEmoticons.accesskey    "ה">
+
+<!-- labels -->
+<!ENTITY displayTagsText.label     "תוויות משמשות לחלוקה לקטגוריות ותיעדוף ההודעות שלך.">
+<!ENTITY removeTagButton.label     "מחק">
+<!ENTITY removeTagButton.accesskey "מ">
+
+<!-- Fonts and Colors -->
+<!ENTITY defaultFont.label       "גופן ברירת מחדל:">
+<!ENTITY defaultFont.accesskey   "ב">
+<!ENTITY defaultSize.label       "גודל:">
+<!ENTITY defaultSize.accesskey   "ג">
+<!ENTITY fontOptions.accesskey   "מ">
+<!ENTITY fontOptions.label       "מתקדם…">
+
+<!-- Advanced -->
+
+<!-- LOCALIZATION NOTE (markAsReadDelay.label): This will concatenate to
+     "After displaying for [___] seconds",
+     using (markAsReadDelay.label) and a number (secondsLabel.label). -->
+
+<!ENTITY quotedTextColor.label            "Color:">
+<!ENTITY quotedTextColor.accesskey        "o">
+<!ENTITY newTagButton.label        "New…">
+<!ENTITY newTagButton.accesskey    "N">
+<!ENTITY editTagButton1.label      "Edit…">
+<!ENTITY editTagButton1.accesskey  "E">
+<!ENTITY fontsAndColors1.label   "Fonts &amp; Colors">
+<!ENTITY colorButton.label       "Colors…">
+<!ENTITY colorButton.accesskey   "C">
+
+<!ENTITY reading.caption                  "Reading">
+<!ENTITY display.caption                  "Display">
+<!ENTITY showCondensedAddresses.label     "Show only display name for people in my address book">
+<!ENTITY showCondensedAddresses.accesskey "S">
+
+<!ENTITY autoMarkAsRead.label             "Automatically mark messages as read">
+<!ENTITY autoMarkAsRead.accesskey         "A">
+<!ENTITY markAsReadNoDelay.label          "Immediately on display">
+<!ENTITY markAsReadNoDelay.accesskey      "o">
+<!ENTITY markAsReadDelay.label            "After displaying for">
+<!ENTITY markAsReadDelay.accesskey        "d">
+<!ENTITY secondsLabel.label               "seconds">
+<!ENTITY openMsgIn.label                  "Open messages in:">
+<!ENTITY openMsgInNewTab.label            "A new tab">
+<!ENTITY openMsgInNewTab.accesskey        "t">
+<!ENTITY reuseExpRadio0.label             "A new message window">
+<!ENTITY reuseExpRadio0.accesskey         "n">
+<!ENTITY reuseExpRadio1.label             "An existing message window">
+<!ENTITY reuseExpRadio1.accesskey         "e">
+<!ENTITY closeMsgOnMoveOrDelete.label     "Close message window/tab on move or delete">
+<!ENTITY closeMsgOnMoveOrDelete.accesskey "C">

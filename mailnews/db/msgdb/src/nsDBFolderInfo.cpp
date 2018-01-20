@@ -47,7 +47,7 @@ static const char * kLocaleColumnName = "locale";
 #define kMAILNEWS_DEFAULT_CHARSET_OVERRIDE    "mailnews.force_charset_override"
 static nsCString* gDefaultCharacterSet = nullptr;
 static bool       gDefaultCharacterOverride;
-static nsIObserver *gFolderCharsetObserver = nullptr;
+static RefPtr<nsIObserver> gFolderCharsetObserver;
 
 // observer for charset related preference notification
 class nsFolderCharsetObserver : public nsIObserver {
@@ -103,7 +103,7 @@ NS_IMETHODIMP nsFolderCharsetObserver::Observe(nsISupports *aSubject, const char
   {
     rv = prefBranch->RemoveObserver(kMAILNEWS_VIEW_DEFAULT_CHARSET, this);
     rv = prefBranch->RemoveObserver(kMAILNEWS_DEFAULT_CHARSET_OVERRIDE, this);
-    NS_IF_RELEASE(gFolderCharsetObserver);
+    gFolderCharsetObserver = nullptr;
     delete gDefaultCharacterSet;
     gDefaultCharacterSet = nullptr;
   }
@@ -192,7 +192,6 @@ nsDBFolderInfo::nsDBFolderInfo(nsMsgDatabase *mdb)
       // register prefs callbacks
       if (gFolderCharsetObserver)
       {
-        NS_ADDREF(gFolderCharsetObserver);
         rv = prefBranch->AddObserver(kMAILNEWS_VIEW_DEFAULT_CHARSET, gFolderCharsetObserver, false);
         rv = prefBranch->AddObserver(kMAILNEWS_DEFAULT_CHARSET_OVERRIDE, gFolderCharsetObserver, false);
 
@@ -212,7 +211,6 @@ nsDBFolderInfo::nsDBFolderInfo(nsMsgDatabase *mdb)
   {
     nsresult err;
 
-    //		mdb->AddRef();
     err = m_mdb->GetStore()->StringToToken(mdb->GetEnv(), kDBFolderInfoScope, &m_rowScopeToken);
     if (NS_SUCCEEDED(err))
     {
@@ -355,12 +353,12 @@ nsresult nsDBFolderInfo::LoadMemberVariables()
   GetInt32PropertyWithToken(m_numMessagesColumnToken, m_numMessages);
   GetInt32PropertyWithToken(m_numUnreadMessagesColumnToken, m_numUnreadMessages);
   GetInt32PropertyWithToken(m_flagsColumnToken, m_flags);
-  GetUint64PropertyWithToken(m_folderSizeColumnToken, &m_folderSize);
-  GetInt32PropertyWithToken(m_folderDateColumnToken, (int32_t &) m_folderDate);
+  GetInt64PropertyWithToken(m_folderSizeColumnToken, m_folderSize);
+  GetUint32PropertyWithToken(m_folderDateColumnToken, m_folderDate);
   GetInt32PropertyWithToken(m_imapUidValidityColumnToken, m_ImapUidValidity, kUidUnknown);
-  GetInt32PropertyWithToken(m_expiredMarkColumnToken, (int32_t &) m_expiredMark);
-  GetUint64PropertyWithToken(m_expungedBytesColumnToken, (uint64_t *) &m_expungedBytes);
-  GetInt32PropertyWithToken(m_highWaterMessageKeyColumnToken, (int32_t &) m_highWaterMessageKey);
+  GetUint32PropertyWithToken(m_expiredMarkColumnToken, m_expiredMark);
+  GetInt64PropertyWithToken(m_expungedBytesColumnToken, m_expungedBytes);
+  GetUint32PropertyWithToken(m_highWaterMessageKeyColumnToken, m_highWaterMessageKey);
   int32_t version;
 
   GetInt32PropertyWithToken(m_versionColumnToken, version);
@@ -410,17 +408,17 @@ NS_IMETHODIMP nsDBFolderInfo::OnKeyAdded(nsMsgKey aNewKey)
 }
 
 NS_IMETHODIMP
-nsDBFolderInfo::GetFolderSize(uint64_t *size)
+nsDBFolderInfo::GetFolderSize(int64_t *size)
 {
   NS_ENSURE_ARG_POINTER(size);
   *size = m_folderSize;
   return NS_OK;
 }
 
-NS_IMETHODIMP nsDBFolderInfo::SetFolderSize(uint64_t size)
+NS_IMETHODIMP nsDBFolderInfo::SetFolderSize(int64_t size)
 {
   m_folderSize = size;
-  return SetUint64Property(kFolderSizeColumnName, m_folderSize);
+  return SetInt64Property(kFolderSizeColumnName, m_folderSize);
 }
 
 NS_IMETHODIMP
@@ -565,7 +563,7 @@ NS_IMETHODIMP nsDBFolderInfo::GetExpungedBytes(int64_t *result)
 NS_IMETHODIMP nsDBFolderInfo::SetExpungedBytes(int64_t expungedBytes)
 {
   m_expungedBytes = expungedBytes;
-  return SetUint64PropertyWithToken(m_expungedBytesColumnToken, m_expungedBytes);
+  return SetInt64PropertyWithToken(m_expungedBytesColumnToken, m_expungedBytes);
 }
 
 
@@ -817,7 +815,12 @@ NS_IMETHODIMP nsDBFolderInfo::SetUint32Property(const char *propertyName, uint32
   return m_mdb->SetUint32Property(m_mdbRow, propertyName, propertyValue);
 }
 
-NS_IMETHODIMP	nsDBFolderInfo::SetProperty(const char *propertyName, const nsAString &propertyStr)
+NS_IMETHODIMP nsDBFolderInfo::SetInt64Property(const char *propertyName, int64_t propertyValue)
+{
+  return m_mdb->SetUint64Property(m_mdbRow, propertyName, (uint64_t) propertyValue);
+}
+
+NS_IMETHODIMP nsDBFolderInfo::SetProperty(const char *propertyName, const nsAString &propertyStr)
 {
   return m_mdb->SetPropertyFromNSString(m_mdbRow, propertyName, propertyStr);
 }
@@ -827,23 +830,17 @@ nsresult nsDBFolderInfo::SetPropertyWithToken(mdb_token aProperty, const nsAStri
   return m_mdb->SetNSStringPropertyWithToken(m_mdbRow, aProperty, propertyStr);
 }
 
-nsresult  nsDBFolderInfo::SetUint32PropertyWithToken(mdb_token aProperty, uint32_t propertyValue)
+nsresult nsDBFolderInfo::SetUint32PropertyWithToken(mdb_token aProperty, uint32_t propertyValue)
 {
   return m_mdb->UInt32ToRowCellColumn(m_mdbRow, aProperty, propertyValue);
 }
 
-nsresult  nsDBFolderInfo::SetUint64PropertyWithToken(mdb_token aProperty, uint64_t propertyValue)
+nsresult nsDBFolderInfo::SetInt64PropertyWithToken(mdb_token aProperty, int64_t propertyValue)
 {
-  return m_mdb->UInt64ToRowCellColumn(m_mdbRow, aProperty, propertyValue);
+  return m_mdb->UInt64ToRowCellColumn(m_mdbRow, aProperty, (uint64_t) propertyValue);
 }
 
-nsresult  nsDBFolderInfo::SetUint64Property(const char *aProperty,
-                                            uint64_t propertyValue)
-{
-  return m_mdb->SetUint64Property(m_mdbRow, aProperty, propertyValue);
-}
-
-nsresult  nsDBFolderInfo::SetInt32PropertyWithToken(mdb_token aProperty, int32_t propertyValue)
+nsresult nsDBFolderInfo::SetInt32PropertyWithToken(mdb_token aProperty, int32_t propertyValue)
 {
   nsAutoString propertyStr;
   propertyStr.AppendInt(propertyValue, 16);
@@ -870,10 +867,16 @@ NS_IMETHODIMP nsDBFolderInfo::GetUint32Property(const char *propertyName, uint32
   return m_mdb->GetUint32Property(m_mdbRow, propertyName, propertyValue, defaultValue);
 }
 
-nsresult nsDBFolderInfo::GetUint64PropertyWithToken(mdb_token columnToken,
-                                                    uint64_t *propertyValue)
+NS_IMETHODIMP nsDBFolderInfo::GetInt64Property(const char *propertyName, int64_t defaultValue, int64_t *propertyValue)
 {
-  return m_mdb->RowCellColumnToUInt64(m_mdbRow, columnToken, propertyValue, 0);
+  return m_mdb->GetUint64Property(m_mdbRow, propertyName, (uint64_t *) &propertyValue, defaultValue);
+}
+
+nsresult nsDBFolderInfo::GetInt64PropertyWithToken(mdb_token aProperty,
+                                                   int64_t &propertyValue,
+                                                   int64_t defaultValue)
+{
+  return m_mdb->RowCellColumnToUInt64(m_mdbRow, aProperty, (uint64_t *) &propertyValue, defaultValue);
 }
 
 NS_IMETHODIMP nsDBFolderInfo::GetBooleanProperty(const char *propertyName, bool defaultValue, bool *propertyValue)
@@ -923,8 +926,7 @@ NS_IMETHODIMP nsDBFolderInfo::GetTransferInfo(nsIDBFolderInfo **transferInfo)
   NS_ENSURE_ARG_POINTER(transferInfo);
 
   nsTransferDBFolderInfo *newInfo = new nsTransferDBFolderInfo;
-  *transferInfo = newInfo;
-  NS_ADDREF(newInfo);
+  NS_ADDREF(*transferInfo = newInfo);
 
   mdb_count numCells;
   mdbYarn cellYarn;

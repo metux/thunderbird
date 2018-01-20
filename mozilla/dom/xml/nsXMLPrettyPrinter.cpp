@@ -2,7 +2,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
- 
+
 #include "nsXMLPrettyPrinter.h"
 #include "nsContentUtils.h"
 #include "nsICSSDeclaration.h"
@@ -48,12 +48,13 @@ nsXMLPrettyPrinter::PrettyPrint(nsIDocument* aDocument,
     *aDidPrettyPrint = false;
 
     // Check for iframe with display:none. Such iframes don't have presshells
-    if (!aDocument->GetShell()) {
+    nsCOMPtr<nsIPresShell> shell = aDocument->GetShell();
+    if (!shell) {
         return NS_OK;
     }
 
     // check if we're in an invisible iframe
-    nsPIDOMWindow *internalWin = aDocument->GetWindow();
+    nsPIDOMWindowOuter *internalWin = aDocument->GetWindow();
     nsCOMPtr<Element> frameElem;
     if (internalWin) {
         frameElem = internalWin->GetFrameElementInternal();
@@ -62,15 +63,15 @@ nsXMLPrettyPrinter::PrettyPrint(nsIDocument* aDocument,
     if (frameElem) {
         nsCOMPtr<nsICSSDeclaration> computedStyle;
         if (nsIDocument* frameOwnerDoc = frameElem->OwnerDoc()) {
-            nsCOMPtr<nsIDOMWindow> window = frameOwnerDoc->GetDefaultView();
-            nsCOMPtr<nsPIDOMWindow> piWindow = do_QueryInterface(window);
-            if (piWindow) {
-                piWindow = piWindow->GetCurrentInnerWindow();
+            nsPIDOMWindowOuter* window = frameOwnerDoc->GetDefaultView();
+            if (window) {
+                nsCOMPtr<nsPIDOMWindowInner> innerWindow =
+                    window->GetCurrentInnerWindow();
 
                 ErrorResult dummy;
-                computedStyle = piWindow->GetComputedStyle(*frameElem,
-                                                           EmptyString(),
-                                                           dummy);
+                computedStyle = innerWindow->GetComputedStyle(*frameElem,
+                                                              EmptyString(),
+                                                              dummy);
                 dummy.SuppressException();
             }
         }
@@ -105,7 +106,7 @@ nsXMLPrettyPrinter::PrettyPrint(nsIDocument* aDocument,
     rv = nsSyncLoadService::LoadDocument(xslUri, nsIContentPolicy::TYPE_XSLT,
                                          nsContentUtils::GetSystemPrincipal(),
                                          nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
-                                         nullptr, true, mozilla::net::RP_Default,
+                                         nullptr, true, mozilla::net::RP_Unset,
                                          getter_AddRefs(xslDocument));
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -151,6 +152,12 @@ nsXMLPrettyPrinter::PrettyPrint(nsIDocument* aDocument,
     nsContentUtils::GetSecurityManager()->
         GetSystemPrincipal(getter_AddRefs(sysPrincipal));
 
+    // Destroy any existing frames before we unbind anonymous content.
+    // Note that the shell might be Destroy'ed by now (see bug 1415541).
+    if (!shell->IsDestroying() && rootCont->IsElement()) {
+        shell->DestroyFramesForAndRestyle(rootCont->AsElement());
+    }
+
     // Load the bindings.
     RefPtr<nsXBLBinding> unused;
     bool ignored;
@@ -193,8 +200,8 @@ nsXMLPrettyPrinter::MaybeUnhook(nsIContent* aContent)
         // since AddScriptRunner _could_ in theory run us
         // synchronously
         mUnhookPending = true;
-        nsContentUtils::AddScriptRunner(
-          NS_NewRunnableMethod(this, &nsXMLPrettyPrinter::Unhook));
+        nsContentUtils::AddScriptRunner(NewRunnableMethod(
+          "nsXMLPrettyPrinter::Unhook", this, &nsXMLPrettyPrinter::Unhook));
     }
 }
 
@@ -217,7 +224,7 @@ void
 nsXMLPrettyPrinter::AttributeChanged(nsIDocument* aDocument,
                                      Element* aElement,
                                      int32_t aNameSpaceID,
-                                     nsIAtom* aAttribute,
+                                     nsAtom* aAttribute,
                                      int32_t aModType,
                                      const nsAttrValue* aOldValue)
 {
@@ -227,8 +234,7 @@ nsXMLPrettyPrinter::AttributeChanged(nsIDocument* aDocument,
 void
 nsXMLPrettyPrinter::ContentAppended(nsIDocument* aDocument,
                                     nsIContent* aContainer,
-                                    nsIContent* aFirstNewContent,
-                                    int32_t aNewIndexInContainer)
+                                    nsIContent* aFirstNewContent)
 {
     MaybeUnhook(aContainer);
 }
@@ -236,8 +242,7 @@ nsXMLPrettyPrinter::ContentAppended(nsIDocument* aDocument,
 void
 nsXMLPrettyPrinter::ContentInserted(nsIDocument* aDocument,
                                     nsIContent* aContainer,
-                                    nsIContent* aChild,
-                                    int32_t aIndexInContainer)
+                                    nsIContent* aChild)
 {
     MaybeUnhook(aContainer);
 }
@@ -246,7 +251,6 @@ void
 nsXMLPrettyPrinter::ContentRemoved(nsIDocument* aDocument,
                                    nsIContent* aContainer,
                                    nsIContent* aChild,
-                                   int32_t aIndexInContainer,
                                    nsIContent* aPreviousSibling)
 {
     MaybeUnhook(aContainer);

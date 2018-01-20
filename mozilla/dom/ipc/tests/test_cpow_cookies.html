@@ -9,7 +9,7 @@
 </head>
 <body>
 
-  <script type="application/javascript;version=1.8">
+  <script type="application/javascript">
     "use strict";
 
     SimpleTest.waitForExplicitFinish();
@@ -80,7 +80,9 @@
         "set": [
           ["dom.ipc.browser_frames.oop_by_default", true],
           ["dom.mozBrowserFramesEnabled", true],
-          ["browser.pagethumbnails.capturing_disabled", true]
+          ["network.disable.ipc.security", true],
+          ["browser.pagethumbnails.capturing_disabled", true],
+          ["security.data_uri.block_toplevel_data_uri_navigations", false],
         ]
       }, runTests);
     });

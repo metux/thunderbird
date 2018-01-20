@@ -60,9 +60,11 @@ class LUnboxFloatingPoint : public LInstructionHelper<1, 2, 0>
 
     static const size_t Input = 0;
 
-    LUnboxFloatingPoint(MIRType type)
+    LUnboxFloatingPoint(const LBoxAllocation& input, MIRType type)
       : type_(type)
-    { }
+    {
+        setBoxOperand(Input, input);
+    }
 
     MUnbox* mir() const {
         return mir_->toUnbox();
@@ -75,6 +77,106 @@ class LUnboxFloatingPoint : public LInstructionHelper<1, 2, 0>
         return StringFromMIRType(type_);
     }
 };
+
+class LDivOrModI64 : public LCallInstructionHelper<INT64_PIECES, INT64_PIECES*2, 0>
+{
+  public:
+    LIR_HEADER(DivOrModI64)
+
+    static const size_t Lhs = 0;
+    static const size_t Rhs = INT64_PIECES;
+
+    LDivOrModI64(const LInt64Allocation& lhs, const LInt64Allocation& rhs)
+    {
+        setInt64Operand(Lhs, lhs);
+        setInt64Operand(Rhs, rhs);
+    }
+    MBinaryArithInstruction* mir() const {
+        MOZ_ASSERT(mir_->isDiv() || mir_->isMod());
+        return static_cast<MBinaryArithInstruction*>(mir_);
+    }
+    bool canBeDivideByZero() const {
+        if (mir_->isMod())
+            return mir_->toMod()->canBeDivideByZero();
+        return mir_->toDiv()->canBeDivideByZero();
+    }
+    bool canBeNegativeOverflow() const {
+        if (mir_->isMod())
+            return mir_->toMod()->canBeNegativeDividend();
+        return mir_->toDiv()->canBeNegativeOverflow();
+    }
+    wasm::BytecodeOffset bytecodeOffset() const {
+        MOZ_ASSERT(mir_->isDiv() || mir_->isMod());
+        if (mir_->isMod())
+            return mir_->toMod()->bytecodeOffset();
+        return mir_->toDiv()->bytecodeOffset();
+    }
+};
+
+class LUDivOrModI64 : public LCallInstructionHelper<INT64_PIECES, INT64_PIECES*2, 0>
+{
+  public:
+    LIR_HEADER(UDivOrModI64)
+
+    static const size_t Lhs = 0;
+    static const size_t Rhs = INT64_PIECES;
+
+    LUDivOrModI64(const LInt64Allocation& lhs, const LInt64Allocation& rhs)
+    {
+        setInt64Operand(Lhs, lhs);
+        setInt64Operand(Rhs, rhs);
+    }
+    MBinaryArithInstruction* mir() const {
+        MOZ_ASSERT(mir_->isDiv() || mir_->isMod());
+        return static_cast<MBinaryArithInstruction*>(mir_);
+    }
+    bool canBeDivideByZero() const {
+        if (mir_->isMod())
+            return mir_->toMod()->canBeDivideByZero();
+        return mir_->toDiv()->canBeDivideByZero();
+    }
+    bool canBeNegativeOverflow() const {
+        if (mir_->isMod())
+            return mir_->toMod()->canBeNegativeDividend();
+        return mir_->toDiv()->canBeNegativeOverflow();
+    }
+    wasm::BytecodeOffset bytecodeOffset() const {
+        MOZ_ASSERT(mir_->isDiv() || mir_->isMod());
+        if (mir_->isMod())
+            return mir_->toMod()->bytecodeOffset();
+        return mir_->toDiv()->bytecodeOffset();
+    }
+};
+
+class LWasmTruncateToInt64 : public LCallInstructionHelper<INT64_PIECES, 1, 0>
+{
+  public:
+    LIR_HEADER(WasmTruncateToInt64);
+
+    explicit LWasmTruncateToInt64(const LAllocation& in)
+    {
+        setOperand(0, in);
+    }
+
+    MWasmTruncateToInt64* mir() const {
+        return mir_->toWasmTruncateToInt64();
+    }
+};
+
+class LInt64ToFloatingPoint : public LCallInstructionHelper<1, INT64_PIECES, 0>
+{
+  public:
+    LIR_HEADER(Int64ToFloatingPoint);
+
+    explicit LInt64ToFloatingPoint(const LInt64Allocation& in) {
+        setInt64Operand(0, in);
+    }
+
+    MInt64ToFloatingPoint* mir() const {
+        return mir_->toInt64ToFloatingPoint();
+    }
+};
+
 
 } // namespace jit
 } // namespace js

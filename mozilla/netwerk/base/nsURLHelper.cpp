@@ -6,6 +6,10 @@
 
 #include "mozilla/RangedPtr.h"
 
+#include <algorithm>
+#include <iterator>
+
+#include "nsASCIIMask.h"
 #include "nsURLHelper.h"
 #include "nsIFile.h"
 #include "nsIURLParser.h"
@@ -14,6 +18,8 @@
 #include "nsNetCID.h"
 #include "mozilla/Preferences.h"
 #include "prnetdb.h"
+#include "mozilla/Tokenizer.h"
+#include "nsEscape.h"
 
 using namespace mozilla;
 
@@ -54,10 +60,8 @@ InitGlobals()
     }
 
     gInitialized = true;
-#if !defined(MOZILLA_XPCOMRT_API)
     Preferences::AddIntVarCache(&gMaxLength,
                                 "network.standard-url.max-length", 1048576);
-#endif
 }
 
 void
@@ -110,10 +114,6 @@ net_GetStdURLParser()
 nsresult
 net_GetURLSpecFromDir(nsIFile *aFile, nsACString &result)
 {
-#if defined(MOZILLA_XPCOMRT_API)
-    NS_WARNING("net_GetURLSpecFromDir not implemented");
-    return NS_ERROR_NOT_IMPLEMENTED;
-#else
     nsAutoCString escPath;
     nsresult rv = net_GetURLSpecFromActualFile(aFile, escPath);
     if (NS_FAILED(rv))
@@ -122,19 +122,14 @@ net_GetURLSpecFromDir(nsIFile *aFile, nsACString &result)
     if (escPath.Last() != '/') {
         escPath += '/';
     }
-    
+
     result = escPath;
     return NS_OK;
-#endif // defined(MOZILLA_XPCOMRT_API)
 }
 
 nsresult
 net_GetURLSpecFromFile(nsIFile *aFile, nsACString &result)
 {
-#if defined(MOZILLA_XPCOMRT_API)
-    NS_WARNING("net_GetURLSpecFromFile not implemented");
-    return NS_ERROR_NOT_IMPLEMENTED;
-#else
     nsAutoCString escPath;
     nsresult rv = net_GetURLSpecFromActualFile(aFile, escPath);
     if (NS_FAILED(rv))
@@ -151,10 +146,9 @@ net_GetURLSpecFromFile(nsIFile *aFile, nsACString &result)
         if (NS_SUCCEEDED(rv) && dir)
             escPath += '/';
     }
-    
+
     result = escPath;
     return NS_OK;
-#endif // defined(MOZILLA_XPCOMRT_API)
 }
 
 //----------------------------------------------------------------------------
@@ -179,12 +173,12 @@ net_ParseFileURL(const nsACString &inURL,
 
     const nsPromiseFlatCString &flatURL = PromiseFlatCString(inURL);
     const char *url = flatURL.get();
-    
-    uint32_t schemeBeg, schemeEnd;
-    rv = net_ExtractURLScheme(flatURL, &schemeBeg, &schemeEnd, nullptr);
+
+    nsAutoCString scheme;
+    rv = net_ExtractURLScheme(flatURL, scheme);
     if (NS_FAILED(rv)) return rv;
 
-    if (strncmp(url + schemeBeg, "file", schemeEnd - schemeBeg) != 0) {
+    if (!scheme.EqualsLiteral("file")) {
         NS_ERROR("must be a file:// url");
         return NS_ERROR_UNEXPECTED;
     }
@@ -235,8 +229,8 @@ net_ParseFileURL(const nsACString &inURL,
 //----------------------------------------------------------------------------
 
 // Replace all /./ with a / while resolving URLs
-// But only till #? 
-void 
+// But only till #?
+void
 net_CoalesceDirs(netCoalesceFlags flags, char* path)
 {
     /* Stolen from the old netlib's mkparse.c.
@@ -252,21 +246,21 @@ net_CoalesceDirs(netCoalesceFlags flags, char* path)
     uint32_t special_ftp_len = 0;
 
     /* Remember if this url is a special ftp one: */
-    if (flags & NET_COALESCE_DOUBLE_SLASH_IS_ROOT) 
+    if (flags & NET_COALESCE_DOUBLE_SLASH_IS_ROOT)
     {
-       /* some schemes (for example ftp) have the speciality that 
-          the path can begin // or /%2F to mark the root of the 
-          servers filesystem, a simple / only marks the root relative 
+       /* some schemes (for example ftp) have the speciality that
+          the path can begin // or /%2F to mark the root of the
+          servers filesystem, a simple / only marks the root relative
           to the user loging in. We remember the length of the marker */
         if (nsCRT::strncasecmp(path,"/%2F",4) == 0)
             special_ftp_len = 4;
         else if (nsCRT::strncmp(path,"//",2) == 0 )
-            special_ftp_len = 2; 
+            special_ftp_len = 2;
     }
 
     /* find the last slash before # or ? */
-    for(; (*fwdPtr != '\0') && 
-            (*fwdPtr != '?') && 
+    for(; (*fwdPtr != '\0') &&
+            (*fwdPtr != '?') &&
             (*fwdPtr != '#'); ++fwdPtr)
     {
     }
@@ -279,7 +273,7 @@ net_CoalesceDirs(netCoalesceFlags flags, char* path)
     }
 
     /* search the slash */
-    for(; (fwdPtr != path) && 
+    for(; (fwdPtr != path) &&
             (*fwdPtr != '/'); --fwdPtr)
     {
     }
@@ -288,19 +282,19 @@ net_CoalesceDirs(netCoalesceFlags flags, char* path)
 
     /* replace all %2E or %2e with . in the path */
     /* but stop at lastchar if non null */
-    for(; (*fwdPtr != '\0') && 
-            (*fwdPtr != '?') && 
+    for(; (*fwdPtr != '\0') &&
+            (*fwdPtr != '?') &&
             (*fwdPtr != '#') &&
             (*lastslash == '\0' || fwdPtr != lastslash); ++fwdPtr)
     {
-        if (*fwdPtr == '%' && *(fwdPtr+1) == '2' && 
+        if (*fwdPtr == '%' && *(fwdPtr+1) == '2' &&
             (*(fwdPtr+2) == 'E' || *(fwdPtr+2) == 'e'))
         {
             *urlPtr++ = '.';
             ++fwdPtr;
             ++fwdPtr;
-        } 
-        else 
+        }
+        else
         {
             *urlPtr++ = *fwdPtr;
         }
@@ -310,14 +304,14 @@ net_CoalesceDirs(netCoalesceFlags flags, char* path)
     {
         *urlPtr++ = *fwdPtr;
     }
-    *urlPtr = '\0';  // terminate the url 
+    *urlPtr = '\0';  // terminate the url
 
-    // start again, this time for real 
+    // start again, this time for real
     fwdPtr = path;
     urlPtr = path;
 
-    for(; (*fwdPtr != '\0') && 
-            (*fwdPtr != '?') && 
+    for(; (*fwdPtr != '\0') &&
+            (*fwdPtr != '?') &&
             (*fwdPtr != '#'); ++fwdPtr)
     {
         if (*fwdPtr == '/' && *(fwdPtr+1) == '.' && *(fwdPtr+2) == '/' )
@@ -325,54 +319,54 @@ net_CoalesceDirs(netCoalesceFlags flags, char* path)
             // remove . followed by slash
             ++fwdPtr;
         }
-        else if(*fwdPtr == '/' && *(fwdPtr+1) == '.' && *(fwdPtr+2) == '.' && 
-                (*(fwdPtr+3) == '/' || 
-                    *(fwdPtr+3) == '\0' || // This will take care of 
+        else if(*fwdPtr == '/' && *(fwdPtr+1) == '.' && *(fwdPtr+2) == '.' &&
+                (*(fwdPtr+3) == '/' ||
+                    *(fwdPtr+3) == '\0' || // This will take care of
                     *(fwdPtr+3) == '?' ||  // something like foo/bar/..#sometag
                     *(fwdPtr+3) == '#'))
         {
-            // remove foo/.. 
+            // remove foo/..
             // reverse the urlPtr to the previous slash if possible
-            // if url does not allow relative root then drop .. above root 
-            // otherwise retain them in the path 
-            if(traversal > 0 || !(flags & 
+            // if url does not allow relative root then drop .. above root
+            // otherwise retain them in the path
+            if(traversal > 0 || !(flags &
                                   NET_COALESCE_ALLOW_RELATIVE_ROOT))
-            { 
+            {
                 if (urlPtr != path)
-                    urlPtr--; // we must be going back at least by one 
+                    urlPtr--; // we must be going back at least by one
                 for(;*urlPtr != '/' && urlPtr != path; urlPtr--)
-                    ;  // null body 
+                    ;  // null body
                 --traversal; // count back
                 // forward the fwdPtr past the ../
                 fwdPtr += 2;
                 // if we have reached the beginning of the path
                 // while searching for the previous / and we remember
                 // that it is an url that begins with /%2F then
-                // advance urlPtr again by 3 chars because /%2F already 
+                // advance urlPtr again by 3 chars because /%2F already
                 // marks the root of the path
-                if (urlPtr == path && special_ftp_len > 3) 
+                if (urlPtr == path && special_ftp_len > 3)
                 {
                     ++urlPtr;
                     ++urlPtr;
                     ++urlPtr;
                 }
-                // special case if we have reached the end 
+                // special case if we have reached the end
                 // to preserve the last /
                 if (*fwdPtr == '.' && *(fwdPtr+1) == '\0')
                     ++urlPtr;
-            } 
-            else 
+            }
+            else
             {
                 // there are to much /.. in this path, just copy them instead.
                 // forward the urlPtr past the /.. and copying it
 
                 // However if we remember it is an url that starts with
-                // /%2F and urlPtr just points at the "F" of "/%2F" then do 
+                // /%2F and urlPtr just points at the "F" of "/%2F" then do
                 // not overwrite it with the /, just copy .. and move forward
-                // urlPtr. 
+                // urlPtr.
                 if (special_ftp_len > 3 && urlPtr == path+special_ftp_len-1)
                     ++urlPtr;
-                else 
+                else
                     *urlPtr++ = *fwdPtr;
                 ++fwdPtr;
                 *urlPtr++ = *fwdPtr;
@@ -383,16 +377,16 @@ net_CoalesceDirs(netCoalesceFlags flags, char* path)
         else
         {
             // count the hierachie, but only if we do not have reached
-            // the root of some special urls with a special root marker 
+            // the root of some special urls with a special root marker
             if (*fwdPtr == '/' &&  *(fwdPtr+1) != '.' &&
                (special_ftp_len != 2 || *(fwdPtr+1) != '/'))
                 traversal++;
-            // copy the url incrementaly 
+            // copy the url incrementaly
             *urlPtr++ = *fwdPtr;
         }
     }
 
-    /* 
+    /*
      *  Now lets remove trailing . case
      *     /foo/foo1/.   ->  /foo/foo1/
      */
@@ -405,7 +399,7 @@ net_CoalesceDirs(netCoalesceFlags flags, char* path)
     {
         *urlPtr++ = *fwdPtr;
     }
-    *urlPtr = '\0';  // terminate the url 
+    *urlPtr = '\0';  // terminate the url
 }
 
 nsresult
@@ -436,7 +430,7 @@ net_ResolveRelativePath(const nsACString &relativePath,
           case '#':
           case '?':
             stop = true;
-            // fall through...
+            MOZ_FALLTHROUGH;
           case '/':
             // delimiter found
             if (name.EqualsLiteral("..")) {
@@ -445,7 +439,7 @@ net_ResolveRelativePath(const nsACString &relativePath,
                 //  skip over that when searching for next one to the left
                 int32_t offset = path.Length() - (needsDelim ? 1 : 2);
                 // First check for errors
-                if (offset < 0 ) 
+                if (offset < 0 )
                     return NS_ERROR_MALFORMED_URI;
                 int32_t pos = path.RFind("/", false, offset);
                 if (pos >= 0)
@@ -483,57 +477,55 @@ net_ResolveRelativePath(const nsACString &relativePath,
 // scheme fu
 //----------------------------------------------------------------------------
 
+static bool isAsciiAlpha(char c) {
+    return nsCRT::IsAsciiAlpha(c);
+}
+
+static bool
+net_IsValidSchemeChar(const char aChar)
+{
+    if (nsCRT::IsAsciiAlpha(aChar) || nsCRT::IsAsciiDigit(aChar) ||
+        aChar == '+' || aChar == '.' || aChar == '-') {
+        return true;
+    }
+    return false;
+}
+
 /* Extract URI-Scheme if possible */
 nsresult
 net_ExtractURLScheme(const nsACString &inURI,
-                     uint32_t *startPos, 
-                     uint32_t *endPos,
-                     nsACString *scheme)
+                     nsACString& scheme)
 {
-    // search for something up to a colon, and call it the scheme
-    const nsPromiseFlatCString &flatURI = PromiseFlatCString(inURI);
-    const char* uri_start = flatURI.get();
-    const char* uri = uri_start;
+    nsACString::const_iterator start, end;
+    inURI.BeginReading(start);
+    inURI.EndReading(end);
 
-    if (!uri)
-        return NS_ERROR_MALFORMED_URI;
-
-    // skip leading white space
-    while (nsCRT::IsAsciiSpace(*uri))
-        uri++;
-
-    uint32_t start = uri - uri_start;
-    if (startPos) {
-        *startPos = start;
-    }
-
-    uint32_t length = 0;
-    char c;
-    while ((c = *uri++) != '\0') {
-        // First char must be Alpha
-        if (length == 0 && nsCRT::IsAsciiAlpha(c)) {
-            length++;
-        } 
-        // Next chars can be alpha + digit + some special chars
-        else if (length > 0 && (nsCRT::IsAsciiAlpha(c) || 
-                 nsCRT::IsAsciiDigit(c) || c == '+' || 
-                 c == '.' || c == '-')) {
-            length++;
-        }
-        // stop if colon reached but not as first char
-        else if (c == ':' && length > 0) {
-            if (endPos) {
-                *endPos = start + length;
-            }
-
-            if (scheme)
-                scheme->Assign(Substring(inURI, start, length));
-            return NS_OK;
-        }
-        else 
+    // Strip C0 and space from begining
+    while (start != end) {
+        if ((uint8_t) *start > 0x20) {
             break;
+        }
+        start++;
     }
-    return NS_ERROR_MALFORMED_URI;
+
+    Tokenizer p(Substring(start, end), "\r\n\t");
+    p.Record();
+    if (!p.CheckChar(isAsciiAlpha)) {
+        // First char must be alpha
+        return NS_ERROR_MALFORMED_URI;
+    }
+
+    while (p.CheckChar(net_IsValidSchemeChar) || p.CheckWhite()) {
+        // Skip valid scheme characters or \r\n\t
+    }
+
+    if (!p.CheckChar(':')) {
+        return NS_ERROR_MALFORMED_URI;
+    }
+
+    p.Claim(scheme);
+    scheme.StripTaggedASCII(ASCIIMask::MaskCRLFTab());
+    return NS_OK;
 }
 
 bool
@@ -557,86 +549,105 @@ net_IsValidScheme(const char *scheme, uint32_t schemeLen)
 }
 
 bool
-net_FilterURIString(const char *str, nsACString& result)
+net_IsAbsoluteURL(const nsACString& uri)
 {
-    NS_PRECONDITION(str, "Must have a non-null string!");
-    bool writing = false;
+    nsACString::const_iterator start, end;
+    uri.BeginReading(start);
+    uri.EndReading(end);
+
+    // Strip C0 and space from begining
+    while (start != end) {
+        if ((uint8_t) *start > 0x20) {
+            break;
+        }
+        start++;
+    }
+
+    Tokenizer p(Substring(start, end), "\r\n\t");
+
+    // First char must be alpha
+    if (!p.CheckChar(isAsciiAlpha)) {
+        return false;
+    }
+
+    while (p.CheckChar(net_IsValidSchemeChar) || p.CheckWhite()) {
+        // Skip valid scheme characters or \r\n\t
+    }
+    if (!p.CheckChar(':')) {
+        return false;
+    }
+    p.SkipWhites();
+
+    if (!p.CheckChar('/')) {
+        return false;
+    }
+    p.SkipWhites();
+
+    if (p.CheckChar('/')) {
+        // aSpec is really absolute. Ignore aBaseURI in this case
+        return true;
+    }
+    return false;
+}
+
+void
+net_FilterURIString(const nsACString& input, nsACString& result)
+{
     result.Truncate();
-    const char *p = str;
 
-    // Remove leading spaces, tabs, CR, LF if any.
-    while (*p == ' ' || *p == '\t' || *p == '\r' || *p == '\n') {
-        writing = true;
-        str = p + 1;
-        p++;
-    }
+    auto start = input.BeginReading();
+    auto end = input.EndReading();
 
-    // Don't strip from the scheme, because other code assumes everything
-    // up to the ':' is the scheme, and it's bad not to have it match.
-    // If there's no ':', strip.
-    bool found_colon = false;
-    const char *first = nullptr;
-    while (*p) {
-        switch (*p) {
-            case '\t': 
-            case '\r': 
-            case '\n':
-                if (found_colon) {
-                    writing = true;
-                    // append chars up to but not including *p
-                    if (p > str)
-                        result.Append(str, p - str);
-                    str = p + 1;
-                } else {
-                    // remember where the first \t\r\n was in case we find no scheme
-                    if (!first)
-                        first = p;
-                }
-                break;
+    // Trim off leading and trailing invalid chars.
+    auto charFilter = [](char c) { return static_cast<uint8_t>(c) > 0x20; };
+    auto newStart = std::find_if(start, end, charFilter);
+    auto newEnd = std::find_if(
+        std::reverse_iterator<decltype(end)>(end),
+        std::reverse_iterator<decltype(newStart)>(newStart),
+        charFilter).base();
 
-            case ':':
-                found_colon = true;
-                break;
-
-            case '/':
-            case '@':
-                if (!found_colon) {
-                    // colon also has to precede / or @ to be a scheme
-                    found_colon = true; // not really, but means ok to strip
-                    if (first) {
-                        // go back and replace
-                        p = first;
-                        continue; // process *p again
-                    }
-                }
-                break;
-
-            default:
-                break;
-        }
-        p++;
-
-        // At end, if there was no scheme, and we hit a control char, fix
-        // it up now.
-        if (!*p && first != nullptr && !found_colon) {
-            // TRICKY - to avoid duplicating code, we reset the loop back
-            // to the point we found something to do
-            p = first;
-            // This also stops us from looping after we finish
-            found_colon = true; // so we'll replace \t\r\n
+    // Check if chars need to be stripped.
+    bool needsStrip = false;
+    const ASCIIMaskArray& mask = ASCIIMask::MaskCRLFTab();
+    for (auto itr = start; itr != end; ++itr) {
+        if (ASCIIMask::IsMasked(mask, *itr)) {
+            needsStrip = true;
+            break;
         }
     }
 
-    // Remove trailing spaces if any
-    while (((p-1) >= str) && (*(p-1) == ' ')) {
-        writing = true;
-        p--;
+    // Just use the passed in string rather than creating new copies if no
+    // changes are necessary.
+    if (newStart == start && newEnd == end && !needsStrip) {
+        result = input;
+        return;
     }
 
-    if (writing && p > str)
-        result.Append(str, p - str);
+    result.Assign(Substring(newStart, newEnd));
+    if (needsStrip) {
+        result.StripTaggedASCII(mask);
+    }
+}
 
-    return writing;
+nsresult
+net_FilterAndEscapeURI(const nsACString& aInput, uint32_t aFlags, nsACString& aResult)
+{
+    aResult.Truncate();
+
+    auto start = aInput.BeginReading();
+    auto end = aInput.EndReading();
+
+    // Trim off leading and trailing invalid chars.
+    auto charFilter = [](char c) { return static_cast<uint8_t>(c) > 0x20; };
+    auto newStart = std::find_if(start, end, charFilter);
+    auto newEnd = std::find_if(
+        std::reverse_iterator<decltype(end)>(end),
+        std::reverse_iterator<decltype(newStart)>(newStart),
+        charFilter).base();
+
+    const ASCIIMaskArray& mask = ASCIIMask::MaskCRLFTab();
+    return NS_EscapeAndFilterURL(Substring(newStart, newEnd), aFlags,
+                                 &mask, aResult, fallible);
 }
 
 #if defined(XP_WIN)
@@ -757,7 +768,7 @@ net_FindStringEnd(const nsCString& flatStr,
     do {
         // stringStart points to either the start quote or the last
         // escaped char (the char following a '\\')
-                
+
         // Write to searchStart here, so that when we get back to the
         // top of the loop right outside this one we search from the
         // right place.
@@ -782,7 +793,7 @@ net_FindStringEnd(const nsCString& flatStr,
     NS_NOTREACHED("How did we get here?");
     return flatStr.Length();
 }
-                  
+
 
 static uint32_t
 net_FindMediaDelimiter(const nsCString& flatStr,
@@ -796,7 +807,7 @@ net_FindMediaDelimiter(const nsCString& flatStr,
         uint32_t curDelimPos = flatStr.FindCharInSet(delimStr, searchStart);
         if (curDelimPos == uint32_t(kNotFound))
             return flatStr.Length();
-            
+
         char ch = flatStr.CharAt(curDelimPos);
         if (ch == delimiter) {
             // Found delimiter
@@ -923,7 +934,7 @@ net_ParseMediaType(const nsACString &aMediaTypeStr,
                 for (const char *c = charset; c != charsetEnd; c++) {
                     if (*c == '\\' && c + 1 != charsetEnd) {
                         // eat escape
-                        c++;  
+                        c++;
                     }
                     aContentCharset.Append(*c);
                 }
@@ -981,7 +992,7 @@ net_ParseContentType(const nsACString &aHeaderStr,
     //   parameter    = attribute "=" value
     //   attribute    = token
     //   value        = token | quoted-string
-    //   
+    //
     //
     // Examples:
     //
@@ -996,7 +1007,7 @@ net_ParseContentType(const nsACString &aHeaderStr,
 
     *aHadCharset = false;
     const nsCString& flatStr = PromiseFlatCString(aHeaderStr);
-    
+
     // iterate over media-types.  Note that ',' characters can happen
     // inside quoted strings, so we need to watch out for that.
     uint32_t curTypeStart = 0;
@@ -1005,7 +1016,7 @@ net_ParseContentType(const nsACString &aHeaderStr,
         // to look for its end.
         uint32_t curTypeEnd =
             net_FindMediaDelimiter(flatStr, curTypeStart, ',');
-        
+
         // At this point curTypeEnd points to the spot where the media-type
         // starting at curTypeEnd ends.  Time to parse that!
         net_ParseMediaType(Substring(flatStr, curTypeStart,
@@ -1065,7 +1076,7 @@ net_ParseRequestContentType(const nsACString &aHeaderStr,
 }
 
 bool
-net_IsValidHostName(const nsCSubstring &host)
+net_IsValidHostName(const nsACString& host)
 {
     const char *end = host.EndReading();
     // Use explicit whitelists to select which characters we are
@@ -1075,7 +1086,7 @@ net_IsValidHostName(const nsCSubstring &host)
     // the commonest characters will tend to be near the start of
     // the list.
 
-    // Whitelist for DNS names (RFC 1035) with extra characters added 
+    // Whitelist for DNS names (RFC 1035) with extra characters added
     // for pragmatic reasons "$+_"
     // see https://bugzilla.mozilla.org/show_bug.cgi?id=355181#c2
     if (net_FindCharNotInSet(host.BeginReading(), end,
@@ -1110,7 +1121,8 @@ net_IsValidIPv4Addr(const char *addr, int32_t addrLen)
             if (octet == 0) {
                 // leading 0 is not allowed
                 return false;
-            } else if (octet == -1) {
+            }
+            if (octet == -1) {
                 octet = *p - '0';
             } else {
                 octet *= 10;

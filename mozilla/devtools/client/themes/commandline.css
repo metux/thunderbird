@@ -2,23 +2,26 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+:root {
+  overflow-x: hidden;
+}
 
 /* NOTE: THESE NEED TO STAY IN SYNC WITH LIGHT-THEME.CSS AND DARK-THEME.CSS.
    We are copy/pasting variables from light-theme and dark-theme,
    since they aren't loaded in this context (within commandlineoutput.xhtml
    and commandlinetooltip.xhtml). */
 :root[devtoolstheme="light"] {
-  --gcli-background-color: #ebeced; /* --theme-tab-toolbar-background */
-  --gcli-input-focused-background: #f7f7f7; /* --theme-sidebar-background */
-  --gcli-input-color: #18191a; /* --theme-body-color */
-  --gcli-border-color: #aaaaaa; /* --theme-splitter-color */
+  --gcli-background-color: #fcfcfc; /* --theme-tab-toolbar-background */
+  --gcli-input-focused-background: #ffffff; /* --theme-sidebar-background */
+  --gcli-input-color: #393f4c; /* --theme-body-color */
+  --gcli-border-color: #e0e0e1; /* --theme-splitter-color */
 }
 
 :root[devtoolstheme="dark"] {
-  --gcli-background-color: #343c45; /* --theme-toolbar-background */
-  --gcli-input-focused-background: #252c33; /* --theme-tab-toolbar-background */
+  --gcli-background-color: #272b35; /* --theme-toolbar-background */
+  --gcli-input-focused-background: #272b35; /* --theme-tab-toolbar-background */
   --gcli-input-color: #b6babf; /* --theme-body-color-alt */
-  --gcli-border-color: black; /* --theme-splitter-color */
+  --gcli-border-color: #3c3c3d; /* --theme-splitter-color */
 }
 
 .gcli-body {
@@ -43,16 +46,18 @@
 
 #gcli-tooltip-root {
   padding: 5px 0px;
+  overflow-x: hidden;
 }
 
 #gcli-tooltip-connector {
   margin-top: -1px;
   margin-left: 8px;
-  width: 20px;
-  height: 10px;
-  border-left: 1px solid var(--gcli-border-color);
-  border-right: 1px solid var(--gcli-border-color);
-  background-color: var(--gcli-background-color);
+  width: 0;
+  height: 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  background-color: transparent;
+  border-top: 10px solid var(--gcli-background-color);
 }
 
 .gcli-tt-description,
@@ -94,6 +99,10 @@
   white-space: nowrap;
 }
 
+.gcli-row-out .nowrap {
+  white-space: nowrap;
+}
+
 .gcli-out-shortcut,
 .gcli-help-synopsis {
   padding: 0 3px;
@@ -103,12 +112,15 @@
   border-radius: 3px;
   background-color: var(--gcli-background-color);
   border: 1px solid var(--gcli-border-color);
+  cursor: pointer;
+  display: inline-block;
 }
 
 .gcli-out-shortcut:before,
 .gcli-help-synopsis:before {
   color: var(--gcli-input-color);
-  -moz-padding-end: 2px;
+  padding-inline-end: 2px;
+  content: '\bb';
 }
 
 .gcli-help-arrow {
@@ -130,11 +142,11 @@
 }
 
 .gcli-menu-name {
-  -moz-padding-start: 8px;
+  padding-inline-start: 8px;
 }
 
 .gcli-menu-desc {
-  -moz-padding-end: 8px;
+  padding-inline-end: 8px;
   color: var(--gcli-input-color);
 }
 
@@ -155,7 +167,7 @@
 .gcli-menu-more {
   font-size: 80%;
   text-align: end;
-  -moz-padding-end: 8px;
+  padding-inline-end: 8px;
 }
 
 .gcli-addon-disabled {
@@ -169,4 +181,65 @@
 
 .gcli-breakpoint-lineText {
   font-family: monospace;
+}
+
+.gcli-help-name {
+  text-align: end;
+}
+
+.gcli-menu-template {
+  white-space: nowrap;
+  width: 290px;
+  display: flex;
+}
+
+.gcli-menu-names {
+  white-space: nowrap;
+  flex-grow: 0;
+  flex-shrink: 0;
+}
+
+.gcli-menu-descs {
+  flex-grow: 1;
+  flex-shrink: 1;
+}
+
+.gcli-menu-name,
+.gcli-menu-desc {
+  white-space: nowrap;
+}
+
+.gcli-menu-name {
+  padding-inline-end: 10px;
+}
+
+.gcli-menu-desc {
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.gcli-menu-name,
+.gcli-out-shortcut,
+.gcli-help-synopsis {
+  direction: ltr;
+}
+
+.gcli-cookielist-list {
+  list-style-type: none;
+  padding-left: 0;
+}
+
+.gcli-cookielist-detail {
+  padding-left: 20px;
+  padding-bottom: 10px;
+}
+
+.gcli-appcache-list {
+  list-style-type: none;
+  padding-left: 0;
+}
+
+.gcli-appcache-detail {
+  padding-left: 20px;
+  padding-bottom: 10px;
 }

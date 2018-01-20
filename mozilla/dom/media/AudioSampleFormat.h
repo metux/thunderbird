@@ -6,7 +6,7 @@
 #ifndef MOZILLA_AUDIOSAMPLEFORMAT_H_
 #define MOZILLA_AUDIOSAMPLEFORMAT_H_
 
-#include "nsAlgorithm.h"
+#include "mozilla/Assertions.h"
 #include <algorithm>
 
 namespace mozilla {
@@ -20,12 +20,12 @@ namespace mozilla {
  */
 enum AudioSampleFormat
 {
+  // Silence: format will be chosen later
+  AUDIO_FORMAT_SILENCE,
   // Native-endian signed 16-bit audio samples
   AUDIO_FORMAT_S16,
   // Signed 32-bit float samples
   AUDIO_FORMAT_FLOAT32,
-  // Silence: format will be chosen later
-  AUDIO_FORMAT_SILENCE,
   // The format used for output by AudioStream.
 #ifdef MOZ_SAMPLE_TYPE_S16
   AUDIO_OUTPUT_FORMAT = AUDIO_FORMAT_S16
@@ -80,6 +80,11 @@ AudioSampleToFloat(int16_t aValue)
 {
   return aValue/32768.0f;
 }
+inline float
+AudioSampleToFloat(int32_t aValue)
+{
+  return aValue/(float)(1U<<31);
+}
 
 template <typename T> T FloatToAudioSample(float aValue);
 
@@ -96,6 +101,19 @@ FloatToAudioSample<int16_t>(float aValue)
   return int16_t(clamped);
 }
 
+template <typename T> T UInt8bitToAudioSample(uint8_t aValue);
+
+template <> inline float
+UInt8bitToAudioSample<float>(uint8_t aValue)
+{
+  return aValue * (static_cast<float>(2) / UINT8_MAX) - static_cast<float>(1);
+}
+template <> inline int16_t
+UInt8bitToAudioSample<int16_t>(uint8_t aValue)
+{
+  return (int16_t(aValue) << 8) + aValue + INT16_MIN;
+}
+
 template <typename T> T IntegerToAudioSample(int16_t aValue);
 
 template <> inline float
@@ -107,6 +125,19 @@ template <> inline int16_t
 IntegerToAudioSample<int16_t>(int16_t aValue)
 {
   return aValue;
+}
+
+template <typename T> T Int24bitToAudioSample(int32_t aValue);
+
+template <> inline float
+Int24bitToAudioSample<float>(int32_t aValue)
+{
+  return aValue / static_cast<float>(1 << 23);
+}
+template <> inline int16_t
+Int24bitToAudioSample<int16_t>(int32_t aValue)
+{
+  return aValue / 256;
 }
 
 template<typename SrcT, typename DstT>
@@ -215,12 +246,11 @@ inline const void*
 AddAudioSampleOffset(const void* aBase, AudioSampleFormat aFormat,
                      int32_t aOffset)
 {
-  static_assert(AUDIO_FORMAT_S16 == 0, "Bad constant");
-  static_assert(AUDIO_FORMAT_FLOAT32 == 1, "Bad constant");
-  NS_ASSERTION(aFormat == AUDIO_FORMAT_S16 || aFormat == AUDIO_FORMAT_FLOAT32,
-               "Unknown format");
+  static_assert(AUDIO_FORMAT_S16 == 1, "Bad constant");
+  static_assert(AUDIO_FORMAT_FLOAT32 == 2, "Bad constant");
+  MOZ_ASSERT(aFormat == AUDIO_FORMAT_S16 || aFormat == AUDIO_FORMAT_FLOAT32);
 
-  return static_cast<const uint8_t*>(aBase) + (aFormat + 1)*2*aOffset;
+  return static_cast<const uint8_t*>(aBase) + aFormat*2*aOffset;
 }
 
 } // namespace mozilla

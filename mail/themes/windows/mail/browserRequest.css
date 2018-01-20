@@ -18,7 +18,7 @@
 }
 
 #security-button[loading="true"] {
-  background-image: url("chrome://messenger/skin/icons/loading.png");
+  background-image: url("chrome://global/skin/icons/loading.png");
   background-position: 4px 2px;
 }
 
@@ -36,14 +36,6 @@
   font-weight: normal;
 }
 
-@media (-moz-os-version: windows-xp) {
-  #headerMessage {
-    margin-top: 4px;
-  }
-}
-
-@media not all and (-moz-os-version: windows-xp) {
-  #headerMessage {
-    margin-top: 3px;
-  }
+#headerMessage {
+  margin-top: 3px;
 }

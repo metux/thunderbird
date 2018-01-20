@@ -156,14 +156,9 @@ var SearchIntegration =
       return;
     }
 
-    // We're currently only enabled on Vista and above
-    let windowsVersion = Services.sysinfo.getProperty("version");
-    if (parseFloat(windowsVersion) < 6)
-    {
-      this._log.fatal("Windows version " + windowsVersion + " < 6.0");
-      this.osVersionTooLow = true;
-      return;
-    }
+    // The search module is currently only enabled on Vista and above,
+    // and the app can only be installed on Windows 7 and above.
+    this.osVersionTooLow = false;
 
     let serviceRunning = false;
     try {
@@ -248,7 +243,7 @@ var SearchIntegration =
         outputFileStream.init(this._outputFile, -1, -1, 0);
         this._outputStream = Cc["@mozilla.org/intl/converter-output-stream;1"]
                                .createInstance(Ci.nsIConverterOutputStream);
-        this._outputStream.init(outputFileStream, "UTF-8", 0, 0x0000);
+        this._outputStream.init(outputFileStream, "UTF-8");
       }
       catch (ex) { this._onDoneStreaming(false); }
     },

@@ -10,7 +10,6 @@
 // This makes sure the 'domnode' protocol actor type is known when importing
 // highlighter.
 require("devtools/server/actors/inspector");
-const events = require("sdk/event/core");
 
 const {HighlighterEnvironment} = require("devtools/server/actors/highlighters");
 
@@ -18,11 +17,15 @@ const {
   CanvasFrameAnonymousContentHelper
 } = require("devtools/server/actors/highlighters/utils/markup");
 
-const TEST_URL_1 = "data:text/html;charset=utf-8,CanvasFrameAnonymousContentHelper test 1";
-const TEST_URL_2 = "data:text/html;charset=utf-8,CanvasFrameAnonymousContentHelper test 2";
+const TEST_URL_1 =
+  "data:text/html;charset=utf-8,CanvasFrameAnonymousContentHelper test 1";
+const TEST_URL_2 =
+  "data:text/html;charset=utf-8,CanvasFrameAnonymousContentHelper test 2";
 
-add_task(function*() {
-  let doc = yield addTab(TEST_URL_2);
+add_task(function* () {
+  let browser = yield addTab(TEST_URL_1);
+  // eslint-disable-next-line mozilla/no-cpows-in-tests
+  let doc = browser.contentDocument;
 
   let nodeBuilder = () => {
     let root = doc.createElement("div");
@@ -30,7 +33,7 @@ add_task(function*() {
     child.style = "pointer-events:auto;width:200px;height:200px;background:red;";
     child.id = "child-element";
     child.className = "child-element";
-    child.textContent= "test content";
+    child.textContent = "test content";
     root.appendChild(child);
     return root;
   };
@@ -53,7 +56,7 @@ add_task(function*() {
   let mouseDownHandled = 0;
   function onMouseDown(e, id) {
     is(id, "child-element", "The mousedown event was triggered on the element");
-    mouseDownHandled ++;
+    mouseDownHandled++;
   }
   el.addEventListener("mousedown", onMouseDown);
 
@@ -64,9 +67,10 @@ add_task(function*() {
   is(mouseDownHandled, 1, "The mousedown event was handled once before navigation");
 
   info("Navigating to a new page");
-  let loaded = once(gBrowser.selectedBrowser, "load", true);
-  content.location = TEST_URL_2;
+  let loaded = BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser);
+  BrowserTestUtils.loadURI(browser, TEST_URL_2);
   yield loaded;
+  // eslint-disable-next-line mozilla/no-cpows-in-tests
   doc = gBrowser.selectedBrowser.contentWindow.document;
 
   info("Try to access the element again");
@@ -92,6 +96,6 @@ function synthesizeMouseDown(x, y, win) {
   // We need to make sure the inserted anonymous content can be targeted by the
   // event right after having been inserted, and so we need to force a sync
   // reflow.
-  let forceReflow = win.document.documentElement.offsetWidth;
+  win.document.documentElement.offsetWidth;
   EventUtils.synthesizeMouseAtPoint(x, y, {type: "mousedown"}, win);
 }

@@ -10,10 +10,10 @@
 // just that markers are recorded at all.
 // Trying to check marker types here may lead to intermittents, see bug 1066474.
 
-const {TimelineFront} = require("devtools/server/actors/timeline");
+const {TimelineFront} = require("devtools/shared/fronts/timeline");
 
-add_task(function*() {
-  let doc = yield addTab("data:text/html;charset=utf-8,mop");
+add_task(function* () {
+  yield addTab("data:text/html;charset=utf-8,mop");
 
   initDebuggerServer();
   let client = new DebuggerClient(DebuggerServer.connectPipe());
@@ -26,7 +26,10 @@ add_task(function*() {
   ok(!isActive, "The TimelineFront is not initially recording");
 
   info("Flush any pending reflows");
-  let forceSyncReflow = doc.body.innerHeight;
+  ContentTask.spawn(gBrowser.selectedBrowser, {}, () => {
+    // forceSyncReflow
+    content.document.body.innerHeight;
+  });
 
   info("Start recording");
   yield front.start({ withMarkers: true });
@@ -36,18 +39,25 @@ add_task(function*() {
 
   info("Change some style on the page to cause style/reflow/paint");
   let onMarkers = once(front, "markers");
-  doc.body.style.padding = "10px";
+  ContentTask.spawn(gBrowser.selectedBrowser, {}, () => {
+    content.document.body.style.padding = "10px";
+  });
   let markers = yield onMarkers;
 
   ok(true, "The markers event was fired");
   ok(markers.length > 0, "Markers were returned");
 
   info("Flush pending reflows again");
-  forceSyncReflow = doc.body.innerHeight;
+  ContentTask.spawn(gBrowser.selectedBrowser, {}, () => {
+    // forceSyncReflow
+    content.document.body.innerHeight;
+  });
 
   info("Change some style on the page to cause style/paint");
   onMarkers = once(front, "markers");
-  doc.body.style.backgroundColor = "red";
+  ContentTask.spawn(gBrowser.selectedBrowser, {}, () => {
+    content.document.body.style.backgroundColor = "red";
+  });
   markers = yield onMarkers;
 
   ok(markers.length > 0, "markers were returned");
@@ -57,6 +67,6 @@ add_task(function*() {
   isActive = yield front.isRecording();
   ok(!isActive, "Not recording after stop()");
 
-  yield closeDebuggerClient(client);
+  yield client.close();
   gBrowser.removeCurrentTab();
 });

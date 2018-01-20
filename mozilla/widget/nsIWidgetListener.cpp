@@ -55,6 +55,16 @@ nsIWidgetListener::SizeModeChanged(nsSizeMode aSizeMode)
 }
 
 void
+nsIWidgetListener::UIResolutionChanged()
+{
+}
+
+void
+nsIWidgetListener::FullscreenWillChange(bool aInFullscreen)
+{
+}
+
+void
 nsIWidgetListener::FullscreenChanged(bool aInFullscreen)
 {
 }
@@ -66,6 +76,11 @@ nsIWidgetListener::ZLevelChanged(bool aImmediate,
                                  nsIWidget** aActualBelow)
 {
   return false;
+}
+
+void
+nsIWidgetListener::OcclusionStateChanged(bool aIsFullyOccluded)
+{
 }
 
 void
@@ -107,7 +122,8 @@ nsIWidgetListener::DidPaintWindow()
 }
 
 void
-nsIWidgetListener::DidCompositeWindow(const TimeStamp& aCompositeStart,
+nsIWidgetListener::DidCompositeWindow(uint64_t aTransactionId,
+                                      const TimeStamp& aCompositeStart,
                                       const TimeStamp& aCompositeEnd)
 {
 }

@@ -2,23 +2,32 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-var Services = SpecialPowers.Services;
+/* eslint
+  "no-unused-vars": ["error", {
+    vars: "local",
+    args: "none",
+    varsIgnorePattern: "^(Cc|Ci|Cr|Cu|EXPORTED_SYMBOLS)$",
+  }],
+*/
+
+/* import-globals-from ../../../../testing/mochitest/tests/SimpleTest/SimpleTest.js */
+
+var gPopupShownExpected = false;
 var gPopupShownListener;
 var gLastAutoCompleteResults;
+var gChromeScript;
 
 /*
- * $_
- *
  * Returns the element with the specified |name| attribute.
  */
 function $_(formNum, name) {
-  var form = document.getElementById("form" + formNum);
+  let form = document.getElementById("form" + formNum);
   if (!form) {
     ok(false, "$_ couldn't find requested form " + formNum);
     return null;
   }
 
-  var element = form.elements.namedItem(name);
+  let element = form.elements.namedItem(name);
   if (!element) {
     ok(false, "$_ couldn't find requested element " + name);
     return null;
@@ -39,20 +48,21 @@ function $_(formNum, name) {
 // Mochitest gives us a sendKey(), but it's targeted to a specific element.
 // This basically sends an untargeted key event, to whatever's focused.
 function doKey(aKey, modifier) {
-    var keyName = "DOM_VK_" + aKey.toUpperCase();
-    var key = SpecialPowers.Ci.nsIDOMKeyEvent[keyName];
+  let keyName = "DOM_VK_" + aKey.toUpperCase();
+  let key = SpecialPowers.Ci.nsIDOMKeyEvent[keyName];
 
-    // undefined --> null
-    if (!modifier)
-        modifier = null;
+  // undefined --> null
+  if (!modifier) {
+    modifier = null;
+  }
 
-    // Window utils for sending fake key events.
-    var wutils = SpecialPowers.getDOMWindowUtils(window);
+  // Window utils for sending fake key events.
+  let wutils = SpecialPowers.getDOMWindowUtils(window);
 
-    if (wutils.sendKeyEvent("keydown",  key, 0, modifier)) {
-      wutils.sendKeyEvent("keypress", key, 0, modifier);
-    }
-    wutils.sendKeyEvent("keyup",    key, 0, modifier);
+  if (wutils.sendKeyEvent("keydown", key, 0, modifier)) {
+    wutils.sendKeyEvent("keypress", key, 0, modifier);
+  }
+  wutils.sendKeyEvent("keyup", key, 0, modifier);
 }
 
 function registerPopupShownListener(listener) {
@@ -68,9 +78,16 @@ function getMenuEntries() {
     throw new Error("no autocomplete results");
   }
 
-  var results = gLastAutoCompleteResults;
+  let results = gLastAutoCompleteResults;
   gLastAutoCompleteResults = null;
   return results;
+}
+
+function checkArrayValues(actualValues, expectedValues, msg) {
+  is(actualValues.length, expectedValues.length, "Checking array values: " + msg);
+  for (let i = 0; i < expectedValues.length; i++) {
+    is(actualValues[i], expectedValues[i], msg + " Checking array entry #" + i);
+  }
 }
 
 var checkObserver = {
@@ -78,24 +95,26 @@ var checkObserver = {
   callback: null,
 
   init() {
-    script.sendAsyncMessage("addObserver");
-    script.addMessageListener("satchel-storage-changed", this.observe.bind(this));
+    gChromeScript.sendAsyncMessage("addObserver");
+    gChromeScript.addMessageListener("satchel-storage-changed", this.observe.bind(this));
   },
 
   uninit() {
-    script.sendAsyncMessage("removeObserver");
+    gChromeScript.sendAsyncMessage("removeObserver");
   },
 
-  waitForChecks: function(callback) {
-    if (this.verifyStack.length == 0)
+  waitForChecks(callback) {
+    if (this.verifyStack.length == 0) {
       callback();
-    else
+    } else {
       this.callback = callback;
+    }
   },
 
-  observe: function({ subject, topic, data }) {
-    if (data != "formhistory-add" && data != "formhistory-update")
+  observe({ subject, topic, data }) {
+    if (data != "formhistory-add" && data != "formhistory-update") {
       return;
+    }
     ok(this.verifyStack.length > 0, "checking if saved form data was expected");
 
     // Make sure that every piece of data we expect to be saved is saved, and no
@@ -107,48 +126,31 @@ var checkObserver = {
     // - if there are too few messages, test will time out
     // - if there are too many messages, test will error out here
     //
-    var expected = this.verifyStack.shift();
+    let expected = this.verifyStack.shift();
 
     countEntries(expected.name, expected.value,
-      function(num) {
-        ok(num > 0, expected.message);
-        if (checkObserver.verifyStack.length == 0) {
-          var callback = checkObserver.callback;
-          checkObserver.callback = null;
-          callback();
-        }
-      });
-  }
+                 function(num) {
+                   ok(num > 0, expected.message);
+                   if (checkObserver.verifyStack.length == 0) {
+                     let callback = checkObserver.callback;
+                     checkObserver.callback = null;
+                     callback();
+                   }
+                 });
+  },
 };
 
 function checkForSave(name, value, message) {
-  checkObserver.verifyStack.push({ name : name, value: value, message: message });
+  checkObserver.verifyStack.push({ name, value, message });
 }
-
-function NonE10SgetAutocompletePopup() {
-  var Ci = SpecialPowers.Ci;
-  chromeWin = SpecialPowers.wrap(window)
-                .QueryInterface(Ci.nsIInterfaceRequestor)
-                .getInterface(Ci.nsIWebNavigation)
-                .QueryInterface(Ci.nsIDocShellTreeItem)
-                .rootTreeItem
-                .QueryInterface(Ci.nsIInterfaceRequestor)
-                .getInterface(Ci.nsIDOMWindow)
-                .QueryInterface(Ci.nsIDOMChromeWindow);
-  autocompleteMenu = chromeWin.document.getElementById("PopupAutoComplete");
-  ok(autocompleteMenu, "Got autocomplete popup");
-
-  return autocompleteMenu;
-}
-
 
 function getFormSubmitButton(formNum) {
-  var form = $("form" + formNum); // by id, not name
+  let form = $("form" + formNum); // by id, not name
   ok(form != null, "getting form " + formNum);
 
   // we can't just call form.submit(), because that doesn't seem to
   // invoke the form onsubmit handler.
-  var button = form.firstChild;
+  let button = form.firstChild;
   while (button && button.type != "submit") { button = button.nextSibling; }
   ok(button != null, "getting form submit button");
 
@@ -157,55 +159,131 @@ function getFormSubmitButton(formNum) {
 
 // Count the number of entries with the given name and value, and call then(number)
 // when done. If name or value is null, then the value of that field does not matter.
-function countEntries(name, value, then) {
-  script.sendAsyncMessage("countEntries", { name, value });
-  script.addMessageListener("entriesCounted", function counted(data) {
-    script.removeMessageListener("entriesCounted", counted);
-    if (!data.ok) {
-      ok(false, "Error occurred counting form history");
-      SimpleTest.finish();
-      return;
-    }
+function countEntries(name, value, then = null) {
+  return new Promise(resolve => {
+    gChromeScript.sendAsyncMessage("countEntries", { name, value });
+    gChromeScript.addMessageListener("entriesCounted", function counted(data) {
+      gChromeScript.removeMessageListener("entriesCounted", counted);
+      if (!data.ok) {
+        ok(false, "Error occurred counting form history");
+        SimpleTest.finish();
+        return;
+      }
 
-    then(data.count);
+      if (then) {
+        then(data.count);
+      }
+      resolve(data.count);
+    });
   });
 }
 
 // Wrapper around FormHistory.update which handles errors. Calls then() when done.
-function updateFormHistory(changes, then) {
-  script.sendAsyncMessage("updateFormHistory", { changes });
-  script.addMessageListener("formHistoryUpdated", function updated({ ok }) {
-    script.removeMessageListener("formHistoryUpdated", updated);
-    if (!ok) {
-      ok(false, "Error occurred updating form history");
-      SimpleTest.finish();
-      return;
+function updateFormHistory(changes, then = null) {
+  return new Promise(resolve => {
+    gChromeScript.sendAsyncMessage("updateFormHistory", { changes });
+    gChromeScript.addMessageListener("formHistoryUpdated", function updated({ ok }) {
+      gChromeScript.removeMessageListener("formHistoryUpdated", updated);
+      if (!ok) {
+        ok(false, "Error occurred updating form history");
+        SimpleTest.finish();
+        return;
+      }
+
+      if (then) {
+        then();
+      }
+      resolve();
+    });
+  });
+}
+
+function notifyMenuChanged(expectedCount, expectedFirstValue, then = null) {
+  return new Promise(resolve => {
+    gChromeScript.sendAsyncMessage("waitForMenuChange",
+                                   { expectedCount,
+                                     expectedFirstValue });
+    gChromeScript.addMessageListener("gotMenuChange", function changed({ results }) {
+      gChromeScript.removeMessageListener("gotMenuChange", changed);
+      gLastAutoCompleteResults = results;
+      if (then) {
+        then(results);
+      }
+      resolve(results);
+    });
+  });
+}
+
+function notifySelectedIndex(expectedIndex, then = null) {
+  return new Promise(resolve => {
+    gChromeScript.sendAsyncMessage("waitForSelectedIndex", { expectedIndex });
+    gChromeScript.addMessageListener("gotSelectedIndex", function changed() {
+      gChromeScript.removeMessageListener("gotSelectedIndex", changed);
+      if (then) {
+        then();
+      }
+      resolve();
+    });
+  });
+}
+
+function getPopupState(then = null) {
+  return new Promise(resolve => {
+    gChromeScript.sendAsyncMessage("getPopupState");
+    gChromeScript.addMessageListener("gotPopupState", function listener(state) {
+      gChromeScript.removeMessageListener("gotPopupState", listener);
+      if (then) {
+        then(state);
+      }
+      resolve(state);
+    });
+  });
+}
+
+function listenForUnexpectedPopupShown() {
+  gPopupShownListener = function onPopupShown() {
+    if (!gPopupShownExpected) {
+      ok(false, "Unexpected autocomplete popupshown event");
     }
+  };
+}
 
-    then();
+async function promiseNoUnexpectedPopupShown() {
+  gPopupShownExpected = false;
+  listenForUnexpectedPopupShown();
+  SimpleTest.requestFlakyTimeout("Giving a chance for an unexpected popupshown to occur");
+  await new Promise(resolve => setTimeout(resolve, 1000));
+}
+
+/**
+ * Resolve at the next popupshown event for the autocomplete popup
+ * @returns {Promise} with the results
+ */
+function promiseACShown() {
+  gPopupShownExpected = true;
+  return new Promise(resolve => {
+    gPopupShownListener = ({ results }) => {
+      gPopupShownExpected = false;
+      resolve(results);
+    };
   });
 }
 
-function notifyMenuChanged(expectedCount, expectedFirstValue, then) {
-  script.sendAsyncMessage("waitForMenuChange",
-                          { expectedCount,
-                            expectedFirstValue });
-  script.addMessageListener("gotMenuChange", function changed({ results }) {
-    script.removeMessageListener("gotMenuChange", changed);
+function satchelCommonSetup() {
+  let chromeURL = SimpleTest.getTestFileURL("parent_utils.js");
+  gChromeScript = SpecialPowers.loadChromeScript(chromeURL);
+  gChromeScript.addMessageListener("onpopupshown", ({ results }) => {
     gLastAutoCompleteResults = results;
-    then();
+    if (gPopupShownListener) {
+      gPopupShownListener({results});
+    }
+  });
+
+  SimpleTest.registerCleanupFunction(() => {
+    gChromeScript.sendAsyncMessage("cleanup");
+    gChromeScript.destroy();
   });
 }
 
-var chromeURL = SimpleTest.getTestFileURL("parent_utils.js");
-var script = SpecialPowers.loadChromeScript(chromeURL);
-script.addMessageListener("onpopupshown", ({ results }) => {
-  gLastAutoCompleteResults = results;
-  if (gPopupShownListener)
-    gPopupShownListener();
-});
 
-SimpleTest.registerCleanupFunction(() => {
-  script.sendAsyncMessage("cleanup");
-  script.destroy();
-});
+satchelCommonSetup();

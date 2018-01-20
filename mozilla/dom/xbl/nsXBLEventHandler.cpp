@@ -5,7 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsCOMPtr.h"
-#include "nsIAtom.h"
+#include "nsAtom.h"
 #include "nsIDOMEventListener.h"
 #include "nsIDOMKeyEvent.h"
 #include "nsIDOMMouseEvent.h"
@@ -68,7 +68,7 @@ nsXBLMouseEventHandler::EventMatched(nsIDOMEvent* aEvent)
   return mouse && mProtoHandler->MouseEventMatched(mouse);
 }
 
-nsXBLKeyEventHandler::nsXBLKeyEventHandler(nsIAtom* aEventType, uint8_t aPhase,
+nsXBLKeyEventHandler::nsXBLKeyEventHandler(nsAtom* aEventType, uint8_t aPhase,
                                            uint8_t aType)
   : mEventType(aEventType),
     mPhase(aPhase),
@@ -90,18 +90,18 @@ nsXBLKeyEventHandler::ExecuteMatchedHandlers(
                         uint32_t aCharCode,
                         const IgnoreModifierState& aIgnoreModifierState)
 {
-  WidgetEvent* event = aKeyEvent->GetInternalNSEvent();
-  nsCOMPtr<EventTarget> target = aKeyEvent->InternalDOMEvent()->GetCurrentTarget();
+  WidgetEvent* event = aKeyEvent->AsEvent()->WidgetEventPtr();
+  nsCOMPtr<EventTarget> target = aKeyEvent->AsEvent()->InternalDOMEvent()->GetCurrentTarget();
 
   bool executed = false;
   for (uint32_t i = 0; i < mProtoHandlers.Length(); ++i) {
     nsXBLPrototypeHandler* handler = mProtoHandlers[i];
     bool hasAllowUntrustedAttr = handler->HasAllowUntrustedAttr();
-    if ((event->mFlags.mIsTrusted ||
+    if ((event->IsTrusted() ||
         (hasAllowUntrustedAttr && handler->AllowUntrustedEvents()) ||
         (!hasAllowUntrustedAttr && !mIsBoundToChrome && !mUsingContentXBLScope)) &&
         handler->KeyEventMatched(aKeyEvent, aCharCode, aIgnoreModifierState)) {
-      handler->ExecuteHandler(target, aKeyEvent);
+      handler->ExecuteHandler(target, aKeyEvent->AsEvent());
       executed = true;
     }
   }
@@ -140,18 +140,21 @@ nsXBLKeyEventHandler::HandleEvent(nsIDOMEvent* aEvent)
   if (!key)
     return NS_OK;
 
-  nsAutoTArray<nsShortcutCandidate, 10> accessKeys;
-  nsContentUtils::GetAccelKeyCandidates(key, accessKeys);
+  WidgetKeyboardEvent* nativeKeyboardEvent =
+    aEvent->WidgetEventPtr()->AsKeyboardEvent();
+  MOZ_ASSERT(nativeKeyboardEvent);
+  AutoShortcutKeyCandidateArray shortcutKeys;
+  nativeKeyboardEvent->GetShortcutKeyCandidates(shortcutKeys);
 
-  if (accessKeys.IsEmpty()) {
+  if (shortcutKeys.IsEmpty()) {
     ExecuteMatchedHandlers(key, 0, IgnoreModifierState());
     return NS_OK;
   }
 
-  for (uint32_t i = 0; i < accessKeys.Length(); ++i) {
+  for (uint32_t i = 0; i < shortcutKeys.Length(); ++i) {
     IgnoreModifierState ignoreModifierState;
-    ignoreModifierState.mShift = accessKeys[i].mIgnoreShift;
-    if (ExecuteMatchedHandlers(key, accessKeys[i].mCharCode,
+    ignoreModifierState.mShift = shortcutKeys[i].mIgnoreShift;
+    if (ExecuteMatchedHandlers(key, shortcutKeys[i].mCharCode,
                                ignoreModifierState)) {
       return NS_OK;
     }
@@ -163,7 +166,7 @@ nsXBLKeyEventHandler::HandleEvent(nsIDOMEvent* aEvent)
 
 already_AddRefed<nsXBLEventHandler>
 NS_NewXBLEventHandler(nsXBLPrototypeHandler* aHandler,
-                      nsIAtom* aEventType)
+                      nsAtom* aEventType)
 {
   RefPtr<nsXBLEventHandler> handler;
 

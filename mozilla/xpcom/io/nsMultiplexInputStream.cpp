@@ -12,6 +12,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/Mutex.h"
+#include "mozilla/SystemGroup.h"
 
 #include "base/basictypes.h"
 
@@ -24,17 +25,22 @@
 #include "nsIClassInfoImpl.h"
 #include "nsIIPCSerializableInputStream.h"
 #include "mozilla/ipc/InputStreamUtils.h"
+#include "nsIAsyncInputStream.h"
 
 using namespace mozilla;
 using namespace mozilla::ipc;
 
 using mozilla::DeprecatedAbs;
+using mozilla::Maybe;
+using mozilla::Nothing;
+using mozilla::Some;
 
 class nsMultiplexInputStream final
   : public nsIMultiplexInputStream
   , public nsISeekableStream
   , public nsIIPCSerializableInputStream
   , public nsICloneableInputStream
+  , public nsIAsyncInputStream
 {
 public:
   nsMultiplexInputStream();
@@ -45,11 +51,35 @@ public:
   NS_DECL_NSISEEKABLESTREAM
   NS_DECL_NSIIPCSERIALIZABLEINPUTSTREAM
   NS_DECL_NSICLONEABLEINPUTSTREAM
+  NS_DECL_NSIASYNCINPUTSTREAM
+
+  void AsyncWaitCompleted();
+
+  struct StreamData
+  {
+    void Initialize(nsIInputStream* aStream)
+    {
+      mStream = aStream;
+      mAsyncStream = do_QueryInterface(aStream);
+      mSeekableStream = do_QueryInterface(aStream);
+    }
+
+    nsCOMPtr<nsIInputStream> mStream;
+
+    // This can be null.
+    nsCOMPtr<nsIAsyncInputStream> mAsyncStream;
+    // This can be null.
+    nsCOMPtr<nsISeekableStream> mSeekableStream;
+  };
 
 private:
   ~nsMultiplexInputStream()
   {
   }
+
+  // This method updates mSeekableStreams, mIPCSerializableStreams,
+  // mCloneableStreams and mAsyncInputStreams values.
+  void UpdateQIMap(StreamData& aStream, int32_t aCount);
 
   struct MOZ_STACK_CLASS ReadSegmentsState
   {
@@ -60,15 +90,28 @@ private:
     bool mDone;
   };
 
-  static NS_METHOD ReadSegCb(nsIInputStream* aIn, void* aClosure,
-                             const char* aFromRawSegment, uint32_t aToOffset,
-                             uint32_t aCount, uint32_t* aWriteCount);
+  static nsresult ReadSegCb(nsIInputStream* aIn, void* aClosure,
+                            const char* aFromRawSegment, uint32_t aToOffset,
+                            uint32_t aCount, uint32_t* aWriteCount);
+
+  bool IsSeekable() const;
+  bool IsIPCSerializable() const;
+  bool IsCloneable() const;
+  bool IsAsyncInputStream() const;
 
   Mutex mLock; // Protects access to all data members.
-  nsTArray<nsCOMPtr<nsIInputStream>> mStreams;
+
+  nsTArray<StreamData> mStreams;
+
   uint32_t mCurrentStream;
   bool mStartedReadingCurrent;
   nsresult mStatus;
+  nsCOMPtr<nsIInputStreamCallback> mAsyncWaitCallback;
+
+  uint32_t mSeekableStreams;
+  uint32_t mIPCSerializableStreams;
+  uint32_t mCloneableStreams;
+  uint32_t mAsyncInputStreams;
 };
 
 NS_IMPL_ADDREF(nsMultiplexInputStream)
@@ -77,31 +120,40 @@ NS_IMPL_RELEASE(nsMultiplexInputStream)
 NS_IMPL_CLASSINFO(nsMultiplexInputStream, nullptr, nsIClassInfo::THREADSAFE,
                   NS_MULTIPLEXINPUTSTREAM_CID)
 
-NS_IMPL_QUERY_INTERFACE_CI(nsMultiplexInputStream,
-                           nsIMultiplexInputStream,
-                           nsIInputStream,
-                           nsISeekableStream,
-                           nsIIPCSerializableInputStream,
-                           nsICloneableInputStream)
+NS_INTERFACE_MAP_BEGIN(nsMultiplexInputStream)
+  NS_INTERFACE_MAP_ENTRY(nsIMultiplexInputStream)
+  NS_INTERFACE_MAP_ENTRY(nsIInputStream)
+  NS_INTERFACE_MAP_ENTRY_CONDITIONAL(nsISeekableStream, IsSeekable())
+  NS_INTERFACE_MAP_ENTRY_CONDITIONAL(nsIIPCSerializableInputStream,
+                                     IsIPCSerializable())
+  NS_INTERFACE_MAP_ENTRY_CONDITIONAL(nsICloneableInputStream,
+                                     IsCloneable())
+  NS_INTERFACE_MAP_ENTRY_CONDITIONAL(nsIAsyncInputStream,
+                                     IsAsyncInputStream())
+  NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIMultiplexInputStream)
+  NS_IMPL_QUERY_CLASSINFO(nsMultiplexInputStream)
+NS_INTERFACE_MAP_END
+
 NS_IMPL_CI_INTERFACE_GETTER(nsMultiplexInputStream,
                             nsIMultiplexInputStream,
                             nsIInputStream,
                             nsISeekableStream)
 
 static nsresult
-AvailableMaybeSeek(nsIInputStream* aStream, uint64_t* aResult)
+AvailableMaybeSeek(nsMultiplexInputStream::StreamData& aStream,
+                   uint64_t* aResult)
 {
-  nsresult rv = aStream->Available(aResult);
+  nsresult rv = aStream.mStream->Available(aResult);
   if (rv == NS_BASE_STREAM_CLOSED) {
     // Blindly seek to the current position if Available() returns
     // NS_BASE_STREAM_CLOSED.
     // If nsIFileInputStream is closed in Read() due to CLOSE_ON_EOF flag,
     // Seek() could reopen the file if REOPEN_ON_REWIND flag is set.
-    nsCOMPtr<nsISeekableStream> seekable = do_QueryInterface(aStream);
-    if (seekable) {
-      nsresult rvSeek = seekable->Seek(nsISeekableStream::NS_SEEK_CUR, 0);
+    if (aStream.mSeekableStream) {
+      nsresult rvSeek =
+        aStream.mSeekableStream->Seek(nsISeekableStream::NS_SEEK_CUR, 0);
       if (NS_SUCCEEDED(rvSeek)) {
-        rv = aStream->Available(aResult);
+        rv = aStream.mStream->Available(aResult);
       }
     }
   }
@@ -126,12 +178,15 @@ TellMaybeSeek(nsISeekableStream* aSeekable, int64_t* aResult)
 }
 
 nsMultiplexInputStream::nsMultiplexInputStream()
-  : mLock("nsMultiplexInputStream lock"),
-    mCurrentStream(0),
-    mStartedReadingCurrent(false),
-    mStatus(NS_OK)
-{
-}
+  : mLock("nsMultiplexInputStream lock")
+  , mCurrentStream(0)
+  , mStartedReadingCurrent(false)
+  , mStatus(NS_OK)
+  , mSeekableStreams(0)
+  , mIPCSerializableStreams(0)
+  , mCloneableStreams(0)
+  , mAsyncInputStreams(0)
+{}
 
 NS_IMETHODIMP
 nsMultiplexInputStream::GetCount(uint32_t* aCount)
@@ -145,18 +200,45 @@ NS_IMETHODIMP
 nsMultiplexInputStream::AppendStream(nsIInputStream* aStream)
 {
   MutexAutoLock lock(mLock);
-  return mStreams.AppendElement(aStream) ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
+
+  StreamData* streamData = mStreams.AppendElement();
+  if (NS_WARN_IF(!streamData)) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  streamData->Initialize(aStream);
+
+  UpdateQIMap(*streamData, 1);
+
+  if (mStatus == NS_BASE_STREAM_CLOSED) {
+    // We were closed, but now we have more data to read.
+    mStatus = NS_OK;
+  }
+
+  return NS_OK;
 }
 
 NS_IMETHODIMP
 nsMultiplexInputStream::InsertStream(nsIInputStream* aStream, uint32_t aIndex)
 {
   MutexAutoLock lock(mLock);
-  mStreams.InsertElementAt(aIndex, aStream);
+
+  StreamData* streamData = mStreams.InsertElementAt(aIndex);
+  if (NS_WARN_IF(!streamData)) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  streamData->Initialize(aStream);
+
   if (mCurrentStream > aIndex ||
       (mCurrentStream == aIndex && mStartedReadingCurrent)) {
     ++mCurrentStream;
+  } else if (mStatus == NS_BASE_STREAM_CLOSED) {
+    // We were closed, but now we have more data to read.
+    mStatus = NS_OK;
   }
+
+  UpdateQIMap(*streamData, 1);
   return NS_OK;
 }
 
@@ -164,6 +246,12 @@ NS_IMETHODIMP
 nsMultiplexInputStream::RemoveStream(uint32_t aIndex)
 {
   MutexAutoLock lock(mLock);
+  if (aIndex >= mStreams.Length()) {
+    return NS_ERROR_FAILURE;
+  }
+
+  UpdateQIMap(mStreams[aIndex], -1);
+
   mStreams.RemoveElementAt(aIndex);
   if (mCurrentStream > aIndex) {
     --mCurrentStream;
@@ -178,12 +266,15 @@ NS_IMETHODIMP
 nsMultiplexInputStream::GetStream(uint32_t aIndex, nsIInputStream** aResult)
 {
   MutexAutoLock lock(mLock);
-  *aResult = mStreams.SafeElementAt(aIndex, nullptr);
-  if (NS_WARN_IF(!*aResult)) {
+
+  if (aIndex >= mStreams.Length()) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  NS_ADDREF(*aResult);
+  StreamData& streamData = mStreams.ElementAt(aIndex);
+
+  nsCOMPtr<nsIInputStream> stream = streamData.mStream;
+  stream.forget(aResult);
   return NS_OK;
 }
 
@@ -197,36 +288,70 @@ nsMultiplexInputStream::Close()
 
   uint32_t len = mStreams.Length();
   for (uint32_t i = 0; i < len; ++i) {
-    nsresult rv2 = mStreams[i]->Close();
+    nsresult rv2 = mStreams[i].mStream->Close();
     // We still want to close all streams, but we should return an error
     if (NS_FAILED(rv2)) {
       rv = rv2;
     }
   }
+
   return rv;
 }
 
 NS_IMETHODIMP
 nsMultiplexInputStream::Available(uint64_t* aResult)
 {
+  *aResult = 0;
+
   MutexAutoLock lock(mLock);
   if (NS_FAILED(mStatus)) {
     return mStatus;
   }
 
   uint64_t avail = 0;
+  nsresult rv = NS_BASE_STREAM_CLOSED;
 
   uint32_t len = mStreams.Length();
   for (uint32_t i = mCurrentStream; i < len; i++) {
     uint64_t streamAvail;
-    mStatus = AvailableMaybeSeek(mStreams[i], &streamAvail);
-    if (NS_WARN_IF(NS_FAILED(mStatus))) {
+    rv = AvailableMaybeSeek(mStreams[i], &streamAvail);
+    if (rv == NS_BASE_STREAM_CLOSED) {
+      // If a stream is closed, we continue with the next one.
+      // If this is the last stream, we want to return this error code.
+      continue;
+    }
+
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      mStatus = rv;
       return mStatus;
     }
+
+    // If the current stream is async, we have to return what we have so far
+    // without processing the following streams. This is needed because
+    // ::Available should return only what is currently available. In case of an
+    // nsIAsyncInputStream, we have to call AsyncWait() in order to read more.
+    if (mStreams[i].mAsyncStream) {
+      avail += streamAvail;
+      break;
+    }
+
+    if (streamAvail == 0) {
+      // Nothing to read for this stream. Let's move to the next one.
+      continue;
+    }
+
     avail += streamAvail;
   }
-  *aResult = avail;
-  return NS_OK;
+
+  // We still have something to read. We don't want to return an error code yet.
+  if (avail) {
+    *aResult = avail;
+    return NS_OK;
+  }
+
+  // Let's propagate the last error message.
+  mStatus = rv;
+  return rv;
 }
 
 NS_IMETHODIMP
@@ -251,7 +376,7 @@ nsMultiplexInputStream::Read(char* aBuf, uint32_t aCount, uint32_t* aResult)
   uint32_t len = mStreams.Length();
   while (mCurrentStream < len && aCount) {
     uint32_t read;
-    rv = mStreams[mCurrentStream]->Read(aBuf, aCount, &read);
+    rv = mStreams[mCurrentStream].mStream->Read(aBuf, aCount, &read);
 
     // XXX some streams return NS_BASE_STREAM_CLOSED to indicate EOF.
     // (This is a bug in those stream implementations)
@@ -304,7 +429,8 @@ nsMultiplexInputStream::ReadSegments(nsWriteSegmentFun aWriter, void* aClosure,
   uint32_t len = mStreams.Length();
   while (mCurrentStream < len && aCount) {
     uint32_t read;
-    rv = mStreams[mCurrentStream]->ReadSegments(ReadSegCb, &state, aCount, &read);
+    rv = mStreams[mCurrentStream].mStream->ReadSegments(ReadSegCb, &state,
+                                                        aCount, &read);
 
     // XXX some streams return NS_BASE_STREAM_CLOSED to indicate EOF.
     // (This is a bug in those stream implementations)
@@ -336,7 +462,7 @@ nsMultiplexInputStream::ReadSegments(nsWriteSegmentFun aWriter, void* aClosure,
   return state.mOffset ? NS_OK : rv;
 }
 
-NS_METHOD
+nsresult
 nsMultiplexInputStream::ReadSegCb(nsIInputStream* aIn, void* aClosure,
                                   const char* aFromRawSegment,
                                   uint32_t aToOffset, uint32_t aCount,
@@ -364,14 +490,11 @@ nsMultiplexInputStream::IsNonBlocking(bool* aNonBlocking)
   uint32_t len = mStreams.Length();
   if (len == 0) {
     // Claim to be non-blocking, since we won't block the caller.
-    // On the other hand we'll never return NS_BASE_STREAM_WOULD_BLOCK,
-    // so maybe we should claim to be blocking?  It probably doesn't
-    // matter in practice.
     *aNonBlocking = true;
     return NS_OK;
   }
   for (uint32_t i = 0; i < len; ++i) {
-    nsresult rv = mStreams[i]->IsNonBlocking(aNonBlocking);
+    nsresult rv = mStreams[i].mStream->IsNonBlocking(aNonBlocking);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return rv;
     }
@@ -405,8 +528,7 @@ nsMultiplexInputStream::Seek(int32_t aWhence, int64_t aOffset)
       mCurrentStream = 0;
     }
     for (uint32_t i = 0; i < mStreams.Length(); ++i) {
-      nsCOMPtr<nsISeekableStream> stream =
-        do_QueryInterface(mStreams[i]);
+      nsCOMPtr<nsISeekableStream> stream = mStreams[i].mSeekableStream;
       if (!stream) {
         return NS_ERROR_FAILURE;
       }
@@ -475,7 +597,10 @@ nsMultiplexInputStream::Seek(int32_t aWhence, int64_t aOffset)
         }
       } else {
         NS_ASSERTION(remaining == streamPos, "Huh?");
+        MOZ_ASSERT(remaining != 0, "Zero remaining should be handled earlier");
         remaining = 0;
+        mCurrentStream = i;
+        mStartedReadingCurrent = true;
       }
     }
 
@@ -485,9 +610,6 @@ nsMultiplexInputStream::Seek(int32_t aWhence, int64_t aOffset)
   if (aWhence == NS_SEEK_CUR && aOffset > 0) {
     int64_t remaining = aOffset;
     for (uint32_t i = mCurrentStream; remaining && i < mStreams.Length(); ++i) {
-      nsCOMPtr<nsISeekableStream> stream =
-        do_QueryInterface(mStreams[i]);
-
       uint64_t avail;
       rv = AvailableMaybeSeek(mStreams[i], &avail);
       if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -496,7 +618,7 @@ nsMultiplexInputStream::Seek(int32_t aWhence, int64_t aOffset)
 
       int64_t seek = XPCOM_MIN((int64_t)avail, remaining);
 
-      rv = stream->Seek(NS_SEEK_CUR, seek);
+      rv = mStreams[i].mSeekableStream->Seek(NS_SEEK_CUR, seek);
       if (NS_WARN_IF(NS_FAILED(rv))) {
         return rv;
       }
@@ -513,18 +635,15 @@ nsMultiplexInputStream::Seek(int32_t aWhence, int64_t aOffset)
   if (aWhence == NS_SEEK_CUR && aOffset < 0) {
     int64_t remaining = -aOffset;
     for (uint32_t i = mCurrentStream; remaining && i != (uint32_t)-1; --i) {
-      nsCOMPtr<nsISeekableStream> stream =
-        do_QueryInterface(mStreams[i]);
-
       int64_t pos;
-      rv = TellMaybeSeek(stream, &pos);
+      rv = TellMaybeSeek(mStreams[i].mSeekableStream, &pos);
       if (NS_WARN_IF(NS_FAILED(rv))) {
         return rv;
       }
 
       int64_t seek = XPCOM_MIN(pos, remaining);
 
-      rv = stream->Seek(NS_SEEK_CUR, -seek);
+      rv = mStreams[i].mSeekableStream->Seek(NS_SEEK_CUR, -seek);
       if (NS_WARN_IF(NS_FAILED(rv))) {
         return rv;
       }
@@ -550,8 +669,7 @@ nsMultiplexInputStream::Seek(int32_t aWhence, int64_t aOffset)
     }
     int64_t remaining = aOffset;
     for (uint32_t i = mStreams.Length() - 1; i != (uint32_t)-1; --i) {
-      nsCOMPtr<nsISeekableStream> stream =
-        do_QueryInterface(mStreams[i]);
+      nsCOMPtr<nsISeekableStream> stream = mStreams[i].mSeekableStream;
 
       // See if all remaining streams should be seeked to end
       if (remaining == 0) {
@@ -641,13 +759,12 @@ nsMultiplexInputStream::Tell(int64_t* aResult)
   uint32_t i, last;
   last = mStartedReadingCurrent ? mCurrentStream + 1 : mCurrentStream;
   for (i = 0; i < last; ++i) {
-    nsCOMPtr<nsISeekableStream> stream = do_QueryInterface(mStreams[i]);
-    if (NS_WARN_IF(!stream)) {
+    if (NS_WARN_IF(!mStreams[i].mSeekableStream)) {
       return NS_ERROR_NO_INTERFACE;
     }
 
     int64_t pos;
-    rv = TellMaybeSeek(stream, &pos);
+    rv = TellMaybeSeek(mStreams[i].mSeekableStream, &pos);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return rv;
     }
@@ -662,6 +779,188 @@ NS_IMETHODIMP
 nsMultiplexInputStream::SetEOF()
 {
   return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+nsMultiplexInputStream::CloseWithStatus(nsresult aStatus)
+{
+  return Close();
+}
+
+// This class is used to inform nsMultiplexInputStream that it's time to execute
+// the asyncWait callback.
+class AsyncWaitRunnable final : public CancelableRunnable
+{
+  RefPtr<nsMultiplexInputStream> mStream;
+
+public:
+  explicit AsyncWaitRunnable(nsMultiplexInputStream* aStream)
+    : CancelableRunnable("AsyncWaitRunnable")
+    , mStream(aStream)
+  {
+    MOZ_ASSERT(aStream);
+  }
+
+  NS_IMETHOD
+  Run() override
+  {
+    mStream->AsyncWaitCompleted();
+    return NS_OK;
+  }
+};
+
+// This helper class processes an array of nsIAsyncInputStreams, calling
+// AsyncWait() for each one of them. When all of them have answered, this helper
+// dispatches a AsyncWaitRunnable object. If there is an error calling
+// AsyncWait(), AsyncWaitRunnable is not dispatched.
+class AsyncStreamHelper final : public nsIInputStreamCallback
+{
+public:
+  NS_DECL_THREADSAFE_ISUPPORTS
+
+  static nsresult
+  Process(nsMultiplexInputStream* aStream,
+          nsTArray<nsCOMPtr<nsIAsyncInputStream>>& aAsyncStreams,
+          uint32_t aFlags, uint32_t aRequestedCount,
+          nsIEventTarget* aEventTarget)
+  {
+    MOZ_ASSERT(aStream);
+    MOZ_ASSERT(!aAsyncStreams.IsEmpty());
+    MOZ_ASSERT(aEventTarget);
+
+    RefPtr<AsyncStreamHelper> helper =
+      new AsyncStreamHelper(aStream, aAsyncStreams, aEventTarget);
+    return helper->Run(aFlags, aRequestedCount);
+  }
+
+private:
+  AsyncStreamHelper(nsMultiplexInputStream* aStream,
+                    nsTArray<nsCOMPtr<nsIAsyncInputStream>>& aAsyncStreams,
+                    nsIEventTarget* aEventTarget)
+    : mMutex("AsyncStreamHelper::mMutex")
+    , mStream(aStream)
+    , mEventTarget(aEventTarget)
+    , mValid(true)
+  {
+    mPendingStreams.SwapElements(aAsyncStreams);
+  }
+
+  ~AsyncStreamHelper() = default;
+
+  nsresult
+  Run(uint32_t aFlags, uint32_t aRequestedCount)
+  {
+    MutexAutoLock lock(mMutex);
+
+    for (uint32_t i = 0; i < mPendingStreams.Length(); ++i) {
+      nsresult rv =
+        mPendingStreams[i]->AsyncWait(this, aFlags, aRequestedCount,
+                                      mEventTarget);
+      if (NS_WARN_IF(NS_FAILED(rv))) {
+        mValid = false;
+        return rv;
+      }
+    }
+
+    return NS_OK;
+  }
+
+  NS_IMETHOD
+  OnInputStreamReady(nsIAsyncInputStream* aStream) override
+  {
+    MOZ_ASSERT(aStream, "This cannot be one of ours.");
+
+    MutexAutoLock lock(mMutex);
+
+    // We failed during the Run().
+    if (!mValid) {
+      return NS_OK;
+    }
+
+    MOZ_ASSERT(mPendingStreams.Contains(aStream));
+    mPendingStreams.RemoveElement(aStream);
+
+    // The last asyncStream answered. We can inform nsMultiplexInputStream.
+    if (mPendingStreams.IsEmpty()) {
+      RefPtr<AsyncWaitRunnable> runnable = new AsyncWaitRunnable(mStream);
+      return mEventTarget->Dispatch(runnable.forget(), NS_DISPATCH_NORMAL);
+    }
+
+    return NS_OK;
+  }
+
+  Mutex mMutex;
+  RefPtr<nsMultiplexInputStream> mStream;
+  nsTArray<nsCOMPtr<nsIAsyncInputStream>> mPendingStreams;
+  nsCOMPtr<nsIEventTarget> mEventTarget;
+  bool mValid;
+};
+
+NS_IMPL_ISUPPORTS(AsyncStreamHelper, nsIInputStreamCallback)
+
+NS_IMETHODIMP
+nsMultiplexInputStream::AsyncWait(nsIInputStreamCallback* aCallback,
+                                  uint32_t aFlags,
+                                  uint32_t aRequestedCount,
+                                  nsIEventTarget* aEventTarget)
+{
+  // When AsyncWait() is called, it's better to call AsyncWait() to any sub
+  // stream if they are valid nsIAsyncInputStream instances. In this way, when
+  // they all call OnInputStreamReady(), we can proceed with the Read().
+
+  MutexAutoLock lock(mLock);
+
+  if (NS_FAILED(mStatus)) {
+    return mStatus;
+  }
+
+  if (mAsyncWaitCallback && aCallback) {
+    return NS_ERROR_FAILURE;
+  }
+
+  mAsyncWaitCallback = aCallback;
+
+  if (!mAsyncWaitCallback) {
+      return NS_OK;
+  }
+
+  nsTArray<nsCOMPtr<nsIAsyncInputStream>> asyncStreams;
+  for (uint32_t i = mCurrentStream; i < mStreams.Length(); ++i) {
+    if (mStreams[i].mAsyncStream) {
+      asyncStreams.AppendElement(mStreams[i].mAsyncStream);
+    }
+  }
+
+  if (!aEventTarget) {
+    aEventTarget = SystemGroup::EventTargetFor(TaskCategory::Other);
+  }
+
+  if (asyncStreams.IsEmpty()) {
+    RefPtr<AsyncWaitRunnable> runnable = new AsyncWaitRunnable(this);
+    return aEventTarget->Dispatch(runnable.forget(), NS_DISPATCH_NORMAL);
+  }
+
+  return AsyncStreamHelper::Process(this, asyncStreams, aFlags, aRequestedCount,
+                                    aEventTarget);
+}
+
+void
+nsMultiplexInputStream::AsyncWaitCompleted()
+{
+  nsCOMPtr<nsIInputStreamCallback> callback;
+
+  {
+    MutexAutoLock lock(mLock);
+
+    // The callback has been nullified in the meantime.
+    if (!mAsyncWaitCallback) {
+      return;
+    }
+
+    mAsyncWaitCallback.swap(callback);
+  }
+
+  callback->OnInputStreamReady(this);
 }
 
 nsresult
@@ -696,8 +995,9 @@ nsMultiplexInputStream::Serialize(InputStreamParams& aParams,
     streams.SetCapacity(streamCount);
     for (uint32_t index = 0; index < streamCount; index++) {
       InputStreamParams childStreamParams;
-      SerializeInputStream(mStreams[index], childStreamParams,
-                           aFileDescriptors);
+      InputStreamHelper::SerializeInputStream(mStreams[index].mStream,
+                                              childStreamParams,
+                                              aFileDescriptors);
 
       streams.AppendElement(childStreamParams);
     }
@@ -728,7 +1028,8 @@ nsMultiplexInputStream::Deserialize(const InputStreamParams& aParams,
   uint32_t streamCount = streams.Length();
   for (uint32_t index = 0; index < streamCount; index++) {
     nsCOMPtr<nsIInputStream> stream =
-      DeserializeInputStream(streams[index], aFileDescriptors);
+      InputStreamHelper::DeserializeInputStream(streams[index],
+                                                aFileDescriptors);
     if (!stream) {
       NS_WARNING("Deserialize failed!");
       return false;
@@ -747,6 +1048,30 @@ nsMultiplexInputStream::Deserialize(const InputStreamParams& aParams,
   return true;
 }
 
+Maybe<uint64_t>
+nsMultiplexInputStream::ExpectedSerializedLength()
+{
+  MutexAutoLock lock(mLock);
+
+  bool lengthValueExists = false;
+  uint64_t expectedLength = 0;
+  uint32_t streamCount = mStreams.Length();
+  for (uint32_t index = 0; index < streamCount; index++) {
+    nsCOMPtr<nsIIPCSerializableInputStream> stream =
+      do_QueryInterface(mStreams[index].mStream);
+    if (!stream) {
+      continue;
+    }
+    Maybe<uint64_t> length = stream->ExpectedSerializedLength();
+    if (length.isNothing()) {
+      continue;
+    }
+    lengthValueExists = true;
+    expectedLength += length.value();
+  }
+  return lengthValueExists ? Some(expectedLength) : Nothing();
+}
+
 NS_IMETHODIMP
 nsMultiplexInputStream::GetCloneable(bool* aCloneable)
 {
@@ -760,7 +1085,8 @@ nsMultiplexInputStream::GetCloneable(bool* aCloneable)
 
   uint32_t len = mStreams.Length();
   for (uint32_t i = 0; i < len; ++i) {
-    nsCOMPtr<nsICloneableInputStream> cis = do_QueryInterface(mStreams[i]);
+    nsCOMPtr<nsICloneableInputStream> cis =
+      do_QueryInterface(mStreams[i].mStream);
     if (!cis || !cis->GetCloneable()) {
       *aCloneable = false;
       return NS_OK;
@@ -787,7 +1113,8 @@ nsMultiplexInputStream::Clone(nsIInputStream** aClone)
   nsresult rv;
   uint32_t len = mStreams.Length();
   for (uint32_t i = 0; i < len; ++i) {
-    nsCOMPtr<nsICloneableInputStream> substream = do_QueryInterface(mStreams[i]);
+    nsCOMPtr<nsICloneableInputStream> substream =
+      do_QueryInterface(mStreams[i].mStream);
     if (NS_WARN_IF(!substream)) {
       return NS_ERROR_FAILURE;
     }
@@ -806,4 +1133,60 @@ nsMultiplexInputStream::Clone(nsIInputStream** aClone)
 
   clone.forget(aClone);
   return NS_OK;
+}
+
+#define MAYBE_UPDATE_VALUE_REAL(x, y) \
+  if (y) {                            \
+    if (aCount == 1) {                \
+      ++x;                            \
+    } else if (x > 0) {               \
+      --x;                            \
+    } else {                          \
+      MOZ_CRASH("A nsIInputStream changed QI map when stored in a nsMultiplexInputStream!"); \
+    }                                 \
+  }
+
+#define MAYBE_UPDATE_VALUE(x, y)                                \
+  {                                                             \
+    nsCOMPtr<y> substream = do_QueryInterface(aStream.mStream); \
+    MAYBE_UPDATE_VALUE_REAL(x, substream)                       \
+  }
+
+void
+nsMultiplexInputStream::UpdateQIMap(StreamData& aStream, int32_t aCount)
+{
+  MOZ_ASSERT(aCount == -1 || aCount == 1);
+
+  MAYBE_UPDATE_VALUE_REAL(mSeekableStreams, aStream.mSeekableStream)
+  MAYBE_UPDATE_VALUE(mIPCSerializableStreams, nsIIPCSerializableInputStream)
+  MAYBE_UPDATE_VALUE(mCloneableStreams, nsICloneableInputStream)
+  MAYBE_UPDATE_VALUE_REAL(mAsyncInputStreams, aStream.mAsyncStream)
+}
+
+#undef MAYBE_UPDATE_VALUE
+
+bool
+nsMultiplexInputStream::IsSeekable() const
+{
+  return mStreams.Length() == mSeekableStreams;
+}
+
+bool
+nsMultiplexInputStream::IsIPCSerializable() const
+{
+  return mStreams.Length() == mIPCSerializableStreams;
+}
+
+bool
+nsMultiplexInputStream::IsCloneable() const
+{
+  return mStreams.Length() == mCloneableStreams;
+}
+
+bool
+nsMultiplexInputStream::IsAsyncInputStream() const
+{
+  // nsMultiplexInputStream is nsIAsyncInputStream if at least 1 of the
+  // substream implements that interface.
+  return !!mAsyncInputStreams;
 }

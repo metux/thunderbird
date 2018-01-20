@@ -3,8 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 "use strict";
 
-/* global WebrtcGlobalInformation, document */
-
 var Cu = Components.utils;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -24,13 +22,20 @@ const formatString = strings.formatStringFromName;
 const LOGFILE_NAME_DEFAULT = "aboutWebrtc.html";
 const WEBRTC_TRACE_ALL = 65535;
 
-var reportsRetrieved = new Promise(resolve =>
-  WebrtcGlobalInformation.getAllStats(stats => resolve(stats))
-);
+function getStats() {
+  return new Promise(resolve =>
+    WebrtcGlobalInformation.getAllStats(stats => resolve(stats)));
+}
 
-var logRetrieved = new Promise(resolve =>
-  WebrtcGlobalInformation.getLogging("", log => resolve(log))
-);
+function getLog() {
+  return new Promise(resolve =>
+    WebrtcGlobalInformation.getLogging("", log => resolve(log)));
+}
+
+// Begin initial data queries as page loads. Store returned Promises for
+// later use.
+var reportsRetrieved = getStats();
+var logRetrieved = getLog();
 
 function onLoad() {
   document.title = getString("document_title");
@@ -43,27 +48,37 @@ function onLoad() {
     controls.appendChild(set);
   }
 
-  let content = document.querySelector("#content");
-  if (!content) {
+  let contentElem = document.querySelector("#content");
+  if (!contentElem) {
     return;
   }
 
+  let contentInit = function(data) {
+    AboutWebRTC.init(onClearStats, onClearLog);
+    AboutWebRTC.render(contentElem, data);
+  };
+
   Promise.all([reportsRetrieved, logRetrieved])
-    .then(([stats, log]) => {
-      AboutWebRTC.init(stats.reports, log);
-      content.appendChild(AboutWebRTC.render());
-    }).catch(error => {
-      let msg = document.createElement("h3");
-      msg.textContent = getString("cannot_retrieve_log");
-      content.appendChild(msg);
-      msg = document.createElement("p");
-      msg.innerHTML = `${error.name}: ${error.message}`;
-      content.appendChild(msg);
-    });
+    .then(([stats, log]) => contentInit({reports: stats.reports, log}))
+    .catch(error => contentInit({error}));
+}
+
+function onClearLog() {
+  WebrtcGlobalInformation.clearLogging();
+  getLog()
+    .then(log => AboutWebRTC.refresh({log}))
+    .catch(error => AboutWebRTC.refresh({logError: error}));
+}
+
+function onClearStats() {
+  WebrtcGlobalInformation.clearAllStats();
+  getStats()
+    .then(stats => AboutWebRTC.refresh({reports: stats.reports}))
+    .catch(error => AboutWebRTC.refresh({reportError: error}));
 }
 
 var ControlSet = {
-  render: function() {
+  render() {
     let controls = document.createElement("div");
     let control = document.createElement("div");
     let message = document.createElement("div");
@@ -79,7 +94,7 @@ var ControlSet = {
     return controls;
   },
 
-  add: function(controlObj) {
+  add(controlObj) {
     let [controlElem, messageElem] = controlObj.render();
     this.controlSection.appendChild(controlElem);
     this.messageSection.appendChild(messageElem);
@@ -93,7 +108,7 @@ function Control() {
 }
 
 Control.prototype = {
-  render: function () {
+  render() {
     let controlElem = document.createElement("button");
     let messageElem = document.createElement("p");
 
@@ -121,18 +136,20 @@ Control.prototype = {
     return this._messageVal;
   },
 
-  update: function() {
+  update() {
     this.ctrl.textContent = this._label;
 
+    this.msg.textContent = "";
     if (this._message) {
-      this.msg.innerHTML =
-        `<span class="info-label">${this._messageHeader}:</span> ${this._message}`;
-    } else {
-      this.msg.innerHTML = null;
+      this.msg.appendChild(Object.assign(document.createElement("span"), {
+        className: "info-label",
+        textContent: `${this._messageHeader}: `,
+      }));
+      this.msg.appendChild(document.createTextNode(this._message));
     }
   },
 
-  onClick: function(event) {
+  onClick(event) {
     return true;
   }
 };
@@ -155,29 +172,29 @@ SavePage.prototype.onClick = function() {
   FoldEffect.expandAll();
   FilePicker.init(window, getString("save_page_dialog_title"), FilePicker.modeSave);
   FilePicker.defaultString = LOGFILE_NAME_DEFAULT;
-  let rv = FilePicker.show();
+  FilePicker.open(rv => {
+    if (rv == FilePicker.returnOK || rv == FilePicker.returnReplace) {
+      let fout = FileUtils.openAtomicFileOutputStream(
+        FilePicker.file, FileUtils.MODE_WRONLY | FileUtils.MODE_CREATE);
 
-  if (rv == FilePicker.returnOK || rv == FilePicker.returnReplace) {
-    let fout = FileUtils.openAtomicFileOutputStream(
-      FilePicker.file, FileUtils.MODE_WRONLY | FileUtils.MODE_CREATE);
+      let nodes = content.querySelectorAll(".no-print");
+      let noPrintList = [];
+      for (let node of nodes) {
+        noPrintList.push(node);
+        node.style.setProperty("display", "none");
+      }
 
-    let nodes = content.querySelectorAll(".no-print");
-    let noPrintList = [];
-    for (let node of nodes) {
-      noPrintList.push(node);
-      node.style.setProperty("display", "none");
-    };
+      fout.write(content.outerHTML, content.outerHTML.length);
+      FileUtils.closeAtomicFileOutputStream(fout);
 
-    fout.write(content.outerHTML, content.outerHTML.length);
-    FileUtils.closeAtomicFileOutputStream(fout);
+      for (let node of noPrintList) {
+        node.style.removeProperty("display");
+      }
 
-    for (let node of noPrintList) {
-      node.style.removeProperty("display");
-    };
-
-    this._message = formatString("save_page_msg", [FilePicker.file.path], 1);
-    this.update();
-  }
+      this._message = formatString("save_page_msg", [FilePicker.file.path], 1);
+      this.update();
+    }
+  });
 };
 
 function DebugMode() {
@@ -242,27 +259,26 @@ function AecLogging() {
 AecLogging.prototype = Object.create(Control.prototype);
 AecLogging.prototype.constructor = AecLogging;
 
-AecLogging.prototype.offState = function () {
+AecLogging.prototype.offState = function() {
   this._label = getString("aec_logging_off_state_label");
   try {
-    let file = Services.prefs.getCharPref("media.webrtc.debug.aec_log_dir");
+    let file = WebrtcGlobalInformation.aecDebugLogDir;
     this._message = formatString("aec_logging_off_state_msg", [file], 1);
   } catch (e) {
     this._message = null;
   }
 };
 
-AecLogging.prototype.onState = function () {
+AecLogging.prototype.onState = function() {
   this._label = getString("aec_logging_on_state_label");
   try {
-    let file = Services.prefs.getCharPref("media.webrtc.debug.aec_log_dir");
     this._message = getString("aec_logging_on_state_msg");
   } catch (e) {
     this._message = null;
   }
 };
 
-AecLogging.prototype.onClick = function () {
+AecLogging.prototype.onClick = function() {
   if (WebrtcGlobalInformation.aecDebug) {
     WebrtcGlobalInformation.aecDebug = false;
     this.offState();
@@ -277,42 +293,101 @@ var AboutWebRTC = {
   _reports: [],
   _log: [],
 
-  init: function(reports, log) {
-    this._reports = reports || [];
-    this._log = log || [];
+  init(onClearStats, onClearLog) {
+    this._onClearStats = onClearStats;
+    this._onClearLog = onClearLog;
   },
 
-  render: function() {
-    let content = document.createDocumentFragment();
-    content.appendChild(this.renderPeerConnections());
-    content.appendChild(this.renderConnectionLog());
-    return content;
+  render(parent, data) {
+    this._content = parent;
+    this._setData(data);
+
+    if (data.error) {
+      let msg = document.createElement("h3");
+      msg.textContent = getString("cannot_retrieve_log");
+      parent.appendChild(msg);
+      msg = document.createElement("p");
+      msg.textContent = `${data.error.name}: ${data.error.message}`;
+      parent.appendChild(msg);
+      return;
+    }
+
+    this._peerConnections = this.renderPeerConnections();
+    this._connectionLog = this.renderConnectionLog();
+    this._content.appendChild(this._peerConnections);
+    this._content.appendChild(this._connectionLog);
   },
 
-  renderPeerConnections: function() {
-    let connections = document.createDocumentFragment();
+  _setData(data) {
+    if (data.reports) {
+      this._reports = data.reports;
+    }
+
+    if (data.log) {
+      this._log = data.log;
+    }
+  },
+
+  refresh(data) {
+    this._setData(data);
+    let pc = this._peerConnections;
+    this._peerConnections = this.renderPeerConnections();
+    let log = this._connectionLog;
+    this._connectionLog = this.renderConnectionLog();
+    this._content.replaceChild(this._peerConnections, pc);
+    this._content.replaceChild(this._connectionLog, log);
+  },
+
+  renderPeerConnections() {
+    let connections = document.createElement("div");
+    connections.className = "stats";
+
+    let heading = document.createElement("span");
+    heading.className = "section-heading";
+    let elem = document.createElement("h3");
+    elem.textContent = getString("stats_heading");
+    heading.appendChild(elem);
+
+    elem = document.createElement("button");
+    elem.textContent = getString("stats_clear");
+    elem.className = "no-print";
+    elem.onclick = this._onClearStats;
+    heading.appendChild(elem);
+    connections.appendChild(heading);
+
+    if (!this._reports || !this._reports.length) {
+      return connections;
+    }
 
     let reports = [...this._reports];
     reports.sort((a, b) => b.timestamp - a.timestamp);
     for (let report of reports) {
       let peerConnection = new PeerConnection(report);
       connections.appendChild(peerConnection.render());
-    };
+    }
 
     return connections;
   },
 
-  renderConnectionLog: function() {
+  renderConnectionLog() {
     let content = document.createElement("div");
     content.className = "log";
 
-    if (!this._log.length) {
-      return content;
-    }
-
+    let heading = document.createElement("span");
+    heading.className = "section-heading";
     let elem = document.createElement("h3");
     elem.textContent = getString("log_heading");
-    content.appendChild(elem);
+    heading.appendChild(elem);
+    elem = document.createElement("button");
+    elem.textContent = getString("log_clear");
+    elem.className = "no-print";
+    elem.onclick = this._onClearLog;
+    heading.appendChild(elem);
+    content.appendChild(heading);
+
+    if (!this._log || !this._log.length) {
+      return content;
+    }
 
     let div = document.createElement("div");
     let sectionCtrl = document.createElement("div");
@@ -328,7 +403,7 @@ var AboutWebRTC = {
       elem = document.createElement("p");
       elem.textContent = line;
       div.appendChild(elem);
-    };
+    }
 
     content.appendChild(div);
     return content;
@@ -340,7 +415,7 @@ function PeerConnection(report) {
 }
 
 PeerConnection.prototype = {
-  render: function() {
+  render() {
     let pc = document.createElement("div");
     pc.className = "peer-connection";
     pc.appendChild(this.renderHeading());
@@ -361,7 +436,7 @@ PeerConnection.prototype = {
     return pc;
   },
 
-  renderHeading: function () {
+  renderHeading() {
     let pcInfo = this.getPCInfo(this._report);
     let heading = document.createElement("h3");
     let now = new Date(this._report.timestamp).toTimeString();
@@ -370,7 +445,7 @@ PeerConnection.prototype = {
     return heading;
   },
 
-  renderDesc: function() {
+  renderDesc() {
     let info = document.createElement("div");
     let label = document.createElement("span");
     let body = document.createElement("span");
@@ -386,7 +461,7 @@ PeerConnection.prototype = {
     return info;
   },
 
-  getPCInfo: function(report) {
+  getPCInfo(report) {
     return {
       id: report.pcid.match(/id=(\S+)/)[1],
       url: report.pcid.match(/url=([^)]+)/)[1],
@@ -400,7 +475,7 @@ function SDPStats(report) {
 }
 
 SDPStats.prototype = {
-  render: function() {
+  render() {
     let div = document.createElement("div");
     let elem = document.createElement("h4");
 
@@ -433,7 +508,7 @@ function RTPStats(report) {
 }
 
 RTPStats.prototype = {
-  render: function() {
+  render() {
     let div = document.createElement("div");
     let heading = document.createElement("h4");
 
@@ -444,14 +519,14 @@ RTPStats.prototype = {
 
     for (let statSet of this._stats) {
       div.appendChild(this.renderRTPStatSet(statSet));
-    };
+    }
 
     return div;
   },
 
-  generateRTPStats: function() {
+  generateRTPStats() {
     let remoteRtpStats = {};
-    let rtpStats = [].concat((this._report.inboundRTPStreamStats  || []),
+    let rtpStats = [].concat((this._report.inboundRTPStreamStats || []),
                              (this._report.outboundRTPStreamStats || []));
 
     // Generate an id-to-streamStat index for each streamStat that is marked
@@ -460,7 +535,7 @@ RTPStats.prototype = {
       if (stats.isRemote) {
         remoteRtpStats[stats.id] = stats;
       }
-    };
+    }
 
     // If a streamStat has a remoteId attribute, create a remoteRtpStats
     // attribute that references the remote streamStat entry directly.
@@ -469,12 +544,12 @@ RTPStats.prototype = {
       if (stats.remoteId) {
         stats.remoteRtpStats = remoteRtpStats[stats.remoteId];
       }
-    };
+    }
 
     this._stats = rtpStats;
   },
 
-  renderAvStats: function(stats) {
+  renderAvStats(stats) {
     let statsString = "";
 
     if (stats.mozAvSyncDelay) {
@@ -489,7 +564,7 @@ RTPStats.prototype = {
     return line;
   },
 
-  renderCoderStats: function(stats) {
+  renderCoderStats(stats) {
     let statsString = "";
     let label;
 
@@ -524,7 +599,7 @@ RTPStats.prototype = {
     return line;
   },
 
-  renderTransportStats: function(stats, typeLabel) {
+  renderTransportStats(stats, typeLabel) {
     let time  = new Date(stats.timestamp).toTimeString();
     let statsString = `${typeLabel}: ${time} ${stats.type} SSRC: ${stats.ssrc}`;
 
@@ -537,8 +612,8 @@ RTPStats.prototype = {
 
       statsString += ` ${getString("lost_label")}: ${stats.packetsLost} ${getString("jitter_label")}: ${stats.jitter}`;
 
-      if (stats.mozRtt) {
-        statsString += ` RTT: ${stats.mozRtt} ms`;
+      if (stats.roundTripTime) {
+        statsString += ` RTT: ${stats.roundTripTime} ms`;
       }
     } else if (stats.packetsSent) {
       statsString += ` ${getString("sent_label")}: ${stats.packetsSent} ${getString("packets")}`;
@@ -552,7 +627,7 @@ RTPStats.prototype = {
     return line;
   },
 
-  renderRTPStatSet: function(stats) {
+  renderRTPStatSet(stats) {
     let div = document.createElement("div");
     let heading = document.createElement("h5");
 
@@ -579,7 +654,7 @@ function ICEStats(report) {
 }
 
 ICEStats.prototype = {
-  render: function() {
+  render() {
     let tbody = [];
     for (let stat of this.generateICEStats()) {
       tbody.push([
@@ -588,13 +663,16 @@ ICEStats.prototype = {
         stat.state || "",
         stat.priority || "",
         stat.nominated || "",
-        stat.selected || ""
+        stat.selected || "",
+        stat.bytesSent || "",
+        stat.bytesReceived || ""
       ]);
-    };
+    }
 
     let statsTable = new SimpleTable(
       [getString("local_candidate"), getString("remote_candidate"), getString("ice_state"),
-       getString("priority"), getString("nominated"), getString("selected")],
+       getString("priority"), getString("nominated"), getString("selected"),
+       getString("ice_pair_bytes_sent"), getString("ice_pair_bytes_received")],
       tbody);
 
     let div = document.createElement("div");
@@ -602,12 +680,32 @@ ICEStats.prototype = {
 
     heading.textContent = getString("ice_stats_heading");
     div.appendChild(heading);
+
     div.appendChild(statsTable.render());
+    div.appendChild(this.renderIceMetric("ice_restart_count_label",
+                                         this._report.iceRestarts));
+    div.appendChild(this.renderIceMetric("ice_rollback_count_label",
+                                         this._report.iceRollbacks));
 
     return div;
   },
 
-  generateICEStats: function() {
+  renderIceMetric(labelName, value) {
+    let info = document.createElement("div");
+    let label = document.createElement("span");
+    let body = document.createElement("span");
+
+    label.className = "info-label";
+    label.textContent = `${getString(labelName)}: `;
+    info.appendChild(label);
+
+    body.className = "info-body";
+    body.textContent = value;
+    info.appendChild(body);
+    return info;
+  },
+
+  generateICEStats() {
     // Create an index based on candidate ID for each element in the
     // iceCandidateStats array.
     let candidates = new Map();
@@ -632,7 +730,9 @@ ICEStats.prototype = {
           state: pair.state,
           priority: pair.priority,
           nominated: pair.nominated,
-          selected: pair.selected
+          selected: pair.selected,
+          bytesSent: pair.bytesSent,
+          bytesReceived: pair.bytesReceived
         };
         matched[local.id] = true;
 
@@ -642,7 +742,7 @@ ICEStats.prototype = {
         }
         stats.push(stat);
       }
-    };
+    }
 
     for (let c of candidates.values()) {
       if (matched[c.id])
@@ -651,19 +751,19 @@ ICEStats.prototype = {
       stat = {};
       stat[c.type] = this.candidateToString(c);
       stats.push(stat);
-    };
+    }
 
     return stats.sort((a, b) => (b.priority || 0) - (a.priority || 0));
   },
 
-  candidateToString: function(c) {
+  candidateToString(c) {
     if (!c) {
       return "*";
     }
 
     var type = c.candidateType;
 
-    if (c.type == "localcandidate" && c.candidateType == "relayed") {
+    if (c.type == "local-candidate" && c.candidateType == "relayed") {
       type = `${c.candidateType}-${c.mozLocalTransport}`;
     }
 
@@ -677,19 +777,19 @@ function SimpleTable(heading, data) {
 }
 
 SimpleTable.prototype = {
-  renderRow: function(list) {
+  renderRow(list) {
     let row = document.createElement("tr");
 
     for (let elem of list) {
       let cell = document.createElement("td");
       cell.textContent = elem;
       row.appendChild(cell);
-    };
+    }
 
     return row;
   },
 
-  render: function() {
+  render() {
     let table = document.createElement("table");
 
     if (this._heading) {
@@ -698,7 +798,7 @@ SimpleTable.prototype = {
 
     for (let row of this._data) {
       table.appendChild(this.renderRow(row));
-    };
+    }
 
     return table;
   }
@@ -712,10 +812,10 @@ function FoldEffect(targetElem, options = {}) {
     this._hideHint = options.hideHint || getString("fold_hide_hint");
     this._target = targetElem;
   }
-};
+}
 
 FoldEffect.prototype = {
-  render: function() {
+  render() {
     this._target.classList.add("fold-target");
 
     let ctrl = document.createElement("div");
@@ -728,7 +828,7 @@ FoldEffect.prototype = {
     return ctrl;
   },
 
-  onClick: function() {
+  onClick() {
     if (this._target.classList.contains("fold-closed")) {
       this.open();
     } else {
@@ -737,13 +837,13 @@ FoldEffect.prototype = {
     return true;
   },
 
-  open: function() {
+  open() {
     this._target.classList.remove("fold-closed");
     this._trigger.setAttribute("title", this._hideHint);
     this._trigger.textContent = this._hideMsg;
   },
 
-  close: function() {
+  close() {
     this._target.classList.add("fold-closed");
     this._trigger.setAttribute("title", this._showHint);
     this._trigger.textContent = this._showMsg;
@@ -755,11 +855,11 @@ FoldEffect._sections = [];
 FoldEffect.expandAll = function() {
   for (let section of this._sections) {
     section.open();
-  };
+  }
 };
 
 FoldEffect.collapseAll = function() {
   for (let section of this._sections) {
     section.close();
-  };
+  }
 };

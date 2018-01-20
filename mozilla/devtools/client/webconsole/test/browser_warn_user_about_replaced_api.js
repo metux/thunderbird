@@ -1,7 +1,7 @@
-/* vim:set ts=2 sw=2 sts=2 et: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
+/* vim: set ft=javascript ts=2 et sw=2 tw=80: */
+/* Any copyright is dedicated to the Public Domain.
+ * http://creativecommons.org/publicdomain/zero/1.0/ */
 
 "use strict";
 
@@ -11,7 +11,7 @@ const TEST_URI = "http://example.com/browser/devtools/client/webconsole/" +
                  "test/testscript.js";
 const PREF = "devtools.webconsole.persistlog";
 
-var test = asyncTest(function* () {
+add_task(function* () {
   Services.prefs.setBoolPref(PREF, true);
 
   let { browser } = yield loadTab(TEST_URI);
@@ -20,7 +20,7 @@ var test = asyncTest(function* () {
   yield testWarningNotPresent(hud);
 
   let loaded = loadBrowser(browser);
-  content.location = TEST_REPLACED_API_URI;
+  BrowserTestUtils.loadURI(browser, TEST_REPLACED_API_URI);
   yield loaded;
 
   let hud2 = yield openConsole();
@@ -31,14 +31,17 @@ var test = asyncTest(function* () {
 });
 
 function testWarningNotPresent(hud) {
-  let deferred = promise.defer();
+  let deferred = defer();
 
   is(hud.outputNode.textContent.indexOf("logging API"), -1,
      "no warning displayed");
 
   // Bug 862024: make sure the warning doesn't show after page reload.
   info("reload " + TEST_URI);
-  executeSoon(() => content.location.reload());
+  executeSoon(function () {
+    let browser = gBrowser.selectedBrowser;
+    ContentTask.spawn(browser, null, "() => content.location.reload()");
+  });
 
   waitForMessages({
     webconsole: hud,
@@ -57,7 +60,7 @@ function testWarningNotPresent(hud) {
 
 function testWarningPresent(hud) {
   info("wait for the warning to show");
-  let deferred = promise.defer();
+  let deferred = defer();
 
   let warning = {
     webconsole: hud,
@@ -74,7 +77,8 @@ function testWarningPresent(hud) {
     executeSoon(() => {
       info("reload the test page and wait for the warning to show");
       waitForMessages(warning).then(deferred.resolve);
-      content.location.reload();
+      let browser = gBrowser.selectedBrowser;
+      ContentTask.spawn(browser, null, "() => content.location.reload()");
     });
   });
 

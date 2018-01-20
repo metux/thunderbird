@@ -3,20 +3,17 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 "use strict";
 
-const { Cc, Ci, Cu, Cr } = require("chrome");
-loader.lazyRequireGetter(this, "extend",
-  "sdk/util/object", true);
-
 /**
  * Utility functions for managing recording models and their internal data,
  * such as filtering profile samples or offsetting timestamps.
  */
 
-function mapRecordingOptions (type, options) {
+function mapRecordingOptions(type, options) {
   if (type === "profiler") {
     return {
       entries: options.bufferSize,
-      interval: options.sampleFrequency ? (1000 / (options.sampleFrequency * 1000)) : void 0
+      interval: options.sampleFrequency ? (1000 / (options.sampleFrequency * 1000))
+                                        : void 0
     };
   }
 
@@ -52,7 +49,7 @@ function mapRecordingOptions (type, options) {
  * @param {object} options
  * @param {boolean}
  */
-function normalizePerformanceFeatures (options, supportedFeatures) {
+function normalizePerformanceFeatures(options, supportedFeatures) {
   return Object.keys(options).reduce((modifiedOptions, feature) => {
     if (supportedFeatures[feature] !== false) {
       modifiedOptions[feature] = options[feature];
@@ -142,7 +139,7 @@ function offsetAndScaleTimestamps(timestamps, timeOffset, timeScale) {
  * @param {Array} dest
  * @param {Array} src
  */
-function pushAll (dest, src) {
+function pushAll(dest, src) {
   let length = src.length;
   for (let i = 0; i < length; i++) {
     dest.push(src[i]);
@@ -267,7 +264,7 @@ function getProfileThreadFromAllocations(allocations) {
   return thread;
 }
 
-function allocationsWithSchema (data) {
+function allocationsWithSchema(data) {
   let slot = 0;
   return {
     schema: {
@@ -299,7 +296,7 @@ function deflateProfile(profile) {
 
   profile.meta.version = 3;
   return profile;
-};
+}
 
 /**
  * Given an array of frame objects, deduplicates each frame as well as all
@@ -332,7 +329,7 @@ function deflateStack(frames, uniqueStacks) {
  */
 function deflateSamples(samples, uniqueStacks) {
   // Schema:
-  //   [stack, time, responsiveness, rss, uss, frameNumber, power]
+  //   [stack, time, responsiveness, rss, uss]
 
   let deflatedSamples = new Array(samples.length);
   for (let i = 0; i < samples.length; i++) {
@@ -342,9 +339,7 @@ function deflateSamples(samples, uniqueStacks) {
       sample.time,
       sample.responsiveness,
       sample.rss,
-      sample.uss,
-      sample.frameNumber,
-      sample.power
+      sample.uss
     ];
   }
 
@@ -459,9 +454,7 @@ function samplesWithSchema(data) {
       time: slot++,
       responsiveness: slot++,
       rss: slot++,
-      uss: slot++,
-      frameNumber: slot++,
-      power: slot++
+      uss: slot++
     },
     data: data
   };
@@ -475,7 +468,7 @@ function UniqueStrings() {
   this._stringHash = Object.create(null);
 }
 
-UniqueStrings.prototype.getOrAddStringIndex = function(s) {
+UniqueStrings.prototype.getOrAddStringIndex = function (s) {
   if (!s) {
     return null;
   }
@@ -545,19 +538,19 @@ function UniqueStacks() {
   this._uniqueStrings = new UniqueStrings();
 }
 
-UniqueStacks.prototype.getStackTableWithSchema = function() {
+UniqueStacks.prototype.getStackTableWithSchema = function () {
   return stackTableWithSchema(this._stackTable);
 };
 
-UniqueStacks.prototype.getFrameTableWithSchema = function() {
+UniqueStacks.prototype.getFrameTableWithSchema = function () {
   return frameTableWithSchema(this._frameTable);
 };
 
-UniqueStacks.prototype.getStringTable = function() {
+UniqueStacks.prototype.getStringTable = function () {
   return this._uniqueStrings.stringTable;
 };
 
-UniqueStacks.prototype.getOrAddFrameIndex = function(frame) {
+UniqueStacks.prototype.getOrAddFrameIndex = function (frame) {
   // Schema:
   //   [location, implementation, optimizations, line, category]
 
@@ -568,7 +561,8 @@ UniqueStacks.prototype.getOrAddFrameIndex = function(frame) {
   let implementationIndex = this.getOrAddStringIndex(frame.implementation);
 
   // Super dumb.
-  let hash = `${locationIndex} ${implementationIndex || ""} ${frame.line || ""} ${frame.category || ""}`;
+  let hash = `${locationIndex} ${implementationIndex || ""} ` +
+             `${frame.line || ""} ${frame.category || ""}`;
 
   let index = frameHash[hash];
   if (index !== undefined) {
@@ -589,7 +583,7 @@ UniqueStacks.prototype.getOrAddFrameIndex = function(frame) {
   return index;
 };
 
-UniqueStacks.prototype.getOrAddStackIndex = function(prefixIndex, frameIndex) {
+UniqueStacks.prototype.getOrAddStackIndex = function (prefixIndex, frameIndex) {
   // Schema:
   //   [prefix, frame]
 
@@ -610,7 +604,7 @@ UniqueStacks.prototype.getOrAddStackIndex = function(prefixIndex, frameIndex) {
   return index;
 };
 
-UniqueStacks.prototype.getOrAddStringIndex = function(s) {
+UniqueStacks.prototype.getOrAddStringIndex = function (s) {
   return this._uniqueStrings.getOrAddStringIndex(s);
 };
 

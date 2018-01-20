@@ -10,6 +10,10 @@ var freebusy = Components.classes["@mozilla.org/calendar/freebusy-service;1"]
                          .getService(Components.interfaces.calIFreeBusyService);
 
 function run_test() {
+    do_calendar_startup(really_run_test);
+}
+
+function really_run_test() {
     test_found();
     test_failure();
     test_cancel();
@@ -23,7 +27,7 @@ function test_found() {
     let provider1 = {
         id: 1,
         getFreeBusyIntervals: function() {
-          aListener.onResult(null, []);
+            aListener.onResult(null, []);
         }
     };
 
@@ -31,7 +35,7 @@ function test_found() {
         id: 2,
         called: false,
         getFreeBusyIntervals: function(aCalId, aStart, aEnd, aTypes, aListener) {
-            ok(!this.called)
+            ok(!this.called);
             this.called = true;
 
             let interval = new cal.FreeBusyInterval(aCalId, cIFI.BUSY, aStart, aEnd);
@@ -94,11 +98,11 @@ function test_failure() {
     freebusy.addProvider(provider);
 
     do_test_pending();
-    let op = freebusy.getFreeBusyIntervals("email",
-                                           cal.createDateTime("20120101T010101"),
-                                           cal.createDateTime("20120102T010101"),
-                                           cIFI.BUSY_ALL,
-                                           listener);
+    freebusy.getFreeBusyIntervals("email",
+                                  cal.createDateTime("20120101T010101"),
+                                  cal.createDateTime("20120102T010101"),
+                                  cIFI.BUSY_ALL,
+                                  listener);
 }
 
 function test_cancel() {
@@ -107,11 +111,12 @@ function test_cancel() {
     let provider = {
         QueryInterface: XPCOMUtils.generateQI([Components.interfaces.calIFreeBusyProvider, Components.interfaces.calIOperation]),
         getFreeBusyIntervals: function(aCalId, aStart, aEnd, aTypes, aListener) {
-
-            Services.tm.currentThread.dispatch({run: function() {
-                dump("Cancelling freebusy query...");
-                op.cancel();
-            }}, Components.interfaces.nsIEventTarget.DISPATCH_NORMAL);
+            Services.tm.currentThread.dispatch({
+                run: function() {
+                    dump("Cancelling freebusy query...");
+                    operation.cancel();
+                }
+            }, Components.interfaces.nsIEventTarget.DISPATCH_NORMAL);
 
             // No listener call, we emulate a long running search
             // Do return the operation though
@@ -140,18 +145,18 @@ function test_cancel() {
     freebusy.addProvider(provider);
 
     do_test_pending();
-    let op = freebusy.getFreeBusyIntervals("email",
-                                           cal.createDateTime("20120101T010101"),
-                                           cal.createDateTime("20120102T010101"),
-                                           cIFI.BUSY_ALL,
-                                           listener);
+    let operation = freebusy.getFreeBusyIntervals("email",
+                                                  cal.createDateTime("20120101T010101"),
+                                                  cal.createDateTime("20120102T010101"),
+                                                  cIFI.BUSY_ALL,
+                                                  listener);
 }
 
 // The following functions are not in the interface description and probably
 // don't need to be. Make assumptions about the implementation instead.
 
 function _clearProviders() {
-    freebusy.wrappedJSObject.mProviders = new calInterfaceBag(Components.interfaces.calIFreeBusyProvider);
+    freebusy.wrappedJSObject.mProviders = new cal.calInterfaceBag(Components.interfaces.calIFreeBusyProvider);
 }
 
 function _countProviders() {

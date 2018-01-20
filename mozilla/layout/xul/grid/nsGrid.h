@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -45,12 +45,12 @@ public:
   nsSize GetPrefRowSize(nsBoxLayoutState& aBoxLayoutState, int32_t aRowIndex, bool aIsHorizontal = true);
   nsSize GetMinRowSize(nsBoxLayoutState& aBoxLayoutState, int32_t aRowIndex, bool aIsHorizontal = true);
   nsSize GetMaxRowSize(nsBoxLayoutState& aBoxLayoutState, int32_t aRowIndex, bool aIsHorizontal = true);
-  nscoord GetRowFlex(nsBoxLayoutState& aBoxLayoutState, int32_t aRowIndex, bool aIsHorizontal = true);
+  nscoord GetRowFlex(int32_t aRowIndex, bool aIsHorizontal = true);
 
   nscoord GetPrefRowHeight(nsBoxLayoutState& aBoxLayoutState, int32_t aRowIndex, bool aIsHorizontal = true);
   nscoord GetMinRowHeight(nsBoxLayoutState& aBoxLayoutState, int32_t aRowIndex, bool aIsHorizontal = true);
   nscoord GetMaxRowHeight(nsBoxLayoutState& aBoxLayoutState, int32_t aRowIndex, bool aIsHorizontal = true);
-  void GetRowOffsets(nsBoxLayoutState& aState, int32_t aIndex, nscoord& aTop, nscoord& aBottom, bool aIsHorizontal = true);
+  void GetRowOffsets(int32_t aIndex, nscoord& aTop, nscoord& aBottom, bool aIsHorizontal = true);
 
   void RowAddedOrRemoved(nsBoxLayoutState& aBoxLayoutState, int32_t aIndex, bool aIsHorizontal = true);
   void CellAddedOrRemoved(nsBoxLayoutState& aBoxLayoutState, int32_t aIndex, bool aIsHorizontal = true);
@@ -72,9 +72,8 @@ public:
   static nsIFrame* GetScrolledBox(nsIFrame* aChild);
   static nsIFrame* GetScrollBox(nsIFrame* aChild);
   static nsIGridPart* GetPartFromBox(nsIFrame* aBox);
-  void GetFirstAndLastRow(nsBoxLayoutState& aState, 
-                          int32_t& aFirstIndex, 
-                          int32_t& aLastIndex, 
+  void GetFirstAndLastRow(int32_t& aFirstIndex,
+                          int32_t& aLastIndex,
                           nsGridRow*& aFirstRow,
                           nsGridRow*& aLastRow,
                           bool aIsHorizontal);
@@ -116,7 +115,7 @@ private:
   int32_t mRowCount;
   int32_t mColumnCount;
 
-  // number of rows and columns that are implied but not 
+  // number of rows and columns that are implied but not
   // explicitly defined int he XUL
   int32_t mExtraRowCount;
   int32_t mExtraColumnCount;

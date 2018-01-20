@@ -17,7 +17,6 @@
 #include "nsIImageLoadingContent.h"
 #include "nsIPresShell.h"
 #include "nsIServiceManager.h"
-#include "nsIDOMHTMLImageElement.h"
 #include "nsIPersistentProperties2.h"
 #include "nsPIDOMWindow.h"
 #include "nsIURI.h"
@@ -111,7 +110,7 @@ ImageAccessible::ActionNameAt(uint8_t aIndex, nsAString& aName)
 {
   aName.Truncate();
   if (IsLongDescIndex(aIndex) && HasLongDesc())
-    aName.AssignLiteral("showlongdesc"); 
+    aName.AssignLiteral("showlongdesc");
   else
     LinkableAccessible::ActionNameAt(aIndex, aName);
 }
@@ -132,12 +131,14 @@ ImageAccessible::DoAction(uint8_t aIndex)
   NS_ConvertUTF8toUTF16 spec(utf8spec);
 
   nsIDocument* document = mContent->OwnerDoc();
-  nsCOMPtr<nsPIDOMWindow> piWindow = document->GetWindow();
+  nsCOMPtr<nsPIDOMWindowOuter> piWindow = document->GetWindow();
   if (!piWindow)
     return false;
 
-  nsCOMPtr<nsPIDOMWindow> tmp;
+  nsCOMPtr<nsPIDOMWindowOuter> tmp;
   return NS_SUCCEEDED(piWindow->Open(spec, EmptyString(), EmptyString(),
+                                     /* aLoadInfo = */ nullptr,
+                                     /* aForceNoOpener = */ false,
                                      getter_AddRefs(tmp)));
 }
 

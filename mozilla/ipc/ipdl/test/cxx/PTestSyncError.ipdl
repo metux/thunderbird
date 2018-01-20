@@ -6,13 +6,13 @@ namespace _ipdltest {
 sync protocol PTestSyncError {
 
 child:
-    Start();
+    async Start();
 
 parent:
     sync Error();
-    __delete__();
+    async __delete__();
 
-
+/*
 state START:
     send Start goto SYNC_ERROR;
 
@@ -21,6 +21,7 @@ state SYNC_ERROR:
 
 state DEAD:
     recv __delete__;
+*/
 };
 
 

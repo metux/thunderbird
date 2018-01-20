@@ -1,8 +1,6 @@
-/*
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- */
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 @namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
 
@@ -23,6 +21,12 @@
 #folderTotalCol,
 #folderSizeCol {
   text-align: right;
+}
+
+#folderUnreadCol:-moz-locale-dir(rtl),
+#folderTotalCol:-moz-locale-dir(rtl),
+#folderSizeCol:-moz-locale-dir(rtl) {
+  text-align: left;
 }
 
 #folderNameCol [sortDirection="ascending"],
@@ -60,19 +64,39 @@ treechildren::-moz-tree-image(unreadButtonColHeader, dummy) {
 /* ..... junkStatus column ..... */
 
 .junkStatusHeader {
-  -moz-padding-end: 3px;
+  padding-inline-end: 3px;
 }
 
 /* ..... subject column ..... */
 
 treechildren::-moz-tree-cell-text(subjectCol) {
-  -moz-padding-start: 0;
+  padding-inline-start: 0;
+}
+
+/* ..... correspondent column ..... */
+
+treechildren::-moz-tree-image(correspondentCol) {
+  list-style-image: url("chrome://messenger/skin/icons/correspondents.svg#right");
+}
+
+#threadTree:-moz-locale-dir(ltr) > treechildren::-moz-tree-image(correspondentCol, outgoing) {
+  list-style-image: url("chrome://messenger/skin/icons/correspondents.svg#right-show");
+}
+
+#threadTree:-moz-locale-dir(rtl) > treechildren::-moz-tree-image(correspondentCol, outgoing) {
+  list-style-image: url("chrome://messenger/skin/icons/correspondents.svg#left-show");
 }
 
 #sizeCol,
 #unreadCol,
 #totalCol {
   text-align: right;
+}
+
+#sizeCol:-moz-locale-dir(rtl),
+#unreadCol:-moz-locale-dir(rtl),
+#totalCol:-moz-locale-dir(rtl) {
+  text-align: left;
 }
 
 /* ..... message pane adjustments ..... */

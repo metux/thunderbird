@@ -7,7 +7,6 @@
 
 #include "nsIDocument.h"
 #include "nsIDocShell.h"
-#include "nsScriptLoader.h"
 #include "nsIDOMDocument.h"
 #include "nsIDOMDocumentType.h"
 #include "nsIScriptElement.h"
@@ -27,10 +26,11 @@
 #include "nsIHTMLDocument.h"
 #include "nsIStyleSheetLinkingElement.h"
 #include "nsIDocumentTransformer.h"
-#include "mozilla/CSSStyleSheet.h"
+#include "mozilla/StyleSheetInlines.h"
 #include "mozilla/css/Loader.h"
 #include "mozilla/dom/Element.h"
-#include "mozilla/dom/EncodingUtils.h"
+#include "mozilla/dom/ScriptLoader.h"
+#include "mozilla/Encoding.h"
 #include "nsContentUtils.h"
 #include "txXMLUtils.h"
 #include "nsContentSink.h"
@@ -99,13 +99,13 @@ txMozillaXMLOutput::~txMozillaXMLOutput()
 }
 
 nsresult
-txMozillaXMLOutput::attribute(nsIAtom* aPrefix,
-                              nsIAtom* aLocalName,
-                              nsIAtom* aLowercaseLocalName,
+txMozillaXMLOutput::attribute(nsAtom* aPrefix,
+                              nsAtom* aLocalName,
+                              nsAtom* aLowercaseLocalName,
                               const int32_t aNsID,
                               const nsString& aValue)
 {
-    nsCOMPtr<nsIAtom> owner;
+    RefPtr<nsAtom> owner;
     if (mOpenedElementIsHTML && aNsID == kNameSpaceID_None) {
         if (aLowercaseLocalName) {
             aLocalName = aLowercaseLocalName;
@@ -122,20 +122,20 @@ txMozillaXMLOutput::attribute(nsIAtom* aPrefix,
 }
 
 nsresult
-txMozillaXMLOutput::attribute(nsIAtom* aPrefix,
-                              const nsSubstring& aLocalName,
+txMozillaXMLOutput::attribute(nsAtom* aPrefix,
+                              const nsAString& aLocalName,
                               const int32_t aNsID,
                               const nsString& aValue)
 {
-    nsCOMPtr<nsIAtom> lname;
+    RefPtr<nsAtom> lname;
 
     if (mOpenedElementIsHTML && aNsID == kNameSpaceID_None) {
         nsAutoString lnameStr;
         nsContentUtils::ASCIIToLower(aLocalName, lnameStr);
-        lname = do_GetAtom(lnameStr);
+        lname = NS_Atomize(lnameStr);
     }
     else {
-        lname = do_GetAtom(aLocalName);
+        lname = NS_Atomize(aLocalName);
     }
 
     NS_ENSURE_TRUE(lname, NS_ERROR_OUT_OF_MEMORY);
@@ -154,8 +154,8 @@ txMozillaXMLOutput::attribute(nsIAtom* aPrefix,
 }
 
 nsresult
-txMozillaXMLOutput::attributeInternal(nsIAtom* aPrefix,
-                                      nsIAtom* aLocalName,
+txMozillaXMLOutput::attributeInternal(nsAtom* aPrefix,
+                                      nsAtom* aLocalName,
                                       int32_t aNsID,
                                       const nsString& aValue)
 {
@@ -171,7 +171,7 @@ txMozillaXMLOutput::attributeInternal(nsIAtom* aPrefix,
 }
 
 nsresult
-txMozillaXMLOutput::characters(const nsSubstring& aData, bool aDOE)
+txMozillaXMLOutput::characters(const nsAString& aData, bool aDOE)
 {
     nsresult rv = closePrevious(false);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -212,7 +212,7 @@ txMozillaXMLOutput::endDocument(nsresult aResult)
         if (mNotifier) {
             mNotifier->OnTransformEnd(aResult);
         }
-        
+
         return NS_OK;
     }
 
@@ -221,7 +221,7 @@ txMozillaXMLOutput::endDocument(nsresult aResult)
         if (mNotifier) {
             mNotifier->OnTransformEnd(rv);
         }
-        
+
         return rv;
     }
 
@@ -230,14 +230,14 @@ txMozillaXMLOutput::endDocument(nsresult aResult)
         MOZ_ASSERT(mDocument->GetReadyStateEnum() ==
                    nsIDocument::READYSTATE_LOADING, "Bad readyState");
         mDocument->SetReadyStateInternal(nsIDocument::READYSTATE_INTERACTIVE);
-        nsScriptLoader* loader = mDocument->ScriptLoader();
+        ScriptLoader* loader = mDocument->ScriptLoader();
         if (loader) {
             loader->ParsingComplete(false);
         }
     }
 
     if (!mRefreshString.IsEmpty()) {
-        nsPIDOMWindow *win = mDocument->GetWindow();
+        nsPIDOMWindowOuter* win = mDocument->GetWindow();
         if (win) {
             nsCOMPtr<nsIRefreshURI> refURI =
                 do_QueryInterface(win->GetDocShell());
@@ -267,7 +267,7 @@ txMozillaXMLOutput::endElement()
                ("endElement, mBadChildLevel = %d\n", mBadChildLevel));
         return NS_OK;
     }
-    
+
     --mTreeDepth;
 
     nsresult rv = closePrevious(true);
@@ -288,7 +288,6 @@ txMozillaXMLOutput::endElement()
         // Handle elements that are different when parser-created
         if (element->IsAnyOfHTMLElements(nsGkAtoms::title,
                                          nsGkAtoms::object,
-                                         nsGkAtoms::applet,
                                          nsGkAtoms::select,
                                          nsGkAtoms::textarea) ||
             element->IsSVGElement(nsGkAtoms::title)) {
@@ -296,13 +295,16 @@ txMozillaXMLOutput::endElement()
         } else if (element->IsSVGElement(nsGkAtoms::script) ||
                    element->IsHTMLElement(nsGkAtoms::script)) {
             nsCOMPtr<nsIScriptElement> sele = do_QueryInterface(element);
-            MOZ_ASSERT(sele, "script elements need to implement nsIScriptElement");
-            bool block = sele->AttemptToExecute();
-            // If the act of insertion evaluated the script, we're fine.
-            // Else, add this script element to the array of loading scripts.
-            if (block) {
-                rv = mNotifier->AddScriptElement(sele);
-                NS_ENSURE_SUCCESS(rv, rv);
+            if (sele) {
+              bool block = sele->AttemptToExecute();
+              // If the act of insertion evaluated the script, we're fine.
+              // Else, add this script element to the array of loading scripts.
+              if (block) {
+                  rv = mNotifier->AddScriptElement(sele);
+                  NS_ENSURE_SUCCESS(rv, rv);
+              }
+            } else {
+              MOZ_ASSERT(nsNameSpaceManager::GetInstance()->mSVGDisabled, "Script elements need to implement nsIScriptElement and SVG wasn't disabled.");
             }
         } else if (element->IsAnyOfHTMLElements(nsGkAtoms::input,
                                                 nsGkAtoms::button,
@@ -310,7 +312,7 @@ txMozillaXMLOutput::endElement()
                                                 nsGkAtoms::audio,
                                                 nsGkAtoms::video)) {
           element->DoneCreatingElement();
-        }   
+        }
     }
 
     if (mCreatingNewDocument) {
@@ -416,7 +418,7 @@ txMozillaXMLOutput::startDocument()
     }
 
     if (mCreatingNewDocument) {
-        nsScriptLoader* loader = mDocument->ScriptLoader();
+        ScriptLoader* loader = mDocument->ScriptLoader();
         if (loader) {
             loader->BeginDeferringScripts();
         }
@@ -426,23 +428,23 @@ txMozillaXMLOutput::startDocument()
 }
 
 nsresult
-txMozillaXMLOutput::startElement(nsIAtom* aPrefix, nsIAtom* aLocalName,
-                                 nsIAtom* aLowercaseLocalName,
+txMozillaXMLOutput::startElement(nsAtom* aPrefix, nsAtom* aLocalName,
+                                 nsAtom* aLowercaseLocalName,
                                  const int32_t aNsID)
 {
     NS_PRECONDITION(aNsID != kNameSpaceID_None || !aPrefix,
                     "Can't have prefix without namespace");
 
     if (mOutputFormat.mMethod == eHTMLOutput && aNsID == kNameSpaceID_None) {
-        nsCOMPtr<nsIAtom> owner;
+        RefPtr<nsAtom> owner;
         if (!aLowercaseLocalName) {
             owner = TX_ToLowerCaseAtom(aLocalName);
             NS_ENSURE_TRUE(owner, NS_ERROR_OUT_OF_MEMORY);
 
             aLowercaseLocalName = owner;
         }
-        return startElementInternal(nullptr, 
-                                    aLowercaseLocalName, 
+        return startElementInternal(nullptr,
+                                    aLowercaseLocalName,
                                     kNameSpaceID_XHTML);
     }
 
@@ -450,22 +452,22 @@ txMozillaXMLOutput::startElement(nsIAtom* aPrefix, nsIAtom* aLocalName,
 }
 
 nsresult
-txMozillaXMLOutput::startElement(nsIAtom* aPrefix,
-                                 const nsSubstring& aLocalName,
+txMozillaXMLOutput::startElement(nsAtom* aPrefix,
+                                 const nsAString& aLocalName,
                                  const int32_t aNsID)
 {
     int32_t nsId = aNsID;
-    nsCOMPtr<nsIAtom> lname;
+    RefPtr<nsAtom> lname;
 
     if (mOutputFormat.mMethod == eHTMLOutput && aNsID == kNameSpaceID_None) {
         nsId = kNameSpaceID_XHTML;
 
         nsAutoString lnameStr;
         nsContentUtils::ASCIIToLower(aLocalName, lnameStr);
-        lname = do_GetAtom(lnameStr);
+        lname = NS_Atomize(lnameStr);
     }
     else {
-        lname = do_GetAtom(aLocalName);
+        lname = NS_Atomize(aLocalName);
     }
 
     // No biggie if we lose the prefix due to OOM
@@ -484,8 +486,8 @@ txMozillaXMLOutput::startElement(nsIAtom* aPrefix,
 }
 
 nsresult
-txMozillaXMLOutput::startElementInternal(nsIAtom* aPrefix,
-                                         nsIAtom* aLocalName,
+txMozillaXMLOutput::startElementInternal(nsAtom* aPrefix,
+                                         nsAtom* aLocalName,
                                          int32_t aNsID)
 {
     TX_ENSURE_CURRENTNODE;
@@ -566,7 +568,7 @@ txMozillaXMLOutput::closePrevious(bool aFlushText)
             // We already have a document element, but the XSLT spec allows this.
             // As a workaround, create a wrapper object and use that as the
             // document element.
-            
+
             rv = createTxWrapper();
             NS_ENSURE_SUCCESS(rv, rv);
         }
@@ -587,7 +589,7 @@ txMozillaXMLOutput::closePrevious(bool aFlushText)
         if (mDocument == mCurrentNode) {
             if (XMLUtils::isWhitespace(mText)) {
                 mText.Truncate();
-                
+
                 return NS_OK;
             }
 
@@ -723,7 +725,7 @@ txMozillaXMLOutput::startHTMLElement(nsIContent* aElement, bool aIsHTML)
         NS_ENSURE_SUCCESS(rv, rv);
 
         // No need to notify since aElement hasn't been inserted yet
-        NS_ASSERTION(!aElement->IsInDoc(), "should not be in doc");
+        NS_ASSERTION(!aElement->IsInUncomposedDoc(), "should not be in doc");
         rv = aElement->AppendChildTo(meta, false);
         NS_ENSURE_SUCCESS(rv, rv);
     }
@@ -756,16 +758,16 @@ txMozillaXMLOutput::endHTMLElement(nsIContent* aElement)
             aElement->GetAttr(kNameSpaceID_None, nsGkAtoms::content, value);
             if (!value.IsEmpty()) {
                 nsContentUtils::ASCIIToLower(httpEquiv);
-                nsCOMPtr<nsIAtom> header = do_GetAtom(httpEquiv);
+                RefPtr<nsAtom> header = NS_Atomize(httpEquiv);
                 processHTTPEquiv(header, value);
             }
         }
     }
-    
+
     return NS_OK;
 }
 
-void txMozillaXMLOutput::processHTTPEquiv(nsIAtom* aHeader, const nsString& aValue)
+void txMozillaXMLOutput::processHTTPEquiv(nsAtom* aHeader, const nsString& aValue)
 {
     // For now we only handle "refresh". There's a longer list in
     // HTMLContentSink::ProcessHeaderData
@@ -774,7 +776,7 @@ void txMozillaXMLOutput::processHTTPEquiv(nsIAtom* aHeader, const nsString& aVal
 }
 
 nsresult
-txMozillaXMLOutput::createResultDocument(const nsSubstring& aName, int32_t aNsID,
+txMozillaXMLOutput::createResultDocument(const nsAString& aName, int32_t aNsID,
                                          nsIDOMDocument* aSourceDocument,
                                          bool aLoadedAsData)
 {
@@ -797,13 +799,13 @@ txMozillaXMLOutput::createResultDocument(const nsSubstring& aName, int32_t aNsID
     MOZ_ASSERT(mDocument->GetReadyStateEnum() ==
                nsIDocument::READYSTATE_UNINITIALIZED, "Bad readyState");
     mDocument->SetReadyStateInternal(nsIDocument::READYSTATE_LOADING);
+    mDocument->SetMayStartLayout(false);
     nsCOMPtr<nsIDocument> source = do_QueryInterface(aSourceDocument);
     NS_ENSURE_STATE(source);
     bool hasHadScriptObject = false;
     nsIScriptGlobalObject* sgo =
       source->GetScriptHandlingObject(hasHadScriptObject);
     NS_ENSURE_STATE(sgo || !hasHadScriptObject);
-    mDocument->SetScriptHandlingObject(sgo);
 
     mCurrentNode = mDocument;
     mNodeInfoManager = mDocument->NodeInfoManager();
@@ -811,13 +813,16 @@ txMozillaXMLOutput::createResultDocument(const nsSubstring& aName, int32_t aNsID
     // Reset and set up the document
     URIUtils::ResetWithSource(mDocument, aSourceDocument);
 
+    // Make sure we set the script handling object after resetting with the
+    // source, so that we have the right principal.
+    mDocument->SetScriptHandlingObject(sgo);
+
     // Set the charset
     if (!mOutputFormat.mEncoding.IsEmpty()) {
-        nsAutoCString canonicalCharset;
-        if (EncodingUtils::FindEncodingForLabel(mOutputFormat.mEncoding,
-                                                canonicalCharset)) {
+        const Encoding* encoding = Encoding::ForLabel(mOutputFormat.mEncoding);
+        if (encoding) {
             mDocument->SetDocumentCharacterSetSource(kCharsetFromOtherComponent);
-            mDocument->SetDocumentCharacterSet(canonicalCharset);
+            mDocument->SetDocumentCharacterSet(WrapNotNull(encoding));
         }
     }
 
@@ -853,7 +858,7 @@ txMozillaXMLOutput::createResultDocument(const nsSubstring& aName, int32_t aNsID
     }
 
     // Set up script loader of the result document.
-    nsScriptLoader *loader = mDocument->ScriptLoader();
+    ScriptLoader *loader = mDocument->ScriptLoader();
     if (mNotifier) {
         loader->AddObserver(mNotifier);
     }
@@ -888,7 +893,7 @@ txMozillaXMLOutput::createResultDocument(const nsSubstring& aName, int32_t aNsID
 
         nsresult rv = nsContentUtils::CheckQName(qName);
         if (NS_SUCCEEDED(rv)) {
-            nsCOMPtr<nsIAtom> doctypeName = do_GetAtom(qName);
+            RefPtr<nsAtom> doctypeName = NS_Atomize(qName);
             if (!doctypeName) {
                 return NS_ERROR_OUT_OF_MEMORY;
             }
@@ -899,7 +904,7 @@ txMozillaXMLOutput::createResultDocument(const nsSubstring& aName, int32_t aNsID
                                        doctypeName,
                                        mOutputFormat.mPublicId,
                                        mOutputFormat.mSystemId,
-                                       NullString());
+                                       VoidString());
             NS_ENSURE_SUCCESS(rv, rv);
 
             nsCOMPtr<nsIContent> docType = do_QueryInterface(documentType);
@@ -912,7 +917,7 @@ txMozillaXMLOutput::createResultDocument(const nsSubstring& aName, int32_t aNsID
 }
 
 nsresult
-txMozillaXMLOutput::createHTMLElement(nsIAtom* aName,
+txMozillaXMLOutput::createHTMLElement(nsAtom* aName,
                                       nsIContent** aResult)
 {
     NS_ASSERTION(mOutputFormat.mMethod == eHTMLOutput,
@@ -936,7 +941,7 @@ txMozillaXMLOutput::createHTMLElement(nsIAtom* aName,
 
 txTransformNotifier::txTransformNotifier()
     : mPendingStylesheetCount(0),
-      mInTransform(false)      
+      mInTransform(false)
 {
 }
 
@@ -949,10 +954,10 @@ NS_IMPL_ISUPPORTS(txTransformNotifier,
                   nsICSSLoaderObserver)
 
 NS_IMETHODIMP
-txTransformNotifier::ScriptAvailable(nsresult aResult, 
-                                     nsIScriptElement *aElement, 
+txTransformNotifier::ScriptAvailable(nsresult aResult,
+                                     nsIScriptElement *aElement,
                                      bool aIsInline,
-                                     nsIURI *aURI, 
+                                     nsIURI *aURI,
                                      int32_t aLineNo)
 {
     if (NS_FAILED(aResult) &&
@@ -963,8 +968,8 @@ txTransformNotifier::ScriptAvailable(nsresult aResult,
     return NS_OK;
 }
 
-NS_IMETHODIMP 
-txTransformNotifier::ScriptEvaluated(nsresult aResult, 
+NS_IMETHODIMP
+txTransformNotifier::ScriptEvaluated(nsresult aResult,
                                      nsIScriptElement *aElement,
                                      bool aIsInline)
 {
@@ -975,8 +980,8 @@ txTransformNotifier::ScriptEvaluated(nsresult aResult,
     return NS_OK;
 }
 
-NS_IMETHODIMP 
-txTransformNotifier::StyleSheetLoaded(CSSStyleSheet* aSheet,
+NS_IMETHODIMP
+txTransformNotifier::StyleSheetLoaded(StyleSheet* aSheet,
                                       bool aWasAlternate,
                                       nsresult aStatus)
 {
@@ -992,7 +997,7 @@ txTransformNotifier::StyleSheetLoaded(CSSStyleSheet* aSheet,
         --mPendingStylesheetCount;
         SignalTransformEnd();
     }
-    
+
     return NS_OK;
 }
 

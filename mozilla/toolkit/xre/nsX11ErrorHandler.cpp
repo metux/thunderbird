@@ -124,7 +124,7 @@ X11Error(Display *display, XErrorEvent *event) {
   case GeckoProcessType_Content:
     CrashReporter::AppendAppNotesToCrashReport(notes);
     break;
-  default: 
+  default:
     ; // crash report notes not supported.
   }
 #endif
@@ -144,22 +144,10 @@ X11Error(Display *display, XErrorEvent *event) {
 #endif
 #endif
 
-#ifdef MOZ_WIDGET_QT
-  // We should not abort here if MOZ_X_SYNC is not set
-  // until http://bugreports.qt.nokia.com/browse/QTBUG-4042
-  // not fixed, just print error value
-  if (!PR_GetEnv("MOZ_X_SYNC")) {
-    fprintf(stderr, "XError: %s\n", notes.get());
-    return 0; // temporary workaround for bug 161472
-  }
-#endif
-
-  NS_RUNTIMEABORT(notes.get());
-  return 0; // not reached
+  MOZ_CRASH_UNSAFE_OOL(notes.get());
 }
 }
 
-#if (MOZ_WIDGET_GTK != 3)
 void
 InstallX11ErrorHandler()
 {
@@ -171,4 +159,3 @@ InstallX11ErrorHandler()
     XSynchronize(display, True);
   }
 }
-#endif

@@ -60,7 +60,7 @@ var RemoteDebugger = {
   },
 
   _promptForUSB(session) {
-    if (session.authentication !== 'PROMPT') {
+    if (session.authentication !== "PROMPT") {
       // This dialog is not prepared for any other authentication method at
       // this time.
       return DebuggerServer.AuthenticationResult.DENY;
@@ -94,7 +94,7 @@ var RemoteDebugger = {
   },
 
   _promptForTCP(session) {
-    if (session.authentication !== 'OOB_CERT' || !session.client.cert) {
+    if (session.authentication !== "OOB_CERT" || !session.client.cert) {
       // This dialog is not prepared for any other authentication method at
       // this time.
       return DebuggerServer.AuthenticationResult.DENY;
@@ -151,10 +151,23 @@ var RemoteDebugger = {
       return this._receivingOOB;
     }
 
-    this._receivingOOB = Messaging.sendRequestForResult({
+    this._receivingOOB = WindowEventDispatcher.sendRequestForResult({
       type: "DevToolsAuth:Scan"
     }).then(data => {
       return JSON.parse(data);
+    }, () => {
+      let title = Strings.browser.GetStringFromName("remoteQRScanFailedPromptTitle");
+      let msg = Strings.browser.GetStringFromName("remoteQRScanFailedPromptMessage");
+      let ok = Strings.browser.GetStringFromName("remoteQRScanFailedPromptOK");
+      let prompt = new Prompt({
+        window: null,
+        hint: "remotedebug",
+        title: title,
+        message: msg,
+        buttons: [ ok ],
+        priority: 1
+      });
+      prompt.show();
     });
 
     this._receivingOOB.then(() => this._receivingOOB = null);
@@ -186,7 +199,7 @@ RemoteDebugger.receiveOOB =
 var USBRemoteDebugger = {
 
   init() {
-    Services.prefs.addObserver("devtools.", this, false);
+    Services.prefs.addObserver("devtools.", this);
 
     if (this.isEnabled) {
       this.start();
@@ -266,7 +279,7 @@ var USBRemoteDebugger = {
 var WiFiRemoteDebugger = {
 
   init() {
-    Services.prefs.addObserver("devtools.", this, false);
+    Services.prefs.addObserver("devtools.", this);
 
     if (this.isEnabled) {
       this.start();

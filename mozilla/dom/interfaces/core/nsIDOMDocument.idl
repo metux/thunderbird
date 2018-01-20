@@ -14,10 +14,10 @@
 #endif
 %}
 
+interface mozIDOMWindowProxy;
 interface nsIDOMNodeIterator;
 interface nsIDOMNodeFilter;
 interface nsIDOMTreeWalker;
-interface nsIDOMLocation;
 
 /**
  * The nsIDOMDocument interface represents the entire HTML or XML document.
@@ -32,7 +32,7 @@ interface nsIDOMLocation;
  * http://dvcs.w3.org/hg/domcore/raw-file/tip/Overview.html
  */
 
-[uuid(35dc5030-dc83-4291-88a2-0906c549788e)]
+[uuid(b15fa0f4-97c1-4388-af62-2ceff7a89bdf)]
 interface nsIDOMDocument : nsIDOMNode
 {
   readonly attribute nsIDOMDocumentType         doctype;
@@ -53,10 +53,6 @@ interface nsIDOMDocument : nsIDOMNode
   nsIDOMNodeList                getElementsByTagName(in DOMString tagname);
 
   // Introduced in DOM Level 2:
-  [optional_argc] nsIDOMNode    importNode(in nsIDOMNode importedNode,
-                                           [optional] in boolean deep)
-                                  raises(DOMException);
-  // Introduced in DOM Level 2:
   nsIDOMElement                 createElementNS(in DOMString namespaceURI,
                                                 [Null(Stringify)] in DOMString qualifiedName)
                                   raises(DOMException);
@@ -75,9 +71,6 @@ interface nsIDOMDocument : nsIDOMNode
   readonly attribute DOMString       documentURI;
   // Alias introduced for all documents in recent DOM standards
   readonly attribute DOMString       URL;
-  // Introduced in DOM Level 3:
-  nsIDOMNode         adoptNode(in nsIDOMNode source)
-                                        raises(DOMException);
 
   /**
    * Create a range
@@ -105,7 +98,7 @@ interface nsIDOMDocument : nsIDOMNode
    *
    * @see <http://www.whatwg.org/html/#dom-document-defaultview>
    */
-  readonly attribute nsIDOMWindow   defaultView;
+  readonly attribute mozIDOMWindowProxy   defaultView;
 
   /**
    * @see <http://www.whatwg.org/html/#dom-document-characterset>
@@ -115,11 +108,6 @@ interface nsIDOMDocument : nsIDOMNode
    * @see <http://www.whatwg.org/html/#dom-document-dir>
    */
            attribute DOMString      dir;
-
-  /**
-   * @see <http://www.whatwg.org/html/#dom-document-location>
-   */
-  readonly attribute nsIDOMLocation location;
 
   /**
    * @see <http://www.whatwg.org/html/#document.title>
@@ -294,14 +282,6 @@ interface nsIDOMDocument : nsIDOMNode
   readonly attribute nsIDOMElement  currentScript;
 
   /**
-   * Release the current mouse capture if it is on an element within this
-   * document.
-   *
-   * @see <https://developer.mozilla.org/en/DOM/document.releaseCapture>
-   */
-  void releaseCapture();
-
-  /**
    * Use the given DOM element as the source image of target |-moz-element()|.
    *
    * This function introduces a new special ID (called "image element ID"),
@@ -334,47 +314,6 @@ interface nsIDOMDocument : nsIDOMNode
                           in nsIDOMElement aImageElement);
 
   /**
-   * Element which is currently the full-screen element as per the DOM
-   * full-screen api.
-   *
-   * @see <https://wiki.mozilla.org/index.php?title=Gecko:FullScreenAPI>
-   */
-  readonly attribute nsIDOMElement mozFullScreenElement;
-
-  /**
-   * Causes the document to leave DOM full-screen mode, if it's in
-   * full-screen mode, as per the DOM full-screen api.
-   *
-   * @see <https://wiki.mozilla.org/index.php?title=Gecko:FullScreenAPI>
-   */
-  void mozCancelFullScreen();   
-  
-  /**
-   * Denotes whether this document is in DOM full-screen mode, as per the DOM
-   * full-screen api.
-   *
-   * @see <https://wiki.mozilla.org/index.php?title=Gecko:FullScreenAPI>
-   */
-  readonly attribute boolean mozFullScreen;  
-
-  /**
-   * Denotes whether the full-screen-api.enabled is true, no windowed
-   * plugins are present, and all ancestor documents have the
-   * allowfullscreen attribute set.
-   *
-   * @see <https://wiki.mozilla.org/index.php?title=Gecko:FullScreenAPI>
-   */
-  readonly attribute boolean mozFullScreenEnabled;
-
-  /**
-   * The element to which the mouse pointer is locked, if any, as per the
-   * DOM pointer lock api.
-   *
-   * @see <http://dvcs.w3.org/hg/pointerlock/raw-file/default/index.html>
-   */
-  readonly attribute nsIDOMElement mozPointerLockElement;
-
-  /**
    * Retrieve the location of the caret position (DOM node and character
    * offset within that node), given a point.
    *
@@ -386,31 +325,8 @@ interface nsIDOMDocument : nsIDOMNode
   nsISupports /* CaretPosition */ caretPositionFromPoint(in float x, in float y);
 
   /**
-   * Exit pointer is lock if locked, as per the DOM pointer lock api.
-   *
-   * @see <http://dvcs.w3.org/hg/pointerlock/raw-file/default/index.html>
-   */
-  void mozExitPointerLock();
-
-  /**
    * Visibility API implementation.
    */
   readonly attribute boolean hidden;
-  readonly attribute boolean mozHidden;
   readonly attribute DOMString visibilityState;
-  readonly attribute DOMString mozVisibilityState;
-
-  /**
-   * Returns "BackCompat" if we're in quirks mode or "CSS1Compat" if we're in
-   * strict mode.  (XML documents are always in strict mode.)
-   */
-  readonly attribute DOMString compatMode;
-
-  /**
-   * Return nodes that match a given CSS selector.
-   *
-   * @see <http://dev.w3.org/2006/webapi/selectors-api/>
-   */
-  nsIDOMElement querySelector([Null(Stringify)] in DOMString selectors);
-  nsIDOMNodeList querySelectorAll([Null(Stringify)] in DOMString selectors);
 };

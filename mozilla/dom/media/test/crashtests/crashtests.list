@@ -1,4 +1,4 @@
-skip-if(B2G) load 0-timescale.html # bug 1229166
+load 0-timescale.html # bug 1229166
 skip-if(Android) load 459439-1.html # bug 888557
 load 466607-1.html
 load 466945-1.html
@@ -7,11 +7,13 @@ load 474744-1.html
 HTTP load 481136-1.html # needs to be HTTP to recognize the ogg as an audio file?
 load 492286-1.xhtml
 load 493915-1.html
-skip-if(B2G) load 495794-1.html # in b2g all the media are muted by default
+load 495794-1.html
+load 497734-1.xhtml
+load 497734-2.html
 load 576612-1.html
 load 752784-1.html
-load 789075-1.html
-HTTP load 795892-1.html
+skip-if(Android) load 789075-1.html # bug 1374405
+skip-if(Android&&AndroidVersion=='22') HTTP load 795892-1.html # bug 1358718
 load 844563.html
 load 846612.html
 load 852838.html
@@ -71,27 +73,44 @@ load 995289.html
 load 1012609.html
 load 1015662.html
 load 1020205.html
-skip-if(Android||B2G) test-pref(media.navigator.permission.disabled,true) load 1028458.html # bug 1048863
+skip-if(Android) test-pref(media.navigator.permission.disabled,true) load 1028458.html # bug 1048863
 load 1041466.html
 load 1045650.html
 load 1080986.html
+skip-if(Android&&AndroidVersion=='21') load 1180881.html # bug 1409365
+load 1197935.html
 load 1122218.html
 load 1127188.html
 load 1157994.html
 load 1158427.html
 load 1185176.html
 load 1185192.html
-load 1228484.html
+load 1257700.html
+load 1267263.html
+load 1270303.html
+load 1304948.html
+load 1319486.html
+load 1368490.html
+load 1291702.html
+load 1378826.html
+load 1384248.html
+load 1389304.html
+load 1393272.webm
+load 1411322.html
+load disconnect-wrong-destination.html
 load analyser-channels-1.html
 load audiocontext-double-suspend.html
 load buffer-source-duration-1.html
 load buffer-source-ended-1.html
 load buffer-source-resampling-start-1.html
+load buffer-source-slow-resampling-1.html
 load doppler-1.html
 HTTP load media-element-source-seek-1.html
 load offline-buffer-source-ended-1.html
 load oscillator-ended-1.html
 load oscillator-ended-2.html
-
+skip-if(Android&&AndroidVersion=='22') load video-replay-after-audio-end.html # bug 1315125, bug 1358876
 # This needs to run at the end to avoid leaking busted state into other tests.
-skip-if(B2G) load 691096-1.html # bug 852821
+skip-if(Android) load 691096-1.html # Bug 1365451
+load 1236639.html
+test-pref(media.navigator.permission.disabled,true) load 1388372.html

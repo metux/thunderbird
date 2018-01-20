@@ -120,8 +120,8 @@ radio[pane=paneAdvanced] {
 #browserStartupHomepage {
   padding-top: 2px;
   padding-bottom: 3px;
-  -moz-padding-start: 4px;
-  -moz-padding-end: 2px;
+  padding-inline-start: 4px;
+  padding-inline-end: 2px;
 }
 
 prefpane .groupbox-body {
@@ -146,8 +146,8 @@ caption {
   border-bottom: 1px solid #ECECEC;
   padding-top: 4px !important;
   padding-bottom: 0px !important;
-  -moz-padding-start: 0px !important;
-  -moz-padding-end: 4px !important;
+  padding-inline-start: 0px !important;
+  padding-inline-end: 4px !important;
 }
 
 #paneContent {
@@ -262,6 +262,23 @@ a {
   margin-top: 1em;
 }
 
+#version {
+  margin-inline-start: 0;
+}
+
+.update-throbber {
+  width: 16px;
+  min-height: 16px;
+  margin-inline-start: 6px;
+  list-style-image: url("chrome://global/skin/icons/loading.png");
+}
+
+@media (min-resolution: 1.1dppx) {
+  .update-throbber {
+    list-style-image: url("chrome://global/skin/icons/loading@2x.png");
+  }
+}
+
 #provider-space-visuals {
   width: 150px;
   height: 150px;
@@ -281,7 +298,7 @@ a {
   height: 1em;
   border: 1px solid rgba(0,0,0,0.5);
   border-radius: 2px;
-  -moz-margin-start: 0.5ch;
+  margin-inline-start: 0.5ch;
   box-sizing: border-box;
 }
 
@@ -312,7 +329,7 @@ a {
 }
 
 #provider-space label {
-  -moz-margin-end: 0.5ch;
+  margin-inline-end: 0.5ch;
   vertical-align: middle;
 }
 

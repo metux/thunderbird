@@ -215,7 +215,7 @@ var Mailbox = {
 
 var EmailGroup = {
   toString: function () {
-    return this.name + ": " + [x.toString() for (x of this.group)].join(", ");
+    return this.name + ": " + this.group.map(x => x.toString()).join(", ");
   }
 };
 
@@ -225,8 +225,13 @@ var EmailGroup = {
 function fixArray(addresses, preserveGroups, count) {
   function resetPrototype(obj, prototype) {
     let prototyped = Object.create(prototype);
-    for (var key of Object.getOwnPropertyNames(obj))
-      prototyped[key] = obj[key];
+    for (let key of Object.getOwnPropertyNames(obj)) {
+      if (typeof obj[key] == "string") {
+        prototyped[key] = obj[key].replace(/\x00/g, '');
+      } else {
+        prototyped[key] = obj[key];
+      }
+    }
     return prototyped;
   }
   let outputArray = [];
@@ -373,10 +378,8 @@ MimeAddressParser.prototype = {
     if (aDisplayName.includes('<')) {
       let lbracket = aDisplayName.lastIndexOf('<');
       let rbracket = aDisplayName.lastIndexOf('>');
-      // If there are multiple spaces between the display name and the bracket,
-      // strip off only a single space.
       return this.makeMailboxObject(
-        lbracket == 0 ? '' : aDisplayName.slice(0, lbracket - 1),
+        lbracket == 0 ? '' : aDisplayName.slice(0, lbracket).trim(),
         aDisplayName.slice(lbracket + 1, rbracket));
     } else {
       return this.makeMailboxObject('', aDisplayName);
@@ -387,7 +390,14 @@ MimeAddressParser.prototype = {
 
   parseHeadersWithArray: function (aHeader, aAddrs, aNames, aFullNames) {
     let addrs = [], names = [], fullNames = [];
-    let allAddresses = this.parseEncodedHeader(aHeader, undefined, false);
+    // Parse header, but without HEADER_OPTION_ALLOW_RAW.
+    let value = MimeParser.parseHeaderField(aHeader || "",
+                                            MimeParser.HEADER_ADDRESS |
+                                            MimeParser.HEADER_OPTION_DECODE_2231 |
+                                            MimeParser.HEADER_OPTION_DECODE_2047,
+                                            undefined);
+    let allAddresses = fixArray(value, false);
+
     // Don't index the dummy empty address.
     if (aHeader.trim() == "")
       allAddresses = [];
@@ -404,17 +414,17 @@ MimeAddressParser.prototype = {
   },
 
   extractHeaderAddressMailboxes: function (aLine) {
-    return [addr.email for (addr of this.parseDecodedHeader(aLine))].join(", ");
+    return this.parseDecodedHeader(aLine).map(addr => addr.email).join(", ");
   },
 
   extractHeaderAddressNames: function (aLine) {
-    return [addr.name || addr.email for
-      (addr of this.parseDecodedHeader(aLine))].join(", ");
+    return this.parseDecodedHeader(aLine).map(addr => addr.name || addr.email)
+                                         .join(", ");
   },
 
   extractHeaderAddressName: function (aLine) {
-    let addrs = [addr.name || addr.email for
-      (addr of this.parseDecodedHeader(aLine))];
+    let addrs = this.parseDecodedHeader(aLine).map(addr =>
+                 addr.name || addr.email);
     return addrs.length == 0 ? "" : addrs[0];
   },
 

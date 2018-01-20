@@ -24,7 +24,7 @@ const MSG_JAR_FLUSH = "AddonJarFlush";
  *        The ZIP/XPI/JAR file as a nsIFile
  */
 function flushJarCache(aJarFile) {
-  Services.obs.notifyObservers(aJarFile, "flush-cache-entry", null);
+  Services.obs.notifyObservers(aJarFile, "flush-cache-entry");
   Cc["@mozilla.org/globalmessagemanager;1"].getService(Ci.nsIMessageBroadcaster)
     .broadcastAsyncMessage(MSG_JAR_FLUSH, aJarFile.path);
 }
@@ -45,10 +45,10 @@ this.ChromeManifestParser = {
    * @return Array of objects describing each manifest instruction, in the form:
    *         { type: instruction-type, baseURI: string-uri, args: [arguments] }
    **/
-  parseSync: function(aURI) {
+  parseSync(aURI) {
     function parseLine(aLine) {
       let line = aLine.trim();
-      if (line.length == 0 || line.charAt(0) == '#')
+      if (line.length == 0 || line.charAt(0) == "#")
         return;
       let tokens = line.split(/\s+/);
       let type = tokens.shift();
@@ -56,7 +56,7 @@ this.ChromeManifestParser = {
         let uri = NetUtil.newURI(tokens.shift(), null, aURI);
         data = data.concat(this.parseSync(uri));
       } else {
-        data.push({type: type, baseURI: baseURI, args: tokens});
+        data.push({type, baseURI, args: tokens});
       }
     }
 
@@ -80,14 +80,14 @@ this.ChromeManifestParser = {
     lines.forEach(parseLine.bind(this));
     return data;
   },
-  
-  _readFromJar: function(aURI) {
+
+  _readFromJar(aURI) {
     let data = "";
     let entries = [];
     let readers = [];
-    
+
     try {
-      // Deconstrict URI, which can be nested jar: URIs. 
+      // Deconstrict URI, which can be nested jar: URIs.
       let uri = aURI.clone();
       while (uri instanceof Ci.nsIJARURI) {
         entries.push(uri.JAREntry);
@@ -99,7 +99,7 @@ this.ChromeManifestParser = {
                    createInstance(Ci.nsIZipReader);
       reader.open(uri.QueryInterface(Ci.nsIFileURL).file);
       readers.push(reader);
-  
+
       // Open the nested jars.
       for (let i = entries.length - 1; i > 0; i--) {
         let innerReader = Cc["@mozilla.org/libjar/zip-reader;1"].
@@ -108,27 +108,26 @@ this.ChromeManifestParser = {
         readers.push(innerReader);
         reader = innerReader;
       }
-      
+
       // First entry is the actual file we want to read.
       let zis = reader.getInputStream(entries[0]);
       data = NetUtil.readInputStreamToString(zis, zis.available());
-    }
-    finally {
+    } finally {
       // Close readers in reverse order.
       for (let i = readers.length - 1; i >= 0; i--) {
         readers[i].close();
         flushJarCache(readers[i].file);
       }
     }
-    
+
     return data;
   },
-  
-  _readFromFile: function(aURI) {
+
+  _readFromFile(aURI) {
     let file = aURI.QueryInterface(Ci.nsIFileURL).file;
     if (!file.exists() || !file.isFile())
       return "";
-    
+
     let data = "";
     let fis = Cc["@mozilla.org/network/file-input-stream;1"].
               createInstance(Ci.nsIFileInputStream);
@@ -151,7 +150,7 @@ this.ChromeManifestParser = {
   *         Instruction type to filter by.
   * @return True if any matching instructions were found in the manifest.
   */
-  hasType: function(aManifest, aType) {
+  hasType(aManifest, aType) {
     return aManifest.some(entry => entry.type == aType);
   }
 };

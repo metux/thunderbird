@@ -1,4 +1,6 @@
-const run_test = Test(function*() {
+"use strict";
+
+const run_test = Test(function* () {
   initTestDebuggerServer();
   const connection = DebuggerServer.connectPipe();
   const client = Async(new DebuggerClient(connection));
@@ -11,7 +13,7 @@ const run_test = Test(function*() {
   });
 
   assert(response.from == "root");
-  assert(typeof(response.types) === "object");
+  assert(typeof (response.types) === "object");
 
   yield client.close();
 });

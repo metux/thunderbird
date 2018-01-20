@@ -48,7 +48,7 @@ protected:
   virtual ~nsMsgIncomingServer();
   nsCString m_serverKey;
 
-  // Sets m_password, if password found. Can return NS_ERROR_ABORT if the 
+  // Sets m_password, if password found. Can return NS_ERROR_ABORT if the
   // user cancels the master password dialog.
   nsresult GetPasswordWithoutUI();
 
@@ -91,7 +91,7 @@ private:
   nsCOMPtr<nsIMsgFilterPlugin> mFilterPlugin;  // XXX should be a list
 
 protected:
-  nsCString m_password;
+  nsString m_password;
   bool m_canHaveFilters;
   bool m_displayStartupPage;
   bool mPerformingBiff;

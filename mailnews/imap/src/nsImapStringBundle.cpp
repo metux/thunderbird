@@ -5,7 +5,7 @@
 #include "prprf.h"
 #include "prmem.h"
 #include "nsCOMPtr.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsIStringBundle.h"
 #include "nsImapStringBundle.h"
 #include "nsIServiceManager.h"
@@ -21,9 +21,11 @@ IMAPGetStringByName(const char* stringName, char16_t **aString)
 {
   nsCOMPtr <nsIStringBundle> sBundle;
   nsresult rv = IMAPGetStringBundle(getter_AddRefs(sBundle));
-  if (NS_SUCCEEDED(rv) && sBundle)
-    rv = sBundle->GetStringFromName(NS_ConvertASCIItoUTF16(stringName).get(),
-                                    aString);
+  if (NS_SUCCEEDED(rv) && sBundle) {
+    nsAutoString string;
+    rv = sBundle->GetStringFromName(stringName, string);
+    *aString = ToNewUnicode(string);
+  }
   return rv;
 }
 
@@ -36,7 +38,6 @@ IMAPGetStringBundle(nsIStringBundle **aBundle)
   if (!stringService) return NS_ERROR_NULL_POINTER;
   nsCOMPtr<nsIStringBundle> stringBundle;
   rv = stringService->CreateBundle(IMAP_MSGS_URL, getter_AddRefs(stringBundle));
-  *aBundle = stringBundle;
-  NS_IF_ADDREF(*aBundle);
+  stringBundle.forget(aBundle);
   return rv;
 }

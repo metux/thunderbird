@@ -1,9 +1,7 @@
-/*
-# -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-# This Source Code Form is subject to the terms of the Mozilla Public
-# License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at http://mozilla.org/MPL/2.0/.
- */
+/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 //****************************************************************************//
 // Constants & Enumeration Values
@@ -21,57 +19,41 @@ var PREF_HIDE_PLUGINS_WITHOUT_EXTENSIONS =
 // identifying the "use plugin" action, so we use this constant instead.
 var kActionUsePlugin = 5;
 
-/*
-#ifdef MOZ_WIDGET_GTK
-*/
-var ICON_URL_APP      = "moz-icon://dummy.exe?size=16";
-/*
-#else
-*/
-var ICON_URL_APP      = "chrome://messenger/skin/preferences/application.png";
-/*
-#endif
-*/
-
 // For CSS. Can be one of "ask", "save", "plugin" or "feed". If absent, the icon URL
 // was set by us to a custom handler icon and CSS should not try to override it.
 var APP_ICON_ATTR_NAME = "appHandlerIcon";
 
 // CloudFile account tools used by gCloudFileTab.
-Components.utils.import("resource://gre/modules/Services.jsm");
 Components.utils.import("resource:///modules/cloudFileAccounts.js");
+Components.utils.import("resource://gre/modules/Services.jsm");
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+Components.utils.import("resource://gre/modules/AppConstants.jsm");
 
 //****************************************************************************//
 // Utilities
 
 function getDisplayNameForFile(aFile) {
-/*
-#ifdef XP_WIN
-*/
-  if (aFile instanceof Components.interfaces.nsILocalFileWin) {
-    try {
-      return aFile.getVersionInfoField("FileDescription");
-    }
-    catch(ex) {
-      // fall through to the file name
-    }
-  }
-/*
-#endif
-#ifdef XP_MACOSX
-*/
-  if (aFile instanceof Components.interfaces.nsILocalFileMac) {
-    try {
-      return aFile.bundleDisplayName;
-    }
-    catch(ex) {
-      // fall through to the file name
+  if (AppConstants.platform == "win") {
+    if (aFile instanceof Components.interfaces.nsILocalFileWin) {
+      try {
+        return aFile.getVersionInfoField("FileDescription");
+      }
+      catch(ex) {
+        // fall through to the file name
+      }
     }
   }
-/*
-#endif
-*/
+  else if (AppConstants.platform == "macosx") {
+    if (aFile instanceof Components.interfaces.nsILocalFileMac) {
+      try {
+        return aFile.bundleDisplayName;
+      }
+      catch(ex) {
+        // fall through to the file name
+      }
+    }
+  }
+
   return aFile.leafName;
 }
 
@@ -188,7 +170,7 @@ HandlerInfoWrapper.prototype = {
       if (this.possibleApplicationHandlers.indexOf(0, aNewHandler) != -1)
         return;
     } catch (e) { }
-    this.possibleApplicationHandlers.appendElement(aNewHandler, false);
+    this.possibleApplicationHandlers.appendElement(aNewHandler);
   },
 
   removePossibleApplicationHandler: function(aHandler) {
@@ -438,9 +420,6 @@ var gApplicationsTabController = {
     }
 
     let loadInContent = Services.prefs.getBoolPref("mail.preferences.inContent");
-    if (loadInContent) {
-      gSubDialog.init();
-    }
 
     this.mInitialized = true;
   },
@@ -550,7 +529,7 @@ var gCloudFileTab = {
     if (this._list.itemCount > 0)
       this._list.selectedIndex = 0;
 
-    window.addEventListener("unload", this, false);
+    window.addEventListener("unload", this, {capture: false, once: true});
     CommandUpdate_CloudFile();
 
     this.updateThreshold();
@@ -561,7 +540,6 @@ var gCloudFileTab = {
   destroy: function CFT_destroy() {
     // Remove any controllers or observers here.
     top.controllers.removeController(gCloudFileController);
-    window.removeEventListener("unload", this, false);
   },
 
   makeRichListItemForAccount: function CFT_makeRichListItemForAccount(aAccount) {
@@ -620,7 +598,7 @@ var gCloudFileTab = {
 
     accounts.sort(sortAccounts);
 
-    for (let [, account] in Iterator(accounts)) {
+    for (let account of accounts) {
       let rli = this.makeRichListItemForAccount(account);
       this._list.appendChild(rli);
       if (!(account.accountKey in this._accountCache))
@@ -737,9 +715,6 @@ var gCloudFileTab = {
     // When the iframe loads, populate it with the provider.
     this._settings.contentWindow.addEventListener("load",
       function loadProvider() {
-        iframe.contentWindow.removeEventListener("load",
-                                                 loadProvider,
-                                                 false);
         try {
           iframe.contentWindow
                 .wrappedJSObject
@@ -747,22 +722,18 @@ var gCloudFileTab = {
         } catch(e) {
           Components.utils.reportError(e);
         }
-      }, false);
+      }, {capture: false, once: true});
 
     // When the iframe (or any subcontent) fires the DOMContentLoaded event,
     // attach the _onClickLink handler to any anchor elements that we can find.
     this._settings.contentWindow.addEventListener("DOMContentLoaded",
       function addClickListeners(e) {
-        iframe.contentWindow.removeEventListener("DOMContentLoaded",
-                                                 addClickListeners,
-                                                 false);
-
         let doc = e.originalTarget;
         let links = doc.getElementsByTagName("a");
 
-        for (let [, link] in Iterator(links))
+        for (let link of links)
           link.addEventListener("click", gCloudFileTab._onClickLink);
-      }, false);
+      }, {capture: false, once: true});
 
     CommandUpdate_CloudFile();
   },
@@ -865,7 +836,7 @@ var gApplicationsPane = {
   // We use these counts to determine whether or not to annotate descriptions
   // with their types to distinguish duplicate descriptions from each other.
   // A hash of integer counts, indexed by string description.
-  _visibleTypeDescriptionCount: [],
+  _visibleTypeDescriptionCount: new Map(),
 
 
   //**************************************************************************//
@@ -905,7 +876,7 @@ var gApplicationsPane = {
     Services.prefs.addObserver(PREF_HIDE_PLUGINS_WITHOUT_EXTENSIONS, this, false);
 
     // Listen for window unload so we can remove our preference observers.
-    window.addEventListener("unload", this, false);
+    window.addEventListener("unload", this, {capture: false, once: true});
 
     // Figure out how we should be sorting the list.  We persist sort settings
     // across sessions, so we can't assume the default sort column/direction.
@@ -939,7 +910,6 @@ var gApplicationsPane = {
   },
 
   destroy: function() {
-    window.removeEventListener("unload", this, false);
     Services.prefs.removeObserver(PREF_SHOW_PLUGINS_IN_LIST, this);
     Services.prefs.removeObserver(PREF_HIDE_PLUGINS_WITHOUT_EXTENSIONS, this);
   },
@@ -1067,8 +1037,8 @@ var gApplicationsPane = {
 
   _rebuildVisibleTypes: function() {
     // Reset the list of visible types and the visible type description counts.
-    this._visibleTypes = [];
-    this._visibleTypeDescriptionCount = [];
+    this._visibleTypes.length = 0;
+    this._visibleTypeDescriptionCount.clear();
 
     // Get the preferences that help determine what types to show.
     var showPlugins = Services.prefs.getBoolPref(PREF_SHOW_PLUGINS_IN_LIST);
@@ -1097,10 +1067,9 @@ var gApplicationsPane = {
       // We couldn't find any reason to exclude the type, so include it.
       this._visibleTypes.push(handlerInfo);
 
-      if (handlerInfo.description in this._visibleTypeDescriptionCount)
-        this._visibleTypeDescriptionCount[handlerInfo.description]++;
-      else
-        this._visibleTypeDescriptionCount[handlerInfo.description] = 1;
+      let descCount = this._visibleTypeDescriptionCount.has(handlerInfo.description) ?
+        (this._visibleTypeDescriptionCount.get(handlerInfo.description) + 1) : 1;
+      this._visibleTypeDescriptionCount.set(handlerInfo.description, descCount);
     }
   },
 
@@ -1181,7 +1150,7 @@ var gApplicationsPane = {
     }
     exts.sort();
     exts = exts.join(", ");
-    if (this._visibleTypeDescriptionCount[aHandlerInfo.description] > 0) {
+    if (this._visibleTypeDescriptionCount.has(aHandlerInfo.description)) {
       if (exts)
         return this._prefsBundle.getFormattedString("typeDetailsWithTypeAndExt",
                                                     [aHandlerInfo.type,
@@ -1296,21 +1265,19 @@ var gApplicationsPane = {
   },
 
   _isValidHandlerExecutable: function(aExecutable) {
-    return aExecutable &&
-           aExecutable.exists() &&
-           aExecutable.isExecutable() &&
+    let isExecutable = aExecutable &&
+                       aExecutable.exists() &&
+                       aExecutable.isExecutable();
 // XXXben - we need to compare this with the running instance executable
 //          just don't know how to do that via script...
 // XXXmano TBD: can probably add this to nsIShellService
-#ifdef XP_WIN
-#expand    aExecutable.leafName != "__MOZ_APP_NAME__.exe";
-#else
-#ifdef XP_MACOSX
-#expand    aExecutable.leafName != "__MOZ_MACBUNDLE_NAME__";
-#else
-#expand    aExecutable.leafName != "__MOZ_APP_NAME__-bin";
-#endif
-#endif
+    if (AppConstants.platform == "win")
+      return isExecutable && (aExecutable.leafName != (AppConstants.MOZ_APP_NAME + ".exe"));
+
+    if (AppConstants.platform == "macosx")
+      return isExecutable && (aExecutable.leafName != AppConstants.MOZ_MACBUNDLE_NAME);
+
+    return isExecutable && (aExecutable.leafName != (AppConstants.MOZ_APP_NAME + "-bin"));
   },
 
   /**
@@ -1416,14 +1383,18 @@ var gApplicationsPane = {
     }
 
     // Create a menu item for selecting a local application.
-#ifdef XP_WIN
-    // On Windows, selecting an application to open another application
-    // would be meaningless so we special case executables.
-    var executableType = Components.classes["@mozilla.org/mime;1"]
-                                   .getService(Components.interfaces.nsIMIMEService)
-                                   .getTypeFromExtension("exe");
-    if (handlerInfo.type != executableType)
-#endif
+    let createItem = true;
+    if (AppConstants.platform == "win") {
+      // On Windows, selecting an application to open another application
+      // would be meaningless so we special case executables.
+      var executableType = Components.classes["@mozilla.org/mime;1"]
+                                     .getService(Components.interfaces.nsIMIMEService)
+                                     .getTypeFromExtension("exe");
+      if (handlerInfo.type == executableType)
+        createItem = false;
+    }
+
+    if (createItem)
     {
       let menuItem = document.createElement("menuitem");
       menuItem.setAttribute("oncommand", "gApplicationsPane.chooseApp(event)");
@@ -1649,75 +1620,82 @@ var gApplicationsPane = {
     aEvent.stopPropagation();
 
     var handlerApp;
+    let onSelectionDone = function() {
+      // Rebuild the actions menu whether the user picked an app or canceled.
+      // If they picked an app, we want to add the app to the menu and select it.
+      // If they canceled, we want to go back to their previous selection.
+      this.rebuildActionsMenu();
 
-#ifdef XP_WIN
-    var params = {};
-    var handlerInfo = this._handledTypes[this._list.selectedItem.type];
-
-    params.mimeInfo = handlerInfo.wrappedHandlerInfo;
-
-    params.title         = this._prefsBundle.getString("fpTitleChooseApp");
-    params.description   = handlerInfo.description;
-    params.filename      = null;
-    params.handlerApp    = null;
-
-    if (this._loadInContent) {
-      gSubDialog.open("chrome://global/content/appPicker.xul",
-                      "resizable=no", params);
-    } else {
-      window.openDialog("chrome://global/content/appPicker.xul", null,
-                        "chrome,modal,centerscreen,titlebar,dialog=yes",
-                        params);
-    };
-
-    if (params.handlerApp &&
-        params.handlerApp.executable &&
-        params.handlerApp.executable.isFile()) {
-      handlerApp = params.handlerApp;
-
-      // Add the app to the type's list of possible handlers.
-      handlerInfo.addPossibleApplicationHandler(handlerApp);
-    }
-#else
-    var fp = Components.classes["@mozilla.org/filepicker;1"].createInstance(Components.interfaces.nsIFilePicker);
-    var winTitle = this._prefsBundle.getString("fpTitleChooseApp");
-    fp.init(window, winTitle, Components.interfaces.nsIFilePicker.modeOpen);
-    fp.appendFilters(Components.interfaces.nsIFilePicker.filterApps);
-
-    // Prompt the user to pick an app.  If they pick one, and it's a valid
-    // selection, then add it to the list of possible handlers.
-    if (fp.show() == Components.interfaces.nsIFilePicker.returnOK && fp.file &&
-        this._isValidHandlerExecutable(fp.file)) {
-      handlerApp = Components.classes["@mozilla.org/uriloader/local-handler-app;1"]
-                             .createInstance(Components.interfaces.nsILocalHandlerApp);
-      handlerApp.name = getDisplayNameForFile(fp.file);
-      handlerApp.executable = fp.file;
-
-      // Add the app to the type's list of possible handlers.
-      let handlerInfo = this._handledTypes[this._list.selectedItem.type];
-      handlerInfo.addPossibleApplicationHandler(handlerApp);
-    }
-#endif
-
-    // Rebuild the actions menu whether the user picked an app or canceled.
-    // If they picked an app, we want to add the app to the menu and select it.
-    // If they canceled, we want to go back to their previous selection.
-    this.rebuildActionsMenu();
-
-    // If the user picked a new app from the menu, select it.
-    if (handlerApp) {
-      let typeItem = this._list.selectedItem;
-      let actionsMenu =
-        document.getAnonymousElementByAttribute(typeItem, "class", "actionsMenu");
-      let menuItems = actionsMenu.menupopup.childNodes;
-      for (let i = 0; i < menuItems.length; i++) {
-        let menuItem = menuItems[i];
-        if (menuItem.handlerApp && menuItem.handlerApp.equals(handlerApp)) {
-          actionsMenu.selectedIndex = i;
-          this.onSelectAction(menuItem);
-          break;
+      // If the user picked a new app from the menu, select it.
+      if (handlerApp) {
+        let typeItem = this._list.selectedItem;
+        let actionsMenu =
+          document.getAnonymousElementByAttribute(typeItem, "class", "actionsMenu");
+        let menuItems = actionsMenu.menupopup.childNodes;
+        for (let i = 0; i < menuItems.length; i++) {
+          let menuItem = menuItems[i];
+          if (menuItem.handlerApp && menuItem.handlerApp.equals(handlerApp)) {
+            actionsMenu.selectedIndex = i;
+            this.onSelectAction(menuItem);
+            break;
+          }
         }
       }
+    }.bind(this);
+
+    if (AppConstants.platform == "win") {
+      let params = {};
+      let handlerInfo = this._handledTypes[this._list.selectedItem.type];
+
+      params.mimeInfo = handlerInfo.wrappedHandlerInfo;
+
+      params.title         = this._prefsBundle.getString("fpTitleChooseApp");
+      params.description   = handlerInfo.description;
+      params.filename      = null;
+      params.handlerApp    = null;
+
+      if (this._loadInContent) {
+        gSubDialog.open("chrome://global/content/appPicker.xul",
+                        "resizable=no", params);
+      } else {
+        window.openDialog("chrome://global/content/appPicker.xul", null,
+                          "chrome,modal,centerscreen,titlebar,dialog=yes",
+                          params);
+      };
+
+      if (params.handlerApp &&
+          params.handlerApp.executable &&
+          params.handlerApp.executable.isFile()) {
+        handlerApp = params.handlerApp;
+
+        // Add the app to the type's list of possible handlers.
+        handlerInfo.addPossibleApplicationHandler(handlerApp);
+      }
+      onSelectionDone();
+    } else {
+      const nsIFilePicker = Components.interfaces.nsIFilePicker;
+      let fp = Components.classes["@mozilla.org/filepicker;1"].createInstance(nsIFilePicker);
+      let winTitle = this._prefsBundle.getString("fpTitleChooseApp");
+      fp.init(window, winTitle, nsIFilePicker.modeOpen);
+      fp.appendFilters(nsIFilePicker.filterApps);
+
+      // Prompt the user to pick an app.  If they pick one, and it's a valid
+      // selection, then add it to the list of possible handlers.
+
+      fp.open(rv => {
+        if (rv == nsIFilePicker.returnOK && fp.file &&
+            this._isValidHandlerExecutable(fp.file)) {
+          handlerApp = Components.classes["@mozilla.org/uriloader/local-handler-app;1"]
+                                 .createInstance(Components.interfaces.nsILocalHandlerApp);
+          handlerApp.name = getDisplayNameForFile(fp.file);
+          handlerApp.executable = fp.file;
+
+          // Add the app to the type's list of possible handlers.
+          let handlerInfo = this._handledTypes[this._list.selectedItem.type];
+          handlerInfo.addPossibleApplicationHandler(handlerApp);
+        }
+        onSelectionDone();
+      });
     }
   },
 
@@ -1826,7 +1804,7 @@ var gApplicationsPane = {
   },
 
   _getIconURLForWebApp: function(aWebAppURITemplate) {
-    var uri = Services.io.newURI(aWebAppURITemplate, null, null);
+    var uri = Services.io.newURI(aWebAppURITemplate);
 
     // Unfortunately we can't use the favicon service to get the favicon,
     // because the service looks in the annotations table for a record with

@@ -2,21 +2,7 @@
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- *
- *
- * This Original Code has been modified by IBM Corporation.
- * Modifications made by IBM described herein are
- * Copyright (c) International Business Machines
- * Corporation, 2000
- *
- * Modifications to Mozilla code or documentation
- * identified per MPL Section 3.3
- *
- * Date         Modified by     Description of modification
- * 03/27/2000   IBM Corp.       Added PR_CALLBACK for Optlink
- *                               use in OS2
- */
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /*
 
@@ -50,7 +36,6 @@
 #include "nsIRDFPurgeableDataSource.h"
 #include "nsIRDFService.h"
 #include "nsIServiceManager.h"
-#include "nsISupportsArray.h"
 #include "nsCOMArray.h"
 #include "nsEnumeratorUtils.h"
 #include "nsTArray.h"
@@ -59,7 +44,7 @@
 #include "nsRDFBaseDataSources.h"
 #include "nsString.h"
 #include "nsReadableUtils.h"
-#include "nsXPIDLString.h"
+#include "nsString.h"
 #include "rdfutil.h"
 #include "PLDHashTable.h"
 #include "plstr.h"
@@ -241,7 +226,7 @@ protected:
     PLDHashTable mForwardArcs;
     PLDHashTable mReverseArcs;
 
-    nsCOMArray<nsIRDFObserver> mObservers;  
+    nsCOMArray<nsIRDFObserver> mObservers;
     uint32_t                   mNumObservers;
 
     // VisitFoo needs to block writes, [Un]Assert only allowed
@@ -254,8 +239,8 @@ protected:
 
     // Thread-safe writer implementation methods.
     nsresult
-    LockedAssert(nsIRDFResource* source, 
-                 nsIRDFResource* property, 
+    LockedAssert(nsIRDFResource* source,
+                 nsIRDFResource* property,
                  nsIRDFNode* target,
                  bool tv);
 
@@ -352,10 +337,10 @@ public:
     bool    mPropagateChanges;
 
 private:
-    static PRLogModuleInfo* gLog;
+    static mozilla::LazyLogModule gLog;
 };
 
-PRLogModuleInfo* InMemoryDataSource::gLog;
+mozilla::LazyLogModule InMemoryDataSource::gLog("InMemoryDataSource");
 
 //----------------------------------------------------------------------
 //
@@ -375,7 +360,6 @@ private:
     nsIRDFNode*     mValue;
     bool            mTruthValue;
     Assertion*      mNextAssertion;
-    nsCOMPtr<nsISupportsArray> mHashArcs;
 
     virtual ~InMemoryAssertionEnumeratorImpl();
 
@@ -539,10 +523,10 @@ private:
     InMemoryDataSource* mDataSource;
     nsIRDFResource*     mSource;
     nsIRDFNode*         mTarget;
-    nsAutoTArray<nsCOMPtr<nsIRDFResource>, 8> mAlreadyReturned;
+    AutoTArray<nsCOMPtr<nsIRDFResource>, 8> mAlreadyReturned;
     nsIRDFResource*     mCurrent;
     Assertion*          mAssertion;
-    nsCOMPtr<nsISupportsArray> mHashArcs;
+    nsCOMArray<nsIRDFNode>* mHashArcs;
 
     virtual ~InMemoryArcsEnumeratorImpl();
 
@@ -565,7 +549,8 @@ InMemoryArcsEnumeratorImpl::InMemoryArcsEnumeratorImpl(InMemoryDataSource* aData
     : mDataSource(aDataSource),
       mSource(aSource),
       mTarget(aTarget),
-      mCurrent(nullptr)
+      mCurrent(nullptr),
+      mHashArcs(nullptr)
 {
     NS_ADDREF(mDataSource);
     NS_IF_ADDREF(mSource);
@@ -577,15 +562,12 @@ InMemoryArcsEnumeratorImpl::InMemoryArcsEnumeratorImpl(InMemoryDataSource* aData
 
         if (mAssertion && mAssertion->mHashEntry) {
             // its our magical HASH_ENTRY forward hash for assertions
-            nsresult rv = NS_NewISupportsArray(getter_AddRefs(mHashArcs));
-            if (NS_SUCCEEDED(rv)) {
-                nsISupportsArray* resources = mHashArcs.get();
-                for (auto i = mAssertion->u.hash.mPropertyHash->Iter();
-                     !i.Done();
-                     i.Next()) {
-                    auto entry = static_cast<Entry*>(i.Get());
-                    resources->AppendElement(entry->mNode);
-                }
+            mHashArcs = new nsCOMArray<nsIRDFNode>();
+            for (auto i = mAssertion->u.hash.mPropertyHash->Iter();
+                 !i.Done();
+                 i.Next()) {
+                auto entry = static_cast<Entry*>(i.Get());
+                mHashArcs->AppendElement(entry->mNode);
             }
             mAssertion = nullptr;
         }
@@ -606,6 +588,7 @@ InMemoryArcsEnumeratorImpl::~InMemoryArcsEnumeratorImpl()
     NS_IF_RELEASE(mSource);
     NS_IF_RELEASE(mTarget);
     NS_IF_RELEASE(mCurrent);
+    delete mHashArcs;
 }
 
 NS_IMPL_ADDREF(InMemoryArcsEnumeratorImpl)
@@ -625,14 +608,11 @@ InMemoryArcsEnumeratorImpl::HasMoreElements(bool* aResult)
     }
 
     if (mHashArcs) {
-        uint32_t    itemCount;
-        nsresult    rv;
-        if (NS_FAILED(rv = mHashArcs->Count(&itemCount)))   return(rv);
-        if (itemCount > 0) {
-            --itemCount;
-            nsCOMPtr<nsIRDFResource> tmp = do_QueryElementAt(mHashArcs, itemCount);
+        if (!mHashArcs->IsEmpty()) {
+            const uint32_t last = mHashArcs->Length() - 1;
+            nsCOMPtr<nsIRDFResource> tmp(do_QueryInterface(mHashArcs->ObjectAt(last)));
             tmp.forget(&mCurrent);
-            mHashArcs->RemoveElementAt(itemCount);
+            mHashArcs->RemoveElementAt(last);
             *aResult = true;
             return NS_OK;
         }
@@ -649,7 +629,7 @@ InMemoryArcsEnumeratorImpl::HasMoreElements(bool* aResult)
             //      another assertion that has the same property as this one.
             // The first is a practical concern; the second a defense against
             // an obscure crash and other erratic behavior.  To ensure the
-            // second condition, skip down the chain until we find the next 
+            // second condition, skip down the chain until we find the next
             // assertion with a property that doesn't match the current one.
             // (All these assertions would be skipped via mAlreadyReturned
             // checks anyways; this is even a bit faster.)
@@ -742,10 +722,6 @@ InMemoryDataSource::InMemoryDataSource(nsISupports* aOuter)
     NS_INIT_AGGREGATED(aOuter);
 
     mPropagateChanges = true;
-    MOZ_COUNT_CTOR(InMemoryDataSource);
-
-    if (! gLog)
-        gLog = PR_NewLogModule("InMemoryDataSource");
 }
 
 
@@ -777,8 +753,6 @@ InMemoryDataSource::~InMemoryDataSource()
 
     MOZ_LOG(gLog, LogLevel::Debug,
            ("InMemoryDataSource(%p): destroyed.", this));
-
-    MOZ_COUNT_DTOR(InMemoryDataSource);
 }
 
 
@@ -816,54 +790,45 @@ InMemoryDataSource::LogOperation(const char* aOperation,
     if (! MOZ_LOG_TEST(gLog, LogLevel::Debug))
         return;
 
-    nsXPIDLCString uri;
+    nsCString uri;
     aSource->GetValue(getter_Copies(uri));
-    PR_LogPrint
-           ("InMemoryDataSource(%p): %s", this, aOperation);
+    MOZ_LOG(gLog, LogLevel::Debug,
+           ("InMemoryDataSource(%p): %s", this, aOperation));
 
-    PR_LogPrint
-           ("  [(%p)%s]--", aSource, (const char*) uri);
+    MOZ_LOG(gLog, LogLevel::Debug,
+           ("  [(%p)%s]--", aSource, uri.get()));
 
     aProperty->GetValue(getter_Copies(uri));
 
     char tv = (aTruthValue ? '-' : '!');
-    PR_LogPrint
-           ("  --%c[(%p)%s]--", tv, aProperty, (const char*) uri);
+    MOZ_LOG(gLog, LogLevel::Debug,
+           ("  --%c[(%p)%s]--", tv, aProperty, uri.get()));
 
     nsCOMPtr<nsIRDFResource> resource;
     nsCOMPtr<nsIRDFLiteral> literal;
 
     if ((resource = do_QueryInterface(aTarget)) != nullptr) {
         resource->GetValue(getter_Copies(uri));
-        PR_LogPrint
-           ("  -->[(%p)%s]", aTarget, (const char*) uri);
+        MOZ_LOG(gLog, LogLevel::Debug,
+           ("  -->[(%p)%s]", aTarget, uri.get()));
     }
     else if ((literal = do_QueryInterface(aTarget)) != nullptr) {
-        nsXPIDLString value;
+        nsString value;
         literal->GetValue(getter_Copies(value));
-        nsAutoString valueStr(value);
-        char* valueCStr = ToNewCString(valueStr);
-
-        PR_LogPrint
-           ("  -->(\"%s\")\n", valueCStr);
-
-        free(valueCStr);
+        MOZ_LOG(gLog, LogLevel::Debug,
+           ("  -->(\"%s\")\n", NS_ConvertUTF16toUTF8(value).get()));
     }
     else {
-        PR_LogPrint
-           ("  -->(unknown-type)\n");
+        MOZ_LOG(gLog, LogLevel::Debug,
+           ("  -->(unknown-type)\n"));
     }
 }
 
 
 NS_IMETHODIMP
-InMemoryDataSource::GetURI(char* *uri)
+InMemoryDataSource::GetURI(nsACString& aURI)
 {
-    NS_PRECONDITION(uri != nullptr, "null ptr");
-    if (! uri)
-        return NS_ERROR_NULL_POINTER;
-
-    *uri = nullptr;
+    aURI.SetIsVoid(true);
     return NS_OK;
 }
 
@@ -1149,9 +1114,9 @@ InMemoryDataSource::LockedAssert(nsIRDFResource* aSource,
 
 NS_IMETHODIMP
 InMemoryDataSource::Assert(nsIRDFResource* aSource,
-                           nsIRDFResource* aProperty, 
+                           nsIRDFResource* aProperty,
                            nsIRDFNode* aTarget,
-                           bool aTruthValue) 
+                           bool aTruthValue)
 {
     NS_PRECONDITION(aSource != nullptr, "null ptr");
     if (! aSource)
@@ -1485,7 +1450,7 @@ InMemoryDataSource::RemoveObserver(nsIRDFObserver* aObserver)
     return NS_OK;
 }
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 InMemoryDataSource::HasArcIn(nsIRDFNode *aNode, nsIRDFResource *aArc, bool *result)
 {
     Assertion* ass = GetReverseArcs(aNode);
@@ -1587,21 +1552,20 @@ InMemoryDataSource::GetAllCmds(nsIRDFResource* source,
 }
 
 NS_IMETHODIMP
-InMemoryDataSource::IsCommandEnabled(nsISupportsArray/*<nsIRDFResource>*/* aSources,
+InMemoryDataSource::IsCommandEnabled(nsISupports* aSources,
                                      nsIRDFResource*   aCommand,
-                                     nsISupportsArray/*<nsIRDFResource>*/* aArguments,
+                                     nsISupports* aArguments,
                                      bool* aResult)
 {
-    *aResult = false;
-    return NS_OK;
+    return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
-InMemoryDataSource::DoCommand(nsISupportsArray/*<nsIRDFResource>*/* aSources,
+InMemoryDataSource::DoCommand(nsISupports* aSources,
                               nsIRDFResource*   aCommand,
-                              nsISupportsArray/*<nsIRDFResource>*/* aArguments)
+                              nsISupports* aArguments)
 {
-    return NS_OK;
+    return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
@@ -1886,7 +1850,7 @@ InMemoryDataSource::VisitAllSubjects(rdfITripleVisitor *aVisitor)
     // Lock datasource against writes
     ++mReadCount;
 
-    // Enumerate all of our entries into an nsISupportsArray.
+    // Enumerate all of our entries.
     nsresult rv = NS_OK;
     for (auto iter = mForwardArcs.Iter(); !iter.Done(); iter.Next()) {
         auto entry = static_cast<Entry*>(iter.Get());
@@ -1914,7 +1878,7 @@ InMemoryDataSource::VisitAllTriples(rdfITripleVisitor *aVisitor)
     // Lock datasource against writes
     ++mReadCount;
 
-    // Enumerate all of our entries into an nsISupportsArray.
+    // Enumerate all of our entries.
     nsresult rv = NS_OK;
     for (auto iter = mForwardArcs.Iter(); !iter.Done(); iter.Next()) {
         auto entry = static_cast<Entry*>(iter.Get());
@@ -1968,7 +1932,7 @@ InMemoryDataSource::VisitAllTriples(rdfITripleVisitor *aVisitor)
     --mReadCount;
 
     return rv;
-} 
+}
 
 ////////////////////////////////////////////////////////////////////////
 

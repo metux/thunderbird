@@ -6,6 +6,8 @@
 // this file implements the nsMsgFilter interface
 
 #include "msgCore.h"
+#include "nsArray.h"
+#include "nsArrayUtils.h"
 #include "nsMsgBaseCID.h"
 #include "nsIMsgHdr.h"
 #include "nsMsgFilterList.h"    // for kFileVersion
@@ -17,13 +19,12 @@
 #include "nsIMsgIncomingServer.h"
 #include "nsMsgSearchValue.h"
 #include "nsMsgI18N.h"
+#include "nsIMutableArray.h"
 #include "nsIOutputStream.h"
 #include "nsIStringBundle.h"
-#include "nsDateTimeFormatCID.h"
 #include "nsComponentManagerUtils.h"
 #include "nsServiceManagerUtils.h"
 #include "nsIMsgFilterService.h"
-#include "nsIMutableArray.h"
 #include "prmem.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Services.h"
@@ -172,7 +173,8 @@ nsMsgFilter::nsMsgFilter():
     m_filterList(nullptr),
     m_expressionTree(nullptr)
 {
-  NS_NewISupportsArray(getter_AddRefs(m_termList));
+  m_termList = nsArray::Create();
+  NS_ASSERTION(m_termList, "Failed to allocate a nsIMutableArray for m_termList");
 
   m_type = nsMsgFilterType::InboxRule | nsMsgFilterType::Manual;
 }
@@ -243,18 +245,14 @@ NS_IMETHODIMP nsMsgFilter::AppendTerm(nsIMsgSearchTerm * aTerm)
     // invalidate expression tree if we're changing the terms
     delete m_expressionTree;
     m_expressionTree = nullptr;
-    return m_termList->AppendElement(static_cast<nsISupports*>(aTerm));
+    return m_termList->AppendElement(aTerm);
 }
 
 NS_IMETHODIMP
 nsMsgFilter::CreateTerm(nsIMsgSearchTerm **aResult)
 {
     NS_ENSURE_ARG_POINTER(aResult);
-    nsMsgSearchTerm *term = new nsMsgSearchTerm;
-    NS_ENSURE_TRUE(term, NS_ERROR_OUT_OF_MEMORY);
-
-    *aResult = static_cast<nsIMsgSearchTerm*>(term);
-    NS_ADDREF(*aResult);
+    NS_ADDREF(*aResult = new nsMsgSearchTerm);
     return NS_OK;
 }
 
@@ -262,11 +260,7 @@ NS_IMETHODIMP
 nsMsgFilter::CreateAction(nsIMsgRuleAction **aAction)
 {
   NS_ENSURE_ARG_POINTER(aAction);
-  nsMsgRuleAction *action = new nsMsgRuleAction;
-  NS_ENSURE_TRUE(action, NS_ERROR_OUT_OF_MEMORY);
-
-  *aAction = static_cast<nsIMsgRuleAction*>(action);
-  NS_ADDREF(*aAction);
+  NS_ADDREF(*aAction = new nsMsgRuleAction);
   return NS_OK;
 }
 
@@ -315,7 +309,7 @@ nsMsgFilter::GetSortedActionList(nsIArray **aActionList)
       case nsMsgFilterAction::FetchBodyFromPop3Server:
       {
         // always insert in front
-        rv = orderedActions->InsertElementAt(action, 0, false);
+        rv = orderedActions->InsertElementAt(action, 0);
         NS_ENSURE_SUCCESS(rv, rv);
         ++nextIndexForNormal;
         ++nextIndexForCopy;
@@ -326,7 +320,7 @@ nsMsgFilter::GetSortedActionList(nsIArray **aActionList)
       case nsMsgFilterAction::CopyToFolder:
       {
         // insert into copy actions block, in order of appearance
-        rv = orderedActions->InsertElementAt(action, nextIndexForCopy, false);
+        rv = orderedActions->InsertElementAt(action, nextIndexForCopy);
         NS_ENSURE_SUCCESS(rv, rv);
         ++nextIndexForCopy;
         ++nextIndexForMove;
@@ -337,7 +331,7 @@ nsMsgFilter::GetSortedActionList(nsIArray **aActionList)
       case nsMsgFilterAction::Delete:
       {
         // insert into move/delete action block
-        rv = orderedActions->InsertElementAt(action, nextIndexForMove, false);
+        rv = orderedActions->InsertElementAt(action, nextIndexForMove);
         NS_ENSURE_SUCCESS(rv, rv);
         ++nextIndexForMove;
         break;
@@ -346,7 +340,7 @@ nsMsgFilter::GetSortedActionList(nsIArray **aActionList)
       case nsMsgFilterAction::StopExecution:
       {
         // insert into stop action block
-        rv = orderedActions->AppendElement(action, false);
+        rv = orderedActions->AppendElement(action);
         NS_ENSURE_SUCCESS(rv, rv);
         break;
       }
@@ -354,7 +348,7 @@ nsMsgFilter::GetSortedActionList(nsIArray **aActionList)
       default:
       {
         // insert into normal action block, in order of appearance
-        rv = orderedActions->InsertElementAt(action, nextIndexForNormal, false);
+        rv = orderedActions->InsertElementAt(action, nextIndexForNormal);
         NS_ENSURE_SUCCESS(rv, rv);
         ++nextIndexForNormal;
         ++nextIndexForCopy;
@@ -383,8 +377,8 @@ nsMsgFilter::GetActionAt(uint32_t aIndex, nsIMsgRuleAction **aAction)
   NS_ENSURE_ARG_POINTER(aAction);
   NS_ENSURE_ARG(aIndex < m_actionList.Length());
 
-  NS_ENSURE_TRUE(*aAction = m_actionList[aIndex], NS_ERROR_ILLEGAL_VALUE);
-  NS_IF_ADDREF(*aAction);
+  NS_ENSURE_TRUE(m_actionList[aIndex], NS_ERROR_ILLEGAL_VALUE);
+  NS_IF_ADDREF(*aAction = m_actionList[aIndex]);
   return NS_OK;
 }
 
@@ -420,9 +414,8 @@ NS_IMETHODIMP nsMsgFilter::GetTerm(int32_t termIndex,
                                    bool *booleanAnd, /* true if AND is the boolean operator. false if OR is the boolean operator */
                                    nsACString &arbitraryHeader) /* arbitrary header specified by user.ignore unless attrib = attribOtherHeader */
 {
-  nsCOMPtr<nsIMsgSearchTerm> term;
-  nsresult rv = m_termList->QueryElementAt(termIndex, NS_GET_IID(nsIMsgSearchTerm),
-                                           (void **)getter_AddRefs(term));
+  nsresult rv;
+  nsCOMPtr<nsIMsgSearchTerm> term = do_QueryElementAt(m_termList, termIndex, &rv);
   if (NS_SUCCEEDED(rv) && term)
   {
     if (attrib)
@@ -440,7 +433,7 @@ NS_IMETHODIMP nsMsgFilter::GetTerm(int32_t termIndex,
   return NS_OK;
 }
 
-NS_IMETHODIMP nsMsgFilter::GetSearchTerms(nsISupportsArray **aResult)
+NS_IMETHODIMP nsMsgFilter::GetSearchTerms(nsIMutableArray **aResult)
 {
     NS_ENSURE_ARG_POINTER(aResult);
     // caller can change m_termList, which can invalidate m_expressionTree.
@@ -450,7 +443,7 @@ NS_IMETHODIMP nsMsgFilter::GetSearchTerms(nsISupportsArray **aResult)
     return NS_OK;
 }
 
-NS_IMETHODIMP nsMsgFilter::SetSearchTerms(nsISupportsArray *aSearchList)
+NS_IMETHODIMP nsMsgFilter::SetSearchTerms(nsIMutableArray *aSearchList)
 {
     delete m_expressionTree;
     m_expressionTree = nullptr;
@@ -530,28 +523,18 @@ nsMsgFilter::LogRuleHitGeneric(nsIMsgRuleAction *aFilterAction,
     PRExplodedTime exploded;
     PR_ExplodeTime(date, PR_LocalTimeParameters, &exploded);
 
-    if (!mDateFormatter)
-    {
-      mDateFormatter = do_CreateInstance(NS_DATETIMEFORMAT_CONTRACTID, &rv);
-      NS_ENSURE_SUCCESS(rv, rv);
-      if (!mDateFormatter)
-      {
-        return NS_ERROR_FAILURE;
-      }
-    }
-    mDateFormatter->FormatPRExplodedTime(nullptr, kDateFormatShort,
-                                         kTimeFormatSeconds, &exploded,
-                                         dateValue);
+    mozilla::DateTimeFormat::FormatPRExplodedTime(mozilla::kDateFormatShort,
+                                                  mozilla::kTimeFormatSeconds,
+                                                  &exploded,
+                                                  dateValue);
 
     (void)aMsgHdr->GetMime2DecodedAuthor(authorValue);
     (void)aMsgHdr->GetMime2DecodedSubject(subjectValue);
 
     nsCString buffer;
-#ifdef MOZILLA_INTERNAL_API
     // this is big enough to hold a log entry.
     // do this so we avoid growing and copying as we append to the log.
     buffer.SetCapacity(512);
-#endif
 
     nsCOMPtr<nsIStringBundleService> bundleService =
       mozilla::services::GetStringBundleService();
@@ -586,9 +569,9 @@ nsMsgFilter::LogRuleHitGeneric(nsIMsgRuleAction *aFilterAction,
       const char16_t *logErrorFormatStrings[2] = { tErrmsg16.get(),  tcode16.get()};
       nsString filterFailureWarningPrefix;
       rv = bundle->FormatStringFromName(
-                      MOZ_UTF16("filterFailureWarningPrefix"),
+                      "filterFailureWarningPrefix",
                       logErrorFormatStrings, 2,
-                      getter_Copies(filterFailureWarningPrefix));
+                      filterFailureWarningPrefix);
       NS_ENSURE_SUCCESS(rv, rv);
       buffer += NS_ConvertUTF16toUTF8(filterFailureWarningPrefix);
       buffer += "\n";
@@ -597,9 +580,9 @@ nsMsgFilter::LogRuleHitGeneric(nsIMsgRuleAction *aFilterAction,
     const char16_t *filterLogDetectFormatStrings[4] = { filterName.get(), authorValue.get(), subjectValue.get(), dateValue.get() };
     nsString filterLogDetectStr;
     rv = bundle->FormatStringFromName(
-      MOZ_UTF16("filterLogDetectStr"),
+      "filterLogDetectStr",
       filterLogDetectFormatStrings, 4,
-      getter_Copies(filterLogDetectStr));
+      filterLogDetectStr);
     NS_ENSURE_SUCCESS(rv, rv);
 
     buffer += NS_ConvertUTF16toUTF8(filterLogDetectStr);
@@ -620,9 +603,9 @@ nsMsgFilter::LogRuleHitGeneric(nsIMsgRuleAction *aFilterAction,
       nsString logMoveStr;
       rv = bundle->FormatStringFromName(
         (actionType == nsMsgFilterAction::MoveToFolder) ?
-          MOZ_UTF16("logMoveStr") : MOZ_UTF16("logCopyStr"),
+          "logMoveStr" : "logCopyStr",
         logMoveFormatStrings, 2,
-        getter_Copies(logMoveStr));
+        logMoveStr);
       NS_ENSURE_SUCCESS(rv, rv);
 
       buffer += NS_ConvertUTF16toUTF8(logMoveStr);
@@ -636,17 +619,17 @@ nsMsgFilter::LogRuleHitGeneric(nsIMsgRuleAction *aFilterAction,
         customAction->GetName(filterActionName);
       if (filterActionName.IsEmpty())
         bundle->GetStringFromName(
-                  MOZ_UTF16("filterMissingCustomAction"),
-                  getter_Copies(filterActionName));
+                  "filterMissingCustomAction",
+                  filterActionName);
       buffer += NS_ConvertUTF16toUTF8(filterActionName);
     }
     else
     {
       nsString actionValue;
-      nsAutoString filterActionID;
-      filterActionID = NS_LITERAL_STRING("filterAction");
+      nsAutoCString filterActionID;
+      filterActionID = NS_LITERAL_CSTRING("filterAction");
       filterActionID.AppendInt(actionType);
-      rv = bundle->GetStringFromName(filterActionID.get(), getter_Copies(actionValue));
+      rv = bundle->GetStringFromName(filterActionID.get(), actionValue);
       NS_ENSURE_SUCCESS(rv, rv);
 
       buffer += NS_ConvertUTF16toUTF8(actionValue);
@@ -655,9 +638,10 @@ nsMsgFilter::LogRuleHitGeneric(nsIMsgRuleAction *aFilterAction,
 
     // Prepare timestamp
     PR_ExplodeTime(PR_Now(), PR_LocalTimeParameters, &exploded);
-    mDateFormatter->FormatPRExplodedTime(nullptr, kDateFormatShort,
-                                         kTimeFormatSeconds, &exploded,
-                                         dateValue);
+    mozilla::DateTimeFormat::FormatPRExplodedTime(mozilla::kDateFormatShort,
+                                                  mozilla::kTimeFormatSeconds,
+                                                  &exploded,
+                                                  dateValue);
 
     nsCString timestampString(LOG_ENTRY_TIMESTAMP);
     MsgReplaceSubstring(timestampString, "$S", NS_ConvertUTF16toUTF8(dateValue).get());
@@ -679,13 +663,11 @@ nsMsgFilter::LogRuleHitGeneric(nsIMsgRuleAction *aFilterAction,
     // HTML-escape the log for security reasons.
     // We don't want someone to send us a message with a subject with
     // HTML tags, especially <script>.
-    char *escapedBuffer = MsgEscapeHTML(buffer.get());
-    if (!escapedBuffer)
-      return NS_ERROR_OUT_OF_MEMORY;
+    nsCString escapedBuffer;
+    nsAppendEscapedHTML(buffer, escapedBuffer);
 
-    uint32_t escapedBufferLen = strlen(escapedBuffer);
-    rv = logStream->Write(escapedBuffer, escapedBufferLen, &writeCount);
-    PR_Free(escapedBuffer);
+    uint32_t escapedBufferLen = escapedBuffer.Length();
+    rv = logStream->Write(escapedBuffer.get(), escapedBufferLen, &writeCount);
     NS_ENSURE_SUCCESS(rv,rv);
     NS_ASSERTION(writeCount == escapedBufferLen, "failed to write out log hit");
 
@@ -814,11 +796,11 @@ nsresult nsMsgFilter::ConvertMoveOrCopyToFolderValue(nsIMsgRuleAction *filterAct
         nsCOMPtr <nsIMsgFolder> localMailRootMsgFolder = do_QueryInterface(localMailRoot);
         localMailRoot->GetURI(localRootURI);
         nsCString destFolderUri;
-        destFolderUri.Assign( localRootURI);
+        destFolderUri.Assign(localRootURI);
         // need to remove ".sbd" from moveValue, and perhaps escape it.
-        int32_t offset = moveValue.Find(".sbd/");
+        int32_t offset = moveValue.Find(FOLDER_SUFFIX8 "/");
         if (offset != -1)
-          moveValue.Cut(offset, 4);
+          moveValue.Cut(offset, FOLDER_SUFFIX_LENGTH);
 
 #ifdef XP_MACOSX
         nsCString unescapedMoveValue;

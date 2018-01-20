@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -8,6 +9,7 @@
 
 #include "mozilla/Attributes.h"
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/UniquePtr.h"
 #include "gfxTextRun.h"
 #include "nsStyleContext.h"
 
@@ -26,12 +28,13 @@ struct nsTransformedCharStyle final {
     , mExplicitLanguage(aContext->StyleFont()->mExplicitLanguage) {}
 
   nsFont                  mFont;
-  nsCOMPtr<nsIAtom>       mLanguage;
+  RefPtr<nsAtom>       mLanguage;
   RefPtr<nsPresContext> mPresContext;
   float                   mScriptSizeMultiplier;
   uint8_t                 mTextTransform;
   uint8_t                 mMathVariant;
   bool                    mExplicitLanguage;
+  bool                    mForceNonFullWidth = false;
 
 private:
   ~nsTransformedCharStyle() {}
@@ -44,19 +47,26 @@ public:
   virtual ~nsTransformingTextRunFactory() {}
 
   // Default 8-bit path just transforms to Unicode and takes that path
-  nsTransformedTextRun* MakeTextRun(const uint8_t* aString, uint32_t aLength,
-                                    const gfxFontGroup::Parameters* aParams,
-                                    gfxFontGroup* aFontGroup, uint32_t aFlags,
-                                    nsTArray<RefPtr<nsTransformedCharStyle>>&& aStyles,
-                                    bool aOwnsFactory);
-  nsTransformedTextRun* MakeTextRun(const char16_t* aString, uint32_t aLength,
-                                    const gfxFontGroup::Parameters* aParams,
-                                    gfxFontGroup* aFontGroup, uint32_t aFlags,
-                                    nsTArray<RefPtr<nsTransformedCharStyle>>&& aStyles,
-                                    bool aOwnsFactory);
+  already_AddRefed<nsTransformedTextRun>
+  MakeTextRun(const uint8_t* aString, uint32_t aLength,
+              const gfxFontGroup::Parameters* aParams,
+              gfxFontGroup* aFontGroup,
+              mozilla::gfx::ShapedTextFlags aFlags,
+              nsTextFrameUtils::Flags aFlags2,
+              nsTArray<RefPtr<nsTransformedCharStyle>>&& aStyles,
+              bool aOwnsFactory);
+
+  already_AddRefed<nsTransformedTextRun>
+  MakeTextRun(const char16_t* aString, uint32_t aLength,
+              const gfxFontGroup::Parameters* aParams,
+              gfxFontGroup* aFontGroup,
+              mozilla::gfx::ShapedTextFlags aFlags,
+              nsTextFrameUtils::Flags aFlags2,
+              nsTArray<RefPtr<nsTransformedCharStyle>>&& aStyles,
+              bool aOwnsFactory);
 
   virtual void RebuildTextRun(nsTransformedTextRun* aTextRun,
-                              gfxContext* aRefContext,
+                              mozilla::gfx::DrawTarget* aRefDrawTarget,
                               gfxMissingFontRecorder* aMFR) = 0;
 };
 
@@ -71,15 +81,15 @@ public:
   // MakeTextRun (after making it virtual in the superclass) and have it
   // just convert the string to uppercase or lowercase and create the textrun
   // via the fontgroup.
-  
+
   // Takes ownership of aInnerTransformTextRunFactory
-  explicit nsCaseTransformTextRunFactory(nsTransformingTextRunFactory* aInnerTransformingTextRunFactory,
+  explicit nsCaseTransformTextRunFactory(mozilla::UniquePtr<nsTransformingTextRunFactory> aInnerTransformingTextRunFactory,
                                          bool aAllUppercase = false)
-    : mInnerTransformingTextRunFactory(aInnerTransformingTextRunFactory),
+    : mInnerTransformingTextRunFactory(Move(aInnerTransformingTextRunFactory)),
       mAllUppercase(aAllUppercase) {}
 
   virtual void RebuildTextRun(nsTransformedTextRun* aTextRun,
-                              gfxContext* aRefContext,
+                              mozilla::gfx::DrawTarget* aRefDrawTarget,
                               gfxMissingFontRecorder* aMFR) override;
 
   // Perform a transformation on the given string, writing the result into
@@ -95,16 +105,17 @@ public:
   static bool TransformString(const nsAString& aString,
                               nsString& aConvertedString,
                               bool aAllUppercase,
-                              const nsIAtom* aLanguage,
+                              const nsAtom* aLanguage,
                               nsTArray<bool>& aCharsToMergeArray,
                               nsTArray<bool>& aDeletedCharsArray,
-                              nsTransformedTextRun* aTextRun = nullptr,
+                              const nsTransformedTextRun* aTextRun = nullptr,
+                              uint32_t aOffsetInTextRun = 0,
                               nsTArray<uint8_t>* aCanBreakBeforeArray = nullptr,
                               nsTArray<RefPtr<nsTransformedCharStyle>>* aStyleArray = nullptr);
 
 protected:
-  nsAutoPtr<nsTransformingTextRunFactory> mInnerTransformingTextRunFactory;
-  bool                                    mAllUppercase;
+  mozilla::UniquePtr<nsTransformingTextRunFactory> mInnerTransformingTextRunFactory;
+  bool mAllUppercase;
 };
 
 /**
@@ -114,37 +125,37 @@ protected:
 class nsTransformedTextRun final : public gfxTextRun {
 public:
 
-  static nsTransformedTextRun *Create(const gfxTextRunFactory::Parameters* aParams,
-                                      nsTransformingTextRunFactory* aFactory,
-                                      gfxFontGroup* aFontGroup,
-                                      const char16_t* aString, uint32_t aLength,
-                                      const uint32_t aFlags,
-                                      nsTArray<RefPtr<nsTransformedCharStyle>>&& aStyles,
-                                      bool aOwnsFactory);
+  static already_AddRefed<nsTransformedTextRun>
+  Create(const gfxTextRunFactory::Parameters* aParams,
+         nsTransformingTextRunFactory* aFactory,
+         gfxFontGroup* aFontGroup,
+         const char16_t* aString, uint32_t aLength,
+         const mozilla::gfx::ShapedTextFlags aFlags,
+         const nsTextFrameUtils::Flags aFlags2,
+         nsTArray<RefPtr<nsTransformedCharStyle>>&& aStyles,
+         bool aOwnsFactory);
 
   ~nsTransformedTextRun() {
     if (mOwnsFactory) {
       delete mFactory;
     }
   }
-  
+
   void SetCapitalization(uint32_t aStart, uint32_t aLength,
-                         bool* aCapitalization,
-                         gfxContext* aRefContext);
-  virtual bool SetPotentialLineBreaks(uint32_t aStart, uint32_t aLength,
-                                        uint8_t* aBreakBefore,
-                                        gfxContext* aRefContext);
+                         bool* aCapitalization);
+  virtual bool SetPotentialLineBreaks(Range aRange,
+                                      const uint8_t* aBreakBefore);
   /**
    * Called after SetCapitalization and SetPotentialLineBreaks
    * are done and before we request any data from the textrun. Also always
    * called after a Create.
    */
-  void FinishSettingProperties(gfxContext* aRefContext,
+  void FinishSettingProperties(mozilla::gfx::DrawTarget* aRefDrawTarget,
                                gfxMissingFontRecorder* aMFR)
   {
     if (mNeedsRebuild) {
       mNeedsRebuild = false;
-      mFactory->RebuildTextRun(this, aRefContext, aMFR);
+      mFactory->RebuildTextRun(this, aRefDrawTarget, aMFR);
     }
   }
 
@@ -164,10 +175,11 @@ private:
                        nsTransformingTextRunFactory* aFactory,
                        gfxFontGroup* aFontGroup,
                        const char16_t* aString, uint32_t aLength,
-                       const uint32_t aFlags,
+                       const mozilla::gfx::ShapedTextFlags aFlags,
+                       const nsTextFrameUtils::Flags aFlags2,
                        nsTArray<RefPtr<nsTransformedCharStyle>>&& aStyles,
                        bool aOwnsFactory)
-    : gfxTextRun(aParams, aLength, aFontGroup, aFlags),
+    : gfxTextRun(aParams, aLength, aFontGroup, aFlags, aFlags2),
       mFactory(aFactory), mStyles(aStyles), mString(aString, aLength),
       mOwnsFactory(aOwnsFactory), mNeedsRebuild(true)
   {
@@ -210,8 +222,9 @@ MergeCharactersInTextRun(gfxTextRun* aDest, gfxTextRun* aSrc,
                          const bool* aCharsToMerge, const bool* aDeletedChars);
 
 gfxTextRunFactory::Parameters
-GetParametersForInner(nsTransformedTextRun* aTextRun, uint32_t* aFlags,
-                      gfxContext* aRefContext);
+GetParametersForInner(nsTransformedTextRun* aTextRun,
+                      mozilla::gfx::ShapedTextFlags* aFlags,
+                      mozilla::gfx::DrawTarget* aRefDrawTarget);
 
 
 #endif /*NSTEXTRUNTRANSFORMATIONS_H_*/

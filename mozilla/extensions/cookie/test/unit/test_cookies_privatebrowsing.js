@@ -12,25 +12,17 @@ function run_test() {
 
 function finish_test() {
   do_execute_soon(function() {
-    test_generator.close();
+    test_generator.return();
     do_test_finished();
   });
 }
 
 function make_channel(url) {
-  var ios = Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService);
-  var chan = ios.newChannel2(url,
-                             null,
-                             null,
-                             null,      // aLoadingNode
-                             Services.scriptSecurityManager.getSystemPrincipal(),
-                             null,      // aTriggeringPrincipal
-                             Ci.nsILoadInfo.SEC_NORMAL,
-                             Ci.nsIContentPolicy.TYPE_OTHER).QueryInterface(Ci.nsIHttpChannel);
-  return chan;
+  return NetUtil.newChannel({uri: url, loadUsingSystemPrincipal: true})
+                .QueryInterface(Ci.nsIHttpChannel);
 }
 
-function do_run_test() {
+function* do_run_test() {
   // Set up a profile.
   let profile = do_get_profile();
 
@@ -59,7 +51,7 @@ function do_run_test() {
   do_check_eq(Services.cookiemgr.getCookieString(uri2, chan2), "oh=hai");
 
   // Remove cookies and check counts.
-  Services.obs.notifyObservers(null, "last-pb-context-exited", null);
+  Services.obs.notifyObservers(null, "last-pb-context-exited");
   do_check_eq(Services.cookiemgr.getCookieString(uri1, chan1), null);
   do_check_eq(Services.cookiemgr.getCookieString(uri2, chan2), null);
 
@@ -67,7 +59,7 @@ function do_run_test() {
   do_check_eq(Services.cookiemgr.getCookieString(uri2, chan2), "oh=hai");
 
   // Leave private browsing mode and check counts.
-  Services.obs.notifyObservers(null, "last-pb-context-exited", null);
+  Services.obs.notifyObservers(null, "last-pb-context-exited");
   do_check_eq(Services.cookiemgr.countCookiesFromHost(uri1.host), 1);
   do_check_eq(Services.cookiemgr.countCookiesFromHost(uri2.host), 0);
 
@@ -97,7 +89,7 @@ function do_run_test() {
   do_check_eq(Services.cookiemgr.getCookieString(uri2, chan2), null);
 
   // Leave private browsing mode and check counts.
-  Services.obs.notifyObservers(null, "last-pb-context-exited", null);
+  Services.obs.notifyObservers(null, "last-pb-context-exited");
   do_check_eq(Services.cookiemgr.countCookiesFromHost(uri1.host), 1);
   do_check_eq(Services.cookiemgr.countCookiesFromHost(uri2.host), 0);
 
@@ -115,7 +107,7 @@ function do_run_test() {
   do_check_eq(Services.cookiemgr.getCookieString(uri2, chan2), null);
 
   // Leave private browsing mode and check counts.
-  Services.obs.notifyObservers(null, "last-pb-context-exited", null);
+  Services.obs.notifyObservers(null, "last-pb-context-exited");
   do_check_eq(Services.cookiemgr.countCookiesFromHost(uri1.host), 1);
   do_check_eq(Services.cookiemgr.countCookiesFromHost(uri2.host), 0);
 

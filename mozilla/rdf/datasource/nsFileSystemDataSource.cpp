@@ -13,11 +13,10 @@
 #include <stdio.h>
 #include "nsArrayEnumerator.h"
 #include "nsCOMArray.h"
-#include "nsISupportsArray.h"
 #include "nsIRDFDataSource.h"
 #include "nsIRDFObserver.h"
 #include "nsIServiceManager.h"
-#include "nsXPIDLString.h"
+#include "nsString.h"
 #include "nsRDFCID.h"
 #include "rdfutil.h"
 #include "rdf.h"
@@ -49,7 +48,7 @@ FileSystemDataSource::isFileURI(nsIRDFResource *r)
 {
     bool        isFileURIFlag = false;
     const char  *uri = nullptr;
-    
+
     r->GetValueConst(&uri);
     if ((uri) && (!strncmp(uri, kFileProtocol, sizeof(kFileProtocol) - 1)))
     {
@@ -203,7 +202,7 @@ FileSystemDataSource::Create(nsISupports* aOuter, const nsIID& aIID, void **aRes
     RefPtr<FileSystemDataSource> self = new FileSystemDataSource();
     if (!self)
         return NS_ERROR_OUT_OF_MEMORY;
-     
+
     nsresult rv = self->Init();
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -213,15 +212,9 @@ FileSystemDataSource::Create(nsISupports* aOuter, const nsIID& aIID, void **aRes
 NS_IMPL_ISUPPORTS(FileSystemDataSource, nsIRDFDataSource)
 
 NS_IMETHODIMP
-FileSystemDataSource::GetURI(char **uri)
+FileSystemDataSource::GetURI(nsACString& aURI)
 {
-    NS_PRECONDITION(uri != nullptr, "null ptr");
-    if (! uri)
-        return NS_ERROR_NULL_POINTER;
-
-    if ((*uri = NS_strdup("rdf:files")) == nullptr)
-        return NS_ERROR_OUT_OF_MEMORY;
-
+    aURI.AssignLiteral("rdf:files");
     return NS_OK;
 }
 
@@ -257,7 +250,7 @@ FileSystemDataSource::GetSources(nsIRDFResource *property,
                                  bool tv,
                                  nsISimpleEnumerator **sources /* out */)
 {
-//  NS_NOTYETIMPLEMENTED("write me");
+//  MOZ_ASSERT_UNREACHABLE("write me");
     return NS_ERROR_NOT_IMPLEMENTED;
 }
 
@@ -294,7 +287,7 @@ FileSystemDataSource::GetTarget(nsIRDFResource *source,
         if (property == mNC_pulse)
         {
             nsIRDFLiteral   *pulseLiteral;
-            mRDFService->GetLiteral(MOZ_UTF16("12"), &pulseLiteral);
+            mRDFService->GetLiteral(u"12", &pulseLiteral);
             *target = pulseLiteral;
             return NS_OK;
         }
@@ -328,7 +321,7 @@ FileSystemDataSource::GetTarget(nsIRDFResource *source,
             if (NS_FAILED(rv)) return(rv);
             if (isFavorite || !url) rv = NS_RDF_NO_VALUE;
             if (rv == NS_RDF_NO_VALUE)  return(rv);
-            
+
             const char16_t *uni = nullptr;
             url->GetValueConst(&uni);
             if (!uni)   return(NS_RDF_NO_VALUE);
@@ -406,7 +399,7 @@ FileSystemDataSource::GetTarget(nsIRDFResource *source,
         else if (property == mNC_pulse)
         {
             nsCOMPtr<nsIRDFLiteral> pulseLiteral;
-            mRDFService->GetLiteral(MOZ_UTF16("12"), getter_AddRefs(pulseLiteral));
+            mRDFService->GetLiteral(u"12", getter_AddRefs(pulseLiteral));
             rv = pulseLiteral->QueryInterface(NS_GET_IID(nsIRDFNode), (void**) target);
             return(rv);
         }
@@ -482,7 +475,7 @@ FileSystemDataSource::GetTargets(nsIRDFResource *source,
         else if (property == mNC_pulse)
         {
             nsCOMPtr<nsIRDFLiteral> pulseLiteral;
-            mRDFService->GetLiteral(MOZ_UTF16("12"),
+            mRDFService->GetLiteral(u"12",
                                     getter_AddRefs(pulseLiteral));
             return NS_NewSingletonEnumerator(targets, pulseLiteral);
         }
@@ -526,7 +519,7 @@ FileSystemDataSource::GetTargets(nsIRDFResource *source,
         else if (property == mNC_pulse)
         {
             nsCOMPtr<nsIRDFLiteral> pulseLiteral;
-            rv = mRDFService->GetLiteral(MOZ_UTF16("12"),
+            rv = mRDFService->GetLiteral(u"12",
                 getter_AddRefs(pulseLiteral));
             if (NS_FAILED(rv)) return rv;
 
@@ -664,7 +657,7 @@ FileSystemDataSource::HasAssertion(nsIRDFResource *source,
 
 
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 FileSystemDataSource::HasArcIn(nsIRDFNode *aNode, nsIRDFResource *aArc, bool *result)
 {
     return NS_ERROR_NOT_IMPLEMENTED;
@@ -672,7 +665,7 @@ FileSystemDataSource::HasArcIn(nsIRDFNode *aNode, nsIRDFResource *aArc, bool *re
 
 
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 FileSystemDataSource::HasArcOut(nsIRDFResource *aSource, nsIRDFResource *aArc, bool *result)
 {
     *result = false;
@@ -712,7 +705,7 @@ NS_IMETHODIMP
 FileSystemDataSource::ArcLabelsIn(nsIRDFNode *node,
                             nsISimpleEnumerator ** labels /* out */)
 {
-//  NS_NOTYETIMPLEMENTED("write me");
+//  MOZ_ASSERT_UNREACHABLE("write me");
     return NS_ERROR_NOT_IMPLEMENTED;
 }
 
@@ -769,7 +762,7 @@ FileSystemDataSource::ArcLabelsOut(nsIRDFResource *source,
 NS_IMETHODIMP
 FileSystemDataSource::GetAllResources(nsISimpleEnumerator** aCursor)
 {
-    NS_NOTYETIMPLEMENTED("sorry!");
+    MOZ_ASSERT_UNREACHABLE("sorry!");
     return NS_ERROR_NOT_IMPLEMENTED;
 }
 
@@ -801,9 +794,9 @@ FileSystemDataSource::GetAllCmds(nsIRDFResource* source,
 
 
 NS_IMETHODIMP
-FileSystemDataSource::IsCommandEnabled(nsISupportsArray/*<nsIRDFResource>*/* aSources,
+FileSystemDataSource::IsCommandEnabled(nsISupports/*<nsIRDFResource>*/* aSources,
                                        nsIRDFResource*   aCommand,
-                                       nsISupportsArray/*<nsIRDFResource>*/* aArguments,
+                                       nsISupports/*<nsIRDFResource>*/* aArguments,
                                        bool* aResult)
 {
     return(NS_ERROR_NOT_IMPLEMENTED);
@@ -812,9 +805,9 @@ FileSystemDataSource::IsCommandEnabled(nsISupportsArray/*<nsIRDFResource>*/* aSo
 
 
 NS_IMETHODIMP
-FileSystemDataSource::DoCommand(nsISupportsArray/*<nsIRDFResource>*/* aSources,
+FileSystemDataSource::DoCommand(nsISupports/*<nsIRDFResource>*/* aSources,
                                 nsIRDFResource*   aCommand,
-                                nsISupportsArray/*<nsIRDFResource>*/* aArguments)
+                                nsISupports/*<nsIRDFResource>*/* aArguments)
 {
     return(NS_ERROR_NOT_IMPLEMENTED);
 }
@@ -912,7 +905,7 @@ FileSystemDataSource::isValidFolder(nsIRDFResource *source)
                 nsCOMPtr<nsIRDFLiteral>     nameLiteral;
                 if (NS_FAILED(rv = GetName(res, getter_AddRefs(nameLiteral))))
                     break;
-                
+
                 const char16_t         *uniName;
                 if (NS_FAILED(rv = nameLiteral->GetValueConst(&uniName)))
                     break;
@@ -999,7 +992,7 @@ FileSystemDataSource::GetFolderList(nsIRDFResource *source, bool allowHidden,
             break;
         if (leafStr.IsEmpty())
             continue;
-  
+
         nsAutoCString           fullURI;
         fullURI.Assign(parentURI);
         if (fullURI.Last() != '/')
@@ -1007,22 +1000,20 @@ FileSystemDataSource::GetFolderList(nsIRDFResource *source, bool allowHidden,
             fullURI.Append('/');
         }
 
-        char    *escLeafStr = nsEscape(NS_ConvertUTF16toUTF8(leafStr).get(), url_Path);
+        nsAutoCString leaf;
+        bool escaped = NS_Escape(NS_ConvertUTF16toUTF8(leafStr), leaf, url_Path);
         leafStr.Truncate();
 
-        if (!escLeafStr)
+        if (!escaped) {
             continue;
-  
-        nsAutoCString           leaf(escLeafStr);
-        free(escLeafStr);
-        escLeafStr = nullptr;
+        }
 
         // using nsEscape() [above] doesn't escape slashes, so do that by hand
         int32_t         aOffset;
         while ((aOffset = leaf.FindChar('/')) >= 0)
         {
             leaf.Cut((uint32_t)aOffset, 1);
-            leaf.Insert("%2F", (uint32_t)aOffset);
+            leaf.InsertLiteral("%2F", (uint32_t)aOffset);
         }
 
         // append the encoded name
@@ -1234,11 +1225,11 @@ nsresult
 FileSystemDataSource::getIEFavoriteURL(nsIRDFResource *source, nsString aFileURL, nsIRDFLiteral **urlLiteral)
 {
     nsresult        rv = NS_OK;
-    
+
     *urlLiteral = nullptr;
 
     nsCOMPtr<nsIFile> f;
-    NS_GetFileFromURLSpec(NS_ConvertUTF16toUTF8(aFileURL), getter_AddRefs(f)); 
+    NS_GetFileFromURLSpec(NS_ConvertUTF16toUTF8(aFileURL), getter_AddRefs(f));
 
     bool value;
 
@@ -1302,7 +1293,7 @@ FileSystemDataSource::GetURL(nsIRDFResource *source, bool *isFavorite, nsIRDFLit
 
     nsresult        rv;
     nsCString       uri;
-	
+
     rv = source->GetValueUTF8(uri);
     if (NS_FAILED(rv))
         return(rv);

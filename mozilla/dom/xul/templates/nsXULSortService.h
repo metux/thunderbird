@@ -1,20 +1,7 @@
 /* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- *
- * This Original Code has been modified by IBM Corporation.
- * Modifications made by IBM described herein are
- * Copyright (c) International Business Machines
- * Corporation, 2000
- *
- * Modifications to Mozilla code or documentation
- * identified per MPL Section 3.3
- *
- * Date         Modified by     Description of modification
- * 03/27/2000   IBM Corp.       Added PR_CALLBACK for Optlink
- *                               use in OS2
- */
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /*
   This sort service is used to sort template built content or content by attribute.
@@ -37,28 +24,29 @@ enum nsSortState_direction {
   nsSortState_ascending,
   nsSortState_natural
 };
-  
+
 // the sort state holds info about the current sort
 struct nsSortState
 {
   bool initialized;
-  bool invertSort;
-  bool inbetweenSeparatorSort;
-  bool sortStaticsLast;
-  bool isContainerRDFSeq;
+  MOZ_INIT_OUTSIDE_CTOR bool invertSort;
+  MOZ_INIT_OUTSIDE_CTOR bool inbetweenSeparatorSort;
+  MOZ_INIT_OUTSIDE_CTOR bool sortStaticsLast;
+  MOZ_INIT_OUTSIDE_CTOR bool isContainerRDFSeq;
 
   uint32_t sortHints;
 
-  nsSortState_direction direction;
+  MOZ_INIT_OUTSIDE_CTOR nsSortState_direction direction;
   nsAutoString sort;
-  nsCOMArray<nsIAtom> sortKeys;
+  nsTArray<RefPtr<nsAtom>> sortKeys;
 
   nsCOMPtr<nsIXULTemplateQueryProcessor> processor;
   nsCOMPtr<nsIContent> lastContainer;
-  bool lastWasFirst, lastWasLast;
+  MOZ_INIT_OUTSIDE_CTOR bool lastWasFirst, lastWasLast;
 
   nsSortState()
     : initialized(false),
+      isContainerRDFSeq(false),
       sortHints(0)
   {
   }

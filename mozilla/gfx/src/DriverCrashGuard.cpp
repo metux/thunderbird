@@ -1,10 +1,12 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #include "DriverCrashGuard.h"
 #include "gfxEnv.h"
 #include "gfxPrefs.h"
+#include "gfxConfig.h"
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsDirectoryServiceUtils.h"
 #ifdef MOZ_CRASHREPORTER
@@ -23,11 +25,24 @@ namespace mozilla {
 namespace gfx {
 
 static const size_t NUM_CRASH_GUARD_TYPES = size_t(CrashGuardType::NUM_TYPES);
-static const char* sCrashGuardNames[NUM_CRASH_GUARD_TYPES] = {
+static const char* sCrashGuardNames[] = {
   "d3d11layers",
   "d3d9video",
   "glcontext",
+  "d3d11video",
 };
+static_assert(MOZ_ARRAY_LENGTH(sCrashGuardNames) == NUM_CRASH_GUARD_TYPES,
+              "CrashGuardType updated without a name string");
+
+static inline void
+BuildCrashGuardPrefName(CrashGuardType aType, nsCString& aOutPrefName)
+{
+  MOZ_ASSERT(aType < CrashGuardType::NUM_TYPES);
+  MOZ_ASSERT(sCrashGuardNames[size_t(aType)]);
+
+  aOutPrefName.AssignLiteral("gfx.crash-guard.status.");
+  aOutPrefName.Append(sCrashGuardNames[size_t(aType)]);
+}
 
 DriverCrashGuard::DriverCrashGuard(CrashGuardType aType, dom::ContentParent* aContentParent)
  : mType(aType)
@@ -36,10 +51,7 @@ DriverCrashGuard::DriverCrashGuard(CrashGuardType aType, dom::ContentParent* aCo
  , mGuardActivated(false)
  , mCrashDetected(false)
 {
-  MOZ_ASSERT(mType < CrashGuardType::NUM_TYPES);
-
-  mStatusPref.Assign("gfx.crash-guard.status.");
-  mStatusPref.Append(sCrashGuardNames[size_t(mType)]);
+  BuildCrashGuardPrefName(aType, mStatusPref);
 }
 
 void
@@ -53,26 +65,41 @@ DriverCrashGuard::InitializeIfNeeded()
   Initialize();
 }
 
-void
-DriverCrashGuard::Initialize()
+static inline bool
+AreCrashGuardsEnabled()
 {
+  // Crash guard isn't supported in the GPU process since the entire
+  // process is basically a crash guard.
+  if (XRE_IsGPUProcess()) {
+    return false;
+  }
 #ifdef NIGHTLY_BUILD
   // We only use the crash guard on non-nightly channels, since the nightly
   // channel is for development and having graphics features perma-disabled
-  // is rather annoying.
-  return;
+  // is rather annoying.  Unless the user forces is with an environment
+  // variable, which comes in handy for testing.
+  return gfxEnv::ForceCrashGuardNightly();
+#else
+  // Check to see if all guards have been disabled through the environment.
+  if (gfxEnv::DisableCrashGuard()) {
+    return false;
+  }
+  return true;
 #endif
+}
+
+void
+DriverCrashGuard::Initialize()
+{
+  if (!AreCrashGuardsEnabled()) {
+    return;
+  }
 
   // Using DriverCrashGuard off the main thread currently does not work. Under
   // e10s it could conceivably work by dispatching the IPC calls via the main
   // thread. In the parent process this would be harder. For now, we simply
   // exit early instead.
   if (!NS_IsMainThread()) {
-    return;
-  }
-
-  // Check to see if all guards have been disabled through the environment.
-  if (gfxEnv::DisableCrashGuard()) {
     return;
   }
 
@@ -165,7 +192,7 @@ DriverCrashGuard::GetGuardFile()
 
   nsCString filename;
   filename.Assign(sCrashGuardNames[size_t(mType)]);
-  filename.Append(".guard");
+  filename.AppendLiteral(".guard");
 
   nsCOMPtr<nsIFile> file;
   NS_GetSpecialDirectory(NS_APP_USER_PROFILE_LOCAL_50_DIR, getter_AddRefs(file));
@@ -298,7 +325,8 @@ DriverCrashGuard::FeatureEnabled(int aFeature, bool aDefault)
     return aDefault;
   }
   int32_t status;
-  if (!NS_SUCCEEDED(mGfxInfo->GetFeatureStatus(aFeature, &status))) {
+  nsCString discardFailureId;
+  if (!NS_SUCCEEDED(mGfxInfo->GetFeatureStatus(aFeature, discardFailureId, &status))) {
     return false;
   }
   return status == nsIGfxInfo::FEATURE_STATUS_OK;
@@ -324,7 +352,8 @@ DriverCrashGuard::CheckAndUpdatePref(const char* aPrefName, const nsAString& aCu
 {
   std::string pref = GetFullPrefName(aPrefName);
 
-  nsAdoptingString oldValue = Preferences::GetString(pref.c_str());
+  nsAutoString oldValue;
+  Preferences::GetString(pref.c_str(), oldValue);
   if (oldValue == aCurrentValue) {
     return false;
   }
@@ -361,7 +390,32 @@ DriverCrashGuard::FlushPreferences()
   MOZ_ASSERT(XRE_IsParentProcess());
 
   if (nsIPrefService* prefService = Preferences::GetService()) {
-    prefService->SavePrefFile(nullptr);
+    static_cast<Preferences *>(prefService)->SavePrefFileBlocking();
+  }
+}
+
+void
+DriverCrashGuard::ForEachActiveCrashGuard(const CrashGuardCallback& aCallback)
+{
+  if (!AreCrashGuardsEnabled()) {
+    // Even if guards look active (via prefs), they can be ignored if globally
+    // disabled.
+    return;
+  }
+
+  for (size_t i = 0; i < NUM_CRASH_GUARD_TYPES; i++) {
+    CrashGuardType type = static_cast<CrashGuardType>(i);
+
+    nsCString prefName;
+    BuildCrashGuardPrefName(type, prefName);
+
+    auto status =
+      static_cast<DriverInitStatus>(Preferences::GetInt(prefName.get(), 0));
+    if (status != DriverInitStatus::Crashed) {
+      continue;
+    }
+
+    aCallback(sCrashGuardNames[i], prefName.get());
   }
 }
 
@@ -405,10 +459,7 @@ D3D11LayersCrashGuard::UpdateEnvironment()
                     (!gfxPrefs::Direct2DDisabled() && FeatureEnabled(nsIGfxInfo::FEATURE_DIRECT2D));
   changed |= CheckAndUpdateBoolPref("feature-d2d", d2dEnabled);
 
-  bool d3d11Enabled = !gfxPrefs::LayersPreferD3D9();
-  if (!FeatureEnabled(nsIGfxInfo::FEATURE_DIRECT3D_11_LAYERS)) {
-    d3d11Enabled = false;
-  }
+  bool d3d11Enabled = gfxConfig::IsEnabled(Feature::D3D11_COMPOSITING);
   changed |= CheckAndUpdateBoolPref("feature-d3d11", d3d11Enabled);
 #endif
 
@@ -477,6 +528,30 @@ D3D9VideoCrashGuard::LogFeatureDisabled()
   gfxCriticalNote << "DXVA2D3D9 video decoding is disabled due to a previous crash.";
 }
 
+D3D11VideoCrashGuard::D3D11VideoCrashGuard(dom::ContentParent* aContentParent)
+ : DriverCrashGuard(CrashGuardType::D3D11Video, aContentParent)
+{
+}
+
+bool
+D3D11VideoCrashGuard::UpdateEnvironment()
+{
+  // We don't care about any extra preferences here.
+  return false;
+}
+
+void
+D3D11VideoCrashGuard::LogCrashRecovery()
+{
+  gfxCriticalNote << "DXVA2D3D11 just crashed; hardware video will be disabled.";
+}
+
+void
+D3D11VideoCrashGuard::LogFeatureDisabled()
+{
+  gfxCriticalNote << "DXVA2D3D11 video decoding is disabled due to a previous crash.";
+}
+
 GLContextCrashGuard::GLContextCrashGuard(dom::ContentParent* aContentParent)
  : DriverCrashGuard(CrashGuardType::GLContext, aContentParent)
 {
@@ -532,13 +607,13 @@ GLContextCrashGuard::UpdateEnvironment()
 void
 GLContextCrashGuard::LogCrashRecovery()
 {
-  gfxCriticalNote << "GLContext just crashed and is now disabled.";
+  gfxCriticalNote << "GLContext just crashed.";
 }
 
 void
 GLContextCrashGuard::LogFeatureDisabled()
 {
-  gfxCriticalNote << "GLContext is disabled due to a previous crash.";
+  gfxCriticalNote << "GLContext remains enabled despite a previous crash.";
 }
 
 } // namespace gfx

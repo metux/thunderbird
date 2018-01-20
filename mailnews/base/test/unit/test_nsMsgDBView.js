@@ -239,6 +239,8 @@ var MSG_VIEW_FLAG_DUMMY = 0x20000000;
 var MSG_VIEW_FLAG_HASCHILDREN = 0x40000000;
 var MSG_VIEW_FLAG_ISTHREAD = 0x8000000;
 
+var gFakeSelection = new JSTreeSelection(null);
+
 function setup_view(aViewType, aViewFlags, aTestFolder) {
   let dbviewContractId = "@mozilla.org/messenger/msgdbview;1?type=" + aViewType;
 
@@ -281,9 +283,8 @@ function setup_view(aViewType, aViewFlags, aTestFolder) {
   gDBView.curCustomColumn = "authorFirstLetterCol";
 
   gTreeView = gDBView.QueryInterface(Components.interfaces.nsITreeView);
-  let selection = new JSTreeSelection(null);
-  selection.view = gTreeView;
-  gTreeView.selection = selection;
+  gTreeView.selection = gFakeSelection;
+  gFakeSelection.view = gTreeView;
 }
 
 function setup_group_view(aSortType, aSortOrder, aTestFolder) {
@@ -308,9 +309,8 @@ function setup_group_view(aSortType, aSortOrder, aTestFolder) {
   gDBView.curCustomColumn = "authorFirstLetterCol";
 
   gTreeView = gDBView.QueryInterface(Components.interfaces.nsITreeView);
-  let selection = new JSTreeSelection(null);
-  selection.view = gTreeView;
-  gTreeView.selection = selection;
+  gFakeSelection.view = gTreeView;
+  gTreeView.selection = gFakeSelection;
 }
 
 /**
@@ -761,7 +761,7 @@ function test_group_sort_collapseAll_expandAll_threading() {
     view_throw("Expected grouped by custom column, ZA sortOrder smsg2 value to be A");
 }
 
-function test_group_dummies_under_mutation_by_date() {
+function* test_group_dummies_under_mutation_by_date() {
   // - start with an empty folder
   let save_gTestFolder = gTestFolder;
   gTestFolder = make_empty_folder();
@@ -967,13 +967,13 @@ function run_test() {
   async_run({func: actually_run_test});
 }
 
-function actually_run_test() {
+function* actually_run_test() {
   dump("in actually_run_test\n");
   yield async_run({func: setup_globals});
   dump("Num Messages: " + gTestFolder.msgDatabase.dBFolderInfo.numMessages + "\n");
 
   // for each view type...
-  for (let [, view_type_and_flags] in Iterator(view_types)) {
+  for (let view_type_and_flags of view_types) {
     let [view_type, view_flags] = view_type_and_flags;
     dump("===== Testing View Type: " + view_type + " flags: " + view_flags +
          "\n");
@@ -982,18 +982,22 @@ function actually_run_test() {
     // ... run each test
     setup_view(view_type, view_flags);
 
-    for (let [, testFunc] in Iterator(tests_for_all_views)) {
+    for (let testFunc of tests_for_all_views) {
       dump("=== Running generic test: " + testFunc.name + "\n");
       yield async_run({func: testFunc});
     }
 
     if (tests_for_specific_views[view_type]) {
-      for (let [, testFunc] in Iterator(tests_for_specific_views[view_type])) {
+      for (let testFunc of tests_for_specific_views[view_type]) {
         dump("=== Running view-specific test: " + testFunc.name + "\n");
         yield async_run({func: testFunc});
       }
     }
     gTestFolder = save_gTestFolder;
   }
+
+  // Delete view reference to avoid a cycle leak.
+  gFakeSelection.view = null;
+
   do_test_finished();
 }

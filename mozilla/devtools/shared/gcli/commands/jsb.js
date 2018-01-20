@@ -4,11 +4,12 @@
 
 "use strict";
 
-const { Cc, Ci, Cu } = require("chrome");
+const { Cc } = require("chrome");
 const l10n = require("gcli/l10n");
 const XMLHttpRequest = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"];
 
 loader.lazyImporter(this, "Preferences", "resource://gre/modules/Preferences.jsm");
+loader.lazyImporter(this, "ScratchpadManager", "resource://devtools/client/scratchpad/scratchpad-manager.jsm");
 
 loader.lazyRequireGetter(this, "beautify", "devtools/shared/jsbeautify/beautify");
 
@@ -18,7 +19,7 @@ exports.items = [
     runAt: "client",
     name: "jsb",
     description: l10n.lookup("jsbDesc"),
-    returnValue:"string",
+    returnValue: "string",
     params: [
       {
         name: "url",
@@ -90,7 +91,8 @@ exports.items = [
         ]
       }
     ],
-    exec: function(args, context) {
+    exec: function (args, context) {
+      /* eslint-disable camelcase */
       let opts = {
         indent_size: args.indentSize,
         indent_char: args.indentChar,
@@ -102,35 +104,31 @@ exports.items = [
         space_before_conditional: !args.noSpaceBeforeConditional,
         unescape_strings: args.unescapeStrings
       };
-
+      /* eslint-enable camelcase */
       let xhr = new XMLHttpRequest();
-
-      try {
-        xhr.open("GET", args.url, true);
-      } catch(e) {
-        return l10n.lookup("jsbInvalidURL");
-      }
 
       let deferred = context.defer();
 
-      xhr.onreadystatechange = function() {
+      xhr.onreadystatechange = function () {
         if (xhr.readyState == 4) {
           if (xhr.status == 200 || xhr.status == 0) {
-            let browserDoc = context.environment.chromeDocument;
-            let browserWindow = browserDoc.defaultView;
-            let gBrowser = browserWindow.gBrowser;
             let result = beautify.js(xhr.responseText, opts);
 
-            browserWindow.Scratchpad.ScratchpadManager.openScratchpad({text: result});
+            ScratchpadManager.openScratchpad({text: result});
 
             deferred.resolve();
           } else {
             deferred.reject("Unable to load page to beautify: " + args.url + " " +
                             xhr.status + " " + xhr.statusText);
           }
-        };
+        }
+      };
+      try {
+        xhr.open("GET", args.url, true);
+        xhr.send(null);
+      } catch (e) {
+        return l10n.lookup("jsbInvalidURL");
       }
-      xhr.send(null);
       return deferred.promise;
     }
   }

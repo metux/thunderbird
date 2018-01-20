@@ -50,9 +50,10 @@ public:
                                const nsIntSize& aSize,
                                const ImageRegion& aRegion,
                                uint32_t aWhichFrame,
-                               gfx::Filter aFilter,
+                               gfx::SamplingFilter aSamplingFilter,
                                const Maybe<SVGImageContext>& aSVGContext,
-                               uint32_t aFlags) override;
+                               uint32_t aFlags,
+                               float aOpacity) override;
   NS_IMETHOD_(void) RequestRefresh(const TimeStamp& aTime) override;
   NS_IMETHOD GetAnimationMode(uint16_t* aAnimationMode) override;
   NS_IMETHOD SetAnimationMode(uint16_t aAnimationMode) override;

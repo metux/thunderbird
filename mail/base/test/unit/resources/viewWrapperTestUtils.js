@@ -386,7 +386,7 @@ function verify_messages_in_view(aSynSets, aViewWrapper) {
   //  this to construct a URI to populate a dictionary mapping.
   let synMessageURIs = {}; // map URI to message header
   for (let messageSet of aSynSets) {
-    for (let msgHdr of messageSet.msgHdrs) {
+    for (let msgHdr of messageSet.msgHdrs()) {
       synMessageURIs[msgHdr.folder.getUriForMsg(msgHdr)] = msgHdr;
     }
   }
@@ -458,7 +458,7 @@ function verify_view_level_histogram(aExpectedHisto, aViewWrapper) {
     actualHisto[level] = (actualHisto[level] || 0) + 1;
   }
 
-  for (let [level, count] in Iterator(aExpectedHisto)) {
+  for (let [level, count] of Object.entries(aExpectedHisto)) {
     if (actualHisto[level] != count) {
       dump_view_state(aViewWrapper);
       dump("*******************\n");

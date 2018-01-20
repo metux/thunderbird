@@ -3,12 +3,10 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import argparse
-import cStringIO
-import gzip
-import json
 import os
 import requests
 import urlparse
+from multiprocessing import Pool
 
 treeherder_base = "https://treeherder.mozilla.org/"
 
@@ -21,6 +19,7 @@ up to mach or similar"""
 # Interpretation of the "job" list from
 # https://github.com/mozilla/treeherder-service/blob/master/treeherder/webapp/api/utils.py#L18
 
+
 def create_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("branch", action="store",
@@ -30,6 +29,7 @@ def create_parser():
                         help="Commit hash for push")
 
     return parser
+
 
 def download(url, prefix, dest, force_suffix=True):
     if dest is None:
@@ -51,43 +51,63 @@ def download(url, prefix, dest, force_suffix=True):
         for chunk in resp.iter_content(1024):
             f.write(chunk)
 
+
+def fetch_json(url, params=None):
+    headers = {
+        'Accept': 'application/json',
+        'User-Agent': 'wpt-fetchlogs',
+    }
+    response = requests.get(url=url, params=params, headers=headers, timeout=30)
+    response.raise_for_status()
+    return response.json()
+
+
 def get_blobber_url(branch, job):
-    job_id = job["id"]
-    resp = requests.get(urlparse.urljoin(treeherder_base,
-                                         "/api/project/%s/artifact/?job_id=%i&name=Job%%20Info" % (branch,
-                                                                                                   job_id)))
-    job_data = resp.json()
+    job_guid = job["job_guid"]
+    artifact_url = urlparse.urljoin(treeherder_base, "/api/jobdetail/")
+    artifact_params = {
+        'job_guid': job_guid,
+    }
+    job_data = fetch_json(artifact_url, params=artifact_params)
 
     if job_data:
-        assert len(job_data) == 1
-        job_data = job_data[0]
         try:
-            details = job_data["blob"]["job_details"]
-            for item in details:
-                if item["value"] == "wpt_raw.log":
+            for item in job_data["results"]:
+                if item["value"] == "wpt_raw.log" or item["value"] == "log_raw.log":
                     return item["url"]
         except:
             return None
 
 
 def get_structured_logs(branch, commit, dest=None):
-    resp = requests.get(urlparse.urljoin(treeherder_base, "/api/project/%s/resultset/?revision=%s" % (branch, commit)))
-
-    revision_data = resp.json()
-
+    resultset_url = urlparse.urljoin(treeherder_base, "/api/project/%s/resultset/" % branch)
+    resultset_params = {
+        'revision': commit,
+    }
+    revision_data = fetch_json(resultset_url, params=resultset_params)
     result_set = revision_data["results"][0]["id"]
 
-    resp = requests.get(urlparse.urljoin(treeherder_base, "/api/project/%s/jobs/?result_set_id=%s&count=2000&exclusion_profile=false" % (branch, result_set)))
+    jobs_url = urlparse.urljoin(treeherder_base, "/api/project/%s/jobs/" % branch)
+    jobs_params = {
+        'result_set_id': result_set,
+        'count': 2000,
+        'exclusion_profile': 'false',
+    }
+    job_data = fetch_json(jobs_url, params=jobs_params)
 
-    job_data = resp.json()
+    tasks = []
 
     for result in job_data["results"]:
         job_type_name = result["job_type_name"]
-        if job_type_name.startswith("W3C Web Platform"):
+        if (job_type_name.startswith("W3C Web Platform") or
+            job_type_name.startswith("test-") and "-web-platform-tests-" in job_type_name):
             url = get_blobber_url(branch, result)
             if url:
                 prefix = result["platform"] # platform
-                download(url, prefix, None)
+                tasks.append((url, prefix, None))
+
+    for task in tasks:
+        download(*task)
 
 def main():
     parser = create_parser()

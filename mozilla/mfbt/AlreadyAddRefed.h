@@ -27,9 +27,17 @@ struct unused_t;
  *
  * TODO Move already_AddRefed to namespace mozilla.  This has not yet been done
  * because of the sheer number of usages of already_AddRefed.
+ *
+ * When should you use already_AddRefed<>?
+ * * Ensure a consumer takes ownership of a reference
+ * * Pass ownership without calling AddRef/Release (sometimes required in
+ *   off-main-thread code)
+ * * The ref pointer type you're using doesn't support move construction
+ *
+ * Otherwise, use Move(RefPtr/nsCOMPtr/etc).
  */
 template<class T>
-struct MOZ_MUST_USE MOZ_NON_AUTOABLE already_AddRefed
+struct MOZ_MUST_USE_TYPE MOZ_NON_AUTOABLE already_AddRefed
 {
   /*
    * We want to allow returning nullptr from functions returning
@@ -59,10 +67,7 @@ struct MOZ_MUST_USE MOZ_NON_AUTOABLE already_AddRefed
    */
   already_AddRefed() : mRawPtr(nullptr) {}
 
-  // The return and argument types here are arbitrarily selected so no
-  // corresponding member function exists.
-  typedef void (already_AddRefed::* MatchNullptr)(double, float);
-  MOZ_IMPLICIT already_AddRefed(MatchNullptr aRawPtr) : mRawPtr(nullptr) {}
+  MOZ_IMPLICIT already_AddRefed(decltype(nullptr)) : mRawPtr(nullptr) {}
 
   explicit already_AddRefed(T* aRawPtr) : mRawPtr(aRawPtr) {}
 
@@ -111,7 +116,7 @@ struct MOZ_MUST_USE MOZ_NON_AUTOABLE already_AddRefed
     aUnused << mutableAlreadyAddRefed->take();
   }
 
-  MOZ_WARN_UNUSED_RESULT T* take()
+  MOZ_MUST_USE T* take()
   {
     T* rawPtr = mRawPtr;
     mRawPtr = nullptr;

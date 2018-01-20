@@ -56,13 +56,13 @@ var gTestArray =
     messageContent = getContentFromMessage(secondMsgHdr);
     do_check_true(messageContent.includes("https://bugzilla.mozilla.org/show_bug.cgi?id=436880"));
   },
-  function copyMovedMessages() {
+  function* copyMovedMessages() {
     let messages = Cc["@mozilla.org/array;1"].createInstance(Ci.nsIMutableArray);
     let enumerator = gMoveFolder.msgDatabase.EnumerateMessages();
     let firstMsgHdr = enumerator.getNext().QueryInterface(Ci.nsIMsgDBHdr);
     let secondMsgHdr = enumerator.getNext().QueryInterface(Ci.nsIMsgDBHdr);
-    messages.appendElement(firstMsgHdr, false);
-    messages.appendElement(secondMsgHdr, false);
+    messages.appendElement(firstMsgHdr);
+    messages.appendElement(secondMsgHdr);
     let promiseCopyListener = new PromiseTestUtils.PromiseCopyListener();
     MailServices.copy.CopyMessages(gMoveFolder, messages, gMoveFolder2, false,
                                    promiseCopyListener, null, false);
@@ -114,7 +114,7 @@ function run_test()
   gMoveFolder = localAccountUtils.rootFolder.createLocalSubfolder("MoveFolder");
   gMoveFolder2 = localAccountUtils.rootFolder.createLocalSubfolder("MoveFolder2");
 
-  gTestArray.forEach(add_task);
+  gTestArray.forEach(x => add_task(x));
   run_next_test();
 }
 
@@ -143,5 +143,7 @@ function getContentFromMessage(aMsgHdr) {
   let sis = Cc["@mozilla.org/scriptableinputstream;1"]
               .createInstance(Ci.nsIScriptableInputStream);
   sis.init(streamListener.inputStream);
-  return sis.read(MAX_MESSAGE_LENGTH);
+  let content = sis.read(MAX_MESSAGE_LENGTH);
+  sis.close();
+  return content;
 }

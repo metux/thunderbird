@@ -74,16 +74,16 @@ function setup_accounts() {
   localAccountUtils.loadLocalMailAccount();
 
   // Now run through the details and set up accounts accordingly.
-  for (let [, details] in Iterator(gAccountList)) {
+  for (let details of gAccountList) {
     let server = localAccountUtils.create_incoming_server(details.type, details.port,
-							  details.user, details.password);
+                                                          details.user, details.password);
     server.socketType = details.socketType;
     server.authMethod = details.authMethod;
     gSensitiveData.push(details.password);
-    for (let [, smtpDetails] in Iterator(details.smtpServers)) {
+    for (let smtpDetails of details.smtpServers) {
       let outgoing = localAccountUtils.create_outgoing_server(smtpDetails.port,
-							      smtpDetails.user,
-							      smtpDetails.password);
+                                                              smtpDetails.user,
+                                                              smtpDetails.password);
       outgoing.socketType = smtpDetails.socketType;
       outgoing.authMethod = smtpDetails.authMethod;
       localAccountUtils.associate_servers(server, outgoing, smtpDetails.isDefault);
@@ -111,10 +111,10 @@ function verify_account_details(aDetails) {
   do_check_eq(aDetails.socketType, expectedDetails.socketType);
   do_check_eq(aDetails.authMethod, expectedDetails.authMethod);
 
-  let smtpToSee = [("localhost:" + smtpDetails.port)
-                   for ([, smtpDetails] in Iterator(expectedDetails.smtpServers))];
+  let smtpToSee = expectedDetails.smtpServers.map(smtpDetails =>
+                    "localhost:" + smtpDetails.port);
 
-  for (let [, smtpDetails] in Iterator(aDetails.smtpServers)) {
+  for (let smtpDetails of aDetails.smtpServers) {
     // Check that we're expecting to see this server
     let toSeeIndex = smtpToSee.indexOf(smtpDetails.name);
     do_check_neq(toSeeIndex, -1);
@@ -137,13 +137,14 @@ function verify_account_details(aDetails) {
  * on.
  */
 function test_get_file_system_type() {
-  let fsType = AboutSupport.getFileSystemType(do_get_cwd());
-  if ("nsILocalFileMac" in Ci)
+  let fsType = AboutSupportPlatform.getFileSystemType(do_get_cwd());
+  if ("nsILocalFileMac" in Ci) {
     // Mac should return null
     do_check_eq(fsType, null);
-  else
+  } else {
     // Windows and Linux should return a string
     do_check_true(["local", "network", "unknown"].includes(fsType));
+  }
 }
 
 /**
@@ -153,13 +154,13 @@ function test_get_account_details() {
   let accountDetails = AboutSupport.getAccountDetails();
   let accountDetailsText = uneval(accountDetails);
   // The list of accounts we are looking for
-  let accountsToSee = [key for (key in Iterator(gAccountMap, true))];
+  let accountsToSee = Object.keys(gAccountMap);
 
   // Our first check is to see that no sensitive data has crept in
-  for (let [, data] in Iterator(gSensitiveData))
+  for (let data of gSensitiveData)
     do_check_false(accountDetailsText.includes(data));
 
-  for (let [, details] in Iterator(accountDetails)) {
+  for (let details of accountDetails) {
     // We're going to make one exception: for the local folders server. We don't
     // care too much about its details.
     if (details.key == localAccountUtils.msgAccount.key)
@@ -188,10 +189,10 @@ function run_test() {
     Cc["@mozilla.org/gnome-gconf-service;1"].getService();
   }
 
-  Components.utils.import("resource:///modules/aboutSupport.js");
+  Services.scriptloader.loadSubScript("chrome://messenger/content/about-support/accounts.js");
 
   setup_accounts();
 
-  for (let [, test] in Iterator(tests))
+  for (let test of tests)
     test();
 }

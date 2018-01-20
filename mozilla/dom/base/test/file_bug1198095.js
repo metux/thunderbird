@@ -8,19 +8,22 @@ function createFileWithData(message) {
 
   var outStream = Cc["@mozilla.org/network/file-output-stream;1"].createInstance(Ci.nsIFileOutputStream);
   outStream.init(testFile, 0x02 | 0x08 | 0x20, // write, create, truncate
-                 0666, 0);
+                 0o666, 0);
 
   outStream.write(message, message.length);
   outStream.close();
 
-  var domFile = new File(testFile);
-  return domFile;
+  return File.createFromNsIFile(testFile);
 }
 
 addMessageListener("file.open", function (message) {
-  sendAsyncMessage("file.opened", createFileWithData(message));
+  createFileWithData(message).then(function(file) {
+    sendAsyncMessage("file.opened", file);
+  });
 });
 
 addMessageListener("file.modify", function (message) {
-  sendAsyncMessage("file.modified", createFileWithData(message));
+  createFileWithData(message).then(function(file) {
+    sendAsyncMessage("file.modified", file);
+  });
 });

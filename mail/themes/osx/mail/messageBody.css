@@ -58,7 +58,7 @@ mailattachcount {
 .moz-text-plain[graphical-quote="false"] blockquote {
   margin: inherit;
   border-left: inherit;
-  -moz-padding-start: inherit;
+  padding-inline-start: inherit;
 }
 
 .moz-text-plain[graphical-quote="true"] blockquote {
@@ -89,6 +89,17 @@ img[overflowing][shrinktofit] {
   cursor: zoom-in;
   max-width: 100% !important;
   height: auto !important;
+}
+
+@media print {
+  img[shrinktofit] {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+}
+
+.moz-attached-image-container {
+  text-align: center;
 }
 
 /* ::::: vcard ::::: */
@@ -144,6 +155,8 @@ img[overflowing][shrinktofit] {
 .mimeAttachmentHeader {
   border-style: none;
   border-top: 1px solid GrayText;
+  padding-block-start: 0.625em;
+  padding-block-end: 0.2em;
 }
 
 .mimeAttachmentHeaderName {
@@ -164,6 +177,7 @@ img[overflowing][shrinktofit] {
 
 .mimeAttachmentTable tr + tr > td {
   border-top: 1px solid GrayText;
+  padding-top: 0.25em;
 }
 
 .mimeAttachmentFile {
@@ -178,5 +192,5 @@ img[overflowing][shrinktofit] {
 
 .mimeAttachmentFile,
 .mimeAttachmentSize {
-  padding: 0.25em 0;
+  padding: 0 0 0.25em;
 }

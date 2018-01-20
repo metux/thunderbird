@@ -10,14 +10,14 @@
 
 this.EXPORTED_SYMBOLS = ["NS_ASSERT"];
 
-var gTraceOnAssert = true;
+var gTraceOnAssert = false;
 
 /**
  * This function provides a simple assertion function for JavaScript.
  * If the condition is true, this function will do nothing.  If the
  * condition is false, then the message will be printed to the console
  * and an alert will appear showing a stack trace, so that the (alpha
- * or nightly) user can file a bug containing it.  For future enhancements, 
+ * or nightly) user can file a bug containing it.  For future enhancements,
  * see bugs 330077 and 330078.
  *
  * To suppress the dialogs, you can run with the environment variable
@@ -45,9 +45,8 @@ this.NS_ASSERT = function NS_ASSERT(condition, message) {
       case "default":
         releaseBuild = false;
     }
-  } catch(ex) {}
+  } catch (ex) {}
 
-  var caller = arguments.callee.caller;
   var assertionText = "ASSERT: " + message + "\n";
 
   // Report the error to the console
@@ -62,6 +61,8 @@ this.NS_ASSERT = function NS_ASSERT(condition, message) {
   if (gTraceOnAssert) {
     stackText = "Stack Trace: \n";
     var count = 0;
+    // eslint-disable-next-line no-caller
+    var caller = arguments.callee.caller;
     while (caller) {
       stackText += count++ + ":" + caller.name + "(";
       for (var i = 0; i < caller.arguments.length; ++i) {
@@ -76,4 +77,4 @@ this.NS_ASSERT = function NS_ASSERT(condition, message) {
   }
 
   dump(assertionText + stackText);
-}
+};

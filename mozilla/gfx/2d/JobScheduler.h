@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -70,6 +71,12 @@ public:
   ///
   /// The caller looses ownership of the task buffer.
   static void SubmitJob(Job* aJobs);
+
+  /// Convenience function to block the current thread until a given SyncObject
+  /// is in the signaled state.
+  ///
+  /// The current thread will first try to steal jobs before blocking.
+  static void Join(SyncObject* aCompletionSync);
 
   /// Process commands until the command buffer needs to block on a sync object,
   /// completes, yields, or encounters an error.

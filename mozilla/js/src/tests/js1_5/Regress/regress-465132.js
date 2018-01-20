@@ -16,11 +16,9 @@ test();
 
 function test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
 
-  jit(true);
 
   var constants = ['E', 'LN10', 'LN2', 'LOG2E', 'LOG10E', 'PI', 'SQRT1_2', 'SQRT2'];
 
@@ -38,8 +36,4 @@ function test()
 
     reportCompare(expect, actual, summary + ' Math.' + constants[j]);
   }
-
-  jit(false);
-
-  exitFunc ('test');
 }

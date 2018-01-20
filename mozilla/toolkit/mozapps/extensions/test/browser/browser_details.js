@@ -4,7 +4,9 @@
 
 // Tests various aspects of the details view
 
-const PREF_AUTOUPDATE_DEFAULT = "extensions.update.autoUpdateDefault"
+Components.utils.import("resource://gre/modules/AppConstants.jsm");
+
+const PREF_AUTOUPDATE_DEFAULT = "extensions.update.autoUpdateDefault";
 const PREF_GETADDONS_GETSEARCHRESULTS = "extensions.getAddons.search.url";
 const SEARCH_URL = TESTROOT + "browser_details.xml";
 const PREF_EM_HOTFIX_ID = "extensions.hotfix.id";
@@ -15,8 +17,6 @@ var gProvider;
 
 var gApp = document.getElementById("bundle_brand").getString("brandShortName");
 var gVersion = Services.appinfo.version;
-var gBlocklistURL = Services.urlFormatter.formatURLPref("extensions.blocklist.detailsURL");
-var gPluginURL = Services.urlFormatter.formatURLPref("plugins.update.url");
 var gDate = new Date(2010, 7, 1);
 var infoURL = Services.urlFormatter.formatURLPref("app.support.baseURL") + "unsigned-addons";
 
@@ -66,7 +66,7 @@ function test() {
     icon64URL: "chrome://foo/skin/icon64.png",
     contributionURL: "http://foo.com",
     contributionAmount: "$0.99",
-    sourceURI: Services.io.newURI("http://example.com/foo", null, null),
+    sourceURI: Services.io.newURI("http://example.com/foo"),
     averageRating: 4,
     reviewCount: 5,
     reviewURL: "http://example.com/reviews",
@@ -95,7 +95,7 @@ function test() {
     description: "Short description",
     creator: { name: "Mozilla", url: "http://www.mozilla.org" },
     type: "extension",
-    sourceURI: Services.io.newURI("http://example.com/foo", null, null),
+    sourceURI: Services.io.newURI("http://example.com/foo"),
     updateDate: gDate,
     reviewCount: 1,
     reviewURL: "http://example.com/reviews",
@@ -340,10 +340,9 @@ add_test(function() {
     is_element_hidden(get("detail-pending"), "Pending message should be hidden");
 
     get("detail-screenshot").addEventListener("load", function() {
-      this.removeEventListener("load", arguments.callee, false);
       is(this.hasAttribute("loading"), false, "Screenshot should not have loading attribute");
       run_next_test();
-    }, false);
+    }, {once: true});
   });
 });
 
@@ -423,10 +422,9 @@ add_test(function() {
     is_element_hidden(get("detail-pending"), "Pending message should be hidden");
 
     get("detail-screenshot").addEventListener("load", function() {
-      this.removeEventListener("load", arguments.callee, false);
       is(this.hasAttribute("loading"), false, "Screenshot should not have loading attribute");
       run_next_test();
-    }, false);
+    }, {once: true});
   });
 });
 
@@ -657,7 +655,7 @@ add_test(function() {
     is(get("detail-warning").textContent, "An important update is available for Test add-on 8.", "Warning message should be correct");
     is_element_visible(get("detail-warning-link"), "Warning link should be visible");
     is(get("detail-warning-link").value, "Update Now", "Warning link text should be correct");
-    is(get("detail-warning-link").href, gPluginURL, "Warning link should be correct");
+    is(get("detail-warning-link").href, "http://example.com/addon8@tests.mozilla.org", "Warning link should be correct");
     is_element_hidden(get("detail-error"), "Error message should be hidden");
     is_element_hidden(get("detail-error-link"), "Error link should be hidden");
     is_element_hidden(get("detail-pending"), "Pending message should be hidden");
@@ -701,7 +699,7 @@ add_test(function() {
       is(get("detail-warning").textContent, "An important update is available for Test add-on 8.", "Warning message should be correct");
       is_element_visible(get("detail-warning-link"), "Warning link should be visible");
       is(get("detail-warning-link").value, "Update Now", "Warning link text should be correct");
-      is(get("detail-warning-link").href, gPluginURL, "Warning link should be correct");
+      is(get("detail-warning-link").href, "http://example.com/addon8@tests.mozilla.org", "Warning link should be correct");
       is_element_hidden(get("detail-error"), "Error message should be hidden");
       is_element_hidden(get("detail-error-link"), "Error link should be hidden");
       is_element_hidden(get("detail-pending"), "Pending message should be hidden");
@@ -711,28 +709,31 @@ add_test(function() {
   });
 });
 
-// Opens and tests the details view for add-on 9
-add_test(function() {
-  open_details("addon9@tests.mozilla.org", "extension", function() {
-    is(get("detail-name").textContent, "Test add-on 9", "Name should be correct");
+// These tests are only appropriate when signing can be turned off
+if (!AppConstants.MOZ_REQUIRE_SIGNING) {
+  // Opens and tests the details view for add-on 9
+  add_test(function() {
+    open_details("addon9@tests.mozilla.org", "extension", function() {
+      is(get("detail-name").textContent, "Test add-on 9", "Name should be correct");
 
-    is_element_hidden(get("detail-prefs-btn"), "Preferences button should be hidden");
-    is_element_hidden(get("detail-enable-btn"), "Enable button should be hidden");
-    is_element_visible(get("detail-disable-btn"), "Disable button should be visible");
-    is_element_visible(get("detail-uninstall-btn"), "Remove button should be visible");
+      is_element_hidden(get("detail-prefs-btn"), "Preferences button should be hidden");
+      is_element_hidden(get("detail-enable-btn"), "Enable button should be hidden");
+      is_element_visible(get("detail-disable-btn"), "Disable button should be visible");
+      is_element_visible(get("detail-uninstall-btn"), "Remove button should be visible");
 
-    is_element_hidden(get("detail-error"), "Error message should be hidden");
-    is_element_hidden(get("detail-error-link"), "Error link should be hidden");
-    is_element_visible(get("detail-warning"), "Error message should be visible");
-    is(get("detail-warning").textContent, "Test add-on 9 could not be verified for use in " + gApp + ". Proceed with caution.", "Warning message should be correct");
-    is_element_visible(get("detail-warning-link"), "Warning link should be visible");
-    is(get("detail-warning-link").value, "More Information", "Warning link text should be correct");
-    is(get("detail-warning-link").href, infoURL, "Warning link should be correct");
-    is_element_hidden(get("detail-pending"), "Pending message should be hidden");
+      is_element_hidden(get("detail-error"), "Error message should be hidden");
+      is_element_hidden(get("detail-error-link"), "Error link should be hidden");
+      is_element_visible(get("detail-warning"), "Error message should be visible");
+      is(get("detail-warning").textContent, "Test add-on 9 could not be verified for use in " + gApp + ". Proceed with caution.", "Warning message should be correct");
+      is_element_visible(get("detail-warning-link"), "Warning link should be visible");
+      is(get("detail-warning-link").value, "More Information", "Warning link text should be correct");
+      is(get("detail-warning-link").href, infoURL, "Warning link should be correct");
+      is_element_hidden(get("detail-pending"), "Pending message should be hidden");
 
-    run_next_test();
+      run_next_test();
+    });
   });
-});
+}
 
 // Opens and tests the details view for add-on 9 with signing required
 add_test(function() {
@@ -772,26 +773,29 @@ add_test(function() {
   });
 });
 
-// Opens and tests the details view for add-on 10
-add_test(function() {
-  open_details("addon10@tests.mozilla.org", "extension", function() {
-    is(get("detail-name").textContent, "Test add-on 10", "Name should be correct");
+// These tests are only appropriate when signing can be turned off
+if (!AppConstants.REQUIRE_SIGNING) {
+  // Opens and tests the details view for add-on 10
+  add_test(function() {
+    open_details("addon10@tests.mozilla.org", "extension", function() {
+      is(get("detail-name").textContent, "Test add-on 10", "Name should be correct");
 
-    is_element_hidden(get("detail-prefs-btn"), "Preferences button should be hidden");
-    is_element_hidden(get("detail-enable-btn"), "Enable button should be hidden");
-    is_element_hidden(get("detail-disable-btn"), "Disable button should be hidden");
-    is_element_visible(get("detail-uninstall-btn"), "Remove button should be visible");
+      is_element_hidden(get("detail-prefs-btn"), "Preferences button should be hidden");
+      is_element_hidden(get("detail-enable-btn"), "Enable button should be hidden");
+      is_element_hidden(get("detail-disable-btn"), "Disable button should be hidden");
+      is_element_visible(get("detail-uninstall-btn"), "Remove button should be visible");
 
-    is_element_visible(get("detail-warning"), "Warning message should be visible");
-    is(get("detail-warning").textContent, "Test add-on 10 is incompatible with " + gApp + " " + gVersion + ".", "Warning message should be correct");
-    is_element_hidden(get("detail-warning-link"), "Warning link should be hidden");
-    is_element_hidden(get("detail-error"), "Error message should be hidden");
-    is_element_hidden(get("detail-error-link"), "Error link should be hidden");
-    is_element_hidden(get("detail-pending"), "Pending message should be hidden");
+      is_element_visible(get("detail-warning"), "Warning message should be visible");
+      is(get("detail-warning").textContent, "Test add-on 10 is incompatible with " + gApp + " " + gVersion + ".", "Warning message should be correct");
+      is_element_hidden(get("detail-warning-link"), "Warning link should be hidden");
+      is_element_hidden(get("detail-error"), "Error message should be hidden");
+      is_element_hidden(get("detail-error-link"), "Error link should be hidden");
+      is_element_hidden(get("detail-pending"), "Pending message should be hidden");
 
-    run_next_test();
+      run_next_test();
+    });
   });
-});
+}
 
 // Opens and tests the details view for add-on 10 with signing required
 add_test(function() {
@@ -975,7 +979,7 @@ add_test(function() {
       type: "extension",
       iconURL: "chrome://foo/skin/icon.png",
       icon64URL: "chrome://foo/skin/icon264.png",
-      sourceURI: Services.io.newURI("http://example.com/foo", null, null),
+      sourceURI: Services.io.newURI("http://example.com/foo"),
       averageRating: 2,
       optionsURL: "chrome://foo/content/options.xul",
       applyBackgroundUpdates: AddonManager.AUTOUPDATE_ENABLE,

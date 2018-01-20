@@ -10,12 +10,12 @@ sync protocol PTestDataStructures {
     manages PTestDataStructuresSub;
 
 child:
-    PTestDataStructuresSub(int i);
+    async PTestDataStructuresSub(int i);
 
-    Start();
+    async Start();
 
 parent:
-    __delete__();
+    async __delete__();
 
     sync Test1(int[] i1)
         returns (int[] o1);
@@ -101,6 +101,7 @@ parent:
 
     sync Dummy(ShmemUnion su) returns (ShmemUnion rsu);
 
+/*
 state CONSTRUCTING:
     send PTestDataStructuresSub goto CONSTRUCTING;
     send Start goto TEST1;
@@ -125,6 +126,7 @@ state TEST18:  recv Test18 goto DEAD;
 
 state DEAD:
     recv __delete__;
+*/
 };
 
 } // namespace _ipdltest

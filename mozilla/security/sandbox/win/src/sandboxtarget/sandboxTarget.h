@@ -1,5 +1,5 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -9,29 +9,21 @@
 
 #include <windows.h>
 
-#include "base/MissingBasicTypes.h"
-#include "sandbox/win/src/sandbox.h"
-#include "sandbox/win/src/target_services.h"
+#include "mozilla/Assertions.h"
 
-#ifdef TARGET_SANDBOX_EXPORTS
-#define TARGET_SANDBOX_EXPORT __declspec(dllexport)
-#else
-#define TARGET_SANDBOX_EXPORT __declspec(dllimport)
-#endif
+namespace sandbox {
+class TargetServices;
+}
+
 namespace mozilla {
 
-
-class TARGET_SANDBOX_EXPORT SandboxTarget
+class SandboxTarget
 {
 public:
   /**
    * Obtains a pointer to the singleton instance
    */
-  static SandboxTarget* Instance()
-  {
-    static SandboxTarget sb;
-    return &sb;
-  }
+  static SandboxTarget* Instance();
 
   /**
    * Used by the application to pass in the target services that provide certain
@@ -53,12 +45,7 @@ public:
    * Called by the library that wants to "start" the sandbox, i.e. change to the
    * more secure delayed / lockdown policy.
    */
-  void StartSandbox()
-  {
-    if (mTargetServices) {
-      mTargetServices->LowerToken();
-    }
-  }
+  void StartSandbox();
 
   /**
    * Used to duplicate handles via the broker process. The permission for the
@@ -66,17 +53,7 @@ public:
    */
   bool BrokerDuplicateHandle(HANDLE aSourceHandle, DWORD aTargetProcessId,
                              HANDLE* aTargetHandle, DWORD aDesiredAccess,
-                             DWORD aOptions)
-  {
-    if (!mTargetServices) {
-      return false;
-    }
-
-    sandbox::ResultCode result =
-      mTargetServices->DuplicateHandle(aSourceHandle, aTargetProcessId,
-                                       aTargetHandle, aDesiredAccess, aOptions);
-    return (sandbox::SBOX_ALL_OK == result);
-  }
+                             DWORD aOptions);
 
 protected:
   SandboxTarget() :

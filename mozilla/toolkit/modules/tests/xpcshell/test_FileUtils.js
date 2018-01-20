@@ -32,8 +32,8 @@ add_test(function test_getFile() {
 });
 
 add_test(function test_getFile_nonexistentDir() {
-  do_check_throws(function () {
-    let file = FileUtils.getFile("NonexistentD", ["foobar"]);
+  do_check_throws(function() {
+    FileUtils.getFile("NonexistentD", ["foobar"]);
   }, Components.results.NS_ERROR_FAILURE);
 
   run_next_test();
@@ -68,8 +68,8 @@ add_test(function test_getDir() {
 });
 
 add_test(function test_getDir_nonexistentDir() {
-  do_check_throws(function () {
-    let file = FileUtils.getDir("NonexistentD", ["foodir"]);
+  do_check_throws(function() {
+    FileUtils.getDir("NonexistentD", ["foodir"]);
   }, Components.results.NS_ERROR_FAILURE);
 
   run_next_test();
@@ -91,7 +91,7 @@ add_test(function test_getDir_shouldCreate() {
   run_next_test();
 });
 
-var openFileOutputStream_defaultFlags = function (aKind, aFileName) {
+var openFileOutputStream_defaultFlags = function(aKind, aFileName) {
   let file = FileUtils.getFile("ProfD", [aFileName]);
   let fos;
   do_check_true(aKind == "atomic" || aKind == "safe" || aKind == "");
@@ -119,7 +119,7 @@ var openFileOutputStream_defaultFlags = function (aKind, aFileName) {
   // No nsIXULRuntime in xpcshell, so use this trick to determine whether we're
   // on Windows.
   if ("@mozilla.org/windows-registry-key;1" in Components.classes) {
-    do_check_eq(file.permissions, 0666);
+    do_check_eq(file.permissions, 0o666);
   } else {
     do_check_eq(file.permissions, FileUtils.PERMS_FILE);
   }
@@ -139,7 +139,7 @@ var openFileOutputStream_modeFlags = function(aKind, aFileName) {
     fos = FileUtils.openFileOutputStream(file, FileUtils.MODE_WRONLY);
   }
   let data = "test_modeFlags";
-  do_check_throws(function () {
+  do_check_throws(function() {
     fos.write(data, data.length);
   }, Components.results.NS_ERROR_FILE_NOT_FOUND);
   do_check_false(file.exists());
@@ -164,10 +164,10 @@ var closeFileOutputStream = function(aKind, aFileName) {
   // But once we close it, we can't anymore.
   if (aKind == "atomic") {
     FileUtils.closeAtomicFileOutputStream(fos);
-  } else if (aKind == "safe"){
+  } else if (aKind == "safe") {
     FileUtils.closeSafeFileOutputStream(fos);
   }
-  do_check_throws(function () {
+  do_check_throws(function() {
     fos.write(data, data.length);
   }, Components.results.NS_BASE_STREAM_CLOSED);
   run_next_test();
@@ -215,12 +215,8 @@ add_test(function test_newFile() {
   let testfile = FileUtils.getFile("ProfD", ["test"]);
   let testpath = testfile.path;
   let file = new FileUtils.File(testpath);
-  do_check_true(file instanceof Components.interfaces.nsILocalFile);
+  do_check_true(file instanceof Components.interfaces.nsIFile);
   do_check_true(file.equals(testfile));
   do_check_eq(file.path, testpath);
   run_next_test();
 });
-
-function run_test() {
-  run_next_test();
-}

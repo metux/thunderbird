@@ -19,13 +19,13 @@ class nsINode;
 namespace mozilla {
 
 /**
- * Use nsAsyncDOMEvent to fire a DOM event that requires safe a stable DOM.
+ * Use AsyncEventDispatcher to fire a DOM event that requires safe a stable DOM.
  * For example, you may need to fire an event from within layout, but
  * want to ensure that the event handler doesn't mutate the DOM at
  * the wrong time, in order to avoid resulting instability.
  */
- 
-class AsyncEventDispatcher : public nsRunnable
+
+class AsyncEventDispatcher : public CancelableRunnable
 {
 public:
   /**
@@ -34,42 +34,91 @@ public:
    * the event is dispatched to it, otherwise the dispatch path starts
    * at the first chrome ancestor of that target.
    */
-  AsyncEventDispatcher(nsINode* aTarget, const nsAString& aEventType,
-                       bool aBubbles, bool aOnlyChromeDispatch)
-    : mTarget(aTarget)
+  AsyncEventDispatcher(nsINode* aTarget,
+                       const nsAString& aEventType,
+                       bool aBubbles,
+                       bool aOnlyChromeDispatch)
+    : CancelableRunnable("AsyncEventDispatcher")
+    , mTarget(aTarget)
     , mEventType(aEventType)
+    , mEventMessage(eUnidentifiedEvent)
     , mBubbles(aBubbles)
     , mOnlyChromeDispatch(aOnlyChromeDispatch)
   {
   }
 
+  /**
+   * If aOnlyChromeDispatch is true, the event is dispatched to only
+   * chrome node. In that case, if aTarget is already a chrome node,
+   * the event is dispatched to it, otherwise the dispatch path starts
+   * at the first chrome ancestor of that target.
+   */
+  AsyncEventDispatcher(nsINode* aTarget,
+                       mozilla::EventMessage aEventMessage,
+                       bool aBubbles, bool aOnlyChromeDispatch)
+    : CancelableRunnable("AsyncEventDispatcher")
+    , mTarget(aTarget)
+    , mEventMessage(aEventMessage)
+    , mBubbles(aBubbles)
+    , mOnlyChromeDispatch(aOnlyChromeDispatch)
+  {
+    mEventType.SetIsVoid(true);
+    MOZ_ASSERT(mEventMessage != eUnidentifiedEvent);
+  }
+
   AsyncEventDispatcher(dom::EventTarget* aTarget, const nsAString& aEventType,
                        bool aBubbles)
-    : mTarget(aTarget)
+    : CancelableRunnable("AsyncEventDispatcher")
+    , mTarget(aTarget)
     , mEventType(aEventType)
+    , mEventMessage(eUnidentifiedEvent)
     , mBubbles(aBubbles)
-    , mOnlyChromeDispatch(false)
   {
   }
 
+  AsyncEventDispatcher(dom::EventTarget* aTarget,
+                       mozilla::EventMessage aEventMessage,
+                       bool aBubbles)
+    : CancelableRunnable("AsyncEventDispatcher")
+    , mTarget(aTarget)
+    , mEventMessage(aEventMessage)
+    , mBubbles(aBubbles)
+  {
+    mEventType.SetIsVoid(true);
+    MOZ_ASSERT(mEventMessage != eUnidentifiedEvent);
+  }
+
   AsyncEventDispatcher(dom::EventTarget* aTarget, nsIDOMEvent* aEvent)
-    : mTarget(aTarget)
+    : CancelableRunnable("AsyncEventDispatcher")
+    , mTarget(aTarget)
     , mEvent(aEvent)
-    , mOnlyChromeDispatch(false)
+    , mEventMessage(eUnidentifiedEvent)
   {
   }
 
   AsyncEventDispatcher(dom::EventTarget* aTarget, WidgetEvent& aEvent);
 
   NS_IMETHOD Run() override;
+  nsresult Cancel() override;
   nsresult PostDOMEvent();
   void RunDOMEventWhenSafe();
 
+  // Calling this causes the Run() method to check that
+  // mTarget->IsInComposedDoc(). mTarget must be an nsINode or else we'll
+  // assert.
+  void RequireNodeInDocument();
+
   nsCOMPtr<dom::EventTarget> mTarget;
   nsCOMPtr<nsIDOMEvent> mEvent;
+  // If mEventType is set, mEventMessage will be eUnidentifiedEvent.
+  // If mEventMessage is set, mEventType will be void.
+  // They can never both be set at the same time.
   nsString              mEventType;
-  bool                  mBubbles;
-  bool                  mOnlyChromeDispatch;
+  mozilla::EventMessage mEventMessage;
+  bool                  mBubbles = false;
+  bool                  mOnlyChromeDispatch = false;
+  bool                  mCanceled = false;
+  bool                  mCheckStillInDoc = false;
 };
 
 class LoadBlockingAsyncEventDispatcher final : public AsyncEventDispatcher
@@ -95,7 +144,7 @@ public:
       mBlockedDoc->BlockOnload();
     }
   }
-  
+
   ~LoadBlockingAsyncEventDispatcher();
 
 private:

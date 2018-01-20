@@ -32,7 +32,7 @@ var tests = [
   cleanUp
 ];
 
-function test_newMsgs() {
+function* test_newMsgs() {
   // Start by initializing the folder, and mark some messages as read.
   let folder = localserver.rootFolder.getChildNamed("test.filter");
   do_check_eq(folder.getTotalMessages(false), 0);
@@ -50,7 +50,7 @@ function test_newMsgs() {
   do_check_eq(folder.msgDatabase.dBFolderInfo.highWater, highWater);
 }
 
-function trigger_bug() {
+function* trigger_bug() {
   // Kill the connection and start it up again.
   dump("Stopping server!\n");
   server.stop();
@@ -66,11 +66,11 @@ function trigger_bug() {
   // We also need a callback to know that folders have been loaded.
   let folderListener = {
     OnItemEvent: function (item, event) {
-      dump(event.toString() + " triggered for " + item.prettyName + "!\n\n\n");
-      if (event.toString() == "FolderLoaded" &&
+      dump(event + " triggered for " + item.prettyName + "!\n\n\n");
+      if (event == "FolderLoaded" &&
           item.prettyName == "test.subscribe.simple") {
         folder.getNewMessages(null, asyncUrlListener);
-      } else if (event.toString() == "FolderLoaded" && item == folder) {
+      } else if (event == "FolderLoaded" && item == folder) {
         async_driver();
       }
     },

@@ -5,7 +5,7 @@
 Components.utils.import("resource://gre/modules/Services.jsm");
 
 // restartManager() mucks with XPIProvider.jsm importing, so we hack around.
-this.__defineGetter__("XPIProvider", function () {
+this.__defineGetter__("XPIProvider", function() {
   let scope = {};
   return Components.utils.import("resource://gre/modules/addons/XPIProvider.jsm", scope)
                    .XPIProvider;
@@ -22,6 +22,8 @@ function run_test() {
   run_next_test();
 }
 
+const UUID_PATTERN = /^\{[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\}$/i;
+
 add_test(function test_getter_and_setter() {
   // Our test add-on requires a restart.
   let listener = {
@@ -35,9 +37,8 @@ add_test(function test_getter_and_setter() {
 
         do_check_neq(addon, null);
         do_check_neq(addon.syncGUID, null);
-        do_check_true(addon.syncGUID.length >= 9);
+        do_check_true(UUID_PATTERN.test(addon.syncGUID));
 
-        let oldGUID = addon.SyncGUID;
         let newGUID = "foo";
 
         addon.syncGUID = newGUID;
@@ -92,8 +93,7 @@ add_test(function test_error_on_duplicate_syncguid_insert() {
           try {
             addons[1].syncGUID = addons[0].syncGUID;
             do_throw("Should not get here.");
-          }
-          catch (e) {
+          } catch (e) {
             do_check_true(e.message.startsWith("Addon sync GUID conflict"));
             restartManager();
 
@@ -151,4 +151,3 @@ add_test(function test_addon_manager_get_by_sync_guid() {
     });
   });
 });
-

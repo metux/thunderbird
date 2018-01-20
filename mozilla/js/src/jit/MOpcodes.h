@@ -15,22 +15,24 @@ namespace jit {
     _(SimdBox)                                                              \
     _(SimdUnbox)                                                            \
     _(SimdValueX4)                                                          \
-    _(SimdSplatX4)                                                          \
+    _(SimdSplat)                                                            \
     _(SimdConstant)                                                         \
     _(SimdConvert)                                                          \
     _(SimdReinterpretCast)                                                  \
     _(SimdExtractElement)                                                   \
     _(SimdInsertElement)                                                    \
-    _(SimdSignMask)                                                         \
     _(SimdSwizzle)                                                          \
     _(SimdGeneralShuffle)                                                   \
     _(SimdShuffle)                                                          \
     _(SimdUnaryArith)                                                       \
     _(SimdBinaryComp)                                                       \
     _(SimdBinaryArith)                                                      \
+    _(SimdBinarySaturating)                                                 \
     _(SimdBinaryBitwise)                                                    \
     _(SimdShift)                                                            \
     _(SimdSelect)                                                           \
+    _(SimdAllTrue)                                                          \
+    _(SimdAnyTrue)                                                          \
     _(CloneLiteral)                                                         \
     _(Parameter)                                                            \
     _(Callee)                                                               \
@@ -44,13 +46,15 @@ namespace jit {
     _(Compare)                                                              \
     _(Phi)                                                                  \
     _(Beta)                                                                 \
+    _(NaNToZero)                                                            \
     _(OsrValue)                                                             \
-    _(OsrScopeChain)                                                        \
+    _(OsrEnvironmentChain)                                                  \
     _(OsrReturnValue)                                                       \
     _(OsrArgumentsObject)                                                   \
     _(ReturnFromCtor)                                                       \
     _(BinarySharedStub)                                                     \
     _(UnarySharedStub)                                                      \
+    _(NullarySharedStub)                                                    \
     _(CheckOverRecursed)                                                    \
     _(DefVar)                                                               \
     _(DefLexical)                                                           \
@@ -65,7 +69,6 @@ namespace jit {
     _(Call)                                                                 \
     _(ApplyArgs)                                                            \
     _(ApplyArray)                                                           \
-    _(ArraySplice)                                                          \
     _(Bail)                                                                 \
     _(Unreachable)                                                          \
     _(EncodeSnapshot)                                                       \
@@ -75,6 +78,9 @@ namespace jit {
     _(CallDirectEval)                                                       \
     _(BitNot)                                                               \
     _(TypeOf)                                                               \
+    _(ToAsync)                                                              \
+    _(ToAsyncGen)                                                           \
+    _(ToAsyncIter)                                                          \
     _(ToId)                                                                 \
     _(BitAnd)                                                               \
     _(BitOr)                                                                \
@@ -82,9 +88,13 @@ namespace jit {
     _(Lsh)                                                                  \
     _(Rsh)                                                                  \
     _(Ursh)                                                                 \
+    _(SignExtendInt32)                                                      \
+    _(SignExtendInt64)                                                      \
     _(MinMax)                                                               \
     _(Abs)                                                                  \
     _(Clz)                                                                  \
+    _(Ctz)                                                                  \
+    _(Popcnt)                                                               \
     _(Sqrt)                                                                 \
     _(Atan2)                                                                \
     _(Hypot)                                                                \
@@ -100,6 +110,8 @@ namespace jit {
     _(Concat)                                                               \
     _(CharCodeAt)                                                           \
     _(FromCharCode)                                                         \
+    _(FromCodePoint)                                                        \
+    _(StringConvertCase)                                                    \
     _(SinCos)                                                               \
     _(StringSplit)                                                          \
     _(Substr)                                                               \
@@ -115,35 +127,47 @@ namespace jit {
     _(ToFloat32)                                                            \
     _(ToInt32)                                                              \
     _(TruncateToInt32)                                                      \
+    _(WrapInt64ToInt32)                                                     \
+    _(ExtendInt32ToInt64)                                                   \
+    _(Int64ToFloatingPoint)                                                 \
     _(ToString)                                                             \
+    _(ToObject)                                                             \
     _(ToObjectOrNull)                                                       \
     _(NewArray)                                                             \
     _(NewArrayCopyOnWrite)                                                  \
     _(NewArrayDynamicLength)                                                \
+    _(NewIterator)                                                          \
+    _(NewTypedArray)                                                        \
+    _(NewTypedArrayDynamicLength)                                           \
     _(NewObject)                                                            \
     _(NewTypedObject)                                                       \
-    _(NewDeclEnvObject)                                                     \
+    _(NewNamedLambdaObject)                                                 \
     _(NewCallObject)                                                        \
-    _(NewRunOnceCallObject)                                                 \
+    _(NewSingletonCallObject)                                               \
     _(NewStringObject)                                                      \
     _(ObjectState)                                                          \
     _(ArrayState)                                                           \
+    _(ArgumentState)                                                        \
     _(InitElem)                                                             \
     _(InitElemGetterSetter)                                                 \
     _(MutateProto)                                                          \
-    _(InitProp)                                                             \
     _(InitPropGetterSetter)                                                 \
     _(Start)                                                                \
     _(OsrEntry)                                                             \
     _(Nop)                                                                  \
     _(LimitedTruncate)                                                      \
     _(RegExp)                                                               \
-    _(RegExpExec)                                                           \
-    _(RegExpTest)                                                           \
-    _(RegExpReplace)                                                        \
+    _(RegExpMatcher)                                                        \
+    _(RegExpSearcher)                                                       \
+    _(RegExpTester)                                                         \
+    _(RegExpPrototypeOptimizable)                                           \
+    _(RegExpInstanceOptimizable)                                            \
+    _(GetFirstDollarIndex)                                                  \
     _(StringReplace)                                                        \
+    _(ClassConstructor)                                                     \
     _(Lambda)                                                               \
     _(LambdaArrow)                                                          \
+    _(SetFunName)                                                           \
     _(KeepAliveObject)                                                      \
     _(Slots)                                                                \
     _(Elements)                                                             \
@@ -154,14 +178,21 @@ namespace jit {
     _(LoadSlot)                                                             \
     _(StoreSlot)                                                            \
     _(FunctionEnvironment)                                                  \
+    _(NewLexicalEnvironmentObject)                                          \
+    _(CopyLexicalEnvironmentObject)                                         \
+    _(HomeObject)                                                           \
+    _(HomeObjectSuperBase)                                                  \
     _(FilterTypeSet)                                                        \
     _(TypeBarrier)                                                          \
     _(MonitorTypes)                                                         \
     _(PostWriteBarrier)                                                     \
+    _(PostWriteElementBarrier)                                              \
+    _(GetPropSuperCache)                                                    \
     _(GetPropertyCache)                                                     \
     _(GetPropertyPolymorphic)                                               \
     _(SetPropertyPolymorphic)                                               \
     _(BindNameCache)                                                        \
+    _(CallBindVar)                                                          \
     _(GuardShape)                                                           \
     _(GuardReceiverPolymorphic)                                             \
     _(GuardObjectGroup)                                                     \
@@ -171,6 +202,7 @@ namespace jit {
     _(LoadUnboxedExpando)                                                   \
     _(ArrayLength)                                                          \
     _(SetArrayLength)                                                       \
+    _(GetNextEntryForIterator)                                              \
     _(TypedArrayLength)                                                     \
     _(TypedArrayElements)                                                   \
     _(SetDisjointTypedElements)                                             \
@@ -179,10 +211,6 @@ namespace jit {
     _(SetTypedObjectOffset)                                                 \
     _(InitializedLength)                                                    \
     _(SetInitializedLength)                                                 \
-    _(UnboxedArrayLength)                                                   \
-    _(UnboxedArrayInitializedLength)                                        \
-    _(IncrementUnboxedArrayInitializedLength)                               \
-    _(SetUnboxedArrayInitializedLength)                                     \
     _(Not)                                                                  \
     _(BoundsCheck)                                                          \
     _(BoundsCheckLower)                                                     \
@@ -192,15 +220,16 @@ namespace jit {
     _(LoadUnboxedScalar)                                                    \
     _(LoadUnboxedObjectOrNull)                                              \
     _(LoadUnboxedString)                                                    \
+    _(LoadElementFromState)                                                 \
     _(StoreElement)                                                         \
     _(StoreElementHole)                                                     \
+    _(FallibleStoreElement)                                                 \
     _(StoreUnboxedScalar)                                                   \
     _(StoreUnboxedObjectOrNull)                                             \
     _(StoreUnboxedString)                                                   \
     _(ConvertUnboxedObjectToNative)                                         \
     _(ArrayPopShift)                                                        \
     _(ArrayPush)                                                            \
-    _(ArrayConcat)                                                          \
     _(ArraySlice)                                                           \
     _(ArrayJoin)                                                            \
     _(LoadTypedArrayElementHole)                                            \
@@ -227,7 +256,7 @@ namespace jit {
     _(DeleteProperty)                                                       \
     _(DeleteElement)                                                        \
     _(SetPropertyCache)                                                     \
-    _(IteratorStart)                                                        \
+    _(GetIteratorCache)                                                     \
     _(IteratorMore)                                                         \
     _(IsNoIter)                                                             \
     _(IteratorEnd)                                                          \
@@ -240,37 +269,26 @@ namespace jit {
     _(Floor)                                                                \
     _(Ceil)                                                                 \
     _(Round)                                                                \
-    _(In)                                                                   \
+    _(NearbyInt)                                                            \
+    _(InCache)                                                              \
+    _(HasOwnCache)                                                          \
     _(InstanceOf)                                                           \
     _(CallInstanceOf)                                                       \
     _(InterruptCheck)                                                       \
-    _(AsmJSInterruptCheck)                                                  \
     _(GetDOMProperty)                                                       \
     _(GetDOMMember)                                                         \
     _(SetDOMProperty)                                                       \
+    _(IsConstructor)                                                        \
     _(IsCallable)                                                           \
+    _(IsArray)                                                              \
+    _(IsTypedArray)                                                         \
     _(IsObject)                                                             \
     _(HasClass)                                                             \
-    _(AsmJSNeg)                                                             \
-    _(AsmJSUnsignedToDouble)                                                \
-    _(AsmJSUnsignedToFloat32)                                               \
-    _(AsmJSLoadHeap)                                                        \
-    _(AsmJSStoreHeap)                                                       \
-    _(AsmJSLoadGlobalVar)                                                   \
-    _(AsmJSStoreGlobalVar)                                                  \
-    _(AsmJSLoadFuncPtr)                                                     \
-    _(AsmJSLoadFFIFunc)                                                     \
-    _(AsmJSReturn)                                                          \
-    _(AsmJSParameter)                                                       \
-    _(AsmJSVoidReturn)                                                      \
-    _(AsmJSPassStackArg)                                                    \
-    _(AsmJSCall)                                                            \
+    _(ObjectClassToString)                                                  \
+    _(CopySign)                                                             \
+    _(Rotate)                                                               \
     _(NewDerivedTypedObject)                                                \
     _(RecompileCheck)                                                       \
-    _(MemoryBarrier)                                                        \
-    _(AsmJSCompareExchangeHeap)                                             \
-    _(AsmJSAtomicExchangeHeap)                                              \
-    _(AsmJSAtomicBinopHeap)                                                 \
     _(UnknownValue)                                                         \
     _(LexicalCheck)                                                         \
     _(ThrowRuntimeLexicalError)                                             \
@@ -279,7 +297,39 @@ namespace jit {
     _(NewTarget)                                                            \
     _(ArrowNewTarget)                                                       \
     _(CheckReturn)                                                          \
-    _(CheckObjCoercible)
+    _(CheckIsObj)                                                           \
+    _(CheckIsCallable)                                                      \
+    _(CheckObjCoercible)                                                    \
+    _(DebugCheckSelfHosted)                                                 \
+    _(FinishBoundFunctionInit)                                              \
+    _(IsPackedArray)                                                        \
+    _(GetPrototypeOf)                                                       \
+    _(AsmJSLoadHeap)                                                        \
+    _(AsmJSStoreHeap)                                                       \
+    _(AsmJSCompareExchangeHeap)                                             \
+    _(AsmJSAtomicExchangeHeap)                                              \
+    _(AsmJSAtomicBinopHeap)                                                 \
+    _(WasmNeg)                                                              \
+    _(WasmBoundsCheck)                                                      \
+    _(WasmLoadTls)                                                          \
+    _(WasmAddOffset)                                                        \
+    _(WasmLoad)                                                             \
+    _(WasmStore)                                                            \
+    _(WasmTrap)                                                             \
+    _(WasmTruncateToInt32)                                                  \
+    _(WasmUnsignedToDouble)                                                 \
+    _(WasmUnsignedToFloat32)                                                \
+    _(WasmLoadGlobalVar)                                                    \
+    _(WasmStoreGlobalVar)                                                   \
+    _(WasmReturn)                                                           \
+    _(WasmReturnVoid)                                                       \
+    _(WasmParameter)                                                        \
+    _(WasmStackArg)                                                         \
+    _(WasmCall)                                                             \
+    _(WasmSelect)                                                           \
+    _(WasmReinterpret)                                                      \
+    _(WasmFloatConstant)                                                    \
+    _(WasmTruncateToInt64)
 
 // Forward declarations of MIR types.
 #define FORWARD_DECLARE(op) class M##op;

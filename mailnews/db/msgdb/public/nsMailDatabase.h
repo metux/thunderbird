@@ -26,14 +26,12 @@ public:
   NS_IMETHOD DeleteMessages(uint32_t aNumKeys, nsMsgKey* nsMsgKeys,
                             nsIDBChangeListener *instigator) override;
 
-  NS_IMETHOD StartBatch() override;
-  NS_IMETHOD EndBatch() override;
 
   nsresult  Open(nsMsgDBService* aDBService, nsIFile *aSummaryFile, bool create, bool upgrading) override;
   virtual nsMailDatabase  *GetMailDB() {return this;}
 
   virtual uint32_t  GetCurVersion() override {return kMsgDBVersion;}
-  
+
   NS_IMETHOD  GetOfflineOpForKey(nsMsgKey opKey, bool create,
                                  nsIMsgOfflineImapOperation **op) override;
   NS_IMETHOD  RemoveOfflineOp(nsIMsgOfflineImapOperation *op) override;
@@ -51,16 +49,16 @@ protected:
   nsresult        GetAllOfflineOpsTable(); // get this on demand
 
   // get the time and date of the mailbox file
-  void            GetMailboxModProperties(int64_t *aSize, uint32_t *aDate); 
+  void            GetMailboxModProperties(int64_t *aSize, uint32_t *aDate);
 
   nsCOMPtr <nsIMdbTable>  m_mdbAllOfflineOpsTable;
   mdb_token       m_offlineOpsRowScopeToken;
   mdb_token       m_offlineOpsTableKindToken;
 
   virtual void    SetReparse(bool reparse);
-  
+
 protected:
-  
+
   bool            m_reparse;
 };
 

@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "en-GB": {
+      "chrome_resources": {
+        "necko": "chrome/en-GB/locale/en-GB/necko/", 
+        "global": "chrome/en-GB/locale/en-GB/global/", 
+        "messenger-region": "chrome/en-GB/locale/en-GB/messenger-region/", 
+        "chat": "chrome/en-GB/locale/en-GB/chat/", 
+        "devtools": "chrome/en-GB/locale/en-GB/devtools/client/", 
+        "pipnss": "chrome/en-GB/locale/en-GB/pipnss/", 
+        "messenger-smime": "chrome/en-GB/locale/en-GB/messenger-smime/", 
+        "messenger-newsblog": "chrome/en-GB/locale/en-GB/messenger-newsblog/", 
+        "devtools-shim": "chrome/en-GB/locale/en-GB/devtools/shim/", 
+        "alerts": "chrome/en-GB/locale/en-GB/alerts/", 
+        "messenger": "chrome/en-GB/locale/en-GB/messenger/", 
+        "editor": "chrome/en-GB/locale/en-GB/editor/", 
+        "branding": "chrome/en-GB/locale/en-GB/branding/", 
+        "mozldap": "chrome/en-GB/locale/en-GB/mozldap/", 
+        "autoconfig": "chrome/en-GB/locale/en-GB/autoconfig/", 
+        "devtools-shared": "chrome/en-GB/locale/en-GB/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/en-GB/locale/en-GB/global-platform/win/", 
+          "android": "chrome/en-GB/locale/en-GB/global-platform/unix/", 
+          "macosx": "chrome/en-GB/locale/en-GB/global-platform/mac/", 
+          "linux": "chrome/en-GB/locale/en-GB/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/en-GB/locale/en-GB/mozapps/", 
+        "pluginproblem": "chrome/en-GB/locale/en-GB/pluginproblem/", 
+        "communicator": "chrome/en-GB/locale/en-GB/communicator/", 
+        "messenger-mapi": "chrome/en-GB/locale/en-GB/messenger-mapi/", 
+        "places": "chrome/en-GB/locale/en-GB/places/", 
+        "passwordmgr": "chrome/en-GB/locale/en-GB/passwordmgr/", 
+        "pippki": "chrome/en-GB/locale/en-GB/pippki/"
+      }, 
+      "version": "20171101071207"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "58.0", 
+      "id": "langpack-en-GB@firefox.mozilla.org", 
+      "strict_max_version": "58.*"
+    }
+  }, 
+  "langpack_id": "en-GB", 
+  "version": "58.0", 
+  "name": "English (GB) Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "Mark Tyndall (contributors: Ian Neal)", 
+  "description": "Language pack for Thunderbird for en-GB"
+}

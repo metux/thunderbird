@@ -17,28 +17,16 @@ test();
 
 function test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
-
-// Assertion failure: localKind == JSLOCAL_VAR || localKind == JSLOCAL_CONST, at ../jsfun.cpp:916
-
-  this.x = undefined;
-  this.watch("x", Function);
-  NaN = uneval({ get \u3056 (){ return undefined } });
-  x+=NaN;
-
-  reportCompare(expect, actual, summary + ': 1');
 
 // Assertion failure: lexdep->isLet(), at ../jsparse.cpp:1900
 
   (function (){
     var x;
-    eval("var x; (function ()x)");
+    eval("var x; (function () { return x; })");
   }
     )();
 
   reportCompare(expect, actual, summary + ': 2');
-
-  exitFunc ('test');
 }

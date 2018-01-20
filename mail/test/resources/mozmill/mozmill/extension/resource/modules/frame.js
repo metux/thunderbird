@@ -67,13 +67,17 @@ var registeredFunctions = {};
 
 var persisted = {};
 
-arrayRemove = function(array, from, to) {
+var thread;
+
+var arrayRemove = function(array, from, to) {
   var rest = array.slice((to || from) + 1 || array.length);
   array.length = from < 0 ? array.length + from : from;
   return array.push.apply(array, rest);
 };
 
-mozmill = undefined; elementslib = undefined; modules = undefined;
+var mozmill = undefined;
+var elementslib = undefined;
+var modules = undefined;
 
 var loadTestResources = function () {
   if (mozmill == undefined) {
@@ -88,7 +92,7 @@ var loadTestResources = function () {
 
 var loadFile = function(path, collector) {
   var file = Components.classes["@mozilla.org/file/local;1"]
-                       .createInstance(Components.interfaces.nsILocalFile);
+                       .createInstance(Components.interfaces.nsIFile);
   file.initWithPath(path);
   var uri = ios.newFileURI(file).spec;
 
@@ -174,7 +178,7 @@ function stateChangeBase (possibilties, restrictions, target, cmeta, v) {
   events.fireEvent(cmeta, target);
 }
 
-timers = [];
+var timers = [];
 
 var events = {
   'currentState' : null,
@@ -353,7 +357,7 @@ Collector.prototype.getModule = function (name) {
 Collector.prototype.getServer = function (port, basePath) {
   if (basePath) {
     var lp = Cc["@mozilla.org/file/local;1"]
-             .createInstance(Ci.nsILocalFile);
+             .createInstance(Ci.nsIFile);
     lp.initWithPath(basePath);
   }
 
@@ -401,7 +405,7 @@ Collector.prototype.addHttpResource = function (directory, ns) {
   }
 
   var lp = Components.classes["@mozilla.org/file/local;1"].
-           createInstance(Components.interfaces.nsILocalFile);
+           createInstance(Components.interfaces.nsIFile);
   lp.initWithPath(os.abspath(directory, this.current_file));
   this.httpd.registerDirectory(ns, lp);
 
@@ -724,7 +728,7 @@ function registerModule(name, path) {
                                 .QueryInterface(Components.interfaces.nsIResProtocolHandler);
 
   let modulesFile = Components.classes["@mozilla.org/file/local;1"]
-                              .createInstance(Components.interfaces.nsILocalFile);
+                              .createInstance(Components.interfaces.nsIFile);
   modulesFile.initWithPath(path);
   protocolHandler.setSubstitution(name, ios.newFileURI(modulesFile));
 }

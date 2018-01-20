@@ -19,7 +19,7 @@ function nextTest() {
       var subworker = new Worker("about:blank");
       subworker.onerror = function(e) {
         e.preventDefault();
-        postMessage(e.message);
+        postMessage("ERROR");
       }
     }
     var b = new Blob([workerfunc+'workerfunc();']);
@@ -35,10 +35,14 @@ function nextTest() {
         return;
       }
       w.onmessage = function(e) {
-        is(e.data.indexOf('Error: Failed to load script'), 0, "Error: Failed to load script");
+        is(e.data, "ERROR",
+           "Should catch the error when loading inner script");
         if (++i < 2) callworker(i);
         else SimpleTest.finish();
       };
+      w.onerrror = function(e) {
+        ok(false, "Should not get any errors from this worker");
+      }
     }
     callworker(0);
   })();
@@ -48,7 +52,6 @@ try {
   var worker = new Worker("about:blank");
   worker.onerror = function(e) {
     e.preventDefault();
-    ok(true, "Shouldn't success!");
     nextTest();
   }
 

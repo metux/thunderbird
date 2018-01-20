@@ -8,13 +8,13 @@
 #define nsDOMMutationObserver_h
 
 #include "mozilla/Attributes.h"
+#include "mozilla/Move.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsPIDOMWindow.h"
 #include "nsIScriptContext.h"
 #include "nsStubAnimationObserver.h"
 #include "nsCOMArray.h"
 #include "nsTArray.h"
-#include "nsAutoPtr.h"
 #include "nsIVariant.h"
 #include "nsContentList.h"
 #include "mozilla/dom/Element.h"
@@ -26,6 +26,7 @@
 #include "nsIDocument.h"
 #include "mozilla/dom/Animation.h"
 #include "nsIAnimationObserver.h"
+#include "nsGlobalWindow.h"
 
 class nsDOMMutationObserver;
 using mozilla::dom::MutationObservingInfo;
@@ -38,8 +39,8 @@ class nsDOMMutationRecord final : public nsISupports,
 public:
   typedef nsTArray<RefPtr<mozilla::dom::Animation>> AnimationArray;
 
-  nsDOMMutationRecord(nsIAtom* aType, nsISupports* aOwner)
-  : mType(aType), mAttrNamespace(NullString()), mPrevValue(NullString()), mOwner(aOwner)
+  nsDOMMutationRecord(nsAtom* aType, nsISupports* aOwner)
+  : mType(aType), mAttrNamespace(VoidString()), mPrevValue(VoidString()), mOwner(aOwner)
   {
   }
 
@@ -111,8 +112,8 @@ public:
   }
 
   nsCOMPtr<nsINode>             mTarget;
-  nsCOMPtr<nsIAtom>             mType;
-  nsCOMPtr<nsIAtom>             mAttrName;
+  RefPtr<nsAtom>             mType;
+  RefPtr<nsAtom>             mAttrName;
   nsString                      mAttrNamespace;
   nsString                      mPrevValue;
   RefPtr<nsSimpleContentList> mAddedNodes;
@@ -126,7 +127,7 @@ public:
   RefPtr<nsDOMMutationRecord> mNext;
   nsCOMPtr<nsISupports>         mOwner;
 };
- 
+
 // Base class just prevents direct access to
 // members to make sure we go through getters/setters.
 class nsMutationReceiverBase : public nsStubAnimationObserver
@@ -217,12 +218,12 @@ public:
     mAttributeOldValue = aOldValue;
   }
 
-  nsCOMArray<nsIAtom>& AttributeFilter() { return mAttributeFilter; }
-  void SetAttributeFilter(nsCOMArray<nsIAtom>& aFilter)
+  nsTArray<RefPtr<nsAtom>>& AttributeFilter() { return mAttributeFilter; }
+  void SetAttributeFilter(nsTArray<RefPtr<nsAtom>>&& aFilter)
   {
     NS_ASSERTION(!mParent, "Shouldn't have parent");
     mAttributeFilter.Clear();
-    mAttributeFilter.AppendObjects(aFilter);
+    mAttributeFilter = mozilla::Move(aFilter);
   }
 
   void AddClone(nsMutationReceiverBase* aClone)
@@ -234,17 +235,40 @@ public:
   {
     mTransientReceivers.RemoveObject(aClone);
   }
-  
+
 protected:
   nsMutationReceiverBase(nsINode* aTarget, nsDOMMutationObserver* aObserver)
-  : mTarget(aTarget), mObserver(aObserver), mRegisterTarget(aTarget)
+    : mTarget(aTarget)
+    , mObserver(aObserver)
+    , mRegisterTarget(aTarget)
+    , mSubtree(false)
+    , mChildList(false)
+    , mCharacterData(false)
+    , mCharacterDataOldValue(false)
+    , mNativeAnonymousChildList(false)
+    , mAttributes(false)
+    , mAllAttributes(false)
+    , mAttributeOldValue(false)
+    , mAnimations(false)
   {
   }
 
   nsMutationReceiverBase(nsINode* aRegisterTarget,
                          nsMutationReceiverBase* aParent)
-  : mTarget(nullptr), mObserver(nullptr), mParent(aParent),
-    mRegisterTarget(aRegisterTarget), mKungFuDeathGrip(aParent->Target())
+    : mTarget(nullptr)
+    , mObserver(nullptr)
+    , mParent(aParent)
+    , mRegisterTarget(aRegisterTarget)
+    , mKungFuDeathGrip(aParent->Target())
+    , mSubtree(false)
+    , mChildList(false)
+    , mCharacterData(false)
+    , mCharacterDataOldValue(false)
+    , mNativeAnonymousChildList(false)
+    , mAttributes(false)
+    , mAllAttributes(false)
+    , mAttributeOldValue(false)
+    , mAnimations(false)
   {
     NS_ASSERTION(mParent->Subtree(), "Should clone a non-subtree observer!");
   }
@@ -263,7 +287,7 @@ protected:
   bool ObservesAttr(nsINode* aRegisterTarget,
                     mozilla::dom::Element* aElement,
                     int32_t aNameSpaceID,
-                    nsIAtom* aAttr)
+                    nsAtom* aAttr)
   {
     if (mParent) {
       return mParent->ObservesAttr(aRegisterTarget, aElement, aNameSpaceID, aAttr);
@@ -282,8 +306,8 @@ protected:
       return false;
     }
 
-    nsCOMArray<nsIAtom>& filters = AttributeFilter();
-    for (int32_t i = 0; i < filters.Count(); ++i) {
+    nsTArray<RefPtr<nsAtom>>& filters = AttributeFilter();
+    for (size_t i = 0; i < filters.Length(); ++i) {
       if (filters[i] == aAttr) {
         return true;
       }
@@ -302,7 +326,7 @@ protected:
   // While we have transient receivers, keep the original mutation receiver
   // alive so it doesn't go away and disconnect all its transient receivers.
   nsCOMPtr<nsINode>                  mKungFuDeathGrip;
-  
+
 private:
   bool                               mSubtree;
   bool                               mChildList;
@@ -313,7 +337,7 @@ private:
   bool                               mAllAttributes;
   bool                               mAttributeOldValue;
   bool                               mAnimations;
-  nsCOMArray<nsIAtom>                mAttributeFilter;
+  nsTArray<RefPtr<nsAtom>>          mAttributeFilter;
 };
 
 
@@ -369,7 +393,6 @@ public:
 
   void Disconnect(bool aRemoveFromObserver);
 
-  NS_DECL_AND_IMPL_ZEROING_OPERATOR_NEW
   NS_DECL_ISUPPORTS
 
   NS_DECL_NSIMUTATIONOBSERVER_ATTRIBUTEWILLCHANGE
@@ -383,7 +406,7 @@ public:
   virtual void AttributeSetToCurrentValue(nsIDocument* aDocument,
                                           mozilla::dom::Element* aElement,
                                           int32_t aNameSpaceID,
-                                          nsIAtom* aAttribute) override
+                                          nsAtom* aAttribute) override
   {
     // We can reuse AttributeWillChange implementation.
     AttributeWillChange(aDocument, aElement, aNameSpaceID, aAttribute,
@@ -465,7 +488,7 @@ class nsDOMMutationObserver final : public nsISupports,
                                     public nsWrapperCache
 {
 public:
-  nsDOMMutationObserver(already_AddRefed<nsPIDOMWindow>&& aOwner,
+  nsDOMMutationObserver(already_AddRefed<nsPIDOMWindowInner>&& aOwner,
                         mozilla::dom::MutationCallback& aCb,
                         bool aChrome)
   : mOwner(aOwner), mLastPendingMutation(nullptr), mPendingMutationCount(0),
@@ -552,11 +575,27 @@ public:
   }
 
   // static methods
-  static void HandleMutations()
+  static void HandleMutations(mozilla::AutoSlowOperation& aAso)
   {
     if (sScheduledMutationObservers) {
-      HandleMutationsInternal();
+      HandleMutationsInternal(aAso);
     }
+  }
+
+  static bool AllScheduledMutationObserversAreSuppressed()
+  {
+    if (sScheduledMutationObservers) {
+      uint32_t len = sScheduledMutationObservers->Length();
+      if (len > 0) {
+        for (uint32_t i = 0; i < len; ++i) {
+          if (!(*sScheduledMutationObservers)[i]->Suppressed()) {
+            return false;
+          }
+        }
+        return true;
+      }
+    }
+    return false;
   }
 
   static void EnterMutationHandling();
@@ -582,30 +621,26 @@ protected:
   void ScheduleForRun();
   void RescheduleForRun();
 
-  nsDOMMutationRecord* CurrentRecord(nsIAtom* aType);
+  nsDOMMutationRecord* CurrentRecord(nsAtom* aType);
   bool HasCurrentRecord(const nsAString& aType);
 
   bool Suppressed()
   {
-    if (mOwner) {
-      nsCOMPtr<nsIDocument> d = mOwner->GetExtantDoc();
-      return d && d->IsInSyncOperation();
-    }
-    return false;
+    return mOwner && nsGlobalWindowInner::Cast(mOwner)->IsInSyncOperation();
   }
 
-  static void HandleMutationsInternal();
+  static void HandleMutationsInternal(mozilla::AutoSlowOperation& aAso);
 
   static void AddCurrentlyHandlingObserver(nsDOMMutationObserver* aObserver,
                                            uint32_t aMutationLevel);
 
-  nsCOMPtr<nsPIDOMWindow>                            mOwner;
+  nsCOMPtr<nsPIDOMWindowInner>                       mOwner;
 
   nsCOMArray<nsMutationReceiver>                     mReceivers;
   nsClassHashtable<nsISupportsHashKey,
                    nsCOMArray<nsMutationReceiver> >  mTransientReceivers;
   // MutationRecords which are being constructed.
-  nsAutoTArray<nsDOMMutationRecord*, 4>              mCurrentMutations;
+  AutoTArray<nsDOMMutationRecord*, 4>              mCurrentMutations;
   // MutationRecords which will be handed to the callback at the end of
   // the microtask.
   RefPtr<nsDOMMutationRecord>                      mFirstPendingMutation;
@@ -621,11 +656,10 @@ protected:
   uint64_t                                           mId;
 
   static uint64_t                                    sCount;
-  static nsAutoTArray<RefPtr<nsDOMMutationObserver>, 4>* sScheduledMutationObservers;
-  static nsDOMMutationObserver*                      sCurrentObserver;
+  static AutoTArray<RefPtr<nsDOMMutationObserver>, 4>* sScheduledMutationObservers;
 
   static uint32_t                                    sMutationLevel;
-  static nsAutoTArray<nsAutoTArray<RefPtr<nsDOMMutationObserver>, 4>, 4>*
+  static AutoTArray<AutoTArray<RefPtr<nsDOMMutationObserver>, 4>, 4>*
                                                      sCurrentlyHandlingObservers;
 };
 
@@ -636,7 +670,7 @@ class nsAutoMutationBatch
 public:
   nsAutoMutationBatch()
   : mPreviousBatch(nullptr), mBatchTarget(nullptr), mRemovalDone(false),
-    mFromFirstToLast(false), mAllowNestedBatches(false)    
+    mFromFirstToLast(false), mAllowNestedBatches(false)
   {
   }
 
@@ -691,11 +725,11 @@ public:
       if (sCurrentBatch->mObservers[i].mObserver == aObserver) {
         if (aWantsChildList) {
           sCurrentBatch->mObservers[i].mWantsChildList = aWantsChildList;
-        } 
+        }
         return;
       }
     }
-    BatchObserver* bo = sCurrentBatch->mObservers.AppendElement(); 
+    BatchObserver* bo = sCurrentBatch->mObservers.AppendElement();
     bo->mObserver = aObserver;
     bo->mWantsChildList = aWantsChildList;
   }
@@ -737,10 +771,10 @@ private:
     nsDOMMutationObserver* mObserver;
     bool                   mWantsChildList;
   };
-  
+
   static nsAutoMutationBatch* sCurrentBatch;
   nsAutoMutationBatch* mPreviousBatch;
-  nsAutoTArray<BatchObserver, 2> mObservers;
+  AutoTArray<BatchObserver, 2> mObservers;
   nsTArray<nsCOMPtr<nsIContent> > mRemovedNodes;
   nsTArray<nsCOMPtr<nsIContent> > mAddedNodes;
   nsINode* mBatchTarget;
@@ -907,10 +941,12 @@ private:
   };
 
   static nsAutoAnimationMutationBatch* sCurrentBatch;
-  nsAutoTArray<nsDOMMutationObserver*, 2> mObservers;
+  AutoTArray<nsDOMMutationObserver*, 2> mObservers;
   typedef nsTArray<Entry> EntryArray;
   nsClassHashtable<nsPtrHashKey<nsINode>, EntryArray> mEntryTable;
   // List of nodes referred to by mEntryTable so we can sort them
+  // For a specific pseudo element, we use its parent element as the
+  // batch target, so they will be put in the same EntryArray.
   nsTArray<nsINode*> mBatchTargets;
 };
 

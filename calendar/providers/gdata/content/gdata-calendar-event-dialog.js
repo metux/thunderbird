@@ -11,8 +11,8 @@ Components.utils.import("resource://gdata-provider/modules/gdataUtils.jsm");
         window.gOldEndTimezone = null;
     }
 
-    monkeyPatch(window, "updateCalendar", function(protofunc /*, ...args */) {
-        let rv = protofunc.apply(this, Array.slice(arguments, 1));
+    monkeyPatch(window, "updateCalendar", function(protofunc, ...args) {
+        let rv = protofunc.apply(this, args);
         let calendar = getCurrentCalendar();
         let isGoogleCalendar = (calendar.type == "gdata");
         let isTask = cal.isToDo(window.calendarItem);
@@ -58,14 +58,14 @@ Components.utils.import("resource://gdata-provider/modules/gdataUtils.jsm");
             "button-url"
         ];
 
-        for each (let id in hideForTaskIds) {
+        for (let id of hideForTaskIds) {
             let node = document.getElementById(id);
             if (node) {
                 node.hidden = isGoogleTask;
             }
         }
 
-        for each (let id in disableForTaskIds) {
+        for (let id of disableForTaskIds) {
             let node = document.getElementById(id);
             if (node) {
                 node.disabled = isGoogleTask;
@@ -96,7 +96,7 @@ Components.utils.import("resource://gdata-provider/modules/gdataUtils.jsm");
         }
 
         let elements = document.getElementsByAttribute("provider", "gdata");
-        for each (let elem in Array.slice(elements)) {
+        for (let elem of elements) {
             elem.style.display = isGoogleCalendar ? "" : "none";
         }
 
@@ -126,8 +126,7 @@ Components.utils.import("resource://gdata-provider/modules/gdataUtils.jsm");
         return rv;
     });
 
-    monkeyPatch(window, "updateCategoryMenulist", function(protofunc /*, ...args */) {
-        let args = Array.slice(arguments, 1);
+    monkeyPatch(window, "updateCategoryMenulist", function(protofunc, ...args) {
         let rv;
         let calendar = getCurrentCalendar();
         if (calendar.type == "gdata" && cal.isToDo(window.calendarItem)) {
@@ -141,8 +140,8 @@ Components.utils.import("resource://gdata-provider/modules/gdataUtils.jsm");
         return rv;
     });
 
-    monkeyPatch(window, "updateReminderDetails", function(protofunc /*, ...args */) {
-        let rv = protofunc.apply(this, Array.slice(arguments, 1));
+    monkeyPatch(window, "updateReminderDetails", function(protofunc, ...args) {
+        let rv = protofunc.apply(this, args);
         let reminderList = document.getElementById("item-alarm");
 
         if (reminderList.value == "default") {
@@ -152,7 +151,7 @@ Components.utils.import("resource://gdata-provider/modules/gdataUtils.jsm");
         return rv;
     });
 
-    monkeyPatch(window, "saveReminder", function(protofunc, item /*, ...args */) {
+    monkeyPatch(window, "saveReminder", function(protofunc, item, ...args) {
         let calendar = getCurrentCalendar();
         let reminderList = document.getElementById("item-alarm");
         if (calendar.type == "gdata" && reminderList.value == "default") {
@@ -167,11 +166,11 @@ Components.utils.import("resource://gdata-provider/modules/gdataUtils.jsm");
             return null;
         } else {
             item.deleteProperty("X-DEFAULT-ALARM");
-            return protofunc.apply(this, Array.slice(arguments, 1));
+            return protofunc.apply(this, args);
         }
     })
 
-    monkeyPatch(window, "loadReminders", function(protofunc, reminders /*, ...args */) {
+    monkeyPatch(window, "loadReminders", function(protofunc, reminders, ...args) {
         let reminderList = document.getElementById("item-alarm");
 
         // Set up the default reminders item
@@ -196,19 +195,19 @@ Components.utils.import("resource://gdata-provider/modules/gdataUtils.jsm");
             // remember the selected index
             gLastAlarmSelection = reminderList.selectedIndex;
         } else {
-            rv = protofunc.apply(this, Array.slice(arguments, 1));
+            rv = protofunc.apply(this, args);
         }
         return rv;
     });
 
-    monkeyPatch(window, "editReminder", function(protofunc /*, ...args */) {
-        let rv = protofunc.apply(this, Array.slice(arguments, 1));
+    monkeyPatch(window, "editReminder", function(protofunc, ...args) {
+        let rv = protofunc.apply(this, args);
 
         // Now that the custom reminders were changed, we need to remove the
         // default alarm status, otherwise the wrong alarm will be set.
         let customItem = document.getElementById("reminder-custom-menuitem");
         if (customItem.reminders) {
-            for each (let reminder in customItem.reminders) {
+            for (let reminder of customItem.reminders) {
                 reminder.deleteProperty("X-DEFAULT-ALARM");
             }
         }

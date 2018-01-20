@@ -22,30 +22,30 @@ function StringStream(string) {
 
 // Initialize the policy service with a stub localizer for our
 // add-on ID.
-add_task(function* init() {
-  const aps = Cc["@mozilla.org/addons/policy-service;1"]
-    .getService(Ci.nsIAddonPolicyService).wrappedJSObject;
+add_task(async function init() {
+  let policy = new WebExtensionPolicy({
+    id: ADDON_ID,
+    mozExtensionHostname: UUID,
+    baseURL: "file:///",
 
-  let oldCallback = aps.setExtensionURIToAddonIdCallback(uri => {
-    if (uri.host == UUID) {
-      return ADDON_ID;
-    }
+    allowedOrigins: new MatchPatternSet([]),
+
+    localizeCallback(string) {
+      return string.replace(/__MSG_(.*?)__/g, "<localized-$1>");
+    },
   });
 
-  aps.setAddonLocalizeCallback(ADDON_ID, string => {
-    return string.replace(/__MSG_(.*?)__/g, "<localized-$1>");
-  });
+  policy.active = true;
 
   do_register_cleanup(() => {
-    aps.setExtensionURIToAddonIdCallback(oldCallback);
-    aps.setAddonLocalizeCallback(ADDON_ID, null);
+    policy.active = false;
   });
 });
 
 
 // Test that the synchronous converter works as expected with a
 // simple string.
-add_task(function* testSynchronousConvert() {
+add_task(async function testSynchronousConvert() {
   let stream = StringStream("Foo __MSG_xxx__ bar __MSG_yyy__ baz");
 
   let resultStream = convService.convert(stream, FROM_TYPE, TO_TYPE, URI);
@@ -59,7 +59,7 @@ add_task(function* testSynchronousConvert() {
 // Test that the asynchronous converter works as expected with input
 // split into multiple chunks, and a boundary in the middle of a
 // replacement token.
-add_task(function* testAsyncConvert() {
+add_task(async function testAsyncConvert() {
   let listener;
   let awaitResult = new Promise((resolve, reject) => {
     listener = {
@@ -96,24 +96,38 @@ add_task(function* testAsyncConvert() {
   converter.onStopRequest(null, null, Cr.NS_OK);
 
 
-  let result = yield awaitResult;
+  let result = await awaitResult;
   equal(result, "Foo <localized-xxx> bar <localized-yyy> baz");
 });
 
 
 // Test that attempting to initialize a converter with the URI of a
 // nonexistent WebExtension fails.
-add_task(function* testInvalidUUID() {
+add_task(async function testInvalidUUID() {
   let uri = NetUtil.newURI("moz-extension://eb4f3be8-41c9-4970-aa6d-b84d1ecc02b2/file.css");
   let stream = StringStream("Foo __MSG_xxx__ bar __MSG_yyy__ baz");
 
+  // Assert.throws raise a TypeError exception when the expected param
+  // is an arrow function. (See Bug 1237961 for rationale)
+  let expectInvalidContextException = function(e) {
+    return e.result === Cr.NS_ERROR_INVALID_ARG && /Invalid context/.test(e);
+  };
+
   Assert.throws(() => {
     convService.convert(stream, FROM_TYPE, TO_TYPE, uri);
-  });
+  }, expectInvalidContextException);
 
   Assert.throws(() => {
-    let listener = { QueryInterface: XPCOMUtils.generateQI([Ci.nsIStreamListener]) };
+    let listener = {QueryInterface: XPCOMUtils.generateQI([Ci.nsIStreamListener])};
 
     convService.asyncConvertData(FROM_TYPE, TO_TYPE, listener, uri);
-  });
+  }, expectInvalidContextException);
+});
+
+
+// Test that an empty stream does not throw an NS_ERROR_ILLEGAL_VALUE.
+add_task(async function testEmptyStream() {
+  let stream = StringStream("");
+  let resultStream = convService.convert(stream, FROM_TYPE, TO_TYPE, URI);
+  equal(resultStream.data, "");
 });

@@ -6,7 +6,6 @@ package org.mozilla.gecko.tests;
 
 import java.io.File;
 
-import org.json.JSONObject;
 import org.mozilla.gecko.NSSBridge;
 import org.mozilla.gecko.db.BrowserContract;
 
@@ -16,7 +15,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 
-public class testPasswordEncrypt extends BaseTest {
+public class testPasswordEncrypt extends OldBaseTest {
     public void testPasswordEncrypt() {
         Context context = (Context)getActivity();
         ContentResolver cr = context.getContentResolver();
@@ -106,15 +105,7 @@ public class testPasswordEncrypt extends BaseTest {
     }
 
     private void toggleMasterPassword(String passwd) {
-        JSONObject jsonPref = new JSONObject();
-        try {
-            jsonPref.put("name", "privacy.masterpassword.enabled");
-            jsonPref.put("type", "string");
-            jsonPref.put("value", passwd);
-            setPreferenceAndWaitForChange(jsonPref);
-        } catch (Exception ex) { 
-            mAsserter.ok(false, "exception in toggleMasterPassword", ex.toString());
-        }
+        setPreferenceAndWaitForChange("privacy.masterpassword.enabled", passwd);
     }
 
     @Override

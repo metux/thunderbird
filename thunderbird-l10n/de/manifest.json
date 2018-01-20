@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "de": {
+      "chrome_resources": {
+        "necko": "chrome/de/locale/de/necko/", 
+        "global": "chrome/de/locale/de/global/", 
+        "messenger-region": "chrome/de/locale/de/messenger-region/", 
+        "chat": "chrome/de/locale/de/chat/", 
+        "devtools": "chrome/de/locale/de/devtools/client/", 
+        "pipnss": "chrome/de/locale/de/pipnss/", 
+        "messenger-smime": "chrome/de/locale/de/messenger-smime/", 
+        "messenger-newsblog": "chrome/de/locale/de/messenger-newsblog/", 
+        "devtools-shim": "chrome/de/locale/de/devtools/shim/", 
+        "alerts": "chrome/de/locale/de/alerts/", 
+        "messenger": "chrome/de/locale/de/messenger/", 
+        "editor": "chrome/de/locale/de/editor/", 
+        "branding": "chrome/de/locale/de/branding/", 
+        "mozldap": "chrome/de/locale/de/mozldap/", 
+        "autoconfig": "chrome/de/locale/de/autoconfig/", 
+        "devtools-shared": "chrome/de/locale/de/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/de/locale/de/global-platform/win/", 
+          "android": "chrome/de/locale/de/global-platform/unix/", 
+          "macosx": "chrome/de/locale/de/global-platform/mac/", 
+          "linux": "chrome/de/locale/de/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/de/locale/de/mozapps/", 
+        "pluginproblem": "chrome/de/locale/de/pluginproblem/", 
+        "communicator": "chrome/de/locale/de/communicator/", 
+        "messenger-mapi": "chrome/de/locale/de/messenger-mapi/", 
+        "places": "chrome/de/locale/de/places/", 
+        "passwordmgr": "chrome/de/locale/de/passwordmgr/", 
+        "pippki": "chrome/de/locale/de/pippki/"
+      }, 
+      "version": "20171102105405"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "58.0", 
+      "id": "langpack-de@firefox.mozilla.org", 
+      "strict_max_version": "58.*"
+    }
+  }, 
+  "langpack_id": "de", 
+  "version": "58.0", 
+  "name": "Deutsch (DE) Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "thunderbird-mail.de (contributors: Sebastian Hengst, Alexander Ihrig, Robert Kaiser, Abdulkadir Topal)", 
+  "description": "Language pack for Thunderbird for de"
+}

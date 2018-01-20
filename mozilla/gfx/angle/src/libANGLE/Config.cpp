@@ -57,7 +57,9 @@ Config::Config()
       transparentType(EGL_NONE),
       transparentRedValue(0),
       transparentGreenValue(0),
-      transparentBlueValue(0)
+      transparentBlueValue(0),
+      optimalOrientation(0),
+      colorComponentType(EGL_COLOR_COMPONENT_TYPE_FIXED_EXT)
 {
 }
 
@@ -133,6 +135,10 @@ class ConfigSorter
         static_assert(EGL_NONE < EGL_SLOW_CONFIG && EGL_SLOW_CONFIG < EGL_NON_CONFORMANT_CONFIG, "Unexpected EGL enum value.");
         SORT(configCaveat);
 
+        static_assert(EGL_COLOR_COMPONENT_TYPE_FIXED_EXT < EGL_COLOR_COMPONENT_TYPE_FLOAT_EXT,
+                      "Unexpected order of EGL enums.");
+        SORT(colorComponentType);
+
         static_assert(EGL_RGB_BUFFER < EGL_LUMINANCE_BUFFER, "Unexpected EGL enum value.");
         SORT(colorBufferType);
 
@@ -159,27 +165,22 @@ class ConfigSorter
     }
 
   private:
-    void scanForWantedComponents(const AttributeMap &attributeMap)
+    static bool wantsComponent(const AttributeMap &attributeMap, EGLAttrib component)
     {
         // [EGL 1.5] section 3.4.1.2 page 30
         // Sorting rule #3: by larger total number of color bits, not considering
         // components that are 0 or don't-care.
-        for (auto attribIter = attributeMap.begin(); attribIter != attributeMap.end(); attribIter++)
-        {
-            EGLint attributeKey = attribIter->first;
-            EGLint attributeValue = attribIter->second;
-            if (attributeKey != 0 && attributeValue != EGL_DONT_CARE)
-            {
-                switch (attributeKey)
-                {
-                case EGL_RED_SIZE:       mWantRed = true; break;
-                case EGL_GREEN_SIZE:     mWantGreen = true; break;
-                case EGL_BLUE_SIZE:      mWantBlue = true; break;
-                case EGL_ALPHA_SIZE:     mWantAlpha = true; break;
-                case EGL_LUMINANCE_SIZE: mWantLuminance = true; break;
-                }
-            }
-        }
+        EGLAttrib value = attributeMap.get(component, 0);
+        return value != 0 && value != EGL_DONT_CARE;
+    }
+
+    void scanForWantedComponents(const AttributeMap &attributeMap)
+    {
+        mWantRed       = wantsComponent(attributeMap, EGL_RED_SIZE);
+        mWantGreen     = wantsComponent(attributeMap, EGL_GREEN_SIZE);
+        mWantBlue      = wantsComponent(attributeMap, EGL_BLUE_SIZE);
+        mWantAlpha     = wantsComponent(attributeMap, EGL_ALPHA_SIZE);
+        mWantLuminance = wantsComponent(attributeMap, EGL_LUMINANCE_SIZE);
     }
 
     EGLint wantedComponentsSize(const Config &config) const
@@ -214,8 +215,13 @@ std::vector<const Config*> ConfigSet::filter(const AttributeMap &attributeMap) c
 
         for (auto attribIter = attributeMap.begin(); attribIter != attributeMap.end(); attribIter++)
         {
-            EGLint attributeKey = attribIter->first;
-            EGLint attributeValue = attribIter->second;
+            EGLAttrib attributeKey   = attribIter->first;
+            EGLAttrib attributeValue = attribIter->second;
+
+            if (attributeValue == EGL_DONT_CARE)
+            {
+                continue;
+            }
 
             switch (attributeKey)
             {
@@ -251,6 +257,12 @@ std::vector<const Config*> ConfigSet::filter(const AttributeMap &attributeMap) c
               case EGL_MAX_PBUFFER_WIDTH:         match = config.maxPBufferWidth >= attributeValue;                   break;
               case EGL_MAX_PBUFFER_HEIGHT:        match = config.maxPBufferHeight >= attributeValue;                  break;
               case EGL_MAX_PBUFFER_PIXELS:        match = config.maxPBufferPixels >= attributeValue;                  break;
+              case EGL_OPTIMAL_SURFACE_ORIENTATION_ANGLE:
+                  match = config.optimalOrientation == attributeValue;
+                  break;
+              case EGL_COLOR_COMPONENT_TYPE_EXT:
+                  match = config.colorComponentType == static_cast<EGLenum>(attributeValue);
+                  break;
               default: UNREACHABLE();
             }
 

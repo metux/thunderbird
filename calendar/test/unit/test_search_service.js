@@ -28,16 +28,14 @@ function test_found() {
         id: 2,
         called: false,
         searchForCalendars: function(aStr, aHint, aMax, aListener) {
-            ok(!this.called)
+            ok(!this.called);
             this.called = true;
 
             equal(aStr, "str");
             equal(aHint, HINT_EXACT_MATCH);
             equal(aMax, 0);
 
-            let mockCalendar = {
-                id: "test"
-            };
+            let mockCalendar = { id: "test" };
 
             aListener.onResult(null, [mockCalendar]);
         }
@@ -60,11 +58,10 @@ function test_found() {
 
             equal(result.length, 1);
             equal(result[0].id, "test");
-
         }
     };
 
-    let op = search.searchForCalendars("str", HINT_EXACT_MATCH, 0, listener);
+    search.searchForCalendars("str", HINT_EXACT_MATCH, 0, listener);
     ok(listener.called);
     ok(provider2.called);
 }
@@ -89,7 +86,7 @@ function test_failure() {
 
     search.addProvider(provider);
 
-    let op = search.searchForCalendars("str", HINT_EXACT_MATCH, 0, listener);
+    search.searchForCalendars("str", HINT_EXACT_MATCH, 0, listener);
     ok(listener.called);
 }
 
@@ -99,11 +96,12 @@ function test_cancel() {
     let provider = {
         QueryInterface: XPCOMUtils.generateQI([Components.interfaces.calICalendarSearchProvider, Components.interfaces.calIOperation]),
         searchForCalendars: function(aStr, aHint, aMax, aListener) {
-
-            Services.tm.currentThread.dispatch({run: function() {
-                dump("Cancelling search...");
-                op.cancel();
-            }}, Components.interfaces.nsIEventTarget.DISPATCH_NORMAL);
+            Services.tm.currentThread.dispatch({
+                run: function() {
+                    dump("Cancelling search...");
+                    operation.cancel();
+                }
+            }, Components.interfaces.nsIEventTarget.DISPATCH_NORMAL);
 
             // No listener call, we emulate a long running search
             // Do return the operation though
@@ -132,5 +130,5 @@ function test_cancel() {
     search.addProvider(provider);
 
     do_test_pending();
-    let op = search.searchForCalendars("str", HINT_EXACT_MATCH, 0, listener);
+    let operation = search.searchForCalendars("str", HINT_EXACT_MATCH, 0, listener);
 }

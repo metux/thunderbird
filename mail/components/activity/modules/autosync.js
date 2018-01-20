@@ -37,9 +37,9 @@ var autosyncModule =
 
   _inQFolderList : [],
   _running : false,
-  _syncInfoPerFolder: {},
-  _syncInfoPerServer: {},
-  _lastMessage: {},
+  _syncInfoPerFolder: new Map(),
+  _syncInfoPerServer: new Map(),
+  _lastMessage: new Map(),
 
   get log() {
     delete this.log;
@@ -77,7 +77,7 @@ var autosyncModule =
     try {
       // create an activity process for this folder
       let msg = this.bundle.formatStringFromName("autosyncProcessDisplayText",
-                                                 [folder.prettiestName], 1)
+                                                 [folder.prettyName], 1)
       let process = new nsActProcess(msg, this.autoSyncManager);
       // we want to use default auto-sync icon
       process.iconClass = "syncMail";
@@ -109,7 +109,7 @@ var autosyncModule =
                                                  [folder.server.prettyName], 1);
 
       let statusMsg;
-      let numOfMessages = this._syncInfoPerServer[folder.server].totalDownloads;
+      let numOfMessages = this._syncInfoPerServer.get(folder.server).totalDownloads;
       if (numOfMessages)
         statusMsg = this.bundle.formatStringFromName("autosyncEventStatusText",
                                                      [numOfMessages], 1);
@@ -117,7 +117,7 @@ var autosyncModule =
         statusMsg = this.getString("autosyncEventStatusTextNoMsgs");
 
       let event = new nsActEvent(msg, this.autoSyncManager, statusMsg,
-                                 this._syncInfoPerServer[folder.server].startTime,
+                                 this._syncInfoPerServer.get(folder.server).startTime,
                                  Date.now());               // completion time
 
       // since auto-sync events do not have undo option by nature,
@@ -157,7 +157,7 @@ var autosyncModule =
           queue == nsIAutoSyncMgrListener.PriorityQueue) {
         this._inQFolderList.push(folder);
         this.log.info("Auto_Sync OnFolderAddedIntoQ [" + this._inQFolderList.length + "] " +
-                        folder.prettiestName + " of " + folder.server.prettyName);
+                        folder.prettyName + " of " + folder.server.prettyName);
         // create an activity process for this folder
         let process = this.createSyncMailProcess(folder);
 
@@ -172,15 +172,15 @@ var autosyncModule =
 
         // if this is the first folder of this server in the queue, then set the sync start time
         // for activity event
-        if (!this._syncInfoPerServer[folder.server]) {
-          this._syncInfoPerServer[folder.server] = { startTime: Date.now(),
-                                                     totalDownloads: 0
-                                                   };
+        if (!this._syncInfoPerServer.has(folder.server)) {
+          this._syncInfoPerServer.set(folder.server, { startTime: Date.now(),
+                                                       totalDownloads: 0
+                                                     });
         }
 
         // associate the sync object with the folder in question
         // use folder.URI as key
-        this._syncInfoPerFolder[folder.URI] = syncItem;
+        this._syncInfoPerFolder.set(folder.URI, syncItem);
       }
     } catch (e) {
       this.log.error("onFolderAddedIntoQ: " + e);
@@ -196,9 +196,9 @@ var autosyncModule =
           this._inQFolderList.splice(i, 1);
 
         this.log.info("OnFolderRemovedFromQ [" + this._inQFolderList.length + "] " +
-                        folder.prettiestName + " of " + folder.server.prettyName + "\n");
+                        folder.prettyName + " of " + folder.server.prettyName + "\n");
 
-        let syncItem = this._syncInfoPerFolder[folder.URI];
+        let syncItem = this._syncInfoPerFolder.get(folder.URI);
         let process = syncItem.activity;
         let canceled = false;
         if (process instanceof Components.interfaces.nsIActivityProcess)
@@ -220,15 +220,14 @@ var autosyncModule =
           }
 
           // remove the folder/syncItem association from the table
-          delete this._syncInfoPerFolder[folder.URI];
+          this._syncInfoPerFolder.delete(folder.URI);
         }
 
         // if this is the last folder of this server in the queue
         // create a sync event and clean the sync start time
         let found = false;
-        for (let key in this._syncInfoPerFolder)
+        for (let value of this._syncInfoPerFolder.values())
         {
-          let value = this._syncInfoPerFolder[key];
           if (value.syncFolder.server == folder.server)
           {
             found = true;
@@ -240,13 +239,13 @@ var autosyncModule =
           // create an sync event for the completed process if it's not canceled
           if (!canceled) {
             let key = folder.server.prettyName;
-            if (key in this._lastMessage &&
-                this.activityMgr.containsActivity(this._lastMessage[key]))
-              this.activityMgr.removeActivity(this._lastMessage[key]);
-            this._lastMessage[key] = this.activityMgr
-              .addActivity(this.createSyncMailEvent(syncItem));
+            if (this._lastMessage.has(key) &&
+                this.activityMgr.containsActivity(this._lastMessage.get(key)))
+              this.activityMgr.removeActivity(this._lastMessage.get(key));
+            this._lastMessage.set(key, this.activityMgr
+              .addActivity(this.createSyncMailEvent(syncItem)));
           }
-          delete this._syncInfoPerServer[folder.server];
+          this._syncInfoPerServer.delete(folder.server);
         }
       }
     } catch (e) {
@@ -258,9 +257,9 @@ var autosyncModule =
     try {
       if (folder instanceof Components.interfaces.nsIMsgFolder) {
         this.log.info("OnDownloadStarted (" + numOfMessages + "/" + totalPending + "): " +
-                                folder.prettiestName + " of " + folder.server.prettyName + "\n");
+                                folder.prettyName + " of " + folder.server.prettyName + "\n");
 
-        let syncItem = this._syncInfoPerFolder[folder.URI];
+        let syncItem = this._syncInfoPerFolder.get(folder.URI);
         let process = syncItem.activity;
 
         // Update the totalPending number. if new messages have been discovered in the folder
@@ -283,14 +282,17 @@ var autosyncModule =
           if (percent > syncItem.percentComplete)
             syncItem.percentComplete = percent;
 
-          let msg = this.bundle.formatStringFromName("autosyncProcessProgress",
+          let msg = this.bundle.formatStringFromName("autosyncProcessProgress2",
                                                  [syncItem.totalDownloaded,
                                                   syncItem.pendingMsgCount,
-                                                  folder.prettiestName], 3);
+                                                  folder.prettyName,
+                                                  folder.server.prettyName], 4);
 
           process.setProgress(msg, numOfMessages, totalPending);
 
-          this._syncInfoPerServer[syncItem.syncFolder.server].totalDownloads += numOfMessages;
+          let serverInfo = this._syncInfoPerServer.get(syncItem.syncFolder.server);
+          serverInfo.totalDownloads += numOfMessages;
+          this._syncInfoPerServer.set(syncItem.syncFolder.server, serverInfo);
         }
       }
     } catch (e) {
@@ -302,10 +304,10 @@ var autosyncModule =
   onDownloadCompleted : function(folder) {
     try {
       if (folder instanceof Components.interfaces.nsIMsgFolder) {
-        this.log.info("OnDownloadCompleted: " + folder.prettiestName + " of " +
+        this.log.info("OnDownloadCompleted: " + folder.prettyName + " of " +
                       folder.server.prettyName);
 
-        let process = this._syncInfoPerFolder[folder.URI].activity;
+        let process = this._syncInfoPerFolder.get(folder.URI).activity;
         if (process instanceof Components.interfaces.nsIActivityProcess &&
            !this._running) {
           this.log.info("OnDownloadCompleted: Auto-Sync Manager is paused, pausing the process");
@@ -320,18 +322,18 @@ var autosyncModule =
 
   onDownloadError : function(folder) {
     if (folder instanceof Components.interfaces.nsIMsgFolder) {
-      this.log.error("OnDownloadError: " + folder.prettiestName + " of " +
+      this.log.error("OnDownloadError: " + folder.prettyName + " of " +
                      folder.server.prettyName + "\n");
     }
   },
 
   onDiscoveryQProcessed : function (folder, numOfHdrsProcessed, leftToProcess) {
     this.log.info("onDiscoveryQProcessed: Processed " + numOfHdrsProcessed + "/" +
-                  (leftToProcess+numOfHdrsProcessed) + " of " + folder.prettiestName + "\n");
+                  (leftToProcess+numOfHdrsProcessed) + " of " + folder.prettyName + "\n");
   },
 
   onAutoSyncInitiated : function (folder) {
-      this.log.info("onAutoSyncInitiated: " + folder.prettiestName + " of " +
+      this.log.info("onAutoSyncInitiated: " + folder.prettyName + " of " +
                     folder.server.prettyName + " has been updated.\n");
   },
 

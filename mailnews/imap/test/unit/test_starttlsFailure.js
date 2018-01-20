@@ -14,7 +14,7 @@ load("../../../resources/asyncTestUtils.js");
 var gGotAlert = false;
 
 function alert(aDialogTitle, aText) {
-  do_check_true(aText.startsWith("Server Mail for  has disconnected"));
+  do_check_true(aText.startsWith("Server localhost has disconnected"));
   gGotAlert = true;
 }
 
@@ -24,7 +24,7 @@ var tests = [
   teardown
 ];
 
-function setup() {
+function* setup() {
   // set up IMAP fakeserver and incoming server
   IMAPPump.daemon = new imapDaemon();
   IMAPPump.server = makeServer(IMAPPump.daemon, "", {dropOnStartTLS: true});

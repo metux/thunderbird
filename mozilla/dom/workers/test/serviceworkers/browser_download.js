@@ -24,8 +24,7 @@ function windowObserver(win, topic) {
     return;
   }
 
-  win.addEventListener('load', function onLoadWindow() {
-    win.removeEventListener('load', onLoadWindow, false);
+  win.addEventListener('load', function() {
     if (win.document.documentURI ===
         'chrome://mozapps/content/downloads/unknownContentType.xul') {
       executeSoon(function() {
@@ -34,7 +33,7 @@ function windowObserver(win, topic) {
         win.document.documentElement.acceptDialog();
       });
     }
-  }, false);
+  }, {once: true});
 }
 
 function test() {
@@ -44,11 +43,10 @@ function test() {
 
   SpecialPowers.pushPrefEnv({'set': [['dom.serviceWorkers.enabled', true],
                                      ['dom.serviceWorkers.exemptFromPerDomainMax', true],
-                                     ['dom.serviceWorkers.testing.enabled', true],
-                                     ['dom.serviceWorkers.interception.enabled', true]]},
+                                     ['dom.serviceWorkers.testing.enabled', true]]},
                             function() {
     var url = gTestRoot + 'download/window.html';
-    var tab = gBrowser.addTab();
+    var tab = BrowserTestUtils.addTab(gBrowser);
     gBrowser.selectedTab = tab;
 
     Downloads.getList(Downloads.ALL).then(function(downloadList) {
@@ -60,8 +58,8 @@ function test() {
           ok(file.exists(), 'download completed');
           is(file.fileSize, 33, 'downloaded file has correct size');
           file.remove(false);
-
-          downloadList.removeView(downloadListener);
+          downloadList.remove(aDownload).catch(Cu.reportError);
+          downloadList.removeView(downloadListener).catch(Cu.reportError);
           gBrowser.removeTab(tab);
           Services.ww.unregisterNotification(windowObserver);
 

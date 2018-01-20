@@ -28,7 +28,7 @@ NS_IMPL_ISUPPORTS(nsDefaultAutoSyncMsgStrategy, nsIAutoSyncMsgStrategy)
 
 const char* kAppIdleNotification = "mail:appIdle";
 const char* kStartupDoneNotification = "mail-startup-done";
-PRLogModuleInfo *gAutoSyncLog;
+static LazyLogModule gAutoSyncLog("ImapAutoSync");
 
 // recommended size of each group of messages per download
 static const uint32_t kDefaultGroupSize = 50U*1024U /* 50K */;
@@ -239,7 +239,6 @@ nsAutoSyncManager::nsAutoSyncManager()
   observerService->AddObserver(this, NS_IOSERVICE_OFFLINE_STATUS_TOPIC, false);
   observerService->AddObserver(this, NS_IOSERVICE_GOING_OFFLINE_TOPIC, false);
   observerService->AddObserver(this, kStartupDoneNotification, false);
-  gAutoSyncLog = PR_NewLogModule("ImapAutoSync");
 }
 
 nsAutoSyncManager::~nsAutoSyncManager()
@@ -254,8 +253,10 @@ void nsAutoSyncManager::InitTimer()
     mTimer = do_CreateInstance(NS_TIMER_CONTRACTID, &rv);
     NS_ASSERTION(NS_SUCCEEDED(rv), "failed to create timer in nsAutoSyncManager");
 
-    mTimer->InitWithFuncCallback(TimerCallback, (void *) this, 
-                                 kTimerIntervalInMs, nsITimer::TYPE_REPEATING_SLACK);
+    mTimer->InitWithNamedFuncCallback(TimerCallback, (void *) this,
+                                      kTimerIntervalInMs,
+                                      nsITimer::TYPE_REPEATING_SLACK,
+                                      "nsAutoSyncManager::TimerCallback");
   }
 }
 
@@ -499,8 +500,8 @@ bool nsAutoSyncManager::DoesQContainAnySiblingOf(const nsCOMArray<nsIAutoSyncSta
     nsresult rv = autoSyncState->GetState(&state);
     if (NS_SUCCEEDED(rv) && aState == state)
       break;
-    else
-      offset++;
+
+    offset++;
   }
   if (aIndex)
     *aIndex = offset;
@@ -578,7 +579,8 @@ NS_IMETHODIMP nsAutoSyncManager::Observe(nsISupports*, const char *aTopic, const
 
     return NS_OK;
   }
-  else if (!PL_strcmp(aTopic, kStartupDoneNotification))
+
+  if (!PL_strcmp(aTopic, kStartupDoneNotification))
   {
     mStartupDone = true; 
   }
@@ -596,8 +598,9 @@ NS_IMETHODIMP nsAutoSyncManager::Observe(nsISupports*, const char *aTopic, const
 
        return StartIdleProcessing();
      }
+
      // we're back from appIdle - if already notIdle, just return;
-     else if (GetIdleState() == notIdle)
+     if (GetIdleState() == notIdle)
        return NS_OK;
 
     SetIdleState(notIdle);
@@ -1046,12 +1049,11 @@ nsresult nsAutoSyncManager::HandleDownloadErrorFor(nsIAutoSyncState *aAutoSyncSt
       nsresult rv = DownloadMessagesForOffline(autoSyncStateObj);
       if (NS_SUCCEEDED(rv))
         break;
-      else if (rv == NS_ERROR_NOT_AVAILABLE)
+      if (rv == NS_ERROR_NOT_AVAILABLE)
         // next folder in the chain also doesn't have any message to download
         // switch to next one if any
         continue;
-      else
-        autoSyncStateObj->TryCurrentGroupAgain(kGroupRetryCount);
+      autoSyncStateObj->TryCurrentGroupAgain(kGroupRetryCount);
     }
   }
   

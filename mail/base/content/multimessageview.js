@@ -298,10 +298,14 @@ MultiMessageSummary.prototype = {
         if (meta.author)
           authorNode.textContent = meta.author;
       }, false, {saneBodySize: true});
-    } catch (e if e.result == Components.results.NS_ERROR_FAILURE) {
-      // Offline messages generate exceptions, which is unfortunate.  When
-      // that's fixed, this code should adapt. XXX
-      snippetNode.textContent = "...";
+    } catch (e) {
+      if (e.result == Components.results.NS_ERROR_FAILURE) {
+        // Offline messages generate exceptions, which is unfortunate.  When
+        // that's fixed, this code should adapt. XXX
+        snippetNode.textContent = "...";
+      } else {
+        throw e;
+      }
     }
 
     return row;
@@ -412,7 +416,7 @@ MultiMessageSummary.prototype = {
   _processItems: function(aItems) {
     let knownMessageNodes = new Map();
 
-    for (let [,glodaMsg] in Iterator(aItems)) {
+    for (let glodaMsg of aItems) {
       // Unread and starred will get set if any of the messages in a collapsed
       // thread qualify.  The trick here is that we may get multiple items
       // corresponding to the same thread (and hence DOM node), so we need to
@@ -505,13 +509,18 @@ ThreadSummarizer.prototype = {
     let messageList = document.getElementById("message_list");
 
     // Remove all ignored messages from summarization.
-    let summarizedMessages = [msg for (msg of aMessages) if (!msg.isKilled)];
+    let summarizedMessages = [];
+    for (let message of aMessages) {
+      if (!message.isKilled) {
+        summarizedMessages.push(message);
+      }
+    }
     let ignoredCount = aMessages.trueLength - summarizedMessages.length;
 
     // Summarize the selected messages.
     let subject = null;
     let maxCountExceeded = false;
-    for (let [i, msgHdr] in Iterator(summarizedMessages)) {
+    for (let [i, msgHdr] of summarizedMessages.entries()) {
       if (i > this.kMaxSummarizedMessages) {
         summarizedMessages.length = i;
         maxCountExceeded = true;
@@ -611,7 +620,7 @@ MultipleSelectionSummarizer.prototype = {
     // Summarize the selected messages by thread.
     let maxCountExceeded = false;
     let messageCount = 0;
-    for (let [i, msgs] in Iterator(threads)) {
+    for (let [i, msgs] of threads.entries()) {
       messageCount += msgs.length;
       if (messageCount > this.kMaxSummarizedMessages ||
           i > this.kMaxSummarizedThreads) {

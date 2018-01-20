@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -43,7 +44,7 @@ SharedDIBSurface::InitSurface(uint32_t aWidth, uint32_t aHeight,
   long stride = long(aWidth * SharedDIB::kBytesPerPixel);
   unsigned char* data = reinterpret_cast<unsigned char*>(mSharedDIB.GetBits());
 
-  gfxImageFormat format = aTransparent ? gfxImageFormat::ARGB32 : gfxImageFormat::RGB24;
+  gfxImageFormat format = aTransparent ? SurfaceFormat::A8R8G8B8_UINT32 : SurfaceFormat::X8R8G8B8_UINT32;
 
   gfxImageSurface::InitWithData(data, IntSize(aWidth, aHeight),
                                 stride, format);

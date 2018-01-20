@@ -14,12 +14,12 @@ function run_test() {
 
 function finish_test() {
   do_execute_soon(function() {
-    test_generator.close();
+    test_generator.return();
     do_test_finished();
   });
 }
 
-function do_run_test() {
+function* do_run_test() {
   // Set up a profile.
   let profile = do_get_profile();
 
@@ -27,7 +27,8 @@ function do_run_test() {
   Services.prefs.setIntPref("network.cookie.cookieBehavior", 0);
 
   // Start the cookieservice, to force creation of a database.
-  Services.cookies;
+  // Get the sessionEnumerator to join the initialization in cookie thread
+  Services.cookiemgr.sessionEnumerator;
 
   // Open a database connection now, after synchronous initialization has
   // completed. We may not be able to open one later once asynchronous writing
@@ -86,11 +87,11 @@ function do_run_test() {
   // remove some of the cookies, in both reverse and forward order
   for (let i = 100; i-- > 0; ) {
     let host = i.toString() + ".com";
-    Services.cookiemgr.remove(host, "oh", "/", false);
+    Services.cookiemgr.remove(host, "oh", "/", false, {});
   }
   for (let i = CMAX - 100; i < CMAX; ++i) {
     let host = i.toString() + ".com";
-    Services.cookiemgr.remove(host, "oh", "/", false);
+    Services.cookiemgr.remove(host, "oh", "/", false, {});
   }
 
   // check the count

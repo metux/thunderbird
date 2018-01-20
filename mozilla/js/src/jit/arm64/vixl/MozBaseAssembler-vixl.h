@@ -104,11 +104,10 @@ class MozBaseAssembler : public js::jit::AssemblerShared {
   // Propagate OOM errors.
   BufferOffset allocEntry(size_t numInst, unsigned numPoolEntries,
                           uint8_t* inst, uint8_t* data,
-                          ARMBuffer::PoolEntry* pe = nullptr,
-                          bool markAsBranch = false)
+                          ARMBuffer::PoolEntry* pe = nullptr)
   {
     BufferOffset offset = armbuffer_.allocEntry(numInst, numPoolEntries, inst,
-                                                data, pe, markAsBranch);
+                                                data, pe);
     propagateOOM(offset.assigned());
     return offset;
   }
@@ -116,7 +115,9 @@ class MozBaseAssembler : public js::jit::AssemblerShared {
   // Emit the instruction, returning its offset.
   BufferOffset Emit(Instr instruction, bool isBranch = false) {
     JS_STATIC_ASSERT(sizeof(instruction) == kInstructionSize);
-    return armbuffer_.putInt(*(uint32_t*)(&instruction), isBranch);
+    // TODO: isBranch is obsolete and should be removed.
+    (void)isBranch;
+    return armbuffer_.putInt(*(uint32_t*)(&instruction));
   }
 
   BufferOffset EmitBranch(Instr instruction) {
@@ -206,11 +207,6 @@ class MozBaseAssembler : public js::jit::AssemblerShared {
  protected:
   // The buffer into which code and relocation info are generated.
   ARMBuffer armbuffer_;
-
-  js::jit::CompactBufferWriter jumpRelocations_;
-  js::jit::CompactBufferWriter dataRelocations_;
-  js::jit::CompactBufferWriter relocations_;
-  js::jit::CompactBufferWriter preBarriers_;
 };
 
 

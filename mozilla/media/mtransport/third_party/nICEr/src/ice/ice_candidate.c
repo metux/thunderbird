@@ -215,8 +215,8 @@ int nr_ice_candidate_create(nr_ice_ctx *ctx,nr_ice_component *comp,nr_ice_socket
 
     nr_ice_candidate_compute_codeword(cand);
 
-    r_log(LOG_ICE,LOG_DEBUG,"ICE(%s): created candidate %s with type %s",
-      ctx->label,cand->label,nr_ctype_name(ctype));
+    r_log(LOG_ICE,LOG_DEBUG,"ICE(%s)/CAND(%s): created candidate %s with type %s",
+      ctx->label,cand->codeword,cand->label,nr_ctype_name(ctype));
 
     *candp=cand;
 
@@ -321,6 +321,20 @@ int nr_ice_candidate_destroy(nr_ice_candidate **candp)
         break;
 #ifdef USE_TURN
       case RELAYED:
+        // record stats back to the ice ctx on destruction
+        if (cand->u.relayed.turn) {
+          nr_ice_accumulate_count(&(cand->ctx->stats.turn_401s), cand->u.relayed.turn->cnt_401s);
+          nr_ice_accumulate_count(&(cand->ctx->stats.turn_403s), cand->u.relayed.turn->cnt_403s);
+          nr_ice_accumulate_count(&(cand->ctx->stats.turn_438s), cand->u.relayed.turn->cnt_438s);
+
+          nr_turn_stun_ctx* stun_ctx;
+          stun_ctx = STAILQ_FIRST(&cand->u.relayed.turn->stun_ctxs);
+          while (stun_ctx) {
+            nr_ice_accumulate_count(&(cand->ctx->stats.stun_retransmits), stun_ctx->stun->retransmit_ct);
+
+            stun_ctx = STAILQ_NEXT(stun_ctx, entry);
+          }
+        }
         if (cand->u.relayed.turn_handle)
           nr_ice_socket_deregister(cand->isock, cand->u.relayed.turn_handle);
         if (cand->u.relayed.srvflx_candidate)
@@ -430,7 +444,7 @@ int nr_ice_candidate_compute_priority(nr_ice_candidate *cand)
           if(r=NR_reg_get_uchar(NR_ICE_REG_PREF_TYPE_RELAYED_TCP,&type_preference))
             ABORT(r);
         }
-        stun_priority=31-cand->stun_server->index;
+        stun_priority=31-cand->stun_server->id;
         break;
       case SERVER_REFLEXIVE:
         if(cand->base.protocol == IPPROTO_UDP) {
@@ -440,7 +454,7 @@ int nr_ice_candidate_compute_priority(nr_ice_candidate *cand)
           if(r=NR_reg_get_uchar(NR_ICE_REG_PREF_TYPE_SRV_RFLX_TCP,&type_preference))
             ABORT(r);
         }
-        stun_priority=31-cand->stun_server->index;
+        stun_priority=31-cand->stun_server->id;
         break;
       case PEER_REFLEXIVE:
         if(cand->base.protocol == IPPROTO_UDP) {
@@ -659,6 +673,11 @@ static int nr_ice_candidate_resolved_cb(void *cb_arg, nr_transport_addr *addr)
     else {
       r_log(LOG_ICE,LOG_WARNING,"ICE(%s): failed to resolve candidate %s.",
             cand->ctx->label,cand->label);
+      ABORT(R_NOT_FOUND);
+    }
+
+    if (nr_transport_addr_check_compatibility(addr, &cand->base)) {
+      r_log(LOG_ICE,LOG_WARNING,"ICE(%s): Skipping STUN server because of link local mis-match for candidate %s",cand->ctx->label,cand->label);
       ABORT(R_NOT_FOUND);
     }
 
@@ -936,7 +955,7 @@ int nr_ice_format_candidate_attribute(nr_ice_candidate *cand, char *attr, int ma
     /* raddr, rport */
     raddr = (cand->stream->ctx->flags &
              (NR_ICE_CTX_FLAGS_RELAY_ONLY |
-              NR_ICE_CTX_FLAGS_ONLY_DEFAULT_ADDRS)) ?
+              NR_ICE_CTX_FLAGS_HIDE_HOST_CANDIDATES)) ?
       &cand->addr : &cand->base;
 
     switch(cand->type){

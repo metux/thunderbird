@@ -33,6 +33,7 @@
 #include "nsIArray.h"
 #include "nsArrayUtils.h"
 #include "mozilla/mailnews/MimeHeaderParser.h"
+#include "mozilla/Unused.h"
 
 using namespace mozilla::mailnews;
 
@@ -98,9 +99,9 @@ nsMsgMdnGenerator::~nsMsgMdnGenerator()
 {
 }
 
-nsresult nsMsgMdnGenerator::FormatStringFromName(const char16_t *aName,
+nsresult nsMsgMdnGenerator::FormatStringFromName(const char *aName,
                                                  const char16_t *aString,
-                                                 char16_t **aResultString)
+                                                 nsAString& aResultString)
 {
     DEBUG_MDN("nsMsgMdnGenerator::FormatStringFromName");
 
@@ -120,8 +121,8 @@ nsresult nsMsgMdnGenerator::FormatStringFromName(const char16_t *aName,
     return rv;
 }
 
-nsresult nsMsgMdnGenerator::GetStringFromName(const char16_t *aName,
-                                               char16_t **aResultString)
+nsresult nsMsgMdnGenerator::GetStringFromName(const char *aName,
+                                              nsAString& aResultString)
 {
     DEBUG_MDN("nsMsgMdnGenerator::GetStringFromName");
 
@@ -376,10 +377,10 @@ nsresult nsMsgMdnGenerator::CreateMdnMsg()
 
     rv = m_file->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 00600);
     NS_ENSURE_SUCCESS(rv, rv);
-    rv = NS_NewLocalFileOutputStream(getter_AddRefs(m_outputStream),
-                                     m_file,
-                                     PR_CREATE_FILE | PR_WRONLY | PR_TRUNCATE,
-                                     0664);
+    rv = MsgNewBufferedFileOutputStream(getter_AddRefs(m_outputStream),
+                                        m_file,
+                                        PR_CREATE_FILE | PR_WRONLY | PR_TRUNCATE,
+                                        0664);
     NS_ASSERTION(NS_SUCCEEDED(rv),"creating mdn: failed to output stream");
     if (NS_FAILED(rv))
         return NS_OK;
@@ -471,8 +472,8 @@ nsresult nsMsgMdnGenerator::CreateFirstPart()
 
     parm = PR_smprintf("From: %s" CRLF, convbuf ? convbuf : m_email.get());
 
-    rv = FormatStringFromName(MOZ_UTF16("MsgMdnMsgSentTo"), NS_ConvertASCIItoUTF16(m_email).get(),
-                            getter_Copies(firstPart1));
+    rv = FormatStringFromName("MsgMdnMsgSentTo", NS_ConvertASCIItoUTF16(m_email).get(),
+                            firstPart1);
     if (NS_FAILED(rv))
         return rv;
 
@@ -493,33 +494,33 @@ nsresult nsMsgMdnGenerator::CreateFirstPart()
     {
     case nsIMsgMdnGenerator::eDisplayed:
         rv = GetStringFromName(
-            MOZ_UTF16("MdnDisplayedReceipt"),
-            getter_Copies(receipt_string));
+            "MdnDisplayedReceipt",
+            receipt_string);
         break;
     case nsIMsgMdnGenerator::eDispatched:
         rv = GetStringFromName(
-            MOZ_UTF16("MdnDispatchedReceipt"),
-            getter_Copies(receipt_string));
+            "MdnDispatchedReceipt",
+            receipt_string);
         break;
     case nsIMsgMdnGenerator::eProcessed:
         rv = GetStringFromName(
-            MOZ_UTF16("MdnProcessedReceipt"),
-            getter_Copies(receipt_string));
+            "MdnProcessedReceipt",
+            receipt_string);
         break;
     case nsIMsgMdnGenerator::eDeleted:
         rv = GetStringFromName(
-            MOZ_UTF16("MdnDeletedReceipt"),
-            getter_Copies(receipt_string));
+            "MdnDeletedReceipt",
+            receipt_string);
         break;
     case nsIMsgMdnGenerator::eDenied:
         rv = GetStringFromName(
-            MOZ_UTF16("MdnDeniedReceipt"),
-            getter_Copies(receipt_string));
+            "MdnDeniedReceipt",
+            receipt_string);
         break;
     case nsIMsgMdnGenerator::eFailed:
         rv = GetStringFromName(
-            MOZ_UTF16("MdnFailedReceipt"),
-            getter_Copies(receipt_string));
+            "MdnFailedReceipt",
+            receipt_string);
         break;
     default:
         rv = NS_ERROR_INVALID_ARG;
@@ -594,33 +595,33 @@ report-type=disposition-notification;\r\n\tboundary=\"%s\"" CRLF CRLF,
     {
     case nsIMsgMdnGenerator::eDisplayed:
         rv = GetStringFromName(
-            MOZ_UTF16("MsgMdnDisplayed"),
-            getter_Copies(firstPart2));
+            "MsgMdnDisplayed",
+            firstPart2);
         break;
     case nsIMsgMdnGenerator::eDispatched:
         rv = GetStringFromName(
-            MOZ_UTF16("MsgMdnDispatched"),
-            getter_Copies(firstPart2));
+            "MsgMdnDispatched",
+            firstPart2);
         break;
     case nsIMsgMdnGenerator::eProcessed:
         rv = GetStringFromName(
-            MOZ_UTF16("MsgMdnProcessed"),
-            getter_Copies(firstPart2));
+            "MsgMdnProcessed",
+            firstPart2);
         break;
     case nsIMsgMdnGenerator::eDeleted:
         rv = GetStringFromName(
-            MOZ_UTF16("MsgMdnDeleted"),
-            getter_Copies(firstPart2));
+            "MsgMdnDeleted",
+            firstPart2);
         break;
     case nsIMsgMdnGenerator::eDenied:
         rv = GetStringFromName(
-            MOZ_UTF16("MsgMdnDenied"),
-            getter_Copies(firstPart2));
+            "MsgMdnDenied",
+            firstPart2);
         break;
     case nsIMsgMdnGenerator::eFailed:
         rv = GetStringFromName(
-            MOZ_UTF16("MsgMdnFailed"),
-            getter_Copies(firstPart2));
+            "MsgMdnFailed",
+            firstPart2);
         break;
     default:
         rv = NS_ERROR_INVALID_ARG;
@@ -668,7 +669,8 @@ nsresult nsMsgMdnGenerator::CreateSecondPart()
     if (NS_SUCCEEDED(rv) && pHTTPHandler)
     {
       nsAutoCString userAgentString;
-      pHTTPHandler->GetUserAgent(userAgentString);
+      // Ignore error since we're testing the return value.
+      mozilla::Unused << pHTTPHandler->GetUserAgent(userAgentString);
 
       if (!userAgentString.IsEmpty())
       {
@@ -677,7 +679,7 @@ nsresult nsMsgMdnGenerator::CreateSecondPart()
         PR_GetSystemInfo(PR_SI_HOSTNAME_UNTRUNCATED, hostName, sizeof hostName);
         if ((hostName[0] != '\0') && (strchr(hostName, '.') != NULL))
         {
-          userAgentString.Insert("; ", 0);
+          userAgentString.InsertLiteral("; ", 0);
           userAgentString.Insert(nsDependentCString(hostName), 0);
         }
 
@@ -853,7 +855,7 @@ nsresult nsMsgMdnGenerator::SendMdnMsg()
 
     nsCOMPtr<nsIRequest> aRequest;
     smtpService->SendMailMessage(m_file, m_dntRrt.get(), m_identity,
-                                     nullptr, this, nullptr, nullptr, false, nullptr,
+                                     EmptyString(), this, nullptr, nullptr, false, nullptr,
                                      getter_AddRefs(aRequest));
 
     return NS_OK;
@@ -912,7 +914,7 @@ nsresult nsMsgMdnGenerator::InitAndProcess(bool *needToAskUser)
                   continue;
                 ident->GetEmail(identEmail);
                 if (!mailTo.IsEmpty() && !identEmail.IsEmpty() &&
-                    mailTo.Find(identEmail, CaseInsensitiveCompare) != kNotFound)
+                    mailTo.Find(identEmail, /* ignoreCase = */ true) != kNotFound)
                 {
                   m_identity = ident;
                   break;
@@ -923,12 +925,12 @@ nsresult nsMsgMdnGenerator::InitAndProcess(bool *needToAskUser)
               {
                 for (uint32_t i = 0; i < count; i++)
                 {
-                  rv = servIdentities->QueryElementAt(i, NS_GET_IID(nsIMsgIdentity),getter_AddRefs(ident));
+                  ident = do_QueryElementAt(servIdentities, i, &rv);
                   if (NS_FAILED(rv))
                     continue;
                   ident->GetEmail(identEmail);
                   if (!mailCC.IsEmpty() && !identEmail.IsEmpty() &&
-                      mailCC.Find(identEmail, CaseInsensitiveCompare) != kNotFound)
+                      mailCC.Find(identEmail, /* ignoreCase = */ true) != kNotFound)
                   {
                     m_identity = ident;
                     break;
@@ -1076,25 +1078,25 @@ NS_IMETHODIMP nsMsgMdnGenerator::OnStopRunningUrl(nsIURI *url,
     if (NS_SUCCEEDED(aExitCode))
       return NS_OK;
 
-    const char16_t* exitString;
+    const char* exitString;
 
     switch (aExitCode)
     {
       case NS_ERROR_UNKNOWN_HOST:
       case NS_ERROR_UNKNOWN_PROXY_HOST:
-        exitString = MOZ_UTF16("smtpSendFailedUnknownServer");
+        exitString = "smtpSendFailedUnknownServer";
         break;
       case NS_ERROR_CONNECTION_REFUSED:
       case NS_ERROR_PROXY_CONNECTION_REFUSED:
-        exitString = MOZ_UTF16("smtpSendRequestRefused");
+        exitString = "smtpSendRequestRefused";
         break;
       case NS_ERROR_NET_INTERRUPT:
       case NS_ERROR_ABORT: // we have no proper string for error code NS_ERROR_ABORT in compose bundle
-        exitString = MOZ_UTF16("smtpSendInterrupted");
+        exitString = "smtpSendInterrupted";
         break;
       case NS_ERROR_NET_TIMEOUT:
       case NS_ERROR_NET_RESET:
-        exitString = MOZ_UTF16("smtpSendTimeout");
+        exitString = "smtpSendTimeout";
         break;
       default:
         exitString = errorStringNameForErrorCode(aExitCode);
@@ -1127,8 +1129,8 @@ NS_IMETHODIMP nsMsgMdnGenerator::OnStopRunningUrl(nsIURI *url,
 
     nsString failed_msg, dialogTitle;
 
-    bundle->FormatStringFromName(exitString, params, 1, getter_Copies(failed_msg));
-    bundle->GetStringFromName(MOZ_UTF16("sendMessageErrorTitle"), getter_Copies(dialogTitle));
+    bundle->FormatStringFromName(exitString, params, 1, failed_msg);
+    bundle->GetStringFromName("sendMessageErrorTitle", dialogTitle);
 
     nsCOMPtr<nsIPrompt> dialog;
     rv = m_window->GetPromptDialog(getter_AddRefs(dialog));

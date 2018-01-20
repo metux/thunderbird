@@ -13,7 +13,9 @@
 #include "prlink.h"
 #include "mozilla/Logging.h"
 
-static PRLogModuleInfo* sIdleLog = nullptr;
+using mozilla::LogLevel;
+
+static mozilla::LazyLogModule sIdleLog("nsIIdleService");
 
 typedef bool (*_XScreenSaverQueryExtension_fn)(Display* dpy, int* event_base,
                                                  int* error_base);
@@ -63,9 +65,6 @@ static void Initialize()
 nsIdleServiceGTK::nsIdleServiceGTK()
     : mXssInfo(nullptr)
 {
-    if (!sIdleLog)
-        sIdleLog = PR_NewLogModule("nsIIdleService");
-
     Initialize();
 }
 

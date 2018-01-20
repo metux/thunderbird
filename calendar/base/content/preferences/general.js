@@ -1,8 +1,8 @@
-/**
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- */
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/* exported gCalendarGeneralPane */
 
 Components.utils.import("resource://calendar/modules/calUtils.jsm");
 
@@ -14,12 +14,12 @@ var gCalendarGeneralPane = {
      * Initialize the general pref pane. Sets up dialog controls to match the
      * values set in prefs.
      */
-    init: function gCGP_init() {
-        var df = Components.classes["@mozilla.org/calendar/datetime-formatter;1"]
-                    .getService(Components.interfaces.calIDateTimeFormatter);
+    init: function() {
+        let formatter = Components.classes["@mozilla.org/calendar/datetime-formatter;1"]
+                                  .getService(Components.interfaces.calIDateTimeFormatter);
 
-        var dateFormattedLong  = df.formatDateLong(now());
-        var dateFormattedShort = df.formatDateShort(now());
+        let dateFormattedLong = formatter.formatDateLong(cal.now());
+        let dateFormattedShort = formatter.formatDateShort(cal.now());
 
         // menu items include examples of current date formats.
         document.getElementById("dateformat-long-menuitem")
@@ -41,22 +41,22 @@ var gCalendarGeneralPane = {
         let displayNames = [];
         // don't rely on what order the timezone-service gives you
         while (enumerator.hasMore()) {
-            let tz = tzService.getTimezone(enumerator.getNext());
-            if (tz && !tz.isFloating && !tz.isUTC) {
-                let displayName = tz.displayName;
+            let timezone = tzService.getTimezone(enumerator.getNext());
+            if (timezone && !timezone.isFloating && !timezone.isUTC) {
+                let displayName = timezone.displayName;
                 displayNames.push(displayName);
-                tzids[displayName] = tz.tzid;
+                tzids[displayName] = timezone.tzid;
             }
         }
         // the display names need to be sorted
-        displayNames.sort(String.localeCompare);
+        displayNames.sort((a, b) => a.localeCompare(b));
         for (let displayName of displayNames) {
             addMenuItem(tzMenuPopup, displayName, tzids[displayName]);
         }
 
         let prefValue = document.getElementById("calendar-timezone-local").value;
         if (!prefValue) {
-            prefValue = calendarDefaultTimezone().tzid;
+            prefValue = cal.calendarDefaultTimezone().tzid;
         }
         tzMenuList.value = prefValue;
 
@@ -64,7 +64,7 @@ var gCalendarGeneralPane = {
         this.initializeTodaypaneMenu();
     },
 
-    updateDefaultTodoDates: function gCGP_updateDefaultTodoDates() {
+    updateDefaultTodoDates: function() {
         let defaultDue = document.getElementById("default_task_due").value;
         let defaultStart = document.getElementById("default_task_start").value;
         let offsetValues = ["offsetcurrent", "offsetnexthour"];
@@ -84,7 +84,7 @@ var gCalendarGeneralPane = {
         document.getElementById("defaults-itemtype-deck").selectedPanel = panel;
     },
 
-    initializeTodaypaneMenu: function gCGP_initializeTodaypaneMenu() {
+    initializeTodaypaneMenu: function() {
         // Assign the labels for the menuitem
         let soondaysMenu = document.getElementById("soondays-menulist");
         let items = soondaysMenu.getElementsByTagName("menuitem");
@@ -115,7 +115,7 @@ var gCalendarGeneralPane = {
         document.getElementById("soondays-menulist").value = soonpref;
     },
 
-    updateTodaypaneMenu: function gCGP_updateTodaypaneMenu() {
+    updateTodaypaneMenu: function() {
         let soonpref = Number(document.getElementById("soondays-menulist").value);
         Preferences.set("calendar.agendaListbox.soondays", soonpref);
     }

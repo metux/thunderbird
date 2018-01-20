@@ -12,7 +12,7 @@
 #include "mozilla/dom/EventHandlerBinding.h"
 #include "nsCOMPtr.h"
 #include "nsCycleCollectionParticipant.h"
-#include "nsIAtom.h"
+#include "nsAtom.h"
 #include "nsIDOMKeyEvent.h"
 #include "nsIDOMEventListener.h"
 #include "nsIScriptContext.h"
@@ -37,16 +37,19 @@ public:
   }
 
   explicit TypedEventHandler(dom::EventHandlerNonNull* aHandler)
+    : mBits(0)
   {
     Assign(aHandler, eNormal);
   }
 
   explicit TypedEventHandler(dom::OnErrorEventHandlerNonNull* aHandler)
+    : mBits(0)
   {
     Assign(aHandler, eOnError);
   }
 
   explicit TypedEventHandler(dom::OnBeforeUnloadEventHandlerNonNull* aHandler)
+    : mBits(0)
   {
     Assign(aHandler, eOnBeforeUnload);
   }
@@ -179,7 +182,7 @@ class JSEventHandler : public nsIDOMEventListener
 public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_JSEVENTHANDLER_IID)
 
-  JSEventHandler(nsISupports* aTarget, nsIAtom* aType,
+  JSEventHandler(nsISupports* aTarget, nsAtom* aType,
                  const TypedEventHandler& aTypedHandler);
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -207,7 +210,7 @@ public:
     mTypedHandler.ForgetHandler();
   }
 
-  nsIAtom* EventName() const
+  nsAtom* EventName() const
   {
     return mEventName;
   }
@@ -257,7 +260,7 @@ protected:
   virtual ~JSEventHandler();
 
   nsISupports* mTarget;
-  nsCOMPtr<nsIAtom> mEventName;
+  RefPtr<nsAtom> mEventName;
   TypedEventHandler mTypedHandler;
 };
 
@@ -270,7 +273,7 @@ NS_DEFINE_STATIC_IID_ACCESSOR(JSEventHandler, NS_JSEVENTHANDLER_IID)
  * aContext is allowed to be null if aHandler is already set up.
  */
 nsresult NS_NewJSEventHandler(nsISupports* aTarget,
-                              nsIAtom* aType,
+                              nsAtom* aType,
                               const mozilla::TypedEventHandler& aTypedHandler,
                               mozilla::JSEventHandler** aReturn);
 

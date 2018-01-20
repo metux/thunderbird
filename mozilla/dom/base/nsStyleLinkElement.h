@@ -15,15 +15,18 @@
 
 #include "mozilla/Attributes.h"
 #include "mozilla/CORSMode.h"
-#include "mozilla/CSSStyleSheet.h"
+#include "mozilla/StyleSheetInlines.h"
+#include "mozilla/net/ReferrerPolicy.h"
 #include "nsCOMPtr.h"
 #include "nsIStyleSheetLinkingElement.h"
 #include "nsTArray.h"
+#include "nsAttrValue.h"
 
 class nsIDocument;
 class nsIURI;
 
 namespace mozilla {
+class CSSStyleSheet;
 namespace dom {
 class ShadowRoot;
 } // namespace dom
@@ -37,11 +40,11 @@ public:
 
   NS_IMETHOD QueryInterface(REFNSIID aIID, void** aInstancePtr) override = 0;
 
-  mozilla::CSSStyleSheet* GetSheet() const { return mStyleSheet; }
+  mozilla::StyleSheet* GetSheet() const { return mStyleSheet; }
 
-  // nsIStyleSheetLinkingElement  
-  NS_IMETHOD SetStyleSheet(mozilla::CSSStyleSheet* aStyleSheet) override;
-  NS_IMETHOD_(mozilla::CSSStyleSheet*) GetStyleSheet() override;
+  // nsIStyleSheetLinkingElement
+  NS_IMETHOD SetStyleSheet(mozilla::StyleSheet* aStyleSheet) override;
+  NS_IMETHOD_(mozilla::StyleSheet*) GetStyleSheet() override;
   NS_IMETHOD InitStyleLinkElement(bool aDontLoadStyle) override;
   NS_IMETHOD UpdateStyleSheet(nsICSSLoaderObserver* aObserver,
                               bool* aWillNotify,
@@ -60,18 +63,17 @@ public:
     eSTYLESHEET =   0x00000004,
     eNEXT =         0x00000008,
     eALTERNATE =    0x00000010,
-    eHTMLIMPORT =   0x00000020,
-    ePRECONNECT =   0x00000040
+    ePRECONNECT =   0x00000020,
+    ePRERENDER =    0x00000040,
+    ePRELOAD =      0x00000080
   };
 
   // The return value is a bitwise or of 0 or more RelValues.
-  // aPrincipal is used to check if HTML imports is enabled for the
-  // provided principal.
-  static uint32_t ParseLinkTypes(const nsAString& aTypes,
-                                 nsIPrincipal* aPrincipal);
+  static uint32_t ParseLinkTypes(const nsAString& aTypes);
 
-  static bool IsImportEnabled();
-  
+  static bool CheckPreloadAttrs(const nsAttrValue& aAs, const nsAString& aType,
+                                const nsAString& aMedia, nsIDocument* aDocument);
+
   void UpdateStyleSheetInternal()
   {
     UpdateStyleSheetInternal(nullptr, nullptr);
@@ -91,7 +93,7 @@ protected:
 
   void UpdateStyleSheetScopedness(bool aIsNowScoped);
 
-  virtual already_AddRefed<nsIURI> GetStyleSheetURL(bool* aIsInline) = 0;
+  virtual already_AddRefed<nsIURI> GetStyleSheetURL(bool* aIsInline, nsIPrincipal** aTriggeringPrincipal) = 0;
   virtual void GetStyleSheetInfo(nsAString& aTitle,
                                  nsAString& aType,
                                  nsAString& aMedia,
@@ -102,6 +104,11 @@ protected:
   {
     // Default to no CORS
     return mozilla::CORS_NONE;
+  }
+
+  virtual mozilla::net::ReferrerPolicy GetLinkReferrerPolicy()
+  {
+    return mozilla::net::RP_Unset;
   }
 
   // CC methods
@@ -128,8 +135,9 @@ private:
                               bool* aIsAlternate,
                               bool aForceUpdate);
 
-  RefPtr<mozilla::CSSStyleSheet> mStyleSheet;
+  RefPtr<mozilla::StyleSheet> mStyleSheet;
 protected:
+  nsCOMPtr<nsIPrincipal> mTriggeringPrincipal;
   bool mDontLoadStyle;
   bool mUpdatesEnabled;
   uint32_t mLineNumber;

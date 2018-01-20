@@ -94,7 +94,7 @@ function sha1(str) {
   }
 
   // Convert the binary hash data to a hex string.
-  return [toHexString(hash.charCodeAt(i)) for (i in hash)].join("");
+  return Array.from(hash, (c, i) => toHexString(hash.charCodeAt(i))).join("");
 }
 
 function parseXml(body) {
@@ -109,7 +109,7 @@ function parseXml(body) {
 function getInputStream(path) {
   let file = Cc["@mozilla.org/file/directory_service;1"]
                .getService(Ci.nsIProperties)
-               .get("CurWorkD", Ci.nsILocalFile);
+               .get("CurWorkD", Ci.nsIFile);
   for (let part of path.split("/"))
     file.append(part);
   let fileStream  = Cc["@mozilla.org/network/file-input-stream;1"]

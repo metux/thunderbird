@@ -73,7 +73,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 typedef struct nr_socket_vtbl_ nr_socket_vtbl;
 typedef struct nr_socket_ nr_socket;
 
-#if defined(MOZILLA_INTERNAL_API) && !defined(MOZILLA_XPCOMRT_API)
+#if defined(MOZILLA_INTERNAL_API)
 namespace mozilla {
 namespace dom {
 class TCPSocketChild;
@@ -96,6 +96,10 @@ public:
   }
   virtual ~NrSocketBase() {}
 
+  // Factory method; will create either an NrSocket, NrUdpSocketIpc, or
+  // NrTcpSocketIpc as appropriate.
+  static int CreateSocket(nr_transport_addr *addr, RefPtr<NrSocketBase> *sock);
+
   // the nr_socket APIs
   virtual int create(nr_transport_addr *addr) = 0;
   virtual int sendto(const void *msg, size_t len,
@@ -117,8 +121,7 @@ public:
   virtual int cancel(int how);
 
   // nsISupport reference counted interface
-  NS_IMETHOD_(MozExternalRefCountType) AddRef(void) = 0;
-  NS_IMETHOD_(MozExternalRefCountType) Release(void) = 0;
+  NS_INLINE_DECL_PURE_VIRTUAL_REFCOUNTING
 
   uint32_t poll_flags() {
     return poll_flags_;
@@ -132,8 +135,9 @@ public:
     return my_addr_;
   }
 
-protected:
   void fire_callback(int how);
+
+protected:
 
   bool connect_invoked_;
   nr_transport_addr my_addr_;
@@ -243,6 +247,7 @@ public:
                                          const uint8_t *data,
                                          uint32_t data_length);
   NS_IMETHODIMP CallListenerOpened();
+  NS_IMETHODIMP CallListenerConnected();
   NS_IMETHODIMP CallListenerClosed();
 
   NrUdpSocketIpc();
@@ -267,13 +272,15 @@ private:
 
   DISALLOW_COPY_ASSIGN(NrUdpSocketIpc);
 
+  nsresult SetAddress();  // Set the local address from parent info.
+
   // Main or private thread executors of the NrSocketBase APIs
   void create_i(const nsACString &host, const uint16_t port);
+  void connect_i(const nsACString &host, const uint16_t port);
   void sendto_i(const net::NetAddr &addr, nsAutoPtr<DataBuffer> buf);
   void close_i();
 #if defined(MOZILLA_INTERNAL_API) && !defined(MOZILLA_XPCOMRT_API)
-  static void release_child_i(nsIUDPSocketChild* aChild, nsCOMPtr<nsIEventTarget> ststhread);
-  static void release_use_s();
+  static void release_child_i(nsIUDPSocketChild* aChild);
 #endif
   // STS thread executor
   void recv_callback_s(RefPtr<nr_udp_message> msg);
@@ -361,12 +368,13 @@ private:
   void connect_i(const nsACString &remote_addr,
                  uint16_t remote_port,
                  const nsACString &local_addr,
-                 uint16_t local_port);
+                 uint16_t local_port,
+                 const nsACString &tls_host);
   void write_i(nsAutoPtr<InfallibleTArray<uint8_t>> buf,
                uint32_t tracking_number);
   void close_i();
 
-  static void release_child_i(dom::TCPSocketChild* aChild, nsCOMPtr<nsIEventTarget> ststhread);
+  static void release_child_i(dom::TCPSocketChild* aChild);
 
   // STS thread executor
   void message_sent_s(uint32_t bufferedAmount, uint32_t tracking_number);

@@ -5,6 +5,6 @@ protocol manageSelf {
     manages manageSelf;
 
 child:
-    manageSelf();
-    __delete__();
+    async manageSelf();
+    async __delete__();
 };

@@ -13,14 +13,14 @@ namespace dom {
 NS_IMPL_CYCLE_COLLECTION_INHERITED(DOMCursor, DOMRequest,
                                    mCallback)
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(DOMCursor)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(DOMCursor)
   NS_INTERFACE_MAP_ENTRY(nsIDOMDOMCursor)
 NS_INTERFACE_MAP_END_INHERITING(DOMRequest)
 
 NS_IMPL_ADDREF_INHERITED(DOMCursor, DOMRequest)
 NS_IMPL_RELEASE_INHERITED(DOMCursor, DOMRequest)
 
-DOMCursor::DOMCursor(nsPIDOMWindow* aWindow, nsICursorContinueCallback* aCallback)
+DOMCursor::DOMCursor(nsPIDOMWindowInner* aWindow, nsICursorContinueCallback* aCallback)
   : DOMRequest(aWindow)
   , mCallback(aCallback)
   , mFinished(false)

@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -27,8 +28,8 @@ class ClientSingleTiledLayerBuffer
 {
   virtual ~ClientSingleTiledLayerBuffer() {}
 public:
-  ClientSingleTiledLayerBuffer(ClientTiledPaintedLayer* aPaintedLayer,
-                               CompositableClient* aCompositableClient,
+  ClientSingleTiledLayerBuffer(ClientTiledPaintedLayer& aPaintedLayer,
+                               CompositableClient& aCompositableClient,
                                ClientLayerManager* aManager);
 
   // TextureClientAllocator
@@ -41,12 +42,14 @@ public:
                    const nsIntRegion& aPaintRegion,
                    const nsIntRegion& aDirtyRegion,
                    LayerManager::DrawPaintedLayerCallback aCallback,
-                   void* aCallbackData) override;
+                   void* aCallbackData,
+                   bool aIsProgressive = false) override;
  
   bool SupportsProgressiveUpdate() override { return false; }
-  bool ProgressiveUpdate(nsIntRegion& aValidRegion,
-                         nsIntRegion& aInvalidRegion,
+  bool ProgressiveUpdate(const nsIntRegion& aValidRegion,
+                         const nsIntRegion& aInvalidRegion,
                          const nsIntRegion& aOldValidRegion,
+                         nsIntRegion& aOutDrawnRegion,
                          BasicTiledLayerPaintData* aPaintData,
                          LayerManager::DrawPaintedLayerCallback aCallback,
                          void* aCallbackData) override
@@ -69,8 +72,6 @@ public:
     return false;
   }
 
-  void ReadLock();
-
   void ReleaseTiles();
 
   void DiscardBuffers();
@@ -84,10 +85,9 @@ public:
 private:
   TileClient mTile;
 
-  ClientLayerManager* mManager;
-
   nsIntRegion mPaintedRegion;
   nsIntRegion mValidRegion;
+  bool mWasLastPaintProgressive;
 
   /**
    * While we're adding tiles, this is used to keep track of the position of
@@ -106,7 +106,7 @@ private:
 class SingleTiledContentClient : public TiledContentClient
 {
 public:
-  SingleTiledContentClient(ClientTiledPaintedLayer* aPaintedLayer,
+  SingleTiledContentClient(ClientTiledPaintedLayer& aPaintedLayer,
                            ClientLayerManager* aManager);
 
 protected:
@@ -118,7 +118,7 @@ protected:
   }
 
 public:
-  static bool ClientSupportsLayerSize(const IntSize& aSize, ClientLayerManager* aManager);
+  static bool ClientSupportsLayerSize(const gfx::IntSize& aSize, ClientLayerManager* aManager);
 
   virtual void ClearCachedResources() override;
 
@@ -126,8 +126,6 @@ public:
 
   virtual ClientTiledLayerBuffer* GetTiledBuffer() override { return mTiledBuffer; }
   virtual ClientTiledLayerBuffer* GetLowPrecisionTiledBuffer() override { return nullptr; }
-
-  virtual bool SupportsLayerSize(const IntSize& aSize, ClientLayerManager* aManager) const override;
 
 private:
   RefPtr<ClientSingleTiledLayerBuffer> mTiledBuffer;

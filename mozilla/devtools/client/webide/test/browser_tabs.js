@@ -8,9 +8,7 @@ function test() {
   waitForExplicitFinish();
   requestCompleteLog();
 
-  Task.spawn(function*() {
-    const { DebuggerServer } = require("devtools/server/main");
-
+  Task.spawn(function* () {
     // Since we test the connections set below, destroy the server in case it
     // was left open.
     DebuggerServer.destroy();
@@ -66,16 +64,16 @@ function test() {
 }
 
 function connectToLocal(win, docRuntime) {
-  let deferred = promise.defer();
-  win.AppManager.connection.once(
+  return new Promise(resolve => {
+    win.AppManager.connection.once(
       win.Connection.Events.CONNECTED,
-      () => deferred.resolve());
-  docRuntime.querySelectorAll(".runtime-panel-item-other")[1].click();
-  return deferred.promise;
+      resolve);
+    docRuntime.querySelectorAll(".runtime-panel-item-other")[1].click();
+  });
 }
 
 function selectTabProject(win, docProject) {
-  return Task.spawn(function*() {
+  return Task.spawn(function* () {
     yield waitForUpdate(win, "runtime-targets");
     let tabsNode = docProject.querySelector("#project-panel-tabs");
     let tabNode = tabsNode.querySelectorAll(".panel-item")[1];

@@ -10,9 +10,11 @@
 #include "nsIDirectoryService.h"
 #include "nsInterfaceHashtable.h"
 #include "nsIFile.h"
-#include "nsIAtom.h"
+#include "nsAtom.h"
+#include "nsStaticAtom.h"
 #include "nsTArray.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/StaticPtr.h"
 
 #define NS_XPCOM_INIT_CURRENT_PROCESS_DIR       "MozBinD"   // Can be used to set NS_XPCOM_CURRENT_PROCESS_DIR
                                                             // CANNOT be used to GET a location
@@ -42,7 +44,7 @@ public:
   static nsresult
   Create(nsISupports* aOuter, REFNSIID aIID, void** aResult);
 
-  static nsDirectoryService* gService;
+  static mozilla::StaticRefPtr<nsDirectoryService> gService;
 
 private:
   ~nsDirectoryService();
@@ -53,13 +55,9 @@ private:
   nsTArray<nsCOMPtr<nsIDirectoryServiceProvider>> mProviders;
 
 public:
-
-#define DIR_ATOM(name_, value_) static nsIAtom* name_;
-#include "nsDirectoryServiceAtomList.h"
-#undef DIR_ATOM
-
+  #define DIR_ATOM(name_, value_) NS_STATIC_ATOM_DECL(name_)
+  #include "nsDirectoryServiceAtomList.h"
+  #undef DIR_ATOM
 };
 
-
 #endif
-

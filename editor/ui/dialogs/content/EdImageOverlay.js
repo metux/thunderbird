@@ -74,7 +74,13 @@ function ImageStartup()
 function InitImage()
 {
   // Set the controls to the image's attributes
-  gDialog.srcInput.value = globalElement.getAttribute("src");
+  var src = globalElement.getAttribute("src");
+
+  // For image insertion the 'src' attribute is null.
+  if (src) {
+    // Shorten data URIs for display.
+    shortenImageData(src, gDialog.srcInput);
+  }
 
   // Set "Relativize" checkbox according to current URL state
   SetRelativeCheckbox();
@@ -210,23 +216,21 @@ function chooseFile()
 {
   if (gTimerID)
     clearTimeout(gTimerID);
-  // Get a local file, converted into URL format
-  var fileName = GetLocalFileURL("img");
-  if (fileName)
-  {
-    // Always try to relativize local file URLs
-    if (gHaveDocumentUrl)
-      fileName = MakeRelativeUrl(fileName);
-
-    gDialog.srcInput.value = fileName;
-
-    SetRelativeCheckbox();
-    doOverallEnabling();
-  }
-  LoadPreviewImage();
 
   // Put focus into the input field
   SetTextboxFocus(gDialog.srcInput);
+
+  GetLocalFileURL("img").then(fileURL => {
+    // Always try to relativize local file URLs
+    if (gHaveDocumentUrl)
+      fileURL = MakeRelativeUrl(fileURL);
+
+    gDialog.srcInput.value = fileURL;
+
+    SetRelativeCheckbox();
+    doOverallEnabling();
+    LoadPreviewImage();
+  });
 }
 
 function PreviewImageLoaded()
@@ -278,6 +282,10 @@ function LoadPreviewImage()
   var imageSrc = TrimString(gDialog.srcInput.value);
   if (!imageSrc)
     return;
+  if (isImageDataShortened(imageSrc))
+  {
+    imageSrc = restoredImageData(gDialog.srcInput);
+  }
 
   try {
     // Remove the image URL from image cache so it loads fresh
@@ -289,7 +297,7 @@ function LoadPreviewImage()
 
     if (GetScheme(imageSrc))
     {
-      let uri = Services.io.newURI(imageSrc, null, null);
+      let uri = Services.io.newURI(imageSrc);
       if (uri)
       {
         let imgCache = Components.classes["@mozilla.org/image/cache;1"]
@@ -458,16 +466,24 @@ function ValidateImage()
 
   // We must convert to "file:///" or "http://" format else image doesn't load!
   let src = gDialog.srcInput.value.trim();
-  var checkbox = document.getElementById("MakeRelativeCheckbox");
-  try
-  {
-    if (checkbox && !checkbox.checked)
-    {
-      src = Services.uriFixup.createFixupURI(src, Components.interfaces.nsIURIFixup.FIXUP_FLAG_NONE).spec;
-    }
-  } catch (e) { }
 
-  globalElement.setAttribute("src", src);
+  if (isImageDataShortened(src))
+  {
+    src = restoredImageData(gDialog.srcInput);
+  }
+  else
+  {
+    var checkbox = document.getElementById("MakeRelativeCheckbox");
+    try
+    {
+      if (checkbox && !checkbox.checked)
+      {
+        src = Services.uriFixup.createFixupURI(src, Components.interfaces.nsIURIFixup.FIXUP_FLAG_NONE).spec;
+      }
+    } catch (e) { }
+
+    globalElement.setAttribute("src", src);
+  }
 
   let title = gDialog.titleInput.value.trim();
   if (title)

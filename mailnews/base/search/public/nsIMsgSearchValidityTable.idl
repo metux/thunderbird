@@ -5,7 +5,7 @@
 
 #include "nsISupports.idl"
 #include "nsMsgSearchCore.idl"
-interface nsISupportsArray;
+interface nsIArray;
 
 [scriptable, uuid(b07f1cb6-fae9-4d92-9edb-03f9ad249c66)]
 interface nsIMsgSearchValidityTable : nsISupports {
@@ -24,7 +24,7 @@ interface nsIMsgSearchValidityTable : nsISupports {
     boolean getValidButNotShown(in nsMsgSearchAttribValue attrib,
                                 in nsMsgSearchOpValue op);
 
-    [noscript] void validateTerms(in nsISupportsArray terms);
+    [noscript] void validateTerms(in nsIArray terms);
 
     readonly attribute long numAvailAttribs;
 

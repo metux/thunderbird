@@ -6,7 +6,7 @@ var Cu = Components.utils;
 const { require } = Cu.import("resource://devtools/shared/Loader.jsm", {});
 
 Object.defineProperty(this, "NetworkHelper", {
-  get: function() {
+  get: function () {
     return require("devtools/shared/webconsole/network-helper");
   },
   configurable: true,
@@ -18,7 +18,7 @@ function run_test() {
   test_isTextMimeType();
 }
 
-function test_isTextMimeType () {
+function test_isTextMimeType() {
   do_check_eq(NetworkHelper.isTextMimeType("text/plain"), true);
   do_check_eq(NetworkHelper.isTextMimeType("application/javascript"), true);
   do_check_eq(NetworkHelper.isTextMimeType("application/json"), true);
@@ -28,11 +28,15 @@ function test_isTextMimeType () {
   do_check_eq(NetworkHelper.isTextMimeType("application/xml"), true);
 
   // Test custom JSON subtype
-  do_check_eq(NetworkHelper.isTextMimeType("application/vnd.tent.posts-feed.v0+json"), true);
-  do_check_eq(NetworkHelper.isTextMimeType("application/vnd.tent.posts-feed.v0-json"), true);
+  do_check_eq(NetworkHelper
+    .isTextMimeType("application/vnd.tent.posts-feed.v0+json"), true);
+  do_check_eq(NetworkHelper
+    .isTextMimeType("application/vnd.tent.posts-feed.v0-json"), true);
   // Test custom XML subtype
-  do_check_eq(NetworkHelper.isTextMimeType("application/vnd.tent.posts-feed.v0+xml"), true);
-  do_check_eq(NetworkHelper.isTextMimeType("application/vnd.tent.posts-feed.v0-xml"), false);
+  do_check_eq(NetworkHelper
+    .isTextMimeType("application/vnd.tent.posts-feed.v0+xml"), true);
+  do_check_eq(NetworkHelper
+    .isTextMimeType("application/vnd.tent.posts-feed.v0-xml"), false);
   // Test case-insensitive
   do_check_eq(NetworkHelper.isTextMimeType("application/vnd.BIG-CORP+json"), true);
   // Test non-text type
@@ -43,5 +47,6 @@ function test_isTextMimeType () {
   do_check_eq(NetworkHelper.isTextMimeType("application/foo--bar+json"), false);
 
   // Test we do not cause internal errors with unoptimized regex. Bug 961097
-  do_check_eq(NetworkHelper.isTextMimeType("application/vnd.google.safebrowsing-chunk"), false);
+  do_check_eq(NetworkHelper
+    .isTextMimeType("application/vnd.google.safebrowsing-chunk"), false);
 }

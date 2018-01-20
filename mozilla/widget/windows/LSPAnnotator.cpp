@@ -16,26 +16,26 @@
 #include "nsServiceManagerUtils.h"
 #include "nsThreadUtils.h"
 #include "nsQueryObject.h"
+#include "nsWindowsHelpers.h"
 #include <windows.h>
+#include <rpc.h>
 #include <ws2spi.h>
 
 namespace mozilla {
 namespace crashreporter {
 
-class LSPAnnotationGatherer : public nsRunnable
+class LSPAnnotationGatherer : public Runnable
 {
   ~LSPAnnotationGatherer() {}
 
 public:
-  NS_DECL_THREADSAFE_ISUPPORTS
+  LSPAnnotationGatherer() : Runnable("crashreporter::LSPAnnotationGatherer") {}
   NS_DECL_NSIRUNNABLE
 
   void Annotate();
   nsCString mString;
   nsCOMPtr<nsIThread> mThread;
 };
-
-NS_IMPL_ISUPPORTS(LSPAnnotationGatherer, nsIRunnable)
 
 void
 LSPAnnotationGatherer::Annotate()
@@ -46,13 +46,13 @@ LSPAnnotationGatherer::Annotate()
   if (cr && NS_SUCCEEDED(cr->GetEnabled(&enabled)) && enabled) {
     cr->AnnotateCrashReport(NS_LITERAL_CSTRING("Winsock_LSP"), mString);
   }
-  mThread->Shutdown();
+  mThread->AsyncShutdown();
 }
 
 NS_IMETHODIMP
 LSPAnnotationGatherer::Run()
 {
-  PR_SetCurrentThreadName("LSP Annotator");
+  NS_SetCurrentThreadName("LSP Annotator");
 
   mThread = NS_GetCurrentThread();
 
@@ -83,14 +83,53 @@ LSPAnnotationGatherer::Run()
     str.AppendLiteral(" : ");
     str.AppendInt(providers[i].iVersion);
     str.AppendLiteral(" : ");
+    str.AppendInt(providers[i].iAddressFamily);
+    str.AppendLiteral(" : ");
     str.AppendInt(providers[i].iSocketType);
+    str.AppendLiteral(" : ");
+    str.AppendInt(providers[i].iProtocol);
+    str.AppendLiteral(" : ");
+    str.AppendPrintf("0x%x", providers[i].dwServiceFlags1);
+    str.AppendLiteral(" : ");
+    str.AppendPrintf("0x%x", providers[i].dwProviderFlags);
     str.AppendLiteral(" : ");
 
     wchar_t path[MAX_PATH];
-    int dummy;
-    if (!WSCGetProviderPath(&providers[i].ProviderId, path,
-                            &dummy, &err)) {
+    int pathLen = MAX_PATH;
+    if (!WSCGetProviderPath(&providers[i].ProviderId, path, &pathLen, &err)) {
       AppendUTF16toUTF8(nsDependentString(path), str);
+    }
+
+    str.AppendLiteral(" : ");
+    // If WSCGetProviderInfo is available, we should call it to obtain the
+    // category flags for this provider. When present, these flags inform
+    // Windows as to which order to chain the providers.
+    nsModuleHandle ws2_32(LoadLibraryW(L"ws2_32.dll"));
+    if (ws2_32) {
+      decltype(WSCGetProviderInfo)* pWSCGetProviderInfo =
+        reinterpret_cast<decltype(WSCGetProviderInfo)*>(
+            GetProcAddress(ws2_32, "WSCGetProviderInfo"));
+      if (pWSCGetProviderInfo) {
+        DWORD categoryInfo;
+        size_t categoryInfoSize = sizeof(categoryInfo);
+        if (!pWSCGetProviderInfo(&providers[i].ProviderId,
+                                 ProviderInfoLspCategories,
+                                 (PBYTE)&categoryInfo, &categoryInfoSize, 0,
+                                 &err)) {
+          str.AppendPrintf("0x%x", categoryInfo);
+        }
+      }
+    }
+
+    str.AppendLiteral(" : ");
+    if (providers[i].ProtocolChain.ChainLen <= BASE_PROTOCOL) {
+      // If we're dealing with a catalog entry that identifies an individual
+      // base or layer provider, log its provider GUID.
+      RPC_CSTR provIdStr = nullptr;
+      if (UuidToStringA(&providers[i].ProviderId, &provIdStr) == RPC_S_OK) {
+        str.Append(reinterpret_cast<char*>(provIdStr));
+        RpcStringFreeA(&provIdStr);
+      }
     }
 
     if (i + 1 != n) {
@@ -99,7 +138,8 @@ LSPAnnotationGatherer::Run()
   }
 
   mString = str;
-  NS_DispatchToMainThread(NS_NewRunnableMethod(this, &LSPAnnotationGatherer::Annotate));
+  NS_DispatchToMainThread(NewRunnableMethod("crashreporter::LSPAnnotationGatherer::Annotate",
+                                            this, &LSPAnnotationGatherer::Annotate));
   return NS_OK;
 }
 
@@ -108,7 +148,7 @@ void LSPAnnotate()
   nsCOMPtr<nsIThread> thread;
   nsCOMPtr<nsIRunnable> runnable =
     do_QueryObject(new LSPAnnotationGatherer());
-  NS_NewThread(getter_AddRefs(thread), runnable);
+  NS_NewNamedThread("LSP Annotate", getter_AddRefs(thread), runnable);
 }
 
 } // namespace crashreporter

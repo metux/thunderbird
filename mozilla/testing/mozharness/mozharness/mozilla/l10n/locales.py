@@ -9,13 +9,13 @@
 
 import os
 from urlparse import urljoin
+import pprint
 import sys
 from copy import deepcopy
 
 sys.path.insert(1, os.path.dirname(sys.path[0]))
 
 from mozharness.base.config import parse_config_file
-from mozharness.base.errors import PythonErrorList
 from mozharness.base.parallel import ChunkingMixin
 
 
@@ -67,9 +67,9 @@ class LocalesMixin(ChunkingMixin):
             locales = os.environ["MOZ_LOCALES"].split()
 
         # Command line or config
-        if not locales and c.get("locales", None):
+        if not locales and c.get("locales", []):
             locales = c["locales"]
-            self.debug("Using locales from config/CLI: %s" % locales)
+            self.debug("Using locales from config/CLI: %s" % ", ".join(locales))
 
         # parse locale:revision if set
         if locales:
@@ -122,11 +122,12 @@ class LocalesMixin(ChunkingMixin):
     def parse_locales_file(self, locales_file):
         locales = []
         c = self.config
+        self.info("Parsing locales file %s" % locales_file)
         platform = c.get("locales_platform", None)
 
         if locales_file.endswith('json'):
             locales_json = parse_config_file(locales_file)
-            for locale in locales_json.keys():
+            for locale in sorted(locales_json.keys()):
                 if isinstance(locales_json[locale], dict):
                     if platform and platform not in locales_json[locale]['platforms']:
                         continue
@@ -137,26 +138,9 @@ class LocalesMixin(ChunkingMixin):
                 locales.append(locale)
         else:
             locales = self.read_from_file(locales_file).split()
+        self.info("self.l10n_revisions: %s" % pprint.pformat(self.l10n_revisions))
+        self.info("locales: %s" % locales)
         return locales
-
-    def run_compare_locales(self, locale, halt_on_failure=False):
-        dirs = self.query_abs_dirs()
-        compare_locales_script = os.path.join(dirs['abs_compare_locales_dir'],
-                                              'scripts', 'compare-locales')
-        env = self.query_env(partial_env={'PYTHONPATH':
-                             os.path.join(dirs['abs_compare_locales_dir'],
-                                          'lib')})
-        compare_locales_error_list = list(PythonErrorList)
-        self.rmtree(dirs['abs_merge_dir'])
-        self.mkdir_p(dirs['abs_merge_dir'])
-        command = "python %s -m %s l10n.ini %s %s" % (compare_locales_script,
-                  dirs['abs_merge_dir'], dirs['abs_l10n_dir'], locale)
-        self.info("*** BEGIN compare-locales %s" % locale)
-        status = self.run_command(command, error_list=compare_locales_error_list,
-                                  cwd=dirs['abs_locales_src_dir'], env=env,
-                                  halt_on_failure=halt_on_failure)
-        self.info("*** END compare-locales %s" % locale)
-        return status
 
     def query_abs_dirs(self):
         if self.abs_dirs:
@@ -175,20 +159,16 @@ class LocalesMixin(ChunkingMixin):
                                                    c['mozilla_dir'])
             dirs['abs_locales_src_dir'] = os.path.join(dirs['abs_mozilla_dir'],
                                                        c['locales_dir'])
-            dirs['abs_l10n_dir'] = os.path.join(dirs['abs_work_dir'],
-                                                c['l10n_dir'])
+
         if 'objdir' in c:
             if os.path.isabs(c['objdir']):
                 dirs['abs_objdir'] = c['objdir']
             else:
                 dirs['abs_objdir'] = os.path.join(dirs['abs_mozilla_dir'],
                                                   c['objdir'])
-            dirs['abs_merge_dir'] = os.path.join(dirs['abs_objdir'],
-                                                 'merged')
             dirs['abs_locales_dir'] = os.path.join(dirs['abs_objdir'],
                                                    c['locales_dir'])
-        dirs['abs_compare_locales_dir'] = os.path.join(dirs['abs_work_dir'],
-                                                       'compare-locales')
+
         for key in dirs.keys():
             if key not in abs_dirs:
                 abs_dirs[key] = dirs[key]
@@ -227,7 +207,7 @@ class LocalesMixin(ChunkingMixin):
                 tag = self.l10n_revisions[locale]
             locale_repos.append({
                 'repo': "%s/%s" % (hg_l10n_base, locale),
-                'revision': tag,
+                'branch': tag,
                 'vcs': vcs
             })
         revs = self.vcs_checkout_repos(repo_list=locale_repos,
@@ -244,27 +224,6 @@ class LocalesMixin(ChunkingMixin):
                 repo = repository['repo']
                 break
         return repo
-
-# GaiaLocalesMixin {{{1
-class GaiaLocalesMixin(object):
-    gaia_locale_revisions = None
-
-    def pull_gaia_locale_source(self, l10n_config, locales, base_dir):
-        root = l10n_config['root']
-        # urljoin will strip the last part of root if it doesn't end with "/"
-        if not root.endswith('/'):
-            root = root + '/'
-        vcs = l10n_config['vcs']
-        env = l10n_config.get('env', {})
-        repos = []
-        for locale in locales:
-            repos.append({
-                'repo': urljoin(root, locale),
-                'dest': locale,
-                'vcs': vcs,
-                'env': env,
-            })
-        self.gaia_locale_revisions = self.vcs_checkout_repos(repo_list=repos, parent_dir=base_dir)
 
 
 # __main__ {{{1

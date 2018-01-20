@@ -9,7 +9,7 @@ const TESTCASE_URI = TEST_BASE_HTTP + "four.html";
 
 add_task(function* () {
   let { ui } = yield openStyleEditorForURL(TESTCASE_URI);
-  gBrowser.tabContainer.addEventListener("TabOpen", onTabAdded, false);
+  gBrowser.tabContainer.addEventListener("TabOpen", onTabAdded);
 
   yield ui.editors[0].getSourceEditor();
   info("first editor selected");
@@ -51,6 +51,6 @@ function onTabAdded() {
   ok(false, "middle mouse click has opened a new tab");
 }
 
-registerCleanupFunction(function() {
-  gBrowser.tabContainer.removeEventListener("TabOpen", onTabAdded, false);
+registerCleanupFunction(function () {
+  gBrowser.tabContainer.removeEventListener("TabOpen", onTabAdded);
 });

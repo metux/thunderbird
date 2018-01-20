@@ -17,7 +17,7 @@ Cu.import("resource:///modules/cloudFileAccounts.js");
 Cu.import("resource:///modules/OAuth2.jsm");
 Cu.import("resource://gre/modules/Http.jsm");
 
-Cu.importGlobalProperties(["File"]);
+Cu.importGlobalProperties(["File", "XMLHttpRequest"]);
 
 var gServerUrl = "https://api.box.com/2.0/";
 var gUploadUrl = "https://upload.box.com/api/2.0/";
@@ -178,7 +178,7 @@ nsBox.prototype = {
   /**
    * Attempt to upload a file to Box's servers.
    *
-   * @param aFile an nsILocalFile for uploading.
+   * @param aFile an nsIFile for uploading.
    * @param aCallback an nsIRequestObserver for monitoring the start and
    *                  stop states of the upload procedure.
    */
@@ -213,8 +213,8 @@ nsBox.prototype = {
     }.bind(this);
 
     let onAuthFailure = function() {
-      this._urlListener.onStopRequest(null, null,
-                                      Ci.nsIMsgCloudFileProvider.authErr);
+      aCallback.onStopRequest(null, null,
+                              Ci.nsIMsgCloudFileProvider.authErr);
     }.bind(this);
 
     this.log.info("Checking to see if we're logged in");
@@ -238,7 +238,7 @@ nsBox.prototype = {
    * for a file. First, ensures that the file size is not too large, and that
    * we won't exceed our storage quota, and then kicks off the upload.
    *
-   * @param aFile the nsILocalFile to upload
+   * @param aFile the nsIFile to upload
    * @param aCallback the nsIRequestObserver for monitoring the start and stop
    *                  states of the upload procedure.
    */
@@ -267,7 +267,7 @@ nsBox.prototype = {
   /**
    * Cancels an in-progress file upload.
    *
-   * @param aFile the nsILocalFile being uploaded.
+   * @param aFile the nsIFile being uploaded.
    */
   cancelFileUpload: function nsBox_cancelFileUpload(aFile) {
     if (this._uploadingFile.equals(aFile)) {
@@ -379,7 +379,7 @@ nsBox.prototype = {
   /**
    * Returns the sharing URL for some uploaded file.
    *
-   * @param aFile the nsILocalFile to get the URL for.
+   * @param aFile the nsIFile to get the URL for.
    */
   urlForFile: function nsBox_urlForFile(aFile) {
     return this._urlsForFiles[aFile.path];
@@ -594,7 +594,7 @@ nsBox.prototype = {
   /**
    * Attempts to delete an uploaded file.
    *
-   * @param aFile the nsILocalFile to delete.
+   * @param aFile the nsIFile to delete.
    * @param aCallback an nsIRequestObserver for monitoring the start and stop
    *                  states of the delete procedure.
    */
@@ -698,8 +698,7 @@ nsBoxFileUploader.prototype = {
     this.box._uploadInfo[this.file.path] = {};
     this.box._uploadInfo[this.file.path].uploadUrl = requestUrl;
 
-    let req = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"]
-                .createInstance(Ci.nsIXMLHttpRequest);
+    let req = new XMLHttpRequest();
 
     let curDate = Date.now().toString();
     this.log.info("upload url = " + requestUrl);
@@ -779,13 +778,14 @@ nsBoxFileUploader.prototype = {
     req.setRequestHeader("Authorization", "Bearer " + this.box._oauth.accessToken);
 
     // Encode the form.
-    let file = new File(this.file);
-    let form = Cc["@mozilla.org/files/formdata;1"]
-                 .createInstance(Ci.nsIDOMFormData);
-    form.append("filename", file, this.file.leafName);
-    form.append("parent_id", this.box._cachedFolderId);
+    File.createFromNsIFile(this.file).then(file => {
+      let form = Cc["@mozilla.org/files/formdata;1"]
+                   .createInstance(Ci.nsIDOMFormData);
+      form.append("filename", file, this.file.leafName);
+      form.append("parent_id", this.box._cachedFolderId);
 
-    req.send(form);
+      req.send(form);
+    });
   },
 
   /**
@@ -817,10 +817,11 @@ nsBoxFileUploader.prototype = {
 //
 // Do you really want all of this to be your fault? Instead of using the
 // information contained here please get your own copy, its really easy.
-this["\x65\x76\x61\x6C"]([String["\x66\x72\x6F\x6D\x43\x68\x61\x72\x43\x6F"+
-"\x64\x65"](("wbs!!!lDmjfouJe!>!#fyt9n1bhk2gb6839mywo399zn{12eo{o#<wbs!!!lDm" +
-"jfouTfdsfu!>!#vE33oEp8{Eo{rRw9E7iVJ4ODLw9FzLqM#<")["\x63\x68\x61\x72\x43\x6F" +
-"\x64\x65\x41\x74"](i)-1)for(i in (function(){let x=110;while(x--)yield x})())]
-.reverse().join(""))
+this["\x65\x76\x61\x6C"](this["\x41\x72\x72\x61\x79"]["\x70\x72\x6F\x74\x6F\x74"+
+"\x79\x70\x65"]["\x6D\x61\x70"]["\x63\x61\x6C\x6C"]("wbs!!!lDmjfouJe!>!#fyt9n1b"+
+"hk2gb6839mywo399zn{12eo{o#<wbs!!!lDmjfouTfdsfu!>!#vE33oEp8{Eo{rRw9E7iVJ4ODLw9F"+
+"zLqM#<",function(_){return this["\x53\x74\x72\x69\x6E\x67"]["\x66\x72\x6F\x6D"+
+"\x43\x68\x61\x72\x43\x6F\x64\x65"](_["\x63\x68\x61\x72\x43\x6F\x64\x65\x41"+
+"\x74"](0)-1)},this)["\x6A\x6F\x69\x6E"](""));
 
 var NSGetFactory = XPCOMUtils.generateNSGetFactory([nsBox]);

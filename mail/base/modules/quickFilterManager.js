@@ -11,14 +11,12 @@ var Cu = Components.utils;
 
 Cu.import("resource://gre/modules/PluralForm.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/AppConstants.jsm");
 
 Cu.import("resource:///modules/iteratorUtils.jsm");
 Cu.import("resource:///modules/errUtils.js");
 Cu.import("resource:///modules/mailServices.js");
 Cu.import("resource:///modules/searchSpec.js");
-
-var Application = Cc["@mozilla.org/steel/application;1"]
-                      .getService(Ci.steelIApplication);
 
 var nsMsgSearchAttrib = Components.interfaces.nsMsgSearchAttrib;
 var nsMsgMessageFlags = Components.interfaces.nsMsgMessageFlags;
@@ -1013,7 +1011,7 @@ var MessageTextFilter = {
         term = null;
         let splitPhrases = groupedPhrases.split("|");
         for (let phrase of splitPhrases) {
-          for (let [tfName, tfValue] in Iterator(aFilterValue.states)) {
+          for (let [tfName, tfValue] of Object.entries(aFilterValue.states)) {
             if (!tfValue)
               continue;
             let tfDef = this.textFilterDefs[tfName];
@@ -1069,7 +1067,7 @@ var MessageTextFilter = {
     aNode.setAttribute(
       "placeholder",
       aNode.getAttribute("emptytextbase")
-           .replace("#1", aNode.getAttribute(Application.platformIsMac ?
+           .replace("#1", aNode.getAttribute((AppConstants.platform == "macosx") ?
                                              "keyLabelMac" : "keyLabelNonMac")));
     // force an update of the emptytext now that we've updated it.
     aNode.value = "";

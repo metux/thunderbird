@@ -16,10 +16,6 @@ function AutoCompleteInput(aSearches) {
 }
 AutoCompleteInput.prototype = Object.create(AutoCompleteInputBase.prototype);
 
-function run_test() {
-  run_next_test();
-}
-
 add_test(function test_keyNavigation() {
   doSearch("moz", "mozilla.com", "http://www.mozilla.com", function(aController) {
     do_check_eq(aController.input.textValue, "mozilla.com");
@@ -44,8 +40,8 @@ function doSearch(aSearchString, aResultValue, aFinalCompleteValue, aOnCompleteC
   registerAutoCompleteSearch(search);
 
   let controller = Cc["@mozilla.org/autocomplete/controller;1"].
-                   getService(Ci.nsIAutoCompleteController);  
-  
+                   getService(Ci.nsIAutoCompleteController);
+
   // Make an AutoCompleteInput that uses our searches and confirms results.
   let input = new AutoCompleteInput([ search.name ]);
   input.textValue = aSearchString;

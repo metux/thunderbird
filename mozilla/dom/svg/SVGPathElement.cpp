@@ -10,7 +10,6 @@
 
 #include "DOMSVGPathSeg.h"
 #include "DOMSVGPathSegList.h"
-#include "DOMSVGPoint.h"
 #include "gfx2DGlue.h"
 #include "gfxPlatform.h"
 #include "mozilla/dom/SVGPathElementBinding.h"
@@ -36,9 +35,6 @@ SVGPathElement::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aGivenProto)
   return SVGPathElementBinding::Wrap(aCx, this, aGivenProto);
 }
 
-nsSVGElement::NumberInfo SVGPathElement::sNumberInfo = 
-{ &nsGkAtoms::pathLength, 0, false };
-
 //----------------------------------------------------------------------
 // Implementation
 
@@ -50,56 +46,18 @@ SVGPathElement::SVGPathElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeIn
 //----------------------------------------------------------------------
 // memory reporting methods
 
-size_t
-SVGPathElement::SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
+void
+SVGPathElement::AddSizeOfExcludingThis(nsWindowSizes& aSizes,
+                                       size_t* aNodeSize) const
 {
-  return SVGPathElementBase::SizeOfExcludingThis(aMallocSizeOf) +
-         mD.SizeOfExcludingThis(aMallocSizeOf);
+  SVGPathElementBase::AddSizeOfExcludingThis(aSizes, aNodeSize);
+  *aNodeSize += mD.SizeOfExcludingThis(aSizes.mState.mMallocSizeOf);
 }
 
 //----------------------------------------------------------------------
 // nsIDOMNode methods
 
 NS_IMPL_ELEMENT_CLONE_WITH_INIT(SVGPathElement)
-
-already_AddRefed<SVGAnimatedNumber>
-SVGPathElement::PathLength()
-{
-  return mPathLength.ToDOMAnimatedNumber(this);
-}
-
-float
-SVGPathElement::GetTotalLength()
-{
-  RefPtr<Path> flat = GetOrBuildPathForMeasuring();
-  return flat ? flat->ComputeLength() : 0.f;
-}
-
-already_AddRefed<nsISVGPoint>
-SVGPathElement::GetPointAtLength(float distance, ErrorResult& rv)
-{
-  RefPtr<Path> path = GetOrBuildPathForMeasuring();
-  if (!path) {
-    rv.Throw(NS_ERROR_FAILURE);
-    return nullptr;
-  }
-
-  float totalLength = path->ComputeLength();
-  if (mPathLength.IsExplicitlySet()) {
-    float pathLength = mPathLength.GetAnimValue();
-    if (pathLength <= 0) {
-      rv.Throw(NS_ERROR_FAILURE);
-      return nullptr;
-    }
-    distance *= totalLength / pathLength;
-  }
-  distance = std::max(0.f,         distance);
-  distance = std::min(totalLength, distance);
-
-  nsCOMPtr<nsISVGPoint> point =
-    new DOMSVGPoint(path->ComputePointAtLength(distance));
-  return point.forget();
-}
 
 uint32_t
 SVGPathElement::GetPathSegAtLength(float distance)
@@ -285,17 +243,11 @@ SVGPathElement::HasValidDimensions() const
   return !mD.GetAnimValue().IsEmpty();
 }
 
-nsSVGElement::NumberAttributesInfo
-SVGPathElement::GetNumberInfo()
-{
-  return NumberAttributesInfo(&mPathLength, &sNumberInfo, 1);
-}
-
 //----------------------------------------------------------------------
 // nsIContent methods
 
 NS_IMETHODIMP_(bool)
-SVGPathElement::IsAttributeMapped(const nsIAtom* name) const
+SVGPathElement::IsAttributeMapped(const nsAtom* name) const
 {
   static const MappedAttributeEntry* const map[] = {
     sMarkersMap
@@ -312,10 +264,10 @@ SVGPathElement::GetOrBuildPathForMeasuring()
 }
 
 //----------------------------------------------------------------------
-// nsSVGPathGeometryElement methods
+// SVGGeometryElement methods
 
 bool
-SVGPathElement::AttributeDefinesGeometry(const nsIAtom *aName)
+SVGPathElement::AttributeDefinesGeometry(const nsAtom *aName)
 {
   return aName == nsGkAtoms::d ||
          aName == nsGkAtoms::pathLength;
@@ -378,7 +330,7 @@ SVGPathElement::BuildPath(PathBuilder* aBuilder)
   Float strokeWidth = 0;
 
   RefPtr<nsStyleContext> styleContext =
-    nsComputedDOMStyle::GetStyleContextForElementNoFlush(this, nullptr, nullptr);
+    nsComputedDOMStyle::GetStyleContextNoFlush(this, nullptr, nullptr);
   if (styleContext) {
     const nsStyleSVG* style = styleContext->StyleSVG();
     // Note: the path that we return may be used for hit-testing, and SVG

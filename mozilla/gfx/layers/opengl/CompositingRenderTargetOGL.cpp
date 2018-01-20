@@ -1,11 +1,13 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "CompositingRenderTargetOGL.h"
 #include "GLContext.h"
 #include "GLReadTexImageHelper.h"
+#include "ScopedGLHelpers.h"
 #include "mozilla/gfx/2D.h"
 
 namespace mozilla {
@@ -16,7 +18,7 @@ using namespace mozilla::gl;
 
 CompositingRenderTargetOGL::~CompositingRenderTargetOGL()
 {
-  if (mGL->MakeCurrent()) {
+  if (mGL && mGL->MakeCurrent()) {
     mGL->fDeleteTextures(1, &mTextureHandle);
     mGL->fDeleteFramebuffers(1, &mFBO);
   }
@@ -51,7 +53,7 @@ CompositingRenderTargetOGL::BindRenderTarget()
       // The main framebuffer (0) of non-offscreen contexts
       // might be backed by a EGLSurface that needs to be renewed.
       if (mFBO == 0 && !mGL->IsOffscreen()) {
-        mGL->RenewSurface();
+        mGL->RenewSurface(mCompositor->GetWidget());
         result = mGL->fCheckFramebufferStatus(LOCAL_GL_FRAMEBUFFER);
       }
       if (result != LOCAL_GL_FRAMEBUFFER_COMPLETE) {
@@ -69,7 +71,9 @@ CompositingRenderTargetOGL::BindRenderTarget()
   }
 
   if (needsClear) {
-    mGL->fScissor(0, 0, mInitParams.mSize.width, mInitParams.mSize.height);
+    ScopedGLState scopedScissorTestState(mGL, LOCAL_GL_SCISSOR_TEST, true);
+    ScopedScissorRect autoScissorRect(mGL, 0, 0, mInitParams.mSize.width,
+                                      mInitParams.mSize.height);
     mGL->fClearColor(0.0, 0.0, 0.0, 0.0);
     mGL->fClearDepth(0.0);
     mGL->fClear(LOCAL_GL_COLOR_BUFFER_BIT | LOCAL_GL_DEPTH_BUFFER_BIT);
@@ -81,7 +85,7 @@ already_AddRefed<DataSourceSurface>
 CompositingRenderTargetOGL::Dump(Compositor* aCompositor)
 {
   MOZ_ASSERT(mInitParams.mStatus == InitParams::INITIALIZED);
-  CompositorOGL* compositorOGL = static_cast<CompositorOGL*>(aCompositor);
+  CompositorOGL* compositorOGL = aCompositor->AsCompositorOGL();
   return ReadBackSurface(mGL, mTextureHandle, true, compositorOGL->GetFBOFormat());
 }
 #endif

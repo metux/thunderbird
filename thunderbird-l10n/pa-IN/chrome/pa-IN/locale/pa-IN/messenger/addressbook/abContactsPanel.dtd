@@ -1,0 +1,50 @@
+<!ENTITY addressbookPicker.label            "ਐਡਰੈੱਸ ਬੁੱਕ:">
+<!ENTITY addressbookPicker.accesskey        "k">
+<!ENTITY searchInput.label                  "ਇਸ ਲਈ ਖੋਜ:">
+<!ENTITY searchInput.accesskey              "o">
+<!ENTITY SearchNameOrEmail.label            "ਨਾਂ ਜਾਂ ਈਮੇਲ">
+
+<!ENTITY deleteAddrBookCard.label           "ਹਟਾਓ">
+<!ENTITY addrBookCardProperties.label       "ਵਿਸ਼ੇਸ਼ਤਾ">
+<!ENTITY addtoToFieldMenu.label             "ਵੱਲ ਖੇਤਰ ਵਿੱਚ ਸ਼ਾਮਲ">
+<!ENTITY addtoCcFieldMenu.label             "Cc ਖੇਤਰ ਵਿੱਚ ਸ਼ਾਮਲ">
+<!ENTITY addtoBccFieldMenu.label            "Bcc ਖੇਤਰ ਵਿੱਚ ਸ਼ਾਮਲ">
+
+<!ENTITY toButton.label                     "ਵੱਲ ਵਿੱਚ ਸ਼ਾਮਲ:">
+<!ENTITY toButton.accesskey                 "A">
+<!ENTITY ccButton.label                     "Cc ਵਿੱਚ ਸ਼ਾਮਲ:">
+<!ENTITY ccButton.accesskey                 "d">
+<!ENTITY bccButton.label                    "Bcc ਵਿੱਚ ਸ਼ਾਮਲ:">
+<!ENTITY bccButton.accesskey                "B">
+
+<!ENTITY propertiesMenu.label               "Properties">
+<!ENTITY propertiesMenu.accesskey           "i">
+<!ENTITY propertiesCmd.key                  "i">
+<!ENTITY abPropertiesMenu.label             "Address Book Properties">
+<!ENTITY abPropertiesMenu.accesskey         "i">
+<!ENTITY contactPropertiesMenu.label        "Contact Properties">
+<!ENTITY contactPropertiesMenu.accesskey    "i">
+<!ENTITY mailingListPropertiesMenu.label    "Mailing List Properties">
+<!ENTITY mailingListPropertiesMenu.accesskey "i">
+
+<!ENTITY abContextMenuButton.tooltip        "Display Address Book Context Menu">
+<!ENTITY searchContacts.label               "Search Contacts:">
+<!ENTITY searchContacts.accesskey           "n">
+<!ENTITY addtoToFieldMenu.accesskey         "A">
+<!ENTITY addtoCcFieldMenu.accesskey         "C">
+<!ENTITY addtoBccFieldMenu.accesskey        "B">
+<!ENTITY deleteAddrBookCard.accesskey       "D">
+<!ENTITY propertiesContext.label            "Properties">
+<!ENTITY propertiesContext.accesskey        "i">
+<!ENTITY abPropertiesContext.label          "Properties">
+<!ENTITY abPropertiesContext.accesskey      "i">
+<!ENTITY editContactContext.label           "Edit Contact">
+<!ENTITY editContactContext.accesskey       "E">
+<!ENTITY editMailingListContext.label       "Edit List">
+<!ENTITY editMailingListContext.accesskey   "E">
+
+<!ENTITY newContactAbContext.label          "New Contact">
+<!ENTITY newContactAbContext.accesskey      "C">
+<!ENTITY newListAbContext.label             "New List">
+<!ENTITY newListAbContext.accesskey         "L">
+

@@ -3,15 +3,12 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
+// testSteps is expected to be defined by the file including this file.
+/* global testSteps */
+
 var testGenerator = testSteps();
 
 var testResult;
-var testException;
-
-function testFinishedCallback(result, exception)
-{
-  throw new Error("Bad testFinishedCallback!");
-}
 
 function runTest()
 {
@@ -21,7 +18,7 @@ function runTest()
 function finishTestNow()
 {
   if (testGenerator) {
-    testGenerator.close();
+    testGenerator.return();
     testGenerator = undefined;
   }
 }
@@ -29,12 +26,14 @@ function finishTestNow()
 function finishTest()
 {
   setTimeout(finishTestNow, 0);
-  setTimeout(testFinishedCallback, 0, testResult, testException);
+  setTimeout(() => {
+    window.parent.postMessage(testResult, "*");
+  }, 0);
 }
 
 function grabEventAndContinueHandler(event)
 {
-  testGenerator.send(event);
+  testGenerator.next(event);
 }
 
 function errorHandler(event)

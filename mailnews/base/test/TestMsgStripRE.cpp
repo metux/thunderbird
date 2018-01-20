@@ -10,7 +10,7 @@
 #include "nsIPrefService.h"
 #include "nsIPrefBranch.h"
 #include "nsISupportsPrimitives.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 
 #define STRING_SIZE 255
 struct testInfo {
@@ -29,7 +29,7 @@ testStripRe(const char *encodedInput, char *expectedOutput,
   const char *encodedInout = encodedInput;
   uint32_t length = strlen(encodedInout);
   didModify = NS_MsgStripRE(&encodedInout, &length, &modifiedSubject);
-  
+
   // make sure we got the right results
   if (didModify != expectedDidModify)
     return 2;
@@ -58,26 +58,15 @@ int main(int argc, char** argv)
   nsresult rv;
   nsCOMPtr<nsIPrefBranch> prefBranch(do_GetService(NS_PREFSERVICE_CONTRACTID,
                                      &rv));
-  NS_ENSURE_SUCCESS(rv, rv);
+  NS_ENSURE_SUCCESS(rv, 1);
 
-  // create an nsISupportsString and stuff our literal into it   
-  nsCOMPtr<nsISupportsString> rePrefixes = 
-    do_CreateInstance("@mozilla.org/supports-string;1", &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
+  // set localizedRe pref, value "SV,ÆØÅ",
+  // \xC3\x86, \xC3\x98 and \xC3\x85 are the UTF-8 encodings of Æ, Ø and Å.
+  rv = prefBranch->SetStringPref("mailnews.localizedRe",
+                                 NS_LITERAL_CSTRING("SV,\xC3\x86\xC3\x98\xC3\x85"));
+  NS_ENSURE_SUCCESS(rv, 1);
 
-  // portable C++ expression of "SV,ÆØÅ"
-  static const unsigned char utf8Prefixes[] =
-    {'S', 'V', ',', 0303, 0206, 0303, 0230, 0303, 0205, '\0'};
-
-  rv = rePrefixes->SetData(NS_ConvertUTF8toUTF16(utf8Prefixes));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  // set localizedRe pref
-  rv = prefBranch->SetComplexValue("mailnews.localizedRe", 
-                                   NS_GET_IID(nsISupportsString), rePrefixes);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  // run our tests 
+  // run our tests
   struct testInfo testInfoStructs[] = {
     {"SV: =?ISO-8859-1?Q?=C6blegr=F8d?=", "=?ISO-8859-1?Q?=C6blegr=F8d?=",
      true},
@@ -85,7 +74,7 @@ int main(int argc, char** argv)
      true},
 
      // Note that in the next two tests, the only ISO-8859-1 chars are in the
-     // localizedRe piece, so once they've been stripped, the re-encoding process 
+     // localizedRe piece, so once they've been stripped, the re-encoding process
      // simply writes out ASCII rather than an ISO-8859-1 encoded string with
      // no actual ISO-8859-1 special characters, which seems reasonable.
     {"=?ISO-8859-1?Q?=C6=D8=C5=3A_Foo_bar?=", "Foo bar", true},
@@ -108,6 +97,6 @@ int main(int argc, char** argv)
   if (allTestsPassed) {
     passed("all tests passed\n");
   }
-  
+
   return allTestsPassed ? 0 : 2;
 }

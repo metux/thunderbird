@@ -4,7 +4,7 @@
 
 
 const PREF_ACTIVE = "security.mixed_content.block_active_content";
-const gHttpTestRoot = "https://example.com/tests/dom/base/test/";
+const gHttpTestRoot = "https://example.com/browser/dom/base/test/";
 var origBlockActive;
 var gTestBrowser = null;
 
@@ -26,19 +26,20 @@ function test() {
 
   Services.prefs.setBoolPref(PREF_ACTIVE, true);
 
-  var newTab = gBrowser.addTab();
+  var newTab = BrowserTestUtils.addTab(gBrowser);
   gBrowser.selectedTab = newTab;
   gTestBrowser = gBrowser.selectedBrowser;
-  newTab.linkedBrowser.stop()
 
-  BrowserTestUtils.browserLoaded(gTestBrowser, true /*includeSubFrames*/).then(MixedTest1A);
-  var url = gHttpTestRoot + "file_bug902350.html";
-  gTestBrowser.loadURI(url);
+  BrowserTestUtils.browserLoaded(gTestBrowser).then(() => {
+    // about:blank is expected to be loaded here.
+    var url = gHttpTestRoot + "file_bug902350.html";
+    BrowserTestUtils.browserLoaded(gTestBrowser, true /*includeSubFrames*/).then(MixedTest1A);
+    gTestBrowser.loadURI(url);
+  });
 }
 
 // Need to capture 2 loads, one for the main page and one for the iframe
 function MixedTest1A() {
-  dump("XYZ\n");
   BrowserTestUtils.browserLoaded(gTestBrowser, true /*includeSubFrames*/).then(MixedTest1B);
 }
 
@@ -60,11 +61,8 @@ function MixedTest1B() {
 
 function MixedTest1C() {
   ContentTask.spawn(gTestBrowser, null, function() {
-    return content.location.href;
-  }).then(url => {
-    ok(gTestBrowser.contentWindow.location == "http://example.com/", "Navigating to insecure domain through target='_top' failed.")
-    MixedTestsCompleted();
-  });
+    Assert.equal(content.location.href, "http://example.com/",
+      "Navigating to insecure domain through target='_top' failed.")
+  }).then(MixedTestsCompleted);
 }
-
 

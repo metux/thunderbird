@@ -15,6 +15,7 @@
 #include "nsISMILAttr.h"
 #include "nsSVGElement.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/UniquePtr.h"
 #include "nsSVGAttrTearoffTable.h"
 
 class nsSMILValue;
@@ -37,6 +38,8 @@ struct nsSVGViewBoxRect
   nsSVGViewBoxRect(const nsSVGViewBoxRect& rhs) :
     x(rhs.x), y(rhs.y), width(rhs.width), height(rhs.height), none(rhs.none) {}
   bool operator==(const nsSVGViewBoxRect& aOther) const;
+
+  static nsresult FromString(const nsAString& aStr, nsSVGViewBoxRect *aViewBox);
 };
 
 class nsSVGViewBox
@@ -47,24 +50,25 @@ public:
 
   /**
    * Returns true if the corresponding "viewBox" attribute defined a rectangle
-   * with finite values. Returns false if the viewBox was set to an invalid
+   * with finite values and nonnegative width/height.
+   * Returns false if the viewBox was set to an invalid
    * string, or if any of the four rect values were too big to store in a
-   * float.
-   *
-   * This method does not check whether the width or height values are
-   * positive, so callers must check whether the viewBox rect is valid where
-   * necessary!
+   * float, or the width/height are negative.
    */
-  bool HasRect() const
-    { return (mAnimVal && !mAnimVal->none) ||
-             (!mAnimVal && mHasBaseVal && !mBaseVal.none); }
+  bool HasRect() const;
 
   /**
    * Returns true if the corresponding "viewBox" attribute either defined a
    * rectangle with finite values or the special "none" value.
    */
   bool IsExplicitlySet() const
-    { return mAnimVal || mHasBaseVal; }
+    {
+      if (mAnimVal || mHasBaseVal) {
+        const nsSVGViewBoxRect& rect = GetAnimValue();
+        return rect.none || (rect.width >= 0 && rect.height >= 0);
+      }
+      return false;
+    }
 
   const nsSVGViewBoxRect& GetBaseValue() const
     { return mBaseVal; }
@@ -89,11 +93,9 @@ public:
   already_AddRefed<mozilla::dom::SVGIRect>
   ToDOMAnimVal(nsSVGElement* aSVGElement);
 
-  // Returns a new nsISMILAttr object that the caller must delete
-  nsISMILAttr* ToSMILAttr(nsSVGElement* aSVGElement);
+  mozilla::UniquePtr<nsISMILAttr> ToSMILAttr(nsSVGElement* aSVGElement);
 
 private:
-
   nsSVGViewBoxRect mBaseVal;
   nsAutoPtr<nsSVGViewBoxRect> mAnimVal;
   bool mHasBaseVal;

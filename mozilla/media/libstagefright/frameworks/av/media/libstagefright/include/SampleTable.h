@@ -24,6 +24,7 @@
 #include <media/stagefright/MediaErrors.h>
 #include <utils/RefBase.h>
 #include <utils/threads.h>
+#include "nsTArray.h"
 
 namespace stagefright {
 
@@ -175,7 +176,7 @@ private:
 
     static int CompareIncreasingTime(const void *, const void *);
 
-    void buildSampleEntriesTable();
+    status_t buildSampleEntriesTable();
 
     status_t parseSampleCencInfo();
 

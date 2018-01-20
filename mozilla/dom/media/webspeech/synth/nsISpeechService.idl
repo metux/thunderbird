@@ -113,9 +113,11 @@ interface nsISpeechTask : nsISupports
    * @param aName        name of boundary, 'word' or 'sentence'
    * @param aElapsedTime time in seconds since speech has started.
    * @param aCharIndex   offset of spoken characters.
+   * @param aCharLength  length of text in boundary event to be spoken.
    */
-  void dispatchBoundary(in DOMString aName, in float aElapsedTime,
-                        in unsigned long aCharIndex);
+  [optional_argc] void dispatchBoundary(in DOMString aName, in float aElapsedTime,
+                                        in unsigned long aCharIndex,
+                                        [optional] in unsigned long aCharLength);
 
   /**
    * Dispatch mark event.
@@ -165,3 +167,9 @@ interface nsISpeechService : nsISupports
 
   readonly attribute SpeechServiceType serviceType;
 };
+
+%{C++
+// This is the service category speech services could use to start up as
+// a component.
+#define NS_SPEECH_SYNTH_STARTED "speech-synth-started"
+%}

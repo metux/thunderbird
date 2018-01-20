@@ -10,17 +10,16 @@ DIRS += [
     'base',
     'locales',
     'extensions',
-    'steel',
     'themes',
     'app',
+    '../common/src',
 ]
-
-# Add components for external linkage build
-if CONFIG['MOZ_INCOMPLETE_EXTERNAL_LINKAGE']:
-    DIRS += ['components']
 
 if CONFIG['MAKENSISU']:
     DIRS += ['installer/windows']
+
+if CONFIG['MOZ_BUNDLED_FONTS']:
+    DIRS += ['/%s/browser/fonts' % CONFIG['mozreltopsrcdir']]
 
 TEST_DIRS += ['test/mozmill']
 

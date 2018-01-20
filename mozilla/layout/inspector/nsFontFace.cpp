@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -9,7 +11,7 @@
 #include "gfxUserFontSet.h"
 #include "nsFontFaceLoader.h"
 #include "mozilla/gfx/2D.h"
-#include "decode.h"
+#include "brotli/decode.h"
 #include "zlib.h"
 #include "mozilla/dom/FontFaceSet.h"
 
@@ -121,7 +123,8 @@ nsFontFace::GetURI(nsAString & aURI)
     NS_ASSERTION(mFontEntry->mUserFontData, "missing userFontData");
     if (mFontEntry->mUserFontData->mURI) {
       nsAutoCString spec;
-      mFontEntry->mUserFontData->mURI->GetSpec(spec);
+      nsresult rv = mFontEntry->mUserFontData->mURI->GetSpec(spec);
+      NS_ENSURE_SUCCESS(rv, rv);
       AppendUTF8toUTF16(spec, aURI);
     }
   }
@@ -187,7 +190,7 @@ nsFontFace::GetMetadata(nsAString & aMetadata)
   aMetadata.Truncate();
   if (mFontEntry->IsUserFont() && !mFontEntry->IsLocalUserFont()) {
     NS_ASSERTION(mFontEntry->mUserFontData, "missing userFontData");
-    const gfxUserFontData* userFontData = mFontEntry->mUserFontData;
+    const gfxUserFontData* userFontData = mFontEntry->mUserFontData.get();
     if (userFontData->mMetadata.Length() && userFontData->mMetaOrigLen) {
       nsAutoCString str;
       str.SetLength(userFontData->mMetaOrigLen);
@@ -207,10 +210,10 @@ nsFontFace::GetMetadata(nsAString & aMetadata)
         case gfxUserFontData::kBrotliCompression:
           {
             size_t decodedSize = userFontData->mMetaOrigLen;
-            if (BrotliDecompressBuffer(userFontData->mMetadata.Length(),
-                                       userFontData->mMetadata.Elements(),
-                                       &decodedSize,
-                                       (uint8_t*)str.BeginWriting()) == 1 &&
+            if (BrotliDecoderDecompress(userFontData->mMetadata.Length(),
+                                        userFontData->mMetadata.Elements(),
+                                        &decodedSize,
+                                        (uint8_t*)str.BeginWriting()) == 1 &&
                 decodedSize == userFontData->mMetaOrigLen) {
               AppendUTF8toUTF16(str, aMetadata);
             }

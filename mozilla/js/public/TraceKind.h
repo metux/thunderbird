@@ -7,6 +7,8 @@
 #ifndef js_TraceKind_h
 #define js_TraceKind_h
 
+#include "mozilla/UniquePtr.h"
+
 #include "js/TypeDecls.h"
 
 // Forward declarations of all the types a TraceKind can denote.
@@ -14,7 +16,9 @@ namespace js {
 class BaseShape;
 class LazyScript;
 class ObjectGroup;
+class RegExpShared;
 class Shape;
+class Scope;
 namespace jit {
 class JitCode;
 } // namespace jit
@@ -37,9 +41,11 @@ enum class TraceKind
     // Note: The order here is determined by our Value packing. Other users
     //       should sort alphabetically, for consistency.
     Object = 0x00,
-    String = 0x01,
-    Symbol = 0x02,
-    Script = 0x03,
+    String = 0x02,
+    Symbol = 0x03,
+
+    // 0x1 is not used for any GCThing Value tag, so we use it for Script.
+    Script = 0x01,
 
     // Shape details are exposed through JS_TraceShapeCycleCollectorChildren.
     Shape = 0x04,
@@ -53,33 +59,106 @@ enum class TraceKind
     // The following kinds do not have an exposed C++ idiom.
     BaseShape = 0x0F,
     JitCode = 0x1F,
-    LazyScript = 0x2F
+    LazyScript = 0x2F,
+    Scope = 0x3F,
+    RegExpShared = 0x4F
 };
 const static uintptr_t OutOfLineTraceKindMask = 0x07;
 static_assert(uintptr_t(JS::TraceKind::BaseShape) & OutOfLineTraceKindMask, "mask bits are set");
 static_assert(uintptr_t(JS::TraceKind::JitCode) & OutOfLineTraceKindMask, "mask bits are set");
 static_assert(uintptr_t(JS::TraceKind::LazyScript) & OutOfLineTraceKindMask, "mask bits are set");
+static_assert(uintptr_t(JS::TraceKind::Scope) & OutOfLineTraceKindMask, "mask bits are set");
+static_assert(uintptr_t(JS::TraceKind::RegExpShared) & OutOfLineTraceKindMask, "mask bits are set");
 
+// When this header is imported inside SpiderMonkey, the class definitions are
+// available and we can query those definitions to find the correct kind
+// directly from the class hierarchy.
+template <typename T>
+struct MapTypeToTraceKind {
+    static const JS::TraceKind kind = T::TraceKind;
+};
+
+// When this header is used outside SpiderMonkey, the class definitions are not
+// available, so the following table containing all public GC types is used.
 #define JS_FOR_EACH_TRACEKIND(D) \
  /* PrettyName       TypeName           AddToCCKind */ \
     D(BaseShape,     js::BaseShape,     true) \
     D(JitCode,       js::jit::JitCode,  true) \
     D(LazyScript,    js::LazyScript,    true) \
+    D(Scope,         js::Scope,         true) \
     D(Object,        JSObject,          true) \
     D(ObjectGroup,   js::ObjectGroup,   true) \
     D(Script,        JSScript,          true) \
     D(Shape,         js::Shape,         true) \
     D(String,        JSString,          false) \
-    D(Symbol,        JS::Symbol,        false)
+    D(Symbol,        JS::Symbol,        false) \
+    D(RegExpShared,  js::RegExpShared,  true)
 
-// Map from base trace type to the trace kind.
-template <typename T> struct MapTypeToTraceKind {};
+// Map from all public types to their trace kind.
 #define JS_EXPAND_DEF(name, type, _) \
     template <> struct MapTypeToTraceKind<type> { \
         static const JS::TraceKind kind = JS::TraceKind::name; \
     };
 JS_FOR_EACH_TRACEKIND(JS_EXPAND_DEF);
 #undef JS_EXPAND_DEF
+
+// RootKind is closely related to TraceKind. Whereas TraceKind's indices are
+// laid out for convenient embedding as a pointer tag, the indicies of RootKind
+// are designed for use as array keys via EnumeratedArray.
+enum class RootKind : int8_t
+{
+    // These map 1:1 with trace kinds.
+#define EXPAND_ROOT_KIND(name, _0, _1) \
+    name,
+JS_FOR_EACH_TRACEKIND(EXPAND_ROOT_KIND)
+#undef EXPAND_ROOT_KIND
+
+    // These tagged pointers are special-cased for performance.
+    Id,
+    Value,
+
+    // Everything else.
+    Traceable,
+
+    Limit
+};
+
+// Most RootKind correspond directly to a trace kind.
+template <TraceKind traceKind> struct MapTraceKindToRootKind {};
+#define JS_EXPAND_DEF(name, _0, _1) \
+    template <> struct MapTraceKindToRootKind<JS::TraceKind::name> { \
+        static const JS::RootKind kind = JS::RootKind::name; \
+    };
+JS_FOR_EACH_TRACEKIND(JS_EXPAND_DEF)
+#undef JS_EXPAND_DEF
+
+// Specify the RootKind for all types. Value and jsid map to special cases;
+// Cell pointer types we can derive directly from the TraceKind; everything else
+// should go in the Traceable list and use GCPolicy<T>::trace for tracing.
+template <typename T>
+struct MapTypeToRootKind {
+    static const JS::RootKind kind = JS::RootKind::Traceable;
+};
+template <typename T>
+struct MapTypeToRootKind<T*> {
+    static const JS::RootKind kind =
+        JS::MapTraceKindToRootKind<JS::MapTypeToTraceKind<T>::kind>::kind;
+};
+template <> struct MapTypeToRootKind<JS::Realm*> {
+    // Not a pointer to a GC cell. Use GCPolicy.
+    static const JS::RootKind kind = JS::RootKind::Traceable;
+};
+template <typename T>
+struct MapTypeToRootKind<mozilla::UniquePtr<T>> {
+    static const JS::RootKind kind = JS::MapTypeToRootKind<T>::kind;
+};
+template <> struct MapTypeToRootKind<JS::Value> {
+    static const JS::RootKind kind = JS::RootKind::Value;
+};
+template <> struct MapTypeToRootKind<jsid> {
+    static const JS::RootKind kind = JS::RootKind::Id;
+};
+template <> struct MapTypeToRootKind<JSFunction*> : public MapTypeToRootKind<JSObject*> {};
 
 // Fortunately, few places in the system need to deal with fully abstract
 // cells. In those places that do, we generally want to move to a layout
@@ -95,12 +174,12 @@ JS_FOR_EACH_TRACEKIND(JS_EXPAND_DEF);
 // type designated by |traceKind| as the functor's template argument. The
 // |thing| parameter is optional; without it, we simply pass through |... args|.
 
-// GCC and Clang require an explicit template declaration in front of the
-// specialization of operator() because it is a dependent template. MSVC, on
-// the other hand, gets very confused if we have a |template| token there.
+// VS2017+, GCC and Clang require an explicit template declaration in front of
+// the specialization of operator() because it is a dependent template. VS2015,
+// on the other hand, gets very confused if we have a |template| token there.
 // The clang-cl front end defines _MSC_VER, but still requires the explicit
 // template declaration, so we must test for __clang__ here as well.
-#if defined(_MSC_VER) && !defined(__clang__)
+#if (defined(_MSC_VER) && _MSC_VER < 1910) && !defined(__clang__)
 # define JS_DEPENDENT_TEMPLATE_HINT
 #else
 # define JS_DEPENDENT_TEMPLATE_HINT template

@@ -11,7 +11,7 @@
 #include "nsIPipe.h"
 #include "nsMimeTypes.h"
 #include "netCore.h"
-#include "nsXPIDLString.h"
+#include "nsString.h"
 #include "prnetdb.h"
 #include "nsIURI.h"
 #include "nsIURL.h"
@@ -20,6 +20,9 @@
 #include "nsMimeTypes.h"
 #include <algorithm>
 
+namespace mozilla {
+namespace net {
+
 nsBinHexDecoder::nsBinHexDecoder() :
   mState(0), mCRC(0), mFileCRC(0), mOctetin(26),
   mDonePos(3), mInCRC(0), mCount(0), mMarker(0), mPosInbuff(0),
@@ -27,6 +30,8 @@ nsBinHexDecoder::nsBinHexDecoder() :
 {
   mDataBuffer = nullptr;
   mOutgoingBuffer = nullptr;
+  mPosInDataBuffer = 0;
+  mRlebuf = 0;
 
   mOctetBuf.val = 0;
   mHeader.type = 0;
@@ -170,7 +175,9 @@ nsresult nsBinHexDecoder::ProcessNextState(nsIRequest * aRequest, nsISupports * 
       break;
 
     case BINHEX_STATE_FNAME:
-      mName.BeginWriting()[mCount] = c;
+      if (mCount < mName.Length()) {
+        mName.BeginWriting()[mCount] = c;
+      }
 
       if (++mCount > mName.Length())
       {
@@ -269,7 +276,7 @@ nsresult nsBinHexDecoder::ProcessNextState(nsIRequest * aRequest, nsISupports * 
         {
           // when we reach the finished state...fire an on stop request on the event listener...
           mNextListener->OnStopRequest(aRequest, aContext, NS_OK);
-          mNextListener = 0;
+          mNextListener = nullptr;
 
           /*   now We are done with everything.  */
           ++mState;
@@ -461,7 +468,7 @@ nsBinHexDecoder::OnStartRequest(nsIRequest* request, nsISupports *aCtxt)
 // filename tells us nothing useful, just report an unknown type and let the
 // unknown decoder handle things.
 nsresult nsBinHexDecoder::DetectContentType(nsIRequest* aRequest,
-                                            const nsAFlatCString &aFilename)
+                                            const nsCString& aFilename)
 {
   if (aFilename.IsEmpty()) {
     // Nothing to do here.
@@ -486,7 +493,8 @@ nsresult nsBinHexDecoder::DetectContentType(nsIRequest* aRequest,
   mimeService->GetTypeFromExtension(nsDependentCString(fileExt), contentType);
 
   // Only set the type if it's not empty and, to prevent recursive loops, not the binhex type
-  if (!contentType.IsEmpty() && !contentType.Equals(APPLICATION_BINHEX)) {
+  if (!contentType.IsEmpty() &&
+      !contentType.EqualsLiteral(APPLICATION_BINHEX)) {
     channel->SetContentType(contentType);
   } else {
     channel->SetContentType(NS_LITERAL_CSTRING(UNKNOWN_CONTENT_TYPE));
@@ -494,7 +502,6 @@ nsresult nsBinHexDecoder::DetectContentType(nsIRequest* aRequest,
 
   return NS_OK;
 }
-
 
 NS_IMETHODIMP
 nsBinHexDecoder::OnStopRequest(nsIRequest* request, nsISupports *aCtxt,
@@ -508,3 +515,6 @@ nsBinHexDecoder::OnStopRequest(nsIRequest* request, nsISupports *aCtxt,
 
   return rv;
 }
+
+} // namespace net
+} // namespace mozilla

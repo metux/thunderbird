@@ -177,7 +177,10 @@ class FastBernoulliTrial {
    * random number generator; both may not be zero.
    */
   FastBernoulliTrial(double aProbability, uint64_t aState0, uint64_t aState1)
-   : mGenerator(aState0, aState1)
+   : mProbability(0)
+   , mInvLogNotProbability(0)
+   , mGenerator(aState0, aState1)
+   , mSkipCount(0)
   {
     setProbability(aProbability);
   }
@@ -352,7 +355,7 @@ class FastBernoulliTrial {
      * double is 2^64, not 2^64-1, so this doesn't actually set skipCount to a
      * value that can be safely assigned to mSkipCount.
      *
-     * Jakub Oleson cleverly suggested flipping the sense of the comparison: if
+     * Jakob Olesen cleverly suggested flipping the sense of the comparison: if
      * we require that skipCount < SIZE_MAX, then because of the gaps (2048)
      * between doubles at that magnitude, the highest double less than 2^64 is
      * 2^64 - 2048, which is fine to store in a size_t.

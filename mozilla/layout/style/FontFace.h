@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -8,7 +9,8 @@
 
 #include "mozilla/dom/FontFaceBinding.h"
 #include "gfxUserFontSet.h"
-#include "nsCSSProperty.h"
+#include "nsAutoPtr.h"
+#include "nsCSSPropertyID.h"
 #include "nsCSSValue.h"
 #include "nsWrapperCache.h"
 
@@ -17,6 +19,7 @@ class nsCSSFontFaceRule;
 
 namespace mozilla {
 struct CSSFontFaceDescriptors;
+class PostTraversalTask;
 namespace dom {
 class FontFaceBufferSource;
 struct FontFaceDescriptors;
@@ -32,6 +35,7 @@ namespace dom {
 class FontFace final : public nsISupports,
                        public nsWrapperCache
 {
+  friend class mozilla::PostTraversalTask;
   friend class mozilla::dom::FontFaceBufferSource;
   friend class Entry;
 
@@ -47,21 +51,22 @@ public:
           uint8_t aStyle,
           const nsTArray<gfxFontFeature>& aFeatureSettings,
           uint32_t aLanguageOverride,
-          gfxSparseBitSet* aUnicodeRanges)
+          gfxCharacterMap* aUnicodeRanges,
+          uint8_t aFontDisplay)
       : gfxUserFontEntry(aFontSet, aFontFaceSrcList, aWeight, aStretch,
                          aStyle, aFeatureSettings, aLanguageOverride,
-                         aUnicodeRanges) {}
+                         aUnicodeRanges, aFontDisplay) {}
 
     virtual void SetLoadState(UserFontLoadState aLoadState) override;
     virtual void GetUserFontSets(nsTArray<gfxUserFontSet*>& aResult) override;
-    const nsAutoTArray<FontFace*,1>& GetFontFaces() { return mFontFaces; }
+    const AutoTArray<FontFace*,1>& GetFontFaces() { return mFontFaces; }
 
   protected:
     // The FontFace objects that use this user font entry.  We need to store
     // an array of these, not just a single pointer, since the user font
     // cache can return the same entry for different FontFaces that have
     // the same descriptor values and come from the same origin.
-    nsAutoTArray<FontFace*,1> mFontFaces;
+    AutoTArray<FontFace*,1> mFontFaces;
   };
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -89,6 +94,8 @@ public:
 
   void AddFontFaceSet(FontFaceSet* aFontFaceSet);
   void RemoveFontFaceSet(FontFaceSet* aFontFaceSet);
+
+  FontFaceSet* GetPrimaryFontFaceSet() const { return mFontFaceSet; }
 
   /**
    * Gets the family name of the FontFace as a raw string (such as 'Times', as
@@ -126,6 +133,11 @@ public:
    */
   bool GetData(uint8_t*& aBuffer, uint32_t& aLength);
 
+  /**
+   * Returns the value of the unicode-range descriptor as a gfxCharacterMap.
+   */
+  gfxCharacterMap* GetUnicodeRangeAsCharacterMap();
+
   // Web IDL
   static already_AddRefed<FontFace>
   Constructor(const GlobalObject& aGlobal,
@@ -148,6 +160,8 @@ public:
   void SetVariant(const nsAString& aValue, mozilla::ErrorResult& aRv);
   void GetFeatureSettings(nsString& aResult);
   void SetFeatureSettings(const nsAString& aValue, mozilla::ErrorResult& aRv);
+  void GetDisplay(nsString& aResult);
+  void SetDisplay(const nsAString& aValue, mozilla::ErrorResult& aRv);
 
   mozilla::dom::FontFaceLoadStatus Status();
   mozilla::dom::Promise* Load(mozilla::ErrorResult& aRv);
@@ -187,7 +201,7 @@ private:
   void SetStatus(mozilla::dom::FontFaceLoadStatus aStatus);
 
   void GetDesc(nsCSSFontDesc aDescID,
-               nsCSSProperty aPropID,
+               nsCSSPropertyID aPropID,
                nsString& aResult) const;
 
   /**
@@ -195,11 +209,26 @@ private:
    */
   void TakeBuffer(uint8_t*& aBuffer, uint32_t& aLength);
 
+  // Acts like mLoaded->MaybeReject(aResult), except it doesn't create mLoaded
+  // if it doesn't already exist.
+  void Reject(nsresult aResult);
+
+  // Creates mLoaded if it doesn't already exist. It may immediately resolve or
+  // reject mLoaded based on mStatus and mLoadedRejection.
+  void EnsurePromise();
+
+  void DoResolve();
+  void DoReject(nsresult aResult);
+
   nsCOMPtr<nsISupports> mParent;
 
-  // A Promise that is fulfilled once the font represented by this FontFace
-  // is loaded, and is rejected if the load fails.
+  // A Promise that is fulfilled once the font represented by this FontFace is
+  // loaded, and is rejected if the load fails. This promise is created lazily
+  // when JS asks for it.
   RefPtr<mozilla::dom::Promise> mLoaded;
+
+  // Saves the rejection code for mLoaded if mLoaded hasn't been created yet.
+  nsresult mLoadedRejection;
 
   // The @font-face rule this FontFace object is reflecting, if it is a
   // rule backed FontFace.
@@ -235,6 +264,10 @@ private:
   // the descriptors stored in mRule.
   nsAutoPtr<mozilla::CSSFontFaceDescriptors> mDescriptors;
 
+  // The value of the unicode-range descriptor as a gfxCharacterMap.  Valid
+  // only when mUnicodeRangeDirty is false.
+  RefPtr<gfxCharacterMap> mUnicodeRange;
+
   // The primary FontFaceSet this FontFace is associated with,
   // regardless of whether it is currently "in" the set.
   RefPtr<FontFaceSet> mFontFaceSet;
@@ -242,6 +275,10 @@ private:
   // Other FontFaceSets (apart from mFontFaceSet) that this FontFace
   // appears in.
   nsTArray<RefPtr<FontFaceSet>> mOtherFontFaceSets;
+
+  // Whether mUnicodeRange needs to be rebuilt before being returned from
+  // GetUnicodeRangeAsCharacterMap.
+  bool mUnicodeRangeDirty;
 
   // Whether this FontFace appears in mFontFaceSet.
   bool mInFontFaceSet;

@@ -10,7 +10,7 @@
 
 <dialog xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
         id="ablistWindow"
-        title="&mailListWindow.title;"
+        title="&mailListWindowAdd.title;"
         ondialogaccept="return MailListOKButton();"
         onload="OnLoadNewMailList();"
         ondragover="DragOverAddressListTree(event);"
@@ -59,7 +59,9 @@
     </hbox>
 
     <spacer style="height:1em"/>
-    <label control="addressingWidget" value="&AddressTitle.label;"/>
+    <label control="addressCol1#1"
+           value="&AddressTitle.label;"
+           accesskey="&AddressTitle.accesskey;"/>
     <spacer style="height:0.1em"/>
 
     <listbox id="addressingWidget" style="height: 15em;" onclick="awClickEmptySpace(event.target, true)">
@@ -70,6 +72,7 @@
                    autocompletesearch="addrbook ldap"
                    autocompletesearchparam="{}" timeout="300" maxrows="4"
                    completedefaultindex="true" forcecomplete="true"
+                   completeselectedindex="true"
                    minresultsforpopup="3"
                    ontextentered="awRecipientTextCommand(param, this)"
                    onkeypress="awHandleKeyPress(this, event);"

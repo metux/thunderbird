@@ -7,6 +7,7 @@
 #define AUDIO_SESSION_H_
 
 #include "mozilla/Attributes.h"
+#include "mozilla/ReentrantMonitor.h"
 #include "mozilla/TimeStamp.h"
 #include "nsTArray.h"
 
@@ -24,6 +25,8 @@
 #include "webrtc/voice_engine/include/voe_audio_processing.h"
 #include "webrtc/voice_engine/include/voe_video_sync.h"
 #include "webrtc/voice_engine/include/voe_rtp_rtcp.h"
+#include "webrtc/voice_engine/channel_proxy.h"
+
 //Some WebRTC types for short notations
  using webrtc::VoEBase;
  using webrtc::VoENetwork;
@@ -45,8 +48,8 @@ NTPtoDOMHighResTimeStamp(uint32_t ntpHigh, uint32_t ntpLow);
  * Concrete class for Audio session. Hooks up
  *  - media-source and target to external transport
  */
-class WebrtcAudioConduit:public AudioSessionConduit
-	      		            ,public webrtc::Transport
+class WebrtcAudioConduit: public AudioSessionConduit
+	      		, public webrtc::Transport
 {
 public:
   //VoiceEngine defined constant for Payload Name Size.
@@ -56,7 +59,7 @@ public:
    * APIs used by the registered external transport to this Conduit to
    * feed in received RTP Frames to the VoiceEngine for decoding
    */
-  virtual MediaConduitErrorCode ReceivedRTPPacket(const void *data, int len) override;
+  virtual MediaConduitErrorCode ReceivedRTPPacket(const void *data, int len, uint32_t ssrc) override;
 
   /**
    * APIs used by the registered external transport to this Conduit to
@@ -94,6 +97,7 @@ public:
    * @param enabled: enable extension
    */
   virtual MediaConduitErrorCode EnableAudioLevelExtension(bool enabled, uint8_t id) override;
+  virtual MediaConduitErrorCode EnableMIDExtension(bool enabled, uint8_t id) override;
 
   /**
    * Register External Transport to this Conduit. RTP and RTCP frames from the VoiceEngine
@@ -122,6 +126,7 @@ public:
   virtual MediaConduitErrorCode SendAudioFrame(const int16_t speechData[],
                                                int32_t lengthSamples,
                                                int32_t samplingFreqHz,
+                                               uint32_t channels,
                                                int32_t capture_time) override;
 
   /**
@@ -150,18 +155,21 @@ public:
    * Webrtc transport implementation to send and receive RTP packet.
    * AudioConduit registers itself as ExternalTransport to the VoiceEngine
    */
-  virtual int SendPacket(int channel, const void *data, size_t len) override;
+   virtual bool SendRtp(const uint8_t* data,
+                        size_t len,
+                        const webrtc::PacketOptions& options) override;
 
   /**
    * Webrtc transport implementation to send and receive RTCP packet.
    * AudioConduit registers itself as ExternalTransport to the VoiceEngine
    */
-  virtual int SendRTCPPacket(int channel, const void *data, size_t len) override;
-
+  virtual bool SendRtcp(const uint8_t *data,
+                        size_t len) override;
 
   virtual uint64_t CodecPluginID() override { return 0; }
+  virtual void SetPCHandle(const std::string& aPCHandle) override {}
 
-  WebrtcAudioConduit():
+  explicit WebrtcAudioConduit():
                       mVoiceEngine(nullptr),
                       mTransportMonitor("WebrtcAudioConduit"),
                       mTransmitterTransport(nullptr),
@@ -169,11 +177,10 @@ public:
                       mEngineTransmitting(false),
                       mEngineReceiving(false),
                       mChannel(-1),
+                      mDtmfEnabled(false),
                       mCodecMutex("AudioConduit codec db"),
                       mCaptureDelay(150),
-#if !defined(MOZILLA_EXTERNAL_LINKAGE)
                       mLastTimestamp(0),
-#endif // MOZILLA_INTERNAL_API
                       mSamples(0),
                       mLastSyncLog(0)
   {
@@ -185,15 +192,33 @@ public:
 
   int GetChannel() { return mChannel; }
   webrtc::VoiceEngine* GetVoiceEngine() { return mVoiceEngine; }
-  bool SetLocalSSRC(unsigned int ssrc) override;
-  bool GetLocalSSRC(unsigned int* ssrc) override;
+
+  /* Set Local SSRC list.
+   * Note: Until the refactor of the VoE into the call API is complete
+   *   this list should contain only a single ssrc.
+   */
+  bool SetLocalSSRCs(const std::vector<unsigned int>& aSSRCs) override;
+  std::vector<unsigned int> GetLocalSSRCs() const override;
+  bool SetRemoteSSRC(unsigned int ssrc) override
+  {
+    return false;
+  }
   bool GetRemoteSSRC(unsigned int* ssrc) override;
   bool SetLocalCNAME(const char* cname) override;
+  bool SetLocalMID(const std::string& mid) override;
+
+  bool GetSendPacketTypeStats(
+      webrtc::RtcpPacketTypeCounter* aPacketCounts) override;
+
+  bool GetRecvPacketTypeStats(
+      webrtc::RtcpPacketTypeCounter* aPacketCounts) override;
+
   bool GetVideoEncoderStats(double* framerateMean,
                             double* framerateStdDev,
                             double* bitrateMean,
                             double* bitrateStdDev,
-                            uint32_t* droppedFrames) override
+                            uint32_t* droppedFrames,
+                            uint32_t* framesEncoded) override
   {
     return false;
   }
@@ -201,7 +226,8 @@ public:
                             double* framerateStdDev,
                             double* bitrateMean,
                             double* bitrateStdDev,
-                            uint32_t* discardedPackets) override
+                            uint32_t* discardedPackets,
+                            uint32_t* framesDecoded) override
   {
     return false;
   }
@@ -218,6 +244,11 @@ public:
   bool GetRTCPSenderReport(DOMHighResTimeStamp* timestamp,
                            unsigned int* packetsSent,
                            uint64_t* bytesSent) override;
+
+  bool SetDtmfPayloadType(unsigned char type, int freq) override;
+
+  bool InsertDTMFTone(int channel, int eventCode, bool outOfBand,
+                      int lengthMs, int attenuationDb) override;
 
 private:
   WebrtcAudioConduit(const WebrtcAudioConduit& other) = delete;
@@ -273,9 +304,11 @@ private:
     TimeStamp mTimeStamp;
     uint32_t mRTPTimeStamp; // RTP timestamps received
   };
-  nsAutoTArray<Processing,8> mProcessing;
+  AutoTArray<Processing,8> mProcessing;
 
   int mChannel;
+  std::unique_ptr<webrtc::voe::ChannelProxy> mChannelProxy;
+  bool mDtmfEnabled;
   RecvCodecList    mRecvCodecList;
 
   Mutex mCodecMutex; // protects mCurSendCodecConfig
@@ -284,9 +317,7 @@ private:
   // Current "capture" delay (really output plus input delay)
   int32_t mCaptureDelay;
 
-#if !defined(MOZILLA_EXTERNAL_LINKAGE)
   uint32_t mLastTimestamp;
-#endif // MOZILLA_INTERNAL_API
 
   uint32_t mSamples;
   uint32_t mLastSyncLog;

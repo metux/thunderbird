@@ -7,29 +7,41 @@
 #ifndef nsXBLWindowKeyHandler_h__
 #define nsXBLWindowKeyHandler_h__
 
+#include "mozilla/EventForwards.h"
+#include "mozilla/layers/KeyboardMap.h"
 #include "nsWeakPtr.h"
 #include "nsIDOMEventListener.h"
 
-class nsIAtom;
+class nsAtom;
 class nsIDOMElement;
 class nsIDOMKeyEvent;
-class nsXBLSpecialDocInfo;
 class nsXBLPrototypeHandler;
 
 namespace mozilla {
+class EventListenerManager;
+class WidgetKeyboardEvent;
+struct IgnoreModifierState;
 namespace dom {
 class Element;
 class EventTarget;
-struct IgnoreModifierState;
 } // namespace dom
 } // namespace mozilla
 
 class nsXBLWindowKeyHandler : public nsIDOMEventListener
 {
-  typedef mozilla::dom::IgnoreModifierState IgnoreModifierState;
+  typedef mozilla::EventListenerManager EventListenerManager;
+  typedef mozilla::IgnoreModifierState IgnoreModifierState;
+  typedef mozilla::layers::KeyboardMap KeyboardMap;
 
 public:
   nsXBLWindowKeyHandler(nsIDOMElement* aElement, mozilla::dom::EventTarget* aTarget);
+
+  void InstallKeyboardEventListenersTo(
+         EventListenerManager* aEventListenerManager);
+  void RemoveKeyboardEventListenersFrom(
+         EventListenerManager* aEventListenerManager);
+
+  static KeyboardMap CollectKeyboardShortcuts();
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSIDOMEVENTLISTENER
@@ -37,26 +49,28 @@ public:
 protected:
   virtual ~nsXBLWindowKeyHandler();
 
-  nsresult WalkHandlers(nsIDOMKeyEvent* aKeyEvent, nsIAtom* aEventType);
+  nsresult WalkHandlers(nsIDOMKeyEvent* aKeyEvent, nsAtom* aEventType);
 
   // walk the handlers, looking for one to handle the event
   bool WalkHandlersInternal(nsIDOMKeyEvent* aKeyEvent,
-                            nsIAtom* aEventType,
+                            nsAtom* aEventType,
                             nsXBLPrototypeHandler* aHandler,
                             bool aExecute,
                             bool* aOutReservedForChrome = nullptr);
 
   // walk the handlers for aEvent, aCharCode and aIgnoreModifierState. Execute
   // it if aExecute = true.
-  bool WalkHandlersAndExecute(nsIDOMKeyEvent* aKeyEvent, nsIAtom* aEventType,
+  bool WalkHandlersAndExecute(nsIDOMKeyEvent* aKeyEvent, nsAtom* aEventType,
                               nsXBLPrototypeHandler* aHandler,
                               uint32_t aCharCode,
                               const IgnoreModifierState& aIgnoreModifierState,
                               bool aExecute,
                               bool* aOutReservedForChrome = nullptr);
 
-  // HandleEvent function for the capturing phase.
-  void HandleEventOnCapture(nsIDOMKeyEvent* aEvent);
+  // HandleEvent function for the capturing phase in the default event group.
+  void HandleEventOnCaptureInDefaultEventGroup(nsIDOMKeyEvent* aEvent);
+  // HandleEvent function for the capturing phase in the system event group.
+  void HandleEventOnCaptureInSystemEventGroup(nsIDOMKeyEvent* aEvent);
 
   // Check if any handler would handle the given event. Optionally returns
   // whether the command handler for the event is marked with the "reserved"
@@ -64,14 +78,23 @@ protected:
   bool HasHandlerForEvent(nsIDOMKeyEvent* aEvent,
                           bool* aOutReservedForChrome = nullptr);
 
+  // Returns true if the key would be reserved for the given handler. A reserved
+  // key is not sent to a content process or single-process equivalent.
+  bool IsReservedKey(mozilla::WidgetKeyboardEvent* aKeyEvent,
+                     nsXBLPrototypeHandler* aHandler);
+
+  // Returns event type for matching between aWidgetKeyboardEvent and
+  // shortcut key handlers.  This is used for calling WalkHandlers(),
+  // WalkHandlersInternal() and WalkHandlersAndExecute().
+  nsAtom* ConvertEventToDOMEventType(
+             const mozilla::WidgetKeyboardEvent& aWidgetKeyboardEvent) const;
+
+  // lazily load the special doc info for loading handlers
+  static void EnsureSpecialDocInfo();
+
   // lazily load the handlers. Overridden to handle being attached
   // to a particular element rather than the document
   nsresult EnsureHandlers();
-
-  // check if the given handler cares about the given key event
-  bool EventMatched(nsXBLPrototypeHandler* aHandler, nsIAtom* aEventType,
-                    nsIDOMKeyEvent* aEvent, uint32_t aCharCode,
-                    const IgnoreModifierState& aIgnoreModifierState);
 
   // Is an HTML editable element focused
   bool IsHTMLEditableFieldFocused();
@@ -81,6 +104,25 @@ protected:
   // whether the disabled attribute is set on the element (assuming the element
   // is non-null).
   already_AddRefed<mozilla::dom::Element> GetElement(bool* aIsDisabled = nullptr);
+
+  /**
+   * GetElementForHandler() retrieves an element for the handler.  The element
+   * may be a command element or a key element.
+   *
+   * @param aHandler           The handler.
+   * @param aElementForHandler Must not be nullptr.  The element is returned to
+   *                           this.
+   * @return                   true if the handler is valid.  Otherwise, false.
+   */
+  bool GetElementForHandler(nsXBLPrototypeHandler* aHandler,
+                            mozilla::dom::Element** aElementForHandler);
+
+  /**
+   * IsExecutableElement() returns true if aElement is executable.
+   * Otherwise, false. aElement should be a command element or a key element.
+   */
+  bool IsExecutableElement(mozilla::dom::Element* aElement) const;
+
   // Using weak pointer to the DOM Element.
   nsWeakPtr              mWeakPtrForElement;
   mozilla::dom::EventTarget* mTarget; // weak ref
@@ -90,8 +132,7 @@ protected:
   nsXBLPrototypeHandler* mHandler;     // platform bindings
   nsXBLPrototypeHandler* mUserHandler; // user-specific bindings
 
-  // holds document info about bindings
-  static nsXBLSpecialDocInfo* sXBLSpecialDocInfo;
+  // holds reference count to document info about bindings
   static uint32_t sRefCnt;
 };
 

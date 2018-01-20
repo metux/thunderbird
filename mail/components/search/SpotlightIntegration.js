@@ -52,7 +52,7 @@ var SearchIntegration =
     let fixedPath = folderPath.replace(this._profileDir.path,
                                        this._metadataDir.path);
     let searchPath = Cc["@mozilla.org/file/local;1"]
-                       .createInstance(Ci.nsILocalFile);
+                       .createInstance(Ci.nsIFile);
     searchPath.initWithPath(fixedPath);
     return searchPath;
   },
@@ -63,7 +63,7 @@ var SearchIntegration =
     let folderPath = aPath.path.replace(this._metadataDir.path,
                                         this._profileDir.path);
     let folderFile = Cc["@mozilla.org/file/local;1"]
-                      .createInstance(Ci.nsILocalFile);
+                      .createInstance(Ci.nsIFile);
     folderFile.initWithPath(folderPath);
     return MailUtils.getFolderForFileInProfile(folderFile);
   },
@@ -134,7 +134,7 @@ var SearchIntegration =
         outputFileStream.init(this._outputFile, -1, -1, 0);
         this._outputStream = Cc["@mozilla.org/intl/converter-output-stream;1"]
                                .createInstance(Ci.nsIConverterOutputStream);
-        this._outputStream.init(outputFileStream, "UTF-8", 0, 0x0000);
+        this._outputStream.init(outputFileStream, "UTF-8");
 
         this._outputStream.writeString(gFileHeader);
         this._outputStream.writeString(

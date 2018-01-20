@@ -28,13 +28,11 @@ AppCacheStorage::AppCacheStorage(nsILoadContextInfo* aInfo,
 : CacheStorage(aInfo, true /* disk */, false /* lookup app cache */, false /* skip size check */, false /* pin */)
 , mAppCache(aAppCache)
 {
-  MOZ_COUNT_CTOR(AppCacheStorage);
 }
 
 AppCacheStorage::~AppCacheStorage()
 {
-  ProxyReleaseMainThread(mAppCache);
-  MOZ_COUNT_DTOR(AppCacheStorage);
+  ProxyReleaseMainThread("AppCacheStorage::mAppCache", mAppCache);
 }
 
 NS_IMETHODIMP AppCacheStorage::AsyncOpenURI(nsIURI *aURI,
@@ -70,6 +68,14 @@ NS_IMETHODIMP AppCacheStorage::AsyncOpenURI(nsIURI *aURI,
   nsAutoCString cacheKey;
   rv = noRefURI->GetAsciiSpec(cacheKey);
   NS_ENSURE_SUCCESS(rv, rv);
+
+  // This is the only way how to recognize appcache data by the anonymous
+  // flag.  There is no way to switch to e.g. a different session, because
+  // there is just a single session for an appcache version (identified
+  // by the client id).
+  if (LoadInfo()->IsAnonymous()) {
+    cacheKey = NS_LITERAL_CSTRING("anon&") + cacheKey;
+  }
 
   nsAutoCString scheme;
   rv = noRefURI->GetScheme(scheme);
@@ -119,30 +125,15 @@ NS_IMETHODIMP AppCacheStorage::AsyncEvictStorage(nsICacheEntryDoomCallback* aCal
 
   nsresult rv;
 
-  nsCOMPtr<nsIApplicationCacheService> appCacheService =
-    do_GetService(NS_APPLICATIONCACHESERVICE_CONTRACTID, &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
-
   if (!mAppCache) {
-    // TODO - bug 1165256, have an API on nsIApplicationCacheService that takes
-    // optional OAs and decides internally what to do.
-    const NeckoOriginAttributes* oa = LoadInfo()->OriginAttributesPtr();
-    if (oa->mAppId == nsILoadContextInfo::NO_APP_ID && !oa->mInBrowser) {
-      // Clear everything.
-      nsCOMPtr<nsICacheService> serv =
-          do_GetService(NS_CACHESERVICE_CONTRACTID, &rv);
-      NS_ENSURE_SUCCESS(rv, rv);
+    // Discard everything under this storage context
+    nsCOMPtr<nsIApplicationCacheService> appCacheService =
+      do_GetService(NS_APPLICATIONCACHESERVICE_CONTRACTID, &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
 
-      rv = nsCacheService::GlobalInstance()->EvictEntriesInternal(nsICache::STORE_OFFLINE);
-      NS_ENSURE_SUCCESS(rv, rv);
-    }
-    else {
-      // Clear app or inbrowser staff.
-      rv = appCacheService->DiscardByAppId(oa->mAppId, oa->mInBrowser);
-      NS_ENSURE_SUCCESS(rv, rv);
-    }
-  }
-  else {
+    rv = appCacheService->Evict(LoadInfo());
+    NS_ENSURE_SUCCESS(rv, rv);
+  } else {
     // Discard the group
     RefPtr<_OldStorage> old = new _OldStorage(
       LoadInfo(), WriteToDisk(), LookupAppCache(), true, mAppCache);
@@ -178,6 +169,14 @@ NS_IMETHODIMP AppCacheStorage::AsyncVisitStorage(nsICacheStorageVisitor* aVisito
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
+}
+
+NS_IMETHODIMP AppCacheStorage::GetCacheIndexEntryAttrs(nsIURI *aURI,
+                                                       const nsACString &aIdExtension,
+                                                       bool *aHasAltData,
+                                                       uint32_t *aSizeInKB)
+{
+  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 } // namespace net

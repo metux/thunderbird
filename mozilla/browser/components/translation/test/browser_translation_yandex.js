@@ -6,21 +6,26 @@
 
 "use strict";
 
+// The folllowing rejection is left unhandled in some cases. This bug should be
+// fixed, but for the moment this file is whitelisted.
+//
+// NOTE: Whitelisting a class of rejections should be limited. Normally you
+//       should use "expectUncaughtRejection" to flag individual failures.
+Cu.import("resource://testing-common/PromiseTestUtils.jsm", this);
+PromiseTestUtils.whitelistRejectionsGlobally(/NS_ERROR_ILLEGAL_VALUE/);
+
 const kEnginePref = "browser.translation.engine";
 const kApiKeyPref = "browser.translation.yandex.apiKeyOverride";
 const kShowUIPref = "browser.translation.ui.show";
 
-const {YandexTranslator} = Cu.import("resource:///modules/translation/YandexTranslator.jsm", {});
-const {TranslationDocument} = Cu.import("resource:///modules/translation/TranslationDocument.jsm", {});
-const {Promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
 const {Translation} = Cu.import("resource:///modules/translation/Translation.jsm", {});
 
-add_task(function* setup() {
+add_task(async function setup() {
   Services.prefs.setCharPref(kEnginePref, "yandex");
   Services.prefs.setCharPref(kApiKeyPref, "yandexValidKey");
   Services.prefs.setBoolPref(kShowUIPref, true);
 
-  registerCleanupFunction(function () {
+  registerCleanupFunction(function() {
     Services.prefs.clearUserPref(kEnginePref);
     Services.prefs.clearUserPref(kApiKeyPref);
     Services.prefs.clearUserPref(kShowUIPref);
@@ -31,20 +36,26 @@ add_task(function* setup() {
  * Ensure that the translation engine behaives as expected when translating
  * a sample page.
  */
-add_task(function* test_yandex_translation() {
+add_task(async function test_yandex_translation() {
 
   // Loading the fixture page.
   let url = constructFixtureURL("bug1022725-fr.html");
-  let tab = yield promiseTestPageLoad(url);
+  let tab = await promiseTestPageLoad(url);
 
   // Translating the contents of the loaded tab.
   gBrowser.selectedTab = tab;
   let browser = tab.linkedBrowser;
-  let client = new YandexTranslator(
-    new TranslationDocument(browser.contentDocument), "fr", "en");
-  let result = yield client.translate();
 
-  Assert.ok(result, "There should be a result.");
+  await ContentTask.spawn(browser, null, async function() {
+    Cu.import("resource:///modules/translation/TranslationDocument.jsm");
+    Cu.import("resource:///modules/translation/YandexTranslator.jsm");
+
+    let client = new YandexTranslator(
+      new TranslationDocument(content.document), "fr", "en");
+    let result = await client.translate();
+
+    Assert.ok(result, "There should be a result.");
+  });
 
   gBrowser.removeTab(tab);
 });
@@ -52,10 +63,10 @@ add_task(function* test_yandex_translation() {
 /**
  * Ensure that Yandex.Translate is propertly attributed.
  */
-add_task(function* test_yandex_attribution() {
+add_task(async function test_yandex_attribution() {
   // Loading the fixture page.
   let url = constructFixtureURL("bug1022725-fr.html");
-  let tab = yield promiseTestPageLoad(url);
+  let tab = await promiseTestPageLoad(url);
 
   info("Show an info bar saying the current page is in French");
   let notif = showTranslationUI(tab, "fr");
@@ -66,11 +77,11 @@ add_task(function* test_yandex_attribution() {
 });
 
 
-add_task(function* test_preference_attribution() {
-
-    let prefUrl = "about:preferences#content";
-    let tab = yield promiseTestPageLoad(prefUrl);
-
+add_task(async function test_preference_attribution() {
+    let prefUrl = "about:preferences#general";
+    let waitPrefLoaded = TestUtils.topicObserved("sync-pane-loaded", () => true);
+    let tab = await promiseTestPageLoad(prefUrl);
+    await waitPrefLoaded;
     let browser = gBrowser.getBrowserForTab(tab);
     let win = browser.contentWindow;
     let bingAttribution = win.document.getElementById("bingAttribution");
@@ -78,7 +89,6 @@ add_task(function* test_preference_attribution() {
     ok(bingAttribution.hidden, "Bing attribution should be hidden.");
 
     gBrowser.removeTab(tab);
-
 });
 
 /**
@@ -87,7 +97,7 @@ add_task(function* test_preference_attribution() {
  *
  * @param filename  Name of a fixture file.
  */
-function constructFixtureURL(filename){
+function constructFixtureURL(filename) {
   // Deduce the Mochitest server address in use from a pref that was pre-processed.
   let server = Services.prefs.getCharPref("browser.translation.yandex.translateURLOverride")
                              .replace("http://", "");
@@ -103,17 +113,17 @@ function constructFixtureURL(filename){
  * @param String url  A URL to be loaded in the new tab.
  */
 function promiseTestPageLoad(url) {
-  let deferred = Promise.defer();
-  let tab = gBrowser.selectedTab = gBrowser.addTab(url);
-  let browser = gBrowser.selectedBrowser;
-  browser.addEventListener("load", function listener() {
-    if (browser.currentURI.spec == "about:blank")
-      return;
-    info("Page loaded: " + browser.currentURI.spec);
-    browser.removeEventListener("load", listener, true);
-    deferred.resolve(tab);
-  }, true);
-  return deferred.promise;
+  return new Promise(resolve => {
+    let tab = gBrowser.selectedTab = BrowserTestUtils.addTab(gBrowser, url);
+    let browser = gBrowser.selectedBrowser;
+    browser.addEventListener("load", function listener() {
+      if (browser.currentURI.spec == "about:blank")
+        return;
+      info("Page loaded: " + browser.currentURI.spec);
+      browser.removeEventListener("load", listener, true);
+      resolve(tab);
+    }, true);
+  });
 }
 
 function showTranslationUI(tab, aDetectedLanguage) {

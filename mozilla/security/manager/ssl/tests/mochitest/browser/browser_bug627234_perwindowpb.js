@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+"use strict";
 
 var FakeSSLStatus = function() {
 };
@@ -13,16 +14,23 @@ FakeSSLStatus.prototype = {
   isNotValidAtThisTime: false,
   isUntrusted: false,
   isExtendedValidation: false,
-  getInterface: function(aIID) {
+  getInterface(aIID) {
     return this.QueryInterface(aIID);
   },
-  QueryInterface: function(aIID) {
+  QueryInterface(aIID) {
     if (aIID.equals(Ci.nsISSLStatus) ||
         aIID.equals(Ci.nsISupports)) {
       return this;
     }
-    throw Components.results.NS_ERROR_NO_INTERFACE;
+    throw new Error(Cr.NS_ERROR_NO_INTERFACE);
   },
+};
+
+function whenNewWindowLoaded(aOptions, aCallback) {
+  let win = OpenBrowserWindow(aOptions);
+  win.addEventListener("load", function() {
+    aCallback(win);
+  }, {once: true});
 }
 
 // This is a template to help porting global private browsing tests
@@ -41,16 +49,18 @@ function test() {
   }
 
   function doTest(aIsPrivateMode, aWindow, aCallback) {
-    aWindow.gBrowser.selectedBrowser.addEventListener("load", function onLoad() {
-      aWindow.gBrowser.selectedBrowser.removeEventListener("load", onLoad, true);
+    aWindow.gBrowser.selectedBrowser.addEventListener("load", function() {
       let sslStatus = new FakeSSLStatus();
-      uri = aWindow.Services.io.newURI("https://localhost/img.png", null, null);
+      uri = aWindow.Services.io.newURI("https://localhost/img.png");
       gSSService.processHeader(Ci.nsISiteSecurityService.HEADER_HSTS, uri,
-                               "max-age=1000", sslStatus, privacyFlags(aIsPrivateMode));
-      ok(gSSService.isSecureHost(Ci.nsISiteSecurityService.HEADER_HSTS, "localhost", privacyFlags(aIsPrivateMode)), "checking sts host");
+                               "max-age=1000", sslStatus, privacyFlags(aIsPrivateMode),
+                               Ci.nsISiteSecurityService.SOURCE_ORGANIC_REQUEST);
+      ok(gSSService.isSecureURI(Ci.nsISiteSecurityService.HEADER_HSTS, uri,
+                                privacyFlags(aIsPrivateMode)),
+                                "checking sts host");
 
       aCallback();
-    }, true);
+    }, {capture: true, once: true});
 
     aWindow.gBrowser.selectedBrowser.loadURI(testURI);
   }
@@ -63,24 +73,24 @@ function test() {
       // call whenNewWindowLoaded() instead of testOnWindow() on your test.
       executeSoon(function() { aCallback(aWin); });
     });
-  };
+  }
 
    // this function is called after calling finish() on the test.
   registerCleanupFunction(function() {
     windowsToClose.forEach(function(aWin) {
       aWin.close();
     });
-    uri = Services.io.newURI("http://localhost", null, null);
+    uri = Services.io.newURI("http://localhost");
     gSSService.removeState(Ci.nsISiteSecurityService.HEADER_HSTS, uri, 0);
   });
 
   // test first when on private mode
   testOnWindow({private: true}, function(aWin) {
     doTest(true, aWin, function() {
-      //test when not on private mode
+      // test when not on private mode
       testOnWindow({}, function(aWin) {
         doTest(false, aWin, function() {
-          //test again when on private mode
+          // test again when on private mode
           testOnWindow({private: true}, function(aWin) {
             doTest(true, aWin, function () {
               finish();

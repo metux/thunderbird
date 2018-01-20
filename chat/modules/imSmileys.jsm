@@ -15,7 +15,7 @@ this.EXPORTED_SYMBOLS = [
 var kEmoticonsThemePref = "messenger.options.emoticonsTheme";
 var kThemeFile = "theme.js";
 
-__defineGetter__("gTheme", function() {
+this.__defineGetter__("gTheme", function() {
   delete this.gTheme;
   gPrefObserver.init();
   return this.gTheme = getTheme();
@@ -81,7 +81,7 @@ function getTheme(aName)
     let channel = Services.io.newChannel2(theme.baseUri + kThemeFile, null, null, null,
                                           Services.scriptSecurityManager.getSystemPrincipal(),
                                           null,
-                                          Components.interfaces.nsILoadInfo.SEC_NORMAL,
+                                          Components.interfaces.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
                                           Components.interfaces.nsIContentPolicy.TYPE_IMAGE);
     let stream = channel.open();
     let json = Components.classes["@mozilla.org/dom/json;1"]
@@ -89,8 +89,8 @@ function getTheme(aName)
     theme.json = json.decodeFromStream(stream, stream.available());
     stream.close();
     theme.iconsHash = {};
-    for each (let smiley in theme.json.smileys) {
-      for each (let textCode in smiley.textCodes)
+    for (let smiley of theme.json.smileys) {
+      for (let textCode of smiley.textCodes)
         theme.iconsHash[textCode] = smiley;
     }
   } catch(e) {
@@ -158,7 +158,7 @@ function smileTextNode(aNode)
    */
   let testNode = aNode;
   while ((testNode = testNode.parentNode)) {
-    if (testNode instanceof Components.interfaces.nsIDOMHTMLAnchorElement &&
+    if (testNode.nodeName.toLowerCase() == "a" &&
         (testNode.getAttribute("href") == testNode.textContent.trim() ||
          testNode.getAttribute("href") == aNode.data.trim() ||
          testNode.className.includes("moz-txt-link-")))

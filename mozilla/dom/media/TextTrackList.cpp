@@ -4,9 +4,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/dom/TextTrackList.h"
+
+#include "mozilla/DebugOnly.h"
 #include "mozilla/dom/TextTrackListBinding.h"
 #include "mozilla/dom/TrackEvent.h"
 #include "nsThreadUtils.h"
+#include "nsGlobalWindow.h"
 #include "mozilla/dom/TextTrackCue.h"
 #include "mozilla/dom/TextTrackManager.h"
 
@@ -20,18 +23,18 @@ NS_IMPL_CYCLE_COLLECTION_INHERITED(TextTrackList,
 
 NS_IMPL_ADDREF_INHERITED(TextTrackList, DOMEventTargetHelper)
 NS_IMPL_RELEASE_INHERITED(TextTrackList, DOMEventTargetHelper)
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(TextTrackList)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(TextTrackList)
 NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
-TextTrackList::TextTrackList(nsPIDOMWindow* aOwnerWindow)
+TextTrackList::TextTrackList(nsPIDOMWindowInner* aOwnerWindow)
   : DOMEventTargetHelper(aOwnerWindow)
 {
 }
 
-TextTrackList::TextTrackList(nsPIDOMWindow* aOwnerWindow,
+TextTrackList::TextTrackList(nsPIDOMWindowInner* aOwnerWindow,
                              TextTrackManager* aTextTrackManager)
- : DOMEventTargetHelper(aOwnerWindow)
- , mTextTrackManager(aTextTrackManager)
+  : DOMEventTargetHelper(aOwnerWindow)
+  , mTextTrackManager(aTextTrackManager)
 {
 }
 
@@ -40,19 +43,14 @@ TextTrackList::~TextTrackList()
 }
 
 void
-TextTrackList::UpdateAndGetShowingCues(nsTArray<RefPtr<TextTrackCue> >& aCues)
+TextTrackList::GetShowingCues(nsTArray<RefPtr<TextTrackCue> >& aCues)
 {
+  // Only Subtitles and Captions can show on the screen.
   nsTArray< RefPtr<TextTrackCue> > cues;
   for (uint32_t i = 0; i < Length(); i++) {
-    TextTrackMode mode = mTextTracks[i]->Mode();
-    // If the mode is hidden then we just need to update the active cue list,
-    // we don't need to show it on the video.
-    if (mode == TextTrackMode::Hidden) {
-      mTextTracks[i]->UpdateActiveCueList();
-    } else if (mode == TextTrackMode::Showing) {
-      // If the mode is showing then we need to update the cue list and show it
-      // on the video. GetActiveCueArray() calls UpdateActiveCueList() so we
-      // don't need to call it explicitly.
+    if (mTextTracks[i]->Mode() == TextTrackMode::Showing &&
+        (mTextTracks[i]->Kind() == TextTrackKind::Subtitles ||
+         mTextTracks[i]->Kind() == TextTrackKind::Captions)) {
       mTextTracks[i]->GetActiveCueArray(cues);
       aCues.AppendElements(cues);
     }
@@ -101,6 +99,9 @@ void
 TextTrackList::AddTextTrack(TextTrack* aTextTrack,
                             const CompareTextTracks& aCompareTT)
 {
+  if (mTextTracks.Contains(aTextTrack)) {
+    return;
+  }
   if (mTextTracks.InsertElementSorted(aTextTrack, aCompareTT)) {
     aTextTrack->SetTextTrackList(this);
     CreateAndDispatchTrackEventRunner(aTextTrack, NS_LITERAL_STRING("addtrack"));
@@ -136,11 +137,12 @@ TextTrackList::DidSeek()
   }
 }
 
-class TrackEventRunner final: public nsRunnable
+class TrackEventRunner : public Runnable
 {
 public:
   TrackEventRunner(TextTrackList* aList, nsIDOMEvent* aEvent)
-    : mList(aList)
+    : Runnable("dom::TrackEventRunner")
+    , mList(aList)
     , mEvent(aEvent)
   {}
 
@@ -149,9 +151,23 @@ public:
     return mList->DispatchTrackEvent(mEvent);
   }
 
-private:
   RefPtr<TextTrackList> mList;
+private:
   RefPtr<nsIDOMEvent> mEvent;
+};
+
+class ChangeEventRunner final : public TrackEventRunner
+{
+public:
+  ChangeEventRunner(TextTrackList* aList, nsIDOMEvent* aEvent)
+    : TrackEventRunner(aList, aEvent)
+  {}
+
+  NS_IMETHOD Run() override
+  {
+    mList->mPendingTextTrackChange = false;
+    return TrackEventRunner::Run();
+  }
 };
 
 nsresult
@@ -163,22 +179,31 @@ TextTrackList::DispatchTrackEvent(nsIDOMEvent* aEvent)
 void
 TextTrackList::CreateAndDispatchChangeEvent()
 {
-  RefPtr<Event> event = NS_NewDOMEvent(this, nullptr, nullptr);
+  MOZ_ASSERT(NS_IsMainThread());
+  if (!mPendingTextTrackChange) {
+    nsPIDOMWindowInner* win = GetOwner();
+    if (!win) {
+      return;
+    }
 
-  event->InitEvent(NS_LITERAL_STRING("change"), false, false);
-  event->SetTrusted(true);
+    mPendingTextTrackChange = true;
+    RefPtr<Event> event = NS_NewDOMEvent(this, nullptr, nullptr);
 
-  nsCOMPtr<nsIRunnable> eventRunner = new TrackEventRunner(this, event);
-  NS_DispatchToMainThread(eventRunner);
+    event->InitEvent(NS_LITERAL_STRING("change"), false, false);
+    event->SetTrusted(true);
+
+    nsCOMPtr<nsIRunnable> eventRunner = new ChangeEventRunner(this, event);
+    nsGlobalWindowInner::Cast(win)->Dispatch(TaskCategory::Other, eventRunner.forget());
+  }
 }
 
 void
 TextTrackList::CreateAndDispatchTrackEventRunner(TextTrack* aTrack,
                                                  const nsAString& aEventName)
 {
-  nsCOMPtr<nsIThread> thread;
-  nsresult rv = NS_GetMainThread(getter_AddRefs(thread));
-  if (NS_FAILED(rv)) {
+  DebugOnly<nsresult> rv;
+  nsCOMPtr<nsIEventTarget> target = GetMainThreadEventTarget();
+  if (!target) {
     // If we are not able to get the main-thread object we are shutting down.
     return;
   }
@@ -189,11 +214,11 @@ TextTrackList::CreateAndDispatchTrackEventRunner(TextTrack* aTrack,
     TrackEvent::Constructor(this, aEventName, eventInit);
 
   // Dispatch the TrackEvent asynchronously.
-  rv = thread->Dispatch(do_AddRef(new TrackEventRunner(this, event)),
+  rv = target->Dispatch(do_AddRef(new TrackEventRunner(this, event)),
                         NS_DISPATCH_NORMAL);
 
   // If we are shutting down this can file but it's still ok.
-  NS_WARN_IF(NS_FAILED(rv));
+  NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "Dispatch failed");
 }
 
 HTMLMediaElement*
@@ -209,6 +234,32 @@ void
 TextTrackList::SetTextTrackManager(TextTrackManager* aTextTrackManager)
 {
   mTextTrackManager = aTextTrackManager;
+}
+
+void
+TextTrackList::SetCuesInactive()
+{
+  for (uint32_t i = 0; i < Length(); i++) {
+    mTextTracks[i]->SetCuesInactive();
+  }
+}
+
+
+bool TextTrackList::AreTextTracksLoaded()
+{
+  // Return false if any texttrack is not loaded.
+  for (uint32_t i = 0; i < Length(); i++) {
+    if (!mTextTracks[i]->IsLoaded()) {
+      return false;
+    }
+  }
+  return true;
+}
+
+nsTArray<RefPtr<TextTrack>>&
+TextTrackList::GetTextTrackArray()
+{
+  return mTextTracks;
 }
 
 } // namespace dom

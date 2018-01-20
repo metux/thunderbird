@@ -1,53 +1,42 @@
-var Cu = Components.utils;
-var Cc = Components.classes;
-var Ci = Components.interfaces;
+/* exported Task, startServerAndGetSelectedTabMemory, destroyServerAndFinish,
+   waitForTime, waitUntil */
+"use strict";
 
-Cu.import("resource://gre/modules/Services.jsm");
+const Cu = Components.utils;
+
+const { require } = Cu.import("resource://devtools/shared/Loader.jsm", {});
+const Services = require("Services");
+const { Task } = require("devtools/shared/task");
+const { DebuggerClient } = require("devtools/shared/client/debugger-client");
+const { DebuggerServer } = require("devtools/server/main");
+
+const { MemoryFront } = require("devtools/shared/fronts/memory");
 
 // Always log packets when running tests.
 Services.prefs.setBoolPref("devtools.debugger.log", true);
-SimpleTest.registerCleanupFunction(function() {
+SimpleTest.registerCleanupFunction(function () {
   Services.prefs.clearUserPref("devtools.debugger.log");
 });
-
-Cu.import("resource://gre/modules/Task.jsm");
-var { require } = Cu.import("resource://devtools/shared/Loader.jsm", {});
-var { DebuggerClient } = require("devtools/shared/client/main");
-var { DebuggerServer } = require("devtools/server/main");
-
-var { MemoryFront } = require("devtools/server/actors/memory");
 
 function startServerAndGetSelectedTabMemory() {
   DebuggerServer.init();
   DebuggerServer.addBrowserActors();
-  var client = new DebuggerClient(DebuggerServer.connectPipe());
+  let client = new DebuggerClient(DebuggerServer.connectPipe());
 
-  return new Promise((resolve, reject) => {
-    client.connect(response => {
-      if (response.error) {
-        reject(new Error(response.error + ": " + response.message));
-        return;
-      }
+  return client.connect()
+    .then(() => client.listTabs())
+    .then(response => {
+      let form = response.tabs[response.selected];
+      let memory = MemoryFront(client, form, response);
 
-      client.listTabs(response => {
-        if (response.error) {
-          reject(new Error(response.error + ": " + response.message));
-          return;
-        }
-
-        var form = response.tabs[response.selected];
-        var memory = MemoryFront(client, form, response);
-
-        resolve({ memory, client });
-      });
+      return { memory, client };
     });
-  });
 }
 
 function destroyServerAndFinish(client) {
-  client.close(() => {
+  client.close().then(() => {
     DebuggerServer.destroy();
-    SimpleTest.finish()
+    SimpleTest.finish();
   });
 }
 
@@ -61,5 +50,6 @@ function waitUntil(predicate) {
   if (predicate()) {
     return Promise.resolve(true);
   }
-  return new Promise(resolve => setTimeout(() => waitUntil(predicate).then(() => resolve(true)), 10));
+  return new Promise(resolve => setTimeout(() => waitUntil(predicate)
+         .then(() => resolve(true)), 10));
 }

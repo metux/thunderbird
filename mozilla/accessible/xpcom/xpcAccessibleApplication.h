@@ -33,10 +33,13 @@ public:
   NS_IMETHOD GetPlatformVersion(nsAString& aVersion) final override;
 
 protected:
-  virtual ~xpcAccessibleApplication() {}
+  virtual ~xpcAccessibleApplication()
+  {
+    Shutdown();
+  }
 
 private:
-  ApplicationAccessible* Intl() { return mIntl->AsApplication(); }
+  ApplicationAccessible* Intl() { return mIntl.AsAccessible()->AsApplication(); }
 
   xpcAccessibleApplication(const xpcAccessibleApplication&) = delete;
   xpcAccessibleApplication& operator =(const xpcAccessibleApplication&) = delete;

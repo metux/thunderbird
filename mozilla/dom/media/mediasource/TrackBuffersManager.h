@@ -9,112 +9,174 @@
 
 #include "mozilla/Atomics.h"
 #include "mozilla/Maybe.h"
-#include "mozilla/Monitor.h"
-#include "mozilla/Pair.h"
-#include "mozilla/dom/SourceBufferBinding.h"
+#include "mozilla/Mutex.h"
+#include "mozilla/NotNull.h"
+#include "AutoTaskQueue.h"
 
-#include "SourceBufferContentManager.h"
+#include "MediaContainerType.h"
+#include "MediaData.h"
 #include "MediaDataDemuxer.h"
+#include "MediaResult.h"
 #include "MediaSourceDecoder.h"
-#include "nsProxyRelease.h"
+#include "SourceBufferTask.h"
+#include "TimeUnits.h"
+#include "nsAutoPtr.h"
 #include "nsTArray.h"
 
 namespace mozilla {
 
+class AbstractThread;
 class ContainerParser;
 class MediaByteBuffer;
 class MediaRawData;
 class MediaSourceDemuxer;
 class SourceBufferResource;
 
-namespace dom {
-  class SourceBufferAttributes;
-}
-
-class TrackBuffersManager : public SourceBufferContentManager {
+class SourceBufferTaskQueue
+{
 public:
-  typedef MozPromise<bool, nsresult, /* IsExclusive = */ true> CodedFrameProcessingPromise;
+  SourceBufferTaskQueue() { }
+
+  ~SourceBufferTaskQueue()
+  {
+    MOZ_ASSERT(mQueue.IsEmpty(), "All tasks must have been processed");
+  }
+
+  void Push(SourceBufferTask* aTask)
+  {
+    mQueue.AppendElement(aTask);
+  }
+
+  already_AddRefed<SourceBufferTask> Pop()
+  {
+    if (!mQueue.Length()) {
+      return nullptr;
+    }
+    RefPtr<SourceBufferTask> task = Move(mQueue[0]);
+    mQueue.RemoveElementAt(0);
+    return task.forget();
+  }
+
+  nsTArray<SourceBufferTask>::size_type Length() const
+  {
+    return mQueue.Length();
+  }
+private:
+  nsTArray<RefPtr<SourceBufferTask>> mQueue;
+};
+
+class TrackBuffersManager
+{
+public:
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(TrackBuffersManager);
+
+  enum class EvictDataResult : int8_t
+  {
+    NO_DATA_EVICTED,
+    CANT_EVICT,
+    BUFFER_FULL,
+  };
+
   typedef TrackInfo::TrackType TrackType;
   typedef MediaData::Type MediaType;
   typedef nsTArray<RefPtr<MediaRawData>> TrackBuffer;
+  typedef SourceBufferTask::AppendPromise AppendPromise;
+  typedef SourceBufferTask::RangeRemovalPromise RangeRemovalPromise;
 
-  TrackBuffersManager(dom::SourceBufferAttributes* aAttributes,
-                      MediaSourceDecoder* aParentDecoder,
-                      const nsACString& aType);
+  // Interface for SourceBuffer
+  TrackBuffersManager(MediaSourceDecoder* aParentDecoder,
+                      const MediaContainerType& aType);
 
-  bool AppendData(MediaByteBuffer* aData,
-                  media::TimeUnit aTimestampOffset) override;
+  // Queue a task to add data to the end of the input buffer and run the MSE
+  // Buffer Append Algorithm
+  // 3.5.5 Buffer Append Algorithm.
+  // http://w3c.github.io/media-source/index.html#sourcebuffer-buffer-append
+  RefPtr<AppendPromise> AppendData(already_AddRefed<MediaByteBuffer> aData,
+                                   const SourceBufferAttributes& aAttributes);
 
-  RefPtr<AppendPromise> BufferAppend() override;
+  // Queue a task to abort any pending AppendData.
+  // Does nothing at this stage.
+  void AbortAppendData();
 
-  void AbortAppendData() override;
+  // Queue a task to run MSE Reset Parser State Algorithm.
+  // 3.5.2 Reset Parser State
+  void ResetParserState(SourceBufferAttributes& aAttributes);
 
-  void ResetParserState() override;
-
+  // Queue a task to run the MSE range removal algorithm.
+  // http://w3c.github.io/media-source/#sourcebuffer-coded-frame-removal
   RefPtr<RangeRemovalPromise> RangeRemoval(media::TimeUnit aStart,
-                                             media::TimeUnit aEnd) override;
+                                             media::TimeUnit aEnd);
 
-  EvictDataResult
-  EvictData(media::TimeUnit aPlaybackTime,
-            uint32_t aThreshold,
-            media::TimeUnit* aBufferStartTime) override;
+  // Schedule data eviction if necessary as the next call to AppendData will
+  // add aSize bytes.
+  // Eviction is done in two steps, first remove data up to aPlaybackTime
+  // and if still more space is needed remove from the end.
+  EvictDataResult EvictData(const media::TimeUnit& aPlaybackTime, int64_t aSize);
 
-  void EvictBefore(media::TimeUnit aTime) override;
+  // Returns the buffered range currently managed.
+  // This may be called on any thread.
+  // Buffered must conform to http://w3c.github.io/media-source/index.html#widl-SourceBuffer-buffered
+  media::TimeIntervals Buffered() const;
+  media::TimeUnit HighestStartTime() const;
+  media::TimeUnit HighestEndTime() const;
 
-  media::TimeIntervals Buffered() override;
+  // Return the size of the data managed by this SourceBufferContentManager.
+  int64_t GetSize() const;
 
-  int64_t GetSize() override;
+  // Indicate that the MediaSource parent object got into "ended" state.
+  void Ended();
 
-  void Ended() override;
+  // The parent SourceBuffer is about to be destroyed.
+  void Detach();
 
-  void Detach() override;
-
-  AppendState GetAppendState() override
-  {
-    return mAppendState;
-  }
-
-  void SetGroupStartTimestamp(const media::TimeUnit& aGroupStartTimestamp) override;
-  void RestartGroupStartTimestamp() override;
-  media::TimeUnit GroupEndTimestamp() override;
+  int64_t EvictionThreshold() const;
 
   // Interface for MediaSourceDemuxer
-  MediaInfo GetMetadata();
-  const TrackBuffer& GetTrackBuffer(TrackInfo::TrackType aTrack);
-  const media::TimeIntervals& Buffered(TrackInfo::TrackType);
+  MediaInfo GetMetadata() const;
+  const TrackBuffer& GetTrackBuffer(TrackInfo::TrackType aTrack) const;
+  const media::TimeIntervals& Buffered(TrackInfo::TrackType) const;
+  const media::TimeUnit& HighestStartTime(TrackInfo::TrackType) const;
   media::TimeIntervals SafeBuffered(TrackInfo::TrackType) const;
   bool IsEnded() const
   {
     return mEnded;
   }
+  uint32_t Evictable(TrackInfo::TrackType aTrack) const;
   media::TimeUnit Seek(TrackInfo::TrackType aTrack,
                        const media::TimeUnit& aTime,
                        const media::TimeUnit& aFuzz);
   uint32_t SkipToNextRandomAccessPoint(TrackInfo::TrackType aTrack,
                                        const media::TimeUnit& aTimeThreadshold,
+                                       const media::TimeUnit& aFuzz,
                                        bool& aFound);
+
   already_AddRefed<MediaRawData> GetSample(TrackInfo::TrackType aTrack,
                                            const media::TimeUnit& aFuzz,
-                                           bool& aError);
-  media::TimeUnit GetNextRandomAccessPoint(TrackInfo::TrackType aTrack);
+                                           MediaResult& aResult);
+  int32_t FindCurrentPosition(TrackInfo::TrackType aTrack,
+                              const media::TimeUnit& aFuzz) const;
+  media::TimeUnit GetNextRandomAccessPoint(TrackInfo::TrackType aTrack,
+                                           const media::TimeUnit& aFuzz);
 
-  void AddSizeOfResources(MediaSourceDecoder::ResourceSizes* aSizes);
+  void AddSizeOfResources(MediaSourceDecoder::ResourceSizes* aSizes) const;
 
 private:
+  typedef MozPromise<bool, MediaResult, /* IsExclusive = */ true> CodedFrameProcessingPromise;
+
   // for MediaSourceDemuxer::GetMozDebugReaderData
   friend class MediaSourceDemuxer;
-  virtual ~TrackBuffersManager();
+  ~TrackBuffersManager();
   // All following functions run on the taskqueue.
-  RefPtr<AppendPromise> InitSegmentParserLoop();
+  RefPtr<AppendPromise> DoAppendData(already_AddRefed<MediaByteBuffer> aData,
+                                     const SourceBufferAttributes& aAttributes);
   void ScheduleSegmentParserLoop();
   void SegmentParserLoop();
-  void AppendIncomingBuffers();
   void InitializationSegmentReceived();
   void ShutdownDemuxers();
   void CreateDemuxerforMIMEType();
   void ResetDemuxingState();
   void NeedMoreData();
-  void RejectAppend(nsresult aRejectValue, const char* aName);
+  void RejectAppend(const MediaResult& aRejectValue, const char* aName);
   // Will return a promise that will be resolved once all frames of the current
   // media segment have been processed.
   RefPtr<CodedFrameProcessingPromise> CodedFrameProcessing();
@@ -124,7 +186,7 @@ private:
   RefPtr<RangeRemovalPromise>
     CodedFrameRemovalWithPromise(media::TimeInterval aInterval);
   bool CodedFrameRemoval(media::TimeInterval aInterval);
-  void SetAppendState(AppendState aAppendState);
+  void SetAppendState(SourceBufferAttributes::AppendState aAppendState);
 
   bool HasVideo() const
   {
@@ -135,26 +197,16 @@ private:
     return mAudioTracks.mNumTracks > 0;
   }
 
-  typedef Pair<RefPtr<MediaByteBuffer>, media::TimeUnit> IncomingBuffer;
-  void AppendIncomingBuffer(IncomingBuffer aData);
-  nsTArray<IncomingBuffer> mIncomingBuffers;
-
   // The input buffer as per http://w3c.github.io/media-source/index.html#sourcebuffer-input-buffer
   RefPtr<MediaByteBuffer> mInputBuffer;
-  // The current append state as per https://w3c.github.io/media-source/#sourcebuffer-append-state
-  // Accessed on both the main thread and the task queue.
-  Atomic<AppendState> mAppendState;
   // Buffer full flag as per https://w3c.github.io/media-source/#sourcebuffer-buffer-full-flag.
   // Accessed on both the main thread and the task queue.
-  // TODO: Unused for now.
   Atomic<bool> mBufferFull;
   bool mFirstInitializationSegmentReceived;
   // Set to true once a new segment is started.
   bool mNewMediaSegmentStarted;
   bool mActiveTrack;
-  Maybe<media::TimeUnit> mGroupStartTimestamp;
-  media::TimeUnit mGroupEndTimestamp;
-  nsCString mType;
+  const MediaContainerType mType;
 
   // ContainerParser objects and methods.
   // Those are used to parse the incoming input buffer.
@@ -175,34 +227,39 @@ private:
   RefPtr<SourceBufferResource> mCurrentInputBuffer;
   RefPtr<MediaDataDemuxer> mInputDemuxer;
   // Length already processed in current media segment.
-  uint32_t mProcessedInput;
+  uint64_t mProcessedInput;
   Maybe<media::TimeUnit> mLastParsedEndTime;
 
-  void OnDemuxerInitDone(nsresult);
-  void OnDemuxerInitFailed(DemuxerFailureReason aFailure);
-  void OnDemuxerResetDone(nsresult);
+  void OnDemuxerInitDone(const MediaResult& aResult);
+  void OnDemuxerInitFailed(const MediaResult& aFailure);
+  void OnDemuxerResetDone(const MediaResult& aResult);
   MozPromiseRequestHolder<MediaDataDemuxer::InitPromise> mDemuxerInitRequest;
-  bool mEncrypted;
 
-  void OnDemuxFailed(TrackType aTrack, DemuxerFailureReason aFailure);
+  void OnDemuxFailed(TrackType aTrack, const MediaResult& aError);
   void DoDemuxVideo();
   void OnVideoDemuxCompleted(RefPtr<MediaTrackDemuxer::SamplesHolder> aSamples);
-  void OnVideoDemuxFailed(DemuxerFailureReason aFailure)
+  void OnVideoDemuxFailed(const MediaResult& aError)
   {
     mVideoTracks.mDemuxRequest.Complete();
-    OnDemuxFailed(TrackType::kVideoTrack, aFailure);
+    OnDemuxFailed(TrackType::kVideoTrack, aError);
   }
   void DoDemuxAudio();
   void OnAudioDemuxCompleted(RefPtr<MediaTrackDemuxer::SamplesHolder> aSamples);
-  void OnAudioDemuxFailed(DemuxerFailureReason aFailure)
+  void OnAudioDemuxFailed(const MediaResult& aError)
   {
     mAudioTracks.mDemuxRequest.Complete();
-    OnDemuxFailed(TrackType::kAudioTrack, aFailure);
+    OnDemuxFailed(TrackType::kAudioTrack, aError);
   }
 
-  void DoEvictData(const media::TimeUnit& aPlaybackTime, uint32_t aThreshold);
+  // Dispatches an "encrypted" event is any sample in array has initData
+  // present.
+  void MaybeDispatchEncryptedEvent(
+    const nsTArray<RefPtr<MediaRawData>>& aSamples);
 
-  struct TrackData {
+  void DoEvictData(const media::TimeUnit& aPlaybackTime, int64_t aSizeToEvict);
+
+  struct TrackData
+  {
     TrackData()
       : mNumTracks(0)
       , mNeedRandomAccessPoint(true)
@@ -227,8 +284,14 @@ private:
     // The variable is initially unset to indicate that no coded frames have
     // been appended yet.
     Maybe<media::TimeUnit> mHighestEndTimestamp;
-    // Longest frame duration seen in a coded frame group.
-    Maybe<media::TimeUnit> mLongestFrameDuration;
+    // Highest presentation timestamp in track buffer.
+    // Protected by global monitor, except when reading on the task queue as it
+    // is only written there.
+    media::TimeUnit mHighestStartTimestamp;
+    // Longest frame duration seen since last random access point.
+    // Only ever accessed when mLastDecodeTimestamp and mLastFrameDuration are
+    // set.
+    media::TimeUnit mLongestFrameDuration;
     // Need random access point flag variable that keeps track of whether the
     // track buffer is waiting for a random access point coded frame.
     // The variable is initially set to true to indicate that random access
@@ -243,9 +306,21 @@ private:
     // If set, position where the next contiguous frame will be inserted.
     // If a discontinuity is detected, it will be unset and recalculated upon
     // the next insertion.
-    Maybe<size_t> mNextInsertionIndex;
+    Maybe<uint32_t> mNextInsertionIndex;
     // Samples just demuxed, but not yet parsed.
     TrackBuffer mQueuedSamples;
+    const TrackBuffer& GetTrackBuffer() const
+    {
+      MOZ_RELEASE_ASSERT(mBuffers.Length(),
+                         "TrackBuffer must have been created");
+      return mBuffers.LastElement();
+    }
+    TrackBuffer& GetTrackBuffer()
+    {
+      MOZ_RELEASE_ASSERT(mBuffers.Length(),
+                         "TrackBuffer must have been created");
+      return mBuffers.LastElement();
+    }
     // We only manage a single track of each type at this time.
     nsTArray<TrackBuffer> mBuffers;
     // Track buffer ranges variable that represents the presentation time ranges
@@ -257,9 +332,9 @@ private:
     // Byte size of all samples contained in this track buffer.
     uint32_t mSizeBuffer;
     // TrackInfo of the first metadata received.
-    RefPtr<SharedTrackInfo> mInfo;
+    RefPtr<TrackInfoSharedPtr> mInfo;
     // TrackInfo of the last metadata parsed (updated with each init segment.
-    RefPtr<SharedTrackInfo> mLastInfo;
+    RefPtr<TrackInfoSharedPtr> mLastInfo;
 
     // If set, position of the next sample to be retrieved by GetSample().
     // If the position is equal to the TrackBuffer's length, it indicates that
@@ -270,44 +345,98 @@ private:
     // Approximation of the next sample's presentation timestamp.
     media::TimeUnit mNextSampleTime;
 
+    struct EvictionIndex
+    {
+      EvictionIndex() { Reset(); }
+      void Reset()
+      {
+        mEvictable = 0;
+        mLastIndex = 0;
+      }
+      uint32_t mEvictable;
+      uint32_t mLastIndex;
+    };
+    // Size of data that can be safely evicted during the next eviction
+    // cycle.
+    // We consider as evictable all frames up to the last keyframe prior to
+    // mNextGetSampleIndex. If mNextGetSampleIndex isn't set, then we assume
+    // that we can't yet evict data.
+    // Protected by global monitor, except when reading on the task queue as it
+    // is only written there.
+    EvictionIndex mEvictionIndex;
+
     void ResetAppendState()
     {
       mLastDecodeTimestamp.reset();
       mLastFrameDuration.reset();
       mHighestEndTimestamp.reset();
       mNeedRandomAccessPoint = true;
-
-      mLongestFrameDuration.reset();
       mNextInsertionIndex.reset();
     }
 
-    void AddSizeOfResources(MediaSourceDecoder::ResourceSizes* aSizes);
+    void Reset()
+    {
+      ResetAppendState();
+      mEvictionIndex.Reset();
+      for (auto& buffer : mBuffers) {
+        buffer.Clear();
+      }
+      mSizeBuffer = 0;
+      mNextGetSampleIndex.reset();
+      mBufferedRanges.Clear();
+      mSanitizedBufferedRanges.Clear();
+    }
+
+    void AddSizeOfResources(MediaSourceDecoder::ResourceSizes* aSizes) const;
   };
 
   void CheckSequenceDiscontinuity(const media::TimeUnit& aPresentationTime);
   void ProcessFrames(TrackBuffer& aSamples, TrackData& aTrackData);
+  media::TimeInterval PresentationInterval(const TrackBuffer& aSamples) const;
   bool CheckNextInsertionIndex(TrackData& aTrackData,
                                const media::TimeUnit& aSampleTime);
   void InsertFrames(TrackBuffer& aSamples,
                     const media::TimeIntervals& aIntervals,
                     TrackData& aTrackData);
-  void RemoveFrames(const media::TimeIntervals& aIntervals,
-                    TrackData& aTrackData,
-                    uint32_t aStartIndex);
+  void UpdateHighestTimestamp(TrackData& aTrackData,
+                              const media::TimeUnit& aHighestTime);
+  // Remove all frames and their dependencies contained in aIntervals.
+  // Return the index at which frames were first removed or 0 if no frames
+  // removed.
+  uint32_t RemoveFrames(const media::TimeIntervals& aIntervals,
+                        TrackData& aTrackData,
+                        uint32_t aStartIndex);
+  // Recalculate track's evictable amount.
+  void ResetEvictionIndex(TrackData& aTrackData);
+  void UpdateEvictionIndex(TrackData& aTrackData, uint32_t aCurrentIndex);
   // Find index of sample. Return a negative value if not found.
   uint32_t FindSampleIndex(const TrackBuffer& aTrackBuffer,
                            const media::TimeInterval& aInterval);
+  const MediaRawData* GetSample(TrackInfo::TrackType aTrack,
+                                uint32_t aIndex,
+                                const media::TimeUnit& aExpectedDts,
+                                const media::TimeUnit& aExpectedPts,
+                                const media::TimeUnit& aFuzz);
   void UpdateBufferedRanges();
-  void RejectProcessing(nsresult aRejectValue, const char* aName);
+  void RejectProcessing(const MediaResult& aRejectValue, const char* aName);
   void ResolveProcessing(bool aResolveValue, const char* aName);
   MozPromiseRequestHolder<CodedFrameProcessingPromise> mProcessingRequest;
   MozPromiseHolder<CodedFrameProcessingPromise> mProcessingPromise;
 
-  MozPromiseHolder<AppendPromise> mAppendPromise;
-
   // Trackbuffers definition.
+  nsTArray<const TrackData*> GetTracksList() const;
   nsTArray<TrackData*> GetTracksList();
   TrackData& GetTracksData(TrackType aTrack)
+  {
+    switch(aTrack) {
+      case TrackType::kVideoTrack:
+        return mVideoTracks;
+      case TrackType::kAudioTrack:
+      default:
+        return mAudioTracks;
+    }
+  }
+  const TrackData& GetTracksData(TrackType aTrack) const
   {
     switch(aTrack) {
       case TrackType::kVideoTrack:
@@ -321,41 +450,78 @@ private:
   TrackData mAudioTracks;
 
   // TaskQueue methods and objects.
-  AbstractThread* GetTaskQueue() {
+  RefPtr<AutoTaskQueue> GetTaskQueueSafe() const
+  {
+    MutexAutoLock mut(mMutex);
     return mTaskQueue;
   }
-  bool OnTaskQueue()
+  NotNull<AbstractThread*> TaskQueueFromTaskQueue() const
   {
-    return !GetTaskQueue() || GetTaskQueue()->IsCurrentThreadIn();
+#ifdef DEBUG
+    RefPtr<AutoTaskQueue> taskQueue = GetTaskQueueSafe();
+    MOZ_ASSERT(taskQueue && taskQueue->IsCurrentThreadIn());
+#endif
+    return WrapNotNull(mTaskQueue.get());
   }
-  RefPtr<TaskQueue> mTaskQueue;
+  bool OnTaskQueue() const
+  {
+    auto taskQueue = TaskQueueFromTaskQueue();
+    return taskQueue->IsCurrentThreadIn();
+  }
+  void ResetTaskQueue()
+  {
+    MutexAutoLock mut(mMutex);
+    mTaskQueue = nullptr;
+  }
 
+  // SourceBuffer Queues and running context.
+  SourceBufferTaskQueue mQueue;
+  void QueueTask(SourceBufferTask* aTask);
+  void ProcessTasks();
+  // Set if the TrackBuffersManager is currently processing a task.
+  // At this stage, this task is always a AppendBufferTask.
+  RefPtr<SourceBufferTask> mCurrentTask;
+  // Current SourceBuffer state for ongoing task.
+  // Its content is returned to the SourceBuffer once the AppendBufferTask has
+  // completed.
+  UniquePtr<SourceBufferAttributes> mSourceBufferAttributes;
+  // The current sourcebuffer append window. It's content is equivalent to
+  // mSourceBufferAttributes.mAppendWindowStart/End
   media::TimeInterval mAppendWindow;
-  media::TimeUnit mTimestampOffset;
-  media::TimeUnit mLastTimestampOffset;
-  void RestoreCachedVariables();
 
   // Strong references to external objects.
-  RefPtr<dom::SourceBufferAttributes> mSourceBufferAttributes;
   nsMainThreadPtrHandle<MediaSourceDecoder> mParentDecoder;
+
+  const RefPtr<AbstractThread> mAbstractMainThread;
+
+  // Return public highest end time across all aTracks.
+  // Monitor must be held.
+  media::TimeUnit HighestEndTime(nsTArray<const media::TimeIntervals*>& aTracks) const;
 
   // Set to true if mediasource state changed to ended.
   Atomic<bool> mEnded;
 
   // Global size of this source buffer content.
   Atomic<int64_t> mSizeSourceBuffer;
-  uint32_t mEvictionThreshold;
-  Atomic<bool> mEvictionOccurred;
+  const int64_t mVideoEvictionThreshold;
+  const int64_t mAudioEvictionThreshold;
+  enum class EvictionState
+  {
+    NO_EVICTION_NEEDED,
+    EVICTION_NEEDED,
+    EVICTION_COMPLETED,
+  };
+  Atomic<EvictionState> mEvictionState;
 
-  // Monitor to protect following objects accessed across multipple threads.
-  // mMonitor is also notified if the value of mAppendRunning becomes false.
-  mutable Monitor mMonitor;
-  // Set to true while a BufferAppend is running or is pending.
-  Atomic<bool> mAppendRunning;
+  // Monitor to protect following objects accessed across multiple threads.
+  mutable Mutex mMutex;
+  // mTaskQueue is only ever written after construction on the task queue.
+  // As such, it can be accessed while on task queue without the need for the
+  // mutex.
+  RefPtr<AutoTaskQueue> mTaskQueue;
   // Stable audio and video track time ranges.
   media::TimeIntervals mVideoBufferedRanges;
   media::TimeIntervals mAudioBufferedRanges;
-  media::TimeUnit mOfficialGroupEndTimestamp;
   // MediaInfo of the first init segment read.
   MediaInfo mInfo;
 };

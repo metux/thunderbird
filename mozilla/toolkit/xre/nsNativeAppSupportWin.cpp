@@ -6,12 +6,12 @@
 #include "nsNativeAppSupportBase.h"
 #include "nsNativeAppSupportWin.h"
 #include "nsAppRunner.h"
+#include "nsContentUtils.h"
 #include "nsXULAppAPI.h"
 #include "nsString.h"
 #include "nsIBrowserDOMWindow.h"
 #include "nsICommandLineRunner.h"
 #include "nsCOMPtr.h"
-#include "nsXPIDLString.h"
 #include "nsIComponentManager.h"
 #include "nsIServiceManager.h"
 #include "nsIDOMChromeWindow.h"
@@ -35,11 +35,12 @@
 #include "nsIFile.h"
 #include "nsIObserver.h"
 #include "nsIObserverService.h"
-#include "nsIDOMLocation.h"
 #include "nsIWebNavigation.h"
 #include "nsIWindowMediator.h"
 #include "nsNativeCharsetUtils.h"
 #include "nsIAppStartup.h"
+#include "mozilla/Assertions.h"
+#include "mozilla/dom/Location.h"
 
 #include <windows.h>
 #include <shellapi.h>
@@ -52,11 +53,11 @@
 
 using namespace mozilla;
 
-static HWND hwndForDOMWindow( nsISupports * );
+static HWND hwndForDOMWindow( mozIDOMWindowProxy * );
 
 static
 nsresult
-GetMostRecentWindow(const char16_t* aType, nsIDOMWindow** aWindow) {
+GetMostRecentWindow(const char16_t* aType, mozIDOMWindowProxy** aWindow) {
     nsresult rv;
     nsCOMPtr<nsIWindowMediator> med( do_GetService( NS_WINDOWMEDIATOR_CONTRACTID, &rv ) );
     if ( NS_FAILED( rv ) )
@@ -70,7 +71,7 @@ GetMostRecentWindow(const char16_t* aType, nsIDOMWindow** aWindow) {
 
 static
 void
-activateWindow( nsIDOMWindow *win ) {
+activateWindow( mozIDOMWindowProxy *win ) {
     // Try to get native window handle.
     HWND hwnd = hwndForDOMWindow( win );
     if ( hwnd ) {
@@ -82,7 +83,7 @@ activateWindow( nsIDOMWindow *win ) {
         ::SetForegroundWindow( hwnd );
     } else {
         // Use internal method.
-        nsCOMPtr<nsPIDOMWindow> piWin = do_QueryInterface(win);
+        nsCOMPtr<nsPIDOMWindowOuter> piWin = nsPIDOMWindowOuter::From(win);
         piWin->Focus();
     }
 }
@@ -95,7 +96,7 @@ activateWindow( nsIDOMWindow *win ) {
 
 // Simple Win32 mutex wrapper.
 struct Win32Mutex {
-    Win32Mutex( const char16_t *name )
+    explicit Win32Mutex( const char16_t *name )
         : mName( name ),
           mHandle( 0 ),
           mState( -1 ) {
@@ -109,7 +110,7 @@ struct Win32Mutex {
             // Make sure we release it if we own it.
             Unlock();
 
-            BOOL rc = CloseHandle( mHandle );
+            BOOL rc MOZ_UNUSED_ATTRIBUTE = CloseHandle( mHandle );
 #if MOZ_DEBUG_DDE
             if ( !rc ) {
                 printf( "CloseHandle error = 0x%08X\n", (int)GetLastError() );
@@ -338,110 +339,56 @@ NS_IMPL_RELEASE_INHERITED(nsNativeAppSupportWin, nsNativeAppSupportBase)
 void
 UseParentConsole()
 {
-    // Try to attach console to the parent process.
-    // It will succeed when the parent process is a command line,
-    // so that stdio will be displayed in it.
     if (AttachConsole(ATTACH_PARENT_PROCESS)) {
-        // Change std handles to refer to new console handles.
-        // Before doing so, ensure that stdout/stderr haven't been
-        // redirected to a valid file.
-        // The return value for _fileno(<a std handle>) for GUI apps was changed over.
-        // Until VC7, it was -1. Starting from VC8, it was changed to -2.
-        // http://msdn.microsoft.com/en-us/library/zs6wbdhx%28v=vs.80%29.aspx
-        // Starting from VC11, the return value was cahnged to 0 for stdin,
-        // 1 for stdout, 2 for stdout. Accroding to Microsoft, this is a bug
-        // which will be fixed in VC14.
-        // https://connect.microsoft.com/VisualStudio/feedback/details/785119/
-        // Although the document does not make it explicit, it looks like
-        // the return value from _get_osfhandle(_fileno(<a std handle>)) also
-        // changed to -2 and VC11 and 12 do not have a bug about _get_osfhandle().
-        // We support VC10 or later, so it's sufficient to compare the return
-        // value with -2.
-        if (_fileno(stdout) == -2 ||
-            _get_osfhandle(fileno(stdout)) == -2)
+        // Redirect the standard streams to the existing console, but
+        // only if they haven't been redirected to a valid file.
+        // Visual Studio's _fileno() returns -2 for the standard
+        // streams if they aren't associated with an output stream.
+        if (_fileno(stdout) == -2) {
             freopen("CONOUT$", "w", stdout);
-        // Merge stderr into CONOUT$ since there isn't any `CONERR$`.
-        // http://msdn.microsoft.com/en-us/library/windows/desktop/ms683231%28v=vs.85%29.aspx
-        if (_fileno(stderr) == -2 ||
-            _get_osfhandle(fileno(stderr)) == -2)
+        }
+        // There is no CONERR$, so use CONOUT$ for stderr as well.
+        if (_fileno(stderr) == -2) {
             freopen("CONOUT$", "w", stderr);
-        if (_fileno(stdin) == -2 || _get_osfhandle(fileno(stdin)) == -2)
+        }
+        if (_fileno(stdin) == -2) {
             freopen("CONIN$", "r", stdin);
+        }
     }
 }
 
 void
-nsNativeAppSupportWin::CheckConsole() {
-    for ( int i = 1; i < gArgc; i++ ) {
-        if ( strcmp( "-console", gArgv[i] ) == 0 ||
-             strcmp( "--console", gArgv[i] ) == 0 ||
-             strcmp( "/console", gArgv[i] ) == 0 ) {
-            // Users wants to make sure we have a console.
-            // Try to allocate one.
-            BOOL rc = ::AllocConsole();
-            if ( rc ) {
-                // Console allocated.  Fix it up so that output works in
-                // all cases.  See http://support.microsoft.com/support/kb/articles/q105/3/05.asp.
-
-                // stdout
-                int hCrt = ::_open_osfhandle( (intptr_t)GetStdHandle( STD_OUTPUT_HANDLE ),
-                                            _O_TEXT );
-                if ( hCrt != -1 ) {
-                    FILE *hf = ::_fdopen( hCrt, "w" );
-                    if ( hf ) {
-                        *stdout = *hf;
-#ifdef DEBUG
-                        ::fprintf( stdout, "stdout directed to dynamic console\n" );
-#endif
-                    }
+nsNativeAppSupportWin::CheckConsole()
+{
+    for (int i = 1; i < gArgc; ++i) {
+        if (strcmp("-console", gArgv[i]) == 0 ||
+            strcmp("--console", gArgv[i]) == 0 ||
+            strcmp("/console", gArgv[i]) == 0)
+        {
+            if (AllocConsole()) {
+                // Redirect the standard streams to the new console, but
+                // only if they haven't been redirected to a valid file.
+                // Visual Studio's _fileno() returns -2 for the standard
+                // streams if they aren't associated with an output stream.
+                if (_fileno(stdout) == -2) {
+                    freopen("CONOUT$", "w", stdout);
                 }
-
-                // stderr
-                hCrt = ::_open_osfhandle( (intptr_t)::GetStdHandle( STD_ERROR_HANDLE ),
-                                          _O_TEXT );
-                if ( hCrt != -1 ) {
-                    FILE *hf = ::_fdopen( hCrt, "w" );
-                    if ( hf ) {
-                        *stderr = *hf;
-#ifdef DEBUG
-                        ::fprintf( stderr, "stderr directed to dynamic console\n" );
-#endif
-                    }
+                // There is no CONERR$, so use CONOUT$ for stderr as well.
+                if (_fileno(stderr) == -2) {
+                    freopen("CONOUT$", "w", stderr);
                 }
-
-                // stdin?
-                /* Don't bother for now.
-                hCrt = ::_open_osfhandle( (long)::GetStdHandle( STD_INPUT_HANDLE ),
-                                          _O_TEXT );
-                if ( hCrt != -1 ) {
-                    FILE *hf = ::_fdopen( hCrt, "r" );
-                    if ( hf ) {
-                        *stdin = *hf;
-                    }
+                if (_fileno(stdin) == -2) {
+                    freopen("CONIN$", "r", stdin);
                 }
-                */
-            } else {
-                // Failed.  Probably because there already is one.
-                // There's little we can do, in any case.
             }
-            // Remove the console argument from the command line.
-            do {
-                gArgv[i] = gArgv[i + 1];
-                ++i;
-            } while (gArgv[i]);
-
-            --gArgc;
-
-        } else if ( strcmp( "-attach-console", gArgv[i] ) == 0
-                    ||
-                    strcmp( "/attach-console", gArgv[i] ) == 0 ) {
+        } else if (strcmp("-attach-console", gArgv[i]) == 0 ||
+                   strcmp("--attach-console", gArgv[i]) == 0 ||
+                   strcmp("/attach-console", gArgv[i]) == 0)
+        {
             UseParentConsole();
         }
     }
-
-    return;
 }
-
 
 // Create and return an instance of class nsNativeAppSupportWin.
 nsresult
@@ -506,7 +453,7 @@ struct MessageWindow {
             ::_snwprintf(classNameBuffer,
                          128,   // size of classNameBuffer in PRUnichars
                          L"%s%s",
-                         NS_ConvertUTF8toUTF16(gAppData->remotingName).get(),
+                         static_cast<const wchar_t*>(NS_ConvertUTF8toUTF16(gAppData->remotingName).get()),
                          L"MessageWindow" );
             mClassName = classNameBuffer;
         }
@@ -625,7 +572,7 @@ struct MessageWindow {
             (void)nsNativeAppSupportWin::HandleCommandLine((char*)cds->lpData, workingDir, nsICommandLine::STATE_REMOTE_AUTO);
 
             // Get current window and return its window handle.
-            nsCOMPtr<nsIDOMWindow> win;
+            nsCOMPtr<mozIDOMWindowProxy> win;
             GetMostRecentWindow( 0, getter_AddRefs( win ) );
             return win ? (LRESULT)hwndForDOMWindow( win ) : 0;
         }
@@ -669,7 +616,7 @@ nsNativeAppSupportWin::Start( bool *aResult ) {
     ::_snwprintf(reinterpret_cast<wchar_t*>(mMutexName),
                  sizeof mMutexName / sizeof(char16_t), L"%s%s%s",
                  MOZ_MUTEX_NAMESPACE,
-                 NS_ConvertUTF8toUTF16(gAppData->name).get(),
+                 static_cast<const wchar_t*>(NS_ConvertUTF8toUTF16(gAppData->name).get()),
                  MOZ_STARTUP_MUTEX_NAME );
     Win32Mutex startupLock = Win32Mutex( mMutexName );
 
@@ -739,7 +686,7 @@ nsNativeAppSupportWin::StartDDE() {
                     NS_ERROR_FAILURE );
 
     // Allocate DDE strings.
-    NS_ENSURE_TRUE( ( mApplication = DdeCreateStringHandleA( mInstance, (char*) gAppData->name, CP_WINANSI ) ) && InitTopicStrings(),
+    NS_ENSURE_TRUE( ( mApplication = DdeCreateStringHandleA( mInstance, (char*)(const char*) gAppData->name, CP_WINANSI ) ) && InitTopicStrings(),
                     NS_ERROR_FAILURE );
 
     // Next step is to register a DDE service.
@@ -978,10 +925,10 @@ nsNativeAppSupportWin::HandleDDENotification( UINT uType,       // transaction t
                     ParseDDEArg(hsz2, 2, windowID);
                     // "" means to open the URL in a new window.
                     if ( windowID.IsEmpty() ) {
-                        url.Insert(NS_LITERAL_STRING("mozilla -new-window "), 0);
+                        url.InsertLiteral(u"mozilla -new-window ", 0);
                     }
                     else {
-                        url.Insert(NS_LITERAL_STRING("mozilla -url "), 0);
+                        url.InsertLiteral(u"mozilla -url ", 0);
                     }
 
 #if MOZ_DEBUG_DDE
@@ -1006,23 +953,23 @@ nsNativeAppSupportWin::HandleDDENotification( UINT uType,       // transaction t
                     // something goes wrong.
                     do {
                         // Get most recently used Nav window.
-                        nsCOMPtr<nsIDOMWindow> navWin;
-                        GetMostRecentWindow( NS_LITERAL_STRING( "navigator:browser" ).get(),
+                        nsCOMPtr<mozIDOMWindowProxy> navWin;
+                        GetMostRecentWindow( u"navigator:browser",
                                              getter_AddRefs( navWin ) );
-                        nsCOMPtr<nsPIDOMWindow> piNavWin = do_QueryInterface(navWin);
+                        nsCOMPtr<nsPIDOMWindowOuter> piNavWin = do_QueryInterface(navWin);
                         if ( !piNavWin ) {
                             // There is not a window open
                             break;
                         }
 
                         // Get content window.
-                        nsCOMPtr<nsIDOMWindow> internalContent_ = nsGlobalWindow::Cast(piNavWin)->GetContent();
-                        nsCOMPtr<nsPIDOMWindow> internalContent = do_QueryInterface(internalContent_);
+                        nsCOMPtr<nsPIDOMWindowOuter> internalContent =
+                            nsGlobalWindowOuter::Cast(piNavWin)->GetContent();
                         if ( !internalContent ) {
                             break;
                         }
                         // Get location.
-                        nsCOMPtr<nsIDOMLocation> location = internalContent->GetLocation();
+                        RefPtr<dom::Location> location = internalContent->GetLocation();
                         if ( !location ) {
                             break;
                         }
@@ -1043,11 +990,11 @@ nsNativeAppSupportWin::HandleDDENotification( UINT uType,       // transaction t
                             break;
                         }
                         // And from the base window we can get the title.
-                        nsXPIDLString title;
+                        nsString title;
                         if(!baseWindow) {
                             break;
                         }
-                        baseWindow->GetTitle(getter_Copies(title));
+                        baseWindow->GetTitle(title);
                         // Escape any double-quotes in the title.
                         escapeQuotes( title );
 
@@ -1144,10 +1091,10 @@ nsNativeAppSupportWin::HandleDDENotification( UINT uType,       // transaction t
 
             // "" means to open the URL in a new window.
             if ( windowID.IsEmpty() ) {
-                url.Insert(NS_LITERAL_STRING("mozilla -new-window "), 0);
+                url.InsertLiteral(u"mozilla -new-window ", 0);
             }
             else {
-                url.Insert(NS_LITERAL_STRING("mozilla -url "), 0);
+                url.InsertLiteral(u"mozilla -url ", 0);
             }
 #if MOZ_DEBUG_DDE
             printf( "Handling dde XTYP_REQUEST request: [%s]...\n", NS_ConvertUTF16toUTF8(url).get() );
@@ -1260,8 +1207,8 @@ HDDEDATA nsNativeAppSupportWin::CreateDDEData( LPBYTE value, DWORD len ) {
 }
 
 void nsNativeAppSupportWin::ActivateLastWindow() {
-    nsCOMPtr<nsIDOMWindow> navWin;
-    GetMostRecentWindow( MOZ_UTF16("navigator:browser"), getter_AddRefs( navWin ) );
+    nsCOMPtr<mozIDOMWindowProxy> navWin;
+    GetMostRecentWindow( u"navigator:browser", getter_AddRefs( navWin ) );
     if ( navWin ) {
         // Activate that window.
         activateWindow( navWin );
@@ -1444,7 +1391,7 @@ nsNativeAppSupportWin::OpenWindow( const char*urlstr, const char *args ) {
     sarg->SetData(nsDependentCString(args));
 
   if (wwatch && sarg) {
-    nsCOMPtr<nsIDOMWindow> newWindow;
+    nsCOMPtr<mozIDOMWindowProxy> newWindow;
     rv = wwatch->OpenWindow(0, urlstr, "_blank", "chrome,dialog=no,all",
                    sarg, getter_AddRefs(newWindow));
 #if MOZ_DEBUG_DDE
@@ -1455,11 +1402,11 @@ nsNativeAppSupportWin::OpenWindow( const char*urlstr, const char *args ) {
   return rv;
 }
 
-HWND hwndForDOMWindow( nsISupports *window ) {
-    nsCOMPtr<nsPIDOMWindow> pidomwindow( do_QueryInterface(window) );
-    if ( !pidomwindow ) {
+HWND hwndForDOMWindow(mozIDOMWindowProxy *window ) {
+    if ( !window ) {
         return 0;
     }
+    nsCOMPtr<nsPIDOMWindowOuter > pidomwindow = nsPIDOMWindowOuter::From(window);
 
     nsCOMPtr<nsIBaseWindow> ppBaseWindow =
         do_QueryInterface( pidomwindow->GetDocShell() );
@@ -1484,8 +1431,8 @@ nsNativeAppSupportWin::OpenBrowserWindow()
     // If at all possible, hand the request off to the most recent
     // browser window.
 
-    nsCOMPtr<nsIDOMWindow> navWin;
-    GetMostRecentWindow( NS_LITERAL_STRING( "navigator:browser" ).get(), getter_AddRefs( navWin ) );
+    nsCOMPtr<mozIDOMWindowProxy> navWin;
+    GetMostRecentWindow( u"navigator:browser", getter_AddRefs( navWin ) );
 
     // This isn't really a loop.  We just use "break" statements to fall
     // out to the OpenWindow call when things go awry.
@@ -1503,7 +1450,7 @@ nsNativeAppSupportWin::OpenBrowserWindow()
           if ( navItem ) {
             nsCOMPtr<nsIDocShellTreeItem> rootItem;
             navItem->GetRootTreeItem( getter_AddRefs( rootItem ) );
-            nsCOMPtr<nsIDOMWindow> rootWin =
+            nsCOMPtr<nsPIDOMWindowOuter> rootWin =
               rootItem ? rootItem->GetWindow() : nullptr;
             nsCOMPtr<nsIDOMChromeWindow> chromeWin(do_QueryInterface(rootWin));
             if ( chromeWin )
@@ -1514,10 +1461,11 @@ nsNativeAppSupportWin::OpenBrowserWindow()
           nsCOMPtr<nsIURI> uri;
           NS_NewURI( getter_AddRefs( uri ), NS_LITERAL_CSTRING("about:blank"), 0, 0 );
           if ( uri ) {
-            nsCOMPtr<nsIDOMWindow> container;
+            nsCOMPtr<mozIDOMWindowProxy> container;
             rv = bwin->OpenURI( uri, 0,
                                 nsIBrowserDOMWindow::OPEN_DEFAULTWINDOW,
                                 nsIBrowserDOMWindow::OPEN_EXTERNAL,
+                                nsContentUtils::GetSystemPrincipal(),
                                 getter_AddRefs( container ) );
             if ( NS_SUCCEEDED( rv ) )
               return NS_OK;
@@ -1539,4 +1487,3 @@ nsNativeAppSupportWin::OpenBrowserWindow()
 
     return cmdLine->Run();
 }
-

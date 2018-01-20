@@ -1,4 +1,4 @@
-// |reftest| skip-if(xulRuntime.XPCOMABI.match(/x86_64/)||Android) -- No test results
+// |reftest| skip-if(xulRuntime.XPCOMABI.match(/x86_64|aarch64|ppc64|ppc64le|s390x/)||Android) -- No test results
 /* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -93,16 +93,11 @@ printStatus(summary);
 expectExitCode(0);
 expectExitCode(5);
 
-var IN_RHINO = inRhino();
-
 try
 {
-  if (!IN_RHINO)
-  {
-    var a1=Array(0xFFFFFFFF);
-    a1.sort();
-    a1 = null;
-  }
+  var a1=Array(0xFFFFFFFF);
+  a1.sort();
+  a1 = null;
 
   var a2 = Array(0x40000000);
   a2.sort();

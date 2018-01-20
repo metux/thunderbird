@@ -24,7 +24,8 @@
         <xul:hbox class="conv-top" flex="1" anonid="conv-top">
           <xul:notificationbox class="conv-messages" anonid="convNotificationBox" flex="1" xbl:inherits="chat">
             <xul:vbox flex="1">
-              <xul:browser anonid="browser" type="content-conversation" flex="1"
+              <xul:browser anonid="browser" type="content"
+                           browser-type="conversation" flex="1"
                            xbl:inherits="tooltip=contenttooltip,contextmenu=contentcontextmenu,autoscrollpopup"/>
               <xul:progressmeter anonid="browserProgress" hidden="true"/>
               <xul:findbar anonid="FindToolbar" reversed="true"/>
@@ -342,8 +343,7 @@
                   msg = "<font face=\"" + style.fontFamily + "\">" + msg + "</font>";
                 // MSN doesn't support font size info in messages...
               }
-              else if (proto == "prpl-aim" || proto == "prpl-icq" ||
-                       proto == "prpl-yahoo" || proto == "prpl-yahoojp") {
+              else if (proto == "prpl-aim" || proto == "prpl-icq") {
                 let styleAttributes = ""
                 if ("color" in style)
                   styleAttributes += " color=\"" + style.color + "\"";
@@ -517,7 +517,7 @@
 
           // Pass navigation keys to the browser if
           // 1) the textbox is empty or 2) it's an IB-specific key combination
-          if ((!text && navKeyCodes.indexOf(event.keyCode) != -1) ||
+          if (!text && navKeyCodes.includes(event.keyCode) ||
               ((event.shiftKey || event.altKey) && (event.keyCode == KeyEvent.DOM_VK_PAGE_UP ||
                                                     event.keyCode == KeyEvent.DOM_VK_PAGE_DOWN))) {
             let newEvent = document.createEvent("KeyboardEvent");
@@ -538,7 +538,7 @@
           // The 'C' won't be lowercase if caps lock is enabled.
           if ((event.charCode == 99 /* 'c' */ ||
                (event.charCode == 67 /* 'C' */ && !event.shiftKey)) &&
-              (navigator.platform.indexOf("Mac") >= 0 ? event.metaKey : event.ctrlKey) &&
+              (navigator.platform.includes("Mac") ? event.metaKey : event.ctrlKey) &&
               inputBox.selectionStart == inputBox.selectionEnd) {
             this.browser.doCommand();
             return;
@@ -569,10 +569,10 @@
               const suffix = ": ";
               if (pos > suffix.length &&
                   text.substring(pos - suffix.length, pos) == suffix) {
-                let completions = [b for (b of this.buddies.keys())];
+                let completions = Array.from(this.buddies.keys());
                 // Check if the preceding words are a sequence of nick completions.
                 let preceding = text.substring(0, pos - suffix.length).split(", ");
-                if (preceding.every(n => completions.indexOf(n) != -1)) {
+                if (preceding.every(n => completions.includes(n))) {
                   let s = preceding.pop();
                   if (preceding.length)
                     s = suffix + s;
@@ -648,7 +648,7 @@
                 // It's possible to have a global and a protocol specific command
                 // with the same name. Avoid duplicates in the |completions| array.
                 let name = "/" + cmd.name;
-                if (completions.indexOf(name) == -1)
+                if (!completions.includes(name))
                   completions.push(name);
               }
             }
@@ -659,7 +659,7 @@
 
               firstWordSuffix = ": ";
 
-              completions = [b for (b of this.buddies.keys())];
+              completions = Array.from(this.buddies.keys());
 
               // Add recently parted nicks.
               const kIncludeNickTimespan = 300000;
@@ -682,12 +682,12 @@
                 let separator = text.substring(wordStart - 2, wordStart);
                 if (separator == ": " || separator == ", ") {
                   let preceding = text.substring(0, wordStart - 2).split(", ");
-                  if (preceding.every(n => completions.indexOf(n) != -1)) {
+                  if (preceding.every(n => completions.includes(n))) {
                     secondNick = true;
                     isFirstWord = true;
                     // Remove preceding completions from possible completions.
                     completions = completions.filter(c =>
-                      preceding.indexOf(c) == -1);
+                      !preceding.includes(c));
                   }
                 }
               }
@@ -760,7 +760,7 @@
               // If one of the completions is the sender of the last ping,
               // take it, if it was less than an hour ago.
               if (this._lastPing && this.buddies.has(this._lastPing) &&
-                  this._completions.indexOf(this._lastPing) != -1 &&
+                  this._completions.includes(this._lastPing) &&
                   (Date.now() / 1000 - this._lastPingTime) < 3600) {
                 preferredNick = true;
                 this._completionsIndex = this._completions.indexOf(this._lastPing);
@@ -1014,7 +1014,7 @@
         <parameter name="event"/>
         <body>
         <![CDATA[
-          let isMac = navigator.platform.indexOf("Mac") >= 0;
+          let isMac = navigator.platform.includes("Mac");
           let accelKeyPressed = isMac? event.metaKey : event.ctrlKey;
 
           // 118 is the decimal code for "v" character, 13 keyCode for "return" key
@@ -1077,15 +1077,15 @@
                 return;
               // Add msg.who to leading list of nicks.
               let text = this.editor.value;
-              if (text.indexOf(msg.who) != -1)
+              if (text.includes(msg.who))
                 return;
               let secondNick = false;
               let pos = text.indexOf(":");
               if (pos != -1) {
-                let completions = [b for (b of this.buddies.keys())];
+                let completions = Array.from(this.buddies.keys());
                 // Check if the preceding words are a sequence of nicks.
                 let preceding = text.substring(0, pos).split(", ");
-                if (preceding.every(n => completions.indexOf(n) != -1))
+                if (preceding.every(n => completions.includes(n)))
                   secondNick = true;
               }
               this.addPrompt(msg.who + (secondNick ? ", " : ": "));
@@ -1124,7 +1124,7 @@
         <![CDATA[
           let editor = this.editor;
           let currentEditorValue = editor.value;
-          if (currentEditorValue.indexOf(aPrompt) != 0)
+          if (!currentEditorValue.startsWith(aPrompt))
             editor.value = aPrompt + currentEditorValue;
           editor.focus();
           this.inputValueChanged();
@@ -1350,12 +1350,14 @@
           if (!aOldName) {
             // If aOldName is null, we are changing the flags of the buddy
             let item = this.buddies.get(name);
+            if (!item)
+              throw "Changing the flags of a chat buddy that does not exist: " + name;
             item.chatBuddy = aBuddy;
             this.setBuddyAttributes(item);
             return;
           }
 
-          // Is aOldName is not null, then we are renaming the buddy
+          // If aOldName is not null, then we are renaming the buddy
           if (!this.buddies.has(aOldName))
             throw "Updating a chat buddy that does not exist: " + aOldName;
 
@@ -2090,7 +2092,7 @@
           // Cancel any ongoing edit if the binding changes.
           this.editing = false;
 
-          if (navigator.platform.indexOf("Mac") >= 0) {
+          if (navigator.platform.includes("Mac")) {
             if ("draghandle" in this)
               return;
             if (!("WindowDraggingElement" in window))

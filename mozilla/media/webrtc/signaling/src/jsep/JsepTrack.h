@@ -5,6 +5,8 @@
 #ifndef _JSEPTRACK_H_
 #define _JSEPTRACK_H_
 
+#include <functional>
+#include <algorithm>
 #include <string>
 #include <map>
 #include <set>
@@ -27,6 +29,10 @@ namespace mozilla {
 class JsepTrackNegotiatedDetails
 {
 public:
+  JsepTrackNegotiatedDetails() :
+    mTias(0)
+  {}
+
   size_t
   GetEncodingCount() const
   {
@@ -50,9 +56,23 @@ public:
     return nullptr;
   }
 
+  void
+  ForEachRTPHeaderExtension(
+    const std::function<void(const SdpExtmapAttributeList::Extmap& extmap)> & fn) const
+  {
+    for(auto entry: mExtmap) {
+      fn(entry.second);
+    }
+  }
+
   std::vector<uint8_t> GetUniquePayloadTypes() const
   {
     return mUniquePayloadTypes;
+  }
+
+  uint32_t GetTias() const
+  {
+    return mTias;
   }
 
 private:
@@ -61,6 +81,7 @@ private:
   std::map<std::string, SdpExtmapAttributeList::Extmap> mExtmap;
   std::vector<uint8_t> mUniquePayloadTypes;
   PtrVector<JsepTrackEncoding> mEncodings;
+  uint32_t mTias; // bits per second
 };
 
 class JsepTrack
@@ -73,7 +94,8 @@ public:
       : mType(type),
         mStreamId(streamid),
         mTrackId(trackid),
-        mDirection(direction)
+        mDirection(direction),
+        mActive(false)
   {}
 
   virtual mozilla::SdpMediaSection::MediaType
@@ -133,11 +155,40 @@ public:
   virtual void
   AddSsrc(uint32_t ssrc)
   {
-    mSsrcs.push_back(ssrc);
+    if (mType != SdpMediaSection::kApplication) {
+      mSsrcs.push_back(ssrc);
+    }
+  }
+
+  bool
+  GetActive() const
+  {
+    return mActive;
+  }
+
+  void
+  SetActive(bool active)
+  {
+    mActive = active;
   }
 
   virtual void PopulateCodecs(
       const std::vector<JsepCodecDescription*>& prototype);
+
+  template <class UnaryFunction>
+  void ForEachCodec(UnaryFunction func)
+  {
+    std::for_each(mPrototypeCodecs.values.begin(),
+                  mPrototypeCodecs.values.end(), func);
+  }
+
+  template <class BinaryPredicate>
+  void SortCodecs(BinaryPredicate sorter)
+  {
+    std::stable_sort(mPrototypeCodecs.values.begin(),
+                     mPrototypeCodecs.values.end(), sorter);
+  }
+
   virtual void AddToOffer(SdpMediaSection* offer) const;
   virtual void AddToAnswer(const SdpMediaSection& offer,
                            SdpMediaSection* answer) const;
@@ -185,6 +236,12 @@ public:
     mJsEncodeConstraints = constraintsList;
   }
 
+  void GetJsConstraints(std::vector<JsConstraints>* outConstraintsList) const
+  {
+    MOZ_ASSERT(outConstraintsList);
+    *outConstraintsList = mJsEncodeConstraints;
+  }
+
   static void AddToMsection(const std::vector<JsConstraints>& constraintsList,
                             sdp::Direction direction,
                             SdpMediaSection* msection);
@@ -211,15 +268,12 @@ private:
       const std::vector<JsepCodecDescription*>& negotiatedCodecs,
       JsepTrackNegotiatedDetails* details);
 
-  // |answer| is set when performing the final negotiation on completion of
-  // offer/answer, and is used to update the formats in |codecs|, since the
-  // answer is authoritative. |formatChanges| is also set on completion of
-  // offer/answer, and records how the formats in |codecs| were changed, which
-  // is used by |Negotiate| to update |mPrototypeCodecs|.
+  // |formatChanges| is set on completion of offer/answer, and records how the
+  // formats in |codecs| were changed, which is used by |Negotiate| to update
+  // |mPrototypeCodecs|.
   virtual void NegotiateCodecs(
       const SdpMediaSection& remote,
       std::vector<JsepCodecDescription*>* codecs,
-      const SdpMediaSection* answer = nullptr,
       std::map<std::string, std::string>* formatChanges = nullptr) const;
 
   JsConstraints* FindConstraints(
@@ -240,18 +294,33 @@ private:
   std::vector<JsConstraints> mJsEncodeConstraints;
   UniquePtr<JsepTrackNegotiatedDetails> mNegotiatedDetails;
   std::vector<uint32_t> mSsrcs;
+  bool mActive;
 };
 
 // Need a better name for this.
 struct JsepTrackPair {
   size_t mLevel;
   // Is this track pair sharing a transport with another?
-  Maybe<size_t> mBundleLevel;
+  size_t mBundleLevel = SIZE_MAX; // SIZE_MAX if no bundle level
   uint32_t mRecvonlySsrc;
   RefPtr<JsepTrack> mSending;
   RefPtr<JsepTrack> mReceiving;
   RefPtr<JsepTransport> mRtpTransport;
   RefPtr<JsepTransport> mRtcpTransport;
+
+  bool HasBundleLevel() const {
+    return mBundleLevel != SIZE_MAX;
+  }
+
+  size_t BundleLevel() const {
+    MOZ_ASSERT(HasBundleLevel());
+    return mBundleLevel;
+  }
+
+  void SetBundleLevel(size_t aBundleLevel) {
+    MOZ_ASSERT(aBundleLevel != SIZE_MAX);
+    mBundleLevel = aBundleLevel;
+  }
 };
 
 } // namespace mozilla

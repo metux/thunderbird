@@ -35,7 +35,7 @@ var gAccountManager = {
     Services.logins.initializationPromise.then(() => {
       this.accountList = document.getElementById("accountlist");
       let defaultID;
-      for (let acc in this.getAccounts()) {
+      for (let acc of this.getAccounts()) {
         var elt = document.createElement("richlistitem");
         this.accountList.appendChild(elt);
         elt.build(acc);
@@ -76,7 +76,7 @@ var gAccountManager = {
   _updateAccountList: function am__updateAccountList() {
     let accountList = this.accountList;
     let i = 0;
-    for (let acc in this.getAccounts()) {
+    for (let acc of this.getAccounts()) {
       let oldItem = accountList.getItemAtIndex(i);
       if (oldItem.id != acc.id) {
         let accElt = document.getElementById(acc.id);
@@ -235,14 +235,11 @@ var gAccountManager = {
     let account = this.accountList.selectedItem.account;
     let text = account.getDebugMessages().map(function(dbgMsg) {
       let m = dbgMsg.message;
-      const dateServ = Cc["@mozilla.org/intl/scriptabledateformat;1"]
-                         .getService(Ci.nsIScriptableDateFormat);
       let time = new Date(m.timeStamp);
-      time = dateServ.FormatDateTime("", dateServ.dateFormatShort,
-                                     dateServ.timeFormatSeconds,
-                                     time.getFullYear(), time.getMonth() + 1,
-                                     time.getDate(), time.getHours(),
-                                     time.getMinutes(), time.getSeconds());
+      const dateTimeFormatter = Services.intl.createDateTimeFormat(undefined, {
+        dateStyle: "short", timeStyle: "long"
+      });
+      time = dateTimeFormatter.format(time);
       let level = dbgMsg.logLevel;
       if (!level)
         return "(" + m.errorMessage + ")";
@@ -469,7 +466,7 @@ var gAccountManager = {
     Services.prefs.setCharPref("messenger.accounts", array.join(","));
   },
 
-  getAccounts: function am_getAccounts() {
+  getAccounts: function* am_getAccounts() {
     let accounts = Services.accounts.getAccounts();
     while (accounts.hasMoreElements())
       yield accounts.getNext();
@@ -485,7 +482,7 @@ var gAccountManager = {
     var autoLoginStatus = as.autoLoginStatus;
     let isOffline = false;
     let crashCount = 0;
-    for (let acc in this.getAccounts())
+    for (let acc of this.getAccounts())
       if (acc.autoLogin && acc.firstConnectionState == acc.FIRST_CONNECTION_CRASHED)
         ++crashCount;
 
@@ -555,7 +552,7 @@ var gAccountManager = {
     gAccountManager.accountList.selectedItem.buttons.setFocus();
   },
   processCrashedAccountsLogin: function am_processCrashedAccountsLogin() {
-    for (let acc in gAccountManager.getAccounts())
+    for (let acc of gAccountManager.getAccounts())
       if (acc.disconnected && acc.autoLogin &&
           acc.firstConnectionState == acc.FIRST_CONNECTION_CRASHED)
         acc.connect();

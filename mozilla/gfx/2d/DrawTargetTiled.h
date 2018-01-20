@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -7,6 +8,9 @@
 #define MOZILLA_GFX_DRAWTARGETTILED_H_
 
 #include "2D.h"
+
+#include "mozilla/Vector.h"
+
 #include "Filters.h"
 #include "Logging.h"
 
@@ -41,8 +45,9 @@ public:
   virtual DrawTargetType GetType() const override { return mTiles[0].mDrawTarget->GetType(); }
   virtual BackendType GetBackendType() const override { return mTiles[0].mDrawTarget->GetBackendType(); }
   virtual already_AddRefed<SourceSurface> Snapshot() override;
+  virtual void DetachAllSnapshots() override;
   virtual IntSize GetSize() override {
-    MOZ_ASSERT(mRect.width > 0 && mRect.height > 0);
+    MOZ_ASSERT(mRect.Width() > 0 && mRect.Height() > 0);
     return IntSize(mRect.XMost(), mRect.YMost());
   }
 
@@ -61,7 +66,7 @@ public:
                                      const Color &aColor,
                                      const Point &aOffset,
                                      Float aSigma,
-                                     CompositionOp aOperator) override { /* Not implemented */ MOZ_CRASH(); }
+                                     CompositionOp aOperator) override { /* Not implemented */ MOZ_CRASH("GFX: DrawSurfaceWithShadow"); }
 
   virtual void ClearRect(const Rect &aRect) override;
   virtual void MaskSurface(const Pattern &aSource,
@@ -95,16 +100,24 @@ public:
   virtual void FillGlyphs(ScaledFont *aFont,
                           const GlyphBuffer &aBuffer,
                           const Pattern &aPattern,
-                          const DrawOptions &aOptions = DrawOptions(),
-                          const GlyphRenderingOptions *aRenderingOptions = nullptr) override;
+                          const DrawOptions &aOptions = DrawOptions()) override;
   virtual void Mask(const Pattern &aSource,
                     const Pattern &aMask,
                     const DrawOptions &aOptions = DrawOptions()) override;
   virtual void PushClip(const Path *aPath) override;
   virtual void PushClipRect(const Rect &aRect) override;
   virtual void PopClip() override;
+  virtual void PushLayer(bool aOpaque, Float aOpacity,
+                         SourceSurface* aMask,
+                         const Matrix& aMaskTransform,
+                         const IntRect& aBounds = IntRect(),
+                         bool aCopyBackground = false) override;
+  virtual void PopLayer() override;
+
 
   virtual void SetTransform(const Matrix &aTransform) override;
+
+  virtual void SetPermitSubpixelAA(bool aPermitSubpixelAA) override;
 
   virtual already_AddRefed<SourceSurface> CreateSourceSurfaceFromData(unsigned char *aData,
                                                                   const IntSize &aSize,
@@ -149,8 +162,22 @@ public:
 
 private:
   std::vector<TileInternal> mTiles;
-  std::vector<std::vector<uint32_t> > mClippedOutTilesStack;
+
+  // mClippedOutTilesStack[clipIndex][tileIndex] is true if the tile at
+  // tileIndex has become completely clipped out at the clip stack depth
+  // clipIndex.
+  Vector<std::vector<bool>,8> mClippedOutTilesStack;
+
   IntRect mRect;
+
+  struct PushedLayer
+  {
+    explicit PushedLayer(bool aOldPermitSubpixelAA)
+      : mOldPermitSubpixelAA(aOldPermitSubpixelAA)
+    {}
+    bool mOldPermitSubpixelAA;
+  };
+  std::vector<PushedLayer> mPushedLayers;
 };
 
 class SnapshotTiled : public SourceSurface
@@ -167,7 +194,7 @@ public:
 
   virtual SurfaceType GetType() const { return SurfaceType::TILED; }
   virtual IntSize GetSize() const {
-    MOZ_ASSERT(mRect.width > 0 && mRect.height > 0);
+    MOZ_ASSERT(mRect.Width() > 0 && mRect.Height() > 0);
     return IntSize(mRect.XMost(), mRect.YMost());
   }
   virtual SurfaceFormat GetFormat() const { return mSnapshots[0]->GetFormat(); }

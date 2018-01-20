@@ -3,6 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 Components.utils.import("resource:///modules/mailServices.js");
+Components.utils.import("resource:///modules/iteratorUtils.jsm");
+Components.utils.import("resource://gre/modules/Services.jsm");
 
 var gOkButton;
 var gNameInput;
@@ -30,8 +32,12 @@ function abNameOnLoad()
   // rename).
   var bundle = document.getElementById("bundle_addressBook");
 
-  document.title = bundle.getString(gDirectory ?
-    'renameAddressBookTitle' : 'newAddressBookTitle');
+  if (gDirectory) {
+    let oldListName = gDirectory.dirName;
+    document.title = bundle.getFormattedString("addressBookTitleEdit", [oldListName]);
+  } else {
+    document.title = bundle.getString("addressBookTitleNew");
+  }
 
   if (gDirectory &&
      (gDirectory.URI == kCollectedAddressbookURI ||
@@ -51,6 +57,20 @@ function abNameOnLoad()
 function abNameOKButton()
 {
   var newName = gNameInput.value.trim();
+
+  // Do not allow an already existing name.
+  for (let ab of fixIterator(MailServices.ab.directories,
+                             Components.interfaces.nsIAbDirectory)) {
+    if ((ab.dirName.toLowerCase() == newName.toLowerCase()) &&
+        (!gDirectory || (ab.URI != gDirectory.URI))) {
+      const kAlertTitle = document.getElementById("bundle_addressBook")
+                                  .getString("duplicateNameTitle");
+      const kAlertText = document.getElementById("bundle_addressBook")
+                                 .getFormattedString("duplicateNameText", [ab.dirName]);
+      Services.prompt.alert(window, kAlertTitle, kAlertText);
+      return false;
+    }
+  }
 
   // Either create a new directory or update an existing one depending on what
   // we were given when we started.

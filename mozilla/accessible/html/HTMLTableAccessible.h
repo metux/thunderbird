@@ -11,6 +11,7 @@
 #include "TableCellAccessible.h"
 
 class nsITableCellLayout;
+class nsTableCellFrame;
 
 namespace mozilla {
 namespace a11y {
@@ -52,6 +53,11 @@ protected:
    * Return nsITableCellLayout of the table cell frame.
    */
   nsITableCellLayout* GetCellLayout() const;
+
+  /**
+   * Return the table cell frame.
+   */
+  nsTableCellFrame* GetCellFrame() const;
 
   /**
    * Return row and column indices of the cell.
@@ -157,12 +163,13 @@ public:
   virtual already_AddRefed<nsIPersistentProperties> NativeAttributes() override;
   virtual Relation RelationByType(RelationType aRelationType) override;
 
+  virtual bool InsertChildAt(uint32_t aIndex, Accessible* aChild) override;
+
 protected:
   virtual ~HTMLTableAccessible() {}
 
   // Accessible
   virtual ENameValueFlag NativeName(nsString& aName) override;
-  virtual void CacheChildren() override;
 
   // HTMLTableAccessible
 
@@ -209,7 +216,7 @@ class HTMLCaptionAccessible : public HyperTextAccessibleWrap
 {
 public:
   HTMLCaptionAccessible(nsIContent* aContent, DocAccessible* aDoc) :
-    HyperTextAccessibleWrap(aContent, aDoc) { }
+    HyperTextAccessibleWrap(aContent, aDoc) { mType = eHTMLCaptionType; }
 
   // Accessible
   virtual a11y::role NativeRole() override;

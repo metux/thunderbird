@@ -8,11 +8,11 @@
 #define PannerNode_h_
 
 #include "AudioNode.h"
+#include "AudioParam.h"
 #include "mozilla/dom/PannerNodeBinding.h"
 #include "ThreeDPoint.h"
 #include "mozilla/WeakPtr.h"
-#include "mozilla/Preferences.h"
-#include "WebAudioUtils.h"
+#include <limits>
 #include <set>
 
 namespace mozilla {
@@ -20,19 +20,30 @@ namespace dom {
 
 class AudioContext;
 class AudioBufferSourceNode;
+struct PannerOptions;
 
 class PannerNode final : public AudioNode,
                          public SupportsWeakPtr<PannerNode>
 {
 public:
+  static already_AddRefed<PannerNode>
+  Create(AudioContext& aAudioContext, const PannerOptions& aOptions,
+         ErrorResult& aRv);
+
   MOZ_DECLARE_WEAKREFERENCE_TYPENAME(PannerNode)
-  explicit PannerNode(AudioContext* aContext);
 
-  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+  static already_AddRefed<PannerNode>
+  Constructor(const GlobalObject& aGlobal, AudioContext& aAudioContext,
+              const PannerOptions& aOptions, ErrorResult& aRv)
+  {
+    return Create(aAudioContext, aOptions, aRv);
+  }
 
-  virtual void DestroyMediaStream() override;
+  JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
-  virtual void SetChannelCount(uint32_t aChannelCount, ErrorResult& aRv) override
+  void DestroyMediaStream() override;
+
+  void SetChannelCount(uint32_t aChannelCount, ErrorResult& aRv) override
   {
     if (aChannelCount > 2) {
       aRv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
@@ -40,7 +51,7 @@ public:
     }
     AudioNode::SetChannelCount(aChannelCount, aRv);
   }
-  virtual void SetChannelCountModeValue(ChannelCountMode aMode, ErrorResult& aRv) override
+  void SetChannelCountModeValue(ChannelCountMode aMode, ErrorResult& aRv) override
   {
     if (aMode == ChannelCountMode::Max) {
       aRv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
@@ -56,11 +67,7 @@ public:
   {
     return mPanningModel;
   }
-  void SetPanningModel(PanningModelType aPanningModel)
-  {
-    mPanningModel = aPanningModel;
-    SendInt32ParameterToStream(PANNING_MODEL, int32_t(mPanningModel));
-  }
+  void SetPanningModel(PanningModelType aPanningModel);
 
   DistanceModelType DistanceModel() const
   {
@@ -74,28 +81,28 @@ public:
 
   void SetPosition(double aX, double aY, double aZ)
   {
-    if (WebAudioUtils::FuzzyEqual(mPosition.x, aX) &&
-        WebAudioUtils::FuzzyEqual(mPosition.y, aY) &&
-        WebAudioUtils::FuzzyEqual(mPosition.z, aZ)) {
+    if (fabs(aX) > std::numeric_limits<float>::max() ||
+        fabs(aY) > std::numeric_limits<float>::max() ||
+        fabs(aZ) > std::numeric_limits<float>::max()) {
       return;
     }
-    mPosition.x = aX;
-    mPosition.y = aY;
-    mPosition.z = aZ;
-    SendThreeDPointParameterToStream(POSITION, mPosition);
+    mPositionX->SetValue(aX);
+    mPositionY->SetValue(aY);
+    mPositionZ->SetValue(aZ);
+    SendThreeDPointParameterToStream(POSITION, ConvertAudioParamTo3DP(mPositionX, mPositionY, mPositionZ));
   }
 
   void SetOrientation(double aX, double aY, double aZ)
   {
-    ThreeDPoint orientation(aX, aY, aZ);
-    if (!orientation.IsZero()) {
-      orientation.Normalize();
-    }
-    if (mOrientation.FuzzyEqual(orientation)) {
+    if (fabs(aX) > std::numeric_limits<float>::max() ||
+        fabs(aY) > std::numeric_limits<float>::max() ||
+        fabs(aZ) > std::numeric_limits<float>::max()) {
       return;
     }
-    mOrientation = orientation;
-    SendThreeDPointParameterToStream(ORIENTATION, mOrientation);
+    mOrientationX->SetValue(aX);
+    mOrientationY->SetValue(aY);
+    mOrientationZ->SetValue(aZ);
+    SendThreeDPointParameterToStream(ORIENTATION, ConvertAudioParamTo3DP(mOrientationX, mOrientationY, mOrientationZ));
   }
 
   void SetVelocity(double aX, double aY, double aZ)
@@ -190,23 +197,54 @@ public:
     SendDoubleParameterToStream(CONE_OUTER_GAIN, mConeOuterGain);
   }
 
+  AudioParam* PositionX()
+  {
+    return mPositionX;
+  }
+
+  AudioParam* PositionY()
+  {
+    return mPositionY;
+  }
+
+  AudioParam* PositionZ()
+  {
+    return mPositionZ;
+  }
+
+  AudioParam* OrientationX()
+  {
+    return mOrientationX;
+  }
+
+  AudioParam* OrientationY()
+  {
+    return mOrientationY;
+  }
+
+  AudioParam* OrientationZ()
+  {
+    return mOrientationZ;
+  }
+
+
   float ComputeDopplerShift();
   void SendDopplerToSourcesIfNeeded();
   void FindConnectedSources();
   void FindConnectedSources(AudioNode* aNode, nsTArray<AudioBufferSourceNode*>& aSources, std::set<AudioNode*>& aSeenNodes);
 
-  virtual const char* NodeType() const override
+  const char* NodeType() const override
   {
     return "PannerNode";
   }
 
-  virtual size_t SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const override;
-  virtual size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const override;
-
-protected:
-  virtual ~PannerNode();
+  size_t SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const override;
+  size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const override;
 
 private:
+  explicit PannerNode(AudioContext* aContext);
+  ~PannerNode();
+
   friend class AudioListener;
   friend class PannerNodeEngine;
   enum EngineParameters {
@@ -219,7 +257,13 @@ private:
     PANNING_MODEL,
     DISTANCE_MODEL,
     POSITION,
+    POSITIONX,
+    POSITIONY,
+    POSITIONZ,
     ORIENTATION, // unit length or zero
+    ORIENTATIONX,
+    ORIENTATIONY,
+    ORIENTATIONZ,
     VELOCITY,
     REF_DISTANCE,
     MAX_DISTANCE,
@@ -229,12 +273,21 @@ private:
     CONE_OUTER_GAIN
   };
 
-private:
+  ThreeDPoint ConvertAudioParamTo3DP(RefPtr <AudioParam> aX, RefPtr <AudioParam> aY, RefPtr <AudioParam> aZ)
+  {
+    return ThreeDPoint(aX->GetValue(), aY->GetValue(), aZ->GetValue());
+  }
+
   PanningModelType mPanningModel;
   DistanceModelType mDistanceModel;
-  ThreeDPoint mPosition;
-  ThreeDPoint mOrientation;
+  RefPtr<AudioParam> mPositionX;
+  RefPtr<AudioParam> mPositionY;
+  RefPtr<AudioParam> mPositionZ;
+  RefPtr<AudioParam> mOrientationX;
+  RefPtr<AudioParam> mOrientationY;
+  RefPtr<AudioParam> mOrientationZ;
   ThreeDPoint mVelocity;
+
   double mRefDistance;
   double mMaxDistance;
   double mRolloffFactor;
@@ -251,4 +304,3 @@ private:
 } // namespace mozilla
 
 #endif
-

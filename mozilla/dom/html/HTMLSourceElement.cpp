@@ -9,12 +9,11 @@
 
 #include "mozilla/dom/HTMLImageElement.h"
 #include "mozilla/dom/ResponsiveImageSelector.h"
+#include "mozilla/dom/MediaList.h"
 #include "mozilla/dom/MediaSource.h"
 
 #include "nsGkAtoms.h"
 
-#include "nsIMediaList.h"
-#include "nsCSSParser.h"
 #include "nsHostObjectProtocolHandler.h"
 
 #include "mozilla/Preferences.h"
@@ -36,20 +35,9 @@ HTMLSourceElement::~HTMLSourceElement()
 NS_IMPL_CYCLE_COLLECTION_INHERITED(HTMLSourceElement, nsGenericHTMLElement,
                                    mSrcMediaSource)
 
-NS_IMPL_ADDREF_INHERITED(HTMLSourceElement, nsGenericHTMLElement)
-NS_IMPL_RELEASE_INHERITED(HTMLSourceElement, nsGenericHTMLElement)
-
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(HTMLSourceElement)
-  NS_INTERFACE_MAP_ENTRY(nsIDOMHTMLSourceElement)
-NS_INTERFACE_MAP_END_INHERITING(nsGenericHTMLElement)
+NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED_0(HTMLSourceElement, nsGenericHTMLElement)
 
 NS_IMPL_ELEMENT_CLONE(HTMLSourceElement)
-
-NS_IMPL_URI_ATTR(HTMLSourceElement, Src, src)
-NS_IMPL_STRING_ATTR(HTMLSourceElement, Type, type)
-NS_IMPL_STRING_ATTR(HTMLSourceElement, Srcset, srcset)
-NS_IMPL_STRING_ATTR(HTMLSourceElement, Sizes, sizes)
-NS_IMPL_STRING_ATTR(HTMLSourceElement, Media, media)
 
 bool
 HTMLSourceElement::MatchesCurrentMedia()
@@ -57,7 +45,7 @@ HTMLSourceElement::MatchesCurrentMedia()
   if (mMediaList) {
     nsIPresShell* presShell = OwnerDoc()->GetShell();
     nsPresContext* pctx = presShell ? presShell->GetPresContext() : nullptr;
-    return pctx && mMediaList->Matches(pctx, nullptr);
+    return pctx && mMediaList->Matches(pctx);
   }
 
   // No media specified
@@ -75,17 +63,35 @@ HTMLSourceElement::WouldMatchMediaForDocument(const nsAString& aMedia,
   nsIPresShell* presShell = aDocument->GetShell();
   nsPresContext* pctx = presShell ? presShell->GetPresContext() : nullptr;
 
-  nsCSSParser cssParser;
-  RefPtr<nsMediaList> mediaList = new nsMediaList();
-  cssParser.ParseMediaList(aMedia, nullptr, 0, mediaList, false);
+  RefPtr<MediaList> mediaList =
+    MediaList::Create(aDocument->GetStyleBackendType(), aMedia);
+  return pctx && mediaList->Matches(pctx);
+}
 
-  return pctx && mediaList->Matches(pctx, nullptr);
+void
+HTMLSourceElement::UpdateMediaList(const nsAttrValue* aValue)
+{
+  mMediaList = nullptr;
+  nsString mediaStr;
+  if (!aValue || (mediaStr = aValue->GetStringValue()).IsEmpty()) {
+    return;
+  }
+
+  mMediaList = MediaList::Create(OwnerDoc()->GetStyleBackendType(), mediaStr);
 }
 
 nsresult
-HTMLSourceElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
-                                const nsAttrValue* aValue, bool aNotify)
+HTMLSourceElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
+                                const nsAttrValue* aValue,
+                                const nsAttrValue* aOldValue,
+                                nsIPrincipal* aMaybeScriptedPrincipal,
+                                bool aNotify)
 {
+  if (aNameSpaceID == kNameSpaceID_None && aName == nsGkAtoms::srcset) {
+    mSrcsetTriggeringPrincipal = nsContentUtils::GetAttrTriggeringPrincipal(
+        this, aValue ? aValue->GetStringValue() : EmptyString(),
+        aMaybeScriptedPrincipal);
+  }
   // If we are associated with a <picture> with a valid <img>, notify it of
   // responsive parameter changes
   Element *parent = nsINode::GetParentElement();
@@ -105,24 +111,21 @@ HTMLSourceElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
           img->PictureSourceSrcsetChanged(AsContent(), strVal, aNotify);
         } else if (aName == nsGkAtoms::sizes) {
           img->PictureSourceSizesChanged(AsContent(), strVal, aNotify);
-        } else if (aName == nsGkAtoms::media ||
-                   aName == nsGkAtoms::type) {
+        } else if (aName == nsGkAtoms::media) {
+          UpdateMediaList(aValue);
+          img->PictureSourceMediaOrTypeChanged(AsContent(), aNotify);
+        } else if (aName == nsGkAtoms::type) {
           img->PictureSourceMediaOrTypeChanged(AsContent(), aNotify);
         }
       }
     }
 
   } else if (aNameSpaceID == kNameSpaceID_None && aName == nsGkAtoms::media) {
-    mMediaList = nullptr;
-    if (aValue) {
-      nsString mediaStr = aValue->GetStringValue();
-      if (!mediaStr.IsEmpty()) {
-        nsCSSParser cssParser;
-        mMediaList = new nsMediaList();
-        cssParser.ParseMediaList(mediaStr, nullptr, 0, mMediaList, false);
-      }
-    }
+    UpdateMediaList(aValue);
   } else if (aNameSpaceID == kNameSpaceID_None && aName == nsGkAtoms::src) {
+    mSrcTriggeringPrincipal = nsContentUtils::GetAttrTriggeringPrincipal(
+        this, aValue ? aValue->GetStringValue() : EmptyString(),
+        aMaybeScriptedPrincipal);
     mSrcMediaSource = nullptr;
     if (aValue) {
       nsString srcStr = aValue->GetStringValue();
@@ -135,19 +138,9 @@ HTMLSourceElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
   }
 
   return nsGenericHTMLElement::AfterSetAttr(aNameSpaceID, aName,
-                                            aValue, aNotify);
-}
-
-void
-HTMLSourceElement::GetItemValueText(DOMString& aValue)
-{
-  GetSrc(aValue);
-}
-
-void
-HTMLSourceElement::SetItemValueText(const nsAString& aValue)
-{
-  SetSrc(aValue);
+                                            aValue, aOldValue,
+                                            aMaybeScriptedPrincipal,
+                                            aNotify);
 }
 
 nsresult
@@ -165,15 +158,6 @@ HTMLSourceElement::BindToTree(nsIDocument *aDocument,
   if (aParent && aParent->IsNodeOfType(nsINode::eMEDIA)) {
     HTMLMediaElement* media = static_cast<HTMLMediaElement*>(aParent);
     media->NotifyAddedSource();
-  } else if (aParent && aParent->IsHTMLElement(nsGkAtoms::picture)) {
-    // Find any img siblings after this <source> and notify them
-    nsCOMPtr<nsIContent> sibling = AsContent();
-    while ( (sibling = sibling->GetNextSibling()) ) {
-      if (sibling->IsHTMLElement(nsGkAtoms::img)) {
-        HTMLImageElement *img = static_cast<HTMLImageElement*>(sibling.get());
-        img->PictureSourceAdded(AsContent());
-      }
-    }
   }
 
   return NS_OK;

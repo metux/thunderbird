@@ -7,14 +7,17 @@
 #define mozilla_layers_APZCCallbackHelper_h
 
 #include "FrameMetrics.h"
+#include "InputData.h"
 #include "mozilla/EventForwards.h"
-#include "mozilla/Function.h"
 #include "mozilla/layers/APZUtils.h"
 #include "nsIDOMWindowUtils.h"
+
+#include <functional>
 
 class nsIContent;
 class nsIDocument;
 class nsIPresShell;
+class nsIScrollableFrame;
 class nsIWidget;
 template<class T> struct already_AddRefed;
 template<class T> class nsCOMPtr;
@@ -22,7 +25,7 @@ template<class T> class nsCOMPtr;
 namespace mozilla {
 namespace layers {
 
-typedef Function<void(uint64_t, const nsTArray<TouchBehaviorFlags>&)>
+typedef std::function<void(uint64_t, const nsTArray<TouchBehaviorFlags>&)>
         SetAllowedTouchBehaviorCallback;
 
 /* This class contains some helper methods that facilitate implementing the
@@ -65,18 +68,8 @@ public:
        given presShell. */
     static void InitializeRootDisplayport(nsIPresShell* aPresShell);
 
-    /* Tell layout to perform scroll snapping for the scrollable frame with the
-     * given scroll id. aDestination specifies the expected landing position of
-     * a current fling or scrolling animation that should be used to select
-     * the scroll snap point.
-     */
-    static void RequestFlingSnap(const FrameMetrics::ViewID& aScrollId,
-                                 const mozilla::CSSPoint& aDestination);
-
-    /* Tell layout that we received the scroll offset update for the given view ID, so
-       that it accepts future scroll offset updates from APZ. */
-    static void AcknowledgeScrollUpdate(const FrameMetrics::ViewID& aScrollId,
-                                        const uint32_t& aScrollGeneration);
+    /* Get the pres context associated with the document enclosing |aContent|. */
+    static nsPresContext* GetPresContextForContent(nsIContent* aContent);
 
     /* Get the pres shell associated with the root content document enclosing |aContent|. */
     static nsIPresShell* GetRootContentDocumentPresShellForContent(nsIContent* aContent);
@@ -99,9 +92,9 @@ public:
                            const ScrollableLayerGuid& aGuid,
                            const CSSToLayoutDeviceScale& aScale);
 
-    /* Convenience function for applying a callback transform to all touch
-     * points of a touch event. */
-    static void ApplyCallbackTransform(WidgetTouchEvent& aEvent,
+    /* Convenience function for applying a callback transform to all refpoints
+     * in the input event. */
+    static void ApplyCallbackTransform(WidgetEvent& aEvent,
                                        const ScrollableLayerGuid& aGuid,
                                        const CSSToLayoutDeviceScale& aScale);
 
@@ -116,6 +109,7 @@ public:
                                                        uint64_t aTime,
                                                        const LayoutDevicePoint& aRefPoint,
                                                        Modifiers aModifiers,
+                                                       int32_t aClickCount,
                                                        nsIWidget* aWidget);
 
     /* Dispatch a mouse event with the given parameters.
@@ -127,12 +121,14 @@ public:
                                    int32_t aClickCount,
                                    int32_t aModifiers,
                                    bool aIgnoreRootScrollFrame,
-                                   unsigned short aInputSourceArg);
+                                   unsigned short aInputSourceArg,
+                                   uint32_t aPointerId);
 
     /* Fire a single-tap event at the given point. The event is dispatched
      * via the given widget. */
     static void FireSingleTapEvent(const LayoutDevicePoint& aPoint,
                                    Modifiers aModifiers,
+                                   int32_t aClickCount,
                                    nsIWidget* aWidget);
 
     /* Perform hit-testing on the touch points of |aEvent| to determine
@@ -143,8 +139,12 @@ public:
      * sent to the compositor, which will then post a message back to APZ's
      * controller thread. Otherwise, the provided widget's SetConfirmedTargetAPZC
      * method is invoked immediately.
+     *
+     * Returns true if any displayports need to be set. (A caller may be
+     * interested to know this, because they may need to delay certain actions
+     * until after the displayport comes into effect.)
      */
-    static void SendSetTargetAPZCNotification(nsIWidget* aWidget,
+    static bool SendSetTargetAPZCNotification(nsIWidget* aWidget,
                                               nsIDocument* aDocument,
                                               const WidgetGUIEvent& aEvent,
                                               const ScrollableLayerGuid& aGuid,
@@ -153,20 +153,63 @@ public:
     /* Figure out the allowed touch behaviors of each touch point in |aEvent|
      * and send that information to the provided callback. */
     static void SendSetAllowedTouchBehaviorNotification(nsIWidget* aWidget,
-                                                         const WidgetTouchEvent& aEvent,
-                                                         uint64_t aInputBlockId,
-                                                         const SetAllowedTouchBehaviorCallback& aCallback);
+                                                        nsIDocument* aDocument,
+                                                        const WidgetTouchEvent& aEvent,
+                                                        uint64_t aInputBlockId,
+                                                        const SetAllowedTouchBehaviorCallback& aCallback);
 
     /* Notify content of a mouse scroll testing event. */
     static void NotifyMozMouseScrollEvent(const FrameMetrics::ViewID& aScrollId, const nsString& aEvent);
 
     /* Notify content that the repaint flush is complete. */
-    static void NotifyFlushComplete();
+    static void NotifyFlushComplete(nsIPresShell* aShell);
 
-    /* Temporarily ignore the Displayport for better paint performance. */
-    static void SuppressDisplayport(const bool& aEnabled);
+    static void NotifyAsyncScrollbarDragRejected(const FrameMetrics::ViewID& aScrollId);
+    static void NotifyAsyncAutoscrollRejected(const FrameMetrics::ViewID& aScrollId);
+
+    static void CancelAutoscroll(const FrameMetrics::ViewID& aScrollId);
+
+    /* Temporarily ignore the Displayport for better paint performance. If at
+     * all possible, pass in a presShell if you have one at the call site, we
+     * use it to trigger a repaint once suppression is disabled. Without that
+     * the displayport may get left at the suppressed size for an extended
+     * period of time and result in unnecessary checkerboarding (see bug
+     * 1255054). */
+    static void SuppressDisplayport(const bool& aEnabled,
+                                    const nsCOMPtr<nsIPresShell>& aShell);
+
+    /* Whether or not displayport suppression should be turned on. Note that
+     * this only affects the return value of |IsDisplayportSuppressed()|, and
+     * doesn't change the value of the internal counter. As with
+     * SuppressDisplayport, this function should be passed a presShell to trigger
+     * a repaint if suppression is being turned off.
+     */
+    static void RespectDisplayPortSuppression(bool aEnabled,
+                                              const nsCOMPtr<nsIPresShell>& aShell);
+
+    /* Whether or not the displayport is currently suppressed. */
     static bool IsDisplayportSuppressed();
 
+    static void
+    AdjustDisplayPortForScrollDelta(mozilla::layers::FrameMetrics& aFrameMetrics,
+                                    const CSSPoint& aActualScrollOffset);
+
+    /*
+     * Check if the scrollable frame is currently in the middle of an async
+     * or smooth scroll. We want to discard certain scroll input if this is
+     * true to prevent clobbering higher priority origins.
+     */
+    static bool
+    IsScrollInProgress(nsIScrollableFrame* aFrame);
+
+    /* Notify content of the progress of a pinch gesture that APZ won't do
+     * zooming for (because the apz.allow_zooming pref is false). This function
+     * will dispatch appropriate WidgetSimpleGestureEvent events to gecko.
+     */
+    static void NotifyPinchGesture(PinchGestureInput::PinchGestureType aType,
+                                   LayoutDeviceCoord aSpanChange,
+                                   Modifiers aModifiers,
+                                   nsIWidget* aWidget);
 private:
   static uint64_t sLastTargetAPZCNotificationInputBlock;
 };

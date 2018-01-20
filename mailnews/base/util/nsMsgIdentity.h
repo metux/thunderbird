@@ -10,14 +10,14 @@
 #include "nsIPrefBranch.h"
 #include "msgCore.h"
 #include "nsCOMPtr.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 
 class NS_MSG_BASE nsMsgIdentity final : public nsIMsgIdentity
 {
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIMSGIDENTITY
-  
+
 private:
   ~nsMsgIdentity() {}
   nsCString mKey;

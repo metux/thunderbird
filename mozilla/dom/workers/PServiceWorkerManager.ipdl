@@ -3,11 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 include protocol PBackground;
+include protocol PServiceWorkerUpdater;
 
 include PBackgroundSharedTypes;
 include ServiceWorkerRegistrarTypes;
 
-using mozilla::PrincipalOriginAttributes from "mozilla/ipc/BackgroundUtils.h";
+using mozilla::OriginAttributes from "mozilla/ipc/BackgroundUtils.h";
 
 namespace mozilla {
 namespace dom {
@@ -15,30 +16,34 @@ namespace dom {
 protocol PServiceWorkerManager
 {
   manager PBackground;
+  manages PServiceWorkerUpdater;
 
 parent:
-  Register(ServiceWorkerRegistrationData data);
+  async Register(ServiceWorkerRegistrationData data);
 
-  Unregister(PrincipalInfo principalInfo, nsString scope);
+  async Unregister(PrincipalInfo principalInfo, nsString scope);
 
-  PropagateSoftUpdate(PrincipalOriginAttributes originAttributes,
-                      nsString scope);
-  PropagateUnregister(PrincipalInfo principalInfo, nsString scope);
+  async PropagateSoftUpdate(OriginAttributes originAttributes,
+                            nsString scope);
+  async PropagateUnregister(PrincipalInfo principalInfo, nsString scope);
 
-  PropagateRemove(nsCString host);
+  async PropagateRemove(nsCString host);
 
-  PropagateRemoveAll();
+  async PropagateRemoveAll();
 
-  Shutdown();
+  async Shutdown();
+
+  async PServiceWorkerUpdater(OriginAttributes originAttributes,
+                              nsCString scope);
 
 child:
-  NotifyRegister(ServiceWorkerRegistrationData data);
-  NotifySoftUpdate(PrincipalOriginAttributes originAttributes, nsString scope);
-  NotifyUnregister(PrincipalInfo principalInfo, nsString scope);
-  NotifyRemove(nsCString host);
-  NotifyRemoveAll();
+  async NotifyRegister(ServiceWorkerRegistrationData data);
+  async NotifySoftUpdate(OriginAttributes originAttributes, nsString scope);
+  async NotifyUnregister(PrincipalInfo principalInfo, nsString scope);
+  async NotifyRemove(nsCString host);
+  async NotifyRemoveAll();
 
-  __delete__();
+  async __delete__();
 };
 
 } // namespace dom

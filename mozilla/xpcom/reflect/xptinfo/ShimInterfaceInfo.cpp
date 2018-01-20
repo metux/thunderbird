@@ -7,7 +7,6 @@
 
 #include "ShimInterfaceInfo.h"
 
-#include "nsIBrowserBoxObject.h"
 #include "nsIContainerBoxObject.h"
 #include "nsIDOMAnimationEvent.h"
 #include "nsIDOMAttr.h"
@@ -20,14 +19,12 @@
 #include "nsIDOMClipboardEvent.h"
 #include "nsIDOMCommandEvent.h"
 #include "nsIDOMComment.h"
-#include "nsIDOMCompositionEvent.h"
 #include "nsIDOMCSSPrimitiveValue.h"
 #include "nsIDOMCSSStyleDeclaration.h"
 #include "nsIDOMCSSStyleSheet.h"
 #include "nsIDOMCSSValue.h"
 #include "nsIDOMCSSValueList.h"
 #include "nsIDOMCustomEvent.h"
-#include "nsIDOMDataContainerEvent.h"
 #ifdef MOZ_WEBRTC
 #include "nsIDOMDataChannel.h"
 #endif
@@ -48,55 +45,14 @@
 #include "nsIDOMFormData.h"
 #include "nsIDOMGeoPositionError.h"
 #include "nsIDOMHistory.h"
-#include "nsIDOMHTMLAnchorElement.h"
-#include "nsIDOMHTMLAppletElement.h"
-#include "nsIDOMHTMLAreaElement.h"
-#include "nsIDOMHTMLBaseElement.h"
-#include "nsIDOMHTMLBodyElement.h"
-#include "nsIDOMHTMLButtonElement.h"
-#include "nsIDOMHTMLCanvasElement.h"
 #include "nsIDOMHTMLCollection.h"
-#include "nsIDOMHTMLDirectoryElement.h"
 #include "nsIDOMHTMLDocument.h"
 #include "nsIDOMHTMLElement.h"
-#include "nsIDOMHTMLEmbedElement.h"
-#include "nsIDOMHTMLFieldSetElement.h"
 #include "nsIDOMHTMLFormElement.h"
-#include "nsIDOMHTMLFrameElement.h"
-#include "nsIDOMHTMLFrameSetElement.h"
-#include "nsIDOMHTMLHRElement.h"
-#include "nsIDOMHTMLHeadElement.h"
-#include "nsIDOMHTMLHtmlElement.h"
-#include "nsIDOMHTMLIFrameElement.h"
-#include "nsIDOMHTMLImageElement.h"
 #include "nsIDOMHTMLInputElement.h"
-#include "nsIDOMHTMLLIElement.h"
-#include "nsIDOMHTMLLabelElement.h"
-#include "nsIDOMHTMLLinkElement.h"
-#include "nsIDOMHTMLMapElement.h"
 #include "nsIDOMHTMLMediaElement.h"
-#include "nsIDOMHTMLMenuElement.h"
-#include "nsIDOMHTMLMenuItemElement.h"
-#include "nsIDOMHTMLMetaElement.h"
-#include "nsIDOMHTMLOListElement.h"
-#include "nsIDOMHTMLObjectElement.h"
-#include "nsIDOMHTMLOptGroupElement.h"
-#include "nsIDOMHTMLOptionElement.h"
-#include "nsIDOMHTMLOptionsCollection.h"
-#include "nsIDOMHTMLParagraphElement.h"
-#include "nsIDOMHTMLPreElement.h"
-#include "nsIDOMHTMLQuoteElement.h"
-#include "nsIDOMHTMLScriptElement.h"
-#include "nsIDOMHTMLSelectElement.h"
-#include "nsIDOMHTMLSourceElement.h"
-#include "nsIDOMHTMLStyleElement.h"
-#include "nsIDOMHTMLTableCellElement.h"
-#include "nsIDOMHTMLTextAreaElement.h"
-#include "nsIDOMHTMLUListElement.h"
 #include "nsIDOMKeyEvent.h"
-#include "nsIDOMMediaError.h"
 #include "nsIDOMMediaList.h"
-#include "nsIDOMMessageEvent.h"
 #include "nsIDOMMouseEvent.h"
 #include "nsIDOMMouseScrollEvent.h"
 #include "nsIDOMMutationEvent.h"
@@ -133,11 +89,13 @@
 #include "nsIDOMXULCommandEvent.h"
 #include "nsIDOMXULDocument.h"
 #include "nsIDOMXULElement.h"
+#include "nsIFrameLoader.h"
 #include "nsIListBoxObject.h"
 #include "nsIMenuBoxObject.h"
 #include "nsIScrollBoxObject.h"
 #include "nsISelection.h"
 #include "nsITreeBoxObject.h"
+#include "nsIWebBrowserPersistable.h"
 #include "nsIXMLHttpRequest.h"
 
 #include "mozilla/dom/AnimationEventBinding.h"
@@ -151,7 +109,6 @@
 #include "mozilla/dom/ClipboardEventBinding.h"
 #include "mozilla/dom/CommandEventBinding.h"
 #include "mozilla/dom/CommentBinding.h"
-#include "mozilla/dom/CompositionEventBinding.h"
 #include "mozilla/dom/ContainerBoxObjectBinding.h"
 #include "mozilla/dom/CSSPrimitiveValueBinding.h"
 #include "mozilla/dom/CSSStyleDeclarationBinding.h"
@@ -162,9 +119,7 @@
 #ifdef MOZ_WEBRTC
 #include "mozilla/dom/DataChannelBinding.h"
 #endif
-#include "mozilla/dom/DataContainerEventBinding.h"
 #include "mozilla/dom/DataTransferBinding.h"
-#include "mozilla/dom/DeviceStorageBinding.h"
 #include "mozilla/dom/DOMCursorBinding.h"
 #include "mozilla/dom/DOMExceptionBinding.h"
 #include "mozilla/dom/DOMParserBinding.h"
@@ -180,55 +135,21 @@
 #include "mozilla/dom/FileListBinding.h"
 #include "mozilla/dom/FocusEventBinding.h"
 #include "mozilla/dom/FormDataBinding.h"
+#include "mozilla/dom/FrameLoaderBinding.h"
 #include "mozilla/dom/HistoryBinding.h"
 #include "mozilla/dom/HTMLAnchorElementBinding.h"
-#include "mozilla/dom/HTMLAppletElementBinding.h"
 #include "mozilla/dom/HTMLAreaElementBinding.h"
-#include "mozilla/dom/HTMLBaseElementBinding.h"
-#include "mozilla/dom/HTMLBodyElementBinding.h"
 #include "mozilla/dom/HTMLButtonElementBinding.h"
-#include "mozilla/dom/HTMLCanvasElementBinding.h"
 #include "mozilla/dom/HTMLCollectionBinding.h"
-#include "mozilla/dom/HTMLDirectoryElementBinding.h"
 #include "mozilla/dom/HTMLDocumentBinding.h"
 #include "mozilla/dom/HTMLElementBinding.h"
-#include "mozilla/dom/HTMLEmbedElementBinding.h"
-#include "mozilla/dom/HTMLFieldSetElementBinding.h"
 #include "mozilla/dom/HTMLFormElementBinding.h"
-#include "mozilla/dom/HTMLFrameElementBinding.h"
 #include "mozilla/dom/HTMLFrameSetElementBinding.h"
-#include "mozilla/dom/HTMLHRElementBinding.h"
-#include "mozilla/dom/HTMLHeadElementBinding.h"
 #include "mozilla/dom/HTMLHtmlElementBinding.h"
-#include "mozilla/dom/HTMLIFrameElementBinding.h"
-#include "mozilla/dom/HTMLImageElementBinding.h"
 #include "mozilla/dom/HTMLInputElementBinding.h"
-#include "mozilla/dom/HTMLLIElementBinding.h"
-#include "mozilla/dom/HTMLLabelElementBinding.h"
-#include "mozilla/dom/HTMLLinkElementBinding.h"
-#include "mozilla/dom/HTMLMapElementBinding.h"
 #include "mozilla/dom/HTMLMediaElementBinding.h"
-#include "mozilla/dom/HTMLMenuElementBinding.h"
-#include "mozilla/dom/HTMLMenuItemElementBinding.h"
-#include "mozilla/dom/HTMLMetaElementBinding.h"
-#include "mozilla/dom/HTMLOListElementBinding.h"
-#include "mozilla/dom/HTMLObjectElementBinding.h"
-#include "mozilla/dom/HTMLOptGroupElementBinding.h"
-#include "mozilla/dom/HTMLOptionElementBinding.h"
-#include "mozilla/dom/HTMLOptionsCollectionBinding.h"
-#include "mozilla/dom/HTMLParagraphElementBinding.h"
-#include "mozilla/dom/HTMLPreElementBinding.h"
-#include "mozilla/dom/HTMLQuoteElementBinding.h"
-#include "mozilla/dom/HTMLScriptElementBinding.h"
-#include "mozilla/dom/HTMLSelectElementBinding.h"
-#include "mozilla/dom/HTMLSourceElementBinding.h"
-#include "mozilla/dom/HTMLStyleElementBinding.h"
-#include "mozilla/dom/HTMLTableCellElementBinding.h"
-#include "mozilla/dom/HTMLTextAreaElementBinding.h"
-#include "mozilla/dom/HTMLUListElementBinding.h"
 #include "mozilla/dom/KeyEventBinding.h"
 #include "mozilla/dom/ListBoxObjectBinding.h"
-#include "mozilla/dom/MediaErrorBinding.h"
 #include "mozilla/dom/MediaListBinding.h"
 #include "mozilla/dom/MessageEventBinding.h"
 #include "mozilla/dom/MenuBoxObjectBinding.h"
@@ -278,7 +199,7 @@
 using namespace mozilla;
 
 struct ComponentsInterfaceShimEntry {
-  MOZ_CONSTEXPR
+  constexpr
   ComponentsInterfaceShimEntry(const char* aName, const nsIID& aIID,
                                const dom::NativePropertyHooks* aNativePropHooks)
     : geckoName(aName), iid(aIID), nativePropHooks(aNativePropHooks) {}
@@ -333,7 +254,6 @@ const ComponentsInterfaceShimEntry kComponentsInterfaceShimMap[] =
   DEFINE_SHIM(AnimationEvent),
   DEFINE_SHIM(Attr),
   DEFINE_SHIM(BeforeUnloadEvent),
-  DEFINE_SHIM_WITH_CUSTOM_INTERFACE(nsIBrowserBoxObject, ContainerBoxObject),  
   DEFINE_SHIM(CanvasRenderingContext2D),
   DEFINE_SHIM(CDATASection),
   DEFINE_SHIM(CharacterData),
@@ -342,7 +262,6 @@ const ComponentsInterfaceShimEntry kComponentsInterfaceShimMap[] =
   DEFINE_SHIM(ClipboardEvent),
   DEFINE_SHIM(CommandEvent),
   DEFINE_SHIM(Comment),
-  DEFINE_SHIM(CompositionEvent),
   DEFINE_SHIM_WITH_CUSTOM_INTERFACE(nsIContainerBoxObject, ContainerBoxObject),
   DEFINE_SHIM(CSSPrimitiveValue),
   DEFINE_SHIM(CSSStyleDeclaration),
@@ -353,7 +272,6 @@ const ComponentsInterfaceShimEntry kComponentsInterfaceShimMap[] =
 #ifdef MOZ_WEBRTC
   DEFINE_SHIM(DataChannel),
 #endif
-  DEFINE_SHIM(DataContainerEvent),
   DEFINE_SHIM(DataTransfer),
   DEFINE_SHIM(DOMCursor),
   DEFINE_SHIM(DOMException),
@@ -369,59 +287,19 @@ const ComponentsInterfaceShimEntry kComponentsInterfaceShimMap[] =
   DEFINE_SHIM(FileList),
   DEFINE_SHIM(FocusEvent),
   DEFINE_SHIM(FormData),
+  DEFINE_SHIM_WITH_CUSTOM_INTERFACE(nsIFrameLoader, FrameLoader),
   DEFINE_SHIM_WITH_CUSTOM_INTERFACE(nsIDOMGeoPositionError, PositionError),
   DEFINE_SHIM(History),
-  DEFINE_SHIM(HTMLAnchorElement),
-  DEFINE_SHIM(HTMLAppletElement),
-  DEFINE_SHIM(HTMLAreaElement),
-  DEFINE_SHIM(HTMLBaseElement),
-  DEFINE_SHIM(HTMLBodyElement),
-  DEFINE_SHIM(HTMLButtonElement),
-  DEFINE_SHIM(HTMLCanvasElement),
   DEFINE_SHIM(HTMLCollection),
-  DEFINE_SHIM(HTMLDirectoryElement),
   DEFINE_SHIM(HTMLDocument),
   DEFINE_SHIM(HTMLElement),
-  DEFINE_SHIM(HTMLEmbedElement),
-  DEFINE_SHIM(HTMLFieldSetElement),
   DEFINE_SHIM(HTMLFormElement),
-  DEFINE_SHIM(HTMLFrameElement),
-  DEFINE_SHIM(HTMLFrameSetElement),
-  DEFINE_SHIM(HTMLHRElement),
-  DEFINE_SHIM(HTMLHeadElement),
-  DEFINE_SHIM(HTMLHtmlElement),
-  DEFINE_SHIM(HTMLIFrameElement),
-  DEFINE_SHIM(HTMLImageElement),
   DEFINE_SHIM(HTMLInputElement),
-  DEFINE_SHIM(HTMLLIElement),
-  DEFINE_SHIM(HTMLLabelElement),
-  DEFINE_SHIM(HTMLLinkElement),
-  DEFINE_SHIM(HTMLMapElement),
   DEFINE_SHIM(HTMLMediaElement),
-  DEFINE_SHIM(HTMLMenuElement),
-  DEFINE_SHIM(HTMLMenuItemElement),
-  DEFINE_SHIM(HTMLMetaElement),
-  DEFINE_SHIM(HTMLOListElement),
-  DEFINE_SHIM(HTMLObjectElement),
-  DEFINE_SHIM(HTMLOptGroupElement),
-  DEFINE_SHIM(HTMLOptionElement),
-  DEFINE_SHIM(HTMLOptionsCollection),
-  DEFINE_SHIM(HTMLParagraphElement),
-  DEFINE_SHIM(HTMLPreElement),
-  DEFINE_SHIM(HTMLQuoteElement),
-  DEFINE_SHIM(HTMLScriptElement),
-  DEFINE_SHIM(HTMLSelectElement),
-  DEFINE_SHIM(HTMLSourceElement),
-  DEFINE_SHIM(HTMLStyleElement),
-  DEFINE_SHIM(HTMLTableCellElement),
-  DEFINE_SHIM(HTMLTextAreaElement),
-  DEFINE_SHIM(HTMLUListElement),
   DEFINE_SHIM(KeyEvent),
   DEFINE_SHIM_WITH_CUSTOM_INTERFACE(nsIListBoxObject, ListBoxObject),
-  DEFINE_SHIM(MediaError),
   DEFINE_SHIM(MediaList),
   DEFINE_SHIM_WITH_CUSTOM_INTERFACE(nsIMenuBoxObject, MenuBoxObject),
-  DEFINE_SHIM(MessageEvent),
   DEFINE_SHIM(MouseEvent),
   DEFINE_SHIM(MouseScrollEvent),
   DEFINE_SHIM(MutationEvent),
@@ -438,7 +316,7 @@ const ComponentsInterfaceShimEntry kComponentsInterfaceShimMap[] =
   DEFINE_SHIM(Rect),
   DEFINE_SHIM(Screen),
   DEFINE_SHIM(ScrollAreaEvent),
-  DEFINE_SHIM_WITH_CUSTOM_INTERFACE(nsIScrollBoxObject, ScrollBoxObject),  
+  DEFINE_SHIM_WITH_CUSTOM_INTERFACE(nsIScrollBoxObject, ScrollBoxObject),
   DEFINE_SHIM_WITH_CUSTOM_INTERFACE(nsIDOMSerializer, XMLSerializer),
   DEFINE_SHIM(SimpleGestureEvent),
   DEFINE_SHIM(StyleSheet),
@@ -449,10 +327,11 @@ const ComponentsInterfaceShimEntry kComponentsInterfaceShimMap[] =
   DEFINE_SHIM(TimeEvent),
   DEFINE_SHIM(TimeRanges),
   DEFINE_SHIM(TransitionEvent),
-  DEFINE_SHIM_WITH_CUSTOM_INTERFACE(nsITreeBoxObject, TreeBoxObject),  
+  DEFINE_SHIM_WITH_CUSTOM_INTERFACE(nsITreeBoxObject, TreeBoxObject),
   DEFINE_SHIM(TreeWalker),
   DEFINE_SHIM(UIEvent),
   DEFINE_SHIM(ValidityState),
+  DEFINE_SHIM_WITH_CUSTOM_INTERFACE(nsIWebBrowserPersistable, FrameLoader),
   DEFINE_SHIM(WheelEvent),
   DEFINE_SHIM(XMLDocument),
   DEFINE_SHIM_WITH_CUSTOM_INTERFACE(nsIXMLHttpRequestEventTarget, XMLHttpRequestEventTarget),
@@ -506,7 +385,7 @@ ShimInterfaceInfo::GetName(char** aName)
 NS_IMETHODIMP
 ShimInterfaceInfo::GetInterfaceIID(nsIID** aIID)
 {
-    *aIID = static_cast<nsIID*> (nsMemory::Clone(&mIID, sizeof(mIID)));
+    *aIID = mIID.Clone();
     return NS_OK;
 }
 
@@ -565,8 +444,8 @@ ShimInterfaceInfo::GetConstantCount(uint16_t* aCount)
         };
         for (size_t i = 0; i < ArrayLength(props); ++i) {
             auto prop = props[i];
-            if (prop && prop->constants) {
-                for (auto cs = prop->constants->specs; cs->name; ++cs) {
+            if (prop && prop->HasConstants()) {
+                for (auto cs = prop->Constants()->specs; cs->name; ++cs) {
                     // We have found one constant here.  We explicitly do not
                     // bother calling isEnabled() here because it's OK to define
                     // potentially extra constants on these shim interfaces.
@@ -611,8 +490,8 @@ ShimInterfaceInfo::GetConstant(uint16_t aIndex, JS::MutableHandleValue aConstant
         };
         for (size_t i = 0; i < ArrayLength(props); ++i) {
             auto prop = props[i];
-            if (prop && prop->constants) {
-                for (auto cs = prop->constants->specs; cs->name; ++cs) {
+            if (prop && prop->HasConstants()) {
+                for (auto cs = prop->Constants()->specs; cs->name; ++cs) {
                     // We have found one constant here.  We explicitly do not
                     // bother calling isEnabled() here because it's OK to define
                     // potentially extra constants on these shim interfaces.

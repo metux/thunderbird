@@ -5,12 +5,20 @@
 
 #include "imgINotificationObserver.idl"
 
+%{C++
+#include "mozilla/Maybe.h"
+#include "Visibility.h"
+%}
+
 interface imgIRequest;
 interface nsIChannel;
 interface nsIStreamListener;
 interface nsIURI;
 interface nsIDocument;
 interface nsIFrame;
+
+[ref] native MaybeOnNonvisible(const mozilla::Maybe<mozilla::OnNonvisible>);
+native Visibility(mozilla::Visibility);
 
 /**
  * This interface represents a content node that loads images.  The interface
@@ -32,7 +40,7 @@ interface nsIFrame;
  * interface to mirror this interface when changing it.
  */
 
-[scriptable, builtinclass, uuid(770f7d84-c917-42d7-bf8d-d1b70649e733)]
+[scriptable, builtinclass, uuid(0357123d-9224-4d12-a47e-868c32689777)]
 interface nsIImageLoadingContent : imgINotificationObserver
 {
   /**
@@ -73,12 +81,24 @@ interface nsIImageLoadingContent : imgINotificationObserver
    *
    * @throws NS_ERROR_OUT_OF_MEMORY
    */
-  void addObserver(in imgINotificationObserver aObserver);
+  [notxpcom] nsresult addNativeObserver(in imgINotificationObserver aObserver);
 
   /**
    * Used to unregister an image decoder observer.
    *
    * @param aObserver the observer to unregister
+   */
+  [notxpcom] nsresult removeNativeObserver(in imgINotificationObserver aObserver);
+
+  /**
+   * Same as addNativeObserver but intended for scripted observers or observers
+   * from another or without a document.
+   */
+  void addObserver(in imgINotificationObserver aObserver);
+
+  /**
+   * Same as removeNativeObserver but intended for scripted observers or
+   * observers from another or without a document.
    */
   void removeObserver(in imgINotificationObserver aObserver);
   
@@ -94,6 +114,15 @@ interface nsIImageLoadingContent : imgINotificationObserver
    * known
    */
   imgIRequest getRequest(in long aRequestType);
+
+  /**
+   * Call this function when the request was blocked by any of the
+   * security policies enforced.
+   *
+   * @param aContentDecision the decision returned from nsIContentPolicy
+   *                         (any of the types REJECT_*)
+   */
+  void setBlockedRequest(in int16_t aContentDecision);
 
   /**
    * @return true if the current request's size is available.
@@ -169,18 +198,17 @@ interface nsIImageLoadingContent : imgINotificationObserver
   readonly attribute unsigned long    naturalHeight;
 
   /**
-   * A visible count is stored, if it is non-zero then this image is considered
-   * visible. These methods increment, decrement, or return the visible count.
+   * Called by layout to announce when the frame associated with this content
+   * has changed its visibility state.
    *
-   * @param aNonvisibleAction What to do if the image's visibility count is now
-   *                          zero. If ON_NONVISIBLE_NO_ACTION, nothing will be
-   *                          done. If ON_NONVISIBLE_REQUEST_DISCARD, the image
-   *                          will be asked to discard its surfaces if possible.
+   * @param aNewVisibility    The new visibility state.
+   * @param aNonvisibleAction A requested action if the frame has become
+   *                          nonvisible. If Nothing(), no action is
+   *                          requested. If DISCARD_IMAGES is specified, the
+   *                          frame is requested to ask any images it's
+   *                          associated with to discard their surfaces if
+   *                          possible.
    */
-  [noscript, notxpcom] void IncrementVisibleCount();
-  [noscript, notxpcom] void DecrementVisibleCount(in uint32_t aNonvisibleAction);
-  [noscript, notxpcom] uint32_t GetVisibleCount();
-
-  const long ON_NONVISIBLE_NO_ACTION = 0;
-  const long ON_NONVISIBLE_REQUEST_DISCARD = 1;
+  [noscript, notxpcom] void onVisibilityChange(in Visibility aNewVisibility,
+                                               in MaybeOnNonvisible aNonvisibleAction);
 };

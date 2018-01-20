@@ -3,11 +3,11 @@
 
 const url = "http://example.org/browser/browser/base/content/test/general/dummy_page.html";
 
-add_task(function* purgeHistoryTest() {
-  let tab = yield BrowserTestUtils.withNewTab({
+add_task(async function purgeHistoryTest() {
+  await BrowserTestUtils.withNewTab({
     gBrowser,
     url,
-  }, function* purgeHistoryTestInner(browser) {
+  }, async function purgeHistoryTestInner(browser) {
     let backButton = browser.ownerDocument.getElementById("Browser:Back");
     let forwardButton = browser.ownerDocument.getElementById("Browser:Forward");
 
@@ -18,19 +18,15 @@ add_task(function* purgeHistoryTest() {
     ok(backButton.hasAttribute("disabled"), "Back button is disabled");
     ok(forwardButton.hasAttribute("disabled"), "Forward button is disabled");
 
-    let pushState = ContentTask.spawn(browser, null, function*() {
+    await ContentTask.spawn(browser, null, async function() {
       let startHistory = content.history.length;
       content.history.pushState({}, "");
       content.history.pushState({}, "");
       content.history.back();
       let newHistory = content.history.length;
-      return [startHistory, newHistory];
+      Assert.equal(startHistory, 1, "Initial SHistory size");
+      Assert.equal(newHistory, 3, "New SHistory size");
     });
-
-    let [startHistory, newHistory] = yield pushState;
-
-    is(startHistory, 1, "Initial SHistory size");
-    is(newHistory, 3, "New SHistory size");
 
     ok(browser.webNavigation.canGoBack, true,
        "New value for webNavigation.canGoBack");
@@ -48,13 +44,11 @@ add_task(function* purgeHistoryTest() {
     let {Sanitizer} = tmp;
     let sanitizer = new Sanitizer();
 
-    yield sanitizer.sanitize(["history"]);
+    await sanitizer.sanitize(["history"]);
 
-    let historyAfterPurge = yield ContentTask.spawn(browser, null, function*() {
-      return content.history.length;
+    await ContentTask.spawn(browser, null, async function() {
+      Assert.equal(content.history.length, 1, "SHistory correctly cleared");
     });
-
-    is(historyAfterPurge, 1, "SHistory correctly cleared");
 
     ok(!browser.webNavigation.canGoBack,
        "webNavigation.canGoBack correctly cleared");

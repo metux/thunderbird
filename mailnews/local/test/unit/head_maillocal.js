@@ -43,10 +43,10 @@ function setupServerDaemon(debugOption) {
   return [daemon, server, extraProps];
 }
 
-function createPop3ServerAndLocalFolders(port) {
+function createPop3ServerAndLocalFolders(port, hostname="localhost") {
   localAccountUtils.loadLocalMailAccount();
   let server = localAccountUtils.create_incoming_server("pop3", port,
-							"fred", "wilma");
+    "fred", "wilma", hostname);
   return server;
 }
 
@@ -78,7 +78,7 @@ var gCopyListener =
  * A utility wrapper of nsIMsgCopyService.CopyFileMessage to copy a message
  * into local inbox folder.
  *
- * @param aMessageFile     An instance of nsILocalFile to copy.
+ * @param aMessageFile     An instance of nsIFile to copy.
  * @param aMessageFlags    Message flags which will be set after message is
  *                         copied
  * @param aMessageKeyword  Keywords which will be set for newly copied
@@ -167,3 +167,6 @@ function setup_mailbox(type, mailboxPath) {
   return incomingServer.rootFolder;
 }
 
+do_register_cleanup(function() {
+  load(gDEPTH + "mailnews/resources/mailShutdown.js");
+});

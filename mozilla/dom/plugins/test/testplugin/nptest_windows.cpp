@@ -1,11 +1,11 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * 
+ *
  * Copyright (c) 2008, Mozilla Corporation
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * * Redistributions of source code must retain the above copyright notice, this
  *   list of conditions and the following disclaimer.
  * * Redistributions in binary form must reproduce the above copyright notice,
@@ -14,7 +14,7 @@
  * * Neither the name of the Mozilla Corporation nor the names of its
  *   contributors may be used to endorse or promote products derived from this
  *   software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -25,11 +25,11 @@
  * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
+ *
  * Contributor(s):
  *   Josh Aas <josh@mozilla.com>
  *   Jim Mathies <jmathies@mozilla.com>
- * 
+ *
  * ***** END LICENSE BLOCK ***** */
 
 #include "nptest_platform.h"
@@ -77,7 +77,7 @@ pluginInstanceInit(InstanceData* instanceData)
     (NPN_MemAlloc(sizeof(PlatformData)));
   if (!instanceData->platformData)
     return NPERR_OUT_OF_MEMORY_ERROR;
-  
+
   instanceData->platformData->childWindow = nullptr;
   instanceData->platformData->device = nullptr;
   instanceData->platformData->frontBuffer = nullptr;
@@ -344,7 +344,7 @@ pluginWidgetInit(InstanceData* instanceData, void* oldWindow)
   SetSubclass(hWnd, instanceData);
 
   instanceData->platformData->childWindow =
-    ::CreateWindowW(L"SCROLLBAR", L"Dummy child window", 
+    ::CreateWindowW(L"SCROLLBAR", L"Dummy child window",
                     WS_CHILD, 0, 0, CHILD_WIDGET_SIZE, CHILD_WIDGET_SIZE, hWnd, nullptr,
                     nullptr, nullptr);
 }
@@ -624,7 +624,7 @@ addOffset(LONG coord, int32_t offset)
 }
 
 int32_t
-pluginGetClipRegionRectEdge(InstanceData* instanceData, 
+pluginGetClipRegionRectEdge(InstanceData* instanceData,
     int32_t rectIndex, RectEdge edge)
 {
   RGNDATA* data = computeClipRegion(instanceData);
@@ -652,6 +652,29 @@ pluginGetClipRegionRectEdge(InstanceData* instanceData,
   }
 
   return NPTEST_INT32_ERROR;
+}
+
+static
+void
+createDummyWindowForIME(InstanceData* instanceData)
+{
+  WNDCLASSW wndClass;
+  wndClass.style = 0;
+  wndClass.lpfnWndProc = DefWindowProcW;
+  wndClass.cbClsExtra = 0;
+  wndClass.cbWndExtra = 0;
+  wndClass.hInstance = GetModuleHandleW(NULL);
+  wndClass.hIcon = nullptr;
+  wndClass.hCursor = nullptr;
+  wndClass.hbrBackground = (HBRUSH)COLOR_WINDOW;
+  wndClass.lpszMenuName = NULL;
+  wndClass.lpszClassName = L"SWFlash_PlaceholderX";
+  RegisterClassW(&wndClass);
+
+  instanceData->placeholderWnd =
+    static_cast<void*>(CreateWindowW(L"SWFlash_PlaceholderX", L"", WS_CHILD, 0,
+                                     0, 0, 0, HWND_MESSAGE, NULL,
+                                     GetModuleHandleW(NULL), NULL));
 }
 
 /* windowless plugin events */
@@ -725,6 +748,35 @@ handleEventInternal(InstanceData* instanceData, NPEvent* pe, LRESULT* result)
       return true;
     }
 
+    case WM_IME_STARTCOMPOSITION:
+      instanceData->lastComposition.erase();
+      if (!instanceData->placeholderWnd) {
+        createDummyWindowForIME(instanceData);
+      }
+      return true;
+
+    case WM_IME_ENDCOMPOSITION:
+      instanceData->lastComposition.erase();
+      return true;
+
+    case WM_IME_COMPOSITION: {
+      if (pe->lParam & GCS_COMPSTR) {
+        HIMC hIMC = ImmGetContext((HWND)instanceData->placeholderWnd);
+        if (!hIMC) {
+          return false;
+        }
+        WCHAR compStr[256];
+        LONG len = ImmGetCompositionStringW(hIMC, GCS_COMPSTR, compStr,
+                                            256 * sizeof(WCHAR));
+        CHAR buffer[256];
+        len = ::WideCharToMultiByte(CP_UTF8, 0, compStr, len / sizeof(WCHAR),
+                                    buffer, 256, nullptr, nullptr);
+        instanceData->lastComposition.append(buffer, len);
+        ::ImmReleaseContext((HWND)instanceData->placeholderWnd, hIMC);
+      }
+      return true;
+    }
+
     default:
       return false;
   }
@@ -737,7 +789,7 @@ pluginHandleEvent(InstanceData* instanceData, void* event)
 
   if (pe == nullptr || instanceData == nullptr ||
       instanceData->window.type != NPWindowTypeDrawable)
-    return 0;   
+    return 0;
 
   LRESULT result = 0;
   return handleEventInternal(instanceData, pe, &result);

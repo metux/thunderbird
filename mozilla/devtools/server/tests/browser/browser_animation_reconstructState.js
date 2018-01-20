@@ -7,13 +7,13 @@
 // Check that, even though the AnimationPlayerActor only sends the bits of its
 // state that change, the front reconstructs the whole state everytime.
 
-add_task(function*() {
+add_task(function* () {
   let {client, walker, animations} =
     yield initAnimationsFrontForUrl(MAIN_DOMAIN + "animation.html");
 
   yield playerHasCompleteStateAtAllTimes(walker, animations);
 
-  yield closeDebuggerClient(client);
+  yield client.close();
   gBrowser.removeCurrentTab();
 });
 
@@ -29,9 +29,9 @@ function* playerHasCompleteStateAtAllTimes(walker, animations) {
   // contains all keys.
   // Normally, only the currentTime will have changed in between 2 calls.
   for (let i = 0; i < 10; i++) {
-    let state = yield player.getCurrentState();
+    yield player.refreshState();
     keys.forEach(key => {
-      ok(typeof state[key] !== "undefined",
+      ok(typeof player.state[key] !== "undefined",
          "The state retrieved has key " + key);
     });
   }

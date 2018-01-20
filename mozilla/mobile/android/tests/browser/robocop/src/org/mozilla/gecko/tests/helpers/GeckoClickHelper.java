@@ -3,7 +3,7 @@ package org.mozilla.gecko.tests.helpers;
 import android.app.Activity;
 import android.util.DisplayMetrics;
 
-import com.jayway.android.robotium.solo.Solo;
+import com.robotium.solo.Solo;
 
 import org.mozilla.gecko.Driver;
 import org.mozilla.gecko.tests.StringHelper;
@@ -36,6 +36,19 @@ public class GeckoClickHelper {
 
         // Click on "Open Link in New Tab"
         sSolo.clickOnText(StringHelper.get().CONTEXT_MENU_ITEMS_IN_NORMAL_TAB[0]);
+    }
+
+    /**
+     * Long press the link and select "Open Link in New Private Tab" from the context menu.
+     *
+     * The link should be positioned at the top of the page, at least 60px high and
+     * aligned to the middle.
+     */
+    public static void openCentralizedLinkInNewPrivateTab() {
+        openLinkContextMenu();
+
+        // Click on "Open Link in New Private Tab"
+        sSolo.clickOnText(StringHelper.get().CONTEXT_MENU_ITEMS_IN_NORMAL_TAB[1]);
     }
 
     private static void openLinkContextMenu() {

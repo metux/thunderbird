@@ -7,7 +7,8 @@ var defaultProtocolFlags =
   Ci.nsIProtocolHandler.URI_DANGEROUS_TO_LOAD |
   Ci.nsIProtocolHandler.URI_STD |
   Ci.nsIProtocolHandler.URI_FORBIDS_AUTOMATIC_DOCUMENT_REPLACEMENT |
-  Ci.nsIProtocolHandler.URI_FORBIDS_COOKIE_ACCESS;
+  Ci.nsIProtocolHandler.URI_FORBIDS_COOKIE_ACCESS |
+  Ci.nsIProtocolHandler.ORIGIN_IS_FULL_SPEC;
 
 var protocols =
   [ { protocol: "mailbox",
@@ -35,7 +36,7 @@ function run_test()
       do_check_eq(pH.allowPort(i, ""), false);
 
     // Check we get a URI when we ask for one
-    var uri = pH.newURI(protocols[part].urlSpec, "", null);
+    var uri = pH.newURI(protocols[part].urlSpec, "");
 
     uri.QueryInterface(Ci.nsIMailboxUrl);
 

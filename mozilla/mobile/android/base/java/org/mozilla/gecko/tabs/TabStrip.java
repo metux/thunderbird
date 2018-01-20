@@ -9,28 +9,38 @@ import android.content.Context;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.StateListDrawable;
 import android.graphics.Rect;
+import android.support.annotation.UiThread;
+import android.support.v4.content.ContextCompat;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
-import android.view.TouchDelegate;
 import android.view.View;
 import android.view.ViewTreeObserver;
 
-import org.mozilla.gecko.BrowserApp.Refreshable;
+import org.mozilla.gecko.BrowserApp.TabStripInterface;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.Tab;
 import org.mozilla.gecko.Tabs;
-import org.mozilla.gecko.util.ColorUtils;
+import org.mozilla.gecko.mma.MmaDelegate;
+import org.mozilla.gecko.widget.TouchDelegateWithReset;
 import org.mozilla.gecko.widget.themed.ThemedImageButton;
 import org.mozilla.gecko.widget.themed.ThemedLinearLayout;
 
+import static org.mozilla.gecko.mma.MmaDelegate.NEW_TAB;
+
+
 public class TabStrip extends ThemedLinearLayout
-                      implements Refreshable {
+                      implements TabStripInterface {
     private static final String LOGTAG = "GeckoTabStrip";
 
     private final TabStripView tabStripView;
     private final ThemedImageButton addTabButton;
 
     private final TabsListener tabsListener;
+    private OnTabAddedOrRemovedListener tabChangedListener;
+
+    // True when the tab strip isn't visible to the user due to something being drawn over it.
+    private boolean tabStripIsCovered;
+    private boolean tabsNeedUpdating;
 
     public TabStrip(Context context) {
         this(context, null);
@@ -43,7 +53,7 @@ public class TabStrip extends ThemedLinearLayout
         LayoutInflater.from(context).inflate(R.layout.tab_strip_inner, this);
         tabStripView = (TabStripView) findViewById(R.id.tab_strip);
 
-        addTabButton = (ThemedImageButton) findViewById(R.id.add_tab);
+        addTabButton = (ThemedImageButton) findViewById(R.id.tablet_add_tab);
         addTabButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -51,6 +61,7 @@ public class TabStrip extends ThemedLinearLayout
                 if (isPrivateMode()) {
                     tabs.addPrivateTab();
                 } else {
+                    MmaDelegate.track(NEW_TAB);
                     tabs.addTab();
                 }
             }
@@ -69,7 +80,7 @@ public class TabStrip extends ThemedLinearLayout
 
                     // Redirect touch events between the 'new tab' button and the edge
                     // of the screen to the 'new tab' button.
-                    setTouchDelegate(new TouchDelegate(r, addTabButton));
+                    setTouchDelegate(new TouchDelegateWithReset(r, addTabButton));
 
                     return true;
                 }
@@ -100,20 +111,31 @@ public class TabStrip extends ThemedLinearLayout
         addTabButton.setPrivateMode(isPrivate);
     }
 
+    public void setOnTabChangedListener(OnTabAddedOrRemovedListener listener) {
+        tabChangedListener = listener;
+    }
+
     private class TabsListener implements Tabs.OnTabsChangedListener {
         @Override
-        public void onTabChanged(Tab tab, Tabs.TabEvents msg, Object data) {
+        public void onTabChanged(Tab tab, Tabs.TabEvents msg, String data) {
             switch (msg) {
                 case RESTORED:
                     tabStripView.restoreTabs();
                     break;
 
                 case ADDED:
-                    tabStripView.addTab(tab);
+                    final int tabIndex = Integer.parseInt(data);
+                    tabStripView.addTab(tab, tabIndex);
+                    if (tabChangedListener != null) {
+                        tabChangedListener.onTabChanged();
+                    }
                     break;
 
                 case CLOSED:
                     tabStripView.removeTab(tab);
+                    if (tabChangedListener != null) {
+                        tabChangedListener.onTabChanged();
+                    }
                     break;
 
                 case SELECTED:
@@ -128,6 +150,14 @@ public class TabStrip extends ThemedLinearLayout
                 case AUDIO_PLAYING_CHANGE:
                     tabStripView.updateTab(tab);
                     break;
+
+                case MOVED:
+                    if (tabStripIsCovered && tab.isPrivate() == tabStripView.isPrivate()) {
+                        // One of our tabs got moved while we're visible but covered; be sure to
+                        // update the tabs list before the user can see us again.
+                        tabsNeedUpdating = true;
+                    }
+                    break;
             }
         }
     }
@@ -135,6 +165,16 @@ public class TabStrip extends ThemedLinearLayout
     @Override
     public void refresh() {
         tabStripView.refresh();
+    }
+
+    @UiThread
+    @Override
+    public void tabStripIsCovered(boolean covered) {
+        tabStripIsCovered = covered;
+        if (!tabStripIsCovered && tabsNeedUpdating) {
+            tabStripView.refreshTabs();
+            tabsNeedUpdating = false;
+        }
     }
 
     @Override
@@ -153,7 +193,7 @@ public class TabStrip extends ThemedLinearLayout
 
     @Override
     public void onLightweightThemeReset() {
-        final int defaultBackgroundColor = ColorUtils.getColor(getContext(), R.color.text_and_tabs_tray_grey);
+        final int defaultBackgroundColor = ContextCompat.getColor(getContext(), R.color.text_and_tabs_tray_grey);
         setBackgroundColor(defaultBackgroundColor);
     }
 }

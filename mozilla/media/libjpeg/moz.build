@@ -1,8 +1,11 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+with Files("**"):
+    BUG_COMPONENT = ("Core", "ImageLib")
 
 EXPORTS += [
     'jconfig.h',
@@ -66,7 +69,10 @@ SOURCES += [
     'jctrans.c',
 ]
 
-if CONFIG['LIBJPEG_TURBO_AS']:
+if CONFIG['LIBJPEG_TURBO_USE_YASM']:
+    USE_YASM = True
+
+if CONFIG['LIBJPEG_TURBO_ASFLAGS']:
     if CONFIG['CPU_ARCH'] == 'arm':
         SOURCES += [
             'simd/jsimd_arm.c',
@@ -86,6 +92,7 @@ if CONFIG['LIBJPEG_TURBO_AS']:
         SOURCES += [
             'simd/jccolor-sse2-64.asm',
             'simd/jcgray-sse2-64.asm',
+            'simd/jchuff-sse2-64.asm',
             'simd/jcsample-sse2-64.asm',
             'simd/jdcolor-sse2-64.asm',
             'simd/jdmerge-sse2-64.asm',
@@ -107,6 +114,7 @@ if CONFIG['LIBJPEG_TURBO_AS']:
             'simd/jccolor-sse2.asm',
             'simd/jcgray-mmx.asm',
             'simd/jcgray-sse2.asm',
+            'simd/jchuff-sse2.asm',
             'simd/jcsample-mmx.asm',
             'simd/jcsample-sse2.asm',
             'simd/jdcolor-mmx.asm',
@@ -147,7 +155,7 @@ ASFLAGS += CONFIG['LIBJPEG_TURBO_ASFLAGS']
 ASFLAGS += ['-I%s/media/libjpeg/simd/' % TOPSRCDIR]
 
 # We allow warnings for third-party code that can be updated from upstream.
-ALLOW_COMPILER_WARNINGS = True
+AllowCompilerWarnings()
 
 FINAL_LIBRARY = 'gkmedias'
 

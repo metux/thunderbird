@@ -12,12 +12,12 @@
 #include <gtk/gtk.h>
 
 #include "nsString.h"
-#include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
 #include "nsTArray.h"
 #include "nsIWidget.h"
 #include "mozilla/CheckedInt.h"
 #include "mozilla/EventForwards.h"
+#include "mozilla/TextEventDispatcherListener.h"
 #include "WritingModes.h"
 
 class nsWindow;
@@ -25,21 +25,32 @@ class nsWindow;
 namespace mozilla {
 namespace widget {
 
-class IMContextWrapper final
+class IMContextWrapper final : public TextEventDispatcherListener
 {
+public:
+    // TextEventDispatcherListener implementation
+    NS_DECL_ISUPPORTS
+
+    NS_IMETHOD NotifyIME(TextEventDispatcher* aTextEventDispatcher,
+                         const IMENotification& aNotification) override;
+    NS_IMETHOD_(IMENotificationRequests) GetIMENotificationRequests() override;
+    NS_IMETHOD_(void) OnRemovedFrom(
+                          TextEventDispatcher* aTextEventDispatcher) override;
+    NS_IMETHOD_(void) WillDispatchKeyboardEvent(
+                          TextEventDispatcher* aTextEventDispatcher,
+                          WidgetKeyboardEvent& aKeyboardEvent,
+                          uint32_t aIndexOfKeypress,
+                          void* aData) override;
+
 public:
     // aOwnerWindow is a pointer of the owner window.  When aOwnerWindow is
     // destroyed, the related IME contexts are released (i.e., IME cannot be
     // used with the instance after that).
     explicit IMContextWrapper(nsWindow* aOwnerWindow);
 
-    NS_INLINE_DECL_REFCOUNTING(IMContextWrapper)
-
     // "Enabled" means the users can use all IMEs.
     // I.e., the focus is in the normal editors.
     bool IsEnabled() const;
-
-    nsIMEUpdatePreference GetIMEUpdatePreference() const;
 
     // OnFocusWindow is a notification that aWindow is going to be focused.
     void OnFocusWindow(nsWindow* aWindow);
@@ -70,6 +81,8 @@ public:
     InputContext GetInputContext();
     void OnUpdateComposition();
     void OnLayoutChange();
+
+    TextEventDispatcher* GetTextEventDispatcher();
 
 protected:
     ~IMContextWrapper();
@@ -118,9 +131,9 @@ protected:
     // was dispatched by compositionupdate event.
     nsString mDispatchedCompositionString;
 
-    // mSelectedString is the selected string which was removed by first
-    // compositionchange event.
-    nsString mSelectedString;
+    // mSelectedStringRemovedByComposition is the selected string which was
+    // removed by first compositionchange event.
+    nsString mSelectedStringRemovedByComposition;
 
     // OnKeyEvent() temporarily sets mProcessingKeyEvent to the given native
     // event.
@@ -203,35 +216,42 @@ protected:
 
     struct Selection final
     {
+        nsString mString;
         uint32_t mOffset;
-        uint32_t mLength;
         WritingMode mWritingMode;
 
         Selection()
             : mOffset(UINT32_MAX)
-            , mLength(UINT32_MAX)
         {
         }
 
         void Clear()
         {
+            mString.Truncate();
             mOffset = UINT32_MAX;
-            mLength = UINT32_MAX;
             mWritingMode = WritingMode();
+        }
+        void CollapseTo(uint32_t aOffset,
+                        const WritingMode& aWritingMode)
+        {
+            mWritingMode = aWritingMode;
+            mOffset = aOffset;
+            mString.Truncate();
         }
 
         void Assign(const IMENotification& aIMENotification);
         void Assign(const WidgetQueryContentEvent& aSelectedTextEvent);
 
         bool IsValid() const { return mOffset != UINT32_MAX; }
-        bool Collapsed() const { return !mLength; }
+        bool Collapsed() const { return mString.IsEmpty(); }
+        uint32_t Length() const { return mString.Length(); }
         uint32_t EndOffset() const
         {
             if (NS_WARN_IF(!IsValid())) {
                 return UINT32_MAX;
             }
             CheckedInt<uint32_t> endOffset =
-                CheckedInt<uint32_t>(mOffset) + mLength;
+                CheckedInt<uint32_t>(mOffset) + mString.Length();
             if (NS_WARN_IF(!endOffset.isValid())) {
                 return UINT32_MAX;
             }
@@ -270,6 +290,9 @@ protected:
     // the composition in such case.  However, we should notify IME of the
     // selection change after the composition is committed.
     bool mPendingResettingIMContext;
+    // mRetrieveSurroundingSignalReceived is true after "retrieve_surrounding"
+    // signal is received until selection is changed in Gecko.
+    bool mRetrieveSurroundingSignalReceived;
 
     // sLastFocusedContext is a pointer to the last focused instance of this
     // class.  When a instance is destroyed and sLastFocusedContext refers it,
@@ -340,8 +363,11 @@ protected:
     // Initializes the instance.
     void Init();
 
-    // Reset the current composition of IME.  All native composition events
-    // during this processing are ignored.
+    /**
+     * Reset the active context, i.e., if there is mComposingContext, reset it.
+     * Otherwise, reset current context.  Note that all native composition
+     * events during calling this will be ignored.
+     */
     void ResetIME();
 
     // Gets the current composition string by the native APIs.

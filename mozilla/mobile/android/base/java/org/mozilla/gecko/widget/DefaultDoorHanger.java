@@ -5,18 +5,17 @@
 
 package org.mozilla.gecko.widget;
 
+import android.support.v4.content.ContextCompat;
 import android.text.Html;
 import android.text.Spanned;
 import android.util.Log;
 import android.widget.Button;
 import android.widget.TextView;
 import org.mozilla.gecko.R;
+import org.mozilla.gecko.Telemetry;
+import org.mozilla.gecko.TelemetryContract;
 import org.mozilla.gecko.prompts.PromptInput;
-import org.mozilla.gecko.util.ColorUtils;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
+import org.mozilla.gecko.util.GeckoBundle;
 
 import android.content.Context;
 import android.text.TextUtils;
@@ -26,6 +25,7 @@ import android.widget.CheckBox;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class DefaultDoorHanger extends DoorHanger {
     private static final String LOGTAG = "GeckoDefaultDoorHanger";
@@ -42,7 +42,7 @@ public class DefaultDoorHanger extends DoorHanger {
         mMessage = (TextView) findViewById(R.id.doorhanger_message);
 
         if (sSpinnerTextColor == -1) {
-            sSpinnerTextColor = ColorUtils.getColor(context, R.color.text_color_primary_disable_only);
+            sSpinnerTextColor = ContextCompat.getColor(context, R.color.text_color_primary_disable_only);
         }
 
         switch (mType) {
@@ -67,7 +67,7 @@ public class DefaultDoorHanger extends DoorHanger {
             setMessage(message);
         }
 
-        final JSONObject options = config.getOptions();
+        final GeckoBundle options = config.getOptions();
         if (options != null) {
             setOptions(options);
         }
@@ -94,63 +94,65 @@ public class DefaultDoorHanger extends DoorHanger {
     }
 
     @Override
-    public void setOptions(final JSONObject options) {
+    public void setOptions(final GeckoBundle options) {
         super.setOptions(options);
 
-        final JSONArray inputs = options.optJSONArray("inputs");
+        final GeckoBundle[] inputs = options.getBundleArray("inputs");
         if (inputs != null) {
             mInputs = new ArrayList<PromptInput>();
 
             final ViewGroup group = (ViewGroup) findViewById(R.id.doorhanger_inputs);
             group.setVisibility(VISIBLE);
 
-            for (int i = 0; i < inputs.length(); i++) {
-                try {
-                    PromptInput input = PromptInput.getInput(inputs.getJSONObject(i));
-                    mInputs.add(input);
+            for (int i = 0; i < inputs.length; i++) {
+                PromptInput input = PromptInput.getInput(inputs[i]);
+                mInputs.add(input);
 
-                    final int padding = mResources.getDimensionPixelSize(R.dimen.doorhanger_section_padding_medium);
-                    View v = input.getView(getContext());
-                    styleInput(input, v);
-                    v.setPadding(0, 0, 0, padding);
-                    group.addView(v);
-                } catch(JSONException ex) { }
+                final int padding = mResources.getDimensionPixelSize(
+                        R.dimen.doorhanger_section_padding_medium);
+                final View v = input.getView(getContext());
+                styleInput(input, v);
+                v.setPadding(0, 0, 0, padding);
+                group.addView(v);
             }
         }
 
-        final String checkBoxText = options.optString("checkbox");
+        final String checkBoxText = options.getString("checkbox");
         if (!TextUtils.isEmpty(checkBoxText)) {
             mCheckBox = (CheckBox) findViewById(R.id.doorhanger_checkbox);
             mCheckBox.setText(checkBoxText);
+            if (options.containsKey("checkboxState")) {
+                final boolean checkBoxState = options.getBoolean("checkboxState");
+                mCheckBox.setChecked(checkBoxState);
+            }
             mCheckBox.setVisibility(VISIBLE);
         }
     }
 
     @Override
-    protected OnClickListener makeOnButtonClickListener(final int id) {
+    protected OnClickListener makeOnButtonClickListener(final int id, final String telemetryExtra) {
         return new Button.OnClickListener() {
             @Override
             public void onClick(View v) {
-                final JSONObject response = new JSONObject();
-                try {
-                    response.put("callback", id);
+                final String expandedExtra = mType.toString().toLowerCase(Locale.US) + "-" + telemetryExtra;
+                Telemetry.sendUIEvent(TelemetryContract.Event.ACTION, TelemetryContract.Method.DOORHANGER, expandedExtra);
 
-                    CheckBox checkBox = getCheckBox();
-                    // If the checkbox is being used, pass its value
-                    if (checkBox != null) {
-                        response.put("checked", checkBox.isChecked());
-                    }
+                final GeckoBundle response = new GeckoBundle(3);
+                response.putInt("callback", id);
 
-                    List<PromptInput> doorHangerInputs = getInputs();
-                    if (doorHangerInputs != null) {
-                        JSONObject inputs = new JSONObject();
-                        for (PromptInput input : doorHangerInputs) {
-                            inputs.put(input.getId(), input.getValue());
-                        }
-                        response.put("inputs", inputs);
+                final CheckBox checkBox = getCheckBox();
+                // If the checkbox is being used, pass its value
+                if (checkBox != null) {
+                    response.putBoolean("checked", checkBox.isChecked());
+                }
+
+                final List<PromptInput> doorHangerInputs = getInputs();
+                if (doorHangerInputs != null) {
+                    final GeckoBundle inputs = new GeckoBundle();
+                    for (final PromptInput input : doorHangerInputs) {
+                        input.putInBundle(inputs);
                     }
-                } catch (JSONException e) {
-                    Log.e(LOGTAG, "Error creating onClick response", e);
+                    response.putBundle("inputs", inputs);
                 }
 
                 mOnButtonClickListener.onButtonClick(response, DefaultDoorHanger.this);

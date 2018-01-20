@@ -9,7 +9,6 @@
 
 #include "nsXBLService.h"
 #include "nsCOMPtr.h"
-#include "nsAutoPtr.h"
 #include "nsINodeList.h"
 #include "nsIStyleRuleProcessor.h"
 #include "nsClassHashtable.h"
@@ -20,10 +19,11 @@
 
 class nsXBLPrototypeBinding;
 class nsIContent;
-class nsIAtom;
+class nsAtom;
 class nsIDocument;
 
 namespace mozilla {
+class ServoStyleSet;
 namespace dom {
 
 class ShadowRoot;
@@ -76,7 +76,7 @@ public:
    * otherwise we don't have untainted data with which to do a proper lookup.
    */
   bool LookupMember(JSContext* aCx, JS::Handle<jsid> aId,
-                    JS::MutableHandle<JSPropertyDescriptor> aDesc);
+                    JS::MutableHandle<JS::PropertyDescriptor> aDesc);
 
   /*
    * Determines whether the binding has a field with the given name.
@@ -92,7 +92,7 @@ protected:
    */
   bool LookupMemberInternal(JSContext* aCx, nsString& aName,
                             JS::Handle<jsid> aNameAsId,
-                            JS::MutableHandle<JSPropertyDescriptor> aDesc,
+                            JS::MutableHandle<JS::PropertyDescriptor> aDesc,
                             JS::Handle<JSObject*> aXBLScope);
 
 public:
@@ -105,10 +105,11 @@ public:
   bool ImplementsInterface(REFNSIID aIID) const;
 
   void GenerateAnonymousContent();
-  void InstallAnonymousContent(nsIContent* aAnonParent, nsIContent* aElement,
-                               bool aNativeAnon);
-  static void UninstallAnonymousContent(nsIDocument* aDocument,
-                                        nsIContent* aAnonParent);
+  void BindAnonymousContent(nsIContent* aAnonParent, nsIContent* aElement,
+                            bool aNativeAnon);
+  static void UnbindAnonymousContent(nsIDocument* aDocument,
+                                     nsIContent* aAnonParent,
+                                     bool aNullParent = true);
   void InstallEventHandlers();
   nsresult InstallImplementation();
 
@@ -116,22 +117,24 @@ public:
   void ExecuteDetachedHandler();
   void UnhookEventHandlers();
 
-  nsIAtom* GetBaseTag(int32_t* aNameSpaceID);
+  nsAtom* GetBaseTag(int32_t* aNameSpaceID);
   nsXBLBinding* RootBinding();
 
   // Resolve all the fields for this binding and all ancestor bindings on the
   // object |obj|.  False return means a JS exception was set.
   bool ResolveAllFields(JSContext *cx, JS::Handle<JSObject*> obj) const;
 
-  void AttributeChanged(nsIAtom* aAttribute, int32_t aNameSpaceID,
+  void AttributeChanged(nsAtom* aAttribute, int32_t aNameSpaceID,
                         bool aRemoveFlag, bool aNotify);
 
   void ChangeDocument(nsIDocument* aOldDocument, nsIDocument* aNewDocument);
 
   void WalkRules(nsIStyleRuleProcessor::EnumFunc aFunc, void* aData);
 
+  mozilla::ServoStyleSet* GetServoStyleSet() const;
+
   static nsresult DoInitJSClass(JSContext *cx, JS::Handle<JSObject*> obj,
-                                const nsAFlatString& aClassName,
+                                const nsString& aClassName,
                                 nsXBLPrototypeBinding* aProtoBinding,
                                 JS::MutableHandle<JSObject*> aClassObject,
                                 bool* aNew);
@@ -156,6 +159,8 @@ public:
   // Returns a live node list that iterates over the anonymous nodes generated
   // by this binding.
   nsAnonymousContentList* GetAnonymousNodeList();
+
+ nsIURI* GetSourceDocURI();
 
 // MEMBER VARIABLES
 protected:

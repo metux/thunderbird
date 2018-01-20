@@ -26,7 +26,6 @@ public:
   virtual a11y::role NativeRole() override;
   virtual uint64_t NativeInteractiveState() const override;
   virtual bool NativelyUnavailable() const override;
-  virtual bool CanHaveAnonChildren() override;
 
   // Value
   virtual double MaxValue() const override;
@@ -46,11 +45,11 @@ protected:
    */
   nsIContent* GetSliderElement() const;
 
-  nsresult GetSliderAttr(nsIAtom *aName, nsAString& aValue) const;
-  nsresult SetSliderAttr(nsIAtom *aName, const nsAString& aValue);
+  nsresult GetSliderAttr(nsAtom *aName, nsAString& aValue) const;
+  nsresult SetSliderAttr(nsAtom *aName, const nsAString& aValue);
 
-  double GetSliderAttr(nsIAtom *aName) const;
-  bool SetSliderAttr(nsIAtom *aName, double aValue);
+  double GetSliderAttr(nsAtom *aName) const;
+  bool SetSliderAttr(nsAtom *aName, double aValue);
 
 private:
   mutable nsCOMPtr<nsIContent> mSliderNode;

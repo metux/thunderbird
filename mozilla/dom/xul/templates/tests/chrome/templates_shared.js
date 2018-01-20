@@ -158,7 +158,7 @@ function checkResults(root, step)
     // convert the tree's view data into the equivalent DOM structure
     // for easier comparison
     actualoutput = treeViewToDOM(root);
-    var treechildrenElements = [e for (e of output.children) if (e.localName === "treechildren")];
+    var treechildrenElements = [...output.children].filter((e) => e.localName === "treechildren");
     error = compareOutput(actualoutput, treechildrenElements[0], false);
   }
   else {
@@ -478,7 +478,7 @@ function copyToProfile(filename)
     parentURI = fileHandler.getFileFromURLSpec(parentURI.spec);
   }
 
-  parentURI = parentURI.QueryInterface(Ci.nsILocalFile);
+  parentURI = parentURI.QueryInterface(Ci.nsIFile);
   parentURI.append(filename);
   try {
     var retVal = parentURI.copyToFollowingLinks(file.parent, filename);

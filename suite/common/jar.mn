@@ -1,11 +1,12 @@
+#filter substitution
+
 comm.jar:
 % content communicator %content/communicator/ contentaccessible=yes
+% content help %content/communicator/helpviewer/
 % override chrome://global/content/license.html chrome://communicator/content/license.html
 % override chrome://mozapps/content/profile/profileSelection.xul chrome://communicator/content/profile/profileSelection.xul
-% overlay chrome://global/content/console.xul chrome://communicator/content/consoleOverlay.xul
 % overlay chrome://global/content/viewSource.xul chrome://communicator/content/viewSourceOverlay.xul
 % overlay chrome://global/content/viewPartialSource.xul chrome://communicator/content/viewSourceOverlay.xul
-% overlay chrome://help/content/help.xul chrome://communicator/content/helpOverlay.xul
 % overlay chrome://editor/content/EdAdvancedEdit.xul chrome://communicator/content/helpEditorOverlay.xul
 % overlay chrome://editor/content/EdImageProps.xul chrome://communicator/content/helpEditorOverlay.xul
 % overlay chrome://editor/content/EditorPublish.xul chrome://communicator/content/helpEditorOverlay.xul
@@ -43,7 +44,6 @@ comm.jar:
 % overlay chrome://messenger/content/mailViewSetup.xul chrome://communicator/content/helpMessengerOverlay.xul
 % overlay chrome://messenger-smime/content/msgCompSecurityInfo.xul chrome://communicator/content/helpMessengerOverlay.xul
 % overlay chrome://messenger-smime/content/msgReadSecurityInfo.xul chrome://communicator/content/helpMessengerOverlay.xul
-% content communicator-platform %content/communicator-platform/ platform
 % content communicator-region %content/communicator-region/
    content/communicator/about.js
    content/communicator/about.xhtml
@@ -63,7 +63,6 @@ comm.jar:
    content/communicator/certError.xml
    content/communicator/charsetOverlay.xul
    content/communicator/communicator.css
-   content/communicator/consoleOverlay.xul
    content/communicator/contentAreaClick.js
    content/communicator/contentAreaContextOverlay.xul
    content/communicator/defaultClientDialog.js
@@ -74,11 +73,9 @@ comm.jar:
    content/communicator/helpEditorOverlay.xul
    content/communicator/helpMessengerOverlay.xul
    content/communicator/helpSecurityOverlay.xul
-   content/communicator/helpOverlay.js
-   content/communicator/helpOverlay.xul
-   content/communicator/labelsencodings.properties                  (/mozilla/dom/encoding/labelsencodings.properties)
+   content/communicator/labelsencodings.properties                  (/@mozreltopsrcdir@/dom/encoding/labelsencodings.properties)
 # the following file is a suite-specific override of the generic license.html, using suite/common/app-license.html as input:
-*  content/communicator/license.html                                (/mozilla/toolkit/content/license.html)
+*  content/communicator/license.html                                (/@mozreltopsrcdir@/toolkit/content/license.html)
    content/communicator/nsContextMenu.js
    content/communicator/openLocation.js
    content/communicator/openLocation.xul
@@ -116,6 +113,8 @@ comm.jar:
    content/communicator/bookmarks/bm-panel.xul                      (bookmarks/bm-panel.xul)
    content/communicator/bookmarks/bm-props.js                       (bookmarks/bm-props.js)
    content/communicator/bookmarks/bm-props.xul                      (bookmarks/bm-props.xul)
+# Provide another URI for the bookmark properties dialog so we can persist the attributes separately
+% override chrome://communicator/content/bookmarks/bm-props2.xul chrome://communicator/content/bookmarks/bm-props.xul
    content/communicator/bookmarks/bookmarksManager.css              (bookmarks/bookmarksManager.css)
    content/communicator/bookmarks/bookmarksManager.js               (bookmarks/bookmarksManager.js)
    content/communicator/bookmarks/bookmarksManager.xul              (bookmarks/bookmarksManager.xul)
@@ -125,10 +124,19 @@ comm.jar:
    content/communicator/bookmarks/moveBookmarks.js                  (bookmarks/moveBookmarks.js)
    content/communicator/bookmarks/moveBookmarks.xul                 (bookmarks/moveBookmarks.xul)
    content/communicator/bookmarks/placesOverlay.xul                 (bookmarks/placesOverlay.xul)
+   content/communicator/console/consoleBindings.xml                 (console/consoleBindings.xml)
+   content/communicator/console/console.css                         (console/console.css)
+   content/communicator/console/console.js                          (console/console.js)
+   content/communicator/console/console.xul                         (console/console.xul)
    content/communicator/dataman/dataman.css                         (dataman/dataman.css)
    content/communicator/dataman/dataman.js                          (dataman/dataman.js)
    content/communicator/dataman/dataman.xml                         (dataman/dataman.xml)
    content/communicator/dataman/dataman.xul                         (dataman/dataman.xul)
+*  content/communicator/helpviewer/help.xul                         (helpviewer/help.xul)
+*  content/communicator/helpviewer/contextHelp.js                   (helpviewer/contextHelp.js)
+*  content/communicator/helpviewer/help.js                          (helpviewer/help.js)
+*  content/communicator/helpviewer/helpContextOverlay.xul           (helpviewer/helpContextOverlay.xul)
+*  content/communicator/helpviewer/platformClasses.css              (helpviewer/platformClasses.css)
    content/communicator/directory/directory.html                    (directory/directory.html)
    content/communicator/directory/directory.js                      (directory/directory.js)
    content/communicator/directory/directory.xul                     (directory/directory.xul)
@@ -211,7 +219,6 @@ comm.jar:
    content/communicator/pref/pref-offlineapps.js                    (pref/pref-offlineapps.js)
    content/communicator/pref/pref-offlineapps.xul                   (pref/pref-offlineapps.xul)
    content/communicator/pref/pref-passwords.xul                     (pref/pref-passwords.xul)
-   content/communicator/pref/pref-policies.xul                      (pref/pref-policies.xul)
    content/communicator/pref/pref-popups.js                         (pref/pref-popups.js)
    content/communicator/pref/pref-popups.xul                        (pref/pref-popups.xul)
    content/communicator/pref/pref-privatedata.js                    (pref/pref-privatedata.js)
@@ -224,7 +231,7 @@ comm.jar:
    content/communicator/pref/pref-search.js                         (pref/pref-search.js)
    content/communicator/pref/pref-search.xul                        (pref/pref-search.xul)
    content/communicator/pref/pref-security.js                       (pref/pref-security.js)
-*  content/communicator/pref/pref-security.xul                      (pref/pref-security.xul)
+   content/communicator/pref/pref-security.xul                      (pref/pref-security.xul)
    content/communicator/pref/pref-smartupdate.js                    (pref/pref-smartupdate.js)
    content/communicator/pref/pref-smartupdate.xul                   (pref/pref-smartupdate.xul)
    content/communicator/pref/pref-spelling.js                       (pref/pref-spelling.js)
@@ -267,3 +274,6 @@ comm.jar:
    content/communicator/sync/syncQuota.js                           (sync/syncQuota.js)
    content/communicator/sync/syncUtils.js                           (sync/syncUtils.js)
    content/communicator/sync/syncUI.js                              (sync/syncUI.js)
+
+   # L10n resource overrides
+% resource search-plugins chrome://communicator/locale/searchplugins/

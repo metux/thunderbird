@@ -1,5 +1,7 @@
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
+/* vim: set ft=javascript ts=2 et sw=2 tw=80: */
 /* Any copyright is dedicated to the Public Domain.
-   http://creativecommons.org/publicdomain/zero/1.0/ */
+ * http://creativecommons.org/publicdomain/zero/1.0/ */
 
 // Tests that the filter button context menu logic works correctly.
 
@@ -25,7 +27,7 @@ function testFilterButtons(aHud) {
 }
 
 function testRightClick(aCategory, hudBox, aHud) {
-  let deferred = promise.defer();
+  let deferred = defer();
   let selector = ".webconsole-filter-button[category=\"" + aCategory + "\"]";
   let button = hudBox.querySelector(selector);
   let mainButton = getMainButton(button, aHud);

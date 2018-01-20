@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim:set ts=2 sw=2 sts=2 et cindent: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -12,6 +12,7 @@
 #include "mozilla/Attributes.h"
 #include "nsContainerFrame.h"
 #include "nsIAnonymousContentCreator.h"
+#include "nsStringFwd.h"
 #include "nsTArrayForwardDeclare.h"
 #include "FrameLayerBuilder.h"
 
@@ -22,13 +23,17 @@ class LayerManager;
 } // namespace layers
 } // namespace mozilla
 
-class nsAString;
 class nsPresContext;
 class nsDisplayItem;
 
-class nsVideoFrame : public nsContainerFrame, public nsIAnonymousContentCreator
+class nsVideoFrame : public nsContainerFrame
+                   , public nsIAnonymousContentCreator
 {
 public:
+  template <typename T> using Maybe = mozilla::Maybe<T>;
+  using Nothing = mozilla::Nothing;
+  using Visibility = mozilla::Visibility;
+
   typedef mozilla::layers::Layer Layer;
   typedef mozilla::layers::LayerManager LayerManager;
   typedef mozilla::ContainerLayerParameters ContainerLayerParameters;
@@ -36,22 +41,23 @@ public:
   explicit nsVideoFrame(nsStyleContext* aContext);
 
   NS_DECL_QUERYFRAME
-  NS_DECL_QUERYFRAME_TARGET(nsVideoFrame)
-  NS_DECL_FRAMEARENA_HELPERS
+  NS_DECL_FRAMEARENA_HELPERS(nsVideoFrame)
 
-  virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                                const nsRect&           aDirtyRect,
-                                const nsDisplayListSet& aLists) override;
+  void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
+                        const nsDisplayListSet& aLists) override;
 
-  virtual nsresult AttributeChanged(int32_t aNameSpaceID,
-                                    nsIAtom* aAttribute,
-                                    int32_t aModType) override;
+  nsresult AttributeChanged(int32_t aNameSpaceID,
+                            nsAtom* aAttribute,
+                            int32_t aModType) override;
+
+  void OnVisibilityChange(Visibility aNewVisibility,
+                          const Maybe<OnNonvisible>& aNonvisibleAction = Nothing()) override;
 
   /* get the size of the video's display */
-  nsSize GetVideoIntrinsicSize(nsRenderingContext *aRenderingContext);
-  virtual nsSize GetIntrinsicRatio() override;
-  virtual mozilla::LogicalSize
-  ComputeSize(nsRenderingContext *aRenderingContext,
+  nsSize GetVideoIntrinsicSize(gfxContext *aRenderingContext);
+  nsSize GetIntrinsicRatio() override;
+  mozilla::LogicalSize
+  ComputeSize(gfxContext *aRenderingContext,
               mozilla::WritingMode aWritingMode,
               const mozilla::LogicalSize& aCBSize,
               nscoord aAvailableISize,
@@ -59,30 +65,28 @@ public:
               const mozilla::LogicalSize& aBorder,
               const mozilla::LogicalSize& aPadding,
               ComputeSizeFlags aFlags) override;
-  virtual nscoord GetMinISize(nsRenderingContext *aRenderingContext) override;
-  virtual nscoord GetPrefISize(nsRenderingContext *aRenderingContext) override;
-  virtual void DestroyFrom(nsIFrame* aDestructRoot) override;
-  virtual bool IsLeaf() const override;
+  nscoord GetMinISize(gfxContext *aRenderingContext) override;
+  nscoord GetPrefISize(gfxContext *aRenderingContext) override;
+  void DestroyFrom(nsIFrame* aDestructRoot, PostDestroyData& aPostDestroyData) override;
 
-  virtual void Reflow(nsPresContext*           aPresContext,
-                      nsHTMLReflowMetrics&     aDesiredSize,
-                      const nsHTMLReflowState& aReflowState,
-                      nsReflowStatus&          aStatus) override;
+  void Reflow(nsPresContext*     aPresContext,
+              ReflowOutput&      aDesiredSize,
+              const ReflowInput& aReflowInput,
+              nsReflowStatus&    aStatus) override;
 
 #ifdef ACCESSIBILITY
-  virtual mozilla::a11y::AccType AccessibleType() override;
+  mozilla::a11y::AccType AccessibleType() override;
 #endif
 
-  virtual nsIAtom* GetType() const override;
-
-  virtual bool IsFrameOfType(uint32_t aFlags) const override
+  bool IsFrameOfType(uint32_t aFlags) const override
   {
-    return nsSplittableFrame::IsFrameOfType(aFlags & ~(nsIFrame::eReplaced));
+    return nsSplittableFrame::IsFrameOfType(aFlags &
+      ~(nsIFrame::eReplaced | nsIFrame::eReplacedSizing));
   }
-  
-  virtual nsresult CreateAnonymousContent(nsTArray<ContentInfo>& aElements) override;
-  virtual void AppendAnonymousContentTo(nsTArray<nsIContent*>& aElements,
-                                        uint32_t aFilters) override;
+
+  nsresult CreateAnonymousContent(nsTArray<ContentInfo>& aElements) override;
+  void AppendAnonymousContentTo(nsTArray<nsIContent*>& aElements,
+                                uint32_t aFilters) override;
 
   nsIContent* GetPosterImage() { return mPosterImage; }
 
@@ -92,8 +96,10 @@ public:
 
   nsIContent *GetCaptionOverlay() { return mCaptionDiv; }
 
+  nsIContent *GetVideoControls() { return mVideoControls; }
+
 #ifdef DEBUG_FRAME_DUMP
-  virtual nsresult GetFrameName(nsAString& aResult) const override;
+  nsresult GetFrameName(nsAString& aResult) const override;
 #endif
 
   already_AddRefed<Layer> BuildLayer(nsDisplayListBuilder* aBuilder,
@@ -117,9 +123,10 @@ protected:
   // elements, not for frames for audio elements.
   void UpdatePosterSource(bool aNotify);
 
-  virtual ~nsVideoFrame();
+  // Notify the mediaElement that the mCaptionDiv was created.
+  void UpdateTextTrack();
 
-  nsMargin mBorderPadding;
+  virtual ~nsVideoFrame();
 
   // Anonymous child which is bound via XBL to the video controls.
   nsCOMPtr<nsIContent> mVideoControls;

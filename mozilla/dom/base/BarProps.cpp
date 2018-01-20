@@ -18,7 +18,7 @@ namespace dom {
 //
 //  Basic (virtual) BarProp class implementation
 //
-BarProp::BarProp(nsGlobalWindow* aWindow)
+BarProp::BarProp(nsGlobalWindowInner* aWindow)
   : mDOMWindow(aWindow)
 {
   MOZ_ASSERT(aWindow->IsInnerWindow());
@@ -28,10 +28,10 @@ BarProp::~BarProp()
 {
 }
 
-nsPIDOMWindow*
+nsPIDOMWindowInner*
 BarProp::GetParentObject() const
 {
-  return mDOMWindow;
+  return mDOMWindow->AsInner();
 }
 
 JSObject*
@@ -66,12 +66,12 @@ BarProp::GetVisibleByFlag(uint32_t aChromeFlag, ErrorResult& aRv)
 
 void
 BarProp::SetVisibleByFlag(bool aVisible, uint32_t aChromeFlag,
-                          ErrorResult& aRv)
+                          CallerType aCallerType, ErrorResult& aRv)
 {
   nsCOMPtr<nsIWebBrowserChrome> browserChrome = GetBrowserChrome();
   NS_ENSURE_TRUE_VOID(browserChrome);
 
-  if (!nsContentUtils::IsCallerChrome()) {
+  if (aCallerType != CallerType::System) {
     return;
   }
 
@@ -106,7 +106,7 @@ BarProp::GetBrowserChrome()
 // MenubarProp class implementation
 //
 
-MenubarProp::MenubarProp(nsGlobalWindow *aWindow)
+MenubarProp::MenubarProp(nsGlobalWindowInner *aWindow)
   : BarProp(aWindow)
 {
 }
@@ -116,22 +116,23 @@ MenubarProp::~MenubarProp()
 }
 
 bool
-MenubarProp::GetVisible(ErrorResult& aRv)
+MenubarProp::GetVisible(CallerType aCallerType, ErrorResult& aRv)
 {
   return BarProp::GetVisibleByFlag(nsIWebBrowserChrome::CHROME_MENUBAR, aRv);
 }
 
 void
-MenubarProp::SetVisible(bool aVisible, ErrorResult& aRv)
+MenubarProp::SetVisible(bool aVisible, CallerType aCallerType, ErrorResult& aRv)
 {
-  BarProp::SetVisibleByFlag(aVisible, nsIWebBrowserChrome::CHROME_MENUBAR, aRv);
+  BarProp::SetVisibleByFlag(aVisible, nsIWebBrowserChrome::CHROME_MENUBAR,
+                            aCallerType, aRv);
 }
 
 //
 // ToolbarProp class implementation
 //
 
-ToolbarProp::ToolbarProp(nsGlobalWindow *aWindow)
+ToolbarProp::ToolbarProp(nsGlobalWindowInner *aWindow)
   : BarProp(aWindow)
 {
 }
@@ -141,23 +142,23 @@ ToolbarProp::~ToolbarProp()
 }
 
 bool
-ToolbarProp::GetVisible(ErrorResult& aRv)
+ToolbarProp::GetVisible(CallerType aCallerType, ErrorResult& aRv)
 {
   return BarProp::GetVisibleByFlag(nsIWebBrowserChrome::CHROME_TOOLBAR, aRv);
 }
 
 void
-ToolbarProp::SetVisible(bool aVisible, ErrorResult& aRv)
+ToolbarProp::SetVisible(bool aVisible, CallerType aCallerType, ErrorResult& aRv)
 {
   BarProp::SetVisibleByFlag(aVisible, nsIWebBrowserChrome::CHROME_TOOLBAR,
-                            aRv);
+                            aCallerType, aRv);
 }
 
 //
 // LocationbarProp class implementation
 //
 
-LocationbarProp::LocationbarProp(nsGlobalWindow *aWindow)
+LocationbarProp::LocationbarProp(nsGlobalWindowInner *aWindow)
   : BarProp(aWindow)
 {
 }
@@ -167,24 +168,25 @@ LocationbarProp::~LocationbarProp()
 }
 
 bool
-LocationbarProp::GetVisible(ErrorResult& aRv)
+LocationbarProp::GetVisible(CallerType aCallerType, ErrorResult& aRv)
 {
   return BarProp::GetVisibleByFlag(nsIWebBrowserChrome::CHROME_LOCATIONBAR,
                                    aRv);
 }
 
 void
-LocationbarProp::SetVisible(bool aVisible, ErrorResult& aRv)
+LocationbarProp::SetVisible(bool aVisible, CallerType aCallerType,
+                            ErrorResult& aRv)
 {
   BarProp::SetVisibleByFlag(aVisible, nsIWebBrowserChrome::CHROME_LOCATIONBAR,
-                            aRv);
+                            aCallerType, aRv);
 }
 
 //
 // PersonalbarProp class implementation
 //
 
-PersonalbarProp::PersonalbarProp(nsGlobalWindow *aWindow)
+PersonalbarProp::PersonalbarProp(nsGlobalWindowInner *aWindow)
   : BarProp(aWindow)
 {
 }
@@ -194,25 +196,26 @@ PersonalbarProp::~PersonalbarProp()
 }
 
 bool
-PersonalbarProp::GetVisible(ErrorResult& aRv)
+PersonalbarProp::GetVisible(CallerType aCallerType, ErrorResult& aRv)
 {
   return BarProp::GetVisibleByFlag(nsIWebBrowserChrome::CHROME_PERSONAL_TOOLBAR,
                                    aRv);
 }
 
 void
-PersonalbarProp::SetVisible(bool aVisible, ErrorResult& aRv)
+PersonalbarProp::SetVisible(bool aVisible, CallerType aCallerType,
+                            ErrorResult& aRv)
 {
   BarProp::SetVisibleByFlag(aVisible,
                             nsIWebBrowserChrome::CHROME_PERSONAL_TOOLBAR,
-                            aRv);
+                            aCallerType, aRv);
 }
 
 //
 // StatusbarProp class implementation
 //
 
-StatusbarProp::StatusbarProp(nsGlobalWindow *aWindow)
+StatusbarProp::StatusbarProp(nsGlobalWindowInner *aWindow)
   : BarProp(aWindow)
 {
 }
@@ -222,23 +225,25 @@ StatusbarProp::~StatusbarProp()
 }
 
 bool
-StatusbarProp::GetVisible(ErrorResult& aRv)
+StatusbarProp::GetVisible(CallerType aCallerType, ErrorResult& aRv)
 {
   return BarProp::GetVisibleByFlag(nsIWebBrowserChrome::CHROME_STATUSBAR, aRv);
 }
 
 void
-StatusbarProp::SetVisible(bool aVisible, ErrorResult& aRv)
+StatusbarProp::SetVisible(bool aVisible, CallerType aCallerType,
+                          ErrorResult& aRv)
 {
   return BarProp::SetVisibleByFlag(aVisible,
-                                   nsIWebBrowserChrome::CHROME_STATUSBAR, aRv);
+                                   nsIWebBrowserChrome::CHROME_STATUSBAR,
+                                   aCallerType, aRv);
 }
 
 //
 // ScrollbarsProp class implementation
 //
 
-ScrollbarsProp::ScrollbarsProp(nsGlobalWindow *aWindow)
+ScrollbarsProp::ScrollbarsProp(nsGlobalWindowInner *aWindow)
 : BarProp(aWindow)
 {
 }
@@ -248,7 +253,7 @@ ScrollbarsProp::~ScrollbarsProp()
 }
 
 bool
-ScrollbarsProp::GetVisible(ErrorResult& aRv)
+ScrollbarsProp::GetVisible(CallerType aCallerType, ErrorResult& aRv)
 {
   if (!mDOMWindow) {
     return true;
@@ -274,9 +279,10 @@ ScrollbarsProp::GetVisible(ErrorResult& aRv)
 }
 
 void
-ScrollbarsProp::SetVisible(bool aVisible, ErrorResult& aRv)
+ScrollbarsProp::SetVisible(bool aVisible, CallerType aCallerType,
+                           ErrorResult& aRv)
 {
-  if (!nsContentUtils::LegacyIsCallerChromeOrNativeCode()) {
+  if (aCallerType != CallerType::System) {
     return;
   }
 
@@ -287,23 +293,7 @@ ScrollbarsProp::SetVisible(bool aVisible, ErrorResult& aRv)
      and because embedding apps have no interface for implementing this
      themselves, and therefore the implementation must be internal. */
 
-  nsCOMPtr<nsIScrollable> scroller =
-    do_QueryInterface(mDOMWindow->GetDocShell());
-
-  if (scroller) {
-    int32_t prefValue;
-
-    if (aVisible) {
-      prefValue = nsIScrollable::Scrollbar_Auto;
-    } else {
-      prefValue = nsIScrollable::Scrollbar_Never;
-    }
-
-    scroller->SetDefaultScrollbarPreferences(
-                nsIScrollable::ScrollOrientation_Y, prefValue);
-    scroller->SetDefaultScrollbarPreferences(
-                nsIScrollable::ScrollOrientation_X, prefValue);
-  }
+  nsContentUtils::SetScrollbarsVisibility(mDOMWindow->GetDocShell(), aVisible);
 
   /* Notably absent is the part where we notify the chrome window using
      GetBrowserChrome()->SetChromeFlags(). Given the possibility of multiple

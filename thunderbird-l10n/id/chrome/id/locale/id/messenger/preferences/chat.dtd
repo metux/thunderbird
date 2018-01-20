@@ -1,0 +1,73 @@
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+
+<!ENTITY  startupAction.label         "Saat &brandShortName; dimulai:">
+<!ENTITY  startupAction.accesskey     "S">
+<!ENTITY  startupOffline.label        "Biarkan akun ngobrol tetap luring">
+<!ENTITY  startupConnectAuto.label    "Sambungkan akun ngobrol secara otomatis">
+<!-- LOCALIZATION NOTE: reportIdleAfter.label is displayed first, then
+there's a field where the user can enter a number, and itemTime is
+displayed at the end of the line. The translations of the
+reportIdleAfter.label and idleTime parts don't have to mean the exact
+same thing as in English; please try instead to translate the whole
+sentence. -->
+
+<!ENTITY  reportIdleAfter.label         "Biarkan kontak saya mengetahui bawah saya sedang diam setelah">
+<!ENTITY  reportIdleAfter.accesskey     "i">
+<!ENTITY  idleTime                      "menit tanpa aktivitas">
+
+<!ENTITY  andSetStatusToAway.label      "dan setel status saya ke Tidak Ada Di Tempat dengan pesan status:">
+<!ENTITY  andSetStatusToAway.accesskey  "A">
+
+<!ENTITY  sendTyping.label              "Kirimkan pemberitahuan sedang mengetik dalam percakapan">
+<!ENTITY  sendTyping.accesskey          "t">
+
+
+
+
+
+
+
+
+<!ENTITY  play.label                          "Mainkan">
+<!ENTITY  play.accesskey                      "M">
+
+
+<!ENTITY  customsound.label                   "Gunakan berkas suara berikut">
+<!ENTITY  customsound.accesskey               "u">
+
+
+
+
+<!ENTITY  generalTab.label            "General">
+
+<!ENTITY  chatNotifications.label             "When messages directed at you arrive:">
+<!ENTITY  desktopChatNotifications.label      "Show a notification:">
+<!ENTITY  desktopChatNotifications.accesskey  "c">
+<!ENTITY  completeNotification.label          "with sender's name and message preview">
+<!ENTITY  buddyInfoOnly.label                 "with sender's name only">
+<!ENTITY  dummyNotification.label             "without any info">
+<!ENTITY  chatSound.accesskey                 "d">
+<!ENTITY  chatSound.label                     "Play a sound">
+<!ENTITY  systemSound.label                   "Default system sound for new mail">
+<!ENTITY  systemSound.accesskey               "D">
+<!ENTITY  browse.label                        "Browse…">
+<!ENTITY  browse.accesskey                    "B">
+
+<!ENTITY messageStyleTab.title             "Message Styles">
+<!ENTITY messageStylePreview.label         "Preview:">
+<!ENTITY messageStyleTheme.label           "Theme:">
+<!ENTITY messageStyleTheme.accesskey       "T">
+<!ENTITY messageStyleThunderbirdTheme.label "Thunderbird">
+<!ENTITY messageStyleBubblesTheme.label    "Bubbles">
+<!ENTITY messageStyleDarkTheme.label       "Dark">
+<!ENTITY messageStylePaperSheetsTheme.label "Paper Sheets">
+<!ENTITY messageStyleSimpleTheme.label     "Simple">
+<!ENTITY messageStyleDefaultTheme.label    "Default">
+<!ENTITY messageStyleVariant.label         "Variant:">
+<!ENTITY messageStyleVariant.accesskey     "V">
+<!ENTITY messageStyleShowHeader.label      "Show Header">
+<!ENTITY messageStyleShowHeader.accesskey  "H">
+<!ENTITY messageStyleNoPreview.title       "No preview available">
+<!ENTITY messageStyleNoPreview.description "This theme is not valid or is currently unavailable (disabled addon, safe-mode, …).">

@@ -5,7 +5,7 @@
 
 "use strict";
 
-const {getRuleText} = devtools.require("devtools/server/actors/styles");
+const {getRuleText} = require("devtools/server/actors/styles");
 
 const TEST_DATA = [
   {
@@ -24,7 +24,8 @@ const TEST_DATA = [
   },
   {
     desc: "Multiple rules test case",
-    input: "#id{color:red;background:yellow;}.class-one .class-two { position:absolute; line-height: 45px}",
+    input: "#id{color:red;background:yellow;}.class-one .class-two " +
+      "{ position:absolute; line-height: 45px}",
     line: 1,
     column: 34,
     expected: {offset: 56, text: " position:absolute; line-height: 45px"}
@@ -69,8 +70,8 @@ const TEST_DATA = [
     desc: "Multi-lines CSS and multi-line rule",
     input: [
       "/* ",
-       "* some comments",
-       "*/",
+      "* some comments",
+      "*/",
       "",
       "body {",
       "    margin: 0;",

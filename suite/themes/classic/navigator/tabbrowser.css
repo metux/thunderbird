@@ -29,14 +29,14 @@ tabpanels {
 
 .tab-icon {
   margin-top: 1px;
-  -moz-margin-start: 1px;
-  -moz-margin-end: 4px;
+  margin-inline-start: 1px;
+  margin-inline-end: 4px;
   width: 16px;
   height: 16px;
 }
 
 .tabbrowser-tab {
-  list-style-image: url("chrome://communicator/skin/bookmarks/bookmark-item.png");
+  list-style-image: url("chrome://communicator/skin/bookmarks/bookmark-item.svg");
   padding: 0px 2px 2px;
   margin-bottom: 1px;
   border-bottom: none;
@@ -143,7 +143,7 @@ tabpanels {
 
 /* All tabs menupopup */
 .alltabs-item {
-  list-style-image: url("chrome://communicator/skin/bookmarks/bookmark-item.png");
+  list-style-image: url("chrome://communicator/skin/bookmarks/bookmark-item.svg");
 }
 
 .alltabs-item[selected="true"] {
@@ -173,7 +173,7 @@ tabpanels {
 .tab-drop-indicator-bar {
     height: 11px;
     margin-top: -11px;
-    -moz-margin-start: -6px;
+    margin-inline-start: -6px;
     position: relative;
 }
 

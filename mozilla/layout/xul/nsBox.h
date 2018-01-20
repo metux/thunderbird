@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -19,38 +20,38 @@ public:
 
   static void Shutdown();
 
-  virtual nsSize GetPrefSize(nsBoxLayoutState& aBoxLayoutState) override;
-  virtual nsSize GetMinSize(nsBoxLayoutState& aBoxLayoutState) override;
-  virtual nsSize GetMaxSize(nsBoxLayoutState& aBoxLayoutState) override;
-  virtual nscoord GetFlex(nsBoxLayoutState& aBoxLayoutState) override;
-  virtual nscoord GetBoxAscent(nsBoxLayoutState& aBoxLayoutState) override;
+  virtual nsSize GetXULPrefSize(nsBoxLayoutState& aBoxLayoutState) override;
+  virtual nsSize GetXULMinSize(nsBoxLayoutState& aBoxLayoutState) override;
+  virtual nsSize GetXULMaxSize(nsBoxLayoutState& aBoxLayoutState) override;
+  virtual nscoord GetXULFlex() override;
+  virtual nscoord GetXULBoxAscent(nsBoxLayoutState& aBoxLayoutState) override;
 
-  virtual nsSize GetMinSizeForScrollArea(nsBoxLayoutState& aBoxLayoutState) override;
+  virtual nsSize GetXULMinSizeForScrollArea(nsBoxLayoutState& aBoxLayoutState) override;
 
-  virtual bool IsCollapsed() override;
+  virtual bool IsXULCollapsed() override;
 
-  virtual void SetBounds(nsBoxLayoutState& aBoxLayoutState, const nsRect& aRect,
-                         bool aRemoveOverflowAreas = false) override;
+  virtual void SetXULBounds(nsBoxLayoutState& aBoxLayoutState, const nsRect& aRect,
+                            bool aRemoveOverflowAreas = false) override;
 
-  virtual nsresult GetBorder(nsMargin& aBorderAndPadding) override;
-  virtual nsresult GetPadding(nsMargin& aBorderAndPadding) override;
-  virtual nsresult GetMargin(nsMargin& aMargin) override;
+  virtual nsresult GetXULBorder(nsMargin& aBorderAndPadding) override;
+  virtual nsresult GetXULPadding(nsMargin& aBorderAndPadding) override;
+  virtual nsresult GetXULMargin(nsMargin& aMargin) override;
 
-  virtual Valignment GetVAlign() const override { return vAlign_Top; }
-  virtual Halignment GetHAlign() const override { return hAlign_Left; }
+  virtual Valignment GetXULVAlign() const override { return vAlign_Top; }
+  virtual Halignment GetXULHAlign() const override { return hAlign_Left; }
 
-  virtual nsresult RelayoutChildAtOrdinal(nsBoxLayoutState& aState, nsIFrame* aChild) override;
+  virtual nsresult XULRelayoutChildAtOrdinal(nsIFrame* aChild) override;
 
 #ifdef DEBUG_LAYOUT
   NS_IMETHOD GetDebugBoxAt(const nsPoint& aPoint, nsIFrame** aBox);
-  virtual nsresult GetDebug(bool& aDebug) override;
-  virtual nsresult SetDebug(nsBoxLayoutState& aState, bool aDebug) override;
+  virtual nsresult GetXULDebug(bool& aDebug) override;
+  virtual nsresult SetXULDebug(nsBoxLayoutState& aState, bool aDebug) override;
 
-  virtual nsresult DumpBox(FILE* out) override;
+  virtual nsresult XULDumpBox(FILE* out) override;
   void PropagateDebug(nsBoxLayoutState& aState);
 #endif
 
-  nsBox();
+  nsBox(ClassID aID);
   virtual ~nsBox();
 
   /**
@@ -77,9 +78,9 @@ rollbox.
   static nsSize BoundsCheck(const nsSize& aMinSize, const nsSize& aPrefSize, const nsSize& aMaxSize);
   static nscoord BoundsCheck(nscoord aMinSize, nscoord aPrefSize, nscoord aMaxSize);
 
-  static nsIFrame* GetChildBox(const nsIFrame* aFrame);
-  static nsIFrame* GetNextBox(const nsIFrame* aFrame);
-  static nsIFrame* GetParentBox(const nsIFrame* aFrame);
+  static nsIFrame* GetChildXULBox(const nsIFrame* aFrame);
+  static nsIFrame* GetNextXULBox(const nsIFrame* aFrame);
+  static nsIFrame* GetParentXULBox(const nsIFrame* aFrame);
 
 protected:
 
@@ -88,12 +89,10 @@ protected:
 
   virtual void ListBox(nsAutoString& aResult);
 #endif
-  
-  virtual void GetLayoutFlags(uint32_t& aFlags);
 
-  nsresult BeginLayout(nsBoxLayoutState& aState);
-  NS_IMETHOD DoLayout(nsBoxLayoutState& aBoxLayoutState);
-  nsresult EndLayout(nsBoxLayoutState& aState);
+  nsresult BeginXULLayout(nsBoxLayoutState& aState);
+  NS_IMETHOD DoXULLayout(nsBoxLayoutState& aBoxLayoutState);
+  nsresult EndXULLayout(nsBoxLayoutState& aState);
 
 #ifdef DEBUG_LAYOUT
   virtual void GetBoxName(nsAutoString& aName);
@@ -118,7 +117,7 @@ private:
 #ifdef DEBUG_LAYOUT
 #define NS_BOX_ASSERTION(box,expr,str) \
   if (!(expr)) { \
-       box->DumpBox(stdout); \
+       box->XULDumpBox(stdout); \
        NS_DebugBreak(NSDebugAssertion, str, #expr, __FILE__, __LINE__); \
   }
 #else

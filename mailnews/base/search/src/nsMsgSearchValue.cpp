@@ -7,7 +7,7 @@
 #include "nsMsgSearchValue.h"
 #include "nsIMsgFolder.h"
 #include "nsMsgUtils.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 
 nsMsgSearchValueImpl::nsMsgSearchValueImpl(nsMsgSearchValue *aInitialValue)
 {
@@ -24,7 +24,7 @@ nsMsgSearchValueImpl::nsMsgSearchValueImpl(nsMsgSearchValue *aInitialValue)
 nsMsgSearchValueImpl::~nsMsgSearchValueImpl()
 {
   if (IS_STRING_ATTRIBUTE(mValue.attribute))
-    NS_Free(mValue.string);
+    free(mValue.string);
 }
 
 NS_IMPL_ISUPPORTS(nsMsgSearchValueImpl, nsIMsgSearchValue)
@@ -45,8 +45,7 @@ nsMsgSearchValueImpl::GetFolder(nsIMsgFolder* *aResult)
 {
   NS_ENSURE_ARG_POINTER(aResult);
   NS_ENSURE_TRUE(mValue.attribute == nsMsgSearchAttrib::FolderInfo, NS_ERROR_ILLEGAL_VALUE);
-  *aResult = mValue.u.folder;
-  NS_IF_ADDREF(*aResult);
+  NS_IF_ADDREF(*aResult = mValue.u.folder);
   return NS_OK;
 }
 
@@ -71,7 +70,7 @@ nsMsgSearchValueImpl::SetStr(const nsAString &aValue)
 {
     NS_ENSURE_TRUE(IS_STRING_ATTRIBUTE(mValue.attribute), NS_ERROR_ILLEGAL_VALUE);
     if (mValue.string)
-        NS_Free(mValue.string);
+        free(mValue.string);
     mValue.string = ToNewUTF8String(aValue);
     mValue.utf16String = aValue;
     return NS_OK;
@@ -86,7 +85,7 @@ nsMsgSearchValueImpl::ToString(nsAString &aResult)
         return NS_OK;
     }
 
-    
+
     switch (mValue.attribute) {
 
     case nsMsgSearchAttrib::Priority:
@@ -102,16 +101,16 @@ nsMsgSearchValueImpl::ToString(nsAString &aResult)
     {
       nsAutoString tempInt;
       tempInt.AppendInt(mValue.attribute);
-      
+
         aResult.AppendLiteral("type=");
         aResult.Append(tempInt);
     }
         break;
     default:
         NS_ERROR("Unknown search value type");
-    }        
+    }
 
-    aResult.AppendLiteral("]");
+    aResult.Append(']');
 
     return NS_OK;
 }

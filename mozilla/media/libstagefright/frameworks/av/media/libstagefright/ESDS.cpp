@@ -20,18 +20,24 @@
 #include <utils/Log.h>
 
 #include "include/ESDS.h"
-
+#include "mozilla/fallible.h"
+#include <new>
 #include <string.h>
 
 namespace stagefright {
 
 ESDS::ESDS(const void *data, size_t size)
-    : mData(new uint8_t[size]),
+    : mData(new (mozilla::fallible) uint8_t[size]),
       mSize(size),
       mInitCheck(NO_INIT),
       mDecoderSpecificOffset(0),
       mDecoderSpecificLength(0),
       mObjectTypeIndication(0) {
+    if (!mData) {
+      mInitCheck = ERROR_BUFFER_TOO_SMALL;
+      return;
+    }
+
     memcpy(mData, data, size);
 
     mInitCheck = parse();

@@ -11,8 +11,12 @@
 #include "nsString.h"
 
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/BasePrincipal.h"
+#include "mozilla/Preferences.h"
 
-/** 
+using mozilla::OriginAttributes;
+
+/**
  * The nsCookie class is the main cookie storage medium for use within cookie
  * code. It implements nsICookie2, which extends nsICookie, a frozen interface
  * for xpcom access of cookie objects.
@@ -43,7 +47,9 @@ class nsCookie : public nsICookie2
              int64_t         aCreationTime,
              bool            aIsSession,
              bool            aIsSecure,
-             bool            aIsHttpOnly)
+             bool            aIsHttpOnly,
+             const OriginAttributes& aOriginAttributes,
+             int32_t         aSameSite)
      : mName(aName)
      , mValue(aValue)
      , mHost(aHost)
@@ -52,10 +58,23 @@ class nsCookie : public nsICookie2
      , mExpiry(aExpiry)
      , mLastAccessed(aLastAccessed)
      , mCreationTime(aCreationTime)
-     , mIsSession(aIsSession != false)
-     , mIsSecure(aIsSecure != false)
-     , mIsHttpOnly(aIsHttpOnly != false)
+     , mIsSession(aIsSession)
+     , mIsSecure(aIsSecure)
+     , mIsHttpOnly(aIsHttpOnly)
+     , mOriginAttributes(aOriginAttributes)
+     , mSameSite(aSameSite)
     {
+    }
+
+    static int CookieStaleThreshold()
+    {
+      static bool initialized = false;
+      static int value = 60;
+      if (!initialized) {
+        mozilla::Preferences::AddIntVarCache(&value, "network.cookie.staleThreshold", 60);
+        initialized = true;
+      }
+      return value;
     }
 
   public:
@@ -74,7 +93,9 @@ class nsCookie : public nsICookie2
                              int64_t           aCreationTime,
                              bool              aIsSession,
                              bool              aIsSecure,
-                             bool              aIsHttpOnly);
+                             bool              aIsHttpOnly,
+                             const OriginAttributes& aOriginAttributes,
+                             int32_t           aSameSite);
 
     size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
@@ -91,11 +112,13 @@ class nsCookie : public nsICookie2
     inline bool IsDomain()                const { return *mHost == '.'; }
     inline bool IsSecure()                const { return mIsSecure; }
     inline bool IsHttpOnly()              const { return mIsHttpOnly; }
+    inline const OriginAttributes& OriginAttributesRef() const { return mOriginAttributes; }
+    inline int32_t SameSite()               const { return mSameSite; }
 
     // setters
     inline void SetExpiry(int64_t aExpiry)        { mExpiry = aExpiry; }
     inline void SetLastAccessed(int64_t aTime)    { mLastAccessed = aTime; }
-    inline void SetIsSession(bool aIsSession)   { mIsSession = (bool) aIsSession; }
+    inline void SetIsSession(bool aIsSession)     { mIsSession = aIsSession; }
     // Set the creation time manually, overriding the monotonicity checks in
     // Create(). Use with caution!
     inline void SetCreationTime(int64_t aTime)    { mCreationTime = aTime; }
@@ -105,11 +128,12 @@ class nsCookie : public nsICookie2
   protected:
     virtual ~nsCookie() {}
 
+  private:
     // member variables
     // we use char* ptrs to store the strings in a contiguous block,
     // so we save on the overhead of using nsCStrings. However, we
     // store a terminating null for each string, so we can hand them
-    // out as nsAFlatCStrings.
+    // out as nsCStrings.
     //
     // Please update SizeOfIncludingThis if this strategy changes.
     const char  *mName;
@@ -123,6 +147,32 @@ class nsCookie : public nsICookie2
     bool mIsSession;
     bool mIsSecure;
     bool mIsHttpOnly;
+    mozilla::OriginAttributes mOriginAttributes;
+    int32_t     mSameSite;
 };
 
+// Comparator class for sorting cookies before sending to a server.
+class CompareCookiesForSending
+{
+public:
+  bool Equals(const nsCookie* aCookie1, const nsCookie* aCookie2) const
+  {
+    return aCookie1->CreationTime() == aCookie2->CreationTime() &&
+           aCookie2->Path().Length() == aCookie1->Path().Length();
+  }
+
+  bool LessThan(const nsCookie* aCookie1, const nsCookie* aCookie2) const
+  {
+    // compare by cookie path length in accordance with RFC2109
+    int32_t result = aCookie2->Path().Length() - aCookie1->Path().Length();
+    if (result != 0)
+      return result < 0;
+
+    // when path lengths match, older cookies should be listed first.  this is
+    // required for backwards compatibility since some websites erroneously
+    // depend on receiving cookies in the order in which they were sent to the
+    // browser!  see bug 236772.
+    return aCookie1->CreationTime() < aCookie2->CreationTime();
+  }
+};
 #endif // nsCookie_h__

@@ -13,10 +13,8 @@ var expect = '0,0,1,1,2,2,3,3';
 //-----------------------------------------------------------------------------
 
 // The code must run as part of the top-level script in order to get the bug.
-enterFunc ('test');
 printBugNumber(BUGNUMBER);
 printStatus (summary);
-jit(true);
 
 var a = [];
 {
@@ -33,8 +31,6 @@ let f = function() {
 }
 actual = '' + a;
 
-jit(false);
 reportCompare(expect, actual, summary);
-exitFunc ('test');
 //-----------------------------------------------------------------------------
 

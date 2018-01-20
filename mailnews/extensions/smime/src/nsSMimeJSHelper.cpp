@@ -8,7 +8,7 @@
 #include "nsSMimeJSHelper.h"
 #include "nsCOMPtr.h"
 #include "nsMemory.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsIX509CertDB.h"
 #include "nsIX509CertValidity.h"
 #include "nsIServiceManager.h"
@@ -114,14 +114,13 @@ NS_IMETHODIMP nsSMimeJSHelper::GetRecipientCertsInfo(
         ToLowerCase(email, email_lowercase);
 
         nsCOMPtr<nsIX509Cert> cert;
-        if (NS_SUCCEEDED(certdb->FindCertByEmailAddress(nullptr,
-                           email_lowercase.get(), getter_AddRefs(cert))))
+        if (NS_SUCCEEDED(certdb->FindCertByEmailAddress(
+                           email_lowercase, getter_AddRefs(cert))))
         {
-          *iCert = cert;
-          NS_ADDREF(*iCert);
+          cert.forget(iCert);
 
           nsCOMPtr<nsIX509CertValidity> validity;
-          rv = cert->GetValidity(getter_AddRefs(validity));
+          rv = (*iCert)->GetValidity(getter_AddRefs(validity));
 
           if (NS_SUCCEEDED(rv)) {
             nsString id, ed;
@@ -222,8 +221,8 @@ NS_IMETHODIMP nsSMimeJSHelper::GetNoCertAddresses(
       ToLowerCase(mailboxes[i], email_lowercase);
 
       nsCOMPtr<nsIX509Cert> cert;
-      if (NS_SUCCEEDED(certdb->FindCertByEmailAddress(nullptr,
-                         email_lowercase.get(), getter_AddRefs(cert))))
+      if (NS_SUCCEEDED(certdb->FindCertByEmailAddress(
+                         email_lowercase, getter_AddRefs(cert))))
         haveCert[i] = true;
 
       if (!haveCert[i])

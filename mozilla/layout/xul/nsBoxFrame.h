@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -8,7 +9,7 @@
   Eric D Vaughan
   nsBoxFrame is a frame that can lay its children out either vertically or horizontally.
   It lays them out according to a min max or preferred size.
- 
+
 **/
 
 #ifndef nsBoxFrame_h___
@@ -40,13 +41,12 @@ protected:
   typedef mozilla::gfx::DrawTarget DrawTarget;
 
 public:
-  NS_DECL_FRAMEARENA_HELPERS
+  NS_DECL_FRAMEARENA_HELPERS(nsBoxFrame)
 #ifdef DEBUG
-  NS_DECL_QUERYFRAME_TARGET(nsBoxFrame)
   NS_DECL_QUERYFRAME
 #endif
 
-  friend nsIFrame* NS_NewBoxFrame(nsIPresShell* aPresShell, 
+  friend nsIFrame* NS_NewBoxFrame(nsIPresShell* aPresShell,
                                   nsStyleContext* aContext,
                                   bool aIsRoot,
                                   nsBoxLayout* aLayoutManager);
@@ -56,46 +56,46 @@ public:
   // gets the rect inside our border and debug border. If you wish to paint inside a box
   // call this method to get the rect so you don't draw on the debug border or outer border.
 
-  virtual void SetLayoutManager(nsBoxLayout* aLayout) override { mLayoutManager = aLayout; }
-  virtual nsBoxLayout* GetLayoutManager() override { return mLayoutManager; }
+  virtual void SetXULLayoutManager(nsBoxLayout* aLayout) override { mLayoutManager = aLayout; }
+  virtual nsBoxLayout* GetXULLayoutManager() override { return mLayoutManager; }
 
-  virtual nsresult RelayoutChildAtOrdinal(nsBoxLayoutState& aState, nsIFrame* aChild) override;
+  virtual nsresult XULRelayoutChildAtOrdinal(nsIFrame* aChild) override;
 
-  virtual nsSize GetPrefSize(nsBoxLayoutState& aBoxLayoutState) override;
-  virtual nsSize GetMinSize(nsBoxLayoutState& aBoxLayoutState) override;
-  virtual nsSize GetMaxSize(nsBoxLayoutState& aBoxLayoutState) override;
-  virtual nscoord GetFlex(nsBoxLayoutState& aBoxLayoutState) override;
-  virtual nscoord GetBoxAscent(nsBoxLayoutState& aBoxLayoutState) override;
+  virtual nsSize GetXULPrefSize(nsBoxLayoutState& aBoxLayoutState) override;
+  virtual nsSize GetXULMinSize(nsBoxLayoutState& aBoxLayoutState) override;
+  virtual nsSize GetXULMaxSize(nsBoxLayoutState& aBoxLayoutState) override;
+  virtual nscoord GetXULFlex() override;
+  virtual nscoord GetXULBoxAscent(nsBoxLayoutState& aBoxLayoutState) override;
 #ifdef DEBUG_LAYOUT
-  virtual nsresult SetDebug(nsBoxLayoutState& aBoxLayoutState, bool aDebug) override;
-  virtual nsresult GetDebug(bool& aDebug) override;
+  virtual nsresult SetXULDebug(nsBoxLayoutState& aBoxLayoutState, bool aDebug) override;
+  virtual nsresult GetXULDebug(bool& aDebug) override;
 #endif
-  virtual Valignment GetVAlign() const override { return mValign; }
-  virtual Halignment GetHAlign() const override { return mHalign; }
-  NS_IMETHOD DoLayout(nsBoxLayoutState& aBoxLayoutState) override;
+  virtual Valignment GetXULVAlign() const override { return mValign; }
+  virtual Halignment GetXULHAlign() const override { return mHalign; }
+  NS_IMETHOD DoXULLayout(nsBoxLayoutState& aBoxLayoutState) override;
 
   virtual bool ComputesOwnOverflowArea() override { return false; }
 
   // ----- child and sibling operations ---
 
   // ----- public methods -------
-  
+
   virtual void Init(nsIContent*       aContent,
                     nsContainerFrame* aParent,
                     nsIFrame*         aPrevInFlow) override;
 
- 
+
   virtual nsresult AttributeChanged(int32_t         aNameSpaceID,
-                                    nsIAtom*        aAttribute,
+                                    nsAtom*        aAttribute,
                                     int32_t         aModType) override;
 
   virtual void MarkIntrinsicISizesDirty() override;
-  virtual nscoord GetMinISize(nsRenderingContext *aRenderingContext) override;
-  virtual nscoord GetPrefISize(nsRenderingContext *aRenderingContext) override;
+  virtual nscoord GetMinISize(gfxContext *aRenderingContext) override;
+  virtual nscoord GetPrefISize(gfxContext *aRenderingContext) override;
 
   virtual void Reflow(nsPresContext*           aPresContext,
-                      nsHTMLReflowMetrics&     aDesiredSize,
-                      const nsHTMLReflowState& aReflowState,
+                      ReflowOutput&     aDesiredSize,
+                      const ReflowInput& aReflowInput,
                       nsReflowStatus&          aStatus) override;
 
   virtual void SetInitialChildList(ChildListID  aListID,
@@ -112,11 +112,9 @@ public:
 
   virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext) override;
 
-  virtual nsIAtom* GetType() const override;
-
   virtual bool IsFrameOfType(uint32_t aFlags) const override
   {
-    // record that children that are ignorable whitespace should be excluded 
+    // record that children that are ignorable whitespace should be excluded
     // (When content was loaded via the XUL content sink, it's already
     // been excluded, but we need this for when the XUL namespace is used
     // in other MIME types or when the XUL CSS display types are used with
@@ -124,7 +122,7 @@ public:
 
     // This is bogus, but it's what we've always done.
     // (Given that we're replaced, we need to say we're a replaced element
-    // that contains a block so nsHTMLReflowState doesn't tell us to be
+    // that contains a block so ReflowInput doesn't tell us to be
     // NS_INTRINSICSIZE wide.)
     return nsContainerFrame::IsFrameOfType(aFlags &
       ~(nsIFrame::eReplaced | nsIFrame::eReplacedContainsBlock | eXULBox |
@@ -136,28 +134,22 @@ public:
 #endif
 
   virtual void DidReflow(nsPresContext*           aPresContext,
-                         const nsHTMLReflowState* aReflowState,
+                         const ReflowInput* aReflowInput,
                          nsDidReflowStatus        aStatus) override;
 
   virtual bool HonorPrintBackgroundSettings() override;
 
-  virtual ~nsBoxFrame();
-  
-  explicit nsBoxFrame(nsStyleContext* aContext, bool aIsRoot = false, nsBoxLayout* aLayoutManager = nullptr);
-
   // virtual so nsStackFrame, nsButtonBoxFrame, nsSliderFrame and nsMenuFrame
   // can override it
   virtual void BuildDisplayListForChildren(nsDisplayListBuilder*   aBuilder,
-                                           const nsRect&           aDirtyRect,
                                            const nsDisplayListSet& aLists);
 
   virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                                const nsRect&           aDirtyRect,
                                 const nsDisplayListSet& aLists) override;
-  
+
 #ifdef DEBUG_LAYOUT
     virtual void SetDebugOnChildList(nsBoxLayoutState& aState, nsIFrame* aChild, bool aDebug);
-    nsresult DisplayDebugInfoFor(nsIFrame*  aBox, 
+    nsresult DisplayDebugInfoFor(nsIFrame*  aBox,
                                  nsPoint& aPoint);
 #endif
 
@@ -178,23 +170,35 @@ public:
    */
   virtual bool SupportsOrdinalsInChildren();
 
+  /**
+   * Return our wrapper block, if any.
+   */
+  void AppendDirectlyOwnedAnonBoxes(nsTArray<OwnedAnonBox>& aResult) override;
+
+private:
+  explicit nsBoxFrame(nsStyleContext* aContext)
+    : nsBoxFrame(aContext, kClassID, false, nullptr) {}
 protected:
+  nsBoxFrame(nsStyleContext* aContext, ClassID aID, bool aIsRoot = false,
+             nsBoxLayout* aLayoutManager = nullptr);
+  virtual ~nsBoxFrame();
+
 #ifdef DEBUG_LAYOUT
     virtual void GetBoxName(nsAutoString& aName) override;
-    void PaintXULDebugBackground(nsRenderingContext& aRenderingContext,
+    void PaintXULDebugBackground(gfxContext& aRenderingContext,
                                  nsPoint aPt);
     void PaintXULDebugOverlay(DrawTarget& aRenderingContext,
                               nsPoint aPt);
 #endif
 
-    virtual bool GetInitialEqualSize(bool& aEqualSize); 
+    virtual bool GetInitialEqualSize(bool& aEqualSize);
     virtual void GetInitialOrientation(bool& aIsHorizontal);
     virtual void GetInitialDirection(bool& aIsNormal);
-    virtual bool GetInitialHAlignment(Halignment& aHalign); 
-    virtual bool GetInitialVAlignment(Valignment& aValign); 
-    virtual bool GetInitialAutoStretch(bool& aStretch); 
-  
-    virtual void DestroyFrom(nsIFrame* aDestructRoot) override;
+    virtual bool GetInitialHAlignment(Halignment& aHalign);
+    virtual bool GetInitialVAlignment(Valignment& aValign);
+    virtual bool GetInitialAutoStretch(bool& aStretch);
+
+    virtual void DestroyFrom(nsIFrame* aDestructRoot, PostDestroyData& aPostDestroyData) override;
 
     nsSize mPrefSize;
     nsSize mMinSize;
@@ -217,10 +221,10 @@ protected:
 
   void CheckBoxOrder();
 
-private: 
+private:
 
 #ifdef DEBUG_LAYOUT
-    nsresult SetDebug(nsPresContext* aPresContext, bool aDebug);
+    nsresult SetXULDebug(nsPresContext* aPresContext, bool aDebug);
     bool GetInitialDebug(bool& aDebug);
     void GetDebugPref();
 

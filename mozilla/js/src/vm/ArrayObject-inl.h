@@ -12,7 +12,6 @@
 #include "gc/GCTrace.h"
 #include "vm/String.h"
 
-#include "jsgcinlines.h"
 #include "jsobjinlines.h"
 
 #include "vm/TypeInference-inl.h"
@@ -20,9 +19,10 @@
 namespace js {
 
 inline void
-ArrayObject::setLength(ExclusiveContext* cx, uint32_t length)
+ArrayObject::setLength(JSContext* cx, uint32_t length)
 {
     MOZ_ASSERT(lengthIsWritable());
+    MOZ_ASSERT_IF(length != getElementsHeader()->length, !denseElementsAreFrozen());
 
     if (length > INT32_MAX) {
         /* Track objects with overflowing lengths in type information. */
@@ -33,7 +33,7 @@ ArrayObject::setLength(ExclusiveContext* cx, uint32_t length)
 }
 
 /* static */ inline ArrayObject*
-ArrayObject::createArrayInternal(ExclusiveContext* cx, gc::AllocKind kind, gc::InitialHeap heap,
+ArrayObject::createArrayInternal(JSContext* cx, gc::AllocKind kind, gc::InitialHeap heap,
                                  HandleShape shape, HandleObjectGroup group,
                                  AutoSetNewObjectMetadata&)
 {
@@ -41,10 +41,10 @@ ArrayObject::createArrayInternal(ExclusiveContext* cx, gc::AllocKind kind, gc::I
     MOZ_ASSERT(shape && group);
     MOZ_ASSERT(group->clasp() == shape->getObjectClass());
     MOZ_ASSERT(group->clasp() == &ArrayObject::class_);
-    MOZ_ASSERT_IF(group->clasp()->finalize, heap == gc::TenuredHeap);
+    MOZ_ASSERT_IF(group->clasp()->hasFinalize(), heap == gc::TenuredHeap);
     MOZ_ASSERT_IF(group->hasUnanalyzedPreliminaryObjects(),
                   heap == js::gc::TenuredHeap);
-    MOZ_ASSERT(group->clasp()->shouldDelayMetadataCallback());
+    MOZ_ASSERT(group->clasp()->shouldDelayMetadataBuilder());
 
     // Arrays can use their fixed slots to store elements, so can't have shapes
     // which allow named properties to be stored in the fixed slots.
@@ -75,7 +75,7 @@ ArrayObject::finishCreateArray(ArrayObject* obj, HandleShape shape, AutoSetNewOb
 }
 
 /* static */ inline ArrayObject*
-ArrayObject::createArray(ExclusiveContext* cx, gc::AllocKind kind, gc::InitialHeap heap,
+ArrayObject::createArray(JSContext* cx, gc::AllocKind kind, gc::InitialHeap heap,
                          HandleShape shape, HandleObjectGroup group,
                          uint32_t length, AutoSetNewObjectMetadata& metadata)
 {
@@ -92,7 +92,7 @@ ArrayObject::createArray(ExclusiveContext* cx, gc::AllocKind kind, gc::InitialHe
 }
 
 /* static */ inline ArrayObject*
-ArrayObject::createCopyOnWriteArray(ExclusiveContext* cx, gc::InitialHeap heap,
+ArrayObject::createCopyOnWriteArray(JSContext* cx, gc::InitialHeap heap,
                                     HandleArrayObject sharedElementsOwner)
 {
     MOZ_ASSERT(sharedElementsOwner->getElementsHeader()->isCopyOnWrite());

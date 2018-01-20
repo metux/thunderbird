@@ -4,16 +4,15 @@
 
 "use strict";
 
-const cssAutoCompleter  = require("devtools/client/sourceeditor/css-autocompleter");
-const { Cc, Ci } = require("chrome");
+const CSSCompleter = require("devtools/client/sourceeditor/css-autocompleter");
 
 const CSS_URI = "http://mochi.test:8888/browser/devtools/client/sourceeditor" +
                 "/test/css_statemachine_testcases.css";
-const TESTS_URI = "http://mochi.test:8888/browser/devtools/client/sourceeditor" +
-                  "/test/css_statemachine_tests.json";
+const TESTS_URI = "http://mochi.test:8888/browser/devtools/client" +
+                  "/sourceeditor/test/css_statemachine_tests.json";
 
 const source = read(CSS_URI);
-const tests = eval(read(TESTS_URI));
+const {tests} = JSON.parse(read(TESTS_URI));
 
 const TEST_URI = "data:text/html;charset=UTF-8," + encodeURIComponent(
   ["<!DOCTYPE html>",
@@ -58,30 +57,34 @@ const TEST_URI = "data:text/html;charset=UTF-8," + encodeURIComponent(
 var doc = null;
 function test() {
   waitForExplicitFinish();
-  gBrowser.selectedTab = gBrowser.addTab(TEST_URI);
+  gBrowser.selectedTab = BrowserTestUtils.addTab(gBrowser, TEST_URI);
   BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser).then(() => {
+    /* eslint-disable mozilla/no-cpows-in-tests */
     doc = content.document;
+    /* eslint-enable mozilla/no-cpows-in-tests */
     runTests();
   });
 }
 
 function runTests() {
-  let completer = new cssAutoCompleter();
+  let completer = new CSSCompleter({
+    cssProperties: getClientCssProperties()
+  });
   let checkState = state => {
-    if (state[0] == 'null' && (!completer.state || completer.state == 'null')) {
+    if (state[0] == "null" && (!completer.state || completer.state == "null")) {
       return true;
-    } else if (state[0] == completer.state && state[0] == 'selector' &&
+    } else if (state[0] == completer.state && state[0] == "selector" &&
                state[1] == completer.selectorState &&
                state[2] == completer.completing &&
                state[3] == completer.selector) {
       return true;
-    } else if (state[0] == completer.state && state[0] == 'value' &&
+    } else if (state[0] == completer.state && state[0] == "value" &&
                state[2] == completer.completing &&
                state[3] == completer.propertyName) {
       return true;
     } else if (state[0] == completer.state &&
                state[2] == completer.completing &&
-               state[0] != 'selector' && state[0] != 'value') {
+               state[0] != "selector" && state[0] != "value") {
       return true;
     }
     return false;
@@ -90,18 +93,17 @@ function runTests() {
   let progress = doc.getElementById("progress");
   let progressDiv = doc.querySelector("#progress > div");
   let i = 0;
-  for (let test of tests) {
+  for (let testcase of tests) {
     progress.dataset.progress = ++i;
-    progressDiv.style.width = 100*i/tests.length + "%";
-    completer.resolveState(limit(source, test[0]),
-                           {line: test[0][0], ch: test[0][1]});
-    if (checkState(test[1])) {
+    progressDiv.style.width = 100 * i / tests.length + "%";
+    completer.resolveState(limit(source, testcase[0]),
+                           {line: testcase[0][0], ch: testcase[0][1]});
+    if (checkState(testcase[1])) {
       ok(true, "Test " + i + " passed. ");
-    }
-    else {
-      ok(false, "Test " + i + " failed. Expected state : [" + test[1] + "] but" +
-         " found [" + completer.state + ", " + completer.selectorState + ", " +
-         completer.completing + ", " +
+    } else {
+      ok(false, "Test " + i + " failed. Expected state : [" + testcase[1] + "] " +
+         "but found [" + completer.state + ", " + completer.selectorState +
+         ", " + completer.completing + ", " +
          (completer.propertyName || completer.selector) + "].");
       progress.classList.add("failed");
     }

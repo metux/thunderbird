@@ -160,10 +160,12 @@ var gMFListener =
     }
   },
 
-  itemEvent: function(aFolder, aEvent, aBetterBeNull)
+  itemEvent: function(aFolder, aEvent, aBetterBeNull, aBetterBeEmpty)
   {
-    // we currently require the third argument to be null...
+    // we currently require the third argument to be null, and the fourth to be
+    // empty...
     do_check_eq(aBetterBeNull, null);
+    do_check_eq(aBetterBeEmpty, "");
     verify([gMFNService.itemEvent, aFolder, aEvent]);
     if (gExpectedEvents.length == 0)
     {
@@ -355,7 +357,7 @@ function verify(event)
     hasExactlyElements(expected[1], event[1]);
 
     // Check: destination folder name matches
-    do_check_eq(expected[2], event[2].prettiestName);
+    do_check_eq(expected[2], event[2].prettyName);
     break;
   case gMFNService.itemEvent:
     // the event string should match

@@ -17,16 +17,21 @@ test();
 
 function test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   var o =
     Object.defineProperty({}, "x", { get: decodeURI, enumerable: true, configurable: true });
-  expect = '( { get x ( ) { [ native code ] } } )';
+  expect = '({get x() {[native code]}})';
   actual =  uneval(o);
 
-  compareSource(expect, actual, summary);
+  // Native function syntax:
+  // `function IdentifierName_opt ( FormalParameters ) { [ native code ] }`
 
-  exitFunc ('test');
+  // The placement of whitespace characters in the native function's body is
+  // implementation-dependent, so we need to replace those for this test.
+  var re = new RegExp(["\\{", "\\[", "native", "code", "\\]", "\\}"].join("\\s*"));
+  actual = actual.replace(re, "{[native code]}");
+
+  compareSource(expect, actual, summary);
 }

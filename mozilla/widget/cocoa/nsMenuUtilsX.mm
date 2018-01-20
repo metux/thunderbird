@@ -29,7 +29,8 @@ void nsMenuUtilsX::DispatchCommandTo(nsIContent* aTargetContent)
   if (doc) {
     ErrorResult rv;
     RefPtr<dom::Event> event =
-      doc->CreateEvent(NS_LITERAL_STRING("xulcommandevent"), rv);
+      doc->CreateEvent(NS_LITERAL_STRING("xulcommandevent"),
+                       dom::CallerType::System, rv);
     nsCOMPtr<nsIDOMXULCommandEvent> command = do_QueryObject(event);
 
     // FIXME: Should probably figure out how to init this with the actual
@@ -37,9 +38,9 @@ void nsMenuUtilsX::DispatchCommandTo(nsIContent* aTargetContent)
     if (command &&
         NS_SUCCEEDED(command->InitCommandEvent(NS_LITERAL_STRING("command"),
                                                true, true,
-                                               doc->GetWindow(), 0,
+                                               doc->GetInnerWindow(), 0,
                                                false, false, false,
-                                               false, nullptr))) {
+                                               false, nullptr, 0))) {
       event->SetTrusted(true);
       bool dummy;
       aTargetContent->DispatchEvent(event, &dummy);
@@ -116,7 +117,7 @@ NSMenuItem* nsMenuUtilsX::GetStandardEditMenuItem()
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NIL;
 
   // In principle we should be able to allocate this once and then always
-  // return the same object.  But wierd interactions happen between native
+  // return the same object.  But weird interactions happen between native
   // app-modal dialogs and Gecko-modal dialogs that open above them.  So what
   // we return here isn't always released before it needs to be added to
   // another menu.  See bmo bug 468393.

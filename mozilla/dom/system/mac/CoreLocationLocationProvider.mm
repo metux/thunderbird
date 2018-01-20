@@ -4,6 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
 #include "nsGeoPosition.h"
 #include "nsIConsoleService.h"
@@ -99,7 +100,7 @@ static const CLLocationAccuracy kDEFAULT_ACCURACY = kCLLocationAccuracyNearestTe
                       location.verticalAccuracy,
                       location.course,
                       location.speed,
-                      PR_Now());
+                      PR_Now() / PR_USEC_PER_MSEC);
 
   mProvider->Update(geoPosition);
   Telemetry::Accumulate(Telemetry::GEOLOCATION_OSX_SOURCE_IS_MLS, false);
@@ -113,10 +114,6 @@ CoreLocationLocationProvider::MLSUpdate::MLSUpdate(CoreLocationLocationProvider&
 {
 }
 
-CoreLocationLocationProvider::MLSUpdate::~MLSUpdate()
-{
-}
-
 NS_IMETHODIMP
 CoreLocationLocationProvider::MLSUpdate::Update(nsIDOMGeoPosition *position)
 {
@@ -125,28 +122,19 @@ CoreLocationLocationProvider::MLSUpdate::Update(nsIDOMGeoPosition *position)
   if (!coords) {
     return NS_ERROR_FAILURE;
   }
-
   mParentLocationProvider.Update(position);
   Telemetry::Accumulate(Telemetry::GEOLOCATION_OSX_SOURCE_IS_MLS, true);
   return NS_OK;
 }
-
-NS_IMETHODIMP
-CoreLocationLocationProvider::MLSUpdate::LocationUpdatePending()
-{
-  return NS_OK;
-}
-
 NS_IMETHODIMP
 CoreLocationLocationProvider::MLSUpdate::NotifyError(uint16_t error)
 {
   mParentLocationProvider.NotifyError(error);
   return NS_OK;
 }
-
 class CoreLocationObjects {
 public:
-  NS_METHOD Init(CoreLocationLocationProvider* aProvider) {
+  nsresult Init(CoreLocationLocationProvider* aProvider) {
     mLocationManager = [[CLLocationManager alloc] init];
     NS_ENSURE_TRUE(mLocationManager, NS_ERROR_NOT_AVAILABLE);
 
@@ -177,10 +165,6 @@ NS_IMPL_ISUPPORTS(CoreLocationLocationProvider, nsIGeolocationProvider)
 
 CoreLocationLocationProvider::CoreLocationLocationProvider()
   : mCLObjects(nullptr), mMLSFallbackProvider(nullptr)
-{
-}
-
-CoreLocationLocationProvider::~CoreLocationLocationProvider()
 {
 }
 

@@ -1,5 +1,8 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
+/* eslint-disable no-shadow, max-nested-callbacks */
+
+"use strict";
 
 // Test the xpcshell-test debug support.  Ideally we should have this test
 // next to the xpcshell support code, but that's tricky...
@@ -9,17 +12,19 @@ function run_test() {
 
   // _setupDebuggerServer is from xpcshell-test's head.js
   let testResumed = false;
-  let DebuggerServer = _setupDebuggerServer([testFile.path], () => testResumed = true);
+  let DebuggerServer = _setupDebuggerServer([testFile.path], () => {
+    testResumed = true;
+  });
   let transport = DebuggerServer.connectPipe();
   let client = new DebuggerClient(transport);
-  client.connect(() => {
+  client.connect().then(() => {
     // Even though we have no tabs, listTabs gives us the chromeDebugger.
     client.getProcess().then(response => {
       let actor = response.form.actor;
       client.attachTab(actor, (response, tabClient) => {
         tabClient.attachThread(null, (response, threadClient) => {
           threadClient.addOneTimeListener("paused", (event, packet) => {
-          equal(packet.why.type, "breakpoint",
+            equal(packet.why.type, "breakpoint",
                 "yay - hit the breakpoint at the first line in our script");
             // Resume again - next stop should be our "debugger" statement.
             threadClient.addOneTimeListener("paused", (event, packet) => {

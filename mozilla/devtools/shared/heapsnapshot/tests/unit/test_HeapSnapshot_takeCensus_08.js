@@ -1,5 +1,6 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
+"use strict";
 
 // HeapSnapshot.prototype.takeCensus: test by: 'count' breakdown
 //
@@ -55,9 +56,9 @@ function run_test() {
     // takeCensus reaches those. Shake everything loose that we can, to make the
     // census approximate reachability a bit more closely, and make our results a
     // bit more predictable.
-    gc(g, 'shrinking');
+    gc(g, "shrinking");
 
-    baseline = saveHeapSnapshotAndTakeCensus(dbg, { breakdown: { by: 'count' } }).count;
+    baseline = saveHeapSnapshotAndTakeCensus(dbg, { breakdown: { by: "count" } }).count;
     return baseline >= oldBaseline + n;
   }
 

@@ -7,7 +7,7 @@
 #include "DomainPolicy.h"
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/ipc/URIUtils.h"
-#include "mozilla/unused.h"
+#include "mozilla/Unused.h"
 #include "nsIMessageManager.h"
 #include "nsScriptSecurityManager.h"
 
@@ -139,10 +139,8 @@ CopyURIs(const InfallibleTArray<URIParams>& aDomains, nsIDomainSet* aSet)
 }
 
 void
-DomainPolicy::ApplyClone(DomainPolicyClone* aClone)
+DomainPolicy::ApplyClone(const DomainPolicyClone* aClone)
 {
-    nsCOMPtr<nsIDomainSet> list;
-
     CopyURIs(aClone->blacklist(), mBlacklist);
     CopyURIs(aClone->whitelist(), mWhitelist);
     CopyURIs(aClone->superBlacklist(), mSuperBlacklist);
@@ -157,7 +155,7 @@ GetCanonicalClone(nsIURI* aURI)
     NS_ENSURE_SUCCESS(rv, nullptr);
     rv = clone->SetUserPass(EmptyCString());
     NS_ENSURE_SUCCESS(rv, nullptr);
-    rv = clone->SetPath(EmptyCString());
+    rv = clone->SetPathQueryRef(EmptyCString());
     NS_ENSURE_SUCCESS(rv, nullptr);
     return clone.forget();
 }

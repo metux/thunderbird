@@ -17,10 +17,10 @@ var gAccount = null;  // the account we are showing the identities for
 function onLoad()
 {
   gIdentityListBox  = document.getElementById("identitiesList");
-  gAddButton        = document.getElementById("addButton");
-  gEditButton       = document.getElementById("editButton");
-  gSetDefaultButton = document.getElementById("setDefaultButton");
-  gDeleteButton     = document.getElementById("deleteButton");
+  gAddButton        = document.getElementById("cmd_add");
+  gEditButton       = document.getElementById("cmd_edit");
+  gSetDefaultButton = document.getElementById("cmd_default");
+  gDeleteButton     = document.getElementById("cmd_delete");
 
   // extract the account
   gAccount = window.arguments[0].account;
@@ -45,7 +45,7 @@ function refreshIdentityList(aSelectIndex)
 
   // Build the list from the identities array.
   let identities = gAccount.identities;
-  for (let identity in fixIterator(identities,
+  for (let identity of fixIterator(identities,
                                    Components.interfaces.nsIMsgIdentity))
   {
     if (identity.valid)
@@ -93,7 +93,7 @@ function getSelectedIdentity()
 
   var identityKey = gIdentityListBox.selectedItems[0].getAttribute("key");
   let identities = gAccount.identities;
-  for (let identity in fixIterator(identities,
+  for (let identity of fixIterator(identities,
                                    Components.interfaces.nsIMsgIdentity))
   {
     if (identity.valid && identity.key == identityKey)
@@ -118,15 +118,16 @@ function updateButtons()
   if (gIdentityListBox.selectedItems.length != 1 || gIdentityListBox.itemCount == 0) {
     // But in case this is not met (e.g. there is no identity for some reason,
     // or the list is being rebuilt), disable all buttons.
-    gEditButton.disabled = true;
-    gDeleteButton.disabled = true;
-    gSetDefaultButton.disabled = true;
+    gEditButton.setAttribute("disabled", "true");
+    gDeleteButton.setAttribute("disabled", "true");
+    gSetDefaultButton.setAttribute("disabled", "true");
     return;
   }
 
-  gEditButton.disabled = false;
-  gDeleteButton.disabled = gIdentityListBox.itemCount <= 1;
-  gSetDefaultButton.disabled = gIdentityListBox.selectedIndex == 0;
+  gEditButton.setAttribute("disabled", "false");
+  gDeleteButton.setAttribute("disabled", (gIdentityListBox.itemCount <= 1) ? "true" : "false");
+  gSetDefaultButton.setAttribute("disabled", (gIdentityListBox.selectedIndex == 0) ? "true" : "false");
+  // The Add command is always enabled.
 }
 
 function onSetDefault(event)

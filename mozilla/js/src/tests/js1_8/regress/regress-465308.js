@@ -16,18 +16,13 @@ test();
 
 function test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
  
   expect = '-1073741824,-1073741824,-1073741824,-1073741824,-1073741824,';
 
-  jit(true);
   for (let j=0;j<5;++j) 
     print(actual += "" + (0 | ((0x60000009) * 0x60000009)) + ',');
-  jit(false);
 
   reportCompare(expect, actual, summary);
-
-  exitFunc ('test');
 }

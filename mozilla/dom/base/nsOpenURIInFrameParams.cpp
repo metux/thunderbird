@@ -5,11 +5,23 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsOpenURIInFrameParams.h"
+#include "mozilla/BasePrincipal.h"
+#include "mozilla/dom/ToJSValue.h"
 
-NS_IMPL_ISUPPORTS(nsOpenURIInFrameParams, nsIOpenURIInFrameParams)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsOpenURIInFrameParams)
+  NS_INTERFACE_MAP_ENTRY(nsIOpenURIInFrameParams)
+  NS_INTERFACE_MAP_ENTRY(nsISupports)
+NS_INTERFACE_MAP_END
 
-nsOpenURIInFrameParams::nsOpenURIInFrameParams() :
-  mIsPrivate(false)
+NS_IMPL_CYCLE_COLLECTION(nsOpenURIInFrameParams, mOpenerBrowser)
+
+NS_IMPL_CYCLE_COLLECTING_ADDREF(nsOpenURIInFrameParams)
+NS_IMPL_CYCLE_COLLECTING_RELEASE(nsOpenURIInFrameParams)
+
+nsOpenURIInFrameParams::nsOpenURIInFrameParams(const mozilla::OriginAttributes& aOriginAttributes,
+                                               nsIFrameLoaderOwner* aOpener)
+  : mOpenerOriginAttributes(aOriginAttributes)
+  , mOpenerBrowser(aOpener)
 {
 }
 
@@ -22,6 +34,7 @@ nsOpenURIInFrameParams::GetReferrer(nsAString& aReferrer)
   aReferrer = mReferrer;
   return NS_OK;
 }
+
 NS_IMETHODIMP
 nsOpenURIInFrameParams::SetReferrer(const nsAString& aReferrer)
 {
@@ -33,12 +46,38 @@ NS_IMETHODIMP
 nsOpenURIInFrameParams::GetIsPrivate(bool* aIsPrivate)
 {
   NS_ENSURE_ARG_POINTER(aIsPrivate);
-  *aIsPrivate = mIsPrivate;
+  *aIsPrivate = mOpenerOriginAttributes.mPrivateBrowsingId > 0;
   return NS_OK;
 }
+
 NS_IMETHODIMP
-nsOpenURIInFrameParams::SetIsPrivate(bool aIsPrivate)
+nsOpenURIInFrameParams::GetTriggeringPrincipal(nsIPrincipal** aTriggeringPrincipal)
 {
-  mIsPrivate = aIsPrivate;
+  NS_ADDREF(*aTriggeringPrincipal = mTriggeringPrincipal);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsOpenURIInFrameParams::SetTriggeringPrincipal(nsIPrincipal* aTriggeringPrincipal)
+{
+  NS_ENSURE_TRUE(aTriggeringPrincipal, NS_ERROR_INVALID_ARG);
+  mTriggeringPrincipal = aTriggeringPrincipal;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsOpenURIInFrameParams::GetOpenerBrowser(nsIFrameLoaderOwner** aOpenerBrowser)
+{
+  nsCOMPtr<nsIFrameLoaderOwner> owner = mOpenerBrowser;
+  owner.forget(aOpenerBrowser);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsOpenURIInFrameParams::GetOpenerOriginAttributes(JSContext* aCx,
+                                                  JS::MutableHandle<JS::Value> aValue)
+{
+  bool ok = ToJSValue(aCx, mOpenerOriginAttributes, aValue);
+  NS_ENSURE_TRUE(ok, NS_ERROR_FAILURE);
   return NS_OK;
 }

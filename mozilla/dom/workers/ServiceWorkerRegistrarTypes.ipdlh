@@ -12,13 +12,18 @@ namespace dom {
 struct ServiceWorkerRegistrationData
 {
   nsCString scope;
-  nsCString scriptSpec;
   nsCString currentWorkerURL;
+  bool currentWorkerHandlesFetch;
 
-  nsString activeCacheName;
-  nsString waitingCacheName;
+  nsString cacheName;
 
   PrincipalInfo principal;
+
+  uint16_t updateViaCache;
+
+  int64_t currentWorkerInstalledTime;
+  int64_t currentWorkerActivatedTime;
+  int64_t lastUpdateTime;
 };
 
 } // namespace dom

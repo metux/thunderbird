@@ -4,10 +4,9 @@
  */
 function waitTabSwitched() {
   return new Promise(resolve => {
-    gBrowser.addEventListener("TabSwitchDone", function onSwitch() {
-      gBrowser.removeEventListener("TabSwitchDone", onSwitch);
+    gBrowser.addEventListener("TabSwitchDone", function() {
       executeSoon(resolve);
-    });
+    }, {once: true});
   });
 }
 
@@ -64,10 +63,9 @@ function nativeVerticalWheelEventMsg() {
  */
 function waitScrollStart(aTarget) {
   return new Promise((resolve, reject) => {
-    aTarget.addEventListener("scroll", function listener(event) {
-      aTarget.removeEventListener("scroll", listener, true);
+    aTarget.addEventListener("scroll", function(event) {
       resolve(event);
-    }, true);
+    }, {capture: true, once: true});
   });
 }
 
@@ -110,8 +108,7 @@ function waitScrollFinish(aTarget) {
  */
 function setTestPluginEnabledState(aState, aPluginName) {
   let name = aPluginName || "Test Plug-in";
-  let plugin = getTestPlugin(name);
-  plugin.enabledState = aState;
+  SpecialPowers.setTestPluginEnabledState(aState, name);
 }
 
 /**

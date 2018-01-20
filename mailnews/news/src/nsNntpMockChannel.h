@@ -10,7 +10,7 @@
 #include "nsIMsgWindow.h"
 
 #include "nsCOMPtr.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 
 class nsNNTPProtocol;
 
@@ -55,7 +55,6 @@ protected:
   nsCOMPtr<nsILoadInfo> m_loadInfo;
   nsLoadFlags m_loadFlags;
 
-  nsCOMPtr<nsIURI> m_originalUrl;
   nsCOMPtr<nsISupports> m_owner;
   nsCOMPtr<nsIInterfaceRequestor> m_notificationCallbacks;
   nsCString m_contentType;

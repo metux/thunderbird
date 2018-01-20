@@ -154,6 +154,9 @@
 #elif defined __s390__
 #define RETURN_INSTR 0x07fe0000 /* br %r14 */
 
+#elif defined __sh__
+#define RETURN_INSTR 0x0b000b00 /* rts; rts */
+
 #elif defined __aarch64__
 #define RETURN_INSTR 0xd65f03c0 /* ret */
 
@@ -266,7 +269,11 @@ ReleaseRegion(void* aPage)
 static bool
 ProbeRegion(uintptr_t aPage)
 {
+#ifdef XP_SOLARIS
+  return !!posix_madvise(reinterpret_cast<void*>(aPage), PageSize(), POSIX_MADV_NORMAL);
+#else
   return !!madvise(reinterpret_cast<void*>(aPage), PageSize(), MADV_NORMAL);
+#endif
 }
 
 static int
@@ -408,14 +415,14 @@ IsBadExecPtr(uintptr_t aPtr)
 {
   BOOL ret = false;
 
-#if defined(_MSC_VER) && !defined(__clang__)
+#ifdef _MSC_VER
   __try {
     JumpTo(aPtr);
   } __except (EXCEPTION_EXECUTE_HANDLER) {
     ret = true;
   }
 #else
-  printf("INFO | exec test not supported on MinGW or clang-cl builds\n");
+  printf("INFO | exec test not supported on MinGW build\n");
   // We do our best
   ret = IsBadReadPtr((const void*)aPtr, 1);
 #endif

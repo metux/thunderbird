@@ -26,12 +26,12 @@
 <!ENTITY bgColor.accesskey                    "B">
 <!ENTITY restoreHTMLDefaults.label            "Restore Defaults">
 <!ENTITY restoreHTMLDefaults.accesskey        "R">
-<!ENTITY enterKeyCreatesNewParagraph.label    "When using paragraph format, the enter key creates a new paragraph">
-<!ENTITY enterKeyCreatesNewParagraph.accesskey "p">
+<!ENTITY defaultToParagraph.label             "Use Paragraph format instead of Body Text by default">
+<!ENTITY defaultToParagraph.accesskey         "P">
 
 <!ENTITY spellCheck.label                     "Check spelling before sending">
 <!ENTITY spellCheck.accesskey                 "C">
-<!ENTITY spellCheckInline.label               "Enable spell check as you type">
+<!ENTITY spellCheckInline.label               "Enable spellcheck as you type">
 <!ENTITY spellCheckInline1.accesskey          "E">
 <!ENTITY languagePopup.label                  "Language:">
 <!ENTITY languagePopup.accessKey              "L">
@@ -54,6 +54,9 @@
 <!ENTITY directoriesNone.label                 "None">
 <!ENTITY editDirectories.label                 "Edit Directories…">
 <!ENTITY editDirectories.accesskey             "E">
+<!ENTITY showAsDefault.label                   "Default startup directory in the address book window:">
+<!ENTITY showAsDefault.accesskey               "S">
+<!ENTITY showAsDefaultLast.label               "Last used directory">
 
 <!ENTITY sendOptionsDescription.label          "Configure text format behavior">
 <!ENTITY sendOptions.label                     "Send Options…">

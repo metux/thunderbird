@@ -22,13 +22,13 @@ void SetProxyPref(const nsACString& aHostPort, const char* aPref,
     nsAutoCString port(Substring(hostPort, portDelimOffset + 1,
                                  hostPort.Length() - (portDelimOffset + 1)));
 
-    aPrefs->SetCharPref(aPref, host.get());
+    aPrefs->SetCharPref(aPref, host);
     nsresult stringErr;
     int32_t portValue = port.ToInteger(&stringErr);
     aPrefs->SetIntPref(aPortPref, portValue);
   }
   else
-    aPrefs->SetCharPref(aPref, hostPort.get());
+    aPrefs->SetCharPref(aPref, hostPort);
 }
 
 void ParseOverrideServers(const char* aServers, nsIPrefBranch* aBranch)
@@ -50,7 +50,7 @@ void ParseOverrideServers(const char* aServers, nsIPrefBranch* aBranch)
     left = right + 1;
     override.Replace(right, 1, NS_LITERAL_CSTRING(","));
   }
-  aBranch->SetCharPref("network.proxy.no_proxies_on", override.get());
+  aBranch->SetCharPref("network.proxy.no_proxies_on", override);
 }
 
 void GetMigrateDataFromArray(MigrationData* aDataArray, int32_t aDataArrayLength,
@@ -72,7 +72,7 @@ void GetMigrateDataFromArray(MigrationData* aDataArray, int32_t aDataArrayLength
       if (exists)
         *aResult |= cursor->sourceFlag;
     }
-    NS_Free(cursor->fileName);
+    free(cursor->fileName);
     cursor->fileName = nullptr;
   }
 }
@@ -88,7 +88,7 @@ GetProfilePath(nsIProfileStartup* aStartup, nsCOMPtr<nsIFile>& aProfileDir)
       (do_GetService(NS_DIRECTORY_SERVICE_CONTRACTID));
     if (dirSvc) {
       dirSvc->Get(NS_APP_USER_PROFILE_50_DIR, NS_GET_IID(nsIFile),
-                  (void**) getter_AddRefs(aProfileDir));
+                  getter_AddRefs(aProfileDir));
     }
   }
 }

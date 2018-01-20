@@ -5,8 +5,10 @@
 
 
 <!DOCTYPE bindings [
-<!ENTITY % notificationDTD SYSTEM "chrome://global/locale/notification.dtd">
-%notificationDTD;
+<!ENTITY % commNotificationDTD SYSTEM "chrome://communicator/locale/notification.dtd">
+ %commNotificationDTD;
+<!ENTITY % globalNotificationDTD SYSTEM "chrome://global/locale/notification.dtd">
+ %globalNotificationDTD;
 ]>
 
 <bindings id="browserNotificationBindings"
@@ -405,31 +407,31 @@
                 break;
 
               case "addon-install-blocked":
-                var installInfo = aSubject.QueryInterface(Components.interfaces.amIWebInstallInfo);
+                var installInfo = aSubject.wrappedJSObject;
                 if (installInfo.browser == browser)
                   this.addonInstallBlocked(installInfo);
                 break;
 
               case "addon-install-complete":
-                var installInfo = aSubject.QueryInterface(Components.interfaces.amIWebInstallInfo);
+                var installInfo = aSubject.wrappedJSObject;
                 if (installInfo.browser == browser)
                   this.addonInstallComplete(installInfo);
                 break;
 
               case "addon-install-disabled":
-                var installInfo = aSubject.QueryInterface(Components.interfaces.amIWebInstallInfo);
+                var installInfo = aSubject.wrappedJSObject;
                 if (installInfo.browser == browser)
                   this.addonInstallDisabled(installInfo);
                 break;
 
               case "addon-install-failed":
-                var installInfo = aSubject.QueryInterface(Components.interfaces.amIWebInstallInfo);
+                var installInfo = aSubject.wrappedJSObject;
                 if (installInfo.browser == browser)
                   this.addonInstallFailed(installInfo);
                 break;
 
               case "addon-install-started":
-                var installInfo = aSubject.QueryInterface(Components.interfaces.amIWebInstallInfo);
+                var installInfo = aSubject.wrappedJSObject;
                 if (installInfo.browser == browser)
                   this.addonInstallStarted(installInfo);
                 break;
@@ -744,9 +746,7 @@
             var whereToOpen = this._prefs.getIntPref("browser.link.open_external");
 
             if (whereToOpen != nsIBrowserDOMWindow.OPEN_NEWWINDOW) {
-              var windowManager = Components.classes['@mozilla.org/appshell/window-mediator;1']
-                                            .getService(Components.interfaces.nsIWindowMediator);
-              browserWin = windowManager.getMostRecentWindow("navigator:browser");
+              browserWin = Services.wm.getMostRecentWindow("navigator:browser");
             }
 
             if (!browserWin) {
@@ -861,7 +861,7 @@
                clicks on a link in the click-to-play UI (e.g. to check for
                plugin updates)
              */
-            let callbackArgs = Array.slice(arguments, 2);
+            let callbackArgs = Array.from(arguments).slice(2);
             linkNode.addEventListener("click",
                                       function(aEvent) {
                                         if (!aEvent.isTrusted)
@@ -1164,7 +1164,7 @@
             var cacheService = Components.classes["@mozilla.org/network/application-cache-service;1"]
                                          .getService(Components.interfaces.nsIApplicationCacheService);
             cacheService.getGroups().forEach(function(aGroup) {
-              var uri = ioService.newURI(aGroup, null, null);
+              var uri = ioService.newURI(aGroup);
               if (uri.asciiHost == host)
                 usage += cacheService.getActiveCache(aGroup).usage;
             });
@@ -1324,7 +1324,7 @@
               accessKey: this._stringBundle.GetStringFromName("lwthemeNeedsRestart.restartButton.accesskey"),
               popup: null,
               callback: function() {
-                Application.restart();
+                BrowserUtils.restartApplication();
               }
             }];
             var box = this.appendNotification(message,
@@ -1738,10 +1738,8 @@
                 var weblistener = Components.classes["@mozilla.org/addons/web-install-listener;1"]
                                             .getService(Components.interfaces.amIWebInstallListener);
                 if (weblistener.onWebInstallRequested(installInfo.browser, installInfo.originatingURI,
-                                                      installInfo.installs, installInfo.installs.length)) {
-                  installInfo.installs.forEach(function(aInstall) {
-                    aInstall.install();
-                  });
+                                                      [aInstall], 1)) {
+                  aInstall.install();
                 }
               }
             }];
@@ -1780,7 +1778,7 @@
                 label: this._stringBundle.GetStringFromName("addonInstallRestartButton"),
                 accessKey: this._stringBundle.GetStringFromName("addonInstallRestartButton.accesskey"),
                 callback: function () {
-                  Application.restart();
+                  BrowserUtils.restartApplication();
                 }
               });
             } else {
@@ -1922,13 +1920,12 @@
       </method>
 
       <method name="ignoreSafeBrowsingWarning">
-        <parameter name="aIsMalware"/>
+        <parameter name="aReason"/>
         <body>
           <![CDATA[
             var uri = this.activeBrowser.currentURI;
-            var asciiSpec = uri.asciiSpec;
             var flag = Components.interfaces.nsIWebNavigation.LOAD_FLAGS_BYPASS_CLASSIFIER;
-            this.activeBrowser.loadURIWithFlags(asciiSpec, flag,
+            this.activeBrowser.loadURIWithFlags(uri.asciiSpec, flag,
                                                 null, null, null);
 
             const nsIPermissionManager = Components.interfaces.nsIPermissionManager;
@@ -1937,35 +1934,48 @@
             pm.add(uri, "safe-browsing", nsIPermissionManager.ALLOW_ACTION,
                                          nsIPermissionManager.EXPIRE_SESSION);
 
-            var title, label, accessKey, reportName;
-            if (aIsMalware) {
-              title = "safebrowsing.reportedAttackSite";
-              label = "safebrowsing.notAnAttackButton.label";
-              accessKey = "safebrowsing.notAnAttackButton.accessKey";
-              reportName = "MalwareError";
-            }
-            else {
-              title = "safebrowsing.reportedWebForgery";
-              label = "safebrowsing.notAForgeryButton.label";
-              accessKey = "safebrowsing.notAForgeryButton.accessKey";
-              reportName = "Error";
-            }
+            var title, label, accessKey, reportName, buttons;
+
+            switch (aReason) {
+             case "phishing":
+               title = "safebrowsing.deceptiveSite";
+               label = "safebrowsing.notADeceptiveSiteButton.label";
+               accessKey = "safebrowsing.notADeceptiveSiteButton.accessKey";
+               reportName = "PhishMistake";
+               break;
+             case "malware":
+               title = "safebrowsing.reportedAttackSite";
+               label = "safebrowsing.notAnAttackButton.label";
+               accessKey = "safebrowsing.notAnAttackButton.accessKey";
+               reportName = "MalwareMistake";
+               break;
+             case "unwanted":
+               title = "safebrowsing.reportedUnwantedSite";
+               break;
+             // No notifications for unknown reasons.
+             default:
+               return;
+           }
+
             title = this._stringBundle.GetStringFromName(title);
 
-            var tmp = {};
-            Components.utils.import("resource://gre/modules/SafeBrowsing.jsm", tmp);
-            var reportUrl = tmp.SafeBrowsing.getReportURL(reportName);
-            reportUrl += "&url=" + encodeURIComponent(asciiSpec);
+            buttons = [{
+                label: this._stringBundle.GetStringFromName("safebrowsing.getMeOutOfHereButton.label"),
+                accessKey: this._stringBundle.GetStringFromName("safebrowsing.getMeOutOfHereButton.accessKey"),
+                callback: getMeOutOfHere
+             }]
 
-            var buttons = [{
-              label: this._stringBundle.GetStringFromName("safebrowsing.getMeOutOfHereButton.label"),
-              accessKey: this._stringBundle.GetStringFromName("safebrowsing.getMeOutOfHereButton.accessKey"),
-              callback: getMeOutOfHere
-            }, {
-              label: this._stringBundle.GetStringFromName(label),
-              accessKey: this._stringBundle.GetStringFromName(accessKey),
-              callback: function () { openUILinkIn(reportUrl, "tabfocused"); }
-            }];
+            if (reportName) {
+              var tmp = {};
+              Components.utils.import("resource://gre/modules/SafeBrowsing.jsm", tmp);
+              var reportUrl = tmp.SafeBrowsing.getReportURL(reportName, uri);
+
+              buttons.push({
+                label: this._stringBundle.GetStringFromName(label),
+                accessKey: this._stringBundle.GetStringFromName(accessKey),
+                callback() { openUILinkIn(reportUrl, "tabfocused"); }
+              });
+            }
 
             var type = "blocked-badware-page";
             var notification = this.getNotificationWithValue(type);
@@ -1979,13 +1989,14 @@
             // Persist the notification until the user removes so it
             // doesn't get removed on redirects.
             box.persistence = -1;
-
           ]]>
         </body>
       </method>
-
       <constructor>
         <![CDATA[
+          Components.utils.import("resource://gre/modules/Services.jsm");
+          Components.utils.import("resource://gre/modules/BrowserUtils.jsm");
+
           var os = Components.classes["@mozilla.org/observer-service;1"]
                              .getService(Components.interfaces.nsIObserverService);
           os.addObserver(this, "indexedDB-permissions-prompt", false);
@@ -2551,7 +2562,7 @@
               label: this._stringBundle.GetStringFromName("lwthemeNeedsRestart.restartButton"),
               accessKey: this._stringBundle.GetStringFromName("lwthemeNeedsRestart.restartButton.accesskey"),
               callback: function() {
-                Application.restart();
+                BrowserUtils.restartApplication();
               }
             };
             var options = {
@@ -2942,10 +2953,8 @@
                 var weblistener = Components.classes["@mozilla.org/addons/web-install-listener;1"]
                                             .getService(Components.interfaces.amIWebInstallListener);
                 if (weblistener.onWebInstallRequested(installInfo.browser, installInfo.originatingURI,
-                                                      installInfo.installs, installInfo.installs.length)) {
-                  installInfo.installs.forEach(function(aInstall) {
-                    aInstall.install();
-                  });
+                                                      [aInstall], 1)) {
+                  aInstall.install();
                 }
               }
             };
@@ -2992,7 +3001,7 @@
                 label: this._stringBundle.GetStringFromName("addonInstallRestartButton"),
                 accessKey: this._stringBundle.GetStringFromName("addonInstallRestartButton.accesskey"),
                 callback: function () {
-                  Application.restart();
+                  BrowserUtils.restartApplication();
                 }
               };
             } else {
@@ -3128,7 +3137,11 @@
           ]]>
         </body>
       </method>
-
+      <constructor>
+        <![CDATA[
+          Components.utils.import("resource://gre/modules/BrowserUtils.jsm");
+        ]]>
+      </constructor>
     </implementation>
   </binding>
 

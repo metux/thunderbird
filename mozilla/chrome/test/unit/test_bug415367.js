@@ -6,19 +6,17 @@
 var gIOS = Cc["@mozilla.org/network/io-service;1"]
             .getService(Ci.nsIIOService);
 
-function test_uri(obj)
-{
+function test_uri(obj) {
   var uri = null;
   var failed = false;
   var message = "";
   try {
-    uri = gIOS.newURI(obj.uri, null, null);
+    uri = gIOS.newURI(obj.uri);
     if (!obj.result) {
       failed = true;
       message = obj.uri + " should not be accepted as a valid URI";
     }
-  }
-  catch (ex) {
+  } catch (ex) {
     if (obj.result) {
       failed = true;
       message = obj.uri + " should be accepted as a valid URI";
@@ -32,8 +30,7 @@ function test_uri(obj)
   }
 }
 
-function run_test()
-{
+function run_test() {
   var tests = [
     {uri: "chrome://blah/content/blah.xul", result: true},
     {uri: "chrome://blah/content/:/blah/blah.xul", result: false},
@@ -43,6 +40,6 @@ function run_test()
     {uri: "chrome://blah/content/blah.xul?param=:/blah/", result: true},
     {uri: "chrome://blah/content/blah.xul?param=%252e%252e/blah/", result: true},
   ];
-  for (var i = 0; i < tests.length; ++ i)
+  for (var i = 0; i < tests.length; ++i)
     test_uri(tests[i]);
 }

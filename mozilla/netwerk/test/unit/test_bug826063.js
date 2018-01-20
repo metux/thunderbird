@@ -7,7 +7,8 @@
  */
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/NetUtil.jsm");
+
 
 var URIs = [
   "http://example.org",
@@ -15,25 +16,15 @@ var URIs = [
   "ftp://example.org"
   ];
 
-function LoadContext(usePrivateBrowsing) {
-  this.usePrivateBrowsing = usePrivateBrowsing;
-}
-LoadContext.prototype = {
-  originAttributes: {},
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsILoadContext, Ci.nsIInterfaceRequestor]),
-  getInterface: XPCOMUtils.generateQI([Ci.nsILoadContext])
-};
+let LoadContext = Components.Constructor("@mozilla.org/loadcontext;1");
+let PrivateLoadContext = Components.Constructor("@mozilla.org/privateloadcontext;1");
 
-function getChannels() {
+function* getChannels() {
   for (let u of URIs) {
-    yield Services.io.newChannel2(u,
-                                  null,
-                                  null,
-                                  null,      // aLoadingNode
-                                  Services.scriptSecurityManager.getSystemPrincipal(),
-                                  null,      // aTriggeringPrincipal
-                                  Ci.nsILoadInfo.SEC_NORMAL,
-                                  Ci.nsIContentPolicy.TYPE_OTHER);
+    yield NetUtil.newChannel({
+      uri: u,
+      loadUsingSystemPrincipal: true
+    });
   }
 }
 
@@ -79,7 +70,7 @@ add_test(function test_setPrivate_regular() {
  * Load context mandates private mode
  */
 add_test(function test_LoadContextPrivate() {
-  let ctx = new LoadContext(true);
+  let ctx = new PrivateLoadContext();
   for (let c of getChannels()) {
     c.notificationCallbacks = ctx;
     checkPrivate(c, true);
@@ -91,7 +82,7 @@ add_test(function test_LoadContextPrivate() {
  * Load context mandates regular mode
  */
 add_test(function test_LoadContextRegular() {
-  let ctx = new LoadContext(false);
+  let ctx = new LoadContext();
   for (let c of getChannels()) {
     c.notificationCallbacks = ctx;
     checkPrivate(c, false);

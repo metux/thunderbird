@@ -31,21 +31,21 @@ mozmill:
 	unset PYTHONHOME && cd $(MOZMILLDIR) && MACOSX_DEPLOYMENT_TARGET= \
 	$(MOZMILLPYTHON) runtestlist.py --list=mozmilltests.list \
 	--binary=$(abspath $(BINARY)) \
-	--dir=$(abspath $(topsrcdir))/../mail/test/mozmill \
-	--symbols-path=$(abspath $(DIST)/crashreporter-symbols) \
-	--plugins-path=$(abspath $(DIST)/plugins) \
-	--testing-modules-dir=$(abspath $(DEPTH)/_tests/modules) \
+	--dir=$(commtopsrcdir)/mail/test/mozmill \
+	--symbols-path=$(ABS_DIST)/crashreporter-symbols \
+	--plugins-path=$(ABS_DIST)/plugins \
+	--testing-modules-dir=$(topobjdir)/_tests/modules \
 	$(MOZMILL_EXTRA)
 
 mozmill-one: solo-test = $(find-solo-test)
 mozmill-one:
 	unset PYTHONHOME && cd $(MOZMILLDIR) && MACOSX_DEPLOYMENT_TARGET= \
 	$(MOZMILLPYTHON) runtest.py \
-	--test=$(abspath $(topsrcdir))/../mail/test/mozmill/$(solo-test) \
+	--test=$(commtopsrcdir)/mail/test/mozmill/$(solo-test) \
 	--binary=$(abspath $(BINARY)) \
-	--symbols-path=$(abspath $(DIST)/crashreporter-symbols) \
-	--plugins-path=$(abspath $(DIST)/plugins) \
-	--testing-modules-dir=$(abspath $(DEPTH)/_tests/modules) \
+	--symbols-path=$(ABS_DIST)/crashreporter-symbols \
+	--plugins-path=$(ABS_DIST)/plugins \
+	--testing-modules-dir=$(topobjdir)/_tests/modules \
 	$(MOZMILL_EXTRA)
 
 # We need to add the mozmill tests to the package for tests.
@@ -57,10 +57,10 @@ package-tests: stage-mozmill
 endif
 
 stage-mozmill: make-stage-dir
-	$(MAKE) -C $(DEPTH)/mail/test/mozmill stage-package
+	$(MAKE) -C $(commtopobjdir)/mail/test/mozmill stage-package
 
 stage-calendar: make-stage-dir
-	$(MAKE) -C $(DEPTH)/calendar/lightning stage-package
-	$(MAKE) -C $(DEPTH)/calendar/providers/gdata stage-package
+	$(MAKE) -C $(commtopobjdir)/calendar/lightning stage-package
+	$(MAKE) -C $(commtopobjdir)/calendar/providers/gdata stage-package
 
 .PHONY: stage-mozmill stage-calendar

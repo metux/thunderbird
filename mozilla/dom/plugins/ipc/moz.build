@@ -1,4 +1,4 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -15,15 +15,12 @@ EXPORTS.mozilla.plugins += [
     'AStream.h',
     'BrowserStreamChild.h',
     'BrowserStreamParent.h',
-    'ChildAsyncCall.h',
     'ChildTimer.h',
     'NPEventAndroid.h',
     'NPEventOSX.h',
     'NPEventUnix.h',
     'NPEventWindows.h',
-    'PluginAsyncSurrogate.h',
     'PluginBridge.h',
-    'PluginDataResolver.h',
     'PluginInstanceChild.h',
     'PluginInstanceParent.h',
     'PluginMessageUtils.h',
@@ -36,14 +33,9 @@ EXPORTS.mozilla.plugins += [
     'PluginScriptableObjectParent.h',
     'PluginScriptableObjectUtils-inl.h',
     'PluginScriptableObjectUtils.h',
-    'PluginStreamChild.h',
-    'PluginStreamParent.h',
     'PluginUtilsOSX.h',
-    'PluginWidgetChild.h',
-    'PluginWidgetParent.h',
     'StreamNotifyChild.h',
     'StreamNotifyParent.h',
-    'TaskFactory.h',
 ]
 
 if CONFIG['OS_ARCH'] == 'WINNT':
@@ -68,19 +60,10 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
         'PluginInterposeOSX.h',
     ]
 
-if CONFIG['MOZ_ENABLE_QT']:
-    SOURCES += [
-        '!moc_NestedLoopTimer.cpp',
-        'NestedLoopTimer.cpp',
-        'PluginHelperQt.cpp',
-    ]
-
 UNIFIED_SOURCES += [
     'BrowserStreamChild.cpp',
     'BrowserStreamParent.cpp',
-    'ChildAsyncCall.cpp',
     'ChildTimer.cpp',
-    'PluginAsyncSurrogate.cpp',
     'PluginBackgroundDestroyer.cpp',
     'PluginInstanceParent.cpp',
     'PluginMessageUtils.cpp',
@@ -90,15 +73,11 @@ UNIFIED_SOURCES += [
     'PluginQuirks.cpp',
     'PluginScriptableObjectChild.cpp',
     'PluginScriptableObjectParent.cpp',
-    'PluginStreamChild.cpp',
-    'PluginStreamParent.cpp',
 ]
 
 SOURCES += [
     'PluginInstanceChild.cpp', # 'PluginThreadCallback' : ambiguous symbol
     'PluginModuleChild.cpp',   # Redefinition of mozilla::WindowsDllInterceptor sUser32Intercept
-    'PluginWidgetChild.cpp',
-    'PluginWidgetParent.cpp',
 ]
 
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
@@ -108,8 +87,17 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
     ]
 
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
+    EXPORTS.mozilla.plugins += [
+        'PluginWidgetChild.h',
+        'PluginWidgetParent.h',
+    ]
     UNIFIED_SOURCES += [
         'D3D11SurfaceHolder.cpp',
+        'PluginUtilsWin.cpp'
+    ]
+    SOURCES += [
+        'PluginWidgetChild.cpp',
+        'PluginWidgetParent.cpp',
     ]
 
 IPDL_SOURCES += [
@@ -119,7 +107,6 @@ IPDL_SOURCES += [
     'PPluginInstance.ipdl',
     'PPluginModule.ipdl',
     'PPluginScriptableObject.ipdl',
-    'PPluginStream.ipdl',
     'PPluginSurface.ipdl',
     'PStreamNotify.ipdl',
 ]
@@ -136,6 +123,7 @@ if CONFIG['MOZ_SANDBOX'] and CONFIG['OS_ARCH'] == 'WINNT':
     LOCAL_INCLUDES += [
         '/security/sandbox/chromium',
         '/security/sandbox/chromium-shim',
+        '/security/sandbox/win/src/sandboxpermissions',
     ]
 
 DEFINES['FORCE_PR_LOG'] = True
@@ -147,3 +135,14 @@ else:
     CXXFLAGS += CONFIG['MOZ_GTK2_CFLAGS']
 
 CXXFLAGS += CONFIG['MOZ_CAIRO_CFLAGS']
+
+if CONFIG['GNU_CXX']:
+    CXXFLAGS += ['-Wno-error=shadow']
+
+if CONFIG['_MSC_VER']:
+    # This is intended as a temporary hack to support building with VS2015.
+    # conversion from 'X' to 'Y' requires a narrowing conversion
+    CXXFLAGS += ['-wd4838']
+
+    # 'type cast': conversion from 'unsigned int' to 'HIMC' of greater size
+    CXXFLAGS += ['-wd4312']

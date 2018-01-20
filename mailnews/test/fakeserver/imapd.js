@@ -301,12 +301,10 @@ imapMailbox.prototype = {
            this.name;
   },
   get displayName() {
-    var converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
-                      .createInstance(Ci.nsIScriptableUnicodeConverter);
-    converter.isInternal = true;
-    converter.charset = "x-imap4-modified-utf7";
-    return converter.ConvertFromUnicode(this.fullName.replace(
-      /([\\"])/g, '\\$1')) + converter.Finish();
+    let manager = Cc['@mozilla.org/charset-converter-manager;1']
+                    .getService(Ci.nsICharsetConverterManager);
+    // Escape backslash and double-quote with another backslash before encoding.
+    return manager.unicodeToMutf7(this.fullName.replace(/([\\"])/g, '\\$1'));
   },
   get allChildren() {
     return this._children.reduce(function (arr, elem) {
@@ -368,7 +366,7 @@ imapMessage.prototype = {
                                    null,
                                    Services.scriptSecurityManager.getSystemPrincipal(),
                                    null,
-                                   Ci.nsILoadInfo.SEC_NORMAL,
+                                   Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
                                    Ci.nsIContentPolicy.TYPE_OTHER);
   },
   setFlag : function (flag) {
@@ -585,11 +583,9 @@ function formatArg(argument, spec) {
   if (spec == "atom") {
     argument = argument.toUpperCase();
   } else if (spec == "mailbox") {
-    var converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
-                      .createInstance(Ci.nsIScriptableUnicodeConverter);
-    converter.isInternal = true;
-    converter.charset = "x-imap4-modified-utf7";
-    argument = converter.ConvertToUnicode(argument);
+    let manager = Cc['@mozilla.org/charset-converter-manager;1']
+                    .getService(Ci.nsICharsetConverterManager);
+    argument = manager.mutf7ToUnicode(argument);
   } else if (spec == "string") {
     // Do nothing
   } else if (spec == "flag") {
@@ -746,13 +742,15 @@ IMAP_RFC3501_handler.prototype = {
     // Now parse realLine into an array of atoms, etc.
     try {
       var args = parseCommand(realLine);
-    } catch (state if typeof state == "object") {
-      this._partial = state;
-      this._partial.command = command;
-      this._multiline = true;
-      return "+ More!";
-    } catch (ex) {
-      return this._tag + " BAD " + ex;
+    } catch (state) {
+      if (typeof state == "object") {
+        this._partial = state;
+        this._partial.command = command;
+        this._multiline = true;
+        return "+ More!";
+      }
+
+      return this._tag + " BAD " + state;
     }
 
     // If we're here, we have a command with arguments. Dispatch!
@@ -777,14 +775,16 @@ IMAP_RFC3501_handler.prototype = {
       var args;
       try {
         args = parseCommand(line, this._partial);
-      } catch (state if typeof state == "object") {
-        // Yet another literal coming around...
-        this._partial = state;
-        this._partial.command = command;
-        return "+ I'll be needing more text";
-      } catch (ex) {
+      } catch (state) {
+        if (typeof state == "object") {
+          // Yet another literal coming around...
+          this._partial = state;
+          this._partial.command = command;
+          return "+ I'll be needing more text";
+        }
+
         this._multiline = false;
-        return this.tag + " BAD parse error: " + ex;
+        return this.tag + " BAD parse error: " + state;
       }
 
       this._partial = undefined;
@@ -829,8 +829,12 @@ IMAP_RFC3501_handler.prototype = {
 
         // Finally, run the thing
         var response = this[command](args);
-      } catch (e if typeof e == "string") {
-        var response = e;
+      } catch (e) {
+        if (typeof e == "string") {
+          var response = e;
+        } else {
+          throw e;
+        }
       }
     } else {
       var response = "BAD " + command  + " not implemented";
@@ -1546,8 +1550,8 @@ IMAP_RFC3501_handler.prototype = {
       for (let header of queryArgs) {
         header = header.toLowerCase();
         if (headers.has(header))
-          joinList.push([header + ": " + value
-                         for (value of headers.getRawHeader(header))].join('\r\n'));
+          joinList.push(headers.getRawHeader(header).map(value =>
+                         `${header}: ${value}`).join('\r\n'));
       }
       data += joinList.join('\r\n') + "\r\n";
       break;
@@ -1556,8 +1560,8 @@ IMAP_RFC3501_handler.prototype = {
       var headers = message.getPartHeaders(partNum);
       for (let header of headers) {
         if (!(header in queryArgs))
-          joinList.push([header + ": " + value
-                         for (value of headers.getRawHeader(header))].join('\r\n'));
+          joinList.push(headers.getRawHeader(header).map(value =>
+                         `${header}: ${value}`).join('\r\n'));
       }
       data += joinList.join('\r\n') + "\r\n";
       break;
@@ -1583,8 +1587,20 @@ IMAP_RFC3501_handler.prototype = {
     return response;
   },
   _FETCH_INTERNALDATE : function (message) {
-    var response = "INTERNALDATE \"";
-    response += message.date.toLocaleFormat("%d-%b-%Y %H:%M:%S %z");
+    let date = message.date;
+    // Format timestamp as: "%d-%b-%Y %H:%M:%S %z" (%b in English).
+    let year = date.getFullYear().toString();
+    let month = date.toLocaleDateString("en-US", {month: "short"});
+    let day = date.getDate().toString();
+    let hours = date.getHours().toString().padStart(2, "0");
+    let minutes = date.getMinutes().toString().padStart(2, "0");
+    let seconds = date.getSeconds().toString().padStart(2, "0");
+    let offset = date.getTimezoneOffset();
+    let tzoff = Math.floor(Math.abs(offset) / 60) * 100 + Math.abs(offset) % 60;
+    let timeZone = (offset < 0 ? "+" : "-") + tzoff.toString().padStart(4, "0");
+
+    let response = "INTERNALDATE \"";
+    response += `${day}-${month}-${year} ${hours}:${minutes}:${seconds} ${timeZone}`;
     response += "\"";
     return response;
   },
@@ -2175,7 +2191,7 @@ function bodystructure(msg, extension) {
     },
     deliverPartData: function bodystructure_deliverPartData(partNum, data) {
       this.length += data.length;
-      this.numLines += [x for (x of data) if (x == '\n')].length;
+      this.numLines += Array.from(data).filter(x => x == '\n').length;
     },
     endPart: function bodystructure_endPart(partNum) {
       // Grab the headers from before

@@ -10,12 +10,13 @@
  * nsIRequestObserver, nsITransportEventSink, nsIBadCertListener2,
  * and nsIProtocolProxyCallback.
  *
- * This uses nsISocketTransportServices, nsIServerSocket, nsIThreadManager,
+ * This uses nsIRoutedSocketTransportService, nsIServerSocket, nsIThreadManager,
  * nsIBinaryInputStream, nsIScriptableInputStream, nsIInputStreamPump,
  * nsIProxyService, nsIProxyInfo.
  *
  * High-level methods:
- *   connect(<host>, <port>[, ("starttls" | "ssl" | "udp") [, <proxy>]])
+ *   connect(<originHost>, <originPort>[, ("starttls" | "ssl" | "udp")
+ *           [, <proxy>[, <host>, <port>]]])
  *   disconnect()
  *   listen(<port>)
  *   stopListening()
@@ -81,6 +82,7 @@ var {classes: Cc, interfaces: Ci, results: Cr, utils: Cu} = Components;
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource:///modules/ArrayBufferUtils.jsm");
 Cu.import("resource:///modules/imXPCOMUtils.jsm");
+Cu.import("resource:///modules/hiddenWindow.jsm");
 
 // Network errors see: xpcom/base/nsError.h
 var NS_ERROR_MODULE_NETWORK = 2152398848;
@@ -138,7 +140,11 @@ var Socket = {
    *****************************************************************************
    */
   // Synchronously open a connection.
-  connect: function(aHost, aPort, aSecurity, aProxy) {
+  // It connects to aHost and aPort, but uses aOriginHost and aOriginPort for
+  // checking the certificate for them (see nsIRoutedSocketTransportService
+  // in nsISocketTransportService.idl).
+  connect: function(aOriginHost, aOriginPort, aSecurity, aProxy,
+                    aHost = aOriginHost, aPort = aOriginPort) {
     if (Services.io.offline)
       throw Cr.NS_ERROR_FAILURE;
 
@@ -146,10 +152,13 @@ var Socket = {
     Services.obs.addObserver(this, "wake_notification", false);
 
     this.LOG("Connecting to: " + aHost + ":" + aPort);
+    this.originHost = aOriginHost;
+    this.originPort = aOriginPort;
     this.host = aHost;
     this.port = aPort;
     this.disconnected = false;
 
+    this.window = getHiddenHTMLWindow();
     this._pendingData = [];
     delete this._stopRequestStatus;
 
@@ -168,7 +177,7 @@ var Socket = {
 
         // Add a URI scheme since, by default, some protocols (i.e. IRC) don't
         // have a URI scheme before the host.
-        let uri = Services.io.newURI("http://" + this.host, null, null);
+        let uri = Services.io.newURI("http://" + this.host);
         // This will return null when the result is known immediately and
         // the callback will just be dispatched to the current thread.
         this._proxyCancel = proxyService.asyncResolve(uri, this.proxyFlags, this);
@@ -450,20 +459,20 @@ var Socket = {
   _activateQueue: function() {
     if (this._handlingQueue)
       return;
-    this._handlingQueue = true;
-    this._handleQueue();
+    this._handlingQueue =
+      this.window.requestIdleCallback(this._handleQueue.bind(this));
   },
   // Asynchronously send each string to the handle data function.
-  _handleQueue: function() {
-    let begin = Date.now();
+  _handleQueue: function(timing) {
     while (this._pendingData.length) {
       this.onDataReceived(this._pendingData.shift());
-      // If more than 10ms have passed, stop blocking the thread.
-      if (Date.now() - begin > 10)
+      // One pendingData entry generally takes less than 1ms to handle.
+      if (timing.timeRemaining() < 1)
         break;
     }
     if (this._pendingData.length) {
-      executeSoon(this._handleQueue.bind(this));
+      this._handlingQueue =
+        this.window.requestIdleCallback(this._handleQueue.bind(this));
       return;
     }
     delete this._handlingQueue;
@@ -574,12 +583,16 @@ var Socket = {
     // Empty incoming and outgoing data storage buffers
     this._resetBuffers();
 
-    // Create a socket transport
+    // Create a routed socket transport
+    // We connect to host and port, but the origin host and origin port are
+    // given to PSM (e.g. check the certificate).
     let socketTS = Cc["@mozilla.org/network/socket-transport-service;1"]
-                      .getService(Ci.nsISocketTransportService);
-    this.transport = socketTS.createTransport(this.security,
-                                              this.security.length, this.host,
-                                              this.port, this.proxy);
+                      .getService(Ci.nsIRoutedSocketTransportService);
+    this.transport =
+      socketTS.createRoutedTransport(this.security, this.security.length,
+                                     this.originHost, this.originPort,
+                                     this.host, this.port,
+                                     this.proxy);
 
     this._openStreams();
   },
@@ -626,8 +639,6 @@ var Socket = {
     }
 
     this.pump = new InputStreamPump(this._inputStream, // Data to read
-                                    -1, // Current offset
-                                    -1, // Read all data
                                     0, // Use default segment size
                                     0, // Use default segment length
                                     false); // Do not close when done

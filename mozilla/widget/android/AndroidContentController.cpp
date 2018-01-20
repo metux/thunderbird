@@ -8,88 +8,61 @@
 #include "AndroidBridge.h"
 #include "base/message_loop.h"
 #include "mozilla/layers/APZCCallbackHelper.h"
-#include "mozilla/layers/APZCTreeManager.h"
+#include "mozilla/layers/IAPZCTreeManager.h"
+#include "nsIObserverService.h"
 #include "nsLayoutUtils.h"
 #include "nsWindow.h"
 
-using mozilla::layers::APZCTreeManager;
+using mozilla::layers::IAPZCTreeManager;
 
 namespace mozilla {
 namespace widget {
-namespace android {
 
-NativePanZoomController::GlobalRef AndroidContentController::sNativePanZoomController = nullptr;
-
-NativePanZoomController::LocalRef
-AndroidContentController::SetNativePanZoomController(NativePanZoomController::Param obj)
+void
+AndroidContentController::Destroy()
 {
-    NativePanZoomController::LocalRef old = sNativePanZoomController;
-    sNativePanZoomController = obj;
-    return old;
+    mAndroidWindow = nullptr;
+    ChromeProcessController::Destroy();
 }
 
 void
-AndroidContentController::NotifyDefaultPrevented(uint64_t aInputBlockId,
-                                                 bool aDefaultPrevented)
+AndroidContentController::UpdateOverscrollVelocity(const float aX, const float aY, const bool aIsRootContent)
 {
-    if (!AndroidBridge::IsJavaUiThread()) {
-        // The notification must reach the APZ on the Java UI thread (aka the
-        // APZ "controller" thread) but we get it from the Gecko thread, so we
-        // have to throw it onto the other thread.
-        AndroidBridge::Bridge()->PostTaskToUiThread(NewRunnableFunction(
-            &AndroidContentController::NotifyDefaultPrevented,
-            aInputBlockId, aDefaultPrevented), 0);
-        return;
-    }
-
-    MOZ_ASSERT(AndroidBridge::IsJavaUiThread());
-    APZCTreeManager* controller = nsWindow::GetAPZCTreeManager();
-    if (controller) {
-        controller->ContentReceivedInputBlock(aInputBlockId, aDefaultPrevented);
-    }
+  if (aIsRootContent && mAndroidWindow) {
+    mAndroidWindow->UpdateOverscrollVelocity(aX, aY);
+  }
 }
 
 void
-AndroidContentController::HandleSingleTap(const CSSPoint& aPoint,
-                                          Modifiers aModifiers,
-                                          const ScrollableLayerGuid& aGuid)
+AndroidContentController::UpdateOverscrollOffset(const float aX, const float aY, const bool aIsRootContent)
 {
-    // This function will get invoked first on the Java UI thread, and then
-    // again on the main thread (because of the code in ChromeProcessController::
-    // HandleSingleTap). We want to post the SingleTap message once; it can be
-    // done from either thread but we need access to the callback transform
-    // so we do it from the main thread.
-    if (NS_IsMainThread()) {
-        CSSPoint point = mozilla::layers::APZCCallbackHelper::ApplyCallbackTransform(aPoint, aGuid);
-
-        nsIContent* content = nsLayoutUtils::FindContentFor(aGuid.mScrollId);
-        nsIPresShell* shell = content
-            ? mozilla::layers::APZCCallbackHelper::GetRootContentDocumentPresShellForContent(content)
-            : nullptr;
-
-        if (shell && shell->ScaleToResolution()) {
-            // We need to convert from the root document to the root content document,
-            // by unapplying the resolution that's on the content document.
-            const float resolution = shell->GetResolution();
-            point.x /= resolution;
-            point.y /= resolution;
-        }
-
-        CSSIntPoint rounded = RoundedToInt(point);
-        nsCString data = nsPrintfCString("{ \"x\": %d, \"y\": %d }", rounded.x, rounded.y);
-        nsAppShell::gAppShell->PostEvent(AndroidGeckoEvent::MakeBroadcastEvent(
-                NS_LITERAL_CSTRING("Gesture:SingleTap"), data));
-    }
-
-    ChromeProcessController::HandleSingleTap(aPoint, aModifiers, aGuid);
+  if (aIsRootContent && mAndroidWindow) {
+    mAndroidWindow->UpdateOverscrollOffset(aX, aY);
+  }
 }
 
 void
-AndroidContentController::PostDelayedTask(Task* aTask, int aDelayMs)
+AndroidContentController::NotifyAPZStateChange(const ScrollableLayerGuid& aGuid,
+                                               APZStateChange aChange,
+                                               int aArg)
 {
-    AndroidBridge::Bridge()->PostTaskToUiThread(aTask, aDelayMs);
+  // This function may get invoked twice, if the first invocation is not on
+  // the main thread then the ChromeProcessController version of this function
+  // will redispatch to the main thread. We want to make sure that our handling
+  // only happens on the main thread.
+  ChromeProcessController::NotifyAPZStateChange(aGuid, aChange, aArg);
+  if (NS_IsMainThread()) {
+    nsCOMPtr<nsIObserverService> observerService = mozilla::services::GetObserverService();
+    if (aChange == layers::GeckoContentController::APZStateChange::eTransformEnd) {
+      // This is used by tests to determine when the APZ is done doing whatever
+      // it's doing. XXX generify this as needed when writing additional tests.
+      observerService->NotifyObservers(nullptr, "APZ:TransformEnd", nullptr);
+      observerService->NotifyObservers(nullptr, "PanZoom:StateChange", u"NOTHING");
+    } else if (aChange == layers::GeckoContentController::APZStateChange::eTransformBegin) {
+      observerService->NotifyObservers(nullptr, "PanZoom:StateChange", u"PANNING");
+    }
+  }
 }
 
-} // namespace android
 } // namespace widget
 } // namespace mozilla

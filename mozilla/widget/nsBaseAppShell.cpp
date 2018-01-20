@@ -13,6 +13,7 @@
 #include "nsIObserverService.h"
 #include "nsServiceManagerUtils.h"
 #include "mozilla/Services.h"
+#include "nsXULAppAPI.h"
 
 // When processing the next thread event, the appshell may process native
 // events (if not in performance mode), which can result in suppressing the
@@ -46,11 +47,13 @@ nsBaseAppShell::Init()
 {
   // Configure ourselves as an observer for the current thread:
 
-  nsCOMPtr<nsIThreadInternal> threadInt =
+  if (XRE_UseNativeEventProcessing()) {
+    nsCOMPtr<nsIThreadInternal> threadInt =
       do_QueryInterface(NS_GetCurrentThread());
-  NS_ENSURE_STATE(threadInt);
+    NS_ENSURE_STATE(threadInt);
 
-  threadInt->SetObserver(this);
+    threadInt->SetObserver(this);
+  }
 
   nsCOMPtr<nsIObserverService> obsSvc =
     mozilla::services::GetObserverService();
@@ -112,7 +115,7 @@ nsBaseAppShell::NativeEventCallback()
 void
 nsBaseAppShell::DoProcessMoreGeckoEvents()
 {
-  OnDispatchedEvent(nullptr);
+  OnDispatchedEvent();
 }
 
 
@@ -215,7 +218,7 @@ nsBaseAppShell::GetEventloopNestingLevel(uint32_t* aNestingLevelResult)
 
 // Called from any thread
 NS_IMETHODIMP
-nsBaseAppShell::OnDispatchedEvent(nsIThreadInternal *thr)
+nsBaseAppShell::OnDispatchedEvent()
 {
   if (mBlockNativeEvent)
     return NS_OK;
@@ -241,7 +244,7 @@ nsBaseAppShell::OnProcessNextEvent(nsIThreadInternal *thr, bool mayWait)
     // really must start processing native events here again.
     mBlockNativeEvent = false;
     if (NS_HasPendingEvents(thr))
-      OnDispatchedEvent(thr); // in case we blocked it earlier
+      OnDispatchedEvent(); // in case we blocked it earlier
   }
 
   PRIntervalTime start = PR_IntervalNow();
@@ -308,7 +311,7 @@ nsBaseAppShell::DispatchDummyEvent(nsIThread* aTarget)
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
 
   if (!mDummyEvent)
-    mDummyEvent = new nsRunnable();
+    mDummyEvent = new mozilla::Runnable("DummyEvent");
 
   return NS_SUCCEEDED(aTarget->Dispatch(mDummyEvent, NS_DISPATCH_NORMAL));
 }

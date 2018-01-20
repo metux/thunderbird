@@ -13,13 +13,20 @@
 #include "nsUnicodeProperties.h"
 #include "gfx2DGlue.h"
 #include "gfxFcPlatformFontList.h"
-#include "gfxFontconfigUtils.h"
 #include "gfxFontconfigFonts.h"
+#include "gfxConfig.h"
 #include "gfxContext.h"
 #include "gfxUserFontSet.h"
 #include "gfxUtils.h"
 #include "gfxFT2FontBase.h"
 #include "gfxPrefs.h"
+#include "VsyncSource.h"
+#include "mozilla/Atomics.h"
+#include "mozilla/Monitor.h"
+#include "base/task.h"
+#include "base/thread.h"
+#include "base/message_loop.h"
+#include "mozilla/gfx/Logging.h"
 
 #include "mozilla/gfx/2D.h"
 
@@ -33,6 +40,12 @@
 #include "cairo-xlib.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/X11Util.h"
+
+#ifdef GL_PROVIDER_GLX
+#include "GLContextProvider.h"
+#include "GLContextGLX.h"
+#include "GLXLibrary.h"
+#endif
 
 /* Undefine the Status from Xlib since it will conflict with system headers on OSX */
 #if defined(__APPLE__) && defined(Status)
@@ -52,54 +65,62 @@
 using namespace mozilla;
 using namespace mozilla::gfx;
 using namespace mozilla::unicode;
-
-gfxFontconfigUtils *gfxPlatformGtk::sFontconfigUtils = nullptr;
+using mozilla::dom::SystemFontListEntry;
 
 #if (MOZ_WIDGET_GTK == 2)
 static cairo_user_data_key_t cairo_gdk_drawable_key;
 #endif
 
-#ifdef MOZ_X11
-    bool gfxPlatformGtk::sUseXRender = true;
-#endif
-
-bool gfxPlatformGtk::sUseFcFontList = false;
-
 gfxPlatformGtk::gfxPlatformGtk()
 {
-    gtk_init(nullptr, nullptr);
-
-    sUseFcFontList = mozilla::Preferences::GetBool("gfx.font_rendering.fontconfig.fontlist.enabled");
-    if (!sUseFcFontList && !sFontconfigUtils) {
-        sFontconfigUtils = gfxFontconfigUtils::GetFontconfigUtils();
+    if (!gfxPlatform::IsHeadless()) {
+        gtk_init(nullptr, nullptr);
     }
 
     mMaxGenericSubstitutions = UNINITIALIZED_VALUE;
 
 #ifdef MOZ_X11
-    sUseXRender = (GDK_IS_X11_DISPLAY(gdk_display_get_default())) ? 
-                    mozilla::Preferences::GetBool("gfx.xrender.enabled") : false;
+    if (!gfxPlatform::IsHeadless() && XRE_IsParentProcess()) {
+      if (GDK_IS_X11_DISPLAY(gdk_display_get_default()) &&
+          mozilla::Preferences::GetBool("gfx.xrender.enabled"))
+      {
+          gfxVars::SetUseXRender(true);
+      }
+    }
 #endif
 
-    uint32_t canvasMask = BackendTypeBit(BackendType::CAIRO) | BackendTypeBit(BackendType::SKIA);
-    uint32_t contentMask = BackendTypeBit(BackendType::CAIRO) | BackendTypeBit(BackendType::SKIA);
+    uint32_t canvasMask = BackendTypeBit(BackendType::CAIRO);
+    uint32_t contentMask = BackendTypeBit(BackendType::CAIRO);
+#ifdef USE_SKIA
+    canvasMask |= BackendTypeBit(BackendType::SKIA);
+    contentMask |= BackendTypeBit(BackendType::SKIA);
+#endif
     InitBackendPrefs(canvasMask, BackendType::CAIRO,
                      contentMask, BackendType::CAIRO);
+
+#ifdef MOZ_X11
+    if (gfxPlatform::IsHeadless() && GDK_IS_X11_DISPLAY(gdk_display_get_default())) {
+      mCompositorDisplay = XOpenDisplay(nullptr);
+      MOZ_ASSERT(mCompositorDisplay, "Failed to create compositor display!");
+    } else {
+      mCompositorDisplay = nullptr;
+    }
+#endif // MOZ_X11
 }
 
 gfxPlatformGtk::~gfxPlatformGtk()
 {
-    if (!sUseFcFontList) {
-        gfxFontconfigUtils::Shutdown();
-        sFontconfigUtils = nullptr;
-        gfxPangoFontGroup::Shutdown();
+#ifdef MOZ_X11
+    if (mCompositorDisplay) {
+      XCloseDisplay(mCompositorDisplay);
     }
+#endif // MOZ_X11
 }
 
 void
 gfxPlatformGtk::FlushContentDrawing()
 {
-    if (UseXRender()) {
+    if (gfxVars::UseXRender()) {
         XFlush(DefaultXDisplay());
     }
 }
@@ -108,6 +129,10 @@ already_AddRefed<gfxASurface>
 gfxPlatformGtk::CreateOffscreenSurface(const IntSize& aSize,
                                        gfxImageFormat aFormat)
 {
+    if (!Factory::AllowedSurfaceSize(aSize)) {
+        return nullptr;
+    }
+
     RefPtr<gfxASurface> newSurface;
     bool needsClear = true;
 #ifdef MOZ_X11
@@ -118,7 +143,7 @@ gfxPlatformGtk::CreateOffscreenSurface(const IntSize& aSize,
     if (gdkScreen) {
         // When forcing PaintedLayers to use image surfaces for content,
         // force creation of gfxImageSurface surfaces.
-        if (UseXRender() && !UseImageOffscreenSurfaces()) {
+        if (gfxVars::UseXRender() && !UseImageOffscreenSurfaces()) {
             Screen *screen = gdk_x11_screen_get_xscreen(gdkScreen);
             XRenderPictFormat* xrenderFormat =
                 gfxXlibSurface::FindRenderFormat(DisplayOfScreen(screen),
@@ -158,37 +183,28 @@ gfxPlatformGtk::CreateOffscreenSurface(const IntSize& aSize,
 }
 
 nsresult
-gfxPlatformGtk::GetFontList(nsIAtom *aLangGroup,
+gfxPlatformGtk::GetFontList(nsAtom *aLangGroup,
                             const nsACString& aGenericFamily,
                             nsTArray<nsString>& aListOfFonts)
 {
-    if (sUseFcFontList) {
-        gfxPlatformFontList::PlatformFontList()->GetFontList(aLangGroup,
-                                                             aGenericFamily,
-                                                             aListOfFonts);
-        return NS_OK;
-    }
-
-    return sFontconfigUtils->GetFontList(aLangGroup,
-                                         aGenericFamily,
-                                         aListOfFonts);
+    gfxPlatformFontList::PlatformFontList()->GetFontList(aLangGroup,
+                                                         aGenericFamily,
+                                                         aListOfFonts);
+    return NS_OK;
 }
 
 nsresult
 gfxPlatformGtk::UpdateFontList()
 {
-    if (sUseFcFontList) {
-        gfxPlatformFontList::PlatformFontList()->UpdateFontList();
-        return NS_OK;
-    }
-
-    return sFontconfigUtils->UpdateFontList();
+    gfxPlatformFontList::PlatformFontList()->UpdateFontList();
+    return NS_OK;
 }
 
 // xxx - this is ubuntu centric, need to go through other distros and flesh
 // out a more general list
 static const char kFontDejaVuSans[] = "DejaVu Sans";
 static const char kFontDejaVuSerif[] = "DejaVu Serif";
+static const char kFontEmojiOneMozilla[] = "EmojiOne Mozilla";
 static const char kFontFreeSans[] = "FreeSans";
 static const char kFontFreeSerif[] = "FreeSerif";
 static const char kFontTakaoPGothic[] = "TakaoPGothic";
@@ -198,13 +214,27 @@ static const char kFontNanumGothic[] = "NanumGothic";
 
 void
 gfxPlatformGtk::GetCommonFallbackFonts(uint32_t aCh, uint32_t aNextCh,
-                                       int32_t aRunScript,
+                                       Script aRunScript,
                                        nsTArray<const char*>& aFontList)
 {
+    if (aNextCh == 0xfe0fu) {
+      // if char is followed by VS16, try for a color emoji glyph
+      aFontList.AppendElement(kFontEmojiOneMozilla);
+    }
+
     aFontList.AppendElement(kFontDejaVuSerif);
     aFontList.AppendElement(kFontFreeSerif);
     aFontList.AppendElement(kFontDejaVuSans);
     aFontList.AppendElement(kFontFreeSans);
+
+    if (!IS_IN_BMP(aCh)) {
+        uint32_t p = aCh >> 16;
+        if (p == 1) { // try color emoji font, unless VS15 (text style) present
+            if (aNextCh != 0xfe0fu && aNextCh != 0xfe0eu) {
+                aFontList.AppendElement(kFontEmojiOneMozilla);
+            }
+        }
+    }
 
     // add fonts for CJK ranges
     // xxx - this isn't really correct, should use the same CJK font ordering
@@ -218,6 +248,13 @@ gfxPlatformGtk::GetCommonFallbackFonts(uint32_t aCh, uint32_t aNextCh,
         aFontList.AppendElement(kFontWenQuanYiMicroHei);
         aFontList.AppendElement(kFontNanumGothic);
     }
+}
+
+void
+gfxPlatformGtk::ReadSystemFontList(
+    InfallibleTArray<SystemFontListEntry>* retValue)
+{
+    gfxFcPlatformFontList::PlatformFontList()->ReadSystemFontList(retValue);
 }
 
 gfxPlatformFontList*
@@ -234,13 +271,9 @@ gfxPlatformGtk::CreatePlatformFontList()
 nsresult
 gfxPlatformGtk::GetStandardFamilyName(const nsAString& aFontName, nsAString& aFamilyName)
 {
-    if (sUseFcFontList) {
-        gfxPlatformFontList::PlatformFontList()->
-            GetStandardFamilyName(aFontName, aFamilyName);
-        return NS_OK;
-    }
-
-    return sFontconfigUtils->GetStandardFamilyName(aFontName, aFamilyName);
+    gfxPlatformFontList::PlatformFontList()->
+        GetStandardFamilyName(aFontName, aFamilyName);
+    return NS_OK;
 }
 
 gfxFontGroup *
@@ -250,13 +283,8 @@ gfxPlatformGtk::CreateFontGroup(const FontFamilyList& aFontFamilyList,
                                 gfxUserFontSet* aUserFontSet,
                                 gfxFloat aDevToCssSize)
 {
-    if (sUseFcFontList) {
-        return new gfxFontGroup(aFontFamilyList, aStyle, aTextPerf,
-                                aUserFontSet, aDevToCssSize);
-    }
-
-    return new gfxPangoFontGroup(aFontFamilyList, aStyle,
-                                 aUserFontSet, aDevToCssSize);
+    return new gfxFontGroup(aFontFamilyList, aStyle, aTextPerf,
+                            aUserFontSet, aDevToCssSize);
 }
 
 gfxFontEntry*
@@ -265,17 +293,12 @@ gfxPlatformGtk::LookupLocalFont(const nsAString& aFontName,
                                 int16_t aStretch,
                                 uint8_t aStyle)
 {
-    if (sUseFcFontList) {
-        gfxPlatformFontList* pfl = gfxPlatformFontList::PlatformFontList();
-        return pfl->LookupLocalFont(aFontName, aWeight, aStretch,
-                                    aStyle);
-    }
-
-    return gfxPangoFontGroup::NewFontEntry(aFontName, aWeight,
-                                           aStretch, aStyle);
+    gfxPlatformFontList* pfl = gfxPlatformFontList::PlatformFontList();
+    return pfl->LookupLocalFont(aFontName, aWeight, aStretch,
+                                aStyle);
 }
 
-gfxFontEntry* 
+gfxFontEntry*
 gfxPlatformGtk::MakePlatformFont(const nsAString& aFontName,
                                  uint16_t aWeight,
                                  int16_t aStretch,
@@ -283,46 +306,21 @@ gfxPlatformGtk::MakePlatformFont(const nsAString& aFontName,
                                  const uint8_t* aFontData,
                                  uint32_t aLength)
 {
-    if (sUseFcFontList) {
-        gfxPlatformFontList* pfl = gfxPlatformFontList::PlatformFontList();
-        return pfl->MakePlatformFont(aFontName, aWeight, aStretch,
-                                     aStyle, aFontData, aLength);
-    }
-
-    // passing ownership of the font data to the new font entry
-    return gfxPangoFontGroup::NewFontEntry(aFontName, aWeight,
-                                           aStretch, aStyle,
-                                           aFontData, aLength);
+    gfxPlatformFontList* pfl = gfxPlatformFontList::PlatformFontList();
+    return pfl->MakePlatformFont(aFontName, aWeight, aStretch,
+                                 aStyle, aFontData, aLength);
 }
 
-bool
-gfxPlatformGtk::IsFontFormatSupported(nsIURI *aFontURI, uint32_t aFormatFlags)
+FT_Library
+gfxPlatformGtk::GetFTLibrary()
 {
-    // check for strange format flags
-    NS_ASSERTION(!(aFormatFlags & gfxUserFontSet::FLAG_FORMAT_NOT_USED),
-                 "strange font format hint set");
-
-    // accept supported formats
-    // Pango doesn't apply features from AAT TrueType extensions.
-    // Assume that if this is the only SFNT format specified,
-    // then AAT extensions are required for complex script support.
-    if (aFormatFlags & gfxUserFontSet::FLAG_FORMATS_COMMON) {
-        return true;
-    }
-
-    // reject all other formats, known and unknown
-    if (aFormatFlags != 0) {
-        return false;
-    }
-
-    // no format hint set, need to look at data
-    return true;
+    return gfxFcPlatformFontList::GetFTLibrary();
 }
 
 static int32_t sDPI = 0;
 
 int32_t
-gfxPlatformGtk::GetDPI()
+gfxPlatformGtk::GetFontScaleDPI()
 {
     if (!sDPI) {
         // Make sure init is run so we have a resolution
@@ -338,25 +336,29 @@ gfxPlatformGtk::GetDPI()
 }
 
 double
-gfxPlatformGtk::GetDPIScale()
+gfxPlatformGtk::GetFontScaleFactor()
 {
-    // We want to set the default CSS to device pixel ratio as the
-    // closest _integer_ multiple, so round the ratio of actual dpi
-    // to CSS dpi (96)
-    int32_t dpi = GetDPI();
-    return (dpi > 96) ? round(dpi/96.0) : 1.0;
+    // Integer scale factors work well with GTK window scaling, image scaling,
+    // and pixel alignment, but there is a range where 1 is too small and 2 is
+    // too big.  An additional step of 1.5 is added because this is common
+    // scale on WINNT and at this ratio the advantages of larger rendering
+    // outweigh the disadvantages from scaling and pixel mis-alignment.
+    int32_t dpi = GetFontScaleDPI();
+    if (dpi < 132) {
+        return 1.0;
+    }
+    if (dpi < 168) {
+        return 1.5;
+    }
+    return round(dpi/96.0);
+
 }
 
 bool
 gfxPlatformGtk::UseImageOffscreenSurfaces()
 {
-    // We want to turn on image offscreen surfaces ONLY for GTK3 builds since
-    // GTK2 theme rendering still requires xlib surfaces.
-#if (MOZ_WIDGET_GTK == 3)
-    return gfxPrefs::UseImageOffscreenSurfaces();
-#else
-    return false;
-#endif
+    return GetDefaultContentBackend() != mozilla::gfx::BackendType::CAIRO ||
+           gfxPrefs::UseImageOffscreenSurfaces();
 }
 
 gfxImageFormat
@@ -365,10 +367,10 @@ gfxPlatformGtk::GetOffscreenFormat()
     // Make sure there is a screen
     GdkScreen *screen = gdk_screen_get_default();
     if (screen && gdk_visual_get_depth(gdk_visual_get_system()) == 16) {
-        return gfxImageFormat::RGB16_565;
+        return SurfaceFormat::R5G6B5_UINT16;
     }
 
-    return gfxImageFormat::RGB24;
+    return SurfaceFormat::X8R8G8B8_UINT32;
 }
 
 void gfxPlatformGtk::FontsPrefsChanged(const char *aPref)
@@ -380,11 +382,9 @@ void gfxPlatformGtk::FontsPrefsChanged(const char *aPref)
     }
 
     mMaxGenericSubstitutions = UNINITIALIZED_VALUE;
-    if (sUseFcFontList) {
-        gfxFcPlatformFontList* pfl = gfxFcPlatformFontList::PlatformFontList();
-        pfl->ClearGenericMappings();
-        FlushFontAndWordCaches();
-    }
+    gfxFcPlatformFontList* pfl = gfxFcPlatformFontList::PlatformFontList();
+    pfl->ClearGenericMappings();
+    FlushFontAndWordCaches();
 }
 
 uint32_t gfxPlatformGtk::MaxGenericSubstitions()
@@ -421,7 +421,7 @@ gfxPlatformGtk::GetPlatformCMSOutputProfile(void *&mem, size_t &size)
     // return with nullptr.
     if (!dpy)
         return;
- 
+
     Window root = gdk_x11_get_default_root_xwindow();
 
     Atom retAtom;
@@ -575,8 +575,252 @@ gfxPlatformGtk::GetGdkDrawable(cairo_surface_t *target)
 }
 #endif
 
-already_AddRefed<ScaledFont>
-gfxPlatformGtk::GetScaledFontForFont(DrawTarget* aTarget, gfxFont *aFont)
+#ifdef GL_PROVIDER_GLX
+
+class GLXVsyncSource final : public VsyncSource
 {
-    return GetScaledFontForFontWithCairoSkia(aTarget, aFont);
+public:
+  GLXVsyncSource()
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+    mGlobalDisplay = new GLXDisplay();
+  }
+
+  virtual ~GLXVsyncSource()
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+  }
+
+  virtual Display& GetGlobalDisplay() override
+  {
+    return *mGlobalDisplay;
+  }
+
+  class GLXDisplay final : public VsyncSource::Display
+  {
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(GLXDisplay)
+
+  public:
+    GLXDisplay() : mGLContext(nullptr)
+                 , mXDisplay(nullptr)
+                 , mSetupLock("GLXVsyncSetupLock")
+                 , mVsyncThread("GLXVsyncThread")
+                 , mVsyncTask(nullptr)
+                 , mVsyncEnabledLock("GLXVsyncEnabledLock")
+                 , mVsyncEnabled(false)
+    {
+    }
+
+    // Sets up the display's GL context on a worker thread.
+    // Required as GLContexts may only be used by the creating thread.
+    // Returns true if setup was a success.
+    bool Setup()
+    {
+      MonitorAutoLock lock(mSetupLock);
+      MOZ_ASSERT(NS_IsMainThread());
+      if (!mVsyncThread.Start())
+        return false;
+
+      RefPtr<Runnable> vsyncSetup =
+        NewRunnableMethod("GLXVsyncSource::GLXDisplay::SetupGLContext",
+                          this,
+                          &GLXDisplay::SetupGLContext);
+      mVsyncThread.message_loop()->PostTask(vsyncSetup.forget());
+      // Wait until the setup has completed.
+      lock.Wait();
+      return mGLContext != nullptr;
+    }
+
+    // Called on the Vsync thread to setup the GL context.
+    void SetupGLContext()
+    {
+        MonitorAutoLock lock(mSetupLock);
+        MOZ_ASSERT(!NS_IsMainThread());
+        MOZ_ASSERT(!mGLContext, "GLContext already setup!");
+
+        // Create video sync timer on a separate Display to prevent locking the
+        // main thread X display.
+        mXDisplay = XOpenDisplay(nullptr);
+        if (!mXDisplay) {
+          lock.NotifyAll();
+          return;
+        }
+
+        // Most compositors wait for vsync events on the root window.
+        Window root = DefaultRootWindow(mXDisplay);
+        int screen = DefaultScreen(mXDisplay);
+
+        ScopedXFree<GLXFBConfig> cfgs;
+        GLXFBConfig config;
+        int visid;
+        bool forWebRender = false;
+        if (!gl::GLContextGLX::FindFBConfigForWindow(mXDisplay, screen, root,
+                                                     &cfgs, &config, &visid,
+                                                     forWebRender)) {
+          lock.NotifyAll();
+          return;
+        }
+
+        mGLContext = gl::GLContextGLX::CreateGLContext(gl::CreateContextFlags::NONE,
+                                                       gl::SurfaceCaps::Any(), false,
+                                                       mXDisplay, root, config, false,
+                                                       nullptr);
+
+        if (!mGLContext) {
+          lock.NotifyAll();
+          return;
+        }
+
+        mGLContext->MakeCurrent();
+
+        // Test that SGI_video_sync lets us get the counter.
+        unsigned int syncCounter = 0;
+        if (gl::sGLXLibrary.fGetVideoSync(&syncCounter) != 0) {
+          mGLContext = nullptr;
+        }
+
+        lock.NotifyAll();
+    }
+
+    virtual void EnableVsync() override
+    {
+      MOZ_ASSERT(NS_IsMainThread());
+      MOZ_ASSERT(mGLContext, "GLContext not setup!");
+
+      MonitorAutoLock lock(mVsyncEnabledLock);
+      if (mVsyncEnabled) {
+        return;
+      }
+      mVsyncEnabled = true;
+
+      // If the task has not nulled itself out, it hasn't yet realized
+      // that vsync was disabled earlier, so continue its execution.
+      if (!mVsyncTask) {
+        mVsyncTask = NewRunnableMethod(
+          "GLXVsyncSource::GLXDisplay::RunVsync", this, &GLXDisplay::RunVsync);
+        RefPtr<Runnable> addrefedTask = mVsyncTask;
+        mVsyncThread.message_loop()->PostTask(addrefedTask.forget());
+      }
+    }
+
+    virtual void DisableVsync() override
+    {
+      MonitorAutoLock lock(mVsyncEnabledLock);
+      mVsyncEnabled = false;
+    }
+
+    virtual bool IsVsyncEnabled() override
+    {
+      MonitorAutoLock lock(mVsyncEnabledLock);
+      return mVsyncEnabled;
+    }
+
+    virtual void Shutdown() override
+    {
+      MOZ_ASSERT(NS_IsMainThread());
+      DisableVsync();
+
+      // Cleanup thread-specific resources before shutting down.
+      RefPtr<Runnable> shutdownTask = NewRunnableMethod(
+        "GLXVsyncSource::GLXDisplay::Cleanup", this, &GLXDisplay::Cleanup);
+      mVsyncThread.message_loop()->PostTask(shutdownTask.forget());
+
+      // Stop, waiting for the cleanup task to finish execution.
+      mVsyncThread.Stop();
+    }
+
+  private:
+    virtual ~GLXDisplay()
+    {
+    }
+
+    void RunVsync()
+    {
+      MOZ_ASSERT(!NS_IsMainThread());
+
+      mGLContext->MakeCurrent();
+
+      unsigned int syncCounter = 0;
+      gl::sGLXLibrary.fGetVideoSync(&syncCounter);
+      for (;;) {
+        {
+          MonitorAutoLock lock(mVsyncEnabledLock);
+          if (!mVsyncEnabled) {
+            mVsyncTask = nullptr;
+            return;
+          }
+        }
+
+        TimeStamp lastVsync = TimeStamp::Now();
+        bool useSoftware = false;
+
+        // Wait until the video sync counter reaches the next value by waiting
+        // until the parity of the counter value changes.
+        unsigned int nextSync = syncCounter + 1;
+        int status;
+        if ((status = gl::sGLXLibrary.fWaitVideoSync(2, nextSync % 2, &syncCounter)) != 0) {
+          gfxWarningOnce() << "glXWaitVideoSync returned " << status;
+          useSoftware = true;
+        }
+
+        if (syncCounter == (nextSync - 1)) {
+          gfxWarningOnce() << "glXWaitVideoSync failed to increment the sync counter.";
+          useSoftware = true;
+        }
+
+        if (useSoftware) {
+          double remaining = (1000.f / 60.f) -
+            (TimeStamp::Now() - lastVsync).ToMilliseconds();
+          if (remaining > 0) {
+            PlatformThread::Sleep(remaining);
+          }
+        }
+
+        lastVsync = TimeStamp::Now();
+        NotifyVsync(lastVsync);
+      }
+    }
+
+    void Cleanup() {
+      MOZ_ASSERT(!NS_IsMainThread());
+
+      mGLContext = nullptr;
+      XCloseDisplay(mXDisplay);
+    }
+
+    // Owned by the vsync thread.
+    RefPtr<gl::GLContextGLX> mGLContext;
+    _XDisplay* mXDisplay;
+    Monitor mSetupLock;
+    base::Thread mVsyncThread;
+    RefPtr<Runnable> mVsyncTask;
+    Monitor mVsyncEnabledLock;
+    bool mVsyncEnabled;
+  };
+private:
+  // We need a refcounted VsyncSource::Display to use chromium IPC runnables.
+  RefPtr<GLXDisplay> mGlobalDisplay;
+};
+
+already_AddRefed<gfx::VsyncSource>
+gfxPlatformGtk::CreateHardwareVsyncSource()
+{
+  // Only use GLX vsync when the OpenGL compositor is being used.
+  // The extra cost of initializing a GLX context while blocking the main
+  // thread is not worth it when using basic composition.
+  if (gfxConfig::IsEnabled(Feature::HW_COMPOSITING)) {
+    if (gl::sGLXLibrary.SupportsVideoSync()) {
+      RefPtr<VsyncSource> vsyncSource = new GLXVsyncSource();
+      VsyncSource::Display& display = vsyncSource->GetGlobalDisplay();
+      if (!static_cast<GLXVsyncSource::GLXDisplay&>(display).Setup()) {
+        NS_WARNING("Failed to setup GLContext, falling back to software vsync.");
+        return gfxPlatform::CreateHardwareVsyncSource();
+      }
+      return vsyncSource.forget();
+    }
+    NS_WARNING("SGI_video_sync unsupported. Falling back to software vsync.");
+  }
+  return gfxPlatform::CreateHardwareVsyncSource();
 }
+
+#endif

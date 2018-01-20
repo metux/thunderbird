@@ -1,21 +1,31 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
+/* exported PREF_EXPERIMENTS_ENABLED, PREF_LOGGING_LEVEL, PREF_LOGGING_DUMP
+            PREF_MANIFEST_URI, PREF_FETCHINTERVAL, EXPERIMENT1_ID,
+            EXPERIMENT1_NAME, EXPERIMENT1_XPI_SHA1, EXPERIMENT1A_NAME,
+            EXPERIMENT1A_XPI_SHA1, EXPERIMENT2_ID, EXPERIMENT2_XPI_SHA1,
+            EXPERIMENT3_ID, EXPERIMENT4_ID, FAKE_EXPERIMENTS_1,
+            FAKE_EXPERIMENTS_2, gAppInfo, removeCacheFile, defineNow,
+            futureDate, dateToSeconds, loadAddonManager, promiseRestartManager,
+            startAddonManagerOnly, getExperimentAddons, replaceExperiments */
+
 var {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-Cu.import("resource://gre/modules/Promise.jsm");
-Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/osfile.jsm");
 Cu.import("resource://testing-common/AddonManagerTesting.jsm");
+Cu.import("resource://testing-common/AddonTestUtils.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "AddonManager",
+                                  "resource://gre/modules/AddonManager.jsm");
 
 const PREF_EXPERIMENTS_ENABLED  = "experiments.enabled";
 const PREF_LOGGING_LEVEL        = "experiments.logging.level";
 const PREF_LOGGING_DUMP         = "experiments.logging.dump";
 const PREF_MANIFEST_URI         = "experiments.manifest.uri";
 const PREF_FETCHINTERVAL        = "experiments.manifest.fetchIntervalSeconds";
-const PREF_TELEMETRY_ENABLED    = "toolkit.telemetry.enabled";
 
 function getExperimentPath(base) {
   let p = do_get_cwd();
@@ -25,7 +35,7 @@ function getExperimentPath(base) {
 
 function sha1File(path) {
   let f = Cc["@mozilla.org/file/local;1"]
-            .createInstance(Ci.nsILocalFile);
+            .createInstance(Ci.nsIFile);
   f.initWithPath(path);
   let hasher = Cc["@mozilla.org/security/hash;1"]
                  .createInstance(Ci.nsICryptoHash);
@@ -38,9 +48,11 @@ function sha1File(path) {
   is.close();
   let bytes = hasher.finish(false);
 
-  return [("0" + bytes.charCodeAt(byte).toString(16)).slice(-2)
-          for (byte in bytes)]
-         .join("");
+  let rv = "";
+  for (let i = 0; i < bytes.length; i++) {
+    rv += ("0" + bytes.charCodeAt(i).toString(16)).substr(-2);
+  }
+  return rv;
 }
 
 const EXPERIMENT1_ID       = "test-experiment-1@tests.mozilla.org";
@@ -55,15 +67,13 @@ const EXPERIMENT1A_NAME     = "Test experiment 1.1";
 const EXPERIMENT1A_PATH     = getExperimentPath(EXPERIMENT1A_XPI_NAME);
 const EXPERIMENT1A_XPI_SHA1 = "sha1:" + sha1File(EXPERIMENT1A_PATH);
 
-const EXPERIMENT2_ID       = "test-experiment-2@tests.mozilla.org"
+const EXPERIMENT2_ID       = "test-experiment-2@tests.mozilla.org";
 const EXPERIMENT2_XPI_NAME = "experiment-2.xpi";
 const EXPERIMENT2_PATH     = getExperimentPath(EXPERIMENT2_XPI_NAME);
 const EXPERIMENT2_XPI_SHA1 = "sha1:" + sha1File(EXPERIMENT2_PATH);
 
 const EXPERIMENT3_ID       = "test-experiment-3@tests.mozilla.org";
 const EXPERIMENT4_ID       = "test-experiment-4@tests.mozilla.org";
-
-const DEFAULT_BUILDID      = "2014060601";
 
 const FAKE_EXPERIMENTS_1 = [
   {
@@ -127,15 +137,15 @@ function dateToSeconds(date) {
 
 var gGlobalScope = this;
 function loadAddonManager() {
-  let ns = {};
-  Cu.import("resource://gre/modules/Services.jsm", ns);
-  let head = "../../../../toolkit/mozapps/extensions/test/xpcshell/head_addons.js";
-  let file = do_get_file(head);
-  let uri = ns.Services.io.newFileURI(file);
-  ns.Services.scriptloader.loadSubScript(uri.spec, gGlobalScope);
+  AddonTestUtils.init(gGlobalScope);
+  AddonTestUtils.overrideCertDB();
   createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "1", "1.9.2");
-  startupManager();
+  return AddonTestUtils.promiseStartupManager();
 }
+
+const {
+  promiseRestartManager,
+} = AddonTestUtils;
 
 // Starts the addon manager without creating app info. We can't directly use
 // |loadAddonManager| defined above in test_conditions.js as it would make the test fail.
@@ -144,79 +154,27 @@ function startAddonManagerOnly() {
                        .getService(Ci.nsIObserver)
                        .QueryInterface(Ci.nsITimerCallback);
   addonManager.observe(null, "addons-startup", null);
+  Services.obs.notifyObservers(null, "sessionstore-windows-restored");
 }
 
-function getExperimentAddons(previous=false) {
-  let deferred = Promise.defer();
+function getExperimentAddons(previous = false) {
+  return new Promise(resolve => {
 
-  AddonManager.getAddonsByTypes(["experiment"], (addons) => {
-    if (previous) {
-      deferred.resolve(addons);
-    } else {
-      deferred.resolve([a for (a of addons) if (!a.appDisabled)]);
-    }
-  });
-
-  return deferred.promise;
-}
-
-function createAppInfo(optionsIn) {
-  const XULAPPINFO_CONTRACTID = "@mozilla.org/xre/app-info;1";
-  const XULAPPINFO_CID = Components.ID("{c763b610-9d49-455a-bbd2-ede71682a1ac}");
-
-  let options = optionsIn || {};
-  let id = options.id || "xpcshell@tests.mozilla.org";
-  let name = options.name || "XPCShell";
-  let version = options.version || "1.0";
-  let platformVersion = options.platformVersion || "1.0";
-  let date = options.date || new Date();
-
-  let buildID = options.buildID || DEFAULT_BUILDID;
-
-  gAppInfo = {
-    // nsIXULAppInfo
-    vendor: "Mozilla",
-    name: name,
-    ID: id,
-    version: version,
-    appBuildID: buildID,
-    platformVersion: platformVersion ? platformVersion : "1.0",
-    platformBuildID: buildID,
-
-    // nsIXULRuntime
-    inSafeMode: false,
-    logConsoleErrors: true,
-    OS: "XPCShell",
-    XPCOMABI: "noarch-spidermonkey",
-    invalidateCachesOnRestart: function invalidateCachesOnRestart() {
-      // Do nothing
-    },
-
-    // nsICrashReporter
-    annotations: {},
-
-    annotateCrashReport: function(key, data) {
-      this.annotations[key] = data;
-    },
-
-    QueryInterface: XPCOMUtils.generateQI([Ci.nsIXULAppInfo,
-                                           Ci.nsIXULRuntime,
-                                           Ci.nsICrashReporter,
-                                           Ci.nsISupports])
-  };
-
-  let XULAppInfoFactory = {
-    createInstance: function (outer, iid) {
-      if (outer != null) {
-        throw Cr.NS_ERROR_NO_AGGREGATION;
+    AddonManager.getAddonsByTypes(["experiment"], (addons) => {
+      if (previous) {
+        resolve(addons);
+      } else {
+        resolve(addons.filter(a => !a.appDisabled));
       }
-      return gAppInfo.QueryInterface(iid);
-    }
-  };
+    });
 
-  let registrar = Components.manager.QueryInterface(Ci.nsIComponentRegistrar);
-  registrar.registerFactory(XULAPPINFO_CID, "XULAppInfo",
-                            XULAPPINFO_CONTRACTID, XULAppInfoFactory);
+  });
+}
+
+function createAppInfo(ID = "xpcshell@tests.mozilla.org", name = "XPCShell",
+                       version = "1.0", platformVersion = "1.0") {
+  AddonTestUtils.createAppInfo(ID, name, version, platformVersion);
+  gAppInfo = AddonTestUtils.appInfo;
 }
 
 /**
@@ -233,3 +191,5 @@ function replaceExperiments(experiment, list) {
     },
   });
 }
+
+Services.telemetry.canRecordExtended = true;

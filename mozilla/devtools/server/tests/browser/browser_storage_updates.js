@@ -4,17 +4,12 @@
 
 "use strict";
 
-const {StorageFront} = require("devtools/server/actors/storage");
-const beforeReload = {
-  cookies: ["test1.example.org", "sectest1.example.org"],
-  localStorage: ["http://test1.example.org", "http://sectest1.example.org"],
-  sessionStorage: ["http://test1.example.org", "http://sectest1.example.org"],
-};
+const {StorageFront} = require("devtools/shared/fronts/storage");
 
 const TESTS = [
   // index 0
   {
-    action: function(win) {
+    action: function (win) {
       info('win.addCookie("c1", "foobar1")');
       win.addCookie("c1", "foobar1");
 
@@ -27,7 +22,12 @@ const TESTS = [
     expected: {
       added: {
         cookies: {
-          "test1.example.org": ["c1", "c2"]
+          "http://test1.example.org": [
+            getCookieId("c1", "test1.example.org",
+                        "/browser/devtools/server/tests/browser/"),
+            getCookieId("c2", "test1.example.org",
+                        "/browser/devtools/server/tests/browser/")
+          ]
         },
         localStorage: {
           "http://test1.example.org": ["l1"]
@@ -38,7 +38,7 @@ const TESTS = [
 
   // index 1
   {
-    action: function(win) {
+    action: function (win) {
       info('win.addCookie("c1", "new_foobar1")');
       win.addCookie("c1", "new_foobar1");
 
@@ -48,7 +48,10 @@ const TESTS = [
     expected: {
       changed: {
         cookies: {
-          "test1.example.org": ["c1"]
+          "http://test1.example.org": [
+            getCookieId("c1", "test1.example.org",
+                        "/browser/devtools/server/tests/browser/"),
+          ]
         }
       },
       added: {
@@ -61,7 +64,7 @@ const TESTS = [
 
   // index 2
   {
-    action: function(win) {
+    action: function (win) {
       info('win.removeCookie("c2")');
       win.removeCookie("c2");
 
@@ -74,7 +77,10 @@ const TESTS = [
     expected: {
       deleted: {
         cookies: {
-          "test1.example.org": ["c2"]
+          "http://test1.example.org": [
+            getCookieId("c2", "test1.example.org",
+                        "/browser/devtools/server/tests/browser/"),
+          ]
         },
         localStorage: {
           "http://test1.example.org": ["l1"]
@@ -90,7 +96,7 @@ const TESTS = [
 
   // index 3
   {
-    action: function(win) {
+    action: function (win) {
       info('win.removeCookie("c1")');
       win.removeCookie("c1");
 
@@ -112,7 +118,10 @@ const TESTS = [
     expected: {
       added: {
         cookies: {
-          "test1.example.org": ["c3"]
+          "http://test1.example.org": [
+            getCookieId("c3", "test1.example.org",
+                        "/browser/devtools/server/tests/browser/"),
+          ]
         },
         sessionStorage: {
           "http://test1.example.org": ["s1", "s2"]
@@ -125,7 +134,10 @@ const TESTS = [
       },
       deleted: {
         cookies: {
-          "test1.example.org": ["c1"]
+          "http://test1.example.org": [
+            getCookieId("c1", "test1.example.org",
+                        "/browser/devtools/server/tests/browser/"),
+          ]
         },
         localStorage: {
           "http://test1.example.org": ["l2"]
@@ -136,7 +148,7 @@ const TESTS = [
 
   // index 4
   {
-    action: function(win) {
+    action: function (win) {
       info('win.sessionStorage.removeItem("s1")');
       win.sessionStorage.removeItem("s1");
     },
@@ -151,14 +163,17 @@ const TESTS = [
 
   // index 5
   {
-    action: function(win) {
+    action: function (win) {
       info("win.clearCookies()");
       win.clearCookies();
     },
     expected: {
       deleted: {
         cookies: {
-          "test1.example.org": ["c3"]
+          "http://test1.example.org": [
+            getCookieId("c3", "test1.example.org",
+                        "/browser/devtools/server/tests/browser/"),
+          ]
         }
       }
     }
@@ -227,7 +242,7 @@ function onStoresUpdate(expected, {added, changed, deleted}, index) {
 
 function runTest({action, expected}, front, win, index) {
   return new Promise(resolve => {
-    front.once("stores-update", function(addedChangedDeleted) {
+    front.once("stores-update", function (addedChangedDeleted) {
       onStoresUpdate(expected, addedChangedDeleted, index);
       resolve();
     });
@@ -281,8 +296,10 @@ function* finishTests(client) {
   finish();
 }
 
-add_task(function*() {
-  let doc = yield addTab(MAIN_DOMAIN + "storage-updates.html");
+add_task(function* () {
+  let browser = yield addTab(MAIN_DOMAIN + "storage-updates.html");
+  // eslint-disable-next-line mozilla/no-cpows-in-tests
+  let doc = browser.contentDocument;
 
   initDebuggerServer();
 

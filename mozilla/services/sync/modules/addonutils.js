@@ -38,20 +38,9 @@ AddonUtilsInternal.prototype = {
    *        Function to be called with result of operation.
    */
   getInstallFromSearchResult:
-    function getInstallFromSearchResult(addon, cb, requireSecureURI=true) {
+    function getInstallFromSearchResult(addon, cb) {
 
     this._log.debug("Obtaining install for " + addon.id);
-
-    // Verify that the source URI uses TLS. We don't allow installs from
-    // insecure sources for security reasons. The Addon Manager ensures that
-    // cert validation, etc is performed.
-    if (requireSecureURI) {
-      let scheme = addon.sourceURI.scheme;
-      if (scheme != "https") {
-        cb(new Error("Insecure source URI scheme: " + scheme), addon.install);
-        return;
-      }
-    }
 
     // We should theoretically be able to obtain (and use) addon.install if
     // it is available. However, the addon.sourceURI rewriting won't be
@@ -80,8 +69,6 @@ AddonUtilsInternal.prototype = {
    *   syncGUID - Sync GUID to use for the new add-on.
    *   enabled - Boolean indicating whether the add-on should be enabled upon
    *             install.
-   *   requireSecureURI - Boolean indicating whether to require a secure
-   *     URI to install from. This defaults to true.
    *
    * When complete it calls a callback with 2 arguments, error and result.
    *
@@ -105,11 +92,7 @@ AddonUtilsInternal.prototype = {
     function installAddonFromSearchResult(addon, options, cb) {
     this._log.info("Trying to install add-on from search result: " + addon.id);
 
-    if (options.requireSecureURI === undefined) {
-      options.requireSecureURI = true;
-    }
-
-    this.getInstallFromSearchResult(addon, function onResult(error, install) {
+    this.getInstallFromSearchResult(addon, (error, install) => {
       if (error) {
         cb(error, null);
         return;
@@ -131,7 +114,7 @@ AddonUtilsInternal.prototype = {
             }
 
             if (options.syncGUID) {
-              log.info("Setting syncGUID of " + install.name  +": " +
+              log.info("Setting syncGUID of " + install.name + ": " +
                        options.syncGUID);
               install.addon.syncGUID = options.syncGUID;
             }
@@ -144,17 +127,17 @@ AddonUtilsInternal.prototype = {
               install.addon.userDisabled = true;
             }
           },
-          onInstallEnded: function(install, addon) {
+          onInstallEnded(install, addon) {
             install.removeListener(listener);
 
-            cb(null, {id: addon.id, install: install, addon: addon});
+            cb(null, {id: addon.id, install, addon});
           },
-          onInstallFailed: function(install) {
+          onInstallFailed(install) {
             install.removeListener(listener);
 
             cb(new Error("Install failed: " + install.error), null);
           },
-          onDownloadFailed: function(install) {
+          onDownloadFailed(install) {
             install.removeListener(listener);
 
             cb(new Error("Download failed: " + install.error), null);
@@ -162,52 +145,50 @@ AddonUtilsInternal.prototype = {
         };
         install.addListener(listener);
         install.install();
-      }
-      catch (ex) {
-        this._log.error("Error installing add-on: " + Utils.exceptionstr(ex));
+      } catch (ex) {
+        this._log.error("Error installing add-on", ex);
         cb(ex, null);
       }
-    }.bind(this), options.requireSecureURI);
+    });
   },
 
   /**
-   * Uninstalls the Addon instance and invoke a callback when it is done.
+   * Uninstalls the addon instance.
    *
    * @param addon
    *        Addon instance to uninstall.
-   * @param cb
-   *        Function to be invoked when uninstall has finished. It receives a
-   *        truthy value signifying error and the add-on which was uninstalled.
    */
-  uninstallAddon: function uninstallAddon(addon, cb) {
-    let listener = {
-      onUninstalling: function(uninstalling, needsRestart) {
-        if (addon.id != uninstalling.id) {
-          return;
-        }
+  async uninstallAddon(addon) {
+    return new Promise(res => {
+      let listener = {
+        onUninstalling(uninstalling, needsRestart) {
+          if (addon.id != uninstalling.id) {
+            return;
+          }
 
-        // We assume restartless add-ons will send the onUninstalled event
-        // soon.
-        if (!needsRestart) {
-          return;
-        }
+          // We assume restartless add-ons will send the onUninstalled event
+          // soon.
+          if (!needsRestart) {
+            return;
+          }
 
-        // For non-restartless add-ons, we issue the callback on uninstalling
-        // because we will likely never see the uninstalled event.
-        AddonManager.removeAddonListener(listener);
-        cb(null, addon);
-      },
-      onUninstalled: function(uninstalled) {
-        if (addon.id != uninstalled.id) {
-          return;
-        }
+          // For non-restartless add-ons, we issue the callback on uninstalling
+          // because we will likely never see the uninstalled event.
+          AddonManager.removeAddonListener(listener);
+          res(addon);
+        },
+        onUninstalled(uninstalled) {
+          if (addon.id != uninstalled.id) {
+            return;
+          }
 
-        AddonManager.removeAddonListener(listener);
-        cb(null, addon);
-      }
-    };
-    AddonManager.addAddonListener(listener);
-    addon.uninstall();
+          AddonManager.removeAddonListener(listener);
+          res(addon);
+        }
+      };
+      AddonManager.addAddonListener(listener);
+      addon.uninstall();
+    });
   },
 
   /**
@@ -253,7 +234,7 @@ AddonUtilsInternal.prototype = {
     }
 
     AddonRepository.getAddonsByIDs(ids, {
-      searchSucceeded: function searchSucceeded(addons, addonsLength, total) {
+      searchSucceeded: (addons, addonsLength, total) => {
         this._log.info("Found " + addonsLength + "/" + ids.length +
                        " add-ons during repository search.");
 
@@ -261,6 +242,7 @@ AddonUtilsInternal.prototype = {
           installedIDs: [],
           installs:     [],
           addons:       [],
+          skipped:      [],
           errors:       []
         };
 
@@ -289,7 +271,7 @@ AddonUtilsInternal.prototype = {
               cb(null, ourResult);
             }
           }
-        }.bind(this);
+        };
 
         let toInstall = [];
 
@@ -299,14 +281,20 @@ AddonUtilsInternal.prototype = {
         // ideally send proper URLs, but this solution was deemed too
         // complicated at the time the functionality was implemented.
         for (let addon of addons) {
-          // sourceURI presence isn't enforced by AddonRepository. So, we skip
-          // add-ons without a sourceURI.
-          if (!addon.sourceURI) {
-            this._log.info("Skipping install of add-on because missing " +
-                           "sourceURI: " + addon.id);
+          // Find the specified options for this addon.
+          let options;
+          for (let install of installs) {
+            if (install.id == addon.id) {
+              options = install;
+              break;
+            }
+          }
+          if (!this.canInstallAddon(addon, options)) {
+            ourResult.skipped.push(addon.id);
             continue;
           }
 
+          // We can go ahead and attempt to install it.
           toInstall.push(addon);
 
           // We should always be able to QI the nsIURI to nsIURL. If not, we
@@ -325,9 +313,8 @@ AddonUtilsInternal.prototype = {
 
             if (param.indexOf("src=") == 0) {
               return "src=sync";
-            } else {
-              return param;
             }
+            return param;
           });
 
           addon.sourceURI.query = params.join("&");
@@ -354,7 +341,7 @@ AddonUtilsInternal.prototype = {
           this.installAddonFromSearchResult(addon, options, installCallback);
         }
 
-      }.bind(this),
+      },
 
       searchFailed: function searchFailed() {
         cb(new Error("AddonRepository search failed"), null);
@@ -363,108 +350,65 @@ AddonUtilsInternal.prototype = {
   },
 
   /**
+   * Returns true if we are able to install the specified addon, false
+   * otherwise. It is expected that this will log the reason if it returns
+   * false.
+   *
+   * @param addon
+   *        (Addon) Add-on instance to check.
+   * @param options
+   *        (object) The options specified for this addon. See installAddons()
+   *        for the valid elements.
+   */
+  canInstallAddon(addon, options) {
+    // sourceURI presence isn't enforced by AddonRepository. So, we skip
+    // add-ons without a sourceURI.
+    if (!addon.sourceURI) {
+      this._log.info("Skipping install of add-on because missing " +
+                     "sourceURI: " + addon.id);
+      return false;
+    }
+    // Verify that the source URI uses TLS. We don't allow installs from
+    // insecure sources for security reasons. The Addon Manager ensures
+    // that cert validation etc is performed.
+    // (We should also consider just dropping this entirely and calling
+    // XPIProvider.isInstallAllowed, but that has additional semantics we might
+    // need to think through...)
+    let requireSecureURI = true;
+    if (options && options.requireSecureURI !== undefined) {
+      requireSecureURI = options.requireSecureURI;
+    }
+
+    if (requireSecureURI) {
+      let scheme = addon.sourceURI.scheme;
+      if (scheme != "https") {
+        this._log.info(`Skipping install of add-on "${addon.id}" because sourceURI's scheme of "${scheme}" is not trusted`);
+        return false;
+      }
+    }
+    this._log.info(`Add-on "${addon.id}" is able to be installed`);
+    return true;
+  },
+
+
+  /**
    * Update the user disabled flag for an add-on.
    *
-   * The supplied callback will ba called when the operation is
-   * complete. If the new flag matches the existing or if the add-on
-   * isn't currently active, the function will fire the callback
-   * immediately. Else, the callback is invoked when the AddonManager
-   * reports the change has taken effect or has been registered.
-   *
-   * The callback receives as arguments:
-   *
-   *   (Error) Encountered error during operation or null on success.
-   *   (Addon) The add-on instance being operated on.
+   * If the new flag matches the existing or if the add-on
+   * isn't currently active, the function will return immediately.
    *
    * @param addon
    *        (Addon) Add-on instance to operate on.
    * @param value
    *        (bool) New value for add-on's userDisabled property.
-   * @param cb
-   *        (function) Callback to be invoked on completion.
    */
-  updateUserDisabled: function updateUserDisabled(addon, value, cb) {
+  updateUserDisabled(addon, value) {
     if (addon.userDisabled == value) {
-      cb(null, addon);
       return;
-    }
-
-    let listener = {
-      onEnabling: function onEnabling(wrapper, needsRestart) {
-        this._log.debug("onEnabling: " + wrapper.id);
-        if (wrapper.id != addon.id) {
-          return;
-        }
-
-        // We ignore the restartless case because we'll get onEnabled shortly.
-        if (!needsRestart) {
-          return;
-        }
-
-        AddonManager.removeAddonListener(listener);
-        cb(null, wrapper);
-      }.bind(this),
-
-      onEnabled: function onEnabled(wrapper) {
-        this._log.debug("onEnabled: " + wrapper.id);
-        if (wrapper.id != addon.id) {
-          return;
-        }
-
-        AddonManager.removeAddonListener(listener);
-        cb(null, wrapper);
-      }.bind(this),
-
-      onDisabling: function onDisabling(wrapper, needsRestart) {
-        this._log.debug("onDisabling: " + wrapper.id);
-        if (wrapper.id != addon.id) {
-          return;
-        }
-
-        if (!needsRestart) {
-          return;
-        }
-
-        AddonManager.removeAddonListener(listener);
-        cb(null, wrapper);
-      }.bind(this),
-
-      onDisabled: function onDisabled(wrapper) {
-        this._log.debug("onDisabled: " + wrapper.id);
-        if (wrapper.id != addon.id) {
-          return;
-        }
-
-        AddonManager.removeAddonListener(listener);
-        cb(null, wrapper);
-      }.bind(this),
-
-      onOperationCancelled: function onOperationCancelled(wrapper) {
-        this._log.debug("onOperationCancelled: " + wrapper.id);
-        if (wrapper.id != addon.id) {
-          return;
-        }
-
-        AddonManager.removeAddonListener(listener);
-        cb(new Error("Operation cancelled"), wrapper);
-      }.bind(this)
-    };
-
-    // The add-on listeners are only fired if the add-on is active. If not, the
-    // change is silently updated and made active when/if the add-on is active.
-
-    if (!addon.appDisabled) {
-      AddonManager.addAddonListener(listener);
     }
 
     this._log.info("Updating userDisabled flag: " + addon.id + " -> " + value);
     addon.userDisabled = !!value;
-
-    if (!addon.appDisabled) {
-      cb(null, addon);
-      return;
-    }
-    // Else the listener will handle invoking the callback.
   },
 
 };

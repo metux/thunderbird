@@ -6,11 +6,13 @@
  * THIS MODULE IS DEPRECATED. IMPORT "Promise.jsm" INSTEAD.
  */
 
+/* eslint-disable */
+
 "use strict";
 
 this.Promise = {};
 
-if (typeof(require) === "function") {
+if (typeof (require) === "function") {
   module.exports = Promise;
 } else {
   this.EXPORTED_SYMBOLS = ["Promise"];
@@ -25,7 +27,7 @@ function rejected(reason) {
 }
 
 function isPromise(value) {
-  return value && typeof(value.then) === 'function';
+  return value && typeof (value.then) === "function";
 }
 
 function defer() {
@@ -59,6 +61,9 @@ function defer() {
       }
 
       return deferred.promise;
+    },
+    catch: function (callback) {
+      return this.then(null, callback);
     }
   };
 
@@ -97,13 +102,13 @@ function reject(reason) {
 }
 Promise.reject = reject;
 
-var promised = (function() {
+var promised = (function () {
   var call = Function.call;
   var concat = Array.prototype.concat;
-  function execute(args) { return call.apply(call, args) }
+  function execute(args) { return call.apply(call, args); }
   function promisedConcat(promises, unknown) {
-    return promises.then(function(values) {
-      return resolve(unknown).then(function(value) {
+    return promises.then(function (values) {
+      return resolve(unknown).then(function (value) {
         return values.concat([ value ]);
       });
     });
@@ -114,6 +119,6 @@ var promised = (function() {
         reduce(promisedConcat, resolve([])).
         then(execute);
     };
-  }
+  };
 })();
 Promise.all = promised(Array);

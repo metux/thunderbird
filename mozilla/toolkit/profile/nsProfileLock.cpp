@@ -3,10 +3,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "nsProfileStringTypes.h"
 #include "nsProfileLock.h"
 #include "nsCOMPtr.h"
 #include "nsQueryObject.h"
+#include "nsString.h"
 
 #if defined(XP_WIN)
 #include "ProfileUnlockerWin.h"
@@ -26,16 +26,8 @@
 #include <stdlib.h>
 #include "prnetdb.h"
 #include "prsystem.h"
-#include "prprf.h"
 #include "prenv.h"
-#endif
-
-#ifdef VMS
-#include <rmsdef.h>
-#endif
-
-#if defined(MOZ_WIDGET_GONK) && !defined(MOZ_CRASHREPORTER)
-#include <sys/syscall.h>
+#include "mozilla/Printf.h"
 #endif
 
 // **********************************************************************
@@ -196,27 +188,6 @@ void nsProfileLock::FatalSignalHandler(int signo
         }
     }
 
-#ifdef MOZ_WIDGET_GONK
-    switch (signo) {
-        case SIGQUIT:
-        case SIGILL:
-        case SIGABRT:
-        case SIGSEGV:
-#ifndef MOZ_CRASHREPORTER
-            // Retrigger the signal for those that can generate a core dump
-            signal(signo, SIG_DFL);
-            if (info->si_code <= 0) {
-                if (syscall(__NR_tgkill, getpid(), syscall(__NR_gettid), signo) < 0) {
-                    break;
-                }
-            }
-#endif
-            return;
-        default:
-            break;
-    }
-#endif
-
     // Backstop exit call, just in case.
     _exit(signo);
 }
@@ -268,8 +239,6 @@ nsresult nsProfileLock::LockWithFcntl(nsIFile *aLockFile)
             else
                 rv = NS_ERROR_FAILURE;
         }
-        else
-            mHaveLock = true;
     }
     else
     {
@@ -358,14 +327,14 @@ nsresult nsProfileLock::LockWithSymlink(nsIFile *aLockFile, bool aHaveFcntlLock)
             memcpy(&inaddr, hostent.h_addr, sizeof inaddr);
     }
 
-    char *signature =
-        PR_smprintf("%s:%s%lu", inet_ntoa(inaddr), aHaveFcntlLock ? "+" : "",
-                    (unsigned long)getpid());
+    mozilla::SmprintfPointer signature =
+        mozilla::Smprintf("%s:%s%lu", inet_ntoa(inaddr), aHaveFcntlLock ? "+" : "",
+                   (unsigned long)getpid());
     const char *fileName = lockFilePath.get();
     int symlink_rv, symlink_errno = 0, tries = 0;
 
     // use ns4.x-compatible symlinks if the FS supports them
-    while ((symlink_rv = symlink(signature, fileName)) < 0)
+    while ((symlink_rv = symlink(signature.get(), fileName)) < 0)
     {
         symlink_errno = errno;
         if (symlink_errno != EEXIST)
@@ -381,15 +350,11 @@ nsresult nsProfileLock::LockWithSymlink(nsIFile *aLockFile, bool aHaveFcntlLock)
             break;
     }
 
-    PR_smprintf_free(signature);
-    signature = nullptr;
-
     if (symlink_rv == 0)
     {
         // We exclusively created the symlink: record its name for eventual
         // unlock-via-unlink.
         rv = NS_OK;
-        mHaveLock = true;
         mPidLockFileName = strdup(fileName);
         if (mPidLockFileName)
         {
@@ -409,7 +374,7 @@ nsresult nsProfileLock::LockWithSymlink(nsIFile *aLockFile, bool aHaveFcntlLock)
                     struct sigaction act, oldact;
 #ifdef SA_SIGINFO
                     act.sa_sigaction = FatalSignalHandler;
-                    act.sa_flags = SA_SIGINFO;
+                    act.sa_flags = SA_SIGINFO | SA_ONSTACK;
 #else
                     act.sa_handler = FatalSignalHandler;
 #endif
@@ -487,6 +452,11 @@ nsresult nsProfileLock::Lock(nsIFile* aProfileDir,
         return rv;
 
     rv = lockFile->Append(LOCKFILE_NAME);
+    if (NS_FAILED(rv))
+        return rv;
+
+    // Remember the name we're using so we can clean up
+    rv = lockFile->Clone(getter_AddRefs(mLockFile));
     if (NS_FAILED(rv))
         return rv;
 
@@ -617,30 +587,10 @@ nsresult nsProfileLock::Lock(nsIFile* aProfileDir,
         }
         return NS_ERROR_FILE_ACCESS_DENIED;
     }
-#elif defined(VMS)
-    nsAutoCString filePath;
-    rv = lockFile->GetNativePath(filePath);
-    if (NS_FAILED(rv))
-        return rv;
-
-    lockFile->GetLastModifiedTime(&mReplacedLockTime);
-
-    mLockFileDesc = open_noshr(filePath.get(), O_CREAT, 0666);
-    if (mLockFileDesc == -1)
-    {
-        if ((errno == EVMSERR) && (vaxc$errno == RMS$_FLK))
-        {
-            return NS_ERROR_FILE_ACCESS_DENIED;
-        }
-        else
-        {
-            NS_ERROR("Failed to open lock file.");
-            return NS_ERROR_FAILURE;
-        }
-    }
 #endif
 
-    mHaveLock = true;
+    if (NS_SUCCEEDED(rv))
+        mHaveLock = true;
 
     return rv;
 }
@@ -685,4 +635,13 @@ nsresult nsProfileLock::Unlock(bool aFatalSignal)
     }
 
     return rv;
+}
+
+nsresult nsProfileLock::Cleanup()
+{
+    if (mLockFile) {
+        return mLockFile->Remove(false);
+    }
+
+    return NS_OK;
 }

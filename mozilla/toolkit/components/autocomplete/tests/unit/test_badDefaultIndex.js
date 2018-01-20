@@ -42,11 +42,11 @@ add_test(function autocomplete_noMatch_success() {
   do_check_eq(input.selectionEnd, strLen);
 
   let controller = Cc["@mozilla.org/autocomplete/controller;1"].
-                   getService(Ci.nsIAutoCompleteController);  
+                   getService(Ci.nsIAutoCompleteController);
   controller.input = input;
   controller.startSearch(INPUT_STR);
 
-  input.onSearchComplete = function () {
+  input.onSearchComplete = function() {
     // Should not try to autoFill to an empty value.
     do_check_eq(input.textValue, "moz");
 
@@ -77,11 +77,11 @@ add_test(function autocomplete_defaultIndex_exceeds_matchCount() {
   do_check_eq(input.selectionEnd, strLen);
 
   let controller = Cc["@mozilla.org/autocomplete/controller;1"].
-                   getService(Ci.nsIAutoCompleteController);  
+                   getService(Ci.nsIAutoCompleteController);
   controller.input = input;
   controller.startSearch(INPUT_STR);
 
-  input.onSearchComplete = function () {
+  input.onSearchComplete = function() {
     // Should not try to autoFill to an empty value.
     do_check_eq(input.textValue, "moz");
 
@@ -90,7 +90,3 @@ add_test(function autocomplete_defaultIndex_exceeds_matchCount() {
     run_next_test();
   };
 });
-
-function run_test() {
-  run_next_test();
-}

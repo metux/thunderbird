@@ -37,7 +37,7 @@ var addonIDs = ["test_bug393285_1@tests.mozilla.org",
 
 // A window watcher to deal with the blocklist UI dialog.
 var WindowWatcher = {
-  openWindow: function(parent, url, name, features, args) {
+  openWindow(parent, url, name, features, args) {
     // Should be called to list the newly blocklisted items
     do_check_eq(url, URI_EXTENSION_BLOCKLIST_DIALOG);
 
@@ -48,12 +48,12 @@ var WindowWatcher = {
         aItem.disable = true;
     });
 
-    //run the code after the blocklist is closed
-    Services.obs.notifyObservers(null, "addon-blocklist-closed", null);
+    // run the code after the blocklist is closed
+    Services.obs.notifyObservers(null, "addon-blocklist-closed");
 
   },
 
-  QueryInterface: function(iid) {
+  QueryInterface(iid) {
     if (iid.equals(Ci.nsIWindowWatcher)
      || iid.equals(Ci.nsISupports))
       return this;
@@ -66,11 +66,11 @@ MockRegistrar.register("@mozilla.org/embedcomp/window-watcher;1", WindowWatcher)
 
 
 function load_blocklist(aFile, aCallback) {
-  Services.obs.addObserver(function() {
-    Services.obs.removeObserver(arguments.callee, "blocklist-updated");
+  Services.obs.addObserver(function observer() {
+    Services.obs.removeObserver(observer, "blocklist-updated");
 
     do_execute_soon(aCallback);
-  }, "blocklist-updated", false);
+  }, "blocklist-updated");
 
   Services.prefs.setCharPref("extensions.blocklist.url", "http://localhost:" +
                              gPort + "/data/" + aFile);
@@ -258,7 +258,7 @@ function run_test() {
   startupManager();
 
   AddonManager.getAddonsByIDs(addonIDs, function(addons) {
-    for (addon of addons) {
+    for (let addon of addons) {
       do_check_eq(addon.blocklistState, Ci.nsIBlocklistService.STATE_NOT_BLOCKED);
     }
     run_test_1();

@@ -21,6 +21,11 @@ tabbrowser {
   -moz-binding: url("chrome://navigator/content/tabbrowser.xml#tabbrowser-tabs");
 }
 
+.tabbrowser-tab:-moz-lwtheme:not([customization-lwtheme]) {
+  color: var(--lwt-text-color);
+  text-shadow: var(--lwt-accent-color);
+}
+
 .tabbrowser-arrowscrollbox {
   -moz-binding: url("chrome://navigator/content/tabbrowser.xml#tabbrowser-arrowscrollbox");
 }
@@ -31,6 +36,15 @@ tabbrowser {
 
 .tabs-closebutton-box > .tabs-closebutton {
   -moz-binding: url("chrome://global/content/bindings/toolbarbutton.xml#toolbarbutton");
+}
+
+/* ::::: search suggestions autocomplete ::::: */
+#PopupAutoComplete > richlistbox > richlistitem > .ac-type-icon,
+#PopupAutoComplete > richlistbox > richlistitem > .ac-site-icon,
+#PopupAutoComplete > richlistbox > richlistitem > .ac-tags,
+#PopupAutoComplete > richlistbox > richlistitem > .ac-separator,
+#PopupAutoComplete > richlistbox > richlistitem > .ac-url {
+  display: none;
 }
 
 /* ::::: urlbar autocomplete ::::: */
@@ -107,4 +121,12 @@ popupnotification-centeritem {
 
 .textbox-input-box {
   overflow-x: hidden;
+}
+
+/* Developer Tools: Error counter */
+
+#developer-toolbar-toolbox-button[error-count]:before {
+  content: attr(error-count);
+  display: -moz-box;
+  -moz-box-pack: center;
 }

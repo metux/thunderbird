@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -22,7 +23,7 @@
 #include "nsContentUtils.h"
 #include "mozilla/Attributes.h"
 
-class nsReflowFrameRunnable : public nsRunnable
+class nsReflowFrameRunnable : public mozilla::Runnable
 {
 public:
   nsReflowFrameRunnable(nsIFrame* aFrame,
@@ -31,17 +32,19 @@ public:
 
   NS_DECL_NSIRUNNABLE
 
-  nsWeakFrame mWeakFrame;
+  WeakFrame mWeakFrame;
   nsIPresShell::IntrinsicDirty mIntrinsicDirty;
   nsFrameState mBitToAdd;
 };
 
-nsReflowFrameRunnable::nsReflowFrameRunnable(nsIFrame* aFrame,
-                          nsIPresShell::IntrinsicDirty aIntrinsicDirty,
-                          nsFrameState aBitToAdd)
-  : mWeakFrame(aFrame),
-    mIntrinsicDirty(aIntrinsicDirty),
-    mBitToAdd(aBitToAdd)
+nsReflowFrameRunnable::nsReflowFrameRunnable(
+  nsIFrame* aFrame,
+  nsIPresShell::IntrinsicDirty aIntrinsicDirty,
+  nsFrameState aBitToAdd)
+  : mozilla::Runnable("nsReflowFrameRunnable")
+  , mWeakFrame(aFrame)
+  , mIntrinsicDirty(aIntrinsicDirty)
+  , mBitToAdd(aBitToAdd)
 {
 }
 
@@ -49,7 +52,7 @@ NS_IMETHODIMP
 nsReflowFrameRunnable::Run()
 {
   if (mWeakFrame.IsAlive()) {
-    mWeakFrame->PresContext()->PresShell()->
+    mWeakFrame->PresShell()->
       FrameNeedsReflow(mWeakFrame, mIntrinsicDirty, mBitToAdd);
   }
   return NS_OK;
@@ -100,25 +103,25 @@ public:
     delete this;
   }
 
-  nsWeakFrame mWeakFrame;
+  WeakFrame mWeakFrame;
 };
 
 NS_IMETHODIMP
-nsProgressMeterFrame::DoLayout(nsBoxLayoutState& aState)
+nsProgressMeterFrame::DoXULLayout(nsBoxLayoutState& aState)
 {
   if (mNeedsReflowCallback) {
     nsIReflowCallback* cb = new nsAsyncProgressMeterInit(this);
     if (cb) {
-      PresContext()->PresShell()->PostReflowCallback(cb);
+      PresShell()->PostReflowCallback(cb);
     }
     mNeedsReflowCallback = false;
   }
-  return nsBoxFrame::DoLayout(aState);
+  return nsBoxFrame::DoXULLayout(aState);
 }
 
 nsresult
 nsProgressMeterFrame::AttributeChanged(int32_t aNameSpaceID,
-                                       nsIAtom* aAttribute,
+                                       nsAtom* aAttribute,
                                        int32_t aModType)
 {
   NS_ASSERTION(!nsContentUtils::IsSafeToRunScript(),
@@ -135,7 +138,7 @@ nsProgressMeterFrame::AttributeChanged(int32_t aNameSpaceID,
   if (nsGkAtoms::mode == aAttribute ||
       (!undetermined &&
        (nsGkAtoms::value == aAttribute || nsGkAtoms::max == aAttribute))) {
-    nsIFrame* barChild = GetFirstPrincipalChild();
+    nsIFrame* barChild = PrincipalChildList().FirstChild();
     if (!barChild) return NS_OK;
     nsIFrame* remainderChild = barChild->GetNextSibling();
     if (!remainderChild) return NS_OK;

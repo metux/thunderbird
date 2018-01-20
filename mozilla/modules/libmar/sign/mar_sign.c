@@ -95,7 +95,7 @@ NSSSignBegin(const char *certName,
     return -1;
   }
 
-  *ctx = SGN_NewContext (SEC_OID_ISO_SHA1_WITH_RSA_SIGNATURE, *privKey);
+  *ctx = SGN_NewContext(SEC_OID_PKCS1_SHA384_WITH_RSA_ENCRYPTION, *privKey);
   if (!*ctx) {
     fprintf(stderr, "ERROR: Could not create signature context\n");
     return -1;
@@ -263,7 +263,7 @@ strip_signature_block(const char *src, const char * dest)
   FILE *fpSrc = NULL, *fpDest = NULL;
   int rv = -1, hasSignatureBlock;
   char buf[BLOCKSIZE];
-  char *indexBuf = NULL, *indexBufLoc;
+  char *indexBuf = NULL;
 
   if (!src || !dest) {
     fprintf(stderr, "ERROR: Invalid parameter passed in.\n");
@@ -433,7 +433,6 @@ strip_signature_block(const char *src, const char * dest)
 
   /* Consume the index and adjust each index by the difference */
   indexBuf = malloc(indexLength);
-  indexBufLoc = indexBuf;
   if (fread(indexBuf, indexLength, 1, fpSrc) != 1) {
     fprintf(stderr, "ERROR: Could not read index\n");
     goto failure;
@@ -837,7 +836,7 @@ mar_repackage_and_sign(const char *NSSConfigDir,
   char buf[BLOCKSIZE];
   SECKEYPrivateKey *privKeys[MAX_SIGNATURES];
   CERTCertificate *certs[MAX_SIGNATURES];
-  char *indexBuf = NULL, *indexBufLoc;
+  char *indexBuf = NULL;
   uint32_t k;
 
   memset(signatureLengths, 0, sizeof(signatureLengths));
@@ -994,8 +993,8 @@ mar_repackage_and_sign(const char *NSSConfigDir,
   signaturePlaceholderOffset = ftello(fpDest);
 
   for (k = 0; k < certCount; k++) {
-    /* Write out the signature algorithm ID, Only an ID of 1 is supported */
-    signatureAlgorithmID = htonl(1);
+    /* Write out the signature algorithm ID, Only an ID of 2 is supported */
+    signatureAlgorithmID = htonl(2);
     if (WriteAndUpdateSignatures(fpDest, &signatureAlgorithmID,
                                  sizeof(signatureAlgorithmID),
                                  ctxs, certCount, "num signatures")) {
@@ -1059,7 +1058,6 @@ mar_repackage_and_sign(const char *NSSConfigDir,
 
   /* Consume the index and adjust each index by signatureSectionLength */
   indexBuf = malloc(indexLength);
-  indexBufLoc = indexBuf;
   if (fread(indexBuf, indexLength, 1, fpSrc) != 1) {
     fprintf(stderr, "ERROR: Could not read index\n");
     goto failure;
@@ -1154,6 +1152,8 @@ failure:
 
     SECITEM_FreeItem(&secItems[k], PR_FALSE);
   }
+
+  (void)NSS_Shutdown();
 
   if (rv) {
     remove(dest);

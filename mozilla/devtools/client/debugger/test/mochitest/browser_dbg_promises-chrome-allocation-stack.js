@@ -1,5 +1,7 @@
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
+/* vim: set ft=javascript ts=2 et sw=2 tw=80: */
 /* Any copyright is dedicated to the Public Domain.
-   http://creativecommons.org/publicdomain/zero/1.0/ */
+ * http://creativecommons.org/publicdomain/zero/1.0/ */
 
 /**
  * Test that we can get a stack to a promise's allocation point in the chrome
@@ -9,8 +11,8 @@
 "use strict";
 
 const SOURCE_URL = "browser_dbg_promises-chrome-allocation-stack.js";
-const { PromisesFront } = require("devtools/server/actors/promises");
-var events = require("sdk/event/core");
+const PromisesFront = require("devtools/shared/fronts/promises");
+var EventEmitter = require("devtools/shared/event-emitter");
 
 const STACK_DATA = [
   { functionDisplayName: "test/</<" },
@@ -36,13 +38,13 @@ function test() {
       p.name = "p";
       let q = p.then();
       q.name = "q";
-      let r = p.then(null, () => {});
+      let r = p.catch(() => {});
       r.name = "r";
     });
 
     yield close(client);
     finish();
-  }).then(null, error => {
+  }).catch(error => {
     ok(false, "Got an error: " + error.message + "\n" + error.stack);
   });
 }
@@ -55,7 +57,7 @@ function* testGetAllocationStack(client, form, makePromises) {
 
   // Get the grip for promise p
   let onNewPromise = new Promise(resolve => {
-    events.on(front, "new-promises", promises => {
+    EventEmitter.on(front, "new-promises", promises => {
       for (let p of promises) {
         if (p.preview.ownProperties.name &&
             p.preview.ownProperties.name.value === "p") {

@@ -18,37 +18,33 @@ var MODULE_REQUIRES = ["folder-display-helpers", "window-helpers",
 
 Components.utils.import("resource://gre/modules/Services.jsm");
 
-// We can't initialize them h because the global scope is read far too
-// early.
-var Cc, Ci;
-
 var gFontEnumerator;
 
 // We'll test with Western. Unicode has issues on Windows (bug 550443).
-var kLanguage = "x-western";
+const kLanguage = "x-western";
 
 // A list of fonts present on the computer for each font type.
 var gRealFontLists = {};
 
 // A list of font types to consider
-var kFontTypes = ["serif", "sans-serif", "monospace"];
+const kFontTypes = ["serif", "sans-serif", "monospace"];
 
 function setupModule(module) {
-  let fdh = collector.getModule("folder-display-helpers");
-  fdh.installInto(module);
-  let wh = collector.getModule("window-helpers");
-  wh.installInto(module);
-  let pwh = collector.getModule("pref-window-helpers");
-  pwh.installInto(module);
+  for (let lib of MODULE_REQUIRES) {
+    collector.getModule(lib).installInto(module);
+  }
 
-  Cc = Components.classes;
-  Ci = Components.interfaces;
+  let finished = false;
+  buildFontList().then(() => finished = true, Cu.reportError);
+  mc.waitFor(() => finished, "Timeout waiting for font enumeration to complete.");
+}
 
-  gFontEnumerator = Cc["@mozilla.org/gfx/fontenumerator;1"]
-                      .createInstance(Ci.nsIFontEnumerator);
-  for (let [, fontType] in Iterator(kFontTypes)) {
+async function buildFontList() {
+  gFontEnumerator = Components.classes["@mozilla.org/gfx/fontenumerator;1"]
+                      .createInstance(Components.interfaces.nsIFontEnumerator);
+  for (let fontType of kFontTypes) {
     gRealFontLists[fontType] =
-      gFontEnumerator.EnumerateFonts(kLanguage, fontType, {});
+      await gFontEnumerator.EnumerateFontsAsync(kLanguage, fontType);
     if (gRealFontLists[fontType].length == 0)
       throw new Error("No fonts found for language " + kLanguage +
                       " and font type " + fontType + ".");
@@ -73,8 +69,10 @@ function _verify_fonts_displayed(aSerif, aSansSerif, aMonospace) {
     let isSansDefault = (Services.prefs.getCharPref("font.default." + kLanguage) ==
                          "sans-serif");
     let displayPaneExpected = isSansDefault ? aSansSerif : aSerif;
-    let displayPaneActual = prefc.e("defaultFont").value;
-    assert_fonts_equal("display pane", displayPaneExpected, displayPaneActual);
+    let displayPaneActual = prefc.e("defaultFont");
+    prefc.waitFor(() => displayPaneActual.itemCount > 0,
+                  "No font names were populated in the font picker.");
+    assert_fonts_equal("display pane", displayPaneExpected, displayPaneActual.value);
   }
 
   // Bring up the preferences window.
@@ -82,6 +80,11 @@ function _verify_fonts_displayed(aSerif, aSansSerif, aMonospace) {
 
   // Now verify the advanced dialog.
   function verify_advanced(fontc) {
+    // The font pickers are populated async so we need to wait for it.
+    for (let fontElemId of ["serif", "sans-serif", "monospace"]) {
+      fontc.waitFor(() => fontc.e(fontElemId).value != "",
+                    "Timeout waiting for font picker " + fontElemId + " to populate.");
+    }
     assert_fonts_equal("serif", aSerif, fontc.e("serif").value);
     assert_fonts_equal("sans-serif", aSansSerif, fontc.e("sans-serif").value);
     assert_fonts_equal("monospace", aMonospace, fontc.e("monospace").value);
@@ -107,7 +110,7 @@ function test_font_name_displayed() {
 
   // Pick the first font for each font type and set it.
   let expected = {};
-  for (let [fontType, fontList] in Iterator(gRealFontLists)) {
+  for (let [fontType, fontList] of Object.entries(gRealFontLists)) {
     // Work around bug 698238 (on Windows, Courier is returned by the enumerator but
     // substituted with Courier New) by getting the standard (substituted) family
     // name for each font.
@@ -117,13 +120,13 @@ function test_font_name_displayed() {
     expected[fontType] = standardFamily;
   }
 
-  _verify_fonts_displayed.apply(null, [expected[k]
-                                       for ([, k] in Iterator(kFontTypes))]);
+  let fontTypes = kFontTypes.map(fontType => expected[fontType]);
+  _verify_fonts_displayed(...fontTypes);
 }
 
 // Fonts definitely not present on a computer -- we simply use UUIDs. These
 // should be kept in sync with the ones in *-prefs.js.
-var kFakeFonts = {
+const kFakeFonts = {
   "serif": "bc7e8c62-0634-467f-a029-fe6abcdf1582",
   "sans-serif": "419129aa-43b7-40c4-b554-83d99b504b89",
   "monospace": "348df6e5-e874-4d21-ad4b-359b530a33b7",
@@ -140,12 +143,12 @@ function test_font_name_not_present() {
   // The fonts we're expecting to see selected in the font chooser for
   // test_font_name_not_present.
   let expected = {};
-  for (let [fontType, fakeFont] in Iterator(kFakeFonts)) {
+  for (let [fontType, fakeFont] of Object.entries(kFakeFonts)) {
     // Look at the font.name-list. We need to verify that the first font is the
     // fake one, and that the second one is present on the user's computer.
     let listPref = "font.name-list." + fontType + "." + kLanguage;
     let fontList = Services.prefs.getCharPref(listPref);
-    let fonts = [s.trim() for ([, s] in Iterator(fontList.split(",")))];
+    let fonts = fontList.split(",").map(font => font.trim());
     if (fonts.length != 2)
       throw new Error(listPref + " should have exactly two fonts, but it is " +
                       fontList + ".");
@@ -164,6 +167,6 @@ function test_font_name_not_present() {
     Services.prefs.setCharPref("font.name." + fontType + "." + kLanguage, fakeFont);
   }
 
-  _verify_fonts_displayed.apply(null, [expected[k]
-                                       for ([, k] in Iterator(kFontTypes))]);
+  let fontTypes = kFontTypes.map(fontType => expected[fontType]);
+  _verify_fonts_displayed(...fontTypes);
 }

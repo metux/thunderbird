@@ -22,28 +22,28 @@ function readTestData(testFile) {
       var line = {};
       hasmore = istream.readLine(line);
 
-      if (line.value.indexOf('Description:') > -1) {
-        testcase.desc = line.value.substring(line.value.indexOf(':')+1).trim();
+      if (line.value.indexOf("Description:") > -1) {
+        testcase.desc = line.value.substring(line.value.indexOf(":") + 1).trim();
       }
 
-      if (line.value.indexOf('Expect:') > -1) {
-        testcase.expect = line.value.substring(line.value.indexOf(':')+1).trim();
+      if (line.value.indexOf("Expect:") > -1) {
+        testcase.expect = line.value.substring(line.value.indexOf(":") + 1).trim();
       }
 
-      if (line.value.indexOf('Base:') > -1) {
-        testcase.base = NetUtil.newURI(line.value.substring(line.value.indexOf(':')+1).trim());
+      if (line.value.indexOf("Base:") > -1) {
+        testcase.base = NetUtil.newURI(line.value.substring(line.value.indexOf(":") + 1).trim());
       }
 
       if (testcase.expect && testcase.desc) {
-        testcase.path = 'xml/' + testFile.parent.leafName + '/' + testFile.leafName;
+        testcase.path = "xml/" + testFile.parent.leafName + "/" + testFile.leafName;
         testcase.file = testFile;
         break;
       }
 
     } while (hasmore);
 
-  } catch(e) {
-    Assert.ok(false, "FAILED! Error reading testFile case in file " + testFile.leafName  + " ---- " + e);
+  } catch (e) {
+    Assert.ok(false, "FAILED! Error reading testFile case in file " + testFile.leafName + " ---- " + e);
   } finally {
     istream.close();
   }
@@ -58,7 +58,7 @@ function iterateDir(dir, recurse, callback) {
   // Loop over everything in this dir. If its a dir
   while (entries.hasMoreElements()) {
     let entry = entries.getNext();
-    entry.QueryInterface(Ci.nsILocalFile);
+    entry.QueryInterface(Ci.nsIFile);
 
     if (entry.isDirectory()) {
       if (recurse) {
@@ -70,11 +70,11 @@ function iterateDir(dir, recurse, callback) {
   }
 }
 
-function isIID(a, iid){
+function isIID(a, iid) {
   try {
     a.QueryInterface(iid);
     return true;
-  } catch(e) { }
+  } catch (e) { }
 
   return false;
 }

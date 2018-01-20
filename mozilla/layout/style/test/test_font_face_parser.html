@@ -14,6 +14,7 @@
 <pre id="display"></pre>
 <style type="text/css" id="testbox"></style>
 <script class="testbody" type="text/javascript">
+function runTest() {
   function _(b) { return "@font-face { " + b + " }"; };
   var testset = [
     // Complete nonsense - shouldn't make a font-face rule at all.
@@ -181,12 +182,8 @@
       d: { "unicode-range" : "U+0-FF" }, noncanonical: true },
     { rule: _("unicode-range: U+?"),
       d: { "unicode-range" : "U+0-F" }, noncanonical: true },
-    { rule: _("unicode-range: U+??????"),
-      d: { "unicode-range" : "U+0-10FFFF" }, noncanonical: true },
     { rule: _("unicode-range: U+590-5ff;"),
       d: { "unicode-range" : "U+590-5FF" }, noncanonical: true },
-    { rule: _("unicode-range: U+A0000-12FFFF"),
-      d: { "unicode-range" : "U+A0000-10FFFF" }, noncanonical: true },
 
     { rule: _("unicode-range: U+A5, U+4E00-9FFF, U+30??, U+FF00-FF9F;"),
       d: { "unicode-range" : "U+A5, U+4E00-9FFF, U+3000-30FF, U+FF00-FF9F" },
@@ -228,6 +225,8 @@
     { rule: _("unicode-range: U+0121 -1023"), d: {} },
     { rule: _("unicode-range: U+012 ?"), d: {} },
     { rule: _("unicode-range: U+01 2?"), d: {} },
+    { rule: _("unicode-range: U+A0000-12FFFF"), d: {} },
+    { rule: _("unicode-range: U+??????"), d: {} },
 
     // Thorough test of seven-digit rejection: all these are syntax errors
     { rule: _("unicode-range: U+1034560, U+A5"), d: {} },
@@ -246,12 +245,9 @@
     { rule: _("unicode-range: U+A5, U+0?F"), d: {} },
     { rule: _("unicode-range: U+A5, U+0F?-E00"), d: {} },
 
-    // Descending ranges and ranges outside 0-10FFFF are ignored
-    // but do not invalidate the descriptor
-    { rule: _("unicode-range: U+A5, U+90-30"),
-      d: { "unicode-range" : "U+A5" }, noncanonical: true },
-    { rule: _("unicode-range: U+A5, U+220043"),
-      d: { "unicode-range" : "U+A5" }, noncanonical: true },
+    // Descending ranges and ranges outside 0-10FFFF are invalid
+    { rule: _("unicode-range: U+A5, U+90-30"), d: {} },
+    { rule: _("unicode-range: U+A5, U+220043"), d: {} },
 
     // font-feature-settings
     { rule: _("font-feature-settings: normal;"),
@@ -287,6 +283,24 @@
     { rule: _("font-language-override: #999;"), d: {} },
     { rule: _("font-language-override: 'TRK' 'SRB'"), d: {} },
     { rule: _("font-language-override: 'TRK', 'SRB'"), d: {} },
+
+    // font-display:
+    { rule: _("font-display: auto;"),
+      d: { "font-display" : "auto" } },
+    { rule: _("font-display: block;"),
+      d: { "font-display" : "block" } },
+    { rule: _("font-display: swap;"),
+      d: { "font-display" : "swap" } },
+    { rule: _("font-display: fallback;"),
+      d: { "font-display" : "fallback" } },
+    { rule: _("font-display: optional;"),
+      d: { "font-display" : "optional" } },
+
+    // incorrect font-display
+    { rule: _("font-display: hidden"), d: {} },
+    { rule: _("font-display: swap 3"), d: {} },
+    { rule: _("font-display: block 2 swap 0"), d: {} },
+    { rule: _("font-display: all"), d: {} },
   ];
 
   var display = document.getElementById("display");
@@ -352,6 +366,12 @@
       ok(false, testset[curTest].rule, "During test: " + e);
     }
   }
+  SimpleTest.finish();
+}
+
+SimpleTest.waitForExplicitFinish();
+SpecialPowers.pushPrefEnv({ set: [["layout.css.font-display.enabled", true]] },
+                          runTest);
 </script>
 </body>
 </html>

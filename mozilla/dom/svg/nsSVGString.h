@@ -7,10 +7,12 @@
 #ifndef __NS_SVGSTRING_H__
 #define __NS_SVGSTRING_H__
 
+#include "nsAutoPtr.h"
 #include "nsError.h"
 #include "nsSVGElement.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/dom/SVGAnimatedString.h"
+#include "mozilla/UniquePtr.h"
 
 class nsSVGString
 {
@@ -42,11 +44,9 @@ public:
   already_AddRefed<mozilla::dom::SVGAnimatedString>
   ToDOMAnimatedString(nsSVGElement* aSVGElement);
 
-  // Returns a new nsISMILAttr object that the caller must delete
-  nsISMILAttr* ToSMILAttr(nsSVGElement *aSVGElement);
+  mozilla::UniquePtr<nsISMILAttr> ToSMILAttr(nsSVGElement *aSVGElement);
 
 private:
-
   nsAutoPtr<nsString> mAnimVal;
   uint8_t mAttrEnum; // element specified tracking for attribute
   bool mIsBaseSet;

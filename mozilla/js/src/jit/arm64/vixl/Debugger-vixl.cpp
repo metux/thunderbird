@@ -30,6 +30,7 @@
 
 #include "jit/arm64/vixl/Debugger-vixl.h"
 
+#include "mozilla/Unused.h"
 #include "mozilla/Vector.h"
 
 #include "jsalloc.h"
@@ -61,7 +62,7 @@ class Token {
   virtual bool IsUnknown() const { return false; }
   // Token properties.
   virtual bool CanAddressMemory() const { return false; }
-  virtual uint8_t* ToAddress(Debugger* debugger) const;
+  virtual uint8_t* ToAddress(Debugger* debugger) const = 0;
   virtual void Print(FILE* out = stdout) const = 0;
 
   static Token* Tokenize(const char* arg);
@@ -76,6 +77,11 @@ template<typename T> class ValueToken : public Token {
   ValueToken() {}
 
   T value() const { return value_; }
+
+  virtual uint8_t* ToAddress(Debugger* debugger) const {
+    USE(debugger);
+    VIXL_ABORT();
+  }
 
  protected:
   T value_;
@@ -202,6 +208,11 @@ class FormatToken : public Token {
   virtual void PrintData(void* data, FILE* out = stdout) const = 0;
   virtual void Print(FILE* out = stdout) const = 0;
 
+  virtual uint8_t* ToAddress(Debugger* debugger) const {
+    USE(debugger);
+    VIXL_ABORT();
+  }
+
   static Token* Tokenize(const char* arg);
   static FormatToken* Cast(Token* tok) {
     VIXL_ASSERT(tok->IsFormat());
@@ -237,6 +248,10 @@ class UnknownToken : public Token {
     strncpy(unknown_, arg, size);
   }
   virtual ~UnknownToken() { js_free(unknown_); }
+  virtual uint8_t* ToAddress(Debugger* debugger) const {
+    USE(debugger);
+    VIXL_ABORT();
+  }
 
   virtual bool IsUnknown() const { return true; }
   virtual void Print(FILE* out = stdout) const;
@@ -530,8 +545,8 @@ const char* RegisterToken::kWAliases[kNumberOfRegisters][kMaxAliasNumber] = {
 };
 
 
-Debugger::Debugger(Decoder* decoder, FILE* stream)
-    : Simulator(decoder, stream),
+Debugger::Debugger(JSContext* cx, Decoder* decoder, FILE* stream)
+    : Simulator(cx, decoder, stream),
       debug_parameters_(DBG_INACTIVE),
       pending_request_(false),
       steps_(0),
@@ -794,13 +809,6 @@ static bool StringToInt64(int64_t* value, const char* line, int base = 10) {
 
   *value = parsed;
   return true;
-}
-
-
-uint8_t* Token::ToAddress(Debugger* debugger) const {
-  USE(debugger);
-  VIXL_UNREACHABLE();
-  return NULL;
 }
 
 
@@ -1102,6 +1110,7 @@ bool DebugCommand::Match(const char* name, const char** aliases) {
 
 
 DebugCommand* DebugCommand::Parse(char* line) {
+  using mozilla::Unused;
   TokenVector args;
 
   for (char* chunk = strtok(line, " \t");
@@ -1113,15 +1122,15 @@ DebugCommand* DebugCommand::Parse(char* line) {
       Token* format = FormatToken::Tokenize(dot + 1);
       if (format != NULL) {
         *dot = '\0';
-        args.append(Token::Tokenize(chunk));
-        args.append(format);
+        Unused << args.append(Token::Tokenize(chunk));
+        Unused << args.append(format);
       } else {
         // Error while parsing the format, push the UnknownToken so an error
         // can be accurately reported.
-        args.append(Token::Tokenize(chunk));
+        Unused << args.append(Token::Tokenize(chunk));
       }
     } else {
-      args.append(Token::Tokenize(chunk));
+      Unused << args.append(Token::Tokenize(chunk));
     }
   }
 

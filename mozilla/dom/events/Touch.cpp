@@ -7,7 +7,6 @@
 #include "mozilla/dom/Touch.h"
 
 #include "mozilla/dom/EventTarget.h"
-#include "mozilla/dom/TouchBinding.h"
 #include "mozilla/dom/TouchEvent.h"
 #include "nsGlobalWindow.h"
 #include "nsContentUtils.h"
@@ -15,6 +14,29 @@
 
 namespace mozilla {
 namespace dom {
+
+// static
+already_AddRefed<Touch>
+Touch::Constructor(const GlobalObject& aGlobal,
+                   const TouchInit& aParam,
+                   ErrorResult& aRv)
+{
+  // Annoyingly many parameters, make sure the ordering is the same as in the
+  // Touch constructor.
+  RefPtr<Touch> touch = new Touch(aParam.mTarget,
+                                  aParam.mIdentifier,
+                                  aParam.mPageX,
+                                  aParam.mPageY,
+                                  aParam.mScreenX,
+                                  aParam.mScreenY,
+                                  aParam.mClientX,
+                                  aParam.mClientY,
+                                  aParam.mRadiusX,
+                                  aParam.mRadiusY,
+                                  aParam.mRotationAngle,
+                                  aParam.mForce);
+  return touch.forget();
+}
 
 Touch::Touch(EventTarget* aTarget,
              int32_t aIdentifier,
@@ -118,6 +140,66 @@ Touch::GetTarget() const
   return mTarget;
 }
 
+int32_t
+Touch::ScreenX(CallerType aCallerType) const
+{
+  if (nsContentUtils::ResistFingerprinting(aCallerType)) {
+    return ClientX();
+  }
+
+  return mScreenPoint.x;
+}
+
+int32_t
+Touch::ScreenY(CallerType aCallerType) const
+{
+  if (nsContentUtils::ResistFingerprinting(aCallerType)) {
+    return ClientY();
+  }
+
+  return mScreenPoint.y;
+}
+
+int32_t
+Touch::RadiusX(CallerType aCallerType) const
+{
+  if (nsContentUtils::ResistFingerprinting(aCallerType)) {
+    return 0;
+  }
+
+  return mRadius.x;
+}
+
+int32_t
+Touch::RadiusY(CallerType aCallerType) const
+{
+  if (nsContentUtils::ResistFingerprinting(aCallerType)) {
+    return 0;
+  }
+
+  return mRadius.y;
+}
+
+float
+Touch::RotationAngle(CallerType aCallerType) const
+{
+  if (nsContentUtils::ResistFingerprinting(aCallerType)) {
+    return 0.0f;
+  }
+
+  return mRotationAngle;
+}
+
+float
+Touch::Force(CallerType aCallerType) const
+{
+  if (nsContentUtils::ResistFingerprinting(aCallerType)) {
+    return 0.0f;
+  }
+
+  return mForce;
+}
+
 void
 Touch::InitializePoints(nsPresContext* aPresContext, WidgetEvent* aEvent)
 {
@@ -142,10 +224,10 @@ bool
 Touch::Equals(Touch* aTouch)
 {
   return mRefPoint == aTouch->mRefPoint &&
-         mForce == aTouch->Force() &&
-         mRotationAngle == aTouch->RotationAngle() &&
-         mRadius.x == aTouch->RadiusX() &&
-         mRadius.y == aTouch->RadiusY();
+         mForce == aTouch->mForce &&
+         mRotationAngle == aTouch->mRotationAngle &&
+         mRadius.x == aTouch->mRadius.x &&
+         mRadius.y == aTouch->mRadius.y;
 }
 
 JSObject*

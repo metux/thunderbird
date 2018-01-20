@@ -1,7 +1,7 @@
-/*
- * Any copyright is dedicated to the Public Domain.
- * http://creativecommons.org/publicdomain/zero/1.0/
- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
+/* vim: set ft=javascript ts=2 et sw=2 tw=80: */
+/* Any copyright is dedicated to the Public Domain.
+ * http://creativecommons.org/publicdomain/zero/1.0/ */
 
 "use strict";
 
@@ -46,29 +46,34 @@ add_task(function* () {
   let toolbox = yield gDevTools.showToolbox(target, "netmonitor");
   info("Network panel is open.");
 
-  testNetmonitor(toolbox);
+  yield testNetmonitor(toolbox);
 });
 
 function loadDocument(browser) {
-  let deferred = promise.defer();
+  let deferred = defer();
 
-  browser.addEventListener("load", function onLoad() {
-    browser.removeEventListener("load", onLoad, true);
+  browser.addEventListener("load", function () {
     deferred.resolve();
-  }, true);
-  content.location = TEST_PATH;
+  }, {capture: true, once: true});
+  BrowserTestUtils.loadURI(gBrowser.selectedBrowser, TEST_PATH);
 
   return deferred.promise;
 }
 
-function testNetmonitor(toolbox) {
+function* testNetmonitor(toolbox) {
   let monitor = toolbox.getCurrentPanel();
-  let { RequestsMenu } = monitor.panelWin.NetMonitorView;
-  RequestsMenu.lazyUpdate = false;
 
-  is(RequestsMenu.itemCount, 1, "Network request appears in the network panel");
+  let { store, windowRequire } = monitor.panelWin;
+  let Actions = windowRequire("devtools/client/netmonitor/src/actions/index");
+  let { getSortedRequests } = windowRequire("devtools/client/netmonitor/src/selectors/index");
 
-  let item = RequestsMenu.getItemAtIndex(0);
-  is(item.attachment.method, "GET", "The attached method is correct.");
-  is(item.attachment.url, TEST_PATH, "The attached url is correct.");
+  store.dispatch(Actions.batchEnable(false));
+
+  yield waitUntil(() => store.getState().requests.requests.size > 0);
+
+  is(store.getState().requests.requests.size, 1, "Network request appears in the network panel");
+
+  let item = getSortedRequests(store.getState()).get(0);
+  is(item.method, "GET", "The attached method is correct.");
+  is(item.url, TEST_PATH, "The attached url is correct.");
 }

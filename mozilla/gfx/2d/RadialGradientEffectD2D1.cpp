@@ -1,7 +1,8 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-  * This Source Code Form is subject to the terms of the Mozilla Public
-  * License, v. 2.0. If a copy of the MPL was not distributed with this
-  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "RadialGradientEffectD2D1.h"
 
@@ -153,13 +154,13 @@ RadialGradientEffectD2D1::PrepareForRender(D2D1_CHANGE_TYPE changeType)
     float transform[8];
   };
 
-  PSConstantBuffer buffer = { { dc.x, dc.y, dr }, 0,
+  PSConstantBuffer buffer = { { dc.x, dc.y, dr }, 0.0f,
                               { mCenter1.x, mCenter1.y },
                               A, mRadius1, mRadius1 * mRadius1,
-                              mStopCollection->GetExtendMode() != D2D1_EXTEND_MODE_CLAMP ? 1 : 0,
-                              mStopCollection->GetExtendMode() == D2D1_EXTEND_MODE_MIRROR ? 1 : 0,
-                              { 0 }, { mat._11, mat._21, mat._31, 0,
-                                             mat._12, mat._22, mat._32, 0 } };
+                              mStopCollection->GetExtendMode() != D2D1_EXTEND_MODE_CLAMP ? 1.0f : 0.0f,
+                              mStopCollection->GetExtendMode() == D2D1_EXTEND_MODE_MIRROR ? 1.0f : 0.0f,
+                              { 0.0f }, { mat._11, mat._21, mat._31, 0.0f,
+                                             mat._12, mat._22, mat._32, 0.0f } };
 
   hr = mDrawInfo->SetPixelShaderConstantBuffer((BYTE*)&buffer, sizeof(buffer));
 

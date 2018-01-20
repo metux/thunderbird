@@ -13,19 +13,14 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=414291
 <script class="testbody" type="text/javascript">
 
 /** Test for Bug 414291 **/
-
 var result1 = 0;
 var result2 = 0;
-var result3 = 0;
 
-window.open("data:text/html,<html><body onload='close(); opener.result1 = 1;'>", "w1");
-is(result1, 0, "window either opened as modal or loaded synchronously.");
+window.open("file1_bug414291.html", "w1");
+is(result1, 0, "window should not be opened either as modal or loaded synchronously.");
 
-window.open("data:text/html,<html><body onload='close(); opener.result2 = 2;'>", "w2", "modal=yes");
-is(result2, 0, "window either opened as modal or data loaded synchronously.");
-
-result3 = window.showModalDialog("data:text/html,<html><body onload='close(); returnValue = 3;'>");
-is(result3, 3, "window didn't open as modal.");
+window.open("file2_bug414291.html", "w2", "modal=yes");
+is(result2, 0, "window should not be opened either as modal or data loaded synchronously.");
 
 </script>
 </pre>

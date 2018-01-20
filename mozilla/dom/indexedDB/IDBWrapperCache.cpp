@@ -13,14 +13,11 @@
 
 namespace mozilla {
 namespace dom {
-namespace indexedDB {
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(IDBWrapperCache)
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(IDBWrapperCache,
                                                   DOMEventTargetHelper)
-  // Don't need NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS because
-  // DOMEventTargetHelper does it for us.
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(IDBWrapperCache,
@@ -38,7 +35,7 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN_INHERITED(IDBWrapperCache,
   NS_IMPL_CYCLE_COLLECTION_TRACE_JS_MEMBER_CALLBACK(mScriptOwner)
 NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(IDBWrapperCache)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(IDBWrapperCache)
 NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
 NS_IMPL_ADDREF_INHERITED(IDBWrapperCache, DOMEventTargetHelper)
@@ -48,7 +45,7 @@ IDBWrapperCache::IDBWrapperCache(DOMEventTargetHelper* aOwner)
   : DOMEventTargetHelper(aOwner), mScriptOwner(nullptr)
 { }
 
-IDBWrapperCache::IDBWrapperCache(nsPIDOMWindow* aOwner)
+IDBWrapperCache::IDBWrapperCache(nsPIDOMWindowInner* aOwner)
   : DOMEventTargetHelper(aOwner), mScriptOwner(nullptr)
 { }
 
@@ -77,6 +74,5 @@ IDBWrapperCache::AssertIsRooted() const
 }
 #endif
 
-} // namespace indexedDB
 } // namespace dom
 } // namespace mozilla

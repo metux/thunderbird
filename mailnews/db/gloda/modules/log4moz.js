@@ -374,8 +374,7 @@ Logger.prototype = {
         continue;
 
       if (!message)
-        message = new LogMessage(this._name, level,
-                                 Array.prototype.slice.call(args));
+        message = new LogMessage(this._name, level, Array.from(args));
 
       appender.append(message);
     }
@@ -476,31 +475,26 @@ Formatter.prototype = {
 };
 
 // services' log4moz lost the date formatting default...
-function BasicFormatter(dateFormat) {
-  if (dateFormat)
-    this.dateFormat = dateFormat;
+function BasicFormatter() {
 }
 BasicFormatter.prototype = {
   __proto__: Formatter.prototype,
 
-  _dateFormat: null,
-
-  get dateFormat() {
-    if (!this._dateFormat)
-      this._dateFormat = "%Y-%m-%d %H:%M:%S";
-    return this._dateFormat;
-  },
-
-  set dateFormat(format) {
-    this._dateFormat = format;
-  },
-
   format: function BF_format(message) {
     let date = new Date(message.time);
+    // Format timestamp as: "%Y-%m-%d %H:%M:%S"
+    let year = date.getFullYear().toString();
+    let month = (date.getMonth() + 1).toString().padStart(2, "0");
+    let day = date.getDate().toString().padStart(2, "0");
+    let hours = date.getHours().toString().padStart(2, "0");
+    let minutes = date.getMinutes().toString().padStart(2, "0");
+    let seconds = date.getSeconds().toString().padStart(2, "0");
+
+    let timeStamp = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
     // The trick below prevents errors further down because mo is null or
     //  undefined.
     let messageString = message.messageObjects.map(mo => "" + mo).join(" ");
-    return date.toLocaleFormat(this.dateFormat) + "\t" +
+    return timeStamp + "\t" +
       message.loggerName + "\t" + message.levelDesc + "\t" +
       messageString + "\n";
   }
@@ -861,7 +855,7 @@ SocketAppender.prototype = {
 
       let uniOutputStream = Cc["@mozilla.org/intl/converter-output-stream;1"]
                               .createInstance(Ci.nsIConverterOutputStream);
-      uniOutputStream.init(outputStream, "utf-8", 0, 0x0000);
+      uniOutputStream.init(outputStream, "utf-8");
 
       this.__nos = uniOutputStream;
     } catch (ex) {

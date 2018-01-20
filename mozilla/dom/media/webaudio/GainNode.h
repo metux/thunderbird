@@ -14,34 +14,44 @@ namespace mozilla {
 namespace dom {
 
 class AudioContext;
+struct GainOptions;
 
 class GainNode final : public AudioNode
 {
 public:
-  explicit GainNode(AudioContext* aContext);
+  static already_AddRefed<GainNode>
+  Create(AudioContext& aAudioContext, const GainOptions& aOptions,
+         ErrorResult& aRv);
 
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(GainNode, AudioNode)
 
-  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+  static already_AddRefed<GainNode>
+  Constructor(const GlobalObject& aGlobal, AudioContext& aAudioContext,
+              const GainOptions& aOptions, ErrorResult& aRv)
+  {
+    return Create(aAudioContext, aOptions, aRv);
+  }
+
+  JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
   AudioParam* Gain() const
   {
     return mGain;
   }
 
-  virtual const char* NodeType() const override
+  const char* NodeType() const override
   {
     return "GainNode";
   }
 
-  virtual size_t SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const override;
-  virtual size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const override;
-
-protected:
-  virtual ~GainNode();
+  size_t SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const override;
+  size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const override;
 
 private:
+  explicit GainNode(AudioContext* aContext);
+  ~GainNode() = default;
+
   RefPtr<AudioParam> mGain;
 };
 
@@ -49,4 +59,3 @@ private:
 } // namespace mozilla
 
 #endif
-

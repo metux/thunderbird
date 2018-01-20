@@ -1,4 +1,5 @@
-/* vim: set shiftwidth=4 tabstop=8 autoindent cindent expandtab: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -16,7 +17,13 @@
 #endif
 #include "nsCSSRuleProcessor.h"
 #include "nsDeviceContext.h"
+#include "nsIBaseWindow.h"
+#include "nsIDocShell.h"
 #include "nsIDocument.h"
+#include "nsIWidget.h"
+#include "nsContentUtils.h"
+#include "mozilla/StyleSheet.h"
+#include "mozilla/StyleSheetInlines.h"
 
 using namespace mozilla;
 
@@ -32,36 +39,42 @@ static const nsCSSProps::KTableEntry kScanKeywords[] = {
   { eCSSKeyword_UNKNOWN,                  -1 }
 };
 
+static const nsCSSProps::KTableEntry kDisplayModeKeywords[] = {
+  { eCSSKeyword_browser,                 NS_STYLE_DISPLAY_MODE_BROWSER },
+  { eCSSKeyword_minimal_ui,              NS_STYLE_DISPLAY_MODE_MINIMAL_UI },
+  { eCSSKeyword_standalone,              NS_STYLE_DISPLAY_MODE_STANDALONE },
+  { eCSSKeyword_fullscreen,              NS_STYLE_DISPLAY_MODE_FULLSCREEN },
+  { eCSSKeyword_UNKNOWN,                 -1 }
+};
+
 #ifdef XP_WIN
 struct WindowsThemeName {
-    LookAndFeel::WindowsTheme id;
-    const wchar_t* name;
+  LookAndFeel::WindowsTheme id;
+  const wchar_t* name;
 };
 
 // Windows theme identities used in the -moz-windows-theme media query.
 const WindowsThemeName themeStrings[] = {
-    { LookAndFeel::eWindowsTheme_Aero,       L"aero" },
-    { LookAndFeel::eWindowsTheme_AeroLite,   L"aero-lite" },
-    { LookAndFeel::eWindowsTheme_LunaBlue,   L"luna-blue" },
-    { LookAndFeel::eWindowsTheme_LunaOlive,  L"luna-olive" },
-    { LookAndFeel::eWindowsTheme_LunaSilver, L"luna-silver" },
-    { LookAndFeel::eWindowsTheme_Royale,     L"royale" },
-    { LookAndFeel::eWindowsTheme_Zune,       L"zune" },
-    { LookAndFeel::eWindowsTheme_Generic,    L"generic" }
+  { LookAndFeel::eWindowsTheme_Aero,       L"aero" },
+  { LookAndFeel::eWindowsTheme_AeroLite,   L"aero-lite" },
+  { LookAndFeel::eWindowsTheme_LunaBlue,   L"luna-blue" },
+  { LookAndFeel::eWindowsTheme_LunaOlive,  L"luna-olive" },
+  { LookAndFeel::eWindowsTheme_LunaSilver, L"luna-silver" },
+  { LookAndFeel::eWindowsTheme_Royale,     L"royale" },
+  { LookAndFeel::eWindowsTheme_Zune,       L"zune" },
+  { LookAndFeel::eWindowsTheme_Generic,    L"generic" }
 };
 
 struct OperatingSystemVersionInfo {
-    LookAndFeel::OperatingSystemVersion id;
-    const wchar_t* name;
+  LookAndFeel::OperatingSystemVersion id;
+  const wchar_t* name;
 };
 
 // Os version identities used in the -moz-os-version media query.
 const OperatingSystemVersionInfo osVersionStrings[] = {
-    { LookAndFeel::eOperatingSystemVersion_WindowsXP,     L"windows-xp" },
-    { LookAndFeel::eOperatingSystemVersion_WindowsVista,  L"windows-vista" },
-    { LookAndFeel::eOperatingSystemVersion_Windows7,      L"windows-win7" },
-    { LookAndFeel::eOperatingSystemVersion_Windows8,      L"windows-win8" },
-    { LookAndFeel::eOperatingSystemVersion_Windows10,     L"windows-win10" }
+  { LookAndFeel::eOperatingSystemVersion_Windows7,      L"windows-win7" },
+  { LookAndFeel::eOperatingSystemVersion_Windows8,      L"windows-win8" },
+  { LookAndFeel::eOperatingSystemVersion_Windows10,     L"windows-win10" }
 };
 #endif
 
@@ -69,33 +82,31 @@ const OperatingSystemVersionInfo osVersionStrings[] = {
 static nsSize
 GetSize(nsPresContext* aPresContext)
 {
-    nsSize size;
-    if (aPresContext->IsRootPaginatedDocument())
-        // We want the page size, including unprintable areas and margins.
-        size = aPresContext->GetPageSize();
-    else
-        size = aPresContext->GetVisibleArea().Size();
-    return size;
+  nsSize size;
+  if (aPresContext->IsRootPaginatedDocument())
+    // We want the page size, including unprintable areas and margins.
+    size = aPresContext->GetPageSize();
+  else
+    size = aPresContext->GetVisibleArea().Size();
+  return size;
 }
 
-static nsresult
+static void
 GetWidth(nsPresContext* aPresContext, const nsMediaFeature*,
          nsCSSValue& aResult)
 {
-    nsSize size = GetSize(aPresContext);
-    float pixelWidth = aPresContext->AppUnitsToFloatCSSPixels(size.width);
-    aResult.SetFloatValue(pixelWidth, eCSSUnit_Pixel);
-    return NS_OK;
+  nsSize size = GetSize(aPresContext);
+  float pixelWidth = aPresContext->AppUnitsToFloatCSSPixels(size.width);
+  aResult.SetFloatValue(pixelWidth, eCSSUnit_Pixel);
 }
 
-static nsresult
+static void
 GetHeight(nsPresContext* aPresContext, const nsMediaFeature*,
           nsCSSValue& aResult)
 {
-    nsSize size = GetSize(aPresContext);
-    float pixelHeight = aPresContext->AppUnitsToFloatCSSPixels(size.height);
-    aResult.SetFloatValue(pixelHeight, eCSSUnit_Pixel);
-    return NS_OK;
+  nsSize size = GetSize(aPresContext);
+  float pixelHeight = aPresContext->AppUnitsToFloatCSSPixels(size.height);
+  aResult.SetFloatValue(pixelHeight, eCSSUnit_Pixel);
 }
 
 inline static nsDeviceContext*
@@ -112,297 +123,359 @@ GetDeviceContextFor(nsPresContext* aPresContext)
 static bool
 ShouldResistFingerprinting(nsPresContext* aPresContext)
 {
-    return nsContentUtils::ShouldResistFingerprinting(aPresContext->GetDocShell());
+  return nsContentUtils::ShouldResistFingerprinting(aPresContext->GetDocShell());
 }
 
 // A helper for three features below.
 static nsSize
 GetDeviceSize(nsPresContext* aPresContext)
 {
-    nsSize size;
+  nsSize size;
 
-    if (ShouldResistFingerprinting(aPresContext) || aPresContext->IsDeviceSizePageSize()) {
-        size = GetSize(aPresContext);
-    } else if (aPresContext->IsRootPaginatedDocument()) {
-        // We want the page size, including unprintable areas and margins.
-        // XXX The spec actually says we want the "page sheet size", but
-        // how is that different?
-        size = aPresContext->GetPageSize();
-    } else {
-        GetDeviceContextFor(aPresContext)->
-            GetDeviceSurfaceDimensions(size.width, size.height);
-    }
-    return size;
+  if (ShouldResistFingerprinting(aPresContext) || aPresContext->IsDeviceSizePageSize()) {
+    size = GetSize(aPresContext);
+  } else if (aPresContext->IsRootPaginatedDocument()) {
+    // We want the page size, including unprintable areas and margins.
+    // XXX The spec actually says we want the "page sheet size", but
+    // how is that different?
+    size = aPresContext->GetPageSize();
+  } else {
+    GetDeviceContextFor(aPresContext)->
+      GetDeviceSurfaceDimensions(size.width, size.height);
+  }
+  return size;
 }
 
-static nsresult
+static void
 GetDeviceWidth(nsPresContext* aPresContext, const nsMediaFeature*,
                nsCSSValue& aResult)
 {
-    nsSize size = GetDeviceSize(aPresContext);
-    float pixelWidth = aPresContext->AppUnitsToFloatCSSPixels(size.width);
-    aResult.SetFloatValue(pixelWidth, eCSSUnit_Pixel);
-    return NS_OK;
+  nsSize size = GetDeviceSize(aPresContext);
+  float pixelWidth = aPresContext->AppUnitsToFloatCSSPixels(size.width);
+  aResult.SetFloatValue(pixelWidth, eCSSUnit_Pixel);
 }
 
-static nsresult
+static void
 GetDeviceHeight(nsPresContext* aPresContext, const nsMediaFeature*,
                 nsCSSValue& aResult)
 {
-    nsSize size = GetDeviceSize(aPresContext);
-    float pixelHeight = aPresContext->AppUnitsToFloatCSSPixels(size.height);
-    aResult.SetFloatValue(pixelHeight, eCSSUnit_Pixel);
-    return NS_OK;
+  nsSize size = GetDeviceSize(aPresContext);
+  float pixelHeight = aPresContext->AppUnitsToFloatCSSPixels(size.height);
+  aResult.SetFloatValue(pixelHeight, eCSSUnit_Pixel);
 }
 
-static nsresult
+static void
 GetOrientation(nsPresContext* aPresContext, const nsMediaFeature*,
                nsCSSValue& aResult)
 {
-    nsSize size = GetSize(aPresContext);
-    int32_t orientation;
-    if (size.width > size.height) {
-        orientation = NS_STYLE_ORIENTATION_LANDSCAPE;
-    } else {
-        // Per spec, square viewports should be 'portrait'
-        orientation = NS_STYLE_ORIENTATION_PORTRAIT;
-    }
+  nsSize size = GetSize(aPresContext);
+  int32_t orientation;
+  if (size.width > size.height) {
+    orientation = NS_STYLE_ORIENTATION_LANDSCAPE;
+  } else {
+    // Per spec, square viewports should be 'portrait'
+    orientation = NS_STYLE_ORIENTATION_PORTRAIT;
+  }
 
-    aResult.SetIntValue(orientation, eCSSUnit_Enumerated);
-    return NS_OK;
+  aResult.SetIntValue(orientation, eCSSUnit_Enumerated);
 }
 
-static nsresult
+static void
 GetDeviceOrientation(nsPresContext* aPresContext, const nsMediaFeature*,
                      nsCSSValue& aResult)
 {
-    nsSize size = GetDeviceSize(aPresContext);
-    int32_t orientation;
-    if (size.width > size.height) {
-        orientation = NS_STYLE_ORIENTATION_LANDSCAPE;
-    } else {
-        // Per spec, square viewports should be 'portrait'
-        orientation = NS_STYLE_ORIENTATION_PORTRAIT;
-    }
+  nsSize size = GetDeviceSize(aPresContext);
+  int32_t orientation;
+  if (size.width > size.height) {
+    orientation = NS_STYLE_ORIENTATION_LANDSCAPE;
+  } else {
+    // Per spec, square viewports should be 'portrait'
+    orientation = NS_STYLE_ORIENTATION_PORTRAIT;
+  }
 
-    aResult.SetIntValue(orientation, eCSSUnit_Enumerated);
-    return NS_OK;
+  aResult.SetIntValue(orientation, eCSSUnit_Enumerated);
 }
 
-static nsresult
+static void
 GetIsResourceDocument(nsPresContext* aPresContext, const nsMediaFeature*,
                       nsCSSValue& aResult)
 {
   nsIDocument* doc = aPresContext->Document();
   aResult.SetIntValue(doc && doc->IsResourceDoc() ? 1 : 0, eCSSUnit_Integer);
-  return NS_OK;
 }
 
 // Helper for two features below
-static nsresult
+static void
 MakeArray(const nsSize& aSize, nsCSSValue& aResult)
 {
-    RefPtr<nsCSSValue::Array> a = nsCSSValue::Array::Create(2);
+  RefPtr<nsCSSValue::Array> a = nsCSSValue::Array::Create(2);
 
-    a->Item(0).SetIntValue(aSize.width, eCSSUnit_Integer);
-    a->Item(1).SetIntValue(aSize.height, eCSSUnit_Integer);
+  a->Item(0).SetIntValue(aSize.width, eCSSUnit_Integer);
+  a->Item(1).SetIntValue(aSize.height, eCSSUnit_Integer);
 
-    aResult.SetArrayValue(a, eCSSUnit_Array);
-    return NS_OK;
+  aResult.SetArrayValue(a, eCSSUnit_Array);
 }
 
-static nsresult
+static void
 GetAspectRatio(nsPresContext* aPresContext, const nsMediaFeature*,
                nsCSSValue& aResult)
 {
-    return MakeArray(GetSize(aPresContext), aResult);
+  MakeArray(GetSize(aPresContext), aResult);
 }
 
-static nsresult
+static void
 GetDeviceAspectRatio(nsPresContext* aPresContext, const nsMediaFeature*,
                      nsCSSValue& aResult)
 {
-    return MakeArray(GetDeviceSize(aPresContext), aResult);
+  MakeArray(GetDeviceSize(aPresContext), aResult);
 }
 
-static nsresult
+static void
 GetColor(nsPresContext* aPresContext, const nsMediaFeature*,
          nsCSSValue& aResult)
 {
-    uint32_t depth = 24; // Use depth of 24 when resisting fingerprinting.
+  uint32_t depth = 24; // Use depth of 24 when resisting fingerprinting.
 
-    if (!ShouldResistFingerprinting(aPresContext)) {
-        // FIXME:  This implementation is bogus.  nsDeviceContext
-        // doesn't provide reliable information (should be fixed in bug
-        // 424386).
-        // FIXME: On a monochrome device, return 0!
-        nsDeviceContext *dx = GetDeviceContextFor(aPresContext);
-        dx->GetDepth(depth);
-    }
+  if (!ShouldResistFingerprinting(aPresContext)) {
+    // FIXME:  This implementation is bogus.  nsDeviceContext
+    // doesn't provide reliable information (should be fixed in bug
+    // 424386).
+    // FIXME: On a monochrome device, return 0!
+    nsDeviceContext *dx = GetDeviceContextFor(aPresContext);
+    dx->GetDepth(depth);
+  }
 
-    // The spec says to use bits *per color component*, so divide by 3,
-    // and round down, since the spec says to use the smallest when the
-    // color components differ.
-    depth /= 3;
-    aResult.SetIntValue(int32_t(depth), eCSSUnit_Integer);
-    return NS_OK;
+  // The spec says to use bits *per color component*, so divide by 3,
+  // and round down, since the spec says to use the smallest when the
+  // color components differ.
+  depth /= 3;
+  aResult.SetIntValue(int32_t(depth), eCSSUnit_Integer);
 }
 
-static nsresult
+static void
 GetColorIndex(nsPresContext* aPresContext, const nsMediaFeature*,
               nsCSSValue& aResult)
 {
-    // We should return zero if the device does not use a color lookup
-    // table.  Stuart says that our handling of displays with 8-bit
-    // color is bad enough that we never change the lookup table to
-    // match what we're trying to display, so perhaps we should always
-    // return zero.  Given that there isn't any better information
-    // exposed, we don't have much other choice.
-    aResult.SetIntValue(0, eCSSUnit_Integer);
-    return NS_OK;
+  // We should return zero if the device does not use a color lookup
+  // table.  Stuart says that our handling of displays with 8-bit
+  // color is bad enough that we never change the lookup table to
+  // match what we're trying to display, so perhaps we should always
+  // return zero.  Given that there isn't any better information
+  // exposed, we don't have much other choice.
+  aResult.SetIntValue(0, eCSSUnit_Integer);
 }
 
-static nsresult
+static void
 GetMonochrome(nsPresContext* aPresContext, const nsMediaFeature*,
               nsCSSValue& aResult)
 {
-    // For color devices we should return 0.
-    // FIXME: On a monochrome device, return the actual color depth, not
-    // 0!
-    aResult.SetIntValue(0, eCSSUnit_Integer);
-    return NS_OK;
+  // For color devices we should return 0.
+  // FIXME: On a monochrome device, return the actual color depth, not
+  // 0!
+  aResult.SetIntValue(0, eCSSUnit_Integer);
 }
 
-static nsresult
+static void
 GetResolution(nsPresContext* aPresContext, const nsMediaFeature*,
               nsCSSValue& aResult)
 {
-    float dpi = 96; // Use 96 when resisting fingerprinting.
+  // We're returning resolution in terms of device pixels per css pixel, since
+  // that is the preferred unit for media queries of resolution. This avoids
+  // introducing precision error from conversion to and from less-used
+  // physical units like inches.
 
-    if (!ShouldResistFingerprinting(aPresContext)) {
-      // Resolution measures device pixels per CSS (inch/cm/pixel).  We
-      // return it in device pixels per CSS inches.
-      dpi = float(nsPresContext::AppUnitsPerCSSInch()) /
-            float(aPresContext->AppUnitsPerDevPixel());
-    }
+  float dppx;
 
-    aResult.SetFloatValue(dpi, eCSSUnit_Inch);
-    return NS_OK;
+  if (!ShouldResistFingerprinting(aPresContext)) {
+    // Get the actual device pixel ratio, which also takes zoom into account.
+    dppx = float(nsPresContext::AppUnitsPerCSSPixel()) /
+             aPresContext->AppUnitsPerDevPixel();
+  } else {
+    // We are resisting fingerprinting, so pretend we have a device pixel ratio
+    // of 1. In that case, we simply report the zoom level.
+    dppx = aPresContext->GetDeviceFullZoom();
+  }
+
+  aResult.SetFloatValue(dppx, eCSSUnit_Pixel);
 }
 
-static nsresult
+static void
 GetScan(nsPresContext* aPresContext, const nsMediaFeature*,
         nsCSSValue& aResult)
 {
-    // Since Gecko doesn't support the 'tv' media type, the 'scan'
-    // feature is never present.
-    aResult.Reset();
-    return NS_OK;
+  // Since Gecko doesn't support the 'tv' media type, the 'scan'
+  // feature is never present.
+  aResult.Reset();
 }
 
-static nsresult
+static void
+GetDisplayMode(nsPresContext* aPresContext, const nsMediaFeature*,
+               nsCSSValue& aResult)
+{
+  nsCOMPtr<nsISupports> container;
+  RefPtr<nsIDocShell> docShell;
+
+  if (!aPresContext) {
+    aResult.SetIntValue(NS_STYLE_DISPLAY_MODE_BROWSER, eCSSUnit_Enumerated);
+    return;
+  }
+
+  if (aPresContext) {
+    // Calling GetRootPresContext() can be slow, so make sure to call it
+    // just once.
+    nsRootPresContext* root = aPresContext->GetRootPresContext();
+    if (root && root->Document()) {
+      container = root->Document()->GetContainer();
+      docShell = root->GetDocShell();
+    }
+  }
+
+  nsCOMPtr<nsIBaseWindow> baseWindow = do_QueryInterface(container);
+  if (baseWindow) {
+    nsCOMPtr<nsIWidget> mainWidget;
+    baseWindow->GetMainWidget(getter_AddRefs(mainWidget));
+    nsSizeMode mode = mainWidget ? mainWidget->SizeMode() : nsSizeMode_Normal;
+
+    if (mode == nsSizeMode_Fullscreen) {
+      aResult.SetIntValue(NS_STYLE_DISPLAY_MODE_FULLSCREEN, eCSSUnit_Enumerated);
+      return;
+    }
+  }
+
+  static_assert(nsIDocShell::DISPLAY_MODE_BROWSER == NS_STYLE_DISPLAY_MODE_BROWSER &&
+                nsIDocShell::DISPLAY_MODE_MINIMAL_UI == NS_STYLE_DISPLAY_MODE_MINIMAL_UI &&
+                nsIDocShell::DISPLAY_MODE_STANDALONE == NS_STYLE_DISPLAY_MODE_STANDALONE &&
+                nsIDocShell::DISPLAY_MODE_FULLSCREEN == NS_STYLE_DISPLAY_MODE_FULLSCREEN,
+                "nsIDocShell display modes must mach nsStyleConsts.h");
+
+  uint32_t displayMode = NS_STYLE_DISPLAY_MODE_BROWSER;
+  if (docShell) {
+    docShell->GetDisplayMode(&displayMode);
+  }
+
+  aResult.SetIntValue(displayMode, eCSSUnit_Enumerated);
+}
+
+static void
 GetGrid(nsPresContext* aPresContext, const nsMediaFeature*,
         nsCSSValue& aResult)
 {
-    // Gecko doesn't support grid devices (e.g., ttys), so the 'grid'
-    // feature is always 0.
-    aResult.SetIntValue(0, eCSSUnit_Integer);
-    return NS_OK;
+  // Gecko doesn't support grid devices (e.g., ttys), so the 'grid'
+  // feature is always 0.
+  aResult.SetIntValue(0, eCSSUnit_Integer);
 }
 
-static nsresult
+static void
 GetDevicePixelRatio(nsPresContext* aPresContext, const nsMediaFeature*,
                     nsCSSValue& aResult)
 {
-    if (!ShouldResistFingerprinting(aPresContext)) {
-        float ratio = aPresContext->CSSPixelsToDevPixels(1.0f);
-        aResult.SetFloatValue(ratio, eCSSUnit_Number);
-    } else {
-        aResult.SetFloatValue(1.0, eCSSUnit_Number);
-    }
-    return NS_OK;
+  if (!ShouldResistFingerprinting(aPresContext)) {
+    float ratio = aPresContext->CSSPixelsToDevPixels(1.0f);
+    aResult.SetFloatValue(ratio, eCSSUnit_Number);
+  } else {
+    aResult.SetFloatValue(1.0, eCSSUnit_Number);
+  }
 }
 
-static nsresult
+static void
+GetTransform3d(nsPresContext* aPresContext, const nsMediaFeature*,
+               nsCSSValue& aResult)
+{
+  // Gecko supports 3d transforms, so this feature is always 1.
+  aResult.SetIntValue(1, eCSSUnit_Integer);
+}
+
+static void
 GetSystemMetric(nsPresContext* aPresContext, const nsMediaFeature* aFeature,
                 nsCSSValue& aResult)
 {
-    aResult.Reset();
-    if (ShouldResistFingerprinting(aPresContext)) {
-        // If "privacy.resistFingerprinting" is enabled, then we simply don't
-        // return any system-backed media feature values. (No spoofed values returned.)
-        return NS_OK;
-    }
+  aResult.Reset();
 
-    MOZ_ASSERT(aFeature->mValueType == nsMediaFeature::eBoolInteger,
-               "unexpected type");
-    nsIAtom *metricAtom = *aFeature->mData.mMetric;
-    bool hasMetric = nsCSSRuleProcessor::HasSystemMetric(metricAtom);
-    aResult.SetIntValue(hasMetric ? 1 : 0, eCSSUnit_Integer);
-    return NS_OK;
+  const bool isAccessibleFromContentPages =
+    !(aFeature->mReqFlags & nsMediaFeature::eUserAgentAndChromeOnly);
+
+  MOZ_ASSERT(!isAccessibleFromContentPages ||
+             *aFeature->mName == nsGkAtoms::_moz_touch_enabled);
+
+  if (isAccessibleFromContentPages &&
+      ShouldResistFingerprinting(aPresContext)) {
+    // If "privacy.resistFingerprinting" is enabled, then we simply don't
+    // return any system-backed media feature values. (No spoofed values
+    // returned.)
+    return;
+  }
+
+  MOZ_ASSERT(aFeature->mValueType == nsMediaFeature::eBoolInteger,
+             "unexpected type");
+
+  nsAtom* metricAtom = *aFeature->mData.mMetric;
+  bool hasMetric = nsCSSRuleProcessor::HasSystemMetric(metricAtom);
+  aResult.SetIntValue(hasMetric ? 1 : 0, eCSSUnit_Integer);
 }
 
-static nsresult
+static void
 GetWindowsTheme(nsPresContext* aPresContext, const nsMediaFeature* aFeature,
                 nsCSSValue& aResult)
 {
-    aResult.Reset();
-    if (ShouldResistFingerprinting(aPresContext)) {
-        return NS_OK;
-    }
+  aResult.Reset();
+
+  MOZ_ASSERT(aFeature->mReqFlags & nsMediaFeature::eUserAgentAndChromeOnly);
+  if (ShouldResistFingerprinting(aPresContext)) {
+    return;
+  }
 
 #ifdef XP_WIN
-    uint8_t windowsThemeId =
-        nsCSSRuleProcessor::GetWindowsThemeIdentifier();
+  uint8_t windowsThemeId =
+    nsCSSRuleProcessor::GetWindowsThemeIdentifier();
 
-    // Classic mode should fail to match.
-    if (windowsThemeId == LookAndFeel::eWindowsTheme_Classic)
-        return NS_OK;
+  // Classic mode should fail to match.
+  if (windowsThemeId == LookAndFeel::eWindowsTheme_Classic)
+    return;
 
-    // Look up the appropriate theme string
-    for (size_t i = 0; i < ArrayLength(themeStrings); ++i) {
-        if (windowsThemeId == themeStrings[i].id) {
-            aResult.SetStringValue(nsDependentString(themeStrings[i].name),
-                                   eCSSUnit_Ident);
-            break;
-        }
+  // Look up the appropriate theme string
+  for (size_t i = 0; i < ArrayLength(themeStrings); ++i) {
+    if (windowsThemeId == themeStrings[i].id) {
+      aResult.SetStringValue(nsDependentString(themeStrings[i].name),
+                             eCSSUnit_Ident);
+      break;
     }
+  }
 #endif
-    return NS_OK;
 }
 
-static nsresult
+static void
 GetOperatingSystemVersion(nsPresContext* aPresContext, const nsMediaFeature* aFeature,
                          nsCSSValue& aResult)
 {
-    aResult.Reset();
-    if (ShouldResistFingerprinting(aPresContext)) {
-        return NS_OK;
-    }
+  aResult.Reset();
+
+  MOZ_ASSERT(aFeature->mReqFlags & nsMediaFeature::eUserAgentAndChromeOnly);
+  if (ShouldResistFingerprinting(aPresContext)) {
+    return;
+  }
 
 #ifdef XP_WIN
-    int32_t metricResult;
-    if (NS_SUCCEEDED(
-          LookAndFeel::GetInt(LookAndFeel::eIntID_OperatingSystemVersionIdentifier,
-                              &metricResult))) {
-        for (size_t i = 0; i < ArrayLength(osVersionStrings); ++i) {
-            if (metricResult == osVersionStrings[i].id) {
-                aResult.SetStringValue(nsDependentString(osVersionStrings[i].name),
-                                       eCSSUnit_Ident);
-                break;
-            }
-        }
+  int32_t metricResult;
+  if (NS_SUCCEEDED(
+        LookAndFeel::GetInt(LookAndFeel::eIntID_OperatingSystemVersionIdentifier,
+                            &metricResult))) {
+    for (size_t i = 0; i < ArrayLength(osVersionStrings); ++i) {
+      if (metricResult == osVersionStrings[i].id) {
+        aResult.SetStringValue(nsDependentString(osVersionStrings[i].name),
+                               eCSSUnit_Ident);
+        break;
+      }
     }
+  }
 #endif
-    return NS_OK;
 }
 
-static nsresult
+static void
 GetIsGlyph(nsPresContext* aPresContext, const nsMediaFeature* aFeature,
           nsCSSValue& aResult)
 {
-    aResult.SetIntValue(aPresContext->IsGlyph() ? 1 : 0, eCSSUnit_Integer);
-    return NS_OK;
+  MOZ_ASSERT(aFeature->mReqFlags & nsMediaFeature::eUserAgentAndChromeOnly);
+  aResult.SetIntValue(aPresContext->IsGlyph() ? 1 : 0, eCSSUnit_Integer);
 }
 
 /*
@@ -416,344 +489,366 @@ GetIsGlyph(nsPresContext* aPresContext, const nsMediaFeature* aFeature,
 
 /* static */ const nsMediaFeature
 nsMediaFeatures::features[] = {
-    {
-        &nsGkAtoms::width,
-        nsMediaFeature::eMinMaxAllowed,
-        nsMediaFeature::eLength,
-        nsMediaFeature::eNoRequirements,
-        { nullptr },
-        GetWidth
-    },
-    {
-        &nsGkAtoms::height,
-        nsMediaFeature::eMinMaxAllowed,
-        nsMediaFeature::eLength,
-        nsMediaFeature::eNoRequirements,
-        { nullptr },
-        GetHeight
-    },
-    {
-        &nsGkAtoms::deviceWidth,
-        nsMediaFeature::eMinMaxAllowed,
-        nsMediaFeature::eLength,
-        nsMediaFeature::eNoRequirements,
-        { nullptr },
-        GetDeviceWidth
-    },
-    {
-        &nsGkAtoms::deviceHeight,
-        nsMediaFeature::eMinMaxAllowed,
-        nsMediaFeature::eLength,
-        nsMediaFeature::eNoRequirements,
-        { nullptr },
-        GetDeviceHeight
-    },
-    {
-        &nsGkAtoms::orientation,
-        nsMediaFeature::eMinMaxNotAllowed,
-        nsMediaFeature::eEnumerated,
-        nsMediaFeature::eNoRequirements,
-        { kOrientationKeywords },
-        GetOrientation
-    },
-    {
-        &nsGkAtoms::aspectRatio,
-        nsMediaFeature::eMinMaxAllowed,
-        nsMediaFeature::eIntRatio,
-        nsMediaFeature::eNoRequirements,
-        { nullptr },
-        GetAspectRatio
-    },
-    {
-        &nsGkAtoms::deviceAspectRatio,
-        nsMediaFeature::eMinMaxAllowed,
-        nsMediaFeature::eIntRatio,
-        nsMediaFeature::eNoRequirements,
-        { nullptr },
-        GetDeviceAspectRatio
-    },
-    {
-        &nsGkAtoms::color,
-        nsMediaFeature::eMinMaxAllowed,
-        nsMediaFeature::eInteger,
-        nsMediaFeature::eNoRequirements,
-        { nullptr },
-        GetColor
-    },
-    {
-        &nsGkAtoms::colorIndex,
-        nsMediaFeature::eMinMaxAllowed,
-        nsMediaFeature::eInteger,
-        nsMediaFeature::eNoRequirements,
-        { nullptr },
-        GetColorIndex
-    },
-    {
-        &nsGkAtoms::monochrome,
-        nsMediaFeature::eMinMaxAllowed,
-        nsMediaFeature::eInteger,
-        nsMediaFeature::eNoRequirements,
-        { nullptr },
-        GetMonochrome
-    },
-    {
-        &nsGkAtoms::resolution,
-        nsMediaFeature::eMinMaxAllowed,
-        nsMediaFeature::eResolution,
-        nsMediaFeature::eNoRequirements,
-        { nullptr },
-        GetResolution
-    },
-    {
-        &nsGkAtoms::scan,
-        nsMediaFeature::eMinMaxNotAllowed,
-        nsMediaFeature::eEnumerated,
-        nsMediaFeature::eNoRequirements,
-        { kScanKeywords },
-        GetScan
-    },
-    {
-        &nsGkAtoms::grid,
-        nsMediaFeature::eMinMaxNotAllowed,
-        nsMediaFeature::eBoolInteger,
-        nsMediaFeature::eNoRequirements,
-        { nullptr },
-        GetGrid
-    },
+  {
+    &nsGkAtoms::width,
+    nsMediaFeature::eMinMaxAllowed,
+    nsMediaFeature::eLength,
+    nsMediaFeature::eNoRequirements,
+    { nullptr },
+    GetWidth
+  },
+  {
+    &nsGkAtoms::height,
+    nsMediaFeature::eMinMaxAllowed,
+    nsMediaFeature::eLength,
+    nsMediaFeature::eNoRequirements,
+    { nullptr },
+    GetHeight
+  },
+  {
+    &nsGkAtoms::deviceWidth,
+    nsMediaFeature::eMinMaxAllowed,
+    nsMediaFeature::eLength,
+    nsMediaFeature::eNoRequirements,
+    { nullptr },
+    GetDeviceWidth
+  },
+  {
+    &nsGkAtoms::deviceHeight,
+    nsMediaFeature::eMinMaxAllowed,
+    nsMediaFeature::eLength,
+    nsMediaFeature::eNoRequirements,
+    { nullptr },
+    GetDeviceHeight
+  },
+  {
+    &nsGkAtoms::orientation,
+    nsMediaFeature::eMinMaxNotAllowed,
+    nsMediaFeature::eEnumerated,
+    nsMediaFeature::eNoRequirements,
+    { kOrientationKeywords },
+    GetOrientation
+  },
+  {
+    &nsGkAtoms::aspectRatio,
+    nsMediaFeature::eMinMaxAllowed,
+    nsMediaFeature::eIntRatio,
+    nsMediaFeature::eNoRequirements,
+    { nullptr },
+    GetAspectRatio
+  },
+  {
+    &nsGkAtoms::deviceAspectRatio,
+    nsMediaFeature::eMinMaxAllowed,
+    nsMediaFeature::eIntRatio,
+    nsMediaFeature::eNoRequirements,
+    { nullptr },
+    GetDeviceAspectRatio
+  },
+  {
+    &nsGkAtoms::color,
+    nsMediaFeature::eMinMaxAllowed,
+    nsMediaFeature::eInteger,
+    nsMediaFeature::eNoRequirements,
+    { nullptr },
+    GetColor
+  },
+  {
+    &nsGkAtoms::colorIndex,
+    nsMediaFeature::eMinMaxAllowed,
+    nsMediaFeature::eInteger,
+    nsMediaFeature::eNoRequirements,
+    { nullptr },
+    GetColorIndex
+  },
+  {
+    &nsGkAtoms::monochrome,
+    nsMediaFeature::eMinMaxAllowed,
+    nsMediaFeature::eInteger,
+    nsMediaFeature::eNoRequirements,
+    { nullptr },
+    GetMonochrome
+  },
+  {
+    &nsGkAtoms::resolution,
+    nsMediaFeature::eMinMaxAllowed,
+    nsMediaFeature::eResolution,
+    nsMediaFeature::eNoRequirements,
+    { nullptr },
+    GetResolution
+  },
+  {
+    &nsGkAtoms::scan,
+    nsMediaFeature::eMinMaxNotAllowed,
+    nsMediaFeature::eEnumerated,
+    nsMediaFeature::eNoRequirements,
+    { kScanKeywords },
+    GetScan
+  },
+  {
+    &nsGkAtoms::grid,
+    nsMediaFeature::eMinMaxNotAllowed,
+    nsMediaFeature::eBoolInteger,
+    nsMediaFeature::eNoRequirements,
+    { nullptr },
+    GetGrid
+  },
+  {
+    &nsGkAtoms::displayMode,
+    nsMediaFeature::eMinMaxNotAllowed,
+    nsMediaFeature::eEnumerated,
+    nsMediaFeature::eNoRequirements,
+    { kDisplayModeKeywords },
+    GetDisplayMode
+  },
 
-    // Webkit extensions that we support for de-facto web compatibility
-    // -webkit-{min|max}-device-pixel-ratio:
-    {
-        &nsGkAtoms::devicePixelRatio,
-        nsMediaFeature::eMinMaxAllowed,
-        nsMediaFeature::eFloat,
-        nsMediaFeature::eHasWebkitPrefix,
-        { nullptr },
-        GetDevicePixelRatio
-    },
+  // Webkit extensions that we support for de-facto web compatibility
+  // -webkit-{min|max}-device-pixel-ratio (controlled with its own pref):
+  {
+    &nsGkAtoms::devicePixelRatio,
+    nsMediaFeature::eMinMaxAllowed,
+    nsMediaFeature::eFloat,
+    nsMediaFeature::eHasWebkitPrefix |
+      nsMediaFeature::eWebkitDevicePixelRatioPrefEnabled,
+    { nullptr },
+    GetDevicePixelRatio
+  },
+  // -webkit-transform-3d:
+  {
+    &nsGkAtoms::transform_3d,
+    nsMediaFeature::eMinMaxNotAllowed,
+    nsMediaFeature::eBoolInteger,
+    nsMediaFeature::eHasWebkitPrefix,
+    { nullptr },
+    GetTransform3d
+  },
 
-    // Mozilla extensions
-    {
-        &nsGkAtoms::_moz_device_pixel_ratio,
-        nsMediaFeature::eMinMaxAllowed,
-        nsMediaFeature::eFloat,
-        nsMediaFeature::eNoRequirements,
-        { nullptr },
-        GetDevicePixelRatio
-    },
-    {
-        &nsGkAtoms::_moz_device_orientation,
-        nsMediaFeature::eMinMaxNotAllowed,
-        nsMediaFeature::eEnumerated,
-        nsMediaFeature::eNoRequirements,
-        { kOrientationKeywords },
-        GetDeviceOrientation
-    },
-    {
-        &nsGkAtoms::_moz_is_resource_document,
-        nsMediaFeature::eMinMaxNotAllowed,
-        nsMediaFeature::eBoolInteger,
-        nsMediaFeature::eNoRequirements,
-        { nullptr },
-        GetIsResourceDocument
-    },
-    {
-        &nsGkAtoms::_moz_color_picker_available,
-        nsMediaFeature::eMinMaxNotAllowed,
-        nsMediaFeature::eBoolInteger,
-        nsMediaFeature::eNoRequirements,
-        { &nsGkAtoms::color_picker_available },
-        GetSystemMetric
-    },
-    {
-        &nsGkAtoms::_moz_scrollbar_start_backward,
-        nsMediaFeature::eMinMaxNotAllowed,
-        nsMediaFeature::eBoolInteger,
-        nsMediaFeature::eNoRequirements,
-        { &nsGkAtoms::scrollbar_start_backward },
-        GetSystemMetric
-    },
-    {
-        &nsGkAtoms::_moz_scrollbar_start_forward,
-        nsMediaFeature::eMinMaxNotAllowed,
-        nsMediaFeature::eBoolInteger,
-        nsMediaFeature::eNoRequirements,
-        { &nsGkAtoms::scrollbar_start_forward },
-        GetSystemMetric
-    },
-    {
-        &nsGkAtoms::_moz_scrollbar_end_backward,
-        nsMediaFeature::eMinMaxNotAllowed,
-        nsMediaFeature::eBoolInteger,
-        nsMediaFeature::eNoRequirements,
-        { &nsGkAtoms::scrollbar_end_backward },
-        GetSystemMetric
-    },
-    {
-        &nsGkAtoms::_moz_scrollbar_end_forward,
-        nsMediaFeature::eMinMaxNotAllowed,
-        nsMediaFeature::eBoolInteger,
-        nsMediaFeature::eNoRequirements,
-        { &nsGkAtoms::scrollbar_end_forward },
-        GetSystemMetric
-    },
-    {
-        &nsGkAtoms::_moz_scrollbar_thumb_proportional,
-        nsMediaFeature::eMinMaxNotAllowed,
-        nsMediaFeature::eBoolInteger,
-        nsMediaFeature::eNoRequirements,
-        { &nsGkAtoms::scrollbar_thumb_proportional },
-        GetSystemMetric
-    },
-    {
-        &nsGkAtoms::_moz_images_in_menus,
-        nsMediaFeature::eMinMaxNotAllowed,
-        nsMediaFeature::eBoolInteger,
-        nsMediaFeature::eNoRequirements,
-        { &nsGkAtoms::images_in_menus },
-        GetSystemMetric
-    },
-    {
-        &nsGkAtoms::_moz_images_in_buttons,
-        nsMediaFeature::eMinMaxNotAllowed,
-        nsMediaFeature::eBoolInteger,
-        nsMediaFeature::eNoRequirements,
-        { &nsGkAtoms::images_in_buttons },
-        GetSystemMetric
-    },
-    {
-        &nsGkAtoms::_moz_overlay_scrollbars,
-        nsMediaFeature::eMinMaxNotAllowed,
-        nsMediaFeature::eBoolInteger,
-        nsMediaFeature::eNoRequirements,
-        { &nsGkAtoms::overlay_scrollbars },
-        GetSystemMetric
-    },
-    {
-        &nsGkAtoms::_moz_windows_default_theme,
-        nsMediaFeature::eMinMaxNotAllowed,
-        nsMediaFeature::eBoolInteger,
-        nsMediaFeature::eNoRequirements,
-        { &nsGkAtoms::windows_default_theme },
-        GetSystemMetric
-    },
-    {
-        &nsGkAtoms::_moz_mac_graphite_theme,
-        nsMediaFeature::eMinMaxNotAllowed,
-        nsMediaFeature::eBoolInteger,
-        nsMediaFeature::eNoRequirements,
-        { &nsGkAtoms::mac_graphite_theme },
-        GetSystemMetric
-    },
-    {
-        &nsGkAtoms::_moz_mac_lion_theme,
-        nsMediaFeature::eMinMaxNotAllowed,
-        nsMediaFeature::eBoolInteger,
-        nsMediaFeature::eNoRequirements,
-        { &nsGkAtoms::mac_lion_theme },
-        GetSystemMetric
-    },
-    {
-      &nsGkAtoms::_moz_mac_yosemite_theme,
-      nsMediaFeature::eMinMaxNotAllowed,
-      nsMediaFeature::eBoolInteger,
-      nsMediaFeature::eNoRequirements,
-      { &nsGkAtoms::mac_yosemite_theme },
-      GetSystemMetric
-    },
-    {
-        &nsGkAtoms::_moz_windows_compositor,
-        nsMediaFeature::eMinMaxNotAllowed,
-        nsMediaFeature::eBoolInteger,
-        nsMediaFeature::eNoRequirements,
-        { &nsGkAtoms::windows_compositor },
-        GetSystemMetric
-    },
-    {
-        &nsGkAtoms::_moz_windows_classic,
-        nsMediaFeature::eMinMaxNotAllowed,
-        nsMediaFeature::eBoolInteger,
-        nsMediaFeature::eNoRequirements,
-        { &nsGkAtoms::windows_classic },
-        GetSystemMetric
-    },
-    {
-        &nsGkAtoms::_moz_windows_glass,
-        nsMediaFeature::eMinMaxNotAllowed,
-        nsMediaFeature::eBoolInteger,
-        nsMediaFeature::eNoRequirements,
-        { &nsGkAtoms::windows_glass },
-        GetSystemMetric
-    },
-    {
-        &nsGkAtoms::_moz_touch_enabled,
-        nsMediaFeature::eMinMaxNotAllowed,
-        nsMediaFeature::eBoolInteger,
-        nsMediaFeature::eNoRequirements,
-        { &nsGkAtoms::touch_enabled },
-        GetSystemMetric
-    },
-    {
-        &nsGkAtoms::_moz_menubar_drag,
-        nsMediaFeature::eMinMaxNotAllowed,
-        nsMediaFeature::eBoolInteger,
-        nsMediaFeature::eNoRequirements,
-        { &nsGkAtoms::menubar_drag },
-        GetSystemMetric
-    },
-    {
-        &nsGkAtoms::_moz_windows_theme,
-        nsMediaFeature::eMinMaxNotAllowed,
-        nsMediaFeature::eIdent,
-        nsMediaFeature::eNoRequirements,
-        { nullptr },
-        GetWindowsTheme
-    },
-    {
-        &nsGkAtoms::_moz_os_version,
-        nsMediaFeature::eMinMaxNotAllowed,
-        nsMediaFeature::eIdent,
-        nsMediaFeature::eNoRequirements,
-        { nullptr },
-        GetOperatingSystemVersion
-    },
+  // Mozilla extensions
+  {
+    &nsGkAtoms::_moz_device_pixel_ratio,
+    nsMediaFeature::eMinMaxAllowed,
+    nsMediaFeature::eFloat,
+    nsMediaFeature::eNoRequirements,
+    { nullptr },
+    GetDevicePixelRatio
+  },
+  {
+    &nsGkAtoms::_moz_device_orientation,
+    nsMediaFeature::eMinMaxNotAllowed,
+    nsMediaFeature::eEnumerated,
+    nsMediaFeature::eNoRequirements,
+    { kOrientationKeywords },
+    GetDeviceOrientation
+  },
+  {
+    &nsGkAtoms::_moz_is_resource_document,
+    nsMediaFeature::eMinMaxNotAllowed,
+    nsMediaFeature::eBoolInteger,
+    nsMediaFeature::eNoRequirements,
+    { nullptr },
+    GetIsResourceDocument
+  },
+  {
+    &nsGkAtoms::_moz_scrollbar_start_backward,
+    nsMediaFeature::eMinMaxNotAllowed,
+    nsMediaFeature::eBoolInteger,
+    nsMediaFeature::eUserAgentAndChromeOnly,
+    { &nsGkAtoms::scrollbar_start_backward },
+    GetSystemMetric
+  },
+  {
+    &nsGkAtoms::_moz_scrollbar_start_forward,
+    nsMediaFeature::eMinMaxNotAllowed,
+    nsMediaFeature::eBoolInteger,
+    nsMediaFeature::eUserAgentAndChromeOnly,
+    { &nsGkAtoms::scrollbar_start_forward },
+    GetSystemMetric
+  },
+  {
+    &nsGkAtoms::_moz_scrollbar_end_backward,
+    nsMediaFeature::eMinMaxNotAllowed,
+    nsMediaFeature::eBoolInteger,
+    nsMediaFeature::eUserAgentAndChromeOnly,
+    { &nsGkAtoms::scrollbar_end_backward },
+    GetSystemMetric
+  },
+  {
+    &nsGkAtoms::_moz_scrollbar_end_forward,
+    nsMediaFeature::eMinMaxNotAllowed,
+    nsMediaFeature::eBoolInteger,
+    nsMediaFeature::eUserAgentAndChromeOnly,
+    { &nsGkAtoms::scrollbar_end_forward },
+    GetSystemMetric
+  },
+  {
+    &nsGkAtoms::_moz_scrollbar_thumb_proportional,
+    nsMediaFeature::eMinMaxNotAllowed,
+    nsMediaFeature::eBoolInteger,
+    nsMediaFeature::eUserAgentAndChromeOnly,
+    { &nsGkAtoms::scrollbar_thumb_proportional },
+    GetSystemMetric
+  },
+  {
+    &nsGkAtoms::_moz_overlay_scrollbars,
+    nsMediaFeature::eMinMaxNotAllowed,
+    nsMediaFeature::eBoolInteger,
+    nsMediaFeature::eUserAgentAndChromeOnly,
+    { &nsGkAtoms::overlay_scrollbars },
+    GetSystemMetric
+  },
+  {
+    &nsGkAtoms::_moz_windows_default_theme,
+    nsMediaFeature::eMinMaxNotAllowed,
+    nsMediaFeature::eBoolInteger,
+    nsMediaFeature::eUserAgentAndChromeOnly,
+    { &nsGkAtoms::windows_default_theme },
+    GetSystemMetric
+  },
+  {
+    &nsGkAtoms::_moz_mac_graphite_theme,
+    nsMediaFeature::eMinMaxNotAllowed,
+    nsMediaFeature::eBoolInteger,
+    nsMediaFeature::eUserAgentAndChromeOnly,
+    { &nsGkAtoms::mac_graphite_theme },
+    GetSystemMetric
+  },
+  {
+    &nsGkAtoms::_moz_mac_yosemite_theme,
+    nsMediaFeature::eMinMaxNotAllowed,
+    nsMediaFeature::eBoolInteger,
+    nsMediaFeature::eUserAgentAndChromeOnly,
+    { &nsGkAtoms::mac_yosemite_theme },
+    GetSystemMetric
+  },
+  {
+    &nsGkAtoms::_moz_windows_accent_color_in_titlebar,
+    nsMediaFeature::eMinMaxNotAllowed,
+    nsMediaFeature::eBoolInteger,
+    nsMediaFeature::eUserAgentAndChromeOnly,
+    { &nsGkAtoms::windows_accent_color_in_titlebar },
+    GetSystemMetric
+  },
+  {
+    &nsGkAtoms::_moz_windows_compositor,
+    nsMediaFeature::eMinMaxNotAllowed,
+    nsMediaFeature::eBoolInteger,
+    nsMediaFeature::eUserAgentAndChromeOnly,
+    { &nsGkAtoms::windows_compositor },
+    GetSystemMetric
+  },
+  {
+    &nsGkAtoms::_moz_windows_classic,
+    nsMediaFeature::eMinMaxNotAllowed,
+    nsMediaFeature::eBoolInteger,
+    nsMediaFeature::eUserAgentAndChromeOnly,
+    { &nsGkAtoms::windows_classic },
+    GetSystemMetric
+  },
+  {
+    &nsGkAtoms::_moz_windows_glass,
+    nsMediaFeature::eMinMaxNotAllowed,
+    nsMediaFeature::eBoolInteger,
+    nsMediaFeature::eUserAgentAndChromeOnly,
+    { &nsGkAtoms::windows_glass },
+    GetSystemMetric
+  },
+  {
+    &nsGkAtoms::_moz_touch_enabled,
+    nsMediaFeature::eMinMaxNotAllowed,
+    nsMediaFeature::eBoolInteger,
+    // FIXME(emilio): Restrict (or remove?) when bug 1035774 lands.
+    nsMediaFeature::eNoRequirements,
+    { &nsGkAtoms::touch_enabled },
+    GetSystemMetric
+  },
+  {
+    &nsGkAtoms::_moz_menubar_drag,
+    nsMediaFeature::eMinMaxNotAllowed,
+    nsMediaFeature::eBoolInteger,
+    nsMediaFeature::eUserAgentAndChromeOnly,
+    { &nsGkAtoms::menubar_drag },
+    GetSystemMetric
+  },
+  {
+    &nsGkAtoms::_moz_windows_theme,
+    nsMediaFeature::eMinMaxNotAllowed,
+    nsMediaFeature::eIdent,
+    nsMediaFeature::eUserAgentAndChromeOnly,
+    { nullptr },
+    GetWindowsTheme
+  },
+  {
+    &nsGkAtoms::_moz_os_version,
+    nsMediaFeature::eMinMaxNotAllowed,
+    nsMediaFeature::eIdent,
+    nsMediaFeature::eUserAgentAndChromeOnly,
+    { nullptr },
+    GetOperatingSystemVersion
+  },
 
-    {
-        &nsGkAtoms::_moz_swipe_animation_enabled,
-        nsMediaFeature::eMinMaxNotAllowed,
-        nsMediaFeature::eBoolInteger,
-        nsMediaFeature::eNoRequirements,
-        { &nsGkAtoms::swipe_animation_enabled },
-        GetSystemMetric
-    },
+  {
+    &nsGkAtoms::_moz_swipe_animation_enabled,
+    nsMediaFeature::eMinMaxNotAllowed,
+    nsMediaFeature::eBoolInteger,
+    nsMediaFeature::eUserAgentAndChromeOnly,
+    { &nsGkAtoms::swipe_animation_enabled },
+    GetSystemMetric
+  },
 
-    {
-        &nsGkAtoms::_moz_physical_home_button,
-        nsMediaFeature::eMinMaxNotAllowed,
-        nsMediaFeature::eBoolInteger,
-        nsMediaFeature::eNoRequirements,
-        { &nsGkAtoms::physical_home_button },
-        GetSystemMetric
-    },
+  {
+    &nsGkAtoms::_moz_gtk_csd_available,
+    nsMediaFeature::eMinMaxNotAllowed,
+    nsMediaFeature::eBoolInteger,
+    nsMediaFeature::eUserAgentAndChromeOnly,
+    { &nsGkAtoms::gtk_csd_available },
+    GetSystemMetric
+  },
 
-    // Internal -moz-is-glyph media feature: applies only inside SVG glyphs.
-    // Internal because it is really only useful in the user agent anyway
-    //  and therefore not worth standardizing.
-    {
-        &nsGkAtoms::_moz_is_glyph,
-        nsMediaFeature::eMinMaxNotAllowed,
-        nsMediaFeature::eBoolInteger,
-        nsMediaFeature::eNoRequirements,
-        { nullptr },
-        GetIsGlyph
-    },
-    // Null-mName terminator:
-    {
-        nullptr,
-        nsMediaFeature::eMinMaxAllowed,
-        nsMediaFeature::eInteger,
-        nsMediaFeature::eNoRequirements,
-        { nullptr },
-        nullptr
-    },
+  {
+    &nsGkAtoms::_moz_gtk_csd_minimize_button,
+    nsMediaFeature::eMinMaxNotAllowed,
+    nsMediaFeature::eBoolInteger,
+    nsMediaFeature::eUserAgentAndChromeOnly,
+    { &nsGkAtoms::gtk_csd_minimize_button },
+    GetSystemMetric
+  },
+
+  {
+    &nsGkAtoms::_moz_gtk_csd_maximize_button,
+    nsMediaFeature::eMinMaxNotAllowed,
+    nsMediaFeature::eBoolInteger,
+    nsMediaFeature::eUserAgentAndChromeOnly,
+    { &nsGkAtoms::gtk_csd_maximize_button },
+    GetSystemMetric
+  },
+
+  {
+    &nsGkAtoms::_moz_gtk_csd_close_button,
+    nsMediaFeature::eMinMaxNotAllowed,
+    nsMediaFeature::eBoolInteger,
+    nsMediaFeature::eUserAgentAndChromeOnly,
+    { &nsGkAtoms::gtk_csd_close_button },
+    GetSystemMetric
+  },
+
+  // Internal -moz-is-glyph media feature: applies only inside SVG glyphs.
+  // Internal because it is really only useful in the user agent anyway
+  //  and therefore not worth standardizing.
+  {
+    &nsGkAtoms::_moz_is_glyph,
+    nsMediaFeature::eMinMaxNotAllowed,
+    nsMediaFeature::eBoolInteger,
+    nsMediaFeature::eUserAgentAndChromeOnly,
+    { nullptr },
+    GetIsGlyph
+  },
+  // Null-mName terminator:
+  {
+    nullptr,
+    nsMediaFeature::eMinMaxAllowed,
+    nsMediaFeature::eInteger,
+    nsMediaFeature::eNoRequirements,
+    { nullptr },
+    nullptr
+  },
 };

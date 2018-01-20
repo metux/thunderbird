@@ -10,11 +10,9 @@
 #include "nsIJARChannel.h"
 #include "nsIJARURI.h"
 #include "nsIInputStreamPump.h"
-#include "InterceptedJARChannel.h"
 #include "nsIInterfaceRequestor.h"
 #include "nsIProgressEventSink.h"
 #include "nsIStreamListener.h"
-#include "nsIRemoteOpenFileListener.h"
 #include "nsIZipReader.h"
 #include "nsILoadGroup.h"
 #include "nsILoadInfo.h"
@@ -30,18 +28,11 @@
 class nsJARInputThunk;
 class nsInputStreamPump;
 
-namespace mozilla {
-namespace net {
-  class InterceptedJARChannel;
-} // namespace net
-} // namespace mozilla
-
 //-----------------------------------------------------------------------------
 
 class nsJARChannel final : public nsIJARChannel
                          , public mozilla::net::MemoryDownloader::IObserver
                          , public nsIStreamListener
-                         , public nsIRemoteOpenFileListener
                          , public nsIThreadRetargetableRequest
                          , public nsIThreadRetargetableStreamListener
                          , public nsHashPropertyBag
@@ -53,7 +44,6 @@ public:
     NS_DECL_NSIJARCHANNEL
     NS_DECL_NSIREQUESTOBSERVER
     NS_DECL_NSISTREAMLISTENER
-    NS_DECL_NSIREMOTEOPENFILELISTENER
     NS_DECL_NSITHREADRETARGETABLEREQUEST
     NS_DECL_NSITHREADRETARGETABLESTREAMLISTENER
 
@@ -61,8 +51,7 @@ public:
 
     nsresult Init(nsIURI *uri);
 
-    nsresult OverrideSecurityInfo(nsISupports* aSecurityInfo);
-    void OverrideURI(nsIURI* aRedirectedURI);
+    void SetFile(nsIFile *file);
 
 private:
     virtual ~nsJARChannel();
@@ -72,7 +61,6 @@ private:
     nsresult OpenLocalFile();
     void NotifyError(nsresult aError);
     void FireOnProgress(uint64_t aProgress);
-    nsresult SetRemoteNSPRFileDesc(PRFileDesc *fd);
     virtual void OnDownloadComplete(mozilla::net::MemoryDownloader* aDownloader,
                                     nsIRequest* aRequest,
                                     nsISupports* aCtxt,
@@ -80,30 +68,12 @@ private:
                                     mozilla::net::MemoryDownloader::Data aData)
         override;
 
-    bool BypassServiceWorker() const;
-
-    // Returns true if this channel should intercept the network request and
-    // prepare for a possible synthesized response instead.
-    bool ShouldIntercept();
-
-    nsresult ContinueAsyncOpen();
-    void FinishAsyncOpen();
-
-    // Discard the prior interception and continue with the original network
-    // request.
-    void ResetInterception();
-    // Override this channel's pending response with a synthesized one. The
-    // content will be asynchronously read from the pump.
-    void OverrideWithSynthesizedResponse(nsIInputStream* aSynthesizedInput,
-                                         const nsACString& aContentType);
-
     nsCString                       mSpec;
 
     bool                            mOpened;
 
     nsCOMPtr<nsIJARURI>             mJarURI;
     nsCOMPtr<nsIURI>                mOriginalURI;
-    nsCOMPtr<nsIURI>                mAppURI;
     nsCOMPtr<nsISupports>           mOwner;
     nsCOMPtr<nsILoadInfo>           mLoadInfo;
     nsCOMPtr<nsIInterfaceRequestor> mCallbacks;
@@ -123,7 +93,6 @@ private:
     nsresult                        mStatus;
     bool                            mIsPending;
     bool                            mIsUnsafe;
-    bool                            mOpeningRemote;
 
     mozilla::net::MemoryDownloader::Data mTempMem;
     nsCOMPtr<nsIInputStreamPump>    mPump;
@@ -131,16 +100,14 @@ private:
     // to the request if we get called back via RetargetDeliveryTo.
     nsCOMPtr<nsIRequest>            mRequest;
     nsCOMPtr<nsIFile>               mJarFile;
+    nsCOMPtr<nsIFile>               mJarFileOverride;
+    nsCOMPtr<nsIZipReader>          mPreCachedJarReader;
     nsCOMPtr<nsIURI>                mJarBaseURI;
     nsCString                       mJarEntry;
     nsCString                       mInnerJarEntry;
 
-    RefPtr<nsInputStreamPump>     mSynthesizedResponsePump;
-    int64_t                         mSynthesizedStreamLength;
-
     // True if this channel should not download any remote files.
     bool                            mBlockRemoteFiles;
-    friend class mozilla::net::InterceptedJARChannel;
 };
 
 #endif // nsJARChannel_h__

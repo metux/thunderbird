@@ -14,14 +14,18 @@
 #include "nsIDOMHTMLElement.h"
 #include "nsRange.h"
 #include "nsIBoxObject.h"
-#include "nsIDOMXULElement.h"
+#include "nsXULElement.h"
+#include "mozilla/dom/BoxObject.h"
 #include "nsIDocShell.h"
+#include "nsIObserverService.h"
 #include "nsIPresShell.h"
 #include "nsPresContext.h"
 #include "nsIScrollableFrame.h"
 #include "nsISelectionPrivate.h"
 #include "nsISelectionController.h"
+#include "nsISimpleEnumerator.h"
 #include "mozilla/dom/TouchEvent.h"
+#include "mozilla/ErrorResult.h"
 #include "mozilla/EventListenerManager.h"
 #include "mozilla/EventStateManager.h"
 #include "mozilla/MouseEvents.h"
@@ -34,12 +38,23 @@
 #include "nsITreeBoxObject.h"
 #include "nsITreeColumns.h"
 #include "mozilla/dom/Element.h"
+#include "mozilla/dom/HTMLLabelElement.h"
 
 using namespace mozilla;
 
 ////////////////////////////////////////////////////////////////////////////////
 // nsCoreUtils
 ////////////////////////////////////////////////////////////////////////////////
+
+bool
+nsCoreUtils::IsLabelWithControl(nsIContent* aContent)
+{
+  dom::HTMLLabelElement* label = dom::HTMLLabelElement::FromContent(aContent);
+  if (label && label->GetControl())
+    return true;
+
+  return false;
+}
 
 bool
 nsCoreUtils::HasClickListener(nsIContent *aContent)
@@ -65,7 +80,7 @@ nsCoreUtils::DispatchClickEvent(nsITreeBoxObject *aTreeBoxObj,
     return;
 
   nsCOMPtr<nsIContent> tcContent(do_QueryInterface(tcElm));
-  nsIDocument *document = tcContent->GetCurrentDoc();
+  nsIDocument *document = tcContent->GetUncomposedDoc();
   if (!document)
     return;
 
@@ -84,9 +99,10 @@ nsCoreUtils::DispatchClickEvent(nsITreeBoxObject *aTreeBoxObj,
   if (NS_FAILED(rv))
     return;
 
-  nsCOMPtr<nsIDOMXULElement> tcXULElm(do_QueryInterface(tcElm));
-  nsCOMPtr<nsIBoxObject> tcBoxObj;
-  tcXULElm->GetBoxObject(getter_AddRefs(tcBoxObj));
+  nsCOMPtr<nsIContent> tcXULElm(do_QueryInterface(tcElm));
+  IgnoredErrorResult ignored;
+  nsCOMPtr<nsIBoxObject> tcBoxObj =
+    nsXULElement::FromContent(tcXULElm)->GetBoxObject(ignored);
 
   int32_t tcX = 0;
   tcBoxObj->GetX(&tcX);
@@ -95,12 +111,12 @@ nsCoreUtils::DispatchClickEvent(nsITreeBoxObject *aTreeBoxObj,
   tcBoxObj->GetY(&tcY);
 
   // Dispatch mouse events.
-  nsWeakFrame tcFrame = tcContent->GetPrimaryFrame();
+  AutoWeakFrame tcFrame = tcContent->GetPrimaryFrame();
   nsIFrame* rootFrame = presShell->GetRootFrame();
 
   nsPoint offset;
   nsIWidget *rootWidget =
-    rootFrame->GetViewExternal()->GetNearestWidget(&offset);
+    rootFrame->GetView()->GetNearestWidget(&offset);
 
   RefPtr<nsPresContext> presContext = presShell->GetPresContext();
 
@@ -125,11 +141,11 @@ nsCoreUtils::DispatchMouseEvent(EventMessage aMessage, int32_t aX, int32_t aY,
   WidgetMouseEvent event(true, aMessage, aRootWidget,
                          WidgetMouseEvent::eReal, WidgetMouseEvent::eNormal);
 
-  event.refPoint = LayoutDeviceIntPoint(aX, aY);
+  event.mRefPoint = LayoutDeviceIntPoint(aX, aY);
 
-  event.clickCount = 1;
+  event.mClickCount = 1;
   event.button = WidgetMouseEvent::eLeftButton;
-  event.time = PR_IntervalNow();
+  event.mTime = PR_IntervalNow();
   event.inputSource = nsIDOMMouseEvent::MOZ_SOURCE_UNKNOWN;
 
   nsEventStatus status = nsEventStatus_eIgnore;
@@ -141,18 +157,23 @@ nsCoreUtils::DispatchTouchEvent(EventMessage aMessage, int32_t aX, int32_t aY,
                                 nsIContent* aContent, nsIFrame* aFrame,
                                 nsIPresShell* aPresShell, nsIWidget* aRootWidget)
 {
-  if (!dom::TouchEvent::PrefEnabled())
+  nsIDocShell* docShell = nullptr;
+  if (aPresShell->GetDocument()) {
+    docShell = aPresShell->GetDocument()->GetDocShell();
+  }
+  if (!dom::TouchEvent::PrefEnabled(docShell)) {
     return;
+  }
 
   WidgetTouchEvent event(true, aMessage, aRootWidget);
 
-  event.time = PR_IntervalNow();
+  event.mTime = PR_IntervalNow();
 
   // XXX: Touch has an identifier of -1 to hint that it is synthesized.
   RefPtr<dom::Touch> t = new dom::Touch(-1, LayoutDeviceIntPoint(aX, aY),
                                         LayoutDeviceIntPoint(1, 1), 0.0f, 1.0f);
   t->SetTarget(aContent);
-  event.touches.AppendElement(t);
+  event.mTouches.AppendElement(t);
   nsEventStatus status = nsEventStatus_eIgnore;
   aPresShell->HandleEventWithTarget(&event, aFrame, aContent, &status);
 }
@@ -208,28 +229,6 @@ nsCoreUtils::GetDOMNodeFromDOMPoint(nsINode *aNode, uint32_t aOffset)
   }
 
   return aNode;
-}
-
-nsIContent*
-nsCoreUtils::GetRoleContent(nsINode *aNode)
-{
-  nsCOMPtr<nsIContent> content(do_QueryInterface(aNode));
-  if (!content) {
-    nsCOMPtr<nsIDocument> doc(do_QueryInterface(aNode));
-    if (doc) {
-      nsCOMPtr<nsIDOMHTMLDocument> htmlDoc(do_QueryInterface(aNode));
-      if (htmlDoc) {
-        nsCOMPtr<nsIDOMHTMLElement> bodyElement;
-        htmlDoc->GetBody(getter_AddRefs(bodyElement));
-        content = do_QueryInterface(bodyElement);
-      }
-      else {
-        return doc->GetDocumentElement();
-      }
-    }
-  }
-
-  return content;
 }
 
 bool
@@ -445,7 +444,7 @@ nsCoreUtils::IsErrorPage(nsIDocument *aDocument)
     return false;
 
   nsAutoCString path;
-  uri->GetPath(path);
+  uri->GetPathQueryRef(path);
 
   NS_NAMED_LITERAL_CSTRING(neterror, "neterror");
   NS_NAMED_LITERAL_CSTRING(certerror, "certerror");
@@ -460,7 +459,7 @@ nsCoreUtils::GetID(nsIContent *aContent, nsAString& aID)
 }
 
 bool
-nsCoreUtils::GetUIntAttr(nsIContent *aContent, nsIAtom *aAttr, int32_t *aUInt)
+nsCoreUtils::GetUIntAttr(nsIContent *aContent, nsAtom *aAttr, int32_t *aUInt)
 {
   nsAutoString value;
   aContent->GetAttr(kNameSpaceID_None, aAttr, value);
@@ -493,13 +492,13 @@ nsCoreUtils::GetTreeBodyBoxObject(nsITreeBoxObject *aTreeBoxObj)
 {
   nsCOMPtr<nsIDOMElement> tcElm;
   aTreeBoxObj->GetTreeBody(getter_AddRefs(tcElm));
-  nsCOMPtr<nsIDOMXULElement> tcXULElm(do_QueryInterface(tcElm));
+  nsCOMPtr<nsIContent> tcContent(do_QueryInterface(tcElm));
+  RefPtr<nsXULElement> tcXULElm = nsXULElement::FromContentOrNull(tcContent);
   if (!tcXULElm)
     return nullptr;
 
-  nsCOMPtr<nsIBoxObject> boxObj;
-  tcXULElm->GetBoxObject(getter_AddRefs(boxObj));
-  return boxObj.forget();
+  IgnoredErrorResult ignored;
+  return tcXULElm->GetBoxObject(ignored);
 }
 
 already_AddRefed<nsITreeBoxObject>
@@ -511,14 +510,13 @@ nsCoreUtils::GetTreeBoxObject(nsIContent *aContent)
     if (currentContent->NodeInfo()->Equals(nsGkAtoms::tree,
                                            kNameSpaceID_XUL)) {
       // We will get the nsITreeBoxObject from the tree node
-      nsCOMPtr<nsIDOMXULElement> xulElement(do_QueryInterface(currentContent));
-      if (xulElement) {
-        nsCOMPtr<nsIBoxObject> box;
-        xulElement->GetBoxObject(getter_AddRefs(box));
-        nsCOMPtr<nsITreeBoxObject> treeBox(do_QueryInterface(box));
-        if (treeBox)
-          return treeBox.forget();
-      }
+      RefPtr<nsXULElement> xulElement =
+        nsXULElement::FromContent(currentContent);
+      IgnoredErrorResult ignored;
+      nsCOMPtr<nsIBoxObject> box = xulElement->GetBoxObject(ignored);
+      nsCOMPtr<nsITreeBoxObject> treeBox(do_QueryInterface(box));
+      if (treeBox)
+        return treeBox.forget();
     }
     currentContent = currentContent->GetFlattenedTreeParent();
   }
@@ -635,9 +633,9 @@ nsCoreUtils::ScrollTo(nsIPresShell* aPresShell, nsIContent* aContent,
 }
 
 bool
-nsCoreUtils::IsWhitespaceString(const nsSubstring& aString)
+nsCoreUtils::IsWhitespaceString(const nsAString& aString)
 {
-  nsSubstring::const_char_iterator iterBegin, iterEnd;
+  nsAString::const_char_iterator iterBegin, iterEnd;
 
   aString.BeginReading(iterBegin);
   aString.EndReading(iterEnd);
@@ -646,4 +644,42 @@ nsCoreUtils::IsWhitespaceString(const nsSubstring& aString)
     ++iterBegin;
 
   return iterBegin == iterEnd;
+}
+
+bool
+nsCoreUtils::AccEventObserversExist()
+{
+  nsCOMPtr<nsIObserverService> obsService = services::GetObserverService();
+  NS_ENSURE_TRUE(obsService, false);
+
+  nsCOMPtr<nsISimpleEnumerator> observers;
+  obsService->EnumerateObservers(NS_ACCESSIBLE_EVENT_TOPIC,
+                                 getter_AddRefs(observers));
+  NS_ENSURE_TRUE(observers, false);
+
+  bool hasObservers = false;
+  observers->HasMoreElements(&hasObservers);
+
+  return hasObservers;
+}
+
+void
+nsCoreUtils::DispatchAccEvent(RefPtr<nsIAccessibleEvent> event)
+{
+  nsCOMPtr<nsIObserverService> obsService = services::GetObserverService();
+  NS_ENSURE_TRUE_VOID(obsService);
+
+  obsService->NotifyObservers(event, NS_ACCESSIBLE_EVENT_TOPIC, nullptr);
+}
+
+void
+nsCoreUtils::XBLBindingRole(const nsIContent* aEl, nsAString& aRole)
+{
+  for (const nsXBLBinding* binding = aEl->GetXBLBinding(); binding;
+       binding = binding->GetBaseBinding()) {
+    nsIContent* bindingElm = binding->PrototypeBinding()->GetBindingElement();
+    bindingElm->GetAttr(kNameSpaceID_None, nsGkAtoms::role, aRole);
+    if (!aRole.IsEmpty())
+      break;
+  }
 }

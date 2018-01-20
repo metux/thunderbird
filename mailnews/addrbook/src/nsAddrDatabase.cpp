@@ -6,7 +6,7 @@
 // this file implements the nsAddrDatabase interface using the MDB Interface.
 
 #include "nsAddrDatabase.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsAutoPtr.h"
 #include "nsUnicharUtils.h"
 #include "nsAbBaseCID.h"
@@ -67,8 +67,8 @@ static const char kMailListAddressFormat[] = "Address%d";
 nsAddrDatabase::nsAddrDatabase()
     : m_mdbEnv(nullptr), m_mdbStore(nullptr),
       m_mdbPabTable(nullptr),
-      m_mdbDeletedCardsTable(nullptr),
       m_mdbTokensInitialized(false),
+      m_mdbDeletedCardsTableRemoved(false),
       m_PabTableKind(0),
       m_MailListTableKind(0),
       m_DeletedCardsTableKind(0),
@@ -142,8 +142,6 @@ nsAddrDatabase::~nsAddrDatabase()
     // clean up after ourself!
     if (m_mdbPabTable)
       m_mdbPabTable->Release();
-    if (m_mdbDeletedCardsTable)
-      m_mdbDeletedCardsTable->Release();
     NS_IF_RELEASE(m_mdbStore);
     NS_IF_RELEASE(m_mdbEnv);
 }
@@ -210,7 +208,7 @@ nsTArray<nsAddrDatabase*>*
 nsAddrDatabase::GetDBCache()
 {
   if (!m_dbCache)
-    m_dbCache = new nsAutoTArray<nsAddrDatabase*, kInitialAddrDBCacheSize>;
+    m_dbCache = new AutoTArray<nsAddrDatabase*, kInitialAddrDBCacheSize>;
 
   return m_dbCache;
 }
@@ -235,17 +233,16 @@ nsAddrDatabase::CleanupCache()
 //----------------------------------------------------------------------
 // FindInCache - this addrefs the db it finds.
 //----------------------------------------------------------------------
-nsAddrDatabase* nsAddrDatabase::FindInCache(nsIFile *dbName)
+already_AddRefed<nsAddrDatabase> nsAddrDatabase::FindInCache(nsIFile *dbName)
 {
   nsTArray<nsAddrDatabase*>* dbCache = GetDBCache();
   uint32_t length = dbCache->Length();
   for (uint32_t i = 0; i < length; ++i)
   {
-    nsAddrDatabase* pAddrDB = dbCache->ElementAt(i);
+    RefPtr<nsAddrDatabase> pAddrDB = dbCache->ElementAt(i);
     if (pAddrDB->MatchDbName(dbName))
     {
-      NS_ADDREF(pAddrDB);
-      return pAddrDB;
+      return pAddrDB.forget();
     }
   }
   return nullptr;
@@ -302,10 +299,10 @@ NS_IMETHODIMP nsAddrDatabase::Open
 {
   *pAddrDB = nullptr;
 
-  nsAddrDatabase *pAddressBookDB = FindInCache(aMabFile);
+  RefPtr<nsAddrDatabase> pAddressBookDB = FindInCache(aMabFile);
 
   if (pAddressBookDB) {
-    *pAddrDB = pAddressBookDB;
+    pAddressBookDB.forget(pAddrDB);
     return NS_OK;
   }
 
@@ -357,7 +354,7 @@ NS_IMETHODIMP nsAddrDatabase::Open
     rv = dummyBackupMabFile->GetNativeLeafName(dummyBackupMabFileName);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    dummyBackupMabFileName.Append(NS_LITERAL_CSTRING(".bak"));
+    dummyBackupMabFileName.AppendLiteral(".bak");
 
     rv = dummyBackupMabFile->SetNativeLeafName(dummyBackupMabFileName);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -411,12 +408,12 @@ nsresult nsAddrDatabase::DisplayAlert(const char16_t *titleName, const char16_t 
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsString alertMessage;
-  rv = bundle->FormatStringFromName(alertStringName, formatStrings, numFormatStrings,
-    getter_Copies(alertMessage));
+  rv = bundle->FormatStringFromName(NS_ConvertUTF16toUTF8(alertStringName).get(), formatStrings, numFormatStrings,
+    alertMessage);
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsString alertTitle;
-  rv = bundle->GetStringFromName(titleName, getter_Copies(alertTitle));
+  rv = bundle->GetStringFromName(NS_ConvertUTF16toUTF8(titleName).get(), alertTitle);
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIPromptService> prompter =
@@ -429,39 +426,33 @@ nsresult nsAddrDatabase::DisplayAlert(const char16_t *titleName, const char16_t 
 nsresult nsAddrDatabase::AlertAboutCorruptMabFile(const char16_t *aOldFileName, const char16_t *aNewFileName)
 {
   const char16_t *formatStrings[] = { aOldFileName, aOldFileName, aNewFileName };
-  return DisplayAlert(MOZ_UTF16("corruptMabFileTitle"),
-    MOZ_UTF16("corruptMabFileAlert"), formatStrings, 3);
+  return DisplayAlert(u"corruptMabFileTitle",
+    u"corruptMabFileAlert", formatStrings, 3);
 }
 
 nsresult nsAddrDatabase::AlertAboutLockedMabFile(const char16_t *aFileName)
 {
   const char16_t *formatStrings[] = { aFileName };
-  return DisplayAlert(MOZ_UTF16("lockedMabFileTitle"),
-    MOZ_UTF16("lockedMabFileAlert"), formatStrings, 1);
+  return DisplayAlert(u"lockedMabFileTitle",
+    u"lockedMabFileAlert", formatStrings, 1);
 }
 
 nsresult
 nsAddrDatabase::OpenInternal(nsIFile *aMabFile, bool aCreate, nsIAddrDatabase** pAddrDB)
 {
-  nsAddrDatabase *pAddressBookDB = new nsAddrDatabase();
-  if (!pAddressBookDB) {
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
-
-  NS_ADDREF(pAddressBookDB);
+  RefPtr<nsAddrDatabase> pAddressBookDB = new nsAddrDatabase();
 
   nsresult rv = pAddressBookDB->OpenMDB(aMabFile, aCreate);
   if (NS_SUCCEEDED(rv))
   {
     pAddressBookDB->SetDbPath(aMabFile);
     GetDBCache()->AppendElement(pAddressBookDB);
-    *pAddrDB = pAddressBookDB;
+    pAddressBookDB.forget(pAddrDB);
   }
   else
   {
     *pAddrDB = nullptr;
     pAddressBookDB->ForceClosed();
-    NS_IF_RELEASE(pAddressBookDB);
     pAddressBookDB = nullptr;
   }
   return rv;
@@ -605,14 +596,14 @@ NS_IMETHODIMP nsAddrDatabase::ForceClosed()
     nsCOMPtr<nsIAddrDatabase> aDb(do_QueryInterface(this, &err));
 
     // make sure someone has a reference so object won't get deleted out from under us.
-    AddRef();
+    NS_ADDREF_THIS();
     NotifyAnnouncerGoingAway();
     // OK, remove from cache first and close the store.
     RemoveFromCache(this);
 
     err = CloseMDB(false);    // since we're about to delete it, no need to commit.
     NS_IF_RELEASE(m_mdbStore);
-    Release();
+    NS_RELEASE_THIS();
     return err;
 }
 
@@ -689,100 +680,6 @@ nsresult nsAddrDatabase::InitNewDB()
     Commit(nsAddrDBCommitType::kLargeCommit);
   }
   return err;
-}
-
-nsresult nsAddrDatabase::AddRowToDeletedCardsTable(nsIAbCard *card, nsIMdbRow **pCardRow)
-{
-  if (!m_mdbEnv)
-    return NS_ERROR_NULL_POINTER;
-
-  nsresult rv = NS_OK;
-  if (!m_mdbDeletedCardsTable)
-    rv = InitDeletedCardsTable(true);
-
-  if (NS_SUCCEEDED(rv)) {
-    // lets first purge old records if there are more than PURGE_CUTOFF_COUNT records
-    PurgeDeletedCardTable();
-    nsCOMPtr<nsIMdbRow> cardRow;
-    rv = GetNewRow(getter_AddRefs(cardRow));
-    if (NS_SUCCEEDED(rv) && cardRow) {
-      nsresult merror = m_mdbDeletedCardsTable->AddRow(m_mdbEnv, cardRow);
-      NS_ENSURE_SUCCESS(merror, NS_ERROR_FAILURE);
-      nsString unicodeStr;
-      card->GetFirstName(unicodeStr);
-      AddFirstName(cardRow, NS_ConvertUTF16toUTF8(unicodeStr).get());
-
-      card->GetLastName(unicodeStr);
-      AddLastName(cardRow, NS_ConvertUTF16toUTF8(unicodeStr).get());
-
-      card->GetDisplayName(unicodeStr);
-      AddDisplayName(cardRow, NS_ConvertUTF16toUTF8(unicodeStr).get());
-
-      card->GetPrimaryEmail(unicodeStr);
-      if (!unicodeStr.IsEmpty())
-        AddUnicodeToColumn(cardRow, m_PriEmailColumnToken, m_LowerPriEmailColumnToken, unicodeStr.get());
-
-      card->GetPropertyAsAString(k2ndEmailProperty, unicodeStr);
-      if (!unicodeStr.IsEmpty())
-        AddUnicodeToColumn(cardRow, m_2ndEmailColumnToken, m_Lower2ndEmailColumnToken, unicodeStr.get());
-
-      uint32_t nowInSeconds;
-      PRTime now = PR_Now();
-      PRTime2Seconds(now, &nowInSeconds);
-      AddIntColumn(cardRow, m_LastModDateColumnToken, nowInSeconds);
-
-      nsString value;
-      GetCardValue(card, CARD_ATTRIB_PALMID, getter_Copies(value));
-      if (!value.IsEmpty())
-      {
-        nsCOMPtr<nsIAbCard> addedCard;
-        rv = CreateCardFromDeletedCardsTable(cardRow, 0, getter_AddRefs(addedCard));
-        if (NS_SUCCEEDED(rv))
-          SetCardValue(addedCard, CARD_ATTRIB_PALMID, value.get(), false);
-      }
-      NS_IF_ADDREF(*pCardRow = cardRow);
-    }
-    Commit(nsAddrDBCommitType::kLargeCommit);
-  }
-  return rv;
-}
-
-nsresult nsAddrDatabase::DeleteRowFromDeletedCardsTable(nsIMdbRow *pCardRow)
-{
-  if (!m_mdbEnv)
-    return NS_ERROR_NULL_POINTER;
-
-  nsresult merror = NS_OK;
-  if (m_mdbDeletedCardsTable) {
-    pCardRow->CutAllColumns(m_mdbEnv);
-    merror = m_mdbDeletedCardsTable->CutRow(m_mdbEnv, pCardRow);
-  }
-  return merror;
-}
-
-
-nsresult nsAddrDatabase::InitDeletedCardsTable(bool aCreate)
-{
-  nsresult mdberr = NS_OK;
-  if (!m_mdbDeletedCardsTable)
-  {
-    struct mdbOid deletedCardsTableOID;
-    deletedCardsTableOID.mOid_Scope = m_CardRowScopeToken;
-    deletedCardsTableOID.mOid_Id = ID_DELETEDCARDS_TABLE;
-    if (m_mdbStore && m_mdbEnv)
-    {
-      m_mdbStore->GetTable(m_mdbEnv, &deletedCardsTableOID, &m_mdbDeletedCardsTable);
-      // if deletedCardsTable does not exist and bCreate is set, create a new one
-      if (!m_mdbDeletedCardsTable && aCreate)
-      {
-        mdberr = (nsresult) m_mdbStore->NewTableWithOid(m_mdbEnv, &deletedCardsTableOID,
-                                                        m_DeletedCardsTableKind,
-                                                        true, (const mdbOid*)nullptr,
-                                                        &m_mdbDeletedCardsTable);
-      }
-    }
-  }
-  return mdberr;
 }
 
 nsresult nsAddrDatabase::InitPabTable()
@@ -1167,7 +1064,7 @@ nsresult nsAddrDatabase::AddAttributeColumnsToRow(nsIAbCard *card, nsIMdbRow *ca
 
       nsCOMPtr<nsIVariant> variant;
       prop->GetValue(getter_AddRefs(variant));
-      
+
       // We can't get as a char * because that messes up UTF8 stuff
       nsAutoCString value;
       variant->GetAsAUTF8String(value);
@@ -1175,7 +1072,7 @@ nsresult nsAddrDatabase::AddAttributeColumnsToRow(nsIAbCard *card, nsIMdbRow *ca
       mdb_token token;
       rv = m_mdbStore->StringToToken(m_mdbEnv, NS_ConvertUTF16toUTF8(name).get(), &token);
       NS_ENSURE_SUCCESS(rv, rv);
- 
+
       rv = AddCharStringColumn(cardRow, token, value.get());
       NS_ENSURE_SUCCESS(rv, rv);
     }
@@ -1244,7 +1141,7 @@ NS_IMETHODIMP nsAddrDatabase::CreateNewCardAndAddToDB(nsIAbCard *aNewCard, bool 
     rv = GetIntColumn(cardRow, m_RecordKeyColumnToken, &key, 0);
     if (NS_SUCCEEDED(rv))
       aNewCard->SetPropertyAsUint32(kRecordKeyColumn, key);
-    
+
     aNewCard->GetPropertyAsAUTF8String(kRowIDProperty, id);
     aNewCard->SetLocalId(id);
 
@@ -1328,12 +1225,12 @@ NS_IMETHODIMP nsAddrDatabase::CreateNewListCardAndAddToDB(nsIAbDirectory *aList,
   rv = AddListCardColumnsToRow(newCard, pListRow, totalAddress, getter_AddRefs(pNewCard), true /* aInMailingList */, aList, nullptr);
   NS_ENSURE_SUCCESS(rv,rv);
 
-  addressList->AppendElement(newCard, false);
+  addressList->AppendElement(newCard);
 
   if (notify)
     NotifyCardEntryChange(AB_NotifyInserted, newCard, aList);
 
-    return rv;
+  return rv;
 }
 
 NS_IMETHODIMP nsAddrDatabase::AddListCardColumnsToRow
@@ -1379,14 +1276,12 @@ NS_IMETHODIMP nsAddrDatabase::AddListCardColumnsToRow
       err = m_mdbPabTable->AddRow(m_mdbEnv, pCardRow);
     }
 
-    nsCOMPtr<nsIAbCard> newCard;
-    CreateABCard(pCardRow, 0, getter_AddRefs(newCard));
-    NS_IF_ADDREF(*aPNewCard = newCard);
+    CreateABCard(pCardRow, 0, aPNewCard);
 
     if (cardWasAdded) {
-      NotifyCardEntryChange(AB_NotifyInserted, newCard, aParent);
+      NotifyCardEntryChange(AB_NotifyInserted, *aPNewCard, aParent);
       if (aRoot)
-        NotifyCardEntryChange(AB_NotifyInserted, newCard, aRoot);
+        NotifyCardEntryChange(AB_NotifyInserted, *aPNewCard, aRoot);
     }
     else if (!aInMailingList) {
       nsresult rv;
@@ -1493,7 +1388,7 @@ nsresult nsAddrDatabase::AddListAttributeColumnsToRow(nsIAbDirectory *list, nsIM
                 nsCOMPtr<nsIAbCard> pNewCard;
                 err = AddListCardColumnsToRow(pCard, listRow, pos, getter_AddRefs(pNewCard), listHasCard, list, aParent);
                 if (pNewCard)
-                    pAddressLists->ReplaceElementAt(pNewCard, i, false);
+                    pAddressLists->ReplaceElementAt(pNewCard, i);
             }
         }
     }
@@ -1570,29 +1465,29 @@ void nsAddrDatabase::DeleteCardFromAllMailLists(mdb_id cardRowID)
   if (!m_mdbEnv)
     return;
 
-    nsCOMPtr <nsIMdbTableRowCursor> rowCursor;
-    m_mdbPabTable->GetTableRowCursor(m_mdbEnv, -1, getter_AddRefs(rowCursor));
+  nsCOMPtr <nsIMdbTableRowCursor> rowCursor;
+  m_mdbPabTable->GetTableRowCursor(m_mdbEnv, -1, getter_AddRefs(rowCursor));
 
-    if (rowCursor)
+  if (rowCursor)
+  {
+    nsCOMPtr <nsIMdbRow> pListRow;
+    mdb_pos rowPos;
+    do
     {
-        nsCOMPtr <nsIMdbRow> pListRow;
-        mdb_pos rowPos;
-        do
+      nsresult err = rowCursor->NextRow(m_mdbEnv, getter_AddRefs(pListRow), &rowPos);
+
+      if (NS_SUCCEEDED(err) && pListRow)
+      {
+        mdbOid rowOid;
+
+        if (NS_SUCCEEDED(pListRow->GetOid(m_mdbEnv, &rowOid)))
         {
-            nsresult err = rowCursor->NextRow(m_mdbEnv, getter_AddRefs(pListRow), &rowPos);
-
-            if (NS_SUCCEEDED(err) && pListRow)
-            {
-                mdbOid rowOid;
-
-                if (NS_SUCCEEDED(pListRow->GetOid(m_mdbEnv, &rowOid)))
-                {
-                    if (IsListRowScopeToken(rowOid.mOid_Scope))
-                        DeleteCardFromListRow(pListRow, cardRowID);
-                }
-            }
-        } while (pListRow);
-    }
+          if (IsListRowScopeToken(rowOid.mOid_Scope))
+            DeleteCardFromListRow(pListRow, cardRowID);
+        }
+      }
+    } while (pListRow);
+  }
 }
 
 NS_IMETHODIMP nsAddrDatabase::DeleteCard(nsIAbCard *aCard, bool aNotify, nsIAbDirectory *aParent)
@@ -1621,9 +1516,23 @@ NS_IMETHODIMP nsAddrDatabase::DeleteCard(nsIAbCard *aCard, bool aNotify, nsIAbDi
   // Reset the directory id
   aCard->SetDirectoryId(EmptyCString());
 
-  // Add the deleted card to the deletedcards table
-  nsCOMPtr <nsIMdbRow> cardRow;
-  AddRowToDeletedCardsTable(aCard, getter_AddRefs(cardRow));
+  // And here a greeting from the quirky old past:
+  // Before there was a "deleted cards" table where deleted cards
+  // were stored for six month. If we find this table, we empty it out.
+  if (!m_mdbDeletedCardsTableRemoved) {
+    m_mdbDeletedCardsTableRemoved = true;
+    struct mdbOid deletedCardsTableOID;
+    deletedCardsTableOID.mOid_Scope = m_CardRowScopeToken;
+    deletedCardsTableOID.mOid_Id = ID_DELETEDCARDS_TABLE;
+    nsIMdbTable *deletedCardsTable;
+    m_mdbStore->GetTable(m_mdbEnv, &deletedCardsTableOID, &deletedCardsTable);
+    if (deletedCardsTable) {
+      deletedCardsTable->CutAllRows(m_mdbEnv);
+      deletedCardsTable->Release();
+      Commit(nsAddrDBCommitType::kCompressCommit);
+    }
+  }
+
   err = DeleteRow(m_mdbPabTable, pCardRow);
 
   //delete the person card from all mailing list
@@ -1634,8 +1543,6 @@ NS_IMETHODIMP nsAddrDatabase::DeleteCard(nsIAbCard *aCard, bool aNotify, nsIAbDi
     if (aNotify)
       NotifyCardEntryChange(AB_NotifyDeleted, aCard, aParent);
   }
-  else
-    DeleteRowFromDeletedCardsTable(cardRow);
 
   NS_RELEASE(pCardRow);
   return NS_OK;
@@ -1802,106 +1709,6 @@ NS_IMETHODIMP nsAddrDatabase::GetCardValue(nsIAbCard *card, const char *name, ch
   if (!*value)
     return NS_ERROR_OUT_OF_MEMORY;
   return NS_OK;
-}
-
-NS_IMETHODIMP nsAddrDatabase::GetDeletedCardList(nsIArray **aResult)
-{
-  if (!m_mdbEnv || !aResult)
-    return NS_ERROR_NULL_POINTER;
-
-  *aResult = nullptr;
-
-  nsresult rv;
-  nsCOMPtr<nsIMutableArray> resultCardArray =
-    do_CreateInstance(NS_ARRAY_CONTRACTID, &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  // make sure the member is set properly
-  InitDeletedCardsTable(false);
-  if (m_mdbDeletedCardsTable)
-  {
-    nsCOMPtr<nsIMdbTableRowCursor>      rowCursor;
-    mdb_pos                             rowPos;
-    bool                                done = false;
-    nsCOMPtr<nsIMdbRow>                 currentRow;
-
-    m_mdbDeletedCardsTable->GetTableRowCursor(m_mdbEnv, -1, getter_AddRefs(rowCursor));
-    if (!rowCursor)
-        return NS_ERROR_FAILURE;
-    while (!done)
-    {
-      rv = rowCursor->NextRow(m_mdbEnv, getter_AddRefs(currentRow), &rowPos);
-      if (currentRow && NS_SUCCEEDED(rv))
-      {
-        mdbOid rowOid;
-        if (NS_SUCCEEDED(currentRow->GetOid(m_mdbEnv, &rowOid)))
-        {
-          nsCOMPtr<nsIAbCard>    card;
-          rv = CreateCardFromDeletedCardsTable(currentRow, 0, getter_AddRefs(card));
-          if (NS_SUCCEEDED(rv)) {
-            resultCardArray->AppendElement(card, false);
-          }
-        }
-      }
-      else
-          done = true;
-    }
-  }
-
-  NS_IF_ADDREF(*aResult = resultCardArray);
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP nsAddrDatabase::GetDeletedCardCount(uint32_t *aCount)
-{
-    // initialize count first
-    *aCount = 0;
-    InitDeletedCardsTable(false);
-    if (m_mdbDeletedCardsTable)
-      return m_mdbDeletedCardsTable->GetCount(m_mdbEnv, aCount);
-    return NS_OK;
-}
-
-NS_IMETHODIMP nsAddrDatabase::PurgeDeletedCardTable()
-{
-  if (!m_mdbEnv)
-    return NS_ERROR_NULL_POINTER;
-
-    if (m_mdbDeletedCardsTable) {
-        mdb_count cardCount=0;
-        // if not too many cards let it be
-        m_mdbDeletedCardsTable->GetCount(m_mdbEnv, &cardCount);
-        if(cardCount < PURGE_CUTOFF_COUNT)
-            return NS_OK;
-        uint32_t purgeTimeInSec;
-        PRTime2Seconds(PR_Now(), &purgeTimeInSec);
-        purgeTimeInSec -= (182*24*60*60);  // six months in seconds
-        nsCOMPtr<nsIMdbTableRowCursor> rowCursor;
-        nsresult rv = m_mdbDeletedCardsTable->GetTableRowCursor(m_mdbEnv, -1, getter_AddRefs(rowCursor));
-        while(NS_SUCCEEDED(rv)) {
-            nsCOMPtr<nsIMdbRow> currentRow;
-            mdb_pos rowPos;
-            rv = rowCursor->NextRow(m_mdbEnv, getter_AddRefs(currentRow), &rowPos);
-            if(currentRow) {
-                uint32_t deletedTimeStamp = 0;
-                GetIntColumn(currentRow, m_LastModDateColumnToken, &deletedTimeStamp, 0);
-                // if record was deleted more than six months earlier, purge it
-                if(deletedTimeStamp && (deletedTimeStamp < purgeTimeInSec)) {
-                    if(NS_SUCCEEDED(currentRow->CutAllColumns(m_mdbEnv)))
-                        m_mdbDeletedCardsTable->CutRow(m_mdbEnv, currentRow);
-                }
-                else
-                    // since the ordering in Mork is maintained and thus
-                    // the cards added later appear on the top when retrieved
-                    break;
-            }
-            else
-                break; // no more row
-        }
-    }
-
-    return NS_OK;
 }
 
 NS_IMETHODIMP nsAddrDatabase::EditCard(nsIAbCard *aCard, bool aNotify, nsIAbDirectory *aParent)
@@ -2399,7 +2206,7 @@ NS_IMETHODIMP nsAddrDatabase::InitCardFromRow(nsIAbCard *newCard, nsIMdbRow* car
       PL_strfree(name);
     }
   } while (true);
- 
+
   uint32_t key = 0;
   rv = GetIntColumn(cardRow, m_RecordKeyColumnToken, &key, 0);
   if (NS_SUCCEEDED(rv))
@@ -2491,7 +2298,6 @@ nsresult nsAddrDatabase::GetListFromDB(nsIAbDirectory *newList, nsIMdbRow* listR
       if(NS_SUCCEEDED(err))
         dbnewList->AddAddressToList(card);
     }
-//        NS_IF_ADDREF(card);
   }
 
   return err;
@@ -2770,12 +2576,8 @@ nsListAddressEnumerator::GetNext(nsISupports **aResult)
 
 NS_IMETHODIMP nsAddrDatabase::EnumerateCards(nsIAbDirectory *directory, nsISimpleEnumerator **result)
 {
-    nsAddrDBEnumerator* e = new nsAddrDBEnumerator(this);
+    NS_ADDREF(*result = new nsAddrDBEnumerator(this));
     m_dbDirectory = do_GetWeakReference(directory);
-    if (!e)
-        return NS_ERROR_OUT_OF_MEMORY;
-    NS_ADDREF(e);
-    *result = e;
     return NS_OK;
 }
 
@@ -2830,14 +2632,10 @@ NS_IMETHODIMP nsAddrDatabase::EnumerateListAddresses(nsIAbDirectory *directory, 
 
     if(NS_SUCCEEDED(rv))
     {
-    dbdirectory->GetDbRowID((uint32_t*)&rowID);
+      dbdirectory->GetDbRowID((uint32_t*)&rowID);
 
-    nsListAddressEnumerator* e = new nsListAddressEnumerator(this, rowID);
-    m_dbDirectory = do_GetWeakReference(directory);
-    if (!e)
-        return NS_ERROR_OUT_OF_MEMORY;
-    NS_ADDREF(e);
-    *result = e;
+      NS_ADDREF(*result = new nsListAddressEnumerator(this, rowID));
+      m_dbDirectory = do_GetWeakReference(directory);
     }
     return rv;
 }
@@ -2847,27 +2645,27 @@ nsresult nsAddrDatabase::CreateCardFromDeletedCardsTable(nsIMdbRow* cardRow, mdb
   if (!cardRow || !m_mdbEnv || !result)
     return NS_ERROR_NULL_POINTER;
 
-    nsresult rv = NS_OK;
+  nsresult rv = NS_OK;
 
-    mdbOid outOid;
-    mdb_id rowID = 0;
+  mdbOid outOid;
+  mdb_id rowID = 0;
 
-    if (NS_SUCCEEDED(cardRow->GetOid(m_mdbEnv, &outOid)))
-        rowID = outOid.mOid_Id;
+  if (NS_SUCCEEDED(cardRow->GetOid(m_mdbEnv, &outOid)))
+    rowID = outOid.mOid_Id;
 
-    if(NS_SUCCEEDED(rv))
-    {
-        nsCOMPtr<nsIAbCard> personCard;
-        personCard = do_CreateInstance(NS_ABMDBCARD_CONTRACTID, &rv);
-        NS_ENSURE_SUCCESS(rv,rv);
+  if(NS_SUCCEEDED(rv))
+  {
+    nsCOMPtr<nsIAbCard> personCard;
+    personCard = do_CreateInstance(NS_ABMDBCARD_CONTRACTID, &rv);
+    NS_ENSURE_SUCCESS(rv,rv);
 
-        InitCardFromRow(personCard, cardRow);
-        personCard->SetPropertyAsUint32(kRowIDProperty, rowID);
+    InitCardFromRow(personCard, cardRow);
+    personCard->SetPropertyAsUint32(kRowIDProperty, rowID);
 
-        NS_IF_ADDREF(*result = personCard);
-    }
+    personCard.forget(result);
+  }
 
-    return rv;
+  return rv;
 }
 
 nsresult nsAddrDatabase::CreateCard(nsIMdbRow* cardRow, mdb_id listRowID, nsIAbCard **result)
@@ -2875,37 +2673,37 @@ nsresult nsAddrDatabase::CreateCard(nsIMdbRow* cardRow, mdb_id listRowID, nsIAbC
   if (!cardRow || !m_mdbEnv || !result)
     return NS_ERROR_NULL_POINTER;
 
-    nsresult rv = NS_OK;
+  nsresult rv = NS_OK;
 
-    mdbOid outOid;
-    mdb_id rowID = 0;
+  mdbOid outOid;
+  mdb_id rowID = 0;
 
-    if (NS_SUCCEEDED(cardRow->GetOid(m_mdbEnv, &outOid)))
-        rowID = outOid.mOid_Id;
+  if (NS_SUCCEEDED(cardRow->GetOid(m_mdbEnv, &outOid)))
+    rowID = outOid.mOid_Id;
 
-    if(NS_SUCCEEDED(rv))
-    {
-        nsCOMPtr<nsIAbCard> personCard;
-      personCard = do_CreateInstance(NS_ABMDBCARD_CONTRACTID, &rv);
-      NS_ENSURE_SUCCESS(rv,rv);
+  if(NS_SUCCEEDED(rv))
+  {
+    nsCOMPtr<nsIAbCard> personCard;
+    personCard = do_CreateInstance(NS_ABMDBCARD_CONTRACTID, &rv);
+    NS_ENSURE_SUCCESS(rv,rv);
 
-        InitCardFromRow(personCard, cardRow);
-        personCard->SetPropertyAsUint32(kRowIDProperty, rowID);
+    InitCardFromRow(personCard, cardRow);
+    personCard->SetPropertyAsUint32(kRowIDProperty, rowID);
 
-        nsAutoCString id;
-        id.AppendInt(rowID);
-        personCard->SetLocalId(id);
+    nsAutoCString id;
+    id.AppendInt(rowID);
+    personCard->SetLocalId(id);
 
-        nsCOMPtr<nsIAbDirectory> abDir(do_QueryReferent(m_dbDirectory));
-        if (abDir)
-         abDir->GetUuid(id);
+    nsCOMPtr<nsIAbDirectory> abDir(do_QueryReferent(m_dbDirectory));
+    if (abDir)
+      abDir->GetUuid(id);
 
-        personCard->SetDirectoryId(id);
+    personCard->SetDirectoryId(id);
 
-        NS_IF_ADDREF(*result = personCard);
-    }
+    personCard.forget(result);
+  }
 
-    return rv;
+  return rv;
 }
 
 nsresult nsAddrDatabase::CreateABCard(nsIMdbRow* cardRow, mdb_id listRowID, nsIAbCard **result)
@@ -2919,53 +2717,53 @@ nsresult nsAddrDatabase::CreateABListCard(nsIMdbRow* listRow, nsIAbCard **result
   if (!listRow || !m_mdbEnv || !result)
     return NS_ERROR_NULL_POINTER;
 
-    nsresult rv = NS_OK;
+  nsresult rv = NS_OK;
 
-    mdbOid outOid;
-    mdb_id rowID = 0;
+  mdbOid outOid;
+  mdb_id rowID = 0;
 
-    if (NS_SUCCEEDED(listRow->GetOid(m_mdbEnv, &outOid)))
-        rowID = outOid.mOid_Id;
+  if (NS_SUCCEEDED(listRow->GetOid(m_mdbEnv, &outOid)))
+    rowID = outOid.mOid_Id;
 
-    char* listURI = nullptr;
+  char* listURI = nullptr;
 
-    nsAutoString fileName;
-    rv = m_dbName->GetLeafName(fileName);
-    NS_ENSURE_SUCCESS(rv, rv);
-    listURI = PR_smprintf("%s%s/MailList%ld", kMDBDirectoryRoot, NS_ConvertUTF16toUTF8(fileName).get(), rowID);
+  nsAutoString fileName;
+  rv = m_dbName->GetLeafName(fileName);
+  NS_ENSURE_SUCCESS(rv, rv);
+  listURI = PR_smprintf("%s%s/MailList%ld", kMDBDirectoryRoot, NS_ConvertUTF16toUTF8(fileName).get(), rowID);
 
-    nsCOMPtr<nsIAbCard> personCard;
-    nsCOMPtr<nsIAbMDBDirectory> dbm_dbDirectory(do_QueryReferent(m_dbDirectory,
-                                                                 &rv));
-    if (NS_SUCCEEDED(rv) && dbm_dbDirectory)
+  nsCOMPtr<nsIAbCard> personCard;
+  nsCOMPtr<nsIAbMDBDirectory> dbm_dbDirectory(do_QueryReferent(m_dbDirectory,
+                                                               &rv));
+  if (NS_SUCCEEDED(rv) && dbm_dbDirectory)
+  {
+    personCard = do_CreateInstance(NS_ABMDBCARD_CONTRACTID, &rv);
+    NS_ENSURE_SUCCESS(rv,rv);
+
+    if (personCard)
     {
-        personCard = do_CreateInstance(NS_ABMDBCARD_CONTRACTID, &rv);
-        NS_ENSURE_SUCCESS(rv,rv);
+      GetListCardFromDB(personCard, listRow);
 
-        if (personCard)
-        {
-            GetListCardFromDB(personCard, listRow);
+      personCard->SetPropertyAsUint32(kRowIDProperty, rowID);
+      personCard->SetIsMailList(true);
+      personCard->SetMailListURI(listURI);
 
-            personCard->SetPropertyAsUint32(kRowIDProperty, rowID);
-            personCard->SetIsMailList(true);
-            personCard->SetMailListURI(listURI);
+      nsAutoCString id;
+      id.AppendInt(rowID);
+      personCard->SetLocalId(id);
 
-            nsAutoCString id;
-            id.AppendInt(rowID);
-            personCard->SetLocalId(id);
-
-            nsCOMPtr<nsIAbDirectory> abDir(do_QueryReferent(m_dbDirectory));
-            if (abDir)
-             abDir->GetUuid(id);
-            personCard->SetDirectoryId(id);
-        }
-
-        NS_IF_ADDREF(*result = personCard);
+      nsCOMPtr<nsIAbDirectory> abDir(do_QueryReferent(m_dbDirectory));
+      if (abDir)
+        abDir->GetUuid(id);
+      personCard->SetDirectoryId(id);
     }
-    if (listURI)
-        PR_smprintf_free(listURI);
 
-    return rv;
+    personCard.forget(result);
+  }
+  if (listURI)
+    PR_smprintf_free(listURI);
+
+  return rv;
 }
 
 /* create a sub directory for mailing list in the address book left pane */
@@ -3019,7 +2817,7 @@ nsresult nsAddrDatabase::CreateABList(nsIMdbRow* listRow, nsIAbDirectory **resul
             }
 
             dbm_dbDirectory->AddMailListToDirectory(mailList);
-            NS_IF_ADDREF(*result = mailList);
+            mailList.forget(result);
         }
     }
 
@@ -3181,7 +2979,7 @@ NS_IMETHODIMP nsAddrDatabase::GetCardCount(uint32_t *count)
 }
 
 bool
-nsAddrDatabase::HasRowButDeletedForCharColumn(const char16_t *unicodeStr, mdb_column findColumn, bool aIsCard, nsIMdbRow **aFindRow)
+nsAddrDatabase::HasRowForCharColumn(const char16_t *unicodeStr, mdb_column findColumn, bool aIsCard, nsIMdbRow **aFindRow)
 {
   if (!m_mdbStore || !aFindRow || !m_mdbEnv)
     return false;
@@ -3201,24 +2999,7 @@ nsAddrDatabase::HasRowButDeletedForCharColumn(const char16_t *unicodeStr, mdb_co
   {
     rv = m_mdbStore->FindRow(m_mdbEnv, m_CardRowScopeToken,
       findColumn, &sourceYarn,  &outRowId, aFindRow);
-
-    // no such card, so bail out early
-    if (NS_FAILED(rv) || !*aFindRow)
-      return false;
-
-    // we might not have loaded the "delete cards" table yet
-    // so do that (but don't create it, if we don't have one),
-    // so we can see if the row is really a delete card.
-    if (!m_mdbDeletedCardsTable)
-      rv = InitDeletedCardsTable(false);
-
-    // if still no deleted cards table, there are no deleted cards
-    if (!m_mdbDeletedCardsTable)
-      return false;
-
-    mdb_bool hasRow = false;
-    rv = m_mdbDeletedCardsTable->HasRow(m_mdbEnv, *aFindRow, &hasRow);
-    return (NS_SUCCEEDED(rv) && hasRow);
+    return (NS_SUCCEEDED(rv) && *aFindRow);
   }
 
   rv = m_mdbStore->FindRow(m_mdbEnv, m_ListRowScopeToken,
@@ -3243,28 +3024,9 @@ nsAddrDatabase::GetRowForCharColumn(const char16_t *unicodeStr,
 
   *aFindRow = nullptr;
 
-  // see bug #198303
-  // the addition of the m_mdbDeletedCardsTable table has complicated life in the addressbook
-  // (it was added for palm sync).  until we fix the underlying problem, we have to jump through hoops
-  // in order to know if we have a row (think card) for a given column value (think email=foo@bar.com)
-  // there are 4 scenarios:
-  //   1) no cards with a match
-  //   2) at least one deleted card with a match, but no non-deleted cards
-  //   3) at least one non-deleted card with a match, but no deleted cards
-  //   4) at least one deleted card, and one non-deleted card with a match.
-  //
-  // if we have no cards that match (FindRow() returns nothing), we can bail early
-  // but if FindRow() returns something, we have to check if it is in the deleted table
-  // if not in the deleted table we can return the row (we found a non-deleted card)
-  // but if so, we have to search through the table of non-deleted cards
-  // for a match.  If we find one, we return it.  but if not, we report that there are no
-  // non-deleted cards.  This is the expensive part.  The worse case scenario is to have
-  // deleted lots of cards, and then have a lot of non-deleted cards.
-  // we'd have to call FindRow(), HasRow(), and then search the list of non-deleted cards
-  // each time we call GetRowForCharColumn().
-  if (!aRowPos && !HasRowButDeletedForCharColumn(unicodeStr, findColumn, aIsCard, aFindRow))
+  if (!aRowPos && !HasRowForCharColumn(unicodeStr, findColumn, aIsCard, aFindRow))
   {
-    // If we have a row, it's the row for the non-delete card, so return NS_OK.
+    // If we have a row, return NS_OK.
     // If we don't have a row, there are two possible conditions: either the
     // card does not exist, or we are doing case-insensitive searching and the
     // value isn't lowercase.
@@ -3278,7 +3040,7 @@ nsAddrDatabase::GetRowForCharColumn(const char16_t *unicodeStr,
       return NS_ERROR_FAILURE;
   }
 
-  // check if there is a non-deleted card
+  // Check if there is matching card.
   nsCOMPtr<nsIMdbTableRowCursor> rowCursor;
   mdb_pos rowPos = -1;
   bool done = false;
@@ -3310,7 +3072,7 @@ nsAddrDatabase::GetRowForCharColumn(const char16_t *unicodeStr,
 
         if (NS_SUCCEEDED(rv) && equals)
         {
-          NS_IF_ADDREF(*aFindRow = currentRow);
+          currentRow.forget(aFindRow);
           if (aRowPos)
             *aRowPos = rowPos;
           return NS_OK;

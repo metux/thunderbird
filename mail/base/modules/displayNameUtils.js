@@ -29,7 +29,7 @@ function GetCardForEmail(aEmailAddress) {
   // the cardForEmailAddress function.
   // Future expansion could be to domain matches
   let books = MailServices.ab.directories;
-  for (let book in fixIterator(books, Components.interfaces.nsIAbDirectory)) {
+  for (let book of fixIterator(books, Components.interfaces.nsIAbDirectory)) {
     try {
       let card = book.cardForEmailAddress(aEmailAddress);
       if (card)
@@ -43,7 +43,7 @@ function GetCardForEmail(aEmailAddress) {
 
 function _getIdentityForAddress(aEmailAddress) {
   let emailAddress = aEmailAddress.toLowerCase();
-  for (let identity in fixIterator(MailServices.accounts.allIdentities,
+  for (let identity of fixIterator(MailServices.accounts.allIdentities,
                                    Components.interfaces.nsIMsgIdentity)) {
     if (!identity.email)
       continue;
@@ -86,7 +86,9 @@ function FormatDisplayName(aEmailAddress, aHeaderDisplayName, aContext, aCard)
 
     // Make sure we have an unambiguous name if there are multiple identities
     if (MailServices.accounts.allIdentities.length > 1)
-      displayName += " <" + identity.email + ">";
+      displayName = MailServices.headerParser
+                                .makeMailboxObject(displayName,
+                                                   identity.email).toString();
   }
 
   // If we don't have a card, refuse to generate a display name. Places calling
@@ -116,15 +118,16 @@ function FormatDisplayName(aEmailAddress, aHeaderDisplayName, aContext, aCard)
 function FormatDisplayNameList(aHeaderValue, aContext) {
   let addresses = MailServices.headerParser.parseDecodedHeader(aHeaderValue);
   if (addresses.length > 0) {
-    let displayName = FormatDisplayName(addresses[0].email, addresses[0].name, aContext);
+    let displayName = FormatDisplayName(addresses[0].email,
+                                        addresses[0].name, aContext);
     if (displayName)
       return displayName;
 
     // Construct default display.
     if (addresses[0].email) {
-      return addresses[0].name ?
-             addresses[0].name + " <" + addresses[0].email + ">" :
-             addresses[0].email;
+      return MailServices.headerParser
+                         .makeMailboxObject(addresses[0].name,
+                                            addresses[0].email).toString();
     }
   }
 

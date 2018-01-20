@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 Components.utils.import("resource://gre/modules/Services.jsm");
+Components.utils.import("resource://gre/modules/AppConstants.jsm");
 
 var nsIPermissionManager = Components.interfaces.nsIPermissionManager;
 var nsICookiePermission = Components.interfaces.nsICookiePermission;
@@ -13,7 +14,7 @@ var NOTIFICATION_FLUSH_PERMISSIONS = "flush-pending-permissions";
  * Magic URI base used so the permission manager can store
  * remote content permissions for a given email address.
  */
-var MAILURI_BASE = "chrome://messenger/content/?email=";
+var MAILURI_BASE = "chrome://messenger/content/email=";
 
 function Permission(principal, type, capability)
 {
@@ -100,14 +101,14 @@ var gPermissionManager = {
       // permissions from being entered by the user.
       let uri;
       try {
-        uri = Services.io.newURI(input_url, null, null);
+        uri = Services.io.newURI(input_url);
         principal = Services.scriptSecurityManager.createCodebasePrincipal(uri, {});
         // If we have ended up with an unknown scheme, the following will throw.
         principal.origin;
       } catch(ex) {
         let scheme = (this._type != "image" || !input_url.includes("@")) ?
           "http://" : MAILURI_BASE;
-        uri = Services.io.newURI(scheme + input_url, null, null);
+        uri = Services.io.newURI(scheme + input_url);
         principal = Services.scriptSecurityManager.createCodebasePrincipal(uri, {});
         // If we have ended up with an unknown scheme, the following will throw.
         principal.origin;
@@ -354,9 +355,9 @@ var gPermissionManager = {
 
   onPermissionKeyPress: function (aEvent)
   {
-    if (aEvent.keyCode == KeyEvent.DOM_VK_DELETE
-        || (Application.platformIsMac && aEvent.keyCode == KeyEvent.DOM_VK_BACK_SPACE)
-       )
+    if (aEvent.keyCode == KeyEvent.DOM_VK_DELETE ||
+        ((AppConstants.platform == "macosx") &&
+         aEvent.keyCode == KeyEvent.DOM_VK_BACK_SPACE))
       this.onPermissionDeleted();
   },
 

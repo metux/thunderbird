@@ -1,4 +1,3 @@
-
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -11,14 +10,28 @@
 
 @namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
 
-#msgcomposeWindow:-moz-lwtheme {
-  background-repeat: no-repeat;
-  background-position: top right;
-}
-
 #attachmentBucket {
   width: 15em;
   min-width: 15em;
+}
+
+#attachmentBucket:focus {
+  box-shadow: 0 0 2px Highlight inset, 0 0 2px Highlight inset;
+}
+
+#attachmentBucket > scrollbox > .scrollbox-innerbox {
+  padding: 1px;
+}
+
+#compose-toolbox {
+  -moz-appearance: none;
+  background-color: var(--toolbar-bgcolor);
+  border-bottom: 1px solid ThreeDShadow;
+}
+
+#compose-toolbox:-moz-lwtheme {
+  background-color: var(--toolbar-bgcolor);
+  color: var(--toolbar-color, inherit);
 }
 
 #compose-toolbox > toolbar {
@@ -27,6 +40,11 @@
 }
 
 /** Stock icons for the menu items. */
+.formatting-button > .toolbarbutton-icon {
+  width: 16px;
+  height: 16px;
+}
+
 #fontFaceMenu {
   -moz-binding: url("chrome://global/content/bindings/menu.xml#menu-iconic");
   list-style-image: url("moz-icon://stock/gtk-select-font?size=menu");
@@ -63,92 +81,48 @@
 /* ::::: primary toolbar buttons ::::: */
 
 #button-send {
-  list-style-image: url("chrome://messenger/skin/messengercompose/compose-toolbar.svg#send");
+  list-style-image: url("chrome://messenger/skin/icons/send.svg");
 }
 
 #button-contacts {
-  list-style-image: url("chrome://messenger/skin/messengercompose/compose-toolbar.svg#contacts");
+  list-style-image: url("chrome://messenger/skin/icons/address.svg");
   -moz-image-region: auto !important;
 }
 
 #spellingButton {
-  list-style-image: url("chrome://messenger/skin/messengercompose/compose-toolbar.svg#spelling");
+  list-style-image: url("chrome://messenger/skin/icons/spelling.svg");
 }
 
 #button-attach {
-  list-style-image: url("chrome://messenger/skin/messengercompose/compose-toolbar.svg#attach");
+  list-style-image: url("chrome://messenger/skin/icons/attach.svg");
 }
 
 #button-security {
-  list-style-image: url("chrome://messenger/skin/messengercompose/compose-toolbar.svg#security");
+  list-style-image: url("chrome://messenger/skin/icons/security.svg");
 }
 
 #button-save {
-  list-style-image: url("chrome://messenger/skin/messengercompose/compose-toolbar.svg#save");
+  list-style-image: url("chrome://messenger/skin/icons/save.svg");
 }
 
 #quoteButton {
-  list-style-image: url("chrome://messenger/skin/messengercompose/compose-toolbar.svg#quote");
+  list-style-image: url("chrome://messenger/skin/icons/quote.svg");
 }
 
 #cut-button {
-  list-style-image: url("chrome://messenger/skin/messengercompose/compose-toolbar.svg#cut");
+  list-style-image: url("chrome://messenger/skin/icons/cut.svg");
 }
 
 #copy-button {
-  list-style-image: url("chrome://messenger/skin/messengercompose/compose-toolbar.svg#copy");
+  list-style-image: url("chrome://messenger/skin/icons/copy.svg");
 }
 
 #paste-button {
-  list-style-image: url("chrome://messenger/skin/messengercompose/compose-toolbar.svg#paste");
+  list-style-image: url("chrome://messenger/skin/icons/paste.svg");
 }
 
 #button-print {
-  list-style-image: url("chrome://messenger/skin/messengercompose/compose-toolbar.svg#print");
-}
-
-toolbar[brighttext] #button-send {
-  list-style-image: url("chrome://messenger/skin/messengercompose/compose-toolbar.svg#send-inverted");
-}
-
-toolbar[brighttext] #button-contacts {
-  list-style-image: url("chrome://messenger/skin/messengercompose/compose-toolbar.svg#contacts-inverted");
-}
-
-toolbar[brighttext] #spellingButton {
-  list-style-image: url("chrome://messenger/skin/messengercompose/compose-toolbar.svg#spelling-inverted");
-}
-
-toolbar[brighttext] #button-attach {
-  list-style-image: url("chrome://messenger/skin/messengercompose/compose-toolbar.svg#attach-inverted");
-}
-
-toolbar[brighttext] #button-security {
-  list-style-image: url("chrome://messenger/skin/messengercompose/compose-toolbar.svg#security-inverted");
-}
-
-toolbar[brighttext] #button-save {
-  list-style-image: url("chrome://messenger/skin/messengercompose/compose-toolbar.svg#save-inverted");
-}
-
-toolbar[brighttext] #quoteButton {
-  list-style-image: url("chrome://messenger/skin/messengercompose/compose-toolbar.svg#quote-inverted");
-}
-
-toolbar[brighttext] #cut-button {
-  list-style-image: url("chrome://messenger/skin/messengercompose/compose-toolbar.svg#cut-inverted");
-}
-
-toolbar[brighttext] #copy-button {
-  list-style-image: url("chrome://messenger/skin/messengercompose/compose-toolbar.svg#copy-inverted");
-}
-
-toolbar[brighttext] #paste-button {
-  list-style-image: url("chrome://messenger/skin/messengercompose/compose-toolbar.svg#paste-inverted");
-}
-
-toolbar[brighttext] #button-print {
-  list-style-image: url("chrome://messenger/skin/messengercompose/compose-toolbar.svg#print-inverted");
+  list-style-image: url("chrome://messenger/skin/icons/print.svg");
 }
 
 /* ::::: menulists on toolbar ::::: */
@@ -186,15 +160,14 @@ menulist > .menulist-label-box {
   padding-inline-end: 12px;
   background-repeat: no-repeat;
   background-position: right;
-  background-image: url("chrome://messenger/skin/icons/toolbarbutton-arrow.png");
+  background-size: 9px 7px;
+  background-image: url("chrome://messenger/skin/icons/toolbarbutton-arrow.svg");
+  -moz-context-properties: fill;
+  fill: currentColor;
 }
 
 menulist:-moz-locale-dir(rtl) > .menulist-label-box {
   background-position: left;
-}
-
-toolbar[brighttext] menulist > .menulist-label-box {
-  background-image: url("chrome://messenger/skin/icons/toolbarbutton-arrow-inverted.png");
 }
 
 /* ::::: special toolbar colors ::::: */
@@ -203,31 +176,41 @@ toolbar[brighttext] menulist > .menulist-label-box {
   border-top: none;
 }
 
-#attachments-box {
-  padding-top: 5px;
+#attachments-header-box {
+  height: 24px;
+  margin-top: 1px;
+}
+
+#attachmentBucketCount {
+  margin-top: 0;
+  margin-bottom: 0;
 }
 
 #attachmentBucketSize {
-  color: #888a85;
-  -moz-padding-end: 1px;
+  color: GrayText;
+  margin-top: 0;
+  margin-bottom: 0;
+  padding-inline-end: 1px;
 }
 
 /* ::::: attachment reminder ::::: */
 
-#attachmentNotificationBox > notification .messageImage {
-  width: 18px;
-  height: 18px;
-  background-image: url(chrome://messenger/skin/messengercompose/compose-toolbar.svg#attach);
+#attachmentNotificationBox b {
+  font-weight: bold;
+}
+
+#attachmentNotificationBox > notification[image="null"] .messageImage {
+  background-image: url("chrome://messenger/skin/icons/attach.svg");
 }
 
 #attachmentReminderText {
-  -moz-margin-start: 0px;
+  margin-inline-start: 0px;
   cursor: pointer;
 }
 
 #attachmentKeywords {
   font-weight: bold;
-  -moz-margin-start: 0px;
+  margin-inline-start: 0px;
   text-decoration: underline;
   cursor: pointer;
 }
@@ -235,67 +218,61 @@ toolbar[brighttext] menulist > .menulist-label-box {
 /* XXX I should really have a selector rule here to select just .listcell-icon objects underneath the attachmentList listbox */
 
 .listcell-icon {
-  -moz-margin-start: 2px;
+  margin-inline-start: 2px;
   margin-top: 2px;
 }
 
 #subjectLabel {
-  margin-inline-end: 7px;
+  margin-inline-end: 6px;
   padding-bottom: 1px;
 }
 
 #subject-box {
-  -moz-margin-start: -2px;
+  margin-inline-start: -2px;
 }
 
 #msgSubject {
   -moz-appearance: none;
   margin-top: 0;
-  -moz-margin-start: 6px;
-  -moz-margin-end: 5px;
+  margin-inline-start: 6px;
+  margin-inline-end: 5px;
   background-color: inherit;
-  border-color: transparent;
-  -moz-border-top-colors: none;
-  -moz-border-left-colors: none;
-  -moz-border-right-colors: none;
-  -moz-border-bottom-colors: ThreeDShadow ThreeDHighlight;
-  padding: 2px;
-  -moz-padding-start: 5px !important;
+  border: 1px solid transparent;
+  border-bottom-color: var(--toolbarbutton-hover-bordercolor);
+  padding: 4px 2px;
+  padding-inline-start: 5px !important;
   transition: border .2s, background-color .2s;
 }
 
 #msgSubject:hover,
 #msgSubject[focused="true"] {
   background-color: -moz-field;
-  -moz-border-top-colors: ThreeDShadow ThreeDHighlight;
-  -moz-border-right-colors: ThreeDShadow ThreeDHighlight;
-  -moz-border-bottom-colors: ThreeDShadow ThreeDHighlight;
-  -moz-border-left-colors: ThreeDShadow ThreeDHighlight;
+  border-color: var(--toolbarbutton-hover-bordercolor);
 }
 
 /* ::::: autocomplete icons ::::: */
 
 treechildren::-moz-tree-image(local-abook) {
-  -moz-margin-start: 3px;
-  -moz-margin-end: 2px;
+  margin-inline-start: 3px;
+  margin-inline-end: 2px;
   list-style-image: url("chrome://messenger/skin/addressbook/icons/addrbook.png");
 }
 
 treechildren::-moz-tree-image(remote-abook) {
-  -moz-margin-start: 3px;
-  -moz-margin-end: 2px;
+  margin-inline-start: 3px;
+  margin-inline-end: 2px;
   list-style-image: url("chrome://messenger/skin/addressbook/icons/remote-addrbook.png");
 }
 
 treechildren::-moz-tree-image(remote-err) {
-  -moz-margin-start: 3px;
-  -moz-margin-end: 2px;
+  margin-inline-start: 3px;
+  margin-inline-end: 2px;
   list-style-image: url("chrome://messenger/skin/addressbook/icons/remote-addrbook-error.png");
 }
 
 treechildren::-moz-tree-image(subscribed-news) {
-  -moz-margin-start: 3px;
-  -moz-margin-end: 2px;
+  margin-inline-start: 3px;
+  margin-inline-end: 2px;
   list-style-image: url("chrome://messenger/skin/icons/folder-pane.png");
   -moz-image-region: rect(208px 16px 224px 0px);
 }
@@ -329,12 +306,9 @@ treechildren::-moz-tree-image(subscribed-news) {
 
 .textbox-addressingWidget,
 .dummy-row-cell:not(:first-child) {
-  padding: 2px !important;
-  border: solid 2px transparent !important;
-  -moz-border-top-colors: none !important;
-  -moz-border-left-colors: none !important;
-  -moz-border-right-colors: none !important;
-  -moz-border-bottom-colors: ThreeDShadow ThreeDHighlight !important;
+  padding: 4px 2px !important;
+  border: solid 1px transparent !important;
+  border-bottom-color: var(--toolbarbutton-hover-bordercolor) !important;
   transition: border .2s, background-color .2s;
  }
 
@@ -346,17 +320,14 @@ treechildren::-moz-tree-image(subscribed-news) {
 .textbox-addressingWidget[focused="true"],
 .textbox-addressingWidget:hover {
   background-color: -moz-field;
-  -moz-border-top-colors: ThreeDShadow ThreeDHighlight !important;
-  -moz-border-right-colors: ThreeDShadow ThreeDHighlight !important;
-  -moz-border-bottom-colors: ThreeDShadow ThreeDHighlight !important;
-  -moz-border-left-colors: ThreeDShadow ThreeDHighlight !important;
+  border-color: var(--toolbarbutton-hover-bordercolor) !important;
 }
 
 .aw-menulist {
-  -moz-binding: url("chrome://messenger/content/messengercompose/menulistCompactBindings.xml#menulist-compact");
+  font: inherit;
   margin: 0;
-  -moz-margin-start: 5px;
-  -moz-margin-end: 7px;
+  margin-inline-start: 5px;
+  margin-inline-end: 7px;
   padding-inline-end: 0;
   outline: 1px solid transparent;
   outline-offset: -3px;
@@ -388,10 +359,10 @@ treechildren::-moz-tree-image(subscribed-news) {
 }
 
 .aw-menulist > .menulist-label-box > .menulist-icon {
-  -moz-margin-start: 2px;
+  margin-inline-start: 2px;
 }
 
-.aw-menulist > dropmarker {
+.aw-menulist > .menulist-dropmarker {
   height: 11px;
 }
 
@@ -427,21 +398,13 @@ treechildren::-moz-tree-image(subscribed-news) {
   padding-top: 3px;
 }
 
-#identityLabel {
-  -moz-appearance: none;
-  margin-inline-end: 3px;
-  margin-top: 2px;
-  margin-bottom: 0;
-  padding: 3px 5px;
-  color: ButtonText;
-  background-color: transparent;
-  border: 1px solid transparent;
-  transition: background-color .25s ease-in;
+#identityLabel-box {
+  margin-top: 1px;
 }
 
-#identityLabel:hover {
-  border-color: rgba(125, 125, 125, .4);
-  background-color: rgba(125, 125, 125, .4);
+#identityLabel {
+  margin-bottom: 1px;
+  margin-inline-end: 8px
 }
 
 #msgIdentity {
@@ -453,20 +416,17 @@ treechildren::-moz-tree-image(subscribed-news) {
   padding-bottom: 1px;
   padding-inline-start: 2px;
   background: transparent;
-  height: 22px;
-  line-height: 1;
-  border: 2px solid transparent;
-  -moz-border-bottom-colors: ThreeDShadow ThreeDHighlight;
+  font: inherit;
+  border: 1px solid transparent;
+  border-bottom-color: var(--toolbarbutton-hover-bordercolor);
   transition: border .2s, background-color .2s;
 }
 
 #msgIdentity:hover,
+#msgIdentity:focus,
 #msgIdentity[focused="true"] {
   background-color: -moz-field;
-  -moz-border-top-colors: ThreeDShadow ThreeDHighlight;
-  -moz-border-right-colors: ThreeDShadow ThreeDHighlight;
-  -moz-border-bottom-colors: ThreeDShadow ThreeDHighlight;
-  -moz-border-left-colors: ThreeDShadow ThreeDHighlight;
+  border-color: var(--toolbarbutton-hover-bordercolor);
 }
 
 #msgIdentity > .menulist-editable-box {
@@ -474,16 +434,23 @@ treechildren::-moz-tree-image(subscribed-news) {
   padding-top: 0;
   padding-bottom: 0;
   padding-inline-start: 3px;
+  padding-inline-end: 12px;
   height: 1.4em;
+  background-repeat: no-repeat;
+  background-position: right;
+  background-size: 9px 7px;
+  background-image: url("chrome://messenger/skin/icons/toolbarbutton-arrow.svg");
+  -moz-context-properties: fill;
+  fill: currentColor;
 }
 
 #msgIdentity[editable="true"] > .menulist-dropmarker {
-  -moz-appearance: none;
-  display: -moz-box;
-  margin-inline-start: 4px;
-  border: none;
-  background: transparent;
-  list-style-image: url("chrome://messenger/skin/icons/toolbarbutton-arrow.png");
+  display: none;
+}
+
+#msgIdentityPopup > menuitem[_moz-menuactive="true"] > .menu-description {
+  color: HighlightText;
+  opacity: .7;
 }
 
 /* ::::: format toolbar ::::: */
@@ -494,6 +461,10 @@ treechildren::-moz-tree-image(subscribed-news) {
   margin-left: 3px;
   margin-right: 3px;
   background-image: url("chrome://messenger/skin/messengercompose/linux-noise.png");
+}
+
+#FontFaceSelect {
+  max-width: 35ch;
 }
 
 toolbarbutton.formatting-button {
@@ -628,7 +599,7 @@ toolbarbutton.formatting-button {
 }
 
 #InsertImageItem {
-  -moz-image-region: rect(64px 16px 80px 0px);
+  -moz-image-region: rect(80px 16px 96px 0px);
 }
 
 #InsertHRuleItem {
@@ -756,8 +727,8 @@ toolbarbutton.formatting-button {
 #TextColorButton {
   margin-top: 2px;
   margin-bottom: 9px;
-  -moz-margin-start: 2px;
-  -moz-margin-end: 9px;
+  margin-inline-start: 2px;
+  margin-inline-end: 9px;
 }
 
 #TextColorButton[color="mixed"] {
@@ -768,8 +739,8 @@ toolbarbutton.formatting-button {
 #BackgroundColorButton {
   margin-top: 9px;
   margin-bottom: 2px;
-  -moz-margin-start: 9px;
-  -moz-margin-end: 2px;
+  margin-inline-start: 9px;
+  margin-inline-end: 2px;
 }
 
 #HighlightColorButton {
@@ -792,24 +763,8 @@ toolbarbutton.formatting-button {
 }
 
 /* ::::: address book sidebar ::::: */
-.ab-closebutton {
-  list-style-image: url("chrome://messenger/skin/icons/close-button.png");
-  -moz-image-region: rect(0 16px 16px 0);
-  -moz-appearance: none;
-  border: none !important;
-  padding: 2px;
-}
-
-.ab-closebutton:hover {
-  -moz-image-region: rect(0 32px 16px 16px);
-}
-
-.ab-closebutton:hover:active {
-  -moz-image-region: rect(0 48px 16px 32px);
-}
-
 .ab-closebutton > .toolbarbutton-icon {
-  -moz-margin-end: 0px; /* override toolkit's default value */
+  margin-inline-end: 0; /* override toolkit's default value */
 }
 
 #sidebar {
@@ -824,11 +779,11 @@ toolbarbutton.formatting-button {
 
 /** Stock icons for the menu items. */
 #menu_NewMessage {
-  list-style-image: url("chrome://messenger/skin/icons/mail-toolbar.svg#newmsg");
+  list-style-image: url("chrome://messenger/skin/icons/newmsg.svg");
 }
 
 #menu_NewContact {
-  list-style-image: url("chrome://messenger/skin/addressbook/icons/addressbook-toolbar.svg#newcard");
+  list-style-image: url("chrome://messenger/skin/icons/addcontact.svg");
 }
 
 #menu_SaveCmd {
@@ -854,11 +809,11 @@ toolbarbutton.formatting-button {
 
 #sidebar-splitter {
   -moz-appearance: none;
-  -moz-border-start: 1px solid ThreeDShadow;
+  border-inline-start: 1px solid ThreeDShadow;
   /* splitter grip area */
   width: 5px;
   /* make only the splitter border visible */
-  -moz-margin-end: -5px;
+  margin-inline-end: -5px;
   /* because of the negative margin needed to make the splitter visible */
   position: relative;
   z-index: 10;
@@ -869,4 +824,38 @@ menu[command="cmd_convertCloud"] .menu-iconic-left {
   /* Ensure that the provider icons are visible even if the Gnome theme says
      menus shouldn't have icons. */
   visibility: visible;
+}
+
+/* ::::: Reorder Attachments Panel ::::: */
+
+#reorderAttachmentsPanel > .panel-arrowcontainer > .panel-arrowcontent {
+  --arrowpanel-padding: 4px;
+}
+
+#btn_moveAttachmentTop {
+  list-style-image: url("chrome://messenger/skin/icons/move-top.svg");
+}
+
+#btn_moveAttachmentUp {
+  list-style-image: url("chrome://messenger/skin/icons/move-up.svg");
+}
+
+#btn_moveAttachmentDown {
+  list-style-image: url("chrome://messenger/skin/icons/move-down.svg");
+}
+
+#btn_moveAttachmentBottom {
+  list-style-image: url("chrome://messenger/skin/icons/move-bottom.svg");
+}
+
+#btn_moveAttachmentBundleUp {
+  list-style-image: url("chrome://messenger/skin/icons/move-together.svg");
+}
+
+#btn_sortAttachmentsToggle {
+  list-style-image: url("chrome://messenger/skin/icons/sort.svg");
+}
+
+#btn_sortAttachmentsToggle[data-sortdirection="descending"] > .toolbarbutton-icon {
+  transform: scaleY(-1);
 }

@@ -9,13 +9,6 @@ textbox {
   -moz-appearance: textfield;
   cursor: text;
   margin: 4px;
-  border: 3px solid;
-  -moz-border-top-colors: transparent #888888 #000000;
-  -moz-border-right-colors: transparent #FFFFFF #000000;
-  -moz-border-bottom-colors: transparent #FFFFFF #000000;
-  -moz-border-left-colors: transparent #888888 #000000;
-  border-top-right-radius: 2px;
-  border-bottom-left-radius: 2px;
   padding: 0px;
   background-color: -moz-Field;
   color: -moz-FieldText;
@@ -35,13 +28,6 @@ html|*.textbox-textarea {
   cursor: default;
 }
 
-textbox[focused="true"] {
-  -moz-border-top-colors: -moz-mac-focusring -moz-mac-focusring #000000;
-  -moz-border-right-colors: -moz-mac-focusring -moz-mac-focusring #000000;
-  -moz-border-bottom-colors: -moz-mac-focusring -moz-mac-focusring #000000;
-  -moz-border-left-colors: -moz-mac-focusring -moz-mac-focusring #000000;
-}
-
 textbox[readonly="true"] {
   background-color: -moz-Dialog;
   color: -moz-DialogText;
@@ -49,10 +35,6 @@ textbox[readonly="true"] {
 
 textbox[disabled="true"] {
   cursor: default;
-  -moz-border-top-colors: transparent ThreeDShadow -moz-Dialog;
-  -moz-border-right-colors: transparent ThreeDShadow -moz-Dialog;
-  -moz-border-bottom-colors: transparent ThreeDShadow -moz-Dialog;
-  -moz-border-left-colors: transparent ThreeDShadow -moz-Dialog;
   background-color: -moz-Dialog;
   color: GrayText;
 } 
@@ -79,13 +61,9 @@ textbox[type="search"] {
 }
 
 .textbox-search-clear {
-  list-style-image: url(chrome://global/skin/icons/searchfield-regular-cancel.png);
+  list-style-image: url(chrome://global/skin/icons/searchfield-cancel.svg);
   -moz-image-region: rect(0, 14px, 14px, 0);
   margin-bottom: 1px;
-}
-
-.textbox-search-clear:active:hover {
-  -moz-image-region: rect(0, 28px, 14px, 14px);
 }
 
 textbox[type="search"].compact {
@@ -94,12 +72,7 @@ textbox[type="search"].compact {
 }
 
 textbox[type="search"].compact > .textbox-input-box > .textbox-search-icons > .textbox-search-clear {
-  list-style-image: url(chrome://global/skin/icons/searchfield-small-cancel.png);
-  -moz-image-region: rect(0, 11px, 11px, 0);
-}
-
-textbox[type="search"].compact > .textbox-input-box > .textbox-search-icons > .textbox-search-clear:active:hover {
-  -moz-image-region: rect(0, 22px, 11px, 11px);
+  width: 11px;
 }
 
 .textbox-search-clear:not([disabled]) {

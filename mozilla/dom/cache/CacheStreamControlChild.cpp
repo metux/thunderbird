@@ -6,8 +6,7 @@
 
 #include "mozilla/dom/cache/CacheStreamControlChild.h"
 
-#include "mozilla/DebugOnly.h"
-#include "mozilla/unused.h"
+#include "mozilla/Unused.h"
 #include "mozilla/dom/cache/ActorUtils.h"
 #include "mozilla/dom/cache/CacheTypes.h"
 #include "mozilla/dom/cache/ReadStream.h"
@@ -20,9 +19,10 @@ namespace mozilla {
 namespace dom {
 namespace cache {
 
+using mozilla::dom::OptionalFileDescriptorSet;
+using mozilla::ipc::AutoIPCStream;
 using mozilla::ipc::FileDescriptor;
 using mozilla::ipc::FileDescriptorSetChild;
-using mozilla::ipc::OptionalFileDescriptorSet;
 using mozilla::ipc::PFileDescriptorSetChild;
 
 // declared in ActorUtils.h
@@ -57,8 +57,8 @@ CacheStreamControlChild::StartDestroy()
 {
   NS_ASSERT_OWNINGTHREAD(CacheStreamControlChild);
   // This can get called twice under some circumstances.  For example, if the
-  // actor is added to a Feature that has already been notified and the Cache
-  // actor has no mListener.
+  // actor is added to a CacheWorkerHolder that has already been notified and
+  // the Cache actor has no mListener.
   if (mDestroyStarted) {
     return;
   }
@@ -88,47 +88,47 @@ void
 CacheStreamControlChild::SerializeControl(CacheReadStream* aReadStreamOut)
 {
   NS_ASSERT_OWNINGTHREAD(CacheStreamControlChild);
+  MOZ_DIAGNOSTIC_ASSERT(aReadStreamOut);
   aReadStreamOut->controlParent() = nullptr;
   aReadStreamOut->controlChild() = this;
 }
 
 void
-CacheStreamControlChild::SerializeFds(CacheReadStream* aReadStreamOut,
-                                      const nsTArray<FileDescriptor>& aFds)
+CacheStreamControlChild::SerializeStream(CacheReadStream* aReadStreamOut,
+                                         nsIInputStream* aStream,
+                                         nsTArray<UniquePtr<AutoIPCStream>>& aStreamCleanupList)
 {
   NS_ASSERT_OWNINGTHREAD(CacheStreamControlChild);
-  PFileDescriptorSetChild* fdSet = nullptr;
-  if (!aFds.IsEmpty()) {
-    fdSet = Manager()->SendPFileDescriptorSetConstructor(aFds[0]);
-    for (uint32_t i = 1; i < aFds.Length(); ++i) {
-      Unused << fdSet->SendAddFileDescriptor(aFds[i]);
-    }
-  }
-
-  if (fdSet) {
-    aReadStreamOut->fds() = fdSet;
-  } else {
-    aReadStreamOut->fds() = void_t();
-  }
+  MOZ_DIAGNOSTIC_ASSERT(aReadStreamOut);
+  UniquePtr<AutoIPCStream> autoStream(new AutoIPCStream(aReadStreamOut->stream()));
+  autoStream->Serialize(aStream, Manager());
+  aStreamCleanupList.AppendElement(Move(autoStream));
 }
 
 void
-CacheStreamControlChild::DeserializeFds(const CacheReadStream& aReadStream,
-                                        nsTArray<FileDescriptor>& aFdsOut)
+CacheStreamControlChild::OpenStream(const nsID& aId, InputStreamResolver&& aResolver)
 {
-  if (aReadStream.fds().type() !=
-      OptionalFileDescriptorSet::TPFileDescriptorSetChild) {
+  NS_ASSERT_OWNINGTHREAD(CacheStreamControlChild);
+
+  if (mDestroyStarted) {
+    aResolver(nullptr);
     return;
   }
 
-  auto fdSetActor = static_cast<FileDescriptorSetChild*>(
-    aReadStream.fds().get_PFileDescriptorSetChild());
-  MOZ_ASSERT(fdSetActor);
+  // If we are on a worker, then we need to hold it alive until the async
+  // IPC operation below completes.  While the IPC layer will trigger a
+  // rejection here in many cases, we must handle the case where the
+  // MozPromise resolve runnable is already in the event queue when the
+  // worker wants to shut down.
+  RefPtr<CacheWorkerHolder> holder = GetWorkerHolder();
 
-  fdSetActor->ForgetFileDescriptors(aFdsOut);
-  MOZ_ASSERT(!aFdsOut.IsEmpty());
-
-  Unused << fdSetActor->Send__delete__(fdSetActor);
+  SendOpenStream(aId)->Then(GetCurrentThreadSerialEventTarget(), __func__,
+  [aResolver, holder](const OptionalIPCStream& aOptionalStream) {
+    nsCOMPtr<nsIInputStream> stream = DeserializeIPCStream(aOptionalStream);
+    aResolver(Move(stream));
+  }, [aResolver, holder](PromiseRejectReason aReason) {
+    aResolver(nullptr);
+  });
 }
 
 void
@@ -160,23 +160,23 @@ CacheStreamControlChild::ActorDestroy(ActorDestroyReason aReason)
 {
   NS_ASSERT_OWNINGTHREAD(CacheStreamControlChild);
   CloseAllReadStreamsWithoutReporting();
-  RemoveFeature();
+  RemoveWorkerHolder();
 }
 
-bool
+mozilla::ipc::IPCResult
 CacheStreamControlChild::RecvClose(const nsID& aId)
 {
   NS_ASSERT_OWNINGTHREAD(CacheStreamControlChild);
   CloseReadStreams(aId);
-  return true;
+  return IPC_OK();
 }
 
-bool
+mozilla::ipc::IPCResult
 CacheStreamControlChild::RecvCloseAll()
 {
   NS_ASSERT_OWNINGTHREAD(CacheStreamControlChild);
   CloseAllReadStreams();
-  return true;
+  return IPC_OK();
 }
 
 } // namespace cache

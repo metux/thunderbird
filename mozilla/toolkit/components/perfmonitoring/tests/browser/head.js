@@ -1,21 +1,23 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
+/* eslint-env mozilla/frame-script */
+
 var { utils: Cu, interfaces: Ci, classes: Cc } = Components;
 
-Cu.import("resource://gre/modules/Promise.jsm", this);
 Cu.import("resource://gre/modules/AddonManager.jsm", this);
-Cu.import("resource://gre/modules/AddonWatcher.jsm", this);
 Cu.import("resource://gre/modules/PerformanceWatcher.jsm", this);
 Cu.import("resource://gre/modules/Services.jsm", this);
+Cu.import("resource://testing-common/ContentTaskUtils.jsm", this);
 
 /**
  * Base class for simulating slow addons/webpages.
  */
-function CPUBurner(url) {
+function CPUBurner(url, jankThreshold) {
   info(`CPUBurner: Opening tab for ${url}\n`);
   this.url = url;
-  this.tab = gBrowser.addTab(url);
+  this.tab = BrowserTestUtils.addTab(gBrowser, url);
+  this.jankThreshold = jankThreshold;
   let browser = this.tab.linkedBrowser;
   this._browser = browser;
   ContentTask.spawn(this._browser, null, CPUBurner.frameScript);
@@ -26,24 +28,24 @@ CPUBurner.prototype = {
     return this._browser.outerWindowID;
   },
   /**
-   * Burn CPU until it triggers a listener.
+   * Burn CPU until it triggers a listener with the specified jank threshold.
    */
-  run: Task.async(function*(burner, max, listener) {
+  async run(burner, max, listener) {
     listener.reset();
     for (let i = 0; i < max; ++i) {
-      yield new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise(resolve => setTimeout(resolve, 50));
       try {
-        yield this[burner]();
+        await this[burner]();
       } catch (ex) {
         return false;
       }
-      if (listener.triggered) {
+      if (listener.triggered && listener.result >= this.jankThreshold) {
         return true;
       }
     }
     return false;
-  }),
-  dispose: function() {
+  },
+  dispose() {
     info(`CPUBurner: Closing tab for ${this.url}\n`);
     gBrowser.removeTab(this.tab);
   }
@@ -102,7 +104,7 @@ CPUBurner.frameScript = function() {
         dump(`This is the addon attempting to burn CPOW: error ${ex}\n`);
         dump(`${ex.stack}\n`);
       }
-    }
+    };
 
     sendAsyncMessage("test-performance-watcher:cpow-init", {}, {
       burnCPOWInSandbox: this.burnCPOWInSandbox
@@ -128,7 +130,6 @@ function AlertListener(accept, {register, unregister}) {
     }
     this.result = result;
     this.triggered = true;
-    return;
   };
   this.triggered = false;
   this.result = null;
@@ -140,7 +141,7 @@ function AlertListener(accept, {register, unregister}) {
   register();
 }
 AlertListener.prototype = {
-  unregister: function() {
+  unregister() {
     this.reset();
     if (this._unregistered) {
       info(`head.js: No need to unregister, we're already unregistered.\n`);
@@ -151,7 +152,7 @@ AlertListener.prototype = {
     this._unregister();
     info(`head.js: Unregistration complete.\n`);
   },
-  reset: function() {
+  reset() {
     this.triggered = false;
     this.result = null;
   },
@@ -161,18 +162,25 @@ AlertListener.prototype = {
  * Simulate a slow add-on.
  */
 function AddonBurner(addonId = "fake add-on id: " + Math.random()) {
-  CPUBurner.call(this, `http://example.com/?uri=${addonId}`)
+  this.jankThreshold = 200000;
+  CPUBurner.call(this, `http://example.com/?uri=${addonId}`, this.jankThreshold);
   this._addonId = addonId;
   this._sandbox = Components.utils.Sandbox(Services.scriptSecurityManager.getSystemPrincipal(), { addonId: this._addonId });
+  this._CPOWBurner = null;
+
   this._promiseCPOWBurner = new Promise(resolve => {
     this._browser.messageManager.addMessageListener("test-performance-watcher:cpow-init", msg => {
-      resolve(msg.objects.burnCPOWInSandbox);
+      // Note that we cannot resolve Promises with CPOWs now that they
+      // have been outlawed in bug 1233497, so we stash it in the
+      // AddonBurner instance instead.
+      this._CPOWBurner = msg.objects.burnCPOWInSandbox;
+      resolve();
     });
   });
 }
 AddonBurner.prototype = Object.create(CPUBurner.prototype);
 Object.defineProperty(AddonBurner.prototype, "addonId", {
-  get: function() {
+  get() {
     return this._addonId;
   }
 });
@@ -187,17 +195,19 @@ AddonBurner.prototype.burnCPU = function() {
 /**
  * Simulate slow code being executed by the add-on in a CPOW.
  */
-AddonBurner.prototype.promiseBurnCPOW = Task.async(function*() {
-  let burner = yield this._promiseCPOWBurner;
+AddonBurner.prototype.promiseBurnCPOW = async function() {
+  await this._promiseCPOWBurner;
+  ok(this._CPOWBurner, "Got the CPOW burner");
+  let burner = this._CPOWBurner;
   info("Parent: Preparing to burn CPOW");
   try {
-    yield burner(this._addonId);
+    await burner(this._addonId);
     info("Parent: Done burning CPOW");
   } catch (ex) {
     info(`Parent: Error burning CPOW: ${ex}\n`);
     info(ex.stack + "\n");
   }
-});
+};
 
 /**
  * Simulate slow code being executed by the add-on in the content.
@@ -271,6 +281,6 @@ function hasLowPrecision() {
     info("Running old Linux, need to deactivate tests due to bad precision.");
     return true;
   }
-  info("This platform has good precision.")
+  info("This platform has good precision.");
   return false;
 }

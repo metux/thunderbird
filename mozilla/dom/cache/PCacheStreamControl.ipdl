@@ -3,6 +3,10 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 include protocol PBackground;
+include protocol PFileDescriptorSet;
+include protocol PChildToParentStream;
+include protocol PParentToChildStream;
+include IPCStream;
 
 using struct nsID from "nsID.h";
 
@@ -15,12 +19,13 @@ protocol PCacheStreamControl
   manager PBackground;
 
 parent:
-  NoteClosed(nsID aStreamId);
+  async OpenStream(nsID aStreamId) returns(OptionalIPCStream aStream);
+  async NoteClosed(nsID aStreamId);
 
 child:
-  Close(nsID aStreamId);
-  CloseAll();
-  __delete__();
+  async Close(nsID aStreamId);
+  async CloseAll();
+  async __delete__();
 };
 
 } // namespace cache

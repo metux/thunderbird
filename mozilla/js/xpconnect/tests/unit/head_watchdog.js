@@ -10,6 +10,17 @@ const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
 
+Cu.import("resource://testing-common/PromiseTestUtils.jsm");
+
+///////////////////
+//
+// Whitelisting these tests.
+// As part of bug 1077403, the shutdown crash should be fixed.
+//
+// These tests may crash intermittently on shutdown if the DOM Promise uncaught
+// rejection observers are still registered when the watchdog operates.
+PromiseTestUtils.thisTestLeaksUncaughtRejectionsAndShouldBeFixed();
+
 var gPrefs = Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefBranch);
 
 function setWatchdogEnabled(enabled) {
@@ -45,7 +56,7 @@ function do_log_info(aMessage)
 // from the operation callback.
 function executeSoon(fn) {
   var tm = Cc["@mozilla.org/thread-manager;1"].getService(Ci.nsIThreadManager);
-  tm.mainThread.dispatch({run: fn}, Ci.nsIThread.DISPATCH_NORMAL);
+  tm.dispatchToMainThread({run: fn});
 }
 
 //
@@ -84,18 +95,14 @@ function checkWatchdog(expectInterrupt, continuation) {
   });
 }
 
-var gGenerator;
-function continueTest() {
-  gGenerator.next();
-}
-
 function run_test() {
 
   // Run async.
   do_test_pending();
 
-  // Instantiate the generator and kick it off.
-  gGenerator = testBody();
-  gGenerator.next();
+  // Run the async function.
+  testBody().then(() => {
+    do_test_finished();
+  });
 }
 

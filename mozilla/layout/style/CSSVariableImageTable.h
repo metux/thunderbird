@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -9,14 +10,14 @@
 #define mozilla_CSSVariableImageTable_h
 
 #include "nsClassHashtable.h"
-#include "nsCSSProperty.h"
+#include "nsCSSPropertyID.h"
 #include "nsCSSValue.h"
 #include "nsStyleContext.h"
 #include "nsTArray.h"
 
 /**
  * CSSVariableImageTable maintains a global mapping
- *   (nsStyleContext, nsCSSProperty) -> nsTArray<ImageValue>
+ *   (nsStyleContext, nsCSSPropertyID) -> nsTArray<ImageValue>
  * which allows us to track the relationship between CSS property values
  * involving variables and any images they may reference.
  *
@@ -44,7 +45,7 @@ namespace CSSVariableImageTable {
 namespace detail {
 
 typedef nsTArray<RefPtr<css::ImageValue>> ImageValueArray;
-typedef nsClassHashtable<nsGenericHashKey<nsCSSProperty>, ImageValueArray>
+typedef nsClassHashtable<nsGenericHashKey<nsCSSPropertyID>, ImageValueArray>
         PerPropertyImageHashtable;
 typedef nsClassHashtable<nsPtrHashKey<nsStyleContext>, PerPropertyImageHashtable>
         CSSVariableImageHashtable;
@@ -67,7 +68,7 @@ inline bool& IsReplacing()
 
 /**
  * ReplaceAll() allows callers to replace the ImageValues associated with a
- * (nsStyleContext, nsCSSProperty) pair. The memory used by the previous list of
+ * (nsStyleContext, nsCSSPropertyID) pair. The memory used by the previous list of
  * ImageValues is automatically released.
  *
  * @param aContext The style context the ImageValues are associated with.
@@ -77,7 +78,7 @@ inline bool& IsReplacing()
  */
 template <typename Lambda>
 inline void ReplaceAll(nsStyleContext* aContext,
-                       nsCSSProperty aProp,
+                       nsCSSPropertyID aProp,
                        Lambda aFunc)
 {
   MOZ_ASSERT(aContext);
@@ -134,7 +135,7 @@ inline void ReplaceAll(nsStyleContext* aContext,
  * CSSVariableImageTable::ReplaceAll().
  */
 inline void
-Add(nsStyleContext* aContext, nsCSSProperty aProp, css::ImageValue* aValue)
+Add(nsStyleContext* aContext, nsCSSPropertyID aProp, css::ImageValue* aValue)
 {
   MOZ_ASSERT(aValue);
   MOZ_ASSERT(aContext);

@@ -52,8 +52,8 @@ class ShaderExtensionTest : public testing::Test
   protected:
     virtual void SetUp()
     {
-        ShInitBuiltInResources(&mResources);
-        mCompiler = NULL;
+        sh::InitBuiltInResources(&mResources);
+        mCompiler = nullptr;
     }
 
     virtual void TearDown()
@@ -65,22 +65,23 @@ class ShaderExtensionTest : public testing::Test
     {
         if (mCompiler)
         {
-            ShDestruct(mCompiler);
-            mCompiler = NULL;
+            sh::Destruct(mCompiler);
+            mCompiler = nullptr;
         }
     }
 
     void InitializeCompiler()
     {
         DestroyCompiler();
-        mCompiler = ShConstructCompiler(GL_FRAGMENT_SHADER, SH_WEBGL_SPEC, SH_GLSL_OUTPUT, &mResources);
-        ASSERT_TRUE(mCompiler != NULL) << "Compiler could not be constructed.";
+        mCompiler = sh::ConstructCompiler(GL_FRAGMENT_SHADER, SH_WEBGL_SPEC,
+                                          SH_GLSL_COMPATIBILITY_OUTPUT, &mResources);
+        ASSERT_TRUE(mCompiler != nullptr) << "Compiler could not be constructed.";
     }
 
     void TestShaderExtension(const char **shaderStrings, int stringCount, bool expectation)
     {
-        bool success = ShCompile(mCompiler, shaderStrings, stringCount, 0);
-        const std::string& compileLog = ShGetInfoLog(mCompiler);
+        bool success                  = sh::Compile(mCompiler, shaderStrings, stringCount, 0);
+        const std::string &compileLog = sh::GetInfoLog(mCompiler);
         EXPECT_EQ(expectation, success) << compileLog;
     }
 

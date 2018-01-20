@@ -426,7 +426,7 @@ WebContentConverterRegistrar.prototype = {
           var eps = Components.classes["@mozilla.org/uriloader/external-protocol-service;1"]
                               .getService(Components.interfaces.nsIExternalProtocolService);
           var handlerInfo = eps.getProtocolHandlerInfo(protocol);
-          handlerInfo.possibleApplicationHandlers.appendElement(handler, false);
+          handlerInfo.possibleApplicationHandlers.appendElement(handler);
 
           // Since the user has agreed to add a new handler, chances are good
           // that the next time they see a handler of this type, they're going
@@ -641,11 +641,7 @@ WebContentConverterRegistrar.prototype = {
       // and make sure the preview page is shown the next time a feed is visited
       Services.prefs.setCharPref(PREF_SELECTED_READER, "web");
 
-      var supportsString = Components.classes["@mozilla.org/supports-string;1"]
-                                     .createInstance(Components.interfaces.nsISupportsString);
-      supportsString.data = uri;
-      Services.prefs.setComplexValue(PREF_SELECTED_WEB, Components.interfaces.nsISupportsString,
-                                     supportsString);
+      Services.prefs.setStringPref(PREF_SELECTED_WEB, uri);
       Services.prefs.setCharPref(PREF_SELECTED_ACTION, "ask");
       this._setAutoHandler(TYPE_MAYBE_FEED, null);
     }

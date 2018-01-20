@@ -46,6 +46,9 @@
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/EventStates.h"
+#include "mozilla/HTMLEditor.h"
+#include "mozilla/TextEditor.h"
+#include "mozilla/dom/TabChild.h"
 #include "mozilla/dom/DocumentType.h"
 #include "mozilla/dom/Element.h"
 
@@ -59,13 +62,15 @@ using namespace mozilla::a11y;
 ////////////////////////////////////////////////////////////////////////////////
 // Static member initialization
 
-static nsIAtom** kRelationAttrs[] =
+static nsStaticAtom** kRelationAttrs[] =
 {
   &nsGkAtoms::aria_labelledby,
   &nsGkAtoms::aria_describedby,
+  &nsGkAtoms::aria_details,
   &nsGkAtoms::aria_owns,
   &nsGkAtoms::aria_controls,
   &nsGkAtoms::aria_flowto,
+  &nsGkAtoms::aria_errormessage,
   &nsGkAtoms::_for,
   &nsGkAtoms::control
 };
@@ -76,20 +81,25 @@ static const uint32_t kRelationAttrsLen = ArrayLength(kRelationAttrs);
 // Constructor/desctructor
 
 DocAccessible::
-  DocAccessible(nsIDocument* aDocument, nsIContent* aRootContent,
-                  nsIPresShell* aPresShell) :
-  HyperTextAccessibleWrap(aRootContent, this),
+  DocAccessible(nsIDocument* aDocument, nsIPresShell* aPresShell) :
+    // XXX don't pass a document to the Accessible constructor so that we don't
+    // set mDoc until our vtable is fully setup.  If we set mDoc before setting
+    // up the vtable we will call Accessible::AddRef() but not the overrides of
+    // it for subclasses.  It is important to call those overrides to avoid
+    // confusing leak checking machinary.
+  HyperTextAccessibleWrap(nullptr, nullptr),
   // XXX aaronl should we use an algorithm for the initial cache size?
   mAccessibleCache(kDefaultCacheLength),
   mNodeToAccessibleMap(kDefaultCacheLength),
   mDocumentNode(aDocument),
   mScrollPositionChangedTicks(0),
   mLoadState(eTreeConstructionPending), mDocFlags(0), mLoadEventType(0),
-  mVirtualCursor(nullptr),
+  mARIAAttrOldValue{nullptr}, mVirtualCursor(nullptr),
   mPresShell(aPresShell), mIPCDoc(nullptr)
 {
   mGenericTypes |= eDocument;
   mStateFlags |= eNotNodeMapEntry;
+  mDoc = this;
 
   MOZ_ASSERT(mPresShell, "should have been given a pres shell");
   mPresShell->SetDocAccessible(this);
@@ -124,12 +134,13 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(DocAccessible, Accessible)
       AttrRelProvider* provider = (*providers)[jdx];
       cb.NoteXPCOMChild(provider->mContent);
 
-      NS_ASSERTION(provider->mContent->IsInDoc(),
+      NS_ASSERTION(provider->mContent->IsInUncomposedDoc(),
                    "Referred content is not in document!");
     }
   }
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mAccessibleCache)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mAnchorJumpElm)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mInvalidationList)
   for (auto it = tmp->mARIAOwnsHash.ConstIter(); !it.Done(); it.Next()) {
     nsTArray<RefPtr<Accessible> >* ar = it.UserData();
     for (uint32_t i = 0; i < ar->Length(); i++) {
@@ -148,10 +159,11 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(DocAccessible, Accessible)
   tmp->mNodeToAccessibleMap.Clear();
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mAccessibleCache)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mAnchorJumpElm)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mInvalidationList)
   tmp->mARIAOwnsHash.Clear();
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(DocAccessible)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(DocAccessible)
   NS_INTERFACE_MAP_ENTRY(nsIDocumentObserver)
   NS_INTERFACE_MAP_ENTRY(nsIMutationObserver)
   NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)
@@ -256,8 +268,8 @@ DocAccessible::NativeState()
     state |= states::INVISIBLE | states::OFFSCREEN;
   }
 
-  nsCOMPtr<nsIEditor> editor = GetEditor();
-  state |= editor ? states::EDITABLE : states::READONLY;
+  RefPtr<TextEditor> textEditor = GetEditor();
+  state |= textEditor ? states::EDITABLE : states::READONLY;
 
   return state;
 }
@@ -327,7 +339,7 @@ DocAccessible::TakeFocus()
 }
 
 // HyperTextAccessible method
-already_AddRefed<nsIEditor>
+already_AddRefed<TextEditor>
 DocAccessible::GetEditor() const
 {
   // Check if document is editable (designMode="on" case). Otherwise check if
@@ -336,20 +348,27 @@ DocAccessible::GetEditor() const
       (!mContent || !mContent->HasFlag(NODE_IS_EDITABLE)))
     return nullptr;
 
-  nsCOMPtr<nsISupports> container = mDocumentNode->GetContainer();
-  nsCOMPtr<nsIEditingSession> editingSession(do_GetInterface(container));
+  nsCOMPtr<nsIDocShell> docShell = mDocumentNode->GetDocShell();
+  if (!docShell) {
+    return nullptr;
+  }
+
+  nsCOMPtr<nsIEditingSession> editingSession;
+  docShell->GetEditingSession(getter_AddRefs(editingSession));
   if (!editingSession)
     return nullptr; // No editing session interface
 
-  nsCOMPtr<nsIEditor> editor;
-  editingSession->GetEditorForWindow(mDocumentNode->GetWindow(), getter_AddRefs(editor));
-  if (!editor)
+  RefPtr<HTMLEditor> htmlEditor =
+    editingSession->GetHTMLEditorForWindow(mDocumentNode->GetWindow());
+  if (!htmlEditor) {
     return nullptr;
+  }
 
   bool isEditable = false;
-  editor->GetIsDocumentEditable(&isEditable);
-  if (isEditable)
-    return editor.forget();
+  htmlEditor->GetIsDocumentEditable(&isEditable);
+  if (isEditable) {
+    return htmlEditor.forget();
+  }
 
   return nullptr;
 }
@@ -386,33 +405,6 @@ DocAccessible::DocType(nsAString& aType) const
     docType->GetPublicId(aType);
 }
 
-Accessible*
-DocAccessible::GetAccessible(nsINode* aNode) const
-{
-  Accessible* accessible = mNodeToAccessibleMap.Get(aNode);
-
-  // No accessible in the cache, check if the given ID is unique ID of this
-  // document accessible.
-  if (!accessible) {
-    if (GetNode() != aNode)
-      return nullptr;
-
-    accessible = const_cast<DocAccessible*>(this);
-  }
-
-#ifdef DEBUG
-  // All cached accessible nodes should be in the parent
-  // It will assert if not all the children were created
-  // when they were first cached, and no invalidation
-  // ever corrected parent accessible's child cache.
-  Accessible* parent = accessible->Parent();
-  if (parent)
-    parent->TestChildCache(accessible);
-#endif
-
-  return accessible;
-}
-
 ////////////////////////////////////////////////////////////////////////////////
 // Accessible
 
@@ -447,6 +439,11 @@ DocAccessible::Shutdown()
     logging::DocDestroy("document shutdown", mDocumentNode, this);
 #endif
 
+  // Mark the document as shutdown before AT is notified about the document
+  // removal from its container (valid for root documents on ATK and due to
+  // some reason for MSAA, refer to bug 757392 for details).
+  mStateFlags |= eIsDefunct;
+
   if (mNotificationController) {
     mNotificationController->Shutdown();
     mNotificationController = nullptr;
@@ -454,10 +451,6 @@ DocAccessible::Shutdown()
 
   RemoveEventListeners();
 
-  // Mark the document as shutdown before AT is notified about the document
-  // removal from its container (valid for root documents on ATK and due to
-  // some reason for MSAA, refer to bug 757392 for details).
-  mStateFlags |= eIsDefunct;
   nsCOMPtr<nsIDocument> kungFuDeathGripDoc = mDocumentNode;
   mDocumentNode = nullptr;
 
@@ -495,11 +488,15 @@ DocAccessible::Shutdown()
   mDependentIDsHash.Clear();
   mNodeToAccessibleMap.Clear();
 
-  {
-    // We're about to get rid of all of our children so there won't be anything
-    // to invalidate.
-    AutoTreeMutation mut(this, false);
-    ClearCache(mAccessibleCache);
+  for (auto iter = mAccessibleCache.Iter(); !iter.Done(); iter.Next()) {
+    Accessible* accessible = iter.Data();
+    MOZ_ASSERT(accessible);
+    if (accessible && !accessible->IsDefunct()) {
+      // Unlink parent to avoid its cleaning overhead in shutdown.
+      accessible->mParent = nullptr;
+      accessible->Shutdown();
+    }
+    iter.Remove();
   }
 
   HyperTextAccessibleWrap::Shutdown();
@@ -533,7 +530,7 @@ DocAccessible::RelativeBounds(nsIFrame** aRelativeFrame) const
       return nsRect();
 
     nsRect scrollPort;
-    nsIScrollableFrame* sf = presShell->GetRootScrollFrameAsScrollableExternal();
+    nsIScrollableFrame* sf = presShell->GetRootScrollFrameAsScrollable();
     if (sf) {
       scrollPort = sf->GetScrollPortRect();
     } else {
@@ -565,12 +562,12 @@ DocAccessible::RelativeBounds(nsIFrame** aRelativeFrame) const
 nsresult
 DocAccessible::AddEventListeners()
 {
-  nsCOMPtr<nsIDocShellTreeItem> docShellTreeItem(mDocumentNode->GetDocShell());
+  nsCOMPtr<nsIDocShell> docShell(mDocumentNode->GetDocShell());
 
   // We want to add a command observer only if the document is content and has
   // an editor.
-  if (docShellTreeItem->ItemType() == nsIDocShellTreeItem::typeContent) {
-    nsCOMPtr<nsICommandManager> commandManager = do_GetInterface(docShellTreeItem);
+  if (docShell->ItemType() == nsIDocShellTreeItem::typeContent) {
+    nsCOMPtr<nsICommandManager> commandManager = docShell->GetCommandManager();
     if (commandManager)
       commandManager->AddCommandObserver(this, "obs_documentCreated");
   }
@@ -595,12 +592,12 @@ DocAccessible::RemoveEventListeners()
   if (mDocumentNode) {
     mDocumentNode->RemoveObserver(this);
 
-    nsCOMPtr<nsIDocShellTreeItem> docShellTreeItem(mDocumentNode->GetDocShell());
-    NS_ASSERTION(docShellTreeItem, "doc should support nsIDocShellTreeItem.");
+    nsCOMPtr<nsIDocShell> docShell(mDocumentNode->GetDocShell());
+    NS_ASSERTION(docShell, "doc should support nsIDocShellTreeItem.");
 
-    if (docShellTreeItem) {
-      if (docShellTreeItem->ItemType() == nsIDocShellTreeItem::typeContent) {
-        nsCOMPtr<nsICommandManager> commandManager = do_GetInterface(docShellTreeItem);
+    if (docShell) {
+      if (docShell->ItemType() == nsIDocShellTreeItem::typeContent) {
+        nsCOMPtr<nsICommandManager> commandManager = docShell->GetCommandManager();
         if (commandManager) {
           commandManager->RemoveCommandObserver(this, "obs_documentCreated");
         }
@@ -653,12 +650,14 @@ DocAccessible::ScrollPositionDidChange(nscoord aX, nscoord aY)
     mScrollWatchTimer->SetDelay(kScrollPosCheckWait);  // Create new timer, to avoid leaks
   }
   else {
-    mScrollWatchTimer = do_CreateInstance("@mozilla.org/timer;1");
+    NS_NewTimerWithFuncCallback(getter_AddRefs(mScrollWatchTimer),
+                                ScrollTimerCallback,
+                                this,
+                                kScrollPosCheckWait,
+                                nsITimer::TYPE_REPEATING_SLACK,
+                                "a11y::DocAccessible::ScrollPositionDidChange");
     if (mScrollWatchTimer) {
       NS_ADDREF_THIS(); // Kung fu death grip
-      mScrollWatchTimer->InitWithFuncCallback(ScrollTimerCallback, this,
-                                              kScrollPosCheckWait,
-                                              nsITimer::TYPE_REPEATING_SLACK);
     }
   }
   mScrollPositionChangedTicks = 1;
@@ -671,7 +670,7 @@ NS_IMETHODIMP
 DocAccessible::Observe(nsISupports* aSubject, const char* aTopic,
                        const char16_t* aData)
 {
-  if (!nsCRT::strcmp(aTopic,"obs_documentCreated")) {    
+  if (!nsCRT::strcmp(aTopic,"obs_documentCreated")) {
     // State editable will now be set, readonly is now clear
     // Normally we only fire delayed events created from the node, not an
     // accessible object. See the AccStateChangeEvent constructor for details
@@ -715,7 +714,7 @@ void
 DocAccessible::AttributeWillChange(nsIDocument* aDocument,
                                    dom::Element* aElement,
                                    int32_t aNameSpaceID,
-                                   nsIAtom* aAttribute, int32_t aModType,
+                                   nsAtom* aAttribute, int32_t aModType,
                                    const nsAttrValue* aNewValue)
 {
   Accessible* accessible = GetAccessible(aElement);
@@ -767,7 +766,7 @@ DocAccessible::NativeAnonymousChildListChange(nsIDocument* aDocument,
 void
 DocAccessible::AttributeChanged(nsIDocument* aDocument,
                                 dom::Element* aElement,
-                                int32_t aNameSpaceID, nsIAtom* aAttribute,
+                                int32_t aNameSpaceID, nsAtom* aAttribute,
                                 int32_t aModType,
                                 const nsAttrValue* aOldValue)
 {
@@ -792,6 +791,9 @@ DocAccessible::AttributeChanged(nsIDocument* aDocument,
     accessible = this;
   }
 
+  MOZ_ASSERT(accessible->IsBoundToParent() || accessible->IsDoc(),
+             "DOM attribute change on an accessible detached from the tree");
+
   // Fire accessible events iff there's an accessible, otherwise we consider
   // the accessible state wasn't changed, i.e. its state is initial state.
   AttributeChangedImpl(accessible, aNameSpaceID, aAttribute);
@@ -810,7 +812,7 @@ DocAccessible::AttributeChanged(nsIDocument* aDocument,
 // DocAccessible protected member
 void
 DocAccessible::AttributeChangedImpl(Accessible* aAccessible,
-                                    int32_t aNameSpaceID, nsIAtom* aAttribute)
+                                    int32_t aNameSpaceID, nsAtom* aAttribute)
 {
   // Fire accessible event after short timer, because we need to wait for
   // DOM attribute & resulting layout to actually change. Otherwise,
@@ -821,7 +823,7 @@ DocAccessible::AttributeChangedImpl(Accessible* aAccessible,
   // For example, if an <img>'s usemap attribute is modified
   // Otherwise it may just be a state change, for example an object changing
   // its visibility
-  // 
+  //
   // XXX todo: report aria state changes for "undefined" literal value changes
   // filed as bug 472142
   //
@@ -949,7 +951,7 @@ DocAccessible::AttributeChangedImpl(Accessible* aAccessible,
 
 // DocAccessible protected member
 void
-DocAccessible::ARIAAttributeChanged(Accessible* aAccessible, nsIAtom* aAttribute)
+DocAccessible::ARIAAttributeChanged(Accessible* aAccessible, nsAtom* aAttribute)
 {
   // Note: For universal/global ARIA states and properties we don't care if
   // there is an ARIA role present or not.
@@ -1003,7 +1005,7 @@ DocAccessible::ARIAAttributeChanged(Accessible* aAccessible, nsIAtom* aAttribute
   if (aAttribute == nsGkAtoms::aria_hidden) {
     bool isDefined = aria::HasDefinedARIAHidden(elm);
     if (isDefined != aAccessible->IsARIAHidden() &&
-        !aAccessible->Parent()->IsARIAHidden()) {
+        (!aAccessible->Parent() || !aAccessible->Parent()->IsARIAHidden())) {
       aAccessible->SetARIAHidden(isDefined);
 
       RefPtr<AccEvent> event =
@@ -1055,6 +1057,13 @@ DocAccessible::ARIAAttributeChanged(Accessible* aAccessible, nsIAtom* aAttribute
     return;
   }
 
+  if (aAttribute == nsGkAtoms::aria_current) {
+    RefPtr<AccEvent> event =
+      new AccStateChangeEvent(aAccessible, states::CURRENT);
+    FireDelayedEvent(event);
+    return;
+  }
+
   if (aAttribute == nsGkAtoms::aria_owns) {
     mNotificationController->ScheduleRelocation(aAccessible);
   }
@@ -1086,8 +1095,7 @@ DocAccessible::ARIAActiveDescendantChanged(Accessible* aAccessible)
 void
 DocAccessible::ContentAppended(nsIDocument* aDocument,
                                nsIContent* aContainer,
-                               nsIContent* aFirstNewContent,
-                               int32_t /* unused */)
+                               nsIContent* aFirstNewContent)
 {
 }
 
@@ -1153,15 +1161,28 @@ DocAccessible::CharacterDataChanged(nsIDocument* aDocument,
 
 void
 DocAccessible::ContentInserted(nsIDocument* aDocument, nsIContent* aContainer,
-                               nsIContent* aChild, int32_t /* unused */)
+                               nsIContent* aChild)
 {
 }
 
 void
-DocAccessible::ContentRemoved(nsIDocument* aDocument, nsIContent* aContainer,
-                              nsIContent* aChild, int32_t /* unused */,
-                              nsIContent* aPreviousSibling)
+DocAccessible::ContentRemoved(nsIDocument* aDocument,
+                              nsIContent* aContainerNode,
+                              nsIContent* aChildNode,
+                              nsIContent* aPreviousSiblingNode)
 {
+#ifdef A11Y_LOG
+  if (logging::IsEnabled(logging::eTree)) {
+    logging::MsgBegin("TREE", "DOM content removed; doc: %p", this);
+    logging::Node("container node", aContainerNode);
+    logging::Node("content node", aChildNode);
+    logging::MsgEnd();
+  }
+#endif
+  // This one and content removal notification from layout may result in
+  // double processing of same subtrees. If it pops up in profiling, then
+  // consider reusing a document node cache to reject these notifications early.
+  ContentRemoved(aChildNode);
 }
 
 void
@@ -1226,7 +1247,7 @@ DocAccessible::GetAccessibleByUniqueIDInSubtree(void* aUniqueID)
 Accessible*
 DocAccessible::GetAccessibleOrContainer(nsINode* aNode) const
 {
-  if (!aNode || !aNode->GetCrossShadowCurrentDoc())
+  if (!aNode || !aNode->GetComposedDoc())
     return nullptr;
 
   nsINode* currNode = aNode;
@@ -1277,7 +1298,7 @@ DocAccessible::GetAccessibleOrDescendant(nsINode* aNode) const
 
 void
 DocAccessible::BindToDocument(Accessible* aAccessible,
-                              nsRoleMapEntry* aRoleMapEntry)
+                              const nsRoleMapEntry* aRoleMapEntry)
 {
   // Put into DOM node cache.
   if (aAccessible->IsNodeMapEntry())
@@ -1288,15 +1309,13 @@ DocAccessible::BindToDocument(Accessible* aAccessible,
 
   aAccessible->SetRoleMapEntry(aRoleMapEntry);
 
-  AddDependentIDsFor(aAccessible);
-
   if (aAccessible->HasOwnContent()) {
+    AddDependentIDsFor(aAccessible);
+
     nsIContent* el = aAccessible->GetContent();
     if (el->HasAttr(kNameSpaceID_None, nsGkAtoms::aria_owns)) {
       mNotificationController->ScheduleRelocation(aAccessible);
     }
-
-    RelocateARIAOwnedIfNeeded(el);
   }
 }
 
@@ -1320,6 +1339,8 @@ DocAccessible::UnbindFromDocument(Accessible* aAccessible)
   if (aAccessible->IsNodeMapEntry() &&
       mNodeToAccessibleMap.Get(aAccessible->GetNode()) == aAccessible)
     mNodeToAccessibleMap.Remove(aAccessible->GetNode());
+
+  aAccessible->mStateFlags |= eIsNotInDocument;
 
   // Update XPCOM part.
   xpcAccessibleDocument* xpcDoc = GetAccService()->GetCachedXPCDocument(this);
@@ -1345,7 +1366,7 @@ DocAccessible::ContentInserted(nsIContent* aContainerNode,
     // Update the whole tree of this document accessible when the container is
     // null (document element is inserted or removed).
     Accessible* container = aContainerNode ?
-      GetAccessibleOrContainer(aContainerNode) : this;
+      AccessibleOrTrueContainer(aContainerNode) : this;
     if (container) {
       // Ignore notification if the container node is no longer in the DOM tree.
       mNotificationController->ScheduleContentInsertion(container,
@@ -1372,7 +1393,7 @@ DocAccessible::RecreateAccessible(nsIContent* aContent)
   // should be coalesced with normal show/hide events.
 
   nsIContent* parent = aContent->GetFlattenedTreeParent();
-  ContentRemoved(parent, aContent);
+  ContentRemoved(aContent);
   ContentInserted(parent, aContent, aContent->GetNextSibling());
 }
 
@@ -1384,10 +1405,27 @@ DocAccessible::ProcessInvalidationList()
   // children are recached.
   for (uint32_t idx = 0; idx < mInvalidationList.Length(); idx++) {
     nsIContent* content = mInvalidationList[idx];
-    if (!HasAccessible(content)) {
+    if (!HasAccessible(content) && content->HasID()) {
       Accessible* container = GetContainerAccessible(content);
-      if (container)
-        UpdateTreeOnInsertion(container);
+      if (container) {
+        // Check if the node is a target of aria-owns, and if so, don't process
+        // it here and let DoARIAOwnsRelocation process it.
+        AttrRelProviderArray* list =
+          mDependentIDsHash.Get(nsDependentAtomString(content->GetID()));
+        bool shouldProcess = !!list;
+        if (shouldProcess) {
+          for (uint32_t idx = 0; idx < list->Length(); idx++) {
+            if (list->ElementAt(idx)->mRelAttr == nsGkAtoms::aria_owns) {
+              shouldProcess = false;
+              break;
+            }
+          }
+
+          if (shouldProcess) {
+            ProcessContentInserted(container, content);
+          }
+        }
+      }
     }
   }
 
@@ -1419,36 +1457,6 @@ if (!aNode->IsContent() || !aNode->AsContent()->IsHTMLElement(nsGkAtoms::area))
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// Accessible protected
-
-void
-DocAccessible::CacheChildren()
-{
-  // Search for accessible children starting from the document element since
-  // some web pages tend to insert elements under it rather than document body.
-  dom::Element* rootElm = mDocumentNode->GetRootElement();
-  if (!rootElm)
-    return;
-
-  // Ignore last HTML:br, copied from HyperTextAccessible.
-  TreeWalker walker(this, rootElm);
-  Accessible* lastChild = nullptr;
-  while (Accessible* child = walker.NextChild()) {
-    if (lastChild)
-      AppendChild(lastChild);
-
-    lastChild = child;
-  }
-
-  if (lastChild) {
-    if (lastChild->IsHTMLBr())
-      Document()->UnbindFromDocument(lastChild);
-    else
-      AppendChild(lastChild);
-  }
-}
-
-////////////////////////////////////////////////////////////////////////////////
 // Protected members
 
 void
@@ -1461,7 +1469,7 @@ DocAccessible::NotifyOfLoading(bool aIsReloading)
   if (!IsLoadEventTarget())
     return;
 
-  if (aIsReloading) {
+  if (aIsReloading && !mLoadEventType) {
     // Fire reload and state busy events on existing document accessible while
     // event from user input flag can be calculated properly and accessible
     // is alive. When new document gets loaded then this one is destroyed.
@@ -1480,24 +1488,42 @@ DocAccessible::NotifyOfLoading(bool aIsReloading)
 void
 DocAccessible::DoInitialUpdate()
 {
-  if (nsCoreUtils::IsTabDocument(mDocumentNode))
+  if (nsCoreUtils::IsTabDocument(mDocumentNode)) {
     mDocFlags |= eTabDocument;
+    if (IPCAccessibilityActive()) {
+      nsIDocShell* docShell = mDocumentNode->GetDocShell();
+      if (RefPtr<dom::TabChild> tabChild = dom::TabChild::GetFrom(docShell)) {
+        DocAccessibleChild* ipcDoc = new DocAccessibleChild(this, tabChild);
+        SetIPCDoc(ipcDoc);
+        if (IsRoot()) {
+          tabChild->SetTopLevelDocAccessibleChild(ipcDoc);
+        }
+
+#if defined(XP_WIN)
+        IAccessibleHolder holder(CreateHolderFromAccessible(WrapNotNull(this)));
+        MOZ_DIAGNOSTIC_ASSERT(!holder.IsNull());
+        int32_t childID = AccessibleWrap::GetChildIDFor(this);
+#else
+        int32_t holder = 0, childID = 0;
+#endif
+        tabChild->SendPDocAccessibleConstructor(ipcDoc, nullptr, 0, childID,
+                                                holder);
+      }
+    }
+  }
 
   mLoadState |= eTreeConstructed;
 
-  // The content element may be changed before the initial update and then we
-  // miss the notification (since content tree change notifications are ignored
-  // prior to initial update). Make sure the content element is valid.
-  nsIContent* contentElm = nsCoreUtils::GetRoleContent(mDocumentNode);
-  if (mContent != contentElm) {
-    mContent = contentElm;
-    SetRoleMapEntry(aria::GetRoleMap(mContent));
-  }
+  // Set up a root element and ARIA role mapping.
+  UpdateRootElIfNeeded();
 
-  // Build initial tree.  Since its the initial tree there's no group info to
-  // invalidate.
-  AutoTreeMutation mut(this, false);
+  // Build initial tree.
   CacheChildrenInSubtree(this);
+#ifdef A11Y_LOG
+  if (logging::IsEnabled(logging::eVerbose)) {
+    logging::Tree("TREE", "Initial subtree", this);
+  }
+#endif
 
   // Fire reorder event after the document tree is constructed. Note, since
   // this reorder event is processed by parent document then events targeted to
@@ -1508,11 +1534,14 @@ DocAccessible::DoInitialUpdate()
     ParentDocument()->FireDelayedEvent(reorderEvent);
   }
 
-  uint32_t childCount = ChildCount();
-  for (uint32_t i = 0; i < childCount; i++) {
-    Accessible* child = GetChildAt(i);
-    RefPtr<AccShowEvent> event = new AccShowEvent(child, child->GetContent());
-  FireDelayedEvent(event);
+  if (IPCAccessibilityActive()) {
+    DocAccessibleChild* ipcDoc = IPCDoc();
+    MOZ_ASSERT(ipcDoc);
+    if (ipcDoc) {
+      for (auto idx = 0U; idx < mChildren.Length(); idx++) {
+        ipcDoc->InsertIntoIpcTree(this, mChildren.ElementAt(idx), idx);
+      }
+    }
   }
 }
 
@@ -1550,14 +1579,14 @@ DocAccessible::ProcessLoad()
 }
 
 void
-DocAccessible::AddDependentIDsFor(Accessible* aRelProvider, nsIAtom* aRelAttr)
+DocAccessible::AddDependentIDsFor(Accessible* aRelProvider, nsAtom* aRelAttr)
 {
   dom::Element* relProviderEl = aRelProvider->Elm();
   if (!relProviderEl)
     return;
 
   for (uint32_t idx = 0; idx < kRelationAttrsLen; idx++) {
-    nsIAtom* relAttr = *kRelationAttrs[idx];
+    nsAtom* relAttr = *kRelationAttrs[idx];
     if (aRelAttr && aRelAttr != relAttr)
       continue;
 
@@ -1578,6 +1607,11 @@ DocAccessible::AddDependentIDsFor(Accessible* aRelProvider, nsIAtom* aRelAttr)
       if (id.IsEmpty())
         break;
 
+      nsIContent* dependentContent = iter.GetElem(id);
+      if (relAttr == nsGkAtoms::aria_owns && dependentContent &&
+          !aRelProvider->IsAcceptableChild(dependentContent))
+        continue;
+
       AttrRelProviderArray* providers = mDependentIDsHash.Get(id);
       if (!providers) {
         providers = new AttrRelProviderArray();
@@ -1596,7 +1630,6 @@ DocAccessible::AddDependentIDsFor(Accessible* aRelProvider, nsIAtom* aRelAttr)
           // content is not accessible then store it to pend its container
           // children invalidation (this happens immediately after the caching
           // is finished).
-          nsIContent* dependentContent = iter.GetElem(id);
           if (dependentContent) {
             if (!HasAccessible(dependentContent)) {
               mInvalidationList.AppendElement(dependentContent);
@@ -1618,14 +1651,14 @@ DocAccessible::AddDependentIDsFor(Accessible* aRelProvider, nsIAtom* aRelAttr)
 
 void
 DocAccessible::RemoveDependentIDsFor(Accessible* aRelProvider,
-                                     nsIAtom* aRelAttr)
+                                     nsAtom* aRelAttr)
 {
   dom::Element* relProviderElm = aRelProvider->Elm();
   if (!relProviderElm)
     return;
 
   for (uint32_t idx = 0; idx < kRelationAttrsLen; idx++) {
-    nsIAtom* relAttr = *kRelationAttrs[idx];
+    nsAtom* relAttr = *kRelationAttrs[idx];
     if (aRelAttr && aRelAttr != *kRelationAttrs[idx])
       continue;
 
@@ -1659,13 +1692,17 @@ DocAccessible::RemoveDependentIDsFor(Accessible* aRelProvider,
 
 bool
 DocAccessible::UpdateAccessibleOnAttrChange(dom::Element* aElement,
-                                            nsIAtom* aAttribute)
+                                            nsAtom* aAttribute)
 {
   if (aAttribute == nsGkAtoms::role) {
     // It is common for js libraries to set the role on the body element after
     // the document has loaded. In this case we just update the role map entry.
     if (mContent == aElement) {
       SetRoleMapEntry(aria::GetRoleMap(aElement));
+      if (mIPCDoc) {
+        mIPCDoc->SendRoleChangedEvent(Role());
+      }
+
       return true;
     }
 
@@ -1702,264 +1739,320 @@ DocAccessible::UpdateAccessibleOnAttrChange(dom::Element* aElement,
 }
 
 void
-DocAccessible::ProcessContentInserted(Accessible* aContainer,
-                                      const nsTArray<nsCOMPtr<nsIContent> >* aInsertedContent)
+DocAccessible::UpdateRootElIfNeeded()
 {
-  // Process insertions if the container accessible is still in tree.
-  if (!HasAccessible(aContainer->GetNode()))
-    return;
+  dom::Element* rootEl = mDocumentNode->GetBodyElement();
+  if (!rootEl) {
+    rootEl = mDocumentNode->GetRootElement();
+  }
+  if (rootEl != mContent) {
+    mContent = rootEl;
+    SetRoleMapEntry(aria::GetRoleMap(rootEl));
+    if (mIPCDoc) {
+      mIPCDoc->SendRoleChangedEvent(Role());
+    }
+  }
+}
 
-  for (uint32_t idx = 0; idx < aInsertedContent->Length(); idx++) {
+/**
+ * Content insertion helper.
+ */
+class InsertIterator final
+{
+public:
+  InsertIterator(Accessible* aContext,
+                 const nsTArray<nsCOMPtr<nsIContent> >* aNodes) :
+    mChild(nullptr), mChildBefore(nullptr), mWalker(aContext),
+    mNodes(aNodes), mNodesIdx(0)
+  {
+    MOZ_ASSERT(aContext, "No context");
+    MOZ_ASSERT(aNodes, "No nodes to search for accessible elements");
+    MOZ_COUNT_CTOR(InsertIterator);
+  }
+  ~InsertIterator() { MOZ_COUNT_DTOR(InsertIterator); }
+
+  Accessible* Context() const { return mWalker.Context(); }
+  Accessible* Child() const { return mChild; }
+  Accessible* ChildBefore() const { return mChildBefore; }
+  DocAccessible* Document() const { return mWalker.Document(); }
+
+  /**
+   * Iterates to a next accessible within the inserted content.
+   */
+  bool Next();
+
+  void Rejected()
+  {
+    mChild = nullptr;
+    mChildBefore = nullptr;
+  }
+
+private:
+  Accessible* mChild;
+  Accessible* mChildBefore;
+  TreeWalker mWalker;
+
+  const nsTArray<nsCOMPtr<nsIContent> >* mNodes;
+  uint32_t mNodesIdx;
+};
+
+bool
+InsertIterator::Next()
+{
+  if (mNodesIdx > 0) {
+    Accessible* nextChild = mWalker.Next();
+    if (nextChild) {
+      mChildBefore = mChild;
+      mChild = nextChild;
+      return true;
+    }
+  }
+
+  while (mNodesIdx < mNodes->Length()) {
+    // Ignore nodes that are not contained by the container anymore.
+
     // The container might be changed, for example, because of the subsequent
     // overlapping content insertion (i.e. other content was inserted between
     // this inserted content and its container or the content was reinserted
     // into different container of unrelated part of tree). To avoid a double
     // processing of the content insertion ignore this insertion notification.
-    // Note, the inserted content might be not in tree at all at this point what
-    // means there's no container. Ignore the insertion too.
-
-    Accessible* container =
-      GetContainerAccessible(aInsertedContent->ElementAt(idx));
-    if (container != aContainer)
+    // Note, the inserted content might be not in tree at all at this point
+    // what means there's no container. Ignore the insertion too.
+    nsIContent* prevNode = mNodes->SafeElementAt(mNodesIdx - 1);
+    nsIContent* node = mNodes->ElementAt(mNodesIdx++);
+    Accessible* container = Document()->AccessibleOrTrueContainer(node);
+    if (container != Context()) {
       continue;
-
-    if (container == this) {
-      // If new root content has been inserted then update it.
-      nsIContent* rootContent = nsCoreUtils::GetRoleContent(mDocumentNode);
-      if (rootContent != mContent) {
-        mContent = rootContent;
-        SetRoleMapEntry(aria::GetRoleMap(mContent));
-      }
-
-      // Continue to update the tree even if we don't have root content.
-      // For example, elements may be inserted under the document element while
-      // there is no HTML body element.
     }
 
-    // HTML comboboxes have no-content list accessible as an intermidiate
+    // HTML comboboxes have no-content list accessible as an intermediate
     // containing all options.
-    if (container->IsHTMLCombobox())
+    if (container->IsHTMLCombobox()) {
       container = container->FirstChild();
+    }
 
-    // We have a DOM/layout change under the container accessible, and its tree
-    // might need an update. Since DOM/layout change of the element may affect
-    // on the accessibleness of adjacent elements (for example, insertion of
-    // extra HTML:body make the old body accessible) then we have to recache
-    // children of the container, and then fire show/hide events for a change.
-    UpdateTreeOnInsertion(container);
-    break;
-  }
-}
-
-void
-DocAccessible::UpdateTreeOnInsertion(Accessible* aContainer)
-{
-  for (uint32_t idx = 0; idx < aContainer->ContentChildCount(); idx++) {
-    Accessible* child = aContainer->ContentChildAt(idx);
-    child->SetSurvivingInUpdate(true);
-   }
-
-  AutoTreeMutation mut(aContainer);
-  aContainer->InvalidateChildren();
-  aContainer->EnsureChildren();
-
-  RefPtr<AccReorderEvent> reorderEvent = new AccReorderEvent(aContainer);
-
-  uint32_t updateFlags = eNoAccessible;
-  for (uint32_t idx = 0; idx < aContainer->ContentChildCount(); idx++) {
-    Accessible* child = aContainer->ContentChildAt(idx);
-    if (child->IsSurvivingInUpdate()) {
-      child->SetSurvivingInUpdate(false);
+    if (!container->IsAcceptableChild(node)) {
       continue;
     }
 
-    // A new child has been created, update its tree.
 #ifdef A11Y_LOG
-    if (logging::IsEnabled(logging::eTree)) {
-      logging::MsgBegin("TREE", "process content insertion");
-      logging::Node("container", aContainer->GetNode());
-      logging::Node("child", child->GetContent());
-      logging::Address("child", child);
-      logging::MsgEnd();
-    }
+    logging::TreeInfo("traversing an inserted node", logging::eVerbose,
+                      "container", container, "node", node);
 #endif
 
-    updateFlags |= UpdateTreeInternal(child, true, reorderEvent);
-  }
-
-  // Content insertion/removal is not cause of accessible tree change.
-  if (updateFlags == eNoAccessible)
-    return;
-
-  // Check to see if change occurred inside an alert, and fire an EVENT_ALERT
-  // if it did.
-  if (!(updateFlags & eAlertAccessible)) {
-    // XXX: tree traversal is perf issue, accessible should know if they are
-    // children of alert accessible to avoid this.
-    Accessible* ancestor = aContainer;
-    while (ancestor) {
-      if (ancestor->ARIARole() == roles::ALERT) {
-        FireDelayedEvent(nsIAccessibleEvent::EVENT_ALERT, ancestor);
-        break;
+    // If inserted nodes are siblings then just move the walker next.
+    if (mChild && prevNode && prevNode->GetNextSibling() == node) {
+      Accessible* nextChild = mWalker.Scope(node);
+      if (nextChild) {
+        mChildBefore = mChild;
+        mChild = nextChild;
+        return true;
       }
-
-      // Don't climb above this document.
-      if (ancestor == this)
-        break;
-
-      ancestor = ancestor->Parent();
+    }
+    else {
+      TreeWalker finder(container);
+      if (finder.Seek(node)) {
+        mChild = mWalker.Scope(node);
+        if (mChild) {
+          mChildBefore = finder.Prev();
+          return true;
+        }
+      }
     }
   }
 
-  MaybeNotifyOfValueChange(aContainer);
-  FireDelayedEvent(reorderEvent);
+  return false;
 }
 
 void
-DocAccessible::UpdateTreeOnRemoval(Accessible* aContainer, nsIContent* aChildNode)
+DocAccessible::ProcessContentInserted(Accessible* aContainer,
+                                      const nsTArray<nsCOMPtr<nsIContent> >* aNodes)
 {
-  // If child node is not accessible then look for its accessible children.
-  Accessible* child = GetAccessible(aChildNode);
-#ifdef A11Y_LOG
-  if (logging::IsEnabled(logging::eTree)) {
-    logging::MsgBegin("TREE", "process content removal");
-    logging::Node("container", aContainer->GetNode());
-    logging::Node("child", aChildNode);
-    if (child)
-      logging::Address("child", child);
-    else
-      logging::MsgEntry("child accessible: null");
-
-    logging::MsgEnd();
+  // Process insertions if the container accessible is still in tree.
+  if (!aContainer->IsInDocument()) {
+    return;
   }
+
+  // If new root content has been inserted then update it.
+  if (aContainer == this) {
+    UpdateRootElIfNeeded();
+  }
+
+  InsertIterator iter(aContainer, aNodes);
+  if (!iter.Next()) {
+    return;
+  }
+
+#ifdef A11Y_LOG
+  logging::TreeInfo("children before insertion", logging::eVerbose,
+                    aContainer);
 #endif
 
-  uint32_t updateFlags = eNoAccessible;
-  RefPtr<AccReorderEvent> reorderEvent = new AccReorderEvent(aContainer);
-  AutoTreeMutation mut(aContainer);
-
-  if (child) {
-    updateFlags |= UpdateTreeInternal(child, false, reorderEvent);
-  } else {
-    // aChildNode may not coorespond to a particular accessible, to handle
-    // this we go through all the children of aContainer.  Then if a child
-    // has aChildNode as an ancestor, or does not have the node for
-    // aContainer as an ancestor remove that child of aContainer.  Note that
-    // when we are called aChildNode may already have been removed from the DOM
-    // so we can't expect it to have a parent or what was it's parent to have
-    // it as a child.
-    nsINode* containerNode = aContainer->GetNode();
-    for (uint32_t idx = 0; idx < aContainer->ContentChildCount();) {
-      Accessible* child = aContainer->ContentChildAt(idx);
-
-      // If accessible doesn't have its own content then we assume parent
-      // will handle its update.  If child is DocAccessible then we don't
-      // handle updating it here either.
-      if (!child->HasOwnContent() || child->IsDoc()) {
-        idx++;
+  TreeMutation mt(aContainer);
+  do {
+    Accessible* parent = iter.Child()->Parent();
+    if (parent) {
+      if (parent != aContainer) {
+#ifdef A11Y_LOG
+        logging::TreeInfo("stealing accessible", 0,
+                          "old parent", parent, "new parent",
+                          aContainer, "child", iter.Child(), nullptr);
+#endif
+        MOZ_ASSERT_UNREACHABLE("stealing accessible");
         continue;
       }
 
-      nsINode* childNode = child->GetContent();
-      while (childNode != aChildNode && childNode != containerNode &&
-             (childNode = childNode->GetParentNode()));
-
-      if (childNode != containerNode) {
-        updateFlags |= UpdateTreeInternal(child, false, reorderEvent);
-      } else {
-        idx++;
-      }
+#ifdef A11Y_LOG
+      logging::TreeInfo("binding to same parent", logging::eVerbose,
+                        "parent", aContainer, "child", iter.Child(), nullptr);
+#endif
+      continue;
     }
-  }
 
-  // Content insertion/removal is not cause of accessible tree change.
-  if (updateFlags == eNoAccessible)
-    return;
+    if (aContainer->InsertAfter(iter.Child(), iter.ChildBefore())) {
+#ifdef A11Y_LOG
+      logging::TreeInfo("accessible was inserted", 0,
+                        "container", aContainer, "child", iter.Child(), nullptr);
+#endif
 
-  MaybeNotifyOfValueChange(aContainer);
-  FireDelayedEvent(reorderEvent);
-}
-
-uint32_t
-DocAccessible::UpdateTreeInternal(Accessible* aChild, bool aIsInsert,
-                                  AccReorderEvent* aReorderEvent)
-{
-  uint32_t updateFlags = eAccessible;
-
-  // If a focused node has been shown then it could mean its frame was recreated
-  // while the node stays focused and we need to fire focus event on
-  // the accessible we just created. If the queue contains a focus event for
-  // this node already then it will be suppressed by this one.
-  Accessible* focusedAcc = nullptr;
-
-  nsINode* node = aChild->GetNode();
-  if (aIsInsert) {
-    // Create accessible tree for shown accessible.
-    CacheChildrenInSubtree(aChild, &focusedAcc);
-
-  } else {
-    // Fire menupopup end event before hide event if a menu goes away.
-
-    // XXX: We don't look into children of hidden subtree to find hiding
-    // menupopup (as we did prior bug 570275) because we don't do that when
-    // menu is showing (and that's impossible until bug 606924 is fixed).
-    // Nevertheless we should do this at least because layout coalesces
-    // the changes before our processing and we may miss some menupopup
-    // events. Now we just want to be consistent in content insertion/removal
-    // handling.
-    if (aChild->ARIARole() == roles::MENUPOPUP)
-      FireDelayedEvent(nsIAccessibleEvent::EVENT_MENUPOPUP_END, aChild);
-  }
-
-  // Fire show/hide event.
-  RefPtr<AccMutationEvent> event;
-  if (aIsInsert)
-    event = new AccShowEvent(aChild, node);
-  else
-    event = new AccHideEvent(aChild, node);
-
-  FireDelayedEvent(event);
-  aReorderEvent->AddSubMutationEvent(event);
-
-  if (aIsInsert) {
-    roles::Role ariaRole = aChild->ARIARole();
-    if (ariaRole == roles::MENUPOPUP) {
-      // Fire EVENT_MENUPOPUP_START if ARIA menu appears.
-      FireDelayedEvent(nsIAccessibleEvent::EVENT_MENUPOPUP_START, aChild);
-
-    } else if (ariaRole == roles::ALERT) {
-      // Fire EVENT_ALERT if ARIA alert appears.
-      updateFlags = eAlertAccessible;
-      FireDelayedEvent(nsIAccessibleEvent::EVENT_ALERT, aChild);
+      CreateSubtree(iter.Child());
+      mt.AfterInsertion(iter.Child());
+      continue;
     }
-  } else {
-    // Update the tree for content removal.
-    // The accessible parent may differ from container accessible if
-    // the parent doesn't have own DOM node like list accessible for HTML
-    // selects.
-    Accessible* parent = aChild->Parent();
-    NS_ASSERTION(parent, "No accessible parent?!");
-    if (parent)
-      parent->RemoveChild(aChild);
 
-    UncacheChildrenInSubtree(aChild);
-  }
+    MOZ_ASSERT_UNREACHABLE("accessible was rejected");
+    iter.Rejected();
+  } while (iter.Next());
 
-  // XXX: do we really want to send focus to focused DOM node not taking into
-  // account active item?
-  if (focusedAcc) {
-    FocusMgr()->DispatchFocusEvent(this, focusedAcc);
-    SelectionMgr()->SetControlSelectionListener(focusedAcc->GetNode()->AsElement());
-  }
+  mt.Done();
 
-  return updateFlags;
+#ifdef A11Y_LOG
+  logging::TreeInfo("children after insertion", logging::eVerbose,
+                    aContainer);
+#endif
+
+  FireEventsOnInsertion(aContainer);
 }
 
 void
+DocAccessible::ProcessContentInserted(Accessible* aContainer, nsIContent* aNode)
+{
+  if (!aContainer->IsInDocument()) {
+    return;
+  }
+
+#ifdef A11Y_LOG
+  logging::TreeInfo("children before insertion", logging::eVerbose, aContainer);
+#endif
+
+#ifdef A11Y_LOG
+  logging::TreeInfo("traversing an inserted node", logging::eVerbose,
+                    "container", aContainer, "node", aNode);
+#endif
+
+  TreeWalker walker(aContainer);
+  if (aContainer->IsAcceptableChild(aNode) && walker.Seek(aNode)) {
+    Accessible* child = GetAccessible(aNode);
+    if (!child) {
+      child = GetAccService()->CreateAccessible(aNode, aContainer);
+    }
+
+    if (child) {
+      TreeMutation mt(aContainer);
+      if (!aContainer->InsertAfter(child, walker.Prev())) {
+        return;
+      }
+      CreateSubtree(child);
+      mt.AfterInsertion(child);
+      mt.Done();
+
+      FireEventsOnInsertion(aContainer);
+    }
+  }
+
+#ifdef A11Y_LOG
+  logging::TreeInfo("children after insertion", logging::eVerbose, aContainer);
+#endif
+}
+
+void
+DocAccessible::FireEventsOnInsertion(Accessible* aContainer)
+{
+  // Check to see if change occurred inside an alert, and fire an EVENT_ALERT
+  // if it did.
+  if (aContainer->IsAlert() || aContainer->IsInsideAlert()) {
+    Accessible* ancestor = aContainer;
+    do {
+      if (ancestor->IsAlert()) {
+        FireDelayedEvent(nsIAccessibleEvent::EVENT_ALERT, ancestor);
+        break;
+      }
+    }
+    while ((ancestor = ancestor->Parent()));
+  }
+}
+
+void
+DocAccessible::ContentRemoved(Accessible* aChild)
+{
+  Accessible* parent = aChild->Parent();
+  MOZ_DIAGNOSTIC_ASSERT(parent, "Unattached accessible from tree");
+
+#ifdef A11Y_LOG
+  logging::TreeInfo("process content removal", 0,
+                    "container", parent, "child", aChild, nullptr);
+#endif
+
+  // XXX: event coalescence may kill us
+  RefPtr<Accessible> kungFuDeathGripChild(aChild);
+
+  TreeMutation mt(parent);
+  mt.BeforeRemoval(aChild);
+
+  if (aChild->IsDefunct()) {
+    MOZ_ASSERT_UNREACHABLE("Event coalescence killed the accessible");
+    mt.Done();
+    return;
+  }
+
+  MOZ_DIAGNOSTIC_ASSERT(aChild->Parent(), "Alive but unparented #1");
+
+  if (aChild->IsRelocated()) {
+    nsTArray<RefPtr<Accessible> >* owned = mARIAOwnsHash.Get(parent);
+    MOZ_ASSERT(owned, "IsRelocated flag is out of sync with mARIAOwnsHash");
+    owned->RemoveElement(aChild);
+    if (owned->Length() == 0) {
+      mARIAOwnsHash.Remove(parent);
+    }
+  }
+  MOZ_DIAGNOSTIC_ASSERT(aChild->Parent(), "Unparented #2");
+  parent->RemoveChild(aChild);
+  UncacheChildrenInSubtree(aChild);
+
+  mt.Done();
+}
+
+void
+DocAccessible::ContentRemoved(nsIContent* aContentNode)
+{
+  // If child node is not accessible then look for its accessible children.
+  Accessible* acc = GetAccessible(aContentNode);
+  if (acc) {
+    ContentRemoved(acc);
+  }
+
+  dom::AllChildrenIterator iter =
+    dom::AllChildrenIterator(aContentNode, nsIContent::eAllChildren, true);
+  while (nsIContent* childNode = iter.GetNextChild()) {
+    ContentRemoved(childNode);
+  }
+}
+
+bool
 DocAccessible::RelocateARIAOwnedIfNeeded(nsIContent* aElement)
 {
   if (!aElement->HasID())
-    return;
+    return false;
 
   AttrRelProviderArray* list =
     mDependentIDsHash.Get(nsDependentAtomString(aElement->GetID()));
@@ -1969,85 +2062,102 @@ DocAccessible::RelocateARIAOwnedIfNeeded(nsIContent* aElement)
         Accessible* owner = GetAccessible(list->ElementAt(idx)->mContent);
         if (owner) {
           mNotificationController->ScheduleRelocation(owner);
+          return true;
         }
       }
     }
   }
-}
 
-void
-DocAccessible::ValidateARIAOwned()
-{
-  for (auto it = mARIAOwnsHash.Iter(); !it.Done(); it.Next()) {
-    Accessible* owner = it.Key();
-    nsTArray<RefPtr<Accessible> >* children = it.UserData();
-
-    // Owner is about to die, put children back if applicable.
-    if (!mAccessibleCache.GetWeak(reinterpret_cast<void*>(owner)) ||
-        !owner->IsInDocument()) {
-      PutChildrenBack(children, 0);
-      it.Remove();
-      continue;
-    }
-
-    for (uint32_t idx = 0; idx < children->Length(); idx++) {
-      Accessible* child = children->ElementAt(idx);
-      if (!child->IsInDocument()) {
-        children->RemoveElementAt(idx);
-        idx--;
-        continue;
-      }
-
-      NS_ASSERTION(child->Parent(), "No parent for ARIA owned?");
-
-      // If DOM node doesn't have a frame anymore then shutdown its accessible.
-      if (child->Parent() && !child->GetFrame()) {
-        UpdateTreeOnRemoval(child->Parent(), child->GetContent());
-        children->RemoveElementAt(idx);
-        idx--;
-        continue;
-      }
-
-      NS_ASSERTION(child->Parent() == owner,
-                   "Illigally stolen ARIA owned child!");
-    }
-
-    if (children->Length() == 0) {
-      it.Remove();
-    }
-  }
+  return false;
 }
 
 void
 DocAccessible::DoARIAOwnsRelocation(Accessible* aOwner)
 {
-  nsTArray<RefPtr<Accessible> >* children = mARIAOwnsHash.LookupOrAdd(aOwner);
-
   MOZ_ASSERT(aOwner, "aOwner must be a valid pointer");
   MOZ_ASSERT(aOwner->Elm(), "aOwner->Elm() must be a valid pointer");
 
-  IDRefsIterator iter(this, aOwner->Elm(), nsGkAtoms::aria_owns);
-  Accessible* child = nullptr;
+#ifdef A11Y_LOG
+  logging::TreeInfo("aria owns relocation", logging::eVerbose, aOwner);
+#endif
 
-  uint32_t arrayIdx = 0, insertIdx = aOwner->ChildCount() - children->Length();
-  while ((child = iter.Next())) {
-    // Same child on same position, no change.
-    if (child->Parent() == aOwner &&
-        child->IndexInParent() == static_cast<int32_t>(insertIdx)) {
-      NS_ASSERTION(child == children->ElementAt(arrayIdx), "Not in sync!");
-      insertIdx++; arrayIdx++;
+  nsTArray<RefPtr<Accessible> >* owned = mARIAOwnsHash.LookupOrAdd(aOwner);
+
+  IDRefsIterator iter(this, aOwner->Elm(), nsGkAtoms::aria_owns);
+  uint32_t idx = 0;
+  while (nsIContent* childEl = iter.NextElem()) {
+    Accessible* child = GetAccessible(childEl);
+    auto insertIdx = aOwner->ChildCount() - owned->Length() + idx;
+
+    // Make an attempt to create an accessible if it wasn't created yet.
+    if (!child) {
+      if (aOwner->IsAcceptableChild(childEl)) {
+        child = GetAccService()->CreateAccessible(childEl, aOwner);
+        if (child) {
+          TreeMutation imut(aOwner);
+          aOwner->InsertChildAt(insertIdx, child);
+          imut.AfterInsertion(child);
+          imut.Done();
+
+          child->SetRelocated(true);
+          owned->InsertElementAt(idx, child);
+          idx++;
+
+          // Create subtree before adjusting the insertion index, since subtree
+          // creation may alter children in the container.
+          CreateSubtree(child);
+          FireEventsOnInsertion(aOwner);
+        }
+      }
       continue;
     }
 
-    NS_ASSERTION(children->SafeElementAt(arrayIdx) != child, "Already in place!");
+#ifdef A11Y_LOG
+  logging::TreeInfo("aria owns traversal", logging::eVerbose,
+                    "candidate", child, nullptr);
+#endif
 
-    nsTArray<RefPtr<Accessible> >::index_type idx = children->IndexOf(child);
-    if (idx < arrayIdx) {
+    if (owned->IndexOf(child) < idx) {
       continue; // ignore second entry of same ID
     }
 
+    // Same child on same position, no change.
+    if (child->Parent() == aOwner) {
+      int32_t indexInParent = child->IndexInParent();
+
+      // The child is being placed in its current index,
+      // eg. aria-owns='id1 id2 id3' is changed to aria-owns='id3 id2 id1'.
+      if (indexInParent == static_cast<int32_t>(insertIdx)) {
+        MOZ_ASSERT(child->IsRelocated(),
+                   "A child, having an index in parent from aria ownded indices range, has to be aria owned");
+        MOZ_ASSERT(owned->ElementAt(idx) == child,
+                   "Unexpected child in ARIA owned array");
+        idx++;
+        continue;
+      }
+
+      // The child is being inserted directly after its current index,
+      // resulting in a no-move case. This will happen when a parent aria-owns
+      // its last ordinal child:
+      // <ul aria-owns='id2'><li id='id1'></li><li id='id2'></li></ul>
+      if (indexInParent == static_cast<int32_t>(insertIdx) - 1) {
+        MOZ_ASSERT(!child->IsRelocated(), "Child should be in its ordinal position");
+        child->SetRelocated(true);
+        owned->InsertElementAt(idx, child);
+        idx++;
+        continue;
+      }
+    }
+
+    MOZ_ASSERT(owned->SafeElementAt(idx) != child, "Already in place!");
+
     // A new child is found, check for loops.
     if (child->Parent() != aOwner) {
+      // Child is aria-owned by another container, skip.
+      if (child->IsRelocated()) {
+        continue;
+      }
+
       Accessible* parent = aOwner;
       while (parent && parent != child && !parent->IsDoc()) {
         parent = parent->Parent();
@@ -2058,157 +2168,168 @@ DocAccessible::DoARIAOwnsRelocation(Accessible* aOwner)
       }
     }
 
-    if (child->Parent() == aOwner) {
-      MoveChild(child, insertIdx - 1);
-      children->InsertElementAt(arrayIdx, child);
-      arrayIdx++;
-
-    } else if (SeizeChild(aOwner, child, insertIdx)) {
-      children->InsertElementAt(arrayIdx, child);
-      insertIdx++; arrayIdx++;
+    if (MoveChild(child, aOwner, insertIdx)) {
+      child->SetRelocated(true);
+      MOZ_ASSERT(owned == mARIAOwnsHash.Get(aOwner));
+      owned = mARIAOwnsHash.LookupOrAdd(aOwner);
+      owned->InsertElementAt(idx, child);
+      idx++;
     }
   }
 
   // Put back children that are not seized anymore.
-  PutChildrenBack(children, arrayIdx);
-  if (children->Length() == 0) {
+  PutChildrenBack(owned, idx);
+  if (owned->Length() == 0) {
     mARIAOwnsHash.Remove(aOwner);
   }
-}
-
-bool
-DocAccessible::SeizeChild(Accessible* aNewParent, Accessible* aChild,
-                          int32_t aIdxInParent)
-{
-  Accessible* oldParent = aChild->Parent();
-  if (!oldParent) {
-    NS_ERROR("No parent? The tree is broken!");
-    return false;
-  }
-
-  int32_t oldIdxInParent = aChild->IndexInParent();
-
-  RefPtr<AccReorderEvent> reorderEvent = new AccReorderEvent(oldParent);
-  RefPtr<AccMutationEvent> hideEvent =
-    new AccHideEvent(aChild, aChild->GetContent(), false);
-  reorderEvent->AddSubMutationEvent(hideEvent);
-
-  {
-    AutoTreeMutation mut(oldParent);
-    oldParent->RemoveChild(aChild);
-  }
-
-  bool isReinserted = false;
-  {
-    AutoTreeMutation mut(aNewParent);
-    isReinserted = aNewParent->InsertChildAt(aIdxInParent, aChild);
-  }
-
-  if (!isReinserted) {
-    AutoTreeMutation mut(oldParent);
-    oldParent->InsertChildAt(oldIdxInParent, aChild);
-    return false;
-  }
-
-  // The child may be stolen from other ARIA owns element.
-  if (aChild->IsRelocated()) {
-    nsTArray<RefPtr<Accessible> >* children = mARIAOwnsHash.Get(oldParent);
-    children->RemoveElement(aChild);
-  }
-
-  FireDelayedEvent(hideEvent);
-  MaybeNotifyOfValueChange(oldParent);
-  FireDelayedEvent(reorderEvent);
-
-  reorderEvent = new AccReorderEvent(aNewParent);
-  RefPtr<AccMutationEvent> showEvent =
-    new AccShowEvent(aChild, aChild->GetContent());
-  reorderEvent->AddSubMutationEvent(showEvent);
-
-  FireDelayedEvent(showEvent);
-  MaybeNotifyOfValueChange(aNewParent);
-  FireDelayedEvent(reorderEvent);
-
-  aChild->SetRelocated(true);
-  return true;
-}
-
-void
-DocAccessible::MoveChild(Accessible* aChild, int32_t aIdxInParent)
-{
-  NS_PRECONDITION(aChild->Parent(), "No parent?");
-
-  Accessible* parent = aChild->Parent();
-  RefPtr<AccReorderEvent> reorderEvent = new AccReorderEvent(parent);
-  RefPtr<AccMutationEvent> hideEvent =
-    new AccHideEvent(aChild, aChild->GetContent(), false);
-  reorderEvent->AddSubMutationEvent(hideEvent);
-
-  AutoTreeMutation mut(parent);
-  parent->RemoveChild(aChild);
-
-  parent->InsertChildAt(aIdxInParent, aChild);
-  aChild->SetRelocated(true);
-
-  FireDelayedEvent(hideEvent);
-
-  RefPtr<AccMutationEvent> showEvent =
-    new AccShowEvent(aChild, aChild->GetContent());
-  reorderEvent->AddSubMutationEvent(showEvent);
-  FireDelayedEvent(showEvent);
-
-  MaybeNotifyOfValueChange(parent);
-  FireDelayedEvent(reorderEvent);
 }
 
 void
 DocAccessible::PutChildrenBack(nsTArray<RefPtr<Accessible> >* aChildren,
                                uint32_t aStartIdx)
 {
-  nsTArray<RefPtr<Accessible> > containers;
+  MOZ_ASSERT(aStartIdx <= aChildren->Length(), "Wrong removal index");
+
   for (auto idx = aStartIdx; idx < aChildren->Length(); idx++) {
     Accessible* child = aChildren->ElementAt(idx);
-
-    // If the child is in the tree then remove it from the owner.
-    if (child->IsInDocument()) {
-      Accessible* owner = child->Parent();
-      if (!owner) {
-        NS_ERROR("Cannot put the child back. No parent, a broken tree.");
-        continue;
-      }
-      RefPtr<AccReorderEvent> reorderEvent = new AccReorderEvent(owner);
-      RefPtr<AccMutationEvent> hideEvent =
-        new AccHideEvent(child, child->GetContent(), false);
-      reorderEvent->AddSubMutationEvent(hideEvent);
-
-      {
-        AutoTreeMutation mut(owner);
-        owner->RemoveChild(child);
-        child->SetRelocated(false);
-      }
-
-      FireDelayedEvent(hideEvent);
-      MaybeNotifyOfValueChange(owner);
-      FireDelayedEvent(reorderEvent);
+    if (!child->IsInDocument()) {
+      continue;
     }
 
-    Accessible* container = GetContainerAccessible(child->GetContent());
-    if (container &&
-        containers.IndexOf(container) == nsTArray<Accessible*>::NoIndex) {
-      containers.AppendElement(container);
+    // Remove the child from the owner
+    Accessible* owner = child->Parent();
+    if (!owner) {
+      NS_ERROR("Cannot put the child back. No parent, a broken tree.");
+      continue;
+    }
+
+#ifdef A11Y_LOG
+    logging::TreeInfo("aria owns put child back", 0,
+                      "old parent", owner, "child", child, nullptr);
+#endif
+
+    // Unset relocated flag to find an insertion point for the child.
+    child->SetRelocated(false);
+
+    nsIContent* content = child->GetContent();
+    int32_t idxInParent = -1;
+    Accessible* origContainer = AccessibleOrTrueContainer(content->GetParentNode());
+    if (origContainer) {
+      TreeWalker walker(origContainer);
+      if (walker.Seek(content)) {
+        Accessible* prevChild = walker.Prev();
+        if (prevChild) {
+          idxInParent = prevChild->IndexInParent() + 1;
+          MOZ_DIAGNOSTIC_ASSERT(origContainer == prevChild->Parent(), "Broken tree");
+          origContainer = prevChild->Parent();
+        }
+        else {
+          idxInParent = 0;
+        }
+      }
+    }
+
+    // The child may have already be in its ordinal place for 2 reasons:
+    // 1. It was the last ordinal child, and the first aria-owned child.
+    //    given:      <ul id="list" aria-owns="b"><li id="a"></li><li id="b"></li></ul>
+    //    after load: $("list").setAttribute("aria-owns", "");
+    // 2. The preceding adopted children were just reclaimed, eg:
+    //    given:      <ul id="list"><li id="b"></li></ul>
+    //    after load: $("list").setAttribute("aria-owns", "a b");
+    //    later:      $("list").setAttribute("aria-owns", "");
+    if (origContainer != owner || child->IndexInParent() != idxInParent) {
+      DebugOnly<bool> moved = MoveChild(child, origContainer, idxInParent);
+      MOZ_ASSERT(moved, "Failed to put child back.");
+    } else {
+      MOZ_ASSERT(!child->PrevSibling() || !child->PrevSibling()->IsRelocated(),
+                 "No relocated child should appear before this one");
+      MOZ_ASSERT(!child->NextSibling() || child->NextSibling()->IsRelocated(),
+                 "No ordinal child should appear after this one");
     }
   }
 
-  // And put it back where it belongs to.
   aChildren->RemoveElementsAt(aStartIdx, aChildren->Length() - aStartIdx);
-  for (uint32_t idx = 0; idx < containers.Length(); idx++) {
-    NS_ASSERTION(containers[idx]->IsInDocument(),
-                 "A container has been destroyed.");
-    if (containers[idx]->IsInDocument()) {
-      UpdateTreeOnInsertion(containers[idx]);
+}
+
+bool
+DocAccessible::MoveChild(Accessible* aChild, Accessible* aNewParent,
+                         int32_t aIdxInParent)
+{
+  MOZ_ASSERT(aChild, "No child");
+  MOZ_ASSERT(aChild->Parent(), "No parent");
+  MOZ_ASSERT(aIdxInParent <= static_cast<int32_t>(aNewParent->ChildCount()),
+             "Wrong insertion point for a moving child");
+
+  Accessible* curParent = aChild->Parent();
+
+  if (!aNewParent->IsAcceptableChild(aChild->GetContent())) {
+    return false;
+  }
+
+#ifdef A11Y_LOG
+  logging::TreeInfo("move child", 0,
+                    "old parent", curParent, "new parent", aNewParent,
+                    "child", aChild, nullptr);
+#endif
+
+  // Forget aria-owns info in case of ARIA owned element. The caller is expected
+  // to update it if needed.
+  if (aChild->IsRelocated()) {
+    aChild->SetRelocated(false);
+    nsTArray<RefPtr<Accessible> >* owned = mARIAOwnsHash.Get(curParent);
+    MOZ_ASSERT(owned, "IsRelocated flag is out of sync with mARIAOwnsHash");
+    owned->RemoveElement(aChild);
+    if (owned->Length() == 0) {
+      mARIAOwnsHash.Remove(curParent);
     }
   }
+
+  NotificationController::MoveGuard mguard(mNotificationController);
+
+  if (curParent == aNewParent) {
+    MOZ_ASSERT(aChild->IndexInParent() != aIdxInParent, "No move case");
+    curParent->MoveChild(aIdxInParent, aChild);
+
+#ifdef A11Y_LOG
+    logging::TreeInfo("move child: parent tree after",
+                      logging::eVerbose, curParent);
+#endif
+    return true;
+  }
+
+  MOZ_ASSERT(aIdxInParent <= static_cast<int32_t>(aNewParent->ChildCount()),
+             "Wrong insertion point for a moving child");
+
+  // If the child cannot be re-inserted into the tree, then make sure to remove
+  // it from its present parent and then shutdown it.
+  bool hasInsertionPoint = (aIdxInParent != -1) ||
+    (aIdxInParent <= static_cast<int32_t>(aNewParent->ChildCount()));
+
+  TreeMutation rmut(curParent);
+  rmut.BeforeRemoval(aChild, hasInsertionPoint && TreeMutation::kNoShutdown);
+  curParent->RemoveChild(aChild);
+  rmut.Done();
+
+  // No insertion point for the child.
+  if (!hasInsertionPoint) {
+    return true;
+  }
+
+  TreeMutation imut(aNewParent);
+  aNewParent->InsertChildAt(aIdxInParent, aChild);
+  imut.AfterInsertion(aChild);
+  imut.Done();
+
+#ifdef A11Y_LOG
+  logging::TreeInfo("move child: old parent tree after",
+                    logging::eVerbose, curParent);
+  logging::TreeInfo("move child: new parent tree after",
+                    logging::eVerbose, aNewParent);
+#endif
+
+  return true;
 }
+
 
 void
 DocAccessible::CacheChildrenInSubtree(Accessible* aRoot,
@@ -2220,26 +2341,34 @@ DocAccessible::CacheChildrenInSubtree(Accessible* aRoot,
       FocusMgr()->HasDOMFocus(aRoot->GetContent()))
     *aFocusedAcc = aRoot;
 
-  aRoot->EnsureChildren();
+  Accessible* root = aRoot->IsHTMLCombobox() ? aRoot->FirstChild() : aRoot;
+  if (root->KidsFromDOM()) {
+    TreeMutation mt(root, TreeMutation::kNoEvents);
+    TreeWalker walker(root);
+    while (Accessible* child = walker.Next()) {
+      if (child->IsBoundToParent()) {
+        MoveChild(child, root, root->ChildCount());
+        continue;
+      }
 
-  // Make sure we create accessible tree defined in DOM only, i.e. if accessible
-  // provides specific tree (like XUL trees) then tree creation is handled by
-  // this accessible.
-  uint32_t count = aRoot->ContentChildCount();
-  for (uint32_t idx = 0; idx < count; idx++) {
-    Accessible* child = aRoot->ContentChildAt(idx);
-    NS_ASSERTION(child, "Illicit tree change while tree is created!");
-    // Don't cross document boundaries.
-    if (child && child->IsContent())
+      root->AppendChild(child);
+      mt.AfterInsertion(child);
+
       CacheChildrenInSubtree(child, aFocusedAcc);
+    }
+    mt.Done();
   }
 
-  // Fire document load complete on ARIA documents.
-  // XXX: we should delay an event if the ARIA document has aria-busy.
-  if (aRoot->HasARIARole() && !aRoot->IsDoc()) {
-    a11y::role role = aRoot->ARIARole();
-    if (role == roles::DIALOG || role == roles::DOCUMENT)
-      FireDelayedEvent(nsIAccessibleEvent::EVENT_DOCUMENT_LOAD_COMPLETE, aRoot);
+  // Fire events for ARIA elements.
+  if (!aRoot->HasARIARole()) {
+    return;
+  }
+
+  // XXX: we should delay document load complete event if the ARIA document
+  // has aria-busy.
+  roles::Role role = aRoot->ARIARole();
+  if (!aRoot->IsDoc() && (role == roles::DIALOG || role == roles::DOCUMENT)) {
+    FireDelayedEvent(nsIAccessibleEvent::EVENT_DOCUMENT_LOAD_COMPLETE, aRoot);
   }
 }
 
@@ -2249,9 +2378,26 @@ DocAccessible::UncacheChildrenInSubtree(Accessible* aRoot)
   aRoot->mStateFlags |= eIsNotInDocument;
   RemoveDependentIDsFor(aRoot);
 
+  nsTArray<RefPtr<Accessible> >* owned = mARIAOwnsHash.Get(aRoot);
   uint32_t count = aRoot->ContentChildCount();
-  for (uint32_t idx = 0; idx < count; idx++)
-    UncacheChildrenInSubtree(aRoot->ContentChildAt(idx));
+  for (uint32_t idx = 0; idx < count; idx++) {
+    Accessible* child = aRoot->ContentChildAt(idx);
+
+    if (child->IsRelocated()) {
+      MOZ_ASSERT(owned, "IsRelocated flag is out of sync with mARIAOwnsHash");
+      owned->RemoveElement(child);
+      if (owned->Length() == 0) {
+        mARIAOwnsHash.Remove(aRoot);
+        owned = nullptr;
+      }
+    }
+
+    // Removing this accessible from the document doesn't mean anything about
+    // accessibles for subdocuments, so skip removing those from the tree.
+    if (!child->IsDoc()) {
+      UncacheChildrenInSubtree(child);
+    }
+  }
 
   if (aRoot->IsNodeMapEntry() &&
       mNodeToAccessibleMap.Get(aRoot->GetNode()) == aRoot)
@@ -2310,4 +2456,3 @@ DocAccessible::IsLoadEventTarget() const
   // It's content (not chrome) root document.
   return (treeItem->ItemType() == nsIDocShellTreeItem::typeContent);
 }
-

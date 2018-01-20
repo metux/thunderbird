@@ -16,11 +16,9 @@ test();
 
 function test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
 
-  jit(true);
 
   function outer() {
     var v = 10.234;
@@ -45,9 +43,6 @@ function test()
   outer();
   print("g=" + g + " h=" + h);
 
-  jit(false);
 
   reportCompare(expect, actual, summary);
-
-  exitFunc ('test');
 }

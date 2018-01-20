@@ -12,9 +12,14 @@ SOURCES += [
 DEFINES['MOZ_APP_NAME'] = '"%s"' % CONFIG['MOZ_APP_NAME']
 
 if CONFIG['OS_ARCH'] == 'WINNT':
-    SOURCES += ['nsMailWinIntegration.cpp']
+    SOURCES += [
+        'nsMailWinIntegration.cpp',
+    ]
+    LOCAL_INCLUDES += [
+        '/%s/other-licenses/nsis/Contrib/CityHash/cityhash' % (CONFIG['mozreltopsrcdir'],),
+    ]
 
-if CONFIG['MOZ_WIDGET_GTK']:
+if 'gtk' in CONFIG['MOZ_WIDGET_TOOLKIT']:
     SOURCES += ['nsMailGNOMEIntegration.cpp']
 
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':

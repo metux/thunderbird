@@ -5,6 +5,10 @@
 #ifndef mozilla_widget_RemotePlugin_h__
 #define mozilla_widget_RemotePlugin_h__
 
+#ifndef XP_WIN
+#error "Plugin widgets are Windows-only."
+#endif
+
 #include "PuppetWidget.h"
 #include "mozilla/dom/TabChild.h"
 
@@ -34,18 +38,19 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   // nsIWidget
-  NS_IMETHOD Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
-                    const LayoutDeviceIntRect& aRect,
-                    nsWidgetInitData* aInitData = nullptr) override;
-  NS_IMETHOD Destroy() override;
-  NS_IMETHOD SetFocus(bool aRaise = false) override;
-  NS_IMETHOD SetParent(nsIWidget* aNewParent) override;
+  using PuppetWidget::Create; // for Create signature not overridden here
+  virtual MOZ_MUST_USE nsresult Create(nsIWidget* aParent,
+                                       nsNativeWidget aNativeParent,
+                                       const LayoutDeviceIntRect& aRect,
+                                       nsWidgetInitData* aInitData = nullptr)
+                                       override;
+  virtual void Destroy() override;
+  virtual nsresult SetFocus(bool aRaise = false) override;
+  virtual void SetParent(nsIWidget* aNewParent) override;
 
   virtual nsIWidget* GetParent(void) override;
   virtual void* GetNativeData(uint32_t aDataType) override;
-#if defined(XP_WIN)
   void SetNativeData(uint32_t aDataType, uintptr_t aVal) override;
-#endif
   virtual nsTransparencyMode GetTransparencyMode() override
   { return eTransparencyOpaque; }
   virtual void GetWindowClipRegion(nsTArray<LayoutDeviceIntRect>* aRects) override;
@@ -66,6 +71,7 @@ private:
   // PuppetWidget does not implement parent apis, but we need
   // them for plugin widgets.
   nsCOMPtr<nsIWidget> mParent;
+  uintptr_t mCachedPluginPort;
 };
 
 } // namespace widget

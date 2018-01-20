@@ -13,14 +13,14 @@
 #include "nsCOMPtr.h"
 #include "nsIMemoryReporter.h"
 #include "nsIStyleSheetService.h"
+#include "mozilla/Array.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/StyleSheet.h"
 
-namespace mozilla {
-class CSSStyleSheet;
-}
 class nsICategoryManager;
 class nsIMemoryReporter;
+class nsIPresShell;
 class nsISimpleEnumerator;
 
 #define NS_STYLESHEETSERVICE_CID \
@@ -34,7 +34,9 @@ class nsStyleSheetService final
   : public nsIStyleSheetService
   , public nsIMemoryReporter
 {
- public:
+public:
+  typedef nsTArray<RefPtr<mozilla::StyleSheet>> SheetArray;
+
   nsStyleSheetService();
 
   NS_DECL_ISUPPORTS
@@ -43,25 +45,28 @@ class nsStyleSheetService final
 
   nsresult Init();
 
-  nsTArray<RefPtr<mozilla::CSSStyleSheet>>* AgentStyleSheets()
+  SheetArray* AgentStyleSheets(mozilla::StyleBackendType aType)
   {
-    return &mSheets[AGENT_SHEET];
+    return &Sheets(aType)[AGENT_SHEET];
   }
-  nsTArray<RefPtr<mozilla::CSSStyleSheet>>* UserStyleSheets()
+  SheetArray* UserStyleSheets(mozilla::StyleBackendType aType)
   {
-    return &mSheets[USER_SHEET];
+    return &Sheets(aType)[USER_SHEET];
   }
-  nsTArray<RefPtr<mozilla::CSSStyleSheet>>* AuthorStyleSheets()
+  SheetArray* AuthorStyleSheets(mozilla::StyleBackendType aType)
   {
-    return &mSheets[AUTHOR_SHEET];
+    return &Sheets(aType)[AUTHOR_SHEET];
   }
+
+  void RegisterPresShell(nsIPresShell* aPresShell);
+  void UnregisterPresShell(nsIPresShell* aPresShell);
 
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
   static nsStyleSheetService *GetInstance();
   static nsStyleSheetService *gInstance;
 
- private:
+private:
   ~nsStyleSheetService();
 
   void RegisterFromEnumerator(nsICategoryManager  *aManager,
@@ -69,7 +74,8 @@ class nsStyleSheetService final
                                           nsISimpleEnumerator *aEnumerator,
                                           uint32_t             aSheetType);
 
-  int32_t FindSheetByURI(const nsTArray<RefPtr<mozilla::CSSStyleSheet>>& aSheets,
+  int32_t FindSheetByURI(mozilla::StyleBackendType aBackendType,
+                         uint32_t aSheetType,
                          nsIURI* aSheetURI);
 
   // Like LoadAndRegisterSheet, but doesn't notify.  If successful, the
@@ -77,7 +83,18 @@ class nsStyleSheetService final
   nsresult LoadAndRegisterSheetInternal(nsIURI *aSheetURI,
                                         uint32_t aSheetType);
 
-  nsTArray<RefPtr<mozilla::CSSStyleSheet>> mSheets[3];
+  mozilla::Array<SheetArray, 3>& Sheets(mozilla::StyleBackendType aType)
+  {
+    return aType == mozilla::StyleBackendType::Gecko ? mGeckoSheets
+                                                     : mServoSheets;
+  }
+
+  mozilla::Array<SheetArray, 3> mGeckoSheets;
+  mozilla::Array<SheetArray, 3> mServoSheets;
+
+  // Registered PresShells that will be notified when sheets are added and
+  // removed from the style sheet service.
+  nsTArray<nsCOMPtr<nsIPresShell>> mPresShells;
 };
 
 #endif

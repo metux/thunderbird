@@ -8,15 +8,17 @@
 
 "use strict";
 
-const { PromisesFront } = require("devtools/server/actors/promises");
+Cu.import("resource://testing-common/PromiseTestUtils.jsm", this);
 
-var events = require("sdk/event/core");
+const { PromisesFront } = require("devtools/shared/fronts/promises");
 
-add_task(function*() {
+var EventEmitter = require("devtools/shared/event-emitter");
+
+add_task(function* () {
   let client = yield startTestDebuggerServer("promises-actor-test");
   let chromeActors = yield getChromeActors(client);
 
-  ok(Promise.toString().contains("native code"), "Expect native DOM Promise");
+  ok(Promise.toString().includes("native code"), "Expect native DOM Promise");
 
   // We have to attach the chrome TabActor before playing with the PromiseActor
   yield attachTab(client, chromeActors);
@@ -52,6 +54,7 @@ function* testPromisesSettled(client, form, makeResolvePromise,
   let foundResolvedPromise = yield onPromiseSettled;
   ok(foundResolvedPromise, "Found our resolved promise");
 
+  PromiseTestUtils.expectUncaughtRejection(r => r.message == resolution);
   onPromiseSettled = oncePromiseSettled(front, resolution, false, true);
   let rejectedPromise = makeRejectPromise(resolution);
   let foundRejectedPromise = yield onPromiseSettled;
@@ -65,7 +68,7 @@ function* testPromisesSettled(client, form, makeResolvePromise,
 
 function oncePromiseSettled(front, resolution, resolveValue, rejectValue) {
   return new Promise(resolve => {
-    events.on(front, "promises-settled", promises => {
+    EventEmitter.on(front, "promises-settled", promises => {
       for (let p of promises) {
         equal(p.type, "object", "Expect type to be Object");
         equal(p.class, "Promise", "Expect class to be Promise");

@@ -3,6 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "nsComponentManagerUtils.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsISelectionController.h"
 #include "nsIController.h"
@@ -18,6 +19,7 @@
 #include "nsITypeAheadFind.h"
 #include "nsISound.h"
 
+class nsPIDOMWindowInner;
 class nsIPresShell;
 class nsPresContext;
 
@@ -43,21 +45,23 @@ protected:
   nsresult PrefsReset();
 
   void SaveFind();
-  void PlayNotFoundSound(); 
+  void PlayNotFoundSound();
   nsresult GetWebBrowserFind(nsIDocShell *aDocShell,
                              nsIWebBrowserFind **aWebBrowserFind);
 
-  void RangeStartsInsideLink(nsIDOMRange *aRange, nsIPresShell *aPresShell, 
+  void RangeStartsInsideLink(nsIDOMRange *aRange, nsIPresShell *aPresShell,
                              bool *aIsInsideLink, bool *aIsStartingLink);
 
-  void GetSelection(nsIPresShell *aPresShell, nsISelectionController **aSelCon, 
+  void GetSelection(nsIPresShell *aPresShell, nsISelectionController **aSelCon,
                     nsISelection **aDomSel);
   // *aNewRange may not be collapsed.  If you want to collapse it in a
   // particular way, you need to do it yourself.
   bool IsRangeVisible(nsIPresShell *aPresShell, nsPresContext *aPresContext,
-                        nsIDOMRange *aRange, bool aMustBeVisible, 
+                        nsIDOMRange *aRange, bool aMustBeVisible,
                         bool aGetTopVisibleLeaf, nsIDOMRange **aNewRange,
                         bool *aUsesIndependentSelection);
+  bool IsRangeRendered(nsIPresShell *aPresShell, nsPresContext *aPresContext,
+                          nsIDOMRange *aRange);
   nsresult FindItNow(nsIPresShell *aPresShell, bool aIsLinksOnly,
                      bool aIsFirstVisiblePreferred, bool aFindPrev,
                      uint16_t* aResult);
@@ -85,7 +89,7 @@ protected:
   nsCOMPtr<nsIDOMElement> mFoundLink;     // Most recent elem found, if a link
   nsCOMPtr<nsIDOMElement> mFoundEditable; // Most recent elem found, if editable
   nsCOMPtr<nsIDOMRange> mFoundRange;      // Most recent range found
-  nsCOMPtr<nsIDOMWindow> mCurrentWindow;
+  nsCOMPtr<nsPIDOMWindowInner> mCurrentWindow;
   // mLastFindLength is the character length of the last find string.  It is used for
   // disabling the "not found" sound when using backspace or delete
   uint32_t mLastFindLength;
@@ -94,7 +98,7 @@ protected:
   // If we destroy mSoundInterface before sound has played, it won't play
   nsCOMPtr<nsISound> mSoundInterface;
   bool mIsSoundInitialized;
-  
+
   // where selection was when user started the find
   nsCOMPtr<nsIDOMRange> mStartFindRange;
   nsCOMPtr<nsIDOMRange> mSearchRange;
@@ -105,6 +109,7 @@ protected:
   nsCOMPtr<nsIFind> mFind;
 
   bool mCaseSensitive;
+  bool mEntireWord;
 
   bool EnsureFind() {
     if (mFind) {
@@ -117,7 +122,7 @@ protected:
     }
 
     mFind->SetCaseSensitive(mCaseSensitive);
-    mFind->SetWordBreaker(nullptr);
+    mFind->SetEntireWord(mEntireWord);
 
     return true;
   }

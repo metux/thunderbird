@@ -1,62 +1,19 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 #include "FetchUtil.h"
 
 #include "nsError.h"
-#include "nsIUnicodeDecoder.h"
 #include "nsString.h"
+#include "nsIDocument.h"
 
-#include "mozilla/dom/EncodingUtils.h"
+#include "mozilla/dom/InternalRequest.h"
 
 namespace mozilla {
 namespace dom {
-
-namespace {
-class StreamDecoder final
-{
-  nsCOMPtr<nsIUnicodeDecoder> mDecoder;
-  nsString mDecoded;
-
-public:
-  StreamDecoder()
-    : mDecoder(EncodingUtils::DecoderForEncoding("UTF-8"))
-  {
-    MOZ_ASSERT(mDecoder);
-  }
-
-  nsresult
-  AppendText(const char* aSrcBuffer, uint32_t aSrcBufferLen)
-  {
-    int32_t destBufferLen;
-    nsresult rv =
-      mDecoder->GetMaxLength(aSrcBuffer, aSrcBufferLen, &destBufferLen);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return rv;
-    }
-
-    if (!mDecoded.SetCapacity(mDecoded.Length() + destBufferLen, fallible)) {
-      return NS_ERROR_OUT_OF_MEMORY;
-    }
-
-    char16_t* destBuffer = mDecoded.BeginWriting() + mDecoded.Length();
-    int32_t totalChars = mDecoded.Length();
-
-    int32_t srcLen = (int32_t) aSrcBufferLen;
-    int32_t outLen = destBufferLen;
-    rv = mDecoder->Convert(aSrcBuffer, &srcLen, destBuffer, &outLen);
-    MOZ_ASSERT(NS_SUCCEEDED(rv));
-
-    totalChars += outLen;
-    mDecoded.SetLength(totalChars);
-
-    return NS_OK;
-  }
-
-  nsString&
-  GetText()
-  {
-    return mDecoded;
-  }
-};
-}
 
 // static
 nsresult
@@ -64,10 +21,14 @@ FetchUtil::GetValidRequestMethod(const nsACString& aMethod, nsCString& outMethod
 {
   nsAutoCString upperCaseMethod(aMethod);
   ToUpperCase(upperCaseMethod);
+  if (!NS_IsValidHTTPToken(aMethod)) {
+    outMethod.SetIsVoid(true);
+    return NS_ERROR_DOM_SYNTAX_ERR;
+  }
+
   if (upperCaseMethod.EqualsLiteral("CONNECT") ||
       upperCaseMethod.EqualsLiteral("TRACE") ||
-      upperCaseMethod.EqualsLiteral("TRACK") ||
-      !NS_IsValidHTTPToken(aMethod)) {
+      upperCaseMethod.EqualsLiteral("TRACK")) {
     outMethod.SetIsVoid(true);
     return NS_ERROR_DOM_SECURITY_ERR;
   }
@@ -86,42 +47,6 @@ FetchUtil::GetValidRequestMethod(const nsACString& aMethod, nsCString& outMethod
   return NS_OK;
 }
 
-// static
-void
-FetchUtil::ConsumeArrayBuffer(JSContext* aCx,
-                              JS::MutableHandle<JSObject*> aValue,
-                              uint32_t aInputLength, uint8_t* aInput,
-                              ErrorResult& aRv)
-{
-  JS::Rooted<JSObject*> arrayBuffer(aCx);
-  arrayBuffer = JS_NewArrayBufferWithContents(aCx, aInputLength,
-    reinterpret_cast<void *>(aInput));
-  if (!arrayBuffer) {
-    JS_ClearPendingException(aCx);
-    aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
-    return;
-  }
-  aValue.set(arrayBuffer);
-}
-
-// static
-already_AddRefed<Blob>
-FetchUtil::ConsumeBlob(nsISupports* aParent, const nsString& aMimeType,
-                       uint32_t aInputLength, uint8_t* aInput,
-                       ErrorResult& aRv)
-{
-  RefPtr<Blob> blob =
-    Blob::CreateMemoryBlob(aParent,
-                           reinterpret_cast<void *>(aInput), aInputLength,
-                           aMimeType);
-
-  if (!blob) {
-    aRv.Throw(NS_ERROR_DOM_UNKNOWN_ERR);
-    return nullptr;
-  }
-  return blob.forget();
-}
-
 static bool
 FindCRLF(nsACString::const_iterator& aStart,
          nsACString::const_iterator& aEnd)
@@ -132,9 +57,10 @@ FindCRLF(nsACString::const_iterator& aStart,
 
 // Reads over a CRLF and positions start after it.
 static bool
-PushOverLine(nsACString::const_iterator& aStart)
+PushOverLine(nsACString::const_iterator& aStart,
+	     const nsACString::const_iterator& aEnd)
 {
-  if (*aStart == nsCRT::CR && (aStart.size_forward() > 1) && *(++aStart) == nsCRT::LF) {
+  if (*aStart == nsCRT::CR && (aEnd - aStart > 1) && *(++aStart) == nsCRT::LF) {
     ++aStart; // advance to after CRLF
     return true;
   }
@@ -167,471 +93,503 @@ FetchUtil::ExtractHeader(nsACString::const_iterator& aStart,
 
   nsAutoCString header(beginning, aStart.get() - beginning);
 
-  nsACString::const_iterator headerStart, headerEnd;
+  nsACString::const_iterator headerStart, iter, headerEnd;
   header.BeginReading(headerStart);
   header.EndReading(headerEnd);
-  if (!FindCharInReadable(':', headerStart, headerEnd)) {
+  iter = headerStart;
+  if (!FindCharInReadable(':', iter, headerEnd)) {
     return false;
   }
 
-  aHeaderName.Assign(StringHead(header, headerStart.size_backward()));
+  aHeaderName.Assign(StringHead(header, iter - headerStart));
   aHeaderName.CompressWhitespace();
   if (!NS_IsValidHTTPToken(aHeaderName)) {
     return false;
   }
 
-  aHeaderValue.Assign(Substring(++headerStart, headerEnd));
+  aHeaderValue.Assign(Substring(++iter, headerEnd));
   if (!NS_IsReasonableHTTPHeaderValue(aHeaderValue)) {
     return false;
   }
   aHeaderValue.CompressWhitespace();
 
-  return PushOverLine(aStart);
-}
-
-namespace {
-class MOZ_STACK_CLASS FillFormIterator final
-  : public URLSearchParams::ForEachIterator
-{
-public:
-  explicit FillFormIterator(nsFormData* aFormData)
-    : mFormData(aFormData)
-  {
-    MOZ_ASSERT(aFormData);
-  }
-
-  bool URLParamsIterator(const nsString& aName,
-                         const nsString& aValue) override
-  {
-    ErrorResult rv;
-    mFormData->Append(aName, aValue, rv);
-    MOZ_ASSERT(!rv.Failed());
-    return true;
-  }
-
-private:
-  nsFormData* mFormData;
-};
-
-/**
- * A simple multipart/form-data parser as defined in RFC 2388 and RFC 2046.
- * This does not respect any encoding specified per entry, using UTF-8
- * throughout. This is as the Fetch spec states in the consume body algorithm.
- * Borrows some things from Necko's nsMultiMixedConv, but is simpler since
- * unlike Necko we do not have to deal with receiving incomplete chunks of data.
- *
- * This parser will fail the entire parse on any invalid entry, so it will
- * never return a partially filled FormData.
- * The content-disposition header is used to figure out the name and filename
- * entries. The inclusion of the filename parameter decides if the entry is
- * inserted into the nsFormData as a string or a File.
- *
- * File blobs are copies of the underlying data string since we cannot adopt
- * char* chunks embedded within the larger body without significant effort.
- * FIXME(nsm): Bug 1127552 - We should add telemetry to calls to formData() and
- * friends to figure out if Fetch ends up copying big blobs to see if this is
- * worth optimizing.
- */
-class MOZ_STACK_CLASS FormDataParser
-{
-private:
-  RefPtr<nsFormData> mFormData;
-  nsCString mMimeType;
-  nsCString mData;
-
-  // Entry state, reset in START_PART.
-  nsCString mName;
-  nsCString mFilename;
-  nsCString mContentType;
-
-  enum
-  {
-    START_PART,
-    PARSE_HEADER,
-    PARSE_BODY,
-  } mState;
-
-  nsIGlobalObject* mParentObject;
-
-  // Reads over a boundary and sets start to the position after the end of the
-  // boundary. Returns false if no boundary is found immediately.
-  bool
-  PushOverBoundary(const nsACString& aBoundaryString,
-                   nsACString::const_iterator& aStart,
-                   nsACString::const_iterator& aEnd)
-  {
-    // We copy the end iterator to keep the original pointing to the real end
-    // of the string.
-    nsACString::const_iterator end(aEnd);
-    const char* beginning = aStart.get();
-    if (FindInReadable(aBoundaryString, aStart, end)) {
-      // We either should find the body immediately, or after 2 chars with the
-      // 2 chars being '-', everything else is failure.
-      if ((aStart.get() - beginning) == 0) {
-        aStart.advance(aBoundaryString.Length());
-        return true;
-      }
-
-      if ((aStart.get() - beginning) == 2) {
-        if (*(--aStart) == '-' && *(--aStart) == '-') {
-          aStart.advance(aBoundaryString.Length() + 2);
-          return true;
-        }
-      }
-    }
-
-    return false;
-  }
-
-  bool
-  ParseHeader(nsACString::const_iterator& aStart,
-              nsACString::const_iterator& aEnd,
-              bool* aWasEmptyHeader)
-  {
-    nsAutoCString headerName, headerValue;
-    if (!FetchUtil::ExtractHeader(aStart, aEnd,
-                                  headerName, headerValue,
-                                  aWasEmptyHeader)) {
-      return false;
-    }
-    if (*aWasEmptyHeader) {
-      return true;
-    }
-
-    if (headerName.LowerCaseEqualsLiteral("content-disposition")) {
-      nsCCharSeparatedTokenizer tokenizer(headerValue, ';');
-      bool seenFormData = false;
-      while (tokenizer.hasMoreTokens()) {
-        const nsDependentCSubstring& token = tokenizer.nextToken();
-        if (token.IsEmpty()) {
-          continue;
-        }
-
-        if (token.EqualsLiteral("form-data")) {
-          seenFormData = true;
-          continue;
-        }
-
-        if (seenFormData &&
-            StringBeginsWith(token, NS_LITERAL_CSTRING("name="))) {
-          mName = StringTail(token, token.Length() - 5);
-          mName.Trim(" \"");
-          continue;
-        }
-
-        if (seenFormData &&
-            StringBeginsWith(token, NS_LITERAL_CSTRING("filename="))) {
-          mFilename = StringTail(token, token.Length() - 9);
-          mFilename.Trim(" \"");
-          continue;
-        }
-      }
-
-      if (mName.IsVoid()) {
-        // Could not parse a valid entry name.
-        return false;
-      }
-    } else if (headerName.LowerCaseEqualsLiteral("content-type")) {
-      mContentType = headerValue;
-    }
-
-    return true;
-  }
-
-  // The end of a body is marked by a CRLF followed by the boundary. So the
-  // CRLF is part of the boundary and not the body, but any prior CRLFs are
-  // part of the body. This will position the iterator at the beginning of the
-  // boundary (after the CRLF).
-  bool
-  ParseBody(const nsACString& aBoundaryString,
-            nsACString::const_iterator& aStart,
-            nsACString::const_iterator& aEnd)
-  {
-    const char* beginning = aStart.get();
-
-    // Find the boundary marking the end of the body.
-    nsACString::const_iterator end(aEnd);
-    if (!FindInReadable(aBoundaryString, aStart, end)) {
-      return false;
-    }
-
-    // We found a boundary, strip the just prior CRLF, and consider
-    // everything else the body section.
-    if (aStart.get() - beginning < 2) {
-      // Only the first entry can have a boundary right at the beginning. Even
-      // an empty body will have a CRLF before the boundary. So this is
-      // a failure.
-      return false;
-    }
-
-    // Check that there is a CRLF right before the boundary.
-    aStart.advance(-2);
-
-    // Skip optional hyphens.
-    if (*aStart == '-' && *(aStart.get()+1) == '-') {
-      if (aStart.get() - beginning < 2) {
-        return false;
-      }
-
-      aStart.advance(-2);
-    }
-
-    if (*aStart != nsCRT::CR || *(aStart.get()+1) != nsCRT::LF) {
-      return false;
-    }
-
-    nsAutoCString body(beginning, aStart.get() - beginning);
-
-    // Restore iterator to after the \r\n as we promised.
-    // We do not need to handle the extra hyphens case since our boundary
-    // parser in PushOverBoundary()
-    aStart.advance(2);
-
-    if (!mFormData) {
-      mFormData = new nsFormData();
-    }
-
-    NS_ConvertUTF8toUTF16 name(mName);
-
-    if (mFilename.IsVoid()) {
-      ErrorResult rv;
-      mFormData->Append(name, NS_ConvertUTF8toUTF16(body), rv);
-      MOZ_ASSERT(!rv.Failed());
-    } else {
-      // Unfortunately we've to copy the data first since all our strings are
-      // going to free it. We also need fallible alloc, so we can't just use
-      // ToNewCString().
-      char* copy = static_cast<char*>(moz_xmalloc(body.Length()));
-      if (!copy) {
-        NS_WARNING("Failed to copy File entry body.");
-        return false;
-      }
-      nsCString::const_iterator bodyIter, bodyEnd;
-      body.BeginReading(bodyIter);
-      body.EndReading(bodyEnd);
-      char *p = copy;
-      while (bodyIter != bodyEnd) {
-        *p++ = *bodyIter++;
-      }
-      p = nullptr;
-
-      RefPtr<Blob> file =
-        File::CreateMemoryFile(mParentObject,
-                               reinterpret_cast<void *>(copy), body.Length(),
-                               NS_ConvertUTF8toUTF16(mFilename),
-                               NS_ConvertUTF8toUTF16(mContentType), /* aLastModifiedDate */ 0);
-      Optional<nsAString> dummy;
-      ErrorResult rv;
-      mFormData->Append(name, *file, dummy, rv);
-      if (NS_WARN_IF(rv.Failed())) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-public:
-  FormDataParser(const nsACString& aMimeType, const nsACString& aData, nsIGlobalObject* aParent)
-    : mMimeType(aMimeType), mData(aData), mState(START_PART), mParentObject(aParent)
-  {
-  }
-
-  bool
-  Parse()
-  {
-    // Determine boundary from mimetype.
-    const char* boundaryId = nullptr;
-    boundaryId = strstr(mMimeType.BeginWriting(), "boundary");
-    if (!boundaryId) {
-      return false;
-    }
-
-    boundaryId = strchr(boundaryId, '=');
-    if (!boundaryId) {
-      return false;
-    }
-
-    // Skip over '='.
-    boundaryId++;
-
-    char *attrib = (char *) strchr(boundaryId, ';');
-    if (attrib) *attrib = '\0';
-
-    nsAutoCString boundaryString(boundaryId);
-    if (attrib) *attrib = ';';
-
-    boundaryString.Trim(" \"");
-
-    if (boundaryString.Length() == 0) {
-      return false;
-    }
-
-    nsACString::const_iterator start, end;
-    mData.BeginReading(start);
-    // This should ALWAYS point to the end of data.
-    // Helpers make copies.
-    mData.EndReading(end);
-
-    while (start != end) {
-      switch(mState) {
-        case START_PART:
-          mName.SetIsVoid(true);
-          mFilename.SetIsVoid(true);
-          mContentType = NS_LITERAL_CSTRING("text/plain");
-
-          // MUST start with boundary.
-          if (!PushOverBoundary(boundaryString, start, end)) {
-            return false;
-          }
-
-          if (start != end && *start == '-') {
-            // End of data.
-            if (!mFormData) {
-              mFormData = new nsFormData();
-            }
-            return true;
-          }
-
-          if (!PushOverLine(start)) {
-            return false;
-          }
-          mState = PARSE_HEADER;
-          break;
-
-        case PARSE_HEADER:
-          bool emptyHeader;
-          if (!ParseHeader(start, end, &emptyHeader)) {
-            return false;
-          }
-
-          if (emptyHeader && !PushOverLine(start)) {
-            return false;
-          }
-
-          mState = emptyHeader ? PARSE_BODY : PARSE_HEADER;
-          break;
-
-        case PARSE_BODY:
-          if (mName.IsVoid()) {
-            NS_WARNING("No content-disposition header with a valid name was "
-                       "found. Failing at body parse.");
-            return false;
-          }
-
-          if (!ParseBody(boundaryString, start, end)) {
-            return false;
-          }
-
-          mState = START_PART;
-          break;
-
-        default:
-          MOZ_CRASH("Invalid case");
-      }
-    }
-
-    NS_NOTREACHED("Should never reach here.");
-    return false;
-  }
-
-  already_AddRefed<nsFormData> FormData()
-  {
-    return mFormData.forget();
-  }
-};
-}
-
-// static
-already_AddRefed<nsFormData>
-FetchUtil::ConsumeFormData(nsIGlobalObject* aParent, const nsCString& aMimeType,
-                           const nsCString& aStr, ErrorResult& aRv)
-{
-  NS_NAMED_LITERAL_CSTRING(formDataMimeType, "multipart/form-data");
-
-  // Allow semicolon separated boundary/encoding suffix like multipart/form-data; boundary=
-  // but disallow multipart/form-datafoobar.
-  bool isValidFormDataMimeType = StringBeginsWith(aMimeType, formDataMimeType);
-
-  if (isValidFormDataMimeType && aMimeType.Length() > formDataMimeType.Length()) {
-    isValidFormDataMimeType = aMimeType[formDataMimeType.Length()] == ';';
-  }
-
-  if (isValidFormDataMimeType) {
-    FormDataParser parser(aMimeType, aStr, aParent);
-    if (!parser.Parse()) {
-      aRv.ThrowTypeError<MSG_BAD_FORMDATA>();
-      return nullptr;
-    }
-
-    RefPtr<nsFormData> fd = parser.FormData();
-    MOZ_ASSERT(fd);
-    return fd.forget();
-  }
-
-  NS_NAMED_LITERAL_CSTRING(urlDataMimeType, "application/x-www-form-urlencoded");
-  bool isValidUrlEncodedMimeType = StringBeginsWith(aMimeType, urlDataMimeType);
-
-  if (isValidUrlEncodedMimeType && aMimeType.Length() > urlDataMimeType.Length()) {
-    isValidUrlEncodedMimeType = aMimeType[urlDataMimeType.Length()] == ';';
-  }
-
-  if (isValidUrlEncodedMimeType) {
-    URLParams params;
-    params.ParseInput(aStr);
-
-    RefPtr<nsFormData> fd = new nsFormData(aParent);
-    FillFormIterator iterator(fd);
-    DebugOnly<bool> status = params.ForEach(iterator);
-    MOZ_ASSERT(status);
-
-    return fd.forget();
-  }
-
-  aRv.ThrowTypeError<MSG_BAD_FORMDATA>();
-  return nullptr;
+  return PushOverLine(aStart, aEnd);
 }
 
 // static
 nsresult
-FetchUtil::ConsumeText(uint32_t aInputLength, uint8_t* aInput,
-                       nsString& aText)
-{
-  StreamDecoder decoder;
-  nsresult rv = decoder.AppendText(reinterpret_cast<char*>(aInput),
-                                   aInputLength);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
+FetchUtil::SetRequestReferrer(nsIPrincipal* aPrincipal,
+                              nsIDocument* aDoc,
+                              nsIHttpChannel* aChannel,
+                              InternalRequest* aRequest) {
+  MOZ_ASSERT(NS_IsMainThread());
+
+  nsAutoString referrer;
+  aRequest->GetReferrer(referrer);
+  net::ReferrerPolicy policy = aRequest->GetReferrerPolicy();
+
+  nsresult rv = NS_OK;
+  if (referrer.IsEmpty()) {
+    // This is the case request’s referrer is "no-referrer"
+    rv = aChannel->SetReferrerWithPolicy(nullptr, net::RP_No_Referrer);
+    NS_ENSURE_SUCCESS(rv, rv);
+  } else if (referrer.EqualsLiteral(kFETCH_CLIENT_REFERRER_STR)) {
+    rv = nsContentUtils::SetFetchReferrerURIWithPolicy(aPrincipal,
+                                                       aDoc,
+                                                       aChannel,
+                                                       policy);
+    NS_ENSURE_SUCCESS(rv, rv);
+  } else {
+    // From "Determine request's Referrer" step 3
+    // "If request's referrer is a URL, let referrerSource be request's
+    // referrer."
+    nsCOMPtr<nsIURI> referrerURI;
+    rv = NS_NewURI(getter_AddRefs(referrerURI), referrer, nullptr, nullptr);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = aChannel->SetReferrerWithPolicy(referrerURI, policy);
+    NS_ENSURE_SUCCESS(rv, rv);
   }
-  aText = decoder.GetText();
+
+  nsCOMPtr<nsIURI> referrerURI;
+  Unused << aChannel->GetReferrer(getter_AddRefs(referrerURI));
+
+  // Step 8 https://fetch.spec.whatwg.org/#main-fetch
+  // If request’s referrer is not "no-referrer", set request’s referrer to
+  // the result of invoking determine request’s referrer.
+  if (referrerURI) {
+    nsAutoCString spec;
+    rv = referrerURI->GetSpec(spec);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    aRequest->SetReferrer(NS_ConvertUTF8toUTF16(spec));
+  } else {
+    aRequest->SetReferrer(EmptyString());
+  }
+
   return NS_OK;
 }
 
-// static
-void
-FetchUtil::ConsumeJson(JSContext* aCx, JS::MutableHandle<JS::Value> aValue,
-                       const nsString& aStr, ErrorResult& aRv)
+class WindowStreamOwner final : public nsIObserver
+                              , public nsSupportsWeakReference
 {
-  aRv.MightThrowJSException();
+  // Read from any thread but only set/cleared on the main thread. The lifecycle
+  // of WindowStreamOwner prevents concurrent read/clear.
+  nsCOMPtr<nsIAsyncInputStream> mStream;
 
-  AutoForceSetExceptionOnContext forceExn(aCx);
-  JS::Rooted<JS::Value> json(aCx);
-  if (!JS_ParseJSON(aCx, aStr.get(), aStr.Length(), &json)) {
-    if (!JS_IsExceptionPending(aCx)) {
-      aRv.Throw(NS_ERROR_DOM_UNKNOWN_ERR);
-      return;
+  nsCOMPtr<nsIGlobalObject> mGlobal;
+
+  ~WindowStreamOwner()
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+
+    nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
+    if (obs) {
+      obs->RemoveObserver(this, DOM_WINDOW_DESTROYED_TOPIC);
     }
-
-    JS::Rooted<JS::Value> exn(aCx);
-    DebugOnly<bool> gotException = JS_GetPendingException(aCx, &exn);
-    MOZ_ASSERT(gotException);
-
-    JS_ClearPendingException(aCx);
-    aRv.ThrowJSException(aCx, exn);
-    return;
   }
 
-  aValue.set(json);
+public:
+  NS_DECL_ISUPPORTS
+
+  WindowStreamOwner(nsIAsyncInputStream* aStream, nsIGlobalObject* aGlobal)
+    : mStream(aStream)
+    , mGlobal(aGlobal)
+  {
+    MOZ_DIAGNOSTIC_ASSERT(mGlobal);
+    MOZ_ASSERT(NS_IsMainThread());
+  }
+
+  static already_AddRefed<WindowStreamOwner>
+  Create(nsIAsyncInputStream* aStream, nsIGlobalObject* aGlobal)
+  {
+    nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
+    if (NS_WARN_IF(!os)) {
+      return nullptr;
+    }
+
+    RefPtr<WindowStreamOwner> self = new WindowStreamOwner(aStream, aGlobal);
+
+    // Holds nsIWeakReference to self.
+    nsresult rv = os->AddObserver(self, DOM_WINDOW_DESTROYED_TOPIC, true);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return nullptr;
+    }
+
+    return self.forget();
+  }
+
+  struct Destroyer final : Runnable
+  {
+    RefPtr<WindowStreamOwner> mDoomed;
+
+    explicit Destroyer(already_AddRefed<WindowStreamOwner> aDoomed)
+      : Runnable("WindowStreamOwner::Destroyer")
+      , mDoomed(aDoomed)
+    {}
+
+    NS_IMETHOD
+    Run() override
+    {
+      mDoomed = nullptr;
+      return NS_OK;
+    }
+  };
+
+  // nsIObserver:
+
+  NS_IMETHOD
+  Observe(nsISupports* aSubject, const char* aTopic, const char16_t* aData) override
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+    MOZ_DIAGNOSTIC_ASSERT(strcmp(aTopic, DOM_WINDOW_DESTROYED_TOPIC) == 0);
+
+    if (!mStream) {
+      return NS_OK;
+    }
+
+    nsCOMPtr<nsPIDOMWindowInner> window = do_QueryInterface(mGlobal);
+    if (!SameCOMIdentity(aSubject, window)) {
+      return NS_OK;
+    }
+
+    // mStream->Close() will call JSStreamConsumer::OnInputStreamReady which may
+    // then destory itself, dropping the last reference to 'this'.
+    RefPtr<WindowStreamOwner> keepAlive(this);
+
+    mStream->Close();
+    mStream = nullptr;
+    mGlobal = nullptr;
+    return NS_OK;
+  }
+};
+
+NS_IMPL_ISUPPORTS(WindowStreamOwner, nsIObserver, nsISupportsWeakReference)
+
+class WorkerStreamOwner final : public WorkerHolder
+{
+  // Read from any thread but only set/cleared on the worker thread. The
+  // lifecycle of WorkerStreamOwner prevents concurrent read/clear.
+  nsCOMPtr<nsIAsyncInputStream> mStream;
+
+public:
+  explicit WorkerStreamOwner(nsIAsyncInputStream* aStream)
+    : WorkerHolder(WorkerHolder::Behavior::AllowIdleShutdownStart)
+    , mStream(aStream)
+  {}
+
+  static UniquePtr<WorkerStreamOwner>
+  Create(nsIAsyncInputStream* aStream, WorkerPrivate* aWorker)
+  {
+    auto self = MakeUnique<WorkerStreamOwner>(aStream);
+
+    if (!self->HoldWorker(aWorker, workers::Closing)) {
+      return nullptr;
+    }
+
+    return self;
+  }
+
+  struct Destroyer final : CancelableRunnable
+  {
+    UniquePtr<WorkerStreamOwner> mDoomed;
+
+    explicit Destroyer(UniquePtr<WorkerStreamOwner>&& aDoomed)
+      : CancelableRunnable("WorkerStreamOwner::Destroyer")
+      , mDoomed(Move(aDoomed))
+    {}
+
+    NS_IMETHOD
+    Run() override
+    {
+      mDoomed = nullptr;
+      return NS_OK;
+    }
+
+    nsresult
+    Cancel() override
+    {
+      return Run();
+    }
+  };
+
+  // WorkerHolder:
+
+  bool Notify(workers::Status aStatus) override
+  {
+    if (!mStream) {
+      return true;
+    }
+
+    // If this Close() calls JSStreamConsumer::OnInputStreamReady and drops the
+    // last reference to the JSStreamConsumer, 'this' will not be destroyed
+    // since ~JSStreamConsumer() only enqueues a Destroyer.
+    mStream->Close();
+    mStream = nullptr;
+    ReleaseWorker();
+    return true;
+  }
+};
+
+class JSStreamConsumer final : public nsIInputStreamCallback
+{
+  nsCOMPtr<nsIEventTarget> mOwningEventTarget;
+  RefPtr<WindowStreamOwner> mWindowStreamOwner;
+  UniquePtr<WorkerStreamOwner> mWorkerStreamOwner;
+  JS::StreamConsumer* mConsumer;
+  bool mConsumerAborted;
+
+  JSStreamConsumer(already_AddRefed<WindowStreamOwner> aWindowStreamOwner,
+                   nsIGlobalObject* aGlobal,
+                   JS::StreamConsumer* aConsumer)
+   : mOwningEventTarget(aGlobal->EventTargetFor(TaskCategory::Other))
+   , mWindowStreamOwner(aWindowStreamOwner)
+   , mConsumer(aConsumer)
+   , mConsumerAborted(false)
+  {
+    MOZ_DIAGNOSTIC_ASSERT(mWindowStreamOwner);
+    MOZ_DIAGNOSTIC_ASSERT(mConsumer);
+  }
+
+  JSStreamConsumer(UniquePtr<WorkerStreamOwner> aWorkerStreamOwner,
+                   nsIGlobalObject* aGlobal,
+                   JS::StreamConsumer* aConsumer)
+   : mOwningEventTarget(aGlobal->EventTargetFor(TaskCategory::Other))
+   , mWorkerStreamOwner(Move(aWorkerStreamOwner))
+   , mConsumer(aConsumer)
+   , mConsumerAborted(false)
+  {
+    MOZ_DIAGNOSTIC_ASSERT(mWorkerStreamOwner);
+    MOZ_DIAGNOSTIC_ASSERT(mConsumer);
+  }
+
+  ~JSStreamConsumer()
+  {
+    // Both WindowStreamOwner and WorkerStreamOwner need to be destroyed on
+    // their global's event target thread.
+
+    RefPtr<Runnable> destroyer;
+    if (mWindowStreamOwner) {
+      MOZ_DIAGNOSTIC_ASSERT(!mWorkerStreamOwner);
+      destroyer = new WindowStreamOwner::Destroyer(mWindowStreamOwner.forget());
+    } else {
+      MOZ_DIAGNOSTIC_ASSERT(mWorkerStreamOwner);
+      destroyer = new WorkerStreamOwner::Destroyer(Move(mWorkerStreamOwner));
+    }
+
+    MOZ_ALWAYS_SUCCEEDS(mOwningEventTarget->Dispatch(destroyer.forget()));
+  }
+
+  static nsresult WriteSegment(nsIInputStream* aStream,
+                               void* aClosure,
+                               const char* aFromSegment,
+                               uint32_t aToOffset,
+                               uint32_t aCount,
+                               uint32_t* aWriteCount)
+  {
+    JSStreamConsumer* self = reinterpret_cast<JSStreamConsumer*>(aClosure);
+    MOZ_DIAGNOSTIC_ASSERT(!self->mConsumerAborted);
+
+    // This callback can be called on any thread which is explicitly allowed by
+    // this particular JS API call.
+    if (!self->mConsumer->consumeChunk((const uint8_t*)aFromSegment, aCount)) {
+      self->mConsumerAborted = true;
+      return NS_ERROR_UNEXPECTED;
+    }
+
+    *aWriteCount = aCount;
+    return NS_OK;
+  }
+
+public:
+  NS_DECL_THREADSAFE_ISUPPORTS
+
+  static bool Start(nsIInputStream* aStream,
+                    JS::StreamConsumer* aConsumer,
+                    nsIGlobalObject* aGlobal,
+                    workers::WorkerPrivate* aMaybeWorker)
+  {
+    nsresult rv;
+
+    bool nonBlocking = false;
+    rv = aStream->IsNonBlocking(&nonBlocking);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return false;
+    }
+
+    // Use a pipe to create an nsIAsyncInputStream if we don't already have one.
+    nsCOMPtr<nsIAsyncInputStream> asyncStream = do_QueryInterface(aStream);
+    if (!asyncStream || !nonBlocking) {
+      nsCOMPtr<nsIAsyncOutputStream> pipe;
+      rv = NS_NewPipe2(getter_AddRefs(asyncStream), getter_AddRefs(pipe),
+                       true, true);
+      if (NS_WARN_IF(NS_FAILED(rv))) {
+        return false;
+      }
+
+      nsCOMPtr<nsIEventTarget> thread =
+        do_GetService(NS_STREAMTRANSPORTSERVICE_CONTRACTID);
+
+      rv = NS_AsyncCopy(aStream, pipe, thread,
+                        NS_ASYNCCOPY_VIA_WRITESEGMENTS);
+      if (NS_WARN_IF(NS_FAILED(rv))) {
+        return false;
+      }
+    }
+
+    RefPtr<JSStreamConsumer> consumer;
+    if (aMaybeWorker) {
+      UniquePtr<WorkerStreamOwner> owner =
+        WorkerStreamOwner::Create(asyncStream, aMaybeWorker);
+      if (!owner) {
+        return false;
+      }
+
+      consumer = new JSStreamConsumer(Move(owner), aGlobal, aConsumer);
+    } else {
+      RefPtr<WindowStreamOwner> owner =
+        WindowStreamOwner::Create(asyncStream, aGlobal);
+      if (!owner) {
+        return false;
+      }
+
+      consumer = new JSStreamConsumer(owner.forget(), aGlobal, aConsumer);
+    }
+
+    // This AsyncWait() creates a ref-cycle between asyncStream and consumer:
+    //
+    //   asyncStream -> consumer -> (Window|Worker)StreamOwner -> asyncStream
+    //
+    // The cycle is broken when the stream completes or errors out and
+    // asyncStream drops its reference to consumer.
+    return NS_SUCCEEDED(asyncStream->AsyncWait(consumer, 0, 0, nullptr));
+  }
+
+  // nsIInputStreamCallback:
+
+  NS_IMETHOD
+  OnInputStreamReady(nsIAsyncInputStream* aStream) override
+  {
+    // Can be called on any stream. The JS API calls made below explicitly
+    // support being called from any thread.
+    MOZ_DIAGNOSTIC_ASSERT(!mConsumerAborted);
+
+    nsresult rv;
+
+    uint64_t available = 0;
+    rv = aStream->Available(&available);
+    if (NS_SUCCEEDED(rv) && available == 0) {
+      rv = NS_BASE_STREAM_CLOSED;
+    }
+
+    if (rv == NS_BASE_STREAM_CLOSED) {
+      mConsumer->streamClosed(JS::StreamConsumer::EndOfFile);
+      return NS_OK;
+    }
+
+    if (NS_FAILED(rv)) {
+      mConsumer->streamClosed(JS::StreamConsumer::Error);
+      return NS_OK;
+    }
+
+    // Check mConsumerAborted before NS_FAILED to avoid calling streamClosed()
+    // if consumeChunk() returned false per JS API contract.
+    uint32_t written = 0;
+    rv = aStream->ReadSegments(WriteSegment, this, available, &written);
+    if (mConsumerAborted) {
+      return NS_OK;
+    }
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      mConsumer->streamClosed(JS::StreamConsumer::Error);
+      return NS_OK;
+    }
+
+    rv = aStream->AsyncWait(this, 0, 0, nullptr);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      mConsumer->streamClosed(JS::StreamConsumer::Error);
+      return NS_OK;
+    }
+
+    return NS_OK;
+  }
+};
+
+NS_IMPL_ISUPPORTS(JSStreamConsumer,
+                  nsIInputStreamCallback)
+
+static bool
+ThrowException(JSContext* aCx, unsigned errorNumber)
+{
+  JS_ReportErrorNumberASCII(aCx, js::GetErrorMessage, nullptr, errorNumber);
+  return false;
+}
+
+// static
+bool
+FetchUtil::StreamResponseToJS(JSContext* aCx,
+                              JS::HandleObject aObj,
+                              JS::MimeType aMimeType,
+                              JS::StreamConsumer* aConsumer,
+                              workers::WorkerPrivate* aMaybeWorker)
+{
+  MOZ_ASSERT(!aMaybeWorker == NS_IsMainThread());
+
+  RefPtr<Response> response;
+  nsresult rv = UNWRAP_OBJECT(Response, aObj, response);
+  if (NS_FAILED(rv)) {
+    return ThrowException(aCx, JSMSG_BAD_RESPONSE_VALUE);
+  }
+
+  const char* requiredMimeType = nullptr;
+  switch (aMimeType) {
+    case JS::MimeType::Wasm:
+      requiredMimeType = "application/wasm";
+      break;
+  }
+
+  if (strcmp(requiredMimeType, response->MimeType().Data())) {
+    return ThrowException(aCx, JSMSG_BAD_RESPONSE_MIME_TYPE);
+  }
+
+  if (response->Type() != ResponseType::Basic &&
+      response->Type() != ResponseType::Cors &&
+      response->Type() != ResponseType::Default) {
+    return ThrowException(aCx, JSMSG_BAD_RESPONSE_CORS_SAME_ORIGIN);
+  }
+
+  if (!response->Ok()) {
+    return ThrowException(aCx, JSMSG_BAD_RESPONSE_STATUS);
+  }
+
+  if (response->BodyUsed()) {
+    return ThrowException(aCx, JSMSG_RESPONSE_ALREADY_CONSUMED);
+  }
+
+  RefPtr<InternalResponse> ir = response->GetInternalResponse();
+  if (NS_WARN_IF(!ir)) {
+    return ThrowException(aCx, JSMSG_OUT_OF_MEMORY);
+  }
+
+  nsCOMPtr<nsIInputStream> body;
+  ir->GetUnfilteredBody(getter_AddRefs(body));
+  if (!body) {
+    aConsumer->streamClosed(JS::StreamConsumer::EndOfFile);
+    return true;
+  }
+
+  IgnoredErrorResult error;
+  response->SetBodyUsed(aCx, error);
+  if (NS_WARN_IF(error.Failed())) {
+    return ThrowException(aCx, JSMSG_ERROR_CONSUMING_RESPONSE);
+  }
+
+  nsIGlobalObject* global = xpc::NativeGlobal(aObj);
+
+  if (!JSStreamConsumer::Start(body, aConsumer, global, aMaybeWorker)) {
+    return ThrowException(aCx, JSMSG_OUT_OF_MEMORY);
+  }
+
+  return true;
 }
 
 } // namespace dom

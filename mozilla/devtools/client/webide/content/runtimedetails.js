@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 var Cu = Components.utils;
-const {Services} = Cu.import("resource://gre/modules/Services.jsm");
 const {require} = Cu.import("resource://devtools/shared/Loader.jsm", {});
+const Services = require("Services");
 const {AppManager} = require("devtools/client/webide/modules/app-manager");
 const {Connection} = require("devtools/shared/client/connection-manager");
 const {RuntimeTypes} = require("devtools/client/webide/modules/runtimes");
@@ -12,23 +12,21 @@ const Strings = Services.strings.createBundle("chrome://devtools/locale/webide.p
 
 const UNRESTRICTED_HELP_URL = "https://developer.mozilla.org/docs/Tools/WebIDE/Running_and_debugging_apps#Unrestricted_app_debugging_%28including_certified_apps_main_process_etc.%29";
 
-window.addEventListener("load", function onLoad() {
-  window.removeEventListener("load", onLoad);
+window.addEventListener("load", function () {
   document.querySelector("#close").onclick = CloseUI;
   document.querySelector("#devtools-check button").onclick = EnableCertApps;
   document.querySelector("#adb-check button").onclick = RootADB;
-  document.querySelector("#unrestricted-privileges").onclick = function() {
+  document.querySelector("#unrestricted-privileges").onclick = function () {
     window.parent.UI.openInBrowser(UNRESTRICTED_HELP_URL);
   };
   AppManager.on("app-manager-update", OnAppManagerUpdate);
   BuildUI();
   CheckLockState();
-}, true);
+}, {capture: true, once: true});
 
-window.addEventListener("unload", function onUnload() {
-  window.removeEventListener("unload", onUnload);
+window.addEventListener("unload", function () {
   AppManager.off("app-manager-update", OnAppManagerUpdate);
-});
+}, {once: true});
 
 function CloseUI() {
   window.parent.UI.openProject();
@@ -52,7 +50,7 @@ function generateFields(json) {
     td.textContent = json[name];
     tr.appendChild(td);
     table.appendChild(tr);
-  };
+  }
 }
 
 var getDescriptionPromise; // Used by tests
@@ -104,7 +102,7 @@ function CheckLockState() {
             adbCheckResult.textContent = sNo;
             adbRootAction.removeAttribute("hidden");
           }
-        }, e => console.error(e));
+        }, console.error);
       } else {
         adbCheckResult.textContent = sUnknown;
       }
@@ -122,8 +120,8 @@ function CheckLockState() {
         } else {
           devtoolsCheckResult.textContent = sYes;
         }
-      }, e => console.error(e));
-    } catch(e) {
+      }, console.error);
+    } catch (e) {
       // Exception. pref actor is only accessible if forbird-certified-apps is false
       devtoolsCheckResult.textContent = sNo;
       flipCertPerfAction.removeAttribute("hidden");
@@ -149,5 +147,5 @@ function EnableCertApps() {
 
 function RootADB() {
   let device = AppManager.selectedRuntime.device;
-  device.summonRoot().then(CheckLockState, (e) => console.error(e));
+  device.summonRoot().then(CheckLockState, console.error);
 }

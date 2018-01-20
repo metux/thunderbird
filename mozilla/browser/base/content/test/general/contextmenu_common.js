@@ -1,3 +1,6 @@
+// This file expects contextMenu to be defined in the scope it is loaded into.
+/* global contextMenu:true */
+
 var lastElement;
 
 function openContextMenuFor(element, shiftkey, waitForSpellCheck) {
@@ -12,15 +15,16 @@ function openContextMenuFor(element, shiftkey, waitForSpellCheck) {
     // run on them.
     function actuallyOpenContextMenuFor() {
       lastElement = element;
-      var eventDetails = { type : "contextmenu", button : 2, shiftKey : shiftkey };
-      synthesizeMouse(element, 2, 2, eventDetails, element.ownerDocument.defaultView);
+      var eventDetails = { type: "contextmenu", button: 2, shiftKey: shiftkey };
+      synthesizeMouse(element, 2, 2, eventDetails, element.ownerGlobal);
     }
 
     if (waitForSpellCheck) {
-      var { onSpellCheck } = SpecialPowers.Cu.import("resource://gre/modules/AsyncSpellCheckTestHelper.jsm", {});
+      var { onSpellCheck } =
+        SpecialPowers.Cu.import(
+          "resource://testing-common/AsyncSpellCheckTestHelper.jsm", {});
       onSpellCheck(element, actuallyOpenContextMenuFor);
-    }
-    else {
+    } else {
       actuallyOpenContextMenuFor();
     }
 }
@@ -41,39 +45,44 @@ function getVisibleMenuItems(aMenu, aData) {
         if (key)
             key = key.toLowerCase();
 
-        var isGenerated = item.hasAttribute("generateditemid");
+        var isPageMenuItem = item.hasAttribute("generateditemid");
 
         if (item.nodeName == "menuitem") {
-            var isSpellSuggestion = item.className == "spell-suggestion";
-            if (isSpellSuggestion) {
-              is(item.id, "", "child menuitem #" + i + " is a spelling suggestion");
-            } else if (isGenerated) {
-              is(item.id, "", "child menuitem #" + i + " is a generated item");
+            var isGenerated = item.classList.contains("spell-suggestion")
+                              || item.classList.contains("sendtab-target");
+            if (isGenerated) {
+              is(item.id, "", "child menuitem #" + i + " is generated");
+            } else if (isPageMenuItem) {
+              is(item.id, "", "child menuitem #" + i + " is a generated page menu item");
             } else {
               ok(item.id, "child menuitem #" + i + " has an ID");
             }
             var label = item.getAttribute("label");
             ok(label.length, "menuitem " + item.id + " has a label");
-            if (isSpellSuggestion) {
-              is(key, "", "Spell suggestions shouldn't have an access key");
+            if (isGenerated) {
+              is(key, "", "Generated items shouldn't have an access key");
               items.push("*" + label);
-            } else if (isGenerated) {
+            } else if (isPageMenuItem) {
               items.push("+" + label);
             } else if (item.id.indexOf("spell-check-dictionary-") != 0 &&
                        item.id != "spell-no-suggestions" &&
                        item.id != "spell-add-dictionaries-main" &&
+                       item.id != "context-savelinktopocket" &&
                        item.id != "fill-login-saved-passwords" &&
-                       item.id != "fill-login-no-logins") {
+                       item.id != "fill-login-no-logins" &&
+                       // XXX Screenshots doesn't have an access key. This needs
+                       // at least bug 1320462 fixing first.
+                       item.id != "screenshots_mozilla_org_create-screenshot") {
               ok(key, "menuitem " + item.id + " has an access key");
               if (accessKeys[key])
                   ok(false, "menuitem " + item.id + " has same accesskey as " + accessKeys[key]);
               else
                   accessKeys[key] = item.id;
             }
-            if (!isSpellSuggestion && !isGenerated) {
+            if (!isGenerated && !isPageMenuItem) {
               items.push(item.id);
             }
-            if (isGenerated) {
+            if (isPageMenuItem) {
               var p = {};
               p.type = item.getAttribute("type");
               p.icon = item.getAttribute("image");
@@ -88,11 +97,11 @@ function getVisibleMenuItems(aMenu, aData) {
             items.push("---");
             items.push(null);
         } else if (item.nodeName == "menu") {
-            if (isGenerated) {
+            if (isPageMenuItem) {
                 item.id = "generated-submenu-" + aData.generatedSubmenuId++;
             }
             ok(item.id, "child menu #" + i + " has an ID");
-            if (!isGenerated) {
+            if (!isPageMenuItem) {
                 ok(key, "menu has an access key");
                 if (accessKeys[key])
                     ok(false, "menu " + item.id + " has same accesskey as " + accessKeys[key]);
@@ -134,7 +143,7 @@ function checkContextMenu(expectedItems) {
 
 function checkMenuItem(actualItem, actualEnabled, expectedItem, expectedEnabled, index) {
     is(actualItem, expectedItem,
-       "checking item #" + index/2 + " (" + expectedItem + ") name");
+       "checking item #" + index / 2 + " (" + expectedItem + ") name");
 
     if (typeof expectedEnabled == "object" && expectedEnabled != null ||
         typeof actualEnabled == "object" && actualEnabled != null) {
@@ -148,7 +157,7 @@ function checkMenuItem(actualItem, actualEnabled, expectedItem, expectedEnabled,
           return;
 
         is(actualEnabled.type, expectedEnabled.type,
-           "checking item #" + index/2 + " (" + expectedItem + ") type attr value");
+           "checking item #" + index / 2 + " (" + expectedItem + ") type attr value");
         var icon = actualEnabled.icon;
         if (icon) {
           var tmp = "";
@@ -159,14 +168,14 @@ function checkMenuItem(actualItem, actualEnabled, expectedItem, expectedEnabled,
           icon = tmp;
         }
         is(icon, expectedEnabled.icon,
-           "checking item #" + index/2 + " (" + expectedItem + ") icon attr value");
+           "checking item #" + index / 2 + " (" + expectedItem + ") icon attr value");
         is(actualEnabled.checked, expectedEnabled.checked,
-           "checking item #" + index/2 + " (" + expectedItem + ") has checked attr");
+           "checking item #" + index / 2 + " (" + expectedItem + ") has checked attr");
         is(actualEnabled.disabled, expectedEnabled.disabled,
-           "checking item #" + index/2 + " (" + expectedItem + ") has disabled attr");
+           "checking item #" + index / 2 + " (" + expectedItem + ") has disabled attr");
     } else if (expectedEnabled != null)
         is(actualEnabled, expectedEnabled,
-           "checking item #" + index/2 + " (" + expectedItem + ") enabled state");
+           "checking item #" + index / 2 + " (" + expectedItem + ") enabled state");
 }
 
 /*
@@ -184,8 +193,8 @@ function checkMenuItem(actualItem, actualEnabled, expectedItem, expectedEnabled,
  */
 function checkMenu(menu, expectedItems, data) {
     var actualItems = getVisibleMenuItems(menu, data);
-    //ok(false, "Items are: " + actualItems);
-    for (var i = 0; i < expectedItems.length; i+=2) {
+    // ok(false, "Items are: " + actualItems);
+    for (var i = 0; i < expectedItems.length; i += 2) {
         var actualItem   = actualItems[i];
         var actualEnabled = actualItems[i + 1];
         var expectedItem = expectedItems[i];
@@ -203,7 +212,7 @@ function checkMenu(menu, expectedItems, data) {
             } else if (previousItem && previousItem.nodeName == "menugroup") {
               ok(expectedItem.length, "menugroup must not be empty");
               for (var j = 0; j < expectedItem.length / 2; j++) {
-                checkMenuItem(actualItems[i][j][0], actualItems[i][j][1], expectedItem[j*2], expectedItem[j*2+1], i+j*2);
+                checkMenuItem(actualItems[i][j][0], actualItems[i][j][1], expectedItem[j * 2], expectedItem[j * 2 + 1], i + j * 2);
               }
               i += j;
             } else {
@@ -215,4 +224,123 @@ function checkMenu(menu, expectedItems, data) {
     }
     // Could find unexpected extra items at the end...
     is(actualItems.length, expectedItems.length, "checking expected number of menu entries");
+}
+
+let lastElementSelector = null;
+/**
+ * Right-clicks on the element that matches `selector` and checks the
+ * context menu that appears against the `menuItems` array.
+ *
+ * @param {String} selector
+ *        A selector passed to querySelector to find
+ *        the element that will be referenced.
+ * @param {Array} menuItems
+ *        An array of menuitem ids and their associated enabled state. A state
+ *        of null means that it will be ignored. Ids of '---' are used for
+ *        menuseparators.
+ * @param {Object} options, optional
+ *        skipFocusChange: don't move focus to the element before test, useful
+ *                         if you want to delay spell-check initialization
+ *        offsetX: horizontal mouse offset from the top-left corner of
+ *                 the element, optional
+ *        offsetY: vertical mouse offset from the top-left corner of the
+ *                 element, optional
+ *        centered: if true, mouse position is centered in element, defaults
+ *                  to true if offsetX and offsetY are not provided
+ *        waitForSpellCheck: wait until spellcheck is initialized before
+ *                           starting test
+ *        maybeScreenshotsPresent: if true, the screenshots menu entry is
+ *                                 expected to be present in the menu if
+ *                                 screenshots is enabled, optional
+ *        preCheckContextMenuFn: callback to run before opening menu
+ *        onContextMenuShown: callback to run when the context menu is shown
+ *        postCheckContextMenuFn: callback to run after opening menu
+ * @return {Promise} resolved after the test finishes
+ */
+async function test_contextmenu(selector, menuItems, options = {}) {
+  contextMenu = document.getElementById("contentAreaContextMenu");
+  is(contextMenu.state, "closed", "checking if popup is closed");
+
+  // Default to centered if no positioning is defined.
+  if (!options.offsetX && !options.offsetY) {
+    options.centered = true;
+  }
+
+  if (!options.skipFocusChange) {
+    await ContentTask.spawn(gBrowser.selectedBrowser,
+                            [lastElementSelector, selector],
+                            async function([contentLastElementSelector, contentSelector]) {
+      if (contentLastElementSelector) {
+        let contentLastElement = content.document.querySelector(contentLastElementSelector);
+        contentLastElement.blur();
+      }
+      let element = content.document.querySelector(contentSelector);
+      element.focus();
+    });
+    lastElementSelector = selector;
+    info(`Moved focus to ${selector}`);
+  }
+
+  if (options.preCheckContextMenuFn) {
+    await options.preCheckContextMenuFn();
+    info("Completed preCheckContextMenuFn");
+  }
+
+  if (options.waitForSpellCheck) {
+    info("Waiting for spell check");
+    await ContentTask.spawn(gBrowser.selectedBrowser, selector, async function(contentSelector) {
+      let {onSpellCheck} =
+        Cu.import("resource://testing-common/AsyncSpellCheckTestHelper.jsm",
+                  {});
+      let element = content.document.querySelector(contentSelector);
+      await new Promise(resolve => onSpellCheck(element, resolve));
+      info("Spell check running");
+    });
+  }
+
+  let awaitPopupShown = BrowserTestUtils.waitForEvent(contextMenu, "popupshown");
+  await BrowserTestUtils.synthesizeMouse(selector, options.offsetX || 0, options.offsetY || 0, {
+      type: "contextmenu",
+      button: 2,
+      shiftkey: options.shiftkey,
+      centered: options.centered
+    },
+    gBrowser.selectedBrowser);
+  await awaitPopupShown;
+  info("Popup Shown");
+
+  if (options.onContextMenuShown) {
+    await options.onContextMenuShown();
+    info("Completed onContextMenuShown");
+  }
+
+  if (menuItems) {
+    if (Services.prefs.getBoolPref("devtools.inspector.enabled", true)) {
+      let inspectItems = ["---", null,
+                          "context-inspect", true];
+      menuItems = menuItems.concat(inspectItems);
+    }
+
+    if (options.maybeScreenshotsPresent &&
+        !Services.prefs.getBoolPref("extensions.screenshots.disabled", false)) {
+      let screenshotItems = [
+        "---", null,
+        "screenshots_mozilla_org_create-screenshot", true
+      ];
+
+      menuItems = menuItems.concat(screenshotItems);
+    }
+
+    checkContextMenu(menuItems);
+  }
+
+  let awaitPopupHidden = BrowserTestUtils.waitForEvent(contextMenu, "popuphidden");
+
+  if (options.postCheckContextMenuFn) {
+    await options.postCheckContextMenuFn();
+    info("Completed postCheckContextMenuFn");
+  }
+
+  contextMenu.hidePopup();
+  await awaitPopupHidden;
 }

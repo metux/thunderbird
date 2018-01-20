@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "nsAbDirProperty.h"	 
+#include "nsAbDirProperty.h"
 #include "nsAbBaseCID.h"
 #include "nsIAbCard.h"
 #include "nsDirPrefs.h"
@@ -13,6 +13,7 @@
 #include "nsComponentManagerUtils.h"
 #include "prmem.h"
 #include "nsIAbManager.h"
+#include "nsArrayUtils.h"
 
 // From nsDirPrefs
 #define kDefaultPosition 1
@@ -211,15 +212,14 @@ NS_IMETHODIMP nsAbDirProperty::SetIsMailList(bool aIsMailList)
 
 NS_IMETHODIMP nsAbDirProperty::GetAddressLists(nsIMutableArray * *aAddressLists)
 {
-  if (!m_AddressList) 
+  if (!m_AddressList)
   {
     nsresult rv;
     m_AddressList = do_CreateInstance(NS_ARRAY_CONTRACTID, &rv);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  *aAddressLists = m_AddressList;
-  NS_ADDREF(*aAddressLists);
+  NS_ADDREF(*aAddressLists = m_AddressList);
   return NS_OK;
 }
 
@@ -294,6 +294,47 @@ nsAbDirProperty::HasCard(nsIAbCard *cards, bool *hasCard)
 NS_IMETHODIMP
 nsAbDirProperty::HasDirectory(nsIAbDirectory *dir, bool *hasDir)
 { return NS_ERROR_NOT_IMPLEMENTED; }
+
+NS_IMETHODIMP
+nsAbDirProperty::HasMailListWithName(const char16_t *aName, bool *aHasList)
+{
+  NS_ENSURE_ARG_POINTER(aName);
+  NS_ENSURE_ARG_POINTER(aHasList);
+
+  *aHasList = false;
+
+  bool supportsLists = false;
+  nsresult rv = GetSupportsMailingLists(&supportsLists);
+  if (NS_FAILED(rv) || !supportsLists)
+    return NS_OK;
+
+  if (m_IsMailList)
+    return NS_OK;
+
+  nsCOMPtr<nsIMutableArray> addressLists;
+  rv = GetAddressLists(getter_AddRefs(addressLists));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  uint32_t listCount = 0;
+  rv = addressLists->GetLength(&listCount);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  for (uint32_t i = 0; i < listCount; i++)
+  {
+    nsCOMPtr<nsIAbDirectory> listDir(do_QueryElementAt(addressLists, i, &rv));
+    if (NS_SUCCEEDED(rv) && listDir)
+    {
+      nsAutoString listName;
+      rv = listDir->GetDirName(listName);
+      if (NS_SUCCEEDED(rv) && listName.Equals(aName))
+      {
+        *aHasList = true;
+        return NS_OK;
+      }
+    }
+  }
+  return NS_OK;
+}
 
 NS_IMETHODIMP
 nsAbDirProperty::CreateNewDirectory(const nsAString &aDirName,
@@ -411,7 +452,7 @@ nsresult nsAbDirProperty::InitDirectoryPrefs()
 {
   if (m_DirPrefId.IsEmpty())
     return NS_ERROR_NOT_INITIALIZED;
-    
+
   nsresult rv;
   nsCOMPtr<nsIPrefService> prefService(do_GetService(NS_PREFSERVICE_CONTRACTID, &rv));
   NS_ENSURE_SUCCESS(rv, rv);
@@ -453,7 +494,7 @@ NS_IMETHODIMP nsAbDirProperty::GetBoolValue(const char *aName,
 }
 
 NS_IMETHODIMP nsAbDirProperty::GetStringValue(const char *aName,
-                                              const nsACString &aDefaultValue, 
+                                              const nsACString &aDefaultValue,
                                               nsACString &aResult)
 {
   if (!m_DirectoryPrefs && NS_FAILED(InitDirectoryPrefs()))
@@ -462,7 +503,7 @@ NS_IMETHODIMP nsAbDirProperty::GetStringValue(const char *aName,
   nsCString value;
 
     /* unfortunately, there may be some prefs out there which look like (null) */
-  if (NS_SUCCEEDED(m_DirectoryPrefs->GetCharPref(aName, getter_Copies(value))) &&
+  if (NS_SUCCEEDED(m_DirectoryPrefs->GetCharPref(aName, value)) &&
       !value.EqualsLiteral("(null"))
     aResult = value;
   else
@@ -478,7 +519,7 @@ NS_IMETHODIMP nsAbDirProperty::GetStringValue(const char *aName,
  * "ldap_2.servers.history.description"
  */
 NS_IMETHODIMP nsAbDirProperty::GetLocalizedStringValue(const char *aName,
-                                                       const nsACString &aDefaultValue, 
+                                                       const nsACString &aDefaultValue,
                                                        nsACString &aResult)
 {
   if (!m_DirectoryPrefs && NS_FAILED(InitDirectoryPrefs()))
@@ -528,7 +569,7 @@ NS_IMETHODIMP nsAbDirProperty::SetStringValue(const char *aName,
   if (!m_DirectoryPrefs && NS_FAILED(InitDirectoryPrefs()))
     return NS_ERROR_NOT_INITIALIZED;
 
-  return m_DirectoryPrefs->SetCharPref(aName, nsCString(aValue).get());
+  return m_DirectoryPrefs->SetCharPref(aName, aValue);
 }
 
 NS_IMETHODIMP nsAbDirProperty::SetLocalizedStringValue(const char *aName,
@@ -542,7 +583,7 @@ NS_IMETHODIMP nsAbDirProperty::SetLocalizedStringValue(const char *aName,
     do_CreateInstance(NS_PREFLOCALIZEDSTRING_CONTRACTID, &rv));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = locStr->SetData(NS_ConvertUTF8toUTF16(aValue).get());
+  rv = locStr->SetData(NS_ConvertUTF8toUTF16(aValue));
   NS_ENSURE_SUCCESS(rv, rv);
 
   return m_DirectoryPrefs->SetComplexValue(aName,

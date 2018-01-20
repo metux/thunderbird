@@ -8,151 +8,166 @@
 
 #include "libANGLE/renderer/d3d/d3d11/Framebuffer11.h"
 
+#include "common/bitset_utils.h"
 #include "common/debug.h"
-#include "libANGLE/renderer/d3d/d3d11/Buffer11.h"
-#include "libANGLE/renderer/d3d/d3d11/Clear11.h"
-#include "libANGLE/renderer/d3d/d3d11/TextureStorage11.h"
-#include "libANGLE/renderer/d3d/d3d11/Renderer11.h"
-#include "libANGLE/renderer/d3d/d3d11/renderer11_utils.h"
-#include "libANGLE/renderer/d3d/d3d11/RenderTarget11.h"
-#include "libANGLE/renderer/d3d/d3d11/formatutils11.h"
-#include "libANGLE/renderer/d3d/TextureD3D.h"
+#include "libANGLE/Context.h"
 #include "libANGLE/Framebuffer.h"
 #include "libANGLE/FramebufferAttachment.h"
 #include "libANGLE/Texture.h"
+#include "libANGLE/renderer/d3d/TextureD3D.h"
+#include "libANGLE/renderer/d3d/d3d11/Buffer11.h"
+#include "libANGLE/renderer/d3d/d3d11/Clear11.h"
+#include "libANGLE/renderer/d3d/d3d11/RenderTarget11.h"
+#include "libANGLE/renderer/d3d/d3d11/Renderer11.h"
+#include "libANGLE/renderer/d3d/d3d11/TextureStorage11.h"
+#include "libANGLE/renderer/d3d/d3d11/formatutils11.h"
+#include "libANGLE/renderer/d3d/d3d11/renderer11_utils.h"
+
+using namespace angle;
 
 namespace rx
 {
 
-Framebuffer11::Framebuffer11(const gl::Framebuffer::Data &data, Renderer11 *renderer)
-    : FramebufferD3D(data),
-      mRenderer(renderer)
+namespace
 {
-    ASSERT(mRenderer != nullptr);
-}
-
-Framebuffer11::~Framebuffer11()
+gl::Error MarkAttachmentsDirty(const gl::Context *context,
+                               const gl::FramebufferAttachment *attachment)
 {
-}
-
-static gl::Error InvalidateAttachmentSwizzles(const gl::FramebufferAttachment *attachment)
-{
-    if (attachment && attachment->type() == GL_TEXTURE)
+    if (attachment->type() == GL_TEXTURE)
     {
         gl::Texture *texture = attachment->getTexture();
 
         TextureD3D *textureD3D = GetImplAs<TextureD3D>(texture);
 
         TextureStorage *texStorage = nullptr;
-        gl::Error error = textureD3D->getNativeTexture(&texStorage);
-        if (error.isError())
-        {
-            return error;
-        }
+        ANGLE_TRY(textureD3D->getNativeTexture(context, &texStorage));
 
         if (texStorage)
         {
             TextureStorage11 *texStorage11 = GetAs<TextureStorage11>(texStorage);
             ASSERT(texStorage11);
 
-            texStorage11->invalidateSwizzleCacheLevel(attachment->mipLevel());
+            texStorage11->markLevelDirty(attachment->mipLevel());
         }
     }
 
-    return gl::Error(GL_NO_ERROR);
+    return gl::NoError();
 }
 
-gl::Error Framebuffer11::invalidateSwizzles() const
+void UpdateCachedRenderTarget(const gl::Context *context,
+                              const gl::FramebufferAttachment *attachment,
+                              RenderTarget11 *&cachedRenderTarget,
+                              OnRenderTargetDirtyBinding *channelBinding)
 {
-    for (const auto &colorAttachment : mData.getColorAttachments())
+    RenderTarget11 *newRenderTarget = nullptr;
+    if (attachment)
     {
-        if (colorAttachment.isAttached())
+        // TODO(jmadill): Don't swallow this error.
+        gl::Error error = attachment->getRenderTarget(context, &newRenderTarget);
+        if (error.isError())
         {
-            gl::Error error = InvalidateAttachmentSwizzles(&colorAttachment);
-            if (error.isError())
-            {
-                return error;
-            }
+            ERR() << "Internal rendertarget error: " << error;
         }
     }
-
-    gl::Error error = InvalidateAttachmentSwizzles(mData.getDepthAttachment());
-    if (error.isError())
+    if (newRenderTarget != cachedRenderTarget)
     {
-        return error;
+        auto channel = (newRenderTarget ? newRenderTarget->getBroadcastChannel() : nullptr);
+        channelBinding->bind(channel);
+        cachedRenderTarget = newRenderTarget;
     }
+}
+}  // anonymous namespace
 
-    error = InvalidateAttachmentSwizzles(mData.getStencilAttachment());
-    if (error.isError())
+Framebuffer11::Framebuffer11(const gl::FramebufferState &data, Renderer11 *renderer)
+    : FramebufferD3D(data, renderer),
+      mRenderer(renderer),
+      mCachedDepthStencilRenderTarget(nullptr),
+      mDepthStencilRenderTargetDirty(this, gl::IMPLEMENTATION_MAX_FRAMEBUFFER_ATTACHMENTS)
+{
+    ASSERT(mRenderer != nullptr);
+    mCachedColorRenderTargets.fill(nullptr);
+    for (size_t colorIndex = 0; colorIndex < data.getColorAttachments().size(); ++colorIndex)
     {
-        return error;
+        mColorRenderTargetsDirty.emplace_back(this, colorIndex);
     }
-
-    return gl::Error(GL_NO_ERROR);
 }
 
-gl::Error Framebuffer11::clear(const gl::State &state, const ClearParameters &clearParams)
+Framebuffer11::~Framebuffer11()
+{
+}
+
+gl::Error Framebuffer11::markAttachmentsDirty(const gl::Context *context) const
+{
+    const auto &colorAttachments = mState.getColorAttachments();
+    for (size_t drawBuffer : mState.getEnabledDrawBuffers())
+    {
+        const gl::FramebufferAttachment &colorAttachment = colorAttachments[drawBuffer];
+        ASSERT(colorAttachment.isAttached());
+        ANGLE_TRY(MarkAttachmentsDirty(context, &colorAttachment));
+    }
+
+    auto dsAttachment = mState.getDepthOrStencilAttachment();
+    if (dsAttachment)
+    {
+        ANGLE_TRY(MarkAttachmentsDirty(context, dsAttachment));
+    }
+
+    return gl::NoError();
+}
+
+gl::Error Framebuffer11::clearImpl(const gl::Context *context, const ClearParameters &clearParams)
 {
     Clear11 *clearer = mRenderer->getClearer();
-    gl::Error error = clearer->clearFramebuffer(clearParams, mData);
-    if (error.isError())
+
+    const gl::FramebufferAttachment *colorAttachment = mState.getFirstColorAttachment();
+    if (clearParams.scissorEnabled == true && colorAttachment != nullptr &&
+        UsePresentPathFast(mRenderer, colorAttachment))
     {
-        return error;
+        // If the current framebuffer is using the default colorbuffer, and present path fast is
+        // active, and the scissor rect is enabled, then we should invert the scissor rect
+        // vertically
+        ClearParameters presentPathFastClearParams = clearParams;
+        gl::Extents framebufferSize                = colorAttachment->getSize();
+        presentPathFastClearParams.scissor.y       = framebufferSize.height -
+                                               presentPathFastClearParams.scissor.y -
+                                               presentPathFastClearParams.scissor.height;
+        ANGLE_TRY(clearer->clearFramebuffer(context, presentPathFastClearParams, mState));
+    }
+    else
+    {
+        ANGLE_TRY(clearer->clearFramebuffer(context, clearParams, mState));
     }
 
-    error = invalidateSwizzles();
-    if (error.isError())
-    {
-        return error;
-    }
+    ANGLE_TRY(markAttachmentsDirty(context));
 
-    return gl::Error(GL_NO_ERROR);
+    return gl::NoError();
 }
 
-static gl::Error getRenderTargetResource(const gl::FramebufferAttachment *colorbuffer, unsigned int *subresourceIndexOut,
-                                         ID3D11Texture2D **texture2DOut)
+gl::Error Framebuffer11::invalidate(const gl::Context *context,
+                                    size_t count,
+                                    const GLenum *attachments)
 {
-    ASSERT(colorbuffer);
-
-    RenderTarget11 *renderTarget = nullptr;
-    gl::Error error = colorbuffer->getRenderTarget(&renderTarget);
-    if (error.isError())
-    {
-        return error;
-    }
-
-    ID3D11Resource *renderTargetResource = renderTarget->getTexture();
-    ASSERT(renderTargetResource);
-
-    *subresourceIndexOut = renderTarget->getSubresourceIndex();
-    *texture2DOut = d3d11::DynamicCastComObject<ID3D11Texture2D>(renderTargetResource);
-
-    if (!(*texture2DOut))
-    {
-        return gl::Error(GL_OUT_OF_MEMORY, "Failed to query the ID3D11Texture2D from a RenderTarget");
-    }
-
-    return gl::Error(GL_NO_ERROR);
+    return invalidateBase(context, count, attachments, false);
 }
 
-gl::Error Framebuffer11::invalidate(size_t count, const GLenum *attachments)
+gl::Error Framebuffer11::discard(const gl::Context *context,
+                                 size_t count,
+                                 const GLenum *attachments)
 {
-    return invalidateBase(count, attachments, false);
+    return invalidateBase(context, count, attachments, true);
 }
 
-gl::Error Framebuffer11::discard(size_t count, const GLenum *attachments)
-{
-    return invalidateBase(count, attachments, true);
-}
-
-gl::Error Framebuffer11::invalidateBase(size_t count, const GLenum *attachments, bool useEXTBehavior) const
+gl::Error Framebuffer11::invalidateBase(const gl::Context *context,
+                                        size_t count,
+                                        const GLenum *attachments,
+                                        bool useEXTBehavior) const
 {
     ID3D11DeviceContext1 *deviceContext1 = mRenderer->getDeviceContext1IfSupported();
 
     if (!deviceContext1)
     {
         // DiscardView() is only supported on ID3D11DeviceContext1
-        return gl::Error(GL_NO_ERROR);
+        return gl::NoError();
     }
 
     bool foundDepth = false;
@@ -181,37 +196,13 @@ gl::Error Framebuffer11::invalidateBase(size_t count, const GLenum *attachments,
                 ASSERT((attachments[i] >= GL_COLOR_ATTACHMENT0 && attachments[i] <= GL_COLOR_ATTACHMENT15) ||
                        (attachments[i] == GL_COLOR));
 
-                RenderTarget11 *renderTarget = nullptr;
-                ID3D11View *colorView = nullptr;
-                gl::Error error(GL_NO_ERROR);
-                size_t colorAttachmentID = 0;
-
-                if (attachments[i] == GL_COLOR)
+                size_t colorIndex =
+                    (attachments[i] == GL_COLOR ? 0u : (attachments[i] - GL_COLOR_ATTACHMENT0));
+                auto colorAttachment = mState.getColorAttachment(colorIndex);
+                if (colorAttachment)
                 {
-                    colorAttachmentID = 0;
+                    ANGLE_TRY(invalidateAttachment(context, colorAttachment));
                 }
-                else
-                {
-                    colorAttachmentID = attachments[i] - GL_COLOR_ATTACHMENT0;
-                }
-
-                if (mData.getColorAttachment(static_cast<unsigned int>(colorAttachmentID)))
-                {
-                    error = mData.getColorAttachment(static_cast<unsigned int>(colorAttachmentID))
-                                ->getRenderTarget(&renderTarget);
-                    if (error.isError())
-                    {
-                        return error;
-                    }
-
-                    colorView = renderTarget->getRenderTargetView();
-
-                    if (colorView != nullptr)
-                    {
-                        deviceContext1->DiscardView(colorView);
-                    }
-                }
-
                 break;
             }
         }
@@ -228,7 +219,7 @@ gl::Error Framebuffer11::invalidateBase(size_t count, const GLenum *attachments,
         discardDepth = foundDepth;
 
         // Don't bother discarding the stencil buffer if the depth buffer will already do it
-        discardStencil = foundStencil && (!discardDepth || mData.getDepthAttachment() == nullptr);
+        discardStencil = foundStencil && (!discardDepth || mState.getDepthAttachment() == nullptr);
     }
     else
     {
@@ -236,118 +227,86 @@ gl::Error Framebuffer11::invalidateBase(size_t count, const GLenum *attachments,
         // attachments list does not include DEPTH_STENCIL_ATTACHMENT or both DEPTH_ATTACHMENT and
         // STENCIL_ATTACHMENT, then only the specified portion of every pixel in the subregion of pixels
         // of the DEPTH_STENCIL buffer may be invalidated, and the other portion must be preserved.
-        discardDepth = (foundDepth && foundStencil) || (foundDepth && (mData.getStencilAttachment() == nullptr));
-        discardStencil = (foundStencil && (mData.getDepthAttachment() == nullptr));
+        discardDepth = (foundDepth && foundStencil) ||
+                       (foundDepth && (mState.getStencilAttachment() == nullptr));
+        discardStencil = (foundStencil && (mState.getDepthAttachment() == nullptr));
     }
 
-    if (discardDepth && mData.getDepthAttachment())
+    if (discardDepth && mState.getDepthAttachment())
     {
-        RenderTarget11 *renderTarget = nullptr;
-        ID3D11View *depthView = nullptr;
-        gl::Error error(GL_NO_ERROR);
-
-        error = mData.getDepthAttachment()->getRenderTarget(&renderTarget);
-        if (error.isError())
-        {
-            return error;
-        }
-
-        depthView = renderTarget->getDepthStencilView();
-
-        if (depthView != nullptr)
-        {
-            deviceContext1->DiscardView(depthView);
-        }
+        ANGLE_TRY(invalidateAttachment(context, mState.getDepthAttachment()));
     }
 
-    if (discardStencil && mData.getStencilAttachment())
+    if (discardStencil && mState.getStencilAttachment())
     {
-        RenderTarget11 *renderTarget = nullptr;
-        ID3D11View *stencilView = nullptr;
-        gl::Error error(GL_NO_ERROR);
-
-        error = mData.getStencilAttachment()->getRenderTarget(&renderTarget);
-        if (error.isError())
-        {
-            return error;
-        }
-
-        stencilView = renderTarget->getDepthStencilView();
-
-        if (stencilView != nullptr)
-        {
-            deviceContext1->DiscardView(stencilView);
-        }
+        ANGLE_TRY(invalidateAttachment(context, mState.getStencilAttachment()));
     }
 
-    return gl::Error(GL_NO_ERROR);
+    return gl::NoError();
 }
 
-gl::Error Framebuffer11::invalidateSub(size_t, const GLenum *, const gl::Rectangle &)
+gl::Error Framebuffer11::invalidateSub(const gl::Context *context,
+                                       size_t,
+                                       const GLenum *,
+                                       const gl::Rectangle &)
 {
     // A no-op implementation conforms to the spec, so don't call UNIMPLEMENTED()
-    return gl::Error(GL_NO_ERROR);
+    return gl::NoError();
 }
 
-gl::Error Framebuffer11::readPixelsImpl(const gl::Rectangle &area,
+gl::Error Framebuffer11::invalidateAttachment(const gl::Context *context,
+                                              const gl::FramebufferAttachment *attachment) const
+{
+    ID3D11DeviceContext1 *deviceContext1 = mRenderer->getDeviceContext1IfSupported();
+    ASSERT(deviceContext1);
+    ASSERT(attachment && attachment->isAttached());
+
+    RenderTarget11 *renderTarget = nullptr;
+    ANGLE_TRY(attachment->getRenderTarget(context, &renderTarget));
+    const auto &rtv = renderTarget->getRenderTargetView();
+
+    if (rtv.valid())
+    {
+        deviceContext1->DiscardView(rtv.get());
+    }
+
+    return gl::NoError();
+}
+
+gl::Error Framebuffer11::readPixelsImpl(const gl::Context *context,
+                                        const gl::Rectangle &area,
                                         GLenum format,
                                         GLenum type,
                                         size_t outputPitch,
                                         const gl::PixelPackState &pack,
-                                        uint8_t *pixels) const
+                                        uint8_t *pixels)
 {
-    ID3D11Texture2D *colorBufferTexture = nullptr;
-    unsigned int subresourceIndex = 0;
-
-    const gl::FramebufferAttachment *colorbuffer = mData.getReadAttachment();
-    ASSERT(colorbuffer);
-
-    gl::Error error = getRenderTargetResource(colorbuffer, &subresourceIndex, &colorBufferTexture);
-    if (error.isError())
-    {
-        return error;
-    }
+    const gl::FramebufferAttachment *readAttachment = mState.getReadAttachment();
+    ASSERT(readAttachment);
 
     gl::Buffer *packBuffer = pack.pixelBuffer.get();
     if (packBuffer != nullptr)
     {
-        if (pack.rowLength != 0 || pack.skipRows != 0 || pack.skipPixels != 0)
-        {
-            UNIMPLEMENTED();
-            return gl::Error(GL_INVALID_OPERATION,
-                             "Unimplemented pixel store parameters in readPixelsImpl");
-        }
-
         Buffer11 *packBufferStorage = GetImplAs<Buffer11>(packBuffer);
         PackPixelsParams packParams(area, format, type, static_cast<GLuint>(outputPitch), pack,
                                     reinterpret_cast<ptrdiff_t>(pixels));
 
-        error = packBufferStorage->packPixels(colorBufferTexture, subresourceIndex, packParams);
-        if (error.isError())
-        {
-            SafeRelease(colorBufferTexture);
-            return error;
-        }
-    }
-    else
-    {
-        error = mRenderer->readTextureData(colorBufferTexture, subresourceIndex, area, format, type,
-                                           static_cast<GLuint>(outputPitch), pack, pixels);
-        if (error.isError())
-        {
-            SafeRelease(colorBufferTexture);
-            return error;
-        }
+        return packBufferStorage->packPixels(context, *readAttachment, packParams);
     }
 
-    SafeRelease(colorBufferTexture);
-
-    return gl::Error(GL_NO_ERROR);
+    return mRenderer->readFromAttachment(context, *readAttachment, area, format, type,
+                                         static_cast<GLuint>(outputPitch), pack, pixels);
 }
 
-gl::Error Framebuffer11::blit(const gl::Rectangle &sourceArea, const gl::Rectangle &destArea, const gl::Rectangle *scissor,
-                              bool blitRenderTarget, bool blitDepth, bool blitStencil, GLenum filter,
-                              const gl::Framebuffer *sourceFramebuffer)
+gl::Error Framebuffer11::blitImpl(const gl::Context *context,
+                                  const gl::Rectangle &sourceArea,
+                                  const gl::Rectangle &destArea,
+                                  const gl::Rectangle *scissor,
+                                  bool blitRenderTarget,
+                                  bool blitDepth,
+                                  bool blitStencil,
+                                  GLenum filter,
+                                  const gl::Framebuffer *sourceFramebuffer)
 {
     if (blitRenderTarget)
     {
@@ -355,15 +314,11 @@ gl::Error Framebuffer11::blit(const gl::Rectangle &sourceArea, const gl::Rectang
         ASSERT(readBuffer);
 
         RenderTargetD3D *readRenderTarget = nullptr;
-        gl::Error error = readBuffer->getRenderTarget(&readRenderTarget);
-        if (error.isError())
-        {
-            return error;
-        }
+        ANGLE_TRY(readBuffer->getRenderTarget(context, &readRenderTarget));
         ASSERT(readRenderTarget);
 
-        const auto &colorAttachments = mData.getColorAttachments();
-        const auto &drawBufferStates = mData.getDrawBufferStates();
+        const auto &colorAttachments = mState.getColorAttachments();
+        const auto &drawBufferStates = mState.getDrawBufferStates();
 
         for (size_t colorAttachment = 0; colorAttachment < colorAttachments.size(); colorAttachment++)
         {
@@ -373,19 +328,30 @@ gl::Error Framebuffer11::blit(const gl::Rectangle &sourceArea, const gl::Rectang
                 drawBufferStates[colorAttachment] != GL_NONE)
             {
                 RenderTargetD3D *drawRenderTarget = nullptr;
-                error = drawBuffer.getRenderTarget(&drawRenderTarget);
-                if (error.isError())
-                {
-                    return error;
-                }
+                ANGLE_TRY(drawBuffer.getRenderTarget(context, &drawRenderTarget));
                 ASSERT(drawRenderTarget);
 
-                error = mRenderer->blitRenderbufferRect(sourceArea, destArea, readRenderTarget, drawRenderTarget,
-                                                        filter, scissor, blitRenderTarget, false, false);
-                if (error.isError())
+                const bool invertColorSource   = UsePresentPathFast(mRenderer, readBuffer);
+                gl::Rectangle actualSourceArea = sourceArea;
+                if (invertColorSource)
                 {
-                    return error;
+                    RenderTarget11 *readRenderTarget11 = GetAs<RenderTarget11>(readRenderTarget);
+                    actualSourceArea.y                 = readRenderTarget11->getHeight() - sourceArea.y;
+                    actualSourceArea.height            = -sourceArea.height;
                 }
+
+                const bool invertColorDest   = UsePresentPathFast(mRenderer, &drawBuffer);
+                gl::Rectangle actualDestArea = destArea;
+                if (invertColorDest)
+                {
+                    RenderTarget11 *drawRenderTarget11 = GetAs<RenderTarget11>(drawRenderTarget);
+                    actualDestArea.y                   = drawRenderTarget11->getHeight() - destArea.y;
+                    actualDestArea.height              = -destArea.height;
+                }
+
+                ANGLE_TRY(mRenderer->blitRenderbufferRect(
+                    context, actualSourceArea, actualDestArea, readRenderTarget, drawRenderTarget,
+                    filter, scissor, blitRenderTarget, false, false));
             }
         }
     }
@@ -396,46 +362,144 @@ gl::Error Framebuffer11::blit(const gl::Rectangle &sourceArea, const gl::Rectang
         ASSERT(readBuffer);
 
         RenderTargetD3D *readRenderTarget = nullptr;
-        gl::Error error = readBuffer->getRenderTarget(&readRenderTarget);
-        if (error.isError())
-        {
-            return error;
-        }
+        ANGLE_TRY(readBuffer->getRenderTarget(context, &readRenderTarget));
         ASSERT(readRenderTarget);
 
-        const gl::FramebufferAttachment *drawBuffer = mData.getDepthOrStencilAttachment();
+        const gl::FramebufferAttachment *drawBuffer = mState.getDepthOrStencilAttachment();
         ASSERT(drawBuffer);
 
         RenderTargetD3D *drawRenderTarget = nullptr;
-        error = drawBuffer->getRenderTarget(&drawRenderTarget);
-        if (error.isError())
-        {
-            return error;
-        }
+        ANGLE_TRY(drawBuffer->getRenderTarget(context, &drawRenderTarget));
         ASSERT(drawRenderTarget);
 
-        error = mRenderer->blitRenderbufferRect(sourceArea, destArea, readRenderTarget, drawRenderTarget, filter, scissor,
-                                                false, blitDepth, blitStencil);
-        if (error.isError())
-        {
-            return error;
-        }
+        ANGLE_TRY(mRenderer->blitRenderbufferRect(context, sourceArea, destArea, readRenderTarget,
+                                                  drawRenderTarget, filter, scissor, false,
+                                                  blitDepth, blitStencil));
     }
 
-    gl::Error error = invalidateSwizzles();
-    if (error.isError())
-    {
-        return error;
-    }
-
-    return gl::Error(GL_NO_ERROR);
+    ANGLE_TRY(markAttachmentsDirty(context));
+    return gl::NoError();
 }
 
 GLenum Framebuffer11::getRenderTargetImplementationFormat(RenderTargetD3D *renderTarget) const
 {
     RenderTarget11 *renderTarget11 = GetAs<RenderTarget11>(renderTarget);
-    const d3d11::DXGIFormat &dxgiFormatInfo = d3d11::GetDXGIFormatInfo(renderTarget11->getDXGIFormat());
-    return dxgiFormatInfo.internalFormat;
+    return renderTarget11->getFormatSet().format().fboImplementationInternalFormat;
 }
 
+void Framebuffer11::updateColorRenderTarget(const gl::Context *context, size_t colorIndex)
+{
+    UpdateCachedRenderTarget(context, mState.getColorAttachment(colorIndex),
+                             mCachedColorRenderTargets[colorIndex],
+                             &mColorRenderTargetsDirty[colorIndex]);
 }
+
+void Framebuffer11::updateDepthStencilRenderTarget(const gl::Context *context)
+{
+    UpdateCachedRenderTarget(context, mState.getDepthOrStencilAttachment(),
+                             mCachedDepthStencilRenderTarget, &mDepthStencilRenderTargetDirty);
+}
+
+void Framebuffer11::syncState(const gl::Context *context,
+                              const gl::Framebuffer::DirtyBits &dirtyBits)
+{
+    const auto &mergedDirtyBits = dirtyBits | mInternalDirtyBits;
+    mInternalDirtyBits.reset();
+
+    for (auto dirtyBit : mergedDirtyBits)
+    {
+        switch (dirtyBit)
+        {
+            case gl::Framebuffer::DIRTY_BIT_DEPTH_ATTACHMENT:
+            case gl::Framebuffer::DIRTY_BIT_STENCIL_ATTACHMENT:
+                updateDepthStencilRenderTarget(context);
+                break;
+            case gl::Framebuffer::DIRTY_BIT_DRAW_BUFFERS:
+            case gl::Framebuffer::DIRTY_BIT_READ_BUFFER:
+                break;
+            case gl::Framebuffer::DIRTY_BIT_DEFAULT_WIDTH:
+            case gl::Framebuffer::DIRTY_BIT_DEFAULT_HEIGHT:
+            case gl::Framebuffer::DIRTY_BIT_DEFAULT_SAMPLES:
+            case gl::Framebuffer::DIRTY_BIT_DEFAULT_FIXED_SAMPLE_LOCATIONS:
+                break;
+            default:
+            {
+                ASSERT(gl::Framebuffer::DIRTY_BIT_COLOR_ATTACHMENT_0 == 0 &&
+                       dirtyBit < gl::Framebuffer::DIRTY_BIT_COLOR_ATTACHMENT_MAX);
+                size_t colorIndex =
+                    static_cast<size_t>(dirtyBit - gl::Framebuffer::DIRTY_BIT_COLOR_ATTACHMENT_0);
+                updateColorRenderTarget(context, colorIndex);
+                break;
+            }
+        }
+    }
+
+    // We should not have dirtied any additional state during our sync.
+    ASSERT(!mInternalDirtyBits.any());
+
+    FramebufferD3D::syncState(context, dirtyBits);
+
+    // Call this last to allow the state manager to take advantage of the cached render targets.
+    mRenderer->getStateManager()->invalidateRenderTarget();
+
+    // Call this to syncViewport for framebuffer default parameters.
+    if (mState.getDefaultWidth() != 0 || mState.getDefaultHeight() != 0)
+    {
+        mRenderer->getStateManager()->invalidateViewport(context);
+    }
+}
+
+void Framebuffer11::signal(size_t channelID, const gl::Context *context)
+{
+    if (channelID == gl::IMPLEMENTATION_MAX_FRAMEBUFFER_ATTACHMENTS)
+    {
+        // Stencil is redundant in this case.
+        mInternalDirtyBits.set(gl::Framebuffer::DIRTY_BIT_DEPTH_ATTACHMENT);
+        mCachedDepthStencilRenderTarget = nullptr;
+    }
+    else
+    {
+        mInternalDirtyBits.set(gl::Framebuffer::DIRTY_BIT_COLOR_ATTACHMENT_0 + channelID);
+        mCachedColorRenderTargets[channelID] = nullptr;
+    }
+
+    // Notify the context we need to re-validate the RenderTarget.
+    // TODO(jmadill): Check that we're the active draw framebuffer.
+    mRenderer->getStateManager()->invalidateRenderTarget();
+}
+
+gl::Error Framebuffer11::getSamplePosition(size_t index, GLfloat *xy) const
+{
+    const gl::FramebufferAttachment *attachment = mState.getFirstNonNullAttachment();
+    ASSERT(attachment);
+    GLsizei sampleCount = attachment->getSamples();
+
+    d3d11_gl::GetSamplePosition(sampleCount, index, xy);
+    return gl::NoError();
+}
+
+bool Framebuffer11::hasAnyInternalDirtyBit() const
+{
+    return mInternalDirtyBits.any();
+}
+
+void Framebuffer11::syncInternalState(const gl::Context *context)
+{
+    syncState(context, gl::Framebuffer::DirtyBits());
+}
+
+RenderTarget11 *Framebuffer11::getFirstRenderTarget() const
+{
+    ASSERT(mInternalDirtyBits.none());
+    for (auto *renderTarget : mCachedColorRenderTargets)
+    {
+        if (renderTarget)
+        {
+            return renderTarget;
+        }
+    }
+
+    return mCachedDepthStencilRenderTarget;
+}
+
+}  // namespace rx

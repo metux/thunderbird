@@ -8,22 +8,24 @@ var Cr = Components.results;
 var Ci = Components.interfaces;
 
 var CC = Components.Constructor;
-var LocalFile = CC("@mozilla.org/file/local;1", "nsILocalFile", "initWithPath");
+var LocalFile = CC("@mozilla.org/file/local;1", "nsIFile", "initWithPath");
 
-function run_test()
-{
+function run_test() {
   test_normalized_vs_non_normalized();
 }
 
-function test_normalized_vs_non_normalized()
-{
+function test_normalized_vs_non_normalized() {
   // get a directory that exists on all platforms
   var dirProvider = Components.classes["@mozilla.org/file/directory_service;1"].getService(Ci.nsIProperties);
-  var tmp1 = dirProvider.get("TmpD", Ci.nsILocalFile);
+  var tmp1 = dirProvider.get("TmpD", Ci.nsIFile);
   var exists = tmp1.exists();
   do_check_true(exists);
   if (!exists)
     return;
+
+  // the test logic below assumes we're starting with a normalized path, but the
+  // default location on macos is a symbolic link, so resolve it before starting
+  tmp1.normalize();
 
   // this has the same exact path as tmp1, it should equal tmp1
   var tmp2 = new LocalFile(tmp1.path);

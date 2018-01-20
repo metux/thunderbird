@@ -7,8 +7,8 @@
 #define nsSubscribableServer_h__
 
 #include "nsCOMPtr.h"
+#include "nsString.h"
 #include "nsISubscribableServer.h"
-#include "nsIMsgIncomingServer.h"
 #include "nsIRDFService.h"
 #include "nsSubscribeDataSource.h"
 #include "nsIRDFResource.h"
@@ -44,13 +44,13 @@ class nsSubscribableServer : public nsISubscribableServer
 
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSISUBSCRIBABLESERVER
-  
+
 private:
   virtual ~nsSubscribableServer();
 
   nsresult ConvertNameToUnichar(const char *inStr, char16_t **outStr);
   nsCOMPtr <nsISubscribeListener> mSubscribeListener;
-  nsCOMPtr <nsIMsgIncomingServer> mIncomingServer;
+  nsCString mIncomingServerUri;
   nsCOMPtr <nsISubscribeDataSource> mSubscribeDS;
   char mDelimiter;
   bool mShowFullName;

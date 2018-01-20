@@ -8,8 +8,6 @@
 #include "nsChromeRegistryChrome.h"
 #include "nsChromeRegistryContent.h"
 
-#include "prprf.h"
-
 #include "nsCOMPtr.h"
 #include "nsError.h"
 #include "nsEscape.h"
@@ -17,12 +15,10 @@
 #include "nsString.h"
 #include "nsQueryObject.h"
 
-#include "mozilla/CSSStyleSheet.h"
 #include "mozilla/dom/URL.h"
 #include "nsIConsoleService.h"
 #include "nsIDocument.h"
 #include "nsIDOMDocument.h"
-#include "nsIDOMLocation.h"
 #include "nsIDOMWindowCollection.h"
 #include "nsIDOMWindow.h"
 #include "nsIObserverService.h"
@@ -30,33 +26,40 @@
 #include "nsIScriptError.h"
 #include "nsIWindowMediator.h"
 #include "nsIPrefService.h"
+#include "mozilla/Preferences.h"
+#include "mozilla/Printf.h"
+#include "mozilla/StyleSheet.h"
+#include "mozilla/StyleSheetInlines.h"
+#include "mozilla/dom/Location.h"
+
+#include "unicode/uloc.h"
 
 nsChromeRegistry* nsChromeRegistry::gChromeRegistry;
 
 // DO NOT use namespace mozilla; it'll break due to a naming conflict between
 // mozilla::TextRange and a TextRange in OSX headers.
-using mozilla::CSSStyleSheet;
+using mozilla::StyleSheet;
 using mozilla::dom::IsChromeURI;
+using mozilla::dom::Location;
 
 ////////////////////////////////////////////////////////////////////////////////
 
 void
 nsChromeRegistry::LogMessage(const char* aMsg, ...)
 {
-  nsCOMPtr<nsIConsoleService> console 
+  nsCOMPtr<nsIConsoleService> console
     (do_GetService(NS_CONSOLESERVICE_CONTRACTID));
   if (!console)
     return;
 
   va_list args;
   va_start(args, aMsg);
-  char* formatted = PR_vsmprintf(aMsg, args);
+  mozilla::SmprintfPointer formatted = mozilla::Vsmprintf(aMsg, args);
   va_end(args);
   if (!formatted)
     return;
 
-  console->LogStringMessage(NS_ConvertUTF8toUTF16(formatted).get());
-  PR_smprintf_free(formatted);
+  console->LogStringMessage(NS_ConvertUTF8toUTF16(formatted.get()).get());
 }
 
 void
@@ -65,7 +68,7 @@ nsChromeRegistry::LogMessageWithContext(nsIURI* aURL, uint32_t aLineNumber, uint
 {
   nsresult rv;
 
-  nsCOMPtr<nsIConsoleService> console 
+  nsCOMPtr<nsIConsoleService> console
     (do_GetService(NS_CONSOLESERVICE_CONTRACTID));
 
   nsCOMPtr<nsIScriptError> error
@@ -75,7 +78,7 @@ nsChromeRegistry::LogMessageWithContext(nsIURI* aURL, uint32_t aLineNumber, uint
 
   va_list args;
   va_start(args, aMsg);
-  char* formatted = PR_vsmprintf(aMsg, args);
+  mozilla::SmprintfPointer formatted = mozilla::Vsmprintf(aMsg, args);
   va_end(args);
   if (!formatted)
     return;
@@ -84,11 +87,10 @@ nsChromeRegistry::LogMessageWithContext(nsIURI* aURL, uint32_t aLineNumber, uint
   if (aURL)
     aURL->GetSpec(spec);
 
-  rv = error->Init(NS_ConvertUTF8toUTF16(formatted),
+  rv = error->Init(NS_ConvertUTF8toUTF16(formatted.get()),
                    NS_ConvertUTF8toUTF16(spec),
                    EmptyString(),
                    aLineNumber, 0, flags, "chrome registration");
-  PR_smprintf_free(formatted);
 
   if (NS_FAILED(rv))
     return;
@@ -162,7 +164,7 @@ nsChromeRegistry::GetProviderAndPath(nsIURL* aChromeURL,
 #endif
 
   nsAutoCString path;
-  rv = aChromeURL->GetPath(path);
+  rv = aChromeURL->GetPathQueryRef(path);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (path.Length() < 3) {
@@ -226,7 +228,7 @@ nsChromeRegistry::Canonify(nsIURL* aChromeURL)
     else {
       return NS_ERROR_INVALID_ARG;
     }
-    aChromeURL->SetPath(path);
+    aChromeURL->SetPathQueryRef(path);
   }
   else {
     // prevent directory traversals ("..")
@@ -245,7 +247,7 @@ nsChromeRegistry::Canonify(nsIURL* aChromeURL)
           // chrome: URIs with double-escapes are trying to trick us.
           // watch for %2e, and %25 in case someone triple unescapes
           if (pos[1] == '2' &&
-               ( pos[2] == 'e' || pos[2] == 'E' || 
+               ( pos[2] == 'e' || pos[2] == 'E' ||
                  pos[2] == '5' ))
             return NS_ERROR_DOM_BAD_URI;
           break;
@@ -289,16 +291,6 @@ nsChromeRegistry::ConvertChromeURL(nsIURI* aChromeURI, nsIURI* *aResult)
   if (NS_FAILED(rv))
     return rv;
 
-  if (flags & PLATFORM_PACKAGE) {
-#if defined(XP_WIN)
-    path.Insert("win/", 0);
-#elif defined(XP_MACOSX)
-    path.Insert("mac/", 0);
-#else
-    path.Insert("unix/", 0);
-#endif
-  }
-
   if (!baseURI) {
     LogMessage("No chrome package registered for chrome://%s/%s/%s",
                package.get(), provider.get(), path.get());
@@ -313,7 +305,7 @@ nsChromeRegistry::ConvertChromeURL(nsIURI* aChromeURI, nsIURI* *aResult)
 // theme stuff
 
 
-static void FlushSkinBindingsForWindow(nsPIDOMWindow* aWindow)
+static void FlushSkinBindingsForWindow(nsPIDOMWindowOuter* aWindow)
 {
   // Get the document.
   nsCOMPtr<nsIDocument> document = aWindow->GetDoc();
@@ -340,7 +332,7 @@ NS_IMETHODIMP nsChromeRegistry::RefreshSkins()
     nsCOMPtr<nsISupports> protoWindow;
     windowEnumerator->GetNext(getter_AddRefs(protoWindow));
     if (protoWindow) {
-      nsCOMPtr<nsPIDOMWindow> domWindow = do_QueryInterface(protoWindow);
+      nsCOMPtr<nsPIDOMWindowOuter> domWindow = do_QueryInterface(protoWindow);
       if (domWindow)
         FlushSkinBindingsForWindow(domWindow);
     }
@@ -355,13 +347,13 @@ NS_IMETHODIMP nsChromeRegistry::RefreshSkins()
     nsCOMPtr<nsISupports> protoWindow;
     windowEnumerator->GetNext(getter_AddRefs(protoWindow));
     if (protoWindow) {
-      nsCOMPtr<nsPIDOMWindow> domWindow = do_QueryInterface(protoWindow);
+      nsCOMPtr<nsPIDOMWindowOuter> domWindow = do_QueryInterface(protoWindow);
       if (domWindow)
         RefreshWindow(domWindow);
     }
     windowEnumerator->HasMoreElements(&more);
   }
-   
+
   return NS_OK;
 }
 
@@ -377,7 +369,7 @@ nsChromeRegistry::FlushSkinCaches()
 }
 
 // XXXbsmedberg: move this to windowmediator
-nsresult nsChromeRegistry::RefreshWindow(nsPIDOMWindow* aWindow)
+nsresult nsChromeRegistry::RefreshWindow(nsPIDOMWindowOuter* aWindow)
 {
   // Deal with our subframes first.
   nsCOMPtr<nsIDOMWindowCollection> frames = aWindow->GetFrames();
@@ -385,9 +377,9 @@ nsresult nsChromeRegistry::RefreshWindow(nsPIDOMWindow* aWindow)
   frames->GetLength(&length);
   uint32_t j;
   for (j = 0; j < length; j++) {
-    nsCOMPtr<nsIDOMWindow> childWin;
+    nsCOMPtr<mozIDOMWindowProxy> childWin;
     frames->Item(j, getter_AddRefs(childWin));
-    nsCOMPtr<nsPIDOMWindow> piWindow = do_QueryInterface(childWin);
+    nsCOMPtr<nsPIDOMWindowOuter> piWindow = nsPIDOMWindowOuter::From(childWin);
     RefreshWindow(piWindow);
   }
 
@@ -401,19 +393,18 @@ nsresult nsChromeRegistry::RefreshWindow(nsPIDOMWindow* aWindow)
   nsCOMPtr<nsIPresShell> shell = document->GetShell();
   if (shell) {
     // Reload only the chrome URL agent style sheets.
-    nsTArray<RefPtr<CSSStyleSheet>> agentSheets;
+    nsTArray<RefPtr<StyleSheet>> agentSheets;
     rv = shell->GetAgentStyleSheets(agentSheets);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    nsTArray<RefPtr<CSSStyleSheet>> newAgentSheets;
-    for (CSSStyleSheet* sheet : agentSheets) {
+    nsTArray<RefPtr<StyleSheet>> newAgentSheets;
+    for (StyleSheet* sheet : agentSheets) {
       nsIURI* uri = sheet->GetSheetURI();
 
       if (IsChromeURI(uri)) {
         // Reload the sheet.
-        RefPtr<CSSStyleSheet> newSheet;
-        rv = document->LoadChromeSheetSync(uri, true,
-                                           getter_AddRefs(newSheet));
+        RefPtr<StyleSheet> newSheet;
+        rv = document->LoadChromeSheetSync(uri, true, &newSheet);
         if (NS_FAILED(rv)) return rv;
         if (newSheet) {
           rv = newAgentSheets.AppendElement(newSheet) ? NS_OK : NS_ERROR_FAILURE;
@@ -433,27 +424,29 @@ nsresult nsChromeRegistry::RefreshWindow(nsPIDOMWindow* aWindow)
   int32_t count = document->GetNumberOfStyleSheets();
 
   // Build an array of style sheets we need to reload.
-  nsTArray<RefPtr<CSSStyleSheet>> oldSheets(count);
-  nsTArray<RefPtr<CSSStyleSheet>> newSheets(count);
+  nsTArray<RefPtr<StyleSheet>> oldSheets(count);
+  nsTArray<RefPtr<StyleSheet>> newSheets(count);
 
   // Iterate over the style sheets.
   for (int32_t i = 0; i < count; i++) {
     // Get the style sheet
-    CSSStyleSheet* styleSheet = document->GetStyleSheetAt(i);
+    StyleSheet* styleSheet = document->GetStyleSheetAt(i);
     oldSheets.AppendElement(styleSheet);
   }
 
   // Iterate over our old sheets and kick off a sync load of the new
-  // sheet if and only if it's a chrome URL.
-  for (CSSStyleSheet* sheet : oldSheets) {
-    nsIURI* uri = sheet ? sheet->GetOriginalURI() : nullptr;
+  // sheet if and only if it's a non-inline sheet with a chrome URL.
+  for (StyleSheet* sheet : oldSheets) {
+    MOZ_ASSERT(sheet, "GetStyleSheetAt shouldn't return nullptr for "
+                      "in-range sheet indexes");
+    nsIURI* uri = sheet->GetSheetURI();
 
-    if (uri && IsChromeURI(uri)) {
+    if (!sheet->IsInline() && IsChromeURI(uri)) {
       // Reload the sheet.
-      RefPtr<CSSStyleSheet> newSheet;
+      RefPtr<StyleSheet> newSheet;
       // XXX what about chrome sheets that have a title or are disabled?  This
       // only works by sheer dumb luck.
-      document->LoadChromeSheetSync(uri, false, getter_AddRefs(newSheet));
+      document->LoadChromeSheetSync(uri, false, &newSheet);
       // Even if it's null, we put in in there.
       newSheets.AppendElement(newSheet);
     } else {
@@ -476,13 +469,12 @@ nsChromeRegistry::FlushAllCaches()
 
   obsSvc->NotifyObservers((nsIChromeRegistry*) this,
                           NS_CHROME_FLUSH_TOPIC, nullptr);
-}  
+}
 
 // xxxbsmedberg Move me to nsIWindowMediator
 NS_IMETHODIMP
 nsChromeRegistry::ReloadChrome()
 {
-  UpdateSelectedLocale();
   FlushAllCaches();
   // Do a reload of all top level windows.
   nsresult rv = NS_OK;
@@ -503,9 +495,9 @@ nsChromeRegistry::ReloadChrome()
         nsCOMPtr<nsISupports> protoWindow;
         rv = windowEnumerator->GetNext(getter_AddRefs(protoWindow));
         if (NS_SUCCEEDED(rv)) {
-          nsCOMPtr<nsPIDOMWindow> domWindow = do_QueryInterface(protoWindow);
+          nsCOMPtr<nsPIDOMWindowOuter> domWindow = do_QueryInterface(protoWindow);
           if (domWindow) {
-            nsIDOMLocation* location = domWindow->GetLocation();
+            Location* location = domWindow->GetLocation();
             if (location) {
               rv = location->Reload(false);
               if (NS_FAILED(rv)) return rv;
@@ -644,26 +636,13 @@ nsChromeRegistry::MustLoadURLRemotely(nsIURI *aURI, bool *aResult)
 bool
 nsChromeRegistry::GetDirectionForLocale(const nsACString& aLocale)
 {
-  // first check the intl.uidirection.<locale> preference, and if that is not
-  // set, check the same preference but with just the first two characters of
-  // the locale. If that isn't set, default to left-to-right.
-  nsAutoCString prefString = NS_LITERAL_CSTRING("intl.uidirection.") + aLocale;
-  nsCOMPtr<nsIPrefBranch> prefBranch (do_GetService(NS_PREFSERVICE_CONTRACTID));
-  if (!prefBranch) {
-    return false;
+  int pref = mozilla::Preferences::GetInt("intl.uidirection", -1);
+  if (pref >= 0) {
+    return (pref > 0);
   }
-
-  nsXPIDLCString dir;
-  prefBranch->GetCharPref(prefString.get(), getter_Copies(dir));
-  if (dir.IsEmpty()) {
-    int32_t hyphen = prefString.FindChar('-');
-    if (hyphen >= 1) {
-      nsAutoCString shortPref(Substring(prefString, 0, hyphen));
-      prefBranch->GetCharPref(shortPref.get(), getter_Copies(dir));
-    }
-  }
-
-  return dir.EqualsLiteral("rtl");
+  nsAutoCString locale(aLocale);
+  SanitizeForBCP47(locale);
+  return uloc_isRightToLeft(locale.get());
 }
 
 NS_IMETHODIMP_(bool)
@@ -706,4 +685,23 @@ nsChromeRegistry::GetSingleton()
     return nullptr;
 
   return cr.forget();
+}
+
+void
+nsChromeRegistry::SanitizeForBCP47(nsACString& aLocale)
+{
+  // Currently, the only locale code we use that's not BCP47-conformant is
+  // "ja-JP-mac" on OS X, but let's try to be more general than just
+  // hard-coding that here.
+  const int32_t LANG_TAG_CAPACITY = 128;
+  char langTag[LANG_TAG_CAPACITY];
+  nsAutoCString locale(aLocale);
+  UErrorCode err = U_ZERO_ERROR;
+  // This is a fail-safe method that will set langTag to "und" if it cannot
+  // match any part of the input locale code.
+  int32_t len = uloc_toLanguageTag(locale.get(), langTag, LANG_TAG_CAPACITY,
+                                   false, &err);
+  if (U_SUCCESS(err) && len > 0) {
+    aLocale.Assign(langTag, len);
+  }
 }

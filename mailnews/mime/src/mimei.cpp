@@ -107,7 +107,7 @@ find_content_type_attribs(const char *content_type,
   if (!ctHandlerList)
     return false;
 
-  for (size_t i = 0; i < ctHandlerList->Length(); i++) 
+  for (size_t i = 0; i < ctHandlerList->Length(); i++)
   {
     cthandler_struct *ptr = ctHandlerList->ElementAt(i);
     if (PL_strcasecmp(content_type, ptr->content_type) == 0)
@@ -176,9 +176,9 @@ mime_locate_external_content_handler(const char *content_type,
   nsresult rv;
 
   nsAutoCString lookupID("@mozilla.org/mimecth;1?type=");
-  nsAutoCString lowerCaseContentType;
-  ToLowerCase(nsDependentCString(content_type), lowerCaseContentType);
-  lookupID += lowerCaseContentType;
+  nsAutoCString contentType;
+  ToLowerCase(nsDependentCString(content_type), contentType);
+  lookupID += contentType;
 
   nsCOMPtr<nsIMimeContentTypeHandler> ctHandler = do_CreateInstance(lookupID.get(), &rv);
   if (NS_FAILED(rv) || !ctHandler) {
@@ -189,20 +189,20 @@ mime_locate_external_content_handler(const char *content_type,
 
     nsCString value;
     rv = catman->GetCategoryEntry(NS_SIMPLEMIMECONVERTERS_CATEGORY,
-                                  content_type, getter_Copies(value));
+                                  contentType.get(), getter_Copies(value));
     if (NS_FAILED(rv) || value.IsEmpty())
       return nullptr;
-    rv = MIME_NewSimpleMimeConverterStub(content_type,
+    rv = MIME_NewSimpleMimeConverterStub(contentType.get(),
                                          getter_AddRefs(ctHandler));
     if (NS_FAILED(rv) || !ctHandler)
       return nullptr;
   }
 
-  rv = ctHandler->CreateContentTypeHandlerClass(content_type, ctHandlerInfo, &newObj);
+  rv = ctHandler->CreateContentTypeHandlerClass(contentType.get(), ctHandlerInfo, &newObj);
   if (NS_FAILED(rv))
     return nullptr;
 
-  add_content_type_attribs(content_type, ctHandlerInfo);
+  add_content_type_attribs(contentType.get(), ctHandlerInfo);
   return newObj;
 }
 
@@ -1680,7 +1680,7 @@ mime_parse_url_options(const char *url, MimeDisplayOptions *options)
  */
 
 int
-MimeOptions_write(MimeDisplayOptions *opt, nsCString &name, const char *data,
+MimeOptions_write(MimeHeaders *hdrs, MimeDisplayOptions *opt, const char *data,
                   int32_t length, bool user_visible_p)
 {
   int status = 0;
@@ -1704,6 +1704,10 @@ MimeOptions_write(MimeDisplayOptions *opt, nsCString &name, const char *data,
       opt->state->separator_suppressed_p = false;
       if (lstatus < 0) return lstatus;
 
+      nsCString name;
+      name.Adopt(MimeHeaders_get_name(hdrs, opt));
+      MimeHeaders_convert_header_value(opt, name, false);
+
       if (!name.IsEmpty()) {
           sep = "<LEGEND CLASS=\"mimeAttachmentHeaderName\">";
           lstatus = opt->output_fn(sep, strlen(sep), closure);
@@ -1711,7 +1715,7 @@ MimeOptions_write(MimeDisplayOptions *opt, nsCString &name, const char *data,
           if (lstatus < 0) return lstatus;
 
           nsCString escapedName;
-          escapedName.Adopt(MsgEscapeHTML(name.get()));
+          nsAppendEscapedHTML(name, escapedName);
 
           lstatus = opt->output_fn(escapedName.get(),
                                    escapedName.Length(), closure);
@@ -1724,7 +1728,7 @@ MimeOptions_write(MimeDisplayOptions *opt, nsCString &name, const char *data,
           if (lstatus < 0) return lstatus;
       }
 
-      sep = "</FIELDSET><BR/>";
+      sep = "</FIELDSET>";
       lstatus = opt->output_fn(sep, strlen(sep), closure);
       opt->state->separator_suppressed_p = false;
       if (lstatus < 0) return lstatus;
@@ -1767,10 +1771,7 @@ MimeObject_write(MimeObject *obj, const char *output, int32_t length,
     NS_ASSERTION(obj->options->state->first_data_written_p, "1.1 <rhp@netscape.com> 19 Mar 1999 12:00");
   }
 
-  nsCString name;
-  name.Adopt(MimeHeaders_get_name(obj->headers, obj->options));
-  MimeHeaders_convert_header_value(obj->options, name, false);
-  return MimeOptions_write(obj->options, name, output, length, user_visible_p);
+  return MimeOptions_write(obj->headers, obj->options, output, length, user_visible_p);
 }
 
 int

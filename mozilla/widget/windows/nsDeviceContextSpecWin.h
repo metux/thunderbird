@@ -8,34 +8,51 @@
 
 #include "nsCOMPtr.h"
 #include "nsIDeviceContextSpec.h"
-#include "nsIPrintOptions.h" // For nsIPrinterEnumerator
+#include "nsIPrinterEnumerator.h"
 #include "nsIPrintSettings.h"
 #include "nsISupportsPrimitives.h"
 #include <windows.h>
 #include "mozilla/Attributes.h"
+#include "mozilla/RefPtr.h"
 
 class nsIWidget;
 
+#ifdef MOZ_ENABLE_SKIA_PDF
+namespace mozilla {
+namespace widget {
+class PDFViaEMFPrintHelper;
+}
+}
+#endif
+
 class nsDeviceContextSpecWin : public nsIDeviceContextSpec
 {
+#ifdef MOZ_ENABLE_SKIA_PDF
+  typedef mozilla::widget::PDFViaEMFPrintHelper PDFViaEMFPrintHelper;
+#endif
+
 public:
   nsDeviceContextSpecWin();
 
   NS_DECL_ISUPPORTS
 
-  NS_IMETHOD GetSurfaceForPrinter(gfxASurface **surface);
+  virtual already_AddRefed<PrintTarget> MakePrintTarget() final;
   NS_IMETHOD BeginDocument(const nsAString& aTitle,
-                           char16_t*       aPrintToFileName,
+                           const nsAString& aPrintToFileName,
                            int32_t          aStartPage,
-                           int32_t          aEndPage) { return NS_OK; }
-  NS_IMETHOD EndDocument() { return NS_OK; }
-  NS_IMETHOD BeginPage() { return NS_OK; }
-  NS_IMETHOD EndPage() { return NS_OK; }
+                           int32_t          aEndPage) override;
+  NS_IMETHOD EndDocument() override;
+  NS_IMETHOD BeginPage() override { return NS_OK; }
+  NS_IMETHOD EndPage() override { return NS_OK; }
 
-  NS_IMETHOD Init(nsIWidget* aWidget, nsIPrintSettings* aPS, bool aIsPrintPreview);
+  NS_IMETHOD Init(nsIWidget* aWidget, nsIPrintSettings* aPS, bool aIsPrintPreview) override;
 
-  void GetDriverName(wchar_t *&aDriverName) const   { aDriverName = mDriverName;     }
-  void GetDeviceName(wchar_t *&aDeviceName) const   { aDeviceName = mDeviceName;     }
+  float GetDPI() final;
+
+  float GetPrintingScale() final;
+
+  void GetDriverName(nsAString& aDriverName) const { aDriverName = mDriverName; }
+  void GetDeviceName(nsAString& aDeviceName) const { aDeviceName = mDeviceName; }
 
   // The GetDevMode will return a pointer to a DevMode
   // whether it is from the Global memory handle or just the DevMode
@@ -44,26 +61,39 @@ public:
   void GetDevMode(LPDEVMODEW &aDevMode);
 
   // helper functions
-  nsresult GetDataFromPrinter(char16ptr_t aName, nsIPrintSettings* aPS = nullptr);
-
-  static nsresult SetPrintSettingsFromDevMode(nsIPrintSettings* aPrintSettings, 
-                                              LPDEVMODEW         aDevMode);
+  nsresult GetDataFromPrinter(const nsAString& aName,
+                              nsIPrintSettings* aPS = nullptr);
 
 protected:
 
-  void SetDeviceName(char16ptr_t aDeviceName);
-  void SetDriverName(char16ptr_t aDriverName);
+  void SetDeviceName(const nsAString& aDeviceName);
+  void SetDriverName(const nsAString& aDriverName);
   void SetDevMode(LPDEVMODEW aDevMode);
-
-  void SetupPaperInfoFromSettings();
 
   virtual ~nsDeviceContextSpecWin();
 
-  wchar_t*      mDriverName;
-  wchar_t*      mDeviceName;
+  nsString mDriverName;
+  nsString mDeviceName;
   LPDEVMODEW mDevMode;
 
   nsCOMPtr<nsIPrintSettings> mPrintSettings;
+  int16_t mOutputFormat = nsIPrintSettings::kOutputFormatNative;
+
+#ifdef MOZ_ENABLE_SKIA_PDF
+  void  FinishPrintViaPDF();
+  void  CleanupPrintViaPDF();
+
+  // This variable is independant of nsIPrintSettings::kOutputFormatPDF.
+  // It controls both whether normal printing is done via PDF using Skia and
+  // whether print-to-PDF uses Skia.
+  bool mPrintViaSkPDF;
+  nsCOMPtr<nsIFile> mPDFTempFile;
+  HDC mDC;
+  bool mPrintViaPDFInProgress;
+  mozilla::UniquePtr<PDFViaEMFPrintHelper> mPDFPrintHelper;
+  int mPDFPageCount;
+  int mPDFCurrentPageNum;
+#endif
 };
 
 

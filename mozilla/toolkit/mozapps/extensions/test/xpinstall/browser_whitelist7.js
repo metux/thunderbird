@@ -10,9 +10,9 @@ function test() {
   // Disable direct request whitelisting, installing should be blocked.
   Services.prefs.setBoolPref("xpinstall.whitelist.directRequest", false);
 
-  gBrowser.selectedTab = gBrowser.addTab("about:blank");
+  gBrowser.selectedTab = BrowserTestUtils.addTab(gBrowser, "about:blank");
   BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser).then(() => {
-    gBrowser.loadURI(TESTROOT + "unsigned.xpi");
+    gBrowser.loadURI(TESTROOT + "amosigned.xpi");
   });
 }
 

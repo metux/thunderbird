@@ -4,97 +4,122 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-define(function(require, exports, module) {
+"use strict";
 
-// ReactJS
-const ReactDOM = require("react-dom");
+define(function (require, exports, module) {
+  const { render } = require("devtools/client/shared/vendor/react-dom");
+  const { createFactories } = require("devtools/client/shared/react-utils");
+  const { MainTabbedArea } = createFactories(require("./components/MainTabbedArea"));
+  const TreeViewClass = require("devtools/client/shared/components/tree/TreeView");
 
-// RDP Inspector
-const { createFactories } = require("./components/reps/rep-utils");
-const { MainTabbedArea } = createFactories(require("./components/main-tabbed-area"));
+  const json = document.getElementById("json");
+  const AUTO_EXPAND_MAX_SIZE = 100 * 1024;
+  const AUTO_EXPAND_MAX_LEVEL = 7;
 
-const json = document.getElementById("json");
-const headers = document.getElementById("headers");
+  let prettyURL;
 
-var jsonData;
+  // Application state object.
+  let input = {
+    jsonText: json.textContent,
+    jsonPretty: null,
+    headers: JSONView.headers,
+    tabActive: 0,
+    prettified: false
+  };
 
-try {
-  jsonData = JSON.parse(json.textContent);
-} catch (err) {
-  jsonData = err + "";
-}
+  // Remove BOM.
+  if (input.jsonText.startsWith("\ufeff")) {
+    input.jsonText = input.jsonText.slice(1);
+  }
 
-// Application state object.
-var input = {
-  jsonText: json.textContent,
-  jsonPretty : null,
-  json: jsonData,
-  headers: JSON.parse(headers.textContent),
-  tabActive: 1,
-  prettified: false
-}
+  try {
+    input.json = JSON.parse(input.jsonText);
+  } catch (err) {
+    input.json = err;
+  }
 
-json.remove();
-headers.remove();
+  // Expand the document by default if its size isn't bigger than 100KB.
+  if (!(input.json instanceof Error) && input.jsonText.length <= AUTO_EXPAND_MAX_SIZE) {
+    input.expandedNodes = TreeViewClass.getExpandedNodes(
+      input.json,
+      {maxLevel: AUTO_EXPAND_MAX_LEVEL}
+    );
+  } else {
+    input.expandedNodes = new Set();
+  }
 
-/**
- * Application actions/commands. This list implements all commands
- * available for the JSON viewer.
- */
-input.actions = {
-  onCopyJson: function() {
-    var value = input.prettified ? input.jsonPretty : input.jsonText;
-    postChromeMessage("copy", value);
-  },
+  json.remove();
 
-  onSaveJson: function() {
-    var value = input.prettified ? input.jsonPretty : input.jsonText;
-    postChromeMessage("save", value);
-  },
+  /**
+   * Application actions/commands. This list implements all commands
+   * available for the JSON viewer.
+   */
+  input.actions = {
+    onCopyJson: function () {
+      dispatchEvent("copy", input.prettified ? input.jsonPretty : input.jsonText);
+    },
 
-  onCopyHeaders: function() {
-    postChromeMessage("copy-headers", input.headers);
-  },
-
-  onSearch: function(value) {
-    theApp.setState({searchFilter: value});
-  },
-
-  onPrettify: function(data) {
-    if (input.prettified) {
-      theApp.setState({jsonText: input.jsonText});
-    } else {
-      if (!input.jsonPretty) {
-        input.jsonPretty = JSON.stringify(jsonData, null, "  ");
+    onSaveJson: function () {
+      if (input.prettified && !prettyURL) {
+        prettyURL = URL.createObjectURL(new window.Blob([input.jsonPretty]));
       }
-      theApp.setState({jsonText: input.jsonPretty});
-    }
+      dispatchEvent("save", input.prettified ? prettyURL : null);
+    },
 
-    input.prettified = !input.prettified;
-  },
-}
+    onCopyHeaders: function () {
+      dispatchEvent("copy-headers", input.headers);
+    },
 
-/**
- * Render the main application component. It's the main tab bar displayed
- * at the top of the window. This component also represents ReacJS root.
- */
-var content = document.getElementById("content");
-var theApp = ReactDOM.render(MainTabbedArea(input), content);
+    onSearch: function (value) {
+      theApp.setState({searchFilter: value});
+    },
 
-var onResize = event => {
-  window.document.body.style.height = window.innerHeight + "px";
-  window.document.body.style.width = window.innerWidth + "px";
-}
+    onPrettify: function (data) {
+      if (input.json instanceof Error) {
+        // Cannot prettify invalid JSON
+        return;
+      }
+      if (input.prettified) {
+        theApp.setState({jsonText: input.jsonText});
+      } else {
+        if (!input.jsonPretty) {
+          input.jsonPretty = JSON.stringify(input.json, null, "  ");
+        }
+        theApp.setState({jsonText: input.jsonPretty});
+      }
 
-window.addEventListener("resize", onResize);
-onResize();
+      input.prettified = !input.prettified;
+    },
+  };
 
-// Send notification event to the window. Can be useful for
-// tests as well as extensions.
-var event = new CustomEvent("JSONViewInitialized", {});
-window.jsonViewInitialized = true;
-window.dispatchEvent(event);
+  /**
+   * Helper for dispatching an event. It's handled in chrome scope.
+   *
+   * @param {String} type Event detail type
+   * @param {Object} value Event detail value
+   */
+  function dispatchEvent(type, value) {
+    let data = {
+      detail: {
+        type,
+        value,
+      }
+    };
 
-// End of json-viewer.js
+    let contentMessageEvent = new CustomEvent("contentMessage", data);
+    window.dispatchEvent(contentMessageEvent);
+  }
+
+  /**
+   * Render the main application component. It's the main tab bar displayed
+   * at the top of the window. This component also represents ReacJS root.
+   */
+  let content = document.getElementById("content");
+  let theApp = render(MainTabbedArea(input), content);
+
+  // Send notification event to the window. Can be useful for
+  // tests as well as extensions.
+  let event = new CustomEvent("JSONViewInitialized", {});
+  JSONView.initialized = true;
+  window.dispatchEvent(event);
 });
-

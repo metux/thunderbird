@@ -59,6 +59,9 @@ var test_bookmarks = {
     { title: "Latest Headlines",
       url: "http://en-us.fxfeeds.mozilla.com/en-US/firefox/livebookmarks/",
       feedUrl: "http://en-us.fxfeeds.mozilla.com/en-US/firefox/headlines.xml"
+    },
+    { title: "Latest Headlines No Site",
+      feedUrl: "http://en-us.fxfeeds.mozilla.com/en-US/firefox/headlines.xml"
     }
   ],
   unfiled: [
@@ -73,23 +76,17 @@ var gBookmarksFileOld;
 // Places bookmarks.html file pointer.
 var gBookmarksFileNew;
 
-function run_test()
-{
-  run_next_test();
-}
-
-add_task(function* setup() {
+add_task(async function setup() {
   // Avoid creating smart bookmarks during the test.
   Services.prefs.setIntPref("browser.places.smartBookmarksVersion", -1);
 
   // File pointer to legacy bookmarks file.
-  gBookmarksFileOld = do_get_file("bookmarks.preplaces.html");
+  gBookmarksFileOld = OS.Path.join(do_get_cwd().path, "bookmarks.preplaces.html");
 
   // File pointer to a new Places-exported bookmarks file.
-  gBookmarksFileNew = Services.dirsvc.get("ProfD", Ci.nsILocalFile);
-  gBookmarksFileNew.append("bookmarks.exported.html");
-  if (gBookmarksFileNew.exists()) {
-    gBookmarksFileNew.remove(false);
+  gBookmarksFileNew = OS.Path.join(OS.Constants.Path.profileDir, "bookmarks.exported.html");
+  if (await OS.File.exists(gBookmarksFileNew)) {
+    await OS.File.remove(gBookmarksFileNew);
   }
 
   // This test must be the first one, since it setups the new bookmarks.html.
@@ -97,31 +94,29 @@ add_task(function* setup() {
   // 1. import bookmarks.preplaces.html
   // 2. run the test-suite
   // Note: we do not empty the db before this import to catch bugs like 380999
-  yield BookmarkHTMLUtils.importFromFile(gBookmarksFileOld, true);
-  yield PlacesTestUtils.promiseAsyncUpdates();
-  yield testImportedBookmarks();
+  await BookmarkHTMLUtils.importFromFile(gBookmarksFileOld, true);
+  await PlacesTestUtils.promiseAsyncUpdates();
+  await testImportedBookmarks();
 
-  yield BookmarkHTMLUtils.exportToFile(gBookmarksFileNew);
-  yield PlacesTestUtils.promiseAsyncUpdates();
-  yield PlacesUtils.bookmarks.eraseEverything();
+  await BookmarkHTMLUtils.exportToFile(gBookmarksFileNew);
+  await PlacesTestUtils.promiseAsyncUpdates();
+  await PlacesUtils.bookmarks.eraseEverything();
 });
 
-add_task(function* test_import_new()
-{
+add_task(async function test_import_new() {
   // Test importing a Places bookmarks.html file.
   // 1. import bookmarks.exported.html
   // 2. run the test-suite
-  yield BookmarkHTMLUtils.importFromFile(gBookmarksFileNew, true);
-  yield PlacesTestUtils.promiseAsyncUpdates();
+  await BookmarkHTMLUtils.importFromFile(gBookmarksFileNew, true);
+  await PlacesTestUtils.promiseAsyncUpdates();
 
-  yield testImportedBookmarks();
-  yield PlacesTestUtils.promiseAsyncUpdates();
+  await testImportedBookmarks();
+  await PlacesTestUtils.promiseAsyncUpdates();
 
-  yield PlacesUtils.bookmarks.eraseEverything();
+  await PlacesUtils.bookmarks.eraseEverything();
 });
 
-add_task(function* test_emptytitle_export()
-{
+add_task(async function test_emptytitle_export() {
   // Test exporting and importing with an empty-titled bookmark.
   // 1. import bookmarks
   // 2. create an empty-titled bookmark.
@@ -133,41 +128,40 @@ add_task(function* test_emptytitle_export()
   // 8. export to bookmarks.exported.html
   // 9. empty bookmarks db and continue
 
-  yield BookmarkHTMLUtils.importFromFile(gBookmarksFileNew, true);
-  yield PlacesTestUtils.promiseAsyncUpdates();
+  await BookmarkHTMLUtils.importFromFile(gBookmarksFileNew, true);
+  await PlacesTestUtils.promiseAsyncUpdates();
 
   const NOTITLE_URL = "http://notitle.mozilla.org/";
-  let bookmark = yield PlacesUtils.bookmarks.insert({
+  let bookmark = await PlacesUtils.bookmarks.insert({
     parentGuid: PlacesUtils.bookmarks.unfiledGuid,
     url: NOTITLE_URL
   });
   test_bookmarks.unfiled.push({ title: "", url: NOTITLE_URL });
 
-  yield BookmarkHTMLUtils.exportToFile(gBookmarksFileNew);
-  yield PlacesTestUtils.promiseAsyncUpdates();
-  yield PlacesUtils.bookmarks.eraseEverything();
+  await BookmarkHTMLUtils.exportToFile(gBookmarksFileNew);
+  await PlacesTestUtils.promiseAsyncUpdates();
+  await PlacesUtils.bookmarks.eraseEverything();
 
-  yield BookmarkHTMLUtils.importFromFile(gBookmarksFileNew, true);
-  yield PlacesTestUtils.promiseAsyncUpdates();
-  yield testImportedBookmarks();
+  await BookmarkHTMLUtils.importFromFile(gBookmarksFileNew, true);
+  await PlacesTestUtils.promiseAsyncUpdates();
+  await testImportedBookmarks();
 
   // Cleanup.
   test_bookmarks.unfiled.pop();
   // HTML imports don't restore GUIDs yet.
-  let reimportedBookmark = yield PlacesUtils.bookmarks.fetch({
+  let reimportedBookmark = await PlacesUtils.bookmarks.fetch({
     parentGuid: PlacesUtils.bookmarks.unfiledGuid,
     index: PlacesUtils.bookmarks.DEFAULT_INDEX
   });
   Assert.equal(reimportedBookmark.url.href, bookmark.url.href);
-  yield PlacesUtils.bookmarks.remove(reimportedBookmark);
+  await PlacesUtils.bookmarks.remove(reimportedBookmark);
 
-  yield BookmarkHTMLUtils.exportToFile(gBookmarksFileNew);
-  yield PlacesTestUtils.promiseAsyncUpdates();
-  yield PlacesUtils.bookmarks.eraseEverything();
+  await BookmarkHTMLUtils.exportToFile(gBookmarksFileNew);
+  await PlacesTestUtils.promiseAsyncUpdates();
+  await PlacesUtils.bookmarks.eraseEverything();
 });
 
-add_task(function* test_import_chromefavicon()
-{
+add_task(async function test_import_chromefavicon() {
   // Test exporting and importing with a bookmark pointing to a chrome favicon.
   // 1. import bookmarks
   // 2. create a bookmark pointing to a chrome favicon.
@@ -180,31 +174,31 @@ add_task(function* test_import_chromefavicon()
   // 9. empty bookmarks db and continue
 
   const PAGE_URI = NetUtil.newURI("http://example.com/chromefavicon_page");
-  const CHROME_FAVICON_URI = NetUtil.newURI("chrome://global/skin/icons/information-16.png");
+  const CHROME_FAVICON_URI = NetUtil.newURI("chrome://global/skin/icons/info.svg");
   const CHROME_FAVICON_URI_2 = NetUtil.newURI("chrome://global/skin/icons/error-16.png");
 
   do_print("Importing from html");
-  yield BookmarkHTMLUtils.importFromFile(gBookmarksFileNew, true);
-  yield PlacesTestUtils.promiseAsyncUpdates();
+  await BookmarkHTMLUtils.importFromFile(gBookmarksFileNew, true);
+  await PlacesTestUtils.promiseAsyncUpdates();
 
   do_print("Insert bookmark");
-  let bookmark = yield PlacesUtils.bookmarks.insert({
+  await PlacesUtils.bookmarks.insert({
     parentGuid: PlacesUtils.bookmarks.unfiledGuid,
     url: PAGE_URI,
     title: "Test"
   });
 
   do_print("Set favicon");
-  yield new Promise(resolve => {
+  await new Promise(resolve => {
     PlacesUtils.favicons.setAndFetchFaviconForPage(
       PAGE_URI, CHROME_FAVICON_URI, true,
       PlacesUtils.favicons.FAVICON_LOAD_NON_PRIVATE,
       resolve, Services.scriptSecurityManager.getSystemPrincipal());
   });
 
-  let data = yield new Promise(resolve => {
+  let data = await new Promise(resolve => {
     PlacesUtils.favicons.getFaviconDataForPage(
-      PAGE_URI, (uri, dataLen, data, mimeType) => resolve(data));
+      PAGE_URI, (uri, dataLen, faviconData, mimeType) => resolve(faviconData));
   });
 
   let base64Icon = "data:image/png;base64," +
@@ -214,12 +208,12 @@ add_task(function* test_import_chromefavicon()
     { title: "Test", url: PAGE_URI.spec, icon: base64Icon });
 
   do_print("Export to html");
-  yield BookmarkHTMLUtils.exportToFile(gBookmarksFileNew);
-  yield PlacesTestUtils.promiseAsyncUpdates();
+  await BookmarkHTMLUtils.exportToFile(gBookmarksFileNew);
+  await PlacesTestUtils.promiseAsyncUpdates();
 
   do_print("Set favicon");
   // Change the favicon to check it's really imported again later.
-  yield new Promise(resolve => {
+  await new Promise(resolve => {
     PlacesUtils.favicons.setAndFetchFaviconForPage(
       PAGE_URI, CHROME_FAVICON_URI_2, true,
       PlacesUtils.favicons.FAVICON_LOAD_NON_PRIVATE,
@@ -227,29 +221,28 @@ add_task(function* test_import_chromefavicon()
   });
 
   do_print("import from html");
-  yield PlacesUtils.bookmarks.eraseEverything();
-  yield BookmarkHTMLUtils.importFromFile(gBookmarksFileNew, true);
-  yield PlacesTestUtils.promiseAsyncUpdates();
+  await PlacesUtils.bookmarks.eraseEverything();
+  await BookmarkHTMLUtils.importFromFile(gBookmarksFileNew, true);
+  await PlacesTestUtils.promiseAsyncUpdates();
 
   do_print("Test imported bookmarks");
-  yield testImportedBookmarks();
+  await testImportedBookmarks();
 
   // Cleanup.
   test_bookmarks.unfiled.pop();
   // HTML imports don't restore GUIDs yet.
-  let reimportedBookmark = yield PlacesUtils.bookmarks.fetch({
+  let reimportedBookmark = await PlacesUtils.bookmarks.fetch({
     parentGuid: PlacesUtils.bookmarks.unfiledGuid,
     index: PlacesUtils.bookmarks.DEFAULT_INDEX
   });
-  yield PlacesUtils.bookmarks.remove(reimportedBookmark);
+  await PlacesUtils.bookmarks.remove(reimportedBookmark);
 
-  yield BookmarkHTMLUtils.exportToFile(gBookmarksFileNew);
-  yield PlacesTestUtils.promiseAsyncUpdates();
-  yield PlacesUtils.bookmarks.eraseEverything();
+  await BookmarkHTMLUtils.exportToFile(gBookmarksFileNew);
+  await PlacesTestUtils.promiseAsyncUpdates();
+  await PlacesUtils.bookmarks.eraseEverything();
 });
 
-add_task(function* test_import_ontop()
-{
+add_task(async function test_import_ontop() {
   // Test importing the exported bookmarks.html file *on top of* the existing
   // bookmarks.
   // 1. empty bookmarks db
@@ -258,20 +251,19 @@ add_task(function* test_import_ontop()
   // 3. import the exported bookmarks file
   // 4. run the test-suite
 
-  yield BookmarkHTMLUtils.importFromFile(gBookmarksFileNew, true);
-  yield PlacesTestUtils.promiseAsyncUpdates();
-  yield BookmarkHTMLUtils.exportToFile(gBookmarksFileNew);
-  yield PlacesTestUtils.promiseAsyncUpdates();
+  await BookmarkHTMLUtils.importFromFile(gBookmarksFileNew, true);
+  await PlacesTestUtils.promiseAsyncUpdates();
+  await BookmarkHTMLUtils.exportToFile(gBookmarksFileNew);
+  await PlacesTestUtils.promiseAsyncUpdates();
 
-  yield BookmarkHTMLUtils.importFromFile(gBookmarksFileNew, true);
-  yield PlacesTestUtils.promiseAsyncUpdates();
-  yield testImportedBookmarks();
-  yield PlacesTestUtils.promiseAsyncUpdates();
-  yield PlacesUtils.bookmarks.eraseEverything();
+  await BookmarkHTMLUtils.importFromFile(gBookmarksFileNew, true);
+  await PlacesTestUtils.promiseAsyncUpdates();
+  await testImportedBookmarks();
+  await PlacesTestUtils.promiseAsyncUpdates();
+  await PlacesUtils.bookmarks.eraseEverything();
 });
 
-function* testImportedBookmarks()
-{
+async function testImportedBookmarks() {
   for (let group in test_bookmarks) {
     do_print("[testImportedBookmarks()] Checking group '" + group + "'");
 
@@ -292,19 +284,20 @@ function* testImportedBookmarks()
     do_check_eq(root.childCount, items.length);
 
     for (let key in items) {
-      yield checkItem(items[key], root.getChild(key));
+      await checkItem(items[key], root.getChild(key));
     }
 
     root.containerOpen = false;
   }
 }
 
-function* checkItem(aExpected, aNode)
-{
+function checkItem(aExpected, aNode) {
   let id = aNode.itemId;
 
-  return Task.spawn(function() {
-    for (prop in aExpected) {
+  return (async function() {
+    let bookmark = await PlacesUtils.bookmarks.fetch(aNode.bookmarkGuid);
+
+    for (let prop in aExpected) {
       switch (prop) {
         case "type":
           do_check_eq(aNode.type, aExpected.type);
@@ -318,31 +311,25 @@ function* checkItem(aExpected, aNode)
                       aExpected.description);
           break;
         case "dateAdded":
-          do_check_eq(PlacesUtils.bookmarks.getItemDateAdded(id),
+          do_check_eq(PlacesUtils.toPRTime(bookmark.dateAdded),
                       aExpected.dateAdded);
           break;
         case "lastModified":
-          do_check_eq(PlacesUtils.bookmarks.getItemLastModified(id),
+          do_check_eq(PlacesUtils.toPRTime(bookmark.lastModified),
                       aExpected.lastModified);
           break;
         case "url":
           if (!("feedUrl" in aExpected))
-            do_check_eq(aNode.uri, aExpected.url)
+            do_check_eq(aNode.uri, aExpected.url);
           break;
         case "icon":
-          let deferred = Promise.defer();
-          PlacesUtils.favicons.getFaviconDataForPage(
-            NetUtil.newURI(aExpected.url),
-            function (aURI, aDataLen, aData, aMimeType) {
-              deferred.resolve(aData);
-            });
-          let data = yield deferred.promise;
+          let {data} = await getFaviconDataForPage(aExpected.url);
           let base64Icon = "data:image/png;base64," +
                            base64EncodeString(String.fromCharCode.apply(String, data));
           do_check_true(base64Icon == aExpected.icon);
           break;
         case "keyword": {
-          let entry = yield PlacesUtils.keywords.fetch({ url: aNode.uri });
+          let entry = await PlacesUtils.keywords.fetch({ url: aNode.uri });
           Assert.equal(entry.keyword, aExpected.keyword);
           break;
         }
@@ -352,17 +339,19 @@ function* checkItem(aExpected, aNode)
                       aExpected.sidebar);
           break;
         case "postData": {
-          let entry = yield PlacesUtils.keywords.fetch({ url: aNode.uri });
+          let entry = await PlacesUtils.keywords.fetch({ url: aNode.uri });
           Assert.equal(entry.postData, aExpected.postData);
           break;
         }
         case "charset":
           let testURI = NetUtil.newURI(aNode.uri);
-          do_check_eq((yield PlacesUtils.getCharsetForURI(testURI)), aExpected.charset);
+          do_check_eq((await PlacesUtils.getCharsetForURI(testURI)), aExpected.charset);
           break;
         case "feedUrl":
-          let livemark = yield PlacesUtils.livemarks.getLivemark({ id: id });
-          do_check_eq(livemark.siteURI.spec, aExpected.url);
+          let livemark = await PlacesUtils.livemarks.getLivemark({ id });
+          if (aExpected.url) {
+            do_check_eq(livemark.siteURI.spec, aExpected.url);
+          }
           do_check_eq(livemark.feedURI.spec, aExpected.feedUrl);
           break;
         case "children":
@@ -372,7 +361,7 @@ function* checkItem(aExpected, aNode)
           do_check_eq(folder.childCount, aExpected.children.length);
 
           for (let index = 0; index < aExpected.children.length; index++) {
-            yield checkItem(aExpected.children[index], folder.getChild(index));
+            await checkItem(aExpected.children[index], folder.getChild(index));
           }
 
           folder.containerOpen = false;
@@ -381,5 +370,5 @@ function* checkItem(aExpected, aNode)
           throw new Error("Unknown property");
       }
     }
-  });
+  })();
 }

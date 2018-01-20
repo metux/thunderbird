@@ -22,19 +22,7 @@ var gSMFields = null;
 var gEncryptOptionChanged;
 var gSignOptionChanged;
 
-function onComposerClose()
-{
-  gSMFields = null;
-  setNoEncryptionUI();
-  setNoSignatureUI();
-
-  if (!gMsgCompose || !gMsgCompose.compFields)
-    return;
-
-  gMsgCompose.compFields.securityInfo = null;
-}
-
-function onComposerReOpen()
+function onComposerLoad()
 {
   // Are we already set up ? Or are the required fields missing ?
   if (gSMFields || !gMsgCompose || !gMsgCompose.compFields)
@@ -71,34 +59,25 @@ function onComposerReOpen()
     setNoSignatureUI();
 }
 
-addEventListener("load", smimeComposeOnLoad, false);
+addEventListener("load", smimeComposeOnLoad, {capture: false, once: true});
 
-// this function gets called multiple times,
-// but only on first open, not on composer recycling
+// this function gets called multiple times.
 function smimeComposeOnLoad()
 {
-  removeEventListener("load", smimeComposeOnLoad, false);
-
-  onComposerReOpen();
+  onComposerLoad();
 
   top.controllers.appendController(SecurityController);
 
   addEventListener("compose-from-changed", onComposerFromChanged, true);
   addEventListener("compose-send-message", onComposerSendMessage, true);
-  addEventListener("compose-window-close", onComposerClose, true);
-  addEventListener("compose-window-reopen", onComposerReOpen, true);
 
-  addEventListener("unload", smimeComposeOnUnload, false);
+  addEventListener("unload", smimeComposeOnUnload, {capture: false, once: true});
 }
 
 function smimeComposeOnUnload()
 {
-  removeEventListener("unload", smimeComposeOnUnload, false);
-
   removeEventListener("compose-from-changed", onComposerFromChanged, true);
   removeEventListener("compose-send-message", onComposerSendMessage, true);
-  removeEventListener("compose-window-close", onComposerClose, true);
-  removeEventListener("compose-window-reopen", onComposerReOpen, true);
 
   top.controllers.removeController(SecurityController);
 }

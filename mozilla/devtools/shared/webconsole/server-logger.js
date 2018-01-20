@@ -1,15 +1,13 @@
-/* -*- js-indent-level: 2; indent-tabs-mode: nil -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
+/* vim: set ft= javascript ts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 "use strict";
 
-const {Cu, Ci} = require("chrome");
-const {Class} = require("sdk/core/heritage");
+const {Ci} = require("chrome");
 const Services = require("Services");
-
 const {DebuggerServer} = require("devtools/server/main");
 const DevToolsUtils = require("devtools/shared/DevToolsUtils");
 
@@ -17,7 +15,7 @@ loader.lazyGetter(this, "NetworkHelper", () => require("devtools/shared/webconso
 
 // Helper tracer. Should be generic sharable by other modules (bug 1171927)
 const trace = {
-  log: function() {
+  log: function () {
   }
 };
 
@@ -35,36 +33,32 @@ const acceptableHeaders = ["x-chromelogger-data"];
  *
  * A listeners for "http-on-examine-response" is registered when
  * the listener starts and removed when destroy is executed.
+ *
+ * @param {Object} win (nsIDOMWindow):
+ *        filter network requests by the associated window object.
+ *        If null (i.e. in the browser context) log everything
+ * @param {Object} owner
+ *        The {@WebConsoleActor} instance
  */
-var ServerLoggingListener = Class({
-  /**
-   * Initialization of the listener. The main step during the initialization
-   * process is registering a listener for "http-on-examine-response" event.
-   *
-   * @param {Object} win (nsIDOMWindow):
-   *        filter network requests by the associated window object.
-   *        If null (i.e. in the browser context) log everything
-   * @param {Object} owner
-   *        The {@WebConsoleActor} instance
-   */
-  initialize: function(win, owner) {
-    trace.log("ServerLoggingListener.initialize; ", owner.actorID,
-      ", child process: ", DebuggerServer.isInChildProcess);
+function ServerLoggingListener(win, owner) {
+  trace.log("ServerLoggingListener.initialize; ", owner.actorID,
+    ", child process: ", DebuggerServer.isInChildProcess);
 
-    this.owner = owner;
-    this.window = win;
+  this.owner = owner;
+  this.window = win;
 
-    this.onExamineResponse = this.onExamineResponse.bind(this);
-    this.onExamineHeaders = this.onExamineHeaders.bind(this);
-    this.onParentMessage = this.onParentMessage.bind(this);
+  this.onExamineResponse = this.onExamineResponse.bind(this);
+  this.onExamineHeaders = this.onExamineHeaders.bind(this);
+  this.onParentMessage = this.onParentMessage.bind(this);
 
-    this.attach();
-  },
+  this.attach();
+}
 
+ServerLoggingListener.prototype = {
   /**
    * The destroy is called by the parent WebConsoleActor actor.
    */
-  destroy: function() {
+  destroy: function () {
     trace.log("ServerLoggingListener.destroy; ", this.owner.actorID,
       ", child process: ", DebuggerServer.isInChildProcess);
 
@@ -75,7 +69,7 @@ var ServerLoggingListener = Class({
    * The main responsibility of this method is registering a listener for
    * "http-on-examine-response" events.
    */
-  attach: makeInfallible(function() {
+  attach: makeInfallible(function () {
     trace.log("ServerLoggingListener.attach; child process: ",
       DebuggerServer.isInChildProcess);
 
@@ -87,27 +81,27 @@ var ServerLoggingListener = Class({
       this.attachParentProcess();
     } else {
       Services.obs.addObserver(this.onExamineResponse,
-        "http-on-examine-response", false);
+        "http-on-examine-response");
     }
   }),
 
   /**
    * Remove the "http-on-examine-response" listener.
    */
-  detach: makeInfallible(function() {
+  detach: makeInfallible(function () {
     trace.log("ServerLoggingListener.detach; ", this.owner.actorID);
 
     if (DebuggerServer.isInChildProcess) {
       this.detachParentProcess();
     } else {
       Services.obs.removeObserver(this.onExamineResponse,
-        "http-on-examine-response", false);
+        "http-on-examine-response");
     }
   }),
 
   // Parent Child Relationship
 
-  attachParentProcess: function() {
+  attachParentProcess: function () {
     trace.log("ServerLoggingListener.attachParentProcess;");
 
     this.owner.conn.setupInParent({
@@ -130,7 +124,7 @@ var ServerLoggingListener = Class({
     });
   },
 
-  detachParentProcess: makeInfallible(function() {
+  detachParentProcess: makeInfallible(function () {
     trace.log("ServerLoggingListener.detachParentProcess;");
 
     let mm = this.owner.conn.parentMessageManager;
@@ -143,7 +137,7 @@ var ServerLoggingListener = Class({
     removeMessageListener("debug:server-logger", this.onParentMessage);
   }),
 
-  onParentMessage: makeInfallible(function(msg) {
+  onParentMessage: makeInfallible(function (msg) {
     if (!msg.data) {
       return;
     }
@@ -153,7 +147,8 @@ var ServerLoggingListener = Class({
 
     switch (method) {
       case "examineHeaders":
-        return this.onExamineHeaders(msg);
+        this.onExamineHeaders(msg);
+        break;
       default:
         trace.log("Unknown method name: ", method);
     }
@@ -161,7 +156,7 @@ var ServerLoggingListener = Class({
 
   // HTTP Observer
 
-  onExamineHeaders: function(event) {
+  onExamineHeaders: function (event) {
     let headers = event.data.headers;
 
     trace.log("ServerLoggingListener.onExamineHeaders;", headers);
@@ -187,7 +182,7 @@ var ServerLoggingListener = Class({
     }
   },
 
-  onExamineResponse: makeInfallible(function(subject) {
+  onExamineResponse: makeInfallible(function (subject) {
     let httpChannel = subject.QueryInterface(Ci.nsIHttpChannel);
 
     trace.log("ServerLoggingListener.onExamineResponse; ", httpChannel.name,
@@ -219,12 +214,12 @@ var ServerLoggingListener = Class({
    * instance based on the current filters.
    *
    * @private
-   * @param nsIHttpChannel aChannel
+   * @param nsIHttpChannel channel
    *        Request to check.
    * @return boolean
    *         True if the network request should be logged, false otherwise.
    */
-  _matchRequest: function(aChannel) {
+  _matchRequest: function (channel) {
     trace.log("_matchRequest ", this.window, ", ", this.topFrame);
 
     // Log everything if the window is null (it's null in the browser context)
@@ -234,15 +229,16 @@ var ServerLoggingListener = Class({
 
     // Ignore requests from chrome or add-on code when we are monitoring
     // content.
-    if (!aChannel.loadInfo &&
-        aChannel.loadInfo.loadingDocument === null &&
-        aChannel.loadInfo.loadingPrincipal === Services.scriptSecurityManager.getSystemPrincipal()) {
+    if (!channel.loadInfo &&
+        channel.loadInfo.loadingDocument === null &&
+        channel.loadInfo.loadingPrincipal ===
+        Services.scriptSecurityManager.getSystemPrincipal()) {
       return false;
     }
 
     // Since frames support, this.window may not be the top level content
     // frame, so that we can't only compare with win.top.
-    let win = NetworkHelper.getWindowForRequest(aChannel);
+    let win = NetworkHelper.getWindowForRequest(channel);
     while (win) {
       if (win == this.window) {
         return true;
@@ -263,14 +259,14 @@ var ServerLoggingListener = Class({
    * Learn more about the data structure:
    * https://craig.is/writing/chrome-logger/techspecs
    */
-  parse: function(header, value) {
+  parse: function (header, value) {
     let data;
 
     try {
       let result = decodeURIComponent(escape(atob(value)));
       data = JSON.parse(result);
     } catch (err) {
-      Cu.reportError("Failed to parse HTTP log data! " + err);
+      console.error("Failed to parse HTTP log data! " + err);
       return null;
     }
 
@@ -303,7 +299,7 @@ var ServerLoggingListener = Class({
       // If multiple logs come from the same line only the first log
       // has info about the backtrace. So, remember the last valid
       // location and use it for those that not set.
-      let location = this.parseBacktrace(backtrace);
+      let location = parseBacktrace(backtrace);
       if (location) {
         lastLocation = location;
       } else {
@@ -320,23 +316,7 @@ var ServerLoggingListener = Class({
     return parsedMessage;
   },
 
-  parseBacktrace: function(backtrace) {
-    if (!backtrace) {
-      return null;
-    }
-
-    let result = backtrace.match(/\s*(\d+)$/);
-    if (!result || result.length < 2) {
-      return backtrace;
-    }
-
-    return {
-      url: backtrace.slice(0, -result[0].length),
-      line: result[1]
-    };
-  },
-
-  getColumnMap: function(data) {
+  getColumnMap: function (data) {
     let columnMap = new Map();
     let columnName;
 
@@ -348,7 +328,7 @@ var ServerLoggingListener = Class({
     return columnMap;
   },
 
-  sendMessage: function(msg) {
+  sendMessage: function (msg) {
     trace.log("ServerLoggingListener.sendMessage; message", msg);
 
     let formatted = format(msg);
@@ -391,7 +371,7 @@ var ServerLoggingListener = Class({
 
     this.owner.onServerLogCall(message);
   },
-});
+};
 
 // Helpers
 
@@ -408,7 +388,15 @@ function format(msg) {
   msg.styles = [];
 
   // Remove and get the first log (in which the specifiers are).
-  let firstString = msg.logs.shift();
+  // Note that the first string doesn't have to be specified.
+  // An example of a log on the server side:
+  // ChromePhp::log("server info: ", $_SERVER);
+  // ChromePhp::log($_SERVER);
+  let firstString = "";
+  if (typeof msg.logs[0] == "string") {
+    firstString = msg.logs.shift();
+  }
+
   // All the specifiers present in the first string.
   let splitLogRegExp = /(.*?)(%[oOcsdif]|$)/g;
   let splitLogRegExpRes;
@@ -493,6 +481,22 @@ function format(msg) {
   return msg;
 }
 
+function parseBacktrace(backtrace) {
+  if (!backtrace) {
+    return null;
+  }
+
+  let result = backtrace.match(/^(.+?)\s*:\s*(\d+)$/);
+  if (!result || result.length != 3) {
+    return { url: backtrace };
+  }
+
+  return {
+    url: result[1],
+    line: parseInt(result[2], 10)
+  };
+}
+
 // These helper are cloned from SDK to avoid loading to
 // much SDK modules just because of two functions.
 function getInnerId(win) {
@@ -502,3 +506,4 @@ function getInnerId(win) {
 
 // Exports from this module
 exports.ServerLoggingListener = ServerLoggingListener;
+exports.parseBacktrace = parseBacktrace;

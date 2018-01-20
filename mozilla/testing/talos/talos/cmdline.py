@@ -1,9 +1,12 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
+from __future__ import absolute_import, print_function
 
 import argparse
 import os
+
+from mozlog.commandline import add_logging_group
 
 
 class _StopAction(argparse.Action):
@@ -20,17 +23,17 @@ class _StopAction(argparse.Action):
 class _ListTests(_StopAction):
     def __call__(self, parser, namespace, values, option_string=None):
         from talos import test
-        print 'Available tests:'
-        print '================\n'
+        print('Available tests:')
+        print('================\n')
         test_class_names = [
             (test_class.name(), test_class.description())
             for test_class in test.test_dict().itervalues()
         ]
         test_class_names.sort()
         for name, description in test_class_names:
-            print name
-            print '-'*len(name)
-            print description
+            print(name)
+            print('-'*len(name))
+            print(description)
             print  # Appends a single blank line to the end
         parser.exit()
 
@@ -38,12 +41,12 @@ class _ListTests(_StopAction):
 class _ListSuite(_StopAction):
     def __call__(self, parser, namespace, values, option_string=None):
         from talos.config import suites_conf
-        print 'Available suites:'
+        print('Available suites:')
         conf = suites_conf()
         max_suite_name = max([len(s) for s in conf])
         pattern = " %%-%ds (%%s)" % max_suite_name
         for name in conf:
-            print pattern % (name, ':'.join(conf[name]['tests']))
+            print(pattern % (name, ':'.join(conf[name]['tests'])))
         print
         parser.exit()
 
@@ -65,26 +68,37 @@ def create_parser(mach_interface=False):
             help="List of tests to run, separated by ':' (ex. damp:cart)")
     add_arg('--suite',
             help="Suite to use (instead of --activeTests)")
-    add_arg('--e10s', action='store_true',
-            help="enable e10s")
+    add_arg('--subtests',
+            help="Name of the subtest(s) to run (works only on DAMP)")
     add_arg('--noChrome', action='store_true',
             help="do not run tests as chrome")
-    add_arg('--rss', action='store_true',
-            help="Collect RSS counters from pageloader instead of the"
-                 " operating system")
     add_arg('--mainthread', action='store_true',
             help="Collect mainthread IO data from the browser by setting"
                  " an environment variable")
     add_arg("--mozAfterPaint", action='store_true', dest="tpmozafterpaint",
             help="wait for MozAfterPaint event before recording the time")
-    add_arg('--spsProfile', action="store_true", dest="sps_profile",
-            help="Profile the run and output the results in $MOZ_UPLOAD_DIR")
-    add_arg('--spsProfileInterval', dest='sps_profile_interval', type=int,
+    add_arg("--firstPaint", action='store_true', dest="firstpaint",
+            help="Also report the first paint value in supported tests")
+    add_arg("--userReady", action='store_true', dest="userready",
+            help="Also report the user ready value in supported tests")
+    add_arg('--spsProfile', action="store_true", dest="gecko_profile",
+            help="(Deprecated - Use --geckoProfile instead.) Profile the "
+                 "run and output the results in $MOZ_UPLOAD_DIR.")
+    add_arg('--spsProfileInterval', dest='gecko_profile_interval', type=float,
+            help="(Deprecated - Use --geckoProfileInterval instead.) How "
+                 "frequently to take samples (ms)")
+    add_arg('--spsProfileEntries', dest="gecko_profile_entries", type=int,
+            help="(Deprecated - Use --geckoProfileEntries instead.) How "
+                 "many samples to take with the profiler")
+    add_arg('--geckoProfile', action="store_true", dest="gecko_profile",
+            help="Profile the run and output the results in $MOZ_UPLOAD_DIR.")
+    add_arg('--geckoProfileInterval', dest='gecko_profile_interval', type=float,
             help="How frequently to take samples (ms)")
-    add_arg('--spsProfileEntries', dest="sps_profile_entries", type=int,
+    add_arg('--geckoProfileEntries', dest="gecko_profile_entries", type=int,
             help="How many samples to take with the profiler")
     add_arg('--extension', dest='extensions', action='append',
-            default=['${talos}/talos-powers', '${talos}/pageloader'],
+            default=['${talos}/talos-powers',
+                     '${talos}/pageloader'],
             help="Extension to install while running")
     add_arg('--fast', action='store_true',
             help="Run tp tests as tp_fast")
@@ -100,17 +114,22 @@ def create_parser(mach_interface=False):
                  " Currently used for xperf only.")
     add_arg('--noShutdown', dest='shutdown', action='store_true',
             help="Record time browser takes to shutdown after testing")
-    add_arg('--setPref', action='append', default=[], dest="extraPrefs",
+    add_arg('--setpref', action='append', default=[], dest="extraPrefs",
             metavar="PREF=VALUE",
             help="defines an extra user preference")
+    add_arg('--mitmproxy',
+            help='Test uses mitmproxy to serve the pages, specify the '
+                 'path and name of the mitmdump file to playback')
+    add_arg('--mitmdumpPath',
+            help="Path to mitmproxy's mitmdump playback tool")
+    add_arg("--firstNonBlankPaint", action='store_true', dest="fnbpaint",
+            help="Wait for firstNonBlankPaint event before recording the time")
     add_arg('--webServer', dest='webserver',
             help="DEPRECATED")
     if not mach_interface:
         add_arg('--develop', action='store_true', default=False,
                 help="useful for running tests on a developer machine."
                      " Doesn't upload to the graph servers.")
-    add_arg('--responsiveness', action='store_true',
-            help="turn on responsiveness collection")
     add_arg("--cycles", type=int,
             help="number of browser cycles to run")
     add_arg("--tpmanifest",
@@ -125,6 +144,8 @@ def create_parser(mach_interface=False):
                  ' the manifest')
     add_arg('--tpdelay', type=int,
             help="length of the pageloader delay")
+    add_arg('--no-download', action="store_true", dest="no_download",
+            help="Do not download the talos test pagesets")
     add_arg('--sourcestamp',
             help='Specify the hg revision or sourcestamp for the changeset'
                  ' we are testing.  This will use the value found in'
@@ -133,12 +154,30 @@ def create_parser(mach_interface=False):
             help='Specify the url for the repository we are testing. '
                  'This will use the value found in application.ini if'
                  ' it is not specified.')
+    add_arg('--framework',
+            help='Will post to the specified framework for Perfherder. '
+                 'Default "talos".  Used primarily for experiments on '
+                 'new platforms')
     add_arg('--print-tests', action=_ListTests,
             help="print available tests")
     add_arg('--print-suites', action=_ListSuite,
             help="list available suites")
-    add_arg('--debug', action='store_true',
-            help='show debug information')
+    add_arg('--no-upload-results', action="store_true",
+            dest='no_upload_results',
+            help="If given, it disables uploading of talos results.")
+    add_arg('--enable-stylo', action="store_true",
+            dest='enable_stylo',
+            help='If given, enable Stylo via Environment variables and '
+                 'upload results with Stylo options.')
+    add_arg('--disable-stylo', action="store_true",
+            dest='disable_stylo',
+            help='If given, disable Stylo via Environment variables.')
+    add_arg('--stylo-threads', type=int,
+            dest='stylothreads',
+            help='If given, run Stylo with a certain number of threads')
+    add_arg('--profile', type=str, default=None,
+            help="Downloads a profile from TaskCluster and uses it")
+    add_logging_group(parser)
     return parser
 
 

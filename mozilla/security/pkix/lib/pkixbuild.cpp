@@ -161,9 +161,8 @@ PathBuildingStep::Check(Input potentialIssuerDER,
   // Loop prevention, done as recommended by RFC4158 Section 5.2
   // TODO: this doesn't account for subjectAltNames!
   // TODO(perf): This probably can and should be optimized in some way.
-  bool loopDetected = false;
-  for (const BackCert* prev = potentialIssuer.childCert;
-       !loopDetected && prev != nullptr; prev = prev->childCert) {
+  for (const BackCert* prev = potentialIssuer.childCert; prev;
+       prev = prev->childCert) {
     if (InputsAreEqual(potentialIssuer.GetSubjectPublicKeyInfo(),
                        prev->GetSubjectPublicKeyInfo()) &&
         InputsAreEqual(potentialIssuer.GetSubject(), prev->GetSubject())) {
@@ -244,6 +243,20 @@ PathBuildingStep::Check(Input potentialIssuerDER,
     if (rv != Success) {
       return RecordResult(rv, keepGoing);
     }
+
+    if (subject.endEntityOrCA == EndEntityOrCA::MustBeEndEntity) {
+      const Input* sctExtension = subject.GetSignedCertificateTimestamps();
+      if (sctExtension) {
+        Input sctList;
+        rv = ExtractSignedCertificateTimestampListFromExtension(*sctExtension,
+                                                                sctList);
+        if (rv != Success) {
+          return RecordResult(rv, keepGoing);
+        }
+        trustDomain.NoteAuxiliaryExtension(AuxiliaryExtension::EmbeddedSCTList,
+                                           sctList);
+      }
+    }
   }
 
   return RecordResult(Success, keepGoing);
@@ -298,7 +311,7 @@ BuildForward(TrustDomain& trustDomain,
 
     // This must be done here, after the chain is built but before any
     // revocation checks have been done.
-    return trustDomain.IsChainValid(chain, time);
+    return trustDomain.IsChainValid(chain, time, requiredPolicy);
   }
 
   if (subject.endEntityOrCA == EndEntityOrCA::MustBeCA) {

@@ -29,7 +29,7 @@ var MailUtils =
    */
   discoverFolders: function MailUtils_discoverFolders() {
     let servers = MailServices.accounts.allServers;
-    for (let server in fixIterator(servers, Ci.nsIMsgIncomingServer)) {
+    for (let server of fixIterator(servers, Ci.nsIMsgIncomingServer)) {
       // Bug 466311 Sometimes this can throw file not found, we're unsure
       // why, but catch it and log the fact.
       try {
@@ -50,7 +50,7 @@ var MailUtils =
    * the search result corresponding to a mozeml/wdseml file, we need to figure
    * out the folder using the file's path.
    *
-   * @param aFile the nsILocalFile to convert to a folder
+   * @param aFile the nsIFile to convert to a folder
    * @returns the nsIMsgFolder corresponding to aFile, or null if the folder
    *          isn't found
    */
@@ -58,7 +58,7 @@ var MailUtils =
       function MailUtils_getFolderForFileInProfile(aFile) {
     let folders = MailServices.accounts.allFolders;
 
-    for (let folder in fixIterator(folders, Ci.nsIMsgFolder)) {
+    for (let folder of fixIterator(folders, Ci.nsIMsgFolder)) {
       if (folder.filePath.equals(aFile))
         return folder;
     }
@@ -331,6 +331,8 @@ var MailUtils =
    *
    * @param aPropertyName The name of the property to set.
    * @param aPropertyValue The (string) value of the property to set.
+   *     Alternately, you can pass a function that takes the nsIMsgFolder and
+   *     returns a string value.
    * @param aFolder The parent folder; we set the string property on it and all
    *     of its descendents.
    * @param [aCallback] The optional callback to invoke once we finish our work.
@@ -349,10 +351,12 @@ var MailUtils =
     aFolder.ListDescendants(allFolders);
 
     // - worker function
-    function folder_string_setter_worker() {
-      for (let folder in fixIterator(allFolders, Ci.nsIMsgFolder)) {
+    function* folder_string_setter_worker() {
+      for (let folder of fixIterator(allFolders, Ci.nsIMsgFolder)) {
         // set the property; this may open the database...
-        folder.setStringProperty(aPropertyName, aPropertyValue);
+        let value = (typeof aPropertyValue == "function" ?
+                     aPropertyValue(folder) : aPropertyValue);
+        folder.setStringProperty(aPropertyName, value);
         // force the reference to be forgotten.
         folder.msgDatabase = null;
         yield undefined;
@@ -364,14 +368,17 @@ var MailUtils =
     let timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
     function folder_string_setter_driver() {
       try {
-        worker.next();
+        if (worker.next().done) {
+          timer.cancel();
+          if (aCallback)
+            aCallback(true);
+        }
       }
       catch (ex) {
-        // Any type of exception kills the generator, but only StopIteration
-        // indicates success.
+        // Any type of exception kills the generator.
         timer.cancel();
         if (aCallback)
-          aCallback(ex == StopIteration);
+          aCallback(false);
       }
     }
     // make sure there is at least 100 ms of not us between doing things.

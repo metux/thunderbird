@@ -8,7 +8,7 @@
 #define nsOutlookCompose_h__
 
 #include "nscore.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsIFile.h"
 #include "nsIImportService.h"
 
@@ -44,24 +44,12 @@ private:
   nsresult  ComposeTheMessage(nsMsgDeliverMode mode, CMapiMessage &msg, nsIFile **pMsg);
   nsresult  CopyComposedMessage(nsIFile *pSrc, nsIOutputStream *pDst, CMapiMessage& origMsg);
 
-  // Bug 593907
-  void HackBody(const wchar_t* orig, size_t origLen, nsString& hack);
-  void UnhackBody(nsCString& body);
-  bool GenerateHackSequence(const wchar_t* body, size_t origLen);
-  // End Bug 593907
-
 private:
-  nsIMsgSendListener *  m_pListener;
-  nsIMsgCompFields *    m_pMsgFields;
-  static nsIMsgIdentity *    m_pIdentity;
+  nsCOMPtr<nsIMsgSendListener> m_pListener;
+  nsCOMPtr<nsIMsgCompFields> m_pMsgFields;
+  static nsCOMPtr<nsIMsgIdentity> m_pIdentity;
   char* m_optimizationBuffer;
-  unsigned int m_optimizationBufferSize;
   nsCOMPtr<nsIImportService>  m_pImportService;
-
-  // Bug 593907
-  nsString m_hackedPostfix;
-  // End Bug 593907
 };
-
 
 #endif /* nsOutlookCompose_h__ */

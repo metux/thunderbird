@@ -1,12 +1,12 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef MOZILLA_GFX_COMPOSITOROGL_H
 #define MOZILLA_GFX_COMPOSITOROGL_H
 
-#include "ContextStateTracker.h"
 #include "gfx2DGlue.h"
 #include "GLContextTypes.h"             // for GLContext, etc
 #include "GLDefs.h"                     // for GLuint, LOCAL_GL_TEXTURE_2D, etc
@@ -20,19 +20,18 @@
 #include "mozilla/gfx/MatrixFwd.h"      // for Matrix4x4
 #include "mozilla/gfx/Point.h"          // for IntSize, Point
 #include "mozilla/gfx/Rect.h"           // for Rect, IntRect
+#include "mozilla/gfx/Triangle.h"       // for Triangle
 #include "mozilla/gfx/Types.h"          // for Float, SurfaceFormat, etc
 #include "mozilla/layers/Compositor.h"  // for SurfaceInitMode, Compositor, etc
 #include "mozilla/layers/CompositorTypes.h"  // for MaskType::MaskType::NumMaskTypes, etc
 #include "mozilla/layers/LayersTypes.h"
-#include "nsAutoPtr.h"                  // for nsRefPtr, nsAutoPtr
 #include "nsCOMPtr.h"                   // for already_AddRefed
 #include "nsDebug.h"                    // for NS_ASSERTION, NS_WARNING
 #include "nsISupportsImpl.h"            // for MOZ_COUNT_CTOR, etc
-#include "nsTArray.h"                   // for nsAutoTArray, nsTArray, etc
+#include "nsTArray.h"                   // for AutoTArray, nsTArray, etc
 #include "nsThreadUtils.h"              // for nsRunnable
 #include "nsXULAppAPI.h"                // for XRE_GetProcessType
 #include "nscore.h"                     // for NS_IMETHOD
-#include "gfxVR.h"
 
 class nsIWidget;
 
@@ -48,6 +47,7 @@ class TextureSource;
 struct Effect;
 struct EffectChain;
 class GLBlitTextureImageHelper;
+
 /**
  * Interface for pools of temporary gl textures for the compositor.
  * The textures are fully owned by the pool, so the latter is responsible
@@ -106,73 +106,6 @@ protected:
   RefPtr<gl::GLContext> mGL;
 };
 
-/**
- * Reuse gl textures from a pool of textures that haven't yet been
- * used during the current frame.
- * All the textures that are not used at the end of a frame are
- * deleted.
- * This strategy seems to work well with gralloc textures because destroying
- * unused textures which are bound to gralloc buffers let drivers know that it
- * can unlock the gralloc buffers.
- */
-class PerFrameTexturePoolOGL : public CompositorTexturePoolOGL
-{
-public:
-  explicit PerFrameTexturePoolOGL(gl::GLContext* aGL)
-  : mTextureTarget(0) // zero is never a valid texture target
-  , mGL(aGL)
-  {}
-
-  virtual ~PerFrameTexturePoolOGL()
-  {
-    DestroyTextures();
-  }
-
-  virtual void Clear() override
-  {
-    DestroyTextures();
-  }
-
-  virtual GLuint GetTexture(GLenum aTarget, GLenum aUnit) override;
-
-  virtual void EndFrame() override;
-
-protected:
-  void DestroyTextures();
-
-  GLenum mTextureTarget;
-  RefPtr<gl::GLContext> mGL;
-  nsTArray<GLuint> mCreatedTextures;
-  nsTArray<GLuint> mUnusedTextures;
-};
-
-struct CompositorOGLVRObjects {
-  bool mInitialized;
-
-  gfx::VRHMDConfiguration mConfiguration;
-
-  GLuint mDistortionVertices[2];
-  GLuint mDistortionIndices[2];
-  GLuint mDistortionIndexCount[2];
-
-  GLint mAPosition;
-  GLint mATexCoord0;
-  GLint mATexCoord1;
-  GLint mATexCoord2;
-  GLint mAGenericAttribs;
-
-  // The program here implements distortion rendering for VR devices
-  // (in this case Oculus only).  We'll need to extend this to support
-  // other device types in the future.
-
-  // 0 = TEXTURE_2D, 1 = TEXTURE_RECTANGLE for source
-  GLuint mDistortionProgram[2];
-  GLint mUTexture[2];
-  GLint mUVREyeToSource[2];
-  GLint mUVRDestionatinScaleAndOffset[2];
-  GLint mUHeight[2];
-};
-
 // If you want to make this class not final, first remove calls to virtual
 // methods (Destroy) that are made in the destructor.
 class CompositorOGL final : public Compositor
@@ -184,17 +117,21 @@ class CompositorOGL final : public Compositor
 
   std::map<ShaderConfigOGL, ShaderProgramOGL*> mPrograms;
 public:
-  explicit CompositorOGL(nsIWidget *aWidget, int aSurfaceWidth = -1, int aSurfaceHeight = -1,
+  explicit CompositorOGL(CompositorBridgeParent* aParent,
+                         widget::CompositorWidget* aWidget,
+                         int aSurfaceWidth = -1, int aSurfaceHeight = -1,
                          bool aUseExternalSurfaceSize = false);
 
 protected:
   virtual ~CompositorOGL();
 
 public:
+  virtual CompositorOGL* AsCompositorOGL() override { return this; }
+
   virtual already_AddRefed<DataTextureSource>
   CreateDataTextureSource(TextureFlags aFlags = TextureFlags::NO_FLAGS) override;
 
-  virtual bool Initialize() override;
+  virtual bool Initialize(nsCString* const out_failureReason) override;
 
   virtual void Destroy() override;
 
@@ -204,9 +141,9 @@ public:
       TextureFactoryIdentifier(LayersBackend::LAYERS_OPENGL,
                                XRE_GetProcessType(),
                                GetMaxTextureSize(),
+                               false,
                                mFBOTextureTarget == LOCAL_GL_TEXTURE_2D,
                                SupportsPartialTextureUpdate());
-    result.mSupportedBlendModes += gfx::CompositionOp::OP_SOURCE;
     return result;
   }
 
@@ -222,14 +159,23 @@ public:
   virtual CompositingRenderTarget* GetCurrentRenderTarget() const override;
 
   virtual void DrawQuad(const gfx::Rect& aRect,
-                        const gfx::Rect& aClipRect,
+                        const gfx::IntRect& aClipRect,
                         const EffectChain &aEffectChain,
                         gfx::Float aOpacity,
                         const gfx::Matrix4x4& aTransform,
                         const gfx::Rect& aVisibleRect) override;
 
+  virtual void DrawTriangles(const nsTArray<gfx::TexturedTriangle>& aTriangles,
+                             const gfx::Rect& aRect,
+                             const gfx::IntRect& aClipRect,
+                             const EffectChain& aEffectChain,
+                             gfx::Float aOpacity,
+                             const gfx::Matrix4x4& aTransform,
+                             const gfx::Rect& aVisibleRect) override;
+
+  virtual bool SupportsLayerGeometry() const override;
+
   virtual void EndFrame() override;
-  virtual void EndFrameForExternalComposition(const gfx::Matrix& aTransform) override;
 
   virtual bool SupportsPartialTextureUpdate() override;
 
@@ -266,9 +212,9 @@ public:
   virtual void Pause() override;
   virtual bool Resume() override;
 
-  virtual nsIWidget* GetWidget() const override { return mWidget; }
-
   GLContext* gl() const { return mGLContext; }
+  GLContext* GetGLContext() const override { return mGLContext; }
+
   /**
    * Clear the program state. This must be called
    * before operating on the GLContext directly. */
@@ -282,9 +228,7 @@ public:
 
   /**
    * The compositor provides with temporary textures for use with direct
-   * textruing like gralloc texture.
-   * Doing so lets us use gralloc the way it has been designed to be used
-   * (see https://wiki.mozilla.org/Platform/GFX/Gralloc)
+   * textruing.
    */
   GLuint GetTemporaryTexture(GLenum aTarget, GLenum aUnit);
 
@@ -305,25 +249,19 @@ public:
   }
 
 private:
-  virtual gfx::IntSize GetWidgetSize() const override
-  {
-    return mWidgetSize;
-  }
-
-  bool InitializeVR();
-  void DestroyVR(GLContext *gl);
-
-  void DrawVRDistortion(const gfx::Rect& aRect,
-                        const gfx::Rect& aClipRect,
-                        const EffectChain& aEffectChain,
-                        gfx::Float aOpacity,
-                        const gfx::Matrix4x4& aTransform);
+  template<typename Geometry>
+  void DrawGeometry(const Geometry& aGeometry,
+                    const gfx::Rect& aRect,
+                    const gfx::IntRect& aClipRect,
+                    const EffectChain& aEffectChain,
+                    gfx::Float aOpacity,
+                    const gfx::Matrix4x4& aTransform,
+                    const gfx::Rect& aVisibleRect);
 
   void PrepareViewport(CompositingRenderTargetOGL *aRenderTarget);
 
   /** Widget associated with this compositor */
-  nsIWidget *mWidget;
-  gfx::IntSize mWidgetSize;
+  LayoutDeviceIntSize mWidgetSize;
   RefPtr<GLContext> mGLContext;
   UniquePtr<GLBlitTextureImageHelper> mBlitTextureImageHelper;
   gfx::Matrix4x4 mProjMatrix;
@@ -350,6 +288,12 @@ private:
    */
   GLuint mQuadVBO;
 
+
+  /**
+  * VBO that stores dynamic triangle geometry.
+  */
+  GLuint mTriangleVBO;
+
   bool mHasBGRA;
 
   /**
@@ -373,17 +317,31 @@ private:
    * sets *aClipRectOut to the screen dimensions.
    */
   virtual void BeginFrame(const nsIntRegion& aInvalidRegion,
-                          const gfx::Rect *aClipRectIn,
-                          const gfx::Rect& aRenderBounds,
-                          gfx::Rect *aClipRectOut = nullptr,
-                          gfx::Rect *aRenderBoundsOut = nullptr) override;
+                          const gfx::IntRect *aClipRectIn,
+                          const gfx::IntRect& aRenderBounds,
+                          const nsIntRegion& aOpaqueRegion,
+                          gfx::IntRect *aClipRectOut = nullptr,
+                          gfx::IntRect *aRenderBoundsOut = nullptr) override;
 
   ShaderConfigOGL GetShaderConfigFor(Effect *aEffect,
                                      MaskType aMask = MaskType::MaskNone,
                                      gfx::CompositionOp aOp = gfx::CompositionOp::OP_OVER,
                                      bool aColorMatrix = false,
                                      bool aDEAAEnabled = false) const;
+
   ShaderProgramOGL* GetShaderProgramFor(const ShaderConfigOGL &aConfig);
+
+  void ApplyPrimitiveConfig(ShaderConfigOGL& aConfig,
+                            const gfx::Rect&)
+  {
+    aConfig.SetDynamicGeometry(false);
+  }
+
+  void ApplyPrimitiveConfig(ShaderConfigOGL& aConfig,
+                            const nsTArray<gfx::TexturedTriangle>&)
+  {
+    aConfig.SetDynamicGeometry(true);
+  }
 
   /**
    * Create a FBO backed by a texture.
@@ -394,29 +352,64 @@ private:
    */
   void CreateFBOWithTexture(const gfx::IntRect& aRect, bool aCopyFromSource,
                             GLuint aSourceFrameBuffer,
-                            GLuint *aFBO, GLuint *aTexture);
+                            GLuint *aFBO, GLuint *aTexture,
+                            gfx::IntSize* aAllocSize = nullptr);
+
+  GLuint CreateTexture(const gfx::IntRect& aRect, bool aCopyFromSource,
+                       GLuint aSourceFrameBuffer,
+                       gfx::IntSize* aAllocSize = nullptr);
+
+  gfx::Point3D GetLineCoefficients(const gfx::Point& aPoint1,
+                                   const gfx::Point& aPoint2);
+
+  void ActivateProgram(ShaderProgramOGL *aProg);
+
+  void CleanupResources();
 
   void BindAndDrawQuads(ShaderProgramOGL *aProg,
                         int aQuads,
                         const gfx::Rect* aLayerRect,
                         const gfx::Rect* aTextureRect);
+
   void BindAndDrawQuad(ShaderProgramOGL *aProg,
                        const gfx::Rect& aLayerRect,
-                       const gfx::Rect& aTextureRect = gfx::Rect(0.0f, 0.0f, 1.0f, 1.0f)) {
+                       const gfx::Rect& aTextureRect =
+                         gfx::Rect(0.0f, 0.0f, 1.0f, 1.0f))
+  {
     gfx::Rect layerRects[4];
     gfx::Rect textureRects[4];
     layerRects[0] = aLayerRect;
     textureRects[0] = aTextureRect;
     BindAndDrawQuads(aProg, 1, layerRects, textureRects);
   }
-  void BindAndDrawQuadWithTextureRect(ShaderProgramOGL *aProg,
-                                      const gfx::Rect& aRect,
-                                      const gfx::Rect& aTexCoordRect,
-                                      TextureSource *aTexture);
-  gfx::Point3D GetLineCoefficients(const gfx::Point& aPoint1,
-                                   const gfx::Point& aPoint2);
-  void ActivateProgram(ShaderProgramOGL *aProg);
-  void CleanupResources();
+
+  void BindAndDrawGeometry(ShaderProgramOGL* aProgram,
+                           const gfx::Rect& aRect);
+
+  void BindAndDrawGeometry(ShaderProgramOGL* aProgram,
+                           const nsTArray<gfx::TexturedTriangle>& aTriangles);
+
+  void BindAndDrawGeometryWithTextureRect(ShaderProgramOGL *aProg,
+                                          const gfx::Rect& aRect,
+                                          const gfx::Rect& aTexCoordRect,
+                                          TextureSource *aTexture);
+
+  void BindAndDrawGeometryWithTextureRect(ShaderProgramOGL *aProg,
+                                          const nsTArray<gfx::TexturedTriangle>& aTriangles,
+                                          const gfx::Rect& aTexCoordRect,
+                                          TextureSource *aTexture);
+
+  void InitializeVAO(const GLuint aAttribIndex, const GLint aComponents,
+                     const GLsizei aStride, const size_t aOffset);
+
+  gfx::Rect GetTextureCoordinates(gfx::Rect textureRect,
+                                  TextureSource* aTexture);
+
+  /**
+   * Bind the texture behind the current render target as the backdrop for a
+   * mix-blend shader.
+   */
+  void BindBackdrop(ShaderProgramOGL* aProgram, GLuint aBackdrop, GLenum aTexUnit);
 
   /**
    * Copies the content of our backbuffer to the set transaction target.
@@ -437,8 +430,6 @@ private:
 
   RefPtr<CompositorTexturePoolOGL> mTexturePool;
 
-  ContextStateTrackerOGL mContextStateTracker;
-
   bool mDestroyed;
 
   /**
@@ -448,10 +439,6 @@ private:
   gfx::IntSize mViewportSize;
 
   ShaderProgramOGL *mCurrentProgram;
-
-  gfx::Rect mRenderBound;
-
-  CompositorOGLVRObjects mVR;
 };
 
 } // namespace layers

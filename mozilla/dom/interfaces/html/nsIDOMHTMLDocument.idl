@@ -13,13 +13,13 @@
  */
 interface nsISelection;
 
-[uuid(bd2a0a46-17e4-46ea-9e5d-6a97cf5e3b28)]
+[uuid(cd31e61f-cfc2-4b91-9385-17b6a2d0633d)]
 interface nsIDOMHTMLDocument : nsIDOMDocument
 {
            attribute DOMString            domain;
            attribute DOMString            cookie;
 
-  readonly attribute nsIDOMHTMLHeadElement head;
+  readonly attribute nsISupports          head;
            attribute nsIDOMHTMLElement    body;
 
   readonly attribute nsIDOMHTMLCollection images;
@@ -29,8 +29,6 @@ interface nsIDOMHTMLDocument : nsIDOMDocument
   readonly attribute nsIDOMHTMLCollection links;
   readonly attribute nsIDOMHTMLCollection forms;
   readonly attribute nsIDOMHTMLCollection scripts;
-  nsIDOMNodeList            getElementsByName(in DOMString elementName);
-  nsIDOMNodeList  getItems([optional] in DOMString types);
 
   // If aContentType is not something supported by nsHTMLDocument and
   // the HTML content sink, trying to write to the document will
@@ -53,21 +51,11 @@ interface nsIDOMHTMLDocument : nsIDOMDocument
    */
   attribute DOMString       designMode;
 
-  boolean                   execCommand(in DOMString commandID,
-                                        [optional] in boolean doShowUI,
-                                        [optional] in DOMString value);
-
-  // returns true if the command is enabled (false otherwise)
-  boolean                   queryCommandEnabled(in DOMString commandID);
-  
   // returns true if the command is in a indeterminate state (false otherwise)
   boolean                   queryCommandIndeterm(in DOMString commandID);
 
   // returns true if the command has been executed (false otherwise)
   boolean                   queryCommandState(in DOMString commandID);
-
-  // returns true if the command is supported on the current range
-  boolean                   queryCommandSupported(in DOMString commandID);
 
   // returns the current value of the document or current selection for command
   DOMString                 queryCommandValue(in DOMString commandID);

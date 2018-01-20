@@ -11,10 +11,23 @@
 @import url("chrome://messenger/skin/shared/messenger.css");
 
 :root {
+  --tab-min-height: 30px;
+  --tabs-border-color: rgba(0,0,0,.3);
+  --tab-line-color: #0a84ff;
+
+  --toolbar-non-lwt-bgcolor: #f9f9fa;
+  --toolbar-non-lwt-textcolor: #0c0c0d;
+  --toolbar-non-lwt-bgimage: none;
+  --toolbar-bgcolor: var(--toolbar-non-lwt-bgcolor);
+  --toolbar-bgimage: var(--toolbar-non-lwt-bgimage);
+
+  --toolbarbutton-border-radius: 3px;
+  --toolbarbutton-icon-fill-opacity: .85;
   --toolbarbutton-hover-background: hsla(0, 0%, 100%, .1)
                                     linear-gradient(hsla(0, 0%, 100%, .3),
                                     hsla(0, 0%, 100%, .1)) padding-box;
   --toolbarbutton-hover-bordercolor: hsla(0, 0%, 0%, .2);
+  --toolbarbutton-header-bordercolor: hsla(0, 0%, 0%, .2);
   --toolbarbutton-hover-boxshadow: 0 1px 0 hsla(0, 0%, 100%, .5),
                                    0 1px 0 hsla(0, 0%, 100%, .5) inset;
 
@@ -25,28 +38,42 @@
   --toolbarbutton-active-boxshadow: 0 1px 0 hsla(0, 0%, 100%, .5),
                                     0 1px 0 hsla(0, 0%, 0%, .05) inset,
                                     0 1px 1px hsla(0, 0%, 0%, .2) inset;
+  --toolbarbutton-inactive-bordercolor: rgba(0, 0, 0, 0.1);
+  --toolbarbutton-inactive-boxshadow: 0 1px 0 hsla(0, 0%, 0%, .05) inset;
   --toolbarbutton-checkedhover-backgroundcolor: hsla(0, 0%, 0%, .09);
+  --toolbarbutton-icon-fill-attention: #0a84ff;
+
+  --lwt-header-image: none;
+  --arrowpanel-dimmed: hsla(210, 4%, 10%, .07);
+  --arrowpanel-dimmed-further: hsla(210, 4%, 10%, .12);
 }
 
-#titlebar {
-  -moz-binding: url("chrome://global/content/bindings/general.xml#windowdragbox");
+:root:-moz-window-inactive {
+  --toolbar-bgcolor: -moz-mac-chrome-inactive;
+}
+
+:root:-moz-lwtheme {
+  --toolbar-bgcolor: rgba(255,255,255,.4);
+  --toolbar-bgimage: none;
+
+  --toolbarbutton-icon-fill-opacity: 1;
+}
+
+toolbar[brighttext] {
+  --toolbarbutton-icon-fill-attention: #45a1ff;
+}
+
+#messengerWindow:not([tabsintitlebar]) #titlebar {
   height: 22px;
-  -moz-window-dragging: drag;
 }
 
 @media (-moz-mac-yosemite-theme) {
-  #tabmail {
-    border-top: solid 1px rgba(0, 0, 0, 0.2);
-    border-bottom: solid 1px rgba(0, 0, 0, 0.2);
+  :root:not(:-moz-lwtheme) {
+    --tabs-border-color: rgba(0,0,0,.2);
   }
-
-  #tabmail:-moz-window-inactive {
-    border-top-color: rgba(0, 0, 0, 0.05);
+  :root:not(:-moz-lwtheme):-moz-window-inactive {
+    --tabs-border-color: rgba(0,0,0,.05);
   }
-}
-
-#messengerWindow[tabsintitlebar="true"] #titlebar-content {
-  margin-bottom: 9px;
 }
 
 #messengerWindow:not([tabsintitlebar="true"]) >
@@ -54,6 +81,11 @@
 #messengerWindow[sizemode="fullscreen"]:not([tabsintitlebar="true"]) >
 #titlebar {
   display: none;
+}
+
+#titlebar {
+  /* Centrally align content items vertically */
+  -moz-box-pack: center;
 }
 
 #titlebar:-moz-lwtheme {
@@ -66,7 +98,7 @@
   background: none;
   box-shadow: none;
   border: 1px transparent solid;
-  border-radius: 3px;
+  border-radius: var(--toolbarbutton-border-radius);
   transition-property: background, border-color;
   transition-duration: 250ms;
 }
@@ -77,7 +109,7 @@
   height: 22px;
   padding: 0 4px;
   border: 1px transparent solid;
-  border-radius: 3px;
+  border-radius: var(--toolbarbutton-border-radius);
   transition-property: background, border-color;
   transition-duration: 250ms;
 }
@@ -110,6 +142,14 @@
 .toolbarbutton-1[checked]:not(:active):hover {
   background-color: var(--toolbarbutton-checkedhover-backgroundcolor);
   transition: background-color 250ms;
+}
+
+@media (-moz-mac-yosemite-theme) {
+  .toolbarbutton-1[checked="true"]:-moz-window-inactive {
+    box-shadow: var(--toolbarbutton-inactive-boxshadow);
+    border-color: var(--toolbarbutton-inactive-bordercolor);
+    background: transparent !important;
+  }
 }
 
 .toolbarbutton-1 > .toolbarbutton-menubutton-button {
@@ -148,10 +188,17 @@ toolbox[labelalign="end"] toolbarpaletteitem .toolbarbutton-1[type="menu"] {
 
 .toolbarbutton-1 {
   margin: 4px 2px;
+  -moz-context-properties: fill, fill-opacity;
+  fill: currentColor;
+  fill-opacity: var(--toolbarbutton-icon-fill-opacity);
+}
+
+.toolbarbutton-1,
+.toolbarbutton-menubutton-button {
+  color: inherit;
 }
 
 .toolbarbutton-1:-moz-lwtheme {
-  color: inherit;
   text-shadow: inherit;
 }
 
@@ -180,7 +227,7 @@ toolbox[labelalign="end"] toolbarpaletteitem
 
 toolbox[labelalign="end"] .toolbarbutton-1 .toolbarbutton-text {
   /* !important for overriding toolbarbutton.css */
-  -moz-margin-start: 2px !important;
+  margin-inline-start: 2px !important;
 }
 
 toolbox[labelalign="end"] > toolbar[mode="full"] deck .toolbarbutton-text {
@@ -198,25 +245,13 @@ toolbar:not([mode="icons"]) .toolbarbutton-1 > .toolbarbutton-menubutton-button 
 }
 
 .toolbarbutton-1 .toolbarbutton-icon {
-  width: 18px;
-  height: 18px;
-}
-
-.toolbarbutton-1[disabled=true]:-moz-lwtheme,
-.toolbarbutton-menubutton-button[disabled=true]:-moz-lwtheme {
-  color: inherit !important;
+  padding: 1px;
 }
 
 .toolbarbutton-1[disabled="true"] .toolbarbutton-text,
-.toolbarbutton-1[disabled="true"] .toolbarbutton-icon,
 .toolbarbutton-1[type="menu-button"] > .toolbarbutton-menubutton-button[disabled="true"]
   > .toolbarbutton-icon {
   opacity: .4;
-}
-
-.toolbarbutton-1 > .toolbarbutton-menu-dropmarker,
-.toolbarbutton-1 > .toolbarbutton-menubutton-dropmarker {
-  list-style-image: url(chrome://messenger/skin/icons/toolbarbutton-dropmarker.png) !important;
 }
 
 /* Separator between menu and split type buttons */
@@ -235,48 +270,40 @@ toolbar:not([mode="icons"]) .toolbarbutton-1 > .toolbarbutton-menubutton-button 
   box-shadow: 0 0 0 1px hsla(0, 0%, 100%, .2);
 }
 
-@media (-moz-mac-lion-theme) {
-  .toolbarbutton-1[disabled="true"] > .toolbarbutton-icon,
-  .toolbarbutton-1[type="menu-button"]
-    > .toolbarbutton-menubutton-button[disabled="true"] > .toolbarbutton-icon,
-  .toolbarbutton-1[disabled="true"] > .toolbarbutton-menu-dropmarker,
-  .toolbarbutton-1[disabled="true"] > .toolbarbutton-menubutton-dropmarker
-    > .dropmarker-icon,
-  .toolbarbutton-1:not(:hover):-moz-window-inactive .toolbarbutton-icon,
-  .toolbarbutton-1:not(:hover):-moz-window-inactive
-    > .toolbarbutton-menu-dropmarker,
-  .toolbarbutton-1:not(:hover):-moz-window-inactive
-    > .toolbarbutton-menubutton-dropmarker > .dropmarker-icon {
-    opacity: .5;
-  }
-
-  .toolbarbutton-1:-moz-window-inactive[disabled="true"] > .toolbarbutton-icon,
-  .toolbarbutton-1:-moz-window-inactive[type="menu-button"]
-    > .toolbarbutton-menubutton-button[disabled="true"] > .toolbarbutton-icon {
-    opacity: .25;
-  }
-
-  .toolbarbutton-1 > .toolbarbutton-menu-dropmarker,
-  .toolbarbutton-1 > .toolbarbutton-menubutton-dropmarker {
-    list-style-image: url(chrome://messenger/skin/icons/toolbarbutton-dropmarker-lion.png) !important;
-  }
+.toolbarbutton-1[disabled="true"] > .toolbarbutton-icon,
+.toolbarbutton-1[type="menu-button"]
+  > .toolbarbutton-menubutton-button[disabled="true"] > .toolbarbutton-icon,
+.toolbarbutton-1[disabled="true"] > .toolbarbutton-menu-dropmarker,
+.toolbarbutton-1[disabled="true"] > .toolbarbutton-menubutton-dropmarker
+  > .dropmarker-icon,
+.toolbarbutton-1:not(:hover):-moz-window-inactive .toolbarbutton-icon,
+.toolbarbutton-1:not(:hover):-moz-window-inactive
+  > .toolbarbutton-menu-dropmarker,
+.toolbarbutton-1:not(:hover):-moz-window-inactive
+  > .toolbarbutton-menubutton-dropmarker > .dropmarker-icon {
+  opacity: .5;
 }
 
-@media (min-resolution: 2dppx) {
-  .toolbarbutton-1 > .toolbarbutton-menu-dropmarker,
-  .toolbarbutton-1 > .toolbarbutton-menubutton-dropmarker {
-    list-style-image: url(chrome://messenger/skin/icons/toolbarbutton-dropmarker-lion@2x.png) !important;
-  }
+.toolbarbutton-1:-moz-window-inactive[disabled="true"] > .toolbarbutton-icon,
+.toolbarbutton-1:-moz-window-inactive[type="menu-button"]
+  > .toolbarbutton-menubutton-button[disabled="true"] > .toolbarbutton-icon {
+  opacity: .25;
+}
 
-  .toolbarbutton-menu-dropmarker > .dropmarker-icon,
-  .toolbarbutton-menubutton-dropmarker > .dropmarker-icon {
-    width: 7px;
-    height: 5px;
-  }
+.toolbarbutton-1 > .toolbarbutton-menu-dropmarker,
+.toolbarbutton-1 > .toolbarbutton-menubutton-dropmarker {
+  list-style-image: url(chrome://messenger/skin/icons/toolbarbutton-arrow.svg);
+}
+
+.toolbarbutton-menu-dropmarker > .dropmarker-icon,
+.toolbarbutton-menubutton-dropmarker > .dropmarker-icon {
+  width: 7px;
+  height: 5px;
 }
 
 .toolbarbutton-1 > .toolbarbutton-menu-dropmarker {
   margin-inline-end: 1px;
+  padding-inline-start: 4px;
 }
 
 .toolbarbutton-1 > .toolbarbutton-menubutton-dropmarker {
@@ -301,7 +328,7 @@ toolbar[mode="icons"] .toolbarbutton-1 > menupopup {
 
 @media (min-resolution: 2dppx) {
   #throbber-box[busy="true"] {
-    list-style-image: url("chrome://messenger/skin/icons/loading@2x.png");
+    list-style-image: url("chrome://global/skin/icons/loading@2x.png");
   }
 
   #throbber-box > image {
@@ -317,7 +344,7 @@ toolbar[mode="icons"] .toolbarbutton-1 > menupopup {
 /* ::::: online/offline icons ::::: */
 
 #offline-status {
-  -moz-padding-start: 3px;
+  padding-inline-start: 3px;
 }
 
 @media (min-resolution: 2dppx) {
@@ -366,21 +393,16 @@ tabmail > tabbox {
 }
 
 treechildren::-moz-tree-cell-text {
-  -moz-padding-start: 2px;
+  padding-inline-start: 2px;
 }
 
 /* ::::: Notifications ::::: */
-
-notification[value="addon-install-complete"] {
-  color: black;
-  background-color: #ADB5C3;
-}
 
 notification[value="addon-install-blocked"] > button,
 notification[value="addon-install-failed"] > button,
 notification[value="addon-install-complete"] > button {
   padding: 1px 4px;
-  border-radius: 3px;
+  border-radius: var(--toolbarbutton-border-radius);
   border: 1px solid rgba(60, 73, 97, 0.5);
   box-shadow: inset 0 1px rgba(255, 255, 255, 0.25),
               0 1px rgba(255, 255, 255, 0.25);
@@ -401,62 +423,17 @@ notification[value="addon-install-complete"] > button:active:hover {
   border-color: rgba(60, 73, 97, 0.7);
 }
 
-notification[type="critical"] .messageCloseButton:not(:hover) {
-  -moz-image-region: rect(0, 64px, 16px, 48px);
-}
-
-@media (min-resolution: 2dppx) {
-  notification[type="critical"] .messageCloseButton:not(:hover) {
-    -moz-image-region: rect(0, 128px, 32px, 96px);
-  }
-}
-
 /* ::::: Tabs in Titlebar :::::: */
+
+#messengerWindow[tabsintitlebar="true"] > #titlebar {
+  min-height: 30px;
+}
 
 #messengerWindow[tabsintitlebar="true"]:not(:-moz-lwtheme) > #titlebar {
   -moz-appearance: -moz-window-titlebar;
 }
 
-/* We modify the .tabs-alltabs-button to make it seem like a titlebar button */
-#messengerWindow[tabsintitlebar="true"]:not([sizemode="fullscreen"]) >
-  #navigation-toolbox > #tabs-toolbar  > .tabs-alltabs-button {
-  margin-bottom: 8px;
-  opacity: .8;
-}
-
-#messengerWindow[tabsintitlebar="true"]:not([sizemode="fullscreen"]) >
-  #navigation-toolbox > #tabs-toolbar  > .tabs-alltabs-button:hover {
-  opacity: 1;
-}
-
-#messengerWindow[tabsintitlebar="true"]:not([sizemode="fullscreen"]):-moz-window-inactive >
-  #navigation-toolbox > #tabs-toolbar  > .tabs-alltabs-button {
-  opacity: .5;
-}
-
-#messengerWindow:not([tabsintitlebar]) #titlebar-buttonbox-container {
-  margin-top: 3px;
-  -moz-margin-start: 7px;
-}
-
-#messengerWindow[tabsintitlebar="true"] #titlebar-buttonbox-container,
-#messengerWindow[tabsintitlebar="true"] #titlebar-fullscreen-button {
-  position: relative;
-  margin-top: 11px;
-  margin-bottom: 3px;
-  padding-bottom: 0px;
-}
-
-@media (-moz-mac-yosemite-theme) {
-  #messengerWindow[tabsintitlebar="true"][sizemode="fullscreen"] #titlebar-buttonbox-container,
-  #messengerWindow[tabsintitlebar="true"][sizemode="fullscreen"] #titlebar-fullscreen-button {
-    margin-top: 0px;
-    margin-bottom: 0px;
-    padding-bottom: 14px;
-  }
-}
-
-#messengerWindow[tabsintitlebar="true"] #titlebar-spacer {
+#titlebar-spacer {
   pointer-events: none;
 }
 
@@ -464,36 +441,26 @@ notification[type="critical"] .messageCloseButton:not(:hover) {
   visibility: collapse;
 }
 
-/* NB: these would be -moz-margin-start/end if it wasn't for the fact that OS X
+/* NB: these would be margin-inline-start/end if it wasn't for the fact that OS X
  * doesn't reverse the order of the items in the titlebar in RTL mode. */
-#messengerWindow[tabsintitlebar="true"] .titlebar-placeholder[type="caption-buttons"],
-#messengerWindow[tabsintitlebar="true"] #titlebar-buttonbox {
+.titlebar-placeholder[type="caption-buttons"],
+#titlebar-buttonbox {
+  margin-right: 7px;
   margin-left: 7px;
 }
 
-@media (-moz-mac-lion-theme) {
-  #messengerWindow[tabsintitlebar="true"] .titlebar-placeholder[type="fullscreen-button"] {
-    margin-right: 7px;
-  }
+.titlebar-placeholder[type="fullscreen-button"],
+#titlebar-fullscreen-button {
+  margin-right: 7px;
+  margin-left: 7px;
+}
 
-  #titlebar-fullscreen-button {
-    -moz-appearance: -moz-mac-fullscreen-button;
-    margin-right: 7px;
-  }
+#titlebar-fullscreen-button {
+  -moz-appearance: -moz-mac-fullscreen-button;
 }
 
 #titlebar-buttonbox {
   -moz-appearance: -moz-window-button-box;
-}
-
-/* Because these buttons don't move, they should always be aligned the same,
- * left and right were deprecated, so we have to do work to get it to mean that: */
-#titlebar-buttonbox-container:-moz-locale-dir(ltr) {
-  -moz-box-align: start;
-}
-
-#titlebar-buttonbox-container:-moz-locale-dir(rtl) {
-  -moz-box-align: end;
 }
 
 /* Fullscreen and caption buttons don't move with RTL on OS X so override the automatic ordering. */
@@ -516,13 +483,44 @@ notification[type="critical"] .messageCloseButton:not(:hover) {
   display: none;
 }
 
+button[type="menu-button"] {
+  margin-right: 6px;
+  margin-left: 6px;
+}
+
 button[type="menu-button"] > button {
   margin-top: -1px;
   margin-bottom: -3px;
-  -moz-margin-start: -7px;
-  -moz-margin-end: 0;
+  margin-inline-start: -7px;
+  margin-inline-end: 0;
 }
 
 button[type="menu-button"] > dropmarker {
-  -moz-margin-end: -2px;
+  margin-inline-end: -2px;
+}
+
+/* Status panel */
+
+.statuspanel-label {
+  margin: 0;
+  padding: 2px 4px;
+  background-color: #f9f9fa;
+  border: 1px none #ddd;
+  border-top-style: solid;
+  color: #444;
+  text-shadow: none;
+}
+
+.statuspanel-label:-moz-locale-dir(ltr):not([mirror]),
+.statuspanel-label:-moz-locale-dir(rtl)[mirror] {
+  border-right-style: solid;
+  border-top-right-radius: .3em;
+  margin-right: 1em;
+}
+
+.statuspanel-label:-moz-locale-dir(rtl):not([mirror]),
+.statuspanel-label:-moz-locale-dir(ltr)[mirror] {
+  border-left-style: solid;
+  border-top-left-radius: .3em;
+  margin-left: 1em;
 }

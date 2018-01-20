@@ -49,17 +49,21 @@
 
 #include "mozilla/Atomics.h"
 #include "mozilla/FloatingPoint.h"
+#include "mozilla/Maybe.h"
+#include "mozilla/ScopeExit.h"
+#include "mozilla/Unused.h"
 
 #include "jsapi.h"
 #include "jsfriendapi.h"
+#include "jsnum.h"
 
-#include "asmjs/AsmJSModule.h"
 #include "jit/AtomicOperations.h"
 #include "jit/InlinableNatives.h"
 #include "js/Class.h"
 #include "vm/GlobalObject.h"
 #include "vm/Time.h"
 #include "vm/TypedArrayObject.h"
+#include "wasm/WasmInstance.h"
 
 #include "jsobjinlines.h"
 
@@ -73,14 +77,23 @@ const Class AtomicsObject::class_ = {
 static bool
 ReportBadArrayType(JSContext* cx)
 {
-    JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_ATOMICS_BAD_ARRAY);
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_ATOMICS_BAD_ARRAY);
     return false;
 }
 
 static bool
 ReportOutOfRange(JSContext* cx)
 {
-    JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_ATOMICS_BAD_INDEX);
+    // Use JSMSG_BAD_INDEX here, it is what ToIndex uses for some cases that it
+    // reports directly.
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_BAD_INDEX);
+    return false;
+}
+
+static bool
+ReportCannotWait(JSContext* cx)
+{
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_ATOMICS_WAIT_NOT_ALLOWED);
     return false;
 }
 
@@ -101,22 +114,12 @@ GetSharedTypedArray(JSContext* cx, HandleValue v,
 static bool
 GetTypedArrayIndex(JSContext* cx, HandleValue v, Handle<TypedArrayObject*> view, uint32_t* offset)
 {
-    RootedId id(cx);
-    if (!ValueToId<CanGC>(cx, v, &id))
-        return false;
     uint64_t index;
-    if (!IsTypedArrayIndex(id, &index) || index >= view->length())
+    if (!ToIndex(cx, v, &index))
+        return false;
+    if (index >= view->length())
         return ReportOutOfRange(cx);
-    *offset = (uint32_t)index;
-    return true;
-}
-
-bool
-js::atomics_fence(JSContext* cx, unsigned argc, Value* vp)
-{
-    CallArgs args = CallArgsFromVp(argc, vp);
-    jit::AtomicOperations::fenceSeqCst();
-    args.rval().setUndefined();
+    *offset = uint32_t(index);
     return true;
 }
 
@@ -336,18 +339,20 @@ ExchangeOrStore(JSContext* cx, unsigned argc, Value* vp)
     uint32_t offset;
     if (!GetTypedArrayIndex(cx, idxv, view, &offset))
         return false;
-    int32_t numberValue;
-    if (!ToInt32(cx, valv, &numberValue))
+    double integerValue;
+    if (!ToInteger(cx, valv, &integerValue))
         return false;
 
     bool badType = false;
-    int32_t result = ExchangeOrStore<op>(view->type(), numberValue, view->viewDataShared(), offset,
-                                         &badType);
+    int32_t result = ExchangeOrStore<op>(view->type(), JS::ToInt32(integerValue),
+                                         view->viewDataShared(), offset, &badType);
 
     if (badType)
         return ReportBadArrayType(cx);
 
-    if (view->type() == Scalar::Uint32)
+    if (op == DoStore)
+        r.setNumber(integerValue);
+    else if (view->type() == Scalar::Uint32)
         r.setNumber((double)(uint32_t)result);
     else
         r.setInt32(result);
@@ -501,11 +506,19 @@ js::atomics_isLockFree(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     HandleValue v = args.get(0);
-    if (!v.isInt32()) {
-        args.rval().setBoolean(false);
-        return true;
+    int32_t size;
+    if (v.isInt32()) {
+        size = v.toInt32();
+    } else {
+        double dsize;
+        if (!ToInteger(cx, v, &dsize))
+            return false;
+        if (!mozilla::NumberIsInt32(dsize, &size)) {
+            args.rval().setBoolean(false);
+            return true;
+        }
     }
-    args.rval().setBoolean(jit::AtomicOperations::isLockfree(v.toInt32()));
+    args.rval().setBoolean(jit::AtomicOperations::isLockfreeJS(size));
     return true;
 }
 
@@ -519,23 +532,15 @@ js::atomics_isLockFree(JSContext* cx, unsigned argc, Value* vp)
 // simulator build with ARMHWCAP=vfp set.  Do not set any other flags; other
 // vfp/neon flags force ARMv7 to be set.
 
-static void
-GetCurrentAsmJSHeap(SharedMem<void*>* heap, size_t* length)
-{
-    JSRuntime* rt = js::TlsPerThreadData.get()->runtimeFromMainThread();
-    AsmJSModule& mod = rt->asmJSActivationStack()->module();
-    *heap = mod.maybeHeap().cast<void*>();
-    *length = mod.heapLength();
-}
-
 int32_t
-js::atomics_add_asm_callout(int32_t vt, int32_t offset, int32_t value)
+js::atomics_add_asm_callout(wasm::Instance* instance, int32_t vt, int32_t offset, int32_t value)
 {
-    SharedMem<void*> heap;
-    size_t heapLength;
-    GetCurrentAsmJSHeap(&heap, &heapLength);
+    SharedMem<void*> heap = instance->memoryBase().cast<void*>();
+    size_t heapLength = instance->memoryLength();
+
     if (size_t(offset) >= heapLength)
         return 0;
+
     switch (Scalar::Type(vt)) {
       case Scalar::Int8:
         return PerformAdd::operate(heap.cast<int8_t*>() + offset, value);
@@ -551,13 +556,14 @@ js::atomics_add_asm_callout(int32_t vt, int32_t offset, int32_t value)
 }
 
 int32_t
-js::atomics_sub_asm_callout(int32_t vt, int32_t offset, int32_t value)
+js::atomics_sub_asm_callout(wasm::Instance* instance, int32_t vt, int32_t offset, int32_t value)
 {
-    SharedMem<void*> heap;
-    size_t heapLength;
-    GetCurrentAsmJSHeap(&heap, &heapLength);
+    SharedMem<void*> heap = instance->memoryBase().cast<void*>();
+    size_t heapLength = instance->memoryLength();
+
     if (size_t(offset) >= heapLength)
         return 0;
+
     switch (Scalar::Type(vt)) {
       case Scalar::Int8:
         return PerformSub::operate(heap.cast<int8_t*>() + offset, value);
@@ -573,13 +579,14 @@ js::atomics_sub_asm_callout(int32_t vt, int32_t offset, int32_t value)
 }
 
 int32_t
-js::atomics_and_asm_callout(int32_t vt, int32_t offset, int32_t value)
+js::atomics_and_asm_callout(wasm::Instance* instance, int32_t vt, int32_t offset, int32_t value)
 {
-    SharedMem<void*> heap;
-    size_t heapLength;
-    GetCurrentAsmJSHeap(&heap, &heapLength);
+    SharedMem<void*> heap = instance->memoryBase().cast<void*>();
+    size_t heapLength = instance->memoryLength();
+
     if (size_t(offset) >= heapLength)
         return 0;
+
     switch (Scalar::Type(vt)) {
       case Scalar::Int8:
         return PerformAnd::operate(heap.cast<int8_t*>() + offset, value);
@@ -595,13 +602,14 @@ js::atomics_and_asm_callout(int32_t vt, int32_t offset, int32_t value)
 }
 
 int32_t
-js::atomics_or_asm_callout(int32_t vt, int32_t offset, int32_t value)
+js::atomics_or_asm_callout(wasm::Instance* instance, int32_t vt, int32_t offset, int32_t value)
 {
-    SharedMem<void*> heap;
-    size_t heapLength;
-    GetCurrentAsmJSHeap(&heap, &heapLength);
+    SharedMem<void*> heap = instance->memoryBase().cast<void*>();
+    size_t heapLength = instance->memoryLength();
+
     if (size_t(offset) >= heapLength)
         return 0;
+
     switch (Scalar::Type(vt)) {
       case Scalar::Int8:
         return PerformOr::operate(heap.cast<int8_t*>() + offset, value);
@@ -617,13 +625,14 @@ js::atomics_or_asm_callout(int32_t vt, int32_t offset, int32_t value)
 }
 
 int32_t
-js::atomics_xor_asm_callout(int32_t vt, int32_t offset, int32_t value)
+js::atomics_xor_asm_callout(wasm::Instance* instance, int32_t vt, int32_t offset, int32_t value)
 {
-    SharedMem<void*> heap;
-    size_t heapLength;
-    GetCurrentAsmJSHeap(&heap, &heapLength);
+    SharedMem<void*> heap = instance->memoryBase().cast<void*>();
+    size_t heapLength = instance->memoryLength();
+
     if (size_t(offset) >= heapLength)
         return 0;
+
     switch (Scalar::Type(vt)) {
       case Scalar::Int8:
         return PerformXor::operate(heap.cast<int8_t*>() + offset, value);
@@ -639,13 +648,14 @@ js::atomics_xor_asm_callout(int32_t vt, int32_t offset, int32_t value)
 }
 
 int32_t
-js::atomics_xchg_asm_callout(int32_t vt, int32_t offset, int32_t value)
+js::atomics_xchg_asm_callout(wasm::Instance* instance, int32_t vt, int32_t offset, int32_t value)
 {
-    SharedMem<void*> heap;
-    size_t heapLength;
-    GetCurrentAsmJSHeap(&heap, &heapLength);
+    SharedMem<void*> heap = instance->memoryBase().cast<void*>();
+    size_t heapLength = instance->memoryLength();
+
     if (size_t(offset) >= heapLength)
         return 0;
+
     switch (Scalar::Type(vt)) {
       case Scalar::Int8:
         return ExchangeOrStore<DoExchange>(Scalar::Int8, value, heap, offset);
@@ -661,13 +671,14 @@ js::atomics_xchg_asm_callout(int32_t vt, int32_t offset, int32_t value)
 }
 
 int32_t
-js::atomics_cmpxchg_asm_callout(int32_t vt, int32_t offset, int32_t oldval, int32_t newval)
+js::atomics_cmpxchg_asm_callout(wasm::Instance* instance, int32_t vt, int32_t offset, int32_t oldval, int32_t newval)
 {
-    SharedMem<void*> heap;
-    size_t heapLength;
-    GetCurrentAsmJSHeap(&heap, &heapLength);
+    SharedMem<void*> heap = instance->memoryBase().cast<void*>();
+    size_t heapLength = instance->memoryLength();
+
     if (size_t(offset) >= heapLength)
         return 0;
+
     switch (Scalar::Type(vt)) {
       case Scalar::Int8:
         return CompareExchange(Scalar::Int8, oldval, newval, heap, offset);
@@ -688,7 +699,7 @@ namespace js {
 //
 // The type is declared opaque in SharedArrayObject.h.  Instances of
 // js::FutexWaiter are stack-allocated and linked onto a list across a
-// call to FutexRuntime::wait().
+// call to FutexThread::wait().
 //
 // The 'waiters' field of the SharedArrayRawBuffer points to the highest
 // priority waiter in the list, and lower priority nodes are linked through
@@ -700,46 +711,43 @@ namespace js {
 class FutexWaiter
 {
   public:
-    FutexWaiter(uint32_t offset, JSRuntime* rt)
+    FutexWaiter(uint32_t offset, JSContext* cx)
       : offset(offset),
-        rt(rt),
+        cx(cx),
         lower_pri(nullptr),
         back(nullptr)
     {
     }
 
     uint32_t    offset;                 // int32 element index within the SharedArrayBuffer
-    JSRuntime*  rt;                    // The runtime of the waiter
+    JSContext* cx;                      // The waiting thread
     FutexWaiter* lower_pri;             // Lower priority nodes in circular doubly-linked list of waiters
     FutexWaiter* back;                  // Other direction
 };
 
 class AutoLockFutexAPI
 {
+    // We have to wrap this in a Maybe because of the way loading
+    // mozilla::Atomic pointers works.
+    mozilla::Maybe<js::UniqueLock<js::Mutex>> unique_;
+
   public:
     AutoLockFutexAPI() {
-        FutexRuntime::lock();
+        js::Mutex* lock = FutexThread::lock_;
+        unique_.emplace(*lock);
     }
-    ~AutoLockFutexAPI() {
-        FutexRuntime::unlock();
-    }
-};
 
-class AutoUnlockFutexAPI
-{
-  public:
-    AutoUnlockFutexAPI() {
-        FutexRuntime::unlock();
+    ~AutoLockFutexAPI() {
+        unique_.reset();
     }
-    ~AutoUnlockFutexAPI() {
-        FutexRuntime::lock();
-    }
+
+    js::UniqueLock<js::Mutex>& unique() { return *unique_; }
 };
 
 } // namespace js
 
 bool
-js::atomics_futexWait(JSContext* cx, unsigned argc, Value* vp)
+js::atomics_wait(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     HandleValue objv = args.get(0);
@@ -747,8 +755,6 @@ js::atomics_futexWait(JSContext* cx, unsigned argc, Value* vp)
     HandleValue valv = args.get(2);
     HandleValue timeoutv = args.get(3);
     MutableHandleValue r = args.rval();
-
-    JSRuntime* rt = cx->runtime();
 
     Rooted<TypedArrayObject*> view(cx, nullptr);
     if (!GetSharedTypedArray(cx, objv, &view))
@@ -761,32 +767,36 @@ js::atomics_futexWait(JSContext* cx, unsigned argc, Value* vp)
     int32_t value;
     if (!ToInt32(cx, valv, &value))
         return false;
-    double timeout_ms;
-    if (timeoutv.isUndefined()) {
-        timeout_ms = mozilla::PositiveInfinity<double>();
-    } else {
+    mozilla::Maybe<mozilla::TimeDuration> timeout;
+    if (!timeoutv.isUndefined()) {
+        double timeout_ms;
         if (!ToNumber(cx, timeoutv, &timeout_ms))
             return false;
-        if (mozilla::IsNaN(timeout_ms))
-            timeout_ms = mozilla::PositiveInfinity<double>();
-        else if (timeout_ms < 0)
-            timeout_ms = 0;
+        if (!mozilla::IsNaN(timeout_ms)) {
+            if (timeout_ms < 0)
+                timeout = mozilla::Some(mozilla::TimeDuration::FromSeconds(0.0));
+            else if (!mozilla::IsInfinite(timeout_ms))
+                timeout = mozilla::Some(mozilla::TimeDuration::FromMilliseconds(timeout_ms));
+        }
     }
+
+    if (!cx->fx.canWait())
+        return ReportCannotWait(cx);
 
     // This lock also protects the "waiters" field on SharedArrayRawBuffer,
     // and it provides the necessary memory fence.
     AutoLockFutexAPI lock;
 
-    SharedMem<int32_t*>(addr) = view->viewDataShared().cast<int32_t*>() + offset;
+    SharedMem<int32_t*> addr = view->viewDataShared().cast<int32_t*>() + offset;
     if (jit::AtomicOperations::loadSafeWhenRacy(addr) != value) {
-        r.setInt32(AtomicsObject::FutexNotequal);
+        r.setString(cx->names().futexNotEqual);
         return true;
     }
 
     Rooted<SharedArrayBufferObject*> sab(cx, view->bufferShared());
     SharedArrayRawBuffer* sarb = sab->rawBufferObject();
 
-    FutexWaiter w(offset, rt);
+    FutexWaiter w(offset, cx);
     if (FutexWaiter* waiters = sarb->waiters()) {
         w.lower_pri = waiters;
         w.back = waiters->back;
@@ -797,10 +807,18 @@ js::atomics_futexWait(JSContext* cx, unsigned argc, Value* vp)
         sarb->setWaiters(&w);
     }
 
-    AtomicsObject::FutexWaitResult result = AtomicsObject::FutexOK;
-    bool retval = rt->fx.wait(cx, timeout_ms, &result);
-    if (retval)
-        r.setInt32(result);
+    FutexThread::WaitResult result = FutexThread::FutexOK;
+    bool retval = cx->fx.wait(cx, lock.unique(), timeout, &result);
+    if (retval) {
+        switch (result) {
+          case FutexThread::FutexOK:
+            r.setString(cx->names().futexOK);
+            break;
+          case FutexThread::FutexTimedOut:
+            r.setString(cx->names().futexTimedOut);
+            break;
+        }
+    }
 
     if (w.lower_pri == &w) {
         sarb->setWaiters(nullptr);
@@ -814,7 +832,7 @@ js::atomics_futexWait(JSContext* cx, unsigned argc, Value* vp)
 }
 
 bool
-js::atomics_futexWake(JSContext* cx, unsigned argc, Value* vp)
+js::atomics_wake(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     HandleValue objv = args.get(0);
@@ -831,10 +849,14 @@ js::atomics_futexWake(JSContext* cx, unsigned argc, Value* vp)
     if (!GetTypedArrayIndex(cx, idxv, view, &offset))
         return false;
     double count;
-    if (!ToInteger(cx, countv, &count))
-        return false;
-    if (count < 0)
-        count = 0;
+    if (countv.isUndefined()) {
+        count = mozilla::PositiveInfinity<double>();
+    } else {
+        if (!ToInteger(cx, countv, &count))
+            return false;
+        if (count < 0.0)
+            count = 0.0;
+    }
 
     AutoLockFutexAPI lock;
 
@@ -848,9 +870,9 @@ js::atomics_futexWake(JSContext* cx, unsigned argc, Value* vp)
         do {
             FutexWaiter* c = iter;
             iter = iter->lower_pri;
-            if (c->offset != offset || !c->rt->fx.isWaiting())
+            if (c->offset != offset || !c->cx->fx.isWaiting())
                 continue;
-            c->rt->fx.wake(FutexRuntime::WakeExplicit);
+            c->cx->fx.wake(FutexThread::WakeExplicit);
             ++woken;
             --count;
         } while (count > 0 && iter != waiters);
@@ -860,264 +882,146 @@ js::atomics_futexWake(JSContext* cx, unsigned argc, Value* vp)
     return true;
 }
 
-bool
-js::atomics_futexWakeOrRequeue(JSContext* cx, unsigned argc, Value* vp)
-{
-    CallArgs args = CallArgsFromVp(argc, vp);
-    HandleValue objv = args.get(0);
-    HandleValue idx1v = args.get(1);
-    HandleValue countv = args.get(2);
-    HandleValue valv = args.get(3);
-    HandleValue idx2v = args.get(4);
-    MutableHandleValue r = args.rval();
-
-    Rooted<TypedArrayObject*> view(cx, nullptr);
-    if (!GetSharedTypedArray(cx, objv, &view))
-        return false;
-    if (view->type() != Scalar::Int32)
-        return ReportBadArrayType(cx);
-    uint32_t offset1;
-    if (!GetTypedArrayIndex(cx, idx1v, view, &offset1))
-        return false;
-    double count;
-    if (!ToInteger(cx, countv, &count))
-        return false;
-    if (count < 0)
-        count = 0;
-    int32_t value;
-    if (!ToInt32(cx, valv, &value))
-        return false;
-    uint32_t offset2;
-    if (!GetTypedArrayIndex(cx, idx2v, view, &offset2))
-        return false;
-
-    AutoLockFutexAPI lock;
-
-    SharedMem<int32_t*> addr = view->viewDataShared().cast<int32_t*>() + offset1;
-    if (jit::AtomicOperations::loadSafeWhenRacy(addr) != value) {
-        r.setInt32(AtomicsObject::FutexNotequal);
-        return true;
-    }
-
-    Rooted<SharedArrayBufferObject*> sab(cx, view->bufferShared());
-    SharedArrayRawBuffer* sarb = sab->rawBufferObject();
-
-    // Walk the list of waiters looking for those waiting on offset1.
-    // Wake some and requeue the others.  There may already be other
-    // waiters on offset2, so those that are requeued must be moved to
-    // the back of the list.  Offset1 may equal offset2.  The list's
-    // first node may change, and the list may be emptied out by the
-    // operation.
-
-    FutexWaiter* waiters = sarb->waiters();
-    if (!waiters) {
-        r.setInt32(0);
-        return true;
-    }
-
-    int32_t woken = 0;
-    FutexWaiter whead((uint32_t)-1, nullptr); // Header node for waiters
-    FutexWaiter* first = waiters;
-    FutexWaiter* last = waiters->back;
-    whead.lower_pri = first;
-    whead.back = last;
-    first->back = &whead;
-    last->lower_pri = &whead;
-
-    FutexWaiter rhead((uint32_t)-1, nullptr); // Header node for requeued
-    rhead.lower_pri = rhead.back = &rhead;
-
-    FutexWaiter* iter = whead.lower_pri;
-    while (iter != &whead) {
-        FutexWaiter* c = iter;
-        iter = iter->lower_pri;
-        if (c->offset != offset1 || !c->rt->fx.isWaiting())
-            continue;
-        if (count > 0) {
-            c->rt->fx.wake(FutexRuntime::WakeExplicit);
-            ++woken;
-            --count;
-        } else {
-            c->offset = offset2;
-
-            // Remove the node from the waiters list.
-            c->back->lower_pri = c->lower_pri;
-            c->lower_pri->back = c->back;
-
-            // Insert the node at the back of the requeuers list.
-            c->lower_pri = &rhead;
-            c->back = rhead.back;
-            rhead.back->lower_pri = c;
-            rhead.back = c;
-        }
-    }
-
-    // If there are any requeuers, append them to the waiters.
-    if (rhead.lower_pri != &rhead) {
-        whead.back->lower_pri = rhead.lower_pri;
-        rhead.lower_pri->back = whead.back;
-
-        whead.back = rhead.back;
-        rhead.back->lower_pri = &whead;
-    }
-
-    // Make the final list and install it.
-    waiters = nullptr;
-    if (whead.lower_pri != &whead) {
-        whead.back->lower_pri = whead.lower_pri;
-        whead.lower_pri->back = whead.back;
-        waiters = whead.lower_pri;
-    }
-    sarb->setWaiters(waiters);
-
-    r.setInt32(woken);
-    return true;
-}
-
 /* static */ bool
-js::FutexRuntime::initialize()
+js::FutexThread::initialize()
 {
     MOZ_ASSERT(!lock_);
-    lock_ = PR_NewLock();
+    lock_ = js_new<js::Mutex>(mutexid::FutexThread);
     return lock_ != nullptr;
 }
 
 /* static */ void
-js::FutexRuntime::destroy()
+js::FutexThread::destroy()
 {
     if (lock_) {
-        PR_DestroyLock(lock_);
+        js::Mutex* lock = lock_;
+        js_delete(lock);
         lock_ = nullptr;
     }
 }
 
 /* static */ void
-js::FutexRuntime::lock()
+js::FutexThread::lock()
 {
-    PR_Lock(lock_);
-#ifdef DEBUG
-    MOZ_ASSERT(!lockHolder_);
-    lockHolder_ = PR_GetCurrentThread();
-#endif
+    // Load the atomic pointer.
+    js::Mutex* lock = lock_;
+
+    lock->lock();
 }
 
-/* static */ mozilla::Atomic<PRLock*> FutexRuntime::lock_;
-
-#ifdef DEBUG
-/* static */ mozilla::Atomic<PRThread*> FutexRuntime::lockHolder_;
-#endif
+/* static */ mozilla::Atomic<js::Mutex*> FutexThread::lock_;
 
 /* static */ void
-js::FutexRuntime::unlock()
+js::FutexThread::unlock()
 {
-#ifdef DEBUG
-    MOZ_ASSERT(lockHolder_ == PR_GetCurrentThread());
-    lockHolder_ = nullptr;
-#endif
-    PR_Unlock(lock_);
+    // Load the atomic pointer.
+    js::Mutex* lock = lock_;
+
+    lock->unlock();
 }
 
-js::FutexRuntime::FutexRuntime()
+js::FutexThread::FutexThread()
   : cond_(nullptr),
-    state_(Idle)
+    state_(Idle),
+    canWait_(false)
 {
 }
 
 bool
-js::FutexRuntime::initInstance()
+js::FutexThread::initInstance()
 {
     MOZ_ASSERT(lock_);
-    cond_ = PR_NewCondVar(lock_);
+    cond_ = js_new<js::ConditionVariable>();
     return cond_ != nullptr;
 }
 
 void
-js::FutexRuntime::destroyInstance()
+js::FutexThread::destroyInstance()
 {
     if (cond_)
-        PR_DestroyCondVar(cond_);
+        js_delete(cond_);
 }
 
 bool
-js::FutexRuntime::isWaiting()
+js::FutexThread::isWaiting()
 {
     // When a worker is awoken for an interrupt it goes into state
     // WaitingNotifiedForInterrupt for a short time before it actually
     // wakes up and goes into WaitingInterrupted.  In those states the
     // worker is still waiting, and if an explicit wake arrives the
     // worker transitions to Woken.  See further comments in
-    // FutexRuntime::wait().
+    // FutexThread::wait().
     return state_ == Waiting || state_ == WaitingInterrupted || state_ == WaitingNotifiedForInterrupt;
 }
 
 bool
-js::FutexRuntime::wait(JSContext* cx, double timeout_ms, AtomicsObject::FutexWaitResult* result)
+js::FutexThread::wait(JSContext* cx, js::UniqueLock<js::Mutex>& locked,
+                       mozilla::Maybe<mozilla::TimeDuration>& timeout, WaitResult* result)
 {
-    MOZ_ASSERT(&cx->runtime()->fx == this);
-    MOZ_ASSERT(lockHolder_ == PR_GetCurrentThread());
+    MOZ_ASSERT(&cx->fx == this);
+    MOZ_ASSERT(cx->fx.canWait());
     MOZ_ASSERT(state_ == Idle || state_ == WaitingInterrupted);
 
     // Disallow waiting when a runtime is processing an interrupt.
     // See explanation below.
 
     if (state_ == WaitingInterrupted) {
-        JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_ATOMICS_WAIT_NOT_ALLOWED);
+        UnlockGuard<Mutex> unlock(locked);
+        JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_ATOMICS_WAIT_NOT_ALLOWED);
         return false;
     }
 
-    const bool timed = !mozilla::IsInfinite(timeout_ms);
+    // Go back to Idle after returning.
+    auto onFinish = mozilla::MakeScopeExit([&] {
+        state_ = Idle;
+    });
 
-    // Reject the timeout if it is not exactly representable.  2e50 ms = 2e53 us = 6e39 years.
+    const bool isTimed = timeout.isSome();
 
-    if (timed && timeout_ms > 2e50) {
-        JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_ATOMICS_TOO_LONG);
-        return false;
-    }
+    auto finalEnd = timeout.map([](mozilla::TimeDuration& timeout) {
+        return mozilla::TimeStamp::Now() + timeout;
+    });
 
-    // Times and intervals are in microseconds.
-
-    const uint64_t finalEnd = timed ? PRMJ_Now() + (uint64_t)ceil(timeout_ms * 1000.0) : 0;
 
     // 4000s is about the longest timeout slice that is guaranteed to
     // work cross-platform.
-
-    const uint64_t maxSlice = 4000000000LLU;
-    bool retval = true;
+    auto maxSlice = mozilla::TimeDuration::FromSeconds(4000.0);
 
     for (;;) {
-        uint64_t sliceStart = 0;
-        uint32_t timeout = PR_INTERVAL_NO_TIMEOUT;
-        if (timed) {
-            sliceStart = PRMJ_Now();
-            uint64_t timeLeft = finalEnd > sliceStart ? finalEnd - sliceStart : 0;
-            timeout = PR_MicrosecondsToInterval((uint32_t)Min(timeLeft, maxSlice));
-        }
+        // If we are doing a timed wait, calculate the end time for this wait
+        // slice.
+        auto sliceEnd = finalEnd.map([&](mozilla::TimeStamp& finalEnd) {
+            auto sliceEnd = mozilla::TimeStamp::Now() + maxSlice;
+            if (finalEnd < sliceEnd)
+                sliceEnd = finalEnd;
+            return sliceEnd;
+        });
+
         state_ = Waiting;
-#ifdef DEBUG
-        PRThread* holder = lockHolder_;
-        lockHolder_ = nullptr;
-#endif
-        JS_ALWAYS_TRUE(PR_WaitCondVar(cond_, timeout) == PR_SUCCESS);
-#ifdef DEBUG
-        lockHolder_ = holder;
-#endif
+
+        if (isTimed) {
+            mozilla::Unused << cond_->wait_until(locked, *sliceEnd);
+        } else {
+            cond_->wait(locked);
+        }
+
         switch (state_) {
-          case FutexRuntime::Waiting:
+          case FutexThread::Waiting:
             // Timeout or spurious wakeup.
-            if (timed) {
-                uint64_t now = PRMJ_Now();
-                if (now >= finalEnd) {
-                    *result = AtomicsObject::FutexTimedout;
-                    goto finished;
+            if (isTimed) {
+                auto now = mozilla::TimeStamp::Now();
+                if (now >= *finalEnd) {
+                    *result = FutexTimedOut;
+                    return true;
                 }
             }
             break;
 
-          case FutexRuntime::Woken:
-            *result = AtomicsObject::FutexOK;
-            goto finished;
+          case FutexThread::Woken:
+            *result = FutexOK;
+            return true;
 
-          case FutexRuntime::WaitingNotifiedForInterrupt:
+          case FutexThread::WaitingNotifiedForInterrupt:
             // The interrupt handler may reenter the engine.  In that case
             // there are two complications:
             //
@@ -1126,10 +1030,10 @@ js::FutexRuntime::wait(JSContext* cx, double timeout_ms, AtomicsObject::FutexWai
             //   should be woken when the interrupt handler returns.
             //   To that end, we flag the thread as interrupted around
             //   the interrupt and check state_ when the interrupt
-            //   handler returns.  A futexWake() call that reaches the
+            //   handler returns.  A wake() call that reaches the
             //   runtime during the interrupt sets state_ to Woken.
             //
-            // - It is in principle possible for futexWait() to be
+            // - It is in principle possible for wait() to be
             //   reentered on the same thread/runtime and waiting on the
             //   same location and to yet again be interrupted and enter
             //   the interrupt handler.  In this case, it is important
@@ -1149,30 +1053,25 @@ js::FutexRuntime::wait(JSContext* cx, double timeout_ms, AtomicsObject::FutexWai
 
             state_ = WaitingInterrupted;
             {
-                AutoUnlockFutexAPI unlock;
-                retval = cx->runtime()->handleInterrupt(cx);
+                UnlockGuard<Mutex> unlock(locked);
+                if (!cx->handleInterrupt())
+                    return false;
             }
-            if (!retval)
-                goto finished;
             if (state_ == Woken) {
-                *result = AtomicsObject::FutexOK;
-                goto finished;
+                *result = FutexOK;
+                return true;
             }
             break;
 
           default:
-            MOZ_CRASH();
+            MOZ_CRASH("Bad FutexState in wait()");
         }
     }
-finished:
-    state_ = Idle;
-    return retval;
 }
 
 void
-js::FutexRuntime::wake(WakeReason reason)
+js::FutexThread::wake(WakeReason reason)
 {
-    MOZ_ASSERT(lockHolder_ == PR_GetCurrentThread());
     MOZ_ASSERT(isWaiting());
 
     if ((state_ == WaitingInterrupted || state_ == WaitingNotifiedForInterrupt) && reason == WakeExplicit) {
@@ -1189,9 +1088,9 @@ js::FutexRuntime::wake(WakeReason reason)
         state_ = WaitingNotifiedForInterrupt;
         break;
       default:
-        MOZ_CRASH();
+        MOZ_CRASH("bad WakeReason in FutexThread::wake()");
     }
-    PR_NotifyCondVar(cond_);
+    cond_->notify_all();
 }
 
 const JSFunctionSpec AtomicsMethods[] = {
@@ -1199,31 +1098,22 @@ const JSFunctionSpec AtomicsMethods[] = {
     JS_INLINABLE_FN("load",               atomics_load,               2,0, AtomicsLoad),
     JS_INLINABLE_FN("store",              atomics_store,              3,0, AtomicsStore),
     JS_INLINABLE_FN("exchange",           atomics_exchange,           3,0, AtomicsExchange),
-    JS_INLINABLE_FN("fence",              atomics_fence,              0,0, AtomicsFence),
     JS_INLINABLE_FN("add",                atomics_add,                3,0, AtomicsAdd),
     JS_INLINABLE_FN("sub",                atomics_sub,                3,0, AtomicsSub),
     JS_INLINABLE_FN("and",                atomics_and,                3,0, AtomicsAnd),
     JS_INLINABLE_FN("or",                 atomics_or,                 3,0, AtomicsOr),
     JS_INLINABLE_FN("xor",                atomics_xor,                3,0, AtomicsXor),
     JS_INLINABLE_FN("isLockFree",         atomics_isLockFree,         1,0, AtomicsIsLockFree),
-    JS_FN("futexWait",                    atomics_futexWait,          4,0),
-    JS_FN("futexWake",                    atomics_futexWake,          3,0),
-    JS_FN("futexWakeOrRequeue",           atomics_futexWakeOrRequeue, 5,0),
+    JS_FN("wait",                         atomics_wait,               4,0),
+    JS_FN("wake",                         atomics_wake,               3,0),
     JS_FS_END
-};
-
-static const JSConstDoubleSpec AtomicsConstants[] = {
-    {"OK",       AtomicsObject::FutexOK},
-    {"TIMEDOUT", AtomicsObject::FutexTimedout},
-    {"NOTEQUAL", AtomicsObject::FutexNotequal},
-    {0,          0}
 };
 
 JSObject*
 AtomicsObject::initClass(JSContext* cx, Handle<GlobalObject*> global)
 {
     // Create Atomics Object.
-    RootedObject objProto(cx, global->getOrCreateObjectPrototype(cx));
+    RootedObject objProto(cx, GlobalObject::getOrCreateObjectPrototype(cx, global));
     if (!objProto)
         return nullptr;
     RootedObject Atomics(cx, NewObjectWithGivenProto(cx, &AtomicsObject::class_, objProto,
@@ -1233,17 +1123,14 @@ AtomicsObject::initClass(JSContext* cx, Handle<GlobalObject*> global)
 
     if (!JS_DefineFunctions(cx, Atomics, AtomicsMethods))
         return nullptr;
-    if (!JS_DefineConstDoubles(cx, Atomics, AtomicsConstants))
+    if (!DefineToStringTag(cx, Atomics, cx->names().Atomics))
         return nullptr;
 
     RootedValue AtomicsValue(cx, ObjectValue(*Atomics));
 
     // Everything is set up, install Atomics on the global object.
-    if (!DefineProperty(cx, global, cx->names().Atomics, AtomicsValue, nullptr, nullptr,
-                        JSPROP_RESOLVING))
-    {
+    if (!DefineDataProperty(cx, global, cx->names().Atomics, AtomicsValue, JSPROP_RESOLVING))
         return nullptr;
-    }
 
     global->setConstructor(JSProto_Atomics, AtomicsValue);
     return Atomics;

@@ -16,7 +16,6 @@ test();
 
 function test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
 
@@ -42,37 +41,6 @@ function test()
 // =====
   (function(){const x = 0, y = delete x;})()
 
-// Assertion failure: JOF_OPTYPE(op) == JOF_ATOM, at ../jsemit.cpp:1710
-// =====
-    try
-    {
-      (function(){(yield []) (function(){with({}){x} }); const x = undefined;})();
-    }
-    catch(ex)
-    {
-    }
-
-// Assertion failure: cg->upvars.lookup(atom), at ../jsemit.cpp:2022
-// =====
-  try
-  {
-    (function(){([]) ((function(q) { return q; })for (each in [1,2]))})();
-  }
-  catch(ex)
-  {
-  }
-// Assertion failure: lexdep->frameLevel() <= funbox->level, at ../jsparse.cpp:1782
-// Opt crash [@ JSCompiler::setFunctionKinds] near null
-// =====
-
-  try
-  {
-    eval("((x1) > [(x)(function() { x;}) for each (x in x)])()");
-  }
-  catch(ex)
-  {
-  }
-
 // Assertion failure: pnu->pn_lexdef == dn, at ../jsemit.cpp:1817
 // =====
   uneval(function(){arguments = ({ get y(){} }); for(var [arguments] in y ) (x);});
@@ -82,16 +50,6 @@ function test()
   try
   {
     eval('(function(){{for(c in (function (){ for(x in (x1))window} )()) {const x = undefined;} }})();');
-  }
-  catch(ex)
-  {
-  }
-
-// Assertion failure: op == JSOP_GETLOCAL, at ../jsemit.cpp:4557
-// =====
-  try
-  {
-    (eval("(function(){let x , x =  (x for (x in null))});"))();
   }
   catch(ex)
   {
@@ -121,6 +79,4 @@ function test()
 // =====
 
   reportCompare(expect, actual, summary);
-
-  exitFunc ('test');
 }

@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -11,7 +12,6 @@
 #include "mozilla/Attributes.h"
 #include "nsDOMCSSDeclaration.h"
 
-#include "nsAutoPtr.h"
 
 namespace mozilla {
 namespace dom {
@@ -31,19 +31,20 @@ public:
 
   // If GetCSSDeclaration returns non-null, then the decl it returns
   // is owned by our current style rule.
-  virtual mozilla::css::Declaration* GetCSSDeclaration(Operation aOperation) override;
+  virtual mozilla::DeclarationBlock* GetCSSDeclaration(Operation aOperation) override;
   virtual void GetCSSParsingEnvironment(CSSParsingEnvironment& aCSSParseEnv) override;
+  nsDOMCSSDeclaration::ServoCSSParsingEnvironment GetServoCSSParsingEnvironment() const final;
   NS_IMETHOD GetParentRule(nsIDOMCSSRule **aParent) override;
 
   virtual nsINode* GetParentObject() override;
 
-  NS_IMETHOD SetPropertyValue(const nsCSSProperty aPropID,
+  NS_IMETHOD SetPropertyValue(const nsCSSPropertyID aPropID,
                               const nsAString& aValue) override;
 
 protected:
   ~nsDOMCSSAttributeDeclaration();
 
-  virtual nsresult SetCSSDeclaration(mozilla::css::Declaration* aDecl) override;
+  virtual nsresult SetCSSDeclaration(mozilla::DeclarationBlock* aDecl) override;
   virtual nsIDocument* DocToUpdate() override;
 
   RefPtr<Element> mElement;

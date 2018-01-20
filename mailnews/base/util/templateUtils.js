@@ -10,6 +10,7 @@ var Cr = Components.results;
 var Cu = Components.utils;
 
 Cu.import("resource://gre/modules/PluralForm.jsm");
+Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource:///modules/StringBundle.js");
 
 function PluralStringFormatter(aBundleURI) {
@@ -34,6 +35,15 @@ var gTemplateUtilsStrings = new PluralStringFormatter(
   "chrome://messenger/locale/templateUtils.properties"
 );
 
+const _dateFormatter = Services.intl.createDateTimeFormat(undefined,
+  { dateStyle: "short" });
+const _dayMonthFormatter = Services.intl.createDateTimeFormat(undefined,
+  { month: "long", day: "numeric" });
+const _timeFormatter = Services.intl.createDateTimeFormat(undefined,
+  { timeStyle: "short" });
+const _weekdayFormatter = Services.intl.createDateTimeFormat(undefined,
+  { weekday: "long" });
+
 /**
  * Helper function to generate a localized "friendly" representation of
  * time relative to the present.  If the time input is "today", it returns
@@ -41,16 +51,13 @@ var gTemplateUtilsStrings = new PluralStringFormatter(
  * "yesterday" (localized).  If it's in the last week, it returns the day
  * of the week. If it's before that, it returns the date.
  *
- * @param time
+ * @param time {Date}
  *        the time (better be in the past!)
- * @return The string with a "human-friendly" representation of that time
- *        relative to now.
+ * @return {string}  A "human-friendly" representation of that time
+ *                   relative to now.
  */
 function makeFriendlyDateAgo(time)
 {
-  let dts = Cc["@mozilla.org/intl/scriptabledateformat;1"]
-              .getService(Ci.nsIScriptableDateFormat);
-
   // Figure out when today begins
   let now = new Date();
   let today = new Date(now.getFullYear(), now.getMonth(),
@@ -66,25 +73,19 @@ function makeFriendlyDateAgo(time)
   let k6DaysInMsecs = 6 * kDayInMsecs;
   if (end >= today) {
     // activity finished after today started, show the time
-    dateTime = dts.FormatTime("", dts.timeFormatNoSeconds,
-                                  end.getHours(), end.getMinutes(),0);
+    dateTime = _timeFormatter.format(end);
   } else if (today - end < kDayInMsecs) {
     // activity finished after yesterday started, show yesterday
     dateTime = gTemplateUtilsStrings.get("yesterday");
   } else if (today - end < k6DaysInMsecs) {
     // activity finished after last week started, show day of week
-    dateTime = end.toLocaleFormat("%A");
+    dateTime = _weekdayFormatter.format(end);
   } else if (now.getFullYear() == end.getFullYear()) {
     // activity must have been from some time ago.. show month/day
-    let month = end.toLocaleFormat("%B");
-    // Remove leading 0 by converting the date string to a number
-    let date = Number(end.toLocaleFormat("%d"));
-    dateTime = gTemplateUtilsStrings.get("monthDate", [month, date]);
+    dateTime = _dayMonthFormatter.format(end);
   } else {
     // not this year, so show full date format
-    dateTime = dts.FormatDate("", dts.dateFormatShort,
-                              end.getFullYear(), end.getMonth() + 1,
-                              end.getDate());
+    dateTime = _dateFormatter.format(end);
   }
   return dateTime;
 }

@@ -1,6 +1,7 @@
 /* vim: set ts=2 et sw=2 tw=80: */
 /* Any copyright is dedicated to the Public Domain.
  http://creativecommons.org/publicdomain/zero/1.0/ */
+/* eslint-disable mozilla/no-arbitrary-setTimeout */
 
 "use strict";
 
@@ -11,8 +12,8 @@ requestLongerTimeout(2);
 // measures the position of the scrubber once, then waits for some time to pass
 // and measures its position again.
 
-add_task(function*() {
-  yield addTab(TEST_URL_ROOT + "doc_simple_animation.html");
+add_task(function* () {
+  yield addTab(URL_ROOT + "doc_simple_animation.html");
   let {panel} = yield openAnimationInspector();
 
   let timeline = panel.animationsTimelineComponent;

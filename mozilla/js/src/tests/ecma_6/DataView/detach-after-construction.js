@@ -1,13 +1,9 @@
-// |reftest| skip-if(!xulRuntime.shell)
+var buf = new ArrayBuffer([1,2]);
+var bufView = new DataView(buf);
 
-for (var neuterArg of ['change-data', 'same-data']) {
-    var buf = new ArrayBuffer([1,2]);
-    var bufView = new DataView(buf);
+detachArrayBuffer(buf);
 
-    neuter(buf, neuterArg);
-
-    assertThrowsInstanceOf(()=>bufView.getInt8(0), TypeError);
-}
+assertThrowsInstanceOf(() => bufView.getInt8(0), TypeError);
 
 if (typeof reportCompare === 'function')
-    reportCompare(0,0,"OK");
+    reportCompare(0, 0, "OK");

@@ -52,7 +52,9 @@ JsepTrack::EnsureNoDuplicatePayloadTypes(
   for (JsepCodecDescription* codec : *codecs) {
     // We assume there are no dupes in negotiated codecs; unnegotiated codecs
     // need to change if there is a clash.
-    if (!codec->mEnabled) {
+    if (!codec->mEnabled ||
+        // We only support one datachannel per m-section
+        !codec->mName.compare("webrtc-datachannel")) {
       continue;
     }
 
@@ -124,7 +126,7 @@ JsepTrack::AddToAnswer(const SdpMediaSection& offer,
   AddToMsection(codecs.values, answer);
 
   if (mDirection == sdp::kSend) {
-    std::vector<JsConstraints> constraints;
+    std::vector<JsConstraints> constraints(mJsEncodeConstraints);
     std::vector<SdpRidAttributeList::Rid> rids;
     GetRids(offer, sdp::kRecv, &rids);
     NegotiateRids(rids, &constraints);
@@ -261,6 +263,9 @@ JsepTrack::CreateEncodings(
     const std::vector<JsepCodecDescription*>& negotiatedCodecs,
     JsepTrackNegotiatedDetails* negotiatedDetails)
 {
+  negotiatedDetails->mTias = remote.GetBandwidth("TIAS");
+  // TODO add support for b=AS if TIAS is not set (bug 976521)
+
   std::vector<SdpRidAttributeList::Rid> rids;
   GetRids(remote, sdp::kRecv, &rids); // Get rids we will send
   NegotiateRids(rids, &mJsEncodeConstraints);
@@ -270,9 +275,19 @@ JsepTrack::CreateEncodings(
     rids.push_back(SdpRidAttributeList::Rid());
   }
 
-  // For each rid in the remote, make sure we have an encoding, and configure
+  size_t max_streams = 1;
+
+  if (!mJsEncodeConstraints.empty()) {
+    max_streams = std::min(rids.size(), mJsEncodeConstraints.size());
+  }
+  // Drop SSRCs if less RIDs were offered than we have encoding constraints
+  if (mSsrcs.size() > max_streams) {
+    mSsrcs.resize(max_streams);
+  }
+
+  // For each stream make sure we have an encoding, and configure
   // that encoding appropriately.
-  for (size_t i = 0; i < rids.size(); ++i) {
+  for (size_t i = 0; i < max_streams; ++i) {
     if (i == negotiatedDetails->mEncodings.values.size()) {
       negotiatedDetails->mEncodings.values.push_back(new JsepTrackEncoding);
     }
@@ -317,7 +332,6 @@ void
 JsepTrack::NegotiateCodecs(
     const SdpMediaSection& remote,
     std::vector<JsepCodecDescription*>* codecs,
-    const SdpMediaSection* answer,
     std::map<std::string, std::string>* formatChanges) const
 {
   PtrVector<JsepCodecDescription> unnegotiatedCodecs;
@@ -335,15 +349,6 @@ JsepTrack::NegotiateCodecs(
       if(codec->Negotiate(fmt, remote)) {
         codecs->push_back(codec);
         unnegotiatedCodecs.values[i] = nullptr;
-        if (answer) {
-          // Answer's formats are authoritative, and they might be different
-          for (const std::string& answerFmt : answer->GetFormats()) {
-            if (codec->Matches(answerFmt, *answer)) {
-              codec->mDefaultPt = answerFmt;
-              break; // We found the corresponding format in |answer|, bail
-            }
-          }
-        }
         if (formatChanges) {
           (*formatChanges)[originalFormat] = codec->mDefaultPt;
         }
@@ -352,18 +357,87 @@ JsepTrack::NegotiateCodecs(
     }
   }
 
+  // Find the (potential) red codec and ulpfec codec or telephone-event
+  JsepVideoCodecDescription* red = nullptr;
+  JsepVideoCodecDescription* ulpfec = nullptr;
+  JsepAudioCodecDescription* dtmf = nullptr;
+  // We can safely cast here since JsepTrack has a MediaType and only codecs
+  // that match that MediaType (kAudio or kVideo) are added.
+  for (auto codec : *codecs) {
+    if (codec->mName == "red") {
+      red = static_cast<JsepVideoCodecDescription*>(codec);
+    }
+    else if (codec->mName == "ulpfec") {
+      ulpfec = static_cast<JsepVideoCodecDescription*>(codec);
+    }
+    else if (codec->mName == "telephone-event") {
+      dtmf = static_cast<JsepAudioCodecDescription*>(codec);
+    }
+  }
+  // if we have a red codec remove redundant encodings that don't exist
+  if (red) {
+    // Since we could have an externally specified redundant endcodings
+    // list, we shouldn't simply rebuild the redundant encodings list
+    // based on the current list of codecs.
+    std::vector<uint8_t> unnegotiatedEncodings;
+    std::swap(unnegotiatedEncodings, red->mRedundantEncodings);
+    for (auto redundantPt : unnegotiatedEncodings) {
+      std::string pt = std::to_string(redundantPt);
+      for (auto codec : *codecs) {
+        if (pt == codec->mDefaultPt) {
+          red->mRedundantEncodings.push_back(redundantPt);
+          break;
+        }
+      }
+    }
+  }
+  // Video FEC is indicated by the existence of the red and ulpfec
+  // codecs and not an attribute on the particular video codec (like in
+  // a rtcpfb attr). If we see both red and ulpfec codecs, we enable FEC
+  // on all the other codecs.
+  if (red && ulpfec) {
+    for (auto codec : *codecs) {
+      if (codec->mName != "red" && codec->mName != "ulpfec") {
+        JsepVideoCodecDescription* videoCodec =
+            static_cast<JsepVideoCodecDescription*>(codec);
+        videoCodec->EnableFec(red->mDefaultPt, ulpfec->mDefaultPt);
+      }
+    }
+  }
+
+  // Dtmf support is indicated by the existence of the telephone-event
+  // codec, and not an attribute on the particular audio codec (like in a
+  // rtcpfb attr). If we see the telephone-event codec, we enabled dtmf
+  // support on all the other audio codecs.
+  if (dtmf) {
+    for (auto codec : *codecs) {
+      JsepAudioCodecDescription* audioCodec =
+          static_cast<JsepAudioCodecDescription*>(codec);
+      audioCodec->mDtmfEnabled = true;
+    }
+  }
+
   // Make sure strongly preferred codecs are up front, overriding the remote
   // side's preference.
   std::stable_sort(codecs->begin(), codecs->end(), CompareCodec);
 
   // TODO(bug 814227): Remove this once we're ready to put multiple codecs in an
-  // answer
-  if (!codecs->empty()) {
+  // answer.  For now, remove all but the first codec unless the red codec
+  // exists, and then we include the others per RFC 5109, section 14.2.
+  // Note: now allows keeping the telephone-event codec, if it appears, as the
+  // last codec in the list.
+  if (!codecs->empty() && !red) {
+    int newSize = dtmf ? 2 : 1;
     for (size_t i = 1; i < codecs->size(); ++i) {
-      delete (*codecs)[i];
-      (*codecs)[i] = nullptr;
+      if (!dtmf || dtmf != (*codecs)[i]) {
+        delete (*codecs)[i];
+        (*codecs)[i] = nullptr;
+      }
     }
-    codecs->resize(1);
+    if (dtmf) {
+      (*codecs)[newSize-1] = dtmf;
+    }
+    codecs->resize(newSize);
   }
 }
 
@@ -377,7 +451,6 @@ JsepTrack::Negotiate(const SdpMediaSection& answer,
   std::map<std::string, std::string> formatChanges;
   NegotiateCodecs(remote,
                   &negotiatedCodecs.values,
-                  &answer,
                   &formatChanges);
 
   // Use |formatChanges| to update mPrototypeCodecs
@@ -403,14 +476,24 @@ JsepTrack::Negotiate(const SdpMediaSection& answer,
 
   if (answer.GetAttributeList().HasAttribute(SdpAttribute::kExtmapAttribute)) {
     for (auto& extmapAttr : answer.GetAttributeList().GetExtmap().mExtmaps) {
-      negotiatedDetails->mExtmap[extmapAttr.extensionname] = extmapAttr;
+      SdpDirectionAttribute::Direction direction = extmapAttr.direction;
+      if (&remote == &answer) {
+        // Answer is remote, we need to flip this.
+        direction = reverse(direction);
+      }
+
+      if (direction & mDirection) {
+        negotiatedDetails->mExtmap[extmapAttr.extensionname] = extmapAttr;
+      }
     }
   }
 
-  if ((mDirection == sdp::kRecv) &&
-      remote.GetAttributeList().HasAttribute(SdpAttribute::kSsrcAttribute)) {
-    for (auto& ssrcAttr : remote.GetAttributeList().GetSsrc().mSsrcs) {
-      AddSsrc(ssrcAttr.ssrc);
+  if (mDirection == sdp::kRecv) {
+    mSsrcs.clear();
+    if (remote.GetAttributeList().HasAttribute(SdpAttribute::kSsrcAttribute)) {
+      for (auto& ssrcAttr : remote.GetAttributeList().GetSsrc().mSsrcs) {
+        AddSsrc(ssrcAttr.ssrc);
+      }
     }
   }
 

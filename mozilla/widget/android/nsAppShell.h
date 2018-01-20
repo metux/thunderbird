@@ -6,12 +6,16 @@
 #ifndef nsAppShell_h__
 #define nsAppShell_h__
 
+#include <time.h>
+
 #include "mozilla/HangMonitor.h"
 #include "mozilla/LinkedList.h"
 #include "mozilla/Monitor.h"
 #include "mozilla/Move.h"
+#include "mozilla/StaticPtr.h"
+#include "mozilla/TypeTraits.h"
 #include "mozilla/UniquePtr.h"
-#include "mozilla/unused.h"
+#include "mozilla/Unused.h"
 #include "mozilla/jni/Natives.h"
 #include "nsBaseAppShell.h"
 #include "nsCOMPtr.h"
@@ -20,7 +24,6 @@
 #include "nsIAndroidBridge.h"
 
 namespace mozilla {
-class AndroidGeckoEvent;
 bool ProcessNextEvent();
 void NotifyEvent();
 }
@@ -34,6 +37,17 @@ public:
     struct Event : mozilla::LinkedListElement<Event>
     {
         typedef mozilla::HangMonitor::ActivityType Type;
+
+        static uint64_t GetTime()
+        {
+            timespec time;
+            if (clock_gettime(CLOCK_MONOTONIC, &time)) {
+                return 0ull;
+            }
+            return uint64_t(time.tv_sec) * 1000000000ull + time.tv_nsec;
+        }
+
+        uint64_t mPostTime{ 0 };
 
         bool HasSameTypeAs(const Event* other) const
         {
@@ -56,8 +70,6 @@ public:
         }
     };
 
-    class LegacyGeckoEvent;
-
     template<typename T>
     class LambdaEvent : public Event
     {
@@ -69,7 +81,32 @@ public:
         void Run() override { return lambda(); }
     };
 
-    static nsAppShell *gAppShell;
+    class ProxyEvent : public Event
+    {
+    protected:
+        mozilla::UniquePtr<Event> baseEvent;
+
+    public:
+        ProxyEvent(mozilla::UniquePtr<Event>&& event)
+            : baseEvent(mozilla::Move(event))
+        {}
+
+        void PostTo(mozilla::LinkedList<Event>& queue) override
+        {
+            baseEvent->PostTo(queue);
+        }
+
+        void Run() override
+        {
+            baseEvent->Run();
+        }
+    };
+
+    static nsAppShell* Get()
+    {
+        MOZ_ASSERT(NS_IsMainThread());
+        return sAppShell;
+    }
 
     nsAppShell();
 
@@ -84,35 +121,56 @@ public:
     // Post a subclass of Event.
     // e.g. PostEvent(mozilla::MakeUnique<MyEvent>());
     template<typename T, typename D>
-    void PostEvent(mozilla::UniquePtr<T, D>&& event)
+    static void PostEvent(mozilla::UniquePtr<T, D>&& event)
     {
-        mEventQueue.Post(mozilla::Move(event));
+        mozilla::MutexAutoLock lock(*sAppShellLock);
+        if (!sAppShell) {
+            return;
+        }
+        sAppShell->mEventQueue.Post(mozilla::Move(event));
     }
 
     // Post a event that will call a lambda
     // e.g. PostEvent([=] { /* do something */ });
     template<typename T>
-    void PostEvent(T&& lambda)
+    static void PostEvent(T&& lambda)
     {
-        mEventQueue.Post(mozilla::MakeUnique<LambdaEvent<T>>(
+        mozilla::MutexAutoLock lock(*sAppShellLock);
+        if (!sAppShell) {
+            return;
+        }
+        sAppShell->mEventQueue.Post(mozilla::MakeUnique<LambdaEvent<T>>(
                 mozilla::Move(lambda)));
     }
 
-    void PostEvent(mozilla::AndroidGeckoEvent* event);
+    // Post a event and wait for it to finish running on the Gecko thread.
+    static void SyncRunEvent(Event&& event,
+                             mozilla::UniquePtr<Event>(*eventFactory)(
+                                    mozilla::UniquePtr<Event>&&) = nullptr);
 
-    void ResendLastResizeEvent(nsWindow* aDest);
+    template<typename T> static
+    typename mozilla::EnableIf<!mozilla::IsBaseOf<Event, T>::value, void>::Type
+    SyncRunEvent(T&& lambda)
+    {
+        SyncRunEvent(LambdaEvent<T>(mozilla::Forward<T>(lambda)));
+    }
 
-    void OnResume() {}
+    static already_AddRefed<nsIURI> ResolveURI(const nsCString& aUriStr);
 
     void SetBrowserApp(nsIAndroidBrowserApp* aBrowserApp) {
         mBrowserApp = aBrowserApp;
     }
 
-    void GetBrowserApp(nsIAndroidBrowserApp* *aBrowserApp) {
-        *aBrowserApp = mBrowserApp;
+    nsIAndroidBrowserApp* GetBrowserApp() {
+        return mBrowserApp;
     }
 
 protected:
+    static nsAppShell* sAppShell;
+    static mozilla::StaticAutoPtr<mozilla::Mutex> sAppShellLock;
+
+    static void RecordLatencies();
+
     virtual ~nsAppShell();
 
     nsresult AddObserver(const nsAString &aObserverKey, nsIObserver *aObserver);
@@ -140,6 +198,14 @@ protected:
         mozilla::LinkedList<Event> mQueue;
 
     public:
+        enum {
+            LATENCY_UI,
+            LATENCY_OTHER,
+            LATENCY_COUNT
+        };
+        static uint32_t sLatencyCount[LATENCY_COUNT];
+        static uint64_t sLatencyTime[LATENCY_COUNT];
+
         Queue() : mMonitor("nsAppShell.Queue")
         {}
 
@@ -156,6 +222,7 @@ protected:
             mozilla::MonitorAutoLock lock(mMonitor);
             event->PostTo(mQueue);
             if (event->isInList()) {
+                event->mPostTime = Event::GetTime();
                 // Ownership of event object transfers to the queue.
                 mozilla::Unused << event.release();
             }
@@ -167,31 +234,39 @@ protected:
             mozilla::MonitorAutoLock lock(mMonitor);
 
             if (mayWait && mQueue.isEmpty()) {
+#ifdef EARLY_BETA_OR_EARLIER
+                // Record latencies when we're about to be idle.
+                nsAppShell::RecordLatencies();
+#endif
                 lock.Wait();
             }
+
             // Ownership of event object transfers to the return value.
-            return mozilla::UniquePtr<Event>(mQueue.popFirst());
+            mozilla::UniquePtr<Event> event(mQueue.popFirst());
+            if (!event || !event->mPostTime) {
+                return Move(event);
+            }
+
+#ifdef EARLY_BETA_OR_EARLIER
+            const size_t latencyType = (event->ActivityType() ==
+                    Event::Type::kUIActivity) ? LATENCY_UI : LATENCY_OTHER;
+            const uint64_t latency = Event::GetTime() - event->mPostTime;
+
+            sLatencyCount[latencyType]++;
+            sLatencyTime[latencyType] += latency;
+#endif
+            return Move(event);
         }
 
     } mEventQueue;
+
+    mozilla::CondVar mSyncRunFinished;
+    bool mSyncRunQuit;
 
     bool mAllowCoalescingTouches;
 
     nsCOMPtr<nsIAndroidBrowserApp> mBrowserApp;
     nsInterfaceHashtable<nsStringHashKey, nsIObserver> mObserversHash;
-};
-
-// Class that implement native JNI methods can inherit from
-// UsesGeckoThreadProxy to have the native call forwarded
-// automatically to the Gecko thread.
-class UsesGeckoThreadProxy : public mozilla::jni::UsesNativeCallProxy
-{
-public:
-    template<class Functor>
-    static void OnNativeCall(Functor&& call)
-    {
-        nsAppShell::gAppShell->PostEvent(mozilla::Move(call));
-    }
 };
 
 #endif // nsAppShell_h__

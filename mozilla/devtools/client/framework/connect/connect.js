@@ -7,29 +7,24 @@
 "use strict";
 
 var Cu = Components.utils;
-Cu.import('resource://gre/modules/XPCOMUtils.jsm');
-Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/Task.jsm");
-var {gDevTools} = Cu.import("resource://devtools/client/framework/gDevTools.jsm", {});
 var {require} = Cu.import("resource://devtools/shared/Loader.jsm", {});
+var Services = require("Services");
+var {gDevTools} = require("devtools/client/framework/devtools");
 var {TargetFactory} = require("devtools/client/framework/target");
-var {Toolbox} = require("devtools/client/framework/toolbox")
-var promise = require("promise");
-var {DebuggerClient} = require("devtools/shared/client/main");
+var {Toolbox} = require("devtools/client/framework/toolbox");
+var {DebuggerClient} = require("devtools/shared/client/debugger-client");
+var {Task} = require("devtools/shared/task");
+var {LocalizationHelper} = require("devtools/shared/l10n");
+var L10N = new LocalizationHelper("devtools/client/locales/connection-screen.properties");
 
 var gClient;
 var gConnectionTimeout;
-
-XPCOMUtils.defineLazyGetter(window, 'l10n', function () {
-  return Services.strings.createBundle('chrome://devtools/locale/connection-screen.properties');
-});
 
 /**
  * Once DOM is ready, we prefil the host/port inputs with
  * pref-stored values.
  */
-window.addEventListener("DOMContentLoaded", function onDOMReady() {
-  window.removeEventListener("DOMContentLoaded", onDOMReady, true);
+window.addEventListener("DOMContentLoaded", function () {
   let host = Services.prefs.getCharPref("devtools.debugger.remote-host");
   let port = Services.prefs.getIntPref("devtools.debugger.remote-port");
 
@@ -42,19 +37,19 @@ window.addEventListener("DOMContentLoaded", function onDOMReady() {
   }
 
   let form = document.querySelector("#connection-form form");
-  form.addEventListener("submit", function() {
+  form.addEventListener("submit", function () {
     window.submit().catch(e => {
-      Cu.reportError(e);
+      console.error(e);
       // Bug 921850: catch rare exception from DebuggerClient.socketConnect
       showError("unexpected");
     });
   });
-}, true);
+}, {capture: true, once: true});
 
 /**
  * Called when the "connect" button is clicked.
  */
-var submit = Task.async(function*() {
+var submit = Task.async(function* () {
   // Show the "connecting" screen
   document.body.classList.add("connecting");
 
@@ -65,7 +60,7 @@ var submit = Task.async(function*() {
   try {
     Services.prefs.setCharPref("devtools.debugger.remote-host", host);
     Services.prefs.setIntPref("devtools.debugger.remote-port", port);
-  } catch(e) {
+  } catch (e) {
     // Fails in e10s mode, but not a critical feature.
   }
 
@@ -74,30 +69,30 @@ var submit = Task.async(function*() {
   gClient = new DebuggerClient(transport);
   let delay = Services.prefs.getIntPref("devtools.debugger.remote-timeout");
   gConnectionTimeout = setTimeout(handleConnectionTimeout, delay);
-  let response = yield clientConnect();
+  let response = yield gClient.connect();
   yield onConnectionReady(...response);
 });
-
-function clientConnect() {
-  let deferred = promise.defer();
-  gClient.connect((...args) => deferred.resolve(args));
-  return deferred.promise;
-}
 
 /**
  * Connection is ready. List actors and build buttons.
  */
-var onConnectionReady = Task.async(function*(aType, aTraits) {
+var onConnectionReady = Task.async(function* ([aType, aTraits]) {
   clearTimeout(gConnectionTimeout);
 
-  let deferred = promise.defer();
-  gClient.listAddons(deferred.resolve);
-  let response = yield deferred.promise;
+  let addons = [];
+  try {
+    let response = yield gClient.listAddons();
+    if (!response.error && response.addons.length > 0) {
+      addons = response.addons;
+    }
+  } catch(e) {
+    // listAddons throws if the runtime doesn't support addons
+  }
 
-  let parent = document.getElementById("addonActors")
-  if (!response.error && response.addons.length > 0) {
+  let parent = document.getElementById("addonActors");
+  if (addons.length > 0) {
     // Add one entry for each add-on.
-    for (let addon of response.addons) {
+    for (let addon of addons) {
       if (!addon.debuggable) {
         continue;
       }
@@ -110,9 +105,7 @@ var onConnectionReady = Task.async(function*(aType, aTraits) {
     parent.remove();
   }
 
-  deferred = promise.defer();
-  gClient.listTabs(deferred.resolve);
-  response = yield deferred.promise;
+  let response = yield gClient.listTabs();
 
   parent = document.getElementById("tabActors");
 
@@ -135,7 +128,7 @@ var onConnectionReady = Task.async(function*(aType, aTraits) {
   // but in Fx>=39, chrome is debuggable via getProcess() and ChromeActor
   if (globals.consoleActor || gClient.mainRoot.traits.allowChromeProcess) {
     let a = document.createElement("a");
-    a.onclick = function() {
+    a.onclick = function () {
       if (gClient.mainRoot.traits.allowChromeProcess) {
         gClient.getProcess()
                .then(aResponse => {
@@ -144,8 +137,8 @@ var onConnectionReady = Task.async(function*(aType, aTraits) {
       } else if (globals.consoleActor) {
         openToolbox(globals, true, "webconsole", false);
       }
-    }
-    a.title = a.textContent = window.l10n.GetStringFromName("mainProcess");
+    };
+    a.title = a.textContent = L10N.getStr("mainProcess");
     a.className = "remote-process";
     a.href = "#";
     gParent.appendChild(a);
@@ -171,9 +164,10 @@ var onConnectionReady = Task.async(function*(aType, aTraits) {
  */
 function buildAddonLink(addon, parent) {
   let a = document.createElement("a");
-  a.onclick = function() {
-    openToolbox(addon, true, "jsdebugger", false);
-  }
+  a.onclick = async function () {
+    const isTabActor = addon.isWebExtension;
+    openToolbox(addon, true, "webconsole", isTabActor);
+  };
 
   a.textContent = addon.name;
   a.title = addon.id;
@@ -187,9 +181,9 @@ function buildAddonLink(addon, parent) {
  */
 function buildTabLink(tab, parent, selected) {
   let a = document.createElement("a");
-  a.onclick = function() {
+  a.onclick = function () {
     openToolbox(tab);
-  }
+  };
 
   a.textContent = tab.title;
   a.title = tab.url;
@@ -231,7 +225,7 @@ function handleConnectionTimeout() {
  * The user clicked on one of the buttons.
  * Opens the toolbox.
  */
-function openToolbox(form, chrome=false, tool="webconsole", isTabActor) {
+function openToolbox(form, chrome = false, tool = "webconsole", isTabActor) {
   let options = {
     form: form,
     client: gClient,
@@ -241,7 +235,7 @@ function openToolbox(form, chrome=false, tool="webconsole", isTabActor) {
   TargetFactory.forRemoteTab(options).then((target) => {
     let hostType = Toolbox.HostType.WINDOW;
     gDevTools.showToolbox(target, tool, hostType).then((toolbox) => {
-      toolbox.once("destroyed", function() {
+      toolbox.once("destroyed", function () {
         gClient.close();
       });
     }, console.error.bind(console));

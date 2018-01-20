@@ -1,5 +1,7 @@
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
+/* vim: set ft=javascript ts=2 et sw=2 tw=80: */
 /* Any copyright is dedicated to the Public Domain.
-   http://creativecommons.org/publicdomain/zero/1.0/ */
+ * http://creativecommons.org/publicdomain/zero/1.0/ */
 
 /**
  * Tests that a chrome debugger can be created in a new process.
@@ -23,7 +25,7 @@ function test() {
 function performTest() {
   ok(gProcess._dbgProcess,
     "The remote debugger process wasn't created properly!");
-  ok(gProcess._dbgProcess.isRunning,
+  ok(gProcess._dbgProcess.exitCode == null,
     "The remote debugger process isn't running!");
   is(typeof gProcess._dbgProcess.pid, "number",
     "The remote debugger process doesn't have a pid (?!)");
@@ -44,9 +46,7 @@ function performTest() {
 }
 
 function aOnClose() {
-  ok(!gProcess._dbgProcess.isRunning,
-    "The remote debugger process isn't closed as it should be!");
-  is(gProcess._dbgProcess.exitValue, (Services.appinfo.OS == "WINNT" ? 0 : 256),
+  is(gProcess._dbgProcess.exitCode, (Services.appinfo.OS == "WINNT" ? -9 : -15),
     "The remote debugger process didn't die cleanly.");
 
   info("process exit value: " + gProcess._dbgProcess.exitValue);
@@ -56,7 +56,7 @@ function aOnClose() {
   finish();
 }
 
-registerCleanupFunction(function() {
+registerCleanupFunction(function () {
   Services.prefs.clearUserPref("devtools.debugger.remote-enabled");
   gProcess = null;
 });

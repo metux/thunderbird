@@ -93,7 +93,7 @@ pageInfoTreeView.prototype = {
     this.sortdir = ascending;
     this.sortcol = col.index;
 
-    Array.forEach(this.tree.columns, function(treecol) {
+    Array.from(this.tree.columns).forEach(function(treecol) {
       treecol.element.removeAttribute("sortActive");
       treecol.element.removeAttribute("sortDirection");
     });
@@ -217,7 +217,6 @@ var gBundle;
 
 const DRAGSERVICE_CONTRACTID    = "@mozilla.org/widget/dragservice;1";
 const TRANSFERABLE_CONTRACTID   = "@mozilla.org/widget/transferable;1";
-const ARRAY_CONTRACTID          = "@mozilla.org/supports-array;1";
 const STRING_CONTRACTID         = "@mozilla.org/supports-string;1";
 
 // a number of services I'll need later
@@ -503,7 +502,7 @@ function makeGeneralTab()
   setItemValue("sizetext", null);
   var cacheKey = url.replace(/#.*$/, "");
   try {
-    diskCacheStorage.asyncOpenURI(Services.io.newURI(cacheKey, null, null),
+    diskCacheStorage.asyncOpenURI(Services.io.newURI(cacheKey),
                                   null, OPEN_READONLY, cacheListener);
   }
   catch(ex) { }
@@ -626,7 +625,7 @@ function addImage(url, type, alt, elem, isBg)
 {
   if (url) try {
     var listener = new imgCacheListener(url, type, alt, elem, isBg);
-    diskCacheStorage.asyncOpenURI(Services.io.newURI(url, null, null),
+    diskCacheStorage.asyncOpenURI(Services.io.newURI(url),
                                   null, OPEN_READONLY, listener);
   }
   catch (ex) { }
@@ -637,7 +636,7 @@ function grabAll(elem)
   // check for background images, any node may have multiple
   var computedStyle = elem.ownerDocument.defaultView.getComputedStyle(elem, "");
   if (computedStyle) {
-    Array.forEach(computedStyle.getPropertyCSSValue("background-image"), function (url) {
+    Array.from(computedStyle.getPropertyCSSValue("background-image")).forEach(function (url) {
       if (url.primitiveType == CSSPrimitiveValue.CSS_URI)
         addImage(url.getStringValue(), gStrings.mediaBGImg, gStrings.notSet, elem, true);
     });
@@ -752,7 +751,7 @@ function onFormSelect()
     var length = formfields.length;
 
     var checked = gBundle.getString("formChecked");
-    var unchecked = gBundle.getString("formUnchecked");    
+    var unchecked = gBundle.getString("formUnchecked");
 
     for (var i = 0; i < length; i++)
     {
@@ -777,7 +776,7 @@ function onFormSelect()
         gDocument.getElementById(label.getAttribute("for")) :
         findFirstControl(label);
 
-      if (whatfor && (whatfor.form == form)) 
+      if (whatfor && (whatfor.form == form))
       {
         var labeltext = getValueText(label);
         for (var j = 0; j < length; j++)
@@ -790,7 +789,7 @@ function onFormSelect()
   }
 }
 
-function FormControlFilter(node) 
+function FormControlFilter(node)
 {
   if (node instanceof HTMLInputElement || node instanceof HTMLSelectElement ||
       node instanceof HTMLButtonElement || node instanceof HTMLTextAreaElement ||
@@ -852,7 +851,7 @@ function getSelectedImage(tree)
 
 function selectSaveFolder()
 {
-  const nsILocalFile = Components.interfaces.nsILocalFile;
+  const nsIFile = Components.interfaces.nsIFile;
   const nsIFilePicker = Components.interfaces.nsIFilePicker;
   var fp = Components.classes["@mozilla.org/filepicker;1"]
                      .createInstance(nsIFilePicker);
@@ -871,7 +870,7 @@ function selectSaveFolder()
   var ret = fp.show();
 
   if (ret == nsIFilePicker.returnOK)
-    return fp.file.QueryInterface(nsILocalFile);
+    return fp.file.QueryInterface(nsIFile);
   return null;
 }
 
@@ -1308,25 +1307,20 @@ function formatNumber(number)
 
 function formatDate(datestr, unknown)
 {
-  // scriptable date formatter, for pretty printing dates
-  var dateService = Components.classes["@mozilla.org/intl/scriptabledateformat;1"]
-                              .getService(Components.interfaces.nsIScriptableDateFormat);
-
   var date = new Date(datestr);
   if (!date.valueOf())
     return unknown;
 
-  return dateService.FormatDateTime("", dateService.dateFormatLong,
-                                    dateService.timeFormatSeconds,
-                                    date.getFullYear(), date.getMonth()+1, date.getDate(),
-                                    date.getHours(), date.getMinutes(), date.getSeconds());
+  const dateTimeFormatter = Services.intl.createDateTimeFormat(undefined, {
+                            dateStyle: "full", timeStyle: "long"});
+  return dateTimeFormatter.format(date);
 }
 
 function getSelectedItems(linksMode)
 {
-  // linksMode is a boolean that is used to determine 
+  // linksMode is a boolean that is used to determine
   // whether the getSelectedItems() function needs to
-  // run with urlSecurityCheck() or not.  
+  // run with urlSecurityCheck() or not.
 
   var elem = document.commandDispatcher.focusedElement;
 
@@ -1357,7 +1351,7 @@ function getSelectedItems(linksMode)
       elem.removeAttribute("copybuffer");
     }
   }
-  
+
   return text;
 }
 
@@ -1367,7 +1361,7 @@ function doCopy(isLinkMode)
 
   Components.classes["@mozilla.org/widget/clipboardhelper;1"]
             .getService(Components.interfaces.nsIClipboardHelper)
-            .copyString(text.join("\n"), gDocument);
+            .copyString(text.join("\n"));
 }
 
 function doSelectAll()

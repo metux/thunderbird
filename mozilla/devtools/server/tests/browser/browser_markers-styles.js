@@ -4,12 +4,13 @@
 /**
  * Test that we get "Styles" markers with correct meta.
  */
+"use strict";
 
-const { PerformanceFront } = require("devtools/server/actors/performance");
+const { PerformanceFront } = require("devtools/shared/fronts/performance");
 const MARKER_NAME = "Styles";
 
-add_task(function*() {
-  let doc = yield addTab(MAIN_DOMAIN + "doc_perf.html");
+add_task(function* () {
+  yield addTab(MAIN_DOMAIN + "doc_perf.html");
 
   initDebuggerServer();
   let client = new DebuggerClient(DebuggerServer.connectPipe());
@@ -18,16 +19,12 @@ add_task(function*() {
   yield front.connect();
   let rec = yield front.startRecording({ withMarkers: true });
 
-  let markers = yield waitForMarkerType(front, MARKER_NAME, function (markers) {
-    return markers.some(({restyleHint}) => restyleHint != void 0);
-  });
+  let markers = yield waitForMarkerType(front, MARKER_NAME);
 
   yield front.stopRecording(rec);
 
   ok(markers.some(m => m.name === MARKER_NAME), `got some ${MARKER_NAME} markers`);
-  ok(markers.some(({restyleHint}) => restyleHint != void 0),
-    "Some markers have a restyleHint.");
 
-  yield closeDebuggerClient(client);
+  yield client.close();
   gBrowser.removeCurrentTab();
 });

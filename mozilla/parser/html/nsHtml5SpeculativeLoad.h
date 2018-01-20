@@ -26,6 +26,7 @@ enum eHtml5SpeculativeLoad {
   eSpeculativeLoadStyle,
   eSpeculativeLoadManifest,
   eSpeculativeLoadSetDocumentCharset,
+  eSpeculativeLoadSetDocumentMode,
   eSpeculativeLoadPreconnect
 };
 
@@ -34,45 +35,57 @@ class nsHtml5SpeculativeLoad {
     nsHtml5SpeculativeLoad();
     ~nsHtml5SpeculativeLoad();
 
-    inline void InitBase(const nsAString& aUrl)
+    inline void InitBase(nsHtml5String aUrl)
     {
       NS_PRECONDITION(mOpCode == eSpeculativeLoadUninitialized,
                       "Trying to reinitialize a speculative load!");
       mOpCode = eSpeculativeLoadBase;
-      mUrl.Assign(aUrl);
+      aUrl.ToString(mUrlOrSizes);
     }
 
-    inline void InitMetaCSP(const nsAString& aCSP) {
+    inline void InitMetaCSP(nsHtml5String aCSP)
+    {
       NS_PRECONDITION(mOpCode == eSpeculativeLoadUninitialized,
                       "Trying to reinitialize a speculative load!");
       mOpCode = eSpeculativeLoadCSP;
-      mMetaCSP.Assign(
-        nsContentUtils::TrimWhitespace<nsContentUtils::IsHTMLWhitespace>(aCSP));
+      nsString csp; // Not Auto, because using it to hold nsStringBuffer*
+      aCSP.ToString(csp);
+      mTypeOrCharsetSourceOrDocumentModeOrMetaCSPOrSizesOrIntegrity.Assign(
+        nsContentUtils::TrimWhitespace<nsContentUtils::IsHTMLWhitespace>(csp));
     }
 
-    inline void InitMetaReferrerPolicy(const nsAString& aReferrerPolicy) {
+    inline void InitMetaReferrerPolicy(nsHtml5String aReferrerPolicy)
+    {
       NS_PRECONDITION(mOpCode == eSpeculativeLoadUninitialized,
                       "Trying to reinitialize a speculative load!");
       mOpCode = eSpeculativeLoadMetaReferrer;
-      mReferrerPolicy.Assign(
-        nsContentUtils::TrimWhitespace<nsContentUtils::IsHTMLWhitespace>(aReferrerPolicy));
+      nsString
+        referrerPolicy; // Not Auto, because using it to hold nsStringBuffer*
+      aReferrerPolicy.ToString(referrerPolicy);
+      mReferrerPolicyOrIntegrity.Assign(
+        nsContentUtils::TrimWhitespace<nsContentUtils::IsHTMLWhitespace>(
+          referrerPolicy));
     }
 
-    inline void InitImage(const nsAString& aUrl,
-                          const nsAString& aCrossOrigin,
-                          const nsAString& aReferrerPolicy,
-                          const nsAString& aSrcset,
-                          const nsAString& aSizes)
+    inline void InitImage(nsHtml5String aUrl,
+                          nsHtml5String aCrossOrigin,
+                          nsHtml5String aReferrerPolicy,
+                          nsHtml5String aSrcset,
+                          nsHtml5String aSizes)
     {
       NS_PRECONDITION(mOpCode == eSpeculativeLoadUninitialized,
                       "Trying to reinitialize a speculative load!");
       mOpCode = eSpeculativeLoadImage;
-      mUrl.Assign(aUrl);
-      mCrossOrigin.Assign(aCrossOrigin);
-      mReferrerPolicy.Assign(
-        nsContentUtils::TrimWhitespace<nsContentUtils::IsHTMLWhitespace>(aReferrerPolicy));
-      mSrcset.Assign(aSrcset);
-      mSizes.Assign(aSizes);
+      aUrl.ToString(mUrlOrSizes);
+      aCrossOrigin.ToString(mCrossOriginOrMedia);
+      nsString
+        referrerPolicy; // Not Auto, because using it to hold nsStringBuffer*
+      aReferrerPolicy.ToString(referrerPolicy);
+      mReferrerPolicyOrIntegrity.Assign(
+        nsContentUtils::TrimWhitespace<nsContentUtils::IsHTMLWhitespace>(
+          referrerPolicy));
+      aSrcset.ToString(mCharsetOrSrcset);
+      aSizes.ToString(mTypeOrCharsetSourceOrDocumentModeOrMetaCSPOrSizesOrIntegrity);
     }
 
     // <picture> elements have multiple <source> nodes followed by an <img>,
@@ -96,49 +109,56 @@ class nsHtml5SpeculativeLoad {
       mOpCode = eSpeculativeLoadEndPicture;
     }
 
-    inline void InitPictureSource(const nsAString& aSrcset,
-                                  const nsAString& aSizes,
-                                  const nsAString& aType,
-                                  const nsAString& aMedia)
+    inline void InitPictureSource(nsHtml5String aSrcset,
+                                  nsHtml5String aSizes,
+                                  nsHtml5String aType,
+                                  nsHtml5String aMedia)
     {
       NS_PRECONDITION(mOpCode == eSpeculativeLoadUninitialized,
                       "Trying to reinitialize a speculative load!");
       mOpCode = eSpeculativeLoadPictureSource;
-      mSrcset.Assign(aSrcset);
-      mSizes.Assign(aSizes);
-      mTypeOrCharsetSource.Assign(aType);
-      mMedia.Assign(aMedia);
+      aSrcset.ToString(mCharsetOrSrcset);
+      aSizes.ToString(mUrlOrSizes);
+      aType.ToString(mTypeOrCharsetSourceOrDocumentModeOrMetaCSPOrSizesOrIntegrity);
+      aMedia.ToString(mCrossOriginOrMedia);
     }
 
-    inline void InitScript(const nsAString& aUrl,
-                           const nsAString& aCharset,
-                           const nsAString& aType,
-                           const nsAString& aCrossOrigin,
-                           const nsAString& aIntegrity,
-                           bool aParserInHead)
+    inline void InitScript(nsHtml5String aUrl,
+                           nsHtml5String aCharset,
+                           nsHtml5String aType,
+                           nsHtml5String aCrossOrigin,
+                           nsHtml5String aIntegrity,
+                           bool aParserInHead,
+                           bool aAsync,
+                           bool aDefer)
     {
       NS_PRECONDITION(mOpCode == eSpeculativeLoadUninitialized,
                       "Trying to reinitialize a speculative load!");
       mOpCode = aParserInHead ?
           eSpeculativeLoadScriptFromHead : eSpeculativeLoadScript;
-      mUrl.Assign(aUrl);
-      mCharset.Assign(aCharset);
-      mTypeOrCharsetSource.Assign(aType);
-      mCrossOrigin.Assign(aCrossOrigin);
-      mIntegrity.Assign(aIntegrity);
+      aUrl.ToString(mUrlOrSizes);
+      aCharset.ToString(mCharsetOrSrcset);
+      aType.ToString(mTypeOrCharsetSourceOrDocumentModeOrMetaCSPOrSizesOrIntegrity);
+      aCrossOrigin.ToString(mCrossOriginOrMedia);
+      aIntegrity.ToString(mReferrerPolicyOrIntegrity);
+      mIsAsync = aAsync;
+      mIsDefer = aDefer;
     }
 
-    inline void InitStyle(const nsAString& aUrl, const nsAString& aCharset,
-                          const nsAString& aCrossOrigin,
-                          const nsAString& aIntegrity)
+    inline void InitStyle(nsHtml5String aUrl,
+                          nsHtml5String aCharset,
+                          nsHtml5String aCrossOrigin,
+                          nsHtml5String aReferrerPolicy,
+                          nsHtml5String aIntegrity)
     {
       NS_PRECONDITION(mOpCode == eSpeculativeLoadUninitialized,
                       "Trying to reinitialize a speculative load!");
       mOpCode = eSpeculativeLoadStyle;
-      mUrl.Assign(aUrl);
-      mCharset.Assign(aCharset);
-      mCrossOrigin.Assign(aCrossOrigin);
-      mIntegrity.Assign(aIntegrity);
+      aUrl.ToString(mUrlOrSizes);
+      aCharset.ToString(mCharsetOrSrcset);
+      aCrossOrigin.ToString(mCrossOriginOrMedia);
+      aReferrerPolicy.ToString(mReferrerPolicyOrIntegrity);
+      aIntegrity.ToString(mTypeOrCharsetSourceOrDocumentModeOrMetaCSPOrSizesOrIntegrity);
     }
 
     /**
@@ -152,12 +172,12 @@ class nsHtml5SpeculativeLoad {
      * manifests seen by the parser thread have to maintain the queue order
      * relative to true speculative loads. See bug 541079.
      */
-    inline void InitManifest(const nsAString& aUrl)
+    inline void InitManifest(nsHtml5String aUrl)
     {
       NS_PRECONDITION(mOpCode == eSpeculativeLoadUninitialized,
                       "Trying to reinitialize a speculative load!");
       mOpCode = eSpeculativeLoadManifest;
-      mUrl.Assign(aUrl);
+      aUrl.ToString(mUrlOrSizes);
     }
 
     /**
@@ -176,70 +196,91 @@ class nsHtml5SpeculativeLoad {
       NS_PRECONDITION(mOpCode == eSpeculativeLoadUninitialized,
                       "Trying to reinitialize a speculative load!");
       mOpCode = eSpeculativeLoadSetDocumentCharset;
-      CopyUTF8toUTF16(aCharset, mCharset);
-      mTypeOrCharsetSource.Assign((char16_t)aCharsetSource);
+      CopyUTF8toUTF16(aCharset, mCharsetOrSrcset);
+      mTypeOrCharsetSourceOrDocumentModeOrMetaCSPOrSizesOrIntegrity.Assign((char16_t)aCharsetSource);
     }
 
-    inline void InitPreconnect(const nsAString& aUrl,
-                               const nsAString& aCrossOrigin)
+    /**
+     * Speculative document mode setting isn't really speculative. Once it
+     * happens, we are committed to it. However, this information needs to
+     * travel in the speculation queue in order to have this information
+     * available before parsing the speculatively loaded style sheets.
+     */
+    inline void InitSetDocumentMode(nsHtml5DocumentMode aMode)
+    {
+      NS_PRECONDITION(mOpCode == eSpeculativeLoadUninitialized,
+                      "Trying to reinitialize a speculative load!");
+      mOpCode = eSpeculativeLoadSetDocumentMode;
+      mTypeOrCharsetSourceOrDocumentModeOrMetaCSPOrSizesOrIntegrity.Assign((char16_t)aMode);
+    }
+
+    inline void InitPreconnect(nsHtml5String aUrl, nsHtml5String aCrossOrigin)
     {
       NS_PRECONDITION(mOpCode == eSpeculativeLoadUninitialized,
                       "Trying to reinitialize a speculative load!");
       mOpCode = eSpeculativeLoadPreconnect;
-      mUrl.Assign(aUrl);
-      mCrossOrigin.Assign(aCrossOrigin);
+      aUrl.ToString(mUrlOrSizes);
+      aCrossOrigin.ToString(mCrossOriginOrMedia);
     }
 
     void Perform(nsHtml5TreeOpExecutor* aExecutor);
 
   private:
-    eHtml5SpeculativeLoad mOpCode;
-    nsString mUrl;
-    nsString mReferrerPolicy;
-    nsString mMetaCSP;
+    nsHtml5SpeculativeLoad(const nsHtml5SpeculativeLoad&) = delete;
+    nsHtml5SpeculativeLoad& operator=(const nsHtml5SpeculativeLoad&) = delete;
 
+    eHtml5SpeculativeLoad mOpCode;
+
+
+    /**
+     * Whether the refering element has async and/or defer attributes.
+     */
+    bool mIsAsync;
+    bool mIsDefer;
+
+    /* If mOpCode is eSpeculativeLoadPictureSource, this is the value of the
+     * "sizes" attribute. If the attribute is not set, this will be a void
+     * string. Otherwise it empty or the value of the url.
+     */
+    nsString mUrlOrSizes;
+    /**
+     * If mOpCode is eSpeculativeLoadScript[FromHead], this is the value of the
+     * "integrity" attribute. If the attribute is not set, this will be a void
+     * string. Otherwise it is empty or the value of the referrer policy.
+     */
+    nsString mReferrerPolicyOrIntegrity;
     /**
      * If mOpCode is eSpeculativeLoadStyle or eSpeculativeLoadScript[FromHead]
      * then this is the value of the "charset" attribute. For
      * eSpeculativeLoadSetDocumentCharset it is the charset that the
-     * document's charset is being set to. Otherwise it's empty.
+     * document's charset is being set to. If mOpCode is eSpeculativeLoadImage
+     * or eSpeculativeLoadPictureSource, this is the value of the "srcset" attribute.
+     * If the attribute is not set, this will be a void string. Otherwise it's empty.
      */
-    nsString mCharset;
+    nsString mCharsetOrSrcset;
     /**
      * If mOpCode is eSpeculativeLoadSetDocumentCharset, this is a
      * one-character string whose single character's code point is to be
-     * interpreted as a charset source integer. Otherwise, it is empty or
-     * the value of the type attribute.
+     * interpreted as a charset source integer. If mOpCode is
+     * eSpeculativeLoadSetDocumentMode, this is a one-character string whose
+     * single character's code point is to be interpreted as an
+     * nsHtml5DocumentMode. If mOpCode is eSpeculativeLoadCSP, this is a meta
+     * element's CSP value. If mOpCode is eSpeculativeLoadImage, this is the
+     * value of the "sizes" attribute. If the attribute is not set, this will
+     * be a void string. If mOpCode is eSpeculativeLoadStyle, this
+     * is the value of the "integrity" attribute. If the attribute is not set,
+     * this will be a void string. Otherwise it is empty or the value of the
+     * referrer policy. Otherwise, it is empty or the value of the type attribute.
      */
-    nsString mTypeOrCharsetSource;
+    nsString mTypeOrCharsetSourceOrDocumentModeOrMetaCSPOrSizesOrIntegrity;
     /**
      * If mOpCode is eSpeculativeLoadImage or eSpeculativeLoadScript[FromHead]
      * or eSpeculativeLoadPreconnect this is the value of the "crossorigin"
      * attribute.  If the attribute is not set, this will be a void string.
+     * If mOpCode is eSpeculativeLoadPictureSource, this is the value of the
+     * "media" attribute.  If the attribute is not set, this will be a void string.
      */
-    nsString mCrossOrigin;
-    /**
-     * If mOpCode is eSpeculativeLoadImage or eSpeculativeLoadPictureSource,
-     * this is the value of "srcset" attribute.  If the attribute is not set,
-     * this will be a void string.
-     */
-    nsString mSrcset;
-    /**
-     * If mOpCode is eSpeculativeLoadPictureSource, this is the value of "sizes"
-     * attribute.  If the attribute is not set, this will be a void string.
-     */
-    nsString mSizes;
-    /**
-     * If mOpCode is eSpeculativeLoadPictureSource, this is the value of "media"
-     * attribute.  If the attribute is not set, this will be a void string.
-     */
-    nsString mMedia;
-    /**
-     * If mOpCode is eSpeculativeLoadScript[FromHead], this is the value of the
-     * "integrity" attribute.  If the attribute is not set, this will be a void
-     * string.
-     */
-    nsString mIntegrity;
+    nsString mCrossOriginOrMedia;
 };
 
 #endif // nsHtml5SpeculativeLoad_h

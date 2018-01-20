@@ -66,6 +66,8 @@ public:
   void NotifyOfDocumentShutdown(DocAccessible* aDocument,
                                 nsIDocument* aDOMDocument);
 
+  void RemoveFromXPCDocumentCache(DocAccessible* aDocument);
+
   /**
    * Return XPCOM accessible document.
    */
@@ -90,6 +92,23 @@ public:
   static const nsTArray<DocAccessibleParent*>* TopLevelRemoteDocs()
     { return sRemoteDocuments; }
 
+  /**
+   * Remove the xpc document for a remote document if there is one.
+   */
+  static void NotifyOfRemoteDocShutdown(DocAccessibleParent* adoc);
+
+  static void RemoveFromRemoteXPCDocumentCache(DocAccessibleParent* aDoc);
+
+  /**
+   * Get a XPC document for a remote document.
+   */
+  static xpcAccessibleDocument* GetXPCDocument(DocAccessibleParent* aDoc);
+  static xpcAccessibleDocument* GetCachedXPCDocument(const DocAccessibleParent* aDoc)
+  {
+    return sRemoteXPCDocumentCache ? sRemoteXPCDocumentCache->GetWeak(aDoc)
+      : nullptr;
+  }
+
 #ifdef DEBUG
   bool IsProcessingRefreshDriverNotification() const;
 #endif
@@ -107,6 +126,12 @@ protected:
    * Shutdown the manager.
    */
   void Shutdown();
+
+  bool HasXPCDocuments()
+  {
+    return mXPCDocumentCache.Count() > 0 ||
+           (sRemoteXPCDocumentCache && sRemoteXPCDocumentCache->Count() > 0);
+  }
 
 private:
   DocManager(const DocManager&);
@@ -147,6 +172,8 @@ private:
   typedef nsRefPtrHashtable<nsPtrHashKey<const DocAccessible>, xpcAccessibleDocument>
     XPCDocumentHashtable;
   XPCDocumentHashtable mXPCDocumentCache;
+  static nsRefPtrHashtable<nsPtrHashKey<const DocAccessibleParent>, xpcAccessibleDocument>*
+    sRemoteXPCDocumentCache;
 
   /*
    * The list of remote top level documents.

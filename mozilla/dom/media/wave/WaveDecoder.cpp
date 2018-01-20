@@ -3,15 +3,30 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-#include "MediaDecoderStateMachine.h"
-#include "WaveReader.h"
+
 #include "WaveDecoder.h"
+#include "MediaContainerType.h"
+#include "MediaDecoder.h"
 
 namespace mozilla {
 
-MediaDecoderStateMachine* WaveDecoder::CreateStateMachine()
+/* static */ bool
+WaveDecoder::IsSupportedType(const MediaContainerType& aContainerType)
 {
-  return new MediaDecoderStateMachine(this, new WaveReader(this));
+  if (!MediaDecoder::IsWaveEnabled()) {
+    return false;
+  }
+  if (aContainerType.Type() == MEDIAMIMETYPE("audio/wave") ||
+      aContainerType.Type() == MEDIAMIMETYPE("audio/x-wav") ||
+      aContainerType.Type() == MEDIAMIMETYPE("audio/wav") ||
+      aContainerType.Type() == MEDIAMIMETYPE("audio/x-pn-wav")) {
+    return (aContainerType.ExtendedType().Codecs().IsEmpty() ||
+            aContainerType.ExtendedType().Codecs() == "1" ||
+            aContainerType.ExtendedType().Codecs() == "6" ||
+            aContainerType.ExtendedType().Codecs() == "7");
+  }
+
+  return false;
 }
 
 } // namespace mozilla

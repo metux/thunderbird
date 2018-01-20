@@ -13,91 +13,13 @@
   padding: 0 4px;
 }
 
+#ab-toolbox:-moz-lwtheme {
+  -moz-appearance: none;
+}
+
 #ab-toolbox > toolbar {
   /* force iconsize="small" on these toolbars */
   counter-reset: smallicons;
-}
-
-@media not all and (-moz-mac-yosemite-theme) {
-  #button-newcard {
-    list-style-image: url("chrome://messenger/skin/addressbook/icons/addressbook-toolbar.svg#newcard");
-  }
-
-  #button-newlist {
-    list-style-image: url("chrome://messenger/skin/addressbook/icons/addressbook-toolbar.svg#newlist");
-  }
-
-  #button-editcard {
-    list-style-image: url("chrome://messenger/skin/addressbook/icons/addressbook-toolbar.svg#editcard");
-  }
-
-  #button-newmessage {
-    list-style-image: url("chrome://messenger/skin/addressbook/icons/addressbook-toolbar.svg#newmessage");
-  }
-
-  #button-newim {
-    list-style-image: url("chrome://messenger/skin/addressbook/icons/addressbook-toolbar.svg#newim");
-  }
-
-  #button-abdelete {
-    list-style-image: url("chrome://messenger/skin/addressbook/icons/addressbook-toolbar.svg#abdelete");
-  }
-}
-
-@media (-moz-mac-yosemite-theme) {
-  #button-newcard {
-    list-style-image: url("chrome://messenger/skin/addressbook/icons/addressbook-toolbar.svg#newcard-flat");
-  }
-
-  #button-newlist {
-    list-style-image: url("chrome://messenger/skin/addressbook/icons/addressbook-toolbar.svg#newlist-flat");
-  }
-
-  #button-editcard {
-    list-style-image: url("chrome://messenger/skin/addressbook/icons/addressbook-toolbar.svg#editcard-flat");
-  }
-
-  #button-newmessage {
-    list-style-image: url("chrome://messenger/skin/addressbook/icons/addressbook-toolbar.svg#newmessage-flat");
-  }
-
-  #button-newim {
-    list-style-image: url("chrome://messenger/skin/addressbook/icons/addressbook-toolbar.svg#newim-flat");
-  }
-
-  #button-abdelete {
-    list-style-image: url("chrome://messenger/skin/addressbook/icons/addressbook-toolbar.svg#abdelete");
-  }
-}
-
-#ab-bar2[brighttext] #button-newcard {
-  list-style-image: url("chrome://messenger/skin/addressbook/icons/addressbook-toolbar.svg#newcard-inverted-flat");
-}
-
-#ab-bar2[brighttext] #button-newlist {
-  list-style-image: url("chrome://messenger/skin/addressbook/icons/addressbook-toolbar.svg#newlist-inverted");
-}
-
-#ab-bar2[brighttext] #button-editcard {
-  list-style-image: url("chrome://messenger/skin/addressbook/icons/addressbook-toolbar.svg#editcard-inverted");
-}
-
-#ab-bar2[brighttext] #button-newmessage {
-  list-style-image: url("chrome://messenger/skin/addressbook/icons/addressbook-toolbar.svg#newmessage-inverted");
-}
-
-#ab-bar2[brighttext] #button-newim {
-  list-style-image: url("chrome://messenger/skin/addressbook/icons/addressbook-toolbar.svg#newim-inverted");
-}
-
-#ab-bar2[brighttext] #button-abdelete {
-  list-style-image: url("chrome://messenger/skin/addressbook/icons/addressbook-toolbar.svg#abdelete-inverted");
-}
-
-#abContent {
-  color: -moz-DialogText;
-  text-shadow: none;
-  background-color: -moz-Dialog;
 }
 
 /* ::::: directory pane icons ::::: */
@@ -108,9 +30,9 @@
 }
 
 #dirTree {
-  -moz-appearance: -moz-mac-vibrancy-light;
-  -moz-border-end: 1px solid #bdbdbd;
-  background-color: #E2E7ED
+  -moz-appearance: -moz-mac-source-list;
+  -moz-font-smoothing-background-color: -moz-mac-source-list;
+  border-inline-end: 1px solid #bdbdbd;
 }
 
 #dirTree treechildren::-moz-tree-row {
@@ -119,39 +41,24 @@
 }
 
 #dirTree treechildren::-moz-tree-row(selected) {
-  background: linear-gradient(#bbc5d7 6%, #c3cbe0 6%, #bdc6dd 7%,
-                              #9ca9c6 95%, #939fba 100%);
+  -moz-appearance: -moz-mac-source-list-selection;
+  -moz-font-smoothing-background-color: -moz-mac-source-list-selection;
 }
 
-#dirTree treechildren::-moz-tree-row(selected, focus) {
-  background: linear-gradient(#5ea3df 6%, #73b8ea 6%, #6cafe5 7%,
-                              #3984d2 95%, #3577c2 100%);
-}
+@media not all and (-moz-mac-yosemite-theme) {
+  #dirTree treechildren::-moz-tree-row(selected, focus) {
+    -moz-appearance: -moz-mac-active-source-list-selection;
+    -moz-font-smoothing-background-color: -moz-mac-active-source-list-selection;
+  }
 
-#dirTree:-moz-system-metric(mac-graphite-theme) treechildren::-moz-tree-row(selected, focus) {
-  background: -moz-linear-gradient(#7b8b9e 6%, #93a3b4 6%, #8fa0b1 7%,
-                                   #587088 95%, #536b84 100%);
-}
-
-#dirTree treechildren::-moz-tree-cell-text(selected),
-#dirTree treechildren::-moz-tree-cell-text(selected, focus) {
-  color: #FFFFFF;
+  #dirTree treechildren::-moz-tree-cell-text(selected) {
+    color: white;
+  }
 }
 
 @media (-moz-mac-yosemite-theme) {
-  #folderTree treechildren::-moz-tree-cell-text {
-    font-family: 'Helvetica Neue';
-  }
-
-  #dirTree treechildren::-moz-tree-cell-text(selected, focus),
-  #dirTree treechildren::-moz-tree-cell-text(selected) {
+  #dirTree treechildren::-moz-tree-cell-text(selected, focus) {
     color: black;
-  }
-
-  #dirTree treechildren::-moz-tree-row(selected),
-  #dirTree:-moz-system-metric(mac-graphite-theme) treechildren::-moz-tree-row(selected),
-  #dirTree treechildren:-moz-window-inactive::-moz-tree-row(selected) {
-    background: rgba(0, 0, 0, .1);
   }
 }
 
@@ -201,12 +108,42 @@ splitter {
 /* ::::: results pane ::::: */
 
 #abResultsTree {
-  -moz-border-start: 1px solid #bebebe;
-  border-bottom: 1px solid #bebebe;
+  -moz-appearance: -moz-mac-source-list;
+  -moz-font-smoothing-background-color: -moz-mac-source-list;
+}
+
+#abResultsTree treechildren::-moz-tree-row {
+  background-color: transparent;
+}
+
+#abResultsTree treechildren::-moz-tree-row(selected) {
+  -moz-appearance: -moz-mac-source-list-selection;
+  -moz-font-smoothing-background-color: -moz-mac-source-list-selection;
+}
+
+@media not all and (-moz-mac-yosemite-theme) {
+  #abResultsTree treechildren::-moz-tree-row(selected, focus) {
+    -moz-appearance: -moz-mac-active-source-list-selection;
+    -moz-font-smoothing-background-color: -moz-mac-active-source-list-selection;
+  }
+
+  #abResultsTree treechildren::-moz-tree-cell-text(selected) {
+    color: white;
+  }
+}
+
+@media (-moz-mac-yosemite-theme) {
+  #abResultsTree treechildren::-moz-tree-cell-text(selected, focus) {
+    color: black;
+  }
+}
+
+#abResultsTree + separator {
+  border-top: 1px solid #bebebe;
 }
 
 #GeneratedName {
-  -moz-padding-start: 42px;
+  padding-inline-start: 42px;
 }
 
 @media (min-resolution: 2dppx) {
@@ -226,7 +163,7 @@ splitter {
 /* ::::: card view pane ::::: */
 
 #blankResultsPaneMessageBox {
-  -moz-border-start: 1px solid #bebebe;
+  border-inline-start: 1px solid #bebebe;
 }
 
 #CardViewOuterBox {
@@ -279,10 +216,6 @@ splitter {
   border-left: 1px solid #D1D1D1;
 }
 
-spacer {
-  display: none;
-}
-
 #cvHomeMapIt,
 #cvWorkMapIt {
   margin-bottom: 0px;
@@ -296,7 +229,7 @@ spacer {
 
 #titlebar-buttonbox-container {
   margin-top: 3px;
-  -moz-margin-start: 7px;
+  margin-inline-start: 7px;
 }
 
 #titlebar-spacer {

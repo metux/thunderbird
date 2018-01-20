@@ -6,7 +6,7 @@
 
 #include "nsLDAPInternal.h"
 #include "nsIServiceManager.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsIComponentManager.h"
 #include "nsIDNSRecord.h"
 #include "nsLDAPConnection.h"
@@ -27,21 +27,21 @@
 #include "nsLDAPUtils.h"
 #include "nsProxyRelease.h"
 #include "mozilla/Logging.h"
+#include "mozilla/Attributes.h"
 
 using namespace mozilla;
 
-const char kConsoleServiceContractId[] = "@mozilla.org/consoleservice;1";
 const char kDNSServiceContractId[] = "@mozilla.org/network/dns-service;1";
 
 // constructor
 //
 nsLDAPConnection::nsLDAPConnection()
-    : mConnectionHandle(0),
+    : mConnectionHandle(nullptr),
       mPendingOperationsMutex("nsLDAPConnection.mPendingOperationsMutex"),
       mPendingOperations(10),
       mSSL(false),
       mVersion(nsILDAPConnection::VERSION3),
-      mDNSRequest(0)
+      mDNSRequest(nullptr)
 {
 }
 
@@ -152,8 +152,9 @@ nsLDAPConnection::Init(nsILDAPURL *aUrl, const nsACString &aBindName,
   if (spacePos != kNotFound)
     mDNSHost.SetLength(spacePos);
 
-  rv = pDNSService->AsyncResolve(mDNSHost, 0, this, curThread,
-                                 getter_AddRefs(mDNSRequest));
+  mozilla::OriginAttributes attrs;
+  rv = pDNSService->AsyncResolveNative(mDNSHost, 0, this, curThread, attrs,
+                                       getter_AddRefs(mDNSRequest));
 
   if (NS_FAILED(rv)) {
     switch (rv) {
@@ -205,9 +206,9 @@ nsLDAPConnection::Close()
   //
   if (mDNSRequest) {
       mDNSRequest->Cancel(NS_ERROR_ABORT);
-      mDNSRequest = 0;
+      mDNSRequest = nullptr;
   }
-  mInitListener = 0;
+  mInitListener = nullptr;
 
 }
 
@@ -377,11 +378,12 @@ nsLDAPConnection::RemovePendingOperation(uint32_t aOperationID)
   return NS_OK;
 }
 
-class nsOnLDAPMessageRunnable : public nsRunnable
+class nsOnLDAPMessageRunnable : public Runnable
 {
 public:
   nsOnLDAPMessageRunnable(nsLDAPMessage *aMsg, bool aClear)
-    : m_msg(aMsg)
+    : Runnable("nsOnLDAPMessageRunnable")
+    , m_msg(aMsg)
     , m_clear(aClear)
   {}
   NS_DECL_NSIRUNNABLE
@@ -589,13 +591,13 @@ nsLDAPConnection::OnLookupComplete(nsICancelable *aRequest,
     // Drop the DNS request object, we no longer need it, and set the flag
     // indicating that DNS has finished.
     //
-    mDNSRequest = 0;
+    mDNSRequest = nullptr;
     mDNSHost.Truncate();
 
     // Call the listener, and then we can release our reference to it.
     //
     mInitListener->OnLDAPInit(this, rv);
-    mInitListener = 0;
+    mInitListener = nullptr;
 
     return rv;
 }
@@ -610,10 +612,7 @@ nsLDAPConnectionRunnable::nsLDAPConnectionRunnable(int32_t aOperationID,
 nsLDAPConnectionRunnable::~nsLDAPConnectionRunnable()
 {
   if (mConnection) {
-    nsCOMPtr<nsIThread> thread = do_GetMainThread();
-    nsILDAPConnection* forgettableConnection;
-    mConnection.forget(&forgettableConnection);
-    NS_ProxyRelease(thread, forgettableConnection, false);
+    NS_ReleaseOnMainThreadSystemGroup("nsLDAPConnectionRunnable::mConnection", mConnection.forget());
   }
 }
 
@@ -648,6 +647,7 @@ NS_IMETHODIMP nsLDAPConnectionRunnable::Run()
     case LDAP_RES_SEARCH_REFERENCE:
       // XXX what should we do with LDAP_RES_SEARCH_EXTENDED
       operationFinished = false;
+      MOZ_FALLTHROUGH;
     default:
     {
       msg = new nsLDAPMessage;

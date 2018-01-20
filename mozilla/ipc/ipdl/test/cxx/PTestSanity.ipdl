@@ -6,13 +6,13 @@ namespace _ipdltest {
 protocol PTestSanity {
 
 child:
-    Ping(int zero, float zeroPtFive, int8_t dummy);
-    __delete__();
+    async Ping(int zero, float zeroPtFive, int8_t dummy);
+    async __delete__();
 
 parent:
-    Pong(int one, float zeroPtTwoFive, uint8_t dummy);
+    async Pong(int one, float zeroPtTwoFive, uint8_t dummy);
 
-
+/*
 state PING:
     send Ping goto PONG;
 
@@ -21,6 +21,7 @@ state PONG:
 
 state DEAD:
     send __delete__;
+*/
 };
 
 

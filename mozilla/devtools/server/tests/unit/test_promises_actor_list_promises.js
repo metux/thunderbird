@@ -8,10 +8,10 @@
 
 "use strict";
 
-const { PromisesFront } = require("devtools/server/actors/promises");
+const { PromisesFront } = require("devtools/shared/fronts/promises");
 const SECRET = "MyLittleSecret";
 
-add_task(function*() {
+add_task(function* () {
   let client = yield startTestDebuggerServer("promises-actor-test");
   let chromeActors = yield getChromeActors(client);
 
@@ -47,8 +47,10 @@ function* testListPromises(client, form, makePromise) {
     equal(p.class, "Promise", "Expect class to be Promise");
     equal(typeof p.promiseState.creationTimestamp, "number",
       "Expect creation timestamp to be a number");
-    equal(typeof p.promiseState.timeToSettle, "number",
-      "Expect time to settle to be a number");
+    if (p.promiseState.state !== "pending") {
+      equal(typeof p.promiseState.timeToSettle, "number",
+        "Expect time to settle to be a number");
+    }
 
     if (p.promiseState.state === "fulfilled" &&
         p.promiseState.value === resolution) {

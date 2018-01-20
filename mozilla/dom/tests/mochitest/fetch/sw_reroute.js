@@ -10,17 +10,15 @@ function testScript(script) {
   }
 
   SpecialPowers.pushPrefEnv({
-    "set": [["dom.requestcache.enabled", true],
-            ["dom.serviceWorkers.enabled", true],
-            ["dom.serviceWorkers.interception.enabled", true],
-            ["dom.serviceWorkers.interception.opaque.enabled", true],
+    "set": [["dom.serviceWorkers.enabled", true],
             ["dom.serviceWorkers.testing.enabled", true],
             ["dom.serviceWorkers.exemptFromPerDomainMax", true]]
   }, function() {
-    navigator.serviceWorker.ready.then(setupSW);
     var scriptURL = location.href.includes("sw_empty_reroute.html")
                   ? "empty.js" : "reroute.js";
-    navigator.serviceWorker.register(scriptURL, {scope: "/"});
+    navigator.serviceWorker.register(scriptURL, {scope: "/"})
+      .then(swr => waitForState(swr.installing, 'activated', swr))
+      .then(setupSW);
   });
 }
 

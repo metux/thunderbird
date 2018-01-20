@@ -7,7 +7,7 @@
   Outlook Express (Win32) import mail and addressbook interfaces
 */
 #include "nscore.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsMsgUtils.h"
 #include "nsIServiceManager.h"
 #include "nsIImportService.h"
@@ -35,9 +35,6 @@
 #include "nsOutlookMail.h"
 
 #include "MapiApi.h"
-
-static NS_DEFINE_IID(kISupportsIID,      NS_ISUPPORTS_IID);
-PRLogModuleInfo *OUTLOOKLOGMODULE = nullptr;
 
 class ImportOutlookMailImpl : public nsIImportMail
 {
@@ -138,10 +135,6 @@ private:
 
 nsOutlookImport::nsOutlookImport()
 {
-  // Init logging module.
-  if (!OUTLOOKLOGMODULE)
-    OUTLOOKLOGMODULE = PR_NewLogModule("IMPORT");
-
   IMPORT_LOG0("nsOutlookImport Module Created\n");
 
   nsOutlookStringBundle::GetStringBundle();
@@ -209,13 +202,13 @@ NS_IMETHODIMP nsOutlookImport::GetImportInterface(const char *pImportType, nsISu
   nsresult  rv;
   if (!strcmp(pImportType, "mail")) {
     // create the nsIImportMail interface and return it!
-    nsIImportMail *  pMail = nullptr;
-    nsIImportGeneric *pGeneric = nullptr;
-    rv = ImportOutlookMailImpl::Create(&pMail);
+    nsCOMPtr<nsIImportMail> pMail;
+    nsCOMPtr<nsIImportGeneric> pGeneric;
+    rv = ImportOutlookMailImpl::Create(getter_AddRefs(pMail));
     if (NS_SUCCEEDED(rv)) {
       nsCOMPtr<nsIImportService> impSvc(do_GetService(NS_IMPORTSERVICE_CONTRACTID, &rv));
       if (NS_SUCCEEDED(rv)) {
-        rv = impSvc->CreateNewGenericMail(&pGeneric);
+        rv = impSvc->CreateNewGenericMail(getter_AddRefs(pGeneric));
         if (NS_SUCCEEDED(rv)) {
           pGeneric->SetData("mailInterface", pMail);
           nsString name;
@@ -224,42 +217,41 @@ NS_IMETHODIMP nsOutlookImport::GetImportInterface(const char *pImportType, nsISu
           if (NS_SUCCEEDED(rv)) {
             nameString->SetData(name);
             pGeneric->SetData("name", nameString);
-            rv = pGeneric->QueryInterface(kISupportsIID, (void **)ppInterface);
+            nsCOMPtr<nsISupports> pInterface(do_QueryInterface(pGeneric));
+            pInterface.forget(ppInterface);
           }
         }
       }
     }
-    NS_IF_RELEASE(pMail);
-    NS_IF_RELEASE(pGeneric);
     return rv;
   }
 
   if (!strcmp(pImportType, "addressbook")) {
     // create the nsIImportAddressBook interface and return it!
-    nsIImportAddressBooks *  pAddress = nullptr;
-    nsIImportGeneric *    pGeneric = nullptr;
-    rv = ImportOutlookAddressImpl::Create(&pAddress);
+    nsCOMPtr<nsIImportAddressBooks> pAddress;
+    nsCOMPtr<nsIImportGeneric> pGeneric;
+    rv = ImportOutlookAddressImpl::Create(getter_AddRefs(pAddress));
     if (NS_SUCCEEDED(rv)) {
       nsCOMPtr<nsIImportService> impSvc(do_GetService(NS_IMPORTSERVICE_CONTRACTID, &rv));
       if (NS_SUCCEEDED(rv)) {
-        rv = impSvc->CreateNewGenericAddressBooks(&pGeneric);
+        rv = impSvc->CreateNewGenericAddressBooks(getter_AddRefs(pGeneric));
         if (NS_SUCCEEDED(rv)) {
           pGeneric->SetData("addressInterface", pAddress);
-          rv = pGeneric->QueryInterface(kISupportsIID, (void **)ppInterface);
+          nsCOMPtr<nsISupports> pInterface(do_QueryInterface(pGeneric));
+          pInterface.forget(ppInterface);
         }
       }
     }
-    NS_IF_RELEASE(pAddress);
-    NS_IF_RELEASE(pGeneric);
     return rv;
   }
 
   if (!strcmp(pImportType, "settings")) {
-    nsIImportSettings *pSettings = nullptr;
-    rv = nsOutlookSettings::Create(&pSettings);
-    if (NS_SUCCEEDED(rv))
-      pSettings->QueryInterface(kISupportsIID, (void **)ppInterface);
-    NS_IF_RELEASE(pSettings);
+    nsCOMPtr<nsIImportSettings> pSettings;
+    rv = nsOutlookSettings::Create(getter_AddRefs(pSettings));
+    if (NS_SUCCEEDED(rv)) {
+      nsCOMPtr<nsISupports> pInterface(do_QueryInterface(pSettings));
+      pInterface.forget(ppInterface);
+    }
     return rv;
   }
 
@@ -269,15 +261,8 @@ NS_IMETHODIMP nsOutlookImport::GetImportInterface(const char *pImportType, nsISu
 /////////////////////////////////////////////////////////////////////////////////
 nsresult ImportOutlookMailImpl::Create(nsIImportMail** aImport)
 {
-  NS_PRECONDITION(aImport != nullptr, "null ptr");
-  if (! aImport)
-    return NS_ERROR_NULL_POINTER;
-
-  *aImport = new ImportOutlookMailImpl();
-  if (! *aImport)
-    return NS_ERROR_OUT_OF_MEMORY;
-
-  NS_ADDREF(*aImport);
+  NS_ENSURE_ARG_POINTER(aImport);
+  NS_ADDREF(*aImport = new ImportOutlookMailImpl());
   return NS_OK;
 }
 
@@ -326,7 +311,7 @@ NS_IMETHODIMP ImportOutlookMailImpl::GetDefaultLocation(nsIFile **ppLoc, bool *f
     return rv;
 
   *found = true;
-  NS_IF_ADDREF(*ppLoc = resultFile);
+  resultFile.forget(ppLoc);
   *userVerify = false;
 
   return NS_OK;
@@ -354,9 +339,9 @@ void ImportOutlookMailImpl::ReportSuccess(nsString& name, int32_t count, nsStrin
     return;
   // load the success string
   char16_t *pFmt = nsOutlookStringBundle::GetStringByID(OUTLOOKIMPORT_MAILBOX_SUCCESS);
-  char16_t *pText = nsTextFormatter::smprintf(pFmt, name.get(), count);
+  nsString pText;
+  nsTextFormatter::ssprintf(pText, pFmt, name.get(), count);
   pStream->Append(pText);
-  nsTextFormatter::smprintf_free(pText);
   nsOutlookStringBundle::FreeString(pFmt);
   AddLinebreak(pStream);
 }
@@ -367,9 +352,9 @@ void ImportOutlookMailImpl::ReportError(int32_t errorNum, nsString& name, nsStri
     return;
   // load the error string
   char16_t *pFmt = nsOutlookStringBundle::GetStringByID(errorNum);
-  char16_t *pText = nsTextFormatter::smprintf(pFmt, name.get());
+  nsString pText;
+  nsTextFormatter::ssprintf(pText, pFmt, name.get());
   pStream->Append(pText);
-  nsTextFormatter::smprintf_free(pText);
   nsOutlookStringBundle::FreeString(pFmt);
   AddLinebreak(pStream);
 }
@@ -401,7 +386,7 @@ ImportOutlookMailImpl::ImportMailbox(nsIImportMailboxDescriptor *pSource,
   char16_t *pName;
   if (NS_SUCCEEDED( pSource->GetDisplayName( &pName))) {
     name = pName;
-    NS_Free( pName);
+    free( pName);
  }
 
   uint32_t mailSize = 0;
@@ -458,15 +443,8 @@ NS_IMETHODIMP ImportOutlookMailImpl::TranslateFolderName(const nsAString & aFold
 
 nsresult ImportOutlookAddressImpl::Create(nsIImportAddressBooks** aImport)
 {
-  NS_PRECONDITION(aImport != nullptr, "null ptr");
-  if (! aImport)
-    return NS_ERROR_NULL_POINTER;
-
-  *aImport = new ImportOutlookAddressImpl();
-  if (! *aImport)
-    return NS_ERROR_OUT_OF_MEMORY;
-
-  NS_ADDREF(*aImport);
+  NS_ENSURE_ARG_POINTER(aImport);
+  NS_ADDREF(*aImport = new ImportOutlookAddressImpl());
   return NS_OK;
 }
 
@@ -581,9 +559,9 @@ void ImportOutlookAddressImpl::ReportSuccess(nsString& name, nsString *pStream)
     return;
   // load the success string
   char16_t *pFmt = nsOutlookStringBundle::GetStringByID(OUTLOOKIMPORT_ADDRESS_SUCCESS);
-  char16_t *pText = nsTextFormatter::smprintf(pFmt, name.get());
+  nsString pText;
+  nsTextFormatter::ssprintf(pText, pFmt, name.get());
   pStream->Append(pText);
-  nsTextFormatter::smprintf_free(pText);
   nsOutlookStringBundle::FreeString(pFmt);
   ImportOutlookMailImpl::AddLinebreak(pStream);
 }

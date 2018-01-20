@@ -16,7 +16,6 @@ test();
 
 function test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
 
@@ -32,13 +31,11 @@ function test()
 
   var r = f(0);
 
-  if (typeof(r[0]) != "function")
+  if (typeof(r[0]) != "number")
     actual += "Bad r[0]";
 
   if (typeof(r[1]) != "function")
     throw "Bad r[1]";
 
   reportCompare(expect, actual, summary);
-
-  exitFunc ('test');
 }

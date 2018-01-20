@@ -9,13 +9,16 @@
 
 #include "mozilla/HashFunctions.h"
 #include "mozilla/PodOperations.h"
-#include "mozilla/UniquePtr.h"
+
+#include <stdio.h>
+#include <string.h>
 
 #include "jsutil.h"
 #include "NamespaceImports.h"
 
 #include "gc/Rooting.h"
 #include "js/RootingAPI.h"
+#include "js/UniquePtr.h"
 #include "vm/Printer.h"
 #include "vm/Unicode.h"
 
@@ -28,7 +31,7 @@ class StringBuffer;
 
 template <AllowGC allowGC>
 extern JSString*
-ConcatStrings(ExclusiveContext* cx,
+ConcatStrings(JSContext* cx,
               typename MaybeRooted<JSString*, allowGC>::HandleType left,
               typename MaybeRooted<JSString*, allowGC>::HandleType right);
 
@@ -65,51 +68,31 @@ CompareChars(const char16_t* s1, size_t len1, JSLinearString* s2);
 
 }  /* namespace js */
 
-struct JSSubString {
-    JSLinearString* base;
-    size_t          offset;
-    size_t          length;
-
-    JSSubString() { mozilla::PodZero(this); }
-
-    void initEmpty(JSLinearString* base) {
-        this->base = base;
-        offset = length = 0;
-    }
-    void init(JSLinearString* base, size_t offset, size_t length) {
-        this->base = base;
-        this->offset = offset;
-        this->length = length;
-    }
-};
-
 /*
  * Shorthands for ASCII (7-bit) decimal and hex conversion.
- * Manually inline isdigit for performance; MSVC doesn't do this for us.
+ * Manually inline isdigit and isxdigit for performance; MSVC doesn't do this for us.
  */
 #define JS7_ISDEC(c)    ((((unsigned)(c)) - '0') <= 9)
+#define JS7_ISA2F(c)    ((((((unsigned)(c)) - 'a') <= 5) || (((unsigned)(c)) - 'A') <= 5))
 #define JS7_UNDEC(c)    ((c) - '0')
 #define JS7_ISOCT(c)    ((((unsigned)(c)) - '0') <= 7)
 #define JS7_UNOCT(c)    (JS7_UNDEC(c))
-#define JS7_ISHEX(c)    ((c) < 128 && isxdigit(c))
+#define JS7_ISHEX(c)    ((c) < 128 && (JS7_ISDEC(c) || JS7_ISA2F(c)))
 #define JS7_UNHEX(c)    (unsigned)(JS7_ISDEC(c) ? (c) - '0' : 10 + tolower(c) - 'a')
 #define JS7_ISLET(c)    ((c) < 128 && isalpha(c))
 
-extern size_t
-js_strlen(const char16_t* s);
-
-extern int32_t
-js_strcmp(const char16_t* lhs, const char16_t* rhs);
+static MOZ_ALWAYS_INLINE size_t
+js_strlen(const char16_t* s)
+{
+    return std::char_traits<char16_t>::length(s);
+}
 
 template <typename CharT>
 extern const CharT*
 js_strchr_limit(const CharT* s, char16_t c, const CharT* limit);
 
-static MOZ_ALWAYS_INLINE void
-js_strncpy(char16_t* dst, const char16_t* src, size_t nelem)
-{
-    return mozilla::PodCopy(dst, src, nelem);
-}
+extern int32_t
+js_fputs(const char16_t* s, FILE* f);
 
 namespace js {
 
@@ -123,16 +106,27 @@ InitStringClass(JSContext* cx, HandleObject obj);
 extern const char*
 ValueToPrintable(JSContext* cx, const Value&, JSAutoByteString* bytes, bool asSource = false);
 
-extern mozilla::UniquePtr<char[], JS::FreePolicy>
-DuplicateString(ExclusiveContext* cx, const char* s);
+extern UniqueChars
+DuplicateString(JSContext* cx, const char* s);
 
-extern mozilla::UniquePtr<char16_t[], JS::FreePolicy>
-DuplicateString(ExclusiveContext* cx, const char16_t* s);
+extern UniqueTwoByteChars
+DuplicateString(JSContext* cx, const char16_t* s);
 
-// This variant does not report OOMs, you must arrange for OOMs to be reported
-// yourself.
-extern mozilla::UniquePtr<char16_t[], JS::FreePolicy>
+/*
+ * These variants do not report OOMs, you must arrange for OOMs to be reported
+ * yourself.
+ */
+extern UniqueChars
+DuplicateString(const char* s);
+
+extern UniqueChars
+DuplicateString(const char* s, size_t n);
+
+extern UniqueTwoByteChars
 DuplicateString(const char16_t* s);
+
+extern UniqueTwoByteChars
+DuplicateString(const char16_t* s, size_t n);
 
 /*
  * Convert a non-string value to a string, returning null after reporting an
@@ -140,7 +134,7 @@ DuplicateString(const char16_t* s);
  */
 template <AllowGC allowGC>
 extern JSString*
-ToStringSlow(ExclusiveContext* cx, typename MaybeRooted<Value, allowGC>::HandleType arg);
+ToStringSlow(JSContext* cx, typename MaybeRooted<Value, allowGC>::HandleType arg);
 
 /*
  * Convert the given value to a string.  This method includes an inline
@@ -217,23 +211,12 @@ CompareAtoms(JSAtom* atom1, JSAtom* atom2);
 extern bool
 StringEqualsAscii(JSLinearString* str, const char* asciiBytes);
 
-/* Return true if the string contains a pattern anywhere inside it. */
-extern bool
-StringHasPattern(JSLinearString* text, const char16_t* pat, uint32_t patlen);
-
 extern int
 StringFindPattern(JSLinearString* text, JSLinearString* pat, size_t start);
 
 /* Return true if the string contains a pattern at |start|. */
 extern bool
 HasSubstringAt(JSLinearString* text, JSLinearString* pat, size_t start);
-
-template <typename CharT>
-extern bool
-HasRegExpMetaChars(const CharT* chars, size_t length);
-
-extern bool
-StringHasRegExpMetaChars(JSLinearString* str);
 
 template <typename Char1, typename Char2>
 inline bool
@@ -267,12 +250,11 @@ SubstringKernel(JSContext* cx, HandleString str, int32_t beginInt, int32_t lengt
 
 /*
  * Inflate bytes in ASCII encoding to char16_t code units. Return null on error,
- * otherwise return the char16_t buffer that was malloc'ed. length is updated to
- * the length of the new string (in char16_t code units). A null char is
- * appended, but it is not included in the length.
+ * otherwise return the char16_t buffer that was malloc'ed. A null char is
+ * appended.
  */
 extern char16_t*
-InflateString(ExclusiveContext* cx, const char* bytes, size_t* length);
+InflateString(JSContext* cx, const char* bytes, size_t length);
 
 /*
  * Inflate bytes to JS chars in an existing buffer. 'dst' must be large
@@ -303,20 +285,22 @@ extern bool
 DeflateStringToBuffer(JSContext* maybecx, const CharT* chars,
                       size_t charsLength, char* bytes, size_t* length);
 
-/*
- * The String.prototype.replace fast-native entry point is exported for joined
- * function optimization in js{interp,tracer}.cpp.
- */
-extern bool
-str_replace(JSContext* cx, unsigned argc, js::Value* vp);
-
 extern bool
 str_fromCharCode(JSContext* cx, unsigned argc, Value* vp);
 
 extern bool
 str_fromCharCode_one_arg(JSContext* cx, HandleValue code, MutableHandleValue rval);
 
+extern bool
+str_fromCodePoint(JSContext* cx, unsigned argc, Value* vp);
+
+extern bool
+str_fromCodePoint_one_arg(JSContext* cx, HandleValue code, MutableHandleValue rval);
+
 /* String methods exposed so they can be installed in the self-hosting global. */
+
+extern bool
+str_includes(JSContext* cx, unsigned argc, Value* vp);
 
 extern bool
 str_indexOf(JSContext* cx, unsigned argc, Value* vp);
@@ -344,6 +328,39 @@ str_charCodeAt_impl(JSContext* cx, HandleString string, HandleValue index, Mutab
 
 extern bool
 str_charCodeAt(JSContext* cx, unsigned argc, Value* vp);
+
+extern bool
+str_contains(JSContext *cx, unsigned argc, Value *vp);
+
+extern bool
+str_endsWith(JSContext* cx, unsigned argc, Value* vp);
+
+extern bool
+str_trim(JSContext* cx, unsigned argc, Value* vp);
+
+extern bool
+str_trimLeft(JSContext* cx, unsigned argc, Value* vp);
+
+extern bool
+str_trimRight(JSContext* cx, unsigned argc, Value* vp);
+
+#if !EXPOSE_INTL_API
+extern bool
+str_toLocaleLowerCase(JSContext* cx, unsigned argc, Value* vp);
+
+extern bool
+str_toLocaleUpperCase(JSContext* cx, unsigned argc, Value* vp);
+
+extern bool
+str_localeCompare(JSContext* cx, unsigned argc, Value* vp);
+#else
+extern bool
+str_normalize(JSContext* cx, unsigned argc, Value* vp);
+#endif
+
+extern bool
+str_concat(JSContext* cx, unsigned argc, Value* vp);
+
 /*
  * Convert one UCS-4 char and write it into a UTF-8 buffer, which must be at
  * least 4 bytes long.  Return the number of UTF-8 bytes of data written.
@@ -426,23 +443,34 @@ FileEscapedString(FILE* fp, const char* chars, size_t length, uint32_t quote)
 }
 
 bool
-str_match(JSContext* cx, unsigned argc, Value* vp);
+EncodeURI(JSContext* cx, StringBuffer& sb, const char* chars, size_t length);
 
-bool
-str_search(JSContext* cx, unsigned argc, Value* vp);
+ArrayObject*
+str_split_string(JSContext* cx, HandleObjectGroup group, HandleString str, HandleString sep,
+                 uint32_t limit);
 
-bool
-str_split(JSContext* cx, unsigned argc, Value* vp);
-
-JSObject*
-str_split_string(JSContext* cx, HandleObjectGroup group, HandleString str, HandleString sep);
+JSString *
+str_flat_replace_string(JSContext *cx, HandleString string, HandleString pattern,
+                        HandleString replacement);
 
 JSString*
 str_replace_string_raw(JSContext* cx, HandleString string, HandleString pattern,
                        HandleString replacement);
 
+extern JSString*
+StringToLowerCase(JSContext* cx, HandleString string);
+
+extern JSString*
+StringToUpperCase(JSContext* cx, HandleString string);
+
 extern bool
 StringConstructor(JSContext* cx, unsigned argc, Value* vp);
+
+extern bool
+FlatStringMatch(JSContext* cx, unsigned argc, Value* vp);
+
+extern bool
+FlatStringSearch(JSContext* cx, unsigned argc, Value* vp);
 
 } /* namespace js */
 

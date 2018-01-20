@@ -13,10 +13,6 @@
 #include "jit/IonAnalysis.h"
 #include "jit/MIR.h"
 
-// windows.h defines those, which messes with the definitions below.
-#undef min
-#undef max
-
 namespace js {
 namespace jit {
 
@@ -47,7 +43,8 @@ struct LoopIterationBound : public TempObject
     // of the loop header. This will use loop invariant terms and header phis.
     LinearSum currentSum;
 
-    LoopIterationBound(MBasicBlock* header, MTest* test, LinearSum boundSum, LinearSum currentSum)
+    LoopIterationBound(MBasicBlock* header, MTest* test,
+                       const LinearSum& boundSum, const LinearSum& currentSum)
       : header(header), test(test),
         boundSum(boundSum), currentSum(currentSum)
     {
@@ -60,7 +57,7 @@ typedef Vector<LoopIterationBound*, 0, SystemAllocPolicy> LoopIterationBoundVect
 struct SymbolicBound : public TempObject
 {
   private:
-    SymbolicBound(LoopIterationBound* loop, LinearSum sum)
+    SymbolicBound(LoopIterationBound* loop, const LinearSum& sum)
       : loop(loop), sum(sum)
     {
     }
@@ -74,7 +71,8 @@ struct SymbolicBound : public TempObject
     // If nullptr, then 'sum' is always valid.
     LoopIterationBound* loop;
 
-    static SymbolicBound* New(TempAllocator& alloc, LoopIterationBound* loop, LinearSum sum) {
+    static SymbolicBound*
+    New(TempAllocator& alloc, LoopIterationBound* loop, const LinearSum& sum) {
         return new(alloc) SymbolicBound(loop, sum);
     }
 
@@ -95,29 +93,31 @@ class RangeAnalysis
   protected:
     MIRGenerator* mir;
     MIRGraph& graph_;
+    Vector<MBinaryBitwiseInstruction*, 16, SystemAllocPolicy> bitops;
 
     TempAllocator& alloc() const;
 
   public:
     RangeAnalysis(MIRGenerator* mir, MIRGraph& graph) :
         mir(mir), graph_(graph) {}
-    bool addBetaNodes();
-    bool analyze();
-    bool addRangeAssertions();
-    bool removeBetaNodes();
-    bool prepareForUCE(bool* shouldRemoveDeadCode);
-    bool tryRemovingGuards();
-    bool truncate();
+    MOZ_MUST_USE bool addBetaNodes();
+    MOZ_MUST_USE bool analyze();
+    MOZ_MUST_USE bool addRangeAssertions();
+    MOZ_MUST_USE bool removeBetaNodes();
+    MOZ_MUST_USE bool prepareForUCE(bool* shouldRemoveDeadCode);
+    MOZ_MUST_USE bool tryRemovingGuards();
+    MOZ_MUST_USE bool truncate();
+    MOZ_MUST_USE bool removeUnnecessaryBitops();
 
     // Any iteration bounds discovered for loops in the graph.
     LoopIterationBoundVector loopIterationBounds;
 
   private:
-    bool analyzeLoop(MBasicBlock* header);
+    MOZ_MUST_USE bool analyzeLoop(MBasicBlock* header);
     LoopIterationBound* analyzeLoopIterationCount(MBasicBlock* header,
                                                   MTest* test, BranchDirection direction);
     void analyzeLoopPhi(MBasicBlock* header, LoopIterationBound* loopBound, MPhi* phi);
-    bool tryHoistBoundsCheck(MBasicBlock* header, MBoundsCheck* ins);
+    MOZ_MUST_USE bool tryHoistBoundsCheck(MBasicBlock* header, MBoundsCheck* ins);
 };
 
 class Range : public TempObject {
@@ -452,7 +452,7 @@ class Range : public TempObject {
 
     void dump(GenericPrinter& out) const;
     void dump() const;
-    bool update(const Range* other);
+    MOZ_MUST_USE bool update(const Range* other);
 
     // Unlike the other operations, unionWith is an in-place
     // modification. This is to avoid a bunch of useless extra
@@ -480,8 +480,9 @@ class Range : public TempObject {
     static Range* floor(TempAllocator& alloc, const Range* op);
     static Range* ceil(TempAllocator& alloc, const Range* op);
     static Range* sign(TempAllocator& alloc, const Range* op);
+    static Range* NaNToZero(TempAllocator& alloc, const Range* op);
 
-    static bool negativeZeroMul(const Range* lhs, const Range* rhs);
+    static MOZ_MUST_USE bool negativeZeroMul(const Range* lhs, const Range* rhs);
 
     bool isUnknownInt32() const {
         return isInt32() && lower() == INT32_MIN && upper() == INT32_MAX;

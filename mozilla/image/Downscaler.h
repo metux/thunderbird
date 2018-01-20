@@ -14,11 +14,11 @@
 
 #include "mozilla/Maybe.h"
 #include "mozilla/UniquePtr.h"
+#include "gfxPoint.h"
 #include "nsRect.h"
-
-namespace skia {
-  class ConvolutionFilter1D;
-} // namespace skia
+#ifdef MOZ_ENABLE_SKIA
+#include "mozilla/gfx/ConvolutionFilter.h"
+#endif
 
 namespace mozilla {
 namespace image {
@@ -58,7 +58,7 @@ public:
 
   const nsIntSize& OriginalSize() const { return mOriginalSize; }
   const nsIntSize& TargetSize() const { return mTargetSize; }
-  const nsIntSize FrameSize() const { return nsIntSize(mFrameRect.width, mFrameRect.height); }
+  const nsIntSize FrameSize() const { return nsIntSize(mFrameRect.Width(), mFrameRect.Height()); }
   const gfxSize& Scale() const { return mScale; }
 
   /**
@@ -92,8 +92,11 @@ public:
     return mRowBuffer.get() + mFrameRect.x * sizeof(uint32_t);
   }
 
-  /// Clears the current row buffer (optionally starting at @aStartingAtCol).
-  void ClearRow(uint32_t aStartingAtCol = 0);
+  /// Clears the current row buffer.
+  void ClearRow() { ClearRestOfRow(0); }
+
+  /// Clears the current row buffer starting at @aStartingAtCol.
+  void ClearRestOfRow(uint32_t aStartingAtCol);
 
   /// Signals that the decoder has finished writing a row into the row buffer.
   void CommitRow();
@@ -126,8 +129,8 @@ private:
   UniquePtr<uint8_t[]> mRowBuffer;
   UniquePtr<uint8_t*[]> mWindow;
 
-  UniquePtr<skia::ConvolutionFilter1D> mXFilter;
-  UniquePtr<skia::ConvolutionFilter1D> mYFilter;
+  gfx::ConvolutionFilter mXFilter;
+  gfx::ConvolutionFilter mYFilter;
 
   int32_t mWindowCapacity;
 
@@ -150,14 +153,14 @@ private:
 class Downscaler
 {
 public:
-  explicit Downscaler(const nsIntSize&)
+  explicit Downscaler(const nsIntSize&) : mScale(1.0, 1.0)
   {
     MOZ_RELEASE_ASSERT(false, "Skia is not enabled");
   }
 
-  const nsIntSize& OriginalSize() const { return nsIntSize(); }
-  const nsIntSize& TargetSize() const { return nsIntSize(); }
-  const gfxSize& Scale() const { return gfxSize(1.0, 1.0); }
+  const nsIntSize& OriginalSize() const { return mSize; }
+  const nsIntSize& TargetSize() const { return mSize; }
+  const gfxSize& Scale() const { return mScale; }
 
   nsresult BeginFrame(const nsIntSize&, const Maybe<nsIntRect>&, uint8_t*, bool, bool = false)
   {
@@ -166,12 +169,16 @@ public:
 
   bool IsFrameComplete() const { return false; }
   uint8_t* RowBuffer() { return nullptr; }
-  void ClearRow(uint32_t = 0) { }
+  void ClearRow() { }
+  void ClearRestOfRow(uint32_t) { }
   void CommitRow() { }
   bool HasInvalidation() const { return false; }
   DownscalerInvalidRect TakeInvalidRect() { return DownscalerInvalidRect(); }
   void ResetForNextProgressivePass() { }
   const nsIntSize FrameSize() const { return nsIntSize(0, 0); }
+private:
+  nsIntSize mSize;
+  gfxSize mScale;
 };
 
 #endif // MOZ_ENABLE_SKIA

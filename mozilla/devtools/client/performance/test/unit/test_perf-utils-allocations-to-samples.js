@@ -1,15 +1,12 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
+"use strict";
 
 /**
  * Tests if allocations data received from the performance actor is properly
  * converted to something that follows the same structure as the samples data
  * received from the profiler.
  */
-
-function run_test() {
-  run_next_test();
-}
 
 add_task(function () {
   const { getProfileThreadFromAllocations } = require("devtools/shared/performance/recording-utils");

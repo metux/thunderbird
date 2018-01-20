@@ -3,41 +3,22 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 """Utility functions for Talos"""
+from __future__ import absolute_import
 
-import os
-import time
-import urlparse
-import string
-import urllib
-import logging
 import json
-import re
+import os
 import platform
+import re
+import string
+import time
+import urllib
+import urlparse
+
+from mozlog import get_proxy_logger
 
 # directory of this file for use with interpolatePath()
 here = os.path.dirname(os.path.realpath(__file__))
-
-
-def _get_platform():
-    # get the platform we're interested in. Note that the values
-    # are used in TTest historically, this is why they are not really friendly.
-    # TODO: give some user friendly values
-    if platform.system() == "Linux":
-        return 'linux_'
-    elif platform.system() in ("Windows", "Microsoft"):
-        if '5.1' in platform.version():  # winxp
-            return 'win_'
-        elif '6.1' in platform.version():  # w7
-            return 'w7_'
-        elif '6.2' in platform.version():  # w8
-            return 'w8_'
-        else:
-            raise TalosError('unsupported windows version')
-    elif platform.system() == "Darwin":
-        return 'mac_'
-
-
-PLATFORM_TYPE = _get_platform()
+LOG = get_proxy_logger()
 
 
 class Timer(object):
@@ -51,13 +32,6 @@ class Timer(object):
     def elapsed(self):
         seconds = time.time() - self._start_time
         return time.strftime("%H:%M:%S", time.gmtime(seconds))
-
-
-def startLogger(levelChoice):
-    # declare and define global logger object to send logging messages to
-    log_levels = {'debug': logging.DEBUG, 'info': logging.INFO}
-    logging.basicConfig(format='%(asctime)-15s %(levelname)s : %(message)s',
-                        level=log_levels[levelChoice])
 
 
 class TalosError(Exception):
@@ -175,11 +149,6 @@ def GenerateBrowserCommandLine(browser_path, extra_args, profile_dir,
 
     command_args.extend(url.split(' '))
 
-    # Handle media performance tests
-    if url.find('media_manager.py') != -1:
-        command_args = url.split(' ')
-
-    logging.debug("command line: %s", ' '.join(command_args))
     return command_args
 
 

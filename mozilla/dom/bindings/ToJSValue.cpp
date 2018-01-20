@@ -7,6 +7,7 @@
 #include "mozilla/dom/ToJSValue.h"
 #include "mozilla/dom/DOMException.h"
 #include "mozilla/dom/Exceptions.h"
+#include "mozilla/dom/Promise.h"
 #include "nsAString.h"
 #include "nsContentUtils.h"
 #include "nsStringBuffer.h"
@@ -43,7 +44,7 @@ ToJSValue(JSContext* aCx,
           nsresult aArgument,
           JS::MutableHandle<JS::Value> aValue)
 {
-  RefPtr<Exception> exception = CreateException(aCx, aArgument);
+  RefPtr<Exception> exception = CreateException(aArgument);
   return ToJSValue(aCx, exception, aValue);
 }
 
@@ -55,13 +56,18 @@ ToJSValue(JSContext* aCx,
   MOZ_ASSERT(aArgument.Failed());
   MOZ_ASSERT(!aArgument.IsUncatchableException(),
              "Doesn't make sense to convert uncatchable exception to a JS value!");
-  AutoForceSetExceptionOnContext forceExn(aCx);
-  DebugOnly<bool> throwResult = aArgument.MaybeSetPendingException(aCx);
-  MOZ_ASSERT(throwResult);
-  DebugOnly<bool> getPendingResult = JS_GetPendingException(aCx, aValue);
-  MOZ_ASSERT(getPendingResult);
+  MOZ_ALWAYS_TRUE(aArgument.MaybeSetPendingException(aCx));
+  MOZ_ALWAYS_TRUE(JS_GetPendingException(aCx, aValue));
   JS_ClearPendingException(aCx);
   return true;
+}
+
+bool
+ToJSValue(JSContext* aCx, Promise& aArgument,
+          JS::MutableHandle<JS::Value> aValue)
+{
+  aValue.setObject(*aArgument.PromiseObj());
+  return MaybeWrapObjectValue(aCx, aValue);
 }
 
 } // namespace dom

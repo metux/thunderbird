@@ -13,7 +13,7 @@
 #include "nsTArray.h"
 #include "nsCOMArray.h"
 #include "nsCOMPtr.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 
 struct nsMsgRecipient
 {
@@ -62,6 +62,8 @@ public:
     MSG_MESSAGE_ID_HEADER_ID,
     MSG_X_TEMPLATE_HEADER_ID,
     MSG_DRAFT_ID_HEADER_ID,
+    MSG_CONTENT_LANGUAGE_ID,
+    MSG_CREATOR_IDENTITY_KEY_ID,
 
     MSG_MAX_HEADERS   //Must be the last one.
   } MsgHeaderID;
@@ -126,10 +128,13 @@ public:
 
   const char* GetDraftId() {return GetAsciiHeader(MSG_DRAFT_ID_HEADER_ID);}
 
+  const char* GetContentLanguage() {return GetAsciiHeader(MSG_CONTENT_LANGUAGE_ID);}
+
   bool GetReturnReceipt() {return m_returnReceipt;}
   bool GetDSN() {return m_DSN;}
   bool GetAttachVCard() {return m_attachVCard;}
   bool GetAttachmentReminder() {return m_attachmentReminder;}
+  int32_t GetDeliveryFormat() {return m_deliveryFormat;}
   bool GetForcePlainText() {return m_forcePlainText;}
   bool GetUseMultipartAlternative() {return m_useMultipartAlternative;}
   bool GetBodyIsAsciiOnly() {return m_bodyIsAsciiOnly;}
@@ -148,6 +153,7 @@ protected:
   nsCOMArray<nsIMsgAttachment> m_attachments;
   bool        m_attachVCard;
   bool        m_attachmentReminder;
+  int32_t     m_deliveryFormat;
   bool        m_forcePlainText;
   bool        m_useMultipartAlternative;
   bool        m_returnReceipt;

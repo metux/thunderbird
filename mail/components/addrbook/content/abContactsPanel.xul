@@ -36,39 +36,86 @@
               commandupdater="true"
               events="focus,addrbook-select"
               oncommandupdate="CommandUpdate_AddressBook()">
+    <command id="cmd_addrTo" oncommand="addSelectedAddresses('addr_to')" disabled="true"/>
+    <command id="cmd_addrCc" oncommand="addSelectedAddresses('addr_cc')" disabled="true"/>
+    <command id="cmd_addrBcc" oncommand="addSelectedAddresses('addr_bcc')" disabled="true"/>
     <command id="cmd_delete" oncommand="goDoCommand('cmd_delete');"/>
     <command id="cmd_properties" oncommand="goDoCommand('cmd_properties');"/>
+    <command id="cmd_newCard" oncommand="AbPanelNewCard();"/>
+    <command id="cmd_newlist" oncommand="AbPanelNewList();"/>
   </commandset>
+  <broadcasterset id="cmd_properties-flavors">
+    <broadcaster id="cmd_properties-contextMenu" observes="cmd_properties"
+                 valueGeneric="&propertiesContext.label;"
+                 valueGenericAccessKey="&propertiesContext.accesskey;"
+                 valueAddressBook="&abPropertiesContext.label;"
+                 valueAddressBookAccessKey="&abPropertiesContext.accesskey;"
+                 valueContact="&editContactContext.label;"
+                 valueContactAccessKey="&editContactContext.accesskey;"
+                 valueMailingList="&editMailingListContext.label;"
+                 valueMailingListAccessKey="&editMailingListContext.accesskey;"/>
+    <broadcaster id="cmd_properties-menu" observes="cmd_properties"
+                 valueGeneric="&propertiesMenu.label;"
+                 valueGenericAccessKey="&propertiesMenu.accesskey;"
+                 valueAddressBook="&abPropertiesMenu.label;"
+                 valueAddressBookAccessKey="&abPropertiesMenu.accesskey;"
+                 valueContact="&contactPropertiesMenu.label;"
+                 valueContactAccessKey="&contactPropertiesMenu.accesskey;"
+                 valueMailingList="&mailingListPropertiesMenu.label;"
+                 valueMailingListAccessKey="&mailingListPropertiesMenu.accesskey;"/>
+  </broadcasterset>
 
-  <!-- These keys do not really run any command, but they are used to show
-       the hotkeys at the corresponding menuitems -->
-  <key id="key_delete" keycode="VK_DELETE"/>
-  <key id="key_properties" modifiers="alt" keycode="VK_RETURN"/>
+  <keyset id="keyset_abContactsPanel">
+    <!-- This key (key_delete) does not trigger any command, but it is used
+         only to show the hotkey on the corresponding menuitem. -->
+    <key id="key_delete" keycode="VK_DELETE"/>
+#ifdef XP_MACOSX
+    <key id="key_properties" modifiers="accel" key="&propertiesCmd.key;" command="cmd_properties"/>
+#else
+    <key id="key_properties" modifiers="alt" keycode="VK_RETURN" command="cmd_properties"/>
+    <key id="key_properties2" modifiers="accel" key="&propertiesCmd.key;" command="cmd_properties"/>
+#endif
+  </keyset>
 
   <menupopup id="cardProperties">
+    <menuitem label="&addtoToFieldMenu.label;"
+              accesskey="&addtoToFieldMenu.accesskey;"
+              command="cmd_addrTo"/>
+    <menuitem label="&addtoCcFieldMenu.label;"
+              accesskey="&addtoCcFieldMenu.accesskey;"
+              command="cmd_addrCc"/>
+    <menuitem label="&addtoBccFieldMenu.label;"
+              accesskey="&addtoBccFieldMenu.accesskey;"
+              command="cmd_addrBcc"/>
+    <menuseparator/>
     <menuitem label="&deleteAddrBookCard.label;"
               accesskey="&deleteAddrBookCard.accesskey;"
               key="key_delete"
               command="cmd_delete"/>
-    <menuitem label="&addrBookCardProperties.label;"
-              accesskey="&addrBookCardProperties.accesskey;"
-              key="key_properties"
-              command="cmd_properties"/>
     <menuseparator/>
-    <menuitem label="&addtoToFieldMenu.label;"
-              accesskey="&addtoToFieldMenu.accesskey;"
-              oncommand="addSelectedAddresses('addr_to');"/>
-    <menuitem label="&addtoCcFieldMenu.label;"
-              accesskey="&addtoCcFieldMenu.accesskey;"
-              oncommand="addSelectedAddresses('addr_cc');"/>
-    <menuitem label="&addtoBccFieldMenu.label;"
-              accesskey="&addtoBccFieldMenu.accesskey;"
-              oncommand="addSelectedAddresses('addr_bcc');"/>
+    <menuitem label="&propertiesContext.label;"
+              key="key_properties"
+              command="cmd_properties-contextMenu"/>
+  </menupopup>
+
+  <menupopup id="sidebarAbContextMenu">
+    <menuitem label="&newContactAbContext.label;"
+              accesskey="&newContactAbContext.accesskey;"
+              command="cmd_newCard"/>
+    <menuitem label="&newListAbContext.label;"
+              accesskey="&newListAbContext.accesskey;"
+              command="cmd_newlist"/>
   </menupopup>
 
   <vbox id="results_box" flex="1">
     <separator class="thin"/>
-    <label value="&addressbookPicker.label;" accesskey="&addressbookPicker.accesskey;" control="addressbookList"/>
+    <hbox id="AbPickerHeader" class="toolbar">
+      <label value="&addressbookPicker.label;" accesskey="&addressbookPicker.accesskey;" control="addressbookList"/>
+      <spacer flex="1"/>
+      <toolbarbutton id="abContextMenuButton"
+                     tooltiptext="&abContextMenuButton.tooltip;"
+                     onclick="showContextMenu('sidebarAbContextMenu', event, [this, 'after_end', 0, 0, true]);"/>
+    </hbox>
     <hbox id="panel-bar" class="toolbar" align="center">
       <menulist id="addressbookList"
                 oncommand="AddressBookMenuListChange();" flex="1"
@@ -80,8 +127,8 @@
     <separator class="thin"/>
 
     <vbox>
-      <label value="&searchInput.label;"
-             accesskey="&searchInput.accesskey;"
+      <label value="&searchContacts.label;"
+             accesskey="&searchContacts.accesskey;"
              control="peopleSearchInput"/>
       <textbox type="search"
                id="peopleSearchInput"
@@ -95,10 +142,12 @@
 
     <separator class="thin"/>
 
-    <tree id="abResultsTree" flex="1" context="cardProperties" class="plain" sortCol="GeneratedName" persist="sortCol"
+    <tree id="abResultsTree" flex="1" class="plain" sortCol="GeneratedName" persist="sortCol"
+          contextSelection="cardProperties"
+          contextNoSelection="sidebarAbContextMenu"
+          oncontextmenu="contactsListOnContextMenu(event);"
           onclick="contactsListOnClick(event);"
-          onselect="this.view.selectionChanged(); document.commandDispatcher.updateCommands('addrbook-select');"
-          onkeypress="contactsListOnKeyPress(event);">
+          onselect="this.view.selectionChanged(); document.commandDispatcher.updateCommands('addrbook-select');">
       <treecols>
         <!-- these column ids must match up to the mork column names, see nsIAddrDatabase.idl -->
         <treecol id="GeneratedName"
@@ -125,16 +174,16 @@
         </columns>
         <rows>
           <row id="toButtonBox">
-              <button id="toButton" label="&toButton.label;" accesskey="&toButton.accesskey;"
-                      oncommand="addSelectedAddresses('addr_to')"/>
+                  <button id="toButton" label="&toButton.label;"
+                          accesskey="&toButton.accesskey;" command="cmd_addrTo"/>
           </row>
           <row id="ccButtonBox">
-              <button id="ccButton" label="&ccButton.label;" accesskey="&ccButton.accesskey;"
-                      oncommand="addSelectedAddresses('addr_cc')"/>
+                  <button id="ccButton" label="&ccButton.label;"
+                          accesskey="&ccButton.accesskey;" command="cmd_addrCc"/>
           </row>
           <row id="bccButtonBox">
-              <button id="bccButton" label="&bccButton.label;" accesskey="&bccButton.accesskey;"
-                      oncommand="addSelectedAddresses('addr_bcc')"/>
+                  <button id="bccButton" label="&bccButton.label;"
+                          accesskey="&bccButton.accesskey;" command="cmd_addrBcc"/>
           </row>
         </rows>
       </grid>

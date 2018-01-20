@@ -39,6 +39,7 @@ public:
   // Accessible
   virtual a11y::role NativeRole() override;
   virtual uint64_t NativeState() override;
+  virtual bool IsAcceptableChild(nsIContent* aEl) const override;
 
   // SelectAccessible
   virtual bool SelectAll() override;
@@ -50,11 +51,6 @@ public:
   virtual bool AreItemsOperable() const override;
   virtual Accessible* CurrentItem() override;
   virtual void SetCurrentItem(Accessible* aItem) override;
-
-protected:
-
-  // Accessible
-  virtual void CacheChildren() override;
 };
 
 /*
@@ -102,7 +98,7 @@ private:
 
     if (parent && parent->IsListControl()) {
       Accessible* combobox = parent->Parent();
-      return combobox && combobox->IsCombobox() ? combobox : mParent.get();
+      return combobox && combobox->IsCombobox() ? combobox : mParent;
     }
 
     return nullptr;
@@ -141,6 +137,7 @@ public:
   // Accessible
   virtual a11y::role NativeRole() override;
   virtual uint64_t NativeInteractiveState() const override;
+  virtual bool IsAcceptableChild(nsIContent* aEl) const override;
 
   // ActionAccessible
   virtual uint8_t ActionCount() override;
@@ -171,8 +168,8 @@ public:
   virtual void Value(nsString& aValue) override;
   virtual a11y::role NativeRole() override;
   virtual uint64_t NativeState() override;
-  virtual void InvalidateChildren() override;
   virtual bool RemoveChild(Accessible* aChild) override;
+  virtual bool IsAcceptableChild(nsIContent* aEl) const override;
 
   // ActionAccessible
   virtual uint8_t ActionCount() override;
@@ -187,9 +184,6 @@ public:
   virtual void SetCurrentItem(Accessible* aItem) override;
 
 protected:
-  // Accessible
-  virtual void CacheChildren() override;
-
   /**
    * Return selected option.
    */
@@ -217,6 +211,7 @@ public:
   virtual a11y::role NativeRole() override;
   virtual uint64_t NativeState() override;
   virtual nsRect RelativeBounds(nsIFrame** aBoundingFrame) const override;
+  virtual bool IsAcceptableChild(nsIContent* aEl) const override;
 
   // Widgets
   virtual bool IsActiveWidget() const override;

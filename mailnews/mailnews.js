@@ -14,6 +14,10 @@ pref("mailnews.logComposePerformance", false);
 pref("mail.wrap_long_lines",                true);
 pref("mail.inline_attachments",             true);
 pref("mail.reply_quote_inline",             false);
+// When in a message the List-Post header contains the content of the Reply-To
+// (which is called "Reply-To Munging") we override the Reply-To header with
+// the From header.
+pref("mail.override_list_reply_to", true);
 
 // hidden pref for controlling if the user agent string
 // is displayed in the message pane or not...
@@ -87,6 +91,16 @@ pref("mail.db.idle_limit", 300000);
 // How many db's should we leave open? LRU db's will be closed first
 pref("mail.db.max_open", 30);
 
+// Should we allow folders over 4GB in size?
+pref("mailnews.allowMboxOver4GB", true);
+
+// For IMAP caching lift the limits since they are designed for HTML pages.
+// Note that the maximum size of a cache entry is limited by
+// max_entry_size and (capacity >> 3), so devided by 8.
+// Larger messages or attachments won't be cached.
+pref("browser.cache.memory.max_entry_size", 25000); //  25 MB
+pref("browser.cache.memory.capacity",      200000); // 200 MB = 8*25 MB
+
 pref("mail.imap.chunk_size",                65536);
 pref("mail.imap.min_chunk_size_threshold",  98304);
 pref("mail.imap.chunk_fast",                2);
@@ -105,7 +119,7 @@ pref("mail.imap.expunge_threshold_number",  20);
 pref("mail.imap.hdr_chunk_size", 200);
 // Should we filter imap messages based on new messages since the previous
 // highest UUID seen instead of unread?
-pref("mail.imap.filter_on_new", false);
+pref("mail.imap.filter_on_new", true);
 
 // if true, we assume that a user access a folder in the other users namespace
 // is acting as a delegate for that folder, and wishes to use the other users
@@ -152,6 +166,9 @@ pref("mail.accountwizard.deferstorage", false);
 pref("mail.showCondensedAddresses", false);
 #endif
 
+pref("mail.addr_book.view.startupURI", "moz-abdirectory://?");
+pref("mail.addr_book.view.startupURIisDefault", true);
+
 // mail.addr_book.quicksearchquery.format is the model query used for:
 // * TB: AB Quick Search and composition's Contact Side Bar
 // * SM: AB Quick Search and composition's Select Addresses dialogue
@@ -191,6 +208,8 @@ pref("mail.html_compose",                   true);
 pref("mail.compose.other.header", "");
 pref("mail.compose.autosave", true);
 pref("mail.compose.autosaveinterval", 5); // in minutes
+pref("mail.compose.default_to_paragraph", false);
+
 // true:  If the message has practically no HTML formatting, bypass recipient-centric
 //        auto-detection of delivery format; auto-downgrade and silently send as plain text.
 // false: Don't auto-downgrade; use recipient-centric auto-detection of best delivery format,
@@ -220,12 +239,9 @@ pref("news.update_unread_on_expand",        true);
 pref("news.get_messages_on_select",         true);
 
 pref("mailnews.wraplength",                 72);
-pref("mail.compose.wrap_to_window_width",   false);
 
 // 0=no header, 1="<author> wrote:", 2="On <date> <author> wrote:", 3="<author> wrote On <date>:", 4=user specified
 pref("mailnews.reply_header_type",          1);
-// locale which affects date format, set empty string to use application default locale
-pref("mailnews.reply_header_locale",        "");
 pref("mailnews.reply_header_authorwrotesingle", "chrome://messenger/locale/messengercompose/composeMsgs.properties");
 pref("mailnews.reply_header_ondateauthorwrote", "chrome://messenger/locale/messengercompose/composeMsgs.properties");
 pref("mailnews.reply_header_authorwroteondate", "chrome://messenger/locale/messengercompose/composeMsgs.properties");
@@ -489,6 +505,25 @@ pref("mail.server.default.inhibitWhiteListingIdentityUser", true);
 // should we inhibit whitelisting of the domain for a server's identities?
 pref("mail.server.default.inhibitWhiteListingIdentityDomain", false);
 
+// When force_select is "auto" the ID response for the server will be compared to
+// force_select_detect below and, if they compare, an extra imap select will
+// be sent when checking for new mail. If force_select is "no", the extra
+// select will never occur, and, if "yes" it will always occur when checking for
+// new email (both regardless of the ID response string).
+// The extra select insures that new emails are automatically detected by servers
+// requiring it. Also, if a server does not support IDLE, setting this to "yes"
+// can insure messages are marked as "read" after being read in other email clients.
+pref("mail.server.default.force_select", "auto");
+
+// Specify imap ID response substrings that must occur to cause the extra/forced
+// imap select for server(s).  Substrings are comma separated within a given server
+// (all substrings within a server must be found in the ID response string) and
+// servers are semicolon separated. Currently only 1 server type is known
+// to require the extra select -- Openwave server used by Charter-Spectrum ISP.
+pref("mail.imap.force_select_detect", "\"name\" \"Email Mx\",\"vendor\" \"Openwave Messaging\"");
+// Example if ever another server requires the extra select (ID substrings from Yahoo! added):
+//pref("mail.imap.force_select_detect", "\"name\" \"Email Mx\",\"vendor\" \"Openwave Messaging\";\"vendor\" \"Yahoo! Inc.\",\"name\" \"Y!IMAP\";");
+
 // to activate auto-sync feature (preemptive message download for imap) by default
 pref("mail.server.default.autosync_offline_stores",true);
 pref("mail.server.default.offline_download",true);
@@ -621,8 +656,6 @@ pref("mailnews.global_html_domains.version", 1);
 /////////////////////////////////////////////////////////////////
 // Privacy Controls for Handling Remote Content
 /////////////////////////////////////////////////////////////////
-// Specific plugins pref just for message content. RSS is not covered by this.
-pref("mailnews.message_display.allow_plugins", false);
 pref("mailnews.message_display.disable_remote_image", true);
 
 /////////////////////////////////////////////////////////////////
@@ -659,7 +692,11 @@ pref("mail.biff.alert.show_subject", true);
 pref("mail.biff.alert.show_sender",  true);
 pref("mail.biff.alert.preview_length", 40);
 
+#ifdef XP_MACOSX
+pref("mail.biff.play_sound", false);
+#else
 pref("mail.biff.play_sound", true);
+#endif
 // 0 == default system sound, 1 == user specified wav
 pref("mail.biff.play_sound.type", 0);
 // _moz_mailbeep is a magic key, for the default sound.
@@ -732,8 +769,6 @@ pref("mailnews.ui.select_addresses_results.version", 1);
 // to hide the non default columns in the advanced directory search dialog
 // see abCommon.js and ABSearchDialog.js
 pref("mailnews.ui.advanced_directory_search_results.version", 1);
-//If set to a number greater than 0, msg compose windows will be recycled in order to open them quickly
-pref("mail.compose.max_recycled_windows", 1);
 
 // default description and color prefs for tags
 // (we keep the .labels. names for backwards compatibility)
@@ -767,10 +802,10 @@ pref("msgcompose.background_color",         "#FFFFFF");
 // to prevent some mail server to disclose the bcc recipients
 pref("mail.compose.add_undisclosed_recipients", true);
 
-// Set this preference to true to tell mail not to attach the source of a link to a local
-// network file (file://///<network name>/<path>/<file name>). Windows only
-pref("mail.compose.dont_attach_source_of_local_network_links", false);
 pref("mail.compose.dontWarnMail2Newsgroup", false);
+
+// Attach http image resources to composed messages.
+pref("mail.compose.attach_http_images", false);
 
 // these prefs (in minutes) are here to help QA test this feature
 // "mail.purge.min_delay", never purge a junk folder more than once every 480 minutes (60 mins/hour * 8 hours)

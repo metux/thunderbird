@@ -6,53 +6,69 @@
 
 #include "AgnosticDecoderModule.h"
 #include "OpusDecoder.h"
-#include "VorbisDecoder.h"
+#include "TheoraDecoder.h"
 #include "VPXDecoder.h"
+#include "VorbisDecoder.h"
+#include "WAVDecoder.h"
+#include "mozilla/Logging.h"
+
+#ifdef MOZ_AV1
+#include "AOMDecoder.h"
+#endif
 
 namespace mozilla {
 
 bool
-AgnosticDecoderModule::SupportsMimeType(const nsACString& aMimeType) const
+AgnosticDecoderModule::SupportsMimeType(
+  const nsACString& aMimeType,
+  DecoderDoctorDiagnostics* aDiagnostics) const
 {
-  return VPXDecoder::IsVPX(aMimeType) ||
+  bool supports =
+    VPXDecoder::IsVPX(aMimeType) ||
+#ifdef MOZ_AV1
+    AOMDecoder::IsAV1(aMimeType) ||
+#endif
     OpusDataDecoder::IsOpus(aMimeType) ||
-    VorbisDataDecoder::IsVorbis(aMimeType);
+    VorbisDataDecoder::IsVorbis(aMimeType) ||
+    WaveDataDecoder::IsWave(aMimeType) ||
+    TheoraDecoder::IsTheora(aMimeType);
+  MOZ_LOG(sPDMLog, LogLevel::Debug, ("Agnostic decoder %s requested type",
+        supports ? "supports" : "rejects"));
+  return supports;
 }
 
 already_AddRefed<MediaDataDecoder>
-AgnosticDecoderModule::CreateVideoDecoder(const VideoInfo& aConfig,
-                                          layers::LayersBackend aLayersBackend,
-                                          layers::ImageContainer* aImageContainer,
-                                          FlushableTaskQueue* aVideoTaskQueue,
-                                          MediaDataDecoderCallback* aCallback)
+AgnosticDecoderModule::CreateVideoDecoder(const CreateDecoderParams& aParams)
 {
   RefPtr<MediaDataDecoder> m;
 
-  if (VPXDecoder::IsVPX(aConfig.mMimeType)) {
-    m = new VPXDecoder(*aConfig.GetAsVideoInfo(),
-                       aImageContainer,
-                       aVideoTaskQueue,
-                       aCallback);
+  if (VPXDecoder::IsVPX(aParams.mConfig.mMimeType)) {
+    m = new VPXDecoder(aParams);
+  }
+#ifdef MOZ_AV1
+  else if (AOMDecoder::IsAV1(aParams.mConfig.mMimeType)) {
+    m = new AOMDecoder(aParams);
+  }
+#endif
+  else if (TheoraDecoder::IsTheora(aParams.mConfig.mMimeType)) {
+    m = new TheoraDecoder(aParams);
   }
 
   return m.forget();
 }
 
 already_AddRefed<MediaDataDecoder>
-AgnosticDecoderModule::CreateAudioDecoder(const AudioInfo& aConfig,
-                                          FlushableTaskQueue* aAudioTaskQueue,
-                                          MediaDataDecoderCallback* aCallback)
+AgnosticDecoderModule::CreateAudioDecoder(const CreateDecoderParams& aParams)
 {
   RefPtr<MediaDataDecoder> m;
 
-  if (VorbisDataDecoder::IsVorbis(aConfig.mMimeType)) {
-    m = new VorbisDataDecoder(*aConfig.GetAsAudioInfo(),
-                              aAudioTaskQueue,
-                              aCallback);
-  } else if (OpusDataDecoder::IsOpus(aConfig.mMimeType)) {
-    m = new OpusDataDecoder(*aConfig.GetAsAudioInfo(),
-                            aAudioTaskQueue,
-                            aCallback);
+  const TrackInfo& config = aParams.mConfig;
+  if (VorbisDataDecoder::IsVorbis(config.mMimeType)) {
+    m = new VorbisDataDecoder(aParams);
+  } else if (OpusDataDecoder::IsOpus(config.mMimeType)) {
+    m = new OpusDataDecoder(aParams);
+  } else if (WaveDataDecoder::IsWave(config.mMimeType)) {
+    m = new WaveDataDecoder(aParams);
   }
 
   return m.forget();

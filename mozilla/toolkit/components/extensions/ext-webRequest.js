@@ -1,65 +1,50 @@
 "use strict";
 
-var { classes: Cc, interfaces: Ci, utils: Cu } = Components;
+// The ext-* files are imported into the same scopes.
+/* import-globals-from ext-toolkit.js */
 
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+// This file expectes tabTracker to be defined in the global scope (e.g.
+// by ext-utils.js).
+/* global tabTracker */
 
-XPCOMUtils.defineLazyModuleGetter(this, "MatchPattern",
-                                  "resource://gre/modules/MatchPattern.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "WebRequest",
                                   "resource://gre/modules/WebRequest.jsm");
 
-Cu.import("resource://gre/modules/ExtensionUtils.jsm");
-var {
-  SingletonEventManager,
-  runSafeSync,
-  ignoreEvent,
-} = ExtensionUtils;
-
 // EventManager-like class specifically for WebRequest. Inherits from
-// SingletonEventManager. Takes care of converting |details| parameter
+// EventManager. Takes care of converting |details| parameter
 // when invoking listeners.
 function WebRequestEventManager(context, eventName) {
   let name = `webRequest.${eventName}`;
-  let register = (callback, filter, info) => {
+  let register = (fire, filter, info) => {
     let listener = data => {
-      if (!data.browser) {
+      let browserData = {tabId: -1, windowId: -1};
+      if (data.browser) {
+        browserData = tabTracker.getBrowserData(data.browser);
+      }
+      if (filter.tabId != null && browserData.tabId != filter.tabId) {
+        return;
+      }
+      if (filter.windowId != null && browserData.windowId != filter.windowId) {
         return;
       }
 
-      let tabId = TabManager.getBrowserId(data.browser);
-      if (tabId == -1) {
-        return;
-      }
+      let event = data.serialize(eventName);
+      event.tabId = browserData.tabId;
 
-      let data2 = {
-        url: data.url,
-        method: data.method,
-        type: data.type,
-        timeStamp: Date.now(),
-        frameId: ExtensionManagement.getFrameId(data.windowId),
-        parentFrameId: ExtensionManagement.getParentFrameId(data.parentWindowId, data.windowId),
-      };
-
-      // Fills in tabId typically.
-      let result = {};
-      extensions.emit("fill-browser-data", data.browser, data2, result);
-      if (result.cancel) {
-        return;
-      }
-
-      let optional = ["requestHeaders", "responseHeaders", "statusCode"];
-      for (let opt of optional) {
-        if (opt in data) {
-          data2[opt] = data[opt];
-        }
-      }
-
-      return runSafeSync(context, callback, data2);
+      return fire.sync(event);
     };
 
     let filter2 = {};
-    filter2.urls = new MatchPattern(filter.urls);
+    if (filter.urls) {
+      let perms = new MatchPatternSet([...context.extension.whiteListedHosts.patterns,
+                                       ...context.extension.optionalOrigins.patterns]);
+
+      filter2.urls = new MatchPatternSet(filter.urls);
+
+      if (!perms.overlapsAll(filter2.urls)) {
+        Cu.reportError("The webRequest.addListener filter doesn't overlap with host permissions.");
+      }
+    }
     if (filter.types) {
       filter2.types = filter.types;
     }
@@ -70,10 +55,12 @@ function WebRequestEventManager(context, eventName) {
       filter2.windowId = filter.windowId;
     }
 
+    let blockingAllowed = context.extension.hasPermission("webRequestBlocking");
+
     let info2 = [];
     if (info) {
       for (let desc of info) {
-        if (desc == "blocking" && !context.extension.hasPermission("webRequestBlocking")) {
+        if (desc == "blocking" && !blockingAllowed) {
           Cu.reportError("Using webRequest.addListener with the blocking option " +
                          "requires the 'webRequestBlocking' permission.");
         } else {
@@ -82,33 +69,43 @@ function WebRequestEventManager(context, eventName) {
       }
     }
 
-    WebRequest[eventName].addListener(listener, filter2, info2);
+    let listenerDetails = {
+      addonId: context.extension.id,
+      extension: context.extension.policy,
+      blockingAllowed,
+      tabParent: context.xulBrowser.frameLoader.tabParent,
+    };
+
+    WebRequest[eventName].addListener(
+      listener, filter2, info2,
+      listenerDetails);
     return () => {
       WebRequest[eventName].removeListener(listener);
     };
   };
 
-  return SingletonEventManager.call(this, context, name, register);
+  return EventManager.call(this, context, name, register);
 }
 
-WebRequestEventManager.prototype = Object.create(SingletonEventManager.prototype);
+WebRequestEventManager.prototype = Object.create(EventManager.prototype);
 
-extensions.registerSchemaAPI("webRequest", "webRequest", (extension, context) => {
-  return {
-    webRequest: {
-      onBeforeRequest: new WebRequestEventManager(context, "onBeforeRequest").api(),
-      onBeforeSendHeaders: new WebRequestEventManager(context, "onBeforeSendHeaders").api(),
-      onSendHeaders: new WebRequestEventManager(context, "onSendHeaders").api(),
-      onHeadersReceived: new WebRequestEventManager(context, "onHeadersReceived").api(),
-      onResponseStarted: new WebRequestEventManager(context, "onResponseStarted").api(),
-      onCompleted: new WebRequestEventManager(context, "onCompleted").api(),
-      handlerBehaviorChanged: function() {
-        // TODO: Flush all caches.
+this.webRequest = class extends ExtensionAPI {
+  getAPI(context) {
+    return {
+      webRequest: {
+        onBeforeRequest: new WebRequestEventManager(context, "onBeforeRequest").api(),
+        onBeforeSendHeaders: new WebRequestEventManager(context, "onBeforeSendHeaders").api(),
+        onSendHeaders: new WebRequestEventManager(context, "onSendHeaders").api(),
+        onHeadersReceived: new WebRequestEventManager(context, "onHeadersReceived").api(),
+        onAuthRequired: new WebRequestEventManager(context, "onAuthRequired").api(),
+        onBeforeRedirect: new WebRequestEventManager(context, "onBeforeRedirect").api(),
+        onResponseStarted: new WebRequestEventManager(context, "onResponseStarted").api(),
+        onErrorOccurred: new WebRequestEventManager(context, "onErrorOccurred").api(),
+        onCompleted: new WebRequestEventManager(context, "onCompleted").api(),
+        handlerBehaviorChanged: function() {
+          // TODO: Flush all caches.
+        },
       },
-
-      // TODO
-      onBeforeRedirect: ignoreEvent(context, "webRequest.onBeforeRedirect"),
-      onErrorOccurred: ignoreEvent(context, "webRequest.onErrorOccurred"),
-    },
-  };
-});
+    };
+  }
+};

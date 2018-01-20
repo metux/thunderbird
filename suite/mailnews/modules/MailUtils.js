@@ -8,6 +8,7 @@ const Cc = Components.classes;
 const Ci = Components.interfaces;
 
 Components.utils.import("resource:///modules/iteratorUtils.jsm");
+Components.utils.import("resource://gre/modules/Services.jsm");
 
 /**
  * This module has several utility functions for use by both core and
@@ -26,7 +27,7 @@ var MailUtils =
     let accountManager = Cc["@mozilla.org/messenger/account-manager;1"]
                            .getService(Ci.nsIMsgAccountManager);
     let servers = accountManager.allServers;
-    for (let server in fixIterator(servers, Ci.nsIMsgIncomingServer))
+    for (let server of fixIterator(servers, Ci.nsIMsgIncomingServer))
       server.rootFolder.subFolders;
   },
 
@@ -84,10 +85,10 @@ var MailUtils =
                        .createInstance(Ci.nsISupportsString);
     messageURI.data = aMsgHdr.folder.getUriForMsg(aMsgHdr);
 
-    let windowWatcher = Cc["@mozilla.org/embedcomp/window-watcher;1"]
-                          .getService(Ci.nsIWindowWatcher);
-    windowWatcher.openWindow(null,
-        "chrome://messenger/content/messageWindow.xul", "_blank",
-        "all,chrome,dialog=no,status,toolbar", messageURI);
+    Services.ww.openWindow(null,
+                           "chrome://messenger/content/messageWindow.xul",
+                           "_blank",
+                           "all,chrome,dialog=no,status,toolbar",
+                           messageURI);
   }
 };

@@ -7,7 +7,6 @@
 #include "nsIFile.h"
 #include "nsUTF8Utils.h"
 #include "nsUnicodeProperties.h"
-#include "nsUnicharUtilCIID.h"
 #include "nsIURI.h"
 
 #include "hyphen.h"
@@ -43,8 +42,7 @@ nsHyphenator::IsValid()
 }
 
 nsresult
-nsHyphenator::Hyphenate(const nsAString& aString,
-                        FallibleTArray<bool>& aHyphens)
+nsHyphenator::Hyphenate(const nsAString& aString, nsTArray<bool>& aHyphens)
 {
   if (!aHyphens.SetLength(aString.Length(), mozilla::fallible)) {
     return NS_ERROR_OUT_OF_MEMORY;
@@ -67,8 +65,8 @@ nsHyphenator::Hyphenate(const nsAString& aString,
       }
     }
 
-    nsIUGenCategory::nsUGenCategory cat = mozilla::unicode::GetGenCategory(ch);
-    if (cat == nsIUGenCategory::kLetter || cat == nsIUGenCategory::kMark) {
+    nsUGenCategory cat = mozilla::unicode::GetGenCategory(ch);
+    if (cat == nsUGenCategory::kLetter || cat == nsUGenCategory::kMark) {
       if (!inWord) {
         inWord = true;
         wordStart = i;
@@ -121,7 +119,7 @@ nsHyphenator::Hyphenate(const nsAString& aString,
         }
       }
 
-      nsAutoTArray<char,200> utf8hyphens;
+      AutoTArray<char,200> utf8hyphens;
       utf8hyphens.SetLength(utf8.Length() + 5);
       char **rep = nullptr;
       int *pos = nullptr;
@@ -152,7 +150,7 @@ nsHyphenator::Hyphenate(const nsAString& aString,
         }
       }
     }
-    
+
     inWord = false;
   }
 

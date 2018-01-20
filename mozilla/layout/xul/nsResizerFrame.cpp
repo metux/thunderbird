@@ -1,8 +1,10 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
 #include "nsIServiceManager.h"
 #include "nsResizerFrame.h"
@@ -11,7 +13,6 @@
 #include "nsIDOMNodeList.h"
 #include "nsGkAtoms.h"
 #include "nsNameSpaceManager.h"
-#include "nsIDOMElementCSSInlineStyle.h"
 #include "nsIDOMCSSStyleDeclaration.h"
 
 #include "nsPresContext.h"
@@ -26,6 +27,8 @@
 #include "nsIScreenManager.h"
 #include "mozilla/dom/Element.h"
 #include "nsError.h"
+#include "nsICSSDeclaration.h"
+#include "nsStyledElement.h"
 #include <algorithm>
 
 using namespace mozilla;
@@ -44,7 +47,7 @@ NS_NewResizerFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 NS_IMPL_FRAMEARENA_HELPERS(nsResizerFrame)
 
 nsResizerFrame::nsResizerFrame(nsStyleContext* aContext)
-:nsTitleBarFrame(aContext)
+  : nsTitleBarFrame(aContext, kClassID)
 {
 }
 
@@ -58,7 +61,7 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
     return NS_OK;
   }
 
-  nsWeakFrame weakFrame(this);
+  AutoWeakFrame weakFrame(this);
   bool doDefault = true;
 
   switch (aEvent->mMessage) {
@@ -80,16 +83,8 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
           // GetScreenRectInAppUnits returns the border box rectangle, so
           // adjust to get the desired content rectangle.
           nsRect rect = frameToResize->GetScreenRectInAppUnits();
-          switch (frameToResize->StylePosition()->mBoxSizing) {
-            case StyleBoxSizing::Content:
-              rect.Deflate(frameToResize->GetUsedPadding());
-              // fall through
-            case StyleBoxSizing::Padding:
-              rect.Deflate(frameToResize->GetUsedBorder());
-              // fall through
-            case StyleBoxSizing::Border:
-              // nothing
-              break;
+          if (frameToResize->StylePosition()->mBoxSizing == StyleBoxSizing::Content) {
+            rect.Deflate(frameToResize->GetUsedBorderAndPadding());
           }
 
           mMouseDownRect =
@@ -102,15 +97,15 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
             break;
 
           doDefault = false;
-            
+
           // ask the widget implementation to begin a resize drag if it can
           Direction direction = GetDirection();
-          nsresult rv = aEvent->widget->BeginResizeDrag(aEvent,
+          nsresult rv = aEvent->mWidget->BeginResizeDrag(aEvent,
                         direction.mHorizontal, direction.mVertical);
           // for native drags, don't set the fields below
           if (rv != NS_ERROR_NOT_IMPLEMENTED)
              break;
-             
+
           // if there's no native resize support, we need to do window
           // resizing ourselves
           window->GetPositionAndSize(&mMouseDownRect.x, &mMouseDownRect.y,
@@ -121,7 +116,7 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
         LayoutDeviceIntPoint refPoint;
         if (!GetEventPoint(aEvent, refPoint))
           return NS_OK;
-        mMouseDownPoint = refPoint + aEvent->widget->WidgetToScreenOffset();
+        mMouseDownPoint = refPoint + aEvent->mWidget->WidgetToScreenOffset();
 
         // we're tracking
         mTrackingMouseMove = true;
@@ -169,7 +164,8 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
       LayoutDeviceIntPoint refPoint;
       if (!GetEventPoint(aEvent, refPoint))
         return NS_OK;
-      LayoutDeviceIntPoint screenPoint = refPoint + aEvent->widget->WidgetToScreenOffset();
+      LayoutDeviceIntPoint screenPoint =
+        refPoint + aEvent->mWidget->WidgetToScreenOffset();
       LayoutDeviceIntPoint mouseMove(screenPoint - mMouseDownPoint);
 
       // Determine which direction to resize by checking the dir attribute.
@@ -178,8 +174,8 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
       if (window || menuPopupFrame) {
         if (menuPopupFrame) {
           menuPopupFrame->CanAdjustEdges(
-            (direction.mHorizontal == -1) ? NS_SIDE_LEFT : NS_SIDE_RIGHT,
-            (direction.mVertical == -1) ? NS_SIDE_TOP : NS_SIDE_BOTTOM, mouseMove);
+            (direction.mHorizontal == -1) ? eSideLeft : eSideRight,
+            (direction.mVertical == -1) ? eSideTop : eSideBottom, mouseMove);
         }
       }
       else if (!contentToResize) {
@@ -207,7 +203,7 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
         nsCOMPtr<nsIScreen> screen;
         nsCOMPtr<nsIScreenManager> sm(do_GetService("@mozilla.org/gfx/screenmanager;1"));
         if (sm) {
-          nsIntRect frameRect = GetScreenRect();
+          CSSIntRect frameRect = GetScreenRect();
           // ScreenForRect requires display pixels, so scale from device pix
           double scale;
           window->GetUnscaledDevicePixelsPerCSSPixel(&scale);
@@ -228,12 +224,15 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
         nsRect rootScreenRect = rootFrame->GetScreenRectInAppUnits();
 
         nsPopupLevel popupLevel = menuPopupFrame->PopupLevel();
-        nsRect screenRect = menuPopupFrame->GetConstraintRect(frameRect, rootScreenRect, popupLevel);
-        // round using ToInsidePixels as it's better to be a pixel too small
-        // than be too large. If the popup is too large it could get flipped
-        // to the opposite side of the anchor point while resizing.
-        nsIntRect screenRectPixels = screenRect.ToInsidePixels(aPresContext->AppUnitsPerDevPixel());
-        rect.IntersectRect(rect, LayoutDeviceIntRect::FromUnknownRect(screenRectPixels));
+        int32_t appPerDev = aPresContext->AppUnitsPerDevPixel();
+        LayoutDeviceIntRect screenRect = menuPopupFrame->GetConstraintRect
+          (LayoutDeviceIntRect::FromAppUnitsToNearest(frameRect, appPerDev),
+           // round using ...ToInside as it's better to be a pixel too small
+           // than be too large. If the popup is too large it could get flipped
+           // to the opposite side of the anchor point while resizing.
+           LayoutDeviceIntRect::FromAppUnitsToInside(rootScreenRect, appPerDev),
+           popupLevel);
+        rect.IntersectRect(rect, screenRect);
       }
 
       if (contentToResize) {
@@ -249,11 +248,11 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
         nsIntRect cssRect = appUnitsRect.ToInsidePixels(nsPresContext::AppUnitsPerCSSPixel());
 
         LayoutDeviceIntRect oldRect;
-        nsWeakFrame weakFrame(menuPopupFrame);
+        AutoWeakFrame weakFrame(menuPopupFrame);
         if (menuPopupFrame) {
           nsCOMPtr<nsIWidget> widget = menuPopupFrame->GetWidget();
           if (widget)
-            widget->GetScreenBounds(oldRect);
+            oldRect = widget->GetScreenBounds();
 
           // convert the new rectangle into outer window coordinates
           LayoutDeviceIntPoint clientOffset = widget->GetClientOffset();
@@ -281,7 +280,8 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
         }
       }
       else {
-        window->SetPositionAndSize(rect.x, rect.y, rect.width, rect.height, true); // do the repaint.
+        window->SetPositionAndSize(rect.x, rect.y, rect.width, rect.height,
+                                   nsIBaseWindow::eRepaint); // do the repaint.
       }
 
       doDefault = false;
@@ -292,7 +292,7 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
   case eMouseClick: {
     WidgetMouseEvent* mouseEvent = aEvent->AsMouseEvent();
     if (mouseEvent->IsLeftClickEvent()) {
-      MouseClicked(aPresContext, mouseEvent);
+      MouseClicked(mouseEvent);
     }
     break;
   }
@@ -357,8 +357,7 @@ nsResizerFrame::GetContentToResize(nsIPresShell* aPresShell, nsIBaseWindow** aWi
     }
 
     // get the document and the window - should this be cached?
-    nsPIDOMWindow *domWindow = aPresShell->GetDocument()->GetWindow();
-    if (domWindow) {
+    if (nsPIDOMWindowOuter* domWindow = aPresShell->GetDocument()->GetWindow()) {
       nsCOMPtr<nsIDocShell> docShell = domWindow->GetDocShell();
       if (docShell) {
         nsCOMPtr<nsIDocShellTreeOwner> treeOwner;
@@ -424,11 +423,10 @@ nsResizerFrame::ResizeContent(nsIContent* aContent, const Direction& aDirection,
     }
   }
   else {
-    nsCOMPtr<nsIDOMElementCSSInlineStyle> inlineStyleContent =
+    nsCOMPtr<nsStyledElement> inlineStyleContent =
       do_QueryInterface(aContent);
     if (inlineStyleContent) {
-      nsCOMPtr<nsIDOMCSSStyleDeclaration> decl;
-      inlineStyleContent->GetStyle(getter_AddRefs(decl));
+      nsICSSDeclaration* decl = inlineStyleContent->Style();
 
       if (aOriginalSizeInfo) {
         decl->GetPropertyValue(NS_LITERAL_STRING("width"),
@@ -534,10 +532,25 @@ nsResizerFrame::GetDirection()
 }
 
 void
-nsResizerFrame::MouseClicked(nsPresContext* aPresContext,
-                             WidgetMouseEvent* aEvent)
+nsResizerFrame::MouseClicked(WidgetMouseEvent* aEvent)
 {
+  bool isTrusted = false;
+  bool isShift = false;
+  bool isControl = false;
+  bool isAlt = false;
+  bool isMeta = false;
+  uint16_t inputSource = nsIDOMMouseEvent::MOZ_SOURCE_UNKNOWN;
+
+  if(aEvent) {
+    isShift = aEvent->IsShift();
+    isControl = aEvent->IsControl();
+    isAlt = aEvent->IsAlt();
+    isMeta = aEvent->IsMeta();
+    inputSource = aEvent->inputSource;
+  }
+
   // Execute the oncommand event handler.
-  nsContentUtils::DispatchXULCommand(mContent,
-                                     aEvent && aEvent->mFlags.mIsTrusted);
+  nsContentUtils::DispatchXULCommand(mContent, isTrusted, nullptr,
+                                     nullptr, isControl, isAlt,
+                                     isShift, isMeta, inputSource);
 }

@@ -23,7 +23,16 @@ endif
 # shouldn't get 755 perms need $(IFLAGS1) for either way of calling nsinstall.
 NSDISTMODE = copy
 
-include $(topsrcdir)/config/config.mk
+include $(moztopsrcdir)/config/config.mk
+
+# If we are trying to show an error dialog about the lack of SSE2 support,
+# make sure that code itself doesn't use SSE2.
+ifdef MOZ_LINUX_32_SSE2_STARTUP_ERROR
+CXXFLAGS := $(filter-out -march=% -msse -msse2 -mfpmath=sse,$(CXXFLAGS))
+CXX := $(filter-out -march=% -msse -msse2 -mfpmath=sse,$(CXX))
+CXXFLAGS += -mno-sse -mno-sse2 -mfpmath=387
+CXX += -march=pentiumpro
+endif
 
 ifeq ($(OS_ARCH),WINNT)
 # Rebuild seamonkey.exe if the manifest changes - it's included by splash.rc.
@@ -33,14 +42,14 @@ ifeq ($(OS_ARCH),WINNT)
 EXTRA_DEPS += seamonkey.exe.manifest
 endif
 
-include $(topsrcdir)/config/rules.mk
+include $(moztopsrcdir)/config/rules.mk
 
 libs::
 ifeq ($(OS_ARCH),WINNT)
 	$(EXIT_ON_ERROR) \
-	$(PERL) -pe 's/(?<!\r)\n/\r\n/g;' < $(topsrcdir)/suite/installer/license.txt > $(DIST)/bin/license.txt
+	$(PERL) -pe 's/(?<!\r)\n/\r\n/g;' < $(commtopsrcdir)/suite/installer/license.txt > $(DIST)/bin/license.txt
 else
-	$(INSTALL) $(IFLAGS1) $(topsrcdir)/suite/installer/license.txt $(DIST)/bin/
+	$(INSTALL) $(IFLAGS1) $(commtopsrcdir)/suite/installer/license.txt $(DIST)/bin/
 endif
 
 ifneq ($(OS_ARCH),WINNT)
@@ -67,7 +76,7 @@ GARBAGE += $(MOZ_APP_NAME).1
 GARBAGE += $(addprefix $(DIST)/bin/defaults/pref/, browser-prefs.js)
 endif
 
-ifdef MOZ_OMNIJAR
+ifeq ($(MOZ_PACKAGER_FORMAT),omni)
 # Make extensions end up as XPIs instead of flat chrome when doing omni.jar.
 # Extensions that appear in dist/bin/extensions will get bundled with the
 # application, ones that appear in dist/bin/distribution/extensions will be
@@ -75,14 +84,14 @@ ifdef MOZ_OMNIJAR
 # NOTE: This is a hack to run this at the end of compilation, would be nicer
 # if this was done right away for built-in extensions in omnijar mode.
 
-ABS_DIST = $(abspath $(STAGEDIST))
+ABS_STAGE = $(abspath $(STAGEDIST))
 
 define _PACKAGE_EXTENSIONS
 @echo "Packaging $(dir).xpi..."
-if test -d "$(ABS_DIST)/$(dir)"; then \
-cd $(ABS_DIST)/$(dir)/; \
+if test -d "$(ABS_STAGE)/$(dir)"; then \
+cd $(ABS_STAGE)/$(dir)/; \
 $(ZIP) -r9mX ../$(dir).xpi * -x \*/.mkdir.done; \
-cd ..; rm -rf $(ABS_DIST)/$(dir); \
+cd ..; rm -rf $(ABS_STAGE)/$(dir); \
 fi
 
 endef # do not remove the blank line!

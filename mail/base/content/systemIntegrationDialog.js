@@ -37,7 +37,10 @@ var gSystemIntegrationDialog = {
     this._mailCheckbox.disabled =
       this._shellSvc.isDefaultClient(false, this._shellSvc.MAIL);
 
-    if (!("arguments" in window) || (window.arguments[0] != "calledFromPrefs")) {
+    let calledFromPrefs = ("arguments" in window) &&
+                          (window.arguments[0] == "calledFromPrefs");
+
+    if (!calledFromPrefs) {
       // As an optimization, if we aren't already the default mail client,
       // then pre-check that option for the user. We'll leave News and RSS alone.
       // Do this only if we are not called from the Preferences (Options) dialog.
@@ -73,12 +76,21 @@ var gSystemIntegrationDialog = {
     if (this.SearchIntegration)
     {
       this._searchCheckbox.checked = this.SearchIntegration.prefEnabled;
-      if (!this.SearchIntegration.osVersionTooLow) {
-        this._searchCheckbox.hidden = false;
-        if (this.SearchIntegration.osComponentsNotRunning)
-        {
-          this._searchCheckbox.checked = false;
-          this._searchCheckbox.disabled = true;
+      // On Windows, do not offer the option on startup as it does not perform well.
+      if ((this.Services.appinfo.OS == "WINNT") && !calledFromPrefs &&
+          !this._searchCheckbox.checked) {
+        this._searchCheckbox.hidden = true;
+        // Even if the user wasn't presented the choice,
+        // we do not want to ask again automatically.
+        this.SearchIntegration.firstRunDone = true;
+      } else {
+        // Hide/disable the options if the OS does not support them.
+        if (!this.SearchIntegration.osVersionTooLow) {
+          this._searchCheckbox.hidden = false;
+          if (this.SearchIntegration.osComponentsNotRunning) {
+            this._searchCheckbox.checked = false;
+            this._searchCheckbox.disabled = true;
+          }
         }
       }
     }
@@ -95,6 +107,8 @@ var gSystemIntegrationDialog = {
     // In all cases, save the user's decision for "always check at startup".
     this._shellSvc.shouldCheckDefaultClient = this._startupCheckbox.checked;
 
+    // If the search checkbox is exposed, the user had the chance to make his choice.
+    // So do not ask next time.
     let searchIntegPossible = !this._searchCheckbox.hidden;
     if (searchIntegPossible) {
       this.SearchIntegration.firstRunDone = true;

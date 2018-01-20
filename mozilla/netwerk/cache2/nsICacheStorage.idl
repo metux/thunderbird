@@ -15,7 +15,7 @@ interface nsICacheStorageVisitor;
  * in-mem+on-disk, in-mem+on-disk+app-cache or just a specific
  * app-cache storage.
  */
-[scriptable, uuid(ae0a673b-d0c3-49fa-a94d-d9debe8ab393)]
+[scriptable, uuid(35d104a6-d252-4fd4-8a56-3c14657cad3b)]
 interface nsICacheStorage : nsISupports
 {
   /**
@@ -114,6 +114,16 @@ interface nsICacheStorage : nsISupports
   boolean exists(in nsIURI aURI, in ACString aIdExtension);
 
   /**
+   * Synchronously check on existance of alternative data and size of the
+   * content. When the index data are not up to date or index is still building,
+   * NS_ERROR_NOT_AVAILABLE is thrown. The same error may throw any storage
+   * implementation that cannot determine entry state without blocking the caller.
+   */
+  void getCacheIndexEntryAttrs(in nsIURI aURI,
+                               in ACString aIdExtension,
+                               out bool aHasAltData,
+                               out uint32_t aSizeInKB);
+  /**
    * Asynchronously removes an entry belonging to the URI from the cache.
    */
   void asyncDoomURI(in nsIURI aURI, in ACString aIdExtension,
@@ -131,4 +141,5 @@ interface nsICacheStorage : nsISupports
    */
   void asyncVisitStorage(in nsICacheStorageVisitor aVisitor,
                          in boolean aVisitEntries);
+
 };

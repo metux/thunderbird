@@ -7,6 +7,7 @@
 #ifndef mozilla_dom_responsiveimageselector_h__
 #define mozilla_dom_responsiveimageselector_h__
 
+#include "nsAutoPtr.h"
 #include "nsISupports.h"
 #include "nsIContent.h"
 #include "nsString.h"
@@ -44,14 +45,16 @@ public:
 
   // Given a srcset string, parse and replace current candidates (does not
   // replace default source)
-  bool SetCandidatesFromSourceSet(const nsAString & aSrcSet);
+  bool SetCandidatesFromSourceSet(const nsAString & aSrcSet,
+                                  nsIPrincipal* aTriggeringPrincipal = nullptr);
 
   // Fill the source sizes from a valid sizes descriptor. Returns false if
   // descriptor is invalid.
   bool SetSizesFromDescriptor(const nsAString & aSizesDescriptor);
 
   // Set the default source, treated as the least-precedence 1.0 density source.
-  void SetDefaultSource(const nsAString& aURLString);
+  void SetDefaultSource(const nsAString& aURLString,
+                        nsIPrincipal* aPrincipal = nullptr);
 
   uint32_t NumCandidates(bool aIncludeDefault = true);
 
@@ -69,6 +72,7 @@ public:
   // Returns false if there is no selected image
   bool GetSelectedImageURLSpec(nsAString& aResult);
   double GetSelectedImageDensity();
+  nsIPrincipal* GetSelectedImageTriggeringPrincipal();
 
   // Runs image selection now if necessary. If an image has already
   // been choosen, takes no action unless aReselect is true.
@@ -86,9 +90,9 @@ private:
   // candidate
   void AppendCandidateIfUnique(const ResponsiveImageCandidate &aCandidate);
 
-  // Append a default candidate with this URL. Does not check if the array
-  // already contains one, use SetDefaultSource instead.
-  void AppendDefaultCandidate(const nsAString& aURLString);
+  // Append a default candidate with this URL if necessary. Does not check if
+  // the array already contains one, use SetDefaultSource instead.
+  void MaybeAppendDefaultCandidate();
 
   // Get index of selected candidate, triggering selection if necessary.
   int GetSelectedCandidateIndex();
@@ -102,9 +106,12 @@ private:
   //
   // aContext is the presContext to use for current viewport sizing, null will
   // use the associated content's context.
-  bool ComputeFinalWidthForCurrentViewport(int32_t *aWidth);
+  bool ComputeFinalWidthForCurrentViewport(double* aWidth);
 
   nsCOMPtr<nsINode> mOwnerNode;
+  // The cached URL for default candidate.
+  nsString mDefaultSourceURL;
+  nsCOMPtr<nsIPrincipal> mDefaultSourceTriggeringPrincipal;
   // If this array contains an eCandidateType_Default, it should be the last
   // element, such that the Setters can preserve/replace it respectively.
   nsTArray<ResponsiveImageCandidate> mCandidates;
@@ -120,9 +127,11 @@ private:
 class ResponsiveImageCandidate {
 public:
   ResponsiveImageCandidate();
-  ResponsiveImageCandidate(const nsAString& aURLString, double aDensity);
+  ResponsiveImageCandidate(const nsAString& aURLString, double aDensity,
+                           nsIPrincipal* aTriggeringPrincipal = nullptr);
 
   void SetURLSpec(const nsAString& aURLString);
+  void SetTriggeringPrincipal(nsIPrincipal* aPrincipal);
   // Set this as a default-candidate. This behaves the same as density 1.0, but
   // has a differing type such that it can be replaced by subsequent
   // SetDefaultSource calls.
@@ -145,12 +154,13 @@ public:
   bool HasSameParameter(const ResponsiveImageCandidate & aOther) const;
 
   const nsAString& URLString() const;
+  nsIPrincipal* TriggeringPrincipal() const;
 
   // Compute and return the density relative to a selector.
   double Density(ResponsiveImageSelector *aSelector) const;
   // If the width is already known. Useful when iterating over candidates to
   // avoid having each call re-compute the width.
-  double Density(int32_t aMatchingWidth) const;
+  double Density(double aMatchingWidth) const;
 
   // If this selector is computed from the selector's matching width.
   bool IsComputedFromWidth() const;
@@ -169,6 +179,7 @@ public:
 private:
 
   nsString mURLString;
+  nsCOMPtr<nsIPrincipal> mTriggeringPrincipal;
   eCandidateType mType;
   union {
     double mDensity;

@@ -9,8 +9,7 @@
 
 "use strict";
 
-////////////////////////////////////////////////////////////////////////////////
-//// Globals
+// Globals
 
 /**
  * Resets the token used to decrypt logins.  This is equivalent to resetting the
@@ -21,11 +20,10 @@ function resetMasterPassword()
   let token = Cc["@mozilla.org/security/pk11tokendb;1"]
                 .getService(Ci.nsIPK11TokenDB).getInternalKeyToken();
   token.reset();
-  token.changePassword("", "");
+  token.initPassword("");
 }
 
-////////////////////////////////////////////////////////////////////////////////
-//// Tests
+// Tests
 
 /**
  * Resets the master password after some logins were added to the database.

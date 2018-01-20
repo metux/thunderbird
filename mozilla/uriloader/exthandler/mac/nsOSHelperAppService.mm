@@ -6,12 +6,12 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include "mozilla/net/NeckoCommon.h"
 #include "nsOSHelperAppService.h"
 #include "nsObjCExceptions.h"
 #include "nsISupports.h"
 #include "nsString.h"
 #include "nsTArray.h"
-#include "nsXPIDLString.h"
 #include "nsIURL.h"
 #include "nsIFile.h"
 #include "nsILocalFileMac.h"
@@ -129,7 +129,7 @@ NS_IMETHODIMP nsOSHelperAppService::GetApplicationDescription(const nsACString& 
                                                                 kCFBundleNameKey);
 
             if (bundleName) {
-              nsAutoTArray<UniChar, 255> buffer;
+              AutoTArray<UniChar, 255> buffer;
               CFIndex bundleNameLength = ::CFStringGetLength(bundleName);
               buffer.SetLength(bundleNameLength);
               ::CFStringGetCharacters(bundleName, CFRangeMake(0, bundleNameLength),
@@ -329,7 +329,7 @@ nsOSHelperAppService::GetMIMEInfoFromOS(const nsACString& aMIMEType,
   if (!aMIMEType.IsEmpty()) {
     CFURLRef appURL = NULL;
     // CFStringCreateWithCString() can fail even if we're not out of memory --
-    // for example if the 'cStr' parameter is something very wierd (like "ÿÿ~"
+    // for example if the 'cStr' parameter is something very weird (like "ÿÿ~"
     // aka "\xFF\xFF~"), or possibly if it can't be interpreted as using what's
     // specified in the 'encoding' parameter.  See bug 548719.
     cfMIMEType = ::CFStringCreateWithCString(NULL, flatType.get(),
@@ -477,7 +477,7 @@ nsOSHelperAppService::GetMIMEInfoFromOS(const nsACString& aMIMEType,
                             kLSItemDisplayName, (CFTypeRef *) &cfAppName);
     }
     if (cfAppName) {
-      nsAutoTArray<UniChar, 255> buffer;
+      AutoTArray<UniChar, 255> buffer;
       CFIndex appNameLength = ::CFStringGetLength(cfAppName);
       buffer.SetLength(appNameLength);
       ::CFStringGetCharacters(cfAppName, CFRangeMake(0, appNameLength),
@@ -497,22 +497,24 @@ nsOSHelperAppService::GetMIMEInfoFromOS(const nsACString& aMIMEType,
   nsAutoCString mimeType;
   mimeInfoMac->GetMIMEType(mimeType);
   if (*aFound && !mimeType.IsEmpty()) {
-    // If we have a MIME type, make sure its preferred extension is included
-    // in our list.
+    // If we have a MIME type, make sure its extension list is included in our
+    // list.
     NSURLFileTypeMappings *map = [NSURLFileTypeMappings sharedMappings];
     NSString *typeStr = [NSString stringWithCString:mimeType.get() encoding:NSASCIIStringEncoding];
-    NSString *extStr = map ? [map preferredExtensionForMIMEType:typeStr] : NULL;
-    if (extStr) {
-      nsAutoCString preferredExt;
-      preferredExt.Assign((char *)[extStr cStringUsingEncoding:NSASCIIStringEncoding]);
-      mimeInfoMac->AppendExtension(preferredExt);
+    NSArray *extensionsList = map ? [map extensionsForMIMEType:typeStr] : NULL;
+    if (extensionsList) {
+      for (NSString* extension in extensionsList) {
+        nsAutoCString ext;
+        ext.Assign((char *)[extension cStringUsingEncoding:NSASCIIStringEncoding]);
+        mimeInfoMac->AppendExtension(ext);
+      }
     }
 
     CFStringRef cfType = ::CFStringCreateWithCString(NULL, mimeType.get(), kCFStringEncodingUTF8);
     if (cfType) {
       CFStringRef cfTypeDesc = NULL;
       if (::LSCopyKindStringForMIMEType(cfType, &cfTypeDesc) == noErr) {
-        nsAutoTArray<UniChar, 255> buffer;
+        AutoTArray<UniChar, 255> buffer;
         CFIndex typeDescLength = ::CFStringGetLength(cfTypeDesc);
         buffer.SetLength(typeDescLength);
         ::CFStringGetCharacters(cfTypeDesc, CFRangeMake(0, typeDescLength),
@@ -559,9 +561,14 @@ nsOSHelperAppService::GetProtocolHandlerInfoFromOS(const nsACString &aScheme,
     return NS_OK;
   }
 
-  nsAutoString desc;
-  GetApplicationDescription(aScheme, desc);
-  handlerInfo->SetDefaultDescription(desc);
+  // As a workaround for the OS X problem described in bug 1391186, don't
+  // attempt to get/set the application description from the child process.
+  if (!mozilla::net::IsNeckoChild()) {
+    nsAutoString desc;
+    rv = GetApplicationDescription(aScheme, desc);
+    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "GetApplicationDescription failed");
+    handlerInfo->SetDefaultDescription(desc);
+  }
 
   return NS_OK;
 }

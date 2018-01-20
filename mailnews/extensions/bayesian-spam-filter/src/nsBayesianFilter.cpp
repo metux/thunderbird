@@ -27,6 +27,10 @@
 #include "nsIStringEnumerator.h"
 #include "nsIObserverService.h"
 #include "nsIChannel.h"
+#include "nsDependentSubstring.h"
+#include "nsLWBrkCIID.h"
+
+#include "mozilla/ArenaAllocatorExtensions.h" // for ArenaStrdup
 
 using namespace mozilla;
 
@@ -44,10 +48,11 @@ using namespace mozilla;
 #include <prmem.h>
 #include "nsIMsgTraitService.h"
 #include "mozilla/Services.h"
+#include "mozilla/Attributes.h"
 #include <cstdlib> // for std::abs(int/long)
 #include <cmath> // for std::abs(float/double)
 
-static PRLogModuleInfo *BayesianFilterLogModule = nullptr;
+static mozilla::LazyLogModule BayesianFilterLogModule("BayesianFilter");
 
 #define kDefaultJunkThreshold .99 // we override this value via a pref
 static const char* kBayesianFilterTokenDelimiters = " \t\n\r\f.";
@@ -137,19 +142,18 @@ static const PLDHashTableOps gTokenTableOps = {
     PLDHashTable::HashStringKey,
     PLDHashTable::MatchStringKey,
     PLDHashTable::MoveEntryStub,
-    PLDHashTable::ClearEntryStub
+    PLDHashTable::ClearEntryStub,
+    nullptr
 };
 
 TokenHash::TokenHash(uint32_t aEntrySize)
   : mTokenTable(&gTokenTableOps, aEntrySize, 128)
 {
     mEntrySize = aEntrySize;
-    PL_INIT_ARENA_POOL(&mWordPool, "Words Arena", 16384);
 }
 
 TokenHash::~TokenHash()
 {
-    PL_FinishArenaPool(&mWordPool);
 }
 
 nsresult TokenHash::clearTokens()
@@ -157,18 +161,13 @@ nsresult TokenHash::clearTokens()
     // we re-use the tokenizer when classifying multiple messages,
     // so this gets called after every message classification.
     mTokenTable.ClearAndPrepareForLength(128);
-    PL_FreeArenaPool(&mWordPool);
+    mWordPool.Clear();
     return NS_OK;
 }
 
 char* TokenHash::copyWord(const char* word, uint32_t len)
 {
-    void* result;
-    uint32_t size = 1 + len;
-    PL_ARENA_ALLOCATE(result, &mWordPool, size);
-    if (result)
-        memcpy(result, word, size);
-    return reinterpret_cast<char*>(result);
+    return ArenaStrdup(Substring(word, len), mWordPool);
 }
 
 inline BaseToken* TokenHash::get(const char* word)
@@ -224,7 +223,8 @@ Tokenizer::Tokenizer() :
   mBodyDelimiters(kBayesianFilterTokenDelimiters),
   mHeaderDelimiters(kBayesianFilterTokenDelimiters),
   mCustomHeaderTokenization(false),
-  mMaxLengthForToken(kMaxLengthForToken)
+  mMaxLengthForToken(kMaxLengthForToken),
+  mIframeToDiv(false)
 {
   nsresult rv;
   nsCOMPtr<nsIPrefService> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID, &rv);
@@ -254,13 +254,13 @@ Tokenizer::Tokenizer() :
    * will be ignored.
    */
 
-  prefBranch->GetCharPref("body_delimiters", getter_Copies(mBodyDelimiters));
+  prefBranch->GetCharPref("body_delimiters", mBodyDelimiters);
   if (!mBodyDelimiters.IsEmpty())
     UnescapeCString(mBodyDelimiters);
   else // prefBranch empties the result when it fails :(
     mBodyDelimiters.Assign(kBayesianFilterTokenDelimiters);
 
-  prefBranch->GetCharPref("header_delimiters", getter_Copies(mHeaderDelimiters));
+  prefBranch->GetCharPref("header_delimiters", mHeaderDelimiters);
   if (!mHeaderDelimiters.IsEmpty())
     UnescapeCString(mHeaderDelimiters);
   else
@@ -314,7 +314,7 @@ Tokenizer::Tokenizer() :
     for (uint32_t i = 0; i < count; i++)
     {
       nsCString value;
-      prefBranch->GetCharPref(headers[i], getter_Copies(value));
+      prefBranch->GetCharPref(headers[i], value);
       if (value.EqualsLiteral("false"))
       {
         mDisabledHeaders.AppendElement(headers[i]);
@@ -454,8 +454,8 @@ void Tokenizer::tokenizeHeaders(nsIUTF8StringEnumerator * aHeaderNames, nsIUTF8S
   nsCString headerValue;
   nsAutoCString headerName; // we'll be normalizing all header names to lower case
   bool hasMore;
- 
-  while (aHeaderNames->HasMore(&hasMore), hasMore)
+
+  while (NS_SUCCEEDED(aHeaderNames->HasMore(&hasMore)) && hasMore)
   {
     aHeaderNames->GetNext(headerName);
     ToLowerCase(headerName);
@@ -498,7 +498,7 @@ void Tokenizer::tokenizeHeaders(nsIUTF8StringEnumerator * aHeaderNames, nsIUTF8S
     switch (headerName.First())
     {
     case 'c':
-        if (headerName.Equals("content-type"))
+        if (headerName.EqualsLiteral("content-type"))
         {
           nsresult rv;
           nsCOMPtr<nsIMIMEHeaderParam> mimehdrpar = do_GetService(NS_MIMEHEADERPARAM_CONTRACTID, &rv);
@@ -520,7 +520,7 @@ void Tokenizer::tokenizeHeaders(nsIUTF8StringEnumerator * aHeaderNames, nsIUTF8S
         }
         break;
     case 'r':
-      if (headerName.Equals("received"))
+      if (headerName.EqualsLiteral("received"))
       {
         // look for the string "may be forged" in the received headers. sendmail sometimes adds this hint
         // This does not compile on linux yet. Need to figure out why. Commenting out for now
@@ -531,7 +531,7 @@ void Tokenizer::tokenizeHeaders(nsIUTF8StringEnumerator * aHeaderNames, nsIUTF8S
       // leave out reply-to
       break;
     case 's':
-        if (headerName.Equals("subject"))
+        if (headerName.EqualsLiteral("subject"))
         {
           // we want to tokenize the subject
           addTokenForHeader(headerName.get(), headerValue, true);
@@ -541,9 +541,10 @@ void Tokenizer::tokenizeHeaders(nsIUTF8StringEnumerator * aHeaderNames, nsIUTF8S
         break;
     case 'x': // (2) X-Mailer / user-agent works best if it is untokenized, just fold the case and any leading/trailing white space
         // all headers beginning with x-mozilla are being changed by us, so ignore
-        if (Substring(headerName, 0, 9).Equals("x-mozilla"))
+        if (StringBeginsWith(headerName, NS_LITERAL_CSTRING("x-mozilla")))
           break;
         // fall through
+        MOZ_FALLTHROUGH;
     case 'u':
         addTokenForHeader(headerName.get(), headerValue);
         break;
@@ -713,6 +714,61 @@ nsresult Tokenizer::stripHTML(const nsAString& inString, nsAString& outString)
   return utils->ConvertToPlainText(inString, flags, 80, outString);
 }
 
+// Copied from nsSemanticUnitScanner.cpp which was removed in bug 1368418.
+nsresult Tokenizer::ScannerNext(const char16_t *text, int32_t length, int32_t pos, bool isLastBuffer, int32_t *begin, int32_t *end, bool *_retval)
+{
+    if (!mWordBreaker) {
+      nsresult rv;
+      mWordBreaker = do_CreateInstance(NS_WBRK_CONTRACTID, &rv);
+      if (NS_FAILED(rv))
+        return rv;
+    }
+
+    // if we reach the end, just return
+    if (pos >= length) {
+       *begin = pos;
+       *end = pos;
+       *_retval = false;
+       return NS_OK;
+    }
+
+    nsWordBreakClass char_class = nsIWordBreaker::GetClass(text[pos]);
+
+    // If we are in Chinese mode, return one Han letter at a time.
+    // We should not do this if we are in Japanese or Korean mode.
+    if (kWbClassHanLetter == char_class) {
+       *begin = pos;
+       *end = pos+1;
+       *_retval = true;
+       return NS_OK;
+    }
+
+    int32_t next;
+    // Find the next "word".
+    next = mWordBreaker->NextWord(text, (uint32_t) length, (uint32_t) pos);
+
+    // If we don't have enough text to make decision, return.
+    if (next == NS_WORDBREAKER_NEED_MORE_TEXT) {
+       *begin = pos;
+       *end = isLastBuffer ? length : pos;
+       *_retval = isLastBuffer;
+       return NS_OK;
+    }
+
+    // If what we got is space or punct, look at the next break.
+    if ((char_class == kWbClassSpace) || (char_class == kWbClassPunct)) {
+        // If the next "word" is not letters,
+        // call itself recursively with the new pos.
+        return ScannerNext(text, length, next, isLastBuffer, begin, end, _retval);
+    }
+
+    // For the rest, return.
+    *begin = pos;
+    *end = next;
+    *_retval = true;
+    return NS_OK;
+}
+
 void Tokenizer::tokenize(const char* aText)
 {
   MOZ_LOG(BayesianFilterLogModule, LogLevel::Debug, ("tokenize: %s", aText));
@@ -764,32 +820,21 @@ void Tokenizer::tokenize(const char* aText)
         tokenize_japanese_word(word);
     else {
         nsresult rv;
-        // use I18N  scanner to break this word into meaningful semantic units.
-        if (!mScanner) {
-            mScanner = do_CreateInstance(NS_SEMANTICUNITSCANNER_CONTRACTID, &rv);
-            NS_ASSERTION(NS_SUCCEEDED(rv), "couldn't create semantic unit scanner!");
-            if (NS_FAILED(rv)) {
-                return;
-            }
-        }
-        if (mScanner) {
-            mScanner->Start("UTF-8");
-            // convert this word from UTF-8 into UCS2.
-            NS_ConvertUTF8toUTF16 uword(word);
-            ToLowerCase(uword);
-            const char16_t* utext = uword.get();
-            int32_t len = uword.Length(), pos = 0, begin, end;
-            bool gotUnit;
-            while (pos < len) {
-                rv = mScanner->Next(utext, len, pos, true, &begin, &end, &gotUnit);
-                if (NS_SUCCEEDED(rv) && gotUnit) {
-                    NS_ConvertUTF16toUTF8 utfUnit(utext + begin, end - begin);
-                    add(utfUnit.get());
-                    // advance to end of current unit.
-                    pos = end;
-                } else {
-                    break;
-                }
+        // Convert this word from UTF-8 into UCS2.
+        NS_ConvertUTF8toUTF16 uword(word);
+        ToLowerCase(uword);
+        const char16_t* utext = uword.get();
+        int32_t len = uword.Length(), pos = 0, begin, end;
+        bool gotUnit;
+        while (pos < len) {
+            rv = ScannerNext(utext, len, pos, true, &begin, &end, &gotUnit);
+            if (NS_SUCCEEDED(rv) && gotUnit) {
+                NS_ConvertUTF16toUTF8 utfUnit(utext + begin, end - begin);
+                add(utfUnit.get());
+                // Advance to end of current unit.
+                pos = end;
+            } else {
+                break;
             }
         }
     }
@@ -1111,9 +1156,6 @@ NS_IMPL_ISUPPORTS(nsBayesianFilter, nsIMsgFilterPlugin,
 nsBayesianFilter::nsBayesianFilter()
     :   mTrainingDataDirty(false)
 {
-    if (!BayesianFilterLogModule)
-      BayesianFilterLogModule = PR_NewLogModule("BayesianFilter");
-
     int32_t junkThreshold = 0;
     nsresult rv;
     nsCOMPtr<nsIPrefBranch> pPrefBranch(do_GetService(NS_PREFSERVICE_CONTRACTID, &rv));
@@ -1313,9 +1355,10 @@ nsresult nsBayesianFilter::tokenizeMessage(const char* aMessageURI, nsIMsgWindow
     NS_ENSURE_SUCCESS(rv, rv);
 
     aAnalyzer->setSource(aMessageURI);
+    nsCOMPtr<nsIURI> dummyNull;
     return msgService->StreamMessage(aMessageURI, aAnalyzer->mTokenListener,
                                      aMsgWindow, nullptr, true /* convert data */,
-                                     NS_LITERAL_CSTRING("filter"), false, nullptr);
+                                     NS_LITERAL_CSTRING("filter"), false, getter_AddRefs(dummyNull));
 }
 
 // a TraitAnalysis is the per-token representation of the statistical
@@ -1402,20 +1445,20 @@ void nsBayesianFilter::classifyMessage(
     uint32_t traitCount = aProTraits.Length();
 
     // pro message counts per trait index
-    nsAutoTArray<uint32_t, kTraitAutoCapacity> numProMessages;
+    AutoTArray<uint32_t, kTraitAutoCapacity> numProMessages;
     // anti message counts per trait index
-    nsAutoTArray<uint32_t, kTraitAutoCapacity> numAntiMessages;
+    AutoTArray<uint32_t, kTraitAutoCapacity> numAntiMessages;
     // array of pro aliases per trait index
-    nsAutoTArray<uint32_t*, kTraitAutoCapacity > proAliasArrays;
+    AutoTArray<uint32_t*, kTraitAutoCapacity > proAliasArrays;
     // number of pro aliases per trait index
-    nsAutoTArray<uint32_t, kTraitAutoCapacity > proAliasesLengths;    
+    AutoTArray<uint32_t, kTraitAutoCapacity > proAliasesLengths;
     // array of anti aliases per trait index
-    nsAutoTArray<uint32_t*, kTraitAutoCapacity> antiAliasArrays;
+    AutoTArray<uint32_t*, kTraitAutoCapacity> antiAliasArrays;
     // number of anti aliases per trait index
-    nsAutoTArray<uint32_t, kTraitAutoCapacity > antiAliasesLengths;    
+    AutoTArray<uint32_t, kTraitAutoCapacity > antiAliasesLengths;
     // construct the outgoing listener arrays
-    nsAutoTArray<uint32_t, kTraitAutoCapacity> traits;
-    nsAutoTArray<uint32_t, kTraitAutoCapacity> percents;
+    AutoTArray<uint32_t, kTraitAutoCapacity> traits;
+    AutoTArray<uint32_t, kTraitAutoCapacity> percents;
     if (traitCount > kTraitAutoCapacity)
     {
       traits.SetCapacity(traitCount);
@@ -1534,7 +1577,7 @@ void nsBayesianFilter::classifyMessage(
 
     for (uint32_t traitIndex = 0; traitIndex < traitCount; traitIndex++)
     {
-      nsAutoTArray<TraitAnalysis, 1024> traitAnalyses;
+      AutoTArray<TraitAnalysis, 1024> traitAnalyses;
       // copy valid tokens into an array to sort
       for (uint32_t tokenIndex = 0; tokenIndex < tokenCount; tokenIndex++)
       {
@@ -1654,7 +1697,7 @@ void nsBayesianFilter::classifyMessage(
             usedTokenCount, (const char16_t**)tokenStrings.Elements(),
             tokenPercents.Elements(), runningPercents.Elements());
         for (uint32_t tokenIndex = 0; tokenIndex < usedTokenCount; tokenIndex++)
-          NS_Free(tokenStrings[tokenIndex]);
+          free(tokenStrings[tokenIndex]);
       }
 
       uint32_t proPercent = static_cast<uint32_t>(prob*100. + .5);
@@ -1697,9 +1740,9 @@ void nsBayesianFilter::classifyMessage(
 
       // free aliases arrays returned from XPCOM
       if (proAliasesLengths[traitIndex])
-        NS_Free(proAliasArrays[traitIndex]);
+        free(proAliasArrays[traitIndex]);
       if (antiAliasesLengths[traitIndex])
-        NS_Free(antiAliasArrays[traitIndex]);
+        free(antiAliasArrays[traitIndex]);
     }
 
     if (aTraitListener)
@@ -1721,8 +1764,8 @@ void nsBayesianFilter::classifyMessage(
   const char* messageURI,
   nsIJunkMailClassificationListener* aJunkListener)
 {
-  nsAutoTArray<uint32_t, 1> proTraits;
-  nsAutoTArray<uint32_t, 1> antiTraits;
+  AutoTArray<uint32_t, 1> proTraits;
+  AutoTArray<uint32_t, 1> antiTraits;
   proTraits.AppendElement(kJunkTrait);
   antiTraits.AppendElement(kGoodTrait);
   classifyMessage(tokens, messageURI, proTraits, antiTraits,
@@ -1865,8 +1908,8 @@ NS_IMETHODIMP nsBayesianFilter::ClassifyTraitsInMessages(
   nsIMsgWindow *aMsgWindow,
   nsIJunkMailClassificationListener *aJunkListener)
 {
-  nsAutoTArray<uint32_t, kTraitAutoCapacity> proTraits;
-  nsAutoTArray<uint32_t, kTraitAutoCapacity> antiTraits;
+  AutoTArray<uint32_t, kTraitAutoCapacity> proTraits;
+  AutoTArray<uint32_t, kTraitAutoCapacity> antiTraits;
   if (aTraitCount > kTraitAutoCapacity)
   {
     proTraits.SetCapacity(aTraitCount);
@@ -1927,8 +1970,8 @@ NS_IMETHODIMP nsBayesianFilter::SetMsgTraitClassification(
     nsIMsgWindow *aMsgWindow,
     nsIJunkMailClassificationListener *aJunkListener)
 {
-  nsAutoTArray<uint32_t, kTraitAutoCapacity> oldTraits;
-  nsAutoTArray<uint32_t, kTraitAutoCapacity> newTraits;
+  AutoTArray<uint32_t, kTraitAutoCapacity> oldTraits;
+  AutoTArray<uint32_t, kTraitAutoCapacity> newTraits;
   if (aOldCount > kTraitAutoCapacity)
     oldTraits.SetCapacity(aOldCount);
   if (aNewCount > kTraitAutoCapacity)
@@ -2014,8 +2057,8 @@ void nsBayesianFilter::observeMessage(
     if (aTraitListener)
     {
       // construct the outgoing listener arrays
-      nsAutoTArray<uint32_t, kTraitAutoCapacity> traits;
-      nsAutoTArray<uint32_t, kTraitAutoCapacity> percents;
+      AutoTArray<uint32_t, kTraitAutoCapacity> traits;
+      AutoTArray<uint32_t, kTraitAutoCapacity> percents;
       uint32_t newLength = newClassifications.Length();
       if (newLength > kTraitAutoCapacity)
       {
@@ -2036,7 +2079,10 @@ void nsBayesianFilter::observeMessage(
         MOZ_LOG(
             BayesianFilterLogModule, LogLevel::Debug,
             ("starting training data flush timer %i msec", mMinFlushInterval));
-        mTimer->InitWithFuncCallback(nsBayesianFilter::TimerCallback, this, mMinFlushInterval, nsITimer::TYPE_ONE_SHOT);
+        mTimer->InitWithNamedFuncCallback(nsBayesianFilter::TimerCallback,
+                                          this, mMinFlushInterval,
+                                          nsITimer::TYPE_ONE_SHOT,
+                                          "nsBayesianFilter::TimerCallback");
     }
 }
 
@@ -2056,8 +2102,8 @@ NS_IMETHODIMP nsBayesianFilter::SetMessageClassification(
     nsIMsgWindow *aMsgWindow,
     nsIJunkMailClassificationListener *aListener)
 {
-  nsAutoTArray<uint32_t, 1> oldClassifications;
-  nsAutoTArray<uint32_t, 1> newClassifications;
+  AutoTArray<uint32_t, 1> oldClassifications;
+  AutoTArray<uint32_t, 1> newClassifications;
 
   // convert between classifications and trait
   if (aOldClassification == nsIJunkMailPlugin::JUNK)
@@ -2089,8 +2135,8 @@ NS_IMETHODIMP nsBayesianFilter::DetailMessage(const char *aMsgURI,
     uint32_t aProTrait, uint32_t aAntiTrait,
     nsIMsgTraitDetailListener *aDetailListener, nsIMsgWindow *aMsgWindow)
 {
-  nsAutoTArray<uint32_t, 1> proTraits;
-  nsAutoTArray<uint32_t, 1> antiTraits;
+  AutoTArray<uint32_t, 1> proTraits;
+  AutoTArray<uint32_t, 1> antiTraits;
   proTraits.AppendElement(aProTrait);
   antiTraits.AppendElement(aAntiTrait);
 
@@ -2492,7 +2538,7 @@ void CorpusStore::readTrainingData()
 
   // FIXME:  should make sure that the tokenizers are empty.
   char cookie[4];
-  uint32_t goodMessageCount, junkMessageCount;
+  uint32_t goodMessageCount = 0, junkMessageCount = 0;
   if (!((fread(cookie, sizeof(cookie), 1, stream) == 1) &&
         (memcmp(cookie, kMagicCookie, sizeof(cookie)) == 0) &&
         (readUInt32(stream, &goodMessageCount) == 1) &&

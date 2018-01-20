@@ -9,8 +9,8 @@ function pluginBindingAttached() {
   }
 }
 
-add_task(function* () {
-  registerCleanupFunction(function () {
+add_task(async function() {
+  registerCleanupFunction(function() {
     gTestBrowser.removeEventListener("PluginBindingAttached", pluginBindingAttached, true, true);
     clearAllPluginPermissions();
     Services.prefs.clearUserPref("plugins.click_to_play");
@@ -22,8 +22,8 @@ add_task(function* () {
   });
 });
 
-add_task(function* () {
-  gBrowser.selectedTab = gBrowser.addTab();
+add_task(async function() {
+  gBrowser.selectedTab = BrowserTestUtils.addTab(gBrowser);
   gTestBrowser = gBrowser.selectedBrowser;
 
   Services.prefs.setBoolPref("plugins.click_to_play", true);
@@ -33,19 +33,18 @@ add_task(function* () {
   gTestBrowser.addEventListener("PluginBindingAttached", pluginBindingAttached, true, true);
 
   let testRoot = getRootDirectory(gTestPath).replace("chrome://mochitests/content/", "http://127.0.0.1:8888/");
-  yield promiseTabLoadEvent(gBrowser.selectedTab, testRoot + "plugin_bug744745.html");
+  await promiseTabLoadEvent(gBrowser.selectedTab, testRoot + "plugin_bug744745.html");
 
-  yield promiseForCondition(function () { return gNumPluginBindingsAttached == 1; });
+  await promiseForCondition(function() { return gNumPluginBindingsAttached == 1; });
 
-  let result = yield ContentTask.spawn(gTestBrowser, {}, function* () {
+  await ContentTask.spawn(gTestBrowser, {}, async function() {
     let plugin = content.document.getElementById("test");
     if (!plugin) {
-      return false;
+      Assert.ok(false, "plugin element not available.");
+      return;
     }
     // We can't use MochiKit's routine
     let style = content.getComputedStyle(plugin);
-    return 'opacity' in style && style.opacity == 1;
+    Assert.ok(("opacity" in style) && style.opacity == 1, "plugin style properly configured.");
   });
-
-  ok(result, true, "plugin style properly configured.");
 });

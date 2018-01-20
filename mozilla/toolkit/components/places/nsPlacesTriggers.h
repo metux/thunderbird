@@ -14,9 +14,10 @@
  *  0 - invalid
  *  4 - EMBED
  *  7 - DOWNLOAD
- *  7 - FRAMED_LINK
+ *  8 - FRAMED_LINK
+ *  9 - RELOAD
  **/
-#define EXCLUDED_VISIT_TYPES "0, 4, 7, 8"
+#define EXCLUDED_VISIT_TYPES "0, 4, 7, 8, 9"
 
 /**
  * This triggers update visit_count and last_visit_date based on historyvisits
@@ -26,6 +27,7 @@
   "CREATE TEMP TRIGGER moz_historyvisits_afterinsert_v2_trigger " \
   "AFTER INSERT ON moz_historyvisits FOR EACH ROW " \
   "BEGIN " \
+    "SELECT store_last_inserted_id('moz_historyvisits', NEW.id); " \
     "UPDATE moz_places SET " \
       "visit_count = visit_count + (SELECT NEW.visit_type NOT IN (" EXCLUDED_VISIT_TYPES ")), "\
       "last_visit_date = MAX(IFNULL(last_visit_date, 0), NEW.visit_date) " \
@@ -61,28 +63,30 @@
  * have higher priority, and more generically "www." prefixed hosts come before
  * unprefixed ones.
  * Given a host, examine associated pages and:
- *  - if all of the typed pages start with https://www. return https://www.
- *  - if all of the typed pages start with https:// return https://
+ *  - if at least half the typed pages start with https://www. return https://www.
+ *  - if at least half the typed pages start with https:// return https://
  *  - if all of the typed pages start with ftp: return ftp://
- *  - if all of the typed pages start with www. return www.
+ *     - This is because mostly people will want to visit the http version
+ *       of the site.
+ *  - if at least half the typed pages start with www. return www.
  *  - otherwise don't use any prefix
  */
 #define HOSTS_PREFIX_PRIORITY_FRAGMENT \
   "SELECT CASE " \
-    "WHEN 1 = ( " \
-      "SELECT min(substr(url,1,12) = 'https://www.') FROM moz_places h " \
+    "WHEN ( " \
+      "SELECT round(avg(substr(url,1,12) = 'https://www.')) FROM moz_places h " \
       "WHERE (" HOST_TO_REVHOST_PREDICATE ") AND +h.typed = 1 " \
     ") THEN 'https://www.' " \
-    "WHEN 1 = ( " \
-      "SELECT min(substr(url,1,8) = 'https://') FROM moz_places h " \
+    "WHEN ( " \
+      "SELECT round(avg(substr(url,1,8) = 'https://')) FROM moz_places h " \
       "WHERE (" HOST_TO_REVHOST_PREDICATE ") AND +h.typed = 1 " \
     ") THEN 'https://' " \
     "WHEN 1 = ( " \
       "SELECT min(substr(url,1,4) = 'ftp:') FROM moz_places h " \
       "WHERE (" HOST_TO_REVHOST_PREDICATE ") AND +h.typed = 1 " \
     ") THEN 'ftp://' " \
-    "WHEN 1 = ( " \
-      "SELECT min(substr(url,1,11) = 'http://www.') FROM moz_places h " \
+    "WHEN ( " \
+      "SELECT round(avg(substr(url,1,11) = 'http://www.')) FROM moz_places h " \
       "WHERE (" HOST_TO_REVHOST_PREDICATE ") AND +h.typed = 1 " \
     ") THEN 'www.' " \
   "END "
@@ -93,29 +97,48 @@
 #define CREATE_PLACES_AFTERINSERT_TRIGGER NS_LITERAL_CSTRING( \
   "CREATE TEMP TRIGGER moz_places_afterinsert_trigger " \
   "AFTER INSERT ON moz_places FOR EACH ROW " \
-  "WHEN LENGTH(NEW.rev_host) > 1 " \
   "BEGIN " \
+    "SELECT store_last_inserted_id('moz_places', NEW.id); " \
     "INSERT OR REPLACE INTO moz_hosts (id, host, frecency, typed, prefix) " \
-    "VALUES (" \
-      "(SELECT id FROM moz_hosts WHERE host = fixup_url(get_unreversed_host(NEW.rev_host))), " \
-      "fixup_url(get_unreversed_host(NEW.rev_host)), " \
-      "MAX(IFNULL((SELECT frecency FROM moz_hosts WHERE host = fixup_url(get_unreversed_host(NEW.rev_host))), -1), NEW.frecency), " \
-      "MAX(IFNULL((SELECT typed FROM moz_hosts WHERE host = fixup_url(get_unreversed_host(NEW.rev_host))), 0), NEW.typed), " \
-      "(" HOSTS_PREFIX_PRIORITY_FRAGMENT \
-       "FROM ( " \
-          "SELECT fixup_url(get_unreversed_host(NEW.rev_host)) AS host " \
-        ") AS match " \
-      ") " \
-    "); " \
+    "SELECT " \
+        "(SELECT id FROM moz_hosts WHERE host = fixup_url(get_unreversed_host(NEW.rev_host))), " \
+        "fixup_url(get_unreversed_host(NEW.rev_host)), " \
+        "MAX(IFNULL((SELECT frecency FROM moz_hosts WHERE host = fixup_url(get_unreversed_host(NEW.rev_host))), -1), NEW.frecency), " \
+        "MAX(IFNULL((SELECT typed FROM moz_hosts WHERE host = fixup_url(get_unreversed_host(NEW.rev_host))), 0), NEW.typed), " \
+        "(" HOSTS_PREFIX_PRIORITY_FRAGMENT \
+         "FROM ( " \
+            "SELECT fixup_url(get_unreversed_host(NEW.rev_host)) AS host " \
+          ") AS match " \
+        ") " \
+    " WHERE LENGTH(NEW.rev_host) > 1; " \
   "END" \
 )
 
+// This is a hack to workaround the lack of FOR EACH STATEMENT in Sqlite, until
+// bug 871908 can be fixed properly.
+// We store the modified hosts in a temp table, and after every DELETE FROM
+// moz_places, we issue a DELETE FROM moz_updatehosts_temp.  The AFTER DELETE
+// trigger will then take care of updating the moz_hosts table.
+// Note this way we lose atomicity, crashing between the 2 queries may break the
+// hosts table coherency. So it's better to run those DELETE queries in a single
+// transaction.
+// Regardless, this is still better than hanging the browser for several minutes
+// on a fast machine.
 #define CREATE_PLACES_AFTERDELETE_TRIGGER NS_LITERAL_CSTRING( \
   "CREATE TEMP TRIGGER moz_places_afterdelete_trigger " \
   "AFTER DELETE ON moz_places FOR EACH ROW " \
   "BEGIN " \
+    "INSERT OR IGNORE INTO moz_updatehosts_temp (host)" \
+    "VALUES (fixup_url(get_unreversed_host(OLD.rev_host)));" \
+  "END" \
+)
+
+#define CREATE_UPDATEHOSTS_AFTERDELETE_TRIGGER NS_LITERAL_CSTRING( \
+  "CREATE TEMP TRIGGER moz_updatehosts_afterdelete_trigger " \
+  "AFTER DELETE ON moz_updatehosts_temp FOR EACH ROW " \
+  "BEGIN " \
     "DELETE FROM moz_hosts " \
-    "WHERE host = fixup_url(get_unreversed_host(OLD.rev_host)) " \
+    "WHERE host = OLD.host " \
       "AND NOT EXISTS(" \
         "SELECT 1 FROM moz_places " \
           "WHERE rev_host = get_unreversed_host(host || '.') || '.' " \
@@ -123,7 +146,12 @@
       "); " \
     "UPDATE moz_hosts " \
     "SET prefix = (" HOSTS_PREFIX_PRIORITY_FRAGMENT ") " \
-    "WHERE host = fixup_url(get_unreversed_host(OLD.rev_host)); " \
+    "WHERE host = OLD.host; " \
+    "DELETE FROM moz_icons " \
+    "WHERE fixed_icon_url_hash = hash(fixup_url(OLD.host || '/favicon.ico')) " \
+      "AND fixup_url(icon_url) = fixup_url(OLD.host || '/favicon.ico') "\
+      "AND NOT EXISTS (SELECT 1 FROM moz_hosts WHERE host = OLD.host " \
+                                                 "OR host = fixup_url(OLD.host));" \
   "END" \
 )
 
@@ -171,7 +199,8 @@
   "WHEN NEW.open_count = 0 " \
   "BEGIN " \
     "DELETE FROM moz_openpages_temp " \
-    "WHERE url = NEW.url;" \
+    "WHERE url = NEW.url " \
+      "AND userContextId = NEW.userContextId;" \
   "END" \
 )
 
@@ -189,6 +218,7 @@
   "CREATE TEMP TRIGGER moz_bookmarks_foreign_count_afterinsert_trigger " \
   "AFTER INSERT ON moz_bookmarks FOR EACH ROW " \
   "BEGIN " \
+    "SELECT store_last_inserted_id('moz_bookmarks', NEW.id); " \
     "UPDATE moz_places " \
     "SET foreign_count = foreign_count + 1 " \
     "WHERE id = NEW.fk;" \
@@ -238,6 +268,14 @@
     "UPDATE moz_places " \
     "SET foreign_count = foreign_count - 1 " \
     "WHERE id = OLD.place_id; " \
+  "END" \
+)
+
+#define CREATE_ICONS_AFTERINSERT_TRIGGER NS_LITERAL_CSTRING( \
+  "CREATE TEMP TRIGGER moz_icons_afterinsert_v1_trigger " \
+  "AFTER INSERT ON moz_icons FOR EACH ROW " \
+  "BEGIN " \
+    "SELECT store_last_inserted_id('moz_icons', NEW.id); " \
   "END" \
 )
 

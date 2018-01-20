@@ -18,19 +18,17 @@ nsHtml5StringParser::nsHtml5StringParser()
   , mTreeBuilder(new nsHtml5TreeBuilder(mBuilder))
   , mTokenizer(new nsHtml5Tokenizer(mTreeBuilder, false))
 {
-  MOZ_COUNT_CTOR(nsHtml5StringParser);
   mTokenizer->setInterner(&mAtomTable);
 }
 
 nsHtml5StringParser::~nsHtml5StringParser()
 {
-  MOZ_COUNT_DTOR(nsHtml5StringParser);
 }
 
 nsresult
 nsHtml5StringParser::ParseFragment(const nsAString& aSourceBuffer,
                                    nsIContent* aTargetNode,
-                                   nsIAtom* aContextLocalName,
+                                   nsAtom* aContextLocalName,
                                    int32_t aContextNamespace,
                                    bool aQuirks,
                                    bool aPreventScriptExecution)
@@ -49,7 +47,7 @@ nsHtml5StringParser::ParseFragment(const nsAString& aSourceBuffer,
 
 #ifdef DEBUG
   if (!aPreventScriptExecution) {
-    NS_ASSERTION(!aTargetNode->IsInDoc(),
+    NS_ASSERTION(!aTargetNode->IsInUncomposedDoc(),
                  "If script execution isn't prevented, "
                  "the target node must not be in doc.");
     nsCOMPtr<nsIDOMDocumentFragment> domFrag = do_QueryInterface(aTargetNode);

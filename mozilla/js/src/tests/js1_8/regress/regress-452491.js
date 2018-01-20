@@ -15,17 +15,12 @@ test();
 
 function test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
 
-  jit(true);
 
-  for (var j=0;j<5;++j) (new (function(q) q)).a;
+  for (var j=0;j<5;++j) (new (function(q) { return q; })).a;
 
-  jit(false);
 
   reportCompare(expect, actual, summary);
-
-  exitFunc ('test');
 }

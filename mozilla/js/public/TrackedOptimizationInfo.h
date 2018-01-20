@@ -16,6 +16,7 @@ namespace JS {
     _(GetProp_ArgumentsCallee)                          \
     _(GetProp_InferredConstant)                         \
     _(GetProp_Constant)                                 \
+    _(GetProp_NotDefined)                               \
     _(GetProp_StaticName)                               \
     _(GetProp_SimdGetter)                               \
     _(GetProp_TypedObject)                              \
@@ -23,9 +24,9 @@ namespace JS {
     _(GetProp_Unboxed)                                  \
     _(GetProp_CommonGetter)                             \
     _(GetProp_InlineAccess)                             \
+    _(GetProp_InlineProtoAccess)                        \
     _(GetProp_Innerize)                                 \
     _(GetProp_InlineCache)                              \
-    _(GetProp_SharedCache)                              \
     _(GetProp_ModuleNamespace)                          \
                                                         \
     _(SetProp_CommonSetter)                             \
@@ -41,7 +42,8 @@ namespace JS {
     _(GetElem_TypedArray)                               \
     _(GetElem_String)                                   \
     _(GetElem_Arguments)                                \
-    _(GetElem_ArgumentsInlined)                         \
+    _(GetElem_ArgumentsInlinedConstant)                 \
+    _(GetElem_ArgumentsInlinedSwitch)                   \
     _(GetElem_InlineCache)                              \
                                                         \
     _(SetElem_TypedObject)                              \
@@ -51,7 +53,27 @@ namespace JS {
     _(SetElem_Arguments)                                \
     _(SetElem_InlineCache)                              \
                                                         \
+    _(BinaryArith_Concat)                               \
+    _(BinaryArith_SpecializedTypes)                     \
+    _(BinaryArith_SpecializedOnBaselineTypes)           \
+    _(BinaryArith_SharedCache)                          \
+    _(BinaryArith_Call)                                 \
+                                                        \
     _(InlineCache_OptimizedStub)                        \
+                                                        \
+    _(NewArray_TemplateObject)                          \
+    _(NewArray_SharedCache)                             \
+    _(NewArray_Call)                                    \
+                                                        \
+    _(NewObject_TemplateObject)                         \
+    _(NewObject_SharedCache)                            \
+    _(NewObject_Call)                                   \
+                                                        \
+    _(Compare_SpecializedTypes)                         \
+    _(Compare_Bitwise)                                  \
+    _(Compare_SpecializedOnBaselineTypes)               \
+    _(Compare_SharedCache)                              \
+    _(Compare_Call)                                     \
                                                         \
     _(Call_Inline)
 
@@ -74,6 +96,7 @@ namespace JS {
     _(NotObject)                                                        \
     _(NotStruct)                                                        \
     _(NotUnboxed)                                                       \
+    _(NotUndefined)                                                     \
     _(UnboxedConvertedToNative)                                         \
     _(StructNoField)                                                    \
     _(InconsistentFieldType)                                            \
@@ -88,13 +111,18 @@ namespace JS {
     _(ArrayDoubleConversion)                                            \
     _(ArrayRange)                                                       \
     _(ArraySeenNegativeIndex)                                           \
-    _(TypedObjectNeutered)                                              \
+    _(TypedObjectHasDetachedBuffer)                                     \
     _(TypedObjectArrayRange)                                            \
     _(AccessNotDense)                                                   \
     _(AccessNotSimdObject)                                              \
     _(AccessNotTypedObject)                                             \
     _(AccessNotTypedArray)                                              \
     _(AccessNotString)                                                  \
+    _(OperandNotString)                                                 \
+    _(OperandNotNumber)                                                 \
+    _(OperandNotStringOrNumber)                                         \
+    _(OperandNotSimpleArith)                                            \
+    _(OperandNotEasilyCoercibleToString)                                \
     _(StaticTypedArrayUint32)                                           \
     _(StaticTypedArrayCantComputeMask)                                  \
     _(OutOfBounds)                                                      \
@@ -107,6 +135,19 @@ namespace JS {
     _(UnknownSimdProperty)                                              \
     _(NotModuleNamespace)                                               \
     _(UnknownProperty)                                                  \
+    _(NoTemplateObject)                                                 \
+    _(TemplateObjectIsUnboxedWithoutInlineElements)                     \
+    _(TemplateObjectIsPlainObjectWithDynamicSlots)                      \
+    _(LengthTooBig)                                                     \
+    _(SpeculationOnInputTypesFailed)                                    \
+    _(RelationalCompare)                                                \
+    _(OperandTypeNotBitwiseComparable)                                  \
+    _(OperandMaybeEmulatesUndefined)                                    \
+    _(LoosyUndefinedNullCompare)                                        \
+    _(LoosyInt32BooleanCompare)                                         \
+    _(CallsValueOf)                                                     \
+    _(StrictCompare)                                                    \
+    _(InitHole)                                                         \
                                                                         \
     _(ICOptStub_GenericSuccess)                                         \
                                                                         \
@@ -144,6 +185,7 @@ namespace JS {
                                                                         \
     _(ICNameStub_ReadSlot)                                              \
     _(ICNameStub_CallGetter)                                            \
+    _(ICNameStub_TypeOfNoProperty)                                      \
                                                                         \
     _(CantInlineGeneric)                                                \
     _(CantInlineNoTarget)                                               \
@@ -156,7 +198,6 @@ namespace JS {
     _(CantInlineTooManyArgs)                                            \
     _(CantInlineNeedsArgsObj)                                           \
     _(CantInlineDebuggee)                                               \
-    _(CantInlineUnknownProps)                                           \
     _(CantInlineExceededDepth)                                          \
     _(CantInlineExceededTotalBytecodeLength)                            \
     _(CantInlineBigCaller)                                              \
@@ -180,6 +221,7 @@ namespace JS {
 
 #define TRACKED_TYPESITE_LIST(_)                \
     _(Receiver)                                 \
+    _(Operand)                                  \
     _(Index)                                    \
     _(Value)                                    \
     _(Call_Target)                              \
@@ -260,7 +302,7 @@ struct ForEachTrackedOptimizationTypeInfoOp
     // The location parameter is the only one that may need escaping if being
     // quoted.
     virtual void readType(const char* keyedBy, const char* name,
-                          const char* location, mozilla::Maybe<unsigned> lineno) = 0;
+                          const char* location, const mozilla::Maybe<unsigned>& lineno) = 0;
 
     // Called once per entry.
     virtual void operator()(TrackedTypeSite site, const char* mirType) = 0;

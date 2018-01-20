@@ -217,7 +217,7 @@ WinLaunchChild(const wchar_t *exePath,
 
 BOOL
 WinLaunchChild(const wchar_t *exePath,
-               int argc, 
+               int argc,
                wchar_t **argv,
                HANDLE userToken,
                HANDLE *hProcess)
@@ -254,7 +254,7 @@ WinLaunchChild(const wchar_t *exePath,
       environmentBlock = nullptr;
     }
 
-    ok = CreateProcessAsUserW(userToken, 
+    ok = CreateProcessAsUserW(userToken,
                               exePath,
                               cl,
                               nullptr,  // no special security attributes
@@ -289,7 +289,7 @@ WinLaunchChild(const wchar_t *exePath,
                   (LPTSTR) &lpMsgBuf,
                   0,
                   nullptr);
-    wprintf(L"Error restarting: %s\n", lpMsgBuf ? lpMsgBuf : L"(null)");
+    wprintf(L"Error restarting: %s\n", lpMsgBuf ? static_cast<const wchar_t*>(lpMsgBuf) : L"(null)");
     if (lpMsgBuf)
       LocalFree(lpMsgBuf);
   }

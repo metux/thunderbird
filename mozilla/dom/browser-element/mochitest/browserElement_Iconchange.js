@@ -7,6 +7,7 @@
 SimpleTest.waitForExplicitFinish();
 browserElementTestHelpers.setEnabledPref(true);
 browserElementTestHelpers.addPermission();
+browserElementTestHelpers.allowTopLevelDataURINavigation();
 
 function createHtml(link) {
   return 'data:text/html,<html><head>' + link + '<body></body></html>';
@@ -101,6 +102,12 @@ function runTest() {
     } else if (numIconChanges == 8) {
       is(e.detail.href, 'http://example.com/testapple1.png');
       is(e.detail.rel, 'apple-touch-icon');
+      is(e.detail.sizes, '100x100');
+
+      iframe1.src = createHtml(createLink('testapple2', '100x100', 'apple-touch-icon-precomposed'));
+    } else if (numIconChanges == 9) {
+      is(e.detail.href, 'http://example.com/testapple2.png');
+      is(e.detail.rel, 'apple-touch-icon-precomposed');
       is(e.detail.sizes, '100x100');
       SimpleTest.finish();
     } else {

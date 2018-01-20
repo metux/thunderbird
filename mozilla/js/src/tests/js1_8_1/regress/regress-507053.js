@@ -12,7 +12,6 @@ var expect = '2,4,8,16,32,2,4,8,16,32,2,4,8,16,32,2,4,8,16,32,2,4,8,16,32,';
 
 //-----------------------------------------------------------------------------
 start_test();
-jit(true);
 
 var f = function() {
   var p = 1;
@@ -30,13 +29,11 @@ for (var i = 0; i < 5; ++i) {
   f();
 }
 
-jit(false);
 finish_test();
 //-----------------------------------------------------------------------------
 
 function start_test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
 }
@@ -44,5 +41,4 @@ function start_test()
 function finish_test()
 {
   reportCompare(expect, actual, summary);
-  exitFunc ('test');
 }

@@ -6,7 +6,7 @@
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/FloatingPoint.h"
 
-#include "nsIAtom.h"
+#include "nsAtom.h"
 #include "nsGkAtoms.h"
 #include "txExecutionState.h"
 #include "txExpr.h"
@@ -24,7 +24,7 @@
 #include "txMozillaXMLOutput.h"
 #include "nsTextNode.h"
 #include "mozilla/dom/DocumentFragment.h"
-#include "prtime.h" 
+#include "prtime.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -38,7 +38,7 @@ class txStylesheetCompilerState;
 static nsresult
 convertRtfToNode(txIEvalContext *aContext, txResultTreeFragment *aRtf)
 {
-    txExecutionState* es = 
+    txExecutionState* es =
         static_cast<txExecutionState*>(aContext->getPrivateContext());
     if (!es) {
         NS_ERROR("Need txExecutionState!");
@@ -75,7 +75,7 @@ static nsresult
 createTextNode(txIEvalContext *aContext, nsString& aValue,
                txXPathNode* *aResult)
 {
-    txExecutionState* es = 
+    txExecutionState* es =
         static_cast<txExecutionState*>(aContext->getPrivateContext());
     if (!es) {
         NS_ERROR("Need txExecutionState!");
@@ -100,7 +100,7 @@ createTextNode(txIEvalContext *aContext, nsString& aValue,
 static already_AddRefed<DocumentFragment>
 createDocFragment(txIEvalContext *aContext)
 {
-    txExecutionState* es = 
+    txExecutionState* es =
         static_cast<txExecutionState*>(aContext->getPrivateContext());
     if (!es) {
         NS_ERROR("Need txExecutionState!");
@@ -117,7 +117,7 @@ createDocFragment(txIEvalContext *aContext)
 }
 
 static nsresult
-createAndAddToResult(nsIAtom* aName, const nsSubstring& aValue,
+createAndAddToResult(nsAtom* aName, const nsAString& aValue,
                      txNodeSet* aResultSet, nsIContent* aResultHolder)
 {
     NS_ASSERTION(aResultHolder->IsNodeOfType(nsINode::eDOCUMENT_FRAGMENT) &&
@@ -168,8 +168,8 @@ struct txEXSLTFunctionDescriptor
     int8_t mMinParams;
     int8_t mMaxParams;
     Expr::ResultType mReturnType;
-    nsIAtom** mName;
     int32_t mNamespaceID;
+    nsStaticAtom** mName;
     const char* mNamespaceURI;
 };
 
@@ -183,22 +183,22 @@ static const char kEXSLTDatesAndTimesNS[] = "http://exslt.org/dates-and-times";
 // txEXSLTFunctionCall::eType enum
 static txEXSLTFunctionDescriptor descriptTable[] =
 {
-    { 1, 1, Expr::NODESET_RESULT, &nsGkAtoms::nodeSet, 0, kEXSLTCommonNS }, // NODE_SET
-    { 1, 1, Expr::STRING_RESULT,  &nsGkAtoms::objectType, 0, kEXSLTCommonNS }, // OBJECT_TYPE
-    { 2, 2, Expr::NODESET_RESULT, &nsGkAtoms::difference, 0, kEXSLTSetsNS }, // DIFFERENCE
-    { 1, 1, Expr::NODESET_RESULT, &nsGkAtoms::distinct, 0, kEXSLTSetsNS }, // DISTINCT
-    { 2, 2, Expr::BOOLEAN_RESULT, &nsGkAtoms::hasSameNode, 0, kEXSLTSetsNS }, // HAS_SAME_NODE
-    { 2, 2, Expr::NODESET_RESULT, &nsGkAtoms::intersection, 0, kEXSLTSetsNS }, // INTERSECTION
-    { 2, 2, Expr::NODESET_RESULT, &nsGkAtoms::leading, 0, kEXSLTSetsNS }, // LEADING
-    { 2, 2, Expr::NODESET_RESULT, &nsGkAtoms::trailing, 0, kEXSLTSetsNS }, // TRAILING
-    { 1, 1, Expr::STRING_RESULT,  &nsGkAtoms::concat, 0, kEXSLTStringsNS }, // CONCAT
-    { 1, 2, Expr::STRING_RESULT,  &nsGkAtoms::split, 0, kEXSLTStringsNS }, // SPLIT
-    { 1, 2, Expr::STRING_RESULT,  &nsGkAtoms::tokenize, 0, kEXSLTStringsNS }, // TOKENIZE
-    { 1, 1, Expr::NUMBER_RESULT,  &nsGkAtoms::max, 0, kEXSLTMathNS }, // MAX
-    { 1, 1, Expr::NUMBER_RESULT,  &nsGkAtoms::min, 0, kEXSLTMathNS }, // MIN
-    { 1, 1, Expr::NODESET_RESULT, &nsGkAtoms::highest, 0, kEXSLTMathNS }, // HIGHEST
-    { 1, 1, Expr::NODESET_RESULT, &nsGkAtoms::lowest, 0, kEXSLTMathNS }, // LOWEST
-    { 0, 0, Expr::STRING_RESULT,  &nsGkAtoms::dateTime, 0, kEXSLTDatesAndTimesNS }, // DATE_TIME
+    { 1, 1, Expr::NODESET_RESULT, 0, &nsGkAtoms::nodeSet, kEXSLTCommonNS }, // NODE_SET
+    { 1, 1, Expr::STRING_RESULT, 0, &nsGkAtoms::objectType, kEXSLTCommonNS }, // OBJECT_TYPE
+    { 2, 2, Expr::NODESET_RESULT, 0, &nsGkAtoms::difference, kEXSLTSetsNS }, // DIFFERENCE
+    { 1, 1, Expr::NODESET_RESULT, 0, &nsGkAtoms::distinct, kEXSLTSetsNS }, // DISTINCT
+    { 2, 2, Expr::BOOLEAN_RESULT, 0, &nsGkAtoms::hasSameNode, kEXSLTSetsNS }, // HAS_SAME_NODE
+    { 2, 2, Expr::NODESET_RESULT, 0, &nsGkAtoms::intersection, kEXSLTSetsNS }, // INTERSECTION
+    { 2, 2, Expr::NODESET_RESULT, 0, &nsGkAtoms::leading, kEXSLTSetsNS }, // LEADING
+    { 2, 2, Expr::NODESET_RESULT, 0, &nsGkAtoms::trailing, kEXSLTSetsNS }, // TRAILING
+    { 1, 1, Expr::STRING_RESULT, 0, &nsGkAtoms::concat, kEXSLTStringsNS }, // CONCAT
+    { 1, 2, Expr::STRING_RESULT, 0, &nsGkAtoms::split, kEXSLTStringsNS }, // SPLIT
+    { 1, 2, Expr::STRING_RESULT, 0, &nsGkAtoms::tokenize, kEXSLTStringsNS }, // TOKENIZE
+    { 1, 1, Expr::NUMBER_RESULT, 0, &nsGkAtoms::max, kEXSLTMathNS }, // MAX
+    { 1, 1, Expr::NUMBER_RESULT, 0, &nsGkAtoms::min, kEXSLTMathNS }, // MIN
+    { 1, 1, Expr::NODESET_RESULT, 0, &nsGkAtoms::highest, kEXSLTMathNS }, // HIGHEST
+    { 1, 1, Expr::NODESET_RESULT, 0, &nsGkAtoms::lowest, kEXSLTMathNS }, // LOWEST
+    { 0, 0, Expr::STRING_RESULT, 0, &nsGkAtoms::dateTime, kEXSLTDatesAndTimesNS }, // DATE_TIME
 
 };
 
@@ -258,7 +258,7 @@ txEXSLTFunctionCall::evaluate(txIEvalContext *aContext,
             NS_ENSURE_SUCCESS(rv, rv);
 
             if (exprResult->getResultType() == txAExprResult::NODESET) {
-                exprResult.swap(*aResult);
+                exprResult.forget(aResult);
             }
             else {
                 RefPtr<txNodeSet> resultSet;
@@ -639,28 +639,29 @@ txEXSLTFunctionCall::evaluate(txIEvalContext *aContext,
         case DATE_TIME:
         {
             // http://exslt.org/date/functions/date-time/
-            // format: YYYY-MM-DDTTHH:MM:SS.sss+00:00
-            char formatstr[] = "%04hd-%02ld-%02ldT%02ld:%02ld:%02ld.%03ld%c%02ld:%02ld";
-            
+
             PRExplodedTime prtime;
             PR_ExplodeTime(PR_Now(), PR_LocalTimeParameters, &prtime);
-            
+
             int32_t offset = (prtime.tm_params.tp_gmt_offset +
               prtime.tm_params.tp_dst_offset) / 60;
-              
+
             bool isneg = offset < 0;
             if (isneg) offset = -offset;
-            
+
             StringResult* strRes;
             rv = aContext->recycler()->getStringResult(&strRes);
             NS_ENSURE_SUCCESS(rv, rv);
-            
-            CopyASCIItoUTF16(nsPrintfCString(formatstr,
+
+            // format: YYYY-MM-DDTTHH:MM:SS.sss+00:00
+            CopyASCIItoUTF16(nsPrintfCString("%04hd-%02" PRId32 "-%02" PRId32
+                                             "T%02" PRId32 ":%02" PRId32 ":%02" PRId32
+                                             ".%03" PRId32 "%c%02" PRId32 ":%02" PRId32,
               prtime.tm_year, prtime.tm_month + 1, prtime.tm_mday,
               prtime.tm_hour, prtime.tm_min, prtime.tm_sec,
               prtime.tm_usec / 10000,
               isneg ? '-' : '+', offset / 60, offset % 60), strRes->mValue);
-              
+
             *aResult = strRes;
 
             return NS_OK;
@@ -689,7 +690,7 @@ txEXSLTFunctionCall::isSensitiveTo(ContextSensitivity aContext)
 
 #ifdef TX_TO_STRING
 nsresult
-txEXSLTFunctionCall::getNameAtom(nsIAtom **aAtom)
+txEXSLTFunctionCall::getNameAtom(nsAtom **aAtom)
 {
     NS_ADDREF(*aAtom = *descriptTable[mType].mName);
     return NS_OK;
@@ -697,7 +698,7 @@ txEXSLTFunctionCall::getNameAtom(nsIAtom **aAtom)
 #endif
 
 extern nsresult
-TX_ConstructEXSLTFunction(nsIAtom *aName,
+TX_ConstructEXSLTFunction(nsAtom *aName,
                           int32_t aNamespaceID,
                           txStylesheetCompilerState* aState,
                           FunctionCall **aResult)

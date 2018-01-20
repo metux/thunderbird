@@ -11,7 +11,6 @@
     // Global variable that holds the nsContextMenu instance.
     var gContextMenu = null;
   </script>
-  <script type="application/javascript" src="chrome://global/content/inlineSpellCheckUI.js"/>
   <script type="application/javascript" src="chrome://communicator/content/nsContextMenu.js"/>
   <script type="application/javascript" src="chrome://global/content/contentAreaUtils.js"/>
 
@@ -120,6 +119,11 @@
                     accesskey="&mediaPlaybackRate100.accesskey;"
                     type="radio"
                     name="playbackrate"/>
+          <menuitem id="context-media-playbackrate-125"
+                    label="&mediaPlaybackRate125.label;"
+                    accesskey="&mediaPlaybackRate125.accesskey;"
+                    type="radio"
+                    name="playbackrate"/>
           <menuitem id="context-media-playbackrate-150"
                     label="&mediaPlaybackRate150.label;"
                     accesskey="&mediaPlaybackRate150.accesskey;"
@@ -132,6 +136,11 @@
                     name="playbackrate"/>
         </menupopup>
       </menu>
+      <menuitem id="context-media-loop"
+                label="&mediaLoop.label;"
+                accesskey="&mediaLoop.accesskey;"
+                type="checkbox"
+                oncommand="gContextMenu.mediaCommand('loop');"/>
       <menuitem id="context-media-showcontrols"
                 label="&mediaShowControls.label;"
                 accesskey="&mediaShowControls.accesskey;"
@@ -361,6 +370,13 @@
                 label="&bidiSwitchPageDirectionItem.label;"
                 accesskey="&bidiSwitchPageDirectionItem.accesskey;"
                 oncommand="SwitchDocumentDirection(window.content);"/>
+      <menuseparator id="inspect-separator"
+                     hidden="true"/>
+      <menuitem id="context-inspect"
+                hidden="true"
+                label="&devtoolsInspect.label;"
+                accesskey="&devtoolsInspect.accesskey;"
+                oncommand="gContextMenu.inspectNode();"/>
     </menupopup>
   </popupset>
 </overlay>

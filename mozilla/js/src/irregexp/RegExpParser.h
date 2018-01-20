@@ -31,6 +31,10 @@
 #ifndef V8_PARSER_H_
 #define V8_PARSER_H_
 
+#include "mozilla/Range.h"
+
+#include <stdarg.h>
+
 #include "irregexp/RegExpAST.h"
 
 namespace js {
@@ -43,11 +47,16 @@ namespace irregexp {
 
 bool
 ParsePattern(frontend::TokenStream& ts, LifoAlloc& alloc, JSAtom* str,
-             bool multiline, bool match_only,
-             RegExpCompileData* data);
+             bool multiline, bool match_only, bool unicode, bool ignore_case,
+             bool global, bool sticky, RegExpCompileData* data);
 
 bool
-ParsePatternSyntax(frontend::TokenStream& ts, LifoAlloc& alloc, JSAtom* str);
+ParsePatternSyntax(frontend::TokenStream& ts, LifoAlloc& alloc, JSAtom* str,
+                   bool unicode);
+
+bool
+ParsePatternSyntax(frontend::TokenStream& ts, LifoAlloc& alloc,
+                   const mozilla::Range<const char16_t> chars, bool unicode);
 
 // A BufferedVector is an automatically growing list, just like (and backed
 // by) a Vector, that is optimized for the case of adding and removing
@@ -59,7 +68,7 @@ template <typename T, int initial_size>
 class BufferedVector
 {
   public:
-    typedef Vector<T*, 1, LifoAllocPolicy<Infallible> > VectorType;
+    typedef InfallibleVector<T*, 1> VectorType;
 
     BufferedVector() : list_(nullptr), last_(nullptr) {}
 
@@ -163,7 +172,9 @@ class RegExpBuilder
     enum LastAdded {
         ADD_NONE, ADD_CHAR, ADD_TERM, ADD_ASSERT, ADD_ATOM
     };
-    mozilla::DebugOnly<LastAdded> last_added_;
+#ifdef DEBUG
+    LastAdded last_added_;
+#endif
 };
 
 // Characters parsed by RegExpParser can be either char16_t or kEndMarker.
@@ -174,7 +185,8 @@ class RegExpParser
 {
   public:
     RegExpParser(frontend::TokenStream& ts, LifoAlloc* alloc,
-                 const CharT* chars, const CharT* end, bool multiline_mode);
+                 const CharT* chars, const CharT* end, bool multiline_mode, bool unicode,
+                 bool ignore_case);
 
     RegExpTree* ParsePattern();
     RegExpTree* ParseDisjunction();
@@ -184,15 +196,21 @@ class RegExpParser
     // out parameters.
     bool ParseIntervalQuantifier(int* min_out, int* max_out);
 
-    // Parses and returns a single escaped character.  The character
-    // must not be 'b' or 'B' since they are usually handled specially.
-    widechar ParseClassCharacterEscape();
+    // Tries to parse the input as a single escaped character.  If successful
+    // it stores the result in the output parameter and returns true.
+    // Otherwise it throws an error and returns false.  The character must not
+    // be 'b' or 'B' since they are usually handled specially.
+    bool ParseClassCharacterEscape(widechar* code);
 
     // Checks whether the following is a length-digit hexadecimal number,
     // and sets the value if it is.
-    bool ParseHexEscape(int length, size_t* value);
+    bool ParseHexEscape(int length, widechar* value);
 
-    size_t ParseOctalLiteral();
+    bool ParseBracedHexEscape(widechar* value);
+    bool ParseTrailSurrogate(widechar* value);
+    bool ParseRawSurrogatePair(char16_t* lead, char16_t* trail);
+
+    widechar ParseOctalLiteral();
 
     // Tries to parse the input as a back reference.  If successful it
     // stores the result in the output parameter and returns true.  If
@@ -200,8 +218,14 @@ class RegExpParser
     // can be reparsed.
     bool ParseBackReferenceIndex(int* index_out);
 
-    bool ParseClassAtom(char16_t* char_class, CharacterRange* char_range);
-    RegExpTree* ReportError(unsigned errorNumber);
+    bool ParseClassAtom(char16_t* char_class, widechar *value);
+
+  private:
+    void SyntaxError(unsigned errorNumber, ...);
+
+  public:
+    RegExpTree* ReportError(unsigned errorNumber, const char* param = nullptr);
+
     void Advance();
     void Advance(int dist) {
         next_pos_ += dist - 1;
@@ -281,6 +305,7 @@ class RegExpParser
     frontend::TokenStream& ts;
     LifoAlloc* alloc;
     RegExpCaptureVector* captures_;
+    const CharT* const start_;
     const CharT* next_pos_;
     const CharT* end_;
     widechar current_;
@@ -288,6 +313,8 @@ class RegExpParser
     int capture_count_;
     bool has_more_;
     bool multiline_;
+    bool unicode_;
+    bool ignore_case_;
     bool simple_;
     bool contains_anchor_;
     bool is_scanned_for_captures_;

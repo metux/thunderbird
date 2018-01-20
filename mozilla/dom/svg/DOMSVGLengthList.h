@@ -8,7 +8,6 @@
 #define MOZILLA_DOMSVGLENGTHLIST_H__
 
 #include "DOMSVGAnimatedLengthList.h"
-#include "nsAutoPtr.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsDebug.h"
 #include "nsTArray.h"
@@ -66,7 +65,7 @@ public:
     // InternalList() here. (Because it depends on IsAnimValList, which depends
     // on this object having been assigned to aAList's mBaseVal or mAnimVal,
     // which hasn't happend yet.)
-    
+
     InternalListLengthWillChange(aInternalList.Length()); // Sync mItems
   }
 

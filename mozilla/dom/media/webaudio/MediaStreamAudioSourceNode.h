@@ -15,6 +15,9 @@ namespace mozilla {
 
 namespace dom {
 
+class AudioContext;
+struct MediaStreamAudioSourceOptions;
+
 class MediaStreamAudioSourceNodeEngine final : public AudioNodeEngine
 {
 public:
@@ -25,7 +28,7 @@ public:
   enum Parameters {
     ENABLE
   };
-  virtual void SetInt32Parameter(uint32_t aIndex, int32_t aValue) override
+  void SetInt32Parameter(uint32_t aIndex, int32_t aValue) override
   {
     switch (aIndex) {
     case ENABLE:
@@ -41,39 +44,71 @@ private:
 };
 
 class MediaStreamAudioSourceNode : public AudioNode,
-                                   public DOMMediaStream::PrincipalChangeObserver
+                                   public DOMMediaStream::TrackListener,
+                                   public PrincipalChangeObserver<MediaStreamTrack>
 {
 public:
   static already_AddRefed<MediaStreamAudioSourceNode>
-  Create(AudioContext* aContext, DOMMediaStream* aStream, ErrorResult& aRv);
+  Create(AudioContext& aContext, const MediaStreamAudioSourceOptions& aOptions,
+         ErrorResult& aRv);
 
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(MediaStreamAudioSourceNode, AudioNode)
 
-  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+  static already_AddRefed<MediaStreamAudioSourceNode>
+  Constructor(const GlobalObject& aGlobal, AudioContext& aAudioContext,
+              const MediaStreamAudioSourceOptions& aOptions, ErrorResult& aRv)
+  {
+    return Create(aAudioContext, aOptions, aRv);
+  }
 
-  virtual void DestroyMediaStream() override;
+  JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
-  virtual uint16_t NumberOfInputs() const override { return 0; }
+  void DestroyMediaStream() override;
 
-  virtual const char* NodeType() const override
+  uint16_t NumberOfInputs() const override { return 0; }
+
+  const char* NodeType() const override
   {
     return "MediaStreamAudioSourceNode";
   }
 
-  virtual size_t SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const override;
-  virtual size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const override;
+  virtual const char* CrossOriginErrorString() const
+  {
+    return "MediaStreamAudioSourceNodeCrossOrigin";
+  }
 
-  virtual void PrincipalChanged(DOMMediaStream* aMediaStream) override;
+  size_t SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const override;
+  size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const override;
+
+  // Attaches to aTrack so that its audio content will be used as input.
+  void AttachToTrack(const RefPtr<MediaStreamTrack>& aTrack);
+
+  // Detaches from the currently attached track if there is one.
+  void DetachFromTrack();
+
+  // Attaches to the first available audio track in aMediaStream.
+  void AttachToFirstTrack(const RefPtr<DOMMediaStream>& aMediaStream);
+
+  // From DOMMediaStream::TrackListener.
+  void NotifyTrackAdded(const RefPtr<MediaStreamTrack>& aTrack) override;
+  void NotifyTrackRemoved(const RefPtr<MediaStreamTrack>& aTrack) override;
+
+  // From PrincipalChangeObserver<MediaStreamTrack>.
+  void PrincipalChanged(MediaStreamTrack* aMediaStreamTrack) override;
 
 protected:
   explicit MediaStreamAudioSourceNode(AudioContext* aContext);
   void Init(DOMMediaStream* aMediaStream, ErrorResult& aRv);
+  void Destroy();
   virtual ~MediaStreamAudioSourceNode();
 
 private:
   RefPtr<MediaInputPort> mInputPort;
   RefPtr<DOMMediaStream> mInputStream;
+
+  // On construction we set this to the first audio track of mInputStream.
+  RefPtr<MediaStreamTrack> mInputTrack;
 };
 
 } // namespace dom

@@ -1,20 +1,21 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
+"use strict";
+
 const { ActorPool, appendExtraActors, createExtraActors } = require("devtools/server/actors/common");
 const { RootActor } = require("devtools/server/actors/root");
 const { ThreadActor } = require("devtools/server/actors/script");
 const { DebuggerServer } = require("devtools/server/main");
 const { TabSources } = require("devtools/server/actors/utils/TabSources");
-const promise = require("promise");
 const makeDebugger = require("devtools/server/actors/utils/make-debugger");
 
 var gTestGlobals = [];
-DebuggerServer.addTestGlobal = function(aGlobal) {
-  gTestGlobals.push(aGlobal);
+DebuggerServer.addTestGlobal = function (global) {
+  gTestGlobals.push(global);
 };
 
-DebuggerServer.getTestGlobal = function(name) {
+DebuggerServer.getTestGlobal = function (name) {
   for (let g of gTestGlobals) {
     if (g.__name == name) {
       return g;
@@ -22,7 +23,7 @@ DebuggerServer.getTestGlobal = function(name) {
   }
 
   return null;
-}
+};
 
 // A mock tab list, for use by tests. This simply presents each global in
 // gTestGlobals as a tab, and the list is fixed: it never calls its
@@ -31,18 +32,18 @@ DebuggerServer.getTestGlobal = function(name) {
 // As implemented now, we consult gTestGlobals when we're constructed, not
 // when we're iterated over, so tests have to add their globals before the
 // root actor is created.
-function TestTabList(aConnection) {
-  this.conn = aConnection;
+function TestTabList(connection) {
+  this.conn = connection;
 
   // An array of actors for each global added with
   // DebuggerServer.addTestGlobal.
   this._tabActors = [];
 
   // A pool mapping those actors' names to the actors.
-  this._tabActorPool = new ActorPool(aConnection);
+  this._tabActorPool = new ActorPool(connection);
 
   for (let global of gTestGlobals) {
-    let actor = new TestTabActor(aConnection, global);
+    let actor = new TestTabActor(connection, global);
     actor.selected = false;
     this._tabActors.push(actor);
     this._tabActorPool.addActor(actor);
@@ -51,7 +52,7 @@ function TestTabList(aConnection) {
     this._tabActors[0].selected = true;
   }
 
-  aConnection.addActorPool(this._tabActorPool);
+  connection.addActorPool(this._tabActorPool);
 }
 
 TestTabList.prototype = {
@@ -61,10 +62,9 @@ TestTabList.prototype = {
   }
 };
 
-function createRootActor(aConnection)
-{
-  let root = new RootActor(aConnection, {
-    tabList: new TestTabList(aConnection),
+function createRootActor(connection) {
+  let root = new RootActor(connection, {
+    tabList: new TestTabList(connection),
     globalActorFactories: DebuggerServer.globalActorFactories,
   });
 
@@ -72,11 +72,10 @@ function createRootActor(aConnection)
   return root;
 }
 
-function TestTabActor(aConnection, aGlobal)
-{
-  this.conn = aConnection;
-  this._global = aGlobal;
-  this._global.wrappedJSObject = aGlobal;
+function TestTabActor(connection, global) {
+  this.conn = connection;
+  this._global = global;
+  this._global.wrappedJSObject = global;
   this.threadActor = new ThreadActor(this, this._global);
   this.conn.addActor(this.threadActor);
   this._attached = false;
@@ -109,7 +108,7 @@ TestTabActor.prototype = {
     return this._sources;
   },
 
-  form: function() {
+  form: function () {
     let response = { actor: this.actorID, title: this._global.__name };
 
     // Walk over tab actors added by extensions and add them to a new ActorPool.
@@ -125,7 +124,7 @@ TestTabActor.prototype = {
     return response;
   },
 
-  onAttach: function(aRequest) {
+  onAttach: function (request) {
     this._attached = true;
 
     let response = { type: "tabAttached", threadActor: this.threadActor.actorID };
@@ -134,26 +133,26 @@ TestTabActor.prototype = {
     return response;
   },
 
-  onDetach: function(aRequest) {
+  onDetach: function (request) {
     if (!this._attached) {
-      return { "error":"wrongState" };
+      return { "error": "wrongState" };
     }
     return { type: "detached" };
   },
 
-  onReload: function(aRequest) {
+  onReload: function (request) {
     this.sources.reset({ sourceMaps: true });
     this.threadActor.clearDebuggees();
     this.threadActor.dbg.addDebuggees();
     return {};
   },
 
-  removeActorByName: function(aName) {
-    const actor = this._extraActors[aName];
+  removeActorByName: function (name) {
+    const actor = this._extraActors[name];
     if (this._tabActorPool) {
       this._tabActorPool.removeActor(actor);
     }
-    delete this._extraActors[aName];
+    delete this._extraActors[name];
   },
 
   /* Support for DebuggerServer.addTabActor. */
@@ -167,10 +166,10 @@ TestTabActor.prototype.requestTypes = {
   "reload": TestTabActor.prototype.onReload
 };
 
-exports.register = function(handle) {
+exports.register = function (handle) {
   handle.setRootActor(createRootActor);
 };
 
-exports.unregister = function(handle) {
+exports.unregister = function (handle) {
   handle.setRootActor(null);
 };

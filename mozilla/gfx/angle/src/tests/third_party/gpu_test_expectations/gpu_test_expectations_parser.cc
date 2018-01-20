@@ -4,6 +4,10 @@
 
 #include "gpu_test_expectations_parser.h"
 
+#include <stddef.h>
+#include <stdint.h>
+
+#include "angle_config.h"
 #include "common/angleutils.h"
 
 namespace base {
@@ -68,6 +72,8 @@ enum Token {
   kConfigMacMountainLion,
   kConfigMacMavericks,
   kConfigMacYosemite,
+  kConfigMacElCapitan,
+  kConfigMacSierra,
   kConfigMac,
   kConfigLinux,
   kConfigChromeOS,
@@ -105,7 +111,7 @@ enum Token {
 
 struct TokenInfo {
   const char* name;
-  int32 flag;
+  int32_t flag;
 };
 
 const TokenInfo kTokenData[] = {
@@ -121,6 +127,8 @@ const TokenInfo kTokenData[] = {
     {"mountainlion", GPUTestConfig::kOsMacMountainLion},
     {"mavericks", GPUTestConfig::kOsMacMavericks},
     {"yosemite", GPUTestConfig::kOsMacYosemite},
+    {"elcapitan", GPUTestConfig::kOsMacElCapitan},
+    {"sierra", GPUTestConfig::kOsMacSierra},
     {"mac", GPUTestConfig::kOsMac},
     {"linux", GPUTestConfig::kOsLinux},
     {"chromeos", GPUTestConfig::kOsChromeOS},
@@ -178,7 +186,7 @@ Token ParseToken(const std::string& word) {
   if (base::StartsWithASCII(word, "0x", false))
     return kConfigGPUDeviceID;
 
-  for (int32 i = 0; i < kNumberOfExactMatchTokens; ++i) {
+  for (int32_t i = 0; i < kNumberOfExactMatchTokens; ++i) {
     if (base::LowerCaseEqualsASCII(word, kTokenData[i].name))
       return static_cast<Token>(i);
   }
@@ -203,10 +211,10 @@ bool NamesMatching(const std::string& ref, const std::string& test_name) {
 
 GPUTestExpectationsParser::GPUTestExpectationsParser() {
   // Some sanity check.
-  static_assert(static_cast<unsigned int>(kNumberOfExactMatchTokens) ==
-                sizeof(kTokenData) / sizeof(kTokenData[0]), "sanity check");
-  static_assert(static_cast<unsigned int>(kNumberOfErrors) ==
-                sizeof(kErrorMessage) / sizeof(kErrorMessage[0]), "sanity check");
+  DCHECK_EQ(static_cast<unsigned int>(kNumberOfExactMatchTokens),
+            sizeof(kTokenData) / sizeof(kTokenData[0]));
+  DCHECK_EQ(static_cast<unsigned int>(kNumberOfErrors),
+            sizeof(kErrorMessage) / sizeof(kErrorMessage[0]));
 }
 
 GPUTestExpectationsParser::~GPUTestExpectationsParser() {
@@ -216,8 +224,8 @@ bool GPUTestExpectationsParser::LoadTestExpectations(const std::string& data) {
   entries_.clear();
   error_messages_.clear();
 
-  std::vector<std::string> lines;
-  base::SplitString(data, '\n', &lines);
+  std::vector<std::string> lines = base::SplitString(
+      data, "\n", base::TRIM_WHITESPACE, base::SPLIT_WANT_ALL);
   bool rt = true;
   for (size_t i = 0; i < lines.size(); ++i) {
     if (!ParseLine(lines[i], i + 1))
@@ -244,7 +252,7 @@ bool GPUTestExpectationsParser::LoadTestExpectationsFromFile(
   return LoadTestExpectations(data);
 }
 
-int32 GPUTestExpectationsParser::GetTestExpectation(
+int32_t GPUTestExpectationsParser::GetTestExpectation(
     const std::string& test_name,
     const GPUTestBotConfig& bot_config) const {
   for (size_t i = 0; i < entries_.size(); ++i) {
@@ -263,8 +271,9 @@ GPUTestExpectationsParser::GetErrorMessages() const {
 bool GPUTestExpectationsParser::ParseConfig(
     const std::string& config_data, GPUTestConfig* config) {
   DCHECK(config);
-  std::vector<std::string> tokens;
-  base::SplitStringAlongWhitespace(config_data, &tokens);
+  std::vector<std::string> tokens = base::SplitString(
+      config_data, base::kWhitespaceASCII, base::KEEP_WHITESPACE,
+      base::SPLIT_WANT_NONEMPTY);
 
   for (size_t i = 0; i < tokens.size(); ++i) {
     Token token = ParseToken(tokens[i]);
@@ -281,6 +290,8 @@ bool GPUTestExpectationsParser::ParseConfig(
       case kConfigMacMountainLion:
       case kConfigMacMavericks:
       case kConfigMacYosemite:
+      case kConfigMacElCapitan:
+      case kConfigMacSierra:
       case kConfigMac:
       case kConfigLinux:
       case kConfigChromeOS:
@@ -313,9 +324,10 @@ bool GPUTestExpectationsParser::ParseConfig(
 
 bool GPUTestExpectationsParser::ParseLine(
     const std::string& line_data, size_t line_number) {
-  std::vector<std::string> tokens;
-  base::SplitStringAlongWhitespace(line_data, &tokens);
-  int32 stage = kLineParserBegin;
+  std::vector<std::string> tokens = base::SplitString(
+      line_data, base::kWhitespaceASCII, base::KEEP_WHITESPACE,
+      base::SPLIT_WANT_NONEMPTY);
+  int32_t stage = kLineParserBegin;
   GPUTestExpectationEntry entry;
   entry.line_number = line_number;
   GPUTestConfig& config = entry.test_config;
@@ -338,6 +350,8 @@ bool GPUTestExpectationsParser::ParseLine(
       case kConfigMacMountainLion:
       case kConfigMacMavericks:
       case kConfigMacYosemite:
+      case kConfigMacElCapitan:
+      case kConfigMacSierra:
       case kConfigMac:
       case kConfigLinux:
       case kConfigChromeOS:
@@ -422,7 +436,7 @@ bool GPUTestExpectationsParser::ParseLine(
           stage++;
         break;
       default:
-        UNREACHABLE();
+        DCHECK(false);
         break;
     }
   }
@@ -442,8 +456,9 @@ bool GPUTestExpectationsParser::ParseLine(
   return false;
 }
 
-bool GPUTestExpectationsParser::UpdateTestConfig(
-    GPUTestConfig* config, int32 token, size_t line_number) {
+bool GPUTestExpectationsParser::UpdateTestConfig(GPUTestConfig* config,
+                                                 int32_t token,
+                                                 size_t line_number) {
   DCHECK(config);
   switch (token) {
     case kConfigWinXP:
@@ -458,6 +473,8 @@ bool GPUTestExpectationsParser::UpdateTestConfig(
     case kConfigMacMountainLion:
     case kConfigMacMavericks:
     case kConfigMacYosemite:
+    case kConfigMacElCapitan:
+    case kConfigMacSierra:
     case kConfigMac:
     case kConfigLinux:
     case kConfigChromeOS:
@@ -474,8 +491,7 @@ bool GPUTestExpectationsParser::UpdateTestConfig(
     case kConfigIntel:
     case kConfigVMWare:
       {
-        uint32 gpu_vendor =
-            static_cast<uint32>(kTokenData[token].flag);
+      uint32_t gpu_vendor = static_cast<uint32_t>(kTokenData[token].flag);
         for (size_t i = 0; i < config->gpu_vendor().size(); ++i) {
           if (config->gpu_vendor()[i] == gpu_vendor) {
             PushErrorMessage(
@@ -510,7 +526,7 @@ bool GPUTestExpectationsParser::UpdateTestConfig(
       config->set_api(config->api() | kTokenData[token].flag);
       break;
     default:
-      UNREACHABLE();
+      DCHECK(false);
       break;
   }
   return true;
@@ -521,7 +537,7 @@ bool GPUTestExpectationsParser::UpdateTestConfig(
     const std::string& gpu_device_id,
     size_t line_number) {
   DCHECK(config);
-  uint32 device_id = 0;
+  uint32_t device_id = 0;
   if (config->gpu_device_id() != 0 ||
       !base::HexStringToUInt(gpu_device_id, &device_id) ||
       device_id == 0) {
@@ -551,20 +567,17 @@ bool GPUTestExpectationsParser::DetectConflictsBetweenEntries() {
 
 void GPUTestExpectationsParser::PushErrorMessage(
     const std::string& message, size_t line_number) {
-  error_messages_.push_back(
-      base::StringPrintf("Line %d : %s",
-                         static_cast<int>(line_number), message.c_str()));
+  error_messages_.push_back("Line " + ToString(line_number) +
+                            " : " + message.c_str());
 }
 
 void GPUTestExpectationsParser::PushErrorMessage(
     const std::string& message,
     size_t entry1_line_number,
     size_t entry2_line_number) {
-  error_messages_.push_back(
-      base::StringPrintf("Line %d and %d : %s",
-                         static_cast<int>(entry1_line_number),
-                         static_cast<int>(entry2_line_number),
-                         message.c_str()));
+  error_messages_.push_back("Line " + ToString(entry1_line_number) +
+                            " and " + ToString(entry2_line_number) +
+                            " : " + message.c_str());
 }
 
 GPUTestExpectationsParser:: GPUTestExpectationEntry::GPUTestExpectationEntry()

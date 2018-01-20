@@ -12,6 +12,7 @@ bn-IN
 br
 bs
 ca
+cak
 cs
 cy
 da
@@ -49,6 +50,8 @@ is
 it
 ja linux win32
 ja-JP-mac osx
+ka
+kab
 kk
 km
 kn
@@ -61,7 +64,9 @@ mk
 ml
 mr
 ms
+my
 nb-NO
+ne-NP
 nl
 nn-NO
 or
@@ -84,6 +89,7 @@ te
 th
 tr
 uk
+ur
 uz
 vi
 xh

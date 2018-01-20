@@ -29,7 +29,7 @@ NS_IMPL_ISUPPORTS_INHERITED(Comment, nsGenericDOMDataNode, nsIDOMNode,
 bool
 Comment::IsNodeOfType(uint32_t aFlags) const
 {
-  return !(aFlags & ~(eCONTENT | eCOMMENT | eDATA_NODE));
+  return !(aFlags & ~(eCOMMENT | eDATA_NODE));
 }
 
 nsGenericDOMDataNode*
@@ -65,7 +65,7 @@ Comment::List(FILE* out, int32_t aIndent) const
 Comment::Constructor(const GlobalObject& aGlobal,
                      const nsAString& aData, ErrorResult& aRv)
 {
-  nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(aGlobal.GetAsSupports());
+  nsCOMPtr<nsPIDOMWindowInner> window = do_QueryInterface(aGlobal.GetAsSupports());
   if (!window || !window->GetDoc()) {
     aRv.Throw(NS_ERROR_FAILURE);
     return nullptr;

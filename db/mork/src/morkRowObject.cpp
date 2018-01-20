@@ -328,8 +328,8 @@ morkRowObject::AddCell( // copy a cell from another row to this row
             mork_column col = cell->GetColumn();
             morkAtom* atom = cell->mCell_Atom;
             mdbYarn yarn;
-            atom->AliasYarn(&yarn); // works even when atom is nil
-            
+            morkAtom::AliasYarn(atom, &yarn); // works even when atom is nil
+
             if ( store != cellStore )
               col = store->CopyToken(ev, col, cellStore);
             if ( ev->Good() )
@@ -489,7 +489,7 @@ morkRowObject::AliasCellYarn(
     if ( mRowObject_Store && mRowObject_Row)
     {
       morkAtom* atom = mRowObject_Row->GetColumnAtom(ev, inColumn);
-      atom->AliasYarn(outYarn);
+      morkAtom::AliasYarn(atom, outYarn);
       // note nil atom works and sets yarn correctly
     }
     outErr = ev->AsErr();
@@ -560,8 +560,6 @@ morkRowObject::SeekCellYarn( // resembles nsIMdbRowCellCursor::SeekCell()
 /*public non-poly*/ void
 morkRowObject::CloseRowObject(morkEnv* ev) // called by CloseMorkNode();
 {
-  if ( this )
-  {
     if ( this->IsNode() )
     {
       morkRow* row = mRowObject_Row;
@@ -584,9 +582,6 @@ morkRowObject::CloseRowObject(morkEnv* ev) // called by CloseMorkNode();
     }
     else
       this->NonNodeError(ev);
-  }
-  else
-    ev->NilPointerError();
 }
 
 // } ===== end morkNode methods =====

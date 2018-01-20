@@ -13,20 +13,11 @@
 /* ::::: account manager :::::: */
 
 .specialFolderPickerGrid {
-  -moz-margin-start: 20px;
+  margin-inline-start: 20px;
 }
 
 .fccReplyFollowsParent {
-  -moz-margin-start: 20px;
-}
-
-.selectForOfflineUseButton {
-  list-style-image: url("chrome://communicator/skin/icons/offline.gif");
-}
-
-.selectForOfflineUseButton > .button-box > .button-icon {
-  -moz-margin-start: 4px;
-  -moz-margin-end: 4px;
+  margin-inline-start: 20px;
 }
 
 .signatureBox {
@@ -54,7 +45,7 @@ page > description,
 /* ::::: SMTP Server Panel :::::: */
 
 .smtpServerListItem {
-  -moz-padding-start: 3px;
+  padding-inline-start: 3px;
 }
 
 #backgroundBox {

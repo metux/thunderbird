@@ -11,7 +11,7 @@
 #include "nsIWindowWatcher.h"
 #include "nsMsgUtils.h"
 #include "nsISupportsPrimitives.h"
-#include "nsIDOMWindow.h"
+#include "mozIDOMWindow.h"
 #include "nsComponentManagerUtils.h"
 #include "nsServiceManagerUtils.h"
 
@@ -31,14 +31,14 @@ NS_IMETHODIMP nsMessengerBootstrap::OpenMessengerWindowWithUri(const char *windo
   nsAutoCString chromeUrl("chrome://messenger/content/");
   if (windowType && !strcmp(windowType, "mail:messageWindow"))
   {
-    chromeUrl.Append("messageWindow.xul");
+    chromeUrl.AppendLiteral("messageWindow.xul");
     standAloneMsgWindow = true;
   }
   nsresult rv;
   nsCOMPtr<nsIMutableArray> argsArray(do_CreateInstance(NS_ARRAY_CONTRACTID, &rv));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  // create scriptable versions of our strings that we can store in our nsISupportsArray....
+  // create scriptable versions of our strings that we can store in our nsIMutableArray....
   if (aFolderURI)
   {
     if (standAloneMsgWindow)
@@ -54,29 +54,29 @@ NS_IMETHODIMP nsMessengerBootstrap::OpenMessengerWindowWithUri(const char *windo
       msgUri.Append('#');
       msgUri.AppendInt(aMessageKey, 10);
       scriptableMsgURI->SetData(msgUri);
-      argsArray->AppendElement(scriptableMsgURI, false);
+      argsArray->AppendElement(scriptableMsgURI);
     }
     nsCOMPtr<nsISupportsCString> scriptableFolderURI (do_CreateInstance(NS_SUPPORTS_CSTRING_CONTRACTID));
     NS_ENSURE_TRUE(scriptableFolderURI, NS_ERROR_FAILURE);
 
     scriptableFolderURI->SetData(nsDependentCString(aFolderURI));
-    argsArray->AppendElement(scriptableFolderURI, false);
+    argsArray->AppendElement(scriptableFolderURI);
 
     if (!standAloneMsgWindow)
     {
       nsCOMPtr<nsISupportsPRUint32> scriptableMessageKey (do_CreateInstance(NS_SUPPORTS_PRUINT32_CONTRACTID));
       NS_ENSURE_TRUE(scriptableMessageKey, NS_ERROR_FAILURE);
       scriptableMessageKey->SetData(aMessageKey);
-      argsArray->AppendElement(scriptableMessageKey, false);
+      argsArray->AppendElement(scriptableMessageKey);
     }
   }
-  
+
   nsCOMPtr<nsIWindowWatcher> wwatch(do_GetService(NS_WINDOWWATCHER_CONTRACTID, &rv));
   NS_ENSURE_SUCCESS(rv, rv);
 
   // we need to use the "mailnews.reuse_thread_window2" pref
   // to determine if we should open a new window, or use an existing one.
-  nsCOMPtr<nsIDOMWindow> newWindow;
+  nsCOMPtr<mozIDOMWindowProxy> newWindow;
   return wwatch->OpenWindow(0, chromeUrl.get(), "_blank",
                             "chrome,all,dialog=no", argsArray,
                              getter_AddRefs(newWindow));

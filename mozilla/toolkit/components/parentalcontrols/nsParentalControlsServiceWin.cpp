@@ -13,6 +13,7 @@
 #include "nsILocalFileWin.h"
 #include "nsArrayUtils.h"
 #include "nsIXULAppInfo.h"
+#include "mozilla/UniquePtr.h"
 #include "mozilla/WindowsVersion.h"
 
 using namespace mozilla;
@@ -241,16 +242,14 @@ nsParentalControlsService::RequestURIOverrides(nsIArray *aTargets, nsIInterfaceR
   nsCOMPtr<nsIURI> rootURI = do_QueryElementAt(aTargets, 0);
   if (!rootURI)
     return NS_ERROR_INVALID_ARG;
-  
+
   rootURI->GetSpec(rootSpec);
   if (rootSpec.IsEmpty())
     return NS_ERROR_INVALID_ARG;
 
   // Allocate an array of sub uri
   int32_t count = arrayLength - 1;
-  nsAutoArrayPtr<LPCWSTR> arrUrls(new LPCWSTR[count]);
-  if (!arrUrls)
-    return NS_ERROR_OUT_OF_MEMORY;
+  auto arrUrls = MakeUnique<LPCWSTR[]>(count);
 
   uint32_t uriIdx = 0, idx;
   for (idx = 1; idx < arrayLength; idx++)
@@ -273,7 +272,7 @@ nsParentalControlsService::RequestURIOverrides(nsIArray *aTargets, nsIInterfaceR
   if (!uriIdx)
     return NS_ERROR_INVALID_ARG;
 
-  BOOL ret; 
+  BOOL ret;
   RefPtr<IWPCWebSettings> wpcws;
   if (SUCCEEDED(mPC->GetWebSettings(nullptr, getter_AddRefs(wpcws)))) {
     wpcws->RequestURLOverride(hWnd, NS_ConvertUTF8toUTF16(rootSpec).get(),
@@ -290,7 +289,7 @@ nsParentalControlsService::RequestURIOverrides(nsIArray *aTargets, nsIInterfaceR
 
 //------------------------------------------------------------------------
 
-// Sends a file download event to the Vista Event Log 
+// Sends a file download event to the Vista Event Log
 void
 nsParentalControlsService::LogFileDownload(bool blocked, nsIURI *aSource, nsIFile *aTarget)
 {
@@ -312,7 +311,7 @@ nsParentalControlsService::LogFileDownload(bool blocked, nsIURI *aSource, nsIFil
   nsAutoString appName = NS_ConvertUTF8toUTF16(asciiAppName);
 
   static const WCHAR fill[] = L"";
-  
+
   // See wpcevent.h and msdn for event formats
   EVENT_DATA_DESCRIPTOR eventData[WPC_ARGS_FILEDOWNLOADEVENT_CARGS];
   DWORD dwBlocked = blocked;

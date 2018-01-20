@@ -10,13 +10,17 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/NetUtil.jsm");
 Cu.import("resource://gre/modules/FileUtils.jsm");
-Cu.import("resource://gre/modules/Task.jsm");
+Cu.import("resource://gre/modules/osfile.jsm");
 Cu.import("resource:///modules/MigrationUtils.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
                                   "resource://gre/modules/PlacesUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Sqlite",
                                   "resource://gre/modules/Sqlite.jsm");
+
+Cu.importGlobalProperties(["URL"]);
+
+const kBookmarksFileName = "360sefav.db";
 
 function copyToTempUTF8File(file, charset) {
   let inputStream = Cc["@mozilla.org/network/file-input-stream;1"]
@@ -40,7 +44,7 @@ function copyToTempUTF8File(file, charset) {
     try {
       let converterOut = Cc["@mozilla.org/intl/converter-output-stream;1"]
                            .createInstance(Ci.nsIConverterOutputStream);
-      converterOut.init(bufferedOut, "utf-8", 0, 0x0000);
+      converterOut.init(bufferedOut, "utf-8");
       try {
         converterOut.writeString(inputStr || "");
         bufferedOut.QueryInterface(Ci.nsISafeOutputStream).finish();
@@ -90,12 +94,12 @@ function getHash(aStr) {
 
   // convert the binary hash data to a hex string.
   let binary = hasher.finish(false);
-  return [toHexString(binary.charCodeAt(i)) for (i in binary)].join("").toLowerCase();
+  return Array.from(binary, (c, i) => toHexString(binary.charCodeAt(i))).join("").toLowerCase();
 }
 
 function Bookmarks(aProfileFolder) {
   let file = aProfileFolder.clone();
-  file.append("360sefav.db");
+  file.append(kBookmarksFileName);
 
   this._file = file;
 }
@@ -106,22 +110,17 @@ Bookmarks.prototype = {
     return this._file.exists() && this._file.isReadable();
   },
 
-  migrate: function (aCallback) {
-    return Task.spawn(function* () {
-      let idToGuid = new Map();
-      let folderGuid = PlacesUtils.bookmarks.toolbarGuid;
-      if (!MigrationUtils.isStartupMigration) {
-        folderGuid =
-          yield MigrationUtils.createImportedBookmarksFolder("360se", folderGuid);
-      }
-      idToGuid.set(0, folderGuid);
+  migrate(aCallback) {
+    return (async () => {
+      let folderMap = new Map();
+      let toolbarBMs = [];
 
-      let connection = yield Sqlite.openConnection({
+      let connection = await Sqlite.openConnection({
         path: this._file.path
       });
 
       try {
-        let rows = yield connection.execute(
+        let rows = await connection.execute(
           `WITH RECURSIVE
            bookmark(id, parent_id, is_folder, title, url, pos) AS (
              VALUES(0, -1, 1, '', '', 0)
@@ -134,46 +133,54 @@ Bookmarks.prototype = {
            SELECT id, parent_id, is_folder, title, url FROM bookmark WHERE id`);
 
         for (let row of rows) {
-          let id = parseInt(row.getResultByName("id"), 10),
-              parent_id = parseInt(row.getResultByName("parent_id"), 10),
-              is_folder = parseInt(row.getResultByName("is_folder"), 10),
-              title = row.getResultByName("title"),
-              url = row.getResultByName("url");
+          let id = parseInt(row.getResultByName("id"), 10);
+          let parent_id = parseInt(row.getResultByName("parent_id"), 10);
+          let is_folder = parseInt(row.getResultByName("is_folder"), 10);
+          let title = row.getResultByName("title");
+          let url = row.getResultByName("url");
 
-          let parentGuid = idToGuid.get(parent_id) || idToGuid.get("fallback");
-          if (!parentGuid) {
-            parentGuid = PlacesUtils.bookmarks.unfiledGuid;
-            if (!MigrationUtils.isStartupMigration) {
-              parentGuid =
-                yield MigrationUtils.createImportedBookmarksFolder("360se", parentGuid);
+          let bmToInsert;
+
+          if (is_folder) {
+            bmToInsert = {
+              children: [],
+              title,
+              type: PlacesUtils.bookmarks.TYPE_FOLDER
+            };
+            folderMap.set(id, bmToInsert);
+          } else {
+            try {
+              new URL(url);
+            } catch (ex) {
+              Cu.reportError(`Ignoring ${url} when importing from 360se because of exception: ${ex}`);
+              continue;
             }
-            idToGuid.set("fallback", parentGuid);
+
+            bmToInsert = {
+              title,
+              url
+            };
           }
 
-          try {
-            if (is_folder == 1) {
-              let newFolderGuid = (yield PlacesUtils.bookmarks.insert({
-                parentGuid,
-                type: PlacesUtils.bookmarks.TYPE_FOLDER,
-                title
-              })).guid;
-
-              idToGuid.set(id, newFolderGuid);
-            } else {
-              yield PlacesUtils.bookmarks.insert({
-                parentGuid,
-                url,
-                title
-              });
-            }
-          } catch (ex) {
-            Cu.reportError(ex);
+          if (folderMap.has(parent_id)) {
+            folderMap.get(parent_id).children.push(bmToInsert);
+          } else if (parent_id === 0) {
+            toolbarBMs.push(bmToInsert);
           }
         }
       } finally {
-        yield connection.close();
+        await connection.close();
       }
-    }.bind(this)).then(() => aCallback(true),
+
+      if (toolbarBMs.length) {
+        let parentGuid = PlacesUtils.bookmarks.toolbarGuid;
+        if (!MigrationUtils.isStartupMigration) {
+          parentGuid =
+            await MigrationUtils.createImportedBookmarksFolder("360se", parentGuid);
+        }
+        await MigrationUtils.insertManyBookmarksWrapper(toolbarBMs, parentGuid);
+      }
+    })().then(() => aCallback(true),
                         e => { Cu.reportError(e); aCallback(false) });
   }
 };
@@ -206,12 +213,14 @@ function Qihoo360seProfileMigrator() {
 Qihoo360seProfileMigrator.prototype = Object.create(MigratorPrototype);
 
 Object.defineProperty(Qihoo360seProfileMigrator.prototype, "sourceProfiles", {
-  get: function() {
+  get() {
     if ("__sourceProfiles" in this)
       return this.__sourceProfiles;
 
-    if (!this._usersDir)
-      return this.__sourceProfiles = [];
+    if (!this._usersDir) {
+      this.__sourceProfiles = [];
+      return this.__sourceProfiles;
+    }
 
     let profiles = [];
     let noLoggedInUser = true;
@@ -225,11 +234,11 @@ Object.defineProperty(Qihoo360seProfileMigrator.prototype, "sourceProfiles", {
         throw new Error("360 Secure Browser's 'login.ini' file could not be read.");
       }
 
-      let loginIniInUtf8 = copyToTempUTF8File(loginIni, "gbk");
+      let loginIniInUtf8 = copyToTempUTF8File(loginIni, "GBK");
       let loginIniObj = parseINIStrings(loginIniInUtf8);
       try {
         loginIniInUtf8.remove(false);
-      } catch(ex) {}
+      } catch (ex) {}
 
       let nowLoginEmail = loginIniObj.NowLogin && loginIniObj.NowLogin.email;
 
@@ -273,10 +282,11 @@ Object.defineProperty(Qihoo360seProfileMigrator.prototype, "sourceProfiles", {
       });
     }
 
-    return this.__sourceProfiles = profiles.filter(profile => {
+    this.__sourceProfiles = profiles.filter(profile => {
       let resources = this.getResources(profile);
       return resources && resources.length > 0;
     });
+    return this.__sourceProfiles;
   }
 });
 
@@ -296,6 +306,23 @@ Qihoo360seProfileMigrator.prototype.getResources = function(aProfile) {
     new Bookmarks(profileFolder)
   ];
   return resources.filter(r => r.exists);
+};
+
+Qihoo360seProfileMigrator.prototype.getLastUsedDate = function() {
+  let bookmarksPaths = this.sourceProfiles.map(({id}) => {
+    return OS.Path.join(this._usersDir.path, id, kBookmarksFileName);
+  });
+  if (!bookmarksPaths.length) {
+    return Promise.resolve(new Date(0));
+  }
+  let datePromises = bookmarksPaths.map(path => {
+    return OS.File.stat(path).catch(() => null).then(info => {
+      return info ? info.lastModificationDate : 0;
+    });
+  });
+  return Promise.all(datePromises).then(dates => {
+    return new Date(Math.max.apply(Math, dates));
+  });
 };
 
 Qihoo360seProfileMigrator.prototype.classDescription = "360 Secure Browser Profile Migrator";

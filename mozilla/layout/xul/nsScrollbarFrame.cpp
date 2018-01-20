@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -51,36 +52,32 @@ nsScrollbarFrame::Init(nsIContent*       aContent,
   // slider.  Any reflow inside the scrollbar frame will be a reflow to
   // move the slider and will thus not change anything outside of the
   // scrollbar or change the size of the scrollbar frame.
-  mState |= NS_FRAME_REFLOW_ROOT;
+  AddStateBits(NS_FRAME_REFLOW_ROOT);
 }
 
 void
 nsScrollbarFrame::Reflow(nsPresContext*          aPresContext,
-                         nsHTMLReflowMetrics&     aDesiredSize,
-                         const nsHTMLReflowState& aReflowState,
+                         ReflowOutput&     aDesiredSize,
+                         const ReflowInput& aReflowInput,
                          nsReflowStatus&          aStatus)
 {
-  nsBoxFrame::Reflow(aPresContext, aDesiredSize, aReflowState, aStatus);
+  MOZ_ASSERT(aStatus.IsEmpty(), "Caller should pass a fresh reflow status!");
+
+  nsBoxFrame::Reflow(aPresContext, aDesiredSize, aReflowInput, aStatus);
 
   // nsGfxScrollFrame may have told us to shrink to nothing. If so, make sure our
   // desired size agrees.
-  if (aReflowState.AvailableWidth() == 0) {
+  if (aReflowInput.AvailableWidth() == 0) {
     aDesiredSize.Width() = 0;
   }
-  if (aReflowState.AvailableHeight() == 0) {
+  if (aReflowInput.AvailableHeight() == 0) {
     aDesiredSize.Height() = 0;
   }
 }
 
-nsIAtom*
-nsScrollbarFrame::GetType() const
-{
-  return nsGkAtoms::scrollbarFrame;
-}
-
 nsresult
 nsScrollbarFrame::AttributeChanged(int32_t aNameSpaceID,
-                                   nsIAtom* aAttribute,
+                                   nsAtom* aAttribute,
                                    int32_t aModType)
 {
   nsresult rv = nsBoxFrame::AttributeChanged(aNameSpaceID, aAttribute,
@@ -95,8 +92,8 @@ nsScrollbarFrame::AttributeChanged(int32_t aNameSpaceID,
   if (!scrollable)
     return rv;
 
-  nsCOMPtr<nsIContent> kungFuDeathGrip(mContent);
-  scrollable->CurPosAttributeChanged(mContent);
+  nsCOMPtr<nsIContent> content(mContent);
+  scrollable->CurPosAttributeChanged(content);
   return rv;
 }
 
@@ -117,7 +114,7 @@ nsScrollbarFrame::HandleMultiplePress(nsPresContext* aPresContext,
   return NS_OK;
 }
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 nsScrollbarFrame::HandleDrag(nsPresContext* aPresContext,
                              WidgetGUIEvent* aEvent,
                              nsEventStatus* aEventStatus)
@@ -125,7 +122,7 @@ nsScrollbarFrame::HandleDrag(nsPresContext* aPresContext,
   return NS_OK;
 }
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 nsScrollbarFrame::HandleRelease(nsPresContext* aPresContext,
                                 WidgetGUIEvent* aEvent,
                                 nsEventStatus* aEventStatus)
@@ -158,7 +155,7 @@ nsScrollbarFrame::GetScrollbarMediator()
   }
   sbm = do_QueryFrame(f);
   if (f && !sbm) {
-    f = f->PresContext()->PresShell()->GetRootScrollFrame();
+    f = f->PresShell()->GetRootScrollFrame();
     if (f && f->GetContent() == mScrollbarMediator) {
       return do_QueryFrame(f);
     }
@@ -167,7 +164,7 @@ nsScrollbarFrame::GetScrollbarMediator()
 }
 
 nsresult
-nsScrollbarFrame::GetMargin(nsMargin& aMargin)
+nsScrollbarFrame::GetXULMargin(nsMargin& aMargin)
 {
   nsresult rv = NS_ERROR_FAILURE;
   aMargin.SizeTo(0,0,0,0);
@@ -175,15 +172,14 @@ nsScrollbarFrame::GetMargin(nsMargin& aMargin)
   if (LookAndFeel::GetInt(LookAndFeel::eIntID_UseOverlayScrollbars) != 0) {
     nsPresContext* presContext = PresContext();
     nsITheme* theme = presContext->GetTheme();
-    if (theme) {
+    if (theme && theme->ThemeSupportsWidget(presContext, this, NS_THEME_SCROLLBAR)) {
       LayoutDeviceIntSize size;
       bool isOverridable;
       theme->GetMinimumWidgetSize(presContext, this, NS_THEME_SCROLLBAR, &size,
                                   &isOverridable);
-      if (IsHorizontal()) {
+      if (IsXULHorizontal()) {
         aMargin.top = -presContext->DevPixelsToAppUnits(size.height);
-      }
-      else {
+      } else {
         aMargin.left = -presContext->DevPixelsToAppUnits(size.width);
       }
       rv = NS_OK;
@@ -191,10 +187,10 @@ nsScrollbarFrame::GetMargin(nsMargin& aMargin)
   }
 
   if (NS_FAILED(rv)) {
-    rv = nsBox::GetMargin(aMargin);
+    rv = nsBox::GetXULMargin(aMargin);
   }
 
-  if (NS_SUCCEEDED(rv) && !IsHorizontal()) {
+  if (NS_SUCCEEDED(rv) && !IsXULHorizontal()) {
     nsIScrollbarMediator* scrollFrame = GetScrollbarMediator();
     if (scrollFrame && !scrollFrame->IsScrollbarOnRight()) {
       Swap(aMargin.left, aMargin.right);
@@ -265,7 +261,7 @@ nsScrollbarFrame::MoveToNewPosition()
   nsAutoString curposStr;
   curposStr.AppendInt(curpos);
 
-  nsWeakFrame weakFrame(this);
+  AutoWeakFrame weakFrame(this);
   if (mSmoothScroll) {
     content->SetAttr(kNameSpaceID_None, nsGkAtoms::smooth, NS_LITERAL_STRING("true"), false);
   }
@@ -288,16 +284,6 @@ nsScrollbarFrame::MoveToNewPosition()
           return curpos;
         }
       }
-    }
-  }
-  // See if we have appearance information for a theme.
-  const nsStyleDisplay* disp = StyleDisplay();
-  nsPresContext* presContext = PresContext();
-  if (disp->mAppearance) {
-    nsITheme *theme = presContext->GetTheme();
-    if (theme && theme->ThemeSupportsWidget(presContext, this, disp->mAppearance)) {
-      bool repaint;
-      theme->WidgetStateChanged(this, disp->mAppearance, nsGkAtoms::curpos, &repaint);
     }
   }
   content->UnsetAttr(kNameSpaceID_None, nsGkAtoms::smooth, false);

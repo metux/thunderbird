@@ -1,6 +1,7 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
+/* vim: set ft=javascript ts=2 et sw=2 tw=80: */
+/* Any copyright is dedicated to the Public Domain.
+ * http://creativecommons.org/publicdomain/zero/1.0/ */
 
 // This is a test for the Open URL context menu item
 // that is shown for network requests
@@ -14,7 +15,7 @@ const CONTEXT_MENU_ID = "#menu_openURL";
 
 var HUD = null, outputNode = null, contextMenu = null;
 
-var test = asyncTest(function* () {
+add_task(function* () {
   Services.prefs.setBoolPref("devtools.webconsole.filter.networkinfo", true);
 
   yield loadTab(TEST_URI);
@@ -65,7 +66,6 @@ function onConsoleMessage(results) {
   let isDisabled = !controller || !controller.isCommandEnabled(COMMAND_NAME);
   ok(isDisabled, COMMAND_NAME + " should be disabled.");
 
-  outputNode.selectedItem.scrollIntoView();
   return waitForContextMenu(contextMenu, outputNode.selectedItem, () => {
     let isHidden = contextMenu.querySelector(CONTEXT_MENU_ID).hidden;
     ok(isHidden, CONTEXT_MENU_ID + " should be hidden.");
@@ -89,7 +89,7 @@ function testOnNetActivity() {
 }
 
 function onNetworkMessage(results) {
-  let deferred = promise.defer();
+  let deferred = defer();
 
   outputNode.focus();
   let msg = [...results[0].matched][0];
@@ -99,11 +99,10 @@ function onNetworkMessage(results) {
   let currentTab = gBrowser.selectedTab;
   let newTab = null;
 
-  gBrowser.tabContainer.addEventListener("TabOpen", function onOpen(evt) {
-    gBrowser.tabContainer.removeEventListener("TabOpen", onOpen, true);
+  gBrowser.tabContainer.addEventListener("TabOpen", function (evt) {
     newTab = evt.target;
     newTab.linkedBrowser.addEventListener("load", onTabLoaded, true);
-  }, true);
+  }, {capture: true, once: true});
 
   function onTabLoaded() {
     newTab.linkedBrowser.removeEventListener("load", onTabLoaded, true);
@@ -126,11 +125,10 @@ function onNetworkMessage(results) {
 }
 
 function testOnNetActivityContextMenu(msg) {
-  let deferred = promise.defer();
+  let deferred = defer();
 
   outputNode.focus();
   HUD.ui.output.selectMessage(msg);
-  msg.scrollIntoView();
 
   info("net activity context menu");
 

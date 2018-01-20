@@ -24,14 +24,11 @@ package org.mozilla.gecko.widget;
 import android.accounts.Account;
 import android.content.pm.PackageManager;
 
-import org.mozilla.gecko.db.BrowserDB;
-import org.mozilla.gecko.db.TabsAccessor;
 import org.mozilla.gecko.distribution.Distribution;
 import org.mozilla.gecko.GeckoProfile;
 import org.mozilla.gecko.fxa.FirefoxAccounts;
 import org.mozilla.gecko.fxa.SyncStatusListener;
 import org.mozilla.gecko.overlays.ui.ShareDialog;
-import org.mozilla.gecko.sync.setup.SyncAccounts;
 import org.mozilla.gecko.R;
 import java.io.File;
 
@@ -41,7 +38,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.ResolveInfo;
-import android.database.Cursor;
 import android.database.DataSetObservable;
 import android.os.AsyncTask;
 import android.text.TextUtils;
@@ -53,6 +49,9 @@ import android.util.Xml;
  */
 //import com.android.internal.content.PackageMonitor;
 
+import org.mozilla.gecko.sync.repositories.NullCursorException;
+import org.mozilla.gecko.sync.repositories.android.ClientsDatabaseAccessor;
+import org.mozilla.gecko.sync.repositories.domain.ClientRecord;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 import org.xmlpull.v1.XmlSerializer;
@@ -63,6 +62,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -787,7 +787,8 @@ public class ActivityChooserModel extends DataSetObservable {
                     }
 
                     resolveInfo.labelRes = R.string.overlay_share_send_other;
-                    resolveInfo.icon = R.drawable.icon_shareplane;
+                    resolveInfo.activityInfo.icon = R.drawable.icon_shareplane;
+
                 }
 
                 mActivities.add(new ActivityResolveInfo(resolveInfo));
@@ -975,7 +976,7 @@ public class ActivityChooserModel extends DataSetObservable {
     /**
      * Represents an activity.
      */
-    public final class ActivityResolveInfo implements Comparable<ActivityResolveInfo> {
+    public static final class ActivityResolveInfo implements Comparable<ActivityResolveInfo> {
 
         /**
          * The {@link ResolveInfo} of the activity.
@@ -1038,7 +1039,7 @@ public class ActivityChooserModel extends DataSetObservable {
     /**
      * Default activity sorter implementation.
      */
-    private final class DefaultSorter implements ActivitySorter {
+    private static final class DefaultSorter implements ActivitySorter {
         private static final float WEIGHT_DECAY_COEFFICIENT = 0.95f;
 
         private final Map<String, ActivityResolveInfo> mPackageNameToActivityMap =
@@ -1310,23 +1311,18 @@ public class ActivityChooserModel extends DataSetObservable {
     private boolean hasOtherSyncClients() {
         // ClientsDatabaseAccessor returns stale data (bug 1145896) so we work around this by
         // checking if we have accounts set up - if not, we can't have any clients.
-        if (!FirefoxAccounts.firefoxAccountsExist(mContext) &&
-                !SyncAccounts.syncAccountsExist(mContext))  {
+        if (!FirefoxAccounts.firefoxAccountsExist(mContext)) {
             return false;
         }
 
-        final BrowserDB browserDB = GeckoProfile.get(mContext).getDB();
-        final TabsAccessor tabsAccessor = browserDB.getTabsAccessor();
-        final Cursor remoteClientsCursor = tabsAccessor
-                .getRemoteClientsByRecencyCursor(mContext);
-        if (remoteClientsCursor == null) {
-            return false;
-        }
-
+        final ClientsDatabaseAccessor clientsDatabaseAccessor = new ClientsDatabaseAccessor(mContext.getApplicationContext());
         try {
-            return remoteClientsCursor.getCount() > 0;
+            final String[] remoteDevicesIds = clientsDatabaseAccessor.getRemoteDevicesIds(mContext);
+            return clientsDatabaseAccessor.hasNonStaleClients(remoteDevicesIds);
+        } catch (NullCursorException e) {
+            return false;
         } finally {
-            remoteClientsCursor.close();
+            clientsDatabaseAccessor.close();
         }
     }
 

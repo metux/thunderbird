@@ -7,11 +7,11 @@ Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/DownloadTaskbarProgress.jsm");
 Components.utils.import("resource:///modules/WindowsPreviewPerTab.jsm");
 
-__defineGetter__("PluralForm", function() {
+this.__defineGetter__("PluralForm", function() {
   Components.utils.import("resource://gre/modules/PluralForm.jsm");
   return this.PluralForm;
 });
-__defineSetter__("PluralForm", function (val) {
+this.__defineSetter__("PluralForm", function (val) {
   delete this.PluralForm;
   return this.PluralForm = val;
 });
@@ -101,7 +101,7 @@ const gPopupPermListener = {
       // the URI in the notification
       var popupOpenerURI = maybeInitPopupContext();
       if (popupOpenerURI) {
-        closeURI = Services.io.newURI(data, null, null);
+        closeURI = Services.io.newURI(data);
         if (closeURI.host == popupOpenerURI.host)
           window.close();
       }
@@ -346,28 +346,65 @@ function nsBrowserAccess() {
 }
 
 nsBrowserAccess.prototype = {
-  openURI: function openURI(aURI, aOpener, aWhere, aContext) {
-    var isExternal = aContext == nsIBrowserDOMWindow.OPEN_EXTERNAL;
-    if (aWhere == nsIBrowserDOMWindow.OPEN_DEFAULTWINDOW)
+  createContentWindow(aURI, aOpener, aWhere, aFlags, aTriggeringPrincipal = null) {
+    return this.getContentWindowOrOpenURI(null, aOpener, aWhere, aFlags,
+                                          aTriggeringPrincipal);
+  },
+
+  openURI: function (aURI, aOpener, aWhere, aFlags, aTriggeringPrincipal = null) {
+    if (!aURI) {
+      Components.utils.reportError("openURI should only be called with a valid URI");
+      throw Components.results.NS_ERROR_FAILURE;
+    }
+    return this.getContentWindowOrOpenURI(aURI, aOpener, aWhere, aFlags,
+                                          aTriggeringPrincipal);
+  },
+
+  getContentWindowOrOpenURI(aURI, aOpener, aWhere, aFlags, aTriggeringPrincipal) {
+    var isExternal = !!(aFlags & nsIBrowserDOMWindow.OPEN_EXTERNAL);
+
+    if (aOpener && isExternal) {
+      Components.utils.reportError("nsBrowserAccess.openURI did not expect an opener to be " +
+                                   "passed if the context is OPEN_EXTERNAL.");
+      throw Components.results.NS_ERROR_FAILURE;
+    }
+
+    if (aWhere == nsIBrowserDOMWindow.OPEN_DEFAULTWINDOW) {
       if (isExternal)
         aWhere = Services.prefs.getIntPref("browser.link.open_external");
       else
         aWhere = Services.prefs.getIntPref("browser.link.open_newwindow");
-    var referrer = aOpener ? aOpener.QueryInterface(nsIInterfaceRequestor)
+    }
+
+    let referrer = aOpener ? aOpener.QueryInterface(nsIInterfaceRequestor)
                                     .getInterface(nsIWebNavigation)
                                     .currentURI : null;
+    let referrerPolicy = Components.interfaces.nsIHttpChannel.REFERRER_POLICY_UNSET;
     var uri = aURI ? aURI.spec : "about:blank";
+
     switch (aWhere) {
       case nsIBrowserDOMWindow.OPEN_NEWWINDOW:
         return window.openDialog(getBrowserURL(), "_blank", "all,dialog=no",
-                                 uri, null, referrer);
+                                 uri, null, null);
       case nsIBrowserDOMWindow.OPEN_NEWTAB:
         var bgLoad = Services.prefs.getBoolPref("browser.tabs.loadDivertedInBackground");
         var isRelated = referrer ? true : false;
-        var newTab = gBrowser.loadOneTab(uri, {inBackground: bgLoad,
+        // If we have an opener, that means that the caller is expecting access
+        // to the nsIDOMWindow of the opened tab right away.
+        let userContextId = aOpener && aOpener.document
+                            ? aOpener.document.nodePrincipal.originAttributes.userContextId
+                            : Components.interfaces.nsIScriptSecurityManager.DEFAULT_USER_CONTEXT_ID;
+        let openerWindow = (aFlags & nsIBrowserDOMWindow.OPEN_NO_OPENER) ? null : aOpener;
+
+        var newTab = gBrowser.loadOneTab(uri, {triggeringPrincipal: aTriggeringPrincipal,
+                                               referrerURI: referrer,
+                                               referrerPolicy,
+                                               inBackground: bgLoad,
                                                fromExternal: isExternal,
                                                relatedToCurrent: isRelated,
-                                               referrerURI: referrer});
+                                               userContextId: userContextId,
+                                               opener: openerWindow,
+                                              });
         var contentWin = gBrowser.getBrowserForTab(newTab).contentWindow;
         if (!bgLoad)
           contentWin.focus();
@@ -378,8 +415,14 @@ nsBrowserAccess.prototype = {
                         nsIWebNavigation.LOAD_FLAGS_NONE;
 
         if (!aOpener) {
-          if (aURI)
-            gBrowser.loadURIWithFlags(aURI.spec, loadflags);
+          if (aURI) {
+            gBrowser.loadURIWithFlags(aURI.spec, {
+                                                  flags: loadflags,
+                                                  referrerURI: referrer,
+                                                  referrerPolicy,
+                                                  triggeringPrincipal: aTriggeringPrincipal,
+                                                 });
+          }
           return content;
         }
         aOpener = aOpener.top;
@@ -598,11 +641,46 @@ function Startup()
       gURLBar.value = uriToLoad;
       browser.userTypedValue = uriToLoad;
     }
-    if ("arguments" in window && window.arguments.length >= 3) {
-      loadURI(uriToLoad, window.arguments[2], window.arguments[3] || null,
-              window.arguments[4] || false, window.arguments[5] || false);
+
+  if ("arguments" in window && window.arguments.length >= 3) {
+      // window.arguments[2]: referrer (nsIURI | string)
+      //                 [3]: postData (nsIInputStream)
+      //                 [4]: allowThirdPartyFixup (bool)
+      //                 [5]: referrerPolicy (int)
+      //                 [6]: userContextId (int)
+      //                 [7]: originPrincipal (nsIPrincipal)
+      //                 [8]: triggeringPrincipal (nsIPrincipal)
+      let referrerURI = window.arguments[2];
+      if (typeof(referrerURI) == "string") {
+        try {
+          referrerURI = makeURI(referrerURI);
+        } catch (e) {
+          referrerURI = null;
+        }
+      }
+      let referrerPolicy = (window.arguments[5] != undefined ?
+          window.arguments[5] : Components.interfaces.nsIHttpChannel.REFERRER_POLICY_UNSET);
+
+      let userContextId = (window.arguments[6] != undefined ?
+          window.arguments[6] : Components.interfaces.nsIScriptSecurityManager.DEFAULT_USER_CONTEXT_ID);
+
+      try {
+        openLinkIn(uriToLoad, "current",
+                   { referrerURI,
+                     referrerPolicy,
+                     postData: window.arguments[3] || null,
+                     allowThirdPartyFixup: window.arguments[4] || false,
+                     userContextId,
+                     // pass the origin principal (if any) and force its use to create
+                     // an initial about:blank viewer if present:
+                     originPrincipal: window.arguments[7],
+                     triggeringPrincipal: window.arguments[8],
+                   });
+      } catch (e) {}
     } else {
-      loadURI(uriToLoad);
+      // Note: loadOneOrMoreURIs *must not* be called if window.arguments.length >= 3.
+      // Such callers expect that window.arguments[0] is handled as a single URI.
+      loadOneOrMoreURIs(uriToLoad, Services.scriptSecurityManager.getSystemPrincipal());
     }
   }
 
@@ -845,20 +923,25 @@ function GetTypePermFromId(aId)
   return [type, Components.interfaces.nsICookiePermission[perm]];
 }
 
-function CheckForVisibility(aEvent)
+function CheckForVisibility(aEvent, aNode)
 {
+  CheckPermissionsMenu("popup", aNode);
+
   var uri = getBrowser().currentURI;
-  var policy = Services.prefs.getBoolPref("dom.disable_open_during_load");
-  document.getElementById("ManagePopups").hidden = !policy;
+  var allowBlocking = Services.prefs.getBoolPref("dom.disable_open_during_load");
 
-  var element = document.getElementById("AllowPopups");
-  if (policy && (Services.perms.testPermission(uri, "popup") != Services.perms.ALLOW_ACTION))
-    element.removeAttribute("disabled");
-  else
-    element.setAttribute("disabled", "true");
+  // set enabled state for popup_ menu items.
+  var items = aEvent.target.getElementsByAttribute("name", "popup");
+  for (let item of items) {
+    if (allowBlocking)
+      item.removeAttribute("disabled");
+    else
+      item.setAttribute("disabled", "true");
+  }
 
-  if (!/Mac/.test(navigator.platform))
-    popupBlockerMenuShowing(aEvent);
+  document.getElementById("popupMenuSeparator").hidden = !allowBlocking;
+  document.getElementById("menuitem_PopupsManage").hidden = !allowBlocking;
+
 }
 
 // Determine current state and check/uncheck the appropriate menu items.
@@ -866,16 +949,15 @@ function CheckPermissionsMenu(aType, aNode)
 {
   var currentPerm = Services.perms.testPermission(getBrowser().currentURI, aType);
   var items = aNode.getElementsByAttribute("name", aType);
-  for (var i = 0; i < items.length; i++) {
-    var item = items[i];
+  for (let item of items) {
     // Get type and perm from id.
     var [type, perm] = GetTypePermFromId(item.id);
     item.setAttribute("checked", perm == currentPerm);
   }
 }
 
-// Perform a Cookie or Image action.
-function CookieImageAction(aElement)
+// Perform a Cookie, Image or Popup action.
+function CookieImagePopupAction(aElement)
 {
   var uri = getBrowser().currentURI;
   // Get type and perm from id.
@@ -888,16 +970,6 @@ function CookieImageAction(aElement)
   Services.prompt.alert(window, aElement.getAttribute("title"),
                         aElement.getAttribute("msg"));
 }
-
-function popupHost()
-{
-  var hostPort = "";
-  try {
-    hostPort = getBrowser().currentURI.hostPort;
-  } catch (e) {}
-  return hostPort;
-}
-
 function OpenSessionHistoryIn(aWhere, aDelta, aTab)
 {
   var win = aWhere == "window" ? null : window;
@@ -1361,27 +1433,29 @@ function QualifySearchTerm()
   return "";
 }
 
-//Note: BrowserNewEditorWindow() was moved to globalOverlay.xul and renamed to NewEditorWindow()
-
 function BrowserOpenWindow()
 {
   //opens a window where users can select a web location to open
   var params = { action: gPrivate ? "4" : "0", url: "" };
-  openDialog("chrome://communicator/content/openLocation.xul", "_blank", "chrome,modal,titlebar", params);
-  promiseShortcutOrURI(params.url).then(([url, postData]) => {
+  openDialog("chrome://communicator/content/openLocation.xul", "_blank",
+             "chrome,modal,titlebar", params);
+
+  getShortcutOrURIAndPostData(params.url).then(data => {
     switch (params.action) {
       case "0": // current window
-        loadURI(url, null, postData, true);
+        loadURI(data.url, null, data.postData, true);
         break;
       case "1": // new window
-        openDialog(getBrowserURL(), "_blank", "all,dialog=no", url, null, null,
-                   postData, true);
+        openDialog(getBrowserURL(), "_blank", "all,dialog=no", data.url, null, null,
+                   data.postData, true);
         break;
       case "2": // edit
-        editPage(url);
+        editPage(data.url);
         break;
       case "3": // new tab
-        gBrowser.selectedTab = gBrowser.addTab(url, {allowThirdPartyFixup: true, postData: postData});
+        gBrowser.selectedTab = gBrowser.addTab(data.url,
+                                               {allowThirdPartyFixup: true,
+                                                postData: data.postData});
         break;
       case "4": // private
         openNewPrivateWith(params.url);
@@ -1461,14 +1535,14 @@ function selectFileToOpen(label, prefRoot)
   // use a pref to remember the displayDirectory selected by the user.
   try {
     fp.displayDirectory = Services.prefs.getComplexValue(lastDirPref,
-                              Components.interfaces.nsILocalFile);
+                              Components.interfaces.nsIFile);
   } catch (ex) {
   }
 
   if (fp.show() == nsIFilePicker.returnOK) {
     Services.prefs.setIntPref(filterIndexPref, fp.filterIndex);
     Services.prefs.setComplexValue(lastDirPref,
-                                   Components.interfaces.nsILocalFile,
+                                   Components.interfaces.nsIFile,
                                    fp.file.parent);
     fileURL = fp.fileURL;
   }
@@ -1615,7 +1689,7 @@ function BrowserTryToCloseWindow()
     BrowserCloseWindow();
 }
 
-function BrowserCloseWindow() 
+function BrowserCloseWindow()
 {
   // This code replicates stuff in Shutdown().  It is here because
   // window.screenX and window.screenY have real values.  We need
@@ -1639,7 +1713,11 @@ function BrowserCloseWindow()
   window.close();
 }
 
-function loadURI(uri, referrer, postData, allowThirdPartyFixup, isUTF8)
+// TODO align the function parameters with Firefox
+// function loadURI(uri, referrer, postData, allowThirdPartyFixup, referrerPolicy,
+//                  userContextId, originPrincipal, forceAboutBlankViewerInCurrent,
+//                  triggeringPrincipal)
+function loadURI(uri, referrer, postData, allowThirdPartyFixup)
 {
   try {
     var flags = nsIWebNavigation.LOAD_FLAGS_NONE;
@@ -1647,15 +1725,31 @@ function loadURI(uri, referrer, postData, allowThirdPartyFixup, isUTF8)
       flags = nsIWebNavigation.LOAD_FLAGS_ALLOW_THIRD_PARTY_FIXUP |
               nsIWebNavigation.LOAD_FLAGS_FIXUP_SCHEME_TYPOS;
     }
-    if (isUTF8) {
-      flags |= nsIWebNavigation.LOAD_FLAGS_URI_IS_UTF8;
-    }
     if (!flags && typeof postData == "number") {
       // Deal with legacy code that passes load flags in the third argument.
       flags = postData;
       postData = null;
     }
     gBrowser.loadURIWithFlags(uri, flags, referrer, null, postData);
+  } catch (e) {
+  }
+}
+
+function loadOneOrMoreURIs(aURIString, aTriggeringPrincipal) {
+  // we're not a browser window, pass the URI string to a new browser window
+  if (window.location.href != getBrowserURL()) {
+    window.openDialog(getBrowserURL(), "_blank", "all,dialog=no", aURIString);
+    return;
+  }
+
+  // This function throws for certain malformed URIs, so use exception handling
+  // so that we don't disrupt startup
+  try {
+    gBrowser.loadTabs(aURIString.split("|"), {
+      inBackground: false,
+      replace: true,
+      triggeringPrincipal: aTriggeringPrincipal,
+    });
   } catch (e) {
   }
 }
@@ -1676,7 +1770,7 @@ function handleURLBarCommand(aUserAction, aTriggeringEvent)
     return;
   }
 
-  promiseShortcutOrURI(url).then(([url, postData]) => {
+  getShortcutOrURIAndPostData(url).then(data => {
     // Check the pressed modifiers: (also see bug 97123)
     // Modifier Mac | Modifier PC | Action
     // -------------+-------------+-----------
@@ -1697,7 +1791,6 @@ function handleURLBarCommand(aUserAction, aTriggeringEvent)
     }
 
     var browser = getBrowser();
-    var isUTF8 = browser.userTypedValue === null;
     // Accept both Control and Meta (=Command) as New-Window-Modifiers
     if (aTriggeringEvent &&
         (('ctrlKey' in aTriggeringEvent && aTriggeringEvent.ctrlKey) ||
@@ -1708,10 +1801,9 @@ function handleURLBarCommand(aUserAction, aTriggeringEvent)
         // Reset url in the urlbar
         URLBarSetURI();
         // Open link in new tab
-        var t = browser.addTab(url, {
-                  postData: postData,
+        var t = browser.addTab(data.url, {
+                  postData: data.postData,
                   allowThirdPartyFixup: true,
-                  isUTF8: isUTF8
                 });
 
         // Focus new tab unless shift is pressed
@@ -1719,8 +1811,8 @@ function handleURLBarCommand(aUserAction, aTriggeringEvent)
           browser.selectedTab = t;
       } else {
         // Open a new window with the URL
-        var newWin = openDialog(getBrowserURL(), "_blank", "all,dialog=no", url,
-            null, null, postData, true, isUTF8);
+        var newWin = openDialog(getBrowserURL(), "_blank", "all,dialog=no", data.url,
+                                null, null, data.postData, true);
         // Reset url in the urlbar
         URLBarSetURI();
 
@@ -1739,7 +1831,7 @@ function handleURLBarCommand(aUserAction, aTriggeringEvent)
         if (!gURIFixup)
           gURIFixup = Components.classes["@mozilla.org/docshell/urifixup;1"]
                                 .getService(nsIURIFixup);
-        url = gURIFixup.createFixupURI(url, nsIURIFixup.FIXUP_FLAGS_MAKE_ALTERNATE_URI).spec;
+        url = gURIFixup.createFixupURI(data.url, nsIURIFixup.FIXUP_FLAGS_MAKE_ALTERNATE_URI).spec;
         // Open filepicker to save the url
         saveURL(url, null, null, false, true, null, document);
       }
@@ -1750,88 +1842,74 @@ function handleURLBarCommand(aUserAction, aTriggeringEvent)
     } else {
       // No modifier was pressed, load the URL normally and
       // focus the content area
-      loadURI(url, null, postData, true, isUTF8);
+      loadURI(data.url, null, data.postData, true);
       content.focus();
     }
   });
 }
 
-function promiseShortcutOrURI(aURL)
-{
-  var keyword = aURL;
-  var param = "";
+/**
+ * Given a string, will generate a more appropriate urlbar value if a Places
+ * keyword or a search alias is found at the beginning of it.
+ *
+ * @param url
+ *        A string that may begin with a keyword or an alias.
+ *
+ * @return {Promise}
+ * @resolves { url, postData, mayInheritPrincipal }. If it's not possible
+ *           to discern a keyword or an alias, url will be the input string.
+ */
+function getShortcutOrURIAndPostData(url) {
+  return (async function() {
+    let mayInheritPrincipal = false;
+    let postData = null;
+    // Split on the first whitespace.
+    let [keyword, param = ""] = url.trim().split(/\s(.+)/, 2);
 
-  var offset = aURL.indexOf(" ");
-  if (offset > 0) {
-    keyword = aURL.substr(0, offset);
-    param = aURL.substr(offset + 1);
-  }
+    if (!keyword) {
+      return { url, postData, mayInheritPrincipal };
+    }
 
-  var engine = Services.search.getEngineByAlias(keyword);
-  if (engine) {
-    var submission = engine.getSubmission(param);
-    return Promise.resolve([submission.uri.spec, submission.postData]);
-  }
+    let engine = Services.search.getEngineByAlias(keyword);
+    if (engine) {
+      let submission = engine.getSubmission(param, null, "keyword");
+      return { url: submission.uri.spec,
+               postData: submission.postData,
+               mayInheritPrincipal };
+    }
 
-  return PlacesUtils.keywords.fetch(keyword).then(entry => {
-    if (!entry)
-      return [aURL];
+    // A corrupt Places database could make this throw, breaking navigation
+    // from the location bar.
+    let entry = null;
+    try {
+      entry = await PlacesUtils.keywords.fetch(keyword);
+    } catch (ex) {
+      Components.utils.reportError(`Unable to fetch Places keyword "${keyword}": ${ex}`);
+    }
+    if (!entry || !entry.url) {
+      // This is not a Places keyword.
+      return { url, postData, mayInheritPrincipal };
+    }
 
-    var shortcutURL = entry.url.href;
-    var postData = entry.postData;
-    if (postData)
-      postData = unescape(postData);
-
-    if (/%s/i.test(shortcutURL) || /%s/i.test(postData)) {
-      var charset;
-      const re = /^(.*)\&mozcharset=([a-zA-Z][_\-a-zA-Z0-9]+)\s*$/;
-      var matches = shortcutURL.match(re);
-      if (matches) {
-        shortcutURL = matches[1];
-        charset = Promise.resolve(matches[2]);
-      } else {
-        // Try to get the saved character-set.
-        try {
-          // makeURI throws if URI is invalid.
-          // Will return an empty string if character-set is not found.
-          charset = PlacesUtils.getCharsetForURI(makeURI(shortcutURL));
-        } catch (e) {
-          charset = Promise.resolve();
-        }
+    try {
+      [url, postData] =
+        await BrowserUtils.parseUrlAndPostData(entry.url.href,
+                                               entry.postData,
+                                               param);
+      if (postData) {
+        postData = getPostDataStream(postData);
       }
 
-      return charset.then(charset => {
-        // encodeURIComponent produces UTF-8, and cannot be used for other
-        // charsets. escape() works in those cases, but it doesn't uri-encode
-        // +, @, and /. Therefore we need to manually replace these ASCII
-        // characters by their encodeURIComponent result, to match the
-        // behaviour of nsEscape() with url_XPAlphas.
-        var encodedParam = "";
-        if (charset && charset != "UTF-8")
-          encodedParam = escape(convertFromUnicode(charset, param)).
-                         replace(/[+@\/]+/g, encodeURIComponent);
-        else // Default charset is UTF-8
-          encodedParam = encodeURIComponent(param);
-
-        shortcutURL = shortcutURL.replace(/%s/g, encodedParam).replace(/%S/g, param);
-
-        if (/%s/i.test(postData)) { // POST keyword
-          var postDataStream = getPostDataStream(postData, param, encodedParam,
-                                                 "application/x-www-form-urlencoded");
-          return [shortcutURL, postDataStream];
-        }
-
-        return [shortcutURL];
-      });
+      // Since this URL came from a bookmark, it's safe to let it inherit the
+      // current document's principal.
+      mayInheritPrincipal = true;
+    } catch (ex) {
+      // It was not possible to bind the param, just use the original url value.
     }
 
-    if (param) {
-      // This keyword doesn't take a parameter, but one was provided. Just return
-      // the original URL.
-      return [aURL];
-    }
-
-    return [shortcutURL];
+    return { url, postData, mayInheritPrincipal };
+  })().then(data => {
+    return data;
   });
 }
 
@@ -1845,21 +1923,64 @@ function getPostDataStream(aStringData, aKeyword, aEncKeyword, aType)
   var mimeStream = Components.classes["@mozilla.org/network/mime-input-stream;1"]
                              .createInstance(Components.interfaces.nsIMIMEInputStream);
   mimeStream.addHeader("Content-Type", aType);
-  mimeStream.addContentLength = true;
   mimeStream.setData(dataStream);
   return mimeStream.QueryInterface(Components.interfaces.nsIInputStream);
 }
 
-function handleDroppedLink(event, url, name)
+// handleDroppedLink has the following 2 overloads:
+//   handleDroppedLink(event, url, name, triggeringPrincipal)
+//   handleDroppedLink(event, links, triggeringPrincipal)
+function handleDroppedLink(event, urlOrLinks, nameOrTriggeringPrincipal, triggeringPrincipal)
 {
-  promiseShortcutOrURI(url).then(([uri, postData]) => {
-    if (uri)
-      loadURI(uri, null, postData, false);
-  });
+  let links;
+  if (Array.isArray(urlOrLinks)) {
+    links = urlOrLinks;
+    triggeringPrincipal = nameOrTriggeringPrincipal;
+  } else {
+    links = [{ url: urlOrLinks, nameOrTriggeringPrincipal, type: "" }];
+  }
 
-  // Keep the event from being handled by the dragDrop listeners
-  // built-in to gecko if they happen to be above us.
-  event.preventDefault();
+  let lastLocationChange = gBrowser.selectedBrowser.lastLocationChange;
+
+  // Usually blank for SeaMonkey.
+  let userContextId = gBrowser.selectedBrowser.getAttribute("usercontextid");
+
+  // event is null if links are dropped in content process.
+  // inBackground should be false, as it's loading into current browser.
+  let inBackground = false;
+  if (event) {
+    inBackground = Services.prefs.getBoolPref("browser.tabs.loadInBackground");
+    if (event.shiftKey)
+      inBackground = !inBackground;
+  }
+
+  (async function() {
+    let urls = [];
+    let postDatas = [];
+    for (let link of links) {
+      let data = await getShortcutOrURIAndPostData(link.url);
+      urls.push(data.url);
+      postDatas.push(data.postData);
+    }
+    if (lastLocationChange == gBrowser.selectedBrowser.lastLocationChange) {
+      gBrowser.loadTabs(urls, {
+        inBackground,
+        replace: true,
+        allowThirdPartyFixup: false,
+        postDatas,
+        userContextId,
+        triggeringPrincipal,
+      });
+    }
+  })();
+
+  // If links are dropped in content process, event.preventDefault() should be
+  // called in content process.
+  if (event) {
+    // Keep the event from being handled by the dragDrop listeners
+    // built-in to gecko if they happen to be above us.
+    event.preventDefault();
+  }
 }
 
 function readFromClipboard()
@@ -2002,8 +2123,9 @@ function hiddenWindowStartup()
                        'View:PageSource', 'View:PageInfo', 'menu_translate',
                        'cookie_deny', 'cookie_default', 'View:FullScreen',
                        'cookie_session', 'cookie_allow', 'image_deny',
-                       'image_default', 'image_allow', 'AllowPopups',
-                       'menu_zoom', 'cmd_minimizeWindow', 'cmd_zoomWindow'];
+                       'image_default', 'image_allow', 'popup_deny',
+                       'popup_default','popup_allow', 'menu_zoom',
+                       'cmd_minimizeWindow', 'cmd_zoomWindow'];
   var broadcaster;
 
   for (var id in disabledItems) {
@@ -2064,18 +2186,30 @@ function URLBarSetURI(aURI, aValid) {
 
 function losslessDecodeURI(aURI) {
   var value = aURI.spec;
+  var scheme = aURI.scheme;
+
+  var decodeASCIIOnly = !["https", "http", "file", "ftp"].includes(scheme);
   // Try to decode as UTF-8 if there's no encoding sequence that we would break.
-  if (!/%25(?:3B|2F|3F|3A|40|26|3D|2B|24|2C|23)/i.test(value))
-    try {
-      value = decodeURI(value)
-                // decodeURI decodes %25 to %, which creates unintended
-                // encoding sequences. Re-encode it, unless it's part of
-                // a sequence that survived decodeURI, i.e. one for:
-                // ';', '/', '?', ':', '@', '&', '=', '+', '$', ',', '#'
-                // (RFC 3987 section 3.2)
-                .replace(/%(?!3B|2F|3F|3A|40|26|3D|2B|24|2C|23)/ig,
-                         encodeURIComponent);
-    } catch (e) {}
+  if (!/%25(?:3B|2F|3F|3A|40|26|3D|2B|24|2C|23)/i.test(value)) {
+    if (decodeASCIIOnly) {
+      // This only decodes ascii characters (hex) 20-7e, except 25 (%).
+      // This avoids both cases stipulated below (%-related issues, and \r, \n
+      // and \t, which would be %0d, %0a and %09, respectively) as well as any
+      // non-US-ascii characters.
+      value = value.replace(/%(2[0-4]|2[6-9a-f]|[3-6][0-9a-f]|7[0-9a-e])/g, decodeURI);
+    } else {
+      try {
+        value = decodeURI(value)
+                  // decodeURI decodes %25 to %, which creates unintended
+                  // encoding sequences. Re-encode it, unless it's part of
+                  // a sequence that survived decodeURI, i.e. one for:
+                  // ';', '/', '?', ':', '@', '&', '=', '+', '$', ',', '#'
+                  // (RFC 3987 section 3.2)
+                  .replace(/%(?!3B|2F|3F|3A|40|26|3D|2B|24|2C|23)/ig,
+                           encodeURIComponent);
+      } catch (e) {}
+    }
+  }
 
   // Encode invisible characters (soft hyphen, zero-width space, BOM,
   // line and paragraph separator, word joiner, invisible times,
@@ -2085,7 +2219,7 @@ function losslessDecodeURI(aURI) {
   // (RFC 3987 sections 3.2 and 4.1 paragraph 6)
   // Re-encode whitespace so that it doesn't get eaten away
   // by the location bar (bug 410726).
-  return value.replace(/[\u0000-\u001f\u007f-\u00a0\u00ad\u034f\u061c\u115f\u1160\u17b4\u17b5\u180b-\u180d\u200b\u200e\u200f\u2028-\u202e\u2060-\u206f\u3164\udb40-\udb43\udc00-\udfff\ufe00-\ufe0f\ufeff\uffa0\ufff0-\ufff8\ufffc]|i\ud834[\udd73-\udd7a]/g, encodeURIComponent);
+  return value.replace(/[\u0000-\u001f\u007f-\u00a0\u00ad\u034f\u061c\u115f\u1160\u17b4\u17b5\u180b-\u180d\u200b\u200e\u200f\u2028-\u202e\u2060-\u206f\u3164\ufe00-\ufe0f\ufeff\uffa0\ufff0-\ufff8\ufffc]|\ud834[\udd73-\udd7a]|[\udb40-\udb43][\udc00-\udfff]/g, encodeURIComponent);
 }
 
 /**
@@ -2200,17 +2334,6 @@ function stylesheetSwitchAll(frameset, title) {
 
 function setStyleDisabled(disabled) {
   getMarkupDocumentViewer().authorStyleDisabled = disabled;
-}
-
-function focusNextFrame(aEvent)
-{
-  var fm = Components.classes["@mozilla.org/focus-manager;1"]
-                     .getService(Components.interfaces.nsIFocusManager);
-  var dir = aEvent.shiftKey ? fm.MOVEFOCUS_BACKWARDDOC
-                            : fm.MOVEFOCUS_FORWARDDOC;
-  var element = fm.moveFocus(window, null, dir, fm.FLAG_BYKEY);
-  if (element && element.ownerDocument == document)
-    ShowAndSelectContentsOfURLBar();
 }
 
 function URLBarFocusHandler(aEvent)
@@ -2390,17 +2513,10 @@ function UpdateStatusBarPopupIcon(aEvent)
     popupIcon.hidden = !gBrowser.getNotificationBox().popupCount;
   }
 }
-
 function StatusbarViewPopupManager()
 {
-  var hostPort = "";
-  try {
-    hostPort = getBrowser().selectedBrowser.currentURI.hostPort;
-  }
-  catch(ex) { }
-
   // Open Data Manager permissions pane site and type prefilled to add.
-  toDataManager(hostPort + "|permissions|add|popup");
+  toDataManager(hostUrl() + "|permissions|add|popup");
 }
 
 function popupBlockerMenuShowing(event)
@@ -2436,7 +2552,7 @@ function maybeInitPopupContext()
     if (xulwin.contextFlags &
         CI.nsIWindowCreator2.PARENT_IS_LOADING_OR_RUNNING_TIMEOUT) {
       // return our opener's URI
-      return Services.io.newURI(window.content.opener.location.href, null, null);
+      return Services.io.newURI(window.content.opener.location.href);
     }
   } catch(e) {
   }
@@ -2581,21 +2697,18 @@ function updateFileUploadItem()
 
 function isBidiEnabled()
 {
-  var rv = false;
-
-  var systemLocale;
-  try {
-    systemLocale = Services.locale.getSystemLocale()
-                                  .getCategory("NSILOCALE_CTYPE");
-    rv = /^(he|ar|syr|fa|ur)-/.test(systemLocale);
-  } catch (e) {}
-
-  if (!rv) {
-    // check the overriding pref
-    rv = Services.prefs.getBoolPref("bidi.browser.ui");
+  // first check the pref.
+  if (GetBoolPref("bidi.browser.ui", false)) {
+    return true;
   }
 
-  return rv;
+  // now see if the app locale is an RTL one.
+  const isRTL = Services.locale.isAppLocaleRTL;
+
+  if (isRTL) {
+    Services.prefs.setBoolPref("bidi.browser.ui", true);
+  }
+  return isRTL;
 }
 
 function SwitchDocumentDirection(aWindow)
@@ -2623,7 +2736,7 @@ function convertFromUnicode(charset, str)
     str = unicodeConverter.ConvertFromUnicode(str);
     return str + unicodeConverter.Finish();
   } catch(ex) {
-    return null; 
+    return null;
   }
 }
 
@@ -2867,3 +2980,21 @@ function onViewSecurityContextMenu()
 {
   document.getElementById("viewCertificate").disabled = !getCert();
 }
+
+var browserDragAndDrop = {
+  canDropLink: aEvent => Services.droppedLinkHandler.canDropLink(aEvent, true),
+
+  dragOver(aEvent) {
+    if (this.canDropLink(aEvent)) {
+      aEvent.preventDefault();
+    }
+  },
+
+  getTriggeringPrincipal(aEvent) {
+    return Services.droppedLinkHandler.getTriggeringPrincipal(aEvent);
+  },
+
+  dropLinks(aEvent, aDisallowInherit) {
+    return Services.droppedLinkHandler.dropLinks(aEvent, aDisallowInherit);
+  }
+};

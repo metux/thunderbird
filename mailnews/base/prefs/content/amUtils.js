@@ -11,7 +11,7 @@ Components.utils.import("resource:///modules/iteratorUtils.jsm");
 function BrowseForLocalFolders()
 {
   const nsIFilePicker = Components.interfaces.nsIFilePicker;
-  const nsILocalFile = Components.interfaces.nsILocalFile;
+  const nsIFile = Components.interfaces.nsIFile;
 
   var currentFolderTextBox = document.getElementById("server.localPath");
   var fp = Components.classes["@mozilla.org/filepicker;1"]
@@ -23,21 +23,23 @@ function BrowseForLocalFolders()
           nsIFilePicker.modeGetFolder);
 
   var currentFolder = Components.classes["@mozilla.org/file/local;1"]
-                                .createInstance(nsILocalFile);
+                                .createInstance(nsIFile);
   currentFolder.initWithPath(currentFolderTextBox.value);
   fp.displayDirectory = currentFolder;
 
-  if (fp.show() != nsIFilePicker.returnOK)
-    return;
+  fp.open(rv => {
+    if (rv != nsIFilePicker.returnOK || !fp.file) {
+      return;
+    }
+    // Retrieve the selected folder.
+    let selectedFolder = fp.file;
 
-  // Retrieve the selected folder.
-  let selectedFolder = fp.file;
+    // Check if the folder can be used for mail storage.
+    if (!top.checkDirectoryIsUsable(selectedFolder))
+      return;
 
-  // Check if the folder can be used for mail storage.
-  if (!top.checkDirectoryIsUsable(selectedFolder))
-    return;
-
-  currentFolderTextBox.value = selectedFolder.path;
+    currentFolderTextBox.value = selectedFolder.path;
+  });
 }
 
 /**
@@ -192,7 +194,7 @@ function openPrefsFromAccountManager(aTBPaneId, aTBTabId, aTBOtherArgs, aSMPaneI
  */
 function accountNameExists(aAccountName, aAccountKey)
 {
-  for (let account in fixIterator(MailServices.accounts.accounts,
+  for (let account of fixIterator(MailServices.accounts.accounts,
                                   Components.interfaces.nsIMsgAccount))
   {
     if (account.key != aAccountKey && account.incomingServer &&
@@ -202,4 +204,22 @@ function accountNameExists(aAccountName, aAccountKey)
   }
 
   return false;
+}
+
+/**
+ * Open a dialog to edit properties of an SMTP server.
+ *
+ * @param aServer {nsISmtpServer}  The server to edit.
+ * @return {object}                Object with result member to indicate whether 'OK'
+ *                                 was clicked and addSmtpServer with key of newly created server.
+ */
+function editSMTPServer(aServer) {
+  let args = { server: aServer,
+               result: false,
+               addSmtpServer: "" };
+
+  window.openDialog("chrome://messenger/content/SmtpServerEdit.xul",
+                    "smtpEdit", "chrome,titlebar,modal,centerscreen", args);
+
+  return args;
 }

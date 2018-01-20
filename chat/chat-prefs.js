@@ -80,10 +80,20 @@ pref("chat.irc.defaultQuitMessage", "");
 // called automatically by the awesometab. Otherwise, requestRoomInfo will
 // only do so when explicitly requested by the user, e.g. via the /list command.
 pref("chat.irc.automaticList", true);
+// Whether to enable or disable message carbons protocol (XEP-0280).
+pref("chat.xmpp.messageCarbons", true);
 // Disable Skype until it can be tested further.
 pref("chat.prpls.prpl-skype.disable", true);
 // Disable Facebook as the XMPP gateway no longer exists.
 pref("chat.prpls.prpl-facebook.disable", true);
+// Disable experimental Matrix support.
+pref("chat.prpls.prpl-matrix.disable", true);
+// Disable Yahoo Messenger as legacy Yahoo was shut down.
+pref("chat.prpls.prpl-yahoo.disable", true);
+// Whether to disable SRV lookups that use the system DNS library.
+pref("chat.dns.srv.disable", false);
+// Disable JavaScript in browser requests.
+pref("chat.browserRequest.disableJavascript", false);
 
 // loglevel is the minimum severity level that a libpurple message
 // must have to be reported in the Error Console.

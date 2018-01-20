@@ -14,7 +14,7 @@ const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 Cu.import("resource://gre/modules/Promise.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 
-const FRAME_SCRIPT = "chrome://mochikit/content/tests/BrowserTestUtils/content-task.js";
+const FRAME_SCRIPT = "resource://testing-common/content-task.js";
 
 /**
  * Keeps track of whether the frame script was already loaded.
@@ -114,9 +114,11 @@ var ContentMessageListener = {
       }
     } else if (aMessage.name == "content-task:test-result") {
       let data = aMessage.data;
-      ContentTask._testScope.ok(data.condition, data.name, data.diag, data.stack);
+      ContentTask._testScope.ok(data.condition, data.name, null, data.stack);
     } else if (aMessage.name == "content-task:test-info") {
       ContentTask._testScope.info(aMessage.data.name);
+    } else if (aMessage.name == "content-task:test-todo") {
+      ContentTask._testScope.todo(aMessage.data.expr, aMessage.data.name);
     }
   },
 };

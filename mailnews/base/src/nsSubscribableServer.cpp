@@ -4,6 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsSubscribableServer.h"
+#include "nsIMsgIncomingServer.h"
 #include "prmem.h"
 #include "rdf.h"
 #include "nsRDFCID.h"
@@ -40,10 +41,10 @@ nsSubscribableServer::Init()
                                   getter_AddRefs(kNC_Subscribed));
     NS_ENSURE_SUCCESS(rv,rv);
 
-    rv = mRDFService->GetLiteral(MOZ_UTF16("true"), getter_AddRefs(kTrueLiteral));
+    rv = mRDFService->GetLiteral(u"true", getter_AddRefs(kTrueLiteral));
     NS_ENSURE_SUCCESS(rv,rv);
 
-    rv = mRDFService->GetLiteral(MOZ_UTF16("false"), getter_AddRefs(kFalseLiteral));
+    rv = mRDFService->GetLiteral(u"false", getter_AddRefs(kFalseLiteral));
     NS_ENSURE_SUCCESS(rv,rv);
     return NS_OK;
 }
@@ -59,8 +60,17 @@ NS_IMPL_ISUPPORTS(nsSubscribableServer, nsISubscribableServer)
 NS_IMETHODIMP
 nsSubscribableServer::SetIncomingServer(nsIMsgIncomingServer *aServer)
 {
-  mIncomingServer = aServer;
-  return NS_OK;
+  if (!aServer) {
+    mIncomingServerUri.AssignLiteral("");
+    return NS_OK;
+  }
+
+  // We intentionally do not store a pointer to the aServer here
+  // as it would create reference loops, because nsIImapIncomingServer
+  // and nsINntpIncomingServer keep a reference to an internal
+  // nsISubscribableServer object.
+  // We only need the URI of the server anyway.
+  return aServer->GetServerURI(mIncomingServerUri);
 }
 
 NS_IMETHODIMP
@@ -321,10 +331,7 @@ NS_IMETHODIMP
 nsSubscribableServer::GetSubscribeListener(nsISubscribeListener **aListener)
 {
 	if (!aListener) return NS_ERROR_NULL_POINTER;
-	if (mSubscribeListener) {
-			*aListener = mSubscribeListener;
-			NS_ADDREF(*aListener);
-	}
+	NS_IF_ADDREF(*aListener = mSubscribeListener);
 	return NS_OK;
 }
 
@@ -416,7 +423,7 @@ nsSubscribableServer::FreeSubtree(SubscribeTreeNode *node)
 #ifdef HAVE_SUBSCRIBE_DESCRIPTION
         NS_ASSERTION(node->description == nullptr, "you need to free the description");
 #endif
-        NS_Free(node->name);
+        free(node->name);
 #if 0
         node->name = nullptr;
         node->parent = nullptr;
@@ -484,83 +491,81 @@ nsSubscribableServer::AddChildNode(SubscribeTreeNode *parent, const char *name, 
 
         return NS_OK;
     }
-    else {
-        if (parent->cachedChild) {
-            if (strcmp(parent->cachedChild->name,name) == 0) {
-                *child = parent->cachedChild;
-                return NS_OK;
-            }
-        }
 
-        SubscribeTreeNode *current = parent->firstChild;
-
-        /*
-         * insert in reverse alphabetical order
-         * this will reduce the # of strcmps
-         * since this is faster assuming:
-         *  1) the hostinfo.dat feeds us the groups in alphabetical order
-         *     since we control the hostinfo.dat file, we can guarantee this.
-         *  2) the server gives us the groups in alphabetical order
-         *     we can't guarantee this, but it seems to be a common thing
-         *
-         * because we have firstChild, lastChild, nextSibling, prevSibling
-         * we can efficiently reverse the order when dumping to hostinfo.dat
-         * or to GetTargets()
-         */
-        int32_t compare = strcmp(current->name, name);
-
-        while (current && (compare != 0)) {
-            if (compare < 0) {
-                // CreateNode will set the parent->cachedChild
-                rv = CreateNode(parent, name, child);
-                NS_ENSURE_SUCCESS(rv,rv);
-
-                (*child)->nextSibling = current;
-                (*child)->prevSibling = current->prevSibling;
-                current->prevSibling = (*child);
-                if (!(*child)->prevSibling) {
-                    parent->firstChild = (*child);
-                }
-                else {
-                    (*child)->prevSibling->nextSibling = (*child);
-                }
-
-                rv = NotifyAssert(parent, kNC_Child, *child);
-                NS_ENSURE_SUCCESS(rv,rv);
-                return NS_OK;
-            }
-            current = current->nextSibling;
-            if (current) {
-                NS_ASSERTION(current->name, "no name!");
-                compare = strcmp(current->name,name);
-            }
-            else {
-                compare = -1; // anything but 0, since that would be a match
-            }
-        }
-
-        if (compare == 0) {
-            // already exists;
-            *child = current;
-
-            // set the cachedChild
-            parent->cachedChild = *child;
+    if (parent->cachedChild) {
+        if (strcmp(parent->cachedChild->name,name) == 0) {
+            *child = parent->cachedChild;
             return NS_OK;
         }
+    }
 
-        // CreateNode will set the parent->cachedChild
-        rv = CreateNode(parent, name, child);
-        NS_ENSURE_SUCCESS(rv,rv);
+    SubscribeTreeNode *current = parent->firstChild;
 
-        (*child)->prevSibling = parent->lastChild;
-        (*child)->nextSibling = nullptr;
-        parent->lastChild->nextSibling = *child;
-        parent->lastChild = *child;
+    /*
+     * insert in reverse alphabetical order
+     * this will reduce the # of strcmps
+     * since this is faster assuming:
+     *  1) the hostinfo.dat feeds us the groups in alphabetical order
+     *     since we control the hostinfo.dat file, we can guarantee this.
+     *  2) the server gives us the groups in alphabetical order
+     *     we can't guarantee this, but it seems to be a common thing
+     *
+     * because we have firstChild, lastChild, nextSibling, prevSibling
+     * we can efficiently reverse the order when dumping to hostinfo.dat
+     * or to GetTargets()
+     */
+    int32_t compare = strcmp(current->name, name);
 
-        rv = NotifyAssert(parent, kNC_Child, *child);
-        NS_ENSURE_SUCCESS(rv,rv);
+    while (current && (compare != 0)) {
+        if (compare < 0) {
+            // CreateNode will set the parent->cachedChild
+            rv = CreateNode(parent, name, child);
+            NS_ENSURE_SUCCESS(rv,rv);
+
+            (*child)->nextSibling = current;
+            (*child)->prevSibling = current->prevSibling;
+            current->prevSibling = (*child);
+            if (!(*child)->prevSibling) {
+                parent->firstChild = (*child);
+            }
+            else {
+                (*child)->prevSibling->nextSibling = (*child);
+            }
+
+            rv = NotifyAssert(parent, kNC_Child, *child);
+            NS_ENSURE_SUCCESS(rv,rv);
+            return NS_OK;
+        }
+        current = current->nextSibling;
+        if (current) {
+            NS_ASSERTION(current->name, "no name!");
+            compare = strcmp(current->name,name);
+        }
+        else {
+            compare = -1; // anything but 0, since that would be a match
+        }
+    }
+
+    if (compare == 0) {
+        // already exists;
+        *child = current;
+
+        // set the cachedChild
+        parent->cachedChild = *child;
         return NS_OK;
     }
+
+    // CreateNode will set the parent->cachedChild
+    rv = CreateNode(parent, name, child);
+    NS_ENSURE_SUCCESS(rv,rv);
+
+    (*child)->prevSibling = parent->lastChild;
+    (*child)->nextSibling = nullptr;
+    parent->lastChild->nextSibling = *child;
+    parent->lastChild = *child;
+
+    rv = NotifyAssert(parent, kNC_Child, *child);
+    NS_ENSURE_SUCCESS(rv,rv);
     return NS_OK;
 }
 
@@ -573,11 +578,8 @@ nsSubscribableServer::FindAndCreateNode(const nsACString &aPath,
   if (!aResult) return NS_ERROR_NULL_POINTER;
 
   if (!mTreeRoot) {
-      nsCString serverUri;
-      rv = mIncomingServer->GetServerURI(serverUri);
-      NS_ENSURE_SUCCESS(rv,rv);
       // the root has no parent, and its name is server uri
-      rv = CreateNode(nullptr, serverUri.get(), &mTreeRoot);
+      rv = CreateNode(nullptr, mIncomingServerUri.get(), &mTreeRoot);
       NS_ENSURE_SUCCESS(rv,rv);
   }
 
@@ -600,7 +602,7 @@ nsSubscribableServer::FindAndCreateNode(const nsACString &aPath,
   SubscribeTreeNode *parent = mTreeRoot;
   SubscribeTreeNode *child = nullptr;
 
-  token = NS_strtok(delimstr, &rest); 
+  token = NS_strtok(delimstr, &rest);
   // special case paths that start with the hierarchy delimiter.
   // We want to include that delimiter in the first token name.
   if (token && pathStr[0] == mDelimiter)

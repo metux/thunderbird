@@ -7,12 +7,15 @@
  * devtools/client/performance/modules/logic/tree-model.js will have to be changed.
  */
 
-const WAIT_TIME = 1000; // ms
+"use strict";
 
-const { PerformanceFront } = require("devtools/server/actors/performance");
+// Time in ms
+const WAIT_TIME = 1000;
 
-add_task(function*() {
-  let doc = yield addTab(MAIN_DOMAIN + "doc_perf.html");
+const { PerformanceFront } = require("devtools/shared/fronts/performance");
+
+add_task(function* () {
+  yield addTab(MAIN_DOMAIN + "doc_perf.html");
 
   initDebuggerServer();
   let client = new DebuggerClient(DebuggerServer.connectPipe());
@@ -21,7 +24,8 @@ add_task(function*() {
   yield front.connect();
 
   let rec = yield front.startRecording();
-  busyWait(WAIT_TIME); // allow the profiler module to sample some cpu activity
+  // allow the profiler module to sample some cpu activity
+  busyWait(WAIT_TIME);
 
   yield front.stopRecording(rec);
   let profile = rec.getProfile();
@@ -44,7 +48,7 @@ add_task(function*() {
     "At least some samples have been iterated over, checking for root nodes.");
 
   yield front.destroy();
-  yield closeDebuggerClient(client);
+  yield client.close();
   gBrowser.removeCurrentTab();
 });
 

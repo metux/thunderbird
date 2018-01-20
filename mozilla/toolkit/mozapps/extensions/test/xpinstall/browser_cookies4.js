@@ -9,9 +9,9 @@ function test() {
   Harness.setup();
 
   var cm = Components.classes["@mozilla.org/cookiemanager;1"]
-                     .getService(Components.interfaces.nsICookieManager2);
+                     .getService(Components.interfaces.nsICookieManager);
   cm.add("example.org", "/browser/" + RELATIVE_DIR, "xpinstall", "true", false,
-         false, true, (Date.now() / 1000) + 60);
+         false, true, (Date.now() / 1000) + 60, {});
 
   var pm = Services.perms;
   pm.add(makeURI("http://example.com/"), "install", pm.ALLOW_ACTION);
@@ -19,9 +19,9 @@ function test() {
   Services.prefs.setIntPref("network.cookie.cookieBehavior", 1);
 
   var triggers = encodeURIComponent(JSON.stringify({
-    "Cookie check": TESTROOT2 + "cookieRedirect.sjs?" + TESTROOT + "unsigned.xpi"
+    "Cookie check": TESTROOT2 + "cookieRedirect.sjs?" + TESTROOT + "amosigned.xpi"
   }));
-  gBrowser.selectedTab = gBrowser.addTab();
+  gBrowser.selectedTab = BrowserTestUtils.addTab(gBrowser);
   gBrowser.loadURI(TESTROOT + "installtrigger.html?" + triggers);
 }
 
@@ -32,8 +32,8 @@ function download_failed(install) {
 function finish_test(count) {
   is(count, 0, "No add-ons should have been installed");
   var cm = Components.classes["@mozilla.org/cookiemanager;1"]
-                     .getService(Components.interfaces.nsICookieManager2);
-  cm.remove("example.org", "xpinstall", "/browser/" + RELATIVE_DIR, false);
+                     .getService(Components.interfaces.nsICookieManager);
+  cm.remove("example.org", "xpinstall", "/browser/" + RELATIVE_DIR, false, {});
 
   Services.prefs.clearUserPref("network.cookie.cookieBehavior");
   Services.perms.remove(makeURI("http://example.com"), "install");

@@ -129,7 +129,11 @@ ReleaseRegion(void* aRegion, uintptr_t aSize)
 static bool
 ProbeRegion(uintptr_t aRegion, uintptr_t aSize)
 {
+#ifdef XP_SOLARIS
+  if (posix_madvise(reinterpret_cast<void*>(aRegion), aSize, POSIX_MADV_NORMAL)) {
+#else
   if (madvise(reinterpret_cast<void*>(aRegion), aSize, MADV_NORMAL)) {
+#endif
     return true;
   } else {
     return false;
@@ -192,9 +196,7 @@ ReservePoisonArea(uintptr_t rgnsize)
     return uintptr_t(result);
   }
 
-  // no usable poison region identified
-  MOZ_CRASH();
-  return 0;
+  MOZ_CRASH("no usable poison region identified");
 }
 
 void

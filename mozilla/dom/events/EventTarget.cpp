@@ -6,6 +6,7 @@
 
 #include "mozilla/EventListenerManager.h"
 #include "mozilla/dom/EventTarget.h"
+#include "mozilla/dom/EventTargetBinding.h"
 #include "nsThreadUtils.h"
 
 namespace mozilla {
@@ -14,17 +15,17 @@ namespace dom {
 void
 EventTarget::RemoveEventListener(const nsAString& aType,
                                  EventListener* aListener,
-                                 bool aUseCapture,
+                                 const EventListenerOptionsOrBoolean& aOptions,
                                  ErrorResult& aRv)
 {
   EventListenerManager* elm = GetExistingListenerManager();
   if (elm) {
-    elm->RemoveEventListener(aType, aListener, aUseCapture);
+    elm->RemoveEventListener(aType, aListener, aOptions);
   }
 }
 
 EventHandlerNonNull*
-EventTarget::GetEventHandler(nsIAtom* aType, const nsAString& aTypeString)
+EventTarget::GetEventHandler(nsAtom* aType, const nsAString& aTypeString)
 {
   EventListenerManager* elm = GetExistingListenerManager();
   return elm ? elm->GetEventHandler(aType, aTypeString) : nullptr;
@@ -40,7 +41,7 @@ EventTarget::SetEventHandler(const nsAString& aType,
     return;
   }
   if (NS_IsMainThread()) {
-    nsCOMPtr<nsIAtom> type = do_GetAtom(aType);
+    RefPtr<nsAtom> type = NS_Atomize(aType);
     SetEventHandler(type, EmptyString(), aHandler);
     return;
   }
@@ -50,17 +51,41 @@ EventTarget::SetEventHandler(const nsAString& aType,
 }
 
 void
-EventTarget::SetEventHandler(nsIAtom* aType, const nsAString& aTypeString,
+EventTarget::SetEventHandler(nsAtom* aType, const nsAString& aTypeString,
                              EventHandlerNonNull* aHandler)
 {
   GetOrCreateListenerManager()->SetEventHandler(aType, aTypeString, aHandler);
 }
 
 bool
-EventTarget::HasApzAwareListeners() const
+EventTarget::HasNonSystemGroupListenersForUntrustedKeyEvents() const
+{
+  EventListenerManager* elm = GetExistingListenerManager();
+  return elm && elm->HasNonSystemGroupListenersForUntrustedKeyEvents();
+}
+
+bool
+EventTarget::HasNonPassiveNonSystemGroupListenersForUntrustedKeyEvents() const
+{
+  EventListenerManager* elm = GetExistingListenerManager();
+  return elm && elm->HasNonPassiveNonSystemGroupListenersForUntrustedKeyEvents();
+}
+
+bool
+EventTarget::IsApzAware() const
 {
   EventListenerManager* elm = GetExistingListenerManager();
   return elm && elm->HasApzAwareListeners();
+}
+
+bool
+EventTarget::DispatchEvent(Event& aEvent,
+                           CallerType aCallerType,
+                           ErrorResult& aRv)
+{
+  bool result = false;
+  aRv = DispatchEvent(&aEvent, &result);
+  return !aEvent.DefaultPrevented(aCallerType);
 }
 
 } // namespace dom

@@ -4,13 +4,13 @@
 
 "use strict";
 
-const {StorageFront} = require("devtools/server/actors/storage");
-var gFront, gWindow;
+const {StorageFront} = require("devtools/shared/fronts/storage");
+Services.scriptloader.loadSubScript("chrome://mochitests/content/browser/devtools/server/tests/browser/storage-helpers.js", this);
 
 const beforeReload = {
   cookies: {
-    "test1.example.org": ["c1", "cs2", "c3", "uc1"],
-    "sectest1.example.org": ["uc1", "cs2"]
+    "http://test1.example.org": ["c1", "cs2", "c3", "uc1"],
+    "http://sectest1.example.org": ["uc1", "cs2"]
   },
   localStorage: {
     "http://test1.example.org": ["ls1", "ls2"],
@@ -30,51 +30,14 @@ const beforeReload = {
   }
 };
 
-function finishTests(client) {
-  // Cleanup so that indexed db created from this test do not interfere next
-  // ones.
-
-  /**
-   * This method iterates over iframes in a window and clears the indexed db
-   * created by this test.
-   */
-  let clearIDB = (w, i, c) => {
-    if (w[i] && w[i].clear) {
-      w[i].clearIterator = w[i].clear(() => clearIDB(w, i + 1, c));
-      w[i].clearIterator.next();
-    } else if (w[i] && w[i + 1]) {
-      clearIDB(w, i + 1, c);
-    } else {
-      c();
-    }
-  };
-
-  let closeConnection = () => {
-    // Forcing GC/CC to get rid of docshells and windows created by this test.
-    forceCollections();
-    client.close(() => {
-      forceCollections();
-      DebuggerServer.destroy();
-      forceCollections();
-      gFront = gWindow = null;
-      finish();
-    });
-  };
-  gWindow.clearIterator = gWindow.clear(() => {
-    clearIDB(gWindow, 0, closeConnection);
-  });
-  gWindow.clearIterator.next();
-}
-
-function testStores(data, client) {
+function* testStores(data, front) {
   testWindowsBeforeReload(data);
 
   // FIXME: Bug 1183581 - browser_storage_dynamic_windows.js IsSafeToRunScript
   //                      errors when testing reload in E10S mode
-  // testReload().then(() =>
-  testAddIframe().then(() =>
-  testRemoveIframe()).then(() =>
-  finishTests(client));
+  // yield testReload(front);
+  yield testAddIframe(front);
+  yield testRemoveIframe(front);
 }
 
 function testWindowsBeforeReload(data) {
@@ -103,6 +66,7 @@ function markOutMatched(toBeEmptied, data, deleted) {
     info("Testing for " + storageType);
     for (let host in data[storageType]) {
       ok(toBeEmptied[storageType][host], "Host " + host + " found");
+
       if (!deleted) {
         for (let item of data[storageType][host]) {
           let index = toBeEmptied[storageType][host].indexOf(item);
@@ -124,51 +88,7 @@ function markOutMatched(toBeEmptied, data, deleted) {
   }
 }
 
-// function testReload() {
-//   info("Testing if reload works properly");
-
-//   let shouldBeEmptyFirst = Cu.cloneInto(beforeReload,  {});
-//   let shouldBeEmptyLast = Cu.cloneInto(beforeReload,  {});
-//   return new Promise(resolve => {
-
-//     let onStoresUpdate = data => {
-//       info("in stores update of testReload");
-//       // This might be second time stores update is happening, in which case,
-//       // data.deleted will be null.
-//       // OR.. This might be the first time on a super slow machine where both
-//       // data.deleted and data.added is missing in the first update.
-//       if (data.deleted) {
-//         markOutMatched(shouldBeEmptyFirst, data.deleted, true);
-//       }
-
-//       if (!Object.keys(shouldBeEmptyFirst).length) {
-//         info("shouldBeEmptyFirst is empty now");
-//       }
-
-//       // stores-update call might not have data.added for the first time on
-//       // slow machines, in which case, data.added will be null
-//       if (data.added) {
-//         markOutMatched(shouldBeEmptyLast, data.added);
-//       }
-
-//       if (!Object.keys(shouldBeEmptyLast).length) {
-//         info("Everything to be received is received.");
-//         endTestReloaded();
-//       }
-//     };
-
-//     let endTestReloaded = () => {
-//       gFront.off("stores-update", onStoresUpdate);
-//       resolve();
-//     };
-
-//     gFront.on("stores-update", onStoresUpdate);
-
-//     content.location.reload();
-//   });
-// }
-
-function testAddIframe() {
+function testAddIframe(front) {
   info("Testing if new iframe addition works properly");
   return new Promise(resolve => {
     let shouldBeEmpty = {
@@ -179,11 +99,22 @@ function testAddIframe() {
         "https://sectest1.example.org": ["iframe-s-ss1"]
       },
       cookies: {
-        "sectest1.example.org": ["sc1"]
+        "https://sectest1.example.org": [
+          getCookieId("cs2", ".example.org", "/"),
+          getCookieId("sc1", "sectest1.example.org",
+                      "/browser/devtools/server/tests/browser/")
+        ],
+        "http://sectest1.example.org": [
+          getCookieId("sc1", "sectest1.example.org",
+                      "/browser/devtools/server/tests/browser/")
+        ]
       },
       indexedDB: {
         // empty because indexed db creation happens after the page load, so at
         // the time of window-ready, there was no indexed db present.
+        "https://sectest1.example.org": []
+      },
+      Cache: {
         "https://sectest1.example.org": []
       }
     };
@@ -226,19 +157,21 @@ function testAddIframe() {
     };
 
     let endTestReloaded = () => {
-      gFront.off("stores-update", onStoresUpdate);
+      front.off("stores-update", onStoresUpdate);
       resolve();
     };
 
-    gFront.on("stores-update", onStoresUpdate);
+    front.on("stores-update", onStoresUpdate);
 
+    // eslint-disable-next-line mozilla/no-cpows-in-tests
     let iframe = content.document.createElement("iframe");
     iframe.src = ALT_DOMAIN_SECURED + "storage-secured-iframe.html";
+    // eslint-disable-next-line mozilla/no-cpows-in-tests
     content.document.querySelector("body").appendChild(iframe);
   });
 }
 
-function testRemoveIframe() {
+function testRemoveIframe(front) {
   info("Testing if iframe removal works properly");
   return new Promise(resolve => {
     let shouldBeEmpty = {
@@ -246,6 +179,12 @@ function testRemoveIframe() {
         "http://sectest1.example.org": []
       },
       sessionStorage: {
+        "http://sectest1.example.org": []
+      },
+      Cache: {
+        "http://sectest1.example.org": []
+      },
+      indexedDB: {
         "http://sectest1.example.org": []
       }
     };
@@ -286,52 +225,39 @@ function testRemoveIframe() {
     };
 
     let endTestReloaded = () => {
-      gFront.off("stores-update", onStoresUpdate);
+      front.off("stores-update", onStoresUpdate);
       resolve();
     };
 
-    gFront.on("stores-update", onStoresUpdate);
+    front.on("stores-update", onStoresUpdate);
 
-    for (let iframe of content.document.querySelectorAll("iframe")) {
-      if (iframe.src.startsWith("http:")) {
-        iframe.remove();
-        break;
+    ContentTask.spawn(gBrowser.selectedBrowser, {}, () => {
+      for (let iframe of content.document.querySelectorAll("iframe")) {
+        if (iframe.src.startsWith("http:")) {
+          iframe.remove();
+          break;
+        }
       }
-    }
-  });
-}
-
-function test() {
-  addTab(MAIN_DOMAIN + "storage-dynamic-windows.html").then(function(doc) {
-    initDebuggerServer();
-
-    let createConnection = () => {
-      let client = new DebuggerClient(DebuggerServer.connectPipe());
-      connectDebuggerClient(client).then(form => {
-        gFront = StorageFront(client, form);
-        gFront.listStores().then(data => testStores(data, client));
-      });
-    };
-
-    /**
-     * This method iterates over iframes in a window and setups the indexed db
-     * required for this test.
-     */
-    let setupIDBInFrames = (w, i, c) => {
-      if (w[i] && w[i].idbGenerator) {
-        w[i].setupIDB = w[i].idbGenerator(() => setupIDBInFrames(w, i + 1, c));
-        w[i].setupIDB.next();
-      } else if (w[i] && w[i + 1]) {
-        setupIDBInFrames(w, i + 1, c);
-      } else {
-        c();
-      }
-    };
-    // Setup the indexed db in main window.
-    gWindow = doc.defaultView.wrappedJSObject;
-    gWindow.setupIDB = gWindow.idbGenerator(() => {
-      setupIDBInFrames(gWindow, 0, createConnection);
     });
-    gWindow.setupIDB.next();
   });
 }
+
+add_task(function* () {
+  yield openTabAndSetupStorage(MAIN_DOMAIN + "storage-dynamic-windows.html");
+
+  initDebuggerServer();
+  let client = new DebuggerClient(DebuggerServer.connectPipe());
+  let form = yield connectDebuggerClient(client);
+  let front = StorageFront(client, form);
+  let data = yield front.listStores();
+  yield testStores(data, front);
+
+  yield clearStorage();
+
+  // Forcing GC/CC to get rid of docshells and windows created by this test.
+  forceCollections();
+  yield client.close();
+  forceCollections();
+  DebuggerServer.destroy();
+  forceCollections();
+});

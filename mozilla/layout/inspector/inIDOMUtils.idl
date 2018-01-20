@@ -5,7 +5,7 @@
 #include "nsISupports.idl"
 
 interface nsIArray;
-interface nsISupportsArray;
+interface nsIArrayExtensions;
 interface nsIDOMCharacterData;
 interface nsIDOMElement;
 interface nsIDOMDocument;
@@ -17,14 +17,14 @@ interface nsIDOMFontFaceList;
 interface nsIDOMRange;
 interface nsIDOMCSSStyleSheet;
 
-[scriptable, uuid(ec3dc3d5-41d1-4d08-ace5-7e944de6614d)]
+[scriptable, uuid(362e98c3-82c2-4ad8-8dcb-00e8e4eab497)]
 interface inIDOMUtils : nsISupports
 {
   // CSS utilities
   void getAllStyleSheets (in nsIDOMDocument aDoc,
                           [optional] out unsigned long aLength,
                           [array, size_is (aLength), retval] out nsISupports aSheets);
-  nsISupportsArray getCSSStyleRules(in nsIDOMElement aElement, [optional] in DOMString aPseudo);
+  nsIArrayExtensions getCSSStyleRules(in nsIDOMElement aElement, [optional] in DOMString aPseudo);
 
   /**
    * Get the line number of a rule.
@@ -110,12 +110,6 @@ interface inIDOMUtils : nsISupports
 
   // Utilities for obtaining information about a CSS property.
 
-  // Check whether a CSS property and value are a valid combination. If the
-  // property is pref-disabled it will still be processed.
-  // aPropertyName: A property name e.g. "color"
-  // aPropertyValue: A property value e.g. "red" or "red !important"
-  bool cssPropertyIsValid(in AString aPropertyName, in AString aPropertyValue);
-
   // Get a list of the longhands corresponding to the given CSS property.  If
   // the property is a longhand already, just returns the property itself.
   // Throws on unsupported property names.
@@ -152,13 +146,27 @@ interface inIDOMUtils : nsISupports
                               in boolean aShowingAnonymousContent);
   nsIDOMNodeList getChildrenForNode(in nsIDOMNode aNode,
                                     in boolean aShowingAnonymousContent);
-  
+
   // XBL utilities
   nsIArray getBindingURLs(in nsIDOMElement aElement);
 
   // content state utilities
   unsigned long long getContentState(in nsIDOMElement aElement);
-  void setContentState(in nsIDOMElement aElement, in unsigned long long aState);
+  /**
+   * Setting and removing content state on an element. Both these functions
+   * calling EventStateManager::SetContentState internally, the difference is
+   * that for the remove case we simply pass in nullptr for the element.
+   * Use them accordingly.
+   *
+   * When removing the active state, you may optionally also clear the active
+   * document as well by setting aClearActiveDocument
+   *
+   * @return Returns true if the state was set successfully. See more details
+   * in EventStateManager.h SetContentState.
+   */
+  bool setContentState(in nsIDOMElement aElement, in unsigned long long aState);
+  bool removeContentState(in nsIDOMElement aElement, in unsigned long long aState,
+                          [optional] in bool aClearActiveDocument);
 
   nsIDOMFontFaceList getUsedFontFaces(in nsIDOMRange aRange);
 
@@ -174,9 +182,12 @@ interface inIDOMUtils : nsISupports
                                 [retval, array, size_is(aCount)] out wstring aNames);
 
   // pseudo-class style locking methods. aPseudoClass must be a valid pseudo-class
-  // selector string, e.g. ":hover". ":-moz-any-link" and non-event-state
-  // pseudo-classes are ignored.
-  void addPseudoClassLock(in nsIDOMElement aElement, in DOMString aPseudoClass);
+  // selector string, e.g. ":hover". ":any-link" and non-event-state
+  // pseudo-classes are ignored. aEnabled sets whether the psuedo-class
+  // should be locked to on or off.
+  [optional_argc] void addPseudoClassLock(in nsIDOMElement aElement,
+                                          in DOMString aPseudoClass,
+                                          [optional] in boolean aEnabled);
   void removePseudoClassLock(in nsIDOMElement aElement, in DOMString aPseudoClass);
   bool hasPseudoClassLock(in nsIDOMElement aElement, in DOMString aPseudoClass);
   void clearPseudoClassLocks(in nsIDOMElement aElement);

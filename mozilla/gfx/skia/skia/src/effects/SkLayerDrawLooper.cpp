@@ -1,11 +1,14 @@
-
 /*
  * Copyright 2011 Google Inc.
  *
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
+#include "SkArenaAlloc.h"
+#include "SkBlurDrawLooper.h"
+#include "SkBlurMaskFilter.h"
 #include "SkCanvas.h"
+#include "SkColorSpaceXformer.h"
 #include "SkColor.h"
 #include "SkReadBuffer.h"
 #include "SkWriteBuffer.h"
@@ -16,14 +19,13 @@
 
 SkLayerDrawLooper::LayerInfo::LayerInfo() {
     fPaintBits = 0;                     // ignore our paint fields
-    fColorMode = SkXfermode::kDst_Mode; // ignore our color
+    fColorMode = SkBlendMode::kDst;     // ignore our color
     fOffset.set(0, 0);
     fPostTranslate = false;
 }
 
 SkLayerDrawLooper::SkLayerDrawLooper()
-        : fRecs(NULL),
-          fTopRec(NULL),
+        : fRecs(nullptr),
           fCount(0) {
 }
 
@@ -31,21 +33,22 @@ SkLayerDrawLooper::~SkLayerDrawLooper() {
     Rec* rec = fRecs;
     while (rec) {
         Rec* next = rec->fNext;
-        SkDELETE(rec);
+        delete rec;
         rec = next;
     }
 }
 
-SkLayerDrawLooper::Context* SkLayerDrawLooper::createContext(SkCanvas* canvas, void* storage) const {
+SkLayerDrawLooper::Context*
+SkLayerDrawLooper::makeContext(SkCanvas* canvas, SkArenaAlloc* alloc) const {
     canvas->save();
-    return SkNEW_PLACEMENT_ARGS(storage, LayerDrawLooperContext, (this));
+    return alloc->make<LayerDrawLooperContext>(this);
 }
 
-static SkColor xferColor(SkColor src, SkColor dst, SkXfermode::Mode mode) {
+static SkColor xferColor(SkColor src, SkColor dst, SkBlendMode mode) {
     switch (mode) {
-        case SkXfermode::kSrc_Mode:
+        case SkBlendMode::kSrc:
             return src;
-        case SkXfermode::kDst_Mode:
+        case SkBlendMode::kDst:
             return dst;
         default: {
             SkPMColor pmS = SkPreMultiplyColor(src);
@@ -61,8 +64,15 @@ static SkColor xferColor(SkColor src, SkColor dst, SkXfermode::Mode mode) {
 // text/length parameters of a draw[Pos]Text call.
 void SkLayerDrawLooper::LayerDrawLooperContext::ApplyInfo(
         SkPaint* dst, const SkPaint& src, const LayerInfo& info) {
-
-    dst->setColor(xferColor(src.getColor(), dst->getColor(), info.fColorMode));
+    SkColor srcColor = src.getColor();
+#ifdef SK_BUILD_FOR_ANDROID_FRAMEWORK
+    // The framework may respect the alpha value on the original paint.
+    // Match this legacy behavior.
+    if (SkColorGetA(srcColor) == 255) {
+        srcColor = SkColorSetA(srcColor, dst->getAlpha());
+    }
+#endif
+    dst->setColor(xferColor(srcColor, dst->getColor(), (SkBlendMode)info.fColorMode));
 
     BitFlags bits = info.fPaintBits;
     SkPaint::TextEncoding encoding = dst->getTextEncoding();
@@ -94,19 +104,19 @@ void SkLayerDrawLooper::LayerDrawLooperContext::ApplyInfo(
     }
 
     if (bits & kPathEffect_Bit) {
-        dst->setPathEffect(src.getPathEffect());
+        dst->setPathEffect(src.refPathEffect());
     }
     if (bits & kMaskFilter_Bit) {
-        dst->setMaskFilter(src.getMaskFilter());
+        dst->setMaskFilter(src.refMaskFilter());
     }
     if (bits & kShader_Bit) {
-        dst->setShader(src.getShader());
+        dst->setShader(src.refShader());
     }
     if (bits & kColorFilter_Bit) {
-        dst->setColorFilter(src.getColorFilter());
+        dst->setColorFilter(src.refColorFilter());
     }
     if (bits & kXfermode_Bit) {
-        dst->setXfermode(src.getXfermode());
+        dst->setBlendMode(src.getBlendMode());
     }
 
     // we don't override these
@@ -134,7 +144,7 @@ SkLayerDrawLooper::LayerDrawLooperContext::LayerDrawLooperContext(
 bool SkLayerDrawLooper::LayerDrawLooperContext::next(SkCanvas* canvas,
                                                      SkPaint* paint) {
     canvas->restore();
-    if (NULL == fCurrRec) {
+    if (nullptr == fCurrRec) {
         return false;
     }
 
@@ -163,11 +173,11 @@ bool SkLayerDrawLooper::asABlurShadow(BlurShadowRec* bsRec) const {
     if ((rec->fInfo.fPaintBits & ~kMaskFilter_Bit)) {
         return false;
     }
-    if (SkXfermode::kSrc_Mode != rec->fInfo.fColorMode) {
+    if (SkBlendMode::kSrc != (SkBlendMode)rec->fInfo.fColorMode) {
         return false;
     }
     const SkMaskFilter* mf = rec->fPaint.getMaskFilter();
-    if (NULL == mf) {
+    if (nullptr == mf) {
         return false;
     }
     SkMaskFilter::BlurRec maskBlur;
@@ -180,7 +190,7 @@ bool SkLayerDrawLooper::asABlurShadow(BlurShadowRec* bsRec) const {
     if (rec->fInfo.fPaintBits) {
         return false;
     }
-    if (SkXfermode::kDst_Mode != rec->fInfo.fColorMode) {
+    if (SkBlendMode::kDst != (SkBlendMode)rec->fInfo.fColorMode) {
         return false;
     }
     if (!rec->fInfo.fOffset.equals(0, 0)) {
@@ -197,23 +207,40 @@ bool SkLayerDrawLooper::asABlurShadow(BlurShadowRec* bsRec) const {
     return true;
 }
 
+sk_sp<SkDrawLooper> SkLayerDrawLooper::onMakeColorSpace(SkColorSpaceXformer* xformer) const {
+    if (!fCount) {
+        return sk_ref_sp(const_cast<SkLayerDrawLooper*>(this));
+    }
+
+    auto looper = sk_sp<SkLayerDrawLooper>(new SkLayerDrawLooper());
+    looper->fCount = fCount;
+
+    Rec* oldRec = fRecs;
+    Rec* newTopRec = new Rec();
+    newTopRec->fInfo = oldRec->fInfo;
+    newTopRec->fPaint = xformer->apply(oldRec->fPaint);
+    newTopRec->fNext = nullptr;
+
+    Rec* prevNewRec = newTopRec;
+    oldRec = oldRec->fNext;
+    while (oldRec) {
+        Rec* newRec = new Rec();
+        newRec->fInfo = oldRec->fInfo;
+        newRec->fPaint = xformer->apply(oldRec->fPaint);
+        newRec->fNext = nullptr;
+        prevNewRec->fNext = newRec;
+
+        prevNewRec = newRec;
+        oldRec = oldRec->fNext;
+    }
+
+    looper->fRecs = newTopRec;
+    return std::move(looper);
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 
 void SkLayerDrawLooper::flatten(SkWriteBuffer& buffer) const {
-    this->INHERITED::flatten(buffer);
-
-#ifdef SK_DEBUG
-    {
-        Rec* rec = fRecs;
-        int count = 0;
-        while (rec) {
-            rec = rec->fNext;
-            count += 1;
-        }
-        SkASSERT(count == fCount);
-    }
-#endif
-
     buffer.writeInt(fCount);
 
     Rec* rec = fRecs;
@@ -222,7 +249,7 @@ void SkLayerDrawLooper::flatten(SkWriteBuffer& buffer) const {
         buffer.writeInt(0);
 
         buffer.writeInt(rec->fInfo.fPaintBits);
-        buffer.writeInt(rec->fInfo.fColorMode);
+        buffer.writeInt((int)rec->fInfo.fColorMode);
         buffer.writePoint(rec->fInfo.fOffset);
         buffer.writeBool(rec->fInfo.fPostTranslate);
         buffer.writePaint(rec->fPaint);
@@ -230,7 +257,7 @@ void SkLayerDrawLooper::flatten(SkWriteBuffer& buffer) const {
     }
 }
 
-SkFlattenable* SkLayerDrawLooper::CreateProc(SkReadBuffer& buffer) {
+sk_sp<SkFlattenable> SkLayerDrawLooper::CreateProc(SkReadBuffer& buffer) {
     int count = buffer.readInt();
 
     Builder builder;
@@ -240,27 +267,12 @@ SkFlattenable* SkLayerDrawLooper::CreateProc(SkReadBuffer& buffer) {
         (void)buffer.readInt();
 
         info.fPaintBits = buffer.readInt();
-        info.fColorMode = (SkXfermode::Mode)buffer.readInt();
+        info.fColorMode = (SkBlendMode)buffer.readInt();
         buffer.readPoint(&info.fOffset);
         info.fPostTranslate = buffer.readBool();
         buffer.readPaint(builder.addLayerOnTop(info));
     }
-    SkLayerDrawLooper* looper = builder.detachLooper();
-    SkASSERT(count == looper->fCount);
-
-#ifdef SK_DEBUG
-    {
-        Rec* rec = looper->fRecs;
-        int n = 0;
-        while (rec) {
-            rec = rec->fNext;
-            n += 1;
-        }
-        SkASSERT(count == n);
-    }
-#endif
-
-    return looper;
+    return builder.detach();
 }
 
 #ifndef SK_IGNORE_TO_STRING
@@ -293,14 +305,14 @@ void SkLayerDrawLooper::toString(SkString* str) const {
         }
         str->append(") ");
 
-        static const char* gModeStrings[SkXfermode::kLastMode+1] = {
+        static const char* gModeStrings[(int)SkBlendMode::kLastMode+1] = {
             "kClear", "kSrc", "kDst", "kSrcOver", "kDstOver", "kSrcIn", "kDstIn",
             "kSrcOut", "kDstOut", "kSrcATop", "kDstATop", "kXor", "kPlus",
             "kMultiply", "kScreen", "kOverlay", "kDarken", "kLighten", "kColorDodge",
             "kColorBurn", "kHardLight", "kSoftLight", "kDifference", "kExclusion"
         };
 
-        str->appendf("mode: %s ", gModeStrings[rec->fInfo.fColorMode]);
+        str->appendf("mode: %s ", gModeStrings[(int)rec->fInfo.fColorMode]);
 
         str->append("offset: (");
         str->appendScalar(rec->fInfo.fOffset.fX);
@@ -322,8 +334,8 @@ void SkLayerDrawLooper::toString(SkString* str) const {
 #endif
 
 SkLayerDrawLooper::Builder::Builder()
-        : fRecs(NULL),
-          fTopRec(NULL),
+        : fRecs(nullptr),
+          fTopRec(nullptr),
           fCount(0) {
 }
 
@@ -331,7 +343,7 @@ SkLayerDrawLooper::Builder::~Builder() {
     Rec* rec = fRecs;
     while (rec) {
         Rec* next = rec->fNext;
-        SkDELETE(rec);
+        delete rec;
         rec = next;
     }
 }
@@ -339,11 +351,11 @@ SkLayerDrawLooper::Builder::~Builder() {
 SkPaint* SkLayerDrawLooper::Builder::addLayer(const LayerInfo& info) {
     fCount += 1;
 
-    Rec* rec = SkNEW(Rec);
+    Rec* rec = new Rec;
     rec->fNext = fRecs;
     rec->fInfo = info;
     fRecs = rec;
-    if (NULL == fTopRec) {
+    if (nullptr == fTopRec) {
         fTopRec = rec;
     }
 
@@ -360,13 +372,13 @@ void SkLayerDrawLooper::Builder::addLayer(SkScalar dx, SkScalar dy) {
 SkPaint* SkLayerDrawLooper::Builder::addLayerOnTop(const LayerInfo& info) {
     fCount += 1;
 
-    Rec* rec = SkNEW(Rec);
-    rec->fNext = NULL;
+    Rec* rec = new Rec;
+    rec->fNext = nullptr;
     rec->fInfo = info;
-    if (NULL == fRecs) {
+    if (nullptr == fRecs) {
         fRecs = rec;
     } else {
-        SkASSERT(NULL != fTopRec);
+        SkASSERT(fTopRec);
         fTopRec->fNext = rec;
     }
     fTopRec = rec;
@@ -374,14 +386,39 @@ SkPaint* SkLayerDrawLooper::Builder::addLayerOnTop(const LayerInfo& info) {
     return &rec->fPaint;
 }
 
-SkLayerDrawLooper* SkLayerDrawLooper::Builder::detachLooper() {
-    SkLayerDrawLooper* looper = SkNEW(SkLayerDrawLooper);
+sk_sp<SkDrawLooper> SkLayerDrawLooper::Builder::detach() {
+    SkLayerDrawLooper* looper = new SkLayerDrawLooper;
     looper->fCount = fCount;
     looper->fRecs = fRecs;
 
     fCount = 0;
-    fRecs = NULL;
-    fTopRec = NULL;
+    fRecs = nullptr;
+    fTopRec = nullptr;
 
-    return looper;
+    return sk_sp<SkDrawLooper>(looper);
+}
+
+sk_sp<SkDrawLooper> SkBlurDrawLooper::Make(SkColor color, SkScalar sigma, SkScalar dx, SkScalar dy)
+{
+    sk_sp<SkMaskFilter> blur = nullptr;
+    if (sigma > 0.0f) {
+        blur = SkBlurMaskFilter::Make(kNormal_SkBlurStyle, sigma, SkBlurMaskFilter::kNone_BlurFlag);
+    }
+
+    SkLayerDrawLooper::Builder builder;
+
+    // First layer
+    SkLayerDrawLooper::LayerInfo defaultLayer;
+    builder.addLayer(defaultLayer);
+
+    // Blur layer
+    SkLayerDrawLooper::LayerInfo blurInfo;
+    blurInfo.fColorMode = SkBlendMode::kSrc;
+    blurInfo.fPaintBits = SkLayerDrawLooper::kMaskFilter_Bit;
+    blurInfo.fOffset = SkVector::Make(dx, dy);
+    SkPaint* paint = builder.addLayer(blurInfo);
+    paint->setMaskFilter(std::move(blur));
+    paint->setColor(color);
+
+    return builder.detach();
 }

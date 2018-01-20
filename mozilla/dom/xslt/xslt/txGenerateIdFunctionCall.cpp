@@ -37,11 +37,11 @@ GenerateIdFunctionCall::evaluate(txIEvalContext* aContext,
     if (!requireParams(0, 1, aContext))
         return NS_ERROR_XPATH_BAD_ARGUMENT_COUNT;
 
-    txExecutionState* es = 
+    txExecutionState* es =
         static_cast<txExecutionState*>(aContext->getPrivateContext());
     if (!es) {
         NS_ERROR(
-            "called xslt extension function \"current\" with wrong context");
+            "called xslt extension function \"generate-id\" with wrong context");
         return NS_ERROR_UNEXPECTED;
     }
 
@@ -56,7 +56,7 @@ GenerateIdFunctionCall::evaluate(txIEvalContext* aContext,
                                     strRes->mValue);
 
         *aResult = strRes;
- 
+
         return NS_OK;
     }
 
@@ -70,7 +70,7 @@ GenerateIdFunctionCall::evaluate(txIEvalContext* aContext,
 
         return NS_OK;
     }
-    
+
     StringResult* strRes;
     rv = aContext->recycler()->getStringResult(&strRes);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -79,7 +79,7 @@ GenerateIdFunctionCall::evaluate(txIEvalContext* aContext,
                                 strRes->mValue);
 
     *aResult = strRes;
- 
+
     return NS_OK;
 }
 
@@ -92,6 +92,10 @@ GenerateIdFunctionCall::getReturnType()
 bool
 GenerateIdFunctionCall::isSensitiveTo(ContextSensitivity aContext)
 {
+    if (aContext & PRIVATE_CONTEXT) {
+        return true;
+    }
+
     if (mParams.IsEmpty()) {
         return !!(aContext & NODE_CONTEXT);
     }
@@ -101,7 +105,7 @@ GenerateIdFunctionCall::isSensitiveTo(ContextSensitivity aContext)
 
 #ifdef TX_TO_STRING
 nsresult
-GenerateIdFunctionCall::getNameAtom(nsIAtom** aAtom)
+GenerateIdFunctionCall::getNameAtom(nsAtom** aAtom)
 {
     *aAtom = nsGkAtoms::generateId;
     NS_ADDREF(*aAtom);

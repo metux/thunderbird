@@ -40,6 +40,8 @@ int
 irregexp::CaseInsensitiveCompareStrings(const CharT* substring1, const CharT* substring2,
 					size_t byteLength)
 {
+    AutoUnsafeCallWithABI unsafe;
+
     MOZ_ASSERT(byteLength % sizeof(CharT) == 0);
     size_t length = byteLength / sizeof(CharT);
 
@@ -65,9 +67,43 @@ template int
 irregexp::CaseInsensitiveCompareStrings(const char16_t* substring1, const char16_t* substring2,
 					size_t byteLength);
 
-InterpretedRegExpMacroAssembler::InterpretedRegExpMacroAssembler(LifoAlloc* alloc, RegExpShared* shared,
+template <typename CharT>
+int
+irregexp::CaseInsensitiveCompareUCStrings(const CharT* substring1, const CharT* substring2,
+                                          size_t byteLength)
+{
+    AutoUnsafeCallWithABI unsafe;
+
+    MOZ_ASSERT(byteLength % sizeof(CharT) == 0);
+    size_t length = byteLength / sizeof(CharT);
+
+    for (size_t i = 0; i < length; i++) {
+        char16_t c1 = substring1[i];
+        char16_t c2 = substring2[i];
+        if (c1 != c2) {
+            c1 = unicode::FoldCase(c1);
+            c2 = unicode::FoldCase(c2);
+            if (c1 != c2)
+                return 0;
+        }
+    }
+
+    return 1;
+}
+
+template int
+irregexp::CaseInsensitiveCompareUCStrings(const Latin1Char* substring1,
+                                          const Latin1Char* substring2,
+                                          size_t byteLength);
+
+template int
+irregexp::CaseInsensitiveCompareUCStrings(const char16_t* substring1,
+                                          const char16_t* substring2,
+                                          size_t byteLength);
+
+InterpretedRegExpMacroAssembler::InterpretedRegExpMacroAssembler(JSContext* cx, LifoAlloc* alloc,
                                                                  size_t numSavedRegisters)
-  : RegExpMacroAssembler(*alloc, shared, numSavedRegisters),
+  : RegExpMacroAssembler(cx, *alloc, numSavedRegisters),
     pc_(0),
     advance_current_start_(0),
     advance_current_offset_(0),
@@ -124,6 +160,8 @@ InterpretedRegExpMacroAssembler::Backtrack()
     Emit(BC_POP_BT, 0);
 }
 
+static const int32_t INVALID_OFFSET = -1;
+
 void
 InterpretedRegExpMacroAssembler::Bind(jit::Label* label)
 {
@@ -131,11 +169,12 @@ InterpretedRegExpMacroAssembler::Bind(jit::Label* label)
     MOZ_ASSERT(!label->bound());
     if (label->used()) {
         int pos = label->offset();
-        while (pos != jit::Label::INVALID_OFFSET) {
+        MOZ_ASSERT(pos >= 0);
+        do {
             int fixup = pos;
             pos = *reinterpret_cast<int32_t*>(buffer_ + fixup);
             *reinterpret_cast<uint32_t*>(buffer_ + fixup) = pc_;
-        }
+        } while (pos != INVALID_OFFSET);
     }
     label->bind(pc_);
 }
@@ -210,11 +249,16 @@ InterpretedRegExpMacroAssembler::CheckNotBackReference(int start_reg, jit::Label
 }
 
 void
-InterpretedRegExpMacroAssembler::CheckNotBackReferenceIgnoreCase(int start_reg, jit::Label* on_no_match)
+InterpretedRegExpMacroAssembler::CheckNotBackReferenceIgnoreCase(int start_reg,
+                                                                 jit::Label* on_no_match,
+                                                                 bool unicode)
 {
     MOZ_ASSERT(start_reg >= 0);
     MOZ_ASSERT(start_reg <= kMaxRegister);
-    Emit(BC_CHECK_NOT_BACK_REF_NO_CASE, start_reg);
+    if (unicode)
+        Emit(BC_CHECK_NOT_BACK_REF_NO_CASE_UNICODE, start_reg);
+    else
+        Emit(BC_CHECK_NOT_BACK_REF_NO_CASE, start_reg);
     EmitOrLink(on_no_match);
 }
 
@@ -275,7 +319,8 @@ InterpretedRegExpMacroAssembler::CheckCharacterNotInRange(char16_t from, char16_
 }
 
 void
-InterpretedRegExpMacroAssembler::CheckBitInTable(uint8_t* table, jit::Label* on_bit_set)
+InterpretedRegExpMacroAssembler::CheckBitInTable(RegExpShared::JitCodeTable table,
+                                                 jit::Label* on_bit_set)
 {
     static const int kBitsPerByte = 8;
 
@@ -478,7 +523,8 @@ InterpretedRegExpMacroAssembler::EmitOrLink(jit::Label* label)
     if (label->bound()) {
         Emit32(label->offset());
     } else {
-        int pos = label->use(pc_);
+        int pos = label->used() ? label->offset() : INVALID_OFFSET;
+        label->use(pc_);
         Emit32(pos);
     }
 }

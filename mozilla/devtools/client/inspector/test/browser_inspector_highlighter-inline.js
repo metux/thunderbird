@@ -9,7 +9,7 @@ requestLongerTimeout(2);
 // Test that highlighting various inline boxes displays the right number of
 // polygons in the page.
 
-const TEST_URL = TEST_URL_ROOT + "doc_inspector_highlighter_inline.html";
+const TEST_URL = URL_ROOT + "doc_inspector_highlighter_inline.html";
 const TEST_DATA = [
   "body",
   "h1",
@@ -21,9 +21,9 @@ const TEST_DATA = [
   "[dir=rtl] > span"
 ];
 
-add_task(function*() {
+add_task(function* () {
   info("Loading the test document and opening the inspector");
-  let {toolbox, inspector, testActor} = yield openInspectorForURL(TEST_URL);
+  let {inspector, testActor} = yield openInspectorForURL(TEST_URL);
 
   for (let selector of TEST_DATA) {
     info("Selecting and highlighting node " + selector);
@@ -32,14 +32,16 @@ add_task(function*() {
     info("Get all quads for this node");
     let data = yield testActor.getAllAdjustedQuads(selector);
 
-    info("Iterate over the box-model regions and verify that the highlighter is correct");
+    info("Iterate over the box-model regions and verify that the highlighter " +
+         "is correct");
     for (let region of ["margin", "border", "padding", "content"]) {
       let {points} = yield testActor.getHighlighterRegionPath(region);
-      is(points.length, data[region].length,
-        "The highlighter's " + region + " path defines the correct number of boxes");
+      is(points.length, data[region].length, "The highlighter's " + region +
+         " path defines the correct number of boxes");
     }
 
-    info("Verify that the guides define a rectangle that contains all content boxes");
+    info("Verify that the guides define a rectangle that contains all " +
+         "content boxes");
 
     let expectedContentRect = {
       p1: {x: Infinity, y: Infinity},
@@ -61,12 +63,12 @@ add_task(function*() {
     let contentRect = yield testActor.getGuidesRectangle();
 
     for (let point of ["p1", "p2", "p3", "p4"]) {
-      is((contentRect[point].x),
-         (expectedContentRect[point].x),
+      is(Math.round(contentRect[point].x),
+         (Math.round(expectedContentRect[point].x)),
          "x coordinate of point " + point +
          " of the content rectangle defined by the outer guides is correct");
-      is((contentRect[point].y),
-         (expectedContentRect[point].y),
+      is(Math.round(contentRect[point].y),
+         (Math.round(expectedContentRect[point].y)),
          "y coordinate of point " + point +
          " of the content rectangle defined by the outer guides is correct");
     }

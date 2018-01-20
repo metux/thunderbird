@@ -6,10 +6,6 @@
 var ignoreIndirectCalls = {
     "mallocSizeOf" : true,
     "aMallocSizeOf" : true,
-    "_malloc_message" : true,
-    "je_malloc_message" : true,
-    "chunk_dalloc" : true,
-    "chunk_alloc" : true,
     "__conv" : true,
     "__convf" : true,
     "prerrortable.c:callback_newtable" : true,
@@ -43,10 +39,19 @@ function indirectCallCannotGC(fullCaller, fullVariable)
         return true;
 
     // template method called during marking and hence cannot GC
-    if (name == "op" && caller.indexOf("bool js::WeakMap<Key, Value, HashPolicy>::keyNeedsMark(JSObject*)") != -1)
+    if (name == "op" && caller.includes("bool js::WeakMap<Key, Value, HashPolicy>::keyNeedsMark(JSObject*)"))
     {
         return true;
     }
+
+    // Call through a 'callback' function pointer, in a place where we're going
+    // to be throwing a JS exception.
+    if (name == "callback" && caller.includes("js::ErrorToException"))
+        return true;
+
+    // The math cache only gets called with non-GC math functions.
+    if (name == "f" && caller.includes("js::MathCache::lookup"))
+        return true;
 
     return false;
 }
@@ -59,7 +64,6 @@ var ignoreClasses = {
     "JSLocaleCallbacks" : true,
     "JSC::ExecutableAllocator" : true,
     "PRIOMethods": true,
-    "XPCOMFunctions" : true, // I'm a little unsure of this one
     "_MD_IOVector" : true,
     "malloc_table_t": true, // replace_malloc
     "malloc_hook_table_t": true, // replace_malloc
@@ -70,15 +74,20 @@ var ignoreClasses = {
 var ignoreCallees = {
     "js::Class.trace" : true,
     "js::Class.finalize" : true,
+    "js::ClassOps.trace" : true,
+    "js::ClassOps.finalize" : true,
     "JSRuntime.destroyPrincipals" : true,
     "icu_50::UObject.__deleting_dtor" : true, // destructors in ICU code can't cause GC
     "mozilla::CycleCollectedJSRuntime.DescribeCustomObjects" : true, // During tracing, cannot GC.
     "mozilla::CycleCollectedJSRuntime.NoteCustomGCThingXPCOMChildren" : true, // During tracing, cannot GC.
     "PLDHashTableOps.hashKey" : true,
     "z_stream_s.zfree" : true,
+    "z_stream_s.zalloc" : true,
     "GrGLInterface.fCallback" : true,
     "std::strstreambuf._M_alloc_fun" : true,
-    "std::strstreambuf._M_free_fun" : true
+    "std::strstreambuf._M_free_fun" : true,
+    "struct js::gc::Callback<void (*)(JSContext*, void*)>.op" : true,
+    "mozilla::ThreadSharedFloatArrayBufferList::Storage.mFree" : true,
 };
 
 function fieldCallCannotGC(csu, fullfield)
@@ -90,8 +99,27 @@ function fieldCallCannotGC(csu, fullfield)
     return false;
 }
 
-function ignoreEdgeUse(edge, variable)
+function ignoreEdgeUse(edge, variable, body)
 {
+    // Horrible special case for ignoring a false positive in xptcstubs: there
+    // is a local variable 'paramBuffer' holding an array of nsXPTCMiniVariant
+    // on the stack, which appears to be live across a GC call because its
+    // constructor is called when the array is initialized, even though the
+    // constructor is a no-op. So we'll do a very narrow exclusion for the use
+    // that incorrectly started the live range, which was basically "__temp_1 =
+    // paramBuffer".
+    //
+    // By scoping it so narrowly, we can detect most hazards that would be
+    // caused by modifications in the PrepareAndDispatch code. It just barely
+    // avoids having a hazard already.
+    if (('Name' in variable) && (variable.Name[0] == 'paramBuffer')) {
+        if (body.BlockId.Kind == 'Function' && body.BlockId.Variable.Name[0] == 'PrepareAndDispatch')
+            if (edge.Kind == 'Assign' && edge.Type.Kind == 'Pointer')
+                if (edge.Exp[0].Kind == 'Var' && edge.Exp[1].Kind == 'Var')
+                    if (edge.Exp[1].Variable.Kind == 'Local' && edge.Exp[1].Variable.Name[0] == 'paramBuffer')
+                        return true;
+    }
+
     // Functions which should not be treated as using variable.
     if (edge.Kind == "Call") {
         var callee = edge.Exp[0];
@@ -125,10 +153,18 @@ function ignoreEdgeAddressTaken(edge)
     return false;
 }
 
+// Return whether csu.method is one that we claim can never GC.
+function isSuppressedVirtualMethod(csu, method)
+{
+    return csu == "nsISupports" && (method == "AddRef" || method == "Release");
+}
+
 // Ignore calls of these functions (so ignore any stack containing these)
 var ignoreFunctions = {
     "ptio.c:pt_MapError" : true,
     "je_malloc_printf" : true,
+    "malloc_usable_size" : true,
+    "vprintf_stderr" : true,
     "PR_ExplodeTime" : true,
     "PR_ErrorInstallTable" : true,
     "PR_SetThreadPrivate" : true,
@@ -141,6 +177,13 @@ var ignoreFunctions = {
 
     // Bug 1056410 - devirtualization prevents the standard nsISupports::Release heuristic from working
     "uint32 nsXPConnect::Release()" : true,
+    "uint32 nsAtom::Release()" : true,
+
+    // Allocation API
+    "malloc": true,
+    "calloc": true,
+    "realloc": true,
+    "free": true,
 
     // FIXME!
     "NS_LogInit": true,
@@ -160,22 +203,10 @@ var ignoreFunctions = {
     "void js::AutoCompartment::~AutoCompartment(int32)" : true,
     "void JSAutoCompartment::~JSAutoCompartment(int32)" : true,
 
-    // Bug 948646 - the only thing AutoJSContext's constructor calls
-    // is an Init() routine whose entire body is covered with an
-    // AutoSuppressGCAnalysis. AutoSafeJSContext is the same thing, just with
-    // a different value for the 'aSafe' parameter.
-    "void mozilla::AutoJSContext::AutoJSContext(mozilla::detail::GuardObjectNotifier*)" : true,
-    "void mozilla::AutoSafeJSContext::~AutoSafeJSContext(int32)" : true,
-
-    // And these are workarounds to avoid even more analysis work,
-    // which would sadly still be needed even with bug 898815.
-    "void js::AutoCompartment::AutoCompartment(js::ExclusiveContext*, JSCompartment*)": true,
-
     // The nsScriptNameSpaceManager functions can't actually GC.  They
     // just use a PLDHashTable which has function pointers, which makes the
     // analysis think maybe they can.
-    "nsGlobalNameStruct* nsScriptNameSpaceManager::LookupNavigatorName(nsAString_internal*)": true,
-    "nsGlobalNameStruct* nsScriptNameSpaceManager::LookupName(nsAString_internal*, uint16**)": true,
+    "nsGlobalNameStruct* nsScriptNameSpaceManager::LookupName(nsAString*, uint16**)": true,
 
     // Similar to heap snapshot mock classes, and GTests below. This posts a
     // synchronous runnable when a GTest fails, and we are pretty sure that the
@@ -187,7 +218,41 @@ var ignoreFunctions = {
     "void test::RingbufferDumper::OnTestPartResult(testing::TestPartResult*)" : true,
 
     "float64 JS_GetCurrentEmbedderTime()" : true,
+
+    // This calls any JSObjectMovedOp for the tenured object via an indirect call.
+    "JSObject* js::TenuringTracer::moveToTenuredSlow(JSObject*)" : true,
+
+    "void js::Nursery::freeMallocedBuffers()" : true,
+
+    "void js::AutoEnterOOMUnsafeRegion::crash(uint64, int8*)" : true,
+
+    "void mozilla::dom::workers::WorkerPrivate::AssertIsOnWorkerThread() const" : true,
+
+    // It would be cool to somehow annotate that nsTHashtable<T> will use
+    // nsTHashtable<T>::s_MatchEntry for its matchEntry function pointer, but
+    // there is no mechanism for that. So we will just annotate a particularly
+    // troublesome logging-related usage.
+    "EntryType* nsTHashtable<EntryType>::PutEntry(nsTHashtable<EntryType>::KeyType, const fallible_t&) [with EntryType = nsBaseHashtableET<nsCharPtrHashKey, nsAutoPtr<mozilla::LogModule> >; nsTHashtable<EntryType>::KeyType = const char*; nsTHashtable<EntryType>::fallible_t = mozilla::fallible_t]" : true,
+    "EntryType* nsTHashtable<EntryType>::GetEntry(nsTHashtable<EntryType>::KeyType) const [with EntryType = nsBaseHashtableET<nsCharPtrHashKey, nsAutoPtr<mozilla::LogModule> >; nsTHashtable<EntryType>::KeyType = const char*]" : true,
+    "EntryType* nsTHashtable<EntryType>::PutEntry(nsTHashtable<EntryType>::KeyType) [with EntryType = nsBaseHashtableET<nsPtrHashKey<const mozilla::BlockingResourceBase>, nsAutoPtr<mozilla::DeadlockDetector<mozilla::BlockingResourceBase>::OrderingEntry> >; nsTHashtable<EntryType>::KeyType = const mozilla::BlockingResourceBase*]" : true,
+    "EntryType* nsTHashtable<EntryType>::GetEntry(nsTHashtable<EntryType>::KeyType) const [with EntryType = nsBaseHashtableET<nsPtrHashKey<const mozilla::BlockingResourceBase>, nsAutoPtr<mozilla::DeadlockDetector<mozilla::BlockingResourceBase>::OrderingEntry> >; nsTHashtable<EntryType>::KeyType = const mozilla::BlockingResourceBase*]" : true,
+
+    // VTune internals that lazy-load a shared library and make IndirectCalls.
+    "iJIT_IsProfilingActive" : true,
+    "iJIT_NotifyEvent": true,
+
+    // The big hammers.
+    "PR_GetCurrentThread" : true,
+    "calloc" : true,
+
+    "uint8 nsContentUtils::IsExpandedPrincipal(nsIPrincipal*)" : true,
+
+    "void mozilla::AutoProfilerLabel::~AutoProfilerLabel(int32)" : true,
 };
+
+function extraGCFunctions() {
+    return ["ffi_call"].filter(f => f in readableNames);
+}
 
 function isProtobuf(name)
 {
@@ -208,7 +273,7 @@ function isGTest(name)
 
 function ignoreGCFunction(mangled)
 {
-    assert(mangled in readableNames);
+    assert(mangled in readableNames, mangled + " not in readableNames");
     var fun = readableNames[mangled][0];
 
     if (fun in ignoreFunctions)
@@ -232,11 +297,11 @@ function ignoreGCFunction(mangled)
         return true;
 
     // Templatized function
-    if (fun.indexOf("void nsCOMPtr<T>::Assert_NoQueryNeeded()") >= 0)
+    if (fun.includes("void nsCOMPtr<T>::Assert_NoQueryNeeded()"))
         return true;
 
     // These call through an 'op' function pointer.
-    if (fun.indexOf("js::WeakMap<Key, Value, HashPolicy>::getDelegate(") >= 0)
+    if (fun.includes("js::WeakMap<Key, Value, HashPolicy>::getDelegate("))
         return true;
 
     // XXX modify refillFreeList<NoGC> to not need data flow analysis to understand it cannot GC.
@@ -252,9 +317,27 @@ function stripUCSAndNamespace(name)
     return name;
 }
 
-function isRootedGCTypeName(name)
+function extraRootedGCThings()
 {
-    return (name == "JSAddonId");
+    return [ 'JSAddonId' ];
+}
+
+function extraRootedPointers()
+{
+    return [
+        'ModuleValidator',
+        'JSErrorResult',
+        'WrappableJSErrorResult',
+
+        // These are not actually rooted, but are only used in the context of
+        // AutoKeepAtoms.
+        'js::frontend::TokenStream',
+        'js::frontend::TokenStream::Position',
+
+        'mozilla::ErrorResult',
+        'mozilla::IgnoredErrorResult',
+        'mozilla::dom::binding_detail::FastErrorResult',
+    ];
 }
 
 function isRootedGCPointerTypeName(name)
@@ -264,22 +347,7 @@ function isRootedGCPointerTypeName(name)
     if (name.startsWith('MaybeRooted<'))
         return /\(js::AllowGC\)1u>::RootType/.test(name);
 
-    if (name == "ErrorResult" ||
-        name == "JSErrorResult" ||
-        name == "WrappableJSErrorResult" ||
-        name == "frontend::TokenStream" ||
-        name == "frontend::TokenStream::Position" ||
-        name == "ModuleValidator")
-    {
-        return true;
-    }
-
     return name.startsWith('Rooted') || name.startsWith('PersistentRooted');
-}
-
-function isRootedTypeName(name)
-{
-    return isRootedGCTypeName(name) || isRootedGCPointerTypeName(name);
 }
 
 function isUnsafeStorage(typeName)
@@ -288,13 +356,31 @@ function isUnsafeStorage(typeName)
     return typeName.startsWith('UniquePtr<');
 }
 
-function isSuppressConstructor(name)
+function isSuppressConstructor(typeInfo, edgeType, varName)
 {
-    return name.indexOf("::AutoSuppressGC") != -1
-        || name.indexOf("::AutoAssertGCCallback") != -1
-        || name.indexOf("::AutoEnterAnalysis") != -1
-        || name.indexOf("::AutoSuppressGCAnalysis") != -1
-        || name.indexOf("::AutoIgnoreRootingHazards") != -1;
+    // Check whether this could be a constructor
+    if (edgeType.Kind != 'Function')
+        return false;
+    if (!('TypeFunctionCSU' in edgeType))
+        return false;
+    if (edgeType.Type.Kind != 'Void')
+        return false;
+
+    // Check whether the type is a known suppression type.
+    var type = edgeType.TypeFunctionCSU.Type.Name;
+    if (!(type in typeInfo.GCSuppressors))
+        return false;
+
+    // And now make sure this is the constructor, not some other method on a
+    // suppression type. varName[0] contains the qualified name.
+    var [ mangled, unmangled ] = splitFunction(varName[0]);
+    if (mangled.search(/C\dE/) == -1)
+        return false; // Mangled names of constructors have C<num>E
+    var m = unmangled.match(/([~\w]+)(?:<.*>)?\(/);
+    if (!m)
+        return false;
+    var type_stem = type.replace(/\w+::/g, '').replace(/\<.*\>/g, '');
+    return m[1] == type_stem;
 }
 
 // nsISupports subclasses' methods may be scriptable (or overridden
@@ -304,6 +390,9 @@ function isOverridableField(initialCSU, csu, field)
 {
     if (csu != 'nsISupports')
         return false;
+
+    // Now that binary XPCOM is dead, all these annotations should be replaced
+    // with something based on bug 1347999.
     if (field == 'GetCurrentJSContext')
         return false;
     if (field == 'IsOnCurrentThread')
@@ -314,10 +403,18 @@ function isOverridableField(initialCSU, csu, field)
         return false;
     if (field == "GetIsMainThread")
         return false;
+    if (field == "GetThreadFromPRThread")
+        return false;
     if (initialCSU == 'nsIXPConnectJSObjectHolder' && field == 'GetJSObject')
         return false;
     if (initialCSU == 'nsIXPConnect' && field == 'GetSafeJSContext')
         return false;
+
+    // nsIScriptSecurityManager is not [builtinclass], but smaug says "the
+    // interface definitely should be builtinclass", which is good enough.
+    if (initialCSU == 'nsIScriptSecurityManager' && field == 'IsSystemPrincipal')
+        return false;
+
     if (initialCSU == 'nsIScriptContext') {
         if (field == 'GetWindowProxy' || field == 'GetWindowProxyPreserveColor')
             return false;
@@ -325,57 +422,9 @@ function isOverridableField(initialCSU, csu, field)
     return true;
 }
 
-function listGCTypes() {
-    return [
-        'js::gc::Cell',
-        'JSObject',
-        'JSString',
-        'JSFatInlineString',
-        'JSExternalString',
-        'js::Shape',
-        'js::AccessorShape',
-        'js::BaseShape',
-        'JSScript',
-        'js::ObjectGroup',
-        'js::LazyScript',
-        'js::jit::JitCode',
-        'JS::Symbol',
-    ];
-}
-
-function listGCPointers() {
-    return [
-        'JS::Value',
-        'jsid',
-
-        'js::TypeSet',
-        'js::TypeSet::ObjectKey',
-        'js::TypeSet::Type',
-
-        // AutoCheckCannotGC should also not be held live across a GC function.
-        'JS::AutoCheckCannotGC',
-    ];
-}
-
-function listNonGCTypes() {
-    return [
-    ];
-}
-
 function listNonGCPointers() {
     return [
-        // Both of these are safe only because jsids are currently only made
-        // from "interned" (pinned) strings. Once that changes, both should be
-        // removed from the list.
+        // Safe only because jsids are currently only made from pinned strings.
         'NPIdentifier',
-        'XPCNativeMember',
     ];
-}
-
-// Flexible mechanism for deciding an arbitrary type is a GCPointer. Its one
-// use turned out to be unnecessary due to another change, but the mechanism
-// seems useful for something like /Vector.*Something/.
-function isGCPointer(typeName)
-{
-    return false;
 }

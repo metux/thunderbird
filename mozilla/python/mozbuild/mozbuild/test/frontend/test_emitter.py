@@ -11,11 +11,13 @@ from mozunit import main
 
 from mozbuild.frontend.context import (
     ObjDirPath,
+    Path,
 )
 from mozbuild.frontend.data import (
     AndroidResDirs,
     BrandingFiles,
     ChromeManifestEntry,
+    ComputedFlags,
     ConfigFileSubstitution,
     Defines,
     DirectoryTraversal,
@@ -24,11 +26,16 @@ from mozbuild.frontend.data import (
     GeneratedFile,
     GeneratedSources,
     HostDefines,
+    HostRustLibrary,
+    HostRustProgram,
     HostSources,
     IPDLFile,
     JARManifest,
+    LinkageMultipleRustLibrariesError,
     LocalInclude,
     Program,
+    RustLibrary,
+    RustProgram,
     SharedLibrary,
     SimpleProgram,
     Sources,
@@ -64,12 +71,19 @@ class TestEmitterBasic(unittest.TestCase):
         os.environ.clear()
         os.environ.update(self._old_env)
 
-    def reader(self, name):
-        config = MockConfig(mozpath.join(data_path, name), extra_substs=dict(
-            ENABLE_TESTS='1',
+    def reader(self, name, enable_tests=False, extra_substs=None):
+        substs = dict(
+            ENABLE_TESTS='1' if enable_tests else '',
             BIN_SUFFIX='.prog',
             OS_TARGET='WINNT',
-        ))
+            COMPILE_ENVIRONMENT='1',
+            STL_FLAGS=['-I/path/to/topobjdir/dist/stl_wrappers'],
+            VISIBILITY_FLAGS=['-include',
+                              '$(topsrcdir)/config/gcc_hidden.h'],
+        )
+        if extra_substs:
+            substs.update(extra_substs)
+        config = MockConfig(mozpath.join(data_path, name), extra_substs=substs)
 
         return BuildReader(config)
 
@@ -94,14 +108,11 @@ class TestEmitterBasic(unittest.TestCase):
 
         for o in objs:
             self.assertIsInstance(o, DirectoryTraversal)
-            self.assertEqual(o.test_dirs, [])
             self.assertTrue(os.path.isabs(o.context_main_path))
             self.assertEqual(len(o.context_all_paths), 1)
 
         reldirs = [o.relativedir for o in objs]
         self.assertEqual(reldirs, ['', 'foo', 'foo/biz', 'bar'])
-
-        self.assertEqual(objs[3].affected_tiers, {'misc'})
 
         dirs = [[d.full_path for d in o.dirs] for o in objs]
         self.assertEqual(dirs, [
@@ -114,6 +125,24 @@ class TestEmitterBasic(unittest.TestCase):
 
     def test_traversal_all_vars(self):
         reader = self.reader('traversal-all-vars')
+        objs = self.read_topsrcdir(reader, filter_common=False)
+        self.assertEqual(len(objs), 2)
+
+        for o in objs:
+            self.assertIsInstance(o, DirectoryTraversal)
+
+        reldirs = set([o.relativedir for o in objs])
+        self.assertEqual(reldirs, set(['', 'regular']))
+
+        for o in objs:
+            reldir = o.relativedir
+
+            if reldir == '':
+                self.assertEqual([d.full_path for d in o.dirs], [
+                    mozpath.join(reader.config.topsrcdir, 'regular')])
+
+    def test_traversal_all_vars_enable_tests(self):
+        reader = self.reader('traversal-all-vars', enable_tests=True)
         objs = self.read_topsrcdir(reader, filter_common=False)
         self.assertEqual(len(objs), 3)
 
@@ -128,8 +157,7 @@ class TestEmitterBasic(unittest.TestCase):
 
             if reldir == '':
                 self.assertEqual([d.full_path for d in o.dirs], [
-                    mozpath.join(reader.config.topsrcdir, 'regular')])
-                self.assertEqual([d.full_path for d in o.test_dirs], [
+                    mozpath.join(reader.config.topsrcdir, 'regular'),
                     mozpath.join(reader.config.topsrcdir, 'test')])
 
     def test_config_file_substitution(self):
@@ -155,22 +183,11 @@ class TestEmitterBasic(unittest.TestCase):
         self.assertIsInstance(objs[0], VariablePassthru)
 
         wanted = {
-            'ALLOW_COMPILER_WARNINGS': True,
-            'DISABLE_STL_WRAPPING': True,
             'NO_DIST_INSTALL': True,
-            'VISIBILITY_FLAGS': '',
             'RCFILE': 'foo.rc',
             'RESFILE': 'bar.res',
             'RCINCLUDE': 'bar.rc',
             'DEFFILE': 'baz.def',
-            'USE_STATIC_LIBS': True,
-            'MOZBUILD_CFLAGS': ['-fno-exceptions', '-w'],
-            'MOZBUILD_CXXFLAGS': ['-fcxx-exceptions', '-include foo.h'],
-            'MOZBUILD_LDFLAGS': ['-framework Foo', '-x', '-DELAYLOAD:foo.dll',
-                                 '-DELAYLOAD:bar.dll'],
-            'MOZBUILD_HOST_CFLAGS': ['-funroll-loops', '-wall'],
-            'MOZBUILD_HOST_CXXFLAGS': ['-funroll-loops-harder',
-                                       '-wall-day-everyday'],
             'WIN32_EXE_LDFLAGS': ['-subsystem:console'],
         }
 
@@ -180,17 +197,259 @@ class TestEmitterBasic(unittest.TestCase):
         self.assertEqual(wanted, variables)
         self.maxDiff = maxDiff
 
+    def test_compile_flags(self):
+        reader = self.reader('compile-flags', extra_substs={
+            'WARNINGS_AS_ERRORS': '-Werror',
+        })
+        sources, ldflags, lib, flags = self.read_topsrcdir(reader)
+        self.assertIsInstance(flags, ComputedFlags)
+        self.assertEqual(flags.flags['STL'], reader.config.substs['STL_FLAGS'])
+        self.assertEqual(flags.flags['VISIBILITY'], reader.config.substs['VISIBILITY_FLAGS'])
+        self.assertEqual(flags.flags['WARNINGS_AS_ERRORS'], ['-Werror'])
+        self.assertEqual(flags.flags['MOZBUILD_CFLAGS'], ['-Wall', '-funroll-loops'])
+        self.assertEqual(flags.flags['MOZBUILD_CXXFLAGS'], ['-funroll-loops', '-Wall'])
+
+    def test_debug_flags(self):
+        reader = self.reader('compile-flags', extra_substs={
+            'MOZ_DEBUG_FLAGS': '-g',
+            'MOZ_DEBUG_SYMBOLS': '1',
+        })
+        sources, ldflags, lib, flags = self.read_topsrcdir(reader)
+        self.assertIsInstance(flags, ComputedFlags)
+        self.assertEqual(flags.flags['DEBUG'], ['-g'])
+
+    def test_disable_debug_flags(self):
+        reader = self.reader('compile-flags', extra_substs={
+            'MOZ_DEBUG_FLAGS': '-g',
+            'MOZ_DEBUG_SYMBOLS': '',
+        })
+        sources, ldflags, lib, flags = self.read_topsrcdir(reader)
+        self.assertIsInstance(flags, ComputedFlags)
+        self.assertEqual(flags.flags['DEBUG'], [])
+
+    def test_link_flags(self):
+        reader = self.reader('link-flags', extra_substs={
+            'OS_LDFLAGS': ['-Wl,rpath-link=/usr/lib'],
+            'LINKER_LDFLAGS': ['-fuse-ld=gold'],
+            'MOZ_OPTIMIZE': '',
+            'MOZ_OPTIMIZE_LDFLAGS': ['-Wl,-dead_strip'],
+            'MOZ_DEBUG_LDFLAGS': ['-framework ExceptionHandling'],
+        })
+        sources, ldflags, lib, compile_flags = self.read_topsrcdir(reader)
+        self.assertIsInstance(ldflags, ComputedFlags)
+        self.assertEqual(ldflags.flags['OS'], reader.config.substs['OS_LDFLAGS'])
+        self.assertEqual(ldflags.flags['LINKER'], reader.config.substs['LINKER_LDFLAGS'])
+        self.assertEqual(ldflags.flags['MOZBUILD'], ['-Wl,-U_foo', '-framework Foo', '-x'])
+        self.assertEqual(ldflags.flags['OPTIMIZE'], [])
+
+    def test_debug_ldflags(self):
+        reader = self.reader('link-flags', extra_substs={
+            'MOZ_DEBUG_SYMBOLS': '1',
+            'MOZ_DEBUG_LDFLAGS': ['-framework ExceptionHandling'],
+        })
+        sources, ldflags, lib, compile_flags = self.read_topsrcdir(reader)
+        self.assertIsInstance(ldflags, ComputedFlags)
+        self.assertEqual(ldflags.flags['OS'],
+                         reader.config.substs['MOZ_DEBUG_LDFLAGS'])
+
+    def test_windows_opt_link_flags(self):
+        reader = self.reader('link-flags', extra_substs={
+            'OS_ARCH': 'WINNT',
+            'GNU_CC': '',
+            'MOZ_OPTIMIZE': '1',
+            'MOZ_DEBUG_SYMBOLS': '1',
+            'MOZ_OPTIMIZE_FLAGS': [],
+            'MOZ_OPTIMIZE_LDFLAGS': [],
+        })
+        sources, ldflags, lib, compile_flags = self.read_topsrcdir(reader)
+        self.assertIsInstance(ldflags, ComputedFlags)
+        self.assertIn('-DEBUG', ldflags.flags['OS'])
+        self.assertIn('-OPT:REF,ICF', ldflags.flags['OS'])
+
+    def test_windows_dmd_link_flags(self):
+        reader = self.reader('link-flags', extra_substs={
+            'OS_ARCH': 'WINNT',
+            'GNU_CC': '',
+            'MOZ_DMD': '1',
+            'MOZ_DEBUG_SYMBOLS': '1',
+            'MOZ_OPTIMIZE': '1',
+            'MOZ_OPTIMIZE_FLAGS': [],
+            'OS_LDFLAGS': ['-Wl,-U_foo'],
+        })
+        sources, ldflags, lib, compile_flags = self.read_topsrcdir(reader)
+        self.assertIsInstance(ldflags, ComputedFlags)
+        self.assertEqual(ldflags.flags['OS'],
+                         ['-DEBUG', '-OPT:REF,ICF'])
+
+    def test_host_compile_flags(self):
+        reader = self.reader('host-compile-flags', extra_substs={
+            'HOST_CXXFLAGS': ['-Wall', '-Werror'],
+            'HOST_CFLAGS': ['-Werror', '-Wall'],
+        })
+        sources, ldflags, flags, lib, target_flags = self.read_topsrcdir(reader)
+        self.assertIsInstance(flags, ComputedFlags)
+        self.assertEqual(flags.flags['HOST_CXXFLAGS'], reader.config.substs['HOST_CXXFLAGS'])
+        self.assertEqual(flags.flags['HOST_CFLAGS'], reader.config.substs['HOST_CFLAGS'])
+        self.assertEqual(set(flags.flags['HOST_DEFINES']),
+                         set(['-DFOO', '-DBAZ="abcd"', '-UQUX', '-DBAR=7', '-DVALUE=xyz']))
+        self.assertEqual(flags.flags['MOZBUILD_HOST_CFLAGS'], ['-funroll-loops', '-host-arg'])
+        self.assertEqual(flags.flags['MOZBUILD_HOST_CXXFLAGS'], [])
+
+    def test_host_no_optimize_flags(self):
+        reader = self.reader('host-compile-flags', extra_substs={
+            'MOZ_OPTIMIZE': '',
+            'MOZ_OPTIMIZE_FLAGS': ['-O2'],
+        })
+        sources, ldflags, flags, lib, target_flags = self.read_topsrcdir(reader)
+        self.assertIsInstance(flags, ComputedFlags)
+        self.assertEqual(flags.flags['HOST_OPTIMIZE'], [])
+
+    def test_host_optimize_flags(self):
+        reader = self.reader('host-compile-flags', extra_substs={
+            'MOZ_OPTIMIZE': '1',
+            'MOZ_OPTIMIZE_FLAGS': ['-O2'],
+        })
+        sources, ldflags, flags, lib, target_flags = self.read_topsrcdir(reader)
+        self.assertIsInstance(flags, ComputedFlags)
+        self.assertEqual(flags.flags['HOST_OPTIMIZE'], ['-O2'])
+
+    def test_cross_optimize_flags(self):
+        reader = self.reader('host-compile-flags', extra_substs={
+            'MOZ_OPTIMIZE': '1',
+            'MOZ_OPTIMIZE_FLAGS': ['-O2'],
+            'HOST_OPTIMIZE_FLAGS': ['-O3'],
+            'CROSS_COMPILE': '1',
+        })
+        sources, ldflags, flags, lib, target_flags = self.read_topsrcdir(reader)
+        self.assertIsInstance(flags, ComputedFlags)
+        self.assertEqual(flags.flags['HOST_OPTIMIZE'], ['-O3'])
+
+    def test_host_rtl_flag(self):
+        reader = self.reader('host-compile-flags', extra_substs={
+            'OS_ARCH': 'WINNT',
+            'MOZ_DEBUG': '1',
+        })
+        sources, ldflags, flags, lib, target_flags = self.read_topsrcdir(reader)
+        self.assertIsInstance(flags, ComputedFlags)
+        self.assertEqual(flags.flags['RTL'], ['-MDd'])
+
+    def test_compile_flags_validation(self):
+        reader = self.reader('compile-flags-field-validation')
+
+        with self.assertRaisesRegexp(BuildReaderError, 'Invalid value.'):
+            self.read_topsrcdir(reader)
+
+        reader = self.reader('compile-flags-type-validation')
+        with self.assertRaisesRegexp(BuildReaderError,
+                                     'A list of strings must be provided'):
+            self.read_topsrcdir(reader)
+
+    def test_compile_flags_templates(self):
+        reader = self.reader('compile-flags-templates', extra_substs={
+            'NSPR_CFLAGS': ['-I/nspr/path'],
+            'NSS_CFLAGS': ['-I/nss/path'],
+            'MOZ_JPEG_CFLAGS': ['-I/jpeg/path'],
+            'MOZ_PNG_CFLAGS': ['-I/png/path'],
+            'MOZ_ZLIB_CFLAGS': ['-I/zlib/path'],
+            'MOZ_PIXMAN_CFLAGS': ['-I/pixman/path'],
+        })
+        sources, ldflags, lib, flags = self.read_topsrcdir(reader)
+        self.assertIsInstance(flags, ComputedFlags)
+        self.assertEqual(flags.flags['STL'], [])
+        self.assertEqual(flags.flags['VISIBILITY'], [])
+        self.assertEqual(flags.flags['OS_INCLUDES'], [
+            '-I/nspr/path',
+            '-I/nss/path',
+            '-I/jpeg/path',
+            '-I/png/path',
+            '-I/zlib/path',
+            '-I/pixman/path',
+        ])
+
+    def test_disable_stl_wrapping(self):
+        reader = self.reader('disable-stl-wrapping')
+        sources, ldflags, lib, flags = self.read_topsrcdir(reader)
+        self.assertIsInstance(flags, ComputedFlags)
+        self.assertEqual(flags.flags['STL'], [])
+
+    def test_visibility_flags(self):
+        reader = self.reader('visibility-flags')
+        sources, ldflags, lib, flags = self.read_topsrcdir(reader)
+        self.assertIsInstance(flags, ComputedFlags)
+        self.assertEqual(flags.flags['VISIBILITY'], [])
+
+    def test_defines_in_flags(self):
+        reader = self.reader('compile-defines')
+        defines, sources, ldflags, lib, flags = self.read_topsrcdir(reader)
+        self.assertIsInstance(flags, ComputedFlags)
+        self.assertEqual(flags.flags['LIBRARY_DEFINES'],
+                         ['-DMOZ_LIBRARY_DEFINE=MOZ_TEST'])
+        self.assertEqual(flags.flags['DEFINES'],
+                         ['-DMOZ_TEST_DEFINE'])
+
+    def test_resolved_flags_error(self):
+        reader = self.reader('resolved-flags-error')
+        with self.assertRaisesRegexp(BuildReaderError,
+            "`DEFINES` may not be set in COMPILE_FLAGS from moz.build"):
+            self.read_topsrcdir(reader)
+
+    def test_includes_in_flags(self):
+        reader = self.reader('compile-includes')
+        defines, sources, ldflags, lib, flags = self.read_topsrcdir(reader)
+        self.assertIsInstance(flags, ComputedFlags)
+        self.assertEqual(flags.flags['BASE_INCLUDES'],
+                         ['-I%s' % reader.config.topsrcdir,
+                          '-I%s' % reader.config.topobjdir])
+        self.assertEqual(flags.flags['EXTRA_INCLUDES'],
+                         ['-I%s/dist/include' % reader.config.topobjdir])
+        self.assertEqual(flags.flags['LOCAL_INCLUDES'],
+                         ['-I%s/subdir' % reader.config.topsrcdir])
+
+    def test_allow_compiler_warnings(self):
+        reader = self.reader('allow-compiler-warnings', extra_substs={
+            'WARNINGS_AS_ERRORS': '-Werror',
+        })
+        sources, ldflags, lib, flags = self.read_topsrcdir(reader)
+        self.assertEqual(flags.flags['WARNINGS_AS_ERRORS'], [])
+
+    def test_use_yasm(self):
+        # When yasm is not available, this should raise.
+        reader = self.reader('use-yasm')
+        with self.assertRaisesRegexp(SandboxValidationError,
+            'yasm is not available'):
+            self.read_topsrcdir(reader)
+
+        # When yasm is available, this should work.
+        reader = self.reader('use-yasm',
+                             extra_substs=dict(
+                                 YASM='yasm',
+                                 YASM_ASFLAGS='-foo',
+                             ))
+        objs = self.read_topsrcdir(reader)
+
+        self.assertEqual(len(objs), 1)
+        self.assertIsInstance(objs[0], VariablePassthru)
+        maxDiff = self.maxDiff
+        self.maxDiff = None
+        self.assertEqual(objs[0].variables,
+                         {'AS': 'yasm',
+                          'ASFLAGS': '-foo',
+                          'AS_DASH_C_FLAG': ''})
+        self.maxDiff = maxDiff
+
+
     def test_generated_files(self):
         reader = self.reader('generated-files')
         objs = self.read_topsrcdir(reader)
 
-        self.assertEqual(len(objs), 2)
+        self.assertEqual(len(objs), 3)
         for o in objs:
             self.assertIsInstance(o, GeneratedFile)
 
-        expected = ['bar.c', 'foo.c']
-        for o, expected_filename in zip(objs, expected):
-            self.assertEqual(o.output, expected_filename)
+        expected = ['bar.c', 'foo.c', ('xpidllex.py', 'xpidlyacc.py'), ]
+        for o, f in zip(objs, expected):
+            expected_filename = f if isinstance(f, tuple) else (f,)
+            self.assertEqual(o.outputs, expected_filename)
             self.assertEqual(o.script, None)
             self.assertEqual(o.method, None)
             self.assertEqual(o.inputs, [])
@@ -206,7 +465,7 @@ class TestEmitterBasic(unittest.TestCase):
         expected = ['bar.c', 'foo.c']
         expected_method_names = ['make_bar', 'main']
         for o, expected_filename, expected_method in zip(objs, expected, expected_method_names):
-            self.assertEqual(o.output, expected_filename)
+            self.assertEqual(o.outputs, (expected_filename,))
             self.assertEqual(o.method, expected_method)
             self.assertEqual(o.inputs, [])
 
@@ -218,7 +477,7 @@ class TestEmitterBasic(unittest.TestCase):
 
         o = objs[0]
         self.assertIsInstance(o, GeneratedFile)
-        self.assertEqual(o.output, 'bar.c')
+        self.assertEqual(o.outputs, ('bar.c',))
         self.assertRegexpMatches(o.script, 'script.py$')
         self.assertEqual(o.method, 'make_bar')
         self.assertEqual(o.inputs, [])
@@ -227,19 +486,19 @@ class TestEmitterBasic(unittest.TestCase):
         reader = self.reader('generated-files-no-script')
         with self.assertRaisesRegexp(SandboxValidationError,
             'Script for generating bar.c does not exist'):
-            objs = self.read_topsrcdir(reader)
+            self.read_topsrcdir(reader)
 
     def test_generated_files_no_inputs(self):
         reader = self.reader('generated-files-no-inputs')
         with self.assertRaisesRegexp(SandboxValidationError,
             'Input for generating foo.c does not exist'):
-            objs = self.read_topsrcdir(reader)
+            self.read_topsrcdir(reader)
 
     def test_generated_files_no_python_script(self):
         reader = self.reader('generated-files-no-python-script')
         with self.assertRaisesRegexp(SandboxValidationError,
             'Script for generating bar.c does not end in .py'):
-            objs = self.read_topsrcdir(reader)
+            self.read_topsrcdir(reader)
 
     def test_exports(self):
         reader = self.reader('exports')
@@ -268,7 +527,7 @@ class TestEmitterBasic(unittest.TestCase):
         reader = self.reader('exports-missing')
         with self.assertRaisesRegexp(SandboxValidationError,
              'File listed in EXPORTS does not exist:'):
-            objs = self.read_topsrcdir(reader)
+            self.read_topsrcdir(reader)
 
     def test_exports_missing_generated(self):
         '''
@@ -277,7 +536,7 @@ class TestEmitterBasic(unittest.TestCase):
         reader = self.reader('exports-missing-generated')
         with self.assertRaisesRegexp(SandboxValidationError,
              'Objdir file listed in EXPORTS not in GENERATED_FILES:'):
-            objs = self.read_topsrcdir(reader)
+            self.read_topsrcdir(reader)
 
     def test_exports_generated(self):
         reader = self.reader('exports-generated')
@@ -305,7 +564,7 @@ class TestEmitterBasic(unittest.TestCase):
             'testing/mochitest': ['mochitest.py', 'mochitest.ini'],
         }
 
-        for path, strings in objs[0].srcdir_files.iteritems():
+        for path, strings in objs[0].files.walk():
             self.assertTrue(path in expected)
             basenames = sorted(mozpath.basename(s) for s in strings)
             self.assertEqual(sorted(expected[path]), basenames)
@@ -314,7 +573,7 @@ class TestEmitterBasic(unittest.TestCase):
         reader = self.reader('test-harness-files-root')
         with self.assertRaisesRegexp(SandboxValidationError,
             'Cannot install files to the root of TEST_HARNESS_FILES'):
-            objs = self.read_topsrcdir(reader)
+            self.read_topsrcdir(reader)
 
     def test_branding_files(self):
         reader = self.reader('branding-files')
@@ -336,20 +595,22 @@ class TestEmitterBasic(unittest.TestCase):
         reader = self.reader('program')
         objs = self.read_topsrcdir(reader)
 
-        self.assertEqual(len(objs), 3)
-        self.assertIsInstance(objs[0], Program)
-        self.assertIsInstance(objs[1], SimpleProgram)
-        self.assertIsInstance(objs[2], SimpleProgram)
+        self.assertEqual(len(objs), 5)
+        self.assertIsInstance(objs[0], ComputedFlags)
+        self.assertIsInstance(objs[1], ComputedFlags)
+        self.assertIsInstance(objs[2], Program)
+        self.assertIsInstance(objs[3], SimpleProgram)
+        self.assertIsInstance(objs[4], SimpleProgram)
 
-        self.assertEqual(objs[0].program, 'test_program.prog')
-        self.assertEqual(objs[1].program, 'test_program1.prog')
-        self.assertEqual(objs[2].program, 'test_program2.prog')
+        self.assertEqual(objs[2].program, 'test_program.prog')
+        self.assertEqual(objs[3].program, 'test_program1.prog')
+        self.assertEqual(objs[4].program, 'test_program2.prog')
 
     def test_test_manifest_missing_manifest(self):
         """A missing manifest file should result in an error."""
         reader = self.reader('test-manifest-missing-manifest')
 
-        with self.assertRaisesRegexp(SandboxValidationError, 'IOError: Missing files'):
+        with self.assertRaisesRegexp(BuildReaderError, 'IOError: Missing files'):
             self.read_topsrcdir(reader)
 
     def test_empty_test_manifest_rejected(self):
@@ -361,15 +622,21 @@ class TestEmitterBasic(unittest.TestCase):
 
 
     def test_test_manifest_just_support_files(self):
-        """A test manifest with no tests but support-files is supported."""
+        """A test manifest with no tests but support-files is not supported."""
         reader = self.reader('test-manifest-just-support')
 
-        objs = self.read_topsrcdir(reader)
-        self.assertEqual(len(objs), 1)
-        o = objs[0]
-        self.assertEqual(len(o.installs), 2)
-        paths = sorted([k[len(o.directory)+1:] for k in o.installs.keys()])
-        self.assertEqual(paths, ["foo.txt", "just-support.ini"])
+        with self.assertRaisesRegexp(SandboxValidationError, 'Empty test manifest'):
+            self.read_topsrcdir(reader)
+
+    def test_test_manifest_dupe_support_files(self):
+        """A test manifest with dupe support-files in a single test is not
+        supported.
+        """
+        reader = self.reader('test-manifest-dupes')
+
+        with self.assertRaisesRegexp(SandboxValidationError, 'bar.js appears multiple times '
+            'in a test manifest under a support-files field, please omit the duplicate entry.'):
+            self.read_topsrcdir(reader)
 
     def test_test_manifest_absolute_support_files(self):
         """Support files starting with '/' are placed relative to the install root"""
@@ -378,13 +645,42 @@ class TestEmitterBasic(unittest.TestCase):
         objs = self.read_topsrcdir(reader)
         self.assertEqual(len(objs), 1)
         o = objs[0]
-        self.assertEqual(len(o.installs), 2)
+        self.assertEqual(len(o.installs), 3)
         expected = [
             mozpath.normpath(mozpath.join(o.install_prefix, "../.well-known/foo.txt")),
             mozpath.join(o.install_prefix, "absolute-support.ini"),
+            mozpath.join(o.install_prefix, "test_file.js"),
         ]
         paths = sorted([v[0] for v in o.installs.values()])
         self.assertEqual(paths, expected)
+
+    @unittest.skip('Bug 1304316 - Items in the second set but not the first')
+    def test_test_manifest_shared_support_files(self):
+        """Support files starting with '!' are given separate treatment, so their
+        installation can be resolved when running tests.
+        """
+        reader = self.reader('test-manifest-shared-support')
+        supported, child = self.read_topsrcdir(reader)
+
+        expected_deferred_installs = {
+            '!/child/test_sub.js',
+            '!/child/another-file.sjs',
+            '!/child/data/**',
+        }
+
+        self.assertEqual(len(supported.installs), 3)
+        self.assertEqual(set(supported.deferred_installs),
+                         expected_deferred_installs)
+        self.assertEqual(len(child.installs), 3)
+        self.assertEqual(len(child.pattern_installs), 1)
+
+    def test_test_manifest_deffered_install_missing(self):
+        """A non-existent shared support file reference produces an error."""
+        reader = self.reader('test-manifest-shared-missing')
+
+        with self.assertRaisesRegexp(SandboxValidationError,
+                                     'entry in support-files not present in the srcdir'):
+            self.read_topsrcdir(reader)
 
     def test_test_manifest_install_to_subdir(self):
         """ """
@@ -439,7 +735,6 @@ class TestEmitterBasic(unittest.TestCase):
         for t in obj.tests:
             self.assertTrue(t['manifest'].endswith(expected_manifests[t['name']]))
 
-
     def test_test_manifest_keys_extracted(self):
         """Ensure all metadata from test manifests is extracted."""
         reader = self.reader('test-manifest-keys-extracted')
@@ -447,7 +742,7 @@ class TestEmitterBasic(unittest.TestCase):
         objs = [o for o in self.read_topsrcdir(reader)
                 if isinstance(o, TestManifest)]
 
-        self.assertEqual(len(objs), 8)
+        self.assertEqual(len(objs), 9)
 
         metadata = {
             'a11y.ini': {
@@ -500,8 +795,6 @@ class TestEmitterBasic(unittest.TestCase):
                     'test_xpcshell.js': True,
                     'head1': False,
                     'head2': False,
-                    'tail1': False,
-                    'tail2': False,
                 },
             },
             'reftest.list': {
@@ -512,6 +805,12 @@ class TestEmitterBasic(unittest.TestCase):
                 'flavor': 'crashtest',
                 'installs': {},
             },
+            'python.ini': {
+                'flavor': 'python',
+                'installs': {
+                    'python.ini': False,
+                },
+            }
         }
 
         for o in objs:
@@ -656,25 +955,6 @@ class TestEmitterBasic(unittest.TestCase):
 
         self.assertEqual(defines, expected)
 
-    def test_host_defines(self):
-        reader = self.reader('host-defines')
-        objs = self.read_topsrcdir(reader)
-
-        defines = {}
-        for o in objs:
-            if isinstance(o, HostDefines):
-                defines = o.defines
-
-        expected = {
-            'BAR': 7,
-            'BAZ': '"abcd"',
-            'FOO': True,
-            'VALUE': 'xyz',
-            'QUX': False,
-        }
-
-        self.assertEqual(defines, expected)
-
     def test_jar_manifests(self):
         reader = self.reader('jar-manifests')
         objs = self.read_topsrcdir(reader)
@@ -682,7 +962,7 @@ class TestEmitterBasic(unittest.TestCase):
         self.assertEqual(len(objs), 1)
         for obj in objs:
             self.assertIsInstance(obj, JARManifest)
-            self.assertTrue(os.path.isabs(obj.path))
+            self.assertIsInstance(obj.path, Path)
 
     def test_jar_manifests_multiple_files(self):
         with self.assertRaisesRegexp(SandboxValidationError, 'limited to one value'):
@@ -709,6 +989,8 @@ class TestEmitterBasic(unittest.TestCase):
         objs = self.read_topsrcdir(reader)
 
         libraries = [o for o in objs if isinstance(o,StaticLibrary)]
+        library_flags = [o for o in objs if isinstance(o, ComputedFlags)
+                         and 'LIBRARY_DEFINES' in o.flags]
         expected = {
             'liba': '-DIN_LIBA',
             'libb': '-DIN_LIBA -DIN_LIBB',
@@ -717,14 +999,25 @@ class TestEmitterBasic(unittest.TestCase):
         }
         defines = {}
         for lib in libraries:
-            defines[lib.basename] = ' '.join(lib.defines.get_defines())
+            defines[lib.basename] = ' '.join(lib.lib_defines.get_defines())
         self.assertEqual(expected, defines)
+        defines_in_flags = {}
+        for flags in library_flags:
+            defines_in_flags[flags.relobjdir] = ' '.join(flags.flags['LIBRARY_DEFINES'] or [])
+        self.assertEqual(expected, defines_in_flags)
 
     def test_sources(self):
         """Test that SOURCES works properly."""
         reader = self.reader('sources')
         objs = self.read_topsrcdir(reader)
 
+        computed_flags = objs.pop()
+        self.assertIsInstance(computed_flags, ComputedFlags)
+        # The second to last object is a Linkable.
+        linkable = objs.pop()
+        self.assertTrue(linkable.cxx_link)
+        ld_flags = objs.pop()
+        self.assertIsInstance(ld_flags, ComputedFlags)
         self.assertEqual(len(objs), 6)
         for o in objs:
             self.assertIsInstance(o, Sources)
@@ -746,12 +1039,42 @@ class TestEmitterBasic(unittest.TestCase):
                 sources.files,
                 [mozpath.join(reader.config.topsrcdir, f) for f in files])
 
+    def test_sources_just_c(self):
+        """Test that a linkable with no C++ sources doesn't have cxx_link set."""
+        reader = self.reader('sources-just-c')
+        objs = self.read_topsrcdir(reader)
+
+        flags = objs.pop()
+        self.assertIsInstance(flags, ComputedFlags)
+        # The second to last object is a Linkable.
+        linkable = objs.pop()
+        self.assertFalse(linkable.cxx_link)
+
+    def test_linkables_cxx_link(self):
+        """Test that linkables transitively set cxx_link properly."""
+        reader = self.reader('test-linkables-cxx-link')
+        got_results = 0
+        for obj in self.read_topsrcdir(reader):
+            if isinstance(obj, SharedLibrary):
+                if obj.basename == 'cxx_shared':
+                    self.assertTrue(obj.cxx_link)
+                    got_results += 1
+                elif obj.basename == 'just_c_shared':
+                    self.assertFalse(obj.cxx_link)
+                    got_results += 1
+        self.assertEqual(got_results, 2)
+
     def test_generated_sources(self):
         """Test that GENERATED_SOURCES works properly."""
         reader = self.reader('generated-sources')
         objs = self.read_topsrcdir(reader)
 
-        self.assertEqual(len(objs), 6)
+        flags = objs.pop()
+        self.assertIsInstance(flags, ComputedFlags)
+        # The second to last object is a Linkable.
+        linkable = objs.pop()
+        self.assertTrue(linkable.cxx_link)
+        self.assertEqual(len(objs), 7)
 
         generated_sources = [o for o in objs if isinstance(o, GeneratedSources)]
         self.assertEqual(len(generated_sources), 6)
@@ -778,6 +1101,18 @@ class TestEmitterBasic(unittest.TestCase):
         reader = self.reader('host-sources')
         objs = self.read_topsrcdir(reader)
 
+        # This objdir will generate target flags.
+        flags = objs.pop()
+        self.assertIsInstance(flags, ComputedFlags)
+        # The second to last object is a Linkable
+        linkable = objs.pop()
+        self.assertTrue(linkable.cxx_link)
+        # This objdir will also generate host flags.
+        host_flags = objs.pop()
+        self.assertIsInstance(host_flags, ComputedFlags)
+        # ...and ldflags.
+        ldflags = objs.pop()
+        self.assertIsInstance(ldflags, ComputedFlags)
         self.assertEqual(len(objs), 3)
         for o in objs:
             self.assertIsInstance(o, HostSources)
@@ -801,6 +1136,9 @@ class TestEmitterBasic(unittest.TestCase):
         reader = self.reader('unified-sources')
         objs = self.read_topsrcdir(reader)
 
+        # The last object is a Linkable, the second to last ComputedFlags,
+        # followed by ldflags, ignore them.
+        objs = objs[:-3]
         self.assertEqual(len(objs), 3)
         for o in objs:
             self.assertIsInstance(o, UnifiedSources)
@@ -825,6 +1163,9 @@ class TestEmitterBasic(unittest.TestCase):
         reader = self.reader('unified-sources-non-unified')
         objs = self.read_topsrcdir(reader)
 
+        # The last object is a Linkable, the second to last ComputedFlags,
+        # followed by ldflags, ignore them.
+        objs = objs[:-3]
         self.assertEqual(len(objs), 3)
         for o in objs:
             self.assertIsInstance(o, UnifiedSources)
@@ -874,7 +1215,161 @@ class TestEmitterBasic(unittest.TestCase):
         reader = self.reader('final-target-pp-files-non-srcdir')
         with self.assertRaisesRegexp(SandboxValidationError,
              'Only source directory paths allowed in FINAL_TARGET_PP_FILES:'):
-            objs = self.read_topsrcdir(reader)
+            self.read_topsrcdir(reader)
+
+    def test_rust_library_no_cargo_toml(self):
+        '''Test that defining a RustLibrary without a Cargo.toml fails.'''
+        reader = self.reader('rust-library-no-cargo-toml')
+        with self.assertRaisesRegexp(SandboxValidationError,
+             'No Cargo.toml file found'):
+            self.read_topsrcdir(reader)
+
+    def test_rust_library_name_mismatch(self):
+        '''Test that defining a RustLibrary that doesn't match Cargo.toml fails.'''
+        reader = self.reader('rust-library-name-mismatch')
+        with self.assertRaisesRegexp(SandboxValidationError,
+             'library.*does not match Cargo.toml-defined package'):
+            self.read_topsrcdir(reader)
+
+    def test_rust_library_no_lib_section(self):
+        '''Test that a RustLibrary Cargo.toml with no [lib] section fails.'''
+        reader = self.reader('rust-library-no-lib-section')
+        with self.assertRaisesRegexp(SandboxValidationError,
+             'Cargo.toml for.* has no \\[lib\\] section'):
+            self.read_topsrcdir(reader)
+
+    def test_rust_library_no_profile_section(self):
+        '''Test that a RustLibrary Cargo.toml with no [profile] section fails.'''
+        reader = self.reader('rust-library-no-profile-section')
+        with self.assertRaisesRegexp(SandboxValidationError,
+             'Cargo.toml for.* has no \\[profile\\.dev\\] section'):
+            self.read_topsrcdir(reader)
+
+    def test_rust_library_invalid_crate_type(self):
+        '''Test that a RustLibrary Cargo.toml has a permitted crate-type.'''
+        reader = self.reader('rust-library-invalid-crate-type')
+        with self.assertRaisesRegexp(SandboxValidationError,
+             'crate-type.* is not permitted'):
+            self.read_topsrcdir(reader)
+
+    def test_rust_library_non_abort_panic(self):
+        '''Test that a RustLibrary Cargo.toml has `panic = "abort" set'''
+        reader = self.reader('rust-library-non-abort-panic')
+        with self.assertRaisesRegexp(SandboxValidationError,
+             'does not specify `panic = "abort"`'):
+            self.read_topsrcdir(reader)
+
+    def test_rust_library_dash_folding(self):
+        '''Test that on-disk names of RustLibrary objects convert dashes to underscores.'''
+        reader = self.reader('rust-library-dash-folding',
+                             extra_substs=dict(RUST_TARGET='i686-pc-windows-msvc'))
+        objs = self.read_topsrcdir(reader)
+
+        ldflags, lib = objs
+        self.assertIsInstance(ldflags, ComputedFlags)
+        self.assertIsInstance(lib, RustLibrary)
+        self.assertRegexpMatches(lib.lib_name, "random_crate")
+        self.assertRegexpMatches(lib.import_name, "random_crate")
+        self.assertRegexpMatches(lib.basename, "random-crate")
+
+    def test_multiple_rust_libraries(self):
+        '''Test that linking multiple Rust libraries throws an error'''
+        reader = self.reader('multiple-rust-libraries',
+                             extra_substs=dict(RUST_TARGET='i686-pc-windows-msvc'))
+        with self.assertRaisesRegexp(LinkageMultipleRustLibrariesError,
+             'Cannot link multiple Rust libraries'):
+            self.read_topsrcdir(reader)
+
+    def test_rust_library_features(self):
+        '''Test that RustLibrary features are correctly emitted.'''
+        reader = self.reader('rust-library-features',
+                             extra_substs=dict(RUST_TARGET='i686-pc-windows-msvc'))
+        objs = self.read_topsrcdir(reader)
+        ldflags, lib = objs
+        self.assertIsInstance(ldflags, ComputedFlags)
+        self.assertIsInstance(lib, RustLibrary)
+        self.assertEqual(lib.features, ['musthave', 'cantlivewithout'])
+
+    def test_rust_library_duplicate_features(self):
+        '''Test that duplicate RustLibrary features are rejected.'''
+        reader = self.reader('rust-library-duplicate-features')
+        with self.assertRaisesRegexp(SandboxValidationError,
+             'features for .* should not contain duplicates'):
+            self.read_topsrcdir(reader)
+
+    def test_rust_program_no_cargo_toml(self):
+        '''Test that specifying RUST_PROGRAMS without a Cargo.toml fails.'''
+        reader = self.reader('rust-program-no-cargo-toml')
+        with self.assertRaisesRegexp(SandboxValidationError,
+             'No Cargo.toml file found'):
+            self.read_topsrcdir(reader)
+
+    def test_host_rust_program_no_cargo_toml(self):
+        '''Test that specifying HOST_RUST_PROGRAMS without a Cargo.toml fails.'''
+        reader = self.reader('host-rust-program-no-cargo-toml')
+        with self.assertRaisesRegexp(SandboxValidationError,
+             'No Cargo.toml file found'):
+            self.read_topsrcdir(reader)
+
+    def test_rust_program_nonexistent_name(self):
+        '''Test that specifying RUST_PROGRAMS that don't exist in Cargo.toml
+        correctly throws an error.'''
+        reader = self.reader('rust-program-nonexistent-name')
+        with self.assertRaisesRegexp(SandboxValidationError,
+             'Cannot find Cargo.toml definition for'):
+            self.read_topsrcdir(reader)
+
+    def test_host_rust_program_nonexistent_name(self):
+        '''Test that specifying HOST_RUST_PROGRAMS that don't exist in
+        Cargo.toml correctly throws an error.'''
+        reader = self.reader('host-rust-program-nonexistent-name')
+        with self.assertRaisesRegexp(SandboxValidationError,
+             'Cannot find Cargo.toml definition for'):
+            self.read_topsrcdir(reader)
+
+    def test_rust_programs(self):
+        '''Test RUST_PROGRAMS emission.'''
+        reader = self.reader('rust-programs',
+                             extra_substs=dict(RUST_TARGET='i686-pc-windows-msvc',
+                                               BIN_SUFFIX='.exe'))
+        objs = self.read_topsrcdir(reader)
+
+        ldflags, prog = objs
+        self.assertIsInstance(ldflags, ComputedFlags)
+        self.assertIsInstance(prog, RustProgram)
+        self.assertEqual(prog.name, 'some')
+
+    def test_host_rust_programs(self):
+        '''Test HOST_RUST_PROGRAMS emission.'''
+        reader = self.reader('host-rust-programs',
+                             extra_substs=dict(RUST_HOST_TARGET='i686-pc-windows-msvc',
+                                               HOST_BIN_SUFFIX='.exe'))
+        objs = self.read_topsrcdir(reader)
+
+        self.assertEqual(len(objs), 1)
+        self.assertIsInstance(objs[0], HostRustProgram)
+        self.assertEqual(objs[0].name, 'some')
+
+    def test_host_rust_libraries(self):
+        '''Test HOST_RUST_LIBRARIES emission.'''
+        reader = self.reader('host-rust-libraries',
+                             extra_substs=dict(RUST_HOST_TARGET='i686-pc-windows-msvc',
+                                               HOST_BIN_SUFFIX='.exe'))
+        objs = self.read_topsrcdir(reader)
+        self.assertEqual(len(objs), 1)
+        self.assertIsInstance(objs[0], HostRustLibrary)
+        self.assertRegexpMatches(objs[0].lib_name, 'host_lib')
+        self.assertRegexpMatches(objs[0].import_name, 'host_lib')
+
+    def test_crate_dependency_path_resolution(self):
+        '''Test recursive dependencies resolve with the correct paths.'''
+        reader = self.reader('crate-dependency-path-resolution',
+                             extra_substs=dict(RUST_TARGET='i686-pc-windows-msvc'))
+        objs = self.read_topsrcdir(reader)
+
+        ldflags, lib = objs
+        self.assertIsInstance(ldflags, ComputedFlags)
+        self.assertIsInstance(lib, RustLibrary)
 
     def test_android_res_dirs(self):
         """Test that ANDROID_RES_DIRS works properly."""
@@ -892,22 +1387,52 @@ class TestEmitterBasic(unittest.TestCase):
         ]
         self.assertEquals([p.full_path for p in objs[0].paths], expected)
 
-    def test_binary_components(self):
-        """Test that IS_COMPONENT/NO_COMPONENTS_MANIFEST work properly."""
-        reader = self.reader('binary-components')
+    def test_install_shared_lib(self):
+        """Test that we can install a shared library with TEST_HARNESS_FILES"""
+        reader = self.reader('test-install-shared-lib')
         objs = self.read_topsrcdir(reader)
+        self.assertIsInstance(objs[0], TestHarnessFiles)
+        self.assertIsInstance(objs[1], VariablePassthru)
+        self.assertIsInstance(objs[2], ComputedFlags)
+        self.assertIsInstance(objs[3], SharedLibrary)
+        self.assertIsInstance(objs[4], ComputedFlags)
+        for path, files in objs[0].files.walk():
+            for f in files:
+                self.assertEqual(str(f), '!libfoo.so')
+                self.assertEqual(path, 'foo/bar')
 
-        self.assertEqual(len(objs), 3)
-        self.assertIsInstance(objs[0], ChromeManifestEntry)
-        self.assertEqual(objs[0].path,
-                         'dist/bin/components/components.manifest')
-        self.assertIsInstance(objs[0].entry, manifest.ManifestBinaryComponent)
-        self.assertEqual(objs[0].entry.base, 'dist/bin/components')
-        self.assertEqual(objs[0].entry.relpath, objs[1].lib_name)
-        self.assertIsInstance(objs[1], SharedLibrary)
-        self.assertEqual(objs[1].basename, 'foo')
-        self.assertIsInstance(objs[2], SharedLibrary)
-        self.assertEqual(objs[2].basename, 'bar')
+    def test_symbols_file(self):
+        """Test that SYMBOLS_FILE works"""
+        reader = self.reader('test-symbols-file')
+        genfile, ldflags, shlib, flags = self.read_topsrcdir(reader)
+        self.assertIsInstance(genfile, GeneratedFile)
+        self.assertIsInstance(flags, ComputedFlags)
+        self.assertIsInstance(ldflags, ComputedFlags)
+        self.assertIsInstance(shlib, SharedLibrary)
+        # This looks weird but MockConfig sets DLL_{PREFIX,SUFFIX} and
+        # the reader method in this class sets OS_TARGET=WINNT.
+        self.assertEqual(shlib.symbols_file, 'libfoo.so.def')
+
+    def test_symbols_file_objdir(self):
+        """Test that a SYMBOLS_FILE in the objdir works"""
+        reader = self.reader('test-symbols-file-objdir')
+        genfile, ldflags, shlib, flags = self.read_topsrcdir(reader)
+        self.assertIsInstance(genfile, GeneratedFile)
+        self.assertEqual(genfile.script,
+                         mozpath.join(reader.config.topsrcdir, 'foo.py'))
+        self.assertIsInstance(flags, ComputedFlags)
+        self.assertIsInstance(ldflags, ComputedFlags)
+        self.assertIsInstance(shlib, SharedLibrary)
+        self.assertEqual(shlib.symbols_file, 'foo.symbols')
+
+    def test_symbols_file_objdir_missing_generated(self):
+        """Test that a SYMBOLS_FILE in the objdir that's missing
+        from GENERATED_FILES is an error.
+        """
+        reader = self.reader('test-symbols-file-objdir-missing-generated')
+        with self.assertRaisesRegexp(SandboxValidationError,
+             'Objdir file specified in SYMBOLS_FILE not in GENERATED_FILES:'):
+            self.read_topsrcdir(reader)
 
 
 if __name__ == '__main__':

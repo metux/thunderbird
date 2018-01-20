@@ -1,3 +1,4 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -15,11 +16,16 @@
 
 class nsDocShell;
 class nsIDocShell;
+struct JSContext;
 
 namespace mozilla {
 class TimeStamp;
 class MarkersStorage;
 class AbstractTimelineMarker;
+
+namespace dom {
+struct ProfileTimelineMarker;
+}
 
 class TimelineConsumers : public nsIObserver
 {
@@ -66,19 +72,23 @@ public:
   // Main thread only.
   void AddMarkerForDocShell(nsDocShell* aDocShell,
                             const char* aName,
-                            MarkerTracingType aTracingType);
+                            MarkerTracingType aTracingType,
+                            MarkerStackRequest aStackRequest = MarkerStackRequest::STACK);
   void AddMarkerForDocShell(nsIDocShell* aDocShell,
                             const char* aName,
-                            MarkerTracingType aTracingType);
+                            MarkerTracingType aTracingType,
+                            MarkerStackRequest aStackRequest = MarkerStackRequest::STACK);
 
   void AddMarkerForDocShell(nsDocShell* aDocShell,
                             const char* aName,
                             const TimeStamp& aTime,
-                            MarkerTracingType aTracingType);
+                            MarkerTracingType aTracingType,
+                            MarkerStackRequest aStackRequest = MarkerStackRequest::STACK);
   void AddMarkerForDocShell(nsIDocShell* aDocShell,
                             const char* aName,
                             const TimeStamp& aTime,
-                            MarkerTracingType aTracingType);
+                            MarkerTracingType aTracingType,
+                            MarkerStackRequest aStackRequest = MarkerStackRequest::STACK);
 
   // These methods register and receive ownership of an already created marker,
   // relevant for a specific docshell.
@@ -103,6 +113,10 @@ public:
   // which doesn't have to be relevant to a specific docshell.
   // May be called from any thread.
   void AddMarkerForAllObservedDocShells(UniquePtr<AbstractTimelineMarker>& aMarker);
+
+  void PopMarkers(nsDocShell* aDocShell,
+                  JSContext* aCx,
+                  nsTArray<dom::ProfileTimelineMarker>& aStore);
 
 private:
   static StaticRefPtr<TimelineConsumers> sInstance;

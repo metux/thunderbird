@@ -1,12 +1,9 @@
 /* vim: set ts=2 et sw=2 tw=80: */
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
+/* eslint-disable mozilla/no-arbitrary-setTimeout */
 
 "use strict";
-
-Components.utils.import("resource://gre/modules/Task.jsm");
-var {require} = Components.utils.import("resource://devtools/shared/Loader.jsm", {});
-var promise = require("promise");
 
 const TESTCASE_URI_HTML = TEST_BASE_HTTP + "sourcemaps-watching.html";
 const TESTCASE_URI_CSS = TEST_BASE_HTTP + "sourcemap-css/sourcemaps.css";
@@ -19,82 +16,77 @@ const TRANSITIONS_PREF = "devtools.styleeditor.transitions";
 
 const CSS_TEXT = "* { color: blue }";
 
-var Cc = Components.classes;
-var Ci = Components.interfaces;
+const {FileUtils} = Components.utils.import("resource://gre/modules/FileUtils.jsm", {});
+const {NetUtil} = Components.utils.import("resource://gre/modules/NetUtil.jsm", {});
 
-var tempScope = {};
-Components.utils.import("resource://gre/modules/FileUtils.jsm", tempScope);
-Components.utils.import("resource://gre/modules/NetUtil.jsm", tempScope);
-var FileUtils = tempScope.FileUtils;
-var NetUtil = tempScope.NetUtil;
-
-function test() {
-  waitForExplicitFinish();
-
-  Services.prefs.setBoolPref(TRANSITIONS_PREF, false);
-
-  Task.spawn(function*() {
-    // copy all our files over so we don't screw them up for other tests
-    let HTMLFile = yield copy(TESTCASE_URI_HTML, ["sourcemaps.html"]);
-    let CSSFile = yield copy(TESTCASE_URI_CSS,
-      ["sourcemap-css", "sourcemaps.css"]);
-    yield copy(TESTCASE_URI_SCSS, ["sourcemap-sass", "sourcemaps.scss"]);
-    yield copy(TESTCASE_URI_MAP, ["sourcemap-css", "sourcemaps.css.map"]);
-    yield copy(TESTCASE_URI_REG_CSS, ["simple.css"]);
-
-    let uri = Services.io.newFileURI(HTMLFile);
-    let testcaseURI = uri.resolve("");
-
-    let { ui } = yield openStyleEditorForURL(testcaseURI);
-
-    let editor = ui.editors[1];
-    if (getStylesheetNameFor(editor) != TESTCASE_SCSS_NAME) {
-      editor = ui.editors[2];
-    }
-
-    is(getStylesheetNameFor(editor), TESTCASE_SCSS_NAME, "found scss editor");
-
-    let link = getLinkFor(editor);
-    link.click();
-
-    yield editor.getSourceEditor();
-
-    let element = content.document.querySelector("div");
-    let style = content.getComputedStyle(element, null);
-
-    is(style.color, "rgb(255, 0, 102)", "div is red before saving file");
-
-    editor.styleSheet.relatedStyleSheet.once("style-applied", function() {
-      is(style.color, "rgb(0, 0, 255)", "div is blue after saving file");
-      finishUp();
-    });
-
-    yield pauseForTimeChange();
-
-    // Edit and save Sass in the editor. This will start off a file-watching
-    // process waiting for the CSS file to change.
-    yield editSCSS(editor);
-
-    // We can't run Sass or another compiler, so we fake it by just
-    // directly changing the CSS file.
-    yield editCSSFile(CSSFile);
-
-    info("wrote to CSS file");
+add_task(function* () {
+  yield new Promise(resolve => {
+    SpecialPowers.pushPrefEnv({"set": [
+      [TRANSITIONS_PREF, false]
+    ]}, resolve);
   });
-}
+
+  // copy all our files over so we don't screw them up for other tests
+  let HTMLFile = yield copy(TESTCASE_URI_HTML, ["sourcemaps.html"]);
+  let CSSFile = yield copy(TESTCASE_URI_CSS,
+    ["sourcemap-css", "sourcemaps.css"]);
+  yield copy(TESTCASE_URI_SCSS, ["sourcemap-sass", "sourcemaps.scss"]);
+  yield copy(TESTCASE_URI_MAP, ["sourcemap-css", "sourcemaps.css.map"]);
+  yield copy(TESTCASE_URI_REG_CSS, ["simple.css"]);
+
+  let uri = Services.io.newFileURI(HTMLFile);
+  let testcaseURI = uri.resolve("");
+
+  let { ui } = yield openStyleEditorForURL(testcaseURI);
+
+  let editor = ui.editors[1];
+  if (getStylesheetNameFor(editor) != TESTCASE_SCSS_NAME) {
+    editor = ui.editors[2];
+  }
+
+  is(getStylesheetNameFor(editor), TESTCASE_SCSS_NAME, "found scss editor");
+
+  let link = getLinkFor(editor);
+  link.click();
+
+  yield editor.getSourceEditor();
+
+  let color = yield getComputedStyleProperty({selector: "div", name: "color"});
+  is(color, "rgb(255, 0, 102)", "div is red before saving file");
+
+  // let styleApplied = defer();
+  let styleApplied = editor.once("style-applied");
+
+  yield pauseForTimeChange();
+
+  // Edit and save Sass in the editor. This will start off a file-watching
+  // process waiting for the CSS file to change.
+  yield editSCSS(editor);
+
+  // We can't run Sass or another compiler, so we fake it by just
+  // directly changing the CSS file.
+  yield editCSSFile(CSSFile);
+
+  info("wrote to CSS file, waiting for style-applied event");
+
+  yield styleApplied;
+
+  color = yield getComputedStyleProperty({selector: "div", name: "color"});
+  is(color, "rgb(0, 0, 255)", "div is blue after saving file");
+
+  // Ensure that the editor didn't revert.  Bug 1346662.
+  is(editor.sourceEditor.getText(), CSS_TEXT, "edits remain applied");
+});
 
 function editSCSS(editor) {
-  let deferred = promise.defer();
+  return new Promise(resolve => {
+    editor.sourceEditor.setText(CSS_TEXT);
 
-  let pos = {line: 0, ch: 0};
-  editor.sourceEditor.replaceText(CSS_TEXT, pos, pos);
-
-  editor.saveToFile(null, function(file) {
-    ok(file, "Scss file should be saved");
-    deferred.resolve();
+    editor.saveToFile(null, function (file) {
+      ok(file, "Scss file should be saved");
+      resolve();
+    });
   });
-
-  return deferred.promise;
 }
 
 function editCSSFile(CSSFile) {
@@ -102,19 +94,12 @@ function editCSSFile(CSSFile) {
 }
 
 function pauseForTimeChange() {
-  let deferred = promise.defer();
-
-  // We have to wait for the system time to turn over > 1000 ms so that
-  // our file's last change time will show a change. This reflects what
-  // would happen in real life with a user manually saving the file.
-  setTimeout(deferred.resolve, 2000);
-
-  return deferred.promise;
-}
-
-function finishUp() {
-  Services.prefs.clearUserPref(TRANSITIONS_PREF);
-  finish();
+  return new Promise(resolve => {
+    // We have to wait for the system time to turn over > 1000 ms so that
+    // our file's last change time will show a change. This reflects what
+    // would happen in real life with a user manually saving the file.
+    setTimeout(resolve, 2000);
+  });
 }
 
 /* Helpers */
@@ -136,17 +121,12 @@ function copy(srcChromeURL, destFilePath) {
 function read(srcChromeURL) {
   let scriptableStream = Cc["@mozilla.org/scriptableinputstream;1"]
     .getService(Ci.nsIScriptableInputStream);
-  let principal = Services.scriptSecurityManager.getSystemPrincipal();
 
-  let channel = Services.io.newChannel2(srcChromeURL,
-                                        null,
-                                        null,
-                                        null,
-                                        principal,
-                                        null,
-                                        Ci.nsILoadInfo.SEC_NORMAL,
-                                        Ci.nsIContentPolicy.TYPE_OTHER);
-  let input = channel.open();
+  let channel = NetUtil.newChannel({
+    uri: srcChromeURL,
+    loadUsingSystemPrincipal: true
+  });
+  let input = channel.open2();
   scriptableStream.init(input);
 
   let data = "";
@@ -159,24 +139,22 @@ function read(srcChromeURL) {
   return data;
 }
 
-function write(aData, aFile) {
-  let deferred = promise.defer();
+function write(data, file) {
+  return new Promise(resolve => {
+    let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
+      .createInstance(Ci.nsIScriptableUnicodeConverter);
 
-  let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
-    .createInstance(Ci.nsIScriptableUnicodeConverter);
+    converter.charset = "UTF-8";
 
-  converter.charset = "UTF-8";
+    let istream = converter.convertToInputStream(data);
+    let ostream = FileUtils.openSafeFileOutputStream(file);
 
-  let istream = converter.convertToInputStream(aData);
-  let ostream = FileUtils.openSafeFileOutputStream(aFile);
-
-  NetUtil.asyncCopy(istream, ostream, function(status) {
-    if (!Components.isSuccessCode(status)) {
-      info("Coudln't write to " + aFile.path);
-      return;
-    }
-    deferred.resolve(aFile);
+    NetUtil.asyncCopy(istream, ostream, function (status) {
+      if (!Components.isSuccessCode(status)) {
+        info("Coudln't write to " + file.path);
+        return;
+      }
+      resolve(file);
+    });
   });
-
-  return deferred.promise;
 }

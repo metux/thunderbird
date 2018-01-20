@@ -5,7 +5,6 @@
 
 #include "nsDirectoryServiceDefs.h"
 #include "nsIDOMElement.h"
-#include "nsIDOMHTMLImageElement.h"
 #include "nsIImageLoadingContent.h"
 #include "nsIDocument.h"
 #include "nsIContent.h"
@@ -20,7 +19,7 @@
 #include "nsIProperties.h"
 #include "nsServiceManagerUtils.h"
 #include "nsShellService.h"
-#include "nsStringAPI.h"
+#include "nsString.h"
 #include "nsIDocShell.h"
 #include "nsILoadContext.h"
 
@@ -56,12 +55,6 @@ nsMacShellService::IsDefaultBrowser(bool aStartupCheck,
     *aIsDefaultBrowser = ::CFStringCompare(firefoxID, defaultBrowserID, 0) == kCFCompareEqualTo;
     ::CFRelease(defaultBrowserID);
   }
-
-  // If this is the first browser window, maintain internal state that we've
-  // checked this session (so that subsequent window opens don't show the 
-  // default browser dialog).
-  if (aStartupCheck)
-    mCheckedThisSession = true;
 
   return NS_OK;
 }
@@ -104,46 +97,9 @@ nsMacShellService::SetDefaultBrowser(bool aClaimAllTypes, bool aForAllUsers)
 }
 
 NS_IMETHODIMP
-nsMacShellService::GetShouldCheckDefaultBrowser(bool* aResult)
-{
-  // If we've already checked, the browser has been started and this is a 
-  // new window open, and we don't want to check again.
-  if (mCheckedThisSession) {
-    *aResult = false;
-    return NS_OK;
-  }
-
-  nsresult rv;
-  nsCOMPtr<nsIPrefBranch> prefs(do_GetService(NS_PREFSERVICE_CONTRACTID, &rv));
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-
-  return prefs->GetBoolPref(PREF_CHECKDEFAULTBROWSER, aResult);
-}
-
-NS_IMETHODIMP
-nsMacShellService::SetShouldCheckDefaultBrowser(bool aShouldCheck)
-{
-  nsresult rv;
-  nsCOMPtr<nsIPrefBranch> prefs(do_GetService(NS_PREFSERVICE_CONTRACTID, &rv));
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-
-  return prefs->SetBoolPref(PREF_CHECKDEFAULTBROWSER, aShouldCheck);
-}
-
-NS_IMETHODIMP
-nsMacShellService::GetCanSetDesktopBackground(bool* aResult)
-{
-  *aResult = true;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsMacShellService::SetDesktopBackground(nsIDOMElement* aElement, 
-                                        int32_t aPosition)
+nsMacShellService::SetDesktopBackground(nsIDOMElement* aElement,
+                                        int32_t aPosition,
+                                        const nsACString& aImageName)
 {
   // Note: We don't support aPosition on OS X.
 
@@ -164,16 +120,6 @@ nsMacShellService::SetDesktopBackground(nsIDOMElement* aElement,
   if (!docURI)
     return NS_ERROR_FAILURE;
 
-  // Get the desired image file name
-  nsCOMPtr<nsIURL> imageURL(do_QueryInterface(imageURI));
-  if (!imageURL) {
-    // XXXmano (bug 300293): Non-URL images (e.g. the data: protocol) are not
-    // yet supported. What filename should we take here?
-    return NS_ERROR_NOT_IMPLEMENTED;
-  }
-
-  nsAutoCString fileName;
-  imageURL->GetFileName(fileName);
   nsCOMPtr<nsIProperties> fileLocator
     (do_GetService("@mozilla.org/file/directory_service;1", &rv));
   NS_ENSURE_SUCCESS(rv, rv);
@@ -185,7 +131,7 @@ nsMacShellService::SetDesktopBackground(nsIDOMElement* aElement,
     return NS_ERROR_OUT_OF_MEMORY;
 
   nsAutoString fileNameUnicode;
-  CopyUTF8toUTF16(fileName, fileNameUnicode);
+  CopyUTF8toUTF16(aImageName, fileNameUnicode);
 
   // and add the imgage file name itself:
   mBackgroundFile->Append(fileNameUnicode);
@@ -195,7 +141,7 @@ nsMacShellService::SetDesktopBackground(nsIDOMElement* aElement,
     (do_CreateInstance("@mozilla.org/embedding/browser/nsWebBrowserPersist;1", &rv));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  uint32_t flags = nsIWebBrowserPersist::PERSIST_FLAGS_NO_CONVERSION | 
+  uint32_t flags = nsIWebBrowserPersist::PERSIST_FLAGS_NO_CONVERSION |
                    nsIWebBrowserPersist::PERSIST_FLAGS_REPLACE_EXISTING_FILES |
                    nsIWebBrowserPersist::PERSIST_FLAGS_FROM_CACHE;
 
@@ -409,14 +355,14 @@ nsMacShellService::OpenApplicationWithURI(nsIFile* aApplication, const nsACStrin
   nsresult rv = lfm->GetCFURL(&appURL);
   if (NS_FAILED(rv))
     return rv;
-  
+
   const nsCString spec(aURI);
   const UInt8* uriString = (const UInt8*)spec.get();
   CFURLRef uri = ::CFURLCreateWithBytes(nullptr, uriString, aURI.Length(),
                                         kCFStringEncodingUTF8, nullptr);
-  if (!uri) 
+  if (!uri)
     return NS_ERROR_OUT_OF_MEMORY;
-  
+
   CFArrayRef uris = ::CFArrayCreate(nullptr, (const void**)&uri, 1, nullptr);
   if (!uris) {
     ::CFRelease(uri);
@@ -429,12 +375,12 @@ nsMacShellService::OpenApplicationWithURI(nsIFile* aApplication, const nsACStrin
   launchSpec.passThruParams = nullptr;
   launchSpec.launchFlags = kLSLaunchDefaults;
   launchSpec.asyncRefCon = nullptr;
-  
+
   OSErr err = ::LSOpenFromURLSpec(&launchSpec, nullptr);
-  
+
   ::CFRelease(uris);
   ::CFRelease(uri);
-  
+
   return err != noErr ? NS_ERROR_FAILURE : NS_OK;
 }
 

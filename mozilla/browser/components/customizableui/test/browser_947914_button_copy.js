@@ -7,58 +7,57 @@
 var initialLocation = gBrowser.currentURI.spec;
 var globalClipboard;
 
-add_task(function() {
-  info("Check copy button existence and functionality");
+add_task(async function() {
+  await BrowserTestUtils.withNewTab({gBrowser, url: "about:blank"}, async function() {
+    info("Check copy button existence and functionality");
+    CustomizableUI.addWidgetToArea("edit-controls", CustomizableUI.AREA_FIXED_OVERFLOW_PANEL);
 
-  let testText = "copy text test";
+    await waitForOverflowButtonShown();
 
-  gURLBar.focus();
-  info("The URL bar was focused");
-  yield PanelUI.show();
-  info("Menu panel was opened");
+    let testText = "copy text test";
 
-  let copyButton = document.getElementById("copy-button");
-  ok(copyButton, "Copy button exists in Panel Menu");
-  ok(copyButton.getAttribute("disabled"), "Copy button is initially disabled");
+    gURLBar.focus();
+    info("The URL bar was focused");
+    await document.getElementById("nav-bar").overflowable.show();
+    info("Menu panel was opened");
 
-  // copy text from URL bar
-  gURLBar.value = testText;
-  gURLBar.focus();
-  gURLBar.select();
-  yield PanelUI.show();
-  info("Menu panel was opened");
+    let copyButton = document.getElementById("copy-button");
+    ok(copyButton, "Copy button exists in Panel Menu");
+    ok(copyButton.getAttribute("disabled"), "Copy button is initially disabled");
 
-  ok(!copyButton.hasAttribute("disabled"), "Copy button is enabled when selecting");
+    // copy text from URL bar
+    gURLBar.value = testText;
+    gURLBar.focus();
+    gURLBar.select();
+    await document.getElementById("nav-bar").overflowable.show();
+    info("Menu panel was opened");
 
-  copyButton.click();
-  is(gURLBar.value, testText, "Selected text is unaltered when clicking copy");
+    ok(!copyButton.hasAttribute("disabled"), "Copy button is enabled when selecting");
 
-  // check that the text was added to the clipboard
-  let clipboard = Services.clipboard;
-  let transferable = Cc["@mozilla.org/widget/transferable;1"].createInstance(Ci.nsITransferable);
-  globalClipboard = clipboard.kGlobalClipboard;
+    copyButton.click();
+    is(gURLBar.value, testText, "Selected text is unaltered when clicking copy");
 
-  transferable.init(null);
-  transferable.addDataFlavor("text/unicode");
-  clipboard.getData(transferable, globalClipboard);
-  let str = {}, strLength = {};
-  transferable.getTransferData("text/unicode", str, strLength);
-  let clipboardValue = "";
+    // check that the text was added to the clipboard
+    let clipboard = Services.clipboard;
+    let transferable = Cc["@mozilla.org/widget/transferable;1"].createInstance(Ci.nsITransferable);
+    globalClipboard = clipboard.kGlobalClipboard;
 
-  if (str.value) {
-    str.value.QueryInterface(Ci.nsISupportsString);
-    clipboardValue = str.value.data;
-  }
-  is(clipboardValue, testText, "Data was copied to the clipboard.");
+    transferable.init(null);
+    transferable.addDataFlavor("text/unicode");
+    clipboard.getData(transferable, globalClipboard);
+    let str = {}, strLength = {};
+    transferable.getTransferData("text/unicode", str, strLength);
+    let clipboardValue = "";
+
+    if (str.value) {
+      str.value.QueryInterface(Ci.nsISupportsString);
+      clipboardValue = str.value.data;
+    }
+    is(clipboardValue, testText, "Data was copied to the clipboard.");
+  });
 });
 
-add_task(function asyncCleanup() {
-  // clear the clipboard
+registerCleanupFunction(function cleanup() {
+  CustomizableUI.reset();
   Services.clipboard.emptyClipboard(globalClipboard);
-  info("Clipboard was cleared");
-
-  // restore the tab as it was at the begining of the test
-  gBrowser.addTab(initialLocation);
-  gBrowser.removeTab(gBrowser.selectedTab);
-  info("Tabs were restored");
 });

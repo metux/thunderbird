@@ -60,6 +60,10 @@ function parseStatus(aStanza) {
   }
 
   let idleSince = 0;
+  let date = _getDelay(aStanza);
+  if (date)
+    idleSince = date.getTime();
+
   let query = aStanza.getElement(["query"]);
   if (query && query.uri == Stanza.NS.last) {
     let now = Math.floor(Date.now() / 1000);
@@ -79,6 +83,44 @@ function parseStatus(aStanza) {
 
   return {statusType: statusType, statusText: status, idleSince: idleSince};
 };
+
+// Returns a Date object for the delay value (stamp) in aStanza if it exists,
+// otherwise returns undefined.
+function _getDelay(aStanza) {
+  // XEP-0203: Delayed Delivery.
+  let date;
+  let delay = aStanza.getElement(["delay"]);
+  if (delay && delay.uri == Stanza.NS.delay) {
+    if (delay.attributes["stamp"])
+      date = new Date(delay.attributes["stamp"]);
+  }
+  if (date && isNaN(date.getTime()))
+    return undefined;
+
+  return date;
+}
+
+// Writes aMsg in aConv as an outgoing message with optional date as the
+// message may be sent from another client.
+function _displaySentMsg(aConv, aMsg, aDate) {
+  let who;
+  if (aConv._account._connection)
+    who = aConv._account._connection._jid.jid;
+  if (!who)
+    who = aConv._account.name;
+
+  let flags = {outgoing: true};
+  flags._alias = aConv.account.alias || aConv.account.statusInfo.displayName;
+
+  if (aDate) {
+    flags.time = aDate / 1000;
+    flags.delayed = true;
+  }
+  aConv.writeMessage(who, aMsg, flags);
+}
+
+// The timespan after which we consider roomInfo to be stale.
+var kListRefreshInterval = 12 * 60 * 60 * 1000; // 12 hours.
 
 /* This is an ordered list, used to determine chat buddy flags:
  *  index < member    -> noFlags
@@ -207,6 +249,8 @@ var XMPPMUCConversationPrototype = {
       let message;
       switch (error.condition) {
         case "not-authorized":
+        case "registration-required":
+          // XEP-0045 (7.2.7): Members-Only Rooms.
           message = _("conversation.error.joinFailedNotAuthorized");
           break;
         case "not-allowed":
@@ -255,7 +299,7 @@ var XMPPMUCConversationPrototype = {
                   from);
         return;
       }
-      if (codes.indexOf("303") != -1) {
+      if (codes.includes("303")) {
         // XEP-0045 (7.6): Changing Nickname.
         // Service Updates Nick for user.
         changeNick();
@@ -281,21 +325,21 @@ var XMPPMUCConversationPrototype = {
           this.left = true;
 
         let message;
-        if (codes.indexOf("301") != -1) {
+        if (codes.includes("301")) {
           // XEP-0045 (9.1): Banning a User.
           message = "conversation.message.banned";
         }
-        else if (codes.indexOf("307") != -1) {
+        else if (codes.includes("307")) {
           // XEP-0045 (8.2): Kicking an Occupant.
           message = "conversation.message.kicked";
         }
-        else if (codes.indexOf("322") != -1 || codes.indexOf("321") != -1) {
+        else if (codes.includes("322") || codes.includes("321")) {
           // XEP-0045: Inform user that he or she is being removed from the
           // room because the room has been changed to members-only and the
           // user is not a member.
           message = "conversation.message.removedNonMember";
         }
-        else if (codes.indexOf("332") != -1) {
+        else if (codes.includes("332")) {
           // XEP-0045: Inform user that he or she is being removed from the
           // room because the MUC service is being shut down.
           message = "conversation.message.mucShutdown";
@@ -324,7 +368,7 @@ var XMPPMUCConversationPrototype = {
       return;
     }
 
-    if (codes.indexOf("201") != -1) {
+    if (codes.includes("201")) {
       // XEP-0045 (10.1): Creating room.
       // Service Acknowledges Room Creation
       // and Room is awaiting configuration.
@@ -344,14 +388,14 @@ var XMPPMUCConversationPrototype = {
         return true;
       });
     }
-    else if (codes.indexOf("210") != -1) {
+    else if (codes.includes("210")) {
       // XEP-0045 (7.6): Changing Nickname.
       // Service modifies this user's nickname in accordance with local service
       // policies.
       changeNick();
       return;
     }
-    else if (codes.indexOf("110") != -1) {
+    else if (codes.includes("110")) {
       // XEP-0045: Room exists and joined successfully.
       this.left = false;
       this.joining = false;
@@ -479,13 +523,10 @@ var XMPPMUCConversationPrototype = {
 
   // Callback for ban and kick commands.
   _banKickHandler: function(aStanza) {
-    if (aStanza.attributes["type"] == "result")
-      return true;
-    let errorHandler = this._account.handleErrors({
+    return this._account._handleResult({
       notAllowed: _("conversation.error.banKickCommandNotAllowed"),
       conflict: _("conversation.error.banKickCommandConflict")
-    }, this);
-    return errorHandler(aStanza);
+    }, this)(aStanza);
   },
 
   // Changes nick in MUC conversation to a new one.
@@ -650,14 +691,64 @@ var XMPPConversationPrototype = {
     let cs = this.shouldSendTypingNotifications ? "active" : null;
     let s = Stanza.message(this.to, aMsg, cs);
     this._account.sendStanza(s);
-    let who;
-    if (this._account._connection)
-      who = this._account._connection._jid.jid;
-    if (!who)
-      who = this._account.name;
-    let alias = this.account.alias || this.account.statusInfo.displayName;
-    this.writeMessage(who, aMsg, {outgoing: true, _alias: alias});
+    _displaySentMsg(this, aMsg);
     delete this._typingState;
+  },
+
+  // Invites the contact to a MUC room.
+  invite: function(aRoomJid, aPassword = null) {
+    // XEP-0045 (7.8): Inviting Another User to a Room.
+    // XEP-0045 (7.8.1) and XEP-0249: Direct Invitation.
+    let x = Stanza.node("x", Stanza.NS.conference, {jid: aRoomJid,
+                                                    password: aPassword});
+    this._account.sendStanza(Stanza.node("message", null, {to: this.to}, x));
+  },
+
+  // Query the user for its Software Version.
+  // XEP-0092: Software Version.
+  getVersion: function() {
+    // TODO: Use Service Discovery to determine if the user's client supports
+    // jabber:iq:version protocol.
+
+    let s = Stanza.iq("get", null, this.to,
+                      Stanza.node("query", Stanza.NS.version));
+    this._account.sendStanza(s, aStanza => {
+      // TODO: handle other errors that can result from querying
+      // user for its software version.
+      if (this._account.handleErrors({
+            default: _("conversation.error.version.unknown")
+          }, this)(aStanza)) {
+        return;
+      }
+
+      let query = aStanza.getElement(["query"]);
+      if (!query || query.uri != Stanza.NS.version) {
+        this.WARN("Received a response to version query which does not " +
+                  "contain query element or 'jabber:iq:version' namespace.");
+        return;
+      }
+
+      let name = query.getElement(["name"]);
+      let version = query.getElement(["version"]);
+      if (!name || !version) {
+        // XEP-0092: name and version elements are REQUIRED.
+        this.WARN("Received a response to version query which does not " +
+                  "contain name or version.");
+        return;
+      }
+
+      let messageID = "conversation.message.version";
+      let params = [this.shortName, name.innerText, version.innerText];
+
+      // XEP-0092: os is OPTIONAL.
+      let os = query.getElement(["os"]);
+      if (os) {
+        params.push(os.innerText);
+        messageID += "WithOS";
+      }
+
+      this.writeMessage(this.name, _(messageID, ...params), {system: true});
+    });
   },
 
   /* Perform entity escaping before displaying the message. We assume incoming
@@ -679,11 +770,18 @@ var XMPPConversationPrototype = {
       let muc = this._account._mucs.get(norm);
 
       if (!aMsg) {
-        // Failed outgoing message unknown.
-        if (error.condition == "remote-server-not-found")
-          aMsg = _("conversation.error.remoteServerNotFound");
-        else
-          aMsg = _("conversation.error.unknownError");
+        // Failed outgoing message.
+        switch (error.condition) {
+          case "remote-server-not-found":
+            aMsg = _("conversation.error.remoteServerNotFound");
+            break;
+          case "service-unavailable":
+            aMsg = _("conversation.error.sendServiceUnavailable", this.shortName);
+            break;
+          default:
+            aMsg = _("conversation.error.unknownSendError");
+            break;
+        }
       }
       else if (this._isMucParticipant && muc && !muc.left &&
                error.condition == "item-not-found") {
@@ -903,11 +1001,11 @@ var XMPPAccountBuddyPrototype = {
     // Store a sha1 hash of the photo we have just received.
     let ch = Cc["@mozilla.org/security/hash;1"].createInstance(Ci.nsICryptoHash);
     ch.init(ch.SHA1);
-    let dataArray = [content.charCodeAt(i) for (i in content)];
+    let dataArray = Object.keys(content).map(i => content.charCodeAt(i));
     ch.update(dataArray, dataArray.length);
     let hash = ch.finish(false);
     function toHexString(charCode) { return ("0" + charCode.toString(16)).slice(-2); }
-    this._photoHash = [toHexString(hash.charCodeAt(i)) for (i in hash)].join("");
+    this._photoHash = Object.keys(hash).map(i => toHexString(hash.charCodeAt(i))).join("");
 
     let istream = Cc["@mozilla.org/io/string-input-stream;1"]
                   .createInstance(Ci.nsIStringInputStream);
@@ -1031,6 +1129,25 @@ function XMPPAccountBuddy(aAccount, aBuddy, aTag, aUserName)
 }
 XMPPAccountBuddy.prototype = XMPPAccountBuddyPrototype;
 
+var XMPPRoomInfoPrototype = {
+  __proto__: ClassInfo("prplIRoomInfo", "XMPP RoomInfo Object"),
+  get topic() {
+    return "";
+  },
+  get participantCount() {
+    return Ci.prplIRoomInfo.NO_PARTICIPANT_COUNT;
+  },
+  get chatRoomFieldValues() {
+    let roomJid = this._account._roomList.get(this.name);
+    return this._account.getChatRoomDefaultFieldValues(roomJid);
+  }
+};
+function XMPPRoomInfo(aName, aAccount) {
+  this.name = aName;
+  this._account = aAccount;
+}
+XMPPRoomInfo.prototype = XMPPRoomInfoPrototype;
+
 /* Helper class for account */
 var XMPPAccountPrototype = {
   __proto__: GenericAccountPrototype,
@@ -1043,8 +1160,25 @@ var XMPPAccountPrototype = {
   // discovery.
   _mucService: null,
 
+   // Maps room names to room jid.
+  _roomList: new Map(),
+
+  // Callbacks used when roomInfo is available.
+  _roomInfoCallbacks: new Set(),
+
+  // Determines if roomInfo that we have is expired or not.
+  _lastListTime: 0,
+  get isRoomInfoStale() { return Date.now() - this._lastListTime > kListRefreshInterval; },
+
+  // If true, we are waiting for replies.
+  _pendingList: false,
+
   // An array of jids for which we still need to request vCards.
   _pendingVCardRequests: [],
+
+  // XEP-0280: Message Carbons.
+  // If true, message carbons are currently enabled.
+  _isCarbonsEnabled: false,
 
   /* Generate unique id for a stanza. Using id and unique sid is defined in
    * RFC 6120 (Section 8.2.3, 4.7.3).
@@ -1175,23 +1309,21 @@ var XMPPAccountPrototype = {
   connect: function() {
     this._jid = this._parseJID(this.name);
 
-    // For the resource, if the user has edited the option to a non
-    // empty value, use that.
+    // For the resource, if the user has edited the option, always use that.
     if (this.prefs.prefHasUserValue("resource")) {
       let resource = this.getString("resource");
-      if (resource)
-        this._jid.resource = resource;
-    }
-    // Otherwise, if the username doesn't contain a resource, use the
-    // value of the resource option (it will be the default value).
-    // If we set an empty resource, XMPPSession will fallback to
-    // XMPPDefaultResource (set to brandShortName).
-    if (!this._jid.resource)
-      this._jid.resource = this.getString("resource");
 
-    //FIXME if we have changed this._jid.resource, then this._jid.jid
-    // needs to be updated. This value is however never used because
-    // while connected it's the jid of the session that's interesting.
+      // this._jid needs to be updated. This value is however never used
+      // because while connected it's the jid of the session that's
+      // interesting.
+      this._jid = this._setJID(this._jid.domain, this._jid.node, resource);
+    }
+    else if (this._jid.resource) {
+      // If there is a resource in the account name (inherited from libpurple),
+      // migrate it to the pref so it appears correctly in the advanced account
+      // options next time.
+      this.prefs.setStringPref("resource", this._jid.resource);
+    }
 
     this._connection =
       new XMPPSession(this.getString("server") || this._jid.domain,
@@ -1241,7 +1373,12 @@ var XMPPAccountPrototype = {
                                     Stanza.node("item", null, {jid: jid},
                                                 Stanza.node("group", null, null,
                                                             aTag.name))));
-      this.sendStanza(s);
+      this.sendStanza(s, this._handleResult({
+        default: (aError) => {
+          this.WARN("Unable to add a roster item due to " + aError +
+                    " error.");
+        }
+      }));
     }
     this.sendStanza(Stanza.presence({to: jid, type: "subscribe"}));
   },
@@ -1466,6 +1603,9 @@ var XMPPAccountPrototype = {
   //   in the conversation given by aThis.
   handleErrors(aHandlers, aThis) {
     return (aStanza) => {
+      if (!aHandlers)
+        return false;
+
       let error = this.parseError(aStanza);
       if (!error)
         return false;
@@ -1478,11 +1618,17 @@ var XMPPAccountPrototype = {
         return uncapitalize(aStr.split("-").map(capitalize).join(""));
       }
       let condition = toCamelCase(error.condition);
-      // Check if we have a handler property for this kind of error.
-      if (!(condition in aHandlers))
+      // Check if we have a handler property for this kind of error or a
+      // default handler.
+      if (!(condition in aHandlers) && !("default" in aHandlers))
         return false;
 
+      // Try to get the handler for condition, if we cannot get it, try to get
+      // the default handler.
       let handler = aHandlers[condition];
+      if (!handler)
+        handler = aHandlers["default"];
+
       if (typeof handler == "string") {
         // The string is an error message to be displayed in the conversation.
         if (!aThis || !aThis.writeMessage) {
@@ -1526,6 +1672,16 @@ var XMPPAccountPrototype = {
       aStanza.attributes.from, error));
   },
 
+  // Returns a callback suitable for use in sendStanza, to handle type==result
+  // responses. aHandlers and aThis are passed on to handleErrors for error
+  // handling.
+  _handleResult: function(aHandlers, aThis) {
+    return aStanza => {
+      if (aStanza.attributes["type"] == "result")
+        return true;
+      return this.handleErrors(aHandlers, aThis)(aStanza);
+    }
+  },
 
   /* XMPPSession events */
 
@@ -1542,6 +1698,11 @@ var XMPPAccountPrototype = {
     let iq = Stanza.iq("get", null, this._jid.domain,
                        Stanza.node("query", Stanza.NS.disco_items));
     this.sendStanza(iq, this.onServiceDiscovery, this);
+
+    // XEP-0030: Service Discovery Information Features.
+    iq = Stanza.iq("get", null, this._jid.domain,
+                       Stanza.node("query", Stanza.NS.disco_info));
+    this.sendStanza(iq, this.onServiceDiscoveryInfo, this);
   },
 
   /* Called whenever a stanza is received */
@@ -1596,6 +1757,27 @@ var XMPPAccountPrototype = {
         this.sendStanza(Stanza.iq("result", id, from, versionQuery));
         return;
       }
+      if (query && query.uri == Stanza.NS.disco_info) {
+        // XEP-0030: Service Discovery.
+        let children = [];
+        if (aStanza.attributes["node"] == Stanza.NS.muc_rooms) {
+          // XEP-0045 (6.7): Room query.
+          // TODO: Currently, we return an empty <query/> element, but we
+          // should return non-private rooms.
+        }
+        else {
+          children = SupportedFeatures.map(feature =>
+            Stanza.node("feature", null, {var: feature})
+          );
+          children.unshift(Stanza.node("identity", null,
+                                       {category: "client", type: "pc",
+                                        name: Services.appinfo.name}));
+        }
+        let discoveryQuery =
+          Stanza.node("query", Stanza.NS.disco_info, null, children);
+        this.sendStanza(Stanza.iq("result", id, from, discoveryQuery));
+        return;
+      }
     }
     this.WARN(`Unhandled IQ ${type} stanza.`);
   },
@@ -1624,6 +1806,11 @@ var XMPPAccountPrototype = {
       this._mucs.get(jid).onPresenceStanza(aStanza);
     else if (jid != this.normalize(this._connection._jid.jid))
       this.WARN("received presence stanza for unknown buddy " + from);
+    else if (jid == this._jid.node + "@" + this._jid.domain &&
+             this._connection._resource != this._parseJID(from).resource) {
+      // Ignore presence stanzas for another resource.
+      return;
+    }
     else
       this.WARN("Unhandled presence stanza.");
   },
@@ -1655,8 +1842,12 @@ var XMPPAccountPrototype = {
         }
         let features = query.getElements(["feature"])
                             .map(elt => elt.attributes["var"]);
-        if (features.indexOf(Stanza.NS.muc) != -1) {
+        let identity = query.getElement(["identity"]);
+        if (identity && identity.attributes["category"] == "conference" &&
+            identity.attributes["type"] == "text" &&
+            features.includes(Stanza.NS.muc)) {
           // XEP-0045 (6.2): this feature is for a MUC Service.
+          // XEP-0045 (15.2): Service Discovery Category/Type.
           this._mucService = from;
         }
         // TODO: Handle other services that are supported by XMPP through
@@ -1665,6 +1856,116 @@ var XMPPAccountPrototype = {
         return true;
       });
     });
+    return true;
+  },
+
+  // XEP-0030: Discovering Service Information and its features that are
+  // supported by the server.
+  onServiceDiscoveryInfo: function(aStanza) {
+    let query = aStanza.getElement(["query"]);
+    if (aStanza.attributes["type"] != "result" || !query ||
+        query.uri != Stanza.NS.disco_info) {
+      this.LOG("Could not get features for this server: " + this._jid.domain);
+      return true;
+    }
+
+    let features = query.getElements(["feature"])
+                        .map(elt => elt.attributes["var"]);
+    if (features.includes(Stanza.NS.carbons)) {
+      // XEP-0280: Message Carbons.
+      // Enabling Carbons on server, as it's disabled by default on server.
+      if (Services.prefs.getBoolPref("chat.xmpp.messageCarbons")) {
+        let iqStanza = Stanza.iq("set", null, null,
+                                 Stanza.node("enable", Stanza.NS.carbons));
+        this.sendStanza(iqStanza, aStanza => {
+          let error = this.parseError(aStanza);
+          if (error) {
+            this.WARN("Unable to enable message carbons due to " +
+                      error.condition + " error.");
+            return true;
+          }
+
+          let type = aStanza.attributes["type"];
+          if (type != "result") {
+            this.WARN("Received unexpected stanza with " + type + " type " +
+                      "while enabling message carbons.");
+            return true;
+          }
+
+          this.LOG("Message carbons enabled.");
+          this._isCarbonsEnabled = true;
+          return true;
+        });
+      }
+    }
+    // TODO: Handle other features that are supported by the server.
+    return true;
+  },
+
+  requestRoomInfo: function(aCallback) {
+    if (this._roomInfoCallbacks.has(aCallback))
+      return;
+
+    if (this.isRoomInfoStale && !this._pendingList) {
+      this._roomList = new Map();
+      this._lastListTime = Date.now();
+      this._roomInfoCallback = aCallback;
+      this._pendingList = true;
+
+      // XEP-0045 (6.3): Discovering Rooms.
+      let iq = Stanza.iq("get", null, this._mucService,
+                         Stanza.node("query", Stanza.NS.disco_items));
+      this.sendStanza(iq, this.onRoomDiscovery, this);
+    }
+    else {
+      let rooms = [...this._roomList.keys()];
+      aCallback.onRoomInfoAvailable(rooms, !this._pendingList, rooms.length);
+    }
+
+    if (this._pendingList)
+      this._roomInfoCallbacks.add(aCallback);
+  },
+
+  onRoomDiscovery: function(aStanza) {
+    let query = aStanza.getElement(["query"]);
+    if (!query || query.uri != Stanza.NS.disco_items) {
+      this.LOG("Could not get rooms for this server: " + this._jid.domain);
+      return true;
+    }
+
+    // XEP-0059: Result Set Management.
+    let set = query.getElement(["set"]);
+    let last = set ? set.getElement(["last"]) : null;
+    if (last) {
+      let after = Stanza.node("after", null, null, last.innerText);
+      let setNode = Stanza.node("set", Stanza.NS.rsm, null, after);
+      let iq = Stanza.iq("get", null, this._mucService,
+                         Stanza.node("query", Stanza.NS.disco_items));
+      this.sendStanza(iq, this.onRoomDiscovery, this);
+    }
+    else
+      this._pendingList = false;
+
+    let rooms = [];
+    query.getElements(["item"]).forEach(item => {
+      let jid = this._parseJID(item.attributes["jid"]);
+      if (!jid)
+        return;
+
+      let name = item.attributes["name"];
+      if (!name)
+        name = jid.node ? jid.node : jid.jid;
+
+      this._roomList.set(name, jid.jid);
+      rooms.push(name);
+    });
+
+    this._roomInfoCallback.onRoomInfoAvailable(rooms, !this._pendingList,
+                                               rooms.length);
+  },
+
+  getRoomInfo: function(aName) {
+    return new XMPPRoomInfo(aName, this);
   },
 
   // Returns null if not an invitation stanza, and an object
@@ -1721,9 +2022,36 @@ var XMPPAccountPrototype = {
 
   /* Called when a message stanza is received */
   onMessageStanza: function(aStanza) {
-    let from = aStanza.attributes["from"];
-    let norm = this.normalize(from);
-    let isMuc = this._mucs.has(norm);
+    // XEP-0280: Message Carbons.
+    // Sending and Receiving Messages.
+    // Indicates that the forwarded message was sent or received.
+    let isSent = false;
+    let carbonStanza =
+      aStanza.getElement(["sent"]) || aStanza.getElement(["received"]);
+    if (carbonStanza) {
+      if (carbonStanza.uri != Stanza.NS.carbons) {
+        this.WARN("Received a forwarded message which does not '" +
+                  Stanza.NS.carbons + "' namespace.");
+        return;
+      }
+
+      isSent = carbonStanza.localName == "sent";
+      carbonStanza = carbonStanza.getElement(["forwarded", "message"]);
+      if (this._isCarbonsEnabled)
+        aStanza = carbonStanza;
+      else {
+        this.WARN("Received an unexpected forwarded message while message " +
+                  "carbons are not enabled.");
+        return;
+      }
+    }
+
+    // For forwarded sent messages, we need to use "to" attribute to
+    // get the right conversation as from in this case is this account.
+    let convJid = isSent ? aStanza.attributes["to"] : aStanza.attributes["from"];
+
+    let normConvJid = this.normalize(convJid);
+    let isMuc = this._mucs.has(normConvJid);
 
     let type = aStanza.attributes["type"];
     let x = aStanza.getElement(["x"]);
@@ -1755,82 +2083,88 @@ var XMPPAccountPrototype = {
       // <subject/> but no <body/> element shall be considered a subject change
       // for MUC, but we ignore that to be compatible with ejabberd versions
       // before 15.06.
-      let muc = this._mucs.get(norm);
-      let nick = this._parseJID(from).resource;
+      let muc = this._mucs.get(normConvJid);
+      let nick = this._parseJID(convJid).resource;
       // TODO There can be multiple subject elements with different xml:lang
       // attributes.
       muc.setTopic(subject.innerText, nick);
       return;
     }
 
-    if (body) {
-      let date;
-      let delay = aStanza.getElement(["delay"]);
-      if (delay && delay.uri == Stanza.NS.delay) {
-        if (delay.attributes["stamp"])
-          date = new Date(delay.attributes["stamp"]);
+    let invitation = this.parseInvitation(aStanza);
+    if (invitation) {
+      let messageID;
+      if (invitation.reason)
+        messageID = "conversation.muc.invitationWithReason2";
+      else
+        messageID = "conversation.muc.invitationWithoutReason";
+      if (invitation.password)
+        messageID += ".password";
+      let params =
+        [invitation.from, invitation.mucJid, invitation.password,
+         invitation.reason].filter(s => s);
+      let message = _(messageID, ...params);
+
+      if (Services.prefs.getIntPref("messenger.conversations.autoAcceptChatInvitations") == 1) {
+        // Auto-accept the invitation.
+        let chatRoomFields = this.getChatRoomDefaultFieldValues(invitation.mucJid);
+        if (invitation.password)
+          chatRoomFields.setValue("password", invitation.password);
+        let muc = this.joinChat(chatRoomFields);
+        muc.writeMessage(muc.name, message, {system: true});
       }
-      if (date && isNaN(date))
-        date = undefined;
+      else {
+        // Otherwise, just notify the user.
+        let conv = this.createConversation(invitation.from);
+        if (conv)
+          conv.writeMessage(invitation.from, message, {system: true});
+      }
+    }
+
+    if (body) {
+      let date = _getDelay(aStanza);
       if (type == "groupchat" ||
-          (type == "error" && isMuc && !this._conv.has(from))) {
+          (type == "error" && isMuc && !this._conv.has(convJid))) {
         if (!isMuc) {
-          this.WARN("Received a groupchat message for unknown MUC " + norm);
+          this.WARN("Received a groupchat message for unknown MUC " + normConvJid);
           return;
         }
-        let muc = this._mucs.get(norm);
+        let muc = this._mucs.get(normConvJid);
         muc.incomingMessage(body, aStanza, date);
         return;
       }
 
-      let invitation = this.parseInvitation(aStanza);
-      if (invitation) {
-        if (invitation.reason) {
-          body = _("conversation.muc.invitationWithReason",
-                   invitation.from, invitation.mucJid, invitation.reason);
-        }
-        else {
-          body = _("conversation.muc.invitationWithoutReason",
-                   invitation.from, invitation.mucJid);
-        }
-        if (Services.prefs.getIntPref("messenger.conversations.autoAcceptChatInvitations") == 1) {
-          // Auto-accept the invitation.
-          let chatRoomFields = this.getChatRoomDefaultFieldValues(invitation.mucJid);
-          if (invitation.password)
-            chatRoomFields.setValue("password", invitation.password);
-          let muc = this.joinChat(chatRoomFields);
-          muc.writeMessage(muc.name, body, {system: true});
-          return;
-        }
-        // Otherwise, just notify the user.
-        let conv = this.createConversation(invitation.from);
-        if (conv)
-          conv.writeMessage(invitation.from, body, {system: true});
-        return;
-      }
-
-      let conv = this.createConversation(from);
+      let conv = this.createConversation(convJid);
       if (!conv)
         return;
+
+      if (isSent) {
+        _displaySentMsg(conv, body, date);
+        return;
+      }
       conv.incomingMessage(body, aStanza, date);
     }
     else if (type == "error") {
-      let conv = this.createConversation(from);
+      let conv = this.createConversation(convJid);
       if (conv)
         conv.incomingMessage(null, aStanza);
     }
     else if (x && x.uri == Stanza.NS.muc_user) {
-      let muc = this._mucs.get(norm);
+      let muc = this._mucs.get(normConvJid);
       if (!muc) {
-        this.WARN("Received a groupchat message for unknown MUC " + norm);
+        this.WARN("Received a groupchat message for unknown MUC " + normConvJid);
         return;
       }
       muc.onMessageStanza(aStanza);
       return;
     }
 
+    // If this is a sent message carbon, the user is typing on another client.
+    if (isSent)
+      return;
+
     // Don't create a conversation to only display the typing notifications.
-    if (!this._conv.has(norm) && !this._conv.has(from))
+    if (!this._conv.has(normConvJid) && !this._conv.has(convJid))
       return;
 
     // Ignore errors while delivering typing notifications.
@@ -1849,9 +2183,13 @@ var XMPPAccountPrototype = {
       else if (state == "paused")
         typingState = Ci.prplIConvIM.TYPED;
     }
-    let convName = norm;
+    let convName = normConvJid;
+
+    // If the bare JID is a MUC that we have joined, use the full JID as this
+    // is a private message to a MUC participant.
     if (isMuc)
-      convName = from;
+      convName = convJid;
+
     let conv = this._conv.get(convName);
     if (!conv)
       return;
@@ -1951,6 +2289,21 @@ var XMPPAccountPrototype = {
       domain: match[2].toLowerCase(),
       resource: match[3]
     };
+    return this._setJID(result.domain, result.node, result.resource);
+  },
+
+  // Constructs jid as an object from domain, node and resource parts.
+  // The object has properties (node, domain, resource and jid).
+  // aDomain is required, but aNode and aResource are optional.
+  _setJID: function(aDomain, aNode = null, aResource = null) {
+    if (!aDomain)
+      throw "aDomain must have a vaule";
+
+    let result = {
+      node: aNode,
+      domain: aDomain.toLowerCase(),
+      resource: aResource
+    };
     let jid = result.domain;
     if (result.node) {
       result.node = result.node.toLowerCase();
@@ -1999,7 +2352,7 @@ var XMPPAccountPrototype = {
     }
     else {
       let tag;
-      for each (let group in aItem.getChildren("group")) {
+      for (let group of aItem.getChildren("group")) {
         let name = group.innerText;
         if (name) {
           tag = Services.tags.createTag(name);
@@ -2050,13 +2403,13 @@ var XMPPAccountPrototype = {
   /* When the roster is received */
   onRoster: function(aStanza) {
     // For the first element that is a roster stanza.
-    for each (let qe in aStanza.getChildren("query")) {
+    for (let qe of aStanza.getChildren("query")) {
       if (qe.uri != Stanza.NS.roster)
         continue;
 
       // Find all the roster items in the new message.
       let newRoster = new Set();
-      for each (let item in qe.getChildren("item")) {
+      for (let item of qe.getChildren("item")) {
         let jid = this._onRosterItem(item);
         if (jid)
           newRoster.add(jid);
@@ -2101,7 +2454,7 @@ var XMPPAccountPrototype = {
 
     // Checking that the aName can be parsed and is not broken.
     let jid = this._parseJID(convName);
-    if (!jid || !jid.node || (isMucParticipant && !jid.resource)) {
+    if (!jid || !jid.domain || (isMucParticipant && (!jid.node || !jid.resource))) {
       this.ERROR("Could not create conversation as jid is broken: " + convName);
       throw "Invalid JID";
     }
@@ -2236,6 +2589,20 @@ var XMPPAccountPrototype = {
                                  .replace(/.{74}/g, "$&\n");
       }
     }
+    else {
+      // Downloading the vCard failed.
+      if (this.handleErrors({
+          itemNotFound: () => false,  // OK, no vCard exists yet.
+          default: () => true
+        })(aStanza)) {
+        this.WARN("Unexpected error retrieving the user's vcard, " +
+          "so we won't attempt to set it either.");
+        return;
+      }
+      // Set this so that we don't get into an infinite loop trying to download
+      // the vcard again. The check in sendVCard is for hasOwnProperty.
+      this._userVCard = null;
+    }
     this._sendVCard();
   },
 
@@ -2252,17 +2619,18 @@ var XMPPAccountPrototype = {
     }
 
     this._cachingUserIcon = true;
-    let channel = Services.io.newChannelFromURI2(userIcon,
-      null, Services.scriptSecurityManager.getSystemPrincipal(), null,
-      Ci.nsILoadInfo.SEC_NORMAL, Ci.nsIContentPolicy.TYPE_IMAGE);
+    let channel = NetUtil.newChannel({
+      uri: userIcon,
+      loadingPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
+      securityFlags: Ci.nsILoadInfo.SEC_REQUIRE_SAME_ORIGIN_DATA_INHERITS,
+      contentPolicyType: Ci.nsIContentPolicy.TYPE_IMAGE
+    });
     NetUtil.asyncFetch(channel, (inputStream, resultCode) => {
       if (!Components.isSuccessCode(resultCode))
         return;
       try {
-        let readImage = {value: null};
         let type = channel.contentType;
-        imgTools.decodeImageData(inputStream, type, readImage);
-        readImage = readImage.value;
+        let readImage = imgTools.decodeImage(inputStream, type);
         let scaledImage;
         if (readImage.width <= 96 && readImage.height <= 96)
           scaledImage = imgTools.encodeImage(readImage, type);
@@ -2368,7 +2736,7 @@ var XMPPAccountPrototype = {
     // any further action).
     if (this._userVCard.getXML() != existingVCard) {
       this.sendStanza(Stanza.iq("set", null, null, this._userVCard),
-        aStanza => aStanza.attributes.type == "result");
+                      this._handleResult());
     }
     else
       this.LOG("Not sending the vCard because the server stored vCard is identical.");

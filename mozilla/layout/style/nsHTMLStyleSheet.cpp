@@ -1,16 +1,8 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- *
- * This Original Code has been modified by IBM Corporation. Modifications made by IBM 
- * described herein are Copyright (c) International Business Machines Corporation, 2000.
- * Modifications to Mozilla code or documentation identified per MPL Section 3.3
- *
- * Date             Modified by     Description of modification
- * 04/20/2000       IBM Corp.      OS/2 VisualAge build.
- */
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /*
  * style sheet and style rule processor representing data from presentational
@@ -33,7 +25,10 @@
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/dom/Element.h"
 #include "nsHashKeys.h"
-#include "RestyleManager.h"
+#include "mozilla/OperatorNewExtensions.h"
+#include "mozilla/RestyleManager.h"
+#include "mozilla/RestyleManagerInlines.h"
+#include "mozilla/ServoStyleSet.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -57,6 +52,14 @@ nsHTMLStyleSheet::HTMLColorRule::MightMapInheritedStyleData()
   return true;
 }
 
+/* virtual */ bool
+nsHTMLStyleSheet::HTMLColorRule::
+GetDiscretelyAnimatedCSSValue(nsCSSPropertyID aProperty, nsCSSValue* aValue)
+{
+  MOZ_ASSERT(false, "GetDiscretelyAnimatedCSSValue is not implemented yet");
+  return false;
+}
+
 #ifdef DEBUG
 /* virtual */ void
 nsHTMLStyleSheet::HTMLColorRule::List(FILE* out, int32_t aIndent) const
@@ -69,7 +72,7 @@ nsHTMLStyleSheet::HTMLColorRule::List(FILE* out, int32_t aIndent) const
 }
 #endif
 
- 
+
 NS_IMPL_ISUPPORTS(nsHTMLStyleSheet::GenericTableRule, nsIStyleRule)
 
 #ifdef DEBUG
@@ -102,6 +105,14 @@ nsHTMLStyleSheet::TableTHRule::MightMapInheritedStyleData()
   return true;
 }
 
+/* virtual */ bool
+nsHTMLStyleSheet::TableTHRule::
+GetDiscretelyAnimatedCSSValue(nsCSSPropertyID aProperty, nsCSSValue* aValue)
+{
+  MOZ_ASSERT(false, "GetDiscretelyAnimatedCSSValue is not implemented yet");
+  return false;
+}
+
 /* virtual */ void
 nsHTMLStyleSheet::TableQuirkColorRule::MapRuleInfoInto(nsRuleData* aRuleData)
 {
@@ -121,6 +132,13 @@ nsHTMLStyleSheet::TableQuirkColorRule::MightMapInheritedStyleData()
   return true;
 }
 
+/* virtual */ bool
+nsHTMLStyleSheet::TableQuirkColorRule::
+GetDiscretelyAnimatedCSSValue(nsCSSPropertyID aProperty, nsCSSValue* aValue)
+{
+  MOZ_ASSERT(false, "GetDiscretelyAnimatedCSSValue is not implemented yet");
+  return false;
+}
 
 NS_IMPL_ISUPPORTS(nsHTMLStyleSheet::LangRule, nsIStyleRule)
 
@@ -130,7 +148,8 @@ nsHTMLStyleSheet::LangRule::MapRuleInfoInto(nsRuleData* aRuleData)
   if (aRuleData->mSIDs & NS_STYLE_INHERIT_BIT(Font)) {
     nsCSSValue* lang = aRuleData->ValueForLang();
     if (lang->GetUnit() == eCSSUnit_Null) {
-      lang->SetStringValue(mLang, eCSSUnit_Ident);
+      RefPtr<nsAtom> langAtom = mLang;
+      lang->SetAtomIdentValue(langAtom.forget());
     }
   }
 }
@@ -139,6 +158,14 @@ nsHTMLStyleSheet::LangRule::MapRuleInfoInto(nsRuleData* aRuleData)
 nsHTMLStyleSheet::LangRule::MightMapInheritedStyleData()
 {
   return true;
+}
+
+/* virtual */ bool
+nsHTMLStyleSheet::LangRule::
+GetDiscretelyAnimatedCSSValue(nsCSSPropertyID aProperty, nsCSSValue* aValue)
+{
+  MOZ_ASSERT(false, "GetDiscretelyAnimatedCSSValue is not implemented yet");
+  return false;
 }
 
 #ifdef DEBUG
@@ -150,7 +177,7 @@ nsHTMLStyleSheet::LangRule::List(FILE* out, int32_t aIndent) const
     str.AppendLiteral("  ");
   }
   str.AppendLiteral("[lang rule] { language: \"");
-  AppendUTF16toUTF8(mLang, str);
+  AppendUTF16toUTF8(nsDependentAtomString(mLang), str);
   str.AppendLiteral("\" }\n");
   fprintf_stderr(out, "%s", str.get());
 }
@@ -163,7 +190,7 @@ struct MappedAttrTableEntry : public PLDHashEntryHdr {
 };
 
 static PLDHashNumber
-MappedAttrTable_HashKey(PLDHashTable *table, const void *key)
+MappedAttrTable_HashKey(const void *key)
 {
   nsMappedAttributes *attributes =
     static_cast<nsMappedAttributes*>(const_cast<void*>(key));
@@ -181,8 +208,7 @@ MappedAttrTable_ClearEntry(PLDHashTable *table, PLDHashEntryHdr *hdr)
 }
 
 static bool
-MappedAttrTable_MatchEntry(PLDHashTable *table, const PLDHashEntryHdr *hdr,
-                           const void *key)
+MappedAttrTable_MatchEntry(const PLDHashEntryHdr *hdr, const void *key)
 {
   nsMappedAttributes *attributes =
     static_cast<nsMappedAttributes*>(const_cast<void*>(key));
@@ -207,10 +233,10 @@ struct LangRuleTableEntry : public PLDHashEntryHdr {
 };
 
 static PLDHashNumber
-LangRuleTable_HashKey(PLDHashTable *table, const void *key)
+LangRuleTable_HashKey(const void *key)
 {
-  const nsString *lang = static_cast<const nsString*>(key);
-  return HashString(*lang);
+  auto* lang = static_cast<const nsAtom*>(key);
+  return lang->hash();
 }
 
 static void
@@ -223,24 +249,23 @@ LangRuleTable_ClearEntry(PLDHashTable *table, PLDHashEntryHdr *hdr)
 }
 
 static bool
-LangRuleTable_MatchEntry(PLDHashTable *table, const PLDHashEntryHdr *hdr,
-                         const void *key)
+LangRuleTable_MatchEntry(const PLDHashEntryHdr *hdr, const void *key)
 {
-  const nsString *lang = static_cast<const nsString*>(key);
+  auto* lang = static_cast<const nsAtom*>(key);
   const LangRuleTableEntry *entry = static_cast<const LangRuleTableEntry*>(hdr);
 
-  return entry->mRule->mLang == *lang;
+  return entry->mRule->mLang == lang;
 }
 
 static void
 LangRuleTable_InitEntry(PLDHashEntryHdr *hdr, const void *key)
 {
-  const nsString *lang = static_cast<const nsString*>(key);
+  auto* lang = static_cast<const nsAtom*>(key);
 
-  LangRuleTableEntry *entry = new (hdr) LangRuleTableEntry();
+  LangRuleTableEntry* entry = new (KnownNotNull, hdr) LangRuleTableEntry();
 
   // Create the unique rule for this language
-  entry->mRule = new nsHTMLStyleSheet::LangRule(*lang);
+  entry->mRule = new nsHTMLStyleSheet::LangRule(const_cast<nsAtom*>(lang));
 }
 
 static const PLDHashTableOps LangRuleTable_Ops = {
@@ -258,6 +283,7 @@ nsHTMLStyleSheet::nsHTMLStyleSheet(nsIDocument* aDocument)
   , mTableQuirkColorRule(new TableQuirkColorRule())
   , mTableTHRule(new TableTHRule())
   , mMappedAttrTable(&MappedAttrTable_Ops, sizeof(MappedAttrTableEntry))
+  , mMappedAttrsDirty(false)
   , mLangRuleTable(&LangRuleTable_Ops, sizeof(LangRuleTableEntry))
 {
   MOZ_ASSERT(aDocument);
@@ -276,7 +302,6 @@ nsHTMLStyleSheet::RulesMatching(ElementRuleProcessorData* aData)
         EventStates state =
           nsCSSRuleProcessor::GetContentStateForVisitedHandling(
                                   aData->mElement,
-                                  aData->mTreeMatchContext,
                                   aData->mTreeMatchContext.VisitedHandling(),
                                   // If the node being matched is a link,
                                   // it's the relevant link.
@@ -318,16 +343,17 @@ nsHTMLStyleSheet::RulesMatching(ElementRuleProcessorData* aData)
   // http://www.whatwg.org/specs/web-apps/current-work/multipage/elements.html#language
   // says that the xml:lang attribute overrides HTML's lang attribute,
   // so we need to do this after WalkContentStyleRules.
-  nsString lang;
-  if (aData->mElement->GetAttr(kNameSpaceID_XML, nsGkAtoms::lang, lang)) {
-    ruleWalker->Forward(LangRuleFor(lang));
+  const nsAttrValue* langAttr =
+    aData->mElement->GetParsedAttr(nsGkAtoms::lang, kNameSpaceID_XML);
+  if (langAttr) {
+    MOZ_ASSERT(langAttr->Type() == nsAttrValue::eAtom);
+    ruleWalker->Forward(LangRuleFor(langAttr->GetAtomValue()));
   }
 
   // Set the language to "x-math" on the <math> element, so that appropriate
   // font settings are used for MathML.
   if (aData->mElement->IsMathMLElement(nsGkAtoms::math)) {
-    nsGkAtoms::x_math->ToString(lang);
-    ruleWalker->Forward(LangRuleFor(lang));
+    ruleWalker->Forward(LangRuleFor(nsGkAtoms::x_math));
   }
 }
 
@@ -342,7 +368,7 @@ nsHTMLStyleSheet::HasStateDependentStyle(StateRuleProcessorData* aData)
        (mVisitedRule && aData->mStateMask.HasState(NS_EVENT_STATE_VISITED)))) {
     return eRestyle_Self;
   }
-  
+
   return nsRestyleHint(0);
 }
 
@@ -445,30 +471,49 @@ nsHTMLStyleSheet::Reset()
   mVisitedRule       = nullptr;
   mActiveRule        = nullptr;
 
+  mServoUnvisitedLinkDecl = nullptr;
+  mServoVisitedLinkDecl = nullptr;
+  mServoActiveLinkDecl = nullptr;
+
   mLangRuleTable.Clear();
   mMappedAttrTable.Clear();
+  mMappedAttrsDirty = false;
 }
 
 nsresult
-nsHTMLStyleSheet::ImplLinkColorSetter(RefPtr<HTMLColorRule>& aRule, nscolor aColor)
+nsHTMLStyleSheet::ImplLinkColorSetter(
+    RefPtr<HTMLColorRule>& aRule,
+    RefPtr<RawServoDeclarationBlock>& aDecl,
+    nscolor aColor)
 {
-  if (aRule && aRule->mColor == aColor) {
+  if (!mDocument || !mDocument->GetShell()) {
     return NS_OK;
   }
 
-  aRule = new HTMLColorRule();
-  if (!aRule)
-    return NS_ERROR_OUT_OF_MEMORY;
+  RestyleManager* restyle =
+    mDocument->GetShell()->GetPresContext()->RestyleManager();
 
-  aRule->mColor = aColor;
+  if (restyle->IsServo()) {
+    MOZ_ASSERT(!ServoStyleSet::IsInServoTraversal());
+    aDecl = Servo_DeclarationBlock_CreateEmpty().Consume();
+    Servo_DeclarationBlock_SetColorValue(aDecl.get(), eCSSProperty_color,
+                                         aColor);
+  } else {
+    if (aRule && aRule->mColor == aColor) {
+      return NS_OK;
+    }
+
+    aRule = new HTMLColorRule(aColor);
+    if (!aRule) {
+      return NS_ERROR_OUT_OF_MEMORY;
+    }
+  }
+
   // Now make sure we restyle any links that might need it.  This
   // shouldn't happen often, so just rebuilding everything is ok.
-  if (mDocument && mDocument->GetShell()) {
-    Element* root = mDocument->GetRootElement();
-    if (root) {
-      mDocument->GetShell()->GetPresContext()->RestyleManager()->
-        PostRestyleEvent(root, eRestyle_Subtree, NS_STYLE_HINT_NONE);
-    }
+  Element* root = mDocument->GetRootElement();
+  if (root) {
+    restyle->PostRestyleEvent(root, eRestyle_Subtree, nsChangeHint(0));
   }
   return NS_OK;
 }
@@ -476,25 +521,26 @@ nsHTMLStyleSheet::ImplLinkColorSetter(RefPtr<HTMLColorRule>& aRule, nscolor aCol
 nsresult
 nsHTMLStyleSheet::SetLinkColor(nscolor aColor)
 {
-  return ImplLinkColorSetter(mLinkRule, aColor);
+  return ImplLinkColorSetter(mLinkRule, mServoUnvisitedLinkDecl, aColor);
 }
 
 
 nsresult
 nsHTMLStyleSheet::SetActiveLinkColor(nscolor aColor)
 {
-  return ImplLinkColorSetter(mActiveRule, aColor);
+  return ImplLinkColorSetter(mActiveRule, mServoActiveLinkDecl, aColor);
 }
 
 nsresult
 nsHTMLStyleSheet::SetVisitedLinkColor(nscolor aColor)
 {
-  return ImplLinkColorSetter(mVisitedRule, aColor);
+  return ImplLinkColorSetter(mVisitedRule, mServoVisitedLinkDecl, aColor);
 }
 
 already_AddRefed<nsMappedAttributes>
 nsHTMLStyleSheet::UniqueMappedAttributes(nsMappedAttributes* aMapped)
 {
+  mMappedAttrsDirty = true;
   auto entry = static_cast<MappedAttrTableEntry*>
                           (mMappedAttrTable.Add(aMapped, fallible));
   if (!entry)
@@ -511,7 +557,6 @@ void
 nsHTMLStyleSheet::DropMappedAttributes(nsMappedAttributes* aMapped)
 {
   NS_ENSURE_TRUE_VOID(aMapped);
-
 #ifdef DEBUG
   uint32_t entryCount = mMappedAttrTable.EntryCount() - 1;
 #endif
@@ -521,11 +566,27 @@ nsHTMLStyleSheet::DropMappedAttributes(nsMappedAttributes* aMapped)
   NS_ASSERTION(entryCount == mMappedAttrTable.EntryCount(), "not removed");
 }
 
+void
+nsHTMLStyleSheet::CalculateMappedServoDeclarations(nsPresContext* aPresContext)
+{
+  MOZ_ASSERT(!mDocument->GetShell() ||
+             mDocument->GetShell()->GetPresContext() == aPresContext);
+
+  for (auto iter = mMappedAttrTable.Iter(); !iter.Done(); iter.Next()) {
+    MappedAttrTableEntry* attr = static_cast<MappedAttrTableEntry*>(iter.Get());
+    if (attr->mAttributes->GetServoStyle()) {
+      // Only handle cases which haven't been filled in already
+      continue;
+    }
+    attr->mAttributes->LazilyResolveServoDeclaration(aPresContext);
+  }
+}
+
 nsIStyleRule*
-nsHTMLStyleSheet::LangRuleFor(const nsString& aLanguage)
+nsHTMLStyleSheet::LangRuleFor(const nsAtom* aLanguage)
 {
   auto entry =
-    static_cast<LangRuleTableEntry*>(mLangRuleTable.Add(&aLanguage, fallible));
+    static_cast<LangRuleTableEntry*>(mLangRuleTable.Add(aLanguage, fallible));
   if (!entry) {
     NS_ASSERTION(false, "out of memory");
     return nullptr;

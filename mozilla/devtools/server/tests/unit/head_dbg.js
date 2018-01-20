@@ -1,5 +1,7 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
+/* eslint no-unused-vars: ["error", {"vars": "local"}] */
+/* eslint-disable no-shadow */
 
 "use strict";
 var Cc = Components.classes;
@@ -8,11 +10,25 @@ var Cu = Components.utils;
 var Cr = Components.results;
 var CC = Components.Constructor;
 
+// Populate AppInfo before anything (like the shared loader) accesses
+// System.appinfo, which is a lazy getter.
+const _appInfo = {};
+Cu.import("resource://testing-common/AppInfo.jsm", _appInfo);
+_appInfo.updateAppInfo({
+  ID: "devtools@tests.mozilla.org",
+  name: "devtools-tests",
+  version: "1",
+  platformVersion: "42",
+  crashReporter: true,
+});
+
 const { require, loader } = Cu.import("resource://devtools/shared/Loader.jsm", {});
-const { worker } = Cu.import("resource://devtools/shared/worker/loader.js", {})
+const { worker } = Cu.import("resource://devtools/shared/worker/loader.js", {});
 const promise = require("promise");
-const { Task } = Cu.import("resource://gre/modules/Task.jsm", {});
-const { promiseInvoke } = require("devtools/shared/async-utils");
+const defer = require("devtools/shared/defer");
+const { Task } = require("devtools/shared/task");
+const { console } = require("resource://gre/modules/Console.jsm");
+const { NetUtil } = require("resource://gre/modules/NetUtil.jsm");
 
 const Services = require("Services");
 // Always log packets when running tests. runxpcshelltests.py will throw
@@ -24,16 +40,33 @@ Services.prefs.setBoolPref("devtools.debugger.remote-enabled", true);
 const DevToolsUtils = require("devtools/shared/DevToolsUtils");
 const { DebuggerServer } = require("devtools/server/main");
 const { DebuggerServer: WorkerDebuggerServer } = worker.require("devtools/server/main");
-const { DebuggerClient, ObjectClient } = require("devtools/shared/client/main");
-const { MemoryFront } = require("devtools/server/actors/memory");
+const { DebuggerClient } = require("devtools/shared/client/debugger-client");
+const ObjectClient = require("devtools/shared/client/object-client");
+const { MemoryFront } = require("devtools/shared/fronts/memory");
 
 const { addDebuggerToGlobal } = Cu.import("resource://gre/modules/jsdebugger.jsm", {});
 
-const systemPrincipal = Cc["@mozilla.org/systemprincipal;1"].createInstance(Ci.nsIPrincipal);
+const systemPrincipal = Cc["@mozilla.org/systemprincipal;1"]
+                        .createInstance(Ci.nsIPrincipal);
 
-var loadSubScript = Cc[
-  '@mozilla.org/moz/jssubscript-loader;1'
-].getService(Ci.mozIJSSubScriptLoader).loadSubScript;
+var { loadSubScript, loadSubScriptWithOptions } =
+  Cc["@mozilla.org/moz/jssubscript-loader;1"]
+  .getService(Ci.mozIJSSubScriptLoader);
+
+/**
+ * Initializes any test that needs to work with add-ons.
+ */
+function startupAddonsManager() {
+  // Create a directory for extensions.
+  const profileDir = do_get_profile().clone();
+  profileDir.append("extensions");
+
+  const internalManager = Cc["@mozilla.org/addons/integration;1"]
+    .getService(Ci.nsIObserver)
+    .QueryInterface(Ci.nsITimerCallback);
+
+  internalManager.observe(null, "addons-startup", null);
+}
 
 /**
  * Create a `run_test` function that runs the given generator in a task after
@@ -70,7 +103,7 @@ function makeMemoryActorTest(testGeneratorFunction) {
             yield memoryFront.attach();
             yield* testGeneratorFunction(client, memoryFront);
             yield memoryFront.detach();
-          } catch(err) {
+          } catch (err) {
             DevToolsUtils.reportException("makeMemoryActorTest", err);
             ok(false, "Got an error: " + err);
           }
@@ -109,7 +142,7 @@ function makeFullRuntimeMemoryActorTest(testGeneratorFunction) {
             yield memoryFront.attach();
             yield* testGeneratorFunction(client, memoryFront);
             yield memoryFront.detach();
-          } catch(err) {
+          } catch (err) {
             DevToolsUtils.reportException("makeMemoryActorTest", err);
             ok(false, "Got an error: " + err);
           }
@@ -122,34 +155,25 @@ function makeFullRuntimeMemoryActorTest(testGeneratorFunction) {
 }
 
 function createTestGlobal(name) {
-  let sandbox = Cu.Sandbox(
-    Cc["@mozilla.org/systemprincipal;1"].createInstance(Ci.nsIPrincipal)
-  );
+  let sandbox = Cu.Sandbox(Cc["@mozilla.org/systemprincipal;1"]
+                           .createInstance(Ci.nsIPrincipal));
   sandbox.__name = name;
   return sandbox;
 }
 
 function connect(client) {
   dump("Connecting client.\n");
-  return new Promise(function (resolve) {
-    client.connect(function () {
-      resolve();
-    });
-  });
+  return client.connect();
 }
 
 function close(client) {
   dump("Closing client.\n");
-  return new Promise(function (resolve) {
-    client.close(function () {
-      resolve();
-    });
-  });
+  return client.close();
 }
 
 function listTabs(client) {
   dump("Listing tabs.\n");
-  return rdpRequest(client, client.listTabs);
+  return client.listTabs();
 }
 
 function findTab(tabs, title) {
@@ -164,7 +188,7 @@ function findTab(tabs, title) {
 
 function attachTab(client, tab) {
   dump("Attaching to tab with title '" + tab.title + "'.\n");
-  return rdpRequest(client, client.attachTab, tab.actor);
+  return client.attachTab(tab.actor);
 }
 
 function waitForNewSource(threadClient, url) {
@@ -176,17 +200,17 @@ function waitForNewSource(threadClient, url) {
 
 function attachThread(tabClient, options = {}) {
   dump("Attaching to thread.\n");
-  return rdpRequest(tabClient, tabClient.attachThread, options);
+  return tabClient.attachThread(options);
 }
 
 function resume(threadClient) {
   dump("Resuming thread.\n");
-  return rdpRequest(threadClient, threadClient.resume);
+  return threadClient.resume();
 }
 
 function getSources(threadClient) {
   dump("Getting sources.\n");
-  return rdpRequest(threadClient, threadClient.getSources);
+  return threadClient.getSources();
 }
 
 function findSource(sources, url) {
@@ -206,47 +230,45 @@ function waitForPause(threadClient) {
 
 function setBreakpoint(sourceClient, location) {
   dump("Setting breakpoint.\n");
-  return rdpRequest(sourceClient, sourceClient.setBreakpoint, location);
+  return sourceClient.setBreakpoint(location);
+}
+
+function getPrototypeAndProperties(objClient) {
+  dump("getting prototype and properties.\n");
+
+  return new Promise(resolve => {
+    objClient.getPrototypeAndProperties(response => resolve(response));
+  });
 }
 
 function dumpn(msg) {
   dump("DBG-TEST: " + msg + "\n");
 }
 
-function tryImport(url) {
-  try {
-    Cu.import(url);
-  } catch (e) {
-    dumpn("Error importing " + url);
-    dumpn(DevToolsUtils.safeErrorString(e));
-    throw e;
-  }
-}
-
-tryImport("resource://devtools/shared/Loader.jsm");
-tryImport("resource://gre/modules/Console.jsm");
-
 function testExceptionHook(ex) {
   try {
     do_report_unexpected_exception(ex);
-  } catch(ex) {
-    return {throw: ex}
+  } catch (e) {
+    return {throw: e};
   }
   return undefined;
 }
 
-// Convert an nsIScriptError 'aFlags' value into an appropriate string.
-function scriptErrorFlagsToKind(aFlags) {
-  var kind;
-  if (aFlags & Ci.nsIScriptError.warningFlag)
+// Convert an nsIScriptError 'flags' value into an appropriate string.
+function scriptErrorFlagsToKind(flags) {
+  let kind;
+  if (flags & Ci.nsIScriptError.warningFlag) {
     kind = "warning";
-  if (aFlags & Ci.nsIScriptError.exceptionFlag)
+  }
+  if (flags & Ci.nsIScriptError.exceptionFlag) {
     kind = "exception";
-  else
+  } else {
     kind = "error";
+  }
 
-  if (aFlags & Ci.nsIScriptError.strictFlag)
+  if (flags & Ci.nsIScriptError.strictFlag) {
     kind = "strict " + kind;
+  }
 
   return kind;
 }
@@ -255,24 +277,25 @@ function scriptErrorFlagsToKind(aFlags) {
 // into the ether.
 var errorCount = 0;
 var listener = {
-  observe: function (aMessage) {
+  observe: function (message) {
     try {
+      let string;
       errorCount++;
       try {
         // If we've been given an nsIScriptError, then we can print out
         // something nicely formatted, for tools like Emacs to pick up.
-        var scriptError = aMessage.QueryInterface(Ci.nsIScriptError);
-        dumpn(aMessage.sourceName + ":" + aMessage.lineNumber + ": " +
-              scriptErrorFlagsToKind(aMessage.flags) + ": " +
-              aMessage.errorMessage);
-        var string = aMessage.errorMessage;
-      } catch (x) {
+        message.QueryInterface(Ci.nsIScriptError);
+        dumpn(message.sourceName + ":" + message.lineNumber + ": " +
+              scriptErrorFlagsToKind(message.flags) + ": " +
+              message.errorMessage);
+        string = message.errorMessage;
+      } catch (e1) {
         // Be a little paranoid with message, as the whole goal here is to lose
         // no information.
         try {
-          var string = "" + aMessage.message;
-        } catch (x) {
-          var string = "<error converting error message to string>";
+          string = "" + message.message;
+        } catch (e2) {
+          string = "<error converting error message to string>";
         }
       }
 
@@ -303,8 +326,7 @@ var listener = {
 var consoleService = Cc["@mozilla.org/consoleservice;1"].getService(Ci.nsIConsoleService);
 consoleService.registerListener(listener);
 
-function check_except(func)
-{
+function check_except(func) {
   try {
     func();
   } catch (e) {
@@ -315,68 +337,68 @@ function check_except(func)
   do_check_true(false);
 }
 
-function testGlobal(aName) {
-  let systemPrincipal = Cc["@mozilla.org/systemprincipal;1"]
-    .createInstance(Ci.nsIPrincipal);
-
-  let sandbox = Cu.Sandbox(systemPrincipal);
-  sandbox.__name = aName;
+function testGlobal(name) {
+  let sandbox = Cu.Sandbox(Cc["@mozilla.org/systemprincipal;1"]
+                           .createInstance(Ci.nsIPrincipal));
+  sandbox.__name = name;
   return sandbox;
 }
 
-function addTestGlobal(aName, aServer = DebuggerServer)
-{
-  let global = testGlobal(aName);
-  aServer.addTestGlobal(global);
+function addTestGlobal(name, server = DebuggerServer) {
+  let global = testGlobal(name);
+  server.addTestGlobal(global);
   return global;
 }
 
-// List the DebuggerClient |aClient|'s tabs, look for one whose title is
-// |aTitle|, and apply |aCallback| to the packet's entry for that tab.
-function getTestTab(aClient, aTitle, aCallback) {
-  aClient.listTabs(function (aResponse) {
-    for (let tab of aResponse.tabs) {
-      if (tab.title === aTitle) {
-        aCallback(tab, aResponse);
+// List the DebuggerClient |client|'s tabs, look for one whose title is
+// |title|, and apply |callback| to the packet's entry for that tab.
+function getTestTab(client, title, callback) {
+  client.listTabs(function (response) {
+    for (let tab of response.tabs) {
+      if (tab.title === title) {
+        callback(tab, response);
         return;
       }
     }
-    aCallback(null);
+    callback(null);
   });
 }
 
-// Attach to |aClient|'s tab whose title is |aTitle|; pass |aCallback| the
+// Attach to |client|'s tab whose title is |title|; pass |callback| the
 // response packet and a TabClient instance referring to that tab.
-function attachTestTab(aClient, aTitle, aCallback) {
-  getTestTab(aClient, aTitle, function (aTab) {
-    aClient.attachTab(aTab.actor, aCallback);
+function attachTestTab(client, title, callback) {
+  getTestTab(client, title, function (tab) {
+    client.attachTab(tab.actor, callback);
   });
 }
 
-// Attach to |aClient|'s tab whose title is |aTitle|, and then attach to
-// that tab's thread. Pass |aCallback| the thread attach response packet, a
+// Attach to |client|'s tab whose title is |title|, and then attach to
+// that tab's thread. Pass |callback| the thread attach response packet, a
 // TabClient referring to the tab, and a ThreadClient referring to the
 // thread.
-function attachTestThread(aClient, aTitle, aCallback) {
-  attachTestTab(aClient, aTitle, function (aTabResponse, aTabClient) {
-    function onAttach(aResponse, aThreadClient) {
-      aCallback(aResponse, aTabClient, aThreadClient, aTabResponse);
+function attachTestThread(client, title, callback) {
+  attachTestTab(client, title, function (tabResponse, tabClient) {
+    function onAttach(response, threadClient) {
+      callback(response, tabClient, threadClient, tabResponse);
     }
-    aTabClient.attachThread({
+    tabClient.attachThread({
       useSourceMaps: true,
       autoBlackBox: true
     }, onAttach);
   });
 }
 
-// Attach to |aClient|'s tab whose title is |aTitle|, attach to the tab's
-// thread, and then resume it. Pass |aCallback| the thread's response to
+// Attach to |client|'s tab whose title is |title|, attach to the tab's
+// thread, and then resume it. Pass |callback| the thread's response to
 // the 'resume' packet, a TabClient for the tab, and a ThreadClient for the
 // thread.
-function attachTestTabAndResume(aClient, aTitle, aCallback) {
-  attachTestThread(aClient, aTitle, function(aResponse, aTabClient, aThreadClient) {
-    aThreadClient.resume(function (aResponse) {
-      aCallback(aResponse, aTabClient, aThreadClient);
+function attachTestTabAndResume(client, title, callback = () => {}) {
+  return new Promise((resolve) => {
+    attachTestThread(client, title, function (response, tabClient, threadClient) {
+      threadClient.resume(function (response) {
+        callback(response, tabClient, threadClient);
+        resolve([response, tabClient, threadClient]);
+      });
     });
   });
 }
@@ -384,11 +406,12 @@ function attachTestTabAndResume(aClient, aTitle, aCallback) {
 /**
  * Initialize the testing debugger server.
  */
-function initTestDebuggerServer(aServer = DebuggerServer)
-{
-  aServer.registerModule("xpcshell-test/testactors");
+function initTestDebuggerServer(server = DebuggerServer) {
+  server.registerModule("xpcshell-test/testactors");
   // Allow incoming connections.
-  aServer.init(function () { return true; });
+  server.init(function () {
+    return true;
+  });
 }
 
 /**
@@ -405,18 +428,16 @@ function startTestDebuggerServer(title, server = DebuggerServer) {
   return connect(client).then(() => client);
 }
 
-function finishClient(aClient)
-{
-  aClient.close(function() {
+function finishClient(client) {
+  client.close(function () {
     DebuggerServer.destroy();
     do_test_finished();
   });
 }
 
 // Create a server, connect to it and fetch tab actors for the parent process;
-// pass |aCallback| the debugger client and tab actor form with all actor IDs.
-function get_chrome_actors(callback)
-{
+// pass |callback| the debugger client and tab actor form with all actor IDs.
+function get_chrome_actors(callback) {
   if (!DebuggerServer.initialized) {
     DebuggerServer.init();
     DebuggerServer.addBrowserActors();
@@ -424,11 +445,11 @@ function get_chrome_actors(callback)
   DebuggerServer.allowChromeProcess = true;
 
   let client = new DebuggerClient(DebuggerServer.connectPipe());
-  client.connect(() => {
-    client.getProcess().then(response => {
+  client.connect()
+    .then(() => client.getProcess())
+    .then(response => {
       callback(client, response.form);
     });
-  });
 }
 
 function getChromeActors(client, server = DebuggerServer) {
@@ -439,8 +460,8 @@ function getChromeActors(client, server = DebuggerServer) {
 /**
  * Takes a relative file path and returns the absolute file url for it.
  */
-function getFileUrl(aName, aAllowMissing=false) {
-  let file = do_get_file(aName, aAllowMissing);
+function getFileUrl(name, allowMissing = false) {
+  let file = do_get_file(name, allowMissing);
   return Services.io.newFileURI(file).spec;
 }
 
@@ -448,9 +469,8 @@ function getFileUrl(aName, aAllowMissing=false) {
  * Returns the full path of the file with the specified name in a
  * platform-independent and URL-like form.
  */
-function getFilePath(aName, aAllowMissing=false, aUsePlatformPathSeparator=false)
-{
-  let file = do_get_file(aName, aAllowMissing);
+function getFilePath(name, allowMissing = false, usePlatformPathSeparator = false) {
+  let file = do_get_file(name, allowMissing);
   let path = Services.io.newFileURI(file).spec;
   let filePrePath = "file://";
   if ("nsILocalFileWin" in Ci &&
@@ -460,20 +480,18 @@ function getFilePath(aName, aAllowMissing=false, aUsePlatformPathSeparator=false
 
   path = path.slice(filePrePath.length);
 
-  if (aUsePlatformPathSeparator && path.match(/^\w:/)) {
+  if (usePlatformPathSeparator && path.match(/^\w:/)) {
     path = path.replace(/\//g, "\\");
   }
 
   return path;
 }
 
-Cu.import("resource://gre/modules/NetUtil.jsm");
-
 /**
  * Returns the full text contents of the given file.
  */
-function readFile(aFileName) {
-  let f = do_get_file(aFileName);
+function readFile(fileName) {
+  let f = do_get_file(fileName);
   let s = Cc["@mozilla.org/network/file-input-stream;1"]
     .createInstance(Ci.nsIFileInputStream);
   s.init(f, -1, -1, false);
@@ -484,16 +502,16 @@ function readFile(aFileName) {
   }
 }
 
-function writeFile(aFileName, aContent) {
-  let file = do_get_file(aFileName, true);
+function writeFile(fileName, content) {
+  let file = do_get_file(fileName, true);
   let stream = Cc["@mozilla.org/network/file-output-stream;1"]
     .createInstance(Ci.nsIFileOutputStream);
   stream.init(file, -1, -1, 0);
   try {
     do {
-      let numWritten = stream.write(aContent, aContent.length);
-      aContent = aContent.slice(numWritten);
-    } while (aContent.length > 0);
+      let numWritten = stream.write(content, content.length);
+      content = content.slice(numWritten);
+    } while (content.length > 0);
   } finally {
     stream.close();
   }
@@ -515,7 +533,7 @@ function TracingTransport(childTransport) {
 
 TracingTransport.prototype = {
   // Remove actor names
-  normalize: function(packet) {
+  normalize: function (packet) {
     return JSON.parse(JSON.stringify(packet, (key, value) => {
       if (key === "to" || key === "from" || key === "actor") {
         return "<actorid>";
@@ -523,37 +541,37 @@ TracingTransport.prototype = {
       return value;
     }));
   },
-  send: function(packet) {
+  send: function (packet) {
     this.packets.push({
       type: "sent",
       packet: this.normalize(packet)
     });
     return this.child.send(packet);
   },
-  close: function() {
+  close: function () {
     return this.child.close();
   },
-  ready: function() {
+  ready: function () {
     return this.child.ready();
   },
-  onPacket: function(packet) {
+  onPacket: function (packet) {
     this.packets.push({
       type: "received",
       packet: this.normalize(packet)
     });
     this.hooks.onPacket(packet);
   },
-  onClosed: function() {
+  onClosed: function () {
     this.hooks.onClosed();
   },
 
-  expectSend: function(expected) {
+  expectSend: function (expected) {
     let packet = this.packets[this.checkIndex++];
     do_check_eq(packet.type, "sent");
     deepEqual(packet.packet, this.normalize(expected));
   },
 
-  expectReceive: function(expected) {
+  expectReceive: function (expected) {
     let packet = this.packets[this.checkIndex++];
     do_check_eq(packet.type, "received");
     deepEqual(packet.packet, this.normalize(expected));
@@ -561,7 +579,7 @@ TracingTransport.prototype = {
 
   // Write your tests, call dumpLog at the end, inspect the output,
   // then sprinkle the calls through the right places in your test.
-  dumpLog: function() {
+  dumpLog: function () {
     for (let entry of this.packets) {
       if (entry.type === "sent") {
         dumpn("trace.expectSend(" + entry.packet + ");");
@@ -574,13 +592,13 @@ TracingTransport.prototype = {
 
 function StubTransport() { }
 StubTransport.prototype.ready = function () {};
-StubTransport.prototype.send  = function () {};
+StubTransport.prototype.send = function () {};
 StubTransport.prototype.close = function () {};
 
-function executeSoon(aFunc) {
-  Services.tm.mainThread.dispatch({
-    run: DevToolsUtils.makeInfallible(aFunc)
-  }, Ci.nsIThread.DISPATCH_NORMAL);
+function executeSoon(func) {
+  Services.tm.dispatchToMainThread({
+    run: DevToolsUtils.makeInfallible(func)
+  });
 }
 
 // The do_check_* family of functions expect their last argument to be an
@@ -621,7 +639,7 @@ var do_check_matches = function (pattern, value) {
 // destructuring objects with methods that take callbacks.
 const Async = target => new Proxy(target, Async);
 Async.get = (target, name) =>
-  typeof(target[name]) === "function" ? asyncall.bind(null, target[name], target) :
+  typeof (target[name]) === "function" ? asyncall.bind(null, target[name], target) :
   target[name];
 
 // Calls async function that takes callback and errorback and returns
@@ -686,28 +704,14 @@ function executeOnNextTickAndWaitForPause(action, client) {
   return paused;
 }
 
-/**
- * Create a promise that is resolved with the server's response to the client's
- * Remote Debugger Protocol request. If a response with the `error` property is
- * received, the promise is rejected. Any extra arguments passed in are
- * forwarded to the method invocation.
- *
- * See `setBreakpoint` below, for example usage.
- *
- * @param DebuggerClient/ThreadClient/SourceClient/etc client
- * @param Function method
- * @param any args
- * @returns Promise
- */
-function rdpRequest(client, method, ...args) {
-  return promiseInvoke(client, method, ...args)
-    .then(response => {
-      const { error, message } = response;
-      if (error) {
-        throw new Error(error + ": " + message);
-      }
-      return response;
-    });
+function evalCallback(debuggeeGlobal, func) {
+  Components.utils.evalInSandbox(
+    "(" + func + ")()",
+    debuggeeGlobal,
+    "1.8",
+    "test.js",
+    1
+  );
 }
 
 /**
@@ -718,7 +722,7 @@ function rdpRequest(client, method, ...args) {
  */
 function interrupt(threadClient) {
   dumpn("Interrupting.");
-  return rdpRequest(threadClient, threadClient.interrupt);
+  return threadClient.interrupt();
 }
 
 /**
@@ -745,8 +749,36 @@ function resumeAndWaitForPause(client, threadClient) {
 function stepIn(client, threadClient) {
   dumpn("Stepping in.");
   const paused = waitForPause(client);
-  return rdpRequest(threadClient, threadClient.stepIn)
+  return threadClient.stepIn()
     .then(() => paused);
+}
+
+/**
+ * Resume JS execution for a step over and wait for the pause after the step
+ * has been taken.
+ *
+ * @param DebuggerClient client
+ * @param ThreadClient threadClient
+ * @returns Promise
+ */
+function stepOver(client, threadClient) {
+  dumpn("Stepping over.");
+  return threadClient.stepOver()
+    .then(() => waitForPause(client));
+}
+
+/**
+ * Resume JS execution for a step out and wait for the pause after the step
+ * has been taken.
+ *
+ * @param DebuggerClient client
+ * @param ThreadClient threadClient
+ * @returns Promise
+ */
+function stepOut(client, threadClient) {
+  dumpn("Stepping out.");
+  return threadClient.stepOut()
+    .then(() => waitForPause(client));
 }
 
 /**
@@ -760,7 +792,7 @@ function stepIn(client, threadClient) {
  */
 function getFrames(threadClient, first, count) {
   dumpn("Getting frames.");
-  return rdpRequest(threadClient, threadClient.getFrames, first, count);
+  return threadClient.getFrames(first, count);
 }
 
 /**
@@ -771,7 +803,7 @@ function getFrames(threadClient, first, count) {
  */
 function blackBox(sourceClient) {
   dumpn("Black boxing source: " + sourceClient.actor);
-  return rdpRequest(sourceClient, sourceClient.blackBox);
+  return sourceClient.blackBox();
 }
 
 /**
@@ -782,7 +814,7 @@ function blackBox(sourceClient) {
  */
 function unBlackBox(sourceClient) {
   dumpn("Un-black boxing source: " + sourceClient.actor);
-  return rdpRequest(sourceClient, sourceClient.unblackBox);
+  return sourceClient.unblackBox();
 }
 
 /**
@@ -794,7 +826,7 @@ function unBlackBox(sourceClient) {
  */
 function getSourceContent(sourceClient) {
   dumpn("Getting source content for " + sourceClient.actor);
-  return rdpRequest(sourceClient, sourceClient.source);
+  return sourceClient.source();
 }
 
 /**
@@ -805,15 +837,14 @@ function getSourceContent(sourceClient) {
  * @returns Promise<SourceClient>
  */
 function getSource(threadClient, url) {
-  let deferred = promise.defer();
+  let deferred = defer();
   threadClient.getSources((res) => {
-    let source = res.sources.filter(function(s) {
+    let source = res.sources.filter(function (s) {
       return s.url === url;
     });
     if (source.length) {
       deferred.resolve(threadClient.source(source[0]));
-    }
-    else {
+    } else {
       deferred.reject(new Error("source not found"));
     }
   });
@@ -827,7 +858,7 @@ function getSource(threadClient, url) {
  * @returns Promise<response>
  */
 function reload(tabClient) {
-  let deferred = promise.defer();
+  let deferred = defer();
   tabClient._reload({}, deferred.resolve);
   return deferred.promise;
 }

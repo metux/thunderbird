@@ -86,13 +86,11 @@ nsMsgNewsFolder::nsMsgNewsFolder(void) :
      m_downloadMessageForOfflineUse(false), m_downloadingMultipleMessages(false),
      mReadSet(nullptr), mSortOrder(kNewsSortOffset)
 {
-  MOZ_COUNT_CTOR(nsMsgNewsFolder); // double count these for now.
   mFolderSize = kSizeUnknown;
 }
 
 nsMsgNewsFolder::~nsMsgNewsFolder(void)
 {
-  MOZ_COUNT_DTOR(nsMsgNewsFolder);
   delete mReadSet;
 }
 
@@ -204,7 +202,7 @@ nsMsgNewsFolder::AddNewsgroup(const nsACString &name, const nsACString& setStr,
 
   mSubFolders.AppendObject(folder);
   folder->SetParent(this);
-  folder.swap(*child);
+  folder.forget(child);
   return rv;
 }
 
@@ -338,7 +336,7 @@ nsMsgNewsFolder::UpdateFolder(nsIMsgWindow *aWindow)
   }
   // We're not getting messages because either get_messages_on_select is
   // false or we're offline. Send an immediate folder loaded notification.
-  NotifyFolderEvent(mFolderLoadedAtom);
+  NotifyFolderEvent(kFolderLoaded);
   (void) RefreshSizeOnDisk();
   return NS_OK;
 }
@@ -450,8 +448,6 @@ NS_IMETHODIMP nsMsgNewsFolder::SetNewsrcHasChanged(bool newsrcHasChanged)
 nsresult nsMsgNewsFolder::CreateChildFromURI(const nsCString &uri, nsIMsgFolder **folder)
 {
   nsMsgNewsFolder *newFolder = new nsMsgNewsFolder;
-  if (!newFolder)
-    return NS_ERROR_OUT_OF_MEMORY;
   NS_ADDREF(*folder = newFolder);
   newFolder->Init(uri.get());
   return NS_OK;
@@ -665,12 +661,15 @@ nsMsgNewsFolder::GetDBFolderInfoAndDB(nsIDBFolderInfo **folderInfo, nsIMsgDataba
   NS_ENSURE_ARG_POINTER(db);
   nsresult openErr;
   openErr = GetDatabase();
-  *db = mDatabase;
-  if (mDatabase) {
-    NS_ADDREF(*db);
-    if (NS_SUCCEEDED(openErr))
-      openErr = (*db)->GetDBFolderInfo(folderInfo);
+  if (!mDatabase) {
+    *db = nullptr;
+    return openErr;
   }
+
+  NS_ADDREF(*db = mDatabase);
+
+  if (NS_SUCCEEDED(openErr))
+    openErr = (*db)->GetDBFolderInfo(folderInfo);
   return openErr;
 }
 
@@ -750,7 +749,7 @@ NS_IMETHODIMP nsMsgNewsFolder::RefreshSizeOnDisk()
   // We set size to unknown to force it to get recalculated from disk.
   mFolderSize = kSizeUnknown;
   if (NS_SUCCEEDED(GetSizeOnDisk(&mFolderSize)))
-    NotifyIntPropertyChanged(kFolderSizeAtom, oldFolderSize, mFolderSize);
+    NotifyIntPropertyChanged(kFolderSize, oldFolderSize, mFolderSize);
   return NS_OK;
 }
 
@@ -815,7 +814,7 @@ nsMsgNewsFolder::DeleteMessages(nsIArray *messages, nsIMsgWindow *aMsgWindow,
   rv = GetDatabase();
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = EnableNotifications(allMessageCountNotifications, false, true);
+  rv = EnableNotifications(allMessageCountNotifications, false);
   if (NS_SUCCEEDED(rv))
   {
     uint32_t count = 0;
@@ -828,12 +827,12 @@ nsMsgNewsFolder::DeleteMessages(nsIArray *messages, nsIMsgWindow *aMsgWindow,
       if (msgHdr)
         rv = mDatabase->DeleteHeader(msgHdr, nullptr, true, true);
     }
-    EnableNotifications(allMessageCountNotifications, true, true);
+    EnableNotifications(allMessageCountNotifications, true);
   }
- 
-  if (!isMove) 
-    NotifyFolderEvent(NS_SUCCEEDED(rv) ? mDeleteOrMoveMsgCompletedAtom :
-      mDeleteOrMoveMsgFailedAtom);
+
+  if (!isMove)
+    NotifyFolderEvent(NS_SUCCEEDED(rv) ? kDeleteOrMoveMsgCompleted :
+      kDeleteOrMoveMsgFailed);
 
   (void) RefreshSizeOnDisk();
 
@@ -882,7 +881,7 @@ NS_IMETHODIMP nsMsgNewsFolder::CancelMessage(nsIMsgDBHdr *msgHdr,
   rv = GetUriForMsg(msgHdr, messageURI);
   NS_ENSURE_SUCCESS(rv,rv);
 
-  return nntpService->CancelMessage(cancelURL.get(), messageURI.get(), nullptr /* consumer */, nullptr, 
+  return nntpService->CancelMessage(cancelURL.get(), messageURI.get(), nullptr /* consumer */, nullptr,
                                     aMsgWindow, nullptr);
 }
 
@@ -983,15 +982,15 @@ nsMsgNewsFolder::HandleNewsrcLine(const char * line, uint32_t line_size)
     if ((*s == ':') || (*s == '!'))
       break;
 
-    if (*s == 0)
-      /* What is this?? Well, don't just throw it away... */
-      return RememberLine(nsDependentCString(line));
+  if (*s == 0)
+    /* What is this?? Well, don't just throw it away... */
+    return RememberLine(nsDependentCString(line));
 
-    bool subscribed = (*s == ':');
-    setStr = s+1;
+  bool subscribed = (*s == ':');
+  setStr = s+1;
 
-    if (*line == '\0')
-      return 0;
+  if (*line == '\0')
+    return 0;
 
   // previous versions of Communicator poluted the
   // newsrc files with articles
@@ -1238,8 +1237,7 @@ nsMsgNewsFolder::GetAuthenticationCredentials(nsIMsgWindow *aMsgWindow,
     {
       // Format the prompt text strings
       nsString promptTitle, promptText;
-      bundle->GetStringFromName(MOZ_UTF16("enterUserPassTitle"),
-        getter_Copies(promptTitle));
+      bundle->GetStringFromName("enterUserPassTitle", promptTitle);
 
       nsString serverName;
       nsCOMPtr<nsIMsgIncomingServer> server;
@@ -1260,12 +1258,12 @@ nsMsgNewsFolder::GetAuthenticationCredentials(nsIMsgWindow *aMsgWindow,
       params[1] = serverName.get();
       if (singleSignon)
         bundle->FormatStringFromName(
-          MOZ_UTF16("enterUserPassServer"),
-          &params[1], 1, getter_Copies(promptText));
+          "enterUserPassServer",
+          &params[1], 1, promptText);
       else
         bundle->FormatStringFromName(
-          MOZ_UTF16("enterUserPassGroup"),
-          params, 2, getter_Copies(promptText));
+          "enterUserPassGroup",
+          params, 2, promptText);
 
       // Fill the signon url for the dialog
       nsString signonURL;
@@ -1302,7 +1300,7 @@ nsMsgNewsFolder::GetAuthenticationCredentials(nsIMsgWindow *aMsgWindow,
       }
     }
   }
-  
+
   *validCredentials = !(mGroupUsername.IsEmpty() || mGroupPassword.IsEmpty());
   return NS_OK;
 }
@@ -1374,7 +1372,7 @@ NS_IMETHODIMP nsMsgNewsFolder::MoveFolder(nsIMsgFolder *aNewsgroupToMove, nsIMsg
     if (aOrientation > 0)
       indexRefNewsgroup++;
     indexMin = indexRefNewsgroup;
-    indexMax = indexNewsgroupToMove; 
+    indexMax = indexNewsgroupToMove;
   }
 
   // move NewsgroupToMove to new index and set new sort order
@@ -1389,11 +1387,11 @@ NS_IMETHODIMP nsMsgNewsFolder::MoveFolder(nsIMsgFolder *aNewsgroupToMove, nsIMsg
     // indexRefNewsgroup is already set up correctly.
     mSubFolders.InsertObjectAt(newsgroup, indexRefNewsgroup);
   }
-  
+
   for (uint32_t i = indexMin; i <= indexMax; i++)
     mSubFolders[i]->SetSortOrder(kNewsSortOffset + i);
 
-  NotifyItemAdded(aNewsgroupToMove);  
+  NotifyItemAdded(aNewsgroupToMove);
 
   // write changes back to file
   nsCOMPtr<nsINntpIncomingServer> nntpServer;
@@ -1516,12 +1514,10 @@ nsMsgNewsFolder::GetNntpServer(nsINntpIncomingServer **result)
   if (NS_FAILED(rv))
     return rv;
 
-  nsCOMPtr<nsINntpIncomingServer> nntpServer;
-  rv = server->QueryInterface(NS_GET_IID(nsINntpIncomingServer),
-                              getter_AddRefs(nntpServer));
+  nsCOMPtr<nsINntpIncomingServer> nntpServer = do_QueryInterface(server, &rv);
   if (NS_FAILED(rv))
     return rv;
-  nntpServer.swap(*result);
+  nntpServer.forget(result);
   return NS_OK;
 }
 
@@ -1541,7 +1537,7 @@ NS_IMETHODIMP nsMsgNewsFolder::RemoveMessage(nsMsgKey key)
     NS_ENSURE_SUCCESS(rv, rv);
 
     nsCOMPtr<nsIMutableArray> msgHdrs(do_CreateInstance(NS_ARRAY_CONTRACTID));
-    msgHdrs->AppendElement(msgHdr, false);
+    msgHdrs->AppendElement(msgHdr);
 
     notifier->NotifyMsgsDeleted(msgHdrs);
   }
@@ -1570,13 +1566,13 @@ NS_IMETHODIMP nsMsgNewsFolder::RemoveMessages(nsTArray<nsMsgKey> &aMsgKeys)
 
 NS_IMETHODIMP nsMsgNewsFolder::CancelComplete()
 {
-  NotifyFolderEvent(mDeleteOrMoveMsgCompletedAtom);
+  NotifyFolderEvent(kDeleteOrMoveMsgCompleted);
   return NS_OK;
 }
 
 NS_IMETHODIMP nsMsgNewsFolder::CancelFailed()
 {
-  NotifyFolderEvent(mDeleteOrMoveMsgFailedAtom);
+  NotifyFolderEvent(kDeleteOrMoveMsgFailed);
   return NS_OK;
 }
 
@@ -1625,9 +1621,8 @@ NS_IMETHODIMP nsMsgNewsFolder::DownloadAllForOffline(nsIUrlListener *listener, n
       }
     }
   }
-  DownloadNewsArticlesToOfflineStore *downloadState = new DownloadNewsArticlesToOfflineStore(msgWindow, mDatabase, this);
-  if (!downloadState)
-    return NS_ERROR_OUT_OF_MEMORY;
+  RefPtr<DownloadNewsArticlesToOfflineStore> downloadState =
+    new DownloadNewsArticlesToOfflineStore(msgWindow, mDatabase, this);
   m_downloadingMultipleMessages = true;
   rv = downloadState->DownloadArticles(msgWindow, this, &srcKeyArray);
   (void) RefreshSizeOnDisk();
@@ -1653,9 +1648,8 @@ NS_IMETHODIMP nsMsgNewsFolder::DownloadMessagesForOffline(nsIArray *messages, ns
     if (NS_SUCCEEDED(rv))
       srcKeyArray.AppendElement(key);
   }
-  DownloadNewsArticlesToOfflineStore *downloadState = new DownloadNewsArticlesToOfflineStore(window, mDatabase, this);
-  if (!downloadState)
-    return NS_ERROR_OUT_OF_MEMORY;
+  RefPtr<DownloadNewsArticlesToOfflineStore> downloadState =
+    new DownloadNewsArticlesToOfflineStore(window, mDatabase, this);
   m_downloadingMultipleMessages = true;
 
   rv = downloadState->DownloadArticles(window, this, &srcKeyArray);
@@ -1705,8 +1699,8 @@ NS_IMETHODIMP nsMsgNewsFolder::NotifyDownloadedLine(const char *line, nsMsgKey k
 NS_IMETHODIMP nsMsgNewsFolder::NotifyFinishedDownloadinghdrs()
 {
   bool wasCached = !!mDatabase;
-  ChangeNumPendingTotalMessages(-GetNumPendingTotalMessages());
-  ChangeNumPendingUnread(-GetNumPendingUnread());
+  ChangeNumPendingTotalMessages(-mNumPendingTotalMessages);
+  ChangeNumPendingUnread(-mNumPendingUnreadMessages);
   bool filtersRun;
   // run the bayesian spam filters, if enabled.
   CallFilterPlugins(nullptr, &filtersRun);
@@ -1759,12 +1753,10 @@ NS_IMETHODIMP nsMsgNewsFolder::GetMessageIdForKey(nsMsgKey key, nsACString& resu
 NS_IMETHODIMP nsMsgNewsFolder::SetSortOrder(int32_t order)
 {
   int32_t oldOrder = mSortOrder;
-  
   mSortOrder = order;
-  nsCOMPtr<nsIAtom> sortOrderAtom = MsgGetAtom("SortOrder");
-  // What to do if the atom can't be allocated?
-  NotifyIntPropertyChanged(sortOrderAtom, oldOrder, order);
-  
+
+  NotifyIntPropertyChanged(kSortOrder, oldOrder, order);
+
   return NS_OK;
 }
 

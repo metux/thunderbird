@@ -8,6 +8,7 @@
 #include <cstdio>
 #include <dlfcn.h>
 #include <unistd.h>
+#include <errno.h>
 #include <algorithm>
 #include <fcntl.h>
 #include "ElfLoader.h"
@@ -19,6 +20,7 @@
 
 #if defined(ANDROID)
 #include <sys/syscall.h>
+#include <math.h>
 
 #include <android/api-level.h>
 #if __ANDROID_API__ < 8
@@ -109,6 +111,11 @@ __wrap_dl_iterate_phdr(dl_phdr_cb callback, void *data)
   if (!ElfLoader::Singleton.dbg)
     return -1;
 
+  int pipefd[2];
+  bool valid_pipe = (pipe(pipefd) == 0);
+  AutoCloseFD read_fd(pipefd[0]);
+  AutoCloseFD write_fd(pipefd[1]);
+
   for (ElfLoader::DebuggerHelper::iterator it = ElfLoader::Singleton.dbg.begin();
        it < ElfLoader::Singleton.dbg.end(); ++it) {
     dl_phdr_info info;
@@ -119,9 +126,52 @@ __wrap_dl_iterate_phdr(dl_phdr_cb callback, void *data)
 
     // Assuming l_addr points to Elf headers (in most cases, this is true),
     // get the Phdr location from there.
-    uint8_t mapped;
-    // If the page is not mapped, mincore returns an error.
-    if (!mincore(const_cast<void*>(it->l_addr), PageSize(), &mapped)) {
+    // Unfortunately, when l_addr doesn't point to Elf headers, it may point
+    // to unmapped memory, or worse, unreadable memory. The only way to detect
+    // the latter without causing a SIGSEGV is to use the pointer in a system
+    // call that will try to read from there, and return an EFAULT error if
+    // it can't. One such system call is write(). It used to be possible to
+    // use a file descriptor on /dev/null for these kind of things, but recent
+    // Linux kernels never return an EFAULT error when using /dev/null.
+    // So instead, we use a self pipe. We do however need to read() from the
+    // read end of the pipe as well so as to not fill up the pipe buffer and
+    // block on subsequent writes.
+    // In the unlikely event reads from or write to the pipe fail for some
+    // other reason than EFAULT, we don't try any further and just skip setting
+    // the Phdr location for all subsequent libraries, rather than trying to
+    // start over with a new pipe.
+    int can_read = true;
+    if (valid_pipe) {
+      int ret;
+      char raw_ehdr[sizeof(Elf::Ehdr)];
+      static_assert(sizeof(raw_ehdr) < PIPE_BUF, "PIPE_BUF is too small");
+      do {
+        // writes are atomic when smaller than PIPE_BUF, per POSIX.1-2008.
+        ret = write(write_fd, it->l_addr, sizeof(raw_ehdr));
+      } while (ret == -1 && errno == EINTR);
+      if (ret != sizeof(raw_ehdr)) {
+        if (ret == -1 && errno == EFAULT) {
+          can_read = false;
+        } else {
+          valid_pipe = false;
+        }
+      } else {
+        size_t nbytes = 0;
+        do {
+          // Per POSIX.1-2008, interrupted reads can return a length smaller
+          // than the given one instead of failing with errno EINTR.
+          ret = read(read_fd, raw_ehdr + nbytes, sizeof(raw_ehdr) - nbytes);
+          if (ret > 0)
+              nbytes += ret;
+        } while ((nbytes != sizeof(raw_ehdr) && ret > 0) ||
+                 (ret == -1 && errno == EINTR));
+        if (nbytes != sizeof(raw_ehdr)) {
+          valid_pipe = false;
+        }
+      }
+    }
+
+    if (valid_pipe && can_read) {
       const Elf::Ehdr *ehdr = Elf::Ehdr::validate(it->l_addr);
       if (ehdr) {
         info.dlpi_phdr = reinterpret_cast<const Elf::Phdr *>(
@@ -233,12 +283,6 @@ LibHandle::MappableMMap(void *addr, size_t length, off_t offset) const
   if (!mappable)
     return MAP_FAILED;
   void* mapped = mappable->mmap(addr, length, PROT_READ, MAP_PRIVATE, offset);
-  if (mapped != MAP_FAILED) {
-    /* Ensure the availability of all pages within the mapping */
-    for (size_t off = 0; off < length; off += PageSize()) {
-      mappable->ensure(reinterpret_cast<char *>(mapped) + off);
-    }
-  }
   return mapped;
 }
 
@@ -355,12 +399,14 @@ ElfLoader::Load(const char *path, int flags, LibHandle *parent)
   /* Search the list of handles we already have for a match. When the given
    * path is not absolute, compare file names, otherwise compare full paths. */
   if (name == path) {
+    AutoLock lock(&handlesMutex);
     for (LibHandleList::iterator it = handles.begin(); it < handles.end(); ++it)
       if ((*it)->GetName() && (strcmp((*it)->GetName(), name) == 0)) {
         handle = *it;
         return handle.forget();
       }
   } else {
+    AutoLock lock(&handlesMutex);
     for (LibHandleList::iterator it = handles.begin(); it < handles.end(); ++it)
       if ((*it)->GetPath() && (strcmp((*it)->GetPath(), path) == 0)) {
         handle = *it;
@@ -409,6 +455,7 @@ ElfLoader::Load(const char *path, int flags, LibHandle *parent)
 already_AddRefed<LibHandle>
 ElfLoader::GetHandleByPtr(void *addr)
 {
+  AutoLock lock(&handlesMutex);
   /* Scan the list of handles we already have for a match */
   for (LibHandleList::iterator it = handles.begin(); it < handles.end(); ++it) {
     if ((*it)->Contains(addr)) {
@@ -430,6 +477,7 @@ ElfLoader::GetMappableFromPath(const char *path)
     char *zip_path = strndup(path, subpath - path);
     while (*(++subpath) == '/') { }
     zip = ZipCollection::GetZip(zip_path);
+    free(zip_path);
     Zip::Stream s;
     if (zip && zip->GetStream(subpath, &s)) {
       /* When the MOZ_LINKER_EXTRACT environment variable is set to "1",
@@ -442,8 +490,6 @@ ElfLoader::GetMappableFromPath(const char *path)
       if (!mappable) {
         if (s.GetType() == Zip::Stream::DEFLATE) {
           mappable = MappableDeflate::Create(name, zip, &s);
-        } else if (s.GetType() == Zip::Stream::STORE) {
-          mappable = MappableSeekableZStream::Create(name, zip, &s);
         }
       }
     }
@@ -458,6 +504,7 @@ ElfLoader::GetMappableFromPath(const char *path)
 void
 ElfLoader::Register(LibHandle *handle)
 {
+  AutoLock lock(&handlesMutex);
   handles.push_back(handle);
 }
 
@@ -476,6 +523,7 @@ ElfLoader::Forget(LibHandle *handle)
   /* Ensure logging is initialized or refresh if environment changed. */
   Logging::Init();
 
+  AutoLock lock(&handlesMutex);
   LibHandleList::iterator it = std::find(handles.begin(), handles.end(), handle);
   if (it != handles.end()) {
     DEBUG_LOG("ElfLoader::Forget(%p [\"%s\"])", reinterpret_cast<void *>(handle),
@@ -510,6 +558,9 @@ ElfLoader::Init()
   if (dladdr(FunctionPtr(syscall), &info) != 0) {
     libc = LoadedElf::Create(info.dli_fname, info.dli_fbase);
   }
+  if (dladdr(FunctionPtr<int (*)(double)>(isnan), &info) != 0) {
+    libm = LoadedElf::Create(info.dli_fname, info.dli_fbase);
+  }
 #endif
 }
 
@@ -525,8 +576,10 @@ ElfLoader::~ElfLoader()
   self_elf = nullptr;
 #if defined(ANDROID)
   libc = nullptr;
+  libm = nullptr;
 #endif
 
+  AutoLock lock(&handlesMutex);
   /* Build up a list of all library handles with direct (external) references.
    * We actually skip system library handles because we want to keep at least
    * some of these open. Most notably, Mozilla codebase keeps a few libgnome
@@ -553,29 +606,19 @@ ElfLoader::~ElfLoader()
          it < list.rend(); ++it) {
       if ((*it)->AsSystemElf()) {
         DEBUG_LOG("ElfLoader::~ElfLoader(): Remaining handle for \"%s\" "
-                  "[%d direct refs, %d refs total]", (*it)->GetPath(),
-                  (*it)->DirectRefCount(), (*it)->refCount());
+                  "[%" PRIdPTR " direct refs, %" PRIdPTR " refs total]",
+                  (*it)->GetPath(), (*it)->DirectRefCount(), (*it)->refCount());
       } else {
         DEBUG_LOG("ElfLoader::~ElfLoader(): Unexpected remaining handle for \"%s\" "
-                  "[%d direct refs, %d refs total]", (*it)->GetPath(),
-                  (*it)->DirectRefCount(), (*it)->refCount());
+                  "[%" PRIdPTR " direct refs, %" PRIdPTR " refs total]",
+                  (*it)->GetPath(), (*it)->DirectRefCount(), (*it)->refCount());
         /* Not removing, since it could have references to other libraries,
          * destroying them as a side effect, and possibly leaving dangling
          * pointers in the handle list we're scanning */
       }
     }
   }
-}
-
-void
-ElfLoader::stats(const char *when)
-{
-  if (MOZ_LIKELY(!Logging::isVerbose()))
-    return;
-
-  for (LibHandleList::iterator it = Singleton.handles.begin();
-       it < Singleton.handles.end(); ++it)
-    (*it)->stats(when);
+  pthread_mutex_destroy(&handlesMutex);
 }
 
 #ifdef __ARM_EABI__
@@ -912,7 +955,7 @@ ElfLoader::DebuggerHelper::Remove(ElfLoader::link_map *map)
   dbg->r_brk();
 }
 
-#if defined(ANDROID)
+#if defined(ANDROID) && defined(__NR_sigaction)
 /* As some system libraries may be calling signal() or sigaction() to
  * set a SIGSEGV handler, effectively breaking MappableSeekableZStream,
  * or worse, restore our SIGSEGV handler with wrong flags (which using
@@ -958,8 +1001,9 @@ Divert(T func, T new_func)
   *reinterpret_cast<intptr_t *>(addr + 1) =
     reinterpret_cast<uintptr_t>(new_func) - addr - 5; // target displacement
   return true;
-#elif defined(__arm__)
+#elif defined(__arm__) || defined(__aarch64__)
   const unsigned char trampoline[] = {
+# ifdef __arm__
                             // .thumb
     0x46, 0x04,             // nop
     0x78, 0x47,             // bx pc
@@ -967,8 +1011,15 @@ Divert(T func, T new_func)
                             // .arm
     0x04, 0xf0, 0x1f, 0xe5, // ldr pc, [pc, #-4]
                             // .word <new_func>
+# else // __aarch64__
+    0x50, 0x00, 0x00, 0x58, // ldr x16, [pc, #8]   ; x16 (aka ip0) is the first
+    0x00, 0x02, 0x1f, 0xd6, // br x16              ; intra-procedure-call
+                            // .word <new_func.lo> ; scratch register.
+                            // .word <new_func.hi>
+# endif
   };
   const unsigned char *start;
+# ifdef __arm__
   if (addr & 0x01) {
     /* Function is thumb, the actual address of the code is without the
      * least significant bit. */
@@ -982,12 +1033,16 @@ Divert(T func, T new_func)
     /* Function is arm, we only need the arm part of the trampoline */
     start = trampoline + 6;
   }
+# else // __aarch64__
+  start = trampoline;
+#endif
 
   size_t len = sizeof(trampoline) - (start - trampoline);
   EnsureWritable w(reinterpret_cast<void *>(addr), len + sizeof(void *));
   memcpy(reinterpret_cast<void *>(addr), start, len);
   *reinterpret_cast<void **>(addr + len) = FunctionPtr(new_func);
-  cacheflush(addr, addr + len + sizeof(void *), 0);
+  __builtin___clear_cache(reinterpret_cast<char*>(addr),
+                          reinterpret_cast<char*>(addr + len + sizeof(void *)));
   return true;
 #else
   return false;
@@ -1205,20 +1260,6 @@ void SEGVHandler::handler(int signum, siginfo_t *info, void *context)
 {
   //ASSERT(signum == SIGSEGV);
   DEBUG_LOG("Caught segmentation fault @%p", info->si_addr);
-
-  /* Check whether we segfaulted in the address space of a CustomElf. We're
-   * only expecting that to happen as an access error. */
-  if (info->si_code == SEGV_ACCERR) {
-    RefPtr<LibHandle> handle =
-      ElfLoader::Singleton.GetHandleByPtr(info->si_addr);
-    BaseElf *elf;
-    if (handle && (elf = handle->AsBaseElf())) {
-      DEBUG_LOG("Within the address space of %s", handle->GetPath());
-      if (elf->mappable && elf->mappable->ensure(info->si_addr)) {
-        return;
-      }
-    }
-  }
 
   /* Redispatch to the registered handler */
   SEGVHandler &that = ElfLoader::Singleton;

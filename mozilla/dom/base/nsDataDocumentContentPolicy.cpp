@@ -56,8 +56,7 @@ nsDataDocumentContentPolicy::ShouldLoad(uint32_t aContentType,
   if (node) {
     doc = node->OwnerDoc();
   } else {
-    nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(aRequestingContext);
-    if (window) {
+    if (nsCOMPtr<nsPIDOMWindowOuter> window = do_QueryInterface(aRequestingContext)) {
       doc = window->GetDoc();
     }
   }
@@ -76,7 +75,12 @@ nsDataDocumentContentPolicy::ShouldLoad(uint32_t aContentType,
     }
   }
 
-  if (doc->IsBeingUsedAsImage()) {
+  nsIDocument* docToCheckForImage = doc->GetDisplayDocument();
+  if (!docToCheckForImage) {
+    docToCheckForImage = doc;
+  }
+
+  if (docToCheckForImage->IsBeingUsedAsImage()) {
     // We only allow SVG images to load content from URIs that are local and
     // also satisfy one of the following conditions:
     //  - URI inherits security context, e.g. data URIs
@@ -99,8 +103,7 @@ nsDataDocumentContentPolicy::ShouldLoad(uint32_t aContentType,
           requestingPrincipal->GetURI(getter_AddRefs(principalURI));
         if (NS_SUCCEEDED(rv) && principalURI) {
           nsScriptSecurityManager::ReportError(
-            nullptr, NS_LITERAL_STRING("ExternalDataError"), principalURI,
-            aContentLocation);
+            nullptr, "ExternalDataError", principalURI, aContentLocation);
         }
       }
     } else if ((aContentType == nsIContentPolicy::TYPE_IMAGE ||

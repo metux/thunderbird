@@ -6,7 +6,7 @@
 
 #include "nsArrayEnumerator.h"
 #include "nsCOMArray.h"
-#include "nsIFile.h"
+#include "nsLocalFile.h"
 #include "nsMIMEInfoWin.h"
 #include "nsNetUtil.h"
 #include <windows.h>
@@ -18,10 +18,10 @@
 #include "windows.h"
 #include "nsIWindowsRegKey.h"
 #include "nsIProcess.h"
-#include "nsOSHelperAppService.h"
 #include "nsUnicharUtils.h"
 #include "nsITextToSubURI.h"
 #include "nsVariant.h"
+#include "mozilla/UniquePtrExtensions.h"
 
 #define RUNDLL32_EXE L"\\rundll32.exe"
 
@@ -227,16 +227,15 @@ nsMIMEInfoWin::LoadUriInternal(nsIURI * aURL)
     aURL->GetAsciiSpec(urlSpec);
  
     // Unescape non-ASCII characters in the URL
-    nsAutoCString urlCharset;
     nsAutoString utf16Spec;
-    rv = aURL->GetOriginCharset(urlCharset);
-    NS_ENSURE_SUCCESS(rv, rv);
 
     nsCOMPtr<nsITextToSubURI> textToSubURI = do_GetService(NS_ITEXTTOSUBURI_CONTRACTID, &rv);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    rv = textToSubURI->UnEscapeNonAsciiURI(urlCharset, urlSpec, utf16Spec);
-    NS_ENSURE_SUCCESS(rv, rv);
+    if (NS_FAILED(textToSubURI->UnEscapeNonAsciiURI(NS_LITERAL_CSTRING("UTF-8"),
+                                                    urlSpec, utf16Spec))) {
+      CopyASCIItoUTF16(urlSpec, utf16Spec);
+    }
 
     static const wchar_t cmdVerb[] = L"open";
     SHELLEXECUTEINFOW sinfo;
@@ -347,7 +346,7 @@ bool nsMIMEInfoWin::GetAppsVerbCommandHandler(const nsAString& appExeName,
                                            appFilesystemCommand))) {
     
     // Expand environment vars, clean up any misc.
-    if (!nsOSHelperAppService::CleanupCmdHandlerPath(appFilesystemCommand))
+    if (!nsLocalFile::CleanupCmdHandlerPath(appFilesystemCommand))
       return false;
     
     applicationPath = appFilesystemCommand;
@@ -420,19 +419,19 @@ bool nsMIMEInfoWin::GetDllLaunchInfo(nsIFile * aDll,
     // Replace embedded environment variables.
     uint32_t bufLength = 
       ::ExpandEnvironmentStringsW(appFilesystemCommand.get(),
-                                  L"", 0);
+                                  nullptr, 0);
     if (bufLength == 0) // Error
       return false;
 
-    nsAutoArrayPtr<wchar_t> destination(new wchar_t[bufLength]);
+    auto destination = mozilla::MakeUniqueFallible<wchar_t[]>(bufLength);
     if (!destination)
       return false;
     if (!::ExpandEnvironmentStringsW(appFilesystemCommand.get(),
-                                     destination,
+                                     destination.get(),
                                      bufLength))
       return false;
 
-    appFilesystemCommand = static_cast<const wchar_t*>(destination);
+    appFilesystemCommand.Assign(destination.get());
 
     // C:\Windows\System32\rundll32.exe "C:\Program Files\Windows 
     // Photo Gallery\PhotoViewer.dll", ImageView_Fullscreen %1
@@ -492,7 +491,7 @@ bool nsMIMEInfoWin::GetProgIDVerbCommandHandler(const nsAString& appProgIDName,
   if (NS_SUCCEEDED(appKey->ReadStringValue(EmptyString(), appFilesystemCommand))) {
     
     // Expand environment vars, clean up any misc.
-    if (!nsOSHelperAppService::CleanupCmdHandlerPath(appFilesystemCommand))
+    if (!nsLocalFile::CleanupCmdHandlerPath(appFilesystemCommand))
       return false;
     
     applicationPath = appFilesystemCommand;
@@ -514,7 +513,7 @@ void nsMIMEInfoWin::ProcessPath(nsCOMPtr<nsIMutableArray>& appList,
   WCHAR exe[MAX_PATH+1];
   uint32_t len = GetModuleFileNameW(nullptr, exe, MAX_PATH);
   if (len < MAX_PATH && len != 0) {
-    uint32_t index = lower.Find(exe);
+    int32_t index = lower.Find(exe);
     if (index != -1)
       return;
   }
@@ -524,7 +523,7 @@ void nsMIMEInfoWin::ProcessPath(nsCOMPtr<nsIMutableArray>& appList,
     return;
 
   // Save in our main tracking arrays
-  appList->AppendElement(aApp, false);
+  appList->AppendElement(aApp);
   trackList.AppendElement(lower);
 }
 
@@ -611,8 +610,9 @@ nsMIMEInfoWin::GetPossibleLocalHandlers(nsIArray **_retval)
   }
 
   nsAutoString fileExtToUse;
-  if (fileExt.First() != '.')
+  if (!fileExt.IsEmpty() && fileExt.First() != '.') {
     fileExtToUse = char16_t('.');
+  }
   fileExtToUse.Append(NS_ConvertUTF8toUTF16(fileExt));
 
   // Note, the order in which these occur has an effect on the 

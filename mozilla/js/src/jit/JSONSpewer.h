@@ -7,10 +7,12 @@
 #ifndef jit_JSONSpewer_h
 #define jit_JSONSpewer_h
 
+#ifdef JS_JITSPEW
+
 #include <stdio.h>
 
 #include "js/TypeDecls.h"
-#include "vm/Printer.h"
+#include "vm/JSONPrinter.h"
 
 namespace js {
 namespace jit {
@@ -21,33 +23,11 @@ class MIRGraph;
 class MResumePoint;
 class LNode;
 
-class JSONSpewer
+class JSONSpewer : JSONPrinter
 {
-  private:
-    int indentLevel_;
-    bool first_;
-    GenericPrinter& out_;
-
-    void indent();
-
-    void property(const char* name);
-    void beginObject();
-    void beginObjectProperty(const char* name);
-    void beginListProperty(const char* name);
-    void stringValue(const char* format, ...);
-    void stringProperty(const char* name, const char* format, ...);
-    void beginStringProperty(const char* name);
-    void endStringProperty();
-    void integerValue(int value);
-    void integerProperty(const char* name, int value);
-    void endObject();
-    void endList();
-
   public:
     explicit JSONSpewer(GenericPrinter& out)
-      : indentLevel_(0),
-        first_(true),
-        out_(out)
+      : JSONPrinter(out)
     { }
 
     void beginFunction(JSScript* script);
@@ -60,11 +40,11 @@ class JSONSpewer
     void spewRanges(BacktrackingAllocator* regalloc);
     void endPass();
     void endFunction();
-
-    void spewDebuggerGraph(MIRGraph* mir);
 };
 
 } // namespace jit
 } // namespace js
+
+#endif /* JS_JITSPEW */
 
 #endif /* jit_JSONSpewer_h */

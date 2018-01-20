@@ -17,7 +17,6 @@ test();
 
 function test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
 
@@ -32,7 +31,7 @@ function test()
   }
   reportCompare(expect, actual, summary);
 
-  expect = 'TypeError: redeclaration of let x';
+  expect = 'SyntaxError: redeclaration of let x';
   try
   {
     eval('{ let x; {var x;} }');
@@ -42,6 +41,4 @@ function test()
     actual = ex + '';
   }
   reportCompare(expect, actual, summary);
-
-  exitFunc ('test');
 }

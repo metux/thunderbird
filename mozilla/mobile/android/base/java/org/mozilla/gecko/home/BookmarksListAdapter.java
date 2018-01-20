@@ -11,6 +11,7 @@ import java.util.List;
 
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.db.BrowserContract.Bookmarks;
+import org.mozilla.gecko.home.BookmarkFolderView.FolderState;
 
 import android.content.Context;
 import android.content.res.Resources;
@@ -23,11 +24,13 @@ import android.view.View;
  * Adapter to back the BookmarksListView with a list of bookmarks.
  */
 class BookmarksListAdapter extends MultiTypeCursorAdapter {
-    private static final int VIEW_TYPE_ITEM = 0;
+    private static final int VIEW_TYPE_BOOKMARK_ITEM = 0;
     private static final int VIEW_TYPE_FOLDER = 1;
+    private static final int VIEW_TYPE_SCREENSHOT = 2;
 
-    private static final int[] VIEW_TYPES = new int[] { VIEW_TYPE_ITEM, VIEW_TYPE_FOLDER };
-    private static final int[] LAYOUT_TYPES = new int[] { R.layout.bookmark_item_row, R.layout.bookmark_folder_row };
+    private static final int[] VIEW_TYPES = new int[] { VIEW_TYPE_BOOKMARK_ITEM, VIEW_TYPE_FOLDER, VIEW_TYPE_SCREENSHOT };
+    private static final int[] LAYOUT_TYPES =
+            new int[] { R.layout.bookmark_item_row, R.layout.bookmark_folder_row, R.layout.bookmark_screenshot_row };
 
     public enum RefreshType implements Parcelable {
         PARENT,
@@ -59,18 +62,20 @@ class BookmarksListAdapter extends MultiTypeCursorAdapter {
     public static class FolderInfo implements Parcelable {
         public final int id;
         public final String title;
+        public final int position;
 
         public FolderInfo(int id) {
-            this(id, "");
+            this(id, "", 0);
         }
 
         public FolderInfo(Parcel in) {
-            this(in.readInt(), in.readString());
+            this(in.readInt(), in.readString(), in.readInt());
         }
 
-        public FolderInfo(int id, String title) {
+        public FolderInfo(int id, String title, int position) {
             this.id = id;
             this.title = title;
+            this.position = position;
         }
 
         @Override
@@ -82,6 +87,7 @@ class BookmarksListAdapter extends MultiTypeCursorAdapter {
         public void writeToParcel(Parcel dest, int flags) {
             dest.writeInt(id);
             dest.writeString(title);
+            dest.writeInt(position);
         }
 
         public static final Creator<FolderInfo> CREATOR = new Creator<FolderInfo>() {
@@ -101,15 +107,29 @@ class BookmarksListAdapter extends MultiTypeCursorAdapter {
     // This is usually implemented by the enclosing fragment/activity.
     public static interface OnRefreshFolderListener {
         // The folder id to refresh the list with.
-        public void onRefreshFolder(FolderInfo folderInfo, RefreshType refreshType);
+        public void onRefreshFolder(FolderInfo folderInfo,
+                                    RefreshType refreshType,
+                                    int targetPosition);
+    }
+
+    /**
+     * The type of data a bookmarks folder can display. This can be used to
+     * distinguish bookmark folders from "smart folders" that contain non-bookmark
+     * entries but still appear in the Bookmarks panel.
+     */
+    public enum FolderType {
+        BOOKMARKS,
+        SCREENSHOTS,
     }
 
     // mParentStack holds folder info instances (id + title) that allow
     // us to navigate back up the folder hierarchy.
-    private final LinkedList<FolderInfo> mParentStack;
+    private LinkedList<FolderInfo> mParentStack;
 
     // Refresh folder listener.
     private OnRefreshFolderListener mListener;
+
+    private FolderType openFolderType = FolderType.BOOKMARKS;
 
     public BookmarksListAdapter(Context context, Cursor cursor, List<FolderInfo> parentStack) {
         // Initializing with a null cursor.
@@ -122,8 +142,17 @@ class BookmarksListAdapter extends MultiTypeCursorAdapter {
         }
     }
 
+    public void restoreData(List<FolderInfo> parentStack) {
+        mParentStack = new LinkedList<FolderInfo>(parentStack);
+        notifyDataSetChanged();
+    }
+
     public List<FolderInfo> getParentStack() {
         return Collections.unmodifiableList(mParentStack);
+    }
+
+    public FolderType getOpenFolderType() {
+        return openFolderType;
     }
 
     /**
@@ -140,9 +169,10 @@ class BookmarksListAdapter extends MultiTypeCursorAdapter {
         }
 
         if (mListener != null) {
+            int targetPosition = mParentStack.peek().position;
             // We pick the second folder in the stack as it represents
             // the parent folder.
-            mListener.onRefreshFolder(mParentStack.get(1), RefreshType.PARENT);
+            mListener.onRefreshFolder(mParentStack.get(1), RefreshType.PARENT, targetPosition);
         }
 
         return true;
@@ -153,12 +183,14 @@ class BookmarksListAdapter extends MultiTypeCursorAdapter {
      *
      * @param folderId The id of the folder to show.
      * @param folderTitle The title of the folder to show.
+     * @param position The current position of the list view, which
+     *                 will be restored when moving back up one level.
      */
-    public void moveToChildFolder(int folderId, String folderTitle) {
-        FolderInfo folderInfo = new FolderInfo(folderId, folderTitle);
+    public void moveToChildFolder(int folderId, String folderTitle, int position) {
+        FolderInfo folderInfo = new FolderInfo(folderId, folderTitle, position);
 
         if (mListener != null) {
-            mListener.onRefreshFolder(folderInfo, RefreshType.CHILD);
+            mListener.onRefreshFolder(folderInfo, RefreshType.CHILD, 0 /* scroll to top of list */);
         }
     }
 
@@ -177,7 +209,8 @@ class BookmarksListAdapter extends MultiTypeCursorAdapter {
     }
 
     public void swapCursor(Cursor c, FolderInfo folderInfo, RefreshType refreshType) {
-        switch(refreshType) {
+        updateOpenFolderType(folderInfo);
+        switch (refreshType) {
             case PARENT:
                 if (!isCurrentFolder(folderInfo)) {
                     mParentStack.removeFirst();
@@ -197,6 +230,14 @@ class BookmarksListAdapter extends MultiTypeCursorAdapter {
         swapCursor(c);
     }
 
+    private void updateOpenFolderType(final FolderInfo folderInfo) {
+        if (folderInfo.id == Bookmarks.FIXED_SCREENSHOT_FOLDER_ID) {
+            openFolderType = FolderType.SCREENSHOTS;
+        } else {
+            openFolderType = FolderType.BOOKMARKS;
+        }
+    }
+
     @Override
     public int getItemViewType(int position) {
         // The position also reflects the opened child folder row.
@@ -209,20 +250,24 @@ class BookmarksListAdapter extends MultiTypeCursorAdapter {
             position--;
         }
 
+        if (openFolderType == FolderType.SCREENSHOTS) {
+            return VIEW_TYPE_SCREENSHOT;
+        }
+
         final Cursor c = getCursor(position);
         if (c.getInt(c.getColumnIndexOrThrow(Bookmarks.TYPE)) == Bookmarks.TYPE_FOLDER) {
             return VIEW_TYPE_FOLDER;
         }
 
         // Default to returning normal item type.
-        return VIEW_TYPE_ITEM;
+        return VIEW_TYPE_BOOKMARK_ITEM;
     }
 
     /**
      * Get the title of the folder given a cursor moved to the position.
      *
      * @param context The context of the view.
-     * @param cursor A cursor moved to the required position.
+     * @param c A cursor moved to the required position.
      * @return The title of the folder at the position.
      */
     public String getFolderTitle(Context context, Cursor c) {
@@ -244,6 +289,10 @@ class BookmarksListAdapter extends MultiTypeCursorAdapter {
             return res.getString(R.string.bookmarks_folder_toolbar);
         } else if (guid.equals(Bookmarks.UNFILED_FOLDER_GUID)) {
             return res.getString(R.string.bookmarks_folder_unfiled);
+        } else if (guid.equals(Bookmarks.SCREENSHOT_FOLDER_GUID)) {
+            return res.getString(R.string.screenshot_folder_label_in_bookmarks);
+        } else if (guid.equals(Bookmarks.FAKE_READINGLIST_SMARTFOLDER_GUID)) {
+            return res.getString(R.string.readinglist_smartfolder_label_in_bookmarks);
         }
 
         // If for some reason we have a folder with a special GUID, but it's not one of
@@ -284,18 +333,27 @@ class BookmarksListAdapter extends MultiTypeCursorAdapter {
             cursor = getCursor(position);
         }
 
-        if (viewType == VIEW_TYPE_ITEM) {
+        if (viewType == VIEW_TYPE_SCREENSHOT) {
+            ((BookmarkScreenshotRow) view).updateFromCursor(cursor);
+        } else if (viewType == VIEW_TYPE_BOOKMARK_ITEM) {
             final TwoLinePageRow row = (TwoLinePageRow) view;
             row.updateFromCursor(cursor);
         } else {
             final BookmarkFolderView row = (BookmarkFolderView) view;
             if (cursor == null) {
                 final Resources res = context.getResources();
-                row.setText(res.getString(R.string.home_move_up_to_filter, mParentStack.get(1).title));
-                row.open();
+                row.update(res.getString(R.string.home_move_back_to_filter, mParentStack.get(1).title), -1);
+                row.setState(FolderState.PARENT);
             } else {
-                row.setText(getFolderTitle(context, cursor));
-                row.close();
+                int id = cursor.getInt(cursor.getColumnIndexOrThrow(Bookmarks._ID));
+
+                row.update(getFolderTitle(context, cursor), id);
+
+                if (id == Bookmarks.FAKE_READINGLIST_SMARTFOLDER_ID) {
+                    row.setState(FolderState.READING_LIST);
+                } else {
+                    row.setState(FolderState.FOLDER);
+                }
             }
         }
     }

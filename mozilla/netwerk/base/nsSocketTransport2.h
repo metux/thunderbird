@@ -20,6 +20,7 @@
 #include "nsIAsyncOutputStream.h"
 #include "nsIDNSListener.h"
 #include "nsIClassInfo.h"
+#include "TCPFastOpen.h"
 #include "mozilla/net/DNS.h"
 #include "nsASocketHandler.h"
 #include "mozilla/Telemetry.h"
@@ -27,13 +28,9 @@
 #include "prerror.h"
 #include "nsAutoPtr.h"
 
-class nsSocketTransport;
 class nsICancelable;
 class nsIDNSRecord;
 class nsIInterfaceRequestor;
-
-nsresult
-ErrorAccordingToNSPR(PRErrorCode errorCode);
 
 //-----------------------------------------------------------------------------
 
@@ -41,6 +38,14 @@ ErrorAccordingToNSPR(PRErrorCode errorCode);
 #define NS_SOCKET_CONNECT_TIMEOUT PR_MillisecondsToInterval(20)
 
 //-----------------------------------------------------------------------------
+
+namespace mozilla {
+namespace net {
+
+nsresult
+ErrorAccordingToNSPR(PRErrorCode errorCode);
+
+class nsSocketTransport;
 
 class nsSocketInputStream : public nsIAsyncInputStream
 {
@@ -61,7 +66,7 @@ public:
 
 private:
     nsSocketTransport               *mTransport;
-    mozilla::ThreadSafeAutoRefCnt    mReaderRefCnt;
+    ThreadSafeAutoRefCnt             mReaderRefCnt;
 
     // access to these is protected by mTransport->mLock
     nsresult                         mCondition;
@@ -87,15 +92,15 @@ public:
     uint64_t ByteCount()    { return mByteCount; }
 
     // called by the socket transport on the socket thread...
-    void OnSocketReady(nsresult condition); 
+    void OnSocketReady(nsresult condition);
 
 private:
-    static NS_METHOD WriteFromSegments(nsIInputStream *, void *,
-                                       const char *, uint32_t offset,
-                                       uint32_t count, uint32_t *countRead);
+    static nsresult WriteFromSegments(nsIInputStream *, void *,
+                                      const char *, uint32_t offset,
+                                      uint32_t count, uint32_t *countRead);
 
     nsSocketTransport                *mTransport;
-    mozilla::ThreadSafeAutoRefCnt     mWriterRefCnt;
+    ThreadSafeAutoRefCnt              mWriterRefCnt;
 
     // access to these is protected by mTransport->mLock
     nsresult                          mCondition;
@@ -112,8 +117,6 @@ class nsSocketTransport final : public nsASocketHandler
                               , public nsIClassInfo
                               , public nsIInterfaceRequestor
 {
-    typedef mozilla::Mutex Mutex;
-
 public:
     NS_DECL_THREADSAFE_ISUPPORTS
     NS_DECL_NSITRANSPORT
@@ -131,15 +134,24 @@ public:
                   const nsACString &hostRoute, uint16_t portRoute,
                   nsIProxyInfo *proxyInfo);
 
+    // Alternative Init method for when the IP-address of the host
+    // has been pre-resolved using a alternative means (e.g. FlyWeb service
+    // info).
+    nsresult InitPreResolved(const char **socketTypes, uint32_t typeCount,
+                             const nsACString &host, uint16_t port,
+                             const nsACString &hostRoute, uint16_t portRoute,
+                             nsIProxyInfo *proxyInfo,
+                             const mozilla::net::NetAddr* addr);
+
     // this method instructs the socket transport to use an already connected
     // socket with the given address.
     nsresult InitWithConnectedSocket(PRFileDesc *socketFD,
-                                     const mozilla::net::NetAddr *addr);
+                                     const NetAddr *addr);
 
     // this method instructs the socket transport to use an already connected
     // socket with the given address, and additionally supplies security info.
     nsresult InitWithConnectedSocket(PRFileDesc* aSocketFD,
-                                     const mozilla::net::NetAddr* aAddr,
+                                     const NetAddr* aAddr,
                                      nsISupports* aSecInfo);
 
     // This method instructs the socket transport to open a socket
@@ -158,13 +170,13 @@ public:
 
     uint64_t ByteCountReceived() override { return mInput.ByteCount(); }
     uint64_t ByteCountSent() override { return mOutput.ByteCount(); }
-    static void CloseSocket(PRFileDesc *aFd, bool aTelemetryEnabled);
+    static void CloseSocket(PRFileDesc *aFd, nsSocketTransportService *aSTS);
     static void SendPRBlockingTelemetry(PRIntervalTime aStart,
-        mozilla::Telemetry::ID aIDNormal,
-        mozilla::Telemetry::ID aIDShutdown,
-        mozilla::Telemetry::ID aIDConnectivityChange,
-        mozilla::Telemetry::ID aIDLinkChange,
-        mozilla::Telemetry::ID aIDOffline);
+        Telemetry::HistogramID aIDNormal,
+        Telemetry::HistogramID aIDShutdown,
+        Telemetry::HistogramID aIDConnectivityChange,
+        Telemetry::HistogramID aIDLinkChange,
+        Telemetry::HistogramID aIDOffline);
 protected:
 
     virtual ~nsSocketTransport();
@@ -197,9 +209,8 @@ private:
     class MOZ_STACK_CLASS PRFileDescAutoLock
     {
     public:
-      typedef mozilla::MutexAutoLock MutexAutoLock;
-
       explicit PRFileDescAutoLock(nsSocketTransport *aSocketTransport,
+                                  bool aAlsoDuringFastOpen,
                                   nsresult *aConditionWhileLocked = nullptr)
         : mSocketTransport(aSocketTransport)
         , mFd(nullptr)
@@ -212,7 +223,11 @@ private:
             return;
           }
         }
-        mFd = mSocketTransport->GetFD_Locked();
+        if (!aAlsoDuringFastOpen) {
+          mFd = mSocketTransport->GetFD_Locked();
+        } else {
+          mFd = mSocketTransport->GetFD_LockedAlsoDuringFastOpen();
+        }
       }
       ~PRFileDescAutoLock() {
         MutexAutoLock lock(mSocketTransport->mLock);
@@ -293,7 +308,16 @@ private:
     bool mProxyTransparentResolvesHost;
     bool mHttpsProxy;
     uint32_t     mConnectionFlags;
-    
+    uint32_t     mTlsFlags;
+    bool mReuseAddrPort;
+
+    // The origin attributes are used to create sockets.  The first party domain
+    // will eventually be used to isolate OCSP cache and is only non-empty when
+    // "privacy.firstparty.isolate" is enabled.  Setting this is the only way to
+    // carry origin attributes down to NSPR layers which are final consumers.
+    // It must be set before the socket transport is built.
+    OriginAttributes mOriginAttributes;
+
     uint16_t         SocketPort() { return (!mProxyHost.IsEmpty() && !mProxyTransparent) ? mProxyPort : mPort; }
     const nsCString &SocketHost() { return (!mProxyHost.IsEmpty() && !mProxyTransparent) ? mProxyHost : mHost; }
 
@@ -319,18 +343,22 @@ private:
     nsCOMPtr<nsICancelable> mDNSRequest;
     nsCOMPtr<nsIDNSRecord>  mDNSRecord;
 
-    // mNetAddr is valid from GetPeerAddr() once we have
+    // mNetAddr/mSelfAddr is valid from GetPeerAddr()/GetSelfAddr() once we have
     // reached STATE_TRANSFERRING. It must not change after that.
-    mozilla::net::NetAddr   mNetAddr;
-    bool                    mNetAddrIsSet;
+    void                    SetSocketName(PRFileDesc *fd);
+    NetAddr                 mNetAddr;
+    NetAddr                 mSelfAddr; // getsockname()
+    Atomic<bool, Relaxed>   mNetAddrIsSet;
+    Atomic<bool, Relaxed>   mSelfAddrIsSet;
+    Atomic<bool, Relaxed>   mNetAddrPreResolved;
 
-    nsAutoPtr<mozilla::net::NetAddr> mBindAddr;
+    nsAutoPtr<NetAddr>      mBindAddr;
 
     // socket methods (these can only be called on the socket thread):
 
     void     SendStatus(nsresult status);
     nsresult ResolveHost();
-    nsresult BuildSocket(PRFileDesc *&, bool &, bool &); 
+    nsresult BuildSocket(PRFileDesc *&, bool &, bool &);
     nsresult InitiateSocket();
     bool     RecoverFromError();
 
@@ -358,6 +386,9 @@ private:
     LockedPRFileDesc mFD;
     nsrefcnt         mFDref;       // mFD is closed when mFDref goes to zero.
     bool             mFDconnected; // mFD is available to consumer when TRUE.
+    bool             mFDFastOpenInProgress; // Fast Open is in progress, so
+                                            // socket available for some
+                                            // operations.
 
     // A delete protector reference to gSocketTransportService held for lifetime
     // of 'this'. Sometimes used interchangably with gSocketTransportService due
@@ -384,7 +415,9 @@ private:
     // mFD access methods: called with mLock held.
     //
     PRFileDesc *GetFD_Locked();
+    PRFileDesc *GetFD_LockedAlsoDuringFastOpen();
     void        ReleaseFD_Locked(PRFileDesc *fd);
+    bool FastOpenInProgress();
 
     //
     // stream state changes (called outside mLock):
@@ -392,7 +425,7 @@ private:
     void OnInputClosed(nsresult reason)
     {
         // no need to post an event if called on the socket thread
-        if (PR_GetCurrentThread() == gSocketThread)
+        if (OnSocketThread())
             OnMsgInputClosed(reason);
         else
             PostEvent(MSG_INPUT_CLOSED, reason);
@@ -400,7 +433,7 @@ private:
     void OnInputPending()
     {
         // no need to post an event if called on the socket thread
-        if (PR_GetCurrentThread() == gSocketThread)
+        if (OnSocketThread())
             OnMsgInputPending();
         else
             PostEvent(MSG_INPUT_PENDING);
@@ -408,7 +441,7 @@ private:
     void OnOutputClosed(nsresult reason)
     {
         // no need to post an event if called on the socket thread
-        if (PR_GetCurrentThread() == gSocketThread)
+        if (OnSocketThread())
             OnMsgOutputClosed(reason); // XXX need to not be inside lock!
         else
             PostEvent(MSG_OUTPUT_CLOSED, reason);
@@ -416,7 +449,7 @@ private:
     void OnOutputPending()
     {
         // no need to post an event if called on the socket thread
-        if (PR_GetCurrentThread() == gSocketThread)
+        if (OnSocketThread())
             OnMsgOutputPending();
         else
             PostEvent(MSG_OUTPUT_PENDING);
@@ -441,6 +474,17 @@ private:
     int32_t mKeepaliveIdleTimeS;
     int32_t mKeepaliveRetryIntervalS;
     int32_t mKeepaliveProbeCount;
+
+    // A Fast Open callback.
+    TCPFastOpen *mFastOpenCallback;
+    bool mFastOpenLayerHasBufferedData;
+    uint8_t mFastOpenStatus;
+    nsresult mFirstRetryError;
+
+    bool mDoNotRetryToConnect;
 };
+
+} // namespace net
+} // namespace mozilla
 
 #endif // !nsSocketTransport_h__

@@ -285,7 +285,7 @@ nsresult
 nsImapMoveCopyMsgTxn::AddDstKey(nsMsgKey aKey)
 {
     if (!m_dstMsgIdString.IsEmpty())
-        m_dstMsgIdString.Append(",");
+        m_dstMsgIdString.Append(',');
     m_dstMsgIdString.AppendInt((int32_t) aKey);
     return NS_OK;
 }
@@ -333,11 +333,7 @@ nsImapMoveCopyMsgTxn::UndoMailboxDelete()
         srcDB->SetSummaryValid(true);
         return NS_OK; // always return NS_OK
     }
-    else
-    {
-        rv = NS_ERROR_FAILURE;
-    }
-    return rv;
+    return NS_ERROR_FAILURE;
 }
 
 
@@ -358,11 +354,7 @@ nsImapMoveCopyMsgTxn::RedoMailboxDelete()
         }
         return NS_OK; // always return NS_OK
     }
-    else
-    {
-        rv = NS_ERROR_FAILURE;
-    }
-    return rv;
+    return NS_ERROR_FAILURE;
 }
 
 nsresult nsImapMoveCopyMsgTxn::GetImapDeleteModel(nsIMsgFolder *aFolder, nsMsgImapDeleteModel *aDeleteModel)

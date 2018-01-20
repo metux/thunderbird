@@ -72,6 +72,10 @@ onconnect = function(event) {
     throw new Error("'connect' event has data: " + event.data);
   }
 
+  // Statement after return should trigger a warning, but NOT fire error events
+  // at us.
+  (function() { return; 1; });
+
   event.ports[0].onmessage = function(event) {
     if (!(event instanceof MessageEvent)) {
       throw new Error("'message' event is not a MessageEvent!");

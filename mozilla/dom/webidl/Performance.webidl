@@ -17,6 +17,9 @@ typedef sequence <PerformanceEntry> PerformanceEntryList;
 interface Performance {
   [DependsOn=DeviceState, Affects=Nothing]
   DOMHighResTimeStamp now();
+
+  [Constant]
+  readonly attribute DOMHighResTimeStamp timeOrigin;
 };
 
 [Exposed=Window]
@@ -32,11 +35,8 @@ partial interface Performance {
 // http://www.w3.org/TR/performance-timeline/#sec-window.performance-attribute
 [Exposed=(Window,Worker)]
 partial interface Performance {
-  [Func="nsPerformance::IsEnabled"]
   PerformanceEntryList getEntries();
-  [Func="nsPerformance::IsEnabled"]
   PerformanceEntryList getEntriesByType(DOMString entryType);
-  [Func="nsPerformance::IsEnabled"]
   PerformanceEntryList getEntriesByName(DOMString name, optional DOMString
     entryType);
 };
@@ -44,11 +44,8 @@ partial interface Performance {
 // http://www.w3.org/TR/resource-timing/#extensions-performance-interface
 [Exposed=Window]
 partial interface Performance {
-  [Func="nsPerformance::IsEnabled"]
   void clearResourceTimings();
-  [Func="nsPerformance::IsEnabled"]
   void setResourceTimingBufferSize(unsigned long maxSize);
-  [Func="nsPerformance::IsEnabled"]
   attribute EventHandler onresourcetimingbufferfull;
 };
 
@@ -62,13 +59,11 @@ partial interface Performance {
 // http://www.w3.org/TR/user-timing/
 [Exposed=(Window,Worker)]
 partial interface Performance {
-  [Func="nsPerformance::IsEnabled", Throws]
+  [Throws]
   void mark(DOMString markName);
-  [Func="nsPerformance::IsEnabled"]
   void clearMarks(optional DOMString markName);
-  [Func="nsPerformance::IsEnabled", Throws]
+  [Throws]
   void measure(DOMString measureName, optional DOMString startMark, optional DOMString endMark);
-  [Func="nsPerformance::IsEnabled"]
   void clearMeasures(optional DOMString measureName);
 };
 

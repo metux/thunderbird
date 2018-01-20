@@ -1,4 +1,4 @@
-////////////////////////////////////////////////////////////////////////////////
+// //////////////////////////////////////////////////////////////////////////////
 // Constants
 
 var RELATION_CONTROLLED_BY = nsIAccessibleRelation.RELATION_CONTROLLED_BY;
@@ -21,8 +21,12 @@ var RELATION_SUBWINDOW_OF = nsIAccessibleRelation.RELATION_SUBWINDOW_OF;
 var RELATION_CONTAINING_DOCUMENT = nsIAccessibleRelation.RELATION_CONTAINING_DOCUMENT;
 var RELATION_CONTAINING_TAB_PANE = nsIAccessibleRelation.RELATION_CONTAINING_TAB_PANE;
 var RELATION_CONTAINING_APPLICATION = nsIAccessibleRelation.RELATION_CONTAINING_APPLICATION;
+const RELATION_DETAILS = nsIAccessibleRelation.RELATION_DETAILS;
+const RELATION_DETAILS_FOR = nsIAccessibleRelation.RELATION_DETAILS_FOR;
+const RELATION_ERRORMSG = nsIAccessibleRelation.RELATION_ERRORMSG;
+const RELATION_ERRORMSG_FOR = nsIAccessibleRelation.RELATION_ERRORMSG_FOR;
 
-////////////////////////////////////////////////////////////////////////////////
+// //////////////////////////////////////////////////////////////////////////////
 // General
 
 /**
@@ -34,8 +38,7 @@ var RELATION_CONTAINING_APPLICATION = nsIAccessibleRelation.RELATION_CONTAINING_
  * @param aRelatedIdentifiers  [in] identifier or array of identifiers of
  *                             expected related accessibles
  */
-function testRelation(aIdentifier, aRelType, aRelatedIdentifiers)
-{
+function testRelation(aIdentifier, aRelType, aRelatedIdentifiers) {
   var relation = getRelationByType(aIdentifier, aRelType);
 
   var relDescr = getRelationErrorMsg(aIdentifier, aRelType);
@@ -106,12 +109,10 @@ function testRelation(aIdentifier, aRelType, aRelatedIdentifiers)
  *                              accessibles that shouldn't exist for this
  *                              relation.
  */
-function testAbsentRelation(aIdentifier, aRelType, aUnrelatedIdentifiers)
-{
+function testAbsentRelation(aIdentifier, aRelType, aUnrelatedIdentifiers) {
   var relation = getRelationByType(aIdentifier, aRelType);
 
   var relDescr = getRelationErrorMsg(aIdentifier, aRelType);
-  var relDescrStart = getRelationErrorMsg(aIdentifier, aRelType, true);
 
   if (!aUnrelatedIdentifiers) {
     ok(false, "No identifiers given for unrelated accessibles.");
@@ -158,8 +159,7 @@ function testAbsentRelation(aIdentifier, aRelType, aUnrelatedIdentifiers)
  *                     or DOM element or accessible object
  * @param aRelType     [in] relation type (see constants above)
  */
-function getRelationByType(aIdentifier, aRelType)
-{
+function getRelationByType(aIdentifier, aRelType) {
   var acc = getAccessible(aIdentifier);
   if (!acc)
     return;
@@ -174,11 +174,10 @@ function getRelationByType(aIdentifier, aRelType)
   return relation;
 }
 
-////////////////////////////////////////////////////////////////////////////////
+// //////////////////////////////////////////////////////////////////////////////
 // Private implementation details
 
-function getRelationErrorMsg(aIdentifier, aRelType, aIsStartSentence)
-{
+function getRelationErrorMsg(aIdentifier, aRelType, aIsStartSentence) {
   var relStr = relationTypeToString(aRelType);
   var msg = aIsStartSentence ? "Relation of '" : " relation of '";
   msg += relStr + "' type for '" + prettyName(aIdentifier) + "'";

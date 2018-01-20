@@ -1,9 +1,9 @@
-<?xml version="1.0"?> 
+<?xml version="1.0"?>
 <!-- This Source Code Form is subject to the terms of the Mozilla Public
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<?xml-stylesheet href="chrome://communicator/skin/tasksOverlay.css" type="text/css"?> 
+<?xml-stylesheet href="chrome://communicator/skin/tasksOverlay.css" type="text/css"?>
 
 <!DOCTYPE overlay [
 <!ENTITY % tasksDTD SYSTEM "chrome://communicator/locale/tasksOverlay.dtd" >
@@ -23,8 +23,8 @@
        command="downloadmgr" modifiers="accel"/>
   <key id="key_addOnsManager" key="&addOnsManagerCmd.commandkey;"
        command="addonsmgr" modifiers="accel,shift"/>
-  <key id="key_errorConsole" key="&errorConsoleCmd.commandkey;"
-       command="Tasks:ErrorConsole" modifiers="accel,shift"/>
+  <key id="key_errorConsole" key="&errorConsoleCmd.commandkey2;"
+       command="Tasks:ErrorConsole" modifiers="accel,alt"/>
 </keyset>
 <commandset id="tasksCommands">
   <command id="Tasks:DataMan" oncommand="toDataManager();"/>
@@ -109,7 +109,7 @@
 
 
   <statusbarpanel id="component-bar" persist="collapsed">
-    <toolbarbutton class="taskbutton" id="mini-nav" oncommand="toNavigator();" 
+    <toolbarbutton class="taskbutton" id="mini-nav" oncommand="toNavigator();"
                    tooltiptext="&taskNavigator.tooltip;"/>
-  </statusbarpanel> 
+  </statusbarpanel>
 </overlay>

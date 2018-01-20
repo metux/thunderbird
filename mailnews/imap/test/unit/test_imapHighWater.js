@@ -24,8 +24,7 @@ function addMessagesToServer(messages, mailbox)
   messages.forEach(function (message)
   {
     let dataUri = Services.io.newURI("data:text/plain;base64," +
-                                      btoa(message.toMessageString()),
-                                     null, null);
+                                      btoa(message.toMessageString()));
     mailbox.addMessage(new imapMessage(dataUri.spec, mailbox.uidnext++, []));
   });
 }
@@ -68,7 +67,7 @@ function run_test()
   actually_run_test();
 }
 
-function setupFolders() {
+function* setupFolders() {
   // make 10 messges
   let messageGenerator = new MessageGenerator();
   let scenarioFactory = new MessageScenarioFactory(messageGenerator);
@@ -92,7 +91,7 @@ function setupFolders() {
   yield true;
 }
 
-function doMoves() {
+function* doMoves() {
   // update folders to download headers.
   gIMAPInbox.updateFolderWithListener(null, UrlListener);
   yield false;
@@ -104,11 +103,11 @@ function doMoves() {
   let headers1 = Cc["@mozilla.org/array;1"]
                    .createInstance(Ci.nsIMutableArray);
   let msgEnumerator = gIMAPInbox.msgDatabase.EnumerateMessages();
-  for (i = 0; i < 5 && msgEnumerator.hasMoreElements(); i++)
+  for (let i = 0; i < 5 && msgEnumerator.hasMoreElements(); i++)
   {
     let header = msgEnumerator.getNext();
     if (header instanceof Components.interfaces.nsIMsgDBHdr)
-      headers1.appendElement(header, false);
+      headers1.appendElement(header);
   }
   // this will add dummy headers with keys > 0xffffff80
   MailServices.copy.CopyMessages(gIMAPInbox, headers1, gFolder1, true,
@@ -124,11 +123,11 @@ function doMoves() {
   headers1 = Cc["@mozilla.org/array;1"]
                 .createInstance(Ci.nsIMutableArray);
   msgEnumerator = gIMAPInbox.msgDatabase.EnumerateMessages();
-  for (i = 0; i < 5 && msgEnumerator.hasMoreElements(); i++)
+  for (let i = 0; i < 5 && msgEnumerator.hasMoreElements(); i++)
   {
     let header = msgEnumerator.getNext();
     if (header instanceof Components.interfaces.nsIMsgDBHdr)
-      headers1.appendElement(header, false);
+      headers1.appendElement(header);
   }
   // Check that CopyMessages will handle having a high highwater mark.
   // It will thrown an exception if it can't.
@@ -185,7 +184,7 @@ function actually_run_test() {
   async_run_tests(tests);
 }
 
-function endTest()
+function* endTest()
 {
   Services.io.offline = true;
   gServer.performTest("LOGOUT");

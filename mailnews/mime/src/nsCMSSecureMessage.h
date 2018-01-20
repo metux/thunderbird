@@ -3,12 +3,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef _NSCMSSECUREMESSAGE_H_
-#define _NSCMSSECUREMESSAGE_H_
+#ifndef nsCMSSecureMessage_h
+#define nsCMSSecureMessage_h
 
 #include "nsICMSSecureMessage.h"
-
-#include "cms.h"
+#include "cert.h"
 
 // ===============================================
 // nsCMSManager - implementation of nsICMSManager
@@ -29,9 +28,9 @@ public:
 
 private:
   virtual ~nsCMSSecureMessage();
-  NS_METHOD encode(const unsigned char *data, int32_t dataLen, char **_retval);
-  NS_METHOD decode(const char *data, unsigned char **result, int32_t * _retval);
+  nsresult encode(const unsigned char *data, int32_t dataLen, char **_retval);
+  nsresult decode(const char *data, unsigned char **result, int32_t * _retval);
+  nsresult CheckUsageOk(nsIX509Cert* cert, SECCertificateUsage usage, bool* _retval);
 };
 
-
-#endif /* _NSCMSMESSAGE_H_ */
+#endif // nsCMSSecureMessage_h

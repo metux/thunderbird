@@ -8,6 +8,8 @@
 
 #include "WebSocketChannel.h"
 #include "nsSocketTransportService2.h"
+#include "nsThreadUtils.h" // for NS_IsMainThread
+#include "ipc/IPCMessageUtils.h"
 
 namespace mozilla {
 namespace net {
@@ -30,7 +32,7 @@ WebSocketFrame::WebSocketFrame(bool aFinBit, bool aRsvBit1, bool aRsvBit2,
   : mData(PR_Now(), aFinBit, aRsvBit1, aRsvBit2, aRsvBit3, aOpCode, aMaskBit,
           aMask, aPayload)
 {
-  MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread);
+  MOZ_ASSERT(OnSocketThread(), "not on socket thread");
   mData.mTimeStamp = PR_Now();
 }
 
@@ -135,7 +137,7 @@ WebSocketFrameData::WriteIPCParams(IPC::Message* aMessage) const
 
 bool
 WebSocketFrameData::ReadIPCParams(const IPC::Message* aMessage,
-                                  void** aIter)
+                                  PickleIterator* aIter)
 {
   if (!ReadParam(aMessage, aIter, &mTimeStamp)) {
     return false;

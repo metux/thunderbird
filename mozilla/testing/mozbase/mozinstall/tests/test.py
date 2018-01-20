@@ -4,6 +4,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
+from __future__ import absolute_import, print_function
+
 import mozinfo
 import mozinstall
 import mozfile
@@ -11,8 +13,11 @@ import os
 import tempfile
 import unittest
 
+import mozunit
+
 # Store file location at load time
 here = os.path.dirname(os.path.abspath(__file__))
+
 
 class TestMozInstall(unittest.TestCase):
 
@@ -32,7 +37,8 @@ class TestMozInstall(unittest.TestCase):
     def tearDown(self):
         mozfile.rmtree(self.tempdir)
 
-    @unittest.skipIf(mozinfo.isWin, "Bug 1157352 - We need a new firefox.exe for mozinstall 1.12 and higher.")
+    @unittest.skipIf(mozinfo.isWin, "Bug 1157352 - We need a new firefox.exe "
+                     "for mozinstall 1.12 and higher.")
     def test_get_binary(self):
         """ Test mozinstall's get_binary method """
 
@@ -46,13 +52,13 @@ class TestMozInstall(unittest.TestCase):
                                                 os.path.join(self.tempdir, 'exe'))
             binary_exe = os.path.join(installdir_exe, 'core', 'firefox.exe')
             self.assertEqual(binary_exe, mozinstall.get_binary(installdir_exe,
-                             'firefox'))
+                                                               'firefox'))
 
             installdir_zip = mozinstall.install(self.zipfile,
                                                 os.path.join(self.tempdir, 'zip'))
             binary_zip = os.path.join(installdir_zip, 'firefox.exe')
             self.assertEqual(binary_zip, mozinstall.get_binary(installdir_zip,
-                             'firefox'))
+                                                               'firefox'))
 
         elif mozinfo.isMac:
             installdir = mozinstall.install(self.dmg, self.tempdir)
@@ -67,7 +73,8 @@ class TestMozInstall(unittest.TestCase):
                           tempdir_empty, 'firefox')
         mozfile.rmtree(tempdir_empty)
 
-    @unittest.skipIf(mozinfo.isWin, "Bug 1157352 - We need a new firefox.exe for mozinstall 1.12 and higher.")
+    @unittest.skipIf(mozinfo.isWin, "Bug 1157352 - We need a new firefox.exe "
+                     "for mozinstall 1.12 and higher.")
     def test_is_installer(self):
         """ Test we can identify a correct installer """
 
@@ -84,7 +91,7 @@ class TestMozInstall(unittest.TestCase):
             try:
                 # test stub browser file
                 # without pefile on the system this test will fail
-                import pefile
+                import pefile  # noqa
                 stub_exe = os.path.join(here, 'build_stub', 'firefox.exe')
                 self.assertFalse(mozinstall.is_installer(stub_exe))
             except ImportError:
@@ -108,7 +115,12 @@ class TestMozInstall(unittest.TestCase):
             self.assertRaises(mozinstall.InvalidSource, mozinstall.install,
                               self.bz2, 'firefox')
 
-    @unittest.skipIf(mozinfo.isWin, "Bug 1157352 - We need a new firefox.exe for mozinstall 1.12 and higher.")
+        # Test an invalid url handler
+        self.assertRaises(mozinstall.InvalidSource, mozinstall.install,
+                          'file://foo.bar', 'firefox')
+
+    @unittest.skipIf(mozinfo.isWin, "Bug 1157352 - We need a new firefox.exe "
+                     "for mozinstall 1.12 and higher.")
     def test_install(self):
         """ Test mozinstall's install capability """
 
@@ -132,7 +144,8 @@ class TestMozInstall(unittest.TestCase):
             self.assertEqual(os.path.join(os.path.realpath(self.tempdir),
                                           'FirefoxStub.app'), installdir)
 
-    @unittest.skipIf(mozinfo.isWin, "Bug 1157352 - We need a new firefox.exe for mozinstall 1.12 and higher.")
+    @unittest.skipIf(mozinfo.isWin, "Bug 1157352 - We need a new firefox.exe "
+                     "for mozinstall 1.12 and higher.")
     def test_uninstall(self):
         """ Test mozinstall's uninstall capabilites """
         # Uninstall after installing
@@ -160,5 +173,6 @@ class TestMozInstall(unittest.TestCase):
             mozinstall.uninstall(installdir)
             self.assertFalse(os.path.exists(installdir))
 
+
 if __name__ == '__main__':
-    unittest.main()
+    mozunit.main()

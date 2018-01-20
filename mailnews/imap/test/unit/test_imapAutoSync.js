@@ -50,7 +50,7 @@ var tests = [
 
 var gTargetFolder;
 
-function test_createTargetFolder()
+function* test_createTargetFolder()
 {
   gAutoSyncManager.addListener(gAutoSyncListener);
 
@@ -62,7 +62,7 @@ function test_createTargetFolder()
   gTargetFolder.setFlag(Ci.nsMsgFolderFlags.CheckNew);
 }
 
-function test_checkForNewMessages()
+function* test_checkForNewMessages()
 {
   addMessageToFolder(gTargetFolder);
   // This will update the INBOX and STATUS targetFolder. We only care about
@@ -86,23 +86,23 @@ function test_triggerAutoSyncIdle()
 }
 
 // move the message to a diffent folder
-function test_moveMessageToTargetFolder()
+function* test_moveMessageToTargetFolder()
 {
   let observer = gAutoSyncManager.QueryInterface(Ci.nsIObserver);
   observer.observe(null, "mail:appIdle", "back");
   let msgHdr = mailTestUtils.firstMsgHdr(IMAPPump.inbox);
-  do_check_neq(msgHdr, null);
+  do_check_true(msgHdr !== null);
 
   // Now move this message to the target folder.
   let messages = Cc["@mozilla.org/array;1"]
                    .createInstance(Ci.nsIMutableArray);
-  messages.appendElement(msgHdr, false);
+  messages.appendElement(msgHdr);
   MailServices.copy.CopyMessages(IMAPPump.inbox, messages, gTargetFolder, true,
                                  asyncCopyListener, null, false);
   yield false;
 }
 
-function test_waitForTargetUpdate()
+function* test_waitForTargetUpdate()
 {
   // After the copy, now we expect to get notified of the gTargetFolder
   // getting updated, after we simulate going idle.
@@ -233,12 +233,12 @@ var gAutoSyncListener =
 
   onDownloadError : function(folder) {
     if (folder instanceof Components.interfaces.nsIMsgFolder) {
-      dump("OnDownloadError: " + folder.prettiestName + "\n");
+      dump("OnDownloadError: " + folder.prettyName + "\n");
     }
   },
 
   onDiscoveryQProcessed : function (folder, numOfHdrsProcessed, leftToProcess) {
-    dump("onDiscoveryQProcessed: " + folder.prettiestName + "\n");
+    dump("onDiscoveryQProcessed: " + folder.prettyName + "\n");
     let index = mailTestUtils.non_strict_index_of(this._waitingForDiscoveryList, folder);
     if (index != -1)
       this._waitingForDiscoveryList.splice(index, 1);
@@ -275,8 +275,7 @@ function addMessageToFolder(folder)
 
   let msgURI =
     Services.io.newURI("data:text/plain;base64," +
-                       btoa(messages[0].toMessageString()),
-                       null, null);
+                       btoa(messages[0].toMessageString()));
   let imapMailbox =  IMAPPump.daemon.getMailbox(folder.name);
   // We add messages with \Seen flag set so that we won't accidentally
   // trigger the code that updates imap folders that have unread messages moved

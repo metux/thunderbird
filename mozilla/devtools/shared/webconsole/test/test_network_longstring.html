@@ -4,7 +4,7 @@
   <meta charset="utf8">
   <title>Test that the network actor uses the LongStringActor</title>
   <script type="text/javascript" src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
-  <script type="text/javascript;version=1.8" src="common.js"></script>
+  <script type="text/javascript" src="common.js"></script>
   <!-- Any copyright is dedicated to the Public Domain.
      - http://creativecommons.org/publicdomain/zero/1.0/ -->
 </head>
@@ -13,7 +13,7 @@
 
 <iframe src="http://example.com/chrome/devtools/shared/webconsole/test/network_requests_iframe.html"></iframe>
 
-<script class="testbody" type="text/javascript;version=1.8">
+<script class="testbody" type="text/javascript">
 SimpleTest.waitForExplicitFinish();
 
 function startTest()
@@ -25,7 +25,7 @@ function startTest()
 
 function onAttach(aState, aResponse)
 {
-  info("enable network request and response body logging");
+  info("set long string length");
 
   window.ORIGINAL_LONG_STRING_LENGTH = DebuggerServer.LONG_STRING_LENGTH;
   window.ORIGINAL_LONG_STRING_INITIAL_LENGTH =
@@ -33,18 +33,6 @@ function onAttach(aState, aResponse)
 
   DebuggerServer.LONG_STRING_LENGTH = 400;
   DebuggerServer.LONG_STRING_INITIAL_LENGTH = 400;
-
-  onSetPreferences = onSetPreferences.bind(null, aState);
-  aState.client.setPreferences({
-    "NetworkMonitor.saveRequestAndResponseBodies": true,
-  }, onSetPreferences);
-}
-
-function onSetPreferences(aState, aResponse)
-{
-  is(aResponse.updated.length, 1, "updated prefs length");
-  is(aResponse.updated[0], "NetworkMonitor.saveRequestAndResponseBodies",
-     "updated prefs length");
 
   info("test network POST request");
 
@@ -224,8 +212,8 @@ function onResponseHeaders(aState, aResponse)
   ok(aResponse.headersSize > 0, "response headersSize > 0");
 
   checkHeadersOrCookies(aResponse.headers, {
-    "Content-Type": /^application\/(json|octet-stream)$/,
-    "Content-Length": /^\d+$/,
+    "content-type": /^application\/(json|octet-stream)$/,
+    "content-length": /^\d+$/,
     "x-very-short": "hello world",
     "x-very-long": {
       "type": "longString",

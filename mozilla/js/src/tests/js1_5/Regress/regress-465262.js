@@ -16,19 +16,14 @@ test();
 
 function test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
  
-  jit(true);
 
   expect = 'true,true,true,true,true,';
 
   for(j=0;j<5;++j) print(actual += "" + (3 > null) + ',')
 
-  jit(false);
 
   reportCompare(expect, actual, summary);
-
-  exitFunc ('test');
 }

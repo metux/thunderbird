@@ -7,11 +7,11 @@
 
 #include "mozilla/ArrayUtils.h"
 
+#include "nsArrayUtils.h"
 #include "nsClipboard.h"
 #include "nsSupportsPrimitives.h"
 #include "nsString.h"
 #include "nsReadableUtils.h"
-#include "nsXPIDLString.h"
 #include "nsPrimitiveHelpers.h"
 #include "nsIServiceManager.h"
 #include "nsImageToPixbuf.h"
@@ -32,11 +32,11 @@
 #include <sys/types.h>
 #include <errno.h>
 #include <unistd.h>
+#include "X11UndefineNone.h"
 
-#include "mozilla/dom/EncodingUtils.h"
-#include "nsIUnicodeDecoder.h"
+#include "mozilla/Encoding.h"
 
-using mozilla::dom::EncodingUtils;
+
 using namespace mozilla;
 
 // Callback when someone asks us for the data
@@ -157,7 +157,7 @@ nsClipboard::SetData(nsITransferable *aTransferable,
     GtkTargetList *list = gtk_target_list_new(nullptr, 0);
 
     // Get the types of supported flavors
-    nsCOMPtr<nsISupportsArray> flavors;
+    nsCOMPtr<nsIArray> flavors;
 
     nsresult rv =
         aTransferable->FlavorsTransferableCanExport(getter_AddRefs(flavors));
@@ -167,19 +167,17 @@ nsClipboard::SetData(nsITransferable *aTransferable,
     // Add all the flavors to this widget's supported type.
     bool imagesAdded = false;
     uint32_t count;
-    flavors->Count(&count);
+    flavors->GetLength(&count);
     for (uint32_t i=0; i < count; i++) {
-        nsCOMPtr<nsISupports> tastesLike;
-        flavors->GetElementAt(i, getter_AddRefs(tastesLike));
-        nsCOMPtr<nsISupportsCString> flavor = do_QueryInterface(tastesLike);
+        nsCOMPtr<nsISupportsCString> flavor = do_QueryElementAt(flavors, i);
 
         if (flavor) {
-            nsXPIDLCString flavorStr;
+            nsCString flavorStr;
             flavor->ToString(getter_Copies(flavorStr));
 
             // special case text/unicode since we can handle all of
             // the string types
-            if (!strcmp(flavorStr, kUnicodeMime)) {
+            if (flavorStr.EqualsLiteral(kUnicodeMime)) {
                 gtk_target_list_add(list, gdk_atom_intern("UTF8_STRING", FALSE), 0, 0);
                 gtk_target_list_add(list, gdk_atom_intern("COMPOUND_TEXT", FALSE), 0, 0);
                 gtk_target_list_add(list, gdk_atom_intern("TEXT", FALSE), 0, 0);
@@ -202,7 +200,7 @@ nsClipboard::SetData(nsITransferable *aTransferable,
             }
 
             // Add this to our list of valid targets
-            GdkAtom atom = gdk_atom_intern(flavorStr, FALSE);
+            GdkAtom atom = gdk_atom_intern(flavorStr.get(), FALSE);
             gtk_target_list_add(list, atom, 0, 0);
         }
     }
@@ -214,7 +212,8 @@ nsClipboard::SetData(nsITransferable *aTransferable,
     GtkTargetEntry *gtkTargets = gtk_target_table_new_from_list(list, &numTargets);
           
     // Set getcallback and request to store data after an application exit
-    if (gtk_clipboard_set_with_data(gtkClipboard, gtkTargets, numTargets, 
+    if (gtkTargets &&
+        gtk_clipboard_set_with_data(gtkClipboard, gtkTargets, numTargets,
                                     clipboard_get_cb, clipboard_clear_cb, this))
     {
         // We managed to set-up the clipboard so update internal state
@@ -257,28 +256,25 @@ nsClipboard::GetData(nsITransferable *aTransferable, int32_t aWhichClipboard)
     nsAutoCString  foundFlavor;
 
     // Get a list of flavors this transferable can import
-    nsCOMPtr<nsISupportsArray> flavors;
+    nsCOMPtr<nsIArray> flavors;
     nsresult rv;
     rv = aTransferable->FlavorsTransferableCanImport(getter_AddRefs(flavors));
     if (!flavors || NS_FAILED(rv))
         return NS_ERROR_FAILURE;
 
     uint32_t count;
-    flavors->Count(&count);
+    flavors->GetLength(&count);
     for (uint32_t i=0; i < count; i++) {
-        nsCOMPtr<nsISupports> genericFlavor;
-        flavors->GetElementAt(i, getter_AddRefs(genericFlavor));
-
         nsCOMPtr<nsISupportsCString> currentFlavor;
-        currentFlavor = do_QueryInterface(genericFlavor);
+        currentFlavor = do_QueryElementAt(flavors, i);
 
         if (currentFlavor) {
-            nsXPIDLCString flavorStr;
+            nsCString flavorStr;
             currentFlavor->ToString(getter_Copies(flavorStr));
 
             // Special case text/unicode since we can convert any
             // string into text/unicode
-            if (!strcmp(flavorStr, kUnicodeMime)) {
+            if (flavorStr.EqualsLiteral(kUnicodeMime)) {
                 gchar* new_text = wait_for_text(clipboard);
                 if (new_text) {
                     // Convert utf-8 into our unicode format.
@@ -298,16 +294,16 @@ nsClipboard::GetData(nsITransferable *aTransferable, int32_t aWhichClipboard)
 
             // For images, we must wrap the data in an nsIInputStream then return instead of break,
             // because that code below won't help us.
-            if (!strcmp(flavorStr, kJPEGImageMime) ||
-                !strcmp(flavorStr, kJPGImageMime) ||
-                !strcmp(flavorStr, kPNGImageMime) ||
-                !strcmp(flavorStr, kGIFImageMime)) {
+            if (flavorStr.EqualsLiteral(kJPEGImageMime) ||
+                flavorStr.EqualsLiteral(kJPGImageMime) ||
+                flavorStr.EqualsLiteral(kPNGImageMime) ||
+                flavorStr.EqualsLiteral(kGIFImageMime)) {
                 // Emulate support for image/jpg
-                if (!strcmp(flavorStr, kJPGImageMime)) {
+                if (flavorStr.EqualsLiteral(kJPGImageMime)) {
                     flavorStr.Assign(kJPEGImageMime);
                 }
 
-                GdkAtom atom = gdk_atom_intern(flavorStr, FALSE);
+                GdkAtom atom = gdk_atom_intern(flavorStr.get(), FALSE);
 
                 GtkSelectionData *selectionData = wait_for_contents(clipboard, atom);
                 if (!selectionData)
@@ -318,21 +314,21 @@ nsClipboard::GetData(nsITransferable *aTransferable, int32_t aWhichClipboard)
                                       (const char*)gtk_selection_data_get_data(selectionData),
                                       gtk_selection_data_get_length(selectionData), 
                                       NS_ASSIGNMENT_COPY);
-                aTransferable->SetTransferData(flavorStr, byteStream, sizeof(nsIInputStream*));
+                aTransferable->SetTransferData(flavorStr.get(), byteStream, sizeof(nsIInputStream*));
                 gtk_selection_data_free(selectionData);
                 return NS_OK;
             }
 
             // Get the atom for this type and try to request it off
             // the clipboard.
-            GdkAtom atom = gdk_atom_intern(flavorStr, FALSE);
+            GdkAtom atom = gdk_atom_intern(flavorStr.get(), FALSE);
             GtkSelectionData *selectionData;
             selectionData = wait_for_contents(clipboard, atom);
             if (selectionData) {
                 const guchar *clipboardData = gtk_selection_data_get_data(selectionData);
                 length = gtk_selection_data_get_length(selectionData);
                 // Special case text/html since we can convert into UCS2
-                if (!strcmp(flavorStr, kHTMLMime)) {
+                if (flavorStr.EqualsLiteral(kHTMLMime)) {
                     char16_t* htmlBody= nullptr;
                     int32_t htmlBodyLen = 0;
                     // Convert text/html into our unicode format
@@ -359,7 +355,7 @@ nsClipboard::GetData(nsITransferable *aTransferable, int32_t aWhichClipboard)
 
     if (foundData) {
         nsCOMPtr<nsISupports> wrapper;
-        nsPrimitiveHelpers::CreatePrimitiveForData(foundFlavor.get(),
+        nsPrimitiveHelpers::CreatePrimitiveForData(foundFlavor,
                                                    data, length,
                                                    getter_AddRefs(wrapper));
         aTransferable->SetTransferData(foundFlavor.get(),
@@ -606,8 +602,8 @@ nsClipboard::SelectionGetEvent(GtkClipboard     *aClipboard,
     }
 
     void *primitive_data = nullptr;
-    nsPrimitiveHelpers::CreateDataFromPrimitive(target_name, item,
-                                                &primitive_data, len);
+    nsPrimitiveHelpers::CreateDataFromPrimitive(nsDependentCString(target_name),
+                                                item, &primitive_data, len);
 
     if (primitive_data) {
         // Check to see if the selection data is text/html
@@ -714,41 +710,46 @@ void ConvertHTMLtoUCS2(guchar * data, int32_t dataLength,
         return;
     } else {
         // app which use "text/html" to copy&paste
-        nsCOMPtr<nsIUnicodeDecoder> decoder;
         // get the decoder
-        nsAutoCString encoding;
-        if (!EncodingUtils::FindEncodingForLabelNoReplacement(charset,
-                                                              encoding)) {
+        auto encoding = Encoding::ForLabelNoReplacement(charset);
+        if (!encoding) {
 #ifdef DEBUG_CLIPBOARD
             g_print("        get unicode decoder error\n");
 #endif
             outUnicodeLen = 0;
             return;
         }
-        decoder = EncodingUtils::DecoderForEncoding(encoding);
-        // converting
-        nsresult rv = decoder->GetMaxLength((const char *)data, dataLength,
-                                            &outUnicodeLen);
-        if (NS_WARN_IF(NS_FAILED(rv))) {
+        auto decoder = encoding->NewDecoder();
+        CheckedInt<size_t> needed = decoder->MaxUTF16BufferLength(dataLength);
+        if (!needed.isValid() || needed.value() > INT32_MAX) {
           outUnicodeLen = 0;
           return;
         }
 
-        // |outUnicodeLen| is number of chars
-        if (outUnicodeLen) {
-            *unicodeData = reinterpret_cast<char16_t*>
-                                           (moz_xmalloc((outUnicodeLen + sizeof('\0')) *
-                           sizeof(char16_t)));
-            if (*unicodeData) {
-                int32_t numberTmp = dataLength;
-                decoder->Convert((const char *)data, &numberTmp,
-                                 *unicodeData, &outUnicodeLen);
+        outUnicodeLen = 0;
+        if (needed.value()) {
+          *unicodeData = reinterpret_cast<char16_t*>(
+            moz_xmalloc((needed.value() + 1) * sizeof(char16_t)));
+          if (*unicodeData) {
+            uint32_t result;
+            size_t read;
+            size_t written;
+            bool hadErrors;
+            Tie(result, read, written, hadErrors) =
+              decoder->DecodeToUTF16(AsBytes(MakeSpan(data, dataLength)),
+                                     MakeSpan(*unicodeData, needed.value()),
+                                     true);
+            MOZ_ASSERT(result == kInputEmpty);
+            MOZ_ASSERT(read == size_t(dataLength));
+            MOZ_ASSERT(written <= needed.value());
+            Unused << hadErrors;
 #ifdef DEBUG_CLIPBOARD
-                if (numberTmp != dataLength)
-                    printf("didn't consume all the bytes\n");
+            if (read != dataLength)
+              printf("didn't consume all the bytes\n");
 #endif
-                // null terminate. Convert() doesn't do it for us
-                (*unicodeData)[outUnicodeLen] = '\0';
+            outUnicodeLen = written;
+            // null terminate.
+            (*unicodeData)[outUnicodeLen] = '\0';
             }
         } // if valid length
     }
@@ -1030,7 +1031,7 @@ selection_request_filter(GdkXEvent *gdk_xevent, GdkEvent *event, gpointer data)
 {
     XEvent *xevent = static_cast<XEvent*>(gdk_xevent);
     if (xevent->xany.type == SelectionRequest) {
-        if (xevent->xselectionrequest.requestor == None)
+        if (xevent->xselectionrequest.requestor == X11None)
             return GDK_FILTER_REMOVE;
 
         GdkDisplay *display = gdk_x11_lookup_xdisplay(

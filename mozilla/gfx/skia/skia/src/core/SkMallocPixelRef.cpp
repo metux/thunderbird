@@ -16,10 +16,9 @@ static void sk_free_releaseproc(void* ptr, void*) {
 }
 
 static bool is_valid(const SkImageInfo& info, SkColorTable* ctable) {
-    if (info.fWidth < 0 ||
-        info.fHeight < 0 ||
-        (unsigned)info.fColorType > (unsigned)kLastEnum_SkColorType ||
-        (unsigned)info.fAlphaType > (unsigned)kLastEnum_SkAlphaType)
+    if (info.width() < 0 || info.height() < 0 ||
+        (unsigned)info.colorType() > (unsigned)kLastEnum_SkColorType ||
+        (unsigned)info.alphaType() > (unsigned)kLastEnum_SkAlphaType)
     {
         return false;
     }
@@ -28,41 +27,43 @@ static bool is_valid(const SkImageInfo& info, SkColorTable* ctable) {
     // that expect the pixelref to succeed even when there is a mismatch
     // with colortables. fix?
 #if 0
-    if (kIndex8_SkColorType == info.fColorType && NULL == ctable) {
+    if (kIndex8_SkColorType == info.fColorType && nullptr == ctable) {
         return false;
     }
-    if (kIndex8_SkColorType != info.fColorType && NULL != ctable) {
+    if (kIndex8_SkColorType != info.fColorType && ctable) {
         return false;
     }
 #endif
     return true;
 }
 
-SkMallocPixelRef* SkMallocPixelRef::NewDirect(const SkImageInfo& info,
-                                              void* addr,
-                                              size_t rowBytes,
-                                              SkColorTable* ctable) {
-    if (!is_valid(info, ctable)) {
-        return NULL;
+sk_sp<SkPixelRef> SkMallocPixelRef::MakeDirect(const SkImageInfo& info,
+                                               void* addr,
+                                               size_t rowBytes,
+                                               sk_sp<SkColorTable> ctable) {
+    if (!is_valid(info, ctable.get())) {
+        return nullptr;
     }
-    return SkNEW_ARGS(SkMallocPixelRef,
-                      (info, addr, rowBytes, ctable, NULL, NULL));
+    return sk_sp<SkPixelRef>(new SkMallocPixelRef(info, addr, rowBytes, std::move(ctable),
+                                                  nullptr, nullptr));
 }
 
 
-SkMallocPixelRef* SkMallocPixelRef::NewAllocate(const SkImageInfo& info,
-                                                size_t requestedRowBytes,
-                                                SkColorTable* ctable) {
-    if (!is_valid(info, ctable)) {
-        return NULL;
+ sk_sp<SkPixelRef> SkMallocPixelRef::MakeUsing(void*(*alloc)(size_t),
+                                               const SkImageInfo& info,
+                                               size_t requestedRowBytes,
+                                               sk_sp<SkColorTable> ctable) {
+    if (!is_valid(info, ctable.get())) {
+        return nullptr;
     }
 
-    int32_t minRB = SkToS32(info.minRowBytes());
-    if (minRB < 0) {
-        return NULL;    // allocation will be too large
+    // only want to permit 31bits of rowBytes
+    int64_t minRB = (int64_t)info.minRowBytes64();
+    if (minRB < 0 || !sk_64_isS32(minRB)) {
+        return nullptr;    // allocation will be too large
     }
     if (requestedRowBytes > 0 && (int32_t)requestedRowBytes < minRB) {
-        return NULL;    // cannot meet requested rowbytes
+        return nullptr;    // cannot meet requested rowbytes
     }
 
     int32_t rowBytes;
@@ -72,137 +73,121 @@ SkMallocPixelRef* SkMallocPixelRef::NewAllocate(const SkImageInfo& info,
         rowBytes = minRB;
     }
 
-    int64_t bigSize = (int64_t)info.fHeight * rowBytes;
+    int64_t bigSize = (int64_t)info.height() * rowBytes;
     if (!sk_64_isS32(bigSize)) {
-        return NULL;
+        return nullptr;
     }
 
     size_t size = sk_64_asS32(bigSize);
     SkASSERT(size >= info.getSafeSize(rowBytes));
-    void* addr = sk_malloc_flags(size, 0);
-    if (NULL == addr) {
-        return NULL;
+    void* addr = alloc(size);
+    if (nullptr == addr) {
+        return nullptr;
     }
 
-    return SkNEW_ARGS(SkMallocPixelRef,
-                      (info, addr, rowBytes, ctable,
-                       sk_free_releaseproc, NULL));
+     return sk_sp<SkPixelRef>(new SkMallocPixelRef(info, addr, rowBytes, std::move(ctable),
+                                                   sk_free_releaseproc, nullptr));
 }
 
-SkMallocPixelRef* SkMallocPixelRef::NewWithProc(const SkImageInfo& info,
+sk_sp<SkPixelRef> SkMallocPixelRef::MakeAllocate(const SkImageInfo& info,
                                                 size_t rowBytes,
-                                                SkColorTable* ctable,
-                                                void* addr,
-                                                SkMallocPixelRef::ReleaseProc proc,
-                                                void* context) {
-    if (!is_valid(info, ctable)) {
-        return NULL;
-    }
-    return SkNEW_ARGS(SkMallocPixelRef,
-                      (info, addr, rowBytes, ctable, proc, context));
+                                                sk_sp<SkColorTable> ctable) {
+    auto sk_malloc_nothrow = [](size_t size) { return sk_malloc_flags(size, 0); };
+    return MakeUsing(sk_malloc_nothrow, info, rowBytes, std::move(ctable));
+}
+
+sk_sp<SkPixelRef> SkMallocPixelRef::MakeZeroed(const SkImageInfo& info,
+                                               size_t rowBytes,
+                                               sk_sp<SkColorTable> ctable) {
+    return MakeUsing(sk_calloc, info, rowBytes, std::move(ctable));
 }
 
 static void sk_data_releaseproc(void*, void* dataPtr) {
     (static_cast<SkData*>(dataPtr))->unref();
 }
 
-SkMallocPixelRef* SkMallocPixelRef::NewWithData(const SkImageInfo& info,
+sk_sp<SkPixelRef> SkMallocPixelRef::MakeWithProc(const SkImageInfo& info,
+                                                 size_t rowBytes,
+                                                 sk_sp<SkColorTable> ctable,
+                                                 void* addr,
+                                                 SkMallocPixelRef::ReleaseProc proc,
+                                                 void* context) {
+    if (!is_valid(info, ctable.get())) {
+        if (proc) {
+            proc(addr, context);
+        }
+        return nullptr;
+    }
+    return sk_sp<SkPixelRef>(new SkMallocPixelRef(info, addr, rowBytes, std::move(ctable),
+                                                  proc, context));
+}
+
+sk_sp<SkPixelRef> SkMallocPixelRef::MakeWithData(const SkImageInfo& info,
                                                 size_t rowBytes,
-                                                SkColorTable* ctable,
-                                                SkData* data) {
-    SkASSERT(data != NULL);
-    if (!is_valid(info, ctable)) {
-        return NULL;
+                                                sk_sp<SkColorTable> ctable,
+                                                sk_sp<SkData> data) {
+    SkASSERT(data != nullptr);
+    if (!is_valid(info, ctable.get())) {
+        return nullptr;
     }
-    if ((rowBytes < info.minRowBytes())
-        || (data->size() < info.getSafeSize(rowBytes))) {
-        return NULL;
+    if ((rowBytes < info.minRowBytes()) || (data->size() < info.getSafeSize(rowBytes))) {
+        return nullptr;
     }
-    data->ref();
-    SkMallocPixelRef* pr
-        = SkNEW_ARGS(SkMallocPixelRef,
-                     (info, const_cast<void*>(data->data()), rowBytes, ctable,
-                      sk_data_releaseproc, static_cast<void*>(data)));
-    SkASSERT(pr != NULL);
-    // We rely on the immutability of the pixels to make the
-    // const_cast okay.
-    pr->setImmutable();
-    return pr;
+    // must get this address before we call release
+    void* pixels = const_cast<void*>(data->data());
+    SkPixelRef* pr = new SkMallocPixelRef(info, pixels, rowBytes, std::move(ctable),
+                                          sk_data_releaseproc, data.release());
+    pr->setImmutable(); // since we were created with (immutable) data
+    return sk_sp<SkPixelRef>(pr);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-SkMallocPixelRef::SkMallocPixelRef(const SkImageInfo& info, void* storage,
-                                   size_t rowBytes, SkColorTable* ctable,
-                                   bool ownsPixels)
-    : INHERITED(info)
-    , fReleaseProc(ownsPixels ? sk_free_releaseproc : NULL)
-    , fReleaseProcContext(NULL) {
-    // This constructor is now DEPRICATED.
-    SkASSERT(is_valid(info, ctable));
-    SkASSERT(rowBytes >= info.minRowBytes());
-
-    if (kIndex_8_SkColorType != info.fColorType) {
-        ctable = NULL;
+static sk_sp<SkColorTable> sanitize(const SkImageInfo& info, sk_sp<SkColorTable> ctable) {
+    if (kIndex_8_SkColorType == info.colorType()) {
+        SkASSERT(ctable);
+    } else {
+        ctable.reset(nullptr);
     }
-
-    fStorage = storage;
-    fCTable = ctable;
-    fRB = rowBytes;
-    SkSafeRef(ctable);
-
-    this->setPreLocked(fStorage, rowBytes, fCTable);
+    return ctable;
 }
 
 SkMallocPixelRef::SkMallocPixelRef(const SkImageInfo& info, void* storage,
-                                   size_t rowBytes, SkColorTable* ctable,
+                                   size_t rowBytes, sk_sp<SkColorTable> ctable,
                                    SkMallocPixelRef::ReleaseProc proc,
                                    void* context)
-    : INHERITED(info)
+    : INHERITED(info, storage, rowBytes, sanitize(info, std::move(ctable)))
     , fReleaseProc(proc)
     , fReleaseProcContext(context)
-{
-    SkASSERT(is_valid(info, ctable));
-    SkASSERT(rowBytes >= info.minRowBytes());
-
-    if (kIndex_8_SkColorType != info.fColorType) {
-        ctable = NULL;
-    }
-
-    fStorage = storage;
-    fCTable = ctable;
-    fRB = rowBytes;
-    SkSafeRef(ctable);
-
-    this->setPreLocked(fStorage, rowBytes, fCTable);
-}
+{}
 
 
 SkMallocPixelRef::~SkMallocPixelRef() {
-    SkSafeUnref(fCTable);
-    if (fReleaseProc != NULL) {
-        fReleaseProc(fStorage, fReleaseProcContext);
+    if (fReleaseProc != nullptr) {
+        fReleaseProc(this->pixels(), fReleaseProcContext);
     }
 }
 
+#ifdef SK_SUPPORT_LEGACY_NO_ADDR_PIXELREF
 bool SkMallocPixelRef::onNewLockPixels(LockRec* rec) {
-    rec->fPixels = fStorage;
-    rec->fRowBytes = fRB;
-    rec->fColorTable = fCTable;
+    sk_throw(); // should never get here
     return true;
 }
 
 void SkMallocPixelRef::onUnlockPixels() {
     // nothing to do
 }
+#endif
 
 size_t SkMallocPixelRef::getAllocatedSizeInBytes() const {
-    return this->info().getSafeSize(fRB);
+    return this->info().getSafeSize(this->rowBytes());
 }
 
-///////////////////////////////////////////////////////////////////////////////
-
-SkPixelRef* SkMallocPixelRef::PRFactory::create(const SkImageInfo& info, size_t rowBytes,
-                                                SkColorTable* ctable) {
-    return SkMallocPixelRef::NewAllocate(info, rowBytes, ctable);
+#ifdef SK_SUPPORT_LEGACY_PIXELREFFACTORY
+SkMallocPixelRef* SkMallocPixelRef::NewWithData(const SkImageInfo& info,
+                                                size_t rowBytes,
+                                                SkColorTable* ctable,
+                                                SkData* data) {
+    return (SkMallocPixelRef*)MakeWithData(info, rowBytes, sk_ref_sp(ctable), sk_ref_sp(data)).release();
 }
+#endif

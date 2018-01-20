@@ -7,7 +7,7 @@ DIRS = [
     'build'
 ]
 
-SOURCES += [
+UNIFIED_SOURCES += [
     'calDateTime.cpp',
     'calDuration.cpp',
     'calICSService.cpp',
@@ -17,4 +17,4 @@ SOURCES += [
     'calUtils.cpp',
 ]
 
-FINAL_LIBRARY = 'calbasecomps'
+FINAL_LIBRARY = 'xul'

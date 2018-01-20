@@ -20,7 +20,7 @@ toolbarbutton {
 
 .toolbarbutton-icon[label]:not([label=""]),
 .toolbarbutton-icon[type="menu"] {
-  -moz-margin-end: 2px;
+  margin-inline-end: 2px;
 }
 
 .toolbarbutton-text {
@@ -48,8 +48,8 @@ toolbarbutton[open="true"] {
   border-left-color: #86929E;
   padding-top: 2px;
   padding-bottom: 0px;
-  -moz-padding-start: 3px;
-  -moz-padding-end: 1px;
+  padding-inline-start: 3px;
+  padding-inline-end: 1px;
 }
 
 toolbarbutton[disabled="true"] {
@@ -65,6 +65,9 @@ toolbarbutton[checked="true"] {
   border-right-color: #7D848D !important;
   border-bottom-color: #7D848D !important;
   border-left-color: #454C55 !important;
+}
+
+toolbarbutton:not(.devtools-toolbarbutton)[checked="true"] {
   background-color: #8C9AA8 !important;
   color: #EFF1F4;
 }
@@ -104,8 +107,8 @@ toolbarbutton[checked="true"]:hover:active {
   -moz-box-pack: center;
   margin-top: 20px;
   margin-bottom: 15px;
-  -moz-margin-start: 40px;
-  -moz-margin-end: 5px;
+  margin-inline-start: 40px;
+  margin-inline-end: 5px;
   padding: 0px;
   border: none !important;
   background-color: transparent !important;
@@ -130,4 +133,14 @@ toolbarbutton[disabled="true"] > stack > .toolbarbutton-menubutton-dropmarker,
 toolbarbutton[disabled="true"]:hover > stack > .toolbarbutton-menubutton-dropmarker
 {
   list-style-image: none;
+}
+
+/* ::::: Devtools toolbarbuttons ::::: */
+
+.devtools-toolbarbutton[type=menu] > .toolbarbutton-menu-dropmarker,
+.devtools-toolbarbutton[type=menu-button] > .toolbarbutton-menubutton-dropmarker {
+  margin-top: 0px;
+  margin-bottom: 0px;
+  margin-inline-start: 0px;
+  margin-inline-end: 0px;
 }

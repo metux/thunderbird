@@ -7,10 +7,7 @@
  * Utility functions for collapsing markers into a waterfall.
  */
 
-loader.lazyRequireGetter(this, "extend",
-  "sdk/util/object", true);
-loader.lazyRequireGetter(this, "MarkerUtils",
-  "devtools/client/performance/modules/logic/marker-utils");
+const { MarkerBlueprintUtils } = require("devtools/client/performance/modules/marker-blueprint-utils");
 
 /**
  * Creates a parent marker, which functions like a regular marker,
@@ -20,10 +17,9 @@ loader.lazyRequireGetter(this, "MarkerUtils",
  * @param object marker
  * @return object
  */
-function createParentNode (marker) {
-  return extend(marker, { submarkers: [] });
+function createParentNode(marker) {
+  return Object.assign({}, marker, { submarkers: [] });
 }
-
 
 /**
  * Collapses markers into a tree-like structure.
@@ -42,24 +38,24 @@ function collapseMarkersIntoNode({ rootNode, markersList, filter }) {
     let curr = markersList[i];
 
     // If this marker type should not be displayed, just skip
-    if (!MarkerUtils.isMarkerValid(curr, filter)) {
+    if (!MarkerBlueprintUtils.shouldDisplayMarker(curr, filter)) {
       continue;
     }
 
     let parentNode = getCurrentParentNode();
-    let blueprint = MarkerUtils.getBlueprintFor(curr);
+    let blueprint = MarkerBlueprintUtils.getBlueprintFor(curr);
 
     let nestable = "nestable" in blueprint ? blueprint.nestable : true;
     let collapsible = "collapsible" in blueprint ? blueprint.collapsible : true;
 
     let finalized = false;
 
-    // If this marker is collapsible, turn it into a parent marker.
-    // If there are no children within it later, it will be turned
-    // back into a normal node.
+    // Extend the marker with extra properties needed in the marker tree
+    let extendedProps = { index: i };
     if (collapsible) {
-      curr = createParentNode(curr);
+      extendedProps.submarkers = [];
     }
+    Object.assign(curr, extendedProps);
 
     // If not nestible, just push it inside the root node. Additionally,
     // markers originating outside the main thread are considered to be
@@ -112,7 +108,7 @@ function collapseMarkersIntoNode({ rootNode, markersList, filter }) {
  * @param {object} root
  * @return {object}
  */
-function createParentNodeFactory (root) {
+function createParentNodeFactory(root) {
   let parentMarkers = [];
   let factory = {
     /**

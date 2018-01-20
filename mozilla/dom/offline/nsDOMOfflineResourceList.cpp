@@ -16,8 +16,8 @@
 #include "nsServiceManagerUtils.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsIOfflineCacheUpdate.h"
-#include "nsAutoPtr.h"
 #include "nsContentUtils.h"
+#include "nsILoadContext.h"
 #include "nsIObserverService.h"
 #include "nsIScriptGlobalObject.h"
 #include "nsIWebNavigation.h"
@@ -25,6 +25,7 @@
 #include "mozilla/dom/OfflineResourceListBinding.h"
 #include "mozilla/EventDispatcher.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/BasePrincipal.h"
 
 #include "nsXULAppAPI.h"
 #define IS_CHILD_PROCESS() \
@@ -60,7 +61,7 @@ NS_IMPL_CYCLE_COLLECTION_INHERITED(nsDOMOfflineResourceList,
                                    mCacheUpdate,
                                    mPendingEvents)
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(nsDOMOfflineResourceList)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsDOMOfflineResourceList)
   NS_INTERFACE_MAP_ENTRY(nsIDOMOfflineResourceList)
   NS_INTERFACE_MAP_ENTRY(nsIOfflineCacheUpdateObserver)
   NS_INTERFACE_MAP_ENTRY(nsIObserver)
@@ -70,19 +71,10 @@ NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 NS_IMPL_ADDREF_INHERITED(nsDOMOfflineResourceList, DOMEventTargetHelper)
 NS_IMPL_RELEASE_INHERITED(nsDOMOfflineResourceList, DOMEventTargetHelper)
 
-NS_IMPL_EVENT_HANDLER(nsDOMOfflineResourceList, checking)
-NS_IMPL_EVENT_HANDLER(nsDOMOfflineResourceList, error)
-NS_IMPL_EVENT_HANDLER(nsDOMOfflineResourceList, noupdate)
-NS_IMPL_EVENT_HANDLER(nsDOMOfflineResourceList, downloading)
-NS_IMPL_EVENT_HANDLER(nsDOMOfflineResourceList, progress)
-NS_IMPL_EVENT_HANDLER(nsDOMOfflineResourceList, cached)
-NS_IMPL_EVENT_HANDLER(nsDOMOfflineResourceList, updateready)
-NS_IMPL_EVENT_HANDLER(nsDOMOfflineResourceList, obsolete)
-
 nsDOMOfflineResourceList::nsDOMOfflineResourceList(nsIURI *aManifestURI,
                                                    nsIURI *aDocumentURI,
                                                    nsIPrincipal *aLoadingPrincipal,
-                                                   nsPIDOMWindow *aWindow)
+                                                   nsPIDOMWindowInner *aWindow)
   : DOMEventTargetHelper(aWindow)
   , mInitialized(false)
   , mManifestURI(aManifestURI)
@@ -236,7 +228,7 @@ nsDOMOfflineResourceList::GetMozItems(nsISupports** aItems)
 NS_IMETHODIMP
 nsDOMOfflineResourceList::MozHasItem(const nsAString& aURI, bool* aExists)
 {
-  if (IS_CHILD_PROCESS()) 
+  if (IS_CHILD_PROCESS())
     return NS_ERROR_NOT_IMPLEMENTED;
 
   nsresult rv = Init();
@@ -266,7 +258,7 @@ nsDOMOfflineResourceList::MozHasItem(const nsAString& aURI, bool* aExists)
 NS_IMETHODIMP
 nsDOMOfflineResourceList::GetMozLength(uint32_t *aLength)
 {
-  if (IS_CHILD_PROCESS()) 
+  if (IS_CHILD_PROCESS())
     return NS_ERROR_NOT_IMPLEMENTED;
 
   if (!mManifestURI) {
@@ -287,7 +279,7 @@ nsDOMOfflineResourceList::GetMozLength(uint32_t *aLength)
 NS_IMETHODIMP
 nsDOMOfflineResourceList::MozItem(uint32_t aIndex, nsAString& aURI)
 {
-  if (IS_CHILD_PROCESS()) 
+  if (IS_CHILD_PROCESS())
     return NS_ERROR_NOT_IMPLEMENTED;
 
   nsresult rv = Init();
@@ -309,7 +301,7 @@ nsDOMOfflineResourceList::MozItem(uint32_t aIndex, nsAString& aURI)
 NS_IMETHODIMP
 nsDOMOfflineResourceList::MozAdd(const nsAString& aURI)
 {
-  if (IS_CHILD_PROCESS()) 
+  if (IS_CHILD_PROCESS())
     return NS_ERROR_NOT_IMPLEMENTED;
 
   nsresult rv = Init();
@@ -377,7 +369,7 @@ nsDOMOfflineResourceList::MozAdd(const nsAString& aURI)
 NS_IMETHODIMP
 nsDOMOfflineResourceList::MozRemove(const nsAString& aURI)
 {
-  if (IS_CHILD_PROCESS()) 
+  if (IS_CHILD_PROCESS())
     return NS_ERROR_NOT_IMPLEMENTED;
 
   nsresult rv = Init();
@@ -465,8 +457,7 @@ nsDOMOfflineResourceList::Update()
     do_GetService(NS_OFFLINECACHEUPDATESERVICE_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsIDOMWindow> window = 
-    do_QueryInterface(GetOwner());
+  nsCOMPtr<nsPIDOMWindowInner> window = GetOwner();
 
   nsCOMPtr<nsIOfflineCacheUpdate> update;
   rv = updateService->ScheduleUpdate(mManifestURI, mDocumentURI, mLoadingPrincipal,
@@ -601,7 +592,7 @@ NS_IMETHODIMP
 nsDOMOfflineResourceList::UpdateStateChanged(nsIOfflineCacheUpdate *aUpdate,
                                      uint32_t event)
 {
-  mExposeCacheUpdateStatus = 
+  mExposeCacheUpdateStatus =
       (event == STATE_CHECKING) ||
       (event == STATE_DOWNLOADING) ||
       (event == STATE_ITEMSTARTED) ||
@@ -803,7 +794,7 @@ nsDOMOfflineResourceList::GetCacheKey(nsIURI *aURI, nsCString &aKey)
 nsresult
 nsDOMOfflineResourceList::CacheKeys()
 {
-  if (IS_CHILD_PROCESS()) 
+  if (IS_CHILD_PROCESS())
     return NS_ERROR_NOT_IMPLEMENTED;
 
   if (mCachedKeys)
@@ -813,16 +804,17 @@ nsDOMOfflineResourceList::CacheKeys()
   nsCOMPtr<nsIWebNavigation> webNav = do_GetInterface(window);
   nsCOMPtr<nsILoadContext> loadContext = do_QueryInterface(webNav);
 
-  uint32_t appId = 0;
-  bool inBrowser = false;
+  nsAutoCString originSuffix;
   if (loadContext) {
-    loadContext->GetAppId(&appId);
-    loadContext->GetIsInBrowserElement(&inBrowser);
+    mozilla::OriginAttributes oa;
+    loadContext->GetOriginAttributes(oa);
+
+    oa.CreateSuffix(originSuffix);
   }
 
   nsAutoCString groupID;
-  mApplicationCacheService->BuildGroupIDForApp(
-      mManifestURI, appId, inBrowser, groupID);
+  mApplicationCacheService->BuildGroupIDForSuffix(
+      mManifestURI, originSuffix, groupID);
 
   nsCOMPtr<nsIApplicationCache> appCache;
   mApplicationCacheService->GetActiveCache(groupID,

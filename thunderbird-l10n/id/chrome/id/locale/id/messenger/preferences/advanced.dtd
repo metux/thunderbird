@@ -1,0 +1,131 @@
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+
+<!ENTITY itemGeneral.label       "Utama">
+<!ENTITY itemUpdate.label        "Pemutakhiran">
+<!ENTITY itemNetworking.label    "Jaringan &amp; Ruang Disk">
+<!ENTITY itemCertificates.label  "Sertifikat">
+
+<!-- General Settings -->
+<!ENTITY enableGlodaSearch.label       "Aktifkan Sistem Pencarian Global dan Pengindeksan Pesan">
+<!ENTITY enableGlodaSearch.accesskey   "i">
+
+
+<!ENTITY systemIntegration.label       "Integrasi dengan Sistem">
+<!ENTITY alwaysCheckDefault.label      "Periksa apakah &brandShortName; adalah pembaca email default ketika memulai">
+<!ENTITY alwaysCheckDefault.accesskey  "l">
+<!ENTITY searchIntegration.label       "Izinkan &searchIntegration.engineName; untuk pencarian pesan">
+<!ENTITY searchIntegration.accesskey   "p">
+<!ENTITY configEditDesc.label          "Konfigurasi Canggih">
+<!ENTITY configEdit.label              "Penyunting Konfigurasi…">
+<!ENTITY configEdit.accesskey          "g">
+<!ENTITY returnReceiptsInfo.label      "Mengatur penanganan tanda konfirmasi diterima (return receipt) oleh &brandShortName;">
+<!ENTITY showReturnReceipts.label      "Tanda Konfirmasi Diterima…">
+<!ENTITY showReturnReceipts.accesskey  "r">
+
+<!-- Data Choices -->
+
+
+<!-- Update -->
+<!-- LOCALIZATION NOTE (updateApp.label):
+  Strings from aboutDialog.dtd are displayed in this section of the preferences.
+  Please check for possible accesskey conflicts.
+-->
+<!-- LOCALIZATION NOTE (updateApp.version.*): updateApp.version.pre is
+  followed by a version number, keep the trailing space or replace it with
+  a different character as needed. updateApp.version.post is displayed after
+  the version number, and is empty on purpose for English. You can use it
+  if required by your language.
+ -->
+
+
+<!-- Networking and Disk Space -->
+<!ENTITY showSettings.label            "Pengaturan…">
+<!ENTITY showSettings.accesskey        "a">
+<!ENTITY proxiesConfigure.label        "Atur cara &brandShortName; tersambung ke Internet">
+<!ENTITY connectionsInfo.caption       "Sambungan">
+<!ENTITY offlineInfo.caption           "Luring">
+<!ENTITY offlineInfo.label             "Atur pengaturan luring">
+<!ENTITY showOffline.label             "Luring…">
+<!ENTITY showOffline.accesskey         "L">
+
+<!ENTITY Diskspace                       "Ruang Disk">
+
+<!-- LOCALIZATION NOTE:
+  The entities useCacheBefore.label and useCacheAfter.label appear on a single
+  line in preferences as follows:
+
+  &useCacheBefore.label  [ textbox for cache size in MB ]   &useCacheAfter.label;
+-->
+<!ENTITY useCacheBefore.label            "Gunakan harddisk untuk tembolok hingga">
+<!ENTITY useCacheBefore.accesskey        "h">
+<!ENTITY useCacheAfter.label             "MB">
+<!ENTITY clearCacheNow.label             "Bersihkan Sekarang">
+<!ENTITY clearCacheNow.accesskey         "g">
+
+<!-- Certificates -->
+<!ENTITY certSelection.description       "Ketika server meminta sertifikat pribadi saya:">
+<!ENTITY certs.auto                      "Pilih satu secara otomatis">
+<!ENTITY certs.auto.accesskey            "P">
+<!ENTITY certs.ask                       "Tanyakan selalu">
+
+<!ENTITY viewSecurityDevices.label "Perangkat Keamanan">
+<!ENTITY viewSecurityDevices.accesskey "k">
+
+<!ENTITY dataChoicesTab.label    "Data Choices">
+<!ENTITY dateTimeFormatting.label      "Date and Time Formatting">
+<!ENTITY allowHWAccel.label            "Use hardware acceleration when available">
+<!ENTITY allowHWAccel.accesskey        "h">
+<!ENTITY storeType.label               "Message Store Type for new accounts:">
+<!ENTITY storeType.accesskey           "T">
+<!ENTITY mboxStore2.label              "File per folder (mbox)">
+<!ENTITY maildirStore.label            "File per message (maildir)">
+
+<!ENTITY scrolling.label               "Scrolling">
+<!ENTITY useAutoScroll.label           "Use autoscrolling">
+<!ENTITY useAutoScroll.accesskey       "U">
+<!ENTITY useSmoothScrolling.label      "Use smooth scrolling">
+<!ENTITY useSmoothScrolling.accesskey  "m">
+
+<!ENTITY checkDefaultsNow.label        "Check Now…">
+<!ENTITY checkDefaultsNow.accesskey    "N">
+<!ENTITY telemetrySection.label          "Telemetry">
+<!ENTITY telemetryDesc.label             "Shares performance, usage, hardware and customization data about your e-mail client with &vendorShortName; to help us make &brandShortName; better">
+<!ENTITY enableTelemetry.label           "Enable Telemetry">
+<!ENTITY enableTelemetry.accesskey       "T">
+<!ENTITY telemetryLearnMore.label        "Learn More">
+
+<!ENTITY crashReporterSection.label      "Crash Reporter">
+<!ENTITY crashReporterDesc.label         "&brandShortName; submits crash reports to help &vendorShortName; make your e-mail client more stable and secure">
+<!ENTITY enableCrashReporter.label       "Enable Crash Reporter">
+<!ENTITY enableCrashReporter.accesskey   "C">
+<!ENTITY crashReporterLearnMore.label    "Learn More">
+
+<!ENTITY updateApp2.label                "&brandShortName; Updates">
+<!ENTITY updateApp.version.pre           "Version ">
+<!ENTITY updateApp.version.post          "">
+<!ENTITY updateAuto.label                "Automatically install updates (recommended: improved security)">
+<!ENTITY updateAuto.accesskey            "A">
+<!ENTITY updateCheck.label               "Check for updates, but let me choose whether to install them">
+<!ENTITY updateCheck.accesskey           "C">
+<!ENTITY updateManual.label              "Never check for updates (not recommended: security risk)">
+<!ENTITY updateManual.accesskey          "N">
+<!ENTITY updateHistory.label             "Show Update History">
+<!ENTITY updateHistory.accesskey         "p">
+
+<!ENTITY useService.label                "Use a background service to install updates">
+<!ENTITY useService.accesskey            "b">
+
+<!ENTITY offlineCompactFolders.label     "Compact all folders when it will save over">
+<!ENTITY offlineCompactFolders.accesskey "a">
+<!ENTITY offlineCompactFoldersMB.label   "MB in total">
+
+<!ENTITY overrideSmartCacheSize.label    "Override automatic cache management">
+<!ENTITY overrideSmartCacheSize.accesskey "v">
+<!ENTITY certs.ask.accesskey             "A">
+<!ENTITY enableOCSP.label                "Query OCSP responder servers to confirm the current validity of certificates">
+<!ENTITY enableOCSP.accesskey            "Q">
+
+<!ENTITY manageCertificates.label "Manage Certificates">
+<!ENTITY manageCertificates.accesskey "M">

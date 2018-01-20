@@ -31,9 +31,8 @@ public:
     SetHTMLAttr(nsGkAtoms::value, aValue, aError);
   }
 
-  virtual void GetItemValueText(DOMString& text) override;
-  virtual void SetItemValueText(const nsAString& text) override;
-  virtual nsresult Clone(mozilla::dom::NodeInfo* aNodeInfo, nsINode** aResult) const override;
+  virtual nsresult Clone(mozilla::dom::NodeInfo* aNodeInfo, nsINode** aResult,
+                         bool aPreallocateChildren) const override;
 
 protected:
   virtual ~HTMLDataElement();

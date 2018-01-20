@@ -1,0 +1,62 @@
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+<!-- Subscription Dialog -->
+
+<!ENTITY feedSubscriptions.label     "Jario harpidetzak">
+<!ENTITY learnMore.label             "Jarioei buruzko argibide gehiago">
+
+<!ENTITY feedTitle.label             "Izenburua:">
+<!ENTITY feedTitle.accesskey         "I">
+
+
+<!ENTITY feedLocation.placeholder    "Sartu gehitzeko baliozko jario URLa">
+<!ENTITY locationValidate.label      "Balidatu">
+<!ENTITY validateText.label          "Egiaztatu balidazioa eta eskuratu baliozko URLa.">
+
+<!ENTITY feedFolder.label            "Gorde artikuluak hemen:">
+<!ENTITY feedFolder.accesskey        "G">
+<!-- Account Settings and Subscription Dialog -->
+
+
+
+
+
+
+
+<!ENTITY quickMode.label             "Erakutsi artikuluaren laburpena web orria kargatu ordez">
+<!ENTITY quickMode.accesskey         "E">
+
+
+<!ENTITY autotagUsePrefix.label      "Erabili aurrizkia etiketentzat:">
+<!ENTITY autotagUsePrefix.accesskey  "z">
+<!ENTITY autoTagPrefix.placeholder   "Sartu etiketaren aurrizkia">
+<!-- Subscription Dialog -->
+
+<!ENTITY button.addFeed.label        "Gehitu">
+<!ENTITY button.addFeed.accesskey    "G">
+<!ENTITY button.updateFeed.label     "Editatu">
+<!ENTITY button.updateFeed.accesskey "E">
+<!ENTITY button.removeFeed.label     "Ezabatu">
+<!ENTITY button.removeFeed.accesskey "z">
+<!ENTITY button.importOPML.label     "Inportatu">
+<!ENTITY button.importOPML.accesskey "I">
+<!ENTITY button.exportOPML.label     "Esportatu">
+<!ENTITY button.exportOPML.accesskey "s">
+<!ENTITY button.exportOPML.tooltip   "Esportatu jarioak karpeta-egiturarekin; ktrl-klik edo ktrl-sartu jarioak zerrenda gisa esportatzeko">
+
+<!ENTITY cmd.close.commandKey        "w">
+<!ENTITY button.close.label          "Itxi">
+
+<!ENTITY feedLocation.label          "Feed URL:">
+<!ENTITY feedLocation.accesskey      "F">
+<!ENTITY biffStart.label             "Check for new articles every ">
+<!ENTITY biffStart.accesskey         "k">
+<!ENTITY biffMinutes.label           "minutes">
+<!ENTITY biffMinutes.accesskey       "n">
+<!ENTITY biffDays.label              "days">
+<!ENTITY biffDays.accesskey          "d">
+<!ENTITY recommendedUnits.label      "Publisher recommends:">
+
+<!ENTITY autotagEnable.label         "Automatically create tags from feed &lt;category&gt; names">
+<!ENTITY autotagEnable.accesskey     "o">

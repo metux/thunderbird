@@ -1,4 +1,3 @@
-// Up-to-date as of 2013-04-13.
 var obsoleteElements = {
   applet: {
     align: "string",

@@ -1,6 +1,7 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
+/* eslint-disable mozilla/no-arbitrary-setTimeout */
 
 // Bug 587970 - Provide ability "Update all now" within 'Available Updates' screen
 
@@ -9,7 +10,7 @@ var gProvider;
 
 function test() {
   waitForExplicitFinish();
-  
+
   gProvider = new MockProvider();
 
   gProvider.createAddons([{
@@ -28,7 +29,7 @@ function test() {
     version: "3.0",
     applyBackgroundUpdates: AddonManager.AUTOUPDATE_DISABLE
   }]);
-  
+
 
   open_manager("addons://updates/available", function(aWindow) {
     gManagerWindow = aWindow;
@@ -48,7 +49,7 @@ add_test(function() {
 
   var emptyNotice = gManagerWindow.document.getElementById("empty-availableUpdates-msg");
   is_element_visible(emptyNotice, "Empty notice should be visible");
-  
+
   var updateSelected = gManagerWindow.document.getElementById("update-selected-btn");
   is_element_hidden(updateSelected, "Update Selected button should be hidden");
 
@@ -86,7 +87,7 @@ add_test(function() {
 add_test(function() {
   var list = gManagerWindow.document.getElementById("updates-list");
   is(list.childNodes.length, 3, "Available updates list should have 2 items");
-  
+
   var item1 = get_addon_element(gManagerWindow, "addon1@tests.mozilla.org");
   isnot(item1, null, "Item for addon1@tests.mozilla.org should be in list");
   var item2 = get_addon_element(gManagerWindow, "addon2@tests.mozilla.org");
@@ -104,7 +105,7 @@ add_test(function() {
   is(item1._includeUpdate.checked, true, "Include Update checkbox should be checked by default for addon1");
   is(item2._includeUpdate.checked, true, "Include Update checkbox should be checked by default for addon2");
   is(item3._includeUpdate.checked, true, "Include Update checkbox should be checked by default for addon3");
-  
+
   info("Unchecking Include Update checkbox for addon1");
   EventUtils.synthesizeMouse(item1._includeUpdate, 2, 2, { }, gManagerWindow);
   is(item1._includeUpdate.checked, false, "Include Update checkbox should now be be unchecked for addon1");
@@ -132,11 +133,11 @@ add_test(function() {
 
   var installCount = 0;
   var listener = {
-    onDownloadStarted: function(aInstall) {
+    onDownloadStarted(aInstall) {
       isnot(aInstall.existingAddon.id, "addon1@tests.mozilla.org", "Should not have seen a download start for addon1");
     },
 
-    onInstallEnded: function(aInstall) {
+    onInstallEnded(aInstall) {
       if (++installCount < 2)
         return;
 
@@ -154,7 +155,7 @@ add_test(function() {
         run_next_test();
       });
     }
-  }
+  };
   gProvider.installs[0].addTestListener(listener);
   gProvider.installs[1].addTestListener(listener);
   gProvider.installs[2].addTestListener(listener);

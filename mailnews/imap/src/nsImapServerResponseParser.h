@@ -9,7 +9,7 @@
 #include "mozilla/Attributes.h"
 #include "nsIMAPHostSessionList.h"
 #include "nsImapSearchResults.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "MailNewsTypes.h"
 #include "nsTArray.h"
 #include "nsImapUtils.h"
@@ -21,7 +21,6 @@ class nsIMAPBodyShell;
 class nsIMAPBodypart;
 class nsImapSearchResultIterator;
 class nsImapFlagAndUidState;
-class nsCString;
 
 #include "nsIMAPGenericParser.h"
 
@@ -78,7 +77,7 @@ public:
 
   // create a struct mailbox_spec from our info, used in
   // libmsg c interface
-  nsImapMailboxSpec *CreateCurrentMailboxSpec(const char *mailboxName = nullptr);
+  already_AddRefed<nsImapMailboxSpec> CreateCurrentMailboxSpec(const char *mailboxName = nullptr);
 
   // Resets the flags state.
   void ResetFlagInfo();
@@ -262,7 +261,7 @@ private:
   // The connection object
   nsImapProtocol &fServerConnection;
 
-  nsIImapHostSessionList *fHostSessionList;
+  RefPtr<nsIImapHostSessionList> fHostSessionList;
   nsTArray<nsMsgKey> fCopyResponseKeyArray;
 };
 

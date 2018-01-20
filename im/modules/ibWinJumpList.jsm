@@ -88,7 +88,7 @@ var WinJumpList = {
       else
         throw "Unknown jumplist item type: " + currentItem.type;
 
-      items.appendElement(item, false);
+      items.appendElement(item);
     }
 
     try {
@@ -98,12 +98,16 @@ var WinJumpList = {
 
       this.winJumpListBuilder.addListToBuild(
         Ci.nsIJumpListBuilder.JUMPLIST_CATEGORY_TASKS, items);
-
-      // Send the list to Windows
-      this.winJumpListBuilder.commitListBuild();
     } catch (e) {
       Cu.reportError(e);
     }
+
+    // Send the list to Windows
+    this.winJumpListBuilder.commitListBuild(succeed => {
+      if (!succeed) {
+        Cu.reportError("commitListBuild failed");
+      }
+    });
   },
 
   reset: function WJL_reset() {
@@ -119,7 +123,7 @@ var WinJumpList = {
 
   _getHandlerAppItem: function WJL__getHandlerAppItem(aName, aDescription,
                                                       aArgs, aIconIndex) {
-    var file = Services.dirsvc.get("XCurProcD", Ci.nsILocalFile);
+    var file = Services.dirsvc.get("XCurProcD", Ci.nsIFile);
 
     // XXX where can we grab this from in the build? Do we need to?
     file.append("instantbird.exe");

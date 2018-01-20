@@ -142,7 +142,7 @@ is_one_of (const hb_glyph_info_t &info, unsigned int flags)
 {
   /* If it ligated, all bets are off. */
   if (_hb_glyph_info_ligated (&info)) return false;
-  return !!(FLAG_SAFE (info.indic_category()) & flags);
+  return !!(FLAG_UNSAFE (info.indic_category()) & flags);
 }
 
 static inline bool
@@ -176,32 +176,16 @@ set_indic_properties (hb_glyph_info_t &info)
    * Re-assign category
    */
 
-
-  /* The spec says U+0952 is OT_A.  However, testing shows that Uniscribe
-   * treats a whole bunch of characters similarly.
-   * TESTS: For example, for U+0951:
-   * U+092E,U+0947,U+0952
-   * U+092E,U+0952,U+0947
-   * U+092E,U+0947,U+0951
-   * U+092E,U+0951,U+0947
-   * U+092E,U+0951,U+0952
-   * U+092E,U+0952,U+0951
-   */
-  if (unlikely (hb_in_ranges (u, 0x0951u, 0x0952u,
-				 0x1CD0u, 0x1CD2u,
-				 0x1CD4u, 0x1CE1u) ||
-			    u == 0x1CF4u))
-    cat = OT_A;
   /* The following act more like the Bindus. */
-  else if (unlikely (hb_in_range (u, 0x0953u, 0x0954u)))
+  if (unlikely (hb_in_range<hb_codepoint_t> (u, 0x0953u, 0x0954u)))
     cat = OT_SM;
   /* The following act like consonants. */
-  else if (unlikely (hb_in_ranges (u, 0x0A72u, 0x0A73u,
+  else if (unlikely (hb_in_ranges<hb_codepoint_t> (u, 0x0A72u, 0x0A73u,
 				      0x1CF5u, 0x1CF6u)))
     cat = OT_C;
   /* TODO: The following should only be allowed after a Visarga.
    * For now, just treat them like regular tone marks. */
-  else if (unlikely (hb_in_range (u, 0x1CE2u, 0x1CE8u)))
+  else if (unlikely (hb_in_range<hb_codepoint_t> (u, 0x1CE2u, 0x1CE8u)))
     cat = OT_A;
   /* TODO: The following should only be allowed after some of
    * the nasalization marks, maybe only for U+1CE9..U+1CF1.
@@ -209,35 +193,47 @@ set_indic_properties (hb_glyph_info_t &info)
   else if (unlikely (u == 0x1CEDu))
     cat = OT_A;
   /* The following take marks in standalone clusters, similar to Avagraha. */
-  else if (unlikely (hb_in_ranges (u, 0xA8F2u, 0xA8F7u,
+  else if (unlikely (hb_in_ranges<hb_codepoint_t> (u, 0xA8F2u, 0xA8F7u,
 				      0x1CE9u, 0x1CECu,
 				      0x1CEEu, 0x1CF1u)))
   {
     cat = OT_Symbol;
-    ASSERT_STATIC ((int) INDIC_SYLLABIC_CATEGORY_AVAGRAHA == OT_Symbol);
+    static_assert (((int) INDIC_SYLLABIC_CATEGORY_AVAGRAHA == OT_Symbol), "");
   }
-  else if (unlikely (hb_in_range (u, 0x17CDu, 0x17D1u) ||
+  else if (unlikely (hb_in_range<hb_codepoint_t> (u, 0x17CDu, 0x17D1u) ||
 		     u == 0x17CBu || u == 0x17D3u || u == 0x17DDu)) /* Khmer Various signs */
   {
-    /* These are like Top Matras. */
+    /* These can occur mid-syllable (eg. before matras), even though Unicode marks them as Syllable_Modifier.
+     * https://github.com/roozbehp/unicode-data/issues/5 */
     cat = OT_M;
     pos = POS_ABOVE_C;
   }
+  else if (unlikely (u == 0x0A51u))
+  {
+    /* https://github.com/behdad/harfbuzz/issues/524 */
+    cat = OT_M;
+    pos = POS_BELOW_C;
+  }
+
+  /* According to ScriptExtensions.txt, these Grantha marks may also be used in Tamil,
+   * so the Indic shaper needs to know their categories. */
+  else if (unlikely (u == 0x11303u)) cat = OT_SM;
+  else if (unlikely (u == 0x1133cu)) cat = OT_N;
+
+  else if (unlikely (u == 0x0AFBu)) cat = OT_N; /* https://github.com/behdad/harfbuzz/issues/552 */
+
+  else if (unlikely (u == 0x0980u)) cat = OT_PLACEHOLDER; /* https://github.com/behdad/harfbuzz/issues/538 */
   else if (unlikely (u == 0x17C6u)) cat = OT_N; /* Khmer Bindu doesn't like to be repositioned. */
-  else if (unlikely (u == 0x17D2u)) cat = OT_Coeng; /* Khmer coeng */
-  else if (unlikely (hb_in_range (u, 0x2010u, 0x2011u)))
+  else if (unlikely (hb_in_range<hb_codepoint_t> (u, 0x2010u, 0x2011u)))
 				    cat = OT_PLACEHOLDER;
   else if (unlikely (u == 0x25CCu)) cat = OT_DOTTEDCIRCLE;
-  else if (unlikely (u == 0xA982u)) cat = OT_SM; /* Javanese repha. */
-  else if (unlikely (u == 0xA9BEu)) cat = OT_CM2; /* Javanese medial ya. */
-  else if (unlikely (u == 0xA9BDu)) { cat = OT_M; pos = POS_POST_C; } /* Javanese vocalic r. */
 
 
   /*
    * Re-assign position.
    */
 
-  if ((FLAG_SAFE (cat) & CONSONANT_FLAGS))
+  if ((FLAG_UNSAFE (cat) & CONSONANT_FLAGS))
   {
     pos = POS_BASE_C;
     if (is_ra (u))
@@ -247,7 +243,7 @@ set_indic_properties (hb_glyph_info_t &info)
   {
     pos = matra_position (u, pos);
   }
-  else if ((FLAG_SAFE (cat) & (FLAG (OT_SM) | FLAG (OT_VD) | FLAG (OT_A) | FLAG (OT_Symbol))))
+  else if ((FLAG_UNSAFE (cat) & (FLAG (OT_SM) | FLAG (OT_VD) | FLAG (OT_A) | FLAG (OT_Symbol))))
   {
     pos = POS_SMVD;
   }
@@ -296,11 +292,6 @@ enum blwf_mode_t {
   BLWF_MODE_PRE_AND_POST, /* Below-forms feature applied to pre-base and post-base. */
   BLWF_MODE_POST_ONLY     /* Below-forms feature applied to post-base only. */
 };
-enum pref_len_t {
-  PREF_LEN_1 = 1,
-  PREF_LEN_2 = 2,
-  PREF_LEN_DONT_CARE = PREF_LEN_2
-};
 struct indic_config_t
 {
   hb_script_t     script;
@@ -310,26 +301,24 @@ struct indic_config_t
   reph_position_t reph_pos;
   reph_mode_t     reph_mode;
   blwf_mode_t     blwf_mode;
-  pref_len_t      pref_len;
 };
 
 static const indic_config_t indic_configs[] =
 {
   /* Default.  Should be first. */
-  {HB_SCRIPT_INVALID,	false,      0,BASE_POS_LAST, REPH_POS_BEFORE_POST,REPH_MODE_IMPLICIT, BLWF_MODE_PRE_AND_POST, PREF_LEN_1},
-  {HB_SCRIPT_DEVANAGARI,true, 0x094Du,BASE_POS_LAST, REPH_POS_BEFORE_POST,REPH_MODE_IMPLICIT, BLWF_MODE_PRE_AND_POST, PREF_LEN_DONT_CARE},
-  {HB_SCRIPT_BENGALI,	true, 0x09CDu,BASE_POS_LAST, REPH_POS_AFTER_SUB,  REPH_MODE_IMPLICIT, BLWF_MODE_PRE_AND_POST, PREF_LEN_DONT_CARE},
-  {HB_SCRIPT_GURMUKHI,	true, 0x0A4Du,BASE_POS_LAST, REPH_POS_BEFORE_SUB, REPH_MODE_IMPLICIT, BLWF_MODE_PRE_AND_POST, PREF_LEN_DONT_CARE},
-  {HB_SCRIPT_GUJARATI,	true, 0x0ACDu,BASE_POS_LAST, REPH_POS_BEFORE_POST,REPH_MODE_IMPLICIT, BLWF_MODE_PRE_AND_POST, PREF_LEN_DONT_CARE},
-  {HB_SCRIPT_ORIYA,	true, 0x0B4Du,BASE_POS_LAST, REPH_POS_AFTER_MAIN, REPH_MODE_IMPLICIT, BLWF_MODE_PRE_AND_POST, PREF_LEN_DONT_CARE},
-  {HB_SCRIPT_TAMIL,	true, 0x0BCDu,BASE_POS_LAST, REPH_POS_AFTER_POST, REPH_MODE_IMPLICIT, BLWF_MODE_PRE_AND_POST, PREF_LEN_2},
-  {HB_SCRIPT_TELUGU,	true, 0x0C4Du,BASE_POS_LAST, REPH_POS_AFTER_POST, REPH_MODE_EXPLICIT, BLWF_MODE_POST_ONLY,    PREF_LEN_2},
-  {HB_SCRIPT_KANNADA,	true, 0x0CCDu,BASE_POS_LAST, REPH_POS_AFTER_POST, REPH_MODE_IMPLICIT, BLWF_MODE_POST_ONLY,    PREF_LEN_2},
-  {HB_SCRIPT_MALAYALAM,	true, 0x0D4Du,BASE_POS_LAST, REPH_POS_AFTER_MAIN, REPH_MODE_LOG_REPHA,BLWF_MODE_PRE_AND_POST, PREF_LEN_2},
+  {HB_SCRIPT_INVALID,	false,      0,BASE_POS_LAST, REPH_POS_BEFORE_POST,REPH_MODE_IMPLICIT, BLWF_MODE_PRE_AND_POST},
+  {HB_SCRIPT_DEVANAGARI,true, 0x094Du,BASE_POS_LAST, REPH_POS_BEFORE_POST,REPH_MODE_IMPLICIT, BLWF_MODE_PRE_AND_POST},
+  {HB_SCRIPT_BENGALI,	true, 0x09CDu,BASE_POS_LAST, REPH_POS_AFTER_SUB,  REPH_MODE_IMPLICIT, BLWF_MODE_PRE_AND_POST},
+  {HB_SCRIPT_GURMUKHI,	true, 0x0A4Du,BASE_POS_LAST, REPH_POS_BEFORE_SUB, REPH_MODE_IMPLICIT, BLWF_MODE_PRE_AND_POST},
+  {HB_SCRIPT_GUJARATI,	true, 0x0ACDu,BASE_POS_LAST, REPH_POS_BEFORE_POST,REPH_MODE_IMPLICIT, BLWF_MODE_PRE_AND_POST},
+  {HB_SCRIPT_ORIYA,	true, 0x0B4Du,BASE_POS_LAST, REPH_POS_AFTER_MAIN, REPH_MODE_IMPLICIT, BLWF_MODE_PRE_AND_POST},
+  {HB_SCRIPT_TAMIL,	true, 0x0BCDu,BASE_POS_LAST, REPH_POS_AFTER_POST, REPH_MODE_IMPLICIT, BLWF_MODE_PRE_AND_POST},
+  {HB_SCRIPT_TELUGU,	true, 0x0C4Du,BASE_POS_LAST, REPH_POS_AFTER_POST, REPH_MODE_EXPLICIT, BLWF_MODE_POST_ONLY},
+  {HB_SCRIPT_KANNADA,	true, 0x0CCDu,BASE_POS_LAST, REPH_POS_AFTER_POST, REPH_MODE_IMPLICIT, BLWF_MODE_POST_ONLY},
+  {HB_SCRIPT_MALAYALAM,	true, 0x0D4Du,BASE_POS_LAST, REPH_POS_AFTER_MAIN, REPH_MODE_LOG_REPHA,BLWF_MODE_PRE_AND_POST},
   {HB_SCRIPT_SINHALA,	false,0x0DCAu,BASE_POS_LAST_SINHALA,
-						     REPH_POS_AFTER_MAIN, REPH_MODE_EXPLICIT, BLWF_MODE_PRE_AND_POST, PREF_LEN_DONT_CARE},
-  {HB_SCRIPT_KHMER,	false,0x17D2u,BASE_POS_FIRST,REPH_POS_DONT_CARE,  REPH_MODE_VIS_REPHA,BLWF_MODE_PRE_AND_POST, PREF_LEN_2},
-  {HB_SCRIPT_JAVANESE,	false,0xA9C0u,BASE_POS_FIRST,REPH_POS_DONT_CARE,  REPH_MODE_VIS_REPHA,BLWF_MODE_PRE_AND_POST, PREF_LEN_1},
+						     REPH_POS_AFTER_MAIN, REPH_MODE_EXPLICIT, BLWF_MODE_PRE_AND_POST},
+  {HB_SCRIPT_KHMER,	false,0x17D2u,BASE_POS_FIRST,REPH_POS_DONT_CARE,  REPH_MODE_VIS_REPHA,BLWF_MODE_PRE_AND_POST},
 };
 
 
@@ -445,12 +434,12 @@ collect_features_indic (hb_ot_shape_planner_t *plan)
   unsigned int i = 0;
   map->add_gsub_pause (initial_reordering);
   for (; i < INDIC_BASIC_FEATURES; i++) {
-    map->add_feature (indic_features[i].tag, 1, indic_features[i].flags | F_MANUAL_ZWJ);
-    map->add_gsub_pause (NULL);
+    map->add_feature (indic_features[i].tag, 1, indic_features[i].flags | F_MANUAL_ZWJ | F_MANUAL_ZWNJ);
+    map->add_gsub_pause (nullptr);
   }
   map->add_gsub_pause (final_reordering);
   for (; i < INDIC_NUM_FEATURES; i++) {
-    map->add_feature (indic_features[i].tag, 1, indic_features[i].flags | F_MANUAL_ZWJ);
+    map->add_feature (indic_features[i].tag, 1, indic_features[i].flags | F_MANUAL_ZWJ | F_MANUAL_ZWNJ);
   }
 
   map->add_global_bool_feature (HB_TAG('c','a','l','t'));
@@ -512,12 +501,12 @@ struct indic_shape_plan_t
     hb_codepoint_t glyph = virama_glyph;
     if (unlikely (virama_glyph == (hb_codepoint_t) -1))
     {
-      if (!config->virama || !font->get_glyph (config->virama, 0, &glyph))
+      if (!config->virama || !font->get_nominal_glyph (config->virama, &glyph))
 	glyph = 0;
       /* Technically speaking, the spec says we should apply 'locl' to virama too.
        * Maybe one day... */
 
-      /* Our get_glyph() function needs a font, so we can't get the virama glyph
+      /* Our get_nominal_glyph() function needs a font, so we can't get the virama glyph
        * during shape planning...  Instead, overwrite it here.  It's safe.  Don't worry! */
       (const_cast<indic_shape_plan_t *> (this))->virama_glyph = glyph;
     }
@@ -544,7 +533,7 @@ data_create_indic (const hb_ot_shape_plan_t *plan)
 {
   indic_shape_plan_t *indic_plan = (indic_shape_plan_t *) calloc (1, sizeof (indic_shape_plan_t));
   if (unlikely (!indic_plan))
-    return NULL;
+    return nullptr;
 
   indic_plan->config = &indic_configs[0];
   for (unsigned int i = 1; i < ARRAY_LENGTH (indic_configs); i++)
@@ -557,8 +546,15 @@ data_create_indic (const hb_ot_shape_plan_t *plan)
   indic_plan->virama_glyph = (hb_codepoint_t) -1;
 
   /* Use zero-context would_substitute() matching for new-spec of the main
-   * Indic scripts, and scripts with one spec only, but not for old-specs. */
-  bool zero_context = !indic_plan->is_old_spec;
+   * Indic scripts, and scripts with one spec only, but not for old-specs.
+   * The new-spec for all dual-spec scripts says zero-context matching happens.
+   *
+   * However, testing with Malayalam shows that old and new spec both allow
+   * context.  Testing with Bengali new-spec however shows that it doesn't.
+   * So, the heuristic here is the way it is.  It should *only* be changed,
+   * as we discover more cases of what Windows does.  DON'T TOUCH OTHERWISE.
+   */
+  bool zero_context = !indic_plan->is_old_spec && plan->props.script != HB_SCRIPT_MALAYALAM;
   indic_plan->rphf.init (&plan->map, HB_TAG('r','p','h','f'), zero_context);
   indic_plan->pref.init (&plan->map, HB_TAG('p','r','e','f'), zero_context);
   indic_plan->blwf.init (&plan->map, HB_TAG('b','l','w','f'), zero_context);
@@ -600,12 +596,8 @@ consonant_position_from_face (const indic_shape_plan_t *indic_plan,
   if (indic_plan->pstf.would_substitute (glyphs  , 2, face) ||
       indic_plan->pstf.would_substitute (glyphs+1, 2, face))
     return POS_POST_C;
-  unsigned int pref_len = indic_plan->config->pref_len;
-  if ((pref_len == PREF_LEN_2 &&
-       (indic_plan->pref.would_substitute (glyphs  , 2, face) ||
-        indic_plan->pref.would_substitute (glyphs+1, 2, face)))
-   || (pref_len == PREF_LEN_1 &&
-       indic_plan->pref.would_substitute (glyphs+1, 1, face)))
+  if (indic_plan->pref.would_substitute (glyphs  , 2, face) ||
+      indic_plan->pref.would_substitute (glyphs+1, 2, face))
     return POS_POST_C;
   return POS_BASE_C;
 }
@@ -646,6 +638,8 @@ setup_syllables (const hb_ot_shape_plan_t *plan HB_UNUSED,
 		 hb_buffer_t *buffer)
 {
   find_syllables (buffer);
+  foreach_syllable (buffer, start, end)
+    buffer->unsafe_to_break (start, end);
 }
 
 static int
@@ -697,6 +691,21 @@ initial_reordering_consonant_syllable (const hb_ot_shape_plan_t *plan,
   const indic_shape_plan_t *indic_plan = (const indic_shape_plan_t *) plan->data;
   hb_glyph_info_t *info = buffer->info;
 
+  /* https://github.com/behdad/harfbuzz/issues/435#issuecomment-335560167
+   * // For compatibility with legacy useage in Kannada,
+   * // Ra+h+ZWJ must behave like Ra+ZWJ+h...
+   */
+  if (buffer->props.script == HB_SCRIPT_KANNADA &&
+      start + 3 <= end &&
+      is_one_of (info[start  ], FLAG (OT_Ra)) &&
+      is_one_of (info[start+1], FLAG (OT_H)) &&
+      is_one_of (info[start+2], FLAG (OT_ZWJ)))
+  {
+    buffer->merge_clusters (start+1, start+3);
+    hb_glyph_info_t tmp = info[start+1];
+    info[start+1] = info[start+2];
+    info[start+2] = tmp;
+  }
 
   /* 1. Find base consonant:
    *
@@ -754,10 +763,6 @@ initial_reordering_consonant_syllable (const hb_ot_shape_plan_t *plan,
 
     switch (indic_plan->config->base_pos)
     {
-      default:
-        assert (false);
-	HB_FALLTHROUGH;
-
       case BASE_POS_LAST:
       {
 	/* -> starting from the end of the syllable, move backwards */
@@ -866,8 +871,8 @@ initial_reordering_consonant_syllable (const hb_ot_shape_plan_t *plan,
 
   /* 2. Decompose and reorder Matras:
    *
-   * Each matra and any syllable modifier sign in the cluster are moved to the
-   * appropriate position relative to the consonant(s) in the cluster. The
+   * Each matra and any syllable modifier sign in the syllable are moved to the
+   * appropriate position relative to the consonant(s) in the syllable. The
    * shaping engine decomposes two- or three-part matras into their constituent
    * parts before any repositioning. Matra characters are classified by which
    * consonant in a conjunct they have affinity for and are reordered to the
@@ -963,7 +968,7 @@ initial_reordering_consonant_syllable (const hb_ot_shape_plan_t *plan,
     indic_position_t last_pos = POS_START;
     for (unsigned int i = start; i < end; i++)
     {
-      if ((FLAG_SAFE (info[i].indic_category()) & (JOINER_FLAGS | FLAG (OT_N) | FLAG (OT_RS) | MEDIAL_FLAGS | HALANT_OR_COENG_FLAGS)))
+      if ((FLAG_UNSAFE (info[i].indic_category()) & (JOINER_FLAGS | FLAG (OT_N) | FLAG (OT_RS) | MEDIAL_FLAGS | HALANT_OR_COENG_FLAGS)))
       {
 	info[i].indic_position() = last_pos;
 	if (unlikely (info[i].indic_category() == OT_H &&
@@ -1115,10 +1120,9 @@ initial_reordering_consonant_syllable (const hb_ot_shape_plan_t *plan,
       }
   }
 
-  unsigned int pref_len = indic_plan->config->pref_len;
+  unsigned int pref_len = 2;
   if (indic_plan->mask_array[PREF] && base + pref_len < end)
   {
-    assert (1 <= pref_len && pref_len <= 2);
     /* Find a Halant,Ra sequence and mark it for pre-base reordering processing. */
     for (unsigned int i = base + 1; i + pref_len - 1 < end; i++) {
       hb_codepoint_t glyphs[2];
@@ -1231,7 +1235,7 @@ insert_dotted_circles (const hb_ot_shape_plan_t *plan HB_UNUSED,
 
 
   hb_codepoint_t dottedcircle_glyph;
-  if (!font->get_glyph (0x25CCu, 0, &dottedcircle_glyph))
+  if (!font->get_nominal_glyph (0x25CCu, &dottedcircle_glyph))
     return;
 
   hb_glyph_info_t dottedcircle = {0};
@@ -1258,7 +1262,7 @@ insert_dotted_circles (const hb_ot_shape_plan_t *plan HB_UNUSED,
       /* TODO Set glyph_props? */
 
       /* Insert dottedcircle after possible Repha. */
-      while (buffer->idx < buffer->len &&
+      while (buffer->idx < buffer->len && !buffer->in_error &&
 	     last_syllable == buffer->cur().syllable() &&
 	     buffer->cur().indic_category() == OT_Repha)
         buffer->next_glyph ();
@@ -1294,7 +1298,7 @@ final_reordering_syllable (const hb_ot_shape_plan_t *plan,
 
 
   /* This function relies heavily on halant glyphs.  Lots of ligation
-   * and possibly multiplication substitutions happened prior to this
+   * and possibly multiple substitutions happened prior to this
    * phase, and that might have messed up our properties.  Recover
    * from a particular case of that where we're fairly sure that a
    * class of OT_H is desired but has been lost. */
@@ -1318,7 +1322,7 @@ final_reordering_syllable (const hb_ot_shape_plan_t *plan,
    * After the localized forms and basic shaping forms GSUB features have been
    * applied (see below), the shaping engine performs some final glyph
    * reordering before applying all the remaining font features to the entire
-   * cluster.
+   * syllable.
    */
 
   bool try_pref = !!indic_plan->mask_array[PREF];
@@ -1328,7 +1332,7 @@ final_reordering_syllable (const hb_ot_shape_plan_t *plan,
   for (base = start; base < end; base++)
     if (info[base].indic_position() >= POS_BASE_C)
     {
-      if (try_pref && base + 1 < end && indic_plan->config->pref_len == 2)
+      if (try_pref && base + 1 < end)
       {
 	for (unsigned int i = base + 1; i < end; i++)
 	  if ((info[i].mask & indic_plan->mask_array[PREF]) != 0)
@@ -1347,6 +1351,25 @@ final_reordering_syllable (const hb_ot_shape_plan_t *plan,
 	    }
 	    break;
 	  }
+      }
+      /* For Malayalam, skip over unformed below- (but NOT post-) forms. */
+      if (buffer->props.script == HB_SCRIPT_MALAYALAM)
+      {
+	for (unsigned int i = base + 1; i < end; i++)
+	{
+	  while (i < end && is_joiner (info[i]))
+	    i++;
+	  if (i == end || !is_halant_or_coeng (info[i]))
+	    break;
+	  i++; /* Skip halant. */
+	  while (i < end && is_joiner (info[i]))
+	    i++;
+	  if (i < end && is_consonant (info[i]) && info[i].indic_position() == POS_BELOW_C)
+	  {
+	    base = i;
+	    info[base].indic_position() = POS_BASE_C;
+	  }
+	}
       }
 
       if (start < base && info[base].indic_position() > POS_BASE_C)
@@ -1514,8 +1537,8 @@ final_reordering_syllable (const hb_ot_shape_plan_t *plan,
     if (reph_pos == REPH_POS_AFTER_SUB)
     {
       new_reph_pos = base;
-      while (new_reph_pos < end &&
-	     !( FLAG_SAFE (info[new_reph_pos + 1].indic_position()) & (FLAG (POS_POST_C) | FLAG (POS_AFTER_POST) | FLAG (POS_SMVD))))
+      while (new_reph_pos + 1 < end &&
+	     !( FLAG_UNSAFE (info[new_reph_pos + 1].indic_position()) & (FLAG (POS_POST_C) | FLAG (POS_AFTER_POST) | FLAG (POS_SMVD))))
 	new_reph_pos++;
       if (new_reph_pos < end)
         goto reph_move;
@@ -1591,7 +1614,6 @@ final_reordering_syllable (const hb_ot_shape_plan_t *plan,
 
   if (try_pref && base + 1 < end) /* Otherwise there can't be any pre-base reordering Ra. */
   {
-    unsigned int pref_len = indic_plan->config->pref_len;
     for (unsigned int i = base + 1; i < end; i++)
       if ((info[i].mask & indic_plan->mask_array[PREF]) != 0)
       {
@@ -1602,10 +1624,8 @@ final_reordering_syllable (const hb_ot_shape_plan_t *plan,
         /* Note: We just check that something got substituted.  We don't check that
 	 * the <pref> feature actually did it...
 	 *
-	 * If pref len is longer than one, then only reorder if it ligated.  If
-	 * pref len is one, only reorder if it didn't ligate with other things. */
-	if (_hb_glyph_info_substituted (&info[i]) &&
-	    ((pref_len == 1) ^ _hb_glyph_info_ligated_and_didnt_multiply (&info[i])))
+	 * Reorder pref only if it ligated. */
+	if (_hb_glyph_info_ligated_and_didnt_multiply (&info[i]))
 	{
 	  /*
 	   *       2. Try to find a target position the same way as for pre-base matra.
@@ -1668,7 +1688,7 @@ final_reordering_syllable (const hb_ot_shape_plan_t *plan,
   /* Apply 'init' to the Left Matra if it's a word start. */
   if (info[start].indic_position () == POS_PRE_M &&
       (!start ||
-       !(FLAG_SAFE (_hb_glyph_info_get_general_category (&info[start - 1])) &
+       !(FLAG_UNSAFE (_hb_glyph_info_get_general_category (&info[start - 1])) &
 	 FLAG_RANGE (HB_UNICODE_GENERAL_CATEGORY_FORMAT, HB_UNICODE_GENERAL_CATEGORY_NON_SPACING_MARK))))
     info[start].mask |= indic_plan->mask_array[INIT];
 
@@ -1685,8 +1705,8 @@ final_reordering_syllable (const hb_ot_shape_plan_t *plan,
         break;
 
       default:
-	/* Uniscribe merges the entire cluster... Except for Tamil & Sinhala.
-	 * This means, half forms are submerged into the main consonants cluster.
+	/* Uniscribe merges the entire syllable into a single cluster... Except for Tamil & Sinhala.
+	 * This means, half forms are submerged into the main consonant's cluster.
 	 * This is unnecessary, and makes cursor positioning harder, but that's what
 	 * Uniscribe does. */
 	buffer->merge_clusters (start, end);
@@ -1733,37 +1753,32 @@ decompose_indic (const hb_ot_shape_normalize_context_t *c,
   switch (ab)
   {
     /* Don't decompose these. */
-    case 0x0931u  : return false;
-    case 0x0B94u  : return false;
+    case 0x0931u  : return false; /* DEVANAGARI LETTER RRA */
+    case 0x0B94u  : return false; /* TAMIL LETTER AU */
 
 
     /*
      * Decompose split matras that don't have Unicode decompositions.
      */
 
-    case 0x0F77u  : *a = 0x0FB2u; *b= 0x0F81u; return true;
-    case 0x0F79u  : *a = 0x0FB3u; *b= 0x0F81u; return true;
+    /* Khmer */
     case 0x17BEu  : *a = 0x17C1u; *b= 0x17BEu; return true;
     case 0x17BFu  : *a = 0x17C1u; *b= 0x17BFu; return true;
     case 0x17C0u  : *a = 0x17C1u; *b= 0x17C0u; return true;
     case 0x17C4u  : *a = 0x17C1u; *b= 0x17C4u; return true;
     case 0x17C5u  : *a = 0x17C1u; *b= 0x17C5u; return true;
-    case 0x1925u  : *a = 0x1920u; *b= 0x1923u; return true;
-    case 0x1926u  : *a = 0x1920u; *b= 0x1924u; return true;
-    case 0x1B3Cu  : *a = 0x1B42u; *b= 0x1B3Cu; return true;
-    case 0x1112Eu  : *a = 0x11127u; *b= 0x11131u; return true;
-    case 0x1112Fu  : *a = 0x11127u; *b= 0x11132u; return true;
+
 #if 0
+    /* Gujarati */
     /* This one has no decomposition in Unicode, but needs no decomposition either. */
     /* case 0x0AC9u  : return false; */
+
+    /* Oriya */
     case 0x0B57u  : *a = no decomp, -> RIGHT; return true;
-    case 0x1C29u  : *a = no decomp, -> LEFT; return true;
-    case 0xA9C0u  : *a = no decomp, -> RIGHT; return true;
-    case 0x111BuF  : *a = no decomp, -> ABOVE; return true;
 #endif
   }
 
-  if ((ab == 0x0DDAu || hb_in_range (ab, 0x0DDCu, 0x0DDEu)))
+  if ((ab == 0x0DDAu || hb_in_range<hb_codepoint_t> (ab, 0x0DDCu, 0x0DDEu)))
   {
     /*
      * Sinhala split matras...  Let the fun begin.
@@ -1796,7 +1811,7 @@ decompose_indic (const hb_ot_shape_normalize_context_t *c,
     hb_codepoint_t glyph;
 
     if (hb_options ().uniscribe_bug_compatible ||
-	(c->font->get_glyph (ab, 0, &glyph) &&
+	(c->font->get_nominal_glyph (ab, &glyph) &&
 	 indic_plan->pstf.would_substitute (&glyph, 1, c->font->face)))
     {
       /* Ok, safe to use Uniscribe-style decomposition. */
@@ -1806,7 +1821,7 @@ decompose_indic (const hb_ot_shape_normalize_context_t *c,
     }
   }
 
-  return c->unicode->decompose (ab, a, b);
+  return (bool) c->unicode->decompose (ab, a, b);
 }
 
 static bool
@@ -1822,7 +1837,7 @@ compose_indic (const hb_ot_shape_normalize_context_t *c,
   /* Composition-exclusion exceptions that we want to recompose. */
   if (a == 0x09AFu && b == 0x09BCu) { *ab = 0x09DFu; return true; }
 
-  return c->unicode->compose (a, b, ab);
+  return (bool) c->unicode->compose (a, b, ab);
 }
 
 
@@ -1833,12 +1848,14 @@ const hb_ot_complex_shaper_t _hb_ot_complex_shaper_indic =
   override_features_indic,
   data_create_indic,
   data_destroy_indic,
-  NULL, /* preprocess_text */
-  NULL, /* postprocess_glyphs */
+  nullptr, /* preprocess_text */
+  nullptr, /* postprocess_glyphs */
   HB_OT_SHAPE_NORMALIZATION_MODE_COMPOSED_DIACRITICS_NO_SHORT_CIRCUIT,
   decompose_indic,
   compose_indic,
   setup_masks_indic,
+  nullptr, /* disable_otl */
+  nullptr, /* reorder_marks */
   HB_OT_SHAPE_ZERO_WIDTH_MARKS_NONE,
   false, /* fallback_position */
 };

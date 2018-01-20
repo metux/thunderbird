@@ -1,16 +1,19 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
+/* eslint-disable no-shadow */
+
+"use strict";
 
 /**
  * Test that the PromisesActor exists in the TabActors and ChromeActors.
  */
 
-add_task(function*() {
+add_task(function* () {
   let client = yield startTestDebuggerServer("promises-actor-test");
 
   let response = yield listTabs(client);
   let targetTab = findTab(response.tabs, "promises-actor-test");
-  ok(targetTab, "Found our target tab.")
+  ok(targetTab, "Found our target tab.");
 
   // Attach to the TabActor and check the response
   client.request({ to: targetTab.actor, type: "attach" }, response => {

@@ -14,17 +14,18 @@ var MODULE_REQUIRES = ["folder-display-helpers", "window-helpers"];
 
 var controller = {};
 Cu.import("resource://mozmill/modules/controller.js", controller);
-var jumlib = {};
-Cu.import("resource://mozmill/modules/jum.js", jumlib);
 
-Cu.import("resource:///modules/IOUtils.js");
+Cu.import("resource://gre/modules/FileUtils.jsm");
 Cu.import("resource:///modules/sessionStoreManager.js");
 Cu.import("resource://gre/modules/Services.jsm");
 
 var folderA, folderB;
 
+// Default JSONFile save delay with saveSoon().
+var kSaveDelayMs = 1500;
+
 // With async file writes, use a delay larger than the session autosave timer.
-var asyncFileWriteDelayMS = 1000;
+var asyncFileWriteDelayMS = 3000;
 
 /* ........ Helper Functions ................*/
 
@@ -46,10 +47,10 @@ function readFile() {
 }
 
 function waitForFileRefresh() {
-  controller.sleep(sessionStoreManager._sessionAutoSaveTimerIntervalMS +
-                   asyncFileWriteDelayMS);
-  jumlib.assert(sessionStoreManager.sessionFile.exists(),
-                "file should exist");
+  controller.sleep(kSaveDelayMs);
+  utils.waitFor(() => sessionStoreManager.sessionFile.exists(),
+                "session file should exist");
+  controller.sleep(asyncFileWriteDelayMS);
 }
 
 function open3PaneWindow() {
@@ -83,10 +84,6 @@ function setupModule(module) {
   folderB = create_folder("SessionStoreB");
   make_new_sets_in_folder(folderB, [{count: 3}]);
 
-  // clobber the default interval used by the session autosave timer so the
-  // unit tests end up being as close to instantaneous as possible
-  sessionStoreManager._sessionAutoSaveTimerIntervalMS = 100;
-
   sessionStoreManager.stopPeriodicSave();
 
   // Opt out of calendar promotion so we don't show the "ligthing now
@@ -94,15 +91,7 @@ function setupModule(module) {
   Services.prefs.setBoolPref("calendar.integration.notify", false);
 }
 
-function teardownTest(test) {
-  sessionStoreManager.stopPeriodicSave();
-}
-
 function teardownModule(module) {
-  // reset the interval used by the session autosave timer to the default
-  // value
-  sessionStoreManager._sessionAutoSaveTimerIntervalMS =
-                              sessionStoreManager.SESSION_AUTO_SAVE_DEFAULT_MS;
   folderA.Delete();
   folderB.Delete();
   Services.prefs.clearUserPref("calendar.integration.notify");
@@ -114,7 +103,8 @@ function test_periodic_session_persistence_simple() {
   if (sessionFile.exists())
     sessionFile.remove(false);
 
-  jumlib.assert(!sessionFile.exists(), "file should not exist");
+  utils.waitFor(() => !sessionFile.exists(),
+                "session file should not exist");
 
   // change some state to guarantee the file will be recreated
   // if periodic session persistence works
@@ -122,25 +112,28 @@ function test_periodic_session_persistence_simple() {
 
   // if periodic session persistence is working, the file should be
   // re-created
-  sessionStoreManager.startPeriodicSave();
+  sessionStoreManager._saveState();
   waitForFileRefresh();
 }
 
 function test_periodic_nondirty_session_persistence() {
+  // This changes state.
   be_in_folder(folderB);
 
-  sessionStoreManager.startPeriodicSave();
+  sessionStoreManager._saveState();
   waitForFileRefresh();
 
   // delete the session file
   let sessionFile = sessionStoreManager.sessionFile;
   sessionFile.remove(false);
 
-  // since we didn't change the state of the session, the session file
-  // should not be re-created
-  controller.sleep(sessionStoreManager._sessionAutoSaveTimerIntervalMS +
-                   asyncFileWriteDelayMS);
-  jumlib.assert(!sessionFile.exists(), "file should not exist");
+  // Since the state of the session hasn't changed since last _saveState(),
+  // the session file should not be re-created.
+  sessionStoreManager._saveState();
+  controller.sleep(kSaveDelayMs + asyncFileWriteDelayMS);
+
+  utils.waitFor(() => !sessionFile.exists(),
+                "session file should not exist");
 }
 
 function test_single_3pane_periodic_session_persistence() {
@@ -151,17 +144,17 @@ function test_single_3pane_periodic_session_persistence() {
   let mail3PaneWindow = Services.wm.getMostRecentWindow("mail:3pane");
   let state = mail3PaneWindow.getWindowStateForSessionPersistence();
 
-  sessionStoreManager.startPeriodicSave();
+  sessionStoreManager._saveState();
   waitForFileRefresh();
 
   // load the saved state from disk
   let loadedState = readFile();
-  jumlib.assert(loadedState, "previously saved state should be non-null");
+  assert_true(loadedState, "previously saved state should be non-null");
 
   // get the state object for the one and only one 3pane window
   let windowState = loadedState.windows[0];
-  jumlib.assert(JSON.stringify(windowState) == JSON.stringify(state),
-                "saved state and loaded state should be equal");
+  assert_true(JSON.stringify(windowState) == JSON.stringify(state),
+              "saved state and loaded state should be equal");
 }
 
 function test_restore_single_3pane_persistence() {
@@ -178,10 +171,9 @@ function test_restore_single_3pane_persistence() {
   let abwc = openAddressBook();
 
   // close the 3pane window
-  mail3PaneWindow.close();
+  close_window(new mozmill.controller.MozMillController(mail3PaneWindow));
   // Wait for window close async session write to finish.
-  controller.sleep(sessionStoreManager._sessionAutoSaveTimerIntervalMS +
-                   asyncFileWriteDelayMS);
+  controller.sleep(asyncFileWriteDelayMS);
 
   mc = open3PaneWindow();
   be_in_folder(folderA);
@@ -234,10 +226,9 @@ function test_message_pane_height_persistence() {
   let abwc = openAddressBook();
 
   // The 3pane window is closed.
-  mail3PaneWindow.close();
+  close_window(new mozmill.controller.MozMillController(mail3PaneWindow));
   // Wait for window close async session write to finish.
-  controller.sleep(sessionStoreManager._sessionAutoSaveTimerIntervalMS +
-                   asyncFileWriteDelayMS);
+  controller.sleep(asyncFileWriteDelayMS);
 
   mc = open3PaneWindow();
   be_in_folder(folderA);
@@ -253,10 +244,9 @@ function test_message_pane_height_persistence() {
   _move_splitter(mc.e("threadpane-splitter"), 0, -diffHeight);
 
   // The 3pane window is closed.
-  mail3PaneWindow.close();
+  close_window(mc);
   // Wait for window close async session write to finish.
-  controller.sleep(sessionStoreManager._sessionAutoSaveTimerIntervalMS +
-                   asyncFileWriteDelayMS);
+  controller.sleep(asyncFileWriteDelayMS);
 
   mc = open3PaneWindow();
   be_in_folder(folderA);
@@ -316,10 +306,9 @@ function test_message_pane_width_persistence() {
   let abwc = openAddressBook();
 
   // The 3pane window is closed.
-  mail3PaneWindow.close();
+  close_window(new mozmill.controller.MozMillController(mail3PaneWindow));
   // Wait for window close async session write to finish.
-  controller.sleep(sessionStoreManager._sessionAutoSaveTimerIntervalMS +
-                   asyncFileWriteDelayMS);
+  controller.sleep(asyncFileWriteDelayMS);
 
   mc = open3PaneWindow();
   be_in_folder(folderA);
@@ -344,10 +333,9 @@ function test_message_pane_width_persistence() {
   oldWidth = actualWidth;
 
   // The 3pane window is closed.
-  mail3PaneWindow.close();
+  close_window(mc);
   // Wait for window close async session write to finish.
-  controller.sleep(sessionStoreManager._sessionAutoSaveTimerIntervalMS +
-                   asyncFileWriteDelayMS);
+  controller.sleep(asyncFileWriteDelayMS);
 
   mc = open3PaneWindow();
   be_in_folder(folderA);
@@ -379,21 +367,21 @@ function test_multiple_3pane_periodic_session_persistence() {
   while (enumerator.hasMoreElements())
     state.push(enumerator.getNext().getWindowStateForSessionPersistence());
 
-  sessionStoreManager.startPeriodicSave();
+  sessionStoreManager._saveState();
   waitForFileRefresh();
-  sessionStoreManager.stopPeriodicSave();
 
   // load the saved state from disk
   let loadedState = readFile();
-  jumlib.assert(loadedState, "previously saved state should be non-null");
+  assert_true(loadedState, "previously saved state should be non-null");
 
-  jumlib.assert(loadedState.windows.length == state.length,
+  assert_equals(loadedState.windows.length, state.length,
           "number of windows in saved state and loaded state should be equal");
 
-  for (var i = 0; i < state.length; ++i)
-    jumlib.assert(
-            JSON.stringify(loadedState.windows[i]) == JSON.stringify(state[i]),
-            "saved state and loaded state should be equal");
+  for (let i = 0; i < state.length; ++i) {
+    assert_true(
+      JSON.stringify(loadedState.windows[i]) == JSON.stringify(state[i]),
+      "saved state and loaded state should be equal");
+  }
 
   // close all but one 3pane window
   enumerator = Services.wm.getEnumerator("mail:3pane");
@@ -404,31 +392,26 @@ function test_multiple_3pane_periodic_session_persistence() {
   }
 }
 
-function test_bad_session_file_simple() {
+async function test_bad_session_file_simple() {
   // forcefully write a bad session file
   let data = "BAD SESSION FILE";
-  let foStream = Cc["@mozilla.org/network/file-output-stream;1"].
-                 createInstance(Ci.nsIFileOutputStream);
-  foStream.init(sessionStoreManager.sessionFile, -1, -1, 0);
-  foStream.write(data, data.length);
-  foStream.close();
+  let fos = FileUtils.openSafeFileOutputStream(sessionStoreManager.sessionFile);
+  fos.write(data, data.length);
+  FileUtils.closeSafeFileOutputStream(fos);
 
   // tell the session store manager to try loading the bad session file.
   // NOTE: periodic session persistence is not enabled in this test
-  sessionStoreManager._loadSessionFile();
+  sessionStoreManager._store = null;
+  await sessionStoreManager._loadSessionFile();
 
   // since the session file is bad, the session store manager's state field
   // should be null
-  jumlib.assert(!sessionStoreManager._initialState,
-                "saved state is bad so state object should be null");
-
-  // Wait for bad file async rename to finish.
-  controller.sleep(sessionStoreManager._sessionAutoSaveTimerIntervalMS +
-                   asyncFileWriteDelayMS);
+  assert_false(sessionStoreManager._initialState,
+               "saved state is bad so state object should be null");
 
   // The bad session file should now not exist.
-  jumlib.assert(!sessionStoreManager.sessionFile.exists(),
-                "file should not exist");
+  utils.waitFor(() => !sessionStoreManager.sessionFile.exists(),
+                "session file should now not exist");
 }
 
 function test_clean_shutdown_session_persistence_simple() {
@@ -453,22 +436,21 @@ function test_clean_shutdown_session_persistence_simple() {
     close_window(new mozmill.controller.MozMillController(window));
   }
 
-  // Wait for window close async session write to finish.
-  controller.sleep(sessionStoreManager._sessionAutoSaveTimerIntervalMS +
-                   asyncFileWriteDelayMS);
+  // Wait for session file to be created (removed in prior test) after
+  // all 3pane windows close and for session write to finish.
+  waitForFileRefresh();
 
   // load the saved state from disk
   let loadedState = readFile();
-  jumlib.assert(loadedState, "previously saved state should be non-null");
+  assert_true(loadedState, "previously saved state should be non-null");
 
-  jumlib.assert(1 == loadedState.windows.length,
+  assert_equals(loadedState.windows.length, 1,
           "only the state of the last 3pane window should have been saved");
 
   // get the state object for the one and only one 3pane window
   let windowState = loadedState.windows[0];
-  jumlib.assert(JSON.stringify(windowState) == JSON.stringify(lastWindowState),
-                "saved state and loaded state should be equal");
-
+  assert_true(JSON.stringify(windowState) == JSON.stringify(lastWindowState),
+              "saved state and loaded state should be equal");
 
   open3PaneWindow();
 

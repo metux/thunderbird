@@ -1,13 +1,18 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+with Files('**'):
+    BUG_COMPONENT = ('Toolkit', 'Startup and Profile System')
+
 if CONFIG['OS_ARCH'] == 'WINNT':
     TEST_DIRS += ['test/win']
 
 MOCHITEST_MANIFESTS += ['test/mochitest.ini']
+BROWSER_CHROME_MANIFESTS += ['test/browser.ini']
+XPCSHELL_TESTS_MANIFESTS += ['test/xpcshell.ini']
 
 XPIDL_SOURCES += [
     'nsINativeAppSupport.idl',
@@ -20,39 +25,47 @@ if CONFIG['OS_ARCH'] == 'WINNT':
 
 XPIDL_MODULE = 'xulapp'
 
-EXPORTS += ['nsAppRunner.h']
+EXPORTS += [
+    'nsAppRunner.h',
+    'nsIAppStartupNotifier.h',
+]
+
+EXPORTS.mozilla += ['AutoSQLiteLifetime.h', 'Bootstrap.h']
 
 if CONFIG['MOZ_INSTRUMENT_EVENT_LOOP']:
     EXPORTS += ['EventTracer.h']
 
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
+    SOURCES += [
+        '../../other-licenses/nsis/Contrib/CityHash/cityhash/city.cpp',
+    ]
     UNIFIED_SOURCES += [
         'nsNativeAppSupportWin.cpp',
     ]
-elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
-    EXPORTS += ['MacQuirks.h']
-    UNIFIED_SOURCES += [
-        'nsCommandLineServiceMac.cpp',
+    DEFINES['PROXY_PRINTING'] = 1
+    LOCAL_INCLUDES += [
+        '../../other-licenses/nsis/Contrib/CityHash/cityhash',
+        '../components/printingui/win',
     ]
+elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
     UNIFIED_SOURCES += [
         'MacApplicationDelegate.mm',
         'MacAutoreleasePool.mm',
         'MacLaunchHelper.mm',
+        'nsCommandLineServiceMac.cpp',
         'nsNativeAppSupportCocoa.mm',
+        'updaterfileutils_osx.mm',
+    ]
+    DEFINES['PROXY_PRINTING'] = 1
+    LOCAL_INCLUDES += [
+        '../components/printingui/mac',
     ]
 elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'uikit':
     UNIFIED_SOURCES += [
         'nsNativeAppSupportDefault.cpp',
         'UIKitDirProvider.mm',
     ]
-elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'qt':
-    EXPORTS += ['nsQAppInstance.h']
-    SOURCES += [
-        '!moc_nsNativeAppSupportQt.cpp',
-        'nsNativeAppSupportQt.cpp',
-        'nsQAppInstance.cpp',
-    ]
-elif CONFIG['MOZ_ENABLE_GTK']:
+elif 'gtk' in CONFIG['MOZ_WIDGET_TOOLKIT']:
     UNIFIED_SOURCES += [
         'nsNativeAppSupportUnix.cpp',
     ]
@@ -67,6 +80,7 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gtk3':
     ]
 
 if CONFIG['MOZ_X11']:
+    EXPORTS += ['nsX11ErrorHandler.h']
     UNIFIED_SOURCES += [
         'nsX11ErrorHandler.cpp',
     ]
@@ -77,8 +91,12 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'android':
     ]
 
 UNIFIED_SOURCES += [
+    'AutoSQLiteLifetime.cpp',
+    'Bootstrap.cpp',
     'CreateAppData.cpp',
+    'nsAppStartupNotifier.cpp',
     'nsConsoleWriter.cpp',
+    'nsEmbeddingModule.cpp',
     'nsNativeAppSupportBase.cpp',
     'nsSigHandlers.cpp',
     'nsXREDirProvider.cpp',
@@ -109,6 +127,12 @@ if CONFIG['MOZ_UPDATER']:
             'nsUpdateDriver.cpp',
         ]
 
+if CONFIG['MOZ_PDF_PRINTING']:
+    DEFINES['PROXY_PRINTING'] = 1
+    LOCAL_INCLUDES += [
+        '../components/printingui/unixshared',
+    ]
+
 include('/ipc/chromium/chromium-config.mozbuild')
 
 FINAL_LIBRARY = 'xul'
@@ -135,9 +159,6 @@ if CONFIG['TARGET_XPCOM_ABI']:
     DEFINES['TARGET_OS_ABI'] = '"%s_%s"' % (CONFIG['OS_TARGET'],
                                             CONFIG['TARGET_XPCOM_ABI'])
 
-if CONFIG['WRAP_SYSTEM_INCLUDES']:
-    DEFINES['WRAP_SYSTEM_INCLUDES'] = True
-
 if CONFIG['OS_ARCH'] == 'Linux' and 'lib64' in CONFIG['libdir']:
     DEFINES['HAVE_USR_LIB64_DIR'] = True
 
@@ -150,14 +171,30 @@ if CONFIG['MOZ_BUILD_APP'] == 'browser':
     DEFINES['MOZ_BUILD_APP_IS_BROWSER'] = True
 
 LOCAL_INCLUDES += [
+    '../components/find',
+    '../components/printingui/ipc',
+    '../components/windowwatcher',
     '../profile',
     '/config',
     '/dom/base',
+    '/dom/commandhandler',
     '/dom/ipc',
+    '/dom/webbrowserpersist',
     '/testing/gtest/mozilla',
     '/toolkit/crashreporter',
     '/xpcom/build',
 ]
+
+if CONFIG['MOZ_SANDBOX'] and CONFIG['OS_ARCH'] == 'WINNT':
+    LOCAL_INCLUDES += [
+        '/security/sandbox/chromium',
+        '/security/sandbox/chromium-shim',
+    ]
+
+if CONFIG['MOZ_SANDBOX'] and CONFIG['OS_ARCH'] == 'Linux':
+    USE_LIBS += [
+        'mozsandbox',
+    ]
 
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
     LOCAL_INCLUDES += [
@@ -170,12 +207,20 @@ if CONFIG['MOZ_ENABLE_XREMOTE']:
         '/widget/xremoteclient',
     ]
 
-if CONFIG['MOZ_B2G_LOADER']:
-    DEFINES['OMNIJAR_NAME'] = CONFIG['OMNIJAR_NAME']
-
 CXXFLAGS += CONFIG['TK_CFLAGS']
 CXXFLAGS += CONFIG['MOZ_DBUS_CFLAGS']
 CXXFLAGS += CONFIG['MOZ_DBUS_GLIB_CFLAGS']
 
-if CONFIG['MOZ_WIDGET_GTK']:
+if 'gtk' in CONFIG['MOZ_WIDGET_TOOLKIT']:
     CXXFLAGS += CONFIG['MOZ_PANGO_CFLAGS']
+
+DEFINES['TOPOBJDIR'] = TOPOBJDIR
+FINAL_TARGET_PP_FILES += [
+    'platform.ini'
+]
+
+if CONFIG['GNU_CXX']:
+    CXXFLAGS += ['-Wno-error=shadow']
+
+if CONFIG['MOZ_IPDL_TESTS']:
+    DEFINES['MOZ_IPDL_TESTS'] = True

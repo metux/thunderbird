@@ -96,6 +96,10 @@ XPCOMUtils.defineLazyServiceGetter(this, "SecMan",
   "@mozilla.org/scriptsecuritymanager;1", "nsIScriptSecurityManager");
 XPCOMUtils.defineLazyServiceGetter(this, "gScreenManager",
   "@mozilla.org/gfx/screenmanager;1", "nsIScreenManager");
+XPCOMUtils.defineLazyServiceGetter(this, "uuidGenerator",
+  "@mozilla.org/uuid-generator;1", "nsIUUIDGenerator");
+XPCOMUtils.defineLazyModuleGetter(this, "Utils",
+  "resource://gre/modules/sessionstore/Utils.jsm");
 
 function debug(aMsg) {
   Services.console.logStringMessage("SessionStore: " + aMsg);
@@ -152,7 +156,7 @@ SessionStoreService.prototype = {
 
   // states for all currently opened windows
   _windows: {},
-  
+
   // states for all recently closed windows
   _closedWindows: [],
 
@@ -177,6 +181,9 @@ SessionStoreService.prototype = {
 
   // Whether we've been initialized
   _initialized: false,
+
+  // Mapping from legacy docshellIDs to docshellUUIDs.
+  _docshellUUIDMap: new Map(),
 
 /* ........ Public Getters .............. */
 
@@ -218,7 +225,7 @@ SessionStoreService.prototype = {
     gRestoreTabsProgressListener.ss = this;
 
     // get file references
-    this._sessionFile = Services.dirsvc.get("ProfD", Components.interfaces.nsILocalFile);
+    this._sessionFile = Services.dirsvc.get("ProfD", Components.interfaces.nsIFile);
     this._sessionFileBackup = this._sessionFile.clone();
     this._sessionFile.append("sessionstore.json");
     this._sessionFileBackup.append("sessionstore.bak");
@@ -254,11 +261,12 @@ SessionStoreService.prototype = {
           if (lastSessionCrashed) {
             this._recentCrashes = (this._initialState.session &&
                                    this._initialState.session.recentCrashes || 0) + 1;
-            
+
             if (this._needsRestorePage(this._initialState, this._recentCrashes)) {
               // replace the crashed session with a restore-page-only session
               let pageData = {
                 url: "about:sessionrestore",
+                triggeringPrincipal_base64: Utils.SERIALIZED_SYSTEMPRINCIPAL,
                 formdata: { "#sessionData": JSON.stringify(this._initialState) }
               };
               this._initialState = { windows: [{ tabs: [{ entries: [pageData] }] }] };
@@ -401,7 +409,7 @@ SessionStoreService.prototype = {
         let restoreItem = aWindow.document.getElementById("historyRestoreLastSession");
         restoreItem.setAttribute("disabled", "true");
 
-        Array.forEach(aWindow.getBrowser().tabs, function(aTab) {
+        Array.from(aWindow.getBrowser().tabs).forEach(function(aTab) {
           delete aTab.linkedBrowser.__SS_data;
           delete aTab.linkedBrowser.__SS_formDataSaved;
           if (aTab.linkedBrowser.__SS_restoreState)
@@ -1492,7 +1500,8 @@ SessionStoreService.prototype = {
     }
     else if (browser.currentURI.spec != "about:blank" ||
              browser.contentDocument.body.hasChildNodes()) {
-      tabData.entries[0] = { url: browser.currentURI.spec };
+      tabData.entries[0] = { url: browser.currentURI.spec,
+                             triggeringPrincipal_base64: Utils.SERIALIZED_SYSTEMPRINCIPAL };
       tabData.index = 1;
     }
 
@@ -1548,7 +1557,8 @@ SessionStoreService.prototype = {
    */
   _serializeHistoryEntry:
     function sss_serializeHistoryEntry(aEntry, aFullData, aIsPinned) {
-    var entry = { url: aEntry.URI.spec };
+    var entry = { url: aEntry.URI.spec,
+                  triggeringPrincipal_base64: Utils.SERIALIZED_SYSTEMPRINCIPAL };
 
     if (aEntry.title && aEntry.title != entry.url) {
       entry.title = aEntry.title;
@@ -1568,7 +1578,7 @@ SessionStoreService.prototype = {
       entry.cacheKey = cacheKey.data;
     }
     entry.ID = aEntry.ID;
-    entry.docshellID = aEntry.docshellID;
+    entry.docshellUUID = aEntry.docshellID.toString();
 
     if (aEntry.referrerURI)
       entry.referrer = aEntry.referrerURI.spec;
@@ -1604,30 +1614,35 @@ SessionStoreService.prototype = {
     }
     catch (ex) { debug(ex); } // POSTDATA is tricky - especially since some extensions don't get it right
 
-    if (aEntry.owner) {
-      // Not catching anything specific here, just possible errors
-      // from writeCompoundObject and the like.
+    // Collect triggeringPrincipal data for the current history entry.
+    // Please note that before Bug 1297338 there was no concept of a
+    // principalToInherit. To remain backward/forward compatible we
+    // serialize the principalToInherit as triggeringPrincipal_b64.
+    // Once principalToInherit is well established (within Gecko 55)
+    // we can update this code, remove triggeringPrincipal_b64 and
+    // just keep triggeringPrincipal_base64 as well as
+    // principalToInherit_base64.
+    if (aEntry.principalToInherit) {
       try {
-        var binaryStream = Components.classes["@mozilla.org/binaryoutputstream;1"]
-                                     .createInstance(Components.interfaces.nsIObjectOutputStream);
-        var pipe = Components.classes["@mozilla.org/pipe;1"].createInstance(Components.interfaces.nsIPipe);
-        pipe.init(false, false, 0, 0xffffffff, null);
-        binaryStream.setOutputStream(pipe.outputStream);
-        binaryStream.writeCompoundObject(aEntry.owner, Components.interfaces.nsISupports, true);
-        binaryStream.close();
-
-        // Now we want to read the data from the pipe's input end and encode it.
-        var scriptableStream = Components.classes["@mozilla.org/binaryinputstream;1"]
-                                         .createInstance(Components.interfaces.nsIBinaryInputStream);
-        scriptableStream.setInputStream(pipe.inputStream);
-        var ownerBytes =
-          scriptableStream.readByteArray(scriptableStream.available());
-        // We can stop doing base64 encoding once our serialization into JSON
-        // is guaranteed to handle all chars in strings, including embedded
-        // nulls.
-        entry.owner_b64 = btoa(String.fromCharCode.apply(null, ownerBytes));
+        let principalToInherit = Utils.serializePrincipal(aEntry.principalToInherit);
+        if (principalToInherit) {
+          entry.triggeringPrincipal_b64 = principalToInherit;
+          entry.principalToInherit_base64 = principalToInherit;
+        }
+      } catch (e) {
+        debug(e);
       }
-      catch (ex) { debug(ex); }
+    }
+
+    if (aEntry.triggeringPrincipal) {
+      try {
+        let triggeringPrincipal = Utils.serializePrincipal(aEntry.triggeringPrincipal);
+        if (triggeringPrincipal) {
+          entry.triggeringPrincipal_base64 = triggeringPrincipal;
+        }
+      } catch (e) {
+        debug(e);
+      }
     }
 
     entry.docIdentifier = aEntry.BFCacheEntry.ID;
@@ -1649,7 +1664,8 @@ SessionStoreService.prototype = {
           entry.children.push(this._serializeHistoryEntry(child, aFullData, aIsPinned));
         }
         else { // to maintain the correct frame order, insert a dummy entry
-          entry.children.push({ url: "about:blank" });
+          entry.children.push({ url: "about:blank",
+                                triggeringPrincipal_base64: Utils.SERIALIZED_SYSTEMPRINCIPAL});
         }
         // don't try to restore framesets containing wyciwyg URLs (cf. bug 424689 and bug 450595)
         if (/^wyciwyg:\/\//.test(entry.children[i].url)) {
@@ -1691,8 +1707,9 @@ SessionStoreService.prototype = {
         // We've already asserted in _collectTabData, so we won't show that again.
         continue;
       }
-      // sessionStorage is saved per origin (cf. nsDocShell::GetSessionStorageForURI)
-      let origin = principal.jarPrefix + principal.origin;
+
+      // sessionStorage is saved per principal (cf. nsGlobalWindow::GetSessionStorage)
+      let origin = principal.origin;
       if (storageData[origin])
         continue;
 
@@ -1701,21 +1718,28 @@ SessionStoreService.prototype = {
         continue;
 
       let storage, storageItemCount = 0;
+
+      let window = aDocShell.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
+                            .getInterface(Components.interfaces.nsIDOMWindow);
       try {
-        storage = aDocShell.getSessionStorageForPrincipal(principal, "", false);
+        let storageManager = aDocShell.QueryInterface(Components.interfaces.nsIDOMStorageManager);
+        storage = storageManager.getStorage(window, principal);
+
+        // See Bug 1232955 - storage.length can throw, catch that failure here inside the try.
         if (storage)
           storageItemCount = storage.length;
       }
       catch (ex) { /* sessionStorage might throw if it's turned off, see bug 458954 */ }
+
       if (storageItemCount == 0)
         continue;
 
       let data = storageData[origin] = {};
+
       for (let j = 0; j < storageItemCount; j++) {
         try {
           let key = storage.key(j);
-          let item = storage.getItem(key);
-          data[key] = item;
+          data[key] = storage.getItem(key);
         }
         catch (ex) { /* XXXzeniko this currently throws for secured items (cf. bug 442048) */ }
       }
@@ -1909,7 +1933,7 @@ SessionStoreService.prototype = {
       else {
         // <select>s with the multiple attribute are easier to determine the
         // default value since each <option> has a defaultSelected
-        let options = Array.map(node.options, function(aOpt, aIx) {
+        let options = Array.from(node.options, function(aOpt, aIx) {
           let oSelected = aOpt.selected;
           hasDefaultValue = hasDefaultValue && (oSelected == aOpt.defaultSelected);
           return oSelected ? aIx : -1;
@@ -1947,7 +1971,7 @@ SessionStoreService.prototype = {
    */
   _extractHostsForCookiesFromEntry:
     function sss__extractHostsForCookiesFromEntry(aEntry, aHosts, aCheckPrivacy, aIsPinned) {
- 
+
     if (aEntry.children) {
       aEntry.children.forEach(function(entry) {
         this._extractHostsForCookiesFromEntry(entry, aHosts, aCheckPrivacy, aIsPinned);
@@ -2007,9 +2031,9 @@ SessionStoreService.prototype = {
         }, this);
       }, this);
 
-      for (var [host, isPinned] in Iterator(hosts)) {
+      for (var [host, isPinned] of Object.entries(hosts)) {
         try {
-          var list = Services.cookies.getCookiesFromHost(host);
+          var list = Services.cookies.getCookiesFromHost(host, {});
           while (list.hasMoreElements()) {
             var cookie = list.getNext().QueryInterface(Components.interfaces.nsICookie2);
             // window._hosts will only have hosts with the right privacy rules,
@@ -2029,11 +2053,18 @@ SessionStoreService.prototype = {
               if (!jscookies[cookie.host][cookie.path][cookie.name]) {
                 var jscookie = { "host": cookie.host, "value": cookie.value };
                 // only add attributes with non-default values (saving a few bits)
-                if (cookie.path) jscookie.path = cookie.path;
-                if (cookie.name) jscookie.name = cookie.name;
-                if (cookie.isSecure) jscookie.secure = true;
-                if (cookie.isHttpOnly) jscookie.httponly = true;
-                if (cookie.expiry < MAX_EXPIRY) jscookie.expiry = cookie.expiry;
+                if (cookie.path)
+                  jscookie.path = cookie.path;
+                if (cookie.name)
+                  jscookie.name = cookie.name;
+                if (cookie.isSecure)
+                  jscookie.secure = true;
+                if (cookie.isHttpOnly)
+                  jscookie.httponly = true;
+                if (cookie.expiry < MAX_EXPIRY)
+                  jscookie.expiry = cookie.expiry;
+                if (cookie.originAttributes)
+                  jscookie.originAttributes = cookie.originAttributes;
 
                 jscookies[cookie.host][cookie.path][cookie.name] = jscookie;
               }
@@ -2120,7 +2151,7 @@ SessionStoreService.prototype = {
 
     // collect the data for all windows yet to be restored
     for (ix in this._statesToRestore) {
-      for each (let winData in this._statesToRestore[ix].windows) {
+      for (let winData of this._statesToRestore[ix].windows) {
         total.push(winData);
         if (!winData.isPopup)
           nonPopupCount++;
@@ -2283,7 +2314,7 @@ SessionStoreService.prototype = {
     var tabstrip = tabbrowser.tabContainer.mTabstrip;
     var smoothScroll = tabstrip.smoothScroll;
     tabstrip.smoothScroll = false;
-    
+
     // make sure that the selected tab won't be closed in order to
     // prevent unnecessary flickering
     if (aOverwriteTabs && tabbrowser.tabContainer.selectedIndex >= newTabCount)
@@ -2498,7 +2529,16 @@ SessionStoreService.prototype = {
       let activeIndex = (tabData.index || tabData.entries.length) - 1;
       let activePageData = tabData.entries[activeIndex] || null;
       let uri = activePageData ? activePageData.url || null : null;
-      browser.userTypedValue = uri;
+
+      // NB: we won't set initial URIs (about:blank, about:privatebrowsing, etc.)
+      // here because their load will not normally trigger a location bar clearing
+      // when they finish loading (to avoid race conditions where we then
+      // clear user input instead), so we shouldn't set them here either.
+      // They also don't fall under the issues in bug 439675 where user input
+      // needs to be preserved if the load doesn't succeed.
+      if (!browser.userTypedValue && uri && !aWindow.gInitialPages.has(uri)) {
+        browser.userTypedValue = uri;
+      }
 
       // Also make sure currentURI is set so that switch-to-tab works before
       // the tab is restored. We'll reset this to about:blank when we try to
@@ -2708,7 +2748,10 @@ SessionStoreService.prototype = {
         browser.__SS_restore_data = { url: null };
         browser.__SS_restore_tab = aTab;
         didStartLoad = true;
-        browser.loadURI(tabData.userTypedValue, null, null, true);
+        browser.loadURI(tabData.userTypedValue,
+                        Components.interfaces.nsIWebNavigation.LOAD_FLAGS_ALLOW_THIRD_PARTY_FIXUP,
+                        null, null, null);
+
       }
     }
 
@@ -2803,8 +2846,21 @@ SessionStoreService.prototype = {
       shEntry.ID = id;
     }
 
-    if (aEntry.docshellID)
-      shEntry.docshellID = aEntry.docshellID;
+    // If we have the legacy docshellID on our entry, upgrade it to a
+    // docshellUUID by going through the mapping.
+    if (aEntry.docshellID) {
+      if (!this._docshellUUIDMap.has(aEntry.docshellID)) {
+        // Convert the nsID to a string so that the docshellUUID property
+        // is correctly stored as a string.
+        this._docshellUUIDMap.set(aEntry.docshellID,
+                                  uuidGenerator.generateUUID().toString());
+      }
+      aEntry.docshellUUID = this._docshellUUIDMap.get(aEntry.docshellID);
+      delete aEntry.docshellID;
+    }
+
+    if (aEntry.docshellUUID)
+      shEntry.docshellID = Components.ID(aEntry.docshellUUID);
 
     if (aEntry.structuredCloneState && aEntry.structuredCloneVersion) {
       shEntry.stateData =
@@ -2846,17 +2902,49 @@ SessionStoreService.prototype = {
       }
     }
 
+    // The field entry.owner_b64 got renamed to entry.triggeringPricipal_b64 in
+    // Bug 1286472 and Bug 1334780 for SeaMonkey.
+    // To remain backward compatible we still have to support that field for a
+    // few cycles before we can remove it.
     if (aEntry.owner_b64) {
-      var ownerInput = Components.classes["@mozilla.org/io/string-input-stream;1"]
-                                 .createInstance(Components.interfaces.nsIStringInputStream);
-      var binaryData = atob(aEntry.owner_b64);
-      ownerInput.setData(binaryData, binaryData.length);
-      var binaryStream = Components.classes["@mozilla.org/binaryinputstream;1"]
-                                   .createInstance(Components.interfaces.nsIObjectInputStream);
-      binaryStream.setInputStream(ownerInput);
-      try { // Catch possible deserialization exceptions
-        shEntry.owner = binaryStream.readObject(true);
-      } catch (ex) { debug(ex); }
+      aEntry.triggeringPricipal_b64 = aEntry.owner_b64;
+      delete aEntry.owner_b64;
+    }
+
+    // Before introducing the concept of principalToInherit we only had
+    // a triggeringPrincipal within every entry which basically is the
+    // equivalent of the new principalToInherit. To avoid compatibility
+    // issues, we first check if the entry has entries for
+    // triggeringPrincipal_base64 and principalToInherit_base64. If not
+    // we fall back to using the principalToInherit (which is stored
+    // as triggeringPrincipal_b64) as the triggeringPrincipal and
+    // the principalToInherit.
+    // FF55 will remove the triggeringPrincipal_b64, see Bug 1301666.
+    if (aEntry.triggeringPrincipal_base64 || aEntry.principalToInherit_base64) {
+      if (aEntry.triggeringPrincipal_base64) {
+        try {
+          shEntry.triggeringPrincipal =
+            Utils.deserializePrincipal(aEntry.triggeringPrincipal_base64);
+        } catch (e) {
+          debug(e);
+        }
+      }
+      if (aEntry.principalToInherit_base64) {
+        try {
+          shEntry.principalToInherit =
+            Utils.deserializePrincipal(aEntry.principalToInherit_base64);
+        } catch (e) {
+          debug(e);
+        }
+      }
+    } else if (aEntry.triggeringPrincipal_b64) {
+      try {
+        shEntry.triggeringPrincipal = Utils.deserializePrincipal(aEntry.triggeringPrincipal_b64);
+        shEntry.principalToInherit = shEntry.triggeringPrincipal;
+      }
+      catch (e) {
+        debug(e);
+      }
     }
 
     if (aEntry.children && shEntry instanceof Components.interfaces.nsISHContainer) {
@@ -2896,15 +2984,37 @@ SessionStoreService.prototype = {
    *        A tab's docshell (containing the sessionStorage)
    */
   _deserializeSessionStorage: function sss_deserializeSessionStorage(aStorageData, aDocShell) {
-    for (let url in aStorageData) {
-      let uri = this._getURIFromString(url);
-      let principal = SecMan.getDocShellCodebasePrincipal(uri, aDocShell);
-      let storage = aDocShell.getSessionStorageForPrincipal(principal, "", true);
-      for (let key in aStorageData[url]) {
+
+    for (let origin of Object.keys(aStorageData)) {
+      let data = aStorageData[origin];
+
+      let principal;
+
+      try {
+        let attrs = aDocShell.getOriginAttributes();
+        let originURI = Services.io.newURI(origin);
+        principal = Services.scriptSecurityManager.createCodebasePrincipal(originURI, attrs);
+      } catch (e) {
+        Components.utils.reportError(e);
+        continue;
+      }
+
+      let storageManager = aDocShell.QueryInterface(Components.interfaces.nsIDOMStorageManager);
+      let window = aDocShell.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
+                            .getInterface(Components.interfaces.nsIDOMWindow);
+
+      // There is no need to pass documentURI, it's only used to fill documentURI property of
+      // domstorage event, which in this case has no consumer. Prevention of events in case
+      // of missing documentURI will be solved in a followup bug to bug 600307.
+      let storage = storageManager.createStorage(window, principal, "");
+
+      for (let key of Object.keys(data)) {
         try {
-          storage.setItem(key, aStorageData[url][key]);
+          storage.setItem(key, data[key]);
+        } catch (e) {
+          // Throws e.g. for URIs that can't have sessionStorage.
+          Components.utils.reportError(e);
         }
-        catch (ex) { Components.utils.reportError(ex); } // throws e.g. for URIs that can't have sessionStorage
       }
     }
   },
@@ -2965,7 +3075,7 @@ SessionStoreService.prototype = {
           eventType = "input";
         }
         else if (value && typeof value.indexOf == "function" && node.options) {
-          Array.forEach(node.options, function(aOpt, aIx) {
+          Array.from(node.options).forEach(function(aOpt, aIx) {
             aOpt.selected = value.indexOf(aIx) > -1;
 
             // Only fire the event here if this wasn't selected by default
@@ -2999,7 +3109,7 @@ SessionStoreService.prototype = {
       if (aData.scroll && (match = /(\d+),(\d+)/.exec(aData.scroll)) != null) {
         aContent.scrollTo(match[1], match[2]);
       }
-      Array.forEach(aContent.document.styleSheets, function(aSS) {
+      Array.from(aContent.document.styleSheets).forEach(function(aSS) {
         aSS.disabled = aSS.title && aSS.title != selectedPageStyle;
       });
       for (var i = 0; i < aContent.frames.length; i++) {
@@ -3095,7 +3205,7 @@ SessionStoreService.prototype = {
         aTop = screenTop.value + screenHeight.value - aHeight;
       }
     }
- 
+
     // only modify those aspects which aren't correct yet
     if (aWidth && aHeight && (aWidth != win_("width") || aHeight != win_("height"))) {
       aWindow.resizeTo(aWidth, aHeight);
@@ -3143,7 +3253,8 @@ SessionStoreService.prototype = {
         Services.cookies.add(cookie.host, cookie.path || "", cookie.name || "",
                              cookie.value, !!cookie.secure, !!cookie.httponly,
                              true,
-                             "expiry" in cookie ? cookie.expiry : MAX_EXPIRY);
+                             "expiry" in cookie ? cookie.expiry : MAX_EXPIRY,
+                             "originAttributes" in cookie ? cookie.originAttributes : {});
       }
       catch (ex) { Components.utils.reportError(ex); } // don't let a single cookie stop recovering
     }
@@ -3316,7 +3427,7 @@ SessionStoreService.prototype = {
                               .createInstance(Components.interfaces.nsISupportsString);
     argString.data = "about:blank";
 
-    var features = "chrome,dialog=no,macsuppressanimation,all";
+    var features = "chrome,dialog=no,suppressanimation,all";
     var winState = aState.windows[0];
     for (var aAttr in WINDOW_ATTRIBUTES) {
       // Use !isNaN as an easy way to ignore sizemode and check for numbers
@@ -3438,7 +3549,7 @@ SessionStoreService.prototype = {
    * @returns nsIURI
    */
   _getURIFromString: function sss_getURIFromString(aString) {
-    return Services.io.newURI(aString, null, null);
+    return Services.io.newURI(aString);
   },
 
   /**
@@ -4008,7 +4119,7 @@ var DirtyWindows = {
   },
 
   clear: function (window) {
-    this._data.clear();
+    this._data = new WeakMap();
   }
 };
 

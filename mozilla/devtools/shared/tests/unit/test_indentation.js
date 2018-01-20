@@ -8,6 +8,7 @@ const {
   EXPAND_TAB,
   TAB_SIZE,
   DETECT_INDENT,
+  getTabPrefs,
   getIndentationFromPrefs,
   getIndentationFromIteration,
   getIndentationFromString,
@@ -21,6 +22,8 @@ function test_indent_from_prefs() {
   Services.prefs.setIntPref(TAB_SIZE, 73);
   Services.prefs.setBoolPref(EXPAND_TAB, false);
   Services.prefs.setBoolPref(DETECT_INDENT, false);
+  deepEqual(getTabPrefs(), {indentUnit: 73, indentWithTabs: true},
+            "getTabPrefs basic test");
   deepEqual(getIndentationFromPrefs(), {indentUnit: 73, indentWithTabs: true},
             "getIndentationFromPrefs basic test");
 }
@@ -107,7 +110,7 @@ function test_indent_detection() {
   Services.prefs.setBoolPref(DETECT_INDENT, true);
 
   for (let test of TESTS) {
-    let iterFn = function(start, end, callback) {
+    let iterFn = function (start, end, callback) {
       test.input.slice(start, end).forEach(callback);
     };
 

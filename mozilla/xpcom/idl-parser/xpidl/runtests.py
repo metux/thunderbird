@@ -8,6 +8,7 @@
 import mozunit
 import unittest
 import xpidl
+import header
 
 
 class TestParser(unittest.TestCase):
@@ -32,7 +33,7 @@ class TestParser(unittest.TestCase):
         self.assertEqual("foo", i.productions[0].name)
 
     def testAttributes(self):
-        i = self.p.parse("[scriptable, builtinclass, function, deprecated, uuid(abc)] interface foo {};", filename='f')
+        i = self.p.parse("[scriptable, builtinclass, function, uuid(abc)] interface foo {};", filename='f')
         self.assertTrue(isinstance(i, xpidl.IDL))
         self.assertTrue(isinstance(i.productions[0], xpidl.Interface))
         iface = i.productions[0]
@@ -40,7 +41,6 @@ class TestParser(unittest.TestCase):
         self.assertTrue(iface.attributes.scriptable)
         self.assertTrue(iface.attributes.builtinclass)
         self.assertTrue(iface.attributes.function)
-        self.assertTrue(iface.attributes.deprecated)
 
         i = self.p.parse("[noscript, uuid(abc)] interface foo {};", filename='f')
         self.assertTrue(isinstance(i, xpidl.IDL))
@@ -95,5 +95,19 @@ attribute long bar;
         self.assertEqual("bar", a.name)
         self.assertEqual("long", a.type)
 
+    def testOverloadedVirtual(self):
+        i = self.p.parse("""[uuid(abc)] interface foo {
+attribute long bar;
+void getBar();
+};""", filename='f')
+        self.assertTrue(isinstance(i, xpidl.IDL))
+        class FdMock:
+            def write(self, s):
+                pass
+        try:
+            header.print_header(i, FdMock(), filename='f')
+        except Exception as e:
+            self.assertEqual(e.args[0], "Unexpected overloaded virtual method GetBar in interface foo")
+
 if __name__ == '__main__':
-    mozunit.main()
+    mozunit.main(runwith='unittest')

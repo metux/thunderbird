@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -27,7 +28,7 @@
 #include "mozilla/Services.h"
 
 #ifdef ACCESSIBILITY
-#include "nsIAccessibilityService.h"
+#include "nsAccessibilityService.h"
 #endif
 
 using namespace mozilla;
@@ -329,8 +330,7 @@ inDOMView::GetCellProperties(int32_t row, nsITreeColumn* col,
 
 #ifdef ACCESSIBILITY
   if (mShowAccessibleNodes) {
-	  nsCOMPtr<nsIAccessibilityService> accService =
-        services::GetAccessibilityService();
+    nsAccessibilityService* accService = GetOrCreateAccService();
     NS_ENSURE_TRUE(accService, NS_ERROR_FAILURE);
 
     if (accService->HasAccessible(node->node))
@@ -457,9 +457,9 @@ inDOMView::GetParentIndex(int32_t rowIndex, int32_t *_retval)
   RowToNode(rowIndex, &node);
   if (!node) return NS_ERROR_FAILURE;
 
-  // GetParentIndex returns -1 if there is no parent  
+  // GetParentIndex returns -1 if there is no parent
   *_retval = -1;
-  
+
   inDOMViewNode* checkNode = nullptr;
   int32_t i = rowIndex - 1;
   do {
@@ -468,7 +468,7 @@ inDOMView::GetParentIndex(int32_t rowIndex, int32_t *_retval)
       // No parent. Just break out.
       break;
     }
-    
+
     if (checkNode == node->parent) {
       *_retval = i;
       return NS_OK;
@@ -631,7 +631,7 @@ inDOMView::NodeWillBeDestroyed(const nsINode* aNode)
 
 void
 inDOMView::AttributeChanged(nsIDocument* aDocument, dom::Element* aElement,
-                            int32_t aNameSpaceID, nsIAtom* aAttribute,
+                            int32_t aNameSpaceID, nsAtom* aAttribute,
                             int32_t aModType,
                             const nsAttrValue* aOldValue)
 {
@@ -644,7 +644,7 @@ inDOMView::AttributeChanged(nsIDocument* aDocument, dom::Element* aElement,
   }
 
   nsCOMPtr<nsIMutationObserver> kungFuDeathGrip(this);
-  
+
   // get the dom attribute node, if there is any
   nsCOMPtr<nsIDOMElement> el(do_QueryInterface(aElement));
   nsCOMPtr<nsIDOMAttr> domAttr;
@@ -764,8 +764,7 @@ inDOMView::AttributeChanged(nsIDocument* aDocument, dom::Element* aElement,
 void
 inDOMView::ContentAppended(nsIDocument *aDocument,
                            nsIContent* aContainer,
-                           nsIContent* aFirstNewContent,
-                           int32_t /* unused */)
+                           nsIContent* aFirstNewContent)
 {
   if (!mTree) {
     return;
@@ -773,13 +772,13 @@ inDOMView::ContentAppended(nsIDocument *aDocument,
 
   for (nsIContent* cur = aFirstNewContent; cur; cur = cur->GetNextSibling()) {
     // Our ContentInserted impl doesn't use the index
-    ContentInserted(aDocument, aContainer, cur, 0);
+    ContentInserted(aDocument, aContainer, cur);
   }
 }
 
 void
 inDOMView::ContentInserted(nsIDocument *aDocument, nsIContent* aContainer,
-                           nsIContent* aChild, int32_t /* unused */)
+                           nsIContent* aChild)
 {
   if (!mTree)
     return;
@@ -805,7 +804,7 @@ inDOMView::ContentInserted(nsIDocument *aDocument, nsIContent* aContainer,
     return;
 
   nsCOMPtr<nsIMutationObserver> kungFuDeathGrip(this);
-  
+
   if (!parentNode->isOpen) {
     // Parent is not open, so don't bother creating tree rows for the
     // kids.  But do indicate that it's now a container, if needed.
@@ -860,8 +859,7 @@ inDOMView::ContentInserted(nsIDocument *aDocument, nsIContent* aContainer,
 
 void
 inDOMView::ContentRemoved(nsIDocument *aDocument, nsIContent* aContainer,
-                          nsIContent* aChild, int32_t aIndexInContainer,
-                          nsIContent* aPreviousSibling)
+                          nsIContent* aChild, nsIContent* aPreviousSibling)
 {
   if (!mTree)
     return;
@@ -878,16 +876,16 @@ inDOMView::ContentRemoved(nsIDocument *aDocument, nsIContent* aContainer,
     return;
 
   nsCOMPtr<nsIMutationObserver> kungFuDeathGrip(this);
-  
+
   // The parent may no longer be a container.  Note that we don't want
   // to access oldNode after calling RemoveNode, so do this now.
   inDOMViewNode* parentNode = oldNode->parent;
   bool isOnlyChild = oldNode->previous == nullptr && oldNode->next == nullptr;
-  
+
   // Keep track of how many rows we are removing.  It's at least one,
   // but if we're open it's more.
   int32_t oldCount = GetRowCount();
-  
+
   if (oldNode->isOpen)
     CollapseNode(row);
 
@@ -900,7 +898,7 @@ inDOMView::ContentRemoved(nsIDocument *aDocument, nsIContent* aContainer,
     parentNode->isOpen = false;
     mTree->InvalidateRow(NodeToRow(parentNode));
   }
-    
+
   mTree->RowCountChanged(row, GetRowCount() - oldCount);
 }
 
@@ -1262,7 +1260,7 @@ inDOMView::AppendKidsToArray(nsIDOMNodeList* aKids,
         }
       }
 
-      aArray.AppendObject(kid);
+      aArray.AppendElement(kid.forget());
     }
   }
 
@@ -1278,7 +1276,7 @@ inDOMView::AppendAttrsToArray(nsIDOMMozNamedAttrMap* aAttributes,
   nsCOMPtr<nsIDOMAttr> attribute;
   for (uint32_t i = 0; i < l; ++i) {
     aAttributes->Item(i, getter_AddRefs(attribute));
-    aArray.AppendObject(attribute);
+    aArray.AppendElement(attribute.forget());
   }
   return NS_OK;
 }

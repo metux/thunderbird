@@ -12,7 +12,7 @@ import org.mozilla.gecko.tests.components.BaseComponent;
 import android.app.Activity;
 import android.app.Instrumentation;
 
-import com.jayway.android.robotium.solo.Solo;
+import com.robotium.solo.Solo;
 
 /**
  * Interface to the global information about a UITest environment.
@@ -46,6 +46,8 @@ public interface UITestContext {
      * Returns the absolute version of the given URL using the host's IP address.
      */
     public String getAbsoluteIpUrl(final String url);
+
+    public void runOnUiThreadSync(Runnable runnable);
 
     public BaseComponent getComponent(final ComponentType type);
 }

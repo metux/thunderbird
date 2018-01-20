@@ -6,26 +6,26 @@
 
 var gManagerEventsListener = {
   seenEvents: [],
-  init: function() {
+  init() {
     let events = ["onCompatibilityModeChanged", "onCheckUpdateSecurityChanged",
                   "onUpdateModeChanged"];
     events.forEach(function(aEvent) {
       this[aEvent] = function() {
         do_print("Saw event " + aEvent);
         this.seenEvents.push(aEvent);
-      }
+      };
     }, this);
     AddonManager.addManagerListener(this);
     // Try to add twice, to test that the second time silently fails.
     AddonManager.addManagerListener(this);
   },
-  shutdown: function() {
+  shutdown() {
     AddonManager.removeManagerListener(this);
   },
-  expect: function(aEvents) {
+  expect(aEvents) {
     this.expectedEvents = aEvents;
   },
-  checkExpected: function() {
+  checkExpected() {
     do_print("Checking expected events...");
     while (this.expectedEvents.length > 0) {
       let event = this.expectedEvents.pop();
@@ -37,7 +37,7 @@ var gManagerEventsListener = {
     }
     this.seenEvents = [];
   }
-}
+};
 
 function run_test() {
   createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "1", "1.9.2");
@@ -211,7 +211,7 @@ function run_test() {
   hotfixID = 99;
   Services.prefs.deleteBranch("extensions.hotfix.id");
   Services.prefs.setIntPref("extensions.hotfix.id", hotfixID);
-  do_check_eq(AddonManager.hotfixID, null);
+  do_check_eq(AddonManager.hotfixID, "");
   Services.prefs.clearUserPref("extensions.hotfix.id");
 
   // After removing the listener, ensure we get no further events.

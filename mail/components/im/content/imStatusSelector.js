@@ -46,11 +46,13 @@ var statusSelector = {
     let us = Services.core.globalUserStatus;
     let status = Status.toAttribute(us.statusType);
     let message = status == "offline" ? "" : us.statusText;
-    let statusString = this.displayStatusType(status);
     let statusMessage = document.getElementById("statusMessage");
+    if (!statusMessage) // Chat toolbar not in the DOM yet
+      return;
     if (message)
       statusMessage.removeAttribute("usingDefault");
     else {
+      let statusString = this.displayStatusType(status);
       statusMessage.setAttribute("usingDefault", statusString);
       message = statusString;
     }
@@ -191,8 +193,12 @@ var statusSelector = {
     fp.init(window, bundle.getString("userIconFilePickerTitle"),
             nsIFilePicker.modeOpen);
     fp.appendFilters(nsIFilePicker.filterImages);
-    if (fp.show() == nsIFilePicker.returnOK)
+    fp.open(rv => {
+      if (rv != nsIFilePicker.returnOK || !fp.file) {
+        return;
+      }
       Services.core.globalUserStatus.setUserIcon(fp.file);
+    });
   },
 
   displayNameClick: function ss_displayNameClick() {

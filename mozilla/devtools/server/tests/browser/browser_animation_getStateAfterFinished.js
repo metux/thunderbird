@@ -1,6 +1,7 @@
 /* vim: set ft=javascript ts=2 et sw=2 tw=80: */
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
+/* eslint-disable mozilla/no-arbitrary-setTimeout */
 
 "use strict";
 
@@ -10,7 +11,7 @@
 // See devtools/server/actors/animation.js |getPlayerIndex| for more
 // information.
 
-add_task(function*() {
+add_task(function* () {
   let {client, walker, animations} =
     yield initAnimationsFrontForUrl(MAIN_DOMAIN + "animation.html");
 
@@ -36,20 +37,20 @@ add_task(function*() {
 
   is(players.length, 2, "2 animations remain on the node");
 
-  is(players[0].state.duration, 1000,
+  is(players[0].state.duration, 100000,
      "The duration of the first animation is correct");
   is(players[0].state.delay, 2000,
      "The delay of the first animation is correct");
   is(players[0].state.iterationCount, null,
      "The iterationCount of the first animation is correct");
 
-  is(players[1].state.duration, 3000,
+  is(players[1].state.duration, 300000,
      "The duration of the second animation is correct");
   is(players[1].state.delay, 1000,
      "The delay of the second animation is correct");
   is(players[1].state.iterationCount, 100,
      "The iterationCount of the second animation is correct");
 
-  yield closeDebuggerClient(client);
+  yield client.close();
   gBrowser.removeCurrentTab();
 });

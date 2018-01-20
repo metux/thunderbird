@@ -120,8 +120,8 @@
       }
     </style>
 
-    <script type="application/x-javascript" src="chrome://global/content/globalOverlay.js"></script>
-    <script type="application/x-javascript">
+    <script type="application/javascript" src="chrome://global/content/globalOverlay.js"></script>
+    <script type="application/javascript">
     <![CDATA[
 
       var gCreditsInterval = -1;
@@ -166,7 +166,7 @@
                         getService(Components.interfaces.nsIIOService);
         Components.classes["@mozilla.org/uriloader/external-protocol-service;1"]
                   .getService(Components.interfaces.nsIExternalProtocolService)
-                  .loadUrl(ioService.newURI(aEvent.target.href, null, null));
+                  .loadURI(ioService.newURI(aEvent.target.href, null, null));
       }
 
     ]]>

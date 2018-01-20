@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -14,21 +15,20 @@
 /**
  * This interface provides access to methods analogous to those of
  * nsIDOMCSSStyleDeclaration; the difference is that these use
- * nsCSSProperty enums for the prop names instead of using strings.
+ * nsCSSPropertyID enums for the prop names instead of using strings.
  * This is meant for use in performance-sensitive code only!  Most
  * consumers should continue to use nsIDOMCSSStyleDeclaration.
  */
 
 #include "mozilla/Attributes.h"
 #include "nsIDOMCSSStyleDeclaration.h"
-#include "nsCSSProperty.h"
-#include "CSSValue.h"
+#include "nsCSSPropertyID.h"
+#include "mozilla/dom/CSSValue.h"
 #include "nsWrapperCache.h"
 #include "nsString.h"
 #include "nsIDOMCSSRule.h"
 #include "nsIDOMCSSValue.h"
 #include "mozilla/ErrorResult.h"
-#include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
 
 class nsINode;
@@ -48,18 +48,15 @@ public:
    * Method analogous to nsIDOMCSSStyleDeclaration::GetPropertyValue,
    * which obeys all the same restrictions.
    */
-  NS_IMETHOD GetPropertyValue(const nsCSSProperty aPropID,
+  NS_IMETHOD GetPropertyValue(const nsCSSPropertyID aPropID,
                               nsAString& aValue) = 0;
-
-  NS_IMETHOD GetAuthoredPropertyValue(const nsAString& aPropName,
-                                      nsAString& aValue) = 0;
 
   /**
    * Method analogous to nsIDOMCSSStyleDeclaration::SetProperty.  This
    * method does NOT allow setting a priority (the priority will
    * always be set to default priority).
    */
-  NS_IMETHOD SetPropertyValue(const nsCSSProperty aPropID,
+  NS_IMETHOD SetPropertyValue(const nsCSSPropertyID aPropID,
                               const nsAString& aValue) = 0;
 
   virtual nsINode *GetParentObject() = 0;
@@ -129,10 +126,6 @@ public:
                         mozilla::ErrorResult& rv) {
     rv = GetPropertyValue(aPropName, aValue);
   }
-  void GetAuthoredPropertyValue(const nsAString& aPropName, nsString& aValue,
-                                mozilla::ErrorResult& rv) {
-    rv = GetAuthoredPropertyValue(aPropName, aValue);
-  }
   void GetPropertyPriority(const nsAString& aPropName, nsString& aPriority) {
     GetPropertyPriority(aPropName, static_cast<nsAString&>(aPriority));
   }
@@ -154,11 +147,9 @@ public:
 NS_DEFINE_STATIC_IID_ACCESSOR(nsICSSDeclaration, NS_ICSSDECLARATION_IID)
 
 #define NS_DECL_NSICSSDECLARATION                                   \
-  NS_IMETHOD GetPropertyValue(const nsCSSProperty aPropID,          \
+  NS_IMETHOD GetPropertyValue(const nsCSSPropertyID aPropID,          \
                               nsAString& aValue) override;          \
-  NS_IMETHOD GetAuthoredPropertyValue(const nsAString& aPropName,   \
-                                      nsAString& aValue) override;  \
-  NS_IMETHOD SetPropertyValue(const nsCSSProperty aPropID,          \
+  NS_IMETHOD SetPropertyValue(const nsCSSPropertyID aPropID,          \
                               const nsAString& aValue) override;
 
 #define NS_DECL_NSIDOMCSSSTYLEDECLARATION_HELPER \

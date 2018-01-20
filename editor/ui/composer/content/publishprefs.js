@@ -723,7 +723,7 @@ function GetPublishStringPref(prefBranch, name)
   if (prefBranch && name)
   {
     try {
-      return prefBranch.getComplexValue(name, Components.interfaces.nsISupportsString).data;
+      return prefBranch.getStringPref(name);
     } catch (e) {}
   }
   return "";
@@ -734,10 +734,7 @@ function SetPublishStringPref(prefBranch, name, value)
   if (prefBranch && name)
   {
     try {
-        var str = Components.classes["@mozilla.org/supports-string;1"]
-                            .createInstance(Components.interfaces.nsISupportsString);
-        str.data = value;
-        prefBranch.setComplexValue(name, Components.interfaces.nsISupportsString, str);
+        prefBranch.setStringPref(name, value);
     } catch (e) {}
   }
 }
@@ -860,7 +857,7 @@ function GetUrlForPasswordManager(publishData)
   if (!publishData || !publishData.publishUrl)
     return false;
 
-  let url = Services.io.newURI(publishData.publishUrl, null, null);
+  let url = Services.io.newURI(publishData.publishUrl);
 
   if (url.scheme == "ftp" && publishData.username)
     // Include username in the URL so we can handle multiple users per server

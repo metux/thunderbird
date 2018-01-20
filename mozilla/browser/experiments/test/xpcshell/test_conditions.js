@@ -6,22 +6,10 @@
 
 Cu.import("resource:///modules/experiments/Experiments.jsm");
 Cu.import("resource://gre/modules/TelemetryController.jsm", this);
-Cu.import("resource://gre/modules/TelemetrySession.jsm", this);
 
-XPCOMUtils.defineLazyGetter(this, "gDatareportingService",
-  () => Cc["@mozilla.org/datareporting/service;1"]
-          .getService(Ci.nsISupports)
-          .wrappedJSObject);
-
-const FILE_MANIFEST            = "experiments.manifest";
 const SEC_IN_ONE_DAY = 24 * 60 * 60;
-const MS_IN_ONE_DAY  = SEC_IN_ONE_DAY * 1000;
 
-var gProfileDir = null;
-var gHttpServer = null;
-var gHttpRoot   = null;
 var gPolicy     = null;
-
 
 function ManifestEntry(data) {
   this.id = EXPERIMENT1_ID;
@@ -50,26 +38,11 @@ function applicableFromManifestData(data, policy) {
   return entry.isApplicable();
 }
 
-function initialiseTelemetry() {
-  // Send the needed startup notifications to the datareporting service
-  // to ensure that it has been initialized.
-  if ("@mozilla.org/datareporting/service;1" in Cc) {
-    gDatareportingService.observe(null, "app-startup", null);
-    gDatareportingService.observe(null, "profile-after-change", null);
-  }
-
-  return TelemetryController.setup().then(TelemetrySession.setup);
-}
-
-function run_test() {
-  run_next_test();
-}
-
-add_task(function* test_setup() {
+add_task(async function test_setup() {
   createAppInfo();
-  gProfileDir = do_get_profile();
+  do_get_profile();
   startAddonManagerOnly();
-  yield initialiseTelemetry();
+  await TelemetryController.testSetup();
   gPolicy = new Experiments.Policy();
 
   patchPolicy(gPolicy, {
@@ -88,7 +61,7 @@ function arraysEqual(a, b) {
     return false;
   }
 
-  for (let i=0; i<a.length; ++i) {
+  for (let i = 0; i < a.length; ++i) {
     if (a[i] !== b[i]) {
       return false;
     }
@@ -106,9 +79,36 @@ const sanityFilter = function filter(c) {
     throw Error("No .telemetryEnvironment.build");
   }
   return true;
+};
+
+// Utility function to generate build ID for previous/next date.
+function addDate(buildId, diff) {
+  let m = /^([0-9]{4})([0-9]{2})([0-9]{2})(.*)$/.exec(buildId);
+  if (!m) {
+    throw Error("Unsupported build ID: " + buildId);
+  }
+  let year = Number.parseInt(m[1], 10);
+  let month = Number.parseInt(m[2], 10);
+  let date = Number.parseInt(m[3], 10);
+  let remainingParts = m[4];
+
+  let d = new Date();
+  d.setUTCFullYear(year, month - 1, date);
+  d.setTime(d.getTime() + diff * 24 * 60 * 60 * 1000);
+
+  let yearStr = String(d.getUTCFullYear());
+  let monthStr = ("0" + String(d.getUTCMonth() + 1)).slice(-2);
+  let dateStr = ("0" + String(d.getUTCDate())).slice(-2);
+  return yearStr + monthStr + dateStr + remainingParts;
+}
+function prevDate(buildId) {
+  return addDate(buildId, -1);
+}
+function nextDate(buildId) {
+  return addDate(buildId, 1);
 }
 
-add_task(function* test_simpleFields() {
+add_task(async function test_simpleFields() {
   let testData = [
     // "expected applicable?", failure reason or null, manifest data
 
@@ -153,13 +153,13 @@ add_task(function* test_simpleFields() {
     [false, ["buildIDs"], {buildIDs: ["not-a-build-id", gAppInfo.platformBuildID + "-invalid"]}],
     [true,  null,         {buildIDs: ["not-a-build-id", gAppInfo.platformBuildID]}],
 
-    [true,  null,           {minBuildID: "2014060501"}],
-    [true,  null,           {minBuildID: "2014060601"}],
-    [false, ["minBuildID"], {minBuildID: "2014060701"}],
+    [true,  null,           {minBuildID: prevDate(gAppInfo.platformBuildID)}],
+    [true,  null,           {minBuildID: gAppInfo.platformBuildID}],
+    [false, ["minBuildID"], {minBuildID: nextDate(gAppInfo.platformBuildID)}],
 
-    [false, ["maxBuildID"], {maxBuildID: "2014010101"}],
-    [true,  null,           {maxBuildID: "2014060601"}],
-    [true,  null,           {maxBuildID: "2014060901"}],
+    [false, ["maxBuildID"], {maxBuildID: prevDate(gAppInfo.platformBuildID)}],
+    [true,  null,           {maxBuildID: gAppInfo.platformBuildID}],
+    [true,  null,           {maxBuildID: nextDate(gAppInfo.platformBuildID)}],
 
     // sample
 
@@ -196,12 +196,12 @@ add_task(function* test_simpleFields() {
     [true,  null, {jsfilter: "var filter = " + sanityFilter.toSource()}],
   ];
 
-  for (let i=0; i<testData.length; ++i) {
+  for (let i = 0; i < testData.length; ++i) {
     let entry = testData[i];
     let applicable;
     let reason = null;
 
-    yield applicableFromManifestData(entry[2], gPolicy).then(
+    await applicableFromManifestData(entry[2], gPolicy).then(
       value => applicable = value,
       value => {
         applicable = false;
@@ -223,7 +223,7 @@ add_task(function* test_simpleFields() {
   }
 });
 
-add_task(function* test_times() {
+add_task(async function test_times() {
   let now = new Date(2014, 5, 6, 12);
   let nowSec = now.getTime() / 1000;
   let testData = [
@@ -232,23 +232,23 @@ add_task(function* test_times() {
     // start time
 
     [true,  null, now,
-      {startTime: nowSec -  5 * SEC_IN_ONE_DAY,
+      {startTime: nowSec - 5 * SEC_IN_ONE_DAY,
          endTime: nowSec + 10 * SEC_IN_ONE_DAY}],
     [true,  null, now,
-      {startTime: nowSec ,
+      {startTime: nowSec,
          endTime: nowSec + 10 * SEC_IN_ONE_DAY}],
     [false,  "startTime", now,
-      {startTime: nowSec +  5 * SEC_IN_ONE_DAY,
+      {startTime: nowSec + 5 * SEC_IN_ONE_DAY,
          endTime: nowSec + 10 * SEC_IN_ONE_DAY}],
 
     // end time
 
     [false,  "endTime", now,
-      {startTime: nowSec -  5 * SEC_IN_ONE_DAY,
+      {startTime: nowSec - 5 * SEC_IN_ONE_DAY,
          endTime: nowSec - 10 * SEC_IN_ONE_DAY}],
     [false,  "endTime", now,
-      {startTime: nowSec -  5 * SEC_IN_ONE_DAY,
-         endTime: nowSec -  5 * SEC_IN_ONE_DAY}],
+      {startTime: nowSec - 5 * SEC_IN_ONE_DAY,
+         endTime: nowSec - 5 * SEC_IN_ONE_DAY}],
 
     // max start time
 
@@ -257,7 +257,7 @@ add_task(function* test_times() {
           startTime: nowSec - 10 * SEC_IN_ONE_DAY,
             endTime: nowSec + 10 * SEC_IN_ONE_DAY}],
     [false,  "maxStartTime", now,
-      {maxStartTime: nowSec -  1 * SEC_IN_ONE_DAY,
+      {maxStartTime: nowSec - 1 * SEC_IN_ONE_DAY,
           startTime: nowSec - 10 * SEC_IN_ONE_DAY,
             endTime: nowSec + 10 * SEC_IN_ONE_DAY}],
     [false,  "maxStartTime", now,
@@ -269,7 +269,7 @@ add_task(function* test_times() {
           startTime: nowSec - 10 * SEC_IN_ONE_DAY,
             endTime: nowSec + 10 * SEC_IN_ONE_DAY}],
     [true,  null, now,
-      {maxStartTime: nowSec +  1 * SEC_IN_ONE_DAY,
+      {maxStartTime: nowSec + 1 * SEC_IN_ONE_DAY,
           startTime: nowSec - 10 * SEC_IN_ONE_DAY,
             endTime: nowSec + 10 * SEC_IN_ONE_DAY}],
 
@@ -293,13 +293,13 @@ add_task(function* test_times() {
                 endTime: nowSec + 10 * SEC_IN_ONE_DAY}],
   ];
 
-  for (let i=0; i<testData.length; ++i) {
+  for (let i = 0; i < testData.length; ++i) {
     let entry = testData[i];
     let applicable;
     let reason = null;
     defineNow(gPolicy, entry[2]);
 
-    yield applicableFromManifestData(entry[3], gPolicy).then(
+    await applicableFromManifestData(entry[3], gPolicy).then(
       value => applicable = value,
       value => {
         applicable = false;
@@ -316,6 +316,6 @@ add_task(function* test_times() {
   }
 });
 
-add_task(function* test_shutdown() {
-  yield TelemetrySession.shutdown(false);
+add_task(async function test_shutdown() {
+  await TelemetryController.testShutdown();
 });

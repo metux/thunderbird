@@ -43,6 +43,7 @@ struct InputOutputData
 
     // Index into inputStart (in chars) at which to begin matching.
     size_t startIndex;
+    size_t* endIndex;
 
     MatchPairs* matches;
 
@@ -52,10 +53,11 @@ struct InputOutputData
 
     template <typename CharT>
     InputOutputData(const CharT* inputStart, const CharT* inputEnd,
-                    size_t startIndex, MatchPairs* matches)
+                    size_t startIndex, MatchPairs* matches, size_t* endIndex)
       : inputStart(inputStart),
         inputEnd(inputEnd),
         startIndex(startIndex),
+        endIndex(endIndex),
         matches(matches),
         result(0)
     {}
@@ -66,6 +68,7 @@ struct FrameData
     // Copy of the input/output data's data.
     char16_t* inputStart;
     size_t startIndex;
+    size_t* endIndex;
 
     // Pointer to the character before the input start.
     char16_t* inputStartMinusOne;
@@ -79,14 +82,14 @@ struct FrameData
     void* backtrackStackBase;
 };
 
-class MOZ_STACK_CLASS NativeRegExpMacroAssembler : public RegExpMacroAssembler
+class MOZ_STACK_CLASS NativeRegExpMacroAssembler final : public RegExpMacroAssembler
 {
   public:
     // Type of input string to generate code for.
-    enum Mode { ASCII = 1, CHAR16 = 2 };
+    enum Mode { LATIN1 = 1, CHAR16 = 2 };
 
-    NativeRegExpMacroAssembler(LifoAlloc* alloc, RegExpShared* shared,
-                               JSRuntime* rt, Mode mode, int registers_to_save);
+    NativeRegExpMacroAssembler(JSContext* cx, LifoAlloc* alloc, Mode mode, int registers_to_save,
+                               RegExpShared::JitCodeTables& tables);
 
     // Inherited virtual methods.
     RegExpCode GenerateCode(JSContext* cx, bool match_only);
@@ -104,7 +107,7 @@ class MOZ_STACK_CLASS NativeRegExpMacroAssembler : public RegExpMacroAssembler
     void CheckGreedyLoop(jit::Label* on_tos_equals_current_position);
     void CheckNotAtStart(jit::Label* on_not_at_start);
     void CheckNotBackReference(int start_reg, jit::Label* on_no_match);
-    void CheckNotBackReferenceIgnoreCase(int start_reg, jit::Label* on_no_match);
+    void CheckNotBackReferenceIgnoreCase(int start_reg, jit::Label* on_no_match, bool unicode);
     void CheckNotCharacter(unsigned c, jit::Label* on_not_equal);
     void CheckNotCharacterAfterAnd(unsigned c, unsigned and_with, jit::Label* on_not_equal);
     void CheckNotCharacterAfterMinusAnd(char16_t c, char16_t minus, char16_t and_with,
@@ -113,7 +116,7 @@ class MOZ_STACK_CLASS NativeRegExpMacroAssembler : public RegExpMacroAssembler
                                jit::Label* on_in_range);
     void CheckCharacterNotInRange(char16_t from, char16_t to,
                                   jit::Label* on_not_in_range);
-    void CheckBitInTable(uint8_t* table, jit::Label* on_bit_set);
+    void CheckBitInTable(RegExpShared::JitCodeTable table, jit::Label* on_bit_set);
     void CheckPosition(int cp_offset, jit::Label* on_outside_input);
     void JumpOrBacktrack(jit::Label* to);
     bool CheckSpecialCharacterClass(char16_t type, jit::Label* on_no_match);
@@ -170,8 +173,9 @@ class MOZ_STACK_CLASS NativeRegExpMacroAssembler : public RegExpMacroAssembler
 
   private:
     jit::MacroAssembler masm;
+    RegExpShared::JitCodeTables& tables;
 
-    JSRuntime* runtime;
+    JSContext* cx;
     Mode mode_;
     jit::Label entry_label_;
     jit::Label start_label_;

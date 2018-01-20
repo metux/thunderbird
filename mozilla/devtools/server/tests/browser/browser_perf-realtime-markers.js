@@ -5,10 +5,12 @@
  * Test functionality of real time markers.
  */
 
-const { PerformanceFront } = require("devtools/server/actors/performance");
+"use strict";
 
-add_task(function*() {
-  let doc = yield addTab(MAIN_DOMAIN + "doc_perf.html");
+const { PerformanceFront } = require("devtools/shared/fronts/performance");
+
+add_task(function* () {
+  yield addTab(MAIN_DOMAIN + "doc_perf.html");
 
   initDebuggerServer();
   let client = new DebuggerClient(DebuggerServer.connectPipe());
@@ -33,7 +35,8 @@ add_task(function*() {
 
   front.on("timeline-data", handler);
 
-  let rec = yield front.startRecording({ withMarkers: true, withMemory: true, withTicks: true });
+  let rec = yield front.startRecording(
+    { withMarkers: true, withMemory: true, withTicks: true });
   yield Promise.all(Object.keys(deferreds).map(type => deferreds[type].promise));
   yield front.stopRecording(rec);
   front.off("timeline-data", handler);
@@ -43,20 +46,23 @@ add_task(function*() {
   is(counters.ticks.length, 3, "three ticks events fired.");
 
   yield front.destroy();
-  yield closeDebuggerClient(client);
+  yield client.close();
   gBrowser.removeCurrentTab();
 
-  function handler (name, data) {
+  function handler(name, data) {
     if (name === "markers") {
-      if (counters.markers.length >= 1) { return; }
+      if (counters.markers.length >= 1) {
+        return;
+      }
       ok(data.markers[0].start, "received atleast one marker with `start`");
       ok(data.markers[0].end, "received atleast one marker with `end`");
       ok(data.markers[0].name, "received atleast one marker with `name`");
 
       counters.markers.push(data.markers);
-    }
-    else if (name === "memory") {
-      if (counters.memory.length >= 3) { return; }
+    } else if (name === "memory") {
+      if (counters.memory.length >= 3) {
+        return;
+      }
       let { delta, measurement } = data;
       is(typeof delta, "number", "received `delta` in memory event");
       ok(delta > lastMemoryDelta, "received `delta` in memory event");
@@ -64,9 +70,10 @@ add_task(function*() {
 
       counters.memory.push({ delta, measurement });
       lastMemoryDelta = delta;
-    }
-    else if (name === "ticks") {
-      if (counters.ticks.length >= 3) { return; }
+    } else if (name === "ticks") {
+      if (counters.ticks.length >= 3) {
+        return;
+      }
       let { delta, timestamps } = data;
       ok(delta > lastTickDelta, "received `delta` in ticks event");
 
@@ -75,11 +82,9 @@ add_task(function*() {
 
       counters.ticks.push({ delta, timestamps });
       lastTickDelta = delta;
-    }
-    else if (name === "frames") {
+    } else if (name === "frames") {
       // Nothing to do here.
-    }
-    else {
+    } else {
       ok(false, `Received unknown event: ${name}`);
     }
 
@@ -88,5 +93,5 @@ add_task(function*() {
         name === "ticks" && counters[name].length === 3) {
       deferreds[name].resolve();
     }
-  };
+  }
 });

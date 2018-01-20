@@ -12,13 +12,13 @@
 using namespace mozilla::dom;
 
 /**
- * This class is used by nsGlobalWindow to implement window.orientation
+ * This class is used by nsGlobalWindowInner to implement window.orientation
  * and window.onorientationchange. This class is defined in its own file
  * because Hal.h pulls in windows.h and can't be included from
  * nsGlobalWindow.cpp
  */
 WindowOrientationObserver::WindowOrientationObserver(
-  nsGlobalWindow* aGlobalWindow)
+  nsGlobalWindowInner* aGlobalWindow)
   : mWindow(aGlobalWindow)
 {
   MOZ_ASSERT(aGlobalWindow && aGlobalWindow->IsInnerWindow());
@@ -39,7 +39,7 @@ WindowOrientationObserver::Notify(
   const mozilla::hal::ScreenConfiguration& aConfiguration)
 {
   uint16_t currentAngle = aConfiguration.angle();
-  if (mAngle != currentAngle && mWindow->IsCurrentInnerWindow()) {
+  if (mAngle != currentAngle && mWindow->AsInner()->IsCurrentInnerWindow()) {
     mAngle = currentAngle;
     mWindow->GetOuterWindow()->DispatchCustomEvent(NS_LITERAL_STRING("orientationchange"));
   }

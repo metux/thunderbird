@@ -6,11 +6,10 @@ function test()
 {
   waitForExplicitFinish();
 
-  gBrowser.selectedTab = gBrowser.addTab();
-  gBrowser.selectedBrowser.addEventListener("load", function onLoad() {
-    gBrowser.selectedBrowser.removeEventListener("load", onLoad, true);
+  gBrowser.selectedTab = BrowserTestUtils.addTab(gBrowser);
+  gBrowser.selectedBrowser.addEventListener("load", function () {
     openScratchpad(runTests);
-  }, true);
+  }, {capture: true, once: true});
 
   content.location = "data:text/html;charset=utf8,test Scratchpad eval function.";
 }
@@ -31,7 +30,7 @@ function runTests(sw)
   const fullText =
     foo + "\n" +
     "\n" +
-    bar + "\n"
+    bar + "\n";
 
   sp.setText(fullText);
 

@@ -108,10 +108,11 @@ function InitDialog()
   if (/url\((.*)\)/.test( gBackgroundImage ))
     gBackgroundImage = RegExp.$1;
 
-  gDialog.BackgroundImageInput.value = gBackgroundImage;
-
-  if (gBackgroundImage)
+  if (gBackgroundImage) {
+    // Shorten data URIs for display.
+    shortenImageData(gBackgroundImage, gDialog.BackgroundImageInput);
     gDialog.ColorPreview.setAttribute(styleStr, backImageStyle+gBackgroundImage+");");
+  }
 
   SetRelativeCheckbox();
 
@@ -304,20 +305,17 @@ function UseDefaultColors()
 function chooseFile()
 {
   // Get a local image file, converted into URL format
-  var fileName = GetLocalFileURL("img");
-  if (fileName)
-  {
+  GetLocalFileURL("img").then(fileURL => {
     // Always try to relativize local file URLs
     if (gHaveDocumentUrl)
-      fileName = MakeRelativeUrl(fileName);
+      fileURL = MakeRelativeUrl(fileURL);
 
-    gDialog.BackgroundImageInput.value = fileName;
+    gDialog.BackgroundImageInput.value = fileURL;
 
     SetRelativeCheckbox();
-
     ValidateAndPreviewImage(true);
-  }
-  SetTextboxFocus(gDialog.BackgroundImageInput);
+    SetTextboxFocus(gDialog.BackgroundImageInput);
+  });
 }
 
 function ChangeBackgroundImage()
@@ -336,13 +334,23 @@ function ValidateAndPreviewImage(ShowErrorMessage)
   var image = TrimString(gDialog.BackgroundImageInput.value);
   if (image)
   {
-    gBackgroundImage = image;
+    if (isImageDataShortened(image))
+    {
+      gBackgroundImage = restoredImageData(gDialog.BackgroundImageInput);
+    }
+    else
+    {
+      gBackgroundImage = image;
 
-    // Display must use absolute URL if possible
-    var displayImage = gHaveDocumentUrl ? MakeAbsoluteUrl(image) : image;
-    styleValue += backImageStyle+displayImage+");";
+      // Display must use absolute URL if possible
+      var displayImage = gHaveDocumentUrl ? MakeAbsoluteUrl(image) : image;
+      styleValue += backImageStyle+displayImage+");";
+    }
   }
-  else gBackgroundImage = null;
+  else
+  {
+    gBackgroundImage = null;
+  }
 
   // Set style on preview (removes image if not valid)
   gDialog.ColorPreview.setAttribute(styleStr, styleValue);

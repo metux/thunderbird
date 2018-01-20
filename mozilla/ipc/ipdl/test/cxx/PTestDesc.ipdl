@@ -9,14 +9,14 @@ intr protocol PTestDesc {
 child:
     intr PTestDescSub(nullable PTestDescSubsub dummy);
 
-    Test(PTestDescSubsub a);
+    async Test(PTestDescSubsub a);
 
-    __delete__();
+    async __delete__();
 
 parent:
-    Ok(PTestDescSubsub a);
+    async Ok(PTestDescSubsub a);
 
-
+/*
 state CONSTRUCT:
     call PTestDescSub goto TEST;
 state TEST:
@@ -25,6 +25,7 @@ state ACK:
     recv Ok goto DEAD;
 state DEAD:
     send __delete__;
+*/
 };
 
 }

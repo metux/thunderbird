@@ -35,13 +35,10 @@ ServiceWorkerVisible(JSContext* aCx, JSObject* aObj)
     return Preferences::GetBool("dom.serviceWorkers.enabled", false);
   }
 
-  ServiceWorkerGlobalScope* scope = nullptr;
-  nsresult rv = UnwrapObject<prototypes::id::ServiceWorkerGlobalScope_workers,
-                             mozilla::dom::ServiceWorkerGlobalScopeBinding_workers::NativeType>(aObj, scope);
-  return NS_SUCCEEDED(rv);
+  return IS_INSTANCE_OF(ServiceWorkerGlobalScope, aObj);
 }
 
-ServiceWorker::ServiceWorker(nsPIDOMWindow* aWindow,
+ServiceWorker::ServiceWorker(nsPIDOMWindowInner* aWindow,
                              ServiceWorkerInfo* aInfo)
   : DOMEventTargetHelper(aWindow),
     mInfo(aInfo)
@@ -62,7 +59,7 @@ ServiceWorker::~ServiceWorker()
 NS_IMPL_ADDREF_INHERITED(ServiceWorker, DOMEventTargetHelper)
 NS_IMPL_RELEASE_INHERITED(ServiceWorker, DOMEventTargetHelper)
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(ServiceWorker)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(ServiceWorker)
 NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
 JSObject*
@@ -81,7 +78,7 @@ ServiceWorker::GetScriptURL(nsString& aURL) const
 
 void
 ServiceWorker::PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
-                           const Optional<Sequence<JS::Value>>& aTransferable,
+                           const Sequence<JSObject*>& aTransferable,
                            ErrorResult& aRv)
 {
   if (State() == ServiceWorkerState::Redundant) {
@@ -89,10 +86,16 @@ ServiceWorker::PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
     return;
   }
 
-  nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(GetParentObject());
+  nsCOMPtr<nsPIDOMWindowInner> window = do_QueryInterface(GetParentObject());
   if (!window || !window->GetExtantDoc()) {
     NS_WARNING("Trying to call post message from an invalid dom object.");
     aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
+    return;
+  }
+
+  auto storageAllowed = nsContentUtils::StorageAllowedForWindow(window);
+  if (storageAllowed != nsContentUtils::StorageAccess::eAllow) {
+    aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
     return;
   }
 

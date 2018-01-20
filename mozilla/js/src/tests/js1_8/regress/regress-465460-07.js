@@ -16,13 +16,10 @@ test();
 
 function test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
  
   expect = actual = 'pass';
-
-  jit (true);
 
   try
   {
@@ -33,9 +30,6 @@ function test()
     actual = ex + '';
   }
 
-  jit(false);
 
   reportCompare(expect, actual, summary);
-
-  exitFunc ('test');
 }

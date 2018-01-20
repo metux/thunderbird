@@ -9,24 +9,16 @@
  * The temporary directory downloads saves to, should be only readable
  * for the current user.
  */
-add_task(function* test_private_temp() {
+add_task(async function test_private_temp() {
 
-  let download = yield promiseStartExternalHelperAppServiceDownload(
+  let download = await promiseStartExternalHelperAppServiceDownload(
                                                          httpUrl("empty.txt"));
 
-  yield promiseDownloadStopped(download);
+  await promiseDownloadStopped(download);
 
-  var targetFile = Cc['@mozilla.org/file/local;1'].createInstance(Ci.nsIFile);
+  var targetFile = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsIFile);
   targetFile.initWithPath(download.target.path);
 
-  // 488 is the decimal value of 0700.
+  // 488 is the decimal value of 0o700.
   equal(targetFile.parent.permissions, 448);
 });
-
-
-////////////////////////////////////////////////////////////////////////////////
-//// Termination
-
-var tailFile = do_get_file("tail.js");
-Services.scriptloader.loadSubScript(NetUtil.newURI(tailFile).spec);
-

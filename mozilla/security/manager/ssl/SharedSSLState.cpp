@@ -18,7 +18,7 @@
 #include "ssl.h"
 #include "nsNetCID.h"
 #include "mozilla/Atomics.h"
-#include "mozilla/unused.h"
+#include "mozilla/Unused.h"
 
 using mozilla::psm::SyncRunnableBase;
 using mozilla::Atomic;
@@ -117,15 +117,19 @@ PrivateBrowsingObserver::Observe(nsISupports     *aSubject,
   return NS_OK;
 }
 
-SharedSSLState::SharedSSLState()
-: mClientAuthRemember(new nsClientAuthRememberService)
+SharedSSLState::SharedSSLState(uint32_t aTlsFlags)
+: mIOLayerHelpers(aTlsFlags)
 , mMutex("SharedSSLState::mMutex")
 , mSocketCreated(false)
 , mOCSPStaplingEnabled(false)
 , mOCSPMustStapleEnabled(false)
+, mSignedCertTimestampsEnabled(false)
 {
   mIOLayerHelpers.Init();
-  mClientAuthRemember->Init();
+  if (!aTlsFlags) { // the per socket flags don't need memory
+    mClientAuthRemember = new nsClientAuthRememberService();
+    mClientAuthRemember->Init();
+  }
 }
 
 SharedSSLState::~SharedSSLState()
@@ -144,6 +148,9 @@ SharedSSLState::NotePrivateBrowsingStatus()
 void
 SharedSSLState::ResetStoredData()
 {
+  if (!mClientAuthRemember) {
+    return;
+  }
   MOZ_ASSERT(NS_IsMainThread(), "Not on main thread");
   mClientAuthRemember->ClearRememberedDecisions();
   mIOLayerHelpers.clearStoredData();

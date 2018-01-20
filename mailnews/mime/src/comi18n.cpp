@@ -8,9 +8,10 @@
 #include "nsMsgUtils.h"
 #include "nsICharsetConverterManager.h"
 #include "nsIMIMEHeaderParam.h"
-#include "nsNetCID.h"
 #include "nsServiceManagerUtils.h"
 #include "nsComponentManagerUtils.h"
+#include "nsMsgMimeCID.h"
+#include "nsIMimeConverter.h"
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -23,14 +24,15 @@ void MIME_DecodeMimeHeader(const char *header, const char *default_charset,
                            nsACString &result)
 {
   nsresult rv;
-  nsCOMPtr <nsIMIMEHeaderParam> mimehdrpar = do_GetService(NS_MIMEHEADERPARAM_CONTRACTID, &rv);
-  if (NS_FAILED(rv))
-  {
+  nsCOMPtr <nsIMimeConverter> mimeConverter =
+    do_GetService(NS_MIME_CONVERTER_CONTRACTID, &rv);
+  if (NS_FAILED(rv)) {
     result.Truncate();
     return;
   }
-  mimehdrpar->DecodeRFC2047Header(header, default_charset, override_charset,
-                                  eatContinuations, result);
+  mimeConverter->DecodeMimeHeaderToUTF8(nsDependentCString(header),
+                                        default_charset, override_charset,
+                                        eatContinuations, result);
 }
 
 // UTF-8 utility functions.
@@ -57,47 +59,6 @@ MIME_detect_charset(const char *aBuf, int32_t aLength, const char** aCharset)
       }
     }
   }
-  return res;
-}
-
-//Get unicode decoder(from inputcharset to unicode) for aInputCharset
-nsresult
-MIME_get_unicode_decoder(const char* aInputCharset, nsIUnicodeDecoder **aDecoder)
-{
-  nsresult res;
-
-  // get charset converters.
-  nsCOMPtr<nsICharsetConverterManager> ccm =
-           do_GetService(NS_CHARSETCONVERTERMANAGER_CONTRACTID, &res);
-  if (NS_SUCCEEDED(res)) {
-
-    // create a decoder (conv to unicode), ok if failed if we do auto detection
-    if (!*aInputCharset || !PL_strcasecmp("us-ascii", aInputCharset))
-      res = ccm->GetUnicodeDecoderRaw("ISO-8859-1", aDecoder);
-    else
-      // GetUnicodeDecoderInternal in order to support UTF-7 messages
-      //
-      // XXX this means that even HTML messages in UTF-7 will be decoded
-      res = ccm->GetUnicodeDecoderInternal(aInputCharset, aDecoder);
-  }
-
-  return res;
-}
-
-//Get unicode encoder(from unicode to inputcharset) for aOutputCharset
-nsresult
-MIME_get_unicode_encoder(const char* aOutputCharset, nsIUnicodeEncoder **aEncoder)
-{
-  nsresult res;
-
-  // get charset converters.
-  nsCOMPtr<nsICharsetConverterManager> ccm =
-           do_GetService(NS_CHARSETCONVERTERMANAGER_CONTRACTID, &res);
-  if (NS_SUCCEEDED(res) && *aOutputCharset) {
-      // create a encoder (conv from unicode)
-      res = ccm->GetUnicodeEncoder(aOutputCharset, aEncoder);
-  }
-
   return res;
 }
 

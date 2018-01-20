@@ -23,28 +23,25 @@ public:
 
   MessageLoop* GMPMessageLoop();
 
-  virtual bool RecvPGMPAudioDecoderConstructor(PGMPAudioDecoderChild* aActor) override;
-  virtual bool RecvPGMPDecryptorConstructor(PGMPDecryptorChild* aActor) override;
-  virtual bool RecvPGMPVideoDecoderConstructor(PGMPVideoDecoderChild* aActor) override;
-  virtual bool RecvPGMPVideoEncoderConstructor(PGMPVideoEncoderChild* aActor) override;
+  mozilla::ipc::IPCResult RecvPGMPVideoDecoderConstructor(PGMPVideoDecoderChild* aActor, const uint32_t& aDecryptorId) override;
+  mozilla::ipc::IPCResult RecvPGMPVideoEncoderConstructor(PGMPVideoEncoderChild* aActor) override;
+  mozilla::ipc::IPCResult RecvPChromiumCDMConstructor(
+    PChromiumCDMChild* aActor) override;
 
-  virtual PGMPAudioDecoderChild* AllocPGMPAudioDecoderChild() override;
-  virtual bool DeallocPGMPAudioDecoderChild(PGMPAudioDecoderChild* aActor) override;
+  PGMPVideoDecoderChild* AllocPGMPVideoDecoderChild(const uint32_t& aDecryptorId) override;
+  bool DeallocPGMPVideoDecoderChild(PGMPVideoDecoderChild* aActor) override;
 
-  virtual PGMPDecryptorChild* AllocPGMPDecryptorChild() override;
-  virtual bool DeallocPGMPDecryptorChild(PGMPDecryptorChild* aActor) override;
+  PGMPVideoEncoderChild* AllocPGMPVideoEncoderChild() override;
+  bool DeallocPGMPVideoEncoderChild(PGMPVideoEncoderChild* aActor) override;
 
-  virtual PGMPVideoDecoderChild* AllocPGMPVideoDecoderChild() override;
-  virtual bool DeallocPGMPVideoDecoderChild(PGMPVideoDecoderChild* aActor) override;
+  PChromiumCDMChild* AllocPChromiumCDMChild() override;
+  bool DeallocPChromiumCDMChild(PChromiumCDMChild* aActor) override;
 
-  virtual PGMPVideoEncoderChild* AllocPGMPVideoEncoderChild() override;
-  virtual bool DeallocPGMPVideoEncoderChild(PGMPVideoEncoderChild* aActor) override;
-
-  virtual void ActorDestroy(ActorDestroyReason aWhy) override;
-  virtual void ProcessingError(Result aCode, const char* aReason) override;
+  void ActorDestroy(ActorDestroyReason aWhy) override;
+  void ProcessingError(Result aCode, const char* aReason) override;
 
   // GMPSharedMem
-  virtual void CheckThread() override;
+  void CheckThread() override;
 
   void CloseActive();
   bool IsUsed();

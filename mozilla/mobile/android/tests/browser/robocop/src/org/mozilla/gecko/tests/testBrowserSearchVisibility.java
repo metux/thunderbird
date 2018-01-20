@@ -8,14 +8,14 @@ import android.support.v4.app.Fragment;
 import android.view.KeyEvent;
 import android.view.View;
 
-import com.jayway.android.robotium.solo.Condition;
+import com.robotium.solo.Condition;
 
 /**
  * Test for browser search visibility.
  * Sends queries from url bar input and verifies that browser search
  * visibility is correct.
  */
-public class testBrowserSearchVisibility extends BaseTest {
+public class testBrowserSearchVisibility extends OldBaseTest {
     public void testSearchSuggestions() {
         blockForGeckoReady();
 

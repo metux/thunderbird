@@ -7,6 +7,8 @@
 #ifndef mozilla_net_ARefBase_h
 #define mozilla_net_ARefBase_h
 
+#include "nscore.h"
+
 namespace mozilla { namespace net {
 
 // This is an abstract class that can be pointed to by either
@@ -20,8 +22,7 @@ public:
   ARefBase() {}
   virtual ~ARefBase() {}
 
-  NS_IMETHOD_ (MozExternalRefCountType) AddRef() = 0;
-  NS_IMETHOD_ (MozExternalRefCountType) Release() = 0;
+  NS_INLINE_DECL_PURE_VIRTUAL_REFCOUNTING
 };
 
 } // namespace net

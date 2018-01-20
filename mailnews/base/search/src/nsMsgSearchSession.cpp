@@ -4,6 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "msgCore.h"
+#include "nsArray.h"
 #include "nsMsgSearchCore.h"
 #include "nsMsgSearchAdapter.h"
 #include "nsMsgSearchBoolExpression.h"
@@ -32,7 +33,8 @@ nsMsgSearchSession::nsMsgSearchSession()
   m_handlingError = false;
   m_expressionTree = nullptr;
   m_searchPaused = false;
-  NS_NewISupportsArray(getter_AddRefs(m_termList));
+  m_termList = nsArray::Create();
+  NS_ASSERTION(m_termList, "Failed to allocate a nsIMutableArray for m_termList");
 }
 
 nsMsgSearchSession::~nsMsgSearchSession()
@@ -78,24 +80,26 @@ nsMsgSearchSession::AppendTerm(nsIMsgSearchTerm *aTerm)
 }
 
 NS_IMETHODIMP
-nsMsgSearchSession::GetSearchTerms(nsISupportsArray **aResult)
+nsMsgSearchSession::GetSearchTerms(nsIMutableArray **aResult)
 {
     NS_ENSURE_ARG_POINTER(aResult);
-    *aResult = m_termList;
-    NS_ADDREF(*aResult);
+    NS_ADDREF(*aResult = m_termList);
     return NS_OK;
+}
+
+NS_IMETHODIMP
+nsMsgSearchSession::SetSearchTerms(nsIMutableArray *aSearchTerms)
+{
+  m_termList = aSearchTerms;
+  return NS_OK;
 }
 
 NS_IMETHODIMP
 nsMsgSearchSession::CreateTerm(nsIMsgSearchTerm **aResult)
 {
-    NS_ENSURE_ARG_POINTER(aResult);
-    nsMsgSearchTerm *term = new nsMsgSearchTerm;
-    NS_ENSURE_TRUE(term, NS_ERROR_OUT_OF_MEMORY);
-
-    *aResult = static_cast<nsIMsgSearchTerm*>(term);
-    NS_ADDREF(*aResult);
-    return NS_OK;
+  NS_ENSURE_ARG_POINTER(aResult);
+  NS_ADDREF(*aResult = new nsMsgSearchTerm);
+  return NS_OK;
 }
 
 NS_IMETHODIMP nsMsgSearchSession::RegisterListener(nsIMsgSearchNotify *aListener,
@@ -161,8 +165,7 @@ nsMsgSearchSession::GetNthSearchScope(int32_t which,
   NS_ENSURE_ARG(scopeTerm);
 
   *scopeId = scopeTerm->m_attribute;
-  *folder = scopeTerm->m_folder;
-  NS_IF_ADDREF(*folder);
+  NS_IF_ADDREF(*folder = scopeTerm->m_folder);
   return NS_OK;
 }
 
@@ -327,7 +330,7 @@ NS_IMETHODIMP nsMsgSearchSession::GetWindow(nsIMsgWindow **aWindow)
   NS_ENSURE_ARG_POINTER(aWindow);
   *aWindow = nullptr;
   nsCOMPtr<nsIMsgWindow> msgWindow(do_QueryReferent(m_msgWindowWeak));
-  msgWindow.swap(*aWindow);
+  msgWindow.forget(aWindow);
   return NS_OK;
 }
 
@@ -488,8 +491,9 @@ nsresult nsMsgSearchSession::StartTimer()
 
   m_backgroundTimer = do_CreateInstance("@mozilla.org/timer;1", &rv);
   NS_ENSURE_SUCCESS(rv, rv);
-  m_backgroundTimer->InitWithFuncCallback(TimerCallback, (void *) this, 0,
-                                          nsITimer::TYPE_REPEATING_SLACK);
+  m_backgroundTimer->InitWithNamedFuncCallback(TimerCallback, (void *) this, 0,
+                                               nsITimer::TYPE_REPEATING_SLACK,
+                                               "nsMsgSearchSession::TimerCallback");
   TimerCallback(m_backgroundTimer, this);
   return NS_OK;
 }
@@ -508,7 +512,7 @@ nsMsgSearchSession::GetRunningAdapter(nsIMsgSearchAdapter **aSearchAdapter)
   nsMsgSearchScopeTerm *scope = GetRunningScope();
   if (scope)
   {
-    NS_IF_ADDREF(*aSearchAdapter = scope->m_adapter);    
+    NS_IF_ADDREF(*aSearchAdapter = scope->m_adapter);
   }
   return NS_OK;
 }
@@ -647,7 +651,7 @@ nsMsgSearchSession::EnableFolderNotifications(bool aEnable)
     nsCOMPtr<nsIMsgFolder> folder;
     scope->GetFolder(getter_AddRefs(folder));
     if (folder)  //enable msg count notifications
-      folder->EnableNotifications(nsIMsgFolder::allMessageCountNotifications, aEnable, false);
+      folder->EnableNotifications(nsIMsgFolder::allMessageCountNotifications, aEnable);
   }
 }
 

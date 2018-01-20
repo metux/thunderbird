@@ -184,7 +184,7 @@ var PlacesUIUtils = {
         aData.children.forEach(function(aChild) {
           transactions.push(
             new PlacesTagURITransaction(PlacesUtils._uri(aChild.uri),
-                                        [aData.title])          
+                                        [aData.title])
           );
         });
       }
@@ -637,8 +637,17 @@ var PlacesUIUtils = {
    * @return true if any transaction has been performed, false otherwise.
    */
   _showBookmarkDialog: function PUIU__showBookmarkDialog(aInfo) {
-    var dialogURL = "chrome://communicator/content/bookmarks/bm-props.xul";
-    var features = "centerscreen,chrome,modal,resizable=yes";
+    // Preserve size attributes differently based on the fact the dialog has
+    // a folder picker or not, since it needs more horizontal space than the
+    // other controls.
+    let hasFolderPicker = !("hiddenRows" in aInfo) ||
+                          !aInfo.hiddenRows.includes("folderPicker");
+    // Use a different chrome url to persist different sizes.
+    let dialogURL = hasFolderPicker ?
+                    "chrome://communicator/content/bookmarks/bm-props2.xul" :
+                    "chrome://communicator/content/bookmarks/bm-props.xul";
+
+    let features = "centerscreen,chrome,modal,resizable=yes";
     this._getCurrentActiveWin().openDialog(dialogURL, "", features, aInfo);
     return ("performed" in aInfo && aInfo.performed);
   },
@@ -1016,7 +1025,7 @@ var PlacesUIUtils = {
         // if fileName is empty, use path to distinguish labels
         title = host + (fileName ?
                         (host ? "/" + this.ellipsis + "/" : "") + fileName :
-                        uri.path);
+                        uri.pathQueryRef);
       }
       catch (e) {
         // Use (no title) for non-standard URIs (data:, javascript:, ...)
@@ -1060,7 +1069,7 @@ var PlacesUIUtils = {
           concreteId: PlacesUtils.bookmarksMenuFolderId },
       "UnfiledBookmarks":
         { title: null,
-          concreteTitle: PlacesUtils.getString("UnsortedBookmarksFolderTitle"),
+          concreteTitle: PlacesUtils.getString("OtherBookmarksFolderTitle"),
           concreteId: PlacesUtils.unfiledBookmarksFolderId },
     };
     // All queries but PlacesRoot.
@@ -1291,7 +1300,7 @@ var PlacesUIUtils = {
     else {
       // If the left pane has already been built, use the name->id map
       // cached in PlacesUIUtils.
-      for (let [name, id] in Iterator(this.leftPaneQueries)) {
+      for (let [name, id] of Object.entries(this.leftPaneQueries)) {
         if (aItemId == id)
           queryName = name;
       }

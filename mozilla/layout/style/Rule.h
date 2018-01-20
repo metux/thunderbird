@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -8,10 +9,11 @@
 #ifndef mozilla_css_Rule_h___
 #define mozilla_css_Rule_h___
 
-#include "mozilla/CSSStyleSheet.h"
+#include "mozilla/StyleSheet.h"
 #include "mozilla/MemoryReporting.h"
 #include "nsISupports.h"
 #include "nsIDOMCSSRule.h"
+#include "nsWrapperCache.h"
 
 class nsIDocument;
 struct nsRuleData;
@@ -22,15 +24,9 @@ namespace mozilla {
 namespace css {
 class GroupRule;
 
-#define DECL_STYLE_RULE_INHERIT_NO_DOMRULE  \
- /* nothing */
-
-#define DECL_STYLE_RULE_INHERIT                            \
-  DECL_STYLE_RULE_INHERIT_NO_DOMRULE                       \
-  virtual nsIDOMCSSRule* GetDOMRule() override;        \
-  virtual nsIDOMCSSRule* GetExistingDOMRule() override;
-
-class Rule : public nsISupports {
+class Rule : public nsIDOMCSSRule
+           , public nsWrapperCache
+{
 protected:
   Rule(uint32_t aLineNumber, uint32_t aColumnNumber)
     : mSheet(nullptr),
@@ -51,6 +47,15 @@ protected:
   virtual ~Rule() {}
 
 public:
+
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTION_SKIPPABLE_SCRIPT_HOLDER_CLASS(Rule)
+  // Return true if this rule is known to be a cycle collection leaf, in the
+  // sense that it doesn't have any outgoing owning edges.
+  virtual bool IsCCLeaf() const MOZ_MUST_OVERRIDE;
+
+  // nsIDOMCSSRule interface
+  NS_DECL_NSIDOMCSSRULE
 
 #ifdef DEBUG
   virtual void List(FILE* out = stdout, int32_t aIndent = 0) const = 0;
@@ -80,16 +85,16 @@ public:
 
   virtual int32_t GetType() const = 0;
 
-  CSSStyleSheet* GetStyleSheet() const { return mSheet; }
+  StyleSheet* GetStyleSheet() const { return mSheet; }
 
   // Return the document the rule lives in, if any
   nsIDocument* GetDocument() const
   {
-    CSSStyleSheet* sheet = GetStyleSheet();
-    return sheet ? sheet->GetDocument() : nullptr;
+    StyleSheet* sheet = GetStyleSheet();
+    return sheet ? sheet->GetAssociatedDocument() : nullptr;
   }
 
-  virtual void SetStyleSheet(CSSStyleSheet* aSheet);
+  virtual void SetStyleSheet(StyleSheet* aSheet);
 
   void SetParentRule(GroupRule* aRule) {
     // We don't reference count this up reference. The group rule
@@ -106,31 +111,26 @@ public:
    */
   virtual already_AddRefed<Rule> Clone() const = 0;
 
-  // Note that this returns null for inline style rules since they aren't
-  // supposed to have a DOM rule representation (and our code wouldn't work).
-  virtual nsIDOMCSSRule* GetDOMRule() = 0;
-
-  // Like GetDOMRule(), but won't create one if we don't have one yet
-  virtual nsIDOMCSSRule* GetExistingDOMRule() = 0;
-
-  // to implement methods on nsIDOMCSSRule
-  nsresult GetParentRule(nsIDOMCSSRule** aParentRule);
-  nsresult GetParentStyleSheet(nsIDOMCSSStyleSheet** aSheet);
-  Rule* GetCSSRule();
-
   // This is pure virtual because all of Rule's data members are non-owning and
   // thus measured elsewhere.
   virtual size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf)
     const MOZ_MUST_OVERRIDE = 0;
 
-  // This is used to measure nsCOMArray<Rule>s.
-  static size_t SizeOfCOMArrayElementIncludingThis(css::Rule* aElement,
-                                                   mozilla::MallocSizeOf aMallocSizeOf,
-                                                   void* aData);
+  // WebIDL interface, aka helpers for nsIDOMCSSRule implementation.
+  virtual uint16_t Type() const = 0;
+  virtual void GetCssTextImpl(nsAString& aCssText) const = 0;
+  void GetCssText(nsAString& aCssText) const { GetCssTextImpl(aCssText); }
+  // XPCOM SetCssText is OK, since it never throws.
+  Rule* GetParentRule() const;
+  StyleSheet* GetParentStyleSheet() const { return GetStyleSheet(); }
+  nsIDocument* GetParentObject() const { return GetDocument(); }
 
 protected:
+  // True if we're known-live for cycle collection purposes.
+  bool IsKnownLive() const;
+
   // This is sometimes null (e.g., for style attributes).
-  CSSStyleSheet*    mSheet;
+  StyleSheet* mSheet;
   // When the parent GroupRule is destroyed, it will call SetParentRule(nullptr)
   // on this object. (Through SetParentRuleReference);
   GroupRule* MOZ_NON_OWNING_REF mParentRule;

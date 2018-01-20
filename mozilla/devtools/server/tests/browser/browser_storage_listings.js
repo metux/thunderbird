@@ -4,12 +4,12 @@
 
 "use strict";
 
-const {StorageFront} = require("devtools/server/actors/storage");
-var gWindow = null;
+const {StorageFront} = require("devtools/shared/fronts/storage");
+Services.scriptloader.loadSubScript("chrome://mochitests/content/browser/devtools/server/tests/browser/storage-helpers.js", this);
 
 const storeMap = {
   cookies: {
-    "test1.example.org": [
+    "http://test1.example.org": [
       {
         name: "c1",
         value: "foobar",
@@ -36,18 +36,31 @@ const storeMap = {
         host: "test1.example.org",
         isDomain: false,
         isSecure: true,
-      },
-      {
-        name: "uc1",
-        value: "foobar",
-        host: ".example.org",
-        path: "/",
-        expires: 0,
-        isDomain: true,
-        isSecure: true,
       }
     ],
-    "sectest1.example.org": [
+
+    "http://sectest1.example.org": [
+      {
+        name: "cs2",
+        value: "sessionCookie",
+        path: "/",
+        host: ".example.org",
+        expires: 0,
+        isDomain: true,
+        isSecure: false,
+      },
+      {
+        name: "sc1",
+        value: "foobar",
+        path: "/browser/devtools/server/tests/browser/",
+        host: "sectest1.example.org",
+        expires: 0,
+        isDomain: false,
+        isSecure: false,
+      }
+    ],
+
+    "https://sectest1.example.org": [
       {
         name: "uc1",
         value: "foobar",
@@ -130,24 +143,24 @@ const storeMap = {
 const IDBValues = {
   listStoresResponse: {
     "http://test1.example.org": [
-      ["idb1", "obj1"], ["idb1", "obj2"], ["idb2", "obj3"]
+      ["idb1 (default)", "obj1"], ["idb1 (default)", "obj2"], ["idb2 (default)", "obj3"]
     ],
     "http://sectest1.example.org": [
     ],
     "https://sectest1.example.org": [
-      ["idb-s1", "obj-s1"], ["idb-s2", "obj-s2"]
+      ["idb-s1 (default)", "obj-s1"], ["idb-s2 (default)", "obj-s2"]
     ]
   },
-  dbDetails : {
+  dbDetails: {
     "http://test1.example.org": [
       {
-        db: "idb1",
+        db: "idb1 (default)",
         origin: "http://test1.example.org",
         version: 1,
         objectStores: 2
       },
       {
-        db: "idb2",
+        db: "idb2 (default)",
         origin: "http://test1.example.org",
         version: 1,
         objectStores: 1
@@ -157,13 +170,13 @@ const IDBValues = {
     ],
     "https://sectest1.example.org": [
       {
-        db: "idb-s1",
+        db: "idb-s1 (default)",
         origin: "https://sectest1.example.org",
         version: 1,
         objectStores: 1
       },
       {
-        db: "idb-s2",
+        db: "idb-s2 (default)",
         origin: "https://sectest1.example.org",
         version: 1,
         objectStores: 1
@@ -172,7 +185,7 @@ const IDBValues = {
   },
   objectStoreDetails: {
     "http://test1.example.org": {
-      idb1: [
+      "idb1 (default)": [
         {
           objectStore: "obj1",
           keyPath: "id",
@@ -199,7 +212,7 @@ const IDBValues = {
           indexes: []
         }
       ],
-      idb2: [
+      "idb2 (default)": [
         {
           objectStore: "obj3",
           keyPath: "id3",
@@ -215,9 +228,9 @@ const IDBValues = {
         },
       ]
     },
-    "http://sectest1.example.org" : {},
+    "http://sectest1.example.org": {},
     "https://sectest1.example.org": {
-      "idb-s1": [
+      "idb-s1 (default)": [
         {
           objectStore: "obj-s1",
           keyPath: "id",
@@ -225,7 +238,7 @@ const IDBValues = {
           indexes: []
         },
       ],
-      "idb-s2": [
+      "idb-s2 (default)": [
         {
           objectStore: "obj-s2",
           keyPath: "id3",
@@ -245,7 +258,7 @@ const IDBValues = {
   },
   entries: {
     "http://test1.example.org": {
-      "idb1#obj1": [
+      "idb1 (default)#obj1": [
         {
           name: 1,
           value: {
@@ -271,7 +284,7 @@ const IDBValues = {
           }
         }
       ],
-      "idb1#obj2": [
+      "idb1 (default)#obj2": [
         {
           name: 1,
           value: {
@@ -282,11 +295,11 @@ const IDBValues = {
           }
         }
       ],
-      "idb2#obj3": []
+      "idb2 (default)#obj3": []
     },
-    "http://sectest1.example.org" : {},
+    "http://sectest1.example.org": {},
     "https://sectest1.example.org": {
-      "idb-s1#obj-s1": [
+      "idb-s1 (default)#obj-s1": [
         {
           name: 6,
           value: {
@@ -304,7 +317,7 @@ const IDBValues = {
           }
         }
       ],
-      "idb-s2#obj-s2": [
+      "idb-s2 (default)#obj-s2": [
         {
           name: 13,
           value: {
@@ -316,67 +329,36 @@ const IDBValues = {
       ]
     }
   }
-}
+};
 
-function finishTests(client) {
-  // Cleanup so that indexed db created from this test do not interfere next ones
-
-  /**
-   * This method iterates over iframes in a window and clears the indexed db
-   * created by this test.
-   */
-  let clearIDB = (w, i, c) => {
-    if (w[i] && w[i].clear) {
-      w[i].clearIterator = w[i].clear(() => clearIDB(w, i + 1, c));
-      w[i].clearIterator.next();
-    }
-    else if (w[i] && w[i + 1]) {
-      clearIDB(w, i + 1, c);
-    }
-    else {
-      c();
-    }
-  };
-
-  let closeConnection = () => {
-    // Forcing GC/CC to get rid of docshells and windows created by this test.
-    forceCollections();
-    client.close(() => {
-      forceCollections();
-      DebuggerServer.destroy();
-      forceCollections();
-      gWindow = null;
-      finish();
-    });
-  }
-  gWindow.clearIterator = gWindow.clear(() => {
-    clearIDB(gWindow, 0, closeConnection);
-  });
-  gWindow.clearIterator.next();
-}
-
-function testStores(data) {
-  return Task.spawn(function*() {
-    ok(data.cookies, "Cookies storage actor is present");
-    ok(data.localStorage, "Local Storage storage actor is present");
-    ok(data.sessionStorage, "Session Storage storage actor is present");
-    ok(data.indexedDB, "Indexed DB storage actor is present");
-    yield testCookies(data.cookies);
-    yield testLocalStorage(data.localStorage);
-    yield testSessionStorage(data.sessionStorage);
-    yield testIndexedDB(data.indexedDB);
-  });
+function* testStores(data) {
+  ok(data.cookies, "Cookies storage actor is present");
+  ok(data.localStorage, "Local Storage storage actor is present");
+  ok(data.sessionStorage, "Session Storage storage actor is present");
+  ok(data.indexedDB, "Indexed DB storage actor is present");
+  yield testCookies(data.cookies);
+  yield testLocalStorage(data.localStorage);
+  yield testSessionStorage(data.sessionStorage);
+  yield testIndexedDB(data.indexedDB);
 }
 
 function testCookies(cookiesActor) {
-  is(Object.keys(cookiesActor.hosts).length, 2, "Correct number of host entries for cookies");
+  is(Object.keys(cookiesActor.hosts).length, 3,
+                 "Correct number of host entries for cookies");
   return testCookiesObjects(0, cookiesActor.hosts, cookiesActor);
 }
 
-var testCookiesObjects = Task.async(function*(index, hosts, cookiesActor) {
+var testCookiesObjects = Task.async(function* (index, hosts, cookiesActor) {
   let host = Object.keys(hosts)[index];
   let matchItems = data => {
-    is(data.total, storeMap.cookies[host].length,
+    let cookiesLength = 0;
+    for (let secureCookie of storeMap.cookies[host]) {
+      if (secureCookie.isSecure) {
+        ++cookiesLength;
+      }
+    }
+    // Any secure cookies did not get stored in the database.
+    is(data.total, storeMap.cookies[host].length - cookiesLength,
        "Number of cookies in host " + host + " matches");
     for (let item of data.data) {
       let found = false;
@@ -393,9 +375,7 @@ var testCookiesObjects = Task.async(function*(index, hosts, cookiesActor) {
           break;
         }
       }
-      if (!found) {
-        ok(false, "cookie " + item.name + " should not exist in response;");
-      }
+      ok(found, "cookie " + item.name + " should exist in response");
     }
   };
 
@@ -413,7 +393,7 @@ function testLocalStorage(localStorageActor) {
   return testLocalStorageObjects(0, localStorageActor.hosts, localStorageActor);
 }
 
-var testLocalStorageObjects = Task.async(function*(index, hosts, localStorageActor) {
+var testLocalStorageObjects = Task.async(function* (index, hosts, localStorageActor) {
   let host = Object.keys(hosts)[index];
   let matchItems = data => {
     is(data.total, storeMap.localStorage[host].length,
@@ -428,10 +408,7 @@ var testLocalStorageObjects = Task.async(function*(index, hosts, localStorageAct
           break;
         }
       }
-      if (!found) {
-        ok(false, "local storage item " + item.name +
-                  " should not exist in response;");
-      }
+      ok(found, "local storage item " + item.name + " should exist in response");
     }
   };
 
@@ -450,7 +427,7 @@ function testSessionStorage(sessionStorageActor) {
                                    sessionStorageActor);
 }
 
-var testSessionStorageObjects = Task.async(function*(index, hosts, sessionStorageActor) {
+var testSessionStorageObjects = Task.async(function* (index, hosts, sessionStorageActor) {
   let host = Object.keys(hosts)[index];
   let matchItems = data => {
     is(data.total, storeMap.sessionStorage[host].length,
@@ -465,10 +442,7 @@ var testSessionStorageObjects = Task.async(function*(index, hosts, sessionStorag
           break;
         }
       }
-      if (!found) {
-        ok(false, "session storage item " + item.name +
-                  " should not exist in response;");
-      }
+      ok(found, "session storage item " + item.name + " should exist in response");
     }
   };
 
@@ -480,7 +454,7 @@ var testSessionStorageObjects = Task.async(function*(index, hosts, sessionStorag
   yield testSessionStorageObjects(++index, hosts, sessionStorageActor);
 });
 
-var testIndexedDB = Task.async(function*(indexedDBActor) {
+var testIndexedDB = Task.async(function* (indexedDBActor) {
   is(Object.keys(indexedDBActor.hosts).length, 3,
      "Correct number of host entries for indexed db");
 
@@ -494,21 +468,16 @@ var testIndexedDB = Task.async(function*(indexedDBActor) {
           break;
         }
       }
-      if (!found) {
-        ok (false, item + " should not be present in list stores response");
-      }
-      else {
-        ok (true, item + " found from indexedDB list stores response");
-      }
+      ok(found, item + " should exist in list stores response");
     }
   }
 
   yield testIndexedDBs(0, indexedDBActor.hosts, indexedDBActor);
-  yield  testObjectStores(0, indexedDBActor.hosts, indexedDBActor);
-  yield  testIDBEntries(0, indexedDBActor.hosts, indexedDBActor);
+  yield testObjectStores(0, indexedDBActor.hosts, indexedDBActor);
+  yield testIDBEntries(0, indexedDBActor.hosts, indexedDBActor);
 });
 
-var testIndexedDBs = Task.async(function*(index, hosts, indexedDBActor) {
+var testIndexedDBs = Task.async(function* (index, hosts, indexedDBActor) {
   let host = Object.keys(hosts)[index];
   let matchItems = data => {
     is(data.total, IDBValues.dbDetails[host].length,
@@ -516,19 +485,17 @@ var testIndexedDBs = Task.async(function*(index, hosts, indexedDBActor) {
     for (let item of data.data) {
       let found = false;
       for (let toMatch of IDBValues.dbDetails[host]) {
-        if (item.db == toMatch.db) {
+        if (item.uniqueKey == toMatch.db) {
           found = true;
-          ok(true, "Found indexed db " + item.db + " in response");
+          ok(true, "Found indexed db " + item.uniqueKey + " in response");
           is(item.origin, toMatch.origin, "The origin matches.");
           is(item.version, toMatch.version, "The version matches.");
           is(item.objectStores, toMatch.objectStores,
-             "The numebr of object stores matches.");
+             "The number of object stores matches.");
           break;
         }
       }
-      if (!found) {
-        ok(false, "indexed db " + item.name + " should not exist in response");
-      }
+      ok(found, "indexed db " + item.uniqueKey + " should exist in response");
     }
   };
 
@@ -540,8 +507,8 @@ var testIndexedDBs = Task.async(function*(index, hosts, indexedDBActor) {
   yield testIndexedDBs(++index, hosts, indexedDBActor);
 });
 
-var testObjectStores = Task.async(function*(index, hosts, indexedDBActor) {
-  let host = Object.keys(hosts)[index];
+var testObjectStores = Task.async(function* (ix, hosts, indexedDBActor) {
+  let host = Object.keys(hosts)[ix];
   let matchItems = (data, db) => {
     is(data.total, IDBValues.objectStoreDetails[host][db].length,
        "Number of object stores in host " + host + " matches");
@@ -569,16 +536,12 @@ var testObjectStores = Task.async(function*(index, hosts, indexedDBActor) {
                 break;
               }
             }
-            if (!indexFound) {
-              ok(false, "Index " + index + " should not be present in response");
-            }
+            ok(indexFound, "Index " + index + " should exist in response");
           }
           break;
         }
       }
-      if (!found) {
-        ok(false, "indexed db " + item.name + " should not exist in response");
-      }
+      ok(found, "indexed db " + item.name + " should exist in response");
     }
   };
 
@@ -589,13 +552,13 @@ var testObjectStores = Task.async(function*(index, hosts, indexedDBActor) {
       yield indexedDBActor.getStoreObjects(host, [JSON.stringify(objName)])
     ), objName[0]);
   }
-  if (index == Object.keys(hosts).length - 1) {
+  if (ix == Object.keys(hosts).length - 1) {
     return;
   }
-  yield testObjectStores(++index, hosts, indexedDBActor);
+  yield testObjectStores(++ix, hosts, indexedDBActor);
 });
 
-var testIDBEntries = Task.async(function*(index, hosts, indexedDBActor) {
+var testIDBEntries = Task.async(function* (index, hosts, indexedDBActor) {
   let host = Object.keys(hosts)[index];
   let matchItems = (data, obj) => {
     is(data.total, IDBValues.entries[host][obj].length,
@@ -616,9 +579,7 @@ var testIDBEntries = Task.async(function*(index, hosts, indexedDBActor) {
           break;
         }
       }
-      if (!found) {
-        ok(false, "indexed db item " + item.name + " should not exist in response");
-      }
+      ok(found, "indexed db item " + item.name + " should exist in response");
     }
   };
 
@@ -635,40 +596,22 @@ var testIDBEntries = Task.async(function*(index, hosts, indexedDBActor) {
   yield testObjectStores(++index, hosts, indexedDBActor);
 });
 
-function test() {
-  addTab(MAIN_DOMAIN + "storage-listings.html").then(function(doc) {
-    initDebuggerServer();
+add_task(function* () {
+  yield openTabAndSetupStorage(MAIN_DOMAIN + "storage-listings.html");
 
-    let createConnection = () => {
-      let client = new DebuggerClient(DebuggerServer.connectPipe());
-      connectDebuggerClient(client).then(form => {
-        let front = StorageFront(client, form);
-        front.listStores().then(data => testStores(data))
-                          .then(() => finishTests(client));
-      });
-    };
+  initDebuggerServer();
+  let client = new DebuggerClient(DebuggerServer.connectPipe());
+  let form = yield connectDebuggerClient(client);
+  let front = StorageFront(client, form);
+  let data = yield front.listStores();
+  yield testStores(data);
 
-    /**
-     * This method iterates over iframes in a window and setups the indexed db
-     * required for this test.
-     */
-    let setupIDBInFrames = (w, i, c) => {
-      if (w[i] && w[i].idbGenerator) {
-        w[i].setupIDB = w[i].idbGenerator(() => setupIDBInFrames(w, i + 1, c));
-        w[i].setupIDB.next();
-      }
-      else if (w[i] && w[i + 1]) {
-        setupIDBInFrames(w, i + 1, c);
-      }
-      else {
-        c();
-      }
-    };
-    // Setup the indexed db in main window.
-    gWindow = doc.defaultView.wrappedJSObject;
-    gWindow.setupIDB = gWindow.idbGenerator(() => {
-      setupIDBInFrames(gWindow, 0, createConnection);
-    });
-    gWindow.setupIDB.next();
-  });
-}
+  yield clearStorage();
+
+  // Forcing GC/CC to get rid of docshells and windows created by this test.
+  forceCollections();
+  yield client.close();
+  forceCollections();
+  DebuggerServer.destroy();
+  forceCollections();
+});

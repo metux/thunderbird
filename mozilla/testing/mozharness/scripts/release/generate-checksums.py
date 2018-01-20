@@ -4,6 +4,7 @@ from os import path
 import re
 import sys
 import posixpath
+import hashlib
 
 sys.path.insert(1, os.path.dirname(os.path.dirname(sys.path[0])))
 
@@ -13,28 +14,33 @@ from mozharness.base.vcs.vcsbase import VCSMixin
 from mozharness.mozilla.checksums import parse_checksums_file
 from mozharness.mozilla.signing import SigningMixin
 from mozharness.mozilla.buildbot import BuildbotMixin
+from mozharness.mozilla.merkle import MerkleTree
+
 
 class ChecksumsGenerator(BaseScript, VirtualenvMixin, SigningMixin, VCSMixin, BuildbotMixin):
     config_options = [
         [["--stage-product"], {
             "dest": "stage_product",
-            "help": "Name of product used in file server's directory structure, eg: firefox, mobile",
+            "help": "Name of product used in file server's directory structure, "
+                    "e.g.: firefox, mobile",
         }],
         [["--version"], {
             "dest": "version",
-            "help": "Version of release, eg: 39.0b5",
+            "help": "Version of release, e.g.: 39.0b5",
         }],
         [["--build-number"], {
             "dest": "build_number",
-            "help": "Build number of release, eg: 2",
+            "help": "Build number of release, e.g.: 2",
         }],
         [["--bucket-name-prefix"], {
             "dest": "bucket_name_prefix",
-            "help": "Prefix of bucket name, eg: net-mozaws-prod-delivery. This will be used to generate a full bucket name (such as net-mozaws-prod-delivery-{firefox,archive}.",
+            "help": "Prefix of bucket name, e.g.: net-mozaws-prod-delivery. This will be used to "
+                    "generate a full bucket name (such as "
+                    "net-mozaws-prod-delivery-{firefox,archive}.",
         }],
         [["--bucket-name-full"], {
             "dest": "bucket_name_full",
-            "help": "Full bucket name, eg: net-mozaws-prod-delivery-firefox",
+            "help": "Full bucket name, e.g.: net-mozaws-prod-delivery-firefox",
         }],
         [["-j", "--parallelization"], {
             "dest": "parallelization",
@@ -52,7 +58,8 @@ class ChecksumsGenerator(BaseScript, VirtualenvMixin, SigningMixin, VCSMixin, Bu
             "dest": "includes",
             "default": [],
             "action": "append",
-            "help": "List of patterns to include in big checksums file. See script source for default.",
+            "help": "List of patterns to include in big checksums file. See script "
+                    "source for default.",
         }],
         [["--tools-repo"], {
             "dest": "tools_repo",
@@ -66,31 +73,34 @@ class ChecksumsGenerator(BaseScript, VirtualenvMixin, SigningMixin, VCSMixin, Bu
 
     def __init__(self):
         BaseScript.__init__(self,
-            config_options=self.config_options,
-            require_config_file=False,
-            config={
-                "virtualenv_modules": [
-                    "boto",
-                ],
-                "virtualenv_path": "venv",
-                'buildbot_json_path': 'buildprops.json',
-            },
-            all_actions=[
-                "create-virtualenv",
-                "collect-individual-checksums",
-                "create-big-checksums",
-                "sign",
-                "upload",
-                "copy-info-files",
-            ],
-            default_actions=[
-                "create-virtualenv",
-                "collect-individual-checksums",
-                "create-big-checksums",
-                "sign",
-                "upload",
-            ],
-        )
+                            config_options=self.config_options,
+                            require_config_file=False,
+                            config={
+                                "virtualenv_modules": [
+                                    "pip==1.5.5",
+                                    "boto",
+                                ],
+                                "virtualenv_path": "venv",
+                                'buildbot_json_path': 'buildprops.json',
+                            },
+                            all_actions=[
+                                "create-virtualenv",
+                                "collect-individual-checksums",
+                                "create-big-checksums",
+                                "create-summary",
+                                "sign",
+                                "upload",
+                                "copy-info-files",
+                            ],
+                            default_actions=[
+                                "create-virtualenv",
+                                "collect-individual-checksums",
+                                "create-big-checksums",
+                                "create-summary",
+                                "sign",
+                                "upload",
+                            ],
+                            )
 
         self.checksums = {}
         self.bucket = None
@@ -119,7 +129,7 @@ class ChecksumsGenerator(BaseScript, VirtualenvMixin, SigningMixin, VCSMixin, Bu
         # These defaults are set here rather in the config because default
         # lists cannot be completely overidden, only appended to.
         if not self.config.get("formats"):
-            self.config["formats"] = ["sha512"]
+            self.config["formats"] = ["sha512", "sha256"]
 
         if not self.config.get("includes"):
             self.config["includes"] = [
@@ -130,6 +140,8 @@ class ChecksumsGenerator(BaseScript, VirtualenvMixin, SigningMixin, VCSMixin, Bu
                 r"^.*\.mar$",
                 r"^.*Setup.*\.exe$",
                 r"^.*\.xpi$",
+                r"^.*fennec.*\.apk$",
+                r"^.*/jsshell.*$",
             ]
 
     def _get_bucket_name(self):
@@ -137,7 +149,8 @@ class ChecksumsGenerator(BaseScript, VirtualenvMixin, SigningMixin, VCSMixin, Bu
             return self.config['bucket_name_full']
 
         suffix = "archive"
-        # Firefox has a special bucket, per https://github.com/mozilla-services/product-delivery-tools/blob/master/bucketmap.go
+        # Firefox has a special bucket, per
+        # https://github.com/mozilla-services/product-delivery-tools/blob/master/bucketmap.go
         if self.config["stage_product"] == "firefox":
             suffix = "firefox"
 
@@ -150,6 +163,15 @@ class ChecksumsGenerator(BaseScript, VirtualenvMixin, SigningMixin, VCSMixin, Bu
 
     def _get_sums_filename(self, format_):
         return "{}SUMS".format(format_.upper())
+
+    def _get_summary_filename(self, format_):
+        return "{}SUMMARY".format(format_.upper())
+
+    def _get_hash_function(self, format_):
+        if format_ in ("sha256", "sha384", "sha512"):
+            return getattr(hashlib, format_)
+        else:
+            self.fatal("Unsupported format {}".format(format_))
 
     def _get_bucket(self):
         if not self.bucket:
@@ -172,6 +194,7 @@ class ChecksumsGenerator(BaseScript, VirtualenvMixin, SigningMixin, VCSMixin, Bu
 
         # Temporary holding place for checksums
         raw_checksums = []
+
         def worker(item):
             self.debug("Downloading {}".format(item))
             # TODO: It would be nice to download the associated .asc file
@@ -206,7 +229,8 @@ class ChecksumsGenerator(BaseScript, VirtualenvMixin, SigningMixin, VCSMixin, Bu
                 for pattern in self.config["includes"]:
                     if re.search(pattern, f):
                         if f in self.checksums:
-                            self.fatal("Found duplicate checksum entry for {}, don't know which one to pick.".format(f))
+                            self.fatal("Found duplicate checksum entry for {}, "
+                                       "don't know which one to pick.".format(f))
                         if not set(self.config["formats"]) <= set(info["hashes"]):
                             self.fatal("Missing necessary format for file {}".format(f))
                         self.debug("Adding checksums for file: {}".format(f))
@@ -214,6 +238,31 @@ class ChecksumsGenerator(BaseScript, VirtualenvMixin, SigningMixin, VCSMixin, Bu
                         break
                 else:
                     self.debug("Ignoring checksums for file: {}".format(f))
+
+    def create_summary(self):
+        """
+        This step computes a Merkle tree over the checksums for each format
+        and writes a file containing the head of the tree and inclusion proofs
+        for each file.
+        """
+        for fmt in self.config["formats"]:
+            hash_fn = self._get_hash_function(fmt)
+            files = [fn for fn in sorted(self.checksums)]
+            data = [self.checksums[fn]["hashes"][fmt] for fn in files]
+
+            tree = MerkleTree(hash_fn, data)
+            head = tree.head().encode("hex")
+            proofs = [tree.inclusion_proof(i).to_rfc6962_bis().encode("hex")
+                      for i in range(len(files))]
+
+            summary = self._get_summary_filename(fmt)
+            self.info("Creating summary file: {}".format(summary))
+
+            content = "{} TREE_HEAD\n".format(head)
+            for i in range(len(files)):
+                content += "{} {}\n".format(proofs[i], files[i])
+
+            self.write_to_file(summary, content)
 
     def create_big_checksums(self):
         for fmt in self.config["formats"]:
@@ -229,7 +278,8 @@ class ChecksumsGenerator(BaseScript, VirtualenvMixin, SigningMixin, VCSMixin, Bu
         tools_dir = path.join(dirs["abs_work_dir"], "tools")
         self.vcs_checkout(
             repo=self.config["tools_repo"],
-            vcs="hgtool",
+            branch="default",
+            vcs="hg",
             dest=tools_dir,
         )
 
@@ -254,6 +304,7 @@ class ChecksumsGenerator(BaseScript, VirtualenvMixin, SigningMixin, VCSMixin, Bu
         for fmt in self.config["formats"]:
             files.append(self._get_sums_filename(fmt))
             files.append("{}.asc".format(self._get_sums_filename(fmt)))
+            files.append(self._get_summary_filename(fmt))
 
         bucket = self._get_bucket()
         for f in files:

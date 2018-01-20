@@ -19,8 +19,7 @@ PLATFORM_CONFIG = {
     'linux': {
         'exes': {
             'gittool.py': os.path.join(external_tools_path, 'gittool.py'),
-            'hgtool.py': os.path.join(external_tools_path, 'hgtool.py'),
-            'virtualenv': ['/tools/buildbot/bin/python', '/tools/misc-python/virtualenv.py'],
+            'virtualenv': '/tools/virtualenv/bin/virtualenv',
         },
         'env': {
             'DISPLAY': ':0',
@@ -30,8 +29,7 @@ PLATFORM_CONFIG = {
     'linux64': {
         'exes': {
             'gittool.py': os.path.join(external_tools_path, 'gittool.py'),
-            'hgtool.py': os.path.join(external_tools_path, 'hgtool.py'),
-            'virtualenv': ['/tools/buildbot/bin/python', '/tools/misc-python/virtualenv.py'],
+            'virtualenv': '/tools/virtualenv/bin/virtualenv',
         },
         'env': {
             'DISPLAY': ':0',
@@ -41,8 +39,7 @@ PLATFORM_CONFIG = {
     'macosx': {
         'exes': {
             'gittool.py': os.path.join(external_tools_path, 'gittool.py'),
-            'hgtool.py': os.path.join(external_tools_path, 'hgtool.py'),
-            'virtualenv': ['/tools/buildbot/bin/python', '/tools/misc-python/virtualenv.py'],
+            'virtualenv': '/tools/virtualenv/bin/virtualenv',
         },
         'env': {
             'PATH': '%(PATH)s:' + external_tools_path,
@@ -51,7 +48,6 @@ PLATFORM_CONFIG = {
     'win32': {
         "exes": {
             'gittool.py': [PYTHON_WIN32, os.path.join(external_tools_path, 'gittool.py')],
-            'hgtool.py': [PYTHON_WIN32, os.path.join(external_tools_path, 'hgtool.py')],
             # Otherwise, depending on the PATH we can pick python 2.6 up
             'python': PYTHON_WIN32,
             'virtualenv': [PYTHON_WIN32, 'c:/mozilla-build/buildbotve/virtualenv.py'],

@@ -48,117 +48,116 @@ void TextEditorTest::Run(nsIEditor *aEditor, int32_t *outNumTests, int32_t *outN
 
 nsresult TextEditorTest::RunUnitTest(int32_t *outNumTests, int32_t *outNumTestsFailed)
 {
-  nsresult result;
-
   NS_ENSURE_TRUE(outNumTests && outNumTestsFailed, NS_ERROR_NULL_POINTER);
 
   *outNumTests = 0;
   *outNumTestsFailed = 0;
 
-  result = InitDoc();
-  TEST_RESULT(result);
+  nsresult rv = InitDoc();
+  TEST_RESULT(rv);
   // shouldn't we just bail on error here?
 
   // insert some simple text
-  result = mTextEditor->InsertText(NS_LITERAL_STRING("1234567890abcdefghij1234567890"));
-  TEST_RESULT(result);
+  rv = mTextEditor->InsertText(NS_LITERAL_STRING("1234567890abcdefghij1234567890"));
+  TEST_RESULT(rv);
   (*outNumTests)++;
-  if (NS_FAILED(result))
+  if (NS_FAILED(rv)) {
     ++(*outNumTestsFailed);
+  }
 
   // insert some more text
-  result = mTextEditor->InsertText(NS_LITERAL_STRING("Moreover, I am cognizant of the interrelatedness of all communities and states.  I cannot sit idly by in Atlanta and not be concerned about what happens in Birmingham.  Injustice anywhere is a threat to justice everywhere"));
-  TEST_RESULT(result);
+  rv = mTextEditor->InsertText(NS_LITERAL_STRING("Moreover, I am cognizant of the interrelatedness of all communities and states.  I cannot sit idly by in Atlanta and not be concerned about what happens in Birmingham.  Injustice anywhere is a threat to justice everywhere"));
+  TEST_RESULT(rv);
   (*outNumTests)++;
-  if (NS_FAILED(result))
+  if (NS_FAILED(rv)) {
     ++(*outNumTestsFailed);
+  }
 
-  result = TestInsertBreak();
-  TEST_RESULT(result);
+  rv = TestInsertBreak();
+  TEST_RESULT(rv);
   (*outNumTests)++;
-  if (NS_FAILED(result))
+  if (NS_FAILED(rv)) {
     ++(*outNumTestsFailed);
+  }
 
-  result = TestTextProperties();
-  TEST_RESULT(result);
+  rv = TestTextProperties();
+  TEST_RESULT(rv);
   (*outNumTests)++;
-  if (NS_FAILED(result))
+  if (NS_FAILED(rv)) {
     ++(*outNumTestsFailed);
+  }
 
   // get us back to the original document
-  result = mEditor->Undo(12);
-  TEST_RESULT(result);
+  rv = mEditor->Undo(12);
+  TEST_RESULT(rv);
 
-  return result;
+  return rv;
 }
 
 nsresult TextEditorTest::InitDoc()
 {
-  nsresult result = mEditor->SelectAll();
-  TEST_RESULT(result);
-  result = mEditor->DeleteSelection(nsIEditor::eNext, nsIEditor::eStrip);
-  TEST_RESULT(result);
-  return result;
+  nsresult rv = mEditor->SelectAll();
+  TEST_RESULT(rv);
+  rv = mEditor->DeleteSelection(nsIEditor::eNext, nsIEditor::eStrip);
+  TEST_RESULT(rv);
+  return rv;
 }
 
 nsresult TextEditorTest::TestInsertBreak()
 {
   nsCOMPtr<nsISelection>selection;
-  nsresult result = mEditor->GetSelection(getter_AddRefs(selection));
-  TEST_RESULT(result);
+  nsresult rv = mEditor->GetSelection(getter_AddRefs(selection));
+  TEST_RESULT(rv);
   TEST_POINTER(selection.get());
-  nsCOMPtr<nsIDOMNode>anchor;
-  result = selection->GetAnchorNode(getter_AddRefs(anchor));
-  TEST_RESULT(result);
+  nsCOMPtr<nsINode> anchor = selection->AsSelection()->GetAnchorNode();
+  TEST_RESULT(rv);
   TEST_POINTER(anchor.get());
-  selection->Collapse(anchor, 0);
+  selection->AsSelection()->Collapse(anchor, 0);
   // insert one break
   printf("inserting a break\n");
-  result = mTextEditor->InsertLineBreak();
-  TEST_RESULT(result);
+  rv = mTextEditor->InsertLineBreak();
+  TEST_RESULT(rv);
   mEditor->DebugDumpContent();
 
   // insert a second break adjacent to the first
   printf("inserting a second break\n");
-  result = mTextEditor->InsertLineBreak();
-  TEST_RESULT(result);
+  rv = mTextEditor->InsertLineBreak();
+  TEST_RESULT(rv);
   mEditor->DebugDumpContent();
 
-  return result;
+  return rv;
 }
 
 nsresult TextEditorTest::TestTextProperties()
 {
   nsCOMPtr<nsIDOMDocument>doc;
-  nsresult result = mEditor->GetDocument(getter_AddRefs(doc));
-  TEST_RESULT(result);
+  nsresult rv = mEditor->GetDocument(getter_AddRefs(doc));
+  TEST_RESULT(rv);
   TEST_POINTER(doc.get());
   nsCOMPtr<nsIDOMNodeList>nodeList;
   // XXX This is broken, text nodes are not elements.
   nsAutoString textTag(NS_LITERAL_STRING("#text"));
-  result = doc->GetElementsByTagName(textTag, getter_AddRefs(nodeList));
-  TEST_RESULT(result);
+  rv = doc->GetElementsByTagName(textTag, getter_AddRefs(nodeList));
+  TEST_RESULT(rv);
   TEST_POINTER(nodeList.get());
   uint32_t count;
   nodeList->GetLength(&count);
   NS_ASSERTION(0!=count, "there are no text nodes in the document!");
-  nsCOMPtr<nsIDOMNode>textNode;
-  result = nodeList->Item(count-1, getter_AddRefs(textNode));
-  TEST_RESULT(result);
-  TEST_POINTER(textNode.get());
+  nsCOMPtr<nsIDOMNode> domTextNode;
+  rv = nodeList->Item(count - 1, getter_AddRefs(domTextNode));
+  TEST_RESULT(rv);
+  TEST_POINTER(domTextNode.get());
 
   // set the whole text node to bold
   printf("set the whole first text node to bold\n");
   nsCOMPtr<nsISelection>selection;
-  result = mEditor->GetSelection(getter_AddRefs(selection));
-  TEST_RESULT(result);
+  rv = mEditor->GetSelection(getter_AddRefs(selection));
+  TEST_RESULT(rv);
   TEST_POINTER(selection.get());
-  nsCOMPtr<nsIDOMCharacterData>textData;
-  textData = do_QueryInterface(textNode);
-  uint32_t length;
-  textData->GetLength(&length);
-  selection->Collapse(textNode, 0);
-  selection->Extend(textNode, length);
+  nsCOMPtr<nsINode> textNode = do_QueryInterface(domTextNode);
+  uint32_t length = textNode->Length();
+  selection->AsSelection()->Collapse(textNode, 0);
+  selection->AsSelection()->Extend(textNode, length);
 
   nsCOMPtr<nsIHTMLEditor> htmlEditor (do_QueryInterface(mTextEditor));
   NS_ENSURE_TRUE(htmlEditor, NS_ERROR_FAILURE);
@@ -167,19 +166,21 @@ nsresult TextEditorTest::TestTextProperties()
   bool all = false;
   bool first=false;
 
-  const nsAFlatString& empty = EmptyString();
+  const nsString& empty = EmptyString();
 
-  result = htmlEditor->GetInlineProperty(nsGkAtoms::b, empty, empty, &first,
-                                         &any, &all);
-  TEST_RESULT(result);
+  NS_NAMED_LITERAL_STRING(b, "b");
+  NS_NAMED_LITERAL_STRING(i, "i");
+  NS_NAMED_LITERAL_STRING(u, "u");
+
+  rv = htmlEditor->GetInlineProperty(b, empty, empty, &first, &any, &all);
+  TEST_RESULT(rv);
   NS_ASSERTION(false==first, "first should be false");
   NS_ASSERTION(false==any, "any should be false");
   NS_ASSERTION(false==all, "all should be false");
-  result = htmlEditor->SetInlineProperty(nsGkAtoms::b, empty, empty);
-  TEST_RESULT(result);
-  result = htmlEditor->GetInlineProperty(nsGkAtoms::b, empty, empty, &first,
-                                         &any, &all);
-  TEST_RESULT(result);
+  rv = htmlEditor->SetInlineProperty(b, empty, empty);
+  TEST_RESULT(rv);
+  rv = htmlEditor->GetInlineProperty(b, empty, empty, &first, &any, &all);
+  TEST_RESULT(rv);
   NS_ASSERTION(true==first, "first should be true");
   NS_ASSERTION(true==any, "any should be true");
   NS_ASSERTION(true==all, "all should be true");
@@ -187,11 +188,10 @@ nsresult TextEditorTest::TestTextProperties()
 
   // remove the bold we just set
   printf("set the whole first text node to not bold\n");
-  result = htmlEditor->RemoveInlineProperty(nsGkAtoms::b, empty);
-  TEST_RESULT(result);
-  result = htmlEditor->GetInlineProperty(nsGkAtoms::b, empty, empty, &first,
-                                         &any, &all);
-  TEST_RESULT(result);
+  rv = htmlEditor->RemoveInlineProperty(b, empty);
+  TEST_RESULT(rv);
+  rv = htmlEditor->GetInlineProperty(b, empty, empty, &first, &any, &all);
+  TEST_RESULT(rv);
   NS_ASSERTION(false==first, "first should be false");
   NS_ASSERTION(false==any, "any should be false");
   NS_ASSERTION(false==all, "all should be false");
@@ -199,63 +199,55 @@ nsresult TextEditorTest::TestTextProperties()
 
   // set all but the first and last character to bold
   printf("set the first text node (1, length-1) to bold and italic, and (2, length-1) to underline.\n");
-  selection->Collapse(textNode, 1);
-  selection->Extend(textNode, length-1);
-  result = htmlEditor->SetInlineProperty(nsGkAtoms::b, empty, empty);
-  TEST_RESULT(result);
-  result = htmlEditor->GetInlineProperty(nsGkAtoms::b, empty, empty, &first,
-                                         &any, &all);
-  TEST_RESULT(result);
+  selection->AsSelection()->Collapse(textNode, 1);
+  selection->AsSelection()->Extend(textNode, length-1);
+  rv = htmlEditor->SetInlineProperty(b, empty, empty);
+  TEST_RESULT(rv);
+  rv = htmlEditor->GetInlineProperty(b, empty, empty, &first, &any, &all);
+  TEST_RESULT(rv);
   NS_ASSERTION(true==first, "first should be true");
   NS_ASSERTION(true==any, "any should be true");
   NS_ASSERTION(true==all, "all should be true");
   mEditor->DebugDumpContent();
   // make all that same text italic
-  result = htmlEditor->SetInlineProperty(nsGkAtoms::i, empty, empty);
-  TEST_RESULT(result);
-  result = htmlEditor->GetInlineProperty(nsGkAtoms::i, empty, empty, &first,
-                                         &any, &all);
-  TEST_RESULT(result);
+  rv = htmlEditor->SetInlineProperty(i, empty, empty);
+  TEST_RESULT(rv);
+  rv = htmlEditor->GetInlineProperty(i, empty, empty, &first, &any, &all);
+  TEST_RESULT(rv);
   NS_ASSERTION(true==first, "first should be true");
   NS_ASSERTION(true==any, "any should be true");
   NS_ASSERTION(true==all, "all should be true");
-  result = htmlEditor->GetInlineProperty(nsGkAtoms::b, empty, empty, &first,
-                                         &any, &all);
-  TEST_RESULT(result);
+  rv = htmlEditor->GetInlineProperty(b, empty, empty, &first, &any, &all);
+  TEST_RESULT(rv);
   NS_ASSERTION(true==first, "first should be true");
   NS_ASSERTION(true==any, "any should be true");
   NS_ASSERTION(true==all, "all should be true");
   mEditor->DebugDumpContent();
 
   // make all the text underlined, except for the first 2 and last 2 characters
-  result = doc->GetElementsByTagName(textTag, getter_AddRefs(nodeList));
-  TEST_RESULT(result);
+  rv = doc->GetElementsByTagName(textTag, getter_AddRefs(nodeList));
+  TEST_RESULT(rv);
   TEST_POINTER(nodeList.get());
   nodeList->GetLength(&count);
   NS_ASSERTION(0!=count, "there are no text nodes in the document!");
-  result = nodeList->Item(count-2, getter_AddRefs(textNode));
-  TEST_RESULT(result);
+  rv = nodeList->Item(count-2, getter_AddRefs(domTextNode));
+  TEST_RESULT(rv);
   TEST_POINTER(textNode.get());
-  textData = do_QueryInterface(textNode);
-  textData->GetLength(&length);
+  textNode = do_QueryInterface(domTextNode);
+  length = textNode->Length();
   NS_ASSERTION(length==915, "wrong text node");
-  selection->Collapse(textNode, 1);
-  selection->Extend(textNode, length-2);
-  result = htmlEditor->SetInlineProperty(nsGkAtoms::u, empty, empty);
-  TEST_RESULT(result);
-  result = htmlEditor->GetInlineProperty(nsGkAtoms::u, empty, empty, &first,
-                                         &any, &all);
-  TEST_RESULT(result);
+  selection->AsSelection()->Collapse(textNode, 1);
+  selection->AsSelection()->Extend(textNode, length-2);
+  rv = htmlEditor->SetInlineProperty(u, empty, empty);
+  TEST_RESULT(rv);
+  rv = htmlEditor->GetInlineProperty(u, empty, empty, &first, &any, &all);
+  TEST_RESULT(rv);
   NS_ASSERTION(true==first, "first should be true");
   NS_ASSERTION(true==any, "any should be true");
   NS_ASSERTION(true==all, "all should be true");
   mEditor->DebugDumpContent();
 
-  return result;
+  return rv;
 }
 
-
-
 #endif
-
-

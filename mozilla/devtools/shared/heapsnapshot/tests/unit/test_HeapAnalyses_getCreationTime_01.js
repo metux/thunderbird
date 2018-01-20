@@ -1,16 +1,15 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
+"use strict";
 
 // Test that the HeapAnalyses{Client,Worker} can get a HeapSnapshot's
 // creation time.
 
 function waitForThirtyMilliseconds() {
   const start = Date.now();
-  while (Date.now() - start < 30) ;
-}
-
-function run_test() {
-  run_next_test();
+  while (Date.now() - start < 30) {
+    // do nothing
+  }
 }
 
 const BREAKDOWN = {
@@ -33,12 +32,17 @@ add_task(function* () {
   yield client.readHeapSnapshot(snapshotFilePath);
   ok(true, "Should have read the heap snapshot");
 
-  let time = yield client.getCreationTime("/not/a/real/path", {
-    breakdown: BREAKDOWN
-  });
-  equal(time, null, "getCreationTime returns `null` when snapshot does not exist");
+  let threw = false;
+  try {
+    yield client.getCreationTime("/not/a/real/path", {
+      breakdown: BREAKDOWN
+    });
+  } catch (_) {
+    threw = true;
+  }
+  ok(threw, "getCreationTime should throw when snapshot does not exist");
 
-  time = yield client.getCreationTime(snapshotFilePath, {
+  let time = yield client.getCreationTime(snapshotFilePath, {
     breakdown: BREAKDOWN
   });
 

@@ -3,22 +3,41 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 //
+// ANGLEPerfTests:
+//   Base class for google test performance tests
+//
 
 #include "ANGLEPerfTest.h"
-
 #include "third_party/perf/perf_test.h"
 
-#include <iostream>
 #include <cassert>
+#include <cmath>
+#include <iostream>
+
+namespace
+{
+void EmptyPlatformMethod(angle::PlatformMethods *, const char *)
+{
+}
+
+void OverrideWorkaroundsD3D(angle::PlatformMethods *platform, angle::WorkaroundsD3D *workaroundsD3D)
+{
+    auto *angleRenderTest = static_cast<ANGLERenderTest *>(platform->context);
+    angleRenderTest->overrideWorkaroundsD3D(workaroundsD3D);
+}
+}  // namespace
+
+bool g_OnlyOneRunFrame = false;
 
 ANGLEPerfTest::ANGLEPerfTest(const std::string &name, const std::string &suffix)
     : mName(name),
       mSuffix(suffix),
-      mRunning(false),
-      mTimer(nullptr),
-      mNumFrames(0)
+      mTimer(CreateTimer()),
+      mRunTimeSeconds(5.0),
+      mSkipTest(false),
+      mNumStepsPerformed(0),
+      mRunning(true)
 {
-    mTimer = CreateTimer();
 }
 
 ANGLEPerfTest::~ANGLEPerfTest()
@@ -28,24 +47,26 @@ ANGLEPerfTest::~ANGLEPerfTest()
 
 void ANGLEPerfTest::run()
 {
-    mTimer->start();
-    double prevTime = 0.0;
+    if (mSkipTest)
+    {
+        return;
+    }
 
+    mTimer->start();
     while (mRunning)
     {
-        double elapsedTime = mTimer->getElapsedTime();
-        double deltaTime = elapsedTime - prevTime;
-
-        ++mNumFrames;
-        step(static_cast<float>(deltaTime), elapsedTime);
-
-        if (!mRunning)
+        step();
+        if (mRunning)
         {
-            break;
+            ++mNumStepsPerformed;
         }
-
-        prevTime = elapsedTime;
+        if (mTimer->getElapsedTime() > mRunTimeSeconds || g_OnlyOneRunFrame)
+        {
+            mRunning = false;
+        }
     }
+    finishTest();
+    mTimer->stop();
 }
 
 void ANGLEPerfTest::printResult(const std::string &trace, double value, const std::string &units, bool important) const
@@ -60,39 +81,61 @@ void ANGLEPerfTest::printResult(const std::string &trace, size_t value, const st
 
 void ANGLEPerfTest::SetUp()
 {
-    mRunning = true;
 }
 
 void ANGLEPerfTest::TearDown()
 {
-    printResult("score", static_cast<size_t>(mNumFrames), "score", true);
+    if (mSkipTest)
+    {
+        return;
+    }
+    double relativeScore = static_cast<double>(mNumStepsPerformed) / mTimer->getElapsedTime();
+    printResult("score", static_cast<size_t>(std::round(relativeScore)), "score", true);
 }
 
 double ANGLEPerfTest::normalizedTime(size_t value) const
 {
-    return static_cast<double>(value) / static_cast<double>(mNumFrames);
+    return static_cast<double>(value) / static_cast<double>(mNumStepsPerformed);
 }
 
 std::string RenderTestParams::suffix() const
 {
     switch (getRenderer())
     {
-        case EGL_PLATFORM_ANGLE_TYPE_D3D11_ANGLE: return "_d3d11";
-        case EGL_PLATFORM_ANGLE_TYPE_D3D9_ANGLE: return "_d3d9";
-        case EGL_PLATFORM_ANGLE_TYPE_OPENGL_ANGLE: return "_gl";
-        case EGL_PLATFORM_ANGLE_TYPE_OPENGLES_ANGLE: return "_gles";
-        case EGL_PLATFORM_ANGLE_TYPE_DEFAULT_ANGLE: return "_default";
-        default: assert(0); return "_unk";
+        case EGL_PLATFORM_ANGLE_TYPE_D3D11_ANGLE:
+            return "_d3d11";
+        case EGL_PLATFORM_ANGLE_TYPE_D3D9_ANGLE:
+            return "_d3d9";
+        case EGL_PLATFORM_ANGLE_TYPE_OPENGL_ANGLE:
+            return "_gl";
+        case EGL_PLATFORM_ANGLE_TYPE_OPENGLES_ANGLE:
+            return "_gles";
+        case EGL_PLATFORM_ANGLE_TYPE_DEFAULT_ANGLE:
+            return "_default";
+        case EGL_PLATFORM_ANGLE_TYPE_VULKAN_ANGLE:
+            return "_vulkan";
+        default:
+            assert(0);
+            return "_unk";
     }
 }
 
 ANGLERenderTest::ANGLERenderTest(const std::string &name, const RenderTestParams &testParams)
     : ANGLEPerfTest(name, testParams.suffix()),
       mTestParams(testParams),
-      mDrawIterations(10),
-      mRunTimeSeconds(5.0),
       mEGLWindow(nullptr),
       mOSWindow(nullptr)
+{
+}
+
+ANGLERenderTest::ANGLERenderTest(const std::string &name,
+                                 const RenderTestParams &testParams,
+                                 const std::vector<std::string> &extensionPrerequisites)
+    : ANGLEPerfTest(name, testParams.suffix()),
+      mTestParams(testParams),
+      mEGLWindow(nullptr),
+      mOSWindow(nullptr),
+      mExtensionPrerequisites(extensionPrerequisites)
 {
 }
 
@@ -104,10 +147,19 @@ ANGLERenderTest::~ANGLERenderTest()
 
 void ANGLERenderTest::SetUp()
 {
+    ANGLEPerfTest::SetUp();
+
     mOSWindow = CreateOSWindow();
     mEGLWindow = new EGLWindow(mTestParams.majorVersion, mTestParams.minorVersion,
                                mTestParams.eglParameters);
     mEGLWindow->setSwapInterval(0);
+
+    mPlatformMethods.overrideWorkaroundsD3D = OverrideWorkaroundsD3D;
+    mPlatformMethods.logError               = EmptyPlatformMethod;
+    mPlatformMethods.logWarning             = EmptyPlatformMethod;
+    mPlatformMethods.logInfo                = EmptyPlatformMethod;
+    mPlatformMethods.context                = this;
+    mEGLWindow->setPlatformMethods(&mPlatformMethods);
 
     if (!mOSWindow->initialize(mName, mTestParams.windowWidth, mTestParams.windowHeight))
     {
@@ -121,62 +173,68 @@ void ANGLERenderTest::SetUp()
         return;
     }
 
-    initializeBenchmark();
+    if (!areExtensionPrerequisitesFulfilled())
+    {
+        mSkipTest = true;
+    }
 
-    ANGLEPerfTest::SetUp();
+    if (mSkipTest)
+    {
+        std::cout << "Test skipped due to missing extension." << std::endl;
+        return;
+    }
+
+    initializeBenchmark();
 }
 
 void ANGLERenderTest::TearDown()
 {
-    ANGLEPerfTest::TearDown();
-
     destroyBenchmark();
 
     mEGLWindow->destroyGL();
     mOSWindow->destroy();
+
+    ANGLEPerfTest::TearDown();
 }
 
-void ANGLERenderTest::step(float dt, double totalTime)
+void ANGLERenderTest::step()
 {
-    stepBenchmark(dt, totalTime);
-
     // Clear events that the application did not process from this frame
     Event event;
+    bool closed = false;
     while (popEvent(&event))
     {
         // If the application did not catch a close event, close now
         if (event.Type == Event::EVENT_CLOSED)
         {
-            mRunning = false;
+            closed = true;
         }
     }
 
-    if (mRunning)
+    if (closed)
     {
-        draw();
-        mEGLWindow->swap();
+        abortTest();
+    }
+    else
+    {
+        drawBenchmark();
+        // Swap is needed so that the GPU driver will occasionally flush its internal command queue
+        // to the GPU. The null device benchmarks are only testing CPU overhead, so they don't need
+        // to swap.
+        if (mTestParams.eglParameters.deviceType != EGL_PLATFORM_ANGLE_DEVICE_TYPE_NULL_ANGLE)
+        {
+            mEGLWindow->swap();
+        }
         mOSWindow->messageLoop();
     }
 }
 
-void ANGLERenderTest::draw()
+void ANGLERenderTest::finishTest()
 {
-    if (mTimer->getElapsedTime() > mRunTimeSeconds)
+    if (mTestParams.eglParameters.deviceType != EGL_PLATFORM_ANGLE_DEVICE_TYPE_NULL_ANGLE)
     {
-        mRunning = false;
-        return;
+        glFinish();
     }
-
-    ++mNumFrames;
-
-    beginDrawBenchmark();
-
-    for (unsigned int iteration = 0; iteration < mDrawIterations; ++iteration)
-    {
-        drawBenchmark();
-    }
-
-    endDrawBenchmark();
 }
 
 bool ANGLERenderTest::popEvent(Event *event)
@@ -187,4 +245,17 @@ bool ANGLERenderTest::popEvent(Event *event)
 OSWindow *ANGLERenderTest::getWindow()
 {
     return mOSWindow;
+}
+
+bool ANGLERenderTest::areExtensionPrerequisitesFulfilled() const
+{
+    for (const auto &extension : mExtensionPrerequisites)
+    {
+        if (!CheckExtensionExists(reinterpret_cast<const char *>(glGetString(GL_EXTENSIONS)),
+                                  extension))
+        {
+            return false;
+        }
+    }
+    return true;
 }

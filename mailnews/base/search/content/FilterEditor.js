@@ -121,6 +121,45 @@ function filterEditorOnLoad()
         gFilter.appendAction(filterAction);
         initializeDialog(gFilter);
       }
+      else if ("copiedFilter" in args)
+      {
+        // we are copying a filter
+        var copiedFilter = args.copiedFilter;
+        var copiedName = gFilterBundle.getFormattedString("copyToNewFilterName",
+          [copiedFilter.filterName]);
+        let newFilter = gFilterList.createFilter(copiedName);
+
+        // copy the actions
+        for (let i = 0; i < copiedFilter.actionCount; i++)
+        {
+          let filterAction = copiedFilter.getActionAt(i);
+          newFilter.appendAction(filterAction);
+        }
+
+        // copy the search terms
+        for (let i = 0; i < copiedFilter.searchTerms.length; i++)
+        {
+          let searchTerm = copiedFilter.searchTerms.queryElementAt(i,
+            Components.interfaces.nsIMsgSearchTerm);
+
+          var newTerm = newFilter.createTerm();
+          newTerm.attrib = searchTerm.attrib;
+          newTerm.op = searchTerm.op;
+          newTerm.booleanAnd = searchTerm.booleanAnd;
+          newTerm.value = searchTerm.value;
+          newFilter.appendTerm(newTerm);
+        };
+
+        gPreFillName = copiedName;
+        gFilter = newFilter;
+
+        initializeDialog(gFilter);
+
+        // We reset the filter name, because otherwise the saveFilter()
+        // function thinks we are editing a filter, and will thus skip the name
+        // uniqueness check.
+        gFilter.filterName = "";
+      }
       else
       {
         // fake the first more button press
@@ -193,14 +232,12 @@ var gFolderListener = {
 
   OnItemEvent: function(folder, event)
   {
-    var eventType = event.toString();
-
-    if (eventType == "FolderCreateCompleted")
+    if (event == "FolderCreateCompleted")
     {
       gActionTargetElement.selectFolder(folder);
       SetBusyCursor(window, false);
     }
-    else if (eventType == "FolderCreateFailed")
+    else if (event == "FolderCreateFailed")
       SetBusyCursor(window, false);
   }
 }

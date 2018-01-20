@@ -54,18 +54,18 @@ public:
 protected:
     virtual ~nsJSProtocolHandler();
 
-    nsresult EnsureUTF8Spec(const nsAFlatCString &aSpec, const char *aCharset, 
+    nsresult EnsureUTF8Spec(const nsCString& aSpec, const char *aCharset,
                             nsACString &aUTF8Spec);
 
     nsCOMPtr<nsITextToSubURI>  mTextToSubURI;
 };
 
 
-class nsJSURI : public nsSimpleURI
+class nsJSURI : public mozilla::net::nsSimpleURI
 {
 public:
-    using nsSimpleURI::Read;
-    using nsSimpleURI::Write;
+    using mozilla::net::nsSimpleURI::Read;
+    using mozilla::net::nsSimpleURI::Write;
 
     nsJSURI() {}
 
@@ -79,7 +79,8 @@ public:
     NS_DECL_ISUPPORTS_INHERITED
 
     // nsIURI overrides
-    virtual nsSimpleURI* StartClone(RefHandlingEnum refHandlingMode) override;
+    virtual mozilla::net::nsSimpleURI* StartClone(RefHandlingEnum refHandlingMode,
+                                                  const nsACString& newRef) override;
 
     // nsISerializable overrides
     NS_IMETHOD Read(nsIObjectInputStream* aStream) override;

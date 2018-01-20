@@ -465,8 +465,8 @@ var GlodaFundAttr = {
    *   processing.)
    * - Newsgroups.  Same deal as mailing lists.
    */
-  process: function gloda_fundattr_process(aGlodaMessage, aRawReps,
-                                           aIsNew, aCallbackHandle) {
+  process: function* gloda_fundattr_process(aGlodaMessage, aRawReps,
+                                            aIsNew, aCallbackHandle) {
     let aMsgHdr = aRawReps.header;
     let aMimeMsg = aRawReps.mime;
 
@@ -613,8 +613,8 @@ var GlodaFundAttr = {
                                aAtt.isExternal);
   },
 
-  optimize: function gloda_fundattr_optimize(aGlodaMessage, aRawReps,
-      aIsNew, aCallbackHandle) {
+  optimize: function* gloda_fundattr_optimize(aGlodaMessage, aRawReps,
+                                              aIsNew, aCallbackHandle) {
 
     let aMsgHdr = aRawReps.header;
 
@@ -781,10 +781,10 @@ var GlodaFundAttr = {
       score += this.NOTABILITY_INVOLVING_ME;
 
     let involvedAddrBookCount = 0;
-    for (let [, identity] in Iterator(aMessage.to))
+    for (let identity of aMessage.to)
       if (identity.inAddressBook)
         involvedAddrBookCount++;
-    for (let [, identity] in Iterator(aMessage.cc))
+    for (let identity of aMessage.cc)
       if (identity.inAddressBook)
         involvedAddrBookCount++;
     if (involvedAddrBookCount)

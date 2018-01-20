@@ -57,14 +57,13 @@ NS_IMPL_ISUPPORTS(AddonPathService, amIAddonPathService)
 
 AddonPathService *AddonPathService::sInstance;
 
-/* static */ AddonPathService*
+/* static */ already_AddRefed<AddonPathService>
 AddonPathService::GetInstance()
 {
   if (!sInstance) {
     sInstance = new AddonPathService();
   }
-  NS_ADDREF(sInstance);
-  return sInstance;
+  return do_AddRef(sInstance);
 }
 
 static JSAddonId*
@@ -129,6 +128,16 @@ AddonPathService::InsertPath(const nsAString& path, const nsAString& addonIdStri
   return NS_OK;
 }
 
+NS_IMETHODIMP
+AddonPathService::MapURIToAddonId(nsIURI* aURI, nsAString& addonIdString)
+{
+  if (JSAddonId* id = MapURIToAddonID(aURI)) {
+    JSFlatString* flat = JS_ASSERT_STRING_IS_FLAT(JS::StringOfAddonId(id));
+    AssignJSFlatString(addonIdString, flat);
+  }
+  return NS_OK;
+}
+
 static nsresult
 ResolveURI(nsIURI* aURI, nsAString& out)
 {
@@ -161,6 +170,28 @@ ResolveURI(nsIURI* aURI, nsAString& out)
     if (NS_WARN_IF(NS_FAILED(rv)))
       return rv;
   } else if (NS_SUCCEEDED(aURI->SchemeIs("chrome", &equals)) && equals) {
+    // Going through the Chrome Registry may be prohibitively slow for many of
+    // the well-known chrome:// URI packages, so check for a few of them here
+    // first in order to fail early if we don't have a chrome:// URI which
+    // could have been provided by an add-on.
+    nsAutoCString package;
+    rv = aURI->GetHostPort(package);
+    if (NS_WARN_IF(NS_FAILED(rv)) ||
+        package.EqualsLiteral("branding") ||
+        package.EqualsLiteral("browser") ||
+        package.EqualsLiteral("branding") ||
+        package.EqualsLiteral("global") ||
+        package.EqualsLiteral("global-platform") ||
+        package.EqualsLiteral("mozapps") ||
+        package.EqualsLiteral("necko") ||
+        package.EqualsLiteral("passwordmgr") ||
+        package.EqualsLiteral("pippki") ||
+        package.EqualsLiteral("pipnss")) {
+      // Returning a failure code means the URI isn't associated with an add-on
+      // ID.
+      return NS_ERROR_FAILURE;
+    }
+
     nsCOMPtr<nsIChromeRegistry> chromeReg =
       mozilla::services::GetChromeRegistryService();
     if (NS_WARN_IF(!chromeReg))

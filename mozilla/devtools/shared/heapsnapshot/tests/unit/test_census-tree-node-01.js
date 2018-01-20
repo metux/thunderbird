@@ -1,5 +1,6 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
+"use strict";
 
 /**
  * Tests CensusTreeNode with `internalType` breakdown.
@@ -40,7 +41,8 @@ const EXPECTED = {
       totalCount: 50,
       children: undefined,
       id: 3,
-      parent: 1
+      parent: 1,
+      reportLeafIndex: 2,
     },
     {
       name: "JSObject",
@@ -50,7 +52,8 @@ const EXPECTED = {
       totalCount: 10,
       children: undefined,
       id: 2,
-      parent: 1
+      parent: 1,
+      reportLeafIndex: 1,
     },
     {
       name: "JSString",
@@ -60,11 +63,13 @@ const EXPECTED = {
       totalCount: 1,
       children: undefined,
       id: 4,
-      parent: 1
+      parent: 1,
+      reportLeafIndex: 3,
     },
   ],
   id: 1,
   parent: undefined,
+  reportLeafIndex: undefined,
 };
 
 function run_test() {

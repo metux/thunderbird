@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "ru": {
+      "chrome_resources": {
+        "necko": "chrome/ru/locale/ru/necko/", 
+        "global": "chrome/ru/locale/ru/global/", 
+        "messenger-region": "chrome/ru/locale/ru/messenger-region/", 
+        "chat": "chrome/ru/locale/ru/chat/", 
+        "devtools": "chrome/ru/locale/ru/devtools/client/", 
+        "pipnss": "chrome/ru/locale/ru/pipnss/", 
+        "messenger-smime": "chrome/ru/locale/ru/messenger-smime/", 
+        "messenger-newsblog": "chrome/ru/locale/ru/messenger-newsblog/", 
+        "devtools-shim": "chrome/ru/locale/ru/devtools/shim/", 
+        "alerts": "chrome/ru/locale/ru/alerts/", 
+        "messenger": "chrome/ru/locale/ru/messenger/", 
+        "editor": "chrome/ru/locale/ru/editor/", 
+        "branding": "chrome/ru/locale/ru/branding/", 
+        "mozldap": "chrome/ru/locale/ru/mozldap/", 
+        "autoconfig": "chrome/ru/locale/ru/autoconfig/", 
+        "devtools-shared": "chrome/ru/locale/ru/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/ru/locale/ru/global-platform/win/", 
+          "android": "chrome/ru/locale/ru/global-platform/unix/", 
+          "macosx": "chrome/ru/locale/ru/global-platform/mac/", 
+          "linux": "chrome/ru/locale/ru/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/ru/locale/ru/mozapps/", 
+        "pluginproblem": "chrome/ru/locale/ru/pluginproblem/", 
+        "communicator": "chrome/ru/locale/ru/communicator/", 
+        "messenger-mapi": "chrome/ru/locale/ru/messenger-mapi/", 
+        "places": "chrome/ru/locale/ru/places/", 
+        "passwordmgr": "chrome/ru/locale/ru/passwordmgr/", 
+        "pippki": "chrome/ru/locale/ru/pippki/"
+      }, 
+      "version": "20171103103221"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "58.0", 
+      "id": "langpack-ru@firefox.mozilla.org", 
+      "strict_max_version": "58.*"
+    }
+  }, 
+  "langpack_id": "ru", 
+  "version": "58.0", 
+  "name": "Russian (RU) Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "Mozilla Russia (contributors: Александр Словесник)", 
+  "description": "Language pack for Thunderbird for ru"
+}

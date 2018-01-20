@@ -13,23 +13,23 @@
 
 namespace xpc {
 
-struct ExposedPropertiesOnly;
+struct OpaqueWithSilentFailing;
 
 // When a vanilla chrome JS object is exposed to content, we use a wrapper that
-// supports __exposedProps__ for legacy reasons. For extra security, we override
-// the traps that allow content to pass an object to chrome, and perform extra
-// security checks on them.
+// fails silently on GET, ENUMERATE, and GET_PROPERTY_DESCRIPTOR for legacy
+// reasons. For extra security, we override the traps that allow content to pass
+// an object to chrome, and perform extra security checks on them.
 #define ChromeObjectWrapperBase \
-  FilteringWrapper<js::CrossCompartmentSecurityWrapper, ExposedPropertiesOnly>
+  FilteringWrapper<js::CrossCompartmentSecurityWrapper, OpaqueWithSilentFailing>
 
 class ChromeObjectWrapper : public ChromeObjectWrapperBase
 {
   public:
-    MOZ_CONSTEXPR ChromeObjectWrapper() : ChromeObjectWrapperBase(0) {}
+    constexpr ChromeObjectWrapper() : ChromeObjectWrapperBase(0) {}
 
     virtual bool defineProperty(JSContext* cx, JS::Handle<JSObject*> wrapper,
                                 JS::Handle<jsid> id,
-                                JS::Handle<JSPropertyDescriptor> desc,
+                                JS::Handle<JS::PropertyDescriptor> desc,
                                 JS::ObjectOpResult& result) const override;
     virtual bool set(JSContext* cx, JS::HandleObject wrapper, JS::HandleId id,
                      JS::HandleValue v, JS::HandleValue receiver,

@@ -19,7 +19,7 @@
 
 ////////////////// nsImapServerResponseParser /////////////////////////
 
-extern PRLogModuleInfo* IMAP;
+static mozilla::LazyLogModule IMAP("IMAP");
 
 nsImapServerResponseParser::nsImapServerResponseParser(nsImapProtocol &imapProtocolConnection)
                             : nsIMAPGenericParser(),
@@ -70,8 +70,6 @@ nsImapServerResponseParser::~nsImapServerResponseParser()
   PR_Free( fLastAlert );
   PR_Free( fSelectedMailboxName );
   PR_Free(fAuthChallenge);
-
-  NS_IF_RELEASE (fHostSessionList);
 }
 
 bool nsImapServerResponseParser::LastCommandSuccessful()
@@ -241,7 +239,7 @@ void nsImapServerResponseParser::ParseIMAPServerResponse(const char *aCurrentCom
       // it's possible that we ate this + while parsing certain responses (like cram data),
       // in these cases, the parsing routine for that specific command will manually set
       // fWaitingForMoreClientInput so we don't lose that information....
-      if (fNextToken && (*fNextToken == '+') || inIdle)
+      if ((fNextToken && (*fNextToken == '+')) || inIdle)
       {
         fWaitingForMoreClientInput = true;
       }
@@ -561,7 +559,7 @@ void nsImapServerResponseParser::response_data()
             AdvanceToNextToken();
             if (fNextToken)
             {
-              fStatusNextUID = atoi(fNextToken);
+              fStatusNextUID = strtoul(fNextToken, nullptr, 10);
               // if this token ends in ')', then it is the last token
               // else we advance
               if ( *(fNextToken + strlen(fNextToken) - 1) == ')')
@@ -573,7 +571,7 @@ void nsImapServerResponseParser::response_data()
             AdvanceToNextToken();
             if (fNextToken)
             {
-              fStatusExistingMessages = atoi(fNextToken);
+              fStatusExistingMessages = strtoul(fNextToken, nullptr, 10);
               // if this token ends in ')', then it is the last token
               // else we advance
               if ( *(fNextToken + strlen(fNextToken) - 1) == ')')
@@ -585,7 +583,7 @@ void nsImapServerResponseParser::response_data()
             AdvanceToNextToken();
             if (fNextToken)
             {
-              fStatusUnseenMessages = atoi(fNextToken);
+              fStatusUnseenMessages = strtoul(fNextToken, nullptr, 10);
               // if this token ends in ')', then it is the last token
               // else we advance
               if ( *(fNextToken + strlen(fNextToken) - 1) == ')')
@@ -597,7 +595,7 @@ void nsImapServerResponseParser::response_data()
             AdvanceToNextToken();
             if (fNextToken)
             {
-              fStatusRecentMessages = atoi(fNextToken);
+              fStatusRecentMessages = strtoul(fNextToken, nullptr, 10);
               // if this token ends in ')', then it is the last token
               // else we advance
               if ( *(fNextToken + strlen(fNextToken) - 1) == ')')
@@ -659,7 +657,7 @@ void nsImapServerResponseParser::response_data()
     case 'E':
       if (!PL_strcasecmp(fNextToken, "ENABLED"))
         enable_data();
-        break;
+      break;
     case 'X':
       if (!PL_strcasecmp(fNextToken, "XSERVERINFO"))
         xserverinfo_data();
@@ -681,7 +679,7 @@ void nsImapServerResponseParser::response_data()
           {
             AdvanceToNextToken();
             customCommandResponse.Append(fNextToken);
-            customCommandResponse.Append(" ");
+            customCommandResponse.Append(' ');
           }
           fServerConnection.GetCurrentUrl()->SetCustomCommandResult(customCommandResponse);
         }
@@ -791,99 +789,85 @@ void nsImapServerResponseParser::mailbox_data()
 
 void nsImapServerResponseParser::mailbox_list(bool discoveredFromLsub)
 {
-  nsImapMailboxSpec *boxSpec = new nsImapMailboxSpec;
-  NS_ADDREF(boxSpec);
-  bool needsToFreeBoxSpec = true;
-  if (!boxSpec)
-    HandleMemoryFailure();
-  else
-  {
-    boxSpec->mFolderSelected = false;
-    boxSpec->mBoxFlags = kNoFlags;
-    boxSpec->mAllocatedPathName.Truncate();
-    boxSpec->mHostName.Truncate();
-    boxSpec->mConnection = &fServerConnection;
-    boxSpec->mFlagState = nullptr;
-    boxSpec->mDiscoveredFromLsub = discoveredFromLsub;
-    boxSpec->mOnlineVerified = true;
-    boxSpec->mBoxFlags &= ~kNameSpace;
+  RefPtr<nsImapMailboxSpec> boxSpec = new nsImapMailboxSpec;
+  boxSpec->mFolderSelected = false;
+  boxSpec->mBoxFlags = kNoFlags;
+  boxSpec->mAllocatedPathName.Truncate();
+  boxSpec->mHostName.Truncate();
+  boxSpec->mConnection = &fServerConnection;
+  boxSpec->mFlagState = nullptr;
+  boxSpec->mDiscoveredFromLsub = discoveredFromLsub;
+  boxSpec->mOnlineVerified = true;
+  boxSpec->mBoxFlags &= ~kNameSpace;
 
-    bool endOfFlags = false;
-    fNextToken++;// eat the first "("
-    do {
-      if (!PL_strncasecmp(fNextToken, "\\Marked", 7))
-        boxSpec->mBoxFlags |= kMarked;
-      else if (!PL_strncasecmp(fNextToken, "\\Unmarked", 9))
-        boxSpec->mBoxFlags |= kUnmarked;
-      else if (!PL_strncasecmp(fNextToken, "\\Noinferiors", 12))
-      {
-        boxSpec->mBoxFlags |= kNoinferiors;
-        // RFC 5258 \Noinferiors implies \HasNoChildren
-        if (fCapabilityFlag & kHasListExtendedCapability)
-          boxSpec->mBoxFlags |= kHasNoChildren;
-      }
-      else if (!PL_strncasecmp(fNextToken, "\\Noselect", 9))
-        boxSpec->mBoxFlags |= kNoselect;
-      else if (!PL_strncasecmp(fNextToken, "\\Drafts", 7))
-        boxSpec->mBoxFlags |= kImapDrafts;
-      else if (!PL_strncasecmp(fNextToken, "\\Trash", 6))
-        boxSpec->mBoxFlags |= kImapXListTrash;
-      else if (!PL_strncasecmp(fNextToken, "\\Sent", 5))
-        boxSpec->mBoxFlags |= kImapSent;
-      else if (!PL_strncasecmp(fNextToken, "\\Spam", 5) ||
-               !PL_strncasecmp(fNextToken, "\\Junk", 5))
-        boxSpec->mBoxFlags |= kImapSpam;
-      else if (!PL_strncasecmp(fNextToken, "\\Archive", 8))
-        boxSpec->mBoxFlags |= kImapArchive;
-      else if (!PL_strncasecmp(fNextToken, "\\All", 4) ||
-               !PL_strncasecmp(fNextToken, "\\AllMail", 8))
-        boxSpec->mBoxFlags |= kImapAllMail;
-      else if (!PL_strncasecmp(fNextToken, "\\Inbox", 6))
-        boxSpec->mBoxFlags |= kImapInbox;
-      else if (!PL_strncasecmp(fNextToken, "\\NonExistent", 11))
-      {
-        boxSpec->mBoxFlags |= kNonExistent;
-        // RFC 5258 \NonExistent implies \Noselect
-        boxSpec->mBoxFlags |= kNoselect;
-      }
-      else if (!PL_strncasecmp(fNextToken, "\\Subscribed", 10))
-        boxSpec->mBoxFlags |= kSubscribed;
-      else if (!PL_strncasecmp(fNextToken, "\\Remote", 6))
-        boxSpec->mBoxFlags |= kRemote;
-      else if (!PL_strncasecmp(fNextToken, "\\HasChildren", 11))
-        boxSpec->mBoxFlags |= kHasChildren;
-      else if (!PL_strncasecmp(fNextToken, "\\HasNoChildren", 13))
-        boxSpec->mBoxFlags |= kHasNoChildren;
-      // we ignore flag other extensions
-
-      endOfFlags = *(fNextToken + strlen(fNextToken) - 1) == ')';
-      AdvanceToNextToken();
-    } while (!endOfFlags && ContinueParse());
-
-    if (ContinueParse())
+  bool endOfFlags = false;
+  fNextToken++;// eat the first "("
+  do {
+    if (!PL_strncasecmp(fNextToken, "\\Marked", 7))
+      boxSpec->mBoxFlags |= kMarked;
+    else if (!PL_strncasecmp(fNextToken, "\\Unmarked", 9))
+      boxSpec->mBoxFlags |= kUnmarked;
+    else if (!PL_strncasecmp(fNextToken, "\\Noinferiors", 12))
     {
-      if (*fNextToken == '"')
-      {
-        fNextToken++;
-        if (*fNextToken == '\\') // handle escaped char
-          boxSpec->mHierarchySeparator = *(fNextToken + 1);
-        else
-          boxSpec->mHierarchySeparator = *fNextToken;
-      }
-      else	// likely NIL.  Discovered late in 4.02 that we do not handle literals here (e.g. {10} <10 chars>), although this is almost impossibly unlikely
-        boxSpec->mHierarchySeparator = kOnlineHierarchySeparatorNil;
-      AdvanceToNextToken();
-      if (ContinueParse())
-      {
-        // nsImapProtocol::DiscoverMailboxSpec() eventually frees the
-        // boxSpec
-        needsToFreeBoxSpec = false;
-        mailbox(boxSpec);
-      }
+      boxSpec->mBoxFlags |= kNoinferiors;
+      // RFC 5258 \Noinferiors implies \HasNoChildren
+      if (fCapabilityFlag & kHasListExtendedCapability)
+        boxSpec->mBoxFlags |= kHasNoChildren;
     }
+    else if (!PL_strncasecmp(fNextToken, "\\Noselect", 9))
+      boxSpec->mBoxFlags |= kNoselect;
+    else if (!PL_strncasecmp(fNextToken, "\\Drafts", 7))
+      boxSpec->mBoxFlags |= kImapDrafts;
+    else if (!PL_strncasecmp(fNextToken, "\\Trash", 6))
+      boxSpec->mBoxFlags |= kImapXListTrash;
+    else if (!PL_strncasecmp(fNextToken, "\\Sent", 5))
+      boxSpec->mBoxFlags |= kImapSent;
+    else if (!PL_strncasecmp(fNextToken, "\\Spam", 5) ||
+             !PL_strncasecmp(fNextToken, "\\Junk", 5))
+      boxSpec->mBoxFlags |= kImapSpam;
+    else if (!PL_strncasecmp(fNextToken, "\\Archive", 8))
+      boxSpec->mBoxFlags |= kImapArchive;
+    else if (!PL_strncasecmp(fNextToken, "\\All", 4) ||
+             !PL_strncasecmp(fNextToken, "\\AllMail", 8))
+      boxSpec->mBoxFlags |= kImapAllMail;
+    else if (!PL_strncasecmp(fNextToken, "\\Inbox", 6))
+      boxSpec->mBoxFlags |= kImapInbox;
+    else if (!PL_strncasecmp(fNextToken, "\\NonExistent", 11))
+    {
+      boxSpec->mBoxFlags |= kNonExistent;
+      // RFC 5258 \NonExistent implies \Noselect
+      boxSpec->mBoxFlags |= kNoselect;
+    }
+    else if (!PL_strncasecmp(fNextToken, "\\Subscribed", 10))
+      boxSpec->mBoxFlags |= kSubscribed;
+    else if (!PL_strncasecmp(fNextToken, "\\Remote", 6))
+      boxSpec->mBoxFlags |= kRemote;
+    else if (!PL_strncasecmp(fNextToken, "\\HasChildren", 11))
+      boxSpec->mBoxFlags |= kHasChildren;
+    else if (!PL_strncasecmp(fNextToken, "\\HasNoChildren", 13))
+      boxSpec->mBoxFlags |= kHasNoChildren;
+    // we ignore flag other extensions
+
+    endOfFlags = *(fNextToken + strlen(fNextToken) - 1) == ')';
+    AdvanceToNextToken();
+  } while (!endOfFlags && ContinueParse());
+
+  if (ContinueParse())
+  {
+    if (*fNextToken == '"')
+    {
+      fNextToken++;
+      if (*fNextToken == '\\') // handle escaped char
+        boxSpec->mHierarchySeparator = *(fNextToken + 1);
+      else
+        boxSpec->mHierarchySeparator = *fNextToken;
+    }
+    else	// likely NIL.  Discovered late in 4.02 that we do not handle literals here (e.g. {10} <10 chars>), although this is almost impossibly unlikely
+      boxSpec->mHierarchySeparator = kOnlineHierarchySeparatorNil;
+    AdvanceToNextToken();
+    if (ContinueParse())
+      mailbox(boxSpec);
   }
-  if (needsToFreeBoxSpec)
-    NS_RELEASE(boxSpec);
 }
 
 /* mailbox         ::= "INBOX" / astring
@@ -1070,7 +1054,7 @@ void nsImapServerResponseParser::msg_fetch()
       AdvanceToNextToken();
       if (ContinueParse())
       {
-        fCurrentResponseUID = atoi(fNextToken);
+        fCurrentResponseUID = strtoul(fNextToken, nullptr, 10);
         if (fCurrentResponseUID > fHighestRecordedUID)
           fHighestRecordedUID = fCurrentResponseUID;
         // size came before UID
@@ -1233,7 +1217,7 @@ void nsImapServerResponseParser::msg_fetch()
         {
           bool sendEndMsgDownload = (GetDownloadingHeaders()
                                         && fReceivedHeaderOrSizeForUID == CurrentResponseUID());
-          fSizeOfMostRecentMessage = atoi(fNextToken);
+          fSizeOfMostRecentMessage = strtoul(fNextToken, nullptr, 10);
           fReceivedHeaderOrSizeForUID = CurrentResponseUID();
           if (sendEndMsgDownload)
           {
@@ -1483,36 +1467,35 @@ void nsImapServerResponseParser::envelope_data()
   {
     if (!ContinueParse())
       break;
-    else if (*fNextToken == ')')
+    if (*fNextToken == ')')
     {
       SetSyntaxError(true); // envelope too short
       break;
     }
+
+    nsAutoCString headerLine(EnvelopeTable[tableIndex].name);
+    headerLine += ": ";
+    bool headerNonNil = true;
+    if (EnvelopeTable[tableIndex].type == envelopeString)
+    {
+      nsAutoCString strValue;
+      strValue.Adopt(CreateNilString());
+      if (!strValue.IsEmpty())
+        headerLine.Append(strValue);
+      else
+        headerNonNil = false;
+    }
     else
     {
-      nsAutoCString headerLine(EnvelopeTable[tableIndex].name);
-      headerLine += ": ";
-      bool headerNonNil = true;
-      if (EnvelopeTable[tableIndex].type == envelopeString)
-      {
-        nsAutoCString strValue;
-        strValue.Adopt(CreateNilString());
-        if (!strValue.IsEmpty())
-          headerLine.Append(strValue);
-        else
-          headerNonNil = false;
-      }
-      else
-      {
-        nsAutoCString address;
-        parse_address(address);
-        headerLine += address;
-        if (address.IsEmpty())
-          headerNonNil = false;
-      }
-      if (headerNonNil)
-        fServerConnection.HandleMessageDownLoadLine(headerLine.get(), false);
+      nsAutoCString address;
+      parse_address(address);
+      headerLine += address;
+      if (address.IsEmpty())
+        headerNonNil = false;
     }
+    if (headerNonNil)
+      fServerConnection.HandleMessageDownLoadLine(headerLine.get(), false);
+
     if (ContinueParse())
       AdvanceToNextToken();
   }
@@ -1546,15 +1529,15 @@ void nsImapServerResponseParser::xaolenvelope_data()
         {
           // xaol envelope switches the From with the To, so we switch them back and
           // create a fake from line From: user@aol.com
-          fromLine.Append("To: ");
+          fromLine.AppendLiteral("To: ");
           nsAutoCString fakeFromLine(NS_LITERAL_CSTRING("From: "));
           fakeFromLine.Append(fServerConnection.GetImapUserName());
-          fakeFromLine.Append(NS_LITERAL_CSTRING("@aol.com"));
+          fakeFromLine.AppendLiteral("@aol.com");
           fServerConnection.HandleMessageDownLoadLine(fakeFromLine.get(), false);
         }
         else
         {
-          fromLine.Append("From: ");
+          fromLine.AppendLiteral("From: ");
         }
         parse_address(fromLine);
         fServerConnection.HandleMessageDownLoadLine(fromLine.get(), false);
@@ -1621,7 +1604,7 @@ void nsImapServerResponseParser::parse_address(nsAutoCString &addressLine)
         {
           addressLine += '@';
           addressLine += hostName;
-          NS_Free(hostName);
+          free(hostName);
         }
         if (personalName)
         {
@@ -1658,7 +1641,7 @@ void nsImapServerResponseParser::internal_date()
     if (strValue)
     {
       dateLine += strValue;
-      NS_Free(strValue);
+      free(strValue);
     }
     fServerConnection.HandleMessageDownLoadLine(dateLine.get(), false);
   }
@@ -1780,8 +1763,8 @@ void nsImapServerResponseParser::flags()
     while(*fNextToken != ')')
       fNextToken++;
 
-    fCurrentLineContainedFlagInfo = true;	// handled in PostProcessEndOfLine
-    fSavedFlagInfo = messageFlags;
+  fCurrentLineContainedFlagInfo = true;	// handled in PostProcessEndOfLine
+  fSavedFlagInfo = messageFlags;
 }
 
 // RFC3501:  resp-cond-state = ("OK" / "NO" / "BAD") SP resp-text
@@ -1970,7 +1953,7 @@ void nsImapServerResponseParser::resp_text_code()
       AdvanceToNextToken();
       if (ContinueParse())
       {
-        fFolderUIDValidity = atoi(fNextToken);
+        fFolderUIDValidity = strtoul(fNextToken, nullptr, 10);
         fHighestRecordedUID = 0;
         AdvanceToNextToken();
       }
@@ -1980,7 +1963,7 @@ void nsImapServerResponseParser::resp_text_code()
       AdvanceToNextToken();
       if (ContinueParse())
       {
-        fNumberOfUnseenMessages = atoi(fNextToken);
+        fNumberOfUnseenMessages = strtoul(fNextToken, nullptr, 10);
         AdvanceToNextToken();
       }
     }
@@ -1989,7 +1972,7 @@ void nsImapServerResponseParser::resp_text_code()
       AdvanceToNextToken();
       if (ContinueParse())
       {
-        fStatusNextUID = atoi(fNextToken);
+        fStatusNextUID = strtoul(fNextToken, nullptr, 10);
         AdvanceToNextToken();
       }
     }
@@ -2005,7 +1988,7 @@ void nsImapServerResponseParser::resp_text_code()
         AdvanceToNextToken();
         if (ContinueParse())
         {
-          fCurrentResponseUID = atoi(fNextToken);
+          fCurrentResponseUID = strtoul(fNextToken, nullptr, 10);
           AdvanceToNextToken();
         }
       }
@@ -2734,8 +2717,7 @@ nsImapServerResponseParser::bodystructure_part(char *partNum, nsIMAPBodypart *pa
 
   if (fNextToken[1] == '(')
     return bodystructure_multipart(partNum, parentPart);
-  else
-    return bodystructure_leaf(partNum, parentPart);
+  return bodystructure_leaf(partNum, parentPart);
 }
 
 // RFC3501: body-type-1part = (body-type-basic / body-type-msg / body-type-text)
@@ -3240,15 +3222,10 @@ bool nsImapServerResponseParser::IsNumericString(const char *string)
 }
 
 
-nsImapMailboxSpec *nsImapServerResponseParser::CreateCurrentMailboxSpec(const char *mailboxName /* = nullptr */)
+already_AddRefed<nsImapMailboxSpec>
+nsImapServerResponseParser::CreateCurrentMailboxSpec(const char *mailboxName /* = nullptr */)
 {
-  nsImapMailboxSpec *returnSpec = new nsImapMailboxSpec;
-  if (!returnSpec)
-  {
-    HandleMemoryFailure();
-    return  nullptr;
-  }
-  NS_ADDREF(returnSpec);
+  RefPtr<nsImapMailboxSpec> returnSpec = new nsImapMailboxSpec;
   const char *mailboxNameToConvert = (mailboxName) ? mailboxName : fSelectedMailboxName;
   if (mailboxNameToConvert)
   {
@@ -3293,7 +3270,7 @@ nsImapMailboxSpec *nsImapServerResponseParser::CreateCurrentMailboxSpec(const ch
   else
     returnSpec->mFlagState = nullptr;
 
-  return returnSpec;
+  return returnSpec.forget();
 
 }
 // Reset the flag state.
@@ -3317,9 +3294,7 @@ void nsImapServerResponseParser::ClearLastFetchChunkReceived()
 void nsImapServerResponseParser::SetHostSessionList(nsIImapHostSessionList*
                                                aHostSessionList)
 {
-    NS_IF_RELEASE (fHostSessionList);
     fHostSessionList = aHostSessionList;
-    NS_IF_ADDREF (fHostSessionList);
 }
 
 void nsImapServerResponseParser::SetSyntaxError(bool error, const char *msg)

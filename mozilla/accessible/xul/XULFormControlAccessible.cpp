@@ -112,7 +112,7 @@ XULButtonAccessible::NativeState()
       if (checked) {
         state |= states::PRESSED;
         xulButtonElement->GetCheckState(&checkState);
-        if (checkState == nsIDOMXULButtonElement::CHECKSTATE_MIXED) { 
+        if (checkState == nsIDOMXULButtonElement::CHECKSTATE_MIXED) {
           state |= states::MIXED;
         }
       }
@@ -165,7 +165,7 @@ XULButtonAccessible::ContainerWidget() const
 }
 
 bool
-XULButtonAccessible::IsAcceptableChild(Accessible* aPossibleChild) const
+XULButtonAccessible::IsAcceptableChild(nsIContent* aEl) const
 {
   // In general XUL button has not accessible children. Nevertheless menu
   // buttons can have button (@type="menu-button") and popup accessibles
@@ -173,17 +173,21 @@ XULButtonAccessible::IsAcceptableChild(Accessible* aPossibleChild) const
 
   // XXX: no children until the button is menu button. Probably it's not
   // totally correct but in general AT wants to have leaf buttons.
-  roles::Role role = aPossibleChild->Role();
+  nsAutoString role;
+  nsCoreUtils::XBLBindingRole(aEl, role);
 
   // Get an accessible for menupopup or panel elements.
-  if (role == roles::MENUPOPUP)
+  if (role.EqualsLiteral("xul:menupopup")) {
     return true;
+  }
 
   // Button type="menu-button" contains a real button. Get an accessible
   // for it. Ignore dropmarker button which is placed as a last child.
-  if (role != roles::PUSHBUTTON ||
-      aPossibleChild->GetContent()->IsXULElement(nsGkAtoms::dropMarker))
+  if ((!role.EqualsLiteral("xul:button") &&
+       !role.EqualsLiteral("xul:toolbarbutton")) ||
+      aEl->IsXULElement(nsGkAtoms::dropMarker)) {
     return false;
+  }
 
   return mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::type,
                                nsGkAtoms::menuButton, eCaseMatters);
@@ -333,9 +337,9 @@ XULCheckboxAccessible::NativeState()
   // Possible states: focused, focusable, unavailable(disabled), checked
   // Get focus and disable status from base class
   uint64_t state = LeafAccessible::NativeState();
-  
+
   state |= states::CHECKABLE;
-  
+
   // Determine Checked state
   nsCOMPtr<nsIDOMXULCheckboxElement> xulCheckboxElement =
     do_QueryInterface(mContent);
@@ -463,7 +467,7 @@ XULRadioButtonAccessible::ContainerWidget() const
   * XUL Radio Group
   *   The Radio Group proxies for the Radio Buttons themselves. The Group gets
   *   focus whereas the Buttons do not. So we only have an accessible object for
-  *   this for the purpose of getting the proper RadioButton. Need this here to 
+  *   this for the purpose of getting the proper RadioButton. Need this here to
   *   avoid circular reference problems when navigating the accessible tree and
   *   for getting to the radiobuttons.
   */
@@ -471,7 +475,7 @@ XULRadioButtonAccessible::ContainerWidget() const
 XULRadioGroupAccessible::
   XULRadioGroupAccessible(nsIContent* aContent, DocAccessible* aDoc) :
   XULSelectControlAccessible(aContent, aDoc)
-{ 
+{
 }
 
 role

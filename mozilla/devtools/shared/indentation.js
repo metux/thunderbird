@@ -6,8 +6,7 @@
 
 "use strict";
 
-const { Cu } = require("chrome");
-Cu.import("resource://gre/modules/Services.jsm");
+const Services = require("Services");
 
 const EXPAND_TAB = "devtools.editor.expandtab";
 const TAB_SIZE = "devtools.editor.tabsize";
@@ -15,16 +14,29 @@ const DETECT_INDENT = "devtools.editor.detectindentation";
 const DETECT_INDENT_MAX_LINES = 500;
 
 /**
+ * Get the number of indentation units to use to indent a "block"
+ * and a boolean indicating whether indentation must be done using tabs.
+ *
+ * @return {Object} an object of the form {indentUnit, indentWithTabs}.
+ *        |indentUnit| is the number of indentation units to use
+ *        to indent a "block".
+ *        |indentWithTabs| is a boolean which is true if indentation
+ *        should be done using tabs.
+ */
+function getTabPrefs() {
+  let indentWithTabs = !Services.prefs.getBoolPref(EXPAND_TAB);
+  let indentUnit = Services.prefs.getIntPref(TAB_SIZE);
+  return {indentUnit, indentWithTabs};
+}
+
+/**
  * Get the indentation to use in an editor, or return false if the user has
  * asked for the indentation to be guessed from some text.
  *
  * @return {false | Object}
  *        Returns false if the "detect indentation" pref is set.
- *        an object of the form {indentUnit, indentWithTabs}.
- *        |indentUnit| is the number of indentation units to use
- *        to indent a "block".
- *        |indentWithTabs| is a boolean which is true if indentation
- *        should be done using tabs.
+ *        If the pref is not set, returns an object of the same
+ *        form as returned by getTabPrefs.
  */
 function getIndentationFromPrefs() {
   let shouldDetect = Services.prefs.getBoolPref(DETECT_INDENT);
@@ -32,9 +44,7 @@ function getIndentationFromPrefs() {
     return false;
   }
 
-  let indentWithTabs = !Services.prefs.getBoolPref(EXPAND_TAB);
-  let indentUnit = Services.prefs.getIntPref(TAB_SIZE);
-  return {indentUnit, indentWithTabs};
+  return getTabPrefs();
 }
 
 /**
@@ -77,7 +87,7 @@ function getIndentationFromIteration(iterFunc) {
  *                  getIndentationFromIteration
  */
 function getIndentationFromString(string) {
-  let iteratorFn = function(start, end, callback) {
+  let iteratorFn = function (start, end, callback) {
     let split = string.split(/\r\n|\r|\n|\f/);
     split.slice(start, end).forEach(callback);
   };
@@ -156,6 +166,7 @@ function detectIndentation(textIteratorFn) {
 exports.EXPAND_TAB = EXPAND_TAB;
 exports.TAB_SIZE = TAB_SIZE;
 exports.DETECT_INDENT = DETECT_INDENT;
+exports.getTabPrefs = getTabPrefs;
 exports.getIndentationFromPrefs = getIndentationFromPrefs;
 exports.getIndentationFromIteration = getIndentationFromIteration;
 exports.getIndentationFromString = getIndentationFromString;

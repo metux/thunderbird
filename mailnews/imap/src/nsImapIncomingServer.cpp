@@ -32,7 +32,7 @@
 #include "nsMsgI18N.h"
 #include "nsIImapMockChannel.h"
 // for the memory cache...
-#include "nsICacheEntryDescriptor.h"
+#include "nsICacheEntry.h"
 #include "nsImapUrl.h"
 #include "nsIMsgProtocolInfo.h"
 #include "nsIMsgMailSession.h"
@@ -44,6 +44,7 @@
 #include "nsComponentManagerUtils.h"
 #include "nsCRTGlue.h"
 #include "mozilla/Services.h"
+#include "nsNetUtil.h"
 
 using namespace mozilla;
 
@@ -185,6 +186,12 @@ NS_IMETHODIMP nsImapIncomingServer::GetLocalStoreType(nsACString& type)
   return NS_OK;
 }
 
+NS_IMETHODIMP nsImapIncomingServer::GetLocalDatabaseType(nsACString& type)
+{
+  type.AssignLiteral("imap");
+  return NS_OK;
+}
+
 NS_IMETHODIMP
 nsImapIncomingServer::GetServerDirectory(nsACString& serverDirectory)
 {
@@ -269,6 +276,9 @@ nsImapIncomingServer::SetMaximumConnectionsNumber(int32_t aMaxConnections)
 {
   return SetIntValue("max_cached_connections", aMaxConnections);
 }
+
+NS_IMPL_SERVERPREF_STR(nsImapIncomingServer, ForceSelect,
+                       "force_select")
 
 NS_IMPL_SERVERPREF_BOOL(nsImapIncomingServer, DualUseFolders,
                         "dual_use_folders")
@@ -444,7 +454,7 @@ nsImapIncomingServer::GetImapConnectionAndLoadUrl(nsIImapUrl* aImapUrl,
     // *** jt - in case of the time out situation or the connection gets
     // terminated by some unforseen problems let's give it a second chance
     // to run the url
-    if (NS_FAILED(rv))
+    if (NS_FAILED(rv) && rv != NS_ERROR_ILLEGAL_VALUE)
     {
       NS_ASSERTION(false, "shouldn't get an error loading url");
       rv = aProtocol->LoadImapUrl(mailnewsurl, aConsumer);
@@ -642,10 +652,10 @@ nsresult nsImapIncomingServer::DoomUrlIfChannelHasError(nsIImapUrl *aImapUrl, bo
 
         if (aMailNewsUrl)
         {
-          nsCOMPtr<nsICacheEntryDescriptor>  cacheEntry;
+          nsCOMPtr<nsICacheEntry> cacheEntry;
           res = aMailNewsUrl->GetMemCacheEntry(getter_AddRefs(cacheEntry));
           if (NS_SUCCEEDED(res) && cacheEntry)
-            cacheEntry->Doom();
+            cacheEntry->AsyncDoom(nullptr);
           // we're aborting this url - tell listeners
           aMailNewsUrl->SetUrlState(false, NS_MSG_ERROR_URL_ABORTED);
         }
@@ -802,8 +812,7 @@ nsImapIncomingServer::GetImapConnection(nsIImapUrl * aImapUrl,
   // if we got here and we have a connection, then we should return it!
   if (canRunUrlImmediately && connection)
   {
-    *aImapConnection = connection;
-    NS_IF_ADDREF(*aImapConnection);
+    connection.forget(aImapConnection);
   }
   else if (canRunButBusy)
   {
@@ -822,8 +831,7 @@ nsImapIncomingServer::GetImapConnection(nsIImapUrl * aImapUrl,
     rv = CreateProtocolInstance(aImapConnection);
   else if (freeConnection)
   {
-    *aImapConnection = freeConnection;
-    NS_IF_ADDREF(*aImapConnection);
+    freeConnection.forget(aImapConnection);
   }
   else // cannot get anyone to handle the url queue it
   {
@@ -950,7 +958,7 @@ NS_IMETHODIMP nsImapIncomingServer::ResetConnection(const nsACString& folderName
 NS_IMETHODIMP
 nsImapIncomingServer::PerformExpand(nsIMsgWindow *aMsgWindow)
 {
-  nsCString password;
+  nsString password;
   nsresult rv;
   rv = GetPassword(password);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -1028,8 +1036,6 @@ nsImapIncomingServer::CreateRootFolderFromUri(const nsCString &serverUri,
                                               nsIMsgFolder **rootFolder)
 {
   nsImapMailFolder *newRootFolder = new nsImapMailFolder;
-  if (!newRootFolder)
-    return NS_ERROR_OUT_OF_MEMORY;
   newRootFolder->Init(serverUri.get());
   NS_ADDREF(*rootFolder = newRootFolder);
   return NS_OK;
@@ -1111,7 +1117,7 @@ NS_IMETHODIMP nsImapIncomingServer::PossibleImapMailbox(const nsACString& folder
     tokenStr.Assign(tempFolderName);
 
   if ((int32_t(PL_strcasecmp(tokenStr.get(), "INBOX"))==0) && (strcmp(tokenStr.get(), "INBOX") != 0))
-    changedStr.Append("INBOX");
+    changedStr.AppendLiteral("INBOX");
   else
     changedStr.Append(tokenStr);
 
@@ -1311,7 +1317,7 @@ nsresult nsImapIncomingServer::GetFolder(const nsACString& name, nsIMsgFolder** 
       {
         nsCOMPtr<nsIMsgFolder> folder(do_QueryInterface(res, &rv));
         if (NS_SUCCEEDED(rv) && folder)
-          folder.swap(*pFolder);
+          folder.forget(pFolder);
       }
     }
   }
@@ -1368,9 +1374,7 @@ NS_IMETHODIMP nsImapIncomingServer::OnlineFolderRename(nsIMsgWindow *msgWindow, 
         rv = GetFolder(tmpNewName, getter_AddRefs(newFolder));
         if (NS_SUCCEEDED(rv))
         {
-          nsCOMPtr <nsIAtom> folderRenameAtom;
-          folderRenameAtom = MsgGetAtom("RenameCompleted");
-          newFolder->NotifyFolderEvent(folderRenameAtom);
+          newFolder->NotifyFolderEvent(kRenameCompleted);
         }
       }
     }
@@ -1559,9 +1563,12 @@ NS_IMETHODIMP nsImapIncomingServer::DiscoveryDone()
               // localized.
               nsAutoCString trashURL;
               trashFolder->GetFolderURL(trashURL);
-              int32_t leafPos = trashURL.RFindChar('/');
+              nsCOMPtr<nsIURI> uri;
+              NS_NewURI(getter_AddRefs(uri), trashURL);
+              nsAutoCString trashPath;
+              uri->GetPathQueryRef(trashPath);
               nsAutoCString unescapedName;
-              MsgUnescapeString(Substring(trashURL, leafPos + 1),
+              MsgUnescapeString(Substring(trashPath, 1), // Skip leading slash.
                                 nsINetUtil::ESCAPE_URL_PATH, unescapedName);
               nsAutoString nameUnicode;
               if (NS_FAILED(CopyMUTF7toUTF16(unescapedName, nameUnicode)) ||
@@ -1831,7 +1838,13 @@ nsImapIncomingServer::PromptLoginFailed(nsIMsgWindow *aMsgWindow,
   nsAutoCString hostName;
   GetRealHostName(hostName);
 
-  return MsgPromptLoginFailed(aMsgWindow, hostName, aResult);
+  nsAutoCString userName;
+  GetRealUsername(userName);
+
+  nsAutoString accountName;
+  GetPrettyName(accountName);
+
+  return MsgPromptLoginFailed(aMsgWindow, hostName, userName, accountName, aResult);
 }
 
 NS_IMETHODIMP
@@ -1851,8 +1864,8 @@ nsImapIncomingServer::FEAlert(const nsAString& aAlertString,
       const char16_t *params[] = { hostName.get(), tempString.get() };
 
       rv = m_stringBundle->FormatStringFromName(
-        MOZ_UTF16("imapServerAlert"),
-        params, 2, getter_Copies(message));
+        "imapServerAlert",
+        params, 2, message);
       if (NS_SUCCEEDED(rv))
         return AlertUser(message, aUrl);
     }
@@ -1884,14 +1897,15 @@ nsImapIncomingServer::FEAlertWithName(const char* aMsgName, nsIMsgMailNewsUrl *a
 
   if (m_stringBundle)
   {
-    nsAutoString hostName;
-    nsresult rv = GetPrettyName(hostName);
+    nsAutoCString hostName;
+    nsresult rv = GetHostName(hostName);
     if (NS_SUCCEEDED(rv))
     {
-      const char16_t *params[] = { hostName.get() };
+      const NS_ConvertUTF8toUTF16 hostName16(hostName);
+      const char16_t *params[] = { hostName16.get() };
       rv = m_stringBundle->FormatStringFromName(
-        NS_ConvertASCIItoUTF16(aMsgName).get(),
-        params, 1,getter_Copies(message));
+        aMsgName,
+        params, 1,message);
       if (NS_SUCCEEDED(rv))
         return AlertUser(message, aUrl);
     }
@@ -1936,7 +1950,7 @@ NS_IMETHODIMP  nsImapIncomingServer::FEAlertFromServer(const nsACString& aServer
     nullptr
   };
 
-  nsString msgName;
+  const char* msgName;
   int32_t numStrings;
   nsString fullMessage;
   nsCOMPtr<nsIImapUrl> imapUrl = do_QueryInterface(aUrl);
@@ -1959,12 +1973,12 @@ NS_IMETHODIMP  nsImapIncomingServer::FEAlertFromServer(const nsACString& aServer
     if (folder)
       folder->GetPrettyName(folderName);
     numStrings = 3;
-    msgName.AssignLiteral("imapFolderCommandFailed");
+    msgName = "imapFolderCommandFailed";
     formatStrings[1] = folderName.get();
   }
   else
   {
-    msgName.AssignLiteral("imapServerCommandFailed");
+    msgName = "imapServerCommandFailed";
     numStrings = 2;
   }
 
@@ -1974,8 +1988,8 @@ NS_IMETHODIMP  nsImapIncomingServer::FEAlertFromServer(const nsACString& aServer
   NS_ENSURE_SUCCESS(rv, rv);
   if (m_stringBundle)
   {
-    rv = m_stringBundle->FormatStringFromName(msgName.get(),
-      formatStrings, numStrings, getter_Copies(fullMessage));
+    rv = m_stringBundle->FormatStringFromName(msgName,
+      formatStrings, numStrings, fullMessage);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
@@ -2003,9 +2017,7 @@ nsImapIncomingServer::GetImapStringByName(const char* msgName, nsAString& aStrin
   if (m_stringBundle)
   {
     nsString res_str;
-    rv = m_stringBundle->GetStringFromName(
-       NS_ConvertASCIItoUTF16(msgName).get(),
-       getter_Copies(res_str));
+    rv = m_stringBundle->GetStringFromName(msgName, res_str);
     aString.Assign(res_str);
     if (NS_SUCCEEDED(rv))
       return rv;
@@ -2026,32 +2038,31 @@ nsresult nsImapIncomingServer::ResetFoldersToUnverified(nsIMsgFolder *parentFold
     NS_ENSURE_SUCCESS(rv, rv);
     return ResetFoldersToUnverified(rootFolder);
   }
-  else
-  {
-    nsCOMPtr<nsISimpleEnumerator> subFolders;
-    nsCOMPtr<nsIMsgImapMailFolder> imapFolder = do_QueryInterface(parentFolder, &rv);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = imapFolder->SetVerifiedAsOnlineFolder(false);
-    rv = parentFolder->GetSubFolders(getter_AddRefs(subFolders));
-    NS_ENSURE_SUCCESS(rv, rv);
 
-    bool moreFolders = false;
-    while (NS_SUCCEEDED(subFolders->HasMoreElements(&moreFolders)) && moreFolders)
+  nsCOMPtr<nsISimpleEnumerator> subFolders;
+  nsCOMPtr<nsIMsgImapMailFolder> imapFolder = do_QueryInterface(parentFolder, &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = imapFolder->SetVerifiedAsOnlineFolder(false);
+  rv = parentFolder->GetSubFolders(getter_AddRefs(subFolders));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  bool moreFolders = false;
+  while (NS_SUCCEEDED(subFolders->HasMoreElements(&moreFolders)) && moreFolders)
+  {
+    nsCOMPtr<nsISupports> child;
+    rv = subFolders->GetNext(getter_AddRefs(child));
+    if (NS_SUCCEEDED(rv) && child)
     {
-      nsCOMPtr<nsISupports> child;
-      rv = subFolders->GetNext(getter_AddRefs(child));
-      if (NS_SUCCEEDED(rv) && child)
+      nsCOMPtr<nsIMsgFolder> childFolder = do_QueryInterface(child, &rv);
+      if (NS_SUCCEEDED(rv) && childFolder)
       {
-        nsCOMPtr<nsIMsgFolder> childFolder = do_QueryInterface(child, &rv);
-        if (NS_SUCCEEDED(rv) && childFolder)
-        {
-          rv = ResetFoldersToUnverified(childFolder);
-          if (NS_FAILED(rv))
-            break;
-        }
+        rv = ResetFoldersToUnverified(childFolder);
+        if (NS_FAILED(rv))
+          break;
       }
     }
   }
+
   return rv;
 }
 
@@ -2144,7 +2155,7 @@ NS_IMETHODIMP nsImapIncomingServer::ForgetPassword()
 NS_IMETHODIMP
 nsImapIncomingServer::AsyncGetPassword(nsIImapProtocol *aProtocol,
                                        bool aNewPasswordRequested,
-                                       nsACString &aPassword)
+                                       nsAString &aPassword)
 {
   if (m_password.IsEmpty())
   {
@@ -2170,7 +2181,7 @@ nsImapIncomingServer::AsyncGetPassword(nsIImapProtocol *aProtocol,
 
 NS_IMETHODIMP
 nsImapIncomingServer::PromptPassword(nsIMsgWindow *aMsgWindow,
-                                     nsACString &aPassword)
+                                     nsAString &aPassword)
 {
   nsString passwordTitle;
   GetImapStringByName("imapEnterPasswordPromptTitle", passwordTitle);
@@ -2192,8 +2203,8 @@ nsImapIncomingServer::PromptPassword(nsIMsgWindow *aMsgWindow,
 
   nsString passwordText;
   rv = m_stringBundle->FormatStringFromName(
-    MOZ_UTF16("imapEnterServerPasswordPrompt"),
-    formatStrings, 2, getter_Copies(passwordText));
+    "imapEnterServerPasswordPrompt",
+    formatStrings, 2, passwordText);
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = GetPasswordWithUI(passwordText, passwordTitle, aMsgWindow, aPassword);
@@ -2931,8 +2942,8 @@ nsImapIncomingServer::GetFormattedStringFromName(const nsAString& aValue,
 
     nsString result;
     rv = m_stringBundle->FormatStringFromName(
-      NS_ConvertASCIItoUTF16(aName).get(),
-      formatStrings, 1, getter_Copies(result));
+      aName,
+      formatStrings, 1, result);
     aResult.Assign(result);
   }
   return rv;
@@ -3266,7 +3277,7 @@ nsImapIncomingServer::GetMsgFolderFromURI(nsIMsgFolder *aFolderResource,
       msgFolder = aFolderResource;
   }
 
-  msgFolder.swap(*aFolder);
+  msgFolder.forget(aFolder);
   return NS_OK;
 }
 
@@ -3321,4 +3332,52 @@ NS_IMETHODIMP
 nsImapIncomingServer::GetLoginUsername(nsACString &aLoginUsername)
 {
   return GetRealUsername(aLoginUsername);
+}
+
+NS_IMETHODIMP
+nsImapIncomingServer::GetOriginalUsername(nsACString &aUsername)
+{
+  return GetUsername(aUsername);
+}
+
+NS_IMETHODIMP
+nsImapIncomingServer::GetServerKey(nsACString &aServerKey)
+{
+  return GetKey(aServerKey);
+}
+
+NS_IMETHODIMP
+nsImapIncomingServer::GetServerPassword(nsAString &aPassword)
+{
+  return GetPassword(aPassword);
+}
+
+NS_IMETHODIMP
+nsImapIncomingServer::RemoveServerConnection(nsIImapProtocol* aProtocol)
+{
+  return RemoveConnection(aProtocol);
+}
+
+NS_IMETHODIMP
+nsImapIncomingServer::GetServerShuttingDown(bool* aShuttingDown)
+{
+  return GetShuttingDown(aShuttingDown);
+}
+
+NS_IMETHODIMP
+nsImapIncomingServer::ResetServerConnection(const nsACString& aFolderName)
+{
+  return ResetConnection(aFolderName);
+}
+
+NS_IMETHODIMP
+nsImapIncomingServer::SetServerDoingLsub(bool aDoingLsub)
+{
+  return SetDoingLsub(aDoingLsub);
+}
+
+NS_IMETHODIMP
+nsImapIncomingServer::SetServerForceSelect(const nsACString &aForceSelect)
+{
+  return SetForceSelect(aForceSelect);
 }

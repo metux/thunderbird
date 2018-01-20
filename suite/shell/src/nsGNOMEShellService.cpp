@@ -2,33 +2,41 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+#include "mozilla/ArrayUtils.h"
 
 #include "nsCOMPtr.h"
-#include "nsComponentManagerUtils.h"
-#include "nsDirectoryServiceDefs.h"
-#include "nsDirectoryServiceUtils.h"
 #include "nsGNOMEShellService.h"
-#include "nsServiceManagerUtils.h"
-#include "nsIGSettingsService.h"
+#include "nsShellService.h"
+#include "nsIServiceManager.h"
+#include "nsIFile.h"
+#include "nsIProperties.h"
+#include "nsDirectoryServiceDefs.h"
+#include "nsIPrefService.h"
+#include "prenv.h"
+#include "nsString.h"
 #include "nsIGConfService.h"
 #include "nsIGIOService.h"
-#include "nsIPrefService.h"
+#include "nsIGSettingsService.h"
 #include "nsIStringBundle.h"
-#include "nsIImageLoadingContent.h"
+#include "nsIOutputStream.h"
+#include "nsIProcess.h"
+#include "nsServiceManagerUtils.h"
+#include "nsComponentManagerUtils.h"
 #include "nsIDOMElement.h"
+#include "nsIImageLoadingContent.h"
 #include "imgIRequest.h"
 #include "imgIContainer.h"
+#include "mozilla/Sprintf.h"
 #include "nsIImageToPixbuf.h"
-#include "nsIFile.h"
-#include "nsIProcess.h"
-#include "prenv.h"
-#include "mozilla/ArrayUtils.h"
 #include "nsXULAppAPI.h"
+
 #include <glib.h>
 #include <glib-object.h>
 #include <gtk/gtk.h>
 #include <gdk/gdk.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
+#include <limits.h>
+#include <stdlib.h>
 
 // GConf registry key constants
 #define DG_BACKGROUND "/desktop/gnome/background"
@@ -86,8 +94,7 @@ GetBrandName(nsACString& aBrandName)
   NS_ENSURE_TRUE(brandBundle, rv);
 
   nsString brandName;
-  rv = brandBundle->GetStringFromName(MOZ_UTF16("brandShortName"),
-                                      getter_Copies(brandName));
+  rv = brandBundle->GetStringFromName("brandShortName", brandName);
   NS_ENSURE_SUCCESS(rv, rv);
 
   CopyUTF16toUTF8(brandName, aBrandName);
@@ -304,7 +311,7 @@ nsGNOMEShellService::GetCanSetDesktopBackground(bool* aResult)
 }
 
 NS_IMETHODIMP
-nsGNOMEShellService::SetDesktopBackground(nsIDOMElement* aElement, 
+nsGNOMEShellService::SetDesktopBackground(nsIDOMElement* aElement,
                                           int32_t aPosition)
 {
   nsCString brandName;
@@ -477,11 +484,11 @@ NS_IMETHODIMP
 nsGNOMEShellService::OpenApplicationWithURI(nsIFile* aApplication, const nsACString& aURI)
 {
   nsresult rv;
-  nsCOMPtr<nsIProcess> process = 
+  nsCOMPtr<nsIProcess> process =
     do_CreateInstance("@mozilla.org/process/util;1", &rv);
   if (NS_FAILED(rv))
     return rv;
-  
+
   rv = process->Init(aApplication);
   if (NS_FAILED(rv))
     return rv;

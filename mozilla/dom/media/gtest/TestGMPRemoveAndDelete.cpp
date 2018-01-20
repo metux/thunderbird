@@ -16,6 +16,7 @@
 #include "GMPService.h"
 #include "GMPUtils.h"
 #include "mozilla/StaticPtr.h"
+#include "MediaPrefs.h"
 
 #define GMP_DIR_NAME NS_LITERAL_STRING("gmp-fakeopenh264")
 #define GMP_OLD_VERSION NS_LITERAL_STRING("1.0")
@@ -227,15 +228,33 @@ GMPRemoveTest::~GMPRemoveTest()
 void
 GMPRemoveTest::Setup()
 {
+  // Initialize media preferences.
+  MediaPrefs::GetSingleton();
   GeneratePlugin();
-  EXPECT_OK(GetServiceParent()->RemovePluginDirectory(mOriginalPath));
+  GetService()->GetThread(getter_AddRefs(mGMPThread));
 
-  GetServiceParent()->AddPluginDirectory(mTmpPath);
+  // Spin the event loop until the GMP service has had a chance to complete
+  // adding GMPs from MOZ_GMP_PATH. Otherwise, the RemovePluginDirectory()
+  // below may complete before we're finished adding GMPs from MOZ_GMP_PATH,
+  // and we'll end up not removing the GMP, and the test will fail.
+  RefPtr<AbstractThread> thread(GetServiceParent()->GetAbstractGMPThread());
+  EXPECT_TRUE(thread);
+  GMPTestMonitor* mon = &mTestMonitor;
+  GetServiceParent()->EnsureInitialized()->Then(thread, __func__,
+    [mon]() { mon->SetFinished(); },
+    [mon]() { mon->SetFinished(); }
+  );
+  mTestMonitor.AwaitFinished();
 
   nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
   obs->AddObserver(this, GMP_DELETED_TOPIC, false /* strong ref */);
+  EXPECT_OK(GetServiceParent()->RemovePluginDirectory(mOriginalPath));
 
-  GetService()->GetThread(getter_AddRefs(mGMPThread));
+  GetServiceParent()->AsyncAddPluginDirectory(mTmpPath)->Then(thread, __func__,
+    [mon]() { mon->SetFinished(); },
+    [mon]() { mon->SetFinished(); }
+  );
+  mTestMonitor.AwaitFinished();
 }
 
 bool
@@ -244,10 +263,16 @@ GMPRemoveTest::CreateVideoDecoder(nsCString aNodeId)
   GMPVideoHost* host;
   GMPVideoDecoderProxy* decoder = nullptr;
 
-  mGMPThread->Dispatch(
-    NS_NewNonOwningRunnableMethodWithArgs<nsCString, GMPVideoDecoderProxy**, GMPVideoHost**>(
-      this, &GMPRemoveTest::gmp_GetVideoDecoder, aNodeId, &decoder, &host),
-    NS_DISPATCH_NORMAL);
+  mGMPThread->Dispatch(NewNonOwningRunnableMethod<nsCString,
+                                                  GMPVideoDecoderProxy**,
+                                                  GMPVideoHost**>(
+                         "GMPRemoveTest::gmp_GetVideoDecoder",
+                         this,
+                         &GMPRemoveTest::gmp_GetVideoDecoder,
+                         aNodeId,
+                         &decoder,
+                         &host),
+                       NS_DISPATCH_NORMAL);
 
   mTestMonitor.AwaitFinished();
 
@@ -261,9 +286,16 @@ GMPRemoveTest::CreateVideoDecoder(nsCString aNodeId)
 
   nsTArray<uint8_t> empty;
   mGMPThread->Dispatch(
-    NS_NewNonOwningRunnableMethodWithArgs<const GMPVideoCodec&, const nsTArray<uint8_t>&, GMPVideoDecoderCallbackProxy*, int32_t>(
-      decoder, &GMPVideoDecoderProxy::InitDecode,
-      codec, empty, this, 1 /* core count */),
+    NewNonOwningRunnableMethod<const GMPVideoCodec&,
+                               const nsTArray<uint8_t>&,
+                               GMPVideoDecoderCallbackProxy*,
+                               int32_t>("GMPVideoDecoderProxy::InitDecode",
+                                        decoder,
+                                        &GMPVideoDecoderProxy::InitDecode,
+                                        codec,
+                                        empty,
+                                        this,
+                                        1 /* core count */),
     NS_DISPATCH_SYNC);
 
   if (mDecoder) {
@@ -304,7 +336,7 @@ GMPRemoveTest::gmp_GetVideoDecoder(nsCString aNodeId,
   UniquePtr<GetGMPVideoDecoderCallback>
     cb(new Callback(&mTestMonitor, aOutDecoder, aOutHost));
 
-  if (NS_FAILED(GetService()->GetGMPVideoDecoder(&tags, aNodeId, Move(cb)))) {
+  if (NS_FAILED(GetService()->GetGMPVideoDecoder(nullptr, &tags, aNodeId, Move(cb)))) {
     mTestMonitor.SetFinished();
   }
 }
@@ -312,9 +344,10 @@ GMPRemoveTest::gmp_GetVideoDecoder(nsCString aNodeId,
 void
 GMPRemoveTest::CloseVideoDecoder()
 {
-  mGMPThread->Dispatch(
-    NS_NewNonOwningRunnableMethod(mDecoder, &GMPVideoDecoderProxy::Close),
-    NS_DISPATCH_SYNC);
+  mGMPThread->Dispatch(NewNonOwningRunnableMethod("GMPVideoDecoderProxy::Close",
+                                                  mDecoder,
+                                                  &GMPVideoDecoderProxy::Close),
+                       NS_DISPATCH_SYNC);
 
   mDecoder = nullptr;
   mHost = nullptr;
@@ -329,9 +362,10 @@ GMPRemoveTest::DeletePluginDirectory(bool aCanDefer)
 GMPErr
 GMPRemoveTest::Decode()
 {
-  mGMPThread->Dispatch(
-    NS_NewNonOwningRunnableMethod(this, &GMPRemoveTest::gmp_Decode),
-    NS_DISPATCH_NORMAL);
+  mGMPThread->Dispatch(NewNonOwningRunnableMethod("GMPRemoveTest::gmp_Decode",
+                                                  this,
+                                                  &GMPRemoveTest::gmp_Decode),
+                       NS_DISPATCH_NORMAL);
 
   mTestMonitor.AwaitFinished();
   return mDecodeResult;

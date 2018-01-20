@@ -23,77 +23,61 @@ class IndexedPointsTest : public ANGLETest
         setConfigDepthBits(24);
     }
 
-    float getIndexPositionX(size_t idx)
-    {
-        return (idx == 0 || idx == 3) ? -0.5f : 0.5f;
-    }
+    float getIndexPositionX(size_t idx) { return (idx == 0 || idx == 3) ? -0.5f : 0.5f; }
 
-    float getIndexPositionY(size_t idx)
-    {
-        return (idx == 2 || idx == 3) ? -0.5f : 0.5f;
-    }
+    float getIndexPositionY(size_t idx) { return (idx == 2 || idx == 3) ? -0.5f : 0.5f; }
 
     virtual void SetUp()
     {
         ANGLETest::SetUp();
 
-        const std::string vertexShaderSource = SHADER_SOURCE
-        (
-            precision highp float;
+        const std::string vertexShaderSource =
+            R"(precision highp float;
             attribute vec2 position;
 
-            void main()
-            {
+            void main() {
                 gl_PointSize = 5.0;
-                gl_Position = vec4(position, 0.0, 1.0);
-            }
-        );
+                gl_Position  = vec4(position, 0.0, 1.0);
+            })";
 
-        const std::string fragmentShaderSource = SHADER_SOURCE
-        (
-            precision highp float;
+        const std::string fragmentShaderSource =
+            R"(precision highp float;
 
             void main()
             {
                 gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
-            }
-        );
+            })";
 
         mProgram = CompileProgram(vertexShaderSource, fragmentShaderSource);
         ASSERT_NE(0u, mProgram);
 
-        const std::string vertexShaderSource2 = SHADER_SOURCE
-        (
-            precision highp float;
+        const std::string vertexShaderSource2 =
+            R"(precision highp float;
             attribute vec2 position;
             attribute vec4 color;
             varying vec4 vcolor;
 
-            void main()
-            {
+            void main() {
                 gl_PointSize = 5.0;
-                gl_Position = vec4(position, 0.0, 1.0);
-                vcolor = color;
-            }
-        );
+                gl_Position  = vec4(position, 0.0, 1.0);
+                vcolor       = color;
+            })";
 
-        const std::string fragmentShaderSource2 = SHADER_SOURCE
-        (
-            precision highp float;
+        const std::string fragmentShaderSource2 =
+            R"(precision highp float;
             varying vec4 vcolor;
+
             void main()
             {
                 gl_FragColor = vec4(vcolor.xyz, 1.0);
-            }
-        );
+            })";
 
         mVertexWithColorBufferProgram = CompileProgram(vertexShaderSource2, fragmentShaderSource2);
         ASSERT_NE(0u, mVertexWithColorBufferProgram);
 
         // Construct a vertex buffer of position values and color values
         // contained in a single structure
-        const float verticesWithColor[] =
-        {
+        const float verticesWithColor[] = {
             getIndexPositionX(0), getIndexPositionY(0), 0.0f, 1.0f, 0.0f,
             getIndexPositionX(2), getIndexPositionY(2), 0.0f, 1.0f, 0.0f,
             getIndexPositionX(1), getIndexPositionY(1), 0.0f, 1.0f, 0.0f,
@@ -102,22 +86,20 @@ class IndexedPointsTest : public ANGLETest
 
         glGenBuffers(1, &mVertexWithColorBuffer);
         glBindBuffer(GL_ARRAY_BUFFER, mVertexWithColorBuffer);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(verticesWithColor), &verticesWithColor[0], GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(verticesWithColor), &verticesWithColor[0],
+                     GL_STATIC_DRAW);
 
         // Construct a vertex buffer of position values only
-        const GLfloat vertices[] =
-        {
-            getIndexPositionX(0), getIndexPositionY(0),
-            getIndexPositionX(2), getIndexPositionY(2),
-            getIndexPositionX(1), getIndexPositionY(1),
-            getIndexPositionX(3), getIndexPositionY(3),
+        const GLfloat vertices[] = {
+            getIndexPositionX(0), getIndexPositionY(0), getIndexPositionX(2), getIndexPositionY(2),
+            getIndexPositionX(1), getIndexPositionY(1), getIndexPositionX(3), getIndexPositionY(3),
         };
         glGenBuffers(1, &mVertexBuffer);
         glBindBuffer(GL_ARRAY_BUFFER, mVertexBuffer);
         glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), &vertices[0], GL_STATIC_DRAW);
 
         // The indices buffer is shared between both variations of tests
-        const IndexType indices[] = { 0, 2, 1, 3 };
+        const IndexType indices[] = {0, 2, 1, 3};
         glGenBuffers(1, &mIndexBuffer);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mIndexBuffer);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), &indices[0], GL_STATIC_DRAW);
@@ -156,7 +138,7 @@ class IndexedPointsTest : public ANGLETest
             GLint vertexColorLocation = glGetAttribLocation(program, "color");
             glVertexAttribPointer(vertexColorLocation, 3, GL_FLOAT, GL_FALSE,
                                   static_cast<const GLsizei>(VertexWithColorSize),
-                                  (GLvoid *)((sizeof(float) * 2)));
+                                  (void *)((sizeof(float) * 2)));
             glEnableVertexAttribArray(vertexColorLocation);
         }
         else
@@ -170,12 +152,17 @@ class IndexedPointsTest : public ANGLETest
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mIndexBuffer);
         glUseProgram(program);
 
-        glDrawElements(GL_POINTS, mPointCount - firstIndex, IndexTypeName, reinterpret_cast<void*>(firstIndex * sizeof(IndexType)));
+        glDrawElements(GL_POINTS, mPointCount - firstIndex, IndexTypeName,
+                       reinterpret_cast<void *>(firstIndex * sizeof(IndexType)));
 
         for (size_t i = 0; i < mPointCount; i++)
         {
-            GLuint x = static_cast<GLuint>(viewportSize[0] + (getIndexPositionX(i) * 0.5f + 0.5f) * (viewportSize[2] - viewportSize[0]));
-            GLuint y = static_cast<GLuint>(viewportSize[1] + (getIndexPositionY(i) * 0.5f + 0.5f) * (viewportSize[3] - viewportSize[1]));
+            GLuint x =
+                static_cast<GLuint>(viewportSize[0] + (getIndexPositionX(i) * 0.5f + 0.5f) *
+                                                          (viewportSize[2] - viewportSize[0]));
+            GLuint y =
+                static_cast<GLuint>(viewportSize[1] + (getIndexPositionY(i) * 0.5f + 0.5f) *
+                                                          (viewportSize[3] - viewportSize[1]));
 
             if (i < firstIndex)
             {
@@ -297,6 +284,13 @@ TEST_P(IndexedPointsTestUShort, VertexWithColorUnsignedShortOffset3)
 
 TEST_P(IndexedPointsTestUShort, VertexWithColorUnsignedShortOffsetChangingIndices)
 {
+    // TODO(fjhenigman): Figure out why this fails on Ozone Intel.
+    if (IsOzone() && IsIntel() && IsOpenGLES())
+    {
+        std::cout << "Test skipped on Ozone Intel." << std::endl;
+        return;
+    }
+
     runTest(3, true);
     runTest(1, true);
     runTest(0, true);
@@ -307,7 +301,7 @@ typedef IndexedPointsTest<GLuint, GL_UNSIGNED_INT> IndexedPointsTestUInt;
 
 TEST_P(IndexedPointsTestUInt, UnsignedIntOffset0)
 {
-    if (getClientVersion() < 3 && !extensionEnabled("GL_OES_element_index_uint"))
+    if (getClientMajorVersion() < 3 && !extensionEnabled("GL_OES_element_index_uint"))
     {
         return;
     }
@@ -317,7 +311,7 @@ TEST_P(IndexedPointsTestUInt, UnsignedIntOffset0)
 
 TEST_P(IndexedPointsTestUInt, UnsignedIntOffset1)
 {
-    if (getClientVersion() < 3 && !extensionEnabled("GL_OES_element_index_uint"))
+    if (getClientMajorVersion() < 3 && !extensionEnabled("GL_OES_element_index_uint"))
     {
         return;
     }
@@ -327,7 +321,7 @@ TEST_P(IndexedPointsTestUInt, UnsignedIntOffset1)
 
 TEST_P(IndexedPointsTestUInt, UnsignedIntOffset2)
 {
-    if (getClientVersion() < 3 && !extensionEnabled("GL_OES_element_index_uint"))
+    if (getClientMajorVersion() < 3 && !extensionEnabled("GL_OES_element_index_uint"))
     {
         return;
     }
@@ -337,7 +331,7 @@ TEST_P(IndexedPointsTestUInt, UnsignedIntOffset2)
 
 TEST_P(IndexedPointsTestUInt, UnsignedIntOffset3)
 {
-    if (getClientVersion() < 3 && !extensionEnabled("GL_OES_element_index_uint"))
+    if (getClientMajorVersion() < 3 && !extensionEnabled("GL_OES_element_index_uint"))
     {
         return;
     }
@@ -347,7 +341,7 @@ TEST_P(IndexedPointsTestUInt, UnsignedIntOffset3)
 
 TEST_P(IndexedPointsTestUInt, VertexWithColorUnsignedIntOffset0)
 {
-    if (getClientVersion() < 3 && !extensionEnabled("GL_OES_element_index_uint"))
+    if (getClientMajorVersion() < 3 && !extensionEnabled("GL_OES_element_index_uint"))
     {
         return;
     }
@@ -357,7 +351,7 @@ TEST_P(IndexedPointsTestUInt, VertexWithColorUnsignedIntOffset0)
 
 TEST_P(IndexedPointsTestUInt, VertexWithColorUnsignedIntOffset1)
 {
-    if (getClientVersion() < 3 && !extensionEnabled("GL_OES_element_index_uint"))
+    if (getClientMajorVersion() < 3 && !extensionEnabled("GL_OES_element_index_uint"))
     {
         return;
     }
@@ -367,7 +361,7 @@ TEST_P(IndexedPointsTestUInt, VertexWithColorUnsignedIntOffset1)
 
 TEST_P(IndexedPointsTestUInt, VertexWithColorUnsignedIntOffset2)
 {
-    if (getClientVersion() < 3 && !extensionEnabled("GL_OES_element_index_uint"))
+    if (getClientMajorVersion() < 3 && !extensionEnabled("GL_OES_element_index_uint"))
     {
         return;
     }
@@ -377,7 +371,7 @@ TEST_P(IndexedPointsTestUInt, VertexWithColorUnsignedIntOffset2)
 
 TEST_P(IndexedPointsTestUInt, VertexWithColorUnsignedIntOffset3)
 {
-    if (getClientVersion() < 3 && !extensionEnabled("GL_OES_element_index_uint"))
+    if (getClientMajorVersion() < 3 && !extensionEnabled("GL_OES_element_index_uint"))
     {
         return;
     }
@@ -386,6 +380,18 @@ TEST_P(IndexedPointsTestUInt, VertexWithColorUnsignedIntOffset3)
 }
 
 // TODO(geofflang): Figure out why this test fails on Intel OpenGL
-ANGLE_INSTANTIATE_TEST(IndexedPointsTestUByte, ES2_D3D11(), ES2_D3D11_FL9_3());
-ANGLE_INSTANTIATE_TEST(IndexedPointsTestUShort, ES2_D3D11(), ES2_D3D11_FL9_3());
-ANGLE_INSTANTIATE_TEST(IndexedPointsTestUInt, ES2_D3D11(), ES2_D3D11_FL9_3());
+ANGLE_INSTANTIATE_TEST(IndexedPointsTestUByte,
+                       ES2_D3D11(),
+                       ES2_D3D11_FL9_3(),
+                       ES2_OPENGL(),
+                       ES2_OPENGLES());
+ANGLE_INSTANTIATE_TEST(IndexedPointsTestUShort,
+                       ES2_D3D11(),
+                       ES2_D3D11_FL9_3(),
+                       ES2_OPENGL(),
+                       ES2_OPENGLES());
+ANGLE_INSTANTIATE_TEST(IndexedPointsTestUInt,
+                       ES2_D3D11(),
+                       ES2_D3D11_FL9_3(),
+                       ES2_OPENGL(),
+                       ES2_OPENGLES());

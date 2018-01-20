@@ -17,7 +17,7 @@
 #include "nspr.h"
 #include "nsDataHashtable.h"
 #include "nsClassHashtable.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 
 class nsMAPISession;
 
@@ -34,6 +34,7 @@ private :
   nsDataHashtable<nsStringHashKey, uint32_t> m_ProfileMap;
   nsClassHashtable<nsUint32HashKey, nsMAPISession> m_SessionMap;
   nsMAPIConfiguration();
+  ~nsMAPIConfiguration();
 
 public :
   static nsMAPIConfiguration *GetMAPIConfiguration();
@@ -47,7 +48,6 @@ public :
   void GetIdKey(uint32_t aSessionID, nsCString& aKey);
   void *GetMapiListContext(uint32_t aSessionID);
   void SetMapiListContext(uint32_t aSessionID, void *mapiListContext);
-  ~nsMAPIConfiguration();
 
   // a util func
   static HRESULT GetMAPIErrorFromNSError (nsresult res) ;

@@ -6,7 +6,7 @@
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsSuiteProfileMigratorUtils.h"
 #include "nsCRT.h"
-#include "nsICookieManager2.h"
+#include "nsICookieManager.h"
 #include "nsIFile.h"
 #include "nsILineInputStream.h"
 #include "nsIOutputStream.h"
@@ -33,6 +33,7 @@
 NS_IMPL_ISUPPORTS(nsNetscapeProfileMigratorBase, nsISuiteProfileMigrator,
                    nsITimerCallback)
 
+using namespace mozilla;
 
 ///////////////////////////////////////////////////////////////////////////////
 // nsITimerCallback
@@ -106,7 +107,7 @@ nsNetscapeProfileMigratorBase::GetSourceProfiles(nsIArray** aResult)
     // Fills mProfileNames and mProfileLocations
     FillProfileDataFromRegistry();
   }
-  
+
   NS_IF_ADDREF(*aResult = mProfileNames);
   return NS_OK;
 }
@@ -123,7 +124,7 @@ nsNetscapeProfileMigratorBase::GetSourceHasHomePageURL()
   mSourceProfile->Clone(getter_AddRefs(sourcePrefsFile));
   sourcePrefsFile->AppendNative(NS_LITERAL_CSTRING(FILE_NAME_PREFS));
 
-  psvc->ReadUserPrefs(sourcePrefsFile);
+  psvc->ReadUserPrefsFromFile(sourcePrefsFile);
 
   nsCOMPtr<nsIPrefBranch> branch(do_QueryInterface(psvc));
 
@@ -144,7 +145,7 @@ nsNetscapeProfileMigratorBase::CopyHomePageData(bool aReplace)
   nsCOMPtr<nsIFile> sourcePrefsFile;
   mSourceProfile->Clone(getter_AddRefs(sourcePrefsFile));
   sourcePrefsFile->AppendNative(nsDependentCString(FILE_NAME_PREFS));
-  psvc->ReadUserPrefs(sourcePrefsFile);
+  psvc->ReadUserPrefsFromFile(sourcePrefsFile);
 
   PBStructArray homepageBranch;
   ReadBranch("browser.startup.homepage", psvc, homepageBranch);
@@ -160,7 +161,7 @@ nsNetscapeProfileMigratorBase::CopyHomePageData(bool aReplace)
   // Don't use nullptr here as we're too early in the cycle for the prefs
   // service to get its default file (because the NS_GetDirectoryService items
   // aren't fully set up yet).
-  psvc->ReadUserPrefs(targetPrefsFile);
+  psvc->ReadUserPrefsFromFile(targetPrefsFile);
 
   WriteBranch("browser.startup.homepage", psvc, homepageBranch);
 
@@ -188,14 +189,23 @@ nsresult
 nsNetscapeProfileMigratorBase::GetString(PrefTransform* aTransform,
                                          nsIPrefBranch* aBranch)
 {
-  GETPREF(aTransform, GetCharPref, &aTransform->stringValue)
+  PrefTransform* xform = (PrefTransform*)aTransform;
+  nsCString str;
+  nsresult rv = aBranch->GetCharPref(xform->sourcePrefName, str);
+  if (NS_SUCCEEDED(rv)) {
+    xform->prefHasValue = true;
+    xform->stringValue = moz_xstrdup(str.get());
+  }
+  return rv;
 }
 
 nsresult
 nsNetscapeProfileMigratorBase::SetString(PrefTransform* aTransform,
                                          nsIPrefBranch* aBranch)
 {
-  SETPREF(aTransform, SetCharPref, aTransform->stringValue)
+  PrefTransform* xform = (PrefTransform*) aTransform;
+  SETPREF(aTransform, SetCharPref,
+          nsDependentCString(xform->stringValue));
 }
 
 nsresult
@@ -269,7 +279,7 @@ nsNetscapeProfileMigratorBase::SetFile(PrefTransform* aTransform,
       rv = fileHandler->GetURLSpecFromFile(file, fileURL);
       if (NS_FAILED(rv))
         return NS_OK;
-      rv = aBranch->SetCharPref(aTransform->sourcePrefName, fileURL.get());
+      rv = aBranch->SetCharPref(aTransform->sourcePrefName, fileURL);
       if (NS_SUCCEEDED(rv) && aTransform->targetPrefName)
         rv = aBranch->SetIntPref(aTransform->targetPrefName, 1);
     }
@@ -389,13 +399,13 @@ nsNetscapeProfileMigratorBase::GetProfileDataFromProfilesIni(nsIFile* aDataDir,
     rootDir->Exists(&exists);
 
     if (exists) {
-      aProfileLocations->AppendElement(rootDir, false);
+      aProfileLocations->AppendElement(rootDir);
 
       nsCOMPtr<nsISupportsString> profileNameString(
         do_CreateInstance("@mozilla.org/supports-string;1"));
 
       profileNameString->SetData(NS_ConvertUTF8toUTF16(buffer));
-      aProfileNames->AppendElement(profileNameString, false);
+      aProfileNames->AppendElement(profileNameString);
     }
   }
   return NS_OK;
@@ -416,7 +426,7 @@ nsNetscapeProfileMigratorBase::CopyFile(const char* aSourceFileName,
 
   nsCOMPtr<nsIFile> targetFile;
   mTargetProfile->Clone(getter_AddRefs(targetFile));
-  
+
   targetFile->AppendNative(nsDependentCString(aTargetFileName));
   targetFile->Exists(&exists);
   if (exists)
@@ -461,7 +471,7 @@ nsNetscapeProfileMigratorBase::RecursiveCopy(nsIFile* srcDir,
 
   bool hasMore = false;
   rv = dirIterator->HasMoreElements(&hasMore);
-  NS_ENSURE_SUCCESS(rv, rv); 
+  NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIFile> dirEntry;
 
@@ -504,7 +514,7 @@ nsNetscapeProfileMigratorBase::RecursiveCopy(nsIFile* srcDir,
     if (NS_FAILED(rv))
       return rv;
   }
-  
+
   return rv;
 }
 
@@ -539,9 +549,12 @@ nsNetscapeProfileMigratorBase::ReadBranch(const char * branchName,
     pref->type = type;
 
     switch (type) {
-    case nsIPrefBranch::PREF_STRING:
-      rv = branch->GetCharPref(currPref, &pref->stringValue);
+    case nsIPrefBranch::PREF_STRING: {
+      nsCString str;
+      rv = branch->GetCharPref(currPref, str);
+      pref->stringValue = moz_xstrdup(str.get());
       break;
+    }
     case nsIPrefBranch::PREF_BOOL:
       rv = branch->GetBoolPref(currPref, &pref->boolValue);
       break;
@@ -573,11 +586,13 @@ nsNetscapeProfileMigratorBase::WriteBranch(const char * branchName,
     PrefBranchStruct* pref = aPrefs.ElementAt(i);
 
     switch (pref->type) {
-    case nsIPrefBranch::PREF_STRING:
-      branch->SetCharPref(pref->prefName, pref->stringValue);
-      NS_Free(pref->stringValue);
+    case nsIPrefBranch::PREF_STRING: {
+      branch->SetCharPref(pref->prefName,
+                          nsDependentCString(pref->stringValue));
+      free(pref->stringValue);
       pref->stringValue = nullptr;
       break;
+    }
     case nsIPrefBranch::PREF_BOOL:
       branch->SetBoolPref(pref->prefName, pref->boolValue);
       break;
@@ -589,7 +604,7 @@ nsNetscapeProfileMigratorBase::WriteBranch(const char * branchName,
                  "nsNetscapeProfileMigratorBase::WriteBranch\n");
       break;
     }
-    NS_Free(pref->prefName);
+    free(pref->prefName);
     pref->prefName = nullptr;
     delete pref;
     pref = nullptr;
@@ -602,7 +617,7 @@ nsNetscapeProfileMigratorBase::GetFileValue(nsIPrefBranch* aPrefBranch, const ch
 {
   nsCString prefValue;
   nsCOMPtr<nsIFile> theFile;
-  nsresult rv = aPrefBranch->GetCharPref(aRelPrefName, getter_Copies(prefValue));
+  nsresult rv = aPrefBranch->GetCharPref(aRelPrefName, prefValue);
   if (NS_SUCCEEDED(rv)) {
     // The pref has the format: [ProfD]a/b/c
     if (!StringBeginsWith(prefValue, NS_LITERAL_CSTRING("[ProfD]")))
@@ -644,8 +659,8 @@ nsNetscapeProfileMigratorBase::CopyCookies(bool aReplace)
   }
 
   nsresult rv;
-  nsCOMPtr<nsICookieManager2> cookieManager(do_GetService(NS_COOKIEMANAGER_CONTRACTID, &rv));
-  if (NS_FAILED(rv)) 
+  nsCOMPtr<nsICookieManager> cookieManager(do_GetService(NS_COOKIEMANAGER_CONTRACTID, &rv));
+  if (NS_FAILED(rv))
     return rv;
 
   nsCOMPtr<nsIFile> seamonkeyCookiesFile;
@@ -780,7 +795,8 @@ nsNetscapeProfileMigratorBase::CopySignatureFiles(PBStructArray &aIdentities,
       // turn the pref into a nsIFile
       nsCOMPtr<nsIFile> srcSigFile =
         do_CreateInstance(NS_LOCAL_FILE_CONTRACTID);
-      srcSigFile->SetPersistentDescriptor(nsDependentCString(pref->stringValue));
+      rv = srcSigFile->SetPersistentDescriptor(nsDependentCString(pref->stringValue));
+      NS_ENSURE_SUCCESS(rv, rv);
 
       nsCOMPtr<nsIFile> targetSigFile;
       rv = mTargetProfile->Clone(getter_AddRefs(targetSigFile));
@@ -799,8 +815,10 @@ nsNetscapeProfileMigratorBase::CopySignatureFiles(PBStructArray &aIdentities,
 
         // now write out the new descriptor
         nsAutoCString descriptorString;
-        targetSigFile->GetPersistentDescriptor(descriptorString);
-        NS_Free(pref->stringValue);
+        rv = targetSigFile->GetPersistentDescriptor(descriptorString);
+        NS_ENSURE_SUCCESS(rv, rv);
+
+        free(pref->stringValue);
         pref->stringValue = ToNewCString(descriptorString);
       }
     }
@@ -844,7 +862,7 @@ nsNetscapeProfileMigratorBase::CopyMailFolderPrefs(PBStructArray &aMailServers,
         break; // should we clear out this server pref from aMailServers?
 
       nsCString serverType;
-      serverBranch->GetCharPref("type", getter_Copies(serverType));
+      serverBranch->GetCharPref("type", serverType);
 
       nsCOMPtr<nsIFile> sourceMailFolder;
       nsresult rv = GetFileValue(serverBranch, "directory-rel", "directory",
@@ -873,21 +891,24 @@ nsNetscapeProfileMigratorBase::CopyMailFolderPrefs(PBStructArray &aMailServers,
         // for all of our server types, append the host name to the directory
         // as part of the new location
         nsCString hostName;
-        serverBranch->GetCharPref("hostname", getter_Copies(hostName));
+        serverBranch->GetCharPref("hostname", hostName);
         targetMailFolder->Append(NS_ConvertASCIItoUTF16(hostName));
 
         // we should make sure the host name based directory we are going to
         // migrate the accounts into is unique. This protects against the
         // case where the user has multiple servers with the same host name.
-        targetMailFolder->CreateUnique(nsIFile::DIRECTORY_TYPE, 0777);
+        rv = targetMailFolder->CreateUnique(nsIFile::DIRECTORY_TYPE, 0777);
+        NS_ENSURE_SUCCESS(rv, rv);
 
         RecursiveCopy(sourceMailFolder, targetMailFolder);
         // now we want to make sure the actual directory pref that gets
         // transformed into the new profile's pref.js has the right file
         // location.
         nsAutoCString descriptorString;
-        targetMailFolder->GetPersistentDescriptor(descriptorString);
-        NS_Free(pref->stringValue);
+        rv = targetMailFolder->GetPersistentDescriptor(descriptorString);
+        NS_ENSURE_SUCCESS(rv, rv);
+
+        free(pref->stringValue);
         pref->stringValue = ToNewCString(descriptorString);
       }
     }
@@ -902,8 +923,9 @@ nsNetscapeProfileMigratorBase::CopyMailFolderPrefs(PBStructArray &aMailServers,
       // turn the pref into a nsIFile
       nsCOMPtr<nsIFile> srcNewsRCFile =
         do_CreateInstance(NS_LOCAL_FILE_CONTRACTID);
-      srcNewsRCFile->SetPersistentDescriptor(
+      nsresult rv = srcNewsRCFile->SetPersistentDescriptor(
         nsDependentCString(pref->stringValue));
+      NS_ENSURE_SUCCESS(rv, rv);
 
       // now make the copy
       bool exists;
@@ -917,8 +939,10 @@ nsNetscapeProfileMigratorBase::CopyMailFolderPrefs(PBStructArray &aMailServers,
 
         // now write out the new descriptor
         nsAutoCString descriptorString;
-        targetNewsRCFile->GetPersistentDescriptor(descriptorString);
-        NS_Free(pref->stringValue);
+        rv = targetNewsRCFile->GetPersistentDescriptor(descriptorString);
+        NS_ENSURE_SUCCESS(rv, rv);
+
+        free(pref->stringValue);
         pref->stringValue = ToNewCString(descriptorString);
       }
     }
@@ -932,7 +956,7 @@ nsNetscapeProfileMigratorBase::CopyMailFolderPrefs(PBStructArray &aMailServers,
 
     if (StringEndsWith(prefName, NS_LITERAL_CSTRING(".directory-rel"))) {
       if (pref->type == nsIPrefBranch::PREF_STRING)
-        NS_Free(pref->stringValue);
+        free(pref->stringValue);
 
       aMailServers.RemoveElementAt(i);
     }

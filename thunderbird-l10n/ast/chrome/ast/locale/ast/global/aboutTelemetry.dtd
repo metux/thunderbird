@@ -1,0 +1,168 @@
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+
+<!ENTITY aboutTelemetry.pageTitle "Datos de Telemetry">
+
+<!ENTITY aboutTelemetry.changeDataChoices "
+  Camudar
+">
+
+<!ENTITY aboutTelemetry.uploadEnabled "
+  L'unviu de datos de FHR ta <span>activáu</span>.
+">
+
+<!ENTITY aboutTelemetry.uploadDisabled "
+  L'unviu de datos de FHR ta <span>desactiváu</span>.
+">
+
+<!ENTITY aboutTelemetry.extendedRecordingEnabled "
+  El rexistru estendíu de Telemetry ta <span>activáu</span>.
+">
+
+<!ENTITY aboutTelemetry.extendedRecordingDisabled "
+  El rexistru estendíu de Telemetry ta <span>desactiváu</span>.
+">
+
+<!ENTITY aboutTelemetry.pingDataSource "
+Fonte de datos de ping:
+">
+
+<!ENTITY aboutTelemetry.showCurrentPingData "
+Datos actuales de ping
+">
+
+<!ENTITY aboutTelemetry.showArchivedPingData "
+Datos archivaos de ping
+">
+
+<!ENTITY aboutTelemetry.pingDataDisplay "
+Amosar datos de ping:
+">
+
+<!ENTITY aboutTelemetry.structured "
+Estructuráu
+">
+
+<!ENTITY aboutTelemetry.raw "
+Raw JSON
+">
+
+<!ENTITY aboutTelemetry.showSubsessionData "
+Amosar datos de subsesión
+">
+
+<!ENTITY aboutTelemetry.choosePing "
+Esbillar ping:
+">
+
+<!ENTITY aboutTelemetry.showNewerPing "
+&lt;&lt; Ping más recién
+">
+
+<!ENTITY aboutTelemetry.showOlderPing "
+Ping más vieyu &gt;&gt;
+">
+
+<!ENTITY aboutTelemetry.rawPingData "
+Datos ensin procesar del ping…
+">
+
+<!ENTITY aboutTelemetry.archiveWeekHeader "
+Selmana
+">
+
+<!ENTITY aboutTelemetry.archivePingHeader "
+Ping
+">
+
+<!ENTITY aboutTelemetry.generalDataSection "">
+
+<!ENTITY aboutTelemetry.environmentDataSection "
+  Datos d'entornu
+">
+
+<!ENTITY aboutTelemetry.telemetryLogSection "">
+
+<!ENTITY aboutTelemetry.slowSqlSection "
+  Sentencies SQL lentes
+">
+
+<!ENTITY aboutTelemetry.chromeHangsSection "
+  El restolador colíngase
+">
+
+<!ENTITY aboutTelemetry.threadHangStatsSection "">
+
+
+<!ENTITY aboutTelemetry.scalarsSection "
+  Escalares
+">
+
+<!ENTITY aboutTelemetry.keyedScalarsSection "
+  Escalares con llave">
+
+<!ENTITY aboutTelemetry.histogramsSection "
+  Histogrames
+">
+
+<!ENTITY aboutTelemetry.keyedHistogramsSection "">
+
+
+<!ENTITY aboutTelemetry.simpleMeasurementsSection "
+  Midides simples
+">
+
+<!ENTITY aboutTelemetry.addonDetailsSection "">
+
+<!ENTITY aboutTelemetry.lateWritesSection "">
+
+<!ENTITY aboutTelemetry.sessionInfoSection "
+  Información de sesión">
+
+<!ENTITY aboutTelemetry.addonHistogramsSection "
+  Histogrames recopilaos por complementos
+">
+
+<!ENTITY aboutTelemetry.toggle "">
+
+<!ENTITY aboutTelemetry.emptySection "
+  (Nun se recopilaron datos)
+">
+
+<!ENTITY aboutTelemetry.fullSqlWarning "
+  NOTA: la depuración SQL lenta ta activada. Puen amosase cadenes completes de SQL pero nun van unviase a Telemetry.
+">
+
+
+
+<!ENTITY aboutTelemetry.filterText "">
+
+<!ENTITY aboutTelemetry.payloadChoiceHeader "
+  Payload
+">
+
+<!ENTITY aboutTelemetry.rawPayload "
+  Raw Payload
+">
+
+<!ENTITY aboutTelemetry.archivePingType "Ping Type">
+<!ENTITY aboutTelemetry.optionGroupToday "Today">
+<!ENTITY aboutTelemetry.optionGroupYesterday "Yesterday">
+<!ENTITY aboutTelemetry.optionGroupOlder "Older">
+<!ENTITY aboutTelemetry.previousPing "&lt;&lt;">
+<!ENTITY aboutTelemetry.nextPing "&gt;&gt;">
+
+<!ENTITY aboutTelemetry.moreInformations "Looking for more information?">
+<!ENTITY aboutTelemetry.firefoxDataDoc "The <a>Firefox Data Documentation</a> contains guides about how to work with our data tools.">
+<!ENTITY aboutTelemetry.telemetryClientDoc "The <a>Firefox Telemetry client documentation</a> includes definitions for concepts, API documentation and data references.">
+<!ENTITY aboutTelemetry.telemetryDashboard "The <a>Telemetry dashboards</a> allow you to visualize the data Mozilla receives via Telemetry.">
+
+<!ENTITY aboutTelemetry.showInFirefoxJsonViewer "Open in the JSON viewer">
+
+<!ENTITY aboutTelemetry.homeSection "Home">
+<!ENTITY aboutTelemetry.eventsSection "Events">
+<!ENTITY aboutTelemetry.capturedStacksSection "Captured Stacks">
+<!ENTITY aboutTelemetry.rawPayloadSection "Raw Payload">
+<!ENTITY aboutTelemetry.fetchStackSymbols "Fetch function names for stacks">
+<!ENTITY aboutTelemetry.hideStackSymbols "Show raw stack data">

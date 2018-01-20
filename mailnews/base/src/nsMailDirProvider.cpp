@@ -84,7 +84,7 @@ nsMailDirProvider::GetFile(const char *aKey, bool *aPersist,
     rv = EnsureDirectory(file);
 
   *aPersist = true;
-  file.swap(*aResult);
+  file.forget(aResult);
 
   return rv;
 }
@@ -97,8 +97,8 @@ nsMailDirProvider::GetFiles(const char *aKey,
     return NS_ERROR_FAILURE;
 
   // The list of isp directories includes the isp directory
-  // in the current process dir (i.e. <path to thunderbird.exe>\isp and 
-  // <path to thunderbird.exe>\isp\locale 
+  // in the current process dir (i.e. <path to thunderbird.exe>\isp and
+  // <path to thunderbird.exe>\isp\locale
   // and isp and isp\locale for each active extension
 
   nsCOMPtr<nsIProperties> dirSvc =
@@ -126,7 +126,7 @@ nsMailDirProvider::GetFiles(const char *aKey,
   rv = NS_NewUnionEnumerator(getter_AddRefs(combinedEnumerator), directoryEnumerator, extensionsEnum);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  NS_IF_ADDREF(*aResult = new AppendingEnumerator(combinedEnumerator));
+  NS_ADDREF(*aResult = new AppendingEnumerator(combinedEnumerator));
   return NS_SUCCESS_AGGREGATE_RESULT;
 }
 
@@ -183,7 +183,7 @@ nsMailDirProvider::AppendingEnumerator::GetNext(nsISupports* *aResult)
         rv = mNextWithLocale->Exists(&exists);
         if (NS_FAILED(rv) || !exists)
           mNextWithLocale = nullptr; // clear out mNextWithLocale, so we don't try to iterate over it
-      } 
+      }
       break;
     }
 
@@ -200,7 +200,7 @@ nsMailDirProvider::AppendingEnumerator::AppendingEnumerator
   nsCOMPtr<nsIXULChromeRegistry> packageRegistry =
     mozilla::services::GetXULChromeRegistryService();
   if (packageRegistry)
-    packageRegistry->GetSelectedLocale(NS_LITERAL_CSTRING("global"), mLocale);
+    packageRegistry->GetSelectedLocale(NS_LITERAL_CSTRING("global"), false, mLocale);
   // Initialize mNext to begin
   GetNext(nullptr);
 }

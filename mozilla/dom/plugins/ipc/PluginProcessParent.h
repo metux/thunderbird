@@ -13,11 +13,10 @@
 #include "base/file_path.h"
 #include "base/task.h"
 #include "base/thread.h"
-#include "base/waitable_event.h"
 #include "chrome/common/child_process_host.h"
 
 #include "mozilla/ipc/GeckoChildProcessHost.h"
-#include "mozilla/plugins/TaskFactory.h"
+#include "mozilla/ipc/TaskFactory.h"
 #include "mozilla/UniquePtr.h"
 #include "nsCOMPtr.h"
 #include "nsIRunnable.h"
@@ -25,12 +24,13 @@
 namespace mozilla {
 namespace plugins {
 
-class LaunchCompleteTask : public Task
+class LaunchCompleteTask : public Runnable
 {
 public:
-    LaunchCompleteTask()
-        : mLaunchSucceeded(false)
-    {
+  LaunchCompleteTask()
+    : Runnable("plugins::LaunchCompleteTask")
+    , mLaunchSucceeded(false)
+  {
     }
 
     void SetLaunchSucceeded() { mLaunchSucceeded = true; }
@@ -66,10 +66,8 @@ public:
 
     const std::string& GetPluginFilePath() { return mPluginFilePath; }
 
-    using mozilla::ipc::GeckoChildProcessHost::GetShutDownEvent;
     using mozilla::ipc::GeckoChildProcessHost::GetChannel;
 
-    void SetCallRunnableImmediately(bool aCallImmediately);
     virtual bool WaitUntilConnected(int32_t aTimeoutMs = 0) override;
 
     virtual void OnChannelConnected(int32_t peer_pid) override;
@@ -77,14 +75,21 @@ public:
 
     bool IsConnected();
 
+    static bool IsPluginProcessId(base::ProcessId procId);
+
 private:
     void RunLaunchCompleteTask();
 
     std::string mPluginFilePath;
-    TaskFactory<PluginProcessParent> mTaskFactory;
+    ipc::TaskFactory<PluginProcessParent> mTaskFactory;
     UniquePtr<LaunchCompleteTask> mLaunchCompleteTask;
     MessageLoop* mMainMsgLoop;
-    bool mRunCompleteTaskImmediately;
+#ifdef XP_WIN
+    typedef nsTHashtable<nsUint32HashKey> PidSet;
+    // Set of PIDs for all plugin child processes or NULL if empty.
+    static PidSet* sPidSet;
+    uint32_t mChildPid;
+#endif
 
     DISALLOW_EVIL_CONSTRUCTORS(PluginProcessParent);
 };

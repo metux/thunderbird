@@ -8,6 +8,7 @@
 
 #include "Accessible2_i.c"
 #include "Accessible2_2_i.c"
+#include "Accessible2_3_i.c"
 #include "AccessibleRole.h"
 #include "AccessibleStates.h"
 
@@ -18,6 +19,7 @@
 #include "nsIAccessibleTypes.h"
 #include "mozilla/a11y/PDocAccessible.h"
 #include "Relation.h"
+#include "TextRange-inl.h"
 #include "nsAccessibilityService.h"
 
 #include "nsIPersistentProperties2.h"
@@ -40,9 +42,15 @@ ia2Accessible::QueryInterface(REFIID iid, void** ppv)
 
   *ppv = nullptr;
 
-  if (IID_IAccessible2_2 == iid)
+  // NOTE: If any new versions of IAccessible2 are added here, they should
+  // also be added to the IA2 Handler in
+  // /accessible/ipc/win/handler/AccessibleHandler.cpp
+
+  if (IID_IAccessible2_3 == iid)
+    *ppv = static_cast<IAccessible2_3*>(this);
+  else if (IID_IAccessible2_2 == iid)
     *ppv = static_cast<IAccessible2_2*>(this);
-  else if (IID_IAccessible2 == iid && !Compatibility::IsIA2Off())
+  else if (IID_IAccessible2 == iid)
     *ppv = static_cast<IAccessible2*>(this);
 
   if (*ppv) {
@@ -59,8 +67,6 @@ ia2Accessible::QueryInterface(REFIID iid, void** ppv)
 STDMETHODIMP
 ia2Accessible::get_nRelations(long* aNRelations)
 {
-  A11Y_TRYBLOCK_BEGIN
-
   if (!aNRelations)
     return E_INVALIDARG;
   *aNRelations = 0;
@@ -69,14 +75,7 @@ ia2Accessible::get_nRelations(long* aNRelations)
   if (acc->IsDefunct())
     return CO_E_OBJNOTCONNECTED;
 
-  if (acc->IsProxy()) {
-    // XXX evaluate performance of collecting all relation targets.
-    nsTArray<RelationType> types;
-    nsTArray<nsTArray<ProxyAccessible*>> targetSets;
-    acc->Proxy()->Relations(&types, &targetSets);
-    *aNRelations = types.Length();
-    return S_OK;
-  }
+  MOZ_ASSERT(!acc->IsProxy());
 
   for (uint32_t idx = 0; idx < ArrayLength(sRelationTypePairs); idx++) {
     if (sRelationTypePairs[idx].second == IA2_RELATION_NULL)
@@ -87,16 +86,12 @@ ia2Accessible::get_nRelations(long* aNRelations)
       (*aNRelations)++;
   }
   return S_OK;
-
-  A11Y_TRYBLOCK_END
 }
 
 STDMETHODIMP
 ia2Accessible::get_relation(long aRelationIndex,
                             IAccessibleRelation** aRelation)
 {
-  A11Y_TRYBLOCK_BEGIN
-
   if (!aRelation || aRelationIndex < 0)
     return E_INVALIDARG;
   *aRelation = nullptr;
@@ -105,33 +100,7 @@ ia2Accessible::get_relation(long aRelationIndex,
   if (acc->IsDefunct())
     return CO_E_OBJNOTCONNECTED;
 
-  if (acc->IsProxy()) {
-    nsTArray<RelationType> types;
-    nsTArray<nsTArray<ProxyAccessible*>> targetSets;
-    acc->Proxy()->Relations(&types, &targetSets);
-
-    size_t targetSetCount = targetSets.Length();
-    for (size_t i = 0; i < targetSetCount; i++) {
-      uint32_t relTypeIdx = static_cast<uint32_t>(types[i]);
-      MOZ_ASSERT(sRelationTypePairs[relTypeIdx].first == types[i]);
-      if (sRelationTypePairs[relTypeIdx].second == IA2_RELATION_NULL)
-        continue;
-
-      if (static_cast<size_t>(aRelationIndex) == i) {
-        nsTArray<RefPtr<Accessible>> targets;
-        size_t targetCount = targetSets[i].Length();
-        for (size_t j = 0; j < targetCount; j++)
-          targets.AppendElement(WrapperFor(targetSets[i][j]));
-
-        RefPtr<ia2AccessibleRelation> rel =
-          new ia2AccessibleRelation(types[i], Move(targets));
-        rel.forget(aRelation);
-        return S_OK;
-      }
-    }
-
-    return E_INVALIDARG;
-  }
+  MOZ_ASSERT(!acc->IsProxy());
 
   long relIdx = 0;
   for (uint32_t idx = 0; idx < ArrayLength(sRelationTypePairs); idx++) {
@@ -153,8 +122,6 @@ ia2Accessible::get_relation(long aRelationIndex,
   }
 
   return E_INVALIDARG;
-
-  A11Y_TRYBLOCK_END
 }
 
 STDMETHODIMP
@@ -162,8 +129,6 @@ ia2Accessible::get_relations(long aMaxRelations,
                              IAccessibleRelation** aRelation,
                              long *aNRelations)
 {
-  A11Y_TRYBLOCK_BEGIN
-
   if (!aRelation || !aNRelations || aMaxRelations <= 0)
     return E_INVALIDARG;
   *aNRelations = 0;
@@ -172,33 +137,7 @@ ia2Accessible::get_relations(long aMaxRelations,
   if (acc->IsDefunct())
     return CO_E_OBJNOTCONNECTED;
 
-  if (acc->IsProxy()) {
-    nsTArray<RelationType> types;
-    nsTArray<nsTArray<ProxyAccessible*>> targetSets;
-    acc->Proxy()->Relations(&types, &targetSets);
-
-    size_t count = std::min(targetSets.Length(),
-                            static_cast<size_t>(aMaxRelations));
-    size_t i = 0;
-    while (i < count) {
-      uint32_t relTypeIdx = static_cast<uint32_t>(types[i]);
-      if (sRelationTypePairs[relTypeIdx].second == IA2_RELATION_NULL)
-        continue;
-
-      size_t targetCount = targetSets[i].Length();
-      nsTArray<RefPtr<Accessible>> targets(targetCount);
-      for (size_t j = 0; j < targetCount; j++)
-        targets.AppendElement(WrapperFor(targetSets[i][j]));
-
-      RefPtr<ia2AccessibleRelation> rel =
-        new ia2AccessibleRelation(types[i], Move(targets));
-      rel.forget(aRelation + i);
-      i++;
-    }
-
-    *aNRelations = i;
-    return S_OK;
-  }
+  MOZ_ASSERT(!acc->IsProxy());
 
   for (uint32_t idx = 0; idx < ArrayLength(sRelationTypePairs) &&
        *aNRelations < aMaxRelations; idx++) {
@@ -215,15 +154,11 @@ ia2Accessible::get_relations(long aMaxRelations,
     }
   }
   return S_OK;
-
-  A11Y_TRYBLOCK_END
 }
 
 STDMETHODIMP
 ia2Accessible::role(long* aRole)
 {
-  A11Y_TRYBLOCK_BEGIN
-
   if (!aRole)
     return E_INVALIDARG;
   *aRole = 0;
@@ -239,64 +174,46 @@ ia2Accessible::role(long* aRole)
     break;
 
   a11y::role geckoRole;
-  if (acc->IsProxy())
-    geckoRole = acc->Proxy()->Role();
-  else
-    geckoRole = acc->Role();
+  MOZ_ASSERT(!acc->IsProxy());
+  geckoRole = acc->Role();
   switch (geckoRole) {
 #include "RoleMap.h"
     default:
       MOZ_CRASH("Unknown role.");
-  };
+  }
 
 #undef ROLE
 
   // Special case, if there is a ROLE_ROW inside of a ROLE_TREE_TABLE, then call
   // the IA2 role a ROLE_OUTLINEITEM.
-  if (acc->IsProxy()) {
-    if (geckoRole == roles::ROW && acc->Proxy()->Parent() &&
-        acc->Proxy()->Parent()->Role() == roles::TREE_TABLE)
+  MOZ_ASSERT(!acc->IsProxy());
+  if (geckoRole == roles::ROW) {
+    Accessible* xpParent = acc->Parent();
+    if (xpParent && xpParent->Role() == roles::TREE_TABLE)
       *aRole = ROLE_SYSTEM_OUTLINEITEM;
-  } else {
-    if (geckoRole == roles::ROW) {
-      Accessible* xpParent = acc->Parent();
-      if (xpParent && xpParent->Role() == roles::TREE_TABLE)
-        *aRole = ROLE_SYSTEM_OUTLINEITEM;
-    }
   }
 
   return S_OK;
-
-  A11Y_TRYBLOCK_END
 }
 
 STDMETHODIMP
 ia2Accessible::scrollTo(enum IA2ScrollType aScrollType)
 {
-  A11Y_TRYBLOCK_BEGIN
-
   AccessibleWrap* acc = static_cast<AccessibleWrap*>(this);
   if (acc->IsDefunct())
     return CO_E_OBJNOTCONNECTED;
 
-  if (acc->IsProxy()) {
-    acc->Proxy()->ScrollTo(aScrollType);
-  } else {
-    nsCoreUtils::ScrollTo(acc->Document()->PresShell(), acc->GetContent(),
-                          aScrollType);
-  }
+  MOZ_ASSERT(!acc->IsProxy());
+  nsCoreUtils::ScrollTo(acc->Document()->PresShell(), acc->GetContent(),
+                        aScrollType);
 
   return S_OK;
-
-  A11Y_TRYBLOCK_END
 }
 
 STDMETHODIMP
 ia2Accessible::scrollToPoint(enum IA2CoordinateType aCoordType,
                               long aX, long aY)
 {
-  A11Y_TRYBLOCK_BEGIN
-
   AccessibleWrap* acc = static_cast<AccessibleWrap*>(this);
   if (acc->IsDefunct())
     return CO_E_OBJNOTCONNECTED;
@@ -305,15 +222,10 @@ ia2Accessible::scrollToPoint(enum IA2CoordinateType aCoordType,
     nsIAccessibleCoordinateType::COORDTYPE_SCREEN_RELATIVE :
     nsIAccessibleCoordinateType::COORDTYPE_PARENT_RELATIVE;
 
-  if (acc->IsProxy()) {
-    acc->Proxy()->ScrollToPoint(geckoCoordType, aX, aY);
-  } else {
-    acc->ScrollToPoint(geckoCoordType, aX, aY);
-  }
+  MOZ_ASSERT(!acc->IsProxy());
+  acc->ScrollToPoint(geckoCoordType, aX, aY);
 
   return S_OK;
-
-  A11Y_TRYBLOCK_END
 }
 
 STDMETHODIMP
@@ -321,8 +233,6 @@ ia2Accessible::get_groupPosition(long* aGroupLevel,
                                  long* aSimilarItemsInGroup,
                                  long* aPositionInGroup)
 {
-  A11Y_TRYBLOCK_BEGIN
-
   if (!aGroupLevel || !aSimilarItemsInGroup || !aPositionInGroup)
     return E_INVALIDARG;
 
@@ -347,15 +257,11 @@ ia2Accessible::get_groupPosition(long* aGroupLevel,
   *aPositionInGroup = groupPos.posInSet;
 
   return S_OK;
-
-  A11Y_TRYBLOCK_END
 }
 
 STDMETHODIMP
 ia2Accessible::get_states(AccessibleStates* aStates)
 {
-  A11Y_TRYBLOCK_BEGIN
-
   if (!aStates)
     return E_INVALIDARG;
   *aStates = 0;
@@ -369,10 +275,8 @@ ia2Accessible::get_states(AccessibleStates* aStates)
   }
 
   uint64_t state;
-  if (acc->IsProxy())
-    state = acc->Proxy()->State();
-  else
-    state = acc->State();
+  MOZ_ASSERT(!acc->IsProxy());
+  state = acc->State();
 
   if (state & states::INVALID)
     *aStates |= IA2_STATE_INVALID_ENTRY;
@@ -417,50 +321,36 @@ ia2Accessible::get_states(AccessibleStates* aStates)
     *aStates |= IA2_STATE_PINNED;
 
   return S_OK;
-
-  A11Y_TRYBLOCK_END
 }
 
 STDMETHODIMP
 ia2Accessible::get_extendedRole(BSTR* aExtendedRole)
 {
-  A11Y_TRYBLOCK_BEGIN
-
   if (!aExtendedRole)
     return E_INVALIDARG;
 
   *aExtendedRole = nullptr;
   return E_NOTIMPL;
-
-  A11Y_TRYBLOCK_END
 }
 
 STDMETHODIMP
 ia2Accessible::get_localizedExtendedRole(BSTR* aLocalizedExtendedRole)
 {
-  A11Y_TRYBLOCK_BEGIN
-
   if (!aLocalizedExtendedRole)
     return E_INVALIDARG;
 
   *aLocalizedExtendedRole = nullptr;
   return E_NOTIMPL;
-
-  A11Y_TRYBLOCK_END
 }
 
 STDMETHODIMP
 ia2Accessible::get_nExtendedStates(long* aNExtendedStates)
 {
-  A11Y_TRYBLOCK_BEGIN
-
   if (!aNExtendedStates)
     return E_INVALIDARG;
 
   *aNExtendedStates = 0;
   return E_NOTIMPL;
-
-  A11Y_TRYBLOCK_END
 }
 
 STDMETHODIMP
@@ -468,16 +358,12 @@ ia2Accessible::get_extendedStates(long aMaxExtendedStates,
                                   BSTR** aExtendedStates,
                                   long* aNExtendedStates)
 {
-  A11Y_TRYBLOCK_BEGIN
-
   if (!aExtendedStates || !aNExtendedStates)
     return E_INVALIDARG;
 
   *aExtendedStates = nullptr;
   *aNExtendedStates = 0;
   return E_NOTIMPL;
-
-  A11Y_TRYBLOCK_END
 }
 
 STDMETHODIMP
@@ -485,38 +371,28 @@ ia2Accessible::get_localizedExtendedStates(long aMaxLocalizedExtendedStates,
                                            BSTR** aLocalizedExtendedStates,
                                            long* aNLocalizedExtendedStates)
 {
-  A11Y_TRYBLOCK_BEGIN
-
   if (!aLocalizedExtendedStates || !aNLocalizedExtendedStates)
     return E_INVALIDARG;
 
   *aLocalizedExtendedStates = nullptr;
   *aNLocalizedExtendedStates = 0;
   return E_NOTIMPL;
-
-  A11Y_TRYBLOCK_END
 }
 
 STDMETHODIMP
 ia2Accessible::get_uniqueID(long* aUniqueID)
 {
-  A11Y_TRYBLOCK_BEGIN
-
   if (!aUniqueID)
     return E_INVALIDARG;
 
   AccessibleWrap* acc = static_cast<AccessibleWrap*>(this);
   *aUniqueID = AccessibleWrap::GetChildIDFor(acc);
   return S_OK;
-
-  A11Y_TRYBLOCK_END
 }
 
 STDMETHODIMP
 ia2Accessible::get_windowHandle(HWND* aWindowHandle)
 {
-  A11Y_TRYBLOCK_BEGIN
-
   if (!aWindowHandle)
     return E_INVALIDARG;
   *aWindowHandle = 0;
@@ -527,15 +403,11 @@ ia2Accessible::get_windowHandle(HWND* aWindowHandle)
 
   *aWindowHandle = AccessibleWrap::GetHWNDFor(acc);
   return S_OK;
-
-  A11Y_TRYBLOCK_END
 }
 
 STDMETHODIMP
 ia2Accessible::get_indexInParent(long* aIndexInParent)
 {
-  A11Y_TRYBLOCK_BEGIN
-
   if (!aIndexInParent)
     return E_INVALIDARG;
   *aIndexInParent = -1;
@@ -544,24 +416,18 @@ ia2Accessible::get_indexInParent(long* aIndexInParent)
   if (acc->IsDefunct())
     return CO_E_OBJNOTCONNECTED;
 
-  if (acc->IsProxy())
-    *aIndexInParent = acc->Proxy()->IndexInParent();
-  else
-    *aIndexInParent = acc->IndexInParent();
+  MOZ_ASSERT(!acc->IsProxy());
+  *aIndexInParent = acc->IndexInParent();
 
   if (*aIndexInParent == -1)
     return S_FALSE;
 
   return S_OK;
-
-  A11Y_TRYBLOCK_END
 }
 
 STDMETHODIMP
 ia2Accessible::get_locale(IA2Locale* aLocale)
 {
-  A11Y_TRYBLOCK_BEGIN
-
   if (!aLocale)
     return E_INVALIDARG;
 
@@ -604,15 +470,11 @@ ia2Accessible::get_locale(IA2Locale* aLocale)
   // country abbreviations or if there are more than one subcode.
   aLocale->variant = ::SysAllocString(lang.get());
   return S_OK;
-
-  A11Y_TRYBLOCK_END
 }
 
 STDMETHODIMP
 ia2Accessible::get_attributes(BSTR* aAttributes)
 {
-  A11Y_TRYBLOCK_BEGIN
-
   if (!aAttributes)
     return E_INVALIDARG;
   *aAttributes = nullptr;
@@ -628,11 +490,8 @@ ia2Accessible::get_attributes(BSTR* aAttributes)
     return ConvertToIA2Attributes(attributes, aAttributes);
   }
 
-  nsTArray<Attribute> attrs;
-  acc->Proxy()->Attributes(&attrs);
-  return ConvertToIA2Attributes(&attrs, aAttributes);
-
-  A11Y_TRYBLOCK_END
+  MOZ_ASSERT(!acc->IsProxy());
+  return E_UNEXPECTED;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -641,22 +500,16 @@ ia2Accessible::get_attributes(BSTR* aAttributes)
 STDMETHODIMP
 ia2Accessible::get_attribute(BSTR name, VARIANT* aAttribute)
 {
-  A11Y_TRYBLOCK_BEGIN
-
   if (!aAttribute)
     return E_INVALIDARG;
 
   return E_NOTIMPL;
-
-  A11Y_TRYBLOCK_END
 }
 
 STDMETHODIMP
 ia2Accessible::get_accessibleWithCaret(IUnknown** aAccessible,
                                        long* aCaretOffset)
 {
-  A11Y_TRYBLOCK_BEGIN
-
   if (!aAccessible || !aCaretOffset)
     return E_INVALIDARG;
 
@@ -669,7 +522,7 @@ ia2Accessible::get_accessibleWithCaret(IUnknown** aAccessible,
 
   int32_t caretOffset = -1;
   Accessible* accWithCaret = SelectionMgr()->AccessibleWithCaret(&caretOffset);
-  if (acc->Document() != accWithCaret->Document())
+  if (!accWithCaret || acc->Document() != accWithCaret->Document())
     return S_FALSE;
 
   Accessible* child = accWithCaret;
@@ -684,8 +537,6 @@ ia2Accessible::get_accessibleWithCaret(IUnknown** aAccessible,
   (*aAccessible)->AddRef();
   *aCaretOffset = caretOffset;
   return S_OK;
-
-  A11Y_TRYBLOCK_END
 }
 
 STDMETHODIMP
@@ -694,8 +545,6 @@ ia2Accessible::get_relationTargetsOfType(BSTR aType,
                                          IUnknown*** aTargets,
                                          long* aNTargets)
 {
-  A11Y_TRYBLOCK_BEGIN
-
   if (!aTargets || !aNTargets || aMaxTargets < 0)
     return E_INVALIDARG;
   *aNTargets = 0;
@@ -715,21 +564,12 @@ ia2Accessible::get_relationTargetsOfType(BSTR aType,
     return CO_E_OBJNOTCONNECTED;
 
   nsTArray<Accessible*> targets;
-  if (acc->IsProxy()) {
-    nsTArray<ProxyAccessible*> targetProxies =
-      acc->Proxy()->RelationByType(*relationType);
-
-    size_t targetCount = aMaxTargets;
-    if (targetProxies.Length() < targetCount)
-      targetCount = targetProxies.Length();
-    for (size_t i = 0; i < targetCount; i++)
-      targets.AppendElement(WrapperFor(targetProxies[i]));
-  } else {
-    Relation rel = acc->RelationByType(*relationType);
-    Accessible* target = nullptr;
-    while ((target = rel.Next()) &&
-           static_cast<long>(targets.Length()) <= aMaxTargets)
-      targets.AppendElement(target);
+  MOZ_ASSERT(!acc->IsProxy());
+  Relation rel = acc->RelationByType(*relationType);
+  Accessible* target = nullptr;
+  while ((target = rel.Next()) &&
+         static_cast<long>(targets.Length()) <= aMaxTargets) {
+    targets.AppendElement(target);
   }
 
   *aNTargets = targets.Length();
@@ -745,9 +585,55 @@ ia2Accessible::get_relationTargetsOfType(BSTR aType,
   }
 
   return S_OK;
-
-  A11Y_TRYBLOCK_END
 }
+
+STDMETHODIMP
+ia2Accessible::get_selectionRanges(IA2Range** aRanges,
+                                   long *aNRanges)
+{
+  if (!aRanges || !aNRanges)
+    return E_INVALIDARG;
+
+  *aNRanges = 0;
+
+  AccessibleWrap* acc = static_cast<AccessibleWrap*>(this);
+  if (acc->IsDefunct())
+    return CO_E_OBJNOTCONNECTED;
+
+  AutoTArray<TextRange, 1> ranges;
+  acc->Document()->SelectionRanges(&ranges);
+  uint32_t len = ranges.Length();
+  for (uint32_t idx = 0; idx < len; idx++) {
+    if (!ranges[idx].Crop(acc)) {
+      ranges.RemoveElementAt(idx);
+    }
+  }
+
+  *aNRanges = ranges.Length();
+  *aRanges = static_cast<IA2Range*>(
+    ::CoTaskMemAlloc(sizeof(IA2Range) * *aNRanges));
+  if (!*aRanges)
+    return E_OUTOFMEMORY;
+
+  for (uint32_t idx = 0; idx < static_cast<uint32_t>(*aNRanges); idx++) {
+    AccessibleWrap* anchor =
+      static_cast<AccessibleWrap*>(ranges[idx].StartContainer());
+    (*aRanges)[idx].anchor = static_cast<IAccessible2*>(anchor);
+    anchor->AddRef();
+
+    (*aRanges)[idx].anchorOffset = ranges[idx].StartOffset();
+
+    AccessibleWrap* active =
+      static_cast<AccessibleWrap*>(ranges[idx].EndContainer());
+    (*aRanges)[idx].active = static_cast<IAccessible2*>(active);
+    active->AddRef();
+
+    (*aRanges)[idx].activeOffset = ranges[idx].EndOffset();
+  }
+
+  return S_OK;
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // Helpers

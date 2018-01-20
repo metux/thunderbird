@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -8,6 +9,7 @@
 #include "CSS.h"
 
 #include "mozilla/dom/BindingDeclarations.h"
+#include "mozilla/ServoBindings.h"
 #include "nsCSSParser.h"
 #include "nsGlobalWindow.h"
 #include "nsIDocument.h"
@@ -23,13 +25,14 @@ struct SupportsParsingInfo
   nsIURI* mDocURI;
   nsIURI* mBaseURI;
   nsIPrincipal* mPrincipal;
+  StyleBackendType mStyleBackendType;
 };
 
 static nsresult
 GetParsingInfo(const GlobalObject& aGlobal,
                SupportsParsingInfo& aInfo)
 {
-  nsGlobalWindow* win = xpc::WindowOrNull(aGlobal.Get());
+  nsGlobalWindowInner* win = xpc::WindowOrNull(aGlobal.Get());
   if (!win) {
     return NS_ERROR_FAILURE;
   }
@@ -39,9 +42,10 @@ GetParsingInfo(const GlobalObject& aGlobal,
     return NS_ERROR_FAILURE;
   }
 
-  aInfo.mDocURI = nsCOMPtr<nsIURI>(doc->GetDocumentURI());
-  aInfo.mBaseURI = nsCOMPtr<nsIURI>(doc->GetBaseURI());
+  aInfo.mDocURI = nsCOMPtr<nsIURI>(doc->GetDocumentURI()).get();
+  aInfo.mBaseURI = nsCOMPtr<nsIURI>(doc->GetBaseURI()).get();
   aInfo.mPrincipal = win->GetPrincipal();
+  aInfo.mStyleBackendType = doc->GetStyleBackendType();
   return NS_OK;
 }
 
@@ -51,7 +55,6 @@ CSS::Supports(const GlobalObject& aGlobal,
               const nsAString& aValue,
               ErrorResult& aRv)
 {
-  nsCSSParser parser;
   SupportsParsingInfo info;
 
   nsresult rv = GetParsingInfo(aGlobal, info);
@@ -60,6 +63,13 @@ CSS::Supports(const GlobalObject& aGlobal,
     return false;
   }
 
+  if (info.mStyleBackendType == StyleBackendType::Servo) {
+    NS_ConvertUTF16toUTF8 property(aProperty);
+    NS_ConvertUTF16toUTF8 value(aValue);
+    return Servo_CSSSupports2(&property, &value);
+  }
+
+  nsCSSParser parser;
   return parser.EvaluateSupportsDeclaration(aProperty, aValue, info.mDocURI,
                                             info.mBaseURI, info.mPrincipal);
 }
@@ -69,7 +79,6 @@ CSS::Supports(const GlobalObject& aGlobal,
               const nsAString& aCondition,
               ErrorResult& aRv)
 {
-  nsCSSParser parser;
   SupportsParsingInfo info;
 
   nsresult rv = GetParsingInfo(aGlobal, info);
@@ -78,21 +87,23 @@ CSS::Supports(const GlobalObject& aGlobal,
     return false;
   }
 
+  if (info.mStyleBackendType == StyleBackendType::Servo) {
+    NS_ConvertUTF16toUTF8 cond(aCondition);
+    return Servo_CSSSupports(&cond);
+  }
+
+  nsCSSParser parser;
   return parser.EvaluateSupportsCondition(aCondition, info.mDocURI,
-                                          info.mBaseURI, info.mPrincipal);
+                                          info.mBaseURI, info.mPrincipal,
+                                          css::SupportsParsingSettings::ImpliedParentheses);
 }
 
 /* static */ void
 CSS::Escape(const GlobalObject& aGlobal,
             const nsAString& aIdent,
-            nsAString& aReturn,
-            ErrorResult& aRv)
+            nsAString& aReturn)
 {
-  bool success = nsStyleUtil::AppendEscapedCSSIdent(aIdent, aReturn);
-
-  if (!success) {
-    aRv.Throw(NS_ERROR_DOM_INVALID_CHARACTER_ERR);
-  }
+  nsStyleUtil::AppendEscapedCSSIdent(aIdent, aReturn);
 }
 
 } // namespace dom

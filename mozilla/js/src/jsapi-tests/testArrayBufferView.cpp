@@ -6,6 +6,7 @@
 #include "jsfriendapi.h"
 
 #include "jsapi-tests/tests.h"
+#include "vm/ProxyObject.h"
 
 #include "jscompartmentinlines.h"
 
@@ -137,7 +138,8 @@ bool TestViewType(JSContext* cx)
     }
 
     JS::CompartmentOptions options;
-    JS::RootedObject otherGlobal(cx, JS_NewGlobalObject(cx, basicGlobalClass(), nullptr, JS::DontFireOnNewGlobalHook, options));
+    JS::RootedObject otherGlobal(cx, JS_NewGlobalObject(cx, basicGlobalClass(), nullptr,
+                                                        JS::DontFireOnNewGlobalHook, options));
     CHECK(otherGlobal);
 
     JS::Rooted<JSObject*> buffer(cx);

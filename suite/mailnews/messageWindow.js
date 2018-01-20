@@ -24,7 +24,7 @@ var gNextMessageAfterLoad = null;
 var folderListener = {
   OnItemAdded: function(parentItem, item) {},
 
-  OnItemRemoved: function(parentItem, item) 
+  OnItemRemoved: function(parentItem, item)
   {
     if (parentItem.URI != gCurrentFolderUri)
       return;
@@ -35,11 +35,11 @@ var folderListener = {
   },
 
   OnItemPropertyChanged: function(item, property, oldValue, newValue) {},
-  OnItemIntPropertyChanged: function(item, property, oldValue, newValue) { 
+  OnItemIntPropertyChanged: function(item, property, oldValue, newValue) {
     if (item.URI == gCurrentFolderUri) {
-      if (property.toString() == "TotalMessages" || property.toString() == "TotalUnreadMessages") {
+      if (property == "TotalMessages" || property == "TotalUnreadMessages") {
         UpdateStandAloneMessageCounts();
-      }      
+      }
     }
   },
   OnItemBoolPropertyChanged: function(item, property, oldValue, newValue) {},
@@ -47,13 +47,11 @@ var folderListener = {
   OnItemPropertyFlagChanged: function(item, property, oldFlag, newFlag) {},
 
   OnItemEvent: function(folder, event) {
-    var eventType = event.toString();
-
-    if (eventType == "DeleteOrMoveMsgCompleted")
+    if (event == "DeleteOrMoveMsgCompleted")
       HandleDeleteOrMoveMsgCompleted(folder);
-    else if (eventType == "DeleteOrMoveMsgFailed")
+    else if (event == "DeleteOrMoveMsgFailed")
       HandleDeleteOrMoveMsgFailed(folder);
-    else if (eventType == "FolderLoaded") {
+    else if (event == "FolderLoaded") {
       if (folder) {
         var uri = folder.URI;
         if (uri == gCurrentFolderToRerootForStandAlone) {
@@ -61,14 +59,14 @@ var folderListener = {
           folder.endFolderLoading();
           if (gRerootOnFolderLoadForStandAlone) {
             RerootFolderForStandAlone(uri);
-          }   
+          }
         }
       }
     }
-    else if (eventType == "JunkStatusChanged") {
+    else if (event == "JunkStatusChanged") {
       HandleJunkStatusChanged(folder);
     }
-  }   
+  }
 }
 
 var messagepaneObserver = {
@@ -77,7 +75,7 @@ var messagepaneObserver = {
 
   onDrop: function (aEvent, aData, aDragSession)
   {
-    var sourceUri = aData.data; 
+    var sourceUri = aData.data;
     if (sourceUri != gCurrentMessageUri)
     {
       var msgHdr = GetMsgHdrFromUri(sourceUri);
@@ -97,13 +95,13 @@ var messagepaneObserver = {
       LoadMessageByMsgKey(msgHdr.messageKey);
     }
   },
- 
+
   onDragOver: function (aEvent, aFlavour, aDragSession)
   {
     var messagepanebox = document.getElementById("messagepanebox");
     messagepanebox.setAttribute("dragover", "true");
   },
- 
+
   onDragExit: function (aEvent, aDragSession)
   {
     var messagepanebox = document.getElementById("messagepanebox");
@@ -116,7 +114,7 @@ var messagepaneObserver = {
     var elem = doc.getElementById("messengerWindow");
     return (elem && (elem.getAttribute("windowtype") == "mail:3pane"));
   },
-  
+
   getSupportedFlavours: function ()
   {
     var flavourSet = new FlavourSet();
@@ -135,7 +133,7 @@ function UpdateStandAloneMessageCounts()
                                "mail:updateStandAloneMessageCounts", "");
 }
 
-nsMsgDBViewCommandUpdater.prototype = 
+nsMsgDBViewCommandUpdater.prototype =
 {
   updateCommandStatus : function()
     {
@@ -169,7 +167,7 @@ nsMsgDBViewCommandUpdater.prototype =
     if (iid.equals(Components.interfaces.nsIMsgDBViewCommandUpdater) ||
         iid.equals(Components.interfaces.nsISupports))
       return this;
-	  
+
     throw Components.results.NS_NOINTERFACE;
   }
 }
@@ -180,7 +178,7 @@ function HandleDeleteOrMoveMsgCompleted(folder)
   {
     gDBView.onDeleteCompleted(true);
     gCurrentMessageIsDeleted = false;
-    if (gNextMessageViewIndexAfterDelete != nsMsgViewIndex_None) 
+    if (gNextMessageViewIndexAfterDelete != nsMsgViewIndex_None)
     {
       var nextMstKey = gDBView.getKeyAt(gNextMessageViewIndexAfterDelete);
       if (nextMstKey != nsMsgKey_None &&
@@ -248,8 +246,8 @@ function OnLoadMessageWindow()
           if (messageUri instanceof Components.interfaces.nsIMsgMailNewsUrl)
             folder = messageUri.folder;
         }
-      } 
-      catch(ex) 
+      }
+      catch(ex)
       {
         folder = null;
         dump("## ex=" + ex + "\n");
@@ -330,9 +328,9 @@ function OnLoadMessageWindowDelayed(loadCustomMessage)
     else
       messenger.openURL(gCurrentMessageUri);
   }
-  gNextMessageViewIndexAfterDelete = gDBView.msgToSelectAfterDelete; 
+  gNextMessageViewIndexAfterDelete = gDBView.msgToSelectAfterDelete;
   UpdateStandAloneMessageCounts();
-   
+
   // set focus to the message pane
   window.content.focus();
 
@@ -347,7 +345,7 @@ function CreateView(originalView)
 {
   var msgFolder = GetLoadedMsgFolder();
 
-  // extract the sort type, the sort order, 
+  // extract the sort type, the sort order,
   var sortType;
   var sortOrder;
   var viewFlags;
@@ -380,7 +378,7 @@ function CreateView(originalView)
   }
 
   // create a db view
-  CreateBareDBView(originalView, msgFolder, viewType, viewFlags, sortType, sortOrder); 
+  CreateBareDBView(originalView, msgFolder, viewType, viewFlags, sortType, sortOrder);
 
   var uri;
   if (gCurrentMessageUri)
@@ -477,9 +475,9 @@ function SelectFolder(folderUri)
     return;
 
   // close old folder view
-  var dbview = GetDBView();  
+  var dbview = GetDBView();
   if (dbview)
-    dbview.close(); 
+    dbview.close();
 
   gCurrentFolderToRerootForStandAlone = folderUri;
 
@@ -505,7 +503,7 @@ function SelectFolder(folderUri)
     //Need to do this after rerooting folder.  Otherwise possibility of receiving folder loaded
     //notification before folder has actually changed.
     msgfolder.updateFolder(msgWindow);
-  }    
+  }
 }
 
 function RerootFolderForStandAlone(uri)
@@ -514,21 +512,21 @@ function RerootFolderForStandAlone(uri)
 
   // create new folder view
   CreateView(null);
-  
+
   // now do the work to load the appropriate message
   if (gNextMessageAfterLoad) {
     var type = gNextMessageAfterLoad;
     gNextMessageAfterLoad = null;
     LoadMessageByNavigationType(type);
   }
-  
+
   SetUpToolbarButtons(gCurrentFolderUri);
-  
+
   UpdateMailToolbar("reroot folder in stand alone window");
-  
+
   // hook for extra toolbar items
   Services.obs.notifyObservers(window, "mail:setupToolbarItems", uri);
-} 
+}
 
 function GetMsgHdrFromUri(messageUri)
 {
@@ -540,7 +538,7 @@ function SelectMessage(messageUri)
   var msgHdr = GetMsgHdrFromUri(messageUri);
   LoadMessageByMsgKey(msgHdr.messageKey);
 }
- 
+
 function ReloadMessage()
 {
   gDBView.reloadMessage();
@@ -583,12 +581,12 @@ var MessageWindowController =
       case "cmd_runJunkControls":
       case "cmd_deleteJunk":
       case "cmd_nextMsg":
-      case "button_next": 
-      case "cmd_nextUnreadMsg": 
-      case "cmd_nextFlaggedMsg": 
-      case "cmd_nextUnreadThread": 
-      case "cmd_previousMsg": 
-      case "cmd_previousUnreadMsg": 
+      case "button_next":
+      case "cmd_nextUnreadMsg":
+      case "cmd_nextFlaggedMsg":
+      case "cmd_nextUnreadThread":
+      case "cmd_previousMsg":
+      case "cmd_previousUnreadMsg":
       case "cmd_previousFlaggedMsg":
       case "cmd_goBack":
       case "button_goBack":
@@ -720,7 +718,7 @@ var MessageWindowController =
       case "cmd_getMsgsForAuthAccounts":
 				return IsGetNewMessagesEnabled();
 			case "cmd_getNextNMessages":
-				return IsGetNextNMessagesEnabled();		
+				return IsGetNextNMessagesEnabled();
 			case "cmd_downloadFlagged":
 			case "cmd_downloadSelected":
       case "cmd_synchronizeOffline":
@@ -831,7 +829,7 @@ var MessageWindowController =
         break;
       case "cmd_createFilterFromMenu":
         MsgCreateFilter();
-        break;        
+        break;
       case "cmd_delete":
       case "button_delete":
         MsgDeleteMessage(false);
@@ -928,7 +926,7 @@ var MessageWindowController =
       case "button_next":
         performNavigation(nsMsgNavigationType.nextUnreadMessage);
         break;
-			case "cmd_nextUnreadThread":      
+			case "cmd_nextUnreadThread":
         performNavigation(nsMsgNavigationType.nextUnreadThread);
 				break;
 			case "cmd_nextMsg":
@@ -957,7 +955,7 @@ var MessageWindowController =
         break;
 		}
 	},
-	
+
 	onEvent: function(event)
 	{
 	}
@@ -972,7 +970,7 @@ function LoadMessageByNavigationType(type)
   gDBView.viewNavigate(type, resultId, resultIndex, threadIndex, true /* wrap */);
 
   // if we found something....display it.
-  if ((resultId.value != nsMsgKey_None) && (resultIndex.value != nsMsgKey_None)) 
+  if ((resultId.value != nsMsgKey_None) && (resultIndex.value != nsMsgKey_None))
   {
     // load the message key
     LoadMessageByMsgKey(resultId.value);
@@ -986,14 +984,14 @@ function LoadMessageByNavigationType(type)
   // no message found to load
   return false;
 }
-   
+
 function performNavigation(type)
 {
   // Try to load a message by navigation type if we can find
   // the message in the same folder.
   if (LoadMessageByNavigationType(type))
     return;
-   
+
   CrossFolderNavigation(type);
 }
 

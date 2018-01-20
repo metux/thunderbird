@@ -378,7 +378,7 @@
           <hbox id="AIMContainer" align="center">
             <spacer flex="1"/>
             <label control="AIM" value="&AIM.label;"
-                   accesskey="&AIM.accesskey;"/>
+                   accesskey="&AIM2.accesskey;"/>
             <hbox class="CardEditWidth">
               <textbox id="AIM" flex="1" onchange="updateChatName();"/>
             </hbox>
@@ -410,7 +410,7 @@
           <hbox id="MSNContainer" align="center">
             <spacer flex="1"/>
             <label control="MSN" value="&MSN.label;"
-                   accesskey="&MSN.accesskey;"/>
+                   accesskey="&MSN2.accesskey;"/>
             <hbox class="CardEditWidth">
               <textbox id="MSN" flex="1" onchange="updateChatName();"/>
             </hbox>
@@ -466,7 +466,7 @@
                 <radio id="FilePhotoType" value="file" label="&PhotoFile.label;"
                        accesskey="&PhotoFile.accesskey;"/>
                 <hbox class="indent">
-                  <filefield id="PhotoFile" maxlength="255" flex="1"/>
+                  <filefield id="PhotoFile" readonly="true" maxlength="255" flex="1"/>
                    <button oncommand="browsePhoto();" id="BrowsePhoto"
                           label="&BrowsePhoto.label;"
                           accesskey="&BrowsePhoto.accesskey;"/>

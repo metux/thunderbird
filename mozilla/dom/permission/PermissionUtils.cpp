@@ -14,7 +14,7 @@ const char* kPermissionTypes[] = {
   "desktop-notification",
   // Alias `push` to `desktop-notification`.
   "desktop-notification",
-  "midi"
+  "persistent-storage"
 };
 
 // `-1` for the last null entry.

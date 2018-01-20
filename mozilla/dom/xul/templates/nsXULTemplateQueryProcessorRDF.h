@@ -54,7 +54,7 @@ public:
 
     // nsIXULTemplateQueryProcessor interface
     NS_DECL_NSIXULTEMPLATEQUERYPROCESSOR
-   
+
     // nsIRDFObserver interface
     NS_DECL_NSIRDFOBSERVER
 
@@ -129,7 +129,7 @@ public:
      * set as a child of aParentNode.
      */
     virtual nsresult
-    CompileQueryChild(nsIAtom* aTag,
+    CompileQueryChild(nsAtom* aTag,
                       nsRDFQuery* aQuery,
                       nsIContent* aConditions,
                       TestNode* aParentNode,
@@ -139,7 +139,7 @@ public:
      * Parse the value of a property test assertion for a condition or a simple
      * rule based on the parseType attribute into the appropriate literal type.
      */
-    nsresult ParseLiteral(const nsString& aParseType, 
+    nsresult ParseLiteral(const nsString& aParseType,
                           const nsString& aValue,
                           nsIRDFNode** aResult);
 
@@ -292,7 +292,7 @@ protected:
     TestNode* mSimpleRuleMemberTest;
 
     // the reference variable
-    nsCOMPtr<nsIAtom> mRefVariable;
+    RefPtr<nsAtom> mRefVariable;
 
     // the last ref that was calculated, used for simple rules
     nsCOMPtr<nsIXULTemplateResult> mLastRef;

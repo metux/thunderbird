@@ -4,17 +4,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsIMsgComposeParams.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsIMsgHdr.h"
 #include "nsCOMPtr.h"
 class nsMsgComposeParams : public nsIMsgComposeParams
 {
-public: 
+public:
   nsMsgComposeParams();
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSIMSGCOMPOSEPARAMS
-  
+
 private:
   virtual ~nsMsgComposeParams();
   MSG_ComposeType               mType;
@@ -24,7 +24,7 @@ private:
   nsCOMPtr<nsIMsgCompFields>    mComposeFields;
   bool                          mBodyIsLink;
   nsCOMPtr<nsIMsgSendListener>  mSendListener;
-  nsCString                     mSMTPPassword;
+  nsString                     mSMTPPassword;
   nsCOMPtr<nsIMsgDBHdr>         mOrigMsgHdr;
   nsCString                     mHtmlToQuote;
 };

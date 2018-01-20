@@ -9,7 +9,7 @@ import org.mozilla.gecko.AppConstants;
 import android.content.Context;
 import android.content.Intent;
 
-import com.jayway.android.robotium.solo.Condition;
+import com.robotium.solo.Condition;
 
 import java.io.File;
 import java.io.FileReader;
@@ -20,7 +20,7 @@ import org.json.JSONObject;
 /**
  * Tests the proper operation of the ANR reporter.
  */
-public class testANRReporter extends BaseTest {
+public class testANRReporter extends OldBaseTest {
 
     private static final String ANR_ACTION = "android.intent.action.ANR";
     private static final String PING_DIR = "saved-telemetry-pings";

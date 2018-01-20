@@ -7,11 +7,9 @@
 #include "gc/Tracer.h"
 
 #include "mozilla/DebugOnly.h"
-#include "mozilla/SizePrintfMacros.h"
 
 #include "jsapi.h"
 #include "jsfun.h"
-#include "jsgc.h"
 #include "jsprf.h"
 #include "jsscript.h"
 #include "jsutil.h"
@@ -59,7 +57,7 @@ JS_FOR_EACH_TRACEKIND(INSTANTIATE_ALL_VALID_TRACE_FUNCTIONS);
 template <typename S>
 struct DoCallbackFunctor : public IdentityDefaultAdaptor<S> {
     template <typename T> S operator()(T* t, JS::CallbackTracer* trc, const char* name) {
-        return js::gc::RewrapTaggedPointer<S, T*>::wrap(DoCallback(trc, &t, name));
+        return js::gc::RewrapTaggedPointer<S, T>::wrap(DoCallback(trc, &t, name));
     }
 };
 
@@ -96,92 +94,14 @@ JS::CallbackTracer::getTracingEdgeName(char* buffer, size_t bufferSize)
         return;
     }
     if (contextIndex_ != InvalidIndex) {
-        JS_snprintf(buffer, bufferSize, "%s[%lu]", contextName_, contextIndex_);
+        snprintf(buffer, bufferSize, "%s[%zu]", contextName_, contextIndex_);
         return;
     }
-    JS_snprintf(buffer, bufferSize, "%s", contextName_);
+    snprintf(buffer, bufferSize, "%s", contextName_);
 }
 
 
 /*** Public Tracing API **************************************************************************/
-
-JS_PUBLIC_API(void)
-JS_CallUnbarrieredValueTracer(JSTracer* trc, Value* valuep, const char* name)
-{
-    TraceManuallyBarrieredEdge(trc, valuep, name);
-}
-
-JS_PUBLIC_API(void)
-JS_CallUnbarrieredIdTracer(JSTracer* trc, jsid* idp, const char* name)
-{
-    TraceManuallyBarrieredEdge(trc, idp, name);
-}
-
-JS_PUBLIC_API(void)
-JS_CallUnbarrieredObjectTracer(JSTracer* trc, JSObject** objp, const char* name)
-{
-    TraceManuallyBarrieredEdge(trc, objp, name);
-}
-
-JS_PUBLIC_API(void)
-JS_CallUnbarrieredStringTracer(JSTracer* trc, JSString** strp, const char* name)
-{
-    TraceManuallyBarrieredEdge(trc, strp, name);
-}
-
-JS_PUBLIC_API(void)
-JS_CallUnbarrieredScriptTracer(JSTracer* trc, JSScript** scriptp, const char* name)
-{
-    TraceManuallyBarrieredEdge(trc, scriptp, name);
-}
-
-JS_PUBLIC_API(void)
-JS_CallValueTracer(JSTracer* trc, JS::Heap<JS::Value>* valuep, const char* name)
-{
-    TraceManuallyBarrieredEdge(trc, valuep->unsafeGet(), name);
-}
-
-JS_PUBLIC_API(void)
-JS_CallIdTracer(JSTracer* trc, JS::Heap<jsid>* idp, const char* name)
-{
-    TraceManuallyBarrieredEdge(trc, idp->unsafeGet(), name);
-}
-
-JS_PUBLIC_API(void)
-JS_CallObjectTracer(JSTracer* trc, JS::Heap<JSObject*>* objp, const char* name)
-{
-    TraceManuallyBarrieredEdge(trc, objp->unsafeGet(), name);
-}
-
-JS_PUBLIC_API(void)
-JS_CallStringTracer(JSTracer* trc, JS::Heap<JSString*>* strp, const char* name)
-{
-    TraceManuallyBarrieredEdge(trc, strp->unsafeGet(), name);
-}
-
-JS_PUBLIC_API(void)
-JS_CallScriptTracer(JSTracer* trc, JS::Heap<JSScript*>* scriptp, const char* name)
-{
-    TraceManuallyBarrieredEdge(trc, scriptp->unsafeGet(), name);
-}
-
-JS_PUBLIC_API(void)
-JS_CallFunctionTracer(JSTracer* trc, JS::Heap<JSFunction*>* funp, const char* name)
-{
-    TraceManuallyBarrieredEdge(trc, funp->unsafeGet(), name);
-}
-
-JS_PUBLIC_API(void)
-JS_CallTenuredObjectTracer(JSTracer* trc, JS::TenuredHeap<JSObject*>* objp, const char* name)
-{
-    JSObject* obj = objp->getPtr();
-    if (!obj)
-        return;
-
-    TraceManuallyBarrieredEdge(trc, &obj, name);
-
-    objp->setPtr(obj);
-}
 
 JS_PUBLIC_API(void)
 JS::TraceChildren(JSTracer* trc, GCCellPtr thing)
@@ -191,8 +111,13 @@ JS::TraceChildren(JSTracer* trc, GCCellPtr thing)
 
 struct TraceChildrenFunctor {
     template <typename T>
-    void operator()(JSTracer* trc, void* thing) {
-        static_cast<T*>(thing)->traceChildren(trc);
+    void operator()(JSTracer* trc, void* thingArg) {
+        T* thing = static_cast<T*>(thingArg);
+        MOZ_ASSERT_IF(thing->runtimeFromAnyThread() != trc->runtime(),
+            ThingIsPermanentAtomOrWellKnownSymbol(thing) ||
+            thing->zoneFromAnyThread()->isSelfHostingZone());
+
+        thing->traceChildren(trc);
     }
 };
 
@@ -204,63 +129,37 @@ js::TraceChildren(JSTracer* trc, void* thing, JS::TraceKind kind)
     DispatchTraceKindTyped(f, kind, trc, thing);
 }
 
-JS_PUBLIC_API(void)
-JS_TraceRuntime(JSTracer* trc)
-{
-    AssertHeapIsIdle(trc->runtime());
-    TraceRuntime(trc);
-}
+namespace {
+struct TraceIncomingFunctor {
+    JSTracer* trc_;
+    const JS::CompartmentSet& compartments_;
+    TraceIncomingFunctor(JSTracer* trc, const JS::CompartmentSet& compartments)
+      : trc_(trc), compartments_(compartments)
+    {}
+    template <typename T>
+    void operator()(T tp) {
+        if (!compartments_.has((*tp)->compartment()))
+            return;
+        TraceManuallyBarrieredEdge(trc_, tp, "cross-compartment wrapper");
+    }
+    // StringWrappers are just used to avoid copying strings
+    // across zones multiple times, and don't hold a strong
+    // reference.
+    void operator()(JSString** tp) {}
+};
+} // namespace (anonymous)
 
 JS_PUBLIC_API(void)
-JS_TraceIncomingCCWs(JSTracer* trc, const JS::ZoneSet& zones)
+JS::TraceIncomingCCWs(JSTracer* trc, const JS::CompartmentSet& compartments)
 {
-    for (js::ZonesIter z(trc->runtime(), SkipAtoms); !z.done(); z.next()) {
-        Zone* zone = z.get();
-        if (!zone || zones.has(zone))
+    for (js::CompartmentsIter comp(trc->runtime(), SkipAtoms); !comp.done(); comp.next()) {
+        if (compartments.has(comp))
             continue;
 
-        for (js::CompartmentsInZoneIter c(zone); !c.done(); c.next()) {
-            JSCompartment* comp = c.get();
-            if (!comp)
-                continue;
-
-            for (JSCompartment::WrapperEnum e(comp); !e.empty(); e.popFront()) {
-                const CrossCompartmentKey& key = e.front().key();
-                JSObject* obj;
-                JSScript* script;
-
-                switch (key.kind) {
-                  case CrossCompartmentKey::StringWrapper:
-                    // StringWrappers are just used to avoid copying strings
-                    // across zones multiple times, and don't hold a strong
-                    // reference.
-                    continue;
-
-                  case CrossCompartmentKey::ObjectWrapper:
-                  case CrossCompartmentKey::DebuggerObject:
-                  case CrossCompartmentKey::DebuggerSource:
-                  case CrossCompartmentKey::DebuggerEnvironment:
-                    obj = static_cast<JSObject*>(key.wrapped);
-                    // Ignore CCWs whose wrapped value doesn't live in our given
-                    // set of zones.
-                    if (!zones.has(obj->zone()))
-                        continue;
-
-                    TraceManuallyBarrieredEdge(trc, &obj, "cross-compartment wrapper");
-                    MOZ_ASSERT(obj == key.wrapped);
-                    break;
-
-                  case CrossCompartmentKey::DebuggerScript:
-                    script = static_cast<JSScript*>(key.wrapped);
-                    // Ignore CCWs whose wrapped value doesn't live in our given
-                    // set of zones.
-                    if (!zones.has(script->zone()))
-                        continue;
-                    TraceManuallyBarrieredEdge(trc, &script, "cross-compartment wrapper");
-                    MOZ_ASSERT(script == key.wrapped);
-                    break;
-                }
-            }
+        for (JSCompartment::WrapperEnum e(comp); !e.empty(); e.popFront()) {
+            mozilla::DebugOnly<const CrossCompartmentKey> prior = e.front().key();
+            e.front().mutableKey().applyToWrapped(TraceIncomingFunctor(trc, compartments));
+            MOZ_ASSERT(e.front().key() == prior);
         }
     }
 }
@@ -283,16 +182,7 @@ JS_TraceIncomingCCWs(JSTracer* trc, const JS::ZoneSet& zones)
 void
 gc::TraceCycleCollectorChildren(JS::CallbackTracer* trc, Shape* shape)
 {
-    // We need to mark the global, but it's OK to only do this once instead of
-    // doing it for every Shape in our lineage, since it's always the same
-    // global.
-    JSObject* global = shape->compartment()->unsafeUnbarrieredMaybeGlobal();
-    MOZ_ASSERT(global);
-    DoCallback(trc, &global, "global");
-
     do {
-        MOZ_ASSERT(global == shape->compartment()->unsafeUnbarrieredMaybeGlobal());
-
         MOZ_ASSERT(shape->base());
         shape->base()->assertConsistency();
 
@@ -313,10 +203,6 @@ gc::TraceCycleCollectorChildren(JS::CallbackTracer* trc, Shape* shape)
         shape = shape->previous();
     } while (shape);
 }
-
-void
-TraceObjectGroupCycleCollectorChildrenCallback(JS::CallbackTracer* trc,
-                                               void** thingp, JS::TraceKind kind);
 
 // Object groups can point to other object groups via an UnboxedLayout or the
 // the original unboxed group link. There can potentially be deep or cyclic
@@ -339,6 +225,12 @@ struct ObjectGroupCycleCollectorTracer : public JS::CallbackTracer
 void
 ObjectGroupCycleCollectorTracer::onChild(const JS::GCCellPtr& thing)
 {
+    if (thing.is<BaseShape>()) {
+        // The CC does not care about BaseShapes, and no additional GC things
+        // will be reached by following this edge.
+        return;
+    }
+
     if (thing.is<JSObject>() || thing.is<JSScript>()) {
         // Invoke the inner cycle collector callback on this child. It will not
         // recurse back into TraceChildren.
@@ -400,6 +292,37 @@ CountDecimalDigits(size_t num)
     return numDigits;
 }
 
+static const char*
+StringKindHeader(JSString* str)
+{
+    MOZ_ASSERT(str->isLinear());
+
+    if (str->isAtom()) {
+        if (str->isPermanentAtom())
+            return "permanent atom: ";
+        return "atom: ";
+    }
+
+    if (str->isFlat()) {
+        if (str->isExtensible())
+            return "extensible: ";
+        if (str->isUndepended())
+            return "undepended: ";
+        if (str->isInline()) {
+            if (str->isFatInline())
+                return "fat inline: ";
+            return "inline: ";
+        }
+        return "flat: ";
+    }
+
+    if (str->isDependent())
+        return "dependent: ";
+    if (str->isExternal())
+        return "external: ";
+    return "linear: ";
+}
+
 JS_PUBLIC_API(void)
 JS_GetTraceThingInfo(char* buf, size_t bufsize, JSTracer* trc, void* thing,
                      JS::TraceKind kind, bool details)
@@ -411,26 +334,6 @@ JS_GetTraceThingInfo(char* buf, size_t bufsize, JSTracer* trc, void* thing,
         return;
 
     switch (kind) {
-      case JS::TraceKind::Object:
-      {
-        name = static_cast<JSObject*>(thing)->getClass()->name;
-        break;
-      }
-
-      case JS::TraceKind::Script:
-        name = "script";
-        break;
-
-      case JS::TraceKind::String:
-        name = ((JSString*)thing)->isDependent()
-               ? "substring"
-               : "string";
-        break;
-
-      case JS::TraceKind::Symbol:
-        name = "symbol";
-        break;
-
       case JS::TraceKind::BaseShape:
         name = "base_shape";
         break;
@@ -443,12 +346,44 @@ JS_GetTraceThingInfo(char* buf, size_t bufsize, JSTracer* trc, void* thing,
         name = "lazyscript";
         break;
 
+      case JS::TraceKind::Null:
+        name = "null_pointer";
+        break;
+
+      case JS::TraceKind::Object:
+      {
+        name = static_cast<JSObject*>(thing)->getClass()->name;
+        break;
+      }
+
+      case JS::TraceKind::ObjectGroup:
+        name = "object_group";
+        break;
+
+      case JS::TraceKind::RegExpShared:
+        name = "reg_exp_shared";
+        break;
+
+      case JS::TraceKind::Scope:
+        name = "scope";
+        break;
+
+      case JS::TraceKind::Script:
+        name = "script";
+        break;
+
       case JS::TraceKind::Shape:
         name = "shape";
         break;
 
-      case JS::TraceKind::ObjectGroup:
-        name = "object_group";
+      case JS::TraceKind::String:
+        name = ((JSString*)thing)->isDependent()
+               ? "substring"
+               : "string";
+        break;
+
+      case JS::TraceKind::Symbol:
+        name = "symbol";
         break;
 
       default:
@@ -477,9 +412,9 @@ JS_GetTraceThingInfo(char* buf, size_t bufsize, JSTracer* trc, void* thing,
                     PutEscapedString(buf, bufsize, fun->displayAtom(), 0);
                 }
             } else if (obj->getClass()->flags & JSCLASS_HAS_PRIVATE) {
-                JS_snprintf(buf, bufsize, " %p", obj->as<NativeObject>().getPrivate());
+                snprintf(buf, bufsize, " %p", obj->as<NativeObject>().getPrivate());
             } else {
-                JS_snprintf(buf, bufsize, " <no private>");
+                snprintf(buf, bufsize, " <no private>");
             }
             break;
           }
@@ -487,7 +422,7 @@ JS_GetTraceThingInfo(char* buf, size_t bufsize, JSTracer* trc, void* thing,
           case JS::TraceKind::Script:
           {
             JSScript* script = static_cast<JSScript*>(thing);
-            JS_snprintf(buf, bufsize, " %s:%" PRIuSIZE, script->filename(), script->lineno());
+            snprintf(buf, bufsize, " %s:%zu", script->filename(), script->lineno());
             break;
           }
 
@@ -498,18 +433,19 @@ JS_GetTraceThingInfo(char* buf, size_t bufsize, JSTracer* trc, void* thing,
             JSString* str = (JSString*)thing;
 
             if (str->isLinear()) {
-                bool willFit = str->length() + strlen("<length > ") +
+                const char* header = StringKindHeader(str);
+                bool willFit = str->length() + strlen("<length > ") + strlen(header) +
                                CountDecimalDigits(str->length()) < bufsize;
 
-                n = JS_snprintf(buf, bufsize, "<length %d%s> ",
-                                (int)str->length(),
-                                willFit ? "" : " (truncated)");
+                n = snprintf(buf, bufsize, "<%slength %zu%s> ",
+                             header, str->length(),
+                             willFit ? "" : " (truncated)");
                 buf += n;
                 bufsize -= n;
 
                 PutEscapedString(buf, bufsize, &str->asLinear(), 0);
             } else {
-                JS_snprintf(buf, bufsize, "<rope: length %d>", (int)str->length());
+                snprintf(buf, bufsize, "<rope: length %zu>", str->length());
             }
             break;
           }
@@ -523,11 +459,18 @@ JS_GetTraceThingInfo(char* buf, size_t bufsize, JSTracer* trc, void* thing,
                     bufsize--;
                     PutEscapedString(buf, bufsize, &desc->asLinear(), 0);
                 } else {
-                    JS_snprintf(buf, bufsize, "<nonlinear desc>");
+                    snprintf(buf, bufsize, "<nonlinear desc>");
                 }
             } else {
-                JS_snprintf(buf, bufsize, "<null>");
+                snprintf(buf, bufsize, "<null>");
             }
+            break;
+          }
+
+          case JS::TraceKind::Scope:
+          {
+            js::Scope* scope = static_cast<js::Scope*>(thing);
+            snprintf(buf, bufsize, " %s", js::ScopeKindString(scope->kind()));
             break;
           }
 
@@ -537,3 +480,7 @@ JS_GetTraceThingInfo(char* buf, size_t bufsize, JSTracer* trc, void* thing,
     }
     buf[bufsize - 1] = '\0';
 }
+
+JS::CallbackTracer::CallbackTracer(JSContext* cx, WeakMapTraceKind weakTraceKind)
+  : CallbackTracer(cx->runtime(), weakTraceKind)
+{}

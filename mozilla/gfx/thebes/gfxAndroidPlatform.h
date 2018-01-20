@@ -6,7 +6,6 @@
 #ifndef GFX_PLATFORM_ANDROID_H
 #define GFX_PLATFORM_ANDROID_H
 
-#include "gfxFT2Fonts.h"
 #include "gfxPlatform.h"
 #include "gfxUserFontSet.h"
 #include "nsCOMPtr.h"
@@ -19,8 +18,6 @@ namespace mozilla {
 };
 using mozilla::dom::FontListEntry;
 
-typedef struct FT_LibraryRec_ *FT_Library;
-
 class gfxAndroidPlatform : public gfxPlatform {
 public:
     gfxAndroidPlatform();
@@ -32,42 +29,19 @@ public:
 
     virtual already_AddRefed<gfxASurface>
     CreateOffscreenSurface(const IntSize& aSize,
-                           gfxImageFormat aFormat);
+                           gfxImageFormat aFormat) override;
     
-    virtual gfxImageFormat GetOffscreenFormat() { return mOffscreenFormat; }
-    
-    already_AddRefed<mozilla::gfx::ScaledFont>
-      GetScaledFontForFont(mozilla::gfx::DrawTarget* aTarget, gfxFont *aFont);
+    virtual gfxImageFormat GetOffscreenFormat() override { return mOffscreenFormat; }
 
     // to support IPC font list (sharing between chrome and content)
     void GetSystemFontList(InfallibleTArray<FontListEntry>* retValue);
 
     // platform implementations of font functions
-    virtual bool IsFontFormatSupported(nsIURI *aFontURI, uint32_t aFormatFlags);
-    virtual gfxPlatformFontList* CreatePlatformFontList();
-    virtual gfxFontEntry* LookupLocalFont(const nsAString& aFontName,
-                                          uint16_t aWeight,
-                                          int16_t aStretch,
-                                          uint8_t aStyle);
-    virtual gfxFontEntry* MakePlatformFont(const nsAString& aFontName,
-                                           uint16_t aWeight,
-                                           int16_t aStretch,
-                                           uint8_t aStyle,
-                                           const uint8_t* aFontData,
-                                           uint32_t aLength);
+    virtual gfxPlatformFontList* CreatePlatformFontList() override;
 
     virtual void GetCommonFallbackFonts(uint32_t aCh, uint32_t aNextCh,
-                                        int32_t aRunScript,
-                                        nsTArray<const char*>& aFontList);
-
-    virtual nsresult GetFontList(nsIAtom *aLangGroup,
-                                 const nsACString& aGenericFamily,
-                                 nsTArray<nsString>& aListOfFonts);
-
-    virtual nsresult UpdateFontList();
-
-    virtual nsresult GetStandardFamilyName(const nsAString& aFontName,
-                                           nsAString& aFamilyName);
+                                        Script aRunScript,
+                                        nsTArray<const char*>& aFontList) override;
 
     gfxFontGroup*
     CreateFontGroup(const mozilla::FontFamilyList& aFontFamilyList,
@@ -79,23 +53,13 @@ public:
     virtual bool FontHintingEnabled() override;
     virtual bool RequiresLinearZoom() override;
 
-    FT_Library GetFTLibrary();
+    FT_Library GetFTLibrary() override;
 
     virtual bool CanRenderContentToDataSurface() const override {
       return true;
     }
 
-    virtual bool HaveChoiceOfHWAndSWCanvas() override;
-    virtual bool UseAcceleratedSkiaCanvas() override;
     virtual already_AddRefed<mozilla::gfx::VsyncSource> CreateHardwareVsyncSource() override;
-
-#ifdef MOZ_WIDGET_GONK
-    virtual bool IsInGonkEmulator() const { return mIsInGonkEmulator; }
-#endif
-
-    virtual bool SupportsApzTouchInput() const override {
-      return true;
-    }
 
 protected:
     bool AccelerateLayersByDefault() override {
@@ -103,12 +67,7 @@ protected:
     }
 
 private:
-    int mScreenDepth;
     gfxImageFormat mOffscreenFormat;
-
-#ifdef MOZ_WIDGET_GONK
-    bool mIsInGonkEmulator;
-#endif
 };
 
 #endif /* GFX_PLATFORM_ANDROID_H */

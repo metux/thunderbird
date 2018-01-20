@@ -16,7 +16,6 @@ test();
 
 function test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
 
@@ -30,15 +29,11 @@ function test()
     // trying to do all the enumerate hook object creation with a gc on
     // every object, because that makes tests time out.
     for (z in this);
-    jit(true);
     gczeal(2);
 
     var a, b; gczeal(2); (function() { for (var p in this) { } })();
 
     gczeal(0);
-    jit(false);
   }
   reportCompare(expect, actual, summary);
-
-  exitFunc ('test');
 }

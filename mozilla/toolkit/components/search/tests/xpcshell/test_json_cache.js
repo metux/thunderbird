@@ -7,41 +7,15 @@
 
 "use strict";
 
-/**
- * Gets a directory from the directory service.
- * @param aKey
- *        The directory service key indicating the directory to get.
- */
-var _dirSvc = null;
-function getDir(aKey, aIFace) {
-  if (!aKey) {
-    FAIL("getDir requires a directory key!");
-  }
-
-  if (!_dirSvc) {
-    _dirSvc = Cc["@mozilla.org/file/directory_service;1"].
-               getService(Ci.nsIProperties);
-  }
-  return _dirSvc.get(aKey, aIFace || Ci.nsIFile);
-}
-
-function makeURI(uri) {
-  return Services.io.newURI(uri, null, null);
-}
-
 var cacheTemplate, appPluginsPath, profPlugins;
 
 /**
  * Test reading from search.json.mozlz4
  */
 function run_test() {
-  removeMetadata();
-  removeCacheFile();
-
-  updateAppInfo();
-
   let cacheTemplateFile = do_get_file("data/search.json");
   cacheTemplate = readJSONFile(cacheTemplateFile);
+  cacheTemplate.buildID = getAppInfo().platformBuildID;
 
   let engineFile = gProfD.clone();
   engineFile.append("searchplugins");
@@ -53,26 +27,17 @@ function run_test() {
   engineTemplateFile.copyTo(engineFile.parent, "test-search-engine.xml");
 
   // The list of visibleDefaultEngines needs to match or the cache will be ignored.
-  let chan = NetUtil.ioService.newChannel2("resource://search-plugins/list.txt",
-                                           null, // aOriginCharset
-                                           null, // aBaseURI
-                                           null, // aLoadingNode
-                                           Services.scriptSecurityManager.getSystemPrincipal(),
-                                           null, // aTriggeringPrincipal
-                                           Ci.nsILoadInfo.SEC_NORMAL,
-                                           Ci.nsIContentPolicy.TYPE_OTHER);
-  let visibleDefaultEngines = [];
+  let chan = NetUtil.newChannel({
+    uri: "resource://search-plugins/list.json",
+    loadUsingSystemPrincipal: true
+  });
   let sis = Cc["@mozilla.org/scriptableinputstream;1"].
               createInstance(Ci.nsIScriptableInputStream);
-  sis.init(chan.open());
+  sis.init(chan.open2());
   let list = sis.read(sis.available());
-  let names = list.split("\n").filter(n => !!n);
-  for (let name of names) {
-    if (name.endsWith(":hidden"))
-      continue;
-    visibleDefaultEngines.push(name);
-  }
-  cacheTemplate.visibleDefaultEngines = visibleDefaultEngines;
+  let searchSettings = JSON.parse(list);
+
+  cacheTemplate.visibleDefaultEngines = searchSettings.default.visibleDefaultEngines;
 
   run_next_test();
 }
@@ -90,7 +55,7 @@ add_test(function prepare_test_data() {
 add_test(function test_cached_engine_properties() {
   do_print("init search service");
 
-  let search = Services.search.init(function initComplete(aResult) {
+  Services.search.init(function initComplete(aResult) {
     do_print("init'd search service");
     do_check_true(Components.isSuccessCode(aResult));
 
@@ -104,7 +69,6 @@ add_test(function test_cached_engine_properties() {
     do_check_true(!!engineFromSS);
     isSubObjectOf(EXPECTED_ENGINE.engine, engineFromSS);
 
-    removeMetadata();
     removeCacheFile();
     run_next_test();
   });
@@ -145,9 +109,9 @@ add_test(function test_cache_write() {
         });
       }
     };
-    Services.obs.addObserver(cacheWriteObserver, "browser-search-service", false);
+    Services.obs.addObserver(cacheWriteObserver, "browser-search-service");
 
-    Services.search.QueryInterface(Ci.nsIObserver).observe(null, "browser-search-engine-modified" , "engine-removed");
+    Services.search.QueryInterface(Ci.nsIObserver).observe(null, "browser-search-engine-modified", "engine-removed");
   });
 });
 
@@ -160,7 +124,7 @@ var EXPECTED_ENGINE = {
     wrappedJSObject: {
       _extensionID: "test-addon-id@mozilla.org",
       "_iconURL": "data:image/png;base64,AAABAAEAEBAAAAEAGABoAwAAFgAAACgAAAAQAAAAIAAAAAEAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADs9Pt8xetPtu9FsfFNtu%2BTzvb2%2B%2Fne4dFJeBw0egA%2FfAJAfAA8ewBBegAAAAD%2B%2FPtft98Mp%2BwWsfAVsvEbs%2FQeqvF8xO7%2F%2F%2F63yqkxdgM7gwE%2FggM%2BfQA%2BegBDeQDe7PIbotgQufcMufEPtfIPsvAbs%2FQvq%2Bfz%2Bf%2F%2B%2B%2FZKhR05hgBBhQI8hgBAgAI9ewD0%2B%2Fg3pswAtO8Cxf4Kw%2FsJvvYAqupKsNv%2B%2Fv7%2F%2FP5VkSU0iQA7jQA9hgBDgQU%2BfQH%2F%2Ff%2FQ6fM4sM4KsN8AteMCruIqqdbZ7PH8%2Fv%2Fg6Nc%2Fhg05kAA8jAM9iQI%2BhQA%2BgQDQu6b97uv%2F%2F%2F7V8Pqw3eiWz97q8%2Ff%2F%2F%2F%2F7%2FPptpkkqjQE4kwA7kAA5iwI8iAA8hQCOSSKdXjiyflbAkG7u2s%2F%2B%2F%2F39%2F%2F7r8utrqEYtjQE8lgA7kwA7kwA9jwA9igA9hACiWSekVRyeSgiYSBHx6N%2F%2B%2Fv7k7OFRmiYtlAA5lwI7lwI4lAA7kgI9jwE9iwI4iQCoVhWcTxCmb0K%2BooT8%2Fv%2F7%2F%2F%2FJ2r8fdwI1mwA3mQA3mgA8lAE8lAE4jwA9iwE%2BhwGfXifWvqz%2B%2Ff%2F58u%2Fev6Dt4tr%2B%2F%2F2ZuIUsggA7mgM6mAM3lgA5lgA6kQE%2FkwBChwHt4dv%2F%2F%2F728ei1bCi7VAC5XQ7kz7n%2F%2F%2F6bsZkgcB03lQA9lgM7kwA2iQktZToPK4r9%2F%2F%2F9%2F%2F%2FSqYK5UwDKZAS9WALIkFn%2B%2F%2F3%2F%2BP8oKccGGcIRJrERILYFEMwAAuEAAdX%2F%2Ff7%2F%2FP%2B%2BfDvGXQLIZgLEWgLOjlf7%2F%2F%2F%2F%2F%2F9QU90EAPQAAf8DAP0AAfMAAOUDAtr%2F%2F%2F%2F7%2B%2Fu2bCTIYwDPZgDBWQDSr4P%2F%2Fv%2F%2F%2FP5GRuABAPkAA%2FwBAfkDAPAAAesAAN%2F%2F%2B%2Fz%2F%2F%2F64g1C5VwDMYwK8Yg7y5tz8%2Fv%2FV1PYKDOcAAP0DAf4AAf0AAfYEAOwAAuAAAAD%2F%2FPvi28ymXyChTATRrIb8%2F%2F3v8fk6P8MAAdUCAvoAAP0CAP0AAfYAAO4AAACAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAQAA",
-      _urls : [
+      _urls: [
         {
           type: "application/x-suggestions+json",
           method: "GET",
@@ -216,11 +180,6 @@ var EXPECTED_ENGINE = {
               "name": "q",
               "value": "{searchTerms}",
               "purpose": undefined,
-            },
-            {
-              "name": "channel",
-              "value": "none",
-              "purpose": "",
             },
             {
               "name": "channel",

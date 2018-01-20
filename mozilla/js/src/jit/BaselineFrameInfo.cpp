@@ -10,13 +10,20 @@
 # include "jit/BytecodeAnalysis.h"
 #endif
 
+#include "jit/BaselineFrameInfo-inl.h"
+#include "jit/MacroAssembler-inl.h"
+
 using namespace js;
 using namespace js::jit;
 
 bool
 FrameInfo::init(TempAllocator& alloc)
 {
-    size_t nstack = Max(script->nslots() - script->nfixed(), size_t(MinJITStackSize));
+    // An extra slot is needed for global scopes because INITGLEXICAL (stack
+    // depth 1) is compiled as a SETPROP (stack depth 2) on the global lexical
+    // scope.
+    size_t extra = script->isGlobalCode() ? 1 : 0;
+    size_t nstack = Max(script->nslots() - script->nfixed(), size_t(MinJITStackSize)) + extra;
     if (!stack.init(alloc, nstack))
         return false;
 
@@ -136,7 +143,7 @@ FrameInfo::popRegsAndSync(uint32_t uses)
         // clobbered by the first popValue.
         StackValue* val = peek(-2);
         if (val->kind() == StackValue::Register && val->reg() == R1) {
-            masm.moveValue(R1, R2);
+            masm.moveValue(R1, ValueOperand(R2));
             val->setRegister(R2);
         }
         popValue(R1);

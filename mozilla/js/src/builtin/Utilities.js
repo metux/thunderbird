@@ -23,28 +23,36 @@
 */
 
 #include "SelfHostingDefines.h"
+#include "TypedObjectConstants.h"
 
-// Assertions, defined here instead of in the header above to make `assert`
-// invisible to C++.
+// Assertions and debug printing, defined here instead of in the header above
+// to make `assert` invisible to C++.
 #ifdef DEBUG
-#define assert(b, info) if (!(b)) AssertionFailed(__FILE__ + ":" + __LINE__ + ": " + info)
+#define assert(b, info) \
+    do { \
+        if (!(b)) \
+            AssertionFailed(__FILE__ + ":" + __LINE__ + ": " + info) \
+    } while (false)
+#define dbg(msg) \
+    do { \
+        DumpMessage(callFunction(std_Array_pop, \
+                                 StringSplitString(__FILE__, '/')) + \
+                    '#' + __LINE__ + ': ' + msg) \
+    } while (false)
 #else
-#define assert(b, info) // Elided assertion.
+#define assert(b, info) do {} while (false) // Elided assertion.
+#define dbg(msg) do {} while (false) // Elided debugging output.
 #endif
 
 // All C++-implemented standard builtins library functions used in self-hosted
 // code are installed via the std_functions JSFunctionSpec[] in
 // SelfHosting.cpp.
 //
-// The few items below here are either self-hosted or installing them under a
-// std_Foo name would require ugly contortions, so they just get aliased here.
-var std_Array_indexOf = ArrayIndexOf;
-var std_String_substring = String_substring;
-// WeakMap is a bare constructor without properties or methods.
-var std_WeakMap = WeakMap;
-// StopIteration is a bare constructor without properties or methods.
-var std_StopIteration = StopIteration;
-var std_Map_iterator_next = MapIteratorNext;
+// Do not create an alias to a self-hosted builtin, otherwise it will be cloned
+// twice.
+//
+// Symbol is a bare constructor without properties or methods.
+var std_Symbol = Symbol;
 
 
 /********** List specification type **********/
@@ -95,37 +103,51 @@ function RequireObjectCoercible(v) {
 
 /* Spec: ECMAScript Draft, 6 edition May 22, 2014, 7.1.15 */
 function ToLength(v) {
+    // Step 1.
     v = ToInteger(v);
 
-    if (v <= 0)
-        return 0;
+    // Step 2.
+    // Use max(v, 0) here, because it's easier to optimize in Ion.
+    // This is correct even for -0.
+    v = std_Math_max(v, 0);
 
+    // Step 3.
     // Math.pow(2, 53) - 1 = 0x1fffffffffffff
     return std_Math_min(v, 0x1fffffffffffff);
 }
 
-/* Spec: ECMAScript Draft, 6th edition Oct 14, 2014, 7.2.4 */
+// ES2017 draft rev aebf014403a3e641fb1622aec47c40f051943527
+// 7.2.9 SameValue ( x, y )
+function SameValue(x, y) {
+    if (x === y) {
+        return (x !== 0) || (1 / x === 1 / y);
+    }
+    return (x !== x && y !== y);
+}
+
+// ES2017 draft rev aebf014403a3e641fb1622aec47c40f051943527
+// 7.2.10 SameValueZero ( x, y )
 function SameValueZero(x, y) {
     return x === y || (x !== x && y !== y);
 }
 
-/* Spec: ECMAScript Draft, 6th edition Dec 24, 2014, 7.3.8 */
-function GetMethod(O, P) {
+// ES 2017 draft (April 6, 2016) 7.3.9
+function GetMethod(V, P) {
     // Step 1.
     assert(IsPropertyKey(P), "Invalid property key");
 
-    // Steps 2-3.
-    var func = ToObject(O)[P];
+    // Step 2.
+    var func = V[P];
 
-    // Step 4.
+    // Step 3.
     if (func === undefined || func === null)
         return undefined;
 
-    // Step 5.
+    // Step 4.
     if (!IsCallable(func))
         ThrowTypeError(JSMSG_NOT_FUNCTION, typeof func);
 
-    // Step 6.
+    // Step 5.
     return func;
 }
 
@@ -138,50 +160,148 @@ function IsPropertyKey(argument) {
 /* Spec: ECMAScript Draft, 6th edition Dec 24, 2014, 7.4.1 */
 function GetIterator(obj, method) {
     // Steps 1-2.
-    if (arguments.length === 1)
-        method = GetMethod(obj, std_iterator);
+    assert(IsCallable(method), "method argument is not optional");
 
     // Steps 3-4.
-    var iterator = callFunction(method, obj);
+    var iterator = callContentFunction(method, obj);
 
     // Step 5.
     if (!IsObject(iterator))
-        ThrowTypeError(JSMSG_NOT_ITERABLE, ToString(iterator));
+        ThrowTypeError(JSMSG_GET_ITER_RETURNED_PRIMITIVE);
 
     // Step 6.
     return iterator;
 }
 
-// ES6 draft 20150317 7.3.20.
+#define TO_PROPERTY_KEY(name) \
+(typeof name !== "string" && typeof name !== "number" && typeof name !== "symbol" ? ToPropertyKey(name) : name)
+
+var _builtinCtorsCache = {__proto__: null};
+
+function GetBuiltinConstructor(builtinName) {
+    var ctor = _builtinCtorsCache[builtinName] ||
+               (_builtinCtorsCache[builtinName] = GetBuiltinConstructorImpl(builtinName));
+    assert(ctor, `No builtin with name "${builtinName}" found`);
+    return ctor;
+}
+
+function GetBuiltinPrototype(builtinName) {
+    return (_builtinCtorsCache[builtinName] || GetBuiltinConstructor(builtinName)).prototype;
+}
+
+// ES 2016 draft Mar 25, 2016 7.3.20.
 function SpeciesConstructor(obj, defaultConstructor) {
     // Step 1.
     assert(IsObject(obj), "not passed an object");
 
-    // Steps 2-3.
+    // Step 2.
     var ctor = obj.constructor;
 
-    // Step 4.
+    // Step 3.
     if (ctor === undefined)
         return defaultConstructor;
 
-    // Step 5.
+    // Step 4.
     if (!IsObject(ctor))
         ThrowTypeError(JSMSG_NOT_NONNULL_OBJECT, "object's 'constructor' property");
 
-    // Steps 6-7.  We don't yet implement @@species and Symbol.species, so we
-    // don't implement this correctly right now.  Somebody fix this!
-    var s = /* ctor[Symbol.species] */ undefined;
+    // Steps 5.
+    var s = ctor[std_species];
 
-    // Step 8.
+    // Step 6.
     if (s === undefined || s === null)
         return defaultConstructor;
 
-    // Step 9.
+    // Step 7.
     if (IsConstructor(s))
         return s;
 
-    // Step 10.
+    // Step 8.
     ThrowTypeError(JSMSG_NOT_CONSTRUCTOR, "@@species property of object's constructor");
+}
+
+function GetTypeError(msg) {
+    try {
+        FUN_APPLY(ThrowTypeError, undefined, arguments);
+    } catch (e) {
+        return e;
+    }
+    assert(false, "the catch block should've returned from this function.");
+}
+
+function GetInternalError(msg) {
+    try {
+        FUN_APPLY(ThrowInternalError, undefined, arguments);
+    } catch (e) {
+        return e;
+    }
+    assert(false, "the catch block should've returned from this function.");
+}
+
+// To be used when a function is required but calling it shouldn't do anything.
+function NullFunction() {}
+
+// Object Rest/Spread Properties proposal
+// Abstract operation: CopyDataProperties (target, source, excluded)
+function CopyDataProperties(target, source, excluded) {
+    // Step 1.
+    assert(IsObject(target), "target is an object");
+
+    // Step 2.
+    assert(IsObject(excluded), "excluded is an object");
+
+    // Steps 3, 6.
+    if (source === undefined || source === null)
+        return;
+
+    // Step 4.a.
+    source = ToObject(source);
+
+    // Step 4.b.
+    var keys = OwnPropertyKeys(source, JSITER_OWNONLY | JSITER_HIDDEN | JSITER_SYMBOLS);
+
+    // Step 5.
+    for (var index = 0; index < keys.length; index++) {
+        var key = keys[index];
+
+        // We abbreviate this by calling propertyIsEnumerable which is faster
+        // and returns false for not defined properties.
+        if (!hasOwn(key, excluded) && callFunction(std_Object_propertyIsEnumerable, source, key))
+            _DefineDataProperty(target, key, source[key]);
+    }
+
+    // Step 6 (Return).
+}
+
+// Object Rest/Spread Properties proposal
+// Abstract operation: CopyDataProperties (target, source, excluded)
+function CopyDataPropertiesUnfiltered(target, source) {
+    // Step 1.
+    assert(IsObject(target), "target is an object");
+
+    // Step 2 (Not applicable).
+
+    // Steps 3, 6.
+    if (source === undefined || source === null)
+        return;
+
+    // Step 4.a.
+    source = ToObject(source);
+
+    // Step 4.b.
+    var keys = OwnPropertyKeys(source, JSITER_OWNONLY | JSITER_HIDDEN | JSITER_SYMBOLS);
+
+    // Step 5.
+    for (var index = 0; index < keys.length; index++) {
+        var key = keys[index];
+
+        // We abbreviate this by calling propertyIsEnumerable which is faster
+        // and returns false for not defined properties.
+        if (callFunction(std_Object_propertyIsEnumerable, source, key))
+            _DefineDataProperty(target, key, source[key]);
+    }
+
+    // Step 6 (Return).
 }
 
 /*************************************** Testing functions ***************************************/

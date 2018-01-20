@@ -21,6 +21,9 @@ class nsIPresShell;
 class nsPresContext;
 class nsView;
 class nsDOMNavigationTiming;
+namespace mozilla {
+class Encoding;
+}
 %}
 
 [ptr] native nsIWidgetPtr(nsIWidget);
@@ -30,8 +33,9 @@ class nsDOMNavigationTiming;
 [ptr] native nsViewPtr(nsView);
 [ptr] native nsDOMNavigationTimingPtr(nsDOMNavigationTiming);
 [ref] native nsIContentViewerTArray(nsTArray<nsCOMPtr<nsIContentViewer> >);
+[ptr] native Encoding(const mozilla::Encoding);
 
-[scriptable, builtinclass, uuid(91b6c1f3-fc5f-43a9-88f4-9286bd19387f)]
+[scriptable, builtinclass, uuid(2da17016-7851-4a45-a7a8-00b360e01595)]
 interface nsIContentViewer : nsISupports
 {
   [noscript] void init(in nsIWidgetPtr aParentWidget,
@@ -41,6 +45,9 @@ interface nsIContentViewer : nsISupports
 
   [noscript,notxpcom,nostdcall] void loadStart(in nsIDocument aDoc);
   void loadComplete(in nsresult aStatus);
+  [noscript] readonly attribute boolean loadCompleted;
+
+  [noscript] readonly attribute boolean isStopped;
 
   /**
    * Checks if the document wants to prevent unloading by firing beforeunload on
@@ -103,6 +110,12 @@ interface nsIContentViewer : nsISupports
 
   [noscript] void getBounds(in nsIntRectRef aBounds);
   [noscript] void setBounds([const] in nsIntRectRef aBounds);
+  /**
+   * The 'aFlags' argument to setBoundsWithFlags is a set of these bits.
+   */
+  const unsigned long eDelayResize = 1;
+  [noscript] void setBoundsWithFlags([const] in nsIntRectRef aBounds,
+                                     in unsigned long aFlags);
 
   /**
    * The previous content viewer, which has been |close|d but not
@@ -193,15 +206,37 @@ interface nsIContentViewer : nsISupports
   /** The amount by which to scale all text. Default is 1.0. */
   attribute float textZoom;
 
+  /** The actual text zoom in effect, as modified by the system font scale. */
+  readonly attribute float effectiveTextZoom;
+
   /** The amount by which to scale all lengths. Default is 1.0. */
   attribute float fullZoom;
+
+  /**
+   * The actual full zoom in effect, as modified by the device context.
+   * For a requested full zoom, the device context may choose a slightly
+   * different effectiveFullZoom to accomodate integer rounding of app units
+   * per dev pixel. This property returns the actual zoom amount in use,
+   * though it may not be good user experience to report that a requested zoom
+   * of 90% is actually 89.1%, for example. This value is provided primarily to
+   * support media queries of dppx values, because those queries are matched
+   * against the actual native device pixel ratio and the actual full zoom.
+   */
+  readonly attribute float deviceFullZoom;
+
+  /**
+   * The value used to override devicePixelRatio and media queries dppx.
+   * Default is 0.0, that means no overriding is done (only a positive value
+   * is applied).
+   */
+  attribute float overrideDPPX;
 
   /** Disable entire author style level (including HTML presentation hints) */
   attribute boolean authorStyleDisabled;
 
   /**
-   * XXX comm-central only: bug 829543. Not the Character Encoding menu in 
-     * browser!
+   * XXX comm-central only: bug 829543. Not the Character Encoding menu in
+   * browser!
    */
   attribute ACString forceCharacterSet;
 
@@ -220,6 +255,16 @@ interface nsIContentViewer : nsISupports
    */
   void getContentSize(out long width, out long height);
 
+  /**
+   * Returns the preferred width and height of the content, constrained to the
+   * given maximum values. If either maxWidth or maxHeight is less than zero,
+   * that dimension is not constrained.
+   *
+   * All input and output values are in device pixels, rather than CSS pixels.
+   */
+  void getContentSizeConstrained(in long maxWidth, in long maxHeight,
+                                 out long width, out long height);
+
   /** The minimum font size  */
   attribute long minFontSize;
 
@@ -228,6 +273,18 @@ interface nsIContentViewer : nsISupports
    * in depth-first pre-order traversal.
    */
   [noscript] void appendSubtree(in nsIContentViewerTArray array);
+
+  /**
+   * Instruct the refresh driver to discontinue painting until further
+   * notice.
+   */
+  void pausePainting();
+
+  /**
+   * Instruct the refresh driver to resume painting after a previous call to
+   * pausePainting().
+   */
+  void resumePainting();
 
   /*
    * Render the document as if being viewed on a device with the specified
@@ -241,4 +298,9 @@ interface nsIContentViewer : nsISupports
    * Restore the viewer's natural media type
    */
   void stopEmulatingMedium();
+
+  [noscript, notxpcom] Encoding getHintCharset();
+  [noscript, notxpcom] void setHintCharset(in Encoding aEncoding);
+  [noscript, notxpcom] Encoding getForceCharset();
+  [noscript, notxpcom] void setForceCharset(in Encoding aEncoding);
 };

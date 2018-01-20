@@ -12,6 +12,7 @@
 
 #include <cstddef>
 #include <stdint.h>
+#include <string>
 
 #include <set>
 
@@ -56,8 +57,8 @@ class MediaPipelineFilter {
   // payload types too.
   bool FilterSenderReport(const unsigned char* data, size_t len) const;
 
-  void AddLocalSSRC(uint32_t ssrc);
   void AddRemoteSSRC(uint32_t ssrc);
+  void AddRemoteRtpStreamId(const std::string& rtp_strm_id);
 
   // When a payload type id is unique to our media section, add it here.
   void AddUniquePT(uint8_t payload_type);
@@ -78,8 +79,8 @@ class MediaPipelineFilter {
   // The number of filters we manage here is quite small, so I am optimizing
   // for readability.
   std::set<uint32_t> remote_ssrc_set_;
-  std::set<uint32_t> local_ssrc_set_;
   std::set<uint8_t> payload_type_set_;
+  std::set<std::string> remote_rid_set_;
 };
 
 } // end namespace mozilla

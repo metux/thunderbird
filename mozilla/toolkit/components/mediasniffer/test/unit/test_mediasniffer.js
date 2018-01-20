@@ -6,7 +6,7 @@ var Ci = Components.interfaces;
 var Cu = Components.utils;
 
 Cu.import("resource://testing-common/httpd.js");
-Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/NetUtil.jsm");
 
 const PATH = "/file.meh";
 var httpserver = new HttpServer();
@@ -45,12 +45,12 @@ const tests = [
 
 // A basic listener that reads checks the if we sniffed properly.
 var listener = {
-  onStartRequest: function(request, context) {
+  onStartRequest(request, context) {
     do_check_eq(request.QueryInterface(Ci.nsIChannel).contentType,
                 tests[testRan].expectedContentType);
   },
 
-  onDataAvailable: function(request, context, stream, offset, count) {
+  onDataAvailable(request, context, stream, offset, count) {
     try {
       var bis = Components.classes["@mozilla.org/binaryinputstream;1"]
                           .createInstance(Components.interfaces.nsIBinaryInputStream);
@@ -61,26 +61,20 @@ var listener = {
     }
   },
 
-  onStopRequest: function(request, context, status) {
+  onStopRequest(request, context, status) {
     testRan++;
     runNext();
   }
 };
 
-function setupChannel(url, flags)
-{
-  var ios = Components.classes["@mozilla.org/network/io-service;1"].
-                       getService(Ci.nsIIOService);
+function setupChannel(url, flags) {
   let uri = "http://localhost:" +
              httpserver.identity.primaryPort + url;
-  var chan = ios.newChannel2(uri,
-                             "",
-                             null,
-                             null,      // aLoadingNode
-                             Services.scriptSecurityManager.getSystemPrincipal(),
-                             null,      // aTriggeringPrincipal
-                             Ci.nsILoadInfo.SEC_NORMAL,
-                             Ci.nsIContentPolicy.TYPE_MEDIA);
+  var chan = NetUtil.newChannel({
+    uri,
+    loadUsingSystemPrincipal: true,
+    contentPolicyType: Ci.nsIContentPolicy.TYPE_MEDIA
+  });
   chan.loadFlags |= flags;
   var httpChan = chan.QueryInterface(Components.interfaces.nsIHttpChannel);
   return httpChan;
@@ -96,7 +90,7 @@ function runNext() {
     response.setHeader("Content-Type", tests[testRan].contentType, false);
     response.bodyOutputStream.write(data, data.length);
   });
-  channel.asyncOpen(listener, channel, null);
+  channel.asyncOpen2(listener);
 }
 
 function run_test() {

@@ -5,16 +5,11 @@ Components.utils.import("resource://gre/modules/Services.jsm");
 Components.utils.import("resource://gre/modules/NetUtil.jsm");
 
 function makeChan(uri, isPrivate) {
-  var ios = Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService);
-  var chan = ios.newChannel2(uri.spec,
-                             null,
-                             null,
-                             null,      // aLoadingNode
-                             Services.scriptSecurityManager.getSystemPrincipal(),
-                             null,      // aTriggeringPrincipal
-                             Ci.nsILoadInfo.SEC_NORMAL,
-                             Ci.nsIContentPolicy.TYPE_OTHER)
-                .QueryInterface(Ci.nsIHttpChannel);
+  var chan = NetUtil.newChannel ({
+    uri: uri.spec,
+    loadUsingSystemPrincipal: true
+  }).QueryInterface(Components.interfaces.nsIHttpChannel);
+
   chan.QueryInterface(Ci.nsIPrivateBrowsingChannel).setPrivate(isPrivate);
   return chan;
 }
@@ -25,8 +20,8 @@ function run_test() {
   
   let publicNotifications = 0;
   let privateNotifications = 0;
-  Services.obs.addObserver(function() {publicNotifications++;}, "cookie-changed", false);
-  Services.obs.addObserver(function() {privateNotifications++;}, "private-cookie-changed", false);
+  Services.obs.addObserver(function() {publicNotifications++;}, "cookie-changed");
+  Services.obs.addObserver(function() {privateNotifications++;}, "private-cookie-changed");
 
   let uri = NetUtil.newURI("http://foo.com/");
   let publicChan = makeChan(uri, false);

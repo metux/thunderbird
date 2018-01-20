@@ -74,7 +74,7 @@ XULTreeAccessible::~XULTreeAccessible()
 NS_IMPL_CYCLE_COLLECTION_INHERITED(XULTreeAccessible, Accessible,
                                    mTree, mAccessibleCache)
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(XULTreeAccessible)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(XULTreeAccessible)
 NS_INTERFACE_MAP_END_INHERITING(Accessible)
 
 NS_IMPL_ADDREF_INHERITED(XULTreeAccessible, Accessible)
@@ -124,7 +124,6 @@ XULTreeAccessible::Value(nsString& aValue)
     return;
 
   int32_t currentIndex;
-  nsCOMPtr<nsIDOMElement> selectItem;
   selection->GetCurrentIndex(&currentIndex);
   if (currentIndex >= 0) {
     nsCOMPtr<nsITreeColumn> keyCol;
@@ -145,7 +144,7 @@ XULTreeAccessible::Value(nsString& aValue)
 void
 XULTreeAccessible::Shutdown()
 {
-  if (!mDoc->IsDefunct()) {
+  if (mDoc && !mDoc->IsDefunct()) {
     UnbindCacheEntriesFromDocument(mAccessibleCache);
   }
 
@@ -192,7 +191,7 @@ XULTreeAccessible::ChildAtPoint(int32_t aX, int32_t aY,
   nsIFrame *rootFrame = presShell->GetRootFrame();
   NS_ENSURE_TRUE(rootFrame, nullptr);
 
-  nsIntRect rootRect = rootFrame->GetScreenRect();
+  CSSIntRect rootRect = rootFrame->GetScreenRect();
 
   int32_t clientX = presContext->DevPixelsToIntCSSPixels(aX) - rootRect.x;
   int32_t clientY = presContext->DevPixelsToIntCSSPixels(aY) - rootRect.y;
@@ -505,7 +504,7 @@ XULTreeAccessible::ContainerWidget() const
       if (inputElm) {
         nsCOMPtr<nsINode> inputNode = do_QueryInterface(inputElm);
         if (inputNode) {
-          Accessible* input = 
+          Accessible* input =
             mDoc->GetAccessible(inputNode);
           return input ? input->ContainerWidget() : nullptr;
         }
@@ -529,7 +528,7 @@ XULTreeAccessible::GetTreeItemAccessible(int32_t aRow) const
   if (NS_FAILED(rv) || aRow >= rowCount)
     return nullptr;
 
-  void *key = reinterpret_cast<void*>(aRow);
+  void *key = reinterpret_cast<void*>(intptr_t(aRow));
   Accessible* cachedTreeItem = mAccessibleCache.GetWeak(key);
   if (cachedTreeItem)
     return cachedTreeItem;
@@ -564,7 +563,7 @@ XULTreeAccessible::InvalidateCache(int32_t aRow, int32_t aCount)
   // Fire destroy event for removed tree items and delete them from caches.
   for (int32_t rowIdx = aRow; rowIdx < aRow - aCount; rowIdx++) {
 
-    void* key = reinterpret_cast<void*>(rowIdx);
+    void* key = reinterpret_cast<void*>(intptr_t(rowIdx));
     Accessible* treeItem = mAccessibleCache.GetWeak(key);
 
     if (treeItem) {
@@ -590,7 +589,7 @@ XULTreeAccessible::InvalidateCache(int32_t aRow, int32_t aCount)
 
   for (int32_t rowIdx = newRowCount; rowIdx < oldRowCount; ++rowIdx) {
 
-    void *key = reinterpret_cast<void*>(rowIdx);
+    void *key = reinterpret_cast<void*>(intptr_t(rowIdx));
     Accessible* treeItem = mAccessibleCache.GetWeak(key);
 
     if (treeItem) {
@@ -643,7 +642,7 @@ XULTreeAccessible::TreeViewInvalidated(int32_t aStartRow, int32_t aEndRow,
 
   for (int32_t rowIdx = aStartRow; rowIdx <= endRow; ++rowIdx) {
 
-    void *key = reinterpret_cast<void*>(rowIdx);
+    void *key = reinterpret_cast<void*>(intptr_t(rowIdx));
     Accessible* accessible = mAccessibleCache.GetWeak(key);
 
     if (accessible) {
@@ -711,12 +710,9 @@ XULTreeItemAccessibleBase::~XULTreeItemAccessibleBase()
 NS_IMPL_CYCLE_COLLECTION_INHERITED(XULTreeItemAccessibleBase, Accessible,
                                    mTree)
 
-NS_INTERFACE_TABLE_HEAD_CYCLE_COLLECTION_INHERITED(XULTreeItemAccessibleBase)
-  NS_INTERFACE_TABLE_INHERITED(XULTreeItemAccessibleBase,
-                               XULTreeItemAccessibleBase)
-NS_INTERFACE_TABLE_TAIL_INHERITING(Accessible)
-NS_IMPL_ADDREF_INHERITED(XULTreeItemAccessibleBase, Accessible)
-NS_IMPL_RELEASE_INHERITED(XULTreeItemAccessibleBase, Accessible)
+NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED(XULTreeItemAccessibleBase,
+                                             Accessible,
+                                             XULTreeItemAccessibleBase)
 
 ////////////////////////////////////////////////////////////////////////////////
 // XULTreeItemAccessibleBase: Accessible
@@ -866,6 +862,7 @@ XULTreeItemAccessibleBase::Shutdown()
   mTree = nullptr;
   mTreeView = nullptr;
   mRow = -1;
+  mParent = nullptr; // null-out to prevent base class's shutdown ops
 
   AccessibleWrap::Shutdown();
 }
@@ -1070,6 +1067,7 @@ XULTreeItemAccessible::
                         nsITreeView* aTreeView, int32_t aRow) :
   XULTreeItemAccessibleBase(aContent, aDoc, aParent, aTree, aTreeView, aRow)
 {
+  mStateFlags |= eNoKidsFromDOM;
   mColumn = nsCoreUtils::GetFirstSensibleColumn(mTree);
   GetCellName(mColumn, mCachedName);
 }
@@ -1085,7 +1083,7 @@ NS_IMPL_CYCLE_COLLECTION_INHERITED(XULTreeItemAccessible,
                                    XULTreeItemAccessibleBase,
                                    mColumn)
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(XULTreeItemAccessible)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(XULTreeItemAccessible)
 NS_INTERFACE_MAP_END_INHERITING(XULTreeItemAccessibleBase)
 NS_IMPL_ADDREF_INHERITED(XULTreeItemAccessible, XULTreeItemAccessibleBase)
 NS_IMPL_RELEASE_INHERITED(XULTreeItemAccessible, XULTreeItemAccessibleBase)
@@ -1141,14 +1139,6 @@ XULTreeItemAccessible::RowInvalidated(int32_t aStartColIdx, int32_t aEndColIdx)
     nsEventShell::FireEvent(nsIAccessibleEvent::EVENT_NAME_CHANGE, this);
     mCachedName = name;
   }
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// XULTreeItemAccessible: Accessible protected implementation
-
-void
-XULTreeItemAccessible::CacheChildren()
-{
 }
 
 

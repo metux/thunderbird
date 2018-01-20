@@ -5,7 +5,6 @@
 package org.mozilla.gecko.sync;
 
 import java.io.BufferedReader;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
@@ -23,6 +22,7 @@ import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.Executor;
 
 import org.json.simple.JSONArray;
 import org.mozilla.apache.commons.codec.binary.Base32;
@@ -30,13 +30,11 @@ import org.mozilla.apache.commons.codec.binary.Base64;
 import org.mozilla.gecko.background.common.log.Logger;
 import org.mozilla.gecko.background.nativecode.NativeCrypto;
 import org.mozilla.gecko.sync.setup.Constants;
+import org.mozilla.gecko.util.IOUtils;
+import org.mozilla.gecko.util.StringUtils;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.text.Spannable;
-import android.text.Spanned;
-import android.text.style.ClickableSpan;
 
 public class Utils {
 
@@ -49,7 +47,7 @@ public class Utils {
 
   public static String generateGuid() {
     byte[] encodedBytes = Base64.encodeBase64(generateRandomBytes(9), false);
-    return new String(encodedBytes).replace("+", "-").replace("/", "_");
+    return new String(encodedBytes, StringUtils.UTF_8).replace("+", "-").replace("/", "_");
   }
 
   /**
@@ -74,13 +72,6 @@ public class Utils {
     int maxBytes = (int) Math.ceil(((double) r.bitLength()) / 8);
     BigInteger randInt = new BigInteger(generateRandomBytes(maxBytes));
     return randInt.mod(r);
-  }
-
-  /**
-   * Helper to reseed the shared secure random number generator.
-   */
-  public static void reseedSharedRandom() {
-    sharedSecureRandom.setSeed(sharedSecureRandom.generateSeed(8));
   }
 
   /**
@@ -251,17 +242,11 @@ public class Utils {
     return sha1Base32(account.toLowerCase(Locale.US));
   }
 
-  public static SharedPreferences getSharedPreferences(final Context context, final String product, final String username, final String serverURL, final String profile, final long version)
-      throws NoSuchAlgorithmException, UnsupportedEncodingException {
-    String prefsPath = getPrefsPath(product, username, serverURL, profile, version);
-    return context.getSharedPreferences(prefsPath, SHARED_PREFERENCES_MODE);
-  }
-
   /**
    * Get shared preferences path for a Sync account.
    *
    * @param product the Firefox Sync product package name (like "org.mozilla.firefox").
-   * @param username the Sync account name, optionally encoded with <code>Utils.usernameFromAccount</code>.
+   * @param accountKey local Sync account identifier.
    * @param serverURL the Sync account server URL.
    * @param profile the Firefox profile name.
    * @param version the version of preferences to reference.
@@ -269,9 +254,9 @@ public class Utils {
    * @throws NoSuchAlgorithmException
    * @throws UnsupportedEncodingException
    */
-  public static String getPrefsPath(final String product, final String username, final String serverURL, final String profile, final long version)
+  public static String getPrefsPath(final String product, final String accountKey, final String serverURL, final String profile, final long version)
       throws NoSuchAlgorithmException, UnsupportedEncodingException {
-    final String encodedAccount = sha1Base32(serverURL + ":" + usernameFromAccount(username));
+    final String encodedAccount = sha1Base32(serverURL + ":" + usernameFromAccount(accountKey));
 
     if (version <= 0) {
       return "sync.prefs." + encodedAccount;
@@ -432,14 +417,14 @@ public class Utils {
     ArrayList<String> toSkip = null;
     if (toSyncString != null) {
       try {
-        toSync = new ArrayList<String>(ExtendedJSONObject.parseJSONObject(toSyncString).keySet());
+        toSync = new ArrayList<String>(new ExtendedJSONObject(toSyncString).keySet());
       } catch (Exception e) {
         Logger.warn(LOG_TAG, "Got exception parsing stages to sync: '" + toSyncString + "'.", e);
       }
     }
     if (toSkipString != null) {
       try {
-        toSkip = new ArrayList<String>(ExtendedJSONObject.parseJSONObject(toSkipString).keySet());
+        toSkip = new ArrayList<String>(new ExtendedJSONObject(toSkipString).keySet());
       } catch (Exception e) {
         Logger.warn(LOG_TAG, "Got exception parsing stages to skip: '" + toSkipString + "'.", e);
       }
@@ -491,42 +476,23 @@ public class Utils {
    * @param filename name of file to read; must not be null.
    * @return <code>String</code> instance.
    */
-  public static String readFile(final Context context, final String filename) {
+  public static String readFile(final Context context, final String filename) throws IOException {
     if (filename == null) {
       throw new IllegalArgumentException("Passed null filename in readFile.");
     }
 
-    FileInputStream fis = null;
-    InputStreamReader isr = null;
     BufferedReader br = null;
 
     try {
-      fis = context.openFileInput(filename);
-      isr = new InputStreamReader(fis);
-      br = new BufferedReader(isr);
+      br = new BufferedReader(new InputStreamReader(context.openFileInput(filename), StringUtils.UTF_8));
       StringBuilder sb = new StringBuilder();
       String line;
       while ((line = br.readLine()) != null) {
         sb.append(line);
       }
       return sb.toString();
-    } catch (Exception e) {
-      return null;
     } finally {
-      if (isr != null) {
-        try {
-          isr.close();
-        } catch (IOException e) {
-          // Ignore.
-        }
-      }
-      if (fis != null) {
-        try {
-          fis.close();
-        } catch (IOException e) {
-          // Ignore.
-        }
-      }
+      IOUtils.safeStreamClose(br);
     }
   }
 
@@ -565,17 +531,6 @@ public class Utils {
     return in.replaceAll("[^@\\.]", "X");
   }
 
-  public static String nodeWeaveURL(String serverURL, String username) {
-    String userPart = username + "/node/weave";
-    if (serverURL == null) {
-      return SyncConstants.DEFAULT_AUTH_SERVER + "user/1.0/" + userPart;
-    }
-    if (!serverURL.endsWith("/")) {
-      serverURL = serverURL + "/";
-    }
-    return serverURL + "user/1.0/" + userPart;
-  }
-
   public static void throwIfNull(Object... objects) {
     for (Object object : objects) {
       if (object == null) {
@@ -584,57 +539,12 @@ public class Utils {
     }
   }
 
-  /**
-   * Gecko uses locale codes like "es-ES", whereas a Java {@link Locale}
-   * stringifies as "es_ES".
-   *
-   * This method approximates the Java 7 method <code>Locale#toLanguageTag()</code>.
-   * <p>
-   * <b>Warning:</b> all consumers of this method will need to be audited when
-   * we have active locale switching.
-   *
-   * @return a locale string suitable for passing to Gecko.
-   */
-  public static String getLanguageTag(final Locale locale) {
-    // If this were Java 7:
-    // return locale.toLanguageTag();
-
-    String language = locale.getLanguage();  // Can, but should never be, an empty string.
-    // Modernize certain language codes.
-    if (language.equals("iw")) {
-      language = "he";
-    } else if (language.equals("in")) {
-      language = "id";
-    } else if (language.equals("ji")) {
-      language = "yi";
-    }
-
-    String country = locale.getCountry();    // Can be an empty string.
-    if (country.equals("")) {
-      return language;
-    }
-    return language + "-" + country;
-  }
-
-  /**
-   * Make a span with a clickable chunk of text interpolated in.
-   *
-   * @param context Android context.
-   * @param messageId of string containing clickable chunk.
-   * @param clickableId of string to make clickable.
-   * @param clickableSpan to activate on click.
-   * @return Spannable.
-   */
-  public static Spannable interpolateClickableSpan(Context context, int messageId, int clickableId, ClickableSpan clickableSpan) {
-    // This horrible bit of special-casing is because we want this error message to
-    // contain a clickable, extra chunk of text, but we don't want to pollute
-    // the exception class with Android specifics.
-    final String clickablePart = context.getString(clickableId);
-    final String message = context.getString(messageId, clickablePart);
-    final int clickableStart = message.lastIndexOf(clickablePart);
-    final int clickableEnd = clickableStart + clickablePart.length();
-    final Spannable span = Spannable.Factory.getInstance().newSpannable(message);
-    span.setSpan(clickableSpan, clickableStart, clickableEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-    return span;
+  public static Executor newSynchronousExecutor() {
+    return new Executor() {
+      @Override
+      public void execute(Runnable runnable) {
+        runnable.run();
+      }
+    };
   }
 }

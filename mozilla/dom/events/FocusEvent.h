@@ -33,7 +33,7 @@ public:
              nsPresContext* aPresContext,
              InternalFocusEvent* aEvent);
 
-  EventTarget* GetRelatedTarget();
+  already_AddRefed<EventTarget> GetRelatedTarget();
 
   static already_AddRefed<FocusEvent> Constructor(const GlobalObject& aGlobal,
                                                   const nsAString& aType,
@@ -42,12 +42,12 @@ public:
 protected:
   ~FocusEvent() {}
 
-  nsresult InitFocusEvent(const nsAString& aType,
-                          bool aCanBubble,
-                          bool aCancelable,
-                          nsIDOMWindow* aView,
-                          int32_t aDetail,
-                          EventTarget* aRelatedTarget);
+  void InitFocusEvent(const nsAString& aType,
+                      bool aCanBubble,
+                      bool aCancelable,
+                      nsGlobalWindowInner* aView,
+                      int32_t aDetail,
+                      EventTarget* aRelatedTarget);
 };
 
 } // namespace dom

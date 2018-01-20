@@ -11,9 +11,9 @@
 #include "nsIMsgMailViewList.h"
 #include "nsCOMPtr.h"
 #include "nsCOMArray.h"
-#include "nsISupportsArray.h"
+#include "nsIMutableArray.h"
 #include "nsIStringBundle.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsIMsgFilterList.h"
 
 // a mail View is just a name and an array of search terms
@@ -29,7 +29,7 @@ protected:
   virtual ~nsMsgMailView();
   nsString mName;
   nsCOMPtr<nsIStringBundle> mBundle;
-  nsCOMPtr<nsISupportsArray> mViewSearchTerms;
+  nsCOMPtr<nsIMutableArray> mViewSearchTerms;
 };
 
 

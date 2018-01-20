@@ -1,29 +1,24 @@
 /* vim: set ft=javascript ts=2 et sw=2 tw=80: */
 /* Any copyright is dedicated to the Public Domain.
  http://creativecommons.org/publicdomain/zero/1.0/ */
+/* eslint no-unused-vars: [2, {"vars": "local", "args": "none"}] */
 
 "use strict";
 
-var Cu = Components.utils;
-const {gDevTools} = Cu.import("resource://devtools/client/framework/gDevTools.jsm", {});
-const {require} = Cu.import("resource://devtools/shared/Loader.jsm", {});
-const promise = require("promise");
-const {TargetFactory} = require("devtools/client/framework/target");
-const {console} = Cu.import("resource://gre/modules/Console.jsm", {});
-const {ViewHelpers} = Cu.import("resource://devtools/client/shared/widgets/ViewHelpers.jsm", {});
-const DevToolsUtils = require("devtools/shared/DevToolsUtils");
+/* import-globals-from ../../inspector/test/head.js */
+// Import the inspector's head.js first (which itself imports shared-head.js).
+Services.scriptloader.loadSubScript(
+  "chrome://mochitests/content/browser/devtools/client/inspector/test/head.js",
+  this);
 
-// All tests are asynchronous
-waitForExplicitFinish();
-
-const TEST_URL_ROOT = "http://example.com/browser/devtools/client/animationinspector/test/";
-const ROOT_TEST_DIR = getRootDirectory(gTestPath);
-const FRAME_SCRIPT_URL = ROOT_TEST_DIR + "doc_frame_script.js";
+const FRAME_SCRIPT_URL = CHROME_URL_ROOT + "doc_frame_script.js";
 const COMMON_FRAME_SCRIPT_URL = "chrome://devtools/content/shared/frame-script-utils.js";
 const TAB_NAME = "animationinspector";
+const ANIMATION_L10N =
+  new LocalizationHelper("devtools/client/locales/animationinspector.properties");
 
 // Auto clean-up when a test ends
-registerCleanupFunction(function*() {
+registerCleanupFunction(function* () {
   yield closeAnimationInspector();
 
   while (gBrowser.tabs.length > 1) {
@@ -31,52 +26,41 @@ registerCleanupFunction(function*() {
   }
 });
 
-// Uncomment this pref to dump all devtools emitted events to the console.
-// Services.prefs.setBoolPref("devtools.dump.emit", true);
-
-// Uncomment this pref to dump all devtools protocol traffic
-// Services.prefs.setBoolPref("devtools.debugger.log", true);
-
-// Set the testing flag on DevToolsUtils and reset it when the test ends
-DevToolsUtils.testing = true;
-registerCleanupFunction(() => DevToolsUtils.testing = false);
-
 // Clean-up all prefs that might have been changed during a test run
 // (safer here because if the test fails, then the pref is never reverted)
 registerCleanupFunction(() => {
-  Services.prefs.clearUserPref("devtools.dump.emit");
   Services.prefs.clearUserPref("devtools.debugger.log");
 });
+
+// Some animation features are not enabled by default in release/beta channels
+// yet including:
+// * parts of the Web Animations API (Bug 1264101), and
+// * the frames() timing function (Bug 1379582).
+function enableAnimationFeatures() {
+  return new Promise(resolve => {
+    SpecialPowers.pushPrefEnv({"set": [
+      ["dom.animations-api.core.enabled", true],
+      ["layout.css.frames-timing.enabled", true],
+    ]}, resolve);
+  });
+}
 
 /**
  * Add a new test tab in the browser and load the given url.
  * @param {String} url The url to be loaded in the new tab
  * @return a promise that resolves to the tab object when the url is loaded
  */
-function addTab(url) {
-  info("Adding a new tab with URL: '" + url + "'");
-  let def = promise.defer();
-
-  window.focus();
-
-  let tab = window.gBrowser.selectedTab = window.gBrowser.addTab(url);
-  let browser = tab.linkedBrowser;
-
-  info("Loading the helper frame script " + FRAME_SCRIPT_URL);
-  browser.messageManager.loadFrameScript(FRAME_SCRIPT_URL, false);
-
-  info("Loading the helper frame script " + COMMON_FRAME_SCRIPT_URL);
-  browser.messageManager.loadFrameScript(COMMON_FRAME_SCRIPT_URL, false);
-
-  browser.addEventListener("load", function onload() {
-    browser.removeEventListener("load", onload, true);
-    info("URL '" + url + "' loading complete");
-
-    def.resolve(tab);
-  }, true);
-
-  return def.promise;
-}
+var _addTab = addTab;
+addTab = function (url) {
+  return enableAnimationFeatures().then(() => _addTab(url)).then(tab => {
+    let browser = tab.linkedBrowser;
+    info("Loading the helper frame script " + FRAME_SCRIPT_URL);
+    browser.messageManager.loadFrameScript(FRAME_SCRIPT_URL, false);
+    info("Loading the helper frame script " + COMMON_FRAME_SCRIPT_URL);
+    browser.messageManager.loadFrameScript(COMMON_FRAME_SCRIPT_URL, false);
+    return tab;
+  });
+};
 
 /**
  * Reload the current tab location.
@@ -90,20 +74,9 @@ function* reloadTab(inspector) {
   yield inspector.once("inspector-updated");
 }
 
-/**
- * Get the NodeFront for a given css selector, via the protocol
- * @param {String} selector
- * @param {InspectorPanel} inspector The instance of InspectorPanel currently
- * loaded in the toolbox
- * @return {Promise} Resolves to the NodeFront instance
- */
-function getNodeFront(selector, {walker}) {
-  return walker.querySelector(walker.rootNode, selector);
-}
-
 /*
  * Set the inspector's current selection to a node or to the first match of the
- * given css selector.
+ * given css selector and wait for the animations to be displayed
  * @param {String|NodeFront}
  *        data The node to select
  * @param {InspectorPanel} inspector
@@ -113,24 +86,25 @@ function getNodeFront(selector, {walker}) {
  *        Defaults to "test" which instructs the inspector not
  *        to highlight the node upon selection
  * @return {Promise} Resolves when the inspector is updated with the new node
+           and animations of its subtree are properly displayed.
  */
-var selectNode = Task.async(function*(data, inspector, reason="test") {
-  info("Selecting the node for '" + data + "'");
-  let nodeFront = data;
-  if (!data._form) {
-    nodeFront = yield getNodeFront(data, inspector);
-  }
-  let updated = inspector.once("inspector-updated");
-  inspector.selection.setNodeFront(nodeFront, reason);
-  yield updated;
+var selectNodeAndWaitForAnimations = Task.async(
+  function* (data, inspector, reason = "test") {
+    // We want to make sure the rest of the test waits for the animations to
+    // be properly displayed (wait for all target DOM nodes to be previewed).
+    let {AnimationsController, AnimationsPanel} =
+      inspector.sidebar.getWindowForTab(TAB_NAME);
+    let onUiUpdated = AnimationsPanel.once(AnimationsPanel.UI_UPDATED_EVENT);
 
-  // 99% of the times, selectNode is called to select an animated node, and we
-  // want to make sure the rest of the test waits for the animations to be
-  // properly displayed (wait for all target DOM nodes to be previewed).
-  // Even if there are no animations, this is safe to do.
-  let {AnimationsPanel} = inspector.sidebar.getWindowForTab(TAB_NAME);
-  yield waitForAllAnimationTargets(AnimationsPanel);
-});
+    yield selectNode(data, inspector, reason);
+
+    yield onUiUpdated;
+    if (AnimationsController.animationPlayers.length !== 0) {
+      yield waitForAnimationTimelineRendering(AnimationsPanel);
+      yield waitForAllAnimationTargets(AnimationsPanel);
+    }
+  }
+);
 
 /**
  * Check if there are the expected number of animations being displayed in the
@@ -154,7 +128,7 @@ function assertAnimationsDisplayed(panel, nbAnimations, msg = "") {
  * @param {InspectorPanel} inspector
  * @return {Promise}
  */
-var waitForAnimationInspectorReady = Task.async(function*(inspector) {
+var waitForAnimationInspectorReady = Task.async(function* (inspector) {
   let win = inspector.sidebar.getWindowForTab(TAB_NAME);
   let updated = inspector.once("inspector-updated");
 
@@ -174,24 +148,11 @@ var waitForAnimationInspectorReady = Task.async(function*(inspector) {
  * sidebar selected.
  * @return a promise that resolves when the inspector is ready.
  */
-var openAnimationInspector = Task.async(function*() {
-  let target = TargetFactory.forTab(gBrowser.selectedTab);
-
-  info("Opening the toolbox with the inspector selected");
-  let toolbox = yield gDevTools.showToolbox(target, "inspector");
-
-  info("Switching to the animationinspector");
-  let inspector = toolbox.getPanel("inspector");
-
-  let panelReady = waitForAnimationInspectorReady(inspector);
-
-  info("Waiting for toolbox focus");
-  yield waitForToolboxFrameFocus(toolbox);
-
-  inspector.sidebar.select(TAB_NAME);
+var openAnimationInspector = Task.async(function* () {
+  let {inspector, toolbox} = yield openInspectorSidebarTab(TAB_NAME);
 
   info("Waiting for the inspector and sidebar to be ready");
-  yield panelReady;
+  yield waitForAnimationInspectorReady(inspector);
 
   let win = inspector.sidebar.getWindowForTab(TAB_NAME);
   let {AnimationsController, AnimationsPanel} = win;
@@ -203,10 +164,10 @@ var openAnimationInspector = Task.async(function*() {
     yield AnimationsPanel.once(AnimationsPanel.PANEL_INITIALIZED);
   }
 
-  // Make sure we wait for all animations to be loaded (especially their target
-  // nodes to be lazily displayed). This is safe to do even if there are no
-  // animations displayed.
-  yield waitForAllAnimationTargets(AnimationsPanel);
+  if (AnimationsController.animationPlayers.length !== 0) {
+    yield waitForAnimationTimelineRendering(AnimationsPanel);
+    yield waitForAllAnimationTargets(AnimationsPanel);
+  }
 
   return {
     toolbox: toolbox,
@@ -221,64 +182,10 @@ var openAnimationInspector = Task.async(function*() {
  * Close the toolbox.
  * @return a promise that resolves when the toolbox has closed.
  */
-var closeAnimationInspector = Task.async(function*() {
+var closeAnimationInspector = Task.async(function* () {
   let target = TargetFactory.forTab(gBrowser.selectedTab);
   yield gDevTools.closeToolbox(target);
 });
-
-/**
- * Wait for the toolbox frame to receive focus after it loads
- * @param {Toolbox} toolbox
- * @return a promise that resolves when focus has been received
- */
-function waitForToolboxFrameFocus(toolbox) {
-  info("Making sure that the toolbox's frame is focused");
-  let def = promise.defer();
-  let win = toolbox.frame.contentWindow;
-  waitForFocus(def.resolve, win);
-  return def.promise;
-}
-
-/**
- * Checks whether the inspector's sidebar corresponding to the given id already
- * exists
- * @param {InspectorPanel}
- * @param {String}
- * @return {Boolean}
- */
-function hasSideBarTab(inspector, id) {
-  return !!inspector.sidebar.getWindowForTab(id);
-}
-
-/**
- * Wait for eventName on target.
- * @param {Object} target An observable object that either supports on/off or
- * addEventListener/removeEventListener
- * @param {String} eventName
- * @param {Boolean} useCapture Optional, for add/removeEventListener
- * @return A promise that resolves when the event has been handled
- */
-function once(target, eventName, useCapture=false) {
-  info("Waiting for event: '" + eventName + "' on " + target + ".");
-
-  let deferred = promise.defer();
-
-  for (let [add, remove] of [
-    ["addEventListener", "removeEventListener"],
-    ["addListener", "removeListener"],
-    ["on", "off"]
-  ]) {
-    if ((add in target) && (remove in target)) {
-      target[add](eventName, function onEvent(...aArgs) {
-        target[remove](eventName, onEvent, useCapture);
-        deferred.resolve.apply(deferred, aArgs);
-      }, useCapture);
-      break;
-    }
-  }
-
-  return deferred.promise;
-}
 
 /**
  * Wait for a content -> chrome message on the message manager (the window
@@ -292,12 +199,12 @@ function waitForContentMessage(name) {
 
   let mm = gBrowser.selectedBrowser.messageManager;
 
-  let def = promise.defer();
-  mm.addMessageListener(name, function onMessage(msg) {
-    mm.removeMessageListener(name, onMessage);
-    def.resolve(msg.data);
+  return new Promise(resolve => {
+    mm.addMessageListener(name, function onMessage(msg) {
+      mm.removeMessageListener(name, onMessage);
+      resolve(msg.data);
+    });
   });
-  return def.promise;
 }
 
 /**
@@ -312,7 +219,8 @@ function waitForContentMessage(name) {
  * @return {Promise} Resolves to the response data if a response is expected,
  * immediately resolves otherwise
  */
-function executeInContent(name, data={}, objects={}, expectResponse=true) {
+function executeInContent(name, data = {}, objects = {},
+                          expectResponse = true) {
   info("Sending message " + name + " to content");
   let mm = gBrowser.selectedBrowser.messageManager;
 
@@ -327,7 +235,8 @@ function executeInContent(name, data={}, objects={}, expectResponse=true) {
 /**
  * Get the current playState of an animation player on a given node.
  */
-var getAnimationPlayerState = Task.async(function*(selector, animationIndex=0) {
+var getAnimationPlayerState = Task.async(function* (selector,
+                                                    animationIndex = 0) {
   let playState = yield executeInContent("Test:GetAnimationPlayerState",
                                          {selector, animationIndex});
   return playState;
@@ -345,13 +254,15 @@ function isNodeVisible(node) {
 /**
  * Wait for all AnimationTargetNode instances to be fully loaded
  * (fetched their related actor and rendered), and return them.
+ * This method should be called after "animation-timeline-rendering-completed" is emitted,
+ * since we get all the AnimationTargetNode instances using getAnimationTargetNodes().
  * @param {AnimationsPanel} panel
  * @return {Array} all AnimationTargetNode instances
  */
-var waitForAllAnimationTargets = Task.async(function*(panel) {
-  let targets = panel.animationsTimelineComponent.targetNodes;
+var waitForAllAnimationTargets = Task.async(function* (panel) {
+  let targets = getAnimationTargetNodes(panel);
   yield promise.all(targets.map(t => {
-    if (!t.nodeFront) {
+    if (!t.previewer.nodeFront) {
       return t.once("target-retrieved");
     }
     return false;
@@ -366,7 +277,6 @@ var waitForAllAnimationTargets = Task.async(function*(panel) {
  */
 function* assertScrubberMoving(panel, isMoving) {
   let timeline = panel.animationsTimelineComponent;
-  let scrubberEl = timeline.scrubberEl;
 
   if (isMoving) {
     // If we expect the scrubber to move, just wait for a couple of
@@ -378,7 +288,9 @@ function* assertScrubberMoving(panel, isMoving) {
     // If instead we expect the scrubber to remain at its position, just wait
     // for some time and make sure timeline-data-changed isn't emitted.
     let hasMoved = false;
-    timeline.once("timeline-data-changed", () => hasMoved = true);
+    timeline.once("timeline-data-changed", () => {
+      hasMoved = true;
+    });
     yield new Promise(r => setTimeout(r, 500));
     ok(!hasMoved, "The scrubber is not moving");
   }
@@ -391,12 +303,14 @@ function* assertScrubberMoving(panel, isMoving) {
  */
 function* clickTimelinePlayPauseButton(panel) {
   let onUiUpdated = panel.once(panel.UI_UPDATED_EVENT);
+  let onRendered = waitForAnimationTimelineRendering(panel);
 
   let btn = panel.playTimelineButtonEl;
   let win = btn.ownerDocument.defaultView;
   EventUtils.sendMouseEvent({type: "click"}, btn, win);
 
   yield onUiUpdated;
+  yield onRendered;
   yield waitForAllAnimationTargets(panel);
 }
 
@@ -407,12 +321,14 @@ function* clickTimelinePlayPauseButton(panel) {
  */
 function* clickTimelineRewindButton(panel) {
   let onUiUpdated = panel.once(panel.UI_UPDATED_EVENT);
+  let onRendered = waitForAnimationTimelineRendering(panel);
 
   let btn = panel.rewindTimelineButtonEl;
   let win = btn.ownerDocument.defaultView;
   EventUtils.sendMouseEvent({type: "click"}, btn, win);
 
   yield onUiUpdated;
+  yield onRendered;
   yield waitForAllAnimationTargets(panel);
 }
 
@@ -424,6 +340,7 @@ function* clickTimelineRewindButton(panel) {
  */
 function* changeTimelinePlaybackRate(panel, rate) {
   let onUiUpdated = panel.once(panel.UI_UPDATED_EVENT);
+  let onRendered = waitForAnimationTimelineRendering(panel);
 
   let select = panel.rateSelectorEl.firstChild;
   let win = select.ownerDocument.defaultView;
@@ -442,12 +359,52 @@ function* changeTimelinePlaybackRate(panel, rate) {
   EventUtils.synthesizeMouseAtCenter(option, {type: "mouseup"}, win);
 
   yield onUiUpdated;
+  yield onRendered;
   yield waitForAllAnimationTargets(panel);
 
   // Simulate a mousemove outside of the rate selector area to avoid subsequent
   // tests from failing because of unwanted mouseover events.
-  EventUtils.synthesizeMouseAtCenter(win.document.querySelector("#timeline-toolbar"),
-                                     {type: "mousemove"}, win);
+  EventUtils.synthesizeMouseAtCenter(
+    win.document.querySelector("#timeline-toolbar"), {type: "mousemove"}, win);
+}
+
+/**
+ * Wait for animation selecting.
+ * @param {AnimationsPanel} panel
+ */
+function* waitForAnimationSelecting(panel) {
+  yield panel.animationsTimelineComponent.once("animation-selected");
+}
+
+/**
+ * Wait for rendering animation timeline.
+ * @param {AnimationsPanel} panel
+ */
+function* waitForAnimationTimelineRendering(panel) {
+  return panel.animationsTimelineComponent.once("animation-timeline-rendering-completed");
+}
+
+/**
+   + * Click the timeline header to update the animation current time.
+   + * @param {AnimationsPanel} panel
+   + * @param {Number} x position rate on timeline header.
+   + *                 This method calculates
+   + *                 `position * offsetWidth + offsetLeft of timeline header`
+   + *                 as the clientX of MouseEvent.
+   + *                 This parameter should be from 0.0 to 1.0.
+   + */
+function* clickOnTimelineHeader(panel, position) {
+  const timeline = panel.animationsTimelineComponent;
+  const onTimelineDataChanged = timeline.once("timeline-data-changed");
+
+  const header = timeline.timeHeaderEl;
+  const clientX = header.offsetLeft + header.offsetWidth * position;
+  EventUtils.sendMouseEvent({ type: "mousedown", clientX: clientX },
+                            header, header.ownerDocument.defaultView);
+  info(`Click at (${ clientX }, 0) on timeline header`);
+  EventUtils.sendMouseEvent({ type: "mouseup", clientX: clientX }, header,
+                            header.ownerDocument.defaultView);
+  return yield onTimelineDataChanged;
 }
 
 /**
@@ -469,43 +426,43 @@ function disableHighlighter(toolbox) {
  * Click on an animation in the timeline to select/unselect it.
  * @param {AnimationsPanel} panel The panel instance.
  * @param {Number} index The index of the animation to click on.
- * @param {Boolean} shouldClose Set to true if clicking should close the
- * animation.
+ * @param {Boolean} shouldAlreadySelected Set to true
+ *                  if the clicked animation is already selected.
  * @return {Promise} resolves to the animation whose state has changed.
  */
-function* clickOnAnimation(panel, index, shouldClose) {
+function* clickOnAnimation(panel, index, shouldAlreadySelected) {
   let timeline = panel.animationsTimelineComponent;
 
   // Expect a selection event.
-  let onSelectionChanged = timeline.once(shouldClose
-                                         ? "animation-unselected"
+  let onSelectionChanged = timeline.once(shouldAlreadySelected
+                                         ? "animation-already-selected"
                                          : "animation-selected");
-
-  // If we're opening the animation, also wait for the keyframes-retrieved
-  // event.
-  let onReady = shouldClose
-                ? Promise.resolve()
-                : timeline.details[index].once("keyframes-retrieved");
 
   info("Click on animation " + index + " in the timeline");
   let timeBlock = timeline.rootWrapperEl.querySelectorAll(".time-block")[index];
-  EventUtils.sendMouseEvent({type: "click"}, timeBlock,
-                            timeBlock.ownerDocument.defaultView);
+  // Scroll to show the timeBlock since the element may be out of displayed area.
+  timeBlock.scrollIntoView(false);
+  let timeBlockBounds = timeBlock.getBoundingClientRect();
+  let x = timeBlockBounds.width / 2;
+  let y = timeBlockBounds.height / 2;
+  if (timeBlock != timeBlock.ownerDocument.elementFromPoint(x, y)) {
+    // Move the mouse pointer a little since scrubber element may be at the point.
+    x += timeBlockBounds.width / 4;
+  }
+  EventUtils.synthesizeMouse(timeBlock, x, y, {}, timeBlock.ownerDocument.defaultView);
 
-  yield onReady;
   return yield onSelectionChanged;
 }
 
 /**
  * Get an instance of the Keyframes component from the timeline.
  * @param {AnimationsPanel} panel The panel instance.
- * @param {Number} animationIndex The index of the animation in the timeline.
  * @param {String} propertyName The name of the animated property.
  * @return {Keyframes} The Keyframes component instance.
  */
-function getKeyframeComponent(panel, animationIndex, propertyName) {
+function getKeyframeComponent(panel, propertyName) {
   let timeline = panel.animationsTimelineComponent;
-  let detailsComponent = timeline.details[animationIndex];
+  let detailsComponent = timeline.details;
   return detailsComponent.keyframeComponents
                          .find(c => c.propertyName === propertyName);
 }
@@ -513,12 +470,157 @@ function getKeyframeComponent(panel, animationIndex, propertyName) {
 /**
  * Get a keyframe element from the timeline.
  * @param {AnimationsPanel} panel The panel instance.
- * @param {Number} animationIndex The index of the animation in the timeline.
  * @param {String} propertyName The name of the animated property.
  * @param {Index} keyframeIndex The index of the keyframe.
  * @return {DOMNode} The keyframe element.
  */
-function getKeyframeEl(panel, animationIndex, propertyName, keyframeIndex) {
-  let keyframeComponent = getKeyframeComponent(panel, animationIndex, propertyName);
-  return keyframeComponent.keyframesEl.querySelectorAll(".frame")[keyframeIndex];
+function getKeyframeEl(panel, propertyName, keyframeIndex) {
+  let keyframeComponent = getKeyframeComponent(panel, propertyName);
+  return keyframeComponent.keyframesEl
+                          .querySelectorAll(".frame")[keyframeIndex];
+}
+
+/**
+ * Set style to test document.
+ * @param {Animation} animation - animation object.
+ * @param {AnimationsPanel} panel - The panel instance.
+ * @param {String} name - property name.
+ * @param {String} value - property value.
+ * @param {String} selector - selector for test document.
+ */
+function* setStyle(animation, panel, name, value, selector) {
+  info("Change the animation style via the content DOM. Setting " +
+       name + " to " + value + " of " + selector);
+
+  const onAnimationChanged = animation ? once(animation, "changed") : Promise.resolve();
+  const onRendered = waitForAnimationTimelineRendering(panel);
+
+  yield executeInContent("devtools:test:setStyle", {
+    selector: selector,
+    propertyName: name,
+    propertyValue: value
+  });
+
+  yield onAnimationChanged;
+  yield onRendered;
+  yield waitForAllAnimationTargets(panel);
+}
+
+/**
+ * Graph shapes of summary and detail are constructed by <path> element.
+ * This function checks the vertex of path segments.
+ * Also, if needed, checks the color for <stop> element.
+ * @param pathEl - <path> element.
+ * @param duration - float as duration which pathEl represetns.
+ * @param hasClosePath - set true if the path shoud be closing.
+ * @param expectedValues - JSON object format. We can test the vertex and color.
+ *                         e.g.
+ *                         [
+ *                           // Test the vertex (x=0, y=0) should be passing through.
+ *                           { x: 0, y: 0 },
+ *                           { x: 0, y: 1 },
+ *                           // If we have to test the color as well,
+ *                           // we can write as following.
+ *                           { x: 500, y: 1, color: "rgb(0, 0, 255)" },
+ *                           { x: 1000, y: 1 }
+ *                         ]
+ */
+function assertPathSegments(pathEl, duration, hasClosePath, expectedValues) {
+  const pathSegList = pathEl.pathSegList;
+  ok(pathSegList, "The tested element should have pathSegList");
+
+  expectedValues.forEach(expectedValue => {
+    ok(isPassingThrough(pathSegList, expectedValue.x, expectedValue.y),
+       `The path segment of x ${ expectedValue.x }, y ${ expectedValue.y } `
+       + `should be passing through`);
+
+    if (expectedValue.color) {
+      assertColor(pathEl.closest("svg"), expectedValue.x / duration, expectedValue.color);
+    }
+  });
+
+  if (hasClosePath) {
+    const closePathSeg = pathSegList.getItem(pathSegList.numberOfItems - 1);
+    is(closePathSeg.pathSegType, closePathSeg.PATHSEG_CLOSEPATH,
+       "The last segment should be close path");
+  }
+}
+
+/**
+ * Check the color for <stop> element.
+ * @param svgEl - <svg> element which has <stop> element.
+ * @param offset - float which represents the "offset" attribute of <stop>.
+ * @param expectedColor - e.g. rgb(0, 0, 255)
+ */
+function assertColor(svgEl, offset, expectedColor) {
+  const stopEl = findStopElement(svgEl, offset);
+  ok(stopEl, `stop element at offset ${ offset } should exist`);
+  is(stopEl.getAttribute("stop-color"), expectedColor,
+     `stop-color of stop element at offset ${ offset } should be ${ expectedColor }`);
+}
+
+/**
+ * Check whether the given vertex is passing throug on the path.
+ * @param pathSegList - pathSegList of <path> element.
+ * @param x - float x of vertex.
+ * @param y - float y of vertex.
+ * @return true: passing through, false: no on the path.
+ */
+function isPassingThrough(pathSegList, x, y) {
+  let previousPathSeg = pathSegList.getItem(0);
+  for (let i = 0; i < pathSegList.numberOfItems; i++) {
+    const pathSeg = pathSegList.getItem(i);
+    if (pathSeg.x === undefined) {
+      continue;
+    }
+    const currentX = parseFloat(pathSeg.x.toFixed(3));
+    const currentY = parseFloat(pathSeg.y.toFixed(6));
+    if (currentX === x && currentY === y) {
+      return true;
+    }
+    const previousX = parseFloat(previousPathSeg.x.toFixed(3));
+    const previousY = parseFloat(previousPathSeg.y.toFixed(6));
+    if (previousX <= x && x <= currentX &&
+        Math.min(previousY, currentY) <= y && y <= Math.max(previousY, currentY)) {
+      return true;
+    }
+    previousPathSeg = pathSeg;
+  }
+  return false;
+}
+
+/**
+ * Find <stop> element which has given offset from given <svg> element.
+ * @param svgEl - <svg> element which has <stop> element.
+ * @param offset - float which represents the "offset" attribute of <stop>.
+ * @return <stop> element.
+ */
+function findStopElement(svgEl, offset) {
+  return [...svgEl.querySelectorAll("stop")].find(stopEl => {
+    return stopEl.getAttribute("offset") == offset;
+  });
+}
+
+/*
+ * Returns all AnimationTargetNode instances.
+ * This method should be called after emit "animation-timeline-rendering-completed".
+ * @param {AnimationsPanel} panel The panel instance.
+ * @return {Array} all AnimationTargetNode instances.
+ */
+function getAnimationTargetNodes(panel) {
+  return panel.animationsTimelineComponent.animations.map(animation => {
+    return panel.animationsTimelineComponent.componentsMap[animation.actorID].targetNode;
+  });
+}
+
+/*
+ * Returns all AnimationTargetBlock instances.
+ * This method should be called after emit "animation-timeline-rendering-completed".
+ * @param {AnimationsPanel} panel The panel instance.
+ * @return {Array} all AnimationTargetBlock instances.
+ */
+function getAnimationTimeBlocks(panel) {
+  return panel.animationsTimelineComponent.animations.map(animation => {
+    return panel.animationsTimelineComponent.componentsMap[animation.actorID].timeBlock;
+  });
 }

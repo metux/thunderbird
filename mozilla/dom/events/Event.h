@@ -15,7 +15,7 @@
 #include "nsPIDOMWindow.h"
 #include "nsPoint.h"
 #include "nsCycleCollectionParticipant.h"
-#include "nsAutoPtr.h"
+#include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/EventBinding.h"
 #include "nsIScriptGlobalObject.h"
 #include "Units.h"
@@ -30,6 +30,7 @@ namespace mozilla {
 namespace dom {
 
 class EventTarget;
+class EventMessageAutoOverride;
 class WantsPopupControlCheck;
 #define GENERATED_EVENT(EventClass_) class EventClass_;
 #include "mozilla/dom/GeneratedEventList.h"
@@ -53,7 +54,7 @@ public:
   Event(EventTarget* aOwner,
         nsPresContext* aPresContext,
         WidgetEvent* aEvent);
-  explicit Event(nsPIDOMWindow* aWindow);
+  explicit Event(nsPIDOMWindowInner* aWindow);
 
 protected:
   virtual ~Event();
@@ -62,6 +63,7 @@ private:
   void ConstructorInit(EventTarget* aOwner,
                        nsPresContext* aPresContext,
                        WidgetEvent* aEvent);
+  double TimeStampImpl() const;
 
 public:
   static Event* FromSupports(nsISupports* aSupports)
@@ -141,6 +143,10 @@ public:
                                      LayoutDeviceIntPoint aPoint,
                                      CSSIntPoint aDefaultPoint);
 
+  static already_AddRefed<Event> Constructor(EventTarget* aEventTarget,
+                                             const nsAString& aType,
+                                             const EventInit& aParam);
+
   static already_AddRefed<Event> Constructor(const GlobalObject& aGlobal,
                                              const nsAString& aType,
                                              const EventInit& aParam,
@@ -170,23 +176,43 @@ public:
     return mEvent->mFlags.mCancelable;
   }
 
+  bool Composed() const
+  {
+    return mEvent->mFlags.mComposed;
+  }
+
+  bool CancelBubble() const
+  {
+    return mEvent->PropagationStopped();
+  }
+
   // xpidl implementation
   // void PreventDefault();
 
-  // You MUST NOT call PreventDefaultJ(JSContext*) from C++ code.  A call of
-  // this method always sets Event.defaultPrevented true for web contents.
-  // If default action handler calls this, web applications meet wrong
+  // You MUST NOT call PreventDefault(JSContext*, CallerType) from C++ code.  A
+  // call of this method always sets Event.defaultPrevented true for web
+  // contents.  If default action handler calls this, web applications see wrong
   // defaultPrevented value.
-  virtual void PreventDefault(JSContext* aCx);
+  virtual void PreventDefault(JSContext* aCx, CallerType aCallerType);
 
-  // You MUST NOT call DefaultPrevented(JSContext*) from C++ code.  This may
+  // You MUST NOT call DefaultPrevented(CallerType) from C++ code.  This may
   // return false even if PreventDefault() has been called.
-  // See comments in its implementation for the detail.
-  bool DefaultPrevented(JSContext* aCx) const;
+  // See comments in its implementation for the details.
+  bool DefaultPrevented(CallerType aCallerType) const;
 
   bool DefaultPrevented() const
   {
-    return mEvent->mFlags.mDefaultPrevented;
+    return mEvent->DefaultPrevented();
+  }
+
+  bool DefaultPreventedByChrome() const
+  {
+    return mEvent->mFlags.mDefaultPreventedByChrome;
+  }
+
+  bool DefaultPreventedByContent() const
+  {
+    return mEvent->mFlags.mDefaultPreventedByContent;
   }
 
   bool MultipleActionsPrevented() const
@@ -196,7 +222,7 @@ public:
 
   bool IsTrusted() const
   {
-    return mEvent->mFlags.mIsTrusted;
+    return mEvent->IsTrusted();
   }
 
   bool IsSynthesized() const
@@ -218,7 +244,8 @@ public:
    *                                    by a call of Event.preventDefault() in
    *                                    content script, false.
    */
-  void PreventDefaultInternal(bool aCalledByDefaultHandler);
+  void PreventDefaultInternal(bool aCalledByDefaultHandler,
+                              nsIPrincipal* aPrincipal = nullptr);
 
   bool IsMainThreadEvent()
   {
@@ -233,12 +260,28 @@ public:
   static nsIContent* GetShadowRelatedTarget(nsIContent* aCurrentTarget,
                                             nsIContent* aRelatedTarget);
 
+  void MarkUninitialized()
+  {
+    mEvent->mMessage = eVoidEvent;
+    mEvent->mSpecifiedEventTypeString.Truncate();
+    mEvent->mSpecifiedEventType = nullptr;
+  }
+
+  /**
+   * For WidgetEvent, return it's type in string.
+   *
+   * @param aEvent is a WidgetEvent to get its type.
+   * @param aType is a string where to return the type.
+   */
+  static void GetWidgetEventType(WidgetEvent* aEvent, nsAString& aType);
+
 protected:
 
   // Internal helper functions
   void SetEventType(const nsAString& aEventTypeArg);
   already_AddRefed<nsIContent> GetTargetFromFrame();
 
+  friend class EventMessageAutoOverride;
   friend class WantsPopupControlCheck;
   void SetWantsPopupControlCheck(bool aCheck)
   {
@@ -250,11 +293,13 @@ protected:
     return IsTrusted() && mWantsPopupControlCheck;
   }
 
-  /**
-   * IsChrome() returns true if aCx is chrome context or the event is created
-   * in chrome's thread.  Otherwise, false.
-   */
-  bool IsChrome(JSContext* aCx) const;
+  void SetComposed(bool aComposed)
+  {
+    mEvent->SetComposed(aComposed);
+  }
+
+  already_AddRefed<EventTarget>
+  EnsureWebAccessibleRelatedTarget(EventTarget* aRelatedTarget);
 
   mozilla::WidgetEvent*       mEvent;
   RefPtr<nsPresContext>     mPresContext;
@@ -266,6 +311,48 @@ protected:
   // True when popup control check should rely on event.type, not
   // WidgetEvent.mMessage.
   bool                        mWantsPopupControlCheck;
+};
+
+/**
+ * RAII helper-class to override an event's message (i.e. its DOM-exposed
+ * type), for as long as the object is alive.  Restores the original
+ * EventMessage when destructed.
+ *
+ * Notable requirements:
+ *  - The original & overriding messages must be known (not eUnidentifiedEvent).
+ *  - The original & overriding messages must be different.
+ *  - The passed-in nsIDOMEvent must outlive this RAII helper.
+ */
+class MOZ_RAII EventMessageAutoOverride
+{
+public:
+  explicit EventMessageAutoOverride(nsIDOMEvent* aEvent,
+                                    EventMessage aOverridingMessage)
+    : mEvent(aEvent->InternalDOMEvent()),
+      mOrigMessage(mEvent->mEvent->mMessage)
+  {
+    MOZ_ASSERT(aOverridingMessage != mOrigMessage,
+               "Don't use this class if you're not actually overriding");
+    MOZ_ASSERT(aOverridingMessage != eUnidentifiedEvent,
+               "Only use this class with a valid overriding EventMessage");
+    MOZ_ASSERT(mOrigMessage != eUnidentifiedEvent &&
+               mEvent->mEvent->mSpecifiedEventTypeString.IsEmpty(),
+               "Only use this class on events whose overridden type is "
+               "known (so we can restore it properly)");
+
+    mEvent->mEvent->mMessage = aOverridingMessage;
+  }
+
+  ~EventMessageAutoOverride()
+  {
+    mEvent->mEvent->mMessage = mOrigMessage;
+  }
+
+protected:
+  // Non-owning ref, which should be safe since we're a stack-allocated object
+  // with limited lifetime. Whoever creates us should keep mEvent alive.
+  Event* const MOZ_NON_OWNING_REF mEvent;
+  const EventMessage mOrigMessage;
 };
 
 class MOZ_STACK_CLASS WantsPopupControlCheck
@@ -293,7 +380,7 @@ private:
 
 #define NS_FORWARD_TO_EVENT \
   NS_FORWARD_NSIDOMEVENT(Event::) \
-  virtual void PreventDefault(JSContext* aCx) override { Event::PreventDefault(aCx); }
+  virtual void PreventDefault(JSContext* aCx, CallerType aCallerType) override { Event::PreventDefault(aCx, aCallerType); }
 
 #define NS_FORWARD_NSIDOMEVENT_NO_SERIALIZATION_NO_DUPLICATION(_to) \
   NS_IMETHOD GetType(nsAString& aType) override { return _to GetType(aType); } \
@@ -315,14 +402,16 @@ private:
   NS_IMETHOD GetIsTrusted(bool* aIsTrusted) override { return _to GetIsTrusted(aIsTrusted); } \
   NS_IMETHOD SetTarget(nsIDOMEventTarget* aTarget) override { return _to SetTarget(aTarget); } \
   NS_IMETHOD_(bool) IsDispatchStopped(void) override { return _to IsDispatchStopped(); } \
-  NS_IMETHOD_(WidgetEvent*) GetInternalNSEvent(void) override { return _to GetInternalNSEvent(); } \
+  NS_IMETHOD_(WidgetEvent*) WidgetEventPtr(void) override { return _to WidgetEventPtr(); } \
   NS_IMETHOD_(void) SetTrusted(bool aTrusted) override { _to SetTrusted(aTrusted); } \
   NS_IMETHOD_(void) SetOwner(EventTarget* aOwner) override { _to SetOwner(aOwner); } \
-  NS_IMETHOD_(Event*) InternalDOMEvent() override { return _to InternalDOMEvent(); }
+  NS_IMETHOD_(Event*) InternalDOMEvent() override { return _to InternalDOMEvent(); } \
+  NS_IMETHOD GetCancelBubble(bool* aCancelBubble) override { return _to GetCancelBubble(aCancelBubble); } \
+  NS_IMETHOD SetCancelBubble(bool aCancelBubble) override { return _to SetCancelBubble(aCancelBubble); }
 
 #define NS_FORWARD_TO_EVENT_NO_SERIALIZATION_NO_DUPLICATION \
   NS_FORWARD_NSIDOMEVENT_NO_SERIALIZATION_NO_DUPLICATION(Event::) \
-  virtual void PreventDefault(JSContext* aCx) override { Event::PreventDefault(aCx); }
+  virtual void PreventDefault(JSContext* aCx, CallerType aCallerType) override { Event::PreventDefault(aCx, aCallerType); }
 
 inline nsISupports*
 ToSupports(mozilla::dom::Event* e)

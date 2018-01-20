@@ -19,6 +19,7 @@
 
 #include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
+#include "nsINamed.h"
 #include "nsITimer.h"
 
 
@@ -36,7 +37,8 @@ class TransportLayerLoopback : public TransportLayer {
       timer_(nullptr),
       packets_(),
       packets_lock_(nullptr),
-      deliverer_(nullptr) {}
+      deliverer_(nullptr),
+      combinePackets_(false) {}
 
   ~TransportLayerLoopback() {
     while (!packets_.empty()) {
@@ -67,8 +69,10 @@ class TransportLayerLoopback : public TransportLayer {
     }
   }
 
+  void CombinePackets(bool combine) { combinePackets_ = combine; }
+
   // Overrides for TransportLayer
-  virtual TransportResult SendPacket(const unsigned char *data, size_t len);
+  TransportResult SendPacket(const unsigned char *data, size_t len) override;
 
   // Deliver queued packets
   void DeliverPackets();
@@ -93,6 +97,16 @@ class TransportLayerLoopback : public TransportLayer {
       len_ = len;
     }
 
+    void Assign(const unsigned char *data1, size_t len1,
+                const unsigned char *data2, size_t len2) {
+      data_ = new unsigned char[len1 + len2];
+      memcpy(static_cast<void *>(data_),
+             static_cast<const void *>(data1), len1);
+      memcpy(static_cast<void *>(data_ + len1),
+             static_cast<const void *>(data2), len2);
+      len_ = len1 + len2;
+    }
+
     const unsigned char *data() const { return data_; }
     size_t len() const { return len_; }
 
@@ -105,7 +119,8 @@ class TransportLayerLoopback : public TransportLayer {
 
   // A timer to deliver packets if some are available
   // Fires every 100 ms
-  class Deliverer : public nsITimerCallback {
+  class Deliverer : public nsITimerCallback
+                  , public nsINamed {
    public:
     explicit Deliverer(TransportLayerLoopback *layer) :
         layer_(layer) {}
@@ -115,6 +130,7 @@ class TransportLayerLoopback : public TransportLayer {
 
     NS_DECL_THREADSAFE_ISUPPORTS
     NS_DECL_NSITIMERCALLBACK
+    NS_DECL_NSINAMED
 
  private:
     virtual ~Deliverer() {
@@ -133,6 +149,7 @@ class TransportLayerLoopback : public TransportLayer {
   std::queue<QueuedPacket *> packets_;
   PRLock *packets_lock_;
   RefPtr<Deliverer> deliverer_;
+  bool combinePackets_;
 };
 
 }  // close namespace

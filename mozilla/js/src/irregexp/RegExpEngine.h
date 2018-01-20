@@ -86,21 +86,22 @@ struct RegExpCode
 };
 
 RegExpCode
-CompilePattern(JSContext* cx, RegExpShared* shared, RegExpCompileData* data,
+CompilePattern(JSContext* cx, HandleRegExpShared shared, RegExpCompileData* data,
                HandleLinearString sample,  bool is_global, bool ignore_case,
-               bool is_ascii, bool match_only, bool force_bytecode, bool sticky);
+               bool is_latin1, bool match_only, bool force_bytecode, bool sticky,
+               bool unicode, RegExpShared::JitCodeTables& tables);
 
 // Note: this may return RegExpRunStatus_Error if an interrupt was requested
 // while the code was executing.
 template <typename CharT>
 RegExpRunStatus
 ExecuteCode(JSContext* cx, jit::JitCode* codeBlock, const CharT* chars, size_t start,
-            size_t length, MatchPairs* matches);
+            size_t length, MatchPairs* matches, size_t* endIndex);
 
 template <typename CharT>
 RegExpRunStatus
 InterpretCode(JSContext* cx, const uint8_t* byteCode, const CharT* chars, size_t start,
-              size_t length, MatchPairs* matches);
+              size_t length, MatchPairs* matches, size_t* endIndex);
 
 #define FOR_EACH_NODE_TYPE(VISIT)                                    \
   VISIT(End)                                                         \
@@ -127,8 +128,41 @@ InterpretCode(JSContext* cx, const uint8_t* byteCode, const CharT* chars, size_t
 FOR_EACH_REG_EXP_TREE_TYPE(FORWARD_DECLARE)
 #undef FORWARD_DECLARE
 
+// InfallibleVector is like Vector, but all its methods are infallible (they
+// crash on OOM). We use this class instead of Vector to avoid a ton of
+// MOZ_MUST_USE warnings in irregexp code (imported from V8).
+template<typename T, size_t N>
+class InfallibleVector
+{
+    Vector<T, N, LifoAllocPolicy<Infallible>> vector_;
+
+    InfallibleVector(const InfallibleVector&) = delete;
+    void operator=(const InfallibleVector&) = delete;
+
+  public:
+    explicit InfallibleVector(const LifoAllocPolicy<Infallible>& alloc) : vector_(alloc) {}
+
+    void append(const T& t) { MOZ_ALWAYS_TRUE(vector_.append(t)); }
+    void append(const T* begin, size_t length) { MOZ_ALWAYS_TRUE(vector_.append(begin, length)); }
+
+    void clear() { vector_.clear(); }
+    void popBack() { vector_.popBack(); }
+    void reserve(size_t n) { MOZ_ALWAYS_TRUE(vector_.reserve(n)); }
+
+    size_t length() const { return vector_.length(); }
+    T popCopy() { return vector_.popCopy(); }
+
+    T* begin() { return vector_.begin(); }
+    const T* begin() const { return vector_.begin(); }
+
+    T& operator[](size_t index) { return vector_[index]; }
+    const T& operator[](size_t index) const { return vector_[index]; }
+
+    InfallibleVector& operator=(InfallibleVector&& rhs) { vector_ = Move(rhs.vector_); return *this; }
+};
+
 class CharacterRange;
-typedef Vector<CharacterRange, 1, LifoAllocPolicy<Infallible> > CharacterRangeVector;
+typedef InfallibleVector<CharacterRange, 1> CharacterRangeVector;
 
 // Represents code units in the range from from_ to to_, both ends are
 // inclusive.
@@ -144,6 +178,8 @@ class CharacterRange
     {}
 
     static void AddClassEscape(LifoAlloc* alloc, char16_t type, CharacterRangeVector* ranges);
+    static void AddClassEscapeUnicode(LifoAlloc* alloc, char16_t type,
+                                      CharacterRangeVector* ranges, bool ignoreCase);
 
     static inline CharacterRange Singleton(char16_t value) {
         return CharacterRange(value, value);
@@ -163,7 +199,7 @@ class CharacterRange
     bool is_valid() { return from_ <= to_; }
     bool IsEverything(char16_t max) { return from_ == 0 && to_ >= max; }
     bool IsSingleton() { return (from_ == to_); }
-    void AddCaseEquivalents(bool is_ascii, CharacterRangeVector* ranges);
+    void AddCaseEquivalents(bool is_latin1, bool unicode, CharacterRangeVector* ranges);
 
     static void Split(const LifoAlloc* alloc,
                       CharacterRangeVector base,
@@ -208,8 +244,8 @@ class OutSet
     static const unsigned kFirstLimit = 32;
 
   private:
-    typedef Vector<OutSet*, 1, LifoAllocPolicy<Infallible> > OutSetVector;
-    typedef Vector<unsigned, 1, LifoAllocPolicy<Infallible> > RemainingVector;
+    typedef InfallibleVector<OutSet*, 1> OutSetVector;
+    typedef InfallibleVector<unsigned, 1> RemainingVector;
 
     // Destructively set a value in this set.  In most cases you want
     // to use Extend instead to ensure that only one instance exists
@@ -314,7 +350,7 @@ class TextElement
     RegExpTree* tree_;
 };
 
-typedef Vector<TextElement, 1, LifoAllocPolicy<Infallible> > TextElementVector;
+typedef InfallibleVector<TextElement, 1> TextElementVector;
 
 class NodeVisitor;
 class RegExpCompiler;
@@ -404,13 +440,13 @@ class QuickCheckDetails
         cannot_match_(false)
     {}
 
-    bool Rationalize(bool ascii);
+    bool Rationalize(bool latin1);
 
     // Merge in the information from another branch of an alternation.
     void Merge(QuickCheckDetails* other, int from_index);
 
     // Advance the current position by some amount.
-    void Advance(int by, bool ascii);
+    void Advance(int by);
 
     void Clear();
 
@@ -516,9 +552,9 @@ class RegExpNode
     // If we know that the input is ASCII then there are some nodes that can
     // never match.  This method returns a node that can be substituted for
     // itself, or nullptr if the node can never match.
-    virtual RegExpNode* FilterASCII(int depth, bool ignore_case) { return this; }
+    virtual RegExpNode* FilterLATIN1(int depth, bool ignore_case, bool unicode) { return this; }
 
-    // Helper for FilterASCII.
+    // Helper for FilterLATIN1.
     RegExpNode* replacement() {
         MOZ_ASSERT(info()->replacement_calculated);
         return replacement_;
@@ -623,14 +659,14 @@ class SeqRegExpNode : public RegExpNode
 
     RegExpNode* on_success() { return on_success_; }
     void set_on_success(RegExpNode* node) { on_success_ = node; }
-    virtual RegExpNode* FilterASCII(int depth, bool ignore_case);
+    virtual RegExpNode* FilterLATIN1(int depth, bool ignore_case, bool unicode);
     virtual bool FillInBMInfo(int offset,
                               int budget,
                               BoyerMooreLookahead* bm,
                               bool not_at_start);
 
   protected:
-    RegExpNode* FilterSuccessor(int depth, bool ignore_case);
+    RegExpNode* FilterSuccessor(int depth, bool ignore_case, bool unicode);
 
   private:
     RegExpNode* on_success_;
@@ -748,7 +784,7 @@ class TextNode : public SeqRegExpNode
                                       int characters_filled_in,
                                       bool not_at_start);
     TextElementVector& elements() { return *elements_; }
-    void MakeCaseIndependent(bool is_ascii);
+    void MakeCaseIndependent(bool is_latin1, bool unicode);
     virtual int GreedyLoopTextLength();
     virtual RegExpNode* GetSuccessorOfOmnivorousTextNode(
                                                          RegExpCompiler* compiler);
@@ -757,14 +793,15 @@ class TextNode : public SeqRegExpNode
                               BoyerMooreLookahead* bm,
                               bool not_at_start);
     void CalculateOffsets();
-    virtual RegExpNode* FilterASCII(int depth, bool ignore_case);
+    virtual RegExpNode* FilterLATIN1(int depth, bool ignore_case, bool unicode);
 
   private:
     enum TextEmitPassType {
-        NON_ASCII_MATCH,             // Check for characters that can't match.
+        NON_LATIN1_MATCH,             // Check for characters that can't match.
         SIMPLE_CHARACTER_MATCH,      // Case-dependent single character check.
-        NON_LETTER_CHARACTER_MATCH,  // Check characters that have no case equivs.
-        CASE_CHARACTER_MATCH,        // Case-independent single character check.
+        CASE_SINGLE_CHARACTER_MATCH, // Case-independent single character check.
+        CASE_MUTLI_CHARACTER_MATCH,  // Case-independent single character with
+                                     // multiple variation.
         CHARACTER_CLASS_MATCH        // Character class.
     };
     static bool SkipPass(int pass, bool ignore_case);
@@ -788,7 +825,9 @@ class AssertionNode : public SeqRegExpNode
         AT_START,
         AT_BOUNDARY,
         AT_NON_BOUNDARY,
-        AFTER_NEWLINE
+        AFTER_NEWLINE,
+        NOT_AFTER_LEAD_SURROGATE,
+        NOT_IN_SURROGATE_PAIR
     };
     AssertionNode(AssertionType t, RegExpNode* on_success)
       : SeqRegExpNode(on_success), assertion_type_(t)
@@ -808,6 +847,14 @@ class AssertionNode : public SeqRegExpNode
     }
     static AssertionNode* AfterNewline(RegExpNode* on_success) {
         return on_success->alloc()->newInfallible<AssertionNode>(AFTER_NEWLINE, on_success);
+    }
+    static AssertionNode* NotAfterLeadSurrogate(RegExpNode* on_success) {
+        return on_success->alloc()->newInfallible<AssertionNode>(NOT_AFTER_LEAD_SURROGATE,
+                                                                 on_success);
+    }
+    static AssertionNode* NotInSurrogatePair(RegExpNode* on_success) {
+        return on_success->alloc()->newInfallible<AssertionNode>(NOT_IN_SURROGATE_PAIR,
+                                                                 on_success);
     }
     virtual void Accept(NodeVisitor* visitor);
     virtual void Emit(RegExpCompiler* compiler, Trace* trace);
@@ -853,7 +900,6 @@ class BackReferenceNode : public SeqRegExpNode
                                       RegExpCompiler* compiler,
                                       int characters_filled_in,
                                       bool not_at_start) {
-        return;
     }
     virtual bool FillInBMInfo(int offset,
                               int budget,
@@ -943,7 +989,7 @@ class Guard
     int value_;
 };
 
-typedef Vector<Guard*, 1, LifoAllocPolicy<Infallible> > GuardVector;
+typedef InfallibleVector<Guard*, 1> GuardVector;
 
 class GuardedAlternative
 {
@@ -962,7 +1008,7 @@ class GuardedAlternative
     GuardVector* guards_;
 };
 
-typedef Vector<GuardedAlternative, 0, LifoAllocPolicy<Infallible> > GuardedAlternativeVector;
+typedef InfallibleVector<GuardedAlternative, 0> GuardedAlternativeVector;
 
 class AlternativeGeneration;
 
@@ -1006,7 +1052,7 @@ class ChoiceNode : public RegExpNode
     void set_not_at_start() { not_at_start_ = true; }
     void set_being_calculated(bool b) { being_calculated_ = b; }
     virtual bool try_to_emit_quick_check_for_alternative(int i) { return true; }
-    virtual RegExpNode* FilterASCII(int depth, bool ignore_case);
+    virtual RegExpNode* FilterLATIN1(int depth, bool ignore_case, bool unicode);
 
   protected:
     int GreedyLoopTextLengthForAlternative(GuardedAlternative* alternative);
@@ -1059,7 +1105,7 @@ class NegativeLookaheadChoiceNode : public ChoiceNode
     // characters, but on a negative lookahead the negative branch did not take
     // part in that calculation (EatsAtLeast) so the assumptions don't hold.
     virtual bool try_to_emit_quick_check_for_alternative(int i) { return i != 0; }
-    virtual RegExpNode* FilterASCII(int depth, bool ignore_case);
+    virtual RegExpNode* FilterLATIN1(int depth, bool ignore_case, bool unicode);
 };
 
 class LoopChoiceNode : public ChoiceNode
@@ -1088,7 +1134,7 @@ class LoopChoiceNode : public ChoiceNode
     RegExpNode* continue_node() { return continue_node_; }
     bool body_can_be_zero_length() { return body_can_be_zero_length_; }
     virtual void Accept(NodeVisitor* visitor);
-    virtual RegExpNode* FilterASCII(int depth, bool ignore_case);
+    virtual RegExpNode* FilterLATIN1(int depth, bool ignore_case, bool unicode);
 
   private:
     // AddAlternative is made private for loop nodes because alternatives
@@ -1149,13 +1195,14 @@ AddRange(ContainedInLattice a,
 class BoyerMoorePositionInfo
 {
   public:
-    explicit BoyerMoorePositionInfo(LifoAlloc* alloc)
+    explicit BoyerMoorePositionInfo(LifoAlloc* alloc, bool unicode_ignore_case)
       : map_(*alloc),
         map_count_(0),
         w_(kNotYet),
         s_(kNotYet),
         d_(kNotYet),
-        surrogate_(kNotYet)
+        surrogate_(kNotYet),
+        unicode_ignore_case_(unicode_ignore_case)
     {
         map_.reserve(kMapSize);
         for (int i = 0; i < kMapSize; i++)
@@ -1176,15 +1223,18 @@ class BoyerMoorePositionInfo
     bool is_word() { return w_ == kLatticeIn; }
 
   private:
-    Vector<bool, 0, LifoAllocPolicy<Infallible> > map_;
+    InfallibleVector<bool, 0> map_;
     int map_count_;  // Number of set bits in the map.
     ContainedInLattice w_;  // The \w character class.
     ContainedInLattice s_;  // The \s character class.
     ContainedInLattice d_;  // The \d character class.
     ContainedInLattice surrogate_;  // Surrogate UTF-16 code units.
+
+    // True if the RegExp has unicode and ignoreCase flags.
+    bool unicode_ignore_case_;
 };
 
-typedef Vector<BoyerMoorePositionInfo*, 1, LifoAllocPolicy<Infallible> > BoyerMoorePositionInfoVector;
+typedef InfallibleVector<BoyerMoorePositionInfo*, 1> BoyerMoorePositionInfoVector;
 
 class BoyerMooreLookahead
 {
@@ -1236,7 +1286,7 @@ class BoyerMooreLookahead
     int length_;
     RegExpCompiler* compiler_;
 
-    // 0x7f for ASCII, 0xffff for UTF-16.
+    // 0xff for LATIN1, 0xffff for UTF-16.
     int max_char_;
     BoyerMoorePositionInfoVector bitmaps_;
 
@@ -1459,10 +1509,11 @@ class NodeVisitor
 class Analysis : public NodeVisitor
 {
   public:
-    Analysis(JSContext* cx, bool ignore_case, bool is_ascii)
+    Analysis(JSContext* cx, bool ignore_case, bool is_latin1, bool unicode)
       : cx(cx),
         ignore_case_(ignore_case),
-        is_ascii_(is_ascii),
+        is_latin1_(is_latin1),
+        unicode_(unicode),
         error_message_(nullptr)
     {}
 
@@ -1479,19 +1530,23 @@ class Analysis : public NodeVisitor
         MOZ_ASSERT(error_message_ != nullptr);
         return error_message_;
     }
-    void fail(const char* error_message) {
+    void failASCII(const char* error_message) {
         error_message_ = error_message;
     }
 
   private:
     JSContext* cx;
     bool ignore_case_;
-    bool is_ascii_;
+    bool is_latin1_;
+    bool unicode_;
     const char* error_message_;
 
     Analysis(Analysis&) = delete;
     void operator=(Analysis&) = delete;
 };
+
+void
+AddClassNegated(const int* elmv, int elmc, CharacterRangeVector* ranges);
 
 } }  // namespace js::irregexp
 

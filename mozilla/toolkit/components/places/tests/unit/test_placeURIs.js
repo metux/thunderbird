@@ -8,21 +8,19 @@
 // Get history service
 try {
   var histsvc = Cc["@mozilla.org/browser/nav-history-service;1"].getService(Ci.nsINavHistoryService);
-} catch(ex) {
+} catch (ex) {
   do_throw("Could not get history service\n");
-} 
+}
 
 // main
 function run_test() {
   // XXX Full testing coverage for QueriesToQueryString and
   // QueryStringToQueries
 
-  var bs = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
-           getService(Ci.nsINavBookmarksService);
   const NHQO = Ci.nsINavHistoryQueryOptions;
   // Bug 376798
   var query = histsvc.getNewQuery();
-  query.setFolders([bs.placesRoot], 1);
+  query.setFolders([PlacesUtils.bookmarks.placesRoot], 1);
   do_check_eq(histsvc.queriesToQueryString([query], 1, histsvc.getNewQueryOptions()),
               "place:folder=PLACES_ROOT");
 
@@ -35,7 +33,7 @@ function run_test() {
     "&sortingAnnotation=test%20anno";
   do_check_eq(histsvc.queriesToQueryString([query], 1, options),
               placeURI);
-  var options = {};
+  options = {};
   histsvc.queryStringToQueries(placeURI, { }, {}, options);
   do_check_eq(options.value.sortingAnnotation, "test anno");
   do_check_eq(options.value.sortingMode, NHQO.SORT_BY_ANNOTATION_DESCENDING);

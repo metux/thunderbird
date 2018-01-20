@@ -1,3 +1,5 @@
+#filter substitution
+
 messenger.jar:
 % content messagebody %content/messagebody/ contentaccessible=yes
 % content messenger %content/messenger/
@@ -6,6 +8,8 @@ messenger.jar:
 % overlay chrome://global/content/viewSource.xul chrome://messenger/content/viewSourceOverlay.xul
 % overlay chrome://global/content/config.xul chrome://messenger/content/configEditorOverlay.xul
 % overlay chrome://editor/content/EdSpellCheck.xul chrome://messenger/content/EdSpellCheckOverlay.xul
+% overlay about:addons chrome://messenger/content/extensionsOverlay.xul
+% style about:addons chrome://messenger/content/extensionsOverlay.css
 % style chrome://global/content/customizeToolbar.xul chrome://messenger/content/messenger.css
 % style chrome://global/content/customizeToolbar.xul chrome://messenger/skin/
 % style chrome://global/content/customizeToolbar.xul chrome://messenger/skin/addressbook/addressbook.css
@@ -15,6 +19,8 @@ messenger.jar:
 % style chrome://global/content/customizeToolbar.xul chrome://messenger/skin/primaryToolbar.css
     content/messenger/mailWindow.js                 (content/mailWindow.js)
     content/messenger/messageDisplay.js             (content/messageDisplay.js)
+    content/messenger/extensionsOverlay.css         (content/extensionsOverlay.css)
+    content/messenger/extensionsOverlay.xul         (content/extensionsOverlay.xul)
     content/messenger/folderDisplay.js              (content/folderDisplay.js)
     content/messenger/mailWindowOverlay.js          (content/mailWindowOverlay.js)
 *   content/messenger/mailWindowOverlay.xul         (content/mailWindowOverlay.xul)
@@ -34,10 +40,10 @@ messenger.jar:
     content/messenger/nsDragAndDrop.js              (content/nsDragAndDrop.js)
     content/messenger/editContactOverlay.js         (content/editContactOverlay.js)
 *   content/messenger/editContactOverlay.xul        (content/editContactOverlay.xul)
-*   content/messenger/msgMail3PaneWindow.js         (content/msgMail3PaneWindow.js)
+    content/messenger/msgMail3PaneWindow.js         (content/msgMail3PaneWindow.js)
     content/messenger/mail3PaneWindowCommands.js    (content/mail3PaneWindowCommands.js)
     content/messenger/mailCommands.js               (content/mailCommands.js)
-*   content/messenger/mailCore.js                   (content/mailCore.js)
+    content/messenger/mailCore.js                   (content/mailCore.js)
     content/messenger/customizeToolbarOverlay.xul   (content/customizeToolbarOverlay.xul)
     content/messenger/mailTabs.js                   (content/mailTabs.js)
     content/messenger/commandglue.js                (content/commandglue.js)
@@ -47,13 +53,14 @@ messenger.jar:
     content/messenger/ABSearchDialog.js             (content/ABSearchDialog.js)
     content/messenger/FilterListDialog.xul          (content/FilterListDialog.xul)
     content/messenger/FilterListDialog.js           (content/FilterListDialog.js)
-*   content/messenger/plugins.js                    (content/plugins.js)
+    content/messenger/plugins.js                    (content/plugins.js)
     content/messenger/specialTabs.js                (content/specialTabs.js)
     content/messenger/specialTabs.xul               (content/specialTabs.xul)
     content/messenger/subscribe.xul                 (content/subscribe.xul)
     content/messenger/subscribe.js                  (content/subscribe.js)
+    content/messenger/aboutDialog-appUpdater.js     (content/aboutDialog-appUpdater.js)
 *   content/messenger/aboutDialog.xul               (content/aboutDialog.xul)
-*   content/messenger/aboutDialog.js                (content/aboutDialog.js)
+    content/messenger/aboutDialog.js                (content/aboutDialog.js)
 *   content/messenger/aboutRights.xhtml             (content/aboutRights.xhtml)
 *   content/messenger/systemIntegrationDialog.xul   (content/systemIntegrationDialog.xul)
     content/messenger/systemIntegrationDialog.js    (content/systemIntegrationDialog.js)
@@ -112,14 +119,18 @@ messenger.jar:
     content/messenger/sanitizeDialog.js             (content/sanitizeDialog.js)
 *   content/messenger/toolbarIconColor.js           (content/toolbarIconColor.js)
 # the following files are mail-specific overrides
-*+  content/messenger/license.html                  (/mozilla/toolkit/content/license.html)
+*   content/messenger/license.html                  (/@mozreltopsrcdir@/toolkit/content/license.html)
 % override chrome://global/content/license.html chrome://messenger/content/license.html
+# L10n resources and overrides.
+% override chrome://mozapps/locale/downloads/settingsChange.dtd chrome://messenger/locale/downloads/settingsChange.dtd
+% override chrome://global/locale/netError.dtd chrome://messenger/locale/netError.dtd
+% resource search-plugins chrome://messenger/locale/searchplugins/
 
 comm.jar:
 % content communicator %content/communicator/
    content/communicator/charsetOverlay.xul          (content/charsetOverlay.xul)
    content/communicator/contentAreaClick.js         (content/contentAreaClick.js)
-   content/communicator/labelsencodings.properties  (/mozilla/dom/encoding/labelsencodings.properties)
+   content/communicator/labelsencodings.properties  (/@mozreltopsrcdir@/dom/encoding/labelsencodings.properties)
 *  content/communicator/utilityOverlay.xul          (content/utilityOverlay.xul)
    content/communicator/utilityOverlay.js           (content/utilityOverlay.js)
 

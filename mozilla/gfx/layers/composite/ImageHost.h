@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -12,9 +13,11 @@
 #include "mozilla/RefPtr.h"             // for RefPtr
 #include "mozilla/gfx/MatrixFwd.h"      // for Matrix4x4
 #include "mozilla/gfx/Point.h"          // for Point
+#include "mozilla/gfx/Polygon.h"        // for Polygon
 #include "mozilla/gfx/Rect.h"           // for Rect
-#include "mozilla/gfx/Types.h"          // for Filter
+#include "mozilla/gfx/Types.h"          // for SamplingFilter
 #include "mozilla/layers/CompositorTypes.h"  // for TextureInfo, etc
+#include "mozilla/layers/ImageComposite.h"  // for ImageComposite
 #include "mozilla/layers/LayersSurfaces.h"  // for SurfaceDescriptor
 #include "mozilla/layers/LayersTypes.h"  // for LayerRenderState, etc
 #include "mozilla/layers/TextureHost.h"  // for TextureHost, etc
@@ -29,26 +32,30 @@ namespace layers {
 
 class Compositor;
 struct EffectChain;
-class ImageContainerParent;
+class HostLayerManager;
 
 /**
  * ImageHost. Works with ImageClientSingle and ImageClientBuffered
  */
-class ImageHost : public CompositableHost
+class ImageHost : public CompositableHost,
+                  public ImageComposite
 {
 public:
   explicit ImageHost(const TextureInfo& aTextureInfo);
   ~ImageHost();
 
   virtual CompositableType GetType() override { return mTextureInfo.mCompositableType; }
+  virtual ImageHost* AsImageHost() override { return this; }
 
-  virtual void Composite(LayerComposite* aLayer,
+  virtual void Composite(Compositor* aCompositor,
+                         LayerComposite* aLayer,
                          EffectChain& aEffectChain,
                          float aOpacity,
                          const gfx::Matrix4x4& aTransform,
-                         const gfx::Filter& aFilter,
-                         const gfx::Rect& aClipRect,
-                         const nsIntRegion* aVisibleRegion = nullptr) override;
+                         const gfx::SamplingFilter aSamplingFilter,
+                         const gfx::IntRect& aClipRect,
+                         const nsIntRegion* aVisibleRegion = nullptr,
+                         const Maybe<gfx::Polygon>& aGeometry = Nothing()) override;
 
   virtual void UseTextureHost(const nsTArray<TimedTexture>& aTextures) override;
 
@@ -57,16 +64,12 @@ public:
   virtual TextureHost* GetAsTextureHost(gfx::IntRect* aPictureRect = nullptr) override;
 
   virtual void Attach(Layer* aLayer,
-                      Compositor* aCompositor,
+                      TextureSourceProvider* aProvider,
                       AttachFlags aFlags = NO_FLAGS) override;
 
-  virtual void SetCompositor(Compositor* aCompositor) override;
-
-  virtual void SetImageContainer(ImageContainerParent* aImageContainer) override;
+  virtual void SetTextureSourceProvider(TextureSourceProvider* aProvider) override;
 
   gfx::IntSize GetImageSize() const override;
-
-  virtual LayerRenderState GetRenderState() override;
 
   virtual void PrintInfo(std::stringstream& aStream, const char* aPrefix) override;
 
@@ -80,95 +83,55 @@ public:
 
   virtual void Unlock() override;
 
-  virtual already_AddRefed<TexturedEffect> GenEffect(const gfx::Filter& aFilter) override;
+  virtual already_AddRefed<TexturedEffect> GenEffect(const gfx::SamplingFilter aSamplingFilter) override;
 
-  int32_t GetFrameID()
-  {
-    const TimedImage* img = ChooseImage();
-    return img ? img->mFrameID : -1;
-  }
+  void SetCurrentTextureHost(TextureHost* aTexture);
 
-  int32_t GetProducerID()
-  {
-    const TimedImage* img = ChooseImage();
-    return img ? img->mProducerID : -1;
-  }
+  virtual void CleanupResources() override;
 
-  int32_t GetLastFrameID() const { return mLastFrameID; }
-  int32_t GetLastProducerID() const { return mLastProducerID; }
+  bool IsOpaque();
 
-  enum Bias {
-    // Don't apply bias to frame times
-    BIAS_NONE,
-    // Apply a negative bias to frame times to keep them before the vsync time
-    BIAS_NEGATIVE,
-    // Apply a positive bias to frame times to keep them after the vsync time
-    BIAS_POSITIVE,
+  struct RenderInfo {
+    int imageIndex;
+    TimedImage* img;
+    RefPtr<TextureHost> host;
+
+    RenderInfo() : imageIndex(-1), img(nullptr)
+    {}
   };
+
+  // Acquire rendering information for the current frame.
+  bool PrepareToRender(TextureSourceProvider* aProvider, RenderInfo* aOutInfo);
+
+  // Acquire the TextureSource for the currently prepared frame.
+  RefPtr<TextureSource> AcquireTextureSource(const RenderInfo& aInfo);
+
+  // Send ImageComposite notifications and update the ChooseImage bias.
+  void FinishRendering(const RenderInfo& aInfo);
+
+  // This should only be called inside a lock, or during rendering. It is
+  // infallible to enforce this.
+  TextureHost* CurrentTextureHost() const {
+    MOZ_ASSERT(mCurrentTextureHost);
+    return mCurrentTextureHost;
+  }
 
 protected:
-  struct TimedImage {
-    CompositableTextureHostRef mFrontBuffer;
-    CompositableTextureSourceRef mTextureSource;
-    TimeStamp mTimeStamp;
-    gfx::IntRect mPictureRect;
-    int32_t mFrameID;
-    int32_t mProducerID;
-  };
+  // ImageComposite
+  virtual TimeStamp GetCompositionTime() const override;
 
-  /**
-   * ChooseImage is guaranteed to return the same TimedImage every time it's
-   * called during the same composition, up to the end of Composite() ---
-   * it depends only on mImages, mCompositor->GetCompositionTime(), and mBias.
-   * mBias is updated at the end of Composite().
-   */
-  const TimedImage* ChooseImage() const;
-  TimedImage* ChooseImage();
-  int ChooseImageIndex() const;
-
-  nsTArray<TimedImage> mImages;
-  // Weak reference, will be null if mImageContainer has been destroyed.
-  ImageContainerParent* mImageContainer;
-  int32_t mLastFrameID;
-  int32_t mLastProducerID;
-  /**
-   * Bias to apply to the next frame.
-   */
-  Bias mBias;
+  // Use a simple RefPtr because the same texture is already held by a
+  // a CompositableTextureHostRef in the array of TimedImage.
+  // See the comment in CompositableTextureRef for more details.
+  RefPtr<TextureHost> mCurrentTextureHost;
+  CompositableTextureSourceRef mCurrentTextureSource;
+  // When doing texture uploads it's best to alternate between two (or three)
+  // texture sources so that the texture we upload to isn't being used by
+  // the GPU to composite the previous frame.
+  RefPtr<TextureSource> mExtraTextureSource;
 
   bool mLocked;
 };
-
-#ifdef MOZ_WIDGET_GONK
-
-/**
- * ImageHostOverlay works with ImageClientOverlay
- */
-class ImageHostOverlay : public CompositableHost {
-public:
-  ImageHostOverlay(const TextureInfo& aTextureInfo);
-  ~ImageHostOverlay();
-
-  virtual CompositableType GetType() { return mTextureInfo.mCompositableType; }
-
-  virtual void Composite(LayerComposite* aLayer,
-                         EffectChain& aEffectChain,
-                         float aOpacity,
-                         const gfx::Matrix4x4& aTransform,
-                         const gfx::Filter& aFilter,
-                         const gfx::Rect& aClipRect,
-                         const nsIntRegion* aVisibleRegion = nullptr) override;
-  virtual LayerRenderState GetRenderState() override;
-  virtual void UseOverlaySource(OverlaySource aOverlay,
-                                const gfx::IntRect& aPictureRect) override;
-  virtual gfx::IntSize GetImageSize() const override;
-  virtual void PrintInfo(std::stringstream& aStream, const char* aPrefix);
-protected:
-  gfx::IntRect mPictureRect;
-  OverlaySource mOverlay;
-};
-
-#endif
 
 } // namespace layers
 } // namespace mozilla

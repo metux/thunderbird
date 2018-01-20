@@ -12,11 +12,11 @@
 #include "nsISupportsImpl.h"
 #include "nsITextServicesDocument.h"
 #include "nsIWeakReferenceUtils.h"
+#include "nsStringFwd.h"
 #include "nsTArray.h"
 #include "nscore.h"
 
 class OffsetEntry;
-class nsIAtom;
 class nsIContent;
 class nsIContentIterator;
 class nsIDOMCharacterData;
@@ -27,7 +27,6 @@ class nsIEditor;
 class nsISelection;
 class nsISelectionController;
 class nsITextServicesFilter;
-class nsString;
 
 /** implementation of a text services object.
  *
@@ -36,33 +35,6 @@ class nsTextServicesDocument final : public nsITextServicesDocument,
                                      public nsIEditActionListener
 {
 private:
-  static nsIAtom *sAAtom;
-  static nsIAtom *sAddressAtom;
-  static nsIAtom *sBigAtom;
-  static nsIAtom *sBAtom;
-  static nsIAtom *sCiteAtom;
-  static nsIAtom *sCodeAtom;
-  static nsIAtom *sDfnAtom;
-  static nsIAtom *sEmAtom;
-  static nsIAtom *sFontAtom;
-  static nsIAtom *sIAtom;
-  static nsIAtom *sKbdAtom;
-  static nsIAtom *sKeygenAtom;
-  static nsIAtom *sNobrAtom;
-  static nsIAtom *sSAtom;
-  static nsIAtom *sSampAtom;
-  static nsIAtom *sSmallAtom;
-  static nsIAtom *sSpacerAtom;
-  static nsIAtom *sSpanAtom;
-  static nsIAtom *sStrikeAtom;
-  static nsIAtom *sStrongAtom;
-  static nsIAtom *sSubAtom;
-  static nsIAtom *sSupAtom;
-  static nsIAtom *sTtAtom;
-  static nsIAtom *sUAtom;
-  static nsIAtom *sVarAtom;
-  static nsIAtom *sWbrAtom;
-
   typedef enum { eIsDone=0,        // No iterator (I), or iterator doesn't point to anything valid.
                  eValid,           // I points to first text node (TN) in current block (CB).
                  ePrev,            // No TN in CB, I points to first TN in prev block.
@@ -97,10 +69,6 @@ public:
   /** The default constructor.
    */
   nsTextServicesDocument();
-
-  /** To be called at module init
-   */
-  static void RegisterAtoms();
 
   /* Macro for AddRef(), Release(), and QueryInterface() */
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -150,8 +118,11 @@ public:
                           nsIDOMNode  *aParent,
                           nsresult     aResult) override;
   // these listen methods are unused:
-  NS_IMETHOD WillCreateNode(const nsAString& aTag, nsIDOMNode *aParent, int32_t aPosition) override;
-  NS_IMETHOD DidCreateNode(const nsAString& aTag, nsIDOMNode *aNode, nsIDOMNode *aParent, int32_t aPosition, nsresult aResult) override;
+  NS_IMETHOD WillCreateNode(const nsAString& aTag,
+                            nsIDOMNode* aNextSiblingOfNewNode) override;
+  NS_IMETHOD DidCreateNode(const nsAString& aTag,
+                           nsIDOMNode* aNewNode,
+                           nsresult aResult) override;
   NS_IMETHOD WillInsertText(nsIDOMCharacterData *aTextNode, int32_t aOffset, const nsAString &aString) override;
   NS_IMETHOD DidInsertText(nsIDOMCharacterData *aTextNode, int32_t aOffset, const nsAString &aString, nsresult aResult) override;
   NS_IMETHOD WillDeleteText(nsIDOMCharacterData *aTextNode, int32_t aOffset, int32_t aLength) override;
@@ -160,11 +131,13 @@ public:
   NS_IMETHOD DidDeleteSelection(nsISelection *aSelection) override;
 
   /* Helper functions */
-  static nsresult GetRangeEndPoints(nsRange* aRange, nsIDOMNode** aParent1,
-                                    int32_t* aOffset1, nsIDOMNode** aParent2,
-                                    int32_t* aOffset2);
-  static nsresult CreateRange(nsIDOMNode* aStartParent, int32_t aStartOffset,
-                              nsIDOMNode* aEndParent, int32_t aEndOffset,
+  static nsresult GetRangeEndPoints(nsRange* aRange,
+                                    nsIDOMNode** aStartContainer,
+                                    int32_t* aStartOffset,
+                                    nsIDOMNode** aEndContainer,
+                                    int32_t* aEndOffset);
+  static nsresult CreateRange(nsIDOMNode* aStartContainer, int32_t aStartOffset,
+                              nsIDOMNode* aEndContainer, int32_t aEndOffset,
                               nsRange** aRange);
 
 private:
@@ -176,7 +149,7 @@ private:
   nsresult GetDocumentContentRootNode(nsIDOMNode **aNode);
   nsresult CreateDocumentContentRange(nsRange** aRange);
   nsresult CreateDocumentContentRootToNodeOffsetRange(nsIDOMNode* aParent,
-                                                      int32_t aOffset,
+                                                      uint32_t aOffset,
                                                       bool aToStart,
                                                       nsRange** aRange);
   nsresult CreateDocumentContentIterator(nsIContentIterator **aIterator);

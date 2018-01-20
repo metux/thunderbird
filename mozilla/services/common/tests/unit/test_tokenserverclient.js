@@ -30,7 +30,7 @@ add_test(function test_working_bid_exchange() {
         key:          "key",
         api_endpoint: service,
         uid:          "uid",
-        duration:     duration,
+        duration,
       });
       response.bodyOutputStream.write(body, body.length);
     }
@@ -42,7 +42,7 @@ add_test(function test_working_bid_exchange() {
   client.getTokenFromBrowserIDAssertion(url, "assertion", cb);
   let result = cb.wait();
   do_check_eq("object", typeof(result));
-  do_check_attribute_count(result, 5);
+  do_check_attribute_count(result, 6);
   do_check_eq(service, result.endpoint);
   do_check_eq("id", result.id);
   do_check_eq("key", result.key);
@@ -87,7 +87,7 @@ add_test(function test_conditions_required_response_handling() {
       response.setHeader("Content-Type", "application/json");
 
       let body = JSON.stringify({
-        errors: [{description: description, location: "body", name: ""}],
+        errors: [{description, location: "body", name: ""}],
         urls: {tos: tosURL}
       });
       response.bodyOutputStream.write(body, body.length);
@@ -221,7 +221,7 @@ add_test(function test_send_extra_headers() {
         key:          "key",
         api_endpoint: "http://example.com/",
         uid:          "uid",
-        duration:     duration,
+        duration,
       });
       response.bodyOutputStream.write(body, body.length);
     }
@@ -301,7 +301,7 @@ add_test(function test_bad_json() {
       response.setStatusLine(request.httpVersion, 200, "OK");
       response.setHeader("Content-Type", "application/json");
 
-      let body = '{"id": "id", baz}'
+      let body = '{"id": "id", baz}';
       response.bodyOutputStream.write(body, body.length);
     }
   });
@@ -408,7 +408,7 @@ add_test(function test_rich_media_types() {
         key:          "key",
         api_endpoint: "foo",
         uid:          "uid",
-        duration:     duration,
+        duration,
       });
       response.bodyOutputStream.write(body, body.length);
     }
@@ -437,7 +437,7 @@ add_test(function test_exception_during_callback() {
         key:          "key",
         api_endpoint: "foo",
         uid:          "uid",
-        duration:     duration,
+        duration,
       });
       response.bodyOutputStream.write(body, body.length);
     }

@@ -10,8 +10,8 @@ function run_test() {
     let httpserv = new HttpServer();
     httpserv.registerPrefixHandler("/", {
         handle: function(request, response) {
-          response.setStatusLine(request.httpVersion, 200, "OK");
-          equal(request.path, "/test_webcal");
+            response.setStatusLine(request.httpVersion, 200, "OK");
+            equal(request.path, "/test_webcal");
         }
     });
     httpserv.start(-1);
@@ -20,23 +20,23 @@ function run_test() {
     add_test(check_webcal_uri.bind(null, "webcal" + baseUri));
     // TODO webcals needs bug 466524 to be fixed
     // add_test(check_webcal_uri.bind(null, "webcals" + baseUri));
-    add_test(() =>  httpserv.stop(run_next_test));
+    add_test(() => httpserv.stop(run_next_test));
 
     // Now lets go...
     run_next_test();
 }
 
 function check_webcal_uri(aUri) {
-    let uri = Services.io.newURI(aUri, null, null);
+    let uri = Services.io.newURI(aUri);
 
     let channel = Services.io.newChannelFromURI2(uri,
                                                  null,
                                                  Services.scriptSecurityManager.getSystemPrincipal(),
                                                  null,
-                                                 Components.interfaces.nsILoadInfo.SEC_NORMAL,
+                                                 Components.interfaces.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
                                                  Components.interfaces.nsIContentPolicy.TYPE_OTHER);
 
-    NetUtil.asyncFetch(channel, function(data, status, request) {
+    NetUtil.asyncFetch(channel, (data, status, request) => {
         ok(Components.isSuccessCode(status));
         run_next_test();
     });

@@ -25,7 +25,7 @@ function test() {
     description: "bar",
     optionsURL: addonPrefsURI
   }]);
-  
+
   open_manager("addons://list/extension", function(aManager) {
     var addonList = aManager.document.getElementById("addon-list");
     for (var addonItem of addonList.childNodes) {
@@ -36,7 +36,7 @@ function test() {
     var prefsBtn = aManager.document.getAnonymousElementByAttribute(addonItem,
                                                                    "anonid",
                                                                    "preferences-btn");
-    is(prefsBtn.hidden, true, "Prefs button should be hidden for addon with no optionsURL set")
+    is(prefsBtn.hidden, true, "Prefs button should be hidden for addon with no optionsURL set");
 
     for (addonItem of addonList.childNodes) {
       if (addonItem.hasAttribute("name") &&
@@ -46,7 +46,7 @@ function test() {
     prefsBtn = aManager.document.getAnonymousElementByAttribute(addonItem,
                                                                 "anonid",
                                                                 "preferences-btn");
-    is(prefsBtn.hidden, false, "Prefs button should be shown for addon with a optionsURL set")
+    is(prefsBtn.hidden, false, "Prefs button should be shown for addon with a optionsURL set");
 
     Services.ww.registerNotification(function TEST_ww_observer(aSubject, aTopic, aData) {
       if (aTopic == "domwindowclosed") {
@@ -63,11 +63,11 @@ function test() {
           if (win.location != addonPrefsURI)
             return;
 
-          win.removeEventListener("load", TEST_ww_onLoad, false);
+          win.removeEventListener("load", TEST_ww_onLoad);
           is(win.location, addonPrefsURI,
              "The correct addon pref window should have opened");
           win.close();
-        }, false);
+        });
       }
     });
 

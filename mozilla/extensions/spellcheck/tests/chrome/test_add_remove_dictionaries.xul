@@ -8,6 +8,10 @@
   <script type="application/javascript"
           src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"/>
 
+  <!-- test results are displayed in the html:body -->
+  <body xmlns="http://www.w3.org/1999/xhtml">
+  </body>
+
   <script type="application/javascript">
   <![CDATA[
 SimpleTest.waitForExplicitFinish();
@@ -63,7 +67,8 @@ function RunTest() {
   ok(map.exists());
   hunspell.addDirectory(map);
 
-  Components.utils.import("resource://gre/modules/AsyncSpellCheckTestHelper.jsm");
+  Components.utils.import(
+    "resource://testing-common/AsyncSpellCheckTestHelper.jsm");
   onSpellCheck(textbox, function () {
 
     // test that base and map dictionaries are available

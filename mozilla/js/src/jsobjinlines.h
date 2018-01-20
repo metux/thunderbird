@@ -19,28 +19,50 @@
 #include "gc/Allocator.h"
 #include "vm/ArrayObject.h"
 #include "vm/DateObject.h"
+#include "vm/EnvironmentObject.h"
 #include "vm/NumberObject.h"
 #include "vm/Probes.h"
-#include "vm/ScopeObject.h"
 #include "vm/StringObject.h"
-#include "vm/TypedArrayCommon.h"
+#include "vm/TypedArrayObject.h"
 
 #include "jsatominlines.h"
 #include "jscompartmentinlines.h"
-#include "jsgcinlines.h"
 
+#include "gc/Marking-inl.h"
+#include "gc/ObjectKind-inl.h"
+#include "vm/ShapedObject-inl.h"
 #include "vm/TypeInference-inl.h"
 
 namespace js {
 
 // This is needed here for ensureShape() below.
 inline bool
-MaybeConvertUnboxedObjectToNative(ExclusiveContext* cx, JSObject* obj)
+MaybeConvertUnboxedObjectToNative(JSContext* cx, JSObject* obj)
 {
     if (obj->is<UnboxedPlainObject>())
-        return UnboxedPlainObject::convertToNative(cx->asJSContext(), obj);
-    if (obj->is<UnboxedArrayObject>())
-        return UnboxedArrayObject::convertToNative(cx->asJSContext(), obj);
+        return UnboxedPlainObject::convertToNative(cx, obj);
+    return true;
+}
+
+static MOZ_ALWAYS_INLINE bool
+ClassMayResolveId(const JSAtomState& names, const Class* clasp, jsid id, JSObject* maybeObj)
+{
+    MOZ_ASSERT_IF(maybeObj, maybeObj->getClass() == clasp);
+
+    if (!clasp->getResolve()) {
+        // Sanity check: we should only have a mayResolve hook if we have a
+        // resolve hook.
+        MOZ_ASSERT(!clasp->getMayResolve(), "Class with mayResolve hook but no resolve hook");
+        return false;
+    }
+
+    if (JSMayResolveOp mayResolve = clasp->getMayResolve()) {
+        // Tell the analysis our mayResolve hooks won't trigger GC.
+        JS::AutoSuppressGCAnalysis nogc;
+        if (!mayResolve(names, id, maybeObj))
+            return false;
+    }
+
     return true;
 }
 
@@ -49,13 +71,14 @@ MaybeConvertUnboxedObjectToNative(ExclusiveContext* cx, JSObject* obj)
 inline js::Shape*
 JSObject::maybeShape() const
 {
-    if (is<js::UnboxedPlainObject>() || is<js::UnboxedArrayObject>())
+    if (!is<js::ShapedObject>())
         return nullptr;
-    return *reinterpret_cast<js::Shape**>(uintptr_t(this) + offsetOfShape());
+
+    return as<js::ShapedObject>().shape();
 }
 
 inline js::Shape*
-JSObject::ensureShape(js::ExclusiveContext* cx)
+JSObject::ensureShape(JSContext* cx)
 {
     if (!js::MaybeConvertUnboxedObjectToNative(cx, this))
         return nullptr;
@@ -72,19 +95,20 @@ JSObject::finalize(js::FreeOp* fop)
 #ifdef DEBUG
     MOZ_ASSERT(isTenured());
     if (!IsBackgroundFinalized(asTenured().getAllocKind())) {
-        /* Assert we're on the main thread. */
-        MOZ_ASSERT(CurrentThreadCanAccessRuntime(fop->runtime()));
+        /* Assert we're on the active thread. */
+        MOZ_ASSERT(CurrentThreadCanAccessZone(zone()));
     }
 #endif
 
     const js::Class* clasp = getClass();
-    if (clasp->finalize)
-        clasp->finalize(fop, this);
+    js::NativeObject* nobj = nullptr;
+    if (clasp->isNative())
+        nobj = &as<js::NativeObject>();
+    if (clasp->hasFinalize())
+        clasp->doFinalize(fop, this);
 
-    if (!clasp->isNative())
+    if (!nobj)
         return;
-
-    js::NativeObject* nobj = &as<js::NativeObject>();
 
     if (nobj->hasDynamicSlots())
         fop->free_(nobj->slots_);
@@ -96,28 +120,53 @@ JSObject::finalize(js::FreeOp* fop)
                 // Don't free the elements until object finalization finishes,
                 // so that other objects can access these elements while they
                 // are themselves finalized.
+                MOZ_ASSERT(elements->numShiftedElements() == 0);
                 fop->freeLater(elements);
             }
         } else {
-            fop->free_(elements);
+            fop->free_(nobj->getUnshiftedElementsHeader());
         }
     }
 
+    nobj->sweepDictionaryListPointer();
+}
+
+MOZ_ALWAYS_INLINE void
+js::NativeObject::sweepDictionaryListPointer()
+{
     // For dictionary objects (which must be native), it's possible that
-    // unreachable shapes may be marked whose listp points into this object.
-    // In case this happens, null out the shape's pointer here so that a moving
-    // GC will not try to access the dead object.
-    if (nobj->shape_->listp == &nobj->shape_)
-        nobj->shape_->listp = nullptr;
+    // unreachable shapes may be marked whose listp points into this object.  In
+    // case this happens, null out the shape's pointer so that a moving GC will
+    // not try to access the dead object.
+    if (shape_->listp == &shape_)
+        shape_->listp = nullptr;
+}
+
+MOZ_ALWAYS_INLINE void
+js::NativeObject::updateDictionaryListPointerAfterMinorGC(NativeObject* old)
+{
+    MOZ_ASSERT(this == Forwarded(old));
+
+    // Dictionary objects can be allocated in the nursery and when they are
+    // tenured the shape's pointer into the object needs to be updated.
+    if (shape_->listp == &old->shape_)
+        shape_->listp = &shape_;
+}
+
+inline void
+js::gc::MakeAccessibleAfterMovingGC(JSObject* obj)
+{
+    if (obj->isNative())
+        obj->as<NativeObject>().updateShapeAfterMovingGC();
 }
 
 /* static */ inline bool
-JSObject::setSingleton(js::ExclusiveContext* cx, js::HandleObject obj)
+JSObject::setSingleton(JSContext* cx, js::HandleObject obj)
 {
-    MOZ_ASSERT_IF(cx->isJSContext(), !IsInsideNursery(obj));
+    MOZ_ASSERT(!IsInsideNursery(obj));
 
     js::ObjectGroup* group = js::ObjectGroup::lazySingletonGroup(cx, obj->getClass(),
-                                                                 obj->getTaggedProto());
+                                                                 obj->taggedProto());
     if (!group)
         return false;
 
@@ -125,23 +174,22 @@ JSObject::setSingleton(js::ExclusiveContext* cx, js::HandleObject obj)
     return true;
 }
 
-inline js::ObjectGroup*
-JSObject::getGroup(JSContext* cx)
+/* static */ inline js::ObjectGroup*
+JSObject::getGroup(JSContext* cx, js::HandleObject obj)
 {
-    MOZ_ASSERT(cx->compartment() == compartment());
-    if (hasLazyGroup()) {
-        JS::RootedObject self(cx, this);
-        if (cx->compartment() != compartment())
+    MOZ_ASSERT(cx->compartment() == obj->compartment());
+    if (obj->hasLazyGroup()) {
+        if (cx->compartment() != obj->compartment())
             MOZ_CRASH();
-        return makeLazyGroup(cx, self);
+        return makeLazyGroup(cx, obj);
     }
-    return group_;
+    return obj->group_;
 }
 
 inline void
 JSObject::setGroup(js::ObjectGroup* group)
 {
-    MOZ_ASSERT(group);
+    MOZ_RELEASE_ASSERT(group);
     MOZ_ASSERT(!isSingleton());
     group_ = group;
 }
@@ -152,22 +200,21 @@ JSObject::setGroup(js::ObjectGroup* group)
 inline bool
 js::GetPrototype(JSContext* cx, js::HandleObject obj, js::MutableHandleObject protop)
 {
-    if (obj->getTaggedProto().isLazy()) {
+    if (obj->hasDynamicPrototype()) {
         MOZ_ASSERT(obj->is<js::ProxyObject>());
         return js::Proxy::getPrototype(cx, obj, protop);
-    } else {
-        protop.set(obj->getTaggedProto().toObjectOrNull());
-        return true;
     }
+
+    protop.set(obj->taggedProto().toObjectOrNull());
+    return true;
 }
 
 inline bool
-js::IsExtensible(ExclusiveContext* cx, HandleObject obj, bool* extensible)
+js::IsExtensible(JSContext* cx, HandleObject obj, bool* extensible)
 {
     if (obj->is<ProxyObject>()) {
-        if (!cx->shouldBeJSContext())
-            return false;
-        return Proxy::isExtensible(cx->asJSContext(), obj, extensible);
+        MOZ_ASSERT(!cx->helperThread());
+        return Proxy::isExtensible(cx, obj, extensible);
     }
 
     *extensible = obj->nonProxyIsExtensible();
@@ -202,7 +249,7 @@ js::GetElement(JSContext* cx, HandleObject obj, HandleObject receiver, uint32_t 
 inline bool
 js::GetElementNoGC(JSContext* cx, JSObject* obj, const Value& receiver, uint32_t index, Value* vp)
 {
-    if (obj->getOps()->getProperty)
+    if (obj->getOpsGetProperty())
         return false;
 
     if (index > JSID_INT_MAX)
@@ -211,16 +258,10 @@ js::GetElementNoGC(JSContext* cx, JSObject* obj, const Value& receiver, uint32_t
 }
 
 inline bool
-js::GetElementNoGC(JSContext* cx, JSObject* obj, JSObject* receiver, uint32_t index, Value* vp)
-{
-    return GetElementNoGC(cx, obj, ObjectValue(*receiver), index, vp);
-}
-
-inline bool
 js::DeleteProperty(JSContext* cx, HandleObject obj, HandleId id, ObjectOpResult& result)
 {
     MarkTypePropertyNonData(cx, obj, id);
-    if (DeletePropertyOp op = obj->getOps()->deleteProperty)
+    if (DeletePropertyOp op = obj->getOpsDeleteProperty())
         return op(cx, obj, id, result);
     return NativeDeleteProperty(cx, obj.as<NativeObject>(), id, result);
 }
@@ -234,29 +275,73 @@ js::DeleteElement(JSContext* cx, HandleObject obj, uint32_t index, ObjectOpResul
     return DeleteProperty(cx, obj, id, result);
 }
 
+MOZ_ALWAYS_INLINE bool
+js::MaybeHasInterestingSymbolProperty(JSContext* cx, JSObject* obj, Symbol* symbol,
+                                      JSObject** holder)
+{
+    MOZ_ASSERT(symbol->isInterestingSymbol());
+
+    jsid id = SYMBOL_TO_JSID(symbol);
+    do {
+        if (obj->maybeHasInterestingSymbolProperty() ||
+            MOZ_UNLIKELY(ClassMayResolveId(cx->names(), obj->getClass(), id, obj)))
+        {
+            if (holder)
+                *holder = obj;
+            return true;
+        }
+        obj = obj->staticPrototype();
+    } while (obj);
+
+    return false;
+}
+
+MOZ_ALWAYS_INLINE bool
+js::GetInterestingSymbolProperty(JSContext* cx, HandleObject obj, Symbol* sym, MutableHandleValue vp)
+{
+    JSObject* holder;
+    if (!MaybeHasInterestingSymbolProperty(cx, obj, sym, &holder)) {
+#ifdef DEBUG
+        RootedValue receiver(cx, ObjectValue(*obj));
+        RootedId id(cx, SYMBOL_TO_JSID(sym));
+        if (!GetProperty(cx, obj, receiver, id, vp))
+            return false;
+        MOZ_ASSERT(vp.isUndefined());
+#endif
+        vp.setUndefined();
+        return true;
+    }
+
+    RootedObject holderRoot(cx, holder);
+    RootedValue receiver(cx, ObjectValue(*obj));
+    RootedId id(cx, SYMBOL_TO_JSID(sym));
+    return GetProperty(cx, holderRoot, receiver, id, vp);
+}
 
 /* * */
 
 inline bool
 JSObject::isQualifiedVarObj() const
 {
-    if (is<js::DebugScopeObject>())
-        return as<js::DebugScopeObject>().scope().isQualifiedVarObj();
+    if (is<js::DebugEnvironmentProxy>())
+        return as<js::DebugEnvironmentProxy>().environment().isQualifiedVarObj();
     bool rv = hasAllFlags(js::BaseShape::QUALIFIED_VAROBJ);
     MOZ_ASSERT_IF(rv,
                   is<js::GlobalObject>() ||
                   is<js::CallObject>() ||
+                  is<js::VarEnvironmentObject>() ||
                   is<js::ModuleEnvironmentObject>() ||
                   is<js::NonSyntacticVariablesObject>() ||
-                  (is<js::DynamicWithObject>() && !as<js::DynamicWithObject>().isSyntactic()));
+                  (is<js::WithEnvironmentObject>() &&
+                   !as<js::WithEnvironmentObject>().isSyntactic()));
     return rv;
 }
 
 inline bool
 JSObject::isUnqualifiedVarObj() const
 {
-    if (is<js::DebugScopeObject>())
-        return as<js::DebugScopeObject>().scope().isUnqualifiedVarObj();
+    if (is<js::DebugEnvironmentProxy>())
+        return as<js::DebugEnvironmentProxy>().environment().isUnqualifiedVarObj();
     return is<js::GlobalObject>() || is<js::NonSyntacticVariablesObject>();
 }
 
@@ -275,108 +360,41 @@ ClassCanHaveFixedData(const Class* clasp)
         || js::IsTypedArrayClass(clasp);
 }
 
-static MOZ_ALWAYS_INLINE void
-SetNewObjectMetadata(ExclusiveContext* cxArg, JSObject* obj)
+// This function is meant to be called from allocation fast paths.
+//
+// If we do have an allocation metadata builder, it can cause a GC, so the object
+// must be rooted. The usual way to do this would be to make our callers pass a
+// HandleObject, but that would require them to pay the cost of rooting the
+// object unconditionally, even though collecting metadata is rare. Instead,
+// SetNewObjectMetadata's contract is that the caller must use the pointer
+// returned in place of the pointer passed. If a GC occurs, the returned pointer
+// may be the passed pointer, relocated by GC. If no GC could occur, it's just
+// passed through. We root nothing unless necessary.
+template <typename T>
+static MOZ_ALWAYS_INLINE MOZ_MUST_USE T*
+SetNewObjectMetadata(JSContext* cx, T* obj)
 {
-    MOZ_ASSERT(!cxArg->compartment()->hasObjectPendingMetadata());
-
-    // The metadata callback is invoked for each object created on the main
-    // thread, except when analysis/compilation is active, to avoid recursion.
-    if (JSContext* cx = cxArg->maybeJSContext()) {
-        if (MOZ_UNLIKELY((size_t)cx->compartment()->hasObjectMetadataCallback()) &&
-            !cx->zone()->types.activeAnalysis &&
-            !cx->zone()->usedByExclusiveThread)
-        {
-            // Use AutoEnterAnalysis to prohibit both any GC activity under the
-            // callback, and any reentering of JS via Invoke() etc.
-            AutoEnterAnalysis enter(cx);
-
-            RootedObject hobj(cx, obj);
-            cx->compartment()->setNewObjectMetadata(cx, hobj);
-        }
-    }
-}
-
-} // namespace js
-
-/* static */ inline JSObject*
-JSObject::create(js::ExclusiveContext* cx, js::gc::AllocKind kind, js::gc::InitialHeap heap,
-                 js::HandleShape shape, js::HandleObjectGroup group)
-{
-    MOZ_ASSERT(shape && group);
-    MOZ_ASSERT(group->clasp() == shape->getObjectClass());
-    MOZ_ASSERT(group->clasp() != &js::ArrayObject::class_);
-    MOZ_ASSERT_IF(!js::ClassCanHaveFixedData(group->clasp()),
-                  js::gc::GetGCKindSlots(kind, group->clasp()) == shape->numFixedSlots());
-    MOZ_ASSERT_IF(group->clasp()->flags & JSCLASS_BACKGROUND_FINALIZE,
-                  IsBackgroundFinalized(kind));
-    MOZ_ASSERT_IF(group->clasp()->finalize,
-                  heap == js::gc::TenuredHeap ||
-                  (group->clasp()->flags & JSCLASS_SKIP_NURSERY_FINALIZE));
-    MOZ_ASSERT_IF(group->hasUnanalyzedPreliminaryObjects(),
-                  heap == js::gc::TenuredHeap);
     MOZ_ASSERT(!cx->compartment()->hasObjectPendingMetadata());
 
-    // Non-native classes cannot have reserved slots or private data, and the
-    // objects can't have any fixed slots, for compatibility with
-    // GetReservedOrProxyPrivateSlot.
-    MOZ_ASSERT_IF(!group->clasp()->isNative(), JSCLASS_RESERVED_SLOTS(group->clasp()) == 0);
-    MOZ_ASSERT_IF(!group->clasp()->isNative(), !group->clasp()->hasPrivate());
-    MOZ_ASSERT_IF(!group->clasp()->isNative(), shape->numFixedSlots() == 0);
-    MOZ_ASSERT_IF(!group->clasp()->isNative(), shape->slotSpan() == 0);
+    // The metadata builder is invoked for each object created on the active
+    // thread, except when analysis/compilation is active, to avoid recursion.
+    if (!cx->helperThread()) {
+        if (MOZ_UNLIKELY((size_t)cx->compartment()->hasAllocationMetadataBuilder()) &&
+            !cx->zone()->suppressAllocationMetadataBuilder)
+        {
+            // Don't collect metadata on objects that represent metadata.
+            AutoSuppressAllocationMetadataBuilder suppressMetadata(cx);
 
-    const js::Class* clasp = group->clasp();
-    size_t nDynamicSlots =
-        js::NativeObject::dynamicSlotsCount(shape->numFixedSlots(), shape->slotSpan(), clasp);
-
-    JSObject* obj = js::Allocate<JSObject>(cx, kind, nDynamicSlots, heap, clasp);
-    if (!obj)
-        return nullptr;
-
-    obj->group_.init(group);
-
-    obj->setInitialShapeMaybeNonNative(shape);
-
-    // Note: slots are created and assigned internally by Allocate<JSObject>.
-    obj->setInitialElementsMaybeNonNative(js::emptyObjectElements);
-
-    if (clasp->hasPrivate())
-        obj->as<js::NativeObject>().privateRef(shape->numFixedSlots()) = nullptr;
-
-    if (size_t span = shape->slotSpan())
-        obj->as<js::NativeObject>().initializeSlotRange(0, span);
-
-    // JSFunction's fixed slots expect POD-style initialization.
-    if (group->clasp()->isJSFunction()) {
-        MOZ_ASSERT(kind == js::gc::AllocKind::FUNCTION ||
-                   kind == js::gc::AllocKind::FUNCTION_EXTENDED);
-        size_t size =
-            kind == js::gc::AllocKind::FUNCTION ? sizeof(JSFunction) : sizeof(js::FunctionExtended);
-        memset(obj->as<JSFunction>().fixedSlots(), 0, size - sizeof(js::NativeObject));
+            Rooted<T*> rooted(cx, obj);
+            cx->compartment()->setNewObjectMetadata(cx, rooted);
+            return rooted;
+        }
     }
-
-    if (group->clasp()->shouldDelayMetadataCallback())
-        cx->compartment()->setObjectPendingMetadata(cx, obj);
-    else
-        SetNewObjectMetadata(cx, obj);
-
-    js::gc::TraceCreateObject(obj);
 
     return obj;
 }
 
-inline void
-JSObject::setInitialShapeMaybeNonNative(js::Shape* shape)
-{
-    static_cast<js::NativeObject*>(this)->shape_.init(shape);
-}
-
-inline void
-JSObject::setShapeMaybeNonNative(js::Shape* shape)
-{
-    MOZ_ASSERT(!is<js::UnboxedPlainObject>());
-    static_cast<js::NativeObject*>(this)->shape_ = shape;
-}
+} // namespace js
 
 inline void
 JSObject::setInitialSlotsMaybeNonNative(js::HeapSlot* slots)
@@ -402,10 +420,16 @@ JSObject::global() const
     return *compartment()->unsafeUnbarrieredMaybeGlobal();
 }
 
-inline bool
-JSObject::isOwnGlobal() const
+inline js::GlobalObject*
+JSObject::globalForTracing(JSTracer*) const
 {
-    return &global() == this;
+    return compartment()->unsafeUnbarrieredMaybeGlobal();
+}
+
+inline bool
+JSObject::isOwnGlobal(JSTracer* trc) const
+{
+    return globalForTracing(trc) == this;
 }
 
 inline bool
@@ -429,13 +453,7 @@ JSObject::nonProxyIsExtensible() const
 inline bool
 JSObject::isBoundFunction() const
 {
-    return hasAllFlags(js::BaseShape::BOUND_FUNCTION);
-}
-
-inline bool
-JSObject::watched() const
-{
-    return hasAllFlags(js::BaseShape::WATCHED);
+    return is<JSFunction>() && as<JSFunction>().isBoundFunction();
 }
 
 inline bool
@@ -450,22 +468,27 @@ JSObject::hasUncacheableProto() const
     return hasAllFlags(js::BaseShape::UNCACHEABLE_PROTO);
 }
 
-inline bool
-JSObject::hadElementsAccess() const
+MOZ_ALWAYS_INLINE bool
+JSObject::maybeHasInterestingSymbolProperty() const
 {
-    return hasAllFlags(js::BaseShape::HAD_ELEMENTS_ACCESS);
+    const js::NativeObject* nobj;
+    if (isNative()) {
+        nobj = &as<js::NativeObject>();
+    } else if (is<js::UnboxedPlainObject>()) {
+        nobj = as<js::UnboxedPlainObject>().maybeExpando();
+        if (!nobj)
+            return false;
+    } else {
+        return true;
+    }
+
+    return nobj->hasInterestingSymbol();
 }
 
 inline bool
-JSObject::isIndexed() const
+JSObject::staticPrototypeIsImmutable() const
 {
-    return hasAllFlags(js::BaseShape::INDEXED);
-}
-
-inline bool
-JSObject::nonLazyPrototypeIsImmutable() const
-{
-    MOZ_ASSERT(!hasLazyPrototype());
+    MOZ_ASSERT(hasStaticPrototype());
     return hasAllFlags(js::BaseShape::IMMUTABLE_PROTOTYPE);
 }
 
@@ -479,12 +502,6 @@ inline bool
 JSObject::isNewGroupUnknown() const
 {
     return hasAllFlags(js::BaseShape::NEW_GROUP_UNKNOWN);
-}
-
-inline bool
-JSObject::wasNewScriptCleared() const
-{
-    return hasAllFlags(js::BaseShape::NEW_SCRIPT_CLEARED);
 }
 
 namespace js {
@@ -525,61 +542,55 @@ IsNativeFunction(const js::Value& v, JSNative native)
     return IsFunctionObject(v, &fun) && fun->maybeNative() == native;
 }
 
-/*
- * When we have an object of a builtin class, we don't quite know what its
- * valueOf/toString methods are, since these methods may have been overwritten
- * or shadowed. However, we can still do better than the general case by
- * hard-coding the necessary properties for us to find the native we expect.
- *
- * TODO: a per-thread shape-based cache would be faster and simpler.
- */
-static MOZ_ALWAYS_INLINE bool
-ClassMethodIsNative(JSContext* cx, NativeObject* obj, const Class* clasp, jsid methodid, JSNative native)
-{
-    MOZ_ASSERT(obj->getClass() == clasp);
 
+// Return whether looking up a method on 'obj' definitely resolves to the
+// original specified native function. The method may conservatively return
+// 'false' in the case of proxies or other non-native objects.
+static MOZ_ALWAYS_INLINE bool
+HasNativeMethodPure(JSObject* obj, PropertyName* name, JSNative native, JSContext* cx)
+{
     Value v;
-    if (!HasDataProperty(cx, obj, methodid, &v)) {
-        JSObject* proto = obj->getProto();
-        if (!proto || proto->getClass() != clasp || !HasDataProperty(cx, &proto->as<NativeObject>(), methodid, &v))
-            return false;
-    }
+    if (!GetPropertyPure(cx, obj, NameToId(name), &v))
+        return false;
 
     return IsNativeFunction(v, native);
 }
 
-// Return whether looking up 'valueOf' on 'obj' definitely resolves to the
-// original Object.prototype.valueOf. The method may conservatively return
-// 'false' in the case of proxies or other non-native objects.
+// Return whether 'obj' definitely has no @@toPrimitive method.
 static MOZ_ALWAYS_INLINE bool
-HasObjectValueOf(JSObject* obj, JSContext* cx)
+HasNoToPrimitiveMethodPure(JSObject* obj, JSContext* cx)
 {
-    if (obj->is<ProxyObject>() || !obj->isNative())
-        return false;
-
-    jsid valueOf = NameToId(cx->names().valueOf);
-
-    Value v;
-    while (!HasDataProperty(cx, &obj->as<NativeObject>(), valueOf, &v)) {
-        obj = obj->getProto();
-        if (!obj || obj->is<ProxyObject>() || !obj->isNative())
-            return false;
+    Symbol* toPrimitive = cx->wellKnownSymbols().toPrimitive;
+    JSObject* holder;
+    if (!MaybeHasInterestingSymbolProperty(cx, obj, toPrimitive, &holder)) {
+#ifdef DEBUG
+        JSObject* pobj;
+        PropertyResult prop;
+        MOZ_ASSERT(LookupPropertyPure(cx, obj, SYMBOL_TO_JSID(toPrimitive), &pobj, &prop));
+        MOZ_ASSERT(!prop);
+#endif
+        return true;
     }
 
-    return IsNativeFunction(v, obj_valueOf);
-}
-
-/* ES6 draft rev 28 (2014 Oct 14) 7.1.14 */
-inline bool
-ToPropertyKey(JSContext* cx, Value argument, MutableHandleId result)
-{
-    // Steps 1-2.
-    RootedValue key(cx, argument);
-    if (!ToPrimitive(cx, JSTYPE_STRING, &key))
+    JSObject* pobj;
+    PropertyResult prop;
+    if (!LookupPropertyPure(cx, holder, SYMBOL_TO_JSID(toPrimitive), &pobj, &prop))
         return false;
 
-    // Steps 3-4.
-    return ValueToId<CanGC>(cx, key, result);
+    return !prop;
+}
+
+extern bool
+ToPropertyKeySlow(JSContext* cx, HandleValue argument, MutableHandleId result);
+
+/* ES6 draft rev 28 (2014 Oct 14) 7.1.14 */
+MOZ_ALWAYS_INLINE bool
+ToPropertyKey(JSContext* cx, HandleValue argument, MutableHandleId result)
+{
+    if (MOZ_LIKELY(argument.isPrimitive()))
+        return ValueToId<CanGC>(cx, argument, result);
+
+    return ToPropertyKeySlow(cx, argument, result);
 }
 
 /*
@@ -591,9 +602,7 @@ inline bool
 IsInternalFunctionObject(JSObject& funobj)
 {
     JSFunction& fun = funobj.as<JSFunction>();
-    MOZ_ASSERT_IF(fun.isLambda(),
-                  fun.isInterpreted() || fun.isAsmJSNative());
-    return fun.isLambda() && fun.isInterpreted() && !fun.environment();
+    return fun.isInterpreted() && !fun.environment();
 }
 
 /*
@@ -601,12 +610,12 @@ IsInternalFunctionObject(JSObject& funobj)
  * default to the prototype's global if the prototype is non-null.
  */
 JSObject*
-NewObjectWithGivenTaggedProto(ExclusiveContext* cx, const Class* clasp, Handle<TaggedProto> proto,
+NewObjectWithGivenTaggedProto(JSContext* cx, const Class* clasp, Handle<TaggedProto> proto,
                               gc::AllocKind allocKind, NewObjectKind newKind,
                               uint32_t initialShapeFlags = 0);
 
 inline JSObject*
-NewObjectWithGivenTaggedProto(ExclusiveContext* cx, const Class* clasp, Handle<TaggedProto> proto,
+NewObjectWithGivenTaggedProto(JSContext* cx, const Class* clasp, Handle<TaggedProto> proto,
                               NewObjectKind newKind = GenericObject,
                               uint32_t initialShapeFlags = 0)
 {
@@ -616,7 +625,7 @@ NewObjectWithGivenTaggedProto(ExclusiveContext* cx, const Class* clasp, Handle<T
 
 template <typename T>
 inline T*
-NewObjectWithGivenTaggedProto(ExclusiveContext* cx, Handle<TaggedProto> proto,
+NewObjectWithGivenTaggedProto(JSContext* cx, Handle<TaggedProto> proto,
                               NewObjectKind newKind = GenericObject,
                               uint32_t initialShapeFlags = 0)
 {
@@ -627,7 +636,7 @@ NewObjectWithGivenTaggedProto(ExclusiveContext* cx, Handle<TaggedProto> proto,
 
 template <typename T>
 inline T*
-NewObjectWithNullTaggedProto(ExclusiveContext* cx, NewObjectKind newKind = GenericObject,
+NewObjectWithNullTaggedProto(JSContext* cx, NewObjectKind newKind = GenericObject,
                              uint32_t initialShapeFlags = 0)
 {
     Rooted<TaggedProto> nullProto(cx, TaggedProto(nullptr));
@@ -635,7 +644,7 @@ NewObjectWithNullTaggedProto(ExclusiveContext* cx, NewObjectKind newKind = Gener
 }
 
 inline JSObject*
-NewObjectWithGivenProto(ExclusiveContext* cx, const Class* clasp, HandleObject proto,
+NewObjectWithGivenProto(JSContext* cx, const Class* clasp, HandleObject proto,
                         gc::AllocKind allocKind, NewObjectKind newKind)
 {
     return NewObjectWithGivenTaggedProto(cx, clasp, AsTaggedProto(proto), allocKind,
@@ -643,7 +652,7 @@ NewObjectWithGivenProto(ExclusiveContext* cx, const Class* clasp, HandleObject p
 }
 
 inline JSObject*
-NewObjectWithGivenProto(ExclusiveContext* cx, const Class* clasp, HandleObject proto,
+NewObjectWithGivenProto(JSContext* cx, const Class* clasp, HandleObject proto,
                         NewObjectKind newKind = GenericObject)
 {
     return NewObjectWithGivenTaggedProto(cx, clasp, AsTaggedProto(proto), newKind);
@@ -651,7 +660,7 @@ NewObjectWithGivenProto(ExclusiveContext* cx, const Class* clasp, HandleObject p
 
 template <typename T>
 inline T*
-NewObjectWithGivenProto(ExclusiveContext* cx, HandleObject proto,
+NewObjectWithGivenProto(JSContext* cx, HandleObject proto,
                         NewObjectKind newKind = GenericObject)
 {
     return NewObjectWithGivenTaggedProto<T>(cx, AsTaggedProto(proto), newKind);
@@ -659,7 +668,7 @@ NewObjectWithGivenProto(ExclusiveContext* cx, HandleObject proto,
 
 template <typename T>
 inline T*
-NewObjectWithGivenProto(ExclusiveContext* cx, HandleObject proto,
+NewObjectWithGivenProto(JSContext* cx, HandleObject proto,
                         gc::AllocKind allocKind, NewObjectKind newKind = GenericObject)
 {
     JSObject* obj = NewObjectWithGivenTaggedProto(cx, &T::class_, AsTaggedProto(proto),
@@ -670,18 +679,18 @@ NewObjectWithGivenProto(ExclusiveContext* cx, HandleObject proto,
 // Make an object with the prototype set according to the cached prototype or
 // Object.prototype.
 JSObject*
-NewObjectWithClassProtoCommon(ExclusiveContext* cx, const Class* clasp, HandleObject proto,
+NewObjectWithClassProtoCommon(JSContext* cx, const Class* clasp, HandleObject proto,
                               gc::AllocKind allocKind, NewObjectKind newKind);
 
 inline JSObject*
-NewObjectWithClassProto(ExclusiveContext* cx, const Class* clasp, HandleObject proto,
+NewObjectWithClassProto(JSContext* cx, const Class* clasp, HandleObject proto,
                         gc::AllocKind allocKind, NewObjectKind newKind = GenericObject)
 {
     return NewObjectWithClassProtoCommon(cx, clasp, proto, allocKind, newKind);
 }
 
 inline JSObject*
-NewObjectWithClassProto(ExclusiveContext* cx, const Class* clasp, HandleObject proto,
+NewObjectWithClassProto(JSContext* cx, const Class* clasp, HandleObject proto,
                         NewObjectKind newKind = GenericObject)
 {
     gc::AllocKind allocKind = gc::GetGCObjectKind(clasp);
@@ -690,7 +699,7 @@ NewObjectWithClassProto(ExclusiveContext* cx, const Class* clasp, HandleObject p
 
 template<class T>
 inline T*
-NewObjectWithClassProto(ExclusiveContext* cx, HandleObject proto,
+NewObjectWithClassProto(JSContext* cx, HandleObject proto = nullptr,
                         NewObjectKind newKind = GenericObject)
 {
     JSObject* obj = NewObjectWithClassProto(cx, &T::class_, proto, newKind);
@@ -699,7 +708,7 @@ NewObjectWithClassProto(ExclusiveContext* cx, HandleObject proto,
 
 template <class T>
 inline T*
-NewObjectWithClassProto(ExclusiveContext* cx, HandleObject proto, gc::AllocKind allocKind,
+NewObjectWithClassProto(JSContext* cx, HandleObject proto, gc::AllocKind allocKind,
                         NewObjectKind newKind = GenericObject)
 {
     JSObject* obj = NewObjectWithClassProto(cx, &T::class_, proto, allocKind, newKind);
@@ -711,14 +720,14 @@ NewObjectWithClassProto(ExclusiveContext* cx, HandleObject proto, gc::AllocKind 
  * according to the context's active global.
  */
 inline JSObject*
-NewBuiltinClassInstance(ExclusiveContext* cx, const Class* clasp, gc::AllocKind allocKind,
+NewBuiltinClassInstance(JSContext* cx, const Class* clasp, gc::AllocKind allocKind,
                         NewObjectKind newKind = GenericObject)
 {
     return NewObjectWithClassProto(cx, clasp, nullptr, allocKind, newKind);
 }
 
 inline JSObject*
-NewBuiltinClassInstance(ExclusiveContext* cx, const Class* clasp, NewObjectKind newKind = GenericObject)
+NewBuiltinClassInstance(JSContext* cx, const Class* clasp, NewObjectKind newKind = GenericObject)
 {
     gc::AllocKind allocKind = gc::GetGCObjectKind(clasp);
     return NewBuiltinClassInstance(cx, clasp, allocKind, newKind);
@@ -726,7 +735,7 @@ NewBuiltinClassInstance(ExclusiveContext* cx, const Class* clasp, NewObjectKind 
 
 template<typename T>
 inline T*
-NewBuiltinClassInstance(ExclusiveContext* cx, NewObjectKind newKind = GenericObject)
+NewBuiltinClassInstance(JSContext* cx, NewObjectKind newKind = GenericObject)
 {
     JSObject* obj = NewBuiltinClassInstance(cx, &T::class_, newKind);
     return obj ? &obj->as<T>() : nullptr;
@@ -734,7 +743,7 @@ NewBuiltinClassInstance(ExclusiveContext* cx, NewObjectKind newKind = GenericObj
 
 template<typename T>
 inline T*
-NewBuiltinClassInstance(ExclusiveContext* cx, gc::AllocKind allocKind, NewObjectKind newKind = GenericObject)
+NewBuiltinClassInstance(JSContext* cx, gc::AllocKind allocKind, NewObjectKind newKind = GenericObject)
 {
     JSObject* obj = NewBuiltinClassInstance(cx, &T::class_, allocKind, newKind);
     return obj ? &obj->as<T>() : nullptr;
@@ -745,12 +754,12 @@ bool
 NewObjectScriptedCall(JSContext* cx, MutableHandleObject obj);
 
 JSObject*
-NewObjectWithGroupCommon(ExclusiveContext* cx, HandleObjectGroup group,
+NewObjectWithGroupCommon(JSContext* cx, HandleObjectGroup group,
                          gc::AllocKind allocKind, NewObjectKind newKind);
 
 template <typename T>
 inline T*
-NewObjectWithGroup(ExclusiveContext* cx, HandleObjectGroup group,
+NewObjectWithGroup(JSContext* cx, HandleObjectGroup group,
                    gc::AllocKind allocKind, NewObjectKind newKind = GenericObject)
 {
     JSObject* obj = NewObjectWithGroupCommon(cx, group, allocKind, newKind);
@@ -759,7 +768,7 @@ NewObjectWithGroup(ExclusiveContext* cx, HandleObjectGroup group,
 
 template <typename T>
 inline T*
-NewObjectWithGroup(ExclusiveContext* cx, HandleObjectGroup group,
+NewObjectWithGroup(JSContext* cx, HandleObjectGroup group,
                    NewObjectKind newKind = GenericObject)
 {
     gc::AllocKind allocKind = gc::GetGCObjectKind(group->clasp());
@@ -787,39 +796,19 @@ GuessArrayGCKind(size_t numElements)
     return gc::AllocKind::OBJECT8;
 }
 
-// Returns ESClass_Other if the value isn't an object, or if the object
+// Returns ESClass::Other if the value isn't an object, or if the object
 // isn't of one of the enumerated classes.  Otherwise returns the appropriate
 // class.
 inline bool
-GetClassOfValue(JSContext* cx, HandleValue v, ESClassValue* classValue)
+GetClassOfValue(JSContext* cx, HandleValue v, ESClass* cls)
 {
     if (!v.isObject()) {
-        *classValue = ESClass_Other;
+        *cls = ESClass::Other;
         return true;
     }
 
     RootedObject obj(cx, &v.toObject());
-    return GetBuiltinClass(cx, obj, classValue);
-}
-
-inline bool
-Unbox(JSContext* cx, HandleObject obj, MutableHandleValue vp)
-{
-    if (MOZ_UNLIKELY(obj->is<ProxyObject>()))
-        return Proxy::boxedValue_unbox(cx, obj, vp);
-
-    if (obj->is<BooleanObject>())
-        vp.setBoolean(obj->as<BooleanObject>().unbox());
-    else if (obj->is<NumberObject>())
-        vp.setNumber(obj->as<NumberObject>().unbox());
-    else if (obj->is<StringObject>())
-        vp.setString(obj->as<StringObject>().unbox());
-    else if (obj->is<DateObject>())
-        vp.set(obj->as<DateObject>().UTCTime());
-    else
-        vp.setUndefined();
-
-    return true;
+    return GetBuiltinClass(cx, obj, cls);
 }
 
 extern NativeObject*
@@ -830,6 +819,105 @@ InitClass(JSContext* cx, HandleObject obj, HandleObject parent_proto,
           NativeObject** ctorp = nullptr,
           gc::AllocKind ctorKind = gc::AllocKind::FUNCTION);
 
+MOZ_ALWAYS_INLINE const char*
+GetObjectClassName(JSContext* cx, HandleObject obj)
+{
+    assertSameCompartment(cx, obj);
+
+    if (obj->is<ProxyObject>())
+        return Proxy::className(cx, obj);
+
+    return obj->getClass()->name;
+}
+
+inline bool
+IsCallable(const Value& v)
+{
+    return v.isObject() && v.toObject().isCallable();
+}
+
+// ES6 rev 24 (2014 April 27) 7.2.5 IsConstructor
+inline bool
+IsConstructor(const Value& v)
+{
+    return v.isObject() && v.toObject().isConstructor();
+}
+
+MOZ_ALWAYS_INLINE bool
+CreateThis(JSContext* cx, HandleObject callee, JSScript* calleeScript, HandleObject newTarget,
+           NewObjectKind newKind, MutableHandleValue thisv)
+{
+    if (callee->isBoundFunction()) {
+        thisv.setMagic(JS_UNINITIALIZED_LEXICAL);
+        return true;
+    }
+
+    if (calleeScript->isDerivedClassConstructor()) {
+        MOZ_ASSERT(callee->as<JSFunction>().isClassConstructor());
+        thisv.setMagic(JS_UNINITIALIZED_LEXICAL);
+        return true;
+    }
+
+    MOZ_ASSERT(thisv.isMagic(JS_IS_CONSTRUCTING));
+
+    JSObject* obj = CreateThisForFunction(cx, callee, newTarget, newKind);
+    if (!obj)
+        return false;
+
+    thisv.setObject(*obj);
+    return true;
+}
+
 } /* namespace js */
+
+MOZ_ALWAYS_INLINE bool
+JSObject::isCallable() const
+{
+    if (is<JSFunction>())
+        return true;
+    return callHook() != nullptr;
+}
+
+MOZ_ALWAYS_INLINE bool
+JSObject::isConstructor() const
+{
+    if (is<JSFunction>()) {
+        const JSFunction& fun = as<JSFunction>();
+        return fun.isConstructor();
+    }
+    return constructHook() != nullptr;
+}
+
+MOZ_ALWAYS_INLINE JSNative
+JSObject::callHook() const
+{
+    const js::Class* clasp = getClass();
+
+    if (JSNative call = clasp->getCall())
+        return call;
+
+    if (is<js::ProxyObject>()) {
+        const js::ProxyObject& p = as<js::ProxyObject>();
+        if (p.handler()->isCallable(const_cast<JSObject*>(this)))
+            return js::proxy_Call;
+    }
+    return nullptr;
+}
+
+MOZ_ALWAYS_INLINE JSNative
+JSObject::constructHook() const
+{
+    const js::Class* clasp = getClass();
+
+    if (JSNative construct = clasp->getConstruct())
+        return construct;
+
+    if (is<js::ProxyObject>()) {
+        const js::ProxyObject& p = as<js::ProxyObject>();
+        if (p.handler()->isConstructor(const_cast<JSObject*>(this)))
+            return js::proxy_Construct;
+    }
+    return nullptr;
+}
 
 #endif /* jsobjinlines_h */

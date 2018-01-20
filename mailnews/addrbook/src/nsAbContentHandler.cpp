@@ -8,11 +8,13 @@
 #include "nsNetUtil.h"
 #include "nsCOMPtr.h"
 #include "nsAutoPtr.h"
-#include "nsNullPrincipal.h"
+#include "NullPrincipal.h"
 #include "nsISupportsPrimitives.h"
 #include "plstr.h"
 #include "nsPIDOMWindow.h"
-#include "nsIDOMWindow.h"
+#include "mozIDOMWindow.h"
+#include "nsIDocShell.h"
+#include "nsIDocShellTreeItem.h"
 #include "nsMsgUtils.h"
 #include "nsIMsgVCardService.h"
 #include "nsIAbCard.h"
@@ -52,25 +54,24 @@ nsAbContentHandler::HandleContent(const char *aContentType,
     if (uri)
     {
         nsAutoCString path;
-        rv = uri->GetPath(path);
+        rv = uri->GetPathQueryRef(path);
         NS_ENSURE_SUCCESS(rv,rv);
 
         const char *startOfVCard = strstr(path.get(), "add?vcard=");
         if (startOfVCard)
         {
             nsCString unescapedData;
-            
+
             // XXX todo, explain why we is escaped twice
-            MsgUnescapeString(nsDependentCString(startOfVCard + strlen("add?vcard=")), 
+            MsgUnescapeString(nsDependentCString(startOfVCard + strlen("add?vcard=")),
                                                  0, unescapedData);
 
             if (!aWindowContext)
                 return NS_ERROR_FAILURE;
 
-            nsCOMPtr<nsIDOMWindow> domWindow = do_GetInterface(aWindowContext);
-            nsCOMPtr<nsPIDOMWindow> parentWindow = do_QueryInterface(domWindow);
-            if (!parentWindow)
-                return NS_ERROR_FAILURE;
+            nsCOMPtr<mozIDOMWindowProxy> domWindow = do_GetInterface(aWindowContext);
+            NS_ENSURE_TRUE(domWindow, NS_ERROR_FAILURE);
+            nsCOMPtr<nsPIDOMWindowOuter> parentWindow = nsPIDOMWindowOuter::From(domWindow);
             parentWindow = parentWindow->GetOuterWindow();
             NS_ENSURE_ARG_POINTER(parentWindow);
 
@@ -90,9 +91,14 @@ nsAbContentHandler::HandleContent(const char *aContentType,
             ifptr->SetData(cardFromVCard);
             ifptr->SetDataIID(&NS_GET_IID(nsIAbCard));
 
-            nsCOMPtr<nsIDOMWindow> dialogWindow;
+            // Find a privileged chrome window to open the dialog from.
+            nsCOMPtr<nsIDocShell> docShell(parentWindow->GetDocShell());
+            nsCOMPtr<nsIDocShellTreeItem> root;
+            docShell->GetRootTreeItem(getter_AddRefs(root));
+            nsCOMPtr<nsPIDOMWindowOuter> window(do_GetInterface(root));
 
-            rv = parentWindow->OpenDialog(
+            nsCOMPtr<nsPIDOMWindowOuter> dialogWindow;
+            rv = window->OpenDialog(
                 NS_LITERAL_STRING("chrome://messenger/content/addressbook/abNewCardDialog.xul"),
                 EmptyString(),
                 NS_LITERAL_STRING("chrome,resizable=no,titlebar,modal,centerscreen"),
@@ -126,7 +132,7 @@ nsAbContentHandler::HandleContent(const char *aContentType,
                             uri,
                             this,
                             nullPrincipal,
-                            nsILoadInfo::SEC_NORMAL,
+                            nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
                             nsIContentPolicy::TYPE_OTHER);
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -166,13 +172,13 @@ nsAbContentHandler::OnStreamComplete(nsIStreamLoader *aLoader,
                                     getter_AddRefs(cardFromVCard));
       NS_ENSURE_SUCCESS(rv, rv);
 
-      nsCOMPtr<nsIDOMWindow> domWindow = do_GetInterface(aContext);
-      nsCOMPtr<nsPIDOMWindow> parentWindow = do_QueryInterface(domWindow);
-      NS_ENSURE_TRUE(parentWindow, NS_ERROR_FAILURE);
+      nsCOMPtr<mozIDOMWindowProxy> domWindow = do_GetInterface(aContext);
+      NS_ENSURE_TRUE(domWindow, NS_ERROR_FAILURE);
+      nsCOMPtr<nsPIDOMWindowOuter> parentWindow = nsPIDOMWindowOuter::From(domWindow);
       parentWindow = parentWindow->GetOuterWindow();
       NS_ENSURE_ARG_POINTER(parentWindow);
 
-      nsCOMPtr<nsIDOMWindow> dialogWindow;
+      nsCOMPtr<nsPIDOMWindowOuter> dialogWindow;
       rv = parentWindow->OpenDialog(
            NS_LITERAL_STRING("chrome://messenger/content/addressbook/abNewCardDialog.xul"),
            EmptyString(),

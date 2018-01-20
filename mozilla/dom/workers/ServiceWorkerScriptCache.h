@@ -16,6 +16,8 @@ namespace mozilla {
 namespace dom {
 namespace workers {
 
+class ServiceWorkerRegistrationInfo;
+
 namespace serviceWorkerScriptCache {
 
 nsresult
@@ -37,10 +39,10 @@ public:
   ComparisonResult(nsresult aStatus,
                    bool aInCacheAndEqual,
                    const nsAString& aNewCacheName,
-                   const nsACString& aMaxScope) = 0;
+                   const nsACString& aMaxScope,
+                   nsLoadFlags aLoadFlags) = 0;
 
-  NS_IMETHOD_(MozExternalRefCountType) AddRef() = 0;
-  NS_IMETHOD_(MozExternalRefCountType) Release() = 0;
+  NS_INLINE_DECL_PURE_VIRTUAL_REFCOUNTING
 };
 
 nsresult

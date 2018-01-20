@@ -8,17 +8,12 @@ include $(topsrcdir)/config/config.mk
 # http://code.google.com/p/android/issues/detail?id=3639
 AB_rCD = $(if $(filter he, $(AB_CD)),iw,$(if $(filter id, $(AB_CD)),in,$(subst -,-r,$(AB_CD))))
 
-# The search strings path is always passed to strings.xml.in; the
-# decision to include is made based on the feature flag at the
-# inclusion site.
-SEARCHSTRINGSPATH = $(abspath $(call MERGE_FILE,search_strings.dtd))
-
 SYNCSTRINGSPATH = $(abspath $(call MERGE_FILE,sync_strings.dtd))
 STRINGSPATH = $(abspath $(call MERGE_FILE,android_strings.dtd))
 ifeq (,$(XPI_NAME))
-BRANDPATH = $(abspath $(DEPTH)/dist/bin/chrome/$(AB_CD)/locale/branding/brand.dtd)
+BRANDPATH = $(topobjdir)/dist/bin/chrome/$(AB_CD)/locale/branding/brand.dtd
 else
-BRANDPATH = $(abspath $(DIST)/xpi-stage/$(XPI_NAME)/chrome/$(AB_CD)/locale/branding/brand.dtd)
+BRANDPATH = $(ABS_DIST)/xpi-stage/$(XPI_NAME)/chrome/$(AB_CD)/locale/branding/brand.dtd
 endif
 $(warnIfEmpty,AB_CD) # todo: $(errorIfEmpty )
 
@@ -55,13 +50,9 @@ strings-xml-preqs =\
   $(strings-xml-in) \
   $(BRANDPATH) \
   $(STRINGSPATH) \
-  $(SEARCHSTRINGSPATH) \
   $(SYNCSTRINGSPATH) \
   $(if $(IS_LANGUAGE_REPACK),FORCE) \
   $(NULL)
-
-$(if $(MOZ_ANDROID_SHARED_ACCOUNT_TYPE),,$(error Missing MOZ_ANDROID_SHARED_ACCOUNT_TYPE))
-$(if $(MOZ_ANDROID_SHARED_FXACCOUNT_TYPE),,$(error Missing MOZ_ANDROID_SHARED_FXACCOUNT_TYPE))
 
 $(dir-strings-xml)/strings.xml: $(strings-xml-preqs)
 	$(call py_action,preprocessor, \
@@ -69,12 +60,9 @@ $(dir-strings-xml)/strings.xml: $(strings-xml-preqs)
       $(ACDEFINES) \
 	  -DANDROID_PACKAGE_NAME=$(ANDROID_PACKAGE_NAME) \
 	  -DBRANDPATH='$(BRANDPATH)' \
-	  -DMOZ_ANDROID_SHARED_ACCOUNT_TYPE=$(MOZ_ANDROID_SHARED_ACCOUNT_TYPE) \
-	  -DMOZ_ANDROID_SHARED_FXACCOUNT_TYPE=$(MOZ_ANDROID_SHARED_FXACCOUNT_TYPE) \
 	  -DMOZ_APP_DISPLAYNAME='@MOZ_APP_DISPLAYNAME@' \
 	  -DSTRINGSPATH='$(STRINGSPATH)' \
 	  -DSYNCSTRINGSPATH='$(SYNCSTRINGSPATH)' \
-	  -DSEARCHSTRINGSPATH='$(SEARCHSTRINGSPATH)' \
       $< \
 	  -o $@)
 
@@ -104,7 +92,7 @@ $(suggestedsites-dstdir-raw)/suggestedsites.json: FORCE
 	$(call py_action,generate_suggestedsites, \
 		--verbose \
 		--android-package-name=$(ANDROID_PACKAGE_NAME) \
-		--resources=$(srcdir)/../resources \
+		--resources=$(topsrcdir)/mobile/android/app/src/photon/res \
 		$(if $(filter en-US,$(AB_CD)),,--srcdir=$(l10n-srcdir)) \
 		--srcdir=$(topsrcdir)/mobile/locales/en-US/chrome \
 		$@)

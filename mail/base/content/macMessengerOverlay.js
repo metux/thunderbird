@@ -4,6 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 Components.utils.import("resource://gre/modules/Services.jsm");
+Components.utils.import("resource:///modules/mailServices.js");
 
 // Load and add the menu item to the OS X Dock icon menu.
 addEventListener("load", function() {
@@ -27,7 +28,6 @@ addEventListener("load", function() {
 function loadListener(event) {
   setTimeout(function() {
     let preWin = Services.wm.getMostRecentWindow("Mail:Preferences");
-    preWin.removeEventListener("load", loadListener, false);
     preWin.document.documentElement
           .openSubDialog("chrome://messenger/content/preferences/dockoptions.xul",
                          "", null);
@@ -42,7 +42,7 @@ function PrefWindowObserver() {
   this.observe = function(aSubject, aTopic, aData) {
     if (aTopic == "domwindowopened") {
       let win = aSubject.QueryInterface(Components.interfaces.nsIDOMWindow);
-      win.addEventListener("load", loadListener, false);
+      win.addEventListener("load", loadListener, {capture: false, once: true});
     }
     Services.ww.unregisterNotification(this);
   };
@@ -65,5 +65,32 @@ function openDockOptions()
   } else {
       Services.ww.registerNotification(new PrefWindowObserver());
       openOptionsDialog("paneGeneral");
+  }
+}
+
+/**
+ * Open a new window for writing a new message
+ */
+function writeNewMessageDock()
+{
+  // Default identity will be used as sender for the new message.
+  MailServices.compose.OpenComposeWindow(null, null, null,
+    Components.interfaces.nsIMsgCompType.New,
+    Components.interfaces.nsIMsgCompFormat.Default, null, null);
+}
+
+/**
+ * Open the address book window
+ */
+function openAddressBookDock()
+{
+  let win = Services.wm.getMostRecentWindow("mail:addressbook");
+  if (win) {
+    win.focus();
+  } else {
+    let ww = Components.classes["@mozilla.org/embedcomp/window-watcher;1"].
+                                getService(Components.interfaces.nsIWindowWatcher);
+    ww.openWindow(null, "chrome://messenger/content/addressbook/addressbook.xul", null,
+                  "chrome,extrachrome,menubar,resizable,scrollbars,status,toolbar", null);
   }
 }

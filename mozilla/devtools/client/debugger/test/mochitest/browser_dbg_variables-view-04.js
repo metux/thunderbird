@@ -1,5 +1,7 @@
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
+/* vim: set ft=javascript ts=2 et sw=2 tw=80: */
 /* Any copyright is dedicated to the Public Domain.
-   http://creativecommons.org/publicdomain/zero/1.0/ */
+ * http://creativecommons.org/publicdomain/zero/1.0/ */
 
 /**
  * Tests that grips are correctly applied to variables.
@@ -8,7 +10,11 @@
 const TAB_URL = EXAMPLE_URL + "doc_recursion-stack.html";
 
 function test() {
-  initDebugger(TAB_URL).then(([aTab,, aPanel]) => {
+  let options = {
+    source: TAB_URL,
+    line: 1
+  };
+  initDebugger(TAB_URL, options).then(([aTab,, aPanel]) => {
     let variables = aPanel.panelWin.DebuggerView.Variables;
     let testScope = variables.addScope("test");
     let testVar = testScope.addItem("something");
@@ -126,11 +132,11 @@ function test() {
     is(variables.getItemForNode(parent.target), undefined,
        "VariablesView should not have a record of the parent anymore.");
     is(parent.target.parentNode, null,
-       "Parent element should not have a parent.")
+       "Parent element should not have a parent.");
     is(variables.getItemForNode(child.target), undefined,
        "VariablesView should not have a record of the child anymore.");
     is(child.target.parentNode, null,
-       "Child element should not have a parent.")
+       "Child element should not have a parent.");
     is([...parent].length, 0,
        "Parent should have zero children.");
 
@@ -138,7 +144,7 @@ function test() {
 
     is([...variables].length, 0,
        "VariablesView should have been emptied.");
-    is(ThreadSafeChromeUtils.nondeterministicGetWeakMapKeys(variables._itemsByElement).length,
+    is(ChromeUtils.nondeterministicGetWeakMapKeys(variables._itemsByElement).length,
        0, "VariablesView _itemsByElement map has been emptied.");
     is(variables._currHierarchy.size, 0,
        "VariablesView _currHierarchy map has been emptied.");

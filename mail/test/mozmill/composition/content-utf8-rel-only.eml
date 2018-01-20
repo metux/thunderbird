@@ -1,6 +1,6 @@
-From: test <test@test.com>
+From: test <test@example.com>
 Subject: test HTML related only
-To: test2 <test2@test.com>
+To: test2 <test2@example.com>
 Date: Sat, 27 Feb 2016 17:11:45 +0100
 MIME-Version: 1.0
 Content-Type: multipart/related;
@@ -17,7 +17,8 @@ Content-Transfer-Encoding: 8bit
   </head>
   <body bgcolor="#FFFFFF" text="#000000">
     áóúäöüß<br>
-    <img src="cid:part1" alt="">
+    <img src="cid:part1" id="cidImage" width="10" height="10" alt="">
+    <img src="cid:part1" crossorigin="anonymous" id="cidImageOrigin" width="20" height="20" alt="">
   </body>
 </html>
 

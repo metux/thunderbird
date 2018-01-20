@@ -10,11 +10,10 @@
 #undef Bool
 #endif
 
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsMailHeaders.h"
 #include "nsIMimeStreamConverter.h"
-#include "nsIUnicodeDecoder.h"
-#include "nsIUnicodeEncoder.h"
+#include "mozilla/Encoding.h"
 #include "nsIPrefBranch.h"
 #include "mozITXTToHTMLConv.h"
 #include "nsCOMPtr.h"
@@ -137,9 +136,6 @@ public:
   mozITXTToHTMLConv   *conv;        // For text conversion...
   nsCOMPtr<nsIPrefBranch> m_prefBranch; /* prefBranch-service */
   nsMimeOutputType    format_out;   // The format out type
-  nsCString           charsetForCachedInputDecoder;
-  nsCOMPtr<nsIUnicodeDecoder>   m_inputCharsetToUnicodeDecoder;
-  nsCOMPtr<nsIUnicodeEncoder>   m_unicodeToUTF8Encoder;
 
   const char *url;      /* Base URL for the document.  This string should
                  be freed by the caller, after the parser
@@ -162,6 +158,13 @@ public:
                  Set by "?rot13=true" */
   char *part_to_load;    /* The particular part of the multipart which
                  we are extracting.  Set by "?part=3.2.4" */
+
+  bool no_output_p; /* Will never write output when this is true.
+          (When false, output or not may depend on other things.)
+          This needs to be in the options, because the method
+          MimeObject_parse_begin is controlling the property "output_p"
+          (on the MimeObject) so we need a way for other functions to
+          override it and tell that we do not want output. */
 
   bool write_html_p;    /* Whether the output should be HTML, or raw. */
 
@@ -224,7 +227,7 @@ public:
    `input_length' is how long it is.
    `input_charset' is a string representing the charset of this string (as
      specified by MIME headers.)
-   `output_charset' is the charset to which conversion is desired.
+   The conversion is always to UTF-8.
    `output_ret' is where a newly-malloced string is returned.  It may be
      NULL if no translation is needed.
    `output_size_ret' is how long the returned string is (it need not be
@@ -232,9 +235,8 @@ public:
    */
   int (*charset_conversion_fn) (const char *input_line,
                 int32_t input_length, const char *input_charset,
-                const char *output_charset,
-                char **output_ret, int32_t *output_size_ret,
-                void *stream_closure, nsIUnicodeDecoder *decoder, nsIUnicodeEncoder *encoder);
+                nsACString& output_ret,
+                void *stream_closure);
 
   /* If true, perform both charset-conversion and decoding of
    MIME-2 header fields (using RFC-1522 encoding.)

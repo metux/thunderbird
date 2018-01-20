@@ -19,12 +19,12 @@ add_task(function* () {
          "<html>",
          "<head>",
          "<title>Bug 740541</title>"],
-        stylesheets.map(function(sheet) {
+        stylesheets.map(function (sheet) {
           return '<link rel="stylesheet" type="text/css" href="' + sheet + '">';
         }),
         ["</head>",
          "<body>"],
-        framedDocuments.map(function(doc) {
+        framedDocuments.map(function (doc) {
           return '<iframe src="' + doc + '"></iframe>';
         }),
         ["</body>",
@@ -57,11 +57,10 @@ add_task(function* () {
   const TESTCASE_URI = makeDocument(
     [makeStylesheet(".a")],
     [makeDocument([],
-                  [FOUR,
-                   DOCUMENT_WITH_INLINE_STYLE]),
-     makeDocument([makeStylesheet(".b"),
-                   SIMPLE],
-                  [makeDocument([makeStylesheet(".c")],
+      [FOUR,
+       DOCUMENT_WITH_INLINE_STYLE]),
+     makeDocument([makeStylesheet(".b"), SIMPLE],
+       [makeDocument([makeStylesheet(".c")],
                                 [])]),
      makeDocument([SIMPLE], []),
      SIMPLE_DOCUMENT

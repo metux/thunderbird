@@ -1,10 +1,12 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
+from __future__ import absolute_import, print_function
 
 import re
 import subprocess
-from cmanager import CounterManager
+
+from cmanager_base import CounterManager
 
 
 def xrestop(binary='xrestop'):
@@ -133,7 +135,7 @@ def GetXRes(pids):
                 data = float(data)
                 XRes += data
             except ValueError:
-                print "Invalid data, not a float"
+                print("Invalid data, not a float")
                 raise
         else:
             raise Exception("Could not find PID=%s in xrestop output" % pid)
@@ -178,4 +180,4 @@ class LinuxCounterManager(CounterManager):
             return [self.process.pid] + [child.pid
                                          for child in self.process.children()]
         except:
-            print "WARNING: problem updating child PID's"
+            print("WARNING: problem updating child PID's")

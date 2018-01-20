@@ -16,7 +16,6 @@ var CC = Components.Constructor;
 var Cu = Components.utils;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-Cu.import("resource://gre/modules/Promise.jsm");
 Cu.import("resource:///modules/mailServices.js");
 
 /**
@@ -165,9 +164,6 @@ PromiseTestUtils.PromiseStreamListener.prototype = {
 var nsIMFNService = Ci.nsIMsgFolderNotificationService;
 PromiseTestUtils.promiseFolderEvent = function promiseFolderEvent(folder, event) {
   return new Promise( (resolve, reject) => {
-    let eventAtom = Cc["@mozilla.org/atom-service;1"]
-                      .getService(Ci.nsIAtomService)
-                      .getAtom(event);
     let folderListener = {
       QueryInterface: XPCOMUtils.generateQI([Ci.nsIFolderListener]),
       OnItemEvent: function onItemEvent(aEventFolder, aEvent) {
@@ -194,9 +190,9 @@ PromiseTestUtils.promiseFolderNotification = function(folder, listenerMethod) {
   return new Promise( (resolve, reject) => {
     let mfnListener = {};
     mfnListener[listenerMethod] = function() {
-      let args = Array.prototype.slice.call(arguments);
+      let args = Array.from(arguments);
       let flag = true;
-      for (arg of args) {
+      for (let arg of args) {
         if (folder && arg instanceof Ci.nsIMsgFolder) {
           if (arg == folder) {
             flag = true;
@@ -273,7 +269,7 @@ PromiseTestUtils.PromiseSearchNotify = function(aSearchSession, aWrapped) {
     this._reject = reject;
   });
 }
- 
+
 PromiseTestUtils.PromiseSearchNotify.prototype = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIMsgSearchNotify]),
   onSearchHit: function(aHeader, aFolder) {

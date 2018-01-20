@@ -11,6 +11,7 @@
 #include "SpanningCellSorter.h"
 #include "nsQuickSort.h"
 #include "nsIPresShell.h"
+#include "mozilla/HashFunctions.h"
 
 //#define DEBUG_SPANNING_CELL_SORTER
 
@@ -37,14 +38,13 @@ SpanningCellSorter::HashTableOps = {
 };
 
 /* static */ PLDHashNumber
-SpanningCellSorter::HashTableHashKey(PLDHashTable *table, const void *key)
+SpanningCellSorter::HashTableHashKey(const void *key)
 {
-    return NS_PTR_TO_INT32(key);
+    return HashGeneric(key);
 }
 
 /* static */ bool
-SpanningCellSorter::HashTableMatchEntry(PLDHashTable *table,
-                                        const PLDHashEntryHdr *hdr,
+SpanningCellSorter::HashTableMatchEntry(const PLDHashEntryHdr *hdr,
                                         const void *key)
 {
     const HashTableEntry *entry = static_cast<const HashTableEntry*>(hdr);
@@ -108,7 +108,7 @@ SpanningCellSorter::GetNext(int32_t *aColSpan)
             /* prepare to enumerate the array */
             mState = ENUMERATING_ARRAY;
             mEnumerationIndex = 0;
-            /* fall through */
+            MOZ_FALLTHROUGH;
         case ENUMERATING_ARRAY:
             while (mEnumerationIndex < ARRAY_SIZE && !mArray[mEnumerationIndex])
                 ++mEnumerationIndex;
@@ -138,7 +138,7 @@ SpanningCellSorter::GetNext(int32_t *aColSpan)
                              SortArray, nullptr);
                 mSortedHashTable = sh;
             }
-            /* fall through */
+            MOZ_FALLTHROUGH;
         case ENUMERATING_HASH:
             if (mEnumerationIndex < mHashTable.EntryCount()) {
                 Item *result = mSortedHashTable[mEnumerationIndex]->mItems;
@@ -153,7 +153,7 @@ SpanningCellSorter::GetNext(int32_t *aColSpan)
                 return result;
             }
             mState = DONE;
-            /* fall through */
+            MOZ_FALLTHROUGH;
         case DONE:
             ;
     }

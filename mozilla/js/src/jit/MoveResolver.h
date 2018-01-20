@@ -191,8 +191,8 @@ class MoveOp
         INT32,
         FLOAT32,
         DOUBLE,
-        INT32X4,
-        FLOAT32X4
+        SIMD128INT,
+        SIMD128FLOAT
     };
 
   protected:
@@ -216,7 +216,8 @@ class MoveOp
         cycleEnd_(false),
         cycleBeginSlot_(-1),
         cycleEndSlot_(-1),
-        type_(type)
+        type_(type),
+        endCycleType_(GENERAL) // initialize to silence UBSan warning
     { }
 
     bool isCycleBegin() const {
@@ -252,6 +253,13 @@ class MoveOp
     bool aliases(const MoveOp& other) const {
         return aliases(other.from()) || aliases(other.to());
     }
+#ifdef JS_CODEGEN_ARM
+    void overwrite(MoveOperand& from, MoveOperand& to, Type type) {
+        from_ = from;
+        to_ = to;
+        type_ = type;
+    }
+#endif
 };
 
 class MoveResolver
@@ -283,7 +291,6 @@ class MoveResolver
 
     typedef InlineList<MoveResolver::PendingMove>::iterator PendingMoveIterator;
 
-  private:
     js::Vector<MoveOp, 16, SystemAllocPolicy> orderedMoves_;
     int numCycles_;
     int curCycles_;
@@ -293,11 +300,15 @@ class MoveResolver
 
     PendingMove* findBlockingMove(const PendingMove* last);
     PendingMove* findCycledMove(PendingMoveIterator* stack, PendingMoveIterator end, const PendingMove* first);
-    bool addOrderedMove(const MoveOp& move);
+    MOZ_MUST_USE bool addOrderedMove(const MoveOp& move);
     void reorderMove(size_t from, size_t to);
 
     // Internal reset function. Does not clear lists.
     void resetState();
+
+#ifdef JS_CODEGEN_ARM
+    bool isDoubleAliasedAsSingle(const MoveOperand& move);
+#endif
 
   public:
     MoveResolver();
@@ -309,8 +320,8 @@ class MoveResolver
     //
     // After calling addMove() for each parallel move, resolve() performs the
     // cycle resolution algorithm. Calling addMove() again resets the resolver.
-    bool addMove(const MoveOperand& from, const MoveOperand& to, MoveOp::Type type);
-    bool resolve();
+    MOZ_MUST_USE bool addMove(const MoveOperand& from, const MoveOperand& to, MoveOp::Type type);
+    MOZ_MUST_USE bool resolve();
     void sortMemoryToMemoryMoves();
 
     size_t numMoves() const {

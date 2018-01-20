@@ -19,12 +19,16 @@
 
 using namespace mozilla;
 
-class nsBlockOnBackgroundThreadEvent : public nsRunnable {
+class nsBlockOnBackgroundThreadEvent : public Runnable {
 public:
-  nsBlockOnBackgroundThreadEvent() {}
-  NS_IMETHOD Run()
+  nsBlockOnBackgroundThreadEvent()
+    : mozilla::Runnable("nsBlockOnBackgroundThreadEvent")
+  {
+  }
+  NS_IMETHOD Run() override
   {
     MutexAutoLock lock(nsDeleteDir::gInstance->mLock);
+    nsDeleteDir::gInstance->mNotified = true;
     nsDeleteDir::gInstance->mCondVar.Notify();
     return NS_OK;
   }
@@ -36,6 +40,7 @@ nsDeleteDir * nsDeleteDir::gInstance = nullptr;
 nsDeleteDir::nsDeleteDir()
   : mLock("nsDeleteDir.mLock"),
     mCondVar(mLock, "nsDeleteDir.mCondVar"),
+    mNotified(false),
     mShutdownPending(false),
     mStopDeleting(false)
 {
@@ -78,10 +83,10 @@ nsDeleteDir::Shutdown(bool finishDeleting)
     for (int32_t i = gInstance->mTimers.Count(); i > 0; i--) {
       nsCOMPtr<nsITimer> timer = gInstance->mTimers[i-1];
       gInstance->mTimers.RemoveObjectAt(i-1);
-      timer->Cancel();
 
       nsCOMArray<nsIFile> *arg;
       timer->GetClosure((reinterpret_cast<void**>(&arg)));
+      timer->Cancel();
 
       if (finishDeleting)
         dirsToRemove.AppendObjects(*arg);
@@ -101,7 +106,10 @@ nsDeleteDir::Shutdown(bool finishDeleting)
         return NS_ERROR_UNEXPECTED;
       }
 
-      rv = gInstance->mCondVar.Wait();
+      gInstance->mNotified = false;
+      while (!gInstance->mNotified) {
+        gInstance->mCondVar.Wait();
+      }
       nsShutdownThread::BlockingShutdown(thread);
     }
   }
@@ -371,22 +379,20 @@ nsDeleteDir::PostTimer(void *arg, uint32_t delay)
 {
   nsresult rv;
 
-  nsCOMPtr<nsITimer> timer = do_CreateInstance("@mozilla.org/timer;1", &rv);
-  if (NS_FAILED(rv))
-    return NS_ERROR_UNEXPECTED;
-
   MutexAutoLock lock(mLock);
 
   rv = InitThread();
   if (NS_FAILED(rv))
     return rv;
 
-  rv = timer->SetTarget(mThread);
-  if (NS_FAILED(rv))
-    return rv;
-
-  rv = timer->InitWithFuncCallback(TimerCallback, arg, delay,
-                                   nsITimer::TYPE_ONE_SHOT);
+  nsCOMPtr<nsITimer> timer;
+  rv = NS_NewTimerWithFuncCallback(getter_AddRefs(timer),
+                                   TimerCallback,
+                                   arg,
+                                   delay,
+                                   nsITimer::TYPE_ONE_SHOT,
+                                   "nsDeleteDir::PostTimer",
+                                   mThread);
   if (NS_FAILED(rv))
     return rv;
 

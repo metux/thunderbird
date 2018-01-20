@@ -15,22 +15,16 @@ function connect_and_teardown() {
   let tearDown = false;
 
   let reader = {
-    onInputStreamReady: function(stream) {
-      try {
-        stream.available();
-        Assert.ok(false, "stream.available() should have thrown");
-      }
-      catch (e) {
-        Assert.equal(e.result, Components.results.NS_ERROR_FAILURE,
-                     "stream should be in an error state");
-        Assert.ok(tearDown, "this should be as a result of logoutAndTeardown");
-        run_next_test();
-      }
+    onInputStreamReady(stream) {
+      throws(() => stream.available(), /NS_ERROR_FAILURE/,
+             "stream should be in an error state");
+      ok(tearDown, "A tear down attempt should have occurred");
+      run_next_test();
     }
   };
 
   let sink = {
-    onTransportStatus: function(transport, status, progress, progressmax) {
+    onTransportStatus(transport, status, progress, progressmax) {
       if (status == Ci.nsISocketTransport.STATUS_CONNECTED_TO) {
         // Try to logout and tear down the secure decoder ring.
         // This should close and stream and notify the reader.

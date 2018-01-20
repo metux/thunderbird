@@ -14,13 +14,10 @@ function run_test() {
     requestTimeout: 1000,
     retryBaseInterval: 150
   });
-  disableServiceWorkerEvents(
-    'https://example.net/page/timeout'
-  );
   run_next_test();
 }
 
-add_task(function* test_register_timeout() {
+add_task(async function test_register_timeout() {
   let handshakes = 0;
   let timeoutDone;
   let timeoutPromise = new Promise(resolve => timeoutDone = resolve);
@@ -32,7 +29,6 @@ add_task(function* test_register_timeout() {
   PushServiceWebSocket._generateID = () => channelID;
   PushService.init({
     serverURI: "wss://push.example.org/",
-    networkInfo: new MockDesktopNetworkInfo(),
     db,
     makeWebSocket(uri) {
       return new MockWebSocket(uri, {
@@ -74,19 +70,18 @@ add_task(function* test_register_timeout() {
     }
   });
 
-  yield rejects(
-    PushNotificationService.register('https://example.net/page/timeout',
-      ChromeUtils.originAttributesToSuffix({ appId: Ci.nsIScriptSecurityManager.NO_APP_ID, inBrowser: false })),
+  await rejects(
+    PushService.register({
+      scope: 'https://example.net/page/timeout',
+      originAttributes: ChromeUtils.originAttributesToSuffix(
+        { appId: Ci.nsIScriptSecurityManager.NO_APP_ID, inIsolatedMozBrowser: false }),
+    }),
     'Expected error for request timeout'
   );
 
-  let record = yield db.getByKeyID(channelID);
+  let record = await db.getByKeyID(channelID);
   ok(!record, 'Should not store records for timed-out responses');
 
-  yield waitForPromise(
-    timeoutPromise,
-    DEFAULT_TIMEOUT,
-    'Reconnect timed out'
-  );
+  await timeoutPromise;
   equal(registers, 1, 'Should not handle timed-out register requests');
 });

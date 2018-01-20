@@ -4,8 +4,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef mozilla_dom_indexeddb_indexeddatabasemanager_h__
-#define mozilla_dom_indexeddb_indexeddatabasemanager_h__
+#ifndef mozilla_dom_indexeddatabasemanager_h__
+#define mozilla_dom_indexeddatabasemanager_h__
 
 #include "nsIObserver.h"
 
@@ -16,6 +16,7 @@
 #include "nsClassHashtable.h"
 #include "nsCOMPtr.h"
 #include "nsHashKeys.h"
+#include "nsINamed.h"
 #include "nsITimer.h"
 
 class nsIEventTarget;
@@ -26,18 +27,31 @@ class EventChainPostVisitor;
 
 namespace dom {
 
+class IDBFactory;
+
+namespace quota {
+
+class QuotaManager;
+
+} // namespace quota
+
 namespace indexedDB {
 
 class BackgroundUtilsChild;
 class FileManager;
 class FileManagerInfo;
-class IDBFactory;
+
+} // namespace indexedDB
 
 class IndexedDatabaseManager final
   : public nsIObserver
   , public nsITimerCallback
+  , public nsINamed
 {
   typedef mozilla::dom::quota::PersistenceType PersistenceType;
+  typedef mozilla::dom::quota::QuotaManager QuotaManager;
+  typedef mozilla::dom::indexedDB::FileManager FileManager;
+  typedef mozilla::dom::indexedDB::FileManagerInfo FileManagerInfo;
 
 public:
   enum LoggingMode
@@ -52,6 +66,7 @@ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIOBSERVER
   NS_DECL_NSITIMERCALLBACK
+  NS_DECL_NSINAMED
 
   // Returns a non-owning reference.
   static IndexedDatabaseManager*
@@ -114,19 +129,25 @@ public:
   ExperimentalFeaturesEnabled();
 
   static bool
-  ExperimentalFeaturesEnabled(JSContext* /* aCx */, JSObject* /* aGlobal */)
-  {
-    return ExperimentalFeaturesEnabled();
-  }
+  ExperimentalFeaturesEnabled(JSContext* aCx, JSObject* aGlobal);
 
   static bool
   IsFileHandleEnabled();
+
+  static uint32_t
+  DataThreshold();
+
+  static uint32_t
+  MaxSerializedMsgSize();
 
   void
   ClearBackgroundActor();
 
   void
-  NoteBackgroundThread(nsIEventTarget* aBackgroundThread);
+  NoteLiveQuotaManager(QuotaManager* aQuotaManager);
+
+  void
+  NoteShuttingDownQuotaManager();
 
   already_AddRefed<FileManager>
   GetFileManager(PersistenceType aPersistenceType,
@@ -168,10 +189,8 @@ public:
   nsresult
   FlushPendingFileDeletions();
 
-#ifdef ENABLE_INTL_API
   static const nsCString&
   GetLocale();
-#endif
 
   static mozilla::Mutex&
   FileMutex()
@@ -184,6 +203,9 @@ public:
 
   static nsresult
   CommonPostHandleEvent(EventChainPostVisitor& aVisitor, IDBFactory* aFactory);
+
+  static bool
+  ResolveSandboxBinding(JSContext* aCx);
 
   static bool
   DefineIndexedDB(JSContext* aCx, JS::Handle<JSObject*> aGlobal);
@@ -217,11 +239,9 @@ private:
   // and FileInfo.mSliceRefCnt
   mozilla::Mutex mFileMutex;
 
-#ifdef ENABLE_INTL_API
   nsCString mLocale;
-#endif
 
-  BackgroundUtilsChild* mBackgroundActor;
+  indexedDB::BackgroundUtilsChild* mBackgroundActor;
 
   static bool sIsMainProcess;
   static bool sFullSynchronousMode;
@@ -230,8 +250,7 @@ private:
   static mozilla::Atomic<bool> sLowDiskSpaceMode;
 };
 
-} // namespace indexedDB
 } // namespace dom
 } // namespace mozilla
 
-#endif // mozilla_dom_indexeddb_indexeddatabasemanager_h__
+#endif // mozilla_dom_indexeddatabasemanager_h__

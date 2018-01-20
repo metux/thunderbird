@@ -15,7 +15,7 @@
 #include "nsICryptoHash.h"
 #include "nsICMSMessage.h"
 #include "nsIMutableArray.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsIOutputStream.h"
 #include "nsAutoPtr.h"
 
@@ -55,8 +55,10 @@ public:
   NS_DECL_NSIMSGCOMPOSESECURE
 
   nsMsgComposeSecure();
-  /* additional members */
+
   void GetOutputStream(nsIOutputStream **stream) { NS_IF_ADDREF(*stream = mStream);}
+  nsresult GetSMIMEBundleString(const char16_t *name, nsString &outString);
+
 private:
   virtual ~nsMsgComposeSecure();
   typedef mozilla::mailnews::MimeEncoder MimeEncoder;
@@ -66,12 +68,10 @@ private:
   nsresult MimeFinishEncryption (bool aSign, nsIMsgSendReport *sendReport);
   nsresult MimeCryptoHackCerts(const char *aRecipients, nsIMsgSendReport *sendReport, bool aEncrypt, bool aSign, nsIMsgIdentity *aIdentity);
   bool InitializeSMIMEBundle();
-  nsresult GetSMIMEBundleString(const char16_t *name,
-				char16_t **outString);
-  nsresult SMIMEBundleFormatStringFromName(const char16_t *name,
+  nsresult SMIMEBundleFormatStringFromName(const char *name,
 					   const char16_t **params,
 					   uint32_t numParams,
-					   char16_t **outString);
+					   nsAString& outString);
   nsresult ExtractEncryptionState(nsIMsgIdentity * aIdentity, nsIMsgCompFields * aComposeFields, bool * aSignMessage, bool * aEncrypt);
 
   mimeDeliveryCryptoState mCryptoState;
@@ -100,7 +100,7 @@ private:
 
   bool mErrorAlreadyReported;
   void SetError(nsIMsgSendReport *sendReport, const char16_t *bundle_string);
-  void SetErrorWithParam(nsIMsgSendReport *sendReport, const char16_t *bundle_string, const char *param);
+  void SetErrorWithParam(nsIMsgSendReport *sendReport, const char *bundle_string, const char *param);
 };
 
 #endif

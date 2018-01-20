@@ -9,10 +9,10 @@
 #include "mozAutoDocUpdate.h"
 #include "mozilla/EventStates.h"
 #include "mozilla/dom/HTMLFormElement.h"
+#include "mozilla/dom/HTMLFormSubmission.h"
 #include "mozilla/dom/HTMLOutputElementBinding.h"
 #include "nsContentUtils.h"
-#include "nsDOMSettableTokenList.h"
-#include "nsFormSubmission.h"
+#include "nsDOMTokenList.h"
 
 NS_IMPL_NS_NEW_HTML_ELEMENT_CHECK_PARSER(Output)
 
@@ -21,7 +21,7 @@ namespace dom {
 
 HTMLOutputElement::HTMLOutputElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo,
                                      FromParser aFromParser)
-  : nsGenericHTMLFormElement(aNodeInfo)
+  : nsGenericHTMLFormElement(aNodeInfo, NS_FORM_OUTPUT)
   , mValueModeFlag(eModeDefault)
   , mIsDoneAddingChildren(!aFromParser)
 {
@@ -35,27 +35,15 @@ HTMLOutputElement::~HTMLOutputElement()
 {
 }
 
-NS_IMPL_CYCLE_COLLECTION_CLASS(HTMLOutputElement)
+NS_IMPL_CYCLE_COLLECTION_INHERITED(HTMLOutputElement,
+                                   nsGenericHTMLFormElement,
+                                   mValidity,
+                                   mTokenList)
 
-NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(HTMLOutputElement,
-                                                nsGenericHTMLFormElement)
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(mValidity)
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(mTokenList)
-NS_IMPL_CYCLE_COLLECTION_UNLINK_END
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(HTMLOutputElement,
-                                                  nsGenericHTMLFormElement)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mValidity)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mTokenList)
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
-
-NS_IMPL_ADDREF_INHERITED(HTMLOutputElement, Element)
-NS_IMPL_RELEASE_INHERITED(HTMLOutputElement, Element)
-
-NS_INTERFACE_TABLE_HEAD_CYCLE_COLLECTION_INHERITED(HTMLOutputElement)
-  NS_INTERFACE_TABLE_INHERITED(HTMLOutputElement,
-                               nsIMutationObserver,
-                               nsIConstraintValidation)
-NS_INTERFACE_TABLE_TAIL_INHERITING(nsGenericHTMLFormElement)
+NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED(HTMLOutputElement,
+                                             nsGenericHTMLFormElement,
+                                             nsIMutationObserver,
+                                             nsIConstraintValidation)
 
 NS_IMPL_ELEMENT_CLONE(HTMLOutputElement)
 
@@ -75,14 +63,14 @@ HTMLOutputElement::Reset()
 }
 
 NS_IMETHODIMP
-HTMLOutputElement::SubmitNamesValues(nsFormSubmission* aFormSubmission)
+HTMLOutputElement::SubmitNamesValues(HTMLFormSubmission* aFormSubmission)
 {
   // The output element is not submittable.
   return NS_OK;
 }
 
 bool
-HTMLOutputElement::ParseAttribute(int32_t aNamespaceID, nsIAtom* aAttribute,
+HTMLOutputElement::ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
                                   const nsAString& aValue, nsAttrValue& aResult)
 {
   if (aNamespaceID == kNameSpaceID_None) {
@@ -166,11 +154,11 @@ HTMLOutputElement::SetDefaultValue(const nsAString& aDefaultValue, ErrorResult& 
   }
 }
 
-nsDOMSettableTokenList*
+nsDOMTokenList*
 HTMLOutputElement::HtmlFor()
 {
   if (!mTokenList) {
-    mTokenList = new nsDOMSettableTokenList(this, nsGkAtoms::_for);
+    mTokenList = new nsDOMTokenList(this, nsGkAtoms::_for);
   }
   return mTokenList;
 }
@@ -193,16 +181,14 @@ void HTMLOutputElement::CharacterDataChanged(nsIDocument* aDocument,
 
 void HTMLOutputElement::ContentAppended(nsIDocument* aDocument,
                                         nsIContent* aContainer,
-                                        nsIContent* aFirstNewContent,
-                                        int32_t aNewIndexInContainer)
+                                        nsIContent* aFirstNewContent)
 {
   DescendantsChanged();
 }
 
 void HTMLOutputElement::ContentInserted(nsIDocument* aDocument,
                                         nsIContent* aContainer,
-                                        nsIContent* aChild,
-                                        int32_t aIndexInContainer)
+                                        nsIContent* aChild)
 {
   DescendantsChanged();
 }
@@ -210,7 +196,6 @@ void HTMLOutputElement::ContentInserted(nsIDocument* aDocument,
 void HTMLOutputElement::ContentRemoved(nsIDocument* aDocument,
                                        nsIContent* aContainer,
                                        nsIContent* aChild,
-                                       int32_t aIndexInContainer,
                                        nsIContent* aPreviousSibling)
 {
   DescendantsChanged();

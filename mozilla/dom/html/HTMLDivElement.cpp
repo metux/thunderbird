@@ -29,7 +29,7 @@ HTMLDivElement::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aGivenProto)
 
 bool
 HTMLDivElement::ParseAttribute(int32_t aNamespaceID,
-                               nsIAtom* aAttribute,
+                               nsAtom* aAttribute,
                                const nsAString& aValue,
                                nsAttrValue& aResult)
 {
@@ -60,14 +60,14 @@ HTMLDivElement::ParseAttribute(int32_t aNamespaceID,
 
 void
 HTMLDivElement::MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
-                                      nsRuleData* aData)
+                                      GenericSpecifiedValues* aData)
 {
   nsGenericHTMLElement::MapDivAlignAttributeInto(aAttributes, aData);
   nsGenericHTMLElement::MapCommonAttributesInto(aAttributes, aData);
 }
 
 static void
-MapMarqueeAttributesIntoRule(const nsMappedAttributes* aAttributes, nsRuleData* aData)
+MapMarqueeAttributesIntoRule(const nsMappedAttributes* aAttributes, GenericSpecifiedValues* aData)
 {
   nsGenericHTMLElement::MapImageMarginAttributeInto(aAttributes, aData);
   nsGenericHTMLElement::MapImageSizeAttributesInto(aAttributes, aData);
@@ -76,7 +76,7 @@ MapMarqueeAttributesIntoRule(const nsMappedAttributes* aAttributes, nsRuleData* 
 }
 
 NS_IMETHODIMP_(bool)
-HTMLDivElement::IsAttributeMapped(const nsIAtom* aAttribute) const
+HTMLDivElement::IsAttributeMapped(const nsAtom* aAttribute) const
 {
   if (mNodeInfo->Equals(nsGkAtoms::div)) {
     static const MappedAttributeEntry* const map[] = {
@@ -85,7 +85,7 @@ HTMLDivElement::IsAttributeMapped(const nsIAtom* aAttribute) const
     };
     return FindAttributeDependence(aAttribute, map);
   }
-  if (mNodeInfo->Equals(nsGkAtoms::marquee)) {  
+  if (mNodeInfo->Equals(nsGkAtoms::marquee)) {
     static const MappedAttributeEntry* const map[] = {
       sImageMarginSizeAttributeMap,
       sBackgroundColorAttributeMap,
@@ -105,7 +105,7 @@ HTMLDivElement::GetAttributeMappingFunction() const
   }
   if (mNodeInfo->Equals(nsGkAtoms::marquee)) {
     return &MapMarqueeAttributesIntoRule;
-  }  
+  }
   return nsGenericHTMLElement::GetAttributeMappingFunction();
 }
 

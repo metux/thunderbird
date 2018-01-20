@@ -13,12 +13,13 @@ parent:
     sync GetAnsweredParent() returns (bool answeredParent);
 
 child:
-    Start();
-    Wakeup();
-    Wakeup3();
+    async Start();
+    async Wakeup();
+    async Wakeup3();
     intr Child();
-    __delete__();
+    async __delete__();
 
+/*
 state START:
     send Start goto TEST1;
 
@@ -76,6 +77,8 @@ state CHECK:
 
 state DYING:
     send __delete__;
+*/
+
 };
 
 } // namespace _ipdltest

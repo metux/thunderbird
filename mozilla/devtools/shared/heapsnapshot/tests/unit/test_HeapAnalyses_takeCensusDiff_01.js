@@ -1,11 +1,8 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
+"use strict";
 
 // Test that the HeapAnalyses{Client,Worker} can take diffs between censuses.
-
-function run_test() {
-  run_next_test();
-}
 
 const BREAKDOWN = {
   by: "objectClass",
@@ -30,17 +27,17 @@ add_task(function* () {
   yield client.readHeapSnapshot(secondSnapshotFilePath);
   ok(true, "Should have read both heap snapshot files");
 
-  const delta = yield client.takeCensusDiff(firstSnapshotFilePath,
-                                            secondSnapshotFilePath,
-                                            { breakdown: BREAKDOWN });
+  const { delta } = yield client.takeCensusDiff(firstSnapshotFilePath,
+                                                secondSnapshotFilePath,
+                                                { breakdown: BREAKDOWN });
 
   equal(delta.AllocationMarker.count, 1,
     "There exists one new AllocationMarker in the second heap snapshot");
 
-  const deltaTreeNode = yield client.takeCensusDiff(firstSnapshotFilePath,
-                                                    secondSnapshotFilePath,
-                                                    { breakdown: BREAKDOWN },
-                                                    { asTreeNode: true });
+  const { delta: deltaTreeNode } = yield client.takeCensusDiff(firstSnapshotFilePath,
+                                                               secondSnapshotFilePath,
+                                                               { breakdown: BREAKDOWN },
+                                                               { asTreeNode: true });
 
   // Have to manually set these because symbol properties aren't structured
   // cloned.

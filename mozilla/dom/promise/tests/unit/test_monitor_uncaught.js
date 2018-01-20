@@ -7,16 +7,20 @@
 var { utils: Cu } = Components;
 
 Cu.import("resource://gre/modules/Timer.jsm", this);
+Cu.import("resource://testing-common/PromiseTestUtils.jsm", this);
 
-add_task(function* test_globals() {
+// Prevent test failures due to the unhandled rejections in this test file.
+PromiseTestUtils.disableUncaughtRejectionObserverForSelfTest();
+
+add_task(async function test_globals() {
   Assert.equal(Promise.defer || undefined, undefined, "We are testing DOM Promise.");
   Assert.notEqual(PromiseDebugging, undefined, "PromiseDebugging is available.");
 });
 
-add_task(function* test_promiseID() {
+add_task(async function test_promiseID() {
   let p1 = new Promise(resolve => {});
   let p2 = new Promise(resolve => {});
-  let p3 = p2.then(null, null);
+  let p3 = p2.catch(null);
   let promise = [p1, p2, p3];
 
   let identifiers = promise.map(PromiseDebugging.getPromiseID);
@@ -31,7 +35,7 @@ add_task(function* test_promiseID() {
                "Successive calls to PromiseDebugging.getPromiseID return the same id for the same promise");
 });
 
-add_task(function* test_observe_uncaught() {
+add_task(async function test_observe_uncaught() {
   // The names of Promise instances
   let names = new Map();
 
@@ -65,7 +69,7 @@ add_task(function* test_observe_uncaught() {
         this.resolve();
       } else {
         do_print(this.name + " is still waiting for " + this.expected.size + " observations:");
-        do_print(JSON.stringify([names.get(x) for (x of this.expected.values())]));
+        do_print(JSON.stringify(Array.from(this.expected.values(), (x) => names.get(x))));
       }
     },
   };
@@ -98,11 +102,11 @@ add_task(function* test_observe_uncaught() {
       name: "Resolution callback",
     };
     yield {
-      promise: Promise.resolve(0).then(null, null),
-      name: "`then(null, null)`"
+      promise: Promise.resolve(0).catch(null),
+      name: "`catch(null)`"
     };
     yield {
-      promise: Promise.reject(0).then(null, () => {}),
+      promise: Promise.reject(0).catch(() => {}),
       name: "Reject and catch immediately",
     };
     yield {
@@ -118,7 +122,7 @@ add_task(function* test_observe_uncaught() {
 
     // Reject a promise now, consume it later.
     let p = Promise.reject("Reject now, consume later");
-    setTimeout(() => p.then(null, () => {
+    setTimeout(() => p.catch(() => {
       do_print("Consumed promise");
     }), 200);
     yield {
@@ -208,13 +212,13 @@ add_task(function* test_observe_uncaught() {
   }
 
   do_print("Test setup, waiting for callbacks.");
-  yield onLeftUncaught.blocker;
+  await onLeftUncaught.blocker;
 
   do_print("All calls to onLeftUncaught are complete.");
   if (onConsumed.expected.size != 0) {
     do_print("onConsumed is still waiting for the following Promise:");
-    do_print(JSON.stringify([names.get(x) for (x of onConsumed.expected.values())]));
-    yield onConsumed.blocker;
+    do_print(JSON.stringify(Array.from(onConsumed.expected.values(), (x) => names.get(x))));
+    await onConsumed.blocker;
   }
 
   do_print("All calls to onConsumed are complete.");
@@ -225,7 +229,7 @@ add_task(function* test_observe_uncaught() {
 });
 
 
-add_task(function* test_uninstall_observer() {
+add_task(async function test_uninstall_observer() {
   let Observer = function() {
     this.blocker = new Promise(resolve => this.resolve = resolve);
     this.active = true;
@@ -251,7 +255,7 @@ add_task(function* test_uninstall_observer() {
   do_print("Adding an observer.");
   let deactivate = new Observer();
   Promise.reject("I am an uncaught rejection.");
-  yield deactivate.blocker;
+  await deactivate.blocker;
   Assert.ok(true, "The observer has observed an uncaught Promise.");
   deactivate.active = false;
   do_print("Removing the observer, it should not observe any further uncaught Promise.");
@@ -259,8 +263,8 @@ add_task(function* test_uninstall_observer() {
   do_print("Rejecting a Promise and waiting a little to give a chance to observers.");
   let wait = new Observer();
   Promise.reject("I am another uncaught rejection.");
-  yield wait.blocker;
-  yield new Promise(resolve => setTimeout(resolve, 100));
+  await wait.blocker;
+  await new Promise(resolve => setTimeout(resolve, 100));
   // Normally, `deactivate` should not be notified of the uncaught rejection.
   wait.active = false;
 });

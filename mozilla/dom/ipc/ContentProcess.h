@@ -11,6 +11,10 @@
 #include "mozilla/ipc/ScopedXREEmbed.h"
 #include "ContentChild.h"
 
+#if defined(XP_WIN)
+#include "mozilla/mscom/MainThreadRuntime.h"
+#endif
+
 namespace mozilla {
 namespace dom {
 
@@ -20,26 +24,29 @@ namespace dom {
  */
 class ContentProcess : public mozilla::ipc::ProcessChild
 {
-    typedef mozilla::ipc::ProcessChild ProcessChild;
+  typedef mozilla::ipc::ProcessChild ProcessChild;
 
 public:
-    explicit ContentProcess(ProcessId aParentPid)
-        : ProcessChild(aParentPid)
-    { }
+  explicit ContentProcess(ProcessId aParentPid)
+    : ProcessChild(aParentPid)
+  { }
 
-    ~ContentProcess()
-    { }
+  ~ContentProcess()
+  { }
 
-    virtual bool Init() override;
-    virtual void CleanUp() override;
-
-    void SetAppDir(const nsACString& aPath);
+  virtual bool Init(int aArgc, char* aArgv[]) override;
+  virtual void CleanUp() override;
 
 private:
-    ContentChild mContent;
-    mozilla::ipc::ScopedXREEmbed mXREEmbed;
+  ContentChild mContent;
+  mozilla::ipc::ScopedXREEmbed mXREEmbed;
 
-    DISALLOW_EVIL_CONSTRUCTORS(ContentProcess);
+#if defined(XP_WIN)
+  // This object initializes and configures COM.
+  mozilla::mscom::MainThreadRuntime mCOMRuntime;
+#endif
+
+  DISALLOW_EVIL_CONSTRUCTORS(ContentProcess);
 };
 
 } // namespace dom

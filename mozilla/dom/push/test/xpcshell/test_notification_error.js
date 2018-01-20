@@ -12,15 +12,10 @@ function run_test() {
   setPrefs({
     userAgentID: userAgentID,
   });
-  disableServiceWorkerEvents(
-    'https://example.com/a',
-    'https://example.com/b',
-    'https://example.com/c'
-  );
   run_next_test();
 }
 
-add_task(function* test_notification_error() {
+add_task(async function test_notification_error() {
   let db = PushServiceWebSocket.newPushDB();
   do_register_cleanup(() => {return db.drop().then(_ => db.close());});
 
@@ -32,6 +27,7 @@ add_task(function* test_notification_error() {
     originAttributes: originAttributes,
     version: 1,
     quota: Infinity,
+    systemRecord: true,
   }, {
     channelID: '3c3930ba-44de-40dc-a7ca-8a133ec1a866',
     pushEndpoint: 'https://example.org/update/error',
@@ -39,6 +35,7 @@ add_task(function* test_notification_error() {
     originAttributes: originAttributes,
     version: 2,
     quota: Infinity,
+    systemRecord: true,
   }, {
     channelID: 'b63f7bef-0a0d-4236-b41e-086a69dfd316',
     pushEndpoint: 'https://example.org/update/success-2',
@@ -46,27 +43,20 @@ add_task(function* test_notification_error() {
     originAttributes: originAttributes,
     version: 3,
     quota: Infinity,
+    systemRecord: true,
   }];
   for (let record of records) {
-    yield db.put(record);
+    await db.put(record);
   }
 
-  let notifyPromise = Promise.all([
-    promiseObserverNotification(
-      'push-notification',
-      (subject, data) => data == 'https://example.com/a'
-    ),
-    promiseObserverNotification(
-      'push-notification',
-      (subject, data) => data == 'https://example.com/c'
-    )
-  ]);
+  let scopes = [];
+  let notifyPromise = promiseObserverNotification(PushServiceComponent.pushTopic, (subject, data) =>
+    scopes.push(data) == 2);
 
   let ackDone;
   let ackPromise = new Promise(resolve => ackDone = after(records.length, resolve));
   PushService.init({
     serverURI: "wss://push.example.org/",
-    networkInfo: new MockDesktopNetworkInfo(),
     db: makeStub(db, {
       getByKeyID(prev, channelID) {
         if (channelID == '3c3930ba-44de-40dc-a7ca-8a133ec1a866') {
@@ -96,39 +86,29 @@ add_task(function* test_notification_error() {
     }
   });
 
-  let [a, c] = yield waitForPromise(
-    notifyPromise,
-    DEFAULT_TIMEOUT,
-    'Timed out waiting for notifications'
-  );
-  let aPush = a.subject.QueryInterface(Ci.nsIPushObserverNotification);
-  equal(aPush.pushEndpoint, 'https://example.org/update/success-1',
-    'Wrong endpoint for notification A');
-  equal(aPush.version, 2, 'Wrong version for notification A');
+  await notifyPromise;
+  ok(scopes.includes('https://example.com/a'),
+    'Missing scope for notification A');
+  ok(scopes.includes('https://example.com/c'),
+    'Missing scope for notification C');
 
-  let cPush = c.subject.QueryInterface(Ci.nsIPushObserverNotification);
-  equal(cPush.pushEndpoint, 'https://example.org/update/success-2',
-    'Wrong endpoint for notification C');
-  equal(cPush.version, 4, 'Wrong version for notification C');
+  await ackPromise;
 
-  yield waitForPromise(ackPromise, DEFAULT_TIMEOUT,
-    'Timed out waiting for acknowledgements');
-
-  let aRecord = yield db.getByIdentifiers({scope: 'https://example.com/a',
+  let aRecord = await db.getByIdentifiers({scope: 'https://example.com/a',
                                            originAttributes: originAttributes });
   equal(aRecord.channelID, 'f04f1e46-9139-4826-b2d1-9411b0821283',
     'Wrong channel ID for record A');
   strictEqual(aRecord.version, 2,
     'Should return the new version for record A');
 
-  let bRecord = yield db.getByIdentifiers({scope: 'https://example.com/b',
+  let bRecord = await db.getByIdentifiers({scope: 'https://example.com/b',
                                            originAttributes: originAttributes });
   equal(bRecord.channelID, '3c3930ba-44de-40dc-a7ca-8a133ec1a866',
     'Wrong channel ID for record B');
   strictEqual(bRecord.version, 2,
     'Should return the previous version for record B');
 
-  let cRecord = yield db.getByIdentifiers({scope: 'https://example.com/c',
+  let cRecord = await db.getByIdentifiers({scope: 'https://example.com/c',
                                            originAttributes: originAttributes });
   equal(cRecord.channelID, 'b63f7bef-0a0d-4236-b41e-086a69dfd316',
     'Wrong channel ID for record C');

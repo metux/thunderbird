@@ -34,6 +34,8 @@
 #include "irregexp/RegExpMacroAssembler.h"
 #include "vm/MatchPairs.h"
 
+#include "jscntxtinlines.h"
+
 using namespace js;
 using namespace js::irregexp;
 
@@ -117,7 +119,7 @@ Load16Aligned(const uint8_t* pc)
 template <typename CharT>
 RegExpRunStatus
 irregexp::InterpretCode(JSContext* cx, const uint8_t* byteCode, const CharT* chars, size_t current,
-                        size_t length, MatchPairs* matches)
+                        size_t length, MatchPairs* matches, size_t* endIndex)
 {
     const uint8_t* pc = byteCode;
 
@@ -131,9 +133,14 @@ irregexp::InterpretCode(JSContext* cx, const uint8_t* byteCode, const CharT* cha
     int32_t numRegisters = Load32Aligned(pc);
     pc += 4;
 
-    Vector<int32_t, 0, SystemAllocPolicy> registers;
-    if (!registers.growByUninitialized(numRegisters))
+    // Most of the time we need 8 or fewer registers.  Specify an initial
+    // size of 8 here, therefore, so that the vector contents can be stack
+    // allocated in the majority of cases.  See bug 1387394.
+    Vector<int32_t, 8, SystemAllocPolicy> registers;
+    if (!registers.growByUninitialized(numRegisters)) {
+        ReportOutOfMemory(cx);
         return RegExpRunStatus_Error;
+    }
     for (size_t i = 0; i < (size_t) numRegisters; i++)
         registers[i] = -1;
 
@@ -199,6 +206,8 @@ irregexp::InterpretCode(JSContext* cx, const uint8_t* byteCode, const CharT* cha
           BYTECODE(SUCCEED)
             if (matches)
                 memcpy(matches->pairsRaw(), registers.begin(), matches->length() * 2 * sizeof(int32_t));
+            else if (endIndex)
+                *endIndex = registers[1];
             return RegExpRunStatus_Success;
           BYTECODE(ADVANCE_CP)
             current += insn >> BYTECODE_SHIFT;
@@ -442,6 +451,27 @@ irregexp::InterpretCode(JSContext* cx, const uint8_t* byteCode, const CharT* cha
             }
             break;
           }
+          BYTECODE(CHECK_NOT_BACK_REF_NO_CASE_UNICODE) {
+            int from = registers[insn >> BYTECODE_SHIFT];
+            int len = registers[(insn >> BYTECODE_SHIFT) + 1] - from;
+            if (from < 0 || len <= 0) {
+                pc += BC_CHECK_NOT_BACK_REF_NO_CASE_UNICODE_LENGTH;
+                break;
+            }
+            if (current + len > length) {
+                pc = byteCode + Load32Aligned(pc + 4);
+                break;
+            }
+            if (CaseInsensitiveCompareUCStrings(chars + from, chars + current,
+                                                len * sizeof(CharT)))
+            {
+                current += len;
+                pc += BC_CHECK_NOT_BACK_REF_NO_CASE_UNICODE_LENGTH;
+            } else {
+                pc = byteCode + Load32Aligned(pc + 4);
+            }
+            break;
+          }
           BYTECODE(CHECK_AT_START)
             if (current == 0)
                 pc = byteCode + Load32Aligned(pc + 4);
@@ -471,8 +501,8 @@ irregexp::InterpretCode(JSContext* cx, const uint8_t* byteCode, const CharT* cha
 
 template RegExpRunStatus
 irregexp::InterpretCode(JSContext* cx, const uint8_t* byteCode, const Latin1Char* chars, size_t current,
-                        size_t length, MatchPairs* matches);
+                        size_t length, MatchPairs* matches, size_t* endIndex);
 
 template RegExpRunStatus
 irregexp::InterpretCode(JSContext* cx, const uint8_t* byteCode, const char16_t* chars, size_t current,
-                        size_t length, MatchPairs* matches);
+                        size_t length, MatchPairs* matches, size_t* endIndex);

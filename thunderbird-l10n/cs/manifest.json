@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "cs": {
+      "chrome_resources": {
+        "necko": "chrome/cs/locale/cs/necko/", 
+        "global": "chrome/cs/locale/cs/global/", 
+        "messenger-region": "chrome/cs/locale/cs/messenger-region/", 
+        "chat": "chrome/cs/locale/cs/chat/", 
+        "devtools": "chrome/cs/locale/cs/devtools/client/", 
+        "pipnss": "chrome/cs/locale/cs/pipnss/", 
+        "messenger-smime": "chrome/cs/locale/cs/messenger-smime/", 
+        "messenger-newsblog": "chrome/cs/locale/cs/messenger-newsblog/", 
+        "devtools-shim": "chrome/cs/locale/cs/devtools/shim/", 
+        "alerts": "chrome/cs/locale/cs/alerts/", 
+        "messenger": "chrome/cs/locale/cs/messenger/", 
+        "editor": "chrome/cs/locale/cs/editor/", 
+        "branding": "chrome/cs/locale/cs/branding/", 
+        "mozldap": "chrome/cs/locale/cs/mozldap/", 
+        "autoconfig": "chrome/cs/locale/cs/autoconfig/", 
+        "devtools-shared": "chrome/cs/locale/cs/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/cs/locale/cs/global-platform/win/", 
+          "android": "chrome/cs/locale/cs/global-platform/unix/", 
+          "macosx": "chrome/cs/locale/cs/global-platform/mac/", 
+          "linux": "chrome/cs/locale/cs/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/cs/locale/cs/mozapps/", 
+        "pluginproblem": "chrome/cs/locale/cs/pluginproblem/", 
+        "communicator": "chrome/cs/locale/cs/communicator/", 
+        "messenger-mapi": "chrome/cs/locale/cs/messenger-mapi/", 
+        "places": "chrome/cs/locale/cs/places/", 
+        "passwordmgr": "chrome/cs/locale/cs/passwordmgr/", 
+        "pippki": "chrome/cs/locale/cs/pippki/"
+      }, 
+      "version": "20171103065232"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "58.0", 
+      "id": "langpack-cs@firefox.mozilla.org", 
+      "strict_max_version": "58.*"
+    }
+  }, 
+  "langpack_id": "cs", 
+  "version": "58.0", 
+  "name": "Czech (CZ) Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "Mozilla.cz (contributors: Pavel Cvrček, Pavel Franc, Michal Stanke, Michal Vašíček)", 
+  "description": "Language pack for Thunderbird for cs"
+}

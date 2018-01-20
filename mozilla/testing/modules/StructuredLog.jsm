@@ -23,23 +23,23 @@ this.EXPORTED_SYMBOLS = [
  *        These will each be called with the complete object to log as an
  *        argument.
  */
-this.StructuredLogger = function(name, dumpFun=dump, mutators=[]) {
+this.StructuredLogger = function(name, dumpFun = dump, mutators = []) {
   this.name = name;
   this._dumpFun = dumpFun;
   this._mutatorFuns = mutators;
-}
+};
 
 /**
  * Log functions producing messages in the format specified by mozlog
  */
 StructuredLogger.prototype = {
-  testStart: function (test) {
-    var data = {test: test};
+  testStart(test) {
+    var data = {test: this._testId(test)};
     this._logData("test_start", data);
   },
 
-  testStatus: function (test, subtest, status, expected="PASS",
-                        message=null, stack=null, extra=null) {
+  testStatus(test, subtest, status, expected = "PASS",
+                        message = null, stack = null, extra = null) {
 
     if (subtest === null || subtest === undefined) {
       // Fix for assertions that don't pass in a name
@@ -47,9 +47,9 @@ StructuredLogger.prototype = {
     }
 
     var data = {
-      test: test,
-      subtest: subtest,
-      status: status,
+      test: this._testId(test),
+      subtest,
+      status,
     };
 
     if (expected != status && status != "SKIP") {
@@ -68,8 +68,8 @@ StructuredLogger.prototype = {
     this._logData("test_status", data);
   },
 
-  testEnd: function (test, status, expected="OK", message=null, stack=null, extra=null) {
-    var data = {test: test, status: status};
+  testEnd(test, status, expected = "OK", message = null, stack = null, extra = null) {
+    var data = {test: this._testId(test), status};
 
     if (expected != status && status != "SKIP") {
       data.expected = expected;
@@ -87,17 +87,44 @@ StructuredLogger.prototype = {
     this._logData("test_end", data);
   },
 
-  suiteStart: function (tests, runinfo=null) {
-    var data = {tests: tests};
+  assertionCount(test, count, minExpected = 0, maxExpected = 0) {
+      var data = {test,
+                  min_expected: minExpected,
+                  max_expected: maxExpected,
+                  count};
+
+    this._logData("assertion_count", data);
+  },
+
+  suiteStart(tests, runinfo = null, versioninfo = null, deviceinfo = null, extra = null) {
+    var data = {tests: tests.map(x => this._testId(x))};
     if (runinfo !== null) {
       data.runinfo = runinfo;
+    }
+
+    if (versioninfo !== null) {
+      data.versioninfo = versioninfo;
+    }
+
+    if (deviceinfo !== null) {
+      data.deviceinfo = deviceinfo;
+    }
+
+    if (extra !== null) {
+      data.extra = extra;
     }
 
     this._logData("suite_start", data);
   },
 
-  suiteEnd: function () {
-    this._logData("suite_end");
+  suiteEnd(extra = null) {
+    var data = {};
+
+    if (extra !== null) {
+      data.extra = extra;
+    }
+
+    this._logData("suite_end", data);
   },
 
 
@@ -106,9 +133,9 @@ StructuredLogger.prototype = {
    * log suite specific data. If a "stack" field is provided it is logged at the
    * top level of the data object for the benefit of mozlog's formatters.
    */
-  log: function (level, message, extra=null) {
+  log(level, message, extra = null) {
     var data = {
-      level: level,
+      level,
       message: String(message),
     };
 
@@ -122,29 +149,37 @@ StructuredLogger.prototype = {
     this._logData("log", data);
   },
 
-  debug: function (message, extra=null) {
+  debug(message, extra = null) {
     this.log("DEBUG", message, extra);
   },
 
-  info: function (message, extra=null) {
+  info(message, extra = null) {
     this.log("INFO", message, extra);
   },
 
-  warning: function (message, extra=null) {
+  warning(message, extra = null) {
     this.log("WARNING", message, extra);
   },
 
-  error: function (message, extra=null) {
+  error(message, extra = null) {
     this.log("ERROR", message, extra);
   },
 
-  critical: function (message, extra=null) {
+  critical(message, extra = null) {
     this.log("CRITICAL", message, extra);
   },
 
-  _logData: function (action, data={}) {
+  processOutput(thread, message) {
+    this._logData("process_output", {
+      message,
+      thread,
+    });
+  },
+
+
+  _logData(action, data = {}) {
     var allData = {
-      action: action,
+      action,
       time: Date.now(),
       thread: null,
       pid: null,
@@ -160,7 +195,14 @@ StructuredLogger.prototype = {
     }
 
     this._dumpFun(allData);
-  }
+  },
+
+  _testId(test) {
+    if (Array.isArray(test)) {
+      return test.join(" ");
+    }
+    return test;
+  },
 };
 
 
@@ -174,32 +216,32 @@ this.StructuredFormatter = function() {
 
 StructuredFormatter.prototype = {
 
-  log: function(message) {
+  log(message) {
     return message.message;
   },
 
-  suite_start: function(message) {
+  suite_start(message) {
     this.suiteStartTime = message.time;
-    return "SUITE-START | Running " +  message.tests.length + " tests";
+    return "SUITE-START | Running " + message.tests.length + " tests";
   },
 
-  test_start: function(message) {
+  test_start(message) {
     this.testStartTimes[message.test] = new Date().getTime();
     return "TEST-START | " + message.test;
   },
 
-  test_status: function(message) {
+  test_status(message) {
     var statusInfo = message.test + " | " + message.subtest +
                     (message.message ? " | " + message.message : "");
     if (message.expected) {
         return "TEST-UNEXPECTED-" + message.status + " | " + statusInfo +
                " - expected: " + message.expected;
-    } else {
-        return "TEST-" + message.status + " | " + statusInfo;
     }
+        return "TEST-" + message.status + " | " + statusInfo;
+
   },
 
-  test_end: function(message) {
+  test_end(message) {
     var startTime = this.testStartTimes[message.test];
     delete this.testStartTimes[message.test];
     var statusInfo = message.test + (message.message ? " | " + String(message.message) : "");
@@ -210,10 +252,11 @@ StructuredFormatter.prototype = {
     } else {
         return "TEST-" + message.status + " | " + statusInfo;
     }
-    result = " | took " + message.time - startTime + "ms";
+    result = result + " | took " + message.time - startTime + "ms";
+    return result;
   },
 
-  suite_end: function(message) {
+  suite_end(message) {
     return "SUITE-END | took " + message.time - this.suiteStartTime + "ms";
   }
 };

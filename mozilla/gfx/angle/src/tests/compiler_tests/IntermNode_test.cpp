@@ -13,6 +13,8 @@
 #include "compiler/translator/IntermNode.h"
 #include "compiler/translator/PoolAlloc.h"
 
+using namespace sh;
+
 class IntermNodeTest : public testing::Test
 {
   public:
@@ -147,10 +149,8 @@ TEST_F(IntermNodeTest, DeepCopyBinaryNode)
 {
     TType type(EbtFloat, EbpHigh);
 
-    TIntermBinary *original = new TIntermBinary(EOpAdd);
+    TIntermBinary *original = new TIntermBinary(EOpAdd, createTestSymbol(), createTestSymbol());
     original->setLine(getTestSourceLoc());
-    original->setLeft(createTestSymbol());
-    original->setRight(createTestSymbol());
     TIntermTyped *copyTyped = original->deepCopy();
     TIntermBinary *copy = copyTyped->getAsBinaryNode();
     ASSERT_NE(nullptr, copy);
@@ -168,9 +168,8 @@ TEST_F(IntermNodeTest, DeepCopyUnaryNode)
 {
     TType type(EbtFloat, EbpHigh);
 
-    TIntermUnary *original = new TIntermUnary(EOpPreIncrement);
+    TIntermUnary *original = new TIntermUnary(EOpPreIncrement, createTestSymbol());
     original->setLine(getTestSourceLoc());
-    original->setOperand(createTestSymbol());
     TIntermTyped *copyTyped = original->deepCopy();
     TIntermUnary *copy = copyTyped->getAsUnaryNode();
     ASSERT_NE(nullptr, copy);
@@ -185,14 +184,14 @@ TEST_F(IntermNodeTest, DeepCopyUnaryNode)
 // original. Child nodes also need to be copies with the same attributes as the original children.
 TEST_F(IntermNodeTest, DeepCopyAggregateNode)
 {
-    TType type(EbtFloat, EbpHigh);
-
-    TIntermAggregate *original = new TIntermAggregate(EOpMix);
+    TIntermSequence *originalSeq = new TIntermSequence();
+    originalSeq->push_back(createTestSymbol());
+    originalSeq->push_back(createTestSymbol());
+    originalSeq->push_back(createTestSymbol());
+    TIntermAggregate *original =
+        TIntermAggregate::Create(originalSeq->at(0)->getAsTyped()->getType(), EOpMix, originalSeq);
     original->setLine(getTestSourceLoc());
-    TIntermSequence *originalSeq = original->getSequence();
-    originalSeq->push_back(createTestSymbol());
-    originalSeq->push_back(createTestSymbol());
-    originalSeq->push_back(createTestSymbol());
+
     TIntermTyped *copyTyped = original->deepCopy();
     TIntermAggregate *copy = copyTyped->getAsAggregate();
     ASSERT_NE(nullptr, copy);
@@ -204,30 +203,30 @@ TEST_F(IntermNodeTest, DeepCopyAggregateNode)
     TIntermSequence::size_type i = 0;
     for (auto *copyChild : *copy->getSequence())
     {
-        TIntermNode *originalChild = originalSeq->at(i);
+        TIntermNode *originalChild = original->getSequence()->at(i);
         checkSymbolCopy(originalChild, copyChild);
         ++i;
     }
 }
 
-// Check that the deep copy of a selection node is an actual copy with the same attributes as the
+// Check that the deep copy of a ternary node is an actual copy with the same attributes as the
 // original. Child nodes also need to be copies with the same attributes as the original children.
-TEST_F(IntermNodeTest, DeepCopySelectionNode)
+TEST_F(IntermNodeTest, DeepCopyTernaryNode)
 {
     TType type(EbtFloat, EbpHigh);
 
-    TIntermSelection *original = new TIntermSelection(
-        createTestSymbol(TType(EbtBool, EbpUndefined)), createTestSymbol(), createTestSymbol());
+    TIntermTernary *original = new TIntermTernary(createTestSymbol(TType(EbtBool, EbpUndefined)),
+                                                  createTestSymbol(), createTestSymbol());
     original->setLine(getTestSourceLoc());
     TIntermTyped *copyTyped = original->deepCopy();
-    TIntermSelection *copy = copyTyped->getAsSelectionNode();
+    TIntermTernary *copy    = copyTyped->getAsTernaryNode();
     ASSERT_NE(nullptr, copy);
     ASSERT_NE(original, copy);
     checkTestSourceLoc(copy->getLine());
     checkTypeEqualWithQualifiers(original->getType(), copy->getType());
 
     checkSymbolCopy(original->getCondition(), copy->getCondition());
-    checkSymbolCopy(original->getTrueBlock(), copy->getTrueBlock());
-    checkSymbolCopy(original->getFalseBlock(), copy->getFalseBlock());
+    checkSymbolCopy(original->getTrueExpression(), copy->getTrueExpression());
+    checkSymbolCopy(original->getFalseExpression(), copy->getFalseExpression());
 }
 

@@ -7,10 +7,11 @@
 #define mozilla_devtools_DeserializedNode__
 
 #include "js/UbiNode.h"
+#include "js/UniquePtr.h"
 #include "mozilla/devtools/CoreDump.pb.h"
+#include "mozilla/HashFunctions.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/Move.h"
-#include "mozilla/UniquePtr.h"
 #include "mozilla/Vector.h"
 
 // `Deserialized{Node,Edge}` translate protobuf messages from our core dump
@@ -78,7 +79,7 @@ struct DeserializedNode {
                    const char16_t* typeName,
                    uint64_t size,
                    EdgeVector&& edges,
-                   Maybe<StackFrameId> allocationStack,
+                   const Maybe<StackFrameId>& allocationStack,
                    const char* className,
                    const char* filename,
                    HeapSnapshot& owner)
@@ -142,13 +143,7 @@ private:
 static inline js::HashNumber
 hashIdDerivedFromPtr(uint64_t id)
 {
-    // NodeIds and StackFrameIds are always 64 bits, but they are derived from
-    // the original referents' addresses, which could have been either 32 or 64
-    // bits long. As such, NodeId and StackFrameId have little entropy in their
-    // bottom three bits, and may or may not have entropy in their upper 32
-    // bits. This hash should manage both cases well.
-    id >>= 3;
-    return js::HashNumber((id >> 32) ^ id);
+    return mozilla::HashGeneric(id);
 }
 
 struct DeserializedNode::HashPolicy
@@ -242,10 +237,9 @@ namespace ubi {
 
 using mozilla::devtools::DeserializedNode;
 using mozilla::devtools::DeserializedStackFrame;
-using mozilla::UniquePtr;
 
 template<>
-struct Concrete<DeserializedNode> : public Base
+class Concrete<DeserializedNode> : public Base
 {
 protected:
   explicit Concrete(DeserializedNode* ptr) : Base(ptr) { }
@@ -254,8 +248,6 @@ protected:
   }
 
 public:
-  static const char16_t concreteTypeName[];
-
   static void construct(void* storage, DeserializedNode* ptr) {
     new (storage) Concrete(ptr);
   }
@@ -273,7 +265,9 @@ public:
 
   // We ignore the `bool wantNames` parameter because we can't control whether
   // the core dump was serialized with edge names or not.
-  UniquePtr<EdgeRange> edges(JSRuntime* rt, bool) const override;
+  js::UniquePtr<EdgeRange> edges(JSContext* cx, bool) const override;
+
+  static const char16_t concreteTypeName[];
 };
 
 template<>
@@ -297,7 +291,7 @@ public:
   uint32_t line() const override { return get().line; }
   uint32_t column() const override { return get().column; }
   bool isSystem() const override { return get().isSystem; }
-  bool isSelfHosted() const override { return get().isSelfHosted; }
+  bool isSelfHosted(JSContext* cx) const override { return get().isSelfHosted; }
   void trace(JSTracer* trc) override { }
   AtomOrTwoByteChars source() const override {
     return AtomOrTwoByteChars(get().source);

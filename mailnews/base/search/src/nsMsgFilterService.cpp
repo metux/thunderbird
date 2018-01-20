@@ -46,6 +46,7 @@
 #include "nsAutoPtr.h"
 #include "nsIMsgFilter.h"
 #include "nsIMsgOperationListener.h"
+#include "mozilla/Attributes.h"
 
 #define BREAK_IF_FAILURE(_rv, _text) if (NS_FAILED(_rv)) { \
   NS_WARNING(_text); \
@@ -107,7 +108,6 @@ NS_IMETHODIMP nsMsgFilterService::OpenFilterList(nsIFile *aFilterFile,
   NS_ENSURE_TRUE(fileStream, NS_ERROR_OUT_OF_MEMORY);
 
   RefPtr<nsMsgFilterList> filterList = new nsMsgFilterList();
-  NS_ENSURE_TRUE(filterList, NS_ERROR_OUT_OF_MEMORY);
   filterList->SetFolder(rootFolder);
 
   // temporarily tell the filter where its file path is
@@ -116,9 +116,7 @@ NS_IMETHODIMP nsMsgFilterService::OpenFilterList(nsIFile *aFilterFile,
   int64_t size = 0;
   rv = aFilterFile->GetFileSize(&size);
   if (NS_SUCCEEDED(rv) && size > 0)
-    rv = filterList->LoadTextFilters(fileStream);
-  fileStream->Close();
-  fileStream = nullptr;
+    rv = filterList->LoadTextFilters(fileStream.forget());
   if (NS_SUCCEEDED(rv))
   {
     int16_t version;
@@ -142,7 +140,7 @@ NS_IMETHODIMP nsMsgFilterService::OpenFilterList(nsIFile *aFilterFile,
       ThrowAlertMsg("invalidCustomHeader", aMsgWindow);
   }
 
-  NS_ADDREF(*resultFilterList = filterList);
+  filterList.forget(resultFilterList);
   return rv;
 }
 
@@ -208,16 +206,13 @@ nsresult nsMsgFilterService::AlertBackingUpFilterFile(nsIMsgWindow *aMsgWindow)
 }
 
 nsresult //Do not use this routine if you have to call it very often because it creates a new bundle each time
-nsMsgFilterService::GetStringFromBundle(const char *aMsgName, char16_t **aResult)
+nsMsgFilterService::GetStringFromBundle(const char *aMsgName, nsAString& aResult)
 {
-  NS_ENSURE_ARG_POINTER(aResult);
-
   nsCOMPtr <nsIStringBundle> bundle;
   nsresult rv = GetFilterStringBundle(getter_AddRefs(bundle));
   if (NS_SUCCEEDED(rv) && bundle)
-    rv = bundle->GetStringFromName(NS_ConvertASCIItoUTF16(aMsgName).get(), aResult);
+    rv = bundle->GetStringFromName(aMsgName, aResult);
   return rv;
-
 }
 
 nsresult
@@ -232,7 +227,7 @@ nsMsgFilterService::GetFilterStringBundle(nsIStringBundle **aBundle)
   if (bundleService)
     bundleService->CreateBundle("chrome://messenger/locale/filter.properties",
                                  getter_AddRefs(bundle));
-  NS_IF_ADDREF(*aBundle = bundle);
+  bundle.forget(aBundle);
   return NS_OK;
 }
 
@@ -240,7 +235,7 @@ nsresult
 nsMsgFilterService::ThrowAlertMsg(const char*aMsgName, nsIMsgWindow *aMsgWindow)
 {
   nsString alertString;
-  nsresult rv = GetStringFromBundle(aMsgName, getter_Copies(alertString));
+  nsresult rv = GetStringFromBundle(aMsgName, alertString);
   nsCOMPtr<nsIMsgWindow> msgWindow(do_QueryInterface(aMsgWindow));
   if (!msgWindow) {
     nsCOMPtr<nsIMsgMailSession> mailSession ( do_GetService(NS_MSGMAILSESSION_CONTRACTID, &rv));
@@ -336,7 +331,7 @@ nsMsgFilterAfterTheFact::nsMsgFilterAfterTheFact(nsIMsgWindow *aMsgWindow,
   m_filters->GetFilterCount(&m_numFilters);
   m_folders->GetLength(&m_numFolders);
 
-  NS_ADDREF(this); // we own ourselves, and will release ourselves when execution is done.
+  NS_ADDREF_THIS(); // we own ourselves, and will release ourselves when execution is done.
   mNeedsRelease = true;
 
   m_searchHitHdrs = do_CreateInstance(NS_ARRAY_CONTRACTID);
@@ -361,10 +356,11 @@ nsresult nsMsgFilterAfterTheFact::OnEndExecution()
     (void)m_callback->OnStopOperation(mFinalResult);
 
   nsresult rv = mFinalResult;
-  MOZ_ASSERT(mNeedsRelease, "OnEndExecution called a second time");
+  // OnEndExecution() can be called a second time when a rule execution fails
+  // and the user is prompted whether he wants to continue.
   if (mNeedsRelease)
   {
-    Release(); // release ourselves.
+    NS_RELEASE_THIS(); // release ourselves.
     mNeedsRelease = false;
   }
   return rv;
@@ -382,7 +378,7 @@ nsresult nsMsgFilterAfterTheFact::RunNextFilter()
     rv = m_filters->GetFilterAt(m_curFilterIndex++, getter_AddRefs(m_curFilter));
     CONTINUE_IF_FAILURE(rv, "Could not get filter at index");
 
-    nsCOMPtr <nsISupportsArray> searchTerms;
+    nsCOMPtr<nsIMutableArray> searchTerms;
     rv = m_curFilter->GetSearchTerms(getter_AddRefs(searchTerms));
     CONTINUE_IF_FAILURE(rv, "Could not get searchTerms");
 
@@ -392,12 +388,11 @@ nsresult nsMsgFilterAfterTheFact::RunNextFilter()
     BREAK_IF_FAILURE(rv, "Failed to get search session");
 
     nsMsgSearchScopeValue searchScope = nsMsgSearchScope::offlineMail;
-    uint32_t termCount;
-    searchTerms->Count(&termCount);
+    uint32_t termCount = 0;
+    searchTerms->GetLength(&termCount);
     for (uint32_t termIndex = 0; termIndex < termCount; termIndex++)
     {
-      nsCOMPtr <nsIMsgSearchTerm> term;
-      nsresult rv = searchTerms->QueryElementAt(termIndex, NS_GET_IID(nsIMsgSearchTerm), getter_AddRefs(term));
+      nsCOMPtr<nsIMsgSearchTerm> term = do_QueryElementAt(searchTerms, termIndex, &rv);
       BREAK_IF_FAILURE(rv, "Could not get search term");
       rv = m_searchSession->AppendTerm(term);
       BREAK_IF_FAILURE(rv, "Could not append search term");
@@ -414,7 +409,7 @@ nsresult nsMsgFilterAfterTheFact::RunNextFilter()
     return NS_OK; // OnSearchDone will continue
   }
   m_curFilter = nullptr;
-  NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "Search failed");
+  NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "Search failed");
   return AdvanceToNextFolder();
 }
 
@@ -433,7 +428,7 @@ nsresult nsMsgFilterAfterTheFact::AdvanceToNextFolder()
     // reset the filter index to apply all filters to this new folder
     m_curFilterIndex = 0;
     m_nextAction = 0;
-    rv = m_folders->QueryElementAt(m_curFolderIndex++, NS_GET_IID(nsIMsgFolder), getter_AddRefs(m_curFolder));
+    m_curFolder = do_QueryElementAt(m_folders, m_curFolderIndex++, &rv);
     CONTINUE_IF_FAILURE(rv, "Could not get next folder");
 
     // Note: I got rv = NS_OK but null m_curFolder after deleting a folder
@@ -497,7 +492,7 @@ NS_IMETHODIMP nsMsgFilterAfterTheFact::OnSearchHit(nsIMsgDBHdr *header, nsIMsgFo
     return NS_OK;
 
   m_searchHits.AppendElement(msgKey);
-  m_searchHitHdrs->AppendElement(header, false);
+  m_searchHitHdrs->AppendElement(header);
   return NS_OK;
 }
 
@@ -572,8 +567,7 @@ nsresult nsMsgFilterAfterTheFact::ApplyFilter()
       {
         for (uint32_t msgIndex = 0; msgIndex < m_searchHits.Length(); msgIndex++)
         {
-          nsCOMPtr <nsIMsgDBHdr> msgHdr;
-          m_searchHitHdrs->QueryElementAt(msgIndex, NS_GET_IID(nsIMsgDBHdr), getter_AddRefs(msgHdr));
+          nsCOMPtr<nsIMsgDBHdr> msgHdr = do_QueryElementAt(m_searchHitHdrs, msgIndex);
           if (msgHdr)
             (void)m_curFilter->LogRuleHit(filterAction, msgHdr);
           else
@@ -607,7 +601,7 @@ nsresult nsMsgFilterAfterTheFact::ApplyFilter()
         //   would not have run if move succeeded.
         m_nextAction = numActions;
         // Fall through to the copy case.
-
+        MOZ_FALLTHROUGH;
       case nsMsgFilterAction::CopyToFolder:
       {
         nsCString uri;
@@ -683,8 +677,7 @@ nsresult nsMsgFilterAfterTheFact::ApplyFilter()
         {
           for (uint32_t msgIndex = 0; msgIndex < m_searchHits.Length(); msgIndex++)
           {
-            nsCOMPtr <nsIMsgDBHdr> msgHdr;
-            m_searchHitHdrs->QueryElementAt(msgIndex, NS_GET_IID(nsIMsgDBHdr), getter_AddRefs(msgHdr));
+            nsCOMPtr<nsIMsgDBHdr> msgHdr = do_QueryElementAt(m_searchHitHdrs, msgIndex);
             CONTINUE_IF_FALSE(msgHdr, "Could not get msg header");
 
             nsCOMPtr<nsIMsgThread> msgThread;
@@ -703,8 +696,7 @@ nsresult nsMsgFilterAfterTheFact::ApplyFilter()
         {
           for (uint32_t msgIndex = 0; msgIndex < m_searchHits.Length(); msgIndex++)
           {
-            nsCOMPtr<nsIMsgDBHdr> msgHdr;
-            m_searchHitHdrs->QueryElementAt(msgIndex, NS_GET_IID(nsIMsgDBHdr), getter_AddRefs(msgHdr));
+            nsCOMPtr<nsIMsgDBHdr> msgHdr = do_QueryElementAt(m_searchHitHdrs, msgIndex);
             CONTINUE_IF_FALSE(msgHdr, "Could not get msg header");
             m_curFolderDB->MarkHeaderKilled(msgHdr, true, nullptr);
           }
@@ -716,8 +708,7 @@ nsresult nsMsgFilterAfterTheFact::ApplyFilter()
           filterAction->GetPriority(&filterPriority);
           for (uint32_t msgIndex = 0; msgIndex < m_searchHits.Length(); msgIndex++)
           {
-            nsCOMPtr <nsIMsgDBHdr> msgHdr;
-            m_searchHitHdrs->QueryElementAt(msgIndex, NS_GET_IID(nsIMsgDBHdr), getter_AddRefs(msgHdr));
+            nsCOMPtr<nsIMsgDBHdr> msgHdr = do_QueryElementAt(m_searchHitHdrs, msgIndex);
             CONTINUE_IF_FALSE(msgHdr, "Could not get msg header");
             msgHdr->SetPriority(filterPriority);
           }
@@ -784,11 +775,17 @@ nsresult nsMsgFilterAfterTheFact::ApplyFilter()
           CONTINUE_IF_FAILURE(rv, "Could not get compose service");
           for (uint32_t msgIndex = 0; msgIndex < m_searchHits.Length(); msgIndex++)
           {
-            nsCOMPtr <nsIMsgDBHdr> msgHdr;
-            m_searchHitHdrs->QueryElementAt(msgIndex, NS_GET_IID(nsIMsgDBHdr), getter_AddRefs(msgHdr));
+            nsCOMPtr<nsIMsgDBHdr> msgHdr = do_QueryElementAt(m_searchHitHdrs, msgIndex);
             CONTINUE_IF_FALSE(msgHdr, "Could not get msgHdr");
             rv = compService->ReplyWithTemplate(msgHdr, replyTemplateUri.get(), m_msgWindow, server);
-            CONTINUE_IF_FAILURE(rv, "ReplyWithtemplate failed");
+            if (NS_FAILED(rv)) {
+              if (rv == NS_ERROR_ABORT) {
+                m_curFilter->LogRuleHitFail(filterAction, msgHdr, rv, "Sending reply aborted");
+              } else {
+                m_curFilter->LogRuleHitFail(filterAction, msgHdr, rv, "Error sending reply");
+              }
+            }
+            CONTINUE_IF_FAILURE(rv, "ReplyWithTemplate failed");
           }
         }
         break;
@@ -805,8 +802,7 @@ nsresult nsMsgFilterAfterTheFact::ApplyFilter()
           //   that the server copy is being deleted.
           for (uint32_t msgIndex = 0; msgIndex < m_searchHits.Length(); msgIndex++)
           {
-            nsCOMPtr <nsIMsgDBHdr> msgHdr;
-            m_searchHitHdrs->QueryElementAt(msgIndex, NS_GET_IID(nsIMsgDBHdr), getter_AddRefs(msgHdr));
+            nsCOMPtr<nsIMsgDBHdr> msgHdr = do_QueryElementAt(m_searchHitHdrs, msgIndex);
             CONTINUE_IF_FALSE(msgHdr, "Could not get msgHdr");
             uint32_t flags;
             msgHdr->GetFlags(&flags);
@@ -815,7 +811,7 @@ nsresult nsMsgFilterAfterTheFact::ApplyFilter()
               if (!partialMsgs)
                 partialMsgs = do_CreateInstance(NS_ARRAY_CONTRACTID, &rv);
               CONTINUE_IF_FALSE(partialMsgs, "Could not create partialMsgs array");
-              partialMsgs->AppendElement(msgHdr, false);
+              partialMsgs->AppendElement(msgHdr);
               m_stopFiltering.AppendElement(m_searchHits[msgIndex]);
               m_curFolder->OrProcessingFlags(m_searchHits[msgIndex],
                                              nsMsgProcessingFlags::FilterToMove);
@@ -836,13 +832,12 @@ nsresult nsMsgFilterAfterTheFact::ApplyFilter()
           CONTINUE_IF_FAILURE(rv, "Could not create messages array");
           for (uint32_t msgIndex = 0; msgIndex < m_searchHits.Length(); msgIndex++)
           {
-            nsCOMPtr<nsIMsgDBHdr> msgHdr;
-            m_searchHitHdrs->QueryElementAt(msgIndex, NS_GET_IID(nsIMsgDBHdr), getter_AddRefs(msgHdr));
+            nsCOMPtr<nsIMsgDBHdr> msgHdr = do_QueryElementAt(m_searchHitHdrs, msgIndex);
             CONTINUE_IF_FALSE(msgHdr, "Could not get msgHdr");
             uint32_t flags = 0;
             msgHdr->GetFlags(&flags);
             if (flags & nsMsgMessageFlags::Partial)
-              messages->AppendElement(msgHdr, false);
+              messages->AppendElement(msgHdr);
           }
           uint32_t msgsToFetch;
           messages->GetLength(&msgsToFetch);
@@ -895,10 +890,9 @@ NS_IMETHODIMP nsMsgFilterService::GetTempFilterList(nsIMsgFolder *aFolder, nsIMs
   NS_ENSURE_ARG_POINTER(aFilterList);
 
   nsMsgFilterList *filterList = new nsMsgFilterList;
-  NS_ENSURE_TRUE(filterList, NS_ERROR_OUT_OF_MEMORY);
-  NS_ADDREF(*aFilterList = filterList);
-  (*aFilterList)->SetFolder(aFolder);
+  filterList->SetFolder(aFolder);
   filterList->m_temporaryList = true;
+  NS_ADDREF(*aFilterList = filterList);
   return NS_OK;
 }
 
@@ -1086,7 +1080,7 @@ nsresult nsMsgApplyFiltersToMessages::RunNextFilter()
     }
   }
   m_curFilter = nullptr;
-  NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "Failed to run filters");
+  NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "Failed to run filters");
   // We expect the failure is already recorded through one of the macro
   // expressions, that will have console logging added to them.
   // So an additional console warning is not needed here.
@@ -1108,7 +1102,7 @@ NS_IMETHODIMP nsMsgFilterService::ApplyFilters(nsMsgFilterTypeType aFilterType,
   nsCOMPtr<nsIMutableArray> folderList(do_CreateInstance(NS_ARRAY_CONTRACTID, &rv));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  folderList->AppendElement(aFolder, false);
+  folderList->AppendElement(aFolder);
 
   // Create our nsMsgApplyFiltersToMessages object which will be called when ApplyFiltersToHdr
   // finds one or more filters that hit.
@@ -1180,8 +1174,8 @@ bool nsMsgFilterAfterTheFact::ContinueExecutionPrompt()
   {
     filterName.get()
   };
-  nsresult rv = bundle->FormatStringFromName(MOZ_UTF16("continueFilterExecution"),
-                                             formatStrings, 1, getter_Copies(confirmText));
+  nsresult rv = bundle->FormatStringFromName("continueFilterExecution",
+                                             formatStrings, 1, confirmText);
   if (NS_FAILED(rv))
     return false;
   bool returnVal = false;

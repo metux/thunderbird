@@ -7,17 +7,21 @@
 const {NetUtil} = Cu.import("resource://gre/modules/NetUtil.jsm", {});
 const {FileUtils} = Cu.import("resource://gre/modules/FileUtils.jsm", {});
 const {console} = Cu.import("resource://gre/modules/Console.jsm", {});
+const {ScratchpadManager} = Cu.import("resource://devtools/client/scratchpad/scratchpad-manager.jsm", {});
 const {require} = Cu.import("resource://devtools/shared/Loader.jsm", {});
-const {Services} = Cu.import("resource://gre/modules/Services.jsm", {});
+const {gDevTools} = require("devtools/client/framework/devtools");
+const Services = require("Services");
 const DevToolsUtils = require("devtools/shared/DevToolsUtils");
+const flags = require("devtools/shared/flags");
 const promise = require("promise");
+const defer = require("devtools/shared/defer");
 
 
 var gScratchpadWindow; // Reference to the Scratchpad chrome window object
 
-DevToolsUtils.testing = true;
-SimpleTest.registerCleanupFunction(() => {
-  DevToolsUtils.testing = false;
+flags.testing = true;
+registerCleanupFunction(() => {
+  flags.testing = false;
 });
 
 /**
@@ -44,16 +48,16 @@ SimpleTest.registerCleanupFunction(() => {
 function openScratchpad(aReadyCallback, aOptions = {})
 {
   let win = aOptions.window ||
-            Scratchpad.ScratchpadManager.openScratchpad(aOptions.state);
+            ScratchpadManager.openScratchpad(aOptions.state);
   if (!win) {
     return;
   }
 
-  let onLoad = function() {
-    win.removeEventListener("load", onLoad, false);
+  let onLoad = function () {
+    win.removeEventListener("load", onLoad);
 
     win.Scratchpad.addObserver({
-      onReady: function(aScratchpad) {
+      onReady: function (aScratchpad) {
         aScratchpad.removeObserver(this);
 
         if (aOptions.noFocus) {
@@ -66,7 +70,7 @@ function openScratchpad(aReadyCallback, aOptions = {})
   };
 
   if (aReadyCallback) {
-    win.addEventListener("load", onLoad, false);
+    win.addEventListener("load", onLoad);
   }
 
   gScratchpadWindow = win;
@@ -87,12 +91,11 @@ function openTabAndScratchpad(aOptions = {})
 {
   waitForExplicitFinish();
   return new promise(resolve => {
-    gBrowser.selectedTab = gBrowser.addTab();
+    gBrowser.selectedTab = BrowserTestUtils.addTab(gBrowser);
     let {selectedBrowser} = gBrowser;
-    selectedBrowser.addEventListener("load", function onLoad() {
-      selectedBrowser.removeEventListener("load", onLoad, true);
+    selectedBrowser.addEventListener("load", function () {
       openScratchpad((win, sp) => resolve([win, sp]), aOptions);
-    }, true);
+    }, {capture: true, once: true});
     content.location = "data:text/html;charset=utf8," + (aOptions.tabContent || "");
   });
 }
@@ -110,7 +113,7 @@ function openTabAndScratchpad(aOptions = {})
  *        to the file. It will receive two parameters: status code
  *        and a file object.
  */
-function createTempFile(aName, aContent, aCallback=function(){})
+function createTempFile(aName, aContent, aCallback = function () {})
 {
   // Create a temporary file.
   let file = FileUtils.getFile("TmpD", [aName]);
@@ -119,7 +122,7 @@ function createTempFile(aName, aContent, aCallback=function(){})
   // Write the temporary file.
   let fout = Cc["@mozilla.org/network/file-output-stream;1"].
              createInstance(Ci.nsIFileOutputStream);
-  fout.init(file.QueryInterface(Ci.nsILocalFile), 0x02 | 0x08 | 0x20,
+  fout.init(file.QueryInterface(Ci.nsIFile), 0x02 | 0x08 | 0x20,
             parseInt("644", 8), fout.DEFER_OPEN);
 
   let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"].
@@ -152,7 +155,7 @@ function createTempFile(aName, aContent, aCallback=function(){})
  */
 function runAsyncTests(aScratchpad, aTests)
 {
-  let deferred = promise.defer();
+  let deferred = defer();
 
   (function runTest() {
     if (aTests.length) {
@@ -190,21 +193,19 @@ function runAsyncTests(aScratchpad, aTests)
  * @return Promise
  *         The promise that will be resolved when all tests are finished.
  */
-function runAsyncCallbackTests(aScratchpad, aTests)
-{
-  let deferred = promise.defer();
+var runAsyncCallbackTests = Task.async(function* (aScratchpad, aTests) {
+  for (let {prepare, method, then} of aTests) {
+    yield prepare();
+    let res = yield aScratchpad[method]();
+    yield then(res);
+  }
+});
 
-  (function runTest() {
-    if (aTests.length) {
-      let test = aTests.shift();
-      test.prepare();
-      aScratchpad[test.method]().then(test.then.bind(test)).then(runTest);
-    } else {
-      deferred.resolve();
-    }
-  })();
-
-  return deferred.promise;
+/**
+ * A simple wrapper for ContentTask.spawn for more compact code.
+ */
+function inContent(generator) {
+  return ContentTask.spawn(gBrowser.selectedBrowser, {}, generator);
 }
 
 function cleanup()

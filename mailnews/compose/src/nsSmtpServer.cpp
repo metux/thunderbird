@@ -85,7 +85,7 @@ NS_IMETHODIMP
 nsSmtpServer::GetHostname(nsACString &aHostname)
 {
   nsCString result;
-  nsresult rv = mPrefBranch->GetCharPref("hostname", getter_Copies(result));
+  nsresult rv = mPrefBranch->GetCharPref("hostname", result);
   if (NS_FAILED(rv))
     aHostname.Truncate();
   else
@@ -98,7 +98,7 @@ NS_IMETHODIMP
 nsSmtpServer::SetHostname(const nsACString &aHostname)
 {
   if (!aHostname.IsEmpty())
-    return mPrefBranch->SetCharPref("hostname", PromiseFlatCString(aHostname).get());
+    return mPrefBranch->SetCharPref("hostname", aHostname);
 
   // If the pref value is already empty, ClearUserPref will return
   // NS_ERROR_UNEXPECTED, so don't check the rv here.
@@ -110,7 +110,7 @@ NS_IMETHODIMP
 nsSmtpServer::GetDescription(nsACString &aDescription)
 {
     nsCString temp;
-    mPrefBranch->GetCharPref("description", getter_Copies(temp));
+    mPrefBranch->GetCharPref("description", temp);
     aDescription.Assign(temp);
     return NS_OK;
 }
@@ -119,7 +119,7 @@ NS_IMETHODIMP
 nsSmtpServer::SetDescription(const nsACString &aDescription)
 {
     if (!aDescription.IsEmpty())
-        return mPrefBranch->SetCharPref("description", PromiseFlatCString(aDescription).get());
+        return mPrefBranch->SetCharPref("description", aDescription);
     else
         mPrefBranch->ClearUserPref("description");
     return NS_OK;
@@ -152,7 +152,7 @@ nsSmtpServer::GetDisplayname(char * *aDisplayname)
     NS_ENSURE_ARG_POINTER(aDisplayname);
 
     nsCString hostname;
-    rv = mPrefBranch->GetCharPref("hostname", getter_Copies(hostname));
+    rv = mPrefBranch->GetCharPref("hostname", hostname);
     if (NS_FAILED(rv)) {
         *aDisplayname=nullptr;
         return NS_OK;
@@ -186,16 +186,15 @@ nsSmtpServer::SetSocketType(int32_t socketType)
 }
 
 NS_IMETHODIMP
-nsSmtpServer::GetHelloArgument(char * *aHelloArgument)
+nsSmtpServer::GetHelloArgument(nsACString& aHelloArgument)
 {
     nsresult rv;
-    NS_ENSURE_ARG_POINTER(aHelloArgument);
     rv = mPrefBranch->GetCharPref("hello_argument", aHelloArgument);
     if (NS_FAILED(rv))
     {
         rv = mDefPrefBranch->GetCharPref("hello_argument", aHelloArgument);
         if (NS_FAILED(rv))
-            *aHelloArgument = nullptr;
+            aHelloArgument.Truncate();
     }
     return NS_OK;
 }
@@ -233,7 +232,7 @@ NS_IMETHODIMP
 nsSmtpServer::GetUsername(nsACString &aUsername)
 {
   nsCString result;
-  nsresult rv = mPrefBranch->GetCharPref("username", getter_Copies(result));
+  nsresult rv = mPrefBranch->GetCharPref("username", result);
   if (NS_FAILED(rv))
     aUsername.Truncate();
   else
@@ -245,7 +244,7 @@ NS_IMETHODIMP
 nsSmtpServer::SetUsername(const nsACString &aUsername)
 {
   if (!aUsername.IsEmpty())
-    return mPrefBranch->SetCharPref("username", PromiseFlatCString(aUsername).get());
+    return mPrefBranch->SetCharPref("username", aUsername);
 
   // If the pref value is already empty, ClearUserPref will return
   // NS_ERROR_UNEXPECTED, so don't check the rv here.
@@ -254,7 +253,7 @@ nsSmtpServer::SetUsername(const nsACString &aUsername)
 }
 
 NS_IMETHODIMP
-nsSmtpServer::GetPassword(nsACString& aPassword)
+nsSmtpServer::GetPassword(nsAString& aPassword)
 {
     if (m_password.IsEmpty() && !m_logonFailed)
     {
@@ -276,7 +275,7 @@ nsSmtpServer::GetPassword(nsACString& aPassword)
       nsCString accountKey;
       bool useMatchingHostNameServer = false;
       bool useMatchingDomainServer = false;
-      mPrefBranch->GetCharPref("incomingAccount", getter_Copies(accountKey));
+      mPrefBranch->GetCharPref("incomingAccount", accountKey);
 
       nsCOMPtr<nsIMsgAccountManager> accountManager = do_GetService(NS_MSGACCOUNTMANAGER_CONTRACTID);
       nsCOMPtr<nsIMsgIncomingServer> incomingServerToUse;
@@ -360,7 +359,7 @@ nsSmtpServer::VerifyLogon(nsIUrlListener *aUrlListener, nsIMsgWindow *aMsgWindow
 
 
 NS_IMETHODIMP
-nsSmtpServer::SetPassword(const nsACString& aPassword)
+nsSmtpServer::SetPassword(const nsAString& aPassword)
 {
   m_password = aPassword;
   return NS_OK;
@@ -406,7 +405,7 @@ nsSmtpServer::GetPasswordWithoutUI()
         rv = logins[i]->GetPassword(password);
         NS_ENSURE_SUCCESS(rv, rv);
 
-        LossyCopyUTF16toASCII(password, m_password);
+        m_password = password;
         break;
       }
     }
@@ -419,7 +418,7 @@ NS_IMETHODIMP
 nsSmtpServer::GetPasswordWithUI(const char16_t *aPromptMessage,
                                 const char16_t *aPromptTitle,
                                 nsIAuthPrompt* aDialog,
-                                nsACString &aPassword)
+                                nsAString &aPassword)
 {
   if (!m_password.IsEmpty())
     return GetPassword(aPassword);
@@ -444,12 +443,11 @@ nsSmtpServer::GetPasswordWithUI(const char16_t *aPromptMessage,
   nsCString serverUri(GetServerURIInternal(true));
 
   bool okayValue = true;
-  nsString uniPassword;
 
   rv = aDialog->PromptPassword(aPromptTitle, aPromptMessage,
                                NS_ConvertASCIItoUTF16(serverUri).get(),
                                nsIAuthPrompt::SAVE_PASSWORD_PERMANENTLY,
-                               getter_Copies(uniPassword), &okayValue);
+                               getter_Copies(aPassword), &okayValue);
   NS_ENSURE_SUCCESS(rv, rv);
 
   // If the user pressed cancel, just return an empty string.
@@ -458,13 +456,9 @@ nsSmtpServer::GetPasswordWithUI(const char16_t *aPromptMessage,
     aPassword.Truncate();
     return NS_MSG_PASSWORD_PROMPT_CANCELLED;
   }
-
-  NS_LossyConvertUTF16toASCII password(uniPassword);
-
-  rv = SetPassword(password);
+  rv = SetPassword(aPassword);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  aPassword = password;
   return NS_OK;
 }
 
@@ -473,7 +467,7 @@ nsSmtpServer::GetUsernamePasswordWithUI(const char16_t * aPromptMessage, const
                                 char16_t *aPromptTitle,
                                 nsIAuthPrompt* aDialog,
                                 nsACString &aUsername,
-                                nsACString &aPassword)
+                                nsAString &aPassword)
 {
   nsresult rv;
   if (!m_password.IsEmpty())
@@ -491,14 +485,13 @@ nsSmtpServer::GetUsernamePasswordWithUI(const char16_t * aPromptMessage, const
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsString uniUsername;
-  nsString uniPassword;
   bool okayValue = true;
 
   rv = aDialog->PromptUsernameAndPassword(aPromptTitle, aPromptMessage,
                                           NS_ConvertASCIItoUTF16(serverUri).get(),
                                           nsIAuthPrompt::SAVE_PASSWORD_PERMANENTLY,
                                           getter_Copies(uniUsername),
-                                          getter_Copies(uniPassword),
+                                          getter_Copies(aPassword),
                                           &okayValue);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -516,13 +509,10 @@ nsSmtpServer::GetUsernamePasswordWithUI(const char16_t * aPromptMessage, const
   rv = SetUsername(username);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  NS_LossyConvertUTF16toASCII password(uniPassword);
-
-  rv = SetPassword(password);
+  rv = SetPassword(aPassword);
   NS_ENSURE_SUCCESS(rv, rv);
 
   aUsername = username;
-  aPassword = password;
   return NS_OK;
 }
 
@@ -577,7 +567,7 @@ nsSmtpServer::ForgetPassword()
   }
   NS_FREE_XPCOM_ISUPPORTS_POINTER_ARRAY(count, logins);
 
-  rv = SetPassword(EmptyCString());
+  rv = SetPassword(EmptyString());
   m_logonFailed = true;
   return rv;
 }
@@ -605,7 +595,7 @@ nsSmtpServer::GetServerURIInternal(const bool aIncludeUsername)
       MsgEscapeString(username, nsINetUtil::ESCAPE_XALPHAS, escapedUsername);
       // not all servers have a username
       uri.Append(escapedUsername);
-      uri.AppendLiteral("@");
+      uri.Append('@');
     }
   }
 

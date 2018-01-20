@@ -3,6 +3,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+Components.utils.import("resource://gre/modules/InlineSpellChecker.jsm");
+
 var gComposePane = {
   mInitialized: false,
   mSpellChecker: null,
@@ -24,15 +26,13 @@ var gComposePane = {
 
     this.updateEmailCollection();
 
+    this.initAbDefaultStartupDir();
+
     if (!(("arguments" in window) && window.arguments[1])) {
       // If no tab was specified, select the last used tab.
       let preference = document.getElementById("mail.preferences.compose.selectedTabIndex");
       if (preference.value)
         document.getElementById("composePrefs").selectedIndex = preference.value;
-    }
-
-    if (this._loadInContent) {
-      gSubDialog.init();
     }
 
     this.mInitialized = true;
@@ -114,6 +114,40 @@ var gComposePane = {
     }
   },
 
+  initAbDefaultStartupDir: function() {
+    if (!this.startupDirListener.inited)
+      this.startupDirListener.load();
+
+    let dirList = document.getElementById("defaultStartupDirList");
+    if (Services.prefs.getBoolPref("mail.addr_book.view.startupURIisDefault")) {
+      // Some directory is the default.
+      let startupURI = Services.prefs.getCharPref("mail.addr_book.view.startupURI");
+      let dirItem = dirList.menupopup.querySelector('[value="' + startupURI + '"]');
+      // It may happen that the stored URI is not in the list.
+      // In that case select the "none" value and let the AB code clear out
+      // the invalid value, unless the user selects something here.
+      if (dirItem)
+        dirList.selectedItem = dirItem;
+      else
+        dirList.value = "";
+    } else {
+      // Choose item meaning there is no default startup directory any more.
+      dirList.value = "";
+    }
+  },
+
+  setDefaultStartupDir: function(aDirURI) {
+    if (aDirURI) {
+      // Some AB directory was selected. Set prefs to make this directory
+      // the default view when starting up the main AB.
+      Services.prefs.setCharPref("mail.addr_book.view.startupURI", aDirURI);
+      Services.prefs.setBoolPref("mail.addr_book.view.startupURIisDefault", true);
+    } else {
+      // Set pref that there's no default startup view directory any more.
+      Services.prefs.setBoolPref("mail.addr_book.view.startupURIisDefault", false);
+    }
+  },
+
   initLanguageMenu: function ()
   {
     var languageMenuList = document.getElementById("languageMenuList");
@@ -139,67 +173,15 @@ var gComposePane = {
     // Store current dictionary count.
     this.mDictCount = count;
 
-    // Load the string bundles that will help us map
-    // RFC 1766 strings to UI strings.
-
-    // Load the language string bundle.
-    var languageBundle = document.getElementById("languageBundle");
-    var regionBundle = null;
-    // If we have a language string bundle, load the region string bundle.
-    if (languageBundle)
-      regionBundle = document.getElementById("regionBundle");
-
-    var menuStr2;
-    var isoStrArray;
-    var langId;
-    var langLabel;
-    var i;
-
-    for (i = 0; i < count; i++)
-    {
-      try {
-        langId = dictList[i];
-        isoStrArray = dictList[i].split(/[-_]/);
-
-        if (languageBundle && isoStrArray[0])
-          langLabel = languageBundle.getString(isoStrArray[0].toLowerCase());
-
-        if (regionBundle && langLabel && isoStrArray.length > 1 && isoStrArray[1])
-        {
-          menuStr2 = regionBundle.getString(isoStrArray[1].toLowerCase());
-          if (menuStr2)
-            langLabel += "/" + menuStr2;
-        }
-
-        if (langLabel && isoStrArray.length > 2 && isoStrArray[2])
-          langLabel += " (" + isoStrArray[2] + ")";
-
-        if (!langLabel)
-          langLabel = langId;
-      } catch (ex) {
-        // getString throws an exception when a key is not found in the
-        // bundle. In that case, just use the original dictList string.
-        langLabel = langId;
-      }
-      dictList[i] = [langLabel, langId];
-    }
-
-    // sort by locale-aware collation
-    dictList.sort(
-      function compareFn(a, b)
-      {
-        return a[0].localeCompare(b[0]);
-      }
-    );
+    var inlineSpellChecker = new InlineSpellChecker();
+    var sortedList = inlineSpellChecker.sortDictionaryList(dictList);
 
     // Remove any languages from the list.
-    var languageMenuPopup = languageMenuList.firstChild;
-    while (languageMenuPopup.hasChildNodes())
-      languageMenuPopup.lastChild.remove();
+    languageMenuList.removeAllItems();
 
     // append the dictionaries to the menu list...
-    for (i = 0; i < count; i++)
-      languageMenuList.appendItem(dictList[i][0], dictList[i][1]);
+    for (var i = 0; i < count; i++)
+      languageMenuList.appendItem(sortedList[i].label, sortedList[i].id);
 
     languageMenuList.setInitialSelection();
   },
@@ -225,7 +207,7 @@ var gComposePane = {
     // Choose the item after the list is completely generated.
     var preference = document.getElementById(fontsList.getAttribute("preference"));
     fontsList.value = preference.value;
-   },
+  },
 
    restoreHTMLDefaults: function()
    {
@@ -246,5 +228,30 @@ var gComposePane = {
      try {
        document.getElementById('msgcompose.background_color').reset();
      } catch (ex) {}
-   }
+  },
+
+  startupDirListener: {
+    inited: false,
+    domain: "mail.addr_book.view.startupURI",
+    observe: function(subject, topic, prefName) {
+      if (topic != "nsPref:changed")
+        return;
+
+      // If the default startup directory prefs have changed,
+      // reinitialize the default startup dir picker to show the new value.
+      gComposePane.initAbDefaultStartupDir();
+    },
+    load: function() {
+      // Observe changes of our prefs.
+      Services.prefs.addObserver(this.domain, this, false);
+      // Unload the pref observer when preferences window is closed.
+      window.addEventListener("unload", this.unload, true);
+      this.inited = true;
+    },
+
+    unload: function(event) {
+      Services.prefs.removeObserver(gComposePane.startupDirListener.domain,
+                                    gComposePane.startupDirListener);
+    }
+  }
 };

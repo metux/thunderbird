@@ -6,12 +6,12 @@
 #include "ImageCacheKey.h"
 
 #include "mozilla/Move.h"
-#include "File.h"
 #include "ImageURL.h"
 #include "nsHostObjectProtocolHandler.h"
+#include "nsLayoutUtils.h"
 #include "nsString.h"
+#include "mozilla/dom/File.h"
 #include "mozilla/dom/workers/ServiceWorkerManager.h"
-#include "nsIDOMDocument.h"
 #include "nsIDocument.h"
 #include "nsPrintfCString.h"
 
@@ -46,24 +46,36 @@ BlobSerial(ImageURL* aURI)
   return Nothing();
 }
 
-ImageCacheKey::ImageCacheKey(nsIURI* aURI, nsIDOMDocument* aDocument)
-  : mURI(new ImageURL(aURI))
+ImageCacheKey::ImageCacheKey(nsIURI* aURI,
+                             const OriginAttributes& aAttrs,
+                             nsIDocument* aDocument,
+                             nsresult& aRv)
+  : mURI(new ImageURL(aURI, aRv))
+  , mOriginAttributes(aAttrs)
   , mControlledDocument(GetControlledDocumentToken(aDocument))
   , mIsChrome(URISchemeIs(mURI, "chrome"))
+  , mIsStyloEnabled(nsLayoutUtils::StyloEnabled())
 {
+  NS_ENSURE_SUCCESS_VOID(aRv);
+
   MOZ_ASSERT(NS_IsMainThread());
 
   if (URISchemeIs(mURI, "blob")) {
     mBlobSerial = BlobSerial(mURI);
   }
 
-  mHash = ComputeHash(mURI, mBlobSerial, mControlledDocument);
+  mHash = ComputeHash(mURI, mBlobSerial, mOriginAttributes, mControlledDocument,
+                      mIsStyloEnabled);
 }
 
-ImageCacheKey::ImageCacheKey(ImageURL* aURI, nsIDOMDocument* aDocument)
+ImageCacheKey::ImageCacheKey(ImageURL* aURI,
+                             const OriginAttributes& aAttrs,
+                             nsIDocument* aDocument)
   : mURI(aURI)
+  , mOriginAttributes(aAttrs)
   , mControlledDocument(GetControlledDocumentToken(aDocument))
   , mIsChrome(URISchemeIs(mURI, "chrome"))
+  , mIsStyloEnabled(nsLayoutUtils::StyloEnabled())
 {
   MOZ_ASSERT(aURI);
 
@@ -71,30 +83,42 @@ ImageCacheKey::ImageCacheKey(ImageURL* aURI, nsIDOMDocument* aDocument)
     mBlobSerial = BlobSerial(mURI);
   }
 
-  mHash = ComputeHash(mURI, mBlobSerial, mControlledDocument);
+  mHash = ComputeHash(mURI, mBlobSerial, mOriginAttributes, mControlledDocument,
+                      mIsStyloEnabled);
 }
 
 ImageCacheKey::ImageCacheKey(const ImageCacheKey& aOther)
   : mURI(aOther.mURI)
   , mBlobSerial(aOther.mBlobSerial)
+  , mOriginAttributes(aOther.mOriginAttributes)
   , mControlledDocument(aOther.mControlledDocument)
   , mHash(aOther.mHash)
   , mIsChrome(aOther.mIsChrome)
+  , mIsStyloEnabled(aOther.mIsStyloEnabled)
 { }
 
 ImageCacheKey::ImageCacheKey(ImageCacheKey&& aOther)
   : mURI(Move(aOther.mURI))
   , mBlobSerial(Move(aOther.mBlobSerial))
+  , mOriginAttributes(aOther.mOriginAttributes)
   , mControlledDocument(aOther.mControlledDocument)
   , mHash(aOther.mHash)
   , mIsChrome(aOther.mIsChrome)
+  , mIsStyloEnabled(aOther.mIsStyloEnabled)
 { }
 
 bool
 ImageCacheKey::operator==(const ImageCacheKey& aOther) const
 {
+  if (mIsStyloEnabled != aOther.mIsStyloEnabled) {
+    return false;
+  }
   // Don't share the image cache between a controlled document and anything else.
   if (mControlledDocument != aOther.mControlledDocument) {
+    return false;
+  }
+  // The origin attributes always have to match.
+  if (mOriginAttributes != aOther.mOriginAttributes) {
     return false;
   }
   if (mBlobSerial || aOther.mBlobSerial) {
@@ -114,34 +138,27 @@ ImageCacheKey::Spec() const
   return mURI->Spec();
 }
 
-/* static */ uint32_t
+/* static */ PLDHashNumber
 ImageCacheKey::ComputeHash(ImageURL* aURI,
                            const Maybe<uint64_t>& aBlobSerial,
-                           void* aControlledDocument)
+                           const OriginAttributes& aAttrs,
+                           void* aControlledDocument,
+                           bool aIsStyloEnabled)
 {
   // Since we frequently call Hash() several times in a row on the same
   // ImageCacheKey, as an optimization we compute our hash once and store it.
 
   nsPrintfCString ptr("%p", aControlledDocument);
-  if (aBlobSerial) {
-    // For blob URIs, we hash the serial number of the underlying blob, so that
-    // different blob URIs which point to the same blob share a cache entry. We
-    // also include the ref portion of the URI to support -moz-samplesize, which
-    // requires us to create different Image objects even if the source data is
-    // the same.
-    nsAutoCString ref;
-    aURI->GetRef(ref);
-    return HashGeneric(*aBlobSerial, HashString(ref + ptr));
-  }
+  nsAutoCString suffix;
+  aAttrs.CreateSuffix(suffix);
 
-  // For non-blob URIs, we hash the URI spec.
-  nsAutoCString spec;
-  aURI->GetSpec(spec);
-  return HashString(spec + ptr);
+  return AddToHash(0, aURI->ComputeHash(aBlobSerial),
+                   HashString(suffix), HashString(ptr),
+                   aIsStyloEnabled);
 }
 
 /* static */ void*
-ImageCacheKey::GetControlledDocumentToken(nsIDOMDocument* aDocument)
+ImageCacheKey::GetControlledDocumentToken(nsIDocument* aDocument)
 {
   // For non-controlled documents, we just return null.  For controlled
   // documents, we cast the pointer into a void* to avoid dereferencing
@@ -149,11 +166,10 @@ ImageCacheKey::GetControlledDocumentToken(nsIDOMDocument* aDocument)
   void* pointer = nullptr;
   using dom::workers::ServiceWorkerManager;
   RefPtr<ServiceWorkerManager> swm = ServiceWorkerManager::GetInstance();
-  nsCOMPtr<nsIDocument> doc = do_QueryInterface(aDocument);
-  if (doc && swm) {
+  if (aDocument && swm) {
     ErrorResult rv;
-    if (swm->IsControlled(doc, rv)) {
-      pointer = doc;
+    if (swm->IsControlled(aDocument, rv)) {
+      pointer = aDocument;
     }
   }
   return pointer;

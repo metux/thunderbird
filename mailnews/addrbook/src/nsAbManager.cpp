@@ -16,8 +16,7 @@
 #include "plstr.h"
 #include "prmem.h"
 #include "nsIServiceManager.h"
-#include "nsIDOMWindow.h"
-#include "nsIFilePicker.h"
+#include "mozIDOMWindow.h"
 #include "plbase64.h"
 #include "nsIWindowWatcher.h"
 #include "nsDirectoryServiceUtils.h"
@@ -73,18 +72,18 @@ const ExportAttributesTableStruct EXPORT_ATTRIBUTES_TABLE[] = {
   {kPriEmailProperty, 2104},
   {k2ndEmailProperty, 2105},
   {kScreenNameProperty, 2136},
-  {kPreferMailFormatProperty},
-  {kLastModifiedDateProperty},
+  {kPreferMailFormatProperty, 0},
+  {kLastModifiedDateProperty, 0},
   {kWorkPhoneProperty, 2106},
-  {kWorkPhoneTypeProperty},
+  {kWorkPhoneTypeProperty, 0},
   {kHomePhoneProperty, 2107},
-  {kHomePhoneTypeProperty},
+  {kHomePhoneTypeProperty, 0},
   {kFaxProperty, 2108},
-  {kFaxTypeProperty},
+  {kFaxTypeProperty, 0},
   {kPagerProperty, 2109},
-  {kPagerTypeProperty},
+  {kPagerTypeProperty, 0},
   {kCellularProperty, 2110},
-  {kCellularTypeProperty},
+  {kCellularTypeProperty, 0},
   {kHomeAddressProperty, 2111},
   {kHomeAddress2Property, 2112},
   {kHomeCityProperty, 2113},
@@ -110,11 +109,11 @@ const ExportAttributesTableStruct EXPORT_ATTRIBUTES_TABLE[] = {
   {kCustom3Property, 2133},
   {kCustom4Property, 2134},
   {kNotesProperty, 2135},
-  {kAnniversaryYearProperty},
-  {kAnniversaryMonthProperty},
-  {kAnniversaryDayProperty},
-  {kSpouseNameProperty},
-  {kFamilyNameProperty},
+  {kAnniversaryYearProperty, 0},
+  {kAnniversaryMonthProperty, 0},
+  {kAnniversaryDayProperty, 0},
+  {kSpouseNameProperty, 0},
+  {kFamilyNameProperty, 0},
 };
 
 //
@@ -267,7 +266,7 @@ NS_IMETHODIMP nsAbManager::GetDirectory(const nsACString &aURI,
   {
     rv = GetRootDirectory(getter_AddRefs(directory));
     NS_ENSURE_SUCCESS(rv, rv);
-    NS_IF_ADDREF(*aResult = directory);
+    directory.forget(aResult);
     return NS_OK;
   }
 
@@ -304,7 +303,7 @@ NS_IMETHODIMP nsAbManager::GetDirectory(const nsACString &aURI,
     if (!isQuery)
       mAbStore.Put(aURI, directory);
   }
-  NS_IF_ADDREF(*aResult = directory);
+  directory.forget(aResult);
 
   return NS_OK;
 }
@@ -466,12 +465,12 @@ NS_IMETHODIMP nsAbManager::GetUserProfileDirectory(nsIFile **userDir)
   return NS_OK;
 }
 
-NS_IMETHODIMP nsAbManager::MailListNameExists(const char16_t *name, bool *exist)
+NS_IMETHODIMP nsAbManager::MailListNameExists(const char16_t *aName, bool *aExists)
 {
   nsresult rv;
-  NS_ENSURE_ARG_POINTER(exist);
+  NS_ENSURE_ARG_POINTER(aExists);
 
-  *exist = false;
+  *aExists = false;
 
   // now get the top-level book
   nsCOMPtr<nsIAbDirectory> topDirectory;
@@ -482,29 +481,23 @@ NS_IMETHODIMP nsAbManager::MailListNameExists(const char16_t *name, bool *exist)
   rv = topDirectory->GetChildNodes(getter_AddRefs(enumerator));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsISupports> item;
-  nsCOMPtr<nsIAbMDBDirectory> directory;
-
   bool hasMore;
-  // XXX Make this not MDB specific.
   while (NS_SUCCEEDED(enumerator->HasMoreElements(&hasMore)) && hasMore)
   {
+    nsCOMPtr<nsISupports> item;
     rv = enumerator->GetNext(getter_AddRefs(item));
     NS_ENSURE_SUCCESS(rv, rv);
 
-    directory = do_QueryInterface(item, &rv);
-    if (NS_SUCCEEDED(rv))
-    {
-        nsCOMPtr<nsIAddrDatabase> database;
-      rv = directory->GetDatabase(getter_AddRefs(database));
-        if (NS_SUCCEEDED(rv))
-        {
-        rv = database->FindMailListbyUnicodeName(name, exist);
-        if (NS_SUCCEEDED(rv) && *exist)
-            return NS_OK;
-        }
-      }
-    }
+    nsCOMPtr<nsIAbDirectory> directory = do_QueryInterface(item, &rv);
+    if (NS_FAILED(rv))
+      continue;
+
+    rv = directory->HasMailListWithName(aName, aExists);
+    if (NS_SUCCEEDED(rv) && *aExists)
+      return NS_OK;
+  }
+
+  *aExists = false;
   return NS_OK;
 }
 
@@ -530,7 +523,17 @@ enum ADDRESSBOOK_EXPORT_FILE_TYPE
  LDIF_EXPORT_TYPE     = 5,
 };
 
-NS_IMETHODIMP nsAbManager::ExportAddressBook(nsIDOMWindow *aParentWin, nsIAbDirectory *aDirectory)
+NS_IMPL_ISUPPORTS(nsAbManager::nsFilePickerShownCallback,
+                  nsIFilePickerShownCallback)
+nsAbManager::nsFilePickerShownCallback::nsFilePickerShownCallback(
+  nsAbManager* aAbManager, nsIFilePicker* aFilePicker, nsIAbDirectory *aDirectory)
+  : mFilePicker(aFilePicker)
+  , mAbManager(aAbManager)
+  , mDirectory(aDirectory)
+{
+}
+
+NS_IMETHODIMP nsAbManager::ExportAddressBook(mozIDOMWindowProxy *aParentWin, nsIAbDirectory *aDirectory)
 {
   NS_ENSURE_ARG_POINTER(aParentWin);
 
@@ -547,61 +550,67 @@ NS_IMETHODIMP nsAbManager::ExportAddressBook(nsIDOMWindow *aParentWin, nsIAbDire
 
   nsString dirName;
   aDirectory->GetDirName(dirName);
+  const char16_t *formatStrings[] = { dirName.get() };
 
   nsString title;
-  rv = bundle->GetStringFromName(MOZ_UTF16("ExportAddressBookTitle"), getter_Copies(title));
+  rv = bundle->FormatStringFromName("ExportAddressBookNameTitle", formatStrings,
+                                    ArrayLength(formatStrings), title);
   NS_ENSURE_SUCCESS(rv, rv);
-
-  // This is not properly localized but a proper version is already in trunk.
-  title.AppendLiteral(" - ");
-  title.Append(dirName);
 
   rv = filePicker->Init(aParentWin, title, nsIFilePicker::modeSave);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  filePicker->SetDefaultString(dirName);
+
   nsString filterString;
 
   // CSV: System charset and UTF-8.
-  rv = bundle->GetStringFromName(MOZ_UTF16("CSVFilesSysCharset"), getter_Copies(filterString));
+  rv = bundle->GetStringFromName("CSVFilesSysCharset", filterString);
   NS_ENSURE_SUCCESS(rv, rv);
   rv = filePicker->AppendFilter(filterString, NS_LITERAL_STRING("*.csv"));
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = bundle->GetStringFromName(MOZ_UTF16("CSVFilesUTF8"), getter_Copies(filterString));
+  rv = bundle->GetStringFromName("CSVFilesUTF8", filterString);
   NS_ENSURE_SUCCESS(rv, rv);
   rv = filePicker->AppendFilter(filterString, NS_LITERAL_STRING("*.csv"));
   NS_ENSURE_SUCCESS(rv, rv);
 
   // Tab separated: System charset and UTF-8.
-  rv = bundle->GetStringFromName(MOZ_UTF16("TABFilesSysCharset"), getter_Copies(filterString));
+  rv = bundle->GetStringFromName("TABFilesSysCharset", filterString);
   NS_ENSURE_SUCCESS(rv, rv);
   rv = filePicker->AppendFilter(filterString, NS_LITERAL_STRING("*.tab; *.txt"));
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = bundle->GetStringFromName(MOZ_UTF16("TABFilesUTF8"), getter_Copies(filterString));
+  rv = bundle->GetStringFromName("TABFilesUTF8", filterString);
   NS_ENSURE_SUCCESS(rv, rv);
   rv = filePicker->AppendFilter(filterString, NS_LITERAL_STRING("*.tab; *.txt"));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = bundle->GetStringFromName(MOZ_UTF16("VCFFiles"), getter_Copies(filterString));
+  rv = bundle->GetStringFromName("VCFFiles", filterString);
   NS_ENSURE_SUCCESS(rv, rv);
   rv = filePicker->AppendFilter(filterString, NS_LITERAL_STRING("*.vcf"));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = bundle->GetStringFromName(MOZ_UTF16("LDIFFiles"), getter_Copies(filterString));
+  rv = bundle->GetStringFromName("LDIFFiles", filterString);
   NS_ENSURE_SUCCESS(rv, rv);
   rv = filePicker->AppendFilter(filterString, NS_LITERAL_STRING("*.ldi; *.ldif"));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  int16_t dialogResult;
-  filePicker->Show(&dialogResult);
+  nsCOMPtr<nsIFilePickerShownCallback> callback =
+    new nsAbManager::nsFilePickerShownCallback(this, filePicker, aDirectory);
+  return filePicker->Open(callback);
+}
 
-  if (dialogResult == nsIFilePicker::returnCancel)
-    return rv;
+NS_IMETHODIMP
+nsAbManager::nsFilePickerShownCallback::Done(int16_t aResult)
+{
+  nsresult rv;
+  if (aResult == nsIFilePicker::returnCancel)
+    return NS_OK;
 
   nsCOMPtr<nsIFile> localFile;
-  rv = filePicker->GetFile(getter_AddRefs(localFile));
+  rv = mFilePicker->GetFile(getter_AddRefs(localFile));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (dialogResult == nsIFilePicker::returnReplace) {
+  if (aResult == nsIFilePicker::returnReplace) {
     // be extra safe and only delete when the file is really a file
     bool isFile;
     rv = localFile->IsFile(&isFile);
@@ -614,7 +623,7 @@ NS_IMETHODIMP nsAbManager::ExportAddressBook(nsIDOMWindow *aParentWin, nsIAbDire
   // The type of export is determined by the drop-down in
   // the file picker dialog.
   int32_t exportType;
-  rv = filePicker->GetFilterIndex(&exportType);
+  rv = mFilePicker->GetFilterIndex(&exportType);
   NS_ENSURE_SUCCESS(rv,rv);
 
   nsAutoString fileName;
@@ -633,7 +642,7 @@ NS_IMETHODIMP nsAbManager::ExportAddressBook(nsIDOMWindow *aParentWin, nsIAbDire
         fileName.AppendLiteral(LDIF_FILE_EXTENSION2);
         localFile->SetLeafName(fileName);
       }
-      rv = ExportDirectoryToLDIF(aDirectory, localFile);
+      rv = mAbManager->ExportDirectoryToLDIF(mDirectory, localFile);
       break;
 
     case CSV_EXPORT_TYPE: // csv
@@ -645,7 +654,8 @@ NS_IMETHODIMP nsAbManager::ExportAddressBook(nsIDOMWindow *aParentWin, nsIAbDire
         fileName.AppendLiteral(CSV_FILE_EXTENSION);
         localFile->SetLeafName(fileName);
       }
-      rv = ExportDirectoryToDelimitedText(aDirectory, CSV_DELIM, CSV_DELIM_LEN, localFile,
+      rv = mAbManager->ExportDirectoryToDelimitedText(
+                                          mDirectory, CSV_DELIM, CSV_DELIM_LEN, localFile,
                                           exportType==CSV_EXPORT_TYPE_UTF8);
       break;
 
@@ -659,7 +669,8 @@ NS_IMETHODIMP nsAbManager::ExportAddressBook(nsIDOMWindow *aParentWin, nsIAbDire
         fileName.AppendLiteral(TXT_FILE_EXTENSION);
         localFile->SetLeafName(fileName);
       }
-      rv = ExportDirectoryToDelimitedText(aDirectory, TAB_DELIM, TAB_DELIM_LEN, localFile,
+      rv = mAbManager->ExportDirectoryToDelimitedText(
+                                          mDirectory, TAB_DELIM, TAB_DELIM_LEN, localFile,
                                           exportType==TAB_EXPORT_TYPE_UTF8);
       break;
 
@@ -671,7 +682,7 @@ NS_IMETHODIMP nsAbManager::ExportAddressBook(nsIDOMWindow *aParentWin, nsIAbDire
         fileName.AppendLiteral(VCF_FILE_EXTENSION);
         localFile->SetLeafName(fileName);
       }
-      rv = ExportDirectoryToVCard(aDirectory, localFile);
+      rv = mAbManager->ExportDirectoryToVCard(mDirectory, localFile);
       break;
   };
 
@@ -720,7 +731,7 @@ nsAbManager::ExportDirectoryToDelimitedText(nsIAbDirectory *aDirectory,
 
       // We don't need to truncate the string here as getter_Copies will
       // do that for us.
-      if (NS_FAILED(bundle->GetStringFromID(EXPORT_ATTRIBUTES_TABLE[i].plainTextStringID, getter_Copies(columnName))))
+      if (NS_FAILED(bundle->GetStringFromID(EXPORT_ATTRIBUTES_TABLE[i].plainTextStringID, columnName)))
         columnName.AppendInt(EXPORT_ATTRIBUTES_TABLE[i].plainTextStringID);
 
       rv = nsMsgI18NConvertFromUnicode(useUTF8 ? "UTF-8" : nsMsgI18NFileSystemCharset(),
@@ -810,8 +821,8 @@ nsAbManager::ExportDirectoryToDelimitedText(nsIAbDirectory *aDirectory,
 
               if (needsQuotes)
               {
-                newValue.Insert(NS_LITERAL_STRING("\""), 0);
-                newValue.AppendLiteral("\"");
+                newValue.InsertLiteral(u"\"", 0);
+                newValue.Append(u'"');
               }
 
               rv = nsMsgI18NConvertFromUnicode(useUTF8 ? "UTF-8" : nsMsgI18NFileSystemCharset(),
@@ -1165,10 +1176,10 @@ nsresult nsAbManager::AppendDNForCard(const char *aProperty, nsIAbCard *aCard, n
 
   if (!displayName.IsEmpty()) {
     cnStr += NS_ConvertUTF8toUTF16(ldapAttributeName).get();
-    cnStr.AppendLiteral("=");
+    cnStr.Append('=');
     cnStr.Append(displayName);
     if (!email.IsEmpty()) {
-      cnStr.AppendLiteral(",");
+      cnStr.Append(',');
     }
   }
 
@@ -1178,7 +1189,7 @@ nsresult nsAbManager::AppendDNForCard(const char *aProperty, nsIAbCard *aCard, n
 
   if (!email.IsEmpty()) {
     cnStr += NS_ConvertUTF8toUTF16(ldapAttributeName).get();
-    cnStr.AppendLiteral("=");
+    cnStr.Append('=');
     cnStr.Append(email);
   }
 
@@ -1372,7 +1383,7 @@ NS_IMETHODIMP nsAbManager::EscapedVCardToAbCard(const char *aEscapedVCardStr, ns
           NS_WARNING("Parse of vCard failed");
     }
 
-    NS_IF_ADDREF(*aCard = cardFromVCard);
+    cardFromVCard.forget(aCard);
     return NS_OK;
 }
 
@@ -1391,9 +1402,12 @@ nsAbManager::Handle(nsICommandLine* aCmdLine)
   nsCOMPtr<nsIWindowWatcher> wwatch (do_GetService(NS_WINDOWWATCHER_CONTRACTID));
   NS_ENSURE_TRUE(wwatch, NS_ERROR_FAILURE);
 
-  nsCOMPtr<nsIDOMWindow> opened;
-  wwatch->OpenWindow(nullptr, "chrome://messenger/content/addressbook/addressbook.xul",
-                     "_blank", "chrome,extrachrome,menubar,resizable,scrollbars,status,toolbar", nullptr, getter_AddRefs(opened));
+  nsCOMPtr<mozIDOMWindowProxy> opened;
+  wwatch->OpenWindow(nullptr,
+                     "chrome://messenger/content/addressbook/addressbook.xul",
+                     "_blank",
+                     "chrome,extrachrome,menubar,resizable,scrollbars,status,toolbar",
+                     nullptr, getter_AddRefs(opened));
   aCmdLine->SetPreventDefault(true);
   return NS_OK;
 }
@@ -1401,7 +1415,7 @@ nsAbManager::Handle(nsICommandLine* aCmdLine)
 NS_IMETHODIMP
 nsAbManager::GetHelpInfo(nsACString& aResult)
 {
-  aResult.Assign(NS_LITERAL_CSTRING("  -addressbook       Open the address book at startup.\n"));
+  aResult.AssignLiteral("  -addressbook       Open the address book at startup.\n");
   return NS_OK;
 }
 

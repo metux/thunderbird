@@ -15,13 +15,12 @@ var addonsRegister = {
     Services.obs.addObserver(addonsRegister, "addon-install-failed", false);
     Services.obs.addObserver(addonsRegister, "addon-install-complete", false);
 
-    window.removeEventListener("load", addonsRegister.onload, false);
-    window.addEventListener("unload", addonsRegister.onunload);
+    window.addEventListener("unload", addonsRegister.onunload, {once: true});
 
     let win = document.getElementById("dummychromebrowser").contentWindow;
     let open = win.open;
     win.open = function(aUrl) {
-      let uri = Services.io.newURI(aUrl, null, null);
+      let uri = Services.io.newURI(aUrl);
 
       // http and https are the only schemes that are exposed even
       // though we don't handle them internally.
@@ -29,14 +28,12 @@ var addonsRegister = {
         open.apply(this, arguments);
       else {
         Cc["@mozilla.org/uriloader/external-protocol-service;1"]
-          .getService(Ci.nsIExternalProtocolService).loadUrl(uri);
+          .getService(Ci.nsIExternalProtocolService).loadURI(uri);
       }
     };
   },
 
   onunload: function () {
-    window.removeEventListener("unload", addonsRegister.onunload, false);
-
     Services.obs.removeObserver(addonsRegister, "addon-install-disabled");
     Services.obs.removeObserver(addonsRegister, "addon-install-blocked");
     Services.obs.removeObserver(addonsRegister, "addon-install-failed");
@@ -49,7 +46,7 @@ var addonsRegister = {
     let brandBundle = document.getElementById("bundle_brand");
     let extensionsBundle = document.getElementById("bundle_extensions");
 
-    let installInfo = aSubject.QueryInterface(Ci.amIWebInstallInfo);
+    let installInfo = aSubject.wrappedJSObject;
     let notificationBox = document.getElementById("addonsNotify");
     if (!notificationBox)
       return;
@@ -111,7 +108,7 @@ var addonsRegister = {
       break;
     case "addon-install-failed":
       // XXX TODO This isn't terribly ideal for the multiple failure case
-      for (let [, install] in Iterator(installInfo.installs)) {
+      for (let install of installInfo.installs) {
         let host = ((installInfo.originatingURI instanceof Ci.nsIStandardURL) &&
                     installInfo.originatingURI.host) ||
                    ((install.sourceURI instanceof Ci.nsIStandardURL) &&
@@ -177,7 +174,7 @@ var addonsRegister = {
         // installs.
         let types = {};
         let bestType = null;
-        for (let [, install] in Iterator(installInfo.installs)) {
+        for (let install of installInfo.installs) {
           if (install.type in types)
             types[install.type]++;
           else
@@ -208,4 +205,4 @@ var addonsRegister = {
   }
 };
 
-window.addEventListener("load", addonsRegister.onload);
+window.addEventListener("load", addonsRegister.onload, {once: true});

@@ -10,21 +10,17 @@ var gSignatureStatus = -1;
 var gSignerCert = null;
 var gEncryptionCert = null;
 
-addEventListener("load", smimeReadOnLoad, false);
+addEventListener("load", smimeReadOnLoad, {capture: false, once: true});
 
 function smimeReadOnLoad()
 {
-  removeEventListener("load", smimeReadOnLoad, false);
-
   top.controllers.appendController(SecurityController);
 
-  addEventListener("unload", smimeReadOnUnload, false);
+  addEventListener("unload", smimeReadOnUnload, {capture: false, once: true});
 }
 
 function smimeReadOnUnload()
 {
-  removeEventListener("unload", smimeReadOnUnload, false);
-
   top.controllers.removeController(SecurityController);
 }
 
@@ -56,8 +52,8 @@ function showMessageReadSecurityInfo()
   params.objects = Components.classes["@mozilla.org/array;1"]
     .createInstance(Components.interfaces.nsIMutableArray);
   // Append even if null... the receiver must handle that.
-  params.objects.appendElement(gSignerCert, false);
-  params.objects.appendElement(gEncryptionCert, false);
+  params.objects.appendElement(gSignerCert);
+  params.objects.appendElement(gEncryptionCert);
 
   // int array starts with index 0, but that is used for window exit status
   params.SetInt(1, gSignatureStatus);

@@ -18,9 +18,6 @@ Components.utils.import("resource:///modules/mailServices.js");
 
 setupIMAPPump();
 
-var kBiffStateAtom = Cc["@mozilla.org/atom-service;1"]
-                         .getService(Ci.nsIAtomService)
-                         .getAtom("BiffState");
 // Dummy message window so we can say the inbox is open in a window.
 var dummyMsgWindow =
 {
@@ -32,7 +29,7 @@ var dummyMsgWindow =
 var gFolderListener = {
   _gotNewMailBiff: false,
   OnItemIntPropertyChanged : function(aItem, aProperty, aOldValue, aNewValue) {
-    if (aProperty == kBiffStateAtom &&
+    if (aProperty == "BiffState" &&
         aNewValue == Ci.nsIMsgFolder.nsMsgBiffState_NewMail) {
       this._gotNewMailBiff = true;
       async_driver();
@@ -48,7 +45,7 @@ var tests = [
 ]
 
 // upload messages to the imap fake server Inbox
-function uploadImapMessages()
+function* uploadImapMessages()
 {
   // make 10 messges
   let messageGenerator = new MessageGenerator();
@@ -64,8 +61,7 @@ function uploadImapMessages()
   messages.forEach(function (message)
   {
     let dataUri = Services.io.newURI("data:text/plain;base64," +
-                                     btoa(message.toMessageString()),
-                                     null, null);
+                                     btoa(message.toMessageString()));
     imapInbox.addMessage(new imapMessage(dataUri.spec, imapInbox.uidnext++, []));
   });
   // updateFolderWithListener with null for nsIMsgWindow makes biff notify.
@@ -73,7 +69,7 @@ function uploadImapMessages()
   yield false;
 }
 
-function testMessageFetched() {
+function* testMessageFetched() {
   // If we're really chunking, then the message fetch should have started before
   // we finished the updateFolder URL.
   do_check_true(gFolderListener._gotNewMailBiff);
@@ -83,7 +79,7 @@ function testMessageFetched() {
   yield false;
 }
 
-function testHdrsDownloaded() {
+function* testHdrsDownloaded() {
   // Make sure we got all 10 headers.
   do_check_eq(IMAPPump.inbox.msgDatabase.dBFolderInfo.numMessages, 10);
   yield true;

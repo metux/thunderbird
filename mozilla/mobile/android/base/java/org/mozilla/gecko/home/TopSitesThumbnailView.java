@@ -5,9 +5,9 @@
 
 package org.mozilla.gecko.home;
 
+import android.support.v4.content.ContextCompat;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.ThumbnailHelper;
-import org.mozilla.gecko.util.ColorUtils;
 import org.mozilla.gecko.widget.CropImageView;
 
 import android.content.Context;
@@ -28,13 +28,14 @@ public class TopSitesThumbnailView extends CropImageView {
     private static final int COLOR_FILTER = 0x46FFFFFF;
 
     // Default filter color for "Add a bookmark" views.
-    private final int mDefaultColor = ColorUtils.getColor(getContext(), R.color.top_site_default);
+    private final int mDefaultColor = ContextCompat.getColor(getContext(), R.color.top_site_default);
 
     // Stroke width for the border.
     private final float mStrokeWidth = getResources().getDisplayMetrics().density * 2;
 
     // Paint for drawing the border.
     private final Paint mBorderPaint;
+    private boolean mDrawBorder;
 
     public TopSitesThumbnailView(Context context) {
         this(context, null);
@@ -53,7 +54,7 @@ public class TopSitesThumbnailView extends CropImageView {
         // Initialize the border paint.
         final Resources res = getResources();
         mBorderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        mBorderPaint.setColor(ColorUtils.getColor(context, R.color.top_site_border));
+        mBorderPaint.setColor(ContextCompat.getColor(context, R.color.top_site_border));
         mBorderPaint.setStyle(Paint.Style.STROKE);
     }
 
@@ -69,7 +70,7 @@ public class TopSitesThumbnailView extends CropImageView {
     public void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
-        if (getBackground() == null) {
+        if (mDrawBorder) {
             mBorderPaint.setStrokeWidth(mStrokeWidth);
             canvas.drawRect(0, 0, getWidth(), getHeight(), mBorderPaint);
         }
@@ -98,5 +99,9 @@ public class TopSitesThumbnailView extends CropImageView {
         Drawable drawable = getResources().getDrawable(R.drawable.top_sites_thumbnail_bg);
         drawable.setColorFilter(color, Mode.SRC_ATOP);
         setBackgroundDrawable(drawable);
+    }
+
+    public void setDrawDefaultBorder(boolean drawDefaultBorder) {
+        this.mDrawBorder = drawDefaultBorder;
     }
 }

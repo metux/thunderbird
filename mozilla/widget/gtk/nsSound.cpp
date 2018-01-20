@@ -13,21 +13,23 @@
 
 #include "nsSound.h"
 
+#include "HeadlessSound.h"
 #include "nsIURL.h"
 #include "nsIFileURL.h"
 #include "nsNetUtil.h"
 #include "nsIChannel.h"
 #include "nsCOMPtr.h"
-#include "nsAutoPtr.h"
 #include "nsString.h"
 #include "nsDirectoryService.h"
 #include "nsDirectoryServiceDefs.h"
 #include "mozilla/FileUtils.h"
 #include "mozilla/Services.h"
-#include "mozilla/unused.h"
-#include "nsIStringBundle.h"
+#include "mozilla/Unused.h"
+#include "mozilla/WidgetUtils.h"
 #include "nsIXULAppInfo.h"
 #include "nsContentUtils.h"
+#include "gfxPlatform.h"
+#include "mozilla/ClearOnShutdown.h"
 
 #include <stdio.h>
 #include <unistd.h>
@@ -123,22 +125,11 @@ ca_context_get_default()
         }
     }
 
-    nsCOMPtr<nsIStringBundleService> bundleService =
-        mozilla::services::GetStringBundleService();
-    if (bundleService) {
-        nsCOMPtr<nsIStringBundle> brandingBundle;
-        bundleService->CreateBundle("chrome://branding/locale/brand.properties",
-                                    getter_AddRefs(brandingBundle));
-        if (brandingBundle) {
-            nsAutoString wbrand;
-            brandingBundle->GetStringFromName(MOZ_UTF16("brandShortName"),
-                                              getter_Copies(wbrand));
-            NS_ConvertUTF16toUTF8 brand(wbrand);
-
-            ca_context_change_props(ctx, "application.name", brand.get(),
-                                    nullptr);
-        }
-    }
+    nsAutoString wbrand;
+    WidgetUtils::GetBrandShortName(wbrand);
+    ca_context_change_props(ctx, "application.name",
+                            NS_ConvertUTF16toUTF8(wbrand).get(),
+                            nullptr);
 
     nsCOMPtr<nsIXULAppInfo> appInfo = do_GetService("@mozilla.org/xre/app-info;1");
     if (appInfo) {
@@ -185,7 +176,7 @@ nsSound::Init()
 {
     // This function is designed so that no library is compulsory, and
     // one library missing doesn't cause the other(s) to not be used.
-    if (mInited) 
+    if (mInited)
         return NS_OK;
 
     mInited = true;
@@ -222,6 +213,29 @@ nsSound::Shutdown()
     }
 }
 
+namespace mozilla {
+namespace sound {
+StaticRefPtr<nsISound> sInstance;
+}
+}
+/* static */ already_AddRefed<nsISound>
+nsSound::GetInstance()
+{
+    using namespace mozilla::sound;
+
+    if (!sInstance) {
+        if (gfxPlatform::IsHeadless()) {
+            sInstance = new widget::HeadlessSound();
+        } else {
+            sInstance = new nsSound();
+        }
+        ClearOnShutdown(&sInstance);
+    }
+
+    RefPtr<nsISound> service = sInstance.get();
+    return service.forget();
+}
+
 NS_IMETHODIMP nsSound::OnStreamComplete(nsIStreamLoader *aLoader,
                                         nsISupports *context,
                                         nsresult aStatus,
@@ -238,12 +252,11 @@ NS_IMETHODIMP nsSound::OnStreamComplete(nsIStreamLoader *aLoader,
                 nsCOMPtr<nsIURI> uri;
                 nsCOMPtr<nsIChannel> channel = do_QueryInterface(request);
                 if (channel) {
-                      channel->GetURI(getter_AddRefs(uri));
-                      if (uri) {
-                            nsAutoCString uriSpec;
-                            uri->GetSpec(uriSpec);
-                            printf("Failed to load %s\n", uriSpec.get());
-                      }
+                    channel->GetURI(getter_AddRefs(uri));
+                    if (uri) {
+                        printf("Failed to load %s\n",
+                               uri->GetSpecOrDefault().get());
+                    }
                 }
             }
         }
@@ -312,13 +325,13 @@ NS_IMETHODIMP nsSound::OnStreamComplete(nsIStreamLoader *aLoader,
     return NS_OK;
 }
 
-NS_METHOD nsSound::Beep()
+NS_IMETHODIMP nsSound::Beep()
 {
     ::gdk_beep();
     return NS_OK;
 }
 
-NS_METHOD nsSound::Play(nsIURL *aURL)
+NS_IMETHODIMP nsSound::Play(nsIURL *aURL)
 {
     if (!mInited)
         Init();
@@ -430,7 +443,7 @@ NS_IMETHODIMP nsSound::PlaySystemSound(const nsAString &aSoundAlias)
 
     // create a nsIFile and then a nsIFileURL from that
     nsCOMPtr <nsIFile> soundFile;
-    rv = NS_NewLocalFile(aSoundAlias, true, 
+    rv = NS_NewLocalFile(aSoundAlias, true,
                          getter_AddRefs(soundFile));
     NS_ENSURE_SUCCESS(rv,rv);
 

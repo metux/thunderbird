@@ -80,6 +80,12 @@ public:
   virtual void SizeModeChanged(nsSizeMode aSizeMode);
 
   /**
+   * Called when the DPI (device resolution scaling factor) is changed,
+   * such that UI elements may need to be rescaled.
+   */
+  virtual void UIResolutionChanged();
+
+  /**
    * Called when the z-order of the window is changed. Returns true if the
    * notification was handled. aPlacement indicates the new z order. If
    * placement is nsWindowZRelative, then aRequestBelow should be the
@@ -91,9 +97,19 @@ public:
                              nsIWidget** aActualBelow);
 
   /**
+   * Called when the window will enter or leave the fullscreen state.
+   */
+  virtual void FullscreenWillChange(bool aInFullscreen);
+
+  /**
    * Called when the window entered or left the fullscreen state.
    */
   virtual void FullscreenChanged(bool aInFullscreen);
+
+  /**
+   * Called when the occlusion state is changed.
+   */
+  virtual void OcclusionStateChanged(bool aIsFullyOccluded);
 
   /**
    * Called when the window is activated and focused.
@@ -140,7 +156,8 @@ public:
    */
   virtual void DidPaintWindow();
 
-  virtual void DidCompositeWindow(const mozilla::TimeStamp& aCompositeStart,
+  virtual void DidCompositeWindow(uint64_t aTransactionId,
+                                  const mozilla::TimeStamp& aCompositeStart,
                                   const mozilla::TimeStamp& aCompositeEnd);
 
   /**

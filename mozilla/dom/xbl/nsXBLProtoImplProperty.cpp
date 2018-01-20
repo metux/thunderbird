@@ -4,7 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "nsIAtom.h"
+#include "nsAtom.h"
 #include "nsString.h"
 #include "jsapi.h"
 #include "nsIContent.h"
@@ -20,11 +20,11 @@ using namespace mozilla;
 using namespace mozilla::dom;
 
 nsXBLProtoImplProperty::nsXBLProtoImplProperty(const char16_t* aName,
-                                               const char16_t* aGetter, 
+                                               const char16_t* aGetter,
                                                const char16_t* aSetter,
                                                const char16_t* aReadOnly,
                                                uint32_t aLineNumber) :
-  nsXBLProtoImplMember(aName), 
+  nsXBLProtoImplMember(aName),
   mJSAttributes(JSPROP_ENUMERATE)
 #ifdef DEBUG
   , mIsCompiled(false)
@@ -83,7 +83,7 @@ void nsXBLProtoImplProperty::EnsureUncompiledText(PropertyOp& aPropertyOp)
   }
 }
 
-void 
+void
 nsXBLProtoImplProperty::AppendGetterText(const nsAString& aText)
 {
   NS_PRECONDITION(!mIsCompiled,
@@ -92,7 +92,7 @@ nsXBLProtoImplProperty::AppendGetterText(const nsAString& aText)
   mGetter.GetUncompiled()->AppendText(aText);
 }
 
-void 
+void
 nsXBLProtoImplProperty::AppendSetterText(const nsAString& aText)
 {
   NS_PRECONDITION(!mIsCompiled,
@@ -156,9 +156,10 @@ nsXBLProtoImplProperty::InstallMember(JSContext *aCx,
     nsDependentString name(mName);
     if (!::JS_DefineUCProperty(aCx, aTargetClassObject,
                                static_cast<const char16_t*>(mName),
-                               name.Length(), JS::UndefinedHandleValue, mJSAttributes,
+                               name.Length(),
                                JS_DATA_TO_FUNC_PTR(JSNative, getter.get()),
-                               JS_DATA_TO_FUNC_PTR(JSNative, setter.get())))
+                               JS_DATA_TO_FUNC_PTR(JSNative, setter.get()),
+                               mJSAttributes))
       return NS_ERROR_OUT_OF_MEMORY;
   }
   return NS_OK;
@@ -199,7 +200,7 @@ nsXBLProtoImplProperty::CompileMember(AutoJSAPI& jsapi, const nsString& aClassSt
       JSAutoCompartment ac(cx, aClassObject);
       JS::CompileOptions options(cx);
       options.setFileAndLine(functionUri.get(), getterText->GetLineNumber())
-             .setVersion(JSVERSION_LATEST);
+             .setVersion(JSVERSION_DEFAULT);
       nsCString name = NS_LITERAL_CSTRING("get_") + NS_ConvertUTF16toUTF8(mName);
       JS::Rooted<JSObject*> getterObject(cx);
       JS::AutoObjectVector emptyVector(cx);
@@ -210,9 +211,9 @@ nsXBLProtoImplProperty::CompileMember(AutoJSAPI& jsapi, const nsString& aClassSt
       deletedGetter = true;
 
       mGetter.SetJSFunction(getterObject);
-    
+
       if (mGetter.GetJSFunction() && NS_SUCCEEDED(rv)) {
-        mJSAttributes |= JSPROP_GETTER | JSPROP_SHARED;
+        mJSAttributes |= JSPROP_GETTER;
       }
       if (NS_FAILED(rv)) {
         mGetter.SetJSFunction(nullptr);
@@ -226,7 +227,7 @@ nsXBLProtoImplProperty::CompileMember(AutoJSAPI& jsapi, const nsString& aClassSt
     delete getterText;
     mGetter.SetJSFunction(nullptr);
   }
-  
+
   if (NS_FAILED(rv)) {
     // We failed to compile our getter.  So either we've set it to null, or
     // it's still set to the text object.  In either case, it's safe to return
@@ -245,7 +246,7 @@ nsXBLProtoImplProperty::CompileMember(AutoJSAPI& jsapi, const nsString& aClassSt
       JSAutoCompartment ac(cx, aClassObject);
       JS::CompileOptions options(cx);
       options.setFileAndLine(functionUri.get(), setterText->GetLineNumber())
-             .setVersion(JSVERSION_LATEST);
+             .setVersion(JSVERSION_DEFAULT);
       nsCString name = NS_LITERAL_CSTRING("set_") + NS_ConvertUTF16toUTF8(mName);
       JS::Rooted<JSObject*> setterObject(cx);
       JS::AutoObjectVector emptyVector(cx);
@@ -258,7 +259,7 @@ nsXBLProtoImplProperty::CompileMember(AutoJSAPI& jsapi, const nsString& aClassSt
       mSetter.SetJSFunction(setterObject);
 
       if (mSetter.GetJSFunction() && NS_SUCCEEDED(rv)) {
-        mJSAttributes |= JSPROP_SETTER | JSPROP_SHARED;
+        mJSAttributes |= JSPROP_SETTER;
       }
       if (NS_FAILED(rv)) {
         mSetter.SetJSFunction(nullptr);
@@ -307,17 +308,17 @@ nsXBLProtoImplProperty::Read(nsIObjectInputStream* aStream,
     nsresult rv = XBL_DeserializeFunction(aStream, &getterObject);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    mJSAttributes |= JSPROP_GETTER | JSPROP_SHARED;
+    mJSAttributes |= JSPROP_GETTER;
   }
   mGetter.SetJSFunction(getterObject);
-  
+
   JS::Rooted<JSObject*> setterObject(cx);
   if (aType == XBLBinding_Serialize_SetterProperty ||
       aType == XBLBinding_Serialize_GetterSetterProperty) {
     nsresult rv = XBL_DeserializeFunction(aStream, &setterObject);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    mJSAttributes |= JSPROP_SETTER | JSPROP_SHARED;
+    mJSAttributes |= JSPROP_SETTER;
   }
   mSetter.SetJSFunction(setterObject);
 
@@ -352,21 +353,16 @@ nsXBLProtoImplProperty::Write(nsIObjectOutputStream* aStream)
   rv = aStream->WriteWStringZ(mName);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  // The calls to fromMarkedLocation() below are safe because mSetter and
-  // mGetter are traced by the Trace() method above, and because their values
-  // are never changed after they have been set to a compiled function.
   MOZ_ASSERT_IF(mJSAttributes & (JSPROP_GETTER | JSPROP_SETTER), mIsCompiled);
 
   if (mJSAttributes & JSPROP_GETTER) {
-    JS::Handle<JSObject*> function =
-      JS::Handle<JSObject*>::fromMarkedLocation(mGetter.AsHeapObject().address());
+    JS::Rooted<JSObject*> function(RootingCx(), mGetter.GetJSFunction());
     rv = XBL_SerializeFunction(aStream, function);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
   if (mJSAttributes & JSPROP_SETTER) {
-     JS::Handle<JSObject*> function =
-      JS::Handle<JSObject*>::fromMarkedLocation(mSetter.AsHeapObject().address());
+    JS::Rooted<JSObject*> function(RootingCx(), mSetter.GetJSFunction());
     rv = XBL_SerializeFunction(aStream, function);
     NS_ENSURE_SUCCESS(rv, rv);
   }

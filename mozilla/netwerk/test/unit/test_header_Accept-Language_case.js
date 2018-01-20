@@ -1,4 +1,4 @@
-Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/NetUtil.jsm");
 
 var testpath = "/bug1054739";
 
@@ -22,6 +22,8 @@ function run_test() {
     ["de,en-us,en",     "de,en-US;q=0.7,en;q=0.3"],
     ["en-US, en",       "en-US,en;q=0.5"],
     ["EN-US;q=0.2, EN", "en-US,en;q=0.5"],
+    ["en ;q=0.8, de  ", "en,de;q=0.5"],
+    [",en,",            "en"],
   ];
 
   for (let i = 0; i < testData.length; i++) {
@@ -37,15 +39,11 @@ function run_test() {
 }
 
 function setupChannel(path) {
-  let ios = Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService);
-  let chan = ios.newChannel2("http://localhost:4444" + path,
-                             "",
-                             null,
-                             null,      // aLoadingNode
-                             Services.scriptSecurityManager.getSystemPrincipal(),
-                             null,      // aTriggeringPrincipal
-                             Ci.nsILoadInfo.SEC_NORMAL,
-                             Ci.nsIContentPolicy.TYPE_OTHER);
+  let uri = NetUtil.newURI("http://localhost:4444" + path);
+  let chan = NetUtil.newChannel({
+    uri: uri,
+    loadUsingSystemPrincipal: true
+  });
   chan.QueryInterface(Ci.nsIHttpChannel);
   return chan;
 }

@@ -11,28 +11,29 @@
      - collects info on any counters while test runs
      - waits for a 'dump' from the browser
 """
+from __future__ import absolute_import, print_function
 
 import os
-import sys
 import platform
-import results
-import subprocess
-import utils
-import mozcrash
-import talosconfig
 import shutil
-import mozfile
-import logging
+import subprocess
+import sys
 
-from talos.utils import TalosCrash, TalosRegression
-from talos.talos_process import run_browser
-from talos.ffsetup import FFSetup
+import mozcrash
+import mozfile
+import results
+import talosconfig
+import utils
+from mozlog import get_proxy_logger
 from talos.cmanager import CounterManagement
+from talos.ffsetup import FFSetup
+from talos.talos_process import run_browser
+from talos.utils import TalosCrash, TalosError, TalosRegression
+
+LOG = get_proxy_logger()
 
 
 class TTest(object):
-    platform_type = utils.PLATFORM_TYPE
-
     def check_for_crashes(self, browser_config, minidump_dir, test_name):
         # check for minidumps
         found = mozcrash.check_for_crashes(minidump_dir,
@@ -56,13 +57,32 @@ class TTest(object):
 
         """
 
-        logging.debug("operating with platform_type : %s", self.platform_type)
         with FFSetup(browser_config, test_config) as setup:
             return self._runTest(browser_config, test_config, setup)
 
+    @staticmethod
+    def _get_counter_prefix():
+        if platform.system() == "Linux":
+            return 'linux'
+        elif platform.system() in ("Windows", "Microsoft"):
+            if '6.1' in platform.version():  # w7
+                return 'w7'
+            elif '6.2' in platform.version():  # w8
+                return 'w8'
+            # Bug 1264325 - FIXME: with python 2.7.11: reports win8 instead of 8.1
+            elif '6.3' in platform.version():
+                return 'w8'
+            # Bug 1264325 - FIXME: with python 2.7.11: reports win8 instead of 10
+            elif '10.0' in platform.version():
+                return 'w8'
+            else:
+                raise TalosError('unsupported windows version')
+        elif platform.system() == "Darwin":
+            return 'mac'
+
     def _runTest(self, browser_config, test_config, setup):
         minidump_dir = os.path.join(setup.profile_dir, 'minidumps')
-        counters = test_config.get(self.platform_type + 'counters', [])
+        counters = test_config.get('%s_counters' % self._get_counter_prefix(), [])
         resolution = test_config['resolution']
 
         # add the mainthread_io to the environment variable, as defined
@@ -71,6 +91,22 @@ class TTest(object):
         if test_config['mainthread']:
             mainthread_io = os.path.join(here, "mainthread_io.log")
             setup.env['MOZ_MAIN_THREAD_IO_LOG'] = mainthread_io
+
+        if browser_config['disable_stylo']:
+            if browser_config['stylothreads']:
+                raise TalosError("--disable-stylo conflicts with --stylo-threads")
+            if browser_config['enable_stylo']:
+                raise TalosError("--disable-stylo conflicts with --enable-stylo")
+
+        # As we transition to Stylo, we need to set env vars and output data properly
+        if browser_config['enable_stylo']:
+            setup.env['STYLO_FORCE_ENABLED'] = '1'
+        if browser_config['disable_stylo']:
+            setup.env['STYLO_FORCE_DISABLED'] = '1'
+
+        # During the Stylo transition, measure different number of threads
+        if browser_config.get('stylothreads', 0) > 0:
+            setup.env['STYLO_THREADS'] = str(browser_config['stylothreads'])
 
         test_config['url'] = utils.interpolate(
             test_config['url'],
@@ -88,23 +124,31 @@ class TTest(object):
         if test_config['shutdown']:
             global_counters['shutdown'] = []
         if test_config.get('responsiveness') and \
-                platform.system() != "Linux":
-            # ignore responsiveness tests on linux until we fix
-            # Bug 710296
+           platform.system() != "Darwin":
+            # ignore osx for now as per bug 1245793
             setup.env['MOZ_INSTRUMENT_EVENT_LOOP'] = '1'
             setup.env['MOZ_INSTRUMENT_EVENT_LOOP_THRESHOLD'] = '20'
             setup.env['MOZ_INSTRUMENT_EVENT_LOOP_INTERVAL'] = '10'
             global_counters['responsiveness'] = []
 
+        setup.env['JSGC_DISABLE_POISONING'] = '1'
+        setup.env['MOZ_DISABLE_NONLOCAL_CONNECTIONS'] = '1'
+
+        # if using mitmproxy we must allow access to 'external' sites
+        if browser_config.get('mitmproxy', False):
+            LOG.info("Using mitmproxy so setting MOZ_DISABLE_NONLOCAL_CONNECTIONS to 0")
+            setup.env['MOZ_DISABLE_NONLOCAL_CONNECTIONS'] = '0'
+
         # instantiate an object to hold test results
         test_results = results.TestResults(
             test_config,
-            global_counters
+            global_counters,
+            browser_config.get('framework')
         )
 
         for i in range(test_config['cycles']):
-            logging.info("Running cycle %d/%d for %s test...",
-                         i+1, test_config['cycles'], test_config['name'])
+            LOG.info("Running cycle %d/%d for %s test..."
+                     % (i+1, test_config['cycles'], test_config['name']))
 
             # remove the browser  error file
             mozfile.remove(browser_config['error_filename'])
@@ -116,13 +160,13 @@ class TTest(object):
                     origin = os.path.join(test_config['profile_path'],
                                           keep)
                     dest = os.path.join(setup.profile_dir, keep)
-                    logging.debug("Reinstalling %s on top of %s", origin,
-                                  dest)
+                    LOG.debug("Reinstalling %s on top of %s"
+                              % (origin, dest))
                     shutil.copy(origin, dest)
 
             # Run the test
             timeout = test_config.get('timeout', 7200)  # 2 hours default
-            if setup.sps_profile:
+            if setup.gecko_profile:
                 # When profiling, give the browser some extra time
                 # to dump the profile.
                 timeout += 5 * 60
@@ -132,8 +176,8 @@ class TTest(object):
                 browser_config["extra_args"],
                 setup.profile_dir,
                 test_config['url'],
-                profiling_info=(setup.sps_profile.profiling_info
-                                if setup.sps_profile else None)
+                profiling_info=(setup.gecko_profile.profiling_info
+                                if setup.gecko_profile else None)
             )
 
             mainthread_error_count = 0
@@ -144,14 +188,6 @@ class TTest(object):
                                                 test_config)
                 subprocess.call(
                     ['python'] + test_config['setup'].split(),
-                )
-
-            mm_httpd = None
-
-            if test_config['name'] == 'media_tests':
-                from startup_test.media import media_manager
-                mm_httpd = media_manager.run_server(
-                    os.path.dirname(os.path.realpath(__file__))
                 )
 
             counter_management = None
@@ -172,11 +208,13 @@ class TTest(object):
                     on_started=(counter_management.start
                                 if counter_management else None),
                 )
+            except:
+                self.check_for_crashes(browser_config, minidump_dir,
+                                       test_config['name'])
+                raise
             finally:
                 if counter_management:
                     counter_management.stop()
-                if mm_httpd:
-                    mm_httpd.stop()
 
             if test_config['mainthread']:
                 rawlog = os.path.join(here, "mainthread_io.log")
@@ -196,7 +234,7 @@ class TTest(object):
                         if line.strip() == "":
                             continue
 
-                        print line
+                        print(line)
                         mainthread_error_count += 1
                     mozfile.remove(rawlog)
 
@@ -233,8 +271,8 @@ class TTest(object):
                                  else None)
             )
 
-            if setup.sps_profile:
-                setup.sps_profile.symbolicate(i)
+            if setup.gecko_profile:
+                setup.gecko_profile.symbolicate(i)
 
             self.check_for_crashes(browser_config, minidump_dir,
                                    test_config['name'])
@@ -245,7 +283,7 @@ class TTest(object):
         )
         for c in test_results.all_counter_results:
             for key, value in c.items():
-                logging.debug("COUNTER %r: %s", key, value)
+                LOG.debug("COUNTER %r: %s" % (key, value))
 
         # return results
         return test_results

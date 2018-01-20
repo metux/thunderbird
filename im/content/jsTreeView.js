@@ -124,7 +124,7 @@ PROTO_TREE_VIEW.prototype = {
     // for the next add item at our own level.
     let currentCount = this._rowMap.length;
     if (aChild.children.length && aChild.open) {
-      for (let [i, child] in Iterator(this._rowMap[aNewIndex].children)) {
+      for (let [i, child] of Array.from(this._rowMap[aNewIndex].children).entries()) {
         let index = aNewIndex + i + 1;
         this._rowMap.splice(index, 0, child);
         aNewIndex += this.recursivelyAddToMap(child, index);
@@ -175,7 +175,7 @@ PROTO_TREE_VIEW.prototype = {
 
       // Add this container to the persist map
       let id = this._rowMap[aIndex].id;
-      if (this._persistOpenMap.indexOf(id) == -1)
+      if (!this._persistOpenMap.includes(id))
         this._persistOpenMap.push(id);
 
       // Notify the tree of changes
@@ -220,7 +220,7 @@ PROTO_TREE_VIEW.prototype = {
   _restoreOpenStates: function jstv__restoreOpenStates() {
     // Note that as we iterate through here, .length may grow
     for (let i = 0; i < this._rowMap.length; i++) {
-      if (this._persistOpenMap.indexOf(this._rowMap[i].id) != -1)
+      if (this._persistOpenMap.includes(this._rowMap[i].id))
         this.toggleOpenState(i);
     }
   },

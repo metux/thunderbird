@@ -1,8 +1,14 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+with Files("**"):
+    BUG_COMPONENT = ("Core", "Widget: Win32")
+
+with Files("*CompositorWidget*"):
+    BUG_COMPONENT = ("Core", "Graphics")
 
 TEST_DIRS += ['tests']
 
@@ -14,14 +20,26 @@ EXPORTS += [
 
 EXPORTS.mozilla.widget += [
     'AudioSession.h',
+    'CompositorWidgetChild.h',
+    'CompositorWidgetParent.h',
+    'InProcessWinCompositorWidget.h',
+    'PDFiumEngineShim.h',
+    'PDFViaEMFPrintHelper.h',
+    'WinCompositorWidget.h',
+    'WinMessages.h',
+    'WinModifierKeyState.h',
+    'WinNativeEventData.h',
 ]
 
 UNIFIED_SOURCES += [
     'AudioSession.cpp',
+    'CompositorWidgetChild.cpp',
+    'CompositorWidgetParent.cpp',
     'GfxInfo.cpp',
     'IEnumFE.cpp',
     'IMMHandler.cpp',
     'InkCollector.cpp',
+    'InProcessWinCompositorWidget.cpp',
     'JumpListItem.cpp',
     'KeyboardLayout.cpp',
     'nsAppShell.cpp',
@@ -36,8 +54,6 @@ UNIFIED_SOURCES += [
     'nsNativeDragSource.cpp',
     'nsNativeDragTarget.cpp',
     'nsNativeThemeWin.cpp',
-    'nsScreenManagerWin.cpp',
-    'nsScreenWin.cpp',
     'nsSound.cpp',
     'nsToolkit.cpp',
     'nsUXThemeData.cpp',
@@ -46,6 +62,7 @@ UNIFIED_SOURCES += [
     'nsWindowDbg.cpp',
     'nsWindowGfx.cpp',
     'nsWinGesture.cpp',
+    'ScreenHelperWin.cpp',
     'TaskbarPreview.cpp',
     'TaskbarPreviewButton.cpp',
     'TaskbarTabPreview.cpp',
@@ -53,7 +70,9 @@ UNIFIED_SOURCES += [
     'WidgetTraceEvent.cpp',
     'WindowHook.cpp',
     'WinIMEHandler.cpp',
+    'WinPointerEvents.cpp',
     'WinTaskbar.cpp',
+    'WinTextEventDispatcherListener.cpp',
     'WinUtils.cpp',
 ]
 
@@ -63,6 +82,7 @@ SOURCES += [
     'nsBidiKeyboard.cpp',
     'nsFilePicker.cpp',
     'nsWidgetFactory.cpp',
+    'WinCompositorWidget.cpp',
     'WindowsUIUtils.cpp',
     'WinMouseScrollHandler.cpp',
 ]
@@ -75,8 +95,17 @@ if CONFIG['MOZ_CRASHREPORTER']:
 if CONFIG['NS_PRINTING']:
     UNIFIED_SOURCES += [
         'nsDeviceContextSpecWin.cpp',
+        'nsPrintDialogUtil.cpp',
+        'nsPrintDialogWin.cpp',
         'nsPrintOptionsWin.cpp',
         'nsPrintSettingsWin.cpp',
+    ]
+if CONFIG['MOZ_ENABLE_SKIA_PDF']:
+    DIRS += ['/modules/pdfium']
+    UNIFIED_SOURCES += [
+        'PDFiumEngineShim.cpp',
+        'PDFViaEMFPrintHelper.cpp',
+        'WindowsEMF.cpp',
     ]
 
 if CONFIG['NS_ENABLE_TSF']:
@@ -88,11 +117,20 @@ include('/ipc/chromium/chromium-config.mozbuild')
 
 FINAL_LIBRARY = 'xul'
 
+if CONFIG['MOZ_ENABLE_SKIA_PDF']:
+  LOCAL_INCLUDES += [
+    '/gfx/skia/skia/include/config',
+    '/gfx/skia/skia/include/core',
+    '/modules/pdfium/pdfium/public',
+  ]
+  TEST_DIRS += ['gtest']
+
 LOCAL_INCLUDES += [
     '/layout/generic',
     '/layout/xul',
     '/toolkit/xre',
     '/widget',
+    '/widget/headless',
     '/xpcom/base',
 ]
 
@@ -105,3 +143,7 @@ for var in ('MOZ_ENABLE_D3D10_LAYER'):
 RESFILE = 'widget.res'
 
 CXXFLAGS += CONFIG['MOZ_CAIRO_CFLAGS']
+
+OS_LIBS += [
+    'rpcrt4',
+]

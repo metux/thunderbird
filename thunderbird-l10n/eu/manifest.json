@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "eu": {
+      "chrome_resources": {
+        "necko": "chrome/eu/locale/eu/necko/", 
+        "global": "chrome/eu/locale/eu/global/", 
+        "messenger-region": "chrome/eu/locale/eu/messenger-region/", 
+        "chat": "chrome/eu/locale/eu/chat/", 
+        "devtools": "chrome/eu/locale/eu/devtools/client/", 
+        "pipnss": "chrome/eu/locale/eu/pipnss/", 
+        "messenger-smime": "chrome/eu/locale/eu/messenger-smime/", 
+        "messenger-newsblog": "chrome/eu/locale/eu/messenger-newsblog/", 
+        "devtools-shim": "chrome/eu/locale/eu/devtools/shim/", 
+        "alerts": "chrome/eu/locale/eu/alerts/", 
+        "messenger": "chrome/eu/locale/eu/messenger/", 
+        "editor": "chrome/eu/locale/eu/editor/", 
+        "branding": "chrome/eu/locale/eu/branding/", 
+        "mozldap": "chrome/eu/locale/eu/mozldap/", 
+        "autoconfig": "chrome/eu/locale/eu/autoconfig/", 
+        "devtools-shared": "chrome/eu/locale/eu/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/eu/locale/eu/global-platform/win/", 
+          "android": "chrome/eu/locale/eu/global-platform/unix/", 
+          "macosx": "chrome/eu/locale/eu/global-platform/mac/", 
+          "linux": "chrome/eu/locale/eu/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/eu/locale/eu/mozapps/", 
+        "pluginproblem": "chrome/eu/locale/eu/pluginproblem/", 
+        "communicator": "chrome/eu/locale/eu/communicator/", 
+        "messenger-mapi": "chrome/eu/locale/eu/messenger-mapi/", 
+        "places": "chrome/eu/locale/eu/places/", 
+        "passwordmgr": "chrome/eu/locale/eu/passwordmgr/", 
+        "pippki": "chrome/eu/locale/eu/pippki/"
+      }, 
+      "version": "20171102104544"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "58.0", 
+      "id": "langpack-eu@firefox.mozilla.org", 
+      "strict_max_version": "58.*"
+    }
+  }, 
+  "langpack_id": "eu", 
+  "version": "58.0", 
+  "name": "Basque Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "librezale.org (contributors: Librezale.eus)", 
+  "description": "Language pack for Thunderbird for eu"
+}

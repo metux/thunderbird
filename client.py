@@ -3,10 +3,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-
-# Warning, this file must be compatible with Python 2.4, for our
-# various tools, such as http://mxr.mozilla.org/ see-also: Bug 601207
-
 # Repo Defaults
 # 'REV' controls the default rev for All the various repo's
 # Define x_REV to override. Where x can be one of:
@@ -18,18 +14,15 @@ DEFAULTS = {
     # URL of the default hg repository to clone for ChatZilla.
     'CHATZILLA_REPO': 'https://hg.mozilla.org/chatzilla/',
     # The stable revision to use
-    'CHATZILLA_REV':  'SEA2_42_RELBRANCH',
+      'CHATZILLA_REV':  'SEA2_48_RELBRANCH',
 
     # URL of the default hg repository to clone for DOM Inspector.
     'INSPECTOR_REPO': 'https://hg.mozilla.org/dom-inspector/',
     # The stable revision to use
-      'INSPECTOR_REV':  'DOMI_2_0_16_GECKO_45',
+      'INSPECTOR_REV':  'DOMI_2_0_17',
 
     # URL of the default hg repository to clone for Mozilla.
-    'MOZILLA_REPO': 'https://hg.mozilla.org/releases/mozilla-esr45/',
-
-    # Branch to use from the Mozilla repository.
-    'MOZILLA_REV': 'THUNDERBIRD_45_VERBRANCH',
+    'MOZILLA_REPO': 'https://hg.mozilla.org/releases/mozilla-beta/',
 }
 
 REPO_SHORT_NAMES = {
@@ -69,19 +62,17 @@ SWITCH_MOZILLA_REPO_REPLACE = '%s://hg.mozilla.org/mozilla-central/'
 SWITCH_MOZILLA_BASE_REV = "GECKO_1_9_1_BASE"
 
 import sys
-# Test Python Version. 2.4 required for `import subprocess`
 pyver = sys.version_info
-if pyver[0] <= 1 or (pyver[0] == 2 and pyver[1] < 4):
-    sys.exit("ERROR: Python 2.4 or newer required")
+if pyver[0] <= 1 or (pyver[0] == 2 and pyver[1] < 6):
+    sys.exit("ERROR: Python 2.6 or newer required")
 elif pyver[0] >= 3:
     # Python series 3 will syntax error here, Hack needed per Bug 601649c#8
-    print "ERROR: Python series 3 is not supported, use series 2 >= 2.4"
+    print "ERROR: Python series 3 is not supported, use python 2.7"
     sys.exit()  # Do an explicit sys.exit for code clarity.
 del pyver
 
 import os
 from optparse import OptionParser, OptionValueError
-import urllib2
 import re
 
 topsrcdir = os.path.dirname(__file__)
@@ -90,36 +81,7 @@ if topsrcdir == '':
 
 TREE_STATE_FILE = os.path.join(topsrcdir, '.treestate')
 
-try:
-    from subprocess import check_call
-except ImportError:
-    import subprocess
-
-    def check_call(*popenargs, **kwargs):
-        retcode = subprocess.call(*popenargs, **kwargs)
-        if retcode:
-            cmd = kwargs.get("args")
-            if cmd is None:
-                cmd = popenargs[0]
-                raise Exception("Command '%s' returned non-zero exit status %i" % (cmd, retcode))
-
-try:
-    from subprocess import check_output
-except ImportError:
-    import subprocess
-
-    def check_output(*popenargs, **kwargs):
-        if 'stdout' in kwargs:
-            raise ValueError('stdout argument not allowed, it will be overridden.')
-        process = subprocess.Popen(stdout=subprocess.PIPE, *popenargs, **kwargs)
-        output, unused_err = process.communicate()
-        retcode = process.poll()
-        if retcode:
-            cmd = kwargs.get("args")
-            if cmd is None:
-                cmd = popenargs[0]
-            raise CalledProcessError(retcode, cmd, output=output)
-        return output
+from subprocess import check_call, check_output
 
 
 def check_call_output(cmd, *args, **kwargs):
@@ -387,7 +349,7 @@ def do_hg_pull(dir, repository, hg, rev, hgtool=None, hgtool1=None):
 
     if options.tinderbox_print and dir != '.':
         got_rev = check_call_output([hg, 'parent', '-R', fulldir,
-                                     '--template={node|short}'])
+                                     '--template={node}'])
 
         url = check_call_output([hg, 'paths', 'default', '-R', fulldir]).rstrip().rstrip('/')
         repo_name = url.split('/')[-1]
@@ -454,9 +416,6 @@ o.add_option("--skip-mozilla", dest="skip_mozilla",
 o.add_option("--mozilla-rev", dest="mozilla_rev",
              default=None,
              help="Revision of Mozilla repository to update to. If not present, MOZILLA_REV from the environment will be used. If that doesn't exist the default is: \"" + get_DEFAULT_tag('MOZILLA_REV') + "\"")
-o.add_option("--known-good", dest="known_good",
-             action="store_true", default=False,
-             help="Use the last known-good Mozilla repository revision.")
 
 o.add_option("--inspector-repo", dest="inspector_repo",
              default=None,
@@ -556,7 +515,8 @@ def fixup_mozilla_repo_options(options):
     See fixup_comm_repo_options().
     """
     if options.mozilla_repo is None:
-        if not os.path.exists(os.path.join(topsrcdir, 'mozilla')):
+        if (os.environ.get('MOZ_AUTOMATION') == '1'
+                or not os.path.exists(os.path.join(topsrcdir, 'mozilla'))):
             options.mozilla_repo = DEFAULTS['MOZILLA_REPO']
         else:
             # Fallback to using .hgrc as hgtool/share needs the repo
@@ -622,18 +582,6 @@ def fixup_inspector_repo_options(options):
         options.inspector_rev = get_DEFAULT_tag("INSPECTOR_REV")
 
 
-def get_last_known_good_mozilla_rev():
-    kg_url = "http://build.mozillamessaging.com/buildbot/production/known-good-revisions/mozilla-central.txt"
-    try:
-        rev = urllib2.urlopen(kg_url).read().strip()
-    except IOError, err:
-        sys.exit("Error: could not fetch '%s' (%s)" % (kg_url, err))
-    if re.search(r'^[a-f0-9]+$', rev) and len(rev) == 12:
-        return rev
-    else:
-        sys.exit("Error: invalid contents fetched from %s: '%s'" %
-                 (kg_url, rev))
-
 try:
     (options, (action,)) = o.parse_args()
 except ValueError:
@@ -658,11 +606,6 @@ if action in ('checkout', 'co'):
         do_hg_pull('.', options.comm_repo, options.hg, options.comm_rev)
 
     if not options.skip_mozilla:
-        if options.known_good and options.mozilla_rev is None:
-            print "Fetching last known good mozilla revision"
-            options.mozilla_rev = get_last_known_good_mozilla_rev()
-            print "Setting mozilla_rev to '%s'" % options.mozilla_rev
-
         fixup_mozilla_repo_options(options)
         do_hg_pull('mozilla', options.mozilla_repo, options.hg,
                    options.mozilla_rev, options.hgtool, options.hgtool1)

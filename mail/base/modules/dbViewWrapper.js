@@ -199,8 +199,7 @@ var FolderNotificationHelper = {
 
   OnItemEvent: function FolderNotificationHelper_OnItemEvent(
       aFolder, aEvent) {
-    let eventType = aEvent.toString();
-    if (eventType == "FolderLoaded") {
+    if (aEvent == "FolderLoaded") {
       let folderURI = aFolder.URI;
       let widgets = this._pendingFolderUriToViewWrapperLists[folderURI];
       if (widgets) {
@@ -222,25 +221,26 @@ var FolderNotificationHelper = {
         delete this._pendingFolderUriToViewWrapperLists[folderURI];
       }
     }
-    else if (eventType == "AboutToCompact") {
+    else if (aEvent == "AboutToCompact") {
       this._notifyHelper(aFolder, "_aboutToCompactFolder");
     }
-    else if (eventType == "CompactCompleted") {
+    else if (aEvent == "CompactCompleted") {
       this._notifyHelper(aFolder, "_compactedFolder");
     }
-    else if (eventType == "DeleteOrMoveMsgCompleted") {
+    else if (aEvent == "DeleteOrMoveMsgCompleted") {
       this._notifyHelper(aFolder, "_deleteCompleted");
     }
-    else if (eventType == "DeleteOrMoveMsgFailed") {
+    else if (aEvent == "DeleteOrMoveMsgFailed") {
       this._notifyHelper(aFolder, "_deleteFailed");
     }
-
+    else if (aEvent == "RenameCompleted") {
+      this._notifyHelper(aFolder, "_renameCompleted");
+    }
   },
 
   OnItemIntPropertyChanged: function(aFolder, aProperty, aOldValue, aNewValue) {
-    let propertyString = aProperty.toString();
-    if ((propertyString == "TotalMessages") ||
-        (propertyString == "TotalUnreadMessages"))
+    if ((aProperty == "TotalMessages") ||
+        (aProperty == "TotalUnreadMessages"))
       this._notifyHelper(aFolder, "_messageCountsChanged");
   },
 
@@ -1261,6 +1261,16 @@ DBViewWrapper.prototype = {
     this.listener.onMessageRemovalFailed();
   },
 
+  _forceOpen: function DBViewWrapper__forceOpen(aFolder) {
+    this.displayedFolder = null;
+    this.open(aFolder);
+  },
+
+  _renameCompleted: function DBViewWrapper__renameCompleted(aFolder) {
+    if (aFolder == this.displayedFolder)
+      this._forceOpen(aFolder);
+  },
+
   /**
    * If the displayed folder had its total message count or total unread message
    *  count change, notify the listener.  (Note: only for the display folder;
@@ -1303,15 +1313,15 @@ DBViewWrapper.prototype = {
    *    kUnreadOnly or kShowIgnored.
    */
   set _viewFlags(aViewFlags) {
-    // For viewFlag changes, do not make a random selection if there is not
-    // actually anything selected; some views do this (looking at xfvf).
-    if (this.dbView.selection && this.dbView.selection.count == 0)
-      this.dbView.selection.currentIndex = -1;
-
     if (this._viewUpdateDepth || !this.dbView) {
       this.__viewFlags = aViewFlags;
       return;
     }
+
+    // For viewFlag changes, do not make a random selection if there is not
+    // actually anything selected; some views do this (looking at xfvf).
+    if (this.dbView.selection && this.dbView.selection.count == 0)
+      this.dbView.selection.currentIndex = -1;
 
     let setViewFlags = true;
     let reSort = false;
@@ -1374,7 +1384,7 @@ DBViewWrapper.prototype = {
     this.dbView = this._createView();
     // if the synthetic view defines columns, add those for it
     if (this.isSynthetic) {
-      for (let [, customCol] in Iterator(this._syntheticView.customColumns)) {
+      for (let customCol of this._syntheticView.customColumns) {
         customCol.bindToView(this.dbView);
         this.dbView.addColumnHandler(customCol.id, customCol);
       }
@@ -2035,7 +2045,7 @@ DBViewWrapper.prototype = {
       return this._syntheticView.getMsgHdrForMessageID(aMessageId);
     if (!this._underlyingFolders)
       return null;
-    for (let [, folder] in Iterator(this._underlyingFolders)) {
+    for (let folder of this._underlyingFolders) {
       let msgHdr = folder.msgDatabase.getMsgHdrForMessageID(aMessageId);
       if (msgHdr)
         return msgHdr;

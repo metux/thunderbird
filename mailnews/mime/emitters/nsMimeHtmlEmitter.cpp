@@ -154,8 +154,7 @@ nsMimeHtmlDisplayEmitter::GetHeaderSink(nsIMsgHeaderSink ** aHeaderSink)
     }
   }
 
-  *aHeaderSink = mHeaderSink;
-  NS_IF_ADDREF(*aHeaderSink);
+  NS_IF_ADDREF(*aHeaderSink = mHeaderSink);
   return rv;
 }
 
@@ -175,7 +174,7 @@ nsresult nsMimeHtmlDisplayEmitter::BroadcastHeaders(nsIMsgHeaderSink * aHeaderSi
   nsCOMPtr<nsIPrefBranch> pPrefBranch(do_GetService(NS_PREFSERVICE_CONTRACTID, &rv));
   if (pPrefBranch)
   {
-    pPrefBranch->GetCharPref("mailnews.headers.extraExpandedHeaders", getter_Copies(extraExpandedHeaders));
+    pPrefBranch->GetCharPref("mailnews.headers.extraExpandedHeaders", extraExpandedHeaders);
     // todo - should make this upper case
     if (!extraExpandedHeaders.IsEmpty())
     {
@@ -190,30 +189,49 @@ nsresult nsMimeHtmlDisplayEmitter::BroadcastHeaders(nsIMsgHeaderSink * aHeaderSi
     if ( (!headerInfo) || (!headerInfo->name) || (!(*headerInfo->name)) || (!headerInfo->value) || (!(*headerInfo->value)))
       continue;
 
-    const char * headerValue = headerInfo->value;
-
     // optimization: if we aren't in view all header view mode, we only show a small set of the total # of headers.
     // don't waste time sending those out to the UI since the UI is going to ignore them anyway.
     if (aHeaderMode != VIEW_ALL_HEADERS && (mFormat != nsMimeOutput::nsMimeMessageFilterSniffer))
     {
-      nsDependentCString headerStr(headerInfo->name);
-      if (PL_strcasecmp("to", headerInfo->name) && PL_strcasecmp("from", headerInfo->name) &&
-          PL_strcasecmp("cc", headerInfo->name) && PL_strcasecmp("newsgroups", headerInfo->name) &&
-          PL_strcasecmp("bcc", headerInfo->name) && PL_strcasecmp("followup-to", headerInfo->name) &&
-          PL_strcasecmp("reply-to", headerInfo->name) && PL_strcasecmp("subject", headerInfo->name) &&
-          PL_strcasecmp("organization", headerInfo->name) && PL_strcasecmp("user-agent", headerInfo->name) &&
-          PL_strcasecmp("content-base", headerInfo->name) && PL_strcasecmp("sender", headerInfo->name) &&
-          PL_strcasecmp("date", headerInfo->name) && PL_strcasecmp("x-mailer", headerInfo->name) &&
-          PL_strcasecmp("content-type", headerInfo->name) && PL_strcasecmp("message-id", headerInfo->name) &&
-          PL_strcasecmp("x-newsreader", headerInfo->name) && PL_strcasecmp("x-mimeole", headerInfo->name) &&
-          PL_strcasecmp("references", headerInfo->name) && PL_strcasecmp("in-reply-to", headerInfo->name) &&
-          PL_strcasecmp("list-post", headerInfo->name) && PL_strcasecmp("delivered-to", headerInfo->name) &&
-          // make headerStr lower case because IndexOf is case-sensitive
-         (!extraExpandedHeadersArray.Length() || (ToLowerCase(headerStr),
-            !extraExpandedHeadersArray.Contains(headerStr))))
-            continue;
+      bool skip = true;
+      const char * headerName = headerInfo->name;
+      // Accept the following:
+      if (!PL_strcasecmp("to",           headerName) ||
+          !PL_strcasecmp("from",         headerName) ||
+          !PL_strcasecmp("cc",           headerName) ||
+          !PL_strcasecmp("newsgroups",   headerName) ||
+          !PL_strcasecmp("bcc",          headerName) ||
+          !PL_strcasecmp("followup-to",  headerName) ||
+          !PL_strcasecmp("reply-to",     headerName) ||
+          !PL_strcasecmp("subject",      headerName) ||
+          !PL_strcasecmp("organization", headerName) ||
+          !PL_strcasecmp("user-agent",   headerName) ||
+          !PL_strcasecmp("content-base", headerName) ||
+          !PL_strcasecmp("sender",       headerName) ||
+          !PL_strcasecmp("date",         headerName) ||
+          !PL_strcasecmp("x-mailer",     headerName) ||
+          !PL_strcasecmp("content-type", headerName) ||
+          !PL_strcasecmp("message-id",   headerName) ||
+          !PL_strcasecmp("x-newsreader", headerName) ||
+          !PL_strcasecmp("x-mimeole",    headerName) ||
+          !PL_strcasecmp("references",   headerName) ||
+          !PL_strcasecmp("in-reply-to",  headerName) ||
+          !PL_strcasecmp("list-post",    headerName) ||
+          !PL_strcasecmp("delivered-to", headerName)) {
+        skip = false;
+      } else if (extraExpandedHeadersArray.Length() > 0) {
+        // Make headerStr lower case because IndexOf is case-sensitive.
+        nsDependentCString headerStr(headerInfo->name);
+        ToLowerCase(headerStr);
+        // Accept if it's an "extra" header.
+        if (extraExpandedHeadersArray.Contains(headerStr))
+          skip = false;
+      }
+      if (skip)
+        continue;
     }
 
+    const char * headerValue = headerInfo->value;
     headerNameEnumerator->Append(headerInfo->name);
     headerValueEnumerator->Append(headerValue);
 
@@ -292,18 +310,10 @@ nsMimeHtmlDisplayEmitter::EndHeader(const nsACString &name)
     const char * val = GetHeaderValue(HEADER_SUBJECT); // do not free this value
     if (val)
     {
-      char * subject = MsgEscapeHTML(val);
-      if (subject)
-      {
-        int32_t bufLen = strlen(subject) + 16;
-        char *buf = new char[bufLen];
-        if (!buf)
-          return NS_ERROR_OUT_OF_MEMORY;
-        PR_snprintf(buf, bufLen, "<title>%s</title>", subject);
-        UtilityWriteCRLF(buf);
-        delete [] buf;
-        free(subject);
-      }
+      nsCString subject("<title>");
+      nsAppendEscapedHTML(nsDependentCString(val), subject);
+      subject.AppendLiteral("</title>");
+      UtilityWriteCRLF(subject.get());
     }
 
     // Stylesheet info!
@@ -419,12 +429,11 @@ nsMimeHtmlDisplayEmitter::StartAttachmentInBody(const nsACString &name,
       NS_ENSURE_SUCCESS(rv, rv);
 
       nsString attachmentsHeader;
-      bundle->GetStringFromName(MOZ_UTF16("attachmentsPrintHeader"),
-                                getter_Copies(attachmentsHeader)); 
+      bundle->GetStringFromName("attachmentsPrintHeader", attachmentsHeader);
 
       UtilityWrite("<legend class=\"mimeAttachmentHeaderName\">");
       nsCString escapedName;
-      escapedName.Adopt(MsgEscapeHTML(NS_ConvertUTF16toUTF8(attachmentsHeader).get()));
+      nsAppendEscapedHTML(NS_ConvertUTF16toUTF8(attachmentsHeader), escapedName);
       UtilityWrite(escapedName.get());
       UtilityWrite("</legend>");
     }

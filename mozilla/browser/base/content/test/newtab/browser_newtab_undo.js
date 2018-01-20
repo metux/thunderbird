@@ -4,46 +4,44 @@
 /*
  * These tests make sure that the undo dialog works as expected.
  */
-function runTests() {
+add_task(async function() {
   // remove unpinned sites and undo it
-  yield setLinks("0,1,2,3,4,5,6,7,8");
+  await setLinks("0,1,2,3,4,5,6,7,8");
   setPinnedLinks("5");
 
-  yield addNewTabPageTab();
-  checkGrid("5p,0,1,2,3,4,6,7,8");
+  await addNewTabPageTab();
+  await checkGrid("5p,0,1,2,3,4,6,7,8");
 
-  yield blockCell(4);
-  yield blockCell(4);
-  checkGrid("5p,0,1,2,6,7,8");
+  await blockCell(4);
+  await blockCell(4);
+  await checkGrid("5p,0,1,2,6,7,8");
 
-  yield undo();
-  checkGrid("5p,0,1,2,4,6,7,8");
+  await undo();
+  await checkGrid("5p,0,1,2,4,6,7,8");
 
   // now remove a pinned site and undo it
-  yield blockCell(0);
-  checkGrid("0,1,2,4,6,7,8");
+  await blockCell(0);
+  await checkGrid("0,1,2,4,6,7,8");
 
-  yield undo();
-  checkGrid("5p,0,1,2,4,6,7,8");
+  await undo();
+  await checkGrid("5p,0,1,2,4,6,7,8");
 
   // remove a site and restore all
-  yield blockCell(1);
-  checkGrid("5p,1,2,4,6,7,8");
+  await blockCell(1);
+  await checkGrid("5p,1,2,4,6,7,8");
 
-  yield undoAll();
-  checkGrid("5p,0,1,2,3,4,6,7,8");
+  await undoAll();
+  await checkGrid("5p,0,1,2,3,4,6,7,8");
+});
+
+async function undo() {
+  let updatedPromise = whenPagesUpdated();
+  await BrowserTestUtils.synthesizeMouseAtCenter("#newtab-undo-button", {}, gBrowser.selectedBrowser);
+  await updatedPromise;
 }
 
-function undo() {
-  let cw = getContentWindow();
-  let target = cw.document.getElementById("newtab-undo-button");
-  EventUtils.synthesizeMouseAtCenter(target, {}, cw);
-  whenPagesUpdated();
-}
-
-function undoAll() {
-  let cw = getContentWindow();
-  let target = cw.document.getElementById("newtab-undo-restore-button");
-  EventUtils.synthesizeMouseAtCenter(target, {}, cw);
-  whenPagesUpdated();
+async function undoAll() {
+  let updatedPromise = whenPagesUpdated();
+  await BrowserTestUtils.synthesizeMouseAtCenter("#newtab-undo-restore-button", {}, gBrowser.selectedBrowser);
+  await updatedPromise;
 }

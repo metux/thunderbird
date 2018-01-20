@@ -23,11 +23,14 @@
 #include "nsINntpUrl.h"
 #include "prmem.h"
 #include "prtime.h"
-#include "mozilla/Logging.h"
 #include "prerror.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
+#include "mozilla/Attributes.h"
+#include "mozilla/Logging.h"
 #include "mozilla/Services.h"
+#include "mozilla/SlicedInputStream.h"
 #include "mozilla/mailnews/MimeHeaderParser.h"
+#include "nsContentUtils.h"
 
 #include "prprf.h"
 #include <algorithm>
@@ -56,8 +59,9 @@
 #include "nsIMsgFilterList.h"
 
 // for the memory cache...
-#include "nsICacheEntryDescriptor.h"
-#include "nsICacheSession.h"
+#include "nsICacheEntry.h"
+#include "nsICacheStorage.h"
+#include "nsIApplicationCache.h"
 #include "nsIStreamListener.h"
 #include "nsNetCID.h"
 
@@ -74,6 +78,7 @@
 #include "nsISocketTransport.h"
 #include "nsIArray.h"
 #include "nsArrayUtils.h"
+#include "nsICancelable.h"
 
 #include "nsIInputStreamPump.h"
 #include "nsIProxyInfo.h"
@@ -107,22 +112,16 @@ char *MSG_UnEscapeSearchUrl (const char *commandSpecificData);
 
 /* Logging stuff */
 
-PRLogModuleInfo* NNTP = NULL;
+static mozilla::LazyLogModule NNTP("NNTP");
 #define out     LogLevel::Info
 
 #define NNTP_LOG_READ(buf) \
-if (NNTP==NULL) \
-    NNTP = PR_NewLogModule("NNTP"); \
 MOZ_LOG(NNTP, out, ("(%p) Receiving: %s", this, buf)) ;
 
 #define NNTP_LOG_WRITE(buf) \
-if (NNTP==NULL) \
-    NNTP = PR_NewLogModule("NNTP"); \
 MOZ_LOG(NNTP, out, ("(%p) Sending: %s", this, buf)) ;
 
 #define NNTP_LOG_NOTE(buf) \
-if (NNTP==NULL) \
-    NNTP = PR_NewLogModule("NNTP"); \
 MOZ_LOG(NNTP, out, ("(%p) %s",this, buf)) ;
 
 const char *const stateLabels[] = {
@@ -239,8 +238,7 @@ char *MSG_UnEscapeSearchUrl (const char *commandSpecificData)
 {
   nsAutoCString result(commandSpecificData);
   int32_t slashpos = 0;
-  while (slashpos = result.FindChar('\\', slashpos),
-         slashpos != kNotFound)
+  while ((slashpos = result.FindChar('\\', slashpos)) != kNotFound)
   {
     nsAutoCString hex;
     hex.Assign(Substring(result, slashpos + 1, 2));
@@ -258,7 +256,7 @@ char *MSG_UnEscapeSearchUrl (const char *commandSpecificData)
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 NS_IMPL_ISUPPORTS_INHERITED(nsNNTPProtocol, nsMsgProtocol, nsINNTPProtocol,
-  nsITimerCallback, nsICacheListener, nsIMsgAsyncPromptListener)
+  nsITimerCallback, nsICacheEntryOpenCallback, nsIMsgAsyncPromptListener, nsIProtocolProxyCallback)
 
 nsNNTPProtocol::nsNNTPProtocol(nsINntpIncomingServer *aServer, nsIURI *aURL,
                                nsIMsgWindow *aMsgWindow)
@@ -266,9 +264,6 @@ nsNNTPProtocol::nsNNTPProtocol(nsINntpIncomingServer *aServer, nsIURI *aURL,
   m_connectionBusy(false),
   m_nntpServer(aServer)
 {
-  if (!NNTP)
-    NNTP = PR_NewLogModule("NNTP");
-
   m_ProxyServer = nullptr;
   m_lineStreamBuffer = nullptr;
   m_responseText = nullptr;
@@ -413,38 +408,6 @@ NS_IMETHODIMP nsNNTPProtocol::Initialize(nsIURI *aURL, nsIMsgWindow *aMsgWindow)
 
   if (!m_socketIsOpen)
   {
-    // When we are making a secure connection, we need to make sure that we
-    // pass an interface requestor down to the socket transport so that PSM can
-    // retrieve a nsIPrompt instance if needed.
-    nsCOMPtr<nsIInterfaceRequestor> ir;
-    if (socketType != nsMsgSocketType::plain && aMsgWindow)
-    {
-      nsCOMPtr<nsIDocShell> docShell;
-      aMsgWindow->GetRootDocShell(getter_AddRefs(docShell));
-      ir = do_QueryInterface(docShell);
-    }
-
-    // call base class to set up the transport
-
-    int32_t port = 0;
-    nsCString hostName;
-    m_url->GetPort(&port);
-
-    rv = server->GetRealHostName(hostName);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    MOZ_LOG(NNTP,  LogLevel::Info, ("(%p) opening connection to %s on port %d",
-      this, hostName.get(), port));
-
-    nsCOMPtr<nsIProxyInfo> proxyInfo;
-    rv = MsgExamineForProxy(this, getter_AddRefs(proxyInfo));
-    if (NS_FAILED(rv)) proxyInfo = nullptr;
-
-    rv = OpenNetworkSocketWithInfo(hostName.get(), port,
-           (socketType == nsMsgSocketType::SSL) ? "ssl" : nullptr,
-           proxyInfo, ir);
-
-    NS_ENSURE_SUCCESS(rv,rv);
     m_nextState = NNTP_LOGIN_RESPONSE;
   }
   else {
@@ -490,7 +453,7 @@ NS_IMETHODIMP nsNNTPProtocol::SetIsBusy(bool aIsBusy)
 {
   MOZ_LOG(NNTP, LogLevel::Info,("(%p) setting busy to %d",this, aIsBusy));
   m_connectionBusy = aIsBusy;
-  
+
   // Maybe we could load another URI.
   if (!aIsBusy && m_nntpServer)
     m_nntpServer->PrepareForNextUrl(this);
@@ -635,9 +598,7 @@ nsNntpCacheStreamListener::OnDataAvailable(nsIRequest *request, nsISupports * aC
 NS_IMETHODIMP nsNNTPProtocol::GetOriginalURI(nsIURI* *aURI)
 {
     // News does not seem to have the notion of an original URI (See Bug #193317)
-    // *aURI = m_originalUrl ? m_originalUrl : m_url;
-    *aURI = m_url;
-    NS_IF_ADDREF(*aURI);
+    NS_IF_ADDREF(*aURI = m_url);
     return NS_OK;
 }
 
@@ -688,7 +649,7 @@ nsresult nsNNTPProtocol::SetupPartExtractorListener(nsIStreamListener * aConsume
   return rv;
 }
 
-nsresult nsNNTPProtocol::ReadFromMemCache(nsICacheEntryDescriptor *entry)
+nsresult nsNNTPProtocol::ReadFromMemCache(nsICacheEntry *entry)
 {
   NS_ENSURE_ARG(entry);
 
@@ -705,11 +666,8 @@ nsresult nsNNTPProtocol::ReadFromMemCache(nsICacheEntryDescriptor *entry)
     // do this to get m_key set, so that marking the message read will work.
     rv = ParseURL(m_url, group, m_messageID);
 
-    nsNntpCacheStreamListener * cacheListener = new nsNntpCacheStreamListener();
-    if (!cacheListener)
-       return NS_ERROR_OUT_OF_MEMORY;
-
-    NS_ADDREF(cacheListener);
+    RefPtr<nsNntpCacheStreamListener> cacheListener =
+      new nsNntpCacheStreamListener();
 
     SetLoadGroup(m_loadGroup);
     m_typeWanted = ARTICLE_WANTED;
@@ -717,10 +675,9 @@ nsresult nsNNTPProtocol::ReadFromMemCache(nsICacheEntryDescriptor *entry)
     nsCOMPtr<nsIMsgMailNewsUrl> mailnewsUrl = do_QueryInterface(m_runningURL);
     cacheListener->Init(m_channelListener, static_cast<nsIChannel *>(this), mailnewsUrl);
 
-    m_ContentType = ""; // reset the content type for the upcoming read....
+    mContentType = ""; // reset the content type for the upcoming read....
 
     rv = pump->AsyncRead(cacheListener, m_channelContext);
-    NS_RELEASE(cacheListener);
 
     if (NS_SUCCEEDED(rv)) // ONLY if we succeeded in actually starting the read should we return
     {
@@ -776,26 +733,23 @@ bool nsNNTPProtocol::ReadFromLocalCache()
 
         m_typeWanted = ARTICLE_WANTED;
 
-        nsNntpCacheStreamListener * cacheListener = new nsNntpCacheStreamListener();
-        if (!cacheListener)
-          return false;
+        RefPtr<nsNntpCacheStreamListener> cacheListener =
+          new nsNntpCacheStreamListener();
 
-        NS_ADDREF(cacheListener);
         cacheListener->Init(m_channelListener, static_cast<nsIChannel *>(this), mailnewsUrl);
 
         // create a stream pump that will async read the specified amount of data.
         // XXX make size 64-bit int
+        RefPtr<SlicedInputStream> slicedStream =
+          new SlicedInputStream(fileStream.forget(), uint64_t(offset), uint64_t(size));
         nsCOMPtr<nsIInputStreamPump> pump;
-        rv = NS_NewInputStreamPump(getter_AddRefs(pump),
-                                   fileStream, offset, (int64_t) size);
+        rv = NS_NewInputStreamPump(getter_AddRefs(pump), slicedStream);
         if (NS_SUCCEEDED(rv))
           rv = pump->AsyncRead(cacheListener, m_channelContext);
 
-        NS_RELEASE(cacheListener);
-
         if (NS_SUCCEEDED(rv)) // ONLY if we succeeded in actually starting the read should we return
         {
-          m_ContentType.Truncate();
+          mContentType.Truncate();
           m_channelListener = nullptr;
           NNTP_LOG_NOTE("Loading message from offline storage");
           return true;
@@ -810,7 +764,7 @@ bool nsNNTPProtocol::ReadFromLocalCache()
 }
 
 NS_IMETHODIMP
-nsNNTPProtocol::OnCacheEntryAvailable(nsICacheEntryDescriptor *entry, nsCacheAccessMode access, nsresult status)
+nsNNTPProtocol::OnCacheEntryAvailable(nsICacheEntry *entry, bool aNew, nsIApplicationCache* aAppCache, nsresult status)
 {
   nsresult rv = NS_OK;
 
@@ -819,21 +773,8 @@ nsNNTPProtocol::OnCacheEntryAvailable(nsICacheEntryDescriptor *entry, nsCacheAcc
     nsCOMPtr<nsIMsgMailNewsUrl> mailnewsUrl = do_QueryInterface(m_runningURL, &rv);
     mailnewsUrl->SetMemCacheEntry(entry);
 
-    // If we have an empty cache entry with read access, we probably failed to
-    // clear it out from an error ealier. In this case, we'll simply try to
-    // write in the cache entry this time and hope we get luckier.
-    bool canRead = access & nsICache::ACCESS_READ;
-    if (canRead)
-    {
-      uint32_t size;
-      entry->GetDataSize(&size);
-      if (size == 0)
-        canRead = false;
-    }
-
-    // if we have write access then insert a "stream T" into the flow so data
-    // gets written to both
-    if (access & nsICache::ACCESS_WRITE && !canRead)
+    // Insert a "stream T" into the flow so data gets written to both.
+    if (aNew)
     {
       // use a stream listener Tee to force data into the cache and to our current channel listener...
       nsCOMPtr<nsIStreamListener> newListener;
@@ -848,24 +789,26 @@ nsNNTPProtocol::OnCacheEntryAvailable(nsICacheEntryDescriptor *entry, nsCacheAcc
       m_channelListener = do_QueryInterface(tee);
       NS_ENSURE_SUCCESS(rv, rv);
     }
-    else if (canRead)
+    else
     {
       rv = ReadFromMemCache(entry);
-      if (access & nsICache::ACCESS_WRITE)
+      if (NS_SUCCEEDED(rv)) {
         entry->MarkValid();
-      if (NS_SUCCEEDED(rv))
         return NS_OK; // kick out if reading from the cache succeeded...
+      }
     }
   } // if we got a valid entry back from the cache...
 
-  // if reading from the cache failed or if we are writing into the cache, default to ReadFromImapConnection.
+  // if reading from the cache failed or if we are writing into the cache, default to ReadFromNewsConnection.
   return ReadFromNewsConnection();
 }
 
 NS_IMETHODIMP
-nsNNTPProtocol::OnCacheEntryDoomed(nsresult status)
+nsNNTPProtocol::OnCacheEntryCheck(nsICacheEntry* entry, nsIApplicationCache* appCache,
+                                  uint32_t* aResult)
 {
-  return NS_ERROR_NOT_IMPLEMENTED;
+  *aResult = nsICacheEntryOpenCallback::ENTRY_WANTED;
+  return NS_OK;
 }
 
 nsresult nsNNTPProtocol::OpenCacheEntry()
@@ -876,18 +819,27 @@ nsresult nsNNTPProtocol::OpenCacheEntry()
   nsCOMPtr <nsINntpService> nntpService = do_GetService(NS_NNTPSERVICE_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsICacheSession> cacheSession;
-  rv = nntpService->GetCacheSession(getter_AddRefs(cacheSession));
+  nsCOMPtr<nsICacheStorage> cacheStorage;
+  rv = nntpService->GetCacheStorage(getter_AddRefs(cacheStorage));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  // Open a cache entry with key = url
-  nsAutoCString urlSpec;
-  mailnewsUrl->GetAsciiSpec(urlSpec);
-  // for now, truncate of the query part so we don't duplicate urls in the cache...
-  int32_t pos = urlSpec.FindChar('?');
-  if (pos != -1)
-    urlSpec.SetLength(pos);
-  return cacheSession->AsyncOpenCacheEntry(urlSpec, nsICache::ACCESS_READ_WRITE, this, false);
+  // Open a cache entry with key = url, no extension.
+  nsCOMPtr<nsIURI> uri;
+  rv = mailnewsUrl->GetBaseURI(getter_AddRefs(uri));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  // Truncate of the query part so we don't duplicate urls in the cache for
+  // various message parts.
+  nsCOMPtr<nsIURI> newUri;
+  uri->Clone(getter_AddRefs(newUri));
+  nsAutoCString path;
+  newUri->GetPathQueryRef(path);
+  int32_t pos = path.FindChar('?');
+  if (pos != kNotFound) {
+    path.SetLength(pos);
+    newUri->SetPathQueryRef(path);
+  }
+  return cacheStorage->AsyncOpenURI(newUri, EmptyCString(), nsICacheStorage::OPEN_NORMALLY, this);
 }
 
 NS_IMETHODIMP nsNNTPProtocol::AsyncOpen(nsIStreamListener *listener, nsISupports *ctxt)
@@ -946,12 +898,39 @@ NS_IMETHODIMP nsNNTPProtocol::AsyncOpen2(nsIStreamListener *aListener)
     return AsyncOpen(listener, nullptr);
 }
 
+void nsNNTPProtocol::PostLoadAssertions()
+{
+
+  // Make sure that we have the information we need to be able to run the
+  // URLs
+  NS_ASSERTION(m_nntpServer, "Parsing must result in an m_nntpServer");
+  if (m_typeWanted == ARTICLE_WANTED)
+  {
+    if (m_key != nsMsgKey_None)
+      NS_ASSERTION(m_newsFolder, "ARTICLE_WANTED needs m_newsFolder w/ key");
+    else
+      NS_ASSERTION(!m_messageID.IsEmpty(), "ARTICLE_WANTED needs m_messageID w/o key");
+  }
+  else if (m_typeWanted == CANCEL_WANTED)
+  {
+    NS_ASSERTION(!m_messageID.IsEmpty(), "CANCEL_WANTED needs m_messageID");
+    NS_ASSERTION(m_newsFolder, "CANCEL_WANTED needs m_newsFolder");
+    NS_ASSERTION(m_key != nsMsgKey_None, "CANCEL_WANTED needs m_key");
+  }
+  else if (m_typeWanted == GROUP_WANTED)
+    NS_ASSERTION(m_newsFolder, "GROUP_WANTED needs m_newsFolder");
+  else if (m_typeWanted == SEARCH_WANTED)
+    NS_ASSERTION(!m_searchData.IsEmpty(), "SEARCH_WANTED needs m_searchData");
+  else if (m_typeWanted == IDS_WANTED)
+    NS_ASSERTION(m_newsFolder, "IDS_WANTED needs m_newsFolder");
+}
+
 nsresult nsNNTPProtocol::LoadUrl(nsIURI * aURL, nsISupports * aConsumer)
 {
   NS_ENSURE_ARG_POINTER(aURL);
 
   nsCString group;
-  m_ContentType.Truncate();
+  mContentType.Truncate();
   nsresult rv = NS_OK;
 
   m_runningURL = do_QueryInterface(aURL, &rv);
@@ -1041,8 +1020,8 @@ nsresult nsNNTPProtocol::LoadUrl(nsIURI * aURL, nsISupports * aConsumer)
       const char16_t *formatStrings[1] = { unescapedName.get() };
 
       rv = bundle->FormatStringFromName(
-        MOZ_UTF16("autoSubscribeText"), formatStrings, 1,
-        getter_Copies(confirmText));
+        "autoSubscribeText", formatStrings, 1,
+        confirmText);
       NS_ENSURE_SUCCESS(rv,rv);
 
       bool confirmResult = false;
@@ -1117,39 +1096,90 @@ FAIL:
       {
         m_nextStateAfterResponse = m_nextState;
         m_nextState = NNTP_RESPONSE;
-      }
-      rv = nsMsgProtocol::LoadUrl(aURL, aConsumer);
-    }
 
-    // Make sure that we have the information we need to be able to run the
-    // URLs
-    NS_ASSERTION(m_nntpServer, "Parsing must result in an m_nntpServer");
-    if (m_typeWanted == ARTICLE_WANTED)
-    {
-      if (m_key != nsMsgKey_None)
-        NS_ASSERTION(m_newsFolder, "ARTICLE_WANTED needs m_newsFolder w/ key");
+        // Calls LoadUrl in nsNNTPProtocol::OnProxyAvailable
+        rv = MsgExamineForProxyAsync(this, this, getter_AddRefs(m_proxyRequest));
+        if (NS_FAILED(rv)) {
+          rv = LoadUrlInternal(nullptr);
+        }
+      }
       else
-        NS_ASSERTION(!m_messageID.IsEmpty(), "ARTICLE_WANTED needs m_messageID w/o key");
+      {
+        rv = nsMsgProtocol::LoadUrl(aURL, aConsumer);
+      }
+      if (NS_SUCCEEDED(rv))
+        PostLoadAssertions();
     }
-    else if (m_typeWanted == CANCEL_WANTED)
-    {
-      NS_ASSERTION(!m_messageID.IsEmpty(), "CANCEL_WANTED needs m_messageID");
-      NS_ASSERTION(m_newsFolder, "CANCEL_WANTED needs m_newsFolder");
-      NS_ASSERTION(m_key != nsMsgKey_None, "CANCEL_WANTED needs m_key");
-    }
-    else if (m_typeWanted == GROUP_WANTED)
-      NS_ASSERTION(m_newsFolder, "GROUP_WANTED needs m_newsFolder");
-    else if (m_typeWanted == SEARCH_WANTED)
-      NS_ASSERTION(!m_searchData.IsEmpty(), "SEARCH_WANTED needs m_searchData");
-    else if (m_typeWanted == IDS_WANTED)
-      NS_ASSERTION(m_newsFolder, "IDS_WANTED needs m_newsFolder");
 
     return rv;
 }
 
+// nsIProtocolProxyCallback
+NS_IMETHODIMP
+nsNNTPProtocol::OnProxyAvailable(nsICancelable *aRequest, nsIChannel *aChannel,
+                                 nsIProxyInfo *aProxyInfo, nsresult aStatus)
+{
+  MOZ_ASSERT(aChannel == this, "Should never request a proxy for anyone but ourselves");
+
+  // If we're called with NS_BINDING_ABORTED, we came here via Cancel().
+  // Otherwise, no checking of 'aStatus' here, see
+  // nsHttpChannel::OnProxyAvailable(). Status is non-fatal and we just kick on.
+  if (aStatus == NS_BINDING_ABORTED)
+    return NS_ERROR_FAILURE;
+
+  nsresult rv = LoadUrlInternal(aProxyInfo);
+  if (NS_FAILED(rv)) {
+    return Cancel(rv);
+  }
+
+  PostLoadAssertions();
+
+  return rv;
+}
+
+nsresult
+nsNNTPProtocol::LoadUrlInternal(nsIProxyInfo* aProxyInfo)
+{
+  m_proxyRequest = nullptr;
+
+  nsCOMPtr<nsIMsgIncomingServer> server = do_QueryInterface(m_nntpServer);
+  nsCString hostName;
+  int32_t port = 0;
+  int32_t socketType;
+
+  nsresult rv = server->GetRealHostName(hostName);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = m_url->GetPort(&port);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = server->GetSocketType(&socketType);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsIInterfaceRequestor> ir;
+  if (socketType != nsMsgSocketType::plain && m_msgWindow)
+  {
+    nsCOMPtr<nsIDocShell> docShell;
+    m_msgWindow->GetRootDocShell(getter_AddRefs(docShell));
+    ir = do_QueryInterface(docShell);
+  }
+
+  MOZ_LOG(NNTP, LogLevel::Info, ("(%p) opening connection to %s on port %d",
+    this, hostName.get(), port));
+
+  rv = OpenNetworkSocketWithInfo(hostName.get(), port,
+    (socketType == nsMsgSocketType::SSL) ? "ssl" : nullptr,
+    aProxyInfo, ir);
+
+  rv = nsMsgProtocol::LoadUrl(m_url, m_consumer);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return rv;
+}
+
 void nsNNTPProtocol::FinishMemCacheEntry(bool valid)
 {
-  nsCOMPtr <nsICacheEntryDescriptor> memCacheEntry;
+  nsCOMPtr <nsICacheEntry> memCacheEntry;
   nsCOMPtr<nsIMsgMailNewsUrl> mailnewsurl = do_QueryInterface(m_runningURL);
   if (mailnewsurl)
     mailnewsurl->GetMemCacheEntry(getter_AddRefs(memCacheEntry));
@@ -1158,7 +1188,7 @@ void nsNNTPProtocol::FinishMemCacheEntry(bool valid)
     if (valid)
       memCacheEntry->MarkValid();
     else
-      memCacheEntry->Doom();
+      memCacheEntry->AsyncDoom(nullptr);
   }
 }
 
@@ -1185,6 +1215,16 @@ NS_IMETHODIMP nsNNTPProtocol::OnStopRequest(nsIRequest *request, nsISupports * a
 
 NS_IMETHODIMP nsNNTPProtocol::Cancel(nsresult status)  // handle stop button
 {
+    if (m_proxyRequest)
+    {
+      m_proxyRequest->Cancel(NS_BINDING_ABORTED);
+
+      // Note that nsMsgProtocol::Cancel() also calls
+      // nsProtocolProxyService::Cancel(), so no need to call it twice
+      // (although it self-protects against multiple calls).
+      m_proxyRequest = nullptr;
+    }
+
     m_nextState = NNTP_ERROR;
     return nsMsgProtocol::Cancel(NS_BINDING_ABORTED);
 }
@@ -1519,7 +1559,7 @@ nsresult nsNNTPProtocol::SendListSearchesResponse(nsIInputStream * inputStream, 
         if (NS_FAILED(m_nntpServer->GetCharset(charset)) ||
             NS_FAILED(nsMsgI18NConvertToUnicode(charset.get(),
                                                 nsDependentCString(line),
-                                                lineUtf16, true)))
+                                                lineUtf16)))
             CopyUTF8toUTF16(nsDependentCString(line), lineUtf16);
 
     m_nntpServer->AddSearchableGroup(lineUtf16);
@@ -1643,6 +1683,7 @@ nsresult nsNNTPProtocol::GetPropertiesResponse(nsIInputStream * inputStream, uin
 nsresult nsNNTPProtocol::SendListSubscriptions()
 {
     nsresult rv = NS_OK;
+/* TODO: is this needed for anything?
 #if 0
     bool searchable=false;
     rv = m_nntpServer->QueryExtension("LISTSUBSCR",&listsubscr);
@@ -1657,6 +1698,7 @@ nsresult nsNNTPProtocol::SendListSubscriptions()
     SetFlag(NNTP_PAUSE_FOR_READ);
   }
   else
+*/
   {
     /* since LIST SUBSCRIPTIONS isn't supported, move on to real work */
     m_nextState = SEND_FIRST_NNTP_COMMAND;
@@ -1920,32 +1962,21 @@ nsresult nsNNTPProtocol::SendFirstNNTPCommandResponse()
       FinishMemCacheEntry(false);  // cleanup mem cache entry
 
     if (NS_SUCCEEDED(rv) && !group_name.IsEmpty() && !savingArticleOffline) {
-      nsString titleStr;
-      rv = GetNewsStringByName("htmlNewsErrorTitle", getter_Copies(titleStr));
-      NS_ENSURE_SUCCESS(rv,rv);
-
-      nsString newsErrorStr;
-      rv = GetNewsStringByName("htmlNewsError", getter_Copies(newsErrorStr));
-      NS_ENSURE_SUCCESS(rv,rv);
-      nsAutoString errorHtml;
-      errorHtml.Append(newsErrorStr);
-
-      errorHtml.AppendLiteral("<b>");
-      errorHtml.Append(NS_ConvertASCIItoUTF16(m_responseText));
-      errorHtml.AppendLiteral("</b><p>");
-
-      rv = GetNewsStringByName("articleExpired", getter_Copies(newsErrorStr));
-      NS_ENSURE_SUCCESS(rv,rv);
-      errorHtml.Append(newsErrorStr);
-
-      char outputBuffer[OUTPUT_BUFFER_SIZE];
+      nsCString uri(NS_LITERAL_CSTRING("about:newserror?r="));
+      nsCString escapedResponse;
+      MsgEscapeURL(nsDependentCString(m_responseText), nsINetUtil::ESCAPE_URL_QUERY, escapedResponse);
+      uri.Append(escapedResponse);
 
       if ((m_key != nsMsgKey_None) && m_newsFolder) {
         nsCString messageID;
+        nsCString escapedMessageID;
         rv = m_newsFolder->GetMessageIdForKey(m_key, messageID);
         if (NS_SUCCEEDED(rv)) {
-          PR_snprintf(outputBuffer, OUTPUT_BUFFER_SIZE,"<P>&lt;%.512s&gt; (%lu)", messageID.get(), m_key);
-          errorHtml.Append(NS_ConvertASCIItoUTF16(outputBuffer));
+          uri.AppendLiteral("&m=");
+          MsgEscapeURL(messageID, nsINetUtil::ESCAPE_URL_QUERY, escapedMessageID);
+          uri.Append(escapedMessageID);
+          uri.AppendLiteral("&k=");
+          uri.AppendInt(m_key);
         }
       }
 
@@ -1953,19 +1984,15 @@ nsresult nsNNTPProtocol::SendFirstNNTPCommandResponse()
         nsCOMPtr <nsIMsgFolder> folder = do_QueryInterface(m_newsFolder, &rv);
         if (NS_SUCCEEDED(rv) && folder) {
           nsCString folderURI;
+          nsCString escapedFolderURI;
           rv = folder->GetURI(folderURI);
           if (NS_SUCCEEDED(rv)) {
-            PR_snprintf(outputBuffer,OUTPUT_BUFFER_SIZE,"<P> <A HREF=\"%s?list-ids\">", folderURI.get());
+            uri.AppendLiteral("&f=");
+            MsgEscapeURL(folderURI, nsINetUtil::ESCAPE_URL_QUERY, escapedFolderURI);
+            uri.Append(escapedFolderURI);
           }
         }
       }
-
-      errorHtml.Append(NS_ConvertASCIItoUTF16(outputBuffer));
-
-      rv = GetNewsStringByName("removeExpiredArtLinkText", getter_Copies(newsErrorStr));
-      NS_ENSURE_SUCCESS(rv,rv);
-      errorHtml.Append(newsErrorStr);
-      errorHtml.AppendLiteral("</A> </P>");
 
       if (!m_msgWindow) {
         nsCOMPtr<nsIMsgMailNewsUrl> mailnewsurl = do_QueryInterface(m_runningURL);
@@ -1981,7 +2008,8 @@ nsresult nsNNTPProtocol::SendFirstNNTPCommandResponse()
       // call nsDocShell::Stop(STOP_NETWORK), which will eventually
       // call nsNNTPProtocol::Cancel(), which will close the socket.
       // we need to fix this, since the connection is still valid.
-      rv = m_msgWindow->DisplayHTMLInMessagePane(titleStr, errorHtml, true);
+      rv = m_msgWindow->DisplayURIInMessagePane(NS_ConvertASCIItoUTF16(uri).get(), true,
+                                                nsContentUtils::GetSystemPrincipal());
       NS_ENSURE_SUCCESS(rv,rv);
     }
     // let's take the opportunity of removing the hdr from the db so we don't try to download
@@ -1994,7 +2022,6 @@ nsresult nsNNTPProtocol::SendFirstNNTPCommandResponse()
     }
     return NS_ERROR_FAILURE;
   }
-
 }
 
 nsresult nsNNTPProtocol::SendGroupForArticle()
@@ -2083,12 +2110,12 @@ nsresult nsNNTPProtocol::BeginArticle()
   //
   if (m_channelListener) {
       nsCOMPtr<nsIPipe> pipe = do_CreateInstance("@mozilla.org/pipe;1");
-      mozilla::DebugOnly<nsresult> rv = pipe->Init(false, false, 4096, PR_UINT32_MAX);
-      NS_ASSERTION(NS_SUCCEEDED(rv), "failed to create pipe");
-      // TODO: return on failure?
+      nsresult rv = pipe->Init(false, false, 4096, PR_UINT32_MAX);
+      NS_ENSURE_SUCCESS(rv, rv);
 
-      pipe->GetInputStream(getter_AddRefs(mDisplayInputStream));
-      pipe->GetOutputStream(getter_AddRefs(mDisplayOutputStream));
+      // These always succeed because the pipe is initialized above.
+      MOZ_ALWAYS_SUCCEEDS(pipe->GetInputStream(getter_AddRefs(mDisplayInputStream)));
+      MOZ_ALWAYS_SUCCEEDS(pipe->GetOutputStream(getter_AddRefs(mDisplayOutputStream)));
   }
 
   m_nextState = NNTP_READ_ARTICLE;
@@ -2247,25 +2274,25 @@ void nsNNTPProtocol::ParseHeaderForCancel(char *buf)
 
     switch (header.First()) {
     case 'F': case 'f':
-        if (header.Find("From", CaseInsensitiveCompare) == 0) {
+        if (header.Find("From", /* ignoreCase = */ true) == 0) {
             PR_FREEIF(m_cancelFromHdr);
       m_cancelFromHdr = ToNewCString(value);
         }
         break;
     case 'M': case 'm':
-        if (header.Find("Message-ID", CaseInsensitiveCompare) == 0) {
+        if (header.Find("Message-ID", /* ignoreCase = */ true) == 0) {
             PR_FREEIF(m_cancelID);
       m_cancelID = ToNewCString(value);
         }
         break;
     case 'N': case 'n':
-        if (header.Find("Newsgroups", CaseInsensitiveCompare) == 0) {
+        if (header.Find("Newsgroups", /* ignoreCase = */ true) == 0) {
             PR_FREEIF(m_cancelNewsgroups);
       m_cancelNewsgroups = ToNewCString(value);
         }
         break;
      case 'D': case 'd':
-        if (header.Find("Distributions", CaseInsensitiveCompare) == 0) {
+        if (header.Find("Distributions", /* ignoreCase = */ true) == 0) {
             PR_FREEIF(m_cancelDistribution);
       m_cancelDistribution = ToNewCString(value);
         }
@@ -2315,7 +2342,7 @@ nsresult nsNNTPProtocol::BeginAuthorization()
     // Get the key to coalesce auth prompts.
     bool singleSignon = false;
     m_nntpServer->GetSingleSignon(&singleSignon);
-    
+
     nsCString queueKey;
     nsCOMPtr<nsIMsgIncomingServer> server = do_QueryInterface(m_nntpServer);
     server->GetKey(queueKey);
@@ -2474,7 +2501,7 @@ NS_IMETHODIMP nsNNTPProtocol::OnPromptStart(bool *authAvailable)
 {
   NS_ENSURE_ARG_POINTER(authAvailable);
   NS_ENSURE_STATE(m_nextState == NNTP_SUSPENDED);
-  
+
   if (!m_newsFolder)
   {
     // If we don't have a news folder, we may have been closed already.
@@ -2510,7 +2537,7 @@ NS_IMETHODIMP nsNNTPProtocol::OnPromptAuthAvailable()
 NS_IMETHODIMP nsNNTPProtocol::OnPromptCanceled()
 {
   NS_ENSURE_STATE(m_nextState == NNTP_SUSPENDED);
- 
+
   // We previously suspended the request; now resume it to read input
   if (m_request)
     m_request->Resume();
@@ -2637,7 +2664,7 @@ nsresult nsNNTPProtocol::ProcessNewsgroups(nsIInputStream * inputStream, uint32_
     if (NS_SUCCEEDED(m_nntpServer->GetCharset(charset)) &&
         NS_SUCCEEDED(nsMsgI18NConvertToUnicode(charset.get(),
                                                nsDependentCString(line),
-                                               lineUtf16, true)))
+                                               lineUtf16)))
       m_nntpServer->SetGroupNeedsExtraInfo(NS_ConvertUTF16toUTF8(lineUtf16),
                                            true);
     else
@@ -2778,9 +2805,9 @@ nsresult nsNNTPProtocol::ReadNewsList(nsIInputStream * inputStream, uint32_t len
       NS_ConvertASCIItoUTF16 rateStr(rate_buf);
 
       const char16_t *formatStrings[3] = { numGroupsStr.get(), bytesStr.get(), rateStr.get()};
-      rv = bundle->FormatStringFromName(MOZ_UTF16("bytesReceived"),
+      rv = bundle->FormatStringFromName("bytesReceived",
         formatStrings, 3,
-        getter_Copies(statusString));
+        statusString);
 
       rv = msgStatusFeedback->ShowStatusString(statusString);
       if (NS_FAILED(rv)) {
@@ -2887,8 +2914,13 @@ void nsNNTPProtocol::HandleAuthenticationFailure()
   nsCOMPtr<nsIMsgIncomingServer> server(do_QueryInterface(m_nntpServer));
   nsCString hostname;
   server->GetRealHostName(hostname);
+  nsCString username;
+  server->GetRealUsername(username);
+  nsString accountname;
+  server->GetPrettyName(accountname);
+
   int32_t choice = 1;
-  MsgPromptLoginFailed(m_msgWindow, hostname, &choice);
+  MsgPromptLoginFailed(m_msgWindow, hostname, username, accountname, &choice);
 
   if (choice == 1) // Cancel
   {
@@ -3175,7 +3207,7 @@ nsresult nsNNTPProtocol::XhdrSend()
     m_nextState = NNTP_FIGURE_NEXT_CHUNK;
     return NS_OK;
   }
-  
+
   char outputBuffer[OUTPUT_BUFFER_SIZE];
   PR_snprintf(outputBuffer, OUTPUT_BUFFER_SIZE, "XHDR %s %d-%d" CRLF,
               header.get(), m_firstArticle, m_lastArticle);
@@ -3198,7 +3230,7 @@ nsresult nsNNTPProtocol::XhdrResponse(nsIInputStream *inputStream)
     SetFlag(NNTP_NO_XOVER_SUPPORT);
     return NS_OK;
   }
-  
+
   char *line, *lineToFree;
   nsresult rv;
   uint32_t status = 1;
@@ -3341,8 +3373,8 @@ nsresult nsNNTPProtocol::GetNewsStringByID(int32_t stringID, char16_t **aString)
   }
 
   if (m_stringBundle) {
-    char16_t *ptrv = nullptr;
-    rv = m_stringBundle->GetStringFromID(stringID, &ptrv);
+    nsAutoString str;
+    rv = m_stringBundle->GetStringFromID(stringID, str);
 
     if (NS_FAILED(rv)) {
       resultString.AssignLiteral("[StringID");
@@ -3351,7 +3383,7 @@ nsresult nsNNTPProtocol::GetNewsStringByID(int32_t stringID, char16_t **aString)
       *aString = ToNewUnicode(resultString);
     }
     else {
-      *aString = ptrv;
+      *aString = ToNewUnicode(str);
     }
   }
   else {
@@ -3377,11 +3409,8 @@ nsresult nsNNTPProtocol::GetNewsStringByName(const char *aName, char16_t **aStri
 
   if (m_stringBundle)
   {
-    nsAutoString unicodeName;
-    CopyASCIItoUTF16(nsDependentCString(aName), unicodeName);
-
-    char16_t *ptrv = nullptr;
-    rv = m_stringBundle->GetStringFromName(unicodeName.get(), &ptrv);
+    nsAutoString str;
+    rv = m_stringBundle->GetStringFromName(aName, str);
 
     if (NS_FAILED(rv))
     {
@@ -3392,7 +3421,7 @@ nsresult nsNNTPProtocol::GetNewsStringByName(const char *aName, char16_t **aStri
     }
     else
     {
-      *aString = ptrv;
+      *aString = ToNewUnicode(str);
     }
   }
   else
@@ -3545,8 +3574,7 @@ nsresult nsNNTPProtocol::DoCancel()
   NS_ENSURE_TRUE(brandBundle, NS_ERROR_FAILURE);
 
   nsString brandFullName;
-  rv = brandBundle->GetStringFromName(MOZ_UTF16("brandFullName"),
-                                      getter_Copies(brandFullName));
+  rv = brandBundle->GetStringFromName("brandFullName", brandFullName);
   NS_ENSURE_SUCCESS(rv,rv);
   NS_ConvertUTF16toUTF8 appName(brandFullName);
 
@@ -3657,7 +3685,7 @@ nsresult nsNNTPProtocol::DoCancel()
   }
   else
     confirmCancelResult = 0; // Default to Yes.
-    
+
   if (confirmCancelResult != 0) {
       // they cancelled the cancel
       status = MK_NNTP_NOT_CANCELLED;
@@ -4579,10 +4607,12 @@ nsresult nsNNTPProtocol::ProcessProtocolState(nsIURI * url, nsIInputStream * inp
       FinishMemCacheEntry(false);  // cleanup mem cache entry
       if (m_responseCode != MK_NNTP_RESPONSE_ARTICLE_NOTFOUND && m_responseCode != MK_NNTP_RESPONSE_ARTICLE_NONEXIST)
         return CloseConnection();
+      MOZ_FALLTHROUGH;
     case NEWS_FREE:
       // Remember when we last used this connection
       m_lastActiveTimeStamp = PR_Now();
       CleanupAfterRunningUrl();
+      MOZ_FALLTHROUGH;
     case NNTP_SUSPENDED:
       return NS_OK;
       break;
@@ -4729,9 +4759,9 @@ NS_IMETHODIMP nsNNTPProtocol::GetContentType(nsACString &aContentType)
 
   // if we've been set with a content type, then return it....
   // this happens when we go through libmime now as it sets our new content type
-  if (!m_ContentType.IsEmpty())
+  if (!mContentType.IsEmpty())
   {
-    aContentType = m_ContentType;
+    aContentType = mContentType;
     return NS_OK;
   }
 

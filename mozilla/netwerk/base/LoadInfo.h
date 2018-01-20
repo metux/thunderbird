@@ -17,10 +17,13 @@
 #include "mozilla/BasePrincipal.h"
 
 class nsINode;
-class nsPIDOMWindow;
-class nsXMLHttpRequest;
+class nsPIDOMWindowOuter;
 
 namespace mozilla {
+
+namespace dom {
+class XMLHttpRequestMainThread;
+}
 
 namespace net {
 class OptionalLoadInfoArgs;
@@ -33,15 +36,14 @@ LoadInfoArgsToLoadInfo(const mozilla::net::OptionalLoadInfoArgs& aLoadInfoArgs,
                        nsILoadInfo** outLoadInfo);
 } // namespace ipc
 
+namespace net {
+
+typedef nsTArray<nsCOMPtr<nsIRedirectHistoryEntry>> RedirectHistoryArray;
+
 /**
  * Class that provides an nsILoadInfo implementation.
- *
- * Note that there is no reason why this class should be MOZ_EXPORT, but
- * Thunderbird relies on some insane hacks which require this, so we'll leave it
- * as is for now, but hopefully we'll be able to remove the MOZ_EXPORT keyword
- * from this class at some point.  See bug 1149127 for the discussion.
  */
-class MOZ_EXPORT LoadInfo final : public nsILoadInfo
+class LoadInfo final : public nsILoadInfo
 {
 public:
   NS_DECL_ISUPPORTS
@@ -54,14 +56,36 @@ public:
            nsSecurityFlags aSecurityFlags,
            nsContentPolicyType aContentPolicyType);
 
+  // Constructor used for TYPE_DOCUMENT loads which have a different
+  // loadingContext than other loads. This ContextForTopLevelLoad is
+  // only used for content policy checks.
+  LoadInfo(nsPIDOMWindowOuter* aOuterWindow,
+           nsIPrincipal* aTriggeringPrincipal,
+           nsISupports* aContextForTopLevelLoad,
+           nsSecurityFlags aSecurityFlags);
+
   // create an exact copy of the loadinfo
   already_AddRefed<nsILoadInfo> Clone() const;
+  // hands off!!! don't use CloneWithNewSecFlags unless you know
+  // exactly what you are doing - it should only be used within
+  // nsBaseChannel::Redirect()
+  already_AddRefed<nsILoadInfo>
+  CloneWithNewSecFlags(nsSecurityFlags aSecurityFlags) const;
   // creates a copy of the loadinfo which is appropriate to use for a
   // separate request. I.e. not for a redirect or an inner channel, but
   // when a separate request is made with the same security properties.
   already_AddRefed<nsILoadInfo> CloneForNewRequest() const;
 
+  // The service worker and fetch specifications require returning the
+  // exact tainting level of the Response passed to FetchEvent.respondWith().
+  // This method allows us to override the tainting level in that case.
+  //
+  // NOTE: This should not be used outside of service worker code! Use
+  //       nsILoadInfo::MaybeIncreaseTainting() instead.
+  void SynthesizeServiceWorkerTainting(LoadTainting aTainting);
+
   void SetIsPreflight();
+  void SetUpgradeInsecureRequests();
 
 private:
   // private constructor that is only allowed to be called from within
@@ -70,23 +94,42 @@ private:
   // Please note that aRedirectChain uses swapElements.
   LoadInfo(nsIPrincipal* aLoadingPrincipal,
            nsIPrincipal* aTriggeringPrincipal,
+           nsIPrincipal* aPrincipalToInherit,
+           nsIPrincipal* aSandboxedLoadingPrincipal,
+           nsIURI* aResultPrincipalURI,
            nsSecurityFlags aSecurityFlags,
            nsContentPolicyType aContentPolicyType,
            LoadTainting aTainting,
            bool aUpgradeInsecureRequests,
+           bool aVerifySignedContent,
+           bool aEnforceSRI,
+           bool aForceAllowDataURI,
+           bool aForceInheritPrincipalDropped,
            uint64_t aInnerWindowID,
            uint64_t aOuterWindowID,
            uint64_t aParentOuterWindowID,
+           uint64_t aTopOuterWindowID,
+           uint64_t aFrameOuterWindowID,
            bool aEnforceSecurity,
            bool aInitialSecurityCheckDone,
            bool aIsThirdPartyRequest,
-           const NeckoOriginAttributes& aOriginAttributes,
-           nsTArray<nsCOMPtr<nsIPrincipal>>& aRedirectChainIncludingInternalRedirects,
-           nsTArray<nsCOMPtr<nsIPrincipal>>& aRedirectChain,
+           const OriginAttributes& aOriginAttributes,
+           RedirectHistoryArray& aRedirectChainIncludingInternalRedirects,
+           RedirectHistoryArray& aRedirectChain,
+           nsTArray<nsCOMPtr<nsIPrincipal>>&& aAncestorPrincipals,
+           const nsTArray<uint64_t>& aAncestorOuterWindowIDs,
            const nsTArray<nsCString>& aUnsafeHeaders,
            bool aForcePreflight,
-           bool aIsPreflight);
+           bool aIsPreflight,
+           bool aLoadTriggeredFromExternal,
+           bool aForceHSTSPriming,
+           bool aMixedContentWouldBlock,
+           bool aIsHSTSPriming,
+           bool aIsHSTSPrimingUpgrade);
   LoadInfo(const LoadInfo& rhs);
+
+  NS_IMETHOD GetRedirects(JSContext* aCx, JS::MutableHandle<JS::Value> aRedirects,
+                          const RedirectHistoryArray& aArra);
 
   friend nsresult
   mozilla::ipc::LoadInfoArgsToLoadInfo(
@@ -95,36 +138,55 @@ private:
 
   ~LoadInfo();
 
-  void ComputeIsThirdPartyContext(nsPIDOMWindow* aOuterWindow);
+  void ComputeIsThirdPartyContext(nsPIDOMWindowOuter* aOuterWindow);
 
   // This function is the *only* function which can change the securityflags
   // of a loadinfo. It only exists because of the XHR code. Don't call it
   // from anywhere else!
   void SetIncludeCookiesSecFlag();
-  friend class ::nsXMLHttpRequest;
+  friend class mozilla::dom::XMLHttpRequestMainThread;
 
   // if you add a member, please also update the copy constructor
   nsCOMPtr<nsIPrincipal>           mLoadingPrincipal;
   nsCOMPtr<nsIPrincipal>           mTriggeringPrincipal;
+  nsCOMPtr<nsIPrincipal>           mPrincipalToInherit;
+  nsCOMPtr<nsIPrincipal>           mSandboxedLoadingPrincipal;
+  nsCOMPtr<nsIURI>                 mResultPrincipalURI;
   nsWeakPtr                        mLoadingContext;
+  nsWeakPtr                        mContextForTopLevelLoad;
   nsSecurityFlags                  mSecurityFlags;
   nsContentPolicyType              mInternalContentPolicyType;
   LoadTainting                     mTainting;
   bool                             mUpgradeInsecureRequests;
+  bool                             mVerifySignedContent;
+  bool                             mEnforceSRI;
+  bool                             mForceAllowDataURI;
+  bool                             mForceInheritPrincipalDropped;
   uint64_t                         mInnerWindowID;
   uint64_t                         mOuterWindowID;
   uint64_t                         mParentOuterWindowID;
+  uint64_t                         mTopOuterWindowID;
+  uint64_t                         mFrameOuterWindowID;
   bool                             mEnforceSecurity;
   bool                             mInitialSecurityCheckDone;
   bool                             mIsThirdPartyContext;
-  NeckoOriginAttributes            mOriginAttributes;
-  nsTArray<nsCOMPtr<nsIPrincipal>> mRedirectChainIncludingInternalRedirects;
-  nsTArray<nsCOMPtr<nsIPrincipal>> mRedirectChain;
+  OriginAttributes                 mOriginAttributes;
+  RedirectHistoryArray             mRedirectChainIncludingInternalRedirects;
+  RedirectHistoryArray             mRedirectChain;
+  nsTArray<nsCOMPtr<nsIPrincipal>> mAncestorPrincipals;
+  nsTArray<uint64_t>               mAncestorOuterWindowIDs;
   nsTArray<nsCString>              mCorsUnsafeHeaders;
   bool                             mForcePreflight;
   bool                             mIsPreflight;
+  bool                             mLoadTriggeredFromExternal;
+
+  bool                             mForceHSTSPriming : 1;
+  bool                             mMixedContentWouldBlock : 1;
+  bool                             mIsHSTSPriming: 1;
+  bool                             mIsHSTSPrimingUpgrade: 1;
 };
 
+} // namespace net
 } // namespace mozilla
 
 #endif // mozilla_LoadInfo_h

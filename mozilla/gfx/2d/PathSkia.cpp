@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -129,45 +130,13 @@ PathSkia::TransformedCopyToBuilder(const Matrix &aTransform, FillRule aFillRule)
 static bool
 SkPathContainsPoint(const SkPath& aPath, const Point& aPoint, const Matrix& aTransform)
 {
-  // Skia's SkPath::contains method does not support the inclusive boundary conditions
-  // required by canvas (bug 831259), so we employ the same workaround as used by Blink.
-  // First, we scale the path up to the largest coordinates that won't cause precision
-  // issues (2^15) and consequently also scale larger paths than that down.
-  // Next, we make a clip region representing the point to be tested and convert the
-  // path to a region within this clip region.
-  // If the resulting region is non-empty, then the path should contain the point.
   Matrix inverse = aTransform;
-  inverse.Invert();
-  SkPoint point = PointToSkPoint(inverse * aPoint);
-
-  SkRect bounds = aPath.getBounds();
-  if (point.fX < bounds.fLeft || point.fY < bounds.fTop ||
-      point.fX > bounds.fRight || point.fY > bounds.fBottom) {
+  if (!inverse.Invert()) {
     return false;
   }
 
-  SkPoint scale = SkPoint::Make(SkMaxScalar(bounds.fRight, -bounds.fLeft),
-                                SkMaxScalar(bounds.fBottom, -bounds.fTop));
-  if (SkScalarNearlyZero(scale.fX) || SkScalarNearlyZero(scale.fY)) {
-    return false;
-  }
-  scale.set(SkMaxScalar(scale.fX, SkScalarAbs(point.fX) + SK_Scalar1),
-            SkMaxScalar(scale.fY, SkScalarAbs(point.fY) + SK_Scalar1));
-
-  const SkScalar maxCoord = SkIntToScalar(1 << 15);
-  SkMatrix scaleMatrix;
-  scaleMatrix.setScale(maxCoord / scale.fX, maxCoord / scale.fY);
-
-  SkPath scaledPath(aPath);
-  scaledPath.transform(scaleMatrix, nullptr);
-
-  scaleMatrix.mapPoints(&point, 1);
-  SkRegion pointClip(SkIRect::MakeXYWH(SkScalarRoundToInt(point.fX) - 1,
-                                       SkScalarRoundToInt(point.fY) - 1,
-                                       2, 2));
-
-  SkRegion pathRegion;
-  return pathRegion.setPath(scaledPath, pointClip);
+  SkPoint point = PointToSkPoint(inverse.TransformPoint(aPoint));
+  return aPath.contains(point.fX, point.fY);
 }
 
 bool
@@ -190,7 +159,9 @@ PathSkia::StrokeContainsPoint(const StrokeOptions &aStrokeOptions,
   }
 
   SkPaint paint;
-  StrokeOptionsToPaint(paint, aStrokeOptions);
+  if (!StrokeOptionsToPaint(paint, aStrokeOptions)) {
+    return false;
+  }
 
   SkPath strokePath;
   paint.getFillPath(mPath, &strokePath);
@@ -201,7 +172,11 @@ PathSkia::StrokeContainsPoint(const StrokeOptions &aStrokeOptions,
 Rect
 PathSkia::GetBounds(const Matrix &aTransform) const
 {
-  Rect bounds = SkRectToRect(mPath.getBounds());
+  if (!mPath.isFinite()) {
+    return Rect();
+  }
+
+  Rect bounds = SkRectToRect(mPath.computeTightBounds());
   return aTransform.TransformBounds(bounds);
 }
 
@@ -209,13 +184,19 @@ Rect
 PathSkia::GetStrokedBounds(const StrokeOptions &aStrokeOptions,
                            const Matrix &aTransform) const
 {
+  if (!mPath.isFinite()) {
+    return Rect();
+  }
+
   SkPaint paint;
-  StrokeOptionsToPaint(paint, aStrokeOptions);
-  
+  if (!StrokeOptionsToPaint(paint, aStrokeOptions)) {
+    return Rect();
+  }
+
   SkPath result;
   paint.getFillPath(mPath, &result);
 
-  Rect bounds = SkRectToRect(result.getBounds());
+  Rect bounds = SkRectToRect(result.computeTightBounds());
   return aTransform.TransformBounds(bounds);
 }
 

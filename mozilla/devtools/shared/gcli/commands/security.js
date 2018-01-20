@@ -13,20 +13,19 @@
 
 "use strict";
 
-const { Cc, Ci, Cu, CC } = require("chrome");
+const { Ci } = require("chrome");
 const l10n = require("gcli/l10n");
-const CSP = Cc["@mozilla.org/cspcontext;1"].getService(Ci.nsIContentSecurityPolicy);
 
-const GOOD_IMG_SRC = "chrome://browser/content/gcli_sec_good.svg";
-const MOD_IMG_SRC = "chrome://browser/content/gcli_sec_moderate.svg";
-const BAD_IMG_SRC = "chrome://browser/content/gcli_sec_bad.svg";
-
+const GOOD_IMG_SRC = "chrome://devtools/skin/images/gcli_sec_good.svg";
+const MOD_IMG_SRC = "chrome://devtools/skin/images/gcli_sec_moderate.svg";
+const BAD_IMG_SRC = "chrome://devtools/skin/images/gcli_sec_bad.svg";
 
 // special handling within policy
-const POLICY_REPORT_ONLY = "report-only"
+const POLICY_REPORT_ONLY = "report-only";
 
 // special handling of directives
 const DIR_UPGRADE_INSECURE = "upgrade-insecure-requests";
+const DIR_BLOCK_ALL_MIXED_CONTENT = "block-all-mixed-content";
 
 // special handling of sources
 const SRC_UNSAFE_INLINE = "'unsafe-inline'";
@@ -41,7 +40,11 @@ const CONTENT_SECURITY_POLICY_REPORT_ONLY_MSG = l10n.lookup("securityCSPROHeader
 const NEXT_URI_HEADER = l10n.lookup("securityReferrerNextURI");
 const CALCULATED_REFERRER_HEADER = l10n.lookup("securityReferrerCalculatedReferrer");
 /* The official names from the W3C Referrer Policy Draft http://www.w3.org/TR/referrer-policy/ */
-const REFERRER_POLICY_NAMES = [ "None When Downgrade (default)", "None", "Origin Only", "Origin When Cross-Origin", "Unsafe URL" ];
+const REFERRER_POLICY_NAMES = [
+  "None When Downgrade (default)",
+  "None", "Origin Only",
+  "Origin When Cross-Origin", "Unsafe URL"
+];
 
 exports.items = [
   {
@@ -58,24 +61,23 @@ exports.items = [
     description: l10n.lookup("securityCSPDesc"),
     manual: l10n.lookup("securityCSPManual"),
     returnType: "securityCSPInfo",
-    exec: function(args, context) {
+    exec: function (args, context) {
+      let cspJSON = context.environment.document.nodePrincipal.cspJSON;
+      let cspOBJ = JSON.parse(cspJSON);
 
-      var cspJSON = context.environment.document.nodePrincipal.cspJSON;
-      var cspOBJ = JSON.parse(cspJSON);
+      let outPolicies = [];
 
-      var outPolicies = [];
-
-      var policies = cspOBJ["csp-policies"];
+      let policies = cspOBJ["csp-policies"];
 
       // loop over all the different policies
-      for (var csp in policies) {
-        var curPolicy = policies[csp];
+      for (let csp in policies) {
+        let curPolicy = policies[csp];
 
         // loop over all the directive-values within that policy
-        var outDirectives = [];
-        var outHeader = CONTENT_SECURITY_POLICY_MSG;
-        for (var dir in curPolicy) {
-          var curDir = curPolicy[dir];
+        let outDirectives = [];
+        let outHeader = CONTENT_SECURITY_POLICY_MSG;
+        for (let dir in curPolicy) {
+          let curDir = curPolicy[dir];
 
           // when iterating properties within the obj we might also
           // encounter the 'report-only' flag, which is not a csp directive.
@@ -87,24 +89,28 @@ exports.items = [
           }
 
           // loop over all the directive-sources within that directive
-          var outSrcs = [];
+          let outSrcs = [];
 
-          // special case handling for upgrade-insecure-requests
-          // which does not have any srcs
-          if (dir === DIR_UPGRADE_INSECURE) {
+          // special case handling for the directives
+          // upgrade-insecure-requests and block-all-mixed-content
+          // which do not include any srcs
+          if (dir === DIR_UPGRADE_INSECURE ||
+              dir === DIR_BLOCK_ALL_MIXED_CONTENT) {
             outSrcs.push({
               icon: GOOD_IMG_SRC,
-              src: "", // no src for upgrade-insecure-requests
-              desc: "" // no description for upgrade-insecure-requests
+              // no src
+              src: "",
+              // no description
+              desc: ""
             });
           }
 
-          for (var src in curDir) {
-            var curSrc = curDir[src];
+          for (let src in curDir) {
+            let curSrc = curDir[src];
 
             // the default icon and descritpion of the directive-src
-            var outIcon = GOOD_IMG_SRC;
-            var outDesc = "";
+            let outIcon = GOOD_IMG_SRC;
+            let outDesc = "";
 
             if (curSrc.indexOf("*") > -1) {
               outIcon = MOD_IMG_SRC;
@@ -139,26 +145,27 @@ exports.items = [
     item: "converter",
     from: "securityCSPInfo",
     to: "view",
-    exec: function(cspInfo, context) {
-      var uri = context.environment.document.documentURI;
+    exec: function (cspInfo, context) {
+      const url = context.environment.target.url;
 
       if (cspInfo.length == 0) {
         return context.createView({
           html:
             "<table class='gcli-csp-detail' cellspacing='10' valign='top'>" +
             "  <tr>" +
-            "    <td> <img src='chrome://browser/content/gcli_sec_bad.svg' width='20px' /> </td> " +
-            "    <td>" + NO_CSP_ON_PAGE_MSG + " <b>" + uri + "</b></td>" +
+            "    <td> <img src='" + BAD_IMG_SRC + "' width='20px' /> </td> " +
+            "    <td>" + NO_CSP_ON_PAGE_MSG + " <b>" + url + "</b></td>" +
             "  </tr>" +
             "</table>"});
       }
 
+      /* eslint-disable max-len */
       return context.createView({
         html:
           "<table class='gcli-csp-detail' cellspacing='10' valign='top'>" +
           // iterate all policies
           "  <tr foreach='csp in ${cspinfo}' >" +
-          "    <td> ${csp.header} <b>" + uri + "</b><br/><br/>" +
+          "    <td> ${csp.header} <b>" + url + "</b><br/><br/>" +
           "      <table class='gcli-csp-dir-detail' valign='top'>" +
           // >> iterate all directives
           "        <tr foreach='dir in ${csp.directives}' >" +
@@ -178,10 +185,11 @@ exports.items = [
           "    </td>" +
           "  </tr>" +
           "</table>",
-          data: {
-            cspinfo: cspInfo,
-          }
-        });
+        data: {
+          cspinfo: cspInfo,
+        }
+      });
+      /* eslint-enable max-len */
     }
   },
   {
@@ -192,17 +200,17 @@ exports.items = [
     description: l10n.lookup("securityReferrerPolicyDesc"),
     manual: l10n.lookup("securityReferrerPolicyManual"),
     returnType: "securityReferrerPolicyInfo",
-    exec: function(args, context) {
-      var doc = context.environment.document;
+    exec: function (args, context) {
+      let doc = context.environment.document;
 
-      var referrerPolicy = doc.referrerPolicy;
+      let { referrerPolicy } = doc;
 
-      var pageURI = doc.documentURIObject;
-      var sameDomainReferrer = "";
-      var otherDomainReferrer = "";
-      var downgradeReferrer = "";
-      var otherDowngradeReferrer = "";
-      var origin = pageURI.prePath;
+      let pageURI = doc.documentURIObject;
+      let sameDomainReferrer = "";
+      let otherDomainReferrer = "";
+      let downgradeReferrer = "";
+      let otherDowngradeReferrer = "";
+      let origin = pageURI.prePath;
 
       switch (referrerPolicy) {
         case Ci.nsIHttpChannel.REFERRER_POLICY_NO_REFERRER:
@@ -252,28 +260,28 @@ exports.items = [
           break;
       }
 
-      var sameDomainUri = origin + "/*";
+      let sameDomainUri = origin + "/*";
 
-      var referrerUrls = [
+      let referrerUrls = [
         // add the referrer uri 'referrer' we would send when visiting 'uri'
         {
-          uri: pageURI.scheme+'://example.com/',
+          uri: pageURI.scheme + "://example.com/",
           referrer: otherDomainReferrer,
-          description: l10n.lookup('securityReferrerPolicyOtherDomain')},
+          description: l10n.lookup("securityReferrerPolicyOtherDomain")},
         {
           uri: sameDomainUri,
           referrer: sameDomainReferrer,
-          description: l10n.lookup('securityReferrerPolicySameDomain')}
+          description: l10n.lookup("securityReferrerPolicySameDomain")}
       ];
 
-      if (pageURI.schemeIs('https')) {
+      if (pageURI.schemeIs("https")) {
         // add the referrer we would send on downgrading http->https
         if (sameDomainReferrer != downgradeReferrer) {
           referrerUrls.push({
-            uri: "http://"+pageURI.hostPort+"/*",
+            uri: "http://" + pageURI.hostPort + "/*",
             referrer: downgradeReferrer,
             description:
-              l10n.lookup('securityReferrerPolicySameDomainDowngrade')
+              l10n.lookup("securityReferrerPolicySameDomainDowngrade")
           });
         }
         if (otherDomainReferrer != otherDowngradeReferrer) {
@@ -281,7 +289,7 @@ exports.items = [
             uri: "http://example.com/",
             referrer: otherDowngradeReferrer,
             description:
-              l10n.lookup('securityReferrerPolicyOtherDomainDowngrade')
+              l10n.lookup("securityReferrerPolicyOtherDomainDowngrade")
           });
         }
       }
@@ -291,16 +299,16 @@ exports.items = [
                                   [pageURI.spec]),
         policyName: REFERRER_POLICY_NAMES[referrerPolicy],
         urls: referrerUrls
-      }
+      };
     }
   },
   {
     item: "converter",
     from: "securityReferrerPolicyInfo",
     to: "view",
-    exec: function(referrerPolicyInfo, context) {
+    exec: function (referrerPolicyInfo, context) {
       return context.createView({
-          html:
+        html:
           "<div class='gcli-referrer-policy'>" +
           "  <strong> ${rpi.header} </strong> <br />" +
           "  ${rpi.policyName} <br />" +
@@ -316,10 +324,10 @@ exports.items = [
           "    </tr>" +
           "  </table>" +
           "</div>",
-          data: {
-            rpi: referrerPolicyInfo,
-          }
-        });
-     }
+        data: {
+          rpi: referrerPolicyInfo,
+        }
+      });
+    }
   }
 ];

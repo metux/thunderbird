@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "sr": {
+      "chrome_resources": {
+        "necko": "chrome/sr/locale/sr/necko/", 
+        "global": "chrome/sr/locale/sr/global/", 
+        "messenger-region": "chrome/sr/locale/sr/messenger-region/", 
+        "chat": "chrome/sr/locale/sr/chat/", 
+        "devtools": "chrome/sr/locale/sr/devtools/client/", 
+        "pipnss": "chrome/sr/locale/sr/pipnss/", 
+        "messenger-smime": "chrome/sr/locale/sr/messenger-smime/", 
+        "messenger-newsblog": "chrome/sr/locale/sr/messenger-newsblog/", 
+        "devtools-shim": "chrome/sr/locale/sr/devtools/shim/", 
+        "alerts": "chrome/sr/locale/sr/alerts/", 
+        "messenger": "chrome/sr/locale/sr/messenger/", 
+        "editor": "chrome/sr/locale/sr/editor/", 
+        "branding": "chrome/sr/locale/sr/branding/", 
+        "mozldap": "chrome/sr/locale/sr/mozldap/", 
+        "autoconfig": "chrome/sr/locale/sr/autoconfig/", 
+        "devtools-shared": "chrome/sr/locale/sr/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/sr/locale/sr/global-platform/win/", 
+          "android": "chrome/sr/locale/sr/global-platform/unix/", 
+          "macosx": "chrome/sr/locale/sr/global-platform/mac/", 
+          "linux": "chrome/sr/locale/sr/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/sr/locale/sr/mozapps/", 
+        "pluginproblem": "chrome/sr/locale/sr/pluginproblem/", 
+        "communicator": "chrome/sr/locale/sr/communicator/", 
+        "messenger-mapi": "chrome/sr/locale/sr/messenger-mapi/", 
+        "places": "chrome/sr/locale/sr/places/", 
+        "passwordmgr": "chrome/sr/locale/sr/passwordmgr/", 
+        "pippki": "chrome/sr/locale/sr/pippki/"
+      }, 
+      "version": "20171105155225"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "58.0", 
+      "id": "langpack-sr@firefox.mozilla.org", 
+      "strict_max_version": "58.*"
+    }
+  }, 
+  "langpack_id": "sr", 
+  "version": "58.0", 
+  "name": "српски (sr) Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "mozilla.rs (contributors: Марко Костић, Марко Андрејић, Александра Узелац, Вања Тумбас)", 
+  "description": "Language pack for Thunderbird for sr"
+}

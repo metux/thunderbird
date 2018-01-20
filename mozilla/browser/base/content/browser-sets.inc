@@ -16,11 +16,12 @@
   </stringbundleset>
 
   <commandset id="mainCommandSet">
-    <command id="cmd_newNavigator" oncommand="OpenBrowserWindow()" reserved="true"/>
+    <command id="cmd_newNavigator" oncommand="OpenBrowserWindow()"/>
     <command id="cmd_handleBackspace" oncommand="BrowserHandleBackspace();" />
     <command id="cmd_handleShiftBackspace" oncommand="BrowserHandleShiftBackspace();" />
 
-    <command id="cmd_newNavigatorTab" oncommand="BrowserOpenNewTabOrWindow(event);" reserved="true"/>
+    <command id="cmd_newNavigatorTab" oncommand="BrowserOpenTab(event);"/>
+    <command id="cmd_newNavigatorTabNoEvent" oncommand="BrowserOpenTab();"/>
     <command id="Browser:OpenFile"  oncommand="BrowserOpenFileWindow();"/>
     <command id="Browser:SavePage" oncommand="saveBrowser(gBrowser.selectedBrowser);"/>
 
@@ -30,11 +31,11 @@
     <command id="cmd_pageSetup" oncommand="PrintUtils.showPageSetup();"/>
     <command id="cmd_print" oncommand="PrintUtils.printWindow(window.gBrowser.selectedBrowser.outerWindowID, window.gBrowser.selectedBrowser);"/>
     <command id="cmd_printPreview" oncommand="PrintUtils.printPreview(PrintPreviewListener);"/>
-    <command id="cmd_close" oncommand="BrowserCloseTabOrWindow()" reserved="true"/>
-    <command id="cmd_closeWindow" oncommand="BrowserTryToCloseWindow()" reserved="true"/>
+    <command id="cmd_close" oncommand="BrowserCloseTabOrWindow()"/>
+    <command id="cmd_closeWindow" oncommand="BrowserTryToCloseWindow()"/>
     <command id="cmd_toggleMute" oncommand="gBrowser.selectedTab.toggleMuteAudio()"/>
-    <command id="cmd_CustomizeToolbars" oncommand="BrowserCustomizeToolbar()"/>
-    <command id="cmd_quitApplication" oncommand="goQuitApplication()" reserved="true"/>
+    <command id="cmd_CustomizeToolbars" oncommand="gCustomizeMode.enter()"/>
+    <command id="cmd_quitApplication" oncommand="goQuitApplication()"/>
 
 
     <commandset id="editMenuCommands"/>
@@ -57,7 +58,7 @@
 #endif
     <!-- work-around bug 392512 -->
     <command id="Browser:AddBookmarkAs"
-             oncommand="PlacesCommandHook.bookmarkCurrentPage(true, PlacesUtils.bookmarksMenuFolderId);"/>
+             oncommand="PlacesCommandHook.bookmarkPage(gBrowser.selectedBrowser, true);"/>
     <!-- The command disabled state must be manually updated through
          PlacesCommandHook.updateBookmarkAllTabsCommand() -->
     <command id="Browser:BookmarkAllTabs"
@@ -79,8 +80,8 @@
     <command id="Browser:ReloadSkipCache" oncommand="BrowserReloadSkipCache()" disabled="true">
       <observes element="Browser:Reload" attribute="disabled"/>
     </command>
-    <command id="Browser:NextTab" oncommand="gBrowser.tabContainer.advanceSelectedTab(1, true);" reserved="true"/>
-    <command id="Browser:PrevTab" oncommand="gBrowser.tabContainer.advanceSelectedTab(-1, true);" reserved="true"/>
+    <command id="Browser:NextTab" oncommand="gBrowser.tabContainer.advanceSelectedTab(1, true);"/>
+    <command id="Browser:PrevTab" oncommand="gBrowser.tabContainer.advanceSelectedTab(-1, true);"/>
     <command id="Browser:ShowAllTabs" oncommand="allTabs.open();"/>
     <command id="cmd_fullZoomReduce"  oncommand="FullZoom.reduce()"/>
     <command id="cmd_fullZoomEnlarge" oncommand="FullZoom.enlarge()"/>
@@ -91,49 +92,28 @@
     <command id="cmd_gestureRotateEnd" oncommand="gGestureSupport.rotateEnd()"/>
     <command id="Browser:OpenLocation" oncommand="openLocation();"/>
     <command id="Browser:RestoreLastSession" oncommand="restoreLastSession();" disabled="true"/>
-    <command id="Browser:NewUserContextTab" oncommand="openNewUserContextTab(event.sourceEvent);" reserved="true"/>
+    <command id="Browser:NewUserContextTab" oncommand="openNewUserContextTab(event.sourceEvent);"/>
+    <command id="Browser:OpenAboutContainers" oncommand="openPreferences('paneContainers', {origin: 'ContainersCommand'});"/>
 
     <command id="Tools:Search" oncommand="BrowserSearch.webSearch();"/>
     <command id="Tools:Downloads" oncommand="BrowserDownloadsUI();"/>
-    <command id="Tools:DevToolbox" oncommand="gDevToolsBrowser.toggleToolboxCommand(gBrowser);"/>
-    <command id="Tools:DevToolbar" oncommand="DeveloperToolbar.toggle();" disabled="true" hidden="true"/>
-    <command id="Tools:DevToolbarFocus" oncommand="DeveloperToolbar.focusToggle();" disabled="true"/>
-    <command id="Tools:WebIDE" oncommand="gDevToolsBrowser.openWebIDE();" disabled="true" hidden="true"/>
-    <command id="Tools:BrowserToolbox" oncommand="BrowserToolboxProcess.init();" disabled="true" hidden="true"/>
-    <command id="Tools:BrowserContentToolbox" oncommand="gDevToolsBrowser.openContentProcessToolbox();" disabled="true" hidden="true"/>
-    <command id="Tools:BrowserConsole" oncommand="HUDService.openBrowserConsoleOrFocus();"/>
-    <command id="Tools:Scratchpad" oncommand="Scratchpad.openScratchpad();"/>
-    <command id="Tools:ResponsiveUI" oncommand="ResponsiveUI.toggle();"/>
-    <command id="Tools:Eyedropper" oncommand="openEyedropper();"/>
     <command id="Tools:Addons" oncommand="BrowserOpenAddonsMgr();"/>
-    <command id="Tools:ErrorConsole" oncommand="toJavaScriptConsole()" disabled="true" hidden="true"/>
-    <command id="Tools:DevToolsConnect" oncommand="gDevToolsBrowser.openConnectScreen(gBrowser)" disabled="true" hidden="true"/>
     <command id="Tools:Sanitize"
      oncommand="Cc['@mozilla.org/browser/browserglue;1'].getService(Ci.nsIBrowserGlue).sanitize(window);"/>
     <command id="Tools:PrivateBrowsing"
-      oncommand="OpenBrowserWindow({private: true});" reserved="true"/>
-#ifdef E10S_TESTING_ONLY
-    <command id="Tools:NonRemoteWindow"
-      oncommand="OpenBrowserWindow({remote: false});"/>
-#endif
+      oncommand="OpenBrowserWindow({private: true});"/>
     <command id="History:UndoCloseTab" oncommand="undoCloseTab();"/>
     <command id="History:UndoCloseWindow" oncommand="undoCloseWindow();"/>
-    <command id="Social:SharePage" oncommand="SocialShare.sharePage();"/>
-    <command id="Social:ToggleSidebar" oncommand="SocialSidebar.toggleSidebar();" hidden="true"/>
-    <command id="Social:ToggleNotifications" oncommand="Social.toggleNotifications();" hidden="true"/>
-    <command id="Social:Addons" oncommand="BrowserOpenAddonsMgr('addons://list/service');"/>
-    <command id="Chat:Focus" oncommand="Cu.import('resource:///modules/Chat.jsm', {}).Chat.focus(window);"/>
   </commandset>
 
   <commandset id="placesCommands">
     <command id="Browser:ShowAllBookmarks"
-             oncommand="PlacesCommandHook.showPlacesOrganizer('AllBookmarks');"/>
+             oncommand="PlacesCommandHook.showPlacesOrganizer('UnfiledBookmarks');"/>
     <command id="Browser:ShowAllHistory"
              oncommand="PlacesCommandHook.showPlacesOrganizer('History');"/>
   </commandset>
 
   <broadcasterset id="mainBroadcasterSet">
-    <broadcaster id="Social:PageShareOrMark" disabled="true"/>
     <broadcaster id="viewBookmarksSidebar" autoCheck="false" label="&bookmarksButton.label;"
                  type="checkbox" group="sidebar" sidebarurl="chrome://browser/content/bookmarks/bookmarksPanel.xul"
                  oncommand="SidebarUI.toggle('viewBookmarksSidebar');"/>
@@ -188,71 +168,27 @@
     <broadcaster id="sync-setup-state"/>
     <broadcaster id="sync-syncnow-state" hidden="true"/>
     <broadcaster id="sync-reauth-state" hidden="true"/>
+    <broadcaster id="viewTabsSidebar" autoCheck="false" sidebartitle="&syncedTabs.sidebar.label;"
+                 type="checkbox" group="sidebar"
+                 sidebarurl="chrome://browser/content/syncedtabs/sidebar.xhtml"
+                 oncommand="SidebarUI.toggle('viewTabsSidebar');"/>
     <broadcaster id="workOfflineMenuitemState"/>
-    <broadcaster id="socialSidebarBroadcaster" hidden="true"/>
 
-    <!-- DevTools broadcasters -->
-    <broadcaster id="devtoolsMenuBroadcaster_DevToolbox"
-                 label="&devToolboxMenuItem.label;"
-                 type="checkbox" autocheck="false"
-                 command="Tools:DevToolbox"
-                 key="key_devToolboxMenuItem"/>
-    <broadcaster id="devtoolsMenuBroadcaster_DevToolbar"
-                 label="&devToolbarMenu.label;"
-                 type="checkbox" autocheck="false"
-                 command="Tools:DevToolbar"
-                 key="key_devToolbar"/>
-    <broadcaster id="devtoolsMenuBroadcaster_webide"
-                 label="&webide.label;"
-                 command="Tools:WebIDE"
-                 key="key_webide"/>
-    <broadcaster id="devtoolsMenuBroadcaster_BrowserToolbox"
-                 label="&browserToolboxMenu.label;"
-                 key="key_browserToolbox"
-                 command="Tools:BrowserToolbox"/>
-    <broadcaster id="devtoolsMenuBroadcaster_BrowserContentToolbox"
-                 label="&browserContentToolboxMenu.label;"
-                 command="Tools:BrowserContentToolbox"/>
-    <broadcaster id="devtoolsMenuBroadcaster_BrowserConsole"
-                 label="&browserConsoleCmd.label;"
-                 key="key_browserConsole"
-                 command="Tools:BrowserConsole"/>
-    <broadcaster id="devtoolsMenuBroadcaster_Scratchpad"
-                 label="&scratchpad.label;"
-                 command="Tools:Scratchpad"
-                 key="key_scratchpad"/>
-    <broadcaster id="devtoolsMenuBroadcaster_ResponsiveUI"
-                 label="&responsiveDesignTool.label;"
-                 type="checkbox" autocheck="false"
-                 command="Tools:ResponsiveUI"
-                 key="key_responsiveUI"/>
-    <broadcaster id="devtoolsMenuBroadcaster_Eyedropper"
-                 label="&eyedropper.label;"
-                 type="checkbox" autocheck="false"
-                 command="Tools:Eyedropper"/>
     <broadcaster id="devtoolsMenuBroadcaster_PageSource"
                  label="&pageSourceCmd.label;"
                  key="key_viewSource"
                  command="View:PageSource">
       <observes element="canViewSource" attribute="disabled"/>
     </broadcaster>
-    <broadcaster id="devtoolsMenuBroadcaster_ErrorConsole"
-                 label="&errorConsoleCmd.label;"
-                 command="Tools:ErrorConsole"/>
-    <broadcaster id="devtoolsMenuBroadcaster_GetMoreTools"
-                 label="&getMoreDevtoolsCmd.label;"
-                 oncommand="openUILinkIn('https://addons.mozilla.org/firefox/collections/mozilla/webdeveloper/', 'tab');"/>
-    <broadcaster id="devtoolsMenuBroadcaster_connect"
-                 label="&devtoolsConnect.label;"
-                 command="Tools:DevToolsConnect"/>
   </broadcasterset>
 
   <keyset id="mainKeyset">
     <key id="key_newNavigator"
          key="&newNavigatorCmd.key;"
          command="cmd_newNavigator"
-         modifiers="accel"/>
-    <key id="key_newNavigatorTab" key="&tabCmd.commandkey;" modifiers="accel" command="cmd_newNavigatorTab"/>
+         modifiers="accel" reserved="true"/>
+    <key id="key_newNavigatorTab" key="&tabCmd.commandkey;" modifiers="accel"
+         command="cmd_newNavigatorTabNoEvent" reserved="true"/>
     <key id="focusURLBar" key="&openCmd.commandkey;" command="Browser:OpenLocation"
          modifiers="accel"/>
 #ifndef XP_MACOSX
@@ -291,36 +227,11 @@
     <key id="key_openDownloads" key="&downloads.commandkey;" command="Tools:Downloads" modifiers="accel"/>
 #endif
     <key id="key_openAddons" key="&addons.commandkey;" command="Tools:Addons" modifiers="accel,shift"/>
-    <key id="key_devToolboxMenuItemF12" keycode="&devToolsCmd.keycode;" keytext="&devToolsCmd.keytext;" command="Tools:DevToolbox"/>
-    <key id="key_browserConsole" key="&browserConsoleCmd.commandkey;" command="Tools:BrowserConsole" modifiers="accel,shift"/>
-    <key id="key_browserToolbox" key="&browserToolboxCmd.commandkey;" command="Tools:BrowserToolbox" modifiers="accel,alt,shift"/>
-    <key id="key_devToolbar" keycode="&devToolbar.keycode;" modifiers="shift"
-         keytext="&devToolbar.keytext;" command="Tools:DevToolbarFocus"/>
-    <key id="key_responsiveUI" key="&responsiveDesignTool.commandkey;" command="Tools:ResponsiveUI"
-#ifdef XP_MACOSX
-        modifiers="accel,alt"
-#else
-        modifiers="accel,shift"
-#endif
-    />
-    <key id="key_webide" keycode="&webide.keycode;" command="Tools:WebIDE"
-         modifiers="shift" keytext="&webide.keytext;"/>
-    <key id="key_devToolboxMenuItem" keytext="&devToolboxMenuItem.keytext;"
-         command="Tools:DevToolbox" key="&devToolboxMenuItem.keytext;"
-#ifdef XP_MACOSX
-        modifiers="accel,alt"
-#else
-        modifiers="accel,shift"
-#endif
-    />
-
-    <key id="key_scratchpad" keycode="&scratchpad.keycode;" modifiers="shift"
-         keytext="&scratchpad.keytext;" command="Tools:Scratchpad"/>
     <key id="openFileKb" key="&openFileCmd.commandkey;" command="Browser:OpenFile"  modifiers="accel"/>
     <key id="key_savePage" key="&savePageCmd.commandkey;" command="Browser:SavePage" modifiers="accel"/>
     <key id="printKb" key="&printCmd.commandkey;" command="cmd_print"  modifiers="accel"/>
-    <key id="key_close" key="&closeCmd.key;" command="cmd_close" modifiers="accel"/>
-    <key id="key_closeWindow" key="&closeCmd.key;" command="cmd_closeWindow" modifiers="accel,shift"/>
+    <key id="key_close" key="&closeCmd.key;" command="cmd_close" modifiers="accel" reserved="true"/>
+    <key id="key_closeWindow" key="&closeCmd.key;" command="cmd_closeWindow" modifiers="accel,shift" reserved="true"/>
     <key id="key_toggleMute" key="&toggleMuteCmd.key;" command="cmd_toggleMute" modifiers="control"/>
     <key id="key_undo"
          key="&undoCmd.key;"
@@ -366,9 +277,13 @@
     <key id="key_fullScreen_old" key="&fullScreenCmd.macCommandKey;" command="View:FullScreen" modifiers="accel,shift"/>
     <key keycode="VK_F11" command="View:FullScreen"/>
 #endif
+    <key id="key_toggleReaderMode" key="&toggleReaderMode.key;" command="View:ReaderView" modifiers="accel,alt" disabled="true"/>
     <key key="&reloadCmd.commandkey;" command="Browser:Reload" modifiers="accel" id="key_reload"/>
     <key key="&reloadCmd.commandkey;" command="Browser:ReloadSkipCache" modifiers="accel,shift"/>
     <key id="key_viewSource" key="&pageSourceCmd.commandkey;" command="View:PageSource" modifiers="accel"/>
+#ifdef XP_MACOSX
+    <key id="key_viewSourceSafari" key="&pageSourceCmd.SafariCommandKey;" command="View:PageSource" modifiers="accel,alt"/>
+#endif
 #ifndef XP_WIN
     <key id="key_viewInfo"   key="&pageInfoCmd.commandkey;"   command="View:PageInfo"   modifiers="accel"/>
 #endif
@@ -396,17 +311,6 @@
     <key id="viewBookmarksSidebarWinKb" key="&bookmarksWinCmd.commandkey;" command="viewBookmarksSidebar" modifiers="accel"/>
 #endif
 
-    <!--<key id="markPage" key="&markPageCmd.commandkey;" command="Social:TogglePageMark" modifiers="accel,shift"/>-->
-    <key id="focusChatBar" key="&social.chatBar.commandkey;" command="Chat:Focus"
-#ifdef XP_MACOSX
-# Sadly the devtools uses shift-accel-c on non-mac and alt-accel-c everywhere else
-# So we just use the other
-         modifiers="accel,shift"
-#else
-         modifiers="accel,alt"
-#endif
-    />
-
     <key id="key_stop" keycode="VK_ESCAPE" command="Browser:Stop"/>
 
 #ifdef XP_MACOSX
@@ -430,18 +334,29 @@
     <key id="key_fullZoomReset"   key="&fullZoomResetCmd.commandkey;"    command="cmd_fullZoomReset"   modifiers="accel"/>
     <key                          key="&fullZoomResetCmd.commandkey2;"   command="cmd_fullZoomReset"   modifiers="accel"/>
 
-    <key id="key_showAllTabs" command="Browser:ShowAllTabs" keycode="VK_TAB" modifiers="control,shift"/>
+    <key id="key_showAllTabs" command="Browser:ShowAllTabs" keycode="VK_TAB" modifiers="control,shift" disabled="true"/>
 
     <key id="key_switchTextDirection" key="&bidiSwitchTextDirectionItem.commandkey;" command="cmd_switchTextDirection" modifiers="accel,shift" />
 
-    <key id="key_privatebrowsing" command="Tools:PrivateBrowsing" key="&privateBrowsingCmd.commandkey;" modifiers="accel,shift"/>
+    <key id="key_privatebrowsing" command="Tools:PrivateBrowsing" key="&privateBrowsingCmd.commandkey;"
+         modifiers="accel,shift" reserved="true"/>
     <key id="key_sanitize" command="Tools:Sanitize" keycode="VK_DELETE" modifiers="accel,shift"/>
 #ifdef XP_MACOSX
     <key id="key_sanitize_mac" command="Tools:Sanitize" keycode="VK_BACK" modifiers="accel,shift"/>
-    <key id="key_quitApplication" key="&quitApplicationCmdUnix.key;" modifiers="accel"/>
-#elifdef XP_UNIX
-    <key id="key_quitApplication" key="&quitApplicationCmdUnix.key;" command="cmd_quitApplication" modifiers="accel"/>
 #endif
+    <key id="key_quitApplication" key="&quitApplicationCmd.key;"
+#ifdef XP_WIN
+         modifiers="accel,shift"
+#else
+         modifiers="accel"
+#endif
+# On OS X, dark voodoo magic invokes the quit code for this key.
+# So we're not adding the attribute on OSX because of backwards/add-on compat.
+# See bug 1369909 for background on this.
+#ifndef XP_MACOSX
+         command="cmd_quitApplication"
+#endif
+         reserved="true"/>
 
 #ifdef FULL_BROWSER_WINDOW
     <key id="key_undoCloseTab" command="History:UndoCloseTab" key="&tabCmd.commandkey;" modifiers="accel,shift"/>

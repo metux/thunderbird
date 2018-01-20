@@ -35,7 +35,6 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(DOMSVGNumber)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mList)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mParent)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(DOMSVGNumber)
   NS_IMPL_CYCLE_COLLECTION_TRACE_PRESERVED_WRAPPER
@@ -115,7 +114,8 @@ DOMSVGNumber::DOMSVGNumber(nsISupports* aParent)
 /* static */ already_AddRefed<DOMSVGNumber>
 DOMSVGNumber::Constructor(const dom::GlobalObject& aGlobal, ErrorResult& aRv)
 {
-  nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(aGlobal.GetAsSupports());
+  nsCOMPtr<nsPIDOMWindowInner> window =
+    do_QueryInterface(aGlobal.GetAsSupports());
   if (!window) {
     aRv.Throw(NS_ERROR_UNEXPECTED);
     return nullptr;
@@ -129,7 +129,8 @@ DOMSVGNumber::Constructor(const dom::GlobalObject& aGlobal, ErrorResult& aRv)
 DOMSVGNumber::Constructor(const dom::GlobalObject& aGlobal, float aValue,
                           ErrorResult& aRv)
 {
-  nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(aGlobal.GetAsSupports());
+  nsCOMPtr<nsPIDOMWindowInner> window =
+    do_QueryInterface(aGlobal.GetAsSupports());
   if (!window) {
     aRv.Throw(NS_ERROR_UNEXPECTED);
     return nullptr;

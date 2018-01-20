@@ -14,7 +14,6 @@ printStatus (summary);
  
 print('mmmm, food!');
 
-jit(true);
 
 var SNI = {};
 SNI.MetaData={};
@@ -54,8 +53,9 @@ var url=new SNI.Ads.Url();
 this.addParameter=url.addParameter;
 this.getParameter=url.getParameter;
 }
-function DartAd()
-AdUrl.prototype=new Ad();
+function DartAd() {
+  return AdUrl.prototype=new Ad();
+}
 function AdUrl() { }
 function AdRestriction() {
 var p=new SNI.MetaData.Parameter();
@@ -115,6 +115,5 @@ function FoodAd(adtype)
 var mdManager = new MetaDataManager() ;
   FoodAd('P')
 
-jit(false);
 
 reportCompare(expect, actual, summary);

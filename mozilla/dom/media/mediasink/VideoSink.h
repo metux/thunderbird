@@ -31,9 +31,8 @@ class VideoSink : public MediaSink
 public:
   VideoSink(AbstractThread* aThread,
             MediaSink* aAudioSink,
-            MediaQueue<MediaData>& aVideoQueue,
+            MediaQueue<VideoData>& aVideoQueue,
             VideoFrameContainer* aContainer,
-            bool aRealTime,
             FrameStatistics& aFrameStats,
             uint32_t aVQueueSentToCompositerSize);
 
@@ -43,9 +42,9 @@ public:
 
   RefPtr<GenericPromise> OnEnded(TrackType aType) override;
 
-  int64_t GetEndTime(TrackType aType) const override;
+  TimeUnit GetEndTime(TrackType aType) const override;
 
-  int64_t GetPosition(TimeStamp* aTimeStamp = nullptr) const override;
+  TimeUnit GetPosition(TimeStamp* aTimeStamp = nullptr) const override;
 
   bool HasUnplayedFrames(TrackType aType) const override;
 
@@ -57,9 +56,9 @@ public:
 
   void SetPlaying(bool aPlaying) override;
 
-  void Redraw() override;
+  void Redraw(const VideoInfo& aInfo) override;
 
-  void Start(int64_t aStartTime, const MediaInfo& aInfo) override;
+  void Start(const TimeUnit& aStartTime, const MediaInfo& aInfo) override;
 
   void Stop() override;
 
@@ -69,11 +68,14 @@ public:
 
   void Shutdown() override;
 
+  nsCString GetDebugInfo() override;
+
 private:
   virtual ~VideoSink();
 
   // VideoQueue listener related.
-  void OnVideoQueueEvent(RefPtr<MediaData>&& aSample);
+  void OnVideoQueuePushed(RefPtr<VideoData>&& aSample);
+  void OnVideoQueueFinished();
   void ConnectListener();
   void DisconnectListener();
 
@@ -97,26 +99,25 @@ private:
   void UpdateRenderedVideoFrames();
   void UpdateRenderedVideoFramesByTimer();
 
+  void MaybeResolveEndPromise();
+
   void AssertOwnerThread() const
   {
     MOZ_ASSERT(mOwnerThread->IsCurrentThreadIn());
   }
 
-  MediaQueue<MediaData>& VideoQueue() const {
+  MediaQueue<VideoData>& VideoQueue() const {
     return mVideoQueue;
   }
 
   const RefPtr<AbstractThread> mOwnerThread;
   RefPtr<MediaSink> mAudioSink;
-  MediaQueue<MediaData>& mVideoQueue;
+  MediaQueue<VideoData>& mVideoQueue;
   VideoFrameContainer* mContainer;
 
   // Producer ID to help ImageContainer distinguish different streams of
   // FrameIDs. A unique and immutable value per VideoSink.
   const ProducerID mProducerID;
-
-  // True if we are decoding a real-time stream.
-  const bool mRealTime;
 
   // Used to notify MediaDecoder's frame statistics
   FrameStatistics& mFrameStats;
@@ -125,12 +126,12 @@ private:
   MozPromiseHolder<GenericPromise> mEndPromiseHolder;
   MozPromiseRequestHolder<GenericPromise> mVideoSinkEndRequest;
 
-  // The presentation end time of the last video frame which has been displayed
-  // in microseconds.
-  int64_t mVideoFrameEndTime;
+  // The presentation end time of the last video frame which has been displayed.
+  TimeUnit mVideoFrameEndTime;
 
   // Event listeners for VideoQueue
   MediaEventListener mPushListener;
+  MediaEventListener mFinishListener;
 
   // True if this sink is going to handle video track.
   bool mHasVideo;
@@ -141,6 +142,15 @@ private:
   // Max frame number sent to compositor at a time.
   // Based on the pref value obtained in MDSM.
   const uint32_t mVideoQueueSendToCompositorSize;
+
+  // Talos tests for the compositor require at least one frame in the
+  // video queue so that the compositor has something to composit during
+  // the talos test when the decode is stressed. We have a minimum size
+  // on the video queue in order to facilitate this talos test.
+  // Note: Normal playback should not have a queue size of more than 0,
+  // otherwise A/V sync will be ruined! *Only* make this non-zero for
+  // testing purposes.
+  const uint32_t mMinVideoQueueSize;
 };
 
 } // namespace media

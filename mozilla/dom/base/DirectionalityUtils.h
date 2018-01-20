@@ -8,9 +8,9 @@
 #define DirectionalityUtils_h___
 
 #include "nscore.h"
+#include "nsStringFwd.h"
 
 class nsIContent;
-class nsAString;
 class nsAttrValue;
 class nsTextNode;
 
@@ -22,12 +22,25 @@ class Element;
 
 namespace mozilla {
 
-enum Directionality {
+enum Directionality : uint8_t {
   eDir_NotSet,
   eDir_RTL,
   eDir_LTR,
   eDir_Auto
 };
+
+/**
+ * Various methods for returning the directionality of a string using the
+ * first-strong algorithm defined in http://unicode.org/reports/tr9/#P2
+ *
+ * @param[out] aFirstStrong the offset to the first character in the string with
+ *             strong directionality, or UINT32_MAX if there is none (return
+               value is eDir_NotSet).
+ * @return the directionality of the string
+ */
+Directionality
+GetDirectionFromText(const char16_t* aText, const uint32_t aLength,
+                     uint32_t* aFirstStrong = nullptr);
 
 /**
  * Set the directionality of an element according to the algorithm defined at
@@ -89,14 +102,14 @@ bool TextNodeWillChangeDirection(nsIContent* aTextNode, Directionality* aOldDir,
  * After the contents of a text node have changed, change the directionality
  * of any elements whose directionality is determined by that node
  */
-void TextNodeChangedDirection(nsIContent* aTextNode, Directionality aOldDir,
+void TextNodeChangedDirection(nsTextNode* aTextNode, Directionality aOldDir,
                               bool aNotify);
 
 /**
  * When a text node is appended to an element, find any ancestors with dir=auto
  * whose directionality will be determined by the text node
  */
-void SetDirectionFromNewTextNode(nsIContent* aTextNode);
+void SetDirectionFromNewTextNode(nsTextNode* aTextNode);
 
 /**
  * When a text node is removed from a document, find any ancestors whose

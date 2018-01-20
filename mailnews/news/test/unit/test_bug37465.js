@@ -10,8 +10,7 @@ function run_test() {
 
   // Correct URI?
   let uri = Services.io.newURI("news://localhost:" + server.port +
-                                 "/1@regular.invalid",
-                               null, null);
+                                 "/1@regular.invalid");
   let newsUri = uri.QueryInterface(Ci.nsINntpUrl)
                    .QueryInterface(Ci.nsIMsgMailNewsUrl);
   do_check_eq(uri.port, server.port);
@@ -24,7 +23,7 @@ function run_test() {
                                                null,
                                                Services.scriptSecurityManager.getSystemPrincipal(),
                                                null,
-                                               Ci.nsILoadInfo.SEC_NORMAL,
+                                               Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
                                                Ci.nsIContentPolicy.TYPE_OTHER);
   channel.asyncOpen(articleTextListener, null);
 

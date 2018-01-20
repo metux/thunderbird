@@ -6,8 +6,32 @@
 
 #today-pane-panel:-moz-lwtheme > sidebarheader {
   text-shadow: none;
-  background-color: rgba(255, 255, 255, 0.3);
-  background-image: linear-gradient(rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0) 19px);
+  background-color: rgba(253, 253, 253, 0.45);
+}
+
+.today-pane-cycler,
+.today-pane-cycler .toolbarbutton-icon,
+.today-pane-cycler .toolbarbutton-text {
+  padding: 0;
+  margin: 0;
+  border-style: none;
+}
+
+.today-pane-cycler[dir="prev"],
+.today-pane-cycler[dir="next"]:-moz-locale-dir(rtl) {
+  list-style-image: url("chrome://calendar/skin/spin-buttons.png");
+  -moz-image-region: rect(0 15px 16px 0);
+}
+
+.today-pane-cycler[dir="next"],
+.today-pane-cycler[dir="prev"]:-moz-locale-dir(rtl) {
+  list-style-image: url("chrome://calendar/skin/spin-buttons.png");
+  -moz-image-region: rect(0 31px 16px 15px);
+  margin-inline-end: 4px;
+}
+
+.today-pane-cycler:active {
+  list-style-image: url("chrome://calendar/skin/spin-buttons-active.png");
 }
 
 .miniday-nav-buttons {
@@ -17,14 +41,6 @@
 #previous-day-button:-moz-locale-dir(ltr),
 #next-day-button:-moz-locale-dir(rtl) {
   transform: scaleX(-1);
-}
-
-.today-closebutton {
-  list-style-image: url("chrome://global/skin/icons/close.png");
-}
-
-.today-closebutton:not([selected]):not(:hover):-moz-lwtheme-brighttext {
-  -moz-image-region: rect(0 64px 16px 48px);
 }
 
 .today-closebutton > .toolbarbutton-text {
@@ -52,12 +68,6 @@
   box-shadow: inset 0 1px 0 hsla(0, 0%, 100%, .4);
 }
 
-@media not all and (-moz-mac-yosemite-theme) {
-  #todaypane-new-event-button {
-    list-style-image: url(chrome://calendar-common/skin/calendar-toolbar.svg#newevent);
-  }
-}
-
 @media (-moz-mac-yosemite-theme) {
   #today-pane-panel {
     border-top: solid 1px rgba(0, 0, 0, 0.37);
@@ -75,10 +85,6 @@
   #agenda-toolbar:-moz-window-inactive {
     background-color: hsl(0, 0%, 97%);
   }
-
-  #todaypane-new-event-button {
-    list-style-image: url(chrome://calendar-common/skin/calendar-toolbar.svg#newevent-flat);
-  }
 }
 
 #todaypane-new-event-button[disabled="true"] > .toolbarbutton-icon {
@@ -86,13 +92,7 @@
 }
 
 #todaypane-new-event-button > .toolbarbutton-text {
-  -moz-margin-start: 0px;
-}
-
-#todaypane-new-event-button > .toolbarbutton-icon {
-  width: 18px;
-  height: 18px;
-  margin: -1px;
+  margin-inline-start: 0px;
 }
 
 #agenda-listbox {

@@ -53,7 +53,7 @@ const Prefs = new Preferences("services.common.rest.");
  */
 
 this.HAWKAuthenticatedRESTRequest =
- function HawkAuthenticatedRESTRequest(uri, credentials, extra={}) {
+ function HawkAuthenticatedRESTRequest(uri, credentials, extra = {}) {
   RESTRequest.call(this, uri);
 
   this.credentials = credentials;
@@ -79,7 +79,7 @@ HAWKAuthenticatedRESTRequest.prototype = {
         localtimeOffsetMsec: this.localtimeOffsetMsec,
         credentials: this.credentials,
         payload: data && JSON.stringify(data) || "",
-        contentType: contentType,
+        contentType,
       };
       let header = CryptoUtils.computeHAWK(this.uri, method, options);
       this.setHeader("Authorization", header.field);
@@ -141,7 +141,7 @@ this.deriveHawkCredentials = function deriveHawkCredentials(tokenHex,
   }
 
   return result;
-}
+};
 
 // With hawk request, we send the user's accepted-languages with each request.
 // To keep the number of times we read this pref at a minimum, maintain the
@@ -157,25 +157,25 @@ this.Intl = function Intl() {
 };
 
 this.Intl.prototype = {
-  init: function() {
-    Services.prefs.addObserver("intl.accept_languages", this, false);
+  init() {
+    Services.prefs.addObserver("intl.accept_languages", this);
   },
 
-  uninit: function() {
+  uninit() {
     Services.prefs.removeObserver("intl.accept_languages", this);
   },
 
-  observe: function(subject, topic, data) {
+  observe(subject, topic, data) {
     this.readPref();
   },
 
-  readPref: function() {
+  readPref() {
     this._everRead = true;
     try {
       this._accepted = Services.prefs.getComplexValue(
         "intl.accept_languages", Ci.nsIPrefLocalizedString).data;
     } catch (err) {
-      this._log.error("Error reading intl.accept_languages pref: " + CommonUtils.exceptionStr(err));
+      this._log.error("Error reading intl.accept_languages pref", err);
     }
   },
 
@@ -195,4 +195,3 @@ function getIntl() {
   }
   return intl;
 }
-

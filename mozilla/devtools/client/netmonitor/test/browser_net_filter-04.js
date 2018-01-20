@@ -1,6 +1,8 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
+"use strict";
+
 /**
  * Tests if invalid filter types are sanitized when loaded from the preferences.
  */
@@ -22,38 +24,44 @@ const REQUESTS_WITH_MEDIA_AND_FLASH = REQUESTS_WITH_MEDIA.concat([
   { url: "sjs_content-type-test-server.sjs?fmt=flash" },
 ]);
 
-function test() {
-  Services.prefs.setCharPref("devtools.netmonitor.filters", '["js", "bogus"]');
+const REQUESTS_WITH_MEDIA_AND_FLASH_AND_WS = REQUESTS_WITH_MEDIA_AND_FLASH.concat([
+  /* "Upgrade" is a reserved header and can not be set on XMLHttpRequest */
+  { url: "sjs_content-type-test-server.sjs?fmt=ws" },
+]);
 
-  initNetMonitor(FILTERING_URL).then(([aTab, aDebuggee, aMonitor]) => {
-    info("Starting test... ");
+add_task(function* () {
+  Services.prefs.setCharPref("devtools.netmonitor.filters",
+                             '["bogus", "js", "alsobogus"]');
 
-    let { Prefs, NetMonitorView } = aMonitor.panelWin;
-    let { RequestsMenu } = NetMonitorView;
+  let { monitor } = yield initNetMonitor(FILTERING_URL);
+  info("Starting test... ");
 
-    RequestsMenu.lazyUpdate = false;
+  let { document, store, windowRequire } = monitor.panelWin;
+  let Actions = windowRequire("devtools/client/netmonitor/src/actions/index");
+  let { Prefs } = windowRequire("devtools/client/netmonitor/src/utils/prefs");
 
-    is(Prefs.filters.length, 2,
-      "All filter types were loaded as an array from the preferences.");
-    is(Prefs.filters[0], "js",
-      "The first filter type is correct.");
-    is(Prefs.filters[1], "bogus",
-      "The second filter type is invalid, but loaded anyway.");
+  store.dispatch(Actions.batchEnable(false));
 
-    waitForNetworkEvents(aMonitor, 8).then(() => {
-      testFilterButtons(aMonitor, "js");
-      ok(true, "Only the correct filter type was taken into consideration.");
+  is(Prefs.filters.length, 3,
+    "All the filter types should be loaded.");
+  is(Prefs.filters[0], "bogus",
+    "The first filter type is invalid, but loaded anyway.");
 
-      teardown(aMonitor).then(() => {
-        let filters = Services.prefs.getCharPref("devtools.netmonitor.filters");
-        is(filters, '["js"]',
-          "The bogus filter type was ignored and removed from the preferences.");
+  let wait = waitForNetworkEvents(monitor, 9);
+  loadCommonFrameScript();
+  yield performRequestsInContent(REQUESTS_WITH_MEDIA_AND_FLASH_AND_WS);
+  yield wait;
 
-        finish();
-      });
-    });
+  testFilterButtons(monitor, "js");
+  ok(true, "Only the correct filter type was taken into consideration.");
 
-    loadCommonFrameScript();
-    performRequestsInContent(REQUESTS_WITH_MEDIA_AND_FLASH);
-  });
-}
+  EventUtils.sendMouseEvent({ type: "click" },
+    document.querySelector(".requests-list-filter-html-button"));
+
+  let filters = Services.prefs.getCharPref("devtools.netmonitor.filters");
+  is(filters, '["html","js"]',
+    "The filters preferences were saved directly after the click and only" +
+    " with the valid.");
+
+  yield teardown(monitor);
+});

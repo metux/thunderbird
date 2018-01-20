@@ -8,11 +8,11 @@
 #define __FFmpegDataDecoder_h__
 
 #include "PlatformDecoderModule.h"
-#include "FFmpegLibs.h"
+#include "FFmpegLibWrapper.h"
 #include "mozilla/StaticMutex.h"
+#include "FFmpegLibs.h"
 
-namespace mozilla
-{
+namespace mozilla {
 
 template <int V>
 class FFmpegDataDecoder : public MediaDataDecoder
@@ -23,49 +23,54 @@ template <>
 class FFmpegDataDecoder<LIBAV_VER> : public MediaDataDecoder
 {
 public:
-  FFmpegDataDecoder(FlushableTaskQueue* aTaskQueue,
-                    MediaDataDecoderCallback* aCallback,
+  FFmpegDataDecoder(FFmpegLibWrapper* aLib, TaskQueue* aTaskQueue,
                     AVCodecID aCodecID);
   virtual ~FFmpegDataDecoder();
 
   static bool Link();
 
   RefPtr<InitPromise> Init() override = 0;
-  nsresult Input(MediaRawData* aSample) override = 0;
-  nsresult Flush() override;
-  nsresult Drain() override;
-  nsresult Shutdown() override;
+  RefPtr<DecodePromise> Decode(MediaRawData* aSample) override;
+  RefPtr<DecodePromise> Drain() override;
+  RefPtr<FlushPromise> Flush() override;
+  RefPtr<ShutdownPromise> Shutdown() override;
 
-  static AVCodec* FindAVCodec(AVCodecID aCodec);
+  static AVCodec* FindAVCodec(FFmpegLibWrapper* aLib, AVCodecID aCodec);
 
 protected:
   // Flush and Drain operation, always run
-  virtual void ProcessFlush();
-  virtual void ProcessDrain() = 0;
+  virtual RefPtr<FlushPromise> ProcessFlush();
   virtual void ProcessShutdown();
-  AVFrame*        PrepareFrame();
-  nsresult        InitDecoder();
+  virtual void InitCodecContext() { }
+  AVFrame* PrepareFrame();
+  MediaResult InitDecoder();
+  MediaResult DoDecode(MediaRawData* aSample,
+                       bool* aGotFrame,
+                       DecodedData& aOutResults);
 
-  RefPtr<FlushableTaskQueue> mTaskQueue;
-  MediaDataDecoderCallback* mCallback;
+  FFmpegLibWrapper* mLib;
 
   AVCodecContext* mCodecContext;
-  AVFrame*        mFrame;
+  AVCodecParserContext* mCodecParser;
+  AVFrame* mFrame;
   RefPtr<MediaByteBuffer> mExtraData;
   AVCodecID mCodecID;
 
-  // For wait on mIsFlushing during Shutdown() process.
-  // Protects mReorderQueue.
-  Monitor mMonitor;
-  // Set on reader/decode thread calling Flush() to indicate that output is
-  // not required and so input samples on mTaskQueue need not be processed.
-  // Cleared on mTaskQueue in ProcessDrain().
-  Atomic<bool> mIsFlushing;
-  AVCodecParserContext* mCodecParser;
-
 private:
-  static bool sFFmpegInitDone;
+  RefPtr<DecodePromise> ProcessDecode(MediaRawData* aSample);
+  RefPtr<DecodePromise> ProcessDrain();
+  virtual MediaResult DoDecode(MediaRawData* aSample,
+                               uint8_t* aData,
+                               int aSize,
+                               bool* aGotFrame,
+                               MediaDataDecoder::DecodedData& aOutResults) = 0;
+  virtual bool NeedParser() const { return false; }
+  virtual int ParserFlags() const { return PARSER_FLAG_COMPLETE_FRAMES; }
+
   static StaticMutex sMonitor;
+  const RefPtr<TaskQueue> mTaskQueue;
+  MozPromiseHolder<DecodePromise> mPromise;
+  media::TimeUnit mLastInputDts;
 };
 
 } // namespace mozilla

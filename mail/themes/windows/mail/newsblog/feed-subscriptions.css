@@ -27,13 +27,20 @@
   height: 2.3em;
 }
 
-#autotagPrefix {
-  width: 300px;
+@media not all and (-moz-windows-default-theme) {
+  #rssFeedInfoBox row,
+  #statusContainerBox {
+    height: 2.4em;
+  }
 }
 
-treechildren::-moz-tree-image(folderNameCol, isFeed-true) {
-  list-style-image: url("chrome://messenger-newsblog/skin/icons/rss-feed.png");
-  -moz-image-region: rect(32px 16px 48px 0);
-  width: 16px;
-  height: 16px;
+#autotagPrefix {
+  width: 35ch;
+}
+
+#nameValue,
+#locationValue,
+#selectFolderValue {
+  padding-top: 0;
+  padding-bottom: 1px;
 }

@@ -11,8 +11,11 @@
 #include "mozilla/net/NeckoChild.h"
 #include "mozilla/StaticPtr.h"
 #include "nsISupportsPrimitives.h"
+#include "nsIObserverService.h"
 #include "nsXULAppAPI.h"
 #include "nsSocketTransportService2.h"
+#include "nsThreadUtils.h"
+#include "mozilla/Services.h"
 
 namespace mozilla {
 namespace net {
@@ -29,12 +32,12 @@ IsChildProcess()
 
 } // anonymous namespace
 
-class WebSocketBaseRunnable : public nsRunnable
+class WebSocketBaseRunnable : public Runnable
 {
 public:
-  WebSocketBaseRunnable(uint32_t aWebSocketSerialID,
-                        uint64_t aInnerWindowID)
-    : mWebSocketSerialID(aWebSocketSerialID)
+  WebSocketBaseRunnable(uint32_t aWebSocketSerialID, uint64_t aInnerWindowID)
+    : Runnable("net::WebSocketBaseRunnable")
+    , mWebSocketSerialID(aWebSocketSerialID)
     , mInnerWindowID(aInnerWindowID)
   {}
 
@@ -80,15 +83,14 @@ public:
 private:
   virtual void DoWork(nsIWebSocketEventListener* aListener) override
   {
-    nsresult rv;
-
+    DebugOnly<nsresult> rv;
     if (mFrameSent) {
       rv = aListener->FrameSent(mWebSocketSerialID, mFrame);
     } else {
       rv = aListener->FrameReceived(mWebSocketSerialID, mFrame);
     }
 
-    NS_WARN_IF(NS_FAILED(rv));
+    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "Frame op failed");
   }
 
   RefPtr<WebSocketFrame> mFrame;
@@ -110,9 +112,9 @@ public:
 private:
   virtual void DoWork(nsIWebSocketEventListener* aListener) override
   {
-    nsresult rv = aListener->WebSocketCreated(mWebSocketSerialID,
-                                             mURI, mProtocols);
-    NS_WARN_IF(NS_FAILED(rv));
+    DebugOnly<nsresult> rv =
+      aListener->WebSocketCreated(mWebSocketSerialID, mURI, mProtocols);
+    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "WebSocketCreated failed");
   }
 
   const nsString mURI;
@@ -136,11 +138,11 @@ public:
 private:
   virtual void DoWork(nsIWebSocketEventListener* aListener) override
   {
-    nsresult rv = aListener->WebSocketOpened(mWebSocketSerialID,
-                                             mEffectiveURI,
-                                             mProtocols,
-                                             mExtensions);
-    NS_WARN_IF(NS_FAILED(rv));
+    DebugOnly<nsresult> rv = aListener->WebSocketOpened(mWebSocketSerialID,
+                                                        mEffectiveURI,
+                                                        mProtocols,
+                                                        mExtensions);
+    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "WebSocketOpened failed");
   }
 
   const nsString mEffectiveURI;
@@ -163,9 +165,10 @@ public:
 private:
   virtual void DoWork(nsIWebSocketEventListener* aListener) override
   {
-    nsresult rv = aListener->WebSocketMessageAvailable(mWebSocketSerialID,
-                                                       mData, mMessageType);
-    NS_WARN_IF(NS_FAILED(rv));
+    DebugOnly<nsresult> rv =
+      aListener->WebSocketMessageAvailable(mWebSocketSerialID, mData,
+                                           mMessageType);
+    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "WebSocketMessageAvailable failed");
   }
 
   const nsCString mData;
@@ -189,15 +192,23 @@ public:
 private:
   virtual void DoWork(nsIWebSocketEventListener* aListener) override
   {
-    nsresult rv = aListener->WebSocketClosed(mWebSocketSerialID,
-                                             mWasClean, mCode, mReason);
-    NS_WARN_IF(NS_FAILED(rv));
+    DebugOnly<nsresult> rv =
+      aListener->WebSocketClosed(mWebSocketSerialID, mWasClean, mCode, mReason);
+    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "WebSocketClosed failed");
   }
 
   bool mWasClean;
   uint16_t mCode;
   const nsString mReason;
 };
+
+/* static */ already_AddRefed<WebSocketEventService>
+WebSocketEventService::Get()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  RefPtr<WebSocketEventService> service = gWebSocketEventService.get();
+  return service.forget();
+}
 
 /* static */ already_AddRefed<WebSocketEventService>
 WebSocketEventService::GetOrCreate()
@@ -242,7 +253,8 @@ void
 WebSocketEventService::WebSocketCreated(uint32_t aWebSocketSerialID,
                                         uint64_t aInnerWindowID,
                                         const nsAString& aURI,
-                                        const nsACString& aProtocols)
+                                        const nsACString& aProtocols,
+                                        nsIEventTarget* aTarget)
 {
   // Let's continue only if we have some listeners.
   if (!HasListeners()) {
@@ -252,8 +264,10 @@ WebSocketEventService::WebSocketCreated(uint32_t aWebSocketSerialID,
   RefPtr<WebSocketCreatedRunnable> runnable =
     new WebSocketCreatedRunnable(aWebSocketSerialID, aInnerWindowID,
                                  aURI, aProtocols);
-  nsresult rv = NS_DispatchToMainThread(runnable);
-  NS_WARN_IF(NS_FAILED(rv));
+  DebugOnly<nsresult> rv = aTarget
+    ? aTarget->Dispatch(runnable, NS_DISPATCH_NORMAL)
+    : NS_DispatchToMainThread(runnable);
+  NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "NS_DispatchToMainThread failed");
 }
 
 void
@@ -261,7 +275,8 @@ WebSocketEventService::WebSocketOpened(uint32_t aWebSocketSerialID,
                                        uint64_t aInnerWindowID,
                                        const nsAString& aEffectiveURI,
                                        const nsACString& aProtocols,
-                                       const nsACString& aExtensions)
+                                       const nsACString& aExtensions,
+                                       nsIEventTarget* aTarget)
 {
   // Let's continue only if we have some listeners.
   if (!HasListeners()) {
@@ -271,15 +286,18 @@ WebSocketEventService::WebSocketOpened(uint32_t aWebSocketSerialID,
   RefPtr<WebSocketOpenedRunnable> runnable =
     new WebSocketOpenedRunnable(aWebSocketSerialID, aInnerWindowID,
                                 aEffectiveURI, aProtocols, aExtensions);
-  nsresult rv = NS_DispatchToMainThread(runnable);
-  NS_WARN_IF(NS_FAILED(rv));
+  DebugOnly<nsresult> rv = aTarget
+    ? aTarget->Dispatch(runnable, NS_DISPATCH_NORMAL)
+    : NS_DispatchToMainThread(runnable);
+  NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "NS_DispatchToMainThread failed");
 }
 
 void
 WebSocketEventService::WebSocketMessageAvailable(uint32_t aWebSocketSerialID,
                                                  uint64_t aInnerWindowID,
                                                  const nsACString& aData,
-                                                 uint16_t aMessageType)
+                                                 uint16_t aMessageType,
+                                                 nsIEventTarget* aTarget)
 {
   // Let's continue only if we have some listeners.
   if (!HasListeners()) {
@@ -289,8 +307,10 @@ WebSocketEventService::WebSocketMessageAvailable(uint32_t aWebSocketSerialID,
   RefPtr<WebSocketMessageAvailableRunnable> runnable =
     new WebSocketMessageAvailableRunnable(aWebSocketSerialID, aInnerWindowID,
                                           aData, aMessageType);
-  nsresult rv = NS_DispatchToMainThread(runnable);
-  NS_WARN_IF(NS_FAILED(rv));
+  DebugOnly<nsresult> rv = aTarget
+    ? aTarget->Dispatch(runnable, NS_DISPATCH_NORMAL)
+    : NS_DispatchToMainThread(runnable);
+  NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "NS_DispatchToMainThread failed");
 }
 
 void
@@ -298,7 +318,8 @@ WebSocketEventService::WebSocketClosed(uint32_t aWebSocketSerialID,
                                        uint64_t aInnerWindowID,
                                        bool aWasClean,
                                        uint16_t aCode,
-                                       const nsAString& aReason)
+                                       const nsAString& aReason,
+                                       nsIEventTarget* aTarget)
 {
   // Let's continue only if we have some listeners.
   if (!HasListeners()) {
@@ -308,14 +329,17 @@ WebSocketEventService::WebSocketClosed(uint32_t aWebSocketSerialID,
   RefPtr<WebSocketClosedRunnable> runnable =
     new WebSocketClosedRunnable(aWebSocketSerialID, aInnerWindowID,
                                 aWasClean, aCode, aReason);
-  nsresult rv = NS_DispatchToMainThread(runnable);
-  NS_WARN_IF(NS_FAILED(rv));
+  DebugOnly<nsresult> rv = aTarget
+    ? aTarget->Dispatch(runnable, NS_DISPATCH_NORMAL)
+    : NS_DispatchToMainThread(runnable);
+  NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "NS_DispatchToMainThread failed");
 }
 
 void
 WebSocketEventService::FrameReceived(uint32_t aWebSocketSerialID,
                                      uint64_t aInnerWindowID,
-                                     already_AddRefed<WebSocketFrame> aFrame)
+                                     already_AddRefed<WebSocketFrame> aFrame,
+                                     nsIEventTarget* aTarget)
 {
   RefPtr<WebSocketFrame> frame(Move(aFrame));
   MOZ_ASSERT(frame);
@@ -328,14 +352,17 @@ WebSocketEventService::FrameReceived(uint32_t aWebSocketSerialID,
   RefPtr<WebSocketFrameRunnable> runnable =
     new WebSocketFrameRunnable(aWebSocketSerialID, aInnerWindowID,
                                frame.forget(), false /* frameSent */);
-  nsresult rv = NS_DispatchToMainThread(runnable);
-  NS_WARN_IF(NS_FAILED(rv));
+  DebugOnly<nsresult> rv = aTarget
+    ? aTarget->Dispatch(runnable, NS_DISPATCH_NORMAL)
+    : NS_DispatchToMainThread(runnable);
+  NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "NS_DispatchToMainThread failed");
 }
 
 void
 WebSocketEventService::FrameSent(uint32_t aWebSocketSerialID,
                                  uint64_t aInnerWindowID,
-                                 already_AddRefed<WebSocketFrame> aFrame)
+                                 already_AddRefed<WebSocketFrame> aFrame,
+                                 nsIEventTarget* aTarget)
 {
   RefPtr<WebSocketFrame> frame(Move(aFrame));
   MOZ_ASSERT(frame);
@@ -349,8 +376,10 @@ WebSocketEventService::FrameSent(uint32_t aWebSocketSerialID,
     new WebSocketFrameRunnable(aWebSocketSerialID, aInnerWindowID,
                                frame.forget(), true /* frameSent */);
 
-  nsresult rv = NS_DispatchToMainThread(runnable);
-  NS_WARN_IF(NS_FAILED(rv));
+  DebugOnly<nsresult> rv = aTarget
+    ? aTarget->Dispatch(runnable, NS_DISPATCH_NORMAL)
+    : NS_DispatchToMainThread(runnable);
+  NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "NS_DispatchToMainThread failed");
 }
 
 NS_IMETHODIMP
@@ -415,6 +444,17 @@ WebSocketEventService::RemoveListener(uint64_t aInnerWindowID,
 
   MOZ_ASSERT(mCountListeners);
   --mCountListeners;
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+WebSocketEventService::HasListenerFor(uint64_t aInnerWindowID,
+                                      bool* aResult)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  *aResult = mWindows.Get(aInnerWindowID);
 
   return NS_OK;
 }

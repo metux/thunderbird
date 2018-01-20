@@ -12,7 +12,7 @@ var BinaryOutputStream = CC("@mozilla.org/binaryoutputstream;1",
                             "setOutputStream");
 
 Cu.import("resource://testing-common/httpd.js");
-Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/NetUtil.jsm");
 
 var httpserver = new HttpServer();
 
@@ -46,40 +46,34 @@ const tests = [
 
 // A basic listener that reads checks the if we sniffed properly.
 var listener = {
-  onStartRequest: function(request, context) {
+  onStartRequest(request, context) {
     do_print("Sniffing " + tests[testRan].path);
     do_check_eq(request.QueryInterface(Ci.nsIChannel).contentType, tests[testRan].expected);
   },
 
-  onDataAvailable: function(request, context, stream, offset, count) {
+  onDataAvailable(request, context, stream, offset, count) {
     try {
       var bis = Components.classes["@mozilla.org/binaryinputstream;1"]
                           .createInstance(Components.interfaces.nsIBinaryInputStream);
       bis.setInputStream(stream);
-      var array = bis.readByteArray(bis.available());
+      bis.readByteArray(bis.available());
     } catch (ex) {
       do_throw("Error in onDataAvailable: " + ex);
     }
   },
 
-  onStopRequest: function(request, context, status) {
+  onStopRequest(request, context, status) {
     testRan++;
     runNext();
   }
 };
 
 function setupChannel(url) {
-  var ios = Components.classes["@mozilla.org/network/io-service;1"].
-                       getService(Ci.nsIIOService);
-  var chan = ios.newChannel2("http://localhost:" +
-                             httpserver.identity.primaryPort + url,
-                             "",
-                             null,
-                             null,      // aLoadingNode
-                             Services.scriptSecurityManager.getSystemPrincipal(),
-                             null,      // aTriggeringPrincipal
-                             Ci.nsILoadInfo.SEC_NORMAL,
-                             Ci.nsIContentPolicy.TYPE_MEDIA);
+  var chan = NetUtil.newChannel({
+    uri: "http://localhost:" + httpserver.identity.primaryPort + url,
+    loadUsingSystemPrincipal: true,
+    contentPolicyType: Ci.nsIContentPolicy.TYPE_MEDIA
+  });
   var httpChan = chan.QueryInterface(Components.interfaces.nsIHttpChannel);
   return httpChan;
 }
@@ -90,11 +84,10 @@ function runNext() {
     return;
   }
   var channel = setupChannel("/");
-  channel.asyncOpen(listener, channel, null);
+  channel.asyncOpen2(listener);
 }
 
 function getFileContents(aFile) {
-  const PR_RDONLY = 0x01;
   var fileStream = Cc["@mozilla.org/network/file-input-stream;1"]
                       .createInstance(Ci.nsIFileInputStream);
   fileStream.init(aFile, 1, -1, null);

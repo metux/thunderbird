@@ -147,17 +147,6 @@ var gFolderTreeView = {
       // This is ok.  If we've already migrated we'll end up here
     }
 
-    if (document.getElementById('folderpane-title')) {
-      let string;
-        if (this.mode in this._modeDisplayNames)
-          string = this._modeDisplayNames[this.mode];
-        else {
-          let key = "folderPaneModeHeader_" + this.mode;
-          string = this.messengerBundle.getString(key);
-        }
-      document.getElementById('folderpane-title').value = string;
-    }
-
     if (aJSONFile) {
       // Parse our persistent-open-state json file
       let data = IOUtils.loadFileToString(aJSONFile);
@@ -174,6 +163,7 @@ var gFolderTreeView = {
 
     // Load our data
     this._updateCompactState(this.mode);
+    this._selectModeInSelector(this.mode);
     this._rebuild();
     // And actually draw the tree
     aTree.view = this;
@@ -417,15 +407,7 @@ var gFolderTreeView = {
     this._mode = aMode;
     this._updateCompactState(this._mode);
 
-    // Accept the mode and set up labels.
-    let string;
-    if (this._mode in this._modeDisplayNames)
-      string = this._modeDisplayNames[this._mode];
-    else {
-      let key = "folderPaneModeHeader_" + this._mode;
-      string = gFolderTreeView.messengerBundle.getString(key);
-    }
-    document.getElementById('folderpane-title').value = string;
+    this._selectModeInSelector(this._mode);
 
     // Store current mode and actually build the folder pane.
     this._treeElement.setAttribute("mode", this._mode);
@@ -461,6 +443,59 @@ var gFolderTreeView = {
     return this.baseMode(aMode) + (aCompact ? "_compact" : "");
   },
 
+  _initFolderModeSelector: function() {
+    // Populate the mode selector menulist on the toolbar.
+    let fullModes = [];
+    let compactModes = [];
+    for (let mode of this._modeNames) {
+      let array = mode.endsWith("_compact") ? compactModes : fullModes;
+      array.push(mode);
+    }
+
+    let modeSelector = document.getElementById("folderpane-mode-selector").firstChild;
+    // Can't use modeSelector.removeAllItems() here as it would remove the menupopup too, with its attributes.
+    while (modeSelector.menupopup.hasChildNodes())
+      modeSelector.menupopup.lastChild.remove();
+
+    let currentMode = this.mode;
+    let parent = this;
+
+    function appendMode(aMode) {
+      let name;
+      if (aMode in parent._modeDisplayNames) {
+        name = parent._modeDisplayNames[aMode];
+      } else {
+        let key = "folderPaneModeHeader_" + aMode;
+        name = parent.messengerBundle.getString(key);
+      }
+      let item = modeSelector.appendItem(name, aMode);
+      item.setAttribute("type", "radio");
+      if (aMode == currentMode)
+        item.setAttribute("checked", "true");
+      else
+        item.setAttribute("checked", "false");
+    }
+
+    for (let mode of fullModes)
+      appendMode(mode);
+
+    if ((fullModes.length > 0) && (compactModes.length > 0))
+      modeSelector.menupopup.appendChild(document.createElement("menuseparator"));
+
+    for (let mode of compactModes)
+      appendMode(mode);
+  },
+
+  _selectModeInSelector: function(aMode) {
+    // Show the mode in the mode selector, if it is on a toolbar.
+    let modeSelector = document.getElementById("folderpane-mode-selector");
+    if (modeSelector) {
+      if (!modeSelector.querySelector('[value="' + aMode + '"]'))
+        this._initFolderModeSelector();
+      modeSelector.firstChild.value = aMode;
+    }
+  },
+
   /**
    * Selects a given nsIMsgFolder in the tree.  This function will also ensure
    * that the folder is actually being displayed (that is, that none of its
@@ -473,7 +508,7 @@ var gFolderTreeView = {
    * @returns true if the folder selection was successful, false if it failed
    *     (probably because the folder isn't in the view at all)
    */
-  selectFolder: function ftv_selectFolder(aFolder, aForceSelect) {
+  selectFolder: function ftv_selectFolder(aFolder, aForceSelect = false) {
     // "this" inside the nested function refers to the function...
     // Also note that openIfNot is recursive.
     let tree = this;
@@ -638,8 +673,8 @@ var gFolderTreeView = {
     if (!targetFolder)
       return false;
     let dt = this._currentTransfer;
-    let types = dt.mozTypesAt(0);
-    if (Array.indexOf(types, "text/x-moz-message") != -1) {
+    let types = Array.from(dt.mozTypesAt(0));
+    if (types.includes("text/x-moz-message")) {
       if (aOrientation != Ci.nsITreeView.DROP_ON)
         return false;
       // Don't allow drop onto server itself.
@@ -657,7 +692,7 @@ var gFolderTreeView = {
       }
       return true;
     }
-    else if (Array.indexOf(types, "text/x-moz-folder") != -1) {
+    else if (types.includes("text/x-moz-folder")) {
       if (aOrientation != Ci.nsITreeView.DROP_ON)
         return false;
       // If cannot create subfolders then don't allow drop here.
@@ -691,7 +726,7 @@ var gFolderTreeView = {
       }
       return true;
     }
-    else if (Array.indexOf(types, "text/x-moz-newsfolder") != -1) {
+    else if (types.includes("text/x-moz-newsfolder")) {
       // Don't allow dragging onto element.
       if (aOrientation == Ci.nsITreeView.DROP_ON)
         return false;
@@ -719,7 +754,7 @@ var gFolderTreeView = {
     // Allow subscribing to feeds by dragging an url to a feed account.
     else if (targetFolder.server.type == "rss" && dt.mozItemCount == 1)
       return FeedUtils.getFeedUriFromDataTransfer(dt) ? true : false;
-    else if (Array.indexOf(types, "application/x-moz-file") != -1) {
+    else if (types.includes("application/x-moz-file")) {
       if (aOrientation != Ci.nsITreeView.DROP_ON)
         return false;
       // Don't allow drop onto server itself.
@@ -730,7 +765,7 @@ var gFolderTreeView = {
         return false;
       for (let i = 0; i < dt.mozItemCount; i++) {
         let extFile = dt.mozGetDataAt("application/x-moz-file", i)
-                        .QueryInterface(Ci.nsILocalFile);
+                        .QueryInterface(Ci.nsIFile);
         return extFile.isFile();
       }
     }
@@ -751,8 +786,8 @@ var gFolderTreeView = {
                     FeedUtils.getFeedUriFromDataTransfer(dt) : null;
 
     // we only support drag of a single flavor at a time.
-    let types = dt.mozTypesAt(0);
-    if (Array.indexOf(types, "text/x-moz-folder") != -1) {
+    let types = Array.from(dt.mozTypesAt(0));
+    if (types.includes("text/x-moz-folder")) {
       for (let i = 0; i < count; i++) {
         let folders = new Array;
         folders.push(dt.mozGetDataAt("text/x-moz-folder", i)
@@ -763,7 +798,7 @@ var gFolderTreeView = {
                        msgWindow);
       }
     }
-    else if (Array.indexOf(types, "text/x-moz-newsfolder") != -1) {
+    else if (types.includes("text/x-moz-newsfolder")) {
       // Start by getting folders into order.
       let folders = new Array;
       for (let i = 0; i < count; i++) {
@@ -785,7 +820,7 @@ var gFolderTreeView = {
         i -= aOrientation;
       }
     }
-    else if (Array.indexOf(types, "text/x-moz-message") != -1) {
+    else if (types.includes("text/x-moz-message")) {
       let array = Cc["@mozilla.org/array;1"]
                     .createInstance(Ci.nsIMutableArray);
       let sourceFolder;
@@ -794,7 +829,7 @@ var gFolderTreeView = {
         let msgHdr = messenger.msgHdrFromURI(dt.mozGetDataAt("text/x-moz-message", i));
         if (!i)
           sourceFolder = msgHdr.folder;
-        array.appendElement(msgHdr, false);
+        array.appendElement(msgHdr);
       }
       let prefBranch = Services.prefs.getBranch("mail.");
       let isMove = Cc["@mozilla.org/widget/dragservice;1"]
@@ -815,10 +850,10 @@ var gFolderTreeView = {
          .getService(Ci.nsINewsBlogFeedDownloader)
          .subscribeToFeed(feedUri.spec, targetFolder, msgWindow);
     }
-    else if (Array.indexOf(types, "application/x-moz-file") != -1) {
+    else if (types.includes("application/x-moz-file")) {
       for (let i = 0; i < count; i++) {
         let extFile = dt.mozGetDataAt("application/x-moz-file", i)
-                        .QueryInterface(Ci.nsILocalFile);
+                        .QueryInterface(Ci.nsIFile);
         if (extFile.isFile()) {
           let len = extFile.leafName.length;
           if (len > 4 && extFile.leafName.toLowerCase().endsWith(".eml"))
@@ -848,6 +883,10 @@ var gFolderTreeView = {
   },
 
   _onDragOver: function ftv_onDragOver(aEvent) {
+    this._currentTransfer = aEvent.dataTransfer;
+  },
+
+  _onDragDrop: function ftv_onDragDrop(aEvent) {
     this._currentTransfer = aEvent.dataTransfer;
   },
 
@@ -884,18 +923,28 @@ var gFolderTreeView = {
     if (folder.server.type != "rss" || folder.isServer)
       return "";
 
-    if (rowItem._favicon == "")
-      return rowItem._favicon;
+    let properties = this.getFolderCacheProperty(folder, "properties");
+    if (properties.includes("hasError") || properties.includes("isBusy"))
+      return "";
 
-    let tree = this._tree;
-    let callback = function(iconUrl, domain, arg) {
-      rowItem._favicon = iconUrl || "";
-      if (iconUrl != "")
-        tree.invalidateRow(aRow);
-    }
+    let favicon = this.getFolderCacheProperty(folder, "favicon");
+    if (favicon != null)
+      return favicon;
 
-    return rowItem._favicon = FeedUtils.getFavicon(folder, null,
-                                                   rowItem._favicon, window, callback);
+    let callback = (iconUrl => {
+      this.setFolderCacheProperty(folder, "favicon", iconUrl);
+      this._tree.invalidateRow(aRow);
+    });
+
+    // Cache empty string initiallly to return default while getting favicon,
+    // so as to never return here. Alternatively, a blank image could be cached.
+    this.setFolderCacheProperty(folder, "favicon", "");
+
+    // On startup, allow the ui to paint first before spawning potentially
+    // many requests for favicons, even though they are async.
+    setTimeout(() => {
+      FeedUtils.getFavicon(folder, null, favicon, window, callback);
+    }, 0);
   },
 
   /**
@@ -994,7 +1043,7 @@ var gFolderTreeView = {
     // for the next add item at our own level.
     let count = 0;
     if (aChild.children.length && aChild.open) {
-      for (let [i, child] in Iterator(this._rowMap[aNewIndex].children)) {
+      for (let [i, child] of Array.from(this._rowMap[aNewIndex].children).entries()) {
         count++;
         let index = Number(aNewIndex) + Number(i) + 1;
         this._rowMap.splice(index, 0, child);
@@ -1064,7 +1113,7 @@ var gFolderTreeView = {
 
   _subFoldersWithStringProperty: function ftv_subFoldersWithStringProperty(folder, folders, aFolderName, deep)
   {
-    for (let child in fixIterator(folder.subFolders, Components.interfaces.nsIMsgFolder)) {
+    for (let child of fixIterator(folder.subFolders, Components.interfaces.nsIMsgFolder)) {
       // if the folder selection is based on a string propery, use that
       if (aFolderName == getSmartFolderName(child)) {
         folders.push(child);
@@ -1094,7 +1143,7 @@ var gFolderTreeView = {
     for (let acct of accounts) {
       let foldersWithFlag = acct.incomingServer.rootFolder.getFoldersWithFlags(aFolderFlag);
       if (foldersWithFlag.length > 0) {
-        for (let folderWithFlag in fixIterator(foldersWithFlag,
+        for (let folderWithFlag of fixIterator(foldersWithFlag,
                                                Components.interfaces.nsIMsgFolder)) {
           folders.push(folderWithFlag);
           // Add sub-folders of Sent and Archive to the result.
@@ -1396,7 +1445,7 @@ var gFolderTreeView = {
     }
     this._restoreOpenStates();
     // restore selection.
-    for (let [, folder] in Iterator(selectedFolders)) {
+    for (let folder of selectedFolders) {
       if (folder) {
         let index = this.getIndexOfFolder(folder);
         if (index != null)
@@ -1416,6 +1465,48 @@ var gFolderTreeView = {
     });
 
     return accounts;
+  },
+
+  /*
+   * Session cache keyed by folder url, for properties intended to survive
+   * a _rowMap rebuild and avoid expensive requeries. Not for persistence
+   * across restarts; _persistOpenMap could be used for that.
+   */
+  _cache: {},
+
+  /**
+   * Update a folder property in the session cache.
+   *
+   * @param  nsIMsgFolder aFolder   - folder.
+   * @param  string aProperty       - property, currently in "favicon".
+   * @param  aValue                 - string or object value.
+   */
+  setFolderCacheProperty: function(aFolder, aProperty, aValue) {
+    if (!aFolder || !aProperty)
+      return;
+
+    if (!this._cache[aFolder.URI])
+      this._cache[aFolder.URI] = {};
+
+    this._cache[aFolder.URI][aProperty] = aValue;
+  },
+
+  /**
+   * Get a folder property from the session cache.
+   *
+   * @param  nsIMsgFolder aFolder   - folder.
+   * @param  string aProperty       - property key.
+   * @return value or null          - null indicates uninitialized.
+   */
+  getFolderCacheProperty: function(aFolder, aProperty) {
+    if (!aFolder || !aProperty)
+      return null;
+
+    if (!(aFolder.URI in this._cache) ||
+        !(aProperty in this._cache[aFolder.URI]))
+      return null;
+
+    return this._cache[aFolder.URI][aProperty];
   },
 
   /**
@@ -1643,7 +1734,7 @@ var gFolderTreeView = {
           return folderNameCompare(aLabel, bLabel);
         });
 
-        let items = [new ftvItem(f) for (f of recentFolders)];
+        let items = recentFolders.map(f => new ftvItem(f));
 
         // There are no children in this view!
         // And we want to display the account name to distinguish folders w/
@@ -1924,7 +2015,7 @@ var gFolderTreeView = {
     const Ci = Components.interfaces;
     let folders = [];
 
-    for (let server in fixIterator(MailServices.accounts.allServers, Ci.nsIMsgIncomingServer)) {
+    for (let server of fixIterator(MailServices.accounts.allServers, Ci.nsIMsgIncomingServer)) {
       // Skip deferred accounts
       if (server instanceof Ci.nsIPop3IncomingServer &&
           server.deferredToAccount)
@@ -1945,7 +2036,7 @@ var gFolderTreeView = {
    * @param folders  the array to add the folders to.
    */
   addSubFolders : function ftv_addSubFolders (folder, folders) {
-    for (let f in fixIterator(folder.subFolders, Components.interfaces.nsIMsgFolder)) {
+    for (let f of fixIterator(folder.subFolders, Components.interfaces.nsIMsgFolder)) {
       folders.push(f);
       this.addSubFolders(f, folders);
     }
@@ -2099,7 +2190,7 @@ var gFolderTreeView = {
     if (index == null)
       return;
     // forget our parent's children; they'll get rebuilt
-    if (aRDFParentItem)
+    if (aRDFParentItem && this._rowMap[index]._parent)
       this._rowMap[index]._parent._children = null;
     let kidCount = 1;
     let walker = Number(index) + 1;
@@ -2179,7 +2270,6 @@ function ftvItem(aFolder, aFolderFilter) {
   this._level = 0;
   this._parent = null;
   this._folderFilter = aFolderFilter;
-  this._favicon = null;
   // The map contains message counts for each folder column.
   // Each key is a column name (ID) from the folder tree.
   // Value is an array of the format "[value_for_folder, value_for_all_its_subfolders]".
@@ -2293,17 +2383,18 @@ ftvItem.prototype = {
     if (this._folder.getFlag(nsMsgFolderFlags.Virtual)) {
       properties += " specialFolder-Smart";
       // a second possibility for customized smart folders
-      properties += " specialFolder-" + this._folder.name.replace(' ','');
+      properties += " specialFolder-" + this._folder.name.replace(/\s+/g, "");
     }
     // if there is a smartFolder name property, add it
     let smartFolderName = getSmartFolderName(this._folder);
     if (smartFolderName) {
-      properties += " specialFolder-" + smartFolderName.replace(' ','');
+      properties += " specialFolder-" + smartFolderName.replace(/\s+/g, "");
     }
 
-    if (this._folder.server.type == "rss" && !this._folder.isServer &&
-        FeedUtils.getFeedUrlsInFolder(this._folder))
-      properties += " isFeedFolder-true";
+    if (FeedMessageHandler.isFeedFolder(this._folder)) {
+      properties += FeedUtils.getFolderProperties(this._folder, null);
+      gFolderTreeView.setFolderCacheProperty(this._folder, "properties", properties);
+    }
 
     return properties;
   },
@@ -2329,7 +2420,7 @@ ftvItem.prototype = {
       this._children = [];
       // Out of all children, only keep those that match the _folderFilter
       // and those that contain such children.
-      for (let folder in iter) {
+      for (let folder of iter) {
         if (!this._folderFilter || this._folderFilter(folder)) {
           this._children.push(new ftvItem(folder, this._folderFilter));
         }
@@ -2437,7 +2528,8 @@ var gFolderTreeController = {
       gFolderDisplay.view.close();
 
       // Send a notification that we are triggering a database rebuild.
-      MailServices.mfn.notifyItemEvent(folder, "FolderReindexTriggered", null);
+      MailServices.mfn.notifyItemEvent(folder, "FolderReindexTriggered", null,
+                                       null);
 
       folder.msgDatabase.summaryValid = false;
 
@@ -2585,8 +2677,7 @@ var gFolderTreeController = {
       folder.propagateDelete(iter.getNext(), true, msgWindow);
 
     // Now delete the messages
-    iter = fixIterator(folder.messages);
-    let messages = [m for (m in iter)];
+    let messages = Array.from(fixIterator(folder.messages));
     let children = toXPCOMArray(messages, Ci.nsIMutableArray);
     folder.deleteMessages(children, msgWindow, true, false, null, false);
   },
@@ -2740,13 +2831,13 @@ ftv_SmartItem.prototype = {
     if (!this._children) {
       this._children = [];
       let iter = fixIterator(this._folder.subFolders, Ci.nsIMsgFolder);
-      for (let folder in iter) {
+      for (let folder of iter) {
         if (!smartMode.isSmartFolder(folder)) {
           this._children.push(new ftv_SmartItem(folder));
         }
         else if (folder.flags & nsMsgFolderFlags.Inbox) {
           let subIter = fixIterator(folder.subFolders, Ci.nsIMsgFolder);
-          for (let subfolder in subIter) {
+          for (let subfolder of subIter) {
             if (!smartMode.isSmartFolder(subfolder))
               this._children.push(new ftv_SmartItem(subfolder));
           }
@@ -2775,13 +2866,28 @@ function sortFolderItems (aFtvItems) {
   aFtvItems.sort(sorter);
 }
 
+/**
+ * An extension wishing to set a folderpane tree property must use
+ * gFolderTreeView.setFolderCacheProperty(). Due to severe perf and memory
+ * issues, direct access by nsITreeView methods to any call which opens a
+ * folder's msgDatabase is disallowed.
+ *
+ * Example:
+ *   gFolderTreeView.setFolderCacheProperty(folder, // nsIMsgFolder
+ *                                          "smartFolderName",
+ *                                          "My Smart Folder");
+ * Note: for css styling using nsITreeView pseudo elements, the name property
+ * is returned with all spaces removed, eg |specialFolder-MySmartFolder|.
+ *
+ * @param nsIMsgFolder aFolder  - The folder.
+ * @return property || null     - Cached property value, or null if not set.
+ */
 function getSmartFolderName(aFolder) {
-  try {
-    return aFolder.getStringProperty("smartFolderName");
-  } catch (ex) {
-    Components.utils.reportError(ex);
-    return null;
-  }
+  return gFolderTreeView.getFolderCacheProperty(aFolder, "smartFolderName");
+}
+
+function setSmartFolderName(aFolder, aName) {
+  gFolderTreeView.setFolderCacheProperty(aFolder, "smartFolderName", aName);
 }
 
 var gFolderStatsHelpers = {

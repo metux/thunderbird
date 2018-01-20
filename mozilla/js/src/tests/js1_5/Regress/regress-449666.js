@@ -18,13 +18,11 @@ test();
 
 function test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   var global;
 
-  jit(true);
 
   if (typeof window == 'undefined') {
     global = this;
@@ -59,9 +57,6 @@ function test()
 
   }
 
-  jit(false);
 
   reportCompare(expect, actual, summary);
-
-  exitFunc ('test');
 }

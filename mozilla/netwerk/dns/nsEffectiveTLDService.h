@@ -9,101 +9,13 @@
 #include "nsIEffectiveTLDService.h"
 
 #include "nsIMemoryReporter.h"
-#include "nsTHashtable.h"
 #include "nsString.h"
 #include "nsCOMPtr.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/Dafsa.h"
 #include "mozilla/MemoryReporting.h"
 
 class nsIIDNService;
-
-#define ETLD_ENTRY_N_INDEX_BITS 30
-
-// struct for static data generated from effective_tld_names.dat
-struct ETLDEntry {
-  uint32_t strtab_index : ETLD_ENTRY_N_INDEX_BITS;
-  uint32_t exception : 1;
-  uint32_t wild : 1;
-};
-
-
-// hash entry class
-class nsDomainEntry : public PLDHashEntryHdr
-{
-  friend class nsEffectiveTLDService;
-public:
-  // Hash methods
-  typedef const char* KeyType;
-  typedef const char* KeyTypePointer;
-
-  explicit nsDomainEntry(KeyTypePointer aEntry)
-  {
-  }
-
-  nsDomainEntry(const nsDomainEntry& toCopy)
-  {
-    // if we end up here, things will break. nsTHashtable shouldn't
-    // allow this, since we set ALLOW_MEMMOVE to true.
-    NS_NOTREACHED("nsDomainEntry copy constructor is forbidden!");
-  }
-
-  ~nsDomainEntry()
-  {
-  }
-
-  KeyType GetKey() const
-  {
-    return GetEffectiveTLDName(mData->strtab_index);
-  }
-
-  bool KeyEquals(KeyTypePointer aKey) const
-  {
-    return !strcmp(GetKey(), aKey);
-  }
-
-  static KeyTypePointer KeyToPointer(KeyType aKey)
-  {
-    return aKey;
-  }
-
-  static PLDHashNumber HashKey(KeyTypePointer aKey)
-  {
-    // PLDHashTable::HashStringKey doesn't use the table parameter, so we can
-    // safely pass nullptr
-    return PLDHashTable::HashStringKey(nullptr, aKey);
-  }
-
-  enum { ALLOW_MEMMOVE = true };
-
-  void SetData(const ETLDEntry* entry) { mData = entry; }
-
-  bool IsNormal() { return mData->wild || !mData->exception; }
-  bool IsException() { return mData->exception; }
-  bool IsWild() { return mData->wild; }
-
-  static const char *GetEffectiveTLDName(size_t idx)
-  {
-    return strings.strtab + idx;
-  }
-
-private:
-  const ETLDEntry* mData;
-#define ETLD_STR_NUM_1(line) str##line
-#define ETLD_STR_NUM(line) ETLD_STR_NUM_1(line)
-  struct etld_string_list {
-#define ETLD_ENTRY(name, ex, wild) char ETLD_STR_NUM(__LINE__)[sizeof(name)];
-#include "etld_data.inc"
-#undef ETLD_ENTRY
-  };
-  static const union etld_strings {
-    struct etld_string_list list;
-    char strtab[1];
-  } strings;
-  static const ETLDEntry entries[];
-  void FuncForStaticAsserts(void);
-#undef ETLD_STR_NUM
-#undef ETLD_STR_NUM1
-};
 
 class nsEffectiveTLDService final
   : public nsIEffectiveTLDService
@@ -124,8 +36,41 @@ private:
   nsresult NormalizeHostname(nsCString &aHostname);
   ~nsEffectiveTLDService();
 
-  nsTHashtable<nsDomainEntry> mHash;
   nsCOMPtr<nsIIDNService>     mIDNService;
+
+  // The DAFSA provides a compact encoding of the rather large eTLD list.
+  mozilla::Dafsa mGraph;
+
+  struct TLDCacheEntry
+  {
+    nsCString mHost;
+    nsCString mBaseDomain;
+  };
+
+  // We use a small most recently used cache to compensate for DAFSA lookups
+  // being slightly slower than a binary search on a larger table of strings.
+  //
+  // We first check the cache for a matching result and avoid a DAFSA lookup
+  // if a match is found. Otherwise we lookup the domain in the DAFSA and then
+  // cache the result. During standard browsing the same domains are repeatedly
+  // fed into |GetBaseDomainInternal| so this ends up being an effective
+  // mitigation getting about a 99% hit rate with four tabs open.
+  //
+  // A size of 31 is used rather than a more logical power-of-two such as 32
+  // since it is a prime number and provides fewer collisions when when used
+  // with our hash algorithms.
+  static const uint32_t kTableSize = 31;
+  TLDCacheEntry mMruTable[kTableSize];
+
+  /**
+   * Performs a lookup on the MRU table and provides a pointer to the hash
+   * entry that matched or should be used for adding this host.
+   *
+   * @param aHost The host to lookup.
+   * @param aEntry Out param, the entry in the MRU table to use.
+   * @return True if a match was found, false if there was a miss.
+   */
+  inline bool LookupForAdd(const nsACString& aHost, TLDCacheEntry** aEntry);
 };
 
 #endif // EffectiveTLDService_h

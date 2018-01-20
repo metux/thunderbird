@@ -180,13 +180,13 @@ protected:
     // Native value and flag indicating if the value is defined (initialized in
     // derived classes). Note, undefined native value means it is inherited
     // from root.
-    T mNativeValue;
-    bool mIsDefined;
+    MOZ_INIT_OUTSIDE_CTOR T mNativeValue;
+    MOZ_INIT_OUTSIDE_CTOR bool mIsDefined;
 
     // Native root value and flag indicating if the value is defined  (initialized
     // in derived classes).
-    T mRootNativeValue;
-    bool mIsRootDefined;
+    MOZ_INIT_OUTSIDE_CTOR T mRootNativeValue;
+    MOZ_INIT_OUTSIDE_CTOR bool mIsRootDefined;
   };
 
 
@@ -399,7 +399,9 @@ protected:
   class TextDecorValue
   {
   public:
-    TextDecorValue() { }
+    TextDecorValue() :
+      mColor{0}, mLine{NS_STYLE_TEXT_DECORATION_LINE_NONE},
+      mStyle{NS_STYLE_TEXT_DECORATION_STYLE_NONE} { }
     explicit TextDecorValue(nsIFrame* aFrame);
 
     nscolor Color() const { return mColor; }

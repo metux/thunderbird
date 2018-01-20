@@ -21,7 +21,7 @@ Cu.import("resource:///modules/ircUtils.jsm");
 //   <command> " " <parameter>
 // The high level dequote is to unescape \001 in the message content.
 function CTCPMessage(aMessage, aRawCTCPMessage) {
-  let message = aMessage;
+  let message = Object.assign({}, aMessage);
   message.ctcp = {};
   message.ctcp.rawMessage = aRawCTCPMessage;
 
@@ -58,7 +58,7 @@ var ircCTCP = {
     "PRIVMSG": ctcpHandleMessage,
     "NOTICE": ctcpHandleMessage
   }
-}
+};
 // Parse the message and call all CTCP handlers on the message.
 function ctcpHandleMessage(aMessage) {
   // If there are no CTCP handlers, then don't parse the CTCP message.
@@ -93,7 +93,7 @@ function ctcpHandleMessage(aMessage) {
   }
 
   // Loop over each raw CTCP message.
-  for each (let message in ctcpMessages) {
+  for (let message of ctcpMessages) {
     if (!ircHandlers.handleCTCPMessage(this, message)) {
       this.WARN("Unhandled CTCP message: " + message.ctcp.rawMessage +
                 "\nin IRC message: " + message.rawMessage);
@@ -123,7 +123,7 @@ var ctcpBase = {
       this.getConversation(this.isMUCName(aMessage.params[0]) ?
                              aMessage.params[0] : aMessage.origin)
           .writeMessage(aMessage.origin, "/me " + aMessage.ctcp.param,
-                        {incoming: true});
+                        {incoming: true, tags: aMessage.tags});
       return true;
     },
 
@@ -161,7 +161,7 @@ var ctcpBase = {
         // Received a CLIENTINFO response, store the information for future
         // use.
         let info = aMessage.ctcp.param.split(" ");
-        this.setWhois(aMessage.origin, {clientInfo: info})
+        this.setWhois(aMessage.origin, {clientInfo: info});
       }
       return true;
     },
@@ -208,7 +208,7 @@ var ctcpBase = {
         this.getConversation(aMessage.origin)
             .writeMessage(aMessage.origin,
                           _("ctcp.time", aMessage.origin, time),
-                          {system: true});
+                          {system: true, tags: aMessage.tags});
       }
       return true;
     },
@@ -235,7 +235,8 @@ var ctcpBase = {
         let response = _("ctcp.version", aMessage.origin,
                          aMessage.ctcp.param);
         this.getConversation(aMessage.origin)
-            .writeMessage(aMessage.origin, response, {system: true});
+            .writeMessage(aMessage.origin, response,
+                          {system: true, tags: aMessage.tags});
       }
       return true;
     }

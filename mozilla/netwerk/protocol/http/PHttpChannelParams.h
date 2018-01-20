@@ -54,7 +54,7 @@ struct ParamTraits<mozilla::net::RequestHeaderTuple>
     WriteParam(aMsg, aParam.mEmpty);
   }
 
-  static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
+  static bool Read(const Message* aMsg, PickleIterator* aIter, paramType* aResult)
   {
     if (!ReadParam(aMsg, aIter, &aResult->mHeader) ||
         !ReadParam(aMsg, aIter, &aResult->mValue)  ||
@@ -79,7 +79,7 @@ struct ParamTraits<mozilla::net::nsHttpAtom>
     WriteParam(aMsg, value);
   }
 
-  static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
+  static bool Read(const Message* aMsg, PickleIterator* aIter, paramType* aResult)
   {
     nsAutoCString value;
     if (!ReadParam(aMsg, aIter, &value))
@@ -98,15 +98,70 @@ struct ParamTraits<mozilla::net::nsHttpHeaderArray::nsEntry>
 
   static void Write(Message* aMsg, const paramType& aParam)
   {
-    WriteParam(aMsg, aParam.header);
+    if (aParam.headerNameOriginal.IsEmpty()) {
+      WriteParam(aMsg, aParam.header);
+    } else {
+      WriteParam(aMsg, aParam.headerNameOriginal);
+    }
     WriteParam(aMsg, aParam.value);
+    switch (aParam.variety) {
+      case mozilla::net::nsHttpHeaderArray::eVarietyUnknown:
+        WriteParam(aMsg, (uint8_t)0);
+        break;
+      case mozilla::net::nsHttpHeaderArray::eVarietyRequestOverride:
+        WriteParam(aMsg, (uint8_t)1);
+        break;
+      case mozilla::net::nsHttpHeaderArray::eVarietyRequestDefault:
+        WriteParam(aMsg, (uint8_t)2);
+        break;
+      case mozilla::net::nsHttpHeaderArray::eVarietyResponseNetOriginalAndResponse:
+        WriteParam(aMsg, (uint8_t)3);
+        break;
+      case mozilla::net::nsHttpHeaderArray::eVarietyResponseNetOriginal:
+        WriteParam(aMsg, (uint8_t)4);
+        break;
+      case mozilla::net::nsHttpHeaderArray::eVarietyResponse:
+        WriteParam(aMsg, (uint8_t)5);
+    }
   }
 
-  static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
+  static bool Read(const Message* aMsg, PickleIterator* aIter, paramType* aResult)
   {
-    if (!ReadParam(aMsg, aIter, &aResult->header) ||
-        !ReadParam(aMsg, aIter, &aResult->value))
+    uint8_t variety;
+    nsAutoCString header;
+    if (!ReadParam(aMsg, aIter, &header) ||
+        !ReadParam(aMsg, aIter, &aResult->value)  ||
+        !ReadParam(aMsg, aIter, &variety))
       return false;
+
+    mozilla::net::nsHttpAtom atom = mozilla::net::nsHttp::ResolveAtom(header);
+    aResult->header = atom;
+    if (!header.Equals(atom.get())) {
+      aResult->headerNameOriginal = header;
+    }
+
+    switch (variety) {
+      case 0:
+        aResult->variety = mozilla::net::nsHttpHeaderArray::eVarietyUnknown;
+        break;
+      case 1:
+        aResult->variety = mozilla::net::nsHttpHeaderArray::eVarietyRequestOverride;
+        break;
+      case 2:
+        aResult->variety = mozilla::net::nsHttpHeaderArray::eVarietyRequestDefault;
+        break;
+      case 3:
+        aResult->variety = mozilla::net::nsHttpHeaderArray::eVarietyResponseNetOriginalAndResponse;
+        break;
+      case 4:
+        aResult->variety = mozilla::net::nsHttpHeaderArray::eVarietyResponseNetOriginal;
+        break;
+      case 5:
+        aResult->variety = mozilla::net::nsHttpHeaderArray::eVarietyResponse;
+        break;
+      default:
+        return false;
+    }
 
     return true;
   }
@@ -125,7 +180,7 @@ struct ParamTraits<mozilla::net::nsHttpHeaderArray>
     WriteParam(aMsg, p.mHeaders);
   }
 
-  static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
+  static bool Read(const Message* aMsg, PickleIterator* aIter, paramType* aResult)
   {
     if (!ReadParam(aMsg, aIter, &aResult->mHeaders))
       return false;
@@ -154,7 +209,7 @@ struct ParamTraits<mozilla::net::nsHttpResponseHead>
     WriteParam(aMsg, aParam.mPragmaNoCache);
   }
 
-  static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
+  static bool Read(const Message* aMsg, PickleIterator* aIter, paramType* aResult)
   {
     if (!ReadParam(aMsg, aIter, &aResult->mHeaders)             ||
         !ReadParam(aMsg, aIter, &aResult->mVersion)             ||

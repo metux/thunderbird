@@ -5,17 +5,18 @@
 "use strict";
 
 const l10n = require("gcli/l10n");
+const {Cu} = require("chrome");
 
 exports.items = [{
   item: "command",
   runAt: "client",
   name: "scratchpad",
   buttonId: "command-button-scratchpad",
-  buttonClass: "command-button command-button-invertable",
+  buttonClass: "command-button",
   tooltipText: l10n.lookup("scratchpadOpenTooltip"),
   hidden: true,
-  exec: function(args, context) {
-    let Scratchpad = context.environment.chromeWindow.Scratchpad;
-    Scratchpad.ScratchpadManager.openScratchpad();
+  exec: function (args, context) {
+    const {ScratchpadManager} = Cu.import("resource://devtools/client/scratchpad/scratchpad-manager.jsm", {});
+    ScratchpadManager.openScratchpad();
   }
 }];

@@ -54,7 +54,8 @@ class nsCSPTokenizer {
 
     inline void skipWhiteSpace()
     {
-      while (mCurChar < mEndChar && *mCurChar == ' ') {
+      while (mCurChar < mEndChar &&
+             nsContentUtils::IsHTMLWhitespace(*mCurChar)) {
         mCurToken.Append(*mCurChar++);
       }
       mCurToken.Truncate();
@@ -62,7 +63,8 @@ class nsCSPTokenizer {
 
     inline void skipWhiteSpaceAndSemicolon()
     {
-      while (mCurChar < mEndChar && (*mCurChar == ' ' || *mCurChar == ';')) {
+      while (mCurChar < mEndChar && (*mCurChar == ';' ||
+             nsContentUtils::IsHTMLWhitespace(*mCurChar))){
         mCurToken.Append(*mCurChar++);
       }
       mCurToken.Truncate();
@@ -109,37 +111,39 @@ class nsCSPParser {
                 nsCSPContext* aCSPContext,
                 bool aDeliveredViaMetaTag);
 
+    static bool sCSPExperimentalEnabled;
+    static bool sStrictDynamicEnabled;
+
     ~nsCSPParser();
 
 
     // Parsing the CSP using the source-list from http://www.w3.org/TR/CSP11/#source-list
-    nsCSPPolicy*    policy();
-    void            directive();
-    nsCSPDirective* directiveName();
-    void            directiveValue(nsTArray<nsCSPBaseSrc*>& outSrcs);
-    void            referrerDirectiveValue();
-    void            sourceList(nsTArray<nsCSPBaseSrc*>& outSrcs);
-    nsCSPBaseSrc*   sourceExpression();
-    nsCSPSchemeSrc* schemeSource();
-    nsCSPHostSrc*   hostSource();
-    nsCSPBaseSrc*   keywordSource();
-    nsCSPNonceSrc*  nonceSource();
-    nsCSPHashSrc*   hashSource();
-    nsCSPHostSrc*   appHost(); // helper function to support app specific hosts
-    nsCSPHostSrc*   host();
-    bool            hostChar();
-    bool            schemeChar();
-    bool            port();
-    bool            path(nsCSPHostSrc* aCspHost);
+    nsCSPPolicy*        policy();
+    void                directive();
+    nsCSPDirective*     directiveName();
+    void                directiveValue(nsTArray<nsCSPBaseSrc*>& outSrcs);
+    void                requireSRIForDirectiveValue(nsRequireSRIForDirective* aDir);
+    void                referrerDirectiveValue(nsCSPDirective* aDir);
+    void                reportURIList(nsCSPDirective* aDir);
+    void                sandboxFlagList(nsCSPDirective* aDir);
+    void                sourceList(nsTArray<nsCSPBaseSrc*>& outSrcs);
+    nsCSPBaseSrc*       sourceExpression();
+    nsCSPSchemeSrc*     schemeSource();
+    nsCSPHostSrc*       hostSource();
+    nsCSPBaseSrc*       keywordSource();
+    nsCSPNonceSrc*      nonceSource();
+    nsCSPHashSrc*       hashSource();
+    nsCSPHostSrc*       host();
+    bool                hostChar();
+    bool                schemeChar();
+    bool                port();
+    bool                path(nsCSPHostSrc* aCspHost);
 
-    bool subHost();                                       // helper function to parse subDomains
-    bool atValidUnreservedChar();                         // helper function to parse unreserved
-    bool atValidSubDelimChar();                           // helper function to parse sub-delims
-    bool atValidPctEncodedChar();                         // helper function to parse pct-encoded
-    bool subPath(nsCSPHostSrc* aCspHost);                 // helper function to parse paths
-    void reportURIList(nsTArray<nsCSPBaseSrc*>& outSrcs); // helper function to parse report-uris
-    void percentDecodeStr(const nsAString& aEncStr,       // helper function to percent-decode
-                          nsAString& outDecStr);
+    bool subHost();                                         // helper function to parse subDomains
+    bool atValidUnreservedChar();                           // helper function to parse unreserved
+    bool atValidSubDelimChar();                             // helper function to parse sub-delims
+    bool atValidPctEncodedChar();                           // helper function to parse pct-encoded
+    bool subPath(nsCSPHostSrc* aCspHost);                   // helper function to parse paths
 
     inline bool atEnd()
     {
@@ -232,18 +236,27 @@ class nsCSPParser {
     nsString           mCurToken;
     nsTArray<nsString> mCurDir;
 
-    // cache variables to ignore unsafe-inline if hash or nonce is specified
+    // helpers to allow invalidation of srcs within script-src and style-src
+    // if either 'strict-dynamic' or at least a hash or nonce is present.
     bool               mHasHashOrNonce; // false, if no hash or nonce is defined
+    bool               mStrictDynamic;  // false, if 'strict-dynamic' is not defined
     nsCSPKeywordSrc*   mUnsafeInlineKeywordSrc; // null, otherwise invlidate()
 
-    // cache variables for child-src and frame-src directive handling.
-    // frame-src is deprecated in favor of child-src, however if we
-    // see a frame-src directive, it takes precedence for frames and iframes.
-    // At the end of parsing, if we have a child-src directive, we need to
-    // decide whether it will handle frames, or if there is a frame-src we
-    // should honor instead.
-    nsCSPChildSrcDirective* mChildSrc;
-    nsCSPDirective*         mFrameSrc;
+    // cache variables for child-src, frame-src and worker-src handling;
+    // in CSP 3 child-src is deprecated. For backwards compatibility
+    // child-src needs to restrict:
+    //   (*) frames, in case frame-src is not expicitly specified
+    //   (*) workers, in case worker-src is not expicitly specified
+    // If neither worker-src, nor child-src is present, then script-src
+    // needs to govern workers.
+    nsCSPChildSrcDirective*  mChildSrc;
+    nsCSPDirective*          mFrameSrc;
+    nsCSPDirective*          mWorkerSrc;
+    nsCSPScriptSrcDirective* mScriptSrc;
+
+    // cache variable to let nsCSPHostSrc know that it's within
+    // the frame-ancestors directive.
+    bool                    mParsingFrameAncestorsDir;
 
     cspTokens          mTokens;
     nsIURI*            mSelfURI;

@@ -1,33 +1,36 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
-function test() {
-  waitForExplicitFinish();
-  BrowserOpenTab();
-
-  let tab = gBrowser.selectedTab;
-  let browser = tab.linkedBrowser;
-
-  registerCleanupFunction(function () { gBrowser.removeTab(tab); });
-
-  whenBrowserLoaded(browser, function () {
-    browser.loadURI("http://example.com/");
-
-    whenBrowserLoaded(browser, function () {
-      ok(!gBrowser.canGoBack, "about:newtab wasn't added to the session history");
-      finish();
-    });
+add_task(async function test_blank() {
+  await BrowserTestUtils.withNewTab({ gBrowser, url: "about:blank" },
+                                    async function(browser) {
+    BrowserTestUtils.loadURI(browser, "http://example.com");
+    await BrowserTestUtils.browserLoaded(browser);
+    ok(!gBrowser.canGoBack, "about:blank wasn't added to session history");
   });
-}
+});
 
-function whenBrowserLoaded(aBrowser, aCallback) {
-  if (aBrowser.contentDocument.readyState == "complete") {
-    executeSoon(aCallback);
-    return;
-  }
+add_task(async function test_newtab() {
+  await SpecialPowers.pushPrefEnv({set: [["browser.newtabpage.activity-stream.enabled", true]]});
+  await BrowserTestUtils.withNewTab({ gBrowser, url: "about:blank" },
+                                    async function(browser) {
+    // Can't load it directly because that'll use a preloaded tab if present.
+    BrowserTestUtils.loadURI(browser, "about:newtab");
+    await BrowserTestUtils.browserLoaded(browser);
 
-  aBrowser.addEventListener("load", function onLoad() {
-    aBrowser.removeEventListener("load", onLoad, true);
-    executeSoon(aCallback);
-  }, true);
-}
+    BrowserTestUtils.loadURI(browser, "http://example.com");
+    await BrowserTestUtils.browserLoaded(browser);
+    is(gBrowser.canGoBack, true, "about:newtab was added to the session history when AS was enabled.");
+  });
+  await SpecialPowers.pushPrefEnv({set: [["browser.newtabpage.activity-stream.enabled", false]]});
+  await BrowserTestUtils.withNewTab({ gBrowser, url: "about:blank" },
+                                    async function(browser) {
+    // Can't load it directly because that'll use a preloaded tab if present.
+    BrowserTestUtils.loadURI(browser, "about:newtab");
+    await BrowserTestUtils.browserLoaded(browser);
+
+    BrowserTestUtils.loadURI(browser, "http://example.com");
+    await BrowserTestUtils.browserLoaded(browser);
+    is(gBrowser.canGoBack, false, "about:newtab was not added to the session history when AS was disabled.");
+  });
+});

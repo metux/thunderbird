@@ -5,45 +5,33 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "OmxDecoderModule.h"
+
 #include "OmxDataDecoder.h"
+#include "OmxPlatformLayer.h"
 
 namespace mozilla {
 
 already_AddRefed<MediaDataDecoder>
-OmxDecoderModule::CreateVideoDecoder(const VideoInfo& aConfig,
-                                     mozilla::layers::LayersBackend aLayersBackend,
-                                     mozilla::layers::ImageContainer* aImageContainer,
-                                     FlushableTaskQueue* aVideoTaskQueue,
-                                     MediaDataDecoderCallback* aCallback)
+OmxDecoderModule::CreateVideoDecoder(const CreateDecoderParams& aParams)
 {
-  return nullptr;
-}
-
-already_AddRefed<MediaDataDecoder>
-OmxDecoderModule::CreateAudioDecoder(const AudioInfo& aConfig,
-                                     FlushableTaskQueue* aAudioTaskQueue,
-                                     MediaDataDecoderCallback* aCallback)
-{
-  RefPtr<OmxDataDecoder> decoder = new OmxDataDecoder(aConfig, aCallback);
+  RefPtr<OmxDataDecoder> decoder = new OmxDataDecoder(aParams.mConfig,
+                                                      aParams.mImageContainer);
   return decoder.forget();
 }
 
-void
-OmxDecoderModule::Init()
+already_AddRefed<MediaDataDecoder>
+OmxDecoderModule::CreateAudioDecoder(const CreateDecoderParams& aParams)
 {
-  MOZ_ASSERT(NS_IsMainThread(), "Must be on main thread.");
-}
-
-PlatformDecoderModule::ConversionRequired
-OmxDecoderModule::DecoderNeedsConversion(const TrackInfo& aConfig) const
-{
-  return kNeedNone;
+  RefPtr<OmxDataDecoder> decoder = new OmxDataDecoder(aParams.mConfig,
+                                                      nullptr);
+  return decoder.forget();
 }
 
 bool
-OmxDecoderModule::SupportsMimeType(const nsACString& aMimeType) const
+OmxDecoderModule::SupportsMimeType(const nsACString& aMimeType,
+                                   DecoderDoctorDiagnostics* aDiagnostics) const
 {
-  return aMimeType.EqualsLiteral("audio/mp4a-latm");
+  return OmxPlatformLayer::SupportsMimeType(aMimeType);
 }
 
 }

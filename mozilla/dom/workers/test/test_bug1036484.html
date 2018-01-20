@@ -25,7 +25,6 @@ function test(script) {
 
   worker.onerror = function(event) {
     is(event.target, worker);
-    is(event.message, ": NetworkError: A network error occurred.");
     event.preventDefault();
     runTests();
   };

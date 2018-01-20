@@ -273,13 +273,13 @@ xpcAccessibleTable::GetSelectedCells(nsIArray** aSelectedCells)
     do_CreateInstance(NS_ARRAY_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsAutoTArray<Accessible*, XPC_TABLE_DEFAULT_SIZE> cellsArray;
+  AutoTArray<Accessible*, XPC_TABLE_DEFAULT_SIZE> cellsArray;
   Intl()->SelectedCells(&cellsArray);
 
   uint32_t totalCount = cellsArray.Length();
   for (uint32_t idx = 0; idx < totalCount; idx++) {
     Accessible* cell = cellsArray.ElementAt(idx);
-    selCells->AppendElement(static_cast<nsIAccessible*>(ToXPC(cell)), false);
+    selCells->AppendElement(static_cast<nsIAccessible*>(ToXPC(cell)));
   }
 
   NS_ADDREF(*aSelectedCells = selCells);
@@ -299,7 +299,7 @@ xpcAccessibleTable::GetSelectedCellIndices(uint32_t* aCellsArraySize,
   if (!Intl())
     return NS_ERROR_FAILURE;
 
-  nsAutoTArray<uint32_t, XPC_TABLE_DEFAULT_SIZE> cellsArray;
+  AutoTArray<uint32_t, XPC_TABLE_DEFAULT_SIZE> cellsArray;
   Intl()->SelectedCellIndices(&cellsArray);
 
   *aCellsArraySize = cellsArray.Length();
@@ -324,7 +324,7 @@ xpcAccessibleTable::GetSelectedColumnIndices(uint32_t* aColsArraySize,
   if (!Intl())
     return NS_ERROR_FAILURE;
 
-  nsAutoTArray<uint32_t, XPC_TABLE_DEFAULT_SIZE> colsArray;
+  AutoTArray<uint32_t, XPC_TABLE_DEFAULT_SIZE> colsArray;
   Intl()->SelectedColIndices(&colsArray);
 
   *aColsArraySize = colsArray.Length();
@@ -349,7 +349,7 @@ xpcAccessibleTable::GetSelectedRowIndices(uint32_t* aRowsArraySize,
   if (!Intl())
     return NS_ERROR_FAILURE;
 
-  nsAutoTArray<uint32_t, XPC_TABLE_DEFAULT_SIZE> rowsArray;
+  AutoTArray<uint32_t, XPC_TABLE_DEFAULT_SIZE> rowsArray;
   Intl()->SelectedRowIndices(&rowsArray);
 
   *aRowsArraySize = rowsArray.Length();

@@ -166,11 +166,6 @@ components/nsPostUpdateWin.js
 @DIR_MACOS@components/nsUpdateService.js
 @DIR_MACOS@components/nsUpdateServiceStub.js
 #endif
-#ifndef MOZ_URL_CLASSIFIER
-  @DIR_MACOS@components/nsUrlClassifierHashCompleter.js
-  @DIR_MACOS@components/nsUrlClassifierLib.js
-  @DIR_MACOS@components/nsUrlClassifierListManager.js
-#endif
 @DIR_MACOS@components/nsXmlRpcClient.js
 @DIR_MACOS@components/@DLL_PREFIX@oji@DLL_SUFFIX@
 @DIR_MACOS@components/pluginGlue.js
@@ -663,7 +658,6 @@ Throbber-small.gif
   @DIR_MACOS@components/nsBrowserContentHandler.js
   @DIR_MACOS@components/nsComposerCmdLineHandler.js
   @DIR_MACOS@components/nsContentDispatchChooser.js
-  @DIR_MACOS@components/nsContentPrefService.js
   @DIR_MACOS@components/nsDefaultCLH.js
   @DIR_MACOS@components/nsDOMIdentity.js
   #ifdef UNIX_BUT_NOT_MAC
@@ -702,11 +696,6 @@ Throbber-small.gif
   @DIR_MACOS@components/nsUpdateService.js
   @DIR_MACOS@components/nsUpdateServiceStub.js
   @DIR_MACOS@components/nsUpdateTimerManager.js
-  #ifdef MOZ_URL_CLASSIFIER
-    @DIR_MACOS@components/nsUrlClassifierHashCompleter.js
-    @DIR_MACOS@components/nsUrlClassifierLib.js
-    @DIR_MACOS@components/nsUrlClassifierListManager.js
-  #endif
   @DIR_MACOS@components/nsURLFormatter.js
   @DIR_MACOS@components/nsWebHandlerApp.js
   @DIR_MACOS@components/offlineStartup.js
@@ -720,7 +709,6 @@ Throbber-small.gif
   @DIR_MACOS@components/TCPSocket.js
   @DIR_MACOS@components/txEXSLTRegExFunctions.js
   @DIR_MACOS@components/Weave.js
-  @DIR_MACOS@components/Webapps.js
   @DIR_MACOS@components/WebContentConverter.js
   @DIR_MACOS@components/browser.xpt
   @DIR_MACOS@components/binary.manifest
@@ -1079,7 +1067,6 @@ Throbber-small.gif
   @DIR_MACOS@modules/UserAgentOverrides.jsm
   @DIR_MACOS@modules/utils.js
   @DIR_MACOS@modules/virtualFolderWrapper.js
-  @DIR_MACOS@modules/Webapps.jsm
   @DIR_MACOS@modules/WindowDraggingUtils.jsm
   @DIR_MACOS@modules/WorkerTest.jsm
   @DIR_MACOS@modules/WorkerTest_subworker.js
@@ -1127,27 +1114,16 @@ Throbber-small.gif
   @DIR_MACOS@res/dtd/xhtml11.dtd
   @DIR_MACOS@res/html/
   @DIR_MACOS@res/html/folder.png
-  @DIR_MACOS@res/entityTables/
-  @DIR_MACOS@res/entityTables/html40Latin1.properties
-  @DIR_MACOS@res/entityTables/html40Special.properties
-  @DIR_MACOS@res/entityTables/html40Symbols.properties
-  @DIR_MACOS@res/entityTables/htmlEntityVersions.properties
-  @DIR_MACOS@res/entityTables/mathml20.properties
-  @DIR_MACOS@res/entityTables/transliterate.properties
   #ifdef MOZ_UPDATER
     @DIR_MACOS@update.locale
   #endif
 #else
   @DIR_MACOS@components/Aitc.js
   @DIR_MACOS@components/binary.manifest
-  #ifndef MOZ_SERVICES_SYNC
-    @DIR_MACOS@components/Weave.js
-  #endif
+  @DIR_MACOS@components/Weave.js
   @DIR_MACOS@defaults/pref/services-aitc.js
   @DIR_MACOS@defaults/pref/services-notifications.js
-  #ifndef MOZ_SERVICES_SYNC
-    @DIR_MACOS@defaults/pref/services-sync.js
-  #endif
+  @DIR_MACOS@defaults/pref/services-sync.js
   @DIR_MACOS@omni.ja
 #endif
 
@@ -1323,7 +1299,6 @@ components/xpautoc.dll
 @DIR_MACOS@components/embed_base.xpt
 @DIR_MACOS@components/extensions.xpt
 @DIR_MACOS@components/exthandler.xpt
-@DIR_MACOS@components/exthelper.xpt
 @DIR_MACOS@components/fastfind.xpt
 @DIR_MACOS@components/feeds.xpt
 @DIR_MACOS@components/find.xpt
@@ -1395,7 +1370,6 @@ components/xpautoc.dll
 @DIR_MACOS@components/txmgr.xpt
 @DIR_MACOS@components/txtsvc.xpt
 @DIR_MACOS@components/uconv.xpt
-@DIR_MACOS@components/unicharutil.xpt
 @DIR_MACOS@components/update.xpt
 @DIR_MACOS@components/uriloader.xpt
 @DIR_MACOS@components/urlformatter.xpt

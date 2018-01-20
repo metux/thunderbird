@@ -18,8 +18,7 @@ ContentPrefStore.prototype = {
       if (!this._groups.has(group))
         this._groups.set(group, new Map());
       this._groups.get(group).set(name, val);
-    }
-    else {
+    } else {
       this._globalNames.set(name, val);
     }
   },
@@ -53,8 +52,7 @@ ContentPrefStore.prototype = {
         if (this._groups.get(group).size == 0)
           this._groups.delete(group);
       }
-    }
-    else {
+    } else {
       this._globalNames.delete(name);
     }
   },
@@ -62,8 +60,7 @@ ContentPrefStore.prototype = {
   removeGroup: function CPS_removeGroup(group) {
     if (group) {
       this._groups.delete(group);
-    }
-    else {
+    } else {
       this._globalNames.clear();
     }
   },
@@ -75,6 +72,12 @@ ContentPrefStore.prototype = {
   removeAll: function CPS_removeAll() {
     this.removeAllGroups();
     this._globalNames.clear();
+  },
+
+  groupsMatchIncludingSubdomains: function CPS_groupsMatchIncludingSubdomains(group, group2) {
+    let idx = group2.indexOf(group);
+    return (idx == group2.length - group.length &&
+         (idx == 0 || group2[idx - 1] == "."));
   },
 
   * [Symbol.iterator]() {
@@ -100,18 +103,15 @@ ContentPrefStore.prototype = {
       if (includeSubdomains) {
         for (let [sgroup, , ] of this) {
           if (sgroup) {
-            let idx = sgroup.indexOf(group);
-            if (idx == sgroup.length - group.length &&
-                (idx == 0 || sgroup[idx - 1] == "."))
+            if (this.groupsMatchIncludingSubdomains(group, sgroup)) {
               yield sgroup;
+            }
           }
         }
-      }
-      else if (this._groups.has(group)) {
+      } else if (this._groups.has(group)) {
         yield group;
       }
-    }
-    else if (this._globalNames.size) {
+    } else if (this._globalNames.size) {
       yield null;
     }
   },

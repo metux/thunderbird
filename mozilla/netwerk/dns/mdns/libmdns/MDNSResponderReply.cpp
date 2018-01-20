@@ -4,7 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "MDNSResponderReply.h"
-#include "mozilla/Endian.h"
+#include "mozilla/EndianUtils.h"
 #include "private/pprio.h"
 
 namespace mozilla {
@@ -18,7 +18,8 @@ BrowseReplyRunnable::BrowseReplyRunnable(DNSServiceRef aSdRef,
                                          const nsACString& aRegType,
                                          const nsACString& aReplyDomain,
                                          BrowseOperator* aContext)
-  : mSdRef(aSdRef)
+  : Runnable("net::BrowseReplyRunnable")
+  , mSdRef(aSdRef)
   , mFlags(aFlags)
   , mInterfaceIndex(aInterfaceIndex)
   , mErrorCode(aErrorCode)
@@ -53,7 +54,7 @@ BrowseReplyRunnable::Reply(DNSServiceRef aSdRef,
                            const char* aReplyDomain,
                            void* aContext)
 {
-  MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread);
+  MOZ_ASSERT(OnSocketThread(), "not on socket thread");
 
   BrowseOperator* obj(reinterpret_cast<BrowseOperator*>(aContext));
   if (!obj) {
@@ -83,7 +84,8 @@ RegisterReplyRunnable::RegisterReplyRunnable(DNSServiceRef aSdRef,
                                              const nsACString& aRegType,
                                              const nsACString& domain,
                                              RegisterOperator* aContext)
-  : mSdRef(aSdRef)
+  : Runnable("net::RegisterReplyRunnable")
+  , mSdRef(aSdRef)
   , mFlags(aFlags)
   , mErrorCode(aErrorCode)
   , mName(aName)
@@ -116,7 +118,7 @@ RegisterReplyRunnable::Reply(DNSServiceRef aSdRef,
                              const char* domain,
                              void* aContext)
 {
-  MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread);
+  MOZ_ASSERT(OnSocketThread(), "not on socket thread");
 
   RegisterOperator* obj(reinterpret_cast<RegisterOperator*>(aContext));
   if (!obj) {
@@ -148,7 +150,8 @@ ResolveReplyRunnable::ResolveReplyRunnable(DNSServiceRef aSdRef,
                                            uint16_t aTxtLen,
                                            const unsigned char* aTxtRecord,
                                            ResolveOperator* aContext)
-  : mSdRef(aSdRef)
+  : Runnable("net::ResolveReplyRunnable")
+  , mSdRef(aSdRef)
   , mFlags(aFlags)
   , mInterfaceIndex(aInterfaceIndex)
   , mErrorCode(aErrorCode)
@@ -196,7 +199,7 @@ ResolveReplyRunnable::Reply(DNSServiceRef aSdRef,
                             const unsigned char* aTxtRecord,
                             void* aContext)
 {
-  MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread);
+  MOZ_ASSERT(OnSocketThread(), "not on socket thread");
 
   ResolveOperator* obj(reinterpret_cast<ResolveOperator*>(aContext));
   if (!obj) {
@@ -229,7 +232,8 @@ GetAddrInfoReplyRunnable::GetAddrInfoReplyRunnable(DNSServiceRef aSdRef,
                                                    const mozilla::net::NetAddr& aAddress,
                                                    uint32_t aTTL,
                                                    GetAddrInfoOperator* aContext)
-  : mSdRef(aSdRef)
+  : Runnable("net::GetAddrInfoReplyRunnable")
+  , mSdRef(aSdRef)
   , mFlags(aFlags)
   , mInterfaceIndex(aInterfaceIndex)
   , mErrorCode(aErrorCode)
@@ -268,7 +272,7 @@ GetAddrInfoReplyRunnable::Reply(DNSServiceRef aSdRef,
                                 uint32_t aTTL,
                                 void* aContext)
 {
-  MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread);
+  MOZ_ASSERT(OnSocketThread(), "not on socket thread");
 
   GetAddrInfoOperator* obj(reinterpret_cast<GetAddrInfoOperator*>(aContext));
   if (!obj) {
@@ -281,7 +285,11 @@ GetAddrInfoReplyRunnable::Reply(DNSServiceRef aSdRef,
   }
 
   NetAddr address;
-  memcpy(&address, aAddress, sizeof(*aAddress));
+  address.raw.family = aAddress->sa_family;
+
+  static_assert(sizeof(address.raw.data) >= sizeof(aAddress->sa_data),
+                "size of sockaddr.sa_data is too big");
+  memcpy(&address.raw.data, aAddress->sa_data, sizeof(aAddress->sa_data));
 
   thread->Dispatch(new GetAddrInfoReplyRunnable(aSdRef,
                                                 aFlags,

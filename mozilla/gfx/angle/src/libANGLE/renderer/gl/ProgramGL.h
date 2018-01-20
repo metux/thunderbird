@@ -9,6 +9,10 @@
 #ifndef LIBANGLE_RENDERER_GL_PROGRAMGL_H_
 #define LIBANGLE_RENDERER_GL_PROGRAMGL_H_
 
+#include <string>
+#include <vector>
+
+#include "libANGLE/renderer/gl/WorkaroundsGL.h"
 #include "libANGLE/renderer/ProgramImpl.h"
 
 namespace rx
@@ -17,24 +21,26 @@ namespace rx
 class FunctionsGL;
 class StateManagerGL;
 
-struct SamplerBindingGL
-{
-    GLenum textureType;
-    std::vector<GLuint> boundTextureUnits;
-};
-
 class ProgramGL : public ProgramImpl
 {
   public:
-    ProgramGL(const gl::Program::Data &data,
+    ProgramGL(const gl::ProgramState &data,
               const FunctionsGL *functions,
-              StateManagerGL *stateManager);
+              const WorkaroundsGL &workarounds,
+              StateManagerGL *stateManager,
+              bool enablePathRendering);
     ~ProgramGL() override;
 
-    LinkResult load(gl::InfoLog &infoLog, gl::BinaryInputStream *stream) override;
-    gl::Error save(gl::BinaryOutputStream *stream) override;
+    gl::LinkResult load(const gl::Context *contextImpl,
+                        gl::InfoLog &infoLog,
+                        gl::BinaryInputStream *stream) override;
+    void save(const gl::Context *context, gl::BinaryOutputStream *stream) override;
+    void setBinaryRetrievableHint(bool retrievable) override;
+    void setSeparable(bool separable) override;
 
-    LinkResult link(const gl::Data &data, gl::InfoLog &infoLog) override;
+    gl::LinkResult link(const gl::Context *contextImpl,
+                        const gl::VaryingPacking &packing,
+                        gl::InfoLog &infoLog) override;
     GLboolean validate(const gl::Caps &caps, gl::InfoLog *infoLog) override;
 
     void setUniform1fv(GLint location, GLsizei count, const GLfloat *v) override;
@@ -59,32 +65,57 @@ class ProgramGL : public ProgramImpl
     void setUniformMatrix3x4fv(GLint location, GLsizei count, GLboolean transpose, const GLfloat *value) override;
     void setUniformMatrix4x3fv(GLint location, GLsizei count, GLboolean transpose, const GLfloat *value) override;
 
+    void getUniformfv(const gl::Context *context, GLint location, GLfloat *params) const override;
+    void getUniformiv(const gl::Context *context, GLint location, GLint *params) const override;
+    void getUniformuiv(const gl::Context *context, GLint location, GLuint *params) const override;
+
     void setUniformBlockBinding(GLuint uniformBlockIndex, GLuint uniformBlockBinding) override;
 
-    bool getUniformBlockSize(const std::string &blockName, size_t *sizeOut) const override;
+    bool getUniformBlockSize(const std::string &blockName,
+                             const std::string &blockMappedName,
+                             size_t *sizeOut) const override;
     bool getUniformBlockMemberInfo(const std::string &memberUniformName,
+                                   const std::string &memberUniformMappedName,
                                    sh::BlockMemberInfo *memberInfoOut) const override;
 
+    void setPathFragmentInputGen(const std::string &inputName,
+                                 GLenum genMode,
+                                 GLint components,
+                                 const GLfloat *coeffs) override;
+
+    void markUnusedUniformLocations(std::vector<gl::VariableLocation> *uniformLocations,
+                                    std::vector<gl::SamplerBinding> *samplerBindings) override;
+
     GLuint getProgramID() const;
-    const std::vector<SamplerBindingGL> &getAppliedSamplerUniforms() const;
+
+    void enableSideBySideRenderingPath() const;
+    void enableLayeredRenderingPath(int baseViewIndex) const;
 
   private:
-    void reset();
+    void preLink();
+    bool checkLinkStatus(gl::InfoLog &infoLog);
+    void postLink();
+    void reapplyUBOBindingsIfNeeded(const gl::Context *context);
 
     // Helper function, makes it simpler to type.
     GLint uniLoc(GLint glLocation) const { return mUniformRealLocationMap[glLocation]; }
 
     const FunctionsGL *mFunctions;
+    const WorkaroundsGL &mWorkarounds;
     StateManagerGL *mStateManager;
 
     std::vector<GLint> mUniformRealLocationMap;
     std::vector<GLuint> mUniformBlockRealLocationMap;
 
-    // An array of the samplers that are used by the program
-    std::vector<SamplerBindingGL> mSamplerBindings;
+    struct PathRenderingFragmentInput
+    {
+        std::string mappedName;
+        GLint location;
+    };
+    std::vector<PathRenderingFragmentInput> mPathRenderingFragmentInputs;
 
-    // A map from a mData.getUniforms() index to a mSamplerBindings index.
-    std::vector<size_t> mUniformIndexToSamplerIndex;
+    bool mEnablePathRendering;
+    GLint mMultiviewBaseViewLayerIndexUniformLocation;
 
     GLuint mProgramID;
 };

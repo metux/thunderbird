@@ -149,7 +149,7 @@ nsresult NS_MsgGetAttributeFromString(const char *string, nsMsgSearchAttribValue
     NS_ENSURE_SUCCESS(rv, rv);
 
     nsCString headers;
-    prefBranch->GetCharPref(MAILNEWS_CUSTOM_HEADERS, getter_Copies(headers));
+    prefBranch->GetCharPref(MAILNEWS_CUSTOM_HEADERS, headers);
 
     if (!headers.IsEmpty())
     {
@@ -401,7 +401,7 @@ nsMsgSearchTerm::nsMsgSearchTerm (
 nsMsgSearchTerm::~nsMsgSearchTerm ()
 {
   if (IS_STRING_ATTRIBUTE (m_attribute) && m_value.string)
-    NS_Free(m_value.string);
+    free(m_value.string);
 }
 
 NS_IMPL_ISUPPORTS(nsMsgSearchTerm, nsIMsgSearchTerm)
@@ -415,20 +415,20 @@ NS_IMPL_ISUPPORTS(nsMsgSearchTerm, nsIMsgSearchTerm)
   for (const char *strPtr = str; *strPtr; strPtr++)
     if (*strPtr == '"')
       numQuotes++;
-    int escapedStrLen = PL_strlen(str) + numQuotes;
-    char  *escapedStr = (char *) PR_Malloc(escapedStrLen + 1);
-    if (escapedStr)
+  int escapedStrLen = PL_strlen(str) + numQuotes;
+  char  *escapedStr = (char *) PR_Malloc(escapedStrLen + 1);
+  if (escapedStr)
+  {
+    char *destPtr;
+    for (destPtr = escapedStr; *str; str++)
     {
-      char *destPtr;
-      for (destPtr = escapedStr; *str; str++)
-      {
-        if (*str == '"')
-          *destPtr++ = '\\';
-        *destPtr++ = *str;
-      }
-      *destPtr = '\0';
+      if (*str == '"')
+        *destPtr++ = '\\';
+      *destPtr++ = *str;
     }
-    return escapedStr;
+    *destPtr = '\0';
+  }
+  return escapedStr;
 }
 
 
@@ -440,8 +440,8 @@ nsresult nsMsgSearchTerm::OutputValue(nsCString &outputStr)
     // need to quote strings with ')' and strings starting with '"' or ' '
     // filter code will escape quotes
     if (PL_strchr(m_value.string, ')') ||
-      (m_value.string[0] == ' ') ||
-      (m_value.string[0] == '"'))
+        (m_value.string[0] == ' ') ||
+        (m_value.string[0] == '"'))
     {
       quoteVal = true;
       outputStr += "\"";
@@ -467,7 +467,7 @@ nsresult nsMsgSearchTerm::OutputValue(nsCString &outputStr)
   {
     switch (m_attribute)
     {
-    case nsMsgSearchAttrib::Date:
+      case nsMsgSearchAttrib::Date:
       {
         PRExplodedTime exploded;
         PR_ExplodeTime(m_value.u.date, PR_LocalTimeParameters, &exploded);
@@ -514,7 +514,7 @@ nsresult nsMsgSearchTerm::OutputValue(nsCString &outputStr)
       }
     case nsMsgSearchAttrib::HasAttachmentStatus:
       {
-        outputStr.Append("true");  // don't need anything here, really
+        outputStr.AppendLiteral("true");  // don't need anything here, really
         break;
       }
     case nsMsgSearchAttrib::Size:
@@ -784,10 +784,11 @@ nsresult nsMsgSearchTerm::MatchArbitraryHeader (nsIMsgSearchScopeTerm *scope,
 
   // We will allow accumulation of received headers;
   bool isReceivedHeader = m_arbitraryHeader.EqualsLiteral("received");
-  
+
   while (searchingHeaders)
   {
-    if (bodyHandler->GetNextLine(buf) < 0 || EMPTY_MESSAGE_LINE(buf))
+    nsCString charsetIgnored;
+    if (bodyHandler->GetNextLine(buf, charsetIgnored) < 0 || EMPTY_MESSAGE_LINE(buf))
       searchingHeaders = false;
     bool isContinuationHeader = searchingHeaders ? NS_IsAsciiWhitespace(buf.CharAt(0))
                                                    : false;
@@ -848,7 +849,7 @@ nsresult nsMsgSearchTerm::MatchArbitraryHeader (nsIMsgSearchScopeTerm *scope,
       // any continuation whitespace is converted to a single space. This includes both a continuation line, or a
       //  second value of the same header (eg the received header)
       if (!headerFullValue.IsEmpty())
-        headerFullValue.AppendLiteral(" ");
+        headerFullValue.Append(' ');
       headerFullValue.Append(nsDependentCString(headerValue));
     }
   }
@@ -957,22 +958,21 @@ nsresult nsMsgSearchTerm::MatchBody (nsIMsgSearchScopeTerm *scope, uint64_t offs
     (PL_strchr (m_value.string, '=') == nullptr);
 
   nsCString compare;
+  nsCString charset;
   while (!endOfFile && result == boolContinueLoop)
   {
-    if (bodyHan->GetNextLine(buf) >= 0)
+    if (bodyHan->GetNextLine(buf, charset) >= 0)
     {
       bool softLineBreak = false;
       // Do in-place decoding of quoted printable
       if (isQuotedPrintable)
       {
         softLineBreak = StringEndsWith(buf, NS_LITERAL_CSTRING("="));
-        MsgStripQuotedPrintable ((unsigned char*)buf.get());
-        // in case the string shrunk, reset the length. If soft line break,
-        // chop off the last char as well.
-        size_t bufLength = strlen(buf.get());
+        MsgStripQuotedPrintable(buf);
+        // If soft line break, chop off the last char as well.
+        size_t bufLength = buf.Length();
         if ((bufLength > 0) && softLineBreak)
-          --bufLength;
-        buf.SetLength(bufLength);
+          buf.SetLength(bufLength - 1);
       }
       compare.Append(buf);
       // If this line ends with a soft line break, loop around
@@ -986,7 +986,9 @@ nsresult nsMsgSearchTerm::MatchBody (nsIMsgSearchScopeTerm *scope, uint64_t offs
         char startChar = (char) compare.CharAt(0);
         if (startChar != '\r' && startChar != '\n')
         {
-          rv = MatchString(compare, folderCharset, &result);
+          rv = MatchString(compare,
+                           charset.IsEmpty() ? folderCharset : charset.get(),
+                           &result);
           lines++;
         }
         compare.Truncate();
@@ -1477,7 +1479,7 @@ nsresult nsMsgSearchTerm::MatchJunkPercent(uint32_t aJunkPercent, bool *pResult)
   *pResult = result;
   return rv;
 }
-  
+
 
 nsresult nsMsgSearchTerm::MatchLabel(nsMsgLabelValue aLabelValue, bool *pResult)
 {
@@ -1494,6 +1496,7 @@ nsresult nsMsgSearchTerm::MatchLabel(nsMsgLabelValue aLabelValue, bool *pResult)
   case nsMsgSearchOp::Isnt:
     if (m_value.u.label != aLabelValue)
       result = true;
+    break;
   default:
     rv = NS_ERROR_FAILURE;
     NS_ERROR("invalid compare op for label value");
@@ -1503,7 +1506,7 @@ nsresult nsMsgSearchTerm::MatchLabel(nsMsgLabelValue aLabelValue, bool *pResult)
   return rv;
 }
 
-// MatchStatus () is not only used for nsMsgMessageFlags but also for 
+// MatchStatus () is not only used for nsMsgMessageFlags but also for
 // nsMsgFolderFlags (both being 'unsigned long')
 nsresult nsMsgSearchTerm::MatchStatus(uint32_t statusToMatch, bool *pResult)
 {
@@ -1749,8 +1752,7 @@ NS_IMETHODIMP
 nsMsgSearchTerm::GetValue(nsIMsgSearchValue **aResult)
 {
     NS_ENSURE_ARG_POINTER(aResult);
-    *aResult = new nsMsgSearchValueImpl(&m_value);
-    NS_IF_ADDREF(*aResult);
+    NS_ADDREF(*aResult = new nsMsgSearchValueImpl(&m_value));
     return NS_OK;
 }
 
@@ -1822,11 +1824,11 @@ NS_IMPL_GETSET(nsMsgSearchTerm, EndsGrouping, bool, mEndsGrouping)
 void nsMsgSearchTerm::ToLowerCaseExceptSpecials(nsACString &aValue)
 {
   if (aValue.LowerCaseEqualsLiteral("sender"))
-    aValue.Assign(NS_LITERAL_CSTRING("Sender"));
+    aValue.AssignLiteral("Sender");
   else if (aValue.LowerCaseEqualsLiteral("date"))
-    aValue.Assign(NS_LITERAL_CSTRING("Date"));
+    aValue.AssignLiteral("Date");
   else if (aValue.LowerCaseEqualsLiteral("status"))
-    aValue.Assign(NS_LITERAL_CSTRING("Status"));
+    aValue.AssignLiteral("Status");
   else
     ToLowerCase(aValue);
 }
@@ -1871,7 +1873,7 @@ nsMsgSearchScopeTerm::GetSearchSession(nsIMsgSearchSession** aResult)
 {
     NS_ENSURE_ARG_POINTER(aResult);
     nsCOMPtr<nsIMsgSearchSession> searchSession = do_QueryReferent (m_searchSession);
-    NS_IF_ADDREF(*aResult = searchSession);
+    searchSession.forget(aResult);
     return NS_OK;
 }
 
@@ -1905,7 +1907,7 @@ nsresult nsMsgSearchScopeTerm::TimeSlice (bool *aDone)
   return m_adapter->Search(aDone);
 }
 
-nsresult nsMsgSearchScopeTerm::InitializeAdapter (nsISupportsArray *termList)
+nsresult nsMsgSearchScopeTerm::InitializeAdapter (nsIArray *termList)
 {
   if (m_adapter)
     return NS_OK;

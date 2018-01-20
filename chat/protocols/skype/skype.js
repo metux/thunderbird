@@ -109,7 +109,8 @@ SkypeAccountBuddy.prototype = {
   mood: null,
 
   // Called when the user wants to chat with the buddy.
-  createConversation: function() this._account.createConversation(this.userName),
+  createConversation:
+    function() {return this._account.createConversation(this.userName); },
 
   // Returns a list of imITooltipInfo objects to be displayed when the user
   // hovers over the buddy.
@@ -673,7 +674,7 @@ SkypeAccount.prototype = {
         let conversationLink = resource.conversationLink;
 
         // Check if the conversation is a chat.
-        if (conversationLink.indexOf("/19:") != -1) {
+        if (conversationLink.includes("/19:")) {
           // TODO
           this.WARN("Received message from MUC.");
           continue;

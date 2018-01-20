@@ -53,7 +53,6 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(BoxObject)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(BoxObject)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS
   if (tmp->mPropertyTable) {
     for (auto iter = tmp->mPropertyTable->Iter(); !iter.Done(); iter.Next()) {
       cb.NoteXPCOMChild(iter.UserData());
@@ -117,7 +116,7 @@ BoxObject::GetFrame(bool aFlushLayout)
     // flush to make sure our frame model is up to date.
     // XXXbz should flush on document, no?  Except people call this from
     // frame code, maybe?
-    shell->FlushPendingNotifications(Flush_Frames);
+    shell->FlushPendingNotifications(FlushType::Frames);
   }
 
   // The flush might have killed mContent.
@@ -135,13 +134,13 @@ BoxObject::GetPresShell(bool aFlushLayout)
     return nullptr;
   }
 
-  nsCOMPtr<nsIDocument> doc = mContent->GetCurrentDoc();
+  nsCOMPtr<nsIDocument> doc = mContent->GetUncomposedDoc();
   if (!doc) {
     return nullptr;
   }
 
   if (aFlushLayout) {
-    doc->FlushPendingNotifications(Flush_Layout);
+    doc->FlushPendingNotifications(FlushType::Layout);
   }
 
   return doc->GetShell();
@@ -185,13 +184,13 @@ BoxObject::GetOffsetRect(nsIntRect& aRect)
 
     // For the origin, add in the border for the frame
     const nsStyleBorder* border = frame->StyleBorder();
-    origin.x += border->GetComputedBorderWidth(NS_SIDE_LEFT);
-    origin.y += border->GetComputedBorderWidth(NS_SIDE_TOP);
+    origin.x += border->GetComputedBorderWidth(eSideLeft);
+    origin.y += border->GetComputedBorderWidth(eSideTop);
 
     // And subtract out the border for the parent
     const nsStyleBorder* parentBorder = parent->StyleBorder();
-    origin.x -= parentBorder->GetComputedBorderWidth(NS_SIDE_LEFT);
-    origin.y -= parentBorder->GetComputedBorderWidth(NS_SIDE_TOP);
+    origin.x -= parentBorder->GetComputedBorderWidth(eSideLeft);
+    origin.y -= parentBorder->GetComputedBorderWidth(eSideTop);
 
     aRect.x = nsPresContext::AppUnitsToIntCSSPixels(origin.x);
     aRect.y = nsPresContext::AppUnitsToIntCSSPixels(origin.y);
@@ -218,7 +217,7 @@ BoxObject::GetScreenPosition(nsIntPoint& aPoint)
 
   nsIFrame* frame = GetFrame(true);
   if (frame) {
-    nsIntRect rect = frame->GetScreenRect();
+    CSSIntRect rect = frame->GetScreenRect();
     aPoint.x = rect.x;
     aPoint.y = rect.y;
   }
@@ -382,7 +381,7 @@ BoxObject::GetFirstChild(nsIDOMElement * *aFirstVisibleChild)
   *aFirstVisibleChild = nullptr;
   nsIFrame* frame = GetFrame(false);
   if (!frame) return NS_OK;
-  nsIFrame* firstFrame = frame->GetFirstPrincipalChild();
+  nsIFrame* firstFrame = frame->PrincipalChildList().FirstChild();
   if (!firstFrame) return NS_OK;
   // get the content for the box and query to a dom element
   nsCOMPtr<nsIDOMElement> el = do_QueryInterface(firstFrame->GetContent());
@@ -429,7 +428,7 @@ BoxObject::GetPreviousSibling(nsIFrame* aParentFrame, nsIFrame* aFrame,
                               nsIDOMElement** aResult)
 {
   *aResult = nullptr;
-  nsIFrame* nextFrame = aParentFrame->GetFirstPrincipalChild();
+  nsIFrame* nextFrame = aParentFrame->PrincipalChildList().FirstChild();
   nsIFrame* prevFrame = nullptr;
   while (nextFrame) {
     if (nextFrame == aFrame)

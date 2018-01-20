@@ -8,6 +8,8 @@
 #include "nsIServiceManager.h"
 #include "nsPrintOptionsX.h"
 #include "nsPrintSettingsX.h"
+#include "nsIWebBrowserPrint.h"
+#include "nsCocoaUtils.h"
 
 using namespace mozilla::embedding;
 
@@ -29,6 +31,33 @@ nsPrintOptionsX::SerializeToPrintData(nsIPrintSettings* aSettings,
     return rv;
   }
 
+  RefPtr<nsPrintSettingsX> settingsX(do_QueryObject(aSettings));
+  if (NS_WARN_IF(!settingsX)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  double adjustedWidth, adjustedHeight;
+  settingsX->GetAdjustedPaperSize(&adjustedWidth, &adjustedHeight);
+  data->adjustedPaperWidth() = adjustedWidth;
+  data->adjustedPaperHeight() = adjustedHeight;
+
+  if (XRE_IsParentProcess()) {
+    return SerializeToPrintDataParent(aSettings, aWBP, data);
+  }
+
+  return SerializeToPrintDataChild(aSettings, aWBP, data);
+}
+
+nsresult
+nsPrintOptionsX::SerializeToPrintDataChild(nsIPrintSettings* aSettings,
+                                           nsIWebBrowserPrint* aWBP,
+                                           PrintData* data)
+{
+  // If we are in the child process, we don't need to populate
+  // nsPrintSettingsX completely. The parent discards almost all of
+  // this data (bug 1328975). Furthermore, reading some of the
+  // printer/printing settings from the OS causes a connection to the
+  // printer to be made which is blocked by sandboxing and results in hangs.
   if (aWBP) {
     // When serializing an nsIWebBrowserPrint, we need to pass up the first
     // document name. We could pass up the entire collection of document
@@ -36,18 +65,28 @@ nsPrintOptionsX::SerializeToPrintData(nsIPrintSettings* aSettings,
     // the first one, so we just send the first to save IPC traffic.
     char16_t** docTitles;
     uint32_t titleCount;
-    rv = aWBP->EnumerateDocumentNames(&titleCount, &docTitles);
-    if (NS_SUCCEEDED(rv) && titleCount > 0) {
-      data->printJobName().Assign(docTitles[0]);
-    }
+    nsresult rv = aWBP->EnumerateDocumentNames(&titleCount, &docTitles);
+    if (NS_SUCCEEDED(rv)) {
+      if (titleCount > 0) {
+        data->printJobName().Assign(docTitles[0]);
+      }
 
-    for (int32_t i = titleCount - 1; i >= 0; i--) {
-      free(docTitles[i]);
+      for (int32_t i = titleCount - 1; i >= 0; i--) {
+        free(docTitles[i]);
+      }
+      free(docTitles);
+      docTitles = nullptr;
     }
-    free(docTitles);
-    docTitles = nullptr;
   }
 
+  return NS_OK;
+}
+
+nsresult
+nsPrintOptionsX::SerializeToPrintDataParent(nsIPrintSettings* aSettings,
+                                            nsIWebBrowserPrint* aWBP,
+                                            PrintData* data)
+{
   RefPtr<nsPrintSettingsX> settingsX(do_QueryObject(aSettings));
   if (NS_WARN_IF(!settingsX)) {
     return NS_ERROR_FAILURE;
@@ -90,6 +129,38 @@ nsPrintOptionsX::SerializeToPrintData(nsIPrintSettings* aSettings,
     nsCocoaUtils::GetStringForNSString(disposition, data->disposition());
   }
 
+  NSString* paperName = [dict objectForKey: NSPrintPaperName];
+  if (paperName) {
+    nsCocoaUtils::GetStringForNSString(paperName, data->paperName());
+  }
+
+  float scalingFactor = [[dict objectForKey: NSPrintScalingFactor] floatValue];
+  data->scalingFactor() = scalingFactor;
+
+  int32_t orientation;
+  if ([printInfo orientation] == NS_PAPER_ORIENTATION_PORTRAIT) {
+    orientation = nsIPrintSettings::kPortraitOrientation;
+  } else {
+    orientation = nsIPrintSettings::kLandscapeOrientation;
+  }
+  data->orientation() = orientation;
+
+  NSSize paperSize = [printInfo paperSize];
+  float widthScale, heightScale;
+  settingsX->GetInchesScale(&widthScale, &heightScale);
+  if (orientation == nsIPrintSettings::kLandscapeOrientation) {
+    // switch widths and heights
+    data->widthScale() = heightScale;
+    data->heightScale() = widthScale;
+    data->paperWidth() = paperSize.height / heightScale;
+    data->paperHeight() = paperSize.width / widthScale;
+  } else {
+    data->widthScale() = widthScale;
+    data->heightScale() = heightScale;
+    data->paperWidth() = paperSize.width / widthScale;
+    data->paperHeight() = paperSize.height / heightScale;
+  }
+
   data->numCopies() = [[dict objectForKey: NSPrintCopies] intValue];
   data->printAllPages() = [[dict objectForKey: NSPrintAllPages] boolValue];
   data->startPageRange() = [[dict objectForKey: NSPrintFirstPage] intValue];
@@ -103,11 +174,6 @@ nsPrintOptionsX::SerializeToPrintData(nsIPrintSettings* aSettings,
   data->fileNameExtensionHidden() =
     [[dict objectForKey: NSPrintJobSavingFileNameExtensionHidden] boolValue];
 
-  bool printSelectionOnly = [[dict objectForKey: NSPrintSelectionOnly] boolValue];
-  aSettings->SetPrintOptions(nsIPrintSettings::kEnableSelectionRB,
-                             printSelectionOnly);
-  aSettings->GetPrintOptionsBits(&data->optionFlags());
-
   return NS_OK;
 }
 
@@ -120,103 +186,18 @@ nsPrintOptionsX::DeserializeToPrintSettings(const PrintData& data,
     return rv;
   }
 
+  if (data.orientation() == nsIPrintSettings::kPortraitOrientation) {
+    settings->SetOrientation(nsIPrintSettings::kPortraitOrientation);
+  } else {
+    settings->SetOrientation(nsIPrintSettings::kLandscapeOrientation);
+  }
+
   RefPtr<nsPrintSettingsX> settingsX(do_QueryObject(settings));
   if (NS_WARN_IF(!settingsX)) {
     return NS_ERROR_FAILURE;
   }
-
-  NSPrintInfo* sharedPrintInfo = [NSPrintInfo sharedPrintInfo];
-  if (NS_WARN_IF(!sharedPrintInfo)) {
-    return NS_ERROR_FAILURE;
-  }
-
-  NSDictionary* sharedDict = [sharedPrintInfo dictionary];
-  if (NS_WARN_IF(!sharedDict)) {
-    return NS_ERROR_FAILURE;
-  }
-
-  // We need to create a new NSMutableDictionary to pass to NSPrintInfo with
-  // the values that we got from the other process.
-  NSMutableDictionary* newPrintInfoDict =
-    [NSMutableDictionary dictionaryWithDictionary:sharedDict];
-  if (NS_WARN_IF(!newPrintInfoDict)) {
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
-
-  NSString* printerName = nsCocoaUtils::ToNSString(data.printerName());
-  if (printerName) {
-    NSPrinter* printer = [NSPrinter printerWithName: printerName];
-    if (printer) {
-      [newPrintInfoDict setObject: printer forKey: NSPrintPrinter];
-      [newPrintInfoDict setObject: printerName forKey: NSPrintPrinterName];
-    }
-  }
-
-  [newPrintInfoDict setObject: [NSNumber numberWithInt: data.numCopies()]
-                    forKey: NSPrintCopies];
-  [newPrintInfoDict setObject: [NSNumber numberWithBool: data.printAllPages()]
-                    forKey: NSPrintAllPages];
-  [newPrintInfoDict setObject: [NSNumber numberWithInt: data.startPageRange()]
-                    forKey: NSPrintFirstPage];
-  [newPrintInfoDict setObject: [NSNumber numberWithInt: data.endPageRange()]
-                    forKey: NSPrintLastPage];
-  [newPrintInfoDict setObject: [NSNumber numberWithBool: data.mustCollate()]
-                    forKey: NSPrintMustCollate];
-  [newPrintInfoDict setObject: [NSNumber numberWithBool: data.printReversed()]
-                    forKey: NSPrintReversePageOrder];
-
-  [newPrintInfoDict setObject: nsCocoaUtils::ToNSString(data.disposition())
-                    forKey: NSPrintJobDisposition];
-
-  [newPrintInfoDict setObject: [NSNumber numberWithShort: data.pagesAcross()]
-                    forKey: NSPrintPagesAcross];
-  [newPrintInfoDict setObject: [NSNumber numberWithShort: data.pagesDown()]
-                    forKey: NSPrintPagesDown];
-  [newPrintInfoDict setObject: [NSNumber numberWithBool: data.detailedErrorReporting()]
-                    forKey: NSPrintDetailedErrorReporting];
-  [newPrintInfoDict setObject: nsCocoaUtils::ToNSString(data.faxNumber())
-                    forKey: NSPrintFaxNumber];
-  [newPrintInfoDict setObject: [NSNumber numberWithBool: data.addHeaderAndFooter()]
-                    forKey: NSPrintHeaderAndFooter];
-  [newPrintInfoDict setObject: [NSNumber numberWithBool: data.fileNameExtensionHidden()]
-                    forKey: NSPrintJobSavingFileNameExtensionHidden];
-
-  // At this point, the base class should have properly deserialized the print
-  // options bitfield for nsIPrintSettings, so that it holds the correct value
-  // for kEnableSelectionRB, which we use to set NSPrintSelectionOnly.
-
-  bool printSelectionOnly = false;
-  rv = settings->GetPrintOptions(nsIPrintSettings::kEnableSelectionRB, &printSelectionOnly);
-  if (NS_SUCCEEDED(rv)) {
-    [newPrintInfoDict setObject: [NSNumber numberWithBool: printSelectionOnly]
-                      forKey: NSPrintSelectionOnly];
-  } else {
-    [newPrintInfoDict setObject: [NSNumber numberWithBool: NO]
-                      forKey: NSPrintSelectionOnly];
-  }
-
-  NSURL* jobSavingURL =
-    [NSURL URLWithString: nsCocoaUtils::ToNSString(data.toFileName())];
-  if (jobSavingURL) {
-    [newPrintInfoDict setObject: jobSavingURL forKey: NSPrintJobSavingURL];
-  }
-
-  NSTimeInterval timestamp = data.printTime();
-  NSDate* printTime = [NSDate dateWithTimeIntervalSinceReferenceDate: timestamp];
-  if (printTime) {
-    [newPrintInfoDict setObject: printTime forKey: NSPrintTime];
-  }
-
-  // Next, we create a new NSPrintInfo with the values in our dictionary.
-  NSPrintInfo* newPrintInfo =
-    [[NSPrintInfo alloc] initWithDictionary: newPrintInfoDict];
-  if (NS_WARN_IF(!newPrintInfo)) {
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
-
-  // And now swap in the new NSPrintInfo we've just populated.
-  settingsX->SetCocoaPrintInfo(newPrintInfo);
-  [newPrintInfo release];
+  settingsX->SetAdjustedPaperSize(data.adjustedPaperWidth(),
+                                  data.adjustedPaperHeight());
 
   return NS_OK;
 }

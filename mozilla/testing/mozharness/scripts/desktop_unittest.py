@@ -2,6 +2,7 @@
 # ***** BEGIN LICENSE BLOCK *****
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
+
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 # ***** END LICENSE BLOCK *****
 """desktop_unittest.py
@@ -16,26 +17,38 @@ import sys
 import copy
 import shutil
 import glob
+import imp
+
+from datetime import datetime, timedelta
 
 # load modules from parent dir
 sys.path.insert(1, os.path.dirname(sys.path[0]))
 
 from mozharness.base.errors import BaseErrorList
-from mozharness.base.log import INFO, ERROR, WARNING
+from mozharness.base.log import INFO
 from mozharness.base.script import PreScriptAction
 from mozharness.base.vcs.vcsbase import MercurialScript
 from mozharness.mozilla.blob_upload import BlobUploadMixin, blobupload_config_options
+from mozharness.mozilla.buildbot import TBPL_EXCEPTION
 from mozharness.mozilla.mozbase import MozbaseMixin
+from mozharness.mozilla.structuredlog import StructuredOutputParser
+from mozharness.mozilla.testing.errors import HarnessErrorList
+from mozharness.mozilla.testing.unittest import DesktopUnittestOutputParser
 from mozharness.mozilla.testing.codecoverage import (
     CodeCoverageMixin,
     code_coverage_config_options
 )
 from mozharness.mozilla.testing.testbase import TestingMixin, testing_config_options
 
-SUITE_CATEGORIES = ['gtest', 'cppunittest', 'jittest', 'mochitest', 'reftest', 'xpcshell', 'mozbase', 'mozmill', 'webapprt']
+SUITE_CATEGORIES = ['gtest', 'cppunittest', 'jittest', 'mochitest', 'reftest', 'xpcshell',
+                    'mozbase', 'mozmill']
+SUITE_DEFAULT_E10S = ['mochitest', 'reftest']
+SUITE_NO_E10S = ['xpcshell']
+
 
 # DesktopUnittest {{{1
-class DesktopUnittest(TestingMixin, MercurialScript, BlobUploadMixin, MozbaseMixin, CodeCoverageMixin):
+class DesktopUnittest(TestingMixin, MercurialScript, BlobUploadMixin, MozbaseMixin,
+                      CodeCoverageMixin):
     config_options = [
         [['--mochitest-suite', ], {
             "action": "extend",
@@ -44,14 +57,6 @@ class DesktopUnittest(TestingMixin, MercurialScript, BlobUploadMixin, MozbaseMix
             "help": "Specify which mochi suite to run. "
                     "Suites are defined in the config file.\n"
                     "Examples: 'all', 'plain1', 'plain5', 'chrome', or 'a11y'"}
-         ],
-        [['--webapprt-suite', ], {
-            "action": "extend",
-            "dest": "specified_webapprt_suites",
-            "type": "string",
-            "help": "Specify which webapprt suite to run. "
-                    "Suites are defined in the config file.\n"
-                    "Examples: 'content', 'chrome'"}
          ],
         [['--reftest-suite', ], {
             "action": "extend",
@@ -123,11 +128,11 @@ class DesktopUnittest(TestingMixin, MercurialScript, BlobUploadMixin, MozbaseMix
             "default": False,
             "help": "Run tests with multiple processes."}
          ],
-        [['--strict-content-sandbox', ], {
+        [['--headless', ], {
             "action": "store_true",
-            "dest": "strict_content_sandbox",
+            "dest": "headless",
             "default": False,
-            "help": "Run tests with a more strict content sandbox (Windows only)."}
+            "help": "Run tests in headless mode."}
          ],
         [['--no-random', ], {
             "action": "store_true",
@@ -145,6 +150,37 @@ class DesktopUnittest(TestingMixin, MercurialScript, BlobUploadMixin, MozbaseMix
             "dest": "this_chunk",
             "help": "Number of this chunk"}
          ],
+        [["--allow-software-gl-layers"], {
+            "action": "store_true",
+            "dest": "allow_software_gl_layers",
+            "default": False,
+            "help": "Permits a software GL implementation (such as LLVMPipe) to use "
+                    "the GL compositor."}
+         ],
+        [["--single-stylo-traversal"], {
+            "action": "store_true",
+            "dest": "single_stylo_traversal",
+            "default": False,
+            "help": "Forcibly enable single thread traversal in Stylo with STYLO_THREADS=1"}
+         ],
+        [["--enable-stylo"], {
+            "action": "store_true",
+            "dest": "enable_stylo",
+            "default": False,
+            "help": "Run tests with Stylo enabled"}
+         ],
+        [["--disable-stylo"], {
+            "action": "store_true",
+            "dest": "disable_stylo",
+            "default": False,
+            "help": "Run tests with Stylo disabled"}
+         ],
+        [["--enable-webrender"], {
+            "action": "store_true",
+            "dest": "enable_webrender",
+            "default": False,
+            "help": "Tries to enable the WebRender compositor."}
+         ],
     ] + copy.deepcopy(testing_config_options) + \
         copy.deepcopy(blobupload_config_options) + \
         copy.deepcopy(code_coverage_config_options)
@@ -160,6 +196,7 @@ class DesktopUnittest(TestingMixin, MercurialScript, BlobUploadMixin, MozbaseMix
                 'download-and-extract',
                 'create-virtualenv',
                 'install',
+                'stage-files',
                 'run-tests',
             ],
             require_config_file=require_config_file,
@@ -177,6 +214,40 @@ class DesktopUnittest(TestingMixin, MercurialScript, BlobUploadMixin, MozbaseMix
         self.binary_path = c.get('binary_path')
         self.abs_app_dir = None
         self.abs_res_dir = None
+
+        # Construct an identifier to be used to identify Perfherder data
+        # for resource monitoring recording. This attempts to uniquely
+        # identify this test invocation configuration.
+        perfherder_parts = []
+        perfherder_options = []
+        suites = (
+            ('specified_mochitest_suites', 'mochitest'),
+            ('specified_reftest_suites', 'reftest'),
+            ('specified_xpcshell_suites', 'xpcshell'),
+            ('specified_cppunittest_suites', 'cppunit'),
+            ('specified_gtest_suites', 'gtest'),
+            ('specified_jittest_suites', 'jittest'),
+            ('specified_mozbase_suites', 'mozbase'),
+            ('specified_mozmill_suites', 'mozmill'),
+        )
+        for s, prefix in suites:
+            if s in c:
+                perfherder_parts.append(prefix)
+                perfherder_parts.extend(c[s])
+
+        if 'this_chunk' in c:
+            perfherder_parts.append(c['this_chunk'])
+
+        if c['e10s']:
+            perfherder_options.append('e10s')
+
+        if c['enable_stylo']:
+            perfherder_options.append('stylo')
+        if c['disable_stylo']:
+            perfherder_options.append('stylo_disabled')
+
+        self.resource_monitor_perfherder_id = ('.'.join(perfherder_parts),
+                                               perfherder_options)
 
     # helper methods {{{2
     def _pre_config_lock(self, rw_config):
@@ -200,6 +271,7 @@ class DesktopUnittest(TestingMixin, MercurialScript, BlobUploadMixin, MozbaseMix
 
         c = self.config
         dirs = {}
+        dirs['abs_work_dir'] = abs_dirs['abs_work_dir']
         dirs['abs_app_install_dir'] = os.path.join(abs_dirs['abs_work_dir'], 'application')
         dirs['abs_test_install_dir'] = os.path.join(abs_dirs['abs_work_dir'], 'tests')
         dirs['abs_test_extensions_dir'] = os.path.join(dirs['abs_test_install_dir'], 'extensions')
@@ -209,13 +281,14 @@ class DesktopUnittest(TestingMixin, MercurialScript, BlobUploadMixin, MozbaseMix
         dirs['abs_test_bin_components_dir'] = os.path.join(dirs['abs_test_bin_dir'],
                                                            'components')
         dirs['abs_mochitest_dir'] = os.path.join(dirs['abs_test_install_dir'], "mochitest")
-        dirs['abs_webapprt_dir'] = os.path.join(dirs['abs_test_install_dir'], "mochitest")
         dirs['abs_reftest_dir'] = os.path.join(dirs['abs_test_install_dir'], "reftest")
         dirs['abs_xpcshell_dir'] = os.path.join(dirs['abs_test_install_dir'], "xpcshell")
         dirs['abs_cppunittest_dir'] = os.path.join(dirs['abs_test_install_dir'], "cppunittest")
         dirs['abs_gtest_dir'] = os.path.join(dirs['abs_test_install_dir'], "gtest")
-        dirs['abs_blob_upload_dir'] = os.path.join(abs_dirs['abs_work_dir'], 'blobber_upload_dir')
-        dirs['abs_jittest_dir'] = os.path.join(dirs['abs_test_install_dir'], "jit-test", "jit-test")
+        dirs['abs_blob_upload_dir'] = os.path.join(abs_dirs['abs_work_dir'],
+                                                   'blobber_upload_dir')
+        dirs['abs_jittest_dir'] = os.path.join(dirs['abs_test_install_dir'],
+                                               "jit-test", "jit-test")
         dirs['abs_mozbase_dir'] = os.path.join(dirs['abs_test_install_dir'], "mozbase")
         dirs['abs_mozmill_dir'] = os.path.join(dirs['abs_test_install_dir'], "mozmill")
 
@@ -268,13 +341,19 @@ class DesktopUnittest(TestingMixin, MercurialScript, BlobUploadMixin, MozbaseMix
         self.register_virtualenv_module(name='mock')
         self.register_virtualenv_module(name='simplejson')
 
-        requirements = os.path.join(dirs['abs_test_install_dir'],
-                                    'config',
-                                    'mozbase_requirements.txt')
-        if os.path.isfile(requirements):
-            self.register_virtualenv_module(requirements=[requirements],
+        requirements_files = [os.path.join(dirs['abs_test_install_dir'],
+                              'config', 'marionette_requirements.txt')]
+
+        if self._query_specified_suites('mochitest') is not None:
+            # mochitest is the only thing that needs this
+            requirements_files.append(
+                os.path.join(dirs['abs_mochitest_dir'],
+                             'websocketprocessbridge',
+                             'websocketprocessbridge_requirements.txt'))
+
+        for requirements_file in requirements_files:
+            self.register_virtualenv_module(requirements=[requirements_file],
                                             two_pass=True)
-            return
 
     def _query_symbols_url(self):
         """query the full symbols URL based upon binary URL"""
@@ -298,32 +377,6 @@ class DesktopUnittest(TestingMixin, MercurialScript, BlobUploadMixin, MozbaseMix
         self.symbols_url = symbols_url
         return self.symbols_url
 
-    def get_webapprt_path(self, res_dir, mochitest_dir):
-        """Get the path to the webapp runtime binary.
-        On Mac, we copy the stub from the resources dir to the test app bundle,
-        since we have to run it from the executable directory of a bundle
-        in order for its windows to appear.  Ideally, the build system would do
-        this for us at build time, and we should find a way for it to do that.
-        """
-        exe_suffix = self.config.get('exe_suffix', '')
-        app_name = 'webapprt-stub' + exe_suffix
-        app_path = os.path.join(res_dir, app_name)
-        if self._is_darwin():
-            mac_dir_name = os.path.join(
-                mochitest_dir,
-                'webapprtChrome',
-                'webapprt',
-                'test',
-                'chrome',
-                'TestApp.app',
-                'Contents',
-                'MacOS')
-            mac_app_name = 'webapprt' + exe_suffix
-            mac_app_path = os.path.join(mac_dir_name, mac_app_name)
-            self.copyfile(app_path, mac_app_path, copystat=True)
-            return mac_app_path
-        return app_path
-
     def _query_abs_base_cmd(self, suite_category, suite):
         if self.binary_path:
             c = self.config
@@ -342,6 +395,7 @@ class DesktopUnittest(TestingMixin, MercurialScript, BlobUploadMixin, MozbaseMix
             str_format_values = {
                 'binary_path': self.binary_path,
                 'symbols_path': self._query_symbols_url(),
+                'abs_work_dir': dirs['abs_work_dir'],
                 'abs_app_dir': abs_app_dir,
                 'abs_res_dir': abs_res_dir,
                 'raw_log_file': raw_log_file,
@@ -355,17 +409,11 @@ class DesktopUnittest(TestingMixin, MercurialScript, BlobUploadMixin, MozbaseMix
             if self.symbols_path:
                 str_format_values['symbols_path'] = self.symbols_path
 
-            if suite_category == 'webapprt':
-                str_format_values['app_path'] = self.get_webapprt_path(abs_res_dir, dirs['abs_mochitest_dir'])
-
-            if c['e10s']:
-                base_cmd.append('--e10s')
-
-            if c.get('strict_content_sandbox'):
-                if suite_category == "mochitest":
-                    base_cmd.append('--strict-content-sandbox')
-                else:
-                    self.fatal("--strict-content-sandbox only works with mochitest suites.")
+            if suite_category not in SUITE_NO_E10S:
+                if suite_category in SUITE_DEFAULT_E10S and not c['e10s']:
+                    base_cmd.append('--disable-e10s')
+                elif suite_category not in SUITE_DEFAULT_E10S and c['e10s']:
+                    base_cmd.append('--e10s')
 
             if c.get('total_chunks') and c.get('this_chunk'):
                 base_cmd.extend(['--total-chunks', c['total_chunks'],
@@ -375,7 +423,11 @@ class DesktopUnittest(TestingMixin, MercurialScript, BlobUploadMixin, MozbaseMix
                 if suite_category == "mochitest":
                     base_cmd.append('--bisect-chunk=default')
                 else:
-                    self.warning("--no-random does not currently work with suites other than mochitest.")
+                    self.warning("--no-random does not currently work with suites other than "
+                                 "mochitest.")
+
+            if c['headless']:
+                base_cmd.append('--headless')
 
             # set pluginsPath
             abs_res_plugins_dir = os.path.join(abs_res_dir, 'plugins')
@@ -384,12 +436,22 @@ class DesktopUnittest(TestingMixin, MercurialScript, BlobUploadMixin, MozbaseMix
             if suite_category not in c["suite_definitions"]:
                 self.fatal("'%s' not defined in the config!")
 
+            if suite in ('browser-chrome-coverage', 'xpcshell-coverage',
+                         'mochitest-devtools-chrome-coverage', 'plain-chunked-coverage'):
+                base_cmd.append('--jscov-dir-prefix=%s' %
+                                dirs['abs_blob_upload_dir'])
+
             options = c["suite_definitions"][suite_category]["options"]
             if options:
                 for option in options:
                     option = option % str_format_values
                     if not option.endswith('None'):
                         base_cmd.append(option)
+                if self.structured_output(
+                    suite_category,
+                    self._query_try_flavor(suite_category, suite)
+                ):
+                    base_cmd.append("--log-raw=-")
                 return base_cmd
             else:
                 self.warning("Suite options for %s could not be determined."
@@ -397,12 +459,6 @@ class DesktopUnittest(TestingMixin, MercurialScript, BlobUploadMixin, MozbaseMix
                              "please make sure they are specified in your "
                              "config under %s_options" %
                              (suite_category, suite_category))
-
-
-            for option in options:
-                option = option % str_format_values
-                if not option.endswith('None'):
-                    base_cmd.append(option)
 
             return base_cmd
         else:
@@ -437,6 +493,8 @@ class DesktopUnittest(TestingMixin, MercurialScript, BlobUploadMixin, MozbaseMix
         else:
             if c.get('run_all_suites'):  # needed if you dont specify any suites
                 suites = all_suites
+            else:
+                suites = self.query_verify_category_suites(category, all_suites)
 
         return suites
 
@@ -454,6 +512,24 @@ class DesktopUnittest(TestingMixin, MercurialScript, BlobUploadMixin, MozbaseMix
             if re.compile(suite_pattern).match(suite):
                 return flavor
 
+    def structured_output(self, suite_category, flavor=None):
+        unstructured_flavors = self.config.get('unstructured_flavors')
+        if not unstructured_flavors:
+            return False
+        if suite_category not in unstructured_flavors:
+            return True
+        if not unstructured_flavors.get(suite_category) or \
+                flavor in unstructured_flavors.get(suite_category):
+            return False
+        return True
+
+    def get_test_output_parser(self, suite_category, flavor=None, strict=False,
+                               **kwargs):
+        if not self.structured_output(suite_category, flavor):
+            return DesktopUnittestOutputParser(suite_category=suite_category, **kwargs)
+        self.info("Structured output parser in use for %s." % suite_category)
+        return StructuredOutputParser(suite_category=suite_category, strict=strict, **kwargs)
+
     # Actions {{{2
 
     # clobber defined in BaseScript, deletes mozharness/build if exists
@@ -465,6 +541,30 @@ class DesktopUnittest(TestingMixin, MercurialScript, BlobUploadMixin, MozbaseMix
     # install is in TestingMixin.
     # upload_blobber_files is in BlobUploadMixin
 
+    @PreScriptAction('download-and-extract')
+    def _pre_download_and_extract(self, action):
+        """Abort if --artifact try syntax is used with compiled-code tests"""
+        if not self.try_message_has_flag('artifact'):
+            return
+        self.info('Artifact build requested in try syntax.')
+        rejected = []
+        compiled_code_suites = [
+            "cppunit",
+            "gtest",
+            "jittest",
+        ]
+        for category in SUITE_CATEGORIES:
+            suites = self._query_specified_suites(category) or []
+            for suite in suites:
+                if any([suite.startswith(c) for c in compiled_code_suites]):
+                    rejected.append(suite)
+                    break
+        if rejected:
+            self.buildbot_status(TBPL_EXCEPTION)
+            self.fatal("There are specified suites that are incompatible with "
+                       "--artifact try syntax flag: {}".format(', '.join(rejected)),
+                       exit_code=self.return_code)
+
     def download_and_extract(self):
         """
         download and extract test zip / download installer
@@ -472,41 +572,30 @@ class DesktopUnittest(TestingMixin, MercurialScript, BlobUploadMixin, MozbaseMix
         """
         c = self.config
 
-        target_unzip_dirs = None
+        extract_dirs = None
         if c['specific_tests_zip_dirs']:
-            target_unzip_dirs = list(c['minimum_tests_zip_dirs'])
+            extract_dirs = list(c['minimum_tests_zip_dirs'])
             for category in c['specific_tests_zip_dirs'].keys():
                 if c['run_all_suites'] or self._query_specified_suites(category) \
                         or 'run-tests' not in self.actions:
-                    target_unzip_dirs.extend(c['specific_tests_zip_dirs'][category])
+                    extract_dirs.extend(c['specific_tests_zip_dirs'][category])
 
         if c.get('run_all_suites'):
             target_categories = SUITE_CATEGORIES
         else:
             target_categories = [cat for cat in SUITE_CATEGORIES
                                  if self._query_specified_suites(cat) is not None]
-        super(DesktopUnittest, self).download_and_extract(target_unzip_dirs=target_unzip_dirs,
+        super(DesktopUnittest, self).download_and_extract(extract_dirs=extract_dirs,
                                                           suite_categories=target_categories)
 
-    # pull defined in VCSScript.
-    # preflight_run_tests defined in TestingMixin.
+    def stage_files(self):
+        for category in SUITE_CATEGORIES:
+            suites = self._query_specified_suites(category)
+            stage = getattr(self, '_stage_{}'.format(category), None)
+            if suites and stage:
+                stage(suites)
 
-    def run_tests(self):
-        self._run_category_suites('mochitest')
-        self._run_category_suites('reftest')
-        self._run_category_suites('webapprt')
-        self._run_category_suites('xpcshell',
-                                  preflight_run_method=self.preflight_xpcshell)
-        self._run_category_suites('cppunittest',
-                                  preflight_run_method=self.preflight_cppunittest)
-        self._run_category_suites('gtest',
-                                  preflight_run_method=self.preflight_gtest)
-        self._run_category_suites('jittest')
-        self._run_category_suites('mozbase')
-        self._run_category_suites('mozmill',
-                                  preflight_run_method=self.preflight_mozmill)
-
-    def preflight_copydirs(self, bin_name=None):
+    def _stage_files(self, bin_name=None):
         dirs = self.query_abs_dirs()
         abs_app_dir = self.query_abs_app_dir()
 
@@ -536,10 +625,10 @@ class DesktopUnittest(TestingMixin, MercurialScript, BlobUploadMixin, MozbaseMix
                           abs_res_extensions_dir,
                           overwrite='overwrite_if_exists')
 
-    def preflight_xpcshell(self, suites):
-        self.preflight_copydirs(self.config['xpcshell_name'])
+    def _stage_xpcshell(self, suites):
+        self._stage_files(self.config['xpcshell_name'])
 
-    def preflight_cppunittest(self, suites):
+    def _stage_cppunittest(self, suites):
         abs_res_dir = self.query_abs_res_dir()
         dirs = self.query_abs_dirs()
         abs_cppunittest_dir = dirs['abs_cppunittest_dir']
@@ -550,7 +639,7 @@ class DesktopUnittest(TestingMixin, MercurialScript, BlobUploadMixin, MozbaseMix
         for f in files:
             self.move(f, abs_res_dir)
 
-    def preflight_gtest(self, suites):
+    def _stage_gtest(self, suites):
         abs_res_dir = self.query_abs_res_dir()
         abs_app_dir = self.query_abs_app_dir()
         dirs = self.query_abs_dirs()
@@ -565,8 +654,8 @@ class DesktopUnittest(TestingMixin, MercurialScript, BlobUploadMixin, MozbaseMix
         self.copytree(os.path.join(abs_gtest_dir, 'gtest_bin'),
                       os.path.join(abs_app_dir))
 
-    def preflight_mozmill(self, suites):
-        self.preflight_copydirs()
+    def _stage_mozmill(self, suites):
+        self._stage_files()
         dirs = self.query_abs_dirs()
         modules = ['jsbridge', 'mozmill']
         for module in modules:
@@ -574,17 +663,70 @@ class DesktopUnittest(TestingMixin, MercurialScript, BlobUploadMixin, MozbaseMix
                                                     'resources',
                                                     module))
 
-    def _run_category_suites(self, suite_category, preflight_run_method=None):
+    def _report_system_info(self):
+        """
+           Create the system-info.log artifact file, containing a variety of
+           system information that might be useful in diagnosing test failures.
+        """
+        try:
+            import psutil
+            dir = self.query_abs_dirs()['abs_blob_upload_dir']
+            self.mkdir_p(dir)
+            path = os.path.join(dir, "system-info.log")
+            with open(path, "w") as f:
+                f.write("System info collected at %s\n\n" % datetime.now())
+                f.write("\nBoot time %s\n" % datetime.fromtimestamp(psutil.boot_time()))
+                f.write("\nVirtual memory: %s\n" % str(psutil.virtual_memory()))
+                f.write("\nDisk partitions: %s\n" % str(psutil.disk_partitions()))
+                f.write("\nDisk usage (/): %s\n" % str(psutil.disk_usage(os.path.sep)))
+                if not self._is_windows():
+                    # bug 1417189: frequent errors querying users on Windows
+                    f.write("\nUsers: %s\n" % str(psutil.users()))
+                f.write("\nNetwork connections:\n")
+                try:
+                    for nc in psutil.net_connections():
+                        f.write("  %s\n" % str(nc))
+                except:
+                    f.write("Exception getting network info: %s\n" % sys.exc_info()[0])
+                f.write("\nProcesses:\n")
+                try:
+                    for p in psutil.process_iter():
+                        ctime = str(datetime.fromtimestamp(p.create_time()))
+                        f.write("  PID %d %s %s created at %s\n" %
+                                (p.pid, p.name(), str(p.cmdline()), ctime))
+                except:
+                    f.write("Exception getting process info: %s\n" % sys.exc_info()[0])
+        except:
+            # psutil throws a variety of intermittent exceptions
+            self.info("Unable to complete system-info.log: %s" % sys.exc_info()[0])
+
+    # pull defined in VCSScript.
+    # preflight_run_tests defined in TestingMixin.
+
+    def run_tests(self):
+        self._report_system_info()
+        self.start_time = datetime.now()
+        for category in SUITE_CATEGORIES:
+            if not self._run_category_suites(category):
+                break
+
+    def get_timeout_for_category(self, suite_category):
+        if suite_category == 'cppunittest':
+            return 2500
+        return self.config["suite_definitions"][suite_category].get('run_timeout', 1000)
+
+    def _run_category_suites(self, suite_category):
         """run suite(s) to a specific category"""
-        c = self.config
         dirs = self.query_abs_dirs()
         suites = self._query_specified_suites(suite_category)
         abs_app_dir = self.query_abs_app_dir()
         abs_res_dir = self.query_abs_res_dir()
 
+        max_verify_time = timedelta(minutes=60)
+        max_verify_tests = 10
+        verified_tests = 0
+
         if suites:
-            if preflight_run_method:
-                preflight_run_method(suites)
             self.info('#### Running %s suites' % suite_category)
             for suite in suites:
                 abs_base_cmd = self._query_abs_base_cmd(suite_category, suite)
@@ -597,10 +739,15 @@ class DesktopUnittest(TestingMixin, MercurialScript, BlobUploadMixin, MozbaseMix
                     'abs_res_dir': abs_res_dir,
                 }
                 options_list = []
-                env = {}
+                env = {
+                    'TEST_SUITE': suite
+                }
                 if isinstance(suites[suite], dict):
                     options_list = suites[suite].get('options', [])
-                    tests_list = suites[suite].get('tests', [])
+                    if self.config.get('verify') is True:
+                        tests_list = []
+                    else:
+                        tests_list = suites[suite].get('tests', [])
                     env = copy.deepcopy(suites[suite].get('env', {}))
                 else:
                     options_list = suites[suite]
@@ -618,52 +765,110 @@ class DesktopUnittest(TestingMixin, MercurialScript, BlobUploadMixin, MozbaseMix
 
                 suite_name = suite_category + '-' + suite
                 tbpl_status, log_level = None, None
-                error_list = BaseErrorList + [{
-                    'regex': re.compile(r'''PROCESS-CRASH.*application crashed'''),
-                    'level': ERROR,
-                }]
+                error_list = BaseErrorList + HarnessErrorList
                 parser = self.get_test_output_parser(suite_category,
+                                                     flavor=flavor,
                                                      config=self.config,
                                                      error_list=error_list,
                                                      log_obj=self.log_obj)
 
+                if suite_category == "reftest":
+                    ref_formatter = imp.load_source(
+                        "ReftestFormatter",
+                        os.path.abspath(
+                            os.path.join(dirs["abs_reftest_dir"], "output.py")))
+                    parser.formatter = ref_formatter.ReftestFormatter()
+
                 if self.query_minidump_stackwalk():
                     env['MINIDUMP_STACKWALK'] = self.minidump_stackwalk_path
+                if self.query_nodejs():
+                    env['MOZ_NODE_PATH'] = self.nodejs_path
                 env['MOZ_UPLOAD_DIR'] = self.query_abs_dirs()['abs_blob_upload_dir']
                 env['MINIDUMP_SAVE_PATH'] = self.query_abs_dirs()['abs_blob_upload_dir']
+                env['RUST_BACKTRACE'] = 'full'
                 if not os.path.isdir(env['MOZ_UPLOAD_DIR']):
                     self.mkdir_p(env['MOZ_UPLOAD_DIR'])
+
+                if self.config['allow_software_gl_layers']:
+                    env['MOZ_LAYERS_ALLOW_SOFTWARE_GL'] = '1'
+                if self.config['enable_webrender']:
+                    env['MOZ_WEBRENDER'] = '1'
+                    env['MOZ_ACCELERATED'] = '1'
+
+                if self.config['disable_stylo']:
+                    if self.config['single_stylo_traversal']:
+                        self.fatal("--disable-stylo conflicts with --single-stylo-traversal")
+                    if self.config['enable_stylo']:
+                        self.fatal("--disable-stylo conflicts with --enable-stylo")
+
+                if self.config['single_stylo_traversal']:
+                    env['STYLO_THREADS'] = '1'
+                else:
+                    env['STYLO_THREADS'] = '4'
+
+                if self.config['enable_stylo']:
+                    env['STYLO_FORCE_ENABLED'] = '1'
+                if self.config['disable_stylo']:
+                    env['STYLO_FORCE_DISABLED'] = '1'
+
                 env = self.query_env(partial_env=env, log_level=INFO)
-                cmd_timeout = 2500 if suite_category == 'cppunittest' else 1000
-                return_code = self.run_command(cmd, cwd=dirs['abs_work_dir'],
-                                               output_timeout=cmd_timeout,
-                                               output_parser=parser,
-                                               env=env)
+                cmd_timeout = self.get_timeout_for_category(suite_category)
 
-                # mochitest, reftest, and xpcshell suites do not return
-                # appropriate return codes. Therefore, we must parse the output
-                # to determine what the tbpl_status and worst_log_level must
-                # be. We do this by:
-                # 1) checking to see if our mozharness script ran into any
-                #    errors itself with 'num_errors' <- OutputParser
-                # 2) if num_errors is 0 then we look in the subclassed 'parser'
-                #    findings for harness/suite errors <- DesktopUnittestOutputParser
-                # 3) checking to see if the return code is in success_codes
+                for verify_args in self.query_verify_args(suite):
+                    if (datetime.now() - self.start_time) > max_verify_time:
+                        # Verification has run out of time. That is okay! Stop running
+                        # tests so that a task timeout is not triggered, and so that
+                        # (partial) results are made available in a timely manner.
+                        self.info("TinderboxPrint: Verification too long: Not all tests "
+                                  "were verified.<br/>")
+                        # Signal verify time exceeded, to break out of suites and
+                        # suite categories loops also.
+                        return False
+                    if verified_tests >= max_verify_tests:
+                        # When changesets are merged between trees or many tests are
+                        # otherwise updated at once, there probably is not enough time
+                        # to verify all tests, and attempting to do so may cause other
+                        # problems, such as generating too much log output.
+                        self.info("TinderboxPrint: Too many modified tests: Not all tests "
+                                  "were verified.<br/>")
+                        return False
+                    verified_tests = verified_tests + 1
 
-                success_codes = None
-                if self._is_windows() and suite_category != 'gtest':
-                    # bug 1120644
-                    success_codes = [0, 1]
+                    final_cmd = copy.copy(cmd)
+                    final_cmd.extend(verify_args)
+                    return_code = self.run_command(final_cmd, cwd=dirs['abs_work_dir'],
+                                                   output_timeout=cmd_timeout,
+                                                   output_parser=parser,
+                                                   env=env)
 
-                tbpl_status, log_level = parser.evaluate_parser(return_code,
-                                                                success_codes=success_codes)
-                parser.append_tinderboxprint_line(suite_name)
+                    # mochitest, reftest, and xpcshell suites do not return
+                    # appropriate return codes. Therefore, we must parse the output
+                    # to determine what the tbpl_status and worst_log_level must
+                    # be. We do this by:
+                    # 1) checking to see if our mozharness script ran into any
+                    #    errors itself with 'num_errors' <- OutputParser
+                    # 2) if num_errors is 0 then we look in the subclassed 'parser'
+                    #    findings for harness/suite errors <- DesktopUnittestOutputParser
+                    # 3) checking to see if the return code is in success_codes
 
-                self.buildbot_status(tbpl_status, level=log_level)
-                self.log("The %s suite: %s ran with return status: %s" %
-                         (suite_category, suite, tbpl_status), level=log_level)
+                    success_codes = None
+                    if self._is_windows() and suite_category != 'gtest':
+                        # bug 1120644
+                        success_codes = [0, 1]
+
+                    tbpl_status, log_level = parser.evaluate_parser(return_code,
+                                                                    success_codes=success_codes)
+                    parser.append_tinderboxprint_line(suite_name)
+
+                    self.buildbot_status(tbpl_status, level=log_level)
+                    if len(verify_args) > 0:
+                        self.log_verify_status(verify_args[-1], tbpl_status, log_level)
+                    else:
+                        self.log("The %s suite: %s ran with return status: %s" %
+                                 (suite_category, suite, tbpl_status), level=log_level)
         else:
             self.debug('There were no suites to run for %s' % suite_category)
+        return True
 
 
 # main {{{1

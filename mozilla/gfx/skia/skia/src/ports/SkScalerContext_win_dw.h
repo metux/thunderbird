@@ -14,26 +14,46 @@
 #include "SkTypes.h"
 
 #include <dwrite.h>
+#include <dwrite_2.h>
 
-struct SkGlyph;
+class SkGlyph;
 class SkDescriptor;
 
 class SkScalerContext_DW : public SkScalerContext {
 public:
-    SkScalerContext_DW(DWriteFontTypeface*, const SkDescriptor* desc);
+    SkScalerContext_DW(sk_sp<DWriteFontTypeface>,
+                       const SkScalerContextEffects&,
+                       const SkDescriptor*);
     virtual ~SkScalerContext_DW();
 
 protected:
-    virtual unsigned generateGlyphCount() SK_OVERRIDE;
-    virtual uint16_t generateCharToGlyph(SkUnichar uni) SK_OVERRIDE;
-    virtual void generateAdvance(SkGlyph* glyph) SK_OVERRIDE;
-    virtual void generateMetrics(SkGlyph* glyph) SK_OVERRIDE;
-    virtual void generateImage(const SkGlyph& glyph) SK_OVERRIDE;
-    virtual void generatePath(const SkGlyph& glyph, SkPath* path) SK_OVERRIDE;
-    virtual void generateFontMetrics(SkPaint::FontMetrics*) SK_OVERRIDE;
+    unsigned generateGlyphCount() override;
+    uint16_t generateCharToGlyph(SkUnichar uni) override;
+    void generateAdvance(SkGlyph* glyph) override;
+    void generateMetrics(SkGlyph* glyph) override;
+    void generateImage(const SkGlyph& glyph) override;
+    void generatePath(SkGlyphID glyph, SkPath* path) override;
+    void generateFontMetrics(SkPaint::FontMetrics*) override;
 
 private:
-    const void* drawDWMask(const SkGlyph& glyph);
+    const void* drawDWMask(const SkGlyph& glyph,
+                           DWRITE_RENDERING_MODE renderingMode,
+                           DWRITE_TEXTURE_TYPE textureType);
+
+    HRESULT getBoundingBox(SkGlyph* glyph,
+                           DWRITE_RENDERING_MODE renderingMode,
+                           DWRITE_TEXTURE_TYPE textureType,
+                           RECT* bbox);
+
+    bool isColorGlyph(const SkGlyph& glyph);
+
+    DWriteFontTypeface* getDWriteTypeface() {
+        return static_cast<DWriteFontTypeface*>(this->getTypeface());
+    }
+
+    bool getColorGlyphRun(const SkGlyph& glyph, IDWriteColorGlyphRunEnumerator** colorGlyph);
+
+    void generateColorGlyphImage(const SkGlyph& glyph);
 
     SkTDArray<uint8_t> fBits;
     /** The total matrix without the text height scale. */
@@ -52,11 +72,14 @@ private:
     SkScalar fTextSizeRender;
     /** The text size to measure with. */
     SkScalar fTextSizeMeasure;
-    SkAutoTUnref<DWriteFontTypeface> fTypeface;
     int fGlyphCount;
     DWRITE_RENDERING_MODE fRenderingMode;
     DWRITE_TEXTURE_TYPE fTextureType;
     DWRITE_MEASURING_MODE fMeasuringMode;
+    DWRITE_TEXT_ANTIALIAS_MODE fAntiAliasMode;
+    DWRITE_GRID_FIT_MODE fGridFitMode;
+    SkTScopedComPtr<IDWriteRenderingParams> fDefaultRenderingParams;
+    bool fIsColorFont;
 };
 
 #endif

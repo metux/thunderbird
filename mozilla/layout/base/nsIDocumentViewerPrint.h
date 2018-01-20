@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -8,7 +9,9 @@
 #include "nsISupports.h"
 
 class nsIDocument;
-class nsStyleSet;
+namespace mozilla {
+class StyleSetHandle;
+} // namespace mozilla
 class nsIPresShell;
 class nsPresContext;
 class nsViewManager;
@@ -36,7 +39,7 @@ public:
   // The style set returned by CreateStyleSet is in the middle of an
   // update batch so that the caller can add sheets to it if needed.
   // Callers should call EndUpdate() on it when ready to use.
-  virtual nsresult CreateStyleSet(nsIDocument* aDocument, nsStyleSet** aStyleSet) = 0;
+  virtual mozilla::StyleSetHandle CreateStyleSet(nsIDocument* aDocument) = 0;
 
   virtual void IncrementDestroyRefCount() = 0;
 
@@ -67,18 +70,18 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIDocumentViewerPrint,
 
 /* Use this macro when declaring classes that implement this interface. */
 #define NS_DECL_NSIDOCUMENTVIEWERPRINT \
-  virtual void     SetIsPrinting(bool aIsPrinting) override; \
-  virtual bool     GetIsPrinting() override; \
-  virtual void     SetIsPrintPreview(bool aIsPrintPreview) override; \
-  virtual bool     GetIsPrintPreview() override; \
-  virtual nsresult CreateStyleSet(nsIDocument* aDocument, nsStyleSet** aStyleSet) override; \
-  virtual void     IncrementDestroyRefCount() override; \
-  virtual void     ReturnToGalleyPresentation() override; \
-  virtual void     OnDonePrinting() override; \
-  virtual bool     IsInitializedForPrintPreview() override; \
-  virtual void     InitializeForPrintPreview() override; \
-  virtual void     SetPrintPreviewPresentation(nsViewManager* aViewManager, \
-                                               nsPresContext* aPresContext, \
-                                               nsIPresShell* aPresShell) override;
+  void SetIsPrinting(bool aIsPrinting) override; \
+  bool GetIsPrinting() override; \
+  void SetIsPrintPreview(bool aIsPrintPreview) override; \
+  bool GetIsPrintPreview() override; \
+  mozilla::StyleSetHandle CreateStyleSet(nsIDocument* aDocument) override; \
+  void IncrementDestroyRefCount() override; \
+  void ReturnToGalleyPresentation() override; \
+  void OnDonePrinting() override; \
+  bool IsInitializedForPrintPreview() override; \
+  void InitializeForPrintPreview() override; \
+  void SetPrintPreviewPresentation(nsViewManager* aViewManager, \
+                                   nsPresContext* aPresContext, \
+                                   nsIPresShell* aPresShell) override;
 
 #endif /* nsIDocumentViewerPrint_h___ */

@@ -7,14 +7,10 @@
 #ifndef __SECURITY_SANDBOX_SANDBOXBROKER_H__
 #define __SECURITY_SANDBOX_SANDBOXBROKER_H__
 
-#ifdef SANDBOX_EXPORTS
-#define SANDBOX_EXPORT __declspec(dllexport)
-#else
-#define SANDBOX_EXPORT __declspec(dllimport)
-#endif
-
 #include <stdint.h>
 #include <windows.h>
+
+#include "nsXULAppAPI.h"
 
 namespace sandbox {
   class BrokerServices;
@@ -23,34 +19,54 @@ namespace sandbox {
 
 namespace mozilla {
 
-class SANDBOX_EXPORT SandboxBroker
+class SandboxBroker
 {
 public:
   SandboxBroker();
+
+  static void Initialize(sandbox::BrokerServices* aBrokerServices);
+
+  /**
+   * Do initialization that depends on parts of the Gecko machinery having been
+   * created first.
+   */
+  static void GeckoDependentInitialize();
+
   bool LaunchApp(const wchar_t *aPath,
                  const wchar_t *aArguments,
+                 GeckoProcessType aProcessType,
                  const bool aEnableLogging,
                  void **aProcessHandle);
   virtual ~SandboxBroker();
 
   // Security levels for different types of processes
 #if defined(MOZ_CONTENT_SANDBOX)
-  bool SetSecurityLevelForContentProcess(int32_t aSandboxLevel);
+  void SetSecurityLevelForContentProcess(int32_t aSandboxLevel,
+                                         bool aIsFileProcess);
 #endif
+
+  void SetSecurityLevelForGPUProcess(int32_t aSandboxLevel);
+
   bool SetSecurityLevelForPluginProcess(int32_t aSandboxLevel);
-  bool SetSecurityLevelForIPDLUnitTestProcess();
-  bool SetSecurityLevelForGMPlugin();
+  enum SandboxLevel {
+    LockDown,
+    Restricted
+  };
+  bool SetSecurityLevelForGMPlugin(SandboxLevel aLevel);
 
   // File system permissions
   bool AllowReadFile(wchar_t const *file);
-  bool AllowReadWriteFile(wchar_t const *file);
-  bool AllowDirectory(wchar_t const *dir);
 
   // Exposes AddTargetPeer from broker services, so that none sandboxed
   // processes can be added as handle duplication targets.
   bool AddTargetPeer(HANDLE aPeerProcess);
+
+  // Set up dummy interceptions via the broker, so we can log calls.
+  void ApplyLoggingPolicy();
+
 private:
   static sandbox::BrokerServices *sBrokerService;
+  static bool sRunningFromNetworkDrive;
   sandbox::TargetPolicy *mPolicy;
 };
 

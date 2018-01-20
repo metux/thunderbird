@@ -14,23 +14,22 @@
  */
 
 interface Element : Node {
-/*
-  We haven't moved these from Node to Element like the spec wants.
-
-  [Throws]
+  [Constant]
   readonly attribute DOMString? namespaceURI;
+  [Constant]
   readonly attribute DOMString? prefix;
+  [Constant]
   readonly attribute DOMString localName;
-*/
+
   // Not [Constant] because it depends on which document we're in
   [Pure]
   readonly attribute DOMString tagName;
 
-  [Pure]
+  [CEReactions, Pure]
            attribute DOMString id;
-  [Pure]
+  [CEReactions, Pure]
            attribute DOMString className;
-  [Constant]
+  [Constant, PutForwards=value]
   readonly attribute DOMTokenList classList;
 
   [SameObject]
@@ -41,13 +40,13 @@ interface Element : Node {
   DOMString? getAttribute(DOMString name);
   [Pure]
   DOMString? getAttributeNS(DOMString? namespace, DOMString localName);
-  [Throws]
+  [CEReactions, NeedsSubjectPrincipal, Throws]
   void setAttribute(DOMString name, DOMString value);
-  [Throws]
+  [CEReactions, NeedsSubjectPrincipal, Throws]
   void setAttributeNS(DOMString? namespace, DOMString name, DOMString value);
-  [Throws]
+  [CEReactions, Throws]
   void removeAttribute(DOMString name);
-  [Throws]
+  [CEReactions, Throws]
   void removeAttributeNS(DOMString? namespace, DOMString localName);
   [Pure]
   boolean hasAttribute(DOMString name);
@@ -71,6 +70,12 @@ interface Element : Node {
   [Pure]
   HTMLCollection getElementsByClassName(DOMString classNames);
 
+  [CEReactions, Throws, Pure]
+  Element? insertAdjacentElement(DOMString where, Element element); // historical
+
+  [Throws]
+  void insertAdjacentText(DOMString where, DOMString data); // historical
+
   /**
    * The ratio of font-size-inflated text font size to computed font
    * size for this element. This will query the element for its primary frame,
@@ -84,10 +89,6 @@ interface Element : Node {
    */
   [ChromeOnly]
   readonly attribute float fontSizeInflation;
-
-  // Mozilla specific stuff
-  [Pure]
-           attribute EventHandler onwheel;
 
   // Selectors API
   /**
@@ -106,6 +107,9 @@ interface Element : Node {
   [Throws, Pref="dom.w3c_pointer_events.enabled"]
   void releasePointerCapture(long pointerId);
 
+  [Pref="dom.w3c_pointer_events.enabled"]
+  boolean hasPointerCapture(long pointerId);
+
   // Proprietary extensions
   /**
    * Set this during a mousedown event to grab and retarget all mouse events
@@ -123,36 +127,22 @@ interface Element : Node {
    */
   void releaseCapture();
 
-  // Mozilla extensions
-  /**
-   * Requests that this element be made the full-screen element, as per the DOM
-   * full-screen api.
-   *
-   * The options parameter is non-standard. In Gecko, it can be:
-   *  a RequestFullscreenOptions object
-   *
-   * @see <https://wiki.mozilla.org/index.php?title=Gecko:FullScreenAPI>
+  /*
+   * Chrome-only version of setCapture that works outside of a mousedown event.
    */
-  [Throws, UnsafeInPrerendering]
-  void mozRequestFullScreen(optional any options);
+  [ChromeOnly]
+  void setCaptureAlways(optional boolean retargetToElement = false);
 
-  /**
-   * Requests that this element be made the pointer-locked element, as per the DOM
-   * pointer lock api.
-   *
-   * @see <http://dvcs.w3.org/hg/pointerlock/raw-file/default/index.html>
-   */
-  [UnsafeInPrerendering]
-  void mozRequestPointerLock();
+  // Mozilla extensions
 
   // Obsolete methods.
   Attr? getAttributeNode(DOMString name);
-  [Throws]
+  [CEReactions, Throws]
   Attr? setAttributeNode(Attr newAttr);
-  [Throws]
+  [CEReactions, Throws]
   Attr? removeAttributeNode(Attr oldAttr);
   Attr? getAttributeNodeNS(DOMString? namespaceURI, DOMString localName);
-  [Throws]
+  [CEReactions, Throws]
   Attr? setAttributeNodeNS(Attr newAttr);
 
   [ChromeOnly]
@@ -161,12 +151,30 @@ interface Element : Node {
    * layout flushing.
    */
   boolean scrollByNoFlush(long dx, long dy);
+
+  // Support reporting of Grid properties
+
+  /**
+   * If this element has a display:grid or display:inline-grid style,
+   * this property returns an object with computed values for grid
+   * tracks and lines.
+   */
+  [ChromeOnly, Pure]
+  sequence<Grid> getGridFragments();
+
+  [ChromeOnly]
+  DOMMatrixReadOnly getTransformToAncestor(Element ancestor);
+  [ChromeOnly]
+  DOMMatrixReadOnly getTransformToParent();
+  [ChromeOnly]
+  DOMMatrixReadOnly getTransformToViewport();
 };
 
 // http://dev.w3.org/csswg/cssom-view/
-enum ScrollLogicalPosition { "start", "end" };
+enum ScrollLogicalPosition { "start", "center", "end", "nearest" };
 dictionary ScrollIntoViewOptions : ScrollOptions {
   ScrollLogicalPosition block = "start";
+  ScrollLogicalPosition inline = "nearest";
 };
 
 // http://dev.w3.org/csswg/cssom-view/#extensions-to-the-element-interface
@@ -175,8 +183,7 @@ partial interface Element {
   DOMRect getBoundingClientRect();
 
   // scrolling
-  void scrollIntoView(boolean top);
-  void scrollIntoView(optional ScrollIntoViewOptions options);
+  void scrollIntoView(optional (boolean or ScrollIntoViewOptions) arg);
   // None of the CSSOM attributes are [Pure], because they flush
            attribute long scrollTop;   // scroll on setting
            attribute long scrollLeft;  // scroll on setting
@@ -210,21 +217,13 @@ partial interface Element {
                readonly attribute long scrollLeftMax;
 };
 
-// http://dvcs.w3.org/hg/undomanager/raw-file/tip/undomanager.html
-partial interface Element {
-  [Pref="dom.undo_manager.enabled"]
-  readonly attribute UndoManager? undoManager;
-  [SetterThrows,Pref="dom.undo_manager.enabled"]
-  attribute boolean undoScope;
-};
-
 // http://domparsing.spec.whatwg.org/#extensions-to-the-element-interface
 partial interface Element {
-  [Pure,SetterThrows,TreatNullAs=EmptyString]
+  [CEReactions, Pure,SetterThrows,TreatNullAs=EmptyString]
   attribute DOMString innerHTML;
-  [Pure,SetterThrows,TreatNullAs=EmptyString]
+  [CEReactions, Pure,SetterThrows,TreatNullAs=EmptyString]
   attribute DOMString outerHTML;
-  [Throws]
+  [CEReactions, Throws]
   void insertAdjacentHTML(DOMString position, DOMString text);
 };
 
@@ -236,14 +235,28 @@ partial interface Element {
   NodeList  querySelectorAll(DOMString selectors);
 };
 
-// http://w3c.github.io/webcomponents/spec/shadow/#extensions-to-element-interface
+// https://dom.spec.whatwg.org/#dictdef-shadowrootinit
+dictionary ShadowRootInit {
+  required ShadowRootMode mode;
+};
+
+// https://dom.spec.whatwg.org/#element
 partial interface Element {
-  [Throws,Func="nsDocument::IsWebComponentsEnabled"]
-  ShadowRoot createShadowRoot();
-  [Func="nsDocument::IsWebComponentsEnabled"]
-  NodeList getDestinationInsertionPoints();
-  [Func="nsDocument::IsWebComponentsEnabled"]
+  // Shadow DOM v1
+  [Throws, Pref="dom.webcomponents.enabled"]
+  ShadowRoot attachShadow(ShadowRootInit shadowRootInitDict);
+  [BinaryName="shadowRootByMode", Pref="dom.webcomponents.enabled"]
   readonly attribute ShadowRoot? shadowRoot;
+  [BinaryName="assignedSlotByMode", Pref="dom.webcomponents.enabled"]
+  readonly attribute HTMLSlotElement? assignedSlot;
+  [CEReactions, Unscopable, SetterThrows, Pref="dom.webcomponents.enabled"]
+           attribute DOMString slot;
+
+  // [deprecated] Shadow DOM v0
+  [Throws, Pref="dom.webcomponents.enabled"]
+  ShadowRoot createShadowRoot();
+  [Pref="dom.webcomponents.enabled"]
+  NodeList getDestinationInsertionPoints();
 };
 
 Element implements ChildNode;
@@ -252,9 +265,16 @@ Element implements ParentNode;
 Element implements Animatable;
 Element implements GeometryUtils;
 
-// non-standard: allows passing options to Element.requestFullScreen
-dictionary RequestFullscreenOptions {
-  // Which HMDVRDevice to go full screen on; also enables VR rendering.
-  // If null, normal fullscreen is entered.
-  HMDVRDevice? vrDisplay = null;
+// https://fullscreen.spec.whatwg.org/#api
+partial interface Element {
+  [Throws, UnsafeInPrerendering, Func="nsDocument::IsUnprefixedFullscreenEnabled", NeedsCallerType]
+  void requestFullscreen();
+  [Throws, UnsafeInPrerendering, BinaryName="requestFullscreen", NeedsCallerType]
+  void mozRequestFullScreen();
+};
+
+// https://w3c.github.io/pointerlock/#extensions-to-the-element-interface
+partial interface Element {
+  [UnsafeInPrerendering, NeedsCallerType]
+  void requestPointerLock();
 };

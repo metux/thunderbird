@@ -1,5 +1,6 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
+"use strict";
 
 // Test filtering basic CensusTreeNode trees.
 
@@ -19,7 +20,7 @@ function run_test() {
       by: "internalType",
       then: { by: "count", count: true, bytes: true },
     },
-    other:{
+    other: {
       by: "internalType",
       then: { by: "count", count: true, bytes: true },
     },
@@ -53,9 +54,9 @@ function run_test() {
       {
         name: "objects",
         bytes: 0,
-        totalBytes: 1350,
+        totalBytes: 450,
         count: 0,
-        totalCount: 135,
+        totalCount: 45,
         children: [
           {
             name: "Int32Array",
@@ -65,7 +66,8 @@ function run_test() {
             totalCount: 32,
             children: undefined,
             id: 15,
-            parent: 14
+            parent: 14,
+            reportLeafIndex: 4,
           },
           {
             name: "UInt8Array",
@@ -75,7 +77,8 @@ function run_test() {
             totalCount: 8,
             children: undefined,
             id: 16,
-            parent: 14
+            parent: 14,
+            reportLeafIndex: 3,
           },
           {
             name: "Array",
@@ -85,15 +88,18 @@ function run_test() {
             totalCount: 5,
             children: undefined,
             id: 17,
-            parent: 14
+            parent: 14,
+            reportLeafIndex: 2,
           }
         ],
         id: 14,
-        parent: 13
+        parent: 13,
+        reportLeafIndex: undefined,
       }
     ],
     id: 13,
     parent: undefined,
+    reportLeafIndex: undefined,
   };
 
   compareCensusViewData(BREAKDOWN, REPORT, EXPECTED, { filter: "Array" });

@@ -42,7 +42,7 @@ function createTestDirectory()
           .getService(Ci.nsIProperties)
           .get("TmpD", Ci.nsIFile);
   dir.append("index_handler_test_" + Math.random());
-  dir.createUnique(Ci.nsIFile.DIRECTORY_TYPE, 0744);
+  dir.createUnique(Ci.nsIFile.DIRECTORY_TYPE, 0o744);
 
   // populate with test directories, files, etc.
   // Files must be in expected order of display on the index page!
@@ -132,7 +132,7 @@ function hiddenDataCheck(bytes, uri, path)
   var ios = Cc["@mozilla.org/network/io-service;1"]
               .getService(Ci.nsIIOService);
 
-  var top = ios.newURI(uri, null, null);
+  var top = ios.newURI(uri);
 
   // N.B. No ERROR_IF_SEE_THIS.txt^ file!
   var dirEntries = [{name: "file.txt", isDirectory: false},
@@ -152,7 +152,7 @@ function hiddenDataCheck(bytes, uri, path)
     do_check_eq(link.textContent, f.name + sep);
 
     uri = ios.newURI(link.getAttribute("href"), null, top);
-    do_check_eq(decodeURIComponent(uri.path), path + f.name + sep);
+    do_check_eq(decodeURIComponent(uri.pathQueryRef), path + f.name + sep);
   }
 }
 
@@ -216,7 +216,7 @@ function dataCheck(bytes, uri, path, dirEntries)
   var ios = Cc["@mozilla.org/network/io-service;1"]
               .getService(Ci.nsIIOService);
 
-  var dirURI = ios.newURI(uri, null, null);
+  var dirURI = ios.newURI(uri);
 
   for (var i = 0; i < items.length; i++)
   {
@@ -232,7 +232,7 @@ function dataCheck(bytes, uri, path, dirEntries)
     do_check_eq(link.textContent, f.name + sep);
 
     uri = ios.newURI(link.getAttribute("href"), null, top);
-    do_check_eq(decodeURIComponent(uri.path), path + f.name + sep);
+    do_check_eq(decodeURIComponent(uri.pathQueryRef), path + f.name + sep);
   }
 }
 
@@ -249,7 +249,7 @@ function makeFile(name, isDirectory, parentDir, lst)
   try
   {
     file.append(name);
-    file.create(type, 0755);
+    file.create(type, 0o755);
     lst.push({name: name, isDirectory: isDirectory});
   }
   catch (e) { /* OS probably doesn't like file name, skip */ }

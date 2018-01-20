@@ -9,7 +9,7 @@
  * If we want these commands to run on remote devices/connections, they need to
  * run on the server (runAt=server). Unfortunately, cookie commands not only
  * need to run on the server, they also need to access to the parent process to
- * retrieve and manipulate cookies via nsICookieManager2.
+ * retrieve and manipulate cookies via nsICookieManager.
  * However, server-running commands have no way of accessing the parent process
  * for now.
  *
@@ -18,25 +18,21 @@
  * a local Firefox desktop tab (not in webide or the browser toolbox), we can
  * make the commands run on the client.
  * This way, they'll always run in the parent process.
- *
- * Note that the commands also need access to the content (see
- * context.environment.document) which means that as long as they run on the
- * client, they'll be using CPOWs (when e10s is enabled).
  */
 
 const { Ci, Cc } = require("chrome");
 const l10n = require("gcli/l10n");
-const URL = require("sdk/url").URL;
+const { XPCOMUtils } = require("resource://gre/modules/XPCOMUtils.jsm");
 
-XPCOMUtils.defineLazyGetter(this, "cookieMgr", function() {
-  return Cc["@mozilla.org/cookiemanager;1"].getService(Ci.nsICookieManager2);
+XPCOMUtils.defineLazyGetter(this, "cookieMgr", function () {
+  return Cc["@mozilla.org/cookiemanager;1"].getService(Ci.nsICookieManager);
 });
 
 /**
  * Check host value and remove port part as it is not used
  * for storing cookies.
  *
- * Parameter will usually be context.environment.document.location.host
+ * Parameter will usually be `new URL(context.environment.target.url).host`
  */
 function sanitizeHost(host) {
   if (host == null || host == "") {
@@ -46,13 +42,19 @@ function sanitizeHost(host) {
 }
 
 /**
- * The cookie 'expires' value needs converting into something more readable
+ * The cookie 'expires' value needs converting into something more readable.
+ *
+ * And the unit of expires is sec, the unit that in argument of Date() needs
+ * millisecond.
  */
 function translateExpires(expires) {
   if (expires == 0) {
     return l10n.lookup("cookieListOutSession");
   }
-  return new Date(expires).toLocaleString();
+
+  let expiresMsec = expires * 1000;
+
+  return (new Date(expiresMsec)).toLocaleString();
 }
 
 /**
@@ -63,7 +65,10 @@ function isCookieAtHost(cookie, host) {
     return host == null;
   }
   if (cookie.host.startsWith(".")) {
-    return host.endsWith(cookie.host);
+    return ("." + host).endsWith(cookie.host);
+  }
+  if (cookie.host === "") {
+    return host.startsWith("file://" + cookie.path);
   }
   return cookie.host == host;
 }
@@ -81,14 +86,16 @@ exports.items = [
     description: l10n.lookup("cookieListDesc"),
     manual: l10n.lookup("cookieListManual"),
     returnType: "cookies",
-    exec: function(args, context) {
+    exec: function (args, context) {
       if (context.environment.target.isRemote) {
         throw new Error("The cookie gcli commands only work in a local tab, " +
                         "see bug 1221488");
       }
-      let host = sanitizeHost(context.environment.document.location.host);
-
-      let enm = cookieMgr.getCookiesFromHost(host);
+      let host = new URL(context.environment.target.url).host;
+      let contentWindow = context.environment.window;
+      host = sanitizeHost(host);
+      let { originAttributes } = contentWindow.document.nodePrincipal;
+      let enm = cookieMgr.getCookiesFromHost(host, originAttributes);
 
       let cookies = [];
       while (enm.hasMoreElements()) {
@@ -123,19 +130,23 @@ exports.items = [
         description: l10n.lookup("cookieRemoveKeyDesc"),
       }
     ],
-    exec: function(args, context) {
+    exec: function (args, context) {
       if (context.environment.target.isRemote) {
         throw new Error("The cookie gcli commands only work in a local tab, " +
                         "see bug 1221488");
       }
-      let host = sanitizeHost(context.environment.document.location.host);
-      let enm = cookieMgr.getCookiesFromHost(host);
+      let host = new URL(context.environment.target.url).host;
+      let contentWindow = context.environment.window;
+      host = sanitizeHost(host);
+      let { originAttributes } = contentWindow.document.nodePrincipal;
+      let enm = cookieMgr.getCookiesFromHost(host, originAttributes);
 
       while (enm.hasMoreElements()) {
         let cookie = enm.getNext().QueryInterface(Ci.nsICookie);
         if (isCookieAtHost(cookie, host)) {
           if (cookie.name == args.name) {
-            cookieMgr.remove(cookie.host, cookie.name, cookie.path, false);
+            cookieMgr.remove(cookie.host, cookie.name, cookie.path,
+                             false, cookie.originAttributes);
           }
         }
       }
@@ -145,7 +156,7 @@ exports.items = [
     item: "converter",
     from: "cookies",
     to: "view",
-    exec: function(cookies, context) {
+    exec: function (cookies, context) {
       if (cookies.length == 0) {
         let host = new URL(context.environment.target.url).host;
         host = sanitizeHost(host);
@@ -262,14 +273,15 @@ exports.items = [
         ]
       }
     ],
-    exec: function(args, context) {
+    exec: function (args, context) {
       if (context.environment.target.isRemote) {
         throw new Error("The cookie gcli commands only work in a local tab, " +
                         "see bug 1221488");
       }
-      let host = sanitizeHost(context.environment.document.location.host);
+      let host = new URL(context.environment.target.url).host;
+      host = sanitizeHost(host);
       let time = Date.parse(args.expires) / 1000;
-
+      let contentWindow = context.environment.window;
       cookieMgr.add(args.domain ? "." + args.domain : host,
                     args.path ? args.path : "/",
                     args.name,
@@ -277,7 +289,8 @@ exports.items = [
                     args.secure,
                     args.httpOnly,
                     args.session,
-                    time);
+                    time,
+                    contentWindow.document.nodePrincipal.originAttributes);
     }
   }
 ];

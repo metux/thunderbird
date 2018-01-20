@@ -6,17 +6,23 @@
 
 #include "WinUtils.h"
 
+#include <knownfolders.h>
+#include <winioctl.h>
+
 #include "gfxPlatform.h"
 #include "gfxUtils.h"
 #include "nsWindow.h"
 #include "nsWindowDefs.h"
 #include "KeyboardLayout.h"
 #include "nsIDOMMouseEvent.h"
+#include "mozilla/ArrayUtils.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/DataSurfaceHelpers.h"
+#include "mozilla/HangMonitor.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/WindowsVersion.h"
+#include "mozilla/Unused.h"
 #include "nsIContentPolicy.h"
 #include "nsContentUtils.h"
 
@@ -43,13 +49,21 @@
 #include "nsIThread.h"
 #include "MainThreadUtils.h"
 #include "nsLookAndFeel.h"
+#include "nsUnicharUtils.h"
+#include "nsWindowsHelpers.h"
 
 #ifdef NS_ENABLE_TSF
 #include <textstor.h>
 #include "TSFTextStore.h"
 #endif // #ifdef NS_ENABLE_TSF
 
-PRLogModuleInfo* gWindowsLog = nullptr;
+#include <shlobj.h>
+#include <shlwapi.h>
+
+mozilla::LazyLogModule gWindowsLog("Widget");
+
+#define LOG_E(...) MOZ_LOG(gWindowsLog, LogLevel::Error, (__VA_ARGS__))
+#define LOG_D(...) MOZ_LOG(gWindowsLog, LogLevel::Debug, (__VA_ARGS__))
 
 using namespace mozilla::gfx;
 
@@ -407,51 +421,64 @@ NS_IMPL_ISUPPORTS(AsyncDeleteAllFaviconsFromDisk, nsIRunnable)
 const char FaviconHelper::kJumpListCacheDir[] = "jumpListCache";
 const char FaviconHelper::kShortcutCacheDir[] = "shortcutCache";
 
-// apis available on vista and up.
-WinUtils::SHCreateItemFromParsingNamePtr WinUtils::sCreateItemFromParsingName = nullptr;
-WinUtils::SHGetKnownFolderPathPtr WinUtils::sGetKnownFolderPath = nullptr;
+// Prefix for path used by NT calls.
+const wchar_t kNTPrefix[] = L"\\??\\";
+const size_t kNTPrefixLen = ArrayLength(kNTPrefix) - 1;
 
-// We just leak these DLL HMODULEs. There's no point in calling FreeLibrary
-// on them during shutdown anyway.
-static const wchar_t kShellLibraryName[] =  L"shell32.dll";
-static HMODULE sShellDll = nullptr;
-static const wchar_t kDwmLibraryName[] = L"dwmapi.dll";
-static HMODULE sDwmDll = nullptr;
+struct CoTaskMemFreePolicy
+{
+  void operator()(void* aPtr) {
+    ::CoTaskMemFree(aPtr);
+  }
+};
 
-WinUtils::DwmExtendFrameIntoClientAreaProc WinUtils::dwmExtendFrameIntoClientAreaPtr = nullptr;
-WinUtils::DwmIsCompositionEnabledProc WinUtils::dwmIsCompositionEnabledPtr = nullptr;
-WinUtils::DwmSetIconicThumbnailProc WinUtils::dwmSetIconicThumbnailPtr = nullptr;
-WinUtils::DwmSetIconicLivePreviewBitmapProc WinUtils::dwmSetIconicLivePreviewBitmapPtr = nullptr;
-WinUtils::DwmGetWindowAttributeProc WinUtils::dwmGetWindowAttributePtr = nullptr;
-WinUtils::DwmSetWindowAttributeProc WinUtils::dwmSetWindowAttributePtr = nullptr;
-WinUtils::DwmInvalidateIconicBitmapsProc WinUtils::dwmInvalidateIconicBitmapsPtr = nullptr;
-WinUtils::DwmDefWindowProcProc WinUtils::dwmDwmDefWindowProcPtr = nullptr;
-WinUtils::DwmGetCompositionTimingInfoProc WinUtils::dwmGetCompositionTimingInfoPtr = nullptr;
-WinUtils::DwmFlushProc WinUtils::dwmFlushProcPtr = nullptr;
+SetThreadDpiAwarenessContextProc WinUtils::sSetThreadDpiAwarenessContext = NULL;
+EnableNonClientDpiScalingProc WinUtils::sEnableNonClientDpiScaling = NULL;
+#ifdef ACCESSIBILITY
+typedef NTSTATUS (NTAPI* NtTestAlertPtr)(VOID);
+static NtTestAlertPtr sNtTestAlert = nullptr;
+#endif
+
 
 /* static */
 void
 WinUtils::Initialize()
 {
-  if (!gWindowsLog) {
-    gWindowsLog = PR_NewLogModule("Widget");
-  }
-  if (!sDwmDll && IsVistaOrLater()) {
-    sDwmDll = ::LoadLibraryW(kDwmLibraryName);
-
-    if (sDwmDll) {
-      dwmExtendFrameIntoClientAreaPtr = (DwmExtendFrameIntoClientAreaProc)::GetProcAddress(sDwmDll, "DwmExtendFrameIntoClientArea");
-      dwmIsCompositionEnabledPtr = (DwmIsCompositionEnabledProc)::GetProcAddress(sDwmDll, "DwmIsCompositionEnabled");
-      dwmSetIconicThumbnailPtr = (DwmSetIconicThumbnailProc)::GetProcAddress(sDwmDll, "DwmSetIconicThumbnail");
-      dwmSetIconicLivePreviewBitmapPtr = (DwmSetIconicLivePreviewBitmapProc)::GetProcAddress(sDwmDll, "DwmSetIconicLivePreviewBitmap");
-      dwmGetWindowAttributePtr = (DwmGetWindowAttributeProc)::GetProcAddress(sDwmDll, "DwmGetWindowAttribute");
-      dwmSetWindowAttributePtr = (DwmSetWindowAttributeProc)::GetProcAddress(sDwmDll, "DwmSetWindowAttribute");
-      dwmInvalidateIconicBitmapsPtr = (DwmInvalidateIconicBitmapsProc)::GetProcAddress(sDwmDll, "DwmInvalidateIconicBitmaps");
-      dwmDwmDefWindowProcPtr = (DwmDefWindowProcProc)::GetProcAddress(sDwmDll, "DwmDefWindowProc");
-      dwmGetCompositionTimingInfoPtr = (DwmGetCompositionTimingInfoProc)::GetProcAddress(sDwmDll, "DwmGetCompositionTimingInfo");
-      dwmFlushProcPtr = (DwmFlushProc)::GetProcAddress(sDwmDll, "DwmFlush");
+  if (IsWin10OrLater()) {
+    HMODULE user32Dll = ::GetModuleHandleW(L"user32");
+    if (user32Dll) {
+      auto getThreadDpiAwarenessContext = (decltype(GetThreadDpiAwarenessContext)*)
+        ::GetProcAddress(user32Dll, "GetThreadDpiAwarenessContext");
+      auto areDpiAwarenessContextsEqual = (decltype(AreDpiAwarenessContextsEqual)*)
+        ::GetProcAddress(user32Dll, "AreDpiAwarenessContextsEqual");
+      if (getThreadDpiAwarenessContext && areDpiAwarenessContextsEqual &&
+          areDpiAwarenessContextsEqual(getThreadDpiAwarenessContext(),
+                                       DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE)) {
+        // Only per-monitor v1 requires these workarounds.
+        sEnableNonClientDpiScaling = (EnableNonClientDpiScalingProc)
+          ::GetProcAddress(user32Dll, "EnableNonClientDpiScaling");
+        sSetThreadDpiAwarenessContext = (SetThreadDpiAwarenessContextProc)
+          ::GetProcAddress(user32Dll, "SetThreadDpiAwarenessContext");
+      }
     }
   }
+
+#ifdef ACCESSIBILITY
+  sNtTestAlert = reinterpret_cast<NtTestAlertPtr>(
+      ::GetProcAddress(::GetModuleHandleW(L"ntdll.dll"), "NtTestAlert"));
+  MOZ_ASSERT(sNtTestAlert);
+#endif
+}
+
+// static
+LRESULT WINAPI
+WinUtils::NonClientDpiScalingDefWindowProcW(HWND hWnd, UINT msg,
+                                            WPARAM wParam, LPARAM lParam)
+{
+  if (msg == WM_NCCREATE && sEnableNonClientDpiScaling) {
+    sEnableNonClientDpiScaling(hWnd);
+  }
+  return ::DefWindowProcW(hWnd, msg, wParam, lParam);
 }
 
 // static
@@ -524,46 +551,155 @@ WinUtils::Log(const char *fmt, ...)
   delete[] buffer;
 }
 
-/* static */
-double
-WinUtils::LogToPhysFactor()
+// static
+float
+WinUtils::SystemDPI()
 {
-  // dpi / 96.0
-  HDC hdc = ::GetDC(nullptr);
-  double result = ::GetDeviceCaps(hdc, LOGPIXELSY) / 96.0;
-  ::ReleaseDC(nullptr, hdc);
-
-  if (result == 0) {
-    // Bug 1012487 - This can occur when the Screen DC is used off the
-    // main thread on windows. For now just assume a 100% DPI for this
-    // drawing call.
-    // XXX - fixme!
-    result = 1.0;
+  // The result of GetDeviceCaps won't change dynamically, as it predates
+  // per-monitor DPI and support for on-the-fly resolution changes.
+  // Therefore, we only need to look it up once.
+  static float dpi = 0;
+  if (dpi <= 0) {
+    HDC screenDC = GetDC(nullptr);
+    dpi = GetDeviceCaps(screenDC, LOGPIXELSY);
+    ReleaseDC(nullptr, screenDC);
   }
-  return result;
+
+  // Bug 1012487 - dpi can be 0 when the Screen DC is used off the
+  // main thread on windows. For now just assume a 100% DPI for this
+  // drawing call.
+  // XXX - fixme!
+  return dpi > 0 ? dpi : 96;
+}
+
+// static
+double
+WinUtils::SystemScaleFactor()
+{
+  return SystemDPI() / 96.0;
+}
+
+#if WINVER < 0x603
+typedef enum {
+  MDT_EFFECTIVE_DPI = 0,
+  MDT_ANGULAR_DPI = 1,
+  MDT_RAW_DPI = 2,
+  MDT_DEFAULT = MDT_EFFECTIVE_DPI
+} MONITOR_DPI_TYPE;
+
+typedef enum {
+  PROCESS_DPI_UNAWARE = 0,
+  PROCESS_SYSTEM_DPI_AWARE = 1,
+  PROCESS_PER_MONITOR_DPI_AWARE = 2
+} PROCESS_DPI_AWARENESS;
+#endif
+
+typedef HRESULT
+(WINAPI *GETDPIFORMONITORPROC)(HMONITOR, MONITOR_DPI_TYPE, UINT*, UINT*);
+
+typedef HRESULT
+(WINAPI *GETPROCESSDPIAWARENESSPROC)(HANDLE, PROCESS_DPI_AWARENESS*);
+
+GETDPIFORMONITORPROC sGetDpiForMonitor;
+GETPROCESSDPIAWARENESSPROC sGetProcessDpiAwareness;
+
+static bool
+SlowIsPerMonitorDPIAware()
+{
+  // Intentionally leak the handle.
+  HMODULE shcore =
+    LoadLibraryEx(L"shcore", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
+  if (shcore) {
+    sGetDpiForMonitor =
+      (GETDPIFORMONITORPROC) GetProcAddress(shcore, "GetDpiForMonitor");
+    sGetProcessDpiAwareness =
+      (GETPROCESSDPIAWARENESSPROC) GetProcAddress(shcore, "GetProcessDpiAwareness");
+  }
+  PROCESS_DPI_AWARENESS dpiAwareness;
+  return sGetDpiForMonitor && sGetProcessDpiAwareness &&
+      SUCCEEDED(sGetProcessDpiAwareness(GetCurrentProcess(), &dpiAwareness)) &&
+      dpiAwareness == PROCESS_PER_MONITOR_DPI_AWARE;
+}
+
+/* static */ bool
+WinUtils::IsPerMonitorDPIAware()
+{
+  static bool perMonitorDPIAware = SlowIsPerMonitorDPIAware();
+  return perMonitorDPIAware;
+}
+
+/* static */
+float
+WinUtils::MonitorDPI(HMONITOR aMonitor)
+{
+  if (IsPerMonitorDPIAware()) {
+    UINT dpiX, dpiY = 96;
+    sGetDpiForMonitor(aMonitor ? aMonitor : GetPrimaryMonitor(),
+                      MDT_EFFECTIVE_DPI, &dpiX, &dpiY);
+    return dpiY;
+  }
+
+  // We're not per-monitor aware, use system DPI instead.
+  return SystemDPI();
 }
 
 /* static */
 double
-WinUtils::PhysToLogFactor()
+WinUtils::LogToPhysFactor(HMONITOR aMonitor)
 {
-  // 1.0 / (dpi / 96.0)
-  return 1.0 / LogToPhysFactor();
-}
-
-/* static */
-double
-WinUtils::PhysToLog(int32_t aValue)
-{
-  return double(aValue) * PhysToLogFactor();
+  return MonitorDPI(aMonitor) / 96.0;
 }
 
 /* static */
 int32_t
-WinUtils::LogToPhys(double aValue)
+WinUtils::LogToPhys(HMONITOR aMonitor, double aValue)
 {
-  return int32_t(NS_round(aValue * LogToPhysFactor()));
+  return int32_t(NS_round(aValue * LogToPhysFactor(aMonitor)));
 }
+
+/* static */
+HMONITOR
+WinUtils::GetPrimaryMonitor()
+{
+  const POINT pt = { 0, 0 };
+  return ::MonitorFromPoint(pt, MONITOR_DEFAULTTOPRIMARY);
+}
+
+/* static */
+HMONITOR
+WinUtils::MonitorFromRect(const gfx::Rect& rect)
+{
+  // convert coordinates from desktop to device pixels for MonitorFromRect
+  double dpiScale =
+    IsPerMonitorDPIAware() ? 1.0 : LogToPhysFactor(GetPrimaryMonitor());
+
+  RECT globalWindowBounds = {
+    NSToIntRound(dpiScale * rect.x),
+    NSToIntRound(dpiScale * rect.y),
+    NSToIntRound(dpiScale * (rect.x + rect.width)),
+    NSToIntRound(dpiScale * (rect.y + rect.height))
+  };
+
+  return ::MonitorFromRect(&globalWindowBounds, MONITOR_DEFAULTTONEAREST);
+}
+
+#ifdef ACCESSIBILITY
+#ifndef STATUS_SUCCESS
+#define STATUS_SUCCESS ((NTSTATUS)0x00000000L)
+#endif
+
+/* static */
+a11y::Accessible*
+WinUtils::GetRootAccessibleForHWND(HWND aHwnd)
+{
+  nsWindow* window = GetNSWindowPtr(aHwnd);
+  if (!window) {
+    return nullptr;
+  }
+
+  return window->GetAccessible();
+}
+#endif // ACCESSIBILITY
 
 /* static */
 bool
@@ -571,7 +707,7 @@ WinUtils::PeekMessage(LPMSG aMsg, HWND aWnd, UINT aFirstMessage,
                       UINT aLastMessage, UINT aOption)
 {
 #ifdef NS_ENABLE_TSF
-  ITfMessagePump* msgPump = TSFTextStore::GetMessagePump();
+  RefPtr<ITfMessagePump> msgPump = TSFTextStore::GetMessagePump();
   if (msgPump) {
     BOOL ret = FALSE;
     HRESULT hr = msgPump->PeekMessageW(aMsg, aWnd, aFirstMessage, aLastMessage,
@@ -589,7 +725,7 @@ WinUtils::GetMessage(LPMSG aMsg, HWND aWnd, UINT aFirstMessage,
                      UINT aLastMessage)
 {
 #ifdef NS_ENABLE_TSF
-  ITfMessagePump* msgPump = TSFTextStore::GetMessagePump();
+  RefPtr<ITfMessagePump> msgPump = TSFTextStore::GetMessagePump();
   if (msgPump) {
     BOOL ret = FALSE;
     HRESULT hr = msgPump->GetMessageW(aMsg, aWnd, aFirstMessage, aLastMessage,
@@ -601,10 +737,28 @@ WinUtils::GetMessage(LPMSG aMsg, HWND aWnd, UINT aFirstMessage,
   return ::GetMessageW(aMsg, aWnd, aFirstMessage, aLastMessage);
 }
 
+#if defined(ACCESSIBILITY)
+static DWORD
+GetWaitFlags()
+{
+  DWORD result = MWMO_INPUTAVAILABLE;
+  if (XRE_IsContentProcess()) {
+    result |= MWMO_ALERTABLE;
+  }
+  return result;
+}
+#endif
+
 /* static */
 void
 WinUtils::WaitForMessage(DWORD aTimeoutMs)
 {
+#if defined(ACCESSIBILITY)
+  static const DWORD waitFlags = GetWaitFlags();
+#else
+  const DWORD waitFlags = MWMO_INPUTAVAILABLE;
+#endif
+
   const DWORD waitStart = ::GetTickCount();
   DWORD elapsed = 0;
   while (true) {
@@ -615,12 +769,22 @@ WinUtils::WaitForMessage(DWORD aTimeoutMs)
       break;
     }
     DWORD result = ::MsgWaitForMultipleObjectsEx(0, NULL, aTimeoutMs - elapsed,
-                                                 MOZ_QS_ALLEVENT,
-                                                 MWMO_INPUTAVAILABLE);
-    NS_WARN_IF_FALSE(result != WAIT_FAILED, "Wait failed");
+                                                 MOZ_QS_ALLEVENT, waitFlags);
+    NS_WARNING_ASSERTION(result != WAIT_FAILED, "Wait failed");
     if (result == WAIT_TIMEOUT) {
       break;
     }
+#if defined(ACCESSIBILITY)
+    if (result == WAIT_IO_COMPLETION) {
+      if (NS_IsMainThread()) {
+        // We executed an APC that would have woken up the hang monitor. Since
+        // there are no more APCs pending and we are now going to sleep again,
+        // we should notify the hang monitor.
+        mozilla::HangMonitor::Suspend();
+      }
+      continue;
+    }
+#endif // defined(ACCESSIBILITY)
 
     // Sent messages (via SendMessage and friends) are processed differently
     // than queued messages (via PostMessage); the destination window procedure
@@ -940,13 +1104,22 @@ WinUtils::GetMouseInputSource()
 }
 
 /* static */
+uint16_t
+WinUtils::GetMousePointerID()
+{
+  LPARAM lParamExtraInfo = ::GetMessageExtraInfo();
+  return lParamExtraInfo & TABLET_INK_ID_MASK;
+}
+
+/* static */
 bool
 WinUtils::GetIsMouseFromTouch(EventMessage aEventMessage)
 {
   const uint32_t MOZ_T_I_SIGNATURE = TABLET_INK_TOUCH | TABLET_INK_SIGNATURE;
   const uint32_t MOZ_T_I_CHECK_TCH = TABLET_INK_TOUCH | TABLET_INK_CHECK;
   return ((aEventMessage == eMouseMove || aEventMessage == eMouseDown ||
-           aEventMessage == eMouseUp) &&
+           aEventMessage == eMouseUp || aEventMessage == eMouseAuxClick ||
+           aEventMessage == eMouseDoubleClick) &&
          (GetMessageExtraInfo() & MOZ_T_I_SIGNATURE) == MOZ_T_I_CHECK_TCH);
 }
 
@@ -960,56 +1133,6 @@ WinUtils::InitMSG(UINT aMessage, WPARAM wParam, LPARAM lParam, HWND aWnd)
   msg.lParam  = lParam;
   msg.hwnd    = aWnd;
   return msg;
-}
-
-/* static */
-HRESULT
-WinUtils::SHCreateItemFromParsingName(PCWSTR pszPath, IBindCtx *pbc,
-                                      REFIID riid, void **ppv)
-{
-  if (sCreateItemFromParsingName) {
-    return sCreateItemFromParsingName(pszPath, pbc, riid, ppv);
-  }
-
-  if (!sShellDll) {
-    sShellDll = ::LoadLibraryW(kShellLibraryName);
-    if (!sShellDll) {
-      return false;
-    }
-  }
-
-  sCreateItemFromParsingName = (SHCreateItemFromParsingNamePtr)
-    GetProcAddress(sShellDll, "SHCreateItemFromParsingName");
-  if (!sCreateItemFromParsingName)
-    return E_FAIL;
-
-  return sCreateItemFromParsingName(pszPath, pbc, riid, ppv);
-}
-
-/* static */
-HRESULT 
-WinUtils::SHGetKnownFolderPath(REFKNOWNFOLDERID rfid,
-                               DWORD dwFlags,
-                               HANDLE hToken,
-                               PWSTR *ppszPath)
-{
-  if (sGetKnownFolderPath) {
-    return sGetKnownFolderPath(rfid, dwFlags, hToken, ppszPath);
-  }
-
-  if (!sShellDll) {
-    sShellDll = ::LoadLibraryW(kShellLibraryName);
-    if (!sShellDll) {
-      return false;
-    }
-  }
-
-  sGetKnownFolderPath = (SHGetKnownFolderPathPtr)
-    GetProcAddress(sShellDll, "SHGetKnownFolderPath");
-  if (!sGetKnownFolderPath)
-    return E_FAIL;
-
-  return sGetKnownFolderPath(rfid, dwFlags, hToken, ppszPath);
 }
 
 static BOOL
@@ -1124,7 +1247,8 @@ NS_IMETHODIMP
 AsyncFaviconDataReady::OnComplete(nsIURI *aFaviconURI,
                                   uint32_t aDataLen,
                                   const uint8_t *aData, 
-                                  const nsACString &aMimeType)
+                                  const nsACString &aMimeType,
+                                  uint16_t aWidth)
 {
   if (!aDataLen || !aData) {
     if (mURLShortcut) {
@@ -1153,8 +1277,7 @@ AsyncFaviconDataReady::OnComplete(nsIURI *aFaviconURI,
   // Decode the image from the format it was returned to us in (probably PNG)
   nsCOMPtr<imgIContainer> container;
   nsCOMPtr<imgITools> imgtool = do_CreateInstance("@mozilla.org/image/tools;1");
-  rv = imgtool->DecodeImageData(stream, aMimeType,
-                                getter_AddRefs(container));
+  rv = imgtool->DecodeImage(stream, aMimeType, getter_AddRefs(container));
   NS_ENSURE_SUCCESS(rv, rv);
 
   RefPtr<SourceSurface> surface =
@@ -1293,9 +1416,8 @@ NS_IMETHODIMP AsyncEncodeAndWriteIcon::Run()
   fclose(file);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  // Cleanup
   if (mURLShortcut) {
-    SendMessage(HWND_BROADCAST, WM_SETTINGCHANGE, SPI_SETNONCLIENTMETRICS, 0);
+    SendNotifyMessage(HWND_BROADCAST, WM_SETTINGCHANGE, SPI_SETNONCLIENTMETRICS, 0);
   }
   return rv;
 }
@@ -1347,20 +1469,24 @@ AsyncDeleteAllFaviconsFromDisk::
   // We can't call FaviconHelper::GetICOCacheSecondsTimeout() on non-main
   // threads, as it reads a pref, so cache its value here.
   mIcoNoDeleteSeconds = FaviconHelper::GetICOCacheSecondsTimeout() + 600;
+
+  // Prepare the profile directory cache on the main thread, to ensure we wont
+  // do this on non-main threads.
+  Unused << NS_GetSpecialDirectory("ProfLDS",
+    getter_AddRefs(mJumpListCacheDir));
 }
 
 NS_IMETHODIMP AsyncDeleteAllFaviconsFromDisk::Run()
 {
+  if (!mJumpListCacheDir) {
+    return NS_ERROR_FAILURE;
+  }
   // Construct the path of our jump list cache
-  nsCOMPtr<nsIFile> jumpListCacheDir;
-  nsresult rv = NS_GetSpecialDirectory("ProfLDS", 
-    getter_AddRefs(jumpListCacheDir));
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = jumpListCacheDir->AppendNative(
+  nsresult rv = mJumpListCacheDir->AppendNative(
       nsDependentCString(FaviconHelper::kJumpListCacheDir));
   NS_ENSURE_SUCCESS(rv, rv);
   nsCOMPtr<nsISimpleEnumerator> entries;
-  rv = jumpListCacheDir->GetDirectoryEntries(getter_AddRefs(entries));
+  rv = mJumpListCacheDir->GetDirectoryEntries(getter_AddRefs(entries));
   NS_ENSURE_SUCCESS(rv, rv);
 
   // Loop through each directory entry and remove all ICO files found
@@ -1553,7 +1679,7 @@ nsresult
                                                aIOThread, 
                                                aURLShortcut);
 
-  favIconSvc->GetFaviconDataForPage(aFaviconPageURI, callback);
+  favIconSvc->GetFaviconDataForPage(aFaviconPageURI, callback, 0);
 #endif
   return NS_OK;
 }
@@ -1607,7 +1733,7 @@ WinUtils::ConvertHRGNToRegion(HRGN aRgn)
   nsIntRegion rgn;
 
   DWORD size = ::GetRegionData(aRgn, 0, nullptr);
-  nsAutoTArray<uint8_t,100> buffer;
+  AutoTArray<uint8_t,100> buffer;
   buffer.SetLength(size);
 
   RGNDATA* data = reinterpret_cast<RGNDATA*>(buffer.Elements());
@@ -1685,10 +1811,238 @@ WinUtils::IsTouchDeviceSupportPresent()
 uint32_t
 WinUtils::GetMaxTouchPoints()
 {
-  if (IsWin7OrLater() && IsTouchDeviceSupportPresent()) {
+  if (IsTouchDeviceSupportPresent()) {
     return GetSystemMetrics(SM_MAXIMUMTOUCHES);
   }
   return 0;
+}
+
+/* static */
+bool
+WinUtils::ResolveJunctionPointsAndSymLinks(std::wstring& aPath)
+{
+  LOG_D("ResolveJunctionPointsAndSymLinks: Resolving path: %S", aPath.c_str());
+
+  wchar_t path[MAX_PATH] = { 0 };
+
+  nsAutoHandle handle(
+    ::CreateFileW(aPath.c_str(),
+                  0,
+                  FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                  nullptr,
+                  OPEN_EXISTING,
+                  FILE_FLAG_BACKUP_SEMANTICS,
+                  nullptr));
+
+  if (handle == INVALID_HANDLE_VALUE) {
+    LOG_E("Failed to open file handle to resolve path. GetLastError=%d",
+          GetLastError());
+    return false;
+  }
+
+  DWORD pathLen = GetFinalPathNameByHandleW(
+    handle, path, MAX_PATH, FILE_NAME_NORMALIZED | VOLUME_NAME_DOS);
+  if (pathLen == 0 || pathLen >= MAX_PATH) {
+    LOG_E("GetFinalPathNameByHandleW failed. GetLastError=%d", GetLastError());
+    return false;
+  }
+  aPath = path;
+
+  // GetFinalPathNameByHandle sticks a '\\?\' in front of the path,
+  // but that confuses some APIs so strip it off. It will also put
+  // '\\?\UNC\' in front of network paths, we convert that to '\\'.
+  if (aPath.compare(0, 7, L"\\\\?\\UNC") == 0) {
+    aPath.erase(2, 6);
+  } else if (aPath.compare(0, 4, L"\\\\?\\") == 0) {
+    aPath.erase(0, 4);
+  }
+
+  LOG_D("ResolveJunctionPointsAndSymLinks: Resolved path to: %S", aPath.c_str());
+  return true;
+}
+
+/* static */
+bool
+WinUtils::ResolveJunctionPointsAndSymLinks(nsIFile* aPath)
+{
+  MOZ_ASSERT(aPath);
+
+  nsAutoString filePath;
+  nsresult rv = aPath->GetPath(filePath);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return false;
+  }
+
+  std::wstring resolvedPath(filePath.get());
+  if (!ResolveJunctionPointsAndSymLinks(resolvedPath)) {
+    return false;
+  }
+
+  rv = aPath->InitWithPath(nsDependentString(resolvedPath.c_str()));
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return false;
+  }
+
+  return true;
+}
+
+/* static */
+bool
+WinUtils::SanitizePath(const wchar_t* aInputPath, nsAString& aOutput)
+{
+  aOutput.Truncate();
+  wchar_t buffer[MAX_PATH + 1] = {0};
+  if (!PathCanonicalizeW(buffer, aInputPath)) {
+    return false;
+  }
+  wchar_t longBuffer[MAX_PATH + 1] = {0};
+  DWORD longResult = GetLongPathNameW(buffer, longBuffer, MAX_PATH);
+  if (longResult == 0 || longResult > MAX_PATH - 1) {
+    return false;
+  }
+  aOutput.SetLength(MAX_PATH + 1);
+  wchar_t* output = reinterpret_cast<wchar_t*>(aOutput.BeginWriting());
+  if (!PathUnExpandEnvStringsW(longBuffer, output, MAX_PATH)) {
+    return false;
+  }
+  // Truncate to correct length
+  aOutput.Truncate(wcslen(char16ptr_t(aOutput.BeginReading())));
+  MOZ_ASSERT(aOutput.Length() <= MAX_PATH);
+  return true;
+}
+
+/**
+ * This function provides an array of (system path, substitution) pairs that are
+ * considered to be acceptable with respect to privacy, for the purposes of
+ * submitting within telemetry or crash reports.
+ *
+ * The substitution string's void flag may be set. If it is, no subsitution is
+ * necessary. Otherwise, the consumer should replace the system path with the
+ * substitution.
+ *
+ * @see GetAppInitDLLs for an example of its usage.
+ */
+/* static */
+void
+WinUtils::GetWhitelistedPaths(
+    nsTArray<mozilla::Pair<nsString,nsDependentString>>& aOutput)
+{
+  aOutput.Clear();
+  aOutput.AppendElement(mozilla::MakePair(
+                          nsString(NS_LITERAL_STRING("%ProgramFiles%")),
+                          nsDependentString()));
+  // When no substitution is required, set the void flag
+  aOutput.LastElement().second().SetIsVoid(true);
+  wchar_t tmpPath[MAX_PATH + 1] = {0};
+  if (GetTempPath(MAX_PATH, tmpPath)) {
+    // GetTempPath's result always ends with a backslash, which we don't want
+    uint32_t tmpPathLen = wcslen(tmpPath);
+    if (tmpPathLen) {
+      tmpPath[tmpPathLen - 1] = 0;
+    }
+    nsAutoString cleanTmpPath;
+    if (SanitizePath(tmpPath, cleanTmpPath)) {
+      aOutput.AppendElement(mozilla::MakePair(nsString(cleanTmpPath),
+                              nsDependentString(L"%TEMP%")));
+    }
+  }
+}
+
+/**
+ * This function is located here (as opposed to nsSystemInfo or elsewhere)
+ * because we need to gather this information as early as possible during
+ * startup.
+ */
+/* static */
+bool
+WinUtils::GetAppInitDLLs(nsAString& aOutput)
+{
+  aOutput.Truncate();
+  HKEY hkey = NULL;
+  if (RegOpenKeyExW(HKEY_LOCAL_MACHINE,
+        L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Windows",
+        0, KEY_QUERY_VALUE, &hkey)) {
+    return false;
+  }
+  nsAutoRegKey key(hkey);
+  LONG status;
+  const wchar_t kLoadAppInitDLLs[] = L"LoadAppInit_DLLs";
+  DWORD loadAppInitDLLs = 0;
+  DWORD loadAppInitDLLsLen = sizeof(loadAppInitDLLs);
+  status = RegQueryValueExW(hkey, kLoadAppInitDLLs, nullptr,
+                            nullptr, (LPBYTE)&loadAppInitDLLs,
+                            &loadAppInitDLLsLen);
+  if (status != ERROR_SUCCESS) {
+    return false;
+  }
+  if (!loadAppInitDLLs) {
+    // If loadAppInitDLLs is zero then AppInit_DLLs is disabled.
+    // In this case we'll return true along with an empty output string.
+    return true;
+  }
+  DWORD numBytes = 0;
+  const wchar_t kAppInitDLLs[] = L"AppInit_DLLs";
+  // Query for required buffer size
+  status = RegQueryValueExW(hkey, kAppInitDLLs, nullptr, nullptr, nullptr,
+                            &numBytes);
+  if (status != ERROR_SUCCESS) {
+    return false;
+  }
+  // Allocate the buffer and query for the actual data
+  mozilla::UniquePtr<wchar_t[]> data =
+    mozilla::MakeUnique<wchar_t[]>(numBytes / sizeof(wchar_t));
+  status = RegQueryValueExW(hkey, kAppInitDLLs, nullptr,
+                            nullptr, (LPBYTE)data.get(), &numBytes);
+  if (status != ERROR_SUCCESS) {
+    return false;
+  }
+  nsTArray<mozilla::Pair<nsString,nsDependentString>> whitelistedPaths;
+  GetWhitelistedPaths(whitelistedPaths);
+  // For each token, split up the filename components and then check the
+  // name of the file.
+  const wchar_t kDelimiters[] = L", ";
+  wchar_t* tokenContext = nullptr;
+  wchar_t* token = wcstok_s(data.get(), kDelimiters, &tokenContext);
+  while (token) {
+    nsAutoString cleanPath;
+    // Since these paths are short paths originating from the registry, we need
+    // to canonicalize them, lengthen them, and sanitize them before we can
+    // check them against the whitelist
+    if (SanitizePath(token, cleanPath)) {
+      bool needsStrip = true;
+      for (uint32_t i = 0; i < whitelistedPaths.Length(); ++i) {
+        const nsString& testPath = whitelistedPaths[i].first();
+        const nsDependentString& substitution = whitelistedPaths[i].second();
+        if (StringBeginsWith(cleanPath, testPath,
+                             nsCaseInsensitiveStringComparator())) {
+          if (!substitution.IsVoid()) {
+            cleanPath.Replace(0, testPath.Length(), substitution);
+          }
+          // Whitelisted paths may be used as-is provided that they have been
+          // previously sanitized.
+          needsStrip = false;
+          break;
+        }
+      }
+      if (!aOutput.IsEmpty()) {
+        aOutput += L";";
+      }
+      // For non-whitelisted paths, we strip the path component and just leave
+      // the filename.
+      if (needsStrip) {
+        // nsLocalFile doesn't like non-absolute paths. Since these paths might
+        // contain environment variables instead of roots, we can't use it.
+        wchar_t tmpPath[MAX_PATH + 1] = {0};
+        wcsncpy(tmpPath, cleanPath.get(), cleanPath.Length());
+        PathStripPath(tmpPath);
+        aOutput += tmpPath;
+      } else {
+        aOutput += cleanPath;
+      }
+    }
+    token = wcstok_s(nullptr, kDelimiters, &tokenContext);
+  }
+  return true;
 }
 
 } // namespace widget

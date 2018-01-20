@@ -1,12 +1,7 @@
-/* vim:set ts=2 sw=2 sts=2 et: */
-/* ***** BEGIN LICENSE BLOCK *****
- * Any copyright is dedicated to the Public Domain.
- * http://creativecommons.org/publicdomain/zero/1.0/
- *
- * Contributor(s):
- *  Mihai Șucan <mihai.sucan@gmail.com>
- *
- * ***** END LICENSE BLOCK ***** */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
+/* vim: set ft=javascript ts=2 et sw=2 tw=80: */
+/* Any copyright is dedicated to the Public Domain.
+ * http://creativecommons.org/publicdomain/zero/1.0/ */
 
 "use strict";
 
@@ -15,7 +10,7 @@ const TEST_URI = "http://example.com/browser/devtools/client/webconsole/" +
                  "test/test-bug-600183-charset.html";
 
 function performTest(lastFinishedRequest, console) {
-  let deferred = promise.defer();
+  let deferred = defer();
 
   ok(lastFinishedRequest, "charset test page was loaded and logged");
   HUDService.lastFinishedRequest.callback = null;
@@ -42,27 +37,22 @@ function performTest(lastFinishedRequest, console) {
 }
 
 function waitForRequest() {
-  let deferred = promise.defer();
+  let deferred = defer();
   HUDService.lastFinishedRequest.callback = (req, console) => {
     performTest(req, console).then(deferred.resolve);
   };
   return deferred.promise;
 }
 
-var test = asyncTest(function* () {
+add_task(function* () {
   let { browser } = yield loadTab(INIT_URI);
 
-  let hud = yield openConsole();
-
-  yield hud.ui.setSaveRequestAndResponseBodies(true);
-
-  ok(hud.ui._saveRequestAndResponseBodies,
-    "The saveRequestAndResponseBodies property was successfully set.");
+  yield openConsole();
 
   let gotLastRequest = waitForRequest();
 
   let loaded = loadBrowser(browser);
-  content.location = TEST_URI;
+  BrowserTestUtils.loadURI(browser, TEST_URI);
   yield loaded;
 
   yield gotLastRequest;

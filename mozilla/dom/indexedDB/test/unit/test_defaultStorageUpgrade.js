@@ -5,7 +5,7 @@
 
 var testGenerator = testSteps();
 
-function testSteps()
+function* testSteps()
 {
   const openParams = [
     // This one lives in storage/default/http+++localhost
@@ -46,14 +46,6 @@ function testSteps()
     // This one lives in storage/permanent/chrome
     { dbName: "dbL", dbVersion: 1 },
 
-    // This one lives in storage/default/1007+f+app+++system.gaiamobile.org
-    { appId: 1007, inMozBrowser: false, url: "app://system.gaiamobile.org",
-      dbName: "dbM", dbVersion: 1 },
-
-    // This one lives in storage/default/1007+t+https+++developer.cdn.mozilla.net
-    { appId: 1007, inMozBrowser: true, url: "https://developer.cdn.mozilla.net",
-      dbName: "dbN", dbVersion: 1 },
-
     // This one lives in storage/default/http+++127.0.0.1
     { url: "http://127.0.0.1", dbName: "dbO", dbVersion: 1 },
 
@@ -75,25 +67,31 @@ function testSteps()
     // This one lives in storage/default/file++++++index.html
     { url: "file://///index.html", dbName: "dbS", dbVersion: 1 },
 
+    // This one lives in storage/permanent/resource+++fx-share-addon-at-mozilla-dot-org-fx-share-addon-data
+    { url: "resource://fx-share-addon-at-mozilla-dot-org-fx-share-addon-data",
+      dbName: "dbU", dbOptions: { version: 1, storage: "persistent" } },
+
+    // This one lives in storage/temporary/http+++localhost+81
+    // The .metadata file was intentionally removed for this origin directory
+    // to test restoring during upgrade.
+    { url: "http://localhost:81", dbName: "dbV",
+      dbOptions: { version: 1, storage: "temporary" } },
+
+    // This one lives in storage/temporary/http+++localhost+82
+    // The .metadata file was intentionally truncated for this origin directory
+    // to test restoring during upgrade.
+    { url: "http://localhost:82", dbName: "dbW",
+      dbOptions: { version: 1, storage: "temporary" } },
+
     // This one lives in storage/temporary/http+++localhost
     { url: "http://localhost", dbName: "dbZ",
       dbOptions: { version: 1, storage: "temporary" } }
   ];
 
-  let ios = SpecialPowers.Cc["@mozilla.org/network/io-service;1"]
-                         .getService(SpecialPowers.Ci.nsIIOService);
-
-  let ssm = SpecialPowers.Cc["@mozilla.org/scriptsecuritymanager;1"]
-                         .getService(SpecialPowers.Ci.nsIScriptSecurityManager);
-
   function openDatabase(params) {
     let request;
     if ("url" in params) {
-      let uri = ios.newURI(params.url, null, null);
-      let principal =
-        ssm.createCodebasePrincipal(uri,
-                                    {appId: params.appId || ssm.NO_APPID,
-                                     inBrowser: params.inMozBrowser});
+      let principal = getPrincipal(params.url);
       if ("dbVersion" in params) {
         request = indexedDB.openForPrincipal(principal, params.dbName,
                                              params.dbVersion);
@@ -101,12 +99,10 @@ function testSteps()
         request = indexedDB.openForPrincipal(principal, params.dbName,
                                              params.dbOptions);
       }
+    } else if ("dbVersion" in params) {
+      request = indexedDB.open(params.dbName, params.dbVersion);
     } else {
-      if ("dbVersion" in params) {
-        request = indexedDB.open(params.dbName, params.dbVersion);
-      } else {
-        request = indexedDB.open(params.dbName, params.dbOptions);
-      }
+      request = indexedDB.open(params.dbName, params.dbOptions);
     }
     return request;
   }

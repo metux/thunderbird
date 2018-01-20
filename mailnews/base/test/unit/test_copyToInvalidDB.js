@@ -19,7 +19,7 @@ var gMsgId1;
 
 var gTestFolder, gTestFolder2;
 
-function setup_globals(aNextFunc) {
+function* setup_globals(aNextFunc) {
   var messageGenerator = new MessageGenerator();
   gMsg1 = messageGenerator.makeMessage();
   let msg2 = messageGenerator.makeMessage({inReplyTo: gMsg1});
@@ -43,7 +43,7 @@ function run_test() {
   async_run({func: actually_run_test});
 }
 
-function actually_run_test() {
+function* actually_run_test() {
   yield async_run({func: setup_globals});
   gTestFolder2.msgDatabase.summaryValid = false;
   gTestFolder2.msgDatabase = null;
@@ -56,7 +56,7 @@ function actually_run_test() {
   let msgHdr = mailTestUtils.firstMsgHdr(gTestFolder);
   let messages = Cc["@mozilla.org/array;1"].createInstance(Ci.nsIMutableArray);
   gMsgId1 = msgHdr.messageId;
-  messages.appendElement(msgHdr, false);
+  messages.appendElement(msgHdr);
   MailServices.copy.CopyMessages(gTestFolder, messages, gTestFolder2, true,
                            asyncCopyListener, null, false);
   yield false;

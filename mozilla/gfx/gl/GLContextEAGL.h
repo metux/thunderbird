@@ -23,9 +23,8 @@ class GLContextEAGL : public GLContext
 
 public:
     MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(GLContextEAGL, override)
-    GLContextEAGL(const SurfaceCaps& caps, EAGLContext* context,
-                  GLContext* sharedContext,
-                  bool isOffscreen, ContextProfile profile);
+    GLContextEAGL(CreateContextFlags flags, const SurfaceCaps& caps, EAGLContext* context,
+                  GLContext* sharedContext, bool isOffscreen, ContextProfile profile);
 
     ~GLContextEAGL();
 
@@ -52,15 +51,16 @@ public:
 
     virtual bool IsDoubleBuffered() const override;
 
-    virtual bool SupportsRobustness() const override;
-
     virtual bool SwapBuffers() override;
+
+    virtual void GetWSIInfo(nsCString* const out) const override;
 
     virtual GLuint GetDefaultFramebuffer() override {
         return mBackbufferFB;
     }
 
-    virtual bool RenewSurface() override {
+    virtual bool RenewSurface(nsIWidget* aWidget) override {
+        // FIXME: should use the passed widget instead of the existing one.
         return RecreateRB();
     }
 

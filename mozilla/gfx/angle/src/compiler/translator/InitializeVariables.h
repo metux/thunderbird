@@ -7,45 +7,38 @@
 #ifndef COMPILER_TRANSLATOR_INITIALIZEVARIABLES_H_
 #define COMPILER_TRANSLATOR_INITIALIZEVARIABLES_H_
 
+#include <GLSLANG/ShaderLang.h>
+
+#include "compiler/translator/ExtensionBehavior.h"
 #include "compiler/translator/IntermNode.h"
 
-class InitializeVariables : public TIntermTraverser
+namespace sh
 {
-  public:
-    struct InitVariableInfo
-    {
-        TString name;
-        TType type;
+class TSymbolTable;
 
-        InitVariableInfo(const TString &_name, const TType &_type)
-            : name(_name),
-              type(_type)
-        {
-        }
-    };
-    typedef TVector<InitVariableInfo> InitVariableInfoList;
+typedef std::vector<sh::ShaderVariable> InitVariableList;
 
-    InitializeVariables(const InitVariableInfoList &vars)
-        : TIntermTraverser(true, false, false),
-          mVariables(vars),
-          mCodeInserted(false)
-    {
-    }
+// Return a sequence of assignment operations to initialize "initializedSymbol". initializedSymbol
+// may be an array, struct or any combination of these, as long as it contains only basic types.
+TIntermSequence *CreateInitCode(const TIntermTyped *initializedSymbol);
 
-  protected:
-    bool visitBinary(Visit, TIntermBinary *node) override { return false; }
-    bool visitUnary(Visit, TIntermUnary *node) override { return false; }
-    bool visitSelection(Visit, TIntermSelection *node) override { return false; }
-    bool visitLoop(Visit, TIntermLoop *node) override { return false; }
-    bool visitBranch(Visit, TIntermBranch *node) override { return false; }
+// Initialize all uninitialized local variables, so that undefined behavior is avoided.
+void InitializeUninitializedLocals(TIntermBlock *root, int shaderVersion);
 
-    bool visitAggregate(Visit visit, TIntermAggregate *node) override;
+// This function can initialize all the types that CreateInitCode is able to initialize. All
+// variables must be globals which can be found in the symbol table. For now it is used for the
+// following two scenarios:
+//   1. Initializing gl_Position;
+//   2. Initializing output variables referred to in the shader source.
+// Note: The type of each lvalue in an initializer is retrieved from the symbol table. gl_FragData
+// requires special handling because the number of indices which can be initialized is determined by
+// enabled extensions.
+void InitializeVariables(TIntermBlock *root,
+                         const InitVariableList &vars,
+                         const TSymbolTable &symbolTable,
+                         int shaderVersion,
+                         const TExtensionBehavior &extensionBehavior);
 
-  private:
-    void insertInitCode(TIntermSequence *sequence);
-
-    InitVariableInfoList mVariables;
-    bool mCodeInserted;
-};
+}  // namespace sh
 
 #endif  // COMPILER_TRANSLATOR_INITIALIZEVARIABLES_H_

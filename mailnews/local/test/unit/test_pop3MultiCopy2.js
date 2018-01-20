@@ -7,7 +7,6 @@
  */
 
 load("../../../resources/POP3pump.js");
-Components.utils.import("resource://gre/modules/Promise.jsm");
 Components.utils.import("resource://testing-common/mailnews/PromiseTestUtils.jsm");
 
 Services.prefs.setCharPref("mail.serverDefaultStoreContractID",
@@ -34,7 +33,7 @@ add_task(function* setupFolders() {
   dump("testFolder is at " + gTestFolder.filePath.path + "\n");
   yield gPOP3Pump.run();
 });
-  
+
 add_task(function* maildirToMbox() {
   // Test for multiple message copy for maildir->mbox.
 
@@ -49,7 +48,7 @@ add_task(function* maildirToMbox() {
   let enumerator = gInboxFolder.msgDatabase.EnumerateMessages();
   while (enumerator.hasMoreElements()) {
     let hdr = enumerator.getNext().QueryInterface(Ci.nsIMsgDBHdr);
-    messages.appendElement(hdr, false);
+    messages.appendElement(hdr);
   }
   do_check_eq(messages.length, 2);
 
@@ -65,7 +64,7 @@ add_task(function* maildirToMbox() {
   let subjects = [];
   while (enumerator.hasMoreElements()) {
     let hdr = enumerator.getNext().QueryInterface(Ci.nsIMsgDBHdr);
-    messages.appendElement(hdr, false);
+    messages.appendElement(hdr);
     dump("Subject: " + hdr.subject + "\n");
     subjects.push(hdr.subject);
   }
@@ -97,7 +96,7 @@ add_task(function* mboxToMaildir() {
   let enumerator = gTestFolder.msgDatabase.EnumerateMessages();
   while (enumerator.hasMoreElements()) {
     let hdr = enumerator.getNext().QueryInterface(Ci.nsIMsgDBHdr);
-    messages.appendElement(hdr, false);
+    messages.appendElement(hdr);
   }
   do_check_eq(messages.length, 2);
 
@@ -113,7 +112,7 @@ add_task(function* mboxToMaildir() {
   let subjects = [];
   while (enumerator.hasMoreElements()) {
     let hdr = enumerator.getNext().QueryInterface(Ci.nsIMsgDBHdr);
-    messages.appendElement(hdr, false);
+    messages.appendElement(hdr);
     dump("Subject: " + hdr.subject + "\n");
     subjects.push(hdr.subject);
   }

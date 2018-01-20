@@ -36,15 +36,14 @@ class TalosRunner(MozbuildObject):
         self.talos_dir = os.path.join(self.topsrcdir, 'testing', 'talos')
         self.mozharness_dir = os.path.join(self.topsrcdir, 'testing',
                                            'mozharness')
-        self.config_dir = os.path.join(self.mozharness_dir, 'configs', 'talos')
         self.talos_json = os.path.join(self.talos_dir, 'talos.json')
-        self.config_filename = 'in_tree_conf.json'
-        self.config_file_path = os.path.join(self.config_dir,
-                                             self.config_filename)
+        self.config_file_path = os.path.join(self._topobjdir, 'testing',
+                                             'talos-in_tree_conf.json')
         self.binary_path = self.get_binary_path()
-        self.virtualenv_script = os.path.join(self.topsrcdir, 'python',
+        self.virtualenv_script = os.path.join(self.topsrcdir, 'third_party', 'python',
                                               'virtualenv', 'virtualenv.py')
-        self.virtualenv_path = os.path.join(self.mozharness_dir, 'venv')
+        self.virtualenv_path = os.path.join(self._topobjdir, 'testing',
+                                            'talos-venv')
         self.python_interp = sys.executable
         self.talos_args = talos_args
 
@@ -53,6 +52,8 @@ class TalosRunner(MozbuildObject):
             'run_local': True,
             'talos_json': self.talos_json,
             'binary_path': self.binary_path,
+            'repo_path': self.topsrcdir,
+            'obj_path': self.topobjdir,
             'log_name': 'talos',
             'virtualenv_path': self.virtualenv_path,
             'pypi_url': 'http://pypi.python.org/simple',
@@ -65,9 +66,15 @@ class TalosRunner(MozbuildObject):
             'default_actions': [
                 'populate-webroot',
                 'create-virtualenv',
+                'setup-mitmproxy',
                 'run-tests',
             ],
+            'download_tooltool': True,
             'talos_extra_options': ['--develop'] + self.talos_args,
+            'python3_manifest': {
+                'win32': 'python3.manifest',
+                'win64': 'python3_x64.manifest',
+            }
         }
 
     def make_args(self):

@@ -41,13 +41,13 @@ Tests of DOM Worker Threads (Bug 437152)
         ok(false, "Unexpected message:" + event.data);
         SimpleTest.finish();
     }
-  }, false);
+  });
 
   var gotErrors = false;
   worker.onerror = function(event) {
     event.preventDefault();
     is(event.target, worker);
-    is(event.message, "InternalError: uncaught exception: Bad message: asdf");
+    is(event.message, "uncaught exception: Bad message: asdf");
 
     worker.onerror = function(otherEvent) {
       otherEvent.preventDefault();

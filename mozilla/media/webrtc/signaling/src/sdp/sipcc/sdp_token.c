@@ -758,11 +758,9 @@ sdp_result_e sdp_parse_bandwidth (sdp_t *sdp_p, uint16_t level, const char *ptr)
     }
 
     if (bw_modifier == SDP_BW_MODIFIER_UNSUPPORTED) {
-        sdp_parse_error(sdp_p,
-            "%s Error: BW Modifier type unsupported (%s).",
-            sdp_p->debug_str, tmp);
-        sdp_p->conf_p->num_invalid_param++;
-        return (SDP_INVALID_PARAMETER);
+        /* We don't understand this parameter, so according to RFC4566 sec 5.8
+         * ignore it. */
+        return (SDP_SUCCESS);
     }
 
     /* Find the BW type value */
@@ -1195,17 +1193,6 @@ sdp_result_e sdp_parse_media (sdp_t *sdp_p, uint16_t level, const char *ptr)
         }
     }
 
-    /* TODO(ehugg): Remove this next block when backward
-       compatibility with versions earlier than FF24
-       is no longer required.  See Bug 886134 */
-#define DATACHANNEL_OLD_TRANSPORT "SCTP/DTLS"
-    if (mca_p->transport == SDP_TRANSPORT_UNSUPPORTED) {
-        if (cpr_strncasecmp(tmp, DATACHANNEL_OLD_TRANSPORT,
-            strlen(DATACHANNEL_OLD_TRANSPORT)) == 0) {
-            mca_p->transport = SDP_TRANSPORT_DTLSSCTP;
-        }
-    }
-
     if (mca_p->transport == SDP_TRANSPORT_UNSUPPORTED) {
         /* If we don't recognize or don't support the transport type,
          * just store the first num as the port.
@@ -1234,7 +1221,9 @@ sdp_result_e sdp_parse_media (sdp_t *sdp_p, uint16_t level, const char *ptr)
             (mca_p->transport == SDP_TRANSPORT_UDPTL) ||
             (mca_p->transport == SDP_TRANSPORT_UDPSPRT) ||
             (mca_p->transport == SDP_TRANSPORT_LOCAL) ||
-            (mca_p->transport == SDP_TRANSPORT_DTLSSCTP)) {
+            (mca_p->transport == SDP_TRANSPORT_DTLSSCTP) ||
+            (mca_p->transport == SDP_TRANSPORT_UDPDTLSSCTP) ||
+            (mca_p->transport == SDP_TRANSPORT_TCPDTLSSCTP)) {
             /* Port format is simply <port>.  Make sure that either
              * the choose param is allowed or that the choose value
              * wasn't specified.
@@ -1386,7 +1375,9 @@ sdp_result_e sdp_parse_media (sdp_t *sdp_p, uint16_t level, const char *ptr)
             return (SDP_INVALID_PARAMETER);
         }
     /* Parse DTLS/SCTP port */
-    } else if (mca_p->transport == SDP_TRANSPORT_DTLSSCTP) {
+    } else if ((mca_p->transport == SDP_TRANSPORT_DTLSSCTP) ||
+               (mca_p->transport == SDP_TRANSPORT_UDPDTLSSCTP) ||
+               (mca_p->transport == SDP_TRANSPORT_TCPDTLSSCTP)) {
         ptr = sdp_getnextstrtok(ptr, port, sizeof(port), " \t", &result);
         if (result != SDP_SUCCESS) {
             sdp_parse_error(sdp_p,
@@ -1398,10 +1389,22 @@ sdp_result_e sdp_parse_media (sdp_t *sdp_p, uint16_t level, const char *ptr)
         }
         port_ptr = port;
 
-        if (sdp_getchoosetok(port_ptr, &port_ptr, "/ \t", &result)) {
-                sctp_port = SDP_CHOOSE_PARAM;
+        if ((mca_p->transport == SDP_TRANSPORT_UDPDTLSSCTP) ||
+            (mca_p->transport == SDP_TRANSPORT_TCPDTLSSCTP)) {
+            if (cpr_strncasecmp(port_ptr, "webrtc-datachannel",
+                                sizeof("webrtc-datachannel")) != 0) {
+                sdp_parse_error(sdp_p,
+                    "%s No webrtc-datachannel token in m= media line, "
+                    "parse failed.", sdp_p->debug_str);
+                SDP_FREE(mca_p);
+                sdp_p->conf_p->num_invalid_param++;
+                return (SDP_INVALID_PARAMETER);
+            }
+            mca_p->sctp_fmt = SDP_SCTP_MEDIA_FMT_WEBRTC_DATACHANNEL;
+        } else if (sdp_getchoosetok(port_ptr, &port_ptr, "/ \t", &result)) {
+            sctp_port = SDP_CHOOSE_PARAM;
         } else {
-                sctp_port = sdp_getnextnumtok(port_ptr, (const char **)&port_ptr,
+            sctp_port = sdp_getnextnumtok(port_ptr, (const char **)&port_ptr,
                                            "/ \t", &result);
             if (result != SDP_SUCCESS) {
                 sdp_parse_error(sdp_p,

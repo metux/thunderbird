@@ -7,8 +7,8 @@
 #MailPreferences {
   -moz-appearance: none;
   font-size: 12px;
-  background-color: #fbfbfb;
-  color: #424e5a;
+  background-color: var(--in-content-page-background);
+  color: var(--in-content-page-color);
 }
 
 /* Don't show the Close button on tab content */
@@ -21,19 +21,19 @@
 }
 
 #prefBox > windowdragbox {
-  background-color: #424e5a;
-  -moz-border-end: 1px solid rgba(0, 0, 0, 0.20);
+  background-color: #ebebef;
+  width: 240px;
 }
 
-caption > label {
+caption label {
   font-size: 1.3rem;
-  font-weight: bold;
+  font-weight: 600;
   line-height: 22px;
   margin: 0 !important;
 }
 
 #preferencesContainer {
-  padding: 40px 48px;
+  padding: 40px 28px;
   overflow: auto;
 }
 
@@ -45,14 +45,26 @@ caption > label {
   line-height: 22px;
 }
 
+tabpanel > label,
+tabpanel > description,
+tabpanel > hbox > description {
+  margin-inline-start: 0;
+}
+
+/* Web search menulist */
+#defaultWebSearch > .menulist-label-box > .menulist-icon[src] {
+  margin-inline-start: 5px;
+  margin-inline-end: 8px;
+}
+
 /* Category List */
 
 .paneSelector {
   -moz-appearance: none;
-  background-color: #424e5a;
+  background-color: transparent;
   background-image: none;
   border-bottom: none;
-  padding: 39px 0 0;
+  padding: 54px 0 0;
   margin: 0;
   max-height: 100vh;
   overflow-x: auto;
@@ -61,28 +73,34 @@ caption > label {
 radio[pane] {
   -moz-box-orient: horizontal;
   -moz-appearance: none;
-  color: #c1c1c1;
+  width: 240px;
+  color: var(--in-content-category-text);
   border-right-width: 0;
   border-left-width: 0;
-  -moz-margin-end: 0;
-  -moz-padding-start: 15px;
-  -moz-padding-end: 21px;
+  border-radius: 2px;
+  margin-inline-start: 34px;
+  margin-inline-end: 0;
+  padding: 5px 10px;
   min-height: 40px;
   transition: background-color 150ms;
 }
 
-radio[pane]:hover {
-  color: #c1c1c1;
-  background-color: #5e6972;
-  background-image: none;
+radio[pane][selected] {
+  color: var(--in-content-category-text-selected);
+  background: none;
 }
 
-radio[pane][selected] {
-  background-image: none;
-  background-color: #343f48;
-  color: #f2f2f2;
-  -moz-padding-start: 11px; /* compensate the 4px border */
-  -moz-border-start: solid 4px #ff9500;
+radio[pane]:not([selected]):hover {
+  background: var(--in-content-category-background-hover);
+}
+
+radio[pane][selected]:hover {
+  background-color: var(--in-content-category-background-selected-hover);
+}
+
+radio[pane]:hover:active {
+  color: var(--in-content-category-text-selected-active);
+  background-color: var(--in-content-category-background-selected-active);
 }
 
 radio[pane]:hover::before,
@@ -92,68 +110,85 @@ radio[pane][selected]::before {
 
 .paneButtonLabel {
   line-height: 22px;
-  font: message-box;
-  font-size: 1.25rem;
+  font-size: 1.45rem;
   padding-bottom: 2px;
-  -moz-padding-start: 9px;
+  padding-inline-start: 9px;
   margin: 0;
-}
-
-@media (max-width: 800px) {
-  radio[pane] {
-    min-width: 54px;
-    -moz-padding-end: 15px;
-  }
-
-  .paneButtonLabel {
-    display: none;
-  }
+  -moz-user-select: none;
 }
 
 .paneButtonIcon {
   width: 24px;
   height: 24px;
   -moz-image-region: auto;
+  -moz-context-properties: fill, fill-opacity;
+  fill: currentColor;
+  fill-opacity: 0.8;
+}
+
+radio[pane][selected] > .paneButtonIcon {
+  fill-opacity: 1;
+}
+
+@media (max-width: 830px) {
+  #prefBox > windowdragbox {
+    width: 118px;
+  }
+
+  .paneButtonLabel {
+    display: none;
+  }
+
+  radio[pane] {
+    min-width: 44px;
+    padding-inline-start: 13px; /* make icons align center */
+    margin-inline-end: 35px;
+  }
+
+  #preferencesContainer {
+    padding-inline-start: 15px;
+    padding-inline-end: 15px;
+  }
 }
 
 radio[pane=paneGeneral] > .paneButtonIcon {
-  list-style-image: url("chrome://messenger/skin/shared/in-content/icons.svg#general");
+  list-style-image: url("chrome://messenger/skin/shared/in-content/general.svg");
 }
 
 radio[pane=paneDisplay] > .paneButtonIcon {
-  list-style-image: url("chrome://messenger/skin/shared/in-content/icons.svg#display");
+  list-style-image: url("chrome://messenger/skin/shared/in-content/display.svg");
 }
 
 radio[pane=paneApplications] > .paneButtonIcon {
-  list-style-image: url("chrome://messenger/skin/shared/in-content/icons.svg#applications");
+  list-style-image: url("chrome://messenger/skin/shared/in-content/attachment.svg");
 }
 
 radio[pane=panePrivacy] > .paneButtonIcon {
-  list-style-image: url("chrome://messenger/skin/shared/in-content/icons.svg#privacy");
+  list-style-image: url("chrome://messenger/skin/shared/in-content/privacy.svg");
 }
 
 radio[pane=paneSecurity]> .paneButtonIcon {
-  list-style-image: url("chrome://messenger/skin/shared/in-content/icons.svg#security");
+  list-style-image: url("chrome://messenger/skin/shared/in-content/security.svg");
 }
 
 radio[pane=paneCompose] > .paneButtonIcon {
-  list-style-image: url("chrome://messenger/skin/shared/in-content/icons.svg#compose");
+  list-style-image: url("chrome://messenger/skin/shared/in-content/compose.svg");
 }
 
 radio[pane=paneAdvanced] > .paneButtonIcon {
-  list-style-image: url("chrome://messenger/skin/shared/in-content/icons.svg#advanced");
+  list-style-image: url("chrome://messenger/skin/shared/in-content/advanced.svg");
 }
 
 radio[pane=paneChat] > .paneButtonIcon {
-  list-style-image: url("chrome://messenger/skin/shared/in-content/icons.svg#chat");
+  list-style-image: url("chrome://messenger/skin/shared/in-content/chat.svg");
 }
 
 radio[pane=paneLightning] > .paneButtonIcon {
-  list-style-image: url("chrome://messenger/skin/shared/in-content/icons.svg#calendar");
+  list-style-image: url("chrome://messenger/skin/shared/in-content/calendar.svg");
 }
 
 radio[pane=paneAccount] > .paneButtonIcon {
-  list-style-image: url("chrome://messenger/skin/shared/in-content/icons.svg#account");
+  list-style-image: url("chrome://messenger/skin/shared/in-content/account.svg");
 }
 
 /* Applications Pane Styles */
@@ -163,7 +198,7 @@ radio[pane=paneAccount] > .paneButtonIcon {
 }
 
 #filter {
-  -moz-margin-start: 0;
+  margin-inline-start: 0;
 }
 
 #handlersView > richlistitem {
@@ -171,13 +206,13 @@ radio[pane=paneAccount] > .paneButtonIcon {
 }
 
 .typeIcon {
-  -moz-margin-start: 10px !important;
-  -moz-margin-end: 9px !important;
+  margin-inline-start: 10px !important;
+  margin-inline-end: 9px !important;
 }
 
 .actionIcon {
-  -moz-margin-start: 11px !important;
-  -moz-margin-end: 8px !important;
+  margin-inline-start: 11px !important;
+  margin-inline-end: 8px !important;
 }
 
 .actionsMenu {
@@ -185,11 +220,11 @@ radio[pane=paneAccount] > .paneButtonIcon {
 }
 
 .actionsMenu > menupopup > menuitem {
-  -moz-padding-start: 10px !important;
+  padding-inline-start: 10px !important;
 }
 
 .actionsMenu > menupopup > menuitem > .menu-iconic-left {
-  -moz-margin-end: 8px !important;
+  margin-inline-end: 8px !important;
 }
 
 listhead > listheader:first-of-type:-moz-locale-dir(ltr),
@@ -214,20 +249,37 @@ description > html|a {
 }
 
 tabs {
-  -moz-margin-end: 4px; /* add the 4px end-margin of other elements */
+  margin-inline-end: 4px; /* add the 4px end-margin of other elements */
 }
 
 .indent {
-  -moz-margin-start: 33px;
+  margin-inline-start: 33px;
 }
 
 .inset {
   border-color: #424e5a;
 }
 
+.update-throbber {
+  margin-inline-start: 0;
+  margin-inline-end: 4px;
+}
+
+#releasenotes {
+  margin-inline-start: 6px !important;
+}
+
 #telemetryLearnMore,
 #crashReporterLearnMore {
-  -moz-margin-end: 4px !important;
+  margin-inline-end: 4px !important;
+}
+
+/* Remove the start margin to align these elements */
+#addCloudFileAccount,
+#chatStartupAction,
+#defaults-itemtype-menulist,
+#manageCertificatesButton {
+  margin-inline-start: 0;
 }
 
 /**
@@ -245,24 +297,14 @@ tabs {
  * Dialog
  */
 
-#dialogOverlay {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  background-color: rgba(0,0,0,0.5);
+.dialogOverlay {
   visibility: hidden;
 }
-
-#dialogContainer {
-  -moz-box-align: center;
-  -moz-box-pack: center;
-  width: 100%;
-  height: 100%;
+.dialogOverlay[topmost="true"] {
+  background-color: rgba(0,0,0,0.5);
 }
 
-#dialogBox {
+.dialogBox {
   background-color: #fbfbfb;
   color: #424e5a;
   font-size: 14px;
@@ -276,42 +318,40 @@ tabs {
   padding: 0;
 }
 
-#dialogBox[resizable="true"] {
+.dialogBox[resizable="true"] {
   resize: both;
   overflow: hidden;
   min-height: 20em;
   min-width: 66ch;
 }
 
-#dialogBox > .groupbox-title {
+.dialogBox > .groupbox-title {
   padding: 3.5px 0;
   background-color: #f1f1f1;
   border-bottom: 1px solid #c1c1c1;
 }
 
-#dialogTitle {
+.dialogTitle {
   text-align: center;
 }
 
 .close-icon {
-  background-color: transparent !important;
   border: none;
-  box-shadow: none;
-  height: 18px;
-  padding: 0;
-  min-width: 18px;
+  background: none !important;
+  min-width: 0;
+  min-height: auto;
 }
 
-#dialogBox > .groupbox-body {
+.dialogBox > .groupbox-body {
   -moz-appearance: none;
   padding: 20px;
 }
 
-#dialogFrame {
+.dialogFrame {
   -moz-box-flex: 1;
   /* Default dialog dimensions */
-  height: 20em;
-  width: 66ch;
+  height: 12em;
+  width: 40ch;
 }
 
 .largeDialogContainer.doScroll {

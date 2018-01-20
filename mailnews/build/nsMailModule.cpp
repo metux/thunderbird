@@ -191,6 +191,17 @@
 #include "nsMsgCompUtils.h"
 
 ////////////////////////////////////////////////////////////////////////////////
+//  jsAccount includes
+////////////////////////////////////////////////////////////////////////////////
+#include "msgJsAccountCID.h"
+#include "JaAbDirectory.h"
+#include "JaCompose.h"
+#include "JaIncomingServer.h"
+#include "JaMsgFolder.h"
+#include "JaSend.h"
+#include "JaUrl.h"
+
+////////////////////////////////////////////////////////////////////////////////
 // imap includes
 ////////////////////////////////////////////////////////////////////////////////
 #include "nsMsgImapCID.h"
@@ -278,6 +289,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 #include "nsCMS.h"
 #include "nsCMSSecureMessage.h"
+#include "nsCertPicker.h"
 #include "nsMsgSMIMECID.h"
 #include "nsMsgComposeSecure.h"
 #include "nsSMimeJSHelper.h"
@@ -302,15 +314,9 @@
 ////////////////////////////////////////////////////////////////////////////////
 // i18n includes
 ////////////////////////////////////////////////////////////////////////////////
-#include "nsEncoderDecoderUtils.h"
 #include "nsCommUConvCID.h"
 
 #include "nsCharsetConverterManager.h"
-
-#include "nsUTF7ToUnicode.h"
-#include "nsMUTF7ToUnicode.h"
-#include "nsUnicodeToUTF7.h"
-#include "nsUnicodeToMUTF7.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 // mailnews base factories
@@ -586,6 +592,23 @@ NS_DEFINE_NAMED_CID(NS_URLFETCHER_CID);
 NS_DEFINE_NAMED_CID(NS_MSGCOMPUTILS_CID);
 
 ////////////////////////////////////////////////////////////////////////////////
+// jsAccount factories
+////////////////////////////////////////////////////////////////////////////////
+NS_GENERIC_FACTORY_CONSTRUCTOR(JaCppAbDirectoryDelegator)
+NS_GENERIC_FACTORY_CONSTRUCTOR(JaCppComposeDelegator)
+NS_GENERIC_FACTORY_CONSTRUCTOR(JaCppIncomingServerDelegator)
+NS_GENERIC_FACTORY_CONSTRUCTOR(JaCppMsgFolderDelegator)
+NS_GENERIC_FACTORY_CONSTRUCTOR(JaCppSendDelegator)
+NS_GENERIC_FACTORY_CONSTRUCTOR(JaCppUrlDelegator)
+
+NS_DEFINE_NAMED_CID(JACPPABDIRECTORYDELEGATOR_CID);
+NS_DEFINE_NAMED_CID(JACPPCOMPOSEDELEGATOR_CID);
+NS_DEFINE_NAMED_CID(JACPPINCOMINGSERVERDELEGATOR_CID);
+NS_DEFINE_NAMED_CID(JACPPMSGFOLDERDELEGATOR_CID);
+NS_DEFINE_NAMED_CID(JACPPSENDDELEGATOR_CID);
+NS_DEFINE_NAMED_CID(JACPPURLDELEGATOR_CID);
+
+////////////////////////////////////////////////////////////////////////////////
 // imap factories
 ////////////////////////////////////////////////////////////////////////////////
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsImapUrl)
@@ -740,6 +763,7 @@ NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(nsCMSDecoder, Init)
 NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(nsCMSEncoder, Init)
 NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(nsCMSMessage, Init)
 NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(nsCMSSecureMessage, Init)
+NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(nsCertPicker, Init)
 
 NS_DEFINE_NAMED_CID(NS_MSGCOMPOSESECURE_CID);
 NS_DEFINE_NAMED_CID(NS_MSGSMIMECOMPFIELDS_CID);
@@ -749,6 +773,7 @@ NS_DEFINE_NAMED_CID(NS_CMSDECODER_CID);
 NS_DEFINE_NAMED_CID(NS_CMSENCODER_CID);
 NS_DEFINE_NAMED_CID(NS_CMSMESSAGE_CID);
 NS_DEFINE_NAMED_CID(NS_CMSSECUREMESSAGE_CID);
+NS_DEFINE_NAMED_CID(NS_CERT_PICKER_CID);
 
 ////////////////////////////////////////////////////////////////////////////////
 // vcard factories
@@ -779,11 +804,9 @@ static nsresult nsVCardMimeContentTypeHandlerConstructor(nsISupports *aOuter,
     rv = NS_ERROR_NO_AGGREGATION;
     return rv;
   }
-  inst = new nsMimeContentTypeHandler("text/x-vcard", &MIME_VCardCreateContentTypeHandlerClass);
-  if (inst == NULL)
-    return NS_ERROR_OUT_OF_MEMORY;
 
-  NS_ADDREF(inst);
+  NS_ADDREF(inst = new nsMimeContentTypeHandler(
+                   "text/x-vcard", &MIME_VCardCreateContentTypeHandlerClass));
   rv = inst->QueryInterface(aIID,aResult);
   NS_RELEASE(inst);
 
@@ -828,17 +851,7 @@ nsPgpMimeMimeContentTypeHandlerConstructor(nsISupports *aOuter,
 
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsCharsetConverterManager)
 
-NS_GENERIC_FACTORY_CONSTRUCTOR(nsUTF7ToUnicode)
-NS_GENERIC_FACTORY_CONSTRUCTOR(nsMUTF7ToUnicode)
-NS_GENERIC_FACTORY_CONSTRUCTOR(nsUnicodeToUTF7)
-NS_GENERIC_FACTORY_CONSTRUCTOR(nsUnicodeToMUTF7)
-
 NS_DEFINE_NAMED_CID(NS_ICHARSETCONVERTERMANAGER_CID);
-
-NS_DEFINE_NAMED_CID(NS_UTF7TOUNICODE_CID);
-NS_DEFINE_NAMED_CID(NS_MUTF7TOUNICODE_CID);
-NS_DEFINE_NAMED_CID(NS_UNICODETOUTF7_CID);
-NS_DEFINE_NAMED_CID(NS_UNICODETOMUTF7_CID);
 
 const mozilla::Module::CIDEntry kMailNewsCIDs[] = {
   // MailNews Base Entries
@@ -968,6 +981,13 @@ const mozilla::Module::CIDEntry kMailNewsCIDs[] = {
   { &kNS_MSGQUOTELISTENER_CID, false, NULL, nsMsgQuoteListenerConstructor},
   { &kNS_URLFETCHER_CID, false, NULL, nsURLFetcherConstructor},
   { &kNS_MSGCOMPUTILS_CID, false, NULL, nsMsgCompUtilsConstructor},
+  // JsAccount Entries
+  { &kJACPPABDIRECTORYDELEGATOR_CID, false, nullptr, JaCppAbDirectoryDelegatorConstructor },
+  { &kJACPPCOMPOSEDELEGATOR_CID, false, nullptr, JaCppComposeDelegatorConstructor },
+  { &kJACPPINCOMINGSERVERDELEGATOR_CID, false, nullptr, JaCppIncomingServerDelegatorConstructor },
+  { &kJACPPMSGFOLDERDELEGATOR_CID, false, nullptr, JaCppMsgFolderDelegatorConstructor },
+  { &kJACPPSENDDELEGATOR_CID, false, nullptr, JaCppSendDelegatorConstructor },
+  { &kJACPPURLDELEGATOR_CID, false, nullptr, JaCppUrlDelegatorConstructor },
   // Imap Entries
   { &kNS_IMAPURL_CID, false, NULL, nsImapUrlConstructor },
   { &kNS_IMAPPROTOCOL_CID, false, nullptr, nsImapProtocolConstructor },
@@ -1036,6 +1056,7 @@ const mozilla::Module::CIDEntry kMailNewsCIDs[] = {
   { &kNS_CMSENCODER_CID, false, NULL, nsCMSEncoderConstructor },
   { &kNS_CMSMESSAGE_CID, false, NULL, nsCMSMessageConstructor },
   { &kNS_CMSSECUREMESSAGE_CID, false, NULL, nsCMSSecureMessageConstructor },
+  { &kNS_CERT_PICKER_CID, false, nullptr, nsCertPickerConstructor },
   // Vcard Entries
   { &kNS_VCARD_CONTENT_TYPE_HANDLER_CID, false, NULL, nsVCardMimeContentTypeHandlerConstructor},
   // PGP/MIME Entries
@@ -1043,10 +1064,6 @@ const mozilla::Module::CIDEntry kMailNewsCIDs[] = {
   { &kNS_PGPMIMEPROXY_CID, false, NULL, nsPgpMimeProxyConstructor },
   // i18n Entries
   { &kNS_ICHARSETCONVERTERMANAGER_CID, false, nullptr, nsCharsetConverterManagerConstructor },
-  { &kNS_UTF7TOUNICODE_CID, false, nullptr, nsUTF7ToUnicodeConstructor },
-  { &kNS_MUTF7TOUNICODE_CID, false, nullptr, nsMUTF7ToUnicodeConstructor },
-  { &kNS_UNICODETOUTF7_CID, false, nullptr, nsUnicodeToUTF7Constructor },
-  { &kNS_UNICODETOMUTF7_CID, false, nullptr, nsUnicodeToMUTF7Constructor },
   // Tokenizer Entries
   { NULL }
 };
@@ -1184,6 +1201,13 @@ const mozilla::Module::ContractIDEntry kMailNewsContracts[] = {
   { NS_MSGQUOTELISTENER_CONTRACTID, &kNS_MSGQUOTELISTENER_CID },
   { NS_URLFETCHER_CONTRACTID, &kNS_URLFETCHER_CID },
   { NS_MSGCOMPUTILS_CONTRACTID, &kNS_MSGCOMPUTILS_CID },
+  // JsAccount Entries
+  { JACPPABDIRECTORYDELEGATOR_CONTRACTID, &kJACPPABDIRECTORYDELEGATOR_CID },
+  { JACPPCOMPOSEDELEGATOR_CONTRACTID, &kJACPPCOMPOSEDELEGATOR_CID },
+  { JACPPINCOMINGSERVERDELEGATOR_CONTRACTID, &kJACPPINCOMINGSERVERDELEGATOR_CID },
+  { JACPPMSGFOLDERDELEGATOR_CONTRACTID, &kJACPPMSGFOLDERDELEGATOR_CID },
+  { JACPPSENDDELEGATOR_CONTRACTID, &kJACPPSENDDELEGATOR_CID },
+  { JACPPURLDELEGATOR_CONTRACTID, &kJACPPURLDELEGATOR_CID },
   // Imap Entries
   { NS_IMAPINCOMINGSERVER_CONTRACTID, &kNS_IMAPINCOMINGSERVER_CID },
   { NS_RDF_RESOURCE_FACTORY_CONTRACTID_PREFIX "imap", &kNS_IMAPRESOURCE_CID },
@@ -1275,6 +1299,8 @@ const mozilla::Module::ContractIDEntry kMailNewsContracts[] = {
   { NS_CMSDECODER_CONTRACTID, &kNS_CMSDECODER_CID },
   { NS_CMSENCODER_CONTRACTID, &kNS_CMSENCODER_CID },
   { NS_CMSMESSAGE_CONTRACTID, &kNS_CMSMESSAGE_CID },
+  { NS_CERTPICKDIALOGS_CONTRACTID, &kNS_CERT_PICKER_CID },
+  { NS_CERT_PICKER_CONTRACTID, &kNS_CERT_PICKER_CID },
   // Vcard Entries
   { "@mozilla.org/mimecth;1?type=text/x-vcard", &kNS_VCARD_CONTENT_TYPE_HANDLER_CID },
   // PGP/MIME Entries
@@ -1282,10 +1308,6 @@ const mozilla::Module::ContractIDEntry kMailNewsContracts[] = {
   { NS_PGPMIMEPROXY_CONTRACTID, &kNS_PGPMIMEPROXY_CID },
   // i18n Entries
   { NS_CHARSETCONVERTERMANAGER_CONTRACTID, &kNS_ICHARSETCONVERTERMANAGER_CID },
-  { NS_UNICODEDECODER_CONTRACTID_BASE "UTF-7", &kNS_UTF7TOUNICODE_CID },
-  { NS_UNICODEDECODER_CONTRACTID_BASE "x-imap4-modified-utf7", &kNS_MUTF7TOUNICODE_CID },
-  { NS_UNICODEENCODER_CONTRACTID_BASE "UTF-7", &kNS_UNICODETOUTF7_CID },
-  { NS_UNICODEENCODER_CONTRACTID_BASE "x-imap4-modified-utf7", &kNS_UNICODETOMUTF7_CID },
   // Tokenizer Entries
   { NULL }
 };
@@ -1304,6 +1326,7 @@ static const mozilla::Module::CategoryEntry kMailNewsCategories[] = {
   // Bayesian Filter Entries
   // Compose Entries
   { "command-line-handler", "m-compose", NS_MSGCOMPOSESTARTUPHANDLER_CONTRACTID },
+  // JsAccount Entries
   // Imap Entries
   // Local Entries
   // msgdb Entries
@@ -1319,8 +1342,6 @@ static const mozilla::Module::CategoryEntry kMailNewsCategories[] = {
   // i18n Entries
   { NS_TITLE_BUNDLE_CATEGORY, "chrome://messenger/locale/charsetTitles.properties", "" },
   { NS_DATA_BUNDLE_CATEGORY, "resource://gre-resources/charsetData.properties", "" },
-  NS_UCONV_REG_UNREG("UTF-7", NS_UTF7TOUNICODE_CID, NS_UNICODETOUTF7_CID)
-  NS_UCONV_REG_UNREG("x-imap4-modified-utf7", NS_MUTF7TOUNICODE_CID, NS_UNICODETOMUTF7_CID)
   // Tokenizer Entries
   { NULL }
 };

@@ -45,8 +45,9 @@ nsSVGElement::EnumInfo SVGPatternElement::sEnumInfo[2] =
   }
 };
 
-nsSVGElement::StringInfo SVGPatternElement::sStringInfo[1] =
+nsSVGElement::StringInfo SVGPatternElement::sStringInfo[2] =
 {
+  { &nsGkAtoms::href, kNameSpaceID_None, true },
   { &nsGkAtoms::href, kNameSpaceID_XLink, true }
 };
 
@@ -127,14 +128,16 @@ SVGPatternElement::Height()
 already_AddRefed<SVGAnimatedString>
 SVGPatternElement::Href()
 {
-  return mStringAttributes[HREF].ToDOMAnimatedString(this);
+  return mStringAttributes[HREF].IsExplicitlySet()
+         ? mStringAttributes[HREF].ToDOMAnimatedString(this)
+         : mStringAttributes[XLINK_HREF].ToDOMAnimatedString(this);
 }
 
 //----------------------------------------------------------------------
 // nsIContent methods
 
 NS_IMETHODIMP_(bool)
-SVGPatternElement::IsAttributeMapped(const nsIAtom* name) const
+SVGPatternElement::IsAttributeMapped(const nsAtom* name) const
 {
   static const MappedAttributeEntry* const map[] = {
     sColorMap,

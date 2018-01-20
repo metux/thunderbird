@@ -33,25 +33,25 @@ function test() {
 
   // Add dummy permission for getpersonas.com, less work (compared to rewriting
   // the test to work without getpersonas.com)
-  Services.perms.add(Services.io.newURI("http://getpersonas.com/", null, null),
+  Services.perms.add(Services.io.newURI("http://getpersonas.com/"),
                      "install", Services.perms.ALLOW_ACTION);
 
   // Add cookie: not secure, non-HTTPOnly, session
   Services.cookies.add("bar.geckoisgecko.org", "", "name0", "value0",
-                       false, false, true, now_epoch + 600);
+                       false, false, true, now_epoch + 600, {});
   // Add cookie: not secure, HTTPOnly, session
   Services.cookies.add("foo.geckoisgecko.org", "", "name1", "value1",
-                       false, true, true, now_epoch + 600);
+                       false, true, true, now_epoch + 600, {});
   // Add cookie: secure, HTTPOnly, session
   Services.cookies.add("secure.geckoisgecko.org", "", "name2", "value2",
-                       true, true, true, now_epoch + 600);
+                       true, true, true, now_epoch + 600, {});
   // Add cookie: secure, non-HTTPOnly, expiry in an hour
   Services.cookies.add("drumbeat.org", "", "name3", "value3",
-                       true, false, false, now_epoch + 3600);
+                       true, false, false, now_epoch + 3600, {});
 
   // Add a cookie for a pure IPv6 address.
   Services.cookies.add("::1", "", "name4", "value4",
-                       false, false, true, now_epoch + 600);
+                       false, false, true, now_epoch + 600, {});
 
   // Add a few form history entries
   gLocSvc.fhist.addEntry("akey", "value0");
@@ -322,29 +322,29 @@ function test_permissions_panel(aWin) {
      "For permissions tests, correct domain is selected");
   is(aWin.gTabs.activePanel, "permissionsPanel",
      "Permissions panel is selected");
-  Services.perms.add(Services.io.newURI("http://cookie.getpersonas.com/", null, null),
+  Services.perms.add(Services.io.newURI("http://cookie.getpersonas.com/"),
                      "cookie", Components.interfaces.nsICookiePermission.ACCESS_SESSION);
-  Services.perms.add(Services.io.newURI("http://cookie2.getpersonas.com/", null, null),
+  Services.perms.add(Services.io.newURI("http://cookie2.getpersonas.com/"),
                      "cookie", Services.perms.DENY_ACTION);
-  Services.perms.add(Services.io.newURI("http://geo.getpersonas.com/", null, null),
+  Services.perms.add(Services.io.newURI("http://geo.getpersonas.com/"),
                      "geo", Services.perms.ALLOW_ACTION);
-  Services.perms.add(Services.io.newURI("http://image.getpersonas.com/", null, null),
+  Services.perms.add(Services.io.newURI("http://image.getpersonas.com/"),
                      "image", Services.perms.DENY_ACTION);
-  Services.perms.add(Services.io.newURI("http://indexedDB.getpersonas.com/", null, null),
+  Services.perms.add(Services.io.newURI("http://indexedDB.getpersonas.com/"),
                      "indexedDB", Services.perms.ALLOW_ACTION);
-  Services.perms.add(Services.io.newURI("http://install.getpersonas.com/", null, null),
+  Services.perms.add(Services.io.newURI("http://install.getpersonas.com/"),
                      "install", Services.perms.ALLOW_ACTION);
-  Services.perms.add(Services.io.newURI("http://offline.getpersonas.com/", null, null),
+  Services.perms.add(Services.io.newURI("http://offline.getpersonas.com/"),
                      "offline-app", Services.perms.ALLOW_ACTION);
-  Services.perms.add(Services.io.newURI("http://popup.getpersonas.com/", null, null),
+  Services.perms.add(Services.io.newURI("http://popup.getpersonas.com/"),
                      "popup", Services.perms.ALLOW_ACTION);
-  Services.perms.add(Services.io.newURI("http://stsuse.getpersonas.com/", null, null),
+  Services.perms.add(Services.io.newURI("http://stsuse.getpersonas.com/"),
                      "sts/use", Services.perms.ALLOW_ACTION);
-  Services.perms.add(Services.io.newURI("http://stssubd.getpersonas.com/", null, null),
+  Services.perms.add(Services.io.newURI("http://stssubd.getpersonas.com/"),
                      "sts/subd", Services.perms.ALLOW_ACTION);
-  Services.perms.add(Services.io.newURI("http://test.getpersonas.com/", null, null),
+  Services.perms.add(Services.io.newURI("http://test.getpersonas.com/"),
                      "test", Services.perms.DENY_ACTION);
-  Services.perms.add(Services.io.newURI("http://xul.getpersonas.com/", null, null),
+  Services.perms.add(Services.io.newURI("http://xul.getpersonas.com/"),
                      "allowXULXBL", Services.perms.ALLOW_ACTION);
   Services.logins.setLoginSavingEnabled("password.getpersonas.com", false);
   is(aWin.gPerms.list.children.length, 14,
@@ -696,8 +696,8 @@ function test_idn(aWin) {
   let idnDomain = gLocSvc.idn.convertToDisplayIDN(testDomain, {});
   isnot(testDomain, idnDomain, "Using a valid IDN domain");
   // Add IDN cookie.
-  Services.cookies.add(testDomain, "", "name0", "value0",
-                       false, false, true, parseInt(Date.now() / 1000) + 600);
+  Services.cookies.add(testDomain, "", "name0", "value0", false, false, true,
+                       parseInt(Date.now() / 1000) + 600, {});
 
   aWin.document.getElementById("domainSearch").value = "xn--";
   aWin.document.getElementById("domainSearch").doCommand();
@@ -778,7 +778,7 @@ function test_idn(aWin) {
 
 function test_storage_load(aWin) {
   // Load the page that fills in several web storage entries.
-  Services.perms.add(Services.io.newURI("http://mochi.test:8888/", null, null),
+  Services.perms.add(Services.io.newURI("http://mochi.test:8888/"),
                      "offline-app", Services.perms.ALLOW_ACTION);
 
   // Get the http address from the current chrome test path

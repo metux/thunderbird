@@ -16,19 +16,14 @@ test();
 
 function test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
 
-  jit(true);
 
   for (let f in [1,1]);
-  Object.prototype.__defineGetter__('x', function() gc());
+  Object.prototype.__defineGetter__('x', function() { return gc(); });
   (function() { for each (let j in [1,1,1,1,1]) { var y = .2; } })();
 
-  jit(false);
 
   reportCompare(expect, actual, summary);
-
-  exitFunc ('test');
 }

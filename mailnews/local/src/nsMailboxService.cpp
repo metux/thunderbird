@@ -73,8 +73,7 @@ nsresult nsMailboxService::ParseMailbox(nsIMsgWindow *aMsgWindow, nsIFile *aMail
 
     if (aURL)
     {
-      *aURL = url;
-      NS_IF_ADDREF(*aURL);
+      url.forget(aURL);
     }
   }
 
@@ -171,7 +170,7 @@ nsresult nsMailboxService::FetchMessage(const char* aMessageURI,
     NS_ENSURE_SUCCESS(rv, rv);
     file->GetFileSize(&fileSize);
     uriString.Replace(0, 5, NS_LITERAL_CSTRING("mailbox:"));
-    uriString.Append(NS_LITERAL_CSTRING("&number=0"));
+    uriString.AppendLiteral("&number=0");
     rv = NS_NewURI(getter_AddRefs(url), uriString);
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -331,7 +330,6 @@ NS_IMETHODIMP nsMailboxService::StreamHeaders(const char *aMessageURI,
 
 NS_IMETHODIMP nsMailboxService::IsMsgInMemCache(nsIURI *aUrl,
                                                 nsIMsgFolder *aFolder,
-                                                nsICacheEntryDescriptor **aCacheEntry,
                                                 bool *aResult)
 {
   return NS_ERROR_NOT_IMPLEMENTED;
@@ -427,19 +425,17 @@ nsresult nsMailboxService::RunMailboxUrl(nsIURI * aMailboxUrl, nsISupports * aDi
 {
   // create a protocol instance to run the url..
   nsresult rv = NS_OK;
-  nsMailboxProtocol * protocol = new nsMailboxProtocol(aMailboxUrl);
+  RefPtr<nsMailboxProtocol> protocol = new nsMailboxProtocol(aMailboxUrl);
 
   if (protocol)
   {
     rv = protocol->Initialize(aMailboxUrl);
     if (NS_FAILED(rv))
     {
-      delete protocol;
+      protocol = nullptr;
       return rv;
     }
-    NS_ADDREF(protocol);
     rv = protocol->LoadUrl(aMailboxUrl, aDisplayConsumer);
-    NS_RELEASE(protocol); // after loading, someone else will have a ref cnt on the mailbox
   }
 
   return rv;
@@ -566,7 +562,7 @@ NS_IMETHODIMP nsMailboxService::NewURI(const nsACString &aSpec,
   {
     (void) aMsgUri->SetSpec(aSpec);
   }
-  aMsgUri.swap(*_retval);
+  aMsgUri.forget(_retval);
 
   return rv;
 }
@@ -584,7 +580,8 @@ NS_IMETHODIMP nsMailboxService::NewChannel2(nsIURI *aURI,
   NS_ENSURE_ARG_POINTER(_retval);
   nsresult rv = NS_OK;
   nsAutoCString spec;
-  aURI->GetSpec(spec);
+  rv = aURI->GetSpec(spec);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   if (spec.Find("?uidl=") >= 0 || spec.Find("&uidl=") >= 0)
   {

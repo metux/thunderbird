@@ -3,16 +3,18 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
+from __future__ import absolute_import, print_function
 
 import csv
-import re
-import os
-import sys
-import xtalos
-import subprocess
 import json
-import mozfile
+import os
+import re
+import shutil
+import subprocess
+import sys
 
+import mozfile
+import xtalos
 
 EVENTNAME_INDEX = 0
 PROCESS_INDEX = 2
@@ -26,6 +28,9 @@ NUMBYTES_COL = "NumBytes"
 
 CEVT_WINDOWS_RESTORED = "{917b96b1-ecad-4dab-a760-8d49027748ae}"
 CEVT_XPCOM_SHUTDOWN = "{26d1e091-0ae7-4f49-a554-4214445c505c}"
+NAME_SUBSTITUTIONS = [
+    (re.compile(r'{\w{8}-\w{4}-\w{4}-\w{4}-\w{12}}'), '{uuid}')
+]
 stages = ["startup", "normal", "shutdown"]
 net_events = {
     "TcpDataTransferReceive": "recv",
@@ -36,6 +41,14 @@ net_events = {
 gThreads = {}
 gConnectionIDs = {}
 gHeaders = {}
+
+
+def uploadFile(filename):
+    mud = os.environ.get('MOZ_UPLOAD_DIR', None)
+    if mud:
+        print("uploading raw file %s via blobber" % filename)
+        mud_filename = os.path.join(mud, filename)
+        shutil.copyfile(filename, "%s.log" % mud_filename)
 
 
 def filterOutHeader(data):
@@ -79,7 +92,7 @@ def getIndex(eventType, colName):
 
 
 def readFile(filename):
-    print "etlparser: in readfile: %s" % filename
+    print("etlparser: in readfile: %s" % filename)
     data = csv.reader(open(filename, 'rb'), delimiter=',', quotechar='"',
                       skipinitialspace=True)
     data = filterOutHeader(data)
@@ -150,7 +163,7 @@ def etl2csv(xperf_path, etl_filename, debug=False):
                  '%s.kernel' % etl_filename,
                  etl_filename]
     if debug:
-        print "executing '%s'" % subprocess.list2cmdline(xperf_cmd)
+        print("executing '%s'" % subprocess.list2cmdline(xperf_cmd))
     subprocess.call(xperf_cmd)
 
     csv_filename = '%s.csv' % etl_filename
@@ -158,7 +171,7 @@ def etl2csv(xperf_path, etl_filename, debug=False):
                  '-i', etl_filename,
                  '-o', csv_filename]
     if debug:
-        print "executing '%s'" % subprocess.list2cmdline(xperf_cmd)
+        print("executing '%s'" % subprocess.list2cmdline(xperf_cmd))
     subprocess.call(xperf_cmd)
     return csv_filename
 
@@ -226,9 +239,9 @@ def loadWhitelist(filename):
     if not filename:
         return
     if not os.path.exists(filename):
-        print "Warning: xperf whitelist %s was not found" % filename
+        print("Warning: xperf whitelist %s was not found" % filename)
         return
-    lines = file(filename).readlines()
+    lines = open(filename).readlines()
     # Expand paths
     lines = [os.path.expandvars(elem.strip()) for elem in lines]
     files = set()
@@ -265,6 +278,7 @@ def etlparser(xperf_path, etl_filename, processID, approot=None,
               configFile=None, outputFile=None, whitelist_file=None,
               error_filename=None, all_stages=False, all_threads=False,
               debug=False):
+    global NAME_SUBSTITUTIONS
 
     # setup output file
     if outputFile:
@@ -276,7 +290,7 @@ def etlparser(xperf_path, etl_filename, processID, approot=None,
     io = {}
     stage = 0
 
-    print "reading etl filename: %s" % etl_filename
+    print("reading etl filename: %s" % etl_filename)
     csvname = etl2csv(xperf_path, etl_filename, debug=debug)
     for row in readFile(csvname):
         event = row[EVENTNAME_INDEX]
@@ -292,8 +306,9 @@ def etlparser(xperf_path, etl_filename, processID, approot=None,
         elif event.startswith("Microsoft-Windows-TCPIP"):
             trackThreadNetIO(row, io, stage)
 
-    # remove the csv file
-    if not debug:
+    if debug:
+        uploadFile(csvname)
+    else:
         mozfile.remove(csvname)
 
     output = "thread, stage, counter, value\n"
@@ -303,8 +318,11 @@ def etlparser(xperf_path, etl_filename, processID, approot=None,
         fname = "%s_thread_stats%s" % os.path.splitext(outputFile)
         with open(fname, "w") as f:
             f.write(output)
+
+        if debug:
+            uploadFile(fname)
     else:
-        print output
+        print(output)
 
     whitelist = loadWhitelist(whitelist_file)
 
@@ -319,9 +337,18 @@ def etlparser(xperf_path, etl_filename, processID, approot=None,
                                 (all_stages and x[2] != stages[0] or
                                  not checkWhitelist(x[0], whitelist)),
                       files.iterkeys())
+    if debug:
+        # in debug, we want stages = [startup+normal] and all threads, not just (main)
+        # we will use this data to upload fileIO info to blobber only for debug mode
+        outputData = filter(lambda x: (all_stages or x[2] in [stages[0], stages[1]]) and
+                                      (all_stages and x[2] not in [stages[0], stages[1]] or
+                                       not checkWhitelist(x[0], whitelist)),
+                            files.iterkeys())
+    else:
+        outputData = filekeys
 
     # output data
-    for row in filekeys:
+    for row in outputData:
         output = "%s, %s, %s, %s, %s, %s, %s\n" % (
             row[0],
             row[1],
@@ -336,6 +363,8 @@ def etlparser(xperf_path, etl_filename, processID, approot=None,
     if outputFile:
         # close the file handle
         outFile.close()
+        if debug:
+            uploadFile(outputFile)
 
     # We still like to have the outputfile to record the raw data, now
     # filter out acceptable files/ranges
@@ -395,6 +424,9 @@ def etlparser(xperf_path, etl_filename, processID, approot=None,
         if len(parts) >= 2:
             filename = "%srefetch\\{prefetch}.pf" % parts[0]
 
+        for pattern, substitution in NAME_SUBSTITUTIONS:
+            filename = re.sub(pattern, substitution, filename)
+
         if filename in wl:
             if 'ignore' in wl[filename] and wl[filename]['ignore']:
                 continue
@@ -447,7 +479,7 @@ def etlparser(xperf_path, etl_filename, processID, approot=None,
         for error in errors:
             # NOTE: the ' :' is intentional, without the space before the :,
             # some parser will translate this
-            print "TEST-UNEXPECTED-FAIL : xperf: %s" % error
+            print("TEST-UNEXPECTED-FAIL : xperf: %s" % error)
 
         # We detect if browser_failures.txt exists to exit and turn the job
         # orange
@@ -455,12 +487,8 @@ def etlparser(xperf_path, etl_filename, processID, approot=None,
             with open(error_filename, 'w') as errorFile:
                 errorFile.write('\n'.join(errors))
 
-# TODO: commented this out from bug 1205005, we have a memory error in blobber
-# upload
-#        mud = os.environ.get('MOZ_UPLOAD_DIR', None)
-#        if mud:
-#            mud_filename = os.path.join(mud, etl_filename)
-#            os.rename(etl_filename, mud_filename)
+        if debug:
+            uploadFile(etl_filename)
 
 
 def etlparser_from_config(config_file, **kwargs):
@@ -514,6 +542,7 @@ def main(args=sys.argv[1:]):
               args.configFile, args.outputFile, args.whitelist_file,
               args.error_filename, args.all_stages, args.all_threads,
               debug=args.debug_level >= xtalos.DEBUG_INFO)
+
 
 if __name__ == "__main__":
     main()

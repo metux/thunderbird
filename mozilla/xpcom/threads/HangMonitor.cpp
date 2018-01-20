@@ -15,23 +15,21 @@
 #include "mozilla/StaticPtr.h"
 #include "mozilla/UniquePtr.h"
 #include "nsReadableUtils.h"
+#include "nsThreadUtils.h"
 #include "mozilla/StackWalk.h"
 #include "nsThreadUtils.h"
 #include "nsXULAppAPI.h"
+#include "GeckoProfiler.h"
 
 #ifdef MOZ_CRASHREPORTER
 #include "nsExceptionHandler.h"
-#endif
-
-#ifdef MOZ_NUWA_PROCESS
-#include "ipc/Nuwa.h"
 #endif
 
 #ifdef XP_WIN
 #include <windows.h>
 #endif
 
-#if defined(MOZ_ENABLE_PROFILER_SPS) && defined(MOZ_PROFILING) && defined(XP_WIN)
+#if defined(MOZ_GECKO_PROFILER) && defined(MOZ_PROFILING) && defined(XP_WIN)
   #define REPORT_CHROME_HANGS
 #endif
 
@@ -118,10 +116,11 @@ Crash()
   if (GeckoProcessType_Default == XRE_GetProcessType()) {
     CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("Hang"),
                                        NS_LITERAL_CSTRING("1"));
+    CrashReporter::SetMinidumpAnalysisAllThreads();
   }
 #endif
 
-  NS_RUNTIMEABORT("HangMonitor triggered");
+  MOZ_CRASH("HangMonitor triggered");
 }
 
 #ifdef REPORT_CHROME_HANGS
@@ -150,15 +149,31 @@ GetChromeHangReport(Telemetry::ProcessedStack& aStack,
   // so allocate ahead of time
   std::vector<uintptr_t> rawStack;
   rawStack.reserve(MAX_CALL_STACK_PCS);
+
   DWORD ret = ::SuspendThread(winMainThreadHandle);
-  if (ret == -1) {
+  bool suspended = false;
+  if (ret != (DWORD)-1) {
+    // SuspendThread is asynchronous, so the thread may still be running. Use
+    // GetThreadContext to ensure it's really suspended.
+    // See https://blogs.msdn.microsoft.com/oldnewthing/20150205-00/?p=44743.
+    CONTEXT context;
+    context.ContextFlags = CONTEXT_CONTROL;
+    if (::GetThreadContext(winMainThreadHandle, &context)) {
+      suspended = true;
+    }
+  }
+
+  if (!suspended) {
+    if (ret != (DWORD)-1) {
+      MOZ_ALWAYS_TRUE(::ResumeThread(winMainThreadHandle) != DWORD(-1));
+    }
     return;
   }
-  MozStackWalk(ChromeStackWalker, /* skipFrames */ 0, /* maxFrames */ 0,
-               reinterpret_cast<void*>(&rawStack),
-               reinterpret_cast<uintptr_t>(winMainThreadHandle), nullptr);
+
+  MozStackWalkThread(ChromeStackWalker, /* skipFrames */ 0, /* maxFrames */ 0,
+                     &rawStack, winMainThreadHandle, nullptr);
   ret = ::ResumeThread(winMainThreadHandle);
-  if (ret == -1) {
+  if (ret == (DWORD)-1) {
     return;
   }
   aStack = Telemetry::GetStackAndModules(rawStack);
@@ -168,7 +183,7 @@ GetChromeHangReport(Telemetry::ProcessedStack& aStack,
 
   // Record Firefox uptime (in minutes) at the time of the hang
   bool error;
-  TimeStamp processCreation = TimeStamp::ProcessCreation(error);
+  TimeStamp processCreation = TimeStamp::ProcessCreation(&error);
   if (!error) {
     TimeDuration td = TimeStamp::Now() - processCreation;
     aFirefoxUptime = (static_cast<int32_t>(td.ToSeconds()) - (gTimeout * 2)) / 60;
@@ -182,13 +197,8 @@ GetChromeHangReport(Telemetry::ProcessedStack& aStack,
 void
 ThreadMain(void*)
 {
-  PR_SetCurrentThreadName("Hang Monitor");
-
-#ifdef MOZ_NUWA_PROCESS
-  if (IsNuwaProcess()) {
-    NuwaMarkCurrentThread(nullptr, nullptr);
-  }
-#endif
+  AUTO_PROFILER_REGISTER_THREAD("Hang Monitor");
+  NS_SetCurrentThreadName("Hang Monitor");
 
   MonitorAutoLock lock(*gMonitor);
 
@@ -202,7 +212,7 @@ ThreadMain(void*)
   Telemetry::ProcessedStack stack;
   int32_t systemUptime = -1;
   int32_t firefoxUptime = -1;
-  UniquePtr<HangAnnotations> annotations;
+  HangAnnotations annotations;
 #endif
 
   while (true) {
@@ -278,11 +288,11 @@ Startup()
   MOZ_ASSERT(!gMonitor, "Hang monitor already initialized");
   gMonitor = new Monitor("HangMonitor");
 
-  Preferences::RegisterCallback(PrefChanged, kHangMonitorPrefName, nullptr);
+  Preferences::RegisterCallback(PrefChanged, kHangMonitorPrefName);
   PrefChanged(nullptr, nullptr);
 
 #ifdef REPORT_CHROME_HANGS
-  Preferences::RegisterCallback(PrefChanged, kTelemetryPrefName, nullptr);
+  Preferences::RegisterCallback(PrefChanged, kTelemetryPrefName);
   winMainThreadHandle =
     OpenThread(THREAD_ALL_ACCESS, FALSE, GetCurrentThreadId());
   if (!winMainThreadHandle) {
@@ -335,6 +345,12 @@ IsUIMessageWaiting()
 #ifndef XP_WIN
   return false;
 #else
+  // There should never be mouse, keyboard, or IME messages in a message queue
+  // in the content process, so don't waste time making multiple PeekMessage
+  // calls.
+  if (GeckoProcessType_Content == XRE_GetProcessType()) {
+    return false;
+  }
 #define NS_WM_IMEFIRST WM_IME_SETCONTEXT
 #define NS_WM_IMELAST  WM_IME_KEYUP
   BOOL haveUIMessageWaiting = FALSE;

@@ -9,7 +9,7 @@ const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 
 Cu.import("resource://gre/modules/AddonManager.jsm");
 Cu.import("resource://gre/modules/addons/AddonRepository.jsm");
-Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/NetUtil.jsm");
 Cu.import("resource://services-common/async.js");
 Cu.import("resource://services-sync/addonutils.js");
 Cu.import("resource://services-sync/util.js");
@@ -20,15 +20,11 @@ const STATE_ENABLED = 1;
 const STATE_DISABLED = 2;
 
 function GetFileAsText(file) {
-  let channel = Services.io.newChannel2(file,
-                                        null,
-                                        null,
-                                        null,      // aLoadingNode
-                                        Services.scriptSecurityManager.getSystemPrincipal(),
-                                        null,      // aTriggeringPrincipal
-                                        Ci.nsILoadInfo.SEC_NORMAL,
-                                        Ci.nsIContentPolicy.TYPE_OTHER);
-  let inputStream = channel.open();
+  let channel = NetUtil.newChannel({
+    uri: file,
+    loadUsingSystemPrincipal: true
+  });
+  let inputStream = channel.open2();
   if (channel instanceof Ci.nsIHttpChannel &&
       channel.responseStatus != 200) {
     return "";
@@ -58,21 +54,13 @@ Addon.prototype = {
 
   uninstall: function uninstall() {
     // find our addon locally
-    let cb = Async.makeSyncCallback();
-    AddonManager.getAddonByID(this.id, cb);
-    let addon = Async.waitForSyncCallback(cb);
-
-    Logger.AssertTrue(!!addon, 'could not find addon ' + this.id + ' to uninstall');
-
-    cb = Async.makeSpinningCallback();
-    AddonUtils.uninstallAddon(addon, cb);
-    cb.wait();
+    let addon = Async.promiseSpinningly(AddonManager.getAddonByID(this.id));
+    Logger.AssertTrue(!!addon, "could not find addon " + this.id + " to uninstall");
+    Async.promiseSpinningly(AddonUtils.uninstallAddon(addon));
   },
 
   find: function find(state) {
-    let cb = Async.makeSyncCallback();
-    AddonManager.getAddonByID(this.id, cb);
-    let addon = Async.waitForSyncCallback(cb);
+    let addon = Async.promiseSpinningly(AddonManager.getAddonByID(this.id));
 
     if (!addon) {
       Logger.logInfo("Could not find add-on with ID: " + this.id);
@@ -122,9 +110,7 @@ Addon.prototype = {
       throw new Error("Unknown flag to setEnabled: " + flag);
     }
 
-    let cb = Async.makeSpinningCallback();
-    AddonUtils.updateUserDisabled(this.addon, userDisabled, cb);
-    cb.wait();
+    AddonUtils.updateUserDisabled(this.addon, userDisabled);
 
     return true;
   }

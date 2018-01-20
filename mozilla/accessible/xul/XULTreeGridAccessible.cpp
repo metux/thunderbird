@@ -249,6 +249,7 @@ XULTreeGridRowAccessible::
   mAccessibleCache(kDefaultTreeCacheLength)
 {
   mGenericTypes |= eTableRow;
+  mStateFlags |= eNoKidsFromDOM;
 }
 
 XULTreeGridRowAccessible::~XULTreeGridRowAccessible()
@@ -262,7 +263,7 @@ NS_IMPL_CYCLE_COLLECTION_INHERITED(XULTreeGridRowAccessible,
                                    XULTreeItemAccessibleBase,
                                    mAccessibleCache)
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(XULTreeGridRowAccessible)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(XULTreeGridRowAccessible)
 NS_INTERFACE_MAP_END_INHERITING(XULTreeItemAccessibleBase)
 
 NS_IMPL_ADDREF_INHERITED(XULTreeGridRowAccessible,
@@ -276,7 +277,7 @@ NS_IMPL_RELEASE_INHERITED(XULTreeGridRowAccessible,
 void
 XULTreeGridRowAccessible::Shutdown()
 {
-  if (!mDoc->IsDefunct()) {
+  if (mDoc && !mDoc->IsDefunct()) {
     UnbindCacheEntriesFromDocument(mAccessibleCache);
   }
 
@@ -324,7 +325,7 @@ XULTreeGridRowAccessible::ChildAtPoint(int32_t aX, int32_t aY,
   nsIFrame *rootFrame = presShell->GetRootFrame();
   NS_ENSURE_TRUE(rootFrame, nullptr);
 
-  nsIntRect rootRect = rootFrame->GetScreenRect();
+  CSSIntRect rootRect = rootFrame->GetScreenRect();
 
   int32_t clientX = presContext->DevPixelsToIntCSSPixels(aX) - rootRect.x;
   int32_t clientY = presContext->DevPixelsToIntCSSPixels(aY) - rootRect.y;
@@ -409,13 +410,6 @@ XULTreeGridRowAccessible::RowInvalidated(int32_t aStartColIdx,
 
 }
 
-////////////////////////////////////////////////////////////////////////////////
-// XULTreeGridRowAccessible: Accessible protected implementation
-
-void
-XULTreeGridRowAccessible::CacheChildren()
-{
-}
 
 ////////////////////////////////////////////////////////////////////////////////
 // XULTreeGridCellAccessible
@@ -453,13 +447,25 @@ XULTreeGridCellAccessible::~XULTreeGridCellAccessible()
 NS_IMPL_CYCLE_COLLECTION_INHERITED(XULTreeGridCellAccessible, LeafAccessible,
                                    mTree, mColumn)
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(XULTreeGridCellAccessible)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(XULTreeGridCellAccessible)
 NS_INTERFACE_MAP_END_INHERITING(LeafAccessible)
 NS_IMPL_ADDREF_INHERITED(XULTreeGridCellAccessible, LeafAccessible)
 NS_IMPL_RELEASE_INHERITED(XULTreeGridCellAccessible, LeafAccessible)
 
 ////////////////////////////////////////////////////////////////////////////////
 // XULTreeGridCellAccessible: Accessible
+
+void
+XULTreeGridCellAccessible::Shutdown()
+{
+  mTree = nullptr;
+  mTreeView = nullptr;
+  mRow = -1;
+  mColumn = nullptr;
+  mParent = nullptr; // null-out to prevent base class's shutdown ops
+
+  LeafAccessible::Shutdown();
+}
 
 Accessible*
 XULTreeGridCellAccessible::FocusedChild()

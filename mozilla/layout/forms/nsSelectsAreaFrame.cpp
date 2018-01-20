@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -17,7 +18,7 @@ NS_NewSelectsAreaFrame(nsIPresShell* aShell, nsStyleContext* aContext, nsFrameSt
 
   // We need NS_BLOCK_FLOAT_MGR to ensure that the options inside the select
   // aren't expanded by right floats outside the select.
-  it->SetFlags(aFlags | NS_BLOCK_FLOAT_MGR);
+  it->AddStateBits(aFlags | NS_BLOCK_FLOAT_MGR);
 
   return it;
 }
@@ -86,7 +87,7 @@ static nsListControlFrame* GetEnclosingListFrame(nsIFrame* aSelectsAreaFrame)
 {
   nsIFrame* frame = aSelectsAreaFrame->GetParent();
   while (frame) {
-    if (frame->GetType() == nsGkAtoms::listControlFrame)
+    if (frame->IsListControlFrame())
       return static_cast<nsListControlFrame*>(frame);
     frame = frame->GetParent();
   }
@@ -106,7 +107,9 @@ public:
   }
 #endif
 
-  virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap) override {
+  virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder,
+                           bool* aSnap) const override
+  {
     *aSnap = false;
     // override bounds because the list item focus ring may extend outside
     // the nsSelectsAreaFrame
@@ -115,7 +118,7 @@ public:
            listFrame->GetOffsetToCrossDoc(ReferenceFrame());
   }
   virtual void Paint(nsDisplayListBuilder* aBuilder,
-                     nsRenderingContext* aCtx) override {
+                     gfxContext* aCtx) override {
     nsListControlFrame* listFrame = GetEnclosingListFrame(Frame());
     // listFrame must be non-null or we wouldn't get called.
     listFrame->PaintFocus(aCtx->GetDrawTarget(),
@@ -126,27 +129,25 @@ public:
 
 void
 nsSelectsAreaFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                                     const nsRect&           aDirtyRect,
                                      const nsDisplayListSet& aLists)
 {
   if (!aBuilder->IsForEventDelivery()) {
-    BuildDisplayListInternal(aBuilder, aDirtyRect, aLists);
+    BuildDisplayListInternal(aBuilder, aLists);
     return;
   }
 
-  nsDisplayListCollection set;
-  BuildDisplayListInternal(aBuilder, aDirtyRect, set);
-  
+  nsDisplayListCollection set(aBuilder);
+  BuildDisplayListInternal(aBuilder, set);
+
   nsOptionEventGrabberWrapper wrapper;
   wrapper.WrapLists(aBuilder, this, set, aLists);
 }
 
 void
 nsSelectsAreaFrame::BuildDisplayListInternal(nsDisplayListBuilder*   aBuilder,
-                                             const nsRect&           aDirtyRect,
                                              const nsDisplayListSet& aLists)
 {
-  nsBlockFrame::BuildDisplayList(aBuilder, aDirtyRect, aLists);
+  nsBlockFrame::BuildDisplayList(aBuilder, aLists);
 
   nsListControlFrame* listFrame = GetEnclosingListFrame(this);
   if (listFrame && listFrame->IsFocused()) {
@@ -159,11 +160,13 @@ nsSelectsAreaFrame::BuildDisplayListInternal(nsDisplayListBuilder*   aBuilder,
 }
 
 void
-nsSelectsAreaFrame::Reflow(nsPresContext*           aPresContext, 
-                           nsHTMLReflowMetrics&     aDesiredSize,
-                           const nsHTMLReflowState& aReflowState, 
+nsSelectsAreaFrame::Reflow(nsPresContext*           aPresContext,
+                           ReflowOutput&     aDesiredSize,
+                           const ReflowInput& aReflowInput,
                            nsReflowStatus&          aStatus)
 {
+  MOZ_ASSERT(aStatus.IsEmpty(), "Caller should pass a fresh reflow status!");
+
   nsListControlFrame* list = GetEnclosingListFrame(this);
   NS_ASSERTION(list,
                "Must have an nsListControlFrame!  Frame constructor is "
@@ -173,7 +176,7 @@ nsSelectsAreaFrame::Reflow(nsPresContext*           aPresContext,
 
   // See similar logic in nsListControlFrame::Reflow and
   // nsListControlFrame::ReflowAsDropdown.  We need to match it here.
-  WritingMode wm = aReflowState.GetWritingMode();
+  WritingMode wm = aReflowInput.GetWritingMode();
   nscoord oldBSize;
   if (isInDropdownMode) {
     // Store the block size now in case it changes during
@@ -185,7 +188,7 @@ nsSelectsAreaFrame::Reflow(nsPresContext*           aPresContext,
     }
   }
 
-  nsBlockFrame::Reflow(aPresContext, aDesiredSize, aReflowState, aStatus);
+  nsBlockFrame::Reflow(aPresContext, aDesiredSize, aReflowInput, aStatus);
 
   // Check whether we need to suppress scrollbar updates.  We want to do
   // that if we're in a possible first pass and our block size of a row

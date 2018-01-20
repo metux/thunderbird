@@ -147,6 +147,13 @@
                  !aFolder.supportsOffline;
         },
 
+        // Folders that are not in a deferred account
+        notDeferred: function(aFolder) {
+          let server = aFolder.server;
+          return !(server instanceof Components.interfaces.nsIPop3IncomingServer &&
+                   server.deferredToAccount);
+        },
+
         // Folders that can be searched.
         search: function filter_search(aFolder) {
           if (!aFolder.server.canSearchMessages ||
@@ -240,7 +247,7 @@
         },
         OnItemPropertyFlagChanged: function(aItem, aProperty, aOld, aNew) {},
         OnItemEvent: function(aFolder, aEvent) {
-          if (aEvent.toString() == "MRMTimeChanged") {
+          if (aEvent == "MRMTimeChanged") {
             if (this._menu.getAttribute("showRecent") != "true" ||
                 !this._menu.firstChild || !this._menu.firstChild.firstChild)
               return;
@@ -251,7 +258,7 @@
           }
           // Special casing folder renames here, since they require more work
           // since sort-order may have changed.
-          else if (aEvent.toString() == "RenameCompleted") {
+          else if (aEvent == "RenameCompleted") {
             if (!this._getChildForItem(aFolder))
               return;
           }

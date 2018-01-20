@@ -8,7 +8,6 @@
 #define MOZILLA_DOMSVGLENGTH_H__
 
 #include "DOMSVGLengthList.h"
-#include "nsAutoPtr.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsDebug.h"
 #include "nsIDOMSVGLength.h"
@@ -223,6 +222,13 @@ private:
 #ifdef DEBUG
   bool IndexIsValid();
 #endif
+
+  /**
+   * Clears soon-to-be-invalid weak references in external objects that were
+   * set up during the creation of this object. This should be called during
+   * destruction and during cycle collection.
+   */
+  void CleanupWeakRefs();
 
   RefPtr<DOMSVGLengthList> mList;
 

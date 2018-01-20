@@ -9,7 +9,7 @@
 #include "nsIMailboxUrl.h"
 #include "nsMailboxUrl.h"
 
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsLocalUtils.h"
 #include "nsIMsgDatabase.h"
 #include "nsMsgDBCID.h"
@@ -94,8 +94,7 @@ nsresult nsMailboxUrl::GetMailboxCopyHandler(nsIStreamListener ** aMailboxCopyHa
 
   if (aMailboxCopyHandler)
   {
-    *aMailboxCopyHandler = m_mailboxCopyHandler;
-    NS_IF_ADDREF(*aMailboxCopyHandler);
+    NS_IF_ADDREF(*aMailboxCopyHandler = m_mailboxCopyHandler);
   }
 
   return  NS_OK;
@@ -124,15 +123,61 @@ nsresult nsMailboxUrl::SetMessageSize(uint32_t aMessageSize)
   return NS_OK;
 }
 
+NS_IMETHODIMP nsMailboxUrl::GetPrincipalSpec(nsACString& aPrincipalSpec)
+{
+  nsCOMPtr<nsIMsgMailNewsUrl> mailnewsURL;
+  QueryInterface(NS_GET_IID(nsIMsgMailNewsUrl), getter_AddRefs(mailnewsURL));
+
+  nsAutoCString spec;
+  mailnewsURL->GetSpecIgnoringRef(spec);
+
+  // mailbox: URLs contain a lot of query parts. We want need a normalised form:
+  // mailbox:///path/to/folder?number=nn.
+  // We also need to translate the second form mailbox://user@domain@server/folder?number=nn.
+
+  char* messageKey = extractAttributeValue(spec.get(), "number=");
+
+  // Strip any query part beginning with ? or /;
+  int32_t ind = spec.Find("/;");
+  if (ind != kNotFound)
+    spec.SetLength(ind);
+
+  ind = spec.FindChar('?');
+  if (ind != kNotFound)
+    spec.SetLength(ind);
+
+  // Check for format lacking absolute path.
+  if (spec.Find("///") == kNotFound) {
+    nsCString folderPath;
+    nsresult rv = nsLocalURI2Path(kMailboxRootURI, spec.get(), folderPath);
+    if (NS_SUCCEEDED (rv)) {
+      nsAutoCString buf;
+      MsgEscapeURL(folderPath,
+                   nsINetUtil::ESCAPE_URL_DIRECTORY | nsINetUtil::ESCAPE_URL_FORCED, buf);
+      spec = NS_LITERAL_CSTRING("mailbox://") + buf;
+    }
+  }
+
+  spec += NS_LITERAL_CSTRING("?number=");
+  spec.Append(messageKey);
+  PR_Free(messageKey);
+
+  aPrincipalSpec.Assign(spec);
+  return NS_OK;
+}
+
 NS_IMETHODIMP nsMailboxUrl::SetUri(const char * aURI)
 {
   mURI= aURI;
   return NS_OK;
 }
 
-NS_IMETHODIMP nsMailboxUrl::Clone(nsIURI **_retval)
+NS_IMETHODIMP nsMailboxUrl::CloneInternal(uint32_t aRefHandlingMode,
+                                          const nsACString& newRef,
+                                          nsIURI **_retval)
 {
-  nsresult rv = nsMsgMailNewsUrl::Clone(_retval);
+  nsresult rv = nsMsgMailNewsUrl::CloneInternal(aRefHandlingMode,
+                                                newRef, _retval);
   NS_ENSURE_SUCCESS(rv, rv);
   // also clone the mURI member, because GetUri below won't work if
   // mURI isn't set due to nsIFile fun.
@@ -162,8 +207,10 @@ NS_IMETHODIMP nsMailboxUrl::GetUri(char ** aURI)
       // we blow off errors here so that we can open attachments
       // in .eml files.
       (void) accountManager->FolderUriForPath(m_filePath, baseUri);
-      if (baseUri.IsEmpty())
-        m_baseURL->GetSpec(baseUri);
+      if (baseUri.IsEmpty()) {
+        rv = m_baseURL->GetSpec(baseUri);
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
       nsCString baseMessageURI;
       nsCreateLocalBaseMessageURI(baseUri, baseMessageURI);
       nsAutoCString uriStr;
@@ -363,7 +410,7 @@ nsresult nsMailboxUrl::ParseUrl()
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  GetPath(m_file);
+  GetPathQueryRef(m_file);
   return NS_OK;
 }
 
@@ -443,7 +490,7 @@ NS_IMETHODIMP nsMailboxUrl::GetFolderCharset(char ** aCharacterSet)
   NS_ENSURE_ARG_POINTER(aCharacterSet);
   nsCOMPtr<nsIMsgFolder> folder;
   nsresult rv = GetFolder(getter_AddRefs(folder));
-  
+
   // In cases where a file is not associated with a folder, for
   // example standalone .eml files, failure is normal.
   if (NS_FAILED(rv))

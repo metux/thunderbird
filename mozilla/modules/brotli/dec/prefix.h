@@ -1,16 +1,7 @@
 /* Copyright 2013 Google Inc. All Rights Reserved.
 
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-
-   http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
+   Distributed under MIT license.
+   See file LICENSE for detail or copy at https://opensource.org/licenses/MIT
 */
 
 /* Lookup tables to map prefix codes to value ranges. This is used during
@@ -20,14 +11,18 @@
 #ifndef BROTLI_DEC_PREFIX_H_
 #define BROTLI_DEC_PREFIX_H_
 
+#include "../common/constants.h"
+#include <brotli/types.h>
+
 /* Represents the range of values belonging to a prefix code: */
 /* [offset, offset + 2^nbits) */
 struct PrefixCodeRange {
-  int16_t offset;
-  int8_t nbits;
+  uint16_t offset;
+  uint8_t nbits;
 };
 
-static const struct PrefixCodeRange kBlockLengthPrefixCode[] = {
+static const struct PrefixCodeRange
+    kBlockLengthPrefixCode[BROTLI_NUM_BLOCK_LEN_SYMBOLS] = {
   {   1,  2}, {    5,  2}, {  9,   2}, {  13,  2},
   {  17,  3}, {   25,  3}, {  33,  3}, {  41,  3},
   {  49,  4}, {   65,  4}, {  81,  4}, {  97,  4},
@@ -46,7 +41,7 @@ typedef struct CmdLutElement {
   uint16_t copy_len_offset;
 } CmdLutElement;
 
-static const CmdLutElement kCmdLut[704] = {
+static const CmdLutElement kCmdLut[BROTLI_NUM_COMMAND_SYMBOLS] = {
   { 0x00, 0x00, 0, 0x00, 0x0000, 0x0002 },
   { 0x00, 0x00, 0, 0x01, 0x0000, 0x0003 },
   { 0x00, 0x00, 0, 0x02, 0x0000, 0x0004 },

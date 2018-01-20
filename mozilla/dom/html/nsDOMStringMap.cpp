@@ -19,7 +19,6 @@ using namespace mozilla::dom;
 NS_IMPL_CYCLE_COLLECTION_CLASS(nsDOMStringMap)
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsDOMStringMap)
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mElement)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
@@ -32,15 +31,10 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsDOMStringMap)
     tmp->mElement->RemoveMutationObserver(tmp);
     tmp->mElement = nullptr;
   }
-  tmp->mExpandoAndGeneration.Unlink();
+  tmp->mExpandoAndGeneration.OwnerUnlinked();
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
-NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(nsDOMStringMap)
-  NS_IMPL_CYCLE_COLLECTION_TRACE_PRESERVED_WRAPPER
-  if (tmp->PreservingWrapper()) {
-    NS_IMPL_CYCLE_COLLECTION_TRACE_JSVAL_MEMBER_CALLBACK(mExpandoAndGeneration.expando);
-  }
-NS_IMPL_CYCLE_COLLECTION_TRACE_END
+NS_IMPL_CYCLE_COLLECTION_TRACE_WRAPPERCACHE(nsDOMStringMap)
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsDOMStringMap)
   NS_WRAPPERCACHE_INTERFACE_MAP_ENTRY
@@ -51,7 +45,7 @@ NS_INTERFACE_MAP_END
 NS_IMPL_CYCLE_COLLECTING_ADDREF(nsDOMStringMap)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(nsDOMStringMap)
 
-nsDOMStringMap::nsDOMStringMap(nsGenericHTMLElement* aElement)
+nsDOMStringMap::nsDOMStringMap(Element* aElement)
   : mElement(aElement),
     mRemovingProp(false)
 {
@@ -89,12 +83,6 @@ nsDOMStringMap::NamedGetter(const nsAString& aProp, bool& found,
   found = mElement->GetAttr(attr, aResult);
 }
 
-bool
-nsDOMStringMap::NameIsEnumerable(const nsAString& aName)
-{
-  return true;
-}
-
 void
 nsDOMStringMap::NamedSetter(const nsAString& aProp,
                             const nsAString& aValue,
@@ -112,7 +100,7 @@ nsDOMStringMap::NamedSetter(const nsAString& aProp,
     return;
   }
 
-  nsCOMPtr<nsIAtom> attrAtom = do_GetAtom(attr);
+  RefPtr<nsAtom> attrAtom = NS_Atomize(attr);
   MOZ_ASSERT(attrAtom, "Should be infallible");
 
   res = mElement->SetAttr(kNameSpaceID_None, attrAtom, aValue, true);
@@ -129,14 +117,14 @@ nsDOMStringMap::NamedDeleter(const nsAString& aProp, bool& found)
     found = false;
     return;
   }
-  
+
   nsAutoString attr;
   if (!DataPropToAttr(aProp, attr)) {
     found = false;
     return;
   }
 
-  nsCOMPtr<nsIAtom> attrAtom = do_GetAtom(attr);
+  RefPtr<nsAtom> attrAtom = NS_Atomize(attr);
   MOZ_ASSERT(attrAtom, "Should be infallible");
 
   found = mElement->HasAttr(kNameSpaceID_None, attrAtom);
@@ -149,7 +137,7 @@ nsDOMStringMap::NamedDeleter(const nsAString& aProp, bool& found)
 }
 
 void
-nsDOMStringMap::GetSupportedNames(unsigned, nsTArray<nsString>& aNames)
+nsDOMStringMap::GetSupportedNames(nsTArray<nsString>& aNames)
 {
   uint32_t attrCount = mElement->GetAttrCount();
 
@@ -241,7 +229,7 @@ bool nsDOMStringMap::AttrToDataProp(const nsAString& aAttr,
   // Otherwise append character to property name.
   for (; cur < end; ++cur) {
     const char16_t* next = cur + 1;
-    if (char16_t('-') == *cur && next < end && 
+    if (char16_t('-') == *cur && next < end &&
         char16_t('a') <= *next && *next <= char16_t('z')) {
       // Upper case the lower case letters that follow a "-".
       aResult.Append(*next - 'a' + 'A');
@@ -258,7 +246,7 @@ bool nsDOMStringMap::AttrToDataProp(const nsAString& aAttr,
 
 void
 nsDOMStringMap::AttributeChanged(nsIDocument *aDocument, Element* aElement,
-                                 int32_t aNameSpaceID, nsIAtom* aAttribute,
+                                 int32_t aNameSpaceID, nsAtom* aAttribute,
                                  int32_t aModType,
                                  const nsAttrValue* aOldValue)
 {

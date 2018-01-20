@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "bn-BD": {
+      "chrome_resources": {
+        "necko": "chrome/bn-BD/locale/bn-BD/necko/", 
+        "global": "chrome/bn-BD/locale/bn-BD/global/", 
+        "messenger-region": "chrome/bn-BD/locale/bn-BD/messenger-region/", 
+        "chat": "chrome/bn-BD/locale/bn-BD/chat/", 
+        "devtools": "chrome/bn-BD/locale/bn-BD/devtools/client/", 
+        "pipnss": "chrome/bn-BD/locale/bn-BD/pipnss/", 
+        "messenger-smime": "chrome/bn-BD/locale/bn-BD/messenger-smime/", 
+        "messenger-newsblog": "chrome/bn-BD/locale/bn-BD/messenger-newsblog/", 
+        "devtools-shim": "chrome/bn-BD/locale/bn-BD/devtools/shim/", 
+        "alerts": "chrome/bn-BD/locale/bn-BD/alerts/", 
+        "messenger": "chrome/bn-BD/locale/bn-BD/messenger/", 
+        "editor": "chrome/bn-BD/locale/bn-BD/editor/", 
+        "branding": "chrome/bn-BD/locale/bn-BD/branding/", 
+        "mozldap": "chrome/bn-BD/locale/bn-BD/mozldap/", 
+        "autoconfig": "chrome/bn-BD/locale/bn-BD/autoconfig/", 
+        "devtools-shared": "chrome/bn-BD/locale/bn-BD/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/bn-BD/locale/bn-BD/global-platform/win/", 
+          "android": "chrome/bn-BD/locale/bn-BD/global-platform/unix/", 
+          "macosx": "chrome/bn-BD/locale/bn-BD/global-platform/mac/", 
+          "linux": "chrome/bn-BD/locale/bn-BD/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/bn-BD/locale/bn-BD/mozapps/", 
+        "pluginproblem": "chrome/bn-BD/locale/bn-BD/pluginproblem/", 
+        "communicator": "chrome/bn-BD/locale/bn-BD/communicator/", 
+        "messenger-mapi": "chrome/bn-BD/locale/bn-BD/messenger-mapi/", 
+        "places": "chrome/bn-BD/locale/bn-BD/places/", 
+        "passwordmgr": "chrome/bn-BD/locale/bn-BD/passwordmgr/", 
+        "pippki": "chrome/bn-BD/locale/bn-BD/pippki/"
+      }, 
+      "version": "20131119142626"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "58.0", 
+      "id": "langpack-bn-BD@firefox.mozilla.org", 
+      "strict_max_version": "58.*"
+    }
+  }, 
+  "langpack_id": "bn-BD", 
+  "version": "58.0", 
+  "name": "ইংরেজী (যুক্তরাষ্ট্র) Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "মোজিলা.অর্গ (contributors: জো সলোন, সুজি সলোন)", 
+  "description": "Language pack for Thunderbird for bn-BD"
+}

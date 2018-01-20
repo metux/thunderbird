@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -11,7 +12,7 @@
 #include "mozilla/Attributes.h"
 #include "nsCoord.h"
 #include "nsCycleCollectionParticipant.h"
-#include "nsAutoPtr.h"
+#include "nsQueryObject.h"
 #include "nsWrapperCache.h"
 #include "nsString.h"
 
@@ -46,6 +47,12 @@ public:
   nsTreeColumn(nsTreeColumns* aColumns, nsIContent* aContent);
 
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_TREECOLUMN_IMPL_CID)
+
+  static already_AddRefed<nsTreeColumn> From(nsITreeColumn* aColumn)
+  {
+    RefPtr<nsTreeColumn> col = do_QueryObject(aColumn);
+    return col.forget();
+  }
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(nsTreeColumn)
@@ -99,10 +106,12 @@ protected:
   void SetColumns(nsTreeColumns* aColumns) { mColumns = aColumns; }
 
   const nsAString& GetId() { return mId; }
-  nsIAtom* GetAtom() { return mAtom; }
 
+public:
+  nsAtom* GetAtom() { return mAtom; }
   int32_t GetIndex() { return mIndex; }
 
+protected:
   bool IsPrimary() { return mIsPrimary; }
   bool IsCycler() { return mIsCycler; }
   bool IsEditable() { return mIsEditable; }
@@ -129,7 +138,7 @@ private:
   nsTreeColumns* mColumns;
 
   nsString mId;
-  nsCOMPtr<nsIAtom> mAtom;
+  RefPtr<nsAtom> mAtom;
 
   int32_t mIndex;
 
@@ -186,9 +195,8 @@ public:
   nsTreeColumn* IndexedGetter(uint32_t aIndex, bool& aFound);
   nsTreeColumn* GetColumnAt(uint32_t aIndex);
   nsTreeColumn* NamedGetter(const nsAString& aId, bool& aFound);
-  bool NameIsEnumerable(const nsAString& aName);
   nsTreeColumn* GetNamedColumn(const nsAString& aId);
-  void GetSupportedNames(unsigned, nsTArray<nsString>& aNames);
+  void GetSupportedNames(nsTArray<nsString>& aNames);
 
   // Uses XPCOM InvalidateColumns().
   // Uses XPCOM RestoreNaturalOrder().

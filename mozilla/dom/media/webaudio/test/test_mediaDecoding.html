@@ -311,8 +311,8 @@ function runResampling(test, response, callback) {
 }
 
 function runTest(test, response, callback) {
-  // We need to copy the array here, because decodeAudioData is going to neuter
-  // the array.
+  // We need to copy the array here, because decodeAudioData will detach the
+  // array's buffer.
   var compressedAudio = response.slice(0);
   var expectCallback = false;
   var cx = new OfflineAudioContext(test.numberOfChannels || 1,
@@ -326,7 +326,9 @@ function runTest(test, response, callback) {
     test.expectedBuffer = asyncResult;
     test.nativeContext = cx;
     runResampling(test, compressedAudio, callback);
-  }, function onFailure() {
+  }, function onFailure(e) {
+    ok(e instanceof DOMException, "We want to see an exception here");
+    is(e.name, "EncodingError", "Exception name matches");
     ok(expectCallback, "Failure callback should fire asynchronously");
     ok(!test.valid, "Did expect failure for test " + test.url);
     callback();

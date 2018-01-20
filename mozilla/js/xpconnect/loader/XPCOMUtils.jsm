@@ -111,8 +111,9 @@ this.XPCOMUtils = {
     if (interfaces) {
       for (let i = 0; i < interfaces.length; i++) {
         let iface = interfaces[i];
-        if (Ci[iface]) {
-          a.push(Ci[iface].name);
+        let name = (iface && iface.name) || String(iface);
+        if (name in Ci) {
+          a.push(name);
         }
       }
     }
@@ -210,6 +211,41 @@ this.XPCOMUtils = {
   },
 
   /**
+   * Defines a getter on a specified object for a script.  The script will not
+   * be loaded until first use.
+   *
+   * @param aObject
+   *        The object to define the lazy getter on.
+   * @param aNames
+   *        The name of the getter to define on aObject for the script.
+   *        This can be a string if the script exports only one symbol,
+   *        or an array of strings if the script can be first accessed
+   *        from several different symbols.
+   * @param aResource
+   *        The URL used to obtain the script.
+   */
+  defineLazyScriptGetter: function XPCU_defineLazyScriptGetter(aObject, aNames,
+                                                               aResource)
+  {
+    if (!Array.isArray(aNames)) {
+      aNames = [aNames];
+    }
+    for (let name of aNames) {
+      Object.defineProperty(aObject, name, {
+        get: function() {
+          for (let n of aNames) {
+            delete aObject[n];
+          }
+          Services.scriptloader.loadSubScript(aResource, aObject);
+          return aObject[name];
+        },
+        configurable: true,
+        enumerable: true
+      });
+    }
+  },
+
+  /**
    * Defines a getter on a specified object for a service.  The service will not
    * be obtained until first use.
    *
@@ -229,6 +265,30 @@ this.XPCOMUtils = {
     this.defineLazyGetter(aObject, aName, function XPCU_serviceLambda() {
       return Cc[aContract].getService(Ci[aInterfaceName]);
     });
+  },
+
+  /**
+   * Defines a lazy service getter on a specified object for each
+   * property in the given object.
+   *
+   * @param aObject
+   *        The object to define the lazy getter on.
+   * @param aServices
+   *        An object with a property for each service to be
+   *        imported, where the property name is the name of the
+   *        symbol to define, and the value is a 2-element array
+   *        containing the contract ID and the interface name of the
+   *        service, as passed to defineLazyServiceGetter.
+   */
+  defineLazyServiceGetters: function XPCU_defineLazyServiceGetters(
+                                   aObject, aServices)
+  {
+    for (let [name, service] of Object.entries(aServices)) {
+      // Note: This is hot code, and cross-compartment array wrappers
+      // are not JIT-friendly to destructuring or spread operators, so
+      // we need to use indexed access instead.
+      this.defineLazyServiceGetter(aObject, name, service[0], service[1]);
+    }
   },
 
   /**
@@ -284,11 +344,125 @@ this.XPCOMUtils = {
   },
 
   /**
-   * Convenience access to category manager
+   * Defines a lazy module getter on a specified object for each
+   * property in the given object.
+   *
+   * @param aObject
+   *        The object to define the lazy getter on.
+   * @param aModules
+   *        An object with a property for each module property to be
+   *        imported, where the property name is the name of the
+   *        imported symbol and the value is the module URI.
    */
-  get categoryManager() {
-    return Components.classes["@mozilla.org/categorymanager;1"]
-           .getService(Ci.nsICategoryManager);
+  defineLazyModuleGetters: function XPCU_defineLazyModuleGetters(
+                                   aObject, aModules)
+  {
+    for (let [name, module] of Object.entries(aModules)) {
+      this.defineLazyModuleGetter(aObject, name, module);
+    }
+  },
+
+  /**
+   * Defines a getter on a specified object for preference value. The
+   * preference is read the first time that the property is accessed,
+   * and is thereafter kept up-to-date using a preference observer.
+   *
+   * @param aObject
+   *        The object to define the lazy getter on.
+   * @param aName
+   *        The name of the getter property to define on aObject.
+   * @param aPreference
+   *        The name of the preference to read.
+   * @param aDefaultValue
+   *        The default value to use, if the preference is not defined.
+   * @param aOnUpdate
+   *        A function to call upon update. Receives as arguments
+   *         `(aPreference, previousValue, newValue)`
+   * @param aTransform
+   *        An optional function to transform the value.  If provided,
+   *        this function receives the new preference value as an argument
+   *        and its return value is used by the getter.
+   */
+  defineLazyPreferenceGetter: function XPCU_defineLazyPreferenceGetter(
+                                   aObject, aName, aPreference,
+                                   aDefaultValue = null,
+                                   aOnUpdate = null,
+                                   aTransform = val => val)
+  {
+    // Note: We need to keep a reference to this observer alive as long
+    // as aObject is alive. This means that all of our getters need to
+    // explicitly close over the variable that holds the object, and we
+    // cannot define a value in place of a getter after we read the
+    // preference.
+    let observer = {
+      QueryInterface: XPCU_lazyPreferenceObserverQI,
+
+      value: undefined,
+
+      observe(subject, topic, data) {
+        if (data == aPreference) {
+          if (aOnUpdate) {
+            let previous = this.value;
+
+            // Fetch and cache value.
+            this.value = undefined;
+            let latest = lazyGetter();
+            aOnUpdate(data, previous, latest);
+          } else {
+
+            // Empty cache, next call to the getter will cause refetch.
+            this.value = undefined;
+          }
+        }
+      },
+    }
+
+    let defineGetter = get => {
+      Object.defineProperty(aObject, aName, {
+        configurable: true,
+        enumerable: true,
+        get,
+      });
+    };
+
+    function lazyGetter() {
+      if (observer.value === undefined) {
+        let prefValue;
+        switch (Services.prefs.getPrefType(aPreference)) {
+          case Ci.nsIPrefBranch.PREF_STRING:
+            prefValue = Services.prefs.getStringPref(aPreference);
+            break;
+
+          case Ci.nsIPrefBranch.PREF_INT:
+            prefValue = Services.prefs.getIntPref(aPreference);
+            break;
+
+          case Ci.nsIPrefBranch.PREF_BOOL:
+            prefValue = Services.prefs.getBoolPref(aPreference);
+            break;
+
+          case Ci.nsIPrefBranch.PREF_INVALID:
+            prefValue = aDefaultValue;
+            break;
+
+          default:
+            // This should never happen.
+            throw new Error(`Error getting pref ${aPreference}; its value's type is ` +
+                            `${Services.prefs.getPrefType(aPreference)}, which I don't ` +
+                            `know how to handle.`);
+        }
+
+        observer.value = aTransform(prefValue);
+      }
+      return observer.value;
+    }
+
+    defineGetter(() => {
+      Services.prefs.addObserver(aPreference, observer, true);
+
+      defineGetter(lazyGetter);
+      return lazyGetter();
+    });
   },
 
   /**
@@ -296,7 +470,7 @@ this.XPCOMUtils = {
    * @param e The nsISimpleEnumerator to iterate over.
    * @param i The expected interface for each element.
    */
-  IterSimpleEnumerator: function XPCU_IterSimpleEnumerator(e, i)
+  IterSimpleEnumerator: function* XPCU_IterSimpleEnumerator(e, i)
   {
     while (e.hasMoreElements())
       yield e.getNext().QueryInterface(i);
@@ -307,10 +481,22 @@ this.XPCOMUtils = {
    * @param e The string enumerator (nsIUTF8StringEnumerator or
    *          nsIStringEnumerator) over which to iterate.
    */
-  IterStringEnumerator: function XPCU_IterStringEnumerator(e)
+  IterStringEnumerator: function* XPCU_IterStringEnumerator(e)
   {
     while (e.hasMore())
       yield e.getNext();
+  },
+
+  /**
+   * Helper which iterates over the entries in a category.
+   * @param aCategory The name of the category over which to iterate.
+   */
+  enumerateCategoryEntries: function* XPCOMUtils_enumerateCategoryEntries(aCategory)
+  {
+    let category = this.categoryManager.enumerateCategory(aCategory);
+    for (let entry of this.IterSimpleEnumerator(category, Ci.nsISupportsCString)) {
+      yield [entry.data, this.categoryManager.getCategoryEntry(aCategory, entry.data)];
+    }
   },
 
   /**
@@ -339,9 +525,9 @@ this.XPCOMUtils = {
     if (!("__URI__" in that))
       throw Error("importRelative may only be used from a JSM, and its first argument "+
                   "must be that JSM's global object (hint: use this)");
-    let uri = that.__URI__;
-    let i = uri.lastIndexOf("/");
-    Components.utils.import(uri.substring(0, i+1) + path, scope || that);
+
+    Cu.importGlobalProperties(["URL"]);
+    Components.utils.import(new URL(path, that.__URI__).href, scope || that);
   },
 
   /**
@@ -381,6 +567,15 @@ this.XPCOMUtils = {
     });
   },
 };
+
+var XPCU_lazyPreferenceObserverQI = XPCOMUtils.generateQI([Ci.nsIObserver, Ci.nsISupportsWeakReference]);
+
+XPCOMUtils.defineLazyModuleGetter(this, "Services",
+                                  "resource://gre/modules/Services.jsm");
+
+XPCOMUtils.defineLazyServiceGetter(XPCOMUtils, "categoryManager",
+                                   "@mozilla.org/categorymanager;1",
+                                   "nsICategoryManager");
 
 /**
  * Helper for XPCOMUtils.generateQI to avoid leaks - see bug 381651#c1

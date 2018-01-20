@@ -59,11 +59,8 @@ var gViewSourceUtils = {
    * @param aLineNumber (deprecated, optional)
    *        The line number to focus on once the source is loaded.
    */
-  viewSource: function(aArgsOrURL, aPageDescriptor, aDocument, aLineNumber)
-  {
-    var prefs = Components.classes["@mozilla.org/preferences-service;1"]
-                          .getService(Components.interfaces.nsIPrefBranch);
-    if (prefs.getBoolPref("view_source.editor.external")) {
+  viewSource(aArgsOrURL, aPageDescriptor, aDocument, aLineNumber) {
+    if (Services.prefs.getBoolPref("view_source.editor.external")) {
       this.openInExternalEditor(aArgsOrURL, aPageDescriptor, aDocument, aLineNumber);
     } else {
       this._openInInternalViewer(aArgsOrURL, aPageDescriptor, aDocument, aLineNumber);
@@ -91,7 +88,7 @@ var gViewSourceUtils = {
    *        lineNumber (optional):
    *          The line number to focus on once the source is loaded.
    */
-  viewSourceInBrowser: function(aArgs) {
+  viewSourceInBrowser(aArgs) {
     Services.telemetry
             .getHistogramById("VIEW_SOURCE_IN_BROWSER_OPENED_BOOLEAN")
             .add(true);
@@ -112,7 +109,7 @@ var gViewSourceUtils = {
    *        If set, a function that will return a browser to open the source in.
    *        If null, or this function returns null, opens the source in a new window.
    */
-  viewPartialSourceInBrowser: function(aViewSourceInBrowser, aTarget, aGetBrowserFn) {
+  viewPartialSourceInBrowser(aViewSourceInBrowser, aTarget, aGetBrowserFn) {
     let mm = aViewSourceInBrowser.messageManager;
     mm.addMessageListener("ViewSource:GetSelectionDone", function gotSelection(message) {
       mm.removeMessageListener("ViewSource:GetSelectionDone", gotSelection);
@@ -125,11 +122,9 @@ var gViewSourceUtils = {
         let viewSourceBrowser = new ViewSourceBrowser(browserToOpenIn);
         viewSourceBrowser.loadViewSourceFromSelection(message.data.uri, message.data.drawSelection,
                                                       message.data.baseURI);
-      }
-      else {
-        let docUrl = null;
+      } else {
         window.openDialog("chrome://global/content/viewPartialSource.xul",
-                          "_blank", "scrollbars,resizable,chrome,dialog=no",
+                          "_blank", "all,dialog=no",
                           {
                             URI: message.data.uri,
                             drawSelection: message.data.drawSelection,
@@ -143,8 +138,7 @@ var gViewSourceUtils = {
   },
 
   // Opens the interval view source viewer
-  _openInInternalViewer: function(aArgsOrURL, aPageDescriptor, aDocument, aLineNumber)
-  {
+  _openInInternalViewer(aArgsOrURL, aPageDescriptor, aDocument, aLineNumber) {
     // try to open a view-source window while inheriting the charset (if any)
     var charset = null;
     var isForcedCharset = false;
@@ -172,14 +166,12 @@ var gViewSourceUtils = {
                aArgsOrURL, charset, aPageDescriptor, aLineNumber, isForcedCharset);
   },
 
-  buildEditorArgs: function(aPath, aLineNumber) {
+  buildEditorArgs(aPath, aLineNumber) {
     // Determine the command line arguments to pass to the editor.
     // We currently support a %LINE% placeholder which is set to the passed
     // line number (or to 0 if there's none)
     var editorArgs = [];
-    var prefs = Components.classes["@mozilla.org/preferences-service;1"]
-                          .getService(Components.interfaces.nsIPrefBranch);
-    var args = prefs.getCharPref("view_source.editor.args");
+    var args = Services.prefs.getCharPref("view_source.editor.args");
     if (args) {
       args = args.replace("%LINE%", aLineNumber || "0");
       // add the arguments to the array (keeping quoted strings intact)
@@ -228,7 +220,7 @@ var gViewSourceUtils = {
    *        The function defaults to opening an internal viewer if external
    *        viewing fails.
    */
-  openInExternalEditor: function(aArgsOrURL, aPageDescriptor, aDocument,
+  openInExternalEditor(aArgsOrURL, aPageDescriptor, aDocument,
                                  aLineNumber, aCallBack) {
     let data;
     if (typeof aArgsOrURL == "string") {
@@ -275,10 +267,8 @@ var gViewSourceUtils = {
       }
 
       // make a uri
-      var ios = Components.classes["@mozilla.org/network/io-service;1"]
-                          .getService(Components.interfaces.nsIIOService);
       var charset = data.doc ? data.doc.characterSet : null;
-      var uri = ios.newURI(data.url, charset, null);
+      var uri = Services.io.newURI(data.url, charset);
       data.uri = uri;
 
       var path;
@@ -339,21 +329,18 @@ var gViewSourceUtils = {
       // we failed loading it with the external editor.
       Components.utils.reportError(ex);
       this.handleCallBack(aCallBack, false, data);
-      return;
     }
   },
 
   // Default callback - opens the internal viewer if the external editor failed
-  internalViewerFallback: function(result, data)
-  {
+  internalViewerFallback(result, data) {
     if (!result) {
       this._openInInternalViewer(data.url, data.pageDescriptor, data.doc, data.lineNumber);
     }
   },
 
   // Calls the callback, keeping in mind undefined or null values.
-  handleCallBack: function(aCallBack, result, data)
-  {
+  handleCallBack(aCallBack, result, data) {
     Services.telemetry
             .getHistogramById("VIEW_SOURCE_EXTERNAL_RESULT_BOOLEAN")
             .add(result);
@@ -366,21 +353,17 @@ var gViewSourceUtils = {
   },
 
   // Returns nsIProcess of the external view source editor or null
-  getExternalViewSourceEditor: function()
-  {
+  getExternalViewSourceEditor() {
     try {
       let viewSourceAppPath =
-          Components.classes["@mozilla.org/preferences-service;1"]
-                    .getService(Components.interfaces.nsIPrefBranch)
-                    .getComplexValue("view_source.editor.path",
-                                     Components.interfaces.nsIFile);
-      let editor = Components.classes['@mozilla.org/process/util;1']
+        Services.prefs.getComplexValue("view_source.editor.path",
+                                       Components.interfaces.nsIFile);
+      let editor = Components.classes["@mozilla.org/process/util;1"]
                              .createInstance(Components.interfaces.nsIProcess);
       editor.init(viewSourceAppPath);
 
       return editor;
-    }
-    catch (ex) {
+    } catch (ex) {
       Components.utils.reportError(ex);
     }
 
@@ -391,7 +374,7 @@ var gViewSourceUtils = {
 
     mnsIWebProgressListener: Components.interfaces.nsIWebProgressListener,
 
-    QueryInterface: function(aIID) {
+    QueryInterface(aIID) {
      if (aIID.equals(this.mnsIWebProgressListener) ||
          aIID.equals(Components.interfaces.nsISupportsWeakReference) ||
          aIID.equals(Components.interfaces.nsISupports))
@@ -399,7 +382,7 @@ var gViewSourceUtils = {
      throw Components.results.NS_NOINTERFACE;
     },
 
-    destroy: function() {
+    destroy() {
       if (this.webShell) {
         this.webShell.QueryInterface(Components.interfaces.nsIBaseWindow).destroy();
       }
@@ -413,7 +396,7 @@ var gViewSourceUtils = {
     // This listener is used both for tracking the progress of an HTML parse
     // in one case and for tracking the progress of nsIWebBrowserPersist in
     // another case.
-    onStateChange: function(aProgress, aRequest, aFlag, aStatus) {
+    onStateChange(aProgress, aRequest, aFlag, aStatus) {
       // once it's done loading...
       if ((aFlag & this.mnsIWebProgressListener.STATE_STOP) && aStatus == 0) {
         if (!this.webShell) {
@@ -434,7 +417,7 @@ var gViewSourceUtils = {
       return 0;
     },
 
-    onContentLoaded: function() {
+    onContentLoaded() {
       // The progress listener may call this multiple times, so be sure we only
       // run once.
       if (this.contentLoaded) {
@@ -456,7 +439,7 @@ var gViewSourceUtils = {
           foStream.init(this.file, 0x02 | 0x08 | 0x20, -1, 0); // write | create | truncate
           var coStream = Components.classes["@mozilla.org/intl/converter-output-stream;1"]
                                    .createInstance(Components.interfaces.nsIConverterOutputStream);
-          coStream.init(foStream, this.data.doc.characterSet, 0, null);
+          coStream.init(foStream, this.data.doc.characterSet);
 
           // write the source to the file
           coStream.writeString(webNavigation.document.body.textContent);
@@ -491,11 +474,6 @@ var gViewSourceUtils = {
       }
     },
 
-    onLocationChange: function() {return 0;},
-    onProgressChange: function() {return 0;},
-    onStatusChange: function() {return 0;},
-    onSecurityChange: function() {return 0;},
-
     webShell: null,
     editor: null,
     callBack: null,
@@ -504,22 +482,18 @@ var gViewSourceUtils = {
   },
 
   // returns an nsIFile for the passed document in the system temp directory
-  getTemporaryFile: function(aURI, aDocument, aContentType) {
+  getTemporaryFile(aURI, aDocument, aContentType) {
     // include contentAreaUtils.js in our own context when we first need it
     if (!this._caUtils) {
-      var scriptLoader = Components.classes["@mozilla.org/moz/jssubscript-loader;1"]
-                                   .getService(Components.interfaces.mozIJSSubScriptLoader);
       this._caUtils = {};
-      scriptLoader.loadSubScript("chrome://global/content/contentAreaUtils.js", this._caUtils);
+      Services.scriptloader.loadSubScript("chrome://global/content/contentAreaUtils.js", this._caUtils);
     }
 
-    var fileLocator = Components.classes["@mozilla.org/file/directory_service;1"]
-                                .getService(Components.interfaces.nsIProperties);
-    var tempFile = fileLocator.get("TmpD", Components.interfaces.nsIFile);
+    var tempFile = Services.dirsvc.get("TmpD", Components.interfaces.nsIFile);
     var fileName = this._caUtils.getDefaultFileName(null, aURI, aDocument, aContentType);
     var extension = this._caUtils.getDefaultExtension(fileName, aURI, aContentType);
     var leafName = this._caUtils.getNormalizedLeafName(fileName, extension);
     tempFile.append(leafName);
     return tempFile;
   }
-}
+};

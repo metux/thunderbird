@@ -17,8 +17,10 @@ const {
   CanvasFrameAnonymousContentHelper
 } = require("devtools/server/actors/highlighters/utils/markup");
 
-add_task(function*() {
-  let doc = yield addTab("about:preferences");
+add_task(function* () {
+  let browser = yield addTab("about:preferences");
+  // eslint-disable-next-line mozilla/no-cpows-in-tests
+  let doc = browser.contentDocument;
 
   let nodeBuilder = () => {
     let root = doc.createElement("div");

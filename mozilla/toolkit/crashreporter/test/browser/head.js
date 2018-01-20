@@ -4,7 +4,7 @@ function create_subdir(dir, subdirname) {
   if (subdir.exists()) {
     subdir.remove(true);
   }
-  subdir.create(Ci.nsIFile.DIRECTORY_TYPE, 0755);
+  subdir.create(Ci.nsIFile.DIRECTORY_TYPE, 0o755);
   return subdir;
 }
 
@@ -17,7 +17,7 @@ function make_fake_appdir() {
   // just because we know that will get cleaned up after the mochitest run.
   let dirSvc = Cc["@mozilla.org/file/directory_service;1"]
                .getService(Ci.nsIProperties);
-  let profD = dirSvc.get("ProfD", Ci.nsILocalFile);
+  let profD = dirSvc.get("ProfD", Ci.nsIFile);
   // create a subdir just to keep our files out of the way
   let appD = create_subdir(profD, "UAppData");
 
@@ -26,7 +26,7 @@ function make_fake_appdir() {
   create_subdir(crashesDir, "submitted");
 
   _provider = {
-    getFile: function(prop, persistent) {
+    getFile(prop, persistent) {
       persistent.value = true;
       if (prop == "UAppData") {
         return appD.clone();
@@ -39,7 +39,7 @@ function make_fake_appdir() {
       dump("WARNING: make_fake_appdir - fake nsIDirectoryServiceProvider - Unexpected getFile for: '" + prop + "'\n");
       return null;
     },
-    QueryInterface: function(iid) {
+    QueryInterface(iid) {
       if (iid.equals(Ci.nsIDirectoryServiceProvider) ||
           iid.equals(Ci.nsISupports)) {
         return this;
@@ -53,7 +53,7 @@ function make_fake_appdir() {
   // and undefine the old value
   try {
     dirSvc.undefine("UAppData");
-  } catch(ex) {} // it's ok if this fails, the value might not be cached yet
+  } catch (ex) {} // it's ok if this fails, the value might not be cached yet
   return appD.clone();
 }
 
@@ -65,8 +65,8 @@ function cleanup_fake_appdir() {
   // undefine our value so future calls get the real value
   try {
     dirSvc.undefine("UAppData");
-  } catch(ex) {
-    dump("cleanup_fake_appdir: dirSvc.undefine failed: " + ex.message +"\n");
+  } catch (ex) {
+    dump("cleanup_fake_appdir: dirSvc.undefine failed: " + ex.message + "\n");
   }
 }
 
@@ -86,15 +86,15 @@ function add_fake_crashes(crD, count) {
     let fn = uuid + ".txt";
     let file = submitdir.clone();
     file.append(fn);
-    file.create(Ci.nsIFile.NORMAL_FILE_TYPE, 0666);
+    file.create(Ci.nsIFile.NORMAL_FILE_TYPE, 0o666);
     file.lastModifiedTime = date;
-    results.push({'id': uuid, 'date': date, 'pending': false});
+    results.push({"id": uuid, "date": date, "pending": false});
 
     date += 60000;
   }
   // we want them sorted newest to oldest, since that's the order
   // that about:crashes lists them in
-  results.sort((a,b) => b.date - a.date);
+  results.sort((a, b) => b.date - a.date);
   return results;
 }
 
@@ -105,7 +105,7 @@ function writeDataToFile(file, data) {
   fstream.init(file, -1, -1, 0);
   var os = Cc["@mozilla.org/intl/converter-output-stream;1"]
            .createInstance(Ci.nsIConverterOutputStream);
-  os.init(fstream, "UTF-8", 0, 0x0000);
+  os.init(fstream, "UTF-8");
   os.writeString(data);
   os.close();
   fstream.close();
@@ -135,5 +135,5 @@ function addPendingCrashreport(crD, date, extra) {
   dumpfile.lastModifiedTime = date;
   extrafile.lastModifiedTime = date;
   memoryfile.lastModifiedTime = date;
-  return {'id': uuid, 'date': date, 'pending': true, 'extra': extra};
+  return {"id": uuid, "date": date, "pending": true, "extra": extra};
 }

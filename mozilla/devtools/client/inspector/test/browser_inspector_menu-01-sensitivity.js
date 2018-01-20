@@ -5,7 +5,7 @@ http://creativecommons.org/publicdomain/zero/1.0/ */
 
 // Test that context menu items are enabled / disabled correctly.
 
-const TEST_URL = TEST_URL_ROOT + "doc_inspector_menu.html";
+const TEST_URL = URL_ROOT + "doc_inspector_menu.html";
 
 const PASTE_MENU_ITEMS = [
   "node-menu-pasteinnerhtml",
@@ -26,6 +26,8 @@ const ALL_MENU_ITEMS = [
   "node-menu-copyinner",
   "node-menu-copyouter",
   "node-menu-copyuniqueselector",
+  "node-menu-copycsspath",
+  "node-menu-copyxpath",
   "node-menu-copyimagedatauri",
   "node-menu-delete",
   "node-menu-pseudo-hover",
@@ -34,6 +36,7 @@ const ALL_MENU_ITEMS = [
   "node-menu-scrollnodeintoview",
   "node-menu-screenshotnode",
   "node-menu-add-attribute",
+  "node-menu-copy-attribute",
   "node-menu-edit-attribute",
   "node-menu-remove-attribute"
 ].concat(PASTE_MENU_ITEMS, ACTIVE_ON_DOCTYPE_ITEMS);
@@ -59,16 +62,17 @@ const TEST_CASES = [
   {
     desc: "doctype node with html on clipboard",
     clipboardData: "<p>some text</p>",
-    clipboardDataType: "html",
+    clipboardDataType: "text",
     selector: null,
     disabled: INACTIVE_ON_DOCTYPE_ITEMS,
   },
   {
     desc: "element node HTML on the clipboard",
     clipboardData: "<p>some text</p>",
-    clipboardDataType: "html",
+    clipboardDataType: "text",
     disabled: [
       "node-menu-copyimagedatauri",
+      "node-menu-copy-attribute",
       "node-menu-edit-attribute",
       "node-menu-remove-attribute"
     ],
@@ -77,7 +81,7 @@ const TEST_CASES = [
   {
     desc: "<html> element",
     clipboardData: "<p>some text</p>",
-    clipboardDataType: "html",
+    clipboardDataType: "text",
     selector: "html",
     disabled: [
       "node-menu-copyimagedatauri",
@@ -85,6 +89,7 @@ const TEST_CASES = [
       "node-menu-pasteafter",
       "node-menu-pastefirstchild",
       "node-menu-pastelastchild",
+      "node-menu-copy-attribute",
       "node-menu-edit-attribute",
       "node-menu-remove-attribute"
     ],
@@ -92,12 +97,13 @@ const TEST_CASES = [
   {
     desc: "<body> with HTML on clipboard",
     clipboardData: "<p>some text</p>",
-    clipboardDataType: "html",
+    clipboardDataType: "text",
     selector: "body",
     disabled: [
       "node-menu-copyimagedatauri",
       "node-menu-pastebefore",
       "node-menu-pasteafter",
+      "node-menu-copy-attribute",
       "node-menu-edit-attribute",
       "node-menu-remove-attribute"
     ]
@@ -105,9 +111,10 @@ const TEST_CASES = [
   {
     desc: "<img> with HTML on clipboard",
     clipboardData: "<p>some text</p>",
-    clipboardDataType: "html",
+    clipboardDataType: "text",
     selector: "img",
     disabled: [
+      "node-menu-copy-attribute",
       "node-menu-edit-attribute",
       "node-menu-remove-attribute"
     ]
@@ -115,13 +122,14 @@ const TEST_CASES = [
   {
     desc: "<head> with HTML on clipboard",
     clipboardData: "<p>some text</p>",
-    clipboardDataType: "html",
+    clipboardDataType: "text",
     selector: "head",
     disabled: [
       "node-menu-copyimagedatauri",
       "node-menu-pastebefore",
       "node-menu-pasteafter",
       "node-menu-screenshotnode",
+      "node-menu-copy-attribute",
       "node-menu-edit-attribute",
       "node-menu-remove-attribute"
     ],
@@ -132,6 +140,7 @@ const TEST_CASES = [
     disabled: PASTE_MENU_ITEMS.concat([
       "node-menu-copyimagedatauri",
       "node-menu-screenshotnode",
+      "node-menu-copy-attribute",
       "node-menu-edit-attribute",
       "node-menu-remove-attribute"
     ]),
@@ -139,10 +148,11 @@ const TEST_CASES = [
   {
     desc: "<element> with text on clipboard",
     clipboardData: "some text",
-    clipboardDataType: undefined,
+    clipboardDataType: "text",
     selector: "#paste-area",
     disabled: [
       "node-menu-copyimagedatauri",
+      "node-menu-copy-attribute",
       "node-menu-edit-attribute",
       "node-menu-remove-attribute"
     ]
@@ -150,12 +160,13 @@ const TEST_CASES = [
   {
     desc: "<element> with base64 encoded image data uri on clipboard",
     clipboardData:
-      "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABC" +
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABC" +
       "AAAAAA6fptVAAAACklEQVQYV2P4DwABAQEAWk1v8QAAAABJRU5ErkJggg==",
-    clipboardDataType: undefined,
+    clipboardDataType: "image",
     selector: "#paste-area",
     disabled: PASTE_MENU_ITEMS.concat([
       "node-menu-copyimagedatauri",
+      "node-menu-copy-attribute",
       "node-menu-edit-attribute",
       "node-menu-remove-attribute"
     ]),
@@ -163,10 +174,11 @@ const TEST_CASES = [
   {
     desc: "<element> with empty string on clipboard",
     clipboardData: "",
-    clipboardDataType: undefined,
+    clipboardDataType: "text",
     selector: "#paste-area",
     disabled: PASTE_MENU_ITEMS.concat([
       "node-menu-copyimagedatauri",
+      "node-menu-copy-attribute",
       "node-menu-edit-attribute",
       "node-menu-remove-attribute"
     ]),
@@ -174,10 +186,11 @@ const TEST_CASES = [
   {
     desc: "<element> with whitespace only on clipboard",
     clipboardData: " \n\n\t\n\n  \n",
-    clipboardDataType: undefined,
+    clipboardDataType: "text",
     selector: "#paste-area",
     disabled: PASTE_MENU_ITEMS.concat([
       "node-menu-copyimagedatauri",
+      "node-menu-copy-attribute",
       "node-menu-edit-attribute",
       "node-menu-remove-attribute"
     ]),
@@ -188,6 +201,7 @@ const TEST_CASES = [
     disabled: PASTE_MENU_ITEMS.concat([
       "node-menu-copyimagedatauri",
       "node-menu-screenshotnode",
+      "node-menu-copy-attribute",
       "node-menu-edit-attribute",
       "node-menu-remove-attribute"
     ]),
@@ -198,6 +212,7 @@ const TEST_CASES = [
     disabled: PASTE_MENU_ITEMS.concat([
       "node-menu-copyimagedatauri",
       "node-menu-screenshotnode",
+      "node-menu-copy-attribute",
       "node-menu-edit-attribute",
       "node-menu-remove-attribute"
     ]),
@@ -210,12 +225,13 @@ const TEST_CASES = [
   }
 ];
 
-var clipboard = require("sdk/clipboard");
+var clipboard = require("devtools/shared/platform/clipboard");
 registerCleanupFunction(() => {
+  clipboard.copyString("");
   clipboard = null;
 });
 
-add_task(function *() {
+add_task(function* () {
   let { inspector } = yield openInspectorForURL(TEST_URL);
   for (let test of TEST_CASES) {
     let { desc, disabled, selector, attributeTrigger } = test;
@@ -231,17 +247,19 @@ add_task(function *() {
     info("Simulating context menu click on the selected node container.");
     let nodeFrontContainer = getContainerForNodeFront(front, inspector);
     let contextMenuTrigger = attributeTrigger
-      ? nodeFrontContainer.tagLine.querySelector(`[data-attr="${attributeTrigger}"]`)
+      ? nodeFrontContainer.tagLine.querySelector(
+          `[data-attr="${attributeTrigger}"]`)
       : nodeFrontContainer.tagLine;
-    contextMenuClick(contextMenuTrigger);
 
-    for (let menuitem of ALL_MENU_ITEMS) {
-      let elt = inspector.panelDoc.getElementById(menuitem);
-      let shouldBeDisabled = disabled.indexOf(menuitem) !== -1;
-      let isDisabled = elt.hasAttribute("disabled");
+    let allMenuItems = openContextMenuAndGetAllItems(inspector, {
+      target: contextMenuTrigger,
+    });
 
-      is(isDisabled, shouldBeDisabled,
-        `#${menuitem} should be ${shouldBeDisabled ? "disabled" : "enabled"} `);
+    for (let id of ALL_MENU_ITEMS) {
+      let menuItem = allMenuItems.find(item => item.id === id);
+      let shouldBeDisabled = disabled.indexOf(id) !== -1;
+      is(menuItem.disabled, shouldBeDisabled,
+        `#${id} should be ${shouldBeDisabled ? "disabled" : "enabled"}`);
     }
   }
 });
@@ -254,11 +272,11 @@ function* getNodeFrontForSelector(selector, inspector) {
   if (selector) {
     info("Retrieving front for selector " + selector);
     return getNodeFront(selector, inspector);
-  } else {
-    info("Retrieving front for doctype node");
-    let {nodes} = yield inspector.walker.children(inspector.walker.rootNode);
-    return nodes[0];
   }
+
+  info("Retrieving front for doctype node");
+  let {nodes} = yield inspector.walker.children(inspector.walker.rootNode);
+  return nodes[0];
 }
 
 /**
@@ -266,25 +284,43 @@ function* getNodeFrontForSelector(selector, inspector) {
  * clipboard if data is falsy.
  */
 function setupClipboard(data, type) {
-  if (data) {
-    info("Populating clipboard with " + type + " data.");
-    clipboard.set(data, type);
-  } else {
-    info("Clearing clipboard.");
-    clipboard.set("", "text");
+  if (!data) {
+    info("Clearing the clipboard.");
+    clipboard.copyString("");
+  } else if (type === "text") {
+    info("Populating clipboard with text.");
+    clipboard.copyString(data);
+  } else if (type === "image") {
+    info("Populating clipboard with image content");
+    copyImageToClipboard(data);
   }
 }
 
 /**
- * A helper that simulates a contextmenu event on the given chrome DOM element.
+ * The code below is a simplified version of the sdk/clipboard helper set() method.
  */
-function contextMenuClick(element) {
-  let evt = element.ownerDocument.createEvent('MouseEvents');
-  let button = 2;  // right click
+function copyImageToClipboard(data) {
+  let clipboardService = Cc["@mozilla.org/widget/clipboard;1"]
+                              .getService(Ci.nsIClipboard);
+  let imageTools = Cc["@mozilla.org/image/tools;1"]
+                     .getService(Ci.imgITools);
 
-  evt.initMouseEvent('contextmenu', true, true,
-       element.ownerDocument.defaultView, 1, 0, 0, 0, 0, false,
-       false, false, false, button, null);
+  // Image data is stored as base64 in the test.
+  let image = atob(data);
 
-  element.dispatchEvent(evt);
+  let input = Cc["@mozilla.org/io/string-input-stream;1"]
+                .createInstance(Ci.nsIStringInputStream);
+  input.setData(image, image.length);
+
+  let imgPtr = Cc["@mozilla.org/supports-interface-pointer;1"]
+                 .createInstance(Ci.nsISupportsInterfacePointer);
+  imgPtr.data = imageTools.decodeImage(input, "image/png");
+
+  let xferable = Cc["@mozilla.org/widget/transferable;1"]
+                   .createInstance(Ci.nsITransferable);
+  xferable.init(null);
+  xferable.addDataFlavor("image/png");
+  xferable.setTransferData("image/png", imgPtr, -1);
+
+  clipboardService.setData(xferable, null, clipboardService.kGlobalClipboard);
 }

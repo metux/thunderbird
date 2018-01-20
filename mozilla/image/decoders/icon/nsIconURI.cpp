@@ -5,15 +5,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "mozilla/ArrayUtils.h"
-
-#include "mozilla/ipc/URIUtils.h"
-
 #include "nsIconURI.h"
+
+#include "mozilla/ArrayUtils.h"
+#include "mozilla/ipc/URIUtils.h"
+#include "mozilla/Sprintf.h"
+
 #include "nsIIOService.h"
 #include "nsIURL.h"
 #include "nsNetUtil.h"
-#include "prprf.h"
 #include "plstr.h"
 #include <stdlib.h>
 
@@ -94,7 +94,7 @@ nsMozIconURI::GetSpec(nsACString& aSpec)
     aSpec += kSizeStrings[mIconSize];
   } else {
     char buf[20];
-    PR_snprintf(buf, sizeof(buf), "%d", mSize);
+    SprintfLiteral(buf, "%d", mSize);
     aSpec.Append(buf);
   }
 
@@ -115,6 +115,30 @@ NS_IMETHODIMP
 nsMozIconURI::GetSpecIgnoringRef(nsACString& result)
 {
   return GetSpec(result);
+}
+
+NS_IMETHODIMP
+nsMozIconURI::GetDisplaySpec(nsACString& aUnicodeSpec)
+{
+  return GetSpec(aUnicodeSpec);
+}
+
+NS_IMETHODIMP
+nsMozIconURI::GetDisplayHostPort(nsACString& aUnicodeHostPort)
+{
+  return GetHostPort(aUnicodeHostPort);
+}
+
+NS_IMETHODIMP
+nsMozIconURI::GetDisplayHost(nsACString& aUnicodeHost)
+{
+  return GetHost(aUnicodeHost);
+}
+
+NS_IMETHODIMP
+nsMozIconURI::GetDisplayPrePath(nsACString& aPrePath)
+{
+  return GetPrePath(aPrePath);
 }
 
 NS_IMETHODIMP
@@ -192,7 +216,7 @@ nsMozIconURI::SetSpec(const nsACString& aSpec)
       }
 
       int32_t sizeValue = atoi(sizeString.get());
-      if (sizeValue) {
+      if (sizeValue > 0) {
         mSize = sizeValue;
       }
     }
@@ -329,6 +353,12 @@ nsMozIconURI::SetHostPort(const nsACString& aHostPort)
 }
 
 NS_IMETHODIMP
+nsMozIconURI::SetHostAndPort(const nsACString& aHostPort)
+{
+  return NS_ERROR_FAILURE;
+}
+
+NS_IMETHODIMP
 nsMozIconURI::GetHost(nsACString& aHost)
 {
   return NS_ERROR_FAILURE;
@@ -353,14 +383,47 @@ nsMozIconURI::SetPort(int32_t aPort)
 }
 
 NS_IMETHODIMP
-nsMozIconURI::GetPath(nsACString& aPath)
+nsMozIconURI::GetPathQueryRef(nsACString& aPath)
 {
   aPath.Truncate();
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsMozIconURI::SetPath(const nsACString& aPath)
+nsMozIconURI::SetPathQueryRef(const nsACString& aPath)
+{
+  return NS_ERROR_FAILURE;
+}
+
+NS_IMETHODIMP
+nsMozIconURI::GetFilePath(nsACString& aFilePath)
+{
+  aFilePath.Truncate();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsMozIconURI::SetFilePath(const nsACString& aFilePath)
+{
+  return NS_ERROR_FAILURE;
+}
+
+NS_IMETHODIMP
+nsMozIconURI::GetQuery(nsACString& aQuery)
+{
+  aQuery.Truncate();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsMozIconURI::SetQuery(const nsACString& aQuery)
+{
+  return NS_ERROR_FAILURE;
+}
+
+NS_IMETHODIMP
+nsMozIconURI::SetQueryWithEncoding(const nsACString& aQuery,
+                                   const Encoding* aEncoding)
 {
   return NS_ERROR_FAILURE;
 }
@@ -381,14 +444,18 @@ nsMozIconURI::SetRef(const nsACString& aRef)
 NS_IMETHODIMP
 nsMozIconURI::Equals(nsIURI* other, bool* result)
 {
+  *result = false;
   NS_ENSURE_ARG_POINTER(other);
   NS_PRECONDITION(result, "null pointer");
 
   nsAutoCString spec1;
   nsAutoCString spec2;
 
-  other->GetSpec(spec2);
-  GetSpec(spec1);
+  nsresult rv = GetSpec(spec1);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = other->GetSpec(spec2);
+  NS_ENSURE_SUCCESS(rv, rv);
+
   if (!PL_strcasecmp(spec1.get(), spec2.get())) {
     *result = true;
   } else {
@@ -455,6 +522,15 @@ nsMozIconURI::CloneIgnoringRef(nsIURI** result)
 }
 
 NS_IMETHODIMP
+nsMozIconURI::CloneWithNewRef(const nsACString& newRef, nsIURI** result)
+{
+  // GetRef/SetRef not supported by nsMozIconURI, so
+  // CloneWithNewRef() is the same as Clone().
+  return Clone(result);
+}
+
+
+NS_IMETHODIMP
 nsMozIconURI::Resolve(const nsACString& relativePath, nsACString& result)
 {
   return NS_ERROR_NOT_IMPLEMENTED;
@@ -476,13 +552,6 @@ NS_IMETHODIMP
 nsMozIconURI::GetAsciiHost(nsACString& aHostA)
 {
   return GetHost(aHostA);
-}
-
-NS_IMETHODIMP
-nsMozIconURI::GetOriginCharset(nsACString& result)
-{
-  result.Truncate();
-  return NS_OK;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

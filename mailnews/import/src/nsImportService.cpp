@@ -7,7 +7,7 @@
 #include "nsIPlatformCharset.h"
 #include "nsICharsetConverterManager.h"
 
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsIComponentManager.h"
 #include "nsIServiceManager.h"
 #include "nsMemory.h"
@@ -33,11 +33,8 @@
 #include "nsComponentManagerUtils.h"
 #include "nsIMutableArray.h"
 #include "nsIArray.h"
-#include "nsISupportsArray.h"
 #include "nsIMsgSend.h"
 #include "nsMsgUtils.h"
-
-PRLogModuleInfo *IMPORTLOGMODULE = nullptr;
 
 static nsIImportService *  gImportService = nullptr;
 static const char *  kWhitespace = "\b\t\r\n ";
@@ -48,14 +45,9 @@ static const char *  kWhitespace = "\b\t\r\n ";
 
 nsImportService::nsImportService() : m_pModules(nullptr)
 {
-  // Init logging module.
-  if (!IMPORTLOGMODULE)
-    IMPORTLOGMODULE = PR_NewLogModule("IMPORT");
   IMPORT_LOG0("* nsImport Service Created\n");
 
   m_didDiscovery = false;
-  m_pDecoder = nullptr;
-  m_pEncoder = nullptr;
 
   nsresult rv = nsImportStringBundle::GetStringBundle(IMPORT_MSGS_URL, getter_AddRefs(m_stringBundle));
   if (NS_FAILED(rv))
@@ -65,9 +57,6 @@ nsImportService::nsImportService() : m_pModules(nullptr)
 
 nsImportService::~nsImportService()
 {
-  NS_IF_RELEASE(m_pDecoder);
-  NS_IF_RELEASE(m_pEncoder);
-
   gImportService = nullptr;
 
     if (m_pModules != nullptr)
@@ -168,7 +157,7 @@ NS_IMETHODIMP nsImportService::GetModuleWithCID(const nsCID& cid, nsIImportModul
     if (!pDesc)
       return NS_ERROR_FAILURE;
     if (pDesc->GetCID().Equals(cid)) {
-      *ppModule = pDesc->GetModule();
+      pDesc->GetModule(ppModule);
 
       IMPORT_LOG0("* nsImportService::GetSpecificModule - attempted to load module\n");
 
@@ -283,7 +272,7 @@ NS_IMETHODIMP nsImportService::GetModuleDescription(const char *filter, int32_t 
   return NS_ERROR_FAILURE;
 }
 
-class nsProxySendRunnable : public nsRunnable
+class nsProxySendRunnable : public mozilla::Runnable
 {
 public:
   nsProxySendRunnable(nsIMsgIdentity *aIdentity,
@@ -315,6 +304,7 @@ nsProxySendRunnable::nsProxySendRunnable(nsIMsgIdentity *aIdentity,
                                          nsIArray *aLoadedAttachments,
                                          nsIArray *aEmbeddedAttachments,
                                          nsIMsgSendListener *aListener) :
+  mozilla::Runnable("nsProxySendRunnable"),
   m_identity(aIdentity), m_compFields(aMsgFields),
   m_isDraft(aIsDraft), m_bodyType(aBodyType),
   m_body(aBody), m_loadedAttachments(aLoadedAttachments),
@@ -329,25 +319,10 @@ NS_IMETHODIMP nsProxySendRunnable::Run()
   nsCOMPtr<nsIMsgSend> msgSend = do_CreateInstance(NS_MSGSEND_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsISupportsArray> supportsArray;
-  NS_NewISupportsArray(getter_AddRefs(supportsArray));
-
-  if (m_embeddedAttachments) {
-    nsCOMPtr<nsISimpleEnumerator> enumerator;
-    m_embeddedAttachments->Enumerate(getter_AddRefs(enumerator));
-
-    bool hasMore;
-    while (NS_SUCCEEDED(enumerator->HasMoreElements(&hasMore)) && hasMore) {
-      nsCOMPtr<nsISupports> item;
-      enumerator->GetNext(getter_AddRefs(item));
-      supportsArray->AppendElement(item);
-    }
-  }
-
   return msgSend->CreateRFC822Message(m_identity, m_compFields,
                                       m_bodyType.get(), m_body,
                                       m_isDraft, m_loadedAttachments,
-                                      supportsArray,
+                                      m_embeddedAttachments,
                                       m_listener);
 }
 
@@ -395,7 +370,7 @@ NS_IMETHODIMP nsImportService::GetModule(const char *filter, int32_t index, nsII
     pDesc = m_pModules->GetModuleDesc(i);
     if (pDesc->SupportsThings(filter)) {
       if (count == index) {
-        *_retval = pDesc->GetModule();
+        pDesc->GetModule(_retval);
         break;
       }
       else
@@ -462,8 +437,7 @@ nsresult nsImportService::LoadModuleInfo(const char *pClsId, const char *pSuppor
 
   nsCID        clsId;
   clsId.Parse(pClsId);
-  nsIImportModule *  module;
-  rv = CallCreateInstance(clsId, &module);
+  nsCOMPtr<nsIImportModule> module = do_CreateInstance(clsId, &rv);
   if (NS_FAILED(rv)) return rv;
 
   nsString  theTitle;
@@ -479,48 +453,27 @@ nsresult nsImportService::LoadModuleInfo(const char *pClsId, const char *pSuppor
   // call the module to get the info we need
   m_pModules->AddModule(clsId, pSupports, theTitle.get(), theDescription.get());
 
-  module->Release();
-
   return NS_OK;
 }
 
-
-nsIImportModule *ImportModuleDesc::GetModule(bool keepLoaded)
+// XXX This should return already_AddRefed.
+void ImportModuleDesc::GetModule(nsIImportModule **_retval)
 {
-  if (m_pModule)
+  if (!m_pModule)
   {
-    m_pModule->AddRef();
-    return m_pModule;
+    nsresult  rv;
+    m_pModule = do_CreateInstance(m_cid, &rv);
+    if (NS_FAILED(rv))
+      m_pModule = nullptr;
   }
 
-  nsresult  rv;
-  rv = CallCreateInstance(m_cid, &m_pModule);
-  if (NS_FAILED(rv))
-  {
-    m_pModule = nullptr;
-    return nullptr;
-  }
-
-  if (keepLoaded)
-  {
-    m_pModule->AddRef();
-    return m_pModule;
-  }
-  else
-  {
-    nsIImportModule *pModule = m_pModule;
-    m_pModule = nullptr;
-    return pModule;
-  }
+  NS_IF_ADDREF(*_retval = m_pModule);
+  return;
 }
 
 void ImportModuleDesc::ReleaseModule(void)
 {
-  if (m_pModule)
-  {
-    m_pModule->Release();
-    m_pModule = nullptr;
-  }
+  m_pModule = nullptr;
 }
 
 bool ImportModuleDesc::SupportsThings(const char *pThings)

@@ -6,51 +6,41 @@
 package org.mozilla.gecko.firstrun;
 
 import android.content.Context;
+import android.os.Bundle;
 import android.util.Log;
-import com.keepsafe.switchboard.SwitchBoard;
-import org.mozilla.gecko.AppConstants;
+import org.mozilla.gecko.GeckoSharedPrefs;
+import org.mozilla.gecko.R;
 import org.mozilla.gecko.Telemetry;
 import org.mozilla.gecko.TelemetryContract;
+import org.mozilla.gecko.Experiments;
 
 import java.util.LinkedList;
 import java.util.List;
 
 public class FirstrunPagerConfig {
     public static final String LOGTAG = "FirstrunPagerConfig";
-    public static final String ONBOARDING_A = "onboarding-a";
-    public static final String ONBOARDING_B = "onboarding-b";
 
-    public static List<FirstrunPanelConfig> getDefault(Context context) {
+    public static final String KEY_IMAGE = "imageRes";
+    public static final String KEY_TEXT = "textRes";
+    public static final String KEY_SUBTEXT = "subtextRes";
+
+   public static List<FirstrunPanelConfig> getDefault(Context context) {
         final List<FirstrunPanelConfig> panels = new LinkedList<>();
-
-        // The "Import" feature is disabled on devices running Android M+ (Bug 1183559).
-        // Exclude these users from the experiment to add an "Import" panel.
-        if (isInExperimentLocal(context, ONBOARDING_A) && AppConstants.Versions.preM) {
-            panels.add(new FirstrunPanelConfig(WelcomePanel.class.getName(), WelcomePanel.TITLE_RES));
-            Telemetry.startUISession(TelemetryContract.Session.EXPERIMENT, ONBOARDING_A);
-        } else if (isInExperimentLocal(context, ONBOARDING_B) && AppConstants.Versions.preM) {
-            // Strings used for first run, pulled from existing strings.
-            panels.add(new FirstrunPanelConfig(ImportPanel.class.getName(), ImportPanel.TITLE_RES));
-            panels.add(new FirstrunPanelConfig(SyncPanel.class.getName(), SyncPanel.TITLE_RES));
-            Telemetry.startUISession(TelemetryContract.Session.EXPERIMENT, ONBOARDING_B);
-        } else {
-            Log.d(LOGTAG, "Not in an experiment!");
-            panels.add(new FirstrunPanelConfig(WelcomePanel.class.getName(), WelcomePanel.TITLE_RES));
-        }
+       panels.add(SimplePanelConfigs.welcomePanelConfig);
+       panels.add(SimplePanelConfigs.privatePanelConfig);
+       panels.add(SimplePanelConfigs.customizePanelConfig);
+       panels.add(SimplePanelConfigs.syncPanelConfig);
 
         return panels;
     }
 
-    /*
-     * Wrapper method for using local bucketing rather than server-side.
-     * This needs to match the server-side bucketing used on mozilla-switchboard.herokuapp.com.
-     */
-    private static boolean isInExperimentLocal(Context context, String name) {
-        if (AppConstants.MOZ_SWITCHBOARD) {
-          // Only show Onboarding A.
-          return ONBOARDING_A.equals(name);
-        }
-        return false;
+    public static List<FirstrunPanelConfig> forFxAUser(Context context) {
+        final List<FirstrunPanelConfig> panels = new LinkedList<>();
+        panels.add(SimplePanelConfigs.welcomePanelConfig);
+        panels.add(SimplePanelConfigs.privatePanelConfig);
+        panels.add(SimplePanelConfigs.customizeLastPanelConfig);
+
+        return panels;
     }
 
     public static List<FirstrunPanelConfig> getRestricted() {
@@ -60,12 +50,29 @@ public class FirstrunPagerConfig {
     }
 
     public static class FirstrunPanelConfig {
+
         private String classname;
         private int titleRes;
+        private Bundle args;
 
         public FirstrunPanelConfig(String resource, int titleRes) {
-            this.classname= resource;
+            this(resource, titleRes, -1, -1, -1, true);
+        }
+
+        public FirstrunPanelConfig(String classname, int titleRes, int imageRes, int textRes, int subtextRes) {
+            this(classname, titleRes, imageRes, textRes, subtextRes, false);
+        }
+
+        private FirstrunPanelConfig(String classname, int titleRes, int imageRes, int textRes, int subtextRes, boolean isCustom) {
+            this.classname = classname;
             this.titleRes = titleRes;
+
+            if (!isCustom) {
+                this.args = new Bundle();
+                this.args.putInt(KEY_IMAGE, imageRes);
+                this.args.putInt(KEY_TEXT, textRes);
+                this.args.putInt(KEY_SUBTEXT, subtextRes);
+            }
         }
 
         public String getClassname() {
@@ -75,6 +82,19 @@ public class FirstrunPagerConfig {
         public int getTitleRes() {
             return this.titleRes;
         }
+
+        public Bundle getArgs() {
+            return args;
+        }
+    }
+
+    private static class SimplePanelConfigs {
+        public static final FirstrunPanelConfig welcomePanelConfig = new FirstrunPanelConfig(FirstrunPanel.class.getName(), R.string.firstrun_panel_title_welcome, R.drawable.firstrun_welcome, R.string.firstrun_urlbar_message, R.string.firstrun_urlbar_subtext);
+        public static final FirstrunPanelConfig privatePanelConfig = new FirstrunPanelConfig(FirstrunPanel.class.getName(), R.string.firstrun_panel_title_privacy, R.drawable.firstrun_private, R.string.firstrun_privacy_message, R.string.firstrun_privacy_subtext);
+        public static final FirstrunPanelConfig customizePanelConfig = new FirstrunPanelConfig(FirstrunPanel.class.getName(), R.string.firstrun_panel_title_customize, R.drawable.firstrun_data, R.string.firstrun_customize_message, R.string.firstrun_customize_subtext);
+        public static final FirstrunPanelConfig customizeLastPanelConfig = new FirstrunPanelConfig(LastPanel.class.getName(), R.string.firstrun_panel_title_customize, R.drawable.firstrun_data, R.string.firstrun_customize_message, R.string.firstrun_customize_subtext);
+
+        public static final FirstrunPanelConfig syncPanelConfig = new FirstrunPanelConfig(SyncPanel.class.getName(), R.string.firstrun_sync_title, R.drawable.firstrun_sync, R.string.firstrun_sync_message, R.string.firstrun_sync_subtext);
 
     }
 }

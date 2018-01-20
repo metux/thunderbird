@@ -6,7 +6,6 @@
 
 #include "jit/RematerializedFrame.h"
 
-#include "mozilla/SizePrintfMacros.h"
 
 #include "jit/JitFrames.h"
 #include "vm/ArgumentsObject.h"
@@ -14,7 +13,7 @@
 
 #include "jsscriptinlines.h"
 #include "jit/JitFrames-inl.h"
-#include "vm/ScopeObject-inl.h"
+#include "vm/EnvironmentObject-inl.h"
 
 using namespace js;
 using namespace jit;
@@ -50,8 +49,8 @@ RematerializedFrame::RematerializedFrame(JSContext* cx, uint8_t* top, unsigned n
         callee_ = nullptr;
 
     CopyValueToRematerializedFrame op(slots_);
-    iter.readFrameArgsAndLocals(cx, op, op, &scopeChain_, &hasCallObj_, &returnValue_,
-                                &argsObj_, &thisArgument_, ReadFrame_Actuals,
+    iter.readFrameArgsAndLocals(cx, op, op, &envChain_, &hasInitialEnv_, &returnValue_,
+                                &argsObj_, &thisArgument_, &newTarget_, ReadFrame_Actuals,
                                 fallback);
 }
 
@@ -60,7 +59,7 @@ RematerializedFrame::New(JSContext* cx, uint8_t* top, InlineFrameIterator& iter,
                          MaybeReadFallback& fallback)
 {
     unsigned numFormals = iter.isFunctionFrame() ? iter.calleeTemplate()->nargs() : 0;
-    unsigned argSlots = Max(numFormals, iter.numActualArgs()) + iter.isConstructing();
+    unsigned argSlots = Max(numFormals, iter.numActualArgs());
     size_t numBytes = sizeof(RematerializedFrame) +
         (argSlots + iter.script()->nfixed()) * sizeof(Value) -
         sizeof(Value); // 1 Value included in sizeof(RematerializedFrame)
@@ -76,33 +75,33 @@ RematerializedFrame::New(JSContext* cx, uint8_t* top, InlineFrameIterator& iter,
 RematerializedFrame::RematerializeInlineFrames(JSContext* cx, uint8_t* top,
                                                InlineFrameIterator& iter,
                                                MaybeReadFallback& fallback,
-                                               Vector<RematerializedFrame*>& frames)
+                                               GCVector<RematerializedFrame*>& frames)
 {
-    if (!frames.resize(iter.frameCount()))
+    Rooted<GCVector<RematerializedFrame*>> tempFrames(cx, GCVector<RematerializedFrame*>(cx));
+    if (!tempFrames.resize(iter.frameCount()))
         return false;
 
     while (true) {
         size_t frameNo = iter.frameNo();
-        RematerializedFrame* frame = RematerializedFrame::New(cx, top, iter, fallback);
-        if (!frame)
+        tempFrames[frameNo].set(RematerializedFrame::New(cx, top, iter, fallback));
+        if (!tempFrames[frameNo])
             return false;
-        if (frame->scopeChain()) {
-            if (!EnsureHasScopeObjects(cx, frame))
+        if (tempFrames[frameNo]->environmentChain()) {
+            if (!EnsureHasEnvironmentObjects(cx, tempFrames[frameNo].get()))
                 return false;
         }
-
-        frames[frameNo] = frame;
 
         if (!iter.more())
             break;
         ++iter;
     }
 
+    frames = Move(tempFrames.get());
     return true;
 }
 
 /* static */ void
-RematerializedFrame::FreeInVector(Vector<RematerializedFrame*>& frames)
+RematerializedFrame::FreeInVector(GCVector<RematerializedFrame*>& frames)
 {
     for (size_t i = 0; i < frames.length(); i++) {
         RematerializedFrame* f = frames[i];
@@ -113,58 +112,42 @@ RematerializedFrame::FreeInVector(Vector<RematerializedFrame*>& frames)
     frames.clear();
 }
 
-/* static */ void
-RematerializedFrame::MarkInVector(JSTracer* trc, Vector<RematerializedFrame*>& frames)
-{
-    for (size_t i = 0; i < frames.length(); i++)
-        frames[i]->mark(trc);
-}
-
 CallObject&
 RematerializedFrame::callObj() const
 {
-    MOZ_ASSERT(hasCallObj());
+    MOZ_ASSERT(hasInitialEnvironment());
 
-    JSObject* scope = scopeChain();
-    while (!scope->is<CallObject>())
-        scope = scope->enclosingScope();
-    return scope->as<CallObject>();
-}
-
-void
-RematerializedFrame::pushOnScopeChain(ScopeObject& scope)
-{
-    MOZ_ASSERT(*scopeChain() == scope.enclosingScope() ||
-               *scopeChain() == scope.as<CallObject>().enclosingScope().as<DeclEnvObject>().enclosingScope());
-    scopeChain_ = &scope;
+    JSObject* env = environmentChain();
+    while (!env->is<CallObject>())
+        env = env->enclosingEnvironment();
+    return env->as<CallObject>();
 }
 
 bool
-RematerializedFrame::initFunctionScopeObjects(JSContext* cx)
+RematerializedFrame::initFunctionEnvironmentObjects(JSContext* cx)
 {
-    MOZ_ASSERT(isNonEvalFunctionFrame());
-    MOZ_ASSERT(fun()->needsCallObject());
-    CallObject* callobj = CallObject::createForFunction(cx, this);
-    if (!callobj)
-        return false;
-    pushOnScopeChain(*callobj);
-    hasCallObj_ = true;
-    return true;
+    return js::InitFunctionEnvironmentObjects(cx, this);
+}
+
+bool
+RematerializedFrame::pushVarEnvironment(JSContext* cx, HandleScope scope)
+{
+    return js::PushVarEnvironmentObject(cx, scope, this);
 }
 
 void
-RematerializedFrame::mark(JSTracer* trc)
+RematerializedFrame::trace(JSTracer* trc)
 {
     TraceRoot(trc, &script_, "remat ion frame script");
-    TraceRoot(trc, &scopeChain_, "remat ion frame scope chain");
+    TraceRoot(trc, &envChain_, "remat ion frame env chain");
     if (callee_)
         TraceRoot(trc, &callee_, "remat ion frame callee");
     if (argsObj_)
         TraceRoot(trc, &argsObj_, "remat ion frame argsobj");
     TraceRoot(trc, &returnValue_, "remat ion frame return value");
     TraceRoot(trc, &thisArgument_, "remat ion frame this");
-    TraceRootRange(trc, numActualArgs_ + isConstructing_ + script_->nfixed(),
-                   slots_, "remat ion frame stack");
+    TraceRoot(trc, &newTarget_, "remat ion frame newTarget");
+    TraceRootRange(trc, numArgSlots() + script_->nfixed(), slots_, "remat ion frame stack");
 }
 
 void
@@ -182,16 +165,16 @@ RematerializedFrame::dump()
         fprintf(stderr, "  global frame, no callee\n");
     }
 
-    fprintf(stderr, "  file %s line %" PRIuSIZE " offset %" PRIuSIZE "\n",
+    fprintf(stderr, "  file %s line %zu offset %zu\n",
             script()->filename(), script()->lineno(),
             script()->pcToOffset(pc()));
 
     fprintf(stderr, "  script = %p\n", (void*) script());
 
     if (isFunctionFrame()) {
-        fprintf(stderr, "  scope chain: ");
+        fprintf(stderr, "  env chain: ");
 #ifdef DEBUG
-        DumpValue(ObjectValue(*scopeChain()));
+        DumpValue(ObjectValue(*environmentChain()));
 #else
         fprintf(stderr, "?\n");
 #endif

@@ -22,7 +22,6 @@
 #include "nsIFile.h"
 #include "nsITreeView.h"
 #include "nsITreeSelection.h"
-#include "nsIAtom.h"
 #include "nsCOMArray.h"
 
 #include "nsNntpMockChannel.h"
@@ -37,7 +36,7 @@ class nsNntpIncomingServer : public nsMsgIncomingServer,
                              public nsIUrlListener,
                              public nsISubscribableServer,
                              public nsITreeView
-                             
+
 {
 public:
     NS_DECL_ISUPPORTS_INHERITED
@@ -48,35 +47,36 @@ public:
 
     nsNntpIncomingServer();
 
-    NS_IMETHOD GetLocalStoreType(nsACString& type);
-    NS_IMETHOD CloseCachedConnections();
-    NS_IMETHOD PerformBiff(nsIMsgWindow *aMsgWindow);
-    NS_IMETHOD PerformExpand(nsIMsgWindow *aMsgWindow);
+    NS_IMETHOD GetLocalStoreType(nsACString& type) override;
+    NS_IMETHOD GetLocalDatabaseType(nsACString& type) override;
+    NS_IMETHOD CloseCachedConnections() override;
+    NS_IMETHOD PerformBiff(nsIMsgWindow *aMsgWindow) override;
+    NS_IMETHOD PerformExpand(nsIMsgWindow *aMsgWindow) override;
     NS_IMETHOD OnUserOrHostNameChanged(const nsACString& oldName,
                                        const nsACString& newName,
-                                       bool hostnameChanged);
+                                       bool hostnameChanged) override;
 
     // for nsMsgLineBuffer
     virtual nsresult HandleLine(const char *line, uint32_t line_size);
 
     // override to clear all passwords associated with server
-    NS_IMETHODIMP ForgetPassword();
-    NS_IMETHOD GetCanSearchMessages(bool *canSearchMessages);
-    NS_IMETHOD GetOfflineSupportLevel(int32_t *aSupportLevel);
-    NS_IMETHOD GetDefaultCopiesAndFoldersPrefsToServer(bool *aCopiesAndFoldersOnServer);
-    NS_IMETHOD GetCanCreateFoldersOnServer(bool *aCanCreateFoldersOnServer);
-    NS_IMETHOD GetCanFileMessagesOnServer(bool *aCanFileMessagesOnServer);
-    NS_IMETHOD GetFilterScope(nsMsgSearchScopeValue *filterScope);
-    NS_IMETHOD GetSearchScope(nsMsgSearchScopeValue *searchScope);
+    NS_IMETHODIMP ForgetPassword() override;
+    NS_IMETHOD GetCanSearchMessages(bool *canSearchMessages) override;
+    NS_IMETHOD GetOfflineSupportLevel(int32_t *aSupportLevel) override;
+    NS_IMETHOD GetDefaultCopiesAndFoldersPrefsToServer(bool *aCopiesAndFoldersOnServer) override;
+    NS_IMETHOD GetCanCreateFoldersOnServer(bool *aCanCreateFoldersOnServer) override;
+    NS_IMETHOD GetCanFileMessagesOnServer(bool *aCanFileMessagesOnServer) override;
+    NS_IMETHOD GetFilterScope(nsMsgSearchScopeValue *filterScope) override;
+    NS_IMETHOD GetSearchScope(nsMsgSearchScopeValue *searchScope) override;
 
-    NS_IMETHOD GetSocketType(int32_t *aSocketType); // override nsMsgIncomingServer impl
-    NS_IMETHOD SetSocketType(int32_t aSocketType); // override nsMsgIncomingServer impl
-    NS_IMETHOD GetSortOrder(int32_t* aSortOrder);
+    NS_IMETHOD GetSocketType(int32_t *aSocketType) override; // override nsMsgIncomingServer impl
+    NS_IMETHOD SetSocketType(int32_t aSocketType) override; // override nsMsgIncomingServer impl
+    NS_IMETHOD GetSortOrder(int32_t* aSortOrder) override;
 
 protected:
     virtual ~nsNntpIncomingServer();
    virtual nsresult CreateRootFolderFromUri(const nsCString &serverUri,
-                                            nsIMsgFolder **rootFolder);
+                                            nsIMsgFolder **rootFolder) override;
     nsresult GetNntpConnection(nsIURI *url, nsIMsgWindow *window,
                                nsINNTPProtocol **aNntpConnection);
     nsresult CreateProtocolInstance(nsINNTPProtocol **aNntpConnection,
@@ -90,7 +90,7 @@ protected:
      */
     nsresult DownloadMail(nsIMsgWindow *aMsgWindow);
 
-    NS_IMETHOD GetServerRequiresPasswordForBiff(bool *aServerRequiresPasswordForBiff);
+    NS_IMETHOD GetServerRequiresPasswordForBiff(bool *aServerRequiresPasswordForBiff) override;
     nsresult SetupNewsrcSaveTimer();
     static void OnNewsrcSaveTimer(nsITimer *timer, void *voidIncomingServer);
     void WriteLine(nsIOutputStream *stream, nsCString &str);
@@ -101,12 +101,10 @@ private:
     nsTArray<nsCString> mSubscribeSearchResult;
     bool mSearchResultSortDescending;
     // the list of of subscribed newsgroups within a given
-    // subscribed dialog session.  
+    // subscribed dialog session.
     // we need to keep track of them so we know what to show as "checked"
     // in the search view
     nsTArray<nsCString> mTempSubscribed;
-    nsCOMPtr<nsIAtom> mSubscribedAtom;
-    nsCOMPtr<nsIAtom> mNntpAtom;
 
     nsCOMPtr<nsITreeBoxObject> mTree;
     nsCOMPtr<nsITreeSelection> mTreeSelection;
